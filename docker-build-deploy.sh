@@ -18,7 +18,7 @@
 # Variables
 DOCKER_USERNAME="wauwau0977"
 IMAGE_NAME="mytraillog"
-TAG_NAME="1.191"  # latest  or version, ( v. 1.1 -> 2025-10 release)
+TAG_NAME="1.200"  # latest  or version, ( v. 1.1 -> 2025-10 release)
 
 MAP_IMAGE_NAME="mytraillog-maps"
 MAP_TAG_NAME="1.31"

@@ -3,6 +3,14 @@
 > Self-hosted GPS track & trail log — built to run on your own PC, in your
 > home lab, or on your own server, in a few Docker containers.
 
+## Try the live demo
+
+**[https://mtl-demo.mindalyze.com/mtl/](https://mtl-demo.mindalyze.com/mtl/)**
+
+No account needed — loaded with real demo tracks so you can explore the full UI right now.
+
+---
+
 [![License: AGPL v3+](https://img.shields.io/badge/license-AGPL--3.0--or--later-blue.svg)](LICENSE)
 [![Commercial License](https://img.shields.io/badge/commercial-available-green.svg)](COMMERCIAL-LICENSE.md)
 
@@ -39,7 +47,10 @@ importing anything first.
 
 ## License
 
-MyTrailLog is **dual-licensed**:
+MyTrailLog is **dual-licensed** — free for personal/home use (AGPL), commercial license available for SaaS/proprietary use.
+
+<details>
+<summary>License details</summary>
 
 | Use case | License |
 | --- | --- |
@@ -70,6 +81,8 @@ See also:
 
 Commercial inquiries: **hey.lueg@gmail.com**.
 
+</details>
+
 ## Contributing
 
 Contributions are welcome! Please read
@@ -82,6 +95,9 @@ offering the commercial-license option.
 
 ## Disclaimer
 
+<details>
+<summary>Disclaimer & limitation of liability</summary>
+
 MyTrailLog is provided **"AS IS" without any warranty**, express or implied.
 **It is not a safety-critical navigation system.** Do not rely on it as the
 sole means of navigation in the backcountry, at sea, in the air, or in any
@@ -90,6 +106,8 @@ a map, compass, and working brain.
 
 See [`DISCLAIMER.md`](DISCLAIMER.md) for the full disclaimer and limitation
 of liability.
+
+</details>
 
 ---
 

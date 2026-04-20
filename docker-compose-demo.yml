@@ -32,7 +32,7 @@ services:
       -c synchronous_commit=off
 
   app:
-    image: wauwau0977/mytraillog:125
+    image: wauwau0977/mytraillog:1.200
     depends_on:
       - db
     environment:
@@ -41,8 +41,8 @@ services:
       POSTGRES_PASSWORD: MtlSuper123
       # Demo mode — auto-extracts Porto taxi GPX tracks and generates geo-tagged photos on first startup
       DEMO_MODE: "Y"
-      DEMO_TARGET_TRACK_COUNT: "10000"  # Exact visible track count after bad-track exclusion (0 = keep all)
-      DEMO_PHOTO_COUNT: "500"
+      DEMO_TARGET_TRACK_COUNT: "10042" 
+      DEMO_PHOTO_COUNT: "300"
     ports:
       - "18084:8080"
     expose:
@@ -61,18 +61,31 @@ services:
       # No application.yml mount — demo credentials (demo/mtl) are baked into application-demo.yml
 
   map-server:
-    image: wauwau0977/mytraillog-maps:1.26
+    image: wauwau0977/mytraillog-maps:1.31
     ports:
       - "18083:8081"
     expose:
       - 8081
     environment:
       PORT: "8081"
-      LOWZOOM_MAXZOOM: "5"
-      # No MAP_DOWNLOAD_URL needed — demo tiles are baked into the image.
-      # For a different city, use the base image with:
-      #   MAP_DOWNLOAD_URL: latest
-      #   MAP_AREA_BBOX: "west,south,east,north"
+      LOWZOOM_MAXZOOM: "8"
     volumes:
       - /volume1/raspberry/MyTrailLogDemo/maps:/data
+    restart: unless-stopped
+
+  brouter:
+    image: wauwau0977/mytraillog-brouter:1.0
+    expose:
+      - 17777
+      - 17778
+    environment:
+      BROUTER_JAVA_XMX: "256m"
+    volumes:
+      - /volume1/raspberry/MyTrailLogDemo/brouter-segments:/segments4
+    deploy:
+      resources:
+        limits:
+          memory: 1g
+        reservations:
+          memory: 256m
     restart: unless-stopped
