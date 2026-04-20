@@ -1,0 +1,517 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="GPSBabel - https://www.gpsbabel.org" xmlns="http://www.topografix.com/GPX/1/1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:topografix="http://www.topografix.com/GPX/Private/TopoGrafix/0/1">
+  <metadata>
+    <time>2023-04-16T08:53:27.765Z</time>
+    <bounds minlat="46.606070000" minlon="7.663820000" maxlat="46.689800000" maxlon="7.768480000"/>
+  </metadata>
+  <trk>
+    <name>2011-09-24 12:44</name>
+    <desc>MTB: mit Silja. Hier haben wir die eigentlich schöne Tour verpasst. Die Gratüberquerung war nicht gut fahrbar. Auf der anderen Seit runter war fast gar nicht fahrbar. SchöTrails hattee es gehabt, wenn wir umgekehrt hätten und von Fulematti wieder runter gefahren wären. Durch die Zick-Zack-Strasse hätten schöne Single-Trails geführt..</desc>
+    <number>185</number>
+    <extensions>
+      <topografix:color>c0c0c0</topografix:color>
+    </extensions>
+    <trkseg>
+      <trkpt lat="46.649140000" lon="7.720940000">
+        <ele>1028.100</ele>
+        <time>2011-09-24T10:44:19Z</time>
+        <name>WPT</name>
+      </trkpt>
+      <trkpt lat="46.648350000" lon="7.720190000">
+        <ele>1039.100</ele>
+        <time>2011-09-24T10:47:47Z</time>
+        <name>WPT.1</name>
+      </trkpt>
+      <trkpt lat="46.646190000" lon="7.721760000">
+        <ele>1052.700</ele>
+        <time>2011-09-24T10:50:09Z</time>
+        <name>WPT.2</name>
+      </trkpt>
+      <trkpt lat="46.644940000" lon="7.724760000">
+        <ele>1069.400</ele>
+        <time>2011-09-24T10:52:11Z</time>
+        <name>WPT.3</name>
+      </trkpt>
+      <trkpt lat="46.634520000" lon="7.738280000">
+        <ele>1098.300</ele>
+        <time>2011-09-24T10:59:50Z</time>
+        <name>WPT.4</name>
+      </trkpt>
+      <trkpt lat="46.627820000" lon="7.751020000">
+        <ele>1121.000</ele>
+        <time>2011-09-24T11:05:29Z</time>
+        <name>WPT.5</name>
+      </trkpt>
+      <trkpt lat="46.626220000" lon="7.756000000">
+        <ele>1123.700</ele>
+        <time>2011-09-24T11:08:18Z</time>
+        <name>WPT.6</name>
+      </trkpt>
+      <trkpt lat="46.624840000" lon="7.756660000">
+        <ele>1117.200</ele>
+        <time>2011-09-24T11:08:45Z</time>
+        <name>WPT.7</name>
+      </trkpt>
+      <trkpt lat="46.623750000" lon="7.760090000">
+        <ele>1122.000</ele>
+        <time>2011-09-24T11:10:11Z</time>
+        <name>WPT.8</name>
+      </trkpt>
+      <trkpt lat="46.622640000" lon="7.759390000">
+        <ele>1122.000</ele>
+        <time>2011-09-24T11:13:13Z</time>
+        <name>WPT.9</name>
+      </trkpt>
+      <trkpt lat="46.625490000" lon="7.756400000">
+        <ele>1095.700</ele>
+        <time>2011-09-24T11:15:55Z</time>
+        <name>WPT.10</name>
+      </trkpt>
+      <trkpt lat="46.624640000" lon="7.754160000">
+        <ele>1107.600</ele>
+        <time>2011-09-24T11:17:14Z</time>
+        <name>WPT.11</name>
+      </trkpt>
+      <trkpt lat="46.625190000" lon="7.754040000">
+        <ele>1108.100</ele>
+        <time>2011-09-24T11:17:29Z</time>
+        <name>WPT.12</name>
+      </trkpt>
+      <trkpt lat="46.623420000" lon="7.752020000">
+        <ele>1167.000</ele>
+        <time>2011-09-24T11:18:24Z</time>
+        <name>WPT.13</name>
+      </trkpt>
+      <trkpt lat="46.624790000" lon="7.752010000">
+        <ele>1168.700</ele>
+        <time>2011-09-24T11:18:46Z</time>
+        <name>WPT.14</name>
+      </trkpt>
+      <trkpt lat="46.623900000" lon="7.751670000">
+        <ele>1179.400</ele>
+        <time>2011-09-24T11:18:51Z</time>
+        <name>WPT.15</name>
+      </trkpt>
+      <trkpt lat="46.625530000" lon="7.750310000">
+        <ele>1161.100</ele>
+        <time>2011-09-24T11:20:19Z</time>
+        <name>WPT.16</name>
+      </trkpt>
+      <trkpt lat="46.626600000" lon="7.746280000">
+        <ele>1199.400</ele>
+        <time>2011-09-24T11:31:08Z</time>
+        <name>WPT.17</name>
+      </trkpt>
+      <trkpt lat="46.625300000" lon="7.747050000">
+        <ele>1222.500</ele>
+        <time>2011-09-24T11:35:53Z</time>
+        <name>WPT.18</name>
+      </trkpt>
+      <trkpt lat="46.625290000" lon="7.745330000">
+        <ele>1280.300</ele>
+        <time>2011-09-24T11:46:40Z</time>
+        <name>WPT.19</name>
+      </trkpt>
+      <trkpt lat="46.624510000" lon="7.745780000">
+        <ele>1317.500</ele>
+        <time>2011-09-24T11:56:01Z</time>
+        <name>WPT.20</name>
+      </trkpt>
+      <trkpt lat="46.625550000" lon="7.741580000">
+        <ele>1376.600</ele>
+        <time>2011-09-24T12:08:01Z</time>
+        <name>WPT.21</name>
+      </trkpt>
+      <trkpt lat="46.629120000" lon="7.734790000">
+        <ele>1342.700</ele>
+        <time>2011-09-24T12:15:07Z</time>
+        <name>WPT.22</name>
+      </trkpt>
+      <trkpt lat="46.628740000" lon="7.731630000">
+        <ele>1333.100</ele>
+        <time>2011-09-24T12:16:06Z</time>
+        <name>WPT.23</name>
+      </trkpt>
+      <trkpt lat="46.627730000" lon="7.730260000">
+        <ele>1331.300</ele>
+        <time>2011-09-24T12:19:01Z</time>
+        <name>WPT.24</name>
+      </trkpt>
+      <trkpt lat="46.627500000" lon="7.732660000">
+        <ele>1357.800</ele>
+        <time>2011-09-24T12:21:27Z</time>
+        <name>WPT.25</name>
+      </trkpt>
+      <trkpt lat="46.628380000" lon="7.733950000">
+        <ele>1368.100</ele>
+        <time>2011-09-24T12:23:24Z</time>
+        <name>WPT.26</name>
+      </trkpt>
+      <trkpt lat="46.626630000" lon="7.733460000">
+        <ele>1386.100</ele>
+        <time>2011-09-24T12:26:03Z</time>
+        <name>WPT.27</name>
+      </trkpt>
+      <trkpt lat="46.626600000" lon="7.731400000">
+        <ele>1402.500</ele>
+        <time>2011-09-24T12:28:03Z</time>
+        <name>WPT.28</name>
+      </trkpt>
+      <trkpt lat="46.622440000" lon="7.731070000">
+        <ele>1454.800</ele>
+        <time>2011-09-24T12:34:50Z</time>
+        <name>WPT.29</name>
+      </trkpt>
+      <trkpt lat="46.625270000" lon="7.733450000">
+        <ele>1487.900</ele>
+        <time>2011-09-24T12:40:25Z</time>
+        <name>WPT.30</name>
+      </trkpt>
+      <trkpt lat="46.624490000" lon="7.735860000">
+        <ele>1509.300</ele>
+        <time>2011-09-24T12:43:01Z</time>
+        <name>WPT.31</name>
+      </trkpt>
+      <trkpt lat="46.624760000" lon="7.734380000">
+        <ele>1522.900</ele>
+        <time>2011-09-24T12:47:51Z</time>
+        <name>WPT.32</name>
+      </trkpt>
+      <trkpt lat="46.621740000" lon="7.733800000">
+        <ele>1570.200</ele>
+        <time>2011-09-24T13:11:16Z</time>
+        <name>WPT.33</name>
+      </trkpt>
+      <trkpt lat="46.622760000" lon="7.737770000">
+        <ele>1598.900</ele>
+        <time>2011-09-24T13:15:45Z</time>
+        <name>WPT.34</name>
+      </trkpt>
+      <trkpt lat="46.621140000" lon="7.736010000">
+        <ele>1623.900</ele>
+        <time>2011-09-24T13:18:46Z</time>
+        <name>WPT.35</name>
+      </trkpt>
+      <trkpt lat="46.618580000" lon="7.739290000">
+        <ele>1635.100</ele>
+        <time>2011-09-24T13:22:53Z</time>
+        <name>WPT.36</name>
+      </trkpt>
+      <trkpt lat="46.618000000" lon="7.738490000">
+        <ele>1633.900</ele>
+        <time>2011-09-24T13:23:42Z</time>
+        <name>WPT.37</name>
+      </trkpt>
+      <trkpt lat="46.616760000" lon="7.740570000">
+        <ele>1636.900</ele>
+        <time>2011-09-24T13:25:53Z</time>
+        <name>WPT.38</name>
+      </trkpt>
+      <trkpt lat="46.614680000" lon="7.740010000">
+        <ele>1659.200</ele>
+        <time>2011-09-24T13:28:49Z</time>
+        <name>WPT.39</name>
+      </trkpt>
+      <trkpt lat="46.615830000" lon="7.741880000">
+        <ele>1679.000</ele>
+        <time>2011-09-24T13:32:37Z</time>
+        <name>WPT.40</name>
+      </trkpt>
+      <trkpt lat="46.613900000" lon="7.744690000">
+        <ele>1729.200</ele>
+        <time>2011-09-24T13:39:06Z</time>
+        <name>WPT.41</name>
+      </trkpt>
+      <trkpt lat="46.612810000" lon="7.744710000">
+        <ele>1753.000</ele>
+        <time>2011-09-24T13:47:49Z</time>
+        <name>WPT.42</name>
+      </trkpt>
+      <trkpt lat="46.613270000" lon="7.745690000">
+        <ele>1759.700</ele>
+        <time>2011-09-24T13:49:19Z</time>
+        <name>WPT.43</name>
+      </trkpt>
+      <trkpt lat="46.612560000" lon="7.746260000">
+        <ele>1783.400</ele>
+        <time>2011-09-24T13:53:58Z</time>
+        <name>WPT.44</name>
+      </trkpt>
+      <trkpt lat="46.610930000" lon="7.744290000">
+        <ele>1817.400</ele>
+        <time>2011-09-24T14:01:46Z</time>
+        <name>WPT.45</name>
+      </trkpt>
+      <trkpt lat="46.609990000" lon="7.746050000">
+        <ele>1911.700</ele>
+        <time>2011-09-24T14:24:56Z</time>
+        <name>WPT.46</name>
+      </trkpt>
+      <trkpt lat="46.606070000" lon="7.745840000">
+        <ele>1865.300</ele>
+        <time>2011-09-24T14:47:28Z</time>
+        <name>WPT.47</name>
+      </trkpt>
+      <trkpt lat="46.608500000" lon="7.750590000">
+        <ele>1658.800</ele>
+        <time>2011-09-24T15:13:12Z</time>
+        <name>WPT.48</name>
+      </trkpt>
+      <trkpt lat="46.607790000" lon="7.750840000">
+        <ele>1640.500</ele>
+        <time>2011-09-24T15:15:40Z</time>
+        <name>WPT.49</name>
+      </trkpt>
+      <trkpt lat="46.609970000" lon="7.753830000">
+        <ele>1499.200</ele>
+        <time>2011-09-24T15:36:10Z</time>
+        <name>WPT.50</name>
+      </trkpt>
+      <trkpt lat="46.609700000" lon="7.755400000">
+        <ele>1423.900</ele>
+        <time>2011-09-24T15:45:41Z</time>
+        <name>WPT.51</name>
+      </trkpt>
+      <trkpt lat="46.613430000" lon="7.758030000">
+        <ele>1317.200</ele>
+        <time>2011-09-24T15:51:54Z</time>
+        <name>WPT.52</name>
+      </trkpt>
+      <trkpt lat="46.616050000" lon="7.762270000">
+        <ele>1293.800</ele>
+        <time>2011-09-24T15:58:41Z</time>
+        <name>WPT.53</name>
+      </trkpt>
+      <trkpt lat="46.616000000" lon="7.763570000">
+        <ele>1283.800</ele>
+        <time>2011-09-24T15:59:02Z</time>
+        <name>WPT.54</name>
+      </trkpt>
+      <trkpt lat="46.618620000" lon="7.764950000">
+        <ele>1260.400</ele>
+        <time>2011-09-24T15:59:58Z</time>
+        <name>WPT.55</name>
+      </trkpt>
+      <trkpt lat="46.620720000" lon="7.768480000">
+        <ele>1214.600</ele>
+        <time>2011-09-24T16:00:59Z</time>
+        <name>WPT.56</name>
+      </trkpt>
+      <trkpt lat="46.621170000" lon="7.766650000">
+        <ele>1201.600</ele>
+        <time>2011-09-24T16:01:56Z</time>
+        <name>WPT.57</name>
+      </trkpt>
+      <trkpt lat="46.620580000" lon="7.767870000">
+        <ele>1201.000</ele>
+        <time>2011-09-24T16:03:31Z</time>
+        <name>WPT.58</name>
+      </trkpt>
+      <trkpt lat="46.619870000" lon="7.766080000">
+        <ele>1193.200</ele>
+        <time>2011-09-24T16:04:27Z</time>
+        <name>WPT.59</name>
+      </trkpt>
+      <trkpt lat="46.620430000" lon="7.763170000">
+        <ele>1166.000</ele>
+        <time>2011-09-24T16:05:14Z</time>
+        <name>WPT.60</name>
+      </trkpt>
+      <trkpt lat="46.621840000" lon="7.764720000">
+        <ele>1142.000</ele>
+        <time>2011-09-24T16:05:47Z</time>
+        <name>WPT.61</name>
+      </trkpt>
+      <trkpt lat="46.623520000" lon="7.761790000">
+        <ele>1129.900</ele>
+        <time>2011-09-24T16:08:18Z</time>
+        <name>WPT.62</name>
+      </trkpt>
+      <trkpt lat="46.623090000" lon="7.759600000">
+        <ele>1123.500</ele>
+        <time>2011-09-24T16:09:02Z</time>
+        <name>WPT.63</name>
+      </trkpt>
+      <trkpt lat="46.626150000" lon="7.754040000">
+        <ele>1101.000</ele>
+        <time>2011-09-24T16:11:58Z</time>
+        <name>WPT.64</name>
+      </trkpt>
+      <trkpt lat="46.627070000" lon="7.750390000">
+        <ele>1088.800</ele>
+        <time>2011-09-24T16:13:45Z</time>
+        <name>WPT.65</name>
+      </trkpt>
+      <trkpt lat="46.628440000" lon="7.749060000">
+        <ele>1083.400</ele>
+        <time>2011-09-24T16:14:42Z</time>
+        <name>WPT.66</name>
+      </trkpt>
+      <trkpt lat="46.632010000" lon="7.740960000">
+        <ele>1060.400</ele>
+        <time>2011-09-24T16:17:36Z</time>
+        <name>WPT.67</name>
+      </trkpt>
+      <trkpt lat="46.631900000" lon="7.739380000">
+        <ele>1060.000</ele>
+        <time>2011-09-24T16:18:13Z</time>
+        <name>WPT.68</name>
+      </trkpt>
+      <trkpt lat="46.636440000" lon="7.731290000">
+        <ele>981.200</ele>
+        <time>2011-09-24T16:34:52Z</time>
+        <name>WPT.69</name>
+      </trkpt>
+      <trkpt lat="46.637660000" lon="7.724260000">
+        <ele>933.400</ele>
+        <time>2011-09-24T16:48:14Z</time>
+        <name>WPT.70</name>
+      </trkpt>
+      <trkpt lat="46.642590000" lon="7.715980000">
+        <ele>872.200</ele>
+        <time>2011-09-24T16:57:29Z</time>
+        <name>WPT.71</name>
+      </trkpt>
+      <trkpt lat="46.643080000" lon="7.710060000">
+        <ele>871.900</ele>
+        <time>2011-09-24T17:01:31Z</time>
+        <name>WPT.72</name>
+      </trkpt>
+      <trkpt lat="46.641840000" lon="7.708440000">
+        <ele>889.300</ele>
+        <time>2011-09-24T17:03:07Z</time>
+        <name>WPT.73</name>
+      </trkpt>
+      <trkpt lat="46.641970000" lon="7.705680000">
+        <ele>879.300</ele>
+        <time>2011-09-24T17:04:20Z</time>
+        <name>WPT.74</name>
+      </trkpt>
+      <trkpt lat="46.640540000" lon="7.702060000">
+        <ele>888.700</ele>
+        <time>2011-09-24T17:06:52Z</time>
+        <name>WPT.75</name>
+      </trkpt>
+      <trkpt lat="46.643890000" lon="7.698460000">
+        <ele>885.600</ele>
+        <time>2011-09-24T17:08:36Z</time>
+        <name>WPT.76</name>
+      </trkpt>
+      <trkpt lat="46.648550000" lon="7.699460000">
+        <ele>908.800</ele>
+        <time>2011-09-24T17:11:10Z</time>
+        <name>WPT.77</name>
+      </trkpt>
+      <trkpt lat="46.656080000" lon="7.695290000">
+        <ele>899.100</ele>
+        <time>2011-09-24T17:13:55Z</time>
+        <name>WPT.78</name>
+      </trkpt>
+      <trkpt lat="46.658530000" lon="7.696570000">
+        <ele>910.200</ele>
+        <time>2011-09-24T17:15:33Z</time>
+        <name>WPT.79</name>
+      </trkpt>
+      <trkpt lat="46.662920000" lon="7.690680000">
+        <ele>886.000</ele>
+        <time>2011-09-24T17:17:11Z</time>
+        <name>WPT.80</name>
+      </trkpt>
+      <trkpt lat="46.665000000" lon="7.686310000">
+        <ele>860.300</ele>
+        <time>2011-09-24T17:17:49Z</time>
+        <name>WPT.81</name>
+      </trkpt>
+      <trkpt lat="46.664750000" lon="7.684140000">
+        <ele>849.300</ele>
+        <time>2011-09-24T17:18:06Z</time>
+        <name>WPT.82</name>
+      </trkpt>
+      <trkpt lat="46.665940000" lon="7.684460000">
+        <ele>841.800</ele>
+        <time>2011-09-24T17:18:22Z</time>
+        <name>WPT.83</name>
+      </trkpt>
+      <trkpt lat="46.667700000" lon="7.681690000">
+        <ele>823.100</ele>
+        <time>2011-09-24T17:18:47Z</time>
+        <name>WPT.84</name>
+      </trkpt>
+      <trkpt lat="46.670550000" lon="7.679780000">
+        <ele>814.500</ele>
+        <time>2011-09-24T17:19:24Z</time>
+        <name>WPT.85</name>
+      </trkpt>
+      <trkpt lat="46.672490000" lon="7.680560000">
+        <ele>812.100</ele>
+        <time>2011-09-24T17:19:53Z</time>
+        <name>WPT.86</name>
+      </trkpt>
+      <trkpt lat="46.673060000" lon="7.679630000">
+        <ele>806.800</ele>
+        <time>2011-09-24T17:20:06Z</time>
+        <name>WPT.87</name>
+      </trkpt>
+      <trkpt lat="46.672790000" lon="7.675500000">
+        <ele>785.500</ele>
+        <time>2011-09-24T17:20:37Z</time>
+        <name>WPT.88</name>
+      </trkpt>
+      <trkpt lat="46.673540000" lon="7.674350000">
+        <ele>778.100</ele>
+        <time>2011-09-24T17:22:10Z</time>
+        <name>WPT.89</name>
+      </trkpt>
+      <trkpt lat="46.673480000" lon="7.671950000">
+        <ele>765.800</ele>
+        <time>2011-09-24T17:22:32Z</time>
+        <name>WPT.90</name>
+      </trkpt>
+      <trkpt lat="46.678770000" lon="7.666820000">
+        <ele>732.900</ele>
+        <time>2011-09-24T17:23:35Z</time>
+        <name>WPT.91</name>
+      </trkpt>
+      <trkpt lat="46.680880000" lon="7.667760000">
+        <ele>729.400</ele>
+        <time>2011-09-24T17:24:03Z</time>
+        <name>WPT.92</name>
+      </trkpt>
+      <trkpt lat="46.683880000" lon="7.663820000">
+        <ele>706.800</ele>
+        <time>2011-09-24T17:25:00Z</time>
+        <name>WPT.93</name>
+      </trkpt>
+      <trkpt lat="46.683810000" lon="7.667220000">
+        <ele>700.500</ele>
+        <time>2011-09-24T17:25:31Z</time>
+        <name>WPT.94</name>
+      </trkpt>
+      <trkpt lat="46.685610000" lon="7.669450000">
+        <ele>688.700</ele>
+        <time>2011-09-24T17:26:01Z</time>
+        <name>WPT.95</name>
+      </trkpt>
+      <trkpt lat="46.687280000" lon="7.667940000">
+        <ele>679.000</ele>
+        <time>2011-09-24T17:26:28Z</time>
+        <name>WPT.96</name>
+      </trkpt>
+      <trkpt lat="46.689800000" lon="7.669330000">
+        <ele>673.500</ele>
+        <time>2011-09-24T17:27:03Z</time>
+        <name>WPT.97</name>
+      </trkpt>
+      <trkpt lat="46.689750000" lon="7.675010000">
+        <ele>672.800</ele>
+        <time>2011-09-24T17:28:05Z</time>
+        <name>WPT.98</name>
+      </trkpt>
+      <trkpt lat="46.686900000" lon="7.679190000">
+        <ele>676.500</ele>
+        <time>2011-09-24T17:29:59Z</time>
+        <name>WPT.99</name>
+      </trkpt>
+    </trkseg>
+  </trk>
+</gpx>

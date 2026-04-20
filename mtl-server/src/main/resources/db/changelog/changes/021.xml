@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.10.xsd">
+
+    <!-- Update SmartBaseFilter to include optional geo shape params (circle, rectangle, polygon) -->
+    <changeSet id="20260412_1" author="patrick.heusser">
+        <update tableName="filter_config">
+            <column name="expression">
+                <![CDATA[
+                SELECT
+                    id,
+                    activity_type AS grp
+                FROM
+                    gps_track gt
+                WHERE
+                    1 = 1
+                    -- OPTIONAL DATE_FROM and DATE_TO params. If NULL, they won't be applied as COALESCE uses start_date as fallback.
+                    AND gt.start_date >= COALESCE(TO_TIMESTAMP(:DATE_TIME_FROM, 'YYYY-MM-DD HH24:MI:SS'), gt.start_date)
+                    AND gt.start_date <= COALESCE(TO_TIMESTAMP(:DATE_TIME_TO, 'YYYY-MM-DD HH24:MI:SS'), gt.start_date)
+                    AND gt.start_date >= '1971-01-01'
+                    AND gt.duplicate_status = 'UNIQUE'
+                    AND gt.load_status = 'SUCCESS'
+                    -- OPTIONAL GEO CIRCLE: if GEO_CIRCLE_1_POINT is NULL, condition is skipped
+                    AND (
+                        :GEO_CIRCLE_1_POINT IS NULL
+                        OR EXISTS (
+                            SELECT 1 FROM gps_track_data gtd
+                            WHERE gtd.gps_track_id = gt.id
+                              AND gtd.precision_in_meter = 1000
+                              AND gtd.track_type = 'SIMPLIFIED'
+                              AND ST_DWithin(
+                                    gtd.track::geography,
+                                    ST_GeographyFromText(:GEO_CIRCLE_1_POINT),
+                                    CAST(:GEO_CIRCLE_1_RADIUS AS float8)
+                                  )
+                        )
+                    )
+                    -- OPTIONAL GEO RECTANGLE: if GEO_RECTANGLE_1_MIN_LAT is NULL, condition is skipped
+                    AND (
+                        :GEO_RECTANGLE_1_MIN_LAT IS NULL
+                        OR EXISTS (
+                            SELECT 1 FROM gps_track_data gtd
+                            WHERE gtd.gps_track_id = gt.id
+                              AND gtd.precision_in_meter = 1000
+                              AND gtd.track_type = 'SIMPLIFIED'
+                              AND ST_Intersects(
+                                    gtd.track,
+                                    ST_MakeEnvelope(
+                                        CAST(:GEO_RECTANGLE_1_MIN_LNG AS float8),
+                                        CAST(:GEO_RECTANGLE_1_MIN_LAT AS float8),
+                                        CAST(:GEO_RECTANGLE_1_MAX_LNG AS float8),
+                                        CAST(:GEO_RECTANGLE_1_MAX_LAT AS float8),
+                                        4326
+                                    )
+                                  )
+                        )
+                    )
+                    -- OPTIONAL GEO POLYGON: if GEO_POLYGON_1 is NULL, condition is skipped
+                    AND (
+                        :GEO_POLYGON_1 IS NULL
+                        OR EXISTS (
+                            SELECT 1 FROM gps_track_data gtd
+                            WHERE gtd.gps_track_id = gt.id
+                              AND gtd.precision_in_meter = 1000
+                              AND gtd.track_type = 'SIMPLIFIED'
+                              AND ST_Intersects(
+                                    gtd.track,
+                                    ST_GeomFromText(:GEO_POLYGON_1, 4326)
+                                  )
+                        )
+                    )
+                ORDER BY
+                    start_date
+                ]]>
+            </column>
+            <column name="description"
+                    value="Filters tracks by date range and optional geographic shapes (circle, rectangle, polygon). All geo params are optional — if not given, they are ignored."/>
+            <where>filter_name = 'SmartBaseFilter' AND filter_domain = 'GPS_TRACK'</where>
+        </update>
+    </changeSet>
+
+
+</databaseChangeLog>

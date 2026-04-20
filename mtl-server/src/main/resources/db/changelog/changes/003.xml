@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.10.xsd">
+
+    <changeSet id="20230530_1" author="patrick.heusser">
+        <createTable tableName="system_log">
+            <column name="id" type="bigint" autoIncrement="true" startWith="500000">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="topic1" type="varchar(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="topic2" type="varchar(255)"/>
+            <column name="topic3" type="varchar(255)"/>
+            <column name="create_date" type="timestamp" defaultValueComputed="CURRENT_TIMESTAMP"/>
+            <column name="message" type="CLOB"/>
+            <column name="detail" type="CLOB"/>
+        </createTable>
+
+        <createIndex indexName="system_log_ix_1" tableName="system_log" unique="false">
+            <column name="topic1"/>
+        </createIndex>
+        <createIndex indexName="system_log_ix_2" tableName="system_log" unique="false">
+            <column name="topic2"/>
+        </createIndex>
+        <createIndex indexName="system_log_ix_3" tableName="system_log" unique="false">
+            <column name="topic3"/>
+        </createIndex>
+        <createIndex indexName="system_log_ix_4" tableName="system_log" unique="false">
+            <column name="create_date"/>
+        </createIndex>
+
+    </changeSet>
+
+
+</databaseChangeLog>

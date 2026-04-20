@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.10.xsd">
+
+    <changeSet id="2023612_1" author="patrick.heusser">
+
+        <createTable tableName="gps_track_data_points">
+            <column name="id" type="bigint" autoIncrement="true" startWith="600000" incrementBy="1000">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="gps_track_data_id" type="bigint">
+                <constraints nullable="false" foreignKeyName="fk_gps_track_data_points_2"
+                             referencedTableName="gps_track_data" referencedColumnNames="id"/>
+            </column>
+            <column name="moving_window_in_sec" type="int">
+                <constraints nullable="false"/>
+            </column>
+            <column name="create_date" type="timestamp" defaultValueComputed="CURRENT_TIMESTAMP"/>
+            <column name="point_index" type="int">
+                <constraints nullable="false"/>
+            </column>
+            <column name="point_index_max" type="int">
+                <constraints nullable="false"/>
+            </column>
+            <column name="point_timestamp" type="timestamp"/>
+            <column name="point_long_lat" type="GEOMETRY(Point, 4326)"/>
+            <column name="point_xy" type="GEOMETRY(Point, 3857)"/>
+            <column name="point_altitude" type="numeric(12,2)"/>
+            <column name="distance_in_meter_between_points" type="numeric(12,2)"/>
+            <column name="distance_in_meter_since_start" type="numeric(12,2)"/>
+            <column name="duration_between_points_in_sec" type="numeric(12,2)"/>
+            <column name="duration_since_start" type="numeric(12,2)"/>
+            <column name="ascent_in_meter_between_points" type="numeric(12,2)"/>
+            <column name="ascent_in_meter_since_start" type="numeric(12,2)"/>
+            <column name="descent_in_meter_since_start" type="numeric(12,2)"/>
+            <column name="elevation_gain_per_hour_moving_window" type="numeric(12,2)"/>
+            <column name="speed_in_kmh_moving_window" type="numeric(12,2)"/>
+            <column name="slope_percentage_in_moving_window" type="numeric(12,2)"/>
+
+        </createTable>
+
+
+        <addUniqueConstraint constraintName="gps_track_data_points_uk_1"
+                             tableName="gps_track_data_points"
+                             columnNames="gps_track_data_id, moving_window_in_sec, point_index"/>
+
+        <!-- Spatial index-->
+        <sql>CREATE INDEX gps_track_data_points_IX_1 ON gps_track_data_points USING gist(point_long_lat);</sql>
+        <sql>CREATE INDEX gps_track_data_points_IX_2 ON gps_track_data_points USING gist(point_xy);</sql>
+
+        <createIndex indexName="gps_track_data_points_ix_3" tableName="gps_track_data_points" unique="false">
+            <column name="gps_track_data_id"/>
+        </createIndex>
+
+
+    </changeSet>
+
+</databaseChangeLog>

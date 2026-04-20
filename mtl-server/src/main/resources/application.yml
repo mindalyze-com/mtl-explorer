@@ -1,0 +1,132 @@
+mtl:
+  gpx-watch-directory: /app/gpx
+  duplicate:
+    time-tolerance: PT20M # PT1H (1 hour), PT15M (15 minutes), PT15S (15 seconds)
+    distance-tolerance: 1000
+  indexer:
+    change-detection-strategy: SIZE_ONLY  # SIZE_ONLY | SIZE_AND_MTIME
+    worker-threads: 2                     # parallel GPX import workers; set to 1 on low-power NAS to avoid GC overload
+    gps:
+      live-watch-enabled: true            # watch directory with inotify for instant GPX detection
+      rescan-interval: PT12H              # ISO-8601 duration; periodic full rescan interval for GPS
+    media:
+      live-watch-enabled: false           # disabled: media tree is huge; rely on periodic rescans instead
+      rescan-interval: P7D               # ISO-8601 duration; periodic full rescan interval for MEDIA
+  denoise:
+    algorithm: kalman           # median | kalman  (default: kalman)
+    kalman:
+      measurement-noise-sigma-horizontal: 6.0   # GPS horizontal std-dev (m); typical 5–8 m
+      measurement-noise-sigma-vertical:  10.0   # GPS vertical  std-dev (m); typical 8–12 m
+      process-noise-sigma-a:              2.0   # acceleration uncertainty (m/s²); lower = smoother, higher = more responsive
+  user:
+    # Frontend user for GUI
+    login: 'temp'
+    password: 'temp.42'
+    jwt-expiration: P90D
+  exploration:
+    corridor-width-m: 25.0                # Buffer radius around each prior path (meters). Known territory.
+    use-track-precision: 10               # Simplified track variant to use (10m precision). Which version of the track to take.
+    max-tracks-per-run: 20                # Safety cap per scheduler invocation
+    run-schedule: PT120S                  # How often the job fires (ISO-8601 duration)
+  planner:
+    enabled: true                         # Master switch for the route-planner feature. Override via MTL_PLANNER_ENABLED.
+    brouter-base-url: http://brouter:17777
+    status-url: http://brouter:17778/status
+    brouter-timeout-ms: 8000
+    profiles:
+      - trekking
+      - fastbike
+      - hiking-mountain
+      - car-eco
+  demo-mode: false                        # overridden to true by application-demo.yml
+  log-viewer-enabled: true               # set to false to disable /api/admin/server-log (always off in demo mode)
+  media-watch-directory: /app/media
+  garmin-sync:
+    enabled: false # needs to be enabled in custom application.yml
+    wrapper-program: /app/garmin_export/run_export.sh
+    exclude_activities-file: /app/garmin_export/garmin_exclude_activities.json
+    user-name: # needs user-name in custom application.yml
+    user-password: # needs password  in custom application.yml
+    fit-export-wrapper-program: /app/garmin_fit_export/run_fit_export.sh
+    fit-export-save-dir: /app/gpx
+    # Tool version management — install scripts are idempotent (skip if venv already present)
+    install-gcexport-script: /app/garmin_export/install_gcexport.sh
+    install-fit-export-script: /app/garmin_fit_export/install_fit_export.sh
+    # Defaults read from Docker ENV (set at build time via ARG); fallback values used in local dev
+    gcexport-default-version: ${GCEXPORT_DEFAULT_VERSION:v4.6.2}
+    fit-export-default-profile: ${FIT_EXPORT_DEFAULT_PROFILE:default}
+    fit-export-default-packages: ${FIT_EXPORT_DEFAULT_PACKAGES:garth fitparse gpxpy}
+  db-readonly:
+    username: mtluserReadonly
+    password: MtlSuper123
+  map-server:
+    status-url: http://map-server:8081/status
+    tile-mode: local                            # "local" = vector tiles from docker-maps, "remote" = raster from internet
+    tile-upstream-url: http://map-server:8081   # Docker-internal URL; Java proxy forwards /{scope}/{filename}
+    tile-base-url: /mtl/api/map-proxy           # base path returned to client; scope suffix (/demo or /prod) appended dynamically
+    tileset-name: planet                        # main tileset filename (without .pmtiles)
+    lowzoom-tileset-name: world-lowzoom         # low-zoom extract for offline client cache
+    remote-tile-url: https://tile.openstreetmap.org/{z}/{x}/{y}.png  # raster URL when tile-mode=remote
+
+server:
+  servlet:
+    context-path: "/mtl/"
+    # Session config disabled — auth is purely JWT-based (STATELESS session policy).
+    # session:
+    #   timeout: 31d
+    #   cookie:
+    #     max-age: 31d
+    #     http-only: true
+    #     secure: true
+    #     same-site: strict
+    #     name: mtlwebsession
+  compression:
+    enabled: true
+    min-response-size: 1024
+    mime-types: text/html,text/xml,text/plain,text/css,text/javascript,application/javascript,application/json
+  ssl:
+    key-store: classpath:keystore.p12
+    key-store-password: password
+    key-store-type: PKCS12
+    key-alias: selfsigned
+    enabled: true
+
+
+spring:
+  datasource:
+    url: jdbc:postgresql://db:5432/mtl
+    #url: jdbc:postgresql://diskstation.local:25432/mtl
+    username: mtluser
+    password: MtlSuper123
+    hikari:
+      maximum-pool-size: 15
+  jpa:
+    properties:
+      hibernate:
+        jdbc.batch_size: 100    # batch inserts/updates into groups of 100 SQL statements
+        order_inserts: true     # reorder inserts by type so batching kicks in
+        order_updates: true     # same for updates
+      #not required with spring boot 3dialect: org.hibernate.spatial.dialect.postgis.PostgisDialect
+  liquibase:
+    change-log: classpath:/db/changelog/db.changelog-master.xml
+  mvc:
+    format:
+      date: iso       # seems to be ignored
+      date-time: iso  # seems to be ignored
+  servlet:
+    multipart:
+      max-file-size: 200MB
+      max-request-size: 205MB
+  jackson:
+  # custom bean!
+  task:
+    scheduling:
+      pool:
+        size: 4
+
+
+logging:
+  level:
+    org.springframework.web.servlet.resource: INFO
+    org.springframework.security: INFO
+    com.x8ing.mtl.server.mtlserver.web.filter.RequestHeaderLoggingFilter: INFO

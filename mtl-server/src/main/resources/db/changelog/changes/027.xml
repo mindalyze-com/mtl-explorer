@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.10.xsd">
+
+    <!--
+      Planner: persist the BRouter profile used for a saved plan in its own
+      column instead of parsing it back out of the description suffix
+      "(BRouter profile: <name>)". The suffix was fragile — any description
+      edit silently lost the profile, so re-loading the plan fell back to the
+      default profile and the next recompute could reshape the route.
+
+      Only PLANNED tracks ever populate this column; IMPORTED rows leave it NULL.
+    -->
+    <changeSet id="20260419_1_planner_profile" author="patrick.heusser">
+        <addColumn tableName="gps_track">
+            <column name="planner_profile" type="varchar(64)"/>
+        </addColumn>
+    </changeSet>
+
+</databaseChangeLog>

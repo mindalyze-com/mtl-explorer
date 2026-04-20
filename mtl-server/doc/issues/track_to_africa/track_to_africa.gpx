@@ -1,0 +1,87 @@
+
+        {
+            "gpsTrack": {
+                "id": 104449,
+                "indexedFile": {
+                    "id": 303744,
+                    "index": "GPS",
+                    "name": "2020-07-10_10-34-54_Other.gpx",
+                    "basePath": "/app/gpx",
+                    "fullPath": "/app/gpx/2020-07-10_10-34-54_Other.gpx",
+                    "path": "",
+                    "size": 326642,
+                    "lastModifiedDate": "2023-04-18T09:27:23.681+0000",
+                    "createDate": "2026-03-31T21:13:12.301+0000",
+                    "indexAddedDate": "2026-03-31T21:13:12.301+0000",
+                    "indexUpdateDate": "2026-04-01T01:09:32.112+0000",
+                    "indexerStatus": "COMPLETED_WITH_SUCCESS",
+                    "indexerInvocations": 1,
+                    "lastMessage": "Completed successfully",
+                    "version": 2
+                },
+                "creator": "GPSBabel - https://www.gpsbabel.org",
+                "gpxVersion": "1.0",
+                "trackName": "2020-07-10T08:34:54.000Z",
+                "trackType": "",
+                "trackDescription": "",
+                "startDate": "2020-07-10T07:57:26.000+0000",
+                "endDate": "2020-07-10T11:31:44.000+0000",
+                "trackDurationInMotionSecs": 8946.0,
+                "maxDistanceBetweenPoints": 86.07,
+                "medianDistanceBetweenPoints": 4.78,
+                "avgDistanceBetweenPoints": 4.63,
+                "didFilterOutlierByDistance": true,
+                "numberOfTrackPoints": 2415,
+                "trackLengthInMeter": 12605.09,
+                "utmZone": "EPSG:32632",
+                "loadStatus": "SUCCESS",
+                "duplicateStatus": "UNIQUE",
+                "gpsTracksData": [
+                    {
+                        "id": 239731,
+                        "gpsTrackId": 104449,
+                        "createDate": "2026-04-01T01:09:32.063+0000",
+                        "trackType": "SIMPLIFIED",
+                        "precisionInMeter": 10,
+                        "track": [
+                            [
+                                8.487890,
+                                47.167220,
+                                465.8,
+                                1594370094.000000
+                            ],
+                            [
+                                0.000000,
+                                0.000000,
+                                0.0,
+                                1594380704.000000
+                            ]
+                        ]
+                    }
+                ],
+                "activityType": "BICYCLE",
+                "activityTypeSource": "AUTO_GUESS",
+                "activityTypeSourceDetails": "Start Auto Guessing Activity Type. \nActivity type not found in name or text fields. Try using speed. \nSpeed percentiles: 66%-percentile: NaN km/h, 95%-percentile: NaN km/h. \nGuessed based on speed to be type bicycle. \n",
+                "bboxMinLat": 47.137847,
+                "bboxMaxLat": 47.177158,
+                "bboxMinLng": 8.464021,
+                "bboxMaxLng": 8.496399,
+                "centerLat": 47.160588,
+                "centerLng": 8.480672,
+                "energyGravitationalTotalWh": 145.0,
+                "energyGravitationalDescentWh": 144.7,
+                "energyAeroDragTotalWh": 0.0,
+                "energyRollingResistanceTotalWh": 0.0,
+                "energyKineticPositiveTotalWh": 30.9,
+                "energyNetTotalWh": 173.4,
+                "energyWeightKgUsed": 75.0,
+                "powerWattsAvg": 111.0,
+                "powerWattsMax": 2500.0,
+                "createDate": "2026-04-01T01:09:28.036+0000",
+                "updateDate": "2026-04-01T01:09:28.118+0000"
+            },
+            "filterMapping": {
+                "id": 104449,
+                "group": "BICYCLE"
+            }
+        }

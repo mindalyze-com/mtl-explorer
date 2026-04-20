@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.10.xsd">
+
+    <!-- Energy fields on per-point data (all energy values in Wh, power in W) -->
+    <changeSet id="20260324_1_energy_point_fields" author="patrick.heusser">
+        <addColumn tableName="gps_track_data_points">
+            <column name="energy_gravitational_wh" type="double precision"/>
+            <column name="energy_aero_drag_wh" type="double precision"/>
+            <column name="energy_rolling_resistance_wh" type="double precision"/>
+            <column name="energy_kinetic_wh" type="double precision"/>
+            <column name="energy_total_wh" type="double precision"/>
+            <column name="energy_cumulative_wh" type="double precision"/>
+            <column name="power_watts" type="double precision"/>
+        </addColumn>
+    </changeSet>
+
+    <!-- Energy totals on track level (all energy values in Wh, power in W) -->
+    <changeSet id="20260324_2_energy_track_fields" author="patrick.heusser">
+        <addColumn tableName="gps_track">
+            <column name="energy_gravitational_total_wh" type="double precision"/>
+            <column name="energy_gravitational_descent_wh" type="double precision"/>
+            <column name="energy_aero_drag_total_wh" type="double precision"/>
+            <column name="energy_rolling_resistance_total_wh" type="double precision"/>
+            <column name="energy_kinetic_positive_total_wh" type="double precision"/>
+            <column name="energy_net_total_wh" type="double precision"/>
+            <column name="energy_weight_kg_used" type="double precision"/>
+            <column name="power_watts_avg" type="double precision"/>
+            <column name="power_watts_max" type="double precision"/>
+        </addColumn>
+    </changeSet>
+
+    <!-- Seed default energy configuration -->
+    <changeSet id="20260324_3_energy_config" author="patrick.heusser">
+        <insert tableName="config">
+            <column name="domain1" value="energy"/>
+            <column name="domain2" value="user"/>
+            <column name="domain3" value="riderWeightKg"/>
+            <column name="value" value="75"/>
+            <column name="description" value="Default rider/person body weight in kg for energy calculations"/>
+        </insert>
+    </changeSet>
+
+</databaseChangeLog>

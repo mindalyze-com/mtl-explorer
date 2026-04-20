@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.10.xsd">
+
+    <changeSet id="20230709_1" author="patrick.heusser">
+
+        <createTable tableName="config">
+            <column name="id" type="bigint" autoIncrement="true" startWith="700000">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="domain1" type="varchar2(100)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="domain2" type="varchar2(100)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="domain3" type="varchar2(100)">
+                <constraints nullable="true"/>
+            </column>
+            <column name="value" type="varchar2(4000)"/>
+            <column name="description" type="varchar2(4000)"/>
+            <column name="create_date" type="timestamp" defaultValueComputed="CURRENT_TIMESTAMP"/>
+        </createTable>
+
+        <createIndex indexName="config_ix1" tableName="config" unique="false">
+            <column name="domain1"/>
+            <column name="domain2"/>
+            <column name="domain3"/>
+        </createIndex>
+
+        <createIndex indexName="config_ix2" tableName="config" unique="false">
+            <column name="domain1"/>
+            <column name="domain2"/>
+        </createIndex>
+
+        <createIndex indexName="config_ix3" tableName="config" unique="false">
+            <column name="domain1"/>
+        </createIndex>
+
+    </changeSet>
+
+
+    <changeSet id="20230709_2" author="patrick.heusser">
+
+        <addColumn tableName="gps_track">
+            <column name="garmin_activity_id" type="varchar2(50)"/>
+        </addColumn>
+
+        <createIndex indexName="gps_track_ix_garmin_activity_id" tableName="gps_track" unique="false">
+            <column name="garmin_activity_id"/>
+        </createIndex>
+
+    </changeSet>
+
+</databaseChangeLog>

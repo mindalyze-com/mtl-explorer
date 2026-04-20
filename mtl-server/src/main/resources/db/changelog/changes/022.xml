@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.10.xsd">
+
+    <!-- Add trigger-managed version column to gps_track.
+         Hibernate reads it via @Generated but never writes it;
+         the trigger is the single source of truth. -->
+    <changeSet id="20260413_1" author="patrick.heusser">
+        <sql>
+            ALTER TABLE gps_track ADD COLUMN IF NOT EXISTS version BIGINT NOT NULL DEFAULT 0;
+        </sql>
+        <sql>
+            UPDATE gps_track SET version = 0 WHERE version IS NULL;
+        </sql>
+        <sql splitStatements="false">
+            CREATE OR REPLACE FUNCTION increment_gps_track_version()
+            RETURNS TRIGGER AS $$
+            BEGIN
+                IF TG_OP = 'INSERT' THEN
+                    NEW.version = 0;
+                ELSE
+                    NEW.version = COALESCE(OLD.version, 0) + 1;
+                END IF;
+                RETURN NEW;
+            END;
+            $$ LANGUAGE plpgsql;
+        </sql>
+        <sql>
+            DROP TRIGGER IF EXISTS trg_gps_track_version ON gps_track;
+        </sql>
+        <sql>
+            CREATE TRIGGER trg_gps_track_version
+            BEFORE INSERT OR UPDATE ON gps_track
+            FOR EACH ROW EXECUTE FUNCTION increment_gps_track_version();
+        </sql>
+    </changeSet>
+
+</databaseChangeLog>

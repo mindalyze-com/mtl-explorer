@@ -1,0 +1,15 @@
+# application-demo.yml — Spring profile activated by DEMO_MODE env var
+# Overrides user credentials for the demo login.
+mtl:
+  user:
+    login: 'demo'
+    password: 'mtl'
+  demo-mode: true
+  demo-target-track-count: ${DEMO_TARGET_TRACK_COUNT:0}  # 0 = keep all good tracks
+  log-viewer-enabled: false             # server log must not be visible in demo mode
+  map-server:
+    initial-center-lng: -8.6291   # Porto, Portugal
+    initial-center-lat: 41.1579   # Porto, Portugal
+    initial-zoom: 12
+    demo-area-bbox: "-13.0,39.3,-4.5,42.6"   # west,south,east,north — must match BAKE_DEMO_AREA in docker-maps/Dockerfile
+    demo-area-max-zoom: 15                    # max zoom available in demo tiles — must match BAKE_DEMO_AREA max zoom

@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.10.xsd">
+
+    <changeSet id="20230621_1" author="patrick.heusser">
+
+        <addColumn tableName="gps_track">
+            <column name="activity_type" type="varchar(50)"></column>
+            <column name="activity_type_source" type="varchar(32)"></column>
+            <column name="activity_type_source_details" type="varchar(4000)"></column>
+        </addColumn>
+
+        <createIndex indexName="GPS_TRACK_ACTIVITY_TYPE" tableName="gps_track" unique="false">
+            <column name="activity_type"/>
+        </createIndex>
+
+        <createIndex indexName="GPS_TRACK_ACTIVITY_TYPE_SOURCE" tableName="gps_track" unique="false">
+            <column name="activity_type_source"/>
+        </createIndex>
+
+    </changeSet>
+
+</databaseChangeLog>

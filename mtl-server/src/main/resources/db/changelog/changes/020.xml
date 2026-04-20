@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.10.xsd">
+
+    <!-- Composite index to speed up exploration self-invalidation and overlap queries -->
+    <changeSet id="20260407_1_exploration_bbox_index" author="patrick.heusser">
+        <createIndex indexName="GPS_TRACK_IX_EXPLORATION_BBOX" tableName="gps_track" unique="false">
+            <column name="exploration_status"/>
+            <column name="start_date"/>
+            <column name="bbox_min_lat"/>
+            <column name="bbox_max_lat"/>
+            <column name="bbox_min_lng"/>
+            <column name="bbox_max_lng"/>
+        </createIndex>
+    </changeSet>
+
+</databaseChangeLog>

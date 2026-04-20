@@ -1,0 +1,335 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.10.xsd">
+
+    <changeSet id="20240906_1" author="patrick.heusser">
+
+        <dropView viewName="gps_track_v"/>
+
+        <createView viewName="gps_track_v">
+            <![CDATA[
+            SELECT gt.id,
+                   gt.file_id,
+                   gt.creator,
+                   gt.gpx_version,
+                   gt.meta_name,
+                   gt.meta_description,
+                   gt.meta_time,
+                   gt.meta_author,
+                   gt.track_name,
+                   gt.track_description,
+                   gt.start_date,
+                   gt.end_date,
+                   gt.median_distance_between_points,
+                   gt.avg_distance_between_points,
+                   gt.max_distance_between_points,
+                   gt.did_filter_outlier_by_distance,
+                   gt.number_of_track_points,
+                   gt.track_length_in_meter,
+                   gt.track_type,
+                   gt.utm_zone,
+                   gt.create_date,
+                   gt.load_status,
+                   gt.load_messages,
+                   gt.duplicate_status,
+                   gt.duplicate_of,
+                   gt.activity_type,
+                   gt.activity_type_source,
+                   gt.activity_type_source_details,
+                   gt.garmin_activity_id,
+                   gt.meta_link,
+                   gt.update_date,
+                   gt.duplicate_details,
+                   gt.bbox_min_lat,
+                   gt.bbox_max_lat,
+                   gt.bbox_min_lng,
+                   gt.bbox_max_lng,
+                   gt.center_lat,
+                   gt.center_lng,
+                   ixf.index              AS f_index,
+                   ixf.name               AS f_name,
+                   ixf.path               AS f_path,
+                   ixf.base_path          AS f_base_path,
+                   ixf.full_path          AS f_full_path,
+                   ixf.size               AS f_size,
+                   ixf.indexer_id         AS f_indexer_id,
+                   ixf.last_modified_date AS f_last_modified_date,
+                   ixf.index_added_date   AS f_index_added_date,
+                   ixf.index_update_date  AS f_index_update_date,
+                   ixf.indexer_status     AS f_indexer_status,
+                   ixf.last_message       AS f_last_message,
+                   gd.id                  AS gd_id,
+                   gd.create_date         AS gd_create_date,
+                   gd.precision_in_meter  AS gd_precision_in_meter,
+                   gd.track_type          AS gd_track_type,
+                   gd.track               AS gd_track,
+                   gd_raw.id              as gd_raw_id,
+                   gd_raw.track           as gd_raw_track
+            FROM gps_track gt
+                     LEFT JOIN gps_track_data gd ON gt.id = gd.gps_track_id AND gd.precision_in_meter = 10::numeric
+                  LEFT JOIN gps_track_data gd_raw
+            ON gt.id = gd_raw.gps_track_id AND gd_raw.precision_in_meter = 0:: numeric and gd_raw.track_type='RAW'
+                LEFT JOIN indexed_file ixf ON ixf.id = gt.file_id
+            ]]>
+        </createView>
+
+    </changeSet>
+
+    <changeSet id="20240910_1" author="patrick.heusser">
+
+        <insert tableName="filter_config">
+            <column name="filter_name" value="SmartBaseFilter"/>
+            <column name="filter_type" value="SQL"/>
+            <column name="filter_domain" value="GPS_TRACK"/>
+            <column name="filter_category" value="SYSTEM"/>
+            <column name="description"
+                    value="Filters the tracks by two given dates, a start and an end date. The filter can also be used to filter tracks for a certain year."/>
+            <column name="expression">
+                <![CDATA[
+                  SELECT
+                    id,
+                    activity_type AS grp
+                FROM
+                    gps_track gt
+                WHERE
+                    1 = 1
+                    -- OPTIONAL DATE_FROM and DATE_TO params. If NULL, they won't be applied as COALESCE uses start_date as fallback.
+                    AND gt.start_date >= COALESCE(TO_TIMESTAMP(:DATE_TIME_FROM, 'YYYY-MM-DD HH24:MI:SS'), gt.start_date)
+                    AND gt.start_date <= COALESCE(TO_TIMESTAMP(:DATE_TIME_TO, 'YYYY-MM-DD HH24:MI:SS'), gt.start_date)
+                    AND gt.start_date >= '1971-01-01'
+                    AND gt.duplicate_status = 'UNIQUE'
+                    AND gt.load_status = 'SUCCESS'
+                ORDER BY
+                    start_date
+                ]]>
+            </column>
+            <column name="display_name" value="Smart Base Filter"/>
+            <column name="display_order" value="1000"/>
+        </insert>
+
+        <insert tableName="filter_config">
+            <column name="filter_name" value="TracksByYear"/>
+            <column name="filter_type" value="SQL"/>
+            <column name="filter_domain" value="GPS_TRACK"/>
+            <column name="filter_category" value="SYSTEM"/>
+            <column name="description"
+                    value="Filters the tracks by year. If multiple years are given then the year will be optionally used for coloring."/>
+            <column name="expression">
+                <![CDATA[
+                select
+                    id,
+                    to_char(gt.start_date, 'YYYY') as grp
+                from
+                    gps_track gt
+                where
+                    1 = 1
+                    -- have an optional YEAR_FROM and YEAR_TO param.
+                    and gt.start_date >= COALESCE(TO_TIMESTAMP(:YEAR_FROM || '-01-01', 'YYYY-MM-DD'), gt.start_date)
+                    and gt.start_date <= COALESCE(TO_TIMESTAMP(:YEAR_TO || '-12-31', 'YYYY-MM-DD'), gt.start_date)
+                    and gt.start_date >= '1971-01-01'
+                    and gt.duplicate_status = 'UNIQUE'
+                    and gt.load_status = 'SUCCESS'
+                order by
+                    start_date
+                ]]>
+            </column>
+            <column name="display_name" value="Tracks by year"/>
+            <column name="display_order" value="1005"/>
+        </insert>
+
+
+        <insert tableName="filter_config">
+            <column name="filter_name" value="ActivitiesByKeyword"/>
+            <column name="filter_type" value="SQL"/>
+            <column name="filter_domain" value="GPS_TRACK"/>
+            <column name="filter_category" value="USER"/>
+            <column name="description"
+                    value="Filter for tracks which have a certain word in their name or description."/>
+            <column name="expression">
+                <![CDATA[
+                SELECT id, activity_type as grp
+                FROM gps_track gt
+                WHERE (
+                  meta_name ILIKE '%' || :SEARCH_WORD || '%'
+                  OR meta_description ILIKE '%' || :SEARCH_WORD || '%'
+                  OR track_name ILIKE '%' || :SEARCH_WORD || '%'
+                  OR track_description ILIKE '%' || :SEARCH_WORD || '%'
+                )
+                -- include the standard query filter with the condition below
+                AND id = ANY( select id from ( [[~{/GPS_TRACK/SmartBaseFilter}]] ))
+                ORDER BY start_date
+                ]]>
+            </column>
+            <column name="display_name" value="Activities by keyword"/>
+            <column name="display_order" value="1100"/>
+        </insert>
+
+
+        <insert tableName="filter_config">
+            <column name="filter_name" value="ActivitiesByMainTypes"/>
+            <column name="filter_type" value="SQL"/>
+            <column name="filter_domain" value="GPS_TRACK"/>
+            <column name="filter_category" value="USER"/>
+            <column name="description"
+                    value="Gets activities into main categories: Walking, Biking and Motorized ones."/>
+            <column name="expression">
+                <![CDATA[
+                    SELECT * FROM (
+                        SELECT
+                            id,
+                            CASE
+                                WHEN (activity_type IS NOT NULL AND activity_type IN ('CAR', 'MOTORBIKING', 'AIRPLANE', 'SUPER_SONIC')) THEN 'MOTORIZED'
+                                WHEN (activity_type IS NOT NULL AND activity_type IN ('BICYCLE', 'MOUNTAIN_BIKING')) THEN 'CYCLING'
+                                WHEN (activity_type IS NOT NULL AND activity_type IN ('WALKING', 'HIKING', 'RUNNING')) THEN 'ON_FOOT'
+                                WHEN (activity_type IS NOT NULL AND activity_type IN ('STAND_UP_PADDLE', 'ROWING', 'KAYAKING')) THEN 'ON_WATER'
+                                ELSE NULL
+                            END AS grp
+                        FROM gps_track gt
+                        WHERE 1=1
+                        -- include the standard query filter with the condition below
+                        AND id = ANY(SELECT id FROM ( [[~{/GPS_TRACK/SmartBaseFilter}]] ))
+                        ORDER BY start_date
+                    ) subquery
+                    WHERE grp IS NOT NULL
+                ]]>
+            </column>
+            <column name="display_name" value="Activities By Main Types"/>
+            <column name="display_order" value="1105"/>
+        </insert>
+
+
+        <insert tableName="filter_config">
+            <column name="filter_name" value="NonMotorizedTracks"/>
+            <column name="filter_type" value="SQL"/>
+            <column name="filter_domain" value="GPS_TRACK"/>
+            <column name="filter_category" value="USER"/>
+            <column name="description"
+                    value="Filter only for tracks which are non-motorized (human powered)."/>
+            <column name="expression">
+                <![CDATA[
+                select id, activity_type as grp from gps_track gt where 1=1
+                  and (activity_type is not null and activity_type not in ('CAR', 'MOTORBIKING', 'AIRPLANE' ))
+                  and not (CONCAT_WS(' ', track_name, track_description, meta_name, meta_description) ~ '\yRV\y')
+                  -- include the standard query filter with the condition below
+                  and id = ANY( select id from ( [[~{/GPS_TRACK/SmartBaseFilter}]]  ))
+                order by start_date
+                ]]>
+            </column>
+            <column name="display_name" value="Non Motorized Tracks"/>
+            <column name="display_order" value="1201"/>
+        </insert>
+
+        <insert tableName="filter_config">
+            <column name="filter_name" value="MotorizedTracks"/>
+            <column name="filter_type" value="SQL"/>
+            <column name="filter_domain" value="GPS_TRACK"/>
+            <column name="filter_category" value="USER"/>
+            <column name="description"
+                    value="Filter only for tracks which are motorized (not human powered)."/>
+            <column name="expression">
+                <![CDATA[
+                select id, activity_type as grp from gps_track gt where 1=1
+                  and (
+                    (activity_type is not null and activity_type in ('CAR', 'MOTORBIKING', 'AIRPLANE', 'SUPER_SONIC' ))
+                    or (CONCAT_WS(' ', track_name, track_description, meta_name, meta_description) ~ '\yRV\y')
+                  )
+                  -- include the standard query filter with the condition below
+                  and id = ANY( select id from ( [[~{/GPS_TRACK/SmartBaseFilter}]]  ))
+                order by start_date
+                ]]>
+            </column>
+            <column name="display_name" value="Motorized Tracks"/>
+            <column name="display_order" value="1202"/>
+        </insert>
+
+        <insert tableName="filter_config">
+            <column name="filter_name" value="SuspiciousTracks"/>
+            <column name="filter_type" value="SQL"/>
+            <column name="filter_domain" value="GPS_TRACK"/>
+            <column name="filter_category" value="SYSTEM"/>
+            <column name="description"
+                    value="Shows tracks which have some sort of a suspicious data. This can indicate data problems, e.g. originating from old GPS devices or bad satellite reception at the time of recording."/>
+            <column name="expression">
+                <![CDATA[
+                select id, activity_type as grp
+                from gps_track gt where 1=0
+                    or (start_date is not null and start_date <  '1970-02-01') -- suspicious as GPS did not exist back then
+                    or (meta_time is not null and meta_time <  '1970-02-01') -- suspicious as GPS did not exist back then
+                    or (activity_type like '%SUPER_SONIC%') -- almost nothing is that fast
+                    or (max_distance_between_points > 1000)
+                ]]>
+            </column>
+            <column name="display_name" value="Suspicious tracks"/>
+            <column name="display_order" value="5000"/>
+        </insert>
+
+        <insert tableName="filter_config">
+            <column name="filter_name" value="DuplicateTracks"/>
+            <column name="filter_type" value="SQL"/>
+            <column name="filter_domain" value="GPS_TRACK"/>
+            <column name="filter_category" value="SYSTEM"/>
+            <column name="description"
+                    value="Tracks which have been identified to be duplicates"/>
+            <column name="expression">
+                <![CDATA[
+                select id, activity_type as grp from gps_track gt where duplicate_status != 'UNIQUE'
+                ]]>
+            </column>
+            <column name="display_name" value="Duplicate tracks"/>
+            <column name="display_order" value="5010"/>
+        </insert>
+
+        <insert tableName="filter_config">
+            <column name="filter_name" value="TracksWithErrors"/>
+            <column name="filter_type" value="SQL"/>
+            <column name="filter_domain" value="GPS_TRACK"/>
+            <column name="filter_category" value="SYSTEM"/>
+            <column name="description"
+                    value="Tracks which have some errors."/>
+            <column name="expression">
+                <![CDATA[
+                select id, activity_type as grp from gps_track gt where load_status != 'SUCCESS'
+                ]]>
+            </column>
+            <column name="display_name" value="Tracks with Errors"/>
+            <column name="display_order" value="5020"/>
+        </insert>
+
+    </changeSet>
+
+    <!-- runOnChange="true": re-applied whenever the expression changes, works on both fresh and existing DBs -->
+    <changeSet id="20240910_2_motorized_rv_filter" author="patrick.heusser" runOnChange="true">
+        <update tableName="filter_config">
+            <column name="expression">
+                <![CDATA[
+                select id, activity_type as grp from gps_track gt where 1=1
+                  and (activity_type is not null and activity_type not in ('CAR', 'MOTORBIKING', 'AIRPLANE' ))
+                  and not (CONCAT_WS(' ', track_name, track_description, meta_name, meta_description) ~ '\yRV\y')
+                  -- include the standard query filter with the condition below
+                  and id = ANY( select id from ( [[~{/GPS_TRACK/SmartBaseFilter}]]  ))
+                order by start_date
+                ]]>
+            </column>
+            <where>filter_name = 'NonMotorizedTracks'</where>
+        </update>
+        <update tableName="filter_config">
+            <column name="expression">
+                <![CDATA[
+                select id, activity_type as grp from gps_track gt where 1=1
+                  and (
+                    (activity_type is not null and activity_type in ('CAR', 'MOTORBIKING', 'AIRPLANE', 'SUPER_SONIC' ))
+                    or (CONCAT_WS(' ', track_name, track_description, meta_name, meta_description) ~ '\yRV\y')
+                  )
+                  -- include the standard query filter with the condition below
+                  and id = ANY( select id from ( [[~{/GPS_TRACK/SmartBaseFilter}]]  ))
+                order by start_date
+                ]]>
+            </column>
+            <where>filter_name = 'MotorizedTracks'</where>
+        </update>
+    </changeSet>
+
+</databaseChangeLog>

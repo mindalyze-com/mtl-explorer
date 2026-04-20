@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.10.xsd">
+
+    <changeSet id="20230710_1" author="patrick.heusser">
+
+        <dropView viewName="gps_track_v"/>
+
+        <createView viewName="gps_track_v">
+            <![CDATA[
+            select gt.*,
+                   ixf."index"            f_index,
+                   ixf."name"             f_name,
+                   ixf."path"             f_path,
+                   ixf.base_path          f_base_path,
+                   ixf.full_path          f_full_path,
+                   ixf."size"             f_size,
+                   ixf.indexer_id         f_indexer_id,
+                   ixf.last_modified_date f_last_modified_date,
+                   ixf.index_added_date   f_index_added_date,
+                   ixf.index_update_date  f_index_update_date,
+                   ixf.indexer_status     f_indexer_status,
+                   gd.id as               gd_id,
+                   gd.create_date         gd_create_date,
+                   gd.precision_in_meter  gd_precision_in_meter,
+                   gd.track_type          gd_track_type,
+                   gd.track               gd_track
+            from gps_track gt
+                     left join gps_track_data gd on
+                gt.id = gd.gps_track_id
+                     left join indexed_file ixf on
+                ixf.id = gt.file_id
+            where gd.precision_in_meter = 10
+            ]]>
+        </createView>
+
+    </changeSet>
+
+</databaseChangeLog>

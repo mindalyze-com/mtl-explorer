@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.10.xsd">
+
+    <!--
+      Planner: persist the original user waypoints alongside the routed geometry
+      so a saved plan can be re-loaded into the editor for further editing.
+
+      The geometry stored in gps_track_data is the *routed* polyline (BRouter
+      output). Without the original waypoint sequence we could not reconstruct
+      the editable, draggable markers the user placed. We store them as a small
+      JSON array (`[{"lat":..,"lng":..}, ...]`) on gps_track itself — keeps a
+      load round-trip to a single row and avoids a join.
+
+      Only PLANNED tracks ever populate this column; IMPORTED rows leave it NULL.
+    -->
+    <changeSet id="20260419_1_planner_waypoints_json" author="patrick.heusser">
+        <addColumn tableName="gps_track">
+            <column name="planner_waypoints_json" type="varchar(8000)"/>
+        </addColumn>
+    </changeSet>
+
+</databaseChangeLog>

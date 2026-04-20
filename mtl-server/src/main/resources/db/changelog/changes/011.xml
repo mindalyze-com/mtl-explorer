@@ -1,0 +1,594 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.10.xsd">
+
+
+    <changeSet id="20240909_2" author="patrick.heusser">
+
+        <createTable tableName="filter_config">
+            <column name="id" type="BIGINT" autoIncrement="true" startWith="800000">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="filter_domain" type="VARCHAR(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="filter_name" type="VARCHAR(80)">
+                <constraints nullable="true"/>
+            </column>
+            <column name="expression" type="TEXT">
+                <constraints nullable="true"/>
+            </column>
+            <column name="filter_type" type="VARCHAR(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="filter_category" type="VARCHAR(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="display_name" type="VARCHAR(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="display_order" type="BIGINT">
+                <constraints nullable="true"/>
+            </column>
+            <column name="description" type="VARCHAR(2000)">
+                <constraints nullable="true"/>
+            </column>
+            <column name="create_date" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="true"/>
+            </column>
+            <column name="update_date" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="true"/>
+            </column>
+        </createTable>
+
+        <addUniqueConstraint
+                tableName="filter_config"
+                columnNames="filter_domain, filter_name"
+                constraintName="filter_config_unique_1"/>
+
+        <createIndex indexName="filter_type_ix_cfg" tableName="filter_config">
+            <column name="filter_type"/>
+        </createIndex>
+
+        <createIndex indexName="filter_type_ix_name" tableName="filter_config">
+            <column name="filter_name"/>
+        </createIndex>
+
+        <createIndex indexName="filter_type_ix_domain" tableName="filter_config">
+            <column name="filter_domain"/>
+        </createIndex>
+
+        <createIndex indexName="filter_type_ix_type_domain_name" tableName="filter_config">
+            <column name="filter_domain"/>
+            <column name="filter_name"/>
+        </createIndex>
+
+    </changeSet>
+
+
+    <!-- Create history table for gps_track -->
+    <changeSet id="20240912_1" author="patrick.heusser">
+        <createTable tableName="gps_track_audit">
+            <!-- Additional columns for versioning -->
+            <column name="version" type="INT"/>
+            <column name="operation" type="VARCHAR(20)"/>
+            <column name="changed_at" type="TIMESTAMP" defaultValueComputed="NOW()"/>
+            <!-- real columns -->
+            <column name="id" type="BIGINT"/>
+            <column name="file_id" type="BIGINT"/>
+            <column name="creator" type="VARCHAR(4000)"/>
+            <column name="gpx_version" type="VARCHAR(255)"/>
+            <column name="meta_name" type="VARCHAR(4000)"/>
+            <column name="meta_description" type="VARCHAR(4000)"/>
+            <column name="meta_time" type="TIMESTAMP"/>
+            <column name="meta_author" type="VARCHAR(4000)"/>
+            <column name="track_name" type="VARCHAR(4000)"/>
+            <column name="track_description" type="VARCHAR(8000)"/>
+            <column name="start_date" type="TIMESTAMP"/>
+            <column name="end_date" type="TIMESTAMP"/>
+            <column name="median_distance_between_points" type="NUMERIC(10, 2)"/>
+            <column name="avg_distance_between_points" type="NUMERIC(10, 2)"/>
+            <column name="max_distance_between_points" type="NUMERIC(10, 2)"/>
+            <column name="did_filter_outlier_by_distance" type="BOOLEAN"/>
+            <column name="number_of_track_points" type="INT"/>
+            <column name="track_length_in_meter" type="NUMERIC(10, 2)"/>
+            <column name="track_type" type="VARCHAR(255)"/>
+            <column name="utm_zone" type="VARCHAR(255)"/>
+            <column name="create_date" type="TIMESTAMP"/>
+            <column name="load_status" type="VARCHAR(255)"/>
+            <column name="load_messages" type="VARCHAR(8000)"/>
+            <column name="duplicate_status" type="VARCHAR(255)"/>
+            <column name="duplicate_of" type="BIGINT"/>
+            <column name="activity_type" type="VARCHAR(50)"/>
+            <column name="activity_type_source" type="VARCHAR(32)"/>
+            <column name="activity_type_source_details" type="VARCHAR(4000)"/>
+            <column name="garmin_activity_id" type="VARCHAR(50)"/>
+            <column name="meta_link" type="VARCHAR(4000)"/>
+            <column name="duplicate_details" type="VARCHAR(4000)"/>
+            <column name="source_segment_index" type="INT"/>
+            <column name="source_parent_track_id" type="BIGINT"/>
+        </createTable>
+
+        <createIndex indexName="GPS_TRACK_AUDIT_IX_INDEX" tableName="gps_track_audit" unique="false">
+            <column name="id"/>
+        </createIndex>
+
+        <createProcedure>
+           <![CDATA[
+            CREATE
+            OR REPLACE FUNCTION gps_track_update_trigger() RETURNS TRIGGER AS $$
+            BEGIN
+                    IF
+            (TG_OP = 'UPDATE' OR TG_OP = 'DELETE') THEN
+                        INSERT INTO gps_track_audit (
+                            version, operation, changed_at, id, file_id, creator, gpx_version, meta_name, meta_description,
+                            meta_time, meta_author, track_name, track_description, start_date, end_date,
+                            median_distance_between_points, avg_distance_between_points, max_distance_between_points,
+                            did_filter_outlier_by_distance, number_of_track_points, track_length_in_meter,
+                            track_type, utm_zone, create_date, load_status, load_messages, duplicate_status,
+                            duplicate_of, activity_type, activity_type_source, activity_type_source_details,
+                            garmin_activity_id, meta_link, duplicate_details, update_date,
+                            source_segment_index, source_parent_track_id
+                        )
+            SELECT COALESCE(MAX(version), 0) + 1,
+                   TG_OP,
+                   CURRENT_TIMESTAMP,
+                   OLD.id,
+                   OLD.file_id,
+                   OLD.creator,
+                   OLD.gpx_version,
+                   OLD.meta_name,
+                   OLD.meta_description,
+                   OLD.meta_time,
+                   OLD.meta_author,
+                   OLD.track_name,
+                   OLD.track_description,
+                   OLD.start_date,
+                   OLD.end_date,
+                   OLD.median_distance_between_points,
+                   OLD.avg_distance_between_points,
+                   OLD.max_distance_between_points,
+                   OLD.did_filter_outlier_by_distance,
+                   OLD.number_of_track_points,
+                   OLD.track_length_in_meter,
+                   OLD.track_type,
+                   OLD.utm_zone,
+                   OLD.create_date,
+                   OLD.load_status,
+                   OLD.load_messages,
+                   OLD.duplicate_status,
+                   OLD.duplicate_of,
+                   OLD.activity_type,
+                   OLD.activity_type_source,
+                   OLD.activity_type_source_details,
+                   OLD.garmin_activity_id,
+                   OLD.meta_link,
+                   OLD.duplicate_details,
+                   OLD.update_date,
+                   OLD.source_segment_index,
+                   OLD.source_parent_track_id
+            FROM gps_track_audit
+            WHERE id = OLD.id;
+
+            ELSIF
+            (TG_OP = 'INSERT') THEN
+                        INSERT INTO gps_track_audit (
+                            version, operation, changed_at, id, file_id, creator, gpx_version, meta_name, meta_description,
+                            meta_time, meta_author, track_name, track_description, start_date, end_date,
+                            median_distance_between_points, avg_distance_between_points, max_distance_between_points,
+                            did_filter_outlier_by_distance, number_of_track_points, track_length_in_meter,
+                            track_type, utm_zone, create_date, load_status, load_messages, duplicate_status,
+                            duplicate_of, activity_type, activity_type_source, activity_type_source_details,
+                            garmin_activity_id, meta_link, duplicate_details, update_date,
+                            source_segment_index, source_parent_track_id
+                        )
+            SELECT 1,
+                   TG_OP,
+                   CURRENT_TIMESTAMP,
+                   NEW.id,
+                   NEW.file_id,
+                   NEW.creator,
+                   NEW.gpx_version,
+                   NEW.meta_name,
+                   NEW.meta_description,
+                   NEW.meta_time,
+                   NEW.meta_author,
+                   NEW.track_name,
+                   NEW.track_description,
+                   NEW.start_date,
+                   NEW.end_date,
+                   NEW.median_distance_between_points,
+                   NEW.avg_distance_between_points,
+                   NEW.max_distance_between_points,
+                   NEW.did_filter_outlier_by_distance,
+                   NEW.number_of_track_points,
+                   NEW.track_length_in_meter,
+                   NEW.track_type,
+                   NEW.utm_zone,
+                   NEW.create_date,
+                   NEW.load_status,
+                   NEW.load_messages,
+                   NEW.duplicate_status,
+                   NEW.duplicate_of,
+                   NEW.activity_type,
+                   NEW.activity_type_source,
+                   NEW.activity_type_source_details,
+                   NEW.garmin_activity_id,
+                   NEW.meta_link,
+                   NEW.duplicate_details,
+                   NEW.update_date,
+                   NEW.source_segment_index,
+                   NEW.source_parent_track_id;
+            END IF;
+            RETURN NEW;
+            END;
+                $$
+            LANGUAGE plpgsql;
+            ]]>
+        </createProcedure>
+
+        <createProcedure>
+            CREATE TRIGGER gps_track_audit_trigger
+                AFTER INSERT OR
+            UPDATE OR
+            DELETE
+            ON public.gps_track
+                FOR EACH ROW EXECUTE FUNCTION gps_track_update_trigger();
+        </createProcedure>
+
+    </changeSet>
+
+
+    <changeSet id="20240912_2" author="patrick.heusser">
+        <createTable tableName="indexed_file_audit">
+            <!-- Audit row sequencing -->
+            <column name="audit_version" type="INT"/>
+            <column name="operation" type="VARCHAR(20)"/>
+            <column name="changed_at" type="TIMESTAMP" defaultValueComputed="NOW()"/>
+            <!-- Snapshot columns from indexed_file -->
+            <column name="id" type="BIGINT"/>
+            <column name="index" type="VARCHAR(32)"/>
+            <column name="name" type="VARCHAR(8000)"/>
+            <column name="path" type="VARCHAR(8000)"/>
+            <column name="base_path" type="VARCHAR(8000)"/>
+            <column name="full_path" type="VARCHAR(8000)"/>
+            <column name="size" type="BIGINT"/>
+            <column name="hash" type="VARCHAR(512)"/>
+            <column name="last_modified_date" type="TIMESTAMP"/>
+            <column name="create_date" type="TIMESTAMP"/>
+            <column name="index_added_date" type="TIMESTAMP"/>
+            <column name="index_update_date" type="TIMESTAMP"/>
+            <column name="indexer_status" type="VARCHAR(50)"/>
+            <column name="indexer_id" type="VARCHAR(50)"/>
+            <column name="indexer_invocations" type="INT"/>
+            <column name="last_message" type="text"/>
+            <!-- Optimistic locking value of source row at change time -->
+            <column name="entity_version" type="BIGINT"/>
+        </createTable>
+
+        <createIndex indexName="INDEXED_FILE_AUDIT_IX_INDEX" tableName="indexed_file_audit" unique="false">
+            <column name="id"/>
+        </createIndex>
+
+        <createProcedure>
+            <![CDATA[
+            CREATE
+            OR REPLACE FUNCTION indexed_file_trigger() RETURNS TRIGGER AS $$
+            BEGIN
+                IF
+            (TG_OP = 'UPDATE' OR TG_OP = 'DELETE') THEN
+                    INSERT INTO indexed_file_audit(
+                        audit_version, operation, changed_at,
+                        id, index, name, path, base_path, full_path, size, hash,
+                        last_modified_date, create_date, index_added_date, index_update_date,
+                        indexer_status, indexer_id, indexer_invocations, last_message, entity_version
+                    )
+            SELECT (SELECT COALESCE(MAX(audit_version), 0) + 1 FROM indexed_file_audit WHERE id = OLD.id),
+                   TG_OP,
+                   CURRENT_TIMESTAMP,
+                   OLD.id,
+                   OLD.index,
+                   OLD.name,
+                   OLD.path,
+                   OLD.base_path,
+                   OLD.full_path,
+                   OLD.size,
+                   OLD.hash,
+                   OLD.last_modified_date,
+                   OLD.create_date,
+                   OLD.index_added_date,
+                   OLD.index_update_date,
+                   OLD.indexer_status,
+                   OLD.indexer_id,
+                   OLD.indexer_invocations,
+                   OLD.last_message,
+                   OLD.version;
+            ELSIF
+            (TG_OP = 'INSERT') THEN
+                    INSERT INTO indexed_file_audit(
+                        audit_version, operation, changed_at,
+                        id, index, name, path, base_path, full_path, size, hash,
+                        last_modified_date, create_date, index_added_date, index_update_date,
+                        indexer_status, indexer_id, indexer_invocations, last_message, entity_version
+                    )
+            SELECT 1,
+                   TG_OP,
+                   CURRENT_TIMESTAMP,
+                   NEW.id,
+                   NEW.index,
+                   NEW.name,
+                   NEW.path,
+                   NEW.base_path,
+                   NEW.full_path,
+                   NEW.size,
+                   NEW.hash,
+                   NEW.last_modified_date,
+                   NEW.create_date,
+                   NEW.index_added_date,
+                   NEW.index_update_date,
+                   NEW.indexer_status,
+                   NEW.indexer_id,
+                   NEW.indexer_invocations,
+                   NEW.last_message,
+                   NEW.version;
+            END IF;
+            RETURN NEW;
+            END;
+            $$
+            LANGUAGE plpgsql;
+            ]]>
+        </createProcedure>
+
+        <createProcedure>
+            CREATE TRIGGER indexed_file_audit_trigger
+                AFTER INSERT OR
+            UPDATE OR
+            DELETE
+            ON public.indexed_file
+                FOR EACH ROW EXECUTE FUNCTION indexed_file_trigger();
+        </createProcedure>
+
+    </changeSet>
+
+
+    <changeSet id="20240912_3" author="patrick.heusser">
+        <createTable tableName="config_audit">
+            <!-- Additional columns for versioning -->
+            <column name="version" type="INT"/>
+            <column name="operation" type="VARCHAR(20)"/>
+            <column name="changed_at" type="TIMESTAMP" defaultValueComputed="NOW()"/>
+            <!-- real columns -->
+            <column name="id" type="BIGINT"/>
+            <column name="domain1" type="VARCHAR(100)"/>
+            <column name="domain2" type="VARCHAR(100)"/>
+            <column name="domain3" type="VARCHAR(100)"/>
+            <column name="value" type="VARCHAR(4000)"/>
+            <column name="description" type="VARCHAR(4000)"/>
+            <column name="create_date" type="TIMESTAMP"/>
+        </createTable>
+
+        <createIndex indexName="CONFIG_AUDIT_IX_INDEX" tableName="config_audit" unique="false">
+            <column name="id"/>
+        </createIndex>
+
+
+        <createProcedure>
+            <![CDATA[
+            CREATE
+            OR REPLACE FUNCTION config_trigger() RETURNS TRIGGER AS $$
+            BEGIN
+                    IF
+            (TG_OP = 'UPDATE' OR TG_OP = 'DELETE') THEN
+                        INSERT INTO config_audit
+            SELECT (SELECT COALESCE(MAX(version), 0) + 1 FROM config_audit WHERE id = OLD.id), -- Audit field: version
+                   TG_OP,                                                                      -- Audit field: operation
+                   CURRENT_TIMESTAMP,                                                          -- Audit field: changed_at
+                   OLD.* -- All other columns from the OLD record
+            ;
+            ELSIF
+            (TG_OP = 'INSERT') THEN
+                        INSERT INTO config_audit
+            SELECT 1,                 -- Audit field: version
+                   TG_OP,             -- Audit field: operation
+                   CURRENT_TIMESTAMP, -- Audit field: changed_at
+                   NEW.* -- All other columns from the NEW record
+            ;
+            END IF;
+            RETURN NEW;
+            END;
+                $$
+            LANGUAGE plpgsql;
+            ]]>
+        </createProcedure>
+
+        <createProcedure>
+            CREATE TRIGGER config_audit_trigger
+                AFTER INSERT OR
+            UPDATE OR
+            DELETE
+            ON public.config
+                FOR EACH ROW EXECUTE FUNCTION config_trigger();
+        </createProcedure>
+    </changeSet>
+
+
+    <changeSet id="20240912_4" author="patrick.heusser">
+        <createTable tableName="filter_config_audit">
+            <!-- Additional columns for versioning -->
+            <column name="version" type="INT"/>
+            <column name="operation" type="VARCHAR(20)"/>
+            <column name="changed_at" type="TIMESTAMP" defaultValueComputed="NOW()"/>
+            <!-- real columns -->
+            <column name="id" type="BIGINT"/>
+            <column name="filter_domain" type="VARCHAR(50)"/>
+            <column name="filter_name" type="VARCHAR(80)"/>
+            <column name="expression" type="TEXT"/>
+            <column name="filter_type" type="VARCHAR(50)"/>
+            <column name="filter_category" type="VARCHAR(50)"/>
+            <column name="description" type="VARCHAR(2000)"/>
+            <column name="display_name" type="VARCHAR(50)"/>
+            <column name="display_order" type="BIGINT"/>
+            <column name="create_date" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP"/>
+            <column name="update_date" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP"/>
+        </createTable>
+
+        <createIndex indexName="FILTER_CONFIG_AUDIT_IX_INDEX" tableName="filter_config_audit" unique="false">
+            <column name="id"/>
+        </createIndex>
+
+
+        <createProcedure>
+            <![CDATA[
+            CREATE
+            OR REPLACE FUNCTION filter_config_trigger()
+            RETURNS TRIGGER AS $$
+            BEGIN
+                IF
+            (TG_OP = 'UPDATE' OR TG_OP = 'DELETE') THEN
+                    INSERT INTO filter_config_audit (
+                        version, operation, changed_at,
+                        id, filter_domain, filter_name, expression, filter_type, filter_category,
+                        description, display_name, display_order, create_date, update_date
+                    )
+            SELECT (SELECT COALESCE(MAX(version), 0) + 1 FROM filter_config_audit WHERE id = OLD.id),
+                   TG_OP,
+                   CURRENT_TIMESTAMP,
+                   OLD.id,
+                   OLD.filter_domain,
+                   OLD.filter_name,
+                   OLD.expression,
+                   OLD.filter_type,
+                   OLD.filter_category,
+                   OLD.description,
+                   OLD.display_name,
+                   OLD.display_order::BIGINT, OLD.create_date,
+                   OLD.update_date;
+            ELSIF
+            (TG_OP = 'INSERT') THEN
+                    INSERT INTO filter_config_audit (
+                        version, operation, changed_at,
+                        id, filter_domain, filter_name, expression, filter_type, filter_category,
+                        description, display_name, display_order, create_date, update_date
+                    )
+            SELECT 1,
+                   TG_OP,
+                   CURRENT_TIMESTAMP,
+                   NEW.id,
+                   NEW.filter_domain,
+                   NEW.filter_name,
+                   NEW.expression,
+                   NEW.filter_type,
+                   NEW.filter_category,
+                   NEW.description,
+                   NEW.display_name,
+                   NEW.display_order::BIGINT, NEW.create_date,
+                   NEW.update_date;
+            END IF;
+            RETURN NEW;
+            END;
+            $$
+            LANGUAGE plpgsql;
+            ]]>
+        </createProcedure>
+
+        <createProcedure>
+            CREATE TRIGGER filter_config_audit_trigger
+                AFTER INSERT OR
+            UPDATE OR
+            DELETE
+            ON public.filter_config
+                FOR EACH ROW EXECUTE FUNCTION filter_config_trigger();
+        </createProcedure>
+    </changeSet>
+
+    <changeSet id="20240915_1" author="patrick.heusser">
+        <addColumn tableName="config">
+            <column name="update_date" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP"/>
+        </addColumn>
+        <addColumn tableName="config_audit">
+            <column name="update_date" type="TIMESTAMP"/>
+        </addColumn>
+        <addColumn tableName="gps_track">
+            <column name="update_date" type="TIMESTAMP" defaultValueComputed="CURRENT_TIMESTAMP"/>
+        </addColumn>
+        <addColumn tableName="gps_track_audit">
+            <column name="update_date" type="TIMESTAMP"/>
+        </addColumn>
+        <addColumn tableName="gps_track">
+            <column name="duplicate_details" type="varchar(4000)"/>
+        </addColumn>
+    </changeSet>
+
+    <!-- Fix config_trigger to include update_date field that was added above -->
+    <changeSet id="20240915_2" author="patrick.heusser">
+        <createProcedure>
+            <![CDATA[
+            CREATE
+            OR REPLACE FUNCTION config_trigger() RETURNS TRIGGER AS $$
+            BEGIN
+                IF
+            (TG_OP = 'UPDATE' OR TG_OP = 'DELETE') THEN
+                    INSERT INTO config_audit (
+                        version, operation, changed_at,
+                        id, domain1, domain2, domain3, value, description, create_date, update_date
+                    )
+            SELECT (SELECT COALESCE(MAX(version), 0) + 1 FROM config_audit WHERE id = OLD.id),
+                   TG_OP,
+                   CURRENT_TIMESTAMP,
+                   OLD.id,
+                   OLD.domain1,
+                   OLD.domain2,
+                   OLD.domain3,
+                   OLD.value,
+                   OLD.description,
+                   OLD.create_date,
+                   OLD.update_date;
+            ELSIF
+            (TG_OP = 'INSERT') THEN
+                    INSERT INTO config_audit (
+                        version, operation, changed_at,
+                        id, domain1, domain2, domain3, value, description, create_date, update_date
+                    )
+            SELECT 1,
+                   TG_OP,
+                   CURRENT_TIMESTAMP,
+                   NEW.id,
+                   NEW.domain1,
+                   NEW.domain2,
+                   NEW.domain3,
+                   NEW.value,
+                   NEW.description,
+                   NEW.create_date,
+                   NEW.update_date;
+            END IF;
+            RETURN NEW;
+            END;
+            $$
+            LANGUAGE plpgsql;
+            ]]>
+        </createProcedure>
+    </changeSet>
+
+    <changeSet id="20240909_1" author="patrick.heusser">
+
+        <sql>
+            CREATE
+            USER mtluserreadonly WITH PASSWORD 'MtlSuper123';
+            GRANT CONNECT
+            ON DATABASE mtl TO mtluserreadonly;
+            GRANT USAGE ON SCHEMA
+            public TO mtluserreadonly;
+            GRANT
+            SELECT
+            ON ALL TABLES IN SCHEMA public TO mtluserreadonly;
+            ALTER
+            DEFAULT PRIVILEGES IN SCHEMA public GRANT
+            SELECT
+            ON TABLES TO mtluserreadonly;
+        </sql>
+    </changeSet>
+
+</databaseChangeLog>

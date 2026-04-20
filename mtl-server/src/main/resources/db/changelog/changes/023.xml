@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.10.xsd">
+
+    <changeSet id="20260415_1_web_request_log" author="patrick.heusser">
+
+        <createTable tableName="web_request_log">
+            <column name="id" type="bigint" autoIncrement="true" startWith="10000050" incrementBy="50">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="create_date" type="timestamp" defaultValueComputed="CURRENT_TIMESTAMP"/>
+            <column name="method" type="varchar(10)"/>
+            <column name="uri" type="varchar(2000)"/>
+            <column name="query_string" type="varchar(4000)"/>
+            <column name="status" type="int"/>
+            <column name="duration_ms" type="bigint"/>
+            <column name="user_name" type="varchar(32)"/>
+            <column name="user_id" type="varchar(32)"/>
+            <column name="ip_address" type="varchar(64)"/>
+        </createTable>
+
+        <createIndex indexName="WEB_REQUEST_LOG_IX_CREATE_DATE" tableName="web_request_log" unique="false">
+            <column name="create_date"/>
+        </createIndex>
+
+        <createIndex indexName="WEB_REQUEST_LOG_IX_USER_NAME" tableName="web_request_log" unique="false">
+            <column name="user_name"/>
+        </createIndex>
+
+    </changeSet>
+
+</databaseChangeLog>

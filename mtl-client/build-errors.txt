@@ -1,0 +1,64 @@
+
+> mtl-client@0.0.0 type-check
+> vue-tsc --build --force
+
+src/components/filter/CustomFilter.vue(53,67): error TS2339: Property 'length' does not exist on type 'Set<string> & Omit<Set<string>, keyof Set<any>>'.
+src/components/filter/CustomFilter.vue(58,21): error TS2322: Type 'string' is not assignable to type 'Date | Date[] | (Date | null)[] | null | undefined'.
+src/components/filter/CustomFilter.vue(102,22): error TS2322: Type 'string | undefined' is not assignable to type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+src/components/filter/CustomFilter.vue(107,22): error TS2322: Type 'string | undefined' is not assignable to type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+src/components/filter/CustomFilter.vue(281,45): error TS18048: 'a.filterConfig' is possibly 'undefined'.
+src/components/filter/CustomFilter.vue(281,45): error TS18048: 'a.filterConfig.displayOrder' is possibly 'undefined'.
+src/components/filter/CustomFilter.vue(281,75): error TS18048: 'b.filterConfig' is possibly 'undefined'.
+src/components/filter/CustomFilter.vue(281,75): error TS18048: 'b.filterConfig.displayOrder' is possibly 'undefined'.
+src/components/filter/CustomFilter.vue(287,54): error TS18048: 'f.filterConfig' is possibly 'undefined'.
+src/components/filter/CustomFilter.vue(295,78): error TS2345: Argument of type '{ filterInfo: { filterConfig?: { id?: number | undefined; filterDomain?: "GPS_TRACK" | undefined; filterName?: string | undefined; expression?: string | undefined; filterCategory?: FilterConfigEntityFilterCategoryEnum | undefined; ... 5 more ...; updateDate?: Date | undefined; } | undefined; resolvedSQL?: string | u...' is not assignable to parameter of type 'ClientFilterConfig'.
+  Types of property 'palette' are incompatible.
+    Type '{ id: number; domain1?: string | undefined; domain2?: string | undefined; domain3?: string | undefined; value?: string | undefined; description?: string | undefined; pLabel?: string | undefined; ... 7 more ...; isEmptyColorPalette: () => boolean; }' is missing the following properties from type 'ColorPalette': groupColorMap, groupColorCounter
+src/components/filter/CustomFilter.vue(308,61): error TS2339: Property 'length' does not exist on type 'Set<string> & Omit<Set<string>, keyof Set<any>>'.
+src/components/filter/CustomFilter.vue(432,63): error TS2345: Argument of type 'number | undefined' is not assignable to parameter of type 'number'.
+  Type 'undefined' is not assignable to type 'number'.
+src/components/filter/CustomFilter.vue(494,22): error TS2358: The left-hand side of an 'instanceof' expression must be of type 'any', an object type or a type parameter.
+src/components/filter/FilterService.ts(3,15): error TS7016: Could not find a declaration file for module 'lodash'. '/Users/pheusser/IdeaProjects/mytraillog/mtl-client/node_modules/lodash/lodash.js' implicitly has an 'any' type.
+  Try `npm i --save-dev @types/lodash` if it exists or add a new declaration (.d.ts) file containing `declare module 'lodash';`
+src/components/filter/FilterService.ts(15,5): error TS2564: Property 'filterInfo' has no initializer and is not definitely assigned in the constructor.
+src/components/filter/FilterService.ts(16,5): error TS2564: Property 'filterParams' has no initializer and is not definitely assigned in the constructor.
+src/components/filter/FilterService.ts(17,5): error TS2564: Property 'palette' has no initializer and is not definitely assigned in the constructor.
+src/components/filter/FilterService.ts(59,27): error TS2345: Argument of type 'string | null' is not assignable to parameter of type 'string'.
+  Type 'null' is not assignable to type 'string'.
+src/components/filter/FilterService.ts(71,13): error TS2739: Type 'FilterInfo' is missing the following properties from type 'ClientFilterConfig': filterInfo, filterParams, palette
+src/components/filter/FilterService.ts(73,13): error TS18047: 'clientFilterConfig' is possibly 'null'.
+src/components/filter/FilterService.ts(74,13): error TS18047: 'clientFilterConfig' is possibly 'null'.
+src/components/filter/FilterService.ts(79,9): error TS18047: 'clientFilterConfig' is possibly 'null'.
+src/components/filter/FilterService.ts(81,9): error TS2322: Type 'ClientFilterConfig | null' is not assignable to type 'ClientFilterConfig'.
+  Type 'null' is not assignable to type 'ClientFilterConfig'.
+src/components/gps/GpsLocate.vue(66,32): error TS2345: Argument of type 'string' is not assignable to parameter of type '"tool-opened" | "locationUpdate" | "deviceEnabledDisabled"'.
+src/components/gps/GpsLocate.vue(76,32): error TS2345: Argument of type 'string' is not assignable to parameter of type '"tool-opened" | "locationUpdate" | "deviceEnabledDisabled"'.
+src/components/gps/GpsLocate.vue(83,32): error TS2345: Argument of type 'string' is not assignable to parameter of type '"tool-opened" | "locationUpdate" | "deviceEnabledDisabled"'.
+src/components/map/MapClickPopup.vue(17,41): error TS2345: Argument of type 'number | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+src/components/map/MapClickPopup.vue(18,43): error TS2345: Argument of type 'number | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+src/components/map/MapClickPopup.vue(41,13): error TS2304: Cannot find name 'L'.
+src/components/track-browser/TrackBrowserQuickViews.vue(16,15): error TS2305: Module '"./trackBrowser.types"' has no exported member 'TrackBrowserOption'.
+src/components/track-browser/TrackBrowserQuickViews.vue(16,35): error TS2305: Module '"./trackBrowser.types"' has no exported member 'TrackBrowserPreset'.
+src/components/trackdetails/TrackDetails.vue(7,22): error TS2322: Type '(value: string) => void' is not assignable to type '(value: string | number) => void'.
+  Types of parameters 'value' and 'value' are incompatible.
+    Type 'string | number' is not assignable to type 'string'.
+      Type 'number' is not assignable to type 'string'.
+src/utils/Utils.ts(1,22): error TS7016: Could not find a declaration file for module 'colormap'. '/Users/pheusser/IdeaProjects/mytraillog/mtl-client/node_modules/colormap/index.js' implicitly has an 'any' type.
+  Try `npm i --save-dev @types/colormap` if it exists or add a new declaration (.d.ts) file containing `declare module 'colormap';`
+src/utils/Utils.ts(2,15): error TS7016: Could not find a declaration file for module 'lodash'. '/Users/pheusser/IdeaProjects/mytraillog/mtl-client/node_modules/lodash/lodash.js' implicitly has an 'any' type.
+  Try `npm i --save-dev @types/lodash` if it exists or add a new declaration (.d.ts) file containing `declare module 'lodash';`
+src/utils/Utils.ts(6,32): error TS7006: Parameter 'durationInMillis' implicitly has an 'any' type.
+src/utils/Utils.ts(20,35): error TS7006: Parameter 'date' implicitly has an 'any' type.
+src/utils/Utils.ts(37,30): error TS7006: Parameter 'num' implicitly has an 'any' type.
+src/utils/Utils.ts(37,35): error TS7006: Parameter 'digits' implicitly has an 'any' type.
+src/utils/Utils.ts(45,28): error TS7006: Parameter 'date' implicitly has an 'any' type.
+src/utils/Utils.ts(60,29): error TS7006: Parameter 'bytes' implicitly has an 'any' type.
+src/utils/Utils.ts(72,32): error TS7006: Parameter 'meters' implicitly has an 'any' type.
+src/utils/Utils.ts(191,32): error TS7006: Parameter 'n' implicitly has an 'any' type.
+src/utils/Utils.ts(208,30): error TS7006: Parameter 'o' implicitly has an 'any' type.
+src/views/AboutView.vue(20,17): error TS7016: Could not find a declaration file for module '@/components/map/Map.vue'. '/Users/pheusser/IdeaProjects/mytraillog/mtl-client/src/components/map/Map.vue' implicitly has an 'any' type.
+src/views/HomeView.vue(31,17): error TS7016: Could not find a declaration file for module '@/components/map/Map.vue'. '/Users/pheusser/IdeaProjects/mytraillog/mtl-client/src/components/map/Map.vue' implicitly has an 'any' type.

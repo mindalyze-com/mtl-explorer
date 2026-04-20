@@ -1,0 +1,78 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgis/postgis:18-3.6
+    environment:
+      POSTGRES_DB: mtl
+      POSTGRES_USER: mtluser
+      POSTGRES_PASSWORD: MtlSuper123
+    ports:
+      - "15434:5432"
+    expose:
+      - 5432
+    restart: unless-stopped
+    volumes:
+      - /volume1/raspberry/MyTrailLogDemo/PostGIS:/var/lib/postgresql/18/docker
+    deploy:
+      resources:
+        limits:
+          memory: 1g
+        reservations:
+          memory: 256m
+    command: >
+      postgres
+      -c shared_buffers=128MB
+      -c effective_cache_size=512MB
+      -c work_mem=8MB
+      -c maintenance_work_mem=64MB
+      -c max_wal_size=256MB
+      -c checkpoint_completion_target=0.9
+      -c wal_buffers=8MB
+      -c synchronous_commit=off
+
+  app:
+    image: wauwau0977/mytraillog:125
+    depends_on:
+      - db
+    environment:
+      POSTGRES_DB: mtl
+      POSTGRES_USER: mtluser
+      POSTGRES_PASSWORD: MtlSuper123
+      # Demo mode — auto-extracts Porto taxi GPX tracks and generates geo-tagged photos on first startup
+      DEMO_MODE: "Y"
+      DEMO_TARGET_TRACK_COUNT: "10000"  # Exact visible track count after bad-track exclusion (0 = keep all)
+      DEMO_PHOTO_COUNT: "500"
+    ports:
+      - "18084:8080"
+    expose:
+      - 8080
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 1536m
+        reservations:
+          memory: 512m
+    volumes:
+      - /volume1/raspberry/MyTrailLogDemo/GPX:/app/gpx
+      - /volume1/raspberry/MyTrailLogDemo/media:/app/media
+      - /volume1/raspberry/MyTrailLogDemo/logs:/app/logs
+      # No application.yml mount — demo credentials (demo/mtl) are baked into application-demo.yml
+
+  map-server:
+    image: wauwau0977/mytraillog-maps:1.26
+    ports:
+      - "18083:8081"
+    expose:
+      - 8081
+    environment:
+      PORT: "8081"
+      LOWZOOM_MAXZOOM: "5"
+      # No MAP_DOWNLOAD_URL needed — demo tiles are baked into the image.
+      # For a different city, use the base image with:
+      #   MAP_DOWNLOAD_URL: latest
+      #   MAP_AREA_BBOX: "west,south,east,north"
+    volumes:
+      - /volume1/raspberry/MyTrailLogDemo/maps:/data
+    restart: unless-stopped

@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.10.xsd">
+
+    <changeSet id="20260323_1" author="patrick.heusser">
+
+        <createView viewName="media_file_v">
+            <![CDATA[
+            SELECT mf.id,
+                   mf.file_id,
+                   mf.cre_date,
+                   mf.exif_gps_location_long,
+                   mf.exif_gps_location_lat,
+                   mf.exif_gps_location,
+                   mf.exif_gps_date,
+                   mf.exif_date_image_taken,
+                   mf.camera_make,
+                   mf.camera_model,
+                   ixf.index              AS f_index,
+                   ixf.name               AS f_name,
+                   ixf.path               AS f_path,
+                   ixf.base_path          AS f_base_path,
+                   ixf.full_path          AS f_full_path,
+                   ixf.size               AS f_size,
+                   ixf.indexer_id         AS f_indexer_id,
+                   ixf.last_modified_date AS f_last_modified_date,
+                   ixf.index_added_date   AS f_index_added_date,
+                   ixf.index_update_date  AS f_index_update_date,
+                   ixf.indexer_status     AS f_indexer_status,
+                   ixf.last_message       AS f_last_message
+            FROM media_file mf
+                     LEFT JOIN indexed_file ixf ON ixf.id = mf.file_id
+            ]]>
+        </createView>
+
+    </changeSet>
+
+</databaseChangeLog>

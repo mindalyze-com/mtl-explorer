@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.10.xsd">
+
+    <changeSet id="20240927_1" author="patrick.heusser">
+
+        <insert tableName="config">
+            <column name="domain1">CLIENT</column>
+            <column name="domain2">COLOR_PALETTE</column>
+            <column name="domain3">005_COLORS</column>
+            <column name="value"><![CDATA[
+                {"description":"5 distinct colors","label":"5 Colors","colors":["#008b8b","#ffa500","#00ff00","#0000ff","#ff1493"]}
+            ]]></column>
+            <column name="description"><![CDATA[
+                5 Distinct colors. Inspired by https://sashamaps.net/docs/resources/20-colors/
+            ]]>
+            </column>
+        </insert>
+
+        <insert tableName="config">
+            <column name="domain1">CLIENT</column>
+            <column name="domain2">COLOR_PALETTE</column>
+            <column name="domain3">008_COLORS</column>
+            <column name="value"><![CDATA[
+                {"description":"8 distinct colors","label":"8 Colors","colors":["#006400","#ff0000","#ffd700","#c71585","#00ff00","#00ffff","#0000ff","#1e90ff"]}
+            ]]></column>
+            <column name="description"><![CDATA[
+                8 Distinct colors. Inspired by https://sashamaps.net/docs/resources/20-colors/
+            ]]>
+            </column>
+        </insert>
+
+        <insert tableName="config">
+            <column name="domain1">CLIENT</column>
+            <column name="domain2">COLOR_PALETTE</column>
+            <column name="domain3">010_COLORS_METRO</column>
+            <column name="value"><![CDATA[
+                {"description":"Colors used on metro maps","label":"10 Colors (metro map style)","colors":["#800000","#9A6324","#469990","#000075","#e6194B","#f58231","#ffe119","#3cb44b","#42d4f4","#f032e6"]}
+            ]]></column>
+            <column name="description"><![CDATA[
+                10 Distinct colors. Inspired by https://sashamaps.net/docs/resources/20-colors/
+            ]]>
+            </column>
+        </insert>
+
+        <insert tableName="config">
+            <column name="domain1">CLIENT</column>
+            <column name="domain2">COLOR_PALETTE</column>
+            <column name="domain3">010_COLORS</column>
+            <column name="value"><![CDATA[
+                {"description":"10 distinct colors","label":"10 colors","colors":["#006400","#00008b","#b03060","#ff0000","#ffff00","#deb887","#00ff00","#00ffff","#ff00ff","#6495ed"]}
+            ]]></column>
+            <column name="description"><![CDATA[
+                10 Distinct colors. Inspired by https://sashamaps.net/docs/resources/20-colors/
+            ]]>
+            </column>
+        </insert>
+
+        <insert tableName="config">
+            <column name="domain1">CLIENT</column>
+            <column name="domain2">COLOR_PALETTE</column>
+            <column name="domain3">025_COLORS</column>
+            <column name="value"><![CDATA[
+                {"description":"25 distinct colors","label":"25 Colors","colors":["#8b4513","#228b22","#808000","#483d8b","#bc8f8f","#008080","#000080","#9acd32","#8fbc8f","#8b008b","#b03060","#ff0000","#ffa500","#ffff00","#7cfc00","#8a2be2","#00ff7f","#dc143c","#00ffff","#0000ff","#ff7f50","#ff00ff","#6495ed","#87ceeb","#ee82ee"]}
+            ]]></column>
+            <column name="description"><![CDATA[
+                25 Distinct colors. Inspired by https://mokole.com/palette.html
+            ]]>
+            </column>
+        </insert>
+
+        <insert tableName="config">
+            <column name="domain1">CLIENT</column>
+            <column name="domain2">COLOR_PALETTE</column>
+            <column name="domain3">050_COLORS</column>
+            <column name="value"><![CDATA[
+                {"description":"50 distinct colors","label":"50 Colors","colors":["#2f4f4f","#556b2f","#8b4513","#191970","#8b0000","#808000","#008000","#3cb371","#bc8f8f","#663399","#b8860b","#4682b4","#000080","#d2691e","#9acd32","#20b2aa","#cd5c5c","#32cd32","#8fbc8f","#8b008b","#b03060","#d2b48c","#9932cc","#ff4500","#ff8c00","#ffd700","#c71585","#0000cd","#00ff00","#00fa9a","#4169e1","#e9967a","#dc143c","#00ffff","#00bfff","#f4a460","#9370db","#0000ff","#a020f0","#adff2f","#ff6347","#d8bfd8","#ff00ff","#db7093","#f0e68c","#ffff54","#6495ed","#dda0dd","#90ee90","#add8e6"]}
+            ]]></column>
+            <column name="description"><![CDATA[
+                50 Distinct colors. Inspired by https://mokole.com/palette.html
+            ]]>
+            </column>
+        </insert>
+
+        <insert tableName="config">
+            <column name="domain1">CLIENT</column>
+            <column name="domain2">COLOR_PALETTE</column>
+            <column name="domain3">100_COLORS</column>
+            <column name="value"><![CDATA[
+                {"description":"100 distinct colors","label":"100 Colors","colors":["#2f4f4f","#556b2f","#8b4513","#6b8e23","#a0522d","#a52a2a","#2e8b57","#228b22","#7f0000","#191970","#006400","#708090","#8b0000","#808000","#483d8b","#b22222","#5f9ea0","#778899","#008000","#3cb371","#bc8f8f","#663399","#008080","#b8860b","#bdb76b","#008b8b","#cd853f","#4682b4","#000080","#d2691e","#9acd32","#20b2aa","#cd5c5c","#00008b","#4b0082","#32cd32","#daa520","#8fbc8f","#800080","#8b008b","#b03060","#d2b48c","#48d1cc","#66cdaa","#9932cc","#ff0000","#ff4500","#00ced1","#ff8c00","#ffa500","#ffd700","#6a5acd","#ffff00","#c71585","#0000cd","#7cfc00","#deb887","#40e0d0","#7fff00","#00ff00","#9400d3","#ba55d3","#00fa9a","#8a2be2","#00ff7f","#4169e1","#e9967a","#dc143c","#00ffff","#00bfff","#f4a460","#9370db","#0000ff","#a020f0","#f08080","#adff2f","#ff6347","#da70d6","#d8bfd8","#b0c4de","#ff7f50","#ff00ff","#1e90ff","#db7093","#f0e68c","#fa8072","#eee8aa","#ffff54","#6495ed","#dda0dd","#b0e0e6","#90ee90","#add8e6","#87ceeb","#ff1493","#7b68ee","#ffa07a","#f5deb3","#afeeee","#ee82ee"]}
+            ]]></column>
+            <column name="description"><![CDATA[
+                100 Distinct colors. Inspired by https://mokole.com/palette.html
+            ]]>
+            </column>
+        </insert>
+
+
+    </changeSet>
+
+</databaseChangeLog>

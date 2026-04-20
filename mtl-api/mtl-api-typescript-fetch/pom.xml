@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+    <modelVersion>4.0.0</modelVersion>
+
+    <artifactId>mtl-api-typescript-fetch</artifactId>
+    <version>1.0.0-SNAPSHOT</version>
+    <packaging>pom</packaging>
+
+    <name>mtl-api-java-typescript-fetch</name>
+    <description>MTL API client for typescript</description>
+
+    <parent>
+        <groupId>com.x8ing.mtl.api</groupId>
+        <artifactId>mtl-api</artifactId>
+        <version>1.0.0-SNAPSHOT</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+
+    <properties>
+        <maven.compiler.source>17</maven.compiler.source>
+        <maven.compiler.target>17</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <openapi.schema>${project.basedir}/../open-api-schema/schema.json</openapi.schema>
+    </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-dependencies</artifactId>
+                <version>2.7.5</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+
+    <!-- TODO: add generated artifacts to npm repo -->
+
+    <build>
+        <plugins>
+
+            <!-- Add the exec-maven-plugin -->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>3.1.0</version>
+                <executions>
+
+                    <!-- Run npm install typescript (do it globally) -->
+                    <execution>
+                        <id>npm-install-typescript</id>
+                        <goals>
+                            <goal>exec</goal>
+                        </goals>
+                        <phase>generate-sources</phase>
+                        <configuration>
+                            <executable>npm</executable>
+                            <workingDirectory>${project.basedir}</workingDirectory>
+                            <arguments>
+                                <argument>install</argument>
+                                <argument>-g</argument> <!-- globally -->
+                                <argument>typescript</argument>
+                            </arguments>
+                        </configuration>
+                    </execution>
+
+                </executions>
+            </plugin>
+
+
+            <!-- plugin to generate the client stubs (SDK) based on the previously downloaded api spec (cumbersome) -->
+            <plugin>
+                <groupId>org.openapitools</groupId>
+                <artifactId>openapi-generator-maven-plugin</artifactId>
+                <version>7.4.0</version>
+                <executions>
+
+                    <execution>
+                        <id>generate-api-typescript</id>
+                        <phase>generate-resources</phase>
+                        <goals>
+                            <goal>generate</goal>
+                        </goals>
+                        <configuration>
+                            <inputSpec>${openapi.schema}</inputSpec>
+                            <packageName>com.x8ing.mtl.api</packageName>
+                            <output>${project.build.directory}/generated-sources/mtl-typescript</output>
+                            <!-- generators https://github.com/OpenAPITools/openapi-generator/blob/master/docs/generators.md -->
+                            <generatorName>typescript-fetch
+                            </generatorName><!-- experimental in current version, yet surely will become stable -->
+                            <configOptions>
+                                <supportsES6>true</supportsES6>
+                                <npmName>x8ing-mtl-api-typescript-fetch</npmName>
+                                <npmVersion>1.0.0</npmVersion>
+                                <npmRepository>nexus</npmRepository>
+                                <disallowAdditionalPropertiesIfNotPresent>false
+                                </disallowAdditionalPropertiesIfNotPresent>
+                            </configOptions>
+                            <skipValidateSpec>true</skipValidateSpec>
+                        </configuration>
+                    </execution>
+
+                </executions>
+            </plugin>
+
+            <plugin>
+                <!-- after the build of the typescript sources, we need to run the npm install on the generated package.json -->
+                <groupId>com.github.eirslett</groupId>
+                <artifactId>frontend-maven-plugin</artifactId>
+                <version>1.13.1</version>
+                <configuration>
+                    <workingDirectory>${project.build.directory}/generated-sources/mtl-typescript</workingDirectory>
+                    <installDirectory>./node</installDirectory> <!-- where to install npm/node -->
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>install node and npm</id>
+                        <goals>
+                            <goal>install-node-and-npm</goal>
+                        </goals>
+                        <configuration>
+                            <nodeVersion>v14.15.1</nodeVersion>
+                            <npmVersion>6.14.8</npmVersion>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>npm install</id>
+                        <goals>
+                            <goal>npm</goal>
+                        </goals>
+                        <configuration>
+                            <arguments>install</arguments>
+                        </configuration>
+                        <phase>install</phase>
+                    </execution>
+                </executions>
+            </plugin>
+
+
+        </plugins>
+
+    </build>
+
+
+</project>

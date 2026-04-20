@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.10.xsd">
+
+    <changeSet id="20230524_1" author="patrick.heusser">
+
+        <createTable tableName="indexed_file">
+            <column name="id" type="bigint" autoIncrement="true" startWith="300000">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="index" type="varchar(32)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="name" type="varchar(8000)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="path" type="varchar(8000)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="base_path" type="varchar(8000)"></column>
+            <column name="full_path" type="varchar(8000)"></column>
+            <column name="size" type="bigint"/>
+            <column name="hash" type="varchar(512)"/>
+            <column name="last_modified_date" type="timestamp"/>
+            <column name="create_date" type="timestamp"/>
+            <column name="index_added_date" type="timestamp"/>
+            <column name="index_update_date" type="timestamp"/>
+            <!-- Added inline (was separate later change): optimistic locking and indexing meta -->
+            <column name="version" type="bigint" defaultValueNumeric="0"/>
+            <column name="indexer_status" type="varchar(50)"/>
+            <column name="indexer_id" type="varchar(50)"/>
+            <column name="indexer_invocations" type="int" defaultValueNumeric="0"/>
+            <column name="last_message" type="text"/>
+        </createTable>
+
+        <addUniqueConstraint constraintName="INDEXED_FILE_NAME_PATH_UNIQUE_CONSTRAINT"
+                             tableName="indexed_file"
+                             columnNames="index, name, path"/>
+
+        <createIndex indexName="INDEXED_FILE_IX_INDEX" tableName="indexed_file" unique="false">
+            <column name="index"/>
+        </createIndex>
+        <createIndex indexName="INDEXED_FILE_IX_NAME" tableName="indexed_file" unique="false">
+            <column name="name"/>
+        </createIndex>
+        <createIndex indexName="INDEXED_FILE_IX_PATH" tableName="indexed_file" unique="false">
+            <column name="path"/>
+        </createIndex>
+        <createIndex indexName="INDEXED_FILE_IX_SIZE" tableName="indexed_file" unique="false">
+            <column name="size"/>
+        </createIndex>
+        <createIndex indexName="INDEXED_FILE_IX_HASH" tableName="indexed_file" unique="false">
+            <column name="hash"/>
+        </createIndex>
+        <createIndex indexName="INDEXED_FILE_IX_CREATE_DATE" tableName="indexed_file" unique="false">
+            <column name="create_date"/>
+        </createIndex>
+        <createIndex indexName="INDEXED_FILE_IX_ADDED_DATE" tableName="indexed_file" unique="false">
+            <column name="index_added_date"/>
+        </createIndex>
+        <createIndex indexName="INDEXED_FILE_IX_UPDATED_DATE" tableName="indexed_file" unique="false">
+            <column name="index_update_date"/>
+        </createIndex>
+        <createIndex indexName="INDEXED_FILE_IX_BASE_PATH" tableName="indexed_file" unique="false">
+            <column name="base_path"/>
+        </createIndex>
+        <createIndex indexName="INDEXED_FILE_IX_FULL_PATH" tableName="indexed_file" unique="false">
+            <column name="full_path"/>
+        </createIndex>
+
+        <createIndex indexName="INDEXED_FILE_IX_COMBINED_1" tableName="indexed_file" unique="false">
+            <column name="index"/>
+            <column name="name"/>
+            <column name="path"/>
+        </createIndex>
+        <createIndex indexName="indexed_file_status" tableName="indexed_file" unique="false">
+            <column name="indexer_status"/>
+        </createIndex>
+
+        <createTable tableName="media_file">
+            <column name="id" type="bigint" autoIncrement="true" startWith="400000">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="file_id" type="bigint">
+                <constraints foreignKeyName="media_file_fk_indexed_file" referencedTableName="indexed_file"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="cre_date" type="timestamp" defaultValueComputed="CURRENT_TIMESTAMP"/>
+            <column name="exif_gps_location_long" type="NUMERIC(20,8)"/>
+            <column name="exif_gps_location_lat" type="NUMERIC(20,8)"/>
+            <column name="exif_gps_location" type="geometry(Point, 4326)"/>
+            <column name="exif_gps_date" type="timestamp"/>
+            <column name="exif_date_image_taken" type="timestamp"/>
+            <column name="camera_make" type="varchar(255)"/>
+            <column name="camera_model" type="varchar(255)"/>
+        </createTable>
+
+
+        <sql>CREATE INDEX MEDIA_FILE_IX_LOCATION ON media_file USING gist(exif_gps_location);</sql>
+
+        <createIndex indexName="media_file_IX_EXIF_LOCATION_LONG" tableName="media_file" unique="false">
+            <column name="exif_gps_location_long"/>
+        </createIndex>
+        <createIndex indexName="media_file_IX_EXIF_LOCATION_LAT" tableName="media_file" unique="false">
+            <column name="exif_gps_location_lat"/>
+        </createIndex>
+        <createIndex indexName="media_file_IX_EXIF_DATE_IMG_TAKEN" tableName="media_file" unique="false">
+            <column name="exif_date_image_taken"/>
+        </createIndex>
+        <createIndex indexName="media_file_IX_EXIF_GPS_DATE" tableName="media_file" unique="false">
+            <column name="exif_gps_date"/>
+        </createIndex>
+
+
+    </changeSet>
+
+</databaseChangeLog>

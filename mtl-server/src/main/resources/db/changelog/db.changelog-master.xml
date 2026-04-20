@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.10.xsd">
+
+
+    <include file="db/changelog/changes/001.xml"/>
+    <include file="db/changelog/changes/002.xml"/>
+    <include file="db/changelog/changes/003.xml"/>
+    <include file="db/changelog/changes/004.xml"/>
+    <include file="db/changelog/changes/005.xml"/>
+    <include file="db/changelog/changes/006.xml"/>
+    <include file="db/changelog/changes/008.xml"/>
+    <include file="db/changelog/changes/009.xml"/>
+    <include file="db/changelog/changes/010.xml"/>
+    <include file="/db/changelog/changes/011.xml"/>
+    <include file="/db/changelog/changes/012.xml"/>
+    <include file="/db/changelog/changes/013.xml"/>
+    <include file="/db/changelog/changes/014.xml"/>
+    <include file="/db/changelog/changes/015.xml"/>
+    <include file="/db/changelog/changes/016.xml"/>
+    <include file="/db/changelog/changes/017.xml"/>
+    <include file="/db/changelog/changes/018.xml"/>
+    <include file="/db/changelog/changes/019.xml"/>
+    <include file="/db/changelog/changes/020.xml"/>
+    <include file="/db/changelog/changes/021.xml"/>
+    <include file="/db/changelog/changes/022.xml"/>
+    <include file="/db/changelog/changes/023.xml"/>
+    <include file="/db/changelog/changes/024.xml"/>
+    <include file="/db/changelog/changes/025.xml"/>
+    <include file="/db/changelog/changes/026.xml"/>
+    <include file="/db/changelog/changes/027.xml"/>
+    <include file="/db/changelog/changes/028.xml"/>
+    <include file="/db/changelog/changes/029.xml"/>
+</databaseChangeLog>

@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.10.xsd">
+
+    <!-- Add energy columns to gps_track_v so statistics queries can aggregate them -->
+    <changeSet id="20260326_1_view_energy" author="patrick.heusser">
+
+        <dropView viewName="gps_track_v"/>
+
+        <createView viewName="gps_track_v">
+            <![CDATA[
+            SELECT gt.id,
+                   gt.file_id,
+                   gt.creator,
+                   gt.gpx_version,
+                   gt.meta_name,
+                   gt.meta_description,
+                   gt.meta_time,
+                   gt.meta_author,
+                   gt.track_name,
+                   gt.track_description,
+                   gt.start_date,
+                   gt.end_date,
+                   gt.track_duration_in_motion_secs,
+                   gt.median_distance_between_points,
+                   gt.avg_distance_between_points,
+                   gt.max_distance_between_points,
+                   gt.did_filter_outlier_by_distance,
+                   gt.number_of_track_points,
+                   gt.track_length_in_meter,
+                   gt.track_type,
+                   gt.utm_zone,
+                   gt.create_date,
+                   gt.load_status,
+                   gt.load_messages,
+                   gt.duplicate_status,
+                   gt.duplicate_of,
+                   gt.activity_type,
+                   gt.activity_type_source,
+                   gt.activity_type_source_details,
+                   gt.garmin_activity_id,
+                   gt.meta_link,
+                   gt.update_date,
+                   gt.duplicate_details,
+                   gt.bbox_min_lat,
+                   gt.bbox_max_lat,
+                   gt.bbox_min_lng,
+                   gt.bbox_max_lng,
+                   gt.center_lat,
+                   gt.center_lng,
+                   gt.energy_gravitational_total_wh,
+                   gt.energy_gravitational_descent_wh,
+                   gt.energy_aero_drag_total_wh,
+                   gt.energy_rolling_resistance_total_wh,
+                   gt.energy_kinetic_positive_total_wh,
+                   gt.energy_net_total_wh,
+                   gt.energy_weight_kg_used,
+                   gt.power_watts_avg,
+                   gt.power_watts_max,
+                   gt.source_segment_index,
+                   gt.source_parent_track_id,
+                   ixf.index              AS f_index,
+                   ixf.name               AS f_name,
+                   ixf.path               AS f_path,
+                   ixf.base_path          AS f_base_path,
+                   ixf.full_path          AS f_full_path,
+                   ixf.size               AS f_size,
+                   ixf.indexer_id         AS f_indexer_id,
+                   ixf.last_modified_date AS f_last_modified_date,
+                   ixf.index_added_date   AS f_index_added_date,
+                   ixf.index_update_date  AS f_index_update_date,
+                   ixf.indexer_status     AS f_indexer_status,
+                   ixf.last_message       AS f_last_message,
+                   gd.id                  AS gd_id,
+                   gd.create_date         AS gd_create_date,
+                   gd.precision_in_meter  AS gd_precision_in_meter,
+                   gd.track_type          AS gd_track_type,
+                   gd.track               AS gd_track,
+                   gd_raw.id              as gd_raw_id,
+                   gd_raw.track           as gd_raw_track
+            FROM gps_track gt
+                     LEFT JOIN gps_track_data gd ON gt.id = gd.gps_track_id AND gd.precision_in_meter = 10::numeric
+                  LEFT JOIN gps_track_data gd_raw
+            ON gt.id = gd_raw.gps_track_id AND gd_raw.precision_in_meter = 0:: numeric and gd_raw.track_type='RAW'
+                LEFT JOIN indexed_file ixf ON ixf.id = gt.file_id
+            ]]>
+        </createView>
+
+    </changeSet>
+
+</databaseChangeLog>

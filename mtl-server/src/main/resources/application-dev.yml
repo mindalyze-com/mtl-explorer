@@ -1,0 +1,66 @@
+mtl:
+  # gpx-watch-directory: "C:/Users/patri/Downloads/GPX_ALL"
+  # gpx-watch-directory: "C:/Users/patri/Downloads/GPX_WATCHER_3"
+  # gpx-watch-directory: "/Users/pheusser/Documents/GPX_WATCHER_3A" # MAC
+  gpx-watch-directory: "/Users/pheusser/Downloads/gpx2" # MAC
+  # gpx-watch-directory: "/Users/pheusser/Downloads/gpx2_outlier_only" # MAC
+  # gpx-watch-directory: "/Volumes/raspberry/MyTrailLogBeta2/gpx" # NAS mounted on MAC
+  media-watch-directory: "/Users/pheusser/Downloads/MTL_Media/"
+  # media-watch-directory: "/Volumes/usbshare1/DATEN/Daten_All/Daten/Bilder/Biographie/2025"
+  user:
+    # Frontend user for GUI
+    login: 'temp'
+    password: 'temp.42'
+  map-server:
+    status-url: http://localhost:18081/status  # local Docker or not running
+    tile-upstream-url: http://localhost:18081   # local Docker map server
+  planner:
+    enabled: true
+    brouter-base-url: http://localhost:17777
+    status-url: http://localhost:17778/status
+  # media-watch-directory: "C:/Users/patri/Downloads/MTL_IMAGES_VIDEOS"
+  # media-watch-directory: "P:/Daten/Daten_ALL/Bilder/Biographie"
+  garmin-sync:
+    enabled: true # needs to be enabled in custom application.yml
+    wrapper-program: /app/garmin_export/run_export.sh
+    exclude_activities-file: C:/Users/patri/Downloads/garmin_exclude_activities.json
+    user-name: 'XXX_LOGIN' # needs user-name in custom application.yml
+    user-password: 'XXX_PWD' # needs password  in custom application.yml
+
+server:
+  ssl:
+    enabled: false
+  servlet:
+    session:
+      cookie:
+        http-only: false
+        secure: false
+        same-site: lax # none is not working together with secure=false
+
+
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/mtl
+
+#spring:
+#  jpa:
+#    properties:
+#      hibernate:
+#        show_sql: true
+#        use_sql_comments: true
+#        format_sql: true
+#
+# logging:
+#  level:
+#    com.x8ing.mtl.server.mtlserver.indexer.FileIndexerImpl: DEBUG
+#    org.hibernate.SQL: DEBUG
+#    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+
+logging:
+  level:
+    # here the log level can be adjusted dynamically, actually also with an external application.yml file override
+    com.x8ing.mtl.server.mtlserver.web.filter.MyCorsFilter: DEBUG
+    com.x8ing.mtl.server.mtlserver.logic.grouping.sql.template.CustomTemplateResolver: DEBUG
+    com.x8ing.mtl.server.mtlserver.logic.grouping.sql.GpsTrackSQLFilter: DEBUG
+    #org.hibernate.SQL: TRACE
+    #org.hibernate.type.descriptor.sql.BasicBinder: TRACE

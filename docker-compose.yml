@@ -1,0 +1,116 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgis/postgis:18-3.6
+    environment:
+      POSTGRES_DB: mtl
+      POSTGRES_USER: mtluser
+      POSTGRES_PASSWORD: MtlSuper123
+    ports:
+      - "15432:5432"
+    expose:
+      - 5432
+    volumes:
+      - /volume1/raspberry/MyTrailLog/PostGIS:/var/lib/postgresql/18/docker. # CAREFUL NEW with postgres 18: Versioned data folder!!!
+    deploy:
+      resources:
+        limits:
+          memory: 1g
+        reservations:
+          memory: 256m
+    command: >
+      postgres
+      -c shared_buffers=128MB
+      -c effective_cache_size=512MB
+      -c work_mem=8MB
+      -c maintenance_work_mem=64MB
+      -c max_wal_size=256MB
+      -c checkpoint_completion_target=0.9
+      -c wal_buffers=8MB
+      -c synchronous_commit=off
+
+  app:
+    image: wauwau0977/mytraillog:122  # Your custom image
+    depends_on:
+      - db
+    environment:
+      # These environment variables are used by your custom entrypoint script
+      # to check that PostgreSQL is ready.
+      POSTGRES_DB: mtl
+      POSTGRES_USER: mtluser
+      POSTGRES_PASSWORD: MtlSuper123
+      # Uncomment the next line to activate demo mode (auto-extracts GPX + generates photos)
+      # DEMO_MODE: "Y"
+      # DEMO_PHOTO_COUNT: "200"         # optional: number of demo photos to generate (default: 200)
+      #
+      # Route-planner feature (BRouter-backed, off by default).
+      # Set MTL_PLANNER_ENABLED=true AND bring up the brouter sidecar
+      # via `docker compose --profile planner up -d` to enable it.
+      MTL_PLANNER_ENABLED: "${MTL_PLANNER_ENABLED:-false}"
+      MTL_PLANNER_BROUTER_BASE_URL: "http://brouter:17777"
+      MTL_PLANNER_STATUS_URL: "http://brouter:17778/status"
+    ports:
+      - "18080:8080"
+    expose:
+      - 8080
+    deploy:
+      resources:
+        limits:
+          memory: 1836m
+        reservations:
+          memory: 512m
+    volumes:
+      - /volume1/raspberry/MyTrailLog/GPX:/app/gpx
+      - /volume1/raspberry/MyTrailLog/logs:/app/logs
+      - /volume1/raspberry/MyTrailLog/config/application.yml:/app/config/application.yml
+      - /volumeUSB1/usbshare/DATEN/Daten_All/Daten:/app/media
+
+  map-server:
+    image: wauwau0977/mytraillog-maps:1.23
+    ports:
+      - "18081:8081"
+    expose:
+      - 8081
+    environment:
+      # Download URL for the Protomaps planet file (~120 GB). Required on first startup.
+      # Daily builds: https://build.protomaps.com/YYYYMMDD.pmtiles
+      MAP_DOWNLOAD_URL: latest
+      # Override if Protomaps changes their daily-build URL (no rebuild needed)
+      # PROTOMAPS_BUILDS_BASE_URL: "https://build.protomaps.com"
+      PORT: "8081"
+      LOWZOOM_MAXZOOM: "5"  # 5 is about 10MB
+    volumes:
+      - /volume1/raspberry/MyTrailLog/maps:/data
+    restart: unless-stopped
+
+  # ── Optional: BRouter sidecar for the route-planner feature ──
+  # Only started when you opt in:
+  #    docker compose --profile planner up -d
+  # AND set MTL_PLANNER_ENABLED=true on the `app` service.
+  # rd5 segment tiles persist in the brouter-segments named volume (lazy download
+  # from https://brouter.de/brouter/segments4/ on first route touching the cell).
+  brouter:
+    profiles: ["planner"]
+    image: wauwau0977/mytraillog-brouter:1.0
+    ports:
+      - "17777:17777"  # router API — usually accessed only via the app-internal proxy
+      - "17778:17778"  # admin API (/status, /prewarm)
+    expose:
+      - 17777
+      - 17778
+    environment:
+      BROUTER_JAVA_XMX: "512m"
+    volumes:
+      - brouter-segments:/segments4
+    deploy:
+      resources:
+        limits:
+          memory: 1g
+        reservations:
+          memory: 256m
+    restart: unless-stopped
+
+volumes:
+  brouter-segments:
+

@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.10.xsd">
+
+    <!--
+      Persist authoritative stop-time statistics on gps_track. Previously the
+      UI tried to derive "stopped time" client-side from the 10 m simplified
+      variant, but the simplified variants drop the sub-second low-speed
+      samples the stop detector depends on and also have many points without
+      a computed speedInKmhMovingWindow — which the old client-side code
+      silently counted as "stopped". Result: inflated stop times (e.g. 50 min
+      reported for a track that actually stopped for a few minutes).
+
+      We now compute totals once at ingest using TrackMotionAnalyzer (the same
+      algorithm powering the per-segment stop annotations in the measure tool)
+      over the outlier-cleaned point stream, and persist them so the client
+      can display authoritative values without any local calculation.
+    -->
+    <changeSet id="20260419_1_track_stop_stats_columns" author="patrick.heusser">
+        <addColumn tableName="gps_track">
+            <column name="track_duration_stopped_secs" type="double precision"/>
+            <column name="track_stop_count" type="integer"/>
+            <column name="track_longest_stop_secs" type="double precision"/>
+        </addColumn>
+    </changeSet>
+
+    <!--
+      Recreate gps_track_v to surface the new stop-stats columns and the
+      planner_profile column added in 027 (which wasn't propagated to the
+      view at the time). The view is the read-source for several native
+      queries, so keeping it in sync matters.
+    -->
+    <changeSet id="20260419_2_view_stop_stats" author="patrick.heusser">
+
+        <dropView viewName="gps_track_v"/>
+
+        <createView viewName="gps_track_v">
+            <![CDATA[
+            SELECT gt.id,
+                   gt.file_id,
+                   gt.creator,
+                   gt.gpx_version,
+                   gt.meta_name,
+                   gt.meta_description,
+                   gt.meta_time,
+                   gt.meta_author,
+                   gt.track_name,
+                   gt.track_description,
+                   gt.start_date,
+                   gt.end_date,
+                   gt.track_duration_in_motion_secs,
+                   gt.track_duration_stopped_secs,
+                   gt.track_stop_count,
+                   gt.track_longest_stop_secs,
+                   gt.median_distance_between_points,
+                   gt.avg_distance_between_points,
+                   gt.max_distance_between_points,
+                   gt.did_filter_outlier_by_distance,
+                   gt.number_of_track_points,
+                   gt.track_length_in_meter,
+                   gt.track_type,
+                   gt.utm_zone,
+                   gt.create_date,
+                   gt.load_status,
+                   gt.load_messages,
+                   gt.duplicate_status,
+                   gt.duplicate_of,
+                   gt.activity_type,
+                   gt.activity_type_source,
+                   gt.activity_type_source_details,
+                   gt.garmin_activity_id,
+                   gt.meta_link,
+                   gt.update_date,
+                   gt.duplicate_details,
+                   gt.bbox_min_lat,
+                   gt.bbox_max_lat,
+                   gt.bbox_min_lng,
+                   gt.bbox_max_lng,
+                   gt.center_lat,
+                   gt.center_lng,
+                   gt.energy_gravitational_total_wh,
+                   gt.energy_gravitational_descent_wh,
+                   gt.energy_aero_drag_total_wh,
+                   gt.energy_rolling_resistance_total_wh,
+                   gt.energy_kinetic_positive_total_wh,
+                   gt.energy_net_total_wh,
+                   gt.energy_weight_kg_used,
+                   gt.power_watts_avg,
+                   gt.power_watts_max,
+                   gt.source_segment_index,
+                   gt.source_parent_track_id,
+                   gt.exploration_status,
+                   gt.exploration_score,
+                   gt.exploration_calc_date,
+                   gt.track_source,
+                   gt.planner_profile,
+                   ixf.index              AS f_index,
+                   ixf.name               AS f_name,
+                   ixf.path               AS f_path,
+                   ixf.base_path          AS f_base_path,
+                   ixf.full_path          AS f_full_path,
+                   ixf.size               AS f_size,
+                   ixf.indexer_id         AS f_indexer_id,
+                   ixf.last_modified_date AS f_last_modified_date,
+                   ixf.index_added_date   AS f_index_added_date,
+                   ixf.index_update_date  AS f_index_update_date,
+                   ixf.indexer_status     AS f_indexer_status,
+                   ixf.last_message       AS f_last_message,
+                   gd.id                  AS gd_id,
+                   gd.create_date         AS gd_create_date,
+                   gd.precision_in_meter  AS gd_precision_in_meter,
+                   gd.track_type          AS gd_track_type,
+                   gd.track               AS gd_track,
+                   gd_raw.id              AS gd_raw_id,
+                   gd_raw.track           AS gd_raw_track
+            FROM gps_track gt
+                     LEFT JOIN indexed_file ixf ON gt.file_id = ixf.id
+                     LEFT JOIN gps_track_data gd
+                               ON gt.id = gd.gps_track_id AND gd.precision_in_meter = 1 AND
+                                  gd.track_type = 'SIMPLIFIED'
+                     LEFT JOIN gps_track_data gd_raw
+                               ON gt.id = gd_raw.gps_track_id AND gd_raw.precision_in_meter = 1 AND
+                                  gd_raw.track_type = 'CLEANED'
+            ]]>
+        </createView>
+
+    </changeSet>
+
+</databaseChangeLog>

@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.10.xsd">
+
+    <changeSet id="20230423_1" author="patrick.heusser">
+        <createTable tableName="gps_track">
+            <column name="id" type="bigint" autoIncrement="true" startWith="100000">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="file_id" type="bigint">
+                <constraints foreignKeyName="gps_track_fk_indexed_file" referencedTableName="indexed_file"
+                             referencedColumnNames="id"/>
+            </column>
+            <column name="creator" type="varchar(4000)"/>
+            <column name="gpx_version" type="varchar(255)"/>
+            <column name="meta_name" type="varchar(4000)"/>
+            <column name="meta_description" type="varchar(4000)"/>
+            <column name="meta_time" type="timestamp"/>
+            <column name="meta_author" type="varchar(4000)"/>
+            <column name="track_name" type="varchar(4000)"/>
+            <column name="track_description" type="varchar(8000)"/>
+            <column name="start_date" type="timestamp"/>
+            <column name="end_date" type="timestamp"/>
+            <column name="track_duration_in_motion_secs" type="DOUBLE PRECISION" remarks="Duration in seconds where speed >= 0.5 km/h (moving time only, excludes stops/idle)"/>
+            <column name="median_distance_between_points" type="NUMERIC(10,2)"/>
+            <column name="avg_distance_between_points" type="NUMERIC(10,2)"/>
+            <column name="max_distance_between_points" type="NUMERIC(10,2)"/>
+            <column name="did_filter_outlier_by_distance" type="boolean"/>
+            <column name="number_of_track_points" type="integer"/>
+            <column name="track_length_in_meter" type="NUMERIC(10,2)"/>
+            <column name="track_type" type="varchar(255)"/>
+            <column name="utm_zone" type="varchar(255)"/>
+            <column name="create_date" type="timestamp" defaultValueComputed="CURRENT_TIMESTAMP"/>
+            <column name="load_status" type="varchar(255)"/>
+            <column name="load_messages" type="varchar(8000)"/>
+            <column name="duplicate_status" type="varchar(255) "/>
+            <column name="duplicate_of" type="bigint" remarks="The first track which is a duplicate of that one">
+                <constraints nullable="true" foreignKeyName="fk_gps_track_id"
+                             referencedTableName="gps_track" referencedColumnNames="id"/>
+            </column>
+            <column name="bbox_min_lat" type="DOUBLE PRECISION"/>
+            <column name="bbox_max_lat" type="DOUBLE PRECISION"/>
+            <column name="bbox_min_lng" type="DOUBLE PRECISION"/>
+            <column name="bbox_max_lng" type="DOUBLE PRECISION"/>
+            <column name="center_lat" type="DOUBLE PRECISION"/>
+            <column name="center_lng" type="DOUBLE PRECISION"/>
+            <column name="source_segment_index" type="integer" remarks="NULL = whole track (no split); 1,2,... = Nth segment from a time-gap split"/>
+            <column name="source_parent_track_id" type="bigint" remarks="FK to the master segment (segment 1) when this track was split from a file with temporal gaps">
+                <constraints nullable="true" foreignKeyName="fk_gps_track_source_parent"
+                             referencedTableName="gps_track" referencedColumnNames="id"/>
+            </column>
+        </createTable>
+
+        <createIndex indexName="INDEXED_FILE_IX_FILE_ID" tableName="gps_track" unique="false">
+            <column name="file_id"/>
+        </createIndex>
+        <createIndex indexName="GPS_TRACK_IX_TYPE" tableName="gps_track" unique="false">
+            <column name="track_type"/>
+        </createIndex>
+        <createIndex indexName="GPS_TRACK_IX_LOAD_STATUS" tableName="gps_track" unique="false">
+            <column name="load_status"/>
+        </createIndex>
+
+    </changeSet>
+
+
+    <changeSet id="20230423_2" author="patrick.heusser">
+        <createTable tableName="gps_track_data">
+            <column name="id" type="bigint" autoIncrement="true" startWith="200000">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="gps_track_id" type="bigint">
+                <constraints nullable="false" foreignKeyName="fk_gps_track_data_gps_track"
+                             referencedTableName="gps_track" referencedColumnNames="id"/>
+            </column>
+            <column name="create_date" type="timestamp"/>
+            <column name="precision_in_meter" type="decimal"/>
+            <column name="track_type" type="varchar"/>
+            <column name="track" type="GEOMETRY"/>
+        </createTable>
+
+        <createIndex indexName="GPS_TRACK_DATA_IX_1" tableName="gps_track_data" unique="false">
+            <column name="gps_track_id"/>
+        </createIndex>
+        <createIndex indexName="GPS_TRACK_DATA_IX_2" tableName="gps_track_data" unique="false">
+            <column name="precision_in_meter"/>
+        </createIndex>
+
+        <!-- Spatial index-->
+        <sql>CREATE INDEX gps_track_data_IX_10 ON gps_track_data USING gist(track);</sql>
+
+    </changeSet>
+
+
+    <changeSet id="gps_track_v" author="patrick.heusser">
+        <createView viewName="gps_track_v">
+            <![CDATA[
+            select gt.*,
+                   gd.id as              gd_id,
+                   gd.create_date        gd_create_date,
+                   gd.precision_in_meter gd_precision_in_meter,
+                   gd.track_type         gd_track_type,
+                   gd.track              gd_track
+            from gps_track gt
+                     left join gps_track_data gd on gt.id = gd.gps_track_id
+            where gd.precision_in_meter = 10
+            ]]>
+        </createView>
+    </changeSet>
+
+
+</databaseChangeLog>
