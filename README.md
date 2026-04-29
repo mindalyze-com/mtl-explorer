@@ -35,11 +35,16 @@ It is split into:
 
 ## Quick start (self-hosted, home use)
 
+For a real home install with your own GPX and photo folders, follow
+[`HOME_INSTALL.md`](HOME_INSTALL.md).
+
+To try the stack with the demo dataset:
+
 ```bash
 git clone https://github.com/mindalyze-com/mtl-explorer.git
 cd mtl-explorer
-docker compose up -d
-# open http://localhost:8080
+docker compose -f docker-compose-demo.yml up -d
+# open http://localhost:18084/mtl/
 ```
 
 The demo compose file (`docker-compose-demo.yml`) ships a fully populated
