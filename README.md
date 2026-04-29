@@ -1,13 +1,14 @@
-# MyTrailLog
+# MTL Explorer
 
 > Self-hosted GPS track & trail log — built to run on your own PC, in your
 > home lab, or on your own server, in a few Docker containers.
 
-## Try the live demo
+# Start here
 
-**[https://mtl-demo.mindalyze.com/mtl/](https://mtl-demo.mindalyze.com/mtl/)**
-
-No account needed — loaded with real demo tracks so you can explore the full UI right now.
+| 🏠 Home page | 🧭 Live demo | ▶️ Intro video |
+| --- | --- | --- |
+| **[Visit the home page](https://mindalyze-com.github.io/mtl-explorer/)** | **[Try the live demo](https://mtl-demo.mindalyze.com/mtl/)** | **[Watch on YouTube](https://youtu.be/OesCpZ0JzLc)** |
+| Overview, screenshots, and feature tour. | No account needed; loaded with demo tracks. | Three-minute walkthrough of the core experience. |
 
 ---
 
