@@ -34,4 +34,12 @@
     <include file="/db/changelog/changes/027.xml"/>
     <include file="/db/changelog/changes/028.xml"/>
     <include file="/db/changelog/changes/029.xml"/>
+    <include file="/db/changelog/changes/030.xml"/>
+    <include file="/db/changelog/changes/031.xml"/>
+    <include file="/db/changelog/changes/032.xml"/>
+    <include file="/db/changelog/changes/033.xml"/>
+    <include file="/db/changelog/changes/034.xml"/>
+    <include file="/db/changelog/changes/035.xml"/>
+    <include file="/db/changelog/changes/036.xml"/>
+    <include file="/db/changelog/changes/037.xml"/>
 </databaseChangeLog>

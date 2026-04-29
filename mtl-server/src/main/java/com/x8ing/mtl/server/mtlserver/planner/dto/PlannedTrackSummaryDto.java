@@ -14,4 +14,5 @@ public class PlannedTrackSummaryDto {
     private Double centerLat;
     private Double centerLng;
     private java.util.Date createDate;
+    private String profile;
 }

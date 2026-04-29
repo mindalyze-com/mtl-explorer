@@ -11,21 +11,16 @@ import {
   type ConfigEntity,
   FilterInfoFromJSONTyped,
   type FilterInfo,
-  type GpsTrack,
   type GpsTrackDataPoint,
-  type GpsTrackResponse,
   type RelatedTracks,
   type GpsTrackStatistics,
   type QueryResultEntry,
-  type TracksSimplifiedResponse,
   type TriggerPoint,
 } from 'x8ing-mtl-api-typescript-fetch/dist/esm/models/index';
 
 import { ClientFilterConfig, type FilterParams, type FilterParamsRequest, FilterService } from "@/components/filter/FilterService";
-import { describeError, startStartupTimer, startupLog } from '@/utils/startupDiagnostics';
 import type { FilterResult } from '@/types/filter';
 import { apiClient } from '@/utils/apiClient';
-import { extractCoordinates } from '@/utils/lineStringDeserializer';
 import { getApiConfiguration } from '@/utils/openApiClient';
 
 // ─── Back-compat re-exports ─────────────────────────────────────────────────
@@ -73,9 +68,6 @@ function flattenFilterParams(params: FilterParamsRequest | undefined): Record<st
   return flat;
 }
 
-/** Overview precision used for the initial bulk load of all tracks. */
-export const OVERVIEW_PRECISION = 1000;
-
 // getApiConfiguration moved to @/utils/openApiClient (shared with serverAdminApi).
 
 function getTracksApi() {
@@ -88,212 +80,6 @@ function getFilterApi() {
 
 function getConfigApi() {
   return new ConfigControllerApi(getApiConfiguration());
-}
-
-// extractCoordinates moved to @/utils/lineStringDeserializer (single source of truth
-// for the LineStringSerializer escape hatch).
-
-export async function fetchTracksFromServer(precisionInMeter: number = OVERVIEW_PRECISION, signal?: AbortSignal) {
-  const timer = startStartupTimer('tracks', 'Fetching simplified tracks', { precisionInMeter });
-  try {
-    const clientFilterConfig = await FilterService.loadClientFilterConfig();
-    const filterParams = clientFilterConfig.filterParams;
-    const filterName = clientFilterConfig.filterInfo?.filterConfig?.filterName ?? "";
-    startupLog('tracks', 'Resolved active filter for track fetch', {
-      precisionInMeter,
-      filterName,
-      hasFilterParams: !!filterParams && Object.keys(filterParams).length > 0,
-    });
-
-    const api = getTracksApi();
-    // Use the Raw variant so we control deserialization — the generated
-    // TracksSimplifiedResponseFromJSON destroys geometry because the server's
-    // custom LineStringSerializer sends bare coordinate arrays, not JTS
-    // LineString objects that the generated deserializer expects.
-    const rawResponse = await api.getTracksSimplified1Raw({
-      precisionInMeter,
-      filterName: filterName || undefined,
-      mode: 'full',
-      filterParamsRequest: filterParams,
-    }, { signal });
-    const envelope = await rawResponse.raw.json();
-
-    const data = envelope.filteredTracks ?? [];
-    const standardFilterCount: number = envelope.standardFilterCount ?? 0;
-    timer.success('Simplified tracks fetched', {
-      precisionInMeter,
-      trackCount: data.length,
-      standardFilterCount,
-    });
-
-    const gpsTracksById = new Map<number, GpsTrack>();
-    const gpsTrackIdToFeature = new Map<number, GeoJSON.Feature>();
-
-    const features = data.map((trackResponse: any) => {
-      const rawTrack = trackResponse.gpsTrack;
-      const filterMapping = trackResponse.filterMapping;
-
-      // Parse date strings — raw JSON doesn't go through the generated
-      // deserializer which normally converts these.
-      const track: GpsTrack = {
-        ...rawTrack,
-        startDate: rawTrack.startDate ? new Date(rawTrack.startDate) : undefined,
-        endDate: rawTrack.endDate ? new Date(rawTrack.endDate) : undefined,
-        createDate: rawTrack.createDate ? new Date(rawTrack.createDate) : undefined,
-      };
-
-      gpsTracksById.set(track.id!, track);
-
-      // extractCoordinates handles the bare-array format from LineStringSerializer
-      const coordinates = extractCoordinates(rawTrack.gpsTracksData);
-
-      const isDegenerate = ((track.trackLengthInMeter ?? 0) < 50 || coordinates.length === 0)
-        && track.centerLng != null && track.centerLat != null;
-      const geometry = isDegenerate
-        ? { type: 'Point' as const, coordinates: [track.centerLng, track.centerLat] as [number, number] }
-        : { type: 'LineString' as const, coordinates: coordinates };
-
-      const feature: GeoJSON.Feature = {
-        type: 'Feature',
-        properties: {
-          fileName: track.indexedFile?.name,
-          trackName: track.trackName,
-          trackDescription: track.trackDescription,
-          startDate: track.startDate,
-          endDate: track.endDate,
-          createDate: track.createDate,
-          id: track.id,
-          filterGroup: filterMapping?.group,
-          centerLng: track.centerLng,
-          centerLat: track.centerLat,
-        },
-        geometry,
-      };
-
-      if (track.id !== undefined) {
-        gpsTrackIdToFeature.set(track.id, feature);
-      }
-
-      return feature;
-    });
-
-    return {
-      geojson: {
-        type: "FeatureCollection" as const,
-        features: features,
-      },
-      gpsTracksById,
-      gpsTrackIdToFeature,
-      standardFilterCount,
-    };
-
-  } catch (error: unknown) {
-    if (error instanceof DOMException && error.name === 'AbortError') throw error;
-    timer.error('Simplified track fetch failed', describeError(error));
-    console.error('Error fetching tracks:', error);
-    throw new Error(String(error));
-  }
-}
-
-/**
- * Lightweight filter call using mode=ids on the get-simplified endpoint.
- * Returns matching track IDs with their entity versions + filter group assignments.
- * The client compares versions against its cached copies to detect stale tracks.
- */
-export async function fetchFilteredIds(signal?: AbortSignal): Promise<{
-  trackVersions: Map<number, number>;
-  filterGroups: Map<number, string>;
-  standardFilterCount: number;
-}> {
-  try {
-    const clientFilterConfig = await FilterService.loadClientFilterConfig();
-    const filterParams = clientFilterConfig.filterParams;
-    const filterName = clientFilterConfig.filterInfo?.filterConfig?.filterName ?? "";
-
-    const api = getTracksApi();
-    const data: TracksSimplifiedResponse = await api.getTracksSimplified1({
-      mode: 'ids',
-      filterName: filterName || undefined,
-      filterParamsRequest: filterParams,
-    }, { signal });
-
-    const trackVersions = new Map<number, number>();
-    if (data.trackVersions) {
-      for (const [key, value] of Object.entries(data.trackVersions)) {
-        trackVersions.set(Number(key), Number(value));
-      }
-    }
-    const filterGroups = new Map<number, string>();
-    if (data.filterGroups) {
-      for (const [key, value] of Object.entries(data.filterGroups)) {
-        filterGroups.set(Number(key), value as string);
-      }
-    }
-
-    return {
-      trackVersions,
-      filterGroups,
-      standardFilterCount: data.standardFilterCount ?? trackVersions.size,
-    };
-  } catch (error: unknown) {
-    if (error instanceof DOMException && error.name === 'AbortError') throw error;
-    console.error('Error fetching filtered IDs:', error);
-    throw new Error(String(error));
-  }
-}
-
-export async function fetchTrack(gpsTrackId: number | string): Promise<GpsTrack> {
-  try {
-    const api = getTracksApi();
-    // Use Raw variant to avoid LineStringFromJSON mangling geometry
-    const rawResponse = await api.getSingleTrackRaw({
-      gpsTrackId: Number(gpsTrackId),
-      precisionInMeter: 1,
-    });
-    const rawTrack = await rawResponse.raw.json();
-    return {
-      ...rawTrack,
-      startDate: rawTrack.startDate ? new Date(rawTrack.startDate) : undefined,
-      endDate: rawTrack.endDate ? new Date(rawTrack.endDate) : undefined,
-      createDate: rawTrack.createDate ? new Date(rawTrack.createDate) : undefined,
-    };
-  } catch (error: unknown) {
-    console.error('Error fetching track:', error);
-    throw new Error(String(error));
-  }
-}
-
-/**
- * Fetch a single track at the given precision. Returns { coordinates, gpsTrack }
- * ready for hot-swapping into the Leaflet layer and caching.
- */
-export async function fetchTrackPrecise(gpsTrackId: number, precisionInMeter: number, signal?: AbortSignal): Promise<{ coordinates: number[][], gpsTrack: GpsTrack }> {
-  try {
-    const api = getTracksApi();
-    // Use the Raw variant to avoid the generated GpsTrackFromJSON deserializer
-    // which destroys geometry (server sends bare coordinate arrays via custom
-    // LineStringSerializer, not JTS LineString objects).
-    const rawResponse = await api.getSingleTrackRaw({
-      gpsTrackId,
-      precisionInMeter,
-    });
-    const rawTrack = await rawResponse.raw.json();
-
-    const coordinates = extractCoordinates(rawTrack.gpsTracksData);
-
-    // Parse dates manually since we bypassed the generated deserializer
-    const track: GpsTrack = {
-      ...rawTrack,
-      startDate: rawTrack.startDate ? new Date(rawTrack.startDate) : undefined,
-      endDate: rawTrack.endDate ? new Date(rawTrack.endDate) : undefined,
-      createDate: rawTrack.createDate ? new Date(rawTrack.createDate) : undefined,
-    };
-
-    return { coordinates, gpsTrack: track };
-  } catch (error: unknown) {
-    console.error('Error fetching track precise:', error);
-    throw new Error(String(error));
-  }
 }
 
 export async function getRelatedTracks(gpsTrackId: number | string): Promise<RelatedTracks> {
@@ -322,8 +108,9 @@ export async function getRelatedTracks(gpsTrackId: number | string): Promise<Rel
  * which is required for accurate crossing time/speed calculations. See
  * `TrackTimeBetweenTwoPoints.processingCrossingForOneTrack` on the server.
  *
- * Never substitute `fetchTrackDetails()` here — that path is SIMPLIFIED @ 10 m
- * and is intended only for display on the Track Details screen.
+ * Never substitute `fetchTrackDetails()` here — that path is
+ * SIMPLIFIED_FIXED_POINTS @ 1500 and is intended only for display on the
+ * Track Details screen.
  */
 export async function fetchTrackDetailsForCrossingPoints(triggerPoints: TriggerPoint[], radius: number): Promise<CrossingPointsResponse> {
   try {
@@ -434,8 +221,8 @@ export async function fetchTrackSubTrackDetails(trackDataPointFrom: number, trac
 }
 
 /**
- * Fetch per-point track data for **DISPLAY PURPOSES ONLY** — the Track Details
- * screen (map line, graphs, Overview summary) and point popups on the map.
+ * Fetch per-point track data for **CHART / GRAPH DISPLAY** on the Track
+ * Details screen (line chart, Overview summary, table).
  *
  * ⚠️ DO NOT USE FOR ACCURACY-CRITICAL FEATURES (measure, race, crossings,
  *    speed/time analysis, any per-point metric users will rely on as truth).
@@ -445,28 +232,65 @@ export async function fetchTrackSubTrackDetails(trackDataPointFrom: number, trac
  *    RAW_OUTLIER_CLEANED variant (full GPS density, 1 Hz sampling preserved
  *    on straight sections). See TrackTimeBetweenTwoPoints.java on the server.
  *
- * Why SIMPLIFIED @ 10 m is the right default HERE:
+ * ⚠️ DO NOT USE FOR THE MAP TRACK-POINT POPUP either — that path renders
+ *    SIMPLIFIED_SHAPE coordinates and tags each with its array index as
+ *    `pointIndex`. Those indices do NOT align with SIMPLIFIED_FIXED_POINTS
+ *    row indices. Use `fetchTrackPointsForRenderedShape()` instead.
+ *
+ * Why SIMPLIFIED_FIXED_POINTS @ 1500 is the right default HERE:
  *   - Authoritative track-level totals (energyNetTotalWh, powerWattsAvg/Max,
  *     trackLengthInMeter, ascent/descent) are pre-computed on the GpsTrack
  *     entity at import time from RAW_OUTLIER_CLEANED — those numbers are
  *     already full-precision and are read directly from the entity.
- *   - For the per-point data we actually render (map line, chart series,
- *     Overview's computeSummary), 10 m is visually indistinguishable from
- *     RAW for typical tracks, but 5–10× smaller — much faster to fetch and
- *     render, which matters for Previous/Next navigation responsiveness.
+ *   - For the per-point data we render in charts (chart series, Overview's
+ *     computeSummary, table rows), the SIMPLIFIED_FIXED_POINTS variant is a
+ *     time-uniform downsample of RAW_OUTLIER_CLEANED capped at 1500 points.
+ *     All window metrics (elevation-gain rate, speed, slope, energy) are
+ *     copied verbatim from the authoritative full-density series, so chart
+ *     resolution is even across the whole track — no more flat-zero bands
+ *     on straight climbs (which Douglas-Peucker'd SIMPLIFIED_SHAPE @ 10 m
+ *     produced because it drops straight-line points regardless of their
+ *     temporal spacing).
  *
  * If a "high precision display" mode is ever needed, it should be an
  * explicit user-toggled option, not the default.
  */
 export async function fetchTrackDetails(gpsTrackId: number | string): Promise<GpsTrackDataPoint[]> {
   try {
-    console.log("fetch track details (SIMPLIFIED @ 10m, display-only) for", gpsTrackId);
+    console.log("fetch track details (SIMPLIFIED_FIXED_POINTS @ 1500, chart-only) for", gpsTrackId);
     const response = await apiClient.get(
-      `api/tracks/get/${gpsTrackId}/details?precisionInMeter=10&trackType=SIMPLIFIED`,
+      `api/tracks/get/${gpsTrackId}/details?trackType=SIMPLIFIED_FIXED_POINTS&maxPoints=1500`,
     );
     return convertDataPointDates(response.data);
   } catch (error: unknown) {
     console.error('Error fetching track details:', error);
+    throw new Error(String(error));
+  }
+}
+
+/**
+ * Fetch per-point data for the map's track-point click popup.
+ *
+ * The map renders a track-points layer from the SIMPLIFIED_SHAPE LineString
+ * loaded by the bulk fetcher and tags each emitted point with its array
+ * index as `pointIndex`. The popup looks the clicked point up by that
+ * index, so the per-point dataset MUST come from the same SIMPLIFIED_SHAPE
+ * variant at the same `precisionInMeter` the map is currently rendering
+ * for that track. SIMPLIFIED_FIXED_POINTS is unrelated here — its row
+ * indices do not correspond to SIMPLIFIED_SHAPE coordinate indices.
+ */
+export async function fetchTrackPointsForRenderedShape(
+  gpsTrackId: number | string,
+  precisionInMeter: number,
+): Promise<GpsTrackDataPoint[]> {
+  try {
+    console.log(`fetch track points (SIMPLIFIED_SHAPE @ ${precisionInMeter}m, map popup) for`, gpsTrackId);
+    const response = await apiClient.get(
+      `api/tracks/get/${gpsTrackId}/details?trackType=SIMPLIFIED_SHAPE&precisionInMeter=${precisionInMeter}`,
+    );
+    return convertDataPointDates(response.data);
+  } catch (error: unknown) {
+    console.error('Error fetching track points for map popup:', error);
     throw new Error(String(error));
   }
 }
@@ -504,8 +328,8 @@ export async function fetchFilterInfo(filterDomain: string, filterName: string):
 
 /**
  * Extended result from filter/resolve that extends FilterResult with the full
- * QueryResult for UI display. This means it satisfies FilterResult directly —
- * callers can pass it to trackStore.setPendingFilterResult() without conversion.
+ * QueryResult for UI display. This means it satisfies FilterResult directly and
+ * can be passed to the track collection loader without conversion.
  */
 export interface ResolveFilterResult extends FilterResult {
   /** Parsed QueryResult for UI display (entries, groups) */

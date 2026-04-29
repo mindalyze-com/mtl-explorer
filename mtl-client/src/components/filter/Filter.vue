@@ -1,35 +1,34 @@
 <template>
-  <div>
-    <BottomSheet v-model="showMenu" title="Filter" icon="bi bi-funnel" :detents="[{ height: '72vh' }, { height: '95vh' }]" @closed="onSheetClosed">
-      <CustomFilter
-        ref="customFilter"
-        :palette="palette"
-        :total-track-count="totalTrackCount"
-        :visible-track-count="visibleTrackCount"
-        @filterAppliedEvent="onClose"
-        @filterChangedEvent="onFilterChanged"
-        @start-geo-drawing="onStartGeoDrawing"
-        @clear-geo-shape="onClearGeoShape"
-      />
-    </BottomSheet>
-  </div>
+  <CustomFilter
+    ref="customFilter"
+    v-model:show="showMenu"
+    :palette="palette"
+    :total-track-count="totalTrackCount"
+    :visible-track-count="visibleTrackCount"
+    @filterAppliedEvent="onClose"
+    @filterChangedEvent="onFilterChanged"
+    @start-geo-drawing="onStartGeoDrawing"
+    @clear-geo-shape="onClearGeoShape"
+    @closed="onSheetClosed"
+  />
 </template>
 
 <script lang="ts">
 import {computed, defineComponent, inject} from "vue";
 import {useFilterStore} from "@/stores/filterStore";
 import CustomFilter from "@/components/filter/CustomFilter.vue";
-import BottomSheet from "@/components/ui/BottomSheet.vue";
+import type {FilterResult} from "@/types/filter";
 import type {ParamDefinition} from 'x8ing-mtl-api-typescript-fetch/dist/esm/models/ParamDefinition';
 
 const EVENTS = {
   filterAppliedEvent: "filterAppliedEvent",
-}
+} as const;
 
 export default defineComponent({
   name: 'Filter',
-  components: {CustomFilter, BottomSheet},
+  components: {CustomFilter},
   props: ['tileLayer', 'palette', 'totalTrackCount', 'visibleTrackCount'],
+  emits: ['tool-opened', 'tool-closed', 'filterAppliedEvent', 'start-geo-drawing', 'clear-geo-shape'],
   data(): {
     showMenu: boolean,
   } {
@@ -86,8 +85,8 @@ export default defineComponent({
       this.$emit(EVENTS.filterAppliedEvent);
     },
 
-    onFilterChanged() {
-      this.$emit(EVENTS.filterAppliedEvent);
+    onFilterChanged(filterResult: FilterResult) {
+      this.$emit(EVENTS.filterAppliedEvent, filterResult);
     },
 
     onStartGeoDrawing(paramDef: ParamDefinition) {

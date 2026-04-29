@@ -26,8 +26,12 @@ public interface GpsTrackRepository extends JpaRepository<GpsTrack, Long> {
             	gps_track_data gtd
             inner join gps_track gt on gt.id = gtd.gps_track_id
             where 1=1
-            	and ST_DWithin(ST_TRANSFORM(track, 	3857), ST_Transform(ST_SetSRID(ST_Point(:longitude, :latitude), 4326), 3857), :distanceInMeter)
-            	and gtd.track_type = 'SIMPLIFIED'
+            	and gtd.track && ST_Expand(
+            	    ST_SetSRID(ST_Point(:longitude, :latitude), 4326),
+            	    (:distanceInMeter + 10.0) / (111320.0 * GREATEST(ABS(COS(RADIANS(:latitude))), 0.01))
+            	)
+            	and ST_DWithin(gtd.track::geography, ST_SetSRID(ST_Point(:longitude, :latitude), 4326)::geography, :distanceInMeter + 10.0)
+            	and gtd.track_type = 'SIMPLIFIED_SHAPE'
             	and gt.duplicate_status != 'DUPLICATE'
             	and gt.track_source = 'IMPORTED'
             	and precision_in_meter = 10
@@ -260,6 +264,18 @@ public interface GpsTrackRepository extends JpaRepository<GpsTrack, Long> {
                 round((percentile_disc(0.5) WITHIN GROUP (ORDER BY median_distance_between_points))::numeric, 1) AS distanceBetweenGpsPointsMed,
                 round(sum(COALESCE(energy_net_total_wh, 0))::numeric, 1) AS energyNetTotalWhSum,
                 round((percentile_disc(0.5) WITHIN GROUP (ORDER BY COALESCE(power_watts_avg, 0)))::numeric, 1) AS powerWattsAvgMed,
+                round((percentile_disc(0.5) WITHIN GROUP (ORDER BY COALESCE(normalized_power_watts, 0)))::numeric, 1) AS normalizedPowerMed,
+                round(avg(CASE
+                    WHEN COALESCE(normalized_power_watts, 0) > 0 AND cast(:threshold_power AS double precision) > 0
+                    THEN normalized_power_watts / cast(:threshold_power AS double precision)
+                END)::numeric, 3) AS intensityIndexAvg,
+                round(avg(CASE
+                    WHEN COALESCE(normalized_power_watts, 0) > 0
+                        AND COALESCE(track_duration_in_motion_secs, 0) > 0
+                        AND cast(:threshold_power AS double precision) > 0
+                    THEN POWER(normalized_power_watts / cast(:threshold_power AS double precision), 2)
+                         * (track_duration_in_motion_secs / 3600.0) * 100
+                END)::numeric, 1) AS trainingLoadPerRideAvg,
                 round(avg(CASE WHEN exploration_status = 'CALCULATED' AND exploration_score IS NOT NULL THEN exploration_score END)::numeric, 3) AS explorationScoreAvg
             FROM q
             WHERE start_date >= '1971-01-01'
@@ -268,7 +284,10 @@ public interface GpsTrackRepository extends JpaRepository<GpsTrack, Long> {
             GROUP BY group_by_col, sub_group_col, group_by_date_format
             ORDER BY group_by_col ASC;
             """)
-    List<GpsTrackStatistics> getTrackStatistics(@Param("group_by_date_format") String groupByDateFormat, @Param("filter_value") String filterValue, @Param("filterIds") Long[] filterIds);
+    List<GpsTrackStatistics> getTrackStatistics(@Param("group_by_date_format") String groupByDateFormat,
+                                                @Param("filter_value") String filterValue,
+                                                @Param("filterIds") Long[] filterIds,
+                                                @Param("threshold_power") Double thresholdPowerWatts);
 
     @Query(nativeQuery = true, value = """
                 select * from gps_track gt where duplicate_of = :gps_track_id or (id=:gps_track_id and duplicate_status!='UNIQUE' )

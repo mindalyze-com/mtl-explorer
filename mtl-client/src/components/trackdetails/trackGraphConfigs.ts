@@ -64,8 +64,8 @@ const distanceConfig: TrackGraphConfig = {
 
 const energyConfig: TrackGraphConfig = {
   icon: 'bi-battery-charging',
-  title: 'Cumulative Energy',
-  seriesName: 'Cumulative Energy',
+  title: 'Cumulative Mechanical Energy',
+  seriesName: 'Cumulative Mechanical Energy',
   seriesColor: '#d97706',
   unit: 'Wh',
   decimals: 1,
@@ -76,8 +76,8 @@ const energyConfig: TrackGraphConfig = {
 
 const powerConfig: TrackGraphConfig = {
   icon: 'bi-lightning-charge',
-  title: 'Power',
-  seriesName: 'Power',
+  title: 'Estimated Power',
+  seriesName: 'Estimated Power',
   seriesColor: '#ef4444',
   unit: 'W',
   decimals: 0,

@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
+    <property name="CONSOLE_LOG_PATTERN"
+              value="%d{yyyy-MM-dd'T'HH:mm:ss.SSSXXX} %5p ${PID:- } --- [%thread] %-28logger{0} : %m%n%wEx"/>
+
     <include resource="org/springframework/boot/logging/logback/base.xml"/>
 
     <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
@@ -12,7 +15,7 @@
         </rollingPolicy>
 
         <encoder>
-            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %5p [%t] [user=%X{user:-}] [sid=%X{sid:-}] --- %-40.40logger{39} : %m%n%wex</pattern>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %5p [%t] [user=%X{user:-}] [sid=%X{sid:-}] --- %-28logger{0} : %m%n%wex</pattern>
         </encoder>
     </appender>
 

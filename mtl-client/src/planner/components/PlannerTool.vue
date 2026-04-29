@@ -1,123 +1,173 @@
 <template>
   <BottomSheet
     v-model="active"
-    :detents="[{ height: '40vh' }, { height: '70vh' }, { height: '95vh' }]"
-    title="Route Planner"
     icon="bi bi-signpost-split"
-    header-mode="compact"
+    :detents="[{ height: '40vh' }, { height: '70vh' }, { height: '95vh' }]"
     :no-backdrop="true"
     @closed="onSheetClosed"
   >
-
-    <div class="planner-sheet">
-      <p class="planner-intro">
-        Tap the map to add waypoints. Tap the orange route to insert a point. Drag markers to reshape. On touch devices, long-press adds a waypoint.
-      </p>
-
-      <div v-if="planner.viewportTooLarge.value" class="planner-zoom-hint">
-        <i class="bi bi-zoom-in"></i>
-        Zoom in to start planning. Visible span must be under ~300 km.
-      </div>
-
-      <div v-if="planner.pristineLoaded.value" class="planner-pristine-hint">
-        <i class="bi bi-info-circle"></i>
-        Loaded plan shown as saved. The first edit will re-route all legs.
-      </div>
-
-      <PlannerToolbar
-        :profiles="profiles"
-        :profile="planner.profile.value"
-        :can-undo="planner.canUndo.value"
-        :can-redo="planner.canRedo.value"
-        :has-waypoints="planner.waypoints.value.length > 0"
-        :has-route="planner.routeCoordinates.value.length > 1"
-        @profile-changed="planner.setProfile"
-        @undo="planner.undo"
-        @redo="planner.redo"
-        @clear="planner.clearAll"
-        @save="openSaveDialog"
-      />
-
-      <LiveStatsBar :stats="planner.stats.value" :computing="planner.computing.value" />
-
-      <ElevationProfile
-        :coordinates="planner.routeCoordinates.value"
-        @hover="onElevationHover"
-      />
-
-      <div v-if="planner.lastError.value" class="planner-error">{{ planner.lastError.value }}</div>
-
-      <div v-if="status" class="planner-sidecar">
-        <div class="planner-sidecar-head">
-          <strong>BRouter</strong>
-          <button class="planner-btn" @click="refresh">Refresh</button>
+    <template #title>
+      <div class="planner-header-nav">
+        <i class="bi bi-signpost-split planner-sheet-icon"></i>
+        <div class="planner-header-tabs">
+          <button class="planner-header-tab" :class="{ 'planner-header-tab--active': activeTab === 'draw' }" @pointerdown.stop @click="activeTab = 'draw'">Drawing</button>
+          <button class="planner-header-tab" :class="{ 'planner-header-tab--active': activeTab === 'load' }" @pointerdown.stop @click="switchToLoad">Load</button>
         </div>
-        <div v-if="status.available" class="planner-sidecar-body">
-          <span>running: {{ status.brouterRunning ? 'yes' : 'no' }}</span>
-          <span>segments on disk: {{ status.segmentsOnDisk ?? 0 }}</span>
-          <span>queued: {{ status.segmentsQueued ?? 0 }}</span>
-          <span v-if="(status.segmentsInProgress?.length ?? 0) > 0">
-            in progress: {{ status.segmentsInProgress?.join(', ') }}
-          </span>
-        </div>
-        <div v-else class="planner-sidecar-body">unavailable: {{ status.reason ?? 'unknown' }}</div>
       </div>
+    </template>
+    <div class="planner-root">
+      <!-- ── Drawing tab ─────────────────────────────────────────── -->
+      <div v-if="activeTab === 'draw'" class="planner-panel planner-panel--draw">
+        <p class="planner-subtitle">Tap the map to add waypoints. Drag to adjust.</p>
 
-      <section class="planner-plans">
-        <div class="planner-plans-head">
-          <h2>Saved routes</h2>
-          <button class="planner-btn" @click="loadPlans" :disabled="plansLoading">
-            <i class="bi bi-arrow-clockwise" /> Reload
-          </button>
-        </div>
-        <div v-if="plansLoading" class="planner-plans-loading">loading…</div>
-        <ul v-else class="planner-plans-list">
-          <li v-for="plan in plans" :key="plan.id">
-            <button
-              class="planner-plan-info"
-              type="button"
-              :disabled="loadingPlanId === plan.id"
-              :title="`Load ${plan.name} into the editor`"
-              @click="loadPlan(plan.id)"
-            >
-              <strong>{{ plan.name }}</strong>
-              <div class="planner-plan-meta">{{ (plan.distanceM / 1000).toFixed(2) }} km</div>
+        <div class="planner-controls-row">
+          <PlannerToolbar
+            :profiles="profiles"
+            :profile="planner.profile.value"
+            @profile-changed="planner.setProfile"
+          />
+
+          <div class="planner-actions" role="group" aria-label="Edit history">
+            <button type="button" class="planner-action-btn" :disabled="!planner.canUndo.value" title="Undo" aria-label="Undo" @click="planner.undo">
+              <i class="bi bi-arrow-counterclockwise" />
             </button>
-            <div class="planner-plan-actions">
+            <button type="button" class="planner-action-btn" :disabled="!planner.canRedo.value" title="Redo" aria-label="Redo" @click="planner.redo">
+              <i class="bi bi-arrow-clockwise" />
+            </button>
+            <button type="button" class="planner-action-btn" :disabled="!planner.waypoints.value.length" title="Clear route" aria-label="Clear route" @click="planner.clearAll">
+              <i class="bi bi-trash" />
+            </button>
+            <button
+              type="button"
+              class="planner-action-btn"
+              :disabled="planner.routeCoordinates.value.length < 2"
+              title="Save route"
+              aria-label="Save route"
+              @click="openSaveDialog"
+            >
+              <i class="bi bi-floppy" />
+            </button>
+          </div>
+
+          <div class="planner-controls-right">
+            <div v-if="status" class="brouter-pill-wrap">
               <button
-                class="planner-btn planner-btn--icon"
-                @click="loadPlan(plan.id)"
-                :disabled="loadingPlanId === plan.id"
-                :aria-label="`Load ${plan.name}`"
-                title="Load into editor"
+                type="button"
+                class="brouter-pill"
+                :aria-expanded="brouterExpanded"
+                aria-label="BRouter status details"
+                @click="brouterExpanded = !brouterExpanded"
               >
-                <i :class="loadingPlanId === plan.id ? 'bi bi-hourglass-split' : 'bi bi-pencil-square'" />
+                <span :class="['brouter-dot', brouterDotClass]"></span>
+                <span class="brouter-label">BRouter</span>
+                <span v-if="(status.segmentsQueued ?? 0) > 0" class="brouter-badge">{{ status.segmentsQueued }}</span>
+                <i :class="brouterExpanded ? 'bi bi-chevron-up' : 'bi bi-chevron-down'" class="brouter-chevron"></i>
               </button>
-              <button
-                class="planner-btn planner-btn--icon"
-                @click="downloadPlannedTrackGpx(plan.id, plan.name)"
-                :aria-label="`Download GPX for ${plan.name}`"
-                title="Download GPX"
-              >
-                <i class="bi bi-download" />
-              </button>
-              <button
-                class="planner-btn planner-btn--icon planner-btn--danger"
-                @click="openDeleteDialog(plan)"
-                :aria-label="`Delete ${plan.name}`"
-                title="Delete plan"
-              >
-                <i class="bi bi-trash" />
-              </button>
+              <div v-if="brouterExpanded" class="brouter-detail">
+                <div v-if="status.available" class="brouter-detail-body">
+                  <div class="brouter-detail-row">
+                    <span class="brouter-detail-label">Running</span>
+                    <span
+                      :class="['brouter-detail-val', status.brouterRunning ? 'brouter-val--ok' : 'brouter-val--warn']"
+                      >{{ status.brouterRunning ? 'yes' : 'no' }}</span
+                    >
+                  </div>
+                  <div class="brouter-detail-row">
+                    <span class="brouter-detail-label">Segments on disk</span>
+                    <span class="brouter-detail-val">{{ status.segmentsOnDisk ?? 0 }}</span>
+                  </div>
+                  <div class="brouter-detail-row">
+                    <span class="brouter-detail-label">Queued</span>
+                    <span class="brouter-detail-val">{{ status.segmentsQueued ?? 0 }}</span>
+                  </div>
+                  <div v-if="(status.segmentsInProgress?.length ?? 0) > 0" class="brouter-detail-row">
+                    <span class="brouter-detail-label">In progress</span>
+                    <span class="brouter-detail-val">{{ status.segmentsInProgress?.join(', ') }}</span>
+                  </div>
+                  <div
+                    v-if="status.segmentsFailed && Object.keys(status.segmentsFailed).length > 0"
+                    class="brouter-detail-row"
+                  >
+                    <span class="brouter-detail-label">Failed</span>
+                    <span class="brouter-detail-val brouter-val--warn">{{
+                      Object.keys(status.segmentsFailed).join(', ')
+                    }}</span>
+                  </div>
+                </div>
+                <div v-else class="brouter-detail-body">
+                  <span class="brouter-val--warn">Unavailable: {{ status.reason ?? 'unknown' }}</span>
+                </div>
+                <button type="button" class="brouter-detail-refresh" @click.stop="refresh">
+                  <i class="bi bi-arrow-clockwise"></i>
+                  <span>Refresh</span>
+                </button>
+              </div>
             </div>
+          </div>
+        </div>
+
+        <div
+          v-if="planner.viewportTooLarge.value || planner.pristineLoaded.value || planner.lastError.value"
+          class="planner-notices"
+        >
+          <div v-if="planner.viewportTooLarge.value" class="planner-notice planner-notice--warn">
+            <i class="bi bi-zoom-in"></i>
+            <span>Zoom in to start planning. Visible span must be under ~300 km.</span>
+          </div>
+
+          <div v-if="planner.pristineLoaded.value" class="planner-notice planner-notice--info">
+            <i class="bi bi-info-circle"></i>
+            <span>Loaded plan shown as saved. The first edit will re-route all legs.</span>
+          </div>
+
+          <div v-if="planner.lastError.value" class="planner-notice planner-notice--error">
+            <i class="bi bi-exclamation-circle"></i>
+            <span>{{ planner.lastError.value }}</span>
+          </div>
+        </div>
+
+        <LiveStatsBar :stats="planner.stats.value" :computing="planner.computing.value" />
+
+        <ElevationProfile
+          :coordinates="planner.routeCoordinates.value"
+          :total-distance-m="planner.stats.value.distanceM"
+          :ascent-m="planner.stats.value.ascentM"
+          :descent-m="planner.stats.value.descentM"
+          @hover="onElevationHover"
+        />
+      </div>
+
+      <!-- ── Load tab ──────────────────────────────────────────── -->
+      <div v-else-if="activeTab === 'load'" class="planner-panel planner-panel--load">
+        <div v-if="plansLoading" class="planner-load-spinner">
+          <i class="bi bi-arrow-repeat planner-load-spin"></i> Loading saved routes…
+        </div>
+        <div v-else-if="savedPlans.length === 0" class="planner-load-empty">
+          <i class="bi bi-inbox"></i>
+          <span>No saved routes yet. Draw a route and save it.</span>
+        </div>
+        <ul v-else class="planner-plan-list">
+          <li
+            v-for="plan in savedPlans"
+            :key="plan.id"
+            class="planner-plan-item"
+            @click="selectPlan(plan.id)"
+          >
+            <div class="planner-plan-body">
+              <span class="planner-plan-name">{{ plan.name }}</span>
+              <span class="planner-plan-meta">
+                <i class="bi bi-rulers"></i> {{ (plan.distanceM / 1000).toFixed(1) }} km
+                <span v-if="plan.description" class="planner-plan-desc">· {{ plan.description }}</span>
+              </span>
+            </div>
+            <div class="planner-plan-date">{{ formatDate(plan.createDate) }}</div>
           </li>
-          <li v-if="plans.length === 0" class="planner-plan-empty">No saved routes yet.</li>
         </ul>
-      </section>
+      </div>
     </div>
 
     <!-- Save dialog -->
-    <Dialog
+    <PrimeDialog
       v-model:visible="saveDialogVisible"
       :modal="true"
       header="Save planned route"
@@ -138,7 +188,7 @@
         </label>
         <label class="planner-field">
           <span>Description <em>(optional)</em></span>
-          <Textarea v-model="saveDescription" rows="2" autoResize placeholder="Notes for future you…" />
+          <PrimeTextarea v-model="saveDescription" rows="2" auto-resize placeholder="Notes for future you…" />
         </label>
         <div class="planner-dialog-meta">
           <span><i class="bi bi-rulers"></i> {{ (planner.stats.value.distanceM / 1000).toFixed(2) }} km</span>
@@ -148,46 +198,21 @@
         </div>
       </div>
       <template #footer>
-        <Button label="Cancel" severity="secondary" text @click="saveDialogVisible = false" :disabled="saveSubmitting" />
-        <Button
+        <PrimeButton
+          label="Cancel"
+          severity="secondary"
+          text
+          :disabled="saveSubmitting"
+          @click="saveDialogVisible = false"
+        />
+        <PrimeButton
           :label="saveSubmitting ? 'Saving…' : 'Save plan'"
           icon="pi pi-save"
           :disabled="!saveName.trim() || saveSubmitting"
           @click="confirmSave"
         />
       </template>
-    </Dialog>
-
-    <!-- Delete confirm dialog -->
-    <Dialog
-      v-model:visible="deleteDialogVisible"
-      :modal="true"
-      header="Delete planned route?"
-      :style="{ width: 'min(420px, 92vw)' }"
-      :draggable="false"
-      :dismissable-mask="true"
-      class="planner-dialog"
-    >
-      <div class="planner-dialog-body planner-dialog-confirm">
-        <i class="pi pi-exclamation-triangle planner-dialog-icon" />
-        <span>
-          This will permanently delete
-          <strong>{{ planToDelete?.name }}</strong>
-          ({{ planToDelete ? (planToDelete.distanceM / 1000).toFixed(2) : 0 }} km).
-          This cannot be undone.
-        </span>
-      </div>
-      <template #footer>
-        <Button label="Cancel" severity="secondary" text @click="deleteDialogVisible = false" :disabled="deleteSubmitting" />
-        <Button
-          :label="deleteSubmitting ? 'Deleting…' : 'Delete'"
-          icon="pi pi-trash"
-          severity="danger"
-          :disabled="deleteSubmitting"
-          @click="confirmDelete"
-        />
-      </template>
-    </Dialog>
+    </PrimeDialog>
   </BottomSheet>
 </template>
 
@@ -198,20 +223,13 @@ import BottomSheet from '@/components/ui/BottomSheet.vue';
 import PlannerToolbar from '@/planner/components/PlannerToolbar.vue';
 import LiveStatsBar from '@/planner/components/LiveStatsBar.vue';
 import ElevationProfile from '@/planner/components/ElevationProfile.vue';
-import Dialog from 'primevue/dialog';
+import PrimeDialog from 'primevue/dialog';
 import InputText from 'primevue/inputtext';
-import Textarea from 'primevue/textarea';
-import Button from 'primevue/button';
+import PrimeTextarea from 'primevue/textarea';
+import PrimeButton from 'primevue/button';
 import { usePlannerState } from '@/planner/composables/usePlannerState';
 import { useBRouterSegmentStatus } from '@/planner/composables/useBRouterSegmentStatus';
-import {
-  fetchPlannerConfig,
-  listPlannedTracks,
-  loadPlannedTrack,
-  savePlannedRoute,
-  deletePlannedTrack,
-  downloadPlannedTrackGpx,
-} from '@/planner/repositories/plannerRepository';
+import { fetchPlannerConfig, savePlannedRoute, listPlannedTracks, loadPlannedTrack } from '@/planner/repositories/plannerRepository';
 import type { PlannedTrackSummary } from '@/planner/types';
 import {
   LONG_PRESS_MS,
@@ -232,33 +250,39 @@ type MapLike = any;
 
 export default defineComponent({
   name: 'PlannerTool',
-  components: { BottomSheet, PlannerToolbar, LiveStatsBar, ElevationProfile, Dialog, InputText, Textarea, Button },
-  emits: ['active-changed', 'tool-opened', 'tool-closed'],
+  components: {
+    BottomSheet,
+    PlannerToolbar,
+    LiveStatsBar,
+    ElevationProfile,
+    PrimeDialog,
+    InputText,
+    PrimeTextarea,
+    PrimeButton,
+  },
   props: {
     map: { type: Object as () => MapLike | undefined, default: undefined },
   },
+  emits: ['active-changed', 'tool-opened', 'tool-closed'],
   setup() {
     const planner = usePlannerState();
     // `active` lives here so we can gate BRouter status polling on it —
     // no point hitting /api/planner/status while the planner sheet is closed.
     const active = ref(false);
     const { status, refresh } = useBRouterSegmentStatus(active);
-    return { planner, status, refresh, downloadPlannedTrackGpx, active };
+    return { planner, status, refresh, active };
   },
   data() {
     return {
       profiles: ['trekking'] as string[],
-      plans: [] as PlannedTrackSummary[],
+      activeTab: 'draw' as 'draw' | 'load',
+      savedPlans: [] as PlannedTrackSummary[],
       plansLoading: false,
-      loadingPlanId: null as number | null,
       // dialogs
       saveDialogVisible: false,
       saveName: '',
       saveDescription: '',
       saveSubmitting: false,
-      deleteDialogVisible: false,
-      planToDelete: null as PlannedTrackSummary | null,
-      deleteSubmitting: false,
       // map-integration state (non-reactive references)
       attachedMap: null as MapLike | null,
       clickHandler: null as ((ev: maplibregl.MapMouseEvent) => void) | null,
@@ -272,12 +296,27 @@ export default defineComponent({
       unwatchRoute: null as null | (() => void),
       unwatchWaypoints: null as null | (() => void),
       configLoaded: false,
+      brouterExpanded: false,
     };
+  },
+  computed: {
+    brouterDotClass(): string {
+      const s = this.status;
+      if (!s || !s.available) return 'brouter-dot--off';
+      if (!s.brouterRunning) return 'brouter-dot--warn';
+      if ((s.segmentsQueued ?? 0) > 0 || (s.segmentsInProgress?.length ?? 0) > 0) return 'brouter-dot--warn';
+      return 'brouter-dot--ok';
+    },
   },
   watch: {
     // Map instance may be swapped out on theme reload — re-attach layers if open.
     map(newMap: unknown, oldMap: unknown) {
-      const self = this as unknown as { active: boolean; attachedMap: unknown; detachFromMap: () => void; attachToMap: () => void };
+      const self = this as unknown as {
+        active: boolean;
+        attachedMap: unknown;
+        detachFromMap: () => void;
+        attachToMap: () => void;
+      };
       if (self.active && oldMap && self.attachedMap === oldMap) {
         self.detachFromMap();
       }
@@ -285,6 +324,9 @@ export default defineComponent({
         self.attachToMap();
       }
     },
+  },
+  beforeUnmount() {
+    this.detachFromMap();
   },
   methods: {
     isOpen(): boolean {
@@ -297,7 +339,7 @@ export default defineComponent({
       if (this.active) {
         this.$emit('tool-opened');
         if (!this.configLoaded) {
-          await Promise.all([this.loadConfig(), this.loadPlans()]);
+          await this.loadConfig();
           this.configLoaded = true;
         }
         this.attachToMap();
@@ -329,15 +371,6 @@ export default defineComponent({
         }
       } catch (e) {
         console.warn('[planner] failed to load config', e);
-      }
-    },
-
-    async loadPlans() {
-      this.plansLoading = true;
-      try {
-        this.plans = await listPlannedTracks();
-      } finally {
-        this.plansLoading = false;
       }
     },
 
@@ -374,55 +407,49 @@ export default defineComponent({
         this.saveDialogVisible = false;
         this.saveName = '';
         this.saveDescription = '';
-        await this.loadPlans();
+        // Refresh the saved plans list so next Load tab visit is up-to-date
+        this.savedPlans = await listPlannedTracks().catch(() => []);
       } finally {
         this.saveSubmitting = false;
       }
     },
 
-    openDeleteDialog(plan: PlannedTrackSummary) {
-      this.planToDelete = plan;
-      this.deleteDialogVisible = true;
-    },
-
-    async confirmDelete() {
-      if (!this.planToDelete) return;
-      this.deleteSubmitting = true;
+    // ── Load plans ───────────────────────────────────────────────────
+    async switchToLoad() {
+      this.activeTab = 'load';
+      this.plansLoading = true;
       try {
-        await deletePlannedTrack(this.planToDelete.id);
-        this.deleteDialogVisible = false;
-        this.planToDelete = null;
-        await this.loadPlans();
+        this.savedPlans = await listPlannedTracks();
+      } catch {
+        this.savedPlans = [];
       } finally {
-        this.deleteSubmitting = false;
+        this.plansLoading = false;
       }
     },
 
-    async loadPlan(id: number) {
-      this.loadingPlanId = id;
+    async selectPlan(id: number) {
       try {
         const detail = await loadPlannedTrack(id);
-        this.planner.loadPlan({
-          profile: detail.profile,
-          waypoints: detail.waypoints,
-          coordinates: detail.coordinates,
-          distanceM: detail.distanceM,
-        });
-        // Fly to the loaded route's bbox so the user sees what they loaded.
-        const map = this.attachedMap;
-        if (map && detail.coordinates.length > 1) {
-          let minLat = Infinity, maxLat = -Infinity, minLng = Infinity, maxLng = -Infinity;
-          for (const c of detail.coordinates) {
-            if (c[1] < minLat) minLat = c[1];
-            if (c[1] > maxLat) maxLat = c[1];
-            if (c[0] < minLng) minLng = c[0];
-            if (c[0] > maxLng) maxLng = c[0];
-          }
-          map.fitBounds([[minLng, minLat], [maxLng, maxLat]], { padding: 60, duration: 600, maxZoom: 15 });
-        }
-      } finally {
-        this.loadingPlanId = null;
+        this.planner.loadPlan(detail);
+        this.activeTab = 'draw';
+      } catch (e) {
+        console.warn('[planner] failed to load plan', id, e);
       }
+    },
+
+    profileIconFor(profile: string | null): string {
+      const map: Record<string, string> = {
+        trekking: 'bi bi-signpost-split',
+        fastbike: 'bi bi-bicycle',
+        'hiking-mountain': 'bi bi-compass',
+        'car-eco': 'bi bi-car-front',
+      };
+      return (profile && map[profile]) || 'bi bi-signpost-split';
+    },
+
+    formatDate(iso: string): string {
+      if (!iso) return '';
+      return new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
     },
 
     // ── Map integration ─────────────────────────────────────────────
@@ -505,19 +532,25 @@ export default defineComponent({
       this.unwatchRoute = this.$watch(
         () => this.planner.routeCoordinates.value,
         () => this.syncSources(),
-        { deep: true },
+        { deep: true }
       );
       this.unwatchWaypoints = this.$watch(
         () => this.planner.waypoints.value,
         () => this.syncSources(),
-        { deep: true },
+        { deep: true }
       );
     },
 
     detachFromMap() {
       const map = this.attachedMap;
-      if (this.unwatchRoute) { this.unwatchRoute(); this.unwatchRoute = null; }
-      if (this.unwatchWaypoints) { this.unwatchWaypoints(); this.unwatchWaypoints = null; }
+      if (this.unwatchRoute) {
+        this.unwatchRoute();
+        this.unwatchRoute = null;
+      }
+      if (this.unwatchWaypoints) {
+        this.unwatchWaypoints();
+        this.unwatchWaypoints = null;
+      }
       if (this.longPressTimer !== null) {
         window.clearTimeout(this.longPressTimer);
         this.longPressTimer = null;
@@ -526,12 +559,27 @@ export default defineComponent({
 
       for (const marker of this.dragMarkerMap.values()) marker.remove();
       this.dragMarkerMap.clear();
-      if (this.hoverMarker) { this.hoverMarker.remove(); this.hoverMarker = null; }
+      if (this.hoverMarker) {
+        this.hoverMarker.remove();
+        this.hoverMarker = null;
+      }
 
-      if (!map) { this.attachedMap = null; return; }
-      if (this.clickHandler) { map.off('click', this.clickHandler); this.clickHandler = null; }
-      if (this.moveHandler) { map.off('moveend', this.moveHandler); this.moveHandler = null; }
-      if (this.touchStartHandler) { map.off('touchstart', this.touchStartHandler); this.touchStartHandler = null; }
+      if (!map) {
+        this.attachedMap = null;
+        return;
+      }
+      if (this.clickHandler) {
+        map.off('click', this.clickHandler);
+        this.clickHandler = null;
+      }
+      if (this.moveHandler) {
+        map.off('moveend', this.moveHandler);
+        this.moveHandler = null;
+      }
+      if (this.touchStartHandler) {
+        map.off('touchstart', this.touchStartHandler);
+        this.touchStartHandler = null;
+      }
       if (this.touchCancelHandler) {
         map.off('touchmove', this.touchCancelHandler);
         map.off('touchend', this.touchCancelHandler);
@@ -543,7 +591,7 @@ export default defineComponent({
         if (map.getSource(PLANNER_SOURCE_ID)) map.removeSource(PLANNER_SOURCE_ID);
         if (map.getLayer(PLANNER_WAYPOINT_LAYER_ID)) map.removeLayer(PLANNER_WAYPOINT_LAYER_ID);
         if (map.getSource(PLANNER_WAYPOINT_SOURCE_ID)) map.removeSource(PLANNER_WAYPOINT_SOURCE_ID);
-      } catch (e) {
+      } catch {
         // Map may already be torn down on theme reload — safe to ignore
       }
       this.attachedMap = null;
@@ -553,14 +601,19 @@ export default defineComponent({
       const coords = this.planner.routeCoordinates.value;
       return {
         type: 'FeatureCollection',
-        features: coords.length >= 2 ? [{
-          type: 'Feature',
-          properties: {},
-          geometry: {
-            type: 'LineString',
-            coordinates: coords.map((c) => [c[0], c[1]]),
-          },
-        }] : [],
+        features:
+          coords.length >= 2
+            ? [
+                {
+                  type: 'Feature',
+                  properties: {},
+                  geometry: {
+                    type: 'LineString',
+                    coordinates: coords.map((c) => [c[0], c[1]]),
+                  },
+                },
+              ]
+            : [],
       };
     },
 
@@ -671,7 +724,10 @@ export default defineComponent({
       const map = this.attachedMap;
       if (!map) return;
       if (!point) {
-        if (this.hoverMarker) { this.hoverMarker.remove(); this.hoverMarker = null; }
+        if (this.hoverMarker) {
+          this.hoverMarker.remove();
+          this.hoverMarker = null;
+        }
         return;
       }
       if (!this.hoverMarker) {
@@ -685,220 +741,452 @@ export default defineComponent({
       }
     },
   },
-  beforeUnmount() {
-    this.detachFromMap();
-  },
 });
 </script>
 
 <style scoped>
-.planner-sheet {
+.planner-hdr-btn {
+  position: relative;
+  background: var(--surface-hover);
+  border: 1px solid var(--border-medium);
+  color: var(--text-muted);
+  width: var(--bs-btn-size, 2rem);
+  height: var(--bs-btn-size, 2rem);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--bs-btn-fs-icon, 0.85rem);
+  cursor: pointer;
+  transition: all 0.15s;
+  flex-shrink: 0;
+}
+.planner-hdr-btn::after {
+  content: '';
+  position: absolute;
+  inset: -0.55rem;
+}
+.planner-hdr-btn:hover:not(:disabled) {
+  color: var(--text-primary);
+  background: var(--surface-active);
+}
+.planner-hdr-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+.planner-hdr-btn--danger:hover:not(:disabled) {
+  color: var(--warning-text);
+  background: var(--warning-bg);
+  border-color: color-mix(in srgb, #f97316 30%, var(--border-medium));
+}
+.planner-root {
+  display: flex;
+  flex-direction: column;
   flex: 1 1 auto;
   min-height: 0;
+  overflow: hidden;
+}
+/* ── Header tab navigation ─────────────────────────────────────── */
+.planner-header-nav {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+.planner-sheet-icon {
+  font-size: 1rem;
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+.planner-header-tabs {
+  display: flex;
+  gap: 0.15rem;
+  min-width: 0;
+}
+.planner-header-tab {
+  padding: 0.25rem 0.7rem;
+  border-radius: 1rem;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: var(--text-sm-size);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  white-space: nowrap;
+  line-height: var(--text-sm-lh);
+}
+.planner-header-tab:not(.planner-header-tab--active):hover {
+  background: var(--surface-hover);
+  color: var(--text-primary);
+}
+.planner-header-tab--active {
+  background: var(--accent-subtle);
+  color: var(--accent-text);
+  font-weight: 600;
+}
+/* ── Panels ────────────────────────────────────────────────────── */
+.planner-panel {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 0.5rem 1rem 1rem;
+  gap: 0.65rem;
+}
+.planner-panel--draw {
+  overflow: hidden;
+}
+.planner-panel--load {
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior-y: contain;
-  padding: 0.25rem 1rem 1rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
 }
-.planner-intro {
+.planner-subtitle {
   margin: 0;
   color: var(--text-muted);
-  font-size: 0.9rem;
-  line-height: 1.4;
+  font-size: var(--text-sm-size);
+  line-height: var(--text-sm-lh);
 }
-.planner-zoom-hint {
-  padding: 0.6rem 0.8rem;
-  border-radius: 12px;
-  background: var(--warning-bg);
-  border: 1px solid color-mix(in srgb, var(--warning) 24%, transparent);
-  color: var(--warning-text);
-  font-size: 0.9rem;
-  line-height: 1.4;
-  display: flex;
-  align-items: flex-start;
-  gap: 0.5rem;
-}
-.planner-zoom-hint i {
-  font-size: 1.1rem;
-  margin-top: 0.05rem;
-  flex-shrink: 0;
-}
-.planner-pristine-hint {
-  padding: 0.6rem 0.8rem;
-  border-radius: 8px;
-  background: #e7f0ff;
-  color: #1e3a8a;
-  font-size: 0.9rem;
-  line-height: 1.4;
-  display: flex;
-  align-items: flex-start;
-  gap: 0.5rem;
-}
-.planner-pristine-hint i {
-  font-size: 1.1rem;
-  margin-top: 0.05rem;
-  flex-shrink: 0;
-}
-.planner-error {
-  padding: 0.6rem 0.8rem;
-  border-radius: 12px;
-  background: var(--error-bg);
-  border: 1px solid color-mix(in srgb, var(--error) 20%, transparent);
-  color: var(--error);
-  font-size: 0.9rem;
-}
-.planner-sidecar,
-.planner-plans {
-  padding: 0.9rem;
-  border-radius: 16px;
-  background: linear-gradient(180deg, var(--surface-glass-heavy), var(--surface-glass));
-  backdrop-filter: var(--blur-standard);
-  -webkit-backdrop-filter: var(--blur-standard);
-  box-shadow: var(--shadow-sm);
-  border: 1px solid var(--border-medium);
-}
-.planner-sidecar-head,
-.planner-plans-head {
-  display: flex;
-  justify-content: space-between;
+/* ── Controls row ──────────────────────────────────────────────── */
+.planner-controls-row {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.5rem;
 }
-.planner-plans-head h2 {
-  margin: 0;
-  font-size: 1rem;
-  color: var(--text-primary);
-  font-weight: 700;
-  letter-spacing: -0.01em;
-}
-.planner-sidecar-body {
+.planner-actions {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem 1rem;
-  margin-top: 0.5rem;
-  font-size: 0.85rem;
-  color: var(--text-secondary);
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
 }
-.planner-plans-list {
+.planner-controls-right {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.4rem;
+}
+.planner-action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.4rem;
+  height: 2.4rem;
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  background: var(--accent-bg);
+  color: var(--accent-text);
+  font-size: var(--text-sm-size);
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+  flex-shrink: 0;
+}
+.planner-action-btn:hover:not(:disabled) {
+  background: var(--accent-subtle);
+}
+.planner-action-btn:disabled {
+  opacity: 0.28;
+  cursor: not-allowed;
+}
+.planner-action-btn--danger {
+  border-color: color-mix(in srgb, #f97316 50%, var(--accent));
+  color: color-mix(in srgb, #c2410c 60%, var(--accent-text));
+}
+.planner-action-btn--danger:hover:not(:disabled) {
+  color: var(--warning-text);
+  background: var(--warning-bg);
+  border-color: #f97316;
+}
+/* ── Load tab ──────────────────────────────────────────────────── */
+.planner-load-spinner {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--text-muted);
+  font-size: var(--text-sm-size);
+  padding: 0.75rem 0;
+}
+.planner-load-spin {
+  animation: planner-spin 1s linear infinite;
+}
+@keyframes planner-spin {
+  to { transform: rotate(360deg); }
+}
+.planner-load-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--text-muted);
+  font-size: var(--text-sm-size);
+  padding: 2rem 1rem;
+  text-align: center;
+}
+.planner-load-empty i {
+  font-size: 2rem;
+}
+.planner-plan-list {
   list-style: none;
-  margin: 0.75rem 0 0;
+  margin: 0;
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.55rem;
+  gap: 0.4rem;
 }
-.planner-plans-list li {
+.planner-plan-item {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  gap: 0.7rem;
-  padding: 0.35rem;
-  border-radius: 12px;
-  background: color-mix(in srgb, var(--surface-glass-light) 78%, transparent);
+  gap: 0.75rem;
+  padding: 0.65rem 0.8rem;
+  border-radius: 10px;
   border: 1px solid var(--border-default);
+  background: var(--accent-bg);
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s;
 }
-.planner-plans-list li:last-child { border-bottom: 0; }
-.planner-plan-info {
+.planner-plan-item:hover {
+  background: var(--accent-subtle);
+  border-color: var(--accent-muted);
+}
+.planner-plan-body {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
+  gap: 0.15rem;
   flex: 1 1 auto;
   min-width: 0;
-  text-align: left;
-  border: 0;
-  background: transparent;
-  padding: 0.6rem 0.7rem;
-  border-radius: 10px;
-  cursor: pointer;
-  transition: background 0.15s ease, color 0.15s ease;
 }
-.planner-plan-info:hover {
-  background: var(--accent-bg);
-  color: var(--text-primary);
-}
-.planner-plan-info:disabled { opacity: 0.6; cursor: progress; }
-.planner-plan-info strong {
+.planner-plan-name {
+  font-size: var(--text-sm-size);
   font-weight: 600;
   color: var(--text-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 100%;
 }
-.planner-plan-meta { color: var(--text-muted); font-size: 0.8rem; }
-.planner-plan-empty {
+.planner-plan-meta {
+  font-size: var(--text-xs-size);
   color: var(--text-muted);
-  padding: 0.85rem 0.25rem;
-  justify-content: center;
-  background: transparent;
-  border-style: dashed;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
 }
-.planner-plan-actions { display: flex; gap: 0.4rem; flex-shrink: 0; }
-.planner-plans-loading { color: var(--text-muted); font-size: 0.9rem; margin-top: 0.5rem; }
-.planner-btn {
-  padding: 0.45rem 0.7rem;
-  border-radius: 10px;
-  border: 1px solid var(--border-medium);
-  background: color-mix(in srgb, var(--surface-glass-heavy) 86%, transparent);
+.planner-plan-desc {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.planner-plan-date {
+  font-size: var(--text-xs-size);
+  color: var(--text-muted);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.planner-notices {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+.planner-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 0.7rem 0.8rem;
+  border-radius: 14px;
+  border: 1px solid var(--border-default);
+  font-size: var(--text-sm-size);
+  line-height: var(--text-sm-lh);
   color: var(--text-secondary);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.24);
+  background: var(--surface-glass-light);
+}
+.planner-notice i {
+  flex-shrink: 0;
+  font-size: var(--text-base-size);
+}
+.planner-notice--warn {
+  border-color: color-mix(in srgb, #f97316 30%, var(--border-default));
+  color: var(--warning-text);
+  background: var(--warning-bg);
+}
+.planner-notice--info {
+  background: var(--surface-glass-heavy);
+}
+.planner-notice--error {
+  border-color: color-mix(in srgb, var(--error) 28%, var(--border-default));
+  color: var(--error);
+  background: var(--error-bg);
+}
+.brouter-pill-wrap {
+  position: relative;
+  flex-shrink: 0;
+  justify-self: end;
+}
+.brouter-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.55rem 0.8rem;
+  border-radius: 999px;
+  border: 1px solid var(--border-default);
+  font-size: var(--text-xs-size);
+  line-height: var(--text-xs-lh);
+  color: var(--text-secondary);
+  background: var(--surface-glass-subtle);
   cursor: pointer;
-  font-size: 0.85rem;
+}
+.brouter-pill:hover {
+  background: var(--surface-glass-heavy);
+}
+.brouter-chevron {
+  font-size: 9px;
+  opacity: 0.6;
+}
+.brouter-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+.brouter-dot--ok {
+  background: var(--success);
+}
+.brouter-dot--warn {
+  background: var(--warning);
+}
+.brouter-dot--off {
+  background: var(--text-muted);
+  opacity: 0.5;
+}
+.brouter-label {
+  font-size: var(--text-xs-size);
+}
+.brouter-badge {
+  background: var(--warning);
+  color: var(--text-inverse);
+  border-radius: 999px;
+  padding: 0 4px;
+  font-size: var(--text-2xs-size);
+  line-height: var(--text-2xs-lh);
+  font-weight: 700;
+}
+.brouter-detail {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 5px);
+  z-index: 50;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--border-default);
+  border-radius: 10px;
+  background: var(--surface-glass-heavy);
+  font-size: var(--text-xs-size);
+  line-height: var(--text-xs-lh);
+  color: var(--text-secondary);
+  min-width: 220px;
+}
+.brouter-detail-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+.brouter-detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+.brouter-detail-label {
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 500;
+}
+.brouter-detail-val {
   font-weight: 600;
+  color: var(--text-primary);
+  text-align: right;
+}
+.brouter-val--ok {
+  color: var(--success);
+}
+.brouter-val--warn {
+  color: var(--warning);
+}
+.brouter-detail-refresh {
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
-  min-height: 36px;
-  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, transform 0.15s ease;
+  margin-top: 0.55rem;
+  padding: 0.25rem 0.5rem;
+  border: 1px solid var(--border-default);
+  border-radius: 7px;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: var(--text-xs-size);
+  line-height: var(--text-xs-lh);
+  cursor: pointer;
 }
-.planner-btn:hover {
+.brouter-detail-refresh:hover {
   background: var(--surface-hover);
-  border-color: var(--border-hover);
   color: var(--text-primary);
-}
-.planner-btn:disabled { opacity: 0.55; cursor: not-allowed; }
-.planner-btn--icon {
-  width: 36px;
-  justify-content: center;
-  padding: 0.4rem 0;
-}
-.planner-btn--danger {
-  color: var(--error);
-  border-color: color-mix(in srgb, var(--error) 30%, var(--border-medium));
-}
-.planner-btn--danger:hover {
-  background: var(--error-bg);
-  border-color: color-mix(in srgb, var(--error) 45%, var(--border-medium));
 }
 
 /* Save / delete dialog body styling */
-.planner-dialog :deep(.p-dialog-content) { padding-top: 1rem; }
-.planner-dialog-body { display: flex; flex-direction: column; gap: 0.85rem; }
-.planner-field { display: flex; flex-direction: column; gap: 0.35rem; font-size: 0.85rem; }
-.planner-field span em { color: var(--text-muted); font-style: normal; font-weight: 400; }
+.planner-dialog :deep(.p-dialog-content) {
+  padding-top: 1rem;
+}
+.planner-dialog-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+.planner-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: var(--text-sm-size);
+}
+.planner-field span em {
+  color: var(--text-muted);
+  font-style: normal;
+  font-weight: 400;
+}
 .planner-field :deep(.p-inputtext),
-.planner-field :deep(.p-textarea) { width: 100%; }
+.planner-field :deep(.p-textarea) {
+  width: 100%;
+}
 .planner-dialog-meta {
   display: flex;
   flex-wrap: wrap;
   gap: 0.4rem 1rem;
-  font-size: 0.8rem;
+  font-size: var(--text-sm-size);
+  line-height: var(--text-sm-lh);
   color: var(--text-secondary);
-  padding: 0.5rem 0.6rem;
-  background: var(--surface-elevated);
-  border: 1px solid var(--border-default);
-  border-radius: 10px;
+  padding: 0.3rem 0;
 }
-.planner-dialog-meta i { margin-right: 0.25rem; }
-.planner-dialog-confirm { flex-direction: row; align-items: flex-start; gap: 0.85rem; line-height: 1.5; }
-.planner-dialog-icon { font-size: 1.6rem; color: var(--warning); flex-shrink: 0; margin-top: 0.15rem; }
+.planner-dialog-meta i {
+  margin-right: 0.2rem;
+}
 
 @media (max-width: 640px) {
-  .planner-plan-info strong { font-size: 0.95rem; }
-  .planner-btn { font-size: 0.85rem; }
+  .planner-panel {
+    padding-inline: 0.75rem;
+    padding-bottom: 0.85rem;
+  }
+  .planner-controls-row {
+    align-items: stretch;
+  }
+  .brouter-pill-wrap {
+    width: 100%;
+  }
+  .brouter-pill {
+    width: 100%;
+    justify-content: center;
+  }
+  .brouter-detail {
+    left: 0;
+    right: auto;
+    width: min(100%, 320px);
+  }
 }
 </style>
 
@@ -909,11 +1197,12 @@ export default defineComponent({
   height: 18px;
   border-radius: 999px;
   border: 3px solid #ff5722;
-  background: #fff;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+  background: var(--slider-handle);
   cursor: grab;
 }
-.planner-drag-marker:active { cursor: grabbing; }
+.planner-drag-marker:active {
+  cursor: grabbing;
+}
 
 /* Transient marker tracking the elevation-profile cursor. */
 .planner-hover-marker {
@@ -921,8 +1210,8 @@ export default defineComponent({
   height: 14px;
   border-radius: 999px;
   background: #ff5722;
-  border: 2px solid #fff;
-  box-shadow: 0 0 0 2px rgba(255, 87, 34, 0.35), 0 2px 6px rgba(0, 0, 0, 0.3);
+  border: 2px solid var(--slider-handle);
+  outline: 2px solid rgba(255, 87, 34, 0.28);
   pointer-events: none;
 }
 </style>

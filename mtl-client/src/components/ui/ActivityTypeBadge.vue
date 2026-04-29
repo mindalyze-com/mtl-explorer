@@ -103,24 +103,24 @@ const colorStyle = computed(() => {
 
 /* ── Sizes ── */
 .activity-badge--xs {
-  font-size: 0.65rem;
+  font-size: var(--text-2xs-size);
   padding: 0.1rem 0.35rem;
   gap: 0.18rem;
 }
-.activity-badge--xs .activity-badge__icon { font-size: 0.6rem; }
+.activity-badge--xs .activity-badge__icon { font-size: var(--text-2xs-size); }
 
 .activity-badge--sm {
-  font-size: 0.7rem;
+  font-size: var(--text-xs-size);
   padding: 0.15rem 0.5rem;
 }
-.activity-badge--sm .activity-badge__icon { font-size: 0.68rem; }
+.activity-badge--sm .activity-badge__icon { font-size: var(--text-2xs-size); }
 
 .activity-badge--md {
-  font-size: 0.78rem;
+  font-size: var(--text-xs-size);
   padding: 0.2rem 0.6rem;
   gap: 0.3rem;
 }
-.activity-badge--md .activity-badge__icon { font-size: 0.75rem; }
+.activity-badge--md .activity-badge__icon { font-size: var(--text-xs-size); }
 
 /* ── Icon-only ── */
 .activity-badge--icon-only {

@@ -73,6 +73,16 @@ public class TrackEnergySummary {
     private double powerWattsMax = 0;
 
     /**
+     * Normalized Power (W) — variability-weighted power: 4th root of the mean of
+     * 30-second rolling-average power raised to the 4th power. Hard bursts weigh more
+     * than steady easy output, so NP is always ≥ simple average power.
+     * Aliases: Weighted Average Power (Strava), Normalized Power (Garmin/TrainingPeaks),
+     * xPower / IsoPower (GoldenCheetah).
+     */
+    @Builder.Default
+    private double normalizedPowerWatts = 0;
+
+    /**
      * Rider weight used for this calculation (audit trail).
      */
     @Builder.Default

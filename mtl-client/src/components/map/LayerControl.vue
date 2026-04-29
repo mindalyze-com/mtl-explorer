@@ -81,7 +81,7 @@ function onPointerDown(e) {
 }
 
 .lc-check {
-  font-size: 1.15rem;
+  font-size: var(--text-lg-size);
   min-width: 1.3rem;
   text-align: center;
   color: var(--text-faint);
@@ -97,14 +97,14 @@ function onPointerDown(e) {
 }
 
 .lc-label {
-  font-size: 0.82rem;
+  font-size: var(--text-sm-size);
   color: var(--text-secondary);
 }
 
 .lc-info {
-  font-size: 0.72rem;
+  font-size: var(--text-xs-size);
   color: var(--text-faint);
-  line-height: 1.3;
+  line-height: var(--text-xs-lh);
   white-space: normal;
 }
 

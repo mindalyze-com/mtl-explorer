@@ -1,0 +1,237 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.10.xsd">
+
+    <!--
+      Track-variant taxonomy refactor:
+
+      Problem: per-point chart metrics (elevation-gain rate, speed, slope) were
+      recomputed over a 90 s moving window on the SIMPLIFIED variant (Douglas-
+      Peucker @ 10 m). On long straight climbs DP drops nearly every point, so
+      survivors end up 60–300 s apart and the moving-window algorithm skips
+      them. Charts showed flat-zero bands even when the terrain was climbing.
+
+      Fix: separate the two orthogonal sampling axes.
+        - SIMPLIFIED_SHAPE        — geometry-optimised (renamed from SIMPLIFIED),
+                                    used for map polyline rendering, geo SQL
+                                    filters, exploration score.
+        - SIMPLIFIED_FIXED_POINTS — NEW, time-uniform downsampling capped at
+                                    max_points, used for charts, graphs and
+                                    track-detail hover. Metrics are SELECTED
+                                    from RAW_OUTLIER_CLEANED (the authoritative
+                                    per-point series) and never recomputed.
+
+      Only absolute fields are copied verbatim; between-point deltas are
+      recomputed between the surviving point pairs. See GPXStoreService
+      .calculateFixedPoints().
+    -->
+    <changeSet id="20260420_1_max_points_column" author="patrick.heusser">
+        <addColumn tableName="gps_track_data">
+            <column name="max_points" type="int"/>
+        </addColumn>
+    </changeSet>
+
+    <!--
+      Rename the existing SIMPLIFIED rows to SIMPLIFIED_SHAPE. This is a pure
+      enum-string rename; no geometry / metric data is altered.
+    -->
+    <changeSet id="20260420_2_rename_simplified_to_simplified_shape" author="patrick.heusser">
+        <sql>
+            UPDATE gps_track_data SET track_type = 'SIMPLIFIED_SHAPE' WHERE track_type = 'SIMPLIFIED'
+        </sql>
+    </changeSet>
+
+    <!--
+      Recreate gps_track_v: the inner join onto gps_track_data must follow the
+      renamed track_type ('SIMPLIFIED' -> 'SIMPLIFIED_SHAPE'). Everything else
+      is copied verbatim from changeset 20260419_2_view_moving_power in 029.xml.
+    -->
+    <changeSet id="20260420_3_view_simplified_shape" author="patrick.heusser">
+
+        <dropView viewName="gps_track_v"/>
+
+        <createView viewName="gps_track_v">
+            <![CDATA[
+            SELECT gt.id,
+                   gt.file_id,
+                   gt.creator,
+                   gt.gpx_version,
+                   gt.meta_name,
+                   gt.meta_description,
+                   gt.meta_time,
+                   gt.meta_author,
+                   gt.track_name,
+                   gt.track_description,
+                   gt.start_date,
+                   gt.end_date,
+                   gt.track_duration_in_motion_secs,
+                   gt.track_duration_stopped_secs,
+                   gt.track_stop_count,
+                   gt.track_longest_stop_secs,
+                   gt.median_distance_between_points,
+                   gt.avg_distance_between_points,
+                   gt.max_distance_between_points,
+                   gt.did_filter_outlier_by_distance,
+                   gt.number_of_track_points,
+                   gt.track_length_in_meter,
+                   gt.track_type,
+                   gt.utm_zone,
+                   gt.create_date,
+                   gt.load_status,
+                   gt.load_messages,
+                   gt.duplicate_status,
+                   gt.duplicate_of,
+                   gt.activity_type,
+                   gt.activity_type_source,
+                   gt.activity_type_source_details,
+                   gt.garmin_activity_id,
+                   gt.meta_link,
+                   gt.update_date,
+                   gt.duplicate_details,
+                   gt.bbox_min_lat,
+                   gt.bbox_max_lat,
+                   gt.bbox_min_lng,
+                   gt.bbox_max_lng,
+                   gt.center_lat,
+                   gt.center_lng,
+                   gt.energy_gravitational_total_wh,
+                   gt.energy_gravitational_descent_wh,
+                   gt.energy_aero_drag_total_wh,
+                   gt.energy_rolling_resistance_total_wh,
+                   gt.energy_kinetic_positive_total_wh,
+                   gt.energy_net_total_wh,
+                   gt.energy_weight_kg_used,
+                   gt.power_watts_avg,
+                   gt.power_watts_moving_avg,
+                   gt.power_watts_max,
+                   gt.source_segment_index,
+                   gt.source_parent_track_id,
+                   gt.exploration_status,
+                   gt.exploration_score,
+                   gt.exploration_calc_date,
+                   gt.track_source,
+                   gt.planner_profile,
+                   ixf.index              AS f_index,
+                   ixf.name               AS f_name,
+                   ixf.path               AS f_path,
+                   ixf.base_path          AS f_base_path,
+                   ixf.full_path          AS f_full_path,
+                   ixf.size               AS f_size,
+                   ixf.indexer_id         AS f_indexer_id,
+                   ixf.last_modified_date AS f_last_modified_date,
+                   ixf.index_added_date   AS f_index_added_date,
+                   ixf.index_update_date  AS f_index_update_date,
+                   ixf.indexer_status     AS f_indexer_status,
+                   ixf.last_message       AS f_last_message,
+                   gd.id                  AS gd_id,
+                   gd.create_date         AS gd_create_date,
+                   gd.precision_in_meter  AS gd_precision_in_meter,
+                   gd.track_type          AS gd_track_type,
+                   gd.track               AS gd_track,
+                   gd_raw.id              AS gd_raw_id,
+                   gd_raw.track           AS gd_raw_track
+            FROM gps_track gt
+                     LEFT JOIN indexed_file ixf ON gt.file_id = ixf.id
+                     LEFT JOIN gps_track_data gd
+                               ON gt.id = gd.gps_track_id AND gd.precision_in_meter = 1 AND
+                                  gd.track_type = 'SIMPLIFIED_SHAPE'
+                     -- gd_raw joins the authoritative RAW_OUTLIER_CLEANED variant
+                     -- (precision 0). The previous view definitions joined on
+                     -- 'CLEANED' + precision 1 which never matched any row —
+                     -- gd_raw_track was always NULL in practice. Fixed here so
+                     -- consumers reading gd_raw_track actually get geometry.
+                     LEFT JOIN gps_track_data gd_raw
+                               ON gt.id = gd_raw.gps_track_id AND gd_raw.precision_in_meter = 0 AND
+                                  gd_raw.track_type = 'RAW_OUTLIER_CLEANED'
+            ]]>
+        </createView>
+
+    </changeSet>
+
+    <!--
+      SmartBaseFilter SQL references track_type = 'SIMPLIFIED' in three geo-
+      predicate subqueries. Each must be retargeted to 'SIMPLIFIED_SHAPE' so
+      the filter continues to match the renamed rows. Expression is otherwise
+      identical to changeset 20260418_3_smart_base_filter_exclude_planned in
+      024.xml.
+    -->
+    <changeSet id="20260420_4_smart_base_filter_simplified_shape" author="patrick.heusser">
+        <update tableName="filter_config">
+            <column name="expression">
+                <![CDATA[
+                SELECT
+                    id,
+                    activity_type AS grp
+                FROM
+                    gps_track gt
+                WHERE
+                    1 = 1
+                    -- OPTIONAL DATE_FROM and DATE_TO params. If NULL, they won't be applied as COALESCE uses start_date as fallback.
+                    AND gt.start_date >= COALESCE(TO_TIMESTAMP(:DATE_TIME_FROM, 'YYYY-MM-DD HH24:MI:SS'), gt.start_date)
+                    AND gt.start_date <= COALESCE(TO_TIMESTAMP(:DATE_TIME_TO, 'YYYY-MM-DD HH24:MI:SS'), gt.start_date)
+                    AND gt.start_date >= '1971-01-01'
+                    AND gt.duplicate_status = 'UNIQUE'
+                    AND gt.load_status = 'SUCCESS'
+                    -- Planner: exclude planned routes (ideas) — they are never "done" tracks.
+                    AND gt.track_source = 'IMPORTED'
+                    -- OPTIONAL GEO CIRCLE: if GEO_CIRCLE_1_POINT is NULL, condition is skipped
+                    AND (
+                        :GEO_CIRCLE_1_POINT IS NULL
+                        OR EXISTS (
+                            SELECT 1 FROM gps_track_data gtd
+                            WHERE gtd.gps_track_id = gt.id
+                              AND gtd.precision_in_meter = 1000
+                              AND gtd.track_type = 'SIMPLIFIED_SHAPE'
+                              AND ST_DWithin(
+                                    gtd.track::geography,
+                                    ST_GeographyFromText(:GEO_CIRCLE_1_POINT),
+                                    CAST(:GEO_CIRCLE_1_RADIUS AS float8)
+                                  )
+                        )
+                    )
+                    -- OPTIONAL GEO RECTANGLE: if GEO_RECTANGLE_1_MIN_LAT is NULL, condition is skipped
+                    AND (
+                        :GEO_RECTANGLE_1_MIN_LAT IS NULL
+                        OR EXISTS (
+                            SELECT 1 FROM gps_track_data gtd
+                            WHERE gtd.gps_track_id = gt.id
+                              AND gtd.precision_in_meter = 1000
+                              AND gtd.track_type = 'SIMPLIFIED_SHAPE'
+                              AND ST_Intersects(
+                                    gtd.track,
+                                    ST_MakeEnvelope(
+                                        CAST(:GEO_RECTANGLE_1_MIN_LNG AS float8),
+                                        CAST(:GEO_RECTANGLE_1_MIN_LAT AS float8),
+                                        CAST(:GEO_RECTANGLE_1_MAX_LNG AS float8),
+                                        CAST(:GEO_RECTANGLE_1_MAX_LAT AS float8),
+                                        4326
+                                    )
+                                  )
+                        )
+                    )
+                    -- OPTIONAL GEO POLYGON: if GEO_POLYGON_1 is NULL, condition is skipped
+                    AND (
+                        :GEO_POLYGON_1 IS NULL
+                        OR EXISTS (
+                            SELECT 1 FROM gps_track_data gtd
+                            WHERE gtd.gps_track_id = gt.id
+                              AND gtd.precision_in_meter = 1000
+                              AND gtd.track_type = 'SIMPLIFIED_SHAPE'
+                              AND ST_Intersects(
+                                    gtd.track,
+                                    ST_GeomFromText(:GEO_POLYGON_1, 4326)
+                                  )
+                        )
+                    )
+                ORDER BY
+                    start_date
+                ]]>
+            </column>
+            <where>filter_name = 'SmartBaseFilter' AND filter_domain = 'GPS_TRACK'</where>
+        </update>
+    </changeSet>
+
+</databaseChangeLog>

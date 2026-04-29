@@ -68,6 +68,75 @@ public class EnergyService {
         return Math.round(value * factor) / factor;
     }
 
+    /**
+     * Compute Normalized Power (NP) from a series of per-segment power values (W) and
+     * matching segment durations (s). NP is the 4th root of the time-weighted mean of
+     * the 30-second trailing rolling-average power raised to the 4th power. Because
+     * hard bursts contribute disproportionately (p^4), NP is always ≥ simple average
+     * power on variable-effort rides, and reflects physiological cost better.
+     * <p>
+     * The algorithm walks a trailing 30-second window along the point stream, tracking
+     * a time-weighted mean of power within the window, and accumulates
+     * {@code rollingAvg^4 * segmentDuration} into the NP integral. Points before the
+     * window is fully warmed up (first 30 s of data) are skipped to match Coggan's
+     * definition.
+     * <p>
+     * Industry aliases: Weighted Average Power (Strava), Normalized Power / NP
+     * (Garmin, TrainingPeaks), xPower / IsoPower (GoldenCheetah).
+     *
+     * @param powersWatts  instantaneous power per point (W); same length as durationsSec
+     * @param durationsSec duration of the segment ending at each point (s)
+     * @return NP in watts, or 0 if the track is shorter than the warm-up window
+     */
+    static double computeNormalizedPower(double[] powersWatts, double[] durationsSec) {
+        if (powersWatts == null || durationsSec == null
+            || powersWatts.length == 0 || powersWatts.length != durationsSec.length) {
+            return 0;
+        }
+        final double WINDOW_SEC = 30.0;
+        final int n = powersWatts.length;
+
+        double winPowerDuration = 0; // Σ power_k × duration_k over the window
+        double winDuration = 0;      // Σ duration_k over the window
+        int windowStart = 0;
+
+        double weightedFourthPowerSum = 0;
+        double totalDuration = 0;
+
+        for (int i = 0; i < n; i++) {
+            double d = durationsSec[i] > 0 ? durationsSec[i] : 0;
+            double p = powersWatts[i] > 0 ? powersWatts[i] : 0;
+            winPowerDuration += p * d;
+            winDuration += d;
+
+            // Shrink the window from the front so it spans ~30 s of trailing data.
+            while (windowStart < i) {
+                double headD = durationsSec[windowStart] > 0 ? durationsSec[windowStart] : 0;
+                if (winDuration - headD >= WINDOW_SEC) {
+                    double headP = powersWatts[windowStart] > 0 ? powersWatts[windowStart] : 0;
+                    winPowerDuration -= headP * headD;
+                    winDuration -= headD;
+                    windowStart++;
+                } else {
+                    break;
+                }
+            }
+
+            // Skip warm-up: require the trailing window to be fully populated before
+            // contributing to the NP integral.
+            if (winDuration >= WINDOW_SEC && d > 0) {
+                double rollingAvg = winPowerDuration / winDuration;
+                double avg4 = rollingAvg * rollingAvg * rollingAvg * rollingAvg;
+                weightedFourthPowerSum += avg4 * d;
+                totalDuration += d;
+            }
+        }
+
+        if (totalDuration <= 0) return 0;
+        double mean4 = weightedFourthPowerSum / totalDuration;
+        return Math.pow(mean4, 0.25);
+    }
+
     private final EnergyCalculatorFactory calculatorFactory;
     private final ConfigRepository configRepository;
     private final GpsTrackRepository gpsTrackRepository;
@@ -175,6 +244,11 @@ public class EnergyService {
         double powerSum = 0;
         int powerCount = 0;
 
+        // Per-point series captured for Normalized Power computation after the loop.
+        double[] npPowers = new double[points.size()];
+        double[] npDurations = new double[points.size()];
+        int npIdx = 0;
+
         // Moving-time accumulation for "Avg Moving Power" (net energy / moving time).
         // Uses chunk-based wall-clock approach (same as GPXStoreService) to avoid
         // floating-point drift from summing thousands of small durations.
@@ -213,10 +287,14 @@ public class EnergyService {
             // Power is stored at integer-W resolution because that is already far finer than
             // the underlying mechanical accuracy.
             Double duration = current.getDurationBetweenPointsInSec();
+            double pointPowerW = 0;
+            double pointDurationS = 0;
             if (duration != null && duration >= MIN_SEGMENT_DURATION_SEC && segmentTotalJoules > 0) {
                 double power = segmentTotalJoules / duration;
                 double clampedPower = Math.min(power, MAX_POWER_WATTS);
                 current.setPowerWatts(round(clampedPower, 0));
+                pointPowerW = clampedPower;
+                pointDurationS = duration;
 
                 if (clampedPower > 0) {
                     powerSum += clampedPower;
@@ -225,7 +303,11 @@ public class EnergyService {
                 }
             } else {
                 current.setPowerWatts(0.0);
+                if (duration != null && duration > 0) pointDurationS = duration;
             }
+            npPowers[npIdx] = pointPowerW;
+            npDurations[npIdx] = pointDurationS;
+            npIdx++;
 
             // Track moving sections for Avg Moving Power
             boolean isMoving = current.getSpeedInKmhMovingWindow() != null
@@ -258,6 +340,8 @@ public class EnergyService {
             movingPowerAvg = Math.min(cumulativeTotalJoules / movingTimeSec, MAX_POWER_WATTS);
         }
 
+        double normalizedPower = Math.min(computeNormalizedPower(npPowers, npDurations), MAX_POWER_WATTS);
+
         return TrackEnergySummary.builder()
                 .gravitationalAscentTotalWh(cumulativeGravAscentJoules / JOULES_PER_WH)
                 .gravitationalDescentTotalWh(cumulativeGravDescentJoules / JOULES_PER_WH)
@@ -269,6 +353,7 @@ public class EnergyService {
                 .powerWattsAvg(powerCount > 0 ? powerSum / powerCount : 0)
                 .powerWattsMovingAvg(movingPowerAvg)
                 .powerWattsMax(powerMax)
+                .normalizedPowerWatts(normalizedPower)
                 .weightKgUsed(params.getRiderWeightKg()) // Store the actual weight used
                 .build();
     }
@@ -290,6 +375,10 @@ public class EnergyService {
         double powerMax = 0;
         double powerSum = 0;
         int powerCount = 0;
+
+        double[] npPowers = new double[points.size()];
+        double[] npDurations = new double[points.size()];
+        int npIdx = 0;
 
         java.util.Date movingSectionStart = null;
         java.util.Date movingSectionEnd = null;
@@ -323,6 +412,10 @@ public class EnergyService {
                 powerCount++;
                 if (power > powerMax) powerMax = power;
             }
+            npPowers[npIdx] = power != null && power > 0 ? power : 0;
+            Double dpDur = p.getDurationBetweenPointsInSec();
+            npDurations[npIdx] = dpDur != null && dpDur > 0 ? dpDur : 0;
+            npIdx++;
 
             // Track moving sections for Avg Moving Power
             boolean isMoving = p.getSpeedInKmhMovingWindow() != null
@@ -353,6 +446,8 @@ public class EnergyService {
             movingPowerAvg = Math.min(netTotalWh * JOULES_PER_WH / movingTimeSec, MAX_POWER_WATTS);
         }
 
+        double normalizedPower = Math.min(computeNormalizedPower(npPowers, npDurations), MAX_POWER_WATTS);
+
         return TrackEnergySummary.builder()
                 .gravitationalAscentTotalWh(gravAscent)
                 .gravitationalDescentTotalWh(gravDescent)
@@ -364,6 +459,7 @@ public class EnergyService {
                 .powerWattsAvg(powerCount > 0 ? powerSum / powerCount : 0)
                 .powerWattsMovingAvg(movingPowerAvg)
                 .powerWattsMax(powerMax)
+                .normalizedPowerWatts(normalizedPower)
                 .weightKgUsed(weightKgUsed)
                 .build();
     }
@@ -382,6 +478,7 @@ public class EnergyService {
         track.setPowerWattsAvg(round(summary.getPowerWattsAvg(), 0));
         track.setPowerWattsMovingAvg(round(summary.getPowerWattsMovingAvg(), 0));
         track.setPowerWattsMax(round(summary.getPowerWattsMax(), 0));
+        track.setNormalizedPowerWatts(round(summary.getNormalizedPowerWatts(), 0));
     }
 
     /**
@@ -460,5 +557,33 @@ public class EnergyService {
             log.warn("Could not read energy weight config, using default {}kg: {}", weight, e.getMessage());
         }
         return EnergyParameters.builder().riderWeightKg(weight).build();
+    }
+
+    /**
+     * Default threshold power (W) used to normalize fitness metrics (Intensity
+     * Index, Training Load) when no user-configured value is present. 150 W is a
+     * pragmatic average across mixed activities. Cycling-only users typically
+     * configure a higher value (their FTP).
+     */
+    public static final double DEFAULT_THRESHOLD_POWER_WATTS = 150.0;
+
+    /**
+     * Read the configured threshold power (W) used to normalize fitness metrics
+     * (Intensity Index = NP / threshold; Training Load = (NP/threshold)² × hours × 100).
+     * Falls back to {@link #DEFAULT_THRESHOLD_POWER_WATTS} if not configured.
+     * Config key: domain1='fitness', domain2='user', domain3='thresholdPowerWatts'.
+     */
+    public double getThresholdPowerWatts() {
+        double threshold = DEFAULT_THRESHOLD_POWER_WATTS;
+        try {
+            List<ConfigEntity> configs = configRepository.findConfigEntitiesByDomain1AndDomain2AndDomain3("fitness", "user", "thresholdPowerWatts");
+            if (configs != null && !configs.isEmpty()) {
+                double v = Double.parseDouble(configs.getFirst().getValue());
+                if (v > 0) threshold = v;
+            }
+        } catch (Exception e) {
+            log.warn("Could not read threshold power config, using default {}W: {}", threshold, e.getMessage());
+        }
+        return threshold;
     }
 }

@@ -48,6 +48,7 @@ mtl:
     corridor-width-m: 25.0    # Buffer radius around each prior path (meters)
     use-track-precision: 10   # Which simplified track variant to use (10m precision)
     max-tracks-per-run: 20    # Safety cap per scheduler invocation (handles backlogs)
+    worker-threads: 3         # Parallel workers within one fetched batch
     run-schedule: PT120S      # How often the job fires (ISO-8601 duration)
 ```
 
@@ -74,8 +75,17 @@ Each track is stored at multiple precision levels (1m, 5m, 10m, 50m, 100m, 500m,
 The job runs repeatedly on a schedule. This cap prevents a single run from holding the
 scheduler thread for too long during initial backfill of many tracks.
 
-- 20 tracks × ~1–3s per track ≈ up to 60s per run in the worst case
+- 20 tracks at 3 workers × ~1–3s per track ≈ up to 20s per run in the worst case
 - A backlog of 500 tracks clears in ~25 runs (≈ 50 minutes at 2-minute intervals)
+
+### `worker-threads` (default: 3)
+
+Number of exploration score workers to run in parallel within one fetched batch.
+
+The score query reads prior track geometry by `start_date`; it does not read prior
+`exploration_score` values. Because of that, tracks in the same batch can be calculated
+concurrently without changing score correctness. Set this to `1` for sequential processing
+on low-power systems or when the database is already CPU-bound.
 
 ### `run-schedule` (default: PT120S)
 
@@ -148,7 +158,7 @@ the `config` table (`domain1=exploration, domain2=algo`). If any differ:
 2. Stored config snapshot is updated
 3. Job processes the backlog on its normal schedule
 
-`max-tracks-per-run` and `run-schedule` changes do **not** invalidate scores.
+`max-tracks-per-run`, `worker-threads`, and `run-schedule` changes do **not** invalidate scores.
 
 ---
 

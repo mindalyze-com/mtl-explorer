@@ -8,8 +8,10 @@ import com.x8ing.mtl.server.mtlserver.db.entity.gps.projection.simplified.Simpli
 import com.x8ing.mtl.server.mtlserver.db.entity.indexer.IndexedFile;
 import com.x8ing.mtl.server.mtlserver.db.repository.gps.GpsTrackDataPointRepository;
 import com.x8ing.mtl.server.mtlserver.db.repository.gps.GpsTrackDataRepository;
+import com.x8ing.mtl.server.mtlserver.db.repository.gps.GpsTrackEventRepository;
 import com.x8ing.mtl.server.mtlserver.db.repository.gps.GpsTrackRepository;
 import com.x8ing.mtl.server.mtlserver.logic.crossing.beans.SegmentNotes;
+import com.x8ing.mtl.server.mtlserver.logic.motion.GpsTrackEventService;
 import com.x8ing.mtl.server.mtlserver.logic.motion.TrackMotionAnalyzer;
 import com.x8ing.mtl.server.mtlserver.web.global.LineStringSerializer;
 import jakarta.persistence.EntityManager;
@@ -35,12 +37,24 @@ public class GPXStoreService {
     private final GpsTrackDataRepository gpsDataRepository;
     private final SimplifiedTrackRepository simplifiedTrackRepository;
     private final GpsTrackDataPointRepository gpsTrackDataPointRepository;
+    private final GpsTrackEventRepository gpsTrackEventRepository;
+    private final GpsTrackEventService gpsTrackEventService;
     private final GpsSmoothingAlgorithm gpsSmoother;
 
     @PersistenceContext
     private EntityManager entityManager;
 
     private final int movingWindowInSecs = 90;
+
+    /**
+     * Point budgets for the pre-computed {@link GpsTrackData.TRACK_TYPE#SIMPLIFIED_FIXED_POINTS}
+     * variants. The smaller budget is for lightweight consumers (overview,
+     * tooltips); the larger one is for detailed chart display. Both are built
+     * at ingest time from RAW_OUTLIER_CLEANED.
+     */
+    static final int FIXED_POINTS_BUDGET_SMALL = 750;
+    static final int FIXED_POINTS_BUDGET_LARGE = 1500;
+    private static final int MIN_LINESTRING_POINTS = 2;
 
     private static final int SAVE_CHUNK_SIZE = 500; // flush+clear after every N points to cap Hibernate 1st-level cache memory
     private static final double SECONDS_PER_HOUR = 3600.0;
@@ -57,12 +71,16 @@ public class GPXStoreService {
             GpsTrackDataRepository gpsDataRepository,
             SimplifiedTrackRepository simplifiedTrackRepository,
             GpsTrackDataPointRepository gpsTrackDataPointRepository,
+            GpsTrackEventRepository gpsTrackEventRepository,
+            GpsTrackEventService gpsTrackEventService,
             Map<String, GpsSmoothingAlgorithm> smoothers,
             @Value("${mtl.denoise.algorithm:median}") String smoothingAlgorithm) {
         this.gpsRepository = gpsRepository;
         this.gpsDataRepository = gpsDataRepository;
         this.simplifiedTrackRepository = simplifiedTrackRepository;
         this.gpsTrackDataPointRepository = gpsTrackDataPointRepository;
+        this.gpsTrackEventRepository = gpsTrackEventRepository;
+        this.gpsTrackEventService = gpsTrackEventService;
         GpsSmoothingAlgorithm chosen = smoothers.get(smoothingAlgorithm);
         if (chosen == null) {
             log.warn("Unknown smoothing algorithm '{}', falling back to 'median'", smoothingAlgorithm);
@@ -81,7 +99,7 @@ public class GPXStoreService {
     /**
      * Reads (or uses pre-converted) GPX XML and saves the resulting tracks.
      *
-     * @param indexedFile    the indexed file metadata
+     * @param indexedFile     the indexed file metadata
      * @param preConvertedXml if non-null, this GPX XML is used instead of reading from disk
      *                        (used when GPSBabel converted a non-GPX file in-memory)
      */
@@ -197,10 +215,12 @@ public class GPXStoreService {
             // TrackMotionAnalyzer, so the client never has to recompute this from
             // simplified variants (which drop the low-speed samples the detector
             // depends on).
-            SegmentNotes stopNotes = TrackMotionAnalyzer.detectStopsInTrack(cleanedPoints);
+            List<TrackMotionAnalyzer.StopRange> stopRanges = TrackMotionAnalyzer.detectStopRangesInTrack(cleanedPoints);
+            SegmentNotes stopNotes = TrackMotionAnalyzer.summarizeStopRanges(stopRanges);
             savedTrack.setTrackDurationStoppedSecs(stopNotes.totalStoppedSec);
             savedTrack.setTrackStopCount(stopNotes.stopCount);
             savedTrack.setTrackLongestStopSecs(stopNotes.longestStopSec);
+            gpsTrackEventService.replaceDetectedStopEvents(savedTrack.getId(), outlierCleaned.getId(), stopRanges);
 
             // Energy is intentionally NOT computed here. At ingest time the activity type
             // is still null, which would force the DefaultEnergyCalculator (gravity + kinetic
@@ -221,6 +241,15 @@ public class GPXStoreService {
             calculateSimplified(savedTrack.getId(), GpsTrackData.PRECISION_1000M);
 
             savedTrack.addLoadMessage("Simplified track variants created (1m to 1000m).");
+
+            // Pre-compute the time-uniform SIMPLIFIED_FIXED_POINTS variants for
+            // charts / tooltips. These SELECT from RAW_OUTLIER_CLEANED (built
+            // above as `cleanedPoints`) and never recompute window metrics.
+            calculateFixedPoints(savedTrack.getId(), cleanedPoints, FIXED_POINTS_BUDGET_SMALL);
+            calculateFixedPoints(savedTrack.getId(), cleanedPoints, FIXED_POINTS_BUDGET_LARGE);
+            savedTrack.addLoadMessage("Fixed-point variants created (%d, %d)."
+                    .formatted(FIXED_POINTS_BUDGET_SMALL, FIXED_POINTS_BUDGET_LARGE));
+
             // Single save — persists motion secs and load messages together
             gpsRepository.save(savedTrack);
         }
@@ -475,13 +504,220 @@ public class GPXStoreService {
 
         if (gpsTrackSimplified != null && gpsTrackSimplified.getLineString() != null && !gpsTrackSimplified.getLineString().isEmpty()) {
 
-            GpsTrackData simplified = GpsTrackData.builder().track(gpsTrackSimplified.getLineString()).gpsTrackId(trackId).trackType(GpsTrackData.TRACK_TYPE.SIMPLIFIED).precisionInMeter(tolerance).createDate(new Date()).build();
+            GpsTrackData simplified = GpsTrackData.builder().track(gpsTrackSimplified.getLineString()).gpsTrackId(trackId).trackType(GpsTrackData.TRACK_TYPE.SIMPLIFIED_SHAPE).precisionInMeter(tolerance).createDate(new Date()).build();
             gpsDataRepository.save(simplified);
             populatePointData(simplified, movingWindowInSecs);
 
         } else {
             log.info("Did not create a simplified track, as the linestring was empty.");
         }
+    }
+
+    /**
+     * Build a time-uniform {@link GpsTrackData.TRACK_TYPE#SIMPLIFIED_FIXED_POINTS}
+     * variant capped at {@code maxPoints} by SELECTING rows from the already-
+     * persisted RAW_OUTLIER_CLEANED point series.
+     * <p>
+     * All per-point metrics (window stats, energy, cumulative totals) are
+     * copied verbatim — they were computed on the full-density RAW series
+     * and remain correct in isolation. Only between-point deltas
+     * ({@code distanceBetweenPoints}, {@code durationBetweenPoints},
+     * {@code ascentBetweenPoints}, {@code energyTotalWh}) are recomputed
+     * between the surviving point pairs. {@code pointIndex} is reassigned
+     * 0..N-1.
+     * <p>
+     * If the source has ≤ {@code maxPoints} points every point is kept.
+     * Otherwise the track's time range is divided into {@code maxPoints}
+     * equal buckets and the point whose timestamp is closest to each bucket
+     * centre is picked, yielding even temporal spacing.
+     */
+    private void calculateFixedPoints(Long trackId, List<GpsTrackDataPoint> cleanedPoints, int maxPoints) {
+        if (cleanedPoints == null || cleanedPoints.isEmpty()) {
+            log.info("Skipping SIMPLIFIED_FIXED_POINTS@{} for trackId={}: RAW_OUTLIER_CLEANED has no points",
+                    maxPoints, trackId);
+            return;
+        }
+
+        List<GpsTrackDataPoint> selected = selectUniformInTime(cleanedPoints, maxPoints);
+        if (selected.isEmpty()) {
+            log.info("Skipping SIMPLIFIED_FIXED_POINTS@{} for trackId={}: uniform-time selection returned empty",
+                    maxPoints, trackId);
+            return;
+        }
+        if (selected.size() < MIN_LINESTRING_POINTS) {
+            log.info("Skipping SIMPLIFIED_FIXED_POINTS@{} for trackId={}: uniform-time selection returned only {} point",
+                    maxPoints, trackId, selected.size());
+            return;
+        }
+
+        // Build a WGS84 LineString (SRID 4326) of the surviving points so the
+        // gps_track_data.track column is valid — downstream per-point queries
+        // read from gps_track_data_points, but a non-null LineString keeps the
+        // variant consistent with the other track types.
+        GeometryFactory geometryFactory = new GeometryFactory();
+        Coordinate[] coords = new Coordinate[selected.size()];
+        for (int i = 0; i < selected.size(); i++) {
+            GpsTrackDataPoint src = selected.get(i);
+            double lng = src.getPointLongLat() != null ? src.getPointLongLat().getX() : Double.NaN;
+            double lat = src.getPointLongLat() != null ? src.getPointLongLat().getY() : Double.NaN;
+            double alt = src.getPointAltitude() != null ? src.getPointAltitude() : Double.NaN;
+            double epochSec = src.getPointTimestamp() != null
+                    ? src.getPointTimestamp().getTime() / 1000.0
+                    : Double.NaN;
+            CoordinateXYZM c = new CoordinateXYZM(lng, lat, alt, epochSec);
+            coords[i] = c;
+        }
+        LineString line = geometryFactory.createLineString(coords);
+        line.setSRID(4326);
+
+        GpsTrackData fixedPoints = GpsTrackData.builder()
+                .track(line)
+                .gpsTrackId(trackId)
+                .trackType(GpsTrackData.TRACK_TYPE.SIMPLIFIED_FIXED_POINTS)
+                .maxPoints(maxPoints)
+                // precisionInMeter stays null — it is not the discriminator for this variant
+                .createDate(new Date())
+                .build();
+        gpsDataRepository.save(fixedPoints);
+
+        Long newDataId = fixedPoints.getId();
+        int n = selected.size();
+        List<GpsTrackDataPoint> newPoints = new ArrayList<>(n);
+
+        for (int i = 0; i < n; i++) {
+            GpsTrackDataPoint src = selected.get(i);
+            GpsTrackDataPoint dst = new GpsTrackDataPoint();
+
+            // ── Identity / ownership ──
+            dst.setGpsTrackDataId(newDataId);
+            dst.setPointIndex(i);
+            dst.setPointIndexMax(n - 1);
+            dst.setMovingWindowInSec(src.getMovingWindowInSec());
+            dst.setCreateDate(new Date());
+
+            // ── Absolute position & time (copied verbatim) ──
+            dst.setPointLongLat(src.getPointLongLat());
+            dst.setPointXY(src.getPointXY());
+            dst.setPointAltitude(src.getPointAltitude());
+            dst.setPointTimestamp(src.getPointTimestamp());
+
+            // ── Cumulative totals since start (copied verbatim) ──
+            dst.setDistanceInMeterSinceStart(src.getDistanceInMeterSinceStart());
+            dst.setAscentInMeterSinceStart(src.getAscentInMeterSinceStart());
+            dst.setDescentInMeterSinceStart(src.getDescentInMeterSinceStart());
+            dst.setDurationSinceStart(src.getDurationSinceStart());
+
+            // ── Moving-window metrics (copied verbatim — window was computed
+            //     on full-density RAW, the value describes THIS moment in time) ──
+            dst.setElevationGainPerHourMovingWindow(src.getElevationGainPerHourMovingWindow());
+            dst.setElevationLossPerHourMovingWindow(src.getElevationLossPerHourMovingWindow());
+            dst.setSpeedInKmhMovingWindow(src.getSpeedInKmhMovingWindow());
+            dst.setSlopePercentageInMovingWindow(src.getSlopePercentageInMovingWindow());
+
+            // ── Energy (cumulative + instantaneous, copied verbatim) ──
+            dst.setEnergyCumulativeWh(src.getEnergyCumulativeWh());
+            dst.setPowerWatts(src.getPowerWatts());
+            dst.setEnergyGravitationalWh(src.getEnergyGravitationalWh());
+            dst.setEnergyAeroDragWh(src.getEnergyAeroDragWh());
+            dst.setEnergyRollingResistanceWh(src.getEnergyRollingResistanceWh());
+            dst.setEnergyKineticWh(src.getEnergyKineticWh());
+
+            // ── Between-point deltas (RECOMPUTED between surviving pairs) ──
+            if (i == 0) {
+                dst.setDistanceInMeterBetweenPoints(null);
+                dst.setDurationBetweenPointsInSec(null);
+                dst.setAscentInMeterBetweenPoints(null);
+                dst.setEnergyTotalWh(null);
+            } else {
+                GpsTrackDataPoint prev = selected.get(i - 1);
+
+                if (src.getDistanceInMeterSinceStart() != null && prev.getDistanceInMeterSinceStart() != null) {
+                    dst.setDistanceInMeterBetweenPoints(
+                            src.getDistanceInMeterSinceStart() - prev.getDistanceInMeterSinceStart());
+                }
+                if (src.getDurationSinceStart() != null && prev.getDurationSinceStart() != null) {
+                    dst.setDurationBetweenPointsInSec(
+                            src.getDurationSinceStart() - prev.getDurationSinceStart());
+                }
+                if (src.getPointAltitude() != null && prev.getPointAltitude() != null) {
+                    dst.setAscentInMeterBetweenPoints(
+                            src.getPointAltitude() - prev.getPointAltitude());
+                }
+                if (src.getEnergyCumulativeWh() != null && prev.getEnergyCumulativeWh() != null) {
+                    dst.setEnergyTotalWh(
+                            src.getEnergyCumulativeWh() - prev.getEnergyCumulativeWh());
+                }
+            }
+
+            newPoints.add(dst);
+        }
+
+        for (int i = 0; i < newPoints.size(); i += SAVE_CHUNK_SIZE) {
+            List<GpsTrackDataPoint> chunk = newPoints.subList(i, Math.min(i + SAVE_CHUNK_SIZE, newPoints.size()));
+            gpsTrackDataPointRepository.saveAll(chunk);
+            entityManager.flush();
+            entityManager.clear();
+        }
+
+        log.info("Created SIMPLIFIED_FIXED_POINTS variant trackId={} maxPoints={} selectedPoints={} (source={} points)",
+                trackId, maxPoints, n, cleanedPoints.size());
+    }
+
+    /**
+     * Pick at most {@code maxPoints} points from {@code source} with uniform
+     * spacing on the timestamp axis. If the source has fewer than
+     * {@code maxPoints} points, all are returned in order. Points without
+     * a timestamp are skipped (they can't be placed on the time axis).
+     */
+    static List<GpsTrackDataPoint> selectUniformInTime(List<GpsTrackDataPoint> source, int maxPoints) {
+        List<GpsTrackDataPoint> withTs = new ArrayList<>(source.size());
+        for (GpsTrackDataPoint p : source) {
+            if (p.getPointTimestamp() != null) {
+                withTs.add(p);
+            }
+        }
+        if (withTs.isEmpty()) return List.of();
+        if (withTs.size() <= maxPoints) return withTs;
+
+        long tStart = withTs.get(0).getPointTimestamp().getTime();
+        long tEnd = withTs.get(withTs.size() - 1).getPointTimestamp().getTime();
+        long totalSpan = tEnd - tStart;
+        if (totalSpan <= 0) {
+            // All points share the same timestamp — just take the first maxPoints.
+            return new ArrayList<>(withTs.subList(0, maxPoints));
+        }
+
+        // Divide [tStart, tEnd] into maxPoints equal buckets; for each bucket
+        // centre walk the source with a moving cursor to find the closest
+        // point. Source is already ordered by timestamp (point_index), so a
+        // single forward pass is enough.
+        List<GpsTrackDataPoint> picked = new ArrayList<>(maxPoints);
+        Long lastPickedTs = null;
+        int cursor = 0;
+        for (int bucket = 0; bucket < maxPoints; bucket++) {
+            double targetRel = (bucket + 0.5) / maxPoints;
+            long targetTs = tStart + Math.round(targetRel * totalSpan);
+
+            // advance cursor while the next point is closer to targetTs
+            while (cursor + 1 < withTs.size()) {
+                long curDiff = Math.abs(withTs.get(cursor).getPointTimestamp().getTime() - targetTs);
+                long nxtDiff = Math.abs(withTs.get(cursor + 1).getPointTimestamp().getTime() - targetTs);
+                if (nxtDiff <= curDiff) cursor++;
+                else break;
+            }
+
+            GpsTrackDataPoint candidate = withTs.get(cursor);
+            long ts = candidate.getPointTimestamp().getTime();
+            if (lastPickedTs != null && ts == lastPickedTs) {
+                // Two consecutive buckets resolved to the same source point
+                // (happens at the tail of very dense segments); skip to keep
+                // the output strictly increasing in time.
+                continue;
+            }
+            picked.add(candidate);
+            lastPickedTs = ts;
+        }
+        return picked;
     }
 
     /**
@@ -544,6 +780,7 @@ public class GPXStoreService {
         });
 
         log.debug("About to delete gpsTrackDataPoints for gpsTrack with id=%s".formatted(gpsTrack.getId()));
+        gpsTrackEventRepository.deleteByGpsTrackId(gpsTrack.getId());
         gpsTrackDataPointRepository.deleteAllByGpsTrackId(gpsTrack.getId());
 
         log.debug("About to delete gpsTrack and it's track data for given id=%s".formatted(gpsTrack.getId()));

@@ -103,7 +103,7 @@ th, td {
 /* Mobile responsive improvements */
 @media screen and (max-width: 768px) {
   .container {
-    font-size: 0.875rem;
+    font-size: var(--text-sm-size);
   }
   
   th, td {

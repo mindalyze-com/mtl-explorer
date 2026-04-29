@@ -137,7 +137,12 @@
 
     <!-- Energy Section -->
     <div class="energy-section" v-if="summaryReady">
-      <div class="section-label"><i class="bi bi-lightning-charge"></i> Energy</div>
+      <div class="section-label">
+        <i class="bi bi-lightning-charge"></i> Energy
+        <button class="info-btn info-btn--inline" @click.stop
+                v-tooltip.top="{ value: INFO_ENERGY, showDelay: 200, escape: false }"
+                aria-label="About energy"><i class="bi bi-info-circle"></i></button>
+      </div>
 
       <!-- Not yet calculated -->
       <div v-if="!hasEnergy" class="exploration-pending">
@@ -152,31 +157,46 @@
           <div class="metric-tile__value metric-tile__value--sm">{{ formatNumber(gpsTrack.energyNetTotalWh, 1) }} Wh</div>
           <div class="metric-tile__label">Net Total</div>
           <div class="energy-tooltip" :class="{ 'energy-tooltip--visible': activeTooltip === 'energy' }">
-            {{ whToJoules(gpsTrack.energyNetTotalWh) }} J &middot; {{ whToKcal(gpsTrack.energyNetTotalWh) }} kcal
+            {{ whToJoules(gpsTrack.energyNetTotalWh) }} J &middot; {{ whToKcal(gpsTrack.energyNetTotalWh) }} kcal mechanical equivalent
           </div>
         </div>
         <div class="metric-tile metric-tile--energy energy-tooltip-wrapper" @click="toggleTooltip('avgPower')">
           <i class="bi bi-lightning metric-tile__icon metric-tile__icon--sm" style="color: var(--accent)"></i>
           <div class="metric-tile__value metric-tile__value--sm">{{ formatNumber(gpsTrack.powerWattsAvg, 0) }} W</div>
-          <div class="metric-tile__label">Avg Power</div>
+          <div class="metric-tile__label">
+            Avg Power
+            <button class="info-btn info-btn--inline" @click.stop
+                    v-tooltip.top="{ value: INFO_AVG_POWER, showDelay: 200, escape: false }"
+                    aria-label="About Average Power"><i class="bi bi-info-circle"></i></button>
+          </div>
           <div class="energy-tooltip" :class="{ 'energy-tooltip--visible': activeTooltip === 'avgPower' }">
-            {{ wattsToKcalH(gpsTrack.powerWattsAvg) }} kcal/h
+            {{ wattsToKcalH(gpsTrack.powerWattsAvg) }} kcal/h mechanical equivalent
           </div>
         </div>
         <div class="metric-tile metric-tile--energy energy-tooltip-wrapper" v-if="gpsTrack.powerWattsMovingAvg" @click="toggleTooltip('avgMovingPower')">
           <i class="bi bi-lightning metric-tile__icon metric-tile__icon--sm" style="color: var(--accent)"></i>
           <div class="metric-tile__value metric-tile__value--sm">{{ formatNumber(gpsTrack.powerWattsMovingAvg, 0) }} W</div>
-          <div class="metric-tile__label">Avg Moving Power</div>
+          <div class="metric-tile__label">
+            Avg Moving Power
+            <button class="info-btn info-btn--inline" @click.stop
+                    v-tooltip.top="{ value: INFO_AVG_MOVING_POWER, showDelay: 200, escape: false }"
+                    aria-label="About Average Moving Power"><i class="bi bi-info-circle"></i></button>
+          </div>
           <div class="energy-tooltip" :class="{ 'energy-tooltip--visible': activeTooltip === 'avgMovingPower' }">
-            {{ wattsToKcalH(gpsTrack.powerWattsMovingAvg) }} kcal/h &middot; excl. breaks
+            {{ wattsToKcalH(gpsTrack.powerWattsMovingAvg) }} kcal/h mechanical equivalent &middot; excl. breaks
           </div>
         </div>
         <div class="metric-tile metric-tile--energy energy-tooltip-wrapper" @click="toggleTooltip('maxPower')">
           <i class="bi bi-lightning-fill metric-tile__icon metric-tile__icon--sm" style="color: var(--accent)"></i>
           <div class="metric-tile__value metric-tile__value--sm">{{ formatNumber(gpsTrack.powerWattsMax, 0) }} W</div>
-          <div class="metric-tile__label">Max Power</div>
+          <div class="metric-tile__label">
+            Max Power
+            <button class="info-btn info-btn--inline" @click.stop
+                    v-tooltip.top="{ value: INFO_MAX_POWER, showDelay: 200, escape: false }"
+                    aria-label="About Max Power"><i class="bi bi-info-circle"></i></button>
+          </div>
           <div class="energy-tooltip" :class="{ 'energy-tooltip--visible': activeTooltip === 'maxPower' }">
-            {{ wattsToKcalH(gpsTrack.powerWattsMax) }} kcal/h
+            {{ wattsToKcalH(gpsTrack.powerWattsMax) }} kcal/h mechanical equivalent
           </div>
         </div>
         <div class="metric-tile metric-tile--energy" v-if="gpsTrack.energyWeightKgUsed">
@@ -208,6 +228,23 @@
         <div class="metric-tile metric-tile--energy" v-if="gpsTrack.energyKineticPositiveTotalWh != null">
           <div class="metric-tile__value metric-tile__value--sm">{{ formatNumber(gpsTrack.energyKineticPositiveTotalWh, 1) }} Wh</div>
           <div class="metric-tile__label">Kinetic (pos.)</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Fitness Section (Normalized Power) -->
+    <div class="energy-section" v-if="summaryReady && gpsTrack.normalizedPowerWatts">
+      <div class="section-label"><i class="bi bi-heart-pulse"></i> Fitness</div>
+      <div class="metrics-grid">
+        <div class="metric-tile metric-tile--energy">
+          <i class="bi bi-activity metric-tile__icon metric-tile__icon--sm" style="color: var(--accent)"></i>
+          <div class="metric-tile__value metric-tile__value--sm">{{ formatNumber(gpsTrack.normalizedPowerWatts, 0) }} W</div>
+          <div class="metric-tile__label">
+            Normalized Power
+            <button class="info-btn info-btn--inline" @click.stop
+                    v-tooltip.top="{ value: INFO_NORMALIZED_POWER, showDelay: 200, escape: false }"
+                    aria-label="About Normalized Power"><i class="bi bi-info-circle"></i></button>
+          </div>
         </div>
       </div>
     </div>
@@ -325,6 +362,13 @@ export default defineComponent({
       minSlope: 0,
       activeTooltip: null as string | null,
       showExplorationInfo: false,
+      INFO_ENERGY: 'Estimated external mechanical work from GPS-derived physics: climbing, drag, rolling/friction, and acceleration. It is not metabolic calorie burn and not measured power-sensor data.',
+      INFO_AVG_POWER: 'Estimated average external mechanical power from the same energy model. Treat it as a physics estimate, not as a recorded power-meter value.',
+      INFO_AVG_MOVING_POWER: 'Estimated external mechanical power while moving, excluding detected stops. It is model-derived from GPS and elevation data.',
+      INFO_MAX_POWER: 'Highest estimated per-segment external mechanical power. GPS and elevation artifacts can affect short spikes.',
+      INFO_NORMALIZED_POWER: 'Normalized Power (NP): a variability-weighted value computed from estimated mechanical power over a 30 s rolling window. It is useful for comparing effort patterns, but it is not a power-meter measurement.<br/><br/>Also known as: <b>Weighted Average Power</b> (Strava), <b>Normalized Power / NP</b> (Garmin, TrainingPeaks), <b>xPower / IsoPower</b> (GoldenCheetah).',
+      INFO_INTENSITY_INDEX: 'Intensity Index = estimated NP ÷ your threshold power. 1.0 ≈ all-out 1 h effort if the estimated power matches your real power.',
+      INFO_TRAINING_LOAD: 'Training Load per ride = (estimated NP ÷ threshold)² × moving hours × 100. It scales duration and intensity, but inherits the limits of the estimated mechanical-power model.',
     };
   },
   computed: {
@@ -487,11 +531,11 @@ export default defineComponent({
 }
 
 .track-header__name {
-  font-size: 1.1rem;
+  font-size: var(--text-lg-size);
   font-weight: 700;
   color: var(--text-primary);
   flex: 1 1 auto;
-  line-height: 1.3;
+  line-height: var(--text-lg-lh);
   word-break: break-word;
 }
 
@@ -500,23 +544,23 @@ export default defineComponent({
   align-items: baseline;
   gap: 0.75rem;
   margin-top: 0.35rem;
-  font-size: 0.8rem;
+  font-size: var(--text-sm-size);
   color: var(--text-muted);
   flex-wrap: wrap;
 }
 
 .track-header__meta i {
-  font-size: 0.75rem;
+  font-size: var(--text-xs-size);
   margin-right: 0.25rem;
   opacity: 0.7;
 }
 
 .track-header__desc {
-  font-size: 0.85rem;
+  font-size: var(--text-sm-size);
   color: var(--text-muted);
   font-style: italic;
   margin-top: 0.3rem;
-  line-height: 1.4;
+  line-height: var(--text-sm-lh);
 }
 
 .track-header__desc i {
@@ -529,7 +573,7 @@ export default defineComponent({
   display: flex;
   align-items: center;
   gap: 0.4rem;
-  font-size: 0.68rem;
+  font-size: var(--text-2xs-size);
   font-weight: 600;
   letter-spacing: 0.07em;
   text-transform: uppercase;
@@ -538,7 +582,7 @@ export default defineComponent({
 }
 
 .section-label i {
-  font-size: 0.75rem;
+  font-size: var(--text-xs-size);
   opacity: 0.7;
 }
 
@@ -573,37 +617,37 @@ export default defineComponent({
 }
 
 .metric-tile__icon {
-  font-size: 1.1rem;
+  font-size: var(--text-lg-size);
   color: var(--text-muted);
   margin-bottom: 0.3rem;
 }
 
 .metric-tile__icon--sm {
-  font-size: 0.9rem;
+  font-size: var(--text-base-size);
   margin-bottom: 0.2rem;
 }
 
 .metric-tile__value {
-  font-size: 1.25rem;
+  font-size: var(--text-xl-size);
   font-weight: 700;
   color: var(--text-primary);
-  line-height: 1.1;
+  line-height: var(--text-xl-lh);
   letter-spacing: -0.01em;
 }
 
 .metric-tile__value--sm {
-  font-size: 1rem;
+  font-size: var(--text-base-size);
   font-weight: 600;
 }
 
 .metric-tile__unit {
-  font-size: 0.85em;
+  font-size: var(--text-sm-size);
   font-weight: 500;
   color: var(--text-muted);
 }
 
 .metric-tile__label {
-  font-size: 0.7rem;
+  font-size: var(--text-xs-size);
   color: var(--text-muted);
   margin-top: 0.2rem;
   letter-spacing: 0.02em;
@@ -648,8 +692,8 @@ export default defineComponent({
   padding: 0 0.1rem;
   cursor: pointer;
   color: var(--text-faint);
-  font-size: 0.82rem;
-  line-height: 1;
+  font-size: var(--text-sm-size);
+  line-height: var(--text-sm-lh);
   display: flex;
   align-items: center;
   transition: color 0.15s;
@@ -660,23 +704,45 @@ export default defineComponent({
   color: var(--accent);
 }
 
+.info-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  color: var(--text-faint);
+  line-height: 1;
+  transition: color 0.15s;
+}
+
+.info-btn:hover,
+.info-btn:focus-visible {
+  color: var(--accent);
+  outline: none;
+}
+
+.info-btn--inline {
+  font-size: var(--text-xs-size);
+  margin-left: 0.2rem;
+  vertical-align: baseline;
+}
+
 .exploration-pending,
 .exploration-unavailable {
   display: flex;
   align-items: center;
   gap: 0.5rem;
   margin: 0.4rem 1rem 0.6rem;
-  font-size: 0.82rem;
+  font-size: var(--text-sm-size);
   color: var(--text-secondary);
 }
 
 .exploration-pending__spinner {
-  font-size: 0.85rem;
+  font-size: var(--text-sm-size);
   color: var(--accent);
 }
 
 .exploration-unavailable__icon {
-  font-size: 0.85rem;
+  font-size: var(--text-sm-size);
   opacity: 0.5;
 }
 
@@ -686,12 +752,12 @@ export default defineComponent({
   border-radius: 0.5rem;
   background: var(--accent-bg);
   border: 1px solid var(--accent-subtle);
-  font-size: 0.8rem;
+  font-size: var(--text-sm-size);
   color: var(--text-secondary);
   display: flex;
   flex-direction: column;
   gap: 0.45rem;
-  line-height: 1.45;
+  line-height: var(--text-sm-lh);
 }
 
 .exploration-info-panel__row {
@@ -745,7 +811,7 @@ export default defineComponent({
   transform: translateX(-50%);
   background: var(--surface-glass-heavy);
   color: var(--text-primary);
-  font-size: 0.72rem;
+  font-size: var(--text-xs-size);
   font-weight: 400;
   padding: 4px 10px;
   border-radius: 6px;
@@ -778,7 +844,7 @@ export default defineComponent({
 
 /* ── Energy breakdown sub-label ── */
 .energy-breakdown-label {
-  font-size: 0.67rem;
+  font-size: var(--text-2xs-size);
   font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -829,7 +895,7 @@ export default defineComponent({
   align-items: center;
   gap: 0.4rem;
   padding: 0.6rem 0.9rem;
-  font-size: 0.78rem;
+  font-size: var(--text-xs-size);
   font-weight: 600;
   letter-spacing: 0.04em;
   color: var(--text-muted);
@@ -842,12 +908,12 @@ export default defineComponent({
 .info-drawer__summary::-webkit-details-marker { display: none; }
 
 .info-drawer__summary i:first-child {
-  font-size: 0.8rem;
+  font-size: var(--text-sm-size);
 }
 
 .info-drawer__summary .info-drawer__chevron {
   margin-left: auto;
-  font-size: 0.75rem;
+  font-size: var(--text-xs-size);
 }
 
 .info-list {
@@ -862,14 +928,14 @@ export default defineComponent({
   align-items: baseline;
   gap: 0.75rem;
   padding: 0.35rem 0.9rem;
-  font-size: 0.8rem;
+  font-size: var(--text-sm-size);
   border-top: 1px solid var(--border-subtle);
 }
 
 .info-key {
   flex: 0 0 7rem;
   color: var(--text-muted);
-  font-size: 0.72rem;
+  font-size: var(--text-xs-size);
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
@@ -882,7 +948,7 @@ export default defineComponent({
 
 .info-val--mono {
   font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, monospace;
-  font-size: 0.72rem;
+  font-size: var(--text-xs-size);
   opacity: 0.8;
 }
 

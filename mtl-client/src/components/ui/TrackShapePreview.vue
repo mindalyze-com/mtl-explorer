@@ -26,7 +26,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount, watch } from 'vue';
 import { geoMercator, geoPath } from 'd3-geo';
-import { trackStore, OVERVIEW_PRECISION } from '@/utils/trackStore';
+import { readBestCachedTrackShape } from '@/utils/tracks/trackCollectionLoader';
 
 const props = withDefaults(defineProps<{
   trackId: number;
@@ -94,30 +94,12 @@ async function loadAndRender() {
 
   abortController = new AbortController();
   try {
-    // Start with overview (1000m) precision
-    const result = await trackStore.requestTrackAtPrecision(
-      props.trackId,
-      OVERVIEW_PRECISION,
-      abortController.signal,
-    );
+    const result = await readBestCachedTrackShape(props.trackId, {
+      signal: abortController.signal,
+    });
+    if (!result) return;
 
-    let coordinates = result.coordinates;
-
-    // If 1000m has < 300 points, upgrade to 10m for better shape fidelity
-    if (coordinates.length < 300) {
-      try {
-        const detailed = await trackStore.requestTrackAtPrecision(
-          props.trackId,
-          10,
-          abortController.signal,
-        );
-        coordinates = detailed.coordinates;
-      } catch {
-        // Stick with 1000m if 10m fetch fails
-      }
-    }
-
-    buildSvgPath(coordinates);
+    buildSvgPath(result.coordinates);
   } catch (e: unknown) {
     if (e instanceof DOMException && e.name === 'AbortError') return;
     // Silently fail — preview is non-critical

@@ -4,6 +4,7 @@ import com.x8ing.mtl.server.mtlserver.db.entity.gps.GpsTrackDataPoint;
 import com.x8ing.mtl.server.mtlserver.gpx.GPXReader;
 import com.x8ing.mtl.server.mtlserver.logic.crossing.beans.SegmentNotes;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -35,6 +36,9 @@ public final class TrackMotionAnalyzer {
     private TrackMotionAnalyzer() {
     }
 
+    public record StopRange(GpsTrackDataPoint startPoint, GpsTrackDataPoint endPoint, double durationInSec) {
+    }
+
     /**
      * Detects stops across the full point stream, using the timestamp of the
      * first and last point as the range. Convenience wrapper around
@@ -49,7 +53,24 @@ public final class TrackMotionAnalyzer {
         if (firstMs == null || lastMs == null || lastMs <= firstMs) {
             return new SegmentNotes(0, 0.0, 0.0);
         }
-        return detectStopsInRange(points, firstMs, lastMs);
+        return summarizeStopRanges(detectStopRangesInRange(points, firstMs, lastMs));
+    }
+
+    /**
+     * Detects concrete stop ranges across the full point stream. Returned ranges
+     * are anchored to the source points so callers can persist durable event
+     * records with both point references and timestamp/distance snapshots.
+     */
+    public static List<StopRange> detectStopRangesInTrack(List<GpsTrackDataPoint> points) {
+        if (points == null || points.size() < 2) {
+            return List.of();
+        }
+        Long firstMs = firstTimestampMs(points);
+        Long lastMs = lastTimestampMs(points);
+        if (firstMs == null || lastMs == null || lastMs <= firstMs) {
+            return List.of();
+        }
+        return detectStopRangesInRange(points, firstMs, lastMs);
     }
 
     /**
@@ -64,20 +85,29 @@ public final class TrackMotionAnalyzer {
      * its duration is &ge; {@link #MIN_STOP_SEC}.
      */
     public static SegmentNotes detectStopsInRange(List<GpsTrackDataPoint> points, long fromMs, long toMs) {
-        SegmentNotes notes = new SegmentNotes(0, 0.0, 0.0);
+        return summarizeStopRanges(detectStopRangesInRange(points, fromMs, toMs));
+    }
+
+    public static List<StopRange> detectStopRangesInRange(List<GpsTrackDataPoint> points, long fromMs, long toMs) {
+        List<StopRange> ranges = new ArrayList<>();
         if (points == null || points.isEmpty()) {
-            return notes;
+            return ranges;
         }
 
-        double stopStartSec = -1.0; // -1 = not in a stop
-        double stopEndSec = -1.0;
+        GpsTrackDataPoint stopStart = null;
+        GpsTrackDataPoint stopEnd = null;
 
         GpsTrackDataPoint prev = null;
         for (GpsTrackDataPoint p : points) {
             if (p.getPointTimestamp() == null) continue;
             long ts = p.getPointTimestamp().getTime();
             if (ts < fromMs || ts > toMs) {
-                prev = null; // reset so we don't compare across the boundary
+                if (stopStart != null) {
+                    flushStop(ranges, stopStart, stopEnd);
+                    stopStart = null;
+                    stopEnd = null;
+                }
+                prev = null; // reset so we do not compare across the boundary
                 continue;
             }
             if (prev == null) {
@@ -105,32 +135,49 @@ public final class TrackMotionAnalyzer {
 
             boolean stopped = speedKmh < STOP_SPEED_KMH;
             if (stopped) {
-                if (stopStartSec < 0) {
-                    stopStartSec = prevTs / 1000.0;
+                if (stopStart == null) {
+                    stopStart = prev;
                 }
-                stopEndSec = ts / 1000.0;
-            } else if (stopStartSec >= 0) {
-                flushStop(notes, stopStartSec, stopEndSec);
-                stopStartSec = -1.0;
-                stopEndSec = -1.0;
+                stopEnd = p;
+            } else if (stopStart != null) {
+                flushStop(ranges, stopStart, stopEnd);
+                stopStart = null;
+                stopEnd = null;
             }
             prev = p;
         }
-        if (stopStartSec >= 0) {
-            flushStop(notes, stopStartSec, stopEndSec);
+        if (stopStart != null) {
+            flushStop(ranges, stopStart, stopEnd);
         }
-        return notes;
+        return ranges;
     }
 
-    private static void flushStop(SegmentNotes notes, double startSec, double endSec) {
-        double dur = Math.max(0.0, endSec - startSec);
+    private static void flushStop(List<StopRange> ranges, GpsTrackDataPoint startPoint, GpsTrackDataPoint endPoint) {
+        if (startPoint == null || endPoint == null
+            || startPoint.getPointTimestamp() == null
+            || endPoint.getPointTimestamp() == null) {
+            return;
+        }
+        double dur = Math.max(0.0,
+                (endPoint.getPointTimestamp().getTime() - startPoint.getPointTimestamp().getTime()) / 1000.0);
         if (dur >= MIN_STOP_SEC) {
+            ranges.add(new StopRange(startPoint, endPoint, dur));
+        }
+    }
+
+    public static SegmentNotes summarizeStopRanges(List<StopRange> ranges) {
+        SegmentNotes notes = new SegmentNotes(0, 0.0, 0.0);
+        if (ranges == null) {
+            return notes;
+        }
+        for (StopRange range : ranges) {
             notes.stopCount++;
-            notes.totalStoppedSec += dur;
-            if (dur > notes.longestStopSec) {
-                notes.longestStopSec = dur;
+            notes.totalStoppedSec += range.durationInSec();
+            if (range.durationInSec() > notes.longestStopSec) {
+                notes.longestStopSec = range.durationInSec();
             }
         }
+        return notes;
     }
 
     private static Long firstTimestampMs(List<GpsTrackDataPoint> points) {

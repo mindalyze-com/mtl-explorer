@@ -330,7 +330,7 @@ export default defineComponent({
   align-items: center;
   gap: 6px;
   padding: 8px 10px 6px;
-  font-size: 0.72rem;
+  font-size: var(--text-xs-size);
   font-weight: 600;
   letter-spacing: 0.07em;
   text-transform: uppercase;
@@ -338,16 +338,16 @@ export default defineComponent({
 }
 
 .section-icon {
-  font-size: 0.9rem;
+  font-size: var(--text-base-size);
   opacity: 0.7;
 }
 
 .section-count {
   margin-left: auto;
-  background: var(--surface-glass, rgba(255,255,255,0.1));
+  background: var(--surface-glass);
   border-radius: 10px;
   padding: 1px 7px;
-  font-size: 0.68rem;
+  font-size: var(--text-2xs-size);
   color: var(--text-muted);
 }
 
@@ -360,13 +360,13 @@ export default defineComponent({
   display: flex;
   flex-direction: column;
   padding-left: 14px;
-  border-left: 2px solid var(--border-subtle, rgba(255,255,255,0.12));
+  border-left: 2px solid var(--border-subtle);
   margin: 0 10px 4px 20px;
   gap: 0;
 }
 
-.prev-list { border-color: var(--border-subtle, rgba(255,255,255,0.12)); }
-.next-list { border-color: var(--border-subtle, rgba(255,255,255,0.12)); }
+.prev-list { border-color: var(--border-subtle); }
+.next-list { border-color: var(--border-subtle); }
 
 /* ── Track Card ────────────────────────────────────────── */
 .track-card {
@@ -381,7 +381,7 @@ export default defineComponent({
 }
 
 .track-card:hover {
-  background: var(--surface-glass, rgba(255,255,255,0.06));
+  background: var(--surface-glass);
 }
 
 .track-card__shape {
@@ -401,14 +401,14 @@ export default defineComponent({
   border-radius: 50%;
   margin-top: 5px;
   margin-left: -19px;
-  border: 2px solid var(--accent-text, #6ea6ff);
-  background: var(--bg-primary, #1a1a2e);
+  border: 2px solid var(--accent-text);
+  background: var(--surface-glass-heavy);
   z-index: 1;
 }
 
-.prev-dot { border-color: var(--accent-text, #6ea6ff); }
-.next-dot { border-color: var(--accent-text, #6ea6ff); }
-.dup-dot  { border-color: var(--text-muted, #888); }
+.prev-dot { border-color: var(--accent-text); }
+.next-dot { border-color: var(--accent-text); }
+.dup-dot  { border-color: var(--text-muted); }
 
 /* ── Card Body ─────────────────────────────────────────── */
 .track-card-body {
@@ -419,9 +419,9 @@ export default defineComponent({
 }
 
 .track-name {
-  font-size: 0.88rem;
+  font-size: var(--text-sm-size);
   font-weight: 500;
-  color: var(--accent-text, #6ea6ff);
+  color: var(--accent-text);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -429,24 +429,24 @@ export default defineComponent({
 }
 
 .track-date {
-  font-size: 0.72rem;
+  font-size: var(--text-xs-size);
   color: var(--text-muted);
   margin-top: 1px;
 }
 
 .track-desc {
-  font-size: 0.75rem;
+  font-size: var(--text-xs-size);
   color: var(--text-muted);
   margin-top: 3px;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
-  line-height: 1.4;
+  line-height: var(--text-xs-lh);
 }
 
 .empty-label {
-  font-size: 0.8rem;
+  font-size: var(--text-sm-size);
   color: var(--text-muted);
   font-style: italic;
   padding: 6px 20px 10px;
@@ -457,8 +457,8 @@ export default defineComponent({
   align-self: flex-start;
   background: none;
   border: none;
-  color: var(--accent-text, #6ea6ff);
-  font-size: 0.75rem;
+  color: var(--accent-text);
+  font-size: var(--text-xs-size);
   cursor: pointer;
   padding: 4px 0 6px;
   opacity: 0.75;
@@ -471,7 +471,7 @@ export default defineComponent({
 }
 
 .empty-inline {
-  font-size: 0.75rem;
+  font-size: var(--text-xs-size);
   color: var(--text-muted);
   font-style: italic;
   margin-left: 2px;
@@ -482,8 +482,8 @@ export default defineComponent({
   margin: 8px 10px;
   padding: 12px 14px;
   border-radius: 8px;
-  border: 1.5px solid var(--accent-text, #6ea6ff);
-  background: var(--surface-glass, rgba(110,166,255,0.07));
+  border: 1.5px solid var(--accent-text);
+  background: var(--surface-glass);
   position: relative;
 }
 
@@ -495,50 +495,50 @@ export default defineComponent({
 }
 
 .current-star {
-  font-size: 1rem;
-  color: var(--accent-text, #6ea6ff);
+  font-size: var(--text-base-size);
+  color: var(--accent-text);
 }
 
 .current-badge {
-  font-size: 0.68rem;
+  font-size: var(--text-2xs-size);
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--accent-text, #6ea6ff);
+  color: var(--accent-text);
   opacity: 0.85;
 }
 
 .current-name {
-  font-size: 0.95rem;
+  font-size: var(--text-base-size);
   font-weight: 600;
-  color: var(--text-primary, #fff);
+  color: var(--text-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .current-date {
-  font-size: 0.74rem;
+  font-size: var(--text-xs-size);
   color: var(--text-muted);
   margin-top: 2px;
 }
 
 .current-desc {
-  font-size: 0.78rem;
+  font-size: var(--text-xs-size);
   color: var(--text-muted);
   margin-top: 5px;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
-  line-height: 1.45;
+  line-height: var(--text-xs-lh);
 }
 
 /* ── Duplicates special spacing ────────────────────────── */
 .duplicates-section {
   margin-top: 18px;
   padding-top: 12px;
-  border-top: 1px solid var(--border-subtle, rgba(255,255,255,0.08));
+  border-top: 1px solid var(--border-subtle);
 }
 
 .dup-card .track-name {
@@ -549,18 +549,18 @@ export default defineComponent({
 .segments-section {
   margin-top: 18px;
   padding-top: 12px;
-  border-top: 1px solid var(--border-subtle, rgba(255,255,255,0.08));
+  border-top: 1px solid var(--border-subtle);
 }
 
 .seg-dot {
-  border-color: var(--accent-secondary, #a78bfa) !important;
+  border-color: var(--accent-text-light) !important;
 }
 
 .seg-badge {
   display: inline-block;
-  background: var(--accent-secondary, #a78bfa);
-  color: var(--bg-primary, #1a1a2e);
-  font-size: 0.62rem;
+  background: var(--accent-text-light);
+  color: var(--text-inverse);
+  font-size: var(--text-2xs-size);
   font-weight: 700;
   border-radius: 4px;
   padding: 1px 5px;
@@ -580,7 +580,7 @@ export default defineComponent({
   right: 0;
   height: 2px;
   overflow: hidden;
-  background: var(--border-subtle, rgba(255, 255, 255, 0.08));
+  background: var(--border-subtle);
   z-index: 11;
   pointer-events: none;
   border-radius: 2px;
@@ -596,7 +596,7 @@ export default defineComponent({
   background: linear-gradient(
     90deg,
     transparent,
-    var(--accent-text, #6ea6ff),
+    var(--accent-text),
     transparent
   );
   animation: loading-bar-slide 1.1s ease-in-out infinite;
@@ -625,4 +625,3 @@ export default defineComponent({
   transition: opacity 0.18s ease-in;
 }
 </style>
-

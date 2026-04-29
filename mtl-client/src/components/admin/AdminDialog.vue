@@ -25,14 +25,18 @@
             </div>
           </section>
 
-          <section class="admin-tile-section" aria-labelledby="admin-actions-heading">
+          <section
+              v-for="group in adminTileGroups"
+              :key="group.heading"
+              class="admin-tile-section"
+          >
             <div class="admin-section-heading">
-              <span id="admin-actions-heading" class="admin-section-heading__label">Actions</span>
-              <span class="admin-section-heading__hint">Operational tools and diagnostics</span>
+              <span class="admin-section-heading__label">{{ group.heading }}</span>
+              <span class="admin-section-heading__hint">{{ group.hint }}</span>
             </div>
             <div class="admin-tile-grid">
               <button
-                  v-for="tile in adminPrimaryTiles"
+                  v-for="tile in group.tiles"
                   :key="tile.panel"
                   :class="['admin-tile', { 'admin-tile--badge': tile.badge, 'admin-tile--live': tile.live }]"
                   :aria-label="`Open ${tile.label}`"
@@ -53,34 +57,6 @@
               </button>
             </div>
           </section>
-
-          <section class="admin-tile-section" aria-labelledby="admin-reference-heading">
-            <div class="admin-section-heading admin-section-heading--compact">
-              <span id="admin-reference-heading" class="admin-section-heading__label">Reference</span>
-              <span class="admin-section-heading__hint">Build details, credits, and supporting information</span>
-            </div>
-            <div class="admin-tile-grid admin-tile-grid--secondary">
-              <button
-                  v-for="tile in adminSecondaryTiles"
-                  :key="tile.panel"
-                  class="admin-tile admin-tile--quiet"
-                  :aria-label="`Open ${tile.label}`"
-                  @click="openPanel(tile.panel)"
-              >
-                <span class="admin-tile__icon-shell admin-tile__icon-shell--quiet">
-                  <i :class="[tile.icon, 'admin-tile__icon']"/>
-                </span>
-                <span class="admin-tile__content">
-                  <span class="admin-tile__topline">
-                    <span class="admin-tile__label">{{ tile.label }}</span>
-                    <span v-if="tile.meta" class="admin-tile__meta">{{ tile.meta }}</span>
-                  </span>
-                  <span class="admin-tile__description">{{ tile.description }}</span>
-                </span>
-                <i class="pi pi-angle-right admin-tile__arrow"/>
-              </button>
-            </div>
-          </section>
         </div>
       </div>
     </BottomSheet>
@@ -91,8 +67,8 @@
                  @closed="onPanelClosed">
       <div class="admin-root">
 
-        <!-- ══════════════════════════════════════════════ TOOLS -->
-        <div v-if="activePanel === 'tools'" class="tab-content panel-shell">
+        <!-- ══════════════════════════════════════════════ GARMIN SYNC -->
+        <div v-if="activePanel === 'garmin'" class="tab-content panel-shell">
           <div class="panel-intro">
             <span class="panel-intro__eyebrow">{{ activePanelMeta.eyebrow }}</span>
             <h3 class="panel-intro__title">{{ activePanelMeta.title }}</h3>
@@ -102,8 +78,52 @@
           <section class="panel-section">
             <div class="panel-section__header">
               <div>
-                <span class="panel-section__title">Quick actions</span>
-                <span class="panel-section__hint">Maintenance tasks that act on local cache or trigger server-side export flows.</span>
+                <span class="panel-section__title">Remote export</span>
+                <span class="panel-section__hint">Trigger the server-side Garmin export job to pull new activity files.</span>
+              </div>
+            </div>
+            <div class="action-list">
+              <div class="action-row">
+                <div class="action-info">
+                  <span class="action-label">Garmin Export</span>
+                  <span class="action-hint">Trigger remote export job</span>
+                </div>
+                <div class="action-controls">
+                  <span v-if="loading" class="status-pill loading"><i class="pi pi-spin pi-spinner"/> Running…</span>
+                  <span v-else-if="error" class="status-pill error">{{ error }}</span>
+                  <span v-else-if="success" class="status-pill success"><i class="pi pi-check"/> Done</span>
+                  <Button label="Run" icon="pi pi-play" size="small" :disabled="loading" @click="onTrigger"/>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="panel-section panel-section--console">
+            <div class="panel-section__header">
+              <div>
+                <span class="panel-section__title">Command output</span>
+                <span class="panel-section__hint">Export output appears here.</span>
+              </div>
+            </div>
+            <div class="output-area">
+              <pre class="output-pre" v-text="output || placeholder"/>
+            </div>
+          </section>
+        </div>
+
+        <!-- ══════════════════════════════════════════════ HELPERS -->
+        <div v-else-if="activePanel === 'helpers'" class="tab-content panel-shell">
+          <div class="panel-intro">
+            <span class="panel-intro__eyebrow">{{ activePanelMeta.eyebrow }}</span>
+            <h3 class="panel-intro__title">{{ activePanelMeta.title }}</h3>
+            <p class="panel-intro__copy">{{ activePanelMeta.description }}</p>
+          </div>
+
+          <section class="panel-section">
+            <div class="panel-section__header">
+              <div>
+                <span class="panel-section__title">Cache</span>
+                <span class="panel-section__hint">Clear the local track cache and reload from server.</span>
               </div>
             </div>
             <div class="action-list">
@@ -117,30 +137,6 @@
                   <span v-else-if="reloadError" class="status-pill error">{{ reloadError }}</span>
                   <span v-else-if="reloadSuccess" class="status-pill success"><i class="pi pi-check"/> Done</span>
                   <Button label="Reload" icon="pi pi-refresh" size="small" :disabled="reloadLoading" @click="onReloadTracks"/>
-                </div>
-              </div>
-
-              <div class="action-row">
-                <div class="action-info">
-                  <span class="action-label">Full Reload</span>
-                  <span class="action-hint">Clear all local data (cache, IndexedDB, localStorage, cookies) and restart</span>
-                </div>
-                <div class="action-controls">
-                  <span v-if="fullReloadLoading" class="status-pill loading"><i class="pi pi-spin pi-spinner"/> Reloading…</span>
-                  <Button label="Full Reload" icon="pi pi-power-off" size="small" :disabled="fullReloadLoading" @click="confirmFullReload"/>
-                </div>
-              </div>
-
-              <div class="action-row">
-                <div class="action-info">
-                  <span class="action-label">Garmin Export</span>
-                  <span class="action-hint">Trigger remote export job</span>
-                </div>
-                <div class="action-controls">
-                  <span v-if="loading" class="status-pill loading"><i class="pi pi-spin pi-spinner"/> Running…</span>
-                  <span v-else-if="error" class="status-pill error">{{ error }}</span>
-                  <span v-else-if="success" class="status-pill success"><i class="pi pi-check"/> Done</span>
-                  <Button label="Run" icon="pi pi-play" size="small" :disabled="loading" @click="onTrigger"/>
                 </div>
               </div>
             </div>
@@ -200,7 +196,7 @@
             <div class="panel-section__header">
               <div>
                 <span class="panel-section__title">Command output</span>
-                <span class="panel-section__hint">Recent install and export output appears here.</span>
+                <span class="panel-section__hint">Recent install output appears here.</span>
               </div>
             </div>
             <div class="output-area">
@@ -286,6 +282,11 @@
           <IndexerStatusTab/>
         </div>
 
+        <!-- ══════════════════════════════════════════════ FRESHNESS -->
+        <div v-else-if="activePanel === 'freshness'" class="tab-content panel-shell">
+          <DataFreshnessTab @refresh-data="onRefreshFreshnessData"/>
+        </div>
+
         <!-- ══════════════════════════════════════════════ LOG -->
         <div v-else-if="activePanel === 'log'" class="tab-content panel-shell">
           <div class="panel-intro">
@@ -309,25 +310,40 @@
           <section class="panel-section">
             <div class="panel-section__header">
               <div>
-                <span class="panel-section__title">Build information</span>
-                <span class="panel-section__hint">Client and server build metadata for quick diagnostics.</span>
+                <span class="panel-section__title">Server</span>
+                <span class="panel-section__hint">Backend build metadata for support and deployment checks.</span>
               </div>
             </div>
             <div class="info-rows">
               <div class="info-row" v-if="serverBuild">
-                <span class="info-label">Server version</span>
+                <span class="info-label">Version</span>
                 <code class="info-value">{{ serverBuild.version }}</code>
               </div>
               <div class="info-row" v-if="serverBuild?.buildTime">
-                <span class="info-label">Server built</span>
+                <span class="info-label">Built</span>
                 <code class="info-value">{{ formatDateAndTimeWithSeconds(new Date(serverBuild.buildTime)) }}</code>
               </div>
+              <div class="info-row" v-if="!serverBuild">
+                <span class="info-label">Status</span>
+                <code class="info-value">{{ unavailableValue }}</code>
+              </div>
+            </div>
+          </section>
+
+          <section class="panel-section">
+            <div class="panel-section__header">
+              <div>
+                <span class="panel-section__title">Client</span>
+                <span class="panel-section__hint">Browser-side version, build, and runtime mode.</span>
+              </div>
+            </div>
+            <div class="info-rows">
               <div class="info-row" v-if="clientVersion">
-                <span class="info-label">Client version</span>
+                <span class="info-label">Version</span>
                 <code class="info-value">{{ clientVersion }}</code>
               </div>
               <div class="info-row">
-                <span class="info-label">Client built</span>
+                <span class="info-label">Built</span>
                 <code class="info-value">{{ clientBuildFormatted }}</code>
               </div>
               <div class="info-row">
@@ -337,17 +353,85 @@
             </div>
           </section>
 
-          <section class="panel-section">
+        </div>
+
+        <!-- ══════════════════════════════════════════════ SESSION -->
+        <div v-else-if="activePanel === 'session'" class="tab-content panel-shell session-panel">
+          <div class="panel-intro panel-intro--compact">
+            <span class="panel-intro__eyebrow">{{ activePanelMeta.eyebrow }}</span>
+            <h3 class="panel-intro__title">{{ activePanelMeta.title }}</h3>
+            <p class="panel-intro__copy">{{ activePanelMeta.description }}</p>
+          </div>
+
+          <section class="panel-section panel-section--compact session-actions">
             <div class="panel-section__header">
               <div>
-                <span class="panel-section__title">Session controls</span>
-                <span class="panel-section__hint">Sign out cleanly and remove local client state if needed.</span>
+                <span class="panel-section__title">Logout modes</span>
+                <span class="panel-section__hint">Keep local data for fast sign-in, or wipe everything this app can access.</span>
               </div>
             </div>
-            <div class="logout-area">
-              <p class="action-hint">Clear all local storage, offline tracks, and log out.</p>
-              <Button label="Logout & Clear Data" icon="pi pi-power-off" severity="danger"
-                      size="small" @click="confirmLogout" :disabled="loading"/>
+            <div class="action-list action-list--compact">
+              <div class="action-row action-row--compact action-row--prominent">
+                <div class="action-info">
+                  <span class="action-label">Credentials only</span>
+                  <span class="action-hint">Remove the JWT and server session cookie. Tracks, map cache, preferences, and UI state stay available.</span>
+                </div>
+                <div class="action-controls">
+                  <span v-if="credentialsLogoutLoading" class="status-pill loading"><i class="pi pi-spin pi-spinner"/> Signing out…</span>
+                  <Button label="Logout" icon="pi pi-sign-out"
+                          size="small" @click="executeCredentialsOnlyLogout" :disabled="credentialsLogoutLoading || fullLogoutLoading"/>
+                </div>
+              </div>
+
+              <div class="action-row action-row--compact action-row--danger">
+                <div class="action-info">
+                  <span class="action-label">Forget everything</span>
+                  <span class="action-hint">Logout, clear local/session storage, IndexedDB tracks, browser caches, readable cookies, and service workers.</span>
+                </div>
+                <div class="action-controls">
+                  <span v-if="fullLogoutLoading" class="status-pill loading"><i class="pi pi-spin pi-spinner"/> Clearing…</span>
+                  <Button label="Wipe &amp; Logout" icon="pi pi-trash" severity="danger"
+                          size="small" @click="confirmFullLogout" :disabled="fullLogoutLoading || credentialsLogoutLoading"/>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="panel-section panel-section--compact">
+            <div class="panel-section__header">
+              <div>
+                <span class="panel-section__title">Your Session</span>
+                <span class="panel-section__hint">Request correlation id and token timing.</span>
+              </div>
+            </div>
+            <div class="copy-field copy-field--compact">
+              <input
+                  class="copy-field__input"
+                  type="text"
+                  readonly
+                  :value="userSessionId || unavailableValue"
+                  aria-label="User session id"
+                  @focus="selectCopyField"
+              >
+              <Button
+                  :label="sessionIdCopied ? 'Copied' : 'Copy'"
+                  :icon="sessionIdCopied ? 'bi bi-clipboard-check' : 'bi bi-copy'"
+                  size="small"
+                  severity="secondary"
+                  :disabled="!userSessionId"
+                  @click="copyUserSessionId"
+              />
+            </div>
+            <span v-if="sessionIdCopyError" class="copy-field__error">{{ sessionIdCopyError }}</span>
+            <div class="info-rows info-rows--compact">
+              <div class="info-row info-row--compact">
+                <span class="info-label">Created</span>
+                <code class="info-value">{{ tokenIssuedAtFormatted }}</code>
+              </div>
+              <div class="info-row info-row--compact">
+                <span class="info-label">Expires</span>
+                <code class="info-value">{{ tokenExpiresAtFormatted }}</code>
+              </div>
             </div>
           </section>
         </div>
@@ -365,51 +449,59 @@
       </div>
     </BottomSheet>
 
-    <!-- Full Reload Confirmation Dialog -->
-    <Dialog v-model:visible="showFullReloadConfirm" header="Full Reload" :modal="true" :closable="false" :style="{width: '450px'}">
-      <div class="confirmation-content" style="display: flex; align-items: flex-start; padding: 1rem;">
-        <i class="pi pi-exclamation-triangle" style="font-size: 2rem; color: var(--warning); margin-right: 1.25rem;"/>
-        <span style="line-height: 1.5;">This will delete <strong>all local data</strong> — localStorage, sessionStorage, IndexedDB (cached tracks), cookies, and service worker caches — then reload the app. You will need to log in again.</span>
+    <!-- Full local cleanup confirmation dialog -->
+    <Dialog v-model:visible="showFullLogoutConfirm" modal :closable="false" class="logout-confirm-dialog" :style="{ width: 'min(92vw, 34rem)' }">
+      <div class="logout-confirm">
+        <div class="logout-confirm__icon">
+          <i class="pi pi-exclamation-triangle"/>
+        </div>
+        <div class="logout-confirm__body">
+          <span class="logout-confirm__eyebrow">Destructive logout</span>
+          <h3 class="logout-confirm__title">Forget everything on this device?</h3>
+          <p class="logout-confirm__copy">
+            This removes the JWT, asks the server to clear the session cookie, deletes local app storage,
+            cached tracks, browser caches, readable cookies, and service worker registrations.
+          </p>
+          <p class="logout-confirm__note">Browser password-manager entries cannot be removed by a web app.</p>
+        </div>
       </div>
       <template #footer>
-        <Button label="Cancel" icon="pi pi-times" class="p-button-text" @click="showFullReloadConfirm = false"/>
-        <Button label="Yes, wipe &amp; reload" icon="pi pi-power-off" class="p-button-danger" @click="executeFullReload" autofocus/>
-      </template>
-    </Dialog>
-
-    <!-- Logout Confirmation Dialog -->
-    <Dialog v-model:visible="showLogoutConfirm" header="Confirm Logout" :modal="true" :closable="false" :style="{width: '450px'}">
-      <div class="confirmation-content" style="display: flex; align-items: flex-start; padding: 1rem;">
-        <i class="pi pi-exclamation-triangle" style="font-size: 2rem; color: var(--warning); margin-right: 1.25rem;"/>
-        <span style="line-height: 1.5;">Are you sure you want to clear all storage, delete offline tracks, and logout?</span>
-      </div>
-      <template #footer>
-        <Button label="Cancel" icon="pi pi-times" class="p-button-text" @click="showLogoutConfirm = false"/>
-        <Button label="Yes, Logout" icon="pi pi-check" class="p-button-danger" @click="executeLogout" autofocus/>
+        <div class="logout-confirm__footer">
+          <Button label="Cancel" icon="pi pi-times" text @click="showFullLogoutConfirm = false"/>
+          <Button label="Wipe &amp; Logout" icon="pi pi-trash" severity="danger" @click="executeFullLogout" autofocus/>
+        </div>
       </template>
     </Dialog>
   </div>
 </template>
 
 <script>
-import {computed, defineComponent} from 'vue';
+import {computed, defineComponent, nextTick} from 'vue';
 import {useTheme} from '@/composables/useTheme';
 import {detectBestLocale, LOCALE_PRESETS, useLocale} from '@/composables/useLocale';
 import {getDemoStatus, getGarminToolStatus, getServerBuildInfo, installFitExport, installGcexport, triggerGarminExport} from '@/utils/ServiceHelper';
-import {serverLogout} from '@/utils/auth';
+import {getTokenExpiresAt, getTokenIssuedAt, getUserSessionId, logoutAndForgetEverything, logoutCredentialsOnly} from '@/utils/auth';
 import {formatDateAndTimeWithSeconds} from '@/utils/Utils';
 import BottomSheet from '@/components/ui/BottomSheet.vue';
 import GpxUploadTab from '@/components/admin/GpxUploadTab.vue';
 import ServerLogTab from '@/components/admin/ServerLogTab.vue';
 import IndexerStatusTab from '@/components/admin/IndexerStatusTab.vue';
+import DataFreshnessTab from '@/components/admin/DataFreshnessTab.vue';
 import AttributionTab from '@/components/admin/AttributionTab.vue';
-import {trackStore} from '@/utils/trackStore';
+import { clearTrackCache } from '@/utils/tracks/trackCollectionLoader';
+import { clearAppliedDataFreshnessToken } from '@/utils/dataFreshnessStorage';
 import {useIndexerStatus} from '@/composables/useIndexerStatus';
+
+const CREDENTIALS_LOGOUT_TIMEOUT_MS = 2500;
+const FULL_LOGOUT_TIMEOUT_MS = 5000;
+const HARD_LOGOUT_REDIRECT_MS = 6000;
+const COPY_STATUS_RESET_MS = 1800;
+const UNAVAILABLE_VALUE = 'Unavailable';
 
 export default defineComponent({
   name: 'AdminDialog',
-  components: {BottomSheet, GpxUploadTab, ServerLogTab, IndexerStatusTab, AttributionTab},
-  emits: ['tool-opened', 'tool-closed', 'reload-tracks'],
+  components: {BottomSheet, GpxUploadTab, ServerLogTab, IndexerStatusTab, DataFreshnessTab, AttributionTab},
+  emits: ['tool-opened', 'tool-closed', 'reload-tracks', 'refresh-freshness-data'],
   setup() {
       const {isIndexing, isJobPending} = useIndexerStatus();
       const isAnyPending = computed(() => isIndexing.value || isJobPending.value);
@@ -473,94 +565,166 @@ export default defineComponent({
         fitProfileInput: '',
         fitPackagesInput: '',
         serverBuild: null,
-        showLogoutConfirm: false,
-        showFullReloadConfirm: false,
+        showFullLogoutConfirm: false,
         clientBuild: typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : null,
         clientVersion: typeof __APP_PKG_VERSION__ !== 'undefined' ? __APP_PKG_VERSION__ : null,
         reloadLoading: false,
         reloadSuccess: false,
         reloadError: '',
-        fullReloadLoading: false,
+        credentialsLogoutLoading: false,
+        fullLogoutLoading: false,
         isDemoMode: false,
+        sessionIdCopied: false,
+        sessionIdCopyError: '',
+        sessionCopyResetTimer: null,
       };
     },
     computed: {
+      unavailableValue() {
+        return UNAVAILABLE_VALUE;
+      },
+      userSessionId() {
+        return getUserSessionId();
+      },
+      tokenIssuedAtFormatted() {
+        const issuedAt = getTokenIssuedAt();
+        return issuedAt ? formatDateAndTimeWithSeconds(issuedAt) : UNAVAILABLE_VALUE;
+      },
+      tokenExpiresAtFormatted() {
+        const expiresAt = getTokenExpiresAt();
+        return expiresAt ? formatDateAndTimeWithSeconds(expiresAt) : UNAVAILABLE_VALUE;
+      },
       readyToolCount() {
         return [this.toolStatus.gcexportVenvPresent, this.toolStatus.fitExportVenvPresent].filter(Boolean).length;
       },
-      adminPrimaryTiles() {
+      adminTileGroups() {
         return [
           {
-            panel: 'upload',
-            icon: 'pi pi-upload',
-            label: 'Upload',
-            description: 'Import GPX files and inspect ingest readiness.',
-            meta: 'Import',
-            badge: false,
-            live: false,
+            heading: 'Data',
+            hint: 'Import and processing activity',
+            tiles: [
+              {
+                panel: 'upload',
+                icon: 'pi pi-upload',
+                label: 'Upload',
+                description: 'Import GPX files and inspect ingest readiness.',
+                meta: 'Import',
+                badge: false,
+                live: false,
+              },
+              {
+                panel: 'jobs',
+                icon: 'pi pi-list-check',
+                label: 'Jobs',
+                description: 'Track indexer activity and background processing.',
+                meta: this.isIndexing ? 'Live' : 'Idle',
+                badge: this.isIndexing,
+                live: this.isIndexing,
+              },
+              {
+                panel: 'freshness',
+                icon: 'pi pi-database',
+                label: 'Freshness',
+                description: 'Inspect domain revisions and the current map data token.',
+                meta: 'Token',
+                badge: false,
+                live: false,
+              },
+              {
+                panel: 'garmin',
+                icon: 'pi pi-cloud-download',
+                label: 'Garmin Sync',
+                description: 'Trigger a remote Garmin export to pull new activity files.',
+                meta: 'Remote',
+                badge: false,
+                live: false,
+              },
+            ],
           },
           {
-            panel: 'jobs',
-            icon: 'pi pi-list-check',
-            label: 'Jobs',
-            description: 'Track indexer activity and background processing.',
-            meta: this.isIndexing ? 'Live' : 'Idle',
-            badge: this.isIndexing,
-            live: this.isIndexing,
+            heading: 'System',
+            hint: 'Diagnostics, tools, and build details',
+            tiles: [
+              {
+                panel: 'log',
+                icon: 'pi pi-align-left',
+                label: 'Log',
+                description: 'Inspect recent server output and runtime issues.',
+                meta: 'Server',
+                badge: false,
+                live: false,
+              },
+              {
+                panel: 'helpers',
+                icon: 'pi pi-wrench',
+                label: 'Helpers',
+                description: 'Reload tracks, manage helper tools, and run installs.',
+                meta: this.toolStatusLoading ? 'Checking' : `${this.readyToolCount}/2 ready`,
+                badge: false,
+                live: false,
+              },
+              {
+                panel: 'about',
+                icon: 'pi pi-info-circle',
+                label: 'About',
+                description: 'Client and server build details and runtime info.',
+                meta: 'Build',
+                badge: false,
+                live: false,
+              },
+            ],
           },
           {
-            panel: 'tools',
-            icon: 'pi pi-wrench',
-            label: 'Tools',
-            description: 'Reload tracks, trigger exports, and manage helpers.',
-            meta: this.toolStatusLoading ? 'Checking' : `${this.readyToolCount}/2 ready`,
-            badge: false,
-            live: false,
-          },
-          {
-            panel: 'log',
-            icon: 'pi pi-align-left',
-            label: 'Log',
-            description: 'Inspect recent server output and runtime issues.',
-            meta: 'Server',
-            badge: false,
-            live: false,
-          },
-          {
-            panel: 'settings',
-            icon: 'pi pi-cog',
-            label: 'Settings',
-            description: 'Adjust color scheme and locale formatting.',
-            meta: this.colorScheme === 'dark' ? 'Dark' : 'Light',
-            badge: false,
-            live: false,
-          },
-        ];
-      },
-      adminSecondaryTiles() {
-        return [
-          {
-            panel: 'about',
-            icon: 'pi pi-info-circle',
-            label: 'About',
-            description: 'Client and server build details plus logout tools.',
-            meta: 'Build',
-          },
-          {
-            panel: 'attribution',
-            icon: 'pi pi-book',
-            label: 'Attribution',
-            description: 'Libraries, datasets, and map data references.',
-            meta: 'Sources',
+            heading: 'Session',
+            hint: 'Preferences and account controls',
+            tiles: [
+              {
+                panel: 'settings',
+                icon: 'pi pi-cog',
+                label: 'Settings',
+                description: 'Adjust color scheme and locale formatting.',
+                meta: this.colorScheme === 'dark' ? 'Dark' : 'Light',
+                badge: false,
+                live: false,
+              },
+              {
+                panel: 'session',
+                icon: 'pi pi-sign-out',
+                label: 'Session',
+                description: 'Logout credentials only or wipe all local app data.',
+                meta: 'Logout',
+                badge: false,
+                live: false,
+              },
+              {
+                panel: 'attribution',
+                icon: 'pi pi-book',
+                label: 'Attribution',
+                description: 'Libraries, datasets, and map data references.',
+                meta: 'Sources',
+                badge: false,
+                live: false,
+              },
+            ],
           },
         ];
       },
       activePanelMeta() {
         const map = {
-          tools: {
+          garmin: {
+            eyebrow: 'Ingestion',
+            title: 'Garmin Sync',
+            description: 'Trigger a remote Garmin export to pull new activity files into the system.',
+          },
+          helpers: {
             eyebrow: 'Maintenance',
-            title: 'Tools',
-            description: 'Run maintenance actions, helper installs, and export commands from one place.',
+            title: 'Helpers',
+            description: 'Reload the local track cache, install helper tools, and run export commands.',
+          },
+          session: {
+            eyebrow: 'Account',
+            title: 'Session',
+            description: 'Choose exactly what logout should remove from this device.',
           },
           upload: {
             eyebrow: 'Ingestion',
@@ -577,6 +741,11 @@ export default defineComponent({
             title: 'Jobs',
             description: 'Monitor background indexing and understand what the system is currently working on.',
           },
+          freshness: {
+            eyebrow: 'Data state',
+            title: 'Current status',
+            description: 'Inspect the DB-backed revision token used by the map to detect stale data.',
+          },
           log: {
             eyebrow: 'Diagnostics',
             title: 'Log',
@@ -585,7 +754,7 @@ export default defineComponent({
           about: {
             eyebrow: 'Build',
             title: 'About',
-            description: 'Client and server build details, plus session-level cleanup controls.',
+            description: 'Client and server build details and current runtime environment.',
           },
           attribution: {
             eyebrow: 'Credits',
@@ -615,10 +784,13 @@ export default defineComponent({
       },
       activePanelIcon() {
         const map = {
-          tools: 'bi bi-wrench',
+          garmin: 'bi bi-cloud-download',
+          helpers: 'bi bi-wrench',
+          session: 'bi bi-box-arrow-right',
           upload: 'bi bi-upload',
           settings: 'bi bi-sliders',
           jobs: 'bi bi-list-check',
+          freshness: 'bi bi-database',
           log: 'bi bi-terminal',
           about: 'bi bi-info-circle',
           attribution: 'bi bi-book',
@@ -630,6 +802,11 @@ export default defineComponent({
       isOpen(opened) {
         if (opened) this.loadToolStatus();
       },
+    },
+    beforeUnmount() {
+      if (this.sessionCopyResetTimer) {
+        clearTimeout(this.sessionCopyResetTimer);
+      }
     },
     methods: {
       toggle() {
@@ -695,15 +872,21 @@ export default defineComponent({
         await this.runAction(() => installFitExport(this.fitProfileInput.trim(), this.fitPackagesInput.trim()));
         this.loadToolStatus();
       },
-      confirmLogout() {
-        this.showLogoutConfirm = true;
+      async executeCredentialsOnlyLogout() {
+        this.credentialsLogoutLoading = true;
+        await this.paintBeforeLogout();
+        await this.runLogoutWithRedirect(() => logoutCredentialsOnly(), CREDENTIALS_LOGOUT_TIMEOUT_MS);
+      },
+      confirmFullLogout() {
+        this.showFullLogoutConfirm = true;
       },
       async onReloadTracks() {
         this.reloadLoading = true;
         this.reloadSuccess = false;
         this.reloadError = '';
         try {
-          await trackStore.clearCache();
+          await clearTrackCache();
+          clearAppliedDataFreshnessToken();
           this.$emit('reload-tracks', () => {
             this.reloadSuccess = true;
             this.reloadLoading = false;
@@ -713,54 +896,66 @@ export default defineComponent({
           this.reloadLoading = false;
         }
       },
-      confirmFullReload() {
-        this.showFullReloadConfirm = true;
+      onRefreshFreshnessData(done) {
+        this.$emit('refresh-freshness-data', done);
       },
-      async executeFullReload() {
-        this.showFullReloadConfirm = false;
-        this.fullReloadLoading = true;
+      async copyUserSessionId() {
+        if (!this.userSessionId) return;
+
         try {
-          await trackStore.clearCache();
-        } catch (_) { /* ignore */ }
-        try {
-          localStorage.clear();
-          sessionStorage.clear();
-        } catch (_) { /* ignore */ }
-        try {
-          const dbs = await indexedDB.databases();
-          await Promise.all(dbs.map(db => new Promise((res) => {
-            const req = indexedDB.deleteDatabase(db.name);
-            req.onsuccess = res;
-            req.onerror = res;
-            req.onblocked = res;
-          })));
-        } catch (_) { /* ignore */ }
-        try {
-          document.cookie.split(';').forEach(c => {
-            document.cookie = c.trim().split('=')[0] + '=;expires=Thu, 01 Jan 1970 00:00:00 UTC;path=/';
-          });
-        } catch (_) { /* ignore */ }
-        try {
-          const cacheKeys = await caches.keys();
-          await Promise.all(cacheKeys.map(k => caches.delete(k)));
-        } catch (_) { /* ignore */ }
-        window.location.reload();
-      },
-      async executeLogout() {
-        this.showLogoutConfirm = false;
-        try {
-          this.loading = true;
-          await trackStore.clearCache();
-          await serverLogout();
-          localStorage.clear();
-          sessionStorage.clear();
-          this.isOpen = false;
-          this.$router.push('/login');
+          this.sessionIdCopyError = '';
+          if (navigator.clipboard?.writeText) {
+            await navigator.clipboard.writeText(this.userSessionId);
+          } else {
+            this.copyTextWithFallback(this.userSessionId);
+          }
+          this.sessionIdCopied = true;
+          if (this.sessionCopyResetTimer) {
+            clearTimeout(this.sessionCopyResetTimer);
+          }
+          this.sessionCopyResetTimer = setTimeout(() => {
+            this.sessionIdCopied = false;
+            this.sessionCopyResetTimer = null;
+          }, COPY_STATUS_RESET_MS);
         } catch (error) {
-          this.error = 'Logout failed: ' + (error?.message || error);
-        } finally {
-          this.loading = false;
+          this.sessionIdCopyError = error?.message || 'Failed to copy session id';
         }
+      },
+      selectCopyField(event) {
+        event.target?.select?.();
+      },
+      copyTextWithFallback(text) {
+        const textArea = document.createElement('textarea');
+        textArea.value = text;
+        textArea.setAttribute('readonly', '');
+        textArea.style.position = 'fixed';
+        textArea.style.opacity = '0';
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+      },
+      async executeFullLogout() {
+        this.showFullLogoutConfirm = false;
+        this.fullLogoutLoading = true;
+        await this.paintBeforeLogout();
+        await this.runLogoutWithRedirect(() => logoutAndForgetEverything(), FULL_LOGOUT_TIMEOUT_MS);
+      },
+      async paintBeforeLogout() {
+        await nextTick();
+        await new Promise(res => requestAnimationFrame(res));
+      },
+      async runLogoutWithRedirect(logoutFn, timeoutMs) {
+        const loginUrl = `${import.meta.env.BASE_URL}login`;
+        const hardRedirect = setTimeout(() => {
+          try { window.location.replace(loginUrl); } catch (_) { /* ignore */ }
+        }, HARD_LOGOUT_REDIRECT_MS);
+        await Promise.race([
+          Promise.resolve(logoutFn()).catch(() => {}),
+          new Promise(res => setTimeout(res, timeoutMs)),
+        ]);
+        clearTimeout(hardRedirect);
+        window.location.replace(loginUrl);
       },
       async runAction(fn) {
         this.loading = true;
@@ -818,16 +1013,13 @@ export default defineComponent({
     flex-direction: column;
     gap: 0.65rem;
     padding: 1rem 1rem 0.95rem;
-    border-radius: 1.25rem;
-    background:
-      linear-gradient(145deg, var(--surface-glass-heavy), var(--surface-glass-subtle)),
-      linear-gradient(135deg, var(--accent-bg), transparent 65%);
+    border-radius: 0.625rem;
+    background: var(--surface-glass-light);
     border: 1px solid var(--border-medium);
-    box-shadow: var(--shadow-sm);
   }
 
   .admin-hero__eyebrow {
-    font-size: 0.7rem;
+    font-size: var(--text-xs-size);
     font-weight: 700;
     letter-spacing: 0.08em;
     text-transform: uppercase;
@@ -843,16 +1035,16 @@ export default defineComponent({
 
   .admin-hero__title {
     margin: 0;
-    font-size: 1.18rem;
-    line-height: 1.1;
+    font-size: var(--text-lg-size);
+    line-height: var(--text-lg-lh);
     color: var(--text-primary);
   }
 
   .admin-hero__copy {
     margin: 0.35rem 0 0;
     max-width: 40rem;
-    font-size: 0.83rem;
-    line-height: 1.5;
+    font-size: var(--text-sm-size);
+    line-height: var(--text-sm-lh);
     color: var(--text-muted);
   }
 
@@ -866,7 +1058,7 @@ export default defineComponent({
     background: var(--surface-elevated);
     color: var(--text-secondary);
     white-space: nowrap;
-    font-size: 0.76rem;
+    font-size: var(--text-xs-size);
     font-weight: 600;
   }
 
@@ -913,15 +1105,14 @@ export default defineComponent({
     flex-direction: column;
     gap: 0.2rem;
     padding: 0.85rem 0.9rem;
-    border-radius: 1.1rem;
+    border-radius: 0.625rem;
     border: 1px solid var(--border-default);
     background: var(--surface-glass-light);
-    box-shadow: var(--shadow-sm);
   }
 
   .admin-summary-card--live {
     border-color: color-mix(in srgb, var(--accent) 25%, transparent);
-    background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 11%, var(--surface-glass-heavy)), var(--surface-glass-light));
+    background: color-mix(in srgb, var(--accent) 6%, var(--surface-glass-light));
   }
 
   .admin-summary-card--ok {
@@ -930,11 +1121,11 @@ export default defineComponent({
 
   .admin-summary-card--warning {
     border-color: color-mix(in srgb, var(--warning) 32%, transparent);
-    background: linear-gradient(180deg, color-mix(in srgb, var(--warning) 10%, var(--surface-glass-heavy)), var(--surface-glass-light));
+    background: color-mix(in srgb, var(--warning) 6%, var(--surface-glass-light));
   }
 
   .admin-summary-card__label {
-    font-size: 0.7rem;
+    font-size: var(--text-xs-size);
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.06em;
@@ -942,14 +1133,14 @@ export default defineComponent({
   }
 
   .admin-summary-card__value {
-    font-size: 1rem;
+    font-size: var(--text-base-size);
     font-weight: 700;
     color: var(--text-primary);
   }
 
   .admin-summary-card__hint {
-    font-size: 0.76rem;
-    line-height: 1.45;
+    font-size: var(--text-xs-size);
+    line-height: var(--text-xs-lh);
     color: var(--text-muted);
   }
 
@@ -972,19 +1163,19 @@ export default defineComponent({
   }
 
   .admin-section-heading__label {
-    font-size: 0.82rem;
+    font-size: var(--text-sm-size);
     font-weight: 700;
     color: var(--text-primary);
   }
 
   .admin-section-heading__hint {
-    font-size: 0.74rem;
+    font-size: var(--text-xs-size);
     color: var(--text-faint);
   }
 
   .admin-tile-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(178px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(min(15.5rem, 100%), 1fr));
     gap: 0.75rem;
   }
 
@@ -998,23 +1189,22 @@ export default defineComponent({
     gap: 0.8rem;
     padding: 0.95rem;
     min-height: 8rem;
-    background: linear-gradient(180deg, var(--surface-glass-heavy), var(--surface-glass-light));
+    background: var(--surface-glass-light);
     border: 1px solid var(--border-medium);
-    border-radius: 1.15rem;
-    box-shadow: var(--shadow-sm);
+    border-radius: 0.625rem;
     cursor: pointer;
-    transition: background 0.18s, border-color 0.18s, transform 0.16s ease, box-shadow 0.18s;
+    transition: background 0.15s, border-color 0.15s;
     position: relative;
     -webkit-tap-highlight-color: transparent;
     touch-action: manipulation;
     text-align: left;
+    min-width: 0;
+    overflow: hidden;
   }
 
   .admin-tile:hover {
-    background: linear-gradient(180deg, var(--surface-glass-heavy), color-mix(in srgb, var(--accent) 6%, var(--surface-glass-light)));
+    background: color-mix(in srgb, var(--accent) 5%, var(--surface-glass-light));
     border-color: var(--border-hover);
-    box-shadow: var(--shadow-md);
-    transform: translateY(-1px);
   }
 
   .admin-tile:active {
@@ -1033,7 +1223,6 @@ export default defineComponent({
 
   .admin-tile--quiet {
     min-height: 6.8rem;
-    background: linear-gradient(180deg, var(--surface-glass-subtle), var(--surface-glass-light));
   }
 
   .admin-tile__icon-shell {
@@ -1049,7 +1238,7 @@ export default defineComponent({
   }
 
   .admin-tile__icon {
-    font-size: 1.15rem;
+    font-size: var(--text-lg-size);
     color: var(--accent-text);
   }
 
@@ -1064,33 +1253,41 @@ export default defineComponent({
   .admin-tile__topline {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 0.75rem;
+    justify-content: flex-start;
+    gap: 0.35rem 0.5rem;
+    min-width: 0;
+    flex-wrap: wrap;
   }
 
   .admin-tile__label {
-    font-size: 0.88rem;
+    font-size: var(--text-sm-size);
     font-weight: 650;
     color: var(--text-primary);
-    line-height: 1.2;
+    line-height: var(--text-sm-lh);
+    min-width: 0;
+    overflow-wrap: anywhere;
   }
 
   .admin-tile__meta {
     display: inline-flex;
     align-items: center;
+    max-width: 100%;
     padding: 0.18rem 0.45rem;
     border-radius: 999px;
     background: var(--surface-elevated);
     color: var(--text-muted);
-    font-size: 0.66rem;
+    font-size: var(--text-2xs-size);
     font-weight: 700;
     letter-spacing: 0.05em;
     text-transform: uppercase;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .admin-tile__description {
-    font-size: 0.77rem;
-    line-height: 1.5;
+    font-size: var(--text-xs-size);
+    line-height: var(--text-xs-lh);
     color: var(--text-muted);
   }
 
@@ -1098,7 +1295,7 @@ export default defineComponent({
     position: absolute;
     right: 0.85rem;
     bottom: 0.85rem;
-    font-size: 0.8rem;
+    font-size: var(--text-sm-size);
     color: var(--text-faint);
   }
 
@@ -1109,8 +1306,8 @@ export default defineComponent({
     width: 8px;
     height: 8px;
     border-radius: 50%;
-    background: var(--alert-dot, #f59e0b);
-    box-shadow: 0 0 6px var(--alert-dot-glow, rgba(245, 158, 11, 0.5));
+    background: var(--alert-dot);
+    box-shadow: 0 0 6px var(--alert-dot-glow);
     animation: alert-pulse 2s ease-in-out infinite;
   }
 
@@ -1139,16 +1336,13 @@ export default defineComponent({
     flex-direction: column;
     gap: 0.35rem;
     padding: 0.95rem 1rem;
-    border-radius: 1.2rem;
+    border-radius: 0.625rem;
     border: 1px solid var(--border-medium);
-    background:
-      linear-gradient(180deg, var(--surface-glass-heavy), var(--surface-glass-light)),
-      linear-gradient(135deg, var(--accent-bg), transparent 70%);
-    box-shadow: var(--shadow-sm);
+    background: var(--surface-glass-light);
   }
 
   .panel-intro__eyebrow {
-    font-size: 0.68rem;
+    font-size: var(--text-2xs-size);
     font-weight: 700;
     letter-spacing: 0.08em;
     text-transform: uppercase;
@@ -1157,15 +1351,25 @@ export default defineComponent({
 
   .panel-intro__title {
     margin: 0;
-    font-size: 1rem;
+    font-size: var(--text-base-size);
     color: var(--text-primary);
   }
 
   .panel-intro__copy {
     margin: 0;
-    font-size: 0.8rem;
-    line-height: 1.5;
+    font-size: var(--text-sm-size);
+    line-height: var(--text-sm-lh);
     color: var(--text-muted);
+  }
+
+  .panel-intro--compact {
+    gap: 0.22rem;
+    padding-block: 0.72rem;
+  }
+
+  .panel-intro--compact .panel-intro__copy {
+    font-size: var(--text-xs-size);
+    line-height: var(--text-xs-lh);
   }
 
   .panel-section {
@@ -1173,14 +1377,23 @@ export default defineComponent({
     flex-direction: column;
     gap: 0.8rem;
     padding: 0.95rem 1rem;
-    border-radius: 1.2rem;
+    border-radius: 0.625rem;
     border: 1px solid var(--border-default);
     background: var(--surface-glass-light);
-    box-shadow: var(--shadow-sm);
+  }
+
+  .panel-section--compact {
+    gap: 0.6rem;
+    padding-block: 0.75rem;
   }
 
   .panel-section--console {
-    background: linear-gradient(180deg, color-mix(in srgb, var(--surface-glass-heavy) 75%, transparent), var(--surface-glass-light));
+    background: var(--surface-glass-light);
+  }
+
+  .panel-section--danger {
+    border-color: color-mix(in srgb, var(--error) 20%, transparent);
+    background: color-mix(in srgb, var(--error-bg) 60%, var(--surface-glass-light));
   }
 
   .panel-section__header {
@@ -1192,7 +1405,7 @@ export default defineComponent({
 
   .panel-section__title {
     display: block;
-    font-size: 0.84rem;
+    font-size: var(--text-sm-size);
     font-weight: 700;
     color: var(--text-primary);
   }
@@ -1200,8 +1413,8 @@ export default defineComponent({
   .panel-section__hint {
     display: block;
     margin-top: 0.2rem;
-    font-size: 0.74rem;
-    line-height: 1.45;
+    font-size: var(--text-xs-size);
+    line-height: var(--text-xs-lh);
     color: var(--text-faint);
   }
 
@@ -1210,10 +1423,10 @@ export default defineComponent({
     align-items: center;
     gap: 0.45rem;
     padding: 0.8rem 0.9rem;
-    border-radius: 1rem;
+    border-radius: 0.625rem;
     border: 1px solid var(--border-default);
     background: var(--surface-elevated);
-    font-size: 0.8rem;
+    font-size: var(--text-sm-size);
   }
 
   .panel-message--loading {
@@ -1226,10 +1439,9 @@ export default defineComponent({
   }
 
   .panel-embed {
-    border-radius: 1.2rem;
+    border-radius: 0.625rem;
     border: 1px solid var(--border-default);
     background: var(--surface-glass-light);
-    box-shadow: var(--shadow-sm);
     overflow: hidden;
   }
 
@@ -1240,6 +1452,10 @@ export default defineComponent({
     gap: 0.7rem;
   }
 
+  .action-list--compact {
+    gap: 0.5rem;
+  }
+
   .action-row {
     display: flex;
     align-items: center;
@@ -1247,8 +1463,22 @@ export default defineComponent({
     gap: 1rem;
     padding: 0.9rem 1rem;
     border: 1px solid var(--border-default);
-    border-radius: 1rem;
+    border-radius: 0.625rem;
     background: var(--surface-elevated);
+  }
+
+  .action-row--compact {
+    padding: 0.68rem 0.8rem;
+  }
+
+  .action-row--prominent {
+    border-color: color-mix(in srgb, var(--accent) 20%, var(--border-default));
+    background: color-mix(in srgb, var(--accent) 5%, var(--surface-elevated));
+  }
+
+  .action-row--danger {
+    border-color: color-mix(in srgb, var(--error) 24%, var(--border-default));
+    background: color-mix(in srgb, var(--error-bg) 55%, var(--surface-elevated));
   }
 
   .action-row--vertical {
@@ -1264,15 +1494,15 @@ export default defineComponent({
   }
 
   .action-label {
-    font-size: 0.875rem;
+    font-size: var(--text-sm-size);
     font-weight: 600;
     color: var(--text-primary);
   }
 
   .action-hint {
-    font-size: 0.75rem;
+    font-size: var(--text-xs-size);
     color: var(--text-faint);
-    line-height: 1.4;
+    line-height: var(--text-xs-lh);
     margin: 0;
   }
 
@@ -1295,15 +1525,15 @@ export default defineComponent({
   .panel-preview {
     margin-top: 0.1rem;
     padding: 0.55rem 0.7rem;
-    border-radius: 0.85rem;
+    border-radius: 0.5rem;
     background: var(--code-bg);
     border: 1px solid var(--code-border);
-    font-size: 0.8rem;
+    font-size: var(--text-sm-size);
   }
 
   .panel-caption {
-    font-size: 0.77rem;
-    line-height: 1.5;
+    font-size: var(--text-xs-size);
+    line-height: var(--text-xs-lh);
     color: var(--text-faint);
   }
 
@@ -1311,7 +1541,7 @@ export default defineComponent({
     display: inline-flex;
     align-items: center;
     gap: 0.3rem;
-    font-size: 0.75rem;
+    font-size: var(--text-xs-size);
     padding: 0.28rem 0.55rem;
     border-radius: 999px;
     background: var(--surface-glass-subtle);
@@ -1333,7 +1563,7 @@ export default defineComponent({
   }
 
   .status-badge {
-    font-size: 0.65rem;
+    font-size: var(--text-2xs-size);
     font-weight: 600;
     padding: 0.18rem 0.5rem;
     border-radius: 1rem;
@@ -1341,21 +1571,21 @@ export default defineComponent({
   }
 
   .status-badge.ok {
-    background: rgba(34, 197, 94, 0.12);
-    border-color: rgba(34, 197, 94, 0.2);
+    background: var(--success-bg);
+    border-color: color-mix(in srgb, var(--success) 24%, transparent);
     color: var(--success);
   }
 
   .status-badge.missing {
-    background: rgba(239, 68, 68, 0.12);
-    border-color: rgba(239, 68, 68, 0.2);
+    background: var(--error-bg);
+    border-color: color-mix(in srgb, var(--error) 24%, transparent);
     color: var(--error);
   }
 
   .tool-row {
     padding: 0.9rem 1rem;
     border: 1px solid var(--border-default);
-    border-radius: 1rem;
+    border-radius: 0.625rem;
     background: var(--surface-elevated);
   }
 
@@ -1368,14 +1598,14 @@ export default defineComponent({
   }
 
   .tool-name {
-    font-size: 0.85rem;
+    font-size: var(--text-sm-size);
     font-weight: 600;
     color: var(--text-primary);
     font-family: 'SF Mono', 'Fira Code', monospace;
   }
 
   .gh-link {
-    font-size: 0.7rem;
+    font-size: var(--text-xs-size);
     color: var(--accent-text);
     text-decoration: none;
     display: inline-flex;
@@ -1390,7 +1620,7 @@ export default defineComponent({
   }
 
   .gh-link .pi {
-    font-size: 0.6rem;
+    font-size: var(--text-2xs-size);
   }
 
   .tool-row-form {
@@ -1401,7 +1631,7 @@ export default defineComponent({
   }
 
   .tool-input {
-    font-size: 0.8rem !important;
+    font-size: var(--text-sm-size) !important;
     width: 11rem;
   }
 
@@ -1410,25 +1640,24 @@ export default defineComponent({
   }
 
   .output-area {
-    background: linear-gradient(180deg, rgba(15, 23, 42, 0.9), rgba(15, 23, 42, 0.76));
-    border: 1px solid color-mix(in srgb, var(--border-default) 75%, transparent);
-    border-radius: 1rem;
+    background: var(--code-bg);
+    border: 1px solid var(--border-strong);
+    border-radius: 0.5rem;
     padding: 0.9rem;
     overflow: auto;
     min-height: 9rem;
     flex: 1 1 auto;
     -webkit-overflow-scrolling: touch;
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
   }
 
   .output-pre {
     margin: 0;
     font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
-    font-size: 0.72rem;
-    color: rgba(226, 232, 240, 0.92);
+    font-size: var(--text-xs-size);
+    color: var(--code-text);
     white-space: pre;
     word-break: normal;
-    line-height: 1.5;
+    line-height: var(--text-xs-lh);
   }
 
   .info-rows {
@@ -1437,35 +1666,162 @@ export default defineComponent({
     gap: 0.65rem;
   }
 
+  .info-rows--compact {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.5rem;
+  }
+
   .info-row {
     display: flex;
     align-items: center;
     gap: 1rem;
     padding: 0.85rem 1rem;
     border: 1px solid var(--border-default);
-    border-radius: 1rem;
+    border-radius: 0.625rem;
     background: var(--surface-elevated);
   }
 
+  .info-row--compact {
+    gap: 0.55rem;
+    padding: 0.58rem 0.7rem;
+  }
+
   .info-label {
-    font-size: 0.8rem;
+    font-size: var(--text-sm-size);
     color: var(--text-muted);
     min-width: 5.5rem;
   }
 
   .info-value {
-    font-size: 0.78rem;
+    font-size: var(--text-xs-size);
     color: var(--text-secondary);
     font-family: 'SF Mono', 'Fira Code', monospace;
+    min-width: 0;
+    overflow-wrap: anywhere;
   }
 
-  .logout-area {
-    display: flex;
+  .copy-field {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0.55rem;
     align-items: center;
-    justify-content: space-between;
+  }
+
+  .copy-field--compact {
+    gap: 0.45rem;
+  }
+
+  .copy-field__input {
+    min-width: 0;
+    width: 100%;
+    padding: 0.72rem 0.8rem;
+    border: 1px solid var(--border-default);
+    border-radius: 0.5rem;
+    background: var(--code-bg);
+    color: var(--code-text);
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: var(--text-xs-size);
+    line-height: var(--text-xs-lh);
+  }
+
+  .copy-field--compact .copy-field__input {
+    padding: 0.55rem 0.65rem;
+  }
+
+  .copy-field__input:focus {
+    outline: 2px solid color-mix(in srgb, var(--accent) 52%, transparent);
+    outline-offset: 1px;
+  }
+
+  .copy-field__error {
+    font-size: var(--text-xs-size);
+    line-height: var(--text-xs-lh);
+    color: var(--error);
+  }
+
+  :deep(.logout-confirm-dialog) {
+    border-radius: 0.75rem;
+    overflow: hidden;
+  }
+
+  :deep(.logout-confirm-dialog .p-dialog-header) {
+    display: none;
+  }
+
+  :deep(.logout-confirm-dialog .p-dialog-content) {
+    padding: 0;
+    background: var(--surface-elevated);
+  }
+
+  :deep(.logout-confirm-dialog .p-dialog-footer) {
+    padding: 0;
+    border-top: 1px solid var(--border-default);
+    background: var(--surface-elevated);
+  }
+
+  .logout-confirm {
+    display: grid;
+    grid-template-columns: auto 1fr;
     gap: 1rem;
-    padding: 0.2rem 0 0;
-    flex-wrap: wrap;
+    padding: 1.1rem;
+  }
+
+  .logout-confirm__icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.75rem;
+    height: 2.75rem;
+    border-radius: 0.75rem;
+    background: color-mix(in srgb, var(--error-bg) 72%, var(--surface-glass-light));
+    color: var(--error);
+    border: 1px solid color-mix(in srgb, var(--error) 22%, transparent);
+  }
+
+  .logout-confirm__icon .pi {
+    font-size: var(--text-xl-size);
+  }
+
+  .logout-confirm__body {
+    min-width: 0;
+  }
+
+  .logout-confirm__eyebrow {
+    display: block;
+    margin-bottom: 0.25rem;
+    font-size: var(--text-2xs-size);
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--error);
+  }
+
+  .logout-confirm__title {
+    margin: 0;
+    font-size: var(--text-lg-size);
+    line-height: var(--text-lg-lh);
+    color: var(--text-primary);
+  }
+
+  .logout-confirm__copy,
+  .logout-confirm__note {
+    margin: 0.55rem 0 0;
+    font-size: var(--text-sm-size);
+    line-height: var(--text-sm-lh);
+    color: var(--text-muted);
+  }
+
+  .logout-confirm__note {
+    color: var(--text-faint);
+  }
+
+  .logout-confirm__footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    width: 100%;
+    padding: 0.8rem 1rem;
   }
 
   @media (max-width: 480px) {
@@ -1474,6 +1830,18 @@ export default defineComponent({
     .action-row,
     .info-row {
       flex-wrap: wrap;
+    }
+
+    .copy-field {
+      grid-template-columns: 1fr;
+    }
+
+    .info-rows--compact {
+      grid-template-columns: 1fr;
+    }
+
+    .copy-field :deep(.p-button) {
+      width: 100%;
     }
 
     .admin-tile-grid,
@@ -1505,104 +1873,17 @@ export default defineComponent({
     .admin-hero {
       padding-inline: 0.85rem;
     }
+
+    .logout-confirm {
+      grid-template-columns: 1fr;
+    }
+
+    .logout-confirm__footer {
+      flex-direction: column-reverse;
+    }
+
+    .logout-confirm__footer :deep(.p-button) {
+      width: 100%;
+    }
   }
-.output-area {
-  background: linear-gradient(180deg, rgba(15, 23, 42, 0.9), rgba(15, 23, 42, 0.76));
-  border: 1px solid color-mix(in srgb, var(--border-default) 75%, transparent);
-  border-radius: 1rem;
-  padding: 0.9rem;
-  overflow: auto;
-  min-height: 9rem;
-  flex: 1 1 auto;
-  -webkit-overflow-scrolling: touch;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
-}
-
-.output-pre {
-  margin: 0;
-  font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
-  font-size: 0.72rem;
-  color: rgba(226, 232, 240, 0.92);
-  white-space: pre;
-  word-break: normal;
-  line-height: 1.5;
-}
-
-/* ── About tab ── */
-.info-rows {
-  display: flex;
-  flex-direction: column;
-  gap: 0.65rem;
-}
-
-.info-row {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  padding: 0.85rem 1rem;
-  border: 1px solid var(--border-default);
-  border-radius: 1rem;
-  background: var(--surface-elevated);
-}
-
-.info-label {
-  font-size: 0.8rem;
-  color: var(--text-muted);
-  min-width: 4rem;
-}
-
-.info-value {
-  font-size: 0.78rem;
-  color: var(--text-secondary);
-  font-family: 'SF Mono', 'Fira Code', monospace;
-}
-
-.logout-area {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  padding: 0.2rem 0 0;
-  flex-wrap: wrap;
-}
-
-/* ── Responsive ── */
-@media (max-width: 480px) {
-  .admin-hero__headline,
-  .admin-section-heading,
-  .action-row {
-    flex-wrap: wrap;
-  }
-
-  .admin-tile-grid,
-  .admin-tile-grid--secondary,
-  .admin-summary-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .admin-tile {
-    min-height: auto;
-  }
-
-  .tool-row-form {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .tool-input,
-  .tool-input--sm {
-    width: 100%;
-  }
-
-  .gh-link {
-    margin-left: 0;
-  }
-
-  .panel-section,
-  .panel-intro,
-  .admin-hero {
-    padding-inline: 0.85rem;
-  }
-}
 </style>
-

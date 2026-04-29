@@ -23,6 +23,20 @@ public interface GpsTrackDataRepository extends JpaRepository<GpsTrackData, Long
             """)
     List<GpsTrackData> findAllWithLoadStatusSuccessAndPrecision(@Param(value = "precision_in_meter") BigDecimal precisionInMeter);
 
+    @Query(nativeQuery = true, value = """
+            select gtd.*
+            from
+            gps_track_data gtd
+            inner join gps_track gt on gt.id=gtd.gps_track_id
+            where gt.load_status='SUCCESS'
+                and start_date is not null
+                and gtd.precision_in_meter = :precision_in_meter
+                and gtd.gps_track_id in (:track_ids)
+            """)
+    List<GpsTrackData> findAllWithLoadStatusSuccessAndPrecisionAndTrackIds(
+            @Param(value = "precision_in_meter") BigDecimal precisionInMeter,
+            @Param(value = "track_ids") List<Long> trackIds);
+
     /**
      * only consider simplified or RAW_OUTLIER_CLEANED (ignore the RAW)
      */

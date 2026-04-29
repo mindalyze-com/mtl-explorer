@@ -170,8 +170,8 @@ export default defineComponent({
 
 .drop-zone:hover:not(.drop-zone--disabled),
 .drop-zone--active {
-  border-color: var(--p-primary-color, #3b82f6);
-  background: color-mix(in srgb, var(--p-primary-color, #3b82f6) 6%, transparent);
+  border-color: var(--accent);
+  background: var(--accent-bg);
 }
 
 .drop-zone--disabled {
@@ -180,13 +180,13 @@ export default defineComponent({
 }
 
 .drop-icon {
-  font-size: 2rem;
-  color: var(--text-secondary, #888);
+  font-size: var(--text-3xl-size);
+  color: var(--text-secondary);
 }
 
 .drop-label {
-  font-size: 0.875rem;
-  color: var(--text-secondary, #888);
+  font-size: var(--text-sm-size);
+  color: var(--text-secondary);
 }
 
 .upload-notice {
@@ -195,13 +195,13 @@ export default defineComponent({
   gap: 0.6rem;
   padding: 0.7rem 0.9rem;
   border-radius: 6px;
-  font-size: 0.85rem;
-  line-height: 1.5;
+  font-size: var(--text-sm-size);
+  line-height: var(--text-sm-lh);
   margin-top: 0.6rem;
 }
 
-.upload-notice--info  { background: color-mix(in srgb, var(--p-primary-color, #3b82f6) 10%, transparent); }
-.upload-notice--warn  { background: color-mix(in srgb, #f59e0b 12%, transparent); color: var(--text-primary); }
-.upload-notice--error { background: color-mix(in srgb, #ef4444 12%, transparent); color: var(--text-primary); }
-.upload-notice--success { background: color-mix(in srgb, #22c55e 12%, transparent); color: var(--text-primary); }
+.upload-notice--info  { background: var(--accent-bg); }
+.upload-notice--warn  { background: var(--warning-bg); color: var(--warning-text); }
+.upload-notice--error { background: var(--error-bg); color: var(--error); }
+.upload-notice--success { background: var(--success-bg); color: var(--success); }
 </style>

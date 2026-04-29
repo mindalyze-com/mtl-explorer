@@ -298,6 +298,28 @@ class TrackTimeBetweenTwoPointsClosestToCenterTest {
         }
     }
 
+    @Test
+    @DisplayName("Deltas are recomputed after sorting crossings from the same GPS segment")
+    void deltasAreChronologicalWhenTriggerOrderDiffersFromTravelOrder() {
+        double[][] pathMeters = new double[][]{
+                {0, 0}, {400, 0}
+        };
+        TriggerPoint a = trigger("A", 300.0, 0.0);
+        TriggerPoint b = trigger("B", 100.0, 0.0);
+        double radius = 20.0;
+
+        List<Crossing> crossings = runRequest(pathMeters, List.of(a, b), radius);
+
+        assertEquals(2, crossings.size());
+        assertEquals("B", crossings.get(0).triggerPoint.name,
+                "Crossings must be sorted by interpolated timestamp, not trigger-list order");
+        assertEquals("A", crossings.get(1).triggerPoint.name);
+        assertEquals(0.0, crossings.get(0).timeInSecSinceLastTriggerPoint, 0.01);
+        assertEquals(200.0, crossings.get(1).timeInSecSinceLastTriggerPoint, 2.0,
+                "A delta must be measured from chronological predecessor B");
+        assertEquals(200.0, crossings.get(1).distanceInMeterSinceLastTriggerPoint, 2.0);
+    }
+
     // ---------------------------------------------------------------------
     // Helpers
     // ---------------------------------------------------------------------

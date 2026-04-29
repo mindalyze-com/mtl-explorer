@@ -65,6 +65,28 @@ public interface GpsTrackDataPointRepository extends JpaRepository<GpsTrackDataP
             @Param("track_type") String trackType
     );
 
+    /**
+     * Variant lookup for {@link com.x8ing.mtl.server.mtlserver.db.entity.gps.GpsTrackData.TRACK_TYPE#SIMPLIFIED_FIXED_POINTS}
+     * where the discriminator is {@code max_points} rather than
+     * {@code precision_in_meter}. A track carries two pre-computed
+     * fixed-point variants (e.g. 750 and 1500) — the caller picks one.
+     */
+    @Query(nativeQuery = true, value = """
+            select gtdp.*  from gps_track_data_points gtdp
+            inner join gps_track_data gtd on gtd.id = gtdp.gps_track_data_id
+            where 1=1
+            and gtd.gps_track_id = :gps_track_id
+            and gtd.track_type = :track_type
+            and gtd.max_points = :max_points
+            and gtdp.point_long_lat is not null
+            order by gtdp.gps_track_data_id , gtdp.point_index
+            """)
+    List<GpsTrackDataPoint> getTrackDetailsByGpsTrackIdAndTypeAndMaxPoints(
+            @Param("gps_track_id") Long gpsTrackId,
+            @Param("track_type") String trackType,
+            @Param("max_points") Integer maxPoints
+    );
+
     @Query(nativeQuery = true, value = """
                     select *  from
                         gps_track_data_points gtdp

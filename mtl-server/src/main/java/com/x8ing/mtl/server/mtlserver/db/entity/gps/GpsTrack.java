@@ -202,6 +202,18 @@ public class GpsTrack {
     @Column(name = "power_watts_max")
     private Double powerWattsMax;
 
+    /**
+     * Normalized Power (W) — a variability-weighted average of instantaneous power
+     * computed from a 30-second rolling mean raised to the 4th power, averaged, then
+     * 4th-rooted. Better reflects physiological effort than a simple average because
+     * hard bursts weigh disproportionately more than steady easy output.
+     * <p>
+     * Industry aliases: Weighted Average Power (Strava), Normalized Power / NP
+     * (Garmin, TrainingPeaks), xPower / IsoPower (GoldenCheetah).
+     */
+    @Column(name = "normalized_power_watts")
+    private Double normalizedPowerWatts;
+
     // ── Exploration Score (computed by background job, see doc/exploration/EXPLORATION_SCORE.md) ──
 
     @Enumerated(EnumType.STRING)

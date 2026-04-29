@@ -44,7 +44,7 @@ const emit = defineEmits<{
   display: flex;
   flex-direction: column;
   gap: 0.45rem;
-  padding: 0.75rem var(--dlg-padding) 0.6rem;
+  padding: 0.5rem var(--dlg-padding) 0.6rem;
   border-bottom: 1px solid var(--border-default);
 }
 
@@ -73,7 +73,7 @@ const emit = defineEmits<{
   display: flex;
   align-items: center;
   gap: 0.4rem;
-  font-size: 0.82rem;
+  font-size: var(--text-sm-size);
   color: var(--text-muted);
   padding-left: 0.15rem;
 }
@@ -85,6 +85,6 @@ const emit = defineEmits<{
 
 .track-browser-controls__summary-sep {
   color: var(--border-default);
-  font-size: 0.7rem;
+  font-size: var(--text-xs-size);
 }
 </style>

@@ -31,7 +31,7 @@ public class ExplorationScoreAtomicWorker {
      * Which pre-computed simplified track variant to use for the PostGIS query (in meters).
      * Each track is stored at multiple precision levels (1m, 5m, 10m, 50m, 100m, 500m, 1000m).
      * Lower = more accurate but slower. 10m preserves switchbacks while being fast enough.
-     * Maps to {@code gps_track_data.precision_in_meter} and {@code track_type = 'SIMPLIFIED'}.
+     * Maps to {@code gps_track_data.precision_in_meter} and {@code track_type = 'SIMPLIFIED_SHAPE'}.
      */
     @Value("${mtl.exploration.use-track-precision:10}")
     private int useTrackPrecision;

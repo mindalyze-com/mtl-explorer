@@ -521,18 +521,18 @@ export default defineComponent({
 ─────────────────────────────────────────────────────────────── */
 
 .am-section-label {
-  font-size: 0.65rem;
+  font-size: var(--text-2xs-size);
   font-weight: 600;
-  line-height: 1.1;
+  line-height: var(--text-2xs-lh);
   letter-spacing: 0.07em;
   text-transform: uppercase;
   color: var(--text-muted);
 }
 
 .am-tracks-value {
-  font-size: 0.75rem;
+  font-size: var(--text-xs-size);
   font-weight: 400;
-  line-height: 1.1;
+  line-height: var(--text-xs-lh);
   color: var(--text-muted);
 }
 
@@ -551,8 +551,8 @@ export default defineComponent({
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.45rem;
-  line-height: 1;
+  font-size: var(--text-2xl-size);
+  line-height: var(--text-2xl-lh);
   color: white;
   background: var(--accent);
   cursor: pointer;
@@ -581,7 +581,7 @@ export default defineComponent({
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.2rem;
+  font-size: var(--text-lg-size);
   color: var(--text-muted);
   background: var(--surface-elevated);
   cursor: pointer;
@@ -618,7 +618,7 @@ export default defineComponent({
 }
 
 .am-section-title {
-  font-size: 0.65rem;
+  font-size: var(--text-2xs-size);
   font-weight: 600;
   letter-spacing: 0.07em;
   text-transform: uppercase;
@@ -626,7 +626,7 @@ export default defineComponent({
 }
 
 .am-speed-ms {
-  font-size: 0.75rem;
+  font-size: var(--text-xs-size);
   font-weight: 400;
   color: var(--text-muted);
   letter-spacing: 0.01em;
@@ -681,7 +681,7 @@ export default defineComponent({
   display: grid;
   grid-template-columns: 1fr auto 1fr;
   align-items: center;
-  font-size: 0.75rem;
+  font-size: var(--text-xs-size);
   color: var(--text-muted);
   gap: 0.5rem;
 }
@@ -691,7 +691,7 @@ export default defineComponent({
 }
 .am-date--end { text-align: right; }
 .am-date-current {
-  font-size: 0.75rem;
+  font-size: var(--text-xs-size);
   font-weight: 400;
   color: var(--text-muted);
   text-align: center;
@@ -699,7 +699,7 @@ export default defineComponent({
 }
 
 .am-speed-edge {
-  font-size: 0.75rem;
+  font-size: var(--text-xs-size);
   font-weight: 400;
   color: var(--text-muted);
 }
@@ -823,17 +823,17 @@ export default defineComponent({
   .am-play-hero {
     width: 2.3rem;
     height: 2.3rem;
-    font-size: 1.2rem;
+    font-size: var(--text-lg-size);
   }
 
   .am-stop-btn {
     width: 2.3rem;
     height: 2.3rem;
-    font-size: 1.05rem;
+    font-size: var(--text-base-size);
   }
 
   .am-timeline-labels {
-    font-size: 0.7rem;
+    font-size: var(--text-xs-size);
   }
 }
 </style>

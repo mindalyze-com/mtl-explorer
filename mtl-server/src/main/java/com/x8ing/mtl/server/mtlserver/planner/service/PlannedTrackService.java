@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.x8ing.mtl.server.mtlserver.db.entity.gps.GpsTrack;
 import com.x8ing.mtl.server.mtlserver.db.entity.gps.GpsTrackData;
 import com.x8ing.mtl.server.mtlserver.db.repository.gps.GpsTrackDataRepository;
+import com.x8ing.mtl.server.mtlserver.db.repository.gps.GpsTrackEventRepository;
 import com.x8ing.mtl.server.mtlserver.db.repository.gps.GpsTrackRepository;
 import com.x8ing.mtl.server.mtlserver.planner.constants.PlannerConstants;
 import com.x8ing.mtl.server.mtlserver.planner.dto.PlannedTrackDetailDto;
@@ -48,11 +49,14 @@ public class PlannedTrackService {
 
     private final GpsTrackRepository gpsTrackRepository;
     private final GpsTrackDataRepository gpsTrackDataRepository;
+    private final GpsTrackEventRepository gpsTrackEventRepository;
 
     public PlannedTrackService(GpsTrackRepository gpsTrackRepository,
-                               GpsTrackDataRepository gpsTrackDataRepository) {
+                               GpsTrackDataRepository gpsTrackDataRepository,
+                               GpsTrackEventRepository gpsTrackEventRepository) {
         this.gpsTrackRepository = gpsTrackRepository;
         this.gpsTrackDataRepository = gpsTrackDataRepository;
+        this.gpsTrackEventRepository = gpsTrackEventRepository;
     }
 
     @Transactional
@@ -126,7 +130,7 @@ public class PlannedTrackService {
         GpsTrackData data = GpsTrackData.builder()
                 .gpsTrackId(track.getId())
                 .createDate(new Date())
-                .trackType(GpsTrackData.TRACK_TYPE.SIMPLIFIED)
+                .trackType(GpsTrackData.TRACK_TYPE.SIMPLIFIED_SHAPE)
                 .precisionInMeter(GpsTrackData.PRECISION_1M)
                 .track(line)
                 .build();
@@ -149,6 +153,7 @@ public class PlannedTrackService {
             s.setCenterLat(t.getCenterLat());
             s.setCenterLng(t.getCenterLng());
             s.setCreateDate(t.getCreateDate());
+            s.setProfile(t.getPlannerProfile());
             out.add(s);
         }
         return out;
@@ -249,6 +254,7 @@ public class PlannedTrackService {
             if (track.getTrackSource() != GpsTrack.TRACK_SOURCE.PLANNED) {
                 throw new IllegalArgumentException("Refusing to delete non-PLANNED track via planner API: id=" + id);
             }
+            gpsTrackEventRepository.deleteByGpsTrackId(id);
             gpsTrackDataRepository.deleteByGpsTrackId(id);
             gpsTrackRepository.delete(track);
         });

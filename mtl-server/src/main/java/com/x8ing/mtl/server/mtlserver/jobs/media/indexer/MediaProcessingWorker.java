@@ -18,7 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
  */
 @Service
 @RequiredArgsConstructor
-@Slf4j
+@Slf4j(topic = "MediaProcessing")
 public class MediaProcessingWorker {
 
     private final IndexerRepository indexerRepository;

@@ -4,6 +4,43 @@
 /* 1. TOKENS & CORE SETUP */
 /* =================================================================== */
 :root {
+    /* =========================================
+       TYPOGRAPHY SCALE (Tailwind-inspired)
+       Base: html = 16px → 1rem
+    ========================================= */
+    --text-2xs-size: 0.625rem;   /* 10px */
+    --text-2xs-lh:   0.75rem;
+
+    --text-xs-size:  0.75rem;    /* 12px */
+    --text-xs-lh:    1rem;
+
+    --text-sm-size:  0.875rem;   /* 14px */
+    --text-sm-lh:    1.25rem;
+
+    --text-base-size: 1rem;      /* 16px */
+    --text-base-lh:   1.5rem;
+
+    --text-lg-size:  1.125rem;   /* 18px */
+    --text-lg-lh:    1.75rem;
+
+    --text-xl-size:  1.25rem;    /* 20px */
+    --text-xl-lh:    1.75rem;
+
+    --text-2xl-size: 1.5rem;     /* 24px */
+    --text-2xl-lh:   2rem;
+
+    --text-3xl-size: 1.875rem;   /* 30px */
+    --text-3xl-lh:   2.25rem;
+
+    --text-4xl-size: 2.25rem;    /* 36px */
+    --text-4xl-lh:   2.5rem;
+
+    /* Font weights */
+    --font-normal:   400;
+    --font-medium:   500;
+    --font-semibold: 600;
+    --font-bold:     700;
+
     /* Sizing tokens */
     --dlg-max-width:  min(96svw, 1100px);
     --dlg-max-height: min(92svh, 90rem);
@@ -23,12 +60,25 @@
        Declared here via CSS so the map container has the correct value from
        the very first frame (avoids black-gap flash before onMounted fires). */
     --nav-panel-w: 0px;
+
+    /* Stable splash/curtain viewport sizing. Avoid dynamic viewport units here:
+       mobile browsers change them while dismissing the keyboard or browser
+       chrome, which visibly moves the centered logo during login handoff. */
+    --splash-viewport-height: 100svh;
+    --splash-content-top: calc(env(safe-area-inset-top) + clamp(7rem, 24svh, 16rem));
 }
 @media (min-width: 1024px) {
     :root { --nav-panel-w: 68px; }
 }
 @media (min-width: 1280px) {
     :root { --nav-panel-w: 76px; }
+}
+@media (max-height: 500px) and (orientation: landscape) {
+    :root { --splash-content-top: calc(env(safe-area-inset-top) + clamp(1.5rem, 8svh, 3rem)); }
+}
+
+html {
+    font-size: 16px;
 }
 
 html, body {
@@ -37,6 +87,17 @@ html, body {
     padding: 0;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
     background: #0a0a0f;
+}
+
+/* Disable text selection on mobile — prevents accidental highlights during
+   map gestures, drag interactions, and tap navigation. */
+@media (max-width: 1023px) {
+  body, #app {
+    -webkit-user-select: none;
+    user-select: none;
+    /* manipulation: allows single-finger pan/tap but suppresses double-tap zoom */
+    touch-action: manipulation;
+  }
 }
 
 #app {
@@ -49,7 +110,7 @@ html, body {
 
 /* Icon defaults */
 .bi, .pi {
-    font-size: 1rem;
+    font-size: var(--text-base-size);
     color: currentColor;
 }
 
@@ -300,6 +361,10 @@ body:has(.p-dialog-visible) {
     background: var(--table-header-bg);
     color: var(--table-header-text);
     border-color: var(--table-border);
+    font-size: var(--text-xs-size);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
 }
 .sheet .p-datatable .p-datatable-tbody > tr,
 .p-dialog .p-datatable .p-datatable-tbody > tr {
@@ -309,6 +374,7 @@ body:has(.p-dialog-visible) {
 .sheet .p-datatable .p-datatable-tbody > tr > td,
 .p-dialog .p-datatable .p-datatable-tbody > tr > td {
     border-color: var(--table-border);
+    font-size: var(--text-sm-size);
 }
 .sheet .p-datatable .p-datatable-tbody > tr:hover,
 .p-dialog .p-datatable .p-datatable-tbody > tr:hover {
@@ -360,6 +426,54 @@ body:has(.p-dialog-visible) {
     background: transparent !important;
 }
 
+/* PrimeVue form controls: keep dark mode genuinely dark across inputs,
+   selects, textareas, segmented controls, and teleported filter fields. */
+[data-theme="dark"] :is(.p-inputtext, .p-textarea, .p-select, .p-datepicker, .p-inputnumber-input) {
+    background: var(--surface-glass-heavy) !important;
+    color: var(--text-secondary) !important;
+    border-color: var(--border-strong) !important;
+    box-shadow: none !important;
+}
+
+[data-theme="dark"] :is(.p-inputtext, .p-textarea, .p-select, .p-datepicker, .p-inputnumber-input):enabled:hover,
+[data-theme="dark"] .p-select:not(.p-disabled):hover {
+    border-color: var(--border-hover) !important;
+}
+
+[data-theme="dark"] :is(.p-inputtext, .p-textarea, .p-select, .p-datepicker, .p-inputnumber-input):enabled:focus,
+[data-theme="dark"] .p-select.p-focus {
+    border-color: var(--accent-text) !important;
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent-text) 35%, transparent) !important;
+}
+
+[data-theme="dark"] :is(.p-inputtext, .p-textarea, .p-inputnumber-input)::placeholder,
+[data-theme="dark"] .p-select-label.p-placeholder {
+    color: var(--text-faint) !important;
+}
+
+[data-theme="dark"] .p-select-dropdown {
+    color: var(--text-muted) !important;
+}
+
+[data-theme="dark"] .p-select-label,
+[data-theme="dark"] .p-select-option,
+[data-theme="dark"] .p-datepicker,
+[data-theme="dark"] .p-datepicker-panel {
+    color: var(--text-secondary) !important;
+}
+
+[data-theme="dark"] .p-selectbutton .p-togglebutton {
+    background: var(--surface-glass-subtle) !important;
+    border-color: var(--border-default) !important;
+    color: var(--text-muted) !important;
+}
+
+[data-theme="dark"] .p-selectbutton .p-togglebutton.p-togglebutton-checked {
+    background: color-mix(in srgb, var(--accent) 26%, rgba(15, 23, 42, 0.9)) !important;
+    border-color: color-mix(in srgb, var(--accent-text) 45%, transparent) !important;
+    color: var(--text-primary) !important;
+}
+
 /* Toast — modern compact glass card */
 /* Light mode base */
 .p-toast-message {
@@ -397,23 +511,23 @@ body:has(.p-dialog-visible) {
 
 /* Summary (title) */
 .p-toast-summary {
-    font-size: 0.8125rem !important;
+    font-size: var(--text-sm-size) !important;
     font-weight: 600 !important;
     letter-spacing: 0.01em !important;
-    line-height: 1.3 !important;
+    line-height: var(--text-sm-lh) !important;
 }
 
 /* Detail body */
 .p-toast-detail {
-    font-size: 0.75rem !important;
-    line-height: 1.45 !important;
+    font-size: var(--text-xs-size) !important;
+    line-height: var(--text-xs-lh) !important;
     opacity: 0.75 !important;
     margin-top: 0.125rem !important;
 }
 
 /* Severity icon */
 .p-toast-message-icon {
-    font-size: 1rem !important;
+    font-size: var(--text-base-size) !important;
     flex-shrink: 0 !important;
     margin-top: 0.1rem !important;
 }
@@ -458,11 +572,11 @@ body:has(.p-dialog-visible) {
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
     color: rgba(51, 65, 85, 0.7) !important;
-    font-size: 0.6rem !important;
+    font-size: var(--text-2xs-size) !important;
     font-weight: 500 !important;
     letter-spacing: 0.02em !important;
     padding: 0 0 3px 0 !important;
-    line-height: 1.2 !important;
+    line-height: var(--text-2xs-lh) !important;
     text-align: center !important;
     /* Only left, right (tick ends) and bottom (ruler line) borders */
     border-top: none !important;
@@ -502,6 +616,23 @@ body:has(.p-dialog-visible) {
 /*    avoid re-declaring the same handful of effects.                  */
 /* =================================================================== */
 
+/* Typography size utilities */
+.text-2xs  { font-size: var(--text-2xs-size);  line-height: var(--text-2xs-lh); }
+.text-xs   { font-size: var(--text-xs-size);   line-height: var(--text-xs-lh); }
+.text-sm   { font-size: var(--text-sm-size);   line-height: var(--text-sm-lh); }
+.text-base { font-size: var(--text-base-size); line-height: var(--text-base-lh); }
+.text-lg   { font-size: var(--text-lg-size);   line-height: var(--text-lg-lh); }
+.text-xl   { font-size: var(--text-xl-size);   line-height: var(--text-xl-lh); }
+.text-2xl  { font-size: var(--text-2xl-size);  line-height: var(--text-2xl-lh); }
+.text-3xl  { font-size: var(--text-3xl-size);  line-height: var(--text-3xl-lh); }
+.text-4xl  { font-size: var(--text-4xl-size);  line-height: var(--text-4xl-lh); }
+
+/* Typography weight utilities */
+.font-normal   { font-weight: var(--font-normal); }
+.font-medium   { font-weight: var(--font-medium); }
+.font-semibold { font-weight: var(--font-semibold); }
+.font-bold     { font-weight: var(--font-bold); }
+
 /* Glassmorphism — three intensity steps, all token-driven.
    Apply to a container that should look like a frosted card. */
 .glass {
@@ -532,35 +663,146 @@ body:has(.p-dialog-visible) {
 /* Photo-backdrop primitives — used by login + curtain views which sit
    over a darkened photographic background, regardless of color scheme. */
 .photo-backdrop {
-    position: absolute;
+    position: fixed;
     inset: 0;
+    width: 100vw;
+    height: 100vh;
+    height: 100lvh;
     background-size: cover;
     background-position: center;
+    transform: scale(1.018);
     transform-origin: center;
-    animation: kenBurns 16s ease-in-out infinite alternate;
+    filter: saturate(1.04) contrast(1.03);
 }
 .photo-vignette {
-    position: absolute;
+    position: fixed;
     inset: 0;
     background: var(--on-photo-vignette);
+    backdrop-filter: blur(0.75px);
+    -webkit-backdrop-filter: blur(0.75px);
+}
+.photo-logo {
+    --photo-logo-optical-offset: -0.5rem;
+
+    width: min(210px, 66vw);
+    height: auto;
+    margin: 0;
+    position: relative;
+    transform: translateX(var(--photo-logo-optical-offset));
+    filter:
+        brightness(0) invert(1)
+        drop-shadow(0 2px 3px rgba(0, 0, 0, 0.68))
+        drop-shadow(0 5px 12px rgba(0, 0, 0, 0.30))
+        drop-shadow(0 9px 22px rgba(0, 0, 0, 0.18));
+}
+.photo-loader {
+    display: flex;
+    width: min(420px, 78vw);
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    animation: photoLoaderBreathe 3.2s ease-in-out infinite;
+}
+.photo-status {
+    font-size: var(--text-sm-size);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--on-photo-text-strong);
+    margin: 0;
+    text-shadow: var(--on-photo-text-shadow);
+}
+.photo-progress-track {
+    width: 100%;
+    height: 2px;
+    margin: 0 auto;
+    border-radius: 1px;
+    background: var(--on-photo-surface-lo);
+    overflow: hidden;
+}
+.photo-progress-bar {
+    width: 40%;
+    height: 100%;
+    border-radius: 1px;
+    background: var(--on-photo-text-strong);
+    animation: photoProgressSlide 1.8s ease-in-out infinite;
+}
+.photo-dots::after {
+    content: '';
+    display: inline-block;
+    width: 1.2em;
+    text-align: left;
+    animation: photoDots 1.5s steps(3, end) infinite;
 }
 .photo-credit {
     position: absolute;
     bottom: 10px;
     right: 14px;
     z-index: 2;
-    font-size: 0.68rem;
+    font-size: var(--text-2xs-size);
     letter-spacing: 0.03em;
     color: var(--on-photo-text-faint);
     pointer-events: none;
     user-select: none;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.80), 0 2px 8px rgba(0, 0, 0, 0.40);
 }
 
-@keyframes kenBurns {
-    from { transform: scale(1)    translate(0, 0); }
-    to   { transform: scale(1.04) translate(0.5%, -0.5%); }
+@keyframes photoLoaderBreathe {
+    0%,
+    100% {
+        opacity: 0.88;
+    }
+    50% {
+        opacity: 1;
+    }
+}
+
+@keyframes photoDots {
+    0% {
+        content: '.';
+    }
+    33% {
+        content: '..';
+    }
+    66% {
+        content: '...';
+    }
+    100% {
+        content: '';
+    }
+}
+
+@keyframes photoProgressSlide {
+    0% {
+        transform: translateX(-100%);
+    }
+    100% {
+        transform: translateX(250%);
+    }
+}
+
+@media (max-height: 500px) and (orientation: landscape) {
+    .photo-logo {
+        width: 140px;
+    }
+
+    .photo-loader {
+        width: min(320px, 72vw);
+        gap: 0.85rem;
+    }
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .photo-backdrop { animation: none; }
+    .photo-loader,
+    .photo-progress-bar,
+    .photo-dots::after {
+        animation: none;
+    }
+
+    .photo-dots::after {
+        content: '...';
+    }
+
+    .photo-progress-bar {
+        width: 100%;
+    }
 }

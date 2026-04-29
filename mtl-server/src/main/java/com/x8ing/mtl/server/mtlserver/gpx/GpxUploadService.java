@@ -11,7 +11,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
-import java.util.Locale;
 
 @Service
 @Slf4j
@@ -83,9 +82,9 @@ public class GpxUploadService {
         String originalName = file.getOriginalFilename();
         if (originalName == null || SupportedTrackFormat.fromPath(Path.of(originalName)) == null) {
             throw new IllegalArgumentException("Unsupported file format. Accepted: " +
-                    java.util.Arrays.stream(SupportedTrackFormat.values())
-                            .map(f -> "." + f.getExtension())
-                            .collect(java.util.stream.Collectors.joining(", ")));
+                                               java.util.Arrays.stream(SupportedTrackFormat.values())
+                                                       .map(f -> "." + f.getExtension())
+                                                       .collect(java.util.stream.Collectors.joining(", ")));
         }
 
         // Strip any path components the client may have smuggled in

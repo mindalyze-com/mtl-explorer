@@ -44,7 +44,7 @@ export default defineComponent({
           labels: {
             style: {
               color: 'var(--chart-text)',
-              fontSize: '11px'
+              fontSize: '12px'
             }
           }
         },
@@ -60,7 +60,7 @@ export default defineComponent({
           labels: {
             style: {
               color: 'var(--chart-text)',
-              fontSize: '11px'
+              fontSize: '12px'
             },
             formatter: function () {
               return this.value;
@@ -137,13 +137,21 @@ export default defineComponent({
     };
   },
   mounted() {
-    this.resizeObserver = new ResizeObserver(() => {
-      this.reflowChart();
+    this.resizeObserver = new ResizeObserver((entries) => {
+      const rect = entries[0]?.contentRect;
+      if (!rect) return;
+      const chart = this.$refs.highchartsComponent?.chart;
+      if (chart && rect.width > 0 && rect.height > 0) {
+        chart.setSize(rect.width, rect.height, false);
+      } else {
+        this.reflowChart();
+      }
     });
 
     if (this.$refs.chartContainer) {
       this.resizeObserver.observe(this.$refs.chartContainer);
     }
+    this.$nextTick(() => this.reflowChart());
   },
   watch: {
     graphSeriesData(newData) {
@@ -181,7 +189,7 @@ export default defineComponent({
   flex: 1 1 auto;
   width: 100%;
   min-height: min(320px, 48svh);
-  height: 100%;
+  overflow: hidden;
 }
 
 @media screen and (max-width: 768px) {

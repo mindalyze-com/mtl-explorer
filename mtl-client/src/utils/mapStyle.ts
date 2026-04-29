@@ -12,6 +12,10 @@ export type MapTheme = 'light' | 'dark' | 'grayscale' | 'light-topo' | 'swisstop
 
 type ProtomapsTheme = 'light' | 'dark' | 'grayscale';
 
+interface LocalVectorStyleOptions {
+  hillshade?: boolean;
+}
+
 // Maps topo-enhanced themes to their underlying protomaps flavor
 const TOPO_BASE: Partial<Record<MapTheme, ProtomapsTheme>> = {
   'light-topo': 'light',
@@ -79,10 +83,12 @@ export function buildLocalVectorStyle(
   tilesetName: string,
   theme: MapTheme = 'light',
   glyphsUrl?: string,
+  options: LocalVectorStyleOptions = {},
 ): StyleSpecification {
   const sourceName = 'protomaps';
   const baseTheme: ProtomapsTheme = TOPO_BASE[theme] ?? (theme as ProtomapsTheme);
   const flavor = THEME_FLAVORS[baseTheme] ?? LIGHT;
+  const enableHillshade = options.hillshade ?? true;
 
   const style: StyleSpecification = {
     version: 8,
@@ -98,7 +104,7 @@ export function buildLocalVectorStyle(
     layers: layers(sourceName, flavor, { lang: 'en' }),
   } as StyleSpecification;
 
-  return theme in TOPO_BASE ? addHillshade(style) : style;
+  return enableHillshade && theme in TOPO_BASE ? addHillshade(style) : style;
 }
 
 /**

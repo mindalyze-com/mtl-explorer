@@ -80,13 +80,21 @@
   --on-photo-input-text:  #ffffff;
   --on-photo-button-bg:   rgba(255, 255, 255, 0.90);
   --on-photo-button-text: #1a1a2e;
-  --on-photo-text-shadow: 0 1px 8px rgba(0, 0, 0, 0.6), 0 2px 4px rgba(0, 0, 0, 0.4);
-  --on-photo-vignette: radial-gradient(
-    ellipse at center,
-    rgba(0, 0, 0, 0.10) 0%,
-    rgba(0, 0, 0, 0.28) 55%,
-    rgba(0, 0, 0, 0.48) 100%
-  );
+  --on-photo-text-shadow: 0 1px 7px rgba(0, 0, 0, 0.58), 0 2px 4px rgba(0, 0, 0, 0.34);
+  --on-photo-vignette:
+    linear-gradient(
+      180deg,
+      rgba(0, 0, 0, 0.34) 0%,
+      rgba(0, 0, 0, 0.24) 38%,
+      rgba(0, 0, 0, 0.10) 64%,
+      rgba(0, 0, 0, 0.24) 100%
+    ),
+    radial-gradient(
+      ellipse at center 36%,
+      rgba(0, 0, 0, 0.22) 0%,
+      rgba(0, 0, 0, 0.15) 34%,
+      rgba(0, 0, 0, 0.00) 62%
+    );
 
   /* ── Standard breakpoints (for documentation / @custom-media; do not embed in calc) ── */
   --bp-sm: 640px;   /* small phones */

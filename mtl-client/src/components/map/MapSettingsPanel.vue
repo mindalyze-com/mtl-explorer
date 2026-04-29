@@ -186,7 +186,7 @@ defineExpose({ toggle, close });
 }
 
 .msp-section-label {
-  font-size: 0.7rem;
+  font-size: var(--text-xs-size);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -197,7 +197,7 @@ defineExpose({ toggle, close });
   margin-top: 0;
 }
 .msp-section-hint {
-  font-size: 0.68rem;
+  font-size: var(--text-2xs-size);
   color: var(--text-faint);
   opacity: 0.75;
   margin: -0.2rem 0 0.3rem;
@@ -208,7 +208,7 @@ defineExpose({ toggle, close });
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
-  font-size: 0.72rem;
+  font-size: var(--text-xs-size);
   font-weight: 500;
   padding: 0.2rem 0.65rem;
   border-radius: 999px;
@@ -220,9 +220,9 @@ defineExpose({ toggle, close });
   white-space: nowrap;
 }
 .msp-header-reset-btn:hover {
-  background: var(--danger-bg, rgba(220,38,38,0.08));
-  color: var(--danger-text, #dc2626);
-  border-color: var(--danger-text, #dc2626);
+  background: var(--error-bg);
+  color: var(--error);
+  border-color: var(--error);
 }
 
 /* ── Theme thumbnail grid ── */
@@ -272,8 +272,8 @@ defineExpose({ toggle, close });
   position: absolute;
   top: 3px;
   right: 4px;
-  font-size: 0.7rem;
-  line-height: 1;
+  font-size: var(--text-xs-size);
+  line-height: var(--text-xs-lh);
   background: var(--warning-bg);
   color: var(--warning-text);
   border-radius: 3px;
@@ -284,8 +284,8 @@ defineExpose({ toggle, close });
   position: absolute;
   top: 3px;
   left: 4px;
-  font-size: 0.7rem;
-  line-height: 1;
+  font-size: var(--text-xs-size);
+  line-height: var(--text-xs-lh);
   background: var(--primary-color);
   color: var(--text-primary);
   border-radius: 3px;
@@ -293,7 +293,7 @@ defineExpose({ toggle, close });
   pointer-events: none;
 }
 .msp-theme-label {
-  font-size: 0.7rem;
+  font-size: var(--text-xs-size);
   margin-top: 0.2rem;
   text-align: center;
   white-space: nowrap;

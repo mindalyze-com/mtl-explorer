@@ -46,8 +46,8 @@ export default defineComponent({
   },
   setup() {
     const toast = inject('toast');
-    const { registerChart, unregisterChart, syncMouseMove, syncMouseLeave, syncClick } = useChartSync();
-    return { toast, registerChart, unregisterChart, syncMouseMove, syncMouseLeave, syncClick };
+    const { bindChart } = useChartSync();
+    return { toast, bindChart };
   },
   mounted() {
     if (this.trackDetails.length > 0) {
@@ -56,18 +56,15 @@ export default defineComponent({
     this.$nextTick(() => {
       const chart = (this.$refs.highchartsEl as { chart?: Highcharts.Chart } | undefined)?.chart;
       if (chart) {
-        (this as unknown as { _chartInstance: Highcharts.Chart })._chartInstance = chart;
-        this.registerChart(chart);
-        chart.container.addEventListener('mousemove', (e: MouseEvent) => this.syncMouseMove(e, chart));
-        chart.container.addEventListener('mouseleave', () => this.syncMouseLeave());
-        chart.container.addEventListener('click', (e: MouseEvent) => this.syncClick(e, chart));
+        (this as unknown as { _cleanupChartSync: () => void })._cleanupChartSync = this.bindChart(chart);
       }
     });
   },
   beforeUnmount() {
-    const inst = (this as unknown as { _chartInstance?: Highcharts.Chart })._chartInstance;
-    if (inst) {
-      this.unregisterChart(inst);
+    const cleanup = (this as unknown as { _cleanupChartSync?: () => void })._cleanupChartSync;
+    if (cleanup) {
+      cleanup();
+      (this as unknown as { _cleanupChartSync?: () => void })._cleanupChartSync = undefined;
     }
   },
   watch: {
@@ -132,7 +129,7 @@ function toMillis(ts: GpsTrackDataPoint['pointTimestamp']): number {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  font-size: 0.75rem;
+  font-size: var(--text-xs-size);
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -141,12 +138,13 @@ function toMillis(ts: GpsTrackDataPoint['pointTimestamp']): number {
 }
 
 .chart-header i {
-  font-size: 0.85rem;
+  font-size: var(--text-sm-size);
 }
 
 .chart {
   width: 100%;
   height: var(--track-detail-graph-height, 220px);
   min-height: var(--track-detail-graph-height, 220px);
+  touch-action: pan-y;
 }
 </style>

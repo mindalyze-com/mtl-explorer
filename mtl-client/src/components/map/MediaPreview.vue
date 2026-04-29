@@ -277,14 +277,14 @@ watch(() => props.prefetchIds, (ids) => {
 .mp__loading {
   padding: 32px;
   text-align: center;
-  color: var(--color-text-muted, #94a3b8);
-  font-size: 14px;
+  color: var(--text-muted);
+  font-size: var(--text-sm-size);
 }
 
 /* ── Media ── */
 .mp__media-wrap {
   position: relative;
-  background: #f8f9fa;
+  background: var(--surface-glass-heavy);
   flex: 1 1 auto;
   min-height: 0;
   overflow: hidden;
@@ -304,7 +304,7 @@ watch(() => props.prefetchIds, (ids) => {
 }
 
 :global([data-theme="dark"] .mp__media-wrap) {
-  background: #0f172a;
+  background: var(--surface-glass-heavy);
 }
 
 :global([data-theme="dark"] .mp__media-wrap--pending::after) {
@@ -382,7 +382,7 @@ watch(() => props.prefetchIds, (ids) => {
   bottom: 72px;
   height: 2px;
   overflow: hidden;
-  background: color-mix(in srgb, var(--text-muted, #64748b) 10%, transparent);
+  background: color-mix(in srgb, var(--text-muted) 10%, transparent);
   z-index: 1;
   pointer-events: none;
 }
@@ -393,9 +393,9 @@ watch(() => props.prefetchIds, (ids) => {
   width: 42%;
   border-radius: inherit;
   background: linear-gradient(90deg,
-    color-mix(in srgb, var(--accent, #6366f1) 0%, transparent) 0%,
-    color-mix(in srgb, var(--accent, #6366f1) 68%, white) 45%,
-    color-mix(in srgb, var(--accent, #6366f1) 0%, transparent) 100%);
+    color-mix(in srgb, var(--accent) 0%, transparent) 0%,
+    color-mix(in srgb, var(--accent) 68%, white) 45%,
+    color-mix(in srgb, var(--accent) 0%, transparent) 100%);
   animation: mp-loading-rail-slide 980ms cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }
 
@@ -421,20 +421,20 @@ watch(() => props.prefetchIds, (ids) => {
   justify-content: center;
   width: 36px;
   height: 36px;
-  border: 1px solid var(--border-medium, rgba(0, 0, 0, 0.1));
+  border: 1px solid var(--border-medium);
   border-radius: 999px;
-  background: var(--surface-hover, rgba(0, 0, 0, 0.05));
-  color: var(--text-muted, #64748b);
-  font-size: 15px;
+  background: var(--surface-hover);
+  color: var(--text-muted);
+  font-size: var(--text-base-size);
   cursor: pointer;
   padding: 0;
   transition: background 0.15s, color 0.15s, border-color 0.15s;
 }
 
 .mp__nav-btn:not(:disabled):hover {
-  color: var(--text-primary, #1e293b);
-  background: var(--surface-active, rgba(0, 0, 0, 0.08));
-  border-color: var(--border-hover, rgba(0, 0, 0, 0.22));
+  color: var(--text-primary);
+  background: var(--surface-active);
+  border-color: var(--border-hover);
 }
 
 .mp__nav-btn:disabled {
@@ -446,9 +446,9 @@ watch(() => props.prefetchIds, (ids) => {
   min-width: 48px;
   padding: 0 6px;
   text-align: center;
-  font-size: 12px;
+  font-size: var(--text-xs-size);
   font-weight: 600;
-  color: var(--text-secondary, #334155);
+  color: var(--text-secondary);
   letter-spacing: 0.02em;
 }
 
@@ -470,22 +470,22 @@ watch(() => props.prefetchIds, (ids) => {
 }
 
 .mp__filename {
-  font-size: 15px;
+  font-size: var(--text-base-size);
   font-weight: 600;
-  color: var(--color-text, #0f172a);
+  color: var(--text-primary);
   word-break: break-word;
 }
 
 .mp__meta-line {
-  font-size: 13px;
-  color: var(--color-text-muted, #64748b);
-  line-height: 1.5;
+  font-size: var(--text-sm-size);
+  color: var(--text-muted);
+  line-height: var(--text-sm-lh);
 }
 
 .mp__path {
-  font-size: 11px;
+  font-size: var(--text-xs-size);
   word-break: break-all;
-  color: var(--color-text-subtle, #94a3b8);
+  color: var(--text-faint);
 }
 
 /* ── Download button in meta bar ── */
@@ -496,16 +496,16 @@ watch(() => props.prefetchIds, (ids) => {
   justify-content: center;
   width: 36px;
   height: 36px;
-  background: var(--color-surface-raised, rgba(15,23,42,0.06));
+  background: var(--surface-elevated);
   border-radius: 8px;
-  color: var(--color-text, #0f172a);
-  font-size: 17px;
+  color: var(--text-primary);
+  font-size: var(--text-base-size);
   text-decoration: none;
   transition: background 0.15s;
 }
 
 .mp__download-btn:active {
-  background: var(--color-surface-active, rgba(15,23,42,0.14));
+  background: var(--surface-active);
 }
 
 @media (max-width: 640px) {

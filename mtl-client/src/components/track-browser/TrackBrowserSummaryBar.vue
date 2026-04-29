@@ -62,7 +62,7 @@ defineProps<{
 }
 
 .track-browser-summary__eyebrow {
-  font-size: 0.75rem;
+  font-size: var(--text-xs-size);
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--accent);
@@ -70,14 +70,14 @@ defineProps<{
 }
 
 .track-browser-summary__title {
-  font-size: 1.25rem;
+  font-size: var(--text-xl-size);
   font-weight: 700;
   color: var(--text-primary);
 }
 
 .track-browser-summary__subtitle {
   color: var(--text-secondary);
-  font-size: 0.92rem;
+  font-size: var(--text-base-size);
 }
 
 .track-browser-summary__stats {
@@ -101,7 +101,7 @@ defineProps<{
 }
 
 .track-browser-summary__label {
-  font-size: 0.75rem;
+  font-size: var(--text-xs-size);
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -110,7 +110,7 @@ defineProps<{
 
 .track-browser-summary__muted {
   color: var(--text-muted);
-  font-size: 0.82rem;
+  font-size: var(--text-sm-size);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -136,7 +136,7 @@ defineProps<{
   flex-wrap: wrap;
   align-items: center;
   gap: 0.75rem;
-  font-size: 0.88rem;
+  font-size: var(--text-sm-size);
   color: var(--text-secondary);
 }
 

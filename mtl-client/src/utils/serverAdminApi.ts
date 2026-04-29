@@ -11,10 +11,12 @@
  */
 import axios from 'axios';
 import {
+  DataFreshnessControllerApi,
   GpxUploadControllerApi,
   IndexerStatusControllerApi,
   JobStatusControllerApi,
   ServerLogControllerApi,
+  type DataFreshnessResponseDto,
   type GpxUploadResult,
   type GpxUploadStatus,
   type IndexSummaryDto,
@@ -151,7 +153,7 @@ export async function getServerLog(lines: number = 200): Promise<string> {
 
 // ─── Indexer / Job Status ────────────────────────────────────────────────────
 
-export type { IndexSummaryDto, JobSummaryDto };
+export type { DataFreshnessResponseDto, IndexSummaryDto, JobSummaryDto };
 // Local aliases used by the composable/UI. Unlike the generated DTOs (whose
 // fields are all optional per OpenAPI defaults), these types mark the numeric
 // counters as required — the server always returns them, and the fetch helpers
@@ -169,6 +171,10 @@ function getIndexerStatusApi() {
 
 function getJobStatusApi() {
   return new JobStatusControllerApi(getApiConfiguration());
+}
+
+function getDataFreshnessApi() {
+  return new DataFreshnessControllerApi(getApiConfiguration());
 }
 
 export async function getIndexerStatus(): Promise<IndexSummary[]> {
@@ -192,6 +198,10 @@ export async function getJobStatus(): Promise<JobSummary[]> {
     total: j.total ?? 0,
     progressPercent: j.progressPercent ?? 0,
   }));
+}
+
+export async function getDataFreshness(): Promise<DataFreshnessResponseDto> {
+  return getDataFreshnessApi().getDataFreshness();
 }
 
 // ─── Auth probe ──────────────────────────────────────────────────────────────

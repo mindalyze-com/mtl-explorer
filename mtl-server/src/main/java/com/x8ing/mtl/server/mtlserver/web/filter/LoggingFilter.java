@@ -21,6 +21,7 @@ import java.io.IOException;
 public class LoggingFilter extends OncePerRequestFilter {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(LoggingFilter.class);
+    private static final String ANONYMOUS_USER = "n/a";
 
     private final WebRequestLogService webRequestLogService;
 
@@ -36,7 +37,7 @@ public class LoggingFilter extends OncePerRequestFilter {
 
         filterChain.doFilter(request, response);
 
-        String userInfo = "n/a";
+        String userInfo = ANONYMOUS_USER;
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication != null && authentication.getPrincipal() instanceof UserDetails) {
             UserDetails userDetails = (UserDetails) authentication.getPrincipal();
@@ -44,21 +45,21 @@ public class LoggingFilter extends OncePerRequestFilter {
                 userInfo = userDetails.getUsername();
             }
         }
-        if ("n/a".equals(userInfo) && request.getAttribute(JwtUtil.USER_NAME) != null) {
+        if (ANONYMOUS_USER.equals(userInfo) && request.getAttribute(JwtUtil.USER_NAME) != null) {
             userInfo = String.valueOf(request.getAttribute(JwtUtil.USER_NAME));
         }
 
-        String userId = MDC.get(JwtUtil.USER_ID);
-        if (userId == null && request.getAttribute(JwtUtil.USER_ID) != null) {
-            userId = String.valueOf(request.getAttribute(JwtUtil.USER_ID));
+        String userSessionId = MDC.get(JwtUtil.USER_SESSION_ID);
+        if (userSessionId == null && request.getAttribute(JwtUtil.USER_SESSION_ID) != null) {
+            userSessionId = String.valueOf(request.getAttribute(JwtUtil.USER_SESSION_ID));
         }
-        String userIdInfo = userId != null ? userId : "n/a";
+        String userSessionIdInfo = userSessionId != null ? userSessionId : ANONYMOUS_USER;
 
         long endTime = System.currentTimeMillis();
         long durationMs = endTime - startTime;
         String uri = request.getRequestURI();
 
-        LOGGER.info("Request for url={} completed in dT={} for user={} user_id={} status={} method={}", uri, durationMs, userInfo, userIdInfo, response.getStatus(), request.getMethod());
+        LOGGER.info("Request for url={} completed in dT={} for user={} user_session_id={} status={} method={}", uri, durationMs, userInfo, userSessionIdInfo, response.getStatus(), request.getMethod());
 
         if (!uri.contains("/api/map-proxy/")) {
             try {
@@ -69,7 +70,7 @@ public class LoggingFilter extends OncePerRequestFilter {
                         response.getStatus(),
                         durationMs,
                         userInfo,
-                        userIdInfo,
+                        userSessionId,
                         resolveClientIp(request)
                 );
             } catch (Exception e) {

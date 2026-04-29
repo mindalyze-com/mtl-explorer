@@ -100,7 +100,7 @@
 
     <!-- ── Energy info popover ── -->
     <Popover ref="energyInfoPopover" appendTo="body">
-      <p class="overview-info-text">Physical mechanical energy output, measured from power-sensor data (Wh). This is not an estimate of calorie or metabolic energy — it reflects actual and precise power data recorded by your device.</p>
+      <p class="overview-info-text">Estimated external mechanical work from GPS-derived physics (Wh): climbing, drag, rolling/friction, and acceleration. It is not metabolic calorie burn and not measured power-sensor data.</p>
     </Popover>
   </div>
 </template>
@@ -215,10 +215,12 @@ const activityBreakdown = computed(() => {
 });
 
 const donutOptions = computed(() => {
-  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-  const tooltipBg = isDark ? 'rgba(15,23,42,0.97)' : 'rgba(255,255,255,0.97)';
-  const tooltipText = isDark ? '#e2e8f0' : '#334155';
-  const borderColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)';
+  const styles = getComputedStyle(document.documentElement);
+  const token = (name: string) => styles.getPropertyValue(name).trim();
+  const tooltipBg = token('--chart-tooltip-bg');
+  const tooltipText = token('--chart-tooltip-text');
+  const borderColor = token('--border-default');
+  const sliceBorderColor = token('--surface-glass-heavy');
 
   return markRaw({
     chart: {
@@ -243,7 +245,7 @@ const donutOptions = computed(() => {
       pie: {
         innerSize: '58%',
         borderWidth: 2,
-        borderColor: isDark ? 'rgba(15,23,42,1)' : 'rgba(255,255,255,1)',
+        borderColor: sliceBorderColor,
         dataLabels: { enabled: false },
         states: { hover: { brightness: 0.05 } },
         cursor: 'default',
@@ -266,8 +268,8 @@ const donutOptions = computed(() => {
 .overview {
   display: flex;
   flex-direction: column;
-  gap: 1.25rem;
-  padding: 0.75rem 1rem 1.5rem;
+  gap: 0.75rem;
+  padding: 0 1rem 1rem;
 }
 
 /* ── Filter banner ── */
@@ -279,11 +281,11 @@ const donutOptions = computed(() => {
   border-radius: 10px;
   background: var(--accent-bg);
   border: 1px solid var(--accent-subtle);
-  font-size: 0.82rem;
+  font-size: var(--text-sm-size);
   color: var(--accent-text);
 }
 .filter-banner__icon {
-  font-size: 0.75rem;
+  font-size: var(--text-xs-size);
   opacity: 0.7;
 }
 
@@ -301,7 +303,7 @@ const donutOptions = computed(() => {
   gap: 0.35rem;
   padding: 1rem 0.5rem 0.85rem;
   border-radius: 14px;
-  background: var(--surface-elevated);
+  background: transparent;
   border: 1px solid var(--border-default);
   transition: background 0.15s, border-color 0.15s;
 }
@@ -319,19 +321,19 @@ const donutOptions = computed(() => {
   border-radius: 10px;
   background: color-mix(in srgb, var(--tile-accent) 12%, transparent);
   color: var(--tile-accent);
-  font-size: 1.05rem;
+  font-size: var(--text-base-size);
 }
 
 .hero-tile__value {
-  font-size: 1.15rem;
+  font-size: var(--text-lg-size);
   font-weight: 750;
   color: var(--text-primary);
-  line-height: 1.2;
+  line-height: var(--text-lg-lh);
   letter-spacing: -0.01em;
 }
 
 .hero-tile__label {
-  font-size: 0.68rem;
+  font-size: var(--text-2xs-size);
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -346,7 +348,7 @@ const donutOptions = computed(() => {
   display: flex;
   align-items: center;
   gap: 0.45rem;
-  font-size: 0.72rem;
+  font-size: var(--text-xs-size);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -387,7 +389,7 @@ const donutOptions = computed(() => {
   display: flex;
   align-items: center;
   gap: 0.4rem;
-  font-size: 0.8rem;
+  font-size: var(--text-sm-size);
   color: var(--text-secondary);
   min-width: 0;
 }
@@ -400,7 +402,7 @@ const donutOptions = computed(() => {
 }
 
 .legend-icon {
-  font-size: 0.85rem;
+  font-size: var(--text-sm-size);
   flex: 0 0 auto;
 }
 
@@ -417,12 +419,12 @@ const donutOptions = computed(() => {
   flex: 0 0 auto;
   font-weight: 700;
   color: var(--text-primary);
-  font-size: 0.78rem;
+  font-size: var(--text-xs-size);
 }
 
 .legend-dist {
   flex: 0 0 auto;
-  font-size: 0.72rem;
+  font-size: var(--text-xs-size);
   color: var(--text-muted);
   min-width: 3.8rem;
   text-align: right;
@@ -436,7 +438,7 @@ const donutOptions = computed(() => {
   width: 100%;
   padding: 0.85rem 1rem;
   border-radius: 14px;
-  background: var(--surface-elevated);
+  background: transparent;
   border: 1px solid var(--border-default);
   cursor: pointer;
   transition: background 0.15s, border-color 0.15s, transform 0.1s;
@@ -471,7 +473,7 @@ const donutOptions = computed(() => {
 }
 
 .latest-card__name {
-  font-size: 0.92rem;
+  font-size: var(--text-base-size);
   font-weight: 650;
   color: var(--text-primary);
   overflow: hidden;
@@ -483,7 +485,7 @@ const donutOptions = computed(() => {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  font-size: 0.78rem;
+  font-size: var(--text-xs-size);
   color: var(--text-muted);
 }
 
@@ -500,7 +502,7 @@ const donutOptions = computed(() => {
 }
 
 .latest-card__stat {
-  font-size: 0.85rem;
+  font-size: var(--text-sm-size);
   font-weight: 650;
   color: var(--text-primary);
   white-space: nowrap;
@@ -508,12 +510,12 @@ const donutOptions = computed(() => {
 .latest-card__stat--muted {
   font-weight: 500;
   color: var(--text-muted);
-  font-size: 0.78rem;
+  font-size: var(--text-xs-size);
 }
 
 .latest-card__arrow {
   flex: 0 0 auto;
-  font-size: 0.8rem;
+  font-size: var(--text-sm-size);
   color: var(--text-faint);
 }
 
@@ -523,7 +525,7 @@ const donutOptions = computed(() => {
   align-items: center;
   justify-content: center;
   gap: 0.4rem;
-  font-size: 0.78rem;
+  font-size: var(--text-xs-size);
   color: var(--text-muted);
   padding-top: 0.25rem;
 }
@@ -551,8 +553,8 @@ const donutOptions = computed(() => {
   background: transparent;
   cursor: pointer;
   color: var(--text-faint);
-  font-size: 0.62rem;
-  line-height: 1;
+  font-size: var(--text-2xs-size);
+  line-height: var(--text-2xs-lh);
   margin-left: 3px;
   transition: color 0.15s;
 }
@@ -560,8 +562,8 @@ const donutOptions = computed(() => {
 
 .overview-info-text {
   max-width: 240px;
-  font-size: 0.78rem;
-  line-height: 1.5;
+  font-size: var(--text-xs-size);
+  line-height: var(--text-xs-lh);
   color: var(--text-secondary);
   margin: 0;
   padding: 0.1rem 0;

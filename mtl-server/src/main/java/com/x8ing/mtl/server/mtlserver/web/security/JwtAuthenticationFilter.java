@@ -50,16 +50,19 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         final String username = jwtUtil.getUsernameFromToken(jwt);
-        String userId = jwtUtil.getUserIdFromToken(jwt);
+        String userSessionId = jwtUtil.getUserSessionIdFromToken(jwt);
+        if (userSessionId == null || userSessionId.isBlank()) {
+            log.warn("JWT is valid but does not contain '{}' claim — ignoring token", JwtUtil.USER_SESSION_ID);
+            filterChain.doFilter(request, response);
+            return;
+        }
 
         if (username != null) {
             MDC.put(JwtUtil.USER_NAME, username);
             request.setAttribute(JwtUtil.USER_NAME, username);
         }
-        if (userId != null) {
-            MDC.put(JwtUtil.USER_ID, userId);
-            request.setAttribute(JwtUtil.USER_ID, userId);
-        }
+        MDC.put(JwtUtil.USER_SESSION_ID, userSessionId);
+        request.setAttribute(JwtUtil.USER_SESSION_ID, userSessionId);
 
         try {
             if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
@@ -82,7 +85,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             filterChain.doFilter(request, response);
         } finally {
             MDC.remove(JwtUtil.USER_NAME);
-            MDC.remove(JwtUtil.USER_ID);
+            MDC.remove(JwtUtil.USER_SESSION_ID);
         }
     }
 

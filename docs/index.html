@@ -1,0 +1,1635 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MTL Explorer | Private GPS Archive</title>
+  <link rel="icon" href="favicon.ico" sizes="any">
+  <link rel="icon" href="favicon-16x16.png" type="image/png" sizes="16x16">
+  <link rel="icon" href="favicon-32x32.png" type="image/png" sizes="32x32">
+  <link rel="icon" href="favicon-48x48.png" type="image/png" sizes="48x48">
+  <link rel="icon" href="favicon-96x96.png" type="image/png" sizes="96x96">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png" sizes="180x180">
+  <link rel="manifest" href="site.webmanifest">
+  <meta name="apple-mobile-web-app-title" content="MTL Explorer">
+  <meta name="application-name" content="MTL Explorer">
+  <meta name="msapplication-TileColor" content="#f2f6f5">
+  <meta name="msapplication-config" content="browserconfig.xml">
+  <meta name="theme-color" content="#f2f6f5">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Sora:wght@500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/lucide@latest/dist/umd/lucide.min.js"></script>
+  <style>
+    :root {
+      --bg-top: #fbfcfb;
+      --bg: #f2f6f5;
+      --bg-deep: #e9efee;
+      --surface: rgba(255, 255, 255, 0.76);
+      --surface-strong: rgba(255, 255, 255, 0.92);
+      --line: rgba(31, 64, 90, 0.12);
+      --line-strong: rgba(31, 64, 90, 0.2);
+      --text: #142331;
+      --text-soft: rgba(20, 35, 49, 0.76);
+      --text-muted: rgba(20, 35, 49, 0.6);
+      --text-faint: rgba(20, 35, 49, 0.44);
+      --blue: #246fad;
+      --blue-strong: #0f558c;
+      --accent: #1d6fa8;
+      --accent-soft: rgba(29, 111, 168, 0.12);
+      --green: #148c78;
+      --amber: #bf7b21;
+      --rose: #bd5570;
+      --shadow: 0 26px 70px rgba(32, 62, 82, 0.14);
+      --shadow-soft: 0 16px 38px rgba(32, 62, 82, 0.1);
+      --content: min(1180px, calc(100vw - 40px));
+      --stage-width: min(1264px, calc(100vw - 28px));
+      --topbar-top: 0px;
+      --topbar-space: 5.4rem;
+      --mobile-gutter: clamp(16px, 5vw, 22px);
+      --screenshot-edge-crop: 1.035;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+      max-width: 100%;
+    }
+
+    body {
+      margin: 0;
+      font-family: "Manrope", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 50% 10%, rgba(65, 139, 196, 0.085), transparent 30%),
+        radial-gradient(circle at 8% 42%, rgba(80, 164, 139, 0.045), transparent 25%),
+        radial-gradient(circle at 92% 70%, rgba(205, 155, 76, 0.045), transparent 24%),
+        linear-gradient(180deg, var(--bg-top), var(--bg) 44%, var(--bg-deep));
+      min-height: 100vh;
+      overflow-x: hidden;
+      max-width: 100%;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0 auto 0 50%;
+      width: var(--stage-width);
+      transform: translateX(-50%);
+      pointer-events: none;
+      z-index: 0;
+      border-left: 1px solid rgba(31, 64, 90, 0.08);
+      border-right: 1px solid rgba(31, 64, 90, 0.08);
+      background:
+        linear-gradient(90deg,
+          rgba(255, 255, 255, 0.44) 0%,
+          rgba(255, 255, 255, 0.18) 7%,
+          transparent 18%,
+          transparent 82%,
+          rgba(255, 255, 255, 0.18) 93%,
+          rgba(255, 255, 255, 0.44) 100%
+        ),
+        linear-gradient(180deg,
+          rgba(65, 139, 196, 0.035),
+          rgba(255, 255, 255, 0.2) 34%,
+          transparent 76%
+        );
+      box-shadow:
+        inset 34px 0 58px rgba(65, 139, 196, 0.018),
+        inset -34px 0 58px rgba(65, 139, 196, 0.018),
+        -46px 0 92px rgba(32, 62, 82, 0.07),
+        46px 0 92px rgba(32, 62, 82, 0.07);
+    }
+
+    body::after {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      background:
+        linear-gradient(to right,
+          rgba(248, 250, 249, 0.91) 0%,
+          rgba(248, 250, 249, 0.41) calc(50% - 700px),
+          rgba(248, 250, 249, 0.11) calc(50% - 590px),
+          rgba(248, 250, 249, 0.0) calc(50% - 455px),
+          rgba(248, 250, 249, 0.0) calc(50% + 455px),
+          rgba(248, 250, 249, 0.11) calc(50% + 590px),
+          rgba(248, 250, 249, 0.41) calc(50% + 700px),
+          rgba(248, 250, 249, 0.91) 100%
+        );
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    img {
+      display: block;
+      max-width: 100%;
+    }
+
+    .page {
+      width: var(--content);
+      margin: 0 auto;
+      padding: 22px 0 60px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .topbar {
+      position: fixed;
+      top: var(--topbar-top);
+      left: 0;
+      right: 0;
+      z-index: 20;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: 0.82rem max(20px, calc((100vw - 1180px) / 2));
+      border: 0;
+      border-bottom: 1px solid rgba(31, 64, 90, 0.11);
+      border-radius: 0;
+      background: rgba(255, 255, 255, 0.9);
+      box-shadow: 0 10px 30px rgba(38, 86, 124, 0.09);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      transition: box-shadow 180ms ease, background 180ms ease;
+    }
+
+    .topbar.is-compact {
+      background: rgba(255, 255, 255, 0.94);
+      box-shadow: 0 8px 24px rgba(38, 86, 124, 0.1);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      min-width: 0;
+    }
+
+    .brand-mark {
+      width: 2.65rem;
+      height: 2.65rem;
+      border-radius: 15px;
+      display: grid;
+      place-items: center;
+      background:
+        radial-gradient(circle at 32% 22%, rgba(29, 111, 168, 0.2), transparent 42%),
+        linear-gradient(160deg, rgba(247, 251, 252, 0.98), rgba(218, 235, 241, 0.96));
+      border: 1px solid rgba(31, 64, 90, 0.16);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.82), 0 10px 22px rgba(32, 62, 82, 0.16);
+    }
+
+    .brand-mark img {
+      width: 1.72rem;
+      height: 2.04rem;
+      object-fit: contain;
+      filter: saturate(1.18) contrast(1.08);
+    }
+
+    .icon {
+      width: 1.25rem;
+      height: 1.25rem;
+    }
+
+    .brand strong {
+      display: block;
+      font-family: "Sora", sans-serif;
+      font-size: 0.9375rem;
+      font-weight: 700;
+    }
+
+    .brand span:last-child {
+      display: block;
+      color: var(--text-muted);
+      font-size: 0.75rem;
+    }
+
+    nav {
+      display: flex;
+      align-items: center;
+      gap: 1.25rem;
+      color: var(--text-muted);
+      font-size: 0.9375rem;
+    }
+
+    nav a:hover,
+    nav a:focus-visible,
+    nav a.is-active {
+      color: var(--text);
+    }
+
+    nav a.is-active {
+      font-weight: 800;
+    }
+
+    .button,
+    .button-secondary {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.52rem;
+      min-height: 2.8rem;
+      padding: 0.78rem 1.08rem;
+      border-radius: 999px;
+      border: 1px solid transparent;
+      font-weight: 800;
+      font-size: 0.9375rem;
+      transition: transform 180ms ease, background 180ms ease, border-color 180ms ease;
+    }
+
+    .button {
+      color: #ffffff;
+      background: linear-gradient(180deg, #2d86cd, #155f9f);
+      box-shadow: 0 12px 24px rgba(34, 120, 184, 0.24);
+    }
+
+    .button-secondary {
+      color: var(--text-soft);
+      border-color: var(--line);
+      background: var(--surface);
+    }
+
+    .button:hover,
+    .button-secondary:hover,
+    .button:focus-visible,
+    .button-secondary:focus-visible {
+      transform: translateY(-1px);
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(370px, 0.74fr) minmax(640px, 1.26fr);
+      column-gap: clamp(2.1rem, 4.6vw, 3.8rem);
+      row-gap: 1.6rem;
+      align-items: start;
+      min-height: auto;
+      padding: clamp(2.6rem, 5.2vw, 4.6rem) 0 2.25rem;
+    }
+
+    main#top {
+      padding-top: var(--topbar-space);
+      scroll-margin-top: 112px;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+      padding: 0.48rem 0.72rem;
+      border: 1px solid rgba(31, 64, 90, 0.12);
+      border-radius: 999px;
+      color: var(--text-soft);
+      background: var(--surface);
+      font-size: 0.875rem;
+      font-weight: 700;
+    }
+
+    .eyebrow::before {
+      content: "";
+      width: 0.48rem;
+      height: 0.48rem;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 0 6px var(--accent-soft);
+    }
+
+    h1,
+    h2,
+    h3 {
+      font-family: "Sora", sans-serif;
+      letter-spacing: 0;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(3rem, 6.6vw, 5.25rem);
+      line-height: 1;
+      max-width: 10.6ch;
+    }
+
+    .hero-support p {
+      margin: 0;
+      color: var(--text-soft);
+      font-size: clamp(1rem, 1.7vw, 1.25rem);
+      line-height: 1.62;
+      max-width: 660px;
+    }
+
+    .hero-actions,
+    .section-actions {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.8rem;
+      margin-top: 1.55rem;
+    }
+
+    .hero-action-note {
+      display: block;
+      margin-top: 0.65rem;
+      color: var(--text-muted);
+      font-size: 0.8125rem;
+      font-weight: 700;
+    }
+
+    .hero-video-shell {
+      display: grid;
+      gap: 1.1rem;
+      min-width: 0;
+    }
+
+    .hero-video-frame {
+      border-radius: 26px;
+    }
+
+    .hero-video-frame .video-play {
+      top: 76%;
+      width: clamp(4.5rem, 9cqw, 7rem);
+    }
+
+    .screenshot-button {
+      position: relative;
+      display: block;
+      width: 100%;
+      min-width: 0;
+      padding: 0;
+      overflow: hidden;
+      color: var(--text);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: var(--surface-strong);
+      box-shadow: var(--shadow-soft);
+      cursor: zoom-in;
+    }
+
+    .screenshot-button:hover,
+    .screenshot-button:focus-visible {
+      border-color: rgba(34, 120, 184, 0.32);
+      box-shadow: 0 0 0 4px var(--accent-soft), var(--shadow-soft);
+    }
+
+    .screenshot-button::after {
+      content: "View";
+      position: absolute;
+      top: 0.72rem;
+      right: 0.72rem;
+      padding: 0.34rem 0.56rem;
+      border-radius: 999px;
+      color: var(--blue-strong);
+      background: rgba(255, 255, 255, 0.86);
+      border: 1px solid rgba(29, 111, 168, 0.14);
+      box-shadow: 0 8px 18px rgba(20, 35, 49, 0.12);
+      font-size: 0.72rem;
+      font-weight: 900;
+      opacity: 0;
+      transform: translateY(-3px);
+      transition: opacity 180ms ease, transform 180ms ease;
+      pointer-events: none;
+    }
+
+    .screenshot-button:hover::after,
+    .screenshot-button:focus-visible::after {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .screenshot-button:focus-visible,
+    .feature-dialog-close:focus-visible {
+      outline: 2px solid rgba(34, 120, 184, 0.54);
+      outline-offset: 3px;
+    }
+
+    .screenshot-button img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .screenshot-button:not(.phone-shot) img {
+      transform: scale(var(--screenshot-edge-crop));
+    }
+
+    .screenshot-label {
+      position: absolute;
+      left: 0.75rem;
+      right: 0.75rem;
+      bottom: 0.75rem;
+      display: inline-flex;
+      width: fit-content;
+      max-width: calc(100% - 1.5rem);
+      min-height: 2.1rem;
+      align-items: center;
+      padding: 0.48rem 0.7rem;
+      border-radius: 999px;
+      color: var(--blue-strong);
+      background: rgba(255, 255, 255, 0.86);
+      border: 1px solid rgba(29, 111, 168, 0.16);
+      box-shadow: 0 8px 18px rgba(20, 35, 49, 0.12);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      font-size: 0.8125rem;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .video-frame {
+      position: relative;
+      aspect-ratio: 16 / 9;
+      overflow: hidden;
+      border-radius: 20px;
+      background: #ffffff;
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow);
+      cursor: pointer;
+      transition: border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
+      container-type: inline-size;
+    }
+
+    .video-frame:hover,
+    .video-frame:focus-visible {
+      border-color: rgba(34, 120, 184, 0.32);
+      box-shadow: 0 0 0 4px var(--accent-soft), var(--shadow-soft);
+    }
+
+    .video-frame:focus-visible {
+      outline: none;
+    }
+
+    .video-frame img,
+    .video-frame iframe,
+    .video-frame .fallback-preview {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      border: 0;
+    }
+
+    .video-frame img {
+      object-fit: cover;
+      opacity: 1;
+    }
+
+    .video-frame iframe {
+      display: none;
+    }
+
+    .video-frame.is-loaded iframe {
+      display: block;
+    }
+
+    .video-frame.is-loaded {
+      cursor: default;
+    }
+
+    .video-frame.is-loaded img,
+    .video-frame.is-loaded .video-play,
+    .video-frame.is-loaded .fallback-preview {
+      display: none;
+    }
+
+    .fallback-preview {
+      display: grid;
+      place-items: center;
+      background:
+        radial-gradient(circle at 52% 45%, rgba(34, 120, 184, 0.15), transparent 28%),
+        linear-gradient(135deg, #f7fbfd, #d9e8ef);
+    }
+
+    .fallback-preview svg {
+      width: 100%;
+      height: 100%;
+      opacity: 0.9;
+    }
+
+    .video-play {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      width: clamp(2.6rem, 12cqw, 5rem);
+      aspect-ratio: 1;
+      height: auto;
+      border: 1px solid rgba(20, 35, 49, 0.14);
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      background: rgba(255, 255, 255, 0.74);
+      color: #174468;
+      opacity: 0.9;
+      box-shadow: 0 16px 38px rgba(38, 86, 124, 0.18);
+      cursor: pointer;
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      transition: background 180ms ease, border-color 180ms ease, opacity 180ms ease, transform 180ms ease;
+    }
+
+    .video-frame:hover .video-play,
+    .video-frame:focus-visible .video-play {
+      background: rgba(255, 255, 255, 0.92);
+      border-color: rgba(20, 35, 49, 0.22);
+      opacity: 0.98;
+      transform: translate(-50%, -50%) scale(1.04);
+    }
+
+    .video-play svg {
+      width: 44%;
+      height: 44%;
+      fill: currentColor;
+      stroke: none;
+    }
+
+    .section {
+      margin-top: clamp(3.2rem, 6.4vw, 5.4rem);
+      scroll-margin-top: 156px;
+    }
+
+    .section-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: end;
+      gap: 2rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .section-head h2 {
+      margin: 0;
+      font-size: clamp(2rem, 4.4vw, 3.25rem);
+      line-height: 1.04;
+      max-width: 760px;
+    }
+
+    .section-head p {
+      margin: 0.8rem 0 0;
+      color: var(--text-soft);
+      font-size: 1rem;
+      line-height: 1.58;
+      max-width: 640px;
+    }
+
+    .section-lede {
+      font-size: 1.25rem;
+    }
+
+    .feature-tours {
+      display: grid;
+      gap: clamp(2.3rem, 5.4vw, 4.25rem);
+    }
+
+    .feature-tour {
+      display: grid;
+      grid-template-columns: minmax(0, 1.12fr) minmax(320px, 0.88fr);
+      gap: clamp(1.2rem, 3.7vw, 2.35rem);
+      align-items: center;
+      padding-top: clamp(1.1rem, 3vw, 1.8rem);
+      border-top: 1px solid var(--line);
+    }
+
+    .feature-tour:nth-child(n + 3) {
+      gap: clamp(1rem, 3vw, 2rem);
+    }
+
+    .feature-tour:nth-child(even) .tour-media {
+      order: 2;
+    }
+
+    .tour-media,
+    .tour-copy {
+      min-width: 0;
+    }
+
+    .tour-media {
+      display: grid;
+      gap: 0.75rem;
+    }
+
+    .tour-main-shot {
+      aspect-ratio: 16 / 10;
+      border-radius: 20px;
+    }
+
+    .tour-proof-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 0.65rem;
+    }
+
+    .tour-proof-grid .screenshot-button {
+      aspect-ratio: 16 / 10;
+      border-radius: 12px;
+      box-shadow: none;
+    }
+
+    .tour-proof-grid .screenshot-label {
+      left: 0.45rem;
+      right: 0.45rem;
+      bottom: 0.45rem;
+      min-height: 1.75rem;
+      max-width: calc(100% - 0.9rem);
+      padding: 0.32rem 0.48rem;
+      font-size: 0.72rem;
+    }
+
+    .feature-tour-phone {
+      grid-template-columns: minmax(0, 1.18fr) minmax(280px, 0.82fr);
+    }
+
+    .feature-tour-phone .tour-media {
+      order: 2;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.65rem;
+      align-items: stretch;
+      justify-self: end;
+      width: min(387px, 100%);
+    }
+
+    .phone-preview-grid {
+      display: contents;
+    }
+
+    .feature-tour-phone .phone-shot {
+      width: 100%;
+      aspect-ratio: 4 / 5;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.94);
+      box-shadow: 0 18px 46px rgba(38, 86, 124, 0.14);
+    }
+
+    .feature-tour-phone .phone-shot img {
+      object-fit: contain;
+    }
+
+    .tour-kicker {
+      margin: 0 0 0.6rem;
+      color: var(--accent);
+      font-size: 0.82rem;
+      font-weight: 900;
+      text-transform: uppercase;
+    }
+
+    .tour-copy h3 {
+      margin: 0;
+      font-size: clamp(1.55rem, 3.5vw, 2.45rem);
+      line-height: 1.08;
+      max-width: 13ch;
+    }
+
+    .tour-copy p {
+      margin: 0.85rem 0 0;
+      color: var(--text-soft);
+      line-height: 1.62;
+      max-width: 620px;
+    }
+
+    .tour-points {
+      display: grid;
+      gap: 0.65rem;
+      margin: 1rem 0 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .tour-points li {
+      display: grid;
+      grid-template-columns: 0.72rem minmax(0, 1fr);
+      gap: 0.65rem;
+      color: var(--text-soft);
+      line-height: 1.48;
+    }
+
+    .tour-points strong {
+      display: block;
+      color: var(--text);
+      font-weight: 800;
+      margin-bottom: 0.12rem;
+    }
+
+    .tour-points li::before {
+      content: "";
+      width: 0.44rem;
+      height: 0.44rem;
+      margin-top: 0.52rem;
+      border-radius: 50%;
+      background: var(--green);
+    }
+
+    .feature-dialog {
+      width: min(1280px, calc(100vw - 28px));
+      max-height: calc(100vh - 28px);
+      padding: 0;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      overflow: hidden;
+      color: var(--text);
+      background: #ffffff;
+      box-shadow: var(--shadow);
+    }
+
+    .feature-dialog::backdrop {
+      background: rgba(20, 35, 49, 0.36);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+    }
+
+    .feature-dialog img {
+      width: 100%;
+      max-height: calc(100vh - 96px);
+      object-fit: contain;
+      background: #ffffff;
+      cursor: zoom-out;
+    }
+
+    .feature-dialog img.is-cropped {
+      transform: scale(var(--screenshot-edge-crop));
+    }
+
+    .feature-dialog-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: 0.85rem 1rem;
+      border-top: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.94);
+    }
+
+    .feature-dialog-bar strong {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-family: "Sora", sans-serif;
+      font-size: 0.9375rem;
+    }
+
+    .feature-dialog-close {
+      width: 2.35rem;
+      height: 2.35rem;
+      display: grid;
+      place-items: center;
+      flex: none;
+      border-radius: 999px;
+      color: var(--text);
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.76);
+      cursor: pointer;
+    }
+
+    .feature-dialog-close svg {
+      width: 1rem;
+      height: 1rem;
+      stroke-width: 2;
+    }
+
+    .how-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1rem;
+    }
+
+    .how-card {
+      min-height: 250px;
+      border-radius: 22px;
+      padding: 1rem;
+      border: 1px solid var(--line);
+      background: var(--surface);
+      box-shadow: var(--shadow-soft);
+    }
+
+    .step {
+      width: 2rem;
+      height: 2rem;
+      display: grid;
+      place-items: center;
+      border-radius: 999px;
+      color: var(--blue-strong);
+      background: rgba(34, 120, 184, 0.1);
+      border: 1px solid rgba(34, 120, 184, 0.18);
+      font-weight: 900;
+      margin-bottom: 1rem;
+    }
+
+    .how-card h3 {
+      margin: 0;
+      font-size: 1.125rem;
+      line-height: 1.25;
+    }
+
+    .how-card p {
+      margin: 0.65rem 0 0;
+      color: var(--text-soft);
+      font-size: 0.9375rem;
+      line-height: 1.54;
+    }
+
+    .trust-grid {
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      gap: 1rem;
+    }
+
+    .trust-panel {
+      border-radius: 26px;
+      padding: 1.25rem;
+      border: 1px solid var(--line);
+      background: var(--surface);
+      box-shadow: var(--shadow-soft);
+    }
+
+    .trust-panel h3 {
+      margin: 0;
+      font-size: 1.5rem;
+    }
+
+    .trust-panel p {
+      margin: 0.8rem 0 0;
+      color: var(--text-soft);
+      line-height: 1.6;
+    }
+
+    .plain-list {
+      display: grid;
+      gap: 0.75rem;
+      margin: 1rem 0 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .plain-list li {
+      display: grid;
+      grid-template-columns: 1.15rem 1fr;
+      gap: 0.65rem;
+      color: var(--text-soft);
+      line-height: 1.45;
+    }
+
+    .plain-list li::before {
+      content: "";
+      width: 0.52rem;
+      height: 0.52rem;
+      margin-top: 0.48rem;
+      border-radius: 50%;
+      background: var(--accent);
+    }
+
+    footer {
+      margin-top: 4rem;
+      padding: 1.35rem 0 0;
+      border-top: 1px solid var(--line);
+      color: var(--text-faint);
+      font-size: 0.875rem;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 1.5rem;
+      flex-wrap: wrap;
+    }
+
+    .footer-brand {
+      display: flex;
+      align-items: center;
+      gap: 0.7rem;
+      color: var(--text-muted);
+      min-width: 220px;
+    }
+
+    .footer-brand img {
+      width: 1.55rem;
+      height: 1.85rem;
+      object-fit: contain;
+      opacity: 0.72;
+    }
+
+    .footer-brand strong {
+      display: block;
+      color: var(--text-soft);
+      font-family: "Sora", sans-serif;
+      font-size: 0.9375rem;
+    }
+
+    .footer-brand span {
+      display: block;
+      margin-top: 0.12rem;
+      font-size: 0.8125rem;
+    }
+
+    .footer-links {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .footer-links a,
+    .footer-note summary {
+      color: var(--text-muted);
+      transition: color 180ms ease;
+    }
+
+    .footer-links a:hover,
+    .footer-links a:focus-visible,
+    .footer-note summary:hover,
+    .footer-note summary:focus-visible {
+      color: var(--text);
+    }
+
+    .footer-note {
+      position: relative;
+      max-width: 360px;
+    }
+
+    .footer-note summary {
+      cursor: pointer;
+      list-style: none;
+    }
+
+    .footer-note summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .footer-note summary::after {
+      content: "+";
+      margin-left: 0.35rem;
+      color: var(--text-faint);
+    }
+
+    .footer-note[open] summary::after {
+      content: "-";
+    }
+
+    .footer-note p {
+      margin: 0.55rem 0 0;
+      color: var(--text-faint);
+      line-height: 1.48;
+      font-size: 0.8125rem;
+    }
+
+    .reveal {
+      opacity: 1;
+      transform: translateY(0);
+      transition: opacity 650ms ease, transform 650ms ease;
+    }
+
+    .reveal.is-visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    @media (max-width: 1080px) {
+      body::before {
+        display: none;
+      }
+
+      .hero,
+      .feature-tour,
+      .trust-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .hero {
+        min-height: auto;
+      }
+
+      .hero-video-frame {
+        min-height: auto;
+      }
+
+      .feature-tour:nth-child(even) .tour-media {
+        order: 0;
+      }
+
+      .feature-tour-phone {
+        grid-template-columns: 1fr;
+      }
+
+      .feature-tour-phone .tour-media {
+        order: 0;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        justify-self: stretch;
+        width: 100%;
+      }
+
+      h1 {
+        max-width: 12ch;
+      }
+
+      .how-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (max-width: 780px) {
+      :root {
+        --topbar-space: 0px;
+      }
+
+      .page {
+        width: calc(100vw - 24px);
+        max-width: 1180px;
+        padding-top: 12px;
+      }
+
+      .topbar {
+        position: static;
+        top: auto;
+        left: auto;
+        right: auto;
+        border-radius: 24px;
+        border: 1px solid rgba(31, 64, 90, 0.12);
+        flex-wrap: wrap;
+        justify-content: space-between;
+        overflow: hidden;
+        gap: 0.75rem;
+        padding: 0.85rem;
+      }
+
+      main#top {
+        padding-top: var(--topbar-space);
+      }
+
+      nav {
+        order: 3;
+        width: 100%;
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.35rem;
+        text-align: center;
+        font-size: 0.875rem;
+      }
+
+      nav a {
+        min-width: 0;
+        padding: 0.35rem 0.25rem;
+      }
+
+      .hero {
+        padding-top: 1.8rem;
+      }
+
+      .tour-proof-grid,
+      .how-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .section-head {
+        display: block;
+      }
+
+      .feature-tour {
+        align-items: start;
+      }
+
+      .tour-copy h3 {
+        max-width: 16ch;
+      }
+
+      .feature-tour-phone .tour-copy h3 {
+        max-width: 18ch;
+      }
+
+      footer {
+        display: grid;
+      }
+
+      .footer-links {
+        justify-content: flex-start;
+      }
+    }
+
+    @media (max-width: 520px) {
+      .page {
+        width: 100%;
+        max-width: none;
+        margin-left: 0;
+        margin-right: 0;
+        padding-left: 8px;
+        padding-right: 8px;
+      }
+
+      .button,
+      .button-secondary {
+        width: 100%;
+      }
+
+      .topbar .button {
+        width: auto;
+        min-height: 2.45rem;
+        padding: 0.62rem 0.85rem;
+      }
+
+      h1 {
+        font-size: clamp(2.45rem, 10.2vw, 3.18rem);
+        max-width: 9.6ch;
+      }
+
+      .hero-support p {
+        font-size: 1rem;
+      }
+
+      .hero-copy,
+      .hero-video-shell,
+      .section-head,
+      .feature-tours,
+      footer {
+        padding-left: calc(var(--mobile-gutter) - 8px);
+        padding-right: calc(var(--mobile-gutter) - 8px);
+      }
+
+      .section-head p {
+        font-size: 1rem;
+        line-height: 1.58;
+      }
+
+      .feature-tour {
+        padding-top: 1.25rem;
+      }
+
+      .feature-tour-phone .tour-media {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.45rem;
+        justify-self: stretch;
+        width: 100%;
+      }
+
+      .feature-tour-phone .screenshot-label {
+        display: none;
+      }
+
+      .trust-panel {
+        border-radius: 22px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header class="topbar reveal">
+      <a class="brand" href="#top" aria-label="MTL Explorer home">
+        <span class="brand-mark" aria-hidden="true">
+          <img src="mtl_logo_3_only_vector.svg" alt="">
+        </span>
+        <span>
+          <strong>MTL Explorer</strong>
+          <span>Self-hosted GPS archive</span>
+        </span>
+      </a>
+      <nav aria-label="Primary navigation">
+        <a href="#features">Feature tours</a>
+        <a href="#how">How it works</a>
+        <a href="#trust">Trust</a>
+        <a href="https://github.com/mindalyze-com/mtl-explorer">GitHub</a>
+      </nav>
+      <a class="button" href="https://mtl-demo.mindalyze.com/mtl/">Live demo</a>
+    </header>
+
+    <main id="top">
+      <section class="hero">
+        <div class="hero-copy reveal">
+          <div class="eyebrow">An open-source, self-hosted GPS tool</div>
+          <h1>Host your own GPS track archive.</h1>
+        </div>
+
+        <div class="hero-video-shell reveal" id="main-video">
+          <div class="video-frame hero-video-frame js-video" data-video-id="OesCpZ0JzLc" data-title="MTL Explorer in 3 Minutes" role="button" tabindex="0" aria-label="Play MTL Explorer quick intro video">
+            <img alt="MTL Explorer quick intro video preview" loading="eager">
+            <div class="fallback-preview" aria-hidden="true"></div>
+            <button class="video-play" type="button" aria-label="Play MTL Explorer quick intro video">
+              <i data-lucide="play" aria-hidden="true"></i>
+            </button>
+          </div>
+          <div class="hero-support">
+            <p>MTL Explorer is an open-source tool for mapping your GPS history. It runs locally on your hardware, so your data stays private. You can load thousands of tracks, check your stats, and sketch out your next route.</p>
+            <div class="hero-actions">
+              <a class="button" href="https://mtl-demo.mindalyze.com/mtl/">Open live demo</a>
+              <a class="button-secondary" href="#features">View feature tours</a>
+            </div>
+            <span class="hero-action-note">Hosted demo instance with a sample archive.</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="section reveal" id="features" aria-labelledby="features-title">
+        <div class="section-head">
+          <div>
+            <h2 id="features-title">What you can do with MTL Explorer.</h2>
+            <p>Load up thousands of tracks on a single map. Check basic stats, compare segment times, calculate mechanical energy, and plan new routes.</p>
+          </div>
+        </div>
+
+        <div class="feature-tours" id="feature-tours" aria-label="Screenshot-led feature tours"></div>
+
+        <dialog class="feature-dialog js-feature-dialog" aria-label="Large feature screenshot">
+          <img class="js-feature-dialog-image" alt="">
+          <div class="feature-dialog-bar">
+            <strong class="js-feature-dialog-title"></strong>
+            <button class="feature-dialog-close js-feature-dialog-close" type="button" aria-label="Close screenshot">
+              <svg viewBox="0 0 24 24" fill="none"><path d="M6 6L18 18M18 6L6 18" stroke="currentColor" stroke-linecap="round"/></svg>
+            </button>
+          </div>
+        </dialog>
+
+      </section>
+
+      <section class="section reveal" id="how" aria-labelledby="how-title">
+        <div class="section-head">
+          <div>
+            <h2 id="how-title">How it works.</h2>
+            <p>Set up the server, import your files, and start exploring.</p>
+          </div>
+        </div>
+        <div class="how-grid">
+          <article class="how-card">
+            <div class="step">1</div>
+            <h3>Import your files</h3>
+            <p>Drop files into a folder or import from Garmin. It natively supports GPX, FIT, and most common formats.</p>
+          </article>
+          <article class="how-card">
+            <div class="step">2</div>
+            <h3>Automated processing</h3>
+            <p>The app indexes your files, removes duplicates, and spots bad data points in the background.</p>
+          </article>
+          <article class="how-card">
+            <div class="step">3</div>
+            <h3>Map and analyze</h3>
+            <p>Use filters to find what you want. Click tracks to check speed, distance, or mechanical energy spent.</p>
+          </article>
+          <article class="how-card">
+            <div class="step">4</div>
+            <h3>Route planning</h3>
+            <p>Draw point-by-point routes directly on the map. Save them as GPX files for your next trip.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section reveal" id="trust" aria-labelledby="trust-title">
+        <div class="section-head">
+          <div>
+            <h2 id="trust-title">Open source and self-hosted.</h2>
+            <p>You control the server and the data. No external accounts are required to use the core tools.</p>
+          </div>
+        </div>
+        <div class="trust-grid">
+          <article class="trust-panel">
+            <h3>Keep it local</h3>
+            <p>All your GPS files and photos stay on your hardware. You do not have to share your history with anyone.</p>
+            <ul class="plain-list">
+              <li>Open source (AGPL) with a commercial license option.</li>
+              <li>Runs in Docker. The API, database, and map tiles remain local.</li>
+              <li>Basic offline support. You can view cached tracks if you lose internet.</li>
+            </ul>
+          </article>
+          <aside class="trust-panel">
+            <h3>Read the code</h3>
+            <p>Everything is available on GitHub. You can inspect the project and read the setup docs there.</p>
+            <div class="section-actions">
+              <a class="button" href="https://mtl-demo.mindalyze.com/mtl/">Open live demo</a>
+              <a class="button-secondary" href="https://github.com/mindalyze-com/mtl-explorer">GitHub repository</a>
+            </div>
+          </aside>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <div class="footer-brand">
+        <img src="mtl_logo_3_only_vector.svg" alt="">
+        <div>
+          <strong>MTL Explorer</strong>
+          <span>Self-hosted GPS archive</span>
+        </div>
+      </div>
+      <div class="footer-links">
+        <a href="https://mtl-demo.mindalyze.com/mtl/">Live demo</a>
+        <a href="#features">Features</a>
+        <a href="https://github.com/mindalyze-com/mtl-explorer">GitHub</a>
+        <details class="footer-note">
+          <summary>Use responsibly</summary>
+          <p>MTL Explorer is a tool for reviewing and planning routes. Conditions and map data change. Use your own judgment in the field.</p>
+        </details>
+      </div>
+    </footer>
+  </div>
+
+  <script>
+    const VIDEO_PREVIEW_IMAGE = "./images/video_title_quick_into_bright.jpg";
+    const FEATURE_ASSET_PATH = "./assets/feature-showcase";
+
+    const featureShots = {
+      filters: { title: "Filters and map coloring", alt: "MTL Explorer map with track filters and colored GPS lines" },
+      "map-layers": { title: "Map layers", alt: "MTL Explorer layer panel with base map and overlay controls" },
+      "photo-map": { title: "Photos on the map", alt: "MTL Explorer map with photo markers along GPS tracks" },
+      "photo-viewer": { title: "Photo viewer", alt: "MTL Explorer photo viewer opened above a GPS track map" },
+      "route-planning": { title: "Route planning", alt: "MTL Explorer route planner with waypoints and an elevation profile" },
+      "segment-zones": { title: "Segment zones", alt: "MTL Explorer segment analyzer with gates drawn on the map" },
+      "segment-results": { title: "Segment results", alt: "MTL Explorer segment analyzer results table" },
+      "segment-compare": { title: "Side-by-side comparison", alt: "MTL Explorer segment comparison charts" },
+      "segment-replay": { title: "Segment replay", alt: "MTL Explorer segment replay map with multiple attempts" },
+      "statistics-overview": { title: "Activity overview", alt: "MTL Explorer statistics overview with totals and activity breakdown" },
+      "statistics-trends": { title: "Trend charts", alt: "MTL Explorer statistics trend charts" },
+      "animated-map": { title: "Animated maps", alt: "MTL Explorer animated map playback controls" },
+      "mobile-map": { title: "Mobile map view", alt: "MTL Explorer running on a smartphone with a GPS track map and mobile navigation" },
+      "mobile-statistics": { title: "Mobile statistics", alt: "MTL Explorer smartphone statistics screen with trend charts" },
+      "mobile-map-angle": { title: "Mobile map angle", alt: "Angled smartphone view of the MTL Explorer track map" },
+      "mobile-segments": { title: "Mobile segment analysis", alt: "MTL Explorer smartphone segment analyzer with race results" },
+      "mobile-gps-offline": { title: "GPS with offline tracks", alt: "MTL Explorer smartphone map showing current GPS position with historical tracks" },
+      "other-features": { title: "Quick intro", alt: "MTL Explorer quick intro image with a bright mountain landscape", image: VIDEO_PREVIEW_IMAGE }
+    };
+
+    const tourGroups = [
+      {
+        kicker: "Explore",
+        title: "Load your track history on one map.",
+        summary: "Import thousands of GPS tracks. View them all together on a private map you host yourself.",
+        leadShot: "filters",
+        supportShots: ["map-layers", "photo-map", "animated-map"],
+        items: [
+          { title: "Massive track display", description: "Render tens of thousands of tracks simultaneously without bogging down your browser.", shot: "filters" },
+          { title: "Quick route stats", description: "Click any track to check the date, distance, time, and moving speed.", shot: "filters" },
+          { title: "Related tracks", description: "Pull up previous and next tracks to see where you were right before or after a trip.", shot: "photo-map" },
+          { title: "Custom map coloring", description: "Color-code your routes by activity type, year, or a custom SQL rule.", shot: "animated-map" }
+        ]
+      },
+      {
+        kicker: "Segments",
+        title: "Check segment times.",
+        summary: "Create virtual checkpoints to measure your speed between specific locations on the map.",
+        leadShot: "segment-zones",
+        supportShots: ["segment-results", "segment-compare", "segment-replay"],
+        items: [
+          { title: "Draw segment checkpoints", description: "Drop markers on any trail. The app finds every past track that crossed them.", shot: "segment-zones" },
+          { title: "Segment results", description: "Check detailed graphs to compare your speed across all tracks that hit those checkpoints.", shot: "segment-results" },
+          { title: "Analyze effort", description: "Compare distances and pacing on overlapping route sections.", shot: "segment-compare" },
+          { title: "Race mode", description: "Visually replay tracks against each other directly on the map, just for fun.", shot: "segment-replay" }
+        ]
+      },
+      {
+        kicker: "Statistics",
+        title: "Dig into the data.",
+        summary: "Analyze your distance, moving time, and energy spent. Compare trends by year, quarter, month, or week.",
+        leadShot: "statistics-overview",
+        supportShots: ["statistics-trends", "statistics-overview", "filters"],
+        items: [
+          { title: "Detailed graphs", description: "Check your speed and elevation profile for any given track.", shot: "statistics-overview" },
+          { title: "Trend charts", description: "Compare your historical data over specific time periods.", shot: "statistics-trends" },
+          { title: "Mechanical energy", description: "Estimate your energy expenditure using just GPS data. No extra sensors required.", shot: "filters" },
+          { title: "Exploration score", description: "An algorithm calculates exactly how much brand-new territory you covered on a run.", shot: "statistics-overview" }
+        ]
+      },
+      {
+        kicker: "Plan routes",
+        title: "Plan your next route.",
+        summary: "Draw new routes point-by-point. Live stats for total distance and ascent update automatically while you draw.",
+        leadShot: "route-planning",
+        supportShots: ["route-planning", "map-layers", "other-features"],
+        items: [
+          { title: "Live route planner", description: "Click on the map to draft a route. It tracks distance and climbing in real time.", shot: "route-planning" },
+          { title: "Waymarked trails layer", description: "Turn on the public trails layer to overlay known hiking and cycling routes.", shot: "map-layers" },
+          { title: "GPX export", description: "Save your planned route and export it as a GPX file for your next adventure.", shot: "route-planning" }
+        ]
+      },
+      {
+        kicker: "Operate",
+        title: "Filters and control.",
+        summary: "Filter your archive, manage custom map views, and control your local instance.",
+        leadShot: "other-features",
+        supportShots: ["other-features", "statistics-overview", "filters"],
+        items: [
+          { title: "SQL-driven filters", description: "Write flexible filters to isolate specific activities. The map updates instantly.", shot: "other-features" },
+          { title: "Custom map coloring", description: "Tune track colors by activity, year, filter, or SQL rule so dense archives stay readable.", shot: "filters" },
+          { title: "Automated cleanup", description: "Process files in the background, detect duplicates, and flag bad GPS data.", shot: "other-features" },
+          { title: "Offline support setup", description: "Use cached map tiles and track data locally when internet access drops.", shot: "statistics-overview" }
+        ]
+      },
+      {
+        kicker: "Mobile",
+        title: "Works flawlessly on your phone.",
+        summary: "It runs in your mobile browser. You can check maps, stats, and your GPS position while out on the trail.",
+        layout: "phone",
+        phoneShots: ["mobile-statistics", "mobile-map-angle", "mobile-segments", "mobile-gps-offline"],
+        items: [
+          { title: "Responsive statistics", description: "The interface adapts so you can check stats and review tracks comfortably on a phone.", shot: "mobile-statistics" },
+          { title: "Mobile map", description: "Check your archive on a narrow screen. Navigate past routes directly on the trail.", shot: "mobile-map-angle" },
+          { title: "Segment analysis on the go", description: "Check your past times for a specific hill climb while you are standing at the bottom.", shot: "mobile-segments" },
+          { title: "Location tracking", description: "Show your current GPS coordinates on the map alongside your historical routes.", shot: "mobile-gps-offline" }
+        ]
+      }
+    ];
+
+    function escapeHtml(value) {
+      return value.replace(/[&<>"']/g, (char) => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;"
+      }[char]));
+    }
+
+    function screenshotButton(shotId, label, className, loading = "lazy") {
+      const shot = featureShots[shotId];
+      return `
+        <button class="screenshot-button ${className}" type="button" data-feature-shot="${escapeHtml(shotId)}" aria-label="Open ${escapeHtml(shot.title)} screenshot">
+          <img src="${featureAsset("preview", shotId)}" alt="${escapeHtml(shot.alt)}" loading="${loading}">
+          <span class="screenshot-label">${escapeHtml(label)}</span>
+        </button>
+      `;
+    }
+
+    function renderFeatureTours() {
+      const root = document.getElementById("feature-tours");
+      if (!root) {
+        return;
+      }
+
+      root.innerHTML = tourGroups.map((tour) => {
+        const isPhoneTour = tour.layout === "phone";
+        const mainShotClass = "tour-main-shot" + (isPhoneTour ? " phone-shot phone-shot-main" : "");
+        const supportShotClass = isPhoneTour ? "phone-shot" : "";
+        const mediaMarkup = isPhoneTour ? `
+          <div class="tour-media">
+            <div class="phone-preview-grid" aria-label="${escapeHtml(tour.kicker)} screenshots">
+              ${tour.phoneShots.map((shotId) => screenshotButton(shotId, featureShots[shotId].title, "phone-shot")).join("")}
+            </div>
+          </div>` : `
+          <div class="tour-media">
+            ${screenshotButton(tour.leadShot, featureShots[tour.leadShot].title, mainShotClass)}
+            <div class="tour-proof-grid" aria-label="${escapeHtml(tour.kicker)} screenshots">
+              ${tour.supportShots.map((shotId) => screenshotButton(shotId, featureShots[shotId].title, supportShotClass)).join("")}
+            </div>
+          </div>`;
+        return `
+        <article class="feature-tour${isPhoneTour ? " feature-tour-phone" : ""}">
+          ${mediaMarkup}
+          <div class="tour-copy">
+            <p class="tour-kicker">${escapeHtml(tour.kicker)}</p>
+            <h3>${escapeHtml(tour.title)}</h3>
+            <p>${escapeHtml(tour.summary)}</p>
+            <ul class="tour-points">
+              ${tour.items.map((item) => `<li><span><strong>${escapeHtml(item.title)}</strong>${escapeHtml(item.description)}</span></li>`).join("")}
+            </ul>
+          </div>
+        </article>
+      `;
+      }).join("");
+    }
+
+    function setupVideos() {
+      document.querySelectorAll(".js-video").forEach((frame) => {
+        const id = frame.dataset.videoId;
+        const img = frame.querySelector("img");
+        const fallback = frame.querySelector(".fallback-preview");
+        img.src = VIDEO_PREVIEW_IMAGE;
+        img.addEventListener("error", () => {
+          fallback.style.display = "grid";
+        }, { once: true });
+        img.addEventListener("load", () => {
+          if (img.naturalWidth > 120) {
+            fallback.style.display = "none";
+          }
+        });
+        const playVideo = () => {
+          if (frame.classList.contains("is-loaded")) {
+            return;
+          }
+          const iframe = document.createElement("iframe");
+          iframe.title = frame.dataset.title || "YouTube video";
+          iframe.allow = "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share";
+          iframe.allowFullscreen = true;
+          iframe.src = `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&rel=0&modestbranding=1`;
+          frame.appendChild(iframe);
+          frame.classList.add("is-loaded");
+          frame.removeAttribute("role");
+          frame.removeAttribute("tabindex");
+          frame.removeAttribute("aria-label");
+        };
+        frame.addEventListener("click", playVideo);
+        frame.addEventListener("keydown", (event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            playVideo();
+          }
+        });
+      });
+    }
+
+    function featureAsset(size, shotId) {
+      const shot = featureShots[shotId];
+      return shot.image || FEATURE_ASSET_PATH + "/" + size + "/" + shotId + ".webp";
+    }
+
+    function setupFeatureProofs() {
+      const dialog = document.querySelector(".js-feature-dialog");
+      const dialogImage = document.querySelector(".js-feature-dialog-image");
+      const dialogTitle = document.querySelector(".js-feature-dialog-title");
+      const dialogClose = document.querySelector(".js-feature-dialog-close");
+
+      if (!dialog || !dialogImage || !dialogTitle || !dialogClose) {
+        return;
+      }
+
+      document.querySelectorAll("[data-feature-shot]").forEach((trigger) => {
+        trigger.addEventListener("click", () => {
+          const shotId = trigger.dataset.featureShot;
+          const shot = featureShots[shotId];
+          if (!shot || typeof dialog.showModal !== "function") {
+            return;
+          }
+          dialogImage.src = featureAsset("large", shotId);
+          dialogImage.alt = shot.alt;
+          dialogImage.classList.toggle("is-cropped", !trigger.classList.contains("phone-shot"));
+          dialogTitle.textContent = shot.title;
+          dialog.showModal();
+        });
+      });
+
+      dialogClose.addEventListener("click", () => dialog.close());
+      dialogImage.addEventListener("click", () => dialog.close());
+      dialog.addEventListener("click", (event) => {
+        if (event.target === dialog) {
+          dialog.close();
+        }
+      });
+    }
+
+    function setupReveal() {
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add("is-visible");
+            observer.unobserve(entry.target);
+          }
+        });
+      }, { threshold: 0.12 });
+
+      document.querySelectorAll(".reveal").forEach((item) => observer.observe(item));
+    }
+
+    function setupHeaderState() {
+      const topbar = document.querySelector(".topbar");
+      const sectionLinks = Array.from(document.querySelectorAll('nav a[href^="#"]'));
+      const sections = sectionLinks
+        .map((link) => document.querySelector(link.getAttribute("href")))
+        .filter(Boolean);
+      let ticking = false;
+
+      if (topbar) {
+        const syncCompactState = () => {
+          topbar.classList.toggle("is-compact", window.scrollY > 36);
+        };
+        syncCompactState();
+        window.addEventListener("scroll", syncCompactState, { passive: true });
+      }
+
+      if (!sections.length) {
+        return;
+      }
+
+      const syncActiveSection = () => {
+        const activationLine = window.scrollY + 180;
+        let activeId = "";
+
+        sections.forEach((section) => {
+          if (section.offsetTop <= activationLine) {
+            activeId = section.id;
+          }
+        });
+
+        sectionLinks.forEach((link) => {
+          link.classList.toggle("is-active", link.getAttribute("href") === "#" + activeId);
+        });
+      };
+
+      const requestSyncActiveSection = () => {
+        if (ticking) {
+          return;
+        }
+        ticking = true;
+        window.requestAnimationFrame(() => {
+          syncActiveSection();
+          ticking = false;
+        });
+      };
+
+      syncActiveSection();
+      window.addEventListener("scroll", requestSyncActiveSection, { passive: true });
+    }
+
+    renderFeatureTours();
+    lucide.createIcons();
+    setupVideos();
+    setupFeatureProofs();
+    setupReveal();
+    setupHeaderState();
+  </script>
+</body>
+</html>

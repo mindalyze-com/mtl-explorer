@@ -30,9 +30,9 @@ public enum SupportedTrackFormat {
     private final String extension;
     /**
      * -- GETTER --
-     *  The GPSBabel
-     *  format identifier, or
-     *  for GPX (no conversion needed).
+     * The GPSBabel
+     * format identifier, or
+     * for GPX (no conversion needed).
      */
     private final String gpsBabelFormat;
 

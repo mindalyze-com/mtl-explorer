@@ -119,7 +119,7 @@ public class ExplorationScoreQueryRepository {
 
         MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("trackId", trackId)
-                .addValue("trackType", "SIMPLIFIED")
+                .addValue("trackType", "SIMPLIFIED_SHAPE")
                 .addValue("precisionInMeter", precisionInMeter)
                 .addValue("corridorWidthM", corridorWidthM);
 

@@ -139,6 +139,8 @@ public class TrackTimeBetweenTwoPoints {
                 trackId
         );
 
+        recomputeCrossingDeltas(crossingList);
+
         // Annotate each segment (previous crossing → this crossing) with notes
         // derived from the raw samples that fall inside the segment — currently
         // just stop detection so the client can flag segments where racer stats
@@ -197,9 +199,6 @@ public class TrackTimeBetweenTwoPoints {
             }
         }
 
-        // Track the single most recent crossing on this track (regardless of which trigger point)
-        Crossing lastCrossingOnThisTrack = null;
-
         // Process consecutive point pairs to detect state transitions
         for (int i = 1; i < gpsTrackDataPoints.size(); i++) {
             GpsTrackDataPoint p1 = gpsTrackDataPoints.get(i - 1);
@@ -234,9 +233,7 @@ public class TrackTimeBetweenTwoPoints {
                         // the closest approach to the center.
                         GpsTrackDataPoint crossingPoint = interpolateCrossingPointByFactor(
                                 p1, p2, ca.factor, gpsTrackId);
-                        recordCrossing(crossingPoint, triggerPoint, gpsTrackId,
-                                lastCrossingOnThisTrack, crossings);
-                        lastCrossingOnThisTrack = crossings.get(crossings.size() - 1);
+                        recordCrossing(crossingPoint, triggerPoint, gpsTrackId, crossings);
                         log.debug("Tangent crossing detected for trigger point '{}'", triggerPoint.name);
                     }
                     // else: segment never touches the zone; nothing to do.
@@ -251,8 +248,7 @@ public class TrackTimeBetweenTwoPoints {
                         // Exiting the zone on this segment: emit the crossing at the
                         // closest-to-center point accumulated during the visit.
                         emitBestCrossing(bestDuringVisit.get(triggerPoint.name),
-                                triggerPoint, gpsTrackId, lastCrossingOnThisTrack, crossings);
-                        lastCrossingOnThisTrack = crossings.get(crossings.size() - 1);
+                                triggerPoint, gpsTrackId, crossings);
                         bestDuringVisit.remove(triggerPoint.name);
                         triggerStates.put(triggerPoint.name, TriggerState.OUTSIDE);
                         log.debug("Exited trigger point '{}' zone; crossing recorded at closest point to center",
@@ -267,27 +263,61 @@ public class TrackTimeBetweenTwoPoints {
             if (triggerStates.get(triggerPoint.name) == TriggerState.INSIDE) {
                 ClosestCandidate best = bestDuringVisit.get(triggerPoint.name);
                 if (best != null) {
-                    emitBestCrossing(best, triggerPoint, gpsTrackId, lastCrossingOnThisTrack, crossings);
-                    lastCrossingOnThisTrack = crossings.get(crossings.size() - 1);
+                    emitBestCrossing(best, triggerPoint, gpsTrackId, crossings);
                 }
             }
         }
 
         // Sort crossings by timestamp to ensure chronological order
         // (multiple trigger points could be crossed between the same two GPS points)
-        crossings.sort(Comparator.comparing(c -> c.gpsTrackDataPoint.getPointTimestamp()));
+        crossings.sort(Comparator.comparing(
+                c -> c.gpsTrackDataPoint != null ? c.gpsTrackDataPoint.getPointTimestamp() : null,
+                Comparator.nullsLast(Comparator.naturalOrder())));
     }
 
     private void emitBestCrossing(
             ClosestCandidate best,
             TriggerPoint triggerPoint,
             Long gpsTrackId,
-            Crossing lastCrossingOnThisTrack,
             List<Crossing> crossings
     ) {
         GpsTrackDataPoint crossingPoint = interpolateCrossingPointByFactor(
                 best.p1, best.p2, best.factor, gpsTrackId);
-        recordCrossing(crossingPoint, triggerPoint, gpsTrackId, lastCrossingOnThisTrack, crossings);
+        recordCrossing(crossingPoint, triggerPoint, gpsTrackId, crossings);
+    }
+
+    private void recomputeCrossingDeltas(List<Crossing> crossings) {
+        if (crossings == null || crossings.isEmpty()) {
+            return;
+        }
+
+        Crossing previous = null;
+        for (Crossing crossing : crossings) {
+            crossing.timeInSecSinceLastTriggerPoint = 0;
+            crossing.distanceInMeterSinceLastTriggerPoint = 0;
+            crossing.avgSpeedSinceLastTriggerPoint = 0;
+
+            if (previous != null
+                && crossing.gpsTrackDataPoint != null
+                && previous.gpsTrackDataPoint != null
+                && crossing.gpsTrackDataPoint.getPointTimestamp() != null
+                && previous.gpsTrackDataPoint.getPointTimestamp() != null
+                && crossing.gpsTrackDataPoint.getDistanceInMeterSinceStart() != null
+                && previous.gpsTrackDataPoint.getDistanceInMeterSinceStart() != null) {
+
+                double timeInSec = (crossing.gpsTrackDataPoint.getPointTimestamp().getTime()
+                                    - previous.gpsTrackDataPoint.getPointTimestamp().getTime()) / 1000.0;
+                double distanceInMeter = crossing.gpsTrackDataPoint.getDistanceInMeterSinceStart()
+                                         - previous.gpsTrackDataPoint.getDistanceInMeterSinceStart();
+
+                crossing.timeInSecSinceLastTriggerPoint = timeInSec;
+                crossing.distanceInMeterSinceLastTriggerPoint = distanceInMeter;
+                if (timeInSec > 0) {
+                    crossing.avgSpeedSinceLastTriggerPoint = distanceInMeter / timeInSec * 3600 / 1000;
+                }
+            }
+            previous = crossing;
+        }
     }
 
     // ---------------------------------------------------------------------
@@ -408,41 +438,17 @@ public class TrackTimeBetweenTwoPoints {
             GpsTrackDataPoint crossingPoint,
             TriggerPoint triggerPoint,
             Long gpsTrackId,
-            Crossing lastCrossingOnThisTrack,
             List<Crossing> crossings
     ) {
-        double timeInSecSinceLastTriggerPoint = 0;
-        double distanceInMeterSinceLastTriggerPoint = 0;
-        double avgSpeedSinceLastTriggerPoint = 0;
-
-        if (lastCrossingOnThisTrack != null
-            && crossingPoint.getPointTimestamp() != null
-            && lastCrossingOnThisTrack.gpsTrackDataPoint != null
-            && lastCrossingOnThisTrack.gpsTrackDataPoint.getPointTimestamp() != null
-            && lastCrossingOnThisTrack.gpsTrackDataPoint.getDistanceInMeterSinceStart() != null
-            && crossingPoint.getDistanceInMeterSinceStart() != null) {
-
-            timeInSecSinceLastTriggerPoint = (1.0d * crossingPoint.getPointTimestamp().getTime()
-                                              - lastCrossingOnThisTrack.gpsTrackDataPoint.getPointTimestamp().getTime()) / 1000;
-
-            distanceInMeterSinceLastTriggerPoint = (crossingPoint.getDistanceInMeterSinceStart()
-                                                    - lastCrossingOnThisTrack.gpsTrackDataPoint.getDistanceInMeterSinceStart());
-
-            if (timeInSecSinceLastTriggerPoint > 0) {
-                avgSpeedSinceLastTriggerPoint = distanceInMeterSinceLastTriggerPoint
-                                                / timeInSecSinceLastTriggerPoint * 3600 / 1000; // km/h
-            }
-        }
-
         // Create and store the crossing
         Crossing crossing = new Crossing(
                 triggerPoint,
                 crossingPoint,
                 gpsTrackId,
                 0.0, // Distance to trigger point is approximately 0 at the crossing
-                timeInSecSinceLastTriggerPoint,
-                distanceInMeterSinceLastTriggerPoint,
-                avgSpeedSinceLastTriggerPoint,
+                0,
+                0,
+                0,
                 null // segment notes — populated later by annotateSegmentNotes()
         );
 
@@ -488,6 +494,12 @@ public class TrackTimeBetweenTwoPoints {
                                    + (p2.getDistanceInMeterSinceStart() - p1.getDistanceInMeterSinceStart()) * t;
         }
 
+        Double interpolatedDuration = null;
+        if (p1.getDurationSinceStart() != null && p2.getDurationSinceStart() != null) {
+            interpolatedDuration = p1.getDurationSinceStart()
+                                   + (p2.getDurationSinceStart() - p1.getDurationSinceStart()) * t;
+        }
+
         // Create a new GpsTrackDataPoint for the interpolated crossing
         GpsTrackDataPoint crossingPoint = new GpsTrackDataPoint();
 
@@ -503,6 +515,7 @@ public class TrackTimeBetweenTwoPoints {
 
         crossingPoint.setPointTimestamp(interpolatedTimestamp);
         crossingPoint.setDistanceInMeterSinceStart(interpolatedDistance);
+        crossingPoint.setDurationSinceStart(interpolatedDuration);
 
         crossingPoint.setPointIndex(p1.getPointIndex() != null && p2.getPointIndex() != null
                 ? (int) (p1.getPointIndex() + (p2.getPointIndex() - p1.getPointIndex()) * t)

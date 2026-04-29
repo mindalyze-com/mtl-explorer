@@ -3,7 +3,7 @@ import { formatDurationSmart } from '@/utils/Utils'
 
 /**
  * Shared Highcharts theme builder.
- * Reads dark/light mode from data-theme on <html> at call time and returns
+ * Reads chart tokens from <html> at call time and returns
  * a fully styled options object.  Each chart component calls buildChartOptions()
  * from data() and then only mutates series[0].data in load().
  */
@@ -41,13 +41,13 @@ function compactNum(v: number): string {
 }
 
 export function buildChartOptions(config: ChartThemeConfig): Highcharts.Options {
-  const isDark = document.documentElement.getAttribute('data-theme') === 'dark'
-
-  const textColor   = isDark ? '#94a3b8' : '#64748b'
-  const gridColor   = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'
-  const tooltipBg   = isDark ? 'rgba(15,23,42,0.97)'   : 'rgba(255,255,255,0.97)'
-  const tooltipText = isDark ? '#e2e8f0'               : '#334155'
-  const borderColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'
+  const styles = getComputedStyle(document.documentElement)
+  const token = (name: string) => styles.getPropertyValue(name).trim()
+  const textColor = token('--chart-text')
+  const gridColor = token('--chart-grid')
+  const tooltipBg = token('--chart-tooltip-bg')
+  const tooltipText = token('--chart-tooltip-text')
+  const borderColor = token('--border-default')
   const c = config.seriesColor
   const isDistance = config.xMode === 'distance'
 
@@ -73,11 +73,11 @@ export function buildChartOptions(config: ChartThemeConfig): Highcharts.Options 
       type: 'linear',
       crosshair: {
         width: 1,
-        color: isDark ? 'rgba(255,255,255,0.18)' : 'rgba(0,0,0,0.1)',
+        color: borderColor,
         dashStyle: 'Dash',
       },
       labels: {
-        style: { color: textColor, fontSize: '11px' },
+        style: { color: textColor, fontSize: '12px' },
         formatter(this: any) {
           if (isDistance) {
             return parseFloat((this.value as number).toFixed(1)) + '\u202fkm'
@@ -93,7 +93,7 @@ export function buildChartOptions(config: ChartThemeConfig): Highcharts.Options 
       gridLineColor: gridColor,
       title: { text: undefined },
       labels: {
-        style: { color: textColor, fontSize: '11px' },
+        style: { color: textColor, fontSize: '12px' },
         formatter(this: any) {
           const n = compactNum(this.value as number)
           return (this.isLast && config.unit) ? n + '\u202f' + config.unit : n

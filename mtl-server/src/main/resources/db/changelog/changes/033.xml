@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.10.xsd">
+
+    <changeSet id="20260426_1_web_client_environment_log" author="patrick.heusser">
+
+        <createTable tableName="web_client_environment_log">
+            <column name="id" type="bigint" autoIncrement="true" startWith="10000050" incrementBy="50">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="create_date" type="timestamp" defaultValueComputed="CURRENT_TIMESTAMP"/>
+            <column name="user_id" type="varchar(32)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="ip_address" type="varchar(64)"/>
+            <column name="user_agent" type="varchar(1000)"/>
+            <column name="timezone" type="varchar(100)"/>
+            <column name="browser_language" type="varchar(32)"/>
+            <column name="browser_languages" type="varchar(500)"/>
+            <column name="screen_width" type="int"/>
+            <column name="screen_height" type="int"/>
+            <column name="available_screen_width" type="int"/>
+            <column name="available_screen_height" type="int"/>
+            <column name="viewport_width" type="int"/>
+            <column name="viewport_height" type="int"/>
+            <column name="device_pixel_ratio" type="double precision"/>
+            <column name="color_depth" type="int"/>
+            <column name="platform" type="varchar(100)"/>
+            <column name="hardware_concurrency" type="int"/>
+            <column name="device_memory_gb" type="double precision"/>
+            <column name="touch_points" type="int"/>
+            <column name="app_display_mode" type="varchar(32)"/>
+            <column name="online" type="boolean"/>
+            <column name="client_payload_json" type="text"/>
+        </createTable>
+
+        <createIndex indexName="WEB_CLIENT_ENV_LOG_IX_CREATE_DATE" tableName="web_client_environment_log" unique="false">
+            <column name="create_date"/>
+        </createIndex>
+
+        <createIndex indexName="WEB_CLIENT_ENV_LOG_IX_USER_ID" tableName="web_client_environment_log" unique="false">
+            <column name="user_id"/>
+        </createIndex>
+
+        <createIndex indexName="WEB_CLIENT_ENV_LOG_IX_USER_ID_CREATE_DATE" tableName="web_client_environment_log" unique="false">
+            <column name="user_id"/>
+            <column name="create_date"/>
+        </createIndex>
+
+        <createIndex indexName="WEB_REQUEST_LOG_IX_USER_ID" tableName="web_request_log" unique="false">
+            <column name="user_id"/>
+        </createIndex>
+
+    </changeSet>
+
+</databaseChangeLog>

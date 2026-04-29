@@ -44,7 +44,7 @@
                 @tool-opened="onToolOpened('animateTool')"
                 @tool-closed="onToolClosed"/>
 
-    <MeasureBetweenPoints ref="measureTool" :map="overlayMap" @active-changed="onMeasureActiveChanged" @tool-opened="onToolOpened('measureTool')" @tool-closed="onToolClosed"/>
+    <MeasureBetweenPoints ref="measureTool" :map="overlayMap" @active-changed="onMeasureActiveChanged" @tool-opened="onToolOpened('measureTool')" @tool-closed="onToolClosed" @show-track-details="onMeasureShowTrackDetails"/>
 
     <PlannerTool ref="plannerTool" :map="overlayMap" @active-changed="onPlannerActiveChanged" @tool-opened="onToolOpened('plannerTool')" @tool-closed="onToolClosed"/>
 
@@ -89,11 +89,17 @@
 
     <!-- ─── Top progress bar ─── -->
     <transition name="bar-fade">
-      <div class="mtl-progress-bar" v-if="showLoader || loadingTracks10m"></div>
+      <div class="mtl-progress-bar" v-if="showLoader || loadingTrackBatches || loadingTracks10m"></div>
     </transition>
 
     <!-- ─── Admin (managed via NavigationSheet, same as all tools) ─── -->
-    <AdminDialog ref="adminTool" @tool-opened="onToolOpened('adminTool')" @tool-closed="onToolClosed" @reload-tracks="onAdminReloadTracks" />
+    <AdminDialog
+      ref="adminTool"
+      @tool-opened="onToolOpened('adminTool')"
+      @tool-closed="onToolClosed"
+      @reload-tracks="onAdminReloadTracks"
+      @refresh-freshness-data="onAdminRefreshFreshnessData"
+    />
 
     <!-- ─── Offline banner ─── -->
     <transition name="fade">
@@ -119,8 +125,34 @@
       </div>
     </transition>
 
+    <!-- ─── Data freshness banner ─── -->
+    <transition name="fade">
+      <div v-if="showDataFreshnessBanner" class="mtl-data-freshness">
+        <div class="mtl-data-freshness__content">
+          <i class="bi bi-arrow-repeat"></i>
+          <div class="mtl-data-freshness__text">
+            <div class="mtl-data-freshness__title">New data available</div>
+            <div class="mtl-data-freshness__detail">Tracks, media, or settings changed since this view loaded.</div>
+          </div>
+        </div>
+        <div class="mtl-data-freshness__actions">
+          <button class="mtl-data-freshness__btn mtl-data-freshness__btn--primary"
+                  :disabled="freshnessReloading"
+                  @click="onMapFreshnessBrowserReload">
+            <i class="bi bi-arrow-clockwise"></i>
+            <span>Reload</span>
+          </button>
+          <button class="mtl-data-freshness__btn"
+                  :disabled="freshnessReloading"
+                  @click="onDataFreshnessDismiss">
+            Dismiss
+          </button>
+        </div>
+      </div>
+    </transition>
+
     <!-- ─── Track details bottom sheet ─── -->
-    <BottomSheet v-model="trackDetailsVisible" :detents="trackDetailsDetents" :initial-detent="trackDetailsInitialDetent" :z-index="5100" @closed="onTrackDetailsSheetClosed">
+    <BottomSheet v-model="trackDetailsVisible" :detents="trackDetailsDetents" :initial-detent="trackDetailsInitialDetent" :z-index="5300" @closed="onTrackDetailsSheetClosed">
       <template #title>
         <div class="td-sheet-header">
           <span class="td-title-label"><i class="bi bi-info-circle"></i><span class="td-title-text">Track Details</span></span>
@@ -219,6 +251,7 @@
 <script>
 import { markRaw, computed } from 'vue';
 import { useIndexerStatus } from '@/composables/useIndexerStatus';
+import { useDataFreshness } from '@/composables/useDataFreshness';
 import maplibregl from 'maplibre-gl';
 import { formatDate, formatDateAndTime, formatDateAndTimeWithSeconds } from '@/utils/Utils';
 import 'maplibre-gl/dist/maplibre-gl.css';
@@ -231,9 +264,8 @@ import MeasureBetweenPoints from "@/components/measure/MeasureBetweenPoints.vue"
 import PlannerTool from "@/planner/components/PlannerTool.vue";
 import axios from 'axios';
 import { apiClient } from '@/utils/apiClient';
-import { fetchTrackIdsWithinDistanceOfPoint, fetchTrackDetails, checkServerAuth } from '@/utils/ServiceHelper';
-import { clearToken, isAuthError } from '@/utils/auth';
-import router from '@/router';
+import { fetchTrackIdsWithinDistanceOfPoint, fetchTrackPointsForRenderedShape, checkServerAuth } from '@/utils/ServiceHelper';
+import { getToken, isAuthError, redirectToLoginAfterAuthFailure } from '@/utils/auth';
 import { MediaOverlay } from "@/layers/MediaOverlay";
 import { HeatmapOverlay } from "@/layers/HeatmapOverlay";
 import { GeoDrawingOverlay } from "@/layers/GeoDrawingOverlay";
@@ -251,13 +283,26 @@ import ActivityTypeBadge from "@/components/ui/ActivityTypeBadge.vue";
 import MediaPreview from "@/components/map/MediaPreview.vue";
 import { FilterService } from "@/components/filter/FilterService";
 import { ColorPalette } from "@/components/filter/ColorPalette";
-import { trackStore, OVERVIEW_PRECISION } from "@/utils/trackStore";
+import {
+  BACKGROUND_TRACK_PRECISION,
+  DETAIL_TRACK_PRECISION,
+  OVERVIEW_PRECISION,
+  TRACK_LOAD_BATCH_SIZE,
+} from "@/utils/tracks/trackConstants";
+import {
+  applyTrackFilter,
+  fetchDetailTrackAtPrecision,
+  isTrackCachePopulated,
+  loadCachedTrackCollection,
+  loadTrackCollectionPaged,
+} from "@/utils/tracks/trackCollectionLoader";
 import { fetchMapConfig, clearMapConfigCache } from "@/utils/mapConfigService";
 import { buildLocalVectorStyle, buildRemoteRasterStyle, buildFallbackRasterStyle, SWISSTOPO_STYLE_URL, SWISSTOPO_COLOR_STYLE_URL, MAP_OVERLAYS } from "@/utils/mapStyle";
 import { TRACK_COLOR, TRACK_SELECTED_COLOR } from '@/utils/trackColors';
 import { GlobeControl, computeGlobeMinZoom } from "@/components/map/GlobeControl";
 import { ensureLowZoomCached, loadLowZoomFromCache } from "@/utils/lowZoomCacheService";
 import { describeError, startStartupTimer, startupError, startupLog, startupWarn } from '@/utils/startupDiagnostics';
+import { getAppliedDataFreshnessToken, setAppliedDataFreshnessToken } from '@/utils/dataFreshnessStorage';
 import thumbOsmTopo from '@/assets/map-layer/osm_topo.jpg';
 import thumbSwissColor from '@/assets/map-layer/swiss_color_contrast.jpg';
 import thumbSwissLight from '@/assets/map-layer/swiss_topo_light.jpg';
@@ -286,6 +331,10 @@ const DETAIL_MAX_CONCURRENT_1M = 1;
 
 /** Minimum zoom level to show individual GPS track points with direction arrows. */
 const TRACK_POINTS_MIN_ZOOM = 16;
+const TRACK_POINT_ARROW_ICON_SIZE = 24;
+const TRACK_POINT_ARROW_COLOR = '#2563eb';
+const TRACK_POINT_ARROW_BACKGROUND_COLOR = '#ffffff';
+const DEFAULT_DEVICE_PIXEL_RATIO = 1;
 
 /** Zoom threshold: entering globe — auto-activates when zooming OUT past this level. */
 const GLOBE_ENTER_ZOOM = 3;
@@ -299,16 +348,49 @@ const GLOBE_EXIT_ZOOM = 3.8;
 /** Minimum zoom allowed in mercator mode — zoom 1 shows the full world. */
 const MERCATOR_MIN_ZOOM = 1.0;
 const MAP_LOAD_WATCHDOG_MS = 7000;
+const DATA_FRESHNESS_DISMISS_MS = 5 * 60 * 1000;
 
-/** Map zoom level → desired track precision in meters. */
 function precisionForZoom(zoom) {
-  if (zoom >= 17) return 1;
-  if (zoom >= 6) return 10;
+  if (zoom >= 17) return DETAIL_TRACK_PRECISION;
+  if (zoom >= 6) return BACKGROUND_TRACK_PRECISION;
   return OVERVIEW_PRECISION;
 }
 
-// Non-reactive counter for concurrent detail fetches (not used in template/computed)
-let _detailFetchInFlight = 0;
+function collectionPrecisionForZoom(zoom) {
+  const precision = precisionForZoom(zoom);
+  return precision === DETAIL_TRACK_PRECISION ? BACKGROUND_TRACK_PRECISION : precision;
+}
+
+function isSameOrBetterPrecision(incomingPrecision, currentPrecision) {
+  return incomingPrecision <= currentPrecision;
+}
+
+function buildTrackOverviewFeatures(geojson) {
+  return (geojson?.features ?? [])
+    .filter(f => {
+      if (!f.geometry) return false;
+      if (f.geometry.type === 'LineString') return f.geometry.coordinates.length > 0;
+      return true; // Point (degenerate track)
+    })
+    .map(f => {
+      const startCoord = f.geometry.type === 'LineString'
+        ? f.geometry.coordinates[0]
+        : f.geometry.coordinates;
+      return {
+        type: 'Feature',
+        geometry: { type: 'Point', coordinates: startCoord },
+        properties: { id: f.properties.id, filterGroup: f.properties.filterGroup },
+      };
+    });
+}
+
+function isAbortLikeError(error) {
+  return (
+    (error instanceof DOMException && error.name === 'AbortError') ||
+    (error instanceof Error && error.name === 'AbortError') ||
+    axios.isCancel(error)
+  );
+}
 
 /** Timestamp of the last demo-area-boundary toast. Used for 3-minute cooldown. */
 let _lastDemoAreaToastTime = 0;
@@ -341,14 +423,21 @@ function bearing(lng1, lat1, lng2, lat2) {
  * Create a direction-arrow image (canvas-based) for use as a MapLibre icon.
  * The arrow points UP (north) — icon-rotate handles orientation.
  */
-function createArrowImage(size = 24, color = '#2563eb', bgColor = '#ffffff') {
+function createArrowImage(
+  size = TRACK_POINT_ARROW_ICON_SIZE,
+  color = TRACK_POINT_ARROW_COLOR,
+  bgColor = TRACK_POINT_ARROW_BACKGROUND_COLOR,
+) {
   const canvas = document.createElement('canvas');
-  const ratio = window.devicePixelRatio || 1;
-  const px = size * ratio;
+  const ratio = Number.isFinite(window.devicePixelRatio) && window.devicePixelRatio > 0
+    ? window.devicePixelRatio
+    : DEFAULT_DEVICE_PIXEL_RATIO;
+  const px = Math.max(1, Math.round(size * ratio));
+  const pixelRatio = px / size;
   canvas.width = px;
   canvas.height = px;
   const ctx = canvas.getContext('2d');
-  ctx.scale(ratio, ratio);
+  ctx.scale(pixelRatio, pixelRatio);
 
   const cx = size / 2;
   const cy = size / 2;
@@ -378,7 +467,7 @@ function createArrowImage(size = 24, color = '#2563eb', bgColor = '#ffffff') {
   ctx.fill();
 
   const imgData = ctx.getImageData(0, 0, px, px);
-  return { width: px, height: px, data: imgData.data };
+  return { width: px, height: px, data: imgData.data, pixelRatio };
 }
 
 // Register PMTiles protocol once at module level
@@ -409,11 +498,29 @@ export default {
     ActivityTypeBadge,
     MediaPreview,
   },
+  props: {
+    fromLogin: {
+      type: Boolean,
+      default: false,
+    },
+  },
   emits: ['tracks-loaded', 'load-failed', 'syncing'],
   setup() {
     const { isIndexing, isJobPending } = useIndexerStatus();
+    const {
+      serverFreshnessToken,
+      lastChecked: dataFreshnessLastChecked,
+      refresh: refreshDataFreshness,
+      isFreshnessPollingHealthy,
+    } = useDataFreshness();
     const isAnyPending = computed(() => isIndexing.value || isJobPending.value);
-    return { isIndexing: isAnyPending };
+    return {
+      isIndexing: isAnyPending,
+      serverFreshnessToken,
+      dataFreshnessLastChecked,
+      refreshDataFreshness,
+      isFreshnessPollingHealthy,
+    };
   },
   data() {
     return {
@@ -433,6 +540,7 @@ export default {
       gpsDeviceEnabledDisabled: false,
       gpsFollowing: false,          // true = map auto-centres on GPS updates
       showLoader: false,
+      loadingTrackBatches: false,
       loadingTracks10m: false,
       mapThemes: [
         { name: 'OSM Topo', code: 'light-topo', thumbnail: thumbOsmTopo, featured: true },
@@ -489,7 +597,7 @@ export default {
         // Row 2: secondary (shown when expanded)
         { id: 'map', icon: 'bi bi-map', label: 'Map' },
         { id: 'animate', icon: 'bi bi-play-circle', label: 'Animate' },
-        { id: 'measure', icon: 'bi bi-stopwatch', label: 'Sectors' },
+        { id: 'measure', icon: 'bi bi-stopwatch', label: 'Segments' },
         { id: 'gps', icon: 'bi bi-geo-fill', alertIcon: 'bi bi-geo-alt-fill', driftedIcon: 'bi bi-geo-alt-fill', label: 'GPS' },
         { id: 'admin', icon: 'bi bi-gear', label: 'Admin' },
       ],
@@ -505,16 +613,24 @@ export default {
       isOffline: false,
       cachedTracksLoaded: false,
       initialLoadDone: false,
+      dismissedFreshnessToken: null,
+      freshnessDismissTimer: null,
+      freshnessReloading: false,
+      freshLoginAutoFreshenDone: false,
       retryTimeoutId: null,
       retryCount: 0,
       bulk10mController: null,
       trackPrecisions: markRaw(new Map()),
+      activeTrackFilterResult: null,
       detailAbortController: null,
       detailDebounceTimer: null,
       activeOverlays: [],
       _syncingView: false,  // guard to prevent recursive view-sync loops
       trackPointsVisible: true,             // toggle for direction-arrow point markers
-      trackPointsDetailsCache: markRaw(new Map()), // trackId → GpsTrackDataPoint[]
+      // Key: `${trackId}|${precision}` — cache must invalidate when the
+      // underlying SHAPE variant changes (precision upgrades from 10m → 1m),
+      // because pointIndex only matches within the same precision level.
+      trackPointsDetailsCache: markRaw(new Map()), // `${trackId}|${precision}` → GpsTrackDataPoint[]
       trackPointsPopup: null,             // active MapLibre popup for a clicked point
       // Geo drawing
       geoDrawingOverlay: null,
@@ -569,6 +685,7 @@ export default {
   beforeUnmount() {
     this.stopMapStatusPolling();
     if (this.retryTimeoutId) clearTimeout(this.retryTimeoutId);
+    if (this.freshnessDismissTimer) clearTimeout(this.freshnessDismissTimer);
     if (this._onOnline) window.removeEventListener('online', this._onOnline);
     if (this.detailDebounceTimer) clearTimeout(this.detailDebounceTimer);
     if (this.detailAbortController) this.detailAbortController.abort();
@@ -689,8 +806,197 @@ export default {
     geoDrawCanFinish() {
       return this.geoDrawingOverlay?.canFinish() ?? false;
     },
+    showDataFreshnessBanner() {
+      if (!this.initialLoadDone || this.freshnessReloading) return false;
+      if (this.shouldAutoFreshenAfterLogin()) return false;
+      const serverToken = this.serverFreshnessToken;
+      const appliedToken = getAppliedDataFreshnessToken();
+      if (!serverToken || !appliedToken) return false;
+      if (serverToken === appliedToken) return false;
+      return this.dismissedFreshnessToken == null;
+    },
+  },
+  watch: {
+    serverFreshnessToken() {
+      this.maybeAutoFreshenAfterLogin();
+    },
+    initialLoadDone() {
+      this.maybeAutoFreshenAfterLogin();
+    },
   },
   methods: {
+
+    shouldAutoFreshenAfterLogin() {
+      if (!this.fromLogin || this.freshLoginAutoFreshenDone || this.freshnessReloading) return false;
+      const serverToken = this.serverFreshnessToken;
+      const appliedToken = getAppliedDataFreshnessToken();
+      return Boolean(this.initialLoadDone && serverToken && appliedToken && serverToken !== appliedToken);
+    },
+
+    maybeAutoFreshenAfterLogin() {
+      if (!this.shouldAutoFreshenAfterLogin()) return;
+      this.freshLoginAutoFreshenDone = true;
+      startupLog('tracks', 'Freshness changed after login; refreshing map automatically');
+      console.info('[MTL] Freshness changed after login; refreshing map automatically.');
+      void this.onDataFreshnessReload({ silent: true });
+    },
+
+    async captureAppliedFreshnessToken() {
+      const freshness = await this.refreshDataFreshness();
+      const token = freshness?.freshnessToken ?? this.serverFreshnessToken;
+      if (!token) return;
+      setAppliedDataFreshnessToken(token);
+      this.dismissedFreshnessToken = null;
+      if (this.freshnessDismissTimer) {
+        clearTimeout(this.freshnessDismissTimer);
+        this.freshnessDismissTimer = null;
+      }
+    },
+
+    async onDataFreshnessReload(options = {}) {
+      if (this.freshnessReloading) return false;
+      const silent = options?.silent === true;
+      this.freshnessReloading = true;
+      this.showLoader = true;
+      this.loadingTrackBatches = true;
+      try {
+        const collectionPrecision = this.currentCollectionPrecision();
+        const serverData = await loadTrackCollectionPaged(collectionPrecision, {
+          onPage: (page) => this.mergeTrackPage(page),
+          pageSize: TRACK_LOAD_BATCH_SIZE,
+        });
+        this.totalTrackCount = serverData.standardFilterCount;
+        if (this.geojson) {
+          await this.mergeTrackResult(serverData, { pruneMissing: true });
+        } else {
+          await this.loadMapData(serverData);
+        }
+        this.cachedTracksLoaded = true;
+        this.initialLoadDone = true;
+        this.isOffline = false;
+        this.maybeLoadBackgroundTracks(serverData.filterResult);
+        this.scheduleDetailCheck();
+        await this.captureAppliedFreshnessToken();
+        if (!silent) {
+          this.$toast.add({ severity: 'success', summary: 'Map updated', detail: 'Fresh data loaded.', life: 2500 });
+        }
+        return true;
+      } catch (error) {
+        if (!silent) {
+          this.$toast.add({ severity: 'error', summary: 'Reload failed', detail: 'Fresh data could not be loaded.', life: 4000 });
+        }
+        startupWarn('tracks', 'Data freshness reload failed', describeError(error));
+        return false;
+      } finally {
+        this.loadingTrackBatches = false;
+        this.showLoader = false;
+        this.freshnessReloading = false;
+      }
+    },
+
+    onDataFreshnessDismiss() {
+      const token = this.serverFreshnessToken;
+      if (!token) return;
+      this.dismissedFreshnessToken = token;
+      if (this.freshnessDismissTimer) clearTimeout(this.freshnessDismissTimer);
+      this.freshnessDismissTimer = setTimeout(() => {
+        if (this.dismissedFreshnessToken === token) {
+          this.dismissedFreshnessToken = null;
+        }
+        this.freshnessDismissTimer = null;
+      }, DATA_FRESHNESS_DISMISS_MS);
+    },
+
+    currentCollectionPrecision() {
+      const zoom = this.overlayMap?.getZoom?.() ?? this.mapConfig?.initialZoom ?? this.zoom ?? 10;
+      return collectionPrecisionForZoom(zoom);
+    },
+
+    maybeLoadBackgroundTracks(filterResult = this.activeTrackFilterResult) {
+      if (!this.geojson || this.loadingTracks10m) return false;
+      if (this.currentCollectionPrecision() !== BACKGROUND_TRACK_PRECISION) return false;
+      for (const feature of this.geojson.features) {
+        const trackId = Number(feature.properties?.id);
+        if (!Number.isFinite(trackId)) continue;
+        const precision = this.trackPrecisions.get(trackId) ?? OVERVIEW_PRECISION;
+        if (precision > BACKGROUND_TRACK_PRECISION) {
+          this.loadAllTracksAt10m(filterResult);
+          return true;
+        }
+      }
+      return false;
+    },
+
+    async resolveTrackLineColor() {
+      const clientFilterConfig = await FilterService.loadClientFilterConfig();
+      const palette = clientFilterConfig?.palette;
+      const hasPalette = Boolean(palette && !palette.isEmptyColorPalette());
+
+      palette?.reset();
+      if (!hasPalette) {
+        this.filterActive = !FilterService.isStandardFilterWithStandardParams(clientFilterConfig);
+        if (this.wasAutoDimmed) {
+          this.layerOpacities.basemap = 100;
+          this.wasAutoDimmed = false;
+          this.persistLayerStates();
+          this.$toast.add({
+            severity: 'info',
+            summary: 'Map restored',
+            detail: 'Background opacity restored to full.',
+            life: 3000,
+          });
+        }
+        this.legendEntries = [];
+        return TRACK_COLOR;
+      }
+
+      this.filterActive = true;
+      if (this.layerOpacities.basemap >= 80 && !this.wasAutoDimmed) {
+        this.layerOpacities.basemap = 60;
+        this.wasAutoDimmed = true;
+        this.persistLayerStates();
+      }
+
+      const colorMap = new Map();
+      const groupCounts = new Map();
+      for (const feature of this.geojson?.features ?? []) {
+        const group = feature.properties?.filterGroup;
+        if (!group) continue;
+        if (!colorMap.has(group)) {
+          colorMap.set(group, palette.getColorForGroup(group, true));
+        }
+        groupCounts.set(group, (groupCounts.get(group) || 0) + 1);
+      }
+
+      this.colorPalette = palette;
+      this.legendEntries = Array.from(colorMap.entries()).map(([group, color]) => ({
+        group,
+        color,
+        count: groupCounts.get(group) ?? 0,
+      }));
+
+      if (colorMap.size === 0) return TRACK_COLOR;
+      const matchExpr = ['match', ['get', 'filterGroup']];
+      for (const [group, color] of colorMap) {
+        matchExpr.push(group, color);
+      }
+      matchExpr.push(TRACK_COLOR);
+      return matchExpr;
+    },
+
+    async updateTrackStyle() {
+      if (!this.overlayMap || !this.geojson) return;
+      const lineColor = await this.resolveTrackLineColor();
+      if (this.overlayMap.getLayer('tracks-layer')) {
+        this.overlayMap.setPaintProperty('tracks-layer', 'line-color', lineColor);
+      }
+      if (this.overlayMap.getLayer('tracks-dot-layer')) {
+        this.overlayMap.setPaintProperty('tracks-dot-layer', 'circle-color', lineColor);
+      }
+      if (this.overlayMap.getLayer('tracks-overview-dots')) {
+        this.overlayMap.setPaintProperty('tracks-overview-dots', 'circle-color', lineColor);
+      }
+    },
 
     /**
      * Compute raster paint properties for a route overlay at a given slider value.
@@ -1028,7 +1334,9 @@ export default {
       if (this.detailDebounceTimer) clearTimeout(this.detailDebounceTimer);
       if (this.detailAbortController) this.detailAbortController.abort();
       if (this.bulk10mController) { this.bulk10mController.abort(); this.bulk10mController = null; }
+      this.loadingTrackBatches = false;
       this.trackPrecisions = new Map();
+      this.activeTrackFilterResult = null;
 
       // Clean up media overlay
       if (this.mediaOverlay && typeof this.mediaOverlay.destroy === 'function') {
@@ -1059,6 +1367,7 @@ export default {
         // The actual addTracksToMap() (inside loadMapData) needs the map to be loaded,
         // so loadMapData awaits _mapReadyPromise before touching map sources.
         this._mapReadyPromise = new Promise(resolve => { this._mapReadyResolve = resolve; });
+        this.mapConfig = await fetchMapConfig();
         const trackDataPromise = this.fetchTracksAndFallback();
         await this.initMap();
         this._mapReadyResolve();
@@ -1147,6 +1456,8 @@ export default {
             this.mapConfig.tileBaseUrl,
             this.mapConfig.lowzoomTilesetName,
             this.mapThemeSelected,
+            undefined,
+            { hillshade: false },
           );
           styleMode = 'offline-lowzoom-vector';
           console.log('Offline: using cached low-zoom vector tiles as base map');
@@ -1209,8 +1520,7 @@ export default {
         if (msg.includes('401')) {
           startupWarn('mapload', 'Map tile auth failure; redirecting to login', { message: msg });
           console.warn('Map tile auth failure (401) — redirecting to login');
-          clearToken();
-          this.$router.push({ path: '/login', query: { reason: 'expired' } }).catch(() => {});
+          redirectToLoginAfterAuthFailure(!!getToken());
         } else {
           startupWarn('mapload', 'MapLibre reported a base-map error', {
             message: msg,
@@ -1585,7 +1895,168 @@ export default {
       if (fetchResult.trackPrecisions) {
         this.trackPrecisions = markRaw(fetchResult.trackPrecisions);
       }
+      this.activeTrackFilterResult = fetchResult.filterResult ?? this.activeTrackFilterResult;
       await this.addTracksToMap();
+    },
+
+    publishGpsTrackMetadataChanges() {
+      this.gpsTracksById = markRaw(new Map(this.gpsTracksById));
+    },
+
+    async mergeTrackResult(fetchResult, { pruneMissing = false } = {}) {
+      if (!fetchResult?.geojson?.features?.length) {
+        if (pruneMissing && this.geojson) {
+          this.geojson.features = [];
+          this.gpsTrackIdToFeature.clear();
+          this.gpsTracksById.clear();
+          this.publishGpsTrackMetadataChanges();
+          this.trackPrecisions.clear();
+          this.totalTrackCount = fetchResult?.standardFilterCount ?? 0;
+          this.visibleTrackCount = 0;
+          this.activeTrackFilterResult = fetchResult?.filterResult ?? this.activeTrackFilterResult;
+          await this.updateTrackStyle();
+          this.updateTracksSource();
+        }
+        return;
+      }
+      if (!this.cachedTracksLoaded || !this.geojson) {
+        await this.loadMapData(fetchResult);
+        return;
+      }
+
+      this.activeTrackFilterResult = fetchResult.filterResult ?? this.activeTrackFilterResult;
+      const incomingIds = new Set();
+      let changed = false;
+      let trackDataChanged = false;
+
+      for (const [trackId, feature] of fetchResult.gpsTrackIdToFeature) {
+        const numId = Number(trackId);
+        incomingIds.add(numId);
+        const existingFeature = this.gpsTrackIdToFeature.get(numId);
+        const incomingPrecision = fetchResult.trackPrecisions?.get(numId) ?? OVERVIEW_PRECISION;
+        const currentPrecision = this.trackPrecisions.get(numId) ?? OVERVIEW_PRECISION;
+
+        if (existingFeature) {
+          existingFeature.properties = feature.properties;
+          if (isSameOrBetterPrecision(incomingPrecision, currentPrecision)) {
+            existingFeature.geometry = feature.geometry;
+            this.trackPrecisions.set(numId, incomingPrecision);
+          }
+          this.gpsTrackIdToFeature.set(numId, existingFeature);
+          changed = true;
+        } else {
+          this.geojson.features.push(feature);
+          this.gpsTrackIdToFeature.set(numId, feature);
+          this.trackPrecisions.set(numId, incomingPrecision);
+          changed = true;
+        }
+
+        const gpsTrack = fetchResult.gpsTracksById.get(trackId) ?? fetchResult.gpsTracksById.get(numId);
+        if (gpsTrack) {
+          this.gpsTracksById.set(numId, gpsTrack);
+          trackDataChanged = true;
+        }
+      }
+
+      if (pruneMissing) {
+        const beforeLength = this.geojson.features.length;
+        this.geojson.features = this.geojson.features.filter((feature) => {
+          const trackId = Number(feature.properties?.id);
+          return incomingIds.has(trackId);
+        });
+        if (this.geojson.features.length !== beforeLength) changed = true;
+
+        for (const trackId of [...this.gpsTrackIdToFeature.keys()]) {
+          if (!incomingIds.has(Number(trackId))) {
+            this.gpsTrackIdToFeature.delete(trackId);
+            this.gpsTracksById.delete(trackId);
+            trackDataChanged = true;
+            this.trackPrecisions.delete(trackId);
+          }
+        }
+      }
+
+      this.totalTrackCount = fetchResult.standardFilterCount;
+      this.visibleTrackCount = this.geojson.features.length;
+      if (changed) {
+        await this.updateTrackStyle();
+        this.updateTracksSource();
+      }
+      if (trackDataChanged) {
+        this.publishGpsTrackMetadataChanges();
+      }
+    },
+
+    async mergeTrackPage(fetchResult) {
+      if (!fetchResult?.geojson?.features?.length) return;
+
+      if (!this.cachedTracksLoaded) {
+        this.totalTrackCount = fetchResult.standardFilterCount;
+        await this.loadMapData(fetchResult);
+        this.cachedTracksLoaded = true;
+        this.showLoader = false;
+        this.$emit('tracks-loaded');
+        startupLog('tracks', 'tracks-loaded emitted from first track batch', {
+          featureCount: fetchResult.geojson.features.length,
+        });
+        return;
+      }
+
+      if (!this.geojson) {
+        await this.loadMapData(fetchResult);
+        return;
+      }
+
+      let changed = false;
+      let trackDataChanged = false;
+      for (const [trackId, feature] of fetchResult.gpsTrackIdToFeature) {
+        const numId = Number(trackId);
+        const existingFeature = this.gpsTrackIdToFeature.get(numId);
+        const precision = fetchResult.trackPrecisions?.get(numId) ?? OVERVIEW_PRECISION;
+        const currentPrecision = this.trackPrecisions.get(numId) ?? OVERVIEW_PRECISION;
+        if (existingFeature) {
+          existingFeature.properties = feature.properties;
+          if (isSameOrBetterPrecision(precision, currentPrecision)) {
+            existingFeature.geometry = feature.geometry;
+            this.trackPrecisions.set(numId, precision);
+          }
+          this.gpsTrackIdToFeature.set(numId, existingFeature);
+          changed = true;
+        } else {
+          this.geojson.features.push(feature);
+          this.gpsTrackIdToFeature.set(numId, feature);
+          this.trackPrecisions.set(numId, precision);
+          changed = true;
+        }
+
+        const gpsTrack = fetchResult.gpsTracksById.get(trackId) ?? fetchResult.gpsTracksById.get(numId);
+        if (gpsTrack) {
+          this.gpsTracksById.set(numId, gpsTrack);
+          trackDataChanged = true;
+        }
+      }
+
+      if (trackDataChanged) {
+        this.publishGpsTrackMetadataChanges();
+      }
+      if (changed) {
+        this.totalTrackCount = fetchResult.standardFilterCount;
+        this.visibleTrackCount = this.geojson.features.length;
+        this.activeTrackFilterResult = fetchResult.filterResult ?? this.activeTrackFilterResult;
+        await this.updateTrackStyle();
+        this.updateTracksSource();
+      }
+    },
+
+    reloadBrowserForFreshness(done) {
+      this.freshnessReloading = true;
+      this.showLoader = true;
+      done?.(true);
+      window.location.reload();
+    },
+
+    onMapFreshnessBrowserReload() {
+      this.reloadBrowserForFreshness();
     },
 
     /** Fit the overlay map viewport to the bounds of the given GeoJSON FeatureCollection. */
@@ -1616,6 +2087,10 @@ export default {
       }
     },
 
+    async onAdminRefreshFreshnessData(done) {
+      this.reloadBrowserForFreshness(done);
+    },
+
     async fetchTracksAndFallback() {
       const timer = startStartupTimer('tracks', 'Resolving startup tracks and fallbacks');
       this.cachedTracksLoaded = false;
@@ -1626,16 +2101,15 @@ export default {
       if (authStatus === 'auth-error') {
         timer.warn('Auth check failed; redirecting to login');
         this.showLoader = false;
-        clearToken();
-        router.push({ path: '/login', query: { reason: 'expired' } }).catch(() => {});
+        redirectToLoginAfterAuthFailure(!!getToken());
         return;
       }
 
       // ── Phase 2: Cache-first — show cached tracks instantly, then sync ──
-      const cachePopulated = await trackStore.isCachePopulated();
+      const cachePopulated = await isTrackCachePopulated();
       if (cachePopulated) {
         startupLog('tracks', 'Cache populated — loading cached tracks immediately');
-        const cached = await trackStore.loadFromCache();
+        const cached = await loadCachedTrackCollection();
         if (cached && cached.geojson?.features?.length > 0) {
           await this.loadMapData(cached);
           this.cachedTracksLoaded = true;
@@ -1655,13 +2129,14 @@ export default {
 
       // ── No cache — original flow with reduced fallback timeout ──
       const CACHE_FALLBACK_TIMEOUT_MS = 3000;
+      this.loadingTrackBatches = false;
 
-      let fallbackTimer = setTimeout(async () => {
+      const fallbackTimer = setTimeout(async () => {
         if (!this.cachedTracksLoaded) {
           startupWarn('tracks', 'Server tracks still pending; attempting IndexedDB fallback', {
             fallbackAfterMs: CACHE_FALLBACK_TIMEOUT_MS,
           });
-          let cached = await trackStore.loadFromCache();
+          const cached = await loadCachedTrackCollection();
           if (cached && !this.cachedTracksLoaded) {
             startupLog('tracks', 'Using cached tracks after startup fallback timeout', {
               featureCount: cached.geojson?.features?.length ?? 0,
@@ -1678,43 +2153,64 @@ export default {
       }, CACHE_FALLBACK_TIMEOUT_MS);
 
       try {
-        const prefetched = trackStore.consumePrefetch(OVERVIEW_PRECISION);
-        startupLog('tracks', prefetched ? 'Using prefetched overview tracks' : 'No prefetched overview tracks; fetching live');
-        let serverData = await (prefetched ?? trackStore.fetchAllTracks(OVERVIEW_PRECISION));
+        const collectionPrecision = this.currentCollectionPrecision();
+        let receivedServerBatch = false;
+        const onOverviewPage = async (page) => {
+          receivedServerBatch = true;
+          await this.mergeTrackPage(page);
+        };
+        startupLog('tracks', 'Fetching startup tracks in batches', { precision: collectionPrecision });
+        this.loadingTrackBatches = true;
+        const serverData = await loadTrackCollectionPaged(collectionPrecision, {
+          onPage: onOverviewPage,
+          pageSize: TRACK_LOAD_BATCH_SIZE,
+        });
+        this.loadingTrackBatches = false;
         clearTimeout(fallbackTimer);
         this.totalTrackCount = serverData.standardFilterCount;
         startupLog('tracks', 'Server tracks ready for startup render', {
+          precision: collectionPrecision,
           featureCount: serverData.geojson?.features?.length ?? 0,
           standardFilterCount: serverData.standardFilterCount,
         });
 
-        if (this.cachedTracksLoaded) {
+        if (this.cachedTracksLoaded && !receivedServerBatch) {
+          await this.mergeTrackResult(serverData, { pruneMissing: true });
           timer.success('Server tracks arrived after cached fallback was already shown');
           this.isOffline = false;
           this.$toast.add({ severity: 'success', summary: 'Online', detail: 'Back online — tracks reloaded.', life: 3000 });
-          this.loadAllTracksAt10m(serverData.filterResult);
+          this.maybeLoadBackgroundTracks(serverData.filterResult);
         } else {
+          const wasAlreadyLoaded = this.cachedTracksLoaded;
           this.cachedTracksLoaded = true;
-          await this.loadMapData(serverData);
+          if (wasAlreadyLoaded) {
+            await this.mergeTrackResult(serverData, { pruneMissing: true });
+          } else {
+            await this.loadMapData(serverData);
+          }
           this.isOffline = false;
           this.showLoader = false;
-          this.$emit('tracks-loaded');
-          startupLog('tracks', 'tracks-loaded emitted from server startup fetch');
+          if (!wasAlreadyLoaded) {
+            this.$emit('tracks-loaded');
+            startupLog('tracks', 'tracks-loaded emitted from server startup fetch');
+          }
           timer.success('Startup tracks loaded from server');
-          this.loadAllTracksAt10m(serverData.filterResult);
+          this.maybeLoadBackgroundTracks(serverData.filterResult);
         }
+        this.scheduleDetailCheck();
+        await this.captureAppliedFreshnessToken();
         this.initialLoadDone = true;
       } catch (e) {
+        this.loadingTrackBatches = false;
         clearTimeout(fallbackTimer);
         timer.error('Startup track resolution failed', describeError(e));
         if (isAuthError(e)) {
           this.showLoader = false;
-          clearToken();
-          router.push({ path: '/login', query: { reason: 'expired' } }).catch(() => {});
+          redirectToLoginAfterAuthFailure(!!getToken());
           return;
         }
         if (!this.cachedTracksLoaded) {
-          let cached = await trackStore.loadFromCache();
+          const cached = await loadCachedTrackCollection();
           if (cached) {
             startupLog('tracks', 'Recovered from startup failure using cached tracks', {
               featureCount: cached.geojson?.features?.length ?? 0,
@@ -1745,27 +2241,31 @@ export default {
      */
     async _backgroundSync(timer) {
       try {
-        const prefetched = trackStore.consumePrefetch(OVERVIEW_PRECISION);
-        startupLog('sync', 'Background sync: fetching server data', { hasPrefetch: !!prefetched });
-        const serverData = await (prefetched ?? trackStore.fetchAllTracks(OVERVIEW_PRECISION));
+        const collectionPrecision = this.currentCollectionPrecision();
+        startupLog('sync', 'Background sync: fetching server data', { precision: collectionPrecision });
+        const serverData = await loadTrackCollectionPaged(collectionPrecision, {
+          onPage: (page) => this.mergeTrackPage(page),
+          pageSize: TRACK_LOAD_BATCH_SIZE,
+        });
         this.totalTrackCount = serverData.standardFilterCount;
 
-        // Replace map data with fresh server data
-        await this.loadMapData(serverData);
+        await this.mergeTrackResult(serverData, { pruneMissing: true });
         this.isOffline = false;
         startupLog('sync', 'Background sync: map updated with server data', {
+          precision: collectionPrecision,
           featureCount: serverData.geojson?.features?.length ?? 0,
         });
         timer.success('Background sync completed');
 
         this.$emit('syncing', false);
-        this.loadAllTracksAt10m(serverData.filterResult);
+        this.maybeLoadBackgroundTracks(serverData.filterResult);
+        this.scheduleDetailCheck();
+        await this.captureAppliedFreshnessToken();
         this.initialLoadDone = true;
       } catch (e) {
         startupWarn('sync', 'Background sync failed — using cached data', describeError(e));
         if (isAuthError(e)) {
-          clearToken();
-          router.push({ path: '/login', query: { reason: 'expired' } }).catch(() => {});
+          redirectToLoginAfterAuthFailure(!!getToken());
           return;
         }
         this.isOffline = true;
@@ -1783,36 +2283,82 @@ export default {
 
       try {
         console.log('Background: loading all tracks at 10m…');
-        const data10m = await (trackStore.consumePrefetch(10) ?? trackStore.fetchAllTracks(10, signal, filterResult));
+        const applyPage = async (pageData) => {
+          if (signal.aborted) return;
+          let changed = false;
+          let trackDataChanged = false;
+
+          for (const [trackId, feature] of pageData.gpsTrackIdToFeature) {
+            const numId = Number(trackId);
+            const gpsTrack = pageData.gpsTracksById.get(trackId) ?? pageData.gpsTracksById.get(numId);
+            if (gpsTrack) {
+              this.gpsTracksById.set(numId, gpsTrack);
+              trackDataChanged = true;
+            }
+
+            const currentPrecision = this.trackPrecisions.get(numId) ?? OVERVIEW_PRECISION;
+            if (currentPrecision <= BACKGROUND_TRACK_PRECISION) continue;
+
+            const existingFeature = this.gpsTrackIdToFeature.get(numId);
+            if (existingFeature?.geometry && feature?.geometry) {
+              existingFeature.geometry.coordinates = feature.geometry.coordinates;
+              existingFeature.geometry.type = feature.geometry.type;
+              changed = true;
+            }
+            this.trackPrecisions.set(numId, BACKGROUND_TRACK_PRECISION);
+          }
+
+          if (trackDataChanged) {
+            this.publishGpsTrackMetadataChanges();
+          }
+          if (changed) {
+            this.updateTracksSource();
+          }
+        };
+
+        const data10m = await loadTrackCollectionPaged(BACKGROUND_TRACK_PRECISION, {
+          signal,
+          filterResult,
+          onPage: applyPage,
+          pageSize: TRACK_LOAD_BATCH_SIZE,
+        });
         if (signal.aborted) return;
 
+        let trackDataChanged = false;
         for (const [trackId, feature] of data10m.gpsTrackIdToFeature) {
           if (signal.aborted) return;
           const numId = Number(trackId);
+          const gpsTrack = data10m.gpsTracksById.get(trackId) ?? data10m.gpsTracksById.get(numId);
+          if (gpsTrack) {
+            this.gpsTracksById.set(numId, gpsTrack);
+            trackDataChanged = true;
+          }
+
           const currentPrecision = this.trackPrecisions.get(numId) ?? OVERVIEW_PRECISION;
-          if (currentPrecision <= 10) continue;
+          if (currentPrecision <= BACKGROUND_TRACK_PRECISION) continue;
 
           // Update the in-memory feature coordinates
           const existingFeature = this.gpsTrackIdToFeature.get(numId);
           if (existingFeature?.geometry) {
             const newCoords = feature.geometry.coordinates;
             existingFeature.geometry.coordinates = newCoords;
-            // Restore geometry type: features may be Point (degenerate/empty at overview
-            // precision) but now have real LineString coords at higher precision.
-            if (existingFeature.geometry.type === 'Point' && Array.isArray(newCoords) && newCoords.length > 1) {
-              existingFeature.geometry.type = 'LineString';
-            }
+            // Sync geometry type: handles both upgrade (Point→LineString for tracks that
+            // were degenerate at overview precision but have real coords at 10m) and the
+            // reverse (LineString→Point for tracks whose 10m data is still degenerate,
+            // which would otherwise leave a LineString with flat [lng,lat] coordinates).
+            existingFeature.geometry.type = feature.geometry.type;
           }
-          this.trackPrecisions.set(numId, 10);
-          const gpsTrack = data10m.gpsTracksById.get(trackId);
-          if (gpsTrack) this.gpsTracksById.set(numId, gpsTrack);
+          this.trackPrecisions.set(numId, BACKGROUND_TRACK_PRECISION);
         }
 
+        if (trackDataChanged) {
+          this.publishGpsTrackMetadataChanges();
+        }
         // Update the source data to reflect new coordinates
         this.updateTracksSource();
         console.log('Background 10m load complete');
       } catch (e) {
-        if (signal.aborted || axios.isCancel(e)) {
+        if (signal.aborted || isAbortLikeError(e)) {
           this.loadingTracks10m = false;
           return;
         }
@@ -1829,10 +2375,18 @@ export default {
       if (source) {
         source.setData(this.geojson);
       }
+      const overviewSource = this.overlayMap.getSource('tracks-overview');
+      if (overviewSource) {
+        overviewSource.setData({
+          type: 'FeatureCollection',
+          features: buildTrackOverviewFeatures(this.geojson),
+        });
+      }
       // Keep heatmap density in sync as track precision improves
       if (this.heatmapOverlay) {
         this.heatmapOverlay.updateData(this.geojson);
       }
+      this.applyGroupFilter();
     },
 
     onBrowserOnline() {
@@ -1854,12 +2408,18 @@ export default {
     async performBackgroundRetry() {
       this.retryCount++;
       try {
-        let serverData = await trackStore.fetchAllTracks(OVERVIEW_PRECISION);
-        await this.loadMapData(serverData);
+        const collectionPrecision = this.currentCollectionPrecision();
+        const serverData = await loadTrackCollectionPaged(collectionPrecision);
+        if (this.geojson) {
+          await this.mergeTrackResult(serverData, { pruneMissing: true });
+        } else {
+          await this.loadMapData(serverData);
+        }
         this.isOffline = false;
         this.retryCount = 0;
-        this.loadAllTracksAt10m(serverData.filterResult);
+        this.maybeLoadBackgroundTracks(serverData.filterResult);
         this.scheduleDetailCheck();
+        await this.captureAppliedFreshnessToken();
         // If the initial map style was the offline raster fallback (e.g. the
         // /api/map/config call timed out on first login), rebuild the style
         // now that connectivity is back — no page reload needed.
@@ -1868,6 +2428,7 @@ export default {
             console.log('Recovered from offline fallback — rebuilding map style with real config');
             clearMapConfigCache();
             await this.initMap();
+            await this.addTracksToMap();
           } catch (rebuildErr) {
             console.warn('Failed to rebuild map style after recovery:', rebuildErr);
           }
@@ -1875,12 +2436,15 @@ export default {
         this.$toast.add({ severity: 'success', summary: 'Online', detail: 'Back online — tracks reloaded.', life: 3000 });
       } catch (e) {
         if (isAuthError(e)) {
-          clearToken();
-          router.push({ path: '/login', query: { reason: 'expired' } }).catch(() => {});
+          redirectToLoginAfterAuthFailure(!!getToken());
           return;
         }
         this.scheduleRetry();
       }
+    },
+
+    onMeasureShowTrackDetails(id) {
+      this.openTrackDetails(id, TRACK_DETAILS_EXPANDED_DETENT);
     },
 
     onMeasureActiveChanged(isActive) {
@@ -1994,7 +2558,20 @@ export default {
 
       const targetPrecision = precisionForZoom(zoom);
 
-      const needsViewportFilter = (targetPrecision === 1);
+      if (targetPrecision === BACKGROUND_TRACK_PRECISION) {
+        this.maybeLoadBackgroundTracks();
+        return;
+      }
+
+      // Only the 1m tier uses the per-track detail queue. The cacheable
+      // precisions (1000m overview, 10m background) are loaded exclusively
+      // through the batched `tracks/get-simplified` endpoint via
+      // fetchTracksAndFallback / loadAllTracksAt10m, so per-track upgrades
+      // here would create a flood of `tracks/get/{id}` requests that scales
+      // linearly with the dataset size.
+      if (targetPrecision !== DETAIL_TRACK_PRECISION) return;
+
+      const needsViewportFilter = (targetPrecision === DETAIL_TRACK_PRECISION);
       let bounds;
       if (needsViewportFilter) {
         const mapBounds = this.overlayMap.getBounds();
@@ -2044,15 +2621,15 @@ export default {
 
     async processDetailQueue(trackIds, targetPrecision, signal) {
       const queue = [...trackIds];
-      _detailFetchInFlight = 0;
       let changed = false;
+      let trackDataChanged = false;
 
       // At 1m precision each upgrade meaningfully changes what track-points
       // should be rendered on the map. Rather than waiting for the whole
       // queue to drain, flush the map sources progressively so the user
       // sees individual GPS points as they come in (otherwise tracks keep
       // showing coarse 10m spacing until every track is done).
-      const progressive = targetPrecision === 1;
+      const progressive = targetPrecision === DETAIL_TRACK_PRECISION;
       let pendingFlush = false;
       const flush = () => {
         if (!pendingFlush || signal.aborted) return;
@@ -2067,9 +2644,8 @@ export default {
           const currentPrecision = this.trackPrecisions.get(trackId) ?? OVERVIEW_PRECISION;
           if (currentPrecision === targetPrecision) continue;
 
-          _detailFetchInFlight++;
           try {
-            const { coordinates, gpsTrack } = await trackStore.requestTrackAtPrecision(trackId, targetPrecision, signal);
+            const { coordinates, gpsTrack } = await fetchDetailTrackAtPrecision(trackId, targetPrecision, signal);
             if (signal.aborted) return;
 
             // Update in-memory feature
@@ -2086,24 +2662,26 @@ export default {
             }
             this.trackPrecisions.set(trackId, targetPrecision);
             this.gpsTracksById.set(trackId, gpsTrack);
+            trackDataChanged = true;
 
             if (progressive) flush();
           } catch (e) {
-            if (axios.isCancel(e) || signal.aborted) return;
+            if (signal.aborted || isAbortLikeError(e)) return;
             console.warn(`Detail fetch failed for track ${trackId}:`, e);
-          } finally {
-            _detailFetchInFlight--;
           }
         }
       };
 
       const workers = [];
-      const concurrency = targetPrecision === 1 ? DETAIL_MAX_CONCURRENT_1M : DETAIL_MAX_CONCURRENT;
+      const concurrency = targetPrecision === DETAIL_TRACK_PRECISION ? DETAIL_MAX_CONCURRENT_1M : DETAIL_MAX_CONCURRENT;
       for (let i = 0; i < Math.min(concurrency, queue.length); i++) {
         workers.push(fetchNext());
       }
       await Promise.allSettled(workers);
 
+      if (trackDataChanged && !signal.aborted) {
+        this.publishGpsTrackMetadataChanges();
+      }
       // Final flush (covers non-progressive path, and any trailing update
       // missed because progressive flush was skipped due to abort).
       if (changed && !signal.aborted) {
@@ -2143,73 +2721,12 @@ export default {
 
     async addTracksToMap() {
       if (!this.overlayMap || !this.geojson) return;
-      console.log("add tracks to map: START");
+      const startedAt = performance.now();
       this.visibleTrackCount = 0;
       // Reset group visibility when tracks are reloaded
       this.hiddenGroups = new Set();
 
-      let clientFilterConfig = await FilterService.loadClientFilterConfig();
-      let palette = clientFilterConfig?.palette;
-      let hasPalette = palette && !palette.isEmptyColorPalette();
-      palette.reset();
-      if (hasPalette) {
-        this.filterActive = true;
-        // Auto-dim basemap if it's at full opacity and not already auto-dimmed
-        if (this.layerOpacities.basemap >= 80 && !this.wasAutoDimmed) {
-          this.layerOpacities.basemap = 60;
-          this.wasAutoDimmed = true;
-          this.persistLayerStates();
-        }
-      } else {
-        this.filterActive = !FilterService.isStandardFilterWithStandardParams(clientFilterConfig);
-        // Undo auto-dim if filter removed
-        if (this.wasAutoDimmed) {
-          this.layerOpacities.basemap = 100;
-          this.wasAutoDimmed = false;
-          this.persistLayerStates();
-          this.$toast.add({
-            severity: 'info',
-            summary: 'Map restored',
-            detail: 'Background opacity restored to full.',
-            life: 3000,
-          });
-        }
-      }
-
-      const defaultColor = TRACK_COLOR;
-      let lineColor;
-
-      if (hasPalette) {
-        const matchExpr = ['match', ['get', 'filterGroup']];
-        const colorMap = new Map();
-        for (const feature of this.geojson.features) {
-          const group = feature.properties.filterGroup;
-          if (group && !colorMap.has(group)) {
-            colorMap.set(group, palette.getColorForGroup(group, true));
-          }
-        }
-        // Assign palette AFTER it is fully populated so any reactive
-        // consumers (e.g. the legend) read the complete color map.
-        this.colorPalette = palette;
-        for (const [group, color] of colorMap) {
-          matchExpr.push(group, color);
-        }
-        matchExpr.push(defaultColor);
-        lineColor = colorMap.size > 0 ? matchExpr : defaultColor;
-
-        // Build legend entries: count tracks per group
-        const groupCounts = new Map();
-        for (const feature of this.geojson.features) {
-          const g = feature.properties.filterGroup;
-          if (g) groupCounts.set(g, (groupCounts.get(g) || 0) + 1);
-        }
-        this.legendEntries = Array.from(colorMap.entries()).map(([group, color]) => ({
-          group, color, count: groupCounts.get(group) ?? 0
-        }));
-      } else {
-        lineColor = defaultColor;
-        this.legendEntries = [];
-      }
+      const lineColor = await this.resolveTrackLineColor();
 
       this.visibleTrackCount = this.geojson.features.length;
 
@@ -2285,22 +2802,7 @@ export default {
       // At world view, short/medium tracks are sub-pixel as lines. This dedicated
       // Point source shows a dot so every track is visible at any zoom level.
       // Long tracks remain visible as lines; the dot sits beneath them harmlessly.
-      const overviewFeatures = this.geojson.features
-        .filter(f => {
-          if (!f.geometry) return false;
-          if (f.geometry.type === 'LineString') return f.geometry.coordinates.length > 0;
-          return true; // Point (degenerate track)
-        })
-        .map(f => {
-          const startCoord = f.geometry.type === 'LineString'
-            ? f.geometry.coordinates[0]
-            : f.geometry.coordinates;
-          return {
-            type: 'Feature',
-            geometry: { type: 'Point', coordinates: startCoord },
-            properties: { id: f.properties.id, filterGroup: f.properties.filterGroup },
-          };
-        });
+      const overviewFeatures = buildTrackOverviewFeatures(this.geojson);
       this.overlayMap.addSource('tracks-overview', {
         type: 'geojson',
         data: { type: 'FeatureCollection', features: overviewFeatures },
@@ -2315,8 +2817,8 @@ export default {
 
       // ── Individual GPS track points with direction arrows (visible at zoom 18+) ──
       if (!this.overlayMap.hasImage('track-point-arrow')) {
-        const arrow = createArrowImage(24, '#2563eb', '#ffffff');
-        this.overlayMap.addImage('track-point-arrow', arrow, { pixelRatio: window.devicePixelRatio || 1 });
+        const arrow = createArrowImage();
+        this.overlayMap.addImage('track-point-arrow', arrow, { pixelRatio: arrow.pixelRatio });
       }
       this.overlayMap.addSource('track-points', {
         type: 'geojson',
@@ -2363,10 +2865,17 @@ export default {
         this.heatmapOverlay.show(this.geojson);
       }
 
-      console.log("add tracks to map: DONE");
       this.updateTrackLineWidth();
       this.applyTracksVisibility();
       this.scheduleDetailCheck();
+      console.log('[tracks] Map layers rebuilt', {
+        durationMs: Math.round(performance.now() - startedAt),
+        trackCount: this.geojson.features.length,
+        overviewDotCount: overviewFeatures.length,
+        hasPalette: this.legendEntries.length > 0,
+        legendGroupCount: this.legendEntries.length,
+        heatmapVisible: this.heatmapVisible,
+      });
     },
 
     // ─── Individual GPS track points ─────────────────────────────────
@@ -2447,12 +2956,22 @@ export default {
       // Close any existing popup
       if (this.trackPointsPopup) { this.trackPointsPopup.remove(); this.trackPointsPopup = null; }
 
-      // Fetch or use cached details
-      let details = this.trackPointsDetailsCache.get(trackId);
+      // The track-points layer is emitted by updateTrackPointsSource() from
+      // the SIMPLIFIED_SHAPE LineString currently loaded for this track, and
+      // `pointIndex` is the array index into that coordinate list. To look
+      // the clicked point up we therefore need the matching SHAPE variant
+      // at the same precision — NOT SIMPLIFIED_FIXED_POINTS (different
+      // indexing scheme entirely). See fetchTrackPointsForRenderedShape.
+      const precision = this.trackPrecisions.get(trackId) ?? OVERVIEW_PRECISION;
+      const cacheKey = `${trackId}|${precision}`;
+
+      // Fetch or use cached details (cache key includes precision so a
+      // background precision upgrade naturally refreshes the cached set)
+      let details = this.trackPointsDetailsCache.get(cacheKey);
       if (!details) {
         try {
-          details = await fetchTrackDetails(trackId);
-          this.trackPointsDetailsCache.set(trackId, details);
+          details = await fetchTrackPointsForRenderedShape(trackId, precision);
+          this.trackPointsDetailsCache.set(cacheKey, details);
         } catch (e) {
           console.warn('Failed to fetch point details for track', trackId, e);
           return;
@@ -2462,7 +2981,7 @@ export default {
       // Find the matching point by index
       const point = details.find(p => p.pointIndex === pointIndex);
       if (!point) {
-        console.warn(`Point index ${pointIndex} not found in details for track ${trackId}`);
+        console.warn(`Point index ${pointIndex} not found in details for track ${trackId} at precision ${precision}m`);
         return;
       }
 
@@ -2504,9 +3023,9 @@ export default {
 
       // Add energy fields if available
       if (point.energyTotalWh != null) {
-        rows.push(['Energy (seg)', `${fmt(point.energyTotalWh, 2)} Wh`]);
-        rows.push(['Energy (cum)', `${fmt(point.energyCumulativeWh, 1)} Wh`]);
-        rows.push(['Power', `${fmt(point.powerWatts, 0)} W`]);
+        rows.push(['Est. energy (seg)', `${fmt(point.energyTotalWh, 2)} Wh`]);
+        rows.push(['Est. energy (cum)', `${fmt(point.energyCumulativeWh, 1)} Wh`]);
+        rows.push(['Est. power', `${fmt(point.powerWatts, 0)} W`]);
       }
 
       const html = `
@@ -2856,9 +3375,9 @@ export default {
       }
     },
 
-    async onFilterApplied() {
+    async onFilterApplied(filterResult) {
       if (!this.initialLoadDone) {
-        console.log('[Map] Suppressing filter event during initial load — fetchAllTracks already applies the active filter');
+        console.log('[Map] Suppressing filter event during initial load — track collection loader already applies the active filter');
         return;
       }
       console.log("map got filter applied — using IDs-only fast path");
@@ -2866,15 +3385,17 @@ export default {
 
       try {
         // Fast path: fetch only matching IDs from server, resolve data from local cache
-        const result = await trackStore.applyFilter();
+        const result = await applyTrackFilter({ filterResult });
 
         // Update in-memory state
         this.geojson = markRaw(result.geojson);
         this.gpsTracksById = markRaw(result.gpsTracksById);
+        this.publishGpsTrackMetadataChanges();
         this.gpsTrackIdToFeature = markRaw(result.gpsTrackIdToFeature);
         if (result.trackPrecisions) {
           this.trackPrecisions = markRaw(result.trackPrecisions);
         }
+        this.activeTrackFilterResult = result.filterResult ?? this.activeTrackFilterResult;
         this.totalTrackCount = result.standardFilterCount;
         this.visibleTrackCount = result.gpsTracksById.size;
 
@@ -2886,6 +3407,7 @@ export default {
         // Re-render tracks on the map without destroying/recreating the map
         await this.addTracksToMap();
         this.updateTracksSource();
+        this.maybeLoadBackgroundTracks(result.filterResult);
       } catch (e) {
         // Fallback to full reload if IDs-only path fails (e.g. cache miss)
         console.warn('IDs-only filter failed, falling back to full reload:', e);
@@ -2971,13 +3493,13 @@ export default {
   border: none;
   cursor: pointer;
   padding: 0;
-  color: #333;
-  font-size: 1rem;
+  color: var(--text-secondary);
+  font-size: var(--text-base-size);
   transition: color 0.15s, background 0.15s;
 }
 .map-overlay :deep(.mtl-globe-btn:hover) {
-  background: rgba(0, 0, 0, 0.05);
-  color: #111;
+  background: var(--surface-hover);
+  color: var(--text-primary);
 }
 .map-overlay :deep(.mtl-globe-btn.mtl-globe-active) {
   color: #3b82f6;
@@ -2992,7 +3514,7 @@ export default {
   top: 0;
   left: 0;
   width: 100%;
-  height: 4px;
+  height: 8px;
   z-index: var(--z-tool-overlay);
   overflow: hidden;
   background: rgba(99, 102, 241, 0.18);
@@ -3007,10 +3529,10 @@ export default {
   background: linear-gradient(
     90deg,
     transparent 0%,
-    rgba(99, 102, 241, 0.55) 15%,
-    var(--accent, #6366f1) 40%,
-    var(--accent-text-light, #818cf8) 60%,
-    rgba(99, 102, 241, 0.55) 85%,
+    var(--accent-muted) 15%,
+    var(--accent) 40%,
+    var(--accent-text-light) 60%,
+    var(--accent-muted) 85%,
     transparent 100%
   );
   animation: progress-shimmer 1.4s ease-in-out infinite;
@@ -3076,7 +3598,7 @@ export default {
   backdrop-filter: var(--blur-standard);
   -webkit-backdrop-filter: var(--blur-standard);
   color: var(--text-muted);
-  font-size: 0.9rem;
+  font-size: var(--text-base-size);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -3103,7 +3625,7 @@ export default {
   color: var(--text-primary);
   border-radius: 2rem;
   padding: 0.4rem 1rem;
-  font-size: 0.78rem;
+  font-size: var(--text-xs-size);
   font-weight: 600;
   display: flex;
   align-items: center;
@@ -3126,7 +3648,7 @@ export default {
   color: var(--text-secondary);
   border-radius: 1rem;
   padding: 0.5rem 1rem 0.6rem;
-  font-size: 0.78rem;
+  font-size: var(--text-xs-size);
   font-weight: 600;
   display: flex;
   flex-direction: column;
@@ -3156,21 +3678,122 @@ export default {
 .mtl-map-downloading-bar-fill {
   height: 100%;
   border-radius: 3px;
-  background: var(--accent, #3b82f6);
+  background: var(--accent);
   transition: width 0.8s ease;
 }
 .mtl-map-downloading-pct {
-  font-size: 0.72rem;
+  font-size: var(--text-xs-size);
   color: var(--text-muted);
   flex-shrink: 0;
 }
 .mtl-map-downloading-msg {
-  font-size: 0.7rem;
+  font-size: var(--text-xs-size);
   font-weight: 400;
   color: var(--text-muted);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* ─── Data freshness banner ─── */
+.mtl-data-freshness {
+  position: fixed;
+  z-index: var(--z-map-overlay);
+  left: 50%;
+  bottom: calc(var(--nav-sheet-h, 92px) + 0.8rem + var(--safe-bottom, 0px));
+  transform: translateX(-50%);
+  width: min(calc(100vw - 2rem), 760px);
+  background: rgba(255, 251, 235, 0.94);
+  backdrop-filter: var(--blur-standard);
+  -webkit-backdrop-filter: var(--blur-standard);
+  border: 1px solid rgba(245, 158, 11, 0.42);
+  border-radius: 0.75rem;
+  color: #3f2e08;
+  box-shadow: 0 8px 24px rgba(40, 30, 5, 0.2);
+  padding: 0.55rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem;
+}
+.mtl-data-freshness__content {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+.mtl-data-freshness__content > i {
+  color: #b45309;
+  font-size: 1rem;
+  flex: 0 0 auto;
+}
+.mtl-data-freshness__text {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+.mtl-data-freshness__title {
+  font-size: var(--text-sm-size);
+  font-weight: 700;
+  line-height: 1.2;
+}
+.mtl-data-freshness__detail {
+  font-size: var(--text-xs-size);
+  color: #6f520b;
+  line-height: 1.25;
+  white-space: normal;
+}
+.mtl-data-freshness__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex: 0 0 auto;
+}
+.mtl-data-freshness__btn {
+  border: 1px solid rgba(180, 83, 9, 0.28);
+  background: rgba(255, 255, 255, 0.72);
+  color: #5b3a05;
+  border-radius: 0.45rem;
+  min-height: 2rem;
+  padding: 0 0.6rem;
+  font-size: var(--text-xs-size);
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.mtl-data-freshness__btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.95);
+}
+.mtl-data-freshness__btn:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+.mtl-data-freshness__btn--primary {
+  background: #0f766e;
+  border-color: #0f766e;
+  color: #ffffff;
+}
+.mtl-data-freshness__btn--primary:hover:not(:disabled) {
+  background: #115e59;
+}
+
+@media (max-width: 640px) {
+  .mtl-data-freshness {
+    align-items: stretch;
+    flex-direction: column;
+    bottom: calc(var(--nav-sheet-h, 92px) + 0.65rem + var(--safe-bottom, 0px));
+    gap: 0.55rem;
+  }
+  .mtl-data-freshness__detail {
+    white-space: normal;
+  }
+  .mtl-data-freshness__actions {
+    justify-content: flex-end;
+  }
 }
 
 /* ─── Track details sheet header ─── */
@@ -3188,7 +3811,7 @@ export default {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  font-size: 0.78rem;
+  font-size: var(--text-xs-size);
   font-weight: 600;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -3199,7 +3822,7 @@ export default {
 
 .td-sheet-id {
   flex-shrink: 0;
-  font-size: 0.7rem;
+  font-size: var(--text-xs-size);
   color: var(--text-muted);
   background: var(--surface-elevated);
   border: 1px solid var(--border-default);
@@ -3272,7 +3895,7 @@ export default {
 }
 .mtl-track-pick__primary {
   min-width: 0;
-  font-size: 0.86rem;
+  font-size: var(--text-sm-size);
   font-weight: 600;
   color: var(--text-primary);
   white-space: nowrap;
@@ -3284,7 +3907,7 @@ export default {
   align-items: center;
   gap: 0.45rem;
   min-width: 0;
-  font-size: 0.74rem;
+  font-size: var(--text-xs-size);
   color: var(--text-muted);
 }
 .mtl-track-pick__date {
@@ -3308,7 +3931,7 @@ export default {
 .mtl-track-pick__chevron {
   flex: 0 0 auto;
   color: var(--text-muted);
-  font-size: 0.9rem;
+  font-size: var(--text-base-size);
 }
 
 /* ─── Swiss Mobility route info popup ─── */
@@ -3329,7 +3952,7 @@ export default {
   top: 4px;
   right: 8px;
   cursor: pointer;
-  font-size: 1.2em;
+  font-size: var(--text-lg-size);
   color: var(--text-muted);
   z-index: 1;
   transition: color 0.15s;
@@ -3338,7 +3961,7 @@ export default {
   color: var(--text-primary);
 }
 .swiss-mobility-popup-header {
-  font-size: 0.7rem;
+  font-size: var(--text-xs-size);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -3374,14 +3997,14 @@ export default {
   gap: 1px;
 }
 .swiss-mobility-route-type {
-  font-size: 0.65rem;
+  font-size: var(--text-2xs-size);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.03em;
   color: var(--text-faint);
 }
 .swiss-mobility-route-name {
-  font-size: 0.82rem;
+  font-size: var(--text-sm-size);
   color: var(--text-primary);
   white-space: nowrap;
   overflow: hidden;
@@ -3389,7 +4012,7 @@ export default {
 }
 .swiss-mobility-route-number {
   flex-shrink: 0;
-  font-size: 0.7rem;
+  font-size: var(--text-xs-size);
   font-weight: 600;
   color: var(--text-faint);
   margin-left: auto;
@@ -3402,60 +4025,60 @@ export default {
 .mtl-point-popup-container .maplibregl-popup-content {
   padding: 0;
   border-radius: 0.6rem;
-  background: var(--surface-glass-heavy, rgba(30, 30, 40, 0.92));
+  background: var(--surface-glass-heavy);
   backdrop-filter: var(--blur-standard);
   -webkit-backdrop-filter: var(--blur-standard);
-  border: 1px solid var(--border-medium, rgba(255, 255, 255, 0.12));
+  border: 1px solid var(--border-medium);
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
   overflow: hidden;
 }
 .mtl-point-popup-container .maplibregl-popup-close-button {
-  font-size: 1rem;
-  color: var(--text-muted, #aaa);
+  font-size: var(--text-base-size);
+  color: var(--text-muted);
   padding: 4px 8px;
-  line-height: 1;
+  line-height: var(--text-base-lh);
 }
 .mtl-point-popup-container .maplibregl-popup-close-button:hover {
-  color: var(--text-primary, #fff);
+  color: var(--text-primary);
   background: transparent;
 }
 .mtl-point-popup-container .maplibregl-popup-tip {
-  border-top-color: var(--surface-glass-heavy, rgba(30, 30, 40, 0.92));
+  border-top-color: var(--surface-glass-heavy);
 }
 .mtl-point-popup {
   padding: 0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  font-size: 0.72rem;
-  line-height: 1.35;
-  color: var(--text-secondary, #ccc);
+  font-size: var(--text-xs-size);
+  line-height: var(--text-xs-lh);
+  color: var(--text-secondary);
 }
 .mtl-point-popup-header {
   padding: 0.35rem 0.6rem;
   font-weight: 700;
-  font-size: 0.75rem;
-  color: var(--text-primary, #fff);
-  background: var(--surface-elevated, rgba(255, 255, 255, 0.06));
-  border-bottom: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
+  font-size: var(--text-xs-size);
+  color: var(--text-primary);
+  background: var(--surface-elevated);
+  border-bottom: 1px solid var(--border-subtle);
 }
 .mtl-point-popup-table {
   width: 100%;
   border-collapse: collapse;
 }
 .mtl-point-popup-table tr:not(:last-child) {
-  border-bottom: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.05));
+  border-bottom: 1px solid var(--border-subtle);
 }
 .mtl-point-popup-table td {
   padding: 0.2rem 0.6rem;
   vertical-align: top;
 }
 .mtl-pp-label {
-  color: var(--text-muted, #888);
+  color: var(--text-muted);
   white-space: nowrap;
   padding-right: 0.8rem;
-  font-size: 0.68rem;
+  font-size: var(--text-2xs-size);
 }
 .mtl-pp-value {
-  color: var(--text-primary, #eee);
+  color: var(--text-primary);
   font-variant-numeric: tabular-nums;
   text-align: right;
   white-space: nowrap;
@@ -3469,10 +4092,10 @@ export default {
   left: 50%;
   transform: translateX(-50%);
   z-index: var(--z-tool-overlay);
-  background: var(--surface-glass, rgba(255, 255, 255, 0.88));
+  background: var(--surface-glass);
   backdrop-filter: var(--blur-standard);
   -webkit-backdrop-filter: var(--blur-standard);
-  border: 1px solid var(--border-medium, rgba(0, 0, 0, 0.1));
+  border: 1px solid var(--border-medium);
   border-radius: 12px;
   padding: 0.6rem 1rem;
   display: flex;
@@ -3487,17 +4110,17 @@ export default {
   display: flex;
   align-items: center;
   gap: 0.4rem;
-  font-size: 0.9rem;
+  font-size: var(--text-base-size);
   font-weight: 600;
-  color: var(--text-primary, #1e293b);
+  color: var(--text-primary);
 }
 .geo-draw-toolbar__header i {
-  font-size: 1rem;
-  color: #6366f1;
+  font-size: var(--text-base-size);
+  color: var(--accent);
 }
 .geo-draw-toolbar__hint {
-  font-size: 0.78rem;
-  color: var(--text-muted, #64748b);
+  font-size: var(--text-xs-size);
+  color: var(--text-muted);
   text-align: center;
 }
 .geo-draw-toolbar__actions {
@@ -3510,35 +4133,35 @@ export default {
   align-items: center;
   gap: 0.3rem;
   padding: 0.3rem 0.65rem;
-  border: 1px solid var(--border-medium, rgba(0, 0, 0, 0.1));
+  border: 1px solid var(--border-medium);
   border-radius: 6px;
   background: transparent;
-  color: var(--text-primary, #1e293b);
-  font-size: 0.8rem;
+  color: var(--text-primary);
+  font-size: var(--text-sm-size);
   cursor: pointer;
   transition: background 0.15s, opacity 0.15s;
 }
 .geo-draw-toolbar__btn:hover:not(:disabled) {
-  background: var(--surface-hover, rgba(0, 0, 0, 0.05));
+  background: var(--surface-hover);
 }
 .geo-draw-toolbar__btn:disabled {
   opacity: 0.35;
   cursor: not-allowed;
 }
 .geo-draw-toolbar__btn--finish {
-  background: #6366f1;
-  border-color: #6366f1;
-  color: #fff;
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--text-inverse);
 }
 .geo-draw-toolbar__btn--finish:hover:not(:disabled) {
-  background: #818cf8;
+  background: var(--accent-text-light);
 }
 .geo-draw-toolbar__btn--cancel {
-  color: #f87171;
-  border-color: rgba(248, 113, 113, 0.3);
+  color: var(--error);
+  border-color: color-mix(in srgb, var(--error) 32%, transparent);
 }
 .geo-draw-toolbar__btn--cancel:hover {
-  background: rgba(248, 113, 113, 0.12);
+  background: var(--error-bg);
 }
 </style>
 

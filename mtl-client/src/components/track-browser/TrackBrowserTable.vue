@@ -26,7 +26,7 @@
           @click="row.id !== undefined && emit('open-details', row.id)"
         >
           <div class="track-browser-card__header">
-            <strong class="track-browser-card__name">{{ row.displayName }}</strong>
+            <span class="track-browser-card__name">{{ row.displayName }}</span>
             <ActivityTypeBadge v-if="row.activityType" :type="row.activityType" size="xs" />
           </div>
           <div class="track-browser-card__lower">
@@ -50,6 +50,9 @@
                 </div>
                 <div v-if="row.energyNetTotalWh" class="track-browser-card__meta-row track-browser-card__meta-row--energy">
                   <span>{{ formatEnergy(row.energyNetTotalWh) }}</span>
+                  <i class="bi bi-info-circle"
+                     v-tooltip.top="{ value: ENERGY_TOOLTIP, showDelay: 300 }"
+                     aria-label="About energy"></i>
                 </div>
               </div>
             </div>
@@ -126,8 +129,8 @@
       <Column field="displayName" header="Track" sortable style="min-width: 16rem">
         <template #body="slotProps">
           <div class="track-browser-table__name-cell">
-            <strong>{{ slotProps.data.displayName }}</strong>
-            <span v-if="slotProps.data.trackDescription">{{ slotProps.data.trackDescription }}</span>
+            <span>{{ slotProps.data.displayName }}</span>
+            <span v-if="slotProps.data.trackDescription" class="track-browser-table__name-desc">{{ slotProps.data.trackDescription }}</span>
           </div>
         </template>
       </Column>
@@ -160,7 +163,13 @@
         </template>
       </Column>
 
-      <Column field="energyNetTotalWh" header="Energy" sortable class="number-column" style="min-width: 7rem">
+      <Column field="energyNetTotalWh" sortable class="number-column" style="min-width: 7rem">
+        <template #header>
+          <span>Energy</span>
+          <i class="bi bi-info-circle track-browser-table__header-info"
+             v-tooltip.top="{ value: ENERGY_TOOLTIP, showDelay: 300 }"
+             aria-label="About energy"></i>
+        </template>
         <template #body="slotProps">
           {{ formatEnergy(slotProps.data.energyNetTotalWh) }}
         </template>
@@ -175,7 +184,7 @@
           <span v-else-if="['SCHEDULED', 'IN_PROGRESS', 'NEEDS_RECALCULATION'].includes(slotProps.data.explorationStatus)"
                 v-tooltip.top="{ value: 'Exploration score is being calculated', showDelay: 300 }"
                 class="track-browser-table__pending">
-            <i class="pi pi-spin pi-spinner" style="font-size: 0.75rem" />
+            <i class="pi pi-spin pi-spinner" style="font-size: var(--text-xs-size)" />
           </span>
           <span v-else class="track-browser-table__na">—</span>
         </template>
@@ -214,6 +223,7 @@ const emit = defineEmits<{
 
 const mobilePageSize = 20;
 const mobilePage = ref(0);
+const ENERGY_TOOLTIP = 'Estimated external mechanical work from GPS-derived physics, not metabolic calorie burn or measured power-sensor data.';
 
 // Mobile sort state
 const mobileSortField = ref<string>('startDate');
@@ -352,22 +362,22 @@ function rowClass(row: TrackRowViewModel) {
   height: 10px;
 }
 .track-browser-table__datatable :deep(.p-datatable-wrapper)::-webkit-scrollbar-track {
-  background: var(--surface-ground, #f0f0f0);
+  background: var(--surface-glass-heavy);
   border-radius: 5px;
 }
 .track-browser-table__datatable :deep(.p-datatable-wrapper)::-webkit-scrollbar-thumb {
-  background: var(--text-muted, #aaa);
+  background: var(--text-muted);
   border-radius: 5px;
   min-height: 30px;
 }
 .track-browser-table__datatable :deep(.p-datatable-wrapper)::-webkit-scrollbar-thumb:hover {
-  background: var(--text-secondary, #888);
+  background: var(--text-secondary);
 }
 
 /* Firefox: force always-visible scrollbar */
 .track-browser-table__datatable :deep(.p-datatable-wrapper) {
   scrollbar-width: auto;
-  scrollbar-color: var(--text-muted, #aaa) var(--surface-ground, #f0f0f0);
+  scrollbar-color: var(--text-muted) var(--surface-glass-heavy);
 }
 
 
@@ -375,7 +385,6 @@ function rowClass(row: TrackRowViewModel) {
   position: sticky;
   top: 0;
   z-index: 2;
-  background: var(--table-header-bg);
 }
 
 .track-browser-table__datatable :deep(.number-column) {
@@ -392,8 +401,8 @@ function rowClass(row: TrackRowViewModel) {
   gap: 0.2rem;
 }
 
-.track-browser-table__name-cell span {
-  font-size: 0.8rem;
+.track-browser-table__name-desc {
+  font-size: var(--text-xs-size);
   color: var(--text-muted);
 }
 
@@ -435,7 +444,7 @@ function rowClass(row: TrackRowViewModel) {
 
 .track-browser-cards__sort-label {
   flex-shrink: 0;
-  font-size: 0.72rem;
+  font-size: var(--text-xs-size);
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -457,7 +466,7 @@ function rowClass(row: TrackRowViewModel) {
   border-radius: 1rem;
   border: 1px solid var(--border-default);
   background: var(--surface-elevated);
-  font-size: 0.75rem;
+  font-size: var(--text-xs-size);
   color: var(--text-muted);
   cursor: pointer;
   transition: background 0.12s, color 0.12s, border-color 0.12s;
@@ -476,7 +485,7 @@ function rowClass(row: TrackRowViewModel) {
 }
 
 .sort-chip__dir {
-  font-size: 0.65rem;
+  font-size: var(--text-2xs-size);
 }
 
 .track-browser-table__na {
@@ -550,7 +559,7 @@ function rowClass(row: TrackRowViewModel) {
 
 .track-browser-card__name {
   flex: 1;
-  font-size: 0.92rem;
+  font-size: var(--text-base-size);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -573,7 +582,7 @@ function rowClass(row: TrackRowViewModel) {
   display: flex;
   flex-direction: column;
   gap: 0.12rem;
-  font-size: 0.8rem;
+  font-size: var(--text-sm-size);
   color: var(--text-muted);
   min-width: 0;
 }
@@ -588,11 +597,17 @@ function rowClass(row: TrackRowViewModel) {
 }
 
 .track-browser-card__meta-row--energy {
-  gap: 0;
+  gap: 0.25rem;
+}
+
+.track-browser-card__meta-row--energy i,
+.track-browser-table__header-info {
+  color: var(--text-faint);
+  font-size: var(--text-2xs-size);
 }
 
 .track-browser-card__desc {
-  font-size: 0.8rem;
+  font-size: var(--text-sm-size);
   color: var(--text-muted);
   font-style: italic;
   overflow: hidden;
@@ -612,12 +627,12 @@ function rowClass(row: TrackRowViewModel) {
   justify-content: center;
   gap: 0.5rem;
   padding: 0.5rem 0;
-  font-size: 0.85rem;
+  font-size: var(--text-sm-size);
   color: var(--text-muted);
 }
 
 .track-browser-cards__group-header {
-  font-size: 0.78rem;
+  font-size: var(--text-xs-size);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;

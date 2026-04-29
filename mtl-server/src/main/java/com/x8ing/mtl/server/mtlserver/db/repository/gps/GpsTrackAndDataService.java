@@ -27,9 +27,13 @@ public class GpsTrackAndDataService {
     public List<GpsTrack> findAllGpsTracksWithData(BigDecimal precisionInMeter, List<Long> trackIds) {
         long t0 = System.currentTimeMillis();
         List<GpsTrack> ret = new ArrayList<>();
+        if (trackIds == null || trackIds.isEmpty()) {
+            log.info("Loaded all tracks: empty ID list for precision={}", precisionInMeter);
+            return ret;
+        }
 
         List<GpsTrack> gpsTracks = gpsTrackRepository.findAllById(trackIds);
-        List<GpsTrackData> gpsTrackData = gpsTrackDataRepository.findAllWithLoadStatusSuccessAndPrecision(precisionInMeter);
+        List<GpsTrackData> gpsTrackData = gpsTrackDataRepository.findAllWithLoadStatusSuccessAndPrecisionAndTrackIds(precisionInMeter, trackIds);
         long tDataLoaded = System.currentTimeMillis();
 
         if (gpsTrackData != null) {
@@ -37,7 +41,10 @@ public class GpsTrackAndDataService {
             final Map<Long, GpsTrackData> gpsTrackDataByGpsTrackId = gpsTrackData.stream().collect(Collectors.toMap(GpsTrackData::getGpsTrackId, data -> data));
 
             gpsTracks.forEach(gpsTrack -> {
-                gpsTrack.getGpsTracksData().add(gpsTrackDataByGpsTrackId.get(gpsTrack.getId()));
+                GpsTrackData trackData = gpsTrackDataByGpsTrackId.get(gpsTrack.getId());
+                if (trackData != null) {
+                    gpsTrack.getGpsTracksData().add(trackData);
+                }
                 ret.add(gpsTrack);
                 gpsTrack.setLoadMessages(null); // ignore to save bandwidth
             });

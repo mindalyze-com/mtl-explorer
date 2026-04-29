@@ -14,7 +14,7 @@ export interface TrackBrowserSummary {
  * All raw track data is accessed directly via GpsTrack fields — no duplication.
  */
 export interface TrackRowViewModel extends GpsTrack {
-  /** trackName || trackDescription || 'Track N' */
+  /** trackName || metaName || trackDescription || metaDescription || 'Track N' */
   displayName: string;
   /** Motion-based duration in ms (falls back to endDate − startDate) */
   durationMillis: number;
@@ -23,6 +23,8 @@ export interface TrackRowViewModel extends GpsTrack {
   startDateMs: number;
   /** createDate.getTime() pre-computed for fast sorting; -1 when absent */
   createDateMs: number;
+  /** Normalized text across visible/searchable table columns */
+  searchText: string;
 }
 
 /** @deprecated Use TrackRowViewModel */

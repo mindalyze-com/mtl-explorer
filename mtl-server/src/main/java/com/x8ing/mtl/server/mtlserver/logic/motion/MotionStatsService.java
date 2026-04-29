@@ -27,11 +27,14 @@ public class MotionStatsService {
 
     private final GpsTrackRepository gpsTrackRepository;
     private final GpsTrackVariantSelector variantSelector;
+    private final GpsTrackEventService gpsTrackEventService;
 
     public MotionStatsService(GpsTrackRepository gpsTrackRepository,
-                              GpsTrackVariantSelector variantSelector) {
+                              GpsTrackVariantSelector variantSelector,
+                              GpsTrackEventService gpsTrackEventService) {
         this.gpsTrackRepository = gpsTrackRepository;
         this.variantSelector = variantSelector;
+        this.gpsTrackEventService = gpsTrackEventService;
     }
 
     /**
@@ -54,10 +57,13 @@ public class MotionStatsService {
             log.debug("recalculateMotionStatsForTrack: track id={} has no RAW_OUTLIER_CLEANED points — skipping", gpsTrackId);
             return false;
         }
-        SegmentNotes notes = TrackMotionAnalyzer.detectStopsInTrack(points);
+        Long gpsTrackDataId = points.get(0).getGpsTrackDataId();
+        List<TrackMotionAnalyzer.StopRange> stopRanges = TrackMotionAnalyzer.detectStopRangesInTrack(points);
+        SegmentNotes notes = TrackMotionAnalyzer.summarizeStopRanges(stopRanges);
         track.setTrackDurationStoppedSecs(notes.totalStoppedSec);
         track.setTrackStopCount(notes.stopCount);
         track.setTrackLongestStopSecs(notes.longestStopSec);
+        gpsTrackEventService.replaceDetectedStopEvents(gpsTrackId, gpsTrackDataId, stopRanges);
         gpsTrackRepository.save(track);
         return true;
     }

@@ -95,6 +95,7 @@ export async function listPlannedTracks(): Promise<PlannedTrackSummary[]> {
     centerLat: p.centerLat ?? 0,
     centerLng: p.centerLng ?? 0,
     createDate: p.createDate ? new Date(p.createDate).toISOString() : '',
+    profile: (p as unknown as Record<string, unknown>).profile as string | null ?? null,
   }));
 }
 

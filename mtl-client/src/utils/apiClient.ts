@@ -1,6 +1,5 @@
 import axios, { type AxiosInstance, type AxiosRequestConfig } from 'axios';
-import router from '@/router';
-import { clearToken, getAuthHeaderValue } from '@/utils/auth';
+import { getAuthHeaderValue, redirectToLoginAfterAuthFailure } from '@/utils/auth';
 
 /**
  * Single shared axios instance for all backend calls.
@@ -32,6 +31,17 @@ export const apiClient: AxiosInstance = axios.create({
   withCredentials: true,
 });
 
+function requestHadAuthHeader(config: AxiosRequestConfig | undefined): boolean {
+  const headers = config?.headers;
+  if (!headers) return false;
+  const getHeader = (headers as { get?: (name: string) => unknown }).get;
+  if (typeof getHeader === 'function') {
+    return !!(getHeader.call(headers, 'Authorization') || getHeader.call(headers, 'authorization'));
+  }
+  const record = headers as Record<string, unknown>;
+  return !!(record.Authorization || record.authorization);
+}
+
 apiClient.interceptors.request.use((config) => {
   // Stamp on every request so token rotation is picked up automatically.
   const auth = getAuthHeaderValue();
@@ -55,8 +65,7 @@ apiClient.interceptors.response.use(
       const url: string = error.config?.url ?? '';
       // Don't redirect if the failed request was the login call itself
       if (!url.includes('/api/auth/login')) {
-        clearToken();
-        router.push({ path: '/login', query: { reason: 'expired' } }).catch(() => {});
+        redirectToLoginAfterAuthFailure(requestHadAuthHeader(error.config));
       }
     }
     return Promise.reject(error);

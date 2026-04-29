@@ -8,6 +8,7 @@ import { installPrimeVue } from '@/bootstrap/setupPrimeVue';
 import { installGlobalErrorHandlers } from '@/bootstrap/globalErrorHandlers';
 import { startEarlyPrefetch } from '@/bootstrap/earlyPrefetch';
 import { installHighchartsTheme } from '@/composables/useHighchartsTheme';
+import { warmBackgroundCache } from '@/utils/backgroundCacheWarmer';
 
 // ── Side-effect-only style imports (must come before component CSS) ──
 import 'primeicons/primeicons.css';
@@ -27,11 +28,27 @@ hljs.registerLanguage('pgsql', pgsql);
 // ── Eager-evaluated module side effects (must run before mount) ──
 import '@/utils/auth';
 
+// ── Disable pinch-zoom on iOS Safari ──
+// iOS 10+ ignores user-scalable=no in the viewport meta for accessibility
+// reasons. Blocking multi-touch touchmove on the document is the only reliable
+// workaround. Single-finger panning (e.g. map drag, sheet drag) is unaffected.
+document.addEventListener('touchmove', (e: TouchEvent) => {
+  if (e.touches.length > 1) e.preventDefault();
+}, { passive: false });
+// Prevent double-tap zoom by eating the second tap if it follows within 300ms.
+let _lastTap = 0;
+document.addEventListener('touchend', (e: TouchEvent) => {
+  const now = Date.now();
+  if (now - _lastTap < 300) e.preventDefault();
+  _lastTap = now;
+}, { passive: false });
+
 // ── Boot ──
 initializeStartupDiagnostics();
 startupLog('boot', 'Vue bootstrap starting', { baseUrl: import.meta.env.BASE_URL });
 
 installHighchartsTheme();
+warmBackgroundCache();
 startEarlyPrefetch();
 
 const app = createApp(App);

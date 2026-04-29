@@ -22,11 +22,12 @@ mtl:
     # Frontend user for GUI
     login: 'temp'
     password: 'temp.42'
-    jwt-expiration: P90D
+    jwt-expiration: P180D
   exploration:
     corridor-width-m: 25.0                # Buffer radius around each prior path (meters). Known territory.
     use-track-precision: 10               # Simplified track variant to use (10m precision). Which version of the track to take.
     max-tracks-per-run: 20                # Safety cap per scheduler invocation
+    worker-threads: 3                     # Parallel exploration score workers; set to 1 for sequential processing
     run-schedule: PT120S                  # How often the job fires (ISO-8601 duration)
   planner:
     enabled: true                         # Master switch for the route-planner feature. Override via MTL_PLANNER_ENABLED.
@@ -83,7 +84,10 @@ server:
   compression:
     enabled: true
     min-response-size: 1024
-    mime-types: text/html,text/xml,text/plain,text/css,text/javascript,application/javascript,application/json
+    mime-types: >
+      text/html,text/xml,text/plain,text/css,text/javascript,
+      application/javascript,application/json,application/geo+json,
+      application/xml,image/svg+xml
   ssl:
     key-store: classpath:keystore.p12
     key-store-password: password
@@ -120,7 +124,10 @@ spring:
   jackson:
   # custom bean!
   task:
+    execution:
+      thread-name-prefix: async-
     scheduling:
+      thread-name-prefix: sched-
       pool:
         size: 4
 

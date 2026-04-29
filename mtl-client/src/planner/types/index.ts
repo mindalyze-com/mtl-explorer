@@ -40,6 +40,7 @@ export interface PlannedTrackSummary {
   centerLat: number;
   centerLng: number;
   createDate: string;
+  profile: string | null;
 }
 
 export interface PlannedTrackDetail {

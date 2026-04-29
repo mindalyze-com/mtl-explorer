@@ -45,10 +45,11 @@ function pickNextBackground(): string {
     return backgrounds[chosen];
 }
 
-// Evaluate exactly once when the JavaScript bundle is loaded (app start)
-// so LoginView and HomeView share the same image per session
-const ACTIVE_BACKGROUND = pickNextBackground();
+let activeBackground: string | null = null;
 
 export function getRandomBackground(): string {
-    return ACTIVE_BACKGROUND;
+    // Evaluate exactly once on first use so LoginView and HomeView share the
+    // same image per session without cache warmup affecting the rotation.
+    activeBackground ??= pickNextBackground();
+    return activeBackground;
 }

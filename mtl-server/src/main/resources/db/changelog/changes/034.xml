@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.10.xsd">
+
+    <changeSet id="20260426_2_gps_track_event" author="patrick.heusser">
+
+        <createTable tableName="gps_track_event">
+            <column name="id" type="bigint" autoIncrement="true" startWith="800000" incrementBy="50">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="gps_track_id" type="bigint">
+                <constraints nullable="false" foreignKeyName="fk_gps_track_event_gps_track"
+                             referencedTableName="gps_track" referencedColumnNames="id"/>
+            </column>
+            <column name="gps_track_data_id" type="bigint">
+                <constraints nullable="true" foreignKeyName="fk_gps_track_event_gps_track_data"
+                             referencedTableName="gps_track_data" referencedColumnNames="id"/>
+            </column>
+            <column name="event_type" type="varchar(64)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="source" type="varchar(64)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="start_gps_track_data_point_id" type="bigint">
+                <constraints nullable="true" foreignKeyName="fk_gps_track_event_start_point"
+                             referencedTableName="gps_track_data_points" referencedColumnNames="id"/>
+            </column>
+            <column name="end_gps_track_data_point_id" type="bigint">
+                <constraints nullable="true" foreignKeyName="fk_gps_track_event_end_point"
+                             referencedTableName="gps_track_data_points" referencedColumnNames="id"/>
+            </column>
+            <column name="start_point_index" type="int"/>
+            <column name="end_point_index" type="int"/>
+            <column name="start_timestamp" type="timestamp"/>
+            <column name="end_timestamp" type="timestamp"/>
+            <column name="start_distance_in_meter" type="numeric(12,2)"/>
+            <column name="end_distance_in_meter" type="numeric(12,2)"/>
+            <column name="duration_in_sec" type="numeric(12,2)"/>
+            <column name="start_point_long_lat" type="GEOMETRY(Point, 4326)"/>
+            <column name="end_point_long_lat" type="GEOMETRY(Point, 4326)"/>
+            <column name="label" type="varchar(512)"/>
+            <column name="description" type="text"/>
+            <column name="confidence" type="double precision"/>
+            <column name="create_date" type="timestamp" defaultValueComputed="CURRENT_TIMESTAMP"/>
+            <column name="update_date" type="timestamp"/>
+        </createTable>
+
+        <createIndex indexName="GPS_TRACK_EVENT_IX_TRACK_ID" tableName="gps_track_event" unique="false">
+            <column name="gps_track_id"/>
+        </createIndex>
+        <createIndex indexName="GPS_TRACK_EVENT_IX_TRACK_DATA_ID" tableName="gps_track_event" unique="false">
+            <column name="gps_track_data_id"/>
+        </createIndex>
+        <createIndex indexName="GPS_TRACK_EVENT_IX_TYPE_SOURCE" tableName="gps_track_event" unique="false">
+            <column name="event_type"/>
+            <column name="source"/>
+        </createIndex>
+        <createIndex indexName="GPS_TRACK_EVENT_IX_TRACK_TYPE_SOURCE" tableName="gps_track_event" unique="false">
+            <column name="gps_track_id"/>
+            <column name="event_type"/>
+            <column name="source"/>
+        </createIndex>
+        <createIndex indexName="GPS_TRACK_EVENT_IX_START_POINT" tableName="gps_track_event" unique="false">
+            <column name="start_gps_track_data_point_id"/>
+        </createIndex>
+        <createIndex indexName="GPS_TRACK_EVENT_IX_END_POINT" tableName="gps_track_event" unique="false">
+            <column name="end_gps_track_data_point_id"/>
+        </createIndex>
+        <createIndex indexName="GPS_TRACK_EVENT_IX_START_TS" tableName="gps_track_event" unique="false">
+            <column name="start_timestamp"/>
+        </createIndex>
+        <createIndex indexName="GPS_TRACK_EVENT_IX_END_TS" tableName="gps_track_event" unique="false">
+            <column name="end_timestamp"/>
+        </createIndex>
+
+        <sql>CREATE INDEX GPS_TRACK_EVENT_IX_START_LOCATION ON gps_track_event USING gist(start_point_long_lat);</sql>
+        <sql>CREATE INDEX GPS_TRACK_EVENT_IX_END_LOCATION ON gps_track_event USING gist(end_point_long_lat);</sql>
+
+    </changeSet>
+
+</databaseChangeLog>

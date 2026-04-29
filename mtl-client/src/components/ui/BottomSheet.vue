@@ -199,11 +199,12 @@ function resolveCssLength(value: string | number, vh: number): number {
 }
 
 function resolveDetents(detents: Detent[], vh: number): ResolvedDetent[] {
+  const maxPx = vh * 0.98; // hard cap — sheets must never exceed the screen
   return detents.map((d, i) => {
     if (typeof d === 'string') {
-      return { id: d, heightPx: resolveCssLength(DETENT_PRESETS[d], vh) };
+      return { id: d, heightPx: Math.min(resolveCssLength(DETENT_PRESETS[d], vh), maxPx) };
     }
-    return { id: d.id ?? `detent-${i}`, heightPx: resolveCssLength(d.height, vh) };
+    return { id: d.id ?? `detent-${i}`, heightPx: Math.min(resolveCssLength(d.height, vh), maxPx) };
   }).sort((a, b) => a.heightPx - b.heightPx);
 }
 
@@ -481,10 +482,10 @@ onUnmounted(() => {
   --bs-header-px: 1rem;
   --bs-header-pb: 0.4rem;
   --bs-header-gap: 0.75rem;
-  --bs-actions-gap: 0.35rem;
-  --bs-btn-size: 2rem;
-  --bs-btn-close-icon: 0.85rem;
-  --bs-btn-fs-icon: 0.75rem;
+  --bs-actions-gap: 0.4rem;
+  --bs-btn-size: 1.6rem;
+  --bs-btn-close-icon: var(--text-xs-size);
+  --bs-btn-fs-icon: var(--text-xs-size);
   --bs-body-pb: 0.75rem;
   --bs-float-top: 0.45rem;
   --bs-float-right: 0.85rem;
@@ -585,11 +586,11 @@ onUnmounted(() => {
   align-items: center;
   gap: 0.4rem;
   max-width: 100%;
-  font-size: 0.78rem;
+  font-size: var(--text-sm-size);
   font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: #5f6368;
+  letter-spacing: 0.01em;
+  text-transform: none;
+  color: var(--text-primary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -613,6 +614,7 @@ onUnmounted(() => {
 }
 
 .sheet-fullscreen-btn {
+  position: relative;
   background: var(--surface-hover);
   border: 1px solid var(--border-medium);
   color: var(--text-muted);
@@ -627,12 +629,18 @@ onUnmounted(() => {
   transition: all 0.15s;
   flex-shrink: 0;
 }
+.sheet-fullscreen-btn::after {
+  content: '';
+  position: absolute;
+  inset: -0.55rem;
+}
 .sheet-fullscreen-btn:hover {
   color: var(--text-primary);
   background: var(--surface-active);
 }
 
 .sheet-close-btn {
+  position: relative;
   background: var(--surface-hover);
   border: 1px solid var(--border-medium);
   color: var(--text-muted);
@@ -647,6 +655,11 @@ onUnmounted(() => {
   transition: all 0.15s;
   flex-shrink: 0;
 }
+.sheet-close-btn::after {
+  content: '';
+  position: absolute;
+  inset: -0.55rem;
+}
 .sheet-close-btn:hover {
   color: var(--text-primary);
   background: var(--surface-active);
@@ -659,11 +672,12 @@ onUnmounted(() => {
   --bs-header-px: 0.85rem;
   --bs-header-pb: 0.3rem;
   --bs-header-gap: 0.55rem;
-  --bs-btn-size: 1.85rem;
-  --bs-btn-close-icon: 0.8rem;
-  --bs-btn-fs-icon: 0.72rem;
+  --bs-btn-size: 1.5rem;
+  --bs-btn-close-icon: var(--text-xs-size);
+  --bs-btn-fs-icon: var(--text-xs-size);
   --bs-float-top: 0.38rem;
   --bs-float-right: 0.7rem;
+  --bs-actions-gap: 0.35rem;
 }
 
 /* ─── Body ─── */
@@ -704,15 +718,15 @@ onUnmounted(() => {
 
 @media (max-width: 768px) {
   .sheet {
-    --bs-handle-pt: 0.75rem;
+    --bs-handle-pt: 0.4rem;
     --bs-handle-pb: 0.35rem;
     --bs-handle-w: 3rem;
-    --bs-header-pt: 0.65rem;
+    --bs-header-pt: 1.1rem;
   }
   .sheet--header-compact {
-    --bs-handle-pt: 0.55rem;
+    --bs-handle-pt: 0.35rem;
     --bs-handle-pb: 0.25rem;
-    --bs-header-pt: 0.4rem;
+    --bs-header-pt: 0.9rem;
     --bs-header-px: 0.7rem;
     --bs-header-pb: 0.25rem;
     --bs-actions-gap: 0.25rem;
@@ -738,7 +752,7 @@ onUnmounted(() => {
 }
 
 .sheet-scroll-hint__icon {
-  font-size: 1.1rem;
+  font-size: var(--text-lg-size);
   color: var(--text-secondary);
   animation: scroll-hint-bounce 1.6s ease-in-out infinite;
   opacity: 0.85;

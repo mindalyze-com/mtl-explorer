@@ -3,7 +3,7 @@
 
     <!-- Loading state: show only when both are empty -->
     <div v-if="summaries.length === 0 && jobSummaries.length === 0" class="indexer-empty">
-      <i class="pi pi-spin pi-spinner" style="font-size: 1.1rem; color: var(--text-faint);"/>
+      <i class="pi pi-spin pi-spinner" style="font-size: var(--text-lg-size); color: var(--text-faint);"/>
       <span>Loading…</span>
     </div>
 
@@ -126,10 +126,9 @@ async function onRefresh() {
   flex-direction: column;
   gap: 0.75rem;
   padding: 0.95rem 1rem;
-  border-radius: 1.2rem;
+  border-radius: 0.625rem;
   border: 1px solid var(--border-default);
   background: var(--surface-glass-light);
-  box-shadow: var(--shadow-sm);
 }
 
 .indexer-empty {
@@ -137,7 +136,7 @@ async function onRefresh() {
   align-items: center;
   gap: 0.5rem;
   color: var(--text-faint);
-  font-size: 0.85rem;
+  font-size: var(--text-sm-size);
   padding: 1rem 0;
 }
 
@@ -162,7 +161,7 @@ async function onRefresh() {
 }
 
 .index-name {
-  font-size: 0.9rem;
+  font-size: var(--text-base-size);
   font-weight: 600;
   color: var(--text-primary);
   font-family: 'SF Mono', 'Fira Code', monospace;
@@ -170,7 +169,7 @@ async function onRefresh() {
 }
 
 .index-pct {
-  font-size: 0.82rem;
+  font-size: var(--text-sm-size);
   font-weight: 600;
   color: var(--text-muted);
   margin-left: auto;
@@ -181,7 +180,7 @@ async function onRefresh() {
   display: inline-flex;
   align-items: center;
   gap: 0.25rem;
-  font-size: 0.65rem;
+  font-size: var(--text-2xs-size);
   font-weight: 600;
   padding: 0.1rem 0.45rem;
   border-radius: 1rem;
@@ -190,23 +189,18 @@ async function onRefresh() {
 }
 
 .index-badge--scanning {
-  background: rgba(234, 179, 8, 0.15);
-  color: #ca8a04;
-}
-
-.dark-theme .index-badge--scanning {
-  background: rgba(234, 179, 8, 0.12);
-  color: #fbbf24;
+  background: var(--warning-bg);
+  color: var(--warning-text);
 }
 
 .index-badge--done {
-  background: rgba(34, 197, 94, 0.12);
+  background: var(--success-bg);
   color: var(--success);
 }
 
 /* ── Progress bar overrides ── */
 :deep(.index-progress--active .p-progressbar-value) {
-  background: linear-gradient(90deg, #f59e0b, #eab308);
+  background: linear-gradient(90deg, var(--warning), var(--accent-text));
   animation: progress-shimmer 1.8s ease-in-out infinite;
 }
 
@@ -231,15 +225,15 @@ async function onRefresh() {
   display: inline-flex;
   align-items: center;
   gap: 0.25rem;
-  font-size: 0.75rem;
+  font-size: var(--text-xs-size);
 }
 
 .stat .pi {
-  font-size: 0.7rem;
+  font-size: var(--text-xs-size);
 }
 
 .stat--done   { color: var(--success); }
-.stat--pending { color: #f59e0b; }
+.stat--pending { color: var(--warning); }
 .stat--failed  { color: var(--error); }
 
 .stat--total {
@@ -256,7 +250,7 @@ async function onRefresh() {
 }
 
 .refresh-time {
-  font-size: 0.72rem;
+  font-size: var(--text-xs-size);
   color: var(--text-faint);
 }
 

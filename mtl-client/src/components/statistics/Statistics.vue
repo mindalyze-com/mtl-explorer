@@ -1,14 +1,19 @@
 <template>
   <div>
-    <BottomSheet v-model="showMenu" title="Stats" icon="bi bi-graph-up" :detents="[{ height: '88vh' }, { height: '98vh' }]"
+    <BottomSheet v-model="showMenu" :detents="statsDetents"
                  @closed="onSheetClosed">
+      <template #title>
+        <div class="stats-header-nav">
+          <i class="bi bi-graph-up stats-sheet-icon"></i>
+          <div class="stats-header-tabs">
+            <button class="stats-header-tab" :class="{ 'stats-header-tab--active': activeTab === 'overview' }" @pointerdown.stop @click="activeTab = 'overview'">Overview</button>
+            <button class="stats-header-tab" :class="{ 'stats-header-tab--active': activeTab === 'stats' }" @pointerdown.stop @click="activeTab = 'stats'">Trends</button>
+            <button class="stats-header-tab" :class="{ 'stats-header-tab--active': activeTab === 'tracks' }" @pointerdown.stop @click="activeTab = 'tracks'">Tracks</button>
+          </div>
+        </div>
+      </template>
       <div v-if="active" class="statistics-root">
         <Tabs v-model:value="activeTab">
-          <TabList>
-            <Tab value="overview">Overview</Tab>
-            <Tab value="stats">Trends</Tab>
-            <Tab value="tracks">Tracks</Tab>
-          </TabList>
           <TabPanels>
 
           <!-- ── Tab 1: Overview ── -->
@@ -182,10 +187,44 @@
                     {{ formatEnergy(slotProps.data.energyNetTotalWhSum) }}
                   </template>
                 </Column>
-                <Column field="powerWattsAvgMed" header="Avg Power" :sortable="true"
+                <Column field="powerWattsAvgMed" :sortable="true"
                         headerClass="number-column" class="number-column" style="min-width: 7rem">
+                  <template #header>
+                    <span>Avg Power</span>
+                    <button class="info-btn info-btn--col" @click.stop="showInfo($event, INFO_AVG_POWER)" aria-label="About Average Power"><i class="bi bi-info-circle"></i></button>
+                  </template>
                   <template #body="slotProps">
                     {{ formatPower(slotProps.data.powerWattsAvgMed) }}
+                  </template>
+                </Column>
+                <Column field="normalizedPowerMed" :sortable="true"
+                        headerClass="number-column" class="number-column" style="min-width: 7rem">
+                  <template #header>
+                    <span>NP</span>
+                    <button class="info-btn info-btn--col" @click.stop="showInfo($event, INFO_NORMALIZED_POWER)" aria-label="About Normalized Power"><i class="bi bi-info-circle"></i></button>
+                  </template>
+                  <template #body="slotProps">
+                    {{ formatPower(slotProps.data.normalizedPowerMed) }}
+                  </template>
+                </Column>
+                <Column field="intensityIndexAvg" :sortable="true"
+                        headerClass="number-column" class="number-column" style="min-width: 7rem">
+                  <template #header>
+                    <span>Intensity</span>
+                    <button class="info-btn info-btn--col" @click.stop="showInfo($event, INFO_INTENSITY_INDEX)" aria-label="About Intensity Index"><i class="bi bi-info-circle"></i></button>
+                  </template>
+                  <template #body="slotProps">
+                    {{ slotProps.data.intensityIndexAvg != null && slotProps.data.intensityIndexAvg > 0 ? slotProps.data.intensityIndexAvg.toFixed(2) : '' }}
+                  </template>
+                </Column>
+                <Column field="trainingLoadPerRideAvg" :sortable="true"
+                        headerClass="number-column" class="number-column" style="min-width: 8rem">
+                  <template #header>
+                    <span>Training Load</span>
+                    <button class="info-btn info-btn--col" @click.stop="showInfo($event, INFO_TRAINING_LOAD)" aria-label="About Training Load"><i class="bi bi-info-circle"></i></button>
+                  </template>
+                  <template #body="slotProps">
+                    {{ slotProps.data.trainingLoadPerRideAvg != null && slotProps.data.trainingLoadPerRideAvg > 0 ? Math.round(slotProps.data.trainingLoadPerRideAvg) : '' }}
                   </template>
                 </Column>
               </DataTable>
@@ -195,33 +234,47 @@
           <!-- ── Charts (inline) ── -->
           <div class="charts-scroll" v-if="statsView === 'charts' && filteredStatisticData.length > 0">
             <div class="chart-card">
-              <div class="chart-header" style="--chart-header-accent: #6366f1">
-                <i class="bi bi-clock" style="color:#6366f1"></i> Duration
+              <div class="chart-header" style="--chart-header-accent: var(--chart-series-1)">
+                <i class="bi bi-clock" style="color: var(--chart-series-1)"></i> Duration
               </div>
               <highcharts ref="chartDuration" :options="chartOptionsDuration" class="stat-chart" />
             </div>
             <div class="chart-card">
-              <div class="chart-header" style="--chart-header-accent: #7c3aed">
-                <i class="bi bi-signpost-split" style="color:#7c3aed"></i> Distance
+              <div class="chart-header" style="--chart-header-accent: var(--chart-series-2)">
+                <i class="bi bi-signpost-split" style="color: var(--chart-series-2)"></i> Distance
               </div>
               <highcharts ref="chartDistance" :options="chartOptionsDistance" class="stat-chart" />
             </div>
             <div class="chart-card">
-              <div class="chart-header" style="--chart-header-accent: #3b82f6">
-                <i class="bi bi-bar-chart-line" style="color:#3b82f6"></i> Activity
+              <div class="chart-header" style="--chart-header-accent: var(--info)">
+                <i class="bi bi-bar-chart-line" style="color: var(--info)"></i> Activity
               </div>
               <highcharts ref="chartActivity" :options="chartOptionsActivity" class="stat-chart" />
             </div>
             <div class="chart-card" v-if="summaryStats.hasEnergy">
-              <div class="chart-header" style="--chart-header-accent: #f97316">
-                <i class="bi bi-lightning-charge" style="color:#f97316"></i> Energy
+              <div class="chart-header" style="--chart-header-accent: var(--chart-series-3)">
+                <i class="bi bi-lightning-charge" style="color: var(--chart-series-3)"></i> Energy
                 <button class="info-btn info-btn--header" @click.stop="showInfo($event, INFO_ENERGY)" aria-label="About energy"><i class="bi bi-info-circle"></i></button>
               </div>
               <highcharts ref="chartEnergy" :options="chartOptionsEnergy" class="stat-chart" />
             </div>
+            <div class="chart-card" v-if="summaryStats.hasFitness">
+              <div class="chart-header" style="--chart-header-accent: var(--error)">
+                <i class="bi bi-speedometer2" style="color: var(--error)"></i> Intensity Index
+                <button class="info-btn info-btn--header" @click.stop="showInfo($event, INFO_INTENSITY_INDEX)" aria-label="About Intensity Index"><i class="bi bi-info-circle"></i></button>
+              </div>
+              <highcharts ref="chartIntensityIndex" :options="chartOptionsIntensityIndex" class="stat-chart" />
+            </div>
+            <div class="chart-card" v-if="summaryStats.hasFitness">
+              <div class="chart-header" style="--chart-header-accent: var(--accent-text-light)">
+                <i class="bi bi-heart-pulse" style="color: var(--accent-text-light)"></i> Training Load
+                <button class="info-btn info-btn--header" @click.stop="showInfo($event, INFO_TRAINING_LOAD)" aria-label="About Training Load"><i class="bi bi-info-circle"></i></button>
+              </div>
+              <highcharts ref="chartTrainingLoad" :options="chartOptionsTrainingLoad" class="stat-chart" />
+            </div>
             <div class="chart-card">
-              <div class="chart-header" style="--chart-header-accent: #10b981">
-                <i class="bi bi-compass" style="color:#10b981"></i> Exploration
+              <div class="chart-header" style="--chart-header-accent: var(--success)">
+                <i class="bi bi-compass" style="color: var(--success)"></i> Exploration
                 <button class="info-btn info-btn--header" @click.stop="showInfo($event, INFO_EXPLORATION)" aria-label="About exploration"><i class="bi bi-info-circle"></i></button>
               </div>
               <highcharts v-if="summaryStats.hasExploration" ref="chartExploration" :options="chartOptionsExploration" class="stat-chart" />
@@ -274,13 +327,17 @@ function hexToRgba(hex: string, alpha: number): string {
   return `rgba(${r},${g},${b},${alpha})`;
 }
 
-function buildStatChart(seriesName: string, seriesColor: string, unit: string, tooltipFormatter: (v: number) => string): Highcharts.Options {
-  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-  const textColor   = isDark ? '#94a3b8' : '#64748b';
-  const gridColor   = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)';
-  const tooltipBg   = isDark ? 'rgba(15,23,42,0.97)'   : 'rgba(255,255,255,0.97)';
-  const tooltipText = isDark ? '#e2e8f0'               : '#334155';
-  const borderColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)';
+function cssToken(name: string): string {
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+}
+
+function buildStatChart(seriesName: string, seriesColorToken: string, unit: string, tooltipFormatter: (v: number) => string): Highcharts.Options {
+  const textColor = cssToken('--chart-text');
+  const gridColor = cssToken('--chart-grid');
+  const tooltipBg = cssToken('--chart-tooltip-bg');
+  const tooltipText = cssToken('--chart-tooltip-text');
+  const borderColor = cssToken('--border-default');
+  const seriesColor = cssToken(seriesColorToken);
 
   return markRaw({
     chart: {
@@ -294,7 +351,7 @@ function buildStatChart(seriesName: string, seriesColor: string, unit: string, t
     legend:  { enabled: false },
     xAxis: {
       categories: [] as string[],
-      labels: { style: { color: textColor, fontSize: '11px' } },
+      labels: { style: { color: textColor, fontSize: '12px' } },
       lineColor: gridColor,
       tickColor: 'transparent',
     },
@@ -302,7 +359,7 @@ function buildStatChart(seriesName: string, seriesColor: string, unit: string, t
       gridLineColor: gridColor,
       title: { text: null },
       labels: {
-        style: { color: textColor, fontSize: '11px' },
+        style: { color: textColor, fontSize: '12px' },
         formatter(this: any) {
           return this.isLast && unit
             ? compactNum(this.value as number) + '\u202f' + unit
@@ -353,7 +410,11 @@ const INFO_PERIODS    = 'The number of time periods with recorded activity in th
 const INFO_TRACKS     = 'Total number of GPS tracks across all periods.';
 const INFO_DISTANCE   = 'Cumulative GPS-measured distance across all periods.';
 const INFO_DURATION   = 'Cumulative active duration (moving time) across all periods.';
-const INFO_ENERGY     = 'Physical mechanical energy output, measured from power-sensor data (Wh). This is not an estimate of calorie or metabolic energy — it reflects actual and precise power data recorded by your device.';
+const INFO_ENERGY     = 'Estimated external mechanical work from GPS-derived physics (Wh): climbing, drag, rolling/friction, and acceleration. It is not metabolic calorie burn and not measured power-sensor data.';
+const INFO_AVG_POWER  = 'Estimated average external mechanical power from the same GPS-derived energy model. Treat it as a physics estimate, not as recorded power-meter data.';
+const INFO_NORMALIZED_POWER = 'Normalized Power (NP) is computed from estimated mechanical power using a 30 s rolling window and fourth-power weighting. It is useful for comparing effort patterns, but it is not a power-meter measurement. Also known as: Weighted Average Power (Strava), Normalized Power / NP (Garmin, TrainingPeaks), xPower / IsoPower (GoldenCheetah).';
+const INFO_INTENSITY_INDEX  = 'Intensity Index = estimated NP ÷ your threshold power. 1.0 ≈ all-out 1 h effort if estimated power matches your real power.';
+const INFO_TRAINING_LOAD    = 'Training Load per ride = (estimated NP ÷ threshold)² × moving hours × 100. It scales duration and intensity, but inherits the limits of the estimated mechanical-power model.';
 const INFO_EXPLORATION = 'Average share of each track covering ground not visited before (within a 25 m grid). Calculated as a background job after indexing — may take a moment to appear.';
 
 export default defineComponent({
@@ -379,6 +440,10 @@ export default defineComponent({
       INFO_DISTANCE,
       INFO_DURATION,
       INFO_ENERGY,
+      INFO_AVG_POWER,
+      INFO_NORMALIZED_POWER,
+      INFO_INTENSITY_INDEX,
+      INFO_TRAINING_LOAD,
       INFO_EXPLORATION,
       selectedGrouping: 'YYYY-"Q"Q',
       selectedSubUnit: null as string | null,
@@ -390,11 +455,13 @@ export default defineComponent({
         { name: "YYYY-MM-DD (by year, week and day)", code: "YYYY-MM-DD" },
         { name: "Total", code: "TOTAL" },
       ],
-      chartOptionsDuration: buildStatChart('Duration', '#6366f1', 'h',  (v) => fmtHours(v)),
-      chartOptionsDistance: buildStatChart('Distance', '#7c3aed', 'km', (v) => v.toFixed(1) + ' km'),
-      chartOptionsActivity: buildStatChart('Tracks',   '#3b82f6', '',   (v) => Math.round(v).toString()),
-      chartOptionsEnergy:   buildStatChart('Energy',   '#f97316', 'Wh', (v) => formatLocaleNumber(Math.round(v)) + ' Wh'),
-      chartOptionsExploration: buildStatChart('Exploration', '#10b981', '%', (v) => v.toFixed(1) + '%'),
+      chartOptionsDuration: buildStatChart('Duration', '--chart-series-1', 'h',  (v) => fmtHours(v)),
+      chartOptionsDistance: buildStatChart('Distance', '--chart-series-2', 'km', (v) => v.toFixed(1) + ' km'),
+      chartOptionsActivity: buildStatChart('Tracks',   '--info', '',   (v) => Math.round(v).toString()),
+      chartOptionsEnergy:   buildStatChart('Mechanical Energy', '--chart-series-3', 'Wh', (v) => formatLocaleNumber(Math.round(v)) + ' Wh'),
+      chartOptionsIntensityIndex: buildStatChart('Intensity Index', '--error', '', (v) => v.toFixed(2)),
+      chartOptionsTrainingLoad:   buildStatChart('Training Load',   '--accent-text-light', '', (v) => v.toFixed(0)),
+      chartOptionsExploration: buildStatChart('Exploration', '--success', '%', (v) => v.toFixed(1) + '%'),
     };
   },
   setup(props) {
@@ -425,6 +492,11 @@ export default defineComponent({
       }
       return Array.from(subunits).sort();
     },
+    statsDetents(): { height: string }[] {
+      return this.isMobile
+        ? [{ height: '60vh' }, { height: '88vh' }]
+        : [{ height: '88vh' }, { height: '98vh' }];
+    },
     filteredStatisticData(): GpsTrackStatistics[] {
       if (!this.statisticData) return [];
       if (this.selectedSubUnit) {
@@ -448,13 +520,14 @@ export default defineComponent({
         ...data.map((d: GpsTrackStatistics) => (d.trackDurationSecsMed ?? 0) * 1000),
       );
     },
-    summaryStats(): { periods: number; tracks: number; distance: string; distanceFull: string; duration: string; durationFull: string; energy: string; hasEnergy: boolean; hasExploration: boolean } {
+    summaryStats(): { periods: number; tracks: number; distance: string; distanceFull: string; duration: string; durationFull: string; energy: string; hasEnergy: boolean; hasFitness: boolean; hasExploration: boolean } {
       const data = this.filteredStatisticData;
       const totalTracks  = data.reduce((s: number, d: GpsTrackStatistics) => s + (d.numberOfTracks ?? 0), 0);
       const totalDistM   = data.reduce((s: number, d: GpsTrackStatistics) => s + (d.trackLengthInMeterSum ?? 0), 0);
       const totalDurSecs = data.reduce((s: number, d: GpsTrackStatistics) => s + (d.totalTrackDurationSecs ?? 0), 0);
       const totalEnergy  = data.reduce((s: number, d: GpsTrackStatistics) => s + (d.energyNetTotalWhSum ?? 0), 0);
       const hasExploration = data.some((d: any) => d.explorationScoreAvg != null && d.explorationScoreAvg > 0);
+      const hasFitness = data.some((d: any) => (d.normalizedPowerMed ?? 0) > 0 || (d.intensityIndexAvg ?? 0) > 0 || (d.trainingLoadPerRideAvg ?? 0) > 0);
       return {
         periods:      data.length,
         tracks:       totalTracks,
@@ -464,6 +537,7 @@ export default defineComponent({
         durationFull: formatDurationTooltip(totalDurSecs * 1000),
         energy:       formatLocaleNumber(Math.round(totalEnergy)) + ' Wh',
         hasEnergy:    totalEnergy > 0,
+        hasFitness,
         hasExploration,
       };
     },
@@ -480,7 +554,7 @@ export default defineComponent({
         this.$nextTick(() => {
           setTimeout(() => {
             this.updateCharts(this.filteredStatisticData);
-            for (const ref of ['chartDuration', 'chartDistance', 'chartActivity', 'chartEnergy', 'chartExploration']) {
+            for (const ref of ['chartDuration', 'chartDistance', 'chartActivity', 'chartEnergy', 'chartIntensityIndex', 'chartTrainingLoad', 'chartExploration']) {
               const cmp: any = (this.$refs as any)[ref];
               if (cmp?.chart) cmp.chart.reflow();
             }
@@ -529,6 +603,10 @@ export default defineComponent({
         data.map((o: GpsTrackStatistics) => o.numberOfTracks ?? 0));
       setChart('chartEnergy', this.chartOptionsEnergy,
         data.map((o: GpsTrackStatistics) => o.energyNetTotalWhSum ?? 0));
+      setChart('chartIntensityIndex', this.chartOptionsIntensityIndex,
+        data.map((o: any) => parseFloat(((o.intensityIndexAvg ?? 0)).toFixed(3))));
+      setChart('chartTrainingLoad', this.chartOptionsTrainingLoad,
+        data.map((o: any) => parseFloat(((o.trainingLoadPerRideAvg ?? 0)).toFixed(1))));
       setChart('chartExploration', this.chartOptionsExploration,
         data.map((o: any) => parseFloat((((o as any).explorationScoreAvg ?? 0) * 100).toFixed(1))));
 
@@ -537,7 +615,7 @@ export default defineComponent({
       this.$nextTick(() => requestAnimationFrame(() => this.syncChartMargins()));
     },
     syncChartMargins() {
-      const chartRefs = ['chartDuration', 'chartDistance', 'chartActivity', 'chartEnergy', 'chartExploration'];
+      const chartRefs = ['chartDuration', 'chartDistance', 'chartActivity', 'chartEnergy', 'chartIntensityIndex', 'chartTrainingLoad', 'chartExploration'];
       const charts = chartRefs
         .map((r) => (this.$refs as any)[r]?.chart)
         .filter(Boolean);
@@ -594,12 +672,49 @@ export default defineComponent({
   min-height: 0;
 }
 
-:deep(.p-tablist) {
-  flex: 0 0 auto;
-  z-index: 2;
-  background: var(--surface-glass);
-  backdrop-filter: var(--blur-standard);
-  -webkit-backdrop-filter: var(--blur-standard);
+/* stats-sheet-icon: muted identity mark, non-interactive */
+.stats-header-nav {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.stats-sheet-icon {
+  font-size: var(--text-base-size);
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.stats-header-tabs {
+  display: flex;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.stats-header-tab {
+  padding: 0.25rem 0.7rem;
+  border-radius: 1rem;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: var(--text-sm-size);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  white-space: nowrap;
+  line-height: var(--text-sm-lh);
+}
+
+.stats-header-tab:not(.stats-header-tab--active):hover {
+  background: var(--surface-hover);
+  color: var(--text-primary);
+}
+
+.stats-header-tab--active {
+  background: var(--accent-subtle);
+  color: var(--accent-text);
+  font-weight: 600;
 }
 
 :deep(.p-tabpanels) {
@@ -612,15 +727,17 @@ export default defineComponent({
 
 :deep(.p-tabpanel) {
   min-height: 0;
+  padding-top: 0.5rem;
 }
 
 .tracks-tab {
   padding: 0;
+  margin-top: -0.5rem;
 }
 
 .statistics-holder {
-  flex: 1 1 auto; display: flex; flex-direction: column; min-height: 0; gap: .75rem;
-  padding: .5rem 0;
+  flex: 1 1 auto; display: flex; flex-direction: column; min-height: 0; gap: .5rem;
+  padding: 0;
 }
 
 /* ── Controls bar ── */
@@ -635,7 +752,7 @@ export default defineComponent({
 }
 .stats-controls__icon {
   position: absolute; left: .65rem; z-index: 1;
-  color: var(--text-muted); font-size: .85rem; pointer-events: none;
+  color: var(--text-muted); font-size: var(--text-sm-size); pointer-events: none;
 }
 .stats-select {
   width: 100%;
@@ -652,24 +769,24 @@ export default defineComponent({
 .stat-tile {
   flex: 1 1 70px; min-width: 0;
   display: flex; flex-direction: column; align-items: center;
-  background: var(--surface-elevated);
+  background: transparent;
   border: 1px solid var(--border-default);
   border-radius: 10px;
   padding: .55rem .4rem .45rem;
   gap: .15rem;
   transition: background .15s;
 }
-.stat-tile:hover { background: var(--surface-hover); }
-.stat-tile__icon { font-size: 1rem; line-height: 1; }
+
+.stat-tile__icon { font-size: var(--text-base-size); line-height: var(--text-base-lh); }
 .stat-tile__value {
-  font-size: .85rem; font-weight: 700;
+  font-size: var(--text-sm-size); font-weight: 700;
   color: var(--text-primary);
-  line-height: 1.2;
+  line-height: var(--text-sm-lh);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;
   text-align: center;
 }
 .stat-tile__label {
-  font-size: .65rem; font-weight: 500;
+  font-size: var(--text-2xs-size); font-weight: 500;
   color: var(--text-muted); text-transform: uppercase; letter-spacing: .03em;
   white-space: nowrap;
   display: flex; align-items: center; gap: 0;
@@ -694,27 +811,10 @@ export default defineComponent({
 }
 
 /* ── DataTable theming ── */
-.statistics-table :deep(.p-datatable) {
-  display: block; background: transparent; color: var(--table-row-text);
-}
+/* Colors/typography handled globally in main.css; only structural overrides here */
 .statistics-table :deep(.p-datatable-wrapper) { overflow: visible; }
 .statistics-table :deep(.p-datatable-thead) {
-  position: sticky; top: 0; z-index: 2; background: var(--table-header-bg);
-}
-.statistics-table :deep(.p-datatable-thead > tr > th) {
-  background: var(--table-header-bg);
-  color: var(--table-header-text);
-  border-color: var(--table-border);
-  font-size: .72rem; font-weight: 600; text-transform: uppercase; letter-spacing: .04em;
-}
-.statistics-table :deep(.p-datatable-tbody > tr) {
-  background: transparent; color: var(--table-row-text);
-}
-.statistics-table :deep(.p-datatable-tbody > tr > td) {
-  border-color: var(--table-border);
-}
-.statistics-table :deep(.p-datatable-tbody > tr:hover) {
-  background: var(--table-row-hover);
+  position: sticky; top: 0; z-index: 2;
 }
 .statistics-table :deep(.number-column) { text-align: right; }
 
@@ -738,7 +838,7 @@ export default defineComponent({
   border: none;
   background: transparent;
   color: var(--text-muted);
-  font-size: 0.78rem;
+  font-size: var(--text-xs-size);
   font-weight: 600;
   cursor: pointer;
   transition: background 0.15s, color 0.15s;
@@ -770,14 +870,14 @@ export default defineComponent({
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  font-size: 0.75rem;
+  font-size: var(--text-xs-size);
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--text-secondary);
   padding: 1.25rem 1rem 0.6rem;
 }
-.chart-header i { font-size: 0.85rem; }
+.chart-header i { font-size: var(--text-sm-size); }
 .stat-chart {
   width: 100%;
   height: 190px;
@@ -811,17 +911,17 @@ export default defineComponent({
     gap: 0.25rem;
     border-radius: 999px;
   }
-  .stat-tile__icon { font-size: 0.8rem; }
-  .stat-tile__value { font-size: 0.8rem; }
+  .stat-tile__icon { font-size: var(--text-sm-size); }
+  .stat-tile__value { font-size: var(--text-sm-size); }
   .stat-tile__label {
-    font-size: 0.7rem;
+    font-size: var(--text-xs-size);
     font-weight: 500;
     text-transform: none;
     letter-spacing: 0;
   }
 
   /* Table: compact */
-  .statistics-table { font-size: .78rem; }
+  .statistics-table { font-size: var(--text-xs-size); }
   .statistics-table :deep(th),
   .statistics-table :deep(td) { padding: .4rem .3rem; white-space: nowrap; min-width: 0 !important; width: auto !important; }
 
@@ -845,27 +945,27 @@ export default defineComponent({
   background: transparent;
   cursor: pointer;
   color: var(--text-faint);
-  font-size: 0.62rem;
-  line-height: 1;
+  font-size: var(--text-2xs-size);
+  line-height: var(--text-2xs-lh);
   transition: color 0.15s;
   vertical-align: middle;
   margin-left: 2px;
 }
 .info-btn:hover, .info-btn:focus-visible { color: var(--accent-muted); outline: none; }
 .info-btn--header {
-  font-size: 0.72rem;
+  font-size: var(--text-xs-size);
   margin-left: 4px;
 }
 .info-btn--col {
-  font-size: 0.68rem;
+  font-size: var(--text-2xs-size);
   margin-left: 2px;
 }
 
 /* Info popover content */
 .stat-info-text {
   max-width: 240px;
-  font-size: 0.78rem;
-  line-height: 1.5;
+  font-size: var(--text-xs-size);
+  line-height: var(--text-xs-lh);
   color: var(--text-secondary);
   margin: 0;
   padding: 0.1rem 0;
@@ -879,11 +979,11 @@ export default defineComponent({
   gap: 0.5rem;
   height: 90px;
   color: var(--text-faint);
-  font-size: 0.78rem;
+  font-size: var(--text-xs-size);
   font-style: italic;
   border: 1px dashed var(--border-default);
   border-radius: 8px;
   margin: 0 1rem 0.5rem;
 }
-.chart-pending i { font-size: 1rem; opacity: 0.6; }
+.chart-pending i { font-size: var(--text-base-size); opacity: 0.6; }
 </style>

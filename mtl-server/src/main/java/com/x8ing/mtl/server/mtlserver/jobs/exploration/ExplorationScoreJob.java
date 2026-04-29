@@ -12,8 +12,15 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
 
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @Slf4j
 @Service
@@ -25,6 +32,8 @@ public class ExplorationScoreJob {
     private static final String CONFIG_DOMAIN2 = "algo";
     private static final String CONFIG_DOMAIN3_CORRIDOR = "corridorWidthM";
     private static final String CONFIG_DOMAIN3_PRECISION = "useTrackPrecision";
+    private static final int MIN_WORKER_THREADS = 1;
+    private static final String EXPLORATION_THREAD_PREFIX = "explore";
 
     private final GpsTrackRepository gpsTrackRepository;
     private final ExplorationScoreAtomicWorker atomicWorker;
@@ -57,6 +66,14 @@ public class ExplorationScoreJob {
      */
     @Value("${mtl.exploration.max-tracks-per-run:20}")
     private int maxTracksPerRun;
+
+    /**
+     * Number of tracks to process concurrently within a fetched batch. Scores depend on
+     * prior track geometry by start_date, not on prior exploration_score values, so a batch
+     * can be calculated in parallel without changing the result.
+     */
+    @Value("${mtl.exploration.worker-threads:3}")
+    private int workerThreads;
 
     public ExplorationScoreJob(GpsTrackRepository gpsTrackRepository,
                                ExplorationScoreAtomicWorker atomicWorker,
@@ -120,16 +137,49 @@ public class ExplorationScoreJob {
             return false;
         }
 
-        log.info("Exploration score job: processing {} tracks (max={})", tracks.size(), maxTracksPerRun);
+        int effectiveWorkerThreads = Math.max(MIN_WORKER_THREADS, workerThreads);
+        log.info("Exploration score job: processing {} tracks (max={}, workerThreads={})",
+                tracks.size(), maxTracksPerRun, effectiveWorkerThreads);
 
         long t0 = System.currentTimeMillis();
-        for (GpsTrack track : tracks) {
-            atomicWorker.processOne(track.getId());
-        }
+        processTracks(tracks, effectiveWorkerThreads);
         long durationMs = System.currentTimeMillis() - t0;
         log.info("Exploration score job completed: {} tracks in {}ms", tracks.size(), durationMs);
 
         return tracks.size() >= maxTracksPerRun;
+    }
+
+    private void processTracks(List<GpsTrack> tracks, int effectiveWorkerThreads) {
+        if (effectiveWorkerThreads == MIN_WORKER_THREADS || tracks.size() == 1) {
+            for (GpsTrack track : tracks) {
+                atomicWorker.processOne(track.getId());
+            }
+            return;
+        }
+
+        ExecutorService executor = Executors.newFixedThreadPool(effectiveWorkerThreads,
+                namedThreadFactory(EXPLORATION_THREAD_PREFIX));
+        try {
+            List<Future<?>> futures = new ArrayList<>(tracks.size());
+            for (GpsTrack track : tracks) {
+                futures.add(executor.submit(() -> atomicWorker.processOne(track.getId())));
+            }
+
+            for (Future<?> future : futures) {
+                try {
+                    future.get();
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    log.warn("Exploration score job interrupted while waiting for workers.");
+                    return;
+                } catch (ExecutionException e) {
+                    log.error("Exploration score worker failed outside per-track error handling. e={}",
+                            e.getCause() == null ? e.toString() : e.getCause().toString(), e);
+                }
+            }
+        } finally {
+            executor.shutdownNow();
+        }
     }
 
     /**
@@ -181,6 +231,15 @@ public class ExplorationScoreJob {
         config.value = value;
         config.updateDate = new Date();
         configRepository.save(config);
+    }
+
+    private static ThreadFactory namedThreadFactory(String prefix) {
+        AtomicInteger counter = new AtomicInteger(0);
+        return runnable -> {
+            Thread thread = new Thread(runnable);
+            thread.setName(prefix + "-" + counter.incrementAndGet());
+            return thread;
+        };
     }
 
 }

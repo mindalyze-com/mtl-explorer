@@ -242,7 +242,7 @@ export default defineComponent({
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-  font-size: 0.72rem;
+  font-size: var(--text-xs-size);
   font-weight: 600;
   letter-spacing: 0.05em;
   text-transform: uppercase;
@@ -251,7 +251,7 @@ export default defineComponent({
   border: 1px solid transparent;
 }
 
-.status-badge i { font-size: 0.75rem; }
+.status-badge i { font-size: var(--text-xs-size); }
 
 .status-badge--success {
   background: var(--success-bg);
@@ -279,14 +279,14 @@ export default defineComponent({
   display: flex;
   align-items: center;
   gap: 0.4rem;
-  font-size: 0.68rem;
+  font-size: var(--text-2xs-size);
   font-weight: 600;
   letter-spacing: 0.07em;
   text-transform: uppercase;
   color: var(--text-faint);
   padding: 0.75rem 1rem 0.35rem;
 }
-.section-label i { font-size: 0.75rem; opacity: 0.7; }
+.section-label i { font-size: var(--text-xs-size); opacity: 0.7; }
 
 /* ── Metrics Grid ── */
 .metrics-grid {
@@ -309,14 +309,14 @@ export default defineComponent({
 }
 
 .metric-tile__value--sm {
-  font-size: 1rem;
+  font-size: var(--text-base-size);
   font-weight: 600;
   color: var(--text-primary);
-  line-height: 1.2;
+  line-height: var(--text-base-lh);
 }
 
 .metric-tile__label {
-  font-size: 0.68rem;
+  font-size: var(--text-2xs-size);
   color: var(--text-muted);
   margin-top: 0.2rem;
   letter-spacing: 0.02em;
@@ -338,7 +338,7 @@ export default defineComponent({
   border-radius: 8px;
   background: var(--warning-bg);
   border: 1px solid rgba(217, 119, 6, 0.2);
-  font-size: 0.82rem;
+  font-size: var(--text-sm-size);
   color: var(--warning-text);
 }
 
@@ -350,7 +350,7 @@ export default defineComponent({
 /* ── Source Badge ── */
 .source-badge {
   display: inline-flex;
-  font-size: 0.7rem;
+  font-size: var(--text-xs-size);
   font-weight: 600;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -383,14 +383,14 @@ export default defineComponent({
   align-items: baseline;
   gap: 0.75rem;
   padding: 0.35rem 0.9rem;
-  font-size: 0.8rem;
+  font-size: var(--text-sm-size);
   border-top: 1px solid var(--border-subtle);
 }
 
 .info-key {
   flex: 0 0 7rem;
   color: var(--text-muted);
-  font-size: 0.72rem;
+  font-size: var(--text-xs-size);
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
@@ -403,14 +403,14 @@ export default defineComponent({
 
 .info-val--mono {
   font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, monospace;
-  font-size: 0.72rem;
+  font-size: var(--text-xs-size);
   opacity: 0.8;
 }
 
 .info-val--muted {
   color: var(--text-muted);
   font-style: italic;
-  font-size: 0.77rem;
+  font-size: var(--text-xs-size);
 }
 
 /* ── Info Drawer ── */
@@ -434,7 +434,7 @@ export default defineComponent({
   align-items: center;
   gap: 0.4rem;
   padding: 0.6rem 0.9rem;
-  font-size: 0.78rem;
+  font-size: var(--text-xs-size);
   font-weight: 600;
   letter-spacing: 0.04em;
   color: var(--text-muted);
@@ -445,17 +445,17 @@ export default defineComponent({
 }
 
 .info-drawer__summary::-webkit-details-marker { display: none; }
-.info-drawer__summary i:first-child { font-size: 0.8rem; }
-.info-drawer__summary .info-drawer__chevron { margin-left: auto; font-size: 0.75rem; }
+.info-drawer__summary i:first-child { font-size: var(--text-sm-size); }
+.info-drawer__summary .info-drawer__chevron { margin-left: auto; font-size: var(--text-xs-size); }
 
 /* ── Load Messages ── */
 .load-messages {
   padding: 0.5rem 0.9rem;
-  font-size: 0.78rem;
+  font-size: var(--text-xs-size);
   font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, monospace;
   color: var(--text-secondary);
   background: var(--surface-elevated);
-  line-height: 1.6;
+  line-height: var(--text-xs-lh);
 }
 
 .load-messages__line:empty::after {

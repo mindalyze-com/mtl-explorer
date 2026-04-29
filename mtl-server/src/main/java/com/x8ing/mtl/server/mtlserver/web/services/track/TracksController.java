@@ -6,10 +6,7 @@ import com.x8ing.mtl.server.mtlserver.db.entity.gps.GpsTrackDataPoint;
 import com.x8ing.mtl.server.mtlserver.db.entity.gps.projection.GpsTrackStatistics;
 import com.x8ing.mtl.server.mtlserver.db.entity.gps.projection.IWayPointWithDistance;
 import com.x8ing.mtl.server.mtlserver.db.readonly.spring.QueryResult;
-import com.x8ing.mtl.server.mtlserver.db.repository.gps.GpsTrackAndDataService;
-import com.x8ing.mtl.server.mtlserver.db.repository.gps.GpsTrackDataPointRepository;
-import com.x8ing.mtl.server.mtlserver.db.repository.gps.GpsTrackDataRepository;
-import com.x8ing.mtl.server.mtlserver.db.repository.gps.GpsTrackRepository;
+import com.x8ing.mtl.server.mtlserver.db.repository.gps.*;
 import com.x8ing.mtl.server.mtlserver.energy.EnergyService;
 import com.x8ing.mtl.server.mtlserver.logic.crossing.TrackTimeBetweenTwoPoints;
 import com.x8ing.mtl.server.mtlserver.logic.crossing.beans.CrossingPointsRequest;
@@ -44,18 +41,21 @@ public class TracksController {
 
     private final GpsTrackDataPointRepository gpsTrackDataPointRepository;
 
+    private final GpsTrackEventRepository gpsTrackEventRepository;
+
     private final GpsTrackSQLFilter gpsTrackSQLFilter;
 
     private final FilterParamResolver filterParamResolver;
 
     private final EnergyService energyService;
 
-    public TracksController(GpsTrackRepository gpsTrackRepository, TrackTimeBetweenTwoPoints trackTimeBetweenTwoPoints, GpsTrackAndDataService trackAndDataService, GpsTrackDataRepository gpsTrackDataRepository, GpsTrackDataPointRepository gpsTrackDataPointRepository, GpsTrackSQLFilter gpsTrackSQLFilter, FilterParamResolver filterParamResolver, EnergyService energyService) {
+    public TracksController(GpsTrackRepository gpsTrackRepository, TrackTimeBetweenTwoPoints trackTimeBetweenTwoPoints, GpsTrackAndDataService trackAndDataService, GpsTrackDataRepository gpsTrackDataRepository, GpsTrackDataPointRepository gpsTrackDataPointRepository, GpsTrackEventRepository gpsTrackEventRepository, GpsTrackSQLFilter gpsTrackSQLFilter, FilterParamResolver filterParamResolver, EnergyService energyService) {
         this.gpsTrackRepository = gpsTrackRepository;
         this.trackTimeBetweenTwoPoints = trackTimeBetweenTwoPoints;
         this.trackAndDataService = trackAndDataService;
         this.gpsTrackDataRepository = gpsTrackDataRepository;
         this.gpsTrackDataPointRepository = gpsTrackDataPointRepository;
+        this.gpsTrackEventRepository = gpsTrackEventRepository;
         this.gpsTrackSQLFilter = gpsTrackSQLFilter;
         this.filterParamResolver = filterParamResolver;
         this.energyService = energyService;
@@ -71,7 +71,10 @@ public class TracksController {
     public ResponseEntity<GpsTrack> getSingleTrack(@PathVariable Long gpsTrackId, @RequestParam(name = "precisionInMeter", defaultValue = "1") BigDecimal precisionInMeter) {
         GpsTrack gpsTrack = gpsTrackRepository.findById(gpsTrackId).orElseThrow();
         GpsTrackData trackData = gpsTrackDataRepository.findFirstByGpsTrackIdAndPrecisionInMeter(gpsTrackId, precisionInMeter);
-        gpsTrack.getGpsTracksData().add(trackData);
+        if (trackData != null) {
+            trackData.setGpsTrackEvents(gpsTrackEventRepository.findAllByGpsTrackIdOrderByStartPointIndexAsc(gpsTrackId));
+            gpsTrack.getGpsTracksData().add(trackData);
+        }
         return ResponseEntity.ok()
                 .cacheControl(CacheControl.maxAge(DEFAULT_CACHE_TIME_IN_SECONDS, TimeUnit.SECONDS))
                 .body(gpsTrack);
@@ -140,10 +143,21 @@ public class TracksController {
     public ResponseEntity<List<GpsTrackDataPoint>> getTrackDetails(
             @PathVariable Long gpsTrackId,
             @RequestParam(name = "precisionInMeter", defaultValue = "1") BigDecimal precisionInMeter,
-            @RequestParam(name = "trackType", defaultValue = "SIMPLIFIED") String trackType
+            @RequestParam(name = "trackType", defaultValue = "SIMPLIFIED_SHAPE") String trackType,
+            @RequestParam(name = "maxPoints", required = false) Integer maxPoints
     ) {
 
-        List<GpsTrackDataPoint> details = gpsTrackDataPointRepository.getTrackDetailsByGpsTrackIdAndPrecisionAndType(gpsTrackId, precisionInMeter, trackType);
+        // SIMPLIFIED_FIXED_POINTS is discriminated by max_points (e.g. 750 or
+        // 1500), not precision_in_meter. All other variants are keyed by
+        // (precision_in_meter, track_type). See GpsTrackData.TRACK_TYPE.
+        List<GpsTrackDataPoint> details;
+        if ("SIMPLIFIED_FIXED_POINTS".equals(trackType) && maxPoints != null) {
+            details = gpsTrackDataPointRepository
+                    .getTrackDetailsByGpsTrackIdAndTypeAndMaxPoints(gpsTrackId, trackType, maxPoints);
+        } else {
+            details = gpsTrackDataPointRepository
+                    .getTrackDetailsByGpsTrackIdAndPrecisionAndType(gpsTrackId, precisionInMeter, trackType);
+        }
 
         return ResponseEntity.ok()
                 .cacheControl(CacheControl.maxAge(DEFAULT_CACHE_TIME_IN_SECONDS, TimeUnit.SECONDS))
@@ -240,7 +254,15 @@ public class TracksController {
             }
         }
 
-        List<GpsTrack> gpsTracks = trackAndDataService.findAllGpsTracksWithData(precisionInMeter, filterIds != null ? filterIds.asIdList() : null);
+        List<Long> effectiveTrackIds = filterIds != null ? filterIds.asIdList() : Collections.emptyList();
+        if (params != null && params.getTrackIds() != null && !params.getTrackIds().isEmpty()) {
+            Set<Long> allowedIds = new HashSet<>(effectiveTrackIds);
+            effectiveTrackIds = params.getTrackIds().stream()
+                    .filter(allowedIds::contains)
+                    .toList();
+        }
+
+        List<GpsTrack> gpsTracks = trackAndDataService.findAllGpsTracksWithData(precisionInMeter, effectiveTrackIds);
         ArrayList<GpsTrackResponse> responses = gpsTracks.stream().map(gpsTrack -> new GpsTrackResponse(gpsTrack, mapping.get(gpsTrack.getId()))).collect(Collectors.toCollection(ArrayList::new));
 
         if (hasFilter) {
@@ -322,7 +344,7 @@ public class TracksController {
             @RequestParam(name = "filterValue", required = false) String filterValue
     ) {
         QueryResult filterIds = gpsTrackSQLFilter.getGpsTrackIdsForOptionalFilterName(filterName, params);
-        return gpsTrackRepository.getTrackStatistics(groupByDateFormat, filterValue, filterIds.asIdArray());
+        return gpsTrackRepository.getTrackStatistics(groupByDateFormat, filterValue, filterIds.asIdArray(), energyService.getThresholdPowerWatts());
     }
 
     /**

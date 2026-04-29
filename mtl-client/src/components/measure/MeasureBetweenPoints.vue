@@ -21,7 +21,7 @@
       </div>
     </div>
 
-    <BottomSheet v-model="active" :detents="measureSheetDetents" title="Sector Analyzer" icon="bi bi-stopwatch" header-mode="compact" :no-backdrop="true" @closed="onMeasureClosed">
+    <BottomSheet v-model="active" :detents="measureSheetDetents" title="Segment Analyzer" icon="bi bi-stopwatch" header-mode="compact" :no-backdrop="true" @closed="onMeasureClosed">
       <div class="measure-sheet">
         <section class="measure-controls-card measure-controls-card--dock">
 
@@ -63,9 +63,9 @@
       </div>
     </BottomSheet>
 
-    <BottomSheet v-if="showResults" v-model="showResults" title="Results" icon="bi bi-graph-up-arrow" header-mode="compact" :detents="[{ height: '88vh' }, { height: '98vh' }]"
+    <BottomSheet v-if="showResults" v-model="showResults" title="Segment Analyzer" icon="bi bi-stopwatch" header-mode="compact" :detents="[{ height: '88vh' }, { height: '98vh' }]"
                  @closed="onResultsClosed">
-      <DisplayMeasureResults :measureServiceResult="measureServiceResult"/>
+      <DisplayMeasureResults :measureServiceResult="measureServiceResult" @show-track-details="$emit('show-track-details', $event)"/>
     </BottomSheet>
   </div>
 
@@ -82,7 +82,7 @@ import {EVENT_MEASURE_BETWEEN_POINTS_DIALOG_MAXIMIZED_EVENT} from "@/utils/Utils
 export default defineComponent({
   name: 'MeasureBetweenPoints',
   components: {DisplayMeasureResults, BottomSheet},
-  emits: ['active-changed', 'tool-opened', 'tool-closed'],
+  emits: ['active-changed', 'tool-opened', 'tool-closed', 'show-track-details'],
   props: ['map'],
   data() {
     return {
@@ -772,8 +772,8 @@ export default defineComponent({
   max-width: calc(100vw - 1.25rem);
   padding: 0.65rem 0.8rem;
   border-radius: 1.25rem;
-  border: 1px solid rgba(148, 163, 184, 0.24);
-  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid var(--border-medium);
+  background: var(--surface-glass);
   box-shadow: 0 10px 28px rgba(15, 23, 42, 0.14);
   backdrop-filter: var(--blur-light);
   -webkit-backdrop-filter: var(--blur-light);
@@ -804,30 +804,30 @@ export default defineComponent({
   height: 1.7rem;
   border-radius: 999px;
   border: 1px solid currentColor;
-  background: rgba(255, 255, 255, 0.9);
-  font-size: 0.82rem;
+  background: var(--surface-glass-heavy);
+  font-size: var(--text-sm-size);
   font-weight: 800;
-  line-height: 1;
+  line-height: var(--text-sm-lh);
 }
 
 .measure-flow-node-value {
   color: currentColor;
-  font-size: 0.88rem;
+  font-size: var(--text-sm-size);
   font-weight: 800;
-  line-height: 1;
+  line-height: var(--text-sm-lh);
 }
 
 .measure-flow-node-value--final {
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  font-size: 0.52rem;
+  font-size: var(--text-2xs-size);
 }
 
 .measure-flow-node-detail {
   color: rgba(15, 23, 42, 0.56);
-  font-size: 0.54rem;
+  font-size: var(--text-2xs-size);
   font-weight: 700;
-  line-height: 1;
+  line-height: var(--text-2xs-lh);
   text-transform: lowercase;
 }
 
@@ -840,10 +840,10 @@ export default defineComponent({
   height: 1.95rem;
   border-radius: 999px;
   border: 2px solid currentColor;
-  background: rgba(255, 255, 255, 0.96);
-  font-size: 0.8rem;
+  background: var(--surface-glass-heavy);
+  font-size: var(--text-sm-size);
   font-weight: 900;
-  line-height: 1;
+  line-height: var(--text-sm-lh);
 }
 
 .measure-flow-node-target::after {
@@ -920,7 +920,7 @@ export default defineComponent({
 .measure-stat-label,
 .measure-control-label {
   color: var(--text-muted);
-  font-size: 0.75rem;
+  font-size: var(--text-xs-size);
   font-weight: 600;
   letter-spacing: 0.02em;
   text-transform: uppercase;
@@ -928,8 +928,8 @@ export default defineComponent({
 
 .measure-stat-value {
   color: var(--text-primary);
-  font-size: 1rem;
-  line-height: 1.1;
+  font-size: var(--text-base-size);
+  line-height: var(--text-base-lh);
 }
 
 .measure-controls-card {
@@ -964,7 +964,7 @@ export default defineComponent({
   border: none;
   background: var(--accent);
   color: var(--text-inverse);
-  font-size: 0.82rem;
+  font-size: var(--text-sm-size);
   font-weight: 700;
   cursor: pointer;
   transition: transform 0.15s ease, opacity 0.15s ease, box-shadow 0.15s ease;
@@ -982,7 +982,7 @@ export default defineComponent({
 }
 
 .measure-toolbar-btn i {
-  font-size: 0.92rem;
+  font-size: var(--text-base-size);
 }
 
 .measure-toolbar-btn--analyze {
@@ -1011,7 +1011,7 @@ export default defineComponent({
 
 .measure-radius-hint {
   color: var(--text-muted);
-  font-size: 0.68rem;
+  font-size: var(--text-2xs-size);
   font-weight: 500;
   letter-spacing: 0.02em;
   text-align: right;
@@ -1026,14 +1026,14 @@ export default defineComponent({
 
 .measure-control-value {
   color: var(--text-primary);
-  font-size: 1rem;
+  font-size: var(--text-base-size);
   font-weight: 800;
 }
 
 .measure-control-note,
 .measure-zone-hint {
   color: var(--text-muted);
-  font-size: 0.72rem;
+  font-size: var(--text-xs-size);
 }
 
 /* ── Placement section ── */
@@ -1053,7 +1053,7 @@ export default defineComponent({
 
 .measure-placement-kicker {
   color: var(--text-muted);
-  font-size: 0.6rem;
+  font-size: var(--text-2xs-size);
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -1061,16 +1061,16 @@ export default defineComponent({
 
 .measure-placement-text {
   color: var(--text-primary);
-  font-size: 0.88rem;
+  font-size: var(--text-sm-size);
   font-weight: 600;
-  line-height: 1.3;
+  line-height: var(--text-sm-lh);
 }
 
 .measure-explanation {
   color: var(--text-muted);
-  font-size: 0.72rem;
+  font-size: var(--text-xs-size);
   font-weight: 400;
-  line-height: 1.45;
+  line-height: var(--text-xs-lh);
   margin: 0;
   opacity: 0.82;
 }
@@ -1124,13 +1124,13 @@ export default defineComponent({
 
 .measure-zone-chip {
   color: var(--text-primary);
-  font-size: 0.82rem;
+  font-size: var(--text-sm-size);
   font-weight: 700;
 }
 
 .measure-zone-empty {
   color: var(--text-muted);
-  font-size: 0.82rem;
+  font-size: var(--text-sm-size);
 }
 
 @keyframes measure-spin {
@@ -1173,25 +1173,25 @@ export default defineComponent({
   .measure-flow-node-circle {
     width: 1.45rem;
     height: 1.45rem;
-    font-size: 0.75rem;
+    font-size: var(--text-xs-size);
   }
 
   .measure-flow-node-target {
     width: 1.68rem;
     height: 1.68rem;
-    font-size: 0.72rem;
+    font-size: var(--text-xs-size);
   }
 
   .measure-flow-node-value {
-    font-size: 0.78rem;
+    font-size: var(--text-xs-size);
   }
 
   .measure-flow-node-value--final {
-    font-size: 0.48rem;
+    font-size: var(--text-2xs-size);
   }
 
   .measure-flow-node-detail {
-    font-size: 0.5rem;
+    font-size: var(--text-2xs-size);
   }
 
   .measure-flow-connector {
@@ -1218,7 +1218,7 @@ export default defineComponent({
   .measure-toolbar-btn {
     height: 2.4rem;
     padding: 0 0.65rem;
-    font-size: 0.76rem;
+    font-size: var(--text-xs-size);
     border-radius: 0.75rem;
   }
 
@@ -1227,7 +1227,7 @@ export default defineComponent({
   }
 
   .measure-radius-hint {
-    font-size: 0.62rem;
+    font-size: var(--text-2xs-size);
   }
 
   .measure-placement-section {
@@ -1235,11 +1235,11 @@ export default defineComponent({
   }
 
   .measure-placement-text {
-    font-size: 0.82rem;
+    font-size: var(--text-sm-size);
   }
 
   .measure-explanation {
-    font-size: 0.68rem;
+    font-size: var(--text-2xs-size);
   }
 
   .measure-bar-slider {

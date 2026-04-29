@@ -5,50 +5,6 @@
         xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
          http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.10.xsd">
 
-    <changeSet id="20260419_1_map_safe_palettes" author="patrick.heusser">
-
-        <!--
-          Map-safe color palettes: deliberately chosen to avoid collisions with
-          OSM, Swisstopo light/color base maps and Swiss Mobility overlays:
-            - Veloland (bike)       → blue/cyan zone   → AVOIDED
-            - Wanderland (hiking)   → yellow/red zone   → AVOIDED
-            - Mountainbikeland      → red/magenta zone  → cautious (deep magenta is distinct)
-            - Wanderwege            → hot pink zone      → AVOIDED
-            - OSM/Swisstopo forest  → bright green zone → AVOIDED
-
-          Safe color families used: deep magenta, dark teal, violet/purple,
-          burnt sienna, dark blue-gray, warm brown, deep teal-green.
-
-          Both palettes benefit from the line-border halo (line-border-color, 1.2 px)
-          applied automatically in Map.vue addTracksToMap().
-        -->
-
-        <insert tableName="config">
-            <column name="domain1">CLIENT</column>
-            <column name="domain2">COLOR_PALETTE</column>
-            <column name="domain3">MAP_SAFE_005</column>
-            <column name="value"><![CDATA[
-                {"description":"5 map-safe colors — no collisions with OSM, Swisstopo or Swiss Mobility overlays","label":"Map-Safe 5 ★","colors":["#C2185B","#00838F","#6A1B9A","#BF360C","#37474F"]}
-            ]]></column>
-            <column name="description"><![CDATA[
-                5 colors safe for use on all base maps and Swiss Mobility overlays.
-                Deep magenta, dark teal, violet, burnt sienna, dark blue-gray.
-            ]]></column>
-        </insert>
-
-        <insert tableName="config">
-            <column name="domain1">CLIENT</column>
-            <column name="domain2">COLOR_PALETTE</column>
-            <column name="domain3">MAP_SAFE_008</column>
-            <column name="value"><![CDATA[
-                {"description":"8 map-safe colors — no collisions with OSM, Swisstopo or Swiss Mobility overlays","label":"Map-Safe 8 ★","colors":["#C2185B","#00838F","#6A1B9A","#BF360C","#37474F","#8E24AA","#795548","#00695C"]}
-            ]]></column>
-            <column name="description"><![CDATA[
-                8 colors safe for use on all base maps and Swiss Mobility overlays.
-                Deep magenta, dark teal, violet, burnt sienna, dark blue-gray, medium purple, brown, deep teal-green.
-            ]]></column>
-        </insert>
-
-    </changeSet>
+    <!-- MAP_SAFE_005 and MAP_SAFE_008 palettes removed — replaced by GRADIENT_100_* palettes in 032.xml -->
 
 </databaseChangeLog>

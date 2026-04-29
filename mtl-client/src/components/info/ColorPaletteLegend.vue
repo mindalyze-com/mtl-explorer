@@ -88,22 +88,22 @@ const isExhausted = computed(
 }
 
 .legend-empty__icon {
-  font-size: 1.4rem;
+  font-size: var(--text-2xl-size);
   color: var(--accent-text);
   opacity: 0.7;
 }
 
 .legend-empty__title {
   font-weight: 600;
-  font-size: 0.95rem;
+  font-size: var(--text-base-size);
   margin: 0;
   color: var(--text-primary);
 }
 
 .legend-empty__body {
-  font-size: 0.82rem;
+  font-size: var(--text-sm-size);
   color: var(--text-secondary);
-  line-height: 1.5;
+  line-height: var(--text-sm-lh);
   margin: 0;
   max-width: 28ch;
 }
@@ -121,7 +121,7 @@ const isExhausted = computed(
   border: 1px solid rgba(234, 179, 8, 0.35);
   border-radius: 0.5rem;
   padding: 0.5rem 0.75rem;
-  font-size: 0.8rem;
+  font-size: var(--text-sm-size);
   color: var(--text-primary);
   margin-bottom: 0.75rem;
 }
@@ -133,7 +133,7 @@ const isExhausted = computed(
 
 /* ── Label ── */
 .legend-label {
-  font-size: 0.72rem;
+  font-size: var(--text-xs-size);
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -171,7 +171,7 @@ const isExhausted = computed(
 
 .legend-group {
   flex: 1 1 auto;
-  font-size: 0.85rem;
+  font-size: var(--text-sm-size);
   color: var(--text-primary);
   white-space: nowrap;
   overflow: hidden;
@@ -179,7 +179,7 @@ const isExhausted = computed(
 }
 
 .legend-count {
-  font-size: 0.75rem;
+  font-size: var(--text-xs-size);
   font-weight: 600;
   color: var(--text-secondary);
   background: var(--surface-glass);

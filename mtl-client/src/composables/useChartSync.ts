@@ -1,15 +1,15 @@
 /**
  * Synchronized crosshair for multiple Highcharts charts.
- * When the mouse moves over any registered chart, all other registered charts
+ * When the pointer moves over any registered chart, all other registered charts
  * show a crosshair and tooltip at the same x-position (Grafana-style).
  *
- * Also bridges to useTrackMapSync so the mini-map marker follows chart hover/click.
+ * Also bridges to trackCursorSync so the mini-map marker follows chart hover/click.
  *
  * Usage:
  *   const { registerChart, unregisterChart, syncMouseMove, syncMouseLeave, syncClick } = useChartSync()
  *   // in mounted(): registerChart(chartInstance)
- *   // on chart container mousemove: syncMouseMove(e, chartInstance)
- *   // on chart container mouseleave: syncMouseLeave()
+ *   // on chart container mousemove/touchmove: syncMouseMove(e, chartInstance)
+ *   // on chart container mouseleave/touchend: syncMouseLeave()
  *   // on chart container click: syncClick(e, chartInstance)
  *   // in beforeUnmount(): unregisterChart(chartInstance)
  *
@@ -35,8 +35,11 @@
  *    event, the chart tooltip + crosshair lingered after the cursor left the map.
  */
 
-import {useTrackMapSync} from '@/composables/useTrackMapSync';
+import { useTrackCursorSync, type TrackPoint } from '@/composables/trackCursorSync';
 import type Highcharts from 'highcharts';
+
+type ChartSyncMoveEvent = MouseEvent | PointerEvent | TouchEvent;
+type PrimaryChartInputEvent = MouseEvent | PointerEvent | Touch;
 
 // Module-level registry so all chart components on the page share state.
 const registeredCharts = new Set<Highcharts.Chart>();
@@ -44,14 +47,19 @@ const registeredCharts = new Set<Highcharts.Chart>();
 // Track last-hovered points so we can clear their state on leave.
 let lastHoveredPoints: Highcharts.Point[] = [];
 
-const {findPointByTimestamp, findPointByDistance, setHoverPoint, setHoverByTimestamp, setPinnedPoint, getStartTs} = useTrackMapSync();
+const PASSIVE_TOUCH_LISTENER: AddEventListenerOptions = { passive: true };
 
-// Current x-axis mode — shared across all chart components.
-let currentXMode: 'time' | 'distance' = 'time';
+const cursor = useTrackCursorSync();
+
+export function getPrimaryChartInputEvent(e: ChartSyncMoveEvent): PrimaryChartInputEvent | null {
+  return 'touches' in e
+    ? e.touches[0] ?? e.changedTouches[0] ?? null
+    : e;
+}
 
 export function useChartSync() {
   function setXMode(mode: 'time' | 'distance'): void {
-    currentXMode = mode;
+    cursor.setXMode(mode);
   }
 
   function registerChart(chart: Highcharts.Chart): void {
@@ -62,55 +70,60 @@ export function useChartSync() {
     registeredCharts.delete(chart);
   }
 
-  /** Extract the x-value (timestamp) from a Highcharts point found via mouse event. */
-  function findTimestampFromEvent(e: MouseEvent, chart: Highcharts.Chart): number | null {
-    if (!chart.series?.length) return null;
-    const event = (chart as any).pointer.normalize(e);
-    const point = chart.series[0].searchPoint(event, true);
-    return point ? point.x : null;
+  function bindChart(chart: Highcharts.Chart): () => void {
+    const container = chart.container;
+    const onMove = (e: MouseEvent | TouchEvent) => syncMouseMove(e, chart);
+    const onLeave = () => syncMouseLeave();
+    const onClick = (e: MouseEvent) => syncClick(e, chart);
+
+    registerChart(chart);
+    container.addEventListener('mousemove', onMove);
+    container.addEventListener('mouseleave', onLeave);
+    container.addEventListener('touchstart', onMove, PASSIVE_TOUCH_LISTENER);
+    container.addEventListener('touchmove', onMove, PASSIVE_TOUCH_LISTENER);
+    container.addEventListener('touchend', onLeave, PASSIVE_TOUCH_LISTENER);
+    container.addEventListener('touchcancel', onLeave, PASSIVE_TOUCH_LISTENER);
+    container.addEventListener('click', onClick);
+
+    return () => {
+      container.removeEventListener('mousemove', onMove);
+      container.removeEventListener('mouseleave', onLeave);
+      container.removeEventListener('touchstart', onMove);
+      container.removeEventListener('touchmove', onMove);
+      container.removeEventListener('touchend', onLeave);
+      container.removeEventListener('touchcancel', onLeave);
+      container.removeEventListener('click', onClick);
+      unregisterChart(chart);
+    };
+  }
+
+  function normalizeChartEvent(e: ChartSyncMoveEvent, chart: Highcharts.Chart): Highcharts.PointerEventObject | null {
+    const sourceEvent = getPrimaryChartInputEvent(e);
+    if (!sourceEvent) return null;
+    return (chart as any).pointer.normalize(sourceEvent);
   }
 
   /**
-   * Called on mousemove of the source chart. Syncs tooltip + crosshair on all
+   * Called on mouse/touch move of the source chart. Syncs tooltip + crosshair on all
    * other registered charts at the same x-position, and updates the map hover marker.
    */
-  function syncMouseMove(e: MouseEvent, sourceChart: Highcharts.Chart): void {
-    let timestamp: number | null = null;   // elapsed ms (chart x-value) — used for distance mode
+  function syncMouseMove(e: ChartSyncMoveEvent, sourceChart: Highcharts.Chart): void {
+    let chartX: number | null = null;      // elapsed ms or distance, depending on current x-mode
     let absoluteTs: number | null = null;  // absolute ms timestamp — used for time mode map sync
 
-    registeredCharts.forEach((chart) => {
-      if (chart === sourceChart) {
-        // Extract x-value and absolute timestamp from the source chart point
-        if (chart.series?.length) {
-          const event = (chart as any).pointer.normalize(e);
-          const point = chart.series[0].searchPoint(event, true);
-          if (point) {
-            timestamp = point.x;
-            absoluteTs = (point as any).ts ?? null;
-          }
-        }
-        return;
-      }
-      if (!chart.series?.length) return;
-
-      const event = (chart as any).pointer.normalize(e);
-      const point = chart.series[0].searchPoint(event, true);
-
+    if (sourceChart.series?.length) {
+      const event = normalizeChartEvent(e, sourceChart);
+      const point = event ? sourceChart.series[0].searchPoint(event, true) : null;
       if (point) {
-        chart.tooltip.refresh(point);
-        chart.xAxis[0].drawCrosshair(event, point);
+        chartX = point.x;
+        absoluteTs = (point as any).ts ?? null;
       }
-    });
+    }
 
     // Bridge to map sync
-    if (absoluteTs != null) {
-      if (currentXMode === 'distance') {
-        // Distance mode: no retry-on-race needed, resolve directly
-        setHoverPoint(findPointByDistance(timestamp!));
-      } else {
-        // Time mode: use absolute ts (point.ts) so findPointByTimestamp matches correctly.
-        setHoverByTimestamp(absoluteTs);
-      }
+    if (chartX != null) {
+      showChartsAtXValue(chartX);
+      cursor.setHoverByChartPoint(chartX, absoluteTs, 'chart');
     }
   }
 
@@ -123,7 +136,7 @@ export function useChartSync() {
       chart.tooltip.hide();
       chart.xAxis[0].hideCrosshair();
     });
-    setHoverPoint(null);
+    cursor.clearHover();
   }
 
   /**
@@ -134,10 +147,7 @@ export function useChartSync() {
     const event = (sourceChart as any).pointer.normalize(e);
     const point = sourceChart.series[0].searchPoint(event, true);
     if (!point) return;
-    const trackPoint = currentXMode === 'distance'
-      ? findPointByDistance(point.x)
-      : findPointByTimestamp((point as any).ts ?? point.x);
-    setPinnedPoint(trackPoint);
+    cursor.setPinnedByChartPoint(point.x, (point as any).ts ?? null, 'chart');
   }
 
   /**
@@ -180,15 +190,8 @@ export function useChartSync() {
    * Show crosshair + tooltip on all charts for a given TrackPoint (called from map → charts).
    * Resolves the correct x-value based on the current xMode.
    */
-  function showChartsAtPoint(tp: { timestamp: number; distanceKm: number }): void {
-    let xVal: number;
-    if (currentXMode === 'distance') {
-      xVal = tp.distanceKm;
-    } else {
-      // Chart x-axis uses elapsed ms from track start, not absolute timestamps.
-      xVal = tp.timestamp - getStartTs();
-    }
-    showChartsAtXValue(xVal);
+  function showChartsAtPoint(tp: Pick<TrackPoint, 'timestamp' | 'distanceKm'>): void {
+    showChartsAtXValue(cursor.chartXForPoint(tp));
   }
 
   /** @deprecated use showChartsAtPoint */
@@ -210,5 +213,16 @@ export function useChartSync() {
     });
   }
 
-  return {registerChart, unregisterChart, syncMouseMove, syncMouseLeave, syncClick, showChartsAtTimestamp, showChartsAtPoint, clearChartCrosshairs, setXMode};
+  return {
+    bindChart,
+    registerChart,
+    unregisterChart,
+    syncMouseMove,
+    syncMouseLeave,
+    syncClick,
+    showChartsAtTimestamp,
+    showChartsAtPoint,
+    clearChartCrosshairs,
+    setXMode,
+  };
 }

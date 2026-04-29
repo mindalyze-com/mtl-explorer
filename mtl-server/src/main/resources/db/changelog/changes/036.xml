@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.10.xsd">
+
+    <changeSet id="20260426_4_web_user_session_foreign_keys" author="patrick.heusser">
+
+        <dropNotNullConstraint tableName="web_client_environment_log"
+                               columnName="user_session_id"
+                               columnDataType="varchar(32)"/>
+
+        <!--
+          Before web_user_session existed, request logs could contain legacy
+          values such as 'n/a' or random token ids without a corresponding
+          session row. Normalize those to NULL so future rows can be protected
+          by foreign keys without fabricating historical sessions.
+        -->
+        <sql>
+            UPDATE web_request_log wrl
+            SET user_session_id = NULL
+            WHERE user_session_id IS NULL
+               OR user_session_id = 'n/a'
+               OR NOT EXISTS (
+                   SELECT 1
+                   FROM web_user_session wus
+                   WHERE wus.user_session_id = wrl.user_session_id
+               )
+        </sql>
+
+        <sql>
+            UPDATE web_client_environment_log wcel
+            SET user_session_id = NULL
+            WHERE user_session_id IS NULL
+               OR user_session_id = 'n/a'
+               OR NOT EXISTS (
+                   SELECT 1
+                   FROM web_user_session wus
+                   WHERE wus.user_session_id = wcel.user_session_id
+               )
+        </sql>
+
+        <addForeignKeyConstraint baseTableName="web_request_log"
+                                 baseColumnNames="user_session_id"
+                                 referencedTableName="web_user_session"
+                                 referencedColumnNames="user_session_id"
+                                 constraintName="FK_WEB_REQUEST_LOG_USER_SESSION"/>
+
+        <addForeignKeyConstraint baseTableName="web_client_environment_log"
+                                 baseColumnNames="user_session_id"
+                                 referencedTableName="web_user_session"
+                                 referencedColumnNames="user_session_id"
+                                 constraintName="FK_WEB_CLIENT_ENV_USER_SESSION"/>
+
+    </changeSet>
+
+</databaseChangeLog>

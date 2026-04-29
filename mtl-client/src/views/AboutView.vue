@@ -144,7 +144,7 @@ const contactEmail = 'hey.lueg@gmail.com';
   padding: 2rem 1.25rem 4rem;
   font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
   line-height: 1.55;
-  color: #1f2933;
+  color: var(--text-primary);
 }
 
 .about-header {
@@ -154,27 +154,27 @@ const contactEmail = 'hey.lueg@gmail.com';
 
 .about-header h1 {
   margin: 0 0 0.25rem;
-  font-size: 2rem;
+  font-size: var(--text-3xl-size);
 }
 
 .tagline {
   margin: 0;
-  color: #52606d;
+  color: var(--text-muted);
 }
 
 .about-card {
-  background: #ffffff;
-  border: 1px solid #e4e7eb;
+  background: var(--surface-glass-heavy);
+  border: 1px solid var(--border-default);
   border-radius: 12px;
   padding: 1.25rem 1.5rem;
   margin-bottom: 1rem;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  box-shadow: var(--shadow-sm);
 }
 
 .about-card h2 {
   margin: 0 0 0.5rem;
-  font-size: 1.1rem;
-  color: #102a43;
+  font-size: var(--text-lg-size);
+  color: var(--text-primary);
 }
 
 .about-card p {
@@ -182,7 +182,7 @@ const contactEmail = 'hey.lueg@gmail.com';
 }
 
 .about-card a {
-  color: #0b6bcb;
+  color: var(--accent-text);
   text-decoration: none;
 }
 
@@ -198,7 +198,7 @@ const contactEmail = 'hey.lueg@gmail.com';
 }
 
 .about-card dt {
-  color: #52606d;
+  color: var(--text-muted);
   font-weight: 500;
 }
 
@@ -209,29 +209,19 @@ const contactEmail = 'hey.lueg@gmail.com';
 }
 
 .license-actions {
-  font-size: 0.9rem;
-  color: #52606d;
+  font-size: var(--text-base-size);
+  color: var(--text-muted);
 }
 
 .about-card.disclaimer {
-  background: #fff8e6;
-  border-color: #f7c948;
+  background: color-mix(in srgb, var(--warning-bg) 45%, var(--surface-glass-heavy));
+  border-color: color-mix(in srgb, var(--warning) 42%, var(--border-default));
 }
 
 .about-footer {
   text-align: center;
   margin-top: 2rem;
-  font-size: 0.85rem;
-  color: #7b8794;
-}
-
-@media (prefers-color-scheme: dark) {
-  .about-page { color: #e4e7eb; }
-  .about-card { background: #1f2933; border-color: #323f4b; }
-  .about-card h2 { color: #ffffff; }
-  .about-card dt { color: #9aa5b1; }
-  .about-card a { color: #7cb8ff; }
-  .about-card.disclaimer { background: #3d2f00; border-color: #8a6d00; }
-  .tagline, .about-footer { color: #9aa5b1; }
+  font-size: var(--text-sm-size);
+  color: var(--text-faint);
 }
 </style>

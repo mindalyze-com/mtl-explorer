@@ -39,10 +39,10 @@ public class FileIndexerImpl {
 
     // per-path debounce task (silence-based)
     private final ScheduledExecutorService scheduler =
-            Executors.newScheduledThreadPool(2, namedFactory("debounce"));
+            Executors.newScheduledThreadPool(2, namedFactory("idx-deb"));
     private final ExecutorService workerPool =
             Executors.newFixedThreadPool(Math.max(4, Runtime.getRuntime().availableProcessors()),
-                    namedFactory("indexer-worker"));
+                    namedFactory("idx"));
 
     // debounce state
     private final Map<Path, ScheduledFuture<?>> debounceTasks = new ConcurrentHashMap<>();
@@ -198,7 +198,7 @@ public class FileIndexerImpl {
             }
         } else {
             // Non-blocking: entire boot runs on a daemon thread
-            Thread boot = new Thread(this::bootInternal, "indexer-boot-" + index);
+            Thread boot = new Thread(this::bootInternal, "idx-boot-" + index);
             boot.setDaemon(true);
             boot.start();
         }
@@ -235,7 +235,7 @@ public class FileIndexerImpl {
             return;
         }
 
-        watcherThread = new Thread(this::watchLoopSafe, "watcher-" + index);
+        watcherThread = new Thread(this::watchLoopSafe, "watch-" + index);
         watcherThread.setDaemon(true);
         watcherThread.start();
     }

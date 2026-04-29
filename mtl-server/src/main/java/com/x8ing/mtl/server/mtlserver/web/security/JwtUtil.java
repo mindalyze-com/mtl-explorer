@@ -2,7 +2,6 @@ package com.x8ing.mtl.server.mtlserver.web.security;
 
 import com.x8ing.mtl.server.mtlserver.db.entity.config.ConfigEntity;
 import com.x8ing.mtl.server.mtlserver.db.repository.config.ConfigRepository;
-import com.x8ing.mtl.server.mtlserver.utils.UUIDUtils;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
@@ -20,7 +19,7 @@ import java.util.List;
 @Component
 public class JwtUtil {
 
-    public static final String USER_ID = "user_id";
+    public static final String USER_SESSION_ID = "user_session_id";
     public static final String USER_NAME = "user_name";
 
     private static final String DOMAIN1 = "SECURITY";
@@ -66,17 +65,18 @@ public class JwtUtil {
         return encodedKey;
     }
 
-    public String generateToken(String username) {
-
-        String userId = UUIDUtils.generateShortTextUUID(10);
-
+    public String generateToken(String username, String userSessionId, Date issuedAt, Date expiresAt) {
         return Jwts.builder()
                 .subject(username)
-                .claim(USER_ID, userId)
-                .issuedAt(new Date())
-                .expiration(new Date(System.currentTimeMillis() + jwtExpiration.toMillis()))
+                .claim(USER_SESSION_ID, userSessionId)
+                .issuedAt(issuedAt)
+                .expiration(expiresAt)
                 .signWith(secretKey)
                 .compact();
+    }
+
+    public Duration getJwtExpiration() {
+        return jwtExpiration;
     }
 
     public boolean validateToken(String token) {
@@ -93,10 +93,10 @@ public class JwtUtil {
         return claims.getSubject();
     }
 
-    public String getUserIdFromToken(String token) {
+    public String getUserSessionIdFromToken(String token) {
         Claims claims = parseClaims(token);
-        Object userId = claims.get(USER_ID);
-        return userId != null ? String.valueOf(userId) : null;
+        Object userSessionId = claims.get(USER_SESSION_ID);
+        return userSessionId != null ? String.valueOf(userSessionId) : null;
     }
 
     private Claims parseClaims(String token) {

@@ -1,7 +1,7 @@
 import { isAuthenticated } from '@/utils/auth';
-import { trackStore, OVERVIEW_PRECISION } from '@/utils/trackStore';
 import { fetchMapConfig } from '@/utils/mapConfigService';
 import { startupLog } from '@/utils/startupDiagnostics';
+import { submitClientEnvironmentOnce } from '@/utils/clientEnvironmentAnalytics';
 
 /**
  * Kick off network requests immediately for returning users so they run in
@@ -11,9 +11,8 @@ import { startupLog } from '@/utils/startupDiagnostics';
  */
 export function startEarlyPrefetch(): void {
   if (!isAuthenticated()) return;
-  startupLog('boot', 'Returning user detected — starting early prefetch');
-  trackStore.prefetchAllTracks(OVERVIEW_PRECISION);
-  trackStore.prefetchAllTracks(10);
+  submitClientEnvironmentOnce();
+  startupLog('boot', 'Returning user detected — prefetching map config');
   // Warm the module-level cache so initMap() gets it instantly.
   fetchMapConfig();
 }

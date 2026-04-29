@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.10.xsd">
+
+    <changeSet id="20260426_3_web_user_session" author="patrick.heusser">
+
+        <dropIndex indexName="WEB_REQUEST_LOG_IX_USER_ID" tableName="web_request_log"/>
+        <dropIndex indexName="WEB_CLIENT_ENV_LOG_IX_USER_ID" tableName="web_client_environment_log"/>
+        <dropIndex indexName="WEB_CLIENT_ENV_LOG_IX_USER_ID_CREATE_DATE" tableName="web_client_environment_log"/>
+
+        <renameColumn tableName="web_request_log"
+                      oldColumnName="user_id"
+                      newColumnName="user_session_id"
+                      columnDataType="varchar(32)"/>
+
+        <renameColumn tableName="web_client_environment_log"
+                      oldColumnName="user_id"
+                      newColumnName="user_session_id"
+                      columnDataType="varchar(32)"/>
+
+        <createTable tableName="web_user_session">
+            <column name="id" type="bigint" autoIncrement="true" startWith="10000050" incrementBy="50">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="create_date" type="timestamp" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="update_date" type="timestamp"/>
+            <column name="expires_at" type="timestamp"/>
+            <column name="revoked_at" type="timestamp"/>
+            <column name="user_session_id" type="varchar(32)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="user_name" type="varchar(255)"/>
+            <column name="session_status" type="varchar(32)" defaultValue="ACTIVE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="login_ip_address" type="varchar(64)"/>
+            <column name="login_user_agent" type="varchar(1000)"/>
+            <column name="jwt_issued_at" type="timestamp"/>
+            <column name="jwt_expires_at" type="timestamp"/>
+            <column name="last_seen_date" type="timestamp"/>
+            <column name="last_seen_request_log_id" type="bigint"/>
+            <column name="last_client_environment_log_id" type="bigint"/>
+            <column name="session_payload_json" type="text"/>
+        </createTable>
+
+        <addUniqueConstraint tableName="web_user_session"
+                             columnNames="user_session_id"
+                             constraintName="WEB_USER_SESSION_UK_SESSION_ID"/>
+
+        <createIndex indexName="WEB_USER_SESSION_IX_CREATE_DATE" tableName="web_user_session" unique="false">
+            <column name="create_date"/>
+        </createIndex>
+
+        <createIndex indexName="WEB_USER_SESSION_IX_USER_SESSION_ID" tableName="web_user_session" unique="false">
+            <column name="user_session_id"/>
+        </createIndex>
+
+        <createIndex indexName="WEB_USER_SESSION_IX_USER_NAME" tableName="web_user_session" unique="false">
+            <column name="user_name"/>
+        </createIndex>
+
+        <createIndex indexName="WEB_USER_SESSION_IX_STATUS" tableName="web_user_session" unique="false">
+            <column name="session_status"/>
+        </createIndex>
+
+        <createIndex indexName="WEB_USER_SESSION_IX_LAST_SEEN_DATE" tableName="web_user_session" unique="false">
+            <column name="last_seen_date"/>
+        </createIndex>
+
+        <createIndex indexName="WEB_REQUEST_LOG_IX_USER_SESSION_ID" tableName="web_request_log" unique="false">
+            <column name="user_session_id"/>
+        </createIndex>
+
+        <createIndex indexName="WEB_CLIENT_ENV_LOG_IX_USER_SESSION_ID" tableName="web_client_environment_log" unique="false">
+            <column name="user_session_id"/>
+        </createIndex>
+
+        <createIndex indexName="WEB_CLIENT_ENV_LOG_IX_SESSION_CREATE_DATE" tableName="web_client_environment_log" unique="false">
+            <column name="user_session_id"/>
+            <column name="create_date"/>
+        </createIndex>
+
+    </changeSet>
+
+</databaseChangeLog>

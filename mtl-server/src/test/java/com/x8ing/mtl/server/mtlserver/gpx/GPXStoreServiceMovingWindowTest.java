@@ -147,6 +147,31 @@ class GPXStoreServiceMovingWindowTest {
         assertDoesNotThrow(() -> GPXStoreService.calculateMovingWindowStats(90, points));
     }
 
+    /**
+     * Regression: if the first two points have the same timestamp, the fixed-point
+     * selector must not get pinned at index 0 and collapse the selection to one
+     * point. JTS cannot create a LineString from a single point.
+     */
+    @Test
+    void selectUniformInTime_duplicateInitialTimestamp_doesNotCollapseToOnePoint() {
+        List<GpsTrackDataPoint> points = buildTimestampOnlyTrack(
+                0, 0, 10, 20, 30, 40, 50, 60, 70, 80,
+                90, 100, 110, 120, 130, 140, 150, 160, 170, 180);
+
+        List<GpsTrackDataPoint> selected = GPXStoreService.selectUniformInTime(points, 5);
+
+        assertEquals(5, selected.size());
+        assertTrue(selected.stream().map(GpsTrackDataPoint::getPointTimestamp).distinct().count() > 1);
+    }
+
+    @Test
+    void selectUniformInTime_singlePointSource_returnsSinglePointForCallerToHandle() {
+        List<GpsTrackDataPoint> selected = GPXStoreService.selectUniformInTime(
+                buildTimestampOnlyTrack(0), 5);
+
+        assertEquals(1, selected.size());
+    }
+
     // --- Helper ---
 
     /**
@@ -174,6 +199,19 @@ class GPXStoreServiceMovingWindowTest {
             points.add(p);
             altitude += altitudeStepMeters;
         }
+        return points;
+    }
+
+    private static List<GpsTrackDataPoint> buildTimestampOnlyTrack(long... secondsFromStart) {
+        List<GpsTrackDataPoint> points = new ArrayList<>();
+        Instant baseTime = Instant.parse("2025-01-01T10:00:00Z");
+
+        for (long seconds : secondsFromStart) {
+            GpsTrackDataPoint p = new GpsTrackDataPoint();
+            p.setPointTimestamp(Timestamp.from(baseTime.plusSeconds(seconds)));
+            points.add(p);
+        }
+
         return points;
     }
 }

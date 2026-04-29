@@ -2,7 +2,7 @@
 
   <div class="tool-container">
 
-    <TrackDetailMiniMap :gps-track-id="gpsTrackId" />
+    <TrackDetailMiniMap :gps-track-id="gpsTrackId" :track-events="trackEvents" />
 
     <Tabs value="0" @update:value="onTabChange">
       <TabList>
@@ -10,6 +10,7 @@
         <Tab value="1">Graphs</Tab>
         <Tab value="2">Quality</Tab>
         <Tab value="3">Related</Tab>
+        <Tab value="4">Events</Tab>
       </TabList>
       <TabPanels>
       <TabPanel value="0">
@@ -82,6 +83,10 @@
       <TabPanel value="3">
         <TrackDetailRelated :related-tracks="relatedTracks ?? undefined" :gps-track="gpsTrack ?? undefined" :is-loading="isLoading" @navigate-track="navigateToTrack" />
       </TabPanel>
+
+      <TabPanel value="4">
+        <TrackDetailEvents :events="trackEvents" />
+      </TabPanel>
       </TabPanels>
     </Tabs>
 
@@ -92,17 +97,20 @@
 <script lang="ts">
 import type {Ref} from 'vue';
 import {defineComponent, inject, ref} from "vue";
-import {fetchTrack, fetchTrackDetails, getRelatedTracks} from "@/utils/ServiceHelper";
+import {fetchTrackDetails, getRelatedTracks} from "@/utils/ServiceHelper";
 import {useTrackMapSync, type TrackPoint} from "@/composables/useTrackMapSync";
 import {useChartSync} from "@/composables/useChartSync";
-import type {GpsTrack, GpsTrackDataPoint, RelatedTracks} from 'x8ing-mtl-api-typescript-fetch/dist/esm/models/index';
+import type {GpsTrack, GpsTrackData, GpsTrackDataPoint, GpsTrackEvent, RelatedTracks} from 'x8ing-mtl-api-typescript-fetch/dist/esm/models/index';
 import TrackGraph from "@/components/trackdetails/TrackGraph.vue";
 import { trackGraphConfigs } from "@/components/trackdetails/trackGraphConfigs";
 import TrackDetailOverview from "@/components/trackdetails/TrackDetailOverview.vue";
 import TrackDetailQuality from "@/components/trackdetails/TrackDetailQuality.vue";
 import TrackDetailRelated from "@/components/trackdetails/TrackDetailRelated.vue";
 import TrackDetailMiniMap from "@/components/trackdetails/TrackDetailMiniMap.vue";
+import TrackDetailEvents from "@/components/trackdetails/TrackDetailEvents.vue";
 import { USER_PREFS_KEYS, migrateLegacyKeys } from "@/utils/userPrefs";
+import { DETAIL_TRACK_PRECISION } from "@/utils/tracks/trackConstants";
+import { fetchDetailTrackAtPrecision } from "@/utils/tracks/trackCollectionLoader";
 
 const GRAPH_HEIGHT_STORAGE_KEY = USER_PREFS_KEYS.trackGraphHeight;
 const GRAPH_HEIGHT_MIN = 100;
@@ -147,6 +155,7 @@ export default defineComponent({
     TrackDetailQuality,
     TrackDetailRelated,
     TrackDetailMiniMap,
+    TrackDetailEvents,
   },
   props: {
     gpsTrackId: {
@@ -155,11 +164,12 @@ export default defineComponent({
     }
   },
   emits: ['track-loaded'],
-  data(): { gpsTrack: GpsTrack | null, relatedTracks: RelatedTracks | null, trackDetails: GpsTrackDataPoint[], xMode: 'time' | 'distance', graphHeightPx: number, graphHeightReflowFrame: number | null, GRAPH_HEIGHT_MIN: number, GRAPH_HEIGHT_MAX: number, GRAPH_HEIGHT_STEP: number, isLoading: boolean, _loadGeneration: number } {
+  data(): { gpsTrack: GpsTrack | null, relatedTracks: RelatedTracks | null, trackDetails: GpsTrackDataPoint[], trackEvents: GpsTrackEvent[], xMode: 'time' | 'distance', graphHeightPx: number, graphHeightReflowFrame: number | null, GRAPH_HEIGHT_MIN: number, GRAPH_HEIGHT_MAX: number, GRAPH_HEIGHT_STEP: number, isLoading: boolean, _loadGeneration: number } {
     return {
       gpsTrack: null,
       relatedTracks: null,
       trackDetails: [],
+      trackEvents: [],
       xMode: 'time',
       isLoading: false,
       _loadGeneration: 0,
@@ -276,6 +286,23 @@ export default defineComponent({
         });
     },
 
+    async loadTrackMetadata(gpsTrackId: number): Promise<GpsTrack> {
+      const detail = await fetchDetailTrackAtPrecision(gpsTrackId, DETAIL_TRACK_PRECISION);
+      return detail.gpsTrack;
+    },
+
+    extractTrackEvents(track: GpsTrack): GpsTrackEvent[] {
+      const trackDataList = track.gpsTracksData as GpsTrackData[] | undefined;
+      const events = trackDataList?.flatMap(trackData => trackData.gpsTrackEvents ?? []) ?? [];
+      return events.map(event => ({
+        ...event,
+        startTimestamp: event.startTimestamp ? new Date(event.startTimestamp) : undefined,
+        endTimestamp: event.endTimestamp ? new Date(event.endTimestamp) : undefined,
+        createDate: event.createDate ? new Date(event.createDate) : undefined,
+        updateDate: event.updateDate ? new Date(event.updateDate) : undefined,
+      }));
+    },
+
     /**
      * Load all data needed to render the Track Details panel.
      *
@@ -304,9 +331,10 @@ export default defineComponent({
       const generation = ++this._loadGeneration;
       this.isLoading = true;
       this.clearAll();
+      this.trackEvents = [];
       try {
         const [track, relatedTracks, details] = await Promise.all([
-          fetchTrack(gpsTrackId),
+          this.loadTrackMetadata(gpsTrackId),
           getRelatedTracks(gpsTrackId),
           fetchTrackDetails(gpsTrackId),
         ]);
@@ -315,6 +343,7 @@ export default defineComponent({
         this.gpsTrack = track;
         this.relatedTracks = relatedTracks;
         this.trackDetails = Array.isArray(details) ? details : [];
+        this.trackEvents = this.extractTrackEvents(track);
 
         this.$emit('track-loaded', {
           id: track.id,
@@ -405,7 +434,7 @@ export default defineComponent({
 }
 
 .graphs-toolbar-label {
-  font-size: 0.68rem;
+  font-size: var(--text-2xs-size);
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -430,7 +459,7 @@ export default defineComponent({
   border: none;
   background: none;
   border-radius: 5px;
-  font-size: 0.75rem;
+  font-size: var(--text-xs-size);
   font-weight: 600;
   color: var(--text-secondary);
   cursor: pointer;

@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.10.xsd">
+
+    <!--
+      Gradient color palettes — 100-step sequential colormaps.
+
+      Intended use: SQL filters that bucket tracks into exactly 100 histogram
+      groups (0–99). The group label produced by the SQL must be the numeric
+      bucket index (as a string) in ascending order so that getColorForGroup()
+      assigns colors[0] → bucket 0, colors[1] → bucket 1, etc.
+
+      Example SQL pattern:
+        NTILE(100) OVER (ORDER BY avg_speed_kmh) - 1   AS color_group
+
+      Palettes:
+        GRADIENT_100_VIRIDIS  — perceptually uniform, colorblind-safe (default)
+        GRADIENT_100_PLASMA   — warm/energetic, good for effort/heat metrics
+        GRADIENT_100_BLUES    — single-hue, quiet on the eye
+        GRADIENT_100_RDYLGN   — red (low) → yellow → green (high), intuitive for speed/performance
+    -->
+
+    <changeSet id="20260421_1_gradient_palettes" author="patrick.heusser">
+
+        <insert tableName="config">
+            <column name="domain1">CLIENT</column>
+            <column name="domain2">COLOR_PALETTE</column>
+            <column name="domain3">GRADIENT_100_VIRIDIS</column>
+            <column name="value"><![CDATA[{"description":"100-step Viridis gradient — perceptually uniform, colorblind-safe","label":"Gradient Viridis","colors":["#440154","#440457","#44085A","#450B5D","#450E60","#451263","#451566","#461869","#461C6C","#461F6F","#462272","#472674","#472977","#472C7A","#46307C","#45337D","#44367E","#433980","#423C81","#414083","#404384","#3F4686","#3E4987","#3D4C88","#3C508A","#3B538B","#3A558B","#38578C","#375A8C","#365C8C","#355F8C","#34618C","#33638D","#31668D","#30688D","#2F6B8D","#2E6D8E","#2D708E","#2C728E","#2B758E","#2A778E","#297A8D","#287D8D","#277F8D","#26828D","#25858D","#24888D","#238A8C","#228D8C","#21908C","#22928B","#249589","#269886","#289B84","#299E82","#2BA180","#2DA47D","#2FA77B","#31AA79","#33AD77","#35B074","#36B372","#38B670","#3BB86E","#3EB96D","#41BB6C","#44BC6B","#47BE6A","#4BC069","#4EC168","#51C367","#54C466","#57C664","#5AC763","#5DC962","#62CA5F","#67CB5C","#6DCD59","#72CE55","#77CF52","#7CD14F","#82D24B","#87D348","#8CD545","#92D641","#97D73E","#9CD93B","#A1DA37","#A9DB36","#B0DC34","#B8DD33","#C0DE31","#C7DF30","#CFE02E","#D7E22D","#DEE32B","#E6E42A","#EEE528","#F5E627","#FDE725"]}]]></column>
+            <column name="description">100-step Viridis gradient. Purple → teal → yellow. Perceptually uniform, colorblind-safe, works on all base maps.</column>
+        </insert>
+
+        <insert tableName="config">
+            <column name="domain1">CLIENT</column>
+            <column name="domain2">COLOR_PALETTE</column>
+            <column name="domain3">GRADIENT_100_PLASMA</column>
+            <column name="value"><![CDATA[{"description":"100-step Plasma gradient — warm/energetic, good for effort and heat metrics","label":"Gradient Plasma","colors":["#0D0887","#130889","#18078C","#1E078E","#240690","#2A0692","#2F0595","#350597","#3B0499","#41049B","#46039E","#4C03A0","#5202A2","#5702A3","#5B03A3","#6004A3","#6404A4","#6905A4","#6D06A4","#7106A4","#7607A4","#7A08A4","#7F08A5","#8309A5","#880AA5","#8C0BA4","#900EA2","#9311A0","#97159E","#9B189B","#9F1B99","#A21E97","#A62195","#AA2592","#AD2890","#B12B8E","#B52E8C","#B93289","#BB3587","#BE3884","#C13C81","#C43F7F","#C6437C","#C94679","#CC4977","#CF4D74","#D15071","#D4546F","#D7576C","#DA5A69","#DC5E67","#DE6164","#E06562","#E2685F","#E46C5D","#E6705A","#E87358","#EA7755","#EC7A53","#EE7E50","#F0814E","#F2854B","#F48949","#F58D46","#F69144","#F79541","#F7993F","#F89E3D","#F9A23A","#FAA638","#FBAA35","#FBAE33","#FCB330","#FDB72E","#FEBB2C","#FDBE2A","#FCC129","#FBC328","#FAC627","#F9C926","#F7CB25","#F6CE24","#F5D123","#F4D322","#F3D621","#F2D920","#F1DB1F","#F0DE1E","#F0E01E","#F0E21F","#F0E51F","#F0E71F","#F0E91F","#F0EB20","#F0EE20","#F0F020","#F0F220","#F0F421","#F0F721","#F0F921"]}]]></column>
+            <column name="description">100-step Plasma gradient. Deep purple → red → orange → yellow. Great for effort, speed, or power metrics.</column>
+        </insert>
+
+        <insert tableName="config">
+            <column name="domain1">CLIENT</column>
+            <column name="domain2">COLOR_PALETTE</column>
+            <column name="domain3">GRADIENT_100_BLUES</column>
+            <column name="value"><![CDATA[{"description":"100-step Blues gradient — single-hue, light to dark, easy on the eye","label":"Gradient Blues","colors":["#EFF3FF","#EDF2FE","#EAF0FD","#E8EFFC","#E5EDFB","#E3ECFA","#E0EAF9","#DEE9F8","#DBE7F7","#D9E6F6","#D6E4F5","#D4E3F4","#D1E1F3","#CFE0F2","#CCDFF1","#CADDF0","#C7DCEF","#C5DAEF","#C2D9EE","#C0D8ED","#BDD7EC","#BBD6EB","#B9D5EA","#B6D4E9","#B4D3E9","#B1D2E8","#AFD1E7","#ACD0E6","#AACFE5","#A8CEE4","#A5CDE4","#A3CCE3","#A0CBE2","#9ECAE1","#9BC8E0","#98C7E0","#95C5DF","#92C3DE","#8EC1DE","#8BC0DD","#88BEDC","#85BCDC","#82BBDB","#7FB9DA","#7CB7DA","#79B6D9","#76B4D8","#73B2D8","#70B1D7","#6DAFD6","#69ADD5","#66AAD4","#62A7D2","#5FA5D1","#5BA2CF","#589FCE","#549DCC","#519ACB","#4D97C9","#4995C8","#4692C6","#428FC5","#3F8DC3","#3B8AC1","#3887C0","#3485BE","#3182BD","#2E7FBB","#2C7CB9","#2979B7","#2776B5","#2473B3","#2270B1","#1F6DAF","#1D6AAD","#1B67AB","#1864A9","#1661A7","#135EA5","#115BA3","#0E58A1","#0C559F","#09529D","#08509A","#084E97","#084C94","#084A92","#08488F","#08468C","#084489","#084286","#084083","#083E80","#083C7D","#083A7A","#083877","#083674","#083471","#08326E","#08306B"]}]]></column>
+            <column name="description">100-step Blues gradient. Pale → deep blue. Single-hue, quiet on the eye. Good for elevation, distance or any monotone metric.</column>
+        </insert>
+
+        <insert tableName="config">
+            <column name="domain1">CLIENT</column>
+            <column name="domain2">COLOR_PALETTE</column>
+            <column name="domain3">GRADIENT_100_RDYLGN</column>
+            <column name="value"><![CDATA[{"description":"100-step RdYlGn gradient — red (low) → yellow → green (high), intuitive for speed and performance","label":"Gradient RdYlGn","colors":["#A50026","#A80326","#AB0626","#AE0926","#B10C26","#B40F26","#B71226","#BA1426","#BD1726","#C01A27","#C31D27","#C62027","#CA2327","#CD2627","#D02927","#D32C27","#D62F27","#D83429","#DB3C2C","#DD4430","#DF4B34","#E15337","#E45A3B","#E6623E","#E86A42","#EB7145","#ED7949","#EF814C","#F28850","#F49053","#F69757","#F89F5A","#FBA75E","#FDAE61","#FDB367","#FDB86D","#FDBD72","#FDC278","#FEC77E","#FECC83","#FED089","#FED58F","#FEDA94","#FEDF9A","#FEE4A0","#FEE9A5","#FFEEAB","#FFF3B1","#FFF8B6","#FFFDBC","#FCFEBC","#F7FCB7","#F1F9B2","#ECF7AD","#E7F5A8","#E1F2A3","#DCF09D","#D6EE98","#D1EB93","#CCE98E","#C6E789","#C1E484","#BBE27E","#B6E079","#B0DD74","#ABDB6F","#A5D96A","#9DD568","#95D167","#8CCD65","#84C964","#7BC562","#73C160","#6ABD5F","#62B95D","#59B55C","#51B15A","#48AD59","#40AA57","#37A655","#2FA254","#269E52","#1E9A51","#19964F","#18944E","#16914C","#148E4B","#138B49","#118848","#108546","#0E8245","#0D7F43","#0B7C42","#097940","#08773F","#06743D","#05713C","#036E3A","#026B39","#006837"]}]]></column>
+            <column name="description">100-step RdYlGn gradient. Red (slow/low) → yellow (mid) → green (fast/high). Intuitive for speed, pace, or performance metrics.</column>
+        </insert>
+
+    </changeSet>
+
+</databaseChangeLog>

@@ -166,10 +166,10 @@ const sheetHeight = ref(0);
 let dragStartHeight = 0;
 
 // Snap points in px (computed after mount)
-const HANDLE_HEIGHT = 36;   // drag handle zone (sized for comfortable tap target)
-const ROW_HEIGHT = 56;      // each tool row height
-const ROW_GAP = 4;          // gap between rows
-const BOTTOM_PAD = 8;       // bottom padding
+const HANDLE_HEIGHT = 26;   // drag handle zone (sized for comfortable tap target)
+const ROW_HEIGHT = 50;      // each tool row height
+const ROW_GAP = 2;          // gap between rows
+const BOTTOM_PAD = 4;       // bottom padding
 
 const collapsedHeight = HANDLE_HEIGHT + 20; // handle + breathing room for safe-area
 const expandedHeight = HANDLE_HEIGHT + ROW_HEIGHT + ROW_GAP + ROW_HEIGHT + BOTTOM_PAD; // handle + 2 rows
@@ -311,7 +311,7 @@ defineExpose({
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 14px 0 8px;
+  padding: 6px 0 4px;
   cursor: grab;
   touch-action: none;
 }
@@ -333,7 +333,7 @@ defineExpose({
   flex: 1 1 auto;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
   padding: 0 0.5rem;
   overflow: hidden;
 }
@@ -342,7 +342,7 @@ defineExpose({
   display: flex;
   justify-content: space-around;
   gap: 2px;
-  min-height: 56px;
+  min-height: 50px;
   flex-shrink: 0;
 }
 
@@ -364,10 +364,10 @@ defineExpose({
   min-width: 0;
 }
 .nav-sheet__tool i {
-  font-size: 1.15rem;
+  font-size: var(--text-lg-size);
 }
 .nav-sheet__tool-label {
-  font-size: 0.62rem;
+  font-size: var(--text-xs-size);
   font-weight: 500;
   letter-spacing: 0.01em;
   white-space: nowrap;
@@ -430,8 +430,8 @@ defineExpose({
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: var(--warning, #f59e0b);
-  box-shadow: 0 0 6px rgba(245, 158, 11, 0.5), 0 0 2px rgba(245, 158, 11, 0.8);
+  background: var(--warning);
+  box-shadow: 0 0 6px var(--alert-dot-glow), 0 0 2px var(--warning);
 }
 
 /* Collapsed: hide everything but handle */
@@ -504,10 +504,11 @@ defineExpose({
   transition: all 0.15s;
 }
 .nav-panel__tool i {
-  font-size: 1.35rem;
+  font-size: var(--text-xl-size);
 }
 .nav-panel__tool-label {
-  font-size: 0.65rem;
+  /* SPECIAL CASE: same 11px intent as nav-sheet__tool-label — between scale steps */
+  font-size: 0.6875rem; /* 11px */
   font-weight: 500;
   letter-spacing: 0.01em;
   white-space: nowrap;
@@ -521,10 +522,10 @@ defineExpose({
     gap: 4px;
   }
   .nav-panel__tool i {
-    font-size: 1.5rem;
+    font-size: var(--text-2xl-size);
   }
   .nav-panel__tool-label {
-    font-size: 0.7rem;
+    font-size: var(--text-xs-size);
   }
 }
 .nav-panel__tool:hover {
@@ -573,8 +574,8 @@ defineExpose({
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: var(--warning, #f59e0b);
-  box-shadow: 0 0 6px rgba(245, 158, 11, 0.5), 0 0 2px rgba(245, 158, 11, 0.8);
+  background: var(--warning);
+  box-shadow: 0 0 6px var(--alert-dot-glow), 0 0 2px var(--warning);
 }
 
 

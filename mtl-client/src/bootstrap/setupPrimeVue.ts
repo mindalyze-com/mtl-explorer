@@ -60,17 +60,17 @@ const MyPreset = definePreset(Lara, {
       dark: {
         surface: {
           0: '#ffffff',
-          50: '{slate.950}', // #020617 — darkest base
-          100: '{slate.900}', // #0f172a — card backgrounds
-          200: '{slate.800}', // #1e293b — elevated surfaces
-          300: '{slate.700}', // #334155
-          400: '{slate.600}', // #475569
-          500: '{slate.500}', // #64748b — muted text
-          600: '{slate.400}', // #94a3b8
-          700: '{slate.300}', // #cbd5e1
-          800: '{slate.200}', // #e2e8f0 — secondary text
-          900: '{slate.100}', // #f1f5f9 — primary text
-          950: '{slate.50}', // #f8fafc — lightest
+          50: '{slate.50}',
+          100: '{slate.100}',
+          200: '{slate.200}',
+          300: '{slate.300}',
+          400: '{slate.400}',
+          500: '{slate.500}',
+          600: '{slate.600}',
+          700: '{slate.700}',
+          800: '{slate.800}',
+          900: '{slate.900}',
+          950: '{slate.950}',
         },
       },
     },

@@ -90,7 +90,7 @@ function onToolClick(id: string) {
   backdrop-filter: var(--blur-standard);
   -webkit-backdrop-filter: var(--blur-standard);
   color: var(--text-secondary);
-  font-size: 1.15rem;
+  font-size: var(--text-lg-size);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -137,7 +137,7 @@ function onToolClick(id: string) {
   border: 1px solid var(--border-medium);
   background: var(--surface-glass-heavy);
   color: var(--text-muted);
-  font-size: 0.75rem;
+  font-size: var(--text-xs-size);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -158,7 +158,7 @@ function onToolClick(id: string) {
   border: none;
   background: transparent;
   color: var(--text-secondary);
-  font-size: 1.05rem;
+  font-size: var(--text-base-size);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -225,7 +225,7 @@ function onToolClick(id: string) {
     transform: translateY(-50%);
     background: var(--surface-glass-heavy);
     color: var(--text-secondary);
-    font-size: 0.72rem;
+    font-size: var(--text-xs-size);
     font-weight: 500;
     padding: 0.25rem 0.5rem;
     border-radius: 0.375rem;
@@ -244,13 +244,13 @@ function onToolClick(id: string) {
   .ftb-toggle {
     width: 3.25rem;
     height: 3.25rem;
-    font-size: 1.3rem;
+    font-size: var(--text-xl-size);
     border-radius: 1rem;
   }
   .ftb-btn, .ftb-close {
     width: 2.2rem;
     height: 2.2rem;
-    font-size: 0.95rem;
+    font-size: var(--text-base-size);
   }
 }
 </style>

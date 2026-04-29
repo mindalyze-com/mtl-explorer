@@ -38,7 +38,7 @@ function onUpdate(value: TrackBrowserPreset) {
 }
 
 .track-browser-quick-views__label {
-  font-size: 0.8rem;
+  font-size: var(--text-sm-size);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;

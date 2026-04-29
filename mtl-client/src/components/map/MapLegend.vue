@@ -92,7 +92,7 @@ function toggleGroup(group: string) {
   border-radius: 4px;
   min-width: 120px;
   max-width: 260px;
-  font-size: 0.7rem;
+  font-size: var(--text-xs-size);
   font-weight: 500;
   color: var(--chip-text);
   pointer-events: auto;
@@ -125,8 +125,8 @@ function toggleGroup(group: string) {
 }
 
 .mtl-card__funnel {
-  font-size: 0.65rem;
-  color: var(--warning, #f59e0b);
+  font-size: var(--text-2xs-size);
+  color: var(--warning);
   flex-shrink: 0;
 }
 
@@ -149,13 +149,13 @@ function toggleGroup(group: string) {
 }
 
 .mtl-card__legend-label {
-  font-size: 0.65rem;
+  font-size: var(--text-2xs-size);
   font-weight: 600;
   opacity: 0.75;
 }
 
 .mtl-card__chevron {
-  font-size: 0.6rem;
+  font-size: var(--text-2xs-size);
   opacity: 0.65;
 }
 
@@ -190,7 +190,7 @@ function toggleGroup(group: string) {
 }
 
 .mtl-card__row:hover {
-  background: var(--chip-bg-hover, rgba(0, 0, 0, 0.06));
+  background: var(--chip-bg-hover);
 }
 
 .mtl-card__row--disabled {
@@ -216,19 +216,19 @@ function toggleGroup(group: string) {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 0.68rem;
+  font-size: var(--text-2xs-size);
 }
 
 .mtl-card__entry-count {
   flex-shrink: 0;
   opacity: 0.55;
   font-variant-numeric: tabular-nums;
-  font-size: 0.65rem;
+  font-size: var(--text-2xs-size);
 }
 
 .mtl-card__eye {
   flex-shrink: 0;
-  font-size: 0.6rem;
+  font-size: var(--text-2xs-size);
   opacity: 0.45;
   transition: opacity 0.15s;
 }

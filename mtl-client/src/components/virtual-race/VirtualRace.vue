@@ -4,64 +4,70 @@
 
     <!-- Controls -->
     <div class="vr-controls">
-      <div class="vr-control-row">
+      <div class="vr-segment-row">
         <label class="vr-label">Segment</label>
-        <Select v-model="selectedSegment" :options="availableSegments" optionLabel="name"
-                option-value="code"
-                placeholder="select segment"
-                class="vr-segment-select">
-          <template #option="slotProps">
-            <div>{{ slotProps.option.name }}&nbsp;&nbsp;({{ slotProps.option.count }} tracks)</div>
-          </template>
-        </Select>
+        <div class="vr-chip-scroll">
+          <button
+            v-for="seg in availableSegments"
+            :key="segmentChipKey(seg)"
+            class="vr-chip"
+            :class="{ 'vr-chip--active': selectedSegmentKey === segmentChipKey(seg) }"
+            @click="selectedSegment = seg.code"
+          >
+            {{ seg.name }}
+          </button>
+        </div>
       </div>
       <div class="vr-control-row">
-        <label class="vr-label"><i class="bi bi-speedometer2"></i> {{ playbackSpeedDisplay }}</label>
-        <Slider :min="1" :max="100" v-model="playbackSpeedSelector" class="vr-speed-slider"></Slider>
-        <span v-if="estimatedDurationDisplay" class="vr-est-duration" v-tooltip.top="'Estimated avg. animation time'">~{{ estimatedDurationDisplay }}</span>
-        <Button @click="onStart" class="vr-start-btn" :disabled="!selectedSegment">
-          <i class="bi bi-play-fill"></i> Start
-        </Button>
+        <span class="vr-label">Speed</span>
+        <Slider :min="0" :max="100" v-model="playbackSpeedSelector" class="vr-speed-slider"></Slider>
+        <span class="vr-speed-info">{{ speedInfoDisplay }}</span>
       </div>
     </div>
 
     <!-- Map -->
-    <MiniMap
-        ref="minimapRef"
-        v-show="showMinimap"
-        :tracks-geo-json="raceGeoJson"
-        :map-bounds="mapBounds"
-        class="vr-minimap"></MiniMap>
+    <div v-show="showMinimap" class="vr-map-wrapper">
+      <MiniMap
+          ref="minimapRef"
+          :tracks-geo-json="raceGeoJson"
+          :map-bounds="mapBounds"
+          :highlighted-track-index="hoveredRacerIndex"
+          @hover-racer="hoveredRacerIndex = $event"
+          @leave-racer="hoveredRacerIndex = null"
+          class="vr-minimap"></MiniMap>
+      <!-- Racer count pill — top right -->
+      <span v-if="selectedSegment && selectedSegmentCount != null" class="vr-map-racer-pill">
+        <i class="bi bi-people-fill"></i> {{ selectedSegmentCount }} racers
+      </span>
+      <!-- Play / Reset — bottom center -->
+      <div class="vr-map-playback">
+        <Button @click="onPlayPause" class="vr-start-btn" :disabled="!selectedSegment || isPreviewLoading">
+          <i :class="isRunning ? 'bi bi-pause-fill' : 'bi bi-play-fill'"></i>
+        </Button>
+        <Button @click="onReset" class="vr-reset-btn" :disabled="!hasStarted" severity="secondary">
+          <i class="bi bi-arrow-counterclockwise"></i>
+        </Button>
+      </div>
+    </div>
 
     <!-- Racers legend -->
     <div v-if="matchingCrossings != null && matchingCrossings.length > 0" class="vr-legend">
-      <div class="vr-legend-header">
-        <i class="bi bi-people-fill"></i> Racers
-        <span class="vr-legend-count">{{ matchingCrossings.length }}</span>
-      </div>
       <div class="vr-legend-grid">
-        <div v-for="(crossing, index) in matchingCrossings" :key="index"
-             class="vr-racer-card"
-             @click="openTrackDetails(crossing.gpsTrack.id)">
-          <div class="vr-racer-main">
-            <span class="vr-racer-swatch" :style="{ backgroundColor: simulationColors[index] }"></span>
-            <div class="vr-racer-info">
-              <span class="vr-racer-name">{{ crossing.gpsTrack.indexedFile.name }}</span>
-              <span class="vr-racer-date">{{ formatTrackDate(crossing.gpsTrack.startDate) }}</span>
-            </div>
-          </div>
-          <div class="vr-racer-stats">
-            <span v-if="crossing.crossings[1]?.timeInSecSinceLastTriggerPoint" class="vr-stat">
-              <i class="bi bi-stopwatch"></i> {{ formatSegmentDuration(crossing.crossings[1].timeInSecSinceLastTriggerPoint) }}
-            </span>
-            <span v-if="crossing.crossings[1]?.avgSpeedSinceLastTriggerPoint" class="vr-stat">
-              <i class="bi bi-speedometer"></i> {{ formatNumber(crossing.crossings[1].avgSpeedSinceLastTriggerPoint, 1) }} km/h
-            </span>
-            <span v-if="crossing.crossings[1]?.distanceInMeterSinceLastTriggerPoint" class="vr-stat">
-              <i class="bi bi-signpost-split"></i> {{ formatDistance(crossing.crossings[1].distanceInMeterSinceLastTriggerPoint) }}
-            </span>
-          </div>
-        </div>
+        <RacerCard
+          v-for="(entry, rank) in sortedRacers"
+          :key="entry.originalIndex"
+          :color="simulationColors[entry.originalIndex]"
+          :name="entry.crossing.gpsTrack.indexedFile.name"
+          :dateStr="formatTrackDate(entry.crossing.gpsTrack.startDate)"
+          :trackId="entry.crossing.gpsTrack.id"
+          :activityType="entry.crossing.gpsTrack.activityType || null"
+          :rank="rank + 1"
+          :highlighted="hoveredRacerIndex === entry.originalIndex"
+          :stats="racerStats(entry)"
+          @mouseenter="hoveredRacerIndex = entry.originalIndex"
+          @mouseleave="hoveredRacerIndex = null"
+          @open-details="openTrackDetails"
+        />
       </div>
     </div>
 
@@ -74,19 +80,25 @@
 import { defineComponent, inject } from "vue";
 import { fetchTrackSubTrackDetails } from "@/utils/ServiceHelper";
 import MiniMap from "@/components/map/MiniMap.vue";
+import RacerCard from "@/components/ui/RacerCard.vue";
 import { generateColors, formatDateAndTime, formatDuration, formatNumber, formatDistance } from "@/utils/Utils";
 
 
 export default defineComponent({
   name: 'VirtualRace',
-  components: { MiniMap },
-  props: ["measureServiceResult", "consolidateVisits"],
+  components: { MiniMap, RacerCard },
+  props: {
+    measureServiceResult: { type: Object, default: null },
+    consolidateVisits: { type: Boolean, default: true },
+    initialSegment: { type: Object, default: null },
+    selectedTrackIds: { type: Object, default: () => new Set() },
+  },
   emits: ['show-track-details'],
   data() {
     return {
       selectedSegment: null,
       matchingCrossings: null,
-      playbackSpeedSelector: 40,
+      playbackSpeedSelector: 49,
       avgSegmentDurationSec: 0,
       showMinimap: false,
       trackDetailDataResults: null,
@@ -95,18 +107,21 @@ export default defineComponent({
       raceGeoJson: null,
       racerTrails: [],
       animationTimerId: null,
+      isPaused: false,
+      pausedElapsedRealMs: 0,
+      isPreviewLoading: false,
+      _prepareToken: 0,
+      triggerPointsInvolved: new Map(),
       mapBounds: [[8.505778, 47.5605], [8.525778, 47.5705]],
+      hoveredRacerIndex: null,
+      // Derives speed multiplier from desired animation duration.
+      // Slider pos 0 = 60s (slowest), pos 100 = 1s (fastest).
       playbackSpeed() {
-        let val = Math.round(Math.pow(1.1, this.playbackSpeedSelector));
-        if (val > 10000) {
-          return Math.round(val / 1000) * 1000;
-        } else if (val > 1000) {
-          return Math.round(val / 100) * 100;
-        } else if (val > 100) {
-          return Math.round(val / 10) * 10;
-        } else {
-          return val;
-        }
+        if (!this.avgSegmentDurationSec || this.avgSegmentDurationSec <= 0) return 1;
+        const animDurationSec = Math.exp(
+          (1 - this.playbackSpeedSelector / 100) * Math.log(60)
+        );
+        return Math.max(1, this.avgSegmentDurationSec / animDurationSec);
       },
     }
   },
@@ -117,14 +132,16 @@ export default defineComponent({
       if (this.consolidateVisits !== false) {
         return this.measureServiceResult.segmentsStats.map(segment => ({
           name: segment.label,
-          count: segment.count,
+          count: this.selectedSegmentCounts.get(segment.point1 + '||' + segment.point2) ?? 0,
           code: { point1: segment.point1, point2: segment.point2, consolidated: true },
         }));
       }
 
-      // Unconsolidated: discover all numbered visit pairs from raw crossing data
+      // Unconsolidated: discover all numbered visit pairs from raw crossing data (filtered by selection)
       const segmentMap = new Map();
-      for (const [, trackCrossings] of Object.entries(this.measureServiceResult.crossings)) {
+      for (const [trackId, trackCrossings] of Object.entries(this.measureServiceResult.crossings)) {
+        const tid = Number(trackId);
+        if (!this.selectedTrackIds.has(tid)) continue;
         const countPerTP = new Map();
         let lastCrossing = null;
         for (const crossing of trackCrossings.crossings) {
@@ -151,17 +168,71 @@ export default defineComponent({
       return Array.from(segmentMap.values());
     },
 
-    playbackSpeedDisplay() {
-      return this.playbackSpeed() + 'x';
+    // Selected-track-filtered count per consolidated segment key (point1||point2).
+    selectedSegmentCounts() {
+      if (!this.measureServiceResult) return new Map();
+      const counts = new Map();
+      for (const [trackId, crossings] of Object.entries(this.measureServiceResult.crossings)) {
+        const tid = Number(trackId);
+        if (!this.selectedTrackIds.has(tid)) continue;
+        let lastCrossing = null;
+        for (const crossing of crossings.crossings) {
+          if (lastCrossing != null) {
+            const key = lastCrossing.triggerPoint.name + '||' + crossing.triggerPoint.name;
+            counts.set(key, (counts.get(key) || 0) + 1);
+          }
+          lastCrossing = crossing;
+        }
+      }
+      return counts;
     },
-    estimatedDurationDisplay() {
-      if (!this.avgSegmentDurationSec || this.avgSegmentDurationSec <= 0) return null;
-      let secs = this.avgSegmentDurationSec / this.playbackSpeed();
-      if (secs < 1) return '<1s';
-      if (secs < 60) return Math.round(secs) + 's';
-      let m = Math.floor(secs / 60);
-      let s = Math.round(secs % 60);
-      return m + 'm ' + (s > 0 ? s + 's' : '');
+
+    selectedSegmentKey() {
+      if (!this.selectedSegment) return null;
+      const code = this.selectedSegment;
+      if (code.consolidated === false) {
+        return code.point1 + code.p1Visit + '-' + code.point2 + code.p2Visit;
+      }
+      return code.point1 + '||' + code.point2;
+    },
+    selectedSegmentCount() {
+      if (!this.selectedSegment) return null;
+      const key = this.selectedSegmentKey;
+      const seg = this.availableSegments.find(s => this.segmentChipKey(s) === key);
+      return seg?.count ?? null;
+    },
+    // Right-side slider label: always in seconds, with derived multiplier when segment data loaded.
+    speedInfoDisplay() {
+      const secs = Math.max(1, Math.round(Math.exp((1 - this.playbackSpeedSelector / 100) * Math.log(60))));
+      if (!this.avgSegmentDurationSec || this.avgSegmentDurationSec <= 0) {
+        return secs + 's';
+      }
+      const speed = this.playbackSpeed();
+      if (speed >= 1.5) {
+        return Math.round(speed) + 'x · ' + secs + 's';
+      }
+      return secs + 's';
+    },
+    /**
+     * Legend display order: fastest arrival first. We keep the original index
+     * (needed because simulationColors / raceGeoJson features are keyed by
+     * insertion order) and sort only the presentation.
+     */
+    isRunning() {
+      return this.animationTimerId != null;
+    },
+    hasStarted() {
+      return this.trackDetailDataResults != null;
+    },
+    sortedRacers() {
+      if (!this.matchingCrossings) return [];
+      const entries = this.matchingCrossings.map((crossing, originalIndex) => ({
+        crossing,
+        originalIndex,
+        durationSec: crossing.crossings?.[1]?.timeInSecSinceLastTriggerPoint ?? Number.POSITIVE_INFINITY,
+      }));
+      entries.sort((a, b) => a.durationSec - b.durationSec);
+      return entries;
     },
   },
   setup() {
@@ -172,6 +243,12 @@ export default defineComponent({
   watch: {
     selectedSegment() {
       this.autoSelectSpeed();
+      this.preparePreview();
+    },
+    selectedTrackIds() {
+      // Selection changed outside — refresh preview for new subset.
+      this.autoSelectSpeed();
+      this.preparePreview();
     },
     consolidateVisits() {
       this.selectedSegment = null;
@@ -183,14 +260,26 @@ export default defineComponent({
     },
   },
   mounted() {
-    if (this.availableSegments && this.availableSegments.length > 0) {
+    if (this.initialSegment) {
+      this.selectedSegment = this.initialSegment;
+    } else if (this.availableSegments && this.availableSegments.length > 0) {
       this.selectedSegment = this.availableSegments[0].code;
     }
+    // preparePreview() will be triggered by the selectedSegment watcher above.
   },
   beforeUnmount() {
     this.stopAnimation();
   },
   methods: {
+
+    segmentChipKey(seg) {
+      const code = seg.code;
+      if (!code) return '';
+      if (code.consolidated === false) {
+        return code.point1 + code.p1Visit + '-' + code.point2 + code.p2Visit;
+      }
+      return code.point1 + '||' + code.point2;
+    },
 
     _matchesSelectedSegment(lastCrossing, crossing, countPerTP) {
       const seg = this.selectedSegment;
@@ -205,14 +294,16 @@ export default defineComponent({
     },
 
     autoSelectSpeed() {
-      const TARGET_SECONDS = 8;
+      const TARGET_SECONDS = 12;
       if (!this.selectedSegment || !this.measureServiceResult) {
         this.avgSegmentDurationSec = 0;
         return;
       }
       let totalDuration = 0;
       let count = 0;
-      for (const [, crossings] of Object.entries(this.measureServiceResult.crossings)) {
+      for (const [trackId, crossings] of Object.entries(this.measureServiceResult.crossings)) {
+        const tid = Number(trackId);
+        if (!this.selectedTrackIds.has(tid)) continue;
         const countPerTP = new Map();
         let lastCrossing = null;
         for (const crossing of crossings.crossings) {
@@ -229,107 +320,145 @@ export default defineComponent({
       }
       if (count > 0) {
         this.avgSegmentDurationSec = totalDuration / count;
-        let targetSpeed = this.avgSegmentDurationSec / TARGET_SECONDS;
-        if (targetSpeed < 1) targetSpeed = 1;
-        let selector = Math.log(targetSpeed) / Math.log(1.1);
-        this.playbackSpeedSelector = Math.round(Math.max(1, Math.min(100, selector)));
+        // Set slider so animation runs for TARGET_SECONDS.
+        // Inverse of: secs = exp((1 - pos/100) * log(60))
+        //   → pos = 100 * (1 - log(secs) / log(60))
+        const pos = 100 * (1 - Math.log(TARGET_SECONDS) / Math.log(60));
+        this.playbackSpeedSelector = Math.round(Math.max(0, Math.min(100, pos)));
       } else {
         this.avgSegmentDurationSec = 0;
       }
     },
 
-    async onStart() {
-      this.showMinimap = true;
-      setTimeout(() => {
-        if (this.$refs.minimapRef?.invalidateMapSize) {
-          this.$refs.minimapRef.invalidateMapSize();
-        }
-      }, 100);
+    async preparePreview() {
+      if (!this.selectedSegment || !this.measureServiceResult) {
+        this.stopAnimation();
+        this.matchingCrossings = null;
+        this.trackDetailDataResults = null;
+        this.raceGeoJson = null;
+        this.showMinimap = false;
+        return;
+      }
 
-      this.stopAnimation(); // in case we left something
+      this.stopAnimation();
+      this.isPaused = false;
+      this.pausedElapsedRealMs = 0;
+      this.simulationStartRealtime = -1;
+      this.isPreviewLoading = true;
 
-      this.matchingCrossings = [];
-      let fetchTrackDetailDataPromises = [];
-      let triggerPointsInvolved = new Map();
+      const token = ++this._prepareToken;
+      const activeTrackIds = new Set(this.selectedTrackIds);
 
-      // now remove all the crossing which don't match
+      const matchingCrossings = [];
+      const fetchPromises = [];
+      const triggerPointsInvolved = new Map();
+
       for (let [trackId, crossings] of Object.entries(this.measureServiceResult.crossings)) {
+        const tid = Number(trackId);
+        if (!activeTrackIds.has(tid)) continue;
         const countPerTP = new Map();
         let lastCrossing = null;
         for (let crossing of crossings.crossings) {
           const name = crossing.triggerPoint.name;
           countPerTP.set(name, (countPerTP.get(name) || 0) + 1);
-
           if (
               lastCrossing != null &&
               this._matchesSelectedSegment(lastCrossing, crossing, countPerTP) &&
               lastCrossing.gpsTrackDataPoint?.id != null &&
               crossing.gpsTrackDataPoint?.id != null
           ) {
-            this.matchingCrossings.push({ crossings: [lastCrossing, crossing], gpsTrack: crossings.gpsTrack });
-
-            let triggerPoint = crossing.triggerPoint;
-            let lastTriggerPoint = lastCrossing.triggerPoint;
-            triggerPointsInvolved.set(triggerPoint.name, triggerPoint);
-            triggerPointsInvolved.set(lastTriggerPoint.name, lastTriggerPoint);
-
-            let trackDataPointFrom = lastCrossing.gpsTrackDataPoint.id;
-            let trackDataPointTo = crossing.gpsTrackDataPoint.id;
-            fetchTrackDetailDataPromises.push(fetchTrackSubTrackDetails(trackDataPointFrom, trackDataPointTo));
+            matchingCrossings.push({ crossings: [lastCrossing, crossing], gpsTrack: crossings.gpsTrack });
+            triggerPointsInvolved.set(crossing.triggerPoint.name, crossing.triggerPoint);
+            triggerPointsInvolved.set(lastCrossing.triggerPoint.name, lastCrossing.triggerPoint);
+            fetchPromises.push(fetchTrackSubTrackDetails(
+              lastCrossing.gpsTrackDataPoint.id,
+              crossing.gpsTrackDataPoint.id
+            ));
           }
-
           lastCrossing = crossing;
         }
       }
 
-      this.trackDetailDataResults = await Promise.all(fetchTrackDetailDataPromises);
+      const results = await Promise.all(fetchPromises);
+      const adjustedResults = results.map((track, i) =>
+        this.withVirtualEndpoints(track, matchingCrossings[i]?.crossings)
+      );
 
-      if (this.trackDetailDataResults == null || this.trackDetailDataResults.length <= 0) {
-        this.toast.add({ severity: 'warning', summary: 'Warning', detail: 'No tracks found to animate', life: 2000 });
+      if (token !== this._prepareToken) return; // stale — newer prepare in flight
+
+      this.isPreviewLoading = false;
+
+      if (!adjustedResults || adjustedResults.length === 0) {
+        this.matchingCrossings = null;
+        this.trackDetailDataResults = null;
+        this.raceGeoJson = null;
         return;
       }
 
-      this.simulationStartRealtime = new Date().getTime();
+      this.matchingCrossings = matchingCrossings;
+      this.trackDetailDataResults = adjustedResults;
+      this.triggerPointsInvolved = triggerPointsInvolved;
 
-      // Assign one color per unique track — racers from the same track share a color
-      const uniqueTrackIds = [...new Set(this.matchingCrossings.map(mc => mc.gpsTrack.id))];
+      // Assign one color per unique track
+      const uniqueTrackIds = [...new Set(matchingCrossings.map(mc => mc.gpsTrack.id))];
       const trackColorPalette = generateColors(uniqueTrackIds.length);
       const trackIdToColor = new Map(uniqueTrackIds.map((id, i) => [id, trackColorPalette[i]]));
-      this.simulationColors = this.matchingCrossings.map(mc => trackIdToColor.get(mc.gpsTrack.id));
+      this.simulationColors = matchingCrossings.map(mc => trackIdToColor.get(mc.gpsTrack.id));
 
-      this.racerTrails = this.trackDetailDataResults.map(() => []);
+      this.racerTrails = adjustedResults.map(() => []);
 
-      // find the map bounds
-      let cLatMin = Number.MAX_VALUE;
-      let cLatMax = -Number.MAX_VALUE;
-      let cLongMin = Number.MAX_VALUE;
-      let cLongMax = -Number.MAX_VALUE;
-
-      for (let track of this.trackDetailDataResults) {
+      // Compute map bounds
+      let cLatMin = Number.MAX_VALUE, cLatMax = -Number.MAX_VALUE;
+      let cLongMin = Number.MAX_VALUE, cLongMax = -Number.MAX_VALUE;
+      for (let track of adjustedResults) {
         for (let point of track) {
-          let lng = point.pointLongLat.coordinates[0];
-          let lat = point.pointLongLat.coordinates[1];
+          const lng = point.pointLongLat.coordinates[0];
+          const lat = point.pointLongLat.coordinates[1];
           if (lat < cLatMin) cLatMin = lat;
           if (lat > cLatMax) cLatMax = lat;
           if (lng > cLongMax) cLongMax = lng;
           if (lng < cLongMin) cLongMin = lng;
         }
       }
+      const dLat = (cLatMax - cLatMin) * 0.3;
+      const dLong = (cLongMax - cLongMin) * 0.3;
+      this.mapBounds = [[cLongMin - dLong, cLatMin - dLat], [cLongMax + dLong, cLatMax + dLat]];
 
-      let dLat = (cLatMax - cLatMin) * 0.3;
-      let dLong = (cLongMax - cLongMin) * 0.3;
-      cLatMin -= dLat;
-      cLatMax += dLat;
-      cLongMin -= dLong;
-      cLongMax += dLong;
-
-      // MapLibre bounds: [[swLng, swLat], [neLng, neLat]]
-      this.mapBounds = [[cLongMin, cLatMin], [cLongMax, cLatMax]];
-
-      // Build initial GeoJSON with trigger points and race markers
+      // Show racers at their start positions
       this.buildRaceGeoJson(triggerPointsInvolved);
 
-      this.animationTimerId = setInterval(this.animateRace, 33);
+      this.showMinimap = true;
+      this.$nextTick(() => {
+        if (this.$refs.minimapRef?.invalidateMapSize) {
+          this.$refs.minimapRef.invalidateMapSize();
+        }
+      });
+    },
+
+    withVirtualEndpoints(track, crossingPair) {
+      if (!Array.isArray(track) || track.length === 0 || !Array.isArray(crossingPair) || crossingPair.length < 2) {
+        return track;
+      }
+
+      const start = crossingPair[0]?.gpsTrackDataPoint;
+      const end = crossingPair[1]?.gpsTrackDataPoint;
+      if (!start || !end) return track;
+
+      const startDuration = start?.durationSinceStart;
+      const endDuration = end?.durationSinceStart;
+      if (typeof startDuration !== 'number' || typeof endDuration !== 'number') {
+        return track;
+      }
+
+      const inner = track.filter(point => {
+        const pointDuration = point?.durationSinceStart;
+        if (typeof pointDuration !== 'number') {
+          return true;
+        }
+        return pointDuration > startDuration && pointDuration < endDuration;
+      });
+
+      return [start, ...inner, end];
     },
 
     buildRaceGeoJson(triggerPointsInvolved) {
@@ -439,6 +568,39 @@ export default defineComponent({
       }
     },
 
+    onPlayPause() {
+      if (this.isRunning) {
+        // Pause: record how much real time has elapsed so resume can offset correctly.
+        this.pausedElapsedRealMs = new Date().getTime() - this.simulationStartRealtime;
+        this.stopAnimation();
+        this.isPaused = true;
+      } else if (this.isPaused) {
+        // Resume: shift simulationStartRealtime forward by the pause duration.
+        this.simulationStartRealtime = new Date().getTime() - this.pausedElapsedRealMs;
+        this.isPaused = false;
+        this.animationTimerId = setInterval(this.animateRace, 33);
+      } else {
+        // Fresh start — data already preloaded by preparePreview().
+        if (!this.trackDetailDataResults || this.trackDetailDataResults.length === 0) return;
+        this.racerTrails = this.trackDetailDataResults.map(() => []);
+        this.buildRaceGeoJson(this.triggerPointsInvolved);
+        this.simulationStartRealtime = new Date().getTime();
+        this.animationTimerId = setInterval(this.animateRace, 33);
+      }
+    },
+
+    onReset() {
+      this.stopAnimation();
+      this.isPaused = false;
+      this.pausedElapsedRealMs = 0;
+      this.simulationStartRealtime = -1;
+      // Restore racers to their start positions without re-fetching.
+      if (this.trackDetailDataResults && this.trackDetailDataResults.length > 0) {
+        this.racerTrails = this.trackDetailDataResults.map(() => []);
+        this.buildRaceGeoJson(this.triggerPointsInvolved);
+      }
+    },
+
     stopAnimation() {
       if (this.animationTimerId) {
         clearInterval(this.animationTimerId);
@@ -454,8 +616,19 @@ export default defineComponent({
       return formatDateAndTime(date);
     },
 
-    formatSegmentDuration(seconds) {
-      return formatDuration(seconds * 1000);
+    racerStats(entry) {
+      const crossing = entry.crossing.crossings[1];
+      const stats = [];
+      if (crossing?.timeInSecSinceLastTriggerPoint) {
+        stats.push({ icon: 'bi-stopwatch', text: formatDuration(crossing.timeInSecSinceLastTriggerPoint * 1000) });
+      }
+      if (crossing?.avgSpeedSinceLastTriggerPoint) {
+        stats.push({ icon: 'bi-speedometer', text: formatNumber(crossing.avgSpeedSinceLastTriggerPoint, 1) + ' km/h' });
+      }
+      if (crossing?.distanceInMeterSinceLastTriggerPoint) {
+        stats.push({ icon: 'bi-signpost-split', text: formatDistance(crossing.distanceInMeterSinceLastTriggerPoint) });
+      }
+      return stats;
     },
 
     formatNumber,
@@ -470,9 +643,14 @@ export default defineComponent({
 .virtual-race-container {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  height: 100%;
-  flex-grow: 1;
+  gap: 10px;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+  padding: 0.35rem 0.75rem calc(0.75rem + var(--safe-bottom, 0px));
 }
 
 .p-dialog-maximized .virtual-race-container {
@@ -483,59 +661,165 @@ export default defineComponent({
 .vr-controls {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 6px;
 }
 
 .vr-control-row {
   display: flex;
   align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
+  gap: 8px;
+  flex-wrap: nowrap;
 }
 
 .vr-label {
-  font-size: 0.85rem;
+  font-size: var(--text-sm-size);
   color: var(--text-secondary);
   white-space: nowrap;
-  min-width: 5rem;
+  min-width: 3.5rem;
 }
 
-.vr-segment-select {
-  flex: 1;
+.vr-segment-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   min-width: 0;
 }
 
+.vr-chip-scroll {
+  display: flex;
+  gap: 0.3rem;
+  overflow-x: auto;
+  overflow-y: visible;
+  flex: 1 1 0;
+  min-width: 0;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  padding-bottom: 2px; /* prevent clipping of chip border */
+}
+
+.vr-chip-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.vr-chip {
+  padding: 0.3rem 0.65rem;
+  border-radius: 999px;
+  border: 1px solid var(--border-default);
+  background: var(--surface-glass);
+  color: var(--text-muted);
+  font-size: var(--text-xs-size);
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-family: inherit;
+  white-space: nowrap;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.vr-chip:hover { color: var(--text-secondary); background: var(--surface-hover); }
+
+.vr-chip--active {
+  background: var(--accent-text);
+  color: var(--text-inverse);
+  border-color: var(--accent-text);
+}
+
+.vr-racer-pill {
+  font-size: var(--text-xs-size);
+  font-weight: 600;
+  color: var(--accent-text);
+  background: color-mix(in srgb, var(--accent-text) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent-text) 30%, transparent);
+  border-radius: 999px;
+  padding: 0.2rem 0.55rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
 .vr-speed-slider {
-  flex: 1;
-  min-width: 6rem;
+  flex: 1 1 0;
+  min-width: 4rem;
   max-width: 14rem;
 }
 
-.vr-start-btn {
+.vr-start-btn,
+.vr-reset-btn {
   white-space: nowrap;
+  flex-shrink: 0;
+  width: 2.25rem !important;
+  height: 2.25rem !important;
+  padding: 0 !important;
+  min-width: unset !important;
 }
 
-.vr-est-duration {
-  font-size: 0.78rem;
-  color: var(--text-muted);
+:deep(.vr-start-btn),
+:deep(.vr-reset-btn) {
+  width: 2.25rem;
+  height: 2.25rem;
+  padding: 0;
+  min-width: unset;
+}
+
+.vr-speed-info {
+  font-size: var(--text-sm-size);
+  font-weight: 500;
+  color: var(--text-secondary);
   white-space: nowrap;
-  min-width: 3rem;
-  text-align: center;
+  min-width: 5rem;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
   cursor: default;
+  letter-spacing: 0.01em;
+}
+
+/* ── Map wrapper + overlays ── */
+.vr-map-wrapper {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: min(260px, 38svh);
+}
+
+.vr-map-racer-pill {
+  position: absolute;
+  top: 0.6rem;
+  right: 0.6rem;
+  z-index: 10;
+  font-size: var(--text-xs-size);
+  font-weight: 600;
+  color: var(--accent-text);
+  background: var(--surface-glass-heavy);
+  border: 1px solid color-mix(in srgb, var(--accent-text) 30%, transparent);
+  border-radius: 999px;
+  padding: 0.2rem 0.6rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  backdrop-filter: blur(4px);
+  pointer-events: none;
+}
+
+.vr-map-playback {
+  position: absolute;
+  bottom: 0.75rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  display: flex;
+  gap: 8px;
 }
 
 /* ── Mini map ── */
 .vr-minimap {
-  min-height: min(350px, 50svh);
-  flex-grow: 1;
-  height: 100%;
+  flex: 1 1 auto;
+  min-height: 0;
   width: 100%;
   border-radius: 8px;
   overflow: hidden;
-}
-
-.p-dialog-maximized .vr-minimap {
-  height: 75vh;
 }
 
 /* ── Legend ── */
@@ -546,7 +830,7 @@ export default defineComponent({
 }
 
 .vr-legend-header {
-  font-size: 0.85rem;
+  font-size: var(--text-sm-size);
   font-weight: 600;
   color: var(--text-secondary);
   display: flex;
@@ -555,89 +839,26 @@ export default defineComponent({
 }
 
 .vr-legend-count {
-  background: var(--surface-glass, rgba(255,255,255,0.08));
+  background: var(--surface-glass);
   border-radius: 10px;
   padding: 1px 8px;
-  font-size: 0.75rem;
+  font-size: var(--text-xs-size);
   font-weight: 500;
+}
+
+.vr-legend-hint {
+  margin-left: auto;
+  font-size: var(--text-xs-size);
+  font-weight: 500;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
 .vr-legend-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 8px;
-}
-
-.vr-racer-card {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding: 10px 12px;
-  border-radius: 8px;
-  background: var(--surface-glass, rgba(255,255,255,0.04));
-  border: 1px solid var(--border-medium, rgba(255,255,255,0.08));
-  cursor: pointer;
-  transition: background 0.15s, border-color 0.15s;
-}
-
-.vr-racer-card:hover {
-  background: var(--surface-hover, rgba(255,255,255,0.08));
-  border-color: var(--border-light, rgba(255,255,255,0.16));
-}
-
-.vr-racer-main {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.vr-racer-swatch {
-  display: block;
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  flex-shrink: 0;
-  box-shadow: 0 0 0 2px rgba(255,255,255,0.15);
-}
-
-.vr-racer-info {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-}
-
-.vr-racer-name {
-  font-size: 0.85rem;
-  font-weight: 500;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.vr-racer-date {
-  font-size: 0.75rem;
-  color: var(--text-secondary);
-}
-
-.vr-racer-stats {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  padding-left: 24px;
-}
-
-.vr-stat {
-  font-size: 0.75rem;
-  color: var(--text-secondary);
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  white-space: nowrap;
-}
-
-.vr-stat i {
-  font-size: 0.7rem;
-  opacity: 0.7;
 }
 
 @media (pointer: coarse) {

@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.10.xsd">
+
+    <changeSet id="20260426_5_data_freshness" author="patrick.heusser">
+
+        <createTable tableName="data_freshness">
+            <column name="domain_key" type="varchar(64)">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="revision" type="bigint" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="changed_at" type="timestamp" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="description" type="varchar(255)"/>
+        </createTable>
+
+        <insert tableName="data_freshness">
+            <column name="domain_key">tracks</column>
+            <column name="revision" valueNumeric="0"/>
+            <column name="description">Track metadata and derived track attributes</column>
+        </insert>
+        <insert tableName="data_freshness">
+            <column name="domain_key">track_geometry</column>
+            <column name="revision" valueNumeric="0"/>
+            <column name="description">Rendered and analytical track geometry variants</column>
+        </insert>
+        <insert tableName="data_freshness">
+            <column name="domain_key">media</column>
+            <column name="revision" valueNumeric="0"/>
+            <column name="description">Media files and their location metadata</column>
+        </insert>
+        <insert tableName="data_freshness">
+            <column name="domain_key">filters</column>
+            <column name="revision" valueNumeric="0"/>
+            <column name="description">Saved filter configuration</column>
+        </insert>
+        <insert tableName="data_freshness">
+            <column name="domain_key">config</column>
+            <column name="revision" valueNumeric="0"/>
+            <column name="description">Application and client configuration</column>
+        </insert>
+        <insert tableName="data_freshness">
+            <column name="domain_key">index</column>
+            <column name="revision" valueNumeric="0"/>
+            <column name="description">Indexed source files</column>
+        </insert>
+
+        <sql splitStatements="false"><![CDATA[
+CREATE OR REPLACE FUNCTION bump_data_freshness(p_domain_key text)
+RETURNS void AS $$
+BEGIN
+  INSERT INTO data_freshness(domain_key, revision, changed_at)
+  VALUES (p_domain_key, 1, CURRENT_TIMESTAMP)
+  ON CONFLICT (domain_key)
+  DO UPDATE SET
+    revision = data_freshness.revision + 1,
+    changed_at = CURRENT_TIMESTAMP;
+END;
+$$ LANGUAGE plpgsql;
+        ]]></sql>
+
+        <sql splitStatements="false"><![CDATA[
+CREATE OR REPLACE FUNCTION bump_data_freshness_trigger()
+RETURNS TRIGGER AS $$
+BEGIN
+  PERFORM bump_data_freshness(TG_ARGV[0]);
+  IF TG_OP = 'DELETE' THEN
+    RETURN OLD;
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+        ]]></sql>
+
+        <sql>
+            CREATE TRIGGER gps_track_data_freshness
+            AFTER INSERT OR UPDATE OR DELETE ON gps_track
+            FOR EACH ROW EXECUTE FUNCTION bump_data_freshness_trigger('tracks')
+        </sql>
+        <sql>
+            CREATE TRIGGER gps_track_data_data_freshness
+            AFTER INSERT OR UPDATE OR DELETE ON gps_track_data
+            FOR EACH ROW EXECUTE FUNCTION bump_data_freshness_trigger('track_geometry')
+        </sql>
+        <sql>
+            CREATE TRIGGER media_file_data_freshness
+            AFTER INSERT OR UPDATE OR DELETE ON media_file
+            FOR EACH ROW EXECUTE FUNCTION bump_data_freshness_trigger('media')
+        </sql>
+        <sql>
+            CREATE TRIGGER filter_config_data_freshness
+            AFTER INSERT OR UPDATE OR DELETE ON filter_config
+            FOR EACH ROW EXECUTE FUNCTION bump_data_freshness_trigger('filters')
+        </sql>
+        <sql>
+            CREATE TRIGGER config_data_freshness
+            AFTER INSERT OR UPDATE OR DELETE ON config
+            FOR EACH ROW EXECUTE FUNCTION bump_data_freshness_trigger('config')
+        </sql>
+        <sql>
+            CREATE TRIGGER indexed_file_data_freshness
+            AFTER INSERT OR UPDATE OR DELETE ON indexed_file
+            FOR EACH ROW EXECUTE FUNCTION bump_data_freshness_trigger('index')
+        </sql>
+
+    </changeSet>
+
+</databaseChangeLog>

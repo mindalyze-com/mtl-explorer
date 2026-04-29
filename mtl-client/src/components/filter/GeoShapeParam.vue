@@ -106,7 +106,7 @@ function formatRadius(meters: number): string {
 }
 
 .geo-param__summary {
-  font-size: 0.82rem;
+  font-size: var(--text-sm-size);
   color: var(--text-secondary);
   flex: 1 1 auto;
   min-width: 0;
@@ -121,23 +121,23 @@ function formatRadius(meters: number): string {
   gap: 0.3rem;
   padding: 0.3rem 0.6rem;
   border-radius: 6px;
-  border: 1px solid var(--border-medium, #94a3b8);
-  background: var(--surface-ground, #fff);
+  border: 1px solid var(--border-medium);
+  background: var(--surface-glass-heavy);
   color: var(--text-primary);
-  font-size: 0.82rem;
+  font-size: var(--text-sm-size);
   cursor: pointer;
   white-space: nowrap;
   transition: background 0.15s, border-color 0.15s;
 }
 
 .geo-param__btn:hover {
-  background: var(--surface-hover, #f1f5f9);
-  border-color: var(--accent, #6366f1);
+  background: var(--surface-hover);
+  border-color: var(--accent);
 }
 
 .geo-param__btn--draw {
-  color: var(--accent, #6366f1);
-  border-color: var(--accent, #6366f1);
+  color: var(--accent-text);
+  border-color: var(--accent);
 }
 
 .geo-param__btn--clear {
@@ -148,7 +148,7 @@ function formatRadius(meters: number): string {
 }
 
 .geo-param__btn--clear:hover {
-  color: var(--danger, #ef4444);
-  background: rgba(239, 68, 68, 0.08);
+  color: var(--error);
+  background: var(--error-bg);
 }
 </style>

@@ -93,7 +93,7 @@ export default {
 }
 
 .attrib-entry {
-  font-size: 0.82rem;
+  font-size: var(--text-sm-size);
   color: var(--text-secondary);
   text-decoration: none;
   display: flex;
@@ -101,15 +101,14 @@ export default {
   gap: 0.6rem;
   padding: 0.85rem 1rem;
   border: 1px solid var(--border-default);
-  border-radius: 1rem;
+  border-radius: 0.625rem;
   background: var(--surface-elevated);
-  transition: color 0.15s, border-color 0.15s, transform 0.15s;
+  transition: color 0.15s, border-color 0.15s;
 }
 
 .attrib-entry:hover {
   color: var(--accent-text);
   border-color: var(--border-hover);
-  transform: translateY(-1px);
 }
 
 .attrib-entry-name {
@@ -118,13 +117,13 @@ export default {
 }
 
 .attrib-entry-desc {
-  font-size: 0.72rem;
+  font-size: var(--text-xs-size);
   color: var(--text-faint);
   flex: 1;
 }
 
 .attrib-entry .pi {
-  font-size: 0.6rem;
+  font-size: var(--text-2xs-size);
   color: var(--text-faint);
   flex-shrink: 0;
 }

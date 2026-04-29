@@ -32,7 +32,7 @@ services:
       -c synchronous_commit=off
 
   app:
-    image: wauwau0977/mytraillog:1.200
+    image: wauwau0977/mytraillog:1.212
     depends_on:
       - db
     environment:
@@ -41,7 +41,7 @@ services:
       POSTGRES_PASSWORD: MtlSuper123
       # Demo mode — auto-extracts Porto taxi GPX tracks and generates geo-tagged photos on first startup
       DEMO_MODE: "Y"
-      DEMO_TARGET_TRACK_COUNT: "10042" 
+      DEMO_TARGET_TRACK_COUNT: "10042"
       DEMO_PHOTO_COUNT: "300"
     ports:
       - "18084:8080"

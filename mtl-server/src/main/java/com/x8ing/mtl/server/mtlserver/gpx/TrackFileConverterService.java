@@ -29,7 +29,7 @@ public class TrackFileConverterService {
      * @param inputFile the path to the source file (must exist on disk)
      * @param format    the {@link SupportedTrackFormat} describing the input format
      * @return the GPX XML string (BOM-stripped, stylesheet-stripped, ready for jpx parsing)
-     * @throws IOException          if GPSBabel cannot be started or the process fails
+     * @throws IOException           if GPSBabel cannot be started or the process fails
      * @throws IllegalStateException if GPSBabel exits with a non-zero code
      */
     public String convertToGpx(Path inputFile, SupportedTrackFormat format) throws IOException {

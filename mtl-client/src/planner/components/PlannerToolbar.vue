@@ -1,167 +1,189 @@
 <template>
   <div class="planner-toolbar">
-    <select
-      class="planner-toolbar__select"
-      v-model="selectedProfile"
-      :disabled="!profiles.length"
-      aria-label="Routing profile"
-      @change="emitProfileChanged"
-    >
-      <option v-for="p in profiles" :key="p" :value="p">{{ p }}</option>
-    </select>
-
-    <div class="planner-toolbar__group" role="group" aria-label="Edit history">
+    <!-- Custom profile dropdown with per-category icons -->
+    <div class="planner-toolbar__dropdown" ref="dropdownEl">
       <button
         type="button"
-        class="planner-toolbar__btn planner-toolbar__btn--primary planner-toolbar__btn--compact-primary"
-        :disabled="!canUndo"
-        @click="$emit('undo')"
-        title="Undo"
-        aria-label="Undo"
+        class="planner-toolbar__profile-btn"
+        :disabled="!profiles.length"
+        :aria-expanded="dropdownOpen"
+        aria-haspopup="listbox"
+        @click="dropdownOpen = !dropdownOpen"
       >
-        <i class="bi bi-arrow-counterclockwise" />
+        <i :class="[profileIcon, 'planner-toolbar__profile-icon']" />
+        <span class="planner-toolbar__profile-label">{{ profileLabelFor(selectedProfile) }}</span>
+        <i class="bi bi-chevron-down planner-toolbar__chevron" />
       </button>
-      <button
-        type="button"
-        class="planner-toolbar__btn"
-        :disabled="!canRedo"
-        @click="$emit('redo')"
-        title="Redo"
-        aria-label="Redo"
-      >
-        <i class="bi bi-arrow-clockwise" />
-      </button>
-      <button
-        type="button"
-        class="planner-toolbar__btn planner-toolbar__btn--primary planner-toolbar__btn--compact-primary"
-        :disabled="!hasWaypoints"
-        @click="$emit('clear')"
-        title="Clear route"
-        aria-label="Clear route"
-      >
-        <i class="bi bi-trash" />
-      </button>
+      <ul v-if="dropdownOpen" class="planner-toolbar__dropdown-list" role="listbox">
+        <li
+          v-for="p in profiles"
+          :key="p"
+          class="planner-toolbar__dropdown-item"
+          :class="{ 'is-active': p === selectedProfile }"
+          role="option"
+          :aria-selected="p === selectedProfile"
+          @click="selectProfile(p)"
+        >
+          <i :class="[profileIconFor(p)]" />
+          <span>{{ profileLabelFor(p) }}</span>
+        </li>
+      </ul>
     </div>
-
-    <button
-      type="button"
-      class="planner-toolbar__btn planner-toolbar__btn--primary planner-toolbar__save"
-      :disabled="!hasRoute"
-      @click="$emit('save')"
-      title="Save plan"
-    >
-      <i class="bi bi-save" /> <span>Save</span>
-    </button>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue';
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 
 const props = defineProps<{
   profiles: string[];
   profile: string;
-  canUndo: boolean;
-  canRedo: boolean;
-  hasWaypoints: boolean;
-  hasRoute: boolean;
 }>();
 
 const emit = defineEmits<{
   (e: 'profile-changed', p: string): void;
-  (e: 'undo'): void;
-  (e: 'redo'): void;
-  (e: 'clear'): void;
-  (e: 'save'): void;
 }>();
 
 const selectedProfile = ref(props.profile);
-watch(() => props.profile, (p) => { selectedProfile.value = p; });
+const dropdownOpen = ref(false);
+const dropdownEl = ref<HTMLElement | null>(null);
 
-function emitProfileChanged() {
-  emit('profile-changed', selectedProfile.value);
+watch(
+  () => props.profile,
+  (p) => { selectedProfile.value = p; }
+);
+
+const PROFILE_ICONS: Record<string, string> = {
+  trekking: 'bi bi-signpost-split',
+  fastbike: 'bi bi-bicycle',
+  'hiking-mountain': 'bi bi-compass',
+  'car-eco': 'bi bi-car-front',
+};
+
+const PROFILE_LABELS: Record<string, string> = {
+  trekking: 'Hiking',
+  fastbike: 'Road Bike',
+  'hiking-mountain': 'Mountain Hiking',
+  'car-eco': 'Car',
+};
+
+function profileLabelFor(p: string): string {
+  return PROFILE_LABELS[p] ?? p;
 }
+
+function profileIconFor(p: string): string {
+  return PROFILE_ICONS[p] ?? 'bi bi-signpost-split';
+}
+
+const profileIcon = computed(() => profileIconFor(selectedProfile.value));
+
+function selectProfile(p: string) {
+  selectedProfile.value = p;
+  dropdownOpen.value = false;
+  emit('profile-changed', p);
+}
+
+function onDocClick(e: MouseEvent) {
+  if (dropdownEl.value && !dropdownEl.value.contains(e.target as Node)) {
+    dropdownOpen.value = false;
+  }
+}
+
+onMounted(() => document.addEventListener('click', onDocClick, true));
+onUnmounted(() => document.removeEventListener('click', onDocClick, true));
 </script>
 
 <style scoped>
 .planner-toolbar {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  align-items: center;
-  padding: 0.65rem 0.7rem;
-  background: linear-gradient(180deg, var(--surface-glass-heavy), var(--surface-glass));
-  backdrop-filter: var(--blur-standard);
-  -webkit-backdrop-filter: var(--blur-standard);
-  border-radius: 14px;
-  box-shadow: var(--shadow-sm);
-  border: 1px solid var(--border-medium);
-}
-.planner-toolbar__select {
-  flex: 1 1 8rem;
-  min-width: 6rem;
-  padding: 0.45rem 0.6rem;
-  border: 1px solid var(--border-medium);
-  background: color-mix(in srgb, var(--surface-glass-heavy) 84%, transparent);
-  color: var(--text-primary);
-  border-radius: 10px;
-  font-size: 0.9rem;
-  min-height: 38px;
-  text-transform: capitalize;
-}
-.planner-toolbar__group {
-  display: inline-flex;
-  gap: 0.25rem;
-}
-.planner-toolbar__btn {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  gap: 0.35rem;
-  min-width: 38px;
-  min-height: 38px;
-  padding: 0 0.65rem;
-  border: 1px solid var(--border-medium);
-  background: color-mix(in srgb, var(--surface-glass-heavy) 84%, transparent);
-  border-radius: 10px;
-  cursor: pointer;
-  font-size: 0.95rem;
-  color: var(--text-secondary);
-  font-weight: 600;
-  transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
 }
-.planner-toolbar__btn:hover:not(:disabled) {
-  background: var(--surface-hover);
-  border-color: var(--border-hover);
-  color: var(--text-primary);
-}
-.planner-toolbar__btn:disabled { opacity: 0.45; cursor: not-allowed; }
-.planner-toolbar__btn--danger:not(:disabled):hover {
-  color: var(--error);
-  border-color: color-mix(in srgb, var(--error) 35%, var(--border-medium));
-  background: var(--error-bg);
-}
-.planner-toolbar__btn--primary {
-  background: var(--accent);
-  color: var(--text-inverse);
-  border-color: var(--accent);
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  box-shadow: 0 10px 24px color-mix(in srgb, var(--accent) 24%, transparent);
-}
-.planner-toolbar__btn--primary:hover:not(:disabled) {
-  background: var(--accent-hover);
-  border-color: var(--accent-hover);
-  color: var(--text-inverse);
-}
-.planner-toolbar__btn--compact-primary {
-  box-shadow: 0 6px 16px color-mix(in srgb, var(--accent) 18%, transparent);
-}
-.planner-toolbar__save { margin-left: auto; padding: 0 0.9rem; }
 
-@media (max-width: 480px) {
-  .planner-toolbar { gap: 0.4rem; }
-  .planner-toolbar__select { flex-basis: 100%; order: -1; }
-  .planner-toolbar__save { margin-left: auto; }
+/* ── Profile dropdown ─────────────────────────────────────────── */
+.planner-toolbar__dropdown {
+  position: relative;
+  flex-shrink: 0;
 }
+.planner-toolbar__profile-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  height: 2.4rem;
+  padding: 0 0.75rem;
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  background: var(--accent-bg);
+  cursor: pointer;
+  font-size: var(--text-sm-size);
+  font-weight: 600;
+  color: var(--accent-text);
+  text-transform: capitalize;
+  white-space: nowrap;
+  transition: background 0.12s, border-color 0.12s;
+}
+.planner-toolbar__profile-btn:hover {
+  background: var(--accent-subtle);
+}
+.planner-toolbar__profile-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.planner-toolbar__profile-icon {
+  color: var(--accent-text);
+  font-size: var(--text-base-size);
+  flex-shrink: 0;
+}
+.planner-toolbar__profile-label {
+  flex: 1 1 auto;
+}
+.planner-toolbar__chevron {
+  font-size: 10px;
+  color: var(--accent-muted);
+  flex-shrink: 0;
+}
+.planner-toolbar__dropdown-list {
+  position: absolute;
+  top: calc(100% + 5px);
+  left: 0;
+  z-index: 60;
+  min-width: 100%;
+  list-style: none;
+  margin: 0;
+  padding: 0.3rem;
+  border: 1px solid var(--border-default);
+  border-radius: 14px;
+  background: var(--surface-glass-heavy);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+}
+.planner-toolbar__dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.7rem;
+  border-radius: 10px;
+  font-size: var(--text-sm-size);
+  font-weight: 500;
+  color: var(--text-secondary);
+  text-transform: capitalize;
+  cursor: pointer;
+  transition: background 0.1s;
+  white-space: nowrap;
+}
+.planner-toolbar__dropdown-item:hover {
+  background: var(--accent-bg);
+  color: var(--accent-text);
+}
+.planner-toolbar__dropdown-item.is-active {
+  color: var(--accent-text);
+  font-weight: 700;
+  background: var(--accent-subtle);
+}
+.planner-toolbar__dropdown-item i {
+  font-size: var(--text-base-size);
+  flex-shrink: 0;
+  width: 1.1rem;
+  text-align: center;
+}
+
+/* ── end ─────────────────────────────────────────────────────── */
 </style>

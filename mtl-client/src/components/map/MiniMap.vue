@@ -12,7 +12,11 @@ const props = defineProps({
   tracksGeoJson: { type: Object, default: null },
   /** Map bounds as [[swLng, swLat], [neLng, neLat]]. */
   mapBounds: { type: Array, default: null },
+  /** trackIndex of the currently highlighted racer (from legend hover or map hover). */
+  highlightedTrackIndex: { type: Number, default: null },
 });
+
+const emit = defineEmits(['hover-racer', 'leave-racer']);
 
 const measureEvent = inject(EVENT_MEASURE_BETWEEN_POINTS_DIALOG_MAXIMIZED_EVENT, null);
 
@@ -21,6 +25,7 @@ const mapContainer = useTemplateRef('mapContainer');
 // Non-reactive runtime state — kept as plain refs of-instance via closure.
 let map; // maplibregl.Map
 let popup; // maplibregl.Popup
+let _initStarted = false; // guard against concurrent async initMap() calls
 
 function updateTracksSource() {
   if (!map || !props.tracksGeoJson) return;
@@ -93,6 +98,7 @@ function updateTracksSource() {
       html = `<strong>${featProps.name || featProps.label || 'Trigger'}</strong>`;
     } else if (featProps.type === 'racer') {
       html = `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${featProps.color};margin-right:4px"></span>${featProps.trackName || 'Track ' + featProps.trackIndex}`;
+      emit('hover-racer', featProps.trackIndex);
     }
     if (html) {
       popup.setLngLat(coords).setHTML(html).addTo(map);
@@ -102,11 +108,44 @@ function updateTracksSource() {
   map.on('mouseleave', 'minimap-points-layer', () => {
     map.getCanvas().style.cursor = '';
     popup.remove();
+    emit('leave-racer');
   });
 }
 
+function updateHighlight(idx) {
+  if (!map) return;
+  if (!map.getLayer('minimap-points-layer')) return;
+  if (idx == null) {
+    map.setPaintProperty('minimap-points-layer', 'circle-radius', [
+      'case', ['==', ['get', 'type'], 'trigger'], 12, 8
+    ]);
+    map.setPaintProperty('minimap-points-layer', 'circle-opacity', 0.7);
+    map.setPaintProperty('minimap-points-layer', 'circle-stroke-width', 1);
+  } else {
+    map.setPaintProperty('minimap-points-layer', 'circle-radius', [
+      'case',
+      ['==', ['get', 'type'], 'trigger'], 12,
+      ['==', ['get', 'trackIndex'], idx], 11,
+      8,
+    ]);
+    map.setPaintProperty('minimap-points-layer', 'circle-opacity', [
+      'case',
+      ['==', ['get', 'type'], 'trigger'], 0.7,
+      ['==', ['get', 'trackIndex'], idx], 1.0,
+      0.4,
+    ]);
+    map.setPaintProperty('minimap-points-layer', 'circle-stroke-width', [
+      'case',
+      ['==', ['get', 'type'], 'trigger'], 1,
+      ['==', ['get', 'trackIndex'], idx], 2.5,
+      1,
+    ]);
+  }
+}
+
 async function initMap() {
-  if (!mapContainer.value) return;
+  if (!mapContainer.value || _initStarted) return;
+  _initStarted = true;
 
   if (map) {
     map.remove();
@@ -172,6 +211,7 @@ onBeforeUnmount(() => {
     map.remove();
     map = undefined;
   }
+  _initStarted = false;
 });
 
 watch(() => measureEvent?.value, () => {
@@ -188,6 +228,10 @@ watch(() => props.tracksGeoJson, (vNew) => {
   if (map && vNew) {
     updateTracksSource();
   }
+});
+
+watch(() => props.highlightedTrackIndex, (idx) => {
+  updateHighlight(idx);
 });
 
 // VirtualRace.vue calls $refs.minimapRef.invalidateMapSize() externally.
@@ -217,9 +261,9 @@ defineExpose({ invalidateMapSize });
 
 .map {
   flex: 1;
-  min-height: 100%;
-  height: 120px;
+  height: 100%;
   width: 100%;
+  --nav-sheet-h: 0px;
 }
 
 .animation-info {
