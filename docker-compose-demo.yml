@@ -1,5 +1,3 @@
-version: "3.9"
-
 services:
   db:
     image: postgis/postgis:18-3.6
@@ -32,7 +30,7 @@ services:
       -c synchronous_commit=off
 
   app:
-    image: wauwau0977/mytraillog:1.212
+    image: wauwau0977/mytraillog:beta
     depends_on:
       - db
     environment:
@@ -61,7 +59,7 @@ services:
       # No application.yml mount — demo credentials (demo/mtl) are baked into application-demo.yml
 
   map-server:
-    image: wauwau0977/mytraillog-maps:1.31
+    image: wauwau0977/mytraillog-maps:beta
     ports:
       - "18083:8081"
     expose:
@@ -74,7 +72,7 @@ services:
     restart: unless-stopped
 
   brouter:
-    image: wauwau0977/mytraillog-brouter:1.0
+    image: wauwau0977/mytraillog-brouter:beta
     expose:
       - 17777
       - 17778

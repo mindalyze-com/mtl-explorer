@@ -17,7 +17,7 @@
 
 ## What it is
 
-MyTrailLog is an open source GPS tracker / trail log web app. You import
+MTL Explorer is an open source GPS tracker / trail log web app. You import
 tracks from Garmin / GPX / FIT, explore them on an offline-capable map,
 analyze stops, energy, statistics, plan new routes with BRouter, and keep
 everything on hardware you control.
@@ -35,25 +35,48 @@ It is split into:
 
 ## Quick start (self-hosted, home use)
 
-For a real home install with your own GPX and photo folders, follow
-[`HOME_INSTALL.md`](HOME_INSTALL.md).
+Download the home compose file and start the stack.
 
-To try the stack with the demo dataset:
+macOS / Linux / WSL / Git Bash:
 
 ```bash
-git clone https://github.com/mindalyze-com/mtl-explorer.git
+mkdir mtl-explorer
 cd mtl-explorer
-docker compose -f docker-compose-demo.yml up -d
-# open http://localhost:18084/mtl/
+wget https://raw.githubusercontent.com/mindalyze-com/mtl-explorer/main/docker-compose.yml
+docker compose up -d
+# open http://localhost:18080/mtl/
 ```
 
-The demo compose file (`docker-compose-demo.yml`) ships a fully populated
-demo dataset (Porto taxi tracks) so you can explore the UI without
-importing anything first.
+Windows PowerShell:
+
+```powershell
+mkdir mtl-explorer
+cd mtl-explorer
+Invoke-WebRequest -Uri "https://raw.githubusercontent.com/mindalyze-com/mtl-explorer/main/docker-compose.yml" -OutFile "docker-compose.yml"
+docker compose up -d
+# open http://localhost:18080/mtl/
+```
+
+Docker Compose creates the local `./data/` folders on first start. Drop GPX
+files into `./data/gpx/` and geotagged photos or videos into `./data/media/`.
+The default login is `mtl` / `change-me`; change it before exposing the
+instance outside your machine or home network.
+
+The compose file uses the `latest` MTL Explorer images, which follow the
+currently published stable release. To update later:
+
+```bash
+docker compose pull
+docker compose up -d
+```
+
+For existing GPX/photo folders, mount changes, and route planner details,
+see [`HOME_INSTALL.md`](HOME_INSTALL.md).
+
 
 ## License
 
-MyTrailLog is **dual-licensed** — free for personal/home use (AGPL), commercial license available for SaaS/proprietary use.
+MTL Explorer is **dual-licensed** — free for personal/home use (AGPL), commercial license available for SaaS/proprietary use.
 
 <details>
 <summary>License details</summary>
@@ -67,7 +90,7 @@ MyTrailLog is **dual-licensed** — free for personal/home use (AGPL), commercia
 
 This means:
 
-- **You can use MyTrailLog at home, for free, forever.**
+- **You can use MTL Explorer at home, for free, forever.**
 - **You cannot take this code, close it off, and resell it without giving
   back.** Any modifications must either be published under AGPL *or* you
   must obtain a commercial license.
@@ -80,8 +103,8 @@ See also:
 - [`NOTICE`](NOTICE) — copyright notices.
 - [`COMMERCIAL-LICENSE.md`](COMMERCIAL-LICENSE.md) — when and how to obtain a
   commercial license.
-- [`TRADEMARK.md`](TRADEMARK.md) — "MyTrailLog" is a trademark; forks must
-  rename.
+- [`TRADEMARK.md`](TRADEMARK.md) — project names and marks are protected;
+  forks must rename.
 - [`THIRD_PARTY_LICENSES.md`](THIRD_PARTY_LICENSES.md) — dependencies &
   bundled assets.
 
@@ -104,7 +127,7 @@ offering the commercial-license option.
 <details>
 <summary>Disclaimer & limitation of liability</summary>
 
-MyTrailLog is provided **"AS IS" without any warranty**, express or implied.
+MTL Explorer is provided **"AS IS" without any warranty**, express or implied.
 **It is not a safety-critical navigation system.** Do not rely on it as the
 sole means of navigation in the backcountry, at sea, in the air, or in any
 situation where inaccuracy could cause injury or loss of life. Always carry
@@ -117,4 +140,4 @@ of liability.
 
 ---
 
-Copyright © 2020-2026 Patrick Heusser and MyTrailLog contributors.
+Copyright © 2020-2026 Patrick Heusser and MTL Explorer contributors.

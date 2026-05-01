@@ -43,12 +43,11 @@ curl http://localhost:17778/status
 
 ## Run as a MyTrailLog sidecar
 
-Defined in the root `docker-compose.yml` behind the `planner` profile so it
-stays off by default.
+Defined in the root `docker-compose.yml` and started with the normal home
+install stack.
 
 ```bash
-# One-off: set MTL_PLANNER_ENABLED=true on the `app` service, then:
-MTL_PLANNER_ENABLED=true docker compose --profile planner up -d
+docker compose up -d
 ```
 
 ## File layout
