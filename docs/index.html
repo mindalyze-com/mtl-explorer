@@ -3,7 +3,21 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MTL Explorer | Private GPS Archive</title>
+  <title>MTL Explorer | Self-Hosted GPS Track Map</title>
+  <meta name="description" content="MTL Explorer is a self-hosted, map-centric GPS archive for loading all your GPX, FIT, and Garmin tracks on one private map with filters, statistics, route planning, and offline-friendly local storage.">
+  <meta name="keywords" content="MTL Explorer, GPS track map, self-hosted GPS archive, GPX viewer, FIT file viewer, Garmin tracks, private GPS data, route planning, offline maps, open source GPS tool">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://mindalyze-com.github.io/mtl-explorer/">
+  <meta property="og:site_name" content="MTL Explorer">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://mindalyze-com.github.io/mtl-explorer/">
+  <meta property="og:title" content="MTL Explorer | Self-Hosted GPS Track Map">
+  <meta property="og:description" content="A self-hosted, map-centric GPS tool that can show your whole track history on one private map, with activity coloring, filters, statistics, and route planning.">
+  <meta property="og:image" content="https://mindalyze-com.github.io/mtl-explorer/assets/feature-showcase/large/map-filter-by-activity.webp">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="MTL Explorer | Self-Hosted GPS Track Map">
+  <meta name="twitter:description" content="Self-host your GPS archive and explore all tracks on one map with filters, activity coloring, statistics, and route planning.">
+  <meta name="twitter:image" content="https://mindalyze-com.github.io/mtl-explorer/assets/feature-showcase/large/map-filter-by-activity.webp">
   <link rel="icon" href="favicon.ico" sizes="any">
   <link rel="icon" href="favicon-16x16.png" type="image/png" sizes="16x16">
   <link rel="icon" href="favicon-32x32.png" type="image/png" sizes="32x32">
@@ -20,6 +34,19 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Sora:wght@500;600;700&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/lucide@latest/dist/umd/lucide.min.js"></script>
+  <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "MTL Explorer",
+      "applicationCategory": "TravelApplication",
+      "operatingSystem": "Self-hosted Docker",
+      "url": "https://mindalyze-com.github.io/mtl-explorer/",
+      "codeRepository": "https://github.com/mindalyze-com/mtl-explorer",
+      "image": "https://mindalyze-com.github.io/mtl-explorer/assets/feature-showcase/large/map-filter-by-activity.webp",
+      "description": "MTL Explorer is an open-source, self-hosted GPS track archive focused on maps. It can display all imported GPX, FIT, and Garmin tracks on one private map with filtering, activity coloring, statistics, photos, and route planning."
+    }
+  </script>
   <style>
     :root {
       --bg-top: #fbfcfb;
@@ -44,10 +71,10 @@
       --shadow-soft: 0 16px 38px rgba(32, 62, 82, 0.1);
       --content: min(1180px, calc(100vw - 40px));
       --stage-width: min(1264px, calc(100vw - 28px));
+      --tour-media-max: 35.25rem;
       --topbar-top: 0px;
       --topbar-space: 5.4rem;
       --mobile-gutter: clamp(16px, 5vw, 22px);
-      --screenshot-edge-crop: 1.035;
     }
 
     * {
@@ -197,6 +224,19 @@
     .icon {
       width: 1.25rem;
       height: 1.25rem;
+    }
+
+    .github-link {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.42rem;
+    }
+
+    .github-link .icon {
+      width: 1rem;
+      height: 1rem;
+      flex: 0 0 auto;
     }
 
     .brand strong {
@@ -411,11 +451,9 @@
     .screenshot-button img {
       width: 100%;
       height: 100%;
-      object-fit: cover;
-    }
-
-    .screenshot-button:not(.phone-shot) img {
-      transform: scale(var(--screenshot-edge-crop));
+      object-fit: contain;
+      object-position: center;
+      background: #ffffff;
     }
 
     .screenshot-label {
@@ -587,7 +625,7 @@
 
     .feature-tour {
       display: grid;
-      grid-template-columns: minmax(0, 1.12fr) minmax(320px, 0.88fr);
+      grid-template-columns: minmax(0, 0.96fr) minmax(360px, 1.04fr);
       gap: clamp(1.2rem, 3.7vw, 2.35rem);
       align-items: center;
       padding-top: clamp(1.1rem, 3vw, 1.8rem);
@@ -600,6 +638,7 @@
 
     .feature-tour:nth-child(even) .tour-media {
       order: 2;
+      justify-self: end;
     }
 
     .tour-media,
@@ -610,11 +649,18 @@
     .tour-media {
       display: grid;
       gap: 0.75rem;
+      width: 100%;
+      max-width: var(--tour-media-max);
+      justify-self: start;
     }
 
     .tour-main-shot {
-      aspect-ratio: 16 / 10;
       border-radius: 20px;
+    }
+
+    .tour-main-shot img {
+      height: auto;
+      object-fit: contain;
     }
 
     .tour-proof-grid {
@@ -733,6 +779,12 @@
       color: var(--text);
       background: #ffffff;
       box-shadow: var(--shadow);
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .feature-dialog[open] {
+      display: flex;
     }
 
     .feature-dialog::backdrop {
@@ -742,15 +794,15 @@
     }
 
     .feature-dialog img {
-      width: 100%;
+      display: block;
+      width: auto;
+      height: auto;
+      max-width: 100%;
       max-height: calc(100vh - 96px);
       object-fit: contain;
+      border-radius: 16px;
       background: #ffffff;
       cursor: zoom-out;
-    }
-
-    .feature-dialog img.is-cropped {
-      transform: scale(var(--screenshot-edge-crop));
     }
 
     .feature-dialog-bar {
@@ -1006,6 +1058,12 @@
 
       .feature-tour:nth-child(even) .tour-media {
         order: 0;
+        justify-self: stretch;
+      }
+
+      .tour-media {
+        max-width: none;
+        justify-self: stretch;
       }
 
       .feature-tour-phone {
@@ -1187,7 +1245,10 @@
         <a href="#features">Feature tours</a>
         <a href="#how">How it works</a>
         <a href="#trust">Trust</a>
-        <a href="https://github.com/mindalyze-com/mtl-explorer">GitHub</a>
+        <a class="github-link" href="https://github.com/mindalyze-com/mtl-explorer" aria-label="github repository">
+          <svg class="icon github-icon" fill="currentColor" viewBox="3 3 18 18" aria-hidden="true" focusable="false"><path d="M12 3C7.0275 3 3 7.12937 3 12.2276c0 4.0833 2.57625 7.5321 6.15374 8.7548C9.60374 21.0631 9.77249 20.7863 9.77249 20.5441 9.77249 20.3249 9.76125 19.5982 9.76125 18.8254 7.5 19.2522 6.915 18.2602 6.735 17.7412 6.63375 17.4759 6.19499 16.6569 5.8125 16.4378 5.4975 16.2647 5.0475 15.838 5.80124 15.8264 6.51 15.8149 7.01625 16.4954 7.18499 16.7723 7.99499 18.1679 9.28875 17.7758 9.80625 17.5335 9.885 16.9337 10.1212 16.53 10.38 16.2993 8.3775 16.0687 6.285 15.2728 6.285 11.7432c0-1.0035.34875-1.834.92249-2.47994C7.1175 9.03257 6.8025 8.08674 7.2975 6.81794c0 0 .753749999999999-.24223 2.47499.94583.72001-.20762 1.48501-.31143 2.25001-.31143C12.7875 7.45234 13.5525 7.55615 14.2725 7.76377c1.7212-1.19959 2.475-.94583 2.475-.94583C17.2424 8.08674 16.9275 9.03257 16.8375 9.26326 17.4113 9.9092 17.76 10.7281 17.76 11.7432c0 3.5411-2.1037 4.3255-4.1063 4.5561C13.98 16.5877 14.2613 17.1414 14.2613 18.0065 14.2613 19.2407 14.25 20.2326 14.25 20.5441 14.25 20.7863 14.4188 21.0746 14.8688 20.9824 16.6554 20.364 18.2079 19.1866 19.3078 17.6162c1.0999-1.5705 1.6917-3.4551 1.6922-5.3886C21 7.12937 16.9725 3 12 3z"></path></svg>
+          <span>GitHub</span>
+        </a>
       </nav>
       <a class="button" href="https://mtl-demo.mindalyze.com/mtl/">Live demo</a>
     </header>
@@ -1222,7 +1283,7 @@
         <div class="section-head">
           <div>
             <h2 id="features-title">What you can do with MTL Explorer.</h2>
-            <p>Load up thousands of tracks on a single map. Check basic stats, compare segment times, calculate mechanical energy, and plan new routes.</p>
+            <p>Load up thousands of tracks on a single map. Switch the same archive between year views, activity types, photos, custom filters, and planning views.</p>
           </div>
         </div>
 
@@ -1293,7 +1354,10 @@
             <p>Everything is available on GitHub. You can inspect the project and read the setup docs there.</p>
             <div class="section-actions">
               <a class="button" href="https://mtl-demo.mindalyze.com/mtl/">Open live demo</a>
-              <a class="button-secondary" href="https://github.com/mindalyze-com/mtl-explorer">GitHub repository</a>
+              <a class="button-secondary github-link" href="https://github.com/mindalyze-com/mtl-explorer" aria-label="github repository">
+                <svg class="icon github-icon" fill="currentColor" viewBox="3 3 18 18" aria-hidden="true" focusable="false"><path d="M12 3C7.0275 3 3 7.12937 3 12.2276c0 4.0833 2.57625 7.5321 6.15374 8.7548C9.60374 21.0631 9.77249 20.7863 9.77249 20.5441 9.77249 20.3249 9.76125 19.5982 9.76125 18.8254 7.5 19.2522 6.915 18.2602 6.735 17.7412 6.63375 17.4759 6.19499 16.6569 5.8125 16.4378 5.4975 16.2647 5.0475 15.838 5.80124 15.8264 6.51 15.8149 7.01625 16.4954 7.18499 16.7723 7.99499 18.1679 9.28875 17.7758 9.80625 17.5335 9.885 16.9337 10.1212 16.53 10.38 16.2993 8.3775 16.0687 6.285 15.2728 6.285 11.7432c0-1.0035.34875-1.834.92249-2.47994C7.1175 9.03257 6.8025 8.08674 7.2975 6.81794c0 0 .753749999999999-.24223 2.47499.94583.72001-.20762 1.48501-.31143 2.25001-.31143C12.7875 7.45234 13.5525 7.55615 14.2725 7.76377c1.7212-1.19959 2.475-.94583 2.475-.94583C17.2424 8.08674 16.9275 9.03257 16.8375 9.26326 17.4113 9.9092 17.76 10.7281 17.76 11.7432c0 3.5411-2.1037 4.3255-4.1063 4.5561C13.98 16.5877 14.2613 17.1414 14.2613 18.0065 14.2613 19.2407 14.25 20.2326 14.25 20.5441 14.25 20.7863 14.4188 21.0746 14.8688 20.9824 16.6554 20.364 18.2079 19.1866 19.3078 17.6162c1.0999-1.5705 1.6917-3.4551 1.6922-5.3886C21 7.12937 16.9725 3 12 3z"></path></svg>
+                <span>github repository</span>
+              </a>
             </div>
           </aside>
         </div>
@@ -1311,7 +1375,10 @@
       <div class="footer-links">
         <a href="https://mtl-demo.mindalyze.com/mtl/">Live demo</a>
         <a href="#features">Features</a>
-        <a href="https://github.com/mindalyze-com/mtl-explorer">GitHub</a>
+        <a class="github-link" href="https://github.com/mindalyze-com/mtl-explorer" aria-label="github repository">
+          <svg class="icon github-icon" fill="currentColor" viewBox="3 3 18 18" aria-hidden="true" focusable="false"><path d="M12 3C7.0275 3 3 7.12937 3 12.2276c0 4.0833 2.57625 7.5321 6.15374 8.7548C9.60374 21.0631 9.77249 20.7863 9.77249 20.5441 9.77249 20.3249 9.76125 19.5982 9.76125 18.8254 7.5 19.2522 6.915 18.2602 6.735 17.7412 6.63375 17.4759 6.19499 16.6569 5.8125 16.4378 5.4975 16.2647 5.0475 15.838 5.80124 15.8264 6.51 15.8149 7.01625 16.4954 7.18499 16.7723 7.99499 18.1679 9.28875 17.7758 9.80625 17.5335 9.885 16.9337 10.1212 16.53 10.38 16.2993 8.3775 16.0687 6.285 15.2728 6.285 11.7432c0-1.0035.34875-1.834.92249-2.47994C7.1175 9.03257 6.8025 8.08674 7.2975 6.81794c0 0 .753749999999999-.24223 2.47499.94583.72001-.20762 1.48501-.31143 2.25001-.31143C12.7875 7.45234 13.5525 7.55615 14.2725 7.76377c1.7212-1.19959 2.475-.94583 2.475-.94583C17.2424 8.08674 16.9275 9.03257 16.8375 9.26326 17.4113 9.9092 17.76 10.7281 17.76 11.7432c0 3.5411-2.1037 4.3255-4.1063 4.5561C13.98 16.5877 14.2613 17.1414 14.2613 18.0065 14.2613 19.2407 14.25 20.2326 14.25 20.5441 14.25 20.7863 14.4188 21.0746 14.8688 20.9824 16.6554 20.364 18.2079 19.1866 19.3078 17.6162c1.0999-1.5705 1.6917-3.4551 1.6922-5.3886C21 7.12937 16.9725 3 12 3z"></path></svg>
+          <span>github</span>
+        </a>
         <details class="footer-note">
           <summary>Use responsibly</summary>
           <p>MTL Explorer is a tool for reviewing and planning routes. Conditions and map data change. Use your own judgment in the field.</p>
@@ -1336,27 +1403,32 @@
       "segment-replay": { title: "Segment replay", alt: "MTL Explorer segment replay map with multiple attempts" },
       "statistics-overview": { title: "Activity overview", alt: "MTL Explorer statistics overview with totals and activity breakdown" },
       "statistics-trends": { title: "Trend charts", alt: "MTL Explorer statistics trend charts" },
+      "statistics-trends-q1-per-year": { title: "Q1 yearly comparison", alt: "MTL Explorer statistics trends view comparing first-quarter activity, distance, duration, and energy across years" },
       "animated-map": { title: "Animated maps", alt: "MTL Explorer animated map playback controls" },
       "mobile-map": { title: "Mobile map view", alt: "MTL Explorer running on a smartphone with a GPS track map and mobile navigation" },
       "mobile-statistics": { title: "Mobile statistics", alt: "MTL Explorer smartphone statistics screen with trend charts" },
       "mobile-map-angle": { title: "Mobile map angle", alt: "Angled smartphone view of the MTL Explorer track map" },
       "mobile-segments": { title: "Mobile segment analysis", alt: "MTL Explorer smartphone segment analyzer with race results" },
       "mobile-gps-offline": { title: "GPS with offline tracks", alt: "MTL Explorer smartphone map showing current GPS position with historical tracks" },
-      "other-features": { title: "Quick intro", alt: "MTL Explorer quick intro image with a bright mountain landscape", image: VIDEO_PREVIEW_IMAGE }
+      "map-filter-by-activity": { title: "Map by activity type", alt: "MTL Explorer map coloring the same GPS archive by activity type with a legend for cycling, motorized, and on foot tracks" },
+      "map-filter-by-year": { title: "Map by year", alt: "MTL Explorer map coloring the same GPS archive by year with a legend for recent track years" },
+      "map-filter-sql": { title: "SQL filter editor", alt: "MTL Explorer filter panel showing a SQL expression used to group and color tracks on the map" },
+      "overview-track-details-graphs": { title: "Track detail graphs", alt: "MTL Explorer track detail view with speed, distance, and mechanical energy graphs for a selected track" },
+      "planner-load-route": { title: "Saved route export", alt: "MTL Explorer route planner load panel with saved planned routes and GPX export buttons" }
     };
 
     const tourGroups = [
       {
         kicker: "Explore",
         title: "Load your track history on one map.",
-        summary: "Import thousands of GPS tracks. View them all together on a private map you host yourself.",
+        summary: "Import thousands of GPS tracks. View the same private archive as a dense map, a year-by-year history, or an activity breakdown.",
         leadShot: "filters",
-        supportShots: ["map-layers", "photo-map", "animated-map"],
+        supportShots: ["map-filter-by-activity", "overview-track-details-graphs", "photo-map"],
         items: [
           { title: "Massive track display", description: "Render tens of thousands of tracks simultaneously without bogging down your browser.", shot: "filters" },
           { title: "Quick route stats", description: "Click any track to check the date, distance, time, and moving speed.", shot: "filters" },
-          { title: "Related tracks", description: "Pull up previous and next tracks to see where you were right before or after a trip.", shot: "photo-map" },
-          { title: "Custom map coloring", description: "Color-code your routes by activity type, year, or a custom SQL rule.", shot: "animated-map" }
+          { title: "Activity view", description: "Recolor the same map by activity type to separate cycling, motorized, and on-foot tracks.", shot: "map-filter-by-activity" },
+          { title: "Track detail graphs", description: "Open a route to inspect speed, distance, energy, and power graphs.", shot: "overview-track-details-graphs" }
         ]
       },
       {
@@ -1377,11 +1449,11 @@
         title: "Dig into the data.",
         summary: "Analyze your distance, moving time, and energy spent. Compare trends by year, quarter, month, or week.",
         leadShot: "statistics-overview",
-        supportShots: ["statistics-trends", "statistics-overview", "filters"],
+        supportShots: ["statistics-trends", "statistics-trends-q1-per-year", "statistics-overview"],
         items: [
           { title: "Detailed graphs", description: "Check your speed and elevation profile for any given track.", shot: "statistics-overview" },
           { title: "Trend charts", description: "Compare your historical data over specific time periods.", shot: "statistics-trends" },
-          { title: "Mechanical energy", description: "Estimate your energy expenditure using just GPS data. No extra sensors required.", shot: "filters" },
+          { title: "Period comparisons", description: "Compare focused periods like Q1 across multiple years.", shot: "statistics-trends-q1-per-year" },
           { title: "Exploration score", description: "An algorithm calculates exactly how much brand-new territory you covered on a run.", shot: "statistics-overview" }
         ]
       },
@@ -1390,23 +1462,23 @@
         title: "Plan your next route.",
         summary: "Draw new routes point-by-point. Live stats for total distance and ascent update automatically while you draw.",
         leadShot: "route-planning",
-        supportShots: ["route-planning", "map-layers", "other-features"],
+        supportShots: ["route-planning", "planner-load-route", "map-layers"],
         items: [
           { title: "Live route planner", description: "Click on the map to draft a route. It tracks distance and climbing in real time.", shot: "route-planning" },
           { title: "Waymarked trails layer", description: "Turn on the public trails layer to overlay known hiking and cycling routes.", shot: "map-layers" },
-          { title: "GPX export", description: "Save your planned route and export it as a GPX file for your next adventure.", shot: "route-planning" }
+          { title: "GPX export", description: "Save your planned route and export it as a GPX file for your next adventure.", shot: "planner-load-route" }
         ]
       },
       {
         kicker: "Operate",
         title: "Filters and control.",
-        summary: "Filter your archive, manage custom map views, and control your local instance.",
-        leadShot: "other-features",
-        supportShots: ["other-features", "statistics-overview", "filters"],
+        summary: "Use configurable filters to decide which tracks appear, how they are grouped, and which subset feeds the rest of the app.",
+        leadShot: "filters",
+        supportShots: ["map-filter-sql", "map-filter-by-year", "statistics-overview"],
         items: [
-          { title: "SQL-driven filters", description: "Write flexible filters to isolate specific activities. The map updates instantly.", shot: "other-features" },
-          { title: "Custom map coloring", description: "Tune track colors by activity, year, filter, or SQL rule so dense archives stay readable.", shot: "filters" },
-          { title: "Automated cleanup", description: "Process files in the background, detect duplicates, and flag bad GPS data.", shot: "other-features" },
+          { title: "SQL-driven filters", description: "Write flexible filters to isolate exactly the tracks you want. The map updates instantly.", shot: "map-filter-sql" },
+          { title: "Custom grouping", description: "Use filter rules to group tracks for map colors, statistics, and focused archive views.", shot: "filters" },
+          { title: "Year coloring", description: "Change the perspective to years and compare older routes with recent ones.", shot: "map-filter-by-year" },
           { title: "Offline support setup", description: "Use cached map tiles and track data locally when internet access drops.", shot: "statistics-overview" }
         ]
       },
@@ -1546,7 +1618,6 @@
           }
           dialogImage.src = featureAsset("large", shotId);
           dialogImage.alt = shot.alt;
-          dialogImage.classList.toggle("is-cropped", !trigger.classList.contains("phone-shot"));
           dialogTitle.textContent = shot.title;
           dialog.showModal();
         });

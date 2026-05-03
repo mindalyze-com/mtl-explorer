@@ -145,4 +145,14 @@ public class GPXDirectoryWatcherService {
         fileIndexerImpl.rescan();
     }
 
+    public FileIndexerImpl.RescanRequestStatus requestRescan() {
+        FileIndexerImpl indexer = fileIndexerImpl;
+        if (indexer == null) {
+            log.warn("Manual rescan requested before GPS indexer startup completed");
+            return FileIndexerImpl.RescanRequestStatus.NOT_RUNNING;
+        }
+        log.info("Manual rescan requested for GPS index");
+        return indexer.rescan();
+    }
+
 }

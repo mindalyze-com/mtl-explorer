@@ -9,6 +9,46 @@
 
     <template v-else>
 
+      <section class="rescan-panel" aria-labelledby="rescan-panel-title">
+        <div class="rescan-panel__header">
+          <span class="rescan-panel__icon">
+            <i class="pi pi-exclamation-triangle"/>
+          </span>
+          <div class="rescan-panel__copy">
+            <h4 id="rescan-panel-title">Manual index rescan</h4>
+            <p>
+              Docker Desktop on Windows with WSL2 can show copied files in the container without sending Linux file events.
+              Queue a rescan after adding files from a Windows-mounted folder.
+            </p>
+          </div>
+        </div>
+        <div class="rescan-panel__actions">
+          <Button
+            label="Rescan GPS"
+            icon="pi pi-map-marker"
+            size="small"
+            :loading="rescanLoadingIndex === 'GPS'"
+            :disabled="rescanLoadingIndex !== null"
+            @click="onTriggerRescan('GPS')"
+          />
+          <Button
+            label="Rescan Media"
+            icon="pi pi-images"
+            size="small"
+            severity="secondary"
+            :loading="rescanLoadingIndex === 'MEDIA'"
+            :disabled="rescanLoadingIndex !== null"
+            @click="onTriggerRescan('MEDIA')"
+          />
+        </div>
+        <span
+          v-if="rescanMessage || rescanError"
+          :class="['rescan-panel__status', rescanError ? 'rescan-panel__status--error' : 'rescan-panel__status--ok']"
+        >
+          {{ rescanError || rescanMessage }}
+        </span>
+      </section>
+
       <!-- ── File Indexers ── -->
       <div class="section-divider">File Indexers</div>
       <div
@@ -105,10 +145,14 @@ import { ref } from 'vue';
 import ProgressBar from 'primevue/progressbar';
 import Button from 'primevue/button';
 import { useIndexerStatus } from '@/composables/useIndexerStatus';
+import { triggerIndexerRescan } from '@/utils/serverAdminApi';
 
 const { summaries, jobSummaries, lastRefreshed, refresh } = useIndexerStatus();
 
 const refreshing = ref(false);
+const rescanLoadingIndex = ref<'GPS' | 'MEDIA' | null>(null);
+const rescanMessage = ref('');
+const rescanError = ref('');
 
 async function onRefresh() {
   refreshing.value = true;
@@ -116,6 +160,22 @@ async function onRefresh() {
     await refresh();
   } finally {
     refreshing.value = false;
+  }
+}
+
+async function onTriggerRescan(index: 'GPS' | 'MEDIA') {
+  rescanLoadingIndex.value = index;
+  rescanMessage.value = '';
+  rescanError.value = '';
+  try {
+    const response = await triggerIndexerRescan(index);
+    rescanMessage.value = response.message ?? `${index} rescan request sent.`;
+    await refresh();
+  } catch (err) {
+    console.error('[MTL] Manual index rescan failed:', err);
+    rescanError.value = err instanceof Error ? err.message : 'Rescan request failed.';
+  } finally {
+    rescanLoadingIndex.value = null;
   }
 }
 </script>
@@ -138,6 +198,73 @@ async function onRefresh() {
   color: var(--text-faint);
   font-size: var(--text-sm-size);
   padding: 1rem 0;
+}
+
+/* ── Manual rescan ── */
+.rescan-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.9rem;
+  border: 1px solid color-mix(in srgb, var(--warning) 58%, var(--border-default));
+  border-left: 4px solid var(--warning);
+  border-radius: 0.5rem;
+  background: color-mix(in srgb, var(--warning-bg) 58%, var(--surface-glass-light));
+  box-shadow: 0 0.5rem 1.25rem color-mix(in srgb, var(--warning) 12%, transparent);
+}
+
+.rescan-panel__header {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+}
+
+.rescan-panel__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 2rem;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.5rem;
+  background: color-mix(in srgb, var(--warning) 18%, transparent);
+  color: var(--warning-text);
+}
+
+.rescan-panel__copy {
+  min-width: 0;
+}
+
+.rescan-panel__copy h4 {
+  margin: 0 0 0.25rem;
+  font-size: var(--text-base-size);
+  color: var(--text-primary);
+}
+
+.rescan-panel__copy p {
+  margin: 0;
+  font-size: var(--text-sm-size);
+  line-height: 1.45;
+  color: var(--text-muted);
+}
+
+.rescan-panel__actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.rescan-panel__status {
+  font-size: var(--text-xs-size);
+  font-weight: 600;
+}
+
+.rescan-panel__status--ok {
+  color: var(--success);
+}
+
+.rescan-panel__status--error {
+  color: var(--error);
 }
 
 /* ── Index card ── */

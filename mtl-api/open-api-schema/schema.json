@@ -105,6 +105,36 @@
         }
       }
     },
+    "/api/indexer/{index}/rescan": {
+      "post": {
+        "tags": [
+          "indexer-status-controller"
+        ],
+        "operationId": "triggerIndexerRescan",
+        "parameters": [
+          {
+            "name": "index",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/IndexerRescanResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/gpx-upload/upload": {
       "post": {
         "tags": [
@@ -8722,6 +8752,25 @@
           }
         }
       },
+      "IndexerRescanResponse": {
+        "type": "object",
+        "properties": {
+          "index": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "STARTED",
+              "ALREADY_RUNNING",
+              "NOT_RUNNING"
+            ]
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      },
       "GpxUploadResult": {
         "type": "object",
         "properties": {
@@ -9117,9 +9166,6 @@
             "type": "number",
             "format": "double"
           },
-          "valid": {
-            "type": "boolean"
-          },
           "coordinate": {
             "$ref": "#/components/schemas/Coordinate",
             "writeOnly": true
@@ -9127,6 +9173,9 @@
           "m": {
             "type": "number",
             "format": "double"
+          },
+          "valid": {
+            "type": "boolean"
           }
         }
       },
@@ -9147,17 +9196,6 @@
       "Envelope": {
         "type": "object",
         "properties": {
-          "width": {
-            "type": "number",
-            "format": "double"
-          },
-          "height": {
-            "type": "number",
-            "format": "double"
-          },
-          "null": {
-            "type": "boolean"
-          },
           "minY": {
             "type": "number",
             "format": "double"
@@ -9178,9 +9216,20 @@
             "type": "number",
             "format": "double"
           },
+          "width": {
+            "type": "number",
+            "format": "double"
+          },
           "diameter": {
             "type": "number",
             "format": "double"
+          },
+          "height": {
+            "type": "number",
+            "format": "double"
+          },
+          "null": {
+            "type": "boolean"
           }
         }
       },
@@ -9192,23 +9241,19 @@
             "$ref": "#/components/schemas/GeometryFactory"
           },
           "userData": {},
-          "dimension": {
+          "simple": {
+            "type": "boolean"
+          },
+          "numPoints": {
             "type": "integer",
             "format": "int32"
-          },
-          "length": {
-            "type": "number",
-            "format": "double"
-          },
-          "empty": {
-            "type": "boolean"
-          },
-          "valid": {
-            "type": "boolean"
           },
           "srid": {
             "type": "integer",
             "format": "int32"
+          },
+          "envelopeInternal": {
+            "$ref": "#/components/schemas/Envelope"
           },
           "centroid": {
             "$ref": "#/components/schemas/Point"
@@ -9219,25 +9264,12 @@
               "$ref": "#/components/schemas/Coordinate"
             }
           },
-          "numPoints": {
-            "type": "integer",
-            "format": "int32"
-          },
           "coordinate": {
             "$ref": "#/components/schemas/Coordinate"
           },
-          "boundary": {
-            "$ref": "#/components/schemas/Geometry"
-          },
-          "rectangle": {
-            "type": "boolean"
-          },
-          "area": {
-            "type": "number",
-            "format": "double"
-          },
-          "simple": {
-            "type": "boolean"
+          "dimension": {
+            "type": "integer",
+            "format": "int32"
           },
           "boundaryDimension": {
             "type": "integer",
@@ -9246,6 +9278,9 @@
           "geometryType": {
             "type": "string"
           },
+          "boundary": {
+            "$ref": "#/components/schemas/Geometry"
+          },
           "numGeometries": {
             "type": "integer",
             "format": "int32"
@@ -9253,11 +9288,25 @@
           "precisionModel": {
             "$ref": "#/components/schemas/PrecisionModel"
           },
+          "rectangle": {
+            "type": "boolean"
+          },
+          "area": {
+            "type": "number",
+            "format": "double"
+          },
           "interiorPoint": {
             "$ref": "#/components/schemas/Point"
           },
-          "envelopeInternal": {
-            "$ref": "#/components/schemas/Envelope"
+          "length": {
+            "type": "number",
+            "format": "double"
+          },
+          "empty": {
+            "type": "boolean"
+          },
+          "valid": {
+            "type": "boolean"
           }
         }
       },
@@ -9779,9 +9828,44 @@
             "$ref": "#/components/schemas/GeometryFactory"
           },
           "userData": {},
+          "numPoints": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "coordinates": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Coordinate"
+            }
+          },
+          "coordinate": {
+            "$ref": "#/components/schemas/Coordinate"
+          },
           "dimension": {
             "type": "integer",
             "format": "int32"
+          },
+          "boundaryDimension": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "geometryType": {
+            "type": "string"
+          },
+          "boundary": {
+            "$ref": "#/components/schemas/Geometry"
+          },
+          "coordinateSequence": {
+            "$ref": "#/components/schemas/CoordinateSequence"
+          },
+          "ring": {
+            "type": "boolean"
+          },
+          "startPoint": {
+            "$ref": "#/components/schemas/Point"
+          },
+          "endPoint": {
+            "$ref": "#/components/schemas/Point"
           },
           "closed": {
             "type": "boolean"
@@ -9793,60 +9877,18 @@
           "empty": {
             "type": "boolean"
           },
-          "coordinates": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/Coordinate"
-            }
-          },
-          "numPoints": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "coordinate": {
-            "$ref": "#/components/schemas/Coordinate"
-          },
-          "boundary": {
-            "$ref": "#/components/schemas/Geometry"
-          },
-          "startPoint": {
-            "$ref": "#/components/schemas/Point"
-          },
-          "endPoint": {
-            "$ref": "#/components/schemas/Point"
-          },
-          "ring": {
-            "type": "boolean"
-          },
-          "boundaryDimension": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "geometryType": {
-            "type": "string"
-          },
-          "coordinateSequence": {
-            "$ref": "#/components/schemas/CoordinateSequence"
-          },
-          "valid": {
+          "simple": {
             "type": "boolean"
           },
           "srid": {
             "type": "integer",
             "format": "int32"
           },
+          "envelopeInternal": {
+            "$ref": "#/components/schemas/Envelope"
+          },
           "centroid": {
             "$ref": "#/components/schemas/Point"
-          },
-          "rectangle": {
-            "type": "boolean"
-          },
-          "area": {
-            "type": "number",
-            "format": "double"
-          },
-          "simple": {
-            "type": "boolean"
           },
           "numGeometries": {
             "type": "integer",
@@ -9855,11 +9897,18 @@
           "precisionModel": {
             "$ref": "#/components/schemas/PrecisionModel"
           },
+          "rectangle": {
+            "type": "boolean"
+          },
+          "area": {
+            "type": "number",
+            "format": "double"
+          },
           "interiorPoint": {
             "$ref": "#/components/schemas/Point"
           },
-          "envelopeInternal": {
-            "$ref": "#/components/schemas/Envelope"
+          "valid": {
+            "type": "boolean"
           }
         }
       },
@@ -9879,11 +9928,7 @@
               "$ref": "#/components/schemas/Coordinate"
             }
           },
-          "dimension": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "empty": {
+          "simple": {
             "type": "boolean"
           },
           "numPoints": {
@@ -9893,11 +9938,22 @@
           "coordinate": {
             "$ref": "#/components/schemas/Coordinate"
           },
+          "dimension": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "boundaryDimension": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "geometryType": {
+            "type": "string"
+          },
           "boundary": {
             "$ref": "#/components/schemas/Geometry"
           },
-          "simple": {
-            "type": "boolean"
+          "coordinateSequence": {
+            "$ref": "#/components/schemas/CoordinateSequence"
           },
           "x": {
             "type": "number",
@@ -9907,36 +9963,18 @@
             "type": "number",
             "format": "double"
           },
-          "boundaryDimension": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "geometryType": {
-            "type": "string"
-          },
-          "coordinateSequence": {
-            "$ref": "#/components/schemas/CoordinateSequence"
-          },
-          "length": {
-            "type": "number",
-            "format": "double"
-          },
-          "valid": {
+          "empty": {
             "type": "boolean"
           },
           "srid": {
             "type": "integer",
             "format": "int32"
           },
+          "envelopeInternal": {
+            "$ref": "#/components/schemas/Envelope"
+          },
           "centroid": {
             "$ref": "#/components/schemas/Point"
-          },
-          "rectangle": {
-            "type": "boolean"
-          },
-          "area": {
-            "type": "number",
-            "format": "double"
           },
           "numGeometries": {
             "type": "integer",
@@ -9945,11 +9983,22 @@
           "precisionModel": {
             "$ref": "#/components/schemas/PrecisionModel"
           },
+          "rectangle": {
+            "type": "boolean"
+          },
+          "area": {
+            "type": "number",
+            "format": "double"
+          },
           "interiorPoint": {
             "$ref": "#/components/schemas/Point"
           },
-          "envelopeInternal": {
-            "$ref": "#/components/schemas/Envelope"
+          "length": {
+            "type": "number",
+            "format": "double"
+          },
+          "valid": {
+            "type": "boolean"
           }
         }
       },
@@ -9959,12 +10008,6 @@
           "scale": {
             "type": "number",
             "format": "double"
-          },
-          "type": {
-            "$ref": "#/components/schemas/Type"
-          },
-          "floating": {
-            "type": "boolean"
           },
           "maximumSignificantDigits": {
             "type": "integer",
@@ -9977,6 +10020,12 @@
           "offsetY": {
             "type": "number",
             "format": "double"
+          },
+          "type": {
+            "$ref": "#/components/schemas/Type"
+          },
+          "floating": {
+            "type": "boolean"
           }
         }
       },
@@ -10543,10 +10592,6 @@
       "IWayPointWithDistance": {
         "type": "object",
         "properties": {
-          "timestamp": {
-            "type": "string",
-            "format": "date-time"
-          },
           "longitude": {
             "type": "number",
             "format": "double"
@@ -10562,6 +10607,10 @@
           "distanceToPoint": {
             "type": "number",
             "format": "double"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
           }
         }
       },

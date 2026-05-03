@@ -24,7 +24,7 @@ import java.util.List;
 @Slf4j
 public class MediaIndexerService {
 
-    private static final String INDEX_MEDIA = "MEDIA";
+    public static final String INDEX_MEDIA = "MEDIA";
 
     @Value("${mtl.media-watch-directory}")
     private String mediaWatchDirectory;
@@ -141,6 +141,16 @@ public class MediaIndexerService {
         }
         log.info("Scheduled rescan triggered for MEDIA index");
         fileIndexerImpl.rescan();
+    }
+
+    public FileIndexerImpl.RescanRequestStatus requestRescan() {
+        FileIndexerImpl indexer = fileIndexerImpl;
+        if (indexer == null) {
+            log.warn("Manual rescan requested before MEDIA indexer startup completed");
+            return FileIndexerImpl.RescanRequestStatus.NOT_RUNNING;
+        }
+        log.info("Manual rescan requested for MEDIA index");
+        return indexer.rescan();
     }
 
 }

@@ -65,6 +65,8 @@ public class FileIndexerImpl {
     // change-detection strategy
     public enum ChangeDetectionStrategy {SIZE_ONLY, SIZE_AND_MTIME}
 
+    public enum RescanRequestStatus {STARTED, ALREADY_RUNNING, NOT_RUNNING}
+
     private ChangeDetectionStrategy changeDetectionStrategy = ChangeDetectionStrategy.SIZE_ONLY;
 
     // when false: initial scan + periodic rescans run, but no inotify WatchService is registered
@@ -126,28 +128,29 @@ public class FileIndexerImpl {
 
     /**
      * Trigger a full rescan of the watch directory against the DB.
-     * Silently skips if a scan is already running. Safe to call from a scheduler.
+     * Skips if a scan is already running. Safe to call from a scheduler.
      */
-    public void rescan() {
+    public RescanRequestStatus rescan() {
         if (!running) {
             log.warn("rescan() called but indexer is not running for index={}", index);
-            return;
+            return RescanRequestStatus.NOT_RUNNING;
         }
         if (!scanInProgress.compareAndSet(false, true)) {
-            log.info("Periodic rescan skipped — scan already in progress for index={}", index);
-            return;
+            log.info("Rescan skipped — scan already in progress for index={}", index);
+            return RescanRequestStatus.ALREADY_RUNNING;
         }
         workerPool.submit(() -> {
             try {
-                log.info("Periodic rescan starting for index={}", index);
-                performInitialScanAndRecovery();
-                log.info("Periodic rescan completed for index={}", index);
+                log.info("Rescan starting for index={}", index);
+                performInitialScanAndRecovery(false);
+                log.info("Rescan completed for index={}", index);
             } catch (Exception e) {
-                log.error("Periodic rescan failed for index={}", index, e);
+                log.error("Rescan failed for index={}", index, e);
             } finally {
                 scanInProgress.set(false);
             }
         });
+        return RescanRequestStatus.STARTED;
     }
 
     private boolean isIncluded(Path p) {
@@ -209,7 +212,7 @@ public class FileIndexerImpl {
         try {
             running = true;
             // Initial batch (scan + recovery + latch await)
-            performInitialScanAndRecovery();
+            performInitialScanAndRecovery(true);
             // Live watcher (may be disabled for indexes with very large directory trees)
             if (liveWatchEnabled) {
                 startWatcher();
@@ -335,26 +338,28 @@ public class FileIndexerImpl {
     }
 
     // ---------- initial batch (two-phase + latch + recovery)
-    private void performInitialScanAndRecovery() {
+    private void performInitialScanAndRecovery(boolean reclaimProcessing) {
         long start = System.currentTimeMillis();
-        log.info("Starting initial scan of {}", watchDirectory);
+        log.info("Starting {} scan of {}", reclaimProcessing ? "initial" : "rescan", watchDirectory);
 
         // STEP 0: Very simple reclaim — PROCESSING -> SCHEDULED, using existing repo methods only
-        try {
-            List<IndexedFile> processing = repo.findByIndexAndIndexerStatus(index, IndexedFile.IndexerStatus.PROCESSING);
-            if (!processing.isEmpty()) {
-                Date now = new Date();
-                for (IndexedFile f : processing) {
-                    f.setIndexerStatus(IndexedFile.IndexerStatus.SCHEDULED);
-                    f.setLastMessage("Restart: re-queued from PROCESSING");
-                    f.setIndexUpdateDate(now);
-                    // do NOT alter name/path/basePath/etc.
-                    repo.save(f); // existing JPA method
+        if (reclaimProcessing) {
+            try {
+                List<IndexedFile> processing = repo.findByIndexAndIndexerStatus(index, IndexedFile.IndexerStatus.PROCESSING);
+                if (!processing.isEmpty()) {
+                    Date now = new Date();
+                    for (IndexedFile f : processing) {
+                        f.setIndexerStatus(IndexedFile.IndexerStatus.SCHEDULED);
+                        f.setLastMessage("Restart: re-queued from PROCESSING");
+                        f.setIndexUpdateDate(now);
+                        // do NOT alter name/path/basePath/etc.
+                        repo.save(f); // existing JPA method
+                    }
+                    log.info("Reclaimed {} PROCESSING -> SCHEDULED for index={}", processing.size(), index);
                 }
-                log.info("Reclaimed {} PROCESSING -> SCHEDULED for index={}", processing.size(), index);
+            } catch (Exception e) {
+                log.warn("PROCESSING reclaim failed for index={}: {}", index, e.toString());
             }
-        } catch (Exception e) {
-            log.warn("PROCESSING reclaim failed for index={}: {}", index, e.toString());
         }
 
         // Phase A: walk disk and collect new/changed vs DB snapshot
@@ -605,9 +610,7 @@ public class FileIndexerImpl {
         } finally {
             processingLocks.remove(k);
             // Check for events that arrived between our last remove() and lock release
-            if (pendingEventType.containsKey(k)) {
-                workerPool.submit(() -> processDebounced(k));
-            }
+            reschedulePendingEventIfNeeded(k);
         }
     }
 
@@ -709,6 +712,13 @@ public class FileIndexerImpl {
             handleFile(k, attrs, type, latchOrNull, pendingOrNull);
         } finally {
             processingLocks.remove(k);
+            reschedulePendingEventIfNeeded(k);
+        }
+    }
+
+    private void reschedulePendingEventIfNeeded(Path k) {
+        if (pendingEventType.containsKey(k)) {
+            workerPool.submit(() -> processDebounced(k));
         }
     }
 

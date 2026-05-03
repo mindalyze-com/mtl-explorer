@@ -6,7 +6,8 @@ These instructions apply to all agents working in this repository.
 
 - Always keep the OpenAPI contract as the source of truth for API types.
 - When changing server API request/response shapes, update the server first so it produces the correct OpenAPI schema.
-- Download or refresh the generated schema into `mtl-api/open-api-schema/schema.json`.
+- Start the updated server locally and download the live OpenAPI schema from `/mtl/v3/api-docs` into `mtl-api/open-api-schema/schema.json`; do not hand-edit or infer schema changes.
+- If a temporary server port is used while generating the schema, keep the checked-in schema's `servers` entry stable for the normal local URL.
 - Regenerate the frontend TypeScript API client with Maven from `mtl-api/mtl-api-typescript-fetch`.
 - Use the generated TypeScript types/client APIs in frontend code instead of hand-written duplicate API types.
 - Do not bypass generated types for convenience unless there is a documented generator limitation; keep such workarounds small and temporary.

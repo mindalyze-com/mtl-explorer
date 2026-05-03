@@ -19,6 +19,7 @@ import {
   type DataFreshnessResponseDto,
   type GpxUploadResult,
   type GpxUploadStatus,
+  type IndexerRescanResponse,
   type IndexSummaryDto,
   type JobSummaryDto,
 } from 'x8ing-mtl-api-typescript-fetch';
@@ -153,7 +154,7 @@ export async function getServerLog(lines: number = 200): Promise<string> {
 
 // ─── Indexer / Job Status ────────────────────────────────────────────────────
 
-export type { DataFreshnessResponseDto, IndexSummaryDto, JobSummaryDto };
+export type { DataFreshnessResponseDto, IndexerRescanResponse, IndexSummaryDto, JobSummaryDto };
 // Local aliases used by the composable/UI. Unlike the generated DTOs (whose
 // fields are all optional per OpenAPI defaults), these types mark the numeric
 // counters as required — the server always returns them, and the fetch helpers
@@ -187,6 +188,10 @@ export async function getIndexerStatus(): Promise<IndexSummary[]> {
     total: s.total ?? 0,
     progressPercent: s.progressPercent ?? 0,
   }));
+}
+
+export async function triggerIndexerRescan(index: 'GPS' | 'MEDIA'): Promise<IndexerRescanResponse> {
+  return getIndexerStatusApi().triggerIndexerRescan({ index });
 }
 
 export async function getJobStatus(): Promise<JobSummary[]> {
