@@ -15,7 +15,10 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.time.temporal.ChronoUnit;
 import java.util.Optional;
 import java.util.OptionalLong;
 import java.util.concurrent.TimeUnit;
@@ -42,8 +45,10 @@ import java.util.concurrent.TimeUnit;
 @RequestMapping("/api/map-proxy")
 public class MapTileProxyController {
 
-    private static final String UNKNOWN_BUILD_VERSION = "n/a";
-    private static final String BUILD_VERSION_TIME_SEPARATOR = "@";
+    private static final String UNKNOWN_BUILD_VERSION = "unknown";
+    private static final String BUILD_VERSION_TIME_SEPARATOR = "_";
+    private static final String UPSTREAM_AUTH_TOKEN_UNSAFE_CHARS_REGEX = "[^A-Za-z0-9._-]";
+    private static final String UPSTREAM_AUTH_TOKEN_REPLACEMENT = "_";
     private static final String PMTILES_EXTENSION = ".pmtiles";
     private static final String BYTE_RANGE_PREFIX = "bytes=";
     private static final String CACHE_CONTROL_IMMUTABLE = "public, max-age=2678400, immutable";
@@ -350,12 +355,25 @@ public class MapTileProxyController {
     }
 
     private String buildUpstreamUrl(MapUpstream upstream, String scope, String filename) {
+        return buildUpstreamUrl(
+                upstream.baseUrl(),
+                scope,
+                filename,
+                buildVersion(),
+                serverIdentityService.getServerId());
+    }
+
+    static String buildUpstreamUrl(String upstreamBaseUrl,
+                                   String scope,
+                                   String filename,
+                                   String version,
+                                   String serverId) {
         return UriComponentsBuilder
-                .fromUriString(upstream.baseUrl())
+                .fromUriString(upstreamBaseUrl)
                 .pathSegment(scope, filename)
-                .queryParam(MapProxyConstants.UPSTREAM_AUTH_VERSION_PARAM, buildVersion())
-                .queryParam(MapProxyConstants.UPSTREAM_AUTH_SERVER_ID_PARAM, serverIdentityService.getServerId())
-                .build()
+                .queryParam(MapProxyConstants.UPSTREAM_AUTH_VERSION_PARAM, encodeUpstreamQueryParam(version))
+                .queryParam(MapProxyConstants.UPSTREAM_AUTH_SERVER_ID_PARAM, encodeUpstreamQueryParam(serverId))
+                .build(true)
                 .toUriString();
     }
 
@@ -369,10 +387,21 @@ public class MapTileProxyController {
         String version = properties.getVersion();
         String normalizedVersion = version == null || version.isBlank()
                 ? UNKNOWN_BUILD_VERSION
-                : version;
+                : sanitizeUpstreamAuthTokenPart(version);
         if (properties.getTime() == null) {
             return normalizedVersion;
         }
-        return normalizedVersion + BUILD_VERSION_TIME_SEPARATOR + properties.getTime();
+        return normalizedVersion
+                + BUILD_VERSION_TIME_SEPARATOR
+                + sanitizeUpstreamAuthTokenPart(properties.getTime().truncatedTo(ChronoUnit.SECONDS).toString());
+    }
+
+    private static String sanitizeUpstreamAuthTokenPart(String value) {
+        return value.trim().replaceAll(UPSTREAM_AUTH_TOKEN_UNSAFE_CHARS_REGEX, UPSTREAM_AUTH_TOKEN_REPLACEMENT);
+    }
+
+    private static String encodeUpstreamQueryParam(String value) {
+        return URLEncoder.encode(value == null ? "" : value, StandardCharsets.UTF_8)
+                .replace("+", "%20");
     }
 }

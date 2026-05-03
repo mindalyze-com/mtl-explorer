@@ -59,10 +59,14 @@ docker compose up -d
 
 Docker Compose creates the local `./data/` folders on first start. Drop GPX
 files into `./data/gpx/` and geotagged photos or videos into `./data/media/`.
+Open `http://localhost:18080/mtl/` and sign in with the default login
+`mtl` / `change-me`.
+
 The home install serves plain HTTP on port `18080`; terminate HTTPS in a
 reverse proxy if you expose it beyond a trusted local network.
-The default login is `mtl` / `change-me`; change it before exposing the
-instance outside your machine or home network.
+Change the default login before exposing the instance outside your machine or
+home network by setting `MTL_USER_LOGIN` and `MTL_USER_PASSWORD` in a `.env`
+file next to `docker-compose.yml` or directly in the compose file.
 
 ## Maps
 

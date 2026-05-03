@@ -48,7 +48,9 @@ http://localhost:18080/mtl/
 
 Default login: `mtl` / `change-me`.
 
-Change it before exposing the instance outside your own machine or home network:
+Change it before exposing the instance outside your own machine or home network.
+The compose file reads `MTL_USER_LOGIN` and `MTL_USER_PASSWORD`, so the simplest
+way is to create or edit `.env` next to `docker-compose.yml`:
 
 ```bash
 printf 'MTL_USER_LOGIN=your-user\nMTL_USER_PASSWORD=change-this-password\n' > .env
