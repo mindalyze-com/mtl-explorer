@@ -27,6 +27,7 @@ mkdir mtl-explorer
 cd mtl-explorer
 curl -fsSL -o docker-compose.yml https://raw.githubusercontent.com/mindalyze-com/mtl-explorer/main/docker-compose.yml
 docker compose up -d
+# open http://localhost:18080/mtl/  login: mtl / change-me
 ```
 
 Windows PowerShell:
@@ -36,17 +37,10 @@ mkdir mtl-explorer
 cd mtl-explorer
 Invoke-WebRequest -Uri "https://raw.githubusercontent.com/mindalyze-com/mtl-explorer/main/docker-compose.yml" -OutFile "docker-compose.yml"
 docker compose up -d
+# open http://localhost:18080/mtl/  login: mtl / change-me
 ```
 
 If your system uses classic Compose, run `docker-compose up -d` instead.
-
-Open:
-
-```text
-http://localhost:18080/mtl/
-```
-
-Default login: `mtl` / `change-me`.
 
 Change it before exposing the instance outside your own machine or home network.
 The compose file reads `MTL_USER_LOGIN` and `MTL_USER_PASSWORD`, so the simplest
@@ -72,7 +66,8 @@ Docker creates these folders next to `docker-compose.yml`:
 ./data/logs              application logs
 ```
 
-Drop GPX/FIT files into `./data/gpx/` and media into `./data/media/`.
+Copy GPX/FIT files into `./data/gpx/`; the server discovers them automatically.
+Put geotagged photos and videos into `./data/media/`.
 
 ## Maps
 
