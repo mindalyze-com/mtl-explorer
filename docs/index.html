@@ -71,6 +71,39 @@
       --shadow-soft: 0 16px 38px rgba(32, 62, 82, 0.1);
       --content: min(1180px, calc(100vw - 40px));
       --stage-width: min(1264px, calc(100vw - 28px));
+      --stage-rail-border: 1px solid rgba(31, 64, 90, 0.08);
+      --stage-rail-background:
+        linear-gradient(90deg,
+          rgba(255, 255, 255, 0.44) 0%,
+          rgba(255, 255, 255, 0.18) 7%,
+          transparent 18%,
+          transparent 82%,
+          rgba(255, 255, 255, 0.18) 93%,
+          rgba(255, 255, 255, 0.44) 100%
+        ),
+        linear-gradient(180deg,
+          rgba(65, 139, 196, 0.035),
+          rgba(255, 255, 255, 0.2) 34%,
+          transparent 76%
+        );
+      --stage-rail-shadow:
+        inset 34px 0 58px rgba(65, 139, 196, 0.018),
+        inset -34px 0 58px rgba(65, 139, 196, 0.018),
+        -46px 0 92px rgba(32, 62, 82, 0.07),
+        46px 0 92px rgba(32, 62, 82, 0.07);
+      --page-edge-background:
+        linear-gradient(to right,
+          rgba(248, 250, 249, 0.91) 0%,
+          rgba(248, 250, 249, 0.41) calc(50% - 700px),
+          rgba(248, 250, 249, 0.11) calc(50% - 590px),
+          rgba(248, 250, 249, 0.0) calc(50% - 455px),
+          rgba(248, 250, 249, 0.0) calc(50% + 455px),
+          rgba(248, 250, 249, 0.11) calc(50% + 590px),
+          rgba(248, 250, 249, 0.41) calc(50% + 700px),
+          rgba(248, 250, 249, 0.91) 100%
+        );
+      --topbar-background: rgba(255, 255, 255, 0.9);
+      --topbar-background-compact: rgba(255, 255, 255, 0.94);
       --tour-media-max: 35.25rem;
       --topbar-top: 0px;
       --topbar-space: 5.4rem;
@@ -108,27 +141,10 @@
       transform: translateX(-50%);
       pointer-events: none;
       z-index: 0;
-      border-left: 1px solid rgba(31, 64, 90, 0.08);
-      border-right: 1px solid rgba(31, 64, 90, 0.08);
-      background:
-        linear-gradient(90deg,
-          rgba(255, 255, 255, 0.44) 0%,
-          rgba(255, 255, 255, 0.18) 7%,
-          transparent 18%,
-          transparent 82%,
-          rgba(255, 255, 255, 0.18) 93%,
-          rgba(255, 255, 255, 0.44) 100%
-        ),
-        linear-gradient(180deg,
-          rgba(65, 139, 196, 0.035),
-          rgba(255, 255, 255, 0.2) 34%,
-          transparent 76%
-        );
-      box-shadow:
-        inset 34px 0 58px rgba(65, 139, 196, 0.018),
-        inset -34px 0 58px rgba(65, 139, 196, 0.018),
-        -46px 0 92px rgba(32, 62, 82, 0.07),
-        46px 0 92px rgba(32, 62, 82, 0.07);
+      border-left: var(--stage-rail-border);
+      border-right: var(--stage-rail-border);
+      background: var(--stage-rail-background);
+      box-shadow: var(--stage-rail-shadow);
     }
 
     body::after {
@@ -137,17 +153,7 @@
       inset: 0;
       pointer-events: none;
       z-index: 0;
-      background:
-        linear-gradient(to right,
-          rgba(248, 250, 249, 0.91) 0%,
-          rgba(248, 250, 249, 0.41) calc(50% - 700px),
-          rgba(248, 250, 249, 0.11) calc(50% - 590px),
-          rgba(248, 250, 249, 0.0) calc(50% - 455px),
-          rgba(248, 250, 249, 0.0) calc(50% + 455px),
-          rgba(248, 250, 249, 0.11) calc(50% + 590px),
-          rgba(248, 250, 249, 0.41) calc(50% + 700px),
-          rgba(248, 250, 249, 0.91) 100%
-        );
+      background: var(--page-edge-background);
     }
 
     a {
@@ -180,18 +186,36 @@
       gap: 1rem;
       padding: 0.82rem max(20px, calc((100vw - 1180px) / 2));
       border: 0;
-      border-bottom: 1px solid rgba(31, 64, 90, 0.11);
       border-radius: 0;
-      background: rgba(255, 255, 255, 0.9);
-      box-shadow: 0 10px 30px rgba(38, 86, 124, 0.09);
-      backdrop-filter: blur(18px);
-      -webkit-backdrop-filter: blur(18px);
+      background: transparent;
       transition: box-shadow 180ms ease, background 180ms ease;
     }
 
-    .topbar.is-compact {
-      background: rgba(255, 255, 255, 0.94);
-      box-shadow: 0 8px 24px rgba(38, 86, 124, 0.1);
+    .topbar::before {
+      content: "";
+      position: absolute;
+      inset: 0 auto 0 50%;
+      width: var(--stage-width);
+      transform: translateX(-50%);
+      pointer-events: none;
+      z-index: 0;
+      border-left: var(--stage-rail-border);
+      border-right: var(--stage-rail-border);
+      border-bottom: 1px solid rgba(31, 64, 90, 0.11);
+      background: var(--stage-rail-background), var(--topbar-background);
+      box-shadow: var(--stage-rail-shadow), 0 10px 30px rgba(38, 86, 124, 0.09);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+    }
+
+    .topbar > * {
+      position: relative;
+      z-index: 1;
+    }
+
+    .topbar.is-compact::before {
+      background: var(--stage-rail-background), var(--topbar-background-compact);
+      box-shadow: var(--stage-rail-shadow), 0 8px 24px rgba(38, 86, 124, 0.1);
     }
 
     .brand {
@@ -1042,6 +1066,22 @@
         display: none;
       }
 
+      .topbar {
+        background: var(--topbar-background);
+        box-shadow: 0 10px 30px rgba(38, 86, 124, 0.09);
+        backdrop-filter: blur(18px);
+        -webkit-backdrop-filter: blur(18px);
+      }
+
+      .topbar::before {
+        display: none;
+      }
+
+      .topbar.is-compact {
+        background: var(--topbar-background-compact);
+        box-shadow: 0 8px 24px rgba(38, 86, 124, 0.1);
+      }
+
       .hero,
       .feature-tour,
       .trust-grid {
@@ -1102,6 +1142,8 @@
         top: auto;
         left: auto;
         right: auto;
+        width: auto;
+        transform: none;
         border-radius: 24px;
         border: 1px solid rgba(31, 64, 90, 0.12);
         flex-wrap: wrap;
