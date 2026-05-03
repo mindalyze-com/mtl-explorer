@@ -18,7 +18,7 @@ import './assets/main.css';
 
 // ── Side-effect plugins ──
 import HighchartsVue from 'highcharts-vue';
-import hljs from 'highlight.js';
+import hljs from 'highlight.js/lib/core';
 import sql from 'highlight.js/lib/languages/sql';
 import pgsql from 'highlight.js/lib/languages/pgsql';
 import hljsVuePlugin from '@highlightjs/vue-plugin';

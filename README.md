@@ -59,8 +59,28 @@ docker compose up -d
 
 Docker Compose creates the local `./data/` folders on first start. Drop GPX
 files into `./data/gpx/` and geotagged photos or videos into `./data/media/`.
+The home install serves plain HTTP on port `18080`; terminate HTTPS in a
+reverse proxy if you expose it beyond a trusted local network.
 The default login is `mtl` / `change-me`; change it before exposing the
 instance outside your machine or home network.
+
+## Maps
+
+MTL Explorer serves vector PMTiles through the Java backend. The default Docker
+Compose startup uses the hosted PMTiles service for MTL Explorer traffic only.
+The browser still calls `/api/map-proxy/...`; the backend keeps the hosted
+upstream URL and server identity metadata private.
+
+Each installation lazily creates a pseudo-anonymous server id in the `config`
+table (`SECURITY` / `SERVER_ID`) so the hosted map service can be operated and
+rate-shaped without exposing user data.
+
+For fully self-hosted/offline map use, enable the optional local map sidecar and
+preserve `./data/maps/` across upgrades:
+
+```bash
+docker compose --profile local-maps up -d
+```
 
 The compose file uses the `latest` MTL Explorer images, which follow the
 currently published stable release. To update later:

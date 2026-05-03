@@ -46,6 +46,8 @@ echo "INFO: venv_gcexport_${VERSION} not found — proceeding with install."
 # --- Ensure python3-venv is available ---
 apt-get update -qq
 apt-get install -y -qq python3 python3-pip python3-venv
+apt-get clean
+rm -rf /var/lib/apt/lists/*
 
 # --- Download & extract source ---
 echo "Downloading garmin-connect-export ${VERSION}..."

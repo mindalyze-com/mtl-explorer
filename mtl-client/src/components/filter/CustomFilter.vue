@@ -346,8 +346,6 @@ import {fetchFilters, fetchResolveFilter} from "@/utils/ServiceHelper";
 import {format} from "date-fns";
 import {ColorPalette} from "@/components/filter/ColorPalette";
 
-import 'highlight.js/lib/common';
-import hljsVuePlugin from "@highlightjs/vue-plugin";
 import BottomSheet from "@/components/ui/BottomSheet.vue";
 import GeoShapeParam from "@/components/filter/GeoShapeParam.vue";
 import TrackShapePreview from "@/components/ui/TrackShapePreview.vue";
@@ -362,7 +360,6 @@ const EVENTS = {
 export default defineComponent({
   name: 'CustomFilter',
   components: {
-    highlightjs: hljsVuePlugin.component,
     BottomSheet,
     GeoShapeParam,
     TrackShapePreview,

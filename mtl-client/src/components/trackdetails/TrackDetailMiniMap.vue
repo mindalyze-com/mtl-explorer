@@ -51,8 +51,8 @@ import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { useTrackMapSync, type TrackPoint } from '@/composables/useTrackMapSync';
 import { useChartSync } from '@/composables/useChartSync';
-import { fetchMapConfig } from '@/utils/mapConfigService';
-import { buildLocalVectorStyle, buildRemoteRasterStyle } from '@/utils/mapStyle';
+import { fetchMapConfig, mainTileArchiveUrl, MapConfigDtoTileModeEnum } from '@/utils/mapConfigService';
+import { buildLocalVectorStyleFromArchiveUrl, buildRemoteRasterStyle } from '@/utils/mapStyle';
 import { TRACK_COLOR } from '@/utils/trackColors';
 import { USER_PREFS_KEYS, migrateLegacyKeys } from '@/utils/userPrefs';
 import type { GpsTrackEvent } from 'x8ing-mtl-api-typescript-fetch/dist/esm/models/index';
@@ -143,8 +143,8 @@ export default defineComponent({
 
       const config = await fetchMapConfig();
       let style;
-      if (config.tileMode === 'local') {
-        style = buildLocalVectorStyle(config.tileBaseUrl, config.tilesetName, 'light');
+      if (config.tileMode === MapConfigDtoTileModeEnum.Local) {
+        style = buildLocalVectorStyleFromArchiveUrl(mainTileArchiveUrl(config), 'light');
       } else {
         style = buildRemoteRasterStyle(config.remoteTileUrl);
       }

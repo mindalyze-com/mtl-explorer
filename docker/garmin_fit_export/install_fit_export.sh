@@ -65,6 +65,8 @@ echo "INFO: venv_fit_${PROFILE} not found — proceeding with install."
 # --- Ensure python3-venv is available ---
 apt-get update -qq
 apt-get install -y -qq python3 python3-pip python3-venv
+apt-get clean
+rm -rf /var/lib/apt/lists/*
 
 # --- Create versioned virtual environment ---
 echo "Creating virtual environment at ${VENV_DIR}..."

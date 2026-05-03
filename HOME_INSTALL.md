@@ -1,18 +1,31 @@
 # Home Install
 
 Prerequisite: Docker with Docker Compose. On Windows, install Docker Desktop.
+Both Compose v2 (`docker compose`) and classic Compose (`docker-compose`) work;
+the examples below use Compose v2.
 
-## 1. Download and start
+## System requirements
 
-Create an empty folder for MTL Explorer, then download the published home
-compose file.
+MTL Explorer needs more resources than a small web app because the stack runs
+the app, PostGIS, and BRouter routing together. Local vector maps are optional.
+
+- Docker host for `linux/amd64` or `linux/arm64`.
+- About 4 GB RAM minimum; about 6-8 GB is more comfortable.
+- Disk needs are mostly your own GPX/media data and PostgreSQL. Add about
+  200 GB free disk only if you enable the optional full-world local map sidecar.
+- Stable internet for hosted maps. If `map-server` is enabled, the initial
+  local map download is about 120-130 GB and resumes if interrupted.
+- Free local port `18080` for the app. Port `18081` is used only when the
+  optional local map sidecar profile is enabled.
+
+## Start
 
 macOS / Linux / WSL / Git Bash:
 
 ```bash
 mkdir mtl-explorer
 cd mtl-explorer
-wget https://raw.githubusercontent.com/mindalyze-com/mtl-explorer/main/docker-compose.yml
+curl -fsSL -o docker-compose.yml https://raw.githubusercontent.com/mindalyze-com/mtl-explorer/main/docker-compose.yml
 docker compose up -d
 ```
 
@@ -25,111 +38,67 @@ Invoke-WebRequest -Uri "https://raw.githubusercontent.com/mindalyze-com/mtl-expl
 docker compose up -d
 ```
 
+If your system uses classic Compose, run `docker-compose up -d` instead.
+
 Open:
 
 ```text
 http://localhost:18080/mtl/
 ```
 
-The `/mtl/` path is required. On another device in your home network, replace
-`localhost` with the Docker host name or IP address.
+Default login: `mtl` / `change-me`.
 
-The default login is:
-
-```text
-user: mtl
-password: change-me
-```
-
-Change the login before exposing the instance outside your own machine or home
-network. Put the values in a `.env` file next to `docker-compose.yml` so they
-are reused on later `docker compose` commands:
+Change it before exposing the instance outside your own machine or home network:
 
 ```bash
 printf 'MTL_USER_LOGIN=your-user\nMTL_USER_PASSWORD=change-this-password\n' > .env
 docker compose up -d
 ```
 
-## 2. Where data goes
+Use a reverse proxy such as Caddy, Traefik, or nginx if you want HTTPS.
 
-The compose file uses relative bind mounts:
+## Data
+
+Docker creates these folders next to `docker-compose.yml`:
 
 ```text
-./data/postgis           -> PostgreSQL database
-./data/gpx               -> GPX/FIT import folder
-./data/media             -> geotagged photos and videos
-./data/logs              -> application logs
-./data/maps              -> downloaded map tiles
-./data/brouter-segments  -> BRouter routing tiles
+./data/gpx               GPX/FIT import folder
+./data/media             geotagged photos and videos
+./data/postgis           PostgreSQL database
+./data/maps              local map tiles and map-server logs, only with local-maps profile
+./data/brouter-segments  BRouter routing tiles
+./data/logs              application logs
 ```
 
-You do not need to create those folders manually. Docker Compose creates them
-on first start. Add GPX files to `./data/gpx/` and media files to
-`./data/media/`; the app watches the GPX folder and periodically scans media.
+Drop GPX/FIT files into `./data/gpx/` and media into `./data/media/`.
 
-The map server downloads OSM/Protomaps data on first start because
-`MAP_DOWNLOAD_URL: latest` is set in the compose file. This can be very large
-and may take a long time. Keep `./data/maps/` if you do not want it downloaded
-again.
+## Maps
 
-The MTL Explorer app, map, and BRouter images use the `latest` tag. In this
-compose file, `latest` means the currently published stable MTL Explorer release.
+The default install uses the hosted PMTiles service through the Java backend
+proxy. The browser never receives the hosted upstream URL or the server-id
+metadata used by that service.
 
-## 3. Use GPX or media folders somewhere else
+The compose file also includes an optional `map-server` sidecar under the
+`local-maps` profile. When it is running, MTL Explorer uses the local PMTiles
+archive and can be offline-capable after the map download finishes:
 
-Edit only the left side of a volume mount. Keep the container path on the
-right side unchanged.
-
-For example, if your GPX archive is already at `/mnt/tracks/gpx`:
-
-```yaml
-services:
-  app:
-    volumes:
-      - /mnt/tracks/gpx:/app/gpx:ro
-      - ./data/media:/app/media:ro
-      - ./data/logs:/app/logs
+```bash
+docker compose --profile local-maps up -d
 ```
 
-If your photo archive is somewhere else too:
+The first local map download can be large; keep `./data/maps/` if you do not
+want it downloaded again.
 
-```yaml
-services:
-  app:
-    volumes:
-      - /mnt/tracks/gpx:/app/gpx:ro
-      - /mnt/photos:/app/media:ro
-      - ./data/logs:/app/logs
-```
-
-Use `:ro` for existing archives that MTL Explorer should only read. Remove
-`:ro` from the GPX mount if Garmin sync should write downloaded tracks into
-that folder.
-
-## 4. Route planner
-
-The route planner is enabled in the home install. The BRouter sidecar starts
-with the normal stack, and its route segment cache is stored in
-`./data/brouter-segments/`.
-
-## 5. Useful commands
-
-Update to the current stable MTL Explorer images:
+## Commands
 
 ```bash
 docker compose pull
 docker compose up -d
-```
-
-Inspect the running stack:
-
-```bash
 docker compose ps
-docker compose logs -f app map-server
+docker compose logs -f app brouter
 ```
 
-On Linux, if Docker created `./data/` as root and your user cannot copy files
-into it, fix ownership from the install folder:
+On Linux, if Docker created `./data/` as root:
 
 ```bash
 sudo chown -R "$USER:$USER" data

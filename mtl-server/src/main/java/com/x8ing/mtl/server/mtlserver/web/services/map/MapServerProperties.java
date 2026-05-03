@@ -27,6 +27,52 @@ public class MapServerProperties {
     private String tileUpstreamUrl = "http://map-server:8081";
 
     /**
+     * Hosted PMTiles upstream used when the local docker-maps sidecar is absent.
+     * It is intended only for MTL Explorer traffic.
+     */
+    private String publicUpstreamUrl = "https://mtl-maps-public-prod.mindalyze.com";
+
+    /**
+     * Optional health URL for detecting the local docker-maps sidecar.
+     * If blank, the server probes {@link #tileUpstreamUrl} + "/health".
+     */
+    private String localProbeUrl;
+
+    /**
+     * How often the background probe may re-check the local sidecar while maps
+     * were requested recently.
+     */
+    private int localProbeIntervalSeconds = 20;
+
+    /**
+     * The scheduler probes only when a tile request happened within this window.
+     */
+    private int localProbeActiveWindowSeconds = 120;
+
+    /**
+     * Connection and read timeout for the local sidecar probe.
+     */
+    private int localProbeTimeoutMs = 800;
+
+    /**
+     * TTL for on-demand upstream decisions. The scheduled probe may refresh this
+     * earlier while the map is actively used.
+     */
+    private int upstreamDecisionCacheTtlSeconds = 60;
+
+    /**
+     * Cache identity for the public PMTiles archive. Change this whenever the
+     * public archive byte layout changes.
+     */
+    private String publicArchiveId = "public-default";
+
+    /**
+     * Fallback cache identity for local PMTiles when the sidecar status does not
+     * expose the active archive id yet.
+     */
+    private String localArchiveId = "local-default";
+
+    /**
      * Public-facing base URL of the tile proxy, returned to the client via /api/map/config.
      * Should be the path (relative to origin) that the browser uses to fetch PMTiles files.
      * Only relevant when tileMode = "local".
@@ -65,14 +111,41 @@ public class MapServerProperties {
     private int initialZoom = 10;
 
     /**
-     * Comma-separated bounding box for the demo tile area: "west,south,east,north".
-     * Only set in demo mode (application-demo.yml). Null in production.
+     * Connect timeout (ms) for the tile proxy RestClient.
+     */
+    private int proxyConnectTimeoutMs = 8000;
+
+    /**
+     * Read timeout (ms) for the tile proxy RestClient.
+     * PMTiles range responses for large tiles can be a few hundred KB.
+     */
+    private int proxyReadTimeoutMs = 15000;
+
+    /**
+     * Absolute wall-clock timeout (ms) for one tile proxy request.
+     * Protects request threads from upstreams that keep trickling bytes.
+     */
+    private int proxyCallTimeoutMs = 30000;
+
+    /**
+     * Maximum number of idle connections kept in the OkHttp connection pool.
+     * PMTiles fires many parallel Range requests per render — size accordingly.
+     */
+    private int proxyMaxIdleConnections = 20;
+
+    /**
+     * How long idle connections are kept alive in the pool (seconds).
+     */
+    private int proxyKeepAliveDurationSeconds = 60;
+
+    /**
+     * Legacy comma-separated bounding box for bounded local maps:
+     * "west,south,east,north". Normally unset.
      */
     private String demoAreaBbox;
 
     /**
-     * Maximum zoom level available in the demo tiles.
-     * Only set in demo mode. Null in production.
+     * Legacy maximum zoom level for bounded local maps. Normally unset.
      */
     private Integer demoAreaMaxZoom;
 }

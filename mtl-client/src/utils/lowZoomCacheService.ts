@@ -78,15 +78,15 @@ const hasCacheStorage = 'caches' in window;
  * Ensure the low-zoom PMTiles file is available in the browser cache.
  * Downloads it from the tile server if not already cached.
  *
- * @param tileBaseUrl      Base URL of the tile server (e.g. "/mtl/api/map-proxy/demo")
+ * @param tileBaseUrl      Base URL of the tile server (e.g. "/mtl/api/map-proxy/prod")
  * @param lowzoomTileset   Tileset name without .pmtiles (e.g. "world-lowzoom")
  * @returns The URL from which the file can be loaded (either original or cache)
  */
 export async function ensureLowZoomCached(
-  tileBaseUrl: string,
-  lowzoomTileset: string,
+  tileUrlOrBaseUrl: string,
+  lowzoomTileset?: string,
 ): Promise<string> {
-  const fileUrl = `${tileBaseUrl}/${lowzoomTileset}.pmtiles`;
+  const fileUrl = resolvePmtilesUrl(tileUrlOrBaseUrl, lowzoomTileset);
 
   // ---- Preferred: Cache Storage (secure contexts) ----
   if (hasCacheStorage) {
@@ -164,10 +164,10 @@ export async function clearLowZoomCache(): Promise<void> {
  * Returns null if no cached blob is found.
  */
 export async function loadLowZoomFromCache(
-  tileBaseUrl: string,
-  lowzoomTileset: string,
+  tileUrlOrBaseUrl: string,
+  lowzoomTileset?: string,
 ): Promise<PMTiles | null> {
-  const fileUrl = `${tileBaseUrl}/${lowzoomTileset}.pmtiles`;
+  const fileUrl = resolvePmtilesUrl(tileUrlOrBaseUrl, lowzoomTileset);
 
   let buffer: ArrayBuffer | null = null;
   let backend = '';
@@ -214,4 +214,11 @@ export async function loadLowZoomFromCache(
   };
 
   return new PMTiles(source as any);
+}
+
+function resolvePmtilesUrl(tileUrlOrBaseUrl: string, tileset?: string): string {
+  if (tileset == null || tileset === '') {
+    return tileUrlOrBaseUrl;
+  }
+  return `${tileUrlOrBaseUrl}/${tileset}.pmtiles`;
 }

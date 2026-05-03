@@ -1,9 +1,9 @@
 package com.x8ing.mtl.server.mtlserver.web.services.map;
 
-import com.x8ing.mtl.server.mtlserver.config.MtlAppProperties;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 
@@ -12,7 +12,7 @@ import org.springframework.web.client.RestClient;
  * <p>
  * The map-server Python orchestrator blocks its download worker until it receives
  * a PUT to /kickoff/{scope} (routed through nginx to the internal kickoff server on 8082).
- * The scope (demo or prod) tells the orchestrator which directory to operate on.
+ * The prod scope tells the orchestrator which directory to operate on.
  * Without this signal the map-server waits indefinitely.
  * <p>
  * The kickoff is skipped silently when:
@@ -25,27 +25,46 @@ import org.springframework.web.client.RestClient;
 public class MapServerKickoffService {
 
     private final MapServerProperties properties;
-    private final MtlAppProperties appProperties;
+    private final MapUpstreamResolver upstreamResolver;
 
-    public MapServerKickoffService(MapServerProperties properties, MtlAppProperties appProperties) {
+    public MapServerKickoffService(MapServerProperties properties,
+                                   MapUpstreamResolver upstreamResolver) {
         this.properties = properties;
-        this.appProperties = appProperties;
+        this.upstreamResolver = upstreamResolver;
     }
 
     @EventListener(ApplicationReadyEvent.class)
     public void kickoffMapDownload() {
-        if (!"local".equalsIgnoreCase(properties.getTileMode())) {
+        sendKickoff();
+    }
+
+    @Scheduled(fixedDelayString = "#{@mapServerProperties.localProbeIntervalSeconds * 1000L}")
+    public void kickoffWhenLocalSidecarAppears() {
+        if (!upstreamResolver.hasRecentTileActivity()) {
+            return;
+        }
+        if (upstreamResolver.resolveUpstream().source() == MapUpstreamSource.LOCAL) {
+            sendKickoff();
+        }
+    }
+
+    private void sendKickoff() {
+        if (!MapProxyConstants.TILE_MODE_LOCAL.equalsIgnoreCase(properties.getTileMode())) {
             log.debug("Map tile-mode is '{}' — skipping map-server kickoff", properties.getTileMode());
             return;
         }
         String upstreamUrl = properties.getTileUpstreamUrl();
         if (upstreamUrl == null || upstreamUrl.isBlank()) {
             log.debug("No tile-upstream-url configured — skipping map-server kickoff");
-            throw new RuntimeException("No tile-upstream-url configured — skipping map-server kickoff");
+            return;
+        }
+        if (upstreamResolver.resolveUpstream().source() != MapUpstreamSource.LOCAL) {
+            log.debug("No local map sidecar available — using hosted PMTiles and skipping map-server kickoff");
+            return;
         }
 
-        String scope = appProperties.isDemoMode() ? "demo" : "prod";
-        String kickoffUrl = upstreamUrl.stripTrailing().replaceAll("/+$", "") + "/kickoff/" + scope;
+        String scope = MapProxyConstants.SCOPE_PROD;
+        String kickoffUrl = MapUrlUtils.trimTrailingSlashes(upstreamUrl) + "/kickoff/" + scope;
         log.info("Sending map-server kickoff to {} (scope: {})", kickoffUrl, scope);
         try {
             RestClient.create()

@@ -7,6 +7,48 @@ const { version: APP_PKG_VERSION } = JSON.parse(readFileSync(new URL('./package.
 import vue from '@vitejs/plugin-vue';
 import { VitePWA } from 'vite-plugin-pwa';
 
+const CHUNK_SIZE_WARNING_LIMIT_KB = 1300;
+const NODE_MODULES_MARKER = '/node_modules/';
+const GENERATED_API_CLIENT_MARKER = '/mtl-api/mtl-api-typescript-fetch/';
+
+const VENDOR_CHUNK_RULES: Array<[string, string[]]> = [
+  ['vendor-vue', ['@vue/', 'pinia', 'vue', 'vue-router']],
+  ['vendor-map', ['@protomaps/', 'd3-array', 'd3-geo', 'd3-selection', 'maplibre-gl', 'pmtiles']],
+  ['vendor-primevue', ['@primeuix/', '@primevue/', 'primeicons', 'primevue']],
+  ['vendor-charts', ['highcharts', 'highcharts-vue']],
+  ['vendor-highlight', ['@highlightjs/', 'highlight.js']],
+  ['vendor-data', ['axios', 'colormap', 'date-fns', 'dexie', 'fflate', 'lerp', 'lodash', 'p-limit', 'yocto-queue']],
+];
+
+function matchesPackage(id: string, packageName: string): boolean {
+  const marker = `${NODE_MODULES_MARKER}${packageName}`;
+  if (packageName.endsWith('/')) {
+    return id.includes(marker);
+  }
+
+  return id.includes(`${marker}/`) || id.includes(`${marker}.`) || id.endsWith(marker);
+}
+
+function vendorChunkFor(id: string): string | undefined {
+  const normalizedId = id.replaceAll('\\', '/');
+
+  if (normalizedId.includes(GENERATED_API_CLIENT_MARKER)) {
+    return 'vendor-api';
+  }
+
+  if (!normalizedId.includes(NODE_MODULES_MARKER)) {
+    return undefined;
+  }
+
+  for (const [chunkName, packageNames] of VENDOR_CHUNK_RULES) {
+    if (packageNames.some((packageName) => matchesPackage(normalizedId, packageName))) {
+      return chunkName;
+    }
+  }
+
+  return 'vendor-misc';
+}
+
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
@@ -94,10 +136,13 @@ export default defineConfig(({ mode }) => {
   },
   base: '/mtl/',
   build: {
-    // Lowered from 4000 → 1500 to stop masking real bundle bloat.
-    // Address by code-splitting (dynamic import of heavy chart/map deps) when warnings appear.
-    chunkSizeWarningLimit: 1500,
+    chunkSizeWarningLimit: CHUNK_SIZE_WARNING_LIMIT_KB,
     sourcemap: true,
+    rollupOptions: {
+      output: {
+        manualChunks: vendorChunkFor,
+      },
+    },
   },
   };
 });

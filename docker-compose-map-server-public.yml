@@ -1,0 +1,53 @@
+# Dedicated stack for the public PMTiles host, e.g. maps.mytraillog.com.
+# It runs only docker-maps. Put an HTTPS reverse proxy in front of
+# ${MAP_SERVER_BIND:-0.0.0.0}:${MAP_SERVER_PORT:-18093}.
+#
+# PMTiles requests are intentionally rejected unless the Java backend proxy adds
+# mtl-version and mtl-server-id query parameters.
+
+services:
+  map-server:
+    image: ${MTL_MAP_SERVER_IMAGE:-wauwau0977/mytraillog-maps:latest}
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        set -eu
+        /app/entrypoint.sh &
+        map_pid="$!"
+
+        trap 'kill "$${map_pid}" 2>/dev/null || true; wait "$${map_pid}" 2>/dev/null || true' TERM INT
+
+        while ! curl -fsS http://127.0.0.1:8081/health >/dev/null; do
+          if ! kill -0 "$${map_pid}" 2>/dev/null; then
+            wait "$${map_pid}"
+            exit "$?"
+          fi
+          sleep 2
+        done
+
+        until curl -fsS -X PUT http://127.0.0.1:8081/kickoff/prod >/dev/null; do
+          echo "Waiting to kick off prod map processing..."
+          sleep 2
+        done
+        echo "Prod map processing kickoff accepted."
+
+        wait "$${map_pid}"
+    ports:
+      - "${MAP_SERVER_BIND:-0.0.0.0}:${MAP_SERVER_PORT:-18093}:8081"
+    expose:
+      - 8081
+    environment:
+      PORT: "8081"
+      LOWZOOM_MAXZOOM: ${LOWZOOM_MAXZOOM:-6}
+      MAP_DOWNLOAD_URL: ${MAP_DOWNLOAD_URL:-latest}
+      PROTOMAPS_BUILDS_BASE_URL: ${PROTOMAPS_BUILDS_BASE_URL:-https://build.protomaps.com}
+    restart: unless-stopped
+    volumes:
+      - ${MAP_SERVER_DATA_DIR:-/volume1/raspberry/MyTrailLogMapsPublic/maps}:/data
+    deploy:
+      resources:
+        limits:
+          memory: 1024m
+        reservations:
+          memory: 256m

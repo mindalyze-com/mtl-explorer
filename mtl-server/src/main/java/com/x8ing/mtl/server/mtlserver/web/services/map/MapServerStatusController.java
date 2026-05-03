@@ -1,10 +1,10 @@
 package com.x8ing.mtl.server.mtlserver.web.services.map;
 
-import com.x8ing.mtl.server.mtlserver.config.MtlAppProperties;
 import com.x8ing.mtl.server.mtlserver.planner.config.PlannerProperties;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -17,14 +17,17 @@ public class MapServerStatusController {
 
     private final MapServerStatusService statusService;
     private final MapServerProperties properties;
-    private final MtlAppProperties appProperties;
     private final PlannerProperties plannerProperties;
+    private final MapUpstreamResolver upstreamResolver;
 
-    public MapServerStatusController(MapServerStatusService statusService, MapServerProperties properties, MtlAppProperties appProperties, PlannerProperties plannerProperties) {
+    public MapServerStatusController(MapServerStatusService statusService,
+                                     MapServerProperties properties,
+                                     PlannerProperties plannerProperties,
+                                     MapUpstreamResolver upstreamResolver) {
         this.statusService = statusService;
         this.properties = properties;
-        this.appProperties = appProperties;
         this.plannerProperties = plannerProperties;
+        this.upstreamResolver = upstreamResolver;
     }
 
     @GetMapping("/status")
@@ -34,12 +37,22 @@ public class MapServerStatusController {
 
     @GetMapping("/config")
     public MapConfigDto getMapConfig() {
-        String scope = appProperties.isDemoMode() ? "demo" : "prod";
+        String scope = MapProxyConstants.SCOPE_PROD;
+        String scopedTileBaseUrl = buildScopedTileBaseUrl(properties.getTileBaseUrl(), scope);
         MapConfigDto dto = new MapConfigDto();
         dto.setTileMode(properties.getTileMode());
-        dto.setTileBaseUrl(properties.getTileBaseUrl() + "/" + scope);
+        dto.setTileBaseUrl(scopedTileBaseUrl);
         dto.setTilesetName(properties.getTilesetName());
         dto.setLowzoomTilesetName(properties.getLowzoomTilesetName());
+        if (MapProxyConstants.TILE_MODE_LOCAL.equalsIgnoreCase(properties.getTileMode())) {
+            MapUpstream upstream = upstreamResolver.resolveUpstream();
+            String archiveId = statusService.archiveIdFor(upstream.source());
+            String source = upstream.source().cacheValue();
+            dto.setTileArchiveUrl(buildArchiveUrl(scopedTileBaseUrl, properties.getTilesetName(), source, archiveId));
+            dto.setLowzoomArchiveUrl(buildArchiveUrl(scopedTileBaseUrl, properties.getLowzoomTilesetName(), source, archiveId));
+            dto.setTileSource(source);
+            dto.setArchiveId(archiveId);
+        }
         dto.setRemoteTileUrl(properties.getRemoteTileUrl());
         dto.setInitialCenterLng(properties.getInitialCenterLng());
         dto.setInitialCenterLat(properties.getInitialCenterLat());
@@ -65,5 +78,27 @@ public class MapServerStatusController {
                 : Collections.emptyList());
 
         return dto;
+    }
+
+    private String buildScopedTileBaseUrl(String tileBaseUrl, String scope) {
+        return UriComponentsBuilder
+                .fromUriString(nonNull(MapUrlUtils.trimTrailingSlashes(tileBaseUrl)))
+                .pathSegment(scope)
+                .build()
+                .toUriString();
+    }
+
+    private String buildArchiveUrl(String scopedTileBaseUrl, String tilesetName, String source, String archiveId) {
+        return UriComponentsBuilder
+                .fromUriString(scopedTileBaseUrl)
+                .pathSegment(tilesetName + ".pmtiles")
+                .queryParam(MapProxyConstants.CACHE_SOURCE_PARAM, source)
+                .queryParam(MapProxyConstants.CACHE_ARCHIVE_PARAM, archiveId)
+                .build()
+                .toUriString();
+    }
+
+    private static String nonNull(String value) {
+        return value == null ? "" : value;
     }
 }

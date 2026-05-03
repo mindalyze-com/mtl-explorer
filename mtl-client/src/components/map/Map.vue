@@ -256,7 +256,7 @@ import maplibregl from 'maplibre-gl';
 import { formatDate, formatDateAndTime, formatDateAndTimeWithSeconds } from '@/utils/Utils';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { Protocol } from 'pmtiles';
-import { createCachingPMTiles } from '@/utils/cachingPmtilesSource';
+import { createCachingPMTiles, MAP_ARCHIVE_STALE_EVENT } from '@/utils/cachingPmtilesSource';
 
 import AdminDialog from '@/components/admin/AdminDialog.vue';
 import GpsLocate from "@/components/gps/GpsLocate.vue";
@@ -296,8 +296,15 @@ import {
   loadCachedTrackCollection,
   loadTrackCollectionPaged,
 } from "@/utils/tracks/trackCollectionLoader";
-import { fetchMapConfig, clearMapConfigCache } from "@/utils/mapConfigService";
-import { buildLocalVectorStyle, buildRemoteRasterStyle, buildFallbackRasterStyle, SWISSTOPO_STYLE_URL, SWISSTOPO_COLOR_STYLE_URL, MAP_OVERLAYS } from "@/utils/mapStyle";
+import {
+  fetchMapConfig,
+  clearMapConfigCache,
+  mainTileArchiveUrl,
+  lowzoomTileArchiveUrl,
+  MapConfigDtoTileModeEnum,
+  MapConfigDtoTileSourceEnum,
+} from "@/utils/mapConfigService";
+import { buildLocalVectorStyleFromArchiveUrl, buildRemoteRasterStyle, buildFallbackRasterStyle, SWISSTOPO_STYLE_URL, SWISSTOPO_COLOR_STYLE_URL, MAP_OVERLAYS } from "@/utils/mapStyle";
 import { TRACK_COLOR, TRACK_SELECTED_COLOR } from '@/utils/trackColors';
 import { GlobeControl, computeGlobeMinZoom } from "@/components/map/GlobeControl";
 import { ensureLowZoomCached, loadLowZoomFromCache } from "@/utils/lowZoomCacheService";
@@ -391,10 +398,6 @@ function isAbortLikeError(error) {
     axios.isCancel(error)
   );
 }
-
-/** Timestamp of the last demo-area-boundary toast. Used for 3-minute cooldown. */
-let _lastDemoAreaToastTime = 0;
-const DEMO_AREA_TOAST_COOLDOWN_MS = 3 * 60 * 1000; // 3 minutes
 
 /** Haversine distance in meters between two [lat, lng] points. */
 function haversineDistance(lat1, lng1, lat2, lng2) {
@@ -529,6 +532,7 @@ export default {
       mapConfig: null,
       mapServerStatus: null,
       mapStatusPollTimer: null,
+      mapArchiveStaleReloading: false,
       zoom: 0,
       geojson: undefined,
       globeMode: false,       // true when globe projection is active
@@ -672,6 +676,7 @@ export default {
     if (savedTrackPoints !== null) this.trackPointsVisible = savedTrackPoints !== 'false';
     const savedHeatmap = localStorage.getItem('mtl-heatmapVisible');
     if (savedHeatmap !== null) this.heatmapVisible = savedHeatmap === 'true';
+    window.addEventListener(MAP_ARCHIVE_STALE_EVENT, this.handleMapArchiveStale);
     try {
       await this.reloadMap(true);
       startupLog('map', 'Initial map reload completed');
@@ -687,6 +692,7 @@ export default {
     if (this.retryTimeoutId) clearTimeout(this.retryTimeoutId);
     if (this.freshnessDismissTimer) clearTimeout(this.freshnessDismissTimer);
     if (this._onOnline) window.removeEventListener('online', this._onOnline);
+    window.removeEventListener(MAP_ARCHIVE_STALE_EVENT, this.handleMapArchiveStale);
     if (this.detailDebounceTimer) clearTimeout(this.detailDebounceTimer);
     if (this.detailAbortController) this.detailAbortController.abort();
     if (this.bulk10mController) this.bulk10mController.abort();
@@ -1296,12 +1302,23 @@ export default {
           const resp = await apiClient.get(`api/map/status`, {
             timeout: 8000,
           });
-          const wasReady = this.mapServerStatus?.ready;
+          const previousStatus = this.mapServerStatus;
+          const wasReady = previousStatus?.ready;
+          const previousSource = previousStatus?.tileSource;
+          const previousArchive = previousStatus?.archive_id;
           this.mapServerStatus = resp.data;
+          const currentSource = this.mapServerStatus?.tileSource;
+          const currentArchive = this.mapServerStatus?.archive_id;
+          const archiveChanged = Boolean(previousStatus)
+            && (previousSource !== currentSource || previousArchive !== currentArchive);
           if (this.mapServerStatus?.ready) {
-            this.stopMapStatusPolling();
-            // Planet file just became ready — reload to switch OSM fallback → vector tiles
-            if (!wasReady) {
+            if (currentSource !== MapConfigDtoTileSourceEnum.Public) {
+              this.stopMapStatusPolling();
+            }
+            // Tiles just became ready, or the byte layout/source changed — rebuild
+            // with a fresh server-provided PMTiles URL so browser range caches stay isolated.
+            if (!wasReady || archiveChanged) {
+              clearMapConfigCache();
               this.reloadMap(false);
             }
           }
@@ -1317,6 +1334,28 @@ export default {
       if (this.mapStatusPollTimer) {
         clearInterval(this.mapStatusPollTimer);
         this.mapStatusPollTimer = null;
+      }
+    },
+
+    async handleMapArchiveStale(event) {
+      const staleUrl = event?.detail?.url;
+      if (staleUrl && this.mapConfig && staleUrl !== mainTileArchiveUrl(this.mapConfig)) {
+        return;
+      }
+      if (this.mapArchiveStaleReloading) {
+        return;
+      }
+      this.mapArchiveStaleReloading = true;
+      try {
+        startupWarn('mapcache', 'PMTiles archive/source changed; reloading map config', event?.detail ?? {});
+        this.stopMapStatusPolling();
+        this.mapServerStatus = null;
+        clearMapConfigCache();
+        await this.reloadMap(false);
+      } catch (error) {
+        startupWarn('mapcache', 'Map reload after archive/source change failed', describeError(error));
+      } finally {
+        this.mapArchiveStaleReloading = false;
       }
     },
 
@@ -1393,6 +1432,9 @@ export default {
         tileMode: this.mapConfig.tileMode,
         offline: this.mapConfig.offline ?? false,
         tileBaseUrl: this.mapConfig.tileBaseUrl,
+        tileArchiveUrl: this.mapConfig.tileArchiveUrl,
+        tileSource: this.mapConfig.tileSource,
+        archiveId: this.mapConfig.archiveId,
       });
 
       // Preserve current viewport so theme switches don't jump the map position.
@@ -1414,14 +1456,14 @@ export default {
       // Pre-register PMTiles instances with force-cache fetch so Chrome serves
       // cached 206 responses from disk instead of revalidating every range request.
       if (pmtilesProtocol && this.mapConfig.tileBaseUrl && this.mapConfig.tilesetName) {
-        const tileUrl = `${this.mapConfig.tileBaseUrl}/${this.mapConfig.tilesetName}.pmtiles`;
+        const tileUrl = mainTileArchiveUrl(this.mapConfig);
         pmtilesProtocol.add(createCachingPMTiles(tileUrl));
       }
       startupLog('mapinit', 'PMTiles protocol ready');
 
       // When offline, skip the map-status probe and planet-file check entirely.
       // When local mode online, check once whether the planet file is already ready.
-      if (!this.mapConfig.offline && this.mapConfig.tileMode === 'local' && !this.mapServerStatus) {
+      if (!this.mapConfig.offline && this.mapConfig.tileMode === MapConfigDtoTileModeEnum.Local && !this.mapServerStatus) {
         const statusTimer = startStartupTimer('mapstatus', 'Probing map server status');
         try {
           const resp = await apiClient.get(`api/map/status`, {
@@ -1431,6 +1473,8 @@ export default {
           statusTimer.success('Map server status received', {
             phase: resp.data?.phase,
             ready: resp.data?.ready,
+            tileSource: resp.data?.tileSource,
+            archiveId: resp.data?.archive_id,
           });
         } catch (error) {
           statusTimer.warn('Map server status probe failed', describeError(error));
@@ -1446,15 +1490,12 @@ export default {
       let styleMode = 'unknown';
       if (this.mapConfig.offline) {
         // Try to use cached low-zoom PMTiles for a proper vector map background
-        const lowzoom = await loadLowZoomFromCache(
-          this.mapConfig.tileBaseUrl,
-          this.mapConfig.lowzoomTilesetName,
-        );
+        const lowzoomUrl = lowzoomTileArchiveUrl(this.mapConfig);
+        const lowzoom = await loadLowZoomFromCache(lowzoomUrl);
         if (lowzoom && pmtilesProtocol) {
           pmtilesProtocol.add(lowzoom);
-          style = buildLocalVectorStyle(
-            this.mapConfig.tileBaseUrl,
-            this.mapConfig.lowzoomTilesetName,
+          style = buildLocalVectorStyleFromArchiveUrl(
+            lowzoomUrl,
             this.mapThemeSelected,
             undefined,
             { hillshade: false },
@@ -1472,10 +1513,9 @@ export default {
       } else if (this.mapThemeSelected === 'swisstopo-color') {
         style = SWISSTOPO_COLOR_STYLE_URL;
         styleMode = 'swisstopo-color';
-      } else if (this.mapConfig.tileMode !== 'local' || this.mapServerStatus?.ready) {
-        style = buildLocalVectorStyle(
-          this.mapConfig.tileBaseUrl,
-          this.mapConfig.tilesetName,
+      } else if (this.mapConfig.tileMode === MapConfigDtoTileModeEnum.Local && this.mapServerStatus?.ready) {
+        style = buildLocalVectorStyleFromArchiveUrl(
+          mainTileArchiveUrl(this.mapConfig),
           this.mapThemeSelected,
         );
         styleMode = 'local-vector';
@@ -1488,6 +1528,8 @@ export default {
         tileMode: this.mapConfig.tileMode,
         offline: this.mapConfig.offline ?? false,
         mapServerReady: this.mapServerStatus?.ready ?? null,
+        tileSource: this.mapServerStatus?.tileSource ?? this.mapConfig.tileSource ?? null,
+        archiveId: this.mapServerStatus?.archive_id ?? this.mapConfig.archiveId ?? null,
       });
 
       // ── Base map: tiles, Swiss Mobility overlays, dim layer — passive ──
@@ -1698,22 +1740,24 @@ export default {
         this.updateGlobeState();
         this.updateTrackLineWidth();
         this.scheduleDetailCheck();
-        this.checkDemoAreaBounds();
         console.log(`[zoom] ${this.zoom.toFixed(3)} | ${this.globeMode ? 'globe' : 'mercator'}`);
       });
 
       this.overlayMap.on('moveend', () => {
         this.scheduleDetailCheck();
-        this.checkDemoAreaBounds();
       });
 
       // Background: cache the low-zoom PMTiles for offline use (only once ready, skip when already offline)
-      if (!this.mapConfig.offline && this.mapConfig.tileMode === 'local') {
+      if (!this.mapConfig.offline && this.mapConfig.tileMode === MapConfigDtoTileModeEnum.Local) {
         if (this.mapServerStatus?.ready) {
-          ensureLowZoomCached(this.mapConfig.tileBaseUrl, this.mapConfig.lowzoomTilesetName).catch(e => {
+          ensureLowZoomCached(lowzoomTileArchiveUrl(this.mapConfig)).catch(e => {
             startupWarn('mapcache', 'Low-zoom cache warmup failed', describeError(e));
             console.warn('Low-zoom cache failed:', e);
           });
+          if (this.mapServerStatus?.tileSource === MapConfigDtoTileSourceEnum.Public) {
+            startupLog('mapstatus', 'Hosted map service active; polling for local sidecar availability');
+            this.startMapStatusPolling();
+          }
         } else {
           startupLog('mapstatus', 'Starting map-status polling until local tiles are ready');
           // Planet file not yet ready — poll and auto-switch to vector when complete
@@ -1767,36 +1811,6 @@ export default {
       }
       this.applyGlobeProjection();
       this._globeControl?.setActive(this.globeMode);
-    },
-
-    /**
-     * In demo mode, check whether the map viewport extends beyond the demo tile area.
-     * Shows an info toast with a 3-minute cooldown to avoid spamming the user.
-     */
-    checkDemoAreaBounds() {
-      const bbox = this.mapConfig?.demoAreaBbox;
-      if (!bbox || bbox.length !== 4) return; // not demo mode or no bounds configured
-
-      const bounds = this.overlayMap.getBounds();
-      const [west, south, east, north] = bbox;
-
-      // Viewport is inside the demo area — nothing to warn about
-      if (bounds.getWest() >= west && bounds.getSouth() >= south &&
-          bounds.getEast() <= east && bounds.getNorth() <= north) {
-        return;
-      }
-
-      // Cooldown: don't show again within 3 minutes
-      const now = Date.now();
-      if (now - _lastDemoAreaToastTime < DEMO_AREA_TOAST_COOLDOWN_MS) return;
-      _lastDemoAreaToastTime = now;
-
-      this.$toast.add({
-        severity: 'info',
-        summary: 'Demo Mode',
-        detail: 'Map tiles are only available for the Porto area. Zooming or panning further may show grey tiles.',
-        life: 8000,
-      });
     },
 
     /** Update the line width of highlight and dot layers based on current zoom. */

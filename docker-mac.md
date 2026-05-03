@@ -15,7 +15,7 @@ docker rm -f postgis-db || true && docker run -d --platform linux/amd64 --name p
 
 
 ### Create a docker image
-Use the docker-build-deploy.sh to build
+Use `./docker-build-deploy.py` to build and publish images.
 
 ### Run the build image locally
 ```shell

@@ -20,24 +20,37 @@
         <plugins>
 
             <plugin>
-                <!-- Clean the client resources folder -->
+                <!-- Clean the generated frontend resources before each copy so stale hashed assets do not enter the server JAR. -->
                 <artifactId>maven-clean-plugin</artifactId>
                 <version>3.2.0</version>
                 <configuration>
+                    <excludeDefaultDirectories>true</excludeDefaultDirectories>
                     <filesets>
                         <fileset>
-                            <directory>../mtl-server/src/main/resources/static/assets</directory>
+                            <directory>../mtl-server/src/main/resources/static</directory>
                             <includes>
-                                <include>**/*.*</include>
+                                <include>assets/**</include>
+                                <include>index.html</include>
+                                <include>manifest.webmanifest</include>
+                                <include>registerSW.js</include>
+                                <include>sw.js</include>
+                                <include>sw.js.map</include>
+                                <include>workbox-*.js</include>
+                                <include>workbox-*.js.map</include>
                             </includes>
-                            <excludes>
-                                <exclude>**/important.log</exclude>
-                                <exclude>**/another-important.log</exclude>
-                            </excludes>
                             <followSymlinks>false</followSymlinks>
                         </fileset>
                     </filesets>
                 </configuration>
+                <executions>
+                    <execution>
+                        <id>clean-static-resources</id>
+                        <phase>prepare-package</phase>
+                        <goals>
+                            <goal>clean</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
 
             <!-- ... other plugins ... -->

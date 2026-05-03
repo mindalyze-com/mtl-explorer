@@ -73,7 +73,7 @@ function addHillshade(style: StyleSpecification): StyleSpecification {
 /**
  * Build a MapLibre style for local vector PMTiles served from the companion map server.
  *
- * @param tileBaseUrl      Base URL of the tile server (e.g. "/mtl/api/map-proxy/demo")
+ * @param tileBaseUrl      Base URL of the tile server (e.g. "/mtl/api/map-proxy/prod")
  * @param tilesetName      Name of the PMTiles file without extension (e.g. "planet")
  * @param theme            Visual theme
  * @param glyphsUrl        Optional custom glyphs URL. Defaults to Protomaps CDN.
@@ -81,6 +81,20 @@ function addHillshade(style: StyleSpecification): StyleSpecification {
 export function buildLocalVectorStyle(
   tileBaseUrl: string,
   tilesetName: string,
+  theme: MapTheme = 'light',
+  glyphsUrl?: string,
+  options: LocalVectorStyleOptions = {},
+): StyleSpecification {
+  return buildLocalVectorStyleFromArchiveUrl(
+    `${tileBaseUrl}/${tilesetName}.pmtiles`,
+    theme,
+    glyphsUrl,
+    options,
+  );
+}
+
+export function buildLocalVectorStyleFromArchiveUrl(
+  tileArchiveUrl: string,
   theme: MapTheme = 'light',
   glyphsUrl?: string,
   options: LocalVectorStyleOptions = {},
@@ -97,7 +111,7 @@ export function buildLocalVectorStyle(
     sources: {
       [sourceName]: {
         type: 'vector',
-        url: `pmtiles://${tileBaseUrl}/${tilesetName}.pmtiles`,
+        url: `pmtiles://${tileArchiveUrl}`,
         attribution: '© <a href="https://openstreetmap.org">OpenStreetMap</a>',
       },
     },

@@ -7,14 +7,12 @@ manages versioned tile files and updates a live progress status file.
 
 STATELESS DESIGN: The orchestrator does not decide scope at startup.
 It waits for a kickoff request from the Java backend that carries the
-scope in the URL path (PUT /kickoff/demo or PUT /kickoff/prod).
+scope in the URL path (PUT /kickoff/prod for normal app use).
 On each kickoff it:
-  1. Seeds pre-built tiles from /data-prebuilt/{scope}/ into /data/{scope}/
-  2. Checks for existing ready tiles, incomplete downloads, or starts fresh
-  3. All functions receive scope_dir as an explicit parameter
+  1. Checks for existing ready tiles, incomplete downloads, or starts fresh
+  2. All functions receive scope_dir as an explicit parameter
 
-Two independent scope directories: /data/demo/ and /data/prod/.
-Each uses versioned filenames (YYYYMMDD.pmtiles) with symlinks
+Each scope uses versioned filenames (YYYYMMDD.pmtiles) with symlinks
 (planet.pmtiles → YYYYMMDD.pmtiles).
 
 Status is written atomically to /tmp/map-status.json, served by nginx
@@ -41,7 +39,7 @@ from common import resolve_latest_url, protomaps_build_url, _HTTP_HEADERS
 # ── Configuration (from environment) ─────────────────────────────────
 
 DATA_DIR = Path("/data")
-PREBUILT_DIR = Path("/data-prebuilt")
+LOG_DIR = DATA_DIR / "logs"
 
 MAP_DOWNLOAD_URL = os.environ.get("MAP_DOWNLOAD_URL", "")
 MAP_AREA_BBOX = os.environ.get("MAP_AREA_BBOX", "")  # "west,south,east,north" for area-only extract
@@ -134,47 +132,13 @@ def _atomic_symlink(target_name: str, link_path: Path) -> None:
     log(f"  Symlink: {link_path.name} → {target_name}")
 
 
-# ── Pre-built tile seeding ───────────────────────────────────────────
-
-def seed_prebuilt(scope: str) -> None:
-    """Seed pre-built tiles from /data-prebuilt/{scope}/ into /data/{scope}/.
-
-    Skipped if:
-      - No pre-built directory exists for this scope
-      - The target already has a planet.pmtiles symlink (already seeded)
-    Uses cp -a to preserve symlinks.
-    """
-    src = PREBUILT_DIR / scope
-    dst = DATA_DIR / scope
-    planet_link = dst / "planet.pmtiles"
-
-    if not src.exists() or not any(src.iterdir()):
-        log(f"No pre-built tiles for scope '{scope}' — skipping seed")
-        return
-
-    if planet_link.is_symlink() or planet_link.exists():
-        log(f"Scope '{scope}' already has planet.pmtiles — skipping seed")
-        return
-
-    log(f"Seeding pre-built tiles from {src} into {dst} ...")
-    dst.mkdir(parents=True, exist_ok=True)
-    # Use cp -a to preserve symlinks
-    subprocess.run(
-        ["cp", "-a"] + [str(f) for f in src.iterdir()] + [str(dst) + "/"],
-        check=True,
-    )
-    log(f"Done seeding {scope} tiles.")
-    # Ensure everything under dst is world-writable so NAS users can manage it
-    subprocess.run(["chmod", "-R", "777", str(dst)], check=False)
-
-
 # ── Kickoff Web Server ───────────────────────────────────────────────
 
-_VALID_SCOPES = {"demo", "prod"}
+_VALID_SCOPES = {"prod"}
 
 
 def _parse_scope(path: str) -> str | None:
-    """Extract scope from a kickoff URL path like /kickoff/demo → 'demo'."""
+    """Extract scope from a kickoff URL path like /kickoff/prod -> 'prod'."""
     parts = [p for p in path.strip("/").split("/") if p]
     if len(parts) == 2 and parts[0] == "kickoff" and parts[1] in _VALID_SCOPES:
         return parts[1]
@@ -257,6 +221,7 @@ def write_status(
     download_bytes: int = 0,
     download_total: int = 0,
     message: str = "",
+    archive_id: str = "",
 ) -> None:
     """Atomically write status JSON (write to .tmp, then rename)."""
     data = {
@@ -266,6 +231,7 @@ def write_status(
         "download_bytes": download_bytes,
         "download_total": download_total,
         "message": message,
+        "archive_id": archive_id,
     }
     tmp = STATUS_FILE.with_suffix(".tmp")
     tmp.write_text(json.dumps(data, indent=2))
@@ -631,6 +597,14 @@ def main() -> None:
     log("════════════════════════════════════════════════════════════")
 
     write_status("starting", message="Initializing...")
+    LOG_DIR.mkdir(parents=True, exist_ok=True)
+    _make_world_writable(LOG_DIR)
+
+    # ── Step 0a: Start cron for persistent nginx log rotation ─────────
+    crond = subprocess.Popen(["crond", "-f", "-l", "8"])
+    with _lock:
+        _children.append(crond)
+    log("crond started — nginx map access logs will rotate daily")
 
     # ── Step 0: Start nginx (immediately healthy) ────────────────────
     nginx = subprocess.Popen(["nginx", "-g", "daemon off;"])
@@ -659,9 +633,6 @@ def main() -> None:
                 _make_world_writable(scope_dir)
 
                 log(f"[{scope}] Processing kickoff for scope: {scope} → {scope_dir}")
-
-                # Seed pre-built tiles if available
-                seed_prebuilt(scope)
 
                 # ── Step A: Already ready? ───────────────────────────
                 active = find_active_symlink(scope_dir)
@@ -692,6 +663,7 @@ def main() -> None:
                         download_bytes=total,
                         download_total=total,
                         message="Tile server running",
+                        archive_id=active,
                     )
                     log(f"[{scope}] Tile server is READY and serving requests")
                     continue
@@ -718,7 +690,7 @@ def main() -> None:
 
                     # Create symlinks
                     create_symlinks(scope_dir, ds)
-                    write_status("ready", ready=True, message="Tile server running")
+                    write_status("ready", ready=True, message="Tile server running", archive_id=ds)
                     log(f"[{scope}] Tile server is READY and serving requests")
                     continue
 
@@ -744,7 +716,7 @@ def main() -> None:
 
                     # Create symlinks
                     create_symlinks(scope_dir, ds)
-                    write_status("ready", ready=True, message="Tile server running")
+                    write_status("ready", ready=True, message="Tile server running", archive_id=ds)
                     log(f"[{scope}] Tile server is READY and serving requests")
                     continue
 

@@ -146,23 +146,37 @@
           <i class="bi bi-inbox"></i>
           <span>No saved routes yet. Draw a route and save it.</span>
         </div>
-        <ul v-else class="planner-plan-list">
-          <li
-            v-for="plan in savedPlans"
-            :key="plan.id"
-            class="planner-plan-item"
-            @click="selectPlan(plan.id)"
-          >
-            <div class="planner-plan-body">
-              <span class="planner-plan-name">{{ plan.name }}</span>
-              <span class="planner-plan-meta">
-                <i class="bi bi-rulers"></i> {{ (plan.distanceM / 1000).toFixed(1) }} km
-                <span v-if="plan.description" class="planner-plan-desc">· {{ plan.description }}</span>
-              </span>
-            </div>
-            <div class="planner-plan-date">{{ formatDate(plan.createDate) }}</div>
-          </li>
-        </ul>
+        <template v-else>
+          <div v-if="planExportError" class="planner-load-error" role="alert">
+            <i class="bi bi-exclamation-circle"></i>
+            <span>{{ planExportError }}</span>
+          </div>
+          <ul class="planner-plan-list">
+            <li v-for="plan in savedPlans" :key="plan.id" class="planner-plan-item">
+              <button type="button" class="planner-plan-open" @click="selectPlan(plan.id)">
+                <span class="planner-plan-body">
+                  <span class="planner-plan-name">{{ plan.name }}</span>
+                  <span class="planner-plan-meta">
+                    <i class="bi bi-rulers"></i> {{ (plan.distanceM / 1000).toFixed(1) }} km
+                    <span v-if="plan.description" class="planner-plan-desc">· {{ plan.description }}</span>
+                  </span>
+                </span>
+                <span class="planner-plan-date">{{ formatDate(plan.createDate) }}</span>
+              </button>
+              <button
+                type="button"
+                class="planner-plan-export"
+                :disabled="exportingPlanId !== null"
+                :title="`Export ${plan.name || 'route'} as GPX`"
+                :aria-label="`Export ${plan.name || 'route'} as GPX`"
+                @click="exportPlanGpx(plan)"
+              >
+                <i :class="exportingPlanId === plan.id ? 'bi bi-arrow-repeat planner-load-spin' : 'bi bi-download'"></i>
+                <span>GPX</span>
+              </button>
+            </li>
+          </ul>
+        </template>
       </div>
     </div>
 
@@ -229,7 +243,13 @@ import PrimeTextarea from 'primevue/textarea';
 import PrimeButton from 'primevue/button';
 import { usePlannerState } from '@/planner/composables/usePlannerState';
 import { useBRouterSegmentStatus } from '@/planner/composables/useBRouterSegmentStatus';
-import { fetchPlannerConfig, savePlannedRoute, listPlannedTracks, loadPlannedTrack } from '@/planner/repositories/plannerRepository';
+import {
+  downloadPlannedTrackGpx,
+  fetchPlannerConfig,
+  savePlannedRoute,
+  listPlannedTracks,
+  loadPlannedTrack,
+} from '@/planner/repositories/plannerRepository';
 import type { PlannedTrackSummary } from '@/planner/types';
 import {
   LONG_PRESS_MS,
@@ -278,6 +298,8 @@ export default defineComponent({
       activeTab: 'draw' as 'draw' | 'load',
       savedPlans: [] as PlannedTrackSummary[],
       plansLoading: false,
+      exportingPlanId: null as number | null,
+      planExportError: '',
       // dialogs
       saveDialogVisible: false,
       saveName: '',
@@ -418,12 +440,26 @@ export default defineComponent({
     async switchToLoad() {
       this.activeTab = 'load';
       this.plansLoading = true;
+      this.planExportError = '';
       try {
         this.savedPlans = await listPlannedTracks();
       } catch {
         this.savedPlans = [];
       } finally {
         this.plansLoading = false;
+      }
+    },
+
+    async exportPlanGpx(plan: PlannedTrackSummary) {
+      this.planExportError = '';
+      this.exportingPlanId = plan.id;
+      try {
+        await downloadPlannedTrackGpx(plan.id, plan.name);
+      } catch (e) {
+        console.warn('[planner] failed to export plan as GPX', plan.id, e);
+        this.planExportError = 'Could not export this route as GPX. Please try again.';
+      } finally {
+        this.exportingPlanId = null;
       }
     },
 
@@ -926,6 +962,21 @@ export default defineComponent({
 .planner-load-empty i {
   font-size: 2rem;
 }
+.planner-load-error {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid color-mix(in srgb, var(--error) 28%, var(--border-default));
+  border-radius: 10px;
+  background: var(--error-bg);
+  color: var(--error);
+  font-size: var(--text-sm-size);
+  line-height: var(--text-sm-lh);
+}
+.planner-load-error i {
+  flex-shrink: 0;
+}
 .planner-plan-list {
   list-style: none;
   margin: 0;
@@ -936,18 +987,39 @@ export default defineComponent({
 }
 .planner-plan-item {
   display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.65rem 0.8rem;
+  align-items: stretch;
+  gap: 0.45rem;
+  padding: 0.25rem;
   border-radius: 10px;
   border: 1px solid var(--border-default);
   background: var(--accent-bg);
-  cursor: pointer;
-  transition: background 0.12s, border-color 0.12s;
+  transition: border-color 0.12s;
 }
 .planner-plan-item:hover {
-  background: var(--accent-subtle);
   border-color: var(--accent-muted);
+}
+.planner-plan-open {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 0.45rem 0.55rem;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.planner-plan-open:hover {
+  background: var(--accent-subtle);
+}
+.planner-plan-open:focus-visible,
+.planner-plan-export:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 .planner-plan-body {
   display: flex;
@@ -970,6 +1042,7 @@ export default defineComponent({
   display: flex;
   align-items: center;
   gap: 0.3rem;
+  min-width: 0;
 }
 .planner-plan-desc {
   overflow: hidden;
@@ -981,6 +1054,31 @@ export default defineComponent({
   color: var(--text-muted);
   white-space: nowrap;
   flex-shrink: 0;
+}
+.planner-plan-export {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  width: 4.8rem;
+  min-height: 2.75rem;
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  background: var(--surface-glass-heavy);
+  color: var(--accent-text);
+  font-size: var(--text-xs-size);
+  line-height: var(--text-xs-lh);
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+  flex-shrink: 0;
+}
+.planner-plan-export:hover:not(:disabled) {
+  background: var(--accent-subtle);
+}
+.planner-plan-export:disabled {
+  opacity: 0.65;
+  cursor: wait;
 }
 .planner-notices {
   display: flex;
@@ -1174,6 +1272,20 @@ export default defineComponent({
   }
   .planner-controls-row {
     align-items: stretch;
+  }
+  .planner-plan-item {
+    gap: 0.35rem;
+  }
+  .planner-plan-open {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
+  }
+  .planner-plan-date {
+    align-self: flex-start;
+  }
+  .planner-plan-export {
+    width: 4.2rem;
   }
   .brouter-pill-wrap {
     width: 100%;

@@ -11,7 +11,6 @@
  * Whenever {@code PlannerController} grows stricter return types, revisit this
  * file and move the remaining endpoints over to the generated client.
  */
-import { getAuthHeaderValue } from '@/utils/auth';
 import { apiClient } from '@/utils/apiClient';
 import { getApiConfiguration } from '@/utils/openApiClient';
 import { PlannerControllerApi } from 'x8ing-mtl-api-typescript-fetch';
@@ -30,7 +29,11 @@ import type {
   Waypoint,
 } from '@/planner/types';
 
-const backendUrl = import.meta.env.VITE_BACKEND_URL;
+const GPX_FILE_EXTENSION = '.gpx';
+const GPX_MIME_TYPE = 'application/gpx+xml';
+const GPX_FILENAME_FALLBACK = 'planned-route';
+const INVALID_FILENAME_CHARS = /[\\/:*?"<>|]+/g;
+const WHITESPACE_CHARS = /\s+/g;
 
 function getPlannerApi(): PlannerControllerApi {
   return new PlannerControllerApi(getApiConfiguration());
@@ -114,25 +117,32 @@ export async function deletePlannedTrack(id: number): Promise<void> {
 }
 
 /**
- * GPX download. We cannot use the generated client because its return type is
- * {@code Promise<string>} (it eagerly parses the body as text) and we need a
- * Blob + anchor-click to trigger the browser download.
+ * GPX download. Use the generated client's raw response path because the
+ * convenience method returns text while browser download needs a Blob.
  */
-export function downloadPlannedTrackGpx(id: number, name: string): void {
-  const auth = getAuthHeaderValue();
-  fetch(`${backendUrl}${PLANNER_API_BASE}/plans/${id}/gpx`, {
-    headers: { Authorization: auth },
-    credentials: 'include',
-  })
-    .then((r) => r.blob())
-    .then((blob) => {
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${name || 'planned-route'}.gpx`;
-      a.click();
-      URL.revokeObjectURL(url);
-    });
+export async function downloadPlannedTrackGpx(id: number, name: string): Promise<void> {
+  const response = await getPlannerApi().downloadGpxRaw({ id });
+  const blob = await response.raw.blob();
+  const typedBlob = blob.type ? blob : new Blob([blob], { type: GPX_MIME_TYPE });
+  const url = URL.createObjectURL(typedBlob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = makeGpxFileName(name);
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 0);
+}
+
+function makeGpxFileName(name: string): string {
+  const baseName = name
+    .trim()
+    .replace(INVALID_FILENAME_CHARS, '-')
+    .replace(WHITESPACE_CHARS, ' ')
+    || GPX_FILENAME_FALLBACK;
+  return baseName.toLowerCase().endsWith(GPX_FILE_EXTENSION)
+    ? baseName
+    : `${baseName}${GPX_FILE_EXTENSION}`;
 }
 
 /** Fire-and-forget: tell the sidecar to download segments covering the given bbox. */

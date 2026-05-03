@@ -1,5 +1,7 @@
 import { PMTiles, type Source, type RangeResponse } from 'pmtiles';
 
+export const MAP_ARCHIVE_STALE_EVENT = 'mtl-map-archive-stale';
+
 /**
  * A PMTiles Source that uses `cache: 'force-cache'` on fetch() calls.
  *
@@ -41,6 +43,11 @@ class CachingFetchSource implements Source {
       headers,
     });
 
+    if (resp.status === 409) {
+      notifyMapArchiveStale(this.url);
+      throw new Error('Map archive changed; refreshing map config.');
+    }
+
     // Handle edge case: archive smaller than initial probe size
     if (offset === 0 && resp.status === 416) {
       const contentRange = resp.headers.get('Content-Range');
@@ -54,6 +61,10 @@ class CachingFetchSource implements Source {
         cache: 'reload',
         headers,
       });
+      if (retry.status === 409) {
+        notifyMapArchiveStale(this.url);
+        throw new Error('Map archive changed; refreshing map config.');
+      }
       const a = await retry.arrayBuffer();
       return {
         data: a,
@@ -98,6 +109,10 @@ function getStrongEtag(resp: Response): string | null {
   const etag = resp.headers.get('ETag');
   if (etag?.startsWith('W/')) return null; // weak etag not useful
   return etag;
+}
+
+function notifyMapArchiveStale(url: string): void {
+  window.dispatchEvent(new CustomEvent(MAP_ARCHIVE_STALE_EVENT, { detail: { url } }));
 }
 
 /**

@@ -1,11 +1,12 @@
 # ----- Self-downloading PMTiles map server -----
 # Downloads the planet vector map file on first startup, then serves tiles.
-# Two independent scopes: /data/demo/ (baked) and /data/prod/ (downloaded).
+# The published image does not include prebuilt map archives; it either serves
+# existing files from /data or prepares them at runtime when kicked off.
 #
 # Architecture:
 #   nginx (port 8081, public) serves /data/ tree as static files.
-#   Two scope directories: /data/demo/ and /data/prod/, each with versioned
-#   files (YYYYMMDD.pmtiles) + symlinks (planet.pmtiles → YYYYMMDD.pmtiles).
+#   Scope directories under /data/ contain versioned files
+#   (YYYYMMDD.pmtiles) + symlinks (planet.pmtiles -> YYYYMMDD.pmtiles).
 #   The Java backend proxies scope-prefixed URLs: http://map-server:8081/{scope}/{filename}
 #
 #   GET /health                    — always 200 (Docker HEALTHCHECK)
@@ -20,17 +21,9 @@
 #   LOWZOOM_MAXZOOM             - Max zoom level for the offline low-zoom extract (default: 6)
 #
 # Build:
-#   # Prod image (no baked tiles):
 #   docker build -t wauwau0977/mytraillog-maps:1.4 .
-#
-#   # Demo image (bakes Porto vector tiles at build time — ~250 MB larger):
-#   docker build \
-#     --build-arg BAKE_DEMO_AREA="-13.0,39.3,-4.5,42.6" \
-#     --build-arg PROTOMAPS_URL=https://build.protomaps.com/20260404.pmtiles \
-#     -t wauwau0977/mytraillog-maps:1.4 .
 
-# ── Stage 1: base ────────────────────────────────────────────────────
-FROM alpine:3.21 AS base
+FROM alpine:3.21
 
 ARG PMTILES_VERSION=1.30.1
 
@@ -50,7 +43,9 @@ RUN apk add --no-cache \
     # file inspection
     file jq \
     # archive tools
-    tar gzip
+    tar gzip \
+    # persistent nginx log rotation
+    logrotate dcron
 
 # Download the go-pmtiles binary
 RUN ARCH=$(uname -m) && \
@@ -65,12 +60,15 @@ RUN ARCH=$(uname -m) && \
     rm /tmp/pmtiles.tar.gz
 
 # The persistent data volume mount point
-RUN mkdir -p /data/demo /data/prod /app/scripts
+RUN mkdir -p /data/prod /app/scripts
 VOLUME /data
 
 # nginx: replace default config with our reverse-proxy config
 RUN rm -f /etc/nginx/http.d/default.conf
 COPY nginx.conf /etc/nginx/http.d/map-server.conf
+COPY logrotate-mtl-maps.conf /etc/logrotate.d/mtl-maps
+RUN chmod 644 /etc/logrotate.d/mtl-maps && \
+    printf '17 3 * * * /usr/sbin/logrotate -s /data/logs/logrotate.status /etc/logrotate.d/mtl-maps\n' > /etc/crontabs/root
 
 COPY scripts/ /app/scripts/
 COPY entrypoint.sh /app/entrypoint.sh
@@ -83,38 +81,3 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
   CMD wget -q --spider http://localhost:${PORT:-8081}/health || exit 1
 
 ENTRYPOINT ["/app/entrypoint.sh"]
-
-
-# ── Stage 2: baker — bake versioned demo tiles at build time ─────
-FROM base AS baker
-
-ARG PROTOMAPS_URL="https://build.protomaps.com/20260404.pmtiles"
-ARG BAKE_DEMO_AREA="-13.0,39.3,-4.5,42.6"
-ARG BAKE_LOWZOOM_MAXZOOM="5"
-
-# Bake into /data-prebuilt/demo/ (NOT /data/) so the volume mount at /data
-# does not shadow the pre-baked tiles at runtime.
-#
-# Versioned naming: extract the YYYYMMDD date from the URL and use it
-# as the tile filename.  Symlinks planet.pmtiles / world-lowzoom.pmtiles
-# point to the versioned files.
-RUN mkdir -p /data-prebuilt/demo && \
-    BUILD_DATE=$(echo "$PROTOMAPS_URL" | grep -oE '[0-9]{8}') && \
-    echo "Baking demo tiles: date=${BUILD_DATE}, bbox=${BAKE_DEMO_AREA}, source=${PROTOMAPS_URL}" && \
-    pmtiles extract "$PROTOMAPS_URL" "/data-prebuilt/demo/${BUILD_DATE}.pmtiles" \
-      --bbox="$BAKE_DEMO_AREA" --maxzoom=15 && \
-    touch "/data-prebuilt/demo/${BUILD_DATE}.pmtiles.done" && \
-    pmtiles extract "$PROTOMAPS_URL" "/data-prebuilt/demo/${BUILD_DATE}-lowzoom.pmtiles" \
-      --maxzoom="$BAKE_LOWZOOM_MAXZOOM" && \
-    touch "/data-prebuilt/demo/${BUILD_DATE}-lowzoom.pmtiles.done" && \
-    ln -s "${BUILD_DATE}.pmtiles" /data-prebuilt/demo/planet.pmtiles && \
-    ln -s "${BUILD_DATE}-lowzoom.pmtiles" /data-prebuilt/demo/world-lowzoom.pmtiles && \
-    echo "Demo tiles baked successfully:" && \
-    ls -lh /data-prebuilt/demo/
-
-
-# ── Stage 3: final — merge base + baked data ────────────────────────
-FROM base AS final
-
-# Pre-built tiles — orchestrator seeds them into /data/{scope}/ on kickoff
-COPY --from=baker /data-prebuilt /data-prebuilt

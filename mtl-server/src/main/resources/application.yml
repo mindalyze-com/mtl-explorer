@@ -64,7 +64,17 @@ mtl:
     status-url: http://map-server:8081/status
     tile-mode: local                            # "local" = vector tiles from docker-maps, "remote" = raster from internet
     tile-upstream-url: http://map-server:8081   # Docker-internal URL; Java proxy forwards /{scope}/{filename}
-    tile-base-url: /mtl/api/map-proxy           # base path returned to client; scope suffix (/demo or /prod) appended dynamically
+    # Hosted PMTiles service for MTL Explorer only, not a general tile service.
+    # Normal self-hosted installs should not need to change these values.
+    public-upstream-url: https://mtl-maps-public-prod.mindalyze.com
+    public-archive-id: public-default           # change when the public PMTiles byte layout changes
+    local-archive-id: local-default             # fallback cache key until docker-maps reports its active build id
+    local-probe-url:                            # blank = derive from tile-upstream-url + /health
+    local-probe-interval-seconds: 20
+    local-probe-active-window-seconds: 120
+    local-probe-timeout-ms: 800
+    upstream-decision-cache-ttl-seconds: 60
+    tile-base-url: /mtl/api/map-proxy           # base path returned to client; /prod scope appended dynamically
     tileset-name: planet                        # main tileset filename (without .pmtiles)
     lowzoom-tileset-name: world-lowzoom         # low-zoom extract for offline client cache
     remote-tile-url: https://tile.openstreetmap.org/{z}/{x}/{y}.png  # raster URL when tile-mode=remote
@@ -88,14 +98,6 @@ server:
       text/html,text/xml,text/plain,text/css,text/javascript,
       application/javascript,application/json,application/geo+json,
       application/xml,image/svg+xml
-  ssl:
-    key-store: classpath:keystore.p12
-    key-store-password: password
-    key-store-type: PKCS12
-    key-alias: selfsigned
-    enabled: true
-
-
 spring:
   datasource:
     url: jdbc:postgresql://db:5432/mtl

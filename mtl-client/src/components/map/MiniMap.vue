@@ -3,8 +3,8 @@ import { inject, onBeforeUnmount, onMounted, useTemplateRef, watch } from 'vue';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { EVENT_MEASURE_BETWEEN_POINTS_DIALOG_MAXIMIZED_EVENT } from '@/utils/Utils';
-import { fetchMapConfig } from '@/utils/mapConfigService';
-import { buildLocalVectorStyle, buildRemoteRasterStyle } from '@/utils/mapStyle';
+import { fetchMapConfig, mainTileArchiveUrl, MapConfigDtoTileModeEnum } from '@/utils/mapConfigService';
+import { buildLocalVectorStyleFromArchiveUrl, buildRemoteRasterStyle } from '@/utils/mapStyle';
 import { TRACK_COLOR } from '@/utils/trackColors';
 
 const props = defineProps({
@@ -154,8 +154,8 @@ async function initMap() {
 
   const config = await fetchMapConfig();
   let style;
-  if (config.tileMode === 'local') {
-    style = buildLocalVectorStyle(config.tileBaseUrl, config.tilesetName, 'light');
+  if (config.tileMode === MapConfigDtoTileModeEnum.Local) {
+    style = buildLocalVectorStyleFromArchiveUrl(mainTileArchiveUrl(config), 'light');
   } else {
     style = buildRemoteRasterStyle(config.remoteTileUrl);
   }

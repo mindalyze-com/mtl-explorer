@@ -28,8 +28,6 @@ mtl:
     user-password: 'XXX_PWD' # needs password  in custom application.yml
 
 server:
-  ssl:
-    enabled: false
   servlet:
     session:
       cookie:

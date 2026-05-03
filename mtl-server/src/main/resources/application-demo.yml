@@ -11,5 +11,3 @@ mtl:
     initial-center-lng: -8.6291   # Porto, Portugal
     initial-center-lat: 41.1579   # Porto, Portugal
     initial-zoom: 12
-    demo-area-bbox: "-13.0,39.3,-4.5,42.6"   # west,south,east,north — must match BAKE_DEMO_AREA in docker-maps/Dockerfile
-    demo-area-max-zoom: 15                    # max zoom available in demo tiles — must match BAKE_DEMO_AREA max zoom

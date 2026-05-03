@@ -8,22 +8,36 @@
 import { apiClient } from '@/utils/apiClient';
 import { describeError, startStartupTimer, startupLog } from '@/utils/startupDiagnostics';
 import { USER_PREFS_KEYS } from '@/utils/userPrefs';
+import {
+  MapConfigDtoTileModeEnum,
+  MapConfigDtoTileSourceEnum,
+  type MapConfigDto,
+} from 'x8ing-mtl-api-typescript-fetch/dist/esm/models/MapConfigDto';
 
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
-export interface MapConfig {
-  tileMode: 'local' | 'remote';
+export { MapConfigDtoTileModeEnum, MapConfigDtoTileSourceEnum };
+
+export type MapTileMode = MapConfigDtoTileModeEnum;
+export type MapTileSource = MapConfigDtoTileSourceEnum;
+
+export type MapConfig = MapConfigDto & {
+  tileMode: MapTileMode;
   tileBaseUrl: string;
+  tileArchiveUrl?: string;
   tilesetName: string;
   lowzoomTilesetName: string;
+  lowzoomArchiveUrl?: string;
+  tileSource?: MapTileSource;
+  archiveId?: string;
   remoteTileUrl: string;
   /** Present on server response; used for initial map viewport. */
   initialCenterLng?: number;
   initialCenterLat?: number;
   initialZoom?: number;
-  /** Bounding box of demo tile area [west, south, east, north]. Null in production. */
+  /** Legacy bounded-map metadata, normally omitted. */
   demoAreaBbox?: number[];
-  /** Maximum zoom level available in demo tiles. Null in production. */
+  /** Legacy bounded-map metadata, normally omitted. */
   demoAreaMaxZoom?: number;
   /** True when the backend planner feature flag is enabled. */
   plannerEnabled?: boolean;
@@ -31,10 +45,10 @@ export interface MapConfig {
   plannerProfiles?: string[];
   /** True when config was restored from localStorage because the server was unreachable. */
   offline?: boolean;
-}
+};
 
 const DEFAULT_CONFIG: MapConfig = {
-  tileMode: 'local',
+  tileMode: MapConfigDtoTileModeEnum.Local,
   tileBaseUrl: '',
   tilesetName: 'planet',
   lowzoomTilesetName: 'world-lowzoom',
@@ -86,6 +100,9 @@ export async function fetchMapConfig(): Promise<MapConfig> {
       timer.success('Map config fetched', {
         tileMode: cachedConfig.tileMode,
         tileBaseUrl: cachedConfig.tileBaseUrl,
+        tileArchiveUrl: cachedConfig.tileArchiveUrl,
+        tileSource: cachedConfig.tileSource,
+        archiveId: cachedConfig.archiveId,
         tilesetName: cachedConfig.tilesetName,
         lowzoomTilesetName: cachedConfig.lowzoomTilesetName,
       });
@@ -122,6 +139,14 @@ export async function fetchMapConfig(): Promise<MapConfig> {
   })();
 
   return inFlight;
+}
+
+export function mainTileArchiveUrl(config: MapConfig): string {
+  return config.tileArchiveUrl || `${config.tileBaseUrl}/${config.tilesetName}.pmtiles`;
+}
+
+export function lowzoomTileArchiveUrl(config: MapConfig): string {
+  return config.lowzoomArchiveUrl || `${config.tileBaseUrl}/${config.lowzoomTilesetName}.pmtiles`;
 }
 
 /** Reset the cached config (e.g. on logout). */

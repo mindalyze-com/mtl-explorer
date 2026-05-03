@@ -6,7 +6,7 @@ ARG GCEXPORT_DEFAULT_VERSION=v4.6.2
 ARG FIT_EXPORT_DEFAULT_PROFILE=default
 ARG FIT_EXPORT_DEFAULT_PACKAGES="garth fitparse gpxpy"
 
-FROM debian:bookworm
+FROM eclipse-temurin:21-jre-jammy
 
 # Promote build ARGs to runtime ENVs (Spring Boot reads these via ${GCEXPORT_DEFAULT_VERSION:v4.6.2})
 ARG GCEXPORT_DEFAULT_VERSION
@@ -20,22 +20,19 @@ ENV FIT_EXPORT_DEFAULT_PACKAGES=${FIT_EXPORT_DEFAULT_PACKAGES}
 ENV LANG=C.UTF-8
 ENV LC_ALL=C.UTF-8
 
-# Install required packages and msopenjdk-21
+# Install required runtime packages.
+# eclipse-temurin:21-jre-jammy includes the jdk.jfr module. jattach keeps
+# runtime JFR attach/start/dump/stop available without shipping a full JDK.
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
       ca-certificates \
       curl \
+      jattach \
       procps \
       vim \
       wget \
       less \
-      unzip \
-      lsb-release && \
-    apt-get install --reinstall -y ca-certificates && \
-    wget https://packages.microsoft.com/config/debian/$(lsb_release -rs)/packages-microsoft-prod.deb -O packages-microsoft-prod.deb && \
-    dpkg -i packages-microsoft-prod.deb && \
-    apt-get update && \
-    apt-get install -y --no-install-recommends msopenjdk-21 && \
+      unzip && \
     rm -rf /var/lib/apt/lists/*
 
 
@@ -43,7 +40,7 @@ RUN apt-get update && \
 # Install imagemagick + libheif-dev for HEIC-to-JPEG conversion in MediaController
 # Install python3-pillow + fonts for demo-photo generation
 RUN apt-get update && apt-get install -y --no-install-recommends python3-pip python3-venv imagemagick libheif-dev python3-pillow fonts-dejavu-core gpsbabel \
-    && pip3 install --break-system-packages piexif \
+    && pip3 install piexif \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* /root/.cache/pip
 
@@ -51,7 +48,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends python3-pip pyt
 # install_gcexport.sh is idempotent: skips if venv_gcexport_<version>/ already exists
 COPY docker/garmin_export/ /app/garmin_export/
 RUN chmod +x /app/garmin_export/install_gcexport.sh /app/garmin_export/run_export.sh \
-    && /bin/bash /app/garmin_export/install_gcexport.sh "${GCEXPORT_DEFAULT_VERSION}"
+    && /bin/bash /app/garmin_export/install_gcexport.sh "${GCEXPORT_DEFAULT_VERSION}" \
+    && rm -rf /root/.cache/pip
 
 # Temporary patch for garmin-connect-export (remove when project delivers official fix)
 # filterdiff applies only the .py hunks; requirements.txt is written directly (version mismatch in upstream)
@@ -60,14 +58,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends patch patchutil
     && filterdiff -i '*.py' /app/garmin_export/patch_2026_04_13.txt | patch -p1 \
     && printf 'garminconnect>=0.3.2,<0.4.0\n' > requirements.txt \
     && /app/garmin_export/venv_gcexport_${GCEXPORT_DEFAULT_VERSION}/bin/pip install -r requirements.txt \
-    && apt-get clean && rm -rf /var/lib/apt/lists/*
+    && apt-get clean && rm -rf /var/lib/apt/lists/* /root/.cache/pip
 
 
 # Copy garmin_fit_export folder and pre-install the default fit-export profile
 # install_fit_export.sh is idempotent: skips if venv_fit_<profile>/ already exists
 COPY docker/garmin_fit_export/ /app/garmin_fit_export/
 RUN chmod +x /app/garmin_fit_export/install_fit_export.sh /app/garmin_fit_export/run_fit_export.sh \
-    && /bin/bash /app/garmin_fit_export/install_fit_export.sh "${FIT_EXPORT_DEFAULT_PROFILE}" "${FIT_EXPORT_DEFAULT_PACKAGES}"
+    && /bin/bash /app/garmin_fit_export/install_fit_export.sh "${FIT_EXPORT_DEFAULT_PROFILE}" "${FIT_EXPORT_DEFAULT_PACKAGES}" \
+    && rm -rf /root/.cache/pip
 
 # Copy demo-mode assets (GPX zip + photo generator script) — always packaged, only used at runtime when DEMO_MODE is set
 COPY docker/gpx_porto_taxi_dataset/porto_taxi_service_gpx_extract.zip /app/demo/porto_taxi_service_gpx_extract.zip
@@ -80,7 +79,10 @@ COPY mtl-server/target/mtl-server-0.0.1-SNAPSHOT.jar /app/mtl-server-0.0.1-SNAPS
 WORKDIR /app
 
 # Create directories that will be used as volumes
-RUN mkdir -p /app/gpx /app/media /app/config
+RUN mkdir -p /app/gpx /app/media /app/config \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists /var/cache/apt/archives /var/log/apt \
+    && mkdir -p /var/lib/apt/lists/partial
 
 # Expose the port for the Spring Boot application
 EXPOSE 8080

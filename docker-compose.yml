@@ -1,5 +1,3 @@
-name: mtl-explorer
-
 x-db-environment: &db-environment
   POSTGRES_DB: mtl
   POSTGRES_USER: mtluser
@@ -53,6 +51,7 @@ services:
       MTL_PLANNER_ENABLED: "true"
       MTL_PLANNER_BROUTER_BASE_URL: http://brouter:17777
       MTL_PLANNER_STATUS_URL: http://brouter:17778/status
+      SERVER_SSL_ENABLED: "false"
     ports:
       - "18080:8080"
     restart: unless-stopped
@@ -68,6 +67,10 @@ services:
           memory: 512m
 
   map-server:
+    # Optional local PMTiles sidecar. Disabled by default; enable with:
+    # docker compose --profile local-maps up -d
+    # Without this profile, the app uses the hosted PMTiles service.
+    profiles: ["local-maps"]
     image: wauwau0977/mytraillog-maps:latest
     ports:
       - "18081:8081"
