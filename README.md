@@ -39,7 +39,7 @@ Repository layout:
 
 ## Quick start
 
-Prerequisite: Docker with Docker Compose.
+Prerequisite: Docker Engine and the Docker Compose plugin must be installed and support `docker compose`.
 
 1. Start the stack:
 
