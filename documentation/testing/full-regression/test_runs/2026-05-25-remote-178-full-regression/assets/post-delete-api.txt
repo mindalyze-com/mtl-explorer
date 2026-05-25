@@ -1,0 +1,133 @@
+Post-delete API evidence
+tracks:
+[
+  {
+    "id": 100000,
+    "trackName": "Lannion_Plestin_parcours Lannion_Plestin_parcours1",
+    "sourceFile": "Lannion_Plestin_parcours24.4RE.gpx",
+    "sourceBytes": 60917,
+    "indexerStatus": "COMPLETED_WITH_SUCCESS",
+    "loadStatus": "SUCCESS",
+    "numberOfTrackPoints": 381,
+    "distanceM": 25882.44,
+    "activityType": "BICYCLE"
+  },
+  {
+    "id": 100004,
+    "trackName": "voie verte haute vosges on GPSies.com",
+    "sourceFile": "VoieVerteHauteVosges.gpx",
+    "sourceBytes": 183733,
+    "indexerStatus": "COMPLETED_WITH_SUCCESS",
+    "loadStatus": "SUCCESS",
+    "numberOfTrackPoints": 1298,
+    "distanceM": 78537.83,
+    "activityType": "BICYCLE"
+  },
+  {
+    "id": 100002,
+    "trackName": "Vitry le françois - langres on GPSies.com",
+    "sourceFile": "Vitry-le-Francois_Langres.gpx",
+    "sourceBytes": 238349,
+    "indexerStatus": "COMPLETED_WITH_SUCCESS",
+    "loadStatus": "SUCCESS",
+    "numberOfTrackPoints": 1688,
+    "distanceM": 147212.84,
+    "activityType": "BICYCLE"
+  },
+  {
+    "id": 100001,
+    "trackName": "Moselradweg aus Wiki on GPSies.com",
+    "sourceFile": "MoselradwegAusWiki.gpx",
+    "sourceBytes": 415326,
+    "indexerStatus": "COMPLETED_WITH_SUCCESS",
+    "loadStatus": "SUCCESS",
+    "numberOfTrackPoints": 2949,
+    "distanceM": 517818.88,
+    "activityType": "BICYCLE"
+  }
+]
+indexer:
+[
+  {
+    "index": "GPS",
+    "total": 6,
+    "pending": 0,
+    "completed": 4,
+    "failed": 0,
+    "removed": 2,
+    "excluded": 0,
+    "progressPercent": 66
+  }
+]
+freshness:
+{
+  "freshnessToken": "2ZAHpA__|server_id:89mcJpNn3q1qPRxdNckCVw|config:9|filters:83|index:24|media:0|track_geometry:54|tracks:38",
+  "items": [
+    {
+      "key": "config",
+      "revision": 9,
+      "changedAt": "2026-05-25T19:57:42.459+0000"
+    },
+    {
+      "key": "filters",
+      "revision": 83,
+      "changedAt": "2026-05-25T19:57:15.454+0000"
+    },
+    {
+      "key": "index",
+      "revision": 24,
+      "changedAt": "2026-05-25T20:25:33.245+0000"
+    },
+    {
+      "key": "media",
+      "revision": 0,
+      "changedAt": "2026-05-25T19:57:05.856+0000"
+    },
+    {
+      "key": "track_geometry",
+      "revision": 54,
+      "changedAt": "2026-05-25T20:03:34.219+0000"
+    },
+    {
+      "key": "tracks",
+      "revision": 38,
+      "changedAt": "2026-05-25T20:25:32.996+0000"
+    }
+  ]
+}
+jobs:
+[
+  {
+    "job": "duplicate",
+    "label": "Duplicate Finder",
+    "total": 4,
+    "pending": 0,
+    "done": 4,
+    "progressPercent": 100
+  },
+  {
+    "job": "activityType",
+    "label": "Activity Classifier",
+    "total": 4,
+    "pending": 0,
+    "done": 4,
+    "progressPercent": 100
+  },
+  {
+    "job": "exploration",
+    "label": "Exploration Score",
+    "total": 4,
+    "pending": 0,
+    "done": 4,
+    "progressPercent": 100
+  }
+]
+overview-summary:
+{
+  "trackCount": 4,
+  "distanceM": 769451.9899999999,
+  "durationMs": 5.6645E+7,
+  "energyWh": 2719.7,
+  "oldestStart": "2010-01-01T00:00:00.000+0000",
+  "newestStart": "2013-03-08T09:32:24.000+0000"
+}

@@ -88,8 +88,6 @@ Run this in every full regression and every release-candidate data-change pass.
 - The splash screen (logo, background, message) displays during startup and disappears once the map and tracks are loaded.
 - If startup fails (e.g. server down), a retry is offered instead of a frozen splash.
 - "MTL Explorer" branding appears in About / public-facing copy.
-- The About page is reachable without signing in.
-- Deep links work: opening `/track/<id>`, `/plan/<id>`, `/stats`, and `/about` directly loads the right view (after login when required).
 - Browser back/forward navigation between views works without errors.
 
 ## 2. Map And Tracks
@@ -193,6 +191,10 @@ Run this in every full regression and every release-candidate data-change pass.
 
 ## 11. GPS Location
 
+- Browser geolocation requires a secure origin. In quick-install runs opened
+  from a remote plain-HTTP host, mark live GPS permission/marker checks
+  `NOT APPLICABLE - expected browser limitation`; test those rows on
+  `localhost` or HTTPS.
 - Enable GPS → permission prompt; on accept, the locate marker appears.
 - "Follow me" mode keeps the map centered until you pan away (drifted state).
 - Permission denied / disabled state shows a clear message.

@@ -1,0 +1,17 @@
+docker versions
+Docker version 29.5.2, build 79eb04c
+Docker Compose version v5.1.4
+
+compose ps
+NAME                             IMAGE                                          COMMAND                  SERVICE           CREATED          STATUS                    PORTS
+mtl-explorer-app-1               wauwau0977/mytraillog:latest                   "/my-entrypoint.sh j…"   app               29 minutes ago   Up 29 minutes             0.0.0.0:18080->8080/tcp, [::]:18080->8080/tcp
+mtl-explorer-brouter-1           wauwau0977/mytraillog-brouter:latest           "/opt/brouter-orches…"   brouter           29 minutes ago   Up 29 minutes             17777-17778/tcp
+mtl-explorer-db-1                postgis/postgis:18-3.6                         "docker-entrypoint.s…"   db                29 minutes ago   Up 29 minutes (healthy)   5432/tcp
+mtl-explorer-location-search-1   wauwau0977/mytraillog-location-search:latest   "python /app/locatio…"   location-search   29 minutes ago   Up 29 minutes (healthy)   0.0.0.0:18083->8083/tcp, [::]:18083->8083/tcp
+
+image ids
+CONTAINER                        REPOSITORY                              TAG                 PLATFORM            IMAGE ID            SIZE                CREATED
+mtl-explorer-app-1               wauwau0977/mytraillog                   latest              linux/amd64         2478a8766842        341MB               7 hours ago
+mtl-explorer-brouter-1           wauwau0977/mytraillog-brouter           latest              linux/amd64         369ca40239ea        115MB               6 hours ago
+mtl-explorer-db-1                postgis/postgis                         18-3.6              linux/amd64         750ce2898856        239MB               11 hours ago
+mtl-explorer-location-search-1   wauwau0977/mytraillog-location-search   latest              linux/amd64         dd9a2b32d32a        170MB               7 hours ago

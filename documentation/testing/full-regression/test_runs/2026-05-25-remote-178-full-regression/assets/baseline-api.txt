@@ -1,0 +1,53 @@
+Baseline API evidence before import
+GET /api/tracks/get count:
+0
+GET /api/indexer/status:
+[]
+GET /api/data-freshness:
+{
+  "freshnessToken": "6AtorP__|server_id:89mcJpNn3q1qPRxdNckCVw|config:9|filters:83|index:0|media:0|track_geometry:0|tracks:0",
+  "items": [
+    {
+      "key": "config",
+      "revision": 9,
+      "changedAt": "2026-05-25T19:57:42.459+0000"
+    },
+    {
+      "key": "filters",
+      "revision": 83,
+      "changedAt": "2026-05-25T19:57:15.454+0000"
+    },
+    {
+      "key": "index",
+      "revision": 0,
+      "changedAt": "2026-05-25T19:57:05.856+0000"
+    },
+    {
+      "key": "media",
+      "revision": 0,
+      "changedAt": "2026-05-25T19:57:05.856+0000"
+    },
+    {
+      "key": "track_geometry",
+      "revision": 0,
+      "changedAt": "2026-05-25T19:57:05.856+0000"
+    },
+    {
+      "key": "tracks",
+      "revision": 0,
+      "changedAt": "2026-05-25T19:57:05.856+0000"
+    }
+  ]
+}
+POST /api/tracks/get-track-overview summary:
+{
+  "trackCount": 0,
+  "distanceM": 0.0,
+  "durationMs": 0.0,
+  "energyWh": 0.0
+}
+GET /api/gpx-upload/status:
+{
+  "available": true,
+  "message": "Upload directory is available."
+}
