@@ -1,5 +1,6 @@
 package com.x8ing.mtl.server.mtlserver.web.services.config;
 
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.x8ing.mtl.server.mtlserver.db.entity.config.ConfigEntity;
 import com.x8ing.mtl.server.mtlserver.db.repository.config.ConfigRepository;
 import com.x8ing.mtl.server.mtlserver.utils.UUIDUtils;
@@ -19,6 +20,10 @@ import java.util.List;
  */
 @Slf4j
 @Service
+@JsonPropertyOrder({
+        "configRepository",
+        "cachedServerId"
+})
 public class ServerIdentityService {
 
     private static final String DOMAIN_SECURITY = "SECURITY";

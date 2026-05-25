@@ -1,8 +1,10 @@
 package com.x8ing.mtl.server.mtlserver.web.services.gpxupload;
 
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.x8ing.mtl.server.mtlserver.gpx.GpxUploadService;
 import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -10,6 +12,10 @@ import org.springframework.web.multipart.MultipartFile;
 @RestController
 @RequestMapping("/api/gpx-upload")
 @RequiredArgsConstructor
+@Slf4j
+@JsonPropertyOrder({
+        "gpxUploadService"
+})
 public class GpxUploadController {
 
     private final GpxUploadService gpxUploadService;
@@ -34,11 +40,13 @@ public class GpxUploadController {
             return ResponseEntity.badRequest()
                     .body(new GpxUploadService.GpxUploadResult(false, e.getMessage(), null));
         } catch (IllegalStateException e) {
+            log.warn("GPX upload service unavailable: {}", e.getMessage(), e);
             return ResponseEntity.status(503)
-                    .body(new GpxUploadService.GpxUploadResult(false, e.getMessage(), null));
+                    .body(new GpxUploadService.GpxUploadResult(false, "Upload service is not available.", null));
         } catch (Exception e) {
+            log.warn("GPX upload failed unexpectedly", e);
             return ResponseEntity.internalServerError()
-                    .body(new GpxUploadService.GpxUploadResult(false, "Upload failed: " + e.getMessage(), null));
+                    .body(new GpxUploadService.GpxUploadResult(false, "Upload failed.", null));
         }
     }
 }

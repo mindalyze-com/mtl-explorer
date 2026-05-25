@@ -1,14 +1,29 @@
 package com.x8ing.mtl.server.mtlserver.web.services.map;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
+import com.x8ing.mtl.server.mtlserver.web.services.info.VersionInfoDto;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
+
+import java.util.LinkedHashMap;
 
 /**
  * Mirrors the JSON written by the map-server Python orchestrator
  * at /tmp/map-status.json (served via nginx GET /status).
  */
 @Data
+@JsonPropertyOrder({
+        "phase",
+        "ready",
+        "downloadPct",
+        "downloadBytes",
+        "downloadTotal",
+        "message",
+        "tileSource",
+        "archiveId",
+        "versionInfo"
+})
 public class MapServerStatusDto {
 
     private String phase;
@@ -38,6 +53,8 @@ public class MapServerStatusDto {
     @JsonProperty("archive_id")
     private String archiveId;
 
+    private VersionInfoDto versionInfo;
+
     /**
      * Factory for the fallback status when the map-server is unreachable.
      */
@@ -58,6 +75,16 @@ public class MapServerStatusDto {
         dto.setMessage("Using hosted map service");
         dto.setTileSource(MapProxyConstants.SOURCE_PUBLIC);
         dto.setArchiveId(archiveId);
+        dto.setVersionInfo(dataVersion("protomapsArchive", archiveId));
+        return dto;
+    }
+
+    private static VersionInfoDto dataVersion(String key, String value) {
+        VersionInfoDto dto = new VersionInfoDto();
+        dto.setData(new LinkedHashMap<>());
+        if (value != null && !value.isBlank()) {
+            dto.getData().put(key, value);
+        }
         return dto;
     }
 }

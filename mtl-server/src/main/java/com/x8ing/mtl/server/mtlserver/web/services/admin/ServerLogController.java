@@ -1,5 +1,6 @@
 package com.x8ing.mtl.server.mtlserver.web.services.admin;
 
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.x8ing.mtl.server.mtlserver.config.MtlAppProperties;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -18,6 +19,9 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/admin")
 @RequiredArgsConstructor
+@JsonPropertyOrder({
+        "mtlAppProperties"
+})
 public class ServerLogController {
 
     private static final List<String> LOG_CANDIDATES = List.of(

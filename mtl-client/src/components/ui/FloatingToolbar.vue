@@ -1,15 +1,21 @@
 <template>
-  <div class="ftb" :class="{ 'ftb--expanded': expanded }" @drag.stop @dblclick.stop @mousedown.stop @click="!expanded && (expanded = true)">
-
+  <div
+    class="ftb"
+    :class="{ 'ftb--expanded': expanded }"
+    @drag.stop
+    @dblclick.stop
+    @mousedown.stop
+    @click="!expanded && (expanded = true)"
+  >
     <!-- Collapsed: just a menu toggle -->
-    <button v-if="!expanded" class="ftb-toggle" @click="expanded = true" aria-label="Open tools">
+    <button v-if="!expanded" class="ftb-toggle" aria-label="Open tools" @click="expanded = true">
       <i class="bi bi-grid-3x3-gap-fill"></i>
     </button>
 
     <!-- Expanded toolbar -->
     <transition name="ftb-pop">
       <div v-if="expanded" class="ftb-panel">
-        <button class="ftb-close" @click="expanded = false" aria-label="Collapse">
+        <button class="ftb-close" aria-label="Collapse" @click="expanded = false">
           <i class="bi bi-x"></i>
         </button>
         <div class="ftb-grid">
@@ -18,9 +24,9 @@
             :key="tool.id"
             class="ftb-btn"
             :class="{ 'ftb-btn--active': activeTool === tool.id }"
-            @click="onToolClick(tool.id)"
             :aria-label="tool.label"
             :title="tool.label"
+            @click="onToolClick(tool.id)"
           >
             <i :class="tool.icon"></i>
             <span class="ftb-label">{{ tool.label }}</span>
@@ -40,7 +46,7 @@ export interface ToolDef {
   label: string;
 }
 
-const props = defineProps<{
+defineProps<{
   tools: ToolDef[];
   activeTool?: string | null;
 }>();
@@ -188,10 +194,14 @@ function onToolClick(id: string) {
 
 /* ─── Pop transition ─── */
 .ftb-pop-enter-active {
-  transition: opacity 0.25s ease, transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition:
+    opacity 0.25s ease,
+    transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 .ftb-pop-leave-active {
-  transition: opacity 0.2s ease, transform 0.2s ease;
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease;
 }
 .ftb-pop-enter-from {
   opacity: 0;
@@ -247,7 +257,8 @@ function onToolClick(id: string) {
     font-size: var(--text-xl-size);
     border-radius: 1rem;
   }
-  .ftb-btn, .ftb-close {
+  .ftb-btn,
+  .ftb-close {
     width: 2.2rem;
     height: 2.2rem;
     font-size: var(--text-base-size);

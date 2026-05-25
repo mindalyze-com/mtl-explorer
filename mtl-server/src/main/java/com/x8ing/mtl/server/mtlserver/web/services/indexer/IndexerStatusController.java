@@ -1,17 +1,14 @@
 package com.x8ing.mtl.server.mtlserver.web.services.indexer;
 
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.x8ing.mtl.server.mtlserver.gpx.GPXDirectoryWatcherService;
-import com.x8ing.mtl.server.mtlserver.indexer.IndexerStatusService;
 import com.x8ing.mtl.server.mtlserver.indexer.FileIndexerImpl;
+import com.x8ing.mtl.server.mtlserver.indexer.IndexerStatusService;
 import com.x8ing.mtl.server.mtlserver.jobs.media.indexer.MediaIndexerService;
 import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
@@ -20,6 +17,11 @@ import java.util.Locale;
 @RestController
 @RequestMapping("/api/indexer")
 @RequiredArgsConstructor
+@JsonPropertyOrder({
+        "indexerStatusService",
+        "gpxDirectoryWatcherService",
+        "mediaIndexerService"
+})
 public class IndexerStatusController {
 
     private final IndexerStatusService indexerStatusService;

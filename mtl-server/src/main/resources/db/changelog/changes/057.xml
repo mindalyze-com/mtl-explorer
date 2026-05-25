@@ -1,0 +1,278 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.10.xsd">
+
+    <changeSet id="20260524_5_filter_ui_metadata_v2" author="codex">
+        <comment>
+            Move built-in filter UI metadata to the forward-only v2 shape.
+            Metadata is local to each filter; inherited effective metadata is
+            resolved by the server from SQL template includes.
+        </comment>
+
+        <update tableName="filter_config">
+            <column name="ui_metadata">
+                <![CDATA[
+                {
+                  "metadataVersion": 2,
+                  "paramGroups": {
+                    "scope": { "label": "Scope", "order": 10, "defaultOpen": "whenActive" },
+                    "area": { "label": "Area", "order": 15, "defaultOpen": "whenActive" },
+                    "tracks": { "label": "Tracks", "order": 20, "defaultOpen": "whenActive" }
+                  },
+                  "params": {
+                    "DATE_TIME_FROM": {
+                      "label": "From",
+                      "group": "scope",
+                      "widget": "dateTime",
+                      "optional": true
+                    },
+                    "DATE_TIME_TO": {
+                      "label": "To",
+                      "group": "scope",
+                      "widget": "dateTime",
+                      "optional": true
+                    },
+                    "GEO_CIRCLE_1": {
+                      "label": "Circle",
+                      "group": "area",
+                      "widget": "geoCircle",
+                      "optional": true
+                    },
+                    "GEO_RECTANGLE_1": {
+                      "label": "Rectangle",
+                      "group": "area",
+                      "widget": "geoRectangle",
+                      "optional": true
+                    },
+                    "GEO_POLYGON_1": {
+                      "label": "Polygon",
+                      "group": "area",
+                      "widget": "geoPolygon",
+                      "optional": true
+                    },
+                    "TRACK_IDS": {
+                      "label": "Selected tracks",
+                      "group": "tracks",
+                      "widget": "trackPicker",
+                      "optional": true,
+                      "optionsSource": {
+                        "type": "originFilterResult"
+                      }
+                    }
+                  }
+                }
+                ]]>
+            </column>
+            <where>filter_domain = 'GPS_TRACK' AND filter_name = 'SmartBaseFilter'</where>
+        </update>
+
+        <update tableName="filter_config">
+            <column name="ui_metadata">
+                <![CDATA[
+                {
+                  "metadataVersion": 2,
+                  "paramGroups": {
+                    "filter": { "label": "Year", "order": 30, "defaultOpen": true }
+                  },
+                  "params": {
+                    "YEAR_FROM": {
+                      "label": "From year",
+                      "group": "filter",
+                      "widget": "number",
+                      "optional": false
+                    },
+                    "YEAR_TO": {
+                      "label": "To year",
+                      "group": "filter",
+                      "widget": "number",
+                      "optional": false
+                    }
+                  }
+                }
+                ]]>
+            </column>
+            <where>filter_domain = 'GPS_TRACK' AND filter_name = 'TracksByYear'</where>
+        </update>
+
+        <update tableName="filter_config">
+            <column name="ui_metadata">
+                <![CDATA[
+                {
+                  "metadataVersion": 2,
+                  "paramGroups": {
+                    "filter": { "label": "Filter", "order": 30, "defaultOpen": true }
+                  },
+                  "params": {
+                    "SEARCH_WORD": {
+                      "label": "Keyword",
+                      "group": "filter",
+                      "widget": "text",
+                      "optional": true
+                    }
+                  }
+                }
+                ]]>
+            </column>
+            <where>filter_domain = 'GPS_TRACK' AND filter_name = 'ActivitiesByKeyword'</where>
+        </update>
+
+        <update tableName="filter_config">
+            <column name="ui_metadata">
+                <![CDATA[
+                {
+                  "metadataVersion": 2,
+                  "paramGroups": {
+                    "filter": { "label": "Filter", "order": 30, "defaultOpen": true }
+                  },
+                  "params": {
+                    "AVG_SPEED_MIN_KMH": {
+                      "label": "Minimum average speed",
+                      "group": "filter",
+                      "widget": "number",
+                      "optional": true,
+                      "unit": "km/h"
+                    },
+                    "AVG_SPEED_MAX_KMH": {
+                      "label": "Maximum average speed",
+                      "group": "filter",
+                      "widget": "number",
+                      "optional": true,
+                      "unit": "km/h"
+                    }
+                  },
+                  "result": {
+                    "gradient": {
+                      "bucketCount": 100,
+                      "metricLabel": "Average speed",
+                      "metricUnit": "km/h",
+                      "bucketLabel": "percentile",
+                      "direction": "low-to-high"
+                    }
+                  }
+                }
+                ]]>
+            </column>
+            <where>filter_domain = 'GPS_TRACK' AND filter_name = 'TracksByAverageSpeedGradient'</where>
+        </update>
+
+        <update tableName="filter_config">
+            <column name="ui_metadata">
+                <![CDATA[
+                {
+                  "metadataVersion": 2,
+                  "paramGroups": {
+                    "filter": { "label": "Filter", "order": 30, "defaultOpen": true }
+                  },
+                  "params": {
+                    "DISTANCE_MIN_KM": {
+                      "label": "Minimum distance",
+                      "group": "filter",
+                      "widget": "number",
+                      "optional": true,
+                      "unit": "km"
+                    },
+                    "DISTANCE_MAX_KM": {
+                      "label": "Maximum distance",
+                      "group": "filter",
+                      "widget": "number",
+                      "optional": true,
+                      "unit": "km"
+                    }
+                  },
+                  "result": {
+                    "gradient": {
+                      "bucketCount": 100,
+                      "metricLabel": "Distance",
+                      "metricUnit": "km",
+                      "bucketLabel": "percentile",
+                      "direction": "low-to-high"
+                    }
+                  }
+                }
+                ]]>
+            </column>
+            <where>filter_domain = 'GPS_TRACK' AND filter_name = 'TracksByDistanceGradient'</where>
+        </update>
+
+        <update tableName="filter_config">
+            <column name="ui_metadata">
+                <![CDATA[
+                {
+                  "metadataVersion": 2,
+                  "paramGroups": {
+                    "filter": { "label": "Filter", "order": 30, "defaultOpen": true }
+                  },
+                  "params": {
+                    "ELEVATION_GAIN_MIN_M": {
+                      "label": "Minimum elevation gain",
+                      "group": "filter",
+                      "widget": "number",
+                      "optional": true,
+                      "unit": "m"
+                    },
+                    "ELEVATION_GAIN_MAX_M": {
+                      "label": "Maximum elevation gain",
+                      "group": "filter",
+                      "widget": "number",
+                      "optional": true,
+                      "unit": "m"
+                    }
+                  },
+                  "result": {
+                    "gradient": {
+                      "bucketCount": 100,
+                      "metricLabel": "Elevation gain",
+                      "metricUnit": "m",
+                      "bucketLabel": "percentile",
+                      "direction": "low-to-high"
+                    }
+                  }
+                }
+                ]]>
+            </column>
+            <where>filter_domain = 'GPS_TRACK' AND filter_name = 'TracksByElevationGainGradient'</where>
+        </update>
+
+        <update tableName="filter_config">
+            <column name="ui_metadata">
+                <![CDATA[
+                {
+                  "metadataVersion": 2,
+                  "paramGroups": {
+                    "filter": { "label": "Filter", "order": 30, "defaultOpen": true }
+                  },
+                  "params": {
+                    "ENERGY_MIN_KWH": {
+                      "label": "Minimum energy",
+                      "group": "filter",
+                      "widget": "number",
+                      "optional": true,
+                      "unit": "kWh"
+                    },
+                    "ENERGY_MAX_KWH": {
+                      "label": "Maximum energy",
+                      "group": "filter",
+                      "widget": "number",
+                      "optional": true,
+                      "unit": "kWh"
+                    }
+                  },
+                  "result": {
+                    "gradient": {
+                      "bucketCount": 100,
+                      "metricLabel": "Energy",
+                      "metricUnit": "kWh",
+                      "bucketLabel": "percentile",
+                      "direction": "low-to-high"
+                    }
+                  }
+                }
+                ]]>
+            </column>
+            <where>filter_domain = 'GPS_TRACK' AND filter_name = 'TracksByEnergyGradient'</where>
+        </update>
+    </changeSet>
+</databaseChangeLog>

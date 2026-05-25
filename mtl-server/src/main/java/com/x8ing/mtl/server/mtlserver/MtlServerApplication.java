@@ -1,5 +1,6 @@
 package com.x8ing.mtl.server.mtlserver;
 
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.x8ing.mtl.server.mtlserver.gpx.GPXReader;
 import com.x8ing.mtl.server.mtlserver.jobs.classifier.activitytype.ActivityTypeClassifierJob;
 import com.x8ing.mtl.server.mtlserver.jobs.duplicate.DuplicateDetectorJob;
@@ -23,6 +24,13 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
 @EnableScheduling
 @Slf4j
 @EnableConfigurationProperties
+@JsonPropertyOrder({
+        "duplicateDetectorJob",
+        "activityTypeClassifierJob",
+        "liquibaseIndentFixerJob",
+        "garminExporter",
+        "explorationScoreJob"
+})
 public class MtlServerApplication {
 
     private final DuplicateDetectorJob duplicateDetectorJob;

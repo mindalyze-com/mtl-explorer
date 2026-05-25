@@ -6,6 +6,7 @@
 .vscode
 __pycache__
 logs
+data
 
 **/.DS_Store
 **/.pytest_cache
@@ -14,9 +15,6 @@ logs
 **/__pycache__
 **/*.py[cod]
 **/node_modules
-
-mtl-api/**/target
-mtl-client/dist
-mtl-client/target
-mtl-server/target/*
-!mtl-server/target/mtl-server-0.0.1-SNAPSHOT.jar
+**/target
+**/dist
+mtl-server/src/main/resources/static

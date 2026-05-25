@@ -1,6 +1,6 @@
 import { watch } from 'vue';
 import Highcharts from 'highcharts';
-import { useTheme, type ColorScheme } from '@/composables/useTheme';
+import { useTheme } from '@/composables/useTheme';
 
 /**
  * Apply / re-apply the global Highcharts theme based on the current color
@@ -11,11 +11,11 @@ import { useTheme, type ColorScheme } from '@/composables/useTheme';
  */
 export function installHighchartsTheme(): void {
   const { colorScheme } = useTheme();
-  applyHighchartsTheme(colorScheme.value);
-  watch(colorScheme, applyHighchartsTheme);
+  applyHighchartsTheme();
+  watch(colorScheme, () => applyHighchartsTheme());
 }
 
-function applyHighchartsTheme(scheme: ColorScheme): void {
+function applyHighchartsTheme(): void {
   const styles = getComputedStyle(document.documentElement);
   const token = (name: string) => styles.getPropertyValue(name).trim();
 

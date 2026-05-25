@@ -73,7 +73,7 @@ Each track is stored at multiple precision levels (1m, 5m, 10m, 50m, 100m, 500m,
 ### `max-tracks-per-run` (default: 20)
 
 The job runs repeatedly on a schedule. This cap prevents a single run from holding the
-scheduler thread for too long during initial backfill of many tracks.
+scheduler thread for too long while clearing a large pending backlog.
 
 - 20 tracks at 3 workers × ~1–3s per track ≈ up to 20s per run in the worst case
 - A backlog of 500 tracks clears in ~25 runs (≈ 50 minutes at 2-minute intervals)
@@ -286,4 +286,4 @@ to 3 decimal places before storage.
 | `db/entity/gps/GpsTrack.java`                           | `EXPLORATION_STATUS` enum + 3 new fields              |
 | `db/repository/gps/GpsTrackRepository.java`             | `findByExplorationStatusIn`, invalidation UPDATE      |
 | `gpx/GPXStoreService.java`                              | Sets SCHEDULED on import, triggers invalidation       |
-| `db/changelog/changes/019.xml`                          | Liquibase migration: columns + index + backfill       |
+| `db/changelog/changes/019.xml`                          | Liquibase migration: columns + index + view           |

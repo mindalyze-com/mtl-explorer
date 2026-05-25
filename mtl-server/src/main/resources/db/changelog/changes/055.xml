@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.10.xsd">
+
+    <changeSet id="20260524_3_optional_filter_params_metadata" author="codex">
+        <comment>
+            Mark optional filter params explicitly in UI metadata so the client
+            can distinguish optional range/search fields from required strings.
+        </comment>
+
+        <update tableName="filter_config">
+            <column name="ui_metadata">
+                <![CDATA[{"optionalParams":["DATE_TIME_FROM","DATE_TIME_TO"]}]]>
+            </column>
+            <where>filter_domain = 'GPS_TRACK' AND filter_name = 'SmartBaseFilter'</where>
+        </update>
+
+        <update tableName="filter_config">
+            <column name="ui_metadata">
+                <![CDATA[{"optionalParams":["DATE_TIME_FROM","DATE_TIME_TO","SEARCH_WORD"]}]]>
+            </column>
+            <where>filter_domain = 'GPS_TRACK' AND filter_name = 'ActivitiesByKeyword'</where>
+        </update>
+
+        <update tableName="filter_config">
+            <column name="ui_metadata">
+                <![CDATA[{"bucketCount":100,"metricLabel":"Average speed","metricUnit":"km/h","bucketLabel":"percentile","direction":"low-to-high","optionalParams":["DATE_TIME_FROM","DATE_TIME_TO","AVG_SPEED_MIN_KMH","AVG_SPEED_MAX_KMH"]}]]>
+            </column>
+            <where>filter_domain = 'GPS_TRACK' AND filter_name = 'TracksByAverageSpeedGradient'</where>
+        </update>
+
+        <update tableName="filter_config">
+            <column name="ui_metadata">
+                <![CDATA[{"bucketCount":100,"metricLabel":"Distance","metricUnit":"km","bucketLabel":"percentile","direction":"low-to-high","optionalParams":["DATE_TIME_FROM","DATE_TIME_TO","DISTANCE_MIN_KM","DISTANCE_MAX_KM"]}]]>
+            </column>
+            <where>filter_domain = 'GPS_TRACK' AND filter_name = 'TracksByDistanceGradient'</where>
+        </update>
+
+        <update tableName="filter_config">
+            <column name="ui_metadata">
+                <![CDATA[{"bucketCount":100,"metricLabel":"Elevation gain","metricUnit":"m","bucketLabel":"percentile","direction":"low-to-high","optionalParams":["DATE_TIME_FROM","DATE_TIME_TO","ELEVATION_GAIN_MIN_M","ELEVATION_GAIN_MAX_M"]}]]>
+            </column>
+            <where>filter_domain = 'GPS_TRACK' AND filter_name = 'TracksByElevationGainGradient'</where>
+        </update>
+
+        <update tableName="filter_config">
+            <column name="ui_metadata">
+                <![CDATA[{"bucketCount":100,"metricLabel":"Energy","metricUnit":"kWh","bucketLabel":"percentile","direction":"low-to-high","optionalParams":["DATE_TIME_FROM","DATE_TIME_TO","ENERGY_MIN_KWH","ENERGY_MAX_KWH"]}]]>
+            </column>
+            <where>filter_domain = 'GPS_TRACK' AND filter_name = 'TracksByEnergyGradient'</where>
+        </update>
+    </changeSet>
+
+</databaseChangeLog>

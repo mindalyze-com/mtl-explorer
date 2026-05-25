@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.10.xsd">
+
+    <changeSet id="20260523_1_keyword_filter_blank_search" author="codex">
+        <comment>
+            Treat missing or blank SEARCH_WORD as no keyword condition.
+            DynamicSqlService fills absent params with NULL; without this guard
+            the ILIKE comparisons evaluate to NULL and match no tracks.
+        </comment>
+        <update tableName="filter_config">
+            <column name="expression">
+                <![CDATA[
+                SELECT id, activity_type as grp
+                FROM gps_track gt
+                WHERE (
+                  NULLIF(BTRIM(:SEARCH_WORD), '') IS NULL
+                  OR meta_name ILIKE '%' || BTRIM(:SEARCH_WORD) || '%'
+                  OR meta_description ILIKE '%' || BTRIM(:SEARCH_WORD) || '%'
+                  OR track_name ILIKE '%' || BTRIM(:SEARCH_WORD) || '%'
+                  OR track_description ILIKE '%' || BTRIM(:SEARCH_WORD) || '%'
+                )
+                -- include the standard query filter with the condition below
+                AND id = ANY( select id from ( [[~{/GPS_TRACK/SmartBaseFilter}]] ))
+                ORDER BY start_date
+                ]]>
+            </column>
+            <where>filter_domain = 'GPS_TRACK' AND filter_name = 'ActivitiesByKeyword'</where>
+        </update>
+    </changeSet>
+
+</databaseChangeLog>

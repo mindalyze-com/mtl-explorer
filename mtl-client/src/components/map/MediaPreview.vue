@@ -12,31 +12,16 @@
           <span class="mp__loading-rail-bar"></span>
         </div>
         <div v-if="showNavigation" class="mp__nav-dock" aria-label="Photo navigation">
-          <button
-            class="mp__nav-btn"
-            :disabled="!canGoPrev"
-            @click.stop="emit('prev')"
-            aria-label="Previous photo"
-          >
+          <button class="mp__nav-btn" :disabled="!canGoPrev" aria-label="Previous photo" @click.stop="emit('prev')">
             <i class="bi bi-chevron-left"></i>
           </button>
           <span class="mp__nav-counter">{{ navIndex }} / {{ navTotal }}</span>
-          <button
-            class="mp__nav-btn"
-            :disabled="!canGoNext"
-            @click.stop="emit('next')"
-            aria-label="Next photo"
-          >
+          <button class="mp__nav-btn" :disabled="!canGoNext" aria-label="Next photo" @click.stop="emit('next')">
             <i class="bi bi-chevron-right"></i>
           </button>
         </div>
         <!-- Cross-dissolve: back layer shows old image fading out -->
-        <img
-          v-if="backSrc"
-          :src="backSrc"
-          class="mp__media mp__media--back"
-          aria-hidden="true"
-        />
+        <img v-if="backSrc" :src="backSrc" class="mp__media mp__media--back" aria-hidden="true" />
         <!-- Front layer: current media -->
         <video
           v-if="isVideo"
@@ -78,188 +63,49 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, nextTick } from 'vue';
-import { getMediaInfo, mediaContentUrl } from '@/repositories/mediaRepository';
-import { formatDate } from '@/utils/Utils';
-import type { MediaInfo } from '@/repositories/mediaRepository';
+import { useMediaPreview } from '@/components/map/useMediaPreview';
 
-const props = withDefaults(defineProps<{
-  mediaId: number | null;
-  canGoPrev?: boolean;
-  canGoNext?: boolean;
-  navIndex?: number;
-  navTotal?: number;
-  prefetchIds?: (number | null)[];
-}>(), {
-  canGoPrev: false,
-  canGoNext: false,
-  navIndex: 0,
-  navTotal: 0,
-  prefetchIds: () => [],
-});
+const props = withDefaults(
+  defineProps<{
+    mediaId: number | null;
+    canGoPrev?: boolean;
+    canGoNext?: boolean;
+    navIndex?: number;
+    navTotal?: number;
+    prefetchIds?: (number | null)[];
+  }>(),
+  {
+    canGoPrev: false,
+    canGoNext: false,
+    navIndex: 0,
+    navTotal: 0,
+    prefetchIds: () => [],
+  }
+);
 
 const emit = defineEmits<{
   prev: [];
   next: [];
 }>();
 
-let loadToken = 0;
-let crossFadeTimer: ReturnType<typeof setTimeout> | null = null;
-const loading = ref(false);
-const isSwapPending = ref(false);
-const isCrossFading = ref(false);
-const backSrc = ref<string | null>(null);
-const activeMediaId = ref<number | null>(null);
-const displayUrl = ref<string>('');
-const info = ref<MediaInfo | null>(null);
-
-const PREVIEW_MAX_SIZE = 4096;
-const mediaUrl = computed(() => activeMediaId.value != null ? mediaContentUrl(activeMediaId.value, PREVIEW_MAX_SIZE) : '');
-const downloadUrl = computed(() => activeMediaId.value != null ? mediaContentUrl(activeMediaId.value) : '');
-const fileName  = computed(() => info.value?.indexedFile?.name ?? '');
-const filePath  = computed(() => info.value?.indexedFile?.path ?? '');
-const date      = computed(() => info.value?.exifDateImageTaken ? formatDate(new Date(info.value.exifDateImageTaken)) : '');
-const camera    = computed(() => [info.value?.cameraMake, info.value?.cameraModel].filter(Boolean).join(' '));
-const isVideo   = computed(() => /\.(mp4|mov|m4v|3gp|avi|mkv)$/i.test(fileName.value));
-const hasActiveMedia = computed(() => activeMediaId.value != null);
-const showInitialLoading = computed(() => loading.value && !hasActiveMedia.value);
-const showNavigation = computed(() => props.navTotal > 1 && props.navIndex > 0);
-const canGoPrev = computed(() => props.canGoPrev);
-const canGoNext = computed(() => props.canGoNext);
-
-/** Fetch image bytes and return a blob URL that is cache-independent. */
-async function fetchImageBlobUrl(url: string): Promise<string> {
-  const resp = await fetch(url);
-  if (!resp.ok) throw new Error(`Failed to fetch image: ${resp.status}`);
-  const blob = await resp.blob();
-  return URL.createObjectURL(blob);
-}
-
-function revokeBlobUrl(url: string | null) {
-  if (url && url.startsWith('blob:')) URL.revokeObjectURL(url);
-}
-
-const CROSSFADE_MS = 190;
-
-function clearCrossFade() {
-  if (crossFadeTimer) {
-    clearTimeout(crossFadeTimer);
-    crossFadeTimer = null;
-  }
-  isCrossFading.value = false;
-  isSwapPending.value = false;
-  const old = backSrc.value;
-  backSrc.value = null;
-  revokeBlobUrl(old);
-}
-
-async function load(id: number) {
-  const token = ++loadToken;
-  const nextUrl = mediaContentUrl(id, PREVIEW_MAX_SIZE);
-  const hasCurrentMedia = activeMediaId.value != null;
-
-  // Cancel any in-progress cross-fade
-  clearCrossFade();
-
-  if (hasCurrentMedia) {
-    isSwapPending.value = true;
-  } else {
-    loading.value = true;
-  }
-
-  try {
-    const infoPromise = getMediaInfo(id).catch(() => null);
-    // Only blob-fetch images — videos use the direct URL via mediaUrl computed
-    const nextInfo = await infoPromise;
-    const nextIsVideo = nextInfo?.indexedFile?.name
-      ? /\.(mp4|mov|m4v|3gp|avi|mkv)$/i.test(nextInfo.indexedFile.name)
-      : false;
-    const readyUrl = nextIsVideo
-      ? nextUrl
-      : await fetchImageBlobUrl(nextUrl).catch(() => nextUrl);
-
-    if (token !== loadToken) {
-      // Another load started — discard the blob we just fetched
-      if (!nextIsVideo) revokeBlobUrl(readyUrl);
-      return;
-    }
-
-    // Snapshot current display URL for the back layer
-    const oldDisplayUrl = hasCurrentMedia ? displayUrl.value : null;
-
-    // Swap data — front layer gets blob URL (instantly available, images only)
-    info.value = nextInfo;
-    activeMediaId.value = id;
-    if (!nextIsVideo) displayUrl.value = readyUrl;
-
-    // Start simultaneous cross-dissolve
-    if (oldDisplayUrl) {
-      backSrc.value = oldDisplayUrl; // old blob URL stays valid until revoked in clearCrossFade
-      isCrossFading.value = true;
-      await nextTick();
-
-      // After the animation duration, clean up back layer
-      crossFadeTimer = setTimeout(() => {
-        if (token === loadToken) {
-          clearCrossFade();
-        }
-      }, CROSSFADE_MS);
-    }
-
-    // Now that the current image is shown, prefetch neighbours
-    prefetchNeighbors();
-  } catch {
-    if (token !== loadToken) return;
-    info.value = null;
-    activeMediaId.value = id;
-    displayUrl.value = nextUrl; // fallback to direct URL
-  } finally {
-    if (token === loadToken) {
-      loading.value = false;
-      // isSwapPending is cleared by clearCrossFade() when the dissolve ends
-      if (!isCrossFading.value) {
-        isSwapPending.value = false;
-      }
-    }
-  }
-}
-
-// Fire-and-forget: just set .src so the browser fetches & HTTP-caches it
-function warmCache(url: string) {
-  new Image().src = url;
-}
-
-function prefetchNeighbors() {
-  for (const id of (props.prefetchIds ?? [])) {
-    if (id != null && id !== activeMediaId.value) {
-      warmCache(mediaContentUrl(id, PREVIEW_MAX_SIZE));
-    }
-  }
-}
-
-watch(() => props.mediaId, (id) => {
-  if (id == null) {
-    // Preview closed — reset so stale image doesn't flash on next open
-    clearCrossFade();
-    revokeBlobUrl(displayUrl.value);
-    displayUrl.value = '';
-    activeMediaId.value = null;
-    info.value = null;
-    loading.value = false;
-    return;
-  }
-  if (id === activeMediaId.value) return;
-  void load(id);
-}, { immediate: true });
-
-// Independent watcher: warm the browser cache for neighbours whenever they change
-watch(() => props.prefetchIds, (ids) => {
-  for (const id of (ids ?? [])) {
-    if (id != null && id !== activeMediaId.value) {
-      warmCache(mediaContentUrl(id, PREVIEW_MAX_SIZE));
-    }
-  }
-});
+const {
+  isSwapPending,
+  isCrossFading,
+  backSrc,
+  displayUrl,
+  mediaUrl,
+  downloadUrl,
+  fileName,
+  filePath,
+  date,
+  camera,
+  isVideo,
+  hasActiveMedia,
+  showInitialLoading,
+  showNavigation,
+  canGoPrev,
+  canGoNext,
+} = useMediaPreview(props);
 </script>
 
 <style scoped>
@@ -303,11 +149,11 @@ watch(() => props.prefetchIds, (ids) => {
   pointer-events: none;
 }
 
-:global([data-theme="dark"] .mp__media-wrap) {
+:global([data-theme='dark'] .mp__media-wrap) {
   background: var(--surface-glass-heavy);
 }
 
-:global([data-theme="dark"] .mp__media-wrap--pending::after) {
+:global([data-theme='dark'] .mp__media-wrap--pending::after) {
   background: transparent;
 }
 
@@ -392,14 +238,16 @@ watch(() => props.prefetchIds, (ids) => {
   inset: 0;
   width: 42%;
   border-radius: inherit;
-  background: linear-gradient(90deg,
+  background: linear-gradient(
+    90deg,
     color-mix(in srgb, var(--accent) 0%, transparent) 0%,
     color-mix(in srgb, var(--accent) 68%, white) 45%,
-    color-mix(in srgb, var(--accent) 0%, transparent) 100%);
+    color-mix(in srgb, var(--accent) 0%, transparent) 100%
+  );
   animation: mp-loading-rail-slide 980ms cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }
 
-:global([data-theme="dark"] .mp__loading-rail) {
+:global([data-theme='dark'] .mp__loading-rail) {
   background: color-mix(in srgb, white 12%, transparent);
 }
 
@@ -428,7 +276,10 @@ watch(() => props.prefetchIds, (ids) => {
   font-size: var(--text-base-size);
   cursor: pointer;
   padding: 0;
-  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  transition:
+    background 0.15s,
+    color 0.15s,
+    border-color 0.15s;
 }
 
 .mp__nav-btn:not(:disabled):hover {
@@ -519,8 +370,6 @@ watch(() => props.prefetchIds, (ids) => {
     justify-content: center;
   }
 }
-
-
 
 @keyframes mp-loading-rail-slide {
   0% {

@@ -29,9 +29,7 @@ import type { GpsTrackData } from 'x8ing-mtl-api-typescript-fetch/dist/esm/model
  * the long-term fix is to make the server emit GeoJSON-shaped `LineString`
  * so the generated deserializer just works.
  */
-export function extractCoordinates(
-  trackDataList: GpsTrackData[] | undefined | null
-): number[][] {
+export function extractCoordinates(trackDataList: GpsTrackData[] | undefined | null): number[][] {
   if (!trackDataList) return [];
   const out: number[][] = [];
   for (const td of trackDataList) {
@@ -41,9 +39,8 @@ export function extractCoordinates(
     // Case 1: bare array from custom server serializer.
     if (Array.isArray(track)) {
       for (const c of track as unknown[]) {
-        if (Array.isArray(c) && c.length >= 2) {
-          out.push([c[0] as number, c[1] as number]);
-        }
+        const coordinates = finiteCoordinatePair(c);
+        if (coordinates) out.push(coordinates);
       }
       continue;
     }
@@ -54,20 +51,31 @@ export function extractCoordinates(
       for (const c of obj.coordinates as unknown[]) {
         if (c == null) continue;
         if (Array.isArray(c)) {
-          out.push([c[0] as number, c[1] as number]);
+          const coordinates = finiteCoordinatePair(c);
+          if (coordinates) out.push(coordinates);
         } else {
-          const xy = c as { x?: number; y?: number };
-          if (xy.x != null && xy.y != null) out.push([xy.x, xy.y]);
+          const xy = c as { x?: unknown; y?: unknown };
+          const coordinates = finiteCoordinatePair([xy.x, xy.y]);
+          if (coordinates) out.push(coordinates);
         }
       }
       continue;
     }
 
     console.warn(
-      `Track data: unexpected track format (type=${typeof track}, isArray=${Array.isArray(
-        track
-      )}), skipping`
+      `Track data: unexpected track format (type=${typeof track}, isArray=${Array.isArray(track)}), skipping`
     );
   }
   return out;
+}
+
+function finiteCoordinatePair(value: unknown): number[] | null {
+  if (!Array.isArray(value) || value.length < 2) return null;
+  const lng = toFiniteCoordinate(value[0]);
+  const lat = toFiniteCoordinate(value[1]);
+  return lng == null || lat == null ? null : [lng, lat];
+}
+
+function toFiniteCoordinate(value: unknown): number | null {
+  return typeof value === 'number' && Number.isFinite(value) ? value : null;
 }

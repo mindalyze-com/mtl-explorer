@@ -26,13 +26,15 @@ describe('trackCursorSync point index', () => {
     point({ pointIndex: 2, timestamp: 3_000, distanceKm: 2, lat: 47.2, lng: 8.2 }),
   ];
 
-  it('finds nearest points by timestamp and distance', () => {
+  it('finds nearest points by timestamp, distance, and point index', () => {
     const index = createTrackPointIndex(points);
 
     expect(index.findByTimestamp(2_400)?.pointIndex).toBe(1);
     expect(index.findByTimestamp(2_600)?.pointIndex).toBe(2);
     expect(index.findByDistance(1.4)?.pointIndex).toBe(1);
     expect(index.findByDistance(1.6)?.pointIndex).toBe(2);
+    expect(index.findByPointIndex(1.4)?.pointIndex).toBe(1);
+    expect(index.findByPointIndex(1.6)?.pointIndex).toBe(2);
   });
 
   it('uses absolute timestamps in time mode and distance in distance mode', () => {
@@ -43,6 +45,39 @@ describe('trackCursorSync point index', () => {
     expect(resolveChartPointTrackPoint(index, 'time', 1_000, 2_000)?.pointIndex).toBe(1);
     expect(resolveChartPointTrackPoint(index, 'time', 1_000, null)?.pointIndex).toBe(1);
     expect(resolveChartPointTrackPoint(index, 'distance', 1.9, 2_000)?.pointIndex).toBe(2);
+  });
+
+  it('prefers explicit chart x values over derived time and distance values', () => {
+    const index = createTrackPointIndex([
+      point({ pointIndex: 1, timestamp: 10_000, distanceKm: 3, chartX: { time: 50, distance: 0.5 } }),
+      point({ pointIndex: 2, timestamp: 11_000, distanceKm: 4, chartX: { time: 100, distance: 1 } }),
+    ]);
+
+    expect(chartXForTrackPoint(index.points[1], 'time', index.startTs)).toBe(100);
+    expect(chartXForTrackPoint(index.points[1], 'distance', index.startTs)).toBe(1);
+    expect(resolveChartPointTrackPoint(index, 'time', 52, null)?.pointIndex).toBe(1);
+    expect(resolveChartPointTrackPoint(index, 'distance', 0.9, null)?.pointIndex).toBe(2);
+  });
+
+  it('resolves chart points by canonical bucket identity before x-mode fallback', () => {
+    const index = createTrackPointIndex([
+      point({
+        pointIndex: 1,
+        canonicalPointIndex: 100,
+        timestamp: 10_000,
+        distanceKm: 1,
+        chartX: { time: 0, distance: 1 },
+      }),
+      point({
+        pointIndex: 2,
+        canonicalPointIndex: 200,
+        timestamp: 20_000,
+        distanceKm: 2,
+        chartX: { time: 10_000, distance: 2 },
+      }),
+    ]);
+
+    expect(resolveChartPointTrackPoint(index, 'distance', 1, null, 200)?.pointIndex).toBe(2);
   });
 
   it('finds nearest map points by lat/lng', () => {

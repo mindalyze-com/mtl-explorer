@@ -1,5 +1,6 @@
 package com.x8ing.mtl.server.mtlserver.web.services.track.entity;
 
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 
@@ -8,6 +9,13 @@ import java.util.Map;
 
 @Data
 @AllArgsConstructor
+@JsonPropertyOrder({
+        "standardFilterCount",
+        "numberOfFilteredMatchedTracks",
+        "filteredTracks",
+        "trackVersions",
+        "filterGroups"
+})
 public class TracksSimplifiedResponse implements VersionAware {
 
     /**

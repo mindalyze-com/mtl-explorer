@@ -184,7 +184,7 @@ def generate_placeholder_jpeg(lat, lon, dt, output_path):
         font_small = font
 
     text_lines = [
-        f"MyTrailLog Demo",
+        f"MTL Explorer Demo",
         f"{dt.strftime('%Y-%m-%d %H:%M')}",
         f"{lat:.5f}°, {lon:.5f}°",
     ]

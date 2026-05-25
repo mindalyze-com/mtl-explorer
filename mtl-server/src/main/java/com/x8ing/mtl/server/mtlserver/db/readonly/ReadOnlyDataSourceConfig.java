@@ -1,5 +1,6 @@
 package com.x8ing.mtl.server.mtlserver.db.readonly;
 
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import org.springframework.beans.factory.annotation.Value;
@@ -20,6 +21,14 @@ import javax.sql.DataSource;
  * and use that user for these queries. We follow that later approach.
  */
 @Configuration
+@JsonPropertyOrder({
+        "dbURL",
+        "readonlyUsername",
+        "primaryUsername",
+        "readonlyPassword",
+        "primaryPassword",
+        "maximumPoolSize"
+})
 public class ReadOnlyDataSourceConfig {
 
     @Value("${spring.datasource.url}")

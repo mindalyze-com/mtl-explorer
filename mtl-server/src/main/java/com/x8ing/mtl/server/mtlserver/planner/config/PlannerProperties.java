@@ -1,5 +1,6 @@
 package com.x8ing.mtl.server.mtlserver.planner.config;
 
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
@@ -19,6 +20,13 @@ import java.util.List;
 @Data
 @Component
 @ConfigurationProperties(prefix = "mtl.planner")
+@JsonPropertyOrder({
+        "enabled",
+        "brouterBaseUrl",
+        "brouterTimeoutMs",
+        "profiles",
+        "statusUrl"
+})
 public class PlannerProperties {
 
     /**

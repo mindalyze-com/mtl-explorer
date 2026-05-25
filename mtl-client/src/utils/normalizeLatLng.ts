@@ -8,8 +8,7 @@ function inWorldRange(lat: number, lng: number) {
 }
 
 function inBbox(lat: number, lng: number) {
-  return lat >= SWISS_BBOX.minLat && lat <= SWISS_BBOX.maxLat &&
-         lng >= SWISS_BBOX.minLng && lng <= SWISS_BBOX.maxLng;
+  return lat >= SWISS_BBOX.minLat && lat <= SWISS_BBOX.maxLat && lng >= SWISS_BBOX.minLng && lng <= SWISS_BBOX.maxLng;
 }
 
 /**

@@ -1,5 +1,6 @@
 package com.x8ing.mtl.server.mtlserver.gpx;
 
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -14,13 +15,27 @@ import java.nio.file.StandardCopyOption;
 
 @Service
 @Slf4j
+@JsonPropertyOrder({
+        "gpxWatchDirectory",
+        "uploadDir",
+        "status"
+})
 public class GpxUploadService {
 
     static final String UPLOAD_SUBDIR = "GPX-UPLOAD";
 
+    @JsonPropertyOrder({
+            "available",
+            "message"
+    })
     public record GpxUploadStatus(boolean available, String message) {
     }
 
+    @JsonPropertyOrder({
+            "success",
+            "message",
+            "fileName"
+    })
     public record GpxUploadResult(boolean success, String message, String fileName) {
     }
 
@@ -80,11 +95,15 @@ public class GpxUploadService {
             throw new IllegalStateException("Upload directory is not available");
         }
         String originalName = file.getOriginalFilename();
-        if (originalName == null || SupportedTrackFormat.fromPath(Path.of(originalName)) == null) {
+        SupportedTrackFormat format = originalName == null ? null : SupportedTrackFormat.fromPath(Path.of(originalName));
+        if (format == null) {
             throw new IllegalArgumentException("Unsupported file format. Accepted: " +
                                                java.util.Arrays.stream(SupportedTrackFormat.values())
                                                        .map(f -> "." + f.getExtension())
                                                        .collect(java.util.stream.Collectors.joining(", ")));
+        }
+        if (file.isEmpty()) {
+            throw new IllegalArgumentException("Uploaded file is empty.");
         }
 
         // Strip any path components the client may have smuggled in

@@ -1,10 +1,19 @@
 package com.x8ing.mtl.server.mtlserver.planner.client;
 
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
+
+
 /**
  * Thrown when BRouter reports a missing {@code .rd5} segment data file.
  * The controller catches this specifically to trigger an on-demand prewarm
  * and return a user-friendly 503 instead of a raw 502.
  */
+@JsonPropertyOrder({
+        "fromLat",
+        "fromLng",
+        "toLat",
+        "toLng"
+})
 public class BRouterSegmentMissingException extends BRouterException {
 
     private final double fromLat;

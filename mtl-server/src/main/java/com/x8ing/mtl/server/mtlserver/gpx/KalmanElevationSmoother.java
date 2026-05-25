@@ -1,5 +1,6 @@
 package com.x8ing.mtl.server.mtlserver.gpx;
 
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.math3.filter.KalmanFilter;
 import org.apache.commons.math3.filter.MeasurementModel;
@@ -79,6 +80,12 @@ import org.springframework.stereotype.Component;
  */
 @Component("kalman")
 @Slf4j
+@JsonPropertyOrder({
+        "sigmaH",
+        "sigmaV",
+        "sigmaA",
+        "sigmaAV"
+})
 public class KalmanElevationSmoother implements GpsSmoothingAlgorithm {
 
     /**
@@ -278,6 +285,13 @@ public class KalmanElevationSmoother implements GpsSmoothingAlgorithm {
     // time-varying model with the library.
     // ─────────────────────────────────────────────────────────────────────────
 
+    @JsonPropertyOrder({
+            "dt",
+            "sigmaAH2",
+            "sigmaAV2",
+            "initialState",
+            "initialP"
+    })
     private static class GpsDynamicProcessModel implements ProcessModel {
 
         private double dt;
@@ -382,6 +396,10 @@ public class KalmanElevationSmoother implements GpsSmoothingAlgorithm {
     //   R = diag(σ_h², σ_h², σ_v²)
     // ─────────────────────────────────────────────────────────────────────────
 
+    @JsonPropertyOrder({
+            "H",
+            "R"
+    })
     private static class GpsMeasurementModel implements MeasurementModel {
 
         private final RealMatrix H;

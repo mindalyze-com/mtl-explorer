@@ -1,5 +1,7 @@
 import axios, { type AxiosInstance, type AxiosRequestConfig } from 'axios';
 import { getAuthHeaderValue, redirectToLoginAfterAuthFailure } from '@/utils/auth';
+import { backendBaseUrl } from '@/utils/apiBase';
+import { logSanitizedError } from '@/utils/safeLogging';
 
 /**
  * Single shared axios instance for all backend calls.
@@ -24,10 +26,8 @@ import { getAuthHeaderValue, redirectToLoginAfterAuthFailure } from '@/utils/aut
  * directly) bypass this client. Both interceptors do the same thing.
  */
 
-const backendUrl: string = import.meta.env.VITE_BACKEND_URL ?? '';
-
 export const apiClient: AxiosInstance = axios.create({
-  baseURL: backendUrl,
+  baseURL: backendBaseUrl,
   withCredentials: true,
 });
 
@@ -56,10 +56,7 @@ apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
     if (!error.response && !axios.isCancel(error)) {
-      console.error(
-        '🚨 [Network Drop] apiClient request failed without a server response',
-        { url: error.config?.url, message: error.message }
-      );
+      logSanitizedError('🚨 [Network Drop] apiClient request failed without a server response', error);
     }
     if (error.response && (error.response.status === 401 || error.response.status === 403)) {
       const url: string = error.config?.url ?? '';

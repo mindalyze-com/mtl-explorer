@@ -8,6 +8,8 @@ mtl:
   demo-target-track-count: ${DEMO_TARGET_TRACK_COUNT:0}  # 0 = keep all good tracks
   log-viewer-enabled: false             # server log must not be visible in demo mode
   map-server:
-    initial-center-lng: -8.6291   # Porto, Portugal
-    initial-center-lat: 41.1579   # Porto, Portugal
-    initial-zoom: 12
+    initial-bounds:                # Porto, Portugal
+      min-lng: -8.75
+      min-lat: 41.08
+      max-lng: -8.50
+      max-lat: 41.24

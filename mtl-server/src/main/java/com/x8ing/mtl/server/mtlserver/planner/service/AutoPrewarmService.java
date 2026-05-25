@@ -1,5 +1,6 @@
 package com.x8ing.mtl.server.mtlserver.planner.service;
 
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.x8ing.mtl.server.mtlserver.planner.config.PlannerProperties;
@@ -24,6 +25,11 @@ import java.util.Map;
 @Slf4j
 @Service
 @ConditionalOnProperty(prefix = "mtl.planner", name = "enabled", havingValue = "true")
+@JsonPropertyOrder({
+        "properties",
+        "restClient",
+        "objectMapper"
+})
 public class AutoPrewarmService {
 
     private final PlannerProperties properties;

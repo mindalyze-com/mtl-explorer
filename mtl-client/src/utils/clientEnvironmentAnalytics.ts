@@ -31,7 +31,8 @@ export function submitClientEnvironmentOnce(): void {
   submittedForCurrentBoot = true;
   const payload = collectClientEnvironment();
 
-  getAnalyticsApi().saveClientEnvironment({ clientEnvironmentRequest: payload })
+  getAnalyticsApi()
+    .saveClientEnvironment({ clientEnvironmentRequest: payload })
     .then(() => startupLog('analytics', 'Client environment submitted'))
     .catch((error: unknown) => {
       submittedForCurrentBoot = false;

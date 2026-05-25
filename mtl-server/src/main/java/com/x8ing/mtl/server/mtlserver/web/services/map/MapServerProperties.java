@@ -1,5 +1,6 @@
 package com.x8ing.mtl.server.mtlserver.web.services.map;
 
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
@@ -7,6 +8,31 @@ import org.springframework.stereotype.Component;
 @Data
 @Component
 @ConfigurationProperties(prefix = "mtl.map-server")
+@JsonPropertyOrder({
+        "statusUrl",
+        "tileMode",
+        "tileUpstreamUrl",
+        "publicUpstreamUrl",
+        "localProbeUrl",
+        "localProbeIntervalSeconds",
+        "localProbeActiveWindowSeconds",
+        "localProbeTimeoutMs",
+        "upstreamDecisionCacheTtlSeconds",
+        "publicArchiveId",
+        "localArchiveId",
+        "tileBaseUrl",
+        "tilesetName",
+        "lowzoomTilesetName",
+        "remoteTileUrl",
+        "initialBounds",
+        "proxyConnectTimeoutMs",
+        "proxyReadTimeoutMs",
+        "proxyCallTimeoutMs",
+        "proxyMaxIdleConnections",
+        "proxyKeepAliveDurationSeconds",
+        "demoAreaBbox",
+        "demoAreaMaxZoom"
+})
 public class MapServerProperties {
 
     /**
@@ -95,20 +121,10 @@ public class MapServerProperties {
     private String remoteTileUrl = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
 
     /**
-     * Initial map center longitude (MapLibre [lng, lat] order).
-     * Overridable per environment — e.g. set to Porto in demo mode.
+     * Optional initial map bounds. When unset, the server derives the initial
+     * bounds from stored track bounding boxes.
      */
-    private double initialCenterLng = 8.505778;  // default: Glattfelden
-
-    /**
-     * Initial map center latitude.
-     */
-    private double initialCenterLat = 47.5605;   // default: Glattfelden
-
-    /**
-     * Initial map zoom level.
-     */
-    private int initialZoom = 10;
+    private MapBoundsDto initialBounds;
 
     /**
      * Connect timeout (ms) for the tile proxy RestClient.

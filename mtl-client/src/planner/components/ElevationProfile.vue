@@ -166,7 +166,7 @@ function buildOptions(): Highcharts.Options {
           linearGradient: { x1: 0, y1: 0, x2: 0, y2: 1 },
           stops: [
             [0, hexToRgba(c, 0.28)],
-            [1, hexToRgba(c, 0.00)],
+            [1, hexToRgba(c, 0.0)],
           ],
         },
         threshold: null,
@@ -209,15 +209,19 @@ function buildOptions(): Highcharts.Options {
 const chartOptions = ref<Highcharts.Options>(buildOptions());
 
 // Feed data into the chart whenever the route changes.
-watch(seriesData, (data) => {
-  const chart = chartRef.value?.chart;
-  if (chart) {
-    chart.series[0].setData(data as Highcharts.PointOptionsType[], true, false);
-  } else {
-    // Chart not yet mounted — pre-populate so it renders correctly on first mount.
-    (chartOptions.value as { series: Array<{ data: unknown }> }).series[0].data = data;
-  }
-}, { immediate: true });
+watch(
+  seriesData,
+  (data) => {
+    const chart = chartRef.value?.chart;
+    if (chart) {
+      chart.series[0].setData(data as Highcharts.PointOptionsType[], true, false);
+    } else {
+      // Chart not yet mounted — pre-populate so it renders correctly on first mount.
+      (chartOptions.value as { series: Array<{ data: unknown }> }).series[0].data = data;
+    }
+  },
+  { immediate: true }
+);
 
 // ── Helpers ───────────────────────────────────────────────────────
 

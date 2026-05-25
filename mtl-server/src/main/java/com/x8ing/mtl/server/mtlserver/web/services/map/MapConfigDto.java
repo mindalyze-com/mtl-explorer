@@ -1,5 +1,6 @@
 package com.x8ing.mtl.server.mtlserver.web.services.map;
 
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
@@ -12,6 +13,22 @@ import java.util.List;
  * tileMode "remote" → raster tiles fetched from the public internet (e.g. OpenStreetMap).
  */
 @Data
+@JsonPropertyOrder({
+        "tileMode",
+        "tileBaseUrl",
+        "tileArchiveUrl",
+        "tilesetName",
+        "lowzoomTilesetName",
+        "lowzoomArchiveUrl",
+        "tileSource",
+        "archiveId",
+        "remoteTileUrl",
+        "initialBounds",
+        "demoAreaBbox",
+        "demoAreaMaxZoom",
+        "plannerEnabled",
+        "plannerProfiles"
+})
 public class MapConfigDto {
 
     /**
@@ -65,19 +82,10 @@ public class MapConfigDto {
     private String remoteTileUrl;
 
     /**
-     * Initial map center longitude [lng, lat] — MapLibre order.
+     * Initial map bounds. Configured explicitly, derived from stored track
+     * bounding boxes, or set to the default startup area when no tracks exist.
      */
-    private double initialCenterLng;
-
-    /**
-     * Initial map center latitude.
-     */
-    private double initialCenterLat;
-
-    /**
-     * Initial map zoom level.
-     */
-    private int initialZoom;
+    private MapBoundsDto initialBounds;
 
     /**
      * Legacy bounded-map metadata. Normally null because demo deployments use

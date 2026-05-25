@@ -23,6 +23,7 @@ import json
 import os
 import queue
 import re
+import shutil
 import signal
 import subprocess
 import sys
@@ -47,6 +48,9 @@ LOWZOOM_MAXZOOM = os.environ.get("LOWZOOM_MAXZOOM", "6")
 PORT = os.environ.get("PORT", "8081")
 
 STATUS_FILE = Path("/tmp/map-status.json")
+IMAGE_VERSION_FILE = Path("/opt/mtl/image-version")
+IMAGE_BUILD_TIME_FILE = Path("/opt/mtl/image-build-time")
+PMTILES_VERSION = os.environ.get("PMTILES_VERSION", "")
 
 # Pattern to match versioned tile files: YYYYMMDD.pmtiles
 _DATE_RE = re.compile(r"^(\d{8})\.pmtiles$")
@@ -195,6 +199,15 @@ class KickoffHandler(http.server.BaseHTTPRequestHandler):
             self.send_response(404)
             self.end_headers()
 
+    def _write_json(self, status: int, payload: dict):
+        body = json.dumps(payload).encode("utf-8")
+        self.send_response(status)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Cache-Control", "no-store, no-cache, must-revalidate")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
     def log_message(self, format, *args):
         # Use our own log format
         pass
@@ -209,6 +222,61 @@ def _start_kickoff_server():
 
 def log(msg: str) -> None:
     print(f"[map-server] {time.strftime('%Y-%m-%d %H:%M:%S')} {msg}", flush=True)
+
+
+def register_child(proc: subprocess.Popen) -> None:
+    with _lock:
+        _children.append(proc)
+
+
+def start_cron_process() -> subprocess.Popen | None:
+    if shutil.which("crond"):
+        return subprocess.Popen(["crond", "-f", "-l", "8"])
+    if shutil.which("cron"):
+        return subprocess.Popen(["cron", "-f"])
+    log("WARNING: No cron daemon found; nginx log rotation will not run.")
+    return None
+
+
+# ── Version metadata ─────────────────────────────────────────────────
+
+def _metadata_value(env_name: str, file_path: Path) -> str | None:
+    value = os.environ.get(env_name, "").strip()
+    if value:
+        return value
+    try:
+        file_value = file_path.read_text().strip()
+        return file_value or None
+    except Exception:
+        return None
+
+
+def _non_blank(value: str | None) -> str | None:
+    if value is None:
+        return None
+    stripped = value.strip()
+    return stripped or None
+
+
+def build_version_info(archive_id: str = "") -> dict:
+    components = {}
+    pmtiles_version = _non_blank(PMTILES_VERSION)
+    if pmtiles_version:
+        components["pmtiles"] = pmtiles_version
+
+    data = {}
+    protomaps_archive = _non_blank(archive_id)
+    if protomaps_archive:
+        data["protomapsArchive"] = protomaps_archive
+
+    return {
+        "image": {
+            "version": _metadata_value("MTL_IMAGE_VERSION", IMAGE_VERSION_FILE),
+            "buildTime": _metadata_value("MTL_IMAGE_BUILD_TIME", IMAGE_BUILD_TIME_FILE),
+        },
+        "components": components,
+        "data": data,
+    }
 
 
 # ── Status file ──────────────────────────────────────────────────────
@@ -232,6 +300,7 @@ def write_status(
         "download_total": download_total,
         "message": message,
         "archive_id": archive_id,
+        "versionInfo": build_version_info(archive_id),
     }
     tmp = STATUS_FILE.with_suffix(".tmp")
     tmp.write_text(json.dumps(data, indent=2))
@@ -601,15 +670,14 @@ def main() -> None:
     _make_world_writable(LOG_DIR)
 
     # ── Step 0a: Start cron for persistent nginx log rotation ─────────
-    crond = subprocess.Popen(["crond", "-f", "-l", "8"])
-    with _lock:
-        _children.append(crond)
-    log("crond started — nginx map access logs will rotate daily")
+    crond = start_cron_process()
+    if crond:
+        register_child(crond)
+        log("cron started — nginx map access logs will rotate daily")
 
     # ── Step 0: Start nginx (immediately healthy) ────────────────────
     nginx = subprocess.Popen(["nginx", "-g", "daemon off;"])
-    with _lock:
-        _children.append(nginx)
+    register_child(nginx)
     log(f"nginx started — container is now healthy on port {PORT}")
 
     # ── Step 1: Start internal kickoff server ────────────────────────

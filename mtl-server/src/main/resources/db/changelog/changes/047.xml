@@ -1,0 +1,489 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.10.xsd">
+
+    <changeSet id="20260518_3_filter_ui_metadata_columns" author="patrick.heusser">
+        <addColumn tableName="filter_config">
+            <column name="filter_group" type="varchar(80)"/>
+            <column name="group_semantics" type="varchar(50)"/>
+            <column name="coloring_strategy" type="varchar(50)"/>
+            <column name="legend_sort_strategy" type="varchar(50)"/>
+            <column name="preferred_palette" type="varchar(80)"/>
+            <column name="group_label_template" type="varchar(200)"/>
+            <column name="ui_metadata" type="text"/>
+        </addColumn>
+
+        <addColumn tableName="filter_config_audit">
+            <column name="filter_group" type="varchar(80)"/>
+            <column name="group_semantics" type="varchar(50)"/>
+            <column name="coloring_strategy" type="varchar(50)"/>
+            <column name="legend_sort_strategy" type="varchar(50)"/>
+            <column name="preferred_palette" type="varchar(80)"/>
+            <column name="group_label_template" type="varchar(200)"/>
+            <column name="ui_metadata" type="text"/>
+        </addColumn>
+
+        <createProcedure>
+            <![CDATA[
+            CREATE OR REPLACE FUNCTION filter_config_trigger()
+            RETURNS TRIGGER AS $$
+            BEGIN
+                IF (TG_OP = 'UPDATE' OR TG_OP = 'DELETE') THEN
+                    INSERT INTO filter_config_audit (
+                        version, operation, changed_at,
+                        id, filter_domain, filter_name, expression, filter_type, filter_category,
+                        description, display_name, display_order,
+                        filter_group, group_semantics, coloring_strategy, legend_sort_strategy,
+                        preferred_palette, group_label_template, ui_metadata,
+                        create_date, update_date
+                    )
+                    SELECT (SELECT COALESCE(MAX(version), 0) + 1 FROM filter_config_audit WHERE id = OLD.id),
+                           TG_OP,
+                           CURRENT_TIMESTAMP,
+                           OLD.id,
+                           OLD.filter_domain,
+                           OLD.filter_name,
+                           OLD.expression,
+                           OLD.filter_type,
+                           OLD.filter_category,
+                           OLD.description,
+                           OLD.display_name,
+                           OLD.display_order::BIGINT,
+                           OLD.filter_group,
+                           OLD.group_semantics,
+                           OLD.coloring_strategy,
+                           OLD.legend_sort_strategy,
+                           OLD.preferred_palette,
+                           OLD.group_label_template,
+                           OLD.ui_metadata,
+                           OLD.create_date,
+                           OLD.update_date;
+                ELSIF (TG_OP = 'INSERT') THEN
+                    INSERT INTO filter_config_audit (
+                        version, operation, changed_at,
+                        id, filter_domain, filter_name, expression, filter_type, filter_category,
+                        description, display_name, display_order,
+                        filter_group, group_semantics, coloring_strategy, legend_sort_strategy,
+                        preferred_palette, group_label_template, ui_metadata,
+                        create_date, update_date
+                    )
+                    SELECT 1,
+                           TG_OP,
+                           CURRENT_TIMESTAMP,
+                           NEW.id,
+                           NEW.filter_domain,
+                           NEW.filter_name,
+                           NEW.expression,
+                           NEW.filter_type,
+                           NEW.filter_category,
+                           NEW.description,
+                           NEW.display_name,
+                           NEW.display_order::BIGINT,
+                           NEW.filter_group,
+                           NEW.group_semantics,
+                           NEW.coloring_strategy,
+                           NEW.legend_sort_strategy,
+                           NEW.preferred_palette,
+                           NEW.group_label_template,
+                           NEW.ui_metadata,
+                           NEW.create_date,
+                           NEW.update_date;
+                END IF;
+                RETURN NEW;
+            END;
+            $$
+            LANGUAGE plpgsql;
+            ]]>
+        </createProcedure>
+    </changeSet>
+
+    <changeSet id="20260518_4_backfill_filter_ui_metadata" author="patrick.heusser">
+        <update tableName="filter_config">
+            <column name="filter_group" value="Core"/>
+            <column name="group_semantics" value="CATEGORICAL"/>
+            <column name="coloring_strategy" value="CATEGORICAL"/>
+            <where>filter_domain = 'GPS_TRACK' AND filter_name = 'SmartBaseFilter'</where>
+        </update>
+
+        <update tableName="filter_config">
+            <column name="filter_group" value="Date &amp; Time"/>
+            <column name="group_semantics" value="DATE_BUCKET"/>
+            <column name="coloring_strategy" value="CATEGORICAL"/>
+            <where>filter_domain = 'GPS_TRACK' AND filter_name IN ('TracksByYear', 'TracksByDay')</where>
+        </update>
+
+        <update tableName="filter_config">
+            <column name="filter_group" value="Date &amp; Time"/>
+            <column name="group_semantics" value="ORDINAL"/>
+            <column name="coloring_strategy" value="CATEGORICAL"/>
+            <where>filter_domain = 'GPS_TRACK' AND filter_name IN ('TracksByQuarter', 'TracksByDayOfWeek', 'TracksByTimeOfDay')</where>
+        </update>
+
+        <update tableName="filter_config">
+            <column name="filter_group" value="Activity"/>
+            <column name="group_semantics" value="CATEGORICAL"/>
+            <column name="coloring_strategy" value="CATEGORICAL"/>
+            <where>filter_domain = 'GPS_TRACK' AND filter_name IN ('ActivitiesByKeyword', 'ActivitiesByMainTypes', 'NonMotorizedTracks', 'MotorizedTracks')</where>
+        </update>
+
+        <update tableName="filter_config">
+            <column name="filter_group" value="Quality"/>
+            <column name="group_semantics" value="CATEGORICAL"/>
+            <column name="coloring_strategy" value="CATEGORICAL"/>
+            <where>filter_domain = 'GPS_TRACK' AND filter_name IN ('SuspiciousTracks', 'DuplicateTracks', 'TracksWithErrors')</where>
+        </update>
+
+        <update tableName="filter_config">
+            <column name="filter_group" value="Performance"/>
+            <column name="group_semantics" value="NUMERIC_BUCKET"/>
+            <column name="coloring_strategy" value="SEQUENTIAL_GRADIENT"/>
+            <column name="preferred_palette" value="GRADIENT_100_VIRIDIS"/>
+            <where>filter_domain = 'GPS_TRACK' AND filter_name IN ('TracksByAverageSpeedGradient', 'TracksByDistanceGradient', 'TracksByElevationGainGradient', 'TracksByEnergyGradient')</where>
+        </update>
+
+        <update tableName="filter_config">
+            <column name="filter_group" value="User"/>
+            <column name="group_semantics" value="CATEGORICAL"/>
+            <column name="coloring_strategy" value="CATEGORICAL"/>
+            <where>filter_category = 'USER' AND filter_group IS NULL</where>
+        </update>
+
+        <update tableName="filter_config">
+            <column name="filter_group" value="Other"/>
+            <column name="group_semantics" value="CATEGORICAL"/>
+            <column name="coloring_strategy" value="CATEGORICAL"/>
+            <where>filter_group IS NULL</where>
+        </update>
+
+        <update tableName="filter_config">
+            <column name="group_label_template" value="Avg speed percentile {bucket}"/>
+            <column name="ui_metadata">
+                <![CDATA[{"bucketCount":100,"metricLabel":"Average speed","metricUnit":"km/h","bucketLabel":"percentile","direction":"low-to-high"}]]>
+            </column>
+            <where>filter_domain = 'GPS_TRACK' AND filter_name = 'TracksByAverageSpeedGradient'</where>
+        </update>
+
+        <update tableName="filter_config">
+            <column name="group_label_template" value="Distance percentile {bucket}"/>
+            <column name="ui_metadata">
+                <![CDATA[{"bucketCount":100,"metricLabel":"Distance","metricUnit":"km","bucketLabel":"percentile","direction":"low-to-high"}]]>
+            </column>
+            <where>filter_domain = 'GPS_TRACK' AND filter_name = 'TracksByDistanceGradient'</where>
+        </update>
+
+        <update tableName="filter_config">
+            <column name="group_label_template" value="Elevation gain percentile {bucket}"/>
+            <column name="ui_metadata">
+                <![CDATA[{"bucketCount":100,"metricLabel":"Elevation gain","metricUnit":"m","bucketLabel":"percentile","direction":"low-to-high"}]]>
+            </column>
+            <where>filter_domain = 'GPS_TRACK' AND filter_name = 'TracksByElevationGainGradient'</where>
+        </update>
+
+        <update tableName="filter_config">
+            <column name="group_label_template" value="Energy percentile {bucket}"/>
+            <column name="ui_metadata">
+                <![CDATA[{"bucketCount":100,"metricLabel":"Energy","metricUnit":"kWh","bucketLabel":"percentile","direction":"low-to-high"}]]>
+            </column>
+            <where>filter_domain = 'GPS_TRACK' AND filter_name = 'TracksByEnergyGradient'</where>
+        </update>
+    </changeSet>
+
+    <changeSet id="20260518_5_scale_gradient_filter_buckets" author="patrick.heusser">
+        <update tableName="filter_config">
+            <column name="expression">
+                <![CDATA[
+                with base_tracks as (
+                    select
+                        gt.id,
+                        (gt.track_length_in_meter / nullif(gt.track_duration_in_motion_secs, 0) * 3.6) as metric_value
+                    from
+                        gps_track gt
+                    where
+                        id = any (
+                            select id
+                            from ( [[~{/GPS_TRACK/SmartBaseFilter}]] ) base_filter
+                        )
+                        and gt.track_length_in_meter is not null
+                        and gt.track_duration_in_motion_secs is not null
+                        and gt.track_duration_in_motion_secs > 0
+                ),
+                filtered_tracks as (
+                    select
+                        id,
+                        metric_value
+                    from
+                        base_tracks
+                    where
+                        (:AVG_SPEED_MIN_KMH is null or :AVG_SPEED_MIN_KMH = '' or metric_value >= cast(nullif(:AVG_SPEED_MIN_KMH, '') as double precision))
+                        and (:AVG_SPEED_MAX_KMH is null or :AVG_SPEED_MAX_KMH = '' or metric_value <= cast(nullif(:AVG_SPEED_MAX_KMH, '') as double precision))
+                ),
+                ranked_tracks as (
+                    select
+                        id,
+                        metric_value,
+                        row_number() over (order by metric_value, id) as metric_rank,
+                        count(*) over () as metric_count
+                    from
+                        filtered_tracks
+                ),
+                bucketed_tracks as (
+                    select
+                        id,
+                        metric_value,
+                        case
+                            when metric_count <= 1 then 0
+                            else round(((metric_rank - 1)::numeric * 99) / (metric_count - 1))::integer
+                        end as bucket
+                    from
+                        ranked_tracks
+                )
+                select
+                    id,
+                    bucket::text as grp
+                from
+                    bucketed_tracks
+                order by
+                    bucket,
+                    metric_value,
+                    id
+                ]]>
+            </column>
+            <where>filter_domain = 'GPS_TRACK' AND filter_name = 'TracksByAverageSpeedGradient'</where>
+        </update>
+
+        <update tableName="filter_config">
+            <column name="expression">
+                <![CDATA[
+                with base_tracks as (
+                    select
+                        gt.id,
+                        gt.track_length_in_meter as metric_value
+                    from
+                        gps_track gt
+                    where
+                        id = any (
+                            select id
+                            from ( [[~{/GPS_TRACK/SmartBaseFilter}]] ) base_filter
+                        )
+                        and gt.track_length_in_meter is not null
+                ),
+                filtered_tracks as (
+                    select
+                        id,
+                        metric_value
+                    from
+                        base_tracks
+                    where
+                        (:DISTANCE_MIN_KM is null or :DISTANCE_MIN_KM = '' or metric_value >= cast(nullif(:DISTANCE_MIN_KM, '') as double precision) * 1000)
+                        and (:DISTANCE_MAX_KM is null or :DISTANCE_MAX_KM = '' or metric_value <= cast(nullif(:DISTANCE_MAX_KM, '') as double precision) * 1000)
+                ),
+                ranked_tracks as (
+                    select
+                        id,
+                        metric_value,
+                        row_number() over (order by metric_value, id) as metric_rank,
+                        count(*) over () as metric_count
+                    from
+                        filtered_tracks
+                ),
+                bucketed_tracks as (
+                    select
+                        id,
+                        metric_value,
+                        case
+                            when metric_count <= 1 then 0
+                            else round(((metric_rank - 1)::numeric * 99) / (metric_count - 1))::integer
+                        end as bucket
+                    from
+                        ranked_tracks
+                )
+                select
+                    id,
+                    bucket::text as grp
+                from
+                    bucketed_tracks
+                order by
+                    bucket,
+                    metric_value,
+                    id
+                ]]>
+            </column>
+            <where>filter_domain = 'GPS_TRACK' AND filter_name = 'TracksByDistanceGradient'</where>
+        </update>
+
+        <update tableName="filter_config">
+            <column name="expression">
+                <![CDATA[
+                with base_tracks as (
+                    select
+                        gt.id,
+                        gt.ascent_in_meter as metric_value
+                    from
+                        gps_track gt
+                    where
+                        id = any (
+                            select id
+                            from ( [[~{/GPS_TRACK/SmartBaseFilter}]] ) base_filter
+                        )
+                        and gt.ascent_in_meter is not null
+                ),
+                filtered_tracks as (
+                    select
+                        id,
+                        metric_value
+                    from
+                        base_tracks
+                    where
+                        (:ELEVATION_GAIN_MIN_M is null or :ELEVATION_GAIN_MIN_M = '' or metric_value >= cast(nullif(:ELEVATION_GAIN_MIN_M, '') as double precision))
+                        and (:ELEVATION_GAIN_MAX_M is null or :ELEVATION_GAIN_MAX_M = '' or metric_value <= cast(nullif(:ELEVATION_GAIN_MAX_M, '') as double precision))
+                ),
+                ranked_tracks as (
+                    select
+                        id,
+                        metric_value,
+                        row_number() over (order by metric_value, id) as metric_rank,
+                        count(*) over () as metric_count
+                    from
+                        filtered_tracks
+                ),
+                bucketed_tracks as (
+                    select
+                        id,
+                        metric_value,
+                        case
+                            when metric_count <= 1 then 0
+                            else round(((metric_rank - 1)::numeric * 99) / (metric_count - 1))::integer
+                        end as bucket
+                    from
+                        ranked_tracks
+                )
+                select
+                    id,
+                    bucket::text as grp
+                from
+                    bucketed_tracks
+                order by
+                    bucket,
+                    metric_value,
+                    id
+                ]]>
+            </column>
+            <where>filter_domain = 'GPS_TRACK' AND filter_name = 'TracksByElevationGainGradient'</where>
+        </update>
+
+        <update tableName="filter_config">
+            <column name="expression">
+                <![CDATA[
+                with base_tracks as (
+                    select
+                        gt.id,
+                        gt.energy_net_total_wh as metric_value
+                    from
+                        gps_track gt
+                    where
+                        id = any (
+                            select id
+                            from ( [[~{/GPS_TRACK/SmartBaseFilter}]] ) base_filter
+                        )
+                        and gt.energy_net_total_wh is not null
+                ),
+                filtered_tracks as (
+                    select
+                        id,
+                        metric_value
+                    from
+                        base_tracks
+                    where
+                        (:ENERGY_MIN_KWH is null or :ENERGY_MIN_KWH = '' or metric_value >= cast(nullif(:ENERGY_MIN_KWH, '') as double precision) * 1000)
+                        and (:ENERGY_MAX_KWH is null or :ENERGY_MAX_KWH = '' or metric_value <= cast(nullif(:ENERGY_MAX_KWH, '') as double precision) * 1000)
+                ),
+                ranked_tracks as (
+                    select
+                        id,
+                        metric_value,
+                        row_number() over (order by metric_value, id) as metric_rank,
+                        count(*) over () as metric_count
+                    from
+                        filtered_tracks
+                ),
+                bucketed_tracks as (
+                    select
+                        id,
+                        metric_value,
+                        case
+                            when metric_count <= 1 then 0
+                            else round(((metric_rank - 1)::numeric * 99) / (metric_count - 1))::integer
+                        end as bucket
+                    from
+                        ranked_tracks
+                )
+                select
+                    id,
+                    bucket::text as grp
+                from
+                    bucketed_tracks
+                order by
+                    bucket,
+                    metric_value,
+                    id
+                ]]>
+            </column>
+            <where>filter_domain = 'GPS_TRACK' AND filter_name = 'TracksByEnergyGradient'</where>
+        </update>
+    </changeSet>
+
+    <changeSet id="20260518_6_backfill_yaml_people_filters" author="patrick.heusser">
+        <update tableName="filter_config">
+            <column name="filter_group" value="People"/>
+            <column name="group_semantics" value="CATEGORICAL"/>
+            <column name="coloring_strategy" value="CATEGORICAL"/>
+            <where>filter_domain = 'GPS_TRACK' AND filter_name IN ('ActivitiesWithSilja', 'ActivitiesWithOthers')</where>
+        </update>
+    </changeSet>
+
+    <changeSet id="20260518_7_default_categorical_palettes" author="patrick.heusser">
+        <update tableName="filter_config">
+            <column name="preferred_palette" value="008_COLORS"/>
+            <where>
+                filter_domain = 'GPS_TRACK'
+                AND filter_name IN ('TracksByYear', 'TracksByDay', 'TracksByDayOfWeek', 'TracksByTimeOfDay')
+            </where>
+        </update>
+
+        <update tableName="filter_config">
+            <column name="preferred_palette" value="005_COLORS"/>
+            <where>
+                filter_domain = 'GPS_TRACK'
+                AND filter_name = 'TracksByQuarter'
+            </where>
+        </update>
+
+        <update tableName="filter_config">
+            <column name="preferred_palette" value="008_COLORS"/>
+            <where>
+                filter_domain = 'GPS_TRACK'
+                AND filter_name IN ('ActivitiesByKeyword', 'ActivitiesByMainTypes', 'ActivitiesWithSilja', 'ActivitiesWithOthers')
+            </where>
+        </update>
+
+        <update tableName="filter_config">
+            <column name="preferred_palette" value="005_COLORS"/>
+            <where>
+                filter_domain = 'GPS_TRACK'
+                AND filter_name IN ('NonMotorizedTracks', 'MotorizedTracks', 'SuspiciousTracks', 'DuplicateTracks', 'TracksWithErrors')
+            </where>
+        </update>
+
+        <update tableName="filter_config">
+            <column name="preferred_palette" value="008_COLORS"/>
+            <where>
+                filter_category = 'USER'
+                AND preferred_palette IS NULL
+            </where>
+        </update>
+    </changeSet>
+
+</databaseChangeLog>

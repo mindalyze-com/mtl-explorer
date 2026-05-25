@@ -1,15 +1,28 @@
 import { describe, expect, it, beforeEach, vi } from 'vitest';
 import { createPinia, setActivePinia } from 'pinia';
+import type { ClientFilterConfig } from '@/components/filter/FilterService';
+
+type MockFilterConfig = {
+  filterInfo?: { filterConfig?: { filterName?: string; filterDomain?: string } };
+  filterParams?: { dateTimeParams?: Record<string, unknown> } & Record<string, unknown>;
+  palette?: { id?: number; pColors?: string[] } & Record<string, unknown>;
+};
 
 // Mock FilterService BEFORE importing the store (which transitively imports it).
 // The real FilterService transitively pulls in modules that require browser
 // globals (highcharts/highlight.js Vue plugin), so we replace the whole
 // module with a self-contained fake.
-let __stored: any = null;
-const __reset = () => { __stored = null; };
+let __stored: ClientFilterConfig | null = null;
+const __reset = () => {
+  __stored = null;
+};
 
 vi.mock('@/components/filter/FilterService', () => ({
-  ClientFilterConfig: class { static of(filterInfo: any, filterParams: any, palette: any) { return { filterInfo, filterParams, palette }; } },
+  ClientFilterConfig: class {
+    static of(filterInfo: unknown, filterParams: unknown, palette: unknown) {
+      return { filterInfo, filterParams, palette };
+    }
+  },
   FilterService: {
     loadClientFilterConfig: vi.fn(async () => {
       if (__stored) return __stored;
@@ -20,14 +33,25 @@ vi.mock('@/components/filter/FilterService', () => ({
       };
       return __stored;
     }),
-    saveClientFilterConfig: vi.fn((cfg: any) => { __stored = cfg; }),
-    isStandardFilterWithStandardParams: vi.fn((cfg: any) => {
+    saveClientFilterConfig: vi.fn((cfg: ClientFilterConfig) => {
+      __stored = cfg;
+    }),
+    isStandardFilterWithStandardParams: vi.fn((cfg: MockFilterConfig | null | undefined) => {
       const fc = cfg?.filterInfo?.filterConfig;
       const fp = cfg?.filterParams;
       const isStdFilter = fc?.filterName === 'SmartBaseFilter' && fc?.filterDomain === 'GPS_TRACK';
-      const isStdParams = !fp || Object.keys(fp).length === 0
-        || (!fp.dateTimeParams?.DATE_TIME_FROM && !fp.dateTimeParams?.DATE_TIME_TO);
+      const isStdParams =
+        !fp || Object.keys(fp).length === 0 || (!fp.dateTimeParams?.DATE_TIME_FROM && !fp.dateTimeParams?.DATE_TIME_TO);
       return isStdFilter && isStdParams;
+    }),
+    hasActiveFilterConfig: vi.fn((cfg: MockFilterConfig | null | undefined) => {
+      const fc = cfg?.filterInfo?.filterConfig;
+      const fp = cfg?.filterParams;
+      const isStdFilter = fc?.filterName === 'SmartBaseFilter' && fc?.filterDomain === 'GPS_TRACK';
+      const isStdParams =
+        !fp || Object.keys(fp).length === 0 || (!fp.dateTimeParams?.DATE_TIME_FROM && !fp.dateTimeParams?.DATE_TIME_TO);
+      const hasPalette = Boolean(cfg?.palette?.id && cfg?.palette?.pColors?.length);
+      return !(isStdFilter && isStdParams) || hasPalette;
     }),
   },
 }));
@@ -66,11 +90,28 @@ describe('useFilterStore', () => {
 
   it('save() persists and updates the reactive ref', () => {
     const store = useFilterStore();
-    const cfg = { filterInfo: { filterConfig: { filterName: 'X', filterDomain: 'Y' } }, filterParams: {}, palette: {} } as any;
+    const cfg = {
+      filterInfo: { filterConfig: { filterName: 'X', filterDomain: 'Y' } },
+      filterParams: {},
+      palette: {},
+    } as ClientFilterConfig;
     store.save(cfg);
     expect(FilterService.saveClientFilterConfig).toHaveBeenCalledWith(cfg);
     expect(store.config).toBe(cfg);
     expect(store.isStandard).toBe(false);
+    expect(store.isActive).toBe(true);
+  });
+
+  it('treats a default filter with a palette as active', () => {
+    const store = useFilterStore();
+    const cfg = {
+      filterInfo: { filterConfig: { filterName: 'SmartBaseFilter', filterDomain: 'GPS_TRACK' } },
+      filterParams: {},
+      palette: { id: 1, pColors: ['#123456'] },
+    } as ClientFilterConfig;
+    store.save(cfg);
+    expect(store.isStandard).toBe(true);
+    expect(store.isActive).toBe(true);
   });
 
   it('parallel ensureLoaded calls share one in-flight load', async () => {

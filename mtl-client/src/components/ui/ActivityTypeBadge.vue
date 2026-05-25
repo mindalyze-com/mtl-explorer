@@ -1,5 +1,10 @@
 <template>
-  <span v-if="type" class="activity-badge" :class="[sizeClass, { 'activity-badge--icon-only': iconOnly }]" :style="colorStyle">
+  <span
+    v-if="type"
+    class="activity-badge"
+    :class="[sizeClass, { 'activity-badge--icon-only': iconOnly }]"
+    :style="colorStyle"
+  >
     <i :class="icon" class="activity-badge__icon"></i>
     <span v-if="!iconOnly" class="activity-badge__label">{{ label }}</span>
   </span>
@@ -60,16 +65,19 @@ export function activityLabel(type: string): string {
 <script setup lang="ts">
 import { computed } from 'vue';
 
-const props = withDefaults(defineProps<{
-  type: string | null | undefined;
-  size?: 'xs' | 'sm' | 'md';
-  iconOnly?: boolean;
-  colored?: boolean;
-}>(), {
-  size: 'sm',
-  iconOnly: false,
-  colored: false,
-});
+const props = withDefaults(
+  defineProps<{
+    type: string | null | undefined;
+    size?: 'xs' | 'sm' | 'md';
+    iconOnly?: boolean;
+    colored?: boolean;
+  }>(),
+  {
+    size: 'sm',
+    iconOnly: false,
+    colored: false,
+  }
+);
 
 const icon = computed(() => activityIconFor(props.type ?? ''));
 const label = computed(() => activityLabel(props.type ?? ''));
@@ -107,20 +115,26 @@ const colorStyle = computed(() => {
   padding: 0.1rem 0.35rem;
   gap: 0.18rem;
 }
-.activity-badge--xs .activity-badge__icon { font-size: var(--text-2xs-size); }
+.activity-badge--xs .activity-badge__icon {
+  font-size: var(--text-2xs-size);
+}
 
 .activity-badge--sm {
   font-size: var(--text-xs-size);
   padding: 0.15rem 0.5rem;
 }
-.activity-badge--sm .activity-badge__icon { font-size: var(--text-2xs-size); }
+.activity-badge--sm .activity-badge__icon {
+  font-size: var(--text-2xs-size);
+}
 
 .activity-badge--md {
   font-size: var(--text-xs-size);
   padding: 0.2rem 0.6rem;
   gap: 0.3rem;
 }
-.activity-badge--md .activity-badge__icon { font-size: var(--text-xs-size); }
+.activity-badge--md .activity-badge__icon {
+  font-size: var(--text-xs-size);
+}
 
 /* ── Icon-only ── */
 .activity-badge--icon-only {

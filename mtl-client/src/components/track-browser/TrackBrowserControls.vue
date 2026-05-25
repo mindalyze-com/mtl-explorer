@@ -17,15 +17,19 @@
         <strong>{{ totalCount }}</strong> tracks
       </template>
       <span class="track-browser-controls__summary-sep" aria-hidden="true">·</span>
-      <span v-tooltip.top="{ value: formatDistanceTooltip(summary.totalDistanceMeters), showDelay: 400 }">{{ formatDistanceSmart(summary.totalDistanceMeters) }}</span>
+      <span v-tooltip.top="{ value: formatDistanceTooltip(summary.totalDistanceMeters), showDelay: 400 }">{{
+        formatDistanceSmart(summary.totalDistanceMeters)
+      }}</span>
       <span class="track-browser-controls__summary-sep" aria-hidden="true">·</span>
-      <span v-tooltip.top="{ value: formatDurationTooltip(summary.totalDurationMillis), showDelay: 400 }">{{ formatDurationSmart(summary.totalDurationMillis) }}</span>
+      <span v-tooltip.top="{ value: formatDurationTooltip(summary.totalDurationMillis), showDelay: 400 }">{{
+        formatDurationSmart(summary.totalDurationMillis)
+      }}</span>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { formatDistance, formatDuration, formatDistanceSmart, formatDurationSmart, formatDistanceTooltip, formatDurationTooltip } from '@/utils/Utils';
+import { formatDistanceSmart, formatDurationSmart, formatDistanceTooltip, formatDurationTooltip } from '@/utils/Utils';
 import type { TrackBrowserSummary } from './trackBrowser.types';
 
 defineProps<{

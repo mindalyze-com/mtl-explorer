@@ -14,8 +14,11 @@ export function useTrackMapSync() {
   return {
     pinnedPoint: cursor.pinnedPoint,
     hoverPoint: cursor.hoverPoint,
+    trackPointVersion: cursor.trackPointVersion,
     setTrackPoints: cursor.setTrackPoints,
     getTrackPoints: cursor.getTrackPoints,
+    findPointByIndex: cursor.findPointByIndex,
+    findPointByCanonicalIndex: cursor.findPointByCanonicalIndex,
     findPointByTimestamp: cursor.findPointByTimestamp,
     findPointByDistance: cursor.findPointByDistance,
     findPointByLatLng: cursor.findPointByLatLng,

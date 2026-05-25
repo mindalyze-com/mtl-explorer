@@ -2,7 +2,20 @@ package com.x8ing.mtl.server.mtlserver.energy;
 
 import com.x8ing.mtl.server.mtlserver.db.entity.gps.GpsTrack;
 import com.x8ing.mtl.server.mtlserver.db.entity.gps.GpsTrackDataPoint;
+import com.x8ing.mtl.server.mtlserver.energy.impl.AirplaneEnergyCalculator;
 import com.x8ing.mtl.server.mtlserver.energy.impl.BicycleEnergyCalculator;
+import com.x8ing.mtl.server.mtlserver.energy.impl.CarEnergyCalculator;
+import com.x8ing.mtl.server.mtlserver.energy.impl.DefaultEnergyCalculator;
+import com.x8ing.mtl.server.mtlserver.energy.impl.HikingEnergyCalculator;
+import com.x8ing.mtl.server.mtlserver.energy.impl.KayakingEnergyCalculator;
+import com.x8ing.mtl.server.mtlserver.energy.impl.MotorbikeEnergyCalculator;
+import com.x8ing.mtl.server.mtlserver.energy.impl.MountainBikeEnergyCalculator;
+import com.x8ing.mtl.server.mtlserver.energy.impl.RowingEnergyCalculator;
+import com.x8ing.mtl.server.mtlserver.energy.impl.RunningEnergyCalculator;
+import com.x8ing.mtl.server.mtlserver.energy.impl.SkiingEnergyCalculator;
+import com.x8ing.mtl.server.mtlserver.energy.impl.StandUpPaddleEnergyCalculator;
+import com.x8ing.mtl.server.mtlserver.energy.impl.SupersonicEnergyCalculator;
+import com.x8ing.mtl.server.mtlserver.energy.impl.WalkingEnergyCalculator;
 import org.junit.jupiter.api.Test;
 
 import java.sql.Timestamp;
@@ -135,7 +148,7 @@ class EnergyCalculationTest {
 
     @Test
     void aeroDrag_extremeSpeed_shouldBeCapped() {
-        // 200 km/h GPS artifact ≈ 55.6 m/s → should be clamped to MAX_SPEED_MPS (42 m/s ≈ 151 km/h)
+        // 200 km/h GPS artifact ≈ 55.6 m/s → should be clamped to the bicycle default cap (42 m/s ≈ 151 km/h)
         double uncappedDrag = 0.5 * 0.9 * 0.5 * 1.225 * 55.6 * 55.6 * 100;
         double cappedDrag = bicycleCalculator.aeroDragEnergy(0.9, 0.5, 1.225, 55.6, 100);
         double expectedCapped = 0.5 * 0.9 * 0.5 * 1.225 * 42.0 * 42.0 * 100;
@@ -151,6 +164,132 @@ class EnergyCalculationTest {
         double expected = 0.5 * 0.9 * 0.5 * 1.225 * 8.33 * 8.33 * 100;
 
         assertEquals(expected, result, 0.1, "Normal speed should not be capped");
+    }
+
+    @Test
+    void car_flatCruise_shouldIncludeAeroAndRollingResistance() {
+        GpsTrackDataPoint p1 = makePoint(0, 0, 500.0, 0.0, 0.0);
+        p1.setSpeedInKmhMovingWindow(100.0);
+        GpsTrackDataPoint p2 = makePoint(36_000, 1, 500.0, 1000.0, 36.0);
+        p2.setSpeedInKmhMovingWindow(100.0);
+
+        EnergyService service = new EnergyService(buildFullFactory(), null, null, null, null);
+        TrackEnergySummary summary = service.calculateAndPopulatePoints(List.of(p1, p2), GpsTrack.ACTIVITY_TYPE.CAR, defaultParams);
+
+        assertTrue(p2.getEnergyAeroDragWh() > 80.0,
+                "Car cruise should include aerodynamic drag, got " + p2.getEnergyAeroDragWh() + " Wh");
+        assertTrue(p2.getEnergyRollingResistanceWh() > 45.0,
+                "Car cruise should include rolling resistance, got " + p2.getEnergyRollingResistanceWh() + " Wh");
+        assertEquals(0.0, p2.getEnergyKineticWh(), 0.01,
+                "Constant-speed car cruise should not add kinetic energy");
+        assertTrue(p2.getEnergyTotalWh() > 125.0,
+                "Flat car cruise should not collapse to near-zero energy");
+        assertTrue(p2.getPowerWatts() > 10_000.0,
+                "Car power should not be capped at human-powered levels");
+        assertEquals(1575.0, summary.getWeightKgUsed(), 0.1,
+                "Car total mass should include default vehicle mass plus configured rider/occupant weight");
+    }
+
+    @Test
+    void car_fastCruise_shouldNotUseBicycleAeroSpeedCap() {
+        GpsTrackDataPoint p1 = makePoint(0, 0, 500.0, 0.0, 0.0);
+        p1.setSpeedInKmhMovingWindow(200.0);
+        GpsTrackDataPoint p2 = makePoint(18_000, 1, 500.0, 1000.0, 18.0);
+        p2.setSpeedInKmhMovingWindow(200.0);
+
+        EnergyService service = new EnergyService(buildFullFactory(), null, null, null, null);
+        service.calculateAndPopulatePoints(List.of(p1, p2), GpsTrack.ACTIVITY_TYPE.CAR, defaultParams);
+
+        assertTrue(p2.getEnergyAeroDragWh() > 300.0,
+                "Car aero drag at 200 km/h should not be clamped to the bicycle 151 km/h cap, got "
+                + p2.getEnergyAeroDragWh() + " Wh");
+    }
+
+    @Test
+    void motorbike_flatCruise_shouldIncludeAeroAndRollingResistance() {
+        GpsTrackDataPoint p1 = makePoint(0, 0, 500.0, 0.0, 0.0);
+        p1.setSpeedInKmhMovingWindow(100.0);
+        GpsTrackDataPoint p2 = makePoint(36_000, 1, 500.0, 1000.0, 36.0);
+        p2.setSpeedInKmhMovingWindow(100.0);
+
+        EnergyService service = new EnergyService(buildFullFactory(), null, null, null, null);
+        service.calculateAndPopulatePoints(List.of(p1, p2), GpsTrack.ACTIVITY_TYPE.MOTORBIKING, defaultParams);
+
+        assertTrue(p2.getEnergyAeroDragWh() > 50.0,
+                "Motorbike cruise should include aerodynamic drag, got " + p2.getEnergyAeroDragWh() + " Wh");
+        assertTrue(p2.getEnergyRollingResistanceWh() > 10.0,
+                "Motorbike cruise should include rolling resistance, got " + p2.getEnergyRollingResistanceWh() + " Wh");
+        assertTrue(p2.getEnergyTotalWh() > 60.0,
+                "Flat motorbike cruise should not collapse to near-zero energy");
+    }
+
+    @Test
+    void airplane_flatCruise_shouldIncludeAltitudeAdjustedAeroDrag() {
+        GpsTrackDataPoint p1 = makePoint(0, 0, 10_000.0, 0.0, 0.0);
+        p1.setSpeedInKmhMovingWindow(900.0);
+        GpsTrackDataPoint p2 = makePoint(100_000, 1, 10_000.0, 25_000.0, 100.0);
+        p2.setSpeedInKmhMovingWindow(900.0);
+
+        EnergyService service = new EnergyService(buildFullFactory(), null, null, null, null);
+        TrackEnergySummary summary = service.calculateAndPopulatePoints(List.of(p1, p2), GpsTrack.ACTIVITY_TYPE.AIRPLANE, defaultParams);
+
+        assertTrue(p2.getEnergyAeroDragWh() > 2_000.0,
+                "Airplane cruise should include aerodynamic drag, got " + p2.getEnergyAeroDragWh() + " Wh");
+        assertTrue(p2.getPowerWatts() > 50_000.0,
+                "Airplane power should not be capped at road-vehicle or human-powered levels");
+        assertEquals(500.0, summary.getWeightKgUsed(), 0.1,
+                "Airplane total mass should include passenger plus per-passenger aircraft mass share");
+    }
+
+    @Test
+    void calculateTrackEnergySummary_carPowerCap_shouldUseActivityCalculator() {
+        GpsTrackDataPoint p1 = makePoint(0, 0, 500.0, 0.0, 0.0);
+        p1.setSpeedInKmhMovingWindow(100.0);
+        p1.setEnergyTotalWh(0.0);
+        p1.setPowerWatts(0.0);
+
+        GpsTrackDataPoint p2 = makePoint(36_000, 1, 500.0, 1000.0, 36.0);
+        p2.setSpeedInKmhMovingWindow(100.0);
+        p2.setEnergyTotalWh(1000.0);
+        p2.setPowerWatts(100_000.0);
+
+        EnergyService service = new EnergyService(buildFullFactory(), null, null, null, null);
+        TrackEnergySummary summary = service.calculateTrackEnergySummary(
+                List.of(p1, p2),
+                1575.0,
+                GpsTrack.ACTIVITY_TYPE.CAR);
+
+        assertTrue(summary.getPowerWattsMovingAvg() > 90_000.0,
+                "Aggregating car power should use the car cap, not the 2500 W human-powered cap");
+    }
+
+    @Test
+    void waterSports_shouldUseSubtypeSpecificDragDefaults() {
+        double kayakingWh = calculateFlatWaterEnergy(GpsTrack.ACTIVITY_TYPE.KAYAKING);
+        double rowingWh = calculateFlatWaterEnergy(GpsTrack.ACTIVITY_TYPE.ROWING);
+        double supWh = calculateFlatWaterEnergy(GpsTrack.ACTIVITY_TYPE.STAND_UP_PADDLE);
+
+        assertTrue(supWh > kayakingWh,
+                "SUP should use higher default water drag than kayak");
+        assertTrue(kayakingWh > rowingWh,
+                "Kayak should use higher default water drag than rowing shell");
+    }
+
+    @Test
+    void factory_shouldUseDedicatedRemainingActivityCalculators() {
+        EnergyCalculatorFactory factory = buildFullFactory();
+
+        assertTrue(factory.getCalculator(GpsTrack.ACTIVITY_TYPE.CAR) instanceof CarEnergyCalculator);
+        assertTrue(factory.getCalculator(GpsTrack.ACTIVITY_TYPE.MOTORBIKING) instanceof MotorbikeEnergyCalculator);
+        assertTrue(factory.getCalculator(GpsTrack.ACTIVITY_TYPE.AIRPLANE) instanceof AirplaneEnergyCalculator);
+        assertTrue(factory.getCalculator(GpsTrack.ACTIVITY_TYPE.SUPER_SONIC) instanceof SupersonicEnergyCalculator);
+        assertTrue(factory.getCalculator(GpsTrack.ACTIVITY_TYPE.KAYAKING) instanceof KayakingEnergyCalculator);
+        assertTrue(factory.getCalculator(GpsTrack.ACTIVITY_TYPE.ROWING) instanceof RowingEnergyCalculator);
+        assertTrue(factory.getCalculator(GpsTrack.ACTIVITY_TYPE.STAND_UP_PADDLE) instanceof StandUpPaddleEnergyCalculator);
+        for (GpsTrack.ACTIVITY_TYPE type : GpsTrack.ACTIVITY_TYPE.values()) {
+            assertTrue(!(factory.getCalculator(type) instanceof DefaultEnergyCalculator),
+                    type + " should have an explicit activity-specific energy calculator");
+        }
     }
 
     // ─── Integration: descent should produce 0 cumulative energy ─────────
@@ -272,6 +411,48 @@ class EnergyCalculationTest {
                 "Track-average fallback should keep kinetic energy ~0 even without moving-window data, got " + kineticWh + " Wh");
     }
 
+    @Test
+    void stopBoundary_withoutMovingWindow_shouldSuppressPowerSpike() {
+        GpsTrackDataPoint p1 = makePoint(0, 0, 930.0, 0.0, 0.0);
+        p1.setSpeedInKmhMovingWindow(6.4);
+
+        GpsTrackDataPoint p2 = makePoint(1000, 1, 931.0, 15.6, 1.0);
+
+        GpsTrackDataPoint p3 = makePoint(1_471_000, 2, 931.0, 0.0, 1470.0);
+
+        List<GpsTrackDataPoint> points = List.of(p1, p2, p3);
+        EnergyService service = new EnergyService(buildFactory(), null, null, null, null);
+        service.calculateAndPopulatePoints(points, GpsTrack.ACTIVITY_TYPE.BICYCLE, defaultParams);
+
+        assertEquals(0.0, p2.getEnergyKineticWh(), 0.001,
+                "Stop-boundary segment should not preserve speed-derived kinetic artifacts");
+        assertEquals(0.0, p2.getEnergyAeroDragWh(), 0.001,
+                "Stop-boundary segment should not preserve speed-derived aero artifacts");
+        assertEquals(0.0, p2.getPowerWatts(), 0.001,
+                "Stop-boundary segment should not be counted as reliable estimated power");
+    }
+
+    @Test
+    void calculateAndPopulatePoints_setsThirtySecondPowerSeriesAndPeak() {
+        List<GpsTrackDataPoint> points = new ArrayList<>();
+        for (int i = 0; i < 36; i++) {
+            GpsTrackDataPoint p = makePoint(i * 1000L, i, 500.0, i == 0 ? 0.0 : 5.0, i == 0 ? 0.0 : 1.0);
+            p.setSpeedInKmhMovingWindow(18.0);
+            points.add(p);
+        }
+
+        EnergyService service = new EnergyService(buildFactory(), null, null, null, null);
+        TrackEnergySummary summary = service.calculateAndPopulatePoints(points, GpsTrack.ACTIVITY_TYPE.BICYCLE, defaultParams);
+
+        // Per-point 30-second rolling power is no longer stored on the entity;
+        // the chart-series endpoint computes it on demand from the canonical
+        // stream. Track-level peak survives via the summary.
+        assertTrue(summary.getPowerWatts30sMax() > 0,
+                "Track summary should expose peak 30-second estimated power");
+        assertTrue(summary.getPowerWatts30sMax() <= summary.getPowerWattsMax() + 1.0,
+                "30-second peak should be no larger than raw per-segment peak on this steady test");
+    }
+
     // ─── Helpers ─────────────────────────────────────────────────────────
 
     private GpsTrackDataPoint makePoint(long timestampOffsetMs, int index, double altitude,
@@ -291,5 +472,39 @@ class EnergyCalculationTest {
         );
         factory.init();
         return factory;
+    }
+
+    private EnergyCalculatorFactory buildFullFactory() {
+        EnergyCalculatorFactory factory = new EnergyCalculatorFactory(
+                List.of(
+                        new AirplaneEnergyCalculator(),
+                        new BicycleEnergyCalculator(),
+                        new CarEnergyCalculator(),
+                        new HikingEnergyCalculator(),
+                        new KayakingEnergyCalculator(),
+                        new MotorbikeEnergyCalculator(),
+                        new MountainBikeEnergyCalculator(),
+                        new RowingEnergyCalculator(),
+                        new RunningEnergyCalculator(),
+                        new SkiingEnergyCalculator(),
+                        new StandUpPaddleEnergyCalculator(),
+                        new SupersonicEnergyCalculator(),
+                        new WalkingEnergyCalculator(),
+                        new DefaultEnergyCalculator()
+                )
+        );
+        factory.init();
+        return factory;
+    }
+
+    private double calculateFlatWaterEnergy(GpsTrack.ACTIVITY_TYPE activityType) {
+        GpsTrackDataPoint p1 = makePoint(0, 0, 400.0, 0.0, 0.0);
+        p1.setSpeedInKmhMovingWindow(6.0);
+        GpsTrackDataPoint p2 = makePoint(600_000, 1, 400.0, 1000.0, 600.0);
+        p2.setSpeedInKmhMovingWindow(6.0);
+
+        EnergyService service = new EnergyService(buildFullFactory(), null, null, null, null);
+        service.calculateAndPopulatePoints(List.of(p1, p2), activityType, defaultParams);
+        return p2.getEnergyTotalWh();
     }
 }

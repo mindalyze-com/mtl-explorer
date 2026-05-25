@@ -1,5 +1,6 @@
 package com.x8ing.mtl.server.mtlserver.web.security;
 
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.x8ing.mtl.server.mtlserver.db.entity.config.ConfigEntity;
 import com.x8ing.mtl.server.mtlserver.db.repository.config.ConfigRepository;
 import io.jsonwebtoken.Claims;
@@ -17,6 +18,11 @@ import java.util.Date;
 import java.util.List;
 
 @Component
+@JsonPropertyOrder({
+        "jwtExpiration",
+        "configRepository",
+        "secretKey"
+})
 public class JwtUtil {
 
     public static final String USER_SESSION_ID = "user_session_id";

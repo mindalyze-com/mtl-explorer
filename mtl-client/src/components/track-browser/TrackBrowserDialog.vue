@@ -4,7 +4,7 @@
     maximizable
     modal
     header="Tracks"
-    appendTo="body"
+    append-to="body"
     :content-class="'content-no-scroll'"
     class="tool-dialog track-browser-dialog-shell"
     :class="{ 'track-browser-dialog-shell--mobile': isMobile }"
@@ -51,7 +51,9 @@ const emit = defineEmits<{
 }>();
 
 const windowWidth = ref(typeof window !== 'undefined' ? window.innerWidth : 1024);
-function onResize() { windowWidth.value = window.innerWidth; }
+function onResize() {
+  windowWidth.value = window.innerWidth;
+}
 onMounted(() => window.addEventListener('resize', onResize));
 onUnmounted(() => window.removeEventListener('resize', onResize));
 
@@ -62,12 +64,7 @@ const dialogVisible = computed({
   set: (value: boolean) => emit('update:visible', value),
 });
 
-const {
-  query,
-  rows,
-  summary,
-  totalCount,
-} = useTrackBrowser(toRef(props, 'tracks'));
+const { query, rows, summary, totalCount } = useTrackBrowser(toRef(props, 'tracks'));
 
 function onTrackSelect(id: number | string) {
   emit('select-track', id);

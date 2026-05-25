@@ -1,4 +1,5 @@
 /** Shared types for the planner feature. */
+import type { BRouterStatusDto } from 'x8ing-mtl-api-typescript-fetch';
 
 export interface Waypoint {
   /** Stable client-side id so Vue `v-for` keys survive drags/inserts. */
@@ -43,25 +44,4 @@ export interface PlannedTrackSummary {
   profile: string | null;
 }
 
-export interface PlannedTrackDetail {
-  id: number;
-  name: string;
-  description: string;
-  profile: string | null;
-  distanceM: number;
-  /** Original user waypoints in placement order. Empty for legacy (pre-026) plans. */
-  waypoints: { lat: number; lng: number }[];
-  /** Routed polyline as [lng, lat, elevationM] triples. */
-  coordinates: [number, number, number][];
-}
-
-export interface SidecarStatus {
-  available: boolean;
-  brouterRunning?: boolean;
-  segmentsOnDisk?: number;
-  segmentsQueued?: number;
-  segmentsInProgress?: string[];
-  segmentsCompletedThisRun?: string[];
-  segmentsFailed?: Record<string, string>;
-  reason?: string;
-}
+export type SidecarStatus = BRouterStatusDto;

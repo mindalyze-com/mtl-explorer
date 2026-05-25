@@ -1,7 +1,9 @@
 package com.x8ing.mtl.server.mtlserver.web.services.freshness;
 
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.x8ing.mtl.server.mtlserver.db.repository.freshness.DataFreshnessRepository;
 import com.x8ing.mtl.server.mtlserver.utils.Base58BitcoinFlavor;
+import com.x8ing.mtl.server.mtlserver.web.services.config.ServerIdentityService;
 import org.springframework.stereotype.Service;
 
 import java.nio.ByteBuffer;
@@ -13,28 +15,44 @@ import java.util.stream.Collectors;
 import java.util.zip.CRC32;
 
 @Service
+@JsonPropertyOrder({
+        "dataFreshnessRepository",
+        "serverIdentityService"
+})
 public class DataFreshnessService {
 
     private static final String TOKEN_ITEM_SEPARATOR = "|";
     private static final String TOKEN_KEY_REVISION_SEPARATOR = ":";
     private static final String TOKEN_MINI_HASH_SEPARATOR = "__|";
+    private static final String TOKEN_SERVER_ID_KEY = "server_id";
     private static final int TOKEN_MINI_HASH_LENGTH = 6;
     private static final int CRC32_BYTE_COUNT = Integer.BYTES;
 
     private final DataFreshnessRepository dataFreshnessRepository;
+    private final ServerIdentityService serverIdentityService;
 
-    public DataFreshnessService(DataFreshnessRepository dataFreshnessRepository) {
+    public DataFreshnessService(
+            DataFreshnessRepository dataFreshnessRepository,
+            ServerIdentityService serverIdentityService
+    ) {
         this.dataFreshnessRepository = dataFreshnessRepository;
+        this.serverIdentityService = serverIdentityService;
     }
 
     public DataFreshnessResponseDto getDataFreshness() {
+        String serverId = serverIdentityService.getServerId();
+
         List<DataFreshnessItemDto> items = dataFreshnessRepository.findAllByOrderByDomainKeyAsc().stream()
                 .map(row -> new DataFreshnessItemDto(row.getDomainKey(), row.getRevision(), row.getChangedAt()))
                 .toList();
 
-        String readableToken = items.stream()
+        String domainToken = items.stream()
                 .map(item -> item.key() + TOKEN_KEY_REVISION_SEPARATOR + item.revision())
                 .collect(Collectors.joining(TOKEN_ITEM_SEPARATOR));
+        String readableToken = TOKEN_SERVER_ID_KEY + TOKEN_KEY_REVISION_SEPARATOR + serverId;
+        if (!domainToken.isBlank()) {
+            readableToken += TOKEN_ITEM_SEPARATOR + domainToken;
+        }
         String token = miniHash(readableToken) + TOKEN_MINI_HASH_SEPARATOR + readableToken;
 
         Date changedAt = items.stream()

@@ -24,10 +24,7 @@ export interface DragState {
  * Taps (pointerdown → pointerup with no movement) are ignored so that click
  * handlers on child elements (e.g. buttons) are not intercepted.
  */
-export function usePointerDrag(
-  target: Ref<HTMLElement | null>,
-  handler: (state: DragState) => void,
-) {
+export function usePointerDrag(target: Ref<HTMLElement | null>, handler: (state: DragState) => void) {
   watchEffect((onCleanup) => {
     const raw = target.value;
     if (!raw) return;

@@ -89,7 +89,8 @@ export function initializeStartupDiagnostics(): void {
     diagnosticsEnabledCache = readStoredEnabled();
   }
 
-  const isPwa = window.matchMedia('(display-mode: standalone)').matches ||
+  const isPwa =
+    window.matchMedia('(display-mode: standalone)').matches ||
     (window.navigator as unknown as { standalone?: boolean }).standalone === true;
   const clientVersion = typeof __APP_PKG_VERSION__ !== 'undefined' ? __APP_PKG_VERSION__ : 'unknown';
   const clientBuild = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : 'unknown';

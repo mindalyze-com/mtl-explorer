@@ -1,5 +1,6 @@
 package com.x8ing.mtl.server.mtlserver.web.services.garmin;
 
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.x8ing.mtl.server.mtlserver.jobs.garminexport.GarminExporter;
 import com.x8ing.mtl.server.mtlserver.jobs.garminexport.GarminToolInstallService;
 import org.springframework.http.ResponseEntity;
@@ -7,6 +8,10 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/garmin-export")
+@JsonPropertyOrder({
+        "garminExporter",
+        "garminToolInstallService"
+})
 public class GarminExportController {
 
     private final GarminExporter garminExporter;

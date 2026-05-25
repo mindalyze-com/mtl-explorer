@@ -1,6 +1,7 @@
 package com.x8ing.mtl.server.mtlserver.db.entity.media;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.x8ing.mtl.server.mtlserver.db.entity.indexer.IndexedFile;
 import jakarta.persistence.*;
 import lombok.Data;
@@ -12,6 +13,18 @@ import java.util.Date;
 @Table(name = "media_file")
 @Data
 @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"}) // TODO: Why? Why not required on GpsTrack?
+@JsonPropertyOrder({
+        "id",
+        "indexedFile",
+        "creDate",
+        "exifGpsLocationLong",
+        "exifGpsLocationLat",
+        "exifGpsLocation",
+        "exifGpsDate",
+        "exifDateImageTaken",
+        "cameraMake",
+        "cameraModel"
+})
 public class MediaFile {
 
     @Id

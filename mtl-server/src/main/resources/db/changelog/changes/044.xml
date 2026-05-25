@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.10.xsd">
+
+    <changeSet id="20260601_1_drop_per_point_30s_columns" author="patrick.heusser">
+        <comment>
+            Canonical metric / on-demand LOD architecture: per-point 30-second
+            window columns are no longer stored — they are now recomputed on
+            demand by the chart-series endpoint from the canonical
+            RAW_OUTLIER_CLEANED stream. Track-level peak (*_30s_max) columns
+            stay on gps_track and are populated at ingest by
+            PointWindowedRateCalculator.
+        </comment>
+
+        <dropColumn tableName="gps_track_data_points" columnName="speed_in_kmh_30s"/>
+        <dropColumn tableName="gps_track_data_points" columnName="elevation_gain_per_hour_30s"/>
+        <dropColumn tableName="gps_track_data_points" columnName="elevation_loss_per_hour_30s"/>
+        <dropColumn tableName="gps_track_data_points" columnName="power_watts_30s"/>
+    </changeSet>
+
+    <changeSet id="20260601_2_drop_simplified_fixed_points_variants" author="patrick.heusser">
+        <comment>
+            SIMPLIFIED_FIXED_POINTS variants are no longer pre-computed at
+            ingest. Charts now query the canonical RAW_OUTLIER_CLEANED stream
+            via /api/tracks/{id}/chart-series with on-demand bucket
+            aggregation. Drop the discriminator column and any persisted
+            rows of that type.
+        </comment>
+
+        <delete tableName="gps_track_data_points">
+            <where>
+                gps_track_data_id in (
+                    select id from gps_track_data where track_type = 'SIMPLIFIED_FIXED_POINTS'
+                )
+            </where>
+        </delete>
+
+        <delete tableName="gps_track_data">
+            <where>track_type = 'SIMPLIFIED_FIXED_POINTS'</where>
+        </delete>
+
+        <dropColumn tableName="gps_track_data" columnName="max_points"/>
+    </changeSet>
+
+</databaseChangeLog>

@@ -1,5 +1,6 @@
 package com.x8ing.mtl.server.mtlserver.logic.grouping.sql.custom;
 
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.x8ing.mtl.server.mtlserver.db.entity.config.FilterConfigEntity;
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -14,6 +15,9 @@ import java.util.List;
 @Data
 @Component
 @ConfigurationProperties(prefix = "mtl")
+@JsonPropertyOrder({
+        "filterConfigs"
+})
 public class FilterConfigProperties {
 
     private List<FilterConfigEntity> filterConfigs;

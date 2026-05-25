@@ -1,11 +1,32 @@
 <template>
-  <div class="overview-container" v-if="gpsTrack && gpsTrack.indexedFile">
-
+  <div v-if="gpsTrack && gpsTrack.indexedFile" class="overview-container">
     <!-- Track Header -->
     <div class="track-header">
       <div class="track-header__top">
         <span class="track-header__name">{{ trackDisplayName }}</span>
-        <ActivityTypeBadge :type="gpsTrack.activityType" size="sm" />
+        <div v-if="canDownloadTrackSource" class="track-header__actions">
+          <button
+            type="button"
+            class="track-header__action-btn"
+            :disabled="activeDownload !== null"
+            aria-label="Download original"
+            title="Download original indexed file"
+            @click="downloadOriginal"
+          >
+            <i :class="activeDownload === 'original' ? 'pi pi-spin pi-spinner' : 'bi bi-download'"></i>
+          </button>
+          <button
+            v-if="canDownloadGpx"
+            type="button"
+            class="track-header__action-btn"
+            :disabled="activeDownload !== null"
+            aria-label="Download GPX"
+            title="Download as GPX"
+            @click="downloadGpx"
+          >
+            <i :class="activeDownload === 'gpx' ? 'pi pi-spin pi-spinner' : 'bi bi-file-earmark-code'"></i>
+          </button>
+        </div>
       </div>
       <div class="track-header__meta">
         <span v-if="gpsTrack.startDate">
@@ -20,21 +41,26 @@
 
     <!-- Loading skeleton -->
     <div v-if="!summaryReady" class="skeleton-grid">
-      <div class="skeleton-tile" v-for="n in 4" :key="n"></div>
+      <div v-for="n in 4" :key="n" class="skeleton-tile"></div>
     </div>
 
     <!-- Primary Metrics -->
-    <div class="metrics-primary" v-if="summaryReady">
+    <div v-if="summaryReady" class="metrics-primary">
       <div class="metric-tile metric-tile--primary">
         <i class="bi bi-signpost-split metric-tile__icon"></i>
-        <div class="metric-tile__value"
-             v-tooltip.top="{ value: formatDistanceTooltip(gpsTrack.trackLengthInMeter), showDelay: 400 }">{{ formatDistanceSmart(gpsTrack.trackLengthInMeter) }}</div>
+        <div
+          v-tooltip.top="{ value: formatOptionalDistanceTooltip(gpsTrack.trackLengthInMeter), showDelay: 400 }"
+          class="metric-tile__value"
+        >
+          {{ formatOptionalDistanceSmart(gpsTrack.trackLengthInMeter) }}
+        </div>
         <div class="metric-tile__label">Distance</div>
       </div>
       <div class="metric-tile metric-tile--primary">
         <i class="bi bi-clock metric-tile__icon"></i>
-        <div class="metric-tile__value"
-             v-tooltip.top="{ value: formatDurationTooltip(trackDuration), showDelay: 400 }">{{ formatDurationSmart(trackDuration) }}</div>
+        <div v-tooltip.top="{ value: formatDurationTooltip(trackDuration), showDelay: 400 }" class="metric-tile__value">
+          {{ formatDurationSmart(trackDuration) }}
+        </div>
         <div class="metric-tile__label">Duration</div>
       </div>
       <div class="metric-tile metric-tile--primary">
@@ -44,37 +70,51 @@
       </div>
       <div class="metric-tile metric-tile--primary">
         <i class="bi bi-speedometer2 metric-tile__icon"></i>
-        <div class="metric-tile__value">{{ formatNumber(avgSpeed, 1) }} <span class="metric-tile__unit">km/h</span></div>
+        <div class="metric-tile__value">
+          {{ formatNumber(avgSpeed, 1) }} <span class="metric-tile__unit">km/h</span>
+        </div>
         <div class="metric-tile__label">Avg Speed</div>
       </div>
     </div>
 
     <!-- Secondary Metrics -->
-    <div class="metrics-secondary" v-if="summaryReady">
+    <div v-if="summaryReady" class="metrics-secondary">
       <!-- Timing row -->
       <div class="section-label"><i class="bi bi-stopwatch"></i> Timing</div>
       <div class="metrics-grid">
         <div class="metric-tile">
           <i class="bi bi-play-fill metric-tile__icon metric-tile__icon--sm"></i>
-          <div class="metric-tile__value metric-tile__value--sm"
-               v-tooltip.top="{ value: formatDurationTooltip(movingTimeMs), showDelay: 400 }">{{ formatDurationSmart(movingTimeMs, trackDuration) }}</div>
+          <div
+            v-tooltip.top="{ value: formatDurationTooltip(movingTimeMs), showDelay: 400 }"
+            class="metric-tile__value metric-tile__value--sm"
+          >
+            {{ formatDurationSmart(movingTimeMs, trackDuration) }}
+          </div>
           <div class="metric-tile__label">Moving</div>
         </div>
         <div class="metric-tile">
           <i class="bi bi-pause-fill metric-tile__icon metric-tile__icon--sm"></i>
-          <div class="metric-tile__value metric-tile__value--sm"
-               v-tooltip.top="{ value: formatDurationTooltip(stoppedTimeMs), showDelay: 400 }">{{ formatDurationSmart(stoppedTimeMs, trackDuration) }}</div>
+          <div
+            v-tooltip.top="{ value: formatDurationTooltip(stoppedTimeMs), showDelay: 400 }"
+            class="metric-tile__value metric-tile__value--sm"
+          >
+            {{ formatDurationSmart(stoppedTimeMs, trackDuration) }}
+          </div>
           <div class="metric-tile__label">Stopped</div>
         </div>
-        <div class="metric-tile" v-if="gpsTrack.trackStopCount != null">
+        <div v-if="gpsTrack.trackStopCount != null" class="metric-tile">
           <i class="bi bi-stop-circle metric-tile__icon metric-tile__icon--sm"></i>
           <div class="metric-tile__value metric-tile__value--sm">{{ gpsTrack.trackStopCount }}</div>
           <div class="metric-tile__label">Stops</div>
         </div>
-        <div class="metric-tile" v-if="longestStopMs > 0">
+        <div v-if="longestStopMs > 0" class="metric-tile">
           <i class="bi bi-hourglass-split metric-tile__icon metric-tile__icon--sm"></i>
-          <div class="metric-tile__value metric-tile__value--sm"
-               v-tooltip.top="{ value: formatDurationTooltip(longestStopMs), showDelay: 400 }">{{ formatDurationSmart(longestStopMs, stoppedTimeMs) }}</div>
+          <div
+            v-tooltip.top="{ value: formatDurationTooltip(longestStopMs), showDelay: 400 }"
+            class="metric-tile__value metric-tile__value--sm"
+          >
+            {{ formatDurationSmart(longestStopMs, stoppedTimeMs) }}
+          </div>
           <div class="metric-tile__label">Longest Stop</div>
         </div>
       </div>
@@ -84,18 +124,24 @@
       <div class="metrics-grid">
         <div class="metric-tile">
           <i class="bi bi-speedometer metric-tile__icon metric-tile__icon--sm"></i>
-          <div class="metric-tile__value metric-tile__value--sm">{{ formatNumber(avgSpeed, 1) }} <span class="metric-tile__unit">km/h</span></div>
+          <div class="metric-tile__value metric-tile__value--sm">
+            {{ formatNumber(avgSpeed, 1) }} <span class="metric-tile__unit">km/h</span>
+          </div>
           <div class="metric-tile__label">Avg Speed</div>
         </div>
-        <div class="metric-tile" v-if="movingAvgSpeed > 0">
+        <div v-if="movingAvgSpeed > 0" class="metric-tile">
           <i class="bi bi-speedometer2 metric-tile__icon metric-tile__icon--sm" style="color: var(--success)"></i>
-          <div class="metric-tile__value metric-tile__value--sm">{{ formatNumber(movingAvgSpeed, 1) }} <span class="metric-tile__unit">km/h</span></div>
+          <div class="metric-tile__value metric-tile__value--sm">
+            {{ formatNumber(movingAvgSpeed, 1) }} <span class="metric-tile__unit">km/h</span>
+          </div>
           <div class="metric-tile__label">Moving Avg</div>
         </div>
-        <div class="metric-tile" v-if="maxSpeed > 0">
+        <div v-if="maxSpeed > 0" class="metric-tile">
           <i class="bi bi-lightning metric-tile__icon metric-tile__icon--sm" style="color: var(--warning)"></i>
-          <div class="metric-tile__value metric-tile__value--sm">{{ formatNumber(maxSpeed, 1) }} <span class="metric-tile__unit">km/h</span></div>
-          <div class="metric-tile__label">Max Speed</div>
+          <div class="metric-tile__value metric-tile__value--sm">
+            {{ formatNumber(maxSpeed, 1) }} <span class="metric-tile__unit">km/h</span>
+          </div>
+          <div class="metric-tile__label">Max 30s Speed</div>
         </div>
       </div>
 
@@ -112,6 +158,20 @@
           <div class="metric-tile__value metric-tile__value--sm">{{ formatNumber(Math.abs(totalDescent), 0) }} m</div>
           <div class="metric-tile__label">Descent</div>
         </div>
+        <div v-if="maxElevationGainRate > 0" class="metric-tile">
+          <i class="bi bi-arrow-up-right metric-tile__icon metric-tile__icon--sm" style="color: var(--success)"></i>
+          <div class="metric-tile__value metric-tile__value--sm">
+            {{ formatNumber(maxElevationGainRate, 0) }} <span class="metric-tile__unit">m/h</span>
+          </div>
+          <div class="metric-tile__label">Max 30s Climb</div>
+        </div>
+        <div v-if="maxElevationLossRate > 0" class="metric-tile">
+          <i class="bi bi-arrow-down-right metric-tile__icon metric-tile__icon--sm" style="color: var(--warning)"></i>
+          <div class="metric-tile__value metric-tile__value--sm">
+            {{ formatNumber(maxElevationLossRate, 0) }} <span class="metric-tile__unit">m/h</span>
+          </div>
+          <div class="metric-tile__label">Max 30s Desc.</div>
+        </div>
         <div class="metric-tile">
           <div class="metric-tile__value metric-tile__value--sm">{{ formatNumber(minAltitude, 0) }} m</div>
           <div class="metric-tile__label">Min Alt.</div>
@@ -121,7 +181,9 @@
           <div class="metric-tile__label">Max Alt.</div>
         </div>
         <div class="metric-tile">
-          <div class="metric-tile__value metric-tile__value--sm">{{ formatNumber(maxAltitude - minAltitude, 0) }} m</div>
+          <div class="metric-tile__value metric-tile__value--sm">
+            {{ formatNumber(maxAltitude - minAltitude, 0) }} m
+          </div>
           <div class="metric-tile__label">Range</div>
         </div>
         <div class="metric-tile">
@@ -136,12 +198,17 @@
     </div>
 
     <!-- Energy Section -->
-    <div class="energy-section" v-if="summaryReady">
+    <div v-if="summaryReady" class="energy-section">
       <div class="section-label">
         <i class="bi bi-lightning-charge"></i> Energy
-        <button class="info-btn info-btn--inline" @click.stop
-                v-tooltip.top="{ value: INFO_ENERGY, showDelay: 200, escape: false }"
-                aria-label="About energy"><i class="bi bi-info-circle"></i></button>
+        <button
+          type="button"
+          class="info-btn info-btn--inline"
+          aria-label="About energy"
+          @click.stop="showInfo($event, INFO_ENERGY)"
+        >
+          <i class="bi bi-info-circle"></i>
+        </button>
       </div>
 
       <!-- Not yet calculated -->
@@ -151,13 +218,16 @@
       </div>
 
       <!-- Summary row -->
-      <div class="metrics-grid" v-if="hasEnergy">
+      <div v-if="hasEnergy" class="metrics-grid">
         <div class="metric-tile metric-tile--energy energy-tooltip-wrapper" @click="toggleTooltip('energy')">
           <i class="bi bi-battery-half metric-tile__icon metric-tile__icon--sm" style="color: var(--accent)"></i>
-          <div class="metric-tile__value metric-tile__value--sm">{{ formatNumber(gpsTrack.energyNetTotalWh, 1) }} Wh</div>
+          <div class="metric-tile__value metric-tile__value--sm">
+            {{ formatNumber(gpsTrack.energyNetTotalWh, 1) }} Wh
+          </div>
           <div class="metric-tile__label">Net Total</div>
           <div class="energy-tooltip" :class="{ 'energy-tooltip--visible': activeTooltip === 'energy' }">
-            {{ whToJoules(gpsTrack.energyNetTotalWh) }} J &middot; {{ whToKcal(gpsTrack.energyNetTotalWh) }} kcal mechanical equivalent
+            {{ whToJoules(gpsTrack.energyNetTotalWh) }} J &middot; {{ whToKcal(gpsTrack.energyNetTotalWh) }} kcal
+            mechanical equivalent
           </div>
         </div>
         <div class="metric-tile metric-tile--energy energy-tooltip-wrapper" @click="toggleTooltip('avgPower')">
@@ -165,85 +235,129 @@
           <div class="metric-tile__value metric-tile__value--sm">{{ formatNumber(gpsTrack.powerWattsAvg, 0) }} W</div>
           <div class="metric-tile__label">
             Avg Power
-            <button class="info-btn info-btn--inline" @click.stop
-                    v-tooltip.top="{ value: INFO_AVG_POWER, showDelay: 200, escape: false }"
-                    aria-label="About Average Power"><i class="bi bi-info-circle"></i></button>
+            <button
+              type="button"
+              class="info-btn info-btn--inline"
+              aria-label="About Average Power"
+              @click.stop="showInfo($event, INFO_AVG_POWER)"
+            >
+              <i class="bi bi-info-circle"></i>
+            </button>
           </div>
           <div class="energy-tooltip" :class="{ 'energy-tooltip--visible': activeTooltip === 'avgPower' }">
             {{ wattsToKcalH(gpsTrack.powerWattsAvg) }} kcal/h mechanical equivalent
           </div>
         </div>
-        <div class="metric-tile metric-tile--energy energy-tooltip-wrapper" v-if="gpsTrack.powerWattsMovingAvg" @click="toggleTooltip('avgMovingPower')">
+        <div
+          v-if="gpsTrack.powerWattsMovingAvg"
+          class="metric-tile metric-tile--energy energy-tooltip-wrapper"
+          @click="toggleTooltip('avgMovingPower')"
+        >
           <i class="bi bi-lightning metric-tile__icon metric-tile__icon--sm" style="color: var(--accent)"></i>
-          <div class="metric-tile__value metric-tile__value--sm">{{ formatNumber(gpsTrack.powerWattsMovingAvg, 0) }} W</div>
+          <div class="metric-tile__value metric-tile__value--sm">
+            {{ formatNumber(gpsTrack.powerWattsMovingAvg, 0) }} W
+          </div>
           <div class="metric-tile__label">
             Avg Moving Power
-            <button class="info-btn info-btn--inline" @click.stop
-                    v-tooltip.top="{ value: INFO_AVG_MOVING_POWER, showDelay: 200, escape: false }"
-                    aria-label="About Average Moving Power"><i class="bi bi-info-circle"></i></button>
+            <button
+              type="button"
+              class="info-btn info-btn--inline"
+              aria-label="About Average Moving Power"
+              @click.stop="showInfo($event, INFO_AVG_MOVING_POWER)"
+            >
+              <i class="bi bi-info-circle"></i>
+            </button>
           </div>
           <div class="energy-tooltip" :class="{ 'energy-tooltip--visible': activeTooltip === 'avgMovingPower' }">
             {{ wattsToKcalH(gpsTrack.powerWattsMovingAvg) }} kcal/h mechanical equivalent &middot; excl. breaks
           </div>
         </div>
-        <div class="metric-tile metric-tile--energy energy-tooltip-wrapper" @click="toggleTooltip('maxPower')">
+        <div
+          v-if="gpsTrack.powerWatts30sMax != null"
+          class="metric-tile metric-tile--energy energy-tooltip-wrapper"
+          @click="toggleTooltip('maxPower')"
+        >
           <i class="bi bi-lightning-fill metric-tile__icon metric-tile__icon--sm" style="color: var(--accent)"></i>
-          <div class="metric-tile__value metric-tile__value--sm">{{ formatNumber(gpsTrack.powerWattsMax, 0) }} W</div>
+          <div class="metric-tile__value metric-tile__value--sm">{{ formatNumber(peakPowerWatts, 0) }} W</div>
           <div class="metric-tile__label">
-            Max Power
-            <button class="info-btn info-btn--inline" @click.stop
-                    v-tooltip.top="{ value: INFO_MAX_POWER, showDelay: 200, escape: false }"
-                    aria-label="About Max Power"><i class="bi bi-info-circle"></i></button>
+            Max 30s Power
+            <button
+              type="button"
+              class="info-btn info-btn--inline"
+              aria-label="About Max 30 second Power"
+              @click.stop="showInfo($event, INFO_MAX_POWER)"
+            >
+              <i class="bi bi-info-circle"></i>
+            </button>
           </div>
           <div class="energy-tooltip" :class="{ 'energy-tooltip--visible': activeTooltip === 'maxPower' }">
-            {{ wattsToKcalH(gpsTrack.powerWattsMax) }} kcal/h mechanical equivalent
+            {{ wattsToKcalH(peakPowerWatts) }} kcal/h mechanical equivalent
           </div>
         </div>
-        <div class="metric-tile metric-tile--energy" v-if="gpsTrack.energyWeightKgUsed">
+        <div v-if="gpsTrack.energyWeightKgUsed" class="metric-tile metric-tile--energy">
           <i class="bi bi-person metric-tile__icon metric-tile__icon--sm" style="color: var(--accent)"></i>
-          <div class="metric-tile__value metric-tile__value--sm">{{ formatNumber(gpsTrack.energyWeightKgUsed, 1) }} kg</div>
-          <div class="metric-tile__label">Weight Used</div>
+          <div class="metric-tile__value metric-tile__value--sm">
+            {{ formatNumber(gpsTrack.energyWeightKgUsed, 1) }} kg
+          </div>
+          <div class="metric-tile__label">Mass Used</div>
         </div>
       </div>
 
       <!-- Detailed breakdown -->
-      <div class="energy-breakdown-label" v-if="hasEnergy">Breakdown</div>
-      <div class="metrics-grid" v-if="hasEnergy">
-        <div class="metric-tile metric-tile--energy" v-if="gpsTrack.energyGravitationalTotalWh != null">
-          <div class="metric-tile__value metric-tile__value--sm">{{ formatNumber(gpsTrack.energyGravitationalTotalWh, 1) }} Wh</div>
+      <div v-if="hasEnergy" class="energy-breakdown-label">Breakdown</div>
+      <div v-if="hasEnergy" class="metrics-grid">
+        <div v-if="gpsTrack.energyGravitationalTotalWh != null" class="metric-tile metric-tile--energy">
+          <div class="metric-tile__value metric-tile__value--sm">
+            {{ formatNumber(gpsTrack.energyGravitationalTotalWh, 1) }} Wh
+          </div>
           <div class="metric-tile__label">Gravitational ↑</div>
         </div>
-        <div class="metric-tile metric-tile--energy" v-if="gpsTrack.energyGravitationalDescentWh != null">
-          <div class="metric-tile__value metric-tile__value--sm">{{ formatNumber(gpsTrack.energyGravitationalDescentWh, 1) }} Wh</div>
+        <div v-if="gpsTrack.energyGravitationalDescentWh != null" class="metric-tile metric-tile--energy">
+          <div class="metric-tile__value metric-tile__value--sm">
+            {{ formatNumber(gpsTrack.energyGravitationalDescentWh, 1) }} Wh
+          </div>
           <div class="metric-tile__label">Gravitational ↓</div>
         </div>
-        <div class="metric-tile metric-tile--energy" v-if="gpsTrack.energyAeroDragTotalWh != null">
-          <div class="metric-tile__value metric-tile__value--sm">{{ formatNumber(gpsTrack.energyAeroDragTotalWh, 1) }} Wh</div>
+        <div v-if="gpsTrack.energyAeroDragTotalWh != null" class="metric-tile metric-tile--energy">
+          <div class="metric-tile__value metric-tile__value--sm">
+            {{ formatNumber(gpsTrack.energyAeroDragTotalWh, 1) }} Wh
+          </div>
           <div class="metric-tile__label">Aero Drag</div>
         </div>
-        <div class="metric-tile metric-tile--energy" v-if="gpsTrack.energyRollingResistanceTotalWh != null">
-          <div class="metric-tile__value metric-tile__value--sm">{{ formatNumber(gpsTrack.energyRollingResistanceTotalWh, 1) }} Wh</div>
+        <div v-if="gpsTrack.energyRollingResistanceTotalWh != null" class="metric-tile metric-tile--energy">
+          <div class="metric-tile__value metric-tile__value--sm">
+            {{ formatNumber(gpsTrack.energyRollingResistanceTotalWh, 1) }} Wh
+          </div>
           <div class="metric-tile__label">Rolling Resist.</div>
         </div>
-        <div class="metric-tile metric-tile--energy" v-if="gpsTrack.energyKineticPositiveTotalWh != null">
-          <div class="metric-tile__value metric-tile__value--sm">{{ formatNumber(gpsTrack.energyKineticPositiveTotalWh, 1) }} Wh</div>
+        <div v-if="gpsTrack.energyKineticPositiveTotalWh != null" class="metric-tile metric-tile--energy">
+          <div class="metric-tile__value metric-tile__value--sm">
+            {{ formatNumber(gpsTrack.energyKineticPositiveTotalWh, 1) }} Wh
+          </div>
           <div class="metric-tile__label">Kinetic (pos.)</div>
         </div>
       </div>
     </div>
 
     <!-- Fitness Section (Normalized Power) -->
-    <div class="energy-section" v-if="summaryReady && gpsTrack.normalizedPowerWatts">
+    <div v-if="summaryReady && gpsTrack.normalizedPowerWatts" class="energy-section">
       <div class="section-label"><i class="bi bi-heart-pulse"></i> Fitness</div>
       <div class="metrics-grid">
         <div class="metric-tile metric-tile--energy">
           <i class="bi bi-activity metric-tile__icon metric-tile__icon--sm" style="color: var(--accent)"></i>
-          <div class="metric-tile__value metric-tile__value--sm">{{ formatNumber(gpsTrack.normalizedPowerWatts, 0) }} W</div>
+          <div class="metric-tile__value metric-tile__value--sm">
+            {{ formatNumber(gpsTrack.normalizedPowerWatts, 0) }} W
+          </div>
           <div class="metric-tile__label">
             Normalized Power
-            <button class="info-btn info-btn--inline" @click.stop
-                    v-tooltip.top="{ value: INFO_NORMALIZED_POWER, showDelay: 200, escape: false }"
-                    aria-label="About Normalized Power"><i class="bi bi-info-circle"></i></button>
+            <button
+              type="button"
+              class="info-btn info-btn--inline"
+              aria-label="About Normalized Power"
+              @click.stop="showInfo($event, INFO_NORMALIZED_POWER)"
+            >
+              <i class="bi bi-info-circle"></i>
+            </button>
           </div>
         </div>
       </div>
@@ -254,33 +368,60 @@
       <div class="section-label">
         <i class="bi bi-compass"></i> Exploration
         <button
+          v-tooltip.top="{
+            value: 'How much of this track covered new ground vs. routes taken before. Tap for details.',
+            showDelay: 300,
+          }"
           class="exploration-info-btn"
           :class="{ 'exploration-info-btn--active': showExplorationInfo }"
-          v-tooltip.top="{ value: 'How much of this track covered new ground vs. routes taken before. Tap for details.', showDelay: 300 }"
-          @click="showExplorationInfo = !showExplorationInfo"
           aria-label="Exploration score explanation"
-        ><i class="bi bi-info-circle"></i></button>
+          @click="showExplorationInfo = !showExplorationInfo"
+        >
+          <i class="bi bi-info-circle"></i>
+        </button>
       </div>
 
       <!-- Calculated: show metric tiles -->
       <div v-if="explorationIsCalculated" class="metrics-grid">
         <div class="metric-tile">
           <i class="bi bi-map metric-tile__icon metric-tile__icon--sm" style="color: var(--accent)"></i>
-          <div class="metric-tile__value metric-tile__value--sm">{{ formatNumber(gpsTrack.explorationScore * 100, 1) }}%</div>
-          <div class="metric-tile__label"
-               v-tooltip.top="{ value: 'Share of this track that was further than 25 m from any track recorded before it. Reflects exploration at the time of recording — tracks added later that cover the same area are not taken into account.', showDelay: 300 }">New Territory</div>
+          <div class="metric-tile__value metric-tile__value--sm">
+            {{ formatNumber((gpsTrack.explorationScore ?? 0) * 100, 1) }}%
+          </div>
+          <div
+            v-tooltip.top="{
+              value:
+                'Share of this track that was further than 25 m from any track recorded before it. Reflects exploration at the time of recording — tracks added later that cover the same area are not taken into account.',
+              showDelay: 300,
+            }"
+            class="metric-tile__label"
+          >
+            New Territory
+          </div>
         </div>
         <div class="metric-tile">
           <i class="bi bi-signpost-split metric-tile__icon metric-tile__icon--sm" style="color: var(--success)"></i>
-          <div class="metric-tile__value metric-tile__value--sm">{{ formatDistanceSmart((gpsTrack.explorationScore ?? 0) * (gpsTrack.trackLengthInMeter ?? 0)) }}</div>
-          <div class="metric-tile__label"
-               v-tooltip.top="{ value: 'Distance on segments you have never ridden/walked before', showDelay: 300 }">Novel Distance</div>
+          <div class="metric-tile__value metric-tile__value--sm">
+            {{ formatDistanceSmart((gpsTrack.explorationScore ?? 0) * (gpsTrack.trackLengthInMeter ?? 0)) }}
+          </div>
+          <div
+            v-tooltip.top="{ value: 'Distance on segments you have never ridden/walked before', showDelay: 300 }"
+            class="metric-tile__label"
+          >
+            Novel Distance
+          </div>
         </div>
         <div class="metric-tile">
           <i class="bi bi-arrow-repeat metric-tile__icon metric-tile__icon--sm" style="color: var(--warning)"></i>
-          <div class="metric-tile__value metric-tile__value--sm">{{ formatDistanceSmart((1 - (gpsTrack.explorationScore ?? 0)) * (gpsTrack.trackLengthInMeter ?? 0)) }}</div>
-          <div class="metric-tile__label"
-               v-tooltip.top="{ value: 'Distance on segments you have covered before (within 25 m)', showDelay: 300 }">Known Distance</div>
+          <div class="metric-tile__value metric-tile__value--sm">
+            {{ formatDistanceSmart((1 - (gpsTrack.explorationScore ?? 0)) * (gpsTrack.trackLengthInMeter ?? 0)) }}
+          </div>
+          <div
+            v-tooltip.top="{ value: 'Distance on segments you have covered before (within 25 m)', showDelay: 300 }"
+            class="metric-tile__label"
+          >
+            Known Distance
+          </div>
         </div>
       </div>
 
@@ -299,7 +440,10 @@
       <div v-if="showExplorationInfo" class="exploration-info-panel">
         <div class="exploration-info-panel__row">
           <i class="bi bi-compass exploration-info-panel__icon"></i>
-          <span>Compares this track to <strong>all your earlier tracks</strong>. A segment counts as <em>known</em> if you've passed within <strong>25 m</strong> of it on a previous activity.</span>
+          <span
+            >Compares this track to <strong>all your earlier tracks</strong>. A segment counts as <em>known</em> if
+            you've passed within <strong>25 m</strong> of it on a previous activity.</span
+          >
         </div>
         <div class="exploration-info-panel__legend">
           <span class="exploration-legend-dot exploration-legend-dot--new"></span>
@@ -319,191 +463,427 @@
         <i class="bi bi-chevron-down info-drawer__chevron"></i>
       </summary>
       <div class="info-list">
-        <div class="info-row"><span class="info-key">ID</span><span class="info-val">{{ gpsTrack.id }}</span></div>
-        <div class="info-row" v-if="gpsTrack.trackName"><span class="info-key">Track Name</span><span class="info-val">{{ gpsTrack.trackName }}</span></div>
-        <div class="info-row"><span class="info-key">Track Description</span><span class="info-val">{{ gpsTrack.trackDescription || gpsTrack.metaDescription || '—' }}</span></div>
-        <div class="info-row" v-if="gpsTrack.metaName"><span class="info-key">Meta Name</span><span class="info-val">{{ gpsTrack.metaName }}</span></div>
-        <div class="info-row" v-if="gpsTrack.activityType"><span class="info-key">Activity</span><span class="info-val"><ActivityTypeBadge :type="gpsTrack.activityType" size="xs" /></span></div>
-        <div class="info-row" v-if="gpsTrack.activityTypeSourceDetails"><span class="info-key">Activity Source</span><span class="info-val">{{ gpsTrack.activityTypeSourceDetails }}</span></div>
-        <div class="info-row" v-if="gpsTrack.creator"><span class="info-key">Creator</span><span class="info-val">{{ gpsTrack.creator }}</span></div>
-        <div class="info-row" v-if="gpsTrack.startDate"><span class="info-key">Start</span><span class="info-val">{{ formatDateAndTime(new Date(gpsTrack.startDate)) }}</span></div>
-        <div class="info-row" v-if="gpsTrack.endDate"><span class="info-key">End</span><span class="info-val">{{ formatDateAndTime(new Date(gpsTrack.endDate)) }}</span></div>
-        <div class="info-row"><span class="info-key">File</span><span class="info-val">{{ gpsTrack.indexedFile.name }}</span></div>
-        <div class="info-row"><span class="info-key">Path</span><span class="info-val info-val--mono">{{ gpsTrack.indexedFile.fullPath || gpsTrack.indexedFile.basePath + '/' + gpsTrack.indexedFile.name || gpsTrack.indexedFile.path || '—' }}</span></div>
+        <div class="info-row">
+          <span class="info-key">TrackID</span>
+          <span class="info-val info-val--copy">
+            <input
+              class="info-copy-field"
+              type="text"
+              readonly
+              :value="trackIdText"
+              aria-label="TrackID"
+              @focus="selectCopyField"
+              @click="selectCopyField"
+            />
+            <button
+              type="button"
+              class="info-copy-btn"
+              :disabled="!trackIdText"
+              :aria-label="trackIdCopied ? 'TrackID copied' : 'Copy TrackID'"
+              :title="trackIdCopied ? 'TrackID copied' : 'Copy TrackID'"
+              @click="copyTrackId"
+            >
+              <i :class="trackIdCopied ? 'bi bi-clipboard-check' : 'bi bi-copy'"></i>
+            </button>
+          </span>
+        </div>
+        <div v-if="trackIdCopyError" class="info-row info-row--error">
+          <span class="info-key"></span><span class="info-val info-copy-error">{{ trackIdCopyError }}</span>
+        </div>
+        <div v-if="gpsTrack.trackName" class="info-row">
+          <span class="info-key">Track Name</span><span class="info-val">{{ gpsTrack.trackName }}</span>
+        </div>
+        <div class="info-row">
+          <span class="info-key">Track Description</span
+          ><span class="info-val">{{ gpsTrack.trackDescription || gpsTrack.metaDescription || '—' }}</span>
+        </div>
+        <div v-if="gpsTrack.metaName" class="info-row">
+          <span class="info-key">Meta Name</span><span class="info-val">{{ gpsTrack.metaName }}</span>
+        </div>
+        <div v-if="gpsTrack.activityType" class="info-row">
+          <span class="info-key">Activity</span
+          ><span class="info-val"><ActivityTypeBadge :type="gpsTrack.activityType" size="xs" /></span>
+        </div>
+        <div v-if="gpsTrack.activityTypeSourceDetails" class="info-row">
+          <span class="info-key">Activity Source</span
+          ><span class="info-val">{{ gpsTrack.activityTypeSourceDetails }}</span>
+        </div>
+        <div v-if="gpsTrack.creator" class="info-row">
+          <span class="info-key">Creator</span><span class="info-val">{{ gpsTrack.creator }}</span>
+        </div>
+        <div v-if="gpsTrack.startDate" class="info-row">
+          <span class="info-key">Start</span
+          ><span class="info-val">{{ formatDateAndTime(new Date(gpsTrack.startDate)) }}</span>
+        </div>
+        <div v-if="gpsTrack.endDate" class="info-row">
+          <span class="info-key">End</span
+          ><span class="info-val">{{ formatDateAndTime(new Date(gpsTrack.endDate)) }}</span>
+        </div>
+        <div class="info-row">
+          <span class="info-key">File</span><span class="info-val">{{ gpsTrack.indexedFile.name }}</span>
+        </div>
+        <div class="info-row">
+          <span class="info-key">Path</span
+          ><span class="info-val info-val--mono">{{
+            gpsTrack.indexedFile.fullPath ||
+            gpsTrack.indexedFile.basePath + '/' + gpsTrack.indexedFile.name ||
+            gpsTrack.indexedFile.path ||
+            '—'
+          }}</span>
+        </div>
       </div>
     </details>
 
+    <Popover ref="infoPopover" append-to="body">
+      <div class="track-detail-info-text">
+        <p v-for="(paragraph, paragraphIndex) in currentInfoContent" :key="paragraphIndex">
+          <template v-for="(segment, segmentIndex) in paragraph" :key="segmentIndex">
+            <strong v-if="segment.strong">{{ segment.text }}</strong>
+            <span v-else>{{ segment.text }}</span>
+          </template>
+        </p>
+      </div>
+    </Popover>
   </div>
 </template>
 
-<script lang="ts">
-import {defineComponent} from "vue";
-import {formatDateAndTime, formatDistance, formatDuration, formatNumber, formatDistanceSmart, formatDurationSmart, formatDistanceTooltip, formatDurationTooltip} from "@/utils/Utils";
-import type {GpsTrackDataPoint} from 'x8ing-mtl-api-typescript-fetch/dist/esm/models/index';
+<script setup lang="ts">
+import { computed, inject, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import {
+  formatDateAndTime,
+  formatNumber,
+  formatDistanceSmart,
+  formatDurationSmart,
+  formatDistanceTooltip,
+  formatDurationTooltip,
+} from '@/utils/Utils';
+import type { ChartPoint } from '@/utils/chartSeriesAdapter';
 import ActivityTypeBadge from '@/components/ui/ActivityTypeBadge.vue';
+import type { GpsTrack } from 'x8ing-mtl-api-typescript-fetch/dist/esm/models/index';
+import { downloadTrackGpx as downloadTrackGpxFile, downloadTrackSourceFile } from '@/utils/ServiceHelper';
 
-export default defineComponent({
+type TrackDetailInfoPopover = {
+  toggle: (event: Event) => void;
+};
+
+type InfoSegment = {
+  text: string;
+  strong?: boolean;
+};
+type InfoContent = InfoSegment[][];
+type TrackDownloadKind = 'original' | 'gpx';
+type ToastService = {
+  add: (message: { severity: string; summary: string; detail?: string; life?: number }) => void;
+};
+
+const GPS_INDEX_NAME = 'GPS';
+const GPX_FILE_EXTENSION = '.gpx';
+const UNAVAILABLE_INDEXER_STATUSES = new Set(['REMOVED', 'EXCLUDED']);
+const COPY_STATUS_RESET_MS = 1800;
+
+defineOptions({
   name: 'TrackDetailOverview',
-  components: { ActivityTypeBadge },
-  props: {
-    gpsTrack: {type: Object, default: null},
-    trackDetails: {type: Array as () => GpsTrackDataPoint[], required: true},
-  },
-  data() {
-    return {
-      summaryReady: false,
-      totalAscent: 0,
-      totalDescent: 0,
-      minAltitude: 0,
-      maxAltitude: 0,
-      avgSpeed: 0,
-      maxSpeed: 0,
-      maxSlope: 0,
-      minSlope: 0,
-      activeTooltip: null as string | null,
-      showExplorationInfo: false,
-      INFO_ENERGY: 'Estimated external mechanical work from GPS-derived physics: climbing, drag, rolling/friction, and acceleration. It is not metabolic calorie burn and not measured power-sensor data.',
-      INFO_AVG_POWER: 'Estimated average external mechanical power from the same energy model. Treat it as a physics estimate, not as a recorded power-meter value.',
-      INFO_AVG_MOVING_POWER: 'Estimated external mechanical power while moving, excluding detected stops. It is model-derived from GPS and elevation data.',
-      INFO_MAX_POWER: 'Highest estimated per-segment external mechanical power. GPS and elevation artifacts can affect short spikes.',
-      INFO_NORMALIZED_POWER: 'Normalized Power (NP): a variability-weighted value computed from estimated mechanical power over a 30 s rolling window. It is useful for comparing effort patterns, but it is not a power-meter measurement.<br/><br/>Also known as: <b>Weighted Average Power</b> (Strava), <b>Normalized Power / NP</b> (Garmin, TrainingPeaks), <b>xPower / IsoPower</b> (GoldenCheetah).',
-      INFO_INTENSITY_INDEX: 'Intensity Index = estimated NP ÷ your threshold power. 1.0 ≈ all-out 1 h effort if the estimated power matches your real power.',
-      INFO_TRAINING_LOAD: 'Training Load per ride = (estimated NP ÷ threshold)² × moving hours × 100. It scales duration and intensity, but inherits the limits of the estimated mechanical-power model.',
-    };
-  },
-  computed: {
-    trackDuration(): number {
-      if (this.gpsTrack?.startDate && this.gpsTrack?.endDate) {
-        return new Date(this.gpsTrack.endDate).getTime() - new Date(this.gpsTrack.startDate).getTime();
-      }
-      return 0;
-    },
-    /**
-     * Moving time in ms, sourced from the server's {@code trackDurationInMotionSecs}
-     * (computed once at ingest from the outlier-cleaned point stream). The client
-     * must not recompute this from simplified track variants — those drop points
-     * and lack per-point speeds, which used to produce wildly wrong totals.
-     */
-    movingTimeMs(): number {
-      const secs = this.gpsTrack?.trackDurationInMotionSecs;
-      return secs != null ? secs * 1000 : 0;
-    },
-    /**
-     * Detected-stopped time in ms: contiguous runs of ≥ 30 s under 0.5 km/h,
-     * again sourced from the server ({@code trackDurationStoppedSecs}). This
-     * excludes "gap" time where GPS simply stopped recording, which is why
-     * moving + stopped can be less than trackDuration.
-     */
-    stoppedTimeMs(): number {
-      const secs = this.gpsTrack?.trackDurationStoppedSecs;
-      return secs != null ? secs * 1000 : 0;
-    },
-    hasEnergy(): boolean {
-      return this.gpsTrack?.energyNetTotalWh != null && this.gpsTrack.energyNetTotalWh !== 0;
-    },
-    trackDisplayName(): string {
-      return this.gpsTrack?.trackName || this.gpsTrack?.metaName || this.gpsTrack?.indexedFile?.name || `Track #${this.gpsTrack?.id}`;
-    },
-    trackDescription(): string {
-      return this.gpsTrack?.trackDescription || this.gpsTrack?.metaDescription || '';
-    },
-    explorationIsCalculated(): boolean {
-      return this.gpsTrack?.explorationStatus === 'CALCULATED' && this.gpsTrack?.explorationScore != null;
-    },
-    explorationIsPending(): boolean {
-      return ['SCHEDULED', 'IN_PROGRESS', 'NEEDS_RECALCULATION'].includes(this.gpsTrack?.explorationStatus ?? '');
-    },
-    movingAvgSpeed(): number {
-      const dist = this.gpsTrack?.trackLengthInMeter;
-      const secs = this.gpsTrack?.trackDurationInMotionSecs;
-      if (dist != null && secs != null && secs > 0) {
-        return (dist / secs) * 3.6; // m/s → km/h
-      }
-      return 0;
-    },
-    longestStopMs(): number {
-      const secs = this.gpsTrack?.trackLongestStopSecs;
-      return secs != null ? secs * 1000 : 0;
-    },
-
-  },
-  mounted() {
-    if (this.trackDetails.length > 0) {
-      this.computeSummary(this.trackDetails);
-    }
-  },
-  watch: {
-    trackDetails(details: GpsTrackDataPoint[]) {
-      if (details.length > 0) {
-        this.computeSummary(details);
-      }
-    },
-  },
-  methods: {
-    formatDistance,
-    formatDuration,
-    formatDateAndTime,
-    formatNumber,
-    formatDistanceSmart,
-    formatDurationSmart,
-    formatDistanceTooltip,
-    formatDurationTooltip,
-    whToJoules(wh: number | null | undefined): string {
-      return this.formatNumber((wh ?? 0) * 3600, 0);
-    },
-    whToKcal(wh: number | null | undefined): string {
-      return this.formatNumber((wh ?? 0) * 0.8604, 0);
-    },
-    wattsToKcalH(w: number | null | undefined, decimals = 1): string {
-      return this.formatNumber((w ?? 0) * 0.8604, decimals);
-    },
-    toggleTooltip(id: string) {
-      this.activeTooltip = this.activeTooltip === id ? null : id;
-    },
-    computeSummary(details: GpsTrackDataPoint[]) {
-      if (!details || details.length === 0) return;
-
-      const lastPoint = details[details.length - 1];
-      this.totalAscent = lastPoint.ascentInMeterSinceStart ?? 0;
-      this.totalDescent = lastPoint.descentInMeterSinceStart ?? 0;
-
-      let minAlt = Infinity;
-      let maxAlt = -Infinity;
-      let speedSum = 0;
-      let speedCount = 0;
-      let maxSpeedVal = -Infinity;
-      let maxSlope = -Infinity;
-      let minSlope = Infinity;
-
-      for (const p of details) {
-        if (p.pointAltitude != null) {
-          if (p.pointAltitude < minAlt) minAlt = p.pointAltitude;
-          if (p.pointAltitude > maxAlt) maxAlt = p.pointAltitude;
-        }
-        if (p.speedInKmhMovingWindow != null) {
-          speedSum += p.speedInKmhMovingWindow;
-          speedCount++;
-          if (p.speedInKmhMovingWindow > maxSpeedVal) maxSpeedVal = p.speedInKmhMovingWindow;
-        }
-        if (p.slopePercentageInMovingWindow != null) {
-          if (p.slopePercentageInMovingWindow > maxSlope) maxSlope = p.slopePercentageInMovingWindow;
-          if (p.slopePercentageInMovingWindow < minSlope) minSlope = p.slopePercentageInMovingWindow;
-        }
-      }
-
-      this.minAltitude = minAlt === Infinity ? 0 : minAlt;
-      this.maxAltitude = maxAlt === -Infinity ? 0 : maxAlt;
-      this.avgSpeed = speedCount > 0 ? speedSum / speedCount : 0;
-      this.maxSpeed = maxSpeedVal === -Infinity ? 0 : maxSpeedVal;
-      this.maxSlope = maxSlope === -Infinity ? 0 : maxSlope;
-      this.minSlope = minSlope === Infinity ? 0 : minSlope;
-      // movingTimeMs / stoppedTimeMs are now computed props driven by the
-      // server-side trackDurationInMotionSecs / trackDurationStoppedSecs
-      // fields — no client-side recomputation from simplified points.
-      this.summaryReady = true;
-    },
-  },
 });
+
+const props = withDefaults(
+  defineProps<{
+    gpsTrack?: GpsTrack | null;
+    trackDetails: ChartPoint[];
+  }>(),
+  {
+    gpsTrack: null,
+  }
+);
+
+const gpsTrack = computed(() => props.gpsTrack);
+const infoPopover = ref<TrackDetailInfoPopover | null>(null);
+const summaryReady = ref(false);
+const activeTooltip = ref<string | null>(null);
+const currentInfoContent = ref<InfoContent>([]);
+const showExplorationInfo = ref(false);
+const activeDownload = ref<TrackDownloadKind | null>(null);
+const trackIdCopied = ref(false);
+const trackIdCopyError = ref('');
+const toast = inject<ToastService>('toast', { add: () => undefined });
+let trackIdCopyResetTimer: number | null = null;
+
+function infoText(text: string): InfoContent {
+  return [[{ text }]];
+}
+
+const INFO_ENERGY = infoText(
+  'Estimated external mechanical work from GPS-derived physics: climbing, drag, rolling/friction, and acceleration. It is not metabolic calorie burn and not measured power-sensor data.'
+);
+const INFO_AVG_POWER = infoText(
+  'Estimated average external mechanical power from the same energy model. Treat it as a physics estimate, not as a recorded power-meter value.'
+);
+const INFO_AVG_MOVING_POWER = infoText(
+  'Estimated external mechanical power while moving, excluding detected stops. It is model-derived from GPS and elevation data.'
+);
+const INFO_MAX_POWER = infoText(
+  'Highest trailing 30 s average of estimated external mechanical power. This is more stable than raw per-segment GPS-derived power spikes.'
+);
+const INFO_NORMALIZED_POWER: InfoContent = [
+  [
+    {
+      text: 'Normalized Power (NP): a variability-weighted value computed from estimated mechanical power over a 30 s rolling window. It is useful for comparing effort patterns, but it is not a power-meter measurement.',
+    },
+  ],
+  [
+    { text: 'Also known as: ' },
+    { text: 'Weighted Average Power', strong: true },
+    { text: ' (Strava), ' },
+    { text: 'Normalized Power / NP', strong: true },
+    { text: ' (Garmin, TrainingPeaks), ' },
+    { text: 'xPower / IsoPower', strong: true },
+    { text: ' (GoldenCheetah).' },
+  ],
+];
+
+const trackDuration = computed(() => {
+  if (props.gpsTrack?.startDate && props.gpsTrack?.endDate) {
+    return new Date(props.gpsTrack.endDate).getTime() - new Date(props.gpsTrack.startDate).getTime();
+  }
+  return 0;
+});
+
+/**
+ * Moving time in ms, sourced from the server's {@code trackDurationInMotionSecs}
+ * (computed once at ingest from the outlier-cleaned point stream). The client
+ * must not recompute this from simplified track variants — those drop points
+ * and lack per-point speeds, which used to produce wildly wrong totals.
+ */
+const movingTimeMs = computed(() => {
+  const secs = props.gpsTrack?.trackDurationInMotionSecs;
+  return secs != null ? secs * 1000 : 0;
+});
+
+/**
+ * Detected-stopped time in ms: contiguous runs of ≥ 30 s under 0.5 km/h,
+ * again sourced from the server ({@code trackDurationStoppedSecs}). This
+ * excludes "gap" time where GPS simply stopped recording, which is why
+ * moving + stopped can be less than trackDuration.
+ */
+const stoppedTimeMs = computed(() => {
+  const secs = props.gpsTrack?.trackDurationStoppedSecs;
+  return secs != null ? secs * 1000 : 0;
+});
+
+const hasEnergy = computed(() => props.gpsTrack?.energyNetTotalWh != null && props.gpsTrack.energyNetTotalWh !== 0);
+
+const peakPowerWatts = computed(() => props.gpsTrack?.powerWatts30sMax ?? 0);
+const totalAscent = computed(() => props.gpsTrack?.ascentInMeter ?? 0);
+const totalDescent = computed(() => props.gpsTrack?.descentInMeter ?? 0);
+const minAltitude = computed(() => props.gpsTrack?.minAltitude ?? 0);
+const maxAltitude = computed(() => props.gpsTrack?.maxAltitude ?? 0);
+
+const avgSpeed = computed(() => {
+  const dist = props.gpsTrack?.trackLengthInMeter;
+  const seconds = trackDuration.value / 1000;
+  if (dist != null && seconds > 0) {
+    return (dist / seconds) * 3.6;
+  }
+  return 0;
+});
+
+const maxSpeed = computed(() => props.gpsTrack?.speedInKmh30sMax ?? 0);
+const maxElevationGainRate = computed(() => props.gpsTrack?.elevationGainPerHour30sMax ?? 0);
+const maxElevationLossRate = computed(() => props.gpsTrack?.elevationLossPerHour30sMax ?? 0);
+const maxSlope = computed(() => props.gpsTrack?.slopePercentageMax ?? 0);
+const minSlope = computed(() => props.gpsTrack?.slopePercentageMin ?? 0);
+
+const trackDisplayName = computed(
+  () =>
+    props.gpsTrack?.trackName ||
+    props.gpsTrack?.metaName ||
+    props.gpsTrack?.indexedFile?.name ||
+    `Track #${props.gpsTrack?.id}`
+);
+
+const trackDescription = computed(() => props.gpsTrack?.trackDescription || props.gpsTrack?.metaDescription || '');
+
+const trackIdText = computed(() => (props.gpsTrack?.id == null ? '' : String(props.gpsTrack.id)));
+
+const sourceFileName = computed(() => props.gpsTrack?.indexedFile?.name || trackDisplayName.value || 'track-source');
+
+const sourceFileIsGpx = computed(() => sourceFileName.value.toLowerCase().endsWith(GPX_FILE_EXTENSION));
+
+const canDownloadTrackSource = computed(() => {
+  const track = props.gpsTrack;
+  const indexedFile = track?.indexedFile;
+  if (!track?.id || !indexedFile) return false;
+  if (indexedFile.index !== GPS_INDEX_NAME) return false;
+  return !UNAVAILABLE_INDEXER_STATUSES.has(indexedFile.indexerStatus ?? '');
+});
+
+const canDownloadGpx = computed(() => canDownloadTrackSource.value && !sourceFileIsGpx.value);
+
+const explorationIsCalculated = computed(
+  () => props.gpsTrack?.explorationStatus === 'CALCULATED' && props.gpsTrack?.explorationScore != null
+);
+
+const explorationIsPending = computed(() =>
+  ['SCHEDULED', 'IN_PROGRESS', 'NEEDS_RECALCULATION'].includes(props.gpsTrack?.explorationStatus ?? '')
+);
+
+const movingAvgSpeed = computed(() => {
+  const dist = props.gpsTrack?.trackLengthInMeter;
+  const secs = props.gpsTrack?.trackDurationInMotionSecs;
+  if (dist != null && secs != null && secs > 0) {
+    return (dist / secs) * 3.6; // m/s -> km/h
+  }
+  return 0;
+});
+
+const longestStopMs = computed(() => {
+  const secs = props.gpsTrack?.trackLongestStopSecs;
+  return secs != null ? secs * 1000 : 0;
+});
+
+onMounted(() => {
+  if (props.trackDetails.length > 0) {
+    computeSummary(props.trackDetails);
+  }
+});
+
+onBeforeUnmount(() => {
+  if (trackIdCopyResetTimer != null) {
+    window.clearTimeout(trackIdCopyResetTimer);
+  }
+});
+
+watch(
+  () => props.trackDetails,
+  (details) => {
+    if (details.length > 0) {
+      computeSummary(details);
+    }
+  }
+);
+
+function whToJoules(wh: number | null | undefined): string {
+  return formatNumber((wh ?? 0) * 3600, 0);
+}
+
+function formatOptionalDistanceSmart(meters: number | null | undefined): string {
+  return meters == null ? '—' : formatDistanceSmart(meters);
+}
+
+function formatOptionalDistanceTooltip(meters: number | null | undefined): string {
+  return meters == null ? '—' : formatDistanceTooltip(meters);
+}
+
+function whToKcal(wh: number | null | undefined): string {
+  return formatNumber((wh ?? 0) * 0.8604, 0);
+}
+
+function wattsToKcalH(w: number | null | undefined, decimals = 1): string {
+  return formatNumber((w ?? 0) * 0.8604, decimals);
+}
+
+async function downloadOriginal(): Promise<void> {
+  await runTrackDownload('original');
+}
+
+async function downloadGpx(): Promise<void> {
+  await runTrackDownload('gpx');
+}
+
+async function copyTrackId(): Promise<void> {
+  const id = trackIdText.value;
+  if (!id) return;
+
+  try {
+    trackIdCopyError.value = '';
+    await writeTextToClipboard(id);
+    trackIdCopied.value = true;
+    if (trackIdCopyResetTimer != null) {
+      window.clearTimeout(trackIdCopyResetTimer);
+    }
+    trackIdCopyResetTimer = window.setTimeout(() => {
+      trackIdCopied.value = false;
+      trackIdCopyResetTimer = null;
+    }, COPY_STATUS_RESET_MS);
+  } catch (copyError) {
+    console.warn('[track-details] failed to copy TrackID', copyError);
+    trackIdCopyError.value = 'Could not copy TrackID.';
+  }
+}
+
+async function writeTextToClipboard(text: string): Promise<void> {
+  let clipboardError: unknown = null;
+  if (navigator.clipboard?.writeText) {
+    try {
+      await navigator.clipboard.writeText(text);
+      return;
+    } catch (error) {
+      clipboardError = error;
+    }
+  }
+
+  try {
+    copyTextWithFallback(text);
+  } catch (fallbackError) {
+    throw clipboardError ?? fallbackError;
+  }
+}
+
+function selectCopyField(event: Event): void {
+  const target = event.target as HTMLInputElement | null;
+  target?.select?.();
+}
+
+function copyTextWithFallback(text: string): void {
+  const textArea = document.createElement('textarea');
+  textArea.value = text;
+  textArea.setAttribute('readonly', '');
+  textArea.style.position = 'fixed';
+  textArea.style.opacity = '0';
+  document.body.appendChild(textArea);
+  textArea.select();
+  const copied = document.execCommand('copy');
+  document.body.removeChild(textArea);
+  if (!copied) {
+    throw new Error('Browser copy command failed');
+  }
+}
+
+async function runTrackDownload(kind: TrackDownloadKind): Promise<void> {
+  const trackId = props.gpsTrack?.id;
+  if (trackId == null || activeDownload.value !== null) return;
+  activeDownload.value = kind;
+  try {
+    if (kind === 'original') {
+      await downloadTrackSourceFile(trackId, sourceFileName.value);
+    } else {
+      await downloadTrackGpxFile(trackId, sourceFileName.value);
+    }
+  } catch (error) {
+    console.warn('[track-details] failed to download track file', { trackId, kind, error });
+    toast.add({
+      severity: 'error',
+      summary: 'Download failed',
+      detail: kind === 'original' ? 'Could not download the original indexed file.' : 'Could not download GPX.',
+      life: 4000,
+    });
+  } finally {
+    activeDownload.value = null;
+  }
+}
+
+function toggleTooltip(id: string) {
+  activeTooltip.value = activeTooltip.value === id ? null : id;
+}
+
+function showInfo(event: Event, content: InfoContent) {
+  currentInfoContent.value = content;
+  infoPopover.value?.toggle(event);
+}
+
+function computeSummary(details: ChartPoint[]) {
+  if (!details || details.length === 0) return;
+  summaryReady.value = true;
+}
 </script>
 
 <style scoped>
@@ -537,6 +917,45 @@ export default defineComponent({
   flex: 1 1 auto;
   line-height: var(--text-lg-lh);
   word-break: break-word;
+}
+
+.track-header__actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.track-header__action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border: 1px solid var(--border-default);
+  border-radius: 8px;
+  background: var(--surface-elevated);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.track-header__action-btn:hover:not(:disabled) {
+  background: var(--surface-hover);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.track-header__action-btn:disabled {
+  cursor: progress;
+  opacity: 0.6;
+}
+
+.track-header__action-btn i {
+  font-size: var(--text-sm-size);
+  line-height: 1;
 }
 
 .track-header__meta {
@@ -647,7 +1066,14 @@ export default defineComponent({
 }
 
 .metric-tile__label {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.18rem;
+  max-width: 100%;
   font-size: var(--text-xs-size);
+  line-height: var(--text-xs-lh);
   color: var(--text-muted);
   margin-top: 0.2rem;
   letter-spacing: 0.02em;
@@ -705,6 +1131,10 @@ export default defineComponent({
 }
 
 .info-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  appearance: none;
   background: none;
   border: none;
   padding: 0;
@@ -721,9 +1151,50 @@ export default defineComponent({
 }
 
 .info-btn--inline {
+  width: 1rem;
+  height: 1rem;
+  flex: 0 0 1rem;
   font-size: var(--text-xs-size);
-  margin-left: 0.2rem;
-  vertical-align: baseline;
+  margin-left: 0;
+  vertical-align: middle;
+}
+
+.info-btn--inline i {
+  display: block;
+  line-height: 1;
+}
+
+@media (max-width: 640px) {
+  .metrics-grid .metric-tile .metric-tile__label .info-btn--inline {
+    position: absolute;
+    top: 0.35rem;
+    right: 0.35rem;
+    width: 1.25rem;
+    height: 1.25rem;
+    flex-basis: 1.25rem;
+    border-radius: 999px;
+  }
+}
+
+.track-detail-info-text {
+  max-width: min(280px, calc(100vw - 2rem));
+  font-size: var(--text-xs-size);
+  line-height: var(--text-xs-lh);
+  color: var(--text-secondary);
+  margin: 0;
+  padding: 0.1rem 0;
+}
+
+.track-detail-info-text p {
+  margin: 0;
+}
+
+.track-detail-info-text p + p {
+  margin-top: 0.65rem;
+}
+
+.track-detail-info-text strong {
+  color: var(--text-primary);
 }
 
 .exploration-pending,
@@ -864,14 +1335,23 @@ export default defineComponent({
   height: 80px;
   margin: 0.75rem 0.5rem;
   border-radius: 8px;
-  background: linear-gradient(90deg, var(--surface-elevated) 25%, var(--surface-hover) 50%, var(--surface-elevated) 75%);
+  background: linear-gradient(
+    90deg,
+    var(--surface-elevated) 25%,
+    var(--surface-hover) 50%,
+    var(--surface-elevated) 75%
+  );
   background-size: 200% 100%;
   animation: shimmer 1.4s infinite;
 }
 
 @keyframes shimmer {
-  0%   { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
 }
 
 /* ── Info Drawer ── */
@@ -905,7 +1385,9 @@ export default defineComponent({
   background: var(--surface-elevated);
 }
 
-.info-drawer__summary::-webkit-details-marker { display: none; }
+.info-drawer__summary::-webkit-details-marker {
+  display: none;
+}
 
 .info-drawer__summary i:first-child {
   font-size: var(--text-sm-size);
@@ -944,6 +1426,81 @@ export default defineComponent({
   color: var(--text-secondary);
   word-break: break-word;
   min-width: 0;
+}
+
+.info-val--copy {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.45rem;
+  align-items: center;
+  flex: 1 1 auto;
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+.info-copy-field {
+  min-width: 0;
+  width: 100%;
+  padding: 0.42rem 0.55rem;
+  border: 1px solid var(--border-default);
+  border-radius: 6px;
+  background: var(--code-bg);
+  color: var(--code-text);
+  font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, monospace;
+  font-size: var(--text-xs-size);
+  line-height: var(--text-xs-lh);
+  cursor: text;
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+.info-copy-field:focus {
+  outline: 2px solid color-mix(in srgb, var(--accent) 52%, transparent);
+  outline-offset: 1px;
+}
+
+.info-copy-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border: 1px solid var(--border-default);
+  border-radius: 6px;
+  background: var(--surface-elevated);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.info-copy-btn:hover:not(:disabled),
+.info-copy-btn:focus-visible {
+  background: var(--surface-hover);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.info-copy-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.info-copy-btn i {
+  font-size: var(--text-sm-size);
+  line-height: 1;
+}
+
+.info-row--error {
+  padding-top: 0;
+  border-top: 0;
+}
+
+.info-copy-error {
+  color: var(--error);
+  font-size: var(--text-xs-size);
 }
 
 .info-val--mono {

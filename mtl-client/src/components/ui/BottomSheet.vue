@@ -15,16 +15,25 @@
       ref="sheetEl"
       class="sheet"
       :style="[sheetStyle, zIndex != null ? { zIndex } : {}]"
-      :class="{
-        'sheet--open': isOpen,
-        'sheet--dragging': isDragging,
-        'sheet--hidden': !isOpen && !isAnimatingOut,
-        'sheet--fullscreen': isFullscreen,
-        'sheet--header-compact': headerMode === 'compact',
-      }"
+      :class="[
+        sheetClass,
+        {
+          'sheet--open': isOpen,
+          'sheet--dragging': isDragging,
+          'sheet--hidden': !isOpen && !isAnimatingOut,
+          'sheet--backgrounded': isBackgrounded,
+          'sheet--fullscreen': isFullscreen,
+          'sheet--header-compact': headerMode === 'compact',
+        },
+      ]"
     >
       <!-- Drag zone: handle + header combined so the entire top area is draggable -->
-      <div ref="handleEl" class="sheet-drag-zone">
+      <div
+        ref="handleEl"
+        class="sheet-drag-zone"
+        :inert="isBackgrounded ? true : undefined"
+        :aria-hidden="isBackgrounded ? 'true' : undefined"
+      >
         <div class="sheet-handle-zone">
           <div class="sheet-handle"></div>
         </div>
@@ -38,20 +47,28 @@
           </div>
           <div class="sheet-header-actions">
             <slot name="header-actions"></slot>
-            <button class="sheet-fullscreen-btn" @click.stop="toggleFullscreen" :aria-label="isFullscreen ? 'Exit fullscreen' : 'Fullscreen'">
+            <button
+              class="sheet-fullscreen-btn"
+              :aria-label="isFullscreen ? 'Exit fullscreen' : 'Fullscreen'"
+              @click.stop="toggleFullscreen"
+            >
               <i :class="isFullscreen ? 'bi bi-fullscreen-exit' : 'bi bi-arrows-fullscreen'"></i>
             </button>
-            <button class="sheet-close-btn" @click.stop="close" aria-label="Close">
+            <button class="sheet-close-btn" aria-label="Close" @click.stop="close">
               <i class="bi bi-x-lg"></i>
             </button>
           </div>
         </div>
 
         <div v-else-if="headerMode === 'compact'" class="sheet-floating-actions">
-          <button class="sheet-fullscreen-btn" @click.stop="toggleFullscreen" :aria-label="isFullscreen ? 'Exit fullscreen' : 'Fullscreen'">
+          <button
+            class="sheet-fullscreen-btn"
+            :aria-label="isFullscreen ? 'Exit fullscreen' : 'Fullscreen'"
+            @click.stop="toggleFullscreen"
+          >
             <i :class="isFullscreen ? 'bi bi-fullscreen-exit' : 'bi bi-arrows-fullscreen'"></i>
           </button>
-          <button class="sheet-close-btn" @click.stop="close" aria-label="Close">
+          <button class="sheet-close-btn" aria-label="Close" @click.stop="close">
             <i class="bi bi-x-lg"></i>
           </button>
         </div>
@@ -61,25 +78,49 @@
       <div
         ref="bodyEl"
         class="sheet-body"
+        :inert="isBackgrounded ? true : undefined"
+        :aria-hidden="isBackgrounded ? 'true' : undefined"
         @scroll="updateScrollHint"
       >
         <slot></slot>
       </div>
 
       <!-- Scroll fade hint -->
-      <div v-if="showScrollHint && !noScrollHint" class="sheet-scroll-hint" @click="scrollDown">
+      <div
+        v-if="showScrollHint && !noScrollHint"
+        class="sheet-scroll-hint"
+        :inert="isBackgrounded ? true : undefined"
+        :aria-hidden="isBackgrounded ? 'true' : undefined"
+        @click="scrollDown"
+      >
         <i class="bi bi-chevron-down sheet-scroll-hint__icon"></i>
       </div>
+
+      <div v-if="isBackgrounded" class="sheet-stack-scrim" aria-hidden="true"></div>
     </div>
   </Teleport>
 </template>
 
 <script lang="ts">
+import { shallowReactive } from 'vue';
+
 // ── Module-level Escape-key stack ──────────────────────────────────────────
 // Each open sheet instance pushes its close callback here.
 // One shared keydown listener fires; only the topmost sheet (last in stack)
 // is closed, so nested sheets collapse one at a time.
 const _escapeStack: Array<() => void> = [];
+
+const DEFAULT_SHEET_Z_INDEX = 5001;
+
+interface OpenSheetRecord {
+  id: number;
+  zIndex: number;
+  openOrder: number;
+}
+
+let _nextSheetId = 1;
+let _nextSheetOpenOrder = 1;
+const _openSheets = shallowReactive<OpenSheetRecord[]>([]);
 
 function _onEscape(e: KeyboardEvent) {
   if (e.key !== 'Escape') return;
@@ -101,9 +142,34 @@ function _popEscape(closeFn: () => void) {
   if (_escapeStack.length === 0) document.removeEventListener('keydown', _onEscape);
 }
 
+function _syncBodyOverflowLock() {
+  document.body.style.overflow = _openSheets.length > 0 ? 'hidden' : '';
+}
+
+function _pushOpenSheet(id: number, zIndex: number) {
+  const existingIdx = _openSheets.findIndex((record) => record.id === id);
+  if (existingIdx !== -1) _openSheets.splice(existingIdx, 1);
+  _openSheets.push({ id, zIndex, openOrder: _nextSheetOpenOrder++ });
+  _syncBodyOverflowLock();
+}
+
+function _updateOpenSheetZIndex(id: number, zIndex: number) {
+  const existing = _openSheets.find((record) => record.id === id);
+  if (existing) existing.zIndex = zIndex;
+}
+
+function _popOpenSheet(id: number) {
+  const idx = _openSheets.findIndex((record) => record.id === id);
+  if (idx !== -1) _openSheets.splice(idx, 1);
+  _syncBodyOverflowLock();
+}
+
 // ── Detent types (exported for call-site type safety) ──
 export type DetentPreset = 'small' | 'medium' | 'large';
-export interface DetentDef { id?: string; height: string | number }
+export interface DetentDef {
+  id?: string;
+  height: string | number;
+}
 export type Detent = DetentPreset | DetentDef;
 </script>
 
@@ -112,38 +178,52 @@ import { ref, computed, watch, nextTick, onMounted, onUnmounted, useSlots } from
 import { usePointerDrag } from '@/composables/usePointerDrag';
 
 const DETENT_PRESETS: Record<DetentPreset, string> = {
-  small:  'clamp(180px, 30vh, 280px)',
+  small: 'clamp(180px, 30vh, 280px)',
   medium: 'clamp(380px, 55vh, 560px)',
-  large:  'clamp(600px, 92vh, 92vh)',
+  large: 'clamp(600px, 92vh, 92vh)',
 };
 
 const slots = useSlots();
 
-const props = withDefaults(defineProps<{
-  modelValue: boolean;
-  title?: string;
-  icon?: string;
-  headerMode?: 'default' | 'compact';
-  /** Detent positions the sheet can rest at, ordered low → high.
-   *  Each entry is a named preset ('small'|'medium'|'large') or
-   *  { id?, height } where height is a CSS length string or a 0–1 fraction. */
-  detents?: Detent[];
-  /** Which detent to open at — an id string or a 0-based index. */
-  initialDetent?: string | number;
-  /** Programmatically jump to a detent (by id or index). */
-  selectedDetent?: string | number;
-  /** When true, no backdrop is rendered and clicks pass through to the map. */
-  noBackdrop?: boolean;
-  /** When true, the scroll-hint chevron at the bottom is never shown. */
-  noScrollHint?: boolean;
-  /** Override the CSS z-index for stacking sheets on top of each other. */
-  zIndex?: number;
-}>(), {
-  headerMode: 'default',
-  initialDetent: 0,
-  noBackdrop: true,
-  noScrollHint: false,
-});
+const props = withDefaults(
+  defineProps<{
+    modelValue: boolean;
+    title?: string;
+    icon?: string;
+    headerMode?: 'default' | 'compact';
+    /** Detent positions the sheet can rest at, ordered low → high.
+     *  Each entry is a named preset ('small'|'medium'|'large') or
+     *  { id?, height } where height is a CSS length string or a 0–1 fraction. */
+    detents?: Detent[];
+    /** Which detent to open at — an id string or a 0-based index. */
+    initialDetent?: string | number;
+    /** When true, open at the content height even when detents are available. */
+    fitContentInitial?: boolean;
+    /** Programmatically jump to a detent (by id or index). */
+    selectedDetent?: string | number;
+    /** When true, no backdrop is rendered and clicks pass through to the map. */
+    noBackdrop?: boolean;
+    /** When true, the scroll-hint chevron at the bottom is never shown. */
+    noScrollHint?: boolean;
+    /** Optional CSS class for sheet-specific surface variants. */
+    sheetClass?: string | string[] | Record<string, boolean>;
+    /** Override the CSS z-index for stacking sheets on top of each other. */
+    zIndex?: number;
+  }>(),
+  {
+    title: '',
+    icon: '',
+    headerMode: 'default',
+    detents: () => [],
+    initialDetent: 0,
+    fitContentInitial: false,
+    selectedDetent: undefined,
+    noBackdrop: true,
+    noScrollHint: false,
+    sheetClass: '',
+    zIndex: undefined,
+  }
+);
 
 const emit = defineEmits<{
   (e: 'update:modelValue', value: boolean): void;
@@ -151,6 +231,7 @@ const emit = defineEmits<{
   (e: 'detent-change', id: string): void;
 }>();
 
+const sheetId = _nextSheetId++;
 const sheetEl = ref<HTMLElement | null>(null);
 const bodyEl = ref<HTMLElement | null>(null);
 const isDragging = ref(false);
@@ -162,7 +243,9 @@ const activeDetentId = ref('');
 // Desktop detection for fullscreen button
 const DESKTOP_BP = 769;
 const isDesktopWidth = ref(typeof window !== 'undefined' ? window.innerWidth >= DESKTOP_BP : false);
-function onWindowResize() { isDesktopWidth.value = window.innerWidth >= DESKTOP_BP; }
+function onWindowResize() {
+  isDesktopWidth.value = window.innerWidth >= DESKTOP_BP;
+}
 onMounted(() => window.addEventListener('resize', onWindowResize));
 onUnmounted(() => window.removeEventListener('resize', onWindowResize));
 
@@ -182,11 +265,26 @@ let dragStartHeight = 0;
 const isOpen = computed(() => props.modelValue);
 const headerMode = computed(() => props.headerMode);
 const hasHeader = computed(() => Boolean(props.title || slots.title));
+const effectiveZIndex = computed(() => props.zIndex ?? DEFAULT_SHEET_Z_INDEX);
+const isBackgrounded = computed(() => {
+  if (!isOpen.value) return false;
+  const current = _openSheets.find((record) => record.id === sheetId);
+  if (!current) return false;
+  return _openSheets.some(
+    (record) =>
+      record.id !== sheetId &&
+      (record.zIndex > current.zIndex || (record.zIndex === current.zIndex && record.openOrder > current.openOrder))
+  );
+});
 
 const minHeight = 60; // px — below this we close
+const FIT_CONTENT_DETENT_ID = 'fit-content';
 
 // ── Detent resolution ──
-interface ResolvedDetent { id: string; heightPx: number }
+interface ResolvedDetent {
+  id: string;
+  heightPx: number;
+}
 
 function resolveCssLength(value: string | number, vh: number): number {
   if (typeof value === 'number') return vh * Math.min(Math.max(value, 0), 1);
@@ -200,18 +298,20 @@ function resolveCssLength(value: string | number, vh: number): number {
 
 function resolveDetents(detents: Detent[], vh: number): ResolvedDetent[] {
   const maxPx = vh * 0.98; // hard cap — sheets must never exceed the screen
-  return detents.map((d, i) => {
-    if (typeof d === 'string') {
-      return { id: d, heightPx: Math.min(resolveCssLength(DETENT_PRESETS[d], vh), maxPx) };
-    }
-    return { id: d.id ?? `detent-${i}`, heightPx: Math.min(resolveCssLength(d.height, vh), maxPx) };
-  }).sort((a, b) => a.heightPx - b.heightPx);
+  return detents
+    .map((d, i) => {
+      if (typeof d === 'string') {
+        return { id: d, heightPx: Math.min(resolveCssLength(DETENT_PRESETS[d], vh), maxPx) };
+      }
+      return { id: d.id ?? `detent-${i}`, heightPx: Math.min(resolveCssLength(d.height, vh), maxPx) };
+    })
+    .sort((a, b) => a.heightPx - b.heightPx);
 }
 
 function findDetentIndex(resolved: ResolvedDetent[], ref: string | number | undefined): number {
   if (ref == null) return 0;
   if (typeof ref === 'number') return Math.min(Math.max(Math.round(ref), 0), resolved.length - 1);
-  const idx = resolved.findIndex(d => d.id === ref);
+  const idx = resolved.findIndex((d) => d.id === ref);
   return idx >= 0 ? idx : 0;
 }
 
@@ -229,24 +329,37 @@ function computeInitialHeight(): number {
   }
 
   const resolved = getResolvedDetents();
+  if (props.fitContentInitial) {
+    const maxDetentHeight = resolved[resolved.length - 1]?.heightPx ?? vh * 0.92;
+    const minDetentHeight = resolved[0]?.heightPx ?? minHeight;
+    const fallbackDetentHeight = resolved[findDetentIndex(resolved, props.initialDetent)]?.heightPx ?? minDetentHeight;
+    const measuredHeight = computeContentIdealHeight(fallbackDetentHeight);
+    const idealHeight = measuredHeight <= minDetentHeight + 1 ? fallbackDetentHeight : measuredHeight;
+    activeDetentId.value = FIT_CONTENT_DETENT_ID;
+    return Math.max(minDetentHeight, Math.min(idealHeight, maxDetentHeight));
+  }
+
   const idx = findDetentIndex(resolved, props.initialDetent);
   activeDetentId.value = resolved[idx].id;
   return resolved[idx].heightPx;
 }
 
-/** Content-aware auto-fit when no detents are specified */
-function computeAutoFitHeight(vh: number): number {
-  const maxPx = vh * 0.92;
-
+function computeContentIdealHeight(fallbackHeight = 200): number {
   if (!sheetEl.value) {
-    return Math.min(vh * 0.35, maxPx);
+    return fallbackHeight;
   }
 
   const dragZone = sheetEl.value.querySelector('.sheet-drag-zone') as HTMLElement | null;
   const body = bodyEl.value;
   const chromeH = (dragZone?.offsetHeight ?? 0) + 12;
   const contentH = body ? body.scrollHeight : 200;
-  const idealH = chromeH + contentH;
+  return chromeH + contentH;
+}
+
+/** Content-aware auto-fit when no detents are specified */
+function computeAutoFitHeight(vh: number): number {
+  const maxPx = vh * 0.92;
+  const idealH = computeContentIdealHeight(Math.min(vh * 0.35, maxPx));
 
   const softCap = vh > 900 ? vh * 0.35 : maxPx;
   return Math.max(minHeight, Math.min(idealH, softCap, maxPx));
@@ -257,7 +370,7 @@ const sheetStyle = computed(() => {
     return { height: '0px' };
   }
   if (isFullscreen.value) {
-    return { height: '100dvh' } // to work correct on iphone
+    return { height: '100dvh' }; // to work correct on iphone
   }
   if (isDragging.value) {
     return { height: `${sheetHeight.value}px`, transition: 'none' };
@@ -276,8 +389,10 @@ let sizeObserver: ResizeObserver | null = null;
 
 function findScrollableChild(root: HTMLElement): HTMLElement | null {
   const rootStyle = window.getComputedStyle(root);
-  if ((rootStyle.overflowY === 'auto' || rootStyle.overflowY === 'scroll')
-      && root.scrollHeight > root.clientHeight + 4) {
+  if (
+    (rootStyle.overflowY === 'auto' || rootStyle.overflowY === 'scroll') &&
+    root.scrollHeight > root.clientHeight + 4
+  ) {
     return root;
   }
 
@@ -293,16 +408,21 @@ function findScrollableChild(root: HTMLElement): HTMLElement | null {
 }
 
 function resolveScrollTarget() {
-  if (!bodyEl.value) { scrollTarget.value = null; return; }
+  if (!bodyEl.value) {
+    scrollTarget.value = null;
+    return;
+  }
   scrollTarget.value = findScrollableChild(bodyEl.value);
 }
 
 function updateScrollHint() {
   const el = scrollTarget.value;
-  if (!el) { showScrollHint.value = false; return; }
+  if (!el) {
+    showScrollHint.value = false;
+    return;
+  }
   const { scrollTop, scrollHeight, clientHeight } = el;
-  showScrollHint.value = scrollHeight > clientHeight + 4
-    && scrollTop < scrollHeight - clientHeight - 4;
+  showScrollHint.value = scrollHeight > clientHeight + 4 && scrollTop < scrollHeight - clientHeight - 4;
 }
 
 function scrollDown() {
@@ -321,7 +441,10 @@ watch(scrollTarget, (newEl, oldEl) => {
   if (oldEl && scrollTargetListener) {
     oldEl.removeEventListener('scroll', scrollTargetListener);
   }
-  if (sizeObserver) { sizeObserver.disconnect(); sizeObserver = null; }
+  if (sizeObserver) {
+    sizeObserver.disconnect();
+    sizeObserver = null;
+  }
   if (newEl) {
     scrollTargetListener = updateScrollHint;
     newEl.addEventListener('scroll', scrollTargetListener, { passive: true });
@@ -342,40 +465,55 @@ function startContentObserver() {
   contentObserver.observe(bodyEl.value, { childList: true, subtree: true });
 }
 function stopContentObserver() {
-  if (contentObserver) { contentObserver.disconnect(); contentObserver = null; }
+  if (contentObserver) {
+    contentObserver.disconnect();
+    contentObserver = null;
+  }
 }
 
-watch(() => props.modelValue, async (open) => {
-  if (open) {
-    isAnimatingOut.value = false;
-    sheetHeight.value = 0; // start hidden, will animate
-    await nextTick();
-    document.body.style.overflow = 'hidden';
-    // Measure after render, then animate to ideal
-    await nextTick();
-    sheetHeight.value = computeInitialHeight();
-    if (activeDetentId.value) emit('detent-change', activeDetentId.value);
-    if (import.meta.env.DEV) {
-      const vh = window.innerHeight;
-      console.log(`[BottomSheet] height=${sheetHeight.value.toFixed(0)}px  ${((sheetHeight.value / vh) * 100).toFixed(1)}% of vh (vh=${vh}px)  detent=${activeDetentId.value}`);
+watch(
+  () => props.modelValue,
+  async (open) => {
+    if (open) {
+      _pushOpenSheet(sheetId, effectiveZIndex.value);
+      isAnimatingOut.value = false;
+      sheetHeight.value = 0; // start hidden, will animate
+      await nextTick();
+      // Measure after render, then animate to ideal
+      await nextTick();
+      sheetHeight.value = computeInitialHeight();
+      if (activeDetentId.value) emit('detent-change', activeDetentId.value);
+      if (import.meta.env.DEV) {
+        const vh = window.innerHeight;
+        console.log(
+          `[BottomSheet] height=${sheetHeight.value.toFixed(0)}px  ${((sheetHeight.value / vh) * 100).toFixed(1)}% of vh (vh=${vh}px)  detent=${activeDetentId.value}`
+        );
+      }
+      resolveScrollTarget();
+      startContentObserver();
+      updateScrollHint();
+      _pushEscape(close);
+    } else {
+      _popEscape(close);
+      _popOpenSheet(sheetId);
+      showScrollHint.value = false;
+      stopContentObserver();
     }
-    resolveScrollTarget();
-    startContentObserver();
-    updateScrollHint();
-    _pushEscape(close);
-  } else {
-    _popEscape(close);
-    document.body.style.overflow = '';
-    showScrollHint.value = false;
-    stopContentObserver();
-  }
-}, { immediate: true });
+  },
+  { immediate: true }
+);
+
+watch(effectiveZIndex, (zIndex) => {
+  if (isOpen.value) _updateOpenSheetZIndex(sheetId, zIndex);
+});
 
 function close() {
   isAnimatingOut.value = true;
   isFullscreen.value = false;
   sheetHeight.value = 0;
-  setTimeout(() => { isAnimatingOut.value = false; }, 350);
+  setTimeout(() => {
+    isAnimatingOut.value = false;
+  }, 350);
   emit('update:modelValue', false);
   emit('closed');
 }
@@ -398,23 +536,34 @@ usePointerDrag(handleEl, ({ movement: [, my], velocity: vel, direction: [, dy], 
     isDragging.value = false;
     const velocity = -(vel * dy);
 
-    if (velocity < -0.5) { close(); return; }
-    if (sheetHeight.value < minHeight) { close(); return; }
+    if (velocity < -0.5) {
+      close();
+      return;
+    }
+    if (sheetHeight.value < minHeight) {
+      close();
+      return;
+    }
 
     const resolved = getResolvedDetents();
     if (resolved.length > 0) {
       if (vel > 0.1) {
         let targetIdx: number;
         if (velocity > 0.3) {
-          targetIdx = resolved.findIndex(d => d.heightPx > sheetHeight.value + 8);
+          targetIdx = resolved.findIndex((d) => d.heightPx > sheetHeight.value + 8);
           if (targetIdx < 0) targetIdx = resolved.length - 1;
         } else if (velocity < -0.2) {
-          const revIdx = [...resolved].reverse().findIndex(d => d.heightPx < sheetHeight.value - 8);
+          const revIdx = [...resolved].reverse().findIndex((d) => d.heightPx < sheetHeight.value - 8);
           targetIdx = revIdx >= 0 ? resolved.length - 1 - revIdx : 0;
         } else {
-          targetIdx = resolved.reduce((closest, _d, i) =>
-            Math.abs(resolved[i].heightPx - sheetHeight.value) < Math.abs(resolved[closest].heightPx - sheetHeight.value) ? i : closest
-          , 0);
+          targetIdx = resolved.reduce(
+            (closest, _d, i) =>
+              Math.abs(resolved[i].heightPx - sheetHeight.value) <
+              Math.abs(resolved[closest].heightPx - sheetHeight.value)
+                ? i
+                : closest,
+            0
+          );
         }
         sheetHeight.value = resolved[targetIdx].heightPx;
         activeDetentId.value = resolved[targetIdx].id;
@@ -427,29 +576,37 @@ usePointerDrag(handleEl, ({ movement: [, my], velocity: vel, direction: [, dy], 
     updateScrollHint();
     if (import.meta.env.DEV) {
       const vh = window.innerHeight;
-      console.log(`[BottomSheet] drag-end height=${sheetHeight.value.toFixed(0)}px  ${((sheetHeight.value / vh) * 100).toFixed(1)}% of vh (vh=${vh}px)  detent=${activeDetentId.value}`);
+      console.log(
+        `[BottomSheet] drag-end height=${sheetHeight.value.toFixed(0)}px  ${((sheetHeight.value / vh) * 100).toFixed(1)}% of vh (vh=${vh}px)  detent=${activeDetentId.value}`
+      );
     }
   }
 });
 
 // ── Programmatic detent jump ──
-watch(() => props.selectedDetent, (val) => {
-  if (val == null || !isOpen.value || isDragging.value || isFullscreen.value) return;
-  const resolved = getResolvedDetents();
-  if (resolved.length === 0) return;
-  const idx = findDetentIndex(resolved, val);
-  sheetHeight.value = resolved[idx].heightPx;
-  activeDetentId.value = resolved[idx].id;
-  emit('detent-change', activeDetentId.value);
-});
+watch(
+  () => props.selectedDetent,
+  (val) => {
+    if (val == null || !isOpen.value || isDragging.value || isFullscreen.value) return;
+    const resolved = getResolvedDetents();
+    if (resolved.length === 0) return;
+    const idx = findDetentIndex(resolved, val);
+    sheetHeight.value = resolved[idx].heightPx;
+    activeDetentId.value = resolved[idx].id;
+    emit('detent-change', activeDetentId.value);
+  }
+);
 
 onUnmounted(() => {
   _popEscape(close);
-  document.body.style.overflow = '';
+  _popOpenSheet(sheetId);
   if (scrollTarget.value && scrollTargetListener) {
     scrollTarget.value.removeEventListener('scroll', scrollTargetListener);
   }
-  if (sizeObserver) { sizeObserver.disconnect(); sizeObserver = null; }
+  if (sizeObserver) {
+    sizeObserver.disconnect();
+    sizeObserver = null;
+  }
   stopContentObserver();
 });
 </script>
@@ -510,9 +667,27 @@ onUnmounted(() => {
   color: var(--text-secondary);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   transition: height 0.45s cubic-bezier(0.22, 1, 0.36, 1);
-  will-change: height;
   overflow: hidden;
   padding-bottom: max(env(safe-area-inset-bottom, 0px), 0.5rem);
+}
+
+.sheet-stack-scrim {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  background: rgba(15, 23, 42, 0.16);
+  pointer-events: auto;
+  -webkit-tap-highlight-color: transparent;
+}
+
+[data-theme='dark'] .sheet-stack-scrim {
+  background: rgba(0, 0, 0, 0.28);
+}
+
+.sheet--solid-over-map {
+  background: var(--surface-sheet-solid);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 
 .sheet--hidden {
@@ -759,8 +934,15 @@ onUnmounted(() => {
 }
 
 @keyframes scroll-hint-bounce {
-  0%, 100% { transform: translateY(0); opacity: 0.85; }
-  50%       { transform: translateY(4px); opacity: 0.55; }
+  0%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.85;
+  }
+  50% {
+    transform: translateY(4px);
+    opacity: 0.55;
+  }
 }
 
 /* ─── Desktop: limit max width, center ─── */

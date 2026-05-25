@@ -1,9 +1,14 @@
 package com.x8ing.mtl.server.mtlserver.web.global;
 
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.logging.log4j.util.Supplier;
 
 @Slf4j
+@JsonPropertyOrder({
+        "threadLocal",
+        "supplier"
+})
 public class LatentThreadLocal<T> {
 
     private final ThreadLocal<T> threadLocal = new ThreadLocal<>();

@@ -1,5 +1,6 @@
 package com.x8ing.mtl.server.mtlserver.indexer;
 
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.x8ing.mtl.server.mtlserver.db.entity.indexer.IndexedFile;
 import com.x8ing.mtl.server.mtlserver.db.repository.indexer.IndexerRepository;
 import com.x8ing.mtl.server.mtlserver.indexer.event.FileIndexerObserver;
@@ -23,6 +24,33 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @Slf4j
+@JsonPropertyOrder({
+        "index",
+        "watchDirectory",
+        "repo",
+        "observer",
+        "txRequiresNew",
+        "running",
+        "watchService",
+        "watcherThread",
+        "scheduler",
+        "runtime",
+        "debounceTasks",
+        "debounceSeq",
+        "pendingEventType",
+        "processingLocks",
+        "rescanInProgress",
+        "scanInProgress",
+        "inclusionMatchers",
+        "exclusionMatchers",
+        "changeDetectionStrategy",
+        "liveWatchEnabled",
+        "DEBOUNCE_SILENCE",
+        "PROBE_INTERVAL",
+        "REQUIRED_STABLE_PROBES",
+        "STABILITY_RETRY_ATTEMPTS",
+        "STABILITY_RETRY_DELAY"
+})
 public class FileIndexerImpl {
 
     // ---- ctor args / collaborators
@@ -278,9 +306,18 @@ public class FileIndexerImpl {
 
     // ---------- initial batch (two-phase + latch + recovery)
 
+    @JsonPropertyOrder({
+            "path",
+            "attrs",
+            "type"
+    })
     private record FileToProcess(Path path, BasicFileAttributes attrs, EventType type) {
     }
 
+    @JsonPropertyOrder({
+            "changed",
+            "missing"
+    })
     private record DirScanResult(List<FileToProcess> changed, List<IndexedFile> missing) {
     }
 

@@ -12,7 +12,7 @@
         <div class="photo-vignette"></div>
         <span class="photo-credit">© Patrick Heusser</span>
         <div class="curtain-content">
-          <img :src="logoSvg" class="photo-logo" alt="My Trail Log" />
+          <img :src="logoSvg" class="photo-logo" alt="MTL Explorer" />
           <div v-if="!loadFailed" class="photo-loader">
             <p class="photo-status">{{ currentSplashMessage }}<span class="photo-dots"></span></p>
             <div class="photo-progress-track"><div class="photo-progress-bar"></div></div>
@@ -28,7 +28,12 @@
     <!-- Map renders behind the curtain, ready when tracks arrive -->
     <div class="map-wrapper">
       <div class="map-host">
-        <Map :from-login="fromLogin" @tracks-loaded="onTracksLoaded" @load-failed="onLoadFailed" @syncing="onSyncing"></Map>
+        <Map
+          :from-login="fromLogin"
+          @tracks-loaded="onTracksLoaded"
+          @load-failed="onLoadFailed"
+          @syncing="onSyncing"
+        ></Map>
       </div>
     </div>
 

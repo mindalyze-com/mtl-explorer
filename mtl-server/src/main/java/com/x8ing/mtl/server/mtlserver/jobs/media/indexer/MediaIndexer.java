@@ -6,6 +6,7 @@ import com.drew.metadata.Metadata;
 import com.drew.metadata.exif.ExifIFD0Directory;
 import com.drew.metadata.exif.ExifSubIFDDirectory;
 import com.drew.metadata.exif.GpsDirectory;
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.x8ing.mtl.server.mtlserver.db.entity.indexer.IndexedFile;
 import com.x8ing.mtl.server.mtlserver.db.entity.media.MediaFile;
 import com.x8ing.mtl.server.mtlserver.db.repository.media.MediaRepository;
@@ -31,6 +32,9 @@ import java.util.List;
 
 @Slf4j
 @Service
+@JsonPropertyOrder({
+        "mediaRepository"
+})
 public class MediaIndexer {
 
     private final MediaRepository mediaRepository;

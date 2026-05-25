@@ -10,6 +10,8 @@ from pathlib import Path
 BROUTER_HOME = Path(os.environ.get("BROUTER_HOME", "/opt/brouter"))
 SEGMENTS_DIR = Path(os.environ.get("BROUTER_SEGMENTS_DIR", "/segments4"))
 STATUS_FILE = Path("/tmp/brouter-status.json")
+IMAGE_VERSION_FILE = Path("/opt/mtl/image-version")
+IMAGE_BUILD_TIME_FILE = Path("/opt/mtl/image-build-time")
 
 # Networking
 BROUTER_PORT = int(os.environ.get("BROUTER_PORT", "17777"))
@@ -31,6 +33,7 @@ DOWNLOAD_RETRIES = 3
 
 # Java startup — tuned for RPi/NAS (256 MB default is BRouter's recommendation).
 JAVA_XMX = os.environ.get("BROUTER_JAVA_XMX", "512m")
+BROUTER_VERSION = os.environ.get("BROUTER_VERSION", "")
 
 # Graceful shutdown
 SIGTERM_WAIT_SEC = 10

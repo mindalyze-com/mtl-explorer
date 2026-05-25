@@ -1,5 +1,6 @@
 package com.x8ing.mtl.server.mtlserver.logic.grouping.sql.custom;
 
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.x8ing.mtl.server.mtlserver.db.entity.config.FilterConfigEntity;
 import com.x8ing.mtl.server.mtlserver.db.repository.config.FilterConfigRepository;
 import jakarta.annotation.PostConstruct;
@@ -9,6 +10,10 @@ import org.springframework.stereotype.Service;
 
 @Service
 @Slf4j
+@JsonPropertyOrder({
+        "filterConfigProperties",
+        "filterConfigRepository"
+})
 public class FilterConfigInitializer {
 
     private final FilterConfigProperties filterConfigProperties;

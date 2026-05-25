@@ -1,5 +1,6 @@
 package com.x8ing.mtl.server.mtlserver.db.entity.config;
 
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import jakarta.persistence.*;
 import lombok.Data;
 
@@ -8,6 +9,16 @@ import java.util.Date;
 @Entity
 @Table(name = "config")
 @Data
+@JsonPropertyOrder({
+        "id",
+        "domain1",
+        "domain2",
+        "domain3",
+        "value",
+        "description",
+        "createDate",
+        "updateDate"
+})
 public class ConfigEntity {
 
     @Id

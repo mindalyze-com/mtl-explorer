@@ -1,11 +1,22 @@
 package com.x8ing.mtl.server.mtlserver.logic.crossing.beans;
 
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.x8ing.mtl.server.mtlserver.db.entity.gps.GpsTrackDataPoint;
 import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
 
 @AllArgsConstructor
 @NoArgsConstructor
+@JsonPropertyOrder({
+        "triggerPoint",
+        "gpsTrackDataPoint",
+        "gpsTrackId",
+        "distanceToTriggerPointInMeter",
+        "timeInSecSinceLastTriggerPoint",
+        "distanceInMeterSinceLastTriggerPoint",
+        "avgSpeedSinceLastTriggerPoint",
+        "segmentNotesSinceLastTriggerPoint"
+})
 public class Crossing {
 
     public TriggerPoint triggerPoint;

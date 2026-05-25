@@ -1,0 +1,412 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.10.xsd">
+
+    <changeSet id="20260518_1_tracks_by_day_filter" author="patrick.heusser">
+        <insert tableName="filter_config">
+            <column name="filter_name" value="TracksByDay"/>
+            <column name="filter_type" value="SQL"/>
+            <column name="filter_domain" value="GPS_TRACK"/>
+            <column name="filter_category" value="SYSTEM"/>
+            <column name="description">
+                <![CDATA[
+                Groups matching tracks by calendar day using the track start date. This is useful for multi-day tours, holidays, bikepacking trips, hikes, or road trips where each daily activity should receive its own map color, making it easier to see which sections were done on which day. The standard base filter is applied first, so normal date, geo area, successful-load, and unique-track constraints still apply. Tracks spanning midnight are assigned to their start day.
+                ]]>
+            </column>
+            <column name="expression">
+                <![CDATA[
+                select
+                    id,
+                    to_char(gt.start_date, 'YYYY-MM-DD') as grp
+                from
+                    gps_track gt
+                where
+                    id = any (
+                        select id
+                        from ( [[~{/GPS_TRACK/SmartBaseFilter}]] ) base_filter
+                    )
+                order by
+                    start_date
+                ]]>
+            </column>
+            <column name="display_name" value="Tracks by day"/>
+            <column name="display_order" value="1010"/>
+        </insert>
+    </changeSet>
+
+    <changeSet id="20260518_2_add_map_coloring_filters" author="patrick.heusser">
+        <insert tableName="filter_config">
+            <column name="filter_name" value="TracksByQuarter"/>
+            <column name="filter_type" value="SQL"/>
+            <column name="filter_domain" value="GPS_TRACK"/>
+            <column name="filter_category" value="SYSTEM"/>
+            <column name="description">
+                <![CDATA[
+                Groups matching tracks into calendar quarters from the track start date: Q1, Q2, Q3, and Q4. This is useful for spotting broad seasonal or yearly patterns without assuming northern-hemisphere season names. The standard base filter is applied first, so normal date, geo area, successful-load, and unique-track constraints still apply.
+                ]]>
+            </column>
+            <column name="expression">
+                <![CDATA[
+                select
+                    id,
+                    grp
+                from (
+                    select
+                        gt.id,
+                        to_char(gt.start_date, '"Q"Q') as grp,
+                        extract(quarter from gt.start_date) as quarter_order,
+                        gt.start_date
+                    from
+                        gps_track gt
+                    where
+                        id = any (
+                            select id
+                            from ( [[~{/GPS_TRACK/SmartBaseFilter}]] ) base_filter
+                        )
+                ) quarter_tracks
+                order by
+                    quarter_order,
+                    start_date
+                ]]>
+            </column>
+            <column name="display_name" value="Tracks by quarter"/>
+            <column name="display_order" value="1015"/>
+        </insert>
+
+        <insert tableName="filter_config">
+            <column name="filter_name" value="TracksByDayOfWeek"/>
+            <column name="filter_type" value="SQL"/>
+            <column name="filter_domain" value="GPS_TRACK"/>
+            <column name="filter_category" value="SYSTEM"/>
+            <column name="description">
+                <![CDATA[
+                Groups matching tracks by the weekday of the track start date, ordered Monday through Sunday. This is useful for spotting weekday commute habits, weekend trips, regular training days, or differences between workday and leisure routes. The group is based on the track start date, not on every point inside a long track.
+                ]]>
+            </column>
+            <column name="expression">
+                <![CDATA[
+                select
+                    id,
+                    grp
+                from (
+                    select
+                        gt.id,
+                        case extract(isodow from gt.start_date)
+                            when 1 then 'Monday'
+                            when 2 then 'Tuesday'
+                            when 3 then 'Wednesday'
+                            when 4 then 'Thursday'
+                            when 5 then 'Friday'
+                            when 6 then 'Saturday'
+                            else 'Sunday'
+                        end as grp,
+                        extract(isodow from gt.start_date) as weekday_order,
+                        gt.start_date
+                    from
+                        gps_track gt
+                    where
+                        id = any (
+                            select id
+                            from ( [[~{/GPS_TRACK/SmartBaseFilter}]] ) base_filter
+                        )
+                ) weekday_tracks
+                order by
+                    weekday_order,
+                    start_date
+                ]]>
+            </column>
+            <column name="display_name" value="Tracks by day of week"/>
+            <column name="display_order" value="1018"/>
+        </insert>
+
+        <insert tableName="filter_config">
+            <column name="filter_name" value="TracksByTimeOfDay"/>
+            <column name="filter_type" value="SQL"/>
+            <column name="filter_domain" value="GPS_TRACK"/>
+            <column name="filter_category" value="SYSTEM"/>
+            <column name="description">
+                <![CDATA[
+                Groups matching tracks by the time of day they started: Night, Morning, Midday, Afternoon, Evening, and Late Night. This helps reveal commute habits, early starts, evening rides, night activities, or trip days that began at unusual hours. The group is based on the track start time, not on every point inside a long track.
+                ]]>
+            </column>
+            <column name="expression">
+                <![CDATA[
+                select
+                    id,
+                    grp
+                from (
+                    select
+                        gt.id,
+                        case
+                            when extract(hour from gt.start_date) between 0 and 4 then 'Night'
+                            when extract(hour from gt.start_date) between 5 and 10 then 'Morning'
+                            when extract(hour from gt.start_date) between 11 and 13 then 'Midday'
+                            when extract(hour from gt.start_date) between 14 and 17 then 'Afternoon'
+                            when extract(hour from gt.start_date) between 18 and 21 then 'Evening'
+                            else 'Late Night'
+                        end as grp,
+                        case
+                            when extract(hour from gt.start_date) between 0 and 4 then 0
+                            when extract(hour from gt.start_date) between 5 and 10 then 1
+                            when extract(hour from gt.start_date) between 11 and 13 then 2
+                            when extract(hour from gt.start_date) between 14 and 17 then 3
+                            when extract(hour from gt.start_date) between 18 and 21 then 4
+                            else 5
+                        end as time_order,
+                        gt.start_date
+                    from
+                        gps_track gt
+                    where
+                        id = any (
+                            select id
+                            from ( [[~{/GPS_TRACK/SmartBaseFilter}]] ) base_filter
+                        )
+                ) time_tracks
+                order by
+                    time_order,
+                    start_date
+                ]]>
+            </column>
+            <column name="display_name" value="Tracks by time of day"/>
+            <column name="display_order" value="1020"/>
+        </insert>
+
+        <insert tableName="filter_config">
+            <column name="filter_name" value="TracksByAverageSpeedGradient"/>
+            <column name="filter_type" value="SQL"/>
+            <column name="filter_domain" value="GPS_TRACK"/>
+            <column name="filter_category" value="SYSTEM"/>
+            <column name="description">
+                <![CDATA[
+                Colors matching tracks by average moving speed as a 0-99 gradient bucket, from slowest to fastest within the current result set. Optional params AVG_SPEED_MIN_KMH and AVG_SPEED_MAX_KMH can narrow the range before bucketing. This is useful for comparing effort, transport mode, or unusually fast and slow activities while still using the full gradient palette for the visible tracks.
+                ]]>
+            </column>
+            <column name="expression">
+                <![CDATA[
+                with base_tracks as (
+                    select
+                        gt.id,
+                        (gt.track_length_in_meter / nullif(gt.track_duration_in_motion_secs, 0) * 3.6) as metric_value
+                    from
+                        gps_track gt
+                    where
+                        id = any (
+                            select id
+                            from ( [[~{/GPS_TRACK/SmartBaseFilter}]] ) base_filter
+                        )
+                        and gt.track_length_in_meter is not null
+                        and gt.track_duration_in_motion_secs is not null
+                        and gt.track_duration_in_motion_secs > 0
+                ),
+                filtered_tracks as (
+                    select
+                        id,
+                        metric_value
+                    from
+                        base_tracks
+                    where
+                        (:AVG_SPEED_MIN_KMH is null or :AVG_SPEED_MIN_KMH = '' or metric_value >= cast(nullif(:AVG_SPEED_MIN_KMH, '') as double precision))
+                        and (:AVG_SPEED_MAX_KMH is null or :AVG_SPEED_MAX_KMH = '' or metric_value <= cast(nullif(:AVG_SPEED_MAX_KMH, '') as double precision))
+                ),
+                bucketed_tracks as (
+                    select
+                        id,
+                        metric_value,
+                        ntile(100) over (order by metric_value, id) - 1 as bucket
+                    from
+                        filtered_tracks
+                )
+                select
+                    id,
+                    bucket::text as grp
+                from
+                    bucketed_tracks
+                order by
+                    bucket,
+                    metric_value,
+                    id
+                ]]>
+            </column>
+            <column name="display_name" value="Tracks by avg speed (gradient)"/>
+            <column name="display_order" value="1300"/>
+        </insert>
+
+        <insert tableName="filter_config">
+            <column name="filter_name" value="TracksByDistanceGradient"/>
+            <column name="filter_type" value="SQL"/>
+            <column name="filter_domain" value="GPS_TRACK"/>
+            <column name="filter_category" value="SYSTEM"/>
+            <column name="description">
+                <![CDATA[
+                Colors matching tracks by distance as a 0-99 gradient bucket, from shortest to longest within the current result set. Optional params DISTANCE_MIN_KM and DISTANCE_MAX_KM can narrow the range before bucketing. This is useful for seeing short errands, medium loops, and long tours on the same map while preserving strong color contrast.
+                ]]>
+            </column>
+            <column name="expression">
+                <![CDATA[
+                with base_tracks as (
+                    select
+                        gt.id,
+                        gt.track_length_in_meter as metric_value
+                    from
+                        gps_track gt
+                    where
+                        id = any (
+                            select id
+                            from ( [[~{/GPS_TRACK/SmartBaseFilter}]] ) base_filter
+                        )
+                        and gt.track_length_in_meter is not null
+                ),
+                filtered_tracks as (
+                    select
+                        id,
+                        metric_value
+                    from
+                        base_tracks
+                    where
+                        (:DISTANCE_MIN_KM is null or :DISTANCE_MIN_KM = '' or metric_value >= cast(nullif(:DISTANCE_MIN_KM, '') as double precision) * 1000)
+                        and (:DISTANCE_MAX_KM is null or :DISTANCE_MAX_KM = '' or metric_value <= cast(nullif(:DISTANCE_MAX_KM, '') as double precision) * 1000)
+                ),
+                bucketed_tracks as (
+                    select
+                        id,
+                        metric_value,
+                        ntile(100) over (order by metric_value, id) - 1 as bucket
+                    from
+                        filtered_tracks
+                )
+                select
+                    id,
+                    bucket::text as grp
+                from
+                    bucketed_tracks
+                order by
+                    bucket,
+                    metric_value,
+                    id
+                ]]>
+            </column>
+            <column name="display_name" value="Tracks by distance (gradient)"/>
+            <column name="display_order" value="1310"/>
+        </insert>
+
+        <insert tableName="filter_config">
+            <column name="filter_name" value="TracksByElevationGainGradient"/>
+            <column name="filter_type" value="SQL"/>
+            <column name="filter_domain" value="GPS_TRACK"/>
+            <column name="filter_category" value="SYSTEM"/>
+            <column name="description">
+                <![CDATA[
+                Colors matching tracks by accumulated elevation gain as a 0-99 gradient bucket, from flattest to most climbing within the current result set. Optional params ELEVATION_GAIN_MIN_M and ELEVATION_GAIN_MAX_M can narrow the range before bucketing. This is useful for distinguishing flat routes from hilly or alpine days.
+                ]]>
+            </column>
+            <column name="expression">
+                <![CDATA[
+                with base_tracks as (
+                    select
+                        gt.id,
+                        gt.ascent_in_meter as metric_value
+                    from
+                        gps_track gt
+                    where
+                        id = any (
+                            select id
+                            from ( [[~{/GPS_TRACK/SmartBaseFilter}]] ) base_filter
+                        )
+                        and gt.ascent_in_meter is not null
+                ),
+                filtered_tracks as (
+                    select
+                        id,
+                        metric_value
+                    from
+                        base_tracks
+                    where
+                        (:ELEVATION_GAIN_MIN_M is null or :ELEVATION_GAIN_MIN_M = '' or metric_value >= cast(nullif(:ELEVATION_GAIN_MIN_M, '') as double precision))
+                        and (:ELEVATION_GAIN_MAX_M is null or :ELEVATION_GAIN_MAX_M = '' or metric_value <= cast(nullif(:ELEVATION_GAIN_MAX_M, '') as double precision))
+                ),
+                bucketed_tracks as (
+                    select
+                        id,
+                        metric_value,
+                        ntile(100) over (order by metric_value, id) - 1 as bucket
+                    from
+                        filtered_tracks
+                )
+                select
+                    id,
+                    bucket::text as grp
+                from
+                    bucketed_tracks
+                order by
+                    bucket,
+                    metric_value,
+                    id
+                ]]>
+            </column>
+            <column name="display_name" value="Tracks by elevation gain (gradient)"/>
+            <column name="display_order" value="1320"/>
+        </insert>
+
+        <insert tableName="filter_config">
+            <column name="filter_name" value="TracksByEnergyGradient"/>
+            <column name="filter_type" value="SQL"/>
+            <column name="filter_domain" value="GPS_TRACK"/>
+            <column name="filter_category" value="SYSTEM"/>
+            <column name="description">
+                <![CDATA[
+                Colors matching tracks by estimated net mechanical energy as a 0-99 gradient bucket, from lowest to highest energy within the current result set. Optional params ENERGY_MIN_KWH and ENERGY_MAX_KWH can narrow the range before bucketing. This is useful for comparing physically costly activities across distance, climbing, speed, and activity type.
+                ]]>
+            </column>
+            <column name="expression">
+                <![CDATA[
+                with base_tracks as (
+                    select
+                        gt.id,
+                        gt.energy_net_total_wh as metric_value
+                    from
+                        gps_track gt
+                    where
+                        id = any (
+                            select id
+                            from ( [[~{/GPS_TRACK/SmartBaseFilter}]] ) base_filter
+                        )
+                        and gt.energy_net_total_wh is not null
+                ),
+                filtered_tracks as (
+                    select
+                        id,
+                        metric_value
+                    from
+                        base_tracks
+                    where
+                        (:ENERGY_MIN_KWH is null or :ENERGY_MIN_KWH = '' or metric_value >= cast(nullif(:ENERGY_MIN_KWH, '') as double precision) * 1000)
+                        and (:ENERGY_MAX_KWH is null or :ENERGY_MAX_KWH = '' or metric_value <= cast(nullif(:ENERGY_MAX_KWH, '') as double precision) * 1000)
+                ),
+                bucketed_tracks as (
+                    select
+                        id,
+                        metric_value,
+                        ntile(100) over (order by metric_value, id) - 1 as bucket
+                    from
+                        filtered_tracks
+                )
+                select
+                    id,
+                    bucket::text as grp
+                from
+                    bucketed_tracks
+                order by
+                    bucket,
+                    metric_value,
+                    id
+                ]]>
+            </column>
+            <column name="display_name" value="Tracks by energy (gradient)"/>
+            <column name="display_order" value="1330"/>
+        </insert>
+    </changeSet>
+
+</databaseChangeLog>

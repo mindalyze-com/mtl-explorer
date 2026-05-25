@@ -1,5 +1,6 @@
 package com.x8ing.mtl.server.mtlserver.web.services.map;
 
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.x8ing.mtl.server.mtlserver.web.services.config.ServerIdentityService;
 import jakarta.annotation.PreDestroy;
 import jakarta.servlet.http.HttpServletResponse;
@@ -43,6 +44,15 @@ import java.util.concurrent.TimeUnit;
 @Slf4j
 @RestController
 @RequestMapping("/api/map-proxy")
+@JsonPropertyOrder({
+        "restClient",
+        "okHttpClient",
+        "properties",
+        "upstreamResolver",
+        "statusService",
+        "serverIdentityService",
+        "buildProperties"
+})
 public class MapTileProxyController {
 
     private static final String UNKNOWN_BUILD_VERSION = "unknown";
@@ -392,8 +402,8 @@ public class MapTileProxyController {
             return normalizedVersion;
         }
         return normalizedVersion
-                + BUILD_VERSION_TIME_SEPARATOR
-                + sanitizeUpstreamAuthTokenPart(properties.getTime().truncatedTo(ChronoUnit.SECONDS).toString());
+               + BUILD_VERSION_TIME_SEPARATOR
+               + sanitizeUpstreamAuthTokenPart(properties.getTime().truncatedTo(ChronoUnit.SECONDS).toString());
     }
 
     private static String sanitizeUpstreamAuthTokenPart(String value) {

@@ -1,5 +1,6 @@
 package com.x8ing.mtl.server.mtlserver.jobs.media.indexer;
 
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.x8ing.mtl.server.mtlserver.db.entity.indexer.IndexedFile;
 import com.x8ing.mtl.server.mtlserver.db.repository.indexer.IndexerRepository;
 import lombok.RequiredArgsConstructor;
@@ -19,6 +20,10 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 @Slf4j(topic = "MediaProcessing")
+@JsonPropertyOrder({
+        "indexerRepository",
+        "mediaIndexer"
+})
 public class MediaProcessingWorker {
 
     private final IndexerRepository indexerRepository;

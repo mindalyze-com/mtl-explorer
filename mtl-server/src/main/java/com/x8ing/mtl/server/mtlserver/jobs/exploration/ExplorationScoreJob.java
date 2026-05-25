@@ -1,5 +1,6 @@
 package com.x8ing.mtl.server.mtlserver.jobs.exploration;
 
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.x8ing.mtl.server.mtlserver.db.entity.config.ConfigEntity;
 import com.x8ing.mtl.server.mtlserver.db.entity.gps.GpsTrack;
 import com.x8ing.mtl.server.mtlserver.db.repository.config.ConfigRepository;
@@ -15,15 +16,22 @@ import org.springframework.transaction.support.TransactionTemplate;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @Slf4j
 @Service
+@JsonPropertyOrder({
+        "gpsTrackRepository",
+        "atomicWorker",
+        "configRepository",
+        "indexerStatusService",
+        "transactionTemplate",
+        "corridorWidthM",
+        "useTrackPrecision",
+        "maxTracksPerRun",
+        "workerThreads"
+})
 public class ExplorationScoreJob {
 
     // Config table keys for storing the last-used algorithm parameters.
@@ -61,7 +69,7 @@ public class ExplorationScoreJob {
 
     /**
      * Maximum number of tracks to process in a single job run. Prevents the scheduler thread
-     * from being blocked too long during initial backfill. If the batch is full, the scheduler
+     * from being blocked too long while clearing a large pending backlog. If the batch is full, the scheduler
      * immediately re-runs (while loop in MtlServerApplication) without waiting for the next interval.
      */
     @Value("${mtl.exploration.max-tracks-per-run:20}")

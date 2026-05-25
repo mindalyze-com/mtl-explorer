@@ -12,7 +12,14 @@
             class="sort-chip"
             :class="{ 'sort-chip--active': mobileSortField === opt.field }"
             @click="onMobileSortChange(opt.field)"
-          >{{ opt.label }}<i v-if="mobileSortField === opt.field" :class="mobileSortAsc ? 'bi bi-arrow-up' : 'bi bi-arrow-down'" class="sort-chip__dir"></i></button>
+          >
+            {{ opt.label
+            }}<i
+              v-if="mobileSortField === opt.field"
+              :class="mobileSortAsc ? 'bi bi-arrow-up' : 'bi bi-arrow-down'"
+              class="sort-chip__dir"
+            ></i>
+          </button>
         </div>
       </div>
       <div v-if="rows.length === 0" class="track-browser-cards__empty">
@@ -31,7 +38,7 @@
           </div>
           <div class="track-browser-card__lower">
             <TrackShapePreview
-              :trackId="row.id!"
+              :track-id="row.id!"
               :width="48"
               :height="32"
               :padding="3"
@@ -40,19 +47,45 @@
             />
             <div class="track-browser-card__details">
               <div v-if="row.trackDescription" class="track-browser-card__desc">{{ row.trackDescription }}</div>
+              <div v-if="curationBadges(row).length" class="track-browser-card__curation">
+                <span
+                  v-for="badge in curationBadges(row)"
+                  :key="badge.key"
+                  class="track-browser-curation-badge"
+                  :class="`track-browser-curation-badge--${badge.key}`"
+                  :title="badge.title"
+                  :data-test="`curation-badge-${badge.key}`"
+                >
+                  {{ badge.label }}
+                </span>
+              </div>
               <div class="track-browser-card__meta">
                 <div class="track-browser-card__meta-row">
                   <span v-if="row.startDate">{{ formatDateAndTimeValue(row.startDate) }}</span>
-                  <span v-if="row.trackLengthInMeter"
-                        v-tooltip.top="{ value: formatDistanceTooltip(row.trackLengthInMeter), showDelay: 400 }">{{ formatDistanceSmart(row.trackLengthInMeter) }}</span>
-                  <span v-if="row.durationMillis"
-                        v-tooltip.top="{ value: formatDurationTooltip(row.durationMillis), showDelay: 400 }">{{ formatDurationSmart(row.durationMillis) }}</span>
+                  <span
+                    v-if="row.trackLengthInMeter"
+                    v-tooltip.top="{ value: formatDistanceTooltip(row.trackLengthInMeter), showDelay: 400 }"
+                    >{{ formatDistanceSmart(row.trackLengthInMeter) }}</span
+                  >
+                  <span
+                    v-if="row.durationMillis"
+                    v-tooltip.top="{ value: formatDurationTooltip(row.durationMillis), showDelay: 400 }"
+                    >{{ formatDurationSmart(row.durationMillis) }}</span
+                  >
                 </div>
-                <div v-if="row.energyNetTotalWh" class="track-browser-card__meta-row track-browser-card__meta-row--energy">
+                <div
+                  v-if="row.energyNetTotalWh"
+                  class="track-browser-card__meta-row track-browser-card__meta-row--energy"
+                >
                   <span>{{ formatEnergy(row.energyNetTotalWh) }}</span>
-                  <i class="bi bi-info-circle"
-                     v-tooltip.top="{ value: ENERGY_TOOLTIP, showDelay: 300 }"
-                     aria-label="About energy"></i>
+                  <button
+                    type="button"
+                    class="track-browser-table__info-btn"
+                    aria-label="About energy"
+                    @click.stop="showEnergyInfo($event)"
+                  >
+                    <i class="bi bi-info-circle"></i>
+                  </button>
                 </div>
               </div>
             </div>
@@ -62,149 +95,210 @@
       <div v-if="rows.length > mobilePageSize" class="track-browser-cards__pager">
         <Button :disabled="mobilePage <= 0" icon="pi pi-chevron-left" text size="small" @click="mobilePage--" />
         <span>{{ mobilePage + 1 }} / {{ totalMobilePages }}</span>
-        <Button :disabled="mobilePage >= totalMobilePages - 1" icon="pi pi-chevron-right" text size="small" @click="mobilePage++" />
+        <Button
+          :disabled="mobilePage >= totalMobilePages - 1"
+          icon="pi pi-chevron-right"
+          text
+          size="small"
+          @click="mobilePage++"
+        />
       </div>
     </div>
 
     <!-- Desktop: sort bar + DataTable -->
     <template v-else>
-    <div class="track-browser-table__desktop-sort-bar">
-      <span class="track-browser-cards__sort-label"><i class="bi bi-sort-down"></i> Sort:</span>
-      <div class="track-browser-cards__sort-options">
-        <button
-          v-for="opt in sortOptions"
-          :key="opt.field"
-          class="sort-chip"
-          :class="{ 'sort-chip--active': desktopSortField === opt.field }"
-          @click="onDesktopSortChipChange(opt.field)"
-        >{{ opt.label }}<i v-if="desktopSortField === opt.field" :class="desktopSortOrder === 1 ? 'bi bi-arrow-up' : 'bi bi-arrow-down'" class="sort-chip__dir"></i></button>
+      <div class="track-browser-table__desktop-sort-bar">
+        <span class="track-browser-cards__sort-label"><i class="bi bi-sort-down"></i> Sort:</span>
+        <div class="track-browser-cards__sort-options">
+          <button
+            v-for="opt in sortOptions"
+            :key="opt.field"
+            class="sort-chip"
+            :class="{ 'sort-chip--active': desktopSortField === opt.field }"
+            @click="onDesktopSortChipChange(opt.field)"
+          >
+            {{ opt.label
+            }}<i
+              v-if="desktopSortField === opt.field"
+              :class="desktopSortOrder === 1 ? 'bi bi-arrow-up' : 'bi bi-arrow-down'"
+              class="sort-chip__dir"
+            ></i>
+          </button>
+        </div>
       </div>
-    </div>
-    <DataTable
-      :value="rows"
-      :first="first"
-      scrollable
-      scrollHeight="flex"
-      class="p-datatable-sm track-browser-table__datatable"
-      paginator
-      :rows="25"
-      :rowsPerPageOptions="[10, 25, 50, 100, 250, 1000]"
-      removable-sort
-      :sortField="desktopSortField ?? undefined"
-      :sortOrder="desktopSortOrder"
-      :rowClass="rowClass"
-      selectionMode="single"
-      @page="onPage"
-      @sort="onDesktopSort"
-      @row-click="onRowClick"
-    >
-      <template #empty>
-        <template v-if="query.trim()">No tracks match &ldquo;{{ query.trim() }}&rdquo;</template>
-        <template v-else>No tracks match the current view.</template>
-      </template>
-
-      <template #paginatorstart>
-        <Button
-          v-if="selectedTrackId != null && !selectedOnCurrentPage && selectedRowIndex >= 0"
-          icon="pi pi-arrow-up"
-          label="Jump to selected"
-          text
-          size="small"
-          @click="jumpToSelected"
-        />
-      </template>
-
-      <Column header="" style="width: 3.5rem; min-width: 3.5rem; max-width: 3.5rem">
-        <template #body="slotProps">
-          <TrackShapePreview :trackId="slotProps.data.id" :width="48" :height="32" :padding="3" class="track-browser-table__shape" v-tooltip.top="{ value: 'Center on map', showDelay: 600 }" @click.stop="emit('select-track', slotProps.data.id)" />
+      <DataTable
+        :value="rows"
+        :first="first"
+        scrollable
+        scroll-height="flex"
+        class="p-datatable-sm track-browser-table__datatable"
+        paginator
+        :rows="25"
+        :rows-per-page-options="[10, 25, 50, 100, 250, 1000]"
+        removable-sort
+        :sort-field="desktopSortField ?? undefined"
+        :sort-order="desktopSortOrder"
+        :row-class="rowClass"
+        selection-mode="single"
+        @page="onPage"
+        @sort="onDesktopSort"
+        @row-click="onRowClick"
+      >
+        <template #empty>
+          <template v-if="query.trim()">No tracks match &ldquo;{{ query.trim() }}&rdquo;</template>
+          <template v-else>No tracks match the current view.</template>
         </template>
-      </Column>
 
-      <Column field="startDate" header="Start" sortable style="min-width: 10rem">
-        <template #body="slotProps">
-          {{ formatDateAndTimeValue(slotProps.data.startDate) }}
+        <template #paginatorstart>
+          <Button
+            v-if="selectedTrackId != null && !selectedOnCurrentPage && selectedRowIndex >= 0"
+            icon="pi pi-arrow-up"
+            label="Jump to selected"
+            text
+            size="small"
+            @click="jumpToSelected"
+          />
         </template>
-      </Column>
 
-      <Column field="displayName" header="Track" sortable style="min-width: 16rem">
-        <template #body="slotProps">
-          <div class="track-browser-table__name-cell">
-            <span>{{ slotProps.data.displayName }}</span>
-            <span v-if="slotProps.data.trackDescription" class="track-browser-table__name-desc">{{ slotProps.data.trackDescription }}</span>
-          </div>
-        </template>
-      </Column>
+        <Column header="" style="width: 3.5rem; min-width: 3.5rem; max-width: 3.5rem">
+          <template #body="slotProps">
+            <TrackShapePreview
+              v-tooltip.top="{ value: 'Center on map', showDelay: 600 }"
+              :track-id="slotProps.data.id"
+              :width="48"
+              :height="32"
+              :padding="3"
+              class="track-browser-table__shape"
+              @click.stop="emit('select-track', slotProps.data.id)"
+            />
+          </template>
+        </Column>
 
-      <Column field="activityType" header="Activity" sortable style="min-width: 8rem">
-        <template #body="slotProps">
-          <ActivityTypeBadge v-if="slotProps.data.activityType" :type="slotProps.data.activityType" size="xs" />
-        </template>
-      </Column>
+        <Column field="startDate" header="Start" sortable style="min-width: 10rem">
+          <template #body="slotProps">
+            {{ formatDateAndTimeValue(slotProps.data.startDate) }}
+          </template>
+        </Column>
 
-      <Column field="trackLengthInMeter" header="Distance" sortable class="number-column" style="min-width: 8rem">
-        <template #body="slotProps">
-          <span v-tooltip.top="{ value: formatDistanceTooltip(slotProps.data.trackLengthInMeter || 0), showDelay: 400 }">
-            {{ formatDistanceSmart(slotProps.data.trackLengthInMeter || 0) }}
-          </span>
-        </template>
-      </Column>
+        <Column field="displayName" header="Track" sortable style="min-width: 16rem">
+          <template #body="slotProps">
+            <div class="track-browser-table__name-cell">
+              <span>{{ slotProps.data.displayName }}</span>
+              <span v-if="slotProps.data.trackDescription" class="track-browser-table__name-desc">{{
+                slotProps.data.trackDescription
+              }}</span>
+              <span v-if="curationBadges(slotProps.data).length" class="track-browser-table__curation">
+                <span
+                  v-for="badge in curationBadges(slotProps.data)"
+                  :key="badge.key"
+                  class="track-browser-curation-badge"
+                  :class="`track-browser-curation-badge--${badge.key}`"
+                  :title="badge.title"
+                  :data-test="`curation-badge-${badge.key}`"
+                >
+                  {{ badge.label }}
+                </span>
+              </span>
+            </div>
+          </template>
+        </Column>
 
-      <Column field="durationMillis" header="Duration" sortable class="number-column" style="min-width: 8rem">
-        <template #body="slotProps">
-          <span v-tooltip.top="{ value: formatDurationTooltip(slotProps.data.durationMillis || 0), showDelay: 400 }">
-            {{ formatDurationSmart(slotProps.data.durationMillis || 0) }}
-          </span>
-        </template>
-      </Column>
+        <Column field="activityType" header="Activity" sortable style="min-width: 8rem">
+          <template #body="slotProps">
+            <ActivityTypeBadge v-if="slotProps.data.activityType" :type="slotProps.data.activityType" size="xs" />
+          </template>
+        </Column>
 
-      <Column field="avgSpeedKmh" header="Avg km/h" sortable class="number-column" style="min-width: 7rem">
-        <template #body="slotProps">
-          {{ formatSpeed(slotProps.data.avgSpeedKmh) }}
-        </template>
-      </Column>
+        <Column field="trackLengthInMeter" header="Distance" sortable class="number-column" style="min-width: 8rem">
+          <template #body="slotProps">
+            <span
+              v-tooltip.top="{ value: formatDistanceTooltip(slotProps.data.trackLengthInMeter || 0), showDelay: 400 }"
+            >
+              {{ formatDistanceSmart(slotProps.data.trackLengthInMeter || 0) }}
+            </span>
+          </template>
+        </Column>
 
-      <Column field="energyNetTotalWh" sortable class="number-column" style="min-width: 7rem">
-        <template #header>
-          <span>Energy</span>
-          <i class="bi bi-info-circle track-browser-table__header-info"
-             v-tooltip.top="{ value: ENERGY_TOOLTIP, showDelay: 300 }"
-             aria-label="About energy"></i>
-        </template>
-        <template #body="slotProps">
-          {{ formatEnergy(slotProps.data.energyNetTotalWh) }}
-        </template>
-      </Column>
+        <Column field="durationMillis" header="Duration" sortable class="number-column" style="min-width: 8rem">
+          <template #body="slotProps">
+            <span v-tooltip.top="{ value: formatDurationTooltip(slotProps.data.durationMillis || 0), showDelay: 400 }">
+              {{ formatDurationSmart(slotProps.data.durationMillis || 0) }}
+            </span>
+          </template>
+        </Column>
 
-      <Column field="explorationScore" header="Exploration" sortable class="number-column" style="min-width: 7rem">
-        <template #body="slotProps">
-          <span v-if="slotProps.data.explorationScore != null"
-                v-tooltip.top="{ value: 'Share of this track covering new ground (not within 25m of any prior track)', showDelay: 300 }">
-            {{ formatNumber(slotProps.data.explorationScore * 100, 1) }}%
-          </span>
-          <span v-else-if="['SCHEDULED', 'IN_PROGRESS', 'NEEDS_RECALCULATION'].includes(slotProps.data.explorationStatus)"
-                v-tooltip.top="{ value: 'Exploration score is being calculated', showDelay: 300 }"
-                class="track-browser-table__pending">
-            <i class="pi pi-spin pi-spinner" style="font-size: var(--text-xs-size)" />
-          </span>
-          <span v-else class="track-browser-table__na">—</span>
-        </template>
-      </Column>
+        <Column field="avgSpeedKmh" header="Avg km/h" sortable class="number-column" style="min-width: 7rem">
+          <template #body="slotProps">
+            {{ formatSpeed(slotProps.data.avgSpeedKmh) }}
+          </template>
+        </Column>
 
-      <Column field="createDate" header="Imported" sortable style="min-width: 10rem">
-        <template #body="slotProps">
-          <span :title="slotProps.data.indexedFile?.name || undefined">
-            {{ formatDateAndTimeValue(slotProps.data.createDate) }}
-          </span>
-        </template>
-      </Column>
-    </DataTable>
+        <Column field="energyNetTotalWh" sortable class="number-column" style="min-width: 7rem">
+          <template #header>
+            <span>Energy</span>
+            <button
+              type="button"
+              class="track-browser-table__info-btn track-browser-table__header-info"
+              aria-label="About energy"
+              @click.stop="showEnergyInfo($event)"
+            >
+              <i class="bi bi-info-circle"></i>
+            </button>
+          </template>
+          <template #body="slotProps">
+            {{ formatEnergy(slotProps.data.energyNetTotalWh) }}
+          </template>
+        </Column>
+
+        <Column field="explorationScore" header="Exploration" sortable class="number-column" style="min-width: 7rem">
+          <template #body="slotProps">
+            <span
+              v-if="slotProps.data.explorationScore != null"
+              v-tooltip.top="{
+                value: 'Share of this track covering new ground (not within 25m of any prior track)',
+                showDelay: 300,
+              }"
+            >
+              {{ formatNumber(slotProps.data.explorationScore * 100, 1) }}%
+            </span>
+            <span
+              v-else-if="['SCHEDULED', 'IN_PROGRESS', 'NEEDS_RECALCULATION'].includes(slotProps.data.explorationStatus)"
+              v-tooltip.top="{ value: 'Exploration score is being calculated', showDelay: 300 }"
+              class="track-browser-table__pending"
+            >
+              <i class="pi pi-spin pi-spinner" style="font-size: var(--text-xs-size)" />
+            </span>
+            <span v-else class="track-browser-table__na">—</span>
+          </template>
+        </Column>
+
+        <Column field="createDate" header="Imported" sortable style="min-width: 10rem">
+          <template #body="slotProps">
+            <span :title="slotProps.data.indexedFile?.name || undefined">
+              {{ formatDateAndTimeValue(slotProps.data.createDate) }}
+            </span>
+          </template>
+        </Column>
+      </DataTable>
     </template>
+
+    <Popover ref="energyInfoPopover" append-to="body">
+      <p class="track-browser-table__info-text">{{ ENERGY_TOOLTIP }}</p>
+    </Popover>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
-import { formatDateAndTime, formatDistance, formatDuration, formatNumber, formatDistanceSmart, formatDurationSmart, formatDistanceTooltip, formatDurationTooltip } from '@/utils/Utils';
+import {
+  formatDateAndTime,
+  formatNumber,
+  formatDistanceSmart,
+  formatDurationSmart,
+  formatDistanceTooltip,
+  formatDurationTooltip,
+} from '@/utils/Utils';
+import { curationBadges } from '@/utils/statisticsCuration';
 import type { TrackRowViewModel } from './trackBrowser.types';
 import TrackShapePreview from '@/components/ui/TrackShapePreview.vue';
 import ActivityTypeBadge from '@/components/ui/ActivityTypeBadge.vue';
@@ -214,6 +308,7 @@ const props = defineProps<{
   selectedTrackId: number | string | null;
   query: string;
   compact?: boolean;
+  sortResetKey?: number;
 }>();
 
 const emit = defineEmits<{
@@ -223,19 +318,21 @@ const emit = defineEmits<{
 
 const mobilePageSize = 20;
 const mobilePage = ref(0);
-const ENERGY_TOOLTIP = 'Estimated external mechanical work from GPS-derived physics, not metabolic calorie burn or measured power-sensor data.';
+const ENERGY_TOOLTIP =
+  'Estimated external mechanical work from GPS-derived physics, not metabolic calorie burn or measured power-sensor data.';
+const energyInfoPopover = ref<{ toggle: (event: Event) => void } | null>(null);
 
 // Mobile sort state
 const mobileSortField = ref<string>('startDate');
 const mobileSortAsc = ref(false);
 
 const sortOptions = [
-  { field: 'startDate',          label: 'Date' },
-  { field: 'createDate',         label: 'Imported' },
+  { field: 'startDate', label: 'Date' },
+  { field: 'createDate', label: 'Imported' },
   { field: 'trackLengthInMeter', label: 'Distance' },
-  { field: 'durationMillis',     label: 'Duration' },
-  { field: 'displayName',        label: 'Name' },
-  { field: 'explorationScore',   label: 'Exploration' },
+  { field: 'durationMillis', label: 'Duration' },
+  { field: 'displayName', label: 'Name' },
+  { field: 'explorationScore', label: 'Exploration' },
 ];
 
 function onMobileSortChange(field: string) {
@@ -252,6 +349,15 @@ function onMobileSortChange(field: string) {
 const desktopSortField = ref<string>('startDate');
 const desktopSortOrder = ref<1 | -1>(-1);
 
+function resetSortToNewest() {
+  mobileSortField.value = 'startDate';
+  mobileSortAsc.value = false;
+  desktopSortField.value = 'startDate';
+  desktopSortOrder.value = -1;
+  mobilePage.value = 0;
+  first.value = 0;
+}
+
 function onDesktopSortChipChange(field: string) {
   if (desktopSortField.value === field) {
     desktopSortOrder.value = desktopSortOrder.value === 1 ? -1 : 1;
@@ -261,7 +367,10 @@ function onDesktopSortChipChange(field: string) {
   }
 }
 
-function onDesktopSort(event: { sortField?: string | ((item: unknown) => string) | null | undefined; sortOrder?: number | null | undefined }) {
+function onDesktopSort(event: {
+  sortField?: string | ((item: unknown) => string) | null | undefined;
+  sortOrder?: number | null | undefined;
+}) {
   if (!event.sortField || typeof event.sortField !== 'string') {
     desktopSortField.value = 'startDate';
     desktopSortOrder.value = -1;
@@ -282,10 +391,18 @@ function onRowClick(event: { data: TrackRowViewModel }) {
 }
 
 // Reset all pages when filter results change
-watch(() => props.rows.length, () => {
-  mobilePage.value = 0;
-  first.value = 0;
-});
+watch(
+  () => props.rows.length,
+  () => {
+    mobilePage.value = 0;
+    first.value = 0;
+  }
+);
+
+watch(
+  () => props.sortResetKey,
+  () => resetSortToNewest()
+);
 
 const selectedRowIndex = computed(() => {
   if (props.selectedTrackId == null) return -1;
@@ -342,6 +459,10 @@ function formatEnergy(value: number | null) {
 function rowClass(row: TrackRowViewModel) {
   return row.id === props.selectedTrackId ? 'track-browser-table__row--active' : '';
 }
+
+function showEnergyInfo(event: Event) {
+  energyInfoPopover.value?.toggle(event);
+}
 </script>
 
 <style scoped>
@@ -380,7 +501,6 @@ function rowClass(row: TrackRowViewModel) {
   scrollbar-color: var(--text-muted) var(--surface-glass-heavy);
 }
 
-
 .track-browser-table__datatable :deep(.p-datatable-thead) {
   position: sticky;
   top: 0;
@@ -404,6 +524,43 @@ function rowClass(row: TrackRowViewModel) {
 .track-browser-table__name-desc {
   font-size: var(--text-xs-size);
   color: var(--text-muted);
+}
+
+.track-browser-table__curation,
+.track-browser-card__curation {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.track-browser-curation-badge {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  border-radius: 6px;
+  border: 1px solid var(--border-subtle);
+  padding: 0.08rem 0.38rem;
+  color: var(--text-secondary);
+  background: var(--surface-hover);
+  font-size: var(--text-2xs-size);
+  line-height: var(--text-2xs-lh);
+  font-weight: 650;
+}
+
+.track-browser-curation-badge--statistics {
+  border-color: rgba(217, 119, 6, 0.24);
+  background: var(--warning-bg);
+  color: var(--warning-text);
+}
+
+.track-browser-curation-badge--highlight {
+  color: var(--accent-text);
+  border-color: var(--accent-subtle);
+  background: var(--accent-bg);
 }
 
 .track-browser-table__actions {
@@ -469,7 +626,10 @@ function rowClass(row: TrackRowViewModel) {
   font-size: var(--text-xs-size);
   color: var(--text-muted);
   cursor: pointer;
-  transition: background 0.12s, color 0.12s, border-color 0.12s;
+  transition:
+    background 0.12s,
+    color 0.12s,
+    border-color 0.12s;
   white-space: nowrap;
 }
 
@@ -600,10 +760,37 @@ function rowClass(row: TrackRowViewModel) {
   gap: 0.25rem;
 }
 
-.track-browser-card__meta-row--energy i,
-.track-browser-table__header-info {
+.track-browser-table__info-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  background: transparent;
   color: var(--text-faint);
+  cursor: pointer;
   font-size: var(--text-2xs-size);
+  line-height: var(--text-2xs-lh);
+  transition: color 0.15s;
+}
+
+.track-browser-table__info-btn:hover,
+.track-browser-table__info-btn:focus-visible {
+  color: var(--accent-muted);
+  outline: none;
+}
+
+.track-browser-table__header-info {
+  margin-left: 0.2rem;
+}
+
+.track-browser-table__info-text {
+  max-width: min(240px, calc(100vw - 2rem));
+  font-size: var(--text-xs-size);
+  line-height: var(--text-xs-lh);
+  color: var(--text-secondary);
+  margin: 0;
+  padding: 0.1rem 0;
 }
 
 .track-browser-card__desc {

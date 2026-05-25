@@ -79,9 +79,7 @@ describe('trackCacheDb', () => {
 
     expect(await loadAllTrackRecords()).toEqual(new Map());
     expect(await loadBestGeometry()).toEqual(new Map());
-    expect(await objectStoreNames(DB_NAME)).not.toEqual(
-      expect.arrayContaining(['track_resolutions', 'store_meta']),
-    );
+    expect(await objectStoreNames(DB_NAME)).not.toEqual(expect.arrayContaining(['track_resolutions', 'store_meta']));
 
     const track = makeTrack(7, 3);
     await saveTrackRecords(new Map([[7, track]]));

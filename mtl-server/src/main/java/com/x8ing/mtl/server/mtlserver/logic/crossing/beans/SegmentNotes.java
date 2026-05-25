@@ -1,22 +1,28 @@
 package com.x8ing.mtl.server.mtlserver.logic.crossing.beans;
 
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 /**
  * Notes describing noteworthy events inside a segment (previous trigger point →
- * this trigger point). Computed on-the-fly from the raw GPS track samples that
- * fall between the two crossing timestamps.
+ * this trigger point). Computed on-the-fly from detected track events that
+ * overlap the two crossing timestamps.
  *
- * <p>Currently reports <b>stops</b>: contiguous runs where the recorded speed
- * stays below a threshold for at least a minimum duration. This lets the
- * client annotate segments where the racer paused and stats would otherwise
- * be misleading (e.g. "2 stops · 2m 40s").
+ * <p>Currently reports <b>stops</b>: persisted stop events produced during
+ * import by the dense GPS stop detector. This lets the client annotate
+ * segments where the racer paused and stats would otherwise be misleading
+ * (e.g. "2 stops · 2m 40s").
  */
 @NoArgsConstructor
 @AllArgsConstructor
 @Data
+@JsonPropertyOrder({
+        "stopCount",
+        "totalStoppedSec",
+        "longestStopSec"
+})
 public class SegmentNotes {
 
     /**

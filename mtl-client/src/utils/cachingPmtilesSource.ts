@@ -28,12 +28,7 @@ class CachingFetchSource implements Source {
     return this.url;
   }
 
-  async getBytes(
-    offset: number,
-    length: number,
-    signal?: AbortSignal,
-    etag?: string,
-  ): Promise<RangeResponse> {
+  async getBytes(offset: number, length: number, signal?: AbortSignal, etag?: string): Promise<RangeResponse> {
     const headers = new Headers();
     headers.set('Range', `bytes=${offset}-${offset + length - 1}`);
 
@@ -74,7 +69,7 @@ class CachingFetchSource implements Source {
       };
     }
 
-    let newEtag = getStrongEtag(resp);
+    const newEtag = getStrongEtag(resp);
 
     // ETag mismatch or 416 after retry — server-side file changed
     if (resp.status === 416 || (etag && newEtag && newEtag !== etag)) {
@@ -91,7 +86,7 @@ class CachingFetchSource implements Source {
     if (resp.status === 200 && (!contentLength || +contentLength > length)) {
       throw new Error(
         'Server returned no content-length header or content-length exceeding request. ' +
-        'Check that your storage backend supports HTTP Byte Serving.',
+          'Check that your storage backend supports HTTP Byte Serving.'
       );
     }
 

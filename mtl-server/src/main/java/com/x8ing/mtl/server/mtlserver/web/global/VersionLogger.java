@@ -1,5 +1,6 @@
 package com.x8ing.mtl.server.mtlserver.web.global;
 
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.x8ing.mtl.server.mtlserver.config.MtlAppProperties;
 import com.x8ing.mtl.server.mtlserver.web.services.info.ServerInfoController;
 import lombok.extern.slf4j.Slf4j;
@@ -12,6 +13,12 @@ import org.springframework.stereotype.Component;
 
 @Slf4j
 @Component
+@JsonPropertyOrder({
+        "SEP",
+        "DEMO_SEP",
+        "serverInfoController",
+        "mtlAppProperties"
+})
 public class VersionLogger implements ApplicationListener<ApplicationReadyEvent> {
 
     private final String SEP = "==================================================================================";

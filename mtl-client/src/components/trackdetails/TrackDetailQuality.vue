@@ -1,6 +1,5 @@
 <template>
-  <div class="quality-container" v-if="gpsTrack">
-
+  <div v-if="gpsTrack" class="quality-container">
     <!-- Status Badges -->
     <div class="status-row">
       <div class="status-badge" :class="loadStatusClass">
@@ -11,20 +10,22 @@
         <i :class="duplicateStatusIcon"></i>
         <span>{{ gpsTrack.duplicateStatus ?? '—' }}</span>
       </div>
-      <div class="status-badge status-badge--neutral" v-if="gpsTrack.didFilterOutlierByDistance">
+      <div v-if="gpsTrack.didFilterOutlierByDistance" class="status-badge status-badge--neutral">
         <i class="bi bi-funnel-fill"></i>
         <span>Outliers Filtered</span>
       </div>
     </div>
 
     <!-- Load Messages (if any) -->
-    <details class="info-drawer" v-if="gpsTrack.loadMessages">
+    <details v-if="gpsTrack.loadMessages" class="info-drawer">
       <summary class="info-drawer__summary">
         <i class="bi bi-chat-left-text"></i> Load Messages
         <i class="bi bi-chevron-down info-drawer__chevron"></i>
       </summary>
       <div class="load-messages">
-        <div v-for="(line, idx) in gpsTrack.loadMessages.split('\n')" :key="idx" class="load-messages__line">{{ line }}</div>
+        <div v-for="(line, idx) in gpsTrack.loadMessages.split('\n')" :key="idx" class="load-messages__line">
+          {{ line }}
+        </div>
       </div>
     </details>
 
@@ -36,27 +37,80 @@
         <div class="metric-tile__label">Total Points</div>
       </div>
       <div class="metric-tile">
-        <div class="metric-tile__value metric-tile__value--sm"
-             v-tooltip.top="{ value: formatDistanceTooltip(gpsTrack.avgDistanceBetweenPoints), showDelay: 400 }">{{ formatDistance(gpsTrack.avgDistanceBetweenPoints) }}</div>
+        <div
+          v-tooltip.top="{ value: formatOptionalDistanceTooltip(gpsTrack.avgDistanceBetweenPoints), showDelay: 400 }"
+          class="metric-tile__value metric-tile__value--sm"
+        >
+          {{ formatOptionalDistance(gpsTrack.avgDistanceBetweenPoints) }}
+        </div>
         <div class="metric-tile__label">Avg Pt. Distance</div>
       </div>
       <div class="metric-tile">
-        <div class="metric-tile__value metric-tile__value--sm"
-             v-tooltip.top="{ value: formatDistanceTooltip(gpsTrack.medianDistanceBetweenPoints), showDelay: 400 }">{{ formatDistance(gpsTrack.medianDistanceBetweenPoints) }}</div>
+        <div
+          v-tooltip.top="{ value: formatOptionalDistanceTooltip(gpsTrack.medianDistanceBetweenPoints), showDelay: 400 }"
+          class="metric-tile__value metric-tile__value--sm"
+        >
+          {{ formatOptionalDistance(gpsTrack.medianDistanceBetweenPoints) }}
+        </div>
         <div class="metric-tile__label">Median Pt. Distance</div>
       </div>
       <div class="metric-tile">
-        <div class="metric-tile__value metric-tile__value--sm"
-             v-tooltip.top="{ value: formatDistanceTooltip(gpsTrack.maxDistanceBetweenPoints), showDelay: 400 }">{{ formatDistance(gpsTrack.maxDistanceBetweenPoints) }}</div>
+        <div
+          v-tooltip.top="{ value: formatOptionalDistanceTooltip(gpsTrack.maxDistanceBetweenPoints), showDelay: 400 }"
+          class="metric-tile__value metric-tile__value--sm"
+        >
+          {{ formatOptionalDistance(gpsTrack.maxDistanceBetweenPoints) }}
+        </div>
         <div class="metric-tile__label">Max Pt. Distance</div>
       </div>
     </div>
 
+    <div class="section-label"><i class="bi bi-sliders"></i> Statistics Curation</div>
+    <div class="curation-panel" data-test="statistics-curation">
+      <div class="curation-row">
+        <span class="curation-row__label">Highlights</span>
+        <Select
+          :model-value="highlightReason"
+          :options="exclusionReasonOptions"
+          option-label="label"
+          option-value="value"
+          class="curation-select"
+          :disabled="savingCuration"
+          data-test="highlight-exclusion-select"
+          @update:model-value="onHighlightReasonChange"
+        />
+      </div>
+      <div class="curation-row">
+        <span class="curation-row__label">Statistics</span>
+        <Select
+          :model-value="statisticsReason"
+          :options="exclusionReasonOptions"
+          option-label="label"
+          option-value="value"
+          class="curation-select"
+          :disabled="savingCuration"
+          data-test="statistics-exclusion-select"
+          @update:model-value="onStatisticsReasonChange"
+        />
+      </div>
+      <div v-if="hasAnyExclusion" class="curation-note" data-test="curation-note">
+        <i class="bi bi-shield-exclamation"></i>
+        <span>{{ curationNote }}</span>
+      </div>
+    </div>
+
     <!-- Duplicate Info (if duplicate) -->
-    <div class="duplicate-info" v-if="gpsTrack.duplicateOf">
+    <div v-if="gpsTrack.duplicateOf" class="duplicate-info">
       <i class="bi bi-files info-drawer__summary-icon"></i>
       <span>Duplicate of track </span>
-      <a class="track-link" @click="$emit('navigate-track', gpsTrack.duplicateOf)">#{{ gpsTrack.duplicateOf }}</a>
+      <a
+        class="track-link"
+        @pointerdown.stop
+        @mousedown.stop
+        @touchstart.stop
+        @click="navigateTrack(gpsTrack.duplicateOf)"
+        >#{{ gpsTrack.duplicateOf }}</a
+      >
       <span v-if="gpsTrack.duplicateDetails" class="duplicate-info__detail">— {{ gpsTrack.duplicateDetails }}</span>
     </div>
 
@@ -73,28 +127,34 @@
           <span class="source-badge" :class="activitySourceClass">{{ gpsTrack.activityTypeSource ?? '—' }}</span>
         </span>
       </div>
-      <div class="info-row" v-if="gpsTrack.activityTypeSourceDetails">
+      <div v-if="gpsTrack.activityTypeSourceDetails" class="info-row">
         <span class="info-key">Source Details</span>
         <span class="info-val info-val--muted">{{ gpsTrack.activityTypeSourceDetails }}</span>
       </div>
     </div>
 
     <!-- Geo Coverage -->
-    <div class="section-label" v-if="hasGeo"><i class="bi bi-bounding-box"></i> Geo Coverage</div>
-    <div class="info-list info-list--inline" v-if="hasGeo">
-      <div class="info-row" v-if="gpsTrack.centerLat != null">
+    <div v-if="hasGeo" class="section-label"><i class="bi bi-bounding-box"></i> Geo Coverage</div>
+    <div v-if="hasGeo" class="info-list info-list--inline">
+      <div v-if="gpsTrack.centerLat != null" class="info-row">
         <span class="info-key">Center</span>
-        <span class="info-val info-val--mono">{{ formatCoord(gpsTrack.centerLat) }}, {{ formatCoord(gpsTrack.centerLng) }}</span>
+        <span class="info-val info-val--mono"
+          >{{ formatCoord(gpsTrack.centerLat) }}, {{ formatCoord(gpsTrack.centerLng) }}</span
+        >
       </div>
-      <div class="info-row" v-if="gpsTrack.bboxMinLat != null">
+      <div v-if="gpsTrack.bboxMinLat != null" class="info-row">
         <span class="info-key">Bbox Lat</span>
-        <span class="info-val info-val--mono">{{ formatCoord(gpsTrack.bboxMinLat) }} → {{ formatCoord(gpsTrack.bboxMaxLat) }}</span>
+        <span class="info-val info-val--mono"
+          >{{ formatCoord(gpsTrack.bboxMinLat) }} → {{ formatCoord(gpsTrack.bboxMaxLat) }}</span
+        >
       </div>
-      <div class="info-row" v-if="gpsTrack.bboxMinLng != null">
+      <div v-if="gpsTrack.bboxMinLng != null" class="info-row">
         <span class="info-key">Bbox Lng</span>
-        <span class="info-val info-val--mono">{{ formatCoord(gpsTrack.bboxMinLng) }} → {{ formatCoord(gpsTrack.bboxMaxLng) }}</span>
+        <span class="info-val info-val--mono"
+          >{{ formatCoord(gpsTrack.bboxMinLng) }} → {{ formatCoord(gpsTrack.bboxMaxLng) }}</span
+        >
       </div>
-      <div class="info-row" v-if="gpsTrack.utmZone">
+      <div v-if="gpsTrack.utmZone" class="info-row">
         <span class="info-key">UTM Zone</span>
         <span class="info-val">{{ gpsTrack.utmZone }}</span>
       </div>
@@ -107,117 +167,331 @@
         <i class="bi bi-chevron-down info-drawer__chevron"></i>
       </summary>
       <div class="info-list">
-        <div class="info-row"><span class="info-key">GPX Version</span><span class="info-val">{{ gpsTrack.gpxVersion ?? '—' }}</span></div>
-        <div class="info-row"><span class="info-key">Track Type</span><span class="info-val">{{ gpsTrack.trackType ?? '—' }}</span></div>
-        <div class="info-row"><span class="info-key">Meta Name</span><span class="info-val">{{ gpsTrack.metaName ?? '—' }}</span></div>
-        <div class="info-row"><span class="info-key">Meta Description</span><span class="info-val">{{ gpsTrack.metaDescription ?? '—' }}</span></div>
-        <div class="info-row"><span class="info-key">Meta Author</span><span class="info-val">{{ gpsTrack.metaAuthor ?? '—' }}</span></div>
-        <div class="info-row"><span class="info-key">Meta Time</span><span class="info-val">{{ gpsTrack.metaTime ? formatDateAndTime(new Date(gpsTrack.metaTime)) : '—' }}</span></div>
-        <div class="info-row"><span class="info-key">Meta Link</span><span class="info-val">{{ gpsTrack.metaLink ?? '—' }}</span></div>
-        <div class="info-row"><span class="info-key">Garmin Activity ID</span><span class="info-val">{{ gpsTrack.garminActivityId ?? '—' }}</span></div>
+        <div class="info-row">
+          <span class="info-key">GPX Version</span><span class="info-val">{{ gpsTrack.gpxVersion ?? '—' }}</span>
+        </div>
+        <div class="info-row">
+          <span class="info-key">Track Type</span><span class="info-val">{{ gpsTrack.trackType ?? '—' }}</span>
+        </div>
+        <div class="info-row">
+          <span class="info-key">Meta Name</span><span class="info-val">{{ gpsTrack.metaName ?? '—' }}</span>
+        </div>
+        <div class="info-row">
+          <span class="info-key">Meta Description</span
+          ><span class="info-val">{{ gpsTrack.metaDescription ?? '—' }}</span>
+        </div>
+        <div class="info-row">
+          <span class="info-key">Meta Author</span><span class="info-val">{{ gpsTrack.metaAuthor ?? '—' }}</span>
+        </div>
+        <div class="info-row">
+          <span class="info-key">Meta Time</span
+          ><span class="info-val">{{ gpsTrack.metaTime ? formatDateAndTime(new Date(gpsTrack.metaTime)) : '—' }}</span>
+        </div>
+        <div class="info-row">
+          <span class="info-key">Meta Link</span><span class="info-val">{{ gpsTrack.metaLink ?? '—' }}</span>
+        </div>
+        <div class="info-row">
+          <span class="info-key">Garmin Activity ID</span
+          ><span class="info-val">{{ gpsTrack.garminActivityId ?? '—' }}</span>
+        </div>
       </div>
     </details>
 
     <!-- File & Indexer (collapsible) -->
-    <details class="info-drawer" v-if="gpsTrack.indexedFile">
+    <details v-if="gpsTrack.indexedFile" class="info-drawer">
       <summary class="info-drawer__summary">
         <i class="bi bi-hdd"></i> File &amp; Indexer
         <i class="bi bi-chevron-down info-drawer__chevron"></i>
       </summary>
       <div class="info-list">
-        <div class="info-row"><span class="info-key">File ID</span><span class="info-val">{{ gpsTrack.indexedFile.id ?? '—' }}</span></div>
-        <div class="info-row"><span class="info-key">File Name</span><span class="info-val">{{ gpsTrack.indexedFile.name }}</span></div>
-        <div class="info-row"><span class="info-key">Path</span><span class="info-val info-val--mono">{{ gpsTrack.indexedFile.path }}</span></div>
-        <div class="info-row" v-if="gpsTrack.indexedFile.basePath"><span class="info-key">Base Path</span><span class="info-val info-val--mono">{{ gpsTrack.indexedFile.basePath }}</span></div>
-        <div class="info-row" v-if="gpsTrack.indexedFile.fullPath"><span class="info-key">Full Path</span><span class="info-val info-val--mono">{{ gpsTrack.indexedFile.fullPath }}</span></div>
-        <div class="info-row"><span class="info-key">Size</span><span class="info-val">{{ formatBytes(gpsTrack.indexedFile.size) }}</span></div>
-        <div class="info-row"><span class="info-key">Hash</span><span class="info-val info-val--mono">{{ gpsTrack.indexedFile.hash ?? '—' }}</span></div>
-        <div class="info-row" v-if="gpsTrack.indexedFile.lastModifiedDate"><span class="info-key">Last Modified</span><span class="info-val">{{ formatDateAndTime(new Date(gpsTrack.indexedFile.lastModifiedDate)) }}</span></div>
-        <div class="info-row" v-if="gpsTrack.indexedFile.indexerStatus"><span class="info-key">Indexer Status</span><span class="info-val">{{ gpsTrack.indexedFile.indexerStatus }}</span></div>
-        <div class="info-row" v-if="gpsTrack.indexedFile.indexerInvocations != null"><span class="info-key">Indexer Runs</span><span class="info-val">{{ gpsTrack.indexedFile.indexerInvocations }}</span></div>
-        <div class="info-row" v-if="gpsTrack.indexedFile.indexerId"><span class="info-key">Indexer ID</span><span class="info-val info-val--mono">{{ gpsTrack.indexedFile.indexerId }}</span></div>
-        <div class="info-row" v-if="gpsTrack.indexedFile.lastMessage"><span class="info-key">Last Message</span><span class="info-val">{{ gpsTrack.indexedFile.lastMessage }}</span></div>
-        <div class="info-row" v-if="gpsTrack.indexedFile.indexAddedDate"><span class="info-key">Index Added</span><span class="info-val">{{ formatDateAndTime(new Date(gpsTrack.indexedFile.indexAddedDate)) }}</span></div>
-        <div class="info-row" v-if="gpsTrack.indexedFile.indexUpdateDate"><span class="info-key">Index Updated</span><span class="info-val">{{ formatDateAndTime(new Date(gpsTrack.indexedFile.indexUpdateDate)) }}</span></div>
-        <div class="info-row" v-if="gpsTrack.indexedFile.index"><span class="info-key">Index</span><span class="info-val info-val--mono">{{ gpsTrack.indexedFile.index }}</span></div>
-        <div class="info-row"><span class="info-key">Track Created</span><span class="info-val">{{ gpsTrack.createDate ? formatDateAndTime(new Date(gpsTrack.createDate)) : '—' }}</span></div>
-        <div class="info-row"><span class="info-key">Track Updated</span><span class="info-val">{{ gpsTrack.updateDate ? formatDateAndTime(new Date(gpsTrack.updateDate)) : '—' }}</span></div>
+        <div class="info-row">
+          <span class="info-key">File ID</span><span class="info-val">{{ gpsTrack.indexedFile.id ?? '—' }}</span>
+        </div>
+        <div class="info-row">
+          <span class="info-key">File Name</span><span class="info-val">{{ gpsTrack.indexedFile.name }}</span>
+        </div>
+        <div class="info-row">
+          <span class="info-key">Path</span><span class="info-val info-val--mono">{{ gpsTrack.indexedFile.path }}</span>
+        </div>
+        <div v-if="gpsTrack.indexedFile.basePath" class="info-row">
+          <span class="info-key">Base Path</span
+          ><span class="info-val info-val--mono">{{ gpsTrack.indexedFile.basePath }}</span>
+        </div>
+        <div v-if="gpsTrack.indexedFile.fullPath" class="info-row">
+          <span class="info-key">Full Path</span
+          ><span class="info-val info-val--mono">{{ gpsTrack.indexedFile.fullPath }}</span>
+        </div>
+        <div class="info-row">
+          <span class="info-key">Size</span
+          ><span class="info-val">{{ formatOptionalBytes(gpsTrack.indexedFile.size) }}</span>
+        </div>
+        <div class="info-row">
+          <span class="info-key">Hash</span
+          ><span class="info-val info-val--mono">{{ gpsTrack.indexedFile.hash ?? '—' }}</span>
+        </div>
+        <div v-if="gpsTrack.indexedFile.lastModifiedDate" class="info-row">
+          <span class="info-key">Last Modified</span
+          ><span class="info-val">{{ formatDateAndTime(new Date(gpsTrack.indexedFile.lastModifiedDate)) }}</span>
+        </div>
+        <div v-if="gpsTrack.indexedFile.indexerStatus" class="info-row">
+          <span class="info-key">Indexer Status</span
+          ><span class="info-val">{{ gpsTrack.indexedFile.indexerStatus }}</span>
+        </div>
+        <div v-if="gpsTrack.indexedFile.indexerInvocations != null" class="info-row">
+          <span class="info-key">Indexer Runs</span
+          ><span class="info-val">{{ gpsTrack.indexedFile.indexerInvocations }}</span>
+        </div>
+        <div v-if="gpsTrack.indexedFile.indexerId" class="info-row">
+          <span class="info-key">Indexer ID</span
+          ><span class="info-val info-val--mono">{{ gpsTrack.indexedFile.indexerId }}</span>
+        </div>
+        <div v-if="gpsTrack.indexedFile.lastMessage" class="info-row">
+          <span class="info-key">Last Message</span><span class="info-val">{{ gpsTrack.indexedFile.lastMessage }}</span>
+        </div>
+        <div v-if="gpsTrack.indexedFile.indexAddedDate" class="info-row">
+          <span class="info-key">Index Added</span
+          ><span class="info-val">{{ formatDateAndTime(new Date(gpsTrack.indexedFile.indexAddedDate)) }}</span>
+        </div>
+        <div v-if="gpsTrack.indexedFile.indexUpdateDate" class="info-row">
+          <span class="info-key">Index Updated</span
+          ><span class="info-val">{{ formatDateAndTime(new Date(gpsTrack.indexedFile.indexUpdateDate)) }}</span>
+        </div>
+        <div v-if="gpsTrack.indexedFile.index" class="info-row">
+          <span class="info-key">Index</span
+          ><span class="info-val info-val--mono">{{ gpsTrack.indexedFile.index }}</span>
+        </div>
+        <div class="info-row">
+          <span class="info-key">Track Created</span
+          ><span class="info-val">{{
+            gpsTrack.createDate ? formatDateAndTime(new Date(gpsTrack.createDate)) : '—'
+          }}</span>
+        </div>
+        <div class="info-row">
+          <span class="info-key">Track Updated</span
+          ><span class="info-val">{{
+            gpsTrack.updateDate ? formatDateAndTime(new Date(gpsTrack.updateDate)) : '—'
+          }}</span>
+        </div>
       </div>
     </details>
-
   </div>
 </template>
 
-<script lang="ts">
-import {defineComponent} from "vue";
-import {formatBytes, formatDateAndTime, formatDistance, formatNumber, formatDistanceTooltip} from "@/utils/Utils";
+<script setup lang="ts">
+import { computed, inject, ref, watch } from 'vue';
+import { formatBytes, formatDateAndTime, formatDistance, formatDistanceTooltip } from '@/utils/Utils';
 import ActivityTypeBadge from '@/components/ui/ActivityTypeBadge.vue';
+import { updateTrackStatisticsExclusion } from '@/utils/ServiceHelper';
+import {
+  StatisticsExclusionUpdateRequestHighlightExclusionReasonEnum as ExclusionReasonEnum,
+  type GpsTrack,
+  type StatisticsExclusionUpdateRequest,
+  type StatisticsExclusionUpdateRequestHighlightExclusionReasonEnum,
+  type StatisticsExclusionUpdateRequestStatisticsExclusionReasonEnum,
+} from 'x8ing-mtl-api-typescript-fetch/dist/esm/models/index';
 
-export default defineComponent({
+type ToastService = {
+  add: (message: { severity: string; summary: string; detail?: string; life?: number }) => void;
+};
+type ExclusionReason = StatisticsExclusionUpdateRequestHighlightExclusionReasonEnum;
+type ExclusionReasonOption = {
+  label: string;
+  value: ExclusionReason | null;
+};
+
+const exclusionReasonOptions: ExclusionReasonOption[] = [
+  { label: 'Included', value: null },
+  { label: 'GPS noise', value: ExclusionReasonEnum.GpsNoise },
+  { label: 'Wrong activity', value: ExclusionReasonEnum.WrongActivity },
+  { label: 'Import artifact', value: ExclusionReasonEnum.ImportArtifact },
+  { label: 'Other', value: ExclusionReasonEnum.Other },
+];
+const exclusionReasonValues = new Set(exclusionReasonOptions.map((option) => option.value).filter(Boolean));
+
+defineOptions({
   name: 'TrackDetailQuality',
-  components: { ActivityTypeBadge },
-  props: {
-    gpsTrack: {type: Object, default: null},
-  },
-  emits: ['navigate-track'],
-  computed: {
-    loadStatusClass(): string {
-      switch (this.gpsTrack?.loadStatus) {
-        case 'SUCCESS':    return 'status-badge--success';
-        case 'FAILED':     return 'status-badge--error';
-        case 'EMPTY_FILE': return 'status-badge--warning';
-        default:           return 'status-badge--neutral';
-      }
-    },
-    loadStatusIcon(): string {
-      switch (this.gpsTrack?.loadStatus) {
-        case 'SUCCESS':    return 'bi bi-check-circle-fill';
-        case 'FAILED':     return 'bi bi-x-circle-fill';
-        case 'EMPTY_FILE': return 'bi bi-exclamation-circle-fill';
-        default:           return 'bi bi-question-circle';
-      }
-    },
-    duplicateStatusClass(): string {
-      switch (this.gpsTrack?.duplicateStatus) {
-        case 'UNIQUE':           return 'status-badge--success';
-        case 'DUPLICATE':        return 'status-badge--warning';
-        case 'NOT_CHECKED_YET':  return 'status-badge--neutral';
-        case 'EXCLUDED':         return 'status-badge--neutral';
-        default:                 return 'status-badge--neutral';
-      }
-    },
-    duplicateStatusIcon(): string {
-      switch (this.gpsTrack?.duplicateStatus) {
-        case 'UNIQUE':          return 'bi bi-check2';
-        case 'DUPLICATE':       return 'bi bi-files';
-        case 'NOT_CHECKED_YET': return 'bi bi-hourglass-split';
-        case 'EXCLUDED':        return 'bi bi-slash-circle';
-        default:                return 'bi bi-question-circle';
-      }
-    },
-    activitySourceClass(): string {
-      switch (this.gpsTrack?.activityTypeSource) {
-        case 'USER_SET':   return 'source-badge--user';
-        case 'AUTO_GUESS': return 'source-badge--auto';
-        case 'FAILED':     return 'source-badge--failed';
-        default:           return '';
-      }
-    },
-    hasGeo(): boolean {
-      return this.gpsTrack?.centerLat != null || this.gpsTrack?.bboxMinLat != null || this.gpsTrack?.utmZone != null;
-    },
-  },
-  methods: {
-    formatDistance,
-    formatBytes,
-    formatDateAndTime,
-    formatNumber,
-    formatDistanceTooltip,
-    formatCoord(v: number | null | undefined): string {
-      return v != null ? v.toFixed(6) : '—';
-    },
-  },
 });
+
+const props = withDefaults(
+  defineProps<{
+    gpsTrack?: GpsTrack | null;
+  }>(),
+  {
+    gpsTrack: null,
+  }
+);
+
+const emit = defineEmits<{
+  'navigate-track': [trackId: number];
+  'track-updated': [track: GpsTrack];
+}>();
+
+const gpsTrack = computed(() => props.gpsTrack);
+const toast = inject<ToastService>('toast', { add: () => undefined });
+const highlightReason = ref<ExclusionReason | null>(null);
+const statisticsReason = ref<ExclusionReason | null>(null);
+const savingCuration = ref(false);
+let curationSaveSerial = 0;
+
+const hasAnyExclusion = computed(() => highlightReason.value != null || statisticsReason.value != null);
+const curationNote = computed(() => {
+  if (statisticsReason.value != null) return 'Excluded from statistics and highlights.';
+  if (highlightReason.value != null) return 'Excluded from highlights only.';
+  return '';
+});
+
+watch(
+  () => [props.gpsTrack?.id, props.gpsTrack?.highlightExclusionReason, props.gpsTrack?.statisticsExclusionReason],
+  () => {
+    highlightReason.value = normalizeExclusionReason(props.gpsTrack?.highlightExclusionReason);
+    statisticsReason.value = normalizeExclusionReason(props.gpsTrack?.statisticsExclusionReason);
+  },
+  { immediate: true }
+);
+
+const loadStatusClass = computed(() => {
+  switch (props.gpsTrack?.loadStatus) {
+    case 'SUCCESS':
+      return 'status-badge--success';
+    case 'FAILED':
+      return 'status-badge--error';
+    case 'EMPTY_FILE':
+      return 'status-badge--warning';
+    default:
+      return 'status-badge--neutral';
+  }
+});
+
+const loadStatusIcon = computed(() => {
+  switch (props.gpsTrack?.loadStatus) {
+    case 'SUCCESS':
+      return 'bi bi-check-circle-fill';
+    case 'FAILED':
+      return 'bi bi-x-circle-fill';
+    case 'EMPTY_FILE':
+      return 'bi bi-exclamation-circle-fill';
+    default:
+      return 'bi bi-question-circle';
+  }
+});
+
+const duplicateStatusClass = computed(() => {
+  switch (props.gpsTrack?.duplicateStatus) {
+    case 'UNIQUE':
+      return 'status-badge--success';
+    case 'DUPLICATE':
+      return 'status-badge--warning';
+    case 'NOT_CHECKED_YET':
+      return 'status-badge--neutral';
+    case 'EXCLUDED':
+      return 'status-badge--neutral';
+    default:
+      return 'status-badge--neutral';
+  }
+});
+
+const duplicateStatusIcon = computed(() => {
+  switch (props.gpsTrack?.duplicateStatus) {
+    case 'UNIQUE':
+      return 'bi bi-check2';
+    case 'DUPLICATE':
+      return 'bi bi-files';
+    case 'NOT_CHECKED_YET':
+      return 'bi bi-hourglass-split';
+    case 'EXCLUDED':
+      return 'bi bi-slash-circle';
+    default:
+      return 'bi bi-question-circle';
+  }
+});
+
+const activitySourceClass = computed(() => {
+  switch (props.gpsTrack?.activityTypeSource) {
+    case 'USER_SET':
+      return 'source-badge--user';
+    case 'AUTO_GUESS':
+      return 'source-badge--auto';
+    case 'FAILED':
+      return 'source-badge--failed';
+    default:
+      return '';
+  }
+});
+
+const hasGeo = computed(
+  () => props.gpsTrack?.centerLat != null || props.gpsTrack?.bboxMinLat != null || props.gpsTrack?.utmZone != null
+);
+
+function navigateTrack(trackId: number | null | undefined) {
+  if (trackId != null) {
+    emit('navigate-track', trackId);
+  }
+}
+
+async function onHighlightReasonChange(value: ExclusionReason | null) {
+  highlightReason.value = normalizeExclusionReason(value);
+  await saveCuration();
+}
+
+async function onStatisticsReasonChange(value: ExclusionReason | null) {
+  statisticsReason.value = normalizeExclusionReason(value);
+  await saveCuration();
+}
+
+async function saveCuration() {
+  const trackId = props.gpsTrack?.id;
+  if (trackId == null) return;
+
+  const saveSerial = ++curationSaveSerial;
+  savingCuration.value = true;
+  const request: StatisticsExclusionUpdateRequest = {
+    highlightExclusionReason: highlightReason.value ?? undefined,
+    statisticsExclusionReason: (statisticsReason.value ?? undefined) as
+      | StatisticsExclusionUpdateRequestStatisticsExclusionReasonEnum
+      | undefined,
+  };
+
+  try {
+    const savedTrack = await updateTrackStatisticsExclusion(trackId, request);
+    if (saveSerial !== curationSaveSerial) return;
+    emit('track-updated', savedTrack);
+    toast.add({ severity: 'success', summary: 'Statistics curation saved', life: 1800 });
+  } catch {
+    if (saveSerial !== curationSaveSerial) return;
+    highlightReason.value = normalizeExclusionReason(props.gpsTrack?.highlightExclusionReason);
+    statisticsReason.value = normalizeExclusionReason(props.gpsTrack?.statisticsExclusionReason);
+    toast.add({
+      severity: 'error',
+      summary: 'Save failed',
+      detail: 'Could not update statistics curation.',
+      life: 4000,
+    });
+  } finally {
+    if (saveSerial === curationSaveSerial) savingCuration.value = false;
+  }
+}
+
+function normalizeExclusionReason(value: unknown): ExclusionReason | null {
+  return typeof value === 'string' && exclusionReasonValues.has(value as ExclusionReason)
+    ? (value as ExclusionReason)
+    : null;
+}
+
+function formatCoord(v: number | null | undefined): string {
+  return v != null ? v.toFixed(6) : '—';
+}
+
+function formatOptionalDistance(v: number | null | undefined): string {
+  return v == null ? '—' : (formatDistance(v) ?? '—');
+}
+
+function formatOptionalDistanceTooltip(v: number | null | undefined): string {
+  return v == null ? '—' : formatDistanceTooltip(v);
+}
+
+function formatOptionalBytes(v: number | null | undefined): string {
+  return v == null ? '—' : formatBytes(v);
+}
 </script>
 
 <style scoped>
@@ -251,7 +525,9 @@ export default defineComponent({
   border: 1px solid transparent;
 }
 
-.status-badge i { font-size: var(--text-xs-size); }
+.status-badge i {
+  font-size: var(--text-xs-size);
+}
 
 .status-badge--success {
   background: var(--success-bg);
@@ -286,7 +562,10 @@ export default defineComponent({
   color: var(--text-faint);
   padding: 0.75rem 1rem 0.35rem;
 }
-.section-label i { font-size: var(--text-xs-size); opacity: 0.7; }
+.section-label i {
+  font-size: var(--text-xs-size);
+  opacity: 0.7;
+}
 
 /* ── Metrics Grid ── */
 .metrics-grid {
@@ -327,6 +606,49 @@ export default defineComponent({
   background: var(--accent-bg);
 }
 
+/* ── Statistics Curation ── */
+.curation-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin: 0 0.5rem 0.35rem;
+  padding: 0.5rem;
+  border: 1px solid var(--border-default);
+  border-radius: 8px;
+}
+
+.curation-row {
+  display: grid;
+  grid-template-columns: minmax(7rem, 0.45fr) minmax(0, 1fr);
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.curation-row__label {
+  color: var(--text-muted);
+  font-size: var(--text-xs-size);
+  font-weight: 650;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.curation-select {
+  width: 100%;
+  min-width: 0;
+}
+
+.curation-note {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.4rem 0.5rem;
+  border-radius: 6px;
+  background: var(--warning-bg);
+  color: var(--warning-text);
+  font-size: var(--text-xs-size);
+}
+
 /* ── Duplicate Info ── */
 .duplicate-info {
   display: flex;
@@ -357,9 +679,18 @@ export default defineComponent({
   padding: 0.15rem 0.5rem;
   border-radius: 4px;
 }
-.source-badge--user   { background: var(--success-bg);  color: var(--success); }
-.source-badge--auto   { background: var(--accent-bg);   color: var(--accent-text); }
-.source-badge--failed { background: var(--error-bg);    color: var(--error); }
+.source-badge--user {
+  background: var(--success-bg);
+  color: var(--success);
+}
+.source-badge--auto {
+  background: var(--accent-bg);
+  color: var(--accent-text);
+}
+.source-badge--failed {
+  background: var(--error-bg);
+  color: var(--error);
+}
 
 /* ── Info List ── */
 .info-list {
@@ -444,9 +775,16 @@ export default defineComponent({
   background: var(--surface-elevated);
 }
 
-.info-drawer__summary::-webkit-details-marker { display: none; }
-.info-drawer__summary i:first-child { font-size: var(--text-sm-size); }
-.info-drawer__summary .info-drawer__chevron { margin-left: auto; font-size: var(--text-xs-size); }
+.info-drawer__summary::-webkit-details-marker {
+  display: none;
+}
+.info-drawer__summary i:first-child {
+  font-size: var(--text-sm-size);
+}
+.info-drawer__summary .info-drawer__chevron {
+  margin-left: auto;
+  font-size: var(--text-xs-size);
+}
 
 /* ── Load Messages ── */
 .load-messages {
@@ -468,8 +806,12 @@ export default defineComponent({
   cursor: pointer;
   text-decoration: none;
   font-weight: 600;
+  -webkit-user-select: text;
+  user-select: text;
 }
-.track-link:hover { text-decoration: underline; }
+.track-link:hover {
+  text-decoration: underline;
+}
 
 /* ── Mobile ── */
 @media (max-width: 480px) {
@@ -482,4 +824,3 @@ export default defineComponent({
   }
 }
 </style>
-

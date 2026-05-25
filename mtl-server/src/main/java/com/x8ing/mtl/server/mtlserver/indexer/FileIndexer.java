@@ -1,5 +1,6 @@
 package com.x8ing.mtl.server.mtlserver.indexer;
 
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.x8ing.mtl.server.mtlserver.db.repository.indexer.IndexerRepository;
 import com.x8ing.mtl.server.mtlserver.indexer.event.FileIndexerObserver;
 import org.springframework.transaction.PlatformTransactionManager;
@@ -8,6 +9,9 @@ import java.nio.file.Path;
 import java.nio.file.PathMatcher;
 import java.util.List;
 
+@JsonPropertyOrder({
+        "txManager"
+})
 public class FileIndexer {
 
     private final PlatformTransactionManager txManager; // optional

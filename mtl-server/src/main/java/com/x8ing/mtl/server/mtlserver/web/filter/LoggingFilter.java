@@ -1,5 +1,6 @@
 package com.x8ing.mtl.server.mtlserver.web.filter;
 
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.x8ing.mtl.server.mtlserver.db.repository.logs.WebRequestLogService;
 import com.x8ing.mtl.server.mtlserver.web.security.JwtUtil;
 import jakarta.servlet.FilterChain;
@@ -18,10 +19,14 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
 
 @Component
+@JsonPropertyOrder({
+        "webRequestLogService"
+})
 public class LoggingFilter extends OncePerRequestFilter {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(LoggingFilter.class);
     private static final String ANONYMOUS_USER = "n/a";
+    private static final String REDACTED_QUERY_STRING = "<redacted>";
 
     private final WebRequestLogService webRequestLogService;
 
@@ -66,7 +71,7 @@ public class LoggingFilter extends OncePerRequestFilter {
                 webRequestLogService.saveLog(
                         request.getMethod(),
                         uri,
-                        request.getQueryString(),
+                        sanitizeQueryString(request.getQueryString()),
                         response.getStatus(),
                         durationMs,
                         userInfo,
@@ -90,5 +95,12 @@ public class LoggingFilter extends OncePerRequestFilter {
             return realIp.trim();
         }
         return request.getRemoteAddr();
+    }
+
+    private String sanitizeQueryString(String queryString) {
+        if (queryString == null || queryString.isBlank()) {
+            return queryString;
+        }
+        return REDACTED_QUERY_STRING;
     }
 }

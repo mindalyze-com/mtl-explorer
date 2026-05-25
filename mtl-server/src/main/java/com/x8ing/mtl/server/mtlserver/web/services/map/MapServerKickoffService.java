@@ -1,5 +1,6 @@
 package com.x8ing.mtl.server.mtlserver.web.services.map;
 
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
@@ -22,6 +23,10 @@ import org.springframework.web.client.RestClient;
  */
 @Slf4j
 @Service
+@JsonPropertyOrder({
+        "properties",
+        "upstreamResolver"
+})
 public class MapServerKickoffService {
 
     private final MapServerProperties properties;

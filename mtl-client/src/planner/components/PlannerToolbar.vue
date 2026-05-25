@@ -1,7 +1,7 @@
 <template>
   <div class="planner-toolbar">
     <!-- Custom profile dropdown with per-category icons -->
-    <div class="planner-toolbar__dropdown" ref="dropdownEl">
+    <div ref="dropdownEl" class="planner-toolbar__dropdown">
       <button
         type="button"
         class="planner-toolbar__profile-btn"
@@ -50,7 +50,9 @@ const dropdownEl = ref<HTMLElement | null>(null);
 
 watch(
   () => props.profile,
-  (p) => { selectedProfile.value = p; }
+  (p) => {
+    selectedProfile.value = p;
+  }
 );
 
 const PROFILE_ICONS: Record<string, string> = {
@@ -119,7 +121,9 @@ onUnmounted(() => document.removeEventListener('click', onDocClick, true));
   color: var(--accent-text);
   text-transform: capitalize;
   white-space: nowrap;
-  transition: background 0.12s, border-color 0.12s;
+  transition:
+    background 0.12s,
+    border-color 0.12s;
 }
 .planner-toolbar__profile-btn:hover {
   background: var(--accent-subtle);

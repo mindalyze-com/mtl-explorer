@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.10.xsd">
+
+    <changeSet id="20260517_2_defer_track_freshness_triggers" author="patrick.heusser">
+        <comment>
+            Avoid import-worker lock contention on the shared data_freshness rows.
+            gps_track is inserted near the start of a GPX import to obtain the ID;
+            the old immediate trigger updated data_freshness('tracks') at that point
+            and held the row lock until the whole import transaction committed.
+            Deferring the trigger preserves rollback semantics while moving the
+            freshness-row update to transaction commit.
+        </comment>
+
+        <sql>DROP TRIGGER IF EXISTS gps_track_data_freshness ON gps_track</sql>
+        <sql splitStatements="false"><![CDATA[
+CREATE CONSTRAINT TRIGGER gps_track_data_freshness
+AFTER INSERT OR UPDATE OR DELETE ON gps_track
+DEFERRABLE INITIALLY DEFERRED
+FOR EACH ROW EXECUTE FUNCTION bump_data_freshness_imported_gps_track_trigger()
+        ]]></sql>
+
+        <sql>DROP TRIGGER IF EXISTS gps_track_data_data_freshness ON gps_track_data</sql>
+        <sql splitStatements="false"><![CDATA[
+CREATE CONSTRAINT TRIGGER gps_track_data_data_freshness
+AFTER INSERT OR UPDATE OR DELETE ON gps_track_data
+DEFERRABLE INITIALLY DEFERRED
+FOR EACH ROW EXECUTE FUNCTION bump_data_freshness_imported_gps_track_data_trigger()
+        ]]></sql>
+    </changeSet>
+
+</databaseChangeLog>

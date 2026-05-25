@@ -1,82 +1,86 @@
-# MyTrailLog — Feature Gap Analysis
+# MTL Explorer - Feature Gap Analysis
 
-*Generated 30 March 2026 — based on comprehensive scan of mtl-client, mtl-server, and API schema*
+Updated 23 May 2026 after reviewing the current feature overview and the older
+feature-analysis notes.
 
-## What's Already There (strong foundation)
+MTL Explorer already has a strong base: self-hosted import, full archive map,
+filters, heatmap, local media, track details, energy/power estimates,
+Exploration Score, Segment Analyzer, Virtual Race, statistics, Garmin import,
+admin tooling, BRouter planning, saved plans, GPX upload/export workflows,
+offline-capable client cache, and local map options.
 
-Map with 6 themes + Swiss overlays, track display at 3 precisions, elevation/speed/power charts with cross-chart sync, photo clustering, dark mode, PWA offline, filters, animation/playback, measurement tool, virtual race (early), statistics by time period, related tracks, duplicate detection, Garmin import, energy calculation, track quality view.
+The best missing additions are not generic fitness-app parity items. The
+highest-value direction is to use the existing archive, exploration, planner,
+media, and statistics data to create more personal recurring value.
 
----
+## Highest Impact
 
-## Missing / Improvement Opportunities
+| Rank | Addition | What's Missing | Why Users Would Like It |
+|---:|---|---|---|
+| 1 | New-ground route suggestions | Suggest routes from a start point that maximize unexplored ground, using Exploration Score history, BRouter, and waymarked trail context. | This is highly aligned with MTL Explorer's unique archive and exploration model. |
+| 2 | Personal records and milestones | Automatic records such as longest ride, biggest climb, fastest 5 km/10 km, best segment, most new ground, best month, and first visit to an area. | Gives users reasons to revisit old data and makes the archive feel alive. |
+| 3 | Year and season recaps | Dedicated yearly/seasonal summary with totals, maps, PRs, new-ground highlights, activity mix, favorite areas, and media. | Turns existing statistics into a memorable review users will actually open and share as screenshots. |
+| 4 | FIT sensor charts | Heart rate, cadence, temperature, device power, HR zones, and sensor availability indicators where source files contain the data. | Garmin/FIT users expect this; it makes imported device data feel complete. |
+| 5 | Track cleanup editor | Trim start/end, crop bad GPS sections, split, merge, correct activity type, and hide or mark bad ranges. | Historical archives often contain messy recordings; cleanup improves trust in all derived stats. |
+| 6 | Automatic splits and laps | Per-km/per-mile tables with pace, elevation, HR/power where available, stops, and comparison to previous splits. | Standard in running/cycling tools and useful for hikes, climbs, and repeated routes. |
+| 7 | Exploration goals | Goals such as "new ground this year", "explore this region", "visit 100 km of new trails", or "reduce unexplored gaps near home". | Builds directly on Exploration Score instead of copying generic distance goals. |
+| 8 | Media timeline in track detail | Place photos and videos on the track detail timeline, elevation chart, and map position for the selected activity. | Makes MTL Explorer feel like a private outdoor memory archive, not only an analytics tool. |
+| 9 | Gear and equipment tracking | Assign shoes, bikes, tires, chains, skis, or other equipment to activities; track distance, time, service, and retirement thresholds. | Practical for runners and cyclists, and creates recurring maintenance value. |
+| 10 | Tags and collections | Free-form labels and collections such as holiday, commute, with kids, race, favorite, project, or trip. | Helps users search by memory and intent, not only by numeric filters. |
 
-### TIER 1 — High Impact (core features users expect)
+## High-Medium Impact
 
-| # | Feature | What's Missing | Impact |
-|---|---------|---------------|--------|
-| **1** | **Live GPS recording** | `GpsLocate` component only watches position — no track recording, pause/resume, or saving a new track from the phone. Strava/Garmin's core feature. | ⭐⭐⭐⭐⭐ |
-| **2** | **Route planning / navigation** | No way to plan a route before going out — draw on map, get turn-by-turn cues, export GPX. Komoot's killer feature. | ⭐⭐⭐⭐⭐ |
-| **3** | **Personal records / segment leaderboards** | No automatic detection of PRs (fastest 5k, biggest climb, longest ride). No segment-based comparison. Strava's most engaging feature. | ⭐⭐⭐⭐⭐ |
-| **4** | **Activity type-aware UI** | 13+ activity types exist in the backend, but the client doesn't adapt icons, metrics, or charts per type (e.g., show cadence for running, show laps for swimming). | ⭐⭐⭐⭐ |
-| **5** | **Heart rate / cadence / temperature charts** | Charts cover elevation, speed, distance, acceleration, energy, power — but no HR, cadence, or temperature graphs even though Garmin FIT files contain this data. | ⭐⭐⭐⭐ |
-| **6** | **Training load / fitness trend** | No weekly training summary, fitness/fatigue model (CTL/ATL/TSB), or training load tracking. Key for serious athletes. | ⭐⭐⭐⭐ |
-| **7** | **Search & sort tracks** | Track browser has search with highlighting, but no sort by distance/duration/elevation/date, no advanced search (by area, by route similarity). | ⭐⭐⭐⭐ |
+| Rank | Addition | What's Missing | Why Users Would Like It |
+|---:|---|---|---|
+| 11 | Private share links | Tokenized links for a track, plan, route recap, or selected media, with optional expiry. | Useful without turning MTL Explorer into a social network. |
+| 12 | Weather and daylight context | Historical temperature, rain, snow, wind, daylight, sunrise/sunset, and maybe weather icons on tracks. | Explains why an activity felt hard and enriches old memories. |
+| 13 | Surface and trail-type analysis | Road, gravel, trail, singletrack, paved/unpaved, MTB/hiking route network overlap, and surface percentages from OSM/route data. | Strong for planning, cycling, running, hiking, and route comparison. |
+| 14 | Side-by-side activity comparison | Static comparison of two activities or segment attempts: route, elevation, pace, power, stops, HR, photos, and deltas. | Complements Virtual Race with a calmer analysis view. |
+| 15 | Smart archive search | Guided search/query builder for questions such as "hikes near Lucerne in July with more than 1000 m ascent and photos". | Makes the existing filter power easier to use for non-SQL users. |
+| 16 | Richer personal heatmap controls | More controls by activity, date range, season, time of day, intensity, and selected region. | Heatmap exists, but richer controls would make it a discovery tool rather than a simple layer. |
+| 17 | Dashboard and activity timeline | Recent activities, weekly summary, import status, exploration highlights, goals, gear alerts, and notable records. | Better recurring landing screen once the user has an established archive. |
+| 18 | Route cue sheet and route card | Printable or exportable route summary with distance, ascent, profile, waypoints, route notes, and caution/disclaimer text. | Useful for planning while staying honest that MTL Explorer is not safety-critical navigation. |
+| 19 | Turn cues for planned routes | Turn-by-turn or cue-point generation for planned routes and Garmin/device export. | Improves the planner-to-device workflow, but requires careful routing metadata handling. |
+| 20 | Fitness/fatigue trends | CTL/ATL/TSB-like views using existing training load where available, with clear caveats around estimates. | Useful for training-oriented users, but should be framed conservatively. |
 
-### TIER 2 — Medium-High Impact (differentiation & delight)
+## Medium Impact Or Later
 
-| # | Feature | What's Missing | Impact |
-|---|---------|---------------|--------|
-| **8** | **Heatmap layer** | Overlay all tracks as a heatmap to see where you ride/hike most. Very popular in Strava. All track GeoJSON is already available — just need a heatmap render mode. | ⭐⭐⭐⭐ |
-| **9** | **Yearly summary / wrapped** | Strava Wrapped/Year in Sport — total stats, highlights, maps of all activities, personal records for the year. Stats by time period exist, but no dedicated yearly showcase. | ⭐⭐⭐⭐ |
-| **10** | **Track editing** | No way to crop, split, merge, or trim tracks. No manual GPS point correction. Useful for cleaning up bad recordings. | ⭐⭐⭐⭐ |
-| **11** | **Export functionality** | No GPX/KML/TCX export from the client. Users can import but not get data back out. | ⭐⭐⭐⭐ |
-| **12** | **Elevation profile on route hover** | When hovering over a track on the map, show a mini elevation profile tooltip. Data exists; it's a UX enhancement. | ⭐⭐⭐ |
-| **13** | **Weather overlay / conditions** | No weather data associated with tracks (temperature, wind, precipitation). Could retroactively fetch from weather APIs. | ⭐⭐⭐ |
-| **14** | **Goal setting & progress** | No weekly/monthly/yearly goals (e.g., "run 100km this month") with progress tracking. Garmin/Strava staple. | ⭐⭐⭐ |
-| **15** | **Multi-sport / transition support** | No triathlon or multi-sport activity view with transitions between segments. | ⭐⭐⭐ |
+| Rank | Addition | What's Missing | Why Users Would Like It |
+|---:|---|---|---|
+| 21 | Offline mobile recording | PWA track recording with pause/resume, local save, and later sync/import into the archive. | Valuable, but it shifts MTL Explorer toward being a recorder rather than primarily an archive. |
+| 22 | External platform sync | Optional imports from Strava, Komoot, Suunto, Apple Health, or other export APIs. | Good for consolidation, but API policy, OAuth, and maintenance cost are real. |
+| 23 | Multi-user or household mode | Separate users, permissions, shared plans, shared media, and per-user statistics. | Useful for families or clubs, but it touches auth, privacy, filtering, and statistics deeply. |
+| 24 | Notifications | Import finished, weekly recap ready, goal reached, gear service due, or exploration milestone reached. | More useful after goals, gear, and recaps exist. |
+| 25 | Accessibility and keyboard shortcuts | Keyboard navigation, focus management, ARIA labels, and shortcuts for common flows. | Quality improvement that helps power users and accessibility at the same time. |
+| 26 | 3D terrain view | Terrain exaggeration and 3D map mode where DEM data is available. | Good for demos and mountain routes, but less core than archive intelligence. |
+| 27 | Internationalization | Translation infrastructure, locale selection, and maintained UI strings. | Helps adoption outside English-speaking users, but adds ongoing maintenance. |
+| 28 | Public profile or social feed | Public activity feed, comments, following, likes, and profiles. | Low fit with the private self-hosted positioning; private share links should come first. |
 
-### TIER 3 — Medium Impact (polish & engagement)
+## Quick Wins
 
-| # | Feature | What's Missing | Impact |
-|---|---------|---------------|--------|
-| **16** | **Dashboard / landing page** | Home goes straight to map. No personalized dashboard showing recent activities, weekly summary, upcoming goals, weather. | ⭐⭐⭐ |
-| **17** | **Activity feed / timeline** | No chronological activity feed with thumbnails, key stats, and maps — the core Strava home experience. | ⭐⭐⭐ |
-| **18** | **Lap / split analysis** | No automatic km/mile split table (pace per km, elevation per km). Standard in running apps. | ⭐⭐⭐ |
-| **19** | **Track comparison side-by-side** | Virtual race does multi-track replay, but no static side-by-side comparison of two activities (same route, different days). | ⭐⭐⭐ |
-| **20** | **Map 3D / terrain view** | MapLibre GL supports 3D terrain rendering with `terrain` source. DEM tiles are already referenced for hillshading — just not enabled for 3D. | ⭐⭐⭐ |
-| **21** | **Internationalization (i18n)** | All UI is English-only, dates are Swiss-locale (de-CH). No language selector or translated strings. | ⭐⭐⭐ |
-| **22** | **Notifications / alerts** | No push notifications for new imports, weekly summaries, or goal completions. PWA supports this. | ⭐⭐⭐ |
-| **23** | **Photo timeline in track detail** | Media is shown as map clusters, but not integrated into the track detail timeline (show photos at their timestamp position along the elevation chart). | ⭐⭐⭐ |
+These look like the best effort-to-value candidates if the goal is a visible
+user improvement without a major architecture shift.
 
-### TIER 4 — Lower Impact (nice-to-have, forward-looking)
+1. Automatic km/mile splits table.
+2. Media timeline inside track detail.
+3. Keyboard shortcuts for detail navigation, close, replay, and planner actions.
+4. Basic tags/favorites on tracks.
+5. Personal record cards from already-computed metrics.
+6. Year recap page using existing statistics and map data.
+7. Track hover preview with mini elevation/profile summary.
+8. Richer heatmap controls over the existing heatmap layer.
 
-| # | Feature | What's Missing | Impact |
-|---|---------|---------------|--------|
-| **24** | **Social / sharing** | No share link, public profile, or social features. Even for personal use, shareable track links are useful. | ⭐⭐ |
-| **25** | **Gear / equipment tracking** | No way to assign shoes, bikes, etc. to activities and track total mileage per gear item (retire shoes at 800km). | ⭐⭐ |
-| **26** | **Tags / labels on tracks** | Beyond filters, no free-form tagging (e.g., "with kids", "race day", "rainy"). | ⭐⭐ |
-| **27** | **GPX import from client** | Import is backend-only (Garmin export / file watcher). No drag-and-drop GPX upload from the browser. | ⭐⭐ |
-| **28** | **Keyboard shortcuts** | No keyboard navigation (J/K for prev/next track, ESC to close panels, Space for play/pause animation). | ⭐⭐ |
-| **29** | **Strava / Komoot API sync** | Only Garmin import. No Strava or Komoot OAuth connection for automatic sync. | ⭐⭐ |
-| **30** | **Offline track recording** | PWA could record tracks offline and sync when back online. | ⭐⭐ |
-| **31** | **Surface type detection** | No trail vs road vs gravel classification. Could be inferred from OSM data along the track. | ⭐ |
-| **32** | **Accessibility (a11y)** | No ARIA labels, keyboard focus management, or screen reader support observed. | ⭐ |
+## Stale Items From Older Gap Notes
 
----
+The older 30 March 2026 list included several items that are now documented as
+present or partly present in the current feature overview. Treat these as
+implemented, partially implemented, or no longer good headline gaps unless code
+inspection proves otherwise:
 
-## Quick Wins (low effort, noticeable improvement)
-
-These can be implemented relatively quickly given existing infrastructure:
-
-1. **Heatmap layer** (#8) — MapLibre has `heatmap` layer type; all track coordinates are already loaded
-2. **Export GPX** (#11) — Track data is available; just need a download button + GPX XML builder
-3. **Km splits table** (#18) — Data points have `distanceSinceStartInMeters`; just bucket by km
-4. **3D terrain** (#20) — Terrarium DEM tiles are already referenced for hillshading; MapLibre `terrain` enables 3D
-5. **Photo timeline integration** (#23) — Media has timestamps, charts have `syncClick`; connect them
-6. **Keyboard shortcuts** (#28) — Small event listeners on existing actions
-
----
-
-## Biggest Impact for Effort
-
-The combination of **Personal Records** (#3) + **Heatmap** (#8) + **Yearly Summary** (#9) would make the app feel dramatically more engaging without requiring massive architectural changes — all the underlying data already exists.
+- Route planning with BRouter, saved plans, live route geometry, and GPX export.
+- Heatmap layer.
+- Admin GPX upload.
+- Track browser with search, sort, pagination, shape previews, and detail navigation.
+- Training-load-like statistics and energy/power trends.
+- Planner request retry/abort/status handling.
+- Local location search.

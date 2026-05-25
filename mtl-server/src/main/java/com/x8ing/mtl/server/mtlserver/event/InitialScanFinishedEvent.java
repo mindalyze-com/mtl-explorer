@@ -1,5 +1,6 @@
 package com.x8ing.mtl.server.mtlserver.event;
 
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import org.springframework.context.ApplicationEvent;
 
 /**
@@ -7,6 +8,11 @@ import org.springframework.context.ApplicationEvent;
  * (including reconciliation of removed files). Consumed e.g. by the Garmin exporter to know
  * when it is safe to start its processing (all existing files have been scheduled / processed at least once).
  */
+@JsonPropertyOrder({
+        "index",
+        "filesScanned",
+        "scanDurationMs"
+})
 public class InitialScanFinishedEvent extends ApplicationEvent {
 
     private final String index;            // logical index name (e.g. "GPS")

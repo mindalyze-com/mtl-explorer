@@ -1,5 +1,6 @@
 package com.x8ing.mtl.server.mtlserver.db.entity.gps;
 
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.x8ing.mtl.server.mtlserver.web.global.LineStringSerializer;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
@@ -21,6 +22,16 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
+@JsonPropertyOrder({
+        "id",
+        "gpsTrackId",
+        "createDate",
+        "trackType",
+        "precisionInMeter",
+        "numberOfPhysicalPoints",
+        "track",
+        "gpsTrackEvents"
+})
 public class GpsTrackData {
 
     /**
@@ -51,16 +62,7 @@ public class GpsTrackData {
          * series charts — on straight sections DP drops most points so the
          * surviving samples are no longer temporally uniform.
          */
-        SIMPLIFIED_SHAPE,
-        /**
-         * Time-uniform downsampling of {@link #RAW_OUTLIER_CLEANED} capped at
-         * {@link #maxPoints}. All per-point metrics (elevation-gain rate,
-         * speed, slope, energy, …) are COPIED verbatim from the authoritative
-         * RAW_OUTLIER_CLEANED series; only between-point deltas are
-         * recomputed between surviving point pairs. Used for charts, graphs
-         * and the per-point track-detail tooltip.
-         */
-        SIMPLIFIED_FIXED_POINTS
+        SIMPLIFIED_SHAPE
     }
 
     public enum TRACK_DETAILS_STATUS {
@@ -85,11 +87,13 @@ public class GpsTrackData {
     private BigDecimal precisionInMeter;
 
     /**
-     * Point-budget cap for {@link TRACK_TYPE#SIMPLIFIED_FIXED_POINTS} variants
-     * (e.g. 750 or 1500). Null for every other variant.
+     * Number of physical vertices in this variant's {@link #track} geometry,
+     * maintained by this entity before insert/update.
      */
-    @Column(name = "max_points")
-    private Integer maxPoints;
+    @Column(name = "number_of_physical_points")
+    @Schema(accessMode = Schema.AccessMode.READ_ONLY,
+            description = "Number of physical vertices in this track-data variant's geometry.")
+    private Integer numberOfPhysicalPoints;
 
     //@Type(type = "org.hibernate.spatial.GeometryType")
     @JsonSerialize(using = LineStringSerializer.class)
@@ -100,5 +104,11 @@ public class GpsTrackData {
     @Builder.Default
     @Transient
     private List<GpsTrackEvent> gpsTrackEvents = new ArrayList<>();
+
+    @PrePersist
+    @PreUpdate
+    void updateNumberOfPhysicalPoints() {
+        numberOfPhysicalPoints = track == null ? null : track.getNumPoints();
+    }
 
 }

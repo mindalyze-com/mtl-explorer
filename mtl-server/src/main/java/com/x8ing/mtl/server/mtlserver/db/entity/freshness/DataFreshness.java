@@ -1,5 +1,6 @@
 package com.x8ing.mtl.server.mtlserver.db.entity.freshness;
 
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
@@ -11,6 +12,12 @@ import java.util.Date;
 @Entity
 @Table(name = "data_freshness")
 @Data
+@JsonPropertyOrder({
+        "domainKey",
+        "revision",
+        "changedAt",
+        "description"
+})
 public class DataFreshness {
 
     @Id

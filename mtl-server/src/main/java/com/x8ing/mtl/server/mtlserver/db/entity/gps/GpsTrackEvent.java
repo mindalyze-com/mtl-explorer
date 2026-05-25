@@ -1,5 +1,6 @@
 package com.x8ing.mtl.server.mtlserver.db.entity.gps;
 
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -15,6 +16,29 @@ import java.util.Date;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@JsonPropertyOrder({
+        "id",
+        "gpsTrackId",
+        "gpsTrackDataId",
+        "eventType",
+        "source",
+        "startGpsTrackDataPointId",
+        "endGpsTrackDataPointId",
+        "startPointIndex",
+        "endPointIndex",
+        "startTimestamp",
+        "endTimestamp",
+        "startDistanceInMeter",
+        "endDistanceInMeter",
+        "durationInSec",
+        "startPointLongLat",
+        "endPointLongLat",
+        "label",
+        "description",
+        "confidence",
+        "createDate",
+        "updateDate"
+})
 public class GpsTrackEvent {
 
     public enum EVENT_TYPE {

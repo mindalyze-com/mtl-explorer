@@ -1,10 +1,13 @@
 <template>
   <div class="geo-param">
-    <label class="filter-field__label">{{ paramDef.label }}</label>
+    <div class="geo-param__label-row">
+      <label class="filter-field__label">{{ paramDef.label }}</label>
+      <span v-if="optional" class="geo-param__optional">Optional</span>
+    </div>
     <div class="geo-param__row">
       <template v-if="hasValue">
         <span class="geo-param__summary">{{ shapeSummary }}</span>
-        <button class="geo-param__btn geo-param__btn--clear" @click="clearShape" title="Clear shape">
+        <button class="geo-param__btn geo-param__btn--clear" title="Clear shape" @click="clearShape">
           <i class="bi bi-x-lg"></i>
         </button>
       </template>
@@ -16,76 +19,77 @@
   </div>
 </template>
 
-<script lang="ts">
-import { defineComponent, type PropType } from "vue";
+<script setup lang="ts">
+import { computed } from 'vue';
 import type { ParamDefinition } from 'x8ing-mtl-api-typescript-fetch/dist/esm/models/ParamDefinition';
 import type { GeoCircle } from 'x8ing-mtl-api-typescript-fetch/dist/esm/models/GeoCircle';
 import type { GeoRectangle } from 'x8ing-mtl-api-typescript-fetch/dist/esm/models/GeoRectangle';
 import type { GeoPolygon } from 'x8ing-mtl-api-typescript-fetch/dist/esm/models/GeoPolygon';
 
-export default defineComponent({
-  name: 'GeoShapeParam',
-  props: {
-    paramDef: {
-      type: Object as PropType<ParamDefinition>,
-      required: true,
-    },
-    circle: {
-      type: Object as PropType<GeoCircle>,
-      default: undefined,
-    },
-    rectangle: {
-      type: Object as PropType<GeoRectangle>,
-      default: undefined,
-    },
-    polygon: {
-      type: Object as PropType<GeoPolygon>,
-      default: undefined,
-    },
-  },
-  emits: ['start-geo-drawing', 'clear-geo-shape'],
-  computed: {
-    hasValue(): boolean {
-      switch (this.paramDef.type) {
-        case 'GEO_CIRCLE': return this.circle != null;
-        case 'GEO_RECTANGLE': return this.rectangle != null;
-        case 'GEO_POLYGON': return this.polygon != null && (this.polygon.coordinates?.length ?? 0) >= 3;
-        default: return false;
-      }
-    },
-    shapeSummary(): string {
-      switch (this.paramDef.type) {
-        case 'GEO_CIRCLE':
-          if (!this.circle) return '';
-          return `Circle at ${this.circle.lat?.toFixed(4)}, ${this.circle.lng?.toFixed(4)} — r=${formatRadius(this.circle.radiusM ?? 0)}`;
-        case 'GEO_RECTANGLE':
-          if (!this.rectangle) return '';
-          return `Rectangle (${this.rectangle.minLat?.toFixed(3)}…${this.rectangle.maxLat?.toFixed(3)}, ${this.rectangle.minLng?.toFixed(3)}…${this.rectangle.maxLng?.toFixed(3)})`;
-        case 'GEO_POLYGON':
-          if (!this.polygon) return '';
-          return `Polygon with ${this.polygon.coordinates?.length ?? 0} points`;
-        default:
-          return '';
-      }
-    },
-    drawIcon(): string {
-      switch (this.paramDef.type) {
-        case 'GEO_CIRCLE': return 'bi bi-circle';
-        case 'GEO_RECTANGLE': return 'bi bi-bounding-box';
-        case 'GEO_POLYGON': return 'bi bi-pentagon';
-        default: return 'bi bi-geo-alt';
-      }
-    },
-  },
-  methods: {
-    startDrawing() {
-      this.$emit('start-geo-drawing', this.paramDef);
-    },
-    clearShape() {
-      this.$emit('clear-geo-shape', this.paramDef);
-    },
-  },
+defineOptions({ name: 'GeoShapeParam' });
+
+const props = defineProps<{
+  paramDef: ParamDefinition;
+  circle?: GeoCircle;
+  rectangle?: GeoRectangle;
+  polygon?: GeoPolygon;
+  optional?: boolean;
+}>();
+
+const emit = defineEmits<{
+  (event: 'start-geo-drawing', paramDef: ParamDefinition): void;
+  (event: 'clear-geo-shape', paramDef: ParamDefinition): void;
+}>();
+
+const hasValue = computed((): boolean => {
+  switch (props.paramDef.type) {
+    case 'GEO_CIRCLE':
+      return props.circle != null;
+    case 'GEO_RECTANGLE':
+      return props.rectangle != null;
+    case 'GEO_POLYGON':
+      return props.polygon != null && (props.polygon.coordinates?.length ?? 0) >= 3;
+    default:
+      return false;
+  }
 });
+
+const shapeSummary = computed((): string => {
+  switch (props.paramDef.type) {
+    case 'GEO_CIRCLE':
+      if (!props.circle) return '';
+      return `Circle at ${props.circle.lat?.toFixed(4)}, ${props.circle.lng?.toFixed(4)} — r=${formatRadius(props.circle.radiusM ?? 0)}`;
+    case 'GEO_RECTANGLE':
+      if (!props.rectangle) return '';
+      return `Rectangle (${props.rectangle.minLat?.toFixed(3)}…${props.rectangle.maxLat?.toFixed(3)}, ${props.rectangle.minLng?.toFixed(3)}…${props.rectangle.maxLng?.toFixed(3)})`;
+    case 'GEO_POLYGON':
+      if (!props.polygon) return '';
+      return `Polygon with ${props.polygon.coordinates?.length ?? 0} points`;
+    default:
+      return '';
+  }
+});
+
+const drawIcon = computed((): string => {
+  switch (props.paramDef.type) {
+    case 'GEO_CIRCLE':
+      return 'bi bi-circle';
+    case 'GEO_RECTANGLE':
+      return 'bi bi-bounding-box';
+    case 'GEO_POLYGON':
+      return 'bi bi-pentagon';
+    default:
+      return 'bi bi-geo-alt';
+  }
+});
+
+function startDrawing() {
+  emit('start-geo-drawing', props.paramDef);
+}
+
+function clearShape() {
+  emit('clear-geo-shape', props.paramDef);
+}
 
 function formatRadius(meters: number): string {
   if (meters >= 1000) return `${(meters / 1000).toFixed(1)} km`;
@@ -95,7 +99,34 @@ function formatRadius(meters: number): string {
 
 <style scoped>
 .geo-param {
-  margin-bottom: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-bottom: 0.2rem;
+  min-width: 0;
+}
+
+.geo-param__label-row {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.geo-param__optional {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 1.25rem;
+  border-radius: 999px;
+  padding: 0.12rem 0.45rem;
+  color: var(--text-muted);
+  background: var(--surface-glass-heavy, var(--surface-ground));
+  font-size: var(--text-xs-size);
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
 }
 
 .geo-param__row {
@@ -127,7 +158,9 @@ function formatRadius(meters: number): string {
   font-size: var(--text-sm-size);
   cursor: pointer;
   white-space: nowrap;
-  transition: background 0.15s, border-color 0.15s;
+  transition:
+    background 0.15s,
+    border-color 0.15s;
 }
 
 .geo-param__btn:hover {

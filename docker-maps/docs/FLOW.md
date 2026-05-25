@@ -1,5 +1,8 @@
 # Map Server Flow
 
+> [!NOTE]
+> This is a developer-focused design document. For user-facing setup instructions and configuring local maps, refer to the **[Home Install Guide - Maps](../../documentation/home-install.md#maps)**.
+
 ## Design Principles
 
 1. **Hosted by default** - normal app and demo deployments use the hosted

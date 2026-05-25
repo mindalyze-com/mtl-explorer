@@ -23,29 +23,34 @@
 # Build:
 #   docker build -t wauwau0977/mytraillog-maps:1.4 .
 
-FROM alpine:3.21
+FROM ubuntu:26.04
 
-ARG PMTILES_VERSION=1.30.1
+ARG PMTILES_VERSION=1.30.2
+ENV DEBIAN_FRONTEND=noninteractive
 
-RUN apk add --no-cache \
+RUN set -eux; \
+    apt-get update; \
+    packages=""; \
     # network & download
-    wget curl ca-certificates \
+    packages="$packages wget curl ca-certificates"; \
     # reverse proxy (serves /health, /status, and proxies tiles)
-    nginx \
+    packages="$packages nginx"; \
     # orchestrator runtime
-    python3 \
+    packages="$packages python3"; \
     # editors
-    vim nano \
+    packages="$packages vim nano"; \
     # shell utilities
-    bash less grep sed gawk coreutils \
+    packages="$packages bash less grep sed gawk coreutils"; \
     # process & system inspection
-    procps htop lsof \
+    packages="$packages procps htop lsof util-linux"; \
     # file inspection
-    file jq \
+    packages="$packages file jq"; \
     # archive tools
-    tar gzip \
+    packages="$packages tar gzip unzip"; \
     # persistent nginx log rotation
-    logrotate dcron
+    packages="$packages logrotate cron"; \
+    apt-get install -y --no-install-recommends $packages; \
+    rm -rf /var/lib/apt/lists/*
 
 # Download the go-pmtiles binary
 RUN ARCH=$(uname -m) && \
@@ -64,15 +69,29 @@ RUN mkdir -p /data/prod /app/scripts
 VOLUME /data
 
 # nginx: replace default config with our reverse-proxy config
-RUN rm -f /etc/nginx/http.d/default.conf
-COPY nginx.conf /etc/nginx/http.d/map-server.conf
+RUN rm -f /etc/nginx/sites-enabled/default /etc/nginx/conf.d/default.conf
+COPY nginx.conf /etc/nginx/conf.d/map-server.conf
 COPY logrotate-mtl-maps.conf /etc/logrotate.d/mtl-maps
 RUN chmod 644 /etc/logrotate.d/mtl-maps && \
-    printf '17 3 * * * /usr/sbin/logrotate -s /data/logs/logrotate.status /etc/logrotate.d/mtl-maps\n' > /etc/crontabs/root
+    printf '17 3 * * * root /usr/sbin/logrotate -s /data/logs/logrotate.status /etc/logrotate.d/mtl-maps\n' > /etc/cron.d/mtl-maps && \
+    chmod 644 /etc/cron.d/mtl-maps
 
 COPY scripts/ /app/scripts/
+WORKDIR /app
+COPY README.md /app/README.md
 COPY entrypoint.sh /app/entrypoint.sh
 RUN chmod +x /app/entrypoint.sh /app/scripts/*.py
+
+ARG MTL_IMAGE_VERSION=""
+ARG MTL_IMAGE_BUILD_TIME=""
+RUN set -eux; \
+    mkdir -p /opt/mtl; \
+    build_time="${MTL_IMAGE_BUILD_TIME:-$(date -u +%Y-%m-%dT%H:%M:%SZ)}"; \
+    printf '%s\n' "${MTL_IMAGE_VERSION}" > /opt/mtl/image-version; \
+    printf '%s\n' "${build_time}" > /opt/mtl/image-build-time
+ENV PMTILES_VERSION=${PMTILES_VERSION}
+ENV MTL_IMAGE_VERSION=${MTL_IMAGE_VERSION}
+ENV MTL_IMAGE_BUILD_TIME=${MTL_IMAGE_BUILD_TIME}
 
 EXPOSE 8081
 

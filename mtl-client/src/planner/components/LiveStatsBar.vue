@@ -1,6 +1,5 @@
 <template>
   <div class="live-stats-bar">
-    <span v-if="computing" class="computing">Updating route…</span>
     <div class="live-stats-bar__grid">
       <article class="stat-card stat-card--distance">
         <span class="stat-card__icon"><i class="bi bi-bezier2" /></span>
@@ -38,7 +37,7 @@
 <script setup lang="ts">
 import type { LiveStats } from '@/planner/types';
 
-defineProps<{ stats: LiveStats; computing: boolean }>();
+defineProps<{ stats: LiveStats }>();
 
 const formatKm = (m: number) => (m / 1000).toFixed(2) + ' km';
 const formatM = (m: number) => Math.round(m) + ' m';
@@ -54,20 +53,6 @@ const formatDuration = (s: number) => {
 .live-stats-bar {
   display: flex;
   flex-direction: column;
-  gap: 0.4rem;
-}
-.computing {
-  display: inline-flex;
-  align-items: center;
-  align-self: flex-start;
-  padding: 0.2rem 0.5rem;
-  color: var(--warning-text);
-  font-size: var(--text-xs-size);
-  line-height: var(--text-xs-lh);
-  font-weight: 600;
-  border-radius: 999px;
-  border: 1px solid color-mix(in srgb, #f97316 28%, var(--border-default));
-  background: var(--warning-bg);
 }
 .live-stats-bar__grid {
   display: grid;
@@ -137,19 +122,6 @@ const formatDuration = (s: number) => {
 .stat-card--legs {
   color: #a21caf;
 }
-.computing {
-  display: inline-flex;
-  align-items: center;
-  padding: 0.25rem 0.55rem;
-  color: var(--warning-text);
-  font-size: var(--text-xs-size);
-  line-height: var(--text-xs-lh);
-  font-weight: 600;
-  border-radius: 999px;
-  border: 1px solid color-mix(in srgb, #f97316 28%, var(--border-default));
-  background: var(--warning-bg);
-}
-
 @media (max-width: 640px) {
   .live-stats-bar__grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));

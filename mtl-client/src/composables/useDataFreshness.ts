@@ -13,6 +13,8 @@ let timerId: ReturnType<typeof setTimeout> | null = null;
 let _pollWarnShown = false;
 
 function scheduleNext() {
+  if (consumerCount <= 0) return;
+  if (timerId !== null) clearTimeout(timerId);
   timerId = setTimeout(poll, DATA_FRESHNESS_POLL_INTERVAL_MS);
 }
 
@@ -57,12 +59,12 @@ function stopPolling() {
 
 export function useDataFreshness() {
   onMounted(() => {
-    if (consumerCount === 0) startPolling();
     consumerCount++;
+    if (consumerCount === 1) startPolling();
   });
 
   onUnmounted(() => {
-    consumerCount--;
+    consumerCount = Math.max(0, consumerCount - 1);
     if (consumerCount === 0) stopPolling();
   });
 

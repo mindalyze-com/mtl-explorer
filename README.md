@@ -1,166 +1,108 @@
 # MTL Explorer
 
-> Self-hosted GPS track & trail log — built to run on your own PC, in your
-> home lab, or on your own server, in a few Docker containers.
+> Self-hosted GPS track and trail log for your own PC, home lab, or server.
 
-# Start here
+## Start here
 
 | 🏠 Home page | 🧭 Live demo | ▶️ Intro video |
 | --- | --- | --- |
 | **[Visit the home page](https://mindalyze-com.github.io/mtl-explorer/)** | **[Try the live demo](https://mtl-demo.mindalyze.com/mtl/)** | **[Watch on YouTube](https://youtu.be/OesCpZ0JzLc)** |
-| Overview, screenshots, and feature tour. | No account needed; loaded with demo tracks. | Three-minute walkthrough of the core experience. |
+| Overview, screenshots, and feature tour. | No account needed; loaded with demo tracks. | Three-minute walkthrough. |
 
 ---
 
 [![License: AGPL v3+](https://img.shields.io/badge/license-AGPL--3.0--or--later-blue.svg)](LICENSE)
-[![Commercial License](https://img.shields.io/badge/commercial-available-green.svg)](COMMERCIAL-LICENSE.md)
+[![Commercial License](https://img.shields.io/badge/commercial-available-green.svg)](documentation/legal/COMMERCIAL-LICENSE.md)
 
 ## What it is
 
-MTL Explorer is an open source GPS tracker / trail log web app. You import
-tracks from Garmin / GPX / FIT, explore them on an offline-capable map,
-analyze stops, energy, statistics, plan new routes with BRouter, and keep
-everything on hardware you control.
+MTL Explorer imports Garmin, GPX, and FIT tracks, shows them on a map, analyzes
+track statistics, and can plan routes with BRouter. It is designed for
+self-hosting with Docker Compose.
+Location search runs in a separate GeoNames SQLite sidecar.
 
-It is split into:
+See the [feature overview](documentation/features.md) for the current capability list.
 
-- **`mtl-server/`** — Spring Boot backend (REST API, GPS pipeline, indexer,
-  planner, async jobs, PostgreSQL).
-- **`mtl-client/`** — Vue 3 + TypeScript PWA.
-- **`mtl-api/`** — OpenAPI schema + generated TypeScript clients.
-- **`docker-maps/`** — self-hosted OSM map tiles.
-- **`docker-brouter/`** — self-hosted BRouter routing engine.
-- **`docker/garmin_*`, `docker/gpx_porto_taxi_dataset/`** — import & demo
-  pipelines.
+[Why I built MTL Explorer](why-i-built-mtl-explorer.md): the project started
+from the need to see thousands of Garmin tracks on one map, then grew into a
+personal exploration, planning, and statistics tool.
 
-## Quick start (self-hosted, home use)
+Repository layout:
 
-Download the home compose file and start the stack.
+- `mtl-server/` - Spring Boot backend.
+- `mtl-client/` - Vue 3 and TypeScript PWA.
+- `mtl-api/` - OpenAPI schema and generated TypeScript clients.
+- `docker-brouter/` - BRouter sidecar.
+- `docker-maps/` - optional local vector map sidecar.
+- `docker-location-search/` - GeoNames SQLite location-search sidecar.
+- `docker/` - import and demo-data helpers.
 
-macOS / Linux / WSL / Git Bash:
+## Quick start
 
-```bash
-mkdir mtl-explorer
-cd mtl-explorer
-wget https://raw.githubusercontent.com/mindalyze-com/mtl-explorer/main/docker-compose.yml
-docker compose up -d
-# open http://localhost:18080/mtl/  login: mtl / change-me
-```
+Prerequisite: Docker with Docker Compose.
 
-Windows PowerShell:
+1. Start the stack:
 
-```powershell
-mkdir mtl-explorer
-cd mtl-explorer
-Invoke-WebRequest -Uri "https://raw.githubusercontent.com/mindalyze-com/mtl-explorer/main/docker-compose.yml" -OutFile "docker-compose.yml"
-docker compose up -d
-# open http://localhost:18080/mtl/  login: mtl / change-me
-```
+   * **macOS, Linux, WSL, or Git Bash**:
+     ```bash
+     mkdir mtl-explorer && cd mtl-explorer
+     curl -fsSL -o docker-compose.yml https://raw.githubusercontent.com/mindalyze-com/mtl-explorer/main/docker-compose.yml
+     docker compose up -d
+     ```
+   * **Windows PowerShell**:
+     ```powershell
+     mkdir mtl-explorer; cd mtl-explorer
+     Invoke-WebRequest -Uri "https://raw.githubusercontent.com/mindalyze-com/mtl-explorer/main/docker-compose.yml" -OutFile "docker-compose.yml"
+     docker compose up -d
+     ```
 
-Docker Compose creates the local `./data/` folders on first start. Copy GPX/FIT
-files into `./data/gpx/`; the server discovers them automatically. Put geotagged
-photos or videos into `./data/media/`.
+   *(Note: The server takes about 10-15 seconds to boot up and initialize the database on first run.)*
 
-The home install serves plain HTTP on port `18080`; terminate HTTPS in a
-reverse proxy if you expose it beyond a trusted local network.
-Change the default login before exposing the instance outside your machine or
-home network by setting `MTL_USER_LOGIN` and `MTL_USER_PASSWORD` in a `.env`
-file next to `docker-compose.yml` or directly in the compose file.
+2. Open **`http://localhost:18080/mtl/`** and log in:
+   * **User**: `mtl`
+   * **Password**: `change-me`
 
-## Maps
+To import your tracks, copy GPX/FIT files into the `./data/gpx/` folder.
 
-MTL Explorer serves vector PMTiles through the Java backend. The default Docker
-Compose startup uses the hosted PMTiles service for MTL Explorer traffic only.
-The browser still calls `/api/map-proxy/...`; the backend keeps the hosted
-upstream URL and server identity metadata private.
+Change the default login before exposing MTL Explorer outside your home
+network. For custom logins, directories, offline maps, and reverse proxy setup,
+see the [home install guide](documentation/home-install.md).
 
-Each installation lazily creates a pseudo-anonymous server id in the `config`
-table (`SECURITY` / `SERVER_ID`) so the hosted map service can be operated and
-rate-shaped without exposing user data.
+## Documentation
 
-For fully self-hosted/offline map use, enable the optional local map sidecar and
-preserve `./data/maps/` across upgrades:
-
-```bash
-docker compose --profile local-maps up -d
-```
-
-The compose file uses the `latest` MTL Explorer images, which follow the
-currently published stable release. To update later:
-
-```bash
-docker compose pull
-docker compose up -d
-```
-
-For existing GPX/photo folders, mount changes, and route planner details,
-see [`HOME_INSTALL.md`](HOME_INSTALL.md).
-
+- [Home install](documentation/home-install.md) - data folders, maps, updates,
+  and logs.
+- [Container build](documentation/container-build.md) - build local Docker
+  images from a source checkout.
+- [Legal documents](documentation/legal/README.md)
+- [Contributing](.github/CONTRIBUTING.md)
+- [Security policy](.github/SECURITY.md)
 
 ## License
 
-MTL Explorer is **dual-licensed** — free for personal/home use (AGPL), commercial license available for SaaS/proprietary use.
-
 <details>
-<summary>License details</summary>
+<summary>License summary</summary>
 
-| Use case | License |
-| --- | --- |
-| Personal / home / self-hosted / private use | [AGPL-3.0-or-later](LICENSE) (free) |
-| Modifying & redistributing (fork) | [AGPL-3.0-or-later](LICENSE) — must publish complete corresponding source |
-| Offering it as a hosted service (SaaS) to third parties | **Either** comply with AGPL (publish your changes) **or** buy a [commercial license](COMMERCIAL-LICENSE.md) |
-| Embedding in a proprietary / closed-source product | [Commercial license](COMMERCIAL-LICENSE.md) required |
+MTL Explorer is dual-licensed: AGPL for free personal/home use, with a
+commercial license available for proprietary or hosted use.
 
-This means:
-
-- **You can use MTL Explorer at home, for free, forever.**
-- **You cannot take this code, close it off, and resell it without giving
-  back.** Any modifications must either be published under AGPL *or* you
-  must obtain a commercial license.
-- The AGPL explicitly covers **SaaS** — simply exposing a modified version
-  over the network counts as distribution.
-
-See also:
-
-- [`LICENSE`](LICENSE) — full AGPL-3.0 text.
-- [`NOTICE`](NOTICE) — copyright notices.
-- [`COMMERCIAL-LICENSE.md`](COMMERCIAL-LICENSE.md) — when and how to obtain a
-  commercial license.
-- [`TRADEMARK.md`](TRADEMARK.md) — project names and marks are protected;
-  forks must rename.
-- [`THIRD_PARTY_LICENSES.md`](THIRD_PARTY_LICENSES.md) — dependencies &
-  bundled assets.
-
-Commercial inquiries: **hey.lueg@gmail.com**.
+- [AGPL license](LICENSE)
+- [Commercial license](documentation/legal/COMMERCIAL-LICENSE.md)
+- [Trademark](documentation/legal/TRADEMARK.md)
+- [Third-party licenses](documentation/legal/THIRD_PARTY_LICENSES.md)
 
 </details>
-
-## Contributing
-
-Contributions are welcome! Please read
-[`CONTRIBUTING.md`](CONTRIBUTING.md) — every contributor must sign the
-[CLA](CLA.md) before their PR can be merged, so the project can keep
-offering the commercial-license option.
-
-- [Code of Conduct](CODE_OF_CONDUCT.md)
-- [Security Policy](SECURITY.md)
 
 ## Disclaimer
 
 <details>
-<summary>Disclaimer & limitation of liability</summary>
+<summary>Disclaimer summary</summary>
 
-MTL Explorer is provided **"AS IS" without any warranty**, express or implied.
-**It is not a safety-critical navigation system.** Do not rely on it as the
-sole means of navigation in the backcountry, at sea, in the air, or in any
-situation where inaccuracy could cause injury or loss of life. Always carry
-a map, compass, and working brain.
-
-See [`DISCLAIMER.md`](DISCLAIMER.md) for the full disclaimer and limitation
-of liability.
+MTL Explorer is not a safety-critical navigation system. See the
+[full disclaimer](documentation/legal/DISCLAIMER.md).
 
 </details>
 
 ---
 
-Copyright © 2020-2026 Patrick Heusser and MTL Explorer contributors.
+Copyright (C) 2020-2026 Patrick Heusser and MTL Explorer contributors.

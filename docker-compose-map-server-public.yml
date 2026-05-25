@@ -2,12 +2,13 @@
 # It runs only docker-maps. Put an HTTPS reverse proxy in front of
 # ${MAP_SERVER_BIND:-0.0.0.0}:${MAP_SERVER_PORT:-18093}.
 #
-# PMTiles requests are intentionally rejected unless the Java backend proxy adds
-# mtl-version and mtl-server-id query parameters.
+# PMTiles vector map files are intentionally rejected unless the Java backend
+# proxy adds mtl-version and mtl-server-id query parameters.
 
 services:
   map-server:
     image: ${MTL_MAP_SERVER_IMAGE:-wauwau0977/mytraillog-maps:latest}
+    pull_policy: always
     entrypoint:
       - /bin/sh
       - -c

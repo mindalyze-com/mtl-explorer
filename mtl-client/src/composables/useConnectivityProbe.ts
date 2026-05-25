@@ -7,6 +7,8 @@
  * inspecting devtools.
  */
 
+import { apiUrl } from '@/utils/apiBase';
+
 interface Probe {
   label: string;
   url: string;
@@ -19,8 +21,11 @@ interface ProbeResult {
 }
 
 const PROBES: ReadonlyArray<Probe> = [
-  { label: 'Backend API', url: './api/info/build' },
-  { label: 'Protomaps fonts (CDN)', url: 'https://protomaps.github.io/basemaps-assets/fonts/Noto%20Sans%20Regular/0-255.pbf' },
+  { label: 'Backend API', url: apiUrl('api/info/build') },
+  {
+    label: 'Protomaps fonts (CDN)',
+    url: 'https://protomaps.github.io/basemaps-assets/fonts/Noto%20Sans%20Regular/0-255.pbf',
+  },
   { label: 'Protomaps sprites (CDN)', url: 'https://protomaps.github.io/basemaps-assets/sprites/v4/light.json' },
   { label: 'Mapterhorn elevation tiles', url: 'https://tiles.mapterhorn.com/0/0/0.webp' },
   { label: 'OSM raster tiles', url: 'https://tile.openstreetmap.org/0/0/0.png' },

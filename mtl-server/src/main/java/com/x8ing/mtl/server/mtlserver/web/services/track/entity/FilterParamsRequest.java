@@ -1,11 +1,20 @@
 package com.x8ing.mtl.server.mtlserver.web.services.track.entity;
 
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import lombok.Data;
 
 import java.util.List;
 import java.util.Map;
 
 @Data
+@JsonPropertyOrder({
+        "stringParams",
+        "dateTimeParams",
+        "geoCircles",
+        "geoRectangles",
+        "geoPolygons",
+        "trackIds"
+})
 public class FilterParamsRequest {
 
     private Map<String, String> stringParams;

@@ -1,5 +1,6 @@
 package com.x8ing.mtl.server.mtlserver.planner.dto;
 
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import lombok.Data;
 
 import java.util.List;
@@ -9,6 +10,14 @@ import java.util.List;
  * between two adjacent waypoints.
  */
 @Data
+@JsonPropertyOrder({
+        "coordinates",
+        "distanceM",
+        "ascentM",
+        "descentM",
+        "durationSec",
+        "cached"
+})
 public class LegResultDto {
     /**
      * Geometry of this leg as an array of {@code [lng, lat, elevationM]} triples (GeoJSON order).

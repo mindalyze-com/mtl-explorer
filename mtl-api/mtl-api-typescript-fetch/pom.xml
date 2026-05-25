@@ -31,7 +31,7 @@
             <dependency>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-dependencies</artifactId>
-                <version>2.7.5</version>
+                <version>2.7.18</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
@@ -48,7 +48,7 @@
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>exec-maven-plugin</artifactId>
-                <version>3.1.0</version>
+                <version>3.6.3</version>
                 <executions>
 
                     <!-- Run npm install typescript (do it globally) -->
@@ -77,7 +77,7 @@
             <plugin>
                 <groupId>org.openapitools</groupId>
                 <artifactId>openapi-generator-maven-plugin</artifactId>
-                <version>7.4.0</version>
+                <version>7.22.0</version>
                 <executions>
 
                     <execution>
@@ -112,7 +112,7 @@
                 <!-- after the build of the typescript sources, we need to run the npm install on the generated package.json -->
                 <groupId>com.github.eirslett</groupId>
                 <artifactId>frontend-maven-plugin</artifactId>
-                <version>1.13.1</version>
+                <version>1.15.4</version>
                 <configuration>
                     <workingDirectory>${project.build.directory}/generated-sources/mtl-typescript</workingDirectory>
                     <installDirectory>./node</installDirectory> <!-- where to install npm/node -->
@@ -124,8 +124,8 @@
                             <goal>install-node-and-npm</goal>
                         </goals>
                         <configuration>
-                            <nodeVersion>v14.15.1</nodeVersion>
-                            <npmVersion>6.14.8</npmVersion>
+                            <nodeVersion>v14.21.3</nodeVersion>
+                            <npmVersion>6.14.18</npmVersion>
                         </configuration>
                     </execution>
                     <execution>

@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.10.xsd">
+
+    <changeSet id="20260524_1_manual_statistics_exclusions" author="codex">
+        <comment>
+            Store nullable user curation reasons for excluding unreliable tracks
+            from statistics highlights and broader statistics.
+        </comment>
+
+        <addColumn tableName="gps_track">
+            <column name="highlight_exclusion_reason" type="varchar(64)"/>
+            <column name="statistics_exclusion_reason" type="varchar(64)"/>
+        </addColumn>
+
+        <createIndex indexName="GPS_TRACK_IX_HIGHLIGHT_EXCLUSION" tableName="gps_track" unique="false">
+            <column name="highlight_exclusion_reason"/>
+            <column name="statistics_exclusion_reason"/>
+            <column name="id"/>
+        </createIndex>
+
+        <createIndex indexName="GPS_TRACK_IX_STATISTICS_EXCLUSION" tableName="gps_track" unique="false">
+            <column name="statistics_exclusion_reason"/>
+            <column name="id"/>
+        </createIndex>
+
+        <rollback>
+            <dropIndex indexName="GPS_TRACK_IX_HIGHLIGHT_EXCLUSION" tableName="gps_track"/>
+            <dropIndex indexName="GPS_TRACK_IX_STATISTICS_EXCLUSION" tableName="gps_track"/>
+            <dropColumn tableName="gps_track" columnName="highlight_exclusion_reason"/>
+            <dropColumn tableName="gps_track" columnName="statistics_exclusion_reason"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

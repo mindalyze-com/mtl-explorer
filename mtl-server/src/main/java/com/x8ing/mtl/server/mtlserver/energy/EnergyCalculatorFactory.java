@@ -1,6 +1,8 @@
 package com.x8ing.mtl.server.mtlserver.energy;
 
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.x8ing.mtl.server.mtlserver.db.entity.gps.GpsTrack;
+import com.x8ing.mtl.server.mtlserver.energy.impl.DefaultEnergyCalculator;
 import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -15,10 +17,15 @@ import java.util.Map;
  */
 @Component
 @Slf4j
+@JsonPropertyOrder({
+        "calculators",
+        "defaultCalculator"
+})
 public class EnergyCalculatorFactory {
 
     private final List<EnergyCalculator> calculators;
     private final Map<GpsTrack.ACTIVITY_TYPE, EnergyCalculator> calculatorMap = new EnumMap<>(GpsTrack.ACTIVITY_TYPE.class);
+    private EnergyCalculator defaultCalculator;
 
     public EnergyCalculatorFactory(List<EnergyCalculator> calculators) {
         this.calculators = calculators;
@@ -26,8 +33,6 @@ public class EnergyCalculatorFactory {
 
     @PostConstruct
     void init() {
-        EnergyCalculator defaultCalculator = null;
-
         for (EnergyCalculator calc : calculators) {
             for (GpsTrack.ACTIVITY_TYPE type : calc.getActivityTypes()) {
                 EnergyCalculator existing = calculatorMap.put(type, calc);
@@ -36,9 +41,9 @@ public class EnergyCalculatorFactory {
                             type, existing.getClass().getSimpleName(), calc.getClass().getSimpleName(), calc.getClass().getSimpleName());
                 }
             }
-            // The calculator that handles null/unknown types is the one with the broadest set
-            // or explicitly named Default — we detect it by checking if it handles types like CAR
-            if (calc.supports(GpsTrack.ACTIVITY_TYPE.CAR)) {
+            // DefaultEnergyCalculator intentionally claims no enum values. Keep
+            // it as the explicit null/future-type fallback.
+            if (calc instanceof DefaultEnergyCalculator) {
                 defaultCalculator = calc;
             }
         }
@@ -59,8 +64,8 @@ public class EnergyCalculatorFactory {
      */
     public EnergyCalculator getCalculator(GpsTrack.ACTIVITY_TYPE activityType) {
         if (activityType == null) {
-            return calculatorMap.get(GpsTrack.ACTIVITY_TYPE.CAR); // default fallback
+            return defaultCalculator;
         }
-        return calculatorMap.getOrDefault(activityType, calculatorMap.get(GpsTrack.ACTIVITY_TYPE.CAR));
+        return calculatorMap.getOrDefault(activityType, defaultCalculator);
     }
 }

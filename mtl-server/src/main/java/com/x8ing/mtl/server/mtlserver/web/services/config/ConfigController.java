@@ -1,5 +1,6 @@
 package com.x8ing.mtl.server.mtlserver.web.services.config;
 
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.x8ing.mtl.server.mtlserver.db.entity.config.ConfigEntity;
 import com.x8ing.mtl.server.mtlserver.db.repository.config.ConfigRepository;
 import lombok.extern.slf4j.Slf4j;
@@ -13,6 +14,9 @@ import java.util.List;
 @Slf4j
 @RestController
 @RequestMapping("/api/config")
+@JsonPropertyOrder({
+        "configRepository"
+})
 public class ConfigController {
 
     private final ConfigRepository configRepository;

@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.10.xsd">
+
+    <changeSet id="20260524_2_statistics_curation_filter" author="codex">
+        <comment>
+            Add a Quality filter for refinding tracks manually excluded from
+            highlights or broader statistics.
+        </comment>
+
+        <insert tableName="filter_config">
+            <column name="filter_name" value="StatisticsCuration"/>
+            <column name="filter_type" value="SQL"/>
+            <column name="filter_domain" value="GPS_TRACK"/>
+            <column name="filter_category" value="SYSTEM"/>
+            <column name="description" value="Find tracks manually excluded from highlights or broader statistics."/>
+            <column name="display_name" value="Statistics curation"/>
+            <column name="display_order" valueNumeric="6030"/>
+            <column name="filter_group" value="Quality"/>
+            <column name="group_semantics" value="CATEGORICAL"/>
+            <column name="coloring_strategy" value="CATEGORICAL"/>
+            <column name="legend_sort_strategy" value="LABEL_ASC"/>
+            <column name="preferred_palette" value="005_COLORS"/>
+            <column name="expression">
+                <![CDATA[
+                SELECT
+                    id,
+                    CASE
+                        WHEN statistics_exclusion_reason IS NOT NULL THEN
+                            'Statistics: ' || CASE statistics_exclusion_reason
+                                WHEN 'GPS_NOISE' THEN 'GPS noise'
+                                WHEN 'WRONG_ACTIVITY' THEN 'Wrong activity'
+                                WHEN 'IMPORT_ARTIFACT' THEN 'Import artifact'
+                                ELSE 'Other'
+                            END
+                        WHEN highlight_exclusion_reason IS NOT NULL THEN
+                            'Highlights: ' || CASE highlight_exclusion_reason
+                                WHEN 'GPS_NOISE' THEN 'GPS noise'
+                                WHEN 'WRONG_ACTIVITY' THEN 'Wrong activity'
+                                WHEN 'IMPORT_ARTIFACT' THEN 'Import artifact'
+                                ELSE 'Other'
+                            END
+                    END AS grp
+                FROM gps_track
+                WHERE highlight_exclusion_reason IS NOT NULL
+                   OR statistics_exclusion_reason IS NOT NULL
+                ORDER BY start_date DESC NULLS LAST, id DESC
+                ]]>
+            </column>
+        </insert>
+
+        <rollback>
+            <delete tableName="filter_config">
+                <where>filter_domain = 'GPS_TRACK' AND filter_name = 'StatisticsCuration'</where>
+            </delete>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

@@ -13,8 +13,7 @@ import {
   MapConfigDtoTileSourceEnum,
   type MapConfigDto,
 } from 'x8ing-mtl-api-typescript-fetch/dist/esm/models/MapConfigDto';
-
-const backendUrl = import.meta.env.VITE_BACKEND_URL;
+import type { MapBoundsDto } from 'x8ing-mtl-api-typescript-fetch/dist/esm/models/MapBoundsDto';
 
 export { MapConfigDtoTileModeEnum, MapConfigDtoTileSourceEnum };
 
@@ -31,10 +30,8 @@ export type MapConfig = MapConfigDto & {
   tileSource?: MapTileSource;
   archiveId?: string;
   remoteTileUrl: string;
-  /** Present on server response; used for initial map viewport. */
-  initialCenterLng?: number;
-  initialCenterLat?: number;
-  initialZoom?: number;
+  /** Initial map viewport bounds from explicit config, stored tracks, or server default. */
+  initialBounds?: MapBoundsDto;
   /** Legacy bounded-map metadata, normally omitted. */
   demoAreaBbox?: number[];
   /** Legacy bounded-map metadata, normally omitted. */
@@ -69,9 +66,8 @@ let inFlight: Promise<MapConfig> | null = null;
 
 /**
  * Fetch map configuration from the server. Caches the result for the session.
- * On failure, restores the last-known-good config from localStorage (preserving
- * initialCenter / tileBaseUrl for offline use). Falls back to remote raster if
- * nothing is stored.
+ * On failure, restores the last-known-good config from localStorage. Falls back
+ * to remote raster if nothing is stored.
  */
 export async function fetchMapConfig(): Promise<MapConfig> {
   if (cachedConfig) {
@@ -106,8 +102,12 @@ export async function fetchMapConfig(): Promise<MapConfig> {
         tilesetName: cachedConfig.tilesetName,
         lowzoomTilesetName: cachedConfig.lowzoomTilesetName,
       });
-      // Persist so we can restore initialCenter etc. when offline
-      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(cachedConfig)); } catch { /* quota */ }
+      // Persist so we can restore the last known map viewport/tile config when offline.
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(cachedConfig));
+      } catch {
+        /* quota */
+      }
       return cachedConfig;
     } catch (e) {
       timer.warn('Map config fetch failed; falling back', describeError(e));
@@ -126,7 +126,9 @@ export async function fetchMapConfig(): Promise<MapConfig> {
           // caller (or background retry) can still fetch the real config.
           return fallback;
         }
-      } catch { /* corrupt JSON */ }
+      } catch {
+        /* corrupt JSON */
+      }
       const fallback: MapConfig = { ...DEFAULT_CONFIG, tileMode: 'remote', offline: true };
       startupLog('mapconfig', 'Using built-in remote fallback config', {
         tileMode: fallback.tileMode,

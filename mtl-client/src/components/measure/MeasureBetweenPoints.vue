@@ -8,7 +8,11 @@
             <div class="measure-flow-node-value">{{ node.value }}</div>
             <div class="measure-flow-node-detail">{{ node.detail }}</div>
           </div>
-          <div v-if="idx < overlayZoneNodes.length - 1 || sharedFlowNode" class="measure-flow-connector" :class="node.connectorClass"></div>
+          <div
+            v-if="idx < overlayZoneNodes.length - 1 || sharedFlowNode"
+            class="measure-flow-connector"
+            :class="node.connectorClass"
+          ></div>
         </template>
 
         <div v-if="sharedFlowNode" class="measure-flow-node measure-flow-node--final" :class="sharedFlowNode.toneClass">
@@ -21,21 +25,45 @@
       </div>
     </div>
 
-    <BottomSheet v-model="active" :detents="measureSheetDetents" title="Segment Analyzer" icon="bi bi-stopwatch" header-mode="compact" :no-backdrop="true" @closed="onMeasureClosed">
+    <BottomSheet
+      v-model="active"
+      :detents="measureSheetDetents"
+      title="Segment Analyzer"
+      icon="bi bi-stopwatch"
+      header-mode="compact"
+      :no-backdrop="true"
+      @closed="onMeasureClosed"
+    >
       <div class="measure-sheet">
         <section class="measure-controls-card measure-controls-card--dock">
-
           <!-- Row 1: Undo · Clear All · Analyze -->
           <div class="measure-toolbar">
-            <button class="measure-toolbar-btn" :disabled="triggerPoints.length < 1 || isLoading" @click="onUndoLastPoint" title="Undo last point" aria-label="Undo last point">
+            <button
+              class="measure-toolbar-btn"
+              :disabled="triggerPoints.length < 1 || isLoading"
+              title="Undo last point"
+              aria-label="Undo last point"
+              @click="onUndoLastPoint"
+            >
               <i class="bi bi-arrow-left"></i>
               <span>Undo</span>
             </button>
-            <button class="measure-toolbar-btn" :disabled="!triggerPoints.length || isLoading" @click="onCancelSelection" title="Clear all" aria-label="Clear all">
+            <button
+              class="measure-toolbar-btn"
+              :disabled="!triggerPoints.length || isLoading"
+              title="Clear all"
+              aria-label="Clear all"
+              @click="onCancelSelection"
+            >
               <i class="bi bi-trash3"></i>
               <span>Clear all</span>
             </button>
-            <button class="measure-toolbar-btn measure-toolbar-btn--analyze" :class="{ 'measure-toolbar-btn--ready': !isAnalyzeDisabled }" :disabled="isAnalyzeDisabled" @click="onFinishSelection">
+            <button
+              class="measure-toolbar-btn measure-toolbar-btn--analyze"
+              :class="{ 'measure-toolbar-btn--ready': !isAnalyzeDisabled }"
+              :disabled="isAnalyzeDisabled"
+              @click="onFinishSelection"
+            >
               <i v-if="isLoading" class="bi bi-arrow-clockwise measure-spin"></i>
               <i v-else class="bi bi-graph-up-arrow"></i>
               <span>{{ isLoading ? 'Analyzing…' : 'Analyze' }}</span>
@@ -44,7 +72,7 @@
 
           <!-- Row 2: Bare radius slider -->
           <div class="measure-radius-bare">
-            <Slider class="measure-bar-slider" v-model="radiusSelector" :min="1" :max="100"/>
+            <Slider v-model="radiusSelector" class="measure-bar-slider" :min="1" :max="100" />
             <span class="measure-radius-hint">{{ radiusDisplay }} m</span>
           </div>
 
@@ -55,707 +83,752 @@
               <span class="measure-placement-text">{{ dockHintText }}</span>
             </div>
             <p class="measure-explanation">
-              Place zones on the map where your routes pass through. The analyzer finds all tracks crossing every zone and compares sector times between them.
+              Place zones on the map where your routes pass through. The analyzer finds all tracks crossing every zone
+              and compares sector times between them.
             </p>
           </div>
-
         </section>
       </div>
     </BottomSheet>
 
-    <BottomSheet v-if="showResults" v-model="showResults" title="Segment Analyzer" icon="bi bi-stopwatch" header-mode="compact" :detents="[{ height: '88vh' }, { height: '98vh' }]"
-                 @closed="onResultsClosed">
-      <DisplayMeasureResults :measureServiceResult="measureServiceResult" @show-track-details="$emit('show-track-details', $event)"/>
+    <BottomSheet
+      v-if="showResults && measureServiceResult"
+      v-model="showResults"
+      title="Segment Analyzer"
+      icon="bi bi-stopwatch"
+      header-mode="compact"
+      :detents="[{ height: '88vh' }, { height: '98vh' }]"
+      @closed="onResultsClosed"
+    >
+      <DisplayMeasureResults
+        :measure-service-result="measureServiceResult"
+        @show-track-details="emit('show-track-details', $event)"
+      />
     </BottomSheet>
   </div>
-
 </template>
 
-<script>
-import {defineComponent, inject, provide, ref} from "vue";
-import {fetchTrackDetailsForCrossingPoints, fetchTrackIdsWithinDistanceOfPoint} from '@/utils/ServiceHelper';
-import DisplayMeasureResults from "@/components/measure/DisplayMeasureResults.vue";
-import BottomSheet from "@/components/ui/BottomSheet.vue";
-import {EVENT_MEASURE_BETWEEN_POINTS_DIALOG_MAXIMIZED_EVENT} from "@/utils/Utils";
+<script setup lang="ts">
+import { computed, inject, nextTick, onBeforeUnmount, onMounted, provide, ref, watch } from 'vue';
+import type maplibregl from 'maplibre-gl';
+import type { CrossingPointsResponse, TriggerPoint } from 'x8ing-mtl-api-typescript-fetch/dist/esm/models/index';
+import { fetchTrackDetailsForCrossingPoints, fetchTrackIdsWithinDistanceOfPoint } from '@/utils/ServiceHelper';
+import DisplayMeasureResults from '@/components/measure/DisplayMeasureResults.vue';
+import BottomSheet from '@/components/ui/BottomSheet.vue';
+import { EVENT_MEASURE_BETWEEN_POINTS_DIALOG_MAXIMIZED_EVENT } from '@/utils/Utils';
 
+defineOptions({ name: 'MeasureBetweenPoints' });
 
-export default defineComponent({
-  name: 'MeasureBetweenPoints',
-  components: {DisplayMeasureResults, BottomSheet},
-  emits: ['active-changed', 'tool-opened', 'tool-closed', 'show-track-details'],
-  props: ['map'],
-  data() {
-    return {
-      active: false,
-      radiusSelector: 40,
-      radius() {
-        let val = Math.round(Math.pow(1.1, this.radiusSelector));
-        if (val > 10000) {
-          return Math.round(val / 1000) * 1000;
-        } else if (val > 1000) {
-          return Math.round(val / 100) * 100;
-        } else if (val > 100) {
-          return Math.round(val / 10) * 10;
-        } else {
-          return val;
-        }
-      },
-      triggerPoints: [],
-      zoneTrackCounts: [],
-      zoneTrackIds: [],
-      zoneHasVisibleTracks: [],
-      zoneCountAbortControllers: [],
-      radiusCountDebounceTimer: null,
-      measureServiceResult: null,
-      showResults: false,
-      numberOfCrossings: 0,
-      measureSourceIds: [],
-      measureLayerIds: [],
-      clickHandler: null,
-      isLoading: false,
-      showInfo: false,
-      viewportWidth: typeof window !== 'undefined' ? window.innerWidth : 1024,
-      viewportHeight: typeof window !== 'undefined' ? window.innerHeight : 900,
-    }
-  },
-  watch: {
-    radiusSelector() {
-      this.updateAllCircles();
-      this.debouncedRefreshAllZoneCounts();
-    },
-  },
-  computed: {
-    radiusDisplay() {
-      return this.radius();
-    },
-    isAnalyzeDisabled() {
-      return this.isLoading || this.triggerPoints.length === 0;
-    },
-    candidateTrackIdsIntersection() {
-      if (!this.triggerPoints.length) {
-        return [];
-      }
+type MapLike = maplibregl.Map;
+type ToastService = { add: (message: Record<string, unknown>) => void };
+type MeasureTriggerPoint = TriggerPoint & { name: string; coordinate: { x: number; y: number } };
+type ZoneVisualState = 'loading' | 'error' | 'warning' | 'ok';
+type MapClickEvent = { lngLat: { lng: number; lat: number } };
 
-      const loadedTrackLists = this.zoneTrackIds.slice(0, this.triggerPoints.length);
-      if (loadedTrackLists.some(trackIds => !Array.isArray(trackIds))) {
-        return null;
-      }
+const props = defineProps<{
+  map: MapLike;
+}>();
 
-      if (!loadedTrackLists.length) {
-        return [];
-      }
+const emit = defineEmits<{
+  'active-changed': [active: boolean];
+  'tool-opened': [];
+  'tool-closed': [];
+  'show-track-details': [trackId: number | string];
+}>();
 
-      let intersection = new Set(loadedTrackLists[0]);
-      for (let i = 1; i < loadedTrackLists.length; i++) {
-        const zoneIds = new Set(loadedTrackLists[i]);
-        intersection = new Set([...intersection].filter(id => zoneIds.has(id)));
-      }
-      return [...intersection];
-    },
-    overlayZoneNodes() {
-      return this.triggerPoints.map((point, idx) => {
-        const count = this.zoneTrackCounts[idx];
-        let value = '...';
-        let detail = 'tracks';
-        let tone = this.getZoneVisualState(idx);
+const fakeEvent = ref('empty');
+provide(EVENT_MEASURE_BETWEEN_POINTS_DIALOG_MAXIMIZED_EVENT, fakeEvent);
 
-        if (count === -1) {
-          value = '?';
-          detail = 'check';
-        } else if (count === undefined) {
-          value = '...';
-          detail = 'tracks';
-        } else {
-          value = String(count);
-          detail = count === 1 ? 'track' : 'tracks';
-        }
+const toast = inject<ToastService>('toast');
 
-        return {
-          key: point.name,
-          label: point.name,
-          value,
-          detail,
-          toneClass: `measure-flow-node--${tone}`,
-          connectorClass: `measure-flow-connector--${tone}`,
-        };
-      });
-    },
-    sharedFlowNode() {
-      if (!this.triggerPoints.length) {
-        return null;
-      }
+const active = ref(false);
+const radiusSelector = ref(40);
+const triggerPoints = ref<MeasureTriggerPoint[]>([]);
+const zoneTrackCounts = ref<Array<number | undefined>>([]);
+const zoneTrackIds = ref<Array<number[] | null | undefined>>([]);
+const zoneHasVisibleTracks = ref<boolean[]>([]);
+const zoneCountAbortControllers = ref<Array<AbortController | undefined>>([]);
+let radiusCountDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+const measureServiceResult = ref<CrossingPointsResponse | null>(null);
+const showResults = ref(false);
+const numberOfCrossings = ref(0);
+const measureSourceIds = ref<string[]>([]);
+const measureLayerIds = ref<string[]>([]);
+let clickHandler: ((e: MapClickEvent) => void) | null = null;
+const isLoading = ref(false);
+const viewportWidth = ref(typeof window !== 'undefined' ? window.innerWidth : 1024);
+const viewportHeight = ref(typeof window !== 'undefined' ? window.innerHeight : 900);
+let crossingFetchAbortController: AbortController | null = null;
 
-      const relevantCounts = this.zoneTrackCounts.slice(0, this.triggerPoints.length);
-      if (this.triggerPoints.length === 1) {
-        const count = relevantCounts[0];
-        if (count === undefined) {
-          return { value: '...', title: 'shared', detail: 'waiting', toneClass: 'measure-flow-node--loading' };
-        }
-        if (count === -1) {
-          return { value: '?', title: 'shared', detail: 'check', toneClass: 'measure-flow-node--error' };
-        }
-        return {
-          value: String(count),
-          title: 'shared',
-          detail: count === 1 ? 'track' : 'tracks',
-          toneClass: count === 0 ? 'measure-flow-node--warning' : 'measure-flow-node--ok',
-        };
-      }
+function radius() {
+  const val = Math.round(Math.pow(1.1, radiusSelector.value));
+  if (val > 10000) {
+    return Math.round(val / 1000) * 1000;
+  } else if (val > 1000) {
+    return Math.round(val / 100) * 100;
+  } else if (val > 100) {
+    return Math.round(val / 10) * 10;
+  } else {
+    return val;
+  }
+}
 
-      if (relevantCounts.some(count => count === -1)) {
-        return { value: '?', title: 'shared', detail: 'check', toneClass: 'measure-flow-node--error' };
-      }
-      if (relevantCounts.some(count => count === undefined)) {
-        return { value: '...', title: 'shared', detail: 'tracks', toneClass: 'measure-flow-node--loading' };
-      }
+const radiusDisplay = computed(() => radius());
+const isAnalyzeDisabled = computed(() => isLoading.value || triggerPoints.value.length === 0);
 
-      const candidateCount = Array.isArray(this.candidateTrackIdsIntersection) ? this.candidateTrackIdsIntersection.length : 0;
-      if (candidateCount === 0) {
-        return { value: '!', title: 'shared', detail: 'tracks', toneClass: 'measure-flow-node--warning' };
-      }
+const candidateTrackIdsIntersection = computed(() => {
+  if (!triggerPoints.value.length) {
+    return [];
+  }
 
-      return {
-        value: String(candidateCount),
-        title: 'shared',
-        detail: candidateCount === 1 ? 'track' : 'tracks',
-        toneClass: 'measure-flow-node--ok',
-      };
-    },
-    measureSheetDetents() {
-      const isMobile = this.viewportWidth <= 768;
-      const compactPx = isMobile ? 350 : 280;
-      const expandedVh = isMobile ? 88 : 82;
-      return [
-        { id: 'compact', height: `${compactPx}px` },
-        { id: 'expanded', height: `${expandedVh}vh` },
-      ];
-    },
-    dockHintText() {
-      if (!this.triggerPoints.length) {
-        return 'Place zone A';
-      }
-      const nextLabel = String.fromCharCode(65 + this.triggerPoints.length);
-      return `${this.triggerPoints.length} zone${this.triggerPoints.length === 1 ? '' : 's'} ready • next: ${nextLabel}`;
-    },
-    selectionHint() {
-      if (!this.triggerPoints.length) {
-        return "Tap map to add zones";
-      }
-      return this.triggerPoints.length === 1
-          ? "1 zone ready"
-          : this.triggerPoints.length + " zones ready";
-    },
-  },
-  setup() {
-    const fakeEvent = ref('empty');
-    provide(EVENT_MEASURE_BETWEEN_POINTS_DIALOG_MAXIMIZED_EVENT, fakeEvent);
+  const loadedTrackLists = zoneTrackIds.value.slice(0, triggerPoints.value.length);
+  if (loadedTrackLists.some((trackIds) => !Array.isArray(trackIds))) {
+    return null;
+  }
 
-    const toast = inject("toast");
+  if (!loadedTrackLists.length) {
+    return [];
+  }
 
-    function onMaximizeSender() {
-      fakeEvent.value = "maximized" + new Date();
+  let intersection = new Set(loadedTrackLists[0] as number[]);
+  for (let i = 1; i < loadedTrackLists.length; i++) {
+    const zoneIds = new Set(loadedTrackLists[i] as number[]);
+    intersection = new Set([...intersection].filter((id) => zoneIds.has(id)));
+  }
+  return [...intersection];
+});
+
+const overlayZoneNodes = computed(() => {
+  return triggerPoints.value.map((point, idx) => {
+    const count = zoneTrackCounts.value[idx];
+    let value = '...';
+    let detail = 'tracks';
+    const tone = getZoneVisualState(idx);
+
+    if (count === -1) {
+      value = '?';
+      detail = 'check';
+    } else if (count === undefined) {
+      value = '...';
+      detail = 'tracks';
+    } else {
+      value = String(count);
+      detail = count === 1 ? 'track' : 'tracks';
     }
 
     return {
-      fakeEvent,
-      toast,
-      onMaximizeSender,
+      key: point.name,
+      label: point.name,
+      value,
+      detail,
+      toneClass: `measure-flow-node--${tone}`,
+      connectorClass: `measure-flow-connector--${tone}`,
     };
-  },
-  beforeUnmount() {
-    this.cleanupMapLayers();
-    if (this.clickHandler && this.map) {
-      this.map.off('click', this.clickHandler);
+  });
+});
+
+const sharedFlowNode = computed(() => {
+  if (!triggerPoints.value.length) {
+    return null;
+  }
+
+  const relevantCounts = zoneTrackCounts.value.slice(0, triggerPoints.value.length);
+  if (triggerPoints.value.length === 1) {
+    const count = relevantCounts[0];
+    if (count === undefined) {
+      return { value: '...', title: 'shared', detail: 'waiting', toneClass: 'measure-flow-node--loading' };
     }
-    if (typeof window !== 'undefined') {
-      window.removeEventListener('resize', this.onViewportResize);
+    if (count === -1) {
+      return { value: '?', title: 'shared', detail: 'check', toneClass: 'measure-flow-node--error' };
     }
-  },
-  mounted() {
-    if (typeof window !== 'undefined') {
-      window.addEventListener('resize', this.onViewportResize);
+    return {
+      value: String(count),
+      title: 'shared',
+      detail: count === 1 ? 'track' : 'tracks',
+      toneClass: count === 0 ? 'measure-flow-node--warning' : 'measure-flow-node--ok',
+    };
+  }
+
+  if (relevantCounts.some((count) => count === -1)) {
+    return { value: '?', title: 'shared', detail: 'check', toneClass: 'measure-flow-node--error' };
+  }
+  if (relevantCounts.some((count) => count === undefined)) {
+    return { value: '...', title: 'shared', detail: 'tracks', toneClass: 'measure-flow-node--loading' };
+  }
+
+  const candidateCount = Array.isArray(candidateTrackIdsIntersection.value)
+    ? candidateTrackIdsIntersection.value.length
+    : 0;
+  if (candidateCount === 0) {
+    return { value: '!', title: 'shared', detail: 'tracks', toneClass: 'measure-flow-node--warning' };
+  }
+
+  return {
+    value: String(candidateCount),
+    title: 'shared',
+    detail: candidateCount === 1 ? 'track' : 'tracks',
+    toneClass: 'measure-flow-node--ok',
+  };
+});
+
+const measureSheetDetents = computed(() => {
+  const isMobile = viewportWidth.value <= 768;
+  const compactPx = isMobile ? 350 : 280;
+  const expandedVh = isMobile ? 88 : 82;
+  return [
+    { id: 'compact', height: `${compactPx}px` },
+    { id: 'expanded', height: `${expandedVh}vh` },
+  ];
+});
+
+const dockHintText = computed(() => {
+  if (!triggerPoints.value.length) {
+    return 'Place zone A';
+  }
+  const nextLabel = String.fromCharCode(65 + triggerPoints.value.length);
+  return `${triggerPoints.value.length} zone${triggerPoints.value.length === 1 ? '' : 's'} ready • next: ${nextLabel}`;
+});
+
+function onMaximizeSender() {
+  fakeEvent.value = 'maximized' + new Date();
+}
+
+function onViewportResize() {
+  viewportWidth.value = window.innerWidth;
+  viewportHeight.value = window.innerHeight;
+}
+
+/**
+ * Picks a detection radius proportional to the visible map extent.
+ * Takes ~4% of the shorter (width/height) dimension, clamped to [10m, 2000m].
+ *
+ * Examples:
+ *   extent 300m  → 12m  → 10m (floor)
+ *   extent 500m  → 20m
+ *   extent 1km   → 40m
+ *   extent 2km   → 80m
+ *   extent 5km   → 200m
+ *   extent 50km  → 2000m (ceiling)
+ */
+function radiusSelectorForExtent() {
+  const bounds = props.map.getBounds();
+  const centerLat = (bounds.getNorth() + bounds.getSouth()) / 2;
+  const metersPerDegLat = 111320;
+  const metersPerDegLng = 111320 * Math.cos((centerLat * Math.PI) / 180);
+  const widthM = Math.abs(bounds.getEast() - bounds.getWest()) * metersPerDegLng;
+  const heightM = Math.abs(bounds.getNorth() - bounds.getSouth()) * metersPerDegLat;
+  const extentM = Math.min(widthM, heightM);
+  const targetM = Math.max(10, Math.min(2000, extentM * 0.04));
+  return Math.round(Math.max(1, Math.min(100, Math.log(targetM) / Math.log(1.1))));
+}
+
+async function toggle() {
+  active.value = !active.value;
+  emit('active-changed', active.value);
+  if (active.value) emit('tool-opened');
+
+  if (active.value) {
+    // Set radius based on current visible map extent
+    if (props.map) {
+      radiusSelector.value = radiusSelectorForExtent();
+      clickHandler = (e) => onMapClick(e);
+      props.map.on('click', clickHandler);
     }
-  },
-  methods: {
+  } else {
+    cancelCrossingFetch();
+    if (clickHandler && props.map) {
+      props.map.off('click', clickHandler);
+      clickHandler = null;
+    }
+    cleanupMapLayers();
+    triggerPoints.value = [];
+  }
+}
 
-    onViewportResize() {
-      this.viewportWidth = window.innerWidth;
-      this.viewportHeight = window.innerHeight;
+function close() {
+  if (!active.value) return;
+  cancelCrossingFetch();
+  active.value = false;
+  emit('active-changed', false);
+  if (clickHandler && props.map) {
+    props.map.off('click', clickHandler);
+    clickHandler = null;
+  }
+  cleanupMapLayers();
+  triggerPoints.value = [];
+}
+
+async function onCancelSelection() {
+  cancelCrossingFetch();
+  cancelAllZoneCountRequests();
+  cleanupMapLayers();
+  triggerPoints.value = [];
+  zoneTrackCounts.value = [];
+  zoneTrackIds.value = [];
+  zoneHasVisibleTracks.value = [];
+}
+
+function onUndoLastPoint() {
+  if (!triggerPoints.value.length) return;
+  const idx = triggerPoints.value.length - 1;
+  triggerPoints.value.pop();
+
+  // Cancel pending count request for this zone
+  if (zoneCountAbortControllers.value[idx]) {
+    zoneCountAbortControllers.value[idx]?.abort();
+    zoneCountAbortControllers.value.splice(idx, 1);
+  }
+  zoneTrackCounts.value.splice(idx, 1);
+  zoneTrackIds.value.splice(idx, 1);
+  zoneHasVisibleTracks.value.splice(idx, 1);
+
+  // Remove map layers for this zone (3 layers + 2 sources per zone)
+  const layersToRemove = [
+    `measure-circle-layer-${idx}`,
+    `measure-circle-outline-layer-${idx}`,
+    `measure-label-layer-${idx}`,
+  ];
+  const sourcesToRemove = [`measure-circle-${idx}`, `measure-label-${idx}`];
+  if (props.map) {
+    for (const layerId of layersToRemove) {
+      if (props.map.getLayer(layerId)) props.map.removeLayer(layerId);
+    }
+    for (const sourceId of sourcesToRemove) {
+      if (props.map.getSource(sourceId)) props.map.removeSource(sourceId);
+    }
+  }
+  measureLayerIds.value = measureLayerIds.value.filter((id) => !layersToRemove.includes(id));
+  measureSourceIds.value = measureSourceIds.value.filter((id) => !sourcesToRemove.includes(id));
+}
+
+function cleanupMapLayers() {
+  if (!props.map) return;
+  for (const layerId of measureLayerIds.value) {
+    if (props.map.getLayer(layerId)) props.map.removeLayer(layerId);
+  }
+  for (const sourceId of measureSourceIds.value) {
+    if (props.map.getSource(sourceId)) props.map.removeSource(sourceId);
+  }
+  measureLayerIds.value = [];
+  measureSourceIds.value = [];
+  cancelAllZoneCountRequests();
+}
+
+function cancelAllZoneCountRequests() {
+  for (const ac of zoneCountAbortControllers.value) {
+    if (ac) ac.abort();
+  }
+  zoneCountAbortControllers.value = [];
+  if (radiusCountDebounceTimer) {
+    clearTimeout(radiusCountDebounceTimer);
+    radiusCountDebounceTimer = null;
+  }
+}
+
+function cancelCrossingFetch() {
+  crossingFetchAbortController?.abort();
+  crossingFetchAbortController = null;
+}
+
+function isAbortError(error: unknown): boolean {
+  if (!(error instanceof Error)) return false;
+  const message = error.message.toLowerCase();
+  return (
+    error.name === 'AbortError' ||
+    error.name === 'CanceledError' ||
+    message.includes('abort') ||
+    message.includes('cancel')
+  );
+}
+
+async function onFinishSelection() {
+  if (isAnalyzeDisabled.value) {
+    return;
+  }
+  isLoading.value = true;
+  const abortController = new AbortController();
+  crossingFetchAbortController = abortController;
+  try {
+    const data = await fetchTrackDetailsForCrossingPoints(triggerPoints.value, radius(), abortController.signal);
+    if (abortController.signal.aborted) return;
+    measureServiceResult.value = data;
+    numberOfCrossings.value =
+      measureServiceResult.value.crossings != null ? Object.keys(measureServiceResult.value.crossings).length : 0;
+    active.value = false;
+    emit('active-changed', false);
+    if (clickHandler && props.map) {
+      props.map.off('click', clickHandler);
+      clickHandler = null;
+    }
+    cleanupMapLayers();
+    triggerPoints.value = [];
+    zoneTrackCounts.value = [];
+    zoneTrackIds.value = [];
+    zoneHasVisibleTracks.value = [];
+    nextTick(() => {
+      showResults.value = true;
+    });
+  } catch (error) {
+    if (isAbortError(error)) return;
+    console.error('Measure fetch failed:', error);
+    toast?.add({
+      severity: 'warning',
+      summary: 'Info',
+      detail: 'Failed to fetch from server',
+      life: 2000,
+    });
+  } finally {
+    if (crossingFetchAbortController === abortController) {
+      crossingFetchAbortController = null;
+    }
+    isLoading.value = false;
+  }
+}
+
+function onMeasureClosed() {
+  cancelCrossingFetch();
+  emit('active-changed', false);
+  emit('tool-closed');
+  if (clickHandler && props.map) {
+    props.map.off('click', clickHandler);
+    clickHandler = null;
+  }
+  cleanupMapLayers();
+  triggerPoints.value = [];
+  zoneTrackCounts.value = [];
+  zoneTrackIds.value = [];
+  zoneHasVisibleTracks.value = [];
+}
+
+function onResultsClosed() {
+  emit('tool-closed');
+}
+
+function onMaximize() {
+  onMaximizeSender();
+}
+
+function onMapClick(e: MapClickEvent) {
+  if (!active.value || !props.map) return;
+
+  const lngLat = e.lngLat;
+  const idx = triggerPoints.value.length;
+  const labelText = String.fromCharCode(65 + idx);
+
+  const triggerPoint: MeasureTriggerPoint = {
+    name: labelText,
+    coordinate: {
+      x: lngLat.lng,
+      y: lngLat.lat,
     },
+  };
+  triggerPoints.value.push(triggerPoint);
 
-    /**
-     * Picks a detection radius proportional to the visible map extent.
-     * Takes ~4% of the shorter (width/height) dimension, clamped to [10m, 2000m].
-     *
-     * Examples:
-     *   extent 300m  → 12m  → 10m (floor)
-     *   extent 500m  → 20m
-     *   extent 1km   → 40m
-     *   extent 2km   → 80m
-     *   extent 5km   → 200m
-     *   extent 50km  → 2000m (ceiling)
-     */
-    radiusSelectorForExtent() {
-      const bounds = this.map.getBounds();
-      const centerLat = (bounds.getNorth() + bounds.getSouth()) / 2;
-      const metersPerDegLat = 111320;
-      const metersPerDegLng = 111320 * Math.cos(centerLat * Math.PI / 180);
-      const widthM  = Math.abs(bounds.getEast()  - bounds.getWest())  * metersPerDegLng;
-      const heightM = Math.abs(bounds.getNorth() - bounds.getSouth()) * metersPerDegLat;
-      const extentM = Math.min(widthM, heightM);
-      const targetM = Math.max(10, Math.min(2000, extentM * 0.04));
-      return Math.round(Math.max(1, Math.min(100, Math.log(targetM) / Math.log(1.1))));
+  // Client-side hit-test: check if visible tracks are under this zone
+  const hasVisible = checkVisibleTracksNearPoint(lngLat, radius());
+  zoneHasVisibleTracks.value.push(hasVisible);
+  zoneTrackCounts.value.push(undefined); // undefined = loading
+  zoneTrackIds.value.push(undefined);
+
+  const zoneColor = getZoneColor(idx);
+
+  const circleSourceId = `measure-circle-${idx}`;
+  const circleLayerId = `measure-circle-layer-${idx}`;
+  const circleGeoJson = createGeoJsonCircle(lngLat.lng, lngLat.lat, radius());
+
+  props.map.addSource(circleSourceId, {
+    type: 'geojson',
+    data: circleGeoJson,
+  });
+  props.map.addLayer({
+    id: circleLayerId,
+    type: 'fill',
+    source: circleSourceId,
+    paint: {
+      'fill-color': zoneColor,
+      'fill-opacity': 0.28,
+      'fill-opacity-transition': { duration: 0, delay: 0 },
     },
-
-    async toggle() {
-      this.active = !this.active;
-      this.$emit('active-changed', this.active);
-      if (this.active) this.$emit('tool-opened');
-
-      if (this.active) {
-        // Set radius based on current visible map extent
-        if (this.map) {
-          this.radiusSelector = this.radiusSelectorForExtent();
-        }
-        this.clickHandler = (e) => this.onMapClick(e);
-        this.map.on('click', this.clickHandler);
-      } else {
-        if (this.clickHandler) {
-          this.map.off('click', this.clickHandler);
-          this.clickHandler = null;
-        }
-        this.cleanupMapLayers();
-        this.triggerPoints = [];
-      }
+  });
+  const circleOutlineLayerId = `measure-circle-outline-layer-${idx}`;
+  props.map.addLayer({
+    id: circleOutlineLayerId,
+    type: 'line',
+    source: circleSourceId,
+    paint: {
+      'line-color': zoneColor,
+      'line-width': 3,
+      'line-opacity': 0.88,
+      'line-opacity-transition': { duration: 0, delay: 0 },
     },
+  });
+  measureSourceIds.value.push(circleSourceId);
+  measureLayerIds.value.push(circleLayerId);
+  measureLayerIds.value.push(circleOutlineLayerId);
 
-    close() {
-      if (!this.active) return;
-      this.active = false;
-      this.$emit('active-changed', false);
-      if (this.clickHandler && this.map) {
-        this.map.off('click', this.clickHandler);
-        this.clickHandler = null;
-      }
-      this.cleanupMapLayers();
-      this.triggerPoints = [];
-    },
+  const labelSourceId = `measure-label-${idx}`;
+  const labelLayerId = `measure-label-layer-${idx}`;
 
-    async onCancelSelection() {
-      this.cancelAllZoneCountRequests();
-      this.cleanupMapLayers();
-      this.triggerPoints = [];
-      this.zoneTrackCounts = [];
-      this.zoneTrackIds = [];
-      this.zoneHasVisibleTracks = [];
-    },
-
-    onUndoLastPoint() {
-      if (!this.triggerPoints.length) return;
-      const idx = this.triggerPoints.length - 1;
-      this.triggerPoints.pop();
-
-      // Cancel pending count request for this zone
-      if (this.zoneCountAbortControllers[idx]) {
-        this.zoneCountAbortControllers[idx].abort();
-        this.zoneCountAbortControllers.splice(idx, 1);
-      }
-      this.zoneTrackCounts.splice(idx, 1);
-      this.zoneTrackIds.splice(idx, 1);
-      this.zoneHasVisibleTracks.splice(idx, 1);
-
-      // Remove map layers for this zone (3 layers + 2 sources per zone)
-      const layersToRemove = [
-        `measure-circle-layer-${idx}`,
-        `measure-circle-outline-layer-${idx}`,
-        `measure-label-layer-${idx}`,
-      ];
-      const sourcesToRemove = [
-        `measure-circle-${idx}`,
-        `measure-label-${idx}`,
-      ];
-      if (this.map) {
-        for (const layerId of layersToRemove) {
-          if (this.map.getLayer(layerId)) this.map.removeLayer(layerId);
-        }
-        for (const sourceId of sourcesToRemove) {
-          if (this.map.getSource(sourceId)) this.map.removeSource(sourceId);
-        }
-      }
-      this.measureLayerIds = this.measureLayerIds.filter(id => !layersToRemove.includes(id));
-      this.measureSourceIds = this.measureSourceIds.filter(id => !sourcesToRemove.includes(id));
-
-    },
-
-    cleanupMapLayers() {
-      if (!this.map) return;
-      for (const layerId of this.measureLayerIds) {
-        if (this.map.getLayer(layerId)) this.map.removeLayer(layerId);
-      }
-      for (const sourceId of this.measureSourceIds) {
-        if (this.map.getSource(sourceId)) this.map.removeSource(sourceId);
-      }
-      this.measureLayerIds = [];
-      this.measureSourceIds = [];
-      this.cancelAllZoneCountRequests();
-    },
-
-    cancelAllZoneCountRequests() {
-      for (const ac of this.zoneCountAbortControllers) {
-        if (ac) ac.abort();
-      }
-      this.zoneCountAbortControllers = [];
-      if (this.radiusCountDebounceTimer) {
-        clearTimeout(this.radiusCountDebounceTimer);
-        this.radiusCountDebounceTimer = null;
-      }
-    },
-
-    async onFinishSelection() {
-      if (this.isAnalyzeDisabled) {
-        return;
-      }
-      this.isLoading = true;
-      try {
-        const data = await fetchTrackDetailsForCrossingPoints(this.triggerPoints, this.radius());
-        this.measureServiceResult = data;
-        this.numberOfCrossings = (this.measureServiceResult.crossings != null ? Object.keys(this.measureServiceResult.crossings).length : 0);
-        this.active = false;
-        this.$emit('active-changed', false);
-        if (this.clickHandler && this.map) {
-          this.map.off('click', this.clickHandler);
-          this.clickHandler = null;
-        }
-        this.cleanupMapLayers();
-        this.triggerPoints = [];
-        this.zoneTrackCounts = [];
-        this.zoneTrackIds = [];
-        this.zoneHasVisibleTracks = [];
-        this.$nextTick(() => {
-          this.showResults = true;
-        });
-      } catch (error) {
-        console.error('Measure fetch failed:', error);
-        this.toast.add({
-          severity: 'warning',
-          summary: 'Info',
-          detail: 'Failed to fetch from server',
-          life: 2000
-        });
-      } finally {
-        this.isLoading = false;
-      }
-    },
-
-    onMeasureClosed() {
-      this.$emit('active-changed', false);
-      this.$emit('tool-closed');
-      if (this.clickHandler && this.map) {
-        this.map.off('click', this.clickHandler);
-        this.clickHandler = null;
-      }
-      this.cleanupMapLayers();
-      this.triggerPoints = [];
-      this.zoneTrackCounts = [];
-      this.zoneTrackIds = [];
-      this.zoneHasVisibleTracks = [];
-    },
-
-    onResultsClosed() {
-      this.$emit('tool-closed');
-    },
-
-    onMaximize() {
-      this.onMaximizeSender();
-    },
-
-    onMapClick(e) {
-      if (!this.active || !this.map) return;
-
-      const lngLat = e.lngLat;
-      const idx = this.triggerPoints.length;
-      const labelText = String.fromCharCode(65 + idx);
-
-      const triggerPoint = {
-        name: labelText,
-        coordinate: {
-          x: lngLat.lng,
-          y: lngLat.lat,
-        }
-      };
-      this.triggerPoints.push(triggerPoint);
-
-      // Client-side hit-test: check if visible tracks are under this zone
-      const hasVisible = this.checkVisibleTracksNearPoint(lngLat, this.radius());
-      this.zoneHasVisibleTracks.push(hasVisible);
-      this.zoneTrackCounts.push(undefined); // undefined = loading
-      this.zoneTrackIds.push(undefined);
-
-      const zoneColor = this.getZoneColor(idx);
-
-      const circleSourceId = `measure-circle-${idx}`;
-      const circleLayerId = `measure-circle-layer-${idx}`;
-      const circleGeoJson = this.createGeoJsonCircle(lngLat.lng, lngLat.lat, this.radius());
-
-      this.map.addSource(circleSourceId, {
-        type: 'geojson',
-        data: circleGeoJson,
-      });
-      this.map.addLayer({
-        id: circleLayerId,
-        type: 'fill',
-        source: circleSourceId,
-        paint: {
-          'fill-color': zoneColor,
-          'fill-opacity': 0.28,
-          'fill-opacity-transition': {duration: 0, delay: 0},
-        },
-      });
-      const circleOutlineLayerId = `measure-circle-outline-layer-${idx}`;
-      this.map.addLayer({
-        id: circleOutlineLayerId,
-        type: 'line',
-        source: circleSourceId,
-        paint: {
-          'line-color': zoneColor,
-          'line-width': 3,
-          'line-opacity': 0.88,
-          'line-opacity-transition': {duration: 0, delay: 0},
-        },
-      });
-      this.measureSourceIds.push(circleSourceId);
-      this.measureLayerIds.push(circleLayerId);
-      this.measureLayerIds.push(circleOutlineLayerId);
-
-      const labelSourceId = `measure-label-${idx}`;
-      const labelLayerId = `measure-label-layer-${idx}`;
-
-      this.map.addSource(labelSourceId, {
-        type: 'geojson',
-        data: {
-          type: 'FeatureCollection',
-          features: [{
-            type: 'Feature',
-            geometry: {type: 'Point', coordinates: [lngLat.lng, lngLat.lat]},
-            properties: {label: labelText},
-          }],
-        },
-      });
-      this.map.addLayer({
-        id: labelLayerId,
-        type: 'symbol',
-        source: labelSourceId,
-        layout: {
-          'text-field': ['get', 'label'],
-          'text-size': 18,
-          'text-font': ['Noto Sans Medium'],
-          'text-anchor': 'center',
-          'text-allow-overlap': true,
-        },
-        paint: {
-          'text-color': '#10213a',
-          'text-halo-color': 'rgba(255,255,255,0.94)',
-          'text-halo-width': 2.4,
-          'text-opacity-transition': {duration: 0, delay: 0},
-        },
-      });
-      this.measureSourceIds.push(labelSourceId);
-      this.measureLayerIds.push(labelLayerId);
-
-      // Show toast if no visible tracks under this click
-      if (!hasVisible) {
-        this.toast.add({
-          severity: 'warn',
-          summary: 'No tracks nearby',
-          detail: 'Tap closer to a recorded route for better results.',
-          life: 3000,
-        });
-      }
-
-      // Fire async server count for this zone
-      this.fetchZoneTrackCount(idx);
-    },
-
-    updateAllCircles() {
-      if (!this.map) return;
-      this.triggerPoints.forEach((point, idx) => {
-        const source = this.map.getSource(`measure-circle-${idx}`);
-        if (source) {
-          source.setData(this.createGeoJsonCircle(point.coordinate.x, point.coordinate.y, this.radius()));
-        }
-      });
-      // Re-run client-side hit-test for all zones with new radius
-      this.refreshAllZoneVisualHitTest();
-    },
-
-    /**
-     * Client-side hit-test: checks if any rendered track features exist within a bounding box
-     * around the given point + radius. Uses MapLibre's queryRenderedFeatures against the
-     * already-rendered tracks-layer. Instant (0ms), but only sees visible/rendered tracks.
-     */
-    checkVisibleTracksNearPoint(lngLat, radiusMeters) {
-      if (!this.map) return false;
-      const trackLayerIds = ['tracks-layer', 'tracks-dot-layer', 'tracks-overview-dots'];
-      const existingLayers = trackLayerIds.filter(id => this.map.getLayer(id));
-      if (!existingLayers.length) return false;
-
-      // Convert radius to approximate pixel bbox
-      const center = this.map.project([lngLat.lng, lngLat.lat]);
-      const edgePoint = this.map.project([
-        lngLat.lng + (radiusMeters / (111320 * Math.cos(lngLat.lat * Math.PI / 180))),
-        lngLat.lat,
-      ]);
-      const radiusPx = Math.max(Math.abs(edgePoint.x - center.x), 8);
-
-      const bbox = [
-        [center.x - radiusPx, center.y - radiusPx],
-        [center.x + radiusPx, center.y + radiusPx],
-      ];
-
-      const features = this.map.queryRenderedFeatures(bbox, { layers: existingLayers });
-      return features.length > 0;
-    },
-
-    refreshAllZoneVisualHitTest() {
-      this.triggerPoints.forEach((point, idx) => {
-        const hasVisible = this.checkVisibleTracksNearPoint(
-          { lng: point.coordinate.x, lat: point.coordinate.y },
-          this.radius()
-        );
-        this.zoneHasVisibleTracks[idx] = hasVisible;
-        this.updateZoneColor(idx);
-      });
-    },
-
-    getZoneVisualState(idx) {
-      const count = this.zoneTrackCounts[idx];
-      if (count === undefined) {
-        return 'loading';
-      }
-      if (count === -1) {
-        return 'error';
-      }
-      if (count === 0) {
-        return 'warning';
-      }
-      return 'ok';
-    },
-
-    getZoneColor(idx) {
-      const state = this.getZoneVisualState(idx);
-      if (state === 'loading') {
-        return '#64748b';
-      }
-      if (state === 'error') {
-        return '#dc2626';
-      }
-      if (state === 'warning') {
-        return '#ea580c';
-      }
-      return '#2563eb';
-    },
-
-    updateZoneColor(idx) {
-      if (!this.map) return;
-      const color = this.getZoneColor(idx);
-      const fillLayerId = `measure-circle-layer-${idx}`;
-      const outlineLayerId = `measure-circle-outline-layer-${idx}`;
-      if (this.map.getLayer(fillLayerId)) {
-        this.map.setPaintProperty(fillLayerId, 'fill-color', color);
-        this.map.setPaintProperty(fillLayerId, 'fill-opacity', this.getZoneVisualState(idx) === 'loading' ? 0.18 : 0.28);
-      }
-      if (this.map.getLayer(outlineLayerId)) {
-        this.map.setPaintProperty(outlineLayerId, 'line-color', color);
-        this.map.setPaintProperty(outlineLayerId, 'line-width', this.getZoneVisualState(idx) === 'warning' ? 4 : 3.2);
-        this.map.setPaintProperty(outlineLayerId, 'line-opacity', 0.9);
-        this.map.setPaintProperty(outlineLayerId, 'line-dasharray', this.getZoneVisualState(idx) === 'loading' ? [2, 2] : [1, 0]);
-      }
-    },
-
-    /**
-     * Fires a server-side count request for one zone using the existing endpoint.
-     */
-    async fetchZoneTrackCount(idx) {
-      // Cancel any previous request for this index
-      if (this.zoneCountAbortControllers[idx]) {
-        this.zoneCountAbortControllers[idx].abort();
-      }
-      const ac = new AbortController();
-      this.zoneCountAbortControllers[idx] = ac;
-
-      const point = this.triggerPoints[idx];
-      if (!point) return;
-
-      try {
-        const trackIds = await fetchTrackIdsWithinDistanceOfPoint(
-          point.coordinate.x,
-          point.coordinate.y,
-          this.radius(),
-          ac.signal,
-        );
-        // Check zone still exists (user may have undone it)
-        if (idx < this.triggerPoints.length) {
-          this.zoneTrackIds[idx] = trackIds;
-          this.zoneTrackCounts[idx] = trackIds.length;
-          // Also update color based on server result (overrides client-side hint)
-          const hasServerTracks = trackIds.length > 0;
-          this.zoneHasVisibleTracks[idx] = hasServerTracks;
-          this.updateZoneColor(idx);
-          // Force Vue reactivity for the array
-          this.zoneTrackCounts = [...this.zoneTrackCounts];
-        }
-      } catch (e) {
-        if (e && e.name === 'CanceledError') return;
-        if (e && e.message && e.message.includes('canceled')) return;
-        // On error, mark as unknown
-        if (idx < this.triggerPoints.length) {
-          this.zoneTrackIds[idx] = null;
-          this.zoneTrackCounts[idx] = -1;
-          this.updateZoneColor(idx);
-          this.zoneTrackCounts = [...this.zoneTrackCounts];
-        }
-      }
-    },
-
-    debouncedRefreshAllZoneCounts() {
-      if (this.radiusCountDebounceTimer) {
-        clearTimeout(this.radiusCountDebounceTimer);
-      }
-      this.radiusCountDebounceTimer = setTimeout(() => {
-        this.triggerPoints.forEach((_, idx) => {
-          this.zoneTrackIds[idx] = undefined;
-          this.zoneTrackCounts[idx] = undefined; // reset to loading
-          this.updateZoneColor(idx);
-          this.fetchZoneTrackCount(idx);
-        });
-        this.zoneTrackCounts = [...this.zoneTrackCounts];
-      }, 500);
-    },
-
-    createGeoJsonCircle(lng, lat, radiusMeters, points = 64) {
-      const coords = [];
-      const earthRadius = 6371000;
-      const latRad = lat * Math.PI / 180;
-      const lngRad = lng * Math.PI / 180;
-      for (let i = 0; i <= points; i++) {
-        const angle = (i / points) * 2 * Math.PI;
-        const dLat = (radiusMeters / earthRadius) * Math.cos(angle);
-        const dLng = (radiusMeters / (earthRadius * Math.cos(latRad))) * Math.sin(angle);
-        coords.push([
-          (lngRad + dLng) * 180 / Math.PI,
-          (latRad + dLat) * 180 / Math.PI,
-        ]);
-      }
-      return {
-        type: 'FeatureCollection',
-        features: [{
+  props.map.addSource(labelSourceId, {
+    type: 'geojson',
+    data: {
+      type: 'FeatureCollection',
+      features: [
+        {
           type: 'Feature',
-          geometry: {type: 'Polygon', coordinates: [coords]},
-          properties: {},
-        }],
-      };
+          geometry: { type: 'Point', coordinates: [lngLat.lng, lngLat.lat] },
+          properties: { label: labelText },
+        },
+      ],
     },
-  },
+  });
+  props.map.addLayer({
+    id: labelLayerId,
+    type: 'symbol',
+    source: labelSourceId,
+    layout: {
+      'text-field': ['get', 'label'],
+      'text-size': 18,
+      'text-font': ['Noto Sans Medium'],
+      'text-anchor': 'center',
+      'text-allow-overlap': true,
+    },
+    paint: {
+      'text-color': '#10213a',
+      'text-halo-color': 'rgba(255,255,255,0.94)',
+      'text-halo-width': 2.4,
+      'text-opacity-transition': { duration: 0, delay: 0 },
+    },
+  });
+  measureSourceIds.value.push(labelSourceId);
+  measureLayerIds.value.push(labelLayerId);
+
+  // Show toast if no visible tracks under this click
+  if (!hasVisible) {
+    toast?.add({
+      severity: 'warn',
+      summary: 'No tracks nearby',
+      detail: 'Tap closer to a recorded route for better results.',
+      life: 3000,
+    });
+  }
+
+  // Fire async server count for this zone
+  fetchZoneTrackCount(idx);
+}
+
+function updateAllCircles() {
+  if (!props.map) return;
+  triggerPoints.value.forEach((point, idx) => {
+    const source = props.map.getSource(`measure-circle-${idx}`) as maplibregl.GeoJSONSource | undefined;
+    if (source) {
+      source.setData(createGeoJsonCircle(point.coordinate.x, point.coordinate.y, radius()));
+    }
+  });
+  // Re-run client-side hit-test for all zones with new radius
+  refreshAllZoneVisualHitTest();
+}
+
+/**
+ * Client-side hit-test: checks if any rendered track features exist within a bounding box
+ * around the given point + radius. Uses MapLibre's queryRenderedFeatures against the
+ * already-rendered tracks-layer. Instant (0ms), but only sees visible/rendered tracks.
+ */
+function checkVisibleTracksNearPoint(lngLat: { lng: number; lat: number }, radiusMeters: number) {
+  if (!props.map) return false;
+  const trackLayerIds = ['tracks-layer', 'tracks-dot-layer', 'tracks-overview-dots'];
+  const existingLayers = trackLayerIds.filter((id) => props.map.getLayer(id));
+  if (!existingLayers.length) return false;
+
+  // Convert radius to approximate pixel bbox
+  const center = props.map.project([lngLat.lng, lngLat.lat]);
+  const edgePoint = props.map.project([
+    lngLat.lng + radiusMeters / (111320 * Math.cos((lngLat.lat * Math.PI) / 180)),
+    lngLat.lat,
+  ]);
+  const radiusPx = Math.max(Math.abs(edgePoint.x - center.x), 8);
+
+  const bbox: [maplibregl.PointLike, maplibregl.PointLike] = [
+    [center.x - radiusPx, center.y - radiusPx],
+    [center.x + radiusPx, center.y + radiusPx],
+  ];
+
+  const features = props.map.queryRenderedFeatures(bbox, { layers: existingLayers });
+  return features.length > 0;
+}
+
+function refreshAllZoneVisualHitTest() {
+  triggerPoints.value.forEach((point, idx) => {
+    const hasVisible = checkVisibleTracksNearPoint({ lng: point.coordinate.x, lat: point.coordinate.y }, radius());
+    zoneHasVisibleTracks.value[idx] = hasVisible;
+    updateZoneColor(idx);
+  });
+}
+
+function getZoneVisualState(idx: number): ZoneVisualState {
+  const count = zoneTrackCounts.value[idx];
+  if (count === undefined) {
+    return 'loading';
+  }
+  if (count === -1) {
+    return 'error';
+  }
+  if (count === 0) {
+    return 'warning';
+  }
+  return 'ok';
+}
+
+function getZoneColor(idx: number) {
+  const state = getZoneVisualState(idx);
+  if (state === 'loading') {
+    return '#64748b';
+  }
+  if (state === 'error') {
+    return '#dc2626';
+  }
+  if (state === 'warning') {
+    return '#ea580c';
+  }
+  return '#2563eb';
+}
+
+function updateZoneColor(idx: number) {
+  if (!props.map) return;
+  const color = getZoneColor(idx);
+  const fillLayerId = `measure-circle-layer-${idx}`;
+  const outlineLayerId = `measure-circle-outline-layer-${idx}`;
+  if (props.map.getLayer(fillLayerId)) {
+    props.map.setPaintProperty(fillLayerId, 'fill-color', color);
+    props.map.setPaintProperty(fillLayerId, 'fill-opacity', getZoneVisualState(idx) === 'loading' ? 0.18 : 0.28);
+  }
+  if (props.map.getLayer(outlineLayerId)) {
+    props.map.setPaintProperty(outlineLayerId, 'line-color', color);
+    props.map.setPaintProperty(outlineLayerId, 'line-width', getZoneVisualState(idx) === 'warning' ? 4 : 3.2);
+    props.map.setPaintProperty(outlineLayerId, 'line-opacity', 0.9);
+    props.map.setPaintProperty(
+      outlineLayerId,
+      'line-dasharray',
+      getZoneVisualState(idx) === 'loading' ? [2, 2] : [1, 0]
+    );
+  }
+}
+
+/**
+ * Fires a server-side count request for one zone using the existing endpoint.
+ */
+async function fetchZoneTrackCount(idx: number) {
+  // Cancel any previous request for this index
+  if (zoneCountAbortControllers.value[idx]) {
+    zoneCountAbortControllers.value[idx]?.abort();
+  }
+  const ac = new AbortController();
+  zoneCountAbortControllers.value[idx] = ac;
+
+  const point = triggerPoints.value[idx];
+  if (!point) return;
+
+  try {
+    const trackIds = await fetchTrackIdsWithinDistanceOfPoint(
+      point.coordinate.x,
+      point.coordinate.y,
+      radius(),
+      ac.signal
+    );
+    // Check zone still exists (user may have undone it)
+    if (idx < triggerPoints.value.length) {
+      zoneTrackIds.value[idx] = trackIds;
+      zoneTrackCounts.value[idx] = trackIds.length;
+      // Also update color based on server result (overrides client-side hint)
+      const hasServerTracks = trackIds.length > 0;
+      zoneHasVisibleTracks.value[idx] = hasServerTracks;
+      updateZoneColor(idx);
+      // Force Vue reactivity for the array
+      zoneTrackCounts.value = [...zoneTrackCounts.value];
+    }
+  } catch (e) {
+    const error = e as { name?: string; message?: string } | undefined;
+    if (error?.name === 'CanceledError') return;
+    if (error?.message?.includes('canceled')) return;
+    // On error, mark as unknown
+    if (idx < triggerPoints.value.length) {
+      zoneTrackIds.value[idx] = null;
+      zoneTrackCounts.value[idx] = -1;
+      updateZoneColor(idx);
+      zoneTrackCounts.value = [...zoneTrackCounts.value];
+    }
+  }
+}
+
+function debouncedRefreshAllZoneCounts() {
+  if (radiusCountDebounceTimer) {
+    clearTimeout(radiusCountDebounceTimer);
+  }
+  radiusCountDebounceTimer = setTimeout(() => {
+    triggerPoints.value.forEach((_, idx) => {
+      zoneTrackIds.value[idx] = undefined;
+      zoneTrackCounts.value[idx] = undefined; // reset to loading
+      updateZoneColor(idx);
+      fetchZoneTrackCount(idx);
+    });
+    zoneTrackCounts.value = [...zoneTrackCounts.value];
+  }, 500);
+}
+
+function createGeoJsonCircle(
+  lng: number,
+  lat: number,
+  radiusMeters: number,
+  points = 64
+): GeoJSON.FeatureCollection<GeoJSON.Polygon> {
+  const coords: Array<[number, number]> = [];
+  const earthRadius = 6371000;
+  const latRad = (lat * Math.PI) / 180;
+  const lngRad = (lng * Math.PI) / 180;
+  for (let i = 0; i <= points; i++) {
+    const angle = (i / points) * 2 * Math.PI;
+    const dLat = (radiusMeters / earthRadius) * Math.cos(angle);
+    const dLng = (radiusMeters / (earthRadius * Math.cos(latRad))) * Math.sin(angle);
+    coords.push([((lngRad + dLng) * 180) / Math.PI, ((latRad + dLat) * 180) / Math.PI]);
+  }
+  return {
+    type: 'FeatureCollection' as const,
+    features: [
+      {
+        type: 'Feature' as const,
+        geometry: { type: 'Polygon' as const, coordinates: [coords] },
+        properties: {},
+      },
+    ],
+  };
+}
+
+watch(radiusSelector, () => {
+  updateAllCircles();
+  debouncedRefreshAllZoneCounts();
+});
+
+onMounted(() => {
+  if (typeof window !== 'undefined') {
+    window.addEventListener('resize', onViewportResize);
+  }
+});
+
+onBeforeUnmount(() => {
+  cancelCrossingFetch();
+  cleanupMapLayers();
+  if (clickHandler && props.map) {
+    props.map.off('click', clickHandler);
+  }
+  if (typeof window !== 'undefined') {
+    window.removeEventListener('resize', onViewportResize);
+  }
+});
+
+defineExpose({
+  toggle,
+  close,
+  onMaximize,
 });
 </script>
 
@@ -898,7 +971,6 @@ export default defineComponent({
 </style>
 
 <style scoped>
-
 .measure-sheet {
   display: flex;
   flex-direction: column;
@@ -967,7 +1039,10 @@ export default defineComponent({
   font-size: var(--text-sm-size);
   font-weight: 700;
   cursor: pointer;
-  transition: transform 0.15s ease, opacity 0.15s ease, box-shadow 0.15s ease;
+  transition:
+    transform 0.15s ease,
+    opacity 0.15s ease,
+    box-shadow 0.15s ease;
   white-space: nowrap;
 }
 
@@ -1255,5 +1330,4 @@ export default defineComponent({
     box-shadow: 0 0 0 8px var(--accent-subtle);
   }
 }
-
 </style>

@@ -5,7 +5,7 @@ This directory builds a self-contained Docker image that runs
 router that fits comfortably on a Raspberry Pi or Synology NAS.
 
 The image is **optional**. It is only required if you want the in-app
-route-planner feature. All other MyTrailLog functionality works without it.
+route-planner feature. All other MTL Explorer functionality works without it.
 
 ## Architecture
 
@@ -22,11 +22,11 @@ It does **not** ship rd5 routing segments — those 5°×5° files are downloade
 from <https://brouter.de/brouter/segments4/> on demand and cached in the
 `brouter-segments` Docker volume.
 
-The MyTrailLog server (`PlannerAutoPrewarmService`) POSTs the bounding box of
+The MTL Explorer server (`PlannerAutoPrewarmService`) POSTs the bounding box of
 all imported tracks to `/prewarm` on startup, so the segments covering the
 user's known area are fetched in the background before the first route request.
 
-## Run standalone (no MyTrailLog)
+## Run standalone (no MTL Explorer)
 
 ```bash
 docker build -t mytraillog-brouter:local docker-brouter
@@ -41,14 +41,16 @@ curl "http://localhost:17777/brouter?lonlats=8.5402,47.3784|8.5517,47.4515&profi
 curl http://localhost:17778/status
 ```
 
-## Run as a MyTrailLog sidecar
+## Run as a MTL Explorer sidecar
 
-Defined in the root `docker-compose.yml` and started with the normal home
-install stack.
+Defined in the root `docker-compose.yml` and started with the normal home install stack:
 
 ```bash
 docker compose up -d
 ```
+
+> [!TIP]
+> If you are setting up MTL Explorer for the first time, follow the standard **[README Quick Start](../README.md#quick-start)** to bring up the entire stack, including this BRouter sidecar.
 
 ## File layout
 

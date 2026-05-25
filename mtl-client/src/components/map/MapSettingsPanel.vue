@@ -1,8 +1,14 @@
 <template>
   <div>
-    <BottomSheet v-model="isOpen" title="Maps and data" icon="bi bi-map" :detents="[{ height: '55vh' }, { height: '92vh' }]" @closed="$emit('tool-closed')">
+    <BottomSheet
+      v-model="isOpen"
+      title="Maps and data"
+      icon="bi bi-map"
+      :detents="[{ height: '55vh' }, { height: '92vh' }]"
+      @closed="$emit('tool-closed')"
+    >
       <template #header-actions>
-        <button class="msp-header-reset-btn" @click="$emit('reset-settings')" title="Reset all layers to defaults">
+        <button class="msp-header-reset-btn" title="Reset all layers to defaults" @click="$emit('reset-settings')">
           <i class="bi bi-arrow-counterclockwise"></i>
           Reset
         </button>
@@ -12,11 +18,11 @@
         <div class="msp-section-label">Base Map</div>
         <div class="msp-theme-grid">
           <div
-              v-for="theme in themes"
-              :key="theme.code"
-              class="msp-theme-tile"
-              :class="{ 'msp-theme-active': modelValue === theme.code }"
-              @click="$emit('update:modelValue', theme.code)"
+            v-for="theme in themes"
+            :key="theme.code"
+            class="msp-theme-tile"
+            :class="{ 'msp-theme-active': modelValue === theme.code }"
+            @click="$emit('update:modelValue', theme.code)"
           >
             <div class="msp-theme-swatch" :style="{ backgroundImage: `url(${theme.thumbnail})` }">
               <span v-if="theme.featured" class="msp-theme-badge">★</span>
@@ -132,31 +138,42 @@
           @update:enabled="$emit('toggle-layer', 'wanderwege')"
           @update:opacity="$emit('change-layer-opacity', 'wanderwege', $event)"
         />
-
       </div>
     </BottomSheet>
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref } from 'vue';
 import BottomSheet from '@/components/ui/BottomSheet.vue';
 import LayerControl from '@/components/map/LayerControl.vue';
 
-defineProps({
-  modelValue: { type: String, required: true },
-  themes: { type: Array, required: true },
-  layerStates: { type: Object, required: true },
-});
+type MapThemeOption = {
+  code: string;
+  featured?: boolean;
+  name: string;
+  thumbnail: string;
+};
 
-const emit = defineEmits([
-  'update:modelValue',
-  'toggle-layer',
-  'change-layer-opacity',
-  'reset-settings',
-  'tool-opened',
-  'tool-closed',
-]);
+type LayerState = {
+  enabled: boolean;
+  opacity: number;
+};
+
+defineProps<{
+  layerStates: Record<string, LayerState>;
+  modelValue: string;
+  themes: MapThemeOption[];
+}>();
+
+const emit = defineEmits<{
+  'change-layer-opacity': [layer: string, opacity: number];
+  'reset-settings': [];
+  'toggle-layer': [layer: string];
+  'tool-closed': [];
+  'tool-opened': [];
+  'update:modelValue': [value: string];
+}>();
 
 const isOpen = ref(false);
 
@@ -216,7 +233,10 @@ defineExpose({ toggle, close });
   background: transparent;
   color: var(--text-faint);
   cursor: pointer;
-  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  transition:
+    background 0.15s,
+    color 0.15s,
+    border-color 0.15s;
   white-space: nowrap;
 }
 .msp-header-reset-btn:hover {

@@ -18,12 +18,15 @@ import './assets/main.css';
 
 // ── Side-effect plugins ──
 import HighchartsVue from 'highcharts-vue';
+import 'highcharts/highcharts-more';
 import hljs from 'highlight.js/lib/core';
 import sql from 'highlight.js/lib/languages/sql';
 import pgsql from 'highlight.js/lib/languages/pgsql';
 import hljsVuePlugin from '@highlightjs/vue-plugin';
+import { registerMtlSqlHighlight } from '@/utils/mtlSqlHighlight';
 hljs.registerLanguage('sql', sql);
 hljs.registerLanguage('pgsql', pgsql);
+registerMtlSqlHighlight(hljs);
 
 // ── Eager-evaluated module side effects (must run before mount) ──
 import '@/utils/auth';
@@ -32,16 +35,24 @@ import '@/utils/auth';
 // iOS 10+ ignores user-scalable=no in the viewport meta for accessibility
 // reasons. Blocking multi-touch touchmove on the document is the only reliable
 // workaround. Single-finger panning (e.g. map drag, sheet drag) is unaffected.
-document.addEventListener('touchmove', (e: TouchEvent) => {
-  if (e.touches.length > 1) e.preventDefault();
-}, { passive: false });
+document.addEventListener(
+  'touchmove',
+  (e: TouchEvent) => {
+    if (e.touches.length > 1) e.preventDefault();
+  },
+  { passive: false }
+);
 // Prevent double-tap zoom by eating the second tap if it follows within 300ms.
 let _lastTap = 0;
-document.addEventListener('touchend', (e: TouchEvent) => {
-  const now = Date.now();
-  if (now - _lastTap < 300) e.preventDefault();
-  _lastTap = now;
-}, { passive: false });
+document.addEventListener(
+  'touchend',
+  (e: TouchEvent) => {
+    const now = Date.now();
+    if (now - _lastTap < 300) e.preventDefault();
+    _lastTap = now;
+  },
+  { passive: false }
+);
 
 // ── Boot ──
 initializeStartupDiagnostics();
@@ -60,7 +71,6 @@ app.use(createPinia());
 installGlobalErrorHandlers(app);
 app.use(router);
 installPrimeVue(app);
-// @ts-ignore -- highcharts-vue is missing proper Vue 3 plugin typings
 app.use(HighchartsVue);
 app.use(hljsVuePlugin);
 

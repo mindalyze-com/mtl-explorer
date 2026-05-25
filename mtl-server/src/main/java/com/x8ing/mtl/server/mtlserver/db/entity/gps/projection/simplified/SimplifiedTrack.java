@@ -1,5 +1,6 @@
 package com.x8ing.mtl.server.mtlserver.db.entity.gps.projection.simplified;
 
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import lombok.Data;
@@ -13,6 +14,13 @@ import java.util.Objects;
  */
 @Data
 @Entity
+@JsonPropertyOrder({
+        "fakeId",
+        "gpsTrackId",
+        "gpsTrackDataId",
+        "trackType",
+        "lineString"
+})
 public class SimplifiedTrack {
 
     /**

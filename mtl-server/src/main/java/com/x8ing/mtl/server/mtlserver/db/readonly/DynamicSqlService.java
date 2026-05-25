@@ -1,5 +1,6 @@
 package com.x8ing.mtl.server.mtlserver.db.readonly;
 
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.x8ing.mtl.server.mtlserver.db.readonly.spring.NamedParameterUtils;
 import com.x8ing.mtl.server.mtlserver.db.readonly.spring.ParsedSql;
 import com.x8ing.mtl.server.mtlserver.db.readonly.spring.QueryResult;
@@ -21,6 +22,10 @@ import java.util.stream.IntStream;
 
 @Service
 @Slf4j
+@JsonPropertyOrder({
+        "readOnlyJdbcTemplate",
+        "gpsTrackRepository"
+})
 public class DynamicSqlService {
 
     private final NamedParameterJdbcTemplate readOnlyJdbcTemplate;
@@ -28,6 +33,10 @@ public class DynamicSqlService {
 
     private static final String COLUMN_ID = "id";
     private static final String COLUMN_GROUP = "grp";
+    private static final int LARGE_ID_QUERY_DUMMY_ID_COUNT = 120000;
+    private static final long LARGE_ID_QUERY_DUMMY_ID_OFFSET = 500000L;
+    private static final long NON_EXISTING_TRACK_ID = -10000000000L;
+    private static final int JPQL_STARTUP_PROBE_DUMMY_ID_COUNT = 10000;
 
 
     @Autowired
@@ -152,8 +161,8 @@ public class DynamicSqlService {
 
         // There is a MAX of 65k params
         // Caused by: org.postgresql.util.PSQLException: PreparedStatement can have at most 65’535 parameters. Please consider using arrays, or splitting the query in several ones, or using COPY. Given query has 150’180 parameters
-        List<Long> fakeIds = IntStream.rangeClosed(1, 120000)
-                .mapToObj(i -> i + 500000L) // Apply the offset to each ID
+        List<Long> fakeIds = IntStream.rangeClosed(1, LARGE_ID_QUERY_DUMMY_ID_COUNT)
+                .mapToObj(i -> i + LARGE_ID_QUERY_DUMMY_ID_OFFSET) // Apply the offset to each ID
                 .toList();
 
         QueryResult realIds = executeDynamicSqlReadOnly("select id from gps_track");
@@ -171,8 +180,20 @@ public class DynamicSqlService {
         // Test: Check if we get back our ID's even if they are among many wrong ones...
         List<Long> tracksByIdsCustom = gpsTrackRepository.findTrackIDsByIdsCustom(ids.toArray(Long[]::new));
 
+        // Test: Check that the bounded JPQL/JQL IN-list path still works for thousands of parameters.
+        // This is not the production large-ID path because JPQL expands IN lists into one bind variable per ID.
+        List<Long> jpqlProbeIds = IntStream.rangeClosed(1, JPQL_STARTUP_PROBE_DUMMY_ID_COUNT)
+                .mapToObj(i -> NON_EXISTING_TRACK_ID - i)
+                .toList();
+        List<Long> jpqlProbeResult = gpsTrackRepository.findTrackIdsByIdsJpqlStartupProbe(jpqlProbeIds);
+
+        // Test: Check the production version lookup path used by filter/track cache invalidation.
+        // This must use array binding too; JPQL IN-clause expansion fails beyond PostgreSQL's parameter limit.
+        List<Object[]> versionRows = gpsTrackRepository.findVersionsByIds(ids.toArray(Long[]::new));
+
         // Test: Check if we get nothing if we supply a wrong ID which will never exist. We don't have negative ID's and not as big ones
-        List<Long> tracksByIdsEmpty = gpsTrackRepository.findTrackIDsByIdsCustom(new Long[]{-10000000000L});
+        List<Long> tracksByIdsEmpty = gpsTrackRepository.findTrackIDsByIdsCustom(new Long[]{NON_EXISTING_TRACK_ID});
+        List<Object[]> versionsByIdsEmpty = gpsTrackRepository.findVersionsByIds(new Long[]{NON_EXISTING_TRACK_ID});
 
         long dt = System.currentTimeMillis() - t0;
 
@@ -182,12 +203,28 @@ public class DynamicSqlService {
             throw new RuntimeException(error);
         }
 
-        if (tracksByIdsCustom.size() == realIds.getResultEntries().size()) {
+        if (!jpqlProbeResult.isEmpty()) {
+            String error = "Dynamic SQL JPQL startup probe. Expected a empty list, but got something. ";
+            log.error(error);
+            throw new RuntimeException(error);
+        }
+
+        if (!versionsByIdsEmpty.isEmpty()) {
+            String error = "Dynamic SQL version lookup test. Expected a empty list, but got something. ";
+            log.error(error);
+            throw new RuntimeException(error);
+        }
+
+        if (tracksByIdsCustom.size() == realIds.getResultEntries().size()
+            && versionRows.size() == realIds.getResultEntries().size()) {
             log.info("Dynamic SQL service Test PASSED with success. " +
                      "Could execute the service and got the expected number of ID's from the DB. " +
-                     "Got from the DB the expected amount of %s ID's out of a passed array with size %s. Test completed in %s ms".formatted(realIds.getResultEntries().size(), ids.size(), dt));
+                     "Got from the DB the expected amount of %s ID's and %s version rows out of a passed array with size %s. " +
+                     "JPQL startup probe checked %s dummy ID's. Test completed in %s ms"
+                             .formatted(tracksByIdsCustom.size(), versionRows.size(), ids.size(), jpqlProbeIds.size(), dt));
         } else {
-            String errorMessage = "Testing dynamic service did fail. Got the following sizes: realIds: %s, tracksByIdsCustom: %s".formatted(realIds.getResultEntries().size(), tracksByIdsCustom.size());
+            String errorMessage = "Testing dynamic service did fail. Got the following sizes: realIds: %s, tracksByIdsCustom: %s, versionRows: %s"
+                    .formatted(realIds.getResultEntries().size(), tracksByIdsCustom.size(), versionRows.size());
             log.error(errorMessage);
             throw new RuntimeException(errorMessage);
         }
@@ -208,5 +245,3 @@ public class DynamicSqlService {
 
 
 }
-
-

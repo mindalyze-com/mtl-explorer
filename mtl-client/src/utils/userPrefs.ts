@@ -23,6 +23,8 @@ export const USER_PREFS_KEYS = {
 
   // Track-details panel
   trackGraphHeight: 'mtl.track-details.graph-height',
+  trackGraphRangeBand: 'mtl.track-details.graph-range-band',
+  trackChartPointCount: 'mtl.track-details.chart-point-count',
   trackMiniMapHeight: 'mtl.track-details.minimap-height',
 
   // Map view (still read directly by Map.vue today; will migrate during C.1)
@@ -65,7 +67,6 @@ const LEGACY_KEY_MIGRATIONS: ReadonlyArray<readonly [string, string]> = [
   ['mtl-tracksEnabled', USER_PREFS_KEYS.mapTracksEnabled],
   ['mtl-trackPointsVisible', USER_PREFS_KEYS.mapTrackPointsVisible],
   ['mtl-heatmapVisible', USER_PREFS_KEYS.mapHeatmapVisible],
-  ['mtl-wasAutoDimmed', USER_PREFS_KEYS.mapWasAutoDimmed],
   ['mtl-mapConfig', USER_PREFS_KEYS.mapConfigCache],
   ['mtl-bg-displayed', USER_PREFS_KEYS.backgroundsDisplayed],
   ['mtl-bg-version', USER_PREFS_KEYS.backgroundCacheVersion],

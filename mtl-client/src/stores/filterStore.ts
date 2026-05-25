@@ -1,10 +1,6 @@
 import { defineStore } from 'pinia';
 import { computed, ref, shallowRef } from 'vue';
-import {
-  ClientFilterConfig,
-  FilterService,
-  type FilterParamsRequest,
-} from '@/components/filter/FilterService';
+import { ClientFilterConfig, FilterService, type FilterParamsRequest } from '@/components/filter/FilterService';
 
 /**
  * Reactive cache around `FilterService`.
@@ -72,13 +68,11 @@ export const useFilterStore = defineStore('filter', () => {
    * "filterActive defaults to false" behavior).
    */
   const isStandard = computed(() =>
-    config.value === null
-      ? true
-      : FilterService.isStandardFilterWithStandardParams(config.value)
+    config.value === null ? true : FilterService.isStandardFilterWithStandardParams(config.value)
   );
 
-  /** Convenience inverse of `isStandard`. */
-  const isActive = computed(() => !isStandard.value);
+  /** True when the current config changes the visible track set or map coloring. */
+  const isActive = computed(() => (config.value === null ? false : FilterService.hasActiveFilterConfig(config.value)));
 
   /** Convenience accessor for the current filterParams (or null). */
   const filterParams = computed<FilterParamsRequest | null>(() => config.value?.filterParams ?? null);

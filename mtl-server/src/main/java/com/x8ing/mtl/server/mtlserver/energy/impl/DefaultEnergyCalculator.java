@@ -10,21 +10,21 @@ import org.springframework.stereotype.Component;
 import java.util.Set;
 
 /**
- * Fallback energy calculator for motorized and unclassified activities.
- * Computes only gravitational PE and kinetic energy change — informational only,
- * since the engine/motor supplies the mechanical work rather than the person.
+ * Fallback energy calculator for unclassified or future activity types.
+ * Computes only gravitational PE and kinetic energy change as a conservative
+ * placeholder when MTL Explorer does not have a useful activity-specific road,
+ * trail, water, snow, or aircraft model.
+ * <p>
+ * It intentionally claims no concrete activity type. {@link
+ * com.x8ing.mtl.server.mtlserver.energy.EnergyCalculatorFactory} keeps it as
+ * the explicit null/future-type fallback.
  */
 @Component
 public class DefaultEnergyCalculator extends EnergyCalculator {
 
     @Override
     public Set<GpsTrack.ACTIVITY_TYPE> getActivityTypes() {
-        return Set.of(
-                GpsTrack.ACTIVITY_TYPE.CAR,
-                GpsTrack.ACTIVITY_TYPE.MOTORBIKING,
-                GpsTrack.ACTIVITY_TYPE.AIRPLANE,
-                GpsTrack.ACTIVITY_TYPE.SUPER_SONIC
-        );
+        return Set.of();
     }
 
     @Override

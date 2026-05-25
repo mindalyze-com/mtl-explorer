@@ -1,44 +1,43 @@
 <!--
   SPDX-License-Identifier: AGPL-3.0-or-later
-  Copyright (C) 2020-2026 Patrick Heusser and MyTrailLog contributors.
+  Copyright (C) 2020-2026 Patrick Heusser and MTL Explorer contributors.
 -->
 <template>
   <div class="about-page">
     <header class="about-header">
-      <h1>About MyTrailLog</h1>
+      <h1>About MTL Explorer</h1>
       <p class="tagline">Self-hosted GPS track &amp; trail log.</p>
     </header>
 
     <section class="about-card">
       <h2>Build</h2>
       <dl>
-        <dt>Version</dt><dd>{{ version }}</dd>
-        <dt>Build</dt><dd>{{ buildInfo }}</dd>
+        <dt>Version</dt>
+        <dd>{{ version }}</dd>
+        <dt>Build</dt>
+        <dd>{{ buildInfo }}</dd>
       </dl>
     </section>
 
     <section class="about-card">
       <h2>License</h2>
       <p>
-        MyTrailLog is free software, dual-licensed under the
+        MTL Explorer is free software, dual-licensed under the
         <strong>GNU Affero General Public License, version 3 or later</strong>
         (AGPL-3.0-or-later) and a separate commercial license.
       </p>
       <p>
         This program is distributed in the hope that it will be useful, but
-        <strong>WITHOUT ANY WARRANTY</strong>; without even the implied warranty
-        of <em>MERCHANTABILITY</em> or <em>FITNESS FOR A PARTICULAR PURPOSE</em>.
-        See the GNU AGPL for more details.
+        <strong>WITHOUT ANY WARRANTY</strong>; without even the implied warranty of <em>MERCHANTABILITY</em> or
+        <em>FITNESS FOR A PARTICULAR PURPOSE</em>. See the GNU AGPL for more details.
       </p>
       <p>
-        <strong>Network use is distribution.</strong> If you modify this program
-        and make it available to users over a network, you must offer those
-        users access to the complete corresponding source code of your modified
-        version under the AGPL.
+        <strong>Network use is distribution.</strong> If you modify this program and make it available to users over a
+        network, you must offer those users access to the complete corresponding source code of your modified version
+        under the AGPL.
       </p>
       <p>
-        You can obtain the complete corresponding source code of this running
-        instance at:
+        You can obtain the complete corresponding source code of this running instance at:
         <a :href="sourceUrl" target="_blank" rel="noopener">{{ sourceUrl }}</a>
       </p>
       <p class="license-actions">
@@ -46,95 +45,101 @@
         &middot;
         <a :href="sourceUrl + '/blob/main/LICENSE'" target="_blank" rel="noopener">LICENSE</a>
         &middot;
-        <a :href="sourceUrl + '/blob/main/NOTICE'" target="_blank" rel="noopener">NOTICE</a>
+        <a :href="sourceUrl + '/blob/main/documentation/legal/NOTICE'" target="_blank" rel="noopener">NOTICE</a>
         &middot;
-        <a :href="sourceUrl + '/blob/main/THIRD_PARTY_LICENSES.md'" target="_blank" rel="noopener">Third-party licenses</a>
+        <a :href="sourceUrl + '/blob/main/documentation/legal/THIRD_PARTY_LICENSES.md'" target="_blank" rel="noopener"
+          >Third-party licenses</a
+        >
       </p>
     </section>
 
     <section class="about-card">
       <h2>Commercial use</h2>
+      <p>Using MTL Explorer for <strong>personal, private, or home</strong> purposes is always free.</p>
       <p>
-        Using MyTrailLog for <strong>personal, private, or home</strong> purposes
-        is always free.
-      </p>
-      <p>
-        If you want to offer MyTrailLog as a hosted service to third parties,
-        embed it in a proprietary product, or otherwise use it under terms
-        different from the AGPL, a <strong>commercial license</strong> is
-        available.
+        If you want to offer MTL Explorer as a hosted service to third parties, embed it in a proprietary product, or
+        otherwise use it under terms different from the AGPL, a <strong>commercial license</strong> is available.
       </p>
       <p>
         Commercial inquiries:
         <a :href="'mailto:' + contactEmail">{{ contactEmail }}</a>
         &middot;
-        <a :href="sourceUrl + '/blob/main/COMMERCIAL-LICENSE.md'" target="_blank" rel="noopener">COMMERCIAL-LICENSE.md</a>
+        <a :href="sourceUrl + '/blob/main/documentation/legal/COMMERCIAL-LICENSE.md'" target="_blank" rel="noopener"
+          >COMMERCIAL-LICENSE.md</a
+        >
       </p>
     </section>
 
     <section class="about-card">
       <h2>Contribute</h2>
       <p>
-        Bug reports, patches and improvements are welcome. All contributors
-        must sign the project CLA so the dual-licensing model can continue.
+        Bug reports, patches and improvements are welcome. All contributors must sign the project CLA so the
+        dual-licensing model can continue.
       </p>
       <p>
-        <a :href="sourceUrl + '/blob/main/CONTRIBUTING.md'" target="_blank" rel="noopener">CONTRIBUTING.md</a>
+        <a :href="sourceUrl + '/blob/main/.github/CONTRIBUTING.md'" target="_blank" rel="noopener">CONTRIBUTING.md</a>
         &middot;
-        <a :href="sourceUrl + '/blob/main/CLA.md'" target="_blank" rel="noopener">CLA</a>
+        <a :href="sourceUrl + '/blob/main/documentation/legal/CLA.md'" target="_blank" rel="noopener">CLA</a>
         &middot;
-        <a :href="sourceUrl + '/blob/main/CODE_OF_CONDUCT.md'" target="_blank" rel="noopener">Code of Conduct</a>
+        <a :href="sourceUrl + '/blob/main/.github/CODE_OF_CONDUCT.md'" target="_blank" rel="noopener"
+          >Code of Conduct</a
+        >
         &middot;
-        <a :href="sourceUrl + '/blob/main/SECURITY.md'" target="_blank" rel="noopener">Security</a>
+        <a :href="sourceUrl + '/blob/main/.github/SECURITY.md'" target="_blank" rel="noopener">Security</a>
       </p>
     </section>
 
     <section class="about-card">
       <h2>Trademark</h2>
       <p>
-        &ldquo;MyTrailLog&rdquo; and the MyTrailLog logo are trademarks of
-        Patrick Heusser. The open source license does not grant trademark
-        rights; forks must use a different name and logo.
-        See <a :href="sourceUrl + '/blob/main/TRADEMARK.md'" target="_blank" rel="noopener">TRADEMARK.md</a>.
+        &ldquo;MTL Explorer&rdquo; and the MTL Explorer logo are trademarks of Patrick Heusser. The open source license
+        does not grant trademark rights; forks must use a different name and logo. See
+        <a :href="sourceUrl + '/blob/main/documentation/legal/TRADEMARK.md'" target="_blank" rel="noopener"
+          >TRADEMARK.md</a
+        >.
+      </p>
+    </section>
+
+    <section class="about-card">
+      <h2>Data</h2>
+      <p>
+        Location search uses GeoNames data licensed under
+        <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a>.
+        GeoNames attribution:
+        <a href="https://www.geonames.org" target="_blank" rel="noopener">www.geonames.org</a>.
       </p>
     </section>
 
     <section class="about-card disclaimer">
       <h2>Disclaimer</h2>
       <p>
-        MyTrailLog is <strong>not a safety-critical navigation system</strong>.
-        Do not rely on it as the sole means of navigation in the backcountry,
-        at sea, in the air, or in any situation where inaccuracy could cause
-        injury or loss of life. Always carry a map, a compass, and a working
-        brain.
+        MTL Explorer is <strong>not a safety-critical navigation system</strong>. Do not rely on it as the sole means of
+        navigation in the backcountry, at sea, in the air, or in any situation where inaccuracy could cause injury or
+        loss of life. Always carry a map, a compass, and a working brain.
       </p>
       <p>
-        <a :href="sourceUrl + '/blob/main/DISCLAIMER.md'" target="_blank" rel="noopener">Full disclaimer &amp; limitation of liability</a>
+        <a :href="sourceUrl + '/blob/main/documentation/legal/DISCLAIMER.md'" target="_blank" rel="noopener"
+          >Full disclaimer &amp; limitation of liability</a
+        >
       </p>
     </section>
 
     <footer class="about-footer">
-      <p>
-        Copyright &copy; 2020-2026 Patrick Heusser and MyTrailLog contributors.
-        Licensed under AGPL-3.0-or-later.
-      </p>
+      <p>Copyright &copy; 2020-2026 Patrick Heusser and MTL Explorer contributors. Licensed under AGPL-3.0-or-later.</p>
     </footer>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue';
+import { APP_CONTACT_EMAIL, APP_SOURCE_URL } from '@/utils/appBranding';
 
 // Values are injected at build time via Vite env (see vite.config.ts).
 // Fallbacks keep the view working in dev.
-const version = computed<string>(
-  () => (import.meta.env.VITE_APP_VERSION as string) || 'dev'
-);
-const buildInfo = computed<string>(
-  () => (import.meta.env.VITE_APP_BUILD as string) || 'local build'
-);
-const sourceUrl = 'https://github.com/mindalyze-com/mtl-explorer';
-const contactEmail = 'hey.lueg@gmail.com';
+const version = computed<string>(() => (import.meta.env.VITE_APP_VERSION as string) || 'dev');
+const buildInfo = computed<string>(() => (import.meta.env.VITE_APP_BUILD as string) || 'local build');
+const sourceUrl = APP_SOURCE_URL;
+const contactEmail = APP_CONTACT_EMAIL;
 </script>
 
 <style scoped>
@@ -142,7 +147,12 @@ const contactEmail = 'hey.lueg@gmail.com';
   max-width: 860px;
   margin: 0 auto;
   padding: 2rem 1.25rem 4rem;
-  font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  font-family:
+    system-ui,
+    -apple-system,
+    Segoe UI,
+    Roboto,
+    sans-serif;
   line-height: 1.55;
   color: var(--text-primary);
 }

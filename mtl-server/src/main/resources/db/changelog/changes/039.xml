@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.10.xsd">
+
+    <changeSet id="20260517_1_data_freshness_ignore_planned_tracks" author="patrick.heusser">
+        <sql splitStatements="false"><![CDATA[
+CREATE OR REPLACE FUNCTION bump_data_freshness_imported_gps_track_trigger()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF TG_OP = 'DELETE' THEN
+    IF OLD.track_source = 'PLANNED' THEN
+      RETURN OLD;
+    END IF;
+    PERFORM bump_data_freshness('tracks');
+    RETURN OLD;
+  END IF;
+
+  IF TG_OP = 'UPDATE' AND OLD.track_source = 'PLANNED' AND NEW.track_source = 'PLANNED' THEN
+    RETURN NEW;
+  END IF;
+
+  IF TG_OP = 'INSERT' AND NEW.track_source = 'PLANNED' THEN
+    RETURN NEW;
+  END IF;
+
+  PERFORM bump_data_freshness('tracks');
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+        ]]></sql>
+
+        <sql splitStatements="false"><![CDATA[
+CREATE OR REPLACE FUNCTION bump_data_freshness_imported_gps_track_data_trigger()
+RETURNS TRIGGER AS $$
+DECLARE
+  should_bump boolean;
+BEGIN
+  IF TG_OP = 'INSERT' THEN
+    SELECT EXISTS (
+      SELECT 1 FROM gps_track gt
+       WHERE gt.id = NEW.gps_track_id
+         AND gt.track_source <> 'PLANNED'
+    ) INTO should_bump;
+  ELSIF TG_OP = 'UPDATE' THEN
+    SELECT EXISTS (
+      SELECT 1 FROM gps_track gt
+       WHERE gt.id IN (OLD.gps_track_id, NEW.gps_track_id)
+         AND gt.track_source <> 'PLANNED'
+    ) INTO should_bump;
+  ELSE
+    SELECT EXISTS (
+      SELECT 1 FROM gps_track gt
+       WHERE gt.id = OLD.gps_track_id
+         AND gt.track_source <> 'PLANNED'
+    ) INTO should_bump;
+  END IF;
+
+  IF should_bump THEN
+    PERFORM bump_data_freshness('track_geometry');
+  END IF;
+
+  IF TG_OP = 'DELETE' THEN
+    RETURN OLD;
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+        ]]></sql>
+
+        <sql>DROP TRIGGER IF EXISTS gps_track_data_freshness ON gps_track</sql>
+        <sql>
+            CREATE TRIGGER gps_track_data_freshness
+            AFTER INSERT OR UPDATE OR DELETE ON gps_track
+            FOR EACH ROW EXECUTE FUNCTION bump_data_freshness_imported_gps_track_trigger()
+        </sql>
+
+        <sql>DROP TRIGGER IF EXISTS gps_track_data_data_freshness ON gps_track_data</sql>
+        <sql>
+            CREATE TRIGGER gps_track_data_data_freshness
+            AFTER INSERT OR UPDATE OR DELETE ON gps_track_data
+            FOR EACH ROW EXECUTE FUNCTION bump_data_freshness_imported_gps_track_data_trigger()
+        </sql>
+    </changeSet>
+
+</databaseChangeLog>

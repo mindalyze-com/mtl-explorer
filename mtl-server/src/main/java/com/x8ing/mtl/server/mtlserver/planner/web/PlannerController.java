@@ -1,14 +1,12 @@
 package com.x8ing.mtl.server.mtlserver.planner.web;
 
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.x8ing.mtl.server.mtlserver.db.entity.gps.GpsTrack;
 import com.x8ing.mtl.server.mtlserver.planner.client.BRouterException;
 import com.x8ing.mtl.server.mtlserver.planner.client.BRouterSegmentMissingException;
 import com.x8ing.mtl.server.mtlserver.planner.config.PlannerProperties;
 import com.x8ing.mtl.server.mtlserver.planner.constants.PlannerConstants;
-import com.x8ing.mtl.server.mtlserver.planner.dto.PlannedTrackSummaryDto;
-import com.x8ing.mtl.server.mtlserver.planner.dto.RouteRequestDto;
-import com.x8ing.mtl.server.mtlserver.planner.dto.RouteResponseDto;
-import com.x8ing.mtl.server.mtlserver.planner.dto.SavePlannedTrackDto;
+import com.x8ing.mtl.server.mtlserver.planner.dto.*;
 import com.x8ing.mtl.server.mtlserver.planner.service.AutoPrewarmService;
 import com.x8ing.mtl.server.mtlserver.planner.service.PlannedTrackService;
 import com.x8ing.mtl.server.mtlserver.planner.service.PlannerService;
@@ -33,7 +31,23 @@ import java.util.Map;
 @RestController
 @RequestMapping(PlannerConstants.PLANNER_API_BASE)
 @ConditionalOnProperty(prefix = "mtl.planner", name = "enabled", havingValue = "true")
+@JsonPropertyOrder({
+        "plannerService",
+        "plannedTrackService",
+        "plannerStatusService",
+        "plannerProperties",
+        "autoPrewarmService"
+})
 public class PlannerController {
+
+    private static final String MIN_LNG = "minLng";
+    private static final String MIN_LAT = "minLat";
+    private static final String MAX_LNG = "maxLng";
+    private static final String MAX_LAT = "maxLat";
+    private static final double MIN_LATITUDE = -90.0;
+    private static final double MAX_LATITUDE = 90.0;
+    private static final double MIN_LONGITUDE = -180.0;
+    private static final double MAX_LONGITUDE = 180.0;
 
     private final PlannerService plannerService;
     private final PlannedTrackService plannedTrackService;
@@ -94,19 +108,65 @@ public class PlannerController {
      */
     @PostMapping("/prewarm")
     public ResponseEntity<?> prewarm(@RequestBody Map<String, Double> bbox) {
-        double minLng = bbox.getOrDefault("minLng", 0.0);
-        double minLat = bbox.getOrDefault("minLat", 0.0);
-        double maxLng = bbox.getOrDefault("maxLng", 0.0);
-        double maxLat = bbox.getOrDefault("maxLat", 0.0);
+        try {
+            validateBbox(bbox);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+        double minLng = getRequiredDouble(bbox, MIN_LNG);
+        double minLat = getRequiredDouble(bbox, MIN_LAT);
+        double maxLng = getRequiredDouble(bbox, MAX_LNG);
+        double maxLat = getRequiredDouble(bbox, MAX_LAT);
         autoPrewarmService.triggerPrewarmForBbox(minLng, minLat, maxLng, maxLat);
         return ResponseEntity.accepted().build();
+    }
+
+    private void validateBbox(Map<String, Double> bbox) {
+        if (bbox == null
+            || !bbox.containsKey(MIN_LNG)
+            || !bbox.containsKey(MIN_LAT)
+            || !bbox.containsKey(MAX_LNG)
+            || !bbox.containsKey(MAX_LAT)) {
+            throw new IllegalArgumentException("Bounding box must include minLng, minLat, maxLng, and maxLat");
+        }
+        double minLng = getRequiredDouble(bbox, MIN_LNG);
+        double minLat = getRequiredDouble(bbox, MIN_LAT);
+        double maxLng = getRequiredDouble(bbox, MAX_LNG);
+        double maxLat = getRequiredDouble(bbox, MAX_LAT);
+        validateLongitude(minLng);
+        validateLongitude(maxLng);
+        validateLatitude(minLat);
+        validateLatitude(maxLat);
+        if (minLng > maxLng || minLat > maxLat) {
+            throw new IllegalArgumentException("Bounding box min values must be less than or equal to max values");
+        }
+    }
+
+    private void validateLatitude(double latitude) {
+        if (!Double.isFinite(latitude) || latitude < MIN_LATITUDE || latitude > MAX_LATITUDE) {
+            throw new IllegalArgumentException("Latitude must be between -90 and 90");
+        }
+    }
+
+    private void validateLongitude(double longitude) {
+        if (!Double.isFinite(longitude) || longitude < MIN_LONGITUDE || longitude > MAX_LONGITUDE) {
+            throw new IllegalArgumentException("Longitude must be between -180 and 180");
+        }
+    }
+
+    private double getRequiredDouble(Map<String, Double> values, String key) {
+        Double value = values.get(key);
+        if (value == null) {
+            throw new IllegalArgumentException("Bounding box field is required: " + key);
+        }
+        return value;
     }
 
     /**
      * BRouter sidecar status — download progress, ready state, etc.
      */
     @GetMapping("/status")
-    public Map<String, Object> status() {
+    public BRouterStatusDto status() {
         return plannerStatusService.fetchStatus();
     }
 
@@ -114,16 +174,16 @@ public class PlannerController {
      * Save the currently-planned track as a PLANNED GpsTrack.
      */
     @PostMapping("/save")
-    public ResponseEntity<?> save(@RequestBody SavePlannedTrackDto dto) {
+    public ResponseEntity<SavePlannedTrackResponseDto> save(@RequestBody SavePlannedTrackDto dto) {
         try {
             GpsTrack saved = plannedTrackService.save(dto);
-            return ResponseEntity.ok(Map.of(
-                    "id", saved.getId(),
-                    "name", saved.getTrackName(),
-                    "distanceM", saved.getTrackLengthInMeter()
+            return ResponseEntity.ok(new SavePlannedTrackResponseDto(
+                    saved.getId(),
+                    saved.getTrackName(),
+                    saved.getTrackLengthInMeter() == null ? 0.0 : saved.getTrackLengthInMeter()
             ));
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+            return ResponseEntity.badRequest().build();
         }
     }
 
@@ -139,11 +199,11 @@ public class PlannerController {
      * Full plan payload for re-hydrating the editor (waypoints + routed geometry).
      */
     @GetMapping("/plans/{id}")
-    public ResponseEntity<?> loadPlan(@PathVariable long id) {
+    public ResponseEntity<PlannedTrackDetailDto> loadPlan(@PathVariable long id) {
         try {
             return ResponseEntity.ok(plannedTrackService.loadDetail(id));
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.status(404).body(Map.of("error", e.getMessage()));
+            return ResponseEntity.notFound().build();
         }
     }
 
@@ -151,12 +211,12 @@ public class PlannerController {
      * Delete a saved plan. Refuses to touch IMPORTED tracks.
      */
     @DeleteMapping("/plans/{id}")
-    public ResponseEntity<?> deletePlan(@PathVariable long id) {
+    public ResponseEntity<Void> deletePlan(@PathVariable long id) {
         try {
             plannedTrackService.delete(id);
             return ResponseEntity.noContent().build();
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+            return ResponseEntity.badRequest().build();
         }
     }
 

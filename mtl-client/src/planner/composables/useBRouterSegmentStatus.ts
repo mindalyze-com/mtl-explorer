@@ -28,7 +28,9 @@ export function useBRouterSegmentStatus(enabled: boolean | Ref<boolean> = true) 
   function start() {
     if (timer !== null) return;
     void refresh();
-    timer = window.setInterval(() => { void refresh(); }, SIDECAR_STATUS_POLL_MS);
+    timer = window.setInterval(() => {
+      void refresh();
+    }, SIDECAR_STATUS_POLL_MS);
   }
 
   function stop() {
@@ -39,7 +41,14 @@ export function useBRouterSegmentStatus(enabled: boolean | Ref<boolean> = true) 
   }
 
   if (isRef(enabled)) {
-    watch(enabled, (on) => { on ? start() : stop(); }, { immediate: true });
+    watch(
+      enabled,
+      (on) => {
+        if (on) start();
+        else stop();
+      },
+      { immediate: true }
+    );
   } else if (enabled) {
     start();
   }

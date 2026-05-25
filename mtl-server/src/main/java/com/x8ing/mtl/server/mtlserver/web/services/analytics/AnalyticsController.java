@@ -1,5 +1,6 @@
 package com.x8ing.mtl.server.mtlserver.web.services.analytics;
 
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.x8ing.mtl.server.mtlserver.db.repository.logs.WebClientEnvironmentLogService;
 import com.x8ing.mtl.server.mtlserver.web.security.JwtUtil;
 import jakarta.servlet.http.HttpServletRequest;
@@ -11,6 +12,9 @@ import static org.springframework.http.HttpStatus.UNAUTHORIZED;
 
 @RestController
 @RequestMapping("/api/analytics")
+@JsonPropertyOrder({
+        "webClientEnvironmentLogService"
+})
 public class AnalyticsController {
 
     private static final String X_FORWARDED_FOR_HEADER = "X-Forwarded-For";

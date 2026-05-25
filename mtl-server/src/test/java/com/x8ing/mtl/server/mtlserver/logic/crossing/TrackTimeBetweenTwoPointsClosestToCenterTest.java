@@ -3,6 +3,7 @@ package com.x8ing.mtl.server.mtlserver.logic.crossing;
 import com.x8ing.mtl.server.mtlserver.db.entity.gps.GpsTrack;
 import com.x8ing.mtl.server.mtlserver.db.entity.gps.GpsTrackDataPoint;
 import com.x8ing.mtl.server.mtlserver.db.repository.gps.GpsTrackDataPointRepository;
+import com.x8ing.mtl.server.mtlserver.db.repository.gps.GpsTrackEventRepository;
 import com.x8ing.mtl.server.mtlserver.db.repository.gps.GpsTrackRepository;
 import com.x8ing.mtl.server.mtlserver.db.repository.gps.GpsTrackVariantSelector;
 import com.x8ing.mtl.server.mtlserver.gpx.GPXReader;
@@ -53,6 +54,9 @@ class TrackTimeBetweenTwoPointsClosestToCenterTest {
     @Mock
     private GpsTrackDataPointRepository gpsTrackDataPointRepository;
 
+    @Mock
+    private GpsTrackEventRepository gpsTrackEventRepository;
+
     private TrackTimeBetweenTwoPoints service;
 
     private final GeometryFactory factory = new GeometryFactory();
@@ -82,8 +86,11 @@ class TrackTimeBetweenTwoPointsClosestToCenterTest {
         service = new TrackTimeBetweenTwoPoints(
                 gpsTrackRepository,
                 gpsTrackDataPointRepository,
+                gpsTrackEventRepository,
                 gpsTrackVariantSelector
         );
+        when(gpsTrackEventRepository.findAllByGpsTrackIdOrderByStartPointIndexAsc(any()))
+                .thenReturn(List.of());
     }
 
     // ---------------------------------------------------------------------

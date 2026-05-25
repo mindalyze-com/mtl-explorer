@@ -14,10 +14,9 @@
       silently counted as "stopped". Result: inflated stop times (e.g. 50 min
       reported for a track that actually stopped for a few minutes).
 
-      We now compute totals once at ingest using TrackMotionAnalyzer (the same
-      algorithm powering the per-segment stop annotations in the measure tool)
-      over the outlier-cleaned point stream, and persist them so the client
-      can display authoritative values without any local calculation.
+      We now compute totals once at ingest using the dense GPS stop detector
+      over the outlier-cleaned point stream, and persist them so the client can
+      display authoritative values without any local calculation.
     -->
     <changeSet id="20260419_1_track_stop_stats_columns" author="patrick.heusser">
         <addColumn tableName="gps_track">

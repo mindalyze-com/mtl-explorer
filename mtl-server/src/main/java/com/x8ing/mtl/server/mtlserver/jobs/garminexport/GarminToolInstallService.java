@@ -1,5 +1,6 @@
 package com.x8ing.mtl.server.mtlserver.jobs.garminexport;
 
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.x8ing.mtl.server.mtlserver.db.entity.config.ConfigEntity;
 import com.x8ing.mtl.server.mtlserver.db.repository.config.ConfigRepository;
 import lombok.Data;
@@ -26,6 +27,15 @@ import java.util.regex.Pattern;
  */
 @Slf4j
 @Component
+@JsonPropertyOrder({
+        "installGcexportScript",
+        "installFitExportScript",
+        "gcexportDefaultVersion",
+        "fitExportDefaultProfile",
+        "fitExportDefaultPackages",
+        "configRepository",
+        "operationLock"
+})
 public class GarminToolInstallService {
 
     // --- Config DB keys ---
@@ -185,6 +195,13 @@ public class GarminToolInstallService {
     // -------------------------------------------------------------------------
 
     @Data
+    @JsonPropertyOrder({
+            "gcexportConfiguredVersion",
+            "gcexportVenvPresent",
+            "fitExportConfiguredProfile",
+            "fitExportConfiguredPackages",
+            "fitExportVenvPresent"
+    })
     public static class ToolStatusDto {
         private String gcexportConfiguredVersion;
         private boolean gcexportVenvPresent;

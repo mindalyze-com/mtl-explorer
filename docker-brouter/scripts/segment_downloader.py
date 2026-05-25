@@ -14,6 +14,7 @@ import threading
 import time
 import urllib.error
 import urllib.request
+from datetime import datetime, timezone
 from pathlib import Path
 
 from constants import (
@@ -58,6 +59,12 @@ class SegmentDownloader:
         self._completed: set[str] = set()
         self._failed: dict[str, str] = {}
         self._known_404: set[str] = set()  # tiles confirmed as 404 — never retry
+        self._validation_phase = "pending"
+        self._validation_started_at: str | None = None
+        self._validation_completed_at: str | None = None
+        self._validation_validated = 0
+        self._validation_repaired: list[str] = []
+        self._validation_warnings: list[str] = []
         self._lock = threading.Lock()
 
     def start(self) -> None:
@@ -100,7 +107,47 @@ class SegmentDownloader:
                 "segmentsCompletedThisRun": sorted(self._completed),
                 "segmentsFailed": dict(self._failed),
                 "segmentsKnown404": len(self._known_404),
+                "segmentsValidationPhase": self._validation_phase,
+                "segmentsValidated": self._validation_validated,
+                "segmentsRepaired": sorted(self._validation_repaired),
+                "segmentsValidationWarnings": list(self._validation_warnings),
+                "segmentsValidationStartedAt": self._validation_started_at,
+                "segmentsValidationCompletedAt": self._validation_completed_at,
             }
+
+    def validate_existing_segments(self) -> None:
+        """Validate existing rd5 files against cheap upstream metadata before BRouter starts."""
+        with self._lock:
+            self._validation_phase = "running"
+            self._validation_started_at = _utc_now()
+            self._validation_completed_at = None
+            self._validation_validated = 0
+            self._validation_repaired = []
+            self._validation_warnings = []
+
+        stale_parts = sorted(self.segments_dir.glob("*.rd5.part"))
+        for part in stale_parts:
+            try:
+                part.unlink()
+                log(f"validation removed stale partial file {part.name} action=delete")
+            except OSError as e:
+                self._record_validation_warning(part.name, f"could not remove stale partial file: {e}")
+                log(f"validation warning {part.name} could not remove stale partial file: {e}")
+
+        segment_files = sorted(self.segments_dir.glob("*.rd5"))
+        log(f"validation start existing_segments={len(segment_files)}")
+        for segment in segment_files:
+            self._validate_segment_file(segment)
+
+        with self._lock:
+            self._validation_phase = "complete"
+            self._validation_completed_at = _utc_now()
+            repaired_count = len(self._validation_repaired)
+            warning_count = len(self._validation_warnings)
+        log(
+            "validation complete "
+            f"validated={len(segment_files)} repaired={repaired_count} warnings={warning_count}"
+        )
 
     # ── Internals ────────────────────────────────────────────────────
 
@@ -123,6 +170,116 @@ class SegmentDownloader:
             self._seq += 1
             self._queue.put((priority, self._seq, name))
             return True
+
+    def _validate_segment_file(self, segment: Path) -> None:
+        name = segment.name
+        try:
+            local_size = segment.stat().st_size
+        except OSError as e:
+            self._record_validation_warning(name, f"could not stat local file: {e}")
+            log(f"validation warning {name} could not stat local file: {e} keeping local file")
+            self._increment_validation_count()
+            return
+
+        try:
+            upstream_size = self._fetch_upstream_size(name)
+        except _Permanent404:
+            log(f"validation upstream 404 {name} action=delete")
+            self._delete_missing_upstream_segment(segment)
+            self._increment_validation_count()
+            return
+        except Exception as e:
+            self._record_validation_warning(name, f"upstream HEAD failed: {e}")
+            log(f"validation warning {name} upstream HEAD failed: {e} keeping local file")
+            self._increment_validation_count()
+            return
+
+        if upstream_size is None:
+            self._record_validation_warning(name, "upstream HEAD missing Content-Length")
+            log(f"validation warning {name} upstream HEAD missing Content-Length keeping local file")
+            self._increment_validation_count()
+            return
+
+        if local_size == upstream_size:
+            self._increment_validation_count()
+            return
+
+        log(
+            "validation mismatch "
+            f"{name} local_size={local_size} upstream_size={upstream_size} action=redownload"
+        )
+        self._redownload_mismatched_segment(segment, upstream_size)
+        self._increment_validation_count()
+
+    def _fetch_upstream_size(self, name: str) -> int | None:
+        url = f"{SEGMENTS_BASE_URL}/{name}"
+        req = urllib.request.Request(url, headers={"User-Agent": HTTP_USER_AGENT}, method="HEAD")
+        try:
+            with urllib.request.urlopen(req, timeout=DOWNLOAD_TIMEOUT_SEC) as resp:
+                length = resp.headers.get("Content-Length")
+                return int(length) if length else None
+        except urllib.error.HTTPError as e:
+            if e.code == 404:
+                e.close()
+                raise _Permanent404(f"HTTP 404: {name} does not exist on server") from e
+            raise
+
+    def _delete_missing_upstream_segment(self, segment: Path) -> None:
+        name = segment.name
+        try:
+            segment.unlink()
+        except FileNotFoundError:
+            pass
+        except OSError as e:
+            self._record_validation_warning(name, f"could not delete upstream-404 tile: {e}")
+            log(f"validation warning {name} could not delete upstream-404 tile: {e}")
+            return
+        with self._lock:
+            self._known_404.add(name)
+            self._failed[name] = f"HTTP 404: {name} does not exist on server"
+
+    def _redownload_mismatched_segment(self, segment: Path, upstream_size: int) -> None:
+        name = segment.name
+        try:
+            segment.unlink()
+        except FileNotFoundError:
+            pass
+        except OSError as e:
+            self._record_validation_warning(name, f"could not delete mismatched tile: {e}")
+            log(f"validation warning {name} could not delete mismatched tile: {e} keeping local file")
+            return
+
+        try:
+            try:
+                self._download(name)
+            finally:
+                with self._lock:
+                    self._in_progress.discard(name)
+            repaired_size = segment.stat().st_size
+            with self._lock:
+                self._validation_repaired.append(name)
+            log(f"validation repaired {name} bytes={repaired_size}")
+            if repaired_size != upstream_size:
+                self._record_validation_warning(
+                    name,
+                    f"redownloaded size {repaired_size} differs from upstream size {upstream_size}"
+                )
+                log(
+                    "validation warning "
+                    f"{name} redownloaded size {repaired_size} differs from upstream size {upstream_size}"
+                )
+        except Exception as e:
+            with self._lock:
+                self._failed[name] = str(e)
+            log(f"validation repair failed {name}: {e}")
+
+    def _increment_validation_count(self) -> None:
+        with self._lock:
+            self._validation_validated += 1
+
+    def _record_validation_warning(self, name: str, warning: str) -> None:
+        with self._lock:
+            self._validation_warnings.append(f"{name}: {warning}")
 
     def _worker(self) -> None:
         while True:
@@ -202,3 +359,7 @@ class SegmentDownloader:
 class _Permanent404(Exception):
     """Raised when a tile returns HTTP 404 — it will never exist."""
     pass
+
+
+def _utc_now() -> str:
+    return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")

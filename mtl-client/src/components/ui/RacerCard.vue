@@ -21,30 +21,16 @@
         <div class="rc-info">
           <span class="rc-name-row">
             <span class="rc-name">{{ name }}</span>
-            <ActivityTypeBadge
-              v-if="activityType"
-              :type="activityType"
-              size="xs"
-              class="rc-activity"
-            />
+            <ActivityTypeBadge v-if="activityType" :type="activityType" size="xs" class="rc-activity" />
           </span>
           <span class="rc-date">{{ dateStr }}</span>
         </div>
-        <button
-          class="rc-open"
-          @click.stop="$emit('open-details', trackId)"
-          title="Open track details"
-        >
+        <button class="rc-open" title="Open track details" @click.stop="$emit('open-details', trackId)">
           <i class="bi bi-box-arrow-up-right"></i>
         </button>
       </div>
       <div v-if="stats && stats.length > 0" class="rc-stats">
-        <span
-          v-for="(s, i) in stats"
-          :key="i"
-          class="rc-stat"
-          :title="s.title || ''"
-        >
+        <span v-for="(s, i) in stats" :key="i" class="rc-stat" :title="s.title || ''">
           <i class="bi" :class="s.icon"></i> {{ s.text }}
         </span>
       </div>
@@ -52,22 +38,31 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
+import type { PropType } from 'vue';
 import ActivityTypeBadge from '@/components/ui/ActivityTypeBadge.vue';
 
+type RacerStat = {
+  icon: string;
+  text: string;
+  title?: string;
+};
+
 defineProps({
-  color:        { type: String,  required: true },
-  name:         { type: String,  required: true },
-  dateStr:      { type: String,  default: '' },
-  trackId:      { required: true },
-  stats:        { type: Array,   default: () => [] },
-  rank:         { type: Number,  default: null },
-  activityType: { type: String,  default: null },
-  highlighted:  { type: Boolean, default: false },
-  clickable:    { type: Boolean, default: false },
+  color: { type: String, required: true },
+  name: { type: String, required: true },
+  dateStr: { type: String, default: '' },
+  trackId: { type: [Number, String] as PropType<number | string>, required: true },
+  stats: { type: Array as PropType<RacerStat[]>, default: () => [] },
+  rank: { type: Number, default: null },
+  activityType: { type: String as PropType<string | null>, default: null },
+  highlighted: { type: Boolean, default: false },
+  clickable: { type: Boolean, default: false },
 });
 
-defineEmits(['open-details']);
+defineEmits<{
+  'open-details': [trackId: number | string];
+}>();
 </script>
 
 <style scoped>
@@ -82,7 +77,9 @@ defineEmits(['open-details']);
   background: var(--surface-glass);
   border: 1px solid var(--border-medium);
   cursor: default;
-  transition: background 0.15s, border-color 0.15s;
+  transition:
+    background 0.15s,
+    border-color 0.15s;
 }
 
 .rc-card--clickable {

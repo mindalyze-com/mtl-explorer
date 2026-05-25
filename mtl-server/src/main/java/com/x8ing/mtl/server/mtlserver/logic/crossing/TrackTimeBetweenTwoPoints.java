@@ -1,12 +1,14 @@
 package com.x8ing.mtl.server.mtlserver.logic.crossing;
 
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.x8ing.mtl.server.mtlserver.db.entity.gps.GpsTrackDataPoint;
+import com.x8ing.mtl.server.mtlserver.db.entity.gps.GpsTrackEvent;
 import com.x8ing.mtl.server.mtlserver.db.repository.gps.GpsTrackDataPointRepository;
+import com.x8ing.mtl.server.mtlserver.db.repository.gps.GpsTrackEventRepository;
 import com.x8ing.mtl.server.mtlserver.db.repository.gps.GpsTrackRepository;
 import com.x8ing.mtl.server.mtlserver.db.repository.gps.GpsTrackVariantSelector;
 import com.x8ing.mtl.server.mtlserver.gpx.GPXReader;
 import com.x8ing.mtl.server.mtlserver.logic.crossing.beans.*;
-import com.x8ing.mtl.server.mtlserver.logic.motion.TrackMotionAnalyzer;
 import lombok.extern.slf4j.Slf4j;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.GeometryFactory;
@@ -17,15 +19,26 @@ import java.util.*;
 
 @Slf4j
 @Service
+@JsonPropertyOrder({
+        "gpsTrackRepository",
+        "gpsTrackDataPointRepository",
+        "gpsTrackEventRepository",
+        "gpsTrackVariantSelector"
+})
 public class TrackTimeBetweenTwoPoints {
 
     private final GpsTrackRepository gpsTrackRepository;
     private final GpsTrackDataPointRepository gpsTrackDataPointRepository;
+    private final GpsTrackEventRepository gpsTrackEventRepository;
     private final GpsTrackVariantSelector gpsTrackVariantSelector;
 
-    public TrackTimeBetweenTwoPoints(GpsTrackRepository gpsTrackRepository, GpsTrackDataPointRepository gpsTrackDataPointRepository, GpsTrackVariantSelector gpsTrackVariantSelector) {
+    public TrackTimeBetweenTwoPoints(GpsTrackRepository gpsTrackRepository,
+                                     GpsTrackDataPointRepository gpsTrackDataPointRepository,
+                                     GpsTrackEventRepository gpsTrackEventRepository,
+                                     GpsTrackVariantSelector gpsTrackVariantSelector) {
         this.gpsTrackRepository = gpsTrackRepository;
         this.gpsTrackDataPointRepository = gpsTrackDataPointRepository;
+        this.gpsTrackEventRepository = gpsTrackEventRepository;
         this.gpsTrackVariantSelector = gpsTrackVariantSelector;
     }
 
@@ -141,11 +154,14 @@ public class TrackTimeBetweenTwoPoints {
 
         recomputeCrossingDeltas(crossingList);
 
-        // Annotate each segment (previous crossing → this crossing) with notes
-        // derived from the raw samples that fall inside the segment — currently
-        // just stop detection so the client can flag segments where racer stats
-        // are biased by a pause.
-        annotateSegmentNotes(crossingList, gpsTrackDataPoints);
+        // Annotate each segment (previous crossing → this crossing) from the
+        // stop events already produced during import. Stop classification is
+        // intentionally not re-run here.
+        List<GpsTrackEvent> detectedStops = gpsTrackEventRepository.findAllByGpsTrackIdOrderByStartPointIndexAsc(trackId)
+                .stream()
+                .filter(TrackTimeBetweenTwoPoints::isDetectedStop)
+                .toList();
+        annotateSegmentNotes(crossingList, detectedStops);
 
         log.info("Calculated crossings for trackId={}  in dT={}", trackId, System.currentTimeMillis() - t0);
 
@@ -321,20 +337,18 @@ public class TrackTimeBetweenTwoPoints {
     }
 
     // ---------------------------------------------------------------------
-    // Segment notes (stop detection)
+    // Segment notes (imported stop events)
     // ---------------------------------------------------------------------
 
     /**
      * Populates {@link Crossing#segmentNotesSinceLastTriggerPoint} for every
-     * crossing after the first. Delegates to
-     * {@link com.x8ing.mtl.server.mtlserver.logic.motion.TrackMotionAnalyzer}
-     * so the same stop-detection logic powers both per-segment annotations and
-     * the per-track totals persisted on {@code GpsTrack} at ingest.
+     * crossing after the first using detected stop events persisted at import.
      */
-    private void annotateSegmentNotes(List<Crossing> crossings, List<GpsTrackDataPoint> gpsTrackDataPoints) {
-        if (crossings == null || crossings.size() < 2 || gpsTrackDataPoints == null || gpsTrackDataPoints.isEmpty()) {
+    private void annotateSegmentNotes(List<Crossing> crossings, List<GpsTrackEvent> detectedStops) {
+        if (crossings == null || crossings.size() < 2) {
             return;
         }
+        List<GpsTrackEvent> stops = detectedStops == null ? List.of() : detectedStops;
         for (int i = 1; i < crossings.size(); i++) {
             Crossing prev = crossings.get(i - 1);
             Crossing curr = crossings.get(i);
@@ -348,9 +362,42 @@ public class TrackTimeBetweenTwoPoints {
             if (toMs <= fromMs) {
                 continue; // Degenerate; skip.
             }
-            curr.segmentNotesSinceLastTriggerPoint =
-                    TrackMotionAnalyzer.detectStopsInRange(gpsTrackDataPoints, fromMs, toMs);
+            curr.segmentNotesSinceLastTriggerPoint = summarizeStopEvents(stops, fromMs, toMs);
         }
+    }
+
+    private static boolean isDetectedStop(GpsTrackEvent event) {
+        return event != null
+               && event.getEventType() == GpsTrackEvent.EVENT_TYPE.STOP
+               && event.getSource() == GpsTrackEvent.SOURCE.DETECTED;
+    }
+
+    private static SegmentNotes summarizeStopEvents(List<GpsTrackEvent> detectedStops, long fromMs, long toMs) {
+        SegmentNotes notes = new SegmentNotes(0, 0.0, 0.0);
+        for (GpsTrackEvent stop : detectedStops) {
+            if (stop.getStartTimestamp() == null || stop.getEndTimestamp() == null) {
+                continue;
+            }
+            long stopStartMs = stop.getStartTimestamp().getTime();
+            long stopEndMs = stop.getEndTimestamp().getTime();
+            if (stopEndMs <= fromMs) {
+                continue;
+            }
+            if (stopStartMs >= toMs) {
+                break;
+            }
+
+            double overlapSec = (Math.min(stopEndMs, toMs) - Math.max(stopStartMs, fromMs)) / 1000.0;
+            if (overlapSec <= 0.0) {
+                continue;
+            }
+            notes.stopCount++;
+            notes.totalStoppedSec += overlapSec;
+            if (overlapSec > notes.longestStopSec) {
+                notes.longestStopSec = overlapSec;
+            }
+        }
+        return notes;
     }
 
     /**
@@ -407,6 +454,10 @@ public class TrackTimeBetweenTwoPoints {
         return new ClosestApproach(t, distance);
     }
 
+    @JsonPropertyOrder({
+            "factor",
+            "distance"
+    })
     private static final class ClosestApproach {
         final double factor;
         final double distance;
@@ -417,6 +468,12 @@ public class TrackTimeBetweenTwoPoints {
         }
     }
 
+    @JsonPropertyOrder({
+            "p1",
+            "p2",
+            "factor",
+            "distance"
+    })
     private static final class ClosestCandidate {
         final GpsTrackDataPoint p1;
         final GpsTrackDataPoint p2;

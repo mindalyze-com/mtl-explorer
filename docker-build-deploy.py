@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Guided Docker build and deploy helper for MyTrailLog.
+Guided Docker build and deploy helper for MTL Explorer.
 
 Default interactive flow:
   1. Show a start screen with every release option.
@@ -8,6 +8,9 @@ Default interactive flow:
   3. Publish immutable version tags and the alpha channel by default.
   4. Publish beta/latest only when you enable them.
   5. Build multiple platforms by default when full-build mode is enabled.
+
+Full builds compile the app inside the app Dockerfile. Host Maven outputs are
+not used for the app image.
 
 Examples:
   ./docker-build-deploy.py
@@ -24,6 +27,7 @@ import shlex
 import subprocess
 import sys
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Iterable, Sequence
 
@@ -36,13 +40,16 @@ DOCKER_USERNAME = "wauwau0977"
 
 # Version tags. These are the most important values to check before every run.
 APP_IMAGE_NAME = "mytraillog"
-APP_VERSION_TAG = "1.232"  # version tag, (v. 1.1 -> 2025-10 release)
+APP_VERSION_TAG = "1.272"  # version tag, (v. 1.1 -> 2025-10 release)
 
 MAP_IMAGE_NAME = "mytraillog-maps"
-MAP_VERSION_TAG = "1.34"
+MAP_VERSION_TAG = "1.72"
+
+LOCATION_SEARCH_IMAGE_NAME = "mytraillog-location-search"
+LOCATION_SEARCH_VERSION_TAG = "1.2"
 
 BROUTER_IMAGE_NAME = "mytraillog-brouter"
-BROUTER_VERSION_TAG = "1.3"
+BROUTER_VERSION_TAG = "1.11"
 
 # Channel tags. Version + alpha are published by default; beta/latest are opt-in.
 ALPHA_TAG = "alpha"
@@ -55,7 +62,6 @@ DEFAULT_INCLUDE_ALPHA = True
 DEFAULT_INCLUDE_BETA = False
 DEFAULT_INCLUDE_LATEST = False
 DEFAULT_MULTI_PLATFORM = True
-DEFAULT_RUN_MAVEN = True
 DEFAULT_NO_CACHE = False
 DEFAULT_DOCKER_LOGIN = True
 DEFAULT_PULL_AFTER_PUBLISH = True
@@ -64,8 +70,6 @@ DEFAULT_PULL_AFTER_PUBLISH = True
 MULTI_PLATFORM_PLATFORMS = "linux/amd64,linux/arm64"
 SINGLE_PLATFORM = "linux/amd64"
 BUILDX_BUILDER_NAME = "multi-builder"
-MAVEN_COMMAND = ["mvn", "clean", "install", "-DskipTests=true"]
-SERVER_JAR_PATH = Path("mtl-server/target/mtl-server-0.0.1-SNAPSHOT.jar")
 
 # =============================================================================
 # SCRIPT CONSTANTS
@@ -88,6 +92,7 @@ class ImageConfig:
     image_name: str
     version_tag: str
     context_dir: Path
+    dockerfile: Path | None = None
 
 
 @dataclass(frozen=True)
@@ -95,13 +100,13 @@ class ReleaseSettings:
     docker_username: str
     app_version_tag: str
     map_version_tag: str
+    location_search_version_tag: str
     brouter_version_tag: str
     include_alpha: bool
     include_beta: bool
     include_latest: bool
     full_build: bool
     multi_platform: bool
-    run_maven: bool
     no_cache: bool
     docker_login: bool
     pull_after_publish: bool
@@ -127,13 +132,13 @@ class ReleaseSettings:
 class SettingsDraft:
     app_version_tag: str
     map_version_tag: str
+    location_search_version_tag: str
     brouter_version_tag: str
     include_alpha: bool
     include_beta: bool
     include_latest: bool
     full_build: bool
     multi_platform: bool
-    run_maven: bool
     no_cache: bool
     docker_login: bool
     pull_after_publish: bool
@@ -217,6 +222,10 @@ def unique(items: Iterable[str]) -> list[str]:
     return result
 
 
+def utc_timestamp() -> str:
+    return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+
+
 def prompt_text(question: str, default: str) -> str:
     while True:
         try:
@@ -244,7 +253,7 @@ def describe_tags(version_tag: str, channel_tags: Sequence[str]) -> str:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Guided Docker build/deploy script for MyTrailLog.",
+        description="Guided Docker build/deploy script for MTL Explorer.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
 
@@ -267,13 +276,18 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--tag-beta-only", action="store_true", help="Compatibility alias: tag existing version images as beta only.")
     parser.add_argument("--tag-latest-only", action="store_true", help="Compatibility alias: tag existing version images as latest only.")
 
-    parser.add_argument("--skip-maven", action="store_true", help="Skip the Maven build in full-build mode.")
+    parser.add_argument(
+        "--skip-maven",
+        action="store_true",
+        help="Deprecated no-op. The app Dockerfile builds the JAR inside Docker.",
+    )
     parser.add_argument("--no-cache", action="store_true", help="Disable Docker build cache.")
     parser.add_argument("--no-login", action="store_true", help="Do not run docker login before publishing.")
     parser.add_argument("--no-pull-verify", action="store_true", help="Do not pull published refs after a full build.")
 
     parser.add_argument("--app-tag", default=None, help="Override the app version tag for this run.")
     parser.add_argument("--map-tag", default=None, help="Override the map image version tag for this run.")
+    parser.add_argument("--location-search-tag", default=None, help="Override the location-search image version tag for this run.")
     parser.add_argument("--brouter-tag", default=None, help="Override the BRouter image version tag for this run.")
 
     args = parser.parse_args()
@@ -303,10 +317,13 @@ def build_settings(args: argparse.Namespace) -> ReleaseSettings:
     draft = initial_settings_draft(args)
 
     if args.yes:
-        banner("MyTrailLog Docker Release")
-        print_user_variables(draft.app_version_tag, draft.map_version_tag, draft.brouter_version_tag)
+        banner("MTL Explorer Docker Release")
+        print_user_variables(draft.app_version_tag, draft.map_version_tag, draft.location_search_version_tag, draft.brouter_version_tag)
     else:
         configure_interactively(draft)
+
+    if args.skip_maven:
+        warn("--skip-maven is ignored; the app Dockerfile builds the JAR inside Docker.")
 
     settings = release_settings_from_draft(draft)
 
@@ -320,19 +337,18 @@ def build_settings(args: argparse.Namespace) -> ReleaseSettings:
 def initial_settings_draft(args: argparse.Namespace) -> SettingsDraft:
     full_build = args.full_build if args.full_build is not None else DEFAULT_FULL_BUILD
     multi_platform = args.multi_platform if args.multi_platform is not None else DEFAULT_MULTI_PLATFORM
-    run_maven = DEFAULT_RUN_MAVEN and not args.skip_maven
     no_cache = DEFAULT_NO_CACHE or args.no_cache
 
     return SettingsDraft(
         app_version_tag=args.app_tag or APP_VERSION_TAG,
         map_version_tag=args.map_tag or MAP_VERSION_TAG,
+        location_search_version_tag=args.location_search_tag or LOCATION_SEARCH_VERSION_TAG,
         brouter_version_tag=args.brouter_tag or BROUTER_VERSION_TAG,
         include_alpha=args.include_alpha if args.include_alpha is not None else DEFAULT_INCLUDE_ALPHA,
         include_beta=args.include_beta if args.include_beta is not None else DEFAULT_INCLUDE_BETA,
         include_latest=args.include_latest if args.include_latest is not None else DEFAULT_INCLUDE_LATEST,
         full_build=full_build,
         multi_platform=multi_platform,
-        run_maven=run_maven if full_build else False,
         no_cache=no_cache if full_build else False,
         docker_login=DEFAULT_DOCKER_LOGIN and not args.no_login,
         pull_after_publish=DEFAULT_PULL_AFTER_PUBLISH and not args.no_pull_verify if full_build else False,
@@ -345,13 +361,13 @@ def release_settings_from_draft(draft: SettingsDraft) -> ReleaseSettings:
         docker_username=DOCKER_USERNAME,
         app_version_tag=draft.app_version_tag,
         map_version_tag=draft.map_version_tag,
+        location_search_version_tag=draft.location_search_version_tag,
         brouter_version_tag=draft.brouter_version_tag,
         include_alpha=draft.include_alpha,
         include_beta=draft.include_beta,
         include_latest=draft.include_latest,
         full_build=draft.full_build,
         multi_platform=draft.multi_platform,
-        run_maven=draft.run_maven if draft.full_build else False,
         no_cache=draft.no_cache if draft.full_build else False,
         docker_login=draft.docker_login,
         pull_after_publish=draft.pull_after_publish if draft.full_build else False,
@@ -392,7 +408,7 @@ def prompt_menu_choice() -> str:
 
 
 def print_options_menu(draft: SettingsDraft, notice: str = "") -> None:
-    banner("MyTrailLog Docker Release")
+    banner("MTL Explorer Docker Release")
     print("Edit the release plan before anything starts.")
     if notice:
         print(color(YELLOW, f"Status: {notice}"))
@@ -400,12 +416,12 @@ def print_options_menu(draft: SettingsDraft, notice: str = "") -> None:
     print(f"  1  Operation            {operation_label(draft)}")
     print(f"  2  App version tag      {draft.app_version_tag}")
     print(f"  3  Map version tag      {draft.map_version_tag}")
-    print(f"  4  BRouter version tag  {draft.brouter_version_tag}")
-    print(f"  5  Alpha channel        {enabled_label(draft.include_alpha)}")
-    print(f"  6  Beta channel         {enabled_label(draft.include_beta)}")
-    print(f"  7  Latest channel       {enabled_label(draft.include_latest)}")
-    print(f"  8  Multi-platform       {platform_menu_label(draft)}")
-    print(f"  9  Maven build          {enabled_label(draft.run_maven) if draft.full_build else 'n/a in tag-only mode'}")
+    print(f"  4  Location search tag  {draft.location_search_version_tag}")
+    print(f"  5  BRouter version tag  {draft.brouter_version_tag}")
+    print(f"  6  Alpha channel        {enabled_label(draft.include_alpha)}")
+    print(f"  7  Beta channel         {enabled_label(draft.include_beta)}")
+    print(f"  8  Latest channel       {enabled_label(draft.include_latest)}")
+    print(f"  9  Multi-platform       {platform_menu_label(draft)}")
     print(f" 10  Docker cache         {cache_menu_label(draft)}")
     print(f" 11  Docker login         {enabled_label(draft.docker_login)}")
     print(f" 12  Pull verification    {enabled_label(draft.pull_after_publish) if draft.full_build else 'n/a in tag-only mode'}")
@@ -420,10 +436,8 @@ def handle_menu_choice(draft: SettingsDraft, choice: str) -> str:
     if choice == "1":
         draft.full_build = not draft.full_build
         if draft.full_build:
-            draft.run_maven = DEFAULT_RUN_MAVEN
             draft.pull_after_publish = DEFAULT_PULL_AFTER_PUBLISH
         else:
-            draft.run_maven = False
             draft.no_cache = False
             draft.pull_after_publish = False
         return f"Operation set to {operation_label(draft)}."
@@ -434,29 +448,26 @@ def handle_menu_choice(draft: SettingsDraft, choice: str) -> str:
         draft.map_version_tag = prompt_text("Map image version tag", draft.map_version_tag)
         return f"Map version tag set to {draft.map_version_tag}."
     if choice == "4":
+        draft.location_search_version_tag = prompt_text("Location search image version tag", draft.location_search_version_tag)
+        return f"Location search version tag set to {draft.location_search_version_tag}."
+    if choice == "5":
         draft.brouter_version_tag = prompt_text("BRouter image version tag", draft.brouter_version_tag)
         return f"BRouter version tag set to {draft.brouter_version_tag}."
-    if choice == "5":
+    if choice == "6":
         draft.include_alpha = not draft.include_alpha
         return f"Alpha channel {enabled_label(draft.include_alpha)}."
-    if choice == "6":
+    if choice == "7":
         draft.include_beta = not draft.include_beta
         return f"Beta channel {enabled_label(draft.include_beta)}."
-    if choice == "7":
+    if choice == "8":
         draft.include_latest = not draft.include_latest
         return f"Latest channel {enabled_label(draft.include_latest)}."
-    if choice == "8":
+    if choice == "9":
         if draft.full_build:
             draft.multi_platform = not draft.multi_platform
             return f"Multi-platform builds {enabled_label(draft.multi_platform)}."
         else:
             return "Multi-platform builds are only used in full-build mode."
-    if choice == "9":
-        if draft.full_build:
-            draft.run_maven = not draft.run_maven
-            return f"Maven build {enabled_label(draft.run_maven)}."
-        else:
-            return "Maven build is only used in full-build mode."
     if choice == "10":
         if draft.full_build:
             draft.no_cache = not draft.no_cache
@@ -499,11 +510,12 @@ def enabled_label(enabled: bool) -> str:
     return "enabled" if enabled else "disabled"
 
 
-def print_user_variables(app_version_tag: str, map_version_tag: str, brouter_version_tag: str) -> None:
+def print_user_variables(app_version_tag: str, map_version_tag: str, location_search_version_tag: str, brouter_version_tag: str) -> None:
     section("Current User Variables")
     print(f"Docker user:       {DOCKER_USERNAME}")
     print(f"App image:         {APP_IMAGE_NAME}:{app_version_tag}")
     print(f"Map image:         {MAP_IMAGE_NAME}:{map_version_tag}")
+    print(f"Location search:   {LOCATION_SEARCH_IMAGE_NAME}:{location_search_version_tag}")
     print(f"BRouter image:     {BROUTER_IMAGE_NAME}:{brouter_version_tag}")
     print(f"Default channel:   {ALPHA_TAG}")
     print(f"Optional channels: {BETA_TAG}, {LATEST_TAG}")
@@ -512,13 +524,14 @@ def print_user_variables(app_version_tag: str, map_version_tag: str, brouter_ver
 def image_configs(settings: ReleaseSettings) -> list[ImageConfig]:
     return [
         ImageConfig("App", APP_IMAGE_NAME, settings.app_version_tag, SCRIPT_DIR),
+        ImageConfig("Location Search", LOCATION_SEARCH_IMAGE_NAME, settings.location_search_version_tag, SCRIPT_DIR, SCRIPT_DIR / "docker-location-search" / "Dockerfile"),
         ImageConfig("Map", MAP_IMAGE_NAME, settings.map_version_tag, SCRIPT_DIR / "docker-maps"),
         ImageConfig("BRouter", BROUTER_IMAGE_NAME, settings.brouter_version_tag, SCRIPT_DIR / "docker-brouter"),
     ]
 
 
 def refs_for_image(settings: ReleaseSettings, image: ImageConfig) -> list[str]:
-    tags = unique([image.version_tag, *settings.channel_tags])
+    tags = unique(tag for tag in [image.version_tag, *settings.channel_tags] if tag)
     return [remote_ref(settings.docker_username, image.image_name, tag) for tag in tags]
 
 
@@ -536,10 +549,9 @@ def print_plan(settings: ReleaseSettings) -> None:
     platforms = settings.platforms if settings.full_build else "n/a"
     channels = ", ".join(settings.channel_tags) if settings.channel_tags else "(none)"
     print(f"Operation:         {operation}")
-    print(f"Version tags:      app={settings.app_version_tag}, maps={settings.map_version_tag}, brouter={settings.brouter_version_tag}")
+    print(f"Version tags:      app={settings.app_version_tag}, maps={settings.map_version_tag}, location-search={settings.location_search_version_tag}, brouter={settings.brouter_version_tag}")
     print(f"Channel tags:      {channels}")
     print(f"Platforms:         {platforms}")
-    print(f"Maven build:       {'yes' if settings.run_maven else 'no'}")
     print(f"Docker cache:      {cache}")
     print(f"Docker login:      {'yes' if settings.docker_login else 'no'}")
     print(f"Dry run:           {'yes' if settings.dry_run else 'no'}")
@@ -554,6 +566,7 @@ class DockerReleaseRunner:
     def __init__(self, settings: ReleaseSettings) -> None:
         self.settings = settings
         self.results: list[StepResult] = []
+        self.image_build_time = utc_timestamp()
 
     def run(self) -> None:
         if self.settings.full_build:
@@ -564,13 +577,6 @@ class DockerReleaseRunner:
 
     def run_full_build(self) -> None:
         section("Full Build")
-        if self.settings.run_maven:
-            self.run_step("Maven build", MAVEN_COMMAND)
-        else:
-            self.results.append(StepResult("Maven build", "SKIP", "--skip-maven"))
-
-        self.verify_server_jar()
-
         if self.settings.docker_login:
             self.run_step("Docker login", ["docker", "login"])
         else:
@@ -579,7 +585,7 @@ class DockerReleaseRunner:
         self.remove_previous_local_images()
         self.ensure_buildx_builder()
         self.build_app_image()
-
+        self.build_location_search_image()
         self.build_map_image()
         self.build_brouter_image()
 
@@ -652,24 +658,6 @@ class DockerReleaseRunner:
 
         return result
 
-    def verify_server_jar(self) -> None:
-        label = "Server JAR check"
-        jar_path = SCRIPT_DIR / SERVER_JAR_PATH
-        if self.settings.dry_run:
-            self.results.append(StepResult(label, "OK", "dry-run"))
-            return
-
-        if jar_path.is_file():
-            ok(f"{label}: found {SERVER_JAR_PATH}")
-            self.results.append(StepResult(label, "OK"))
-            return
-
-        self.results.append(StepResult(label, "FAIL", f"missing {SERVER_JAR_PATH}"))
-        error(f"ERROR: {SERVER_JAR_PATH} not found.")
-        error("Run Maven first, or do not use --skip-maven.")
-        self.print_summary()
-        raise SystemExit(1)
-
     def remove_previous_local_images(self) -> None:
         section("Local Image Cleanup")
         refs: list[str] = []
@@ -717,22 +705,33 @@ class DockerReleaseRunner:
         self.run_step(label, self.buildx_command(image))
 
     def build_map_image(self) -> None:
-        image = image_configs(self.settings)[1]
+        image = image_configs(self.settings)[2]
         label = f"Build+push {image.image_name}:{describe_tags(image.version_tag, self.settings.channel_tags)}"
         self.run_step(label, self.buildx_command(image))
 
     def build_brouter_image(self) -> None:
-        image = image_configs(self.settings)[2]
+        image = image_configs(self.settings)[3]
         label = f"Build+push {image.image_name}:{describe_tags(image.version_tag, self.settings.channel_tags)}"
         self.run_step(label, self.buildx_command(image))
+
+    def build_location_search_image(self) -> None:
+        image = image_configs(self.settings)[1]
+        label = f"Build+push {image.image_name}:{describe_tags(image.version_tag, self.settings.channel_tags)}"
+        self.run_step(label, self.buildx_command(image, {"REQUIRE_GEONAMES_DB": "true"}))
 
     def buildx_command(self, image: ImageConfig, build_args: dict[str, str] | None = None) -> list[object]:
         cmd: list[object] = ["docker", "buildx", "build"]
         if self.settings.no_cache:
             cmd.append("--no-cache")
-        if build_args:
-            for key, value in build_args.items():
-                cmd.extend(["--build-arg", f"{key}={value}"])
+        if image.dockerfile is not None:
+            cmd.extend(["-f", image.dockerfile])
+        effective_build_args = {
+            "MTL_IMAGE_VERSION": image.version_tag or "",
+            "MTL_IMAGE_BUILD_TIME": self.image_build_time,
+            **(build_args or {}),
+        }
+        for key, value in effective_build_args.items():
+            cmd.extend(["--build-arg", f"{key}={value}"])
         cmd.extend(["--platform", self.settings.platforms])
         for ref in refs_for_image(self.settings, image):
             cmd.extend(["-t", ref])

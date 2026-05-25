@@ -2,8 +2,7 @@ package com.x8ing.mtl.server.mtlserver.db.repository.gps;
 
 
 import com.x8ing.mtl.server.mtlserver.db.entity.gps.GpsTrack;
-import com.x8ing.mtl.server.mtlserver.db.entity.gps.projection.GpsTrackStatistics;
-import com.x8ing.mtl.server.mtlserver.db.entity.gps.projection.IWayPointWithDistance;
+import com.x8ing.mtl.server.mtlserver.db.entity.gps.projection.*;
 import com.x8ing.mtl.server.mtlserver.db.entity.indexer.IndexedFile;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -80,6 +79,33 @@ public interface GpsTrackRepository extends JpaRepository<GpsTrack, Long> {
 
     List<GpsTrack> findByDuplicateStatus(GpsTrack.DUPLICATE_CHECK_STATUS duplicateCheckStatus);
 
+    @Query("""
+            SELECT
+                MIN(t.bboxMinLng) AS minLng,
+                MIN(t.bboxMinLat) AS minLat,
+                MAX(t.bboxMaxLng) AS maxLng,
+                MAX(t.bboxMaxLat) AS maxLat
+            FROM GpsTrack t
+            WHERE t.loadStatus = com.x8ing.mtl.server.mtlserver.db.entity.gps.GpsTrack.LOAD_STATUS.SUCCESS
+              AND t.duplicateStatus = com.x8ing.mtl.server.mtlserver.db.entity.gps.GpsTrack.DUPLICATE_CHECK_STATUS.UNIQUE
+              AND t.trackSource = com.x8ing.mtl.server.mtlserver.db.entity.gps.GpsTrack.TRACK_SOURCE.IMPORTED
+              AND t.bboxMinLat IS NOT NULL
+              AND t.bboxMaxLat IS NOT NULL
+              AND t.bboxMinLng IS NOT NULL
+              AND t.bboxMaxLng IS NOT NULL
+              AND t.bboxMinLat <= t.bboxMaxLat
+              AND t.bboxMinLng <= t.bboxMaxLng
+              AND t.bboxMinLat BETWEEN :minLatitude AND :maxLatitude
+              AND t.bboxMaxLat BETWEEN :minLatitude AND :maxLatitude
+              AND t.bboxMinLng BETWEEN :minLongitude AND :maxLongitude
+              AND t.bboxMaxLng BETWEEN :minLongitude AND :maxLongitude
+            """)
+    GpsTrackBounds findImportedTrackBounds(
+            @Param("minLatitude") double minLatitude,
+            @Param("maxLatitude") double maxLatitude,
+            @Param("minLongitude") double minLongitude,
+            @Param("maxLongitude") double maxLongitude);
+
     /**
      * Duplicate-detector job queue source. Planner-created PLANNED tracks are excluded:
      * they are synthetic "ideas" and never need duplicate checking.
@@ -108,19 +134,6 @@ public interface GpsTrackRepository extends JpaRepository<GpsTrack, Long> {
                AND t.duplicateStatus = com.x8ing.mtl.server.mtlserver.db.entity.gps.GpsTrack.DUPLICATE_CHECK_STATUS.UNIQUE
             """)
     long countGoodTracks();
-
-    /**
-     * IDs of successfully-loaded tracks that have no detected-stop totals yet.
-     * Used by {@code MotionStatsService.backfillMissing()} after the stop-stats
-     * columns were added — every pre-existing track needs a one-shot recalc.
-     */
-    @Query("""
-            SELECT t.id FROM GpsTrack t
-             WHERE t.loadStatus = com.x8ing.mtl.server.mtlserver.db.entity.gps.GpsTrack.LOAD_STATUS.SUCCESS
-               AND t.trackDurationStoppedSecs IS NULL
-             ORDER BY t.id
-            """)
-    List<Long> findIdsWithMissingStopStats();
 
     /**
      * Bulk-excludes all good tracks beyond {@code targetCount} (ordered by id).
@@ -185,6 +198,29 @@ public interface GpsTrackRepository extends JpaRepository<GpsTrack, Long> {
 
     List<GpsTrack> findByActivityTypeSourceNull();
 
+    @Query("""
+            SELECT t.id FROM GpsTrack t
+            WHERE t.activityTypeSource IS NULL
+              AND t.duplicateStatus IS NOT NULL
+              AND t.duplicateStatus <> com.x8ing.mtl.server.mtlserver.db.entity.gps.GpsTrack.DUPLICATE_CHECK_STATUS.NOT_CHECKED_YET
+            """)
+    List<Long> findIdsPendingActivityClassification();
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("""
+            UPDATE GpsTrack t
+               SET t.activityType = :activityType,
+                   t.activityTypeSource = :activityTypeSource,
+                   t.activityTypeSourceDetails = :activityTypeSourceDetails
+             WHERE t.id = :id
+               AND t.activityTypeSource IS NULL
+            """)
+    int updateActivityClassificationIfPending(
+            @Param("id") Long id,
+            @Param("activityType") GpsTrack.ACTIVITY_TYPE activityType,
+            @Param("activityTypeSource") GpsTrack.ACTIVITY_TYPE_SOURCE activityTypeSource,
+            @Param("activityTypeSourceDetails") String activityTypeSourceDetails);
+
     /**
      * Lookup by origin — used by the planner feature to list "My Plans".
      */
@@ -246,6 +282,7 @@ public interface GpsTrackRepository extends JpaRepository<GpsTrack, Long> {
                     AND load_status = 'SUCCESS'
                     AND track_source = 'IMPORTED'
                     AND (cast(:filterIds AS bigint[]) IS NULL OR id = ANY(:filterIds))
+                    AND gt.statistics_exclusion_reason IS NULL
             )
             SELECT\s
                 group_by_col AS groupBy,
@@ -288,6 +325,262 @@ public interface GpsTrackRepository extends JpaRepository<GpsTrack, Long> {
                                                 @Param("filter_value") String filterValue,
                                                 @Param("filterIds") Long[] filterIds,
                                                 @Param("threshold_power") Double thresholdPowerWatts);
+
+    @Query(nativeQuery = true, value = """
+            WITH q AS (
+                SELECT
+                    start_date,
+                    GREATEST(0, COALESCE(track_length_in_meter, 0))::double precision AS distance_m,
+                    (GREATEST(0, COALESCE(track_duration_in_motion_secs, EXTRACT(EPOCH FROM (end_date - start_date)), 0)) * 1000.0)::double precision AS duration_ms,
+                    GREATEST(0, COALESCE(energy_net_total_wh, 0))::double precision AS energy_wh
+                FROM gps_track
+                WHERE id = ANY(:filterIds)
+                  AND statistics_exclusion_reason IS NULL
+            )
+            SELECT
+                COUNT(*)::bigint AS trackCount,
+                COALESCE(SUM(distance_m), 0)::double precision AS distanceM,
+                COALESCE(SUM(duration_ms), 0)::double precision AS durationMs,
+                COALESCE(SUM(energy_wh), 0)::double precision AS energyWh,
+                MIN(start_date) AS oldestStart,
+                MAX(start_date) AS newestStart
+            FROM q
+            """)
+    GpsTrackOverviewSummary getTrackOverviewSummary(@Param("filterIds") Long[] filterIds);
+
+    @Query(nativeQuery = true, value = """
+            WITH q AS (
+                SELECT
+                    COALESCE(activity_type, 'UNKNOWN') AS activity_type,
+                    GREATEST(0, COALESCE(track_length_in_meter, 0))::double precision AS distance_m,
+                    (GREATEST(0, COALESCE(track_duration_in_motion_secs, EXTRACT(EPOCH FROM (end_date - start_date)), 0)) * 1000.0)::double precision AS duration_ms,
+                    GREATEST(0, COALESCE(energy_net_total_wh, 0))::double precision AS energy_wh
+                FROM gps_track
+                WHERE id = ANY(:filterIds)
+                  AND statistics_exclusion_reason IS NULL
+            )
+            SELECT
+                activity_type AS activityType,
+                COUNT(*)::bigint AS trackCount,
+                COALESCE(SUM(distance_m), 0)::double precision AS distanceM,
+                COALESCE(SUM(duration_ms), 0)::double precision AS durationMs,
+                COALESCE(SUM(energy_wh), 0)::double precision AS energyWh
+            FROM q
+            GROUP BY activity_type
+            ORDER BY trackCount DESC, distanceM DESC, activityType ASC
+            """)
+    List<GpsTrackOverviewActivity> getTrackOverviewActivityBreakdown(@Param("filterIds") Long[] filterIds);
+
+    @Query(nativeQuery = true, value = """
+            SELECT
+                COUNT(*) FILTER (
+                    WHERE highlight_exclusion_reason IS NOT NULL
+                       OR statistics_exclusion_reason IS NOT NULL
+                )::bigint AS highlightExcludedTrackCount,
+                COUNT(*) FILTER (
+                    WHERE statistics_exclusion_reason IS NOT NULL
+                )::bigint AS statisticsExcludedTrackCount
+            FROM gps_track
+            WHERE id = ANY(:filterIds)
+            """)
+    GpsTrackOverviewExclusions getTrackOverviewExclusions(@Param("filterIds") Long[] filterIds);
+
+    @Query(nativeQuery = true, value = """
+            WITH q AS (
+                SELECT
+                    id,
+                    start_date,
+                    GREATEST(0, COALESCE(track_length_in_meter, 0))::double precision AS distance_m,
+                    (GREATEST(0, COALESCE(track_duration_in_motion_secs, EXTRACT(EPOCH FROM (end_date - start_date)), 0)) * 1000.0)::double precision AS duration_ms,
+                    GREATEST(0, COALESCE(ascent_in_meter, 0))::double precision AS ascent_m,
+                    GREATEST(0, COALESCE(energy_net_total_wh, 0))::double precision AS energy_wh,
+                    GREATEST(0, COALESCE(speed_in_kmh_30s_max, 0))::double precision AS speed_30_kmh,
+                    GREATEST(0, COALESCE(elevation_gain_per_hour_30s_max, 0))::double precision AS ascent_rate_mh,
+                    GREATEST(0, COALESCE(power_watts_30s_max, 0))::double precision AS power_30_w
+                FROM gps_track
+                WHERE id = ANY(:filterIds)
+                  AND highlight_exclusion_reason IS NULL
+                  AND statistics_exclusion_reason IS NULL
+            ),
+            metric_rows AS (
+                SELECT 'longest-distance' AS rowKey, id AS trackId, distance_m AS value
+                FROM q WHERE distance_m > 0
+                UNION ALL
+                SELECT 'longest-duration' AS rowKey, id AS trackId, duration_ms AS value
+                FROM q WHERE duration_ms > 0
+                UNION ALL
+                SELECT 'biggest-ascent' AS rowKey, id AS trackId, ascent_m AS value
+                FROM q WHERE ascent_m > 0
+                UNION ALL
+                SELECT 'quickest-ascent' AS rowKey, id AS trackId, ascent_rate_mh AS value
+                FROM q WHERE ascent_rate_mh > 0
+                UNION ALL
+                SELECT 'most-energy' AS rowKey, id AS trackId, energy_wh AS value
+                FROM q WHERE energy_wh > 0
+                UNION ALL
+                SELECT 'fastest-speed' AS rowKey, id AS trackId, speed_30_kmh AS value
+                FROM q WHERE speed_30_kmh > 0
+                UNION ALL
+                SELECT 'peak-power' AS rowKey, id AS trackId, power_30_w AS value
+                FROM q WHERE power_30_w > 0
+            ),
+            ranked AS (
+                SELECT
+                    rowKey,
+                    trackId,
+                    value,
+                    ROW_NUMBER() OVER (
+                        PARTITION BY rowKey
+                        ORDER BY value DESC, trackId DESC
+                    )::integer AS sortOrder
+                FROM metric_rows
+            )
+            SELECT sortOrder, rowKey, trackId, value
+            FROM ranked
+            WHERE sortOrder <= :limit
+            ORDER BY rowKey ASC, sortOrder ASC
+            """)
+    List<GpsTrackOverviewTrackRow> getTrackOverviewTrackRankings(@Param("filterIds") Long[] filterIds, @Param("limit") int limit);
+
+    @Query(nativeQuery = true, value = """
+            WITH q AS (
+                SELECT
+                    id,
+                    start_date
+                FROM gps_track
+                WHERE id = ANY(:filterIds)
+                  AND start_date IS NOT NULL
+            )
+            SELECT
+                ROW_NUMBER() OVER (ORDER BY start_date DESC, id DESC)::integer AS sortOrder,
+                'recent' AS rowKey,
+                id AS trackId,
+                0::double precision AS value
+            FROM q
+            ORDER BY start_date DESC, id DESC
+            LIMIT 5
+            """)
+    List<GpsTrackOverviewTrackRow> getTrackOverviewRecentActivities(@Param("filterIds") Long[] filterIds);
+
+    @Query(nativeQuery = true, value = """
+            WITH q AS (
+                SELECT
+                    start_date,
+                    GREATEST(0, COALESCE(track_length_in_meter, 0))::double precision AS distance_m,
+                    (GREATEST(0, COALESCE(track_duration_in_motion_secs, EXTRACT(EPOCH FROM (end_date - start_date)), 0)) * 1000.0)::double precision AS duration_ms
+                FROM gps_track
+                WHERE id = ANY(:filterIds)
+                  AND start_date IS NOT NULL
+                  AND statistics_exclusion_reason IS NULL
+            ),
+            weekdays AS (
+                SELECT * FROM (VALUES
+                    (1, 'Monday'),
+                    (2, 'Tuesday'),
+                    (3, 'Wednesday'),
+                    (4, 'Thursday'),
+                    (5, 'Friday'),
+                    (6, 'Saturday'),
+                    (7, 'Sunday')
+                ) AS w(period_num, label)
+            ),
+            weekday_grouped AS (
+                SELECT EXTRACT(ISODOW FROM start_date)::integer AS period_num,
+                       COUNT(*)::bigint AS trackCount,
+                       COALESCE(SUM(distance_m), 0)::double precision AS distanceM,
+                       COALESCE(SUM(duration_ms), 0)::double precision AS durationMs
+                FROM q
+                GROUP BY EXTRACT(ISODOW FROM start_date)
+            ),
+            grouped AS (
+                SELECT 10 AS periodOrder, 'day' AS periodType, TO_CHAR(start_date, 'YYYY-MM-DD') AS periodKey,
+                       TO_CHAR(start_date, 'YYYY-MM-DD') AS label, COUNT(*)::bigint AS trackCount,
+                       COALESCE(SUM(distance_m), 0)::double precision AS distanceM,
+                       COALESCE(SUM(duration_ms), 0)::double precision AS durationMs
+                FROM q GROUP BY TO_CHAR(start_date, 'YYYY-MM-DD')
+                UNION ALL
+                SELECT 20 AS periodOrder, 'week' AS periodType, TO_CHAR(start_date, 'IYYY-"W"IW') AS periodKey,
+                       TO_CHAR(start_date, 'IYYY-"W"IW') AS label, COUNT(*)::bigint AS trackCount,
+                       COALESCE(SUM(distance_m), 0)::double precision AS distanceM,
+                       COALESCE(SUM(duration_ms), 0)::double precision AS durationMs
+                FROM q GROUP BY TO_CHAR(start_date, 'IYYY-"W"IW')
+                UNION ALL
+                SELECT 30 AS periodOrder, 'month' AS periodType, TO_CHAR(start_date, 'YYYY-MM') AS periodKey,
+                       TO_CHAR(start_date, 'YYYY-MM') AS label, COUNT(*)::bigint AS trackCount,
+                       COALESCE(SUM(distance_m), 0)::double precision AS distanceM,
+                       COALESCE(SUM(duration_ms), 0)::double precision AS durationMs
+                FROM q GROUP BY TO_CHAR(start_date, 'YYYY-MM')
+                UNION ALL
+                SELECT 40 AS periodOrder, 'weekday' AS periodType, weekdays.period_num::text AS periodKey,
+                       weekdays.label AS label, COALESCE(weekday_grouped.trackCount, 0)::bigint AS trackCount,
+                       COALESCE(weekday_grouped.distanceM, 0)::double precision AS distanceM,
+                       COALESCE(weekday_grouped.durationMs, 0)::double precision AS durationMs
+                FROM weekdays
+                LEFT JOIN weekday_grouped ON weekday_grouped.period_num = weekdays.period_num
+            ),
+            ranked AS (
+                SELECT *, ROW_NUMBER() OVER (
+                    PARTITION BY periodType
+                    ORDER BY durationMs DESC, trackCount DESC, distanceM DESC, label ASC
+                ) AS rn
+                FROM grouped
+            )
+            SELECT rn::integer AS sortOrder, periodType, periodKey, label, trackCount, distanceM, durationMs
+            FROM ranked
+            WHERE rn <= :limit
+            ORDER BY periodOrder ASC, rn ASC
+            """)
+    List<GpsTrackOverviewPeriod> getTrackOverviewPeriodDistributions(@Param("filterIds") Long[] filterIds, @Param("limit") int limit);
+
+    @Query(nativeQuery = true, value = """
+            WITH q AS (
+                SELECT
+                    id,
+                    start_date,
+                    GREATEST(0, COALESCE(track_length_in_meter, 0))::double precision AS distance_m,
+                    (GREATEST(0, COALESCE(track_duration_in_motion_secs, EXTRACT(EPOCH FROM (end_date - start_date)), 0)) * 1000.0)::double precision AS duration_ms,
+                    GREATEST(0, COALESCE(ascent_in_meter, 0))::double precision AS ascent_m,
+                    GREATEST(0, COALESCE(energy_net_total_wh, 0))::double precision AS energy_wh
+                FROM gps_track
+                WHERE id = ANY(:filterIds)
+                  AND start_date IS NOT NULL
+                  AND highlight_exclusion_reason IS NULL
+                  AND statistics_exclusion_reason IS NULL
+            ),
+            rows AS (
+                (SELECT 10 AS sortOrder, 'first-activity' AS rowKey, id AS trackId, 0::double precision AS value
+                 FROM q ORDER BY start_date ASC, id ASC LIMIT 1)
+                UNION ALL
+                (SELECT 20 AS sortOrder, 'latest-activity' AS rowKey, id AS trackId, 0::double precision AS value
+                 FROM q ORDER BY start_date DESC, id DESC LIMIT 1)
+                UNION ALL
+                (SELECT 30 AS sortOrder, 'distance-10000' AS rowKey, id AS trackId, distance_m AS value
+                 FROM q WHERE distance_m >= 10000 ORDER BY start_date ASC, id ASC LIMIT 1)
+                UNION ALL
+                (SELECT 40 AS sortOrder, 'distance-25000' AS rowKey, id AS trackId, distance_m AS value
+                 FROM q WHERE distance_m >= 25000 ORDER BY start_date ASC, id ASC LIMIT 1)
+                UNION ALL
+                (SELECT 50 AS sortOrder, 'distance-50000' AS rowKey, id AS trackId, distance_m AS value
+                 FROM q WHERE distance_m >= 50000 ORDER BY start_date ASC, id ASC LIMIT 1)
+                UNION ALL
+                (SELECT 60 AS sortOrder, 'distance-100000' AS rowKey, id AS trackId, distance_m AS value
+                 FROM q WHERE distance_m >= 100000 ORDER BY start_date ASC, id ASC LIMIT 1)
+                UNION ALL
+                (SELECT 70 AS sortOrder, 'ascent-500' AS rowKey, id AS trackId, ascent_m AS value
+                 FROM q WHERE ascent_m >= 500 ORDER BY start_date ASC, id ASC LIMIT 1)
+                UNION ALL
+                (SELECT 80 AS sortOrder, 'ascent-1000' AS rowKey, id AS trackId, ascent_m AS value
+                 FROM q WHERE ascent_m >= 1000 ORDER BY start_date ASC, id ASC LIMIT 1)
+                UNION ALL
+                (SELECT 90 AS sortOrder, 'ascent-2000' AS rowKey, id AS trackId, ascent_m AS value
+                 FROM q WHERE ascent_m >= 2000 ORDER BY start_date ASC, id ASC LIMIT 1)
+                UNION ALL
+                (SELECT 100 AS sortOrder, 'energy-1000' AS rowKey, id AS trackId, energy_wh AS value
+                 FROM q WHERE energy_wh >= 1000 ORDER BY start_date ASC, id ASC LIMIT 1)
+            )
+            SELECT sortOrder, rowKey, trackId, value FROM rows ORDER BY sortOrder ASC
+            """)
+    List<GpsTrackOverviewTrackRow> getTrackOverviewMilestones(@Param("filterIds") Long[] filterIds);
 
     @Query(nativeQuery = true, value = """
                 select * from gps_track gt where duplicate_of = :gps_track_id or (id=:gps_track_id and duplicate_status!='UNIQUE' )
@@ -340,6 +633,14 @@ public interface GpsTrackRepository extends JpaRepository<GpsTrack, Long> {
      */
     @Query(value = "SELECT id FROM gps_track WHERE id = ANY(:ids)", nativeQuery = true)
     List<Long> findTrackIDsByIdsCustom(@Param("ids") Long[] ids);
+
+    /**
+     * JPQL startup probe only. This intentionally exercises normal IN-list
+     * expansion with a bounded list size; production large-ID lookups must use
+     * native array binding instead.
+     */
+    @Query("SELECT t.id FROM GpsTrack t WHERE t.id IN :ids")
+    List<Long> findTrackIdsByIdsJpqlStartupProbe(@Param("ids") List<Long> ids);
 
     /**
      * Find segment siblings for a given track.
@@ -459,7 +760,7 @@ public interface GpsTrackRepository extends JpaRepository<GpsTrack, Long> {
      * Returns (id, version) pairs for the given track IDs.
      * Used by mode=ids to include entity versions without loading full GpsTrack objects.
      */
-    @Query("SELECT t.id, t.version FROM GpsTrack t WHERE t.id IN :ids")
-    List<Object[]> findVersionsByIds(@Param("ids") List<Long> ids);
+    @Query(value = "SELECT id, version FROM gps_track WHERE id = ANY(:ids)", nativeQuery = true)
+    List<Object[]> findVersionsByIds(@Param("ids") Long[] ids);
 
 }

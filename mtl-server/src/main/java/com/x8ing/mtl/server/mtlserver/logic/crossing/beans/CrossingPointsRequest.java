@@ -1,11 +1,17 @@
 package com.x8ing.mtl.server.mtlserver.logic.crossing.beans;
 
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.x8ing.mtl.server.mtlserver.web.services.track.entity.FilterRequestBean;
 import lombok.Data;
 
 import java.util.List;
 
 @Data
+@JsonPropertyOrder({
+        "triggerPoints",
+        "radius",
+        "filter"
+})
 public class CrossingPointsRequest {
 
     public List<TriggerPoint> triggerPoints;

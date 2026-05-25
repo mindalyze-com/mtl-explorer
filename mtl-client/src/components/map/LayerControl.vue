@@ -1,19 +1,20 @@
 <template>
   <div class="lc">
     <div class="lc-row" @click="$emit('update:enabled', !enabled)">
-      <i class="bi lc-check"
-         :class="enabled ? 'bi-check-circle-fill' : 'bi-circle'"
-         :style="enabled ? { color: color } : {}" />
+      <i
+        class="bi lc-check"
+        :class="enabled ? 'bi-check-circle-fill' : 'bi-circle'"
+        :style="enabled ? { color: color } : {}"
+      />
       <div class="lc-label-wrap">
         <span class="lc-label">{{ label }}</span>
         <span v-if="info" class="lc-info">{{ info }}</span>
       </div>
     </div>
     <div v-if="enabled" class="lc-slider-area">
-      <div class="lc-track-wrapper" ref="trackWrapper"
-           @pointerdown="onPointerDown">
+      <div ref="trackWrapper" class="lc-track-wrapper" @pointerdown="onPointerDown">
         <div class="lc-track-inner">
-          <div class="lc-track" ref="track">
+          <div ref="track" class="lc-track">
             <div class="lc-track-checker"></div>
             <div class="lc-track-gradient"></div>
           </div>
@@ -24,7 +25,7 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { computed, useTemplateRef } from 'vue';
 
 const props = defineProps({
@@ -35,13 +36,16 @@ const props = defineProps({
   opacity: { type: Number, required: true },
 });
 
-const emit = defineEmits(['update:enabled', 'update:opacity']);
+const emit = defineEmits<{
+  'update:enabled': [value: boolean];
+  'update:opacity': [value: number];
+}>();
 
-const track = useTemplateRef('track');
+const track = useTemplateRef<HTMLElement>('track');
 
 const handleStyle = computed(() => ({ left: `${props.opacity}%` }));
 
-function updateFromEvent(e) {
+function updateFromEvent(e: PointerEvent) {
   if (!track.value) return;
   const rect = track.value.getBoundingClientRect();
   const raw = ((e.clientX - rect.left) / rect.width) * 100;
@@ -49,10 +53,13 @@ function updateFromEvent(e) {
   emit('update:opacity', clamped);
 }
 
-function onPointerDown(e) {
+function onPointerDown(e: PointerEvent) {
   e.preventDefault();
   updateFromEvent(e);
-  const onMove = (ev) => { ev.preventDefault(); updateFromEvent(ev); };
+  const onMove = (ev: PointerEvent) => {
+    ev.preventDefault();
+    updateFromEvent(ev);
+  };
   const onUp = () => {
     window.removeEventListener('pointermove', onMove);
     window.removeEventListener('pointerup', onUp);
@@ -143,7 +150,11 @@ function onPointerDown(e) {
     linear-gradient(45deg, transparent 75%, rgba(140, 140, 140, 0.18) 75%),
     linear-gradient(-45deg, transparent 75%, rgba(140, 140, 140, 0.18) 75%);
   background-size: 8px 8px;
-  background-position: 0 0, 0 4px, 4px -4px, -4px 0;
+  background-position:
+    0 0,
+    0 4px,
+    4px -4px,
+    -4px 0;
 }
 
 .lc-track-gradient {

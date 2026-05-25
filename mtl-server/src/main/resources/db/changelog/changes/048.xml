@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.10.xsd">
+
+    <changeSet id="20260519_1_map_safe_gradient_palettes" author="patrick.heusser">
+        <insert tableName="config">
+            <column name="domain1" value="CLIENT"/>
+            <column name="domain2" value="COLOR_PALETTE"/>
+            <column name="domain3" value="GRADIENT_100_MAP_SATURATED"/>
+            <column name="value"><![CDATA[{"description":"100-step saturated map-safe gradient - blue -> teal -> green -> amber -> orange -> red -> purple, with no white or pale stops","label":"Gradient Map Saturated","colors":["#2354E8","#2157E6","#1F5BE5","#1D5EE3","#1B61E1","#1965DF","#1768DE","#156BDC","#136EDA","#1172D8","#0F75D7","#0D78D5","#0B7CD3","#097FD1","#0882D0","#0686CE","#0489CC","#028CCA","#008FC8","#0091C1","#0092BA","#0094B3","#0096AC","#0097A5","#00999E","#009A97","#009C90","#009D89","#009F82","#00A17B","#00A274","#00A46D","#00A566","#00A75F","#04A858","#0FA852","#1BA84D","#26A747","#32A741","#3DA73C","#49A736","#54A730","#60A62B","#6BA625","#77A61F","#82A61A","#8EA614","#99A50E","#A5A509","#B0A503","#B8A300","#BB9F00","#BE9C00","#C19800","#C49400","#C79100","#CA8D00","#CD8900","#D08500","#D38200","#D67E00","#D97A00","#DC7600","#DF7300","#E26F00","#E56B00","#E56703","#E46207","#E35C0B","#E3570F","#E25213","#E14D17","#E0481A","#DF431E","#DE3E22","#DD3926","#DC332A","#DB2E2E","#DA2932","#D92436","#D81F3A","#D71A3E","#D41A46","#D01B4F","#CC1C58","#C81D60","#C41E69","#BF1F72","#BB207A","#B72183","#B3228C","#AF2394","#AB249D","#A725A6","#A326AF","#9F27B7","#9B28C0","#9729C9","#932AD1","#8F2BDA"]}]]></column>
+            <column name="description" value="100-step saturated map-safe gradient. Blue, teal, green, amber, orange, red, and purple with no white or pale stops."/>
+        </insert>
+
+        <update tableName="config">
+            <column name="value"><![CDATA[{"description":"100-step Viridis-style map-safe gradient - purple -> blue -> teal -> green -> saturated olive, with no white or pale stops","label":"Gradient Viridis","colors":["#5D2288","#5B2489","#58258A","#56278A","#54288B","#512A8C","#4F2C8D","#4D2D8E","#4A2F8F","#48318F","#463290","#433491","#413592","#3F3793","#3C3994","#3A3A94","#373C95","#353E96","#333F97","#304198","#2E4299","#2C4499","#29469A","#27479B","#25499C","#224B9D","#204C9E","#1E4E9E","#1C509F","#1B529E","#1A549D","#19569D","#18599C","#165B9B","#155D9A","#145F9A","#136299","#126498","#116697","#106897","#0F6B96","#0E6D95","#0D6F94","#0C7194","#0B7493","#0A7692","#097891","#087A91","#077D90","#067F8F","#05818E","#04838E","#03868D","#02888C","#008A8B","#008B8A","#008C88","#008C86","#008D83","#008D81","#008E7F","#008E7D","#008F7B","#008F79","#009076","#009074","#009172","#009170","#00926E","#00926C","#00936A","#009367","#009365","#009463","#009461","#00955F","#00955D","#00965A","#069757","#0D9753","#14984F","#1B994A","#239A46","#2A9B42","#319B3E","#389C3A","#409D36","#479E32","#4E9E2D","#559F29","#5DA025","#64A121","#6BA21D","#72A219","#7AA315","#81A411","#88A50C","#8FA508","#97A604","#9EA700"]}]]></column>
+            <column name="description" value="100-step Viridis-style map-safe gradient. Purple to blue, teal, green, and saturated olive with no pale yellow endpoint."/>
+            <where>domain1 = 'CLIENT' AND domain2 = 'COLOR_PALETTE' AND domain3 = 'GRADIENT_100_VIRIDIS'</where>
+        </update>
+
+        <update tableName="config">
+            <column name="value"><![CDATA[{"description":"100-step Plasma-style map-safe gradient - purple -> magenta -> red -> orange -> amber, with no white or pale stops","label":"Gradient Plasma","colors":["#2616A8","#2A16A8","#2F17A8","#3317A8","#3717A8","#3C17A8","#4018A8","#4418A8","#4918A8","#4D18A8","#5119A8","#5519A8","#5A19A8","#5E1AA8","#621AA8","#671AA8","#6B1AA8","#6F1BA8","#741BA8","#781BA8","#7C1CA8","#811CA8","#851CA7","#881CA5","#8B1CA3","#8E1CA1","#911C9E","#941C9C","#971C9A","#9B1C97","#9E1C95","#A11C93","#A41B90","#A71B8E","#AA1B8C","#AD1B89","#B11B87","#B41B85","#B71B82","#BA1B80","#BD1B7E","#C01B7B","#C21B78","#C41C75","#C51D71","#C61E6D","#C71F69","#C82065","#C92162","#CA225E","#CB245A","#CC2556","#CD2653","#CE274F","#CF284B","#D02947","#D12A43","#D22B40","#D32C3C","#D42D38","#D62E34","#D72F30","#D7312E","#D8342B","#D93729","#DA3A26","#DB3D24","#DB4022","#DC431F","#DD461D","#DE491B","#DE4C18","#DF4F16","#E05213","#E15511","#E1580F","#E25B0C","#E35E0A","#E46108","#E46405","#E56603","#E66900","#E56D00","#E47000","#E27300","#E17600","#E07900","#DE7C00","#DD7F00","#DC8200","#DB8500","#D98800","#D88B00","#D78E00","#D59200","#D49500","#D39800","#D29B00","#D09E00","#CFA100"]}]]></column>
+            <column name="description" value="100-step Plasma-style map-safe gradient. Purple to magenta, red, orange, and amber with no bright yellow endpoint."/>
+            <where>domain1 = 'CLIENT' AND domain2 = 'COLOR_PALETTE' AND domain3 = 'GRADIENT_100_PLASMA'</where>
+        </update>
+
+        <update tableName="config">
+            <column name="value"><![CDATA[{"description":"100-step saturated Blues gradient - cyan-blue -> deep blue, with no white or pale stops","label":"Gradient Blues","colors":["#0094C7","#0093C7","#0092C6","#0091C6","#0090C5","#008FC5","#008DC5","#008CC4","#008BC4","#008AC3","#0089C3","#0088C3","#0087C2","#0086C2","#0085C1","#0084C1","#0082C1","#0081C0","#0080C0","#007FBF","#007EBF","#007DBF","#007CBE","#007BBE","#007ABD","#0079BD","#0077BC","#0076BC","#0075BC","#0074BB","#0073BB","#0072BA","#0071BA","#0070BA","#006FB9","#006EB9","#006CB8","#006BB8","#006AB7","#0069B6","#0068B6","#0067B5","#0066B5","#0064B4","#0063B3","#0062B3","#0061B2","#0060B2","#005FB1","#005DB0","#005CB0","#005BAF","#005AAE","#0059AE","#0058AD","#0057AD","#0055AC","#0054AB","#0053AB","#0052AA","#0051AA","#0050A9","#004EA8","#004DA8","#004CA7","#004BA7","#004AA6","#0049A5","#0048A5","#0046A4","#0045A3","#0044A2","#0043A1","#0043A0","#00429F","#00419D","#00409C","#003F9B","#003E9A","#003D99","#003C98","#003B97","#003A95","#003994","#003893","#003792","#003691","#003590","#00348F","#00338D","#00328C","#00328B","#00318A","#003089","#002F88","#002E87","#002D85","#002C84","#002B83","#002A82"]}]]></column>
+            <column name="description" value="100-step saturated Blues gradient. Cyan-blue to deep blue with no white or pale blue endpoint."/>
+            <where>domain1 = 'CLIENT' AND domain2 = 'COLOR_PALETTE' AND domain3 = 'GRADIENT_100_BLUES'</where>
+        </update>
+
+        <update tableName="config">
+            <column name="value"><![CDATA[{"description":"100-step RdYlGn-style map-safe gradient - red -> orange -> amber -> green, with no white or pale stops","label":"Gradient RdYlGn","colors":["#B5122C","#B6152A","#B71829","#B91B27","#BA1D25","#BB2023","#BC2322","#BD2620","#BF291E","#C02C1D","#C12F1B","#C23219","#C33417","#C53716","#C63A14","#C73D12","#C84011","#C9430F","#CB460D","#CC490C","#CD4B0A","#CE4E08","#CF5106","#D15405","#D25703","#D35A01","#D45D00","#D36000","#D26300","#D16600","#D06900","#CF6C00","#CE6F00","#CE7300","#CD7600","#CC7900","#CB7C00","#CA7F00","#C98200","#C88500","#C78800","#C78C00","#C68F00","#C59200","#C49500","#C39800","#C29B00","#C19E00","#C0A100","#BFA400","#BDA600","#B9A600","#B5A600","#B1A600","#ADA600","#A9A600","#A5A600","#A1A600","#9DA600","#99A600","#96A600","#92A600","#8EA600","#8AA600","#86A600","#82A600","#7EA600","#7AA600","#76A600","#72A600","#6EA600","#6AA600","#66A502","#62A405","#5FA307","#5BA20A","#57A10D","#53A00F","#509F12","#4C9E15","#489D18","#449C1A","#409B1D","#3D9A20","#399922","#359825","#319728","#2D962B","#2A952D","#269430","#229333","#1E9235","#1B9138","#17903B","#138F3D","#0F8E40","#0B8D43","#088C46","#048B48","#008A4B"]}]]></column>
+            <column name="description" value="100-step RdYlGn-style map-safe gradient. Red to orange, amber, and green with no pale yellow or white midpoint."/>
+            <where>domain1 = 'CLIENT' AND domain2 = 'COLOR_PALETTE' AND domain3 = 'GRADIENT_100_RDYLGN'</where>
+        </update>
+
+        <update tableName="filter_config">
+            <column name="preferred_palette" value="GRADIENT_100_MAP_SATURATED"/>
+            <where>coloring_strategy = 'SEQUENTIAL_GRADIENT' AND preferred_palette = 'GRADIENT_100_VIRIDIS'</where>
+        </update>
+    </changeSet>
+
+    <changeSet id="20260519_2_filter_display_order_ranges" author="patrick.heusser">
+        <comment>
+            Give built-in filter groups wide display-order ranges. The client
+            orders filter selector groups by the lowest display_order inside
+            each group, so these ranges define the preferred group order while
+            leaving space for future filters.
+        </comment>
+
+        <!-- Core: 1000-1999 -->
+        <update tableName="filter_config">
+            <column name="display_order" valueNumeric="1000"/>
+            <where>filter_domain = 'GPS_TRACK' AND filter_name = 'SmartBaseFilter'</where>
+        </update>
+
+        <!-- Activity: 2000-2999 -->
+        <update tableName="filter_config">
+            <column name="display_order" valueNumeric="2000"/>
+            <column name="display_name" value="Activities by type"/>
+            <where>filter_domain = 'GPS_TRACK' AND filter_name = 'ActivitiesByMainTypes'</where>
+        </update>
+        <update tableName="filter_config">
+            <column name="display_order" valueNumeric="2010"/>
+            <where>filter_domain = 'GPS_TRACK' AND filter_name = 'ActivitiesByKeyword'</where>
+        </update>
+        <update tableName="filter_config">
+            <column name="display_order" valueNumeric="2020"/>
+            <where>filter_domain = 'GPS_TRACK' AND filter_name = 'NonMotorizedTracks'</where>
+        </update>
+        <update tableName="filter_config">
+            <column name="display_order" valueNumeric="2030"/>
+            <where>filter_domain = 'GPS_TRACK' AND filter_name = 'MotorizedTracks'</where>
+        </update>
+
+        <!-- Date & Time: 3000-3999 -->
+        <update tableName="filter_config">
+            <column name="display_order" valueNumeric="3000"/>
+            <where>filter_domain = 'GPS_TRACK' AND filter_name = 'TracksByYear'</where>
+        </update>
+        <update tableName="filter_config">
+            <column name="display_order" valueNumeric="3010"/>
+            <where>filter_domain = 'GPS_TRACK' AND filter_name = 'TracksByDay'</where>
+        </update>
+        <update tableName="filter_config">
+            <column name="display_order" valueNumeric="3020"/>
+            <where>filter_domain = 'GPS_TRACK' AND filter_name = 'TracksByQuarter'</where>
+        </update>
+        <update tableName="filter_config">
+            <column name="display_order" valueNumeric="3030"/>
+            <where>filter_domain = 'GPS_TRACK' AND filter_name = 'TracksByDayOfWeek'</where>
+        </update>
+        <update tableName="filter_config">
+            <column name="display_order" valueNumeric="3040"/>
+            <where>filter_domain = 'GPS_TRACK' AND filter_name = 'TracksByTimeOfDay'</where>
+        </update>
+
+        <!-- People: 4000-4999 -->
+        <update tableName="filter_config">
+            <column name="display_order" valueNumeric="4000"/>
+            <where>filter_domain = 'GPS_TRACK' AND filter_name = 'ActivitiesWithSilja'</where>
+        </update>
+        <update tableName="filter_config">
+            <column name="display_order" valueNumeric="4010"/>
+            <where>filter_domain = 'GPS_TRACK' AND filter_name = 'ActivitiesWithOthers'</where>
+        </update>
+
+        <!-- Performance: 5000-5999 -->
+        <update tableName="filter_config">
+            <column name="display_order" valueNumeric="5000"/>
+            <where>filter_domain = 'GPS_TRACK' AND filter_name = 'TracksByAverageSpeedGradient'</where>
+        </update>
+        <update tableName="filter_config">
+            <column name="display_order" valueNumeric="5010"/>
+            <where>filter_domain = 'GPS_TRACK' AND filter_name = 'TracksByDistanceGradient'</where>
+        </update>
+        <update tableName="filter_config">
+            <column name="display_order" valueNumeric="5020"/>
+            <where>filter_domain = 'GPS_TRACK' AND filter_name = 'TracksByElevationGainGradient'</where>
+        </update>
+        <update tableName="filter_config">
+            <column name="display_order" valueNumeric="5030"/>
+            <where>filter_domain = 'GPS_TRACK' AND filter_name = 'TracksByEnergyGradient'</where>
+        </update>
+
+        <!-- Quality: 6000-6999 -->
+        <update tableName="filter_config">
+            <column name="display_order" valueNumeric="6000"/>
+            <where>filter_domain = 'GPS_TRACK' AND filter_name = 'SuspiciousTracks'</where>
+        </update>
+        <update tableName="filter_config">
+            <column name="display_order" valueNumeric="6010"/>
+            <where>filter_domain = 'GPS_TRACK' AND filter_name = 'DuplicateTracks'</where>
+        </update>
+        <update tableName="filter_config">
+            <column name="display_order" valueNumeric="6020"/>
+            <where>filter_domain = 'GPS_TRACK' AND filter_name = 'TracksWithErrors'</where>
+        </update>
+    </changeSet>
+
+</databaseChangeLog>

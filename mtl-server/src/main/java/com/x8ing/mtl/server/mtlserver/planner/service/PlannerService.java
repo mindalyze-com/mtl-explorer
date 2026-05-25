@@ -1,5 +1,6 @@
 package com.x8ing.mtl.server.mtlserver.planner.service;
 
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.x8ing.mtl.server.mtlserver.planner.client.BRouterClient;
 import com.x8ing.mtl.server.mtlserver.planner.config.PlannerProperties;
 import com.x8ing.mtl.server.mtlserver.planner.constants.PlannerConstants;
@@ -24,7 +25,17 @@ import java.util.*;
 @Slf4j
 @Service
 @ConditionalOnProperty(prefix = "mtl.planner", name = "enabled", havingValue = "true")
+@JsonPropertyOrder({
+        "brouterClient",
+        "properties",
+        "legCache"
+})
 public class PlannerService {
+
+    private static final double MIN_LATITUDE = -90.0;
+    private static final double MAX_LATITUDE = 90.0;
+    private static final double MIN_LONGITUDE = -180.0;
+    private static final double MAX_LONGITUDE = 180.0;
 
     private final BRouterClient brouterClient;
     private final PlannerProperties properties;
@@ -46,6 +57,9 @@ public class PlannerService {
      * Compute the full route. Throws {@link IllegalArgumentException} on bad input.
      */
     public RouteResponseDto computeRoute(RouteRequestDto req) {
+        if (req == null) {
+            throw new IllegalArgumentException("Route request is required");
+        }
         List<WaypointDto> wps = req.getWaypoints();
         if (wps == null || wps.size() < 2) {
             throw new IllegalArgumentException("At least two waypoints are required");
@@ -53,6 +67,7 @@ public class PlannerService {
         if (wps.size() > PlannerConstants.MAX_WAYPOINTS) {
             throw new IllegalArgumentException("Too many waypoints (max " + PlannerConstants.MAX_WAYPOINTS + ")");
         }
+        wps.forEach(this::validateWaypoint);
 
         String profile = resolveProfile(req.getProfile());
 
@@ -119,10 +134,33 @@ public class PlannerService {
     }
 
     private String resolveProfile(String requested) {
-        if (requested != null && properties.getProfiles().contains(requested)) {
+        if (requested == null || requested.isBlank()) {
+            return PlannerConstants.DEFAULT_PROFILE;
+        }
+        if (properties.getProfiles().contains(requested)) {
             return requested;
         }
-        return PlannerConstants.DEFAULT_PROFILE;
+        throw new IllegalArgumentException("Unknown routing profile");
+    }
+
+    private void validateWaypoint(WaypointDto waypoint) {
+        if (waypoint == null) {
+            throw new IllegalArgumentException("Waypoint is required");
+        }
+        validateLatitude(waypoint.getLat());
+        validateLongitude(waypoint.getLng());
+    }
+
+    private void validateLatitude(double latitude) {
+        if (!Double.isFinite(latitude) || latitude < MIN_LATITUDE || latitude > MAX_LATITUDE) {
+            throw new IllegalArgumentException("Latitude must be between -90 and 90");
+        }
+    }
+
+    private void validateLongitude(double longitude) {
+        if (!Double.isFinite(longitude) || longitude < MIN_LONGITUDE || longitude > MAX_LONGITUDE) {
+            throw new IllegalArgumentException("Longitude must be between -180 and 180");
+        }
     }
 
     private String cacheKey(WaypointDto a, WaypointDto b, String profile) {
@@ -152,6 +190,10 @@ public class PlannerService {
         return legCache.size();
     }
 
+    @JsonPropertyOrder({
+            "leg",
+            "storedAt"
+    })
     private record CachedLeg(LegResultDto leg, Instant storedAt) {
         boolean isExpired() {
             return Duration.between(storedAt, Instant.now()).toMinutes() >= PlannerConstants.SEGMENT_CACHE_TTL_MIN;

@@ -1,5 +1,6 @@
 package com.x8ing.mtl.server.mtlserver.indexer;
 
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.x8ing.mtl.server.mtlserver.db.entity.indexer.IndexedFile;
 import com.x8ing.mtl.server.mtlserver.db.repository.indexer.IndexerRepository;
 import org.springframework.stereotype.Service;
@@ -7,6 +8,9 @@ import org.springframework.stereotype.Service;
 import java.util.*;
 
 @Service
+@JsonPropertyOrder({
+        "indexerRepository"
+})
 public class IndexerStatusService {
 
     private final IndexerRepository indexerRepository;
@@ -26,6 +30,16 @@ public class IndexerStatusService {
         ) > 0;
     }
 
+    @JsonPropertyOrder({
+            "index",
+            "total",
+            "pending",
+            "completed",
+            "failed",
+            "removed",
+            "excluded",
+            "progressPercent"
+    })
     public record IndexSummaryDto(
             String index,
             long total,

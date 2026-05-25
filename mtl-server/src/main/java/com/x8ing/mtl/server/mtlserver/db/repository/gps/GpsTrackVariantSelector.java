@@ -1,5 +1,6 @@
 package com.x8ing.mtl.server.mtlserver.db.repository.gps;
 
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.x8ing.mtl.server.mtlserver.db.entity.gps.GpsTrackData;
 import com.x8ing.mtl.server.mtlserver.db.entity.gps.GpsTrackDataPoint;
 import org.springframework.stereotype.Component;
@@ -20,6 +21,10 @@ import java.util.List;
  * measurement" regressions and gives us one place to change routing later.
  */
 @Component
+@JsonPropertyOrder({
+        "gpsTrackDataRepository",
+        "gpsTrackDataPointRepository"
+})
 public class GpsTrackVariantSelector {
 
     private final GpsTrackDataRepository gpsTrackDataRepository;

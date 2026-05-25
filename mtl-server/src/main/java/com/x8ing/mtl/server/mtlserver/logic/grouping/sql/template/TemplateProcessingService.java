@@ -1,5 +1,6 @@
 package com.x8ing.mtl.server.mtlserver.logic.grouping.sql.template;
 
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import org.springframework.stereotype.Service;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.TemplateSpec;
@@ -16,6 +17,9 @@ import org.thymeleaf.templatemode.TemplateMode;
  */
 
 @Service
+@JsonPropertyOrder({
+        "templateEngine"
+})
 public class TemplateProcessingService {
 
     private final TemplateEngine templateEngine;

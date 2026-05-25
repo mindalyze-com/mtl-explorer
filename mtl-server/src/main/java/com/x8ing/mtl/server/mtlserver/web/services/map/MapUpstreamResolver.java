@@ -1,5 +1,6 @@
 package com.x8ing.mtl.server.mtlserver.web.services.map;
 
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -17,8 +18,18 @@ import java.util.concurrent.atomic.AtomicLong;
  */
 @Slf4j
 @Service
+@JsonPropertyOrder({
+        "properties",
+        "probeClient",
+        "lastTileRequestEpochMs",
+        "cachedDecision"
+})
 public class MapUpstreamResolver {
 
+    @JsonPropertyOrder({
+            "source",
+            "expiresAt"
+    })
     private record CachedDecision(MapUpstreamSource source, Instant expiresAt) {
     }
 

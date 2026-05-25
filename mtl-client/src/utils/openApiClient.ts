@@ -8,17 +8,27 @@
  * request via an interceptor — the generated client predates that pattern,
  * so we keep building a new Configuration each call.
  */
-import { Configuration } from 'x8ing-mtl-api-typescript-fetch';
-import { getAuthHeaderValue } from '@/utils/auth';
+import { Configuration, type Middleware } from 'x8ing-mtl-api-typescript-fetch';
+import { getAuthHeaderValue, getToken, redirectToLoginAfterAuthFailure } from '@/utils/auth';
+import { backendBasePath } from '@/utils/apiBase';
 
-const backendUrl: string = import.meta.env.VITE_BACKEND_URL ?? '';
+const AUTH_FAILURE_STATUSES = new Set([401, 403]);
+
+const authFailureMiddleware: Middleware = {
+  async post({ response }) {
+    if (AUTH_FAILURE_STATUSES.has(response.status)) {
+      redirectToLoginAfterAuthFailure(!!getToken());
+    }
+    return response;
+  },
+};
 
 export function getApiConfiguration(): Configuration {
+  const authHeader = getAuthHeaderValue();
   return new Configuration({
-    basePath: backendUrl.replace(/\/$/, ''),
-    headers: {
-      Authorization: getAuthHeaderValue(),
-    },
+    basePath: backendBasePath,
+    headers: authHeader ? { Authorization: authHeader } : {},
     credentials: 'include',
+    middleware: [authFailureMiddleware],
   });
 }

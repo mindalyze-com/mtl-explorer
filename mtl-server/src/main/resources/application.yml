@@ -78,8 +78,14 @@ mtl:
     tileset-name: planet                        # main tileset filename (without .pmtiles)
     lowzoom-tileset-name: world-lowzoom         # low-zoom extract for offline client cache
     remote-tile-url: https://tile.openstreetmap.org/{z}/{x}/{y}.png  # raster URL when tile-mode=remote
+  location-search:
+    enabled: true
+    status-url: ${MTL_LOCATION_SEARCH_STATUS_URL:http://location-search:8083/status}
+    query-url: ${MTL_LOCATION_SEARCH_QUERY_URL:http://location-search:8083/search}
+    timeout-ms: 1500
 
 server:
+  forward-headers-strategy: framework
   servlet:
     context-path: "/mtl/"
     # Session config disabled — auth is purely JWT-based (STATELESS session policy).
@@ -98,6 +104,7 @@ server:
       text/html,text/xml,text/plain,text/css,text/javascript,
       application/javascript,application/json,application/geo+json,
       application/xml,image/svg+xml
+
 spring:
   datasource:
     url: jdbc:postgresql://db:5432/mtl

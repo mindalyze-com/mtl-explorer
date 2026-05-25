@@ -1,10 +1,9 @@
-import { apiClient } from "@/utils/apiClient";
-
-const backendUrl = import.meta.env.VITE_BACKEND_URL;
+import { apiClient } from '@/utils/apiClient';
+import { apiUrl } from '@/utils/apiBase';
 
 export type RawMediaPoint = {
   id: number;
-  exifGpsLocationLat: number;  // may be wrong order from server
+  exifGpsLocationLat: number; // may be wrong order from server
   exifGpsLocationLong: number; // may be wrong order from server
   title?: string;
   fileName?: string;
@@ -33,7 +32,10 @@ export async function getMediaPoints(): Promise<RawMediaPoint[]> {
 
 /** Fetch media points within a map bounding box. Supports AbortController for cancellation. */
 export async function getMediaInBounds(
-  minLat: number, minLng: number, maxLat: number, maxLng: number,
+  minLat: number,
+  minLng: number,
+  maxLat: number,
+  maxLng: number,
   signal?: AbortSignal
 ): Promise<MediaBoundsPoint[]> {
   const resp = await apiClient.get('api/media/get-media-in-bounds', {
@@ -46,7 +48,7 @@ export async function getMediaInBounds(
 export function mediaContentUrl(id: number, maxSize?: number): string {
   // No auth token in the URL — the browser sends the mtl_jwt HttpOnly cookie automatically.
   // A stable URL (no session-specific query params) is required for HTTP cache hits.
-  const base = `${backendUrl}api/media/get/${id}/content`;
+  const base = apiUrl(`api/media/get/${id}/content`);
   return maxSize ? `${base}?maxSize=${maxSize}` : base;
 }
 

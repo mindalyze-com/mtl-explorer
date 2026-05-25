@@ -1,5 +1,6 @@
 package com.x8ing.mtl.server.mtlserver.web.services.energy;
 
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.x8ing.mtl.server.mtlserver.db.entity.gps.GpsTrack;
 import com.x8ing.mtl.server.mtlserver.db.entity.gps.GpsTrackDataPoint;
 import com.x8ing.mtl.server.mtlserver.db.repository.gps.GpsTrackDataPointRepository;
@@ -22,6 +23,11 @@ import java.util.List;
  */
 @RestController
 @RequestMapping("/api/energy")
+@JsonPropertyOrder({
+        "gpsTrackRepository",
+        "gpsTrackDataPointRepository",
+        "energyService"
+})
 public class EnergyController {
 
     private final GpsTrackRepository gpsTrackRepository;

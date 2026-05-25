@@ -1,15 +1,37 @@
+# syntax=docker/dockerfile:1.24.0
+#
 # Dockerfile.app
 #
-# Build-time defaults — override with: docker build --build-arg GCEXPORT_DEFAULT_VERSION=v4.7.0 .
+# Build-time defaults — override with: docker build --build-arg GCEXPORT_DEFAULT_VERSION=v4.6.2 .
 # These ARGs are promoted to ENVs so the running container (and Spring Boot) can read them.
 ARG GCEXPORT_DEFAULT_VERSION=v4.6.2
+ARG GCEXPORT_GARMINCONNECT_REQUIREMENT=garminconnect==0.3.2
 ARG FIT_EXPORT_DEFAULT_PROFILE=default
 ARG FIT_EXPORT_DEFAULT_PACKAGES="garth fitparse gpxpy"
 
-FROM eclipse-temurin:21-jre-jammy
+FROM node:20-bookworm-slim AS node-toolchain
+
+FROM maven:3.9-eclipse-temurin-21 AS app-builder
+
+COPY --from=node-toolchain /usr/local/ /usr/local/
+
+WORKDIR /workspace
+COPY . .
+
+RUN --mount=type=cache,target=/root/.m2 \
+    --mount=type=cache,target=/root/.npm <<'EOF'
+set -eu
+echo "==> Starting Maven reactor build"
+echo "    This includes OpenAPI TypeScript client generation and the mtl-client npm build."
+mvn --batch-mode clean install -DskipTests=true
+echo "==> Finished Maven reactor build"
+EOF
+
+FROM eclipse-temurin:21-jre-jammy AS runtime
 
 # Promote build ARGs to runtime ENVs (Spring Boot reads these via ${GCEXPORT_DEFAULT_VERSION:v4.6.2})
 ARG GCEXPORT_DEFAULT_VERSION
+ARG GCEXPORT_GARMINCONNECT_REQUIREMENT
 ARG FIT_EXPORT_DEFAULT_PROFILE
 ARG FIT_EXPORT_DEFAULT_PACKAGES
 ENV GCEXPORT_DEFAULT_VERSION=${GCEXPORT_DEFAULT_VERSION}
@@ -53,10 +75,11 @@ RUN chmod +x /app/garmin_export/install_gcexport.sh /app/garmin_export/run_expor
 
 # Temporary patch for garmin-connect-export (remove when project delivers official fix)
 # filterdiff applies only the .py hunks; requirements.txt is written directly (version mismatch in upstream)
+# Roll back garminconnect exactly; 0.3.3 requires Python 3.12 and is not used with Jammy.
 RUN apt-get update && apt-get install -y --no-install-recommends patch patchutils \
     && cd /app/garmin_export/gcexport_src_${GCEXPORT_DEFAULT_VERSION} \
     && filterdiff -i '*.py' /app/garmin_export/patch_2026_04_13.txt | patch -p1 \
-    && printf 'garminconnect>=0.3.2,<0.4.0\n' > requirements.txt \
+    && printf '%s\n' "${GCEXPORT_GARMINCONNECT_REQUIREMENT}" > requirements.txt \
     && /app/garmin_export/venv_gcexport_${GCEXPORT_DEFAULT_VERSION}/bin/pip install -r requirements.txt \
     && apt-get clean && rm -rf /var/lib/apt/lists/* /root/.cache/pip
 
@@ -74,7 +97,7 @@ COPY docker/gpx_porto_taxi_dataset/generate_demo_photos.py /app/demo/generate_de
 COPY docker/gpx_porto_taxi_dataset/DATASOURCE.md /app/demo/DATASOURCE.md
 
 # Copy the Spring Boot application JAR
-COPY mtl-server/target/mtl-server-0.0.1-SNAPSHOT.jar /app/mtl-server-0.0.1-SNAPSHOT.jar
+COPY --from=app-builder /workspace/mtl-server/target/mtl-server-0.0.1-SNAPSHOT.jar /app/mtl-server-0.0.1-SNAPSHOT.jar
 
 WORKDIR /app
 
@@ -83,6 +106,16 @@ RUN mkdir -p /app/gpx /app/media /app/config \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists /var/cache/apt/archives /var/log/apt \
     && mkdir -p /var/lib/apt/lists/partial
+
+ARG MTL_IMAGE_VERSION=""
+ARG MTL_IMAGE_BUILD_TIME=""
+RUN set -eux; \
+    mkdir -p /opt/mtl; \
+    build_time="${MTL_IMAGE_BUILD_TIME:-$(date -u +%Y-%m-%dT%H:%M:%SZ)}"; \
+    printf '%s\n' "${MTL_IMAGE_VERSION}" > /opt/mtl/image-version; \
+    printf '%s\n' "${build_time}" > /opt/mtl/image-build-time
+ENV MTL_IMAGE_VERSION=${MTL_IMAGE_VERSION}
+ENV MTL_IMAGE_BUILD_TIME=${MTL_IMAGE_BUILD_TIME}
 
 # Expose the port for the Spring Boot application
 EXPOSE 8080

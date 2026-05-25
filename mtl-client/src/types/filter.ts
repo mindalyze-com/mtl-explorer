@@ -12,6 +12,8 @@ export interface FilterResult {
   trackVersions: Map<number, number>;
   /** Track ID → group assignment (for colour coding on the map) */
   filterGroups: Map<number, string>;
+  /** First-seen group order from the filter result. Used when legend order is left as "Default". */
+  legendGroupOrder?: string[];
   /** Total unfiltered track count (denominator for "N of M Tracks") */
   standardFilterCount: number;
 }

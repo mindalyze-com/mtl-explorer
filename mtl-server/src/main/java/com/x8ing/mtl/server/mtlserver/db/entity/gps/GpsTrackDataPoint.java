@@ -1,5 +1,6 @@
 package com.x8ing.mtl.server.mtlserver.db.entity.gps;
 
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import jakarta.persistence.*;
 import lombok.Data;
 import org.locationtech.jts.geom.Point;
@@ -9,6 +10,37 @@ import java.util.Date;
 @Entity
 @Table(name = "gps_track_data_points")
 @Data
+@JsonPropertyOrder({
+        "id",
+        "gpsTrackDataId",
+        "movingWindowInSec",
+        "createDate",
+        "pointIndex",
+        "pointIndexMax",
+        "canonicalPointIndex",
+        "pointTimestamp",
+        "pointLongLat",
+        "pointXY",
+        "pointAltitude",
+        "distanceInMeterBetweenPoints",
+        "distanceInMeterSinceStart",
+        "durationBetweenPointsInSec",
+        "durationSinceStart",
+        "ascentInMeterBetweenPoints",
+        "ascentInMeterSinceStart",
+        "descentInMeterSinceStart",
+        "elevationGainPerHourMovingWindow",
+        "elevationLossPerHourMovingWindow",
+        "speedInKmhMovingWindow",
+        "slopePercentageInMovingWindow",
+        "energyGravitationalWh",
+        "energyAeroDragWh",
+        "energyRollingResistanceWh",
+        "energyKineticWh",
+        "energyTotalWh",
+        "energyCumulativeWh",
+        "powerWatts"
+})
 public class GpsTrackDataPoint {
 
     // SEQUENCE (not IDENTITY): Hibernate silently disables JDBC batch inserts for IDENTITY generation
@@ -38,6 +70,20 @@ public class GpsTrackDataPoint {
 
     @Column(name = "point_index_max")
     private Integer pointIndexMax;
+
+    /**
+     * Back-pointer from a derived-variant point row (currently SIMPLIFIED_SHAPE)
+     * to the {@code pointIndex} of the canonical RAW_OUTLIER_CLEANED point this
+     * row was projected from. Lets the frontend chart→map cursor sync resolve
+     * a chart bucket's {@code representativePointIndex} (which addresses the
+     * canonical stream) to a physical lat/lng on the rendered SIMPLIFIED_SHAPE.
+     * <p>
+     * Null on canonical RAW / RAW_OUTLIER_CLEANED rows (they are their own
+     * canonical reference) and on simplified rows whose source point could
+     * not be matched (e.g. missing M timestamp).
+     */
+    @Column(name = "canonical_point_index")
+    private Integer canonicalPointIndex;
 
     @Column(name = "point_timestamp")
     private Date pointTimestamp;

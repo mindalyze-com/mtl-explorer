@@ -1,5 +1,7 @@
 package com.x8ing.mtl.server.mtlserver.web.services.track.entity;
 
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
+
 import java.util.Map;
 
 /**
@@ -17,6 +19,9 @@ import java.util.Map;
  *   <li>{@link com.x8ing.mtl.server.mtlserver.db.readonly.spring.QueryResult} (filter/resolve)</li>
  * </ul>
  */
+@JsonPropertyOrder({
+        "trackVersions"
+})
 public interface VersionAware {
 
     /**

@@ -1,6 +1,8 @@
 package com.x8ing.mtl.server.mtlserver.web.security;
 
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.x8ing.mtl.server.mtlserver.db.repository.logs.SystemLogService;
+import com.x8ing.mtl.server.mtlserver.db.repository.logs.WebUserSessionService;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -18,11 +20,18 @@ import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.AuthenticationFailureHandler;
+import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter;
 
 // TODO: longer term: proper authentication and just use basicauth
 // https://howtodoinjava.com/spring-security/jwt-auth-vuejs-spring-boot-security/
 @Configuration
 @EnableWebSecurity
+@JsonPropertyOrder({
+        "userName",
+        "userPwd",
+        "systemLogService",
+        "webUserSessionService"
+})
 public class WebSecurityConfig {
 
     @Value("${mtl.user.login}")
@@ -33,15 +42,17 @@ public class WebSecurityConfig {
     private String userPwd;
 
     private final SystemLogService systemLogService;
+    private final WebUserSessionService webUserSessionService;
 
-    public WebSecurityConfig(SystemLogService systemLogService) {
+    public WebSecurityConfig(SystemLogService systemLogService, WebUserSessionService webUserSessionService) {
         this.systemLogService = systemLogService;
+        this.webUserSessionService = webUserSessionService;
     }
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http, JwtUtil jwtUtil) throws Exception {
 
-        JwtAuthenticationFilter jwtFilter = new JwtAuthenticationFilter(jwtUtil, userDetailsService());
+        JwtAuthenticationFilter jwtFilter = new JwtAuthenticationFilter(jwtUtil, userDetailsService(), webUserSessionService);
 
         http
                 .authorizeHttpRequests(authorize -> authorize
@@ -62,7 +73,22 @@ public class WebSecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 // Disable Spring Security's default "no-cache, no-store" on every response.
                 // StaticResourceCacheFilter sets proper per-resource headers instead.
-                .headers(h -> h.cacheControl(HeadersConfigurer.CacheControlConfig::disable));
+                .headers(h -> h
+                        .cacheControl(HeadersConfigurer.CacheControlConfig::disable)
+                        .contentSecurityPolicy(csp -> csp.policyDirectives(
+                                "default-src 'self'; " +
+                                "script-src 'self'; " +
+                                "style-src 'self' 'unsafe-inline'; " +
+                                "img-src 'self' data: blob: https:; " +
+                                "font-src 'self' data: https:; " +
+                                "connect-src 'self' https: http://localhost:* http://127.0.0.1:*; " +
+                                "worker-src 'self' blob:; " +
+                                "base-uri 'self'; " +
+                                "object-src 'none'; " +
+                                "frame-ancestors 'none'"))
+                        .referrerPolicy(referrer -> referrer.policy(ReferrerPolicyHeaderWriter.ReferrerPolicy.SAME_ORIGIN))
+                        .permissionsPolicyHeader(permissions -> permissions.policy("camera=(), microphone=(), geolocation=(self)"))
+                );
 
         return http.build();
     }

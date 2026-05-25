@@ -7,6 +7,8 @@ export interface TrackPoint {
   timestamp: number;
   distanceKm: number;
   pointIndex: number;
+  canonicalPointIndex?: number;
+  chartX?: Partial<Record<TrackCursorXMode, number>>;
 }
 
 export type TrackCursorSource = 'chart' | 'map' | 'system';
@@ -31,6 +33,9 @@ interface SpatialGrid {
 export interface TrackPointIndex {
   points: TrackPoint[];
   startTs: number;
+  findByPointIndex(pointIndex: number): TrackPoint | null;
+  findByCanonicalPointIndex(pointIndex: number): TrackPoint | null;
+  findByChartX(xMode: TrackCursorXMode, chartX: number): TrackPoint | null;
   findByTimestamp(ts: number): TrackPoint | null;
   findByDistance(km: number): TrackPoint | null;
   findByLatLng(lat: number, lng: number): TrackPoint | null;
@@ -39,6 +44,9 @@ export interface TrackPointIndex {
 const EMPTY_INDEX: TrackPointIndex = {
   points: [],
   startTs: 0,
+  findByPointIndex: () => null,
+  findByCanonicalPointIndex: () => null,
+  findByChartX: () => null,
   findByTimestamp: () => null,
   findByDistance: () => null,
   findByLatLng: () => null,
@@ -54,6 +62,7 @@ const pinnedPoint: Ref<TrackPoint | null> = ref(null);
 const hoverPoint: Ref<TrackPoint | null> = ref(null);
 const hoverSource: Ref<TrackCursorSource | null> = ref(null);
 const pinnedSource: Ref<TrackCursorSource | null> = ref(null);
+const trackPointVersion: Ref<number> = ref(0);
 
 let trackPointIndex: TrackPointIndex = EMPTY_INDEX;
 let currentXMode: TrackCursorXMode = 'time';
@@ -67,6 +76,10 @@ function requestHoverFrame(callback: () => void): number {
     return window.requestAnimationFrame(callback);
   }
   return setTimeout(callback, 16) as unknown as number;
+}
+
+function bumpTrackPointVersion(): void {
+  trackPointVersion.value += 1;
 }
 
 function cancelHoverFrame(frame: number): void {
@@ -124,7 +137,7 @@ function nearestBySortedValue(entries: SortedTrackPointEntry[], value: number): 
 }
 
 function metersPerLngDegree(lat: number): number {
-  return Math.max(1, METERS_PER_LAT_DEGREE * Math.cos(lat * Math.PI / 180));
+  return Math.max(1, METERS_PER_LAT_DEGREE * Math.cos((lat * Math.PI) / 180));
 }
 
 function squaredLatLngDistanceMeters(point: TrackPoint, lat: number, lng: number): number {
@@ -140,13 +153,42 @@ function isWithinMapSnapDistance(distanceSqMeters: number): boolean {
   return distanceSqMeters <= MAX_MAP_CURSOR_SNAP_METERS * MAX_MAP_CURSOR_SNAP_METERS;
 }
 
-function squaredDistanceToBoundsMeters(lat: number, lng: number, minLat: number, maxLat: number, minLng: number, maxLng: number): number {
+function squaredDistanceToBoundsMeters(
+  lat: number,
+  lng: number,
+  minLat: number,
+  maxLat: number,
+  minLng: number,
+  maxLng: number
+): number {
   const closestLat = Math.min(maxLat, Math.max(minLat, lat));
   const closestLng = Math.min(maxLng, Math.max(minLng, lng));
   const metersPerLng = metersPerLngDegree((lat + closestLat) / 2);
   const dLatMeters = (lat - closestLat) * METERS_PER_LAT_DEGREE;
   const dLngMeters = (lng - closestLng) * metersPerLng;
   return dLatMeters * dLatMeters + dLngMeters * dLngMeters;
+}
+
+function squaredDistanceToOutsideBoundsMeters(
+  lat: number,
+  lng: number,
+  minLat: number,
+  maxLat: number,
+  minLng: number,
+  maxLng: number
+): number {
+  if (lat < minLat || lat > maxLat || lng < minLng || lng > maxLng) {
+    return squaredDistanceToBoundsMeters(lat, lng, minLat, maxLat, minLng, maxLng);
+  }
+
+  const metersPerLng = metersPerLngDegree(lat);
+  const dMinLatMeters = (lat - minLat) * METERS_PER_LAT_DEGREE;
+  const dMaxLatMeters = (maxLat - lat) * METERS_PER_LAT_DEGREE;
+  const dMinLngMeters = (lng - minLng) * metersPerLng;
+  const dMaxLngMeters = (maxLng - lng) * metersPerLng;
+  const nearestOutsideMeters = Math.min(dMinLatMeters, dMaxLatMeters, dMinLngMeters, dMaxLngMeters);
+
+  return nearestOutsideMeters * nearestOutsideMeters;
 }
 
 function findNearestLinear(points: TrackPoint[], lat: number, lng: number): TrackPoint | null {
@@ -177,10 +219,7 @@ function cellForCoordinate(value: number, min: number, cellSize: number, dimensi
 }
 
 function buildSpatialGrid(points: TrackPoint[]): SpatialGrid | null {
-  const finitePoints = points.filter(p =>
-    Number.isFinite(p.lat) &&
-    Number.isFinite(p.lng)
-  );
+  const finitePoints = points.filter((p) => Number.isFinite(p.lat) && Number.isFinite(p.lng));
   if (finitePoints.length < MIN_SPATIAL_INDEX_POINTS) return null;
 
   let minLat = Infinity;
@@ -255,13 +294,13 @@ function findNearestInGrid(grid: SpatialGrid, lat: number, lng: number): TrackPo
       const rectMaxLng = grid.minLng + (maxX + 1) * grid.cellWidth;
       const rectMinLat = grid.minLat + minY * grid.cellHeight;
       const rectMaxLat = grid.minLat + (maxY + 1) * grid.cellHeight;
-      const minOutsideDistanceSq = squaredDistanceToBoundsMeters(
+      const minOutsideDistanceSq = squaredDistanceToOutsideBoundsMeters(
         lat,
         lng,
         rectMinLat,
         rectMaxLat,
         rectMinLng,
-        rectMaxLng,
+        rectMaxLng
       );
 
       if (bestDist <= minOutsideDistanceSq) {
@@ -278,30 +317,58 @@ export function createTrackPointIndex(points: TrackPoint[]): TrackPointIndex {
 
   const indexedPoints = points.slice();
   const timestampEntries = indexedPoints
-    .filter(point => Number.isFinite(point.timestamp))
-    .map(point => ({ value: point.timestamp, point }))
+    .filter((point) => Number.isFinite(point.timestamp))
+    .map((point) => ({ value: point.timestamp, point }))
     .sort((a, b) => a.value - b.value);
   const distanceEntries = indexedPoints
-    .filter(point => Number.isFinite(point.distanceKm))
-    .map(point => ({ value: point.distanceKm, point }))
+    .filter((point) => Number.isFinite(point.distanceKm))
+    .map((point) => ({ value: point.distanceKm, point }))
     .sort((a, b) => a.value - b.value);
+  const pointIndexEntries = indexedPoints
+    .filter((point) => Number.isFinite(point.pointIndex))
+    .map((point) => ({ value: point.pointIndex, point }))
+    .sort((a, b) => a.value - b.value);
+  const canonicalPointIndexEntries = indexedPoints
+    .filter((point) => Number.isFinite(point.canonicalPointIndex))
+    .map((point) => ({ value: point.canonicalPointIndex as number, point }))
+    .sort((a, b) => a.value - b.value);
+  const startTs = timestampEntries[0]?.point.timestamp ?? 0;
+  const chartXEntries: Record<TrackCursorXMode, SortedTrackPointEntry[]> = {
+    time: indexedPoints
+      .map((point) => ({ value: chartXForTrackPoint(point, 'time', startTs), point }))
+      .filter((entry) => Number.isFinite(entry.value))
+      .sort((a, b) => a.value - b.value),
+    distance: indexedPoints
+      .map((point) => ({ value: chartXForTrackPoint(point, 'distance', startTs), point }))
+      .filter((entry) => Number.isFinite(entry.value))
+      .sort((a, b) => a.value - b.value),
+  };
   const grid = buildSpatialGrid(indexedPoints);
 
   return {
     points: indexedPoints,
-    startTs: timestampEntries[0]?.point.timestamp ?? 0,
+    startTs,
+    findByPointIndex: (pointIndex: number) => nearestBySortedValue(pointIndexEntries, pointIndex),
+    findByCanonicalPointIndex: (pointIndex: number) => nearestBySortedValue(canonicalPointIndexEntries, pointIndex),
+    findByChartX: (xMode: TrackCursorXMode, chartX: number) => nearestBySortedValue(chartXEntries[xMode], chartX),
     findByTimestamp: (ts: number) => nearestBySortedValue(timestampEntries, ts),
     findByDistance: (km: number) => nearestBySortedValue(distanceEntries, km),
-    findByLatLng: (lat: number, lng: number) => grid
-      ? findNearestInGrid(grid, lat, lng)
-      : findNearestLinear(indexedPoints, lat, lng),
+    findByLatLng: (lat: number, lng: number) =>
+      grid ? findNearestInGrid(grid, lat, lng) : findNearestLinear(indexedPoints, lat, lng),
   };
 }
 
-export function chartXForTrackPoint(point: Pick<TrackPoint, 'timestamp' | 'distanceKm'>, xMode: TrackCursorXMode, startTs: number): number {
-  return xMode === 'distance'
-    ? point.distanceKm
-    : point.timestamp - startTs;
+export function chartXForTrackPoint(
+  point: Pick<TrackPoint, 'timestamp' | 'distanceKm' | 'chartX'>,
+  xMode: TrackCursorXMode,
+  startTs: number
+): number {
+  const explicitChartX = point.chartX?.[xMode];
+  if (typeof explicitChartX === 'number' && Number.isFinite(explicitChartX)) {
+    return explicitChartX;
+  }
+
+  return xMode === 'distance' ? point.distanceKm : point.timestamp - startTs;
 }
 
 export function resolveChartPointTrackPoint(
@@ -309,18 +376,24 @@ export function resolveChartPointTrackPoint(
   xMode: TrackCursorXMode,
   chartX: number,
   absoluteTimestamp?: number | null,
+  canonicalPointIndex?: number | null
 ): TrackPoint | null {
-  if (xMode === 'distance') {
-    return index.findByDistance(chartX);
+  if (canonicalPointIndex != null && Number.isFinite(canonicalPointIndex)) {
+    const canonicalPoint = index.findByCanonicalPointIndex(canonicalPointIndex);
+    if (canonicalPoint) return canonicalPoint;
   }
 
+  const chartPoint = index.findByChartX(xMode, chartX);
+  if (chartPoint) return chartPoint;
+
   const timestamp = absoluteTimestamp ?? index.startTs + chartX;
-  return index.findByTimestamp(timestamp);
+  return xMode === 'distance' ? index.findByDistance(chartX) : index.findByTimestamp(timestamp);
 }
 
 export function useTrackCursorSync() {
   function setTrackPoints(points: TrackPoint[]): void {
     trackPointIndex = createTrackPointIndex(points);
+    bumpTrackPointVersion();
     if (lastHoverTimestamp !== null) {
       setHoverPoint(trackPointIndex.findByTimestamp(lastHoverTimestamp), 'system');
     }
@@ -346,6 +419,14 @@ export function useTrackCursorSync() {
     return trackPointIndex.findByTimestamp(ts);
   }
 
+  function findPointByIndex(pointIndex: number): TrackPoint | null {
+    return trackPointIndex.findByPointIndex(pointIndex);
+  }
+
+  function findPointByCanonicalIndex(pointIndex: number): TrackPoint | null {
+    return trackPointIndex.findByCanonicalPointIndex(pointIndex);
+  }
+
   function findPointByDistance(km: number): TrackPoint | null {
     return trackPointIndex.findByDistance(km);
   }
@@ -364,8 +445,19 @@ export function useTrackCursorSync() {
     scheduleHoverPoint(trackPointIndex.findByTimestamp(ts), source);
   }
 
-  function setHoverByChartPoint(chartX: number, absoluteTimestamp?: number | null, source: TrackCursorSource = 'chart'): void {
-    const point = resolveChartPointTrackPoint(trackPointIndex, currentXMode, chartX, absoluteTimestamp);
+  function setHoverByChartPoint(
+    chartX: number,
+    absoluteTimestamp?: number | null,
+    source: TrackCursorSource = 'chart',
+    canonicalPointIndex?: number | null
+  ): void {
+    const point = resolveChartPointTrackPoint(
+      trackPointIndex,
+      currentXMode,
+      chartX,
+      absoluteTimestamp,
+      canonicalPointIndex
+    );
     if (absoluteTimestamp != null) {
       lastHoverTimestamp = absoluteTimestamp;
     } else {
@@ -379,11 +471,19 @@ export function useTrackCursorSync() {
     pinnedSource.value = point ? source : null;
   }
 
-  function setPinnedByChartPoint(chartX: number, absoluteTimestamp?: number | null, source: TrackCursorSource = 'chart'): void {
-    setPinnedPoint(resolveChartPointTrackPoint(trackPointIndex, currentXMode, chartX, absoluteTimestamp), source);
+  function setPinnedByChartPoint(
+    chartX: number,
+    absoluteTimestamp?: number | null,
+    source: TrackCursorSource = 'chart',
+    canonicalPointIndex?: number | null
+  ): void {
+    setPinnedPoint(
+      resolveChartPointTrackPoint(trackPointIndex, currentXMode, chartX, absoluteTimestamp, canonicalPointIndex),
+      source
+    );
   }
 
-  function chartXForPoint(point: Pick<TrackPoint, 'timestamp' | 'distanceKm'>): number {
+  function chartXForPoint(point: Pick<TrackPoint, 'timestamp' | 'distanceKm' | 'chartX'>): number {
     return chartXForTrackPoint(point, currentXMode, trackPointIndex.startTs);
   }
 
@@ -397,8 +497,25 @@ export function useTrackCursorSync() {
     applyHoverPoint(null, 'system');
   }
 
+  function clearHoverBySource(source: TrackCursorSource): void {
+    if (pendingHoverSource === source) {
+      cancelPendingHover();
+      lastHoverTimestamp = null;
+    }
+    if (hoverSource.value === source) {
+      lastHoverTimestamp = null;
+      applyHoverPoint(null, 'system');
+    }
+  }
+
   function clearPinned(): void {
     setPinnedPoint(null, 'system');
+  }
+
+  function clearPinnedBySource(source: TrackCursorSource): void {
+    if (pinnedSource.value === source) {
+      setPinnedPoint(null, 'system');
+    }
   }
 
   function clearAll(): void {
@@ -409,6 +526,7 @@ export function useTrackCursorSync() {
     pinnedSource.value = null;
     trackPointIndex = EMPTY_INDEX;
     lastHoverTimestamp = null;
+    bumpTrackPointVersion();
   }
 
   return {
@@ -416,11 +534,14 @@ export function useTrackCursorSync() {
     hoverPoint,
     hoverSource,
     pinnedSource,
+    trackPointVersion,
     setTrackPoints,
     getTrackPoints,
     setXMode,
     getXMode,
     getStartTs,
+    findPointByIndex,
+    findPointByCanonicalIndex,
     findPointByTimestamp,
     findPointByDistance,
     findPointByLatLng,
@@ -432,7 +553,9 @@ export function useTrackCursorSync() {
     chartXForPoint,
     getActivePoint,
     clearHover,
+    clearHoverBySource,
     clearPinned,
+    clearPinnedBySource,
     clearAll,
   };
 }

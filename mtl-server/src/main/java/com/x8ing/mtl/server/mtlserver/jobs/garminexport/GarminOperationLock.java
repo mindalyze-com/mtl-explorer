@@ -1,5 +1,6 @@
 package com.x8ing.mtl.server.mtlserver.jobs.garminexport;
 
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import org.springframework.stereotype.Component;
 
 import java.util.concurrent.locks.ReentrantLock;
@@ -9,6 +10,9 @@ import java.util.concurrent.locks.ReentrantLock;
  * Both GarminExporter and GarminToolInstallService inject this bean.
  */
 @Component
+@JsonPropertyOrder({
+        "lock"
+})
 public class GarminOperationLock {
 
     private final ReentrantLock lock = new ReentrantLock();

@@ -1,6 +1,7 @@
 package com.x8ing.mtl.server.mtlserver.gpx;
 
 import com.x8ing.mtl.server.mtlserver.db.entity.indexer.IndexedFile;
+import com.x8ing.mtl.server.mtlserver.logic.motion.TrackStopDetector;
 import org.junit.jupiter.api.Test;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.CoordinateXYZM;
@@ -432,12 +433,23 @@ class GPXReaderOutlierTest {
         assertNotNull(result.trackCleaned, "Cleaned track should not be null");
         assertTrue(result.gpsTrack.getDidFilterOutlierByDistance(),
                 "Outlier filtering should have been triggered");
+        String loadMessages = result.gpsTrack.getLoadMessages();
+        assertNotNull(loadMessages);
+        assertTrue(loadMessages.contains("Outlier corrector GPXReader distance/probation filter"),
+                "Distance/probation outlier count should be attributed to its corrector");
+        assertTrue(loadMessages.contains("Outliers Cleared By Corrector"),
+                "Distance/probation summary should include the per-corrector count label");
+        assertTrue(loadMessages.contains("Outlier corrector BreakStopTreatment"),
+                "Break-stop cleanup count should be attributed to its corrector");
 
-        // Cleaned track length should be a reasonable hike (~5-15 km), not ~125 km
-        assertTrue(result.gpsTrack.getTrackLengthInMeter() < 20_000,
-                "Track length should be < 20 km, got " + result.gpsTrack.getTrackLengthInMeter());
-        assertTrue(result.gpsTrack.getTrackLengthInMeter() > 3_000,
-                "Track length should be > 3 km, got " + result.gpsTrack.getTrackLengthInMeter());
+        // Cleaned geometry length should be a reasonable hike (~5-15 km), not ~125 km.
+        // GPXReader no longer owns GpsTrack.trackLengthInMeter; GPXStoreService derives
+        // that field later from the final persisted RAW_OUTLIER_CLEANED point stream.
+        double cleanedLengthInMeter = GPXReader.getDistanceOfWGS84(result.trackCleaned);
+        assertTrue(cleanedLengthInMeter < 20_000,
+                "Cleaned geometry length should be < 20 km, got " + cleanedLengthInMeter);
+        assertTrue(cleanedLengthInMeter > 3_000,
+                "Cleaned geometry length should be > 3 km, got " + cleanedLengthInMeter);
 
         // All cleaned points should be in the Zürich/Uetliberg area
         for (int i = 0; i < result.trackCleaned.getNumPoints(); i++) {
@@ -455,6 +467,23 @@ class GPXReaderOutlierTest {
 
     private static Coordinate coord(double lon, double lat, double ele, double epochSec) {
         return new CoordinateXYZM(lon, lat, ele, epochSec);
+    }
+
+    private static TrackStopDetector.StopRange stopRange(double startTimeS, double endTimeS) {
+        return new TrackStopDetector.StopRange(
+                0,
+                1,
+                startTimeS,
+                endTimeS,
+                8.0,
+                47.0,
+                500.0,
+                TrackStopDetector.StopCategory.LONG_BREAK,
+                0.0,
+                0.0,
+                1.0,
+                2,
+                0);
     }
 
     /**
@@ -603,6 +632,37 @@ class GPXReaderOutlierTest {
         assertEquals(2, segments.size());
         assertEquals(3, segments.get(0).size());
         assertEquals(2, segments.get(1).size());
+    }
+
+    @Test
+    void splitByTemporalGaps_knownStopAnchorPairOverThreshold_keepsSingleSegment() {
+        double baseT = 1_600_000_000.0;
+        double longStopDurationS = 13 * 3600.0;
+        List<Coordinate> coords = List.of(
+                coord(8.0, 47.0, 500.0, baseT),
+                coord(8.0, 47.0, 500.0, baseT + longStopDurationS)
+        );
+
+        List<List<Coordinate>> segments = GPXReader.splitByTemporalGaps(
+                coords,
+                List.of(stopRange(baseT, baseT + longStopDurationS)));
+        assertEquals(1, segments.size());
+        assertEquals(2, segments.get(0).size());
+    }
+
+    @Test
+    void splitByTemporalGaps_sparseRepeatedRawFixOverThreshold_splitsWithoutStopRange() {
+        double baseT = 1_600_000_000.0;
+        double gapDurationS = 13 * 3600.0;
+        List<Coordinate> coords = List.of(
+                coord(8.0, 47.0, 500.0, baseT),
+                coord(8.0, 47.0, 500.0, baseT + gapDurationS)
+        );
+
+        List<List<Coordinate>> segments = GPXReader.splitByTemporalGaps(coords);
+        assertEquals(2, segments.size());
+        assertEquals(1, segments.get(0).size());
+        assertEquals(1, segments.get(1).size());
     }
 
     @Test

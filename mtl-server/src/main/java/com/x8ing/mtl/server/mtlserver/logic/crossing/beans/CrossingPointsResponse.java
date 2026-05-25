@@ -1,5 +1,6 @@
 package com.x8ing.mtl.server.mtlserver.logic.crossing.beans;
 
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import lombok.Data;
 
 import java.util.ArrayList;
@@ -8,6 +9,12 @@ import java.util.List;
 import java.util.Map;
 
 @Data
+@JsonPropertyOrder({
+        "crossings",
+        "segmentsStats",
+        "triggerPoints",
+        "tracksPerZone"
+})
 public class CrossingPointsResponse {
 
     public Map<Long, CrossingsPerTrack> crossings = new HashMap<>();

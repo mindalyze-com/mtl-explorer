@@ -1,5 +1,6 @@
 package com.x8ing.mtl.server.mtlserver.web.services.indexer;
 
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.x8ing.mtl.server.mtlserver.jobs.status.JobStatusService;
 import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
@@ -12,6 +13,9 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/jobs")
 @RequiredArgsConstructor
+@JsonPropertyOrder({
+        "jobStatusService"
+})
 public class JobStatusController {
 
     private final JobStatusService jobStatusService;

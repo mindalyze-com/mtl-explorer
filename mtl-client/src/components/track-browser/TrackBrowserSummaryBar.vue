@@ -3,8 +3,12 @@
     <template v-if="compact">
       <div class="track-browser-summary__compact-row">
         <strong>{{ summary.count }} tracks</strong>
-        <span v-tooltip.top="{ value: formatDistanceTooltip(summary.totalDistanceMeters || 0), showDelay: 400 }">{{ formatDistanceSmart(summary.totalDistanceMeters || 0) }}</span>
-        <span v-tooltip.top="{ value: formatDurationTooltip(summary.totalDurationMillis || 0), showDelay: 400 }">{{ formatDurationSmart(summary.totalDurationMillis || 0) }}</span>
+        <span v-tooltip.top="{ value: formatDistanceTooltip(summary.totalDistanceMeters || 0), showDelay: 400 }">{{
+          formatDistanceSmart(summary.totalDistanceMeters || 0)
+        }}</span>
+        <span v-tooltip.top="{ value: formatDurationTooltip(summary.totalDurationMillis || 0), showDelay: 400 }">{{
+          formatDurationSmart(summary.totalDurationMillis || 0)
+        }}</span>
       </div>
     </template>
     <template v-else>
@@ -19,11 +23,15 @@
       <div class="track-browser-summary__stats">
         <div class="track-browser-summary__card">
           <span class="track-browser-summary__label">Total distance</span>
-          <strong v-tooltip.top="{ value: formatDistanceTooltip(summary.totalDistanceMeters || 0), showDelay: 400 }">{{ formatDistanceSmart(summary.totalDistanceMeters || 0) }}</strong>
+          <strong v-tooltip.top="{ value: formatDistanceTooltip(summary.totalDistanceMeters || 0), showDelay: 400 }">{{
+            formatDistanceSmart(summary.totalDistanceMeters || 0)
+          }}</strong>
         </div>
         <div class="track-browser-summary__card">
           <span class="track-browser-summary__label">Total duration</span>
-          <strong v-tooltip.top="{ value: formatDurationTooltip(summary.totalDurationMillis || 0), showDelay: 400 }">{{ formatDurationSmart(summary.totalDurationMillis || 0) }}</strong>
+          <strong v-tooltip.top="{ value: formatDurationTooltip(summary.totalDurationMillis || 0), showDelay: 400 }">{{
+            formatDurationSmart(summary.totalDurationMillis || 0)
+          }}</strong>
         </div>
         <div class="track-browser-summary__card track-browser-summary__card--wide">
           <span class="track-browser-summary__label">Newest track</span>
@@ -36,7 +44,7 @@
 </template>
 
 <script setup lang="ts">
-import { formatDistance, formatDuration, formatDistanceSmart, formatDurationSmart, formatDistanceTooltip, formatDurationTooltip } from '@/utils/Utils';
+import { formatDistanceSmart, formatDurationSmart, formatDistanceTooltip, formatDurationTooltip } from '@/utils/Utils';
 import type { TrackBrowserSummary } from './trackBrowser.types';
 
 defineProps<{

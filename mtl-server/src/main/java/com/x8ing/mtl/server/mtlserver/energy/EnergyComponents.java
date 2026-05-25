@@ -1,5 +1,6 @@
 package com.x8ing.mtl.server.mtlserver.energy;
 
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import lombok.Builder;
 import lombok.Data;
 
@@ -11,6 +12,12 @@ import lombok.Data;
  */
 @Data
 @Builder
+@JsonPropertyOrder({
+        "gravitationalJoules",
+        "aeroDragJoules",
+        "rollingResistanceJoules",
+        "kineticJoules"
+})
 public class EnergyComponents {
 
     public static final EnergyComponents ZERO = EnergyComponents.builder().build();

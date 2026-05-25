@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.10.xsd">
+
+    <changeSet id="20260517_1_gps_track_data_physical_points" author="patrick.heusser">
+        <comment>
+            Store the physical LineString vertex count per gps_track_data row.
+            This is intentionally variant-local: RAW, RAW_OUTLIER_CLEANED,
+            SIMPLIFIED_SHAPE and SIMPLIFIED_FIXED_POINTS each derive the value
+            from their own geometry. The application sets the value before
+            insert/update.
+        </comment>
+
+        <sql>
+            ALTER TABLE gps_track_data
+                ADD COLUMN number_of_physical_points integer
+        </sql>
+    </changeSet>
+
+</databaseChangeLog>

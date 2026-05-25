@@ -57,47 +57,36 @@ export class HeatmapOverlay {
             'heatmap-weight': 0.35,
 
             // Slightly ramp up intensity as you zoom in
-            'heatmap-intensity': [
-              'interpolate', ['linear'], ['zoom'],
-              0, 0.4,
-              8, 1.0,
-              13, 1.8,
-              17, 2.5,
-            ],
+            'heatmap-intensity': ['interpolate', ['linear'], ['zoom'], 0, 0.4, 8, 1.0, 13, 1.8, 17, 2.5],
 
             // Color gradient: transparent → indigo → cyan → lime → yellow → red
             'heatmap-color': [
               'interpolate',
               ['linear'],
               ['heatmap-density'],
-              0,    'rgba(0,0,0,0)',
-              0.1,  'rgba(99,102,241,0.5)',   // indigo-500
-              0.3,  'rgba(34,211,238,0.7)',   // cyan-400
-              0.5,  'rgba(163,230,53,0.8)',   // lime-400
-              0.75, 'rgba(250,204,21,0.9)',   // yellow-400
-              1.0,  'rgba(239,68,68,1)',      // red-500
+              0,
+              'rgba(0,0,0,0)',
+              0.1,
+              'rgba(99,102,241,0.5)', // indigo-500
+              0.3,
+              'rgba(34,211,238,0.7)', // cyan-400
+              0.5,
+              'rgba(163,230,53,0.8)', // lime-400
+              0.75,
+              'rgba(250,204,21,0.9)', // yellow-400
+              1.0,
+              'rgba(239,68,68,1)', // red-500
             ],
 
             // Radius grows with zoom so detail is visible up close
-            'heatmap-radius': [
-              'interpolate', ['linear'], ['zoom'],
-              0,  5,
-              7,  10,
-              12, 18,
-              15, 28,
-              18, 40,
-            ],
+            'heatmap-radius': ['interpolate', ['linear'], ['zoom'], 0, 5, 7, 10, 12, 18, 15, 28, 18, 40],
 
             // Fade to transparent at very high zoom levels where individual
             // tracks are clearly visible anyway
-            'heatmap-opacity': [
-              'interpolate', ['linear'], ['zoom'],
-              12, 0.92,
-              17, 0.25,
-            ],
+            'heatmap-opacity': ['interpolate', ['linear'], ['zoom'], 12, 0.92, 17, 0.25],
           },
         },
-        beforeLayer,
+        beforeLayer
       );
     }
 

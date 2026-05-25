@@ -11,6 +11,7 @@
   --surface-glass-heavy:  rgba(255, 255, 255, 0.95);
   --surface-glass-light:  rgba(255, 255, 255, 0.65);
   --surface-glass-subtle: rgba(255, 255, 255, 0.78);
+  --surface-sheet-solid:  rgba(255, 255, 255, 0.985);
   --surface-elevated:     rgba(0, 0, 0, 0.03);
   --surface-hover:        rgba(0, 0, 0, 0.05);
   --surface-active:       rgba(0, 0, 0, 0.08);
@@ -142,6 +143,9 @@
   --chip-text:   #334155;
   --chip-border: rgba(0, 0, 0, 0.08);
 
+  /* ── Map shell ── */
+  --map-container-bg: #f0f0f0;
+
   /* ── Primary alias (PrimeVue fallback) ── */
   --primary-color: #6366f1;
 
@@ -182,6 +186,7 @@
   --surface-glass-heavy:  rgba(15, 23, 42, 0.92);
   --surface-glass-light:  rgba(15, 23, 42, 0.65);
   --surface-glass-subtle: rgba(15, 23, 42, 0.78);
+  --surface-sheet-solid:  rgba(15, 23, 42, 0.985);
   --surface-elevated:     rgba(255, 255, 255, 0.06);
   --surface-hover:        rgba(255, 255, 255, 0.08);
   --surface-active:       rgba(255, 255, 255, 0.1);
@@ -256,6 +261,9 @@
   --chip-bg:     rgba(30, 41, 59, 0.82);
   --chip-text:   #f1f5f9;
   --chip-border: rgba(255, 255, 255, 0.15);
+
+  /* ── Map shell ── */
+  --map-container-bg: #0a0a0f;
 }
 
 /* ═══════════════════════════════════════════════════════════════════

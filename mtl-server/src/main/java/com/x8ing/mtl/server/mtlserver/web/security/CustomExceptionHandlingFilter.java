@@ -1,5 +1,6 @@
 package com.x8ing.mtl.server.mtlserver.web.security;
 
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.x8ing.mtl.server.mtlserver.db.entity.logs.SystemLog;
 import com.x8ing.mtl.server.mtlserver.db.repository.logs.SystemLogService;
 import jakarta.servlet.ServletException;
@@ -11,6 +12,9 @@ import org.springframework.security.core.AuthenticationException;
 import java.io.IOException;
 
 @Slf4j
+@JsonPropertyOrder({
+        "systemLogService"
+})
 public class CustomExceptionHandlingFilter extends org.springframework.security.web.authentication.ExceptionMappingAuthenticationFailureHandler {
 
     private final SystemLogService systemLogService;

@@ -1,5 +1,5 @@
-import type { RawMediaPoint } from "@/repositories/mediaRepository";
-import { normalizeToLatLng } from "@/utils/normalizeLatLng";
+import type { RawMediaPoint } from '@/repositories/mediaRepository';
+import { normalizeToLatLng } from '@/utils/normalizeLatLng';
 
 /**
  * Create a GeoJSON FeatureCollection from raw media points.
@@ -9,7 +9,7 @@ import { normalizeToLatLng } from "@/utils/normalizeLatLng";
 export function createMediaGeoJson(points: RawMediaPoint[]): GeoJSON.FeatureCollection {
   return {
     type: 'FeatureCollection',
-    features: points.map(p => {
+    features: points.map((p) => {
       const [lat, lng] = normalizeToLatLng(p.exifGpsLocationLat, p.exifGpsLocationLong);
       return {
         type: 'Feature' as const,
@@ -19,7 +19,7 @@ export function createMediaGeoJson(points: RawMediaPoint[]): GeoJSON.FeatureColl
         },
         properties: {
           mediaId: p.id,
-          title: (p as any).title || (p as any).fileName || '',
+          title: p.title || p.fileName || '',
         },
       };
     }),

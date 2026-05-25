@@ -1,6 +1,6 @@
 package com.x8ing.mtl.server.mtlserver.jobs.classifier.activitytype;
 
-import com.x8ing.mtl.server.mtlserver.db.entity.gps.GpsTrack;
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.x8ing.mtl.server.mtlserver.db.entity.gps.GpsTrackDataPoint;
 import com.x8ing.mtl.server.mtlserver.db.repository.gps.GpsTrackRepository;
 import com.x8ing.mtl.server.mtlserver.db.repository.gps.GpsTrackVariantSelector;
@@ -13,6 +13,13 @@ import java.util.List;
 
 @Slf4j
 @Service
+@JsonPropertyOrder({
+        "gpsTrackRepository",
+        "gpsTrackVariantSelector",
+        "activityTypeAutoClassifier",
+        "energyService",
+        "systemLogService"
+})
 public class ActivityTypeClassifierJob {
 
     private final GpsTrackRepository gpsTrackRepository;
@@ -34,49 +41,35 @@ public class ActivityTypeClassifierJob {
         log.debug("Start find activity classifier job");
 
 
-        List<GpsTrack> tracks = gpsTrackRepository.findByActivityTypeSourceNull();
-        if (!tracks.isEmpty()) {
+        List<Long> trackIds = gpsTrackRepository.findIdsPendingActivityClassification();
+        if (!trackIds.isEmpty()) {
+            log.info("Activity type classifier job has pending work. Starting now");
 
-            // ignore the once which are not yet duplicate check. do them later, as they might not have all the merged data
-            List<GpsTrack> tracksFiltered = tracks.stream()
-                    .filter(gpsTrack -> gpsTrack.getDuplicateStatus() != null && gpsTrack.getDuplicateStatus() != GpsTrack.DUPLICATE_CHECK_STATUS.NOT_CHECKED_YET)
-                    .toList();
+            trackIds.forEach(trackId -> {
+                try {
+                    // Classify on the full-density cleaned variant (was: SIMPLIFIED@1m)
+                    // so dense 1-Hz sections aren't downsampled before activity detection.
+                    List<GpsTrackDataPoint> trackPoints = gpsTrackVariantSelector.pointsForMetrics(trackId);
 
-            if (!tracksFiltered.isEmpty()) {
+                    ActivityTypeAutoClassifier.ClassificationResult result = activityTypeAutoClassifier.classifyActivity(trackId, trackPoints);
 
-                log.info("Activity type classifier job has pending work. Starting now");
-
-                tracksFiltered.forEach(track -> {
-                    try {
-                        // Classify on the full-density cleaned variant (was: SIMPLIFIED@1m)
-                        // so dense 1-Hz sections aren't downsampled before activity detection.
-                        GpsTrack.ACTIVITY_TYPE previousType = track.getActivityType();
-                        List<GpsTrackDataPoint> trackPoints = gpsTrackVariantSelector.pointsForMetrics(track.getId());
-
-                        // classifyActivity commits in its own REQUIRES_NEW transaction.
-                        GpsTrack.ACTIVITY_TYPE determinedType = activityTypeAutoClassifier.classifyActivity(track, trackPoints);
-
-                        // Now the classification is committed and visible to new transactions.
-                        // Trigger energy recalc if the activity type actually changed (covers null → X).
-                        if (determinedType != null && determinedType != previousType) {
-                            try {
-                                energyService.recalculateEnergyForTrack(track.getId(), energyService.getDefaultParameters());
-                            } catch (Exception e) {
-                                log.warn("Energy recalc after classification failed for trackId={}: {}", track.getId(), e.getMessage(), e);
-                            }
+                    // Now the classification is committed and visible to new transactions.
+                    // Trigger energy recalc if the activity type actually changed (covers null → X).
+                    if (result.updated() && result.determinedType() != null && result.determinedType() != result.previousType()) {
+                        try {
+                            energyService.recalculateEnergyForTrack(trackId, energyService.getDefaultParameters());
+                        } catch (Exception e) {
+                            log.warn("Energy recalc after classification failed for trackId={}: {}", trackId, e.getMessage(), e);
                         }
-                    } catch (Exception e) {
-                        String errMsg = "Unexpected exception while classifying activity. e=" + e.toString();
-                        log.error(errMsg, e);
-                        systemLogService.saveLogForException(this.getClass(), "ClassifierException", errMsg, e);
                     }
+                } catch (Exception e) {
+                    String errMsg = "Unexpected exception while classifying activity. e=" + e;
+                    log.error(errMsg, e);
+                    systemLogService.saveLogForException(this.getClass(), "ClassifierException", errMsg, e);
+                }
 
-                });
-                log.info(String.format("Completed ActivityTypeClassifier job in %d seconds for %d tracks.", (System.currentTimeMillis() - t0) / 1000, tracks.size()));
-
-            }
-
-
+            });
+            log.info(String.format("Completed ActivityTypeClassifier job in %d seconds for %d tracks.", (System.currentTimeMillis() - t0) / 1000, trackIds.size()));
         }
     }
 

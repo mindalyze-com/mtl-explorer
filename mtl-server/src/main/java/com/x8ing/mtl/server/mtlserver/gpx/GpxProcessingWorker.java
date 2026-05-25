@@ -1,7 +1,9 @@
 package com.x8ing.mtl.server.mtlserver.gpx;
 
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.x8ing.mtl.server.mtlserver.db.entity.indexer.IndexedFile;
 import com.x8ing.mtl.server.mtlserver.db.repository.indexer.IndexerRepository;
+import com.x8ing.mtl.server.mtlserver.utils.TimingCollector;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -21,6 +23,11 @@ import java.nio.file.Paths;
 @Service
 @RequiredArgsConstructor
 @Slf4j
+@JsonPropertyOrder({
+        "indexerRepository",
+        "gpsStoreService",
+        "converterService"
+})
 public class GpxProcessingWorker {
 
     private final IndexerRepository indexerRepository;
@@ -36,6 +43,7 @@ public class GpxProcessingWorker {
      */
     @Transactional
     public void processCreateOrChange(String index, long fileId, boolean changed) {
+        TimingCollector timing = new TimingCollector();
         IndexedFile f = indexerRepository.findById(fileId).orElse(null);
         if (f == null) {
             log.warn("GPX process: fileId={} disappeared", fileId);
@@ -43,20 +51,24 @@ public class GpxProcessingWorker {
         }
         // Domain operations only; let exceptions bubble up so observer can signal completion
         if (changed) {
-            gpsStoreService.deleteTracksForFile(f);
+            try {
+                timing.time("delete old tracks", () -> gpsStoreService.deleteTracksForFile(f));
+            } catch (Exception e) {
+                throw new RuntimeException("Failed to delete existing tracks for " + f.getFullPath(), e);
+            }
         }
 
         // Detect format and convert non-GPX files to GPX XML in-memory via GPSBabel
         SupportedTrackFormat format = SupportedTrackFormat.fromPath(Paths.get(f.getFullPath()));
         if (format != null && format.needsConversion()) {
             try {
-                String gpxXml = converterService.convertToGpx(Paths.get(f.getFullPath()), format);
-                gpsStoreService.readAndSave(f, gpxXml);
+                String gpxXml = timing.time("gpsbabel", () -> converterService.convertToGpx(Paths.get(f.getFullPath()), format));
+                gpsStoreService.readAndSave(f, gpxXml, timing);
             } catch (Exception e) {
                 throw new RuntimeException("GPSBabel conversion failed for " + f.getFullPath(), e);
             }
         } else {
-            gpsStoreService.readAndSave(f);
+            gpsStoreService.readAndSave(f, null, timing);
         }
     }
 

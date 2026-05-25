@@ -15,7 +15,9 @@ import {
   GpxUploadControllerApi,
   IndexerStatusControllerApi,
   JobStatusControllerApi,
+  ServerInfoControllerApi,
   ServerLogControllerApi,
+  type BuildInfoResponse,
   type DataFreshnessResponseDto,
   type GpxUploadResult,
   type GpxUploadStatus,
@@ -27,22 +29,19 @@ import {
 import { apiClient } from '@/utils/apiClient';
 import { getApiConfiguration } from '@/utils/openApiClient';
 import { describeError, startStartupTimer } from '@/utils/startupDiagnostics';
-
-const backendUrl: string = import.meta.env.VITE_BACKEND_URL ?? '';
+import { apiUrl } from '@/utils/apiBase';
+import { logSanitizedError } from '@/utils/safeLogging';
 
 // ─── Build info ──────────────────────────────────────────────────────────────
 
-export interface BuildInfo {
-  version: string;
-  buildTime: string | null;
-  /** Optional BCP 47 locale tag suggested by the server (from application.yml). Null/undefined when not configured. */
-  defaultLocale?: string | null;
-  defaultGpsTrackFilterName?: string | null;
+export type BuildInfo = BuildInfoResponse;
+
+function getServerInfoApi() {
+  return new ServerInfoControllerApi(getApiConfiguration());
 }
 
 export async function getServerBuildInfo(): Promise<BuildInfo> {
-  const response = await apiClient.get<BuildInfo>('api/info/build');
-  return response.data;
+  return getServerInfoApi().getBuild();
 }
 
 // ─── Demo status (public) ────────────────────────────────────────────────────
@@ -56,7 +55,7 @@ export interface DemoStatus {
 export async function getDemoStatus(): Promise<DemoStatus> {
   try {
     // Public endpoint — call without auth header by using bare axios.
-    const response = await axios.get<DemoStatus>(backendUrl + 'api/auth/demo-status');
+    const response = await axios.get<DemoStatus>(apiUrl('api/auth/demo-status'));
     return response.data ?? { demoMode: false };
   } catch {
     return { demoMode: false };
@@ -83,10 +82,8 @@ export async function triggerGarminExport(): Promise<string> {
     text = text.replace(/\\n/g, '\n');
     return text;
   } catch (error: unknown) {
-    console.error('Error triggering Garmin export:', error);
-    throw new Error(
-      'Failed to trigger Garmin export: ' + (error instanceof Error ? error.message : String(error))
-    );
+    logSanitizedError('Error triggering Garmin export:', error);
+    throw new Error('Failed to trigger Garmin export: ' + (error instanceof Error ? error.message : String(error)));
   }
 }
 
@@ -106,8 +103,7 @@ async function postInstallScript(url: string): Promise<string> {
   } catch (error: unknown) {
     const axiosErr = axios.isAxiosError(error) ? error : null;
     const rawBody: unknown = axiosErr?.response?.data;
-    const log: string | null =
-      typeof rawBody === 'string' && rawBody.length > 0 ? rawBody.replace(/\\n/g, '\n') : null;
+    const log: string | null = typeof rawBody === 'string' && rawBody.length > 0 ? rawBody.replace(/\\n/g, '\n') : null;
     const err: Error & { installLog?: string | null } = new Error(
       log ? 'Install failed — see output below' : axiosErr?.message || 'Install failed'
     );
@@ -155,16 +151,18 @@ export async function getServerLog(lines: number = 200): Promise<string> {
 // ─── Indexer / Job Status ────────────────────────────────────────────────────
 
 export type { DataFreshnessResponseDto, IndexerRescanResponse, IndexSummaryDto, JobSummaryDto };
+export { getAdminOperationalTasks } from '@/utils/adminOperationalTasks';
+export type { AdminOperationalTask } from '@/utils/adminOperationalTasks';
 // Local aliases used by the composable/UI. Unlike the generated DTOs (whose
 // fields are all optional per OpenAPI defaults), these types mark the numeric
 // counters as required — the server always returns them, and the fetch helpers
 // normalize any missing values to 0 before handing data to the UI.
 export type IndexSummary = Required<
   Pick<IndexSummaryDto, 'pending' | 'failed' | 'completed' | 'total' | 'progressPercent'>
-> & IndexSummaryDto;
-export type JobSummary = Required<
-  Pick<JobSummaryDto, 'pending' | 'done' | 'total' | 'progressPercent'>
-> & JobSummaryDto;
+> &
+  IndexSummaryDto;
+export type JobSummary = Required<Pick<JobSummaryDto, 'pending' | 'done' | 'total' | 'progressPercent'>> &
+  JobSummaryDto;
 
 function getIndexerStatusApi() {
   return new IndexerStatusControllerApi(getApiConfiguration());

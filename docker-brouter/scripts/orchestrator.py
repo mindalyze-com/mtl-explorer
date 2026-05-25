@@ -24,14 +24,48 @@ from pathlib import Path
 
 sys.path.insert(0, os.path.dirname(__file__))
 from constants import (
-    ADMIN_PORT, BROUTER_HOME, BROUTER_PORT, JAVA_XMX, SEGMENTS_DIR,
-    SIGTERM_WAIT_SEC, STATUS_FILE,
+    ADMIN_PORT, BROUTER_HOME, BROUTER_PORT, BROUTER_VERSION, IMAGE_BUILD_TIME_FILE,
+    IMAGE_VERSION_FILE, JAVA_XMX, SEGMENTS_DIR, SIGTERM_WAIT_SEC, STATUS_FILE,
 )
 from segment_downloader import SegmentDownloader
 
 
 def log(msg: str) -> None:
     print(f"[orchestrator] {msg}", flush=True)
+
+
+def metadata_value(env_name: str, file_path: Path) -> str | None:
+    value = os.environ.get(env_name, "").strip()
+    if value:
+        return value
+    try:
+        file_value = file_path.read_text().strip()
+        return file_value or None
+    except Exception:
+        return None
+
+
+def non_blank(value: str | None) -> str | None:
+    if value is None:
+        return None
+    stripped = value.strip()
+    return stripped or None
+
+
+def build_version_info() -> dict:
+    components = {}
+    brouter_version = non_blank(BROUTER_VERSION)
+    if brouter_version:
+        components["brouter"] = brouter_version
+
+    return {
+        "image": {
+            "version": metadata_value("MTL_IMAGE_VERSION", IMAGE_VERSION_FILE),
+            "buildTime": metadata_value("MTL_IMAGE_BUILD_TIME", IMAGE_BUILD_TIME_FILE),
+        },
+        "components": components,
+        "data": {},
+    }
 
 
 class Supervisor:
@@ -90,6 +124,7 @@ class Supervisor:
             "brouterPort": BROUTER_PORT,
             "brouterRunning": self.brouter_proc is not None and self.brouter_proc.poll() is None,
             "segmentsDir": str(SEGMENTS_DIR),
+            "versionInfo": build_version_info(),
         }
         status.update(self.downloader.snapshot())
         return status
@@ -176,10 +211,11 @@ class Supervisor:
     def run(self) -> None:
         SEGMENTS_DIR.mkdir(parents=True, exist_ok=True)
         self.install_signal_handlers()
-        self.downloader.start()
         self.start_admin_http()
-        self.start_brouter()
         threading.Thread(target=self.write_status_loop, name="status-writer", daemon=True).start()
+        self.downloader.validate_existing_segments()
+        self.downloader.start()
+        self.start_brouter()
         self.watch_brouter()
 
 

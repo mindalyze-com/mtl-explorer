@@ -1,9 +1,7 @@
 import { computed, ref, type Ref } from 'vue';
 import { formatDate, formatDateAndTime, formatDistanceSmart, formatDurationSmart, formatNumber } from '@/utils/Utils';
-import type {
-  TrackBrowserSummary,
-  TrackRowViewModel,
-} from './trackBrowser.types';
+import { curationSearchValues } from '@/utils/statisticsCuration';
+import type { TrackBrowserSummary, TrackRowViewModel } from './trackBrowser.types';
 import type { GpsTrack } from 'x8ing-mtl-api-typescript-fetch/dist/esm/models/index';
 
 const SEARCHABLE_TEXT_SEPARATOR = ' ';
@@ -22,11 +20,7 @@ function cleanText(value: unknown): string {
 }
 
 function normalizeSearchText(values: unknown[]): string {
-  return values
-    .map(cleanText)
-    .filter(Boolean)
-    .join(SEARCHABLE_TEXT_SEPARATOR)
-    .toLocaleLowerCase();
+  return values.map(cleanText).filter(Boolean).join(SEARCHABLE_TEXT_SEPARATOR).toLocaleLowerCase();
 }
 
 function toFiniteNumber(value: unknown): number | null {
@@ -42,6 +36,12 @@ function dateSearchValues(value: Date | null): string[] {
     value.toISOString(),
     value.toISOString().slice(0, ISO_DATE_LENGTH),
   ];
+}
+
+function garminActivitySearchValues(value: unknown): string[] {
+  const activityId = cleanText(value);
+  if (!activityId) return [];
+  return [activityId, `activity_${activityId}`, `activity_${activityId}.gpx`];
 }
 
 function distanceSearchValues(meters: number): string[] {
@@ -70,11 +70,7 @@ function formattedMetricSearchValues(value: unknown, digits: number, unit = ''):
   const numberValue = toFiniteNumber(value);
   if (numberValue == null) return [];
   const formatted = formatNumber(numberValue, digits);
-  return [
-    String(numberValue),
-    formatted,
-    unit ? `${formatted} ${unit}` : '',
-  ];
+  return [String(numberValue), formatted, unit ? `${formatted} ${unit}` : ''];
 }
 
 function buildTrackSearchText(row: Omit<TrackRowViewModel, 'searchText'>): string {
@@ -97,6 +93,7 @@ function buildTrackSearchText(row: Omit<TrackRowViewModel, 'searchText'>): strin
     row.indexedFile?.basePath,
     row.indexedFile?.path,
     String(row.id),
+    ...garminActivitySearchValues(row.garminActivityId),
     ...dateSearchValues(startDate),
     ...dateSearchValues(createDate),
     ...distanceSearchValues(distanceMeters),
@@ -104,8 +101,11 @@ function buildTrackSearchText(row: Omit<TrackRowViewModel, 'searchText'>): strin
     ...formattedMetricSearchValues(row.avgSpeedKmh, SPEED_FRACTION_DIGITS),
     ...energyWh,
     row.explorationStatus,
+    ...curationSearchValues(row),
     explorationScore == null ? '' : formatNumber(explorationScore * PERCENT_MULTIPLIER, EXPLORATION_FRACTION_DIGITS),
-    explorationScore == null ? '' : `${formatNumber(explorationScore * PERCENT_MULTIPLIER, EXPLORATION_FRACTION_DIGITS)}%`,
+    explorationScore == null
+      ? ''
+      : `${formatNumber(explorationScore * PERCENT_MULTIPLIER, EXPLORATION_FRACTION_DIGITS)}%`,
   ]);
 }
 
@@ -113,7 +113,7 @@ function toTrackRow(track: GpsTrack): TrackRowViewModel {
   // ServiceHelper already coerces date strings → Date objects during bulk load,
   // so we can use them directly here.
   const startDate = track.startDate instanceof Date ? track.startDate : null;
-  const endDate   = track.endDate   instanceof Date ? track.endDate   : null;
+  const endDate = track.endDate instanceof Date ? track.endDate : null;
   const createDate = track.createDate instanceof Date ? track.createDate : null;
 
   const motionSecs = track.trackDurationInMotionSecs != null ? Number(track.trackDurationInMotionSecs) : null;
@@ -121,7 +121,8 @@ function toTrackRow(track: GpsTrack): TrackRowViewModel {
   const durationMillis = motionSecs != null ? motionSecs * 1000 : elapsedMillis;
 
   const distanceMeters = Number(track.trackLengthInMeter || 0);
-  const avgSpeedKmh = durationMillis > 0 ? (distanceMeters / METERS_PER_KILOMETER) / (durationMillis / MILLIS_PER_HOUR) : null;
+  const avgSpeedKmh =
+    durationMillis > 0 ? distanceMeters / METERS_PER_KILOMETER / (durationMillis / MILLIS_PER_HOUR) : null;
 
   const trackName = cleanText(track.trackName);
   const metaName = cleanText(track.metaName);
@@ -133,7 +134,7 @@ function toTrackRow(track: GpsTrack): TrackRowViewModel {
     displayName: trackName || metaName || trackDescription || metaDescription || `Track ${track.id}`,
     durationMillis,
     avgSpeedKmh,
-    startDateMs:  startDate?.getTime()  ?? -1,
+    startDateMs: startDate?.getTime() ?? -1,
     createDateMs: createDate?.getTime() ?? -1,
   };
   return {
@@ -156,9 +157,7 @@ export function useTrackBrowser(tracks: Ref<GpsTrack[]>) {
   });
 
   // Default: newest first — DataTable columns allow the user to re-sort from here
-  const rows = computed(() =>
-    [...filteredTracks.value].sort((a, b) => b.startDateMs - a.startDateMs)
-  );
+  const rows = computed(() => [...filteredTracks.value].sort((a, b) => b.startDateMs - a.startDateMs));
 
   const summary = computed<TrackBrowserSummary>(() => {
     const items = filteredTracks.value;
@@ -175,9 +174,10 @@ export function useTrackBrowser(tracks: Ref<GpsTrack[]>) {
       totalDurationMillis,
       newestTrackLabel: newest?.displayName || 'No tracks',
       newestTrackDateLabel: newest?.startDate instanceof Date ? formatDateAndTime(newest.startDate) : '',
-      dateRangeLabel: minDate && maxDate
-        ? `${formatDate(minDate instanceof Date ? minDate : new Date(minDate))} – ${formatDate(maxDate instanceof Date ? maxDate : new Date(maxDate))}`
-        : 'No date range',
+      dateRangeLabel:
+        minDate && maxDate
+          ? `${formatDate(minDate instanceof Date ? minDate : new Date(minDate))} – ${formatDate(maxDate instanceof Date ? maxDate : new Date(maxDate))}`
+          : 'No date range',
     };
   });
 

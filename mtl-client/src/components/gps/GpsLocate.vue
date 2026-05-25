@@ -1,98 +1,91 @@
 <template>
-    <div style="display:none"></div>
+  <div style="display: none"></div>
 </template>
 
-<script lang="ts">
-import {defineComponent, inject} from "vue";
+<script setup lang="ts">
+import { inject, onBeforeUnmount } from 'vue';
 
 const EVENTS = {
-    locationUpdate: "locationUpdate",
-    deviceEnabledDisabled: "deviceEnabledDisabled"
+  locationUpdate: 'locationUpdate',
+  deviceEnabledDisabled: 'deviceEnabledDisabled',
 } as const;
 
-export default defineComponent({
-    name: 'LocateButton',
-    components: {},
-    data(): { watcherId: number | undefined } {
-        return {
-            watcherId: undefined,
-        };
-    },
-    setup(): { toast: { add: (opts: { severity: string; summary: string; detail: string; life: number }) => void } } {
-        return {
-            toast: inject("toast") as { add: (opts: { severity: string; summary: string; detail: string; life: number }) => void },
-        };
-    },
-    beforeUnmount() {
-        if (this.watcherId !== undefined) {
-            navigator.geolocation.clearWatch(this.watcherId);
-            this.watcherId = undefined;
-        }
-    },
-    emits: ['locationUpdate', 'deviceEnabledDisabled', 'tool-opened'],
-    methods: {
+defineOptions({ name: 'LocateButton' });
 
-        toggle() {
-            this.locate();
-            if (this.watcherId !== undefined) {
-                this.$emit('tool-opened');
-            }
-        },
+type Emits = {
+  (event: 'locationUpdate', position: GeolocationPosition): void;
+  (event: 'deviceEnabledDisabled', enabled: boolean): void;
+  (event: 'tool-opened'): void;
+};
 
-        close() {
-            if (this.watcherId !== undefined) {
-                navigator.geolocation.clearWatch(this.watcherId);
-                this.watcherId = undefined;
-                this.$emit('deviceEnabledDisabled', false);
-            }
-        },
+const emit = defineEmits<Emits>();
 
-        async locate() {
-            try {
+const toast = inject('toast') as {
+  add: (opts: { severity: string; summary: string; detail: string; life: number }) => void;
+};
 
+let watcherId: number | undefined;
 
-                const options = {
-                    enableHighAccuracy: true,
-                    timeout: 5000,
-                    maximumAge: 0,
-                };
+onBeforeUnmount(() => {
+  if (watcherId !== undefined) {
+    navigator.geolocation.clearWatch(watcherId);
+    watcherId = undefined;
+  }
+});
 
-                const success = (pos: GeolocationPosition) => {
-                    const crd = pos.coords;
-                    const long = crd.longitude;
-                    const lat = crd.latitude;
-                    console.log("Got location: " + crd + " pos(long/lat)=" + long + "/" + lat);
+function toggle() {
+  void locate();
+  if (watcherId !== undefined) {
+    emit('tool-opened');
+  }
+}
 
-                    this.$emit(EVENTS.locationUpdate, pos);
-                }
+function close() {
+  if (watcherId !== undefined) {
+    navigator.geolocation.clearWatch(watcherId);
+    watcherId = undefined;
+    emit('deviceEnabledDisabled', false);
+  }
+}
 
-                function error(err: GeolocationPositionError) {
-                    console.error(`ERROR(${err.code}): ${err.message}`);
-                }
+async function locate() {
+  try {
+    const options: PositionOptions = {
+      enableHighAccuracy: true,
+      timeout: 5000,
+      maximumAge: 0,
+    };
 
-                if (this.watcherId === undefined) {
-                    console.log("start GPS");
-                    this.watcherId = navigator.geolocation.watchPosition(success, error, options);
-                    this.$emit(EVENTS.deviceEnabledDisabled, true);
-                    this.toast.add({severity: 'info', summary: 'Info', detail: 'GPS started', life: 2000});
+    const success = (pos: GeolocationPosition) => {
+      emit(EVENTS.locationUpdate, pos);
+    };
 
-                } else {
-                    console.log("stop gps");
-                    navigator.geolocation.clearWatch(this.watcherId);
-                    this.watcherId = undefined;
-                    this.$emit(EVENTS.deviceEnabledDisabled, false);
-                    this.toast.add({severity: 'info', summary: 'Info', detail: 'GPS stopped', life: 2000});
-                }
+    function error(err: GeolocationPositionError) {
+      console.error(`ERROR(${err.code}): ${err.message}`);
+    }
 
+    if (watcherId === undefined) {
+      console.log('start GPS');
+      watcherId = navigator.geolocation.watchPosition(success, error, options);
+      emit(EVENTS.deviceEnabledDisabled, true);
+      toast.add({ severity: 'info', summary: 'Info', detail: 'GPS started', life: 2000 });
+    } else {
+      console.log('stop gps');
+      navigator.geolocation.clearWatch(watcherId);
+      watcherId = undefined;
+      emit(EVENTS.deviceEnabledDisabled, false);
+      toast.add({ severity: 'info', summary: 'Info', detail: 'GPS stopped', life: 2000 });
+    }
+  } catch (error) {
+    console.error('Error getting GPS location:', error);
+    toast.add({ severity: 'warning', summary: 'Info', detail: 'Unable to get GPS location', life: 2000 });
+  }
+}
 
-            } catch (error) {
-                console.error('Error getting GPS location:', error);
-                this.toast.add({severity: 'warning', summary: 'Info', detail: 'Unable to get GPS location', life: 2000});
-            }
-        },
-    },
+defineExpose({
+  toggle,
+  close,
 });
 </script>
 
-<style scoped>
-</style>
+<style scoped></style>

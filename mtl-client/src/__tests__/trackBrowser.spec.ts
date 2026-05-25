@@ -53,4 +53,53 @@ describe('useTrackBrowser', () => {
       expect(browser.rows.value.map((row) => row.id)).toEqual([1]);
     }
   });
+
+  it('searches Garmin activity ids with Garmin filename prefixes', () => {
+    const tracks = ref<GpsTrack[]>([
+      {
+        id: 1,
+        trackName: 'Garmin import',
+        garminActivityId: '22902001433',
+      } as GpsTrack,
+      {
+        id: 2,
+        trackName: 'Other track',
+      } as GpsTrack,
+    ]);
+
+    const browser = useTrackBrowser(computed(() => tracks.value));
+
+    for (const query of ['22902001433', 'activity_22902001433', 'activity_22902001433.gpx']) {
+      browser.query.value = query;
+
+      expect(browser.rows.value.map((row) => row.id)).toEqual([1]);
+    }
+  });
+
+  it('searches statistics curation exclusion fields', () => {
+    const tracks = ref<GpsTrack[]>([
+      {
+        id: 1,
+        trackName: 'Noisy highlight winner',
+        highlightExclusionReason: 'GPS_NOISE',
+      } as GpsTrack,
+      {
+        id: 2,
+        trackName: 'Stats artifact',
+        statisticsExclusionReason: 'IMPORT_ARTIFACT',
+      } as GpsTrack,
+      {
+        id: 3,
+        trackName: 'Included track',
+      } as GpsTrack,
+    ]);
+
+    const browser = useTrackBrowser(computed(() => tracks.value));
+
+    browser.query.value = 'excluded highlights';
+    expect(browser.rows.value.map((row) => row.id)).toEqual([1, 2]);
+
+    browser.query.value = 'statistics import artifact';
+    expect(browser.rows.value.map((row) => row.id)).toEqual([2]);
+  });
 });

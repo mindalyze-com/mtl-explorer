@@ -285,4 +285,4 @@ index 85c8ae7..6197203 100644
 +++ b/requirements.txt
 @@ -1 +1 @@
 -garth>=0.7.0,<0.8.0
-+garminconnect>=0.3.2,<0.4.0
++garminconnect==0.3.2

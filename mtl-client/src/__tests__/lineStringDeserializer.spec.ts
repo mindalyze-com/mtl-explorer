@@ -1,6 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
 import { extractCoordinates } from '@/utils/lineStringDeserializer';
 
+type ExtractCoordinatesInput = Parameters<typeof extractCoordinates>[0];
+
 describe('extractCoordinates', () => {
   it('returns [] for null/undefined input', () => {
     expect(extractCoordinates(null)).toEqual([]);
@@ -10,8 +12,13 @@ describe('extractCoordinates', () => {
 
   it('handles bare-array shape from custom LineStringSerializer', () => {
     const data = [
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      { track: [[1, 2, 100], [3, 4, 200], [5, 6]] } as any,
+      {
+        track: [
+          [1, 2, 100],
+          [3, 4, 200],
+          [5, 6],
+        ],
+      } as unknown as NonNullable<ExtractCoordinatesInput>[number],
     ];
     expect(extractCoordinates(data)).toEqual([
       [1, 2],
@@ -22,8 +29,14 @@ describe('extractCoordinates', () => {
 
   it('handles {coordinates: [{x, y}, ...]} shape from generated OpenAPI client', () => {
     const data = [
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      { track: { coordinates: [{ x: 10, y: 20 }, { x: 30, y: 40 }] } } as any,
+      {
+        track: {
+          coordinates: [
+            { x: 10, y: 20 },
+            { x: 30, y: 40 },
+          ],
+        },
+      } as unknown as NonNullable<ExtractCoordinatesInput>[number],
     ];
     expect(extractCoordinates(data)).toEqual([
       [10, 20],
@@ -33,8 +46,14 @@ describe('extractCoordinates', () => {
 
   it('handles {coordinates: [[lng, lat], ...]} shape from cached IndexedDB payloads', () => {
     const data = [
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      { track: { coordinates: [[7, 8], [9, 10]] } } as any,
+      {
+        track: {
+          coordinates: [
+            [7, 8],
+            [9, 10],
+          ],
+        },
+      } as unknown as NonNullable<ExtractCoordinatesInput>[number],
     ];
     expect(extractCoordinates(data)).toEqual([
       [7, 8],
@@ -44,10 +63,8 @@ describe('extractCoordinates', () => {
 
   it('flattens coordinates across multiple GpsTrackData entries', () => {
     const data = [
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      { track: [[1, 1]] } as any,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      { track: { coordinates: [{ x: 2, y: 2 }] } } as any,
+      { track: [[1, 1]] } as unknown as NonNullable<ExtractCoordinatesInput>[number],
+      { track: { coordinates: [{ x: 2, y: 2 }] } } as unknown as NonNullable<ExtractCoordinatesInput>[number],
     ];
     expect(extractCoordinates(data)).toEqual([
       [1, 1],
@@ -75,11 +92,27 @@ describe('extractCoordinates', () => {
   it('ignores invalid coordinate tuples in bare-array shape', () => {
     const data = [
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      { track: [[1, 2], 'bad', [3], null, [4, 5]] } as any,
+      { track: [[1, 2], 'bad', [3], null, [Number.NaN, 4], [5, Infinity], ['6', 7], [4, 5]] } as any,
     ];
     expect(extractCoordinates(data)).toEqual([
       [1, 2],
       [4, 5],
     ]);
+  });
+
+  it('ignores non-finite object coordinates from generated LineString shapes', () => {
+    const data = [
+      {
+        track: {
+          coordinates: [
+            { x: 8, y: 47 },
+            { x: Number.POSITIVE_INFINITY, y: 47.1 },
+            { x: 8.2, y: Number.NaN },
+            { x: '8.3', y: 47.3 },
+          ],
+        },
+      } as unknown as NonNullable<ExtractCoordinatesInput>[number],
+    ];
+    expect(extractCoordinates(data)).toEqual([[8, 47]]);
   });
 });

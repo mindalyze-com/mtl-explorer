@@ -1,5 +1,6 @@
 package com.x8ing.mtl.server.mtlserver.planner.dto;
 
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import lombok.Data;
 
 import java.util.List;
@@ -10,6 +11,10 @@ import java.util.List;
  * consecutive waypoints) via BRouter, optionally re-using cached legs.
  */
 @Data
+@JsonPropertyOrder({
+        "waypoints",
+        "profile"
+})
 public class RouteRequestDto {
     private List<WaypointDto> waypoints;
 

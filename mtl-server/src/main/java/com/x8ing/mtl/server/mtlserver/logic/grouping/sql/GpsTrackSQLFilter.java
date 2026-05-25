@@ -1,5 +1,6 @@
 package com.x8ing.mtl.server.mtlserver.logic.grouping.sql;
 
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.x8ing.mtl.server.mtlserver.db.entity.config.FilterConfigEntity;
 import com.x8ing.mtl.server.mtlserver.db.readonly.DynamicSqlService;
 import com.x8ing.mtl.server.mtlserver.db.readonly.spring.QueryResult;
@@ -15,6 +16,11 @@ import java.util.Map;
 
 @Component
 @Slf4j
+@JsonPropertyOrder({
+        "dynamicSqlService",
+        "templateProcessingService",
+        "filterConfigRepository"
+})
 public class GpsTrackSQLFilter {
 
     private final DynamicSqlService dynamicSqlService;

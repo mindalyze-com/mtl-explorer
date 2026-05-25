@@ -55,11 +55,7 @@ export interface UseLocalStorageOptions<T> {
  * @param key Must be one from `USER_PREFS_KEYS` (compile-time enforced).
  * @param defaultValue Used when the key is absent or fails to deserialize.
  */
-export function useLocalStorage<T>(
-  key: UserPrefKey,
-  defaultValue: T,
-  options: UseLocalStorageOptions<T> = {}
-): Ref<T> {
+export function useLocalStorage<T>(key: UserPrefKey, defaultValue: T, options: UseLocalStorageOptions<T> = {}): Ref<T> {
   migrateLegacyKeys();
   const serializer = options.serializer ?? (jsonSerializer<T>() as LocalStorageSerializer<T>);
   const validate = options.validate ?? ((v: T) => v);
@@ -92,13 +88,16 @@ export function useLocalStorage<T>(
   if (options.syncAcrossTabs !== false && typeof window !== 'undefined') {
     window.addEventListener('storage', (event) => {
       if (event.key !== key) return;
-      stored.value = event.newValue === null ? defaultValue : (() => {
-        try {
-          return validate(serializer.read(event.newValue!));
-        } catch {
-          return defaultValue;
-        }
-      })();
+      stored.value =
+        event.newValue === null
+          ? defaultValue
+          : (() => {
+              try {
+                return validate(serializer.read(event.newValue!));
+              } catch {
+                return defaultValue;
+              }
+            })();
     });
   }
 

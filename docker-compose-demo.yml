@@ -31,8 +31,10 @@ services:
 
   app:
     image: wauwau0977/mytraillog:beta
+    pull_policy: always
     depends_on:
       - db
+      - location-search
     environment:
       POSTGRES_DB: mtl
       POSTGRES_USER: mtluser
@@ -41,6 +43,8 @@ services:
       DEMO_MODE: "Y"
       DEMO_TARGET_TRACK_COUNT: "10042"
       DEMO_PHOTO_COUNT: "300"
+      MTL_LOCATION_SEARCH_STATUS_URL: http://location-search:8083/status
+      MTL_LOCATION_SEARCH_QUERY_URL: http://location-search:8083/search
       SERVER_SSL_ENABLED: "false"
     ports:
       - "18084:8080"
@@ -65,6 +69,7 @@ services:
     # Demo deployments use the hosted PMTiles service unless this profile is enabled.
     profiles: ["local-maps"]
     image: wauwau0977/mytraillog-maps:beta
+    pull_policy: always
     ports:
       - "18083:8081"
     expose:
@@ -77,8 +82,19 @@ services:
       - /volume1/raspberry/MyTrailLogDemo/maps:/data
     restart: unless-stopped
 
+  location-search:
+    image: wauwau0977/mytraillog-location-search:beta
+    pull_policy: always
+    expose:
+      - 8083
+    environment:
+      PORT: "8083"
+      MTL_LOCATION_SEARCH_DB: /data/geonames-search.sqlite
+    restart: unless-stopped
+
   brouter:
     image: wauwau0977/mytraillog-brouter:beta
+    pull_policy: always
     expose:
       - 17777
       - 17778

@@ -30,7 +30,7 @@
       </div>
 
       <!-- Tool grid -->
-      <div class="nav-sheet__grid" ref="gridEl">
+      <div ref="gridEl" class="nav-sheet__grid">
         <!-- Row 1: primary tools -->
         <div class="nav-sheet__row">
           <button
@@ -81,13 +81,14 @@
             'nav-panel__tool--alert': alertSet.has(tool.id),
             'nav-panel__tool--drifted': driftedSet.has(tool.id),
           }"
-          @click="$emit('select', tool.id)"
           :title="tool.label"
+          @click="$emit('select', tool.id)"
         >
           <i :class="iconFor(tool)"></i>
           <span class="nav-panel__tool-label">{{ tool.label }}</span>
         </button>
       </div>
+      <AppBrandButton class="nav-panel__brand" />
     </div>
   </Teleport>
 </template>
@@ -95,6 +96,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { usePointerDrag } from '@/composables/usePointerDrag';
+import AppBrandButton from '@/components/info/AppBrandButton.vue';
 
 export interface ToolDef {
   id: string;
@@ -116,7 +118,7 @@ const props = defineProps<{
   driftedToolIds?: string[];
 }>();
 
-const emit = defineEmits<{
+defineEmits<{
   (e: 'select', toolId: string): void;
 }>();
 
@@ -147,14 +149,12 @@ onUnmounted(() => window.removeEventListener('resize', onResize));
 // ── Tool rows ──
 const primaryTools = computed(() => {
   if (!props.primaryIds) return props.tools.slice(0, 4);
-  return props.primaryIds
-    .map(id => props.tools.find(t => t.id === id))
-    .filter(Boolean) as ToolDef[];
+  return props.primaryIds.map((id) => props.tools.find((t) => t.id === id)).filter(Boolean) as ToolDef[];
 });
 
 const secondaryTools = computed(() => {
-  const primarySet = new Set(primaryTools.value.map(t => t.id));
-  return props.tools.filter(t => !primarySet.has(t.id));
+  const primarySet = new Set(primaryTools.value.map((t) => t.id));
+  return props.tools.filter((t) => !primarySet.has(t.id));
 });
 
 // ── Mobile sheet drag ──
@@ -166,10 +166,10 @@ const sheetHeight = ref(0);
 let dragStartHeight = 0;
 
 // Snap points in px (computed after mount)
-const HANDLE_HEIGHT = 26;   // drag handle zone (sized for comfortable tap target)
-const ROW_HEIGHT = 50;      // each tool row height
-const ROW_GAP = 2;          // gap between rows
-const BOTTOM_PAD = 4;       // bottom padding
+const HANDLE_HEIGHT = 26; // drag handle zone (sized for comfortable tap target)
+const ROW_HEIGHT = 50; // each tool row height
+const ROW_GAP = 2; // gap between rows
+const BOTTOM_PAD = 4; // bottom padding
 
 const collapsedHeight = HANDLE_HEIGHT + 20; // handle + breathing room for safe-area
 const expandedHeight = HANDLE_HEIGHT + ROW_HEIGHT + ROW_GAP + ROW_HEIGHT + BOTTOM_PAD; // handle + 2 rows
@@ -186,10 +186,7 @@ onMounted(() => {
 // Keep CSS variable in sync so other elements can position above the sheet.
 // Note: --nav-panel-w is set purely via CSS media queries in main.css.
 function updateCssVar() {
-  document.documentElement.style.setProperty(
-    '--nav-sheet-h',
-    isDesktop.value ? '0px' : `${sheetHeight.value}px`,
-  );
+  document.documentElement.style.setProperty('--nav-sheet-h', isDesktop.value ? '0px' : `${sheetHeight.value}px`);
 }
 
 watch(sheetHeight, updateCssVar);
@@ -200,11 +197,14 @@ onUnmounted(() => {
 });
 
 // When activeTool changes and sheet is collapsed, pop open
-watch(() => props.activeTool, (newVal) => {
-  if (newVal && currentSnap.value === 'collapsed') {
-    snapTo('expanded');
+watch(
+  () => props.activeTool,
+  (newVal) => {
+    if (newVal && currentSnap.value === 'collapsed') {
+      snapTo('expanded');
+    }
   }
-});
+);
 
 const sheetStyle = computed(() => {
   if (isDragging.value) {
@@ -223,8 +223,12 @@ const sheetStyle = computed(() => {
 function snapTo(snap: SnapName) {
   currentSnap.value = snap;
   switch (snap) {
-    case 'collapsed': sheetHeight.value = collapsedHeight; break;
-    case 'expanded': sheetHeight.value = expandedHeight; break;
+    case 'collapsed':
+      sheetHeight.value = collapsedHeight;
+      break;
+    case 'expanded':
+      sheetHeight.value = expandedHeight;
+      break;
   }
 }
 
@@ -406,13 +410,22 @@ defineExpose({
   height: 7px;
   border-radius: 50%;
   background: var(--alert-dot);
-  box-shadow: 0 0 6px var(--alert-dot-glow), 0 0 2px var(--alert-dot);
+  box-shadow:
+    0 0 6px var(--alert-dot-glow),
+    0 0 2px var(--alert-dot);
   animation: alert-pulse 2s ease-in-out infinite;
 }
 
 @keyframes alert-pulse {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.5; transform: scale(0.75); }
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(0.75);
+  }
 }
 
 /* Drifted dot: GPS on but map not following — amber, no animation */
@@ -431,7 +444,9 @@ defineExpose({
   height: 7px;
   border-radius: 50%;
   background: var(--warning);
-  box-shadow: 0 0 6px var(--alert-dot-glow), 0 0 2px var(--warning);
+  box-shadow:
+    0 0 6px var(--alert-dot-glow),
+    0 0 2px var(--warning);
 }
 
 /* Collapsed: hide everything but handle */
@@ -455,7 +470,6 @@ defineExpose({
 .nav-sheet__expand-zone--active {
   pointer-events: auto;
 }
-
 
 /* ═══════════════════════════════════════════════
    DESKTOP: Left Side Panel
@@ -485,6 +499,10 @@ defineExpose({
   align-items: center;
   gap: 2px;
   padding: 0.25rem 0;
+}
+
+.nav-panel__brand {
+  margin-top: auto;
 }
 
 /* ─── Tool button (desktop) ─── */
@@ -555,7 +573,9 @@ defineExpose({
   height: 7px;
   border-radius: 50%;
   background: var(--alert-dot);
-  box-shadow: 0 0 6px var(--alert-dot-glow), 0 0 2px var(--alert-dot);
+  box-shadow:
+    0 0 6px var(--alert-dot-glow),
+    0 0 2px var(--alert-dot);
   animation: alert-pulse 2s ease-in-out infinite;
 }
 
@@ -575,17 +595,22 @@ defineExpose({
   height: 7px;
   border-radius: 50%;
   background: var(--warning);
-  box-shadow: 0 0 6px var(--alert-dot-glow), 0 0 2px var(--warning);
+  box-shadow:
+    0 0 6px var(--alert-dot-glow),
+    0 0 2px var(--warning);
 }
-
 
 /* ═══════════════════════════════════════════════
    HIDE BASED ON VIEWPORT (safety net)
    ═══════════════════════════════════════════════ */
 @media (min-width: 1024px) {
-  .nav-sheet { display: none; }
+  .nav-sheet {
+    display: none;
+  }
 }
 @media (max-width: 1023px) {
-  .nav-panel { display: none; }
+  .nav-panel {
+    display: none;
+  }
 }
 </style>

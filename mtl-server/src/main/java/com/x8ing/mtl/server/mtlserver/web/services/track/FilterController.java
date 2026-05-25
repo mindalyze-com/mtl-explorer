@@ -1,5 +1,6 @@
 package com.x8ing.mtl.server.mtlserver.web.services.track;
 
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.x8ing.mtl.server.mtlserver.db.entity.config.FilterConfigEntity;
 import com.x8ing.mtl.server.mtlserver.db.entity.gps.GpsTrack;
 import com.x8ing.mtl.server.mtlserver.db.readonly.DynamicSqlService;
@@ -8,9 +9,11 @@ import com.x8ing.mtl.server.mtlserver.db.repository.config.FilterConfigRepositor
 import com.x8ing.mtl.server.mtlserver.db.repository.gps.GpsTrackRepository;
 import com.x8ing.mtl.server.mtlserver.logic.grouping.sql.FilterParamResolver;
 import com.x8ing.mtl.server.mtlserver.logic.grouping.sql.GpsTrackSQLFilter;
+import com.x8ing.mtl.server.mtlserver.logic.grouping.sql.metadata.FilterMetadataResolver;
 import com.x8ing.mtl.server.mtlserver.web.services.track.entity.FilterInfo;
 import com.x8ing.mtl.server.mtlserver.web.services.track.entity.FilterParamsRequest;
 import com.x8ing.mtl.server.mtlserver.web.services.track.entity.ParamDefinition;
+import com.x8ing.mtl.server.mtlserver.web.services.track.entity.metadata.FilterEffectiveUiMetadata;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -22,17 +25,26 @@ import java.util.stream.Collectors;
 @Slf4j
 @RestController
 @RequestMapping("/api/filter")
+@JsonPropertyOrder({
+        "gpsTrackSQLFilter",
+        "filterParamResolver",
+        "filterMetadataResolver",
+        "filterConfigRepository",
+        "gpsTrackRepository"
+})
 public class FilterController {
 
     private final GpsTrackSQLFilter gpsTrackSQLFilter;
     private final FilterParamResolver filterParamResolver;
+    private final FilterMetadataResolver filterMetadataResolver;
 
     private final FilterConfigRepository filterConfigRepository;
     private final GpsTrackRepository gpsTrackRepository;
 
-    public FilterController(GpsTrackSQLFilter gpsTrackSQLFilter, FilterParamResolver filterParamResolver, FilterConfigRepository filterConfigRepository, DynamicSqlService dynamicSqlService, GpsTrackRepository gpsTrackRepository) {
+    public FilterController(GpsTrackSQLFilter gpsTrackSQLFilter, FilterParamResolver filterParamResolver, FilterMetadataResolver filterMetadataResolver, FilterConfigRepository filterConfigRepository, GpsTrackRepository gpsTrackRepository) {
         this.gpsTrackSQLFilter = gpsTrackSQLFilter;
         this.filterParamResolver = filterParamResolver;
+        this.filterMetadataResolver = filterMetadataResolver;
         this.filterConfigRepository = filterConfigRepository;
         this.gpsTrackRepository = gpsTrackRepository;
     }
@@ -63,8 +75,19 @@ public class FilterController {
         String sql = gpsTrackSQLFilter.getTemplateToSQL(filterConfig);
         Set<String> paramsInSQL = DynamicSqlService.getNamedParamsForSQL(sql);
         List<ParamDefinition> paramDefinitions = filterParamResolver.analyze(paramsInSQL);
+        Set<String> effectiveParamNames = paramDefinitions.stream()
+                .map(ParamDefinition::getName)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+        FilterEffectiveUiMetadata effectiveUiMetadata = filterMetadataResolver.resolve(filterConfig, effectiveParamNames);
 
-        return FilterInfo.builder().filterConfig(filterConfig).resolvedSQL(sql).paramsInSQL(paramsInSQL).paramDefinitions(paramDefinitions).build();
+        return FilterInfo.builder()
+                .filterConfig(filterConfig)
+                .resolvedSQL(sql)
+                .paramsInSQL(paramsInSQL)
+                .paramDefinitions(paramDefinitions)
+                .effectiveUiMetadata(effectiveUiMetadata)
+                .build();
     }
 
     @RequestMapping("/resolve/{filterConfigId}")
@@ -85,7 +108,7 @@ public class FilterController {
             List<Long> ids = queryResult.asIdList();
             if (!ids.isEmpty()) {
                 Map<Long, Long> trackVersions = new HashMap<>();
-                List<Object[]> versionRows = gpsTrackRepository.findVersionsByIds(ids);
+                List<Object[]> versionRows = gpsTrackRepository.findVersionsByIds(ids.toArray(Long[]::new));
                 for (Object[] row : versionRows) {
                     trackVersions.put((Long) row[0], (Long) row[1]);
                 }

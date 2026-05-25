@@ -1,5 +1,6 @@
 package com.x8ing.mtl.server.mtlserver.jobs.demo;
 
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.x8ing.mtl.server.mtlserver.config.MtlAppProperties;
 import com.x8ing.mtl.server.mtlserver.db.repository.gps.GpsTrackRepository;
 import lombok.RequiredArgsConstructor;
@@ -29,6 +30,10 @@ import java.util.Date;
 @Service
 @Slf4j
 @RequiredArgsConstructor
+@JsonPropertyOrder({
+        "appProperties",
+        "gpsTrackRepository"
+})
 public class DemoTrackExclusionService {
 
     private static final Date SUSPICIOUS_DATE_CUTOFF =

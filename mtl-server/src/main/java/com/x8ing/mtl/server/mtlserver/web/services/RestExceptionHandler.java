@@ -14,16 +14,14 @@ public class RestExceptionHandler {
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<Object> handleHttpMessageNotReadable(HttpMessageNotReadableException ex) {
-        String errorMessage = "Error occurred while deserializing request: " + ex.getMessage();
         log.warn(ex.toString(), ex);
-        return buildResponseEntity(HttpStatus.BAD_REQUEST, errorMessage);
+        return buildResponseEntity(HttpStatus.BAD_REQUEST, "Malformed request body.");
     }
 
     @ExceptionHandler(HttpMessageNotWritableException.class)
     public ResponseEntity<Object> handleHttpMessageNotWritable(HttpMessageNotWritableException ex) {
-        String errorMessage = "Error occurred while serializing response: " + ex.getMessage();
-        log.warn(errorMessage, ex);
-        return buildResponseEntity(HttpStatus.INTERNAL_SERVER_ERROR, errorMessage);
+        log.warn("Error occurred while serializing response", ex);
+        return buildResponseEntity(HttpStatus.INTERNAL_SERVER_ERROR, "Response serialization failed.");
     }
 
     private ResponseEntity<Object> buildResponseEntity(HttpStatus httpStatus, String errorMessage) {

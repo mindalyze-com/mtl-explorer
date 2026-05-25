@@ -1,5 +1,6 @@
 package com.x8ing.mtl.server.mtlserver.db.entity.indexer;
 
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import jakarta.persistence.*;
 import lombok.Data;
 
@@ -8,6 +9,25 @@ import java.util.Date;
 @Entity
 @Table(name = "indexed_file")
 @Data
+@JsonPropertyOrder({
+        "id",
+        "index",
+        "name",
+        "basePath",
+        "fullPath",
+        "path",
+        "size",
+        "hash",
+        "lastModifiedDate",
+        "createDate",
+        "indexAddedDate",
+        "indexUpdateDate",
+        "indexerStatus",
+        "indexerInvocations",
+        "indexerId",
+        "lastMessage",
+        "version"
+})
 public class IndexedFile {
 
     public enum IndexerStatus {

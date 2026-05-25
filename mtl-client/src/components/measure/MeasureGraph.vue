@@ -2,180 +2,177 @@
   <div ref="chartContainer" class="chart-container">
     <highcharts ref="highchartsComponent" :options="chartOptions" class="chart"></highcharts>
   </div>
-
 </template>
 
-<script>
-import {defineComponent, inject} from "vue";
-import {formatNumber} from "@/utils/Utils";
+<script setup lang="ts">
+import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import type Highcharts from 'highcharts';
+import { formatNumber } from '@/utils/Utils';
 
-export default defineComponent({
-  name: 'MeasureGraph',
-  components: {},
-  props: ['graphSeriesData'],
-  data() {
-    return {
-      resizeObserver: null,
-      chartOptions: {
-        chart: {
-          type: 'line',
-          height: null,
-          spacing: [16, 12, 16, 12],
-          backgroundColor: 'transparent',
-        },
-        credits: { enabled: false },
-        title: {text: ''},
-        legend: {
-          enabled: true,
-          align: 'left',
-          verticalAlign: 'top',
-          itemStyle: {
-            color: 'var(--text-secondary)',
-            fontWeight: '500'
-          },
-          itemHoverStyle: {
-            color: 'var(--text-primary)'
-          }
-        },
-        xAxis: {
-          type: 'datetime',
-          lineColor: 'var(--border-default)',
-          tickColor: 'var(--border-default)',
-          labels: {
-            style: {
-              color: 'var(--chart-text)',
-              fontSize: '12px'
-            }
-          }
-        },
-        yAxis: {
-          title: {
-            text: 'Speed (km/h)',
-            style: {
-              color: 'var(--text-secondary)',
-              fontWeight: '600'
-            }
-          },
-          gridLineColor: 'var(--chart-grid)',
-          labels: {
-            style: {
-              color: 'var(--chart-text)',
-              fontSize: '12px'
-            },
-            formatter: function () {
-              return this.value;
-            }
-          }
-        },
-        tooltip: {
-          backgroundColor: 'var(--chart-tooltip-bg)',
-          borderColor: 'var(--border-default)',
-          borderRadius: 14,
-          shadow: false,
-          style: {
-            color: 'var(--chart-tooltip-text)'
-          },
-          formatter: function () {
-            return 'Track segment speed was in average <b>' + formatNumber(this.y, 3) + ' km/h</b>';
-          }
-        },
-        plotOptions: {
-          line: {
-            lineWidth: 2.25,
-            marker: {
-              enabled: false,
-              states: {
-                hover: {
-                  enabled: true,
-                  radius: 4
-                }
-              }
-            },
-            states: {
-              hover: {
-                lineWidthPlus: 0
-              }
-            }
-          },
-          series: {
-            animation: false
-          }
-        },
-        series: this.graphSeriesData,
-        accessibility: {
-          enabled: false
-        },
-        responsive: {
-          rules: [
-            {
-              condition: { maxWidth: 720 },
-              chartOptions: {
-                chart: { spacing: [12, 8, 12, 8] },
-                legend: {
-                  align: 'left',
-                  verticalAlign: 'bottom'
-                }
-              }
-            },
-            {
-              condition: { maxWidth: 500 },
-              chartOptions: {
-                chart: { spacing: [8, 4, 10, 4] },
-                yAxis: {
-                  title: { text: null }
-                }
-              }
-            }
-          ]
-        }
-      }
-    }
-  },
-  setup() {
-    return {
-      toast: inject("toast"),
-    };
-  },
-  mounted() {
-    this.resizeObserver = new ResizeObserver((entries) => {
-      const rect = entries[0]?.contentRect;
-      if (!rect) return;
-      const chart = this.$refs.highchartsComponent?.chart;
-      if (chart && rect.width > 0 && rect.height > 0) {
-        chart.setSize(rect.width, rect.height, false);
-      } else {
-        this.reflowChart();
-      }
-    });
+defineOptions({ name: 'MeasureGraph' });
 
-    if (this.$refs.chartContainer) {
-      this.resizeObserver.observe(this.$refs.chartContainer);
-    }
-    this.$nextTick(() => this.reflowChart());
+const props = defineProps<{
+  graphSeriesData: Highcharts.SeriesOptionsType[];
+}>();
+
+const chartContainer = ref<HTMLElement | null>(null);
+const highchartsComponent = ref<{ chart?: Highcharts.Chart } | null>(null);
+let resizeObserver: ResizeObserver | null = null;
+
+const chartOptions = ref<Highcharts.Options>({
+  chart: {
+    type: 'line',
+    height: null,
+    spacing: [16, 12, 16, 12],
+    backgroundColor: 'transparent',
   },
-  watch: {
-    graphSeriesData(newData) {
-      this.chartOptions.series = newData;
-      this.reflowChart();
+  credits: { enabled: false },
+  title: { text: '' },
+  legend: {
+    enabled: true,
+    align: 'left',
+    verticalAlign: 'top',
+    itemStyle: {
+      color: 'var(--text-secondary)',
+      fontWeight: '500',
+    },
+    itemHoverStyle: {
+      color: 'var(--text-primary)',
     },
   },
-  beforeUnmount() {
-    if (this.resizeObserver) {
-      this.resizeObserver.disconnect();
-    }
+  xAxis: {
+    type: 'datetime',
+    lineColor: 'var(--border-default)',
+    tickColor: 'var(--border-default)',
+    labels: {
+      style: {
+        color: 'var(--chart-text)',
+        fontSize: '12px',
+      },
+    },
   },
-  methods: {
-    reflowChart() {
-      if (this.$refs.highchartsComponent && this.$refs.highchartsComponent.chart) {
-        this.$refs.highchartsComponent.chart.reflow();
-      }
-    }
+  yAxis: {
+    title: {
+      text: 'Speed (km/h)',
+      style: {
+        color: 'var(--text-secondary)',
+        fontWeight: '600',
+      },
+    },
+    gridLineColor: 'var(--chart-grid)',
+    labels: {
+      style: {
+        color: 'var(--chart-text)',
+        fontSize: '12px',
+      },
+      formatter: function () {
+        return String(this.value);
+      },
+    },
   },
+  tooltip: {
+    backgroundColor: 'var(--chart-tooltip-bg)',
+    borderColor: 'var(--border-default)',
+    borderRadius: 14,
+    shadow: false,
+    style: {
+      color: 'var(--chart-tooltip-text)',
+    },
+    formatter: function () {
+      return 'Track segment speed was in average <b>' + formatNumber(this.y, 3) + ' km/h</b>';
+    },
+  },
+  plotOptions: {
+    line: {
+      lineWidth: 2.25,
+      marker: {
+        enabled: false,
+        states: {
+          hover: {
+            enabled: true,
+            radius: 4,
+          },
+        },
+      },
+      states: {
+        hover: {
+          lineWidthPlus: 0,
+        },
+      },
+    },
+    series: {
+      animation: false,
+    },
+  },
+  series: props.graphSeriesData,
+  accessibility: {
+    enabled: false,
+  },
+  responsive: {
+    rules: [
+      {
+        condition: { maxWidth: 720 },
+        chartOptions: {
+          chart: { spacing: [12, 8, 12, 8] },
+          legend: {
+            align: 'left',
+            verticalAlign: 'bottom',
+          },
+        },
+      },
+      {
+        condition: { maxWidth: 500 },
+        chartOptions: {
+          chart: { spacing: [8, 4, 10, 4] },
+          yAxis: {
+            title: { text: undefined },
+          },
+        },
+      },
+    ],
+  },
+});
+
+function reflowChart() {
+  if (highchartsComponent.value?.chart) {
+    highchartsComponent.value.chart.reflow();
+  }
+}
+
+onMounted(() => {
+  resizeObserver = new ResizeObserver((entries) => {
+    const rect = entries[0]?.contentRect;
+    if (!rect) return;
+    const chart = highchartsComponent.value?.chart;
+    if (chart && rect.width > 0 && rect.height > 0) {
+      chart.setSize(rect.width, rect.height, false);
+    } else {
+      reflowChart();
+    }
+  });
+
+  if (chartContainer.value) {
+    resizeObserver.observe(chartContainer.value);
+  }
+  nextTick(() => reflowChart());
+});
+
+watch(
+  () => props.graphSeriesData,
+  (newData) => {
+    chartOptions.value.series = newData;
+    reflowChart();
+  }
+);
+
+onBeforeUnmount(() => {
+  if (resizeObserver) {
+    resizeObserver.disconnect();
+  }
 });
 </script>
 
 <style scoped>
-
 .chart-container {
   display: flex;
   flex-direction: column;
@@ -197,5 +194,4 @@ export default defineComponent({
     min-height: min(260px, 44svh);
   }
 }
-
 </style>

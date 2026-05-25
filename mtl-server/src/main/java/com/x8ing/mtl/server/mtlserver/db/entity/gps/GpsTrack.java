@@ -1,5 +1,6 @@
 package com.x8ing.mtl.server.mtlserver.db.entity.gps;
 
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.x8ing.mtl.server.mtlserver.db.entity.indexer.IndexedFile;
 import com.x8ing.mtl.server.mtlserver.web.global.GeoDoubleSerializer;
@@ -12,6 +13,84 @@ import java.util.List;
 
 @Entity
 @Data
+@JsonPropertyOrder({
+        "id",
+        "indexedFile",
+        "creator",
+        "gpxVersion",
+        "metaName",
+        "metaDescription",
+        "metaLink",
+        "metaTime",
+        "metaAuthor",
+        "trackName",
+        "trackType",
+        "trackDescription",
+        "startDate",
+        "endDate",
+        "trackDurationInMotionSecs",
+        "trackDurationStoppedSecs",
+        "trackStopCount",
+        "trackLongestStopSecs",
+        "maxDistanceBetweenPoints",
+        "medianDistanceBetweenPoints",
+        "avgDistanceBetweenPoints",
+        "didFilterOutlierByDistance",
+        "numberOfTrackPoints",
+        "trackLengthInMeter",
+        "ascentInMeter",
+        "descentInMeter",
+        "minAltitude",
+        "maxAltitude",
+        "speedInKmh30sMax",
+        "elevationGainPerHour30sMax",
+        "elevationLossPerHour30sMax",
+        "slopePercentageMax",
+        "slopePercentageMin",
+        "utmZone",
+        "loadStatus",
+        "loadMessages",
+        "duplicateStatus",
+        "duplicateOf",
+        "duplicateDetails",
+        "gpsTracksData",
+        "activityType",
+        "activityTypeSource",
+        "activityTypeSourceDetails",
+        "highlightExclusionReason",
+        "statisticsExclusionReason",
+        "garminActivityId",
+        "bboxMinLat",
+        "bboxMaxLat",
+        "bboxMinLng",
+        "bboxMaxLng",
+        "centerLat",
+        "centerLng",
+        "energyGravitationalTotalWh",
+        "energyGravitationalDescentWh",
+        "energyAeroDragTotalWh",
+        "energyRollingResistanceTotalWh",
+        "energyKineticPositiveTotalWh",
+        "energyNetTotalWh",
+        "energyWeightKgUsed",
+        "powerWattsAvg",
+        "powerWattsMovingAvg",
+        "powerWattsMax",
+        "powerWatts30sMax",
+        "normalizedPowerWatts",
+        "explorationStatus",
+        "explorationScore",
+        "explorationCalcDate",
+        "sourceSegmentIndex",
+        "sourceParentTrackId",
+        "trackSource",
+        "plannerWaypointsJson",
+        "plannerProfile",
+        "plannerRouteJson",
+        "createDate",
+        "updateDate",
+        "version"
+})
 public class GpsTrack {
 
 
@@ -29,6 +108,10 @@ public class GpsTrack {
 
     public enum ACTIVITY_TYPE_SOURCE {
         AUTO_GUESS, USER_SET, FAILED
+    }
+
+    public enum STATISTICS_EXCLUSION_REASON {
+        GPS_NOISE, WRONG_ACTIVITY, IMPORT_ARTIFACT, OTHER
     }
 
     public enum EXPLORATION_STATUS {
@@ -96,10 +179,9 @@ public class GpsTrack {
     private Double trackDurationInMotionSecs;
 
     /**
-     * Total time in seconds the track was detected as "stopped" — contiguous runs of
-     * samples with instantaneous speed &lt; 0.5 km/h lasting at least 30 s.
-     * Computed by {@code TrackMotionAnalyzer} over the outlier-cleaned point stream
-     * at ingest. Unlike {@code trackDuration - trackDurationInMotionSecs}, this
+     * Total time in seconds the track was detected as "stopped" by the dense
+     * GPS stop detector. Computed over the outlier-cleaned point stream at
+     * ingest. Unlike {@code trackDuration - trackDurationInMotionSecs}, this
      * excludes "gap" time where the GPS simply stopped recording.
      */
     private Double trackDurationStoppedSecs;
@@ -125,6 +207,59 @@ public class GpsTrack {
     private Integer numberOfTrackPoints;
 
     private Double trackLengthInMeter;
+
+    /**
+     * Canonical accumulated ascent in metres, computed from the full
+     * RAW_OUTLIER_CLEANED point stream after elevation denoising.
+     */
+    @Column(name = "ascent_in_meter")
+    private Double ascentInMeter;
+
+    /**
+     * Canonical accumulated descent in metres, computed from the full
+     * RAW_OUTLIER_CLEANED point stream after elevation denoising.
+     */
+    @Column(name = "descent_in_meter")
+    private Double descentInMeter;
+
+    @Column(name = "min_altitude")
+    private Double minAltitude;
+
+    @Column(name = "max_altitude")
+    private Double maxAltitude;
+
+    /**
+     * Peak trailing 30-second average speed in km/h, computed on the canonical
+     * dense point stream.
+     */
+    @Column(name = "speed_in_kmh_30s_max")
+    private Double speedInKmh30sMax;
+
+    /**
+     * Peak trailing 30-second elevation-gain rate in m/h, computed on the
+     * canonical dense point stream.
+     */
+    @Column(name = "elevation_gain_per_hour_30s_max")
+    private Double elevationGainPerHour30sMax;
+
+    /**
+     * Peak trailing 30-second elevation-loss rate in m/h, computed on the
+     * canonical dense point stream.
+     */
+    @Column(name = "elevation_loss_per_hour_30s_max")
+    private Double elevationLossPerHour30sMax;
+
+    /**
+     * Canonical maximum moving-window slope percentage from RAW_OUTLIER_CLEANED.
+     */
+    @Column(name = "slope_percentage_max")
+    private Double slopePercentageMax;
+
+    /**
+     * Canonical minimum moving-window slope percentage from RAW_OUTLIER_CLEANED.
+     */
+    @Column(name = "slope_percentage_min")
+    private Double slopePercentageMin;
 
     private String utmZone;
 
@@ -153,6 +288,14 @@ public class GpsTrack {
     private ACTIVITY_TYPE_SOURCE activityTypeSource;
 
     private String activityTypeSourceDetails;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "highlight_exclusion_reason")
+    private STATISTICS_EXCLUSION_REASON highlightExclusionReason;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "statistics_exclusion_reason")
+    private STATISTICS_EXCLUSION_REASON statisticsExclusionReason;
 
     private String garminActivityId;
 
@@ -190,6 +333,9 @@ public class GpsTrack {
     @Column(name = "energy_net_total_wh")
     private Double energyNetTotalWh;
 
+    /**
+     * Total rider/person plus equipment/vehicle mass used by the energy model.
+     */
     @Column(name = "energy_weight_kg_used")
     private Double energyWeightKgUsed;
 
@@ -201,6 +347,13 @@ public class GpsTrack {
 
     @Column(name = "power_watts_max")
     private Double powerWattsMax;
+
+    /**
+     * Peak trailing 30-second average of estimated mechanical power.
+     * More stable than {@link #powerWattsMax}, which is the raw per-segment peak.
+     */
+    @Column(name = "power_watts_30s_max")
+    private Double powerWatts30sMax;
 
     /**
      * Normalized Power (W) — a variability-weighted average of instantaneous power
@@ -265,6 +418,15 @@ public class GpsTrack {
      */
     @Column(name = "planner_profile", length = 64)
     private String plannerProfile;
+
+    /**
+     * Versioned planner-specific payload for PLANNED tracks. Stores the saved
+     * route result (currently legs + aggregate stats) in one extensible JSON
+     * document so future planner metadata can be added without more narrow
+     * columns.
+     */
+    @Column(name = "planner_route_json", columnDefinition = "text")
+    private String plannerRouteJson;
 
     private Date createDate = new Date();
 

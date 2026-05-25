@@ -1,4 +1,4 @@
-import type {DirectiveBinding} from 'vue';
+import type { DirectiveBinding } from 'vue';
 
 interface DragState {
   isDown: boolean;
@@ -9,8 +9,12 @@ interface DragState {
   moved: boolean;
 }
 
-function addDragScroll(el: HTMLElement) {
-  const state: DragState = {isDown: false, startX: 0, scrollLeft: 0, startY: 0, scrollTop: 0, moved: false};
+type DragScrollElement = HTMLElement & {
+  __dragScrollCleanup?: () => void;
+};
+
+function addDragScroll(el: DragScrollElement) {
+  const state: DragState = { isDown: false, startX: 0, scrollLeft: 0, startY: 0, scrollTop: 0, moved: false };
 
   const onPointerDown = (e: PointerEvent) => {
     // Only left button / primary touch
@@ -50,8 +54,6 @@ function addDragScroll(el: HTMLElement) {
   el.addEventListener('pointerup', onPointerUp);
   el.addEventListener('pointercancel', onPointerUp);
 
-  // Store cleanup
-  // @ts-ignore
   el.__dragScrollCleanup = () => {
     el.removeEventListener('pointerdown', onPointerDown);
     el.removeEventListener('pointermove', onPointerMove);
@@ -62,12 +64,11 @@ function addDragScroll(el: HTMLElement) {
 
 export const dragScroll = {
   mounted(el: HTMLElement, _binding: DirectiveBinding) {
-    addDragScroll(el);
+    addDragScroll(el as DragScrollElement);
   },
-  unmounted(el: HTMLElement) {
-    // @ts-ignore
-    if (el.__dragScrollCleanup) el.__dragScrollCleanup();
-  }
+  unmounted(el: DragScrollElement) {
+    el.__dragScrollCleanup?.();
+  },
 };
 
 export default dragScroll;

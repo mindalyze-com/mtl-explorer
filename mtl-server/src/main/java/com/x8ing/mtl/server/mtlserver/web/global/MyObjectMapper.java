@@ -2,7 +2,10 @@ package com.x8ing.mtl.server.mtlserver.web.global;
 
 import com.bedatadriven.jackson.datatype.jts.JtsModule;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -11,6 +14,9 @@ import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder;
 
 @Configuration
 @Slf4j
+@JsonPropertyOrder({
+        "builder"
+})
 public class MyObjectMapper {
 
 
@@ -29,7 +35,8 @@ public class MyObjectMapper {
 
         // do not serialize null values
         builder.serializationInclusion(JsonInclude.Include.NON_NULL)
-                .modules(new JtsModule());
+                .modules(new JtsModule(), new JavaTimeModule())
+                .featuresToDisable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
 
         return builder.createXmlMapper(false).build();
 

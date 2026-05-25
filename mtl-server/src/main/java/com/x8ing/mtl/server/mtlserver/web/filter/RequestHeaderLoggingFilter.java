@@ -9,11 +9,23 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.Locale;
+import java.util.Set;
 
 @Slf4j
 @Component
 public class RequestHeaderLoggingFilter extends OncePerRequestFilter {
 
+    private static final String REDACTED = "<redacted>";
+    private static final Set<String> SENSITIVE_HEADERS = Set.of(
+            "authorization",
+            "cookie",
+            "set-cookie",
+            "proxy-authorization",
+            "x-api-key",
+            "x-auth-token",
+            "x-csrf-token"
+    );
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
@@ -31,11 +43,18 @@ public class RequestHeaderLoggingFilter extends OncePerRequestFilter {
                             .append("\t")
                             .append(headerName)
                             .append(" ")
-                            .append(request.getHeader(headerName))
+                            .append(sanitizedHeaderValue(headerName, request.getHeader(headerName)))
                             .append("\n"));
             log.debug(sb.toString());
         }
 
         filterChain.doFilter(request, response);
+    }
+
+    private String sanitizedHeaderValue(String headerName, String value) {
+        if (headerName == null) {
+            return REDACTED;
+        }
+        return SENSITIVE_HEADERS.contains(headerName.toLowerCase(Locale.ROOT)) ? REDACTED : value;
     }
 }

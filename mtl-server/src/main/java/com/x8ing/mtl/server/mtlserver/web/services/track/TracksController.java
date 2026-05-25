@@ -1,10 +1,10 @@
 package com.x8ing.mtl.server.mtlserver.web.services.track;
 
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.x8ing.mtl.server.mtlserver.db.entity.gps.GpsTrack;
 import com.x8ing.mtl.server.mtlserver.db.entity.gps.GpsTrackData;
 import com.x8ing.mtl.server.mtlserver.db.entity.gps.GpsTrackDataPoint;
-import com.x8ing.mtl.server.mtlserver.db.entity.gps.projection.GpsTrackStatistics;
-import com.x8ing.mtl.server.mtlserver.db.entity.gps.projection.IWayPointWithDistance;
+import com.x8ing.mtl.server.mtlserver.db.entity.gps.projection.*;
 import com.x8ing.mtl.server.mtlserver.db.readonly.spring.QueryResult;
 import com.x8ing.mtl.server.mtlserver.db.repository.gps.*;
 import com.x8ing.mtl.server.mtlserver.energy.EnergyService;
@@ -13,23 +13,59 @@ import com.x8ing.mtl.server.mtlserver.logic.crossing.beans.CrossingPointsRequest
 import com.x8ing.mtl.server.mtlserver.logic.crossing.beans.CrossingPointsResponse;
 import com.x8ing.mtl.server.mtlserver.logic.grouping.sql.FilterParamResolver;
 import com.x8ing.mtl.server.mtlserver.logic.grouping.sql.GpsTrackSQLFilter;
+import com.x8ing.mtl.server.mtlserver.utils.TimingCollector;
 import com.x8ing.mtl.server.mtlserver.web.services.track.entity.*;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.CacheControl;
-import org.springframework.http.ResponseEntity;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.core.io.Resource;
+import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 @Slf4j
 @RestController
 @RequestMapping("/api/tracks")
+@JsonPropertyOrder({
+        "gpsTrackRepository",
+        "trackTimeBetweenTwoPoints",
+        "trackAndDataService",
+        "gpsTrackDataRepository",
+        "gpsTrackDataPointRepository",
+        "gpsTrackEventRepository",
+        "gpsTrackSQLFilter",
+        "filterParamResolver",
+        "energyService",
+        "trackFileExportService",
+        "statisticsOverviewExecutor"
+})
 public class TracksController {
 
     public static final int DEFAULT_CACHE_TIME_IN_SECONDS = 300;
+    private static final int STATISTICS_OVERVIEW_TOP_LIST_LIMIT = 100;
+    private static final long STATISTICS_OVERVIEW_SLOW_LOG_THRESHOLD_MS = 100;
+    private static final List<String> OVERVIEW_TRACK_RANKING_ORDER = List.of(
+            "longest-distance",
+            "longest-duration",
+            "biggest-ascent",
+            "quickest-ascent",
+            "most-energy",
+            "fastest-speed",
+            "peak-power"
+    );
+    private static final List<String> OVERVIEW_PERIOD_ORDER = List.of("day", "week", "month", "weekday");
 
     private final GpsTrackRepository gpsTrackRepository;
 
@@ -49,7 +85,23 @@ public class TracksController {
 
     private final EnergyService energyService;
 
-    public TracksController(GpsTrackRepository gpsTrackRepository, TrackTimeBetweenTwoPoints trackTimeBetweenTwoPoints, GpsTrackAndDataService trackAndDataService, GpsTrackDataRepository gpsTrackDataRepository, GpsTrackDataPointRepository gpsTrackDataPointRepository, GpsTrackEventRepository gpsTrackEventRepository, GpsTrackSQLFilter gpsTrackSQLFilter, FilterParamResolver filterParamResolver, EnergyService energyService) {
+    private final TrackFileExportService trackFileExportService;
+
+    private final Executor statisticsOverviewExecutor;
+
+    public TracksController(
+            GpsTrackRepository gpsTrackRepository,
+            TrackTimeBetweenTwoPoints trackTimeBetweenTwoPoints,
+            GpsTrackAndDataService trackAndDataService,
+            GpsTrackDataRepository gpsTrackDataRepository,
+            GpsTrackDataPointRepository gpsTrackDataPointRepository,
+            GpsTrackEventRepository gpsTrackEventRepository,
+            GpsTrackSQLFilter gpsTrackSQLFilter,
+            FilterParamResolver filterParamResolver,
+            EnergyService energyService,
+            TrackFileExportService trackFileExportService,
+            @Qualifier("statisticsOverviewExecutor") Executor statisticsOverviewExecutor
+    ) {
         this.gpsTrackRepository = gpsTrackRepository;
         this.trackTimeBetweenTwoPoints = trackTimeBetweenTwoPoints;
         this.trackAndDataService = trackAndDataService;
@@ -59,6 +111,8 @@ public class TracksController {
         this.gpsTrackSQLFilter = gpsTrackSQLFilter;
         this.filterParamResolver = filterParamResolver;
         this.energyService = energyService;
+        this.trackFileExportService = trackFileExportService;
+        this.statisticsOverviewExecutor = statisticsOverviewExecutor;
     }
 
 
@@ -76,13 +130,42 @@ public class TracksController {
             gpsTrack.getGpsTracksData().add(trackData);
         }
         return ResponseEntity.ok()
-                .cacheControl(CacheControl.maxAge(DEFAULT_CACHE_TIME_IN_SECONDS, TimeUnit.SECONDS))
+                .cacheControl(privateTrackCacheControl())
                 .body(gpsTrack);
     }
 
     @RequestMapping("/duplicates/{gpsTrackId}")
     public List<Long> getDuplicatesForTrackId(@PathVariable Long gpsTrackId) {
         return gpsTrackRepository.getDuplicatesForGpsTrackId(gpsTrackId);
+    }
+
+    @Operation(operationId = "downloadTrackSourceFile", summary = "Download the original indexed GPS source file")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Original indexed track file",
+                    content = @Content(mediaType = MediaType.APPLICATION_OCTET_STREAM_VALUE,
+                            schema = @Schema(type = "string", format = "binary"))),
+            @ApiResponse(responseCode = "401", description = "Unauthorized", content = @Content),
+            @ApiResponse(responseCode = "404", description = "Track source file not available", content = @Content),
+            @ApiResponse(responseCode = "422", description = "Unsupported source track format", content = @Content)
+    })
+    @GetMapping(value = "/{gpsTrackId}/source-file", produces = MediaType.APPLICATION_OCTET_STREAM_VALUE)
+    public ResponseEntity<Resource> downloadTrackSourceFile(@PathVariable Long gpsTrackId) {
+        return trackDownloadResponse(trackFileExportService.sourceFile(gpsTrackId));
+    }
+
+    @Operation(operationId = "downloadTrackGpx", summary = "Download the indexed GPS source file as GPX")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "GPX track file",
+                    content = @Content(mediaType = TrackFileExportService.GPX_MEDIA_TYPE_VALUE,
+                            schema = @Schema(type = "string", format = "binary"))),
+            @ApiResponse(responseCode = "401", description = "Unauthorized", content = @Content),
+            @ApiResponse(responseCode = "404", description = "Track source file not available", content = @Content),
+            @ApiResponse(responseCode = "422", description = "Unsupported or non-convertible source track format", content = @Content),
+            @ApiResponse(responseCode = "500", description = "GPX conversion failed", content = @Content)
+    })
+    @GetMapping(value = "/{gpsTrackId}/gpx", produces = TrackFileExportService.GPX_MEDIA_TYPE_VALUE)
+    public ResponseEntity<Resource> downloadTrackGpx(@PathVariable Long gpsTrackId) {
+        return trackDownloadResponse(trackFileExportService.gpx(gpsTrackId));
     }
 
     @RequestMapping("/related/{gpsTrackId}")
@@ -143,24 +226,14 @@ public class TracksController {
     public ResponseEntity<List<GpsTrackDataPoint>> getTrackDetails(
             @PathVariable Long gpsTrackId,
             @RequestParam(name = "precisionInMeter", defaultValue = "1") BigDecimal precisionInMeter,
-            @RequestParam(name = "trackType", defaultValue = "SIMPLIFIED_SHAPE") String trackType,
-            @RequestParam(name = "maxPoints", required = false) Integer maxPoints
+            @RequestParam(name = "trackType", defaultValue = "SIMPLIFIED_SHAPE") String trackType
     ) {
 
-        // SIMPLIFIED_FIXED_POINTS is discriminated by max_points (e.g. 750 or
-        // 1500), not precision_in_meter. All other variants are keyed by
-        // (precision_in_meter, track_type). See GpsTrackData.TRACK_TYPE.
-        List<GpsTrackDataPoint> details;
-        if ("SIMPLIFIED_FIXED_POINTS".equals(trackType) && maxPoints != null) {
-            details = gpsTrackDataPointRepository
-                    .getTrackDetailsByGpsTrackIdAndTypeAndMaxPoints(gpsTrackId, trackType, maxPoints);
-        } else {
-            details = gpsTrackDataPointRepository
-                    .getTrackDetailsByGpsTrackIdAndPrecisionAndType(gpsTrackId, precisionInMeter, trackType);
-        }
+        List<GpsTrackDataPoint> details = gpsTrackDataPointRepository
+                .getTrackDetailsByGpsTrackIdAndPrecisionAndType(gpsTrackId, precisionInMeter, trackType);
 
         return ResponseEntity.ok()
-                .cacheControl(CacheControl.maxAge(DEFAULT_CACHE_TIME_IN_SECONDS, TimeUnit.SECONDS))
+                .cacheControl(privateTrackCacheControl())
                 .body(details);
     }
 
@@ -190,6 +263,17 @@ public class TracksController {
             }
         }
         return saved;
+    }
+
+    @PatchMapping("/{gpsTrackId}/statistics-exclusion")
+    public GpsTrack updateTrackStatisticsExclusion(
+            @PathVariable Long gpsTrackId,
+            @RequestBody StatisticsExclusionUpdateRequest request
+    ) {
+        GpsTrack track = gpsTrackRepository.findById(gpsTrackId).orElseThrow();
+        track.setHighlightExclusionReason(request.highlightExclusionReason());
+        track.setStatisticsExclusionReason(request.statisticsExclusionReason());
+        return gpsTrackRepository.save(track);
     }
 
     /**
@@ -228,7 +312,7 @@ public class TracksController {
             // Fetch (id, version) pairs for all matched IDs
             Map<Long, Long> trackVersions = new HashMap<>();
             if (!ids.isEmpty()) {
-                List<Object[]> versionRows = gpsTrackRepository.findVersionsByIds(ids);
+                List<Object[]> versionRows = gpsTrackRepository.findVersionsByIds(ids.toArray(Long[]::new));
                 for (Object[] row : versionRows) {
                     trackVersions.put((Long) row[0], (Long) row[1]);
                 }
@@ -347,6 +431,74 @@ public class TracksController {
         return gpsTrackRepository.getTrackStatistics(groupByDateFormat, filterValue, filterIds.asIdArray(), energyService.getThresholdPowerWatts());
     }
 
+    @PostMapping(value = "/get-track-overview")
+    public StatisticsOverviewResponseDto getTrackOverview(
+            @RequestBody(required = false) Map<String, String> params,
+            @RequestParam(name = "filterName", required = false) String filterName
+    ) {
+        TimingCollector timing = new TimingCollector();
+        Long[] ids = new Long[0];
+
+        try {
+            QueryResult filterIds = timing.timeUnchecked("resolveFilter",
+                    () -> gpsTrackSQLFilter.getGpsTrackIdsForOptionalFilterName(filterName, params));
+            Long[] filterTrackIds = filterIds.asIdArray();
+            ids = filterTrackIds;
+
+            var summaryFuture = overviewAsync(timing, "summary",
+                    () -> toOverviewSummary(gpsTrackRepository.getTrackOverviewSummary(filterTrackIds)));
+
+            var activityBreakdownFuture = overviewAsync(timing, "activityBreakdown",
+                    () -> gpsTrackRepository.getTrackOverviewActivityBreakdown(filterTrackIds).stream()
+                            .map(TracksController::toActivityBreakdown)
+                            .toList());
+
+            var trackRankingsFuture = overviewAsync(timing, "trackRankings",
+                    () -> toTrackRankings(gpsTrackRepository.getTrackOverviewTrackRankings(filterTrackIds, STATISTICS_OVERVIEW_TOP_LIST_LIMIT)));
+
+            var recentActivitiesFuture = overviewAsync(timing, "recentActivities",
+                    () -> gpsTrackRepository.getTrackOverviewRecentActivities(filterTrackIds).stream()
+                            .map(TracksController::toTrackRef)
+                            .toList());
+
+            var periodDistributionsFuture = overviewAsync(timing, "periodDistributions",
+                    () -> toPeriodDistributions(gpsTrackRepository.getTrackOverviewPeriodDistributions(filterTrackIds, STATISTICS_OVERVIEW_TOP_LIST_LIMIT)));
+
+            var milestonesFuture = overviewAsync(timing, "milestones",
+                    () -> gpsTrackRepository.getTrackOverviewMilestones(filterTrackIds).stream()
+                            .map(TracksController::toTrackRef)
+                            .toList());
+
+            var exclusionSummaryFuture = overviewAsync(timing, "exclusionSummary",
+                    () -> toExclusionSummary(gpsTrackRepository.getTrackOverviewExclusions(filterTrackIds)));
+
+            CompletableFuture.allOf(
+                    summaryFuture,
+                    activityBreakdownFuture,
+                    trackRankingsFuture,
+                    recentActivitiesFuture,
+                    periodDistributionsFuture,
+                    milestonesFuture,
+                    exclusionSummaryFuture
+            ).join();
+
+            var periodDistributions = periodDistributionsFuture.join();
+
+            return new StatisticsOverviewResponseDto(
+                    summaryFuture.join(),
+                    activityBreakdownFuture.join(),
+                    trackRankingsFuture.join(),
+                    recentActivitiesFuture.join(),
+                    toActivePeriods(periodDistributions),
+                    periodDistributions,
+                    milestonesFuture.join(),
+                    exclusionSummaryFuture.join()
+            );
+        } finally {
+            logStatisticsOverviewTiming(filterName, params, ids, timing);
+        }
+    }
+
     /**
      * http://localhost:8080/mtl/api/tracks/details/get-sub-track?trackDataPointFrom=615396&trackDataPointTo=615484
      */
@@ -375,8 +527,170 @@ public class TracksController {
         }
 
         return ResponseEntity.ok()
-                .cacheControl(CacheControl.maxAge(DEFAULT_CACHE_TIME_IN_SECONDS, TimeUnit.SECONDS))
+                .cacheControl(privateTrackCacheControl())
                 .body(subTrackData);
+    }
+
+    private static CacheControl privateTrackCacheControl() {
+        return CacheControl.maxAge(DEFAULT_CACHE_TIME_IN_SECONDS, TimeUnit.SECONDS)
+                .cachePrivate()
+                .mustRevalidate();
+    }
+
+    private static void logStatisticsOverviewTiming(String filterName, Map<String, String> params, Long[] ids, TimingCollector timing) {
+        long totalElapsedMs = timing.totalElapsedMs();
+        String effectiveFilterName = filterName == null || filterName.isBlank() ? "<default>" : filterName;
+        int filterParamCount = params == null ? 0 : params.size();
+        int trackCount = ids == null ? 0 : ids.length;
+
+        if (totalElapsedMs >= STATISTICS_OVERVIEW_SLOW_LOG_THRESHOLD_MS) {
+            log.info("Statistics overview slow request: filterName={}, filterParamCount={}, trackCount={}, {}",
+                    effectiveFilterName,
+                    filterParamCount,
+                    trackCount,
+                    timing.formatSummary());
+        } else if (log.isDebugEnabled()) {
+            log.debug("Statistics overview timing: filterName={}, filterParamCount={}, trackCount={}, {}",
+                    effectiveFilterName,
+                    filterParamCount,
+                    trackCount,
+                    timing.formatSummary());
+        }
+    }
+
+    private <T> CompletableFuture<T> overviewAsync(TimingCollector timing, String label, Supplier<T> supplier) {
+        return CompletableFuture.supplyAsync(
+                () -> timing.timeUnchecked(label, supplier),
+                statisticsOverviewExecutor
+        );
+    }
+
+    private static StatisticsOverviewResponseDto.Summary toOverviewSummary(GpsTrackOverviewSummary summary) {
+        if (summary == null) {
+            return new StatisticsOverviewResponseDto.Summary(0, 0, 0, 0, null, null);
+        }
+        return new StatisticsOverviewResponseDto.Summary(
+                longValue(summary.getTrackCount()),
+                doubleValue(summary.getDistanceM()),
+                doubleValue(summary.getDurationMs()),
+                doubleValue(summary.getEnergyWh()),
+                summary.getOldestStart(),
+                summary.getNewestStart()
+        );
+    }
+
+    private static StatisticsOverviewResponseDto.ActivityBreakdown toActivityBreakdown(GpsTrackOverviewActivity activity) {
+        return new StatisticsOverviewResponseDto.ActivityBreakdown(
+                activity.getActivityType(),
+                longValue(activity.getTrackCount()),
+                doubleValue(activity.getDistanceM()),
+                doubleValue(activity.getDurationMs()),
+                doubleValue(activity.getEnergyWh())
+        );
+    }
+
+    private static List<StatisticsOverviewResponseDto.TrackRanking> toTrackRankings(List<GpsTrackOverviewTrackRow> rows) {
+        Map<String, List<StatisticsOverviewResponseDto.TrackRef>> rowsByKey = rows.stream()
+                .collect(Collectors.groupingBy(
+                        GpsTrackOverviewTrackRow::getRowKey,
+                        LinkedHashMap::new,
+                        Collectors.mapping(TracksController::toTrackRef, Collectors.toList())
+                ));
+
+        return OVERVIEW_TRACK_RANKING_ORDER.stream()
+                .filter(rowsByKey::containsKey)
+                .map(key -> new StatisticsOverviewResponseDto.TrackRanking(key, rowsByKey.get(key)))
+                .toList();
+    }
+
+    private static StatisticsOverviewResponseDto.TrackRef toTrackRef(GpsTrackOverviewTrackRow row) {
+        return new StatisticsOverviewResponseDto.TrackRef(
+                row.getSortOrder(),
+                row.getRowKey(),
+                row.getTrackId(),
+                doubleValue(row.getValue())
+        );
+    }
+
+    private static StatisticsOverviewResponseDto.PeriodRow toPeriodRow(GpsTrackOverviewPeriod period) {
+        return new StatisticsOverviewResponseDto.PeriodRow(
+                period.getSortOrder(),
+                period.getPeriodType(),
+                period.getPeriodKey(),
+                period.getLabel(),
+                longValue(period.getTrackCount()),
+                doubleValue(period.getDistanceM()),
+                doubleValue(period.getDurationMs())
+        );
+    }
+
+    private static List<StatisticsOverviewResponseDto.PeriodDistribution> toPeriodDistributions(List<GpsTrackOverviewPeriod> rows) {
+        Map<String, List<StatisticsOverviewResponseDto.PeriodRow>> rowsByType = rows.stream()
+                .collect(Collectors.groupingBy(
+                        GpsTrackOverviewPeriod::getPeriodType,
+                        LinkedHashMap::new,
+                        Collectors.mapping(TracksController::toPeriodRow, Collectors.toList())
+                ));
+
+        return OVERVIEW_PERIOD_ORDER.stream()
+                .filter(rowsByType::containsKey)
+                .map(type -> new StatisticsOverviewResponseDto.PeriodDistribution(type, rowsByType.get(type)))
+                .toList();
+    }
+
+    private static List<StatisticsOverviewResponseDto.PeriodRow> toActivePeriods(List<StatisticsOverviewResponseDto.PeriodDistribution> distributions) {
+        return distributions.stream()
+                .map(StatisticsOverviewResponseDto.PeriodDistribution::rows)
+                .filter(Objects::nonNull)
+                .map(rows -> rows.isEmpty() ? null : rows.getFirst())
+                .filter(Objects::nonNull)
+                .map(row -> new StatisticsOverviewResponseDto.PeriodRow(
+                        overviewPeriodSortOrder(row.periodType()),
+                        row.periodType(),
+                        row.periodKey(),
+                        row.label(),
+                        row.trackCount(),
+                        row.distanceM(),
+                        row.durationMs()
+                ))
+                .toList();
+    }
+
+    private static int overviewPeriodSortOrder(String periodType) {
+        int index = OVERVIEW_PERIOD_ORDER.indexOf(periodType);
+        return index < 0 ? Integer.MAX_VALUE : (index + 1) * 10;
+    }
+
+    private static StatisticsOverviewResponseDto.ExclusionSummary toExclusionSummary(GpsTrackOverviewExclusions exclusions) {
+        if (exclusions == null) {
+            return new StatisticsOverviewResponseDto.ExclusionSummary(0, 0);
+        }
+        return new StatisticsOverviewResponseDto.ExclusionSummary(
+                longValue(exclusions.getHighlightExcludedTrackCount()),
+                longValue(exclusions.getStatisticsExcludedTrackCount())
+        );
+    }
+
+    private static long longValue(Long value) {
+        return value == null ? 0 : value;
+    }
+
+    private static double doubleValue(Double value) {
+        return value == null ? 0.0 : value;
+    }
+
+    private static ResponseEntity<Resource> trackDownloadResponse(TrackFileExportService.TrackFileDownload download) {
+        ContentDisposition contentDisposition = ContentDisposition.attachment()
+                .filename(download.getFileName(), StandardCharsets.UTF_8)
+                .build();
+        return ResponseEntity.ok()
+                .contentType(download.getMediaType())
+                .contentLength(download.getContentLength())
+                .lastModified(download.getLastModifiedMillis())
+                .eTag(download.getEtag())
+                .cacheControl(privateTrackCacheControl())
+                .header(HttpHeaders.CONTENT_DISPOSITION, contentDisposition.toString())
+                .body(download.getResource());
     }
 
 }

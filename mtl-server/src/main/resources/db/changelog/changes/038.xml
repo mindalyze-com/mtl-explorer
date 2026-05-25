@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.10.xsd">
+
+    <changeSet id="20260504_1_data_freshness_update_first" author="patrick.heusser">
+        <sql splitStatements="false"><![CDATA[
+CREATE OR REPLACE FUNCTION bump_data_freshness(p_domain_key text)
+RETURNS void AS $$
+BEGIN
+  UPDATE data_freshness
+     SET revision = revision + 1,
+         changed_at = NOW()
+   WHERE domain_key = p_domain_key;
+
+  IF NOT FOUND THEN
+    INSERT INTO data_freshness(domain_key, revision, changed_at)
+    VALUES (p_domain_key, 1, NOW())
+    ON CONFLICT (domain_key) DO NOTHING;
+  END IF;
+END;
+$$ LANGUAGE plpgsql;
+        ]]></sql>
+    </changeSet>
+
+</databaseChangeLog>

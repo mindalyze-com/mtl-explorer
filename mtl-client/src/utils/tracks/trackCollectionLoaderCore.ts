@@ -296,6 +296,9 @@ export class TrackCollectionLoader {
       const filterResult: TrackFilterResultWithRequest = {
         ...(options.filterResult! as TrackFilterResultWithRequest),
         filterGroups: new Map(options.filterResult!.filterGroups),
+        legendGroupOrder: options.filterResult!.legendGroupOrder
+          ? [...options.filterResult!.legendGroupOrder]
+          : undefined,
       };
       const serverVersions = filterResult.trackVersions;
       const filterGroups = filterResult.filterGroups;

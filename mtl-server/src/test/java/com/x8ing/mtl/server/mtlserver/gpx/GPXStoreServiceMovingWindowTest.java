@@ -1,7 +1,13 @@
 package com.x8ing.mtl.server.mtlserver.gpx;
 
+import com.x8ing.mtl.server.mtlserver.db.entity.gps.GpsTrack;
 import com.x8ing.mtl.server.mtlserver.db.entity.gps.GpsTrackDataPoint;
+import com.x8ing.mtl.server.mtlserver.logic.motion.TrackStopDetector;
 import org.junit.jupiter.api.Test;
+import org.locationtech.jts.geom.Coordinate;
+import org.locationtech.jts.geom.CoordinateXYZM;
+import org.locationtech.jts.geom.GeometryFactory;
+import org.locationtech.jts.geom.LineString;
 
 import java.sql.Timestamp;
 import java.time.Instant;
@@ -15,6 +21,8 @@ import static org.junit.jupiter.api.Assertions.*;
  * No Spring context required.
  */
 class GPXStoreServiceMovingWindowTest {
+
+    private static final GeometryFactory GEOMETRY_FACTORY = new GeometryFactory();
 
     /**
      * Steady climb: 10 points, 10s apart, +10m altitude each, 100m distance each.
@@ -147,29 +155,120 @@ class GPXStoreServiceMovingWindowTest {
         assertDoesNotThrow(() -> GPXStoreService.calculateMovingWindowStats(90, points));
     }
 
-    /**
-     * Regression: if the first two points have the same timestamp, the fixed-point
-     * selector must not get pinned at index 0 and collapse the selection to one
-     * point. JTS cannot create a LineString from a single point.
-     */
     @Test
-    void selectUniformInTime_duplicateInitialTimestamp_doesNotCollapseToOnePoint() {
-        List<GpsTrackDataPoint> points = buildTimestampOnlyTrack(
-                0, 0, 10, 20, 30, 40, 50, 60, 70, 80,
-                90, 100, 110, 120, 130, 140, 150, 160, 170, 180);
+    void preserveStopAnchors_reinsertsAnchorsDroppedByShapeSimplification() {
+        LineString source = GEOMETRY_FACTORY.createLineString(new Coordinate[]{
+                xyzm(0, 0, 0),
+                xyzm(10, 0, 100),
+                xyzm(10, 0, 220),
+                xyzm(30, 0, 300)
+        });
+        LineString simplified = GEOMETRY_FACTORY.createLineString(new Coordinate[]{
+                xyzm(0, 0, 0),
+                xyzm(30, 0, 300)
+        });
 
-        List<GpsTrackDataPoint> selected = GPXStoreService.selectUniformInTime(points, 5);
+        LineString preserved = GPXStoreService.preserveStopAnchors(simplified, source);
 
-        assertEquals(5, selected.size());
-        assertTrue(selected.stream().map(GpsTrackDataPoint::getPointTimestamp).distinct().count() > 1);
+        assertEquals(4, preserved.getNumPoints());
+        assertEquals(100.0, preserved.getCoordinateN(1).getM());
+        assertEquals(220.0, preserved.getCoordinateN(2).getM());
     }
 
     @Test
-    void selectUniformInTime_singlePointSource_returnsSinglePointForCallerToHandle() {
-        List<GpsTrackDataPoint> selected = GPXStoreService.selectUniformInTime(
-                buildTimestampOnlyTrack(0), 5);
+    void restoreStopAnchorsAfterSmoothing_repinsMovedAnchorPair() {
+        LineString smoothed = GEOMETRY_FACTORY.createLineString(new Coordinate[]{
+                xyzm(0, 0, 0),
+                xyzm(180, 0, 100),
+                xyzm(-160, 0, 220),
+                xyzm(300, 0, 300)
+        });
+        TrackStopDetector.StopRange stop = new TrackStopDetector.StopRange(
+                1,
+                2,
+                100.0,
+                220.0,
+                0.0,
+                0.0,
+                555.0,
+                TrackStopDetector.StopCategory.BREAK,
+                30.0,
+                40.0,
+                0.9,
+                20,
+                18);
 
-        assertEquals(1, selected.size());
+        LineString restored = GPXStoreService.restoreStopAnchorsAfterSmoothing(smoothed, List.of(stop));
+
+        assertEquals(smoothed.getCoordinateN(0).getX(), restored.getCoordinateN(0).getX(), 1e-12);
+        assertEquals(smoothed.getCoordinateN(3).getX(), restored.getCoordinateN(3).getX(), 1e-12);
+        assertEquals(0.0, restored.getCoordinateN(1).getX(), 1e-12);
+        assertEquals(0.0, restored.getCoordinateN(1).getY(), 1e-12);
+        assertEquals(0.0, restored.getCoordinateN(2).getX(), 1e-12);
+        assertEquals(0.0, restored.getCoordinateN(2).getY(), 1e-12);
+        assertEquals(555.0, restored.getCoordinateN(1).getZ(), 1e-12);
+        assertEquals(555.0, restored.getCoordinateN(2).getZ(), 1e-12);
+        assertTrue(TrackStopDetector.isStopAnchorPair(restored.getCoordinateN(1), restored.getCoordinateN(2)));
+    }
+
+    @Test
+    void applyCanonicalDistanceStats_usesPersistedCleanedPointDistances() {
+        GpsTrack gpsTrack = new GpsTrack();
+        gpsTrack.setTrackLengthInMeter(9999.0);
+        gpsTrack.setNumberOfTrackPoints(99);
+
+        List<GpsTrackDataPoint> points = List.of(
+                pointWithDistance(null),
+                pointWithDistance(12.5),
+                pointWithDistance(0.0),
+                pointWithDistance(7.5));
+
+        GPXStoreService.applyCanonicalDistanceStats(gpsTrack, points);
+
+        assertEquals(4, gpsTrack.getNumberOfTrackPoints());
+        assertEquals(20.0, gpsTrack.getTrackLengthInMeter(), 1e-12);
+        assertEquals(12.5, gpsTrack.getMaxDistanceBetweenPoints(), 1e-12);
+        assertEquals(7.5, gpsTrack.getMedianDistanceBetweenPoints(), 1e-12);
+        assertEquals(20.0 / 3.0, gpsTrack.getAvgDistanceBetweenPoints(), 1e-12);
+    }
+
+    @Test
+    void calculateThirtySecondStats_usesCanonicalCumulativeAscentAndDistance() {
+        List<GpsTrackDataPoint> points = buildTrackForThirtySecondStats();
+
+        var calc = new com.x8ing.mtl.server.mtlserver.metrics.window.PointWindowedRateCalculator(
+                com.x8ing.mtl.server.mtlserver.metrics.MetricConstants.DEFAULT_DISPLAY_WINDOW_SEC);
+        List<com.x8ing.mtl.server.mtlserver.metrics.window.WindowedRateSample> samples =
+                calc.compute(points,
+                        com.x8ing.mtl.server.mtlserver.metrics.window.GpsTrackDataPointWindowAdapter.view());
+
+        assertEquals(0.0, samples.get(2).speedInKmh() == null ? 0.0 : samples.get(2).speedInKmh(), 1e-12, "first 30 seconds are warm-up");
+
+        var atThirtySeconds = samples.get(3);
+        assertEquals(36.0, atThirtySeconds.speedInKmh(), 0.01);
+        assertEquals(1800.0, atThirtySeconds.elevationGainPerHour(), 0.01);
+        assertEquals(0.0, atThirtySeconds.elevationLossPerHour(), 0.01);
+    }
+
+    @Test
+    void applyCanonicalTrackStats_setsFullDensitySummaryFields() {
+        GpsTrack gpsTrack = new GpsTrack();
+        List<GpsTrackDataPoint> points = buildTrackForThirtySecondStats();
+        points.get(3).setSlopePercentageInMovingWindow(7.5);
+        points.get(4).setSlopePercentageInMovingWindow(-4.0);
+
+        GPXStoreService.applyCanonicalTrackStats(gpsTrack, points);
+
+        assertEquals(5, gpsTrack.getNumberOfTrackPoints());
+        assertEquals(400.0, gpsTrack.getTrackLengthInMeter(), 1e-12);
+        assertEquals(20.0, gpsTrack.getAscentInMeter(), 1e-12);
+        assertEquals(0.0, gpsTrack.getDescentInMeter(), 1e-12);
+        assertEquals(1000.0, gpsTrack.getMinAltitude(), 1e-12);
+        assertEquals(1020.0, gpsTrack.getMaxAltitude(), 1e-12);
+        assertEquals(36.0, gpsTrack.getSpeedInKmh30sMax(), 0.01);
+        assertEquals(1800.0, gpsTrack.getElevationGainPerHour30sMax(), 0.01);
+        assertEquals(7.5, gpsTrack.getSlopePercentageMax(), 1e-12);
+        assertEquals(-4.0, gpsTrack.getSlopePercentageMin(), 1e-12);
     }
 
     // --- Helper ---
@@ -202,16 +301,37 @@ class GPXStoreServiceMovingWindowTest {
         return points;
     }
 
-    private static List<GpsTrackDataPoint> buildTimestampOnlyTrack(long... secondsFromStart) {
+    private static GpsTrackDataPoint pointWithDistance(Double distanceInMeterBetweenPoints) {
+        GpsTrackDataPoint point = new GpsTrackDataPoint();
+        point.setDistanceInMeterBetweenPoints(distanceInMeterBetweenPoints);
+        return point;
+    }
+
+    private static List<GpsTrackDataPoint> buildTrackForThirtySecondStats() {
         List<GpsTrackDataPoint> points = new ArrayList<>();
         Instant baseTime = Instant.parse("2025-01-01T10:00:00Z");
+        double ascentSinceStart = 0;
 
-        for (long seconds : secondsFromStart) {
-            GpsTrackDataPoint p = new GpsTrackDataPoint();
-            p.setPointTimestamp(Timestamp.from(baseTime.plusSeconds(seconds)));
-            points.add(p);
+        for (int i = 0; i < 5; i++) {
+            GpsTrackDataPoint point = new GpsTrackDataPoint();
+            point.setPointTimestamp(Timestamp.from(baseTime.plusSeconds(i * 10L)));
+            point.setPointAltitude(1000.0 + i * 5.0);
+            point.setDistanceInMeterSinceStart(i * 100.0);
+            point.setAscentInMeterSinceStart(ascentSinceStart);
+            point.setDescentInMeterSinceStart(0.0);
+            if (i > 0) {
+                point.setDurationBetweenPointsInSec(10.0);
+                point.setDistanceInMeterBetweenPoints(100.0);
+                ascentSinceStart += 5.0;
+                point.setAscentInMeterSinceStart(ascentSinceStart);
+            }
+            points.add(point);
         }
 
         return points;
+    }
+
+    private static Coordinate xyzm(double xMeters, double yMeters, double timeS) {
+        return new CoordinateXYZM(xMeters / 111_320.0, yMeters / 110_540.0, 100.0, timeS);
     }
 }

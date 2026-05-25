@@ -1,20 +1,32 @@
 <template>
   <div>
-    <BottomSheet v-model="active" title="Animate" icon="bi bi-play-circle" :detents="sheetDetents" initial-detent="open" noBackdrop @closed="onSheetClosed">
+    <BottomSheet
+      v-model="active"
+      title="Animate"
+      icon="bi bi-play-circle"
+      :detents="sheetDetents"
+      initial-detent="open"
+      no-backdrop
+      @closed="onSheetClosed"
+    >
       <div v-if="active" class="am-root">
         <section class="am-overview">
           <div class="am-overview-top">
             <div class="am-hero-controls">
-              <button class="am-play-hero"
-                      @click="onPlayPauseToggle"
-                      :disabled="!hasFeatures"
-                      :aria-label="animationInProgress ? 'Pause animation' : 'Play animation'">
+              <button
+                class="am-play-hero"
+                :disabled="!hasFeatures"
+                :aria-label="animationInProgress ? 'Pause animation' : 'Play animation'"
+                @click="onPlayPauseToggle"
+              >
                 <i :class="animationInProgress ? 'bi bi-pause-fill' : 'bi bi-play-fill'"></i>
               </button>
-              <button class="am-stop-btn"
-                      @click="onStopAnimation"
-                      :disabled="!animationInProgress && animationIndex === rangeValue[0]"
-                      aria-label="Stop animation">
+              <button
+                class="am-stop-btn"
+                :disabled="!animationInProgress && animationIndex === rangeValue[0]"
+                aria-label="Stop animation"
+                @click="onStopAnimation"
+              >
                 <i class="bi bi-stop-fill"></i>
               </button>
             </div>
@@ -48,17 +60,21 @@
             </div>
             <div class="am-timeline">
               <div class="am-timeline-slider-wrap">
-                <Slider v-model="rangeValue"
-                        :range="true"
-                        :min="0"
-                        :max="Math.max(totalCount - 1, 0)"
-                        :disabled="!sortedFeatures.length"
-                        class="am-timeline-slider"
-                        @change="onRangeChange" />
-                <div v-if="showPlayhead"
-                     class="am-playhead"
-                     :style="{ left: playheadPercent + '%' }"
-                     aria-hidden="true"></div>
+                <Slider
+                  v-model="rangeValue"
+                  :range="true"
+                  :min="0"
+                  :max="Math.max(totalCount - 1, 0)"
+                  :disabled="!sortedFeatures.length"
+                  class="am-timeline-slider"
+                  @change="onRangeChange"
+                />
+                <div
+                  v-if="showPlayhead"
+                  class="am-playhead"
+                  :style="{ left: playheadPercent + '%' }"
+                  aria-hidden="true"
+                ></div>
               </div>
               <div class="am-timeline-labels">
                 <span class="am-date">{{ rangeDateStart }}</span>
@@ -85,8 +101,8 @@
   </div>
 </template>
 
-<script>
-import { defineComponent, inject, markRaw } from "vue";
+<script setup lang="ts">
+import { computed, getCurrentInstance, markRaw, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import BottomSheet from '@/components/ui/BottomSheet.vue';
 import { formatDate } from '@/utils/Utils';
 import { TRACK_COLOR } from '@/utils/trackColors';
@@ -95,386 +111,410 @@ const DESKTOP_BP = 769;
 const ANIMATE_MAX_VH = 60;
 const ANIMATE_DESKTOP_OPEN_HEIGHT = 320;
 const ANIMATE_MOBILE_OPEN_HEIGHT = 320;
+const RANGE_LOOKBACK_TRACK_COUNT = 50;
 
 const EVENTS = {
-  animate: "animate",
-  animationFinished: "animationFinished",
-  animationStart: "animationStart",
-  animationStop: "animationStop",
-  toolClosed: "toolClosed"
+  animate: 'animate',
+  animationFinished: 'animationFinished',
+  animationStart: 'animationStart',
+  animationStop: 'animationStop',
+} as const;
+
+type MapLike = {
+  getLayer: (id: string) => unknown;
+  setPaintProperty: (layerId: string, property: string, value: unknown) => void;
+  removeLayer: (id: string) => void;
+  getSource: (id: string) => { setData?: (data: unknown) => void } | undefined;
+  removeSource: (id: string) => void;
+  addSource: (id: string, source: unknown) => void;
+  addLayer: (layer: unknown) => void;
 };
 
-export default defineComponent({
-  name: 'AnimateMap',
-  components: { BottomSheet },
-  props: ['map'],
-  emits: [EVENTS.animate, EVENTS.animationFinished, EVENTS.animationStart, EVENTS.animationStop, 'tool-opened', 'tool-closed'],
-  data() {
-    return {
-      active: false,
+type TrackFeature = {
+  properties?: { startDate?: Date | number | string; [key: string]: unknown };
+  [key: string]: unknown;
+};
 
-      // Animation state
-      animationInProgress: false,
-      animationSpeed: 20,
-      timerId: null,
-      sortedFeatures: [],
-      animationIndex: 0,
-      color1: [255, 0, 0],
-      color2: [0, 0, 255],
+type Emits = {
+  (event: 'animate', payload: { animateIndexCurrent: number; animateIndexMax: number; currentDate: Date }): void;
+  (event: 'animationFinished', message: string): void;
+  (event: 'animationStart', message: string): void;
+  (event: 'animationStop', message: string): void;
+  (event: 'tool-opened'): void;
+  (event: 'tool-closed'): void;
+};
 
-      // Combined range + timeline (dual-handle). Playback stays within [lo, hi].
-      rangeValue: [0, 0],
-      viewportWidth: typeof window !== 'undefined' ? window.innerWidth : DESKTOP_BP,
-      viewportHeight: typeof window !== 'undefined' ? window.innerHeight : 900,
-    };
+defineOptions({ name: 'AnimateMap' });
+
+const props = defineProps<{
+  map?: MapLike | null;
+}>();
+
+const emit = defineEmits<Emits>();
+const instance = getCurrentInstance();
+
+const active = ref(false);
+const animationInProgress = ref(false);
+const animationSpeed = ref(20);
+const sortedFeatures = ref<TrackFeature[]>([]);
+const animationIndex = ref(0);
+const rangeValue = ref<[number, number]>([0, 0]);
+const viewportWidth = ref(typeof window !== 'undefined' ? window.innerWidth : DESKTOP_BP);
+
+const color1 = [255, 0, 0] as const;
+const color2 = [0, 0, 255] as const;
+let timerId: ReturnType<typeof setInterval> | null = null;
+
+const isMobileViewport = computed(() => viewportWidth.value < DESKTOP_BP);
+const sheetOpenHeight = computed(() =>
+  isMobileViewport.value ? ANIMATE_MOBILE_OPEN_HEIGHT : ANIMATE_DESKTOP_OPEN_HEIGHT
+);
+const sheetDetents = computed(() => {
+  const openPx = sheetOpenHeight.value;
+  const collapsedPx = Math.max(120, Math.min(openPx - 60, Math.round(openPx * 0.72)));
+  return [
+    { id: 'collapsed', height: `${collapsedPx}px` },
+    { id: 'open', height: `${openPx}px` },
+    { id: 'max', height: `${ANIMATE_MAX_VH}vh` },
+  ];
+});
+const hasFeatures = computed(() => sortedFeatures.value.length > 0);
+const totalCount = computed(() => sortedFeatures.value.length);
+const rangeTrackCount = computed(() => {
+  if (!sortedFeatures.value.length) return 0;
+  return rangeValue.value[1] - rangeValue.value[0] + 1;
+});
+const visibleCount = computed(() => {
+  if (!sortedFeatures.value.length) return 0;
+  if (animationInProgress.value) {
+    return Math.max(0, animationIndex.value - rangeValue.value[0] + 1);
+  }
+  return rangeTrackCount.value;
+});
+const showPlayhead = computed(
+  () => hasFeatures.value && (animationInProgress.value || animationIndex.value > rangeValue.value[0])
+);
+const playheadPercent = computed(() => {
+  if (sortedFeatures.value.length <= 1) return 0;
+  const max = sortedFeatures.value.length - 1;
+  return Math.min(100, Math.max(0, (animationIndex.value / max) * 100));
+});
+const currentDateLabel = computed(() => {
+  if (!sortedFeatures.value.length) return '—';
+  const idx =
+    animationInProgress.value || animationIndex.value > rangeValue.value[0]
+      ? animationIndex.value
+      : rangeValue.value[0];
+  const f = sortedFeatures.value[idx];
+  const d = parseFeatureStartDate(f);
+  return d ? formatDate(d) : '—';
+});
+const rangeDateStart = computed(() => {
+  if (!sortedFeatures.value.length) return '—';
+  const f = sortedFeatures.value[rangeValue.value[0]];
+  const d = parseFeatureStartDate(f);
+  return d ? formatDate(d) : '—';
+});
+const rangeDateEnd = computed(() => {
+  if (!sortedFeatures.value.length) return '—';
+  const f = sortedFeatures.value[rangeValue.value[1]];
+  const d = parseFeatureStartDate(f);
+  return d ? formatDate(d) : '—';
+});
+// Logarithmic speed slider: maps linear 0–100 position ↔ 1–1000 ms
+const speedSliderPos = computed({
+  get() {
+    const minMs = 1,
+      maxMs = 1000;
+    const pos = Math.round(
+      ((Math.log(animationSpeed.value) - Math.log(minMs)) / (Math.log(maxMs) - Math.log(minMs))) * 100
+    );
+    return Math.min(100, Math.max(0, pos));
   },
-  setup() {
-    return {
-      toast: inject("toast"),
-    };
+  set(pos: number) {
+    const minMs = 1,
+      maxMs = 1000;
+    const ms = Math.round(Math.exp(Math.log(minMs) + (pos / 100) * (Math.log(maxMs) - Math.log(minMs))));
+    animationSpeed.value = Math.min(1000, Math.max(1, ms));
   },
-  computed: {
-    isMobileViewport() {
-      return this.viewportWidth < DESKTOP_BP;
+});
+
+watch(active, (val) => {
+  if (val) prepareSortedFeatures();
+});
+watch(animationSpeed, () => {
+  // Restart the interval with new speed while animation is running
+  if (timerId) {
+    clearInterval(timerId);
+    timerId = setInterval(animationFunction, animationSpeed.value);
+  }
+});
+
+onMounted(() => {
+  if (typeof window !== 'undefined') {
+    window.addEventListener('resize', onViewportResize);
+  }
+});
+
+onBeforeUnmount(() => {
+  if (typeof window !== 'undefined') {
+    window.removeEventListener('resize', onViewportResize);
+  }
+  onStopAnimation();
+});
+
+function onViewportResize() {
+  viewportWidth.value = window.innerWidth;
+}
+
+async function toggle() {
+  active.value = !active.value;
+  if (active.value) {
+    emit('tool-opened');
+    prepareSortedFeatures();
+  } else {
+    onClose();
+  }
+}
+
+function close() {
+  onClose();
+}
+
+function onSheetClosed() {
+  onStopAnimation();
+  restoreTracksLayer();
+  active.value = false;
+  emit('tool-closed');
+}
+
+function onClose() {
+  onStopAnimation();
+  restoreTracksLayer();
+  active.value = false;
+}
+
+function prepareSortedFeatures() {
+  const geojson = (instance?.proxy?.$parent as { geojson?: { features?: TrackFeature[] } } | undefined)?.geojson;
+  if (!geojson?.features?.length) {
+    sortedFeatures.value = [];
+    rangeValue.value = [0, 0];
+    return;
+  }
+  sortedFeatures.value = markRaw(
+    [...geojson.features].sort((a: TrackFeature, b: TrackFeature) => {
+      return featureStartMs(a) - featureStartMs(b);
+    })
+  );
+  rangeValue.value = [0, sortedFeatures.value.length - 1];
+  animationIndex.value = 0;
+}
+
+// ─── Shared layer helpers ──────────────────────────────────────
+
+function ensureAnimationLayer() {
+  const map = props.map;
+  if (!map) return;
+  if (map.getLayer('tracks-layer')) {
+    map.setPaintProperty('tracks-layer', 'line-opacity', 0);
+  }
+  if (map.getLayer('animation-layer')) map.removeLayer('animation-layer');
+  if (map.getSource('animation-source')) map.removeSource('animation-source');
+
+  map.addSource('animation-source', {
+    type: 'geojson',
+    data: { type: 'FeatureCollection', features: [] },
+  });
+  map.addLayer({
+    id: 'animation-layer',
+    type: 'line',
+    source: 'animation-source',
+    layout: { 'line-join': 'round', 'line-cap': 'round' },
+    paint: {
+      'line-color': ['coalesce', ['get', '_animColor'], TRACK_COLOR],
+      'line-width': 4,
+      'line-opacity': 1,
     },
-    sheetOpenHeight() {
-      return this.isMobileViewport ? ANIMATE_MOBILE_OPEN_HEIGHT : ANIMATE_DESKTOP_OPEN_HEIGHT;
-    },
-    sheetDetents() {
-      const openPx = this.sheetOpenHeight;
-      const collapsedPx = Math.max(120, Math.min(openPx - 60, Math.round(openPx * 0.72)));
-      return [
-        { id: 'collapsed', height: `${collapsedPx}px` },
-        { id: 'open', height: `${openPx}px` },
-        { id: 'max', height: `${ANIMATE_MAX_VH}vh` },
-      ];
-    },
-    hasFeatures() {
-      return this.sortedFeatures.length > 0;
-    },
-    totalCount() {
-      return this.sortedFeatures.length;
-    },
-    rangeTrackCount() {
-      if (!this.sortedFeatures.length) return 0;
-      return this.rangeValue[1] - this.rangeValue[0] + 1;
-    },
-    visibleCount() {
-      if (!this.sortedFeatures.length) return 0;
-      if (this.animationInProgress) {
-        return Math.max(0, this.animationIndex - this.rangeValue[0] + 1);
-      }
-      return this.rangeTrackCount;
-    },
-    showPlayhead() {
-      return this.hasFeatures && (this.animationInProgress || this.animationIndex > this.rangeValue[0]);
-    },
-    playheadPercent() {
-      if (this.sortedFeatures.length <= 1) return 0;
-      const max = this.sortedFeatures.length - 1;
-      return Math.min(100, Math.max(0, (this.animationIndex / max) * 100));
-    },
-    playStateLabel() {
-      if (!this.sortedFeatures.length) return 'No tracks';
-      if (this.animationInProgress) return 'Running';
-      if (this.animationIndex > this.rangeValue[0]) return 'Paused';
-      return 'Ready';
-    },
-    currentDateLabel() {
-      if (!this.sortedFeatures.length) return '—';
-      const idx = this.animationInProgress || this.animationIndex > this.rangeValue[0]
-        ? this.animationIndex
-        : this.rangeValue[0];
-      const f = this.sortedFeatures[idx];
-      const d = f?.properties?.startDate;
-      return d ? formatDate(new Date(d)) : '—';
-    },
-    rangeDateStart() {
-      if (!this.sortedFeatures.length) return '—';
-      const f = this.sortedFeatures[this.rangeValue[0]];
-      const d = f?.properties?.startDate;
-      return d ? formatDate(new Date(d)) : '—';
-    },
-    rangeDateEnd() {
-      if (!this.sortedFeatures.length) return '—';
-      const f = this.sortedFeatures[this.rangeValue[1]];
-      const d = f?.properties?.startDate;
-      return d ? formatDate(new Date(d)) : '—';
-    },
-    // Logarithmic speed slider: maps linear 0–100 position ↔ 1–1000 ms
-    speedSliderPos: {
-      get() {
-        const minMs = 1, maxMs = 1000;
-        const pos = Math.round(
-          (Math.log(this.animationSpeed) - Math.log(minMs)) /
-          (Math.log(maxMs) - Math.log(minMs)) * 100
-        );
-        return Math.min(100, Math.max(0, pos));
+  });
+}
+
+function removeAnimationLayer() {
+  const map = props.map;
+  if (!map) return;
+  if (map.getLayer('animation-layer')) map.removeLayer('animation-layer');
+  if (map.getSource('animation-source')) map.removeSource('animation-source');
+}
+
+function restoreTracksLayer() {
+  const map = props.map;
+  removeAnimationLayer();
+  if (map?.getLayer('tracks-layer')) {
+    map.setPaintProperty('tracks-layer', 'line-opacity', 1);
+  }
+}
+
+function setAnimationSourceData(features: TrackFeature[]) {
+  const source = props.map?.getSource('animation-source');
+  if (source?.setData) {
+    source.setData({ type: 'FeatureCollection', features });
+  }
+}
+
+// ─── PLAY ──────────────────────────────────────────────────────
+
+function onPlayPauseToggle() {
+  if (animationInProgress.value) {
+    onPauseAnimation();
+  } else {
+    onStartAnimation();
+  }
+}
+
+async function onStartAnimation() {
+  if (!props.map || !sortedFeatures.value.length) return;
+
+  if (animationInProgress.value) {
+    // Resume from current position
+    timerId = setInterval(animationFunction, animationSpeed.value);
+    return;
+  }
+
+  // If paused inside range, resume from current index; otherwise start at range start.
+  if (animationIndex.value < rangeValue.value[0] || animationIndex.value >= rangeValue.value[1]) {
+    animationIndex.value = rangeValue.value[0];
+  }
+  ensureAnimationLayer();
+  animationInProgress.value = true;
+  renderFrame();
+  timerId = setInterval(animationFunction, animationSpeed.value);
+  emit(EVENTS.animationStart, 'animation has started');
+}
+
+function onPauseAnimation() {
+  if (timerId) {
+    clearInterval(timerId);
+    timerId = null;
+  }
+  animationInProgress.value = false;
+}
+
+async function onStopAnimation() {
+  if (timerId) {
+    clearInterval(timerId);
+    timerId = null;
+  }
+  animationInProgress.value = false;
+  animationIndex.value = rangeValue.value[0] || 0;
+  // Re-render static range view after stopping
+  if (sortedFeatures.value.length) {
+    ensureAnimationLayer();
+    renderRangeFrame();
+  }
+  emit(EVENTS.animationStop, 'animation stopped');
+}
+
+function animationFunction() {
+  animationIndex.value++;
+  if (animationIndex.value >= rangeValue.value[1]) {
+    animationIndex.value = rangeValue.value[1];
+    renderFrame();
+    emit(EVENTS.animationFinished, 'animation has finished');
+    onPauseAnimation();
+    restoreTracksLayer();
+    return;
+  }
+  renderFrame();
+}
+
+function renderFrame() {
+  const visibleFeatures: TrackFeature[] = [];
+  const start = rangeValue.value[0];
+
+  for (let i = Math.max(start, animationIndex.value - RANGE_LOOKBACK_TRACK_COUNT); i <= animationIndex.value; i++) {
+    const feature = sortedFeatures.value[i];
+    const relativeStep = animationIndex.value - i;
+    const interpolatedColor = interpolateColor(color1, color2, RANGE_LOOKBACK_TRACK_COUNT, relativeStep);
+    const rgbString = `rgb(${interpolatedColor[0]},${interpolatedColor[1]},${interpolatedColor[2]})`;
+    visibleFeatures.push({
+      ...feature,
+      properties: { ...feature.properties, _animColor: rgbString },
+    });
+  }
+
+  for (let i = start; i < Math.max(start, animationIndex.value - RANGE_LOOKBACK_TRACK_COUNT); i++) {
+    visibleFeatures.push({
+      ...sortedFeatures.value[i],
+      properties: {
+        ...sortedFeatures.value[i].properties,
+        _animColor: `rgb(${color2[0]},${color2[1]},${color2[2]})`,
       },
-      set(pos) {
-        const minMs = 1, maxMs = 1000;
-        const ms = Math.round(
-          Math.exp(Math.log(minMs) + (pos / 100) * (Math.log(maxMs) - Math.log(minMs)))
-        );
-        this.animationSpeed = Math.min(1000, Math.max(1, ms));
-      },
-    },
-  },
-  watch: {
-    active(val) {
-      if (val) this.prepareSortedFeatures();
-    },
-    animationSpeed() {
-      // Restart the interval with new speed while animation is running
-      if (this.timerId) {
-        clearInterval(this.timerId);
-        this.timerId = setInterval(this.animationFunction, this.animationSpeed);
-      }
-    },
-  },
-  mounted() {
-    if (typeof window !== 'undefined') {
-      window.addEventListener('resize', this.onViewportResize);
-    }
-  },
-  methods: {
-    onViewportResize() {
-      this.viewportWidth = window.innerWidth;
-      this.viewportHeight = window.innerHeight;
-    },
+    });
+  }
 
-    async toggle() {
-      this.active = !this.active;
-      if (this.active) {
-        this.$emit('tool-opened');
-        this.prepareSortedFeatures();
-      } else {
-        this.onClose();
-      }
-    },
+  setAnimationSourceData(visibleFeatures);
 
-    close() {
-      this.onClose();
-    },
+  const currentFeature = sortedFeatures.value[animationIndex.value];
+  const currentDate = parseFeatureStartDate(currentFeature) ?? new Date();
+  emit(EVENTS.animate, {
+    animateIndexCurrent: animationIndex.value,
+    animateIndexMax: sortedFeatures.value.length,
+    currentDate,
+  });
+}
 
-    onSheetClosed() {
-      this.onStopAnimation();
-      this.restoreTracksLayer();
-      this.active = false;
-      this.$emit('tool-closed');
-    },
+function parseFeatureStartDate(feature: TrackFeature | undefined): Date | null {
+  const value = feature?.properties?.startDate;
+  if (value == null) return null;
+  const date = value instanceof Date ? value : new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
 
-    onClose() {
-      this.onStopAnimation();
-      this.restoreTracksLayer();
-      this.active = false;
-    },
+function featureStartMs(feature: TrackFeature): number {
+  return parseFeatureStartDate(feature)?.getTime() ?? Infinity;
+}
 
-    prepareSortedFeatures() {
-      const geojson = this.$parent?.geojson;
-      if (!geojson?.features?.length) {
-        this.sortedFeatures = [];
-        this.rangeValue = [0, 0];
-        return;
-      }
-      this.sortedFeatures = markRaw([...geojson.features].sort((a, b) => {
-        const aDate = a.properties?.startDate ?? Infinity;
-        const bDate = b.properties?.startDate ?? Infinity;
-        return aDate - bDate;
-      }));
-      this.rangeValue = [0, this.sortedFeatures.length - 1];
-      this.animationIndex = 0;
-    },
+function renderRangeFrame() {
+  const [lo, hi] = rangeValue.value;
+  const features = sortedFeatures.value.slice(lo, hi + 1);
+  setAnimationSourceData(features);
+}
 
-    // ─── Shared layer helpers ──────────────────────────────────────
+// ─── RANGE ─────────────────────────────────────────────────────
 
-    ensureAnimationLayer() {
-      if (!this.map) return;
-      if (this.map.getLayer('tracks-layer')) {
-        this.map.setPaintProperty('tracks-layer', 'line-opacity', 0);
-      }
-      if (this.map.getLayer('animation-layer')) this.map.removeLayer('animation-layer');
-      if (this.map.getSource('animation-source')) this.map.removeSource('animation-source');
+function onRangeChange() {
+  if (!sortedFeatures.value.length) return;
+  // Editing the range while animating interrupts playback.
+  if (animationInProgress.value) {
+    onPauseAnimation();
+  }
+  // Snap scrub index back into the selected range.
+  if (animationIndex.value < rangeValue.value[0] || animationIndex.value > rangeValue.value[1]) {
+    animationIndex.value = rangeValue.value[0];
+  }
+  ensureAnimationLayer();
+  renderRangeFrame();
+  emit(EVENTS.animationStart, 'range filter active');
+}
 
-      this.map.addSource('animation-source', {
-        type: 'geojson',
-        data: { type: 'FeatureCollection', features: [] },
-      });
-      this.map.addLayer({
-        id: 'animation-layer',
-        type: 'line',
-        source: 'animation-source',
-        layout: { 'line-join': 'round', 'line-cap': 'round' },
-        paint: {
-          'line-color': ['coalesce', ['get', '_animColor'], TRACK_COLOR],
-          'line-width': 4,
-          'line-opacity': 1,
-        },
-      });
-    },
+// ─── Shared ────────────────────────────────────────────────────
 
-    removeAnimationLayer() {
-      if (!this.map) return;
-      if (this.map.getLayer('animation-layer')) this.map.removeLayer('animation-layer');
-      if (this.map.getSource('animation-source')) this.map.removeSource('animation-source');
-    },
+function interpolateColor(
+  colorA: readonly number[],
+  colorB: readonly number[],
+  steps: number,
+  currentStep: number
+): number[] {
+  const color: number[] = [];
+  for (let i = 0; i < colorA.length; i++) {
+    const distance = colorB[i] - colorA[i];
+    color[i] = Math.round(colorA[i] + (distance / steps) * currentStep);
+  }
+  return color;
+}
 
-    restoreTracksLayer() {
-      this.removeAnimationLayer();
-      if (this.map?.getLayer('tracks-layer')) {
-        this.map.setPaintProperty('tracks-layer', 'line-opacity', 1);
-      }
-    },
-
-    setAnimationSourceData(features) {
-      const source = this.map?.getSource('animation-source');
-      if (source) {
-        source.setData({ type: 'FeatureCollection', features });
-      }
-    },
-
-    // ─── PLAY ──────────────────────────────────────────────────────
-
-    onPlayPauseToggle() {
-      if (this.animationInProgress) {
-        this.onPauseAnimation();
-      } else {
-        this.onStartAnimation();
-      }
-    },
-
-    async onStartAnimation() {
-      if (!this.map || !this.sortedFeatures.length) return;
-
-      if (this.animationInProgress) {
-        // Resume from current position
-        this.timerId = setInterval(this.animationFunction, this.animationSpeed);
-        return;
-      }
-
-      // If paused inside range, resume from current index; otherwise start at range start.
-      if (this.animationIndex < this.rangeValue[0] || this.animationIndex >= this.rangeValue[1]) {
-        this.animationIndex = this.rangeValue[0];
-      }
-      this.ensureAnimationLayer();
-      this.animationInProgress = true;
-      this.renderFrame();
-      this.timerId = setInterval(this.animationFunction, this.animationSpeed);
-      this.$emit(EVENTS.animationStart, "animation has started");
-    },
-
-    onPauseAnimation() {
-      if (this.timerId) {
-        clearInterval(this.timerId);
-        this.timerId = null;
-      }
-      this.animationInProgress = false;
-    },
-
-    async onStopAnimation() {
-      if (this.timerId) {
-        clearInterval(this.timerId);
-        this.timerId = null;
-      }
-      this.animationInProgress = false;
-      this.animationIndex = this.rangeValue[0] || 0;
-      // Re-render static range view after stopping
-      if (this.sortedFeatures.length) {
-        this.ensureAnimationLayer();
-        this.renderRangeFrame();
-      }
-      this.$emit(EVENTS.animationStop, "animation stopped");
-    },
-
-    animationFunction() {
-      this.animationIndex++;
-      if (this.animationIndex >= this.rangeValue[1]) {
-        this.animationIndex = this.rangeValue[1];
-        this.renderFrame();
-        this.$emit(EVENTS.animationFinished, "animation has finished");
-        this.onPauseAnimation();
-        return;
-      }
-      this.renderFrame();
-    },
-
-    renderFrame() {
-      const lookBack = 50;
-      const visibleFeatures = [];
-      const start = this.rangeValue[0];
-
-      for (let i = Math.max(start, this.animationIndex - lookBack); i <= this.animationIndex; i++) {
-        const feature = this.sortedFeatures[i];
-        const relativeStep = this.animationIndex - i;
-        const interpolatedColor = this.interpolateColor(this.color1, this.color2, lookBack, relativeStep);
-        const rgbString = `rgb(${interpolatedColor[0]},${interpolatedColor[1]},${interpolatedColor[2]})`;
-        visibleFeatures.push({
-          ...feature,
-          properties: { ...feature.properties, _animColor: rgbString },
-        });
-      }
-
-      for (let i = start; i < Math.max(start, this.animationIndex - lookBack); i++) {
-        visibleFeatures.push({
-          ...this.sortedFeatures[i],
-          properties: {
-            ...this.sortedFeatures[i].properties,
-            _animColor: `rgb(${this.color2[0]},${this.color2[1]},${this.color2[2]})`,
-          },
-        });
-      }
-
-      this.setAnimationSourceData(visibleFeatures);
-
-      const currentFeature = this.sortedFeatures[this.animationIndex];
-      this.$emit(EVENTS.animate, {
-        animateIndexCurrent: this.animationIndex,
-        animateIndexMax: this.sortedFeatures.length,
-        currentDate: new Date(currentFeature.properties?.startDate),
-      });
-    },
-
-    renderRangeFrame() {
-      const [lo, hi] = this.rangeValue;
-      const features = this.sortedFeatures.slice(lo, hi + 1);
-      this.setAnimationSourceData(features);
-    },
-
-    // ─── RANGE ─────────────────────────────────────────────────────
-
-    onRangeChange() {
-      if (!this.sortedFeatures.length) return;
-      // Editing the range while animating interrupts playback.
-      if (this.animationInProgress) {
-        this.onPauseAnimation();
-      }
-      // Snap scrub index back into the selected range.
-      if (this.animationIndex < this.rangeValue[0] || this.animationIndex > this.rangeValue[1]) {
-        this.animationIndex = this.rangeValue[0];
-      }
-      this.ensureAnimationLayer();
-      this.renderRangeFrame();
-      this.$emit(EVENTS.animationStart, "range filter active");
-    },
-
-    // ─── Shared ────────────────────────────────────────────────────
-
-    interpolateColor(color1, color2, steps, currentStep) {
-      const color = [];
-      for (let i = 0; i < color1.length; i++) {
-        const distance = color2[i] - color1[i];
-        color[i] = Math.round(color1[i] + (distance / steps) * currentStep);
-      }
-      return color;
-    },
-  },
-
-  beforeUnmount() {
-    if (typeof window !== 'undefined') {
-      window.removeEventListener('resize', this.onViewportResize);
-    }
-    this.onStopAnimation();
-  },
+defineExpose({
+  toggle,
+  close,
 });
 </script>
 
@@ -556,7 +596,9 @@ export default defineComponent({
   color: white;
   background: var(--accent);
   cursor: pointer;
-  transition: background 0.15s ease, opacity 0.15s ease;
+  transition:
+    background 0.15s ease,
+    opacity 0.15s ease;
   padding: 0;
 }
 .am-play-hero .bi-play-fill {
@@ -585,7 +627,10 @@ export default defineComponent({
   color: var(--text-muted);
   background: var(--surface-elevated);
   cursor: pointer;
-  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  transition:
+    background 0.15s,
+    color 0.15s,
+    border-color 0.15s;
   flex-shrink: 0;
 }
 .am-stop-btn:hover:not(:disabled) {
@@ -689,7 +734,9 @@ export default defineComponent({
   font-weight: 400;
   color: var(--text-muted);
 }
-.am-date--end { text-align: right; }
+.am-date--end {
+  text-align: right;
+}
 .am-date-current {
   font-size: var(--text-xs-size);
   font-weight: 400;

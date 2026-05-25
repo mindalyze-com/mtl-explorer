@@ -2,7 +2,9 @@ package com.x8ing.mtl.server.mtlserver.logic.crossing;
 
 import com.x8ing.mtl.server.mtlserver.db.entity.gps.GpsTrack;
 import com.x8ing.mtl.server.mtlserver.db.entity.gps.GpsTrackDataPoint;
+import com.x8ing.mtl.server.mtlserver.db.entity.gps.GpsTrackEvent;
 import com.x8ing.mtl.server.mtlserver.db.repository.gps.GpsTrackDataPointRepository;
+import com.x8ing.mtl.server.mtlserver.db.repository.gps.GpsTrackEventRepository;
 import com.x8ing.mtl.server.mtlserver.db.repository.gps.GpsTrackRepository;
 import com.x8ing.mtl.server.mtlserver.db.repository.gps.GpsTrackVariantSelector;
 import com.x8ing.mtl.server.mtlserver.logic.crossing.beans.*;
@@ -27,8 +29,8 @@ import static org.mockito.Mockito.when;
 
 /**
  * Tests for per-segment "stop" detection annotated onto each {@link Crossing}
- * by {@link TrackTimeBetweenTwoPoints}. A stop is a contiguous run of samples
- * where speed stays below 0.5 km/h for at least 30 s.
+ * by {@link TrackTimeBetweenTwoPoints}. Segment notes summarize detected stop
+ * events that were already produced during import.
  */
 class TrackTimeBetweenTwoPointsStopDetectionTest {
 
@@ -38,12 +40,14 @@ class TrackTimeBetweenTwoPointsStopDetectionTest {
     private GpsTrackVariantSelector gpsTrackVariantSelector;
     @Mock
     private GpsTrackDataPointRepository gpsTrackDataPointRepository;
+    @Mock
+    private GpsTrackEventRepository gpsTrackEventRepository;
 
     private TrackTimeBetweenTwoPoints service;
 
     private final GeometryFactory factory = new GeometryFactory();
 
-    private static final double METERS_PER_DEG_LON = 111320.0;
+    private static final double METERS_PER_DEG_LON = 75_900.0;
     private static final double METERS_PER_DEG_LAT = 110540.0;
     private static final Long TRACK_ID = 1L;
     private static final Long TRACK_DATA_ID = 10L;
@@ -53,7 +57,7 @@ class TrackTimeBetweenTwoPointsStopDetectionTest {
     void setUp() {
         MockitoAnnotations.openMocks(this);
         service = new TrackTimeBetweenTwoPoints(
-                gpsTrackRepository, gpsTrackDataPointRepository, gpsTrackVariantSelector);
+                gpsTrackRepository, gpsTrackDataPointRepository, gpsTrackEventRepository, gpsTrackVariantSelector);
     }
 
     @Test
@@ -69,7 +73,7 @@ class TrackTimeBetweenTwoPointsStopDetectionTest {
                 sample(500, 500, 0),
                 sample(600, 600, 0)
         );
-        List<Crossing> crossings = run(points,
+        List<Crossing> crossings = run(points, List.of(),
                 trigger("A", 100, 0),
                 trigger("B", 500, 0),
                 20.0);
@@ -92,7 +96,7 @@ class TrackTimeBetweenTwoPointsStopDetectionTest {
                 sample(500, 500, 0),
                 sample(600, 600, 0)
         );
-        List<Crossing> crossings = run(points,
+        List<Crossing> crossings = run(points, List.of(),
                 trigger("A", 100, 0),
                 trigger("B", 500, 0),
                 20.0);
@@ -124,7 +128,7 @@ class TrackTimeBetweenTwoPointsStopDetectionTest {
             points.add(sample(t, x, 0));
         }
 
-        List<Crossing> crossings = run(points,
+        List<Crossing> crossings = run(points, List.of(stopEvent(200, 320)),
                 trigger("A", 100, 0),
                 trigger("B", 500, 0),
                 20.0);
@@ -145,7 +149,7 @@ class TrackTimeBetweenTwoPointsStopDetectionTest {
         for (int t = 0; t <= 200; t += 20) {
             points.add(sample(t, t, 0));
         }
-        // 10-second "stop" — under MIN_STOP_SEC=30.
+        // 10-second "stop" — under the 30-second minimum.
         points.add(sample(210, 200, 0));
         points.add(sample(220, 200, 0));
         for (int t = 230; t <= 520; t += 20) {
@@ -153,7 +157,7 @@ class TrackTimeBetweenTwoPointsStopDetectionTest {
             points.add(sample(t, x, 0));
         }
 
-        List<Crossing> crossings = run(points,
+        List<Crossing> crossings = run(points, List.of(),
                 trigger("A", 100, 0),
                 trigger("B", 500, 0),
                 20.0);
@@ -181,16 +185,16 @@ class TrackTimeBetweenTwoPointsStopDetectionTest {
             points.add(sample(t, x, 0));
         }
         // Stop 2: 45 s.
-        for (int t = 430; t <= 475; t += 10) {
+        for (int t = 430; t <= 480; t += 10) {
             points.add(sample(t, 360, 0));
         }
         // Move to B.
-        for (int t = 485; t <= 630; t += 20) {
-            double x = 360 + (t - 475);
+        for (int t = 490; t <= 630; t += 20) {
+            double x = 360 + (t - 480);
             points.add(sample(t, x, 0));
         }
 
-        List<Crossing> crossings = run(points,
+        List<Crossing> crossings = run(points, List.of(stopEvent(210, 270), stopEvent(430, 475)),
                 trigger("A", 100, 0),
                 trigger("B", 500, 0),
                 20.0);
@@ -219,7 +223,7 @@ class TrackTimeBetweenTwoPointsStopDetectionTest {
             points.add(sample(t, x, 0));
         }
 
-        List<Crossing> crossings = run(points,
+        List<Crossing> crossings = run(points, List.of(stopEvent(0, 120)),
                 trigger("A", 100, 0),
                 trigger("B", 500, 0),
                 20.0);
@@ -234,7 +238,11 @@ class TrackTimeBetweenTwoPointsStopDetectionTest {
     // Helpers
     // ------------------------------------------------------------------
 
-    private List<Crossing> run(List<GpsTrackDataPoint> points, TriggerPoint a, TriggerPoint b, double radius) {
+    private List<Crossing> run(List<GpsTrackDataPoint> points,
+                               List<GpsTrackEvent> stopEvents,
+                               TriggerPoint a,
+                               TriggerPoint b,
+                               double radius) {
         GpsTrack track = new GpsTrack();
         track.setId(TRACK_ID);
         track.setTrackName("test");
@@ -248,6 +256,8 @@ class TrackTimeBetweenTwoPointsStopDetectionTest {
         when(gpsTrackVariantSelector.forMetricsId(TRACK_ID)).thenReturn(TRACK_DATA_ID);
         when(gpsTrackDataPointRepository.findAllByGpsTrackDataIdOrderByPointIndexAsc(TRACK_DATA_ID))
                 .thenReturn(points);
+        when(gpsTrackEventRepository.findAllByGpsTrackIdOrderByStartPointIndexAsc(TRACK_ID))
+                .thenReturn(stopEvents);
 
         CrossingPointsRequest request = new CrossingPointsRequest();
         request.setTriggerPoints(List.of(a, b));
@@ -289,6 +299,17 @@ class TrackTimeBetweenTwoPointsStopDetectionTest {
         p.setPointLongLat(jts);
         p.setPointTimestamp(new Date(START_TIME + tSec * 1000L));
         return p;
+    }
+
+    private GpsTrackEvent stopEvent(int startSec, int endSec) {
+        GpsTrackEvent event = new GpsTrackEvent();
+        event.setGpsTrackId(TRACK_ID);
+        event.setEventType(GpsTrackEvent.EVENT_TYPE.STOP);
+        event.setSource(GpsTrackEvent.SOURCE.DETECTED);
+        event.setStartTimestamp(new Date(START_TIME + startSec * 1000L));
+        event.setEndTimestamp(new Date(START_TIME + endSec * 1000L));
+        event.setDurationInSec((double) (endSec - startSec));
+        return event;
     }
 
     private TriggerPoint trigger(String name, double xMeters, double yMeters) {

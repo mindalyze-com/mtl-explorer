@@ -1,5 +1,6 @@
 package com.x8ing.mtl.server.mtlserver.energy;
 
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import lombok.Builder;
 import lombok.Data;
 
@@ -9,6 +10,21 @@ import lombok.Data;
  */
 @Data
 @Builder
+@JsonPropertyOrder({
+        "gravitationalAscentTotalWh",
+        "gravitationalDescentTotalWh",
+        "aeroDragTotalWh",
+        "rollingResistanceTotalWh",
+        "kineticPositiveTotalWh",
+        "kineticNegativeTotalWh",
+        "netEnergyTotalWh",
+        "powerWattsAvg",
+        "powerWattsMovingAvg",
+        "powerWattsMax",
+        "powerWatts30sMax",
+        "normalizedPowerWatts",
+        "weightKgUsed"
+})
 public class TrackEnergySummary {
 
     /**
@@ -73,6 +89,12 @@ public class TrackEnergySummary {
     private double powerWattsMax = 0;
 
     /**
+     * Peak trailing 30-second rolling-average power (W). Preferred for UI peak-power display.
+     */
+    @Builder.Default
+    private double powerWatts30sMax = 0;
+
+    /**
      * Normalized Power (W) — variability-weighted power: 4th root of the mean of
      * 30-second rolling-average power raised to the 4th power. Hard bursts weigh more
      * than steady easy output, so NP is always ≥ simple average power.
@@ -83,7 +105,7 @@ public class TrackEnergySummary {
     private double normalizedPowerWatts = 0;
 
     /**
-     * Rider weight used for this calculation (audit trail).
+     * Total rider/person plus equipment/vehicle mass used for this calculation (audit trail).
      */
     @Builder.Default
     private double weightKgUsed = 0;

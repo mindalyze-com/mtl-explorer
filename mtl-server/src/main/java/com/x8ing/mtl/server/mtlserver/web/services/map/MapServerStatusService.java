@@ -1,5 +1,6 @@
 package com.x8ing.mtl.server.mtlserver.web.services.map;
 
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
@@ -15,11 +16,24 @@ import java.time.Instant;
  */
 @Slf4j
 @Service
+@JsonPropertyOrder({
+        "restClient",
+        "properties",
+        "upstreamResolver",
+        "statusRefreshLock",
+        "cachedStatus",
+        "cacheExpiry",
+        "refreshInProgress"
+})
 public class MapServerStatusService {
 
     private static final long CACHE_TTL_SECONDS = 10;
     private static final long CACHE_RETRY_TTL_SECONDS = 3;
 
+    @JsonPropertyOrder({
+            "status",
+            "ttlSeconds"
+    })
     private record LocalStatusRefresh(MapServerStatusDto status, long ttlSeconds) {
     }
 

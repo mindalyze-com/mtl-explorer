@@ -126,12 +126,18 @@ export class GeoDrawingOverlay {
       this.onStateChange?.();
     } else if (this.drawingMode === 'circle' && this.circleCenter) {
       this.circleCenter = null;
-      if (this.circleDragHandler) { this.map.off('mousemove', this.circleDragHandler); this.circleDragHandler = null; }
+      if (this.circleDragHandler) {
+        this.map.off('mousemove', this.circleDragHandler);
+        this.circleDragHandler = null;
+      }
       this.removePreviewLayers();
       this.onStateChange?.();
     } else if (this.drawingMode === 'rectangle' && this.rectFirstCorner) {
       this.rectFirstCorner = null;
-      if (this.rectMoveHandler) { this.map.off('mousemove', this.rectMoveHandler); this.rectMoveHandler = null; }
+      if (this.rectMoveHandler) {
+        this.map.off('mousemove', this.rectMoveHandler);
+        this.rectMoveHandler = null;
+      }
       this.removePreviewLayers();
       this.onStateChange?.();
     }
@@ -140,7 +146,7 @@ export class GeoDrawingOverlay {
   /** Finish polygon drawing (programmatic — e.g. from a "Finish" button). */
   finishPolygon(): void {
     if (this.drawingMode !== 'polygon' || this.polygonPoints.length < 3) return;
-    const coords: [number, number][] = this.polygonPoints.map(p => [p.lng, p.lat]);
+    const coords: [number, number][] = this.polygonPoints.map((p) => [p.lng, p.lat]);
     const shape: DrawnPolygon = { coordinates: coords };
     this.finishDrawing(shape);
   }
@@ -154,7 +160,11 @@ export class GeoDrawingOverlay {
     this.drawingMode = null;
     this.drawingCallback = null;
     this.onStateChange = null;
-    try { this.map.getCanvas().style.cursor = ''; } catch { /* map may be destroyed */ }
+    try {
+      this.map.getCanvas().style.cursor = '';
+    } catch {
+      /* map may be destroyed */
+    }
   }
 
   /**
@@ -184,11 +194,11 @@ export class GeoDrawingOverlay {
     const centerLat = (rect.minLat + rect.maxLat) / 2;
     const widthM = this.distanceInMeters(
       new maplibregl.LngLat(rect.minLng, centerLat),
-      new maplibregl.LngLat(rect.maxLng, centerLat),
+      new maplibregl.LngLat(rect.maxLng, centerLat)
     );
     const heightM = this.distanceInMeters(
       new maplibregl.LngLat(centerLng, rect.minLat),
-      new maplibregl.LngLat(centerLng, rect.maxLat),
+      new maplibregl.LngLat(centerLng, rect.maxLat)
     );
     const labelParts: string[] = [];
     if (name) labelParts.push(name);
@@ -204,16 +214,21 @@ export class GeoDrawingOverlay {
     const id = `geo-shape-${this.shapeCounter++}`;
     const coords = [...polygon.coordinates];
     // Close polygon
-    if (coords.length > 0 && (coords[0][0] !== coords[coords.length - 1][0] || coords[0][1] !== coords[coords.length - 1][1])) {
+    if (
+      coords.length > 0 &&
+      (coords[0][0] !== coords[coords.length - 1][0] || coords[0][1] !== coords[coords.length - 1][1])
+    ) {
       coords.push(coords[0]);
     }
     const geoJson: GeoJSON.FeatureCollection = {
       type: 'FeatureCollection',
-      features: [{
-        type: 'Feature',
-        geometry: { type: 'Polygon', coordinates: [coords] },
-        properties: {},
-      }],
+      features: [
+        {
+          type: 'Feature',
+          geometry: { type: 'Polygon', coordinates: [coords] },
+          properties: {},
+        },
+      ],
     };
 
     this.addFillAndOutline(id, geoJson, color);
@@ -225,7 +240,10 @@ export class GeoDrawingOverlay {
       let perimeterM = 0;
       for (let i = 0; i < rawCoords.length; i++) {
         const a = new maplibregl.LngLat(rawCoords[i][0], rawCoords[i][1]);
-        const b = new maplibregl.LngLat(rawCoords[(i + 1) % rawCoords.length][0], rawCoords[(i + 1) % rawCoords.length][1]);
+        const b = new maplibregl.LngLat(
+          rawCoords[(i + 1) % rawCoords.length][0],
+          rawCoords[(i + 1) % rawCoords.length][1]
+        );
         perimeterM += this.distanceInMeters(a, b);
       }
       const labelParts: string[] = [];
@@ -246,9 +264,11 @@ export class GeoDrawingOverlay {
       try {
         if (this.map.getLayer(layerId)) {
           this.map.removeLayer(layerId);
-          this.layerIds = this.layerIds.filter(id => id !== layerId);
+          this.layerIds = this.layerIds.filter((id) => id !== layerId);
         }
-      } catch { /* map may be destroyed */ }
+      } catch {
+        /* map may be destroyed */
+      }
     }
     const sourceSuffixes = ['', '-label'];
     for (const suffix of sourceSuffixes) {
@@ -256,9 +276,11 @@ export class GeoDrawingOverlay {
       try {
         if (this.map.getSource(sourceId)) {
           this.map.removeSource(sourceId);
-          this.sourceIds = this.sourceIds.filter(id => id !== sourceId);
+          this.sourceIds = this.sourceIds.filter((id) => id !== sourceId);
         }
-      } catch { /* map may be destroyed */ }
+      } catch {
+        /* map may be destroyed */
+      }
     }
   }
 
@@ -267,10 +289,18 @@ export class GeoDrawingOverlay {
    */
   clearAll(): void {
     for (const layerId of [...this.layerIds]) {
-      try { if (this.map.getLayer(layerId)) this.map.removeLayer(layerId); } catch { /* map may be destroyed */ }
+      try {
+        if (this.map.getLayer(layerId)) this.map.removeLayer(layerId);
+      } catch {
+        /* map may be destroyed */
+      }
     }
     for (const sourceId of [...this.sourceIds]) {
-      try { if (this.map.getSource(sourceId)) this.map.removeSource(sourceId); } catch { /* map may be destroyed */ }
+      try {
+        if (this.map.getSource(sourceId)) this.map.removeSource(sourceId);
+      } catch {
+        /* map may be destroyed */
+      }
     }
     this.layerIds = [];
     this.sourceIds = [];
@@ -297,11 +327,15 @@ export class GeoDrawingOverlay {
         const geoJson = this.createGeoJsonCircle(e.lngLat.lng, e.lngLat.lat, 100);
         this.map.addSource(previewId, { type: 'geojson', data: geoJson });
         this.map.addLayer({
-          id: previewId + '-fill', type: 'fill', source: previewId,
+          id: previewId + '-fill',
+          type: 'fill',
+          source: previewId,
           paint: { 'fill-color': SHAPE_COLOR, 'fill-opacity': SHAPE_FILL_OPACITY },
         });
         this.map.addLayer({
-          id: previewId + '-outline', type: 'line', source: previewId,
+          id: previewId + '-outline',
+          type: 'line',
+          source: previewId,
           paint: { 'line-color': SHAPE_COLOR, 'line-width': SHAPE_LINE_WIDTH, 'line-opacity': SHAPE_LINE_OPACITY },
         });
 
@@ -309,11 +343,28 @@ export class GeoDrawingOverlay {
         const labelId = `geo-preview-circle-label`;
         this.map.addSource(labelId, {
           type: 'geojson',
-          data: { type: 'FeatureCollection', features: [{ type: 'Feature', geometry: { type: 'Point', coordinates: [e.lngLat.lng, e.lngLat.lat] }, properties: { label: '100 m' } }] },
+          data: {
+            type: 'FeatureCollection',
+            features: [
+              {
+                type: 'Feature',
+                geometry: { type: 'Point', coordinates: [e.lngLat.lng, e.lngLat.lat] },
+                properties: { label: '100 m' },
+              },
+            ],
+          },
         });
         this.map.addLayer({
-          id: labelId, type: 'symbol', source: labelId,
-          layout: { 'text-field': ['get', 'label'], 'text-size': 13, 'text-font': ['Noto Sans Medium'], 'text-anchor': 'center', 'text-allow-overlap': true },
+          id: labelId,
+          type: 'symbol',
+          source: labelId,
+          layout: {
+            'text-field': ['get', 'label'],
+            'text-size': 13,
+            'text-font': ['Noto Sans Medium'],
+            'text-anchor': 'center',
+            'text-allow-overlap': true,
+          },
           paint: { 'text-color': SHAPE_COLOR, 'text-halo-color': 'rgba(255,255,255,0.9)', 'text-halo-width': 2 },
         });
 
@@ -328,7 +379,13 @@ export class GeoDrawingOverlay {
           if (labelSource) {
             labelSource.setData({
               type: 'FeatureCollection',
-              features: [{ type: 'Feature', geometry: { type: 'Point', coordinates: [this.circleCenter!.lng, this.circleCenter!.lat] }, properties: { label: formatRadius(radiusM) } }],
+              features: [
+                {
+                  type: 'Feature',
+                  geometry: { type: 'Point', coordinates: [this.circleCenter!.lng, this.circleCenter!.lat] },
+                  properties: { label: formatRadius(radiusM) },
+                },
+              ],
             });
           }
         };
@@ -361,15 +418,20 @@ export class GeoDrawingOverlay {
         this.rectPreviewSourceId = previewId;
 
         const emptyGeoJson: GeoJSON.FeatureCollection = {
-          type: 'FeatureCollection', features: [],
+          type: 'FeatureCollection',
+          features: [],
         };
         this.map.addSource(previewId, { type: 'geojson', data: emptyGeoJson });
         this.map.addLayer({
-          id: previewId + '-fill', type: 'fill', source: previewId,
+          id: previewId + '-fill',
+          type: 'fill',
+          source: previewId,
           paint: { 'fill-color': SHAPE_COLOR, 'fill-opacity': SHAPE_FILL_OPACITY },
         });
         this.map.addLayer({
-          id: previewId + '-outline', type: 'line', source: previewId,
+          id: previewId + '-outline',
+          type: 'line',
+          source: previewId,
           paint: { 'line-color': SHAPE_COLOR, 'line-width': SHAPE_LINE_WIDTH, 'line-opacity': SHAPE_LINE_OPACITY },
         });
 
@@ -399,16 +461,26 @@ export class GeoDrawingOverlay {
     this.polygonPreviewSourceId = previewId;
 
     const emptyGeoJson: GeoJSON.FeatureCollection = {
-      type: 'FeatureCollection', features: [],
+      type: 'FeatureCollection',
+      features: [],
     };
     this.map.addSource(previewId, { type: 'geojson', data: emptyGeoJson });
     this.map.addLayer({
-      id: previewId + '-fill', type: 'fill', source: previewId,
+      id: previewId + '-fill',
+      type: 'fill',
+      source: previewId,
       paint: { 'fill-color': SHAPE_COLOR, 'fill-opacity': SHAPE_FILL_OPACITY },
     });
     this.map.addLayer({
-      id: previewId + '-outline', type: 'line', source: previewId,
-      paint: { 'line-color': SHAPE_COLOR, 'line-width': SHAPE_LINE_WIDTH, 'line-opacity': SHAPE_LINE_OPACITY, 'line-dasharray': [2, 2] },
+      id: previewId + '-outline',
+      type: 'line',
+      source: previewId,
+      paint: {
+        'line-color': SHAPE_COLOR,
+        'line-width': SHAPE_LINE_WIDTH,
+        'line-opacity': SHAPE_LINE_OPACITY,
+        'line-dasharray': [2, 2],
+      },
     });
 
     // Track timing to suppress click events that are part of a double-click
@@ -440,7 +512,7 @@ export class GeoDrawingOverlay {
     this.polygonDblClickHandler = (e: maplibregl.MapMouseEvent) => {
       e.preventDefault();
       if (this.polygonPoints.length >= 3) {
-        const coords: [number, number][] = this.polygonPoints.map(p => [p.lng, p.lat]);
+        const coords: [number, number][] = this.polygonPoints.map((p) => [p.lng, p.lat]);
         const shape: DrawnPolygon = { coordinates: coords };
         this.finishDrawing(shape);
       }
@@ -452,7 +524,7 @@ export class GeoDrawingOverlay {
   }
 
   private updatePolygonPreview(previewId: string, cursorPos: maplibregl.LngLat | null): void {
-    const coords: [number, number][] = this.polygonPoints.map(p => [p.lng, p.lat]);
+    const coords: [number, number][] = this.polygonPoints.map((p) => [p.lng, p.lat]);
     if (cursorPos) {
       coords.push([cursorPos.lng, cursorPos.lat]);
     }
@@ -461,25 +533,31 @@ export class GeoDrawingOverlay {
       coords.push(coords[0]);
     }
 
-    const geoJson: GeoJSON.FeatureCollection = coords.length >= 4
-      ? {
-        type: 'FeatureCollection',
-        features: [{
-          type: 'Feature',
-          geometry: { type: 'Polygon', coordinates: [coords] },
-          properties: {},
-        }],
-      }
-      : {
-        type: 'FeatureCollection',
-        features: coords.length >= 2
-          ? [{
-            type: 'Feature',
-            geometry: { type: 'LineString', coordinates: coords.slice(0, -1) }, // don't close as line
-            properties: {},
-          }]
-          : [],
-      };
+    const geoJson: GeoJSON.FeatureCollection =
+      coords.length >= 4
+        ? {
+            type: 'FeatureCollection',
+            features: [
+              {
+                type: 'Feature',
+                geometry: { type: 'Polygon', coordinates: [coords] },
+                properties: {},
+              },
+            ],
+          }
+        : {
+            type: 'FeatureCollection',
+            features:
+              coords.length >= 2
+                ? [
+                    {
+                      type: 'Feature',
+                      geometry: { type: 'LineString', coordinates: coords.slice(0, -1) }, // don't close as line
+                      properties: {},
+                    },
+                  ]
+                : [],
+          };
 
     const source = this.map.getSource(previewId) as maplibregl.GeoJSONSource;
     if (source) source.setData(geoJson);
@@ -494,7 +572,11 @@ export class GeoDrawingOverlay {
     this.drawingMode = null;
     this.drawingCallback = null;
     this.onStateChange = null;
-    try { this.map.getCanvas().style.cursor = ''; } catch { /* map may be destroyed */ }
+    try {
+      this.map.getCanvas().style.cursor = '';
+    } catch {
+      /* map may be destroyed */
+    }
     if (callback) callback(shape);
   }
 
@@ -536,15 +618,31 @@ export class GeoDrawingOverlay {
     const previewIds = ['geo-preview-circle', 'geo-preview-rect', 'geo-preview-polygon'];
     for (const id of previewIds) {
       for (const suffix of ['-fill', '-outline']) {
-        try { if (this.map.getLayer(id + suffix)) this.map.removeLayer(id + suffix); } catch { /* map may be destroyed */ }
+        try {
+          if (this.map.getLayer(id + suffix)) this.map.removeLayer(id + suffix);
+        } catch {
+          /* map may be destroyed */
+        }
       }
-      try { if (this.map.getSource(id)) this.map.removeSource(id); } catch { /* map may be destroyed */ }
+      try {
+        if (this.map.getSource(id)) this.map.removeSource(id);
+      } catch {
+        /* map may be destroyed */
+      }
     }
     // Remove preview labels (e.g. live circle radius)
     const labelIds = ['geo-preview-circle-label'];
     for (const id of labelIds) {
-      try { if (this.map.getLayer(id)) this.map.removeLayer(id); } catch { /* map may be destroyed */ }
-      try { if (this.map.getSource(id)) this.map.removeSource(id); } catch { /* map may be destroyed */ }
+      try {
+        if (this.map.getLayer(id)) this.map.removeLayer(id);
+      } catch {
+        /* map may be destroyed */
+      }
+      try {
+        if (this.map.getSource(id)) this.map.removeSource(id);
+      } catch {
+        /* map may be destroyed */
+      }
     }
     this.rectPreviewSourceId = null;
     this.polygonPreviewSourceId = null;
@@ -555,13 +653,17 @@ export class GeoDrawingOverlay {
     this.sourceIds.push(id);
 
     this.map.addLayer({
-      id: id + '-fill', type: 'fill', source: id,
+      id: id + '-fill',
+      type: 'fill',
+      source: id,
       paint: { 'fill-color': color, 'fill-opacity': SHAPE_FILL_OPACITY },
     });
     this.layerIds.push(id + '-fill');
 
     this.map.addLayer({
-      id: id + '-outline', type: 'line', source: id,
+      id: id + '-outline',
+      type: 'line',
+      source: id,
       paint: { 'line-color': color, 'line-width': SHAPE_LINE_WIDTH, 'line-opacity': SHAPE_LINE_OPACITY },
     });
     this.layerIds.push(id + '-outline');
@@ -573,17 +675,21 @@ export class GeoDrawingOverlay {
       type: 'geojson',
       data: {
         type: 'FeatureCollection',
-        features: [{
-          type: 'Feature',
-          geometry: { type: 'Point', coordinates: [lng, lat] },
-          properties: { label: text },
-        }],
+        features: [
+          {
+            type: 'Feature',
+            geometry: { type: 'Point', coordinates: [lng, lat] },
+            properties: { label: text },
+          },
+        ],
       },
     });
     this.sourceIds.push(sourceId);
 
     this.map.addLayer({
-      id: sourceId, type: 'symbol', source: sourceId,
+      id: sourceId,
+      type: 'symbol',
+      source: sourceId,
       layout: {
         'text-field': ['get', 'label'],
         'text-size': 13,
@@ -612,20 +718,24 @@ export class GeoDrawingOverlay {
   private createGeoJsonRectangle(rect: DrawnRectangle): GeoJSON.FeatureCollection {
     return {
       type: 'FeatureCollection',
-      features: [{
-        type: 'Feature',
-        geometry: {
-          type: 'Polygon',
-          coordinates: [[
-            [rect.minLng, rect.minLat],
-            [rect.maxLng, rect.minLat],
-            [rect.maxLng, rect.maxLat],
-            [rect.minLng, rect.maxLat],
-            [rect.minLng, rect.minLat], // close
-          ]],
+      features: [
+        {
+          type: 'Feature',
+          geometry: {
+            type: 'Polygon',
+            coordinates: [
+              [
+                [rect.minLng, rect.minLat],
+                [rect.maxLng, rect.minLat],
+                [rect.maxLng, rect.maxLat],
+                [rect.minLng, rect.maxLat],
+                [rect.minLng, rect.minLat], // close
+              ],
+            ],
+          },
+          properties: {},
         },
-        properties: {},
-      }],
+      ],
     };
   }
 
@@ -636,24 +746,23 @@ export class GeoDrawingOverlay {
   private createGeoJsonCircle(lng: number, lat: number, radiusMeters: number, points = 64): GeoJSON.FeatureCollection {
     const coords: [number, number][] = [];
     const earthRadius = 6371000;
-    const latRad = lat * Math.PI / 180;
-    const lngRad = lng * Math.PI / 180;
+    const latRad = (lat * Math.PI) / 180;
+    const lngRad = (lng * Math.PI) / 180;
     for (let i = 0; i <= points; i++) {
       const angle = (i / points) * 2 * Math.PI;
       const dLat = (radiusMeters / earthRadius) * Math.cos(angle);
       const dLng = (radiusMeters / (earthRadius * Math.cos(latRad))) * Math.sin(angle);
-      coords.push([
-        (lngRad + dLng) * 180 / Math.PI,
-        (latRad + dLat) * 180 / Math.PI,
-      ]);
+      coords.push([((lngRad + dLng) * 180) / Math.PI, ((latRad + dLat) * 180) / Math.PI]);
     }
     return {
       type: 'FeatureCollection',
-      features: [{
-        type: 'Feature',
-        geometry: { type: 'Polygon', coordinates: [coords] },
-        properties: {},
-      }],
+      features: [
+        {
+          type: 'Feature',
+          geometry: { type: 'Polygon', coordinates: [coords] },
+          properties: {},
+        },
+      ],
     };
   }
 
@@ -662,11 +771,12 @@ export class GeoDrawingOverlay {
    */
   private distanceInMeters(a: maplibregl.LngLat, b: maplibregl.LngLat): number {
     const R = 6371000;
-    const dLat = (b.lat - a.lat) * Math.PI / 180;
-    const dLng = (b.lng - a.lng) * Math.PI / 180;
+    const dLat = ((b.lat - a.lat) * Math.PI) / 180;
+    const dLng = ((b.lng - a.lng) * Math.PI) / 180;
     const sinDLat = Math.sin(dLat / 2);
     const sinDLng = Math.sin(dLng / 2);
-    const aVal = sinDLat * sinDLat + Math.cos(a.lat * Math.PI / 180) * Math.cos(b.lat * Math.PI / 180) * sinDLng * sinDLng;
+    const aVal =
+      sinDLat * sinDLat + Math.cos((a.lat * Math.PI) / 180) * Math.cos((b.lat * Math.PI) / 180) * sinDLng * sinDLng;
     return R * 2 * Math.atan2(Math.sqrt(aVal), Math.sqrt(1 - aVal));
   }
 }

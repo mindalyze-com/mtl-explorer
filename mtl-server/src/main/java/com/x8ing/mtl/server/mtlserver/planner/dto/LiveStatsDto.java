@@ -1,5 +1,6 @@
 package com.x8ing.mtl.server.mtlserver.planner.dto;
 
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import lombok.Data;
 
 /**
@@ -8,6 +9,14 @@ import lombok.Data;
  * every route recomputation.
  */
 @Data
+@JsonPropertyOrder({
+        "distanceM",
+        "ascentM",
+        "descentM",
+        "durationSec",
+        "legCount",
+        "anyLegCached"
+})
 public class LiveStatsDto {
     /**
      * Total track length in metres (BRouter track-length sum).

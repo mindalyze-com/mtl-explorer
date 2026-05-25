@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.10.xsd">
+
+    <changeSet id="20260602_1_add_canonical_point_index" author="patrick.heusser">
+        <comment>
+            Phase 7 of the canonical metric / on-demand LOD architecture.
+            Adds a back-pointer from SIMPLIFIED_SHAPE point rows to the
+            pointIndex of the RAW_OUTLIER_CLEANED canonical point they were
+            projected from. The chart-series endpoint's bucket
+            representativePointIndex addresses the canonical stream; the
+            frontend resolves it to a physical lat/lng on the rendered
+            SIMPLIFIED_SHAPE via this column.
+        </comment>
+
+        <addColumn tableName="gps_track_data_points">
+            <column name="canonical_point_index" type="int"/>
+        </addColumn>
+    </changeSet>
+
+</databaseChangeLog>

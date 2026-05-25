@@ -1,5 +1,6 @@
 package com.x8ing.mtl.server.mtlserver.jobs.media.indexer;
 
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.x8ing.mtl.server.mtlserver.db.repository.indexer.IndexerRepository;
 import com.x8ing.mtl.server.mtlserver.indexer.FileIndexer;
 import com.x8ing.mtl.server.mtlserver.indexer.FileIndexerImpl;
@@ -22,6 +23,15 @@ import java.util.List;
 
 @Service
 @Slf4j
+@JsonPropertyOrder({
+        "mediaWatchDirectory",
+        "changeDetectionStrategy",
+        "liveWatchEnabled",
+        "fileIndexerImpl",
+        "indexerRepository",
+        "processingWorker",
+        "txManager"
+})
 public class MediaIndexerService {
 
     public static final String INDEX_MEDIA = "MEDIA";

@@ -3,6 +3,8 @@
     v-model="active"
     icon="bi bi-signpost-split"
     :detents="[{ height: '40vh' }, { height: '70vh' }, { height: '95vh' }]"
+    :initial-detent="1"
+    fit-content-initial
     :no-backdrop="true"
     @closed="onSheetClosed"
   >
@@ -10,99 +12,148 @@
       <div class="planner-header-nav">
         <i class="bi bi-signpost-split planner-sheet-icon"></i>
         <div class="planner-header-tabs">
-          <button class="planner-header-tab" :class="{ 'planner-header-tab--active': activeTab === 'draw' }" @pointerdown.stop @click="activeTab = 'draw'">Drawing</button>
-          <button class="planner-header-tab" :class="{ 'planner-header-tab--active': activeTab === 'load' }" @pointerdown.stop @click="switchToLoad">Load</button>
+          <button
+            class="planner-header-tab"
+            :class="{ 'planner-header-tab--active': activeTab === 'draw' }"
+            @pointerdown.stop
+            @click="activeTab = 'draw'"
+          >
+            Drawing
+          </button>
+          <button
+            class="planner-header-tab"
+            :class="{ 'planner-header-tab--active': activeTab === 'load' }"
+            @pointerdown.stop
+            @click="switchToLoad"
+          >
+            Load
+          </button>
+        </div>
+      </div>
+    </template>
+    <template #header-actions>
+      <div ref="brouterPanel" class="brouter-pill-wrap brouter-pill-wrap--header" @pointerdown.stop @click.stop>
+        <button
+          type="button"
+          :class="[
+            'brouter-pill',
+            'brouter-pill--icon',
+            brouterStatusClass,
+            { 'brouter-pill--updating': routeUpdateVisible && !brouterNeedsAttention },
+          ]"
+          :aria-expanded="brouterExpanded"
+          :aria-label="brouterStatusLabel"
+          :title="brouterStatusLabel"
+          @click="brouterExpanded = !brouterExpanded"
+        >
+          <i :class="brouterIconClass" aria-hidden="true"></i>
+          <span v-if="brouterBadgeText" :class="['brouter-badge', { 'brouter-badge--danger': brouterNeedsAttention }]">
+            {{ brouterBadgeText }}
+          </span>
+        </button>
+        <div v-if="brouterExpanded" class="brouter-detail brouter-detail--header">
+          <p class="brouter-detail-summary">{{ brouterStatusSummary }}</p>
+          <div v-if="!status" class="brouter-detail-body">
+            <span class="brouter-val--warn">Checking BRouter status...</span>
+          </div>
+          <div v-else-if="status.available" class="brouter-detail-body">
+            <div class="brouter-detail-row">
+              <span class="brouter-detail-label">Running</span>
+              <span :class="['brouter-detail-val', status.brouterRunning ? 'brouter-val--ok' : 'brouter-val--warn']">{{
+                status.brouterRunning ? 'yes' : 'no'
+              }}</span>
+            </div>
+            <div class="brouter-detail-row">
+              <span class="brouter-detail-label">Segments on disk</span>
+              <span class="brouter-detail-val">{{ status.segmentsOnDisk ?? 0 }}</span>
+            </div>
+            <div class="brouter-detail-row">
+              <span class="brouter-detail-label">Queued</span>
+              <span class="brouter-detail-val">{{ status.segmentsQueued ?? 0 }}</span>
+            </div>
+            <div v-if="(status.segmentsInProgress?.length ?? 0) > 0" class="brouter-detail-row">
+              <span class="brouter-detail-label">In progress</span>
+              <span class="brouter-detail-val">{{ status.segmentsInProgress?.join(', ') }}</span>
+            </div>
+            <div
+              v-if="status.segmentsFailed && Object.keys(status.segmentsFailed).length > 0"
+              class="brouter-detail-row"
+            >
+              <span class="brouter-detail-label">Failed</span>
+              <span class="brouter-detail-val brouter-val--warn">{{
+                Object.keys(status.segmentsFailed).join(', ')
+              }}</span>
+            </div>
+          </div>
+          <div v-else class="brouter-detail-body">
+            <span class="brouter-val--warn">Unavailable: {{ status.reason ?? 'unknown' }}</span>
+          </div>
+          <button type="button" class="brouter-detail-refresh" @click.stop="refresh">
+            <i class="bi bi-arrow-clockwise"></i>
+            <span>Refresh</span>
+          </button>
         </div>
       </div>
     </template>
     <div class="planner-root">
       <!-- ── Drawing tab ─────────────────────────────────────────── -->
       <div v-if="activeTab === 'draw'" class="planner-panel planner-panel--draw">
-        <p class="planner-subtitle">Tap the map to add waypoints. Drag to adjust.</p>
-
         <div class="planner-controls-row">
-          <PlannerToolbar
-            :profiles="profiles"
-            :profile="planner.profile.value"
-            @profile-changed="planner.setProfile"
-          />
-
-          <div class="planner-actions" role="group" aria-label="Edit history">
-            <button type="button" class="planner-action-btn" :disabled="!planner.canUndo.value" title="Undo" aria-label="Undo" @click="planner.undo">
-              <i class="bi bi-arrow-counterclockwise" />
-            </button>
-            <button type="button" class="planner-action-btn" :disabled="!planner.canRedo.value" title="Redo" aria-label="Redo" @click="planner.redo">
-              <i class="bi bi-arrow-clockwise" />
-            </button>
-            <button type="button" class="planner-action-btn" :disabled="!planner.waypoints.value.length" title="Clear route" aria-label="Clear route" @click="planner.clearAll">
-              <i class="bi bi-trash" />
-            </button>
-            <button
-              type="button"
-              class="planner-action-btn"
-              :disabled="planner.routeCoordinates.value.length < 2"
-              title="Save route"
-              aria-label="Save route"
-              @click="openSaveDialog"
-            >
-              <i class="bi bi-floppy" />
-            </button>
+          <div class="planner-control-group planner-control-group--profile">
+            <PlannerToolbar
+              :profiles="profiles"
+              :profile="planner.profile.value"
+              @profile-changed="planner.setProfile"
+            />
           </div>
 
-          <div class="planner-controls-right">
-            <div v-if="status" class="brouter-pill-wrap">
+          <div class="planner-control-group planner-control-group--actions">
+            <div class="planner-actions" role="group" aria-label="Edit history">
               <button
                 type="button"
-                class="brouter-pill"
-                :aria-expanded="brouterExpanded"
-                aria-label="BRouter status details"
-                @click="brouterExpanded = !brouterExpanded"
+                class="planner-action-btn"
+                :disabled="!planner.canUndo.value"
+                title="Undo"
+                aria-label="Undo"
+                @click="planner.undo"
               >
-                <span :class="['brouter-dot', brouterDotClass]"></span>
-                <span class="brouter-label">BRouter</span>
-                <span v-if="(status.segmentsQueued ?? 0) > 0" class="brouter-badge">{{ status.segmentsQueued }}</span>
-                <i :class="brouterExpanded ? 'bi bi-chevron-up' : 'bi bi-chevron-down'" class="brouter-chevron"></i>
+                <i class="bi bi-arrow-counterclockwise" />
               </button>
-              <div v-if="brouterExpanded" class="brouter-detail">
-                <div v-if="status.available" class="brouter-detail-body">
-                  <div class="brouter-detail-row">
-                    <span class="brouter-detail-label">Running</span>
-                    <span
-                      :class="['brouter-detail-val', status.brouterRunning ? 'brouter-val--ok' : 'brouter-val--warn']"
-                      >{{ status.brouterRunning ? 'yes' : 'no' }}</span
-                    >
-                  </div>
-                  <div class="brouter-detail-row">
-                    <span class="brouter-detail-label">Segments on disk</span>
-                    <span class="brouter-detail-val">{{ status.segmentsOnDisk ?? 0 }}</span>
-                  </div>
-                  <div class="brouter-detail-row">
-                    <span class="brouter-detail-label">Queued</span>
-                    <span class="brouter-detail-val">{{ status.segmentsQueued ?? 0 }}</span>
-                  </div>
-                  <div v-if="(status.segmentsInProgress?.length ?? 0) > 0" class="brouter-detail-row">
-                    <span class="brouter-detail-label">In progress</span>
-                    <span class="brouter-detail-val">{{ status.segmentsInProgress?.join(', ') }}</span>
-                  </div>
-                  <div
-                    v-if="status.segmentsFailed && Object.keys(status.segmentsFailed).length > 0"
-                    class="brouter-detail-row"
-                  >
-                    <span class="brouter-detail-label">Failed</span>
-                    <span class="brouter-detail-val brouter-val--warn">{{
-                      Object.keys(status.segmentsFailed).join(', ')
-                    }}</span>
-                  </div>
-                </div>
-                <div v-else class="brouter-detail-body">
-                  <span class="brouter-val--warn">Unavailable: {{ status.reason ?? 'unknown' }}</span>
-                </div>
-                <button type="button" class="brouter-detail-refresh" @click.stop="refresh">
-                  <i class="bi bi-arrow-clockwise"></i>
-                  <span>Refresh</span>
-                </button>
-              </div>
+              <button
+                type="button"
+                class="planner-action-btn"
+                :disabled="!planner.canRedo.value"
+                title="Redo"
+                aria-label="Redo"
+                @click="planner.redo"
+              >
+                <i class="bi bi-arrow-clockwise" />
+              </button>
+              <button
+                type="button"
+                class="planner-action-btn"
+                :disabled="!planner.waypoints.value.length"
+                title="Clear route"
+                aria-label="Clear route"
+                @click="clearRoute"
+              >
+                <i class="bi bi-trash" />
+              </button>
+              <button
+                type="button"
+                class="planner-action-btn"
+                :disabled="planner.routeCoordinates.value.length < 2"
+                title="Save route"
+                aria-label="Save route"
+                @click="openSaveDialog"
+              >
+                <i class="bi bi-floppy" />
+              </button>
             </div>
+          </div>
+
+          <div class="planner-control-group planner-control-group--hint">
+            <p class="planner-subtitle">Tap the map to add waypoints. Drag to adjust.</p>
           </div>
         </div>
 
@@ -126,7 +177,7 @@
           </div>
         </div>
 
-        <LiveStatsBar :stats="planner.stats.value" :computing="planner.computing.value" />
+        <LiveStatsBar :stats="planner.stats.value" />
 
         <ElevationProfile
           :coordinates="planner.routeCoordinates.value"
@@ -147,13 +198,18 @@
           <span>No saved routes yet. Draw a route and save it.</span>
         </div>
         <template v-else>
-          <div v-if="planExportError" class="planner-load-error" role="alert">
+          <div v-if="planActionError" class="planner-load-error" role="alert">
             <i class="bi bi-exclamation-circle"></i>
-            <span>{{ planExportError }}</span>
+            <span>{{ planActionError }}</span>
           </div>
           <ul class="planner-plan-list">
             <li v-for="plan in savedPlans" :key="plan.id" class="planner-plan-item">
-              <button type="button" class="planner-plan-open" @click="selectPlan(plan.id)">
+              <button
+                type="button"
+                class="planner-plan-open"
+                :disabled="deletingPlanId === plan.id"
+                @click="selectPlan(plan.id)"
+              >
                 <span class="planner-plan-body">
                   <span class="planner-plan-name">{{ plan.name }}</span>
                   <span class="planner-plan-meta">
@@ -163,17 +219,31 @@
                 </span>
                 <span class="planner-plan-date">{{ formatDate(plan.createDate) }}</span>
               </button>
-              <button
-                type="button"
-                class="planner-plan-export"
-                :disabled="exportingPlanId !== null"
-                :title="`Export ${plan.name || 'route'} as GPX`"
-                :aria-label="`Export ${plan.name || 'route'} as GPX`"
-                @click="exportPlanGpx(plan)"
-              >
-                <i :class="exportingPlanId === plan.id ? 'bi bi-arrow-repeat planner-load-spin' : 'bi bi-download'"></i>
-                <span>GPX</span>
-              </button>
+              <span class="planner-plan-actions">
+                <button
+                  type="button"
+                  class="planner-plan-action planner-plan-export"
+                  :disabled="exportingPlanId !== null || deletingPlanId !== null"
+                  :title="`Export ${plan.name || 'route'} as GPX`"
+                  :aria-label="`Export ${plan.name || 'route'} as GPX`"
+                  @click.stop="exportPlanGpx(plan)"
+                >
+                  <i
+                    :class="exportingPlanId === plan.id ? 'bi bi-arrow-repeat planner-load-spin' : 'bi bi-download'"
+                  ></i>
+                  <span>GPX</span>
+                </button>
+                <button
+                  type="button"
+                  class="planner-plan-action planner-plan-delete"
+                  :disabled="exportingPlanId !== null || deletingPlanId !== null"
+                  :title="`Delete ${plan.name || 'route'}`"
+                  :aria-label="`Delete ${plan.name || 'route'}`"
+                  @click.stop="openDeleteDialog(plan)"
+                >
+                  <i :class="deletingPlanId === plan.id ? 'bi bi-arrow-repeat planner-load-spin' : 'bi bi-trash'"></i>
+                </button>
+              </span>
             </li>
           </ul>
         </template>
@@ -208,7 +278,10 @@
           <span><i class="bi bi-rulers"></i> {{ (planner.stats.value.distanceM / 1000).toFixed(2) }} km</span>
           <span><i class="bi bi-arrow-up-right"></i> {{ Math.round(planner.stats.value.ascentM) }} m</span>
           <span><i class="bi bi-arrow-down-right"></i> {{ Math.round(planner.stats.value.descentM) }} m</span>
-          <span><i class="bi bi-pin-map"></i> {{ planner.waypoints.value.length }} waypoints</span>
+          <span
+            ><i class="bi bi-pin-map"></i> {{ planner.waypoints.value.length }} /
+            {{ planner.maxWaypoints.value }} waypoints</span
+          >
         </div>
       </div>
       <template #footer>
@@ -227,11 +300,53 @@
         />
       </template>
     </PrimeDialog>
+
+    <!-- Delete confirmation dialog -->
+    <PrimeDialog
+      v-model:visible="deleteDialogVisible"
+      :modal="true"
+      header="Delete saved route"
+      :style="{ width: 'min(420px, 92vw)' }"
+      :draggable="false"
+      :dismissable-mask="deletingPlanId === null"
+      :closable="deletingPlanId === null"
+      class="planner-dialog"
+    >
+      <div class="planner-dialog-body">
+        <p class="planner-delete-copy">
+          Delete <strong>{{ planPendingDelete?.name || 'this saved route' }}</strong> from saved routes?
+        </p>
+        <div v-if="planPendingDelete" class="planner-dialog-meta">
+          <span><i class="bi bi-rulers"></i> {{ (planPendingDelete.distanceM / 1000).toFixed(2) }} km</span>
+          <span><i class="bi bi-calendar3"></i> {{ formatDate(planPendingDelete.createDate) }}</span>
+        </div>
+        <div v-if="planDeleteError" class="planner-load-error" role="alert">
+          <i class="bi bi-exclamation-circle"></i>
+          <span>{{ planDeleteError }}</span>
+        </div>
+      </div>
+      <template #footer>
+        <PrimeButton
+          label="Cancel"
+          severity="secondary"
+          text
+          :disabled="deletingPlanId !== null"
+          @click="deleteDialogVisible = false"
+        />
+        <PrimeButton
+          :label="deletingPlanId !== null ? 'Deleting…' : 'Delete route'"
+          icon="pi pi-trash"
+          severity="danger"
+          :disabled="!planPendingDelete || deletingPlanId !== null"
+          @click="confirmDeletePlan"
+        />
+      </template>
+    </PrimeDialog>
   </BottomSheet>
 </template>
 
-<script lang="ts">
-import { defineComponent, ref } from 'vue';
+<script setup lang="ts">
+import { computed, onBeforeUnmount, ref, shallowRef, watch } from 'vue';
 import maplibregl from 'maplibre-gl';
 import BottomSheet from '@/components/ui/BottomSheet.vue';
 import PlannerToolbar from '@/planner/components/PlannerToolbar.vue';
@@ -244,539 +359,1120 @@ import PrimeButton from 'primevue/button';
 import { usePlannerState } from '@/planner/composables/usePlannerState';
 import { useBRouterSegmentStatus } from '@/planner/composables/useBRouterSegmentStatus';
 import {
+  deletePlannedTrack,
   downloadPlannedTrackGpx,
   fetchPlannerConfig,
   savePlannedRoute,
   listPlannedTracks,
   loadPlannedTrack,
 } from '@/planner/repositories/plannerRepository';
-import type { PlannedTrackSummary } from '@/planner/types';
+import type { PlannedTrackSummary, Waypoint } from '@/planner/types';
 import {
-  LONG_PRESS_MS,
+  distanceToRouteLegSquared,
+  nearestRouteLegIndexFromCandidates,
+  routeLegCoordinateGroups,
+  type RouteCoordinate,
+} from '@/planner/utils/routeHitTesting';
+import {
+  MAP_CLICK_SUPPRESSION_MS,
   PLANNER_LAYER_ID,
+  PLANNER_ROUTE_HIT_LAYER_ID,
   PLANNER_SOURCE_ID,
+  PLANNER_WAYPOINT_DRAG_RING_LAYER_ID,
+  PLANNER_WAYPOINT_HIT_LAYER_ID,
   PLANNER_WAYPOINT_LAYER_ID,
   PLANNER_WAYPOINT_SOURCE_ID,
+  ROUTE_HIT_LINE_WIDTH_PX,
   ROUTE_LINE_COLOR,
   ROUTE_LINE_WIDTH_PX,
+  ROUTE_MOUSE_INSERT_RADIUS_PX,
+  ROUTE_TOUCH_INSERT_RADIUS_PX,
+  SYNTHETIC_CLICK_SUPPRESSION_RADIUS_PX,
+  TOUCH_SYNTHETIC_CLICK_SUPPRESSION_MS,
+  WAYPOINT_ACTIVE_RING_RADIUS_PX,
+  WAYPOINT_DRAG_RING_COLOR,
+  WAYPOINT_DRAGGING_RING_RADIUS_PX,
   WAYPOINT_FILL_COLOR,
+  WAYPOINT_MOUSE_DRAG_THRESHOLD_PX,
+  WAYPOINT_MOUSE_HIT_RADIUS_PX,
   WAYPOINT_RADIUS_PX,
   WAYPOINT_STROKE_COLOR,
   WAYPOINT_STROKE_WIDTH_PX,
+  WAYPOINT_TOUCH_DRAG_THRESHOLD_PX,
+  WAYPOINT_TOUCH_HIT_RADIUS_PX,
 } from '@/planner/constants/PlannerConstants';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type MapLike = any;
+type PlannerPointerKind = 'mouse' | 'touch';
+type PlannerInteractionMode = 'waypointPointerDown' | 'waypointDragging';
+type PlannerScreenPoint = { x: number; y: number };
+type PlannerLngLat = { lng: number; lat: number };
+type PlannerInteraction = {
+  mode: PlannerInteractionMode;
+  pointerKind: PlannerPointerKind;
+  startPoint: PlannerScreenPoint;
+  lastLngLat: PlannerLngLat;
+  waypointId?: string;
+  touchId?: number;
+};
+type PlannerMapPointerEvent = maplibregl.MapMouseEvent | maplibregl.MapTouchEvent;
+type RouteHitFeature = {
+  properties?: { legIndex?: unknown };
+};
+type RouteHitDebug = {
+  rawHitCount: number;
+  candidates: Array<{
+    legIndex: number;
+    distancePx: number;
+    start: [number, number] | null;
+    end: [number, number] | null;
+  }>;
+  selectedLegIndex: number | null;
+  insertRadiusPx: number;
+};
 
-export default defineComponent({
-  name: 'PlannerTool',
-  components: {
-    BottomSheet,
-    PlannerToolbar,
-    LiveStatsBar,
-    ElevationProfile,
-    PrimeDialog,
-    InputText,
-    PrimeTextarea,
-    PrimeButton,
-  },
-  props: {
-    map: { type: Object as () => MapLike | undefined, default: undefined },
-  },
-  emits: ['active-changed', 'tool-opened', 'tool-closed'],
-  setup() {
-    const planner = usePlannerState();
-    // `active` lives here so we can gate BRouter status polling on it —
-    // no point hitting /api/planner/status while the planner sheet is closed.
-    const active = ref(false);
-    const { status, refresh } = useBRouterSegmentStatus(active);
-    return { planner, status, refresh, active };
-  },
-  data() {
-    return {
-      profiles: ['trekking'] as string[],
-      activeTab: 'draw' as 'draw' | 'load',
-      savedPlans: [] as PlannedTrackSummary[],
-      plansLoading: false,
-      exportingPlanId: null as number | null,
-      planExportError: '',
-      // dialogs
-      saveDialogVisible: false,
-      saveName: '',
-      saveDescription: '',
-      saveSubmitting: false,
-      // map-integration state (non-reactive references)
-      attachedMap: null as MapLike | null,
-      clickHandler: null as ((ev: maplibregl.MapMouseEvent) => void) | null,
-      moveHandler: null as (() => void) | null,
-      touchStartHandler: null as ((ev: maplibregl.MapTouchEvent) => void) | null,
-      touchCancelHandler: null as (() => void) | null,
-      dragMarkerMap: new Map<string, unknown>() as Map<string, maplibregl.Marker>,
-      hoverMarker: null as maplibregl.Marker | null,
-      longPressTimer: null as number | null,
-      longPressLngLat: null as maplibregl.LngLat | null,
-      unwatchRoute: null as null | (() => void),
-      unwatchWaypoints: null as null | (() => void),
-      configLoaded: false,
-      brouterExpanded: false,
+const ROUTE_UPDATE_MIN_VISIBLE_MS = 320;
+const PLANNER_INTERACTION_DEBUG = import.meta.env.DEV;
+
+const props = defineProps<{
+  map?: MapLike;
+}>();
+
+const emit = defineEmits<{
+  (event: 'active-changed', active: boolean): void;
+  (event: 'tool-opened'): void;
+  (event: 'tool-closed'): void;
+}>();
+
+defineOptions({ name: 'PlannerTool' });
+
+const brouterPanel = ref<HTMLElement | null>(null);
+const planner = usePlannerState();
+// `active` lives here so we can gate BRouter status polling on it —
+// no point hitting /api/planner/status while the planner sheet is closed.
+const active = ref(false);
+const routeUpdateVisible = ref(false);
+const { status, refresh } = useBRouterSegmentStatus(active);
+let routeUpdateShownAt = 0;
+let routeUpdateHideTimer: number | undefined;
+
+const profiles = ref<string[]>(['trekking']);
+const activeTab = ref<'draw' | 'load'>('draw');
+const savedPlans = ref<PlannedTrackSummary[]>([]);
+const plansLoading = ref(false);
+const exportingPlanId = ref<number | null>(null);
+const deletingPlanId = ref<number | null>(null);
+const planActionError = ref('');
+const planDeleteError = ref('');
+const deleteDialogVisible = ref(false);
+const planPendingDelete = ref<PlannedTrackSummary | null>(null);
+const saveDialogVisible = ref(false);
+const saveName = ref('');
+const saveDescription = ref('');
+const saveSubmitting = ref(false);
+const attachedMap = shallowRef<MapLike | null>(null);
+let clickHandler: ((ev: maplibregl.MapMouseEvent) => void) | null = null;
+let pointerDownHandler: ((ev: PlannerMapPointerEvent) => void) | null = null;
+let pointerMoveHandler: ((ev: PlannerMapPointerEvent) => void) | null = null;
+let pointerUpHandler: ((ev: PlannerMapPointerEvent) => void) | null = null;
+let pointerCancelHandler: ((ev: PlannerMapPointerEvent) => void) | null = null;
+let keydownHandler: ((ev: KeyboardEvent) => void) | null = null;
+let moveHandler: (() => void) | null = null;
+const hoverMarker = shallowRef<MapLike | null>(null);
+const selectedWaypointDeleteMarker = shallowRef<MapLike | null>(null);
+const plannerInteraction = ref<PlannerInteraction | null>(null);
+const selectedWaypointId = ref<string | null>(null);
+let suppressMapClickUntil = 0;
+let suppressMapClickPoint: PlannerScreenPoint | null = null;
+let unwatchRoute: null | (() => void) = null;
+let unwatchWaypoints: null | (() => void) = null;
+let brouterOutsideClickHandler: ((ev: PointerEvent) => void) | null = null;
+const configLoaded = ref(false);
+const brouterExpanded = ref(false);
+
+function clearRouteUpdateHideTimer() {
+  if (routeUpdateHideTimer === undefined) return;
+  window.clearTimeout(routeUpdateHideTimer);
+  routeUpdateHideTimer = undefined;
+}
+
+watch(planner.computing, (computing) => {
+  if (computing) {
+    clearRouteUpdateHideTimer();
+    routeUpdateShownAt = Date.now();
+    routeUpdateVisible.value = true;
+    return;
+  }
+
+  if (!routeUpdateVisible.value) return;
+
+  const elapsedMs = Date.now() - routeUpdateShownAt;
+  const remainingMs = Math.max(ROUTE_UPDATE_MIN_VISIBLE_MS - elapsedMs, 0);
+  clearRouteUpdateHideTimer();
+  routeUpdateHideTimer = window.setTimeout(() => {
+    routeUpdateVisible.value = false;
+    routeUpdateHideTimer = undefined;
+  }, remainingMs);
+});
+
+const brouterNeedsAttention = computed(() => {
+  const s = status.value;
+  return Boolean(s && (!s.available || !s.brouterRunning));
+});
+const brouterBadgeText = computed(() => {
+  if (brouterNeedsAttention.value) return '!';
+  const queued = status.value?.segmentsQueued ?? 0;
+  return queued > 0 ? String(queued) : '';
+});
+const brouterIconClass = computed(() => {
+  return brouterNeedsAttention.value ? 'bi bi-cloud-slash brouter-icon' : 'bi bi-cloud brouter-icon';
+});
+const brouterStatusClass = computed(() => {
+  const s = status.value;
+  if (!s) return 'brouter-pill--checking';
+  if (!s.available || !s.brouterRunning) return 'brouter-pill--danger';
+  if ((s.segmentsQueued ?? 0) > 0 || (s.segmentsInProgress?.length ?? 0) > 0) return 'brouter-pill--warn';
+  return 'brouter-pill--ok';
+});
+const brouterStatusLabel = computed(() => {
+  if (routeUpdateVisible.value) return 'BRouter status: updating route';
+  const s = status.value;
+  if (!s) return 'BRouter status: checking';
+  if (!s.available) return `BRouter status: unavailable${s.reason ? ` (${s.reason})` : ''}`;
+  if (!s.brouterRunning) return 'BRouter status: stopped';
+  const queued = s.segmentsQueued ?? 0;
+  const inProgress = s.segmentsInProgress?.length ?? 0;
+  if (queued > 0 || inProgress > 0) {
+    return `BRouter status: preparing ${queued + inProgress} segment${queued + inProgress === 1 ? '' : 's'}`;
+  }
+  return 'BRouter status: ready';
+});
+const brouterStatusSummary = computed(() => {
+  const s = status.value;
+  if (!s) return 'Checks whether local routing is ready.';
+  if (!s.available) return 'Start the BRouter sidecar, then refresh.';
+  if (!s.brouterRunning) return 'Start BRouter in the backend stack, then refresh.';
+  if ((s.segmentsQueued ?? 0) > 0 || (s.segmentsInProgress?.length ?? 0) > 0) {
+    return 'Preparing map segments for route calculation.';
+  }
+  return 'Calculates routes from your waypoints.';
+});
+const hasSelectedWaypoint = computed(() => {
+  return Boolean(
+    selectedWaypointId.value && planner.waypoints.value.some((waypoint) => waypoint.id === selectedWaypointId.value)
+  );
+});
+
+function isOpen(): boolean {
+  return active.value;
+}
+
+async function toggle() {
+  active.value = !active.value;
+  emit('active-changed', active.value);
+  if (active.value) {
+    emit('tool-opened');
+    if (!configLoaded.value) {
+      await loadConfig();
+      configLoaded.value = true;
+    }
+    attachToMap();
+  } else {
+    detachFromMap();
+  }
+}
+
+function close() {
+  if (!active.value) return;
+  active.value = false;
+  emit('active-changed', false);
+  detachFromMap();
+}
+
+function onSheetClosed() {
+  emit('active-changed', false);
+  emit('tool-closed');
+  detachFromMap();
+}
+
+// ── Config / plans loading ─────────────────────────────────────
+async function loadConfig() {
+  try {
+    const cfg = await fetchPlannerConfig();
+    profiles.value = cfg.profiles.length ? cfg.profiles : ['trekking'];
+    planner.setMaxWaypoints(cfg.maxWaypoints);
+    if (!profiles.value.includes(planner.profile.value)) {
+      planner.setProfile(cfg.defaultProfile);
+    }
+  } catch (e) {
+    console.warn('[planner] failed to load config', e);
+  }
+}
+
+async function saveCurrent() {
+  // Legacy entry point — kept for any external callers; opens the proper dialog.
+  openSaveDialog();
+}
+
+function openSaveDialog() {
+  if (planner.routeCoordinates.value.length < 2) return;
+  saveName.value = saveName.value || suggestedPlanName();
+  saveDescription.value = '';
+  saveDialogVisible.value = true;
+}
+
+function suggestedPlanName(): string {
+  const km = (planner.stats.value.distanceM / 1000).toFixed(1);
+  const date = new Date().toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  return `Plan — ${km} km (${date})`;
+}
+
+async function confirmSave() {
+  const name = saveName.value.trim();
+  if (!name || planner.routeCoordinates.value.length < 2) return;
+  saveSubmitting.value = true;
+  try {
+    await savePlannedRoute({
+      name,
+      description: saveDescription.value.trim() || undefined,
+      profile: planner.profile.value,
+      coordinates: planner.routeCoordinates.value,
+      legs: planner.legs.value,
+      stats: planner.stats.value,
+      waypoints: planner.waypoints.value.map((w: Waypoint) => ({ lat: w.lat, lng: w.lng })),
+    });
+    saveDialogVisible.value = false;
+    saveName.value = '';
+    saveDescription.value = '';
+    // Refresh the saved plans list so next Load tab visit is up-to-date
+    savedPlans.value = await listPlannedTracks().catch(() => []);
+  } finally {
+    saveSubmitting.value = false;
+  }
+}
+
+// ── Load plans ───────────────────────────────────────────────────
+async function switchToLoad() {
+  activeTab.value = 'load';
+  plansLoading.value = true;
+  planActionError.value = '';
+  planDeleteError.value = '';
+  try {
+    savedPlans.value = await listPlannedTracks();
+  } catch {
+    savedPlans.value = [];
+  } finally {
+    plansLoading.value = false;
+  }
+}
+
+async function exportPlanGpx(plan: PlannedTrackSummary) {
+  planActionError.value = '';
+  exportingPlanId.value = plan.id;
+  try {
+    await downloadPlannedTrackGpx(plan.id, plan.name);
+  } catch (e) {
+    console.warn('[planner] failed to export plan as GPX', plan.id, e);
+    planActionError.value = 'Could not export this route as GPX. Please try again.';
+  } finally {
+    exportingPlanId.value = null;
+  }
+}
+
+function openDeleteDialog(plan: PlannedTrackSummary) {
+  if (exportingPlanId.value !== null || deletingPlanId.value !== null) return;
+  planPendingDelete.value = plan;
+  planActionError.value = '';
+  planDeleteError.value = '';
+  deleteDialogVisible.value = true;
+}
+
+async function confirmDeletePlan() {
+  const plan = planPendingDelete.value;
+  if (!plan || deletingPlanId.value !== null) return;
+  planDeleteError.value = '';
+  deletingPlanId.value = plan.id;
+  try {
+    await deletePlannedTrack(plan.id);
+    savedPlans.value = savedPlans.value.filter((savedPlan: PlannedTrackSummary) => savedPlan.id !== plan.id);
+    deleteDialogVisible.value = false;
+    planPendingDelete.value = null;
+    planDeleteError.value = '';
+  } catch (e) {
+    console.warn('[planner] failed to delete plan', plan.id, e);
+    planDeleteError.value = 'Could not delete this saved route. Please try again.';
+  } finally {
+    deletingPlanId.value = null;
+  }
+}
+
+async function selectPlan(id: number) {
+  try {
+    const detail = await loadPlannedTrack(id);
+    planner.loadPlan(detail);
+    activeTab.value = 'draw';
+  } catch (e) {
+    console.warn('[planner] failed to load plan', id, e);
+  }
+}
+
+function formatDate(iso: string): string {
+  if (!iso) return '';
+  return new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function installBrouterOutsideClickHandler() {
+  if (brouterOutsideClickHandler) return;
+  brouterOutsideClickHandler = (ev: PointerEvent) => {
+    const panel = brouterPanel.value as HTMLElement | undefined;
+    if (panel?.contains(ev.target as Node)) return;
+    brouterExpanded.value = false;
+  };
+  document.addEventListener('pointerdown', brouterOutsideClickHandler, true);
+}
+
+function removeBrouterOutsideClickHandler() {
+  if (!brouterOutsideClickHandler) return;
+  document.removeEventListener('pointerdown', brouterOutsideClickHandler, true);
+  brouterOutsideClickHandler = null;
+}
+
+// ── Map integration ─────────────────────────────────────────────
+function attachToMap() {
+  const map = props.map;
+  if (!map) return;
+  if (attachedMap.value === map) return;
+  attachedMap.value = map;
+
+  const addLayers = () => {
+    if (!map.getSource(PLANNER_SOURCE_ID)) {
+      map.addSource(PLANNER_SOURCE_ID, { type: 'geojson', data: routeFeature() as never });
+    }
+    if (!map.getLayer(PLANNER_LAYER_ID)) {
+      map.addLayer({
+        id: PLANNER_LAYER_ID,
+        type: 'line',
+        source: PLANNER_SOURCE_ID,
+        layout: {
+          'line-cap': 'round',
+          'line-join': 'round',
+        },
+        paint: {
+          'line-color': ROUTE_LINE_COLOR,
+          'line-width': ROUTE_LINE_WIDTH_PX,
+          'line-opacity': 0.95,
+        },
+      });
+    }
+    if (!map.getLayer(PLANNER_ROUTE_HIT_LAYER_ID)) {
+      map.addLayer({
+        id: PLANNER_ROUTE_HIT_LAYER_ID,
+        type: 'line',
+        source: PLANNER_SOURCE_ID,
+        layout: {
+          'line-cap': 'round',
+          'line-join': 'round',
+        },
+        paint: {
+          'line-color': ROUTE_LINE_COLOR,
+          'line-width': ROUTE_HIT_LINE_WIDTH_PX,
+          'line-opacity': 0,
+        },
+      });
+    }
+    if (!map.getSource(PLANNER_WAYPOINT_SOURCE_ID)) {
+      map.addSource(PLANNER_WAYPOINT_SOURCE_ID, { type: 'geojson', data: waypointFeature() as never });
+    }
+    if (!map.getLayer(PLANNER_WAYPOINT_DRAG_RING_LAYER_ID)) {
+      const beforeLayerId = map.getLayer(PLANNER_WAYPOINT_LAYER_ID) ? PLANNER_WAYPOINT_LAYER_ID : undefined;
+      map.addLayer(
+        {
+          id: PLANNER_WAYPOINT_DRAG_RING_LAYER_ID,
+          type: 'circle',
+          source: PLANNER_WAYPOINT_SOURCE_ID,
+          paint: {
+            'circle-radius': [
+              'case',
+              ['boolean', ['get', 'dragging'], false],
+              WAYPOINT_DRAGGING_RING_RADIUS_PX,
+              ['boolean', ['get', 'active'], false],
+              WAYPOINT_ACTIVE_RING_RADIUS_PX,
+              0,
+            ],
+            'circle-color': WAYPOINT_DRAG_RING_COLOR,
+            'circle-stroke-color': ROUTE_LINE_COLOR,
+            'circle-stroke-width': ['case', ['boolean', ['get', 'active'], false], 2, 0],
+            'circle-opacity': ['case', ['boolean', ['get', 'active'], false], 1, 0],
+          },
+        },
+        beforeLayerId
+      );
+    }
+    if (!map.getLayer(PLANNER_WAYPOINT_LAYER_ID)) {
+      map.addLayer({
+        id: PLANNER_WAYPOINT_LAYER_ID,
+        type: 'circle',
+        source: PLANNER_WAYPOINT_SOURCE_ID,
+        paint: {
+          'circle-radius': [
+            'case',
+            ['boolean', ['get', 'dragging'], false],
+            WAYPOINT_RADIUS_PX + 1,
+            WAYPOINT_RADIUS_PX,
+          ],
+          'circle-color': WAYPOINT_FILL_COLOR,
+          'circle-stroke-color': WAYPOINT_STROKE_COLOR,
+          'circle-stroke-width': WAYPOINT_STROKE_WIDTH_PX,
+        },
+      });
+    }
+    if (!map.getLayer(PLANNER_WAYPOINT_HIT_LAYER_ID)) {
+      map.addLayer({
+        id: PLANNER_WAYPOINT_HIT_LAYER_ID,
+        type: 'circle',
+        source: PLANNER_WAYPOINT_SOURCE_ID,
+        paint: {
+          'circle-radius': WAYPOINT_TOUCH_HIT_RADIUS_PX,
+          'circle-color': WAYPOINT_STROKE_COLOR,
+          'circle-opacity': 0,
+          'circle-stroke-opacity': 0,
+        },
+      });
+    }
+    syncSources();
+    emitViewport();
+  };
+
+  if (map.isStyleLoaded && map.isStyleLoaded()) {
+    addLayers();
+  } else {
+    map.once('load', addLayers);
+  }
+
+  // Click (add / insert waypoint)
+  clickHandler = (ev: maplibregl.MapMouseEvent) => handleMapClick(ev);
+  map.on('click', clickHandler);
+
+  // Layer-based direct manipulation
+  pointerDownHandler = (ev: PlannerMapPointerEvent) => handleMapPointerDown(ev);
+  pointerMoveHandler = (ev: PlannerMapPointerEvent) => handleMapPointerMove(ev);
+  pointerUpHandler = (ev: PlannerMapPointerEvent) => handleMapPointerUp(ev);
+  pointerCancelHandler = (ev: PlannerMapPointerEvent) => handleMapPointerCancel(ev);
+  map.on('mousedown', pointerDownHandler);
+  map.on('touchstart', pointerDownHandler);
+  map.on('mousemove', pointerMoveHandler);
+  map.on('touchmove', pointerMoveHandler);
+  map.on('mouseup', pointerUpHandler);
+  map.on('touchend', pointerUpHandler);
+  map.on('touchcancel', pointerCancelHandler);
+  keydownHandler = (ev: KeyboardEvent) => handlePlannerKeyDown(ev);
+  window.addEventListener('keydown', keydownHandler);
+
+  // Viewport updates
+  moveHandler = () => emitViewport();
+  map.on('moveend', moveHandler);
+
+  // Watch planner state to re-sync sources.
+  unwatchRoute = watch(
+    () => planner.routeCoordinates.value,
+    () => syncSources(),
+    { deep: true }
+  );
+  unwatchWaypoints = watch(
+    () => planner.waypoints.value,
+    () => syncSources(),
+    { deep: true }
+  );
+}
+
+function detachFromMap() {
+  const map = attachedMap.value;
+  if (unwatchRoute) {
+    unwatchRoute();
+    unwatchRoute = null;
+  }
+  if (unwatchWaypoints) {
+    unwatchWaypoints();
+    unwatchWaypoints = null;
+  }
+  finishPlannerInteraction(false);
+  setMapGestureDragEnabled(true);
+  removeSelectedWaypointDeleteMarker();
+  if (hoverMarker.value) {
+    hoverMarker.value.remove();
+    hoverMarker.value = null;
+  }
+  if (keydownHandler) {
+    window.removeEventListener('keydown', keydownHandler);
+    keydownHandler = null;
+  }
+
+  if (!map) {
+    attachedMap.value = null;
+    return;
+  }
+  if (clickHandler) {
+    map.off('click', clickHandler);
+    clickHandler = null;
+  }
+  if (pointerDownHandler) {
+    map.off('mousedown', pointerDownHandler);
+    map.off('touchstart', pointerDownHandler);
+    pointerDownHandler = null;
+  }
+  if (pointerMoveHandler) {
+    map.off('mousemove', pointerMoveHandler);
+    map.off('touchmove', pointerMoveHandler);
+    pointerMoveHandler = null;
+  }
+  if (pointerUpHandler) {
+    map.off('mouseup', pointerUpHandler);
+    map.off('touchend', pointerUpHandler);
+    pointerUpHandler = null;
+  }
+  if (pointerCancelHandler) {
+    map.off('touchcancel', pointerCancelHandler);
+    pointerCancelHandler = null;
+  }
+  if (moveHandler) {
+    map.off('moveend', moveHandler);
+    moveHandler = null;
+  }
+  try {
+    if (map.getLayer(PLANNER_ROUTE_HIT_LAYER_ID)) map.removeLayer(PLANNER_ROUTE_HIT_LAYER_ID);
+    if (map.getLayer(PLANNER_LAYER_ID)) map.removeLayer(PLANNER_LAYER_ID);
+    if (map.getSource(PLANNER_SOURCE_ID)) map.removeSource(PLANNER_SOURCE_ID);
+    if (map.getLayer(PLANNER_WAYPOINT_HIT_LAYER_ID)) map.removeLayer(PLANNER_WAYPOINT_HIT_LAYER_ID);
+    if (map.getLayer(PLANNER_WAYPOINT_LAYER_ID)) map.removeLayer(PLANNER_WAYPOINT_LAYER_ID);
+    if (map.getLayer(PLANNER_WAYPOINT_DRAG_RING_LAYER_ID)) map.removeLayer(PLANNER_WAYPOINT_DRAG_RING_LAYER_ID);
+    if (map.getSource(PLANNER_WAYPOINT_SOURCE_ID)) map.removeSource(PLANNER_WAYPOINT_SOURCE_ID);
+  } catch {
+    // Map may already be torn down on theme reload — safe to ignore
+  }
+  attachedMap.value = null;
+}
+
+function routeFeature() {
+  return {
+    type: 'FeatureCollection',
+    features: routeFeatureCoordinatesByLeg().map((leg: RouteCoordinate[], legIndex: number) => ({
+      type: 'Feature',
+      properties: { legIndex },
+      geometry: {
+        type: 'LineString',
+        coordinates: leg.map((c: RouteCoordinate) => [c[0], c[1]]),
+      },
+    })),
+  };
+}
+
+function routeFeatureCoordinatesByLeg(): RouteCoordinate[][] {
+  return routeLegCoordinateGroups(planner.legs.value);
+}
+
+function waypointFeature() {
+  const activeWaypointId = plannerInteraction.value?.waypointId ?? null;
+  const draftLngLat =
+    plannerInteraction.value?.mode === 'waypointDragging' ? plannerInteraction.value.lastLngLat : null;
+  return {
+    type: 'FeatureCollection',
+    features: planner.waypoints.value.map((w: Waypoint, index: number) => {
+      const selected = w.id === selectedWaypointId.value;
+      const active = w.id === activeWaypointId || selected;
+      const lngLat = active && draftLngLat ? draftLngLat : w;
+      return {
+        type: 'Feature',
+        properties: {
+          id: w.id,
+          index,
+          active,
+          selected,
+          dragging: active && plannerInteraction.value?.mode === 'waypointDragging',
+        },
+        geometry: { type: 'Point', coordinates: [lngLat.lng, lngLat.lat] },
+      };
+    }),
+  };
+}
+
+function syncSources() {
+  const map = attachedMap.value;
+  if (!map) return;
+  const routeSrc = map.getSource(PLANNER_SOURCE_ID) as maplibregl.GeoJSONSource | undefined;
+  if (routeSrc) routeSrc.setData(routeFeature() as never);
+  const wpSrc = map.getSource(PLANNER_WAYPOINT_SOURCE_ID) as maplibregl.GeoJSONSource | undefined;
+  if (wpSrc) wpSrc.setData(waypointFeature() as never);
+  syncSelectedWaypointDeleteMarker();
+}
+
+function syncSelectedWaypointDeleteMarker() {
+  const map = attachedMap.value;
+  const selectedWaypoint = selectedWaypointId.value
+    ? planner.waypoints.value.find((waypoint: Waypoint) => waypoint.id === selectedWaypointId.value)
+    : null;
+
+  if (!map || !selectedWaypoint || plannerInteraction.value?.mode === 'waypointDragging') {
+    removeSelectedWaypointDeleteMarker();
+    return;
+  }
+
+  if (!selectedWaypointDeleteMarker.value) {
+    const el = document.createElement('button');
+    el.type = 'button';
+    el.className = 'planner-waypoint-delete-marker';
+    el.title = 'Delete waypoint';
+    el.setAttribute('aria-label', 'Delete selected waypoint');
+    el.innerHTML = '<i class="bi bi-x-lg" aria-hidden="true"></i>';
+
+    const stopMapEvent = (ev: Event) => {
+      ev.preventDefault();
+      ev.stopPropagation();
     };
-  },
-  computed: {
-    brouterDotClass(): string {
-      const s = this.status;
-      if (!s || !s.available) return 'brouter-dot--off';
-      if (!s.brouterRunning) return 'brouter-dot--warn';
-      if ((s.segmentsQueued ?? 0) > 0 || (s.segmentsInProgress?.length ?? 0) > 0) return 'brouter-dot--warn';
-      return 'brouter-dot--ok';
-    },
-  },
-  watch: {
-    // Map instance may be swapped out on theme reload — re-attach layers if open.
-    map(newMap: unknown, oldMap: unknown) {
-      const self = this as unknown as {
-        active: boolean;
-        attachedMap: unknown;
-        detachFromMap: () => void;
-        attachToMap: () => void;
-      };
-      if (self.active && oldMap && self.attachedMap === oldMap) {
-        self.detachFromMap();
-      }
-      if (self.active && newMap) {
-        self.attachToMap();
-      }
-    },
-  },
-  beforeUnmount() {
-    this.detachFromMap();
-  },
-  methods: {
-    isOpen(): boolean {
-      return this.active;
-    },
+    const deleteFromMarker = (ev: Event) => {
+      stopMapEvent(ev);
+      suppressNextMapClick(TOUCH_SYNTHETIC_CLICK_SUPPRESSION_MS);
+      deleteSelectedWaypoint();
+    };
+    el.addEventListener('pointerdown', stopMapEvent);
+    el.addEventListener('pointerup', deleteFromMarker);
+    el.addEventListener('mousedown', stopMapEvent);
+    el.addEventListener('touchstart', stopMapEvent, { passive: false });
+    el.addEventListener('touchend', deleteFromMarker, { passive: false });
+    el.addEventListener('click', deleteFromMarker);
 
-    async toggle() {
-      this.active = !this.active;
-      this.$emit('active-changed', this.active);
-      if (this.active) {
-        this.$emit('tool-opened');
-        if (!this.configLoaded) {
-          await this.loadConfig();
-          this.configLoaded = true;
-        }
-        this.attachToMap();
-      } else {
-        this.detachFromMap();
-      }
-    },
+    const MarkerCtor = maplibregl.Marker as unknown as new (options: Record<string, unknown>) => MapLike;
+    selectedWaypointDeleteMarker.value = new MarkerCtor({
+      element: el,
+      anchor: 'left',
+      offset: [14, -2],
+    })
+      .setLngLat([selectedWaypoint.lng, selectedWaypoint.lat])
+      .addTo(map);
+    return;
+  }
 
-    close() {
-      if (!this.active) return;
-      this.active = false;
-      this.$emit('active-changed', false);
-      this.detachFromMap();
-    },
+  selectedWaypointDeleteMarker.value.setLngLat([selectedWaypoint.lng, selectedWaypoint.lat]);
+}
 
-    onSheetClosed() {
-      this.$emit('active-changed', false);
-      this.$emit('tool-closed');
-      this.detachFromMap();
-    },
+function removeSelectedWaypointDeleteMarker() {
+  if (!selectedWaypointDeleteMarker.value) return;
+  selectedWaypointDeleteMarker.value.remove();
+  selectedWaypointDeleteMarker.value = null;
+}
 
-    // ── Config / plans loading ─────────────────────────────────────
-    async loadConfig() {
-      try {
-        const cfg = await fetchPlannerConfig();
-        this.profiles = cfg.profiles.length ? cfg.profiles : ['trekking'];
-        if (!this.profiles.includes(this.planner.profile.value)) {
-          this.planner.setProfile(cfg.defaultProfile);
-        }
-      } catch (e) {
-        console.warn('[planner] failed to load config', e);
-      }
-    },
+function suppressNextMapClick(durationMs = MAP_CLICK_SUPPRESSION_MS, point: PlannerScreenPoint | null = null) {
+  suppressMapClickUntil = Date.now() + durationMs;
+  suppressMapClickPoint = point;
+}
 
-    async saveCurrent() {
-      // Legacy entry point — kept for any external callers; opens the proper dialog.
-      this.openSaveDialog();
-    },
+function isMapClickSuppressed(point: PlannerScreenPoint): boolean {
+  if (Date.now() >= suppressMapClickUntil) return false;
+  if (!suppressMapClickPoint) return true;
+  return distancePx(point, suppressMapClickPoint) <= SYNTHETIC_CLICK_SUPPRESSION_RADIUS_PX;
+}
 
-    openSaveDialog() {
-      if (this.planner.routeCoordinates.value.length < 2) return;
-      this.saveName = this.saveName || this.suggestedPlanName();
-      this.saveDescription = '';
-      this.saveDialogVisible = true;
-    },
+function handleMapPointerDown(ev: PlannerMapPointerEvent) {
+  if (!attachedMap.value || !ev.lngLat || !isPrimaryStartEvent(ev)) return;
+  const pointerKind = pointerKindForEvent(ev);
+  const point = pointFromEvent(ev);
+  const waypointHit = queryWaypointHit(point, pointerKind);
 
-    suggestedPlanName(): string {
-      const km = (this.planner.stats.value.distanceM / 1000).toFixed(1);
-      const date = new Date().toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-      return `Plan — ${km} km (${date})`;
-    },
+  if (waypointHit) {
+    finishPlannerInteraction(false);
+    preventPlannerEvent(ev);
+    suppressNextMapClick(clickSuppressionFor(pointerKind), point);
+    setMapGestureDragEnabled(false);
+    selectedWaypointId.value = waypointHit.id;
+    plannerInteraction.value = {
+      mode: 'waypointPointerDown',
+      pointerKind,
+      startPoint: point,
+      lastLngLat: lngLatFromEvent(ev),
+      waypointId: waypointHit.id,
+      touchId: touchIdentifierForEvent(ev) ?? undefined,
+    };
+    syncSources();
+    return;
+  }
+}
 
-    async confirmSave() {
-      const name = this.saveName.trim();
-      if (!name || this.planner.routeCoordinates.value.length < 2) return;
-      this.saveSubmitting = true;
-      try {
-        await savePlannedRoute({
-          name,
-          description: this.saveDescription.trim() || undefined,
-          profile: this.planner.profile.value,
-          coordinates: this.planner.routeCoordinates.value,
-          waypoints: this.planner.waypoints.value.map((w) => ({ lat: w.lat, lng: w.lng })),
-        });
-        this.saveDialogVisible = false;
-        this.saveName = '';
-        this.saveDescription = '';
-        // Refresh the saved plans list so next Load tab visit is up-to-date
-        this.savedPlans = await listPlannedTracks().catch(() => []);
-      } finally {
-        this.saveSubmitting = false;
-      }
-    },
+function handleMapPointerMove(ev: PlannerMapPointerEvent) {
+  const interaction = plannerInteraction.value;
+  if (!interaction || !eventMatchesInteraction(ev, interaction) || !ev.lngLat) return;
+  const point = pointFromEvent(ev);
+  const movedPx = distancePx(point, interaction.startPoint);
+  const thresholdPx = dragThresholdFor(interaction.pointerKind);
 
-    // ── Load plans ───────────────────────────────────────────────────
-    async switchToLoad() {
-      this.activeTab = 'load';
-      this.plansLoading = true;
-      this.planExportError = '';
-      try {
-        this.savedPlans = await listPlannedTracks();
-      } catch {
-        this.savedPlans = [];
-      } finally {
-        this.plansLoading = false;
-      }
-    },
+  preventPlannerEvent(ev);
+  suppressNextMapClick(clickSuppressionFor(interaction.pointerKind), point);
 
-    async exportPlanGpx(plan: PlannedTrackSummary) {
-      this.planExportError = '';
-      this.exportingPlanId = plan.id;
-      try {
-        await downloadPlannedTrackGpx(plan.id, plan.name);
-      } catch (e) {
-        console.warn('[planner] failed to export plan as GPX', plan.id, e);
-        this.planExportError = 'Could not export this route as GPX. Please try again.';
-      } finally {
-        this.exportingPlanId = null;
-      }
-    },
+  if (interaction.mode === 'waypointPointerDown' && movedPx < thresholdPx) return;
 
-    async selectPlan(id: number) {
-      try {
-        const detail = await loadPlannedTrack(id);
-        this.planner.loadPlan(detail);
-        this.activeTab = 'draw';
-      } catch (e) {
-        console.warn('[planner] failed to load plan', id, e);
-      }
-    },
+  plannerInteraction.value = {
+    ...interaction,
+    mode: 'waypointDragging',
+    lastLngLat: lngLatFromEvent(ev),
+  };
+  syncSources();
+}
 
-    profileIconFor(profile: string | null): string {
-      const map: Record<string, string> = {
-        trekking: 'bi bi-signpost-split',
-        fastbike: 'bi bi-bicycle',
-        'hiking-mountain': 'bi bi-compass',
-        'car-eco': 'bi bi-car-front',
-      };
-      return (profile && map[profile]) || 'bi bi-signpost-split';
-    },
+function handleMapPointerUp(ev: PlannerMapPointerEvent) {
+  const interaction = plannerInteraction.value;
+  if (!interaction || !eventMatchesInteraction(ev, interaction)) return;
 
-    formatDate(iso: string): string {
-      if (!iso) return '';
-      return new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
-    },
+  preventPlannerEvent(ev);
+  suppressNextMapClick(clickSuppressionFor(interaction.pointerKind), pointFromEvent(ev));
 
-    // ── Map integration ─────────────────────────────────────────────
-    attachToMap() {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const map: MapLike | undefined = (this as any).map;
-      if (!map) return;
-      if (this.attachedMap === map) return;
-      this.attachedMap = map;
+  if (interaction.mode === 'waypointDragging') {
+    const lngLat = ev.lngLat ? lngLatFromEvent(ev) : interaction.lastLngLat;
+    finishPlannerInteraction(true, lngLat);
+    return;
+  }
 
-      const addLayers = () => {
-        if (!map.getSource(PLANNER_SOURCE_ID)) {
-          map.addSource(PLANNER_SOURCE_ID, { type: 'geojson', data: this.routeFeature() as never });
-          map.addLayer({
-            id: PLANNER_LAYER_ID,
-            type: 'line',
-            source: PLANNER_SOURCE_ID,
-            paint: {
-              'line-color': ROUTE_LINE_COLOR,
-              'line-width': ROUTE_LINE_WIDTH_PX,
-              'line-opacity': 0.95,
-            },
-          });
-        }
-        if (!map.getSource(PLANNER_WAYPOINT_SOURCE_ID)) {
-          map.addSource(PLANNER_WAYPOINT_SOURCE_ID, { type: 'geojson', data: this.waypointFeature() as never });
-          map.addLayer({
-            id: PLANNER_WAYPOINT_LAYER_ID,
-            type: 'circle',
-            source: PLANNER_WAYPOINT_SOURCE_ID,
-            paint: {
-              'circle-radius': WAYPOINT_RADIUS_PX,
-              'circle-color': WAYPOINT_FILL_COLOR,
-              'circle-stroke-color': WAYPOINT_STROKE_COLOR,
-              'circle-stroke-width': WAYPOINT_STROKE_WIDTH_PX,
-            },
-          });
-        }
-        this.syncSources();
-        this.emitViewport();
-      };
+  finishPlannerInteraction(false);
+}
 
-      if (map.isStyleLoaded && map.isStyleLoaded()) {
-        addLayers();
-      } else {
-        map.once('load', addLayers);
-      }
+function handleMapPointerCancel(ev: PlannerMapPointerEvent) {
+  const interaction = plannerInteraction.value;
+  if (!interaction || !eventMatchesInteraction(ev, interaction)) return;
+  preventPlannerEvent(ev);
+  suppressNextMapClick(clickSuppressionFor(interaction.pointerKind), pointFromEvent(ev));
+  finishPlannerInteraction(false);
+}
 
-      // Click (add / insert waypoint)
-      this.clickHandler = (ev) => this.handleMapClick(ev);
-      map.on('click', this.clickHandler);
+function finishPlannerInteraction(commit: boolean, lngLat?: PlannerLngLat) {
+  const interaction = plannerInteraction.value;
+  if (!interaction) return;
+  const waypointId = interaction.mode === 'waypointDragging' ? interaction.waypointId : undefined;
+  const finalLngLat = lngLat ?? interaction.lastLngLat;
 
-      // Viewport updates
-      this.moveHandler = () => this.emitViewport();
-      map.on('moveend', this.moveHandler);
+  if (commit && waypointId) {
+    planner.moveWaypoint(waypointId, finalLngLat.lat, finalLngLat.lng);
+  }
 
-      // Long-press to add waypoint on touch devices
-      this.touchStartHandler = (ev) => {
-        if (!ev.lngLat) return;
-        this.longPressLngLat = ev.lngLat;
-        this.longPressTimer = window.setTimeout(() => {
-          if (this.longPressLngLat) {
-            this.planner.addWaypoint(this.longPressLngLat.lat, this.longPressLngLat.lng);
-          }
-          this.longPressTimer = null;
-          this.longPressLngLat = null;
-        }, LONG_PRESS_MS);
-      };
-      this.touchCancelHandler = () => {
-        if (this.longPressTimer !== null) window.clearTimeout(this.longPressTimer);
-        this.longPressTimer = null;
-        this.longPressLngLat = null;
-      };
-      map.on('touchstart', this.touchStartHandler);
-      map.on('touchmove', this.touchCancelHandler);
-      map.on('touchend', this.touchCancelHandler);
-      map.on('touchcancel', this.touchCancelHandler);
+  plannerInteraction.value = null;
+  setMapGestureDragEnabled(true);
+  syncSources();
+}
 
-      // Watch planner state to re-sync sources & markers
-      this.unwatchRoute = this.$watch(
-        () => this.planner.routeCoordinates.value,
-        () => this.syncSources(),
-        { deep: true }
-      );
-      this.unwatchWaypoints = this.$watch(
-        () => this.planner.waypoints.value,
-        () => this.syncSources(),
-        { deep: true }
-      );
-    },
+function queryWaypointHit(point: PlannerScreenPoint, pointerKind: PlannerPointerKind): { id: string } | null {
+  const map = attachedMap.value;
+  if (!map?.getLayer?.(PLANNER_WAYPOINT_HIT_LAYER_ID)) return null;
+  const hits = map.queryRenderedFeatures(point, { layers: [PLANNER_WAYPOINT_HIT_LAYER_ID] }) as Array<{
+    properties?: { id?: unknown };
+  }>;
+  const hitRadiusPx = waypointHitRadiusFor(pointerKind);
+  let best: { id: string; distancePx: number } | null = null;
 
-    detachFromMap() {
-      const map = this.attachedMap;
-      if (this.unwatchRoute) {
-        this.unwatchRoute();
-        this.unwatchRoute = null;
-      }
-      if (this.unwatchWaypoints) {
-        this.unwatchWaypoints();
-        this.unwatchWaypoints = null;
-      }
-      if (this.longPressTimer !== null) {
-        window.clearTimeout(this.longPressTimer);
-        this.longPressTimer = null;
-      }
-      this.longPressLngLat = null;
+  for (const hit of hits) {
+    const id = typeof hit.properties?.id === 'string' ? hit.properties.id : '';
+    const waypoint = planner.waypoints.value.find((w: Waypoint) => w.id === id);
+    if (!waypoint) continue;
+    const projected = map.project([waypoint.lng, waypoint.lat]) as PlannerScreenPoint;
+    const waypointDistancePx = distancePx(point, projected);
+    if (waypointDistancePx > hitRadiusPx) continue;
+    if (!best || waypointDistancePx < best.distancePx) best = { id, distancePx: waypointDistancePx };
+  }
 
-      for (const marker of this.dragMarkerMap.values()) marker.remove();
-      this.dragMarkerMap.clear();
-      if (this.hoverMarker) {
-        this.hoverMarker.remove();
-        this.hoverMarker = null;
-      }
+  return best ? { id: best.id } : null;
+}
 
-      if (!map) {
-        this.attachedMap = null;
-        return;
-      }
-      if (this.clickHandler) {
-        map.off('click', this.clickHandler);
-        this.clickHandler = null;
-      }
-      if (this.moveHandler) {
-        map.off('moveend', this.moveHandler);
-        this.moveHandler = null;
-      }
-      if (this.touchStartHandler) {
-        map.off('touchstart', this.touchStartHandler);
-        this.touchStartHandler = null;
-      }
-      if (this.touchCancelHandler) {
-        map.off('touchmove', this.touchCancelHandler);
-        map.off('touchend', this.touchCancelHandler);
-        map.off('touchcancel', this.touchCancelHandler);
-        this.touchCancelHandler = null;
-      }
-      try {
-        if (map.getLayer(PLANNER_LAYER_ID)) map.removeLayer(PLANNER_LAYER_ID);
-        if (map.getSource(PLANNER_SOURCE_ID)) map.removeSource(PLANNER_SOURCE_ID);
-        if (map.getLayer(PLANNER_WAYPOINT_LAYER_ID)) map.removeLayer(PLANNER_WAYPOINT_LAYER_ID);
-        if (map.getSource(PLANNER_WAYPOINT_SOURCE_ID)) map.removeSource(PLANNER_WAYPOINT_SOURCE_ID);
-      } catch {
-        // Map may already be torn down on theme reload — safe to ignore
-      }
-      this.attachedMap = null;
-    },
-
-    routeFeature() {
-      const coords = this.planner.routeCoordinates.value;
+function inspectRouteHit(point: PlannerScreenPoint, pointerKind: PlannerPointerKind): RouteHitDebug {
+  const map = attachedMap.value;
+  const insertRadiusPx = routeInsertRadiusFor(pointerKind);
+  const emptyDebug: RouteHitDebug = {
+    rawHitCount: 0,
+    candidates: [],
+    selectedLegIndex: null,
+    insertRadiusPx,
+  };
+  if (!map?.getLayer?.(PLANNER_ROUTE_HIT_LAYER_ID)) return emptyDebug;
+  const routeLegs = routeFeatureCoordinatesByLeg();
+  const hits = map.queryRenderedFeatures(point, { layers: [PLANNER_ROUTE_HIT_LAYER_ID] }) as RouteHitFeature[];
+  const candidateIndexes = Array.from(
+    new Set(
+      hits
+        .map((hit) => Number(hit.properties?.legIndex))
+        .filter((legIndex) => Number.isInteger(legIndex) && legIndex >= 0 && legIndex < routeLegs.length)
+    )
+  );
+  const project = (coordinate: RouteCoordinate) => map.project([coordinate[0], coordinate[1]]) as PlannerScreenPoint;
+  const selectedLegIndex = nearestRouteLegIndexFromCandidates(
+    point,
+    candidateIndexes,
+    routeLegs,
+    project,
+    insertRadiusPx
+  );
+  return {
+    rawHitCount: hits.length,
+    candidates: candidateIndexes.map((legIndex) => {
+      const coordinates = routeLegs[legIndex];
+      const first = coordinates[0] ?? null;
+      const last = coordinates[coordinates.length - 1] ?? null;
       return {
-        type: 'FeatureCollection',
-        features:
-          coords.length >= 2
-            ? [
-                {
-                  type: 'Feature',
-                  properties: {},
-                  geometry: {
-                    type: 'LineString',
-                    coordinates: coords.map((c) => [c[0], c[1]]),
-                  },
-                },
-              ]
-            : [],
+        legIndex,
+        distancePx: Math.sqrt(distanceToRouteLegSquared(point, coordinates, project)),
+        start: first ? [first[1], first[0]] : null,
+        end: last ? [last[1], last[0]] : null,
       };
-    },
+    }),
+    selectedLegIndex,
+    insertRadiusPx,
+  };
+}
 
-    waypointFeature() {
-      return {
-        type: 'FeatureCollection',
-        features: this.planner.waypoints.value.map((w, index) => ({
-          type: 'Feature',
-          properties: { id: w.id, index },
-          geometry: { type: 'Point', coordinates: [w.lng, w.lat] },
-        })),
-      };
-    },
+function pointerKindForEvent(ev: PlannerMapPointerEvent): PlannerPointerKind {
+  const original = ev.originalEvent as MouseEvent | TouchEvent | undefined;
+  return original && 'changedTouches' in original ? 'touch' : 'mouse';
+}
 
-    syncSources() {
-      const map = this.attachedMap;
-      if (!map) return;
-      const routeSrc = map.getSource(PLANNER_SOURCE_ID) as maplibregl.GeoJSONSource | undefined;
-      if (routeSrc) routeSrc.setData(this.routeFeature() as never);
-      const wpSrc = map.getSource(PLANNER_WAYPOINT_SOURCE_ID) as maplibregl.GeoJSONSource | undefined;
-      if (wpSrc) wpSrc.setData(this.waypointFeature() as never);
-      this.syncDragMarkers();
-    },
+function isPrimaryStartEvent(ev: PlannerMapPointerEvent): boolean {
+  const original = ev.originalEvent as MouseEvent | TouchEvent | undefined;
+  if (!original) return true;
+  if ('button' in original && original.button !== 0) return false;
+  if ('touches' in original && original.touches.length !== 1) return false;
+  return true;
+}
 
-    syncDragMarkers() {
-      const map = this.attachedMap;
-      if (!map) return;
-      const nextIds = new Set(this.planner.waypoints.value.map((w) => w.id));
-      for (const [id, marker] of this.dragMarkerMap) {
-        if (!nextIds.has(id)) {
-          marker.remove();
-          this.dragMarkerMap.delete(id);
-        }
-      }
-      for (const wp of this.planner.waypoints.value) {
-        const existing = this.dragMarkerMap.get(wp.id);
-        if (existing) {
-          existing.setLngLat([wp.lng, wp.lat]);
-          continue;
-        }
-        const el = document.createElement('div');
-        el.className = 'planner-drag-marker';
-        const marker = new maplibregl.Marker({ element: el, draggable: true })
-          .setLngLat([wp.lng, wp.lat])
-          .addTo(map as unknown as maplibregl.Map);
-        marker.on('dragend', () => {
-          const ll = marker.getLngLat();
-          this.planner.moveWaypoint(wp.id, ll.lat, ll.lng);
-        });
-        // @ts-expect-error TS2589 - maplibre Map/Marker types too deep combined with Options API this-type
-        this.dragMarkerMap.set(wp.id, marker as unknown as maplibregl.Marker);
-      }
-    },
+function eventMatchesInteraction(ev: PlannerMapPointerEvent, interaction: PlannerInteraction): boolean {
+  if (pointerKindForEvent(ev) !== interaction.pointerKind) return false;
+  if (interaction.pointerKind === 'mouse' || interaction.touchId === undefined) return true;
+  const original = ev.originalEvent as TouchEvent | undefined;
+  if (!original || !('changedTouches' in original)) return false;
+  return Boolean(
+    touchById(original.changedTouches, interaction.touchId) ?? touchById(original.touches, interaction.touchId)
+  );
+}
 
-    emitViewport() {
-      const map = this.attachedMap;
-      if (!map) return;
-      const b = map.getBounds();
-      const sw = b.getSouthWest();
-      const ne = b.getNorthEast();
-      this.planner.setViewport(sw.lat, sw.lng, ne.lat, ne.lng);
-    },
+function touchIdentifierForEvent(ev: PlannerMapPointerEvent): number | null {
+  const original = ev.originalEvent as TouchEvent | undefined;
+  if (!original || !('changedTouches' in original)) return null;
+  return original.changedTouches.item(0)?.identifier ?? original.touches.item(0)?.identifier ?? null;
+}
 
-    handleMapClick(ev: maplibregl.MapMouseEvent) {
-      const map = this.attachedMap;
-      if (!map) return;
-      if (this.planner.viewportTooLarge.value) return;
-      const routeHits = map.queryRenderedFeatures(ev.point, { layers: [PLANNER_LAYER_ID] });
-      if (routeHits.length > 0 && this.planner.waypoints.value.length >= 2) {
-        const idx = this.nearestWaypointSegmentIndex(ev.lngLat.lng, ev.lngLat.lat);
-        this.planner.insertWaypoint(idx, ev.lngLat.lat, ev.lngLat.lng);
-        return;
-      }
-      this.planner.addWaypoint(ev.lngLat.lat, ev.lngLat.lng);
-    },
+function touchById(touches: TouchList | undefined, id: number): Touch | null {
+  if (!touches) return null;
+  for (let index = 0; index < touches.length; index++) {
+    const touch = touches.item(index);
+    if (touch?.identifier === id) return touch;
+  }
+  return null;
+}
 
-    nearestWaypointSegmentIndex(lng: number, lat: number): number {
-      let bestIndex = 0;
-      let bestScore = Number.POSITIVE_INFINITY;
-      const wps = this.planner.waypoints.value;
-      for (let index = 0; index < wps.length - 1; index++) {
-        const a = wps[index];
-        const b = wps[index + 1];
-        const score = this.distanceToSegmentSquared(lng, lat, a.lng, a.lat, b.lng, b.lat);
-        if (score < bestScore) {
-          bestScore = score;
-          bestIndex = index;
-        }
-      }
-      return bestIndex;
-    },
+function pointFromEvent(ev: PlannerMapPointerEvent): PlannerScreenPoint {
+  const point = ev.point as PlannerScreenPoint;
+  return { x: point.x, y: point.y };
+}
 
-    distanceToSegmentSquared(px: number, py: number, ax: number, ay: number, bx: number, by: number): number {
-      const abx = bx - ax;
-      const aby = by - ay;
-      const apx = px - ax;
-      const apy = py - ay;
-      const ab2 = abx * abx + aby * aby;
-      const t = ab2 === 0 ? 0 : Math.max(0, Math.min(1, (apx * abx + apy * aby) / ab2));
-      const cx = ax + abx * t;
-      const cy = ay + aby * t;
-      const dx = px - cx;
-      const dy = py - cy;
-      return dx * dx + dy * dy;
-    },
+function lngLatFromEvent(ev: PlannerMapPointerEvent): PlannerLngLat {
+  return { lng: ev.lngLat.lng, lat: ev.lngLat.lat };
+}
 
-    onElevationHover(point: { lng: number; lat: number; elevationM: number; distanceM: number } | null) {
-      const map = this.attachedMap;
-      if (!map) return;
-      if (!point) {
-        if (this.hoverMarker) {
-          this.hoverMarker.remove();
-          this.hoverMarker = null;
-        }
-        return;
-      }
-      if (!this.hoverMarker) {
-        const el = document.createElement('div');
-        el.className = 'planner-hover-marker';
-        this.hoverMarker = new maplibregl.Marker({ element: el, anchor: 'center' })
-          .setLngLat([point.lng, point.lat])
-          .addTo(map as unknown as maplibregl.Map);
-      } else {
-        this.hoverMarker.setLngLat([point.lng, point.lat]);
-      }
-    },
-  },
+function distancePx(a: PlannerScreenPoint, b: PlannerScreenPoint): number {
+  return Math.hypot(a.x - b.x, a.y - b.y);
+}
+
+function dragThresholdFor(pointerKind: PlannerPointerKind): number {
+  return pointerKind === 'touch' ? WAYPOINT_TOUCH_DRAG_THRESHOLD_PX : WAYPOINT_MOUSE_DRAG_THRESHOLD_PX;
+}
+
+function waypointHitRadiusFor(pointerKind: PlannerPointerKind): number {
+  return pointerKind === 'touch' ? WAYPOINT_TOUCH_HIT_RADIUS_PX : WAYPOINT_MOUSE_HIT_RADIUS_PX;
+}
+
+function routeInsertRadiusFor(pointerKind: PlannerPointerKind): number {
+  return pointerKind === 'touch' ? ROUTE_TOUCH_INSERT_RADIUS_PX : ROUTE_MOUSE_INSERT_RADIUS_PX;
+}
+
+function clickSuppressionFor(pointerKind: PlannerPointerKind): number {
+  return pointerKind === 'touch' ? TOUCH_SYNTHETIC_CLICK_SUPPRESSION_MS : MAP_CLICK_SUPPRESSION_MS;
+}
+
+function preventPlannerEvent(ev: PlannerMapPointerEvent) {
+  ev.preventDefault();
+  ev.originalEvent?.preventDefault?.();
+  ev.originalEvent?.stopPropagation?.();
+}
+
+function setMapGestureDragEnabled(enabled: boolean) {
+  const map = attachedMap.value;
+  if (!map) return;
+  const method = enabled ? 'enable' : 'disable';
+  map.dragPan?.[method]?.();
+  map.touchZoomRotate?.[method]?.();
+}
+
+function emitViewport() {
+  const map = attachedMap.value;
+  if (!map) return;
+  const b = map.getBounds();
+  const sw = b.getSouthWest();
+  const ne = b.getNorthEast();
+  planner.setViewport(sw.lat, sw.lng, ne.lat, ne.lng);
+}
+
+function handleMapClick(ev: maplibregl.MapMouseEvent) {
+  if (!attachedMap.value || plannerInteraction.value) return;
+  const pointerKind = pointerKindForEvent(ev);
+  const point = pointFromEvent(ev);
+  const suppressed = isMapClickSuppressed(point);
+  const waypointHit = suppressed ? null : queryWaypointHit(point, pointerKind);
+  const routeHit =
+    !suppressed && !waypointHit && !planner.viewportTooLarge.value ? inspectRouteHit(point, pointerKind) : null;
+  const waypointsBefore = planner.waypoints.value.map((w: Waypoint, index: number) => ({
+    index,
+    lat: w.lat,
+    lng: w.lng,
+  }));
+  let action: 'suppressed' | 'waypoint-hit' | 'blocked-viewport' | 'route-insert' | 'append' = 'append';
+
+  if (suppressed) {
+    action = 'suppressed';
+  } else if (waypointHit) {
+    action = 'waypoint-hit';
+  } else if (planner.viewportTooLarge.value) {
+    action = 'blocked-viewport';
+  } else if (routeHit?.selectedLegIndex !== null && routeHit?.selectedLegIndex !== undefined) {
+    action = 'route-insert';
+  }
+
+  debugPlannerInteraction('click', {
+    action,
+    pointerKind,
+    screenPoint: point,
+    lngLat: { lat: ev.lngLat.lat, lng: ev.lngLat.lng },
+    suppressed,
+    suppressMapClickUntil: suppressMapClickUntil,
+    suppressMapClickPoint: suppressMapClickPoint,
+    waypointHit,
+    routeHit,
+    viewportTooLarge: planner.viewportTooLarge.value,
+    routeLegCount: routeFeatureCoordinatesByLeg().length,
+    waypointCountBefore: planner.waypoints.value.length,
+    waypointsBefore,
+  });
+
+  if (suppressed) return;
+  if (waypointHit) {
+    selectedWaypointId.value = waypointHit.id;
+    suppressNextMapClick(clickSuppressionFor(pointerKind), point);
+    syncSources();
+    return;
+  }
+  if (planner.viewportTooLarge.value) return;
+  const routeLegIndex = routeHit?.selectedLegIndex ?? null;
+  if (routeLegIndex !== null) {
+    selectedWaypointId.value = null;
+    planner.insertWaypoint(routeLegIndex, ev.lngLat.lat, ev.lngLat.lng);
+    debugPlannerInteraction('click-result', {
+      action,
+      insertedAfterLegIndex: routeLegIndex,
+      waypointCountAfter: planner.waypoints.value.length,
+      waypointsAfter: planner.waypoints.value.map((w: Waypoint, index: number) => ({ index, lat: w.lat, lng: w.lng })),
+    });
+    return;
+  }
+  selectedWaypointId.value = null;
+  planner.addWaypoint(ev.lngLat.lat, ev.lngLat.lng);
+  debugPlannerInteraction('click-result', {
+    action,
+    waypointCountAfter: planner.waypoints.value.length,
+    waypointsAfter: planner.waypoints.value.map((w: Waypoint, index: number) => ({ index, lat: w.lat, lng: w.lng })),
+  });
+}
+
+function debugPlannerInteraction(label: string, payload: Record<string, unknown>) {
+  if (!PLANNER_INTERACTION_DEBUG) return;
+  console.info(`[planner-interaction] ${label}`, payload);
+}
+
+function deleteSelectedWaypoint() {
+  const waypointId = selectedWaypointId.value;
+  if (!waypointId || !planner.waypoints.value.some((waypoint: Waypoint) => waypoint.id === waypointId)) return;
+  planner.removeWaypoint(waypointId);
+  selectedWaypointId.value = null;
+  finishPlannerInteraction(false);
+  syncSources();
+}
+
+function clearRoute() {
+  selectedWaypointId.value = null;
+  planner.clearAll();
+  finishPlannerInteraction(false);
+  syncSources();
+}
+
+function handlePlannerKeyDown(ev: KeyboardEvent) {
+  if (!active.value || !hasSelectedWaypoint.value) return;
+  if (ev.key !== 'Backspace' && ev.key !== 'Delete') return;
+  if (isEditableKeyboardTarget(ev.target)) return;
+  ev.preventDefault();
+  deleteSelectedWaypoint();
+}
+
+function isEditableKeyboardTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false;
+  const tagName = target.tagName.toLowerCase();
+  return tagName === 'input' || tagName === 'textarea' || tagName === 'select' || target.isContentEditable;
+}
+
+function onElevationHover(point: { lng: number; lat: number; elevationM: number; distanceM: number } | null) {
+  const map = attachedMap.value;
+  if (!map) return;
+  if (!point) {
+    if (hoverMarker.value) {
+      hoverMarker.value.remove();
+      hoverMarker.value = null;
+    }
+    return;
+  }
+  if (!hoverMarker.value) {
+    const el = document.createElement('div');
+    el.className = 'planner-hover-marker';
+    const marker = new maplibregl.Marker({ element: el, anchor: 'center' });
+    marker.setLngLat([point.lng, point.lat]);
+    marker.addTo(map as unknown as maplibregl.Map);
+    hoverMarker.value = marker;
+  } else {
+    hoverMarker.value.setLngLat([point.lng, point.lat]);
+  }
+}
+watch(
+  () => props.map,
+  (newMap, oldMap) => {
+    if (active.value && oldMap && attachedMap.value === oldMap) {
+      detachFromMap();
+    }
+    if (active.value && newMap) {
+      attachToMap();
+    }
+  }
+);
+
+watch(brouterExpanded, (expanded) => {
+  if (expanded) installBrouterOutsideClickHandler();
+  else removeBrouterOutsideClickHandler();
+});
+
+watch(deleteDialogVisible, (visible) => {
+  if (visible || deletingPlanId.value !== null) return;
+  planPendingDelete.value = null;
+  planDeleteError.value = '';
+});
+
+onBeforeUnmount(() => {
+  clearRouteUpdateHideTimer();
+  removeBrouterOutsideClickHandler();
+  detachFromMap();
+});
+
+defineExpose({
+  isOpen,
+  toggle,
+  close,
+  saveCurrent,
 });
 </script>
 
@@ -848,7 +1544,9 @@ export default defineComponent({
   font-size: var(--text-sm-size);
   font-weight: 600;
   cursor: pointer;
-  transition: background 0.15s, color 0.15s;
+  transition:
+    background 0.15s,
+    color 0.15s;
   white-space: nowrap;
   line-height: var(--text-sm-lh);
 }
@@ -883,25 +1581,37 @@ export default defineComponent({
   color: var(--text-muted);
   font-size: var(--text-sm-size);
   line-height: var(--text-sm-lh);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 /* ── Controls row ──────────────────────────────────────────────── */
 .planner-controls-row {
   display: grid;
-  grid-template-columns: 1fr auto 1fr;
+  grid-template-columns: max-content max-content minmax(13rem, 1fr);
   align-items: center;
-  gap: 0.5rem;
+  column-gap: clamp(0.6rem, 1.8vw, 1.5rem);
+  row-gap: 0.55rem;
+}
+.planner-control-group {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+.planner-control-group--profile {
+  justify-content: flex-start;
+}
+.planner-control-group--hint {
+  justify-content: center;
+}
+.planner-control-group--actions {
+  justify-content: center;
 }
 .planner-actions {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 0.25rem;
-}
-.planner-controls-right {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 0.4rem;
 }
 .planner-action-btn {
   display: inline-flex;
@@ -915,7 +1625,9 @@ export default defineComponent({
   color: var(--accent-text);
   font-size: var(--text-sm-size);
   cursor: pointer;
-  transition: background 0.12s, color 0.12s;
+  transition:
+    background 0.12s,
+    color 0.12s;
   flex-shrink: 0;
 }
 .planner-action-btn:hover:not(:disabled) {
@@ -947,7 +1659,9 @@ export default defineComponent({
   animation: planner-spin 1s linear infinite;
 }
 @keyframes planner-spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 .planner-load-empty {
   display: flex;
@@ -1016,8 +1730,12 @@ export default defineComponent({
 .planner-plan-open:hover {
   background: var(--accent-subtle);
 }
+.planner-plan-open:disabled {
+  opacity: 0.65;
+  cursor: wait;
+}
 .planner-plan-open:focus-visible,
-.planner-plan-export:focus-visible {
+.planner-plan-action:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
@@ -1055,30 +1773,52 @@ export default defineComponent({
   white-space: nowrap;
   flex-shrink: 0;
 }
-.planner-plan-export {
+.planner-plan-actions {
+  display: flex;
+  align-items: stretch;
+  gap: 0.35rem;
+  flex-shrink: 0;
+}
+.planner-plan-action {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 0.35rem;
-  width: 4.8rem;
   min-height: 2.75rem;
-  border: 1px solid var(--accent);
+  border: 1px solid var(--border-default);
   border-radius: 8px;
   background: var(--surface-glass-heavy);
-  color: var(--accent-text);
   font-size: var(--text-xs-size);
   line-height: var(--text-xs-lh);
   font-weight: 700;
   cursor: pointer;
-  transition: background 0.12s, color 0.12s, border-color 0.12s;
+  transition:
+    background 0.12s,
+    color 0.12s,
+    border-color 0.12s;
   flex-shrink: 0;
+}
+.planner-plan-action:disabled {
+  opacity: 0.65;
+  cursor: wait;
+}
+.planner-plan-export {
+  width: 4.8rem;
+  border-color: var(--accent);
+  color: var(--accent-text);
 }
 .planner-plan-export:hover:not(:disabled) {
   background: var(--accent-subtle);
 }
-.planner-plan-export:disabled {
-  opacity: 0.65;
-  cursor: wait;
+.planner-plan-delete {
+  width: 2.75rem;
+  border-color: color-mix(in srgb, var(--error) 34%, var(--border-default));
+  color: var(--error);
+  background: color-mix(in srgb, var(--error-bg) 74%, var(--surface-glass-heavy));
+}
+.planner-plan-delete:hover:not(:disabled) {
+  background: var(--error-bg);
+  border-color: var(--error);
 }
 .planner-notices {
   display: flex;
@@ -1117,60 +1857,129 @@ export default defineComponent({
 .brouter-pill-wrap {
   position: relative;
   flex-shrink: 0;
-  justify-self: end;
 }
 .brouter-pill {
+  position: relative;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 0.35rem;
-  padding: 0.55rem 0.8rem;
-  border-radius: 999px;
+  width: var(--bs-btn-size, 2.4rem);
+  height: var(--bs-btn-size, 2.4rem);
+  padding: 0;
+  border-radius: 50%;
   border: 1px solid var(--border-default);
   font-size: var(--text-xs-size);
   line-height: var(--text-xs-lh);
   color: var(--text-secondary);
   background: var(--surface-glass-subtle);
   cursor: pointer;
+  overflow: visible;
+}
+.brouter-pill::after {
+  content: '';
+  position: absolute;
+  inset: -0.55rem;
 }
 .brouter-pill:hover {
   background: var(--surface-glass-heavy);
 }
-.brouter-chevron {
-  font-size: 9px;
-  opacity: 0.6;
+.brouter-pill--danger:hover {
+  background: color-mix(in srgb, var(--error) 16%, var(--surface-glass-heavy));
 }
-.brouter-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 999px;
-  flex-shrink: 0;
+.brouter-pill--icon {
+  color: var(--text-muted);
+  font-size: var(--bs-btn-fs-icon, var(--text-xs-size));
 }
-.brouter-dot--ok {
-  background: var(--success);
+.brouter-icon {
+  position: relative;
+  z-index: 1;
 }
-.brouter-dot--warn {
-  background: var(--warning);
+.brouter-pill--ok {
+  color: var(--success);
+  border-color: color-mix(in srgb, var(--success) 26%, var(--border-default));
+  background: color-mix(in srgb, var(--success) 7%, var(--surface-glass-subtle));
 }
-.brouter-dot--off {
-  background: var(--text-muted);
-  opacity: 0.5;
+.brouter-pill--warn {
+  color: var(--warning);
+  border-color: color-mix(in srgb, var(--warning) 35%, var(--border-default));
+  background: color-mix(in srgb, var(--warning) 9%, var(--surface-glass-subtle));
 }
-.brouter-label {
-  font-size: var(--text-xs-size);
+.brouter-pill--checking {
+  color: var(--text-muted);
+  border-color: var(--border-default);
+  background: var(--surface-glass-subtle);
+}
+.brouter-pill--danger {
+  color: var(--error);
+  border-color: color-mix(in srgb, var(--error) 70%, var(--border-default));
+  background: color-mix(in srgb, var(--error) 13%, var(--surface-glass-heavy));
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--error) 22%, transparent),
+    0 0.45rem 1rem color-mix(in srgb, var(--error) 22%, transparent);
+  animation: brouter-danger-pulse 1.35s ease-in-out infinite;
+}
+.brouter-pill--updating {
+  color: var(--accent-text);
+  border-color: color-mix(in srgb, var(--accent) 42%, var(--border-default));
+  background: color-mix(in srgb, var(--accent) 10%, var(--surface-glass-subtle));
+}
+.brouter-pill--updating .brouter-icon {
+  animation: planner-cloud-pulse 0.95s ease-in-out infinite;
+}
+@keyframes planner-cloud-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.72;
+  }
+  50% {
+    transform: scale(1.12);
+    opacity: 1;
+  }
+}
+@keyframes brouter-danger-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    box-shadow:
+      0 0 0 2px color-mix(in srgb, var(--error) 20%, transparent),
+      0 0.45rem 1rem color-mix(in srgb, var(--error) 20%, transparent);
+  }
+  50% {
+    transform: scale(1.08);
+    box-shadow:
+      0 0 0 5px color-mix(in srgb, var(--error) 13%, transparent),
+      0 0.55rem 1.2rem color-mix(in srgb, var(--error) 27%, transparent);
+  }
 }
 .brouter-badge {
+  position: absolute;
+  top: -0.4rem;
+  right: -0.45rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1rem;
+  height: 1rem;
   background: var(--warning);
   color: var(--text-inverse);
   border-radius: 999px;
-  padding: 0 4px;
+  padding: 0 0.25rem;
   font-size: var(--text-2xs-size);
   line-height: var(--text-2xs-lh);
   font-weight: 700;
+  z-index: 3;
+}
+.brouter-badge--danger {
+  background: var(--error);
+  color: var(--text-inverse);
+  border: 2px solid var(--surface-glass-heavy);
 }
 .brouter-detail {
   position: absolute;
   right: 0;
-  top: calc(100% + 5px);
+  top: calc(100% + 0.7rem);
   z-index: 50;
   padding: 0.6rem 0.75rem;
   border: 1px solid var(--border-default);
@@ -1180,6 +1989,15 @@ export default defineComponent({
   line-height: var(--text-xs-lh);
   color: var(--text-secondary);
   min-width: 220px;
+}
+.brouter-detail--header {
+  width: min(18rem, calc(100vw - 1.5rem));
+}
+.brouter-detail-summary {
+  margin: 0 0 0.55rem;
+  color: var(--text-secondary);
+  font-size: var(--text-xs-size);
+  line-height: var(--text-xs-lh);
 }
 .brouter-detail-body {
   display: flex;
@@ -1264,6 +2082,31 @@ export default defineComponent({
 .planner-dialog-meta i {
   margin-right: 0.2rem;
 }
+.planner-delete-copy {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: var(--text-sm-size);
+  line-height: var(--text-sm-lh);
+}
+.planner-delete-copy strong {
+  color: var(--text-primary);
+  font-weight: 700;
+}
+
+@media (max-width: 960px) {
+  .planner-controls-row {
+    grid-template-columns: max-content max-content minmax(0, 1fr);
+  }
+  .planner-control-group--actions {
+    grid-column: 2;
+    grid-row: 1;
+  }
+  .planner-control-group--hint {
+    grid-column: 3;
+    grid-row: 1;
+    justify-content: flex-start;
+  }
+}
 
 @media (max-width: 640px) {
   .planner-panel {
@@ -1271,7 +2114,21 @@ export default defineComponent({
     padding-bottom: 0.85rem;
   }
   .planner-controls-row {
-    align-items: stretch;
+    grid-template-columns: minmax(0, 1fr) max-content;
+    align-items: center;
+  }
+  .planner-control-group--profile {
+    grid-column: 1;
+    grid-row: 1;
+  }
+  .planner-control-group--actions {
+    grid-column: 2;
+    grid-row: 1;
+    justify-content: flex-end;
+  }
+  .planner-control-group--hint {
+    grid-column: 1 / -1;
+    grid-row: 2;
   }
   .planner-plan-item {
     gap: 0.35rem;
@@ -1284,38 +2141,44 @@ export default defineComponent({
   .planner-plan-date {
     align-self: flex-start;
   }
+  .planner-plan-actions {
+    gap: 0.3rem;
+  }
   .planner-plan-export {
     width: 4.2rem;
   }
-  .brouter-pill-wrap {
-    width: 100%;
-  }
-  .brouter-pill {
-    width: 100%;
-    justify-content: center;
+  .planner-plan-delete {
+    width: 2.65rem;
   }
   .brouter-detail {
-    left: 0;
-    right: auto;
-    width: min(100%, 320px);
+    right: -0.1rem;
+  }
+}
+
+@media (max-width: 420px) {
+  .planner-actions {
+    gap: 0.2rem;
+  }
+  .planner-action-btn {
+    width: 2.25rem;
+    height: 2.25rem;
+  }
+}
+
+@media (max-width: 360px) {
+  .planner-control-group--actions {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    justify-content: center;
+  }
+  .planner-control-group--hint {
+    grid-column: 1 / -1;
+    grid-row: 3;
   }
 }
 </style>
 
 <style>
-/* Global: drag marker is rendered on body via maplibre — scoped CSS does not apply */
-.planner-drag-marker {
-  width: 18px;
-  height: 18px;
-  border-radius: 999px;
-  border: 3px solid #ff5722;
-  background: var(--slider-handle);
-  cursor: grab;
-}
-.planner-drag-marker:active {
-  cursor: grabbing;
-}
-
 /* Transient marker tracking the elevation-profile cursor. */
 .planner-hover-marker {
   width: 14px;
@@ -1325,5 +2188,35 @@ export default defineComponent({
   border: 2px solid var(--slider-handle);
   outline: 2px solid rgba(255, 87, 34, 0.28);
   pointer-events: none;
+}
+
+.planner-waypoint-delete-marker {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.7rem;
+  height: 1.7rem;
+  border: 1px solid color-mix(in srgb, #dc2626 42%, var(--border-default));
+  border-radius: 999px;
+  background: color-mix(in srgb, #ffffff 92%, #fee2e2);
+  color: #dc2626;
+  box-shadow: 0 0.25rem 0.8rem rgba(15, 23, 42, 0.2);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.planner-waypoint-delete-marker::after {
+  content: '';
+  position: absolute;
+  inset: -0.45rem;
+  border-radius: 999px;
+}
+.planner-waypoint-delete-marker:hover {
+  background: #fee2e2;
+  border-color: #dc2626;
+}
+.planner-waypoint-delete-marker i {
+  font-size: 0.72rem;
+  line-height: 1;
 }
 </style>

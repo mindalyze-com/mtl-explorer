@@ -4,10 +4,10 @@
     <SelectButton
       :model-value="modelValue"
       :options="options"
-      optionLabel="label"
-      optionValue="value"
-      @update:model-value="onUpdate"
+      option-label="label"
+      option-value="value"
       aria-label="Track browser quick views"
+      @update:model-value="onUpdate"
     />
   </div>
 </template>
@@ -15,7 +15,7 @@
 <script setup lang="ts">
 import type { TrackBrowserOption, TrackBrowserPreset } from './trackBrowser.types';
 
-const props = defineProps<{
+defineProps<{
   modelValue: TrackBrowserPreset;
   options: TrackBrowserOption<TrackBrowserPreset>[];
 }>();

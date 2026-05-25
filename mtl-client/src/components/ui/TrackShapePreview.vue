@@ -1,15 +1,6 @@
 <template>
-  <div
-    ref="containerRef"
-    class="track-shape-preview"
-    :style="{ width: width + 'px', height: height + 'px' }"
-  >
-    <svg
-      v-if="svgPath"
-      :viewBox="viewBox"
-      class="track-shape-preview__svg"
-      preserveAspectRatio="xMidYMid meet"
-    >
+  <div ref="containerRef" class="track-shape-preview" :style="{ width: width + 'px', height: height + 'px' }">
+    <svg v-if="svgPath" :viewBox="viewBox" class="track-shape-preview__svg" preserveAspectRatio="xMidYMid meet">
       <path
         :d="svgPath"
         fill="none"
@@ -28,21 +19,24 @@ import { ref, onMounted, onBeforeUnmount, watch } from 'vue';
 import { geoMercator, geoPath } from 'd3-geo';
 import { readBestCachedTrackShape } from '@/utils/tracks/trackCollectionLoader';
 
-const props = withDefaults(defineProps<{
-  trackId: number;
-  width?: number;
-  height?: number;
-  lineColor?: string;
-  lineWidth?: number;
-  /** Padding in SVG user units around the fitted shape */
-  padding?: number;
-}>(), {
-  width: 80,
-  height: 60,
-  lineColor: '#4c4fcd',
-  lineWidth: 2,
-  padding: 6,
-});
+const props = withDefaults(
+  defineProps<{
+    trackId: number;
+    width?: number;
+    height?: number;
+    lineColor?: string;
+    lineWidth?: number;
+    /** Padding in SVG user units around the fitted shape */
+    padding?: number;
+  }>(),
+  {
+    width: 80,
+    height: 60,
+    lineColor: '#4c4fcd',
+    lineWidth: 2,
+    padding: 6,
+  }
+);
 
 const containerRef = ref<HTMLElement | null>(null);
 const svgPath = ref<string | null>(null);
@@ -65,7 +59,10 @@ function buildSvgPath(coordinates: number[][]) {
   };
 
   // Compute bounding box of coordinates
-  let minLng = Infinity, maxLng = -Infinity, minLat = Infinity, maxLat = -Infinity;
+  let minLng = Infinity,
+    maxLng = -Infinity,
+    minLat = Infinity,
+    maxLat = -Infinity;
   for (const c of coordinates) {
     if (c[0] < minLng) minLng = c[0];
     if (c[0] > maxLng) maxLng = c[0];
@@ -79,8 +76,11 @@ function buildSvgPath(coordinates: number[][]) {
 
   // Use d3 geoMercator projection fitted to our SVG dimensions
   const projection = geoMercator().fitExtent(
-    [[pad, pad], [pad + drawW, pad + drawH]],
-    geojson,
+    [
+      [pad, pad],
+      [pad + drawW, pad + drawH],
+    ],
+    geojson
   );
 
   const pathGenerator = geoPath(projection);
@@ -118,7 +118,7 @@ onMounted(() => {
         observer = null;
       }
     },
-    { rootMargin: '100px' }, // Start loading slightly before visible
+    { rootMargin: '100px' } // Start loading slightly before visible
   );
   observer.observe(containerRef.value);
 });
@@ -129,11 +129,14 @@ onBeforeUnmount(() => {
 });
 
 // Re-render if trackId changes (e.g., reuse in v-for)
-watch(() => props.trackId, () => {
-  loaded = false;
-  svgPath.value = null;
-  loadAndRender();
-});
+watch(
+  () => props.trackId,
+  () => {
+    loaded = false;
+    svgPath.value = null;
+    loadAndRender();
+  }
+);
 </script>
 
 <style scoped>
@@ -152,6 +155,8 @@ watch(() => props.trackId, () => {
 }
 
 @keyframes track-shape-fadein {
-  to { opacity: 1; }
+  to {
+    opacity: 1;
+  }
 }
 </style>

@@ -1,5 +1,6 @@
 package com.x8ing.mtl.server.mtlserver.energy;
 
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.x8ing.mtl.server.mtlserver.db.entity.config.ConfigEntity;
 import com.x8ing.mtl.server.mtlserver.db.entity.gps.GpsTrack;
 import com.x8ing.mtl.server.mtlserver.db.entity.gps.GpsTrackData;
@@ -38,6 +39,13 @@ import java.util.List;
  */
 @Service
 @Slf4j
+@JsonPropertyOrder({
+        "calculatorFactory",
+        "configRepository",
+        "gpsTrackRepository",
+        "gpsTrackDataRepository",
+        "gpsTrackDataPointRepository"
+})
 public class EnergyService {
 
     /**
@@ -51,9 +59,14 @@ public class EnergyService {
     private static final double MIN_SEGMENT_DURATION_SEC = 1.0;
 
     /**
-     * Maximum plausible instantaneous mechanical power (W). Clamps GPS-artifact outliers.
+     * Rolling window used for robust estimated-power display metrics.
      */
-    private static final double MAX_POWER_WATTS = 2500.0;
+    private static final double POWER_ROLLING_WINDOW_SEC = 30.0;
+
+    /**
+     * A gap at or above this duration marks a stop/gap boundary for power reliability checks.
+     */
+    private static final double POWER_STOP_BOUNDARY_GAP_SEC = 30.0;
 
     /**
      * Conversion factor: 1 Wh = 3600 J.
@@ -93,7 +106,15 @@ public class EnergyService {
             || powersWatts.length == 0 || powersWatts.length != durationsSec.length) {
             return 0;
         }
-        final double WINDOW_SEC = 30.0;
+        return computeThirtySecondPowerStats(powersWatts, durationsSec).normalizedPowerWatts;
+    }
+
+    static PowerWindowStats computeThirtySecondPowerStats(double[] powersWatts, double[] durationsSec) {
+        if (powersWatts == null || durationsSec == null
+            || powersWatts.length == 0 || powersWatts.length != durationsSec.length) {
+            return new PowerWindowStats(0, 0);
+        }
+
         final int n = powersWatts.length;
 
         double winPowerDuration = 0; // Σ power_k × duration_k over the window
@@ -102,6 +123,7 @@ public class EnergyService {
 
         double weightedFourthPowerSum = 0;
         double totalDuration = 0;
+        double maxRollingPower = 0;
 
         for (int i = 0; i < n; i++) {
             double d = durationsSec[i] > 0 ? durationsSec[i] : 0;
@@ -112,7 +134,7 @@ public class EnergyService {
             // Shrink the window from the front so it spans ~30 s of trailing data.
             while (windowStart < i) {
                 double headD = durationsSec[windowStart] > 0 ? durationsSec[windowStart] : 0;
-                if (winDuration - headD >= WINDOW_SEC) {
+                if (winDuration - headD >= POWER_ROLLING_WINDOW_SEC) {
                     double headP = powersWatts[windowStart] > 0 ? powersWatts[windowStart] : 0;
                     winPowerDuration -= headP * headD;
                     winDuration -= headD;
@@ -123,18 +145,37 @@ public class EnergyService {
             }
 
             // Skip warm-up: require the trailing window to be fully populated before
-            // contributing to the NP integral.
-            if (winDuration >= WINDOW_SEC && d > 0) {
+            // contributing to the display series or NP integral.
+            if (winDuration >= POWER_ROLLING_WINDOW_SEC && d > 0) {
                 double rollingAvg = winPowerDuration / winDuration;
+                if (rollingAvg > maxRollingPower) maxRollingPower = rollingAvg;
+
                 double avg4 = rollingAvg * rollingAvg * rollingAvg * rollingAvg;
                 weightedFourthPowerSum += avg4 * d;
                 totalDuration += d;
             }
         }
 
-        if (totalDuration <= 0) return 0;
-        double mean4 = weightedFourthPowerSum / totalDuration;
-        return Math.pow(mean4, 0.25);
+        double normalizedPower = 0;
+        if (totalDuration > 0) {
+            double mean4 = weightedFourthPowerSum / totalDuration;
+            normalizedPower = Math.pow(mean4, 0.25);
+        }
+        return new PowerWindowStats(maxRollingPower, normalizedPower);
+    }
+
+    @JsonPropertyOrder({
+            "maxRollingPowerWatts",
+            "normalizedPowerWatts"
+    })
+    static class PowerWindowStats {
+        private final double maxRollingPowerWatts;
+        private final double normalizedPowerWatts;
+
+        PowerWindowStats(double maxRollingPowerWatts, double normalizedPowerWatts) {
+            this.maxRollingPowerWatts = maxRollingPowerWatts;
+            this.normalizedPowerWatts = normalizedPowerWatts;
+        }
     }
 
     private final EnergyCalculatorFactory calculatorFactory;
@@ -211,7 +252,7 @@ public class EnergyService {
     /**
      * Calculate energy for each point in the list and populate the energy fields on each point.
      * Physics formulas produce Joules internally; values are converted to Wh before storing.
-     * Also computes energyCumulativeWh and powerWatts per point.
+     * Also computes energyCumulativeWh, raw powerWatts and rolling powerWatts30s per point.
      * It returns a high-precision `TrackEnergySummary` that avoids rounding errors.
      *
      * @param points       ordered list of track data points (must have distance/elevation/speed already calculated)
@@ -225,6 +266,7 @@ public class EnergyService {
         }
 
         EnergyCalculator calculator = calculatorFactory.getCalculator(activityType);
+        double maxPowerWatts = calculator.getMaxPowerWatts();
 
         // Inject a track-level average speed fallback so aero/kinetic still work on GPX files
         // without per-point timestamps (or when moving-window speed is absent). See
@@ -256,9 +298,14 @@ public class EnergyService {
         java.util.Date movingSectionEnd = null;
         double movingTimeSec = 0;
 
-        GpsTrackDataPoint prev = null;
-        for (GpsTrackDataPoint current : points) {
+        for (int i = 0; i < points.size(); i++) {
+            GpsTrackDataPoint current = points.get(i);
+            GpsTrackDataPoint prev = i > 0 ? points.get(i - 1) : null;
             EnergyComponents ec = calculator.calculateBetweenPoints(current, prev, effectiveParams);
+            boolean unreliableStopBoundaryPower = isUnreliableStopBoundaryPower(points, i);
+            if (unreliableStopBoundaryPower) {
+                suppressSpeedDerivedArtifacts(ec);
+            }
 
             // Accumulate raw Joules
             if (ec.getGravitationalJoules() > 0) cumulativeGravAscentJoules += ec.getGravitationalJoules();
@@ -289,9 +336,9 @@ public class EnergyService {
             Double duration = current.getDurationBetweenPointsInSec();
             double pointPowerW = 0;
             double pointDurationS = 0;
-            if (duration != null && duration >= MIN_SEGMENT_DURATION_SEC && segmentTotalJoules > 0) {
+            if (!unreliableStopBoundaryPower && duration != null && duration >= MIN_SEGMENT_DURATION_SEC && segmentTotalJoules > 0) {
                 double power = segmentTotalJoules / duration;
-                double clampedPower = Math.min(power, MAX_POWER_WATTS);
+                double clampedPower = Math.min(power, maxPowerWatts);
                 current.setPowerWatts(round(clampedPower, 0));
                 pointPowerW = clampedPower;
                 pointDurationS = duration;
@@ -325,9 +372,9 @@ public class EnergyService {
                 movingSectionStart = null;
                 movingSectionEnd = null;
             }
-
-            prev = current;
         }
+
+        PowerWindowStats powerWindowStats = computeThirtySecondPowerStats(npPowers, npDurations);
 
         // Flush last open moving section
         if (movingSectionStart != null && movingSectionEnd != null) {
@@ -337,10 +384,12 @@ public class EnergyService {
         // Avg Moving Power = total net energy / moving time
         double movingPowerAvg = 0;
         if (movingTimeSec > 0 && cumulativeTotalJoules > 0) {
-            movingPowerAvg = Math.min(cumulativeTotalJoules / movingTimeSec, MAX_POWER_WATTS);
+            movingPowerAvg = Math.min(cumulativeTotalJoules / movingTimeSec, maxPowerWatts);
         }
 
-        double normalizedPower = Math.min(computeNormalizedPower(npPowers, npDurations), MAX_POWER_WATTS);
+        double normalizedPower = Math.min(powerWindowStats.normalizedPowerWatts, maxPowerWatts);
+        double power30sMax = Math.min(powerWindowStats.maxRollingPowerWatts, maxPowerWatts);
+        double totalMassKgUsed = effectiveParams.getTotalMassKg(calculator.getDefaultEquipmentWeightKg());
 
         return TrackEnergySummary.builder()
                 .gravitationalAscentTotalWh(cumulativeGravAscentJoules / JOULES_PER_WH)
@@ -353,9 +402,40 @@ public class EnergyService {
                 .powerWattsAvg(powerCount > 0 ? powerSum / powerCount : 0)
                 .powerWattsMovingAvg(movingPowerAvg)
                 .powerWattsMax(powerMax)
+                .powerWatts30sMax(power30sMax)
                 .normalizedPowerWatts(normalizedPower)
-                .weightKgUsed(params.getRiderWeightKg()) // Store the actual weight used
+                .weightKgUsed(totalMassKgUsed)
                 .build();
+    }
+
+    private boolean isUnreliableStopBoundaryPower(List<GpsTrackDataPoint> points, int index) {
+        if (index <= 0 || index >= points.size()) return false;
+
+        GpsTrackDataPoint current = points.get(index);
+        Double currentDuration = current.getDurationBetweenPointsInSec();
+        if (currentDuration == null || currentDuration < MIN_SEGMENT_DURATION_SEC) return false;
+
+        Double movingWindowSpeed = current.getSpeedInKmhMovingWindow();
+        if (movingWindowSpeed != null && movingWindowSpeed > 0) return false;
+
+        GpsTrackDataPoint prev = points.get(index - 1);
+        GpsTrackDataPoint next = index + 1 < points.size() ? points.get(index + 1) : null;
+
+        return hasStopBoundaryGap(prev) || hasStopBoundaryGap(current) || hasStopBoundaryGap(next);
+    }
+
+    private boolean hasStopBoundaryGap(GpsTrackDataPoint point) {
+        Double duration = point != null ? point.getDurationBetweenPointsInSec() : null;
+        return duration != null && duration >= POWER_STOP_BOUNDARY_GAP_SEC;
+    }
+
+    private void suppressSpeedDerivedArtifacts(EnergyComponents ec) {
+        if (ec.getAeroDragJoules() > 0) {
+            ec.setAeroDragJoules(0);
+        }
+        if (ec.getKineticJoules() > 0) {
+            ec.setKineticJoules(0);
+        }
     }
 
     /**
@@ -363,11 +443,20 @@ public class EnergyService {
      * Call this after {@link #calculateAndPopulatePoints} has populated the energy fields.
      * All energy values are in Wh (already converted from Joules at point level).
      *
-     * @param points       the points with energy fields already populated (in Wh)
-     * @param weightKgUsed the rider weight that was used (for audit)
+     * @param points          the points with energy fields already populated (in Wh)
+     * @param totalMassKgUsed total rider/person plus equipment/vehicle mass used for audit
      * @return aggregated summary in Wh
      */
-    public TrackEnergySummary calculateTrackEnergySummary(List<GpsTrackDataPoint> points, double weightKgUsed) {
+    public TrackEnergySummary calculateTrackEnergySummary(List<GpsTrackDataPoint> points, double totalMassKgUsed) {
+        return calculateTrackEnergySummary(points, totalMassKgUsed, EnergyCalculator.DEFAULT_MAX_POWER_WATTS);
+    }
+
+    public TrackEnergySummary calculateTrackEnergySummary(List<GpsTrackDataPoint> points, double totalMassKgUsed, GpsTrack.ACTIVITY_TYPE activityType) {
+        EnergyCalculator calculator = calculatorFactory.getCalculator(activityType);
+        return calculateTrackEnergySummary(points, totalMassKgUsed, calculator.getMaxPowerWatts());
+    }
+
+    private TrackEnergySummary calculateTrackEnergySummary(List<GpsTrackDataPoint> points, double totalMassKgUsed, double maxPowerWatts) {
         double gravAscent = 0, gravDescent = 0;
         double aeroDrag = 0, rolling = 0;
         double kineticPos = 0, kineticNeg = 0;
@@ -443,10 +532,12 @@ public class EnergyService {
         double netTotalWh = netTotal;
         double movingPowerAvg = 0;
         if (movingTimeSec > 0 && netTotalWh > 0) {
-            movingPowerAvg = Math.min(netTotalWh * JOULES_PER_WH / movingTimeSec, MAX_POWER_WATTS);
+            movingPowerAvg = Math.min(netTotalWh * JOULES_PER_WH / movingTimeSec, maxPowerWatts);
         }
 
-        double normalizedPower = Math.min(computeNormalizedPower(npPowers, npDurations), MAX_POWER_WATTS);
+        PowerWindowStats powerWindowStats = computeThirtySecondPowerStats(npPowers, npDurations);
+        double normalizedPower = Math.min(powerWindowStats.normalizedPowerWatts, maxPowerWatts);
+        double power30sMax = Math.min(powerWindowStats.maxRollingPowerWatts, maxPowerWatts);
 
         return TrackEnergySummary.builder()
                 .gravitationalAscentTotalWh(gravAscent)
@@ -459,8 +550,9 @@ public class EnergyService {
                 .powerWattsAvg(powerCount > 0 ? powerSum / powerCount : 0)
                 .powerWattsMovingAvg(movingPowerAvg)
                 .powerWattsMax(powerMax)
+                .powerWatts30sMax(power30sMax)
                 .normalizedPowerWatts(normalizedPower)
-                .weightKgUsed(weightKgUsed)
+                .weightKgUsed(totalMassKgUsed)
                 .build();
     }
 
@@ -478,6 +570,7 @@ public class EnergyService {
         track.setPowerWattsAvg(round(summary.getPowerWattsAvg(), 0));
         track.setPowerWattsMovingAvg(round(summary.getPowerWattsMovingAvg(), 0));
         track.setPowerWattsMax(round(summary.getPowerWattsMax(), 0));
+        track.setPowerWatts30sMax(round(summary.getPowerWatts30sMax(), 0));
         track.setNormalizedPowerWatts(round(summary.getNormalizedPowerWatts(), 0));
     }
 
@@ -487,10 +580,11 @@ public class EnergyService {
      * post-ingest job — at ingest time {@code activityType} is still null and the
      * pipeline falls back to {@link com.x8ing.mtl.server.mtlserver.energy.impl.DefaultEnergyCalculator}
      * (gravity + kinetic only, no aero, no rolling). Once the classifier sets the
-     * real activity type, this method re-runs the per-segment physics on every stored
-     * track-data variant (RAW, RAW_OUTLIER_CLEANED, SIMPLIFIED@*), persists the new
-     * per-point energy fields, and updates the track-level summary from the
-     * {@code RAW_OUTLIER_CLEANED} variant (same variant used at ingest).
+     * real activity type, this method re-runs the per-segment physics on the
+     * canonical {@code RAW_OUTLIER_CLEANED} variant only — that is the single
+     * source of truth for per-point metrics under the canonical-metric-LOD
+     * architecture — persists the new per-point energy fields, and updates the
+     * track-level summary from that same variant.
      *
      * @return true if energy was recomputed; false if the track has no activity type yet,
      * no data points, or doesn't exist.
@@ -509,34 +603,23 @@ public class EnergyService {
         }
 
         EnergyParameters effectiveParams = params != null ? params : getDefaultParameters();
-        List<GpsTrackData> variants = gpsTrackDataRepository.findAllByGpsTrackId(gpsTrackId);
-        if (variants.isEmpty()) return false;
-
-        TrackEnergySummary summaryForTrack = null;
-        int variantCount = 0;
-
-        for (GpsTrackData variant : variants) {
-            List<GpsTrackDataPoint> points = gpsTrackDataPointRepository.findAllByGpsTrackDataIdOrderByPointIndexAsc(variant.getId());
-            if (points.isEmpty()) continue;
-
-            TrackEnergySummary summary = calculateAndPopulatePoints(points, track.getActivityType(), effectiveParams);
-            gpsTrackDataPointRepository.saveAll(points);
-            variantCount++;
-
-            // Use the same variant as the ingest path (RAW_OUTLIER_CLEANED) for the track-level totals.
-            if (GpsTrackData.TRACK_TYPE.RAW_OUTLIER_CLEANED.equals(variant.getTrackType())) {
-                summaryForTrack = summary;
-            }
-        }
-
-        if (summaryForTrack == null) {
-            log.warn("recalculateEnergyForTrack: track id={} has no RAW_OUTLIER_CLEANED variant — skipping track-level aggregation", gpsTrackId);
+        GpsTrackData canonical = gpsTrackDataRepository.findFirstByGpsTrackIdAndTrackType(
+                gpsTrackId,
+                GpsTrackData.TRACK_TYPE.RAW_OUTLIER_CLEANED.name());
+        if (canonical == null) {
+            log.warn("recalculateEnergyForTrack: track id={} has no RAW_OUTLIER_CLEANED variant — skipping", gpsTrackId);
             return false;
         }
 
+        List<GpsTrackDataPoint> points = gpsTrackDataPointRepository.findAllByGpsTrackDataIdOrderByPointIndexAsc(canonical.getId());
+        if (points.isEmpty()) return false;
+
+        TrackEnergySummary summaryForTrack = calculateAndPopulatePoints(points, track.getActivityType(), effectiveParams);
+        gpsTrackDataPointRepository.saveAll(points);
+
         applyEnergyToTrack(track, summaryForTrack);
         track.addLoadMessage("Energy recalculated for activityType=" + track.getActivityType()
-                             + " across " + variantCount + " variants (Net Total: "
+                             + " on canonical RAW_OUTLIER_CLEANED (Net Total: "
                              + String.format("%.1f", summaryForTrack.getNetEnergyTotalWh()) + " Wh).");
         gpsTrackRepository.save(track);
         return true;

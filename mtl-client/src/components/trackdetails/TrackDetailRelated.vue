@@ -1,6 +1,5 @@
 <template>
-  <div class="related-container" :class="{ 'related-container--loading': showLoadingIndicator }" v-if="relatedTracks">
-
+  <div v-if="relatedTracks" class="related-container" :class="{ 'related-container--loading': showLoadingIndicator }">
     <!-- Thin indeterminate progress bar (top) — only appears if load takes >250ms -->
     <div v-if="showLoadingIndicator" class="loading-bar" aria-busy="true" aria-label="Loading track"></div>
     <!-- Transparent click blocker — always on during isLoading, even before bar appears.
@@ -11,33 +10,20 @@
     <section class="timeline-section">
       <div v-if="previousTracksInTime.length" class="track-list prev-list">
         <!-- Tracks are stored desc (recent first from backend), we display oldest→newest (reversed) -->
-        <button
-          v-if="prevRemaining > 0"
-          class="expand-btn expand-btn-top"
-          @click="showMorePrev()"
-        >
+        <button v-if="prevRemaining > 0" class="expand-btn expand-btn-top" @click="showMorePrev()">
           ▲ Show {{ Math.min(PAGE_SIZE, prevRemaining) }} older ({{ prevRemaining }} remaining)
         </button>
-        <button
-          v-if="prevShowCount > PAGE_SIZE"
-          class="expand-btn expand-btn-top"
-          @click="showLessPrev()"
-        >
+        <button v-if="prevShowCount > PAGE_SIZE" class="expand-btn expand-btn-top" @click="showLessPrev()">
           ▲ Show less
         </button>
 
-        <div
-          v-for="track in prevTracksShown"
-          :key="track.id"
-          class="track-card"
-          @click="$emit('navigate-track', track.id)"
-        >
-          <TrackShapePreview :trackId="track.id!" :width="56" :height="40" class="track-card__shape" />
+        <div v-for="track in prevTracksShown" :key="track.id" class="track-card" @click="navigateTrack(track.id)">
+          <TrackShapePreview :track-id="track.id!" :width="56" :height="40" class="track-card__shape" />
           <div class="track-dot prev-dot"></div>
           <div class="track-card-body">
             <div class="track-name">{{ track.name }}</div>
-            <div class="track-date" v-if="track.startDate">{{ formatDate(track.startDate) }}</div>
-            <div class="track-desc" v-if="track.description">{{ track.description }}</div>
+            <div v-if="track.startDate" class="track-date">{{ formatDate(track.startDate) }}</div>
+            <div v-if="track.description" class="track-desc">{{ track.description }}</div>
           </div>
         </div>
       </div>
@@ -45,8 +31,8 @@
       <div class="section-header prev-header">
         <span class="section-icon">↑</span>
         <span class="section-label">Previous Tracks</span>
-        <span class="section-count" v-if="previousTracksInTime.length">{{ previousTracksInTime.length }}</span>
-        <span class="empty-inline" v-else>— none</span>
+        <span v-if="previousTracksInTime.length" class="section-count">{{ previousTracksInTime.length }}</span>
+        <span v-else class="empty-inline">— none</span>
       </div>
     </section>
 
@@ -56,10 +42,10 @@
         <span class="current-star">★</span>
         <span class="current-badge">Current Track</span>
       </div>
-      <div class="current-body" v-if="gpsTrack && gpsTrack.id">
+      <div v-if="gpsTrack && gpsTrack.id" class="current-body">
         <div class="current-name">{{ currentName }}</div>
-        <div class="current-date" v-if="gpsTrack.startDate">{{ formatDate(gpsTrack.startDate) }}</div>
-        <div class="current-desc" v-if="currentDescription">{{ currentDescription }}</div>
+        <div v-if="gpsTrack.startDate" class="current-date">{{ formatDate(gpsTrack.startDate) }}</div>
+        <div v-if="currentDescription" class="current-desc">{{ currentDescription }}</div>
       </div>
     </section>
 
@@ -68,70 +54,50 @@
       <div class="section-header next-header">
         <span class="section-icon">↓</span>
         <span class="section-label">Next Tracks</span>
-        <span class="section-count" v-if="nextTracksInTime.length">{{ nextTracksInTime.length }}</span>
+        <span v-if="nextTracksInTime.length" class="section-count">{{ nextTracksInTime.length }}</span>
       </div>
 
       <div v-if="nextTracksInTime.length" class="track-list next-list">
-        <div
-          v-for="track in nextTracksShown"
-          :key="track.id"
-          class="track-card"
-          @click="$emit('navigate-track', track.id)"
-        >
-          <TrackShapePreview :trackId="track.id!" :width="56" :height="40" class="track-card__shape" />
+        <div v-for="track in nextTracksShown" :key="track.id" class="track-card" @click="navigateTrack(track.id)">
+          <TrackShapePreview :track-id="track.id!" :width="56" :height="40" class="track-card__shape" />
           <div class="track-dot next-dot"></div>
           <div class="track-card-body">
             <div class="track-name">{{ track.name }}</div>
-            <div class="track-date" v-if="track.startDate">{{ formatDate(track.startDate) }}</div>
-            <div class="track-desc" v-if="track.description">{{ track.description }}</div>
+            <div v-if="track.startDate" class="track-date">{{ formatDate(track.startDate) }}</div>
+            <div v-if="track.description" class="track-desc">{{ track.description }}</div>
           </div>
         </div>
 
-        <button
-          v-if="nextRemaining > 0"
-          class="expand-btn"
-          @click="showMoreNext()"
-        >
+        <button v-if="nextRemaining > 0" class="expand-btn" @click="showMoreNext()">
           ▼ Show {{ Math.min(PAGE_SIZE, nextRemaining) }} more ({{ nextRemaining }} remaining)
         </button>
-        <button
-          v-if="nextShowCount > PAGE_SIZE"
-          class="expand-btn"
-          @click="showLessNext()"
-        >
-          ▼ Show less
-        </button>
+        <button v-if="nextShowCount > PAGE_SIZE" class="expand-btn" @click="showLessNext()">▼ Show less</button>
       </div>
       <div v-else class="empty-label">No next tracks</div>
     </section>
 
     <!-- ── DUPLICATES ─────────────────────────────────────── -->
-    <section class="timeline-section duplicates-section" v-if="duplicates && duplicates.length">
+    <section v-if="duplicates && duplicates.length" class="timeline-section duplicates-section">
       <div class="section-header dup-header">
         <span class="section-icon">⊛</span>
         <span class="section-label">Duplicates</span>
         <span class="section-count">{{ duplicates.length }}</span>
       </div>
       <div class="track-list">
-        <div
-          v-for="track in duplicates"
-          :key="track.id"
-          class="track-card dup-card"
-          @click="$emit('navigate-track', track.id)"
-        >
-          <TrackShapePreview :trackId="track.id!" :width="56" :height="40" class="track-card__shape" />
+        <div v-for="track in duplicates" :key="track.id" class="track-card dup-card" @click="navigateTrack(track.id)">
+          <TrackShapePreview :track-id="track.id!" :width="56" :height="40" class="track-card__shape" />
           <div class="track-dot dup-dot"></div>
           <div class="track-card-body">
             <div class="track-name">{{ track.name }}</div>
-            <div class="track-date" v-if="track.startDate">{{ formatDate(track.startDate) }}</div>
-            <div class="track-desc" v-if="track.description">{{ track.description }}</div>
+            <div v-if="track.startDate" class="track-date">{{ formatDate(track.startDate) }}</div>
+            <div v-if="track.description" class="track-desc">{{ track.description }}</div>
           </div>
         </div>
       </div>
     </section>
 
     <!-- ── DERIVED SEGMENTS ───────────────────────────────── -->
-    <section class="timeline-section segments-section" v-if="segmentSiblings && segmentSiblings.length">
+    <section v-if="segmentSiblings && segmentSiblings.length" class="timeline-section segments-section">
       <div class="section-header seg-header">
         <span class="section-icon">◧</span>
         <span class="section-label">Derived Segments</span>
@@ -142,170 +108,155 @@
           v-for="track in segmentSiblings"
           :key="track.id"
           class="track-card seg-card"
-          @click="$emit('navigate-track', track.id)"
+          @click="navigateTrack(track.id)"
         >
-          <TrackShapePreview :trackId="track.id!" :width="56" :height="40" class="track-card__shape" />
+          <TrackShapePreview :track-id="track.id!" :width="56" :height="40" class="track-card__shape" />
           <div class="track-dot seg-dot"></div>
           <div class="track-card-body">
             <div class="track-name">
               <span v-if="track.sourceSegmentIndex" class="seg-badge">Seg {{ track.sourceSegmentIndex }}</span>
               {{ track.name }}
             </div>
-            <div class="track-date" v-if="track.startDate">{{ formatDate(track.startDate) }}</div>
-            <div class="track-desc" v-if="track.description">{{ track.description }}</div>
+            <div v-if="track.startDate" class="track-date">{{ formatDate(track.startDate) }}</div>
+            <div v-if="track.description" class="track-desc">{{ track.description }}</div>
           </div>
         </div>
       </div>
     </section>
-
   </div>
 </template>
 
-<script lang="ts">
-import { defineComponent, computed, ref, watch, onBeforeUnmount } from "vue";
-import type { RelatedTracks, RelatedTrackInfo } from 'x8ing-mtl-api-typescript-fetch/dist/esm/models/index';
+<script setup lang="ts">
+import { computed, ref, watch, onBeforeUnmount } from 'vue';
+import type { GpsTrack, RelatedTracks, RelatedTrackInfo } from 'x8ing-mtl-api-typescript-fetch/dist/esm/models/index';
 import { formatDateShort } from '@/utils/Utils';
 import TrackShapePreview from '@/components/ui/TrackShapePreview.vue';
 
-export default defineComponent({
+defineOptions({
   name: 'TrackDetailRelated',
-  components: { TrackShapePreview },
-  props: {
-    relatedTracks: { type: Object, default: null },
-    gpsTrack: { type: Object, default: null },
-    isLoading: { type: Boolean, default: false },
-  },
-  emits: ['navigate-track'],
-  setup(props) {
-    const PAGE_SIZE = 5;
+});
 
-    // Delayed loading indicator: only surface the progress bar if the load
-    // actually takes longer than the threshold below. This avoids a jarring
-    // flash when the response returns in tens of milliseconds (cached or
-    // nearby tracks) while still providing clear feedback on slower loads.
-    const LOADING_INDICATOR_DELAY_MS = 250;
-    const showLoadingIndicator = ref(false);
-    let loadingTimer: number | null = null;
+const props = withDefaults(
+  defineProps<{
+    relatedTracks?: RelatedTracks | null;
+    gpsTrack?: GpsTrack | null;
+    isLoading?: boolean;
+  }>(),
+  {
+    relatedTracks: null,
+    gpsTrack: null,
+    isLoading: false,
+  }
+);
 
-    watch(
-      () => props.isLoading,
-      (loading) => {
-        if (loading) {
-          if (loadingTimer !== null) return;
-          loadingTimer = window.setTimeout(() => {
-            showLoadingIndicator.value = true;
-            loadingTimer = null;
-          }, LOADING_INDICATOR_DELAY_MS);
-        } else {
-          if (loadingTimer !== null) {
-            clearTimeout(loadingTimer);
-            loadingTimer = null;
-          }
-          showLoadingIndicator.value = false;
-        }
-      },
-      { immediate: true },
-    );
+const emit = defineEmits<{
+  'navigate-track': [trackId: number];
+}>();
 
-    onBeforeUnmount(() => {
+const PAGE_SIZE = 5;
+
+// Delayed loading indicator: only surface the progress bar if the load
+// actually takes longer than the threshold below. This avoids a jarring
+// flash when the response returns in tens of milliseconds (cached or
+// nearby tracks) while still providing clear feedback on slower loads.
+const LOADING_INDICATOR_DELAY_MS = 250;
+const showLoadingIndicator = ref(false);
+let loadingTimer: number | null = null;
+
+watch(
+  () => props.isLoading,
+  (loading) => {
+    if (loading) {
+      if (loadingTimer !== null) return;
+      loadingTimer = window.setTimeout(() => {
+        showLoadingIndicator.value = true;
+        loadingTimer = null;
+      }, LOADING_INDICATOR_DELAY_MS);
+    } else {
       if (loadingTimer !== null) {
         clearTimeout(loadingTimer);
         loadingTimer = null;
       }
-    });
-    const prevShowCount = ref(PAGE_SIZE);
-    const nextShowCount = ref(PAGE_SIZE);
-
-    const previousTracksInTime = computed<RelatedTrackInfo[]>(() => {
-      const tracks: RelatedTrackInfo[] = (props.relatedTracks as RelatedTracks)?.previousTracksInTime ?? [];
-      // Backend returns desc (recent first) → reverse to display oldest at top, nearest just above current
-      return [...tracks].reverse();
-    });
-
-    const nextTracksInTime = computed<RelatedTrackInfo[]>(() =>
-      (props.relatedTracks as RelatedTracks)?.nextTracksInTime ?? []
-    );
-
-    const duplicates = computed<RelatedTrackInfo[]>(() =>
-      (props.relatedTracks as RelatedTracks)?.duplicates ?? []
-    );
-
-    const segmentSiblings = computed<RelatedTrackInfo[]>(() =>
-      (props.relatedTracks as RelatedTracks)?.segmentSiblings ?? []
-    );
-
-    // Show the N entries closest to current (tail of prev, head of next)
-    const prevTracksShown = computed<RelatedTrackInfo[]>(() =>
-      previousTracksInTime.value.slice(-prevShowCount.value)
-    );
-
-    const nextTracksShown = computed<RelatedTrackInfo[]>(() =>
-      nextTracksInTime.value.slice(0, nextShowCount.value)
-    );
-
-    const prevRemaining = computed(() =>
-      Math.max(0, previousTracksInTime.value.length - prevShowCount.value)
-    );
-    const nextRemaining = computed(() =>
-      Math.max(0, nextTracksInTime.value.length - nextShowCount.value)
-    );
-
-    function showMorePrev() {
-      prevShowCount.value = Math.min(prevShowCount.value + PAGE_SIZE, previousTracksInTime.value.length);
+      showLoadingIndicator.value = false;
     }
-    function showLessPrev() {
-      prevShowCount.value = PAGE_SIZE;
-    }
-    function showMoreNext() {
-      nextShowCount.value = Math.min(nextShowCount.value + PAGE_SIZE, nextTracksInTime.value.length);
-    }
-    function showLessNext() {
-      nextShowCount.value = PAGE_SIZE;
-    }
-
-    const currentName = computed<string>(() => {
-      const t = props.gpsTrack;
-      if (!t) return '';
-      if (t.trackName?.trim()) return t.trackName.trim();
-      if (t.metaName?.trim()) return t.metaName.trim();
-      return t.id ? 'Track #' + t.id : '';
-    });
-
-    const currentDescription = computed<string | null>(() => {
-      const t = props.gpsTrack;
-      if (!t) return null;
-      if (t.trackDescription?.trim()) return t.trackDescription.trim();
-      if (t.metaDescription?.trim()) return t.metaDescription.trim();
-      return null;
-    });
-
-    function formatDate(dateVal: string | number | Date): string {
-      return formatDateShort(dateVal);
-    }
-
-    return {
-      PAGE_SIZE,
-      prevShowCount,
-      nextShowCount,
-      previousTracksInTime,
-      nextTracksInTime,
-      duplicates,
-      segmentSiblings,
-      prevTracksShown,
-      nextTracksShown,
-      prevRemaining,
-      nextRemaining,
-      showMorePrev,
-      showLessPrev,
-      showMoreNext,
-      showLessNext,
-      currentName,
-      currentDescription,
-      formatDate,
-      showLoadingIndicator,
-    };
   },
+  { immediate: true }
+);
+
+onBeforeUnmount(() => {
+  if (loadingTimer !== null) {
+    clearTimeout(loadingTimer);
+    loadingTimer = null;
+  }
 });
+
+const prevShowCount = ref(PAGE_SIZE);
+const nextShowCount = ref(PAGE_SIZE);
+
+const relatedTracks = computed(() => props.relatedTracks);
+const gpsTrack = computed(() => props.gpsTrack);
+
+const previousTracksInTime = computed<RelatedTrackInfo[]>(() => {
+  const tracks: RelatedTrackInfo[] = props.relatedTracks?.previousTracksInTime ?? [];
+  // Backend returns desc (recent first) -> reverse to display oldest at top, nearest just above current.
+  return [...tracks].reverse();
+});
+
+const nextTracksInTime = computed<RelatedTrackInfo[]>(() => props.relatedTracks?.nextTracksInTime ?? []);
+
+const duplicates = computed<RelatedTrackInfo[]>(() => props.relatedTracks?.duplicates ?? []);
+
+const segmentSiblings = computed<RelatedTrackInfo[]>(() => props.relatedTracks?.segmentSiblings ?? []);
+
+// Show the N entries closest to current (tail of prev, head of next).
+const prevTracksShown = computed<RelatedTrackInfo[]>(() => previousTracksInTime.value.slice(-prevShowCount.value));
+
+const nextTracksShown = computed<RelatedTrackInfo[]>(() => nextTracksInTime.value.slice(0, nextShowCount.value));
+
+const prevRemaining = computed(() => Math.max(0, previousTracksInTime.value.length - prevShowCount.value));
+const nextRemaining = computed(() => Math.max(0, nextTracksInTime.value.length - nextShowCount.value));
+
+const currentName = computed<string>(() => {
+  const track = props.gpsTrack;
+  if (!track) return '';
+  if (track.trackName?.trim()) return track.trackName.trim();
+  if (track.metaName?.trim()) return track.metaName.trim();
+  return track.id ? 'Track #' + track.id : '';
+});
+
+const currentDescription = computed<string | null>(() => {
+  const track = props.gpsTrack;
+  if (!track) return null;
+  if (track.trackDescription?.trim()) return track.trackDescription.trim();
+  if (track.metaDescription?.trim()) return track.metaDescription.trim();
+  return null;
+});
+
+function showMorePrev() {
+  prevShowCount.value = Math.min(prevShowCount.value + PAGE_SIZE, previousTracksInTime.value.length);
+}
+
+function showLessPrev() {
+  prevShowCount.value = PAGE_SIZE;
+}
+
+function showMoreNext() {
+  nextShowCount.value = Math.min(nextShowCount.value + PAGE_SIZE, nextTracksInTime.value.length);
+}
+
+function showLessNext() {
+  nextShowCount.value = PAGE_SIZE;
+}
+
+function navigateTrack(trackId: number | null | undefined) {
+  if (trackId != null) {
+    emit('navigate-track', trackId);
+  }
+}
+
+function formatDate(dateVal: string | number | Date): string {
+  return formatDateShort(dateVal);
+}
 </script>
 
 <style scoped>
@@ -351,9 +302,15 @@ export default defineComponent({
   color: var(--text-muted);
 }
 
-.prev-header  { color: var(--text-muted); }
-.next-header  { color: var(--text-muted); }
-.dup-header   { color: var(--text-muted); }
+.prev-header {
+  color: var(--text-muted);
+}
+.next-header {
+  color: var(--text-muted);
+}
+.dup-header {
+  color: var(--text-muted);
+}
 
 /* ── Track List ────────────────────────────────────────── */
 .track-list {
@@ -365,8 +322,12 @@ export default defineComponent({
   gap: 0;
 }
 
-.prev-list { border-color: var(--border-subtle); }
-.next-list { border-color: var(--border-subtle); }
+.prev-list {
+  border-color: var(--border-subtle);
+}
+.next-list {
+  border-color: var(--border-subtle);
+}
 
 /* ── Track Card ────────────────────────────────────────── */
 .track-card {
@@ -406,9 +367,15 @@ export default defineComponent({
   z-index: 1;
 }
 
-.prev-dot { border-color: var(--accent-text); }
-.next-dot { border-color: var(--accent-text); }
-.dup-dot  { border-color: var(--text-muted); }
+.prev-dot {
+  border-color: var(--accent-text);
+}
+.next-dot {
+  border-color: var(--accent-text);
+}
+.dup-dot {
+  border-color: var(--text-muted);
+}
 
 /* ── Card Body ─────────────────────────────────────────── */
 .track-card-body {
@@ -464,7 +431,9 @@ export default defineComponent({
   opacity: 0.75;
   transition: opacity 0.15s;
 }
-.expand-btn:hover { opacity: 1; }
+.expand-btn:hover {
+  opacity: 1;
+}
 
 .expand-btn-top {
   margin-bottom: 4px;
@@ -587,24 +556,23 @@ export default defineComponent({
 }
 
 .loading-bar::before {
-  content: "";
+  content: '';
   position: absolute;
   top: 0;
   left: 0;
   height: 100%;
   width: 35%;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    var(--accent-text),
-    transparent
-  );
+  background: linear-gradient(90deg, transparent, var(--accent-text), transparent);
   animation: loading-bar-slide 1.1s ease-in-out infinite;
 }
 
 @keyframes loading-bar-slide {
-  0%   { transform: translateX(-100%); }
-  100% { transform: translateX(385%); }
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(385%);
+  }
 }
 
 .loading-click-blocker {

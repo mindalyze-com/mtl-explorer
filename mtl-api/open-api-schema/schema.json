@@ -1,16 +1,59 @@
 {
   "openapi": "3.1.0",
-  "info": {
-    "title": "OpenAPI definition",
-    "version": "v0"
-  },
   "servers": [
     {
       "url": "http://localhost:8080/mtl",
       "description": "Generated server url"
     }
   ],
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ],
   "paths": {
+    "/api/tracks/get-track-overview": {
+      "post": {
+        "tags": [
+          "tracks-controller"
+        ],
+        "operationId": "getTrackOverview",
+        "parameters": [
+          {
+            "name": "filterName",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/StatisticsOverviewResponseDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/planner/save": {
       "post": {
         "tags": [
@@ -33,7 +76,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "type": "object"
+                  "$ref": "#/components/schemas/SavePlannedTrackResponseDto"
                 }
               }
             }
@@ -251,7 +294,8 @@
           "200": {
             "description": "OK"
           }
-        }
+        },
+        "security": []
       }
     },
     "/api/auth/login": {
@@ -281,7 +325,8 @@
               }
             }
           }
-        }
+        },
+        "security": []
       }
     },
     "/api/analytics/client-environment": {
@@ -307,23 +352,236 @@
         }
       }
     },
-    "/api/admin/motion-stats/backfill": {
-      "post": {
+    "/api/tracks/{gpsTrackId}/statistics-exclusion": {
+      "patch": {
         "tags": [
-          "motion-stats-admin-controller"
+          "tracks-controller"
         ],
-        "operationId": "backfill",
+        "operationId": "updateTrackStatisticsExclusion",
+        "parameters": [
+          {
+            "name": "gpsTrackId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StatisticsExclusionUpdateRequest"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "description": "OK",
             "content": {
               "*/*": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": {}
+                  "$ref": "#/components/schemas/GpsTrack"
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/api/tracks/{trackId}/chart-series": {
+      "get": {
+        "tags": [
+          "chart-series-controller"
+        ],
+        "operationId": "getChartSeries",
+        "parameters": [
+          {
+            "name": "trackId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "x",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "TIME",
+              "enum": [
+                "TIME",
+                "DISTANCE"
+              ]
+            }
+          },
+          {
+            "name": "maxBuckets",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "windowSec",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "format": "double"
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "format": "double"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "format": "double"
+            }
+          },
+          {
+            "name": "metrics",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "ALTITUDE_M",
+                  "DISTANCE_M",
+                  "DURATION_S",
+                  "ASCENT_M",
+                  "DESCENT_M",
+                  "SPEED_MOVING_WINDOW_KMH",
+                  "SPEED_WINDOW_KMH",
+                  "ELEVATION_GAIN_PER_HOUR_WINDOW",
+                  "ELEVATION_LOSS_PER_HOUR_WINDOW",
+                  "SLOPE_PERCENT",
+                  "POWER_WATTS",
+                  "POWER_WINDOW_WATTS",
+                  "ENERGY_CUMULATIVE_WH"
+                ]
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChartSeriesResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/tracks/{gpsTrackId}/source-file": {
+      "get": {
+        "tags": [
+          "tracks-controller"
+        ],
+        "summary": "Download the original indexed GPS source file",
+        "operationId": "downloadTrackSourceFile",
+        "parameters": [
+          {
+            "name": "gpsTrackId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Original indexed track file",
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Track source file not available"
+          },
+          "422": {
+            "description": "Unsupported source track format"
+          }
+        }
+      }
+    },
+    "/api/tracks/{gpsTrackId}/gpx": {
+      "get": {
+        "tags": [
+          "tracks-controller"
+        ],
+        "summary": "Download the indexed GPS source file as GPX",
+        "operationId": "downloadTrackGpx",
+        "parameters": [
+          {
+            "name": "gpsTrackId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "GPX track file",
+            "content": {
+              "application/gpx+xml": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Track source file not available"
+          },
+          "422": {
+            "description": "Unsupported or non-convertible source track format"
+          },
+          "500": {
+            "description": "GPX conversion failed"
           }
         }
       }
@@ -340,8 +598,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": {}
+                  "$ref": "#/components/schemas/BRouterStatusDto"
                 }
               }
             }
@@ -395,7 +652,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "type": "object"
+                  "$ref": "#/components/schemas/PlannedTrackDetailDto"
                 }
               }
             }
@@ -420,14 +677,7 @@
         ],
         "responses": {
           "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
+            "description": "OK"
           }
         }
       }
@@ -502,7 +752,8 @@
               }
             }
           }
-        }
+        },
+        "security": []
       }
     },
     "/api/map/config": {
@@ -576,6 +827,91 @@
         "responses": {
           "200": {
             "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/location-search": {
+      "get": {
+        "tags": [
+          "location-search-controller"
+        ],
+        "operationId": "search",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "lat",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "format": "double"
+            }
+          },
+          {
+            "name": "lon",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "format": "double"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/LocationSearchResponseDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/location-search/status": {
+      "get": {
+        "tags": [
+          "location-search-controller"
+        ],
+        "operationId": "getStatus",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/LocationSearchStatusDto"
+                }
+              }
+            }
           }
         }
       }
@@ -704,7 +1040,8 @@
               }
             }
           }
-        }
+        },
+        "security": []
       }
     },
     "/api/admin/server-log": {
@@ -1732,15 +2069,6 @@
               "type": "string",
               "default": "SIMPLIFIED_SHAPE"
             }
-          },
-          {
-            "name": "maxPoints",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "format": "int32"
-            }
           }
         ],
         "responses": {
@@ -1790,15 +2118,6 @@
             "schema": {
               "type": "string",
               "default": "SIMPLIFIED_SHAPE"
-            }
-          },
-          {
-            "name": "maxPoints",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "format": "int32"
             }
           }
         ],
@@ -1850,15 +2169,6 @@
               "type": "string",
               "default": "SIMPLIFIED_SHAPE"
             }
-          },
-          {
-            "name": "maxPoints",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "format": "int32"
-            }
           }
         ],
         "responses": {
@@ -1908,15 +2218,6 @@
             "schema": {
               "type": "string",
               "default": "SIMPLIFIED_SHAPE"
-            }
-          },
-          {
-            "name": "maxPoints",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "format": "int32"
             }
           }
         ],
@@ -1968,15 +2269,6 @@
               "type": "string",
               "default": "SIMPLIFIED_SHAPE"
             }
-          },
-          {
-            "name": "maxPoints",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "format": "int32"
-            }
           }
         ],
         "responses": {
@@ -2027,15 +2319,6 @@
               "type": "string",
               "default": "SIMPLIFIED_SHAPE"
             }
-          },
-          {
-            "name": "maxPoints",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "format": "int32"
-            }
           }
         ],
         "responses": {
@@ -2085,15 +2368,6 @@
             "schema": {
               "type": "string",
               "default": "SIMPLIFIED_SHAPE"
-            }
-          },
-          {
-            "name": "maxPoints",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "format": "int32"
             }
           }
         ],
@@ -8695,6 +8969,259 @@
   },
   "components": {
     "schemas": {
+      "ActivityBreakdown": {
+        "type": "object",
+        "properties": {
+          "activityType": {
+            "type": "string"
+          },
+          "trackCount": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "distanceM": {
+            "type": "number",
+            "format": "double"
+          },
+          "durationMs": {
+            "type": "number",
+            "format": "double"
+          },
+          "energyWh": {
+            "type": "number",
+            "format": "double"
+          }
+        }
+      },
+      "ExclusionSummary": {
+        "type": "object",
+        "properties": {
+          "highlightExcludedTrackCount": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "statisticsExcludedTrackCount": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "PeriodDistribution": {
+        "type": "object",
+        "properties": {
+          "periodType": {
+            "type": "string"
+          },
+          "rows": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PeriodRow"
+            }
+          }
+        }
+      },
+      "PeriodRow": {
+        "type": "object",
+        "properties": {
+          "sortOrder": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "periodType": {
+            "type": "string"
+          },
+          "periodKey": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "trackCount": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "distanceM": {
+            "type": "number",
+            "format": "double"
+          },
+          "durationMs": {
+            "type": "number",
+            "format": "double"
+          }
+        }
+      },
+      "StatisticsOverviewResponseDto": {
+        "type": "object",
+        "properties": {
+          "summary": {
+            "$ref": "#/components/schemas/Summary"
+          },
+          "activityBreakdown": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ActivityBreakdown"
+            }
+          },
+          "trackRankings": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TrackRanking"
+            }
+          },
+          "recentActivities": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TrackRef"
+            }
+          },
+          "activePeriods": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PeriodRow"
+            }
+          },
+          "periodDistributions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PeriodDistribution"
+            }
+          },
+          "milestones": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TrackRef"
+            }
+          },
+          "exclusionSummary": {
+            "$ref": "#/components/schemas/ExclusionSummary"
+          }
+        }
+      },
+      "Summary": {
+        "type": "object",
+        "properties": {
+          "trackCount": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "distanceM": {
+            "type": "number",
+            "format": "double"
+          },
+          "durationMs": {
+            "type": "number",
+            "format": "double"
+          },
+          "energyWh": {
+            "type": "number",
+            "format": "double"
+          },
+          "oldestStart": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "newestStart": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "TrackRanking": {
+        "type": "object",
+        "properties": {
+          "rowKey": {
+            "type": "string"
+          },
+          "rows": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TrackRef"
+            }
+          }
+        }
+      },
+      "TrackRef": {
+        "type": "object",
+        "properties": {
+          "sortOrder": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "rowKey": {
+            "type": "string"
+          },
+          "trackId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "value": {
+            "type": "number",
+            "format": "double"
+          }
+        }
+      },
+      "LegResultDto": {
+        "type": "object",
+        "properties": {
+          "coordinates": {
+            "type": "array",
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "number",
+                "format": "double"
+              }
+            }
+          },
+          "distanceM": {
+            "type": "number",
+            "format": "double"
+          },
+          "ascentM": {
+            "type": "number",
+            "format": "double"
+          },
+          "descentM": {
+            "type": "number",
+            "format": "double"
+          },
+          "durationSec": {
+            "type": "number",
+            "format": "double"
+          },
+          "cached": {
+            "type": "boolean"
+          }
+        }
+      },
+      "LiveStatsDto": {
+        "type": "object",
+        "properties": {
+          "distanceM": {
+            "type": "number",
+            "format": "double"
+          },
+          "ascentM": {
+            "type": "number",
+            "format": "double"
+          },
+          "descentM": {
+            "type": "number",
+            "format": "double"
+          },
+          "durationSec": {
+            "type": "number",
+            "format": "double"
+          },
+          "legCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "anyLegCached": {
+            "type": "boolean"
+          }
+        }
+      },
       "SavePlannedTrackDto": {
         "type": "object",
         "properties": {
@@ -8722,6 +9249,15 @@
             "items": {
               "$ref": "#/components/schemas/WaypointDto"
             }
+          },
+          "legs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LegResultDto"
+            }
+          },
+          "stats": {
+            "$ref": "#/components/schemas/LiveStatsDto"
           }
         }
       },
@@ -8733,6 +9269,22 @@
             "format": "double"
           },
           "lng": {
+            "type": "number",
+            "format": "double"
+          }
+        }
+      },
+      "SavePlannedTrackResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "name": {
+            "type": "string"
+          },
+          "distanceM": {
             "type": "number",
             "format": "double"
           }
@@ -8881,273 +9433,26 @@
           }
         }
       },
-      "PlannedTrackSummaryDto": {
+      "StatisticsExclusionUpdateRequest": {
         "type": "object",
         "properties": {
-          "id": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "name": {
-            "type": "string"
-          },
-          "description": {
-            "type": "string"
-          },
-          "distanceM": {
-            "type": "number",
-            "format": "double"
-          },
-          "centerLat": {
-            "type": "number",
-            "format": "double"
-          },
-          "centerLng": {
-            "type": "number",
-            "format": "double"
-          },
-          "createDate": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "profile": {
-            "type": "string"
-          }
-        }
-      },
-      "MapServerStatusDto": {
-        "type": "object",
-        "properties": {
-          "phase": {
-            "type": "string"
-          },
-          "ready": {
-            "type": "boolean"
-          },
-          "message": {
-            "type": "string"
-          },
-          "tileSource": {
+          "highlightExclusionReason": {
             "type": "string",
             "enum": [
-              "local",
-              "public"
+              "GPS_NOISE",
+              "WRONG_ACTIVITY",
+              "IMPORT_ARTIFACT",
+              "OTHER"
             ]
           },
-          "download_pct": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "download_bytes": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "download_total": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "archive_id": {
-            "type": "string"
-          }
-        }
-      },
-      "MapConfigDto": {
-        "type": "object",
-        "properties": {
-          "tileMode": {
+          "statisticsExclusionReason": {
             "type": "string",
             "enum": [
-              "local",
-              "remote"
+              "GPS_NOISE",
+              "WRONG_ACTIVITY",
+              "IMPORT_ARTIFACT",
+              "OTHER"
             ]
-          },
-          "tileBaseUrl": {
-            "type": "string"
-          },
-          "tileArchiveUrl": {
-            "type": "string"
-          },
-          "tilesetName": {
-            "type": "string"
-          },
-          "lowzoomTilesetName": {
-            "type": "string"
-          },
-          "lowzoomArchiveUrl": {
-            "type": "string"
-          },
-          "tileSource": {
-            "type": "string",
-            "enum": [
-              "local",
-              "public"
-            ]
-          },
-          "archiveId": {
-            "type": "string"
-          },
-          "remoteTileUrl": {
-            "type": "string"
-          },
-          "initialCenterLng": {
-            "type": "number",
-            "format": "double"
-          },
-          "initialCenterLat": {
-            "type": "number",
-            "format": "double"
-          },
-          "initialZoom": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "demoAreaBbox": {
-            "type": "array",
-            "items": {
-              "type": "number",
-              "format": "double"
-            }
-          },
-          "demoAreaMaxZoom": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "plannerEnabled": {
-            "type": "boolean"
-          },
-          "plannerProfiles": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          }
-        }
-      },
-      "JobSummaryDto": {
-        "type": "object",
-        "properties": {
-          "job": {
-            "type": "string"
-          },
-          "label": {
-            "type": "string"
-          },
-          "total": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "pending": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "done": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "progressPercent": {
-            "type": "integer",
-            "format": "int32"
-          }
-        }
-      },
-      "IndexSummaryDto": {
-        "type": "object",
-        "properties": {
-          "index": {
-            "type": "string"
-          },
-          "total": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "pending": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "completed": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "failed": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "removed": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "excluded": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "progressPercent": {
-            "type": "integer",
-            "format": "int32"
-          }
-        }
-      },
-      "GpxUploadStatus": {
-        "type": "object",
-        "properties": {
-          "available": {
-            "type": "boolean"
-          },
-          "message": {
-            "type": "string"
-          }
-        }
-      },
-      "ToolStatusDto": {
-        "type": "object",
-        "properties": {
-          "gcexportConfiguredVersion": {
-            "type": "string"
-          },
-          "gcexportVenvPresent": {
-            "type": "boolean"
-          },
-          "fitExportConfiguredProfile": {
-            "type": "string"
-          },
-          "fitExportConfiguredPackages": {
-            "type": "string"
-          },
-          "fitExportVenvPresent": {
-            "type": "boolean"
-          }
-        }
-      },
-      "DataFreshnessItemDto": {
-        "type": "object",
-        "properties": {
-          "key": {
-            "type": "string"
-          },
-          "revision": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "changedAt": {
-            "type": "string",
-            "format": "date-time"
-          }
-        }
-      },
-      "DataFreshnessResponseDto": {
-        "type": "object",
-        "properties": {
-          "freshnessToken": {
-            "type": "string"
-          },
-          "changedAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "items": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/DataFreshnessItemDto"
-            }
           }
         }
       },
@@ -9196,6 +9501,14 @@
       "Envelope": {
         "type": "object",
         "properties": {
+          "diameter": {
+            "type": "number",
+            "format": "double"
+          },
+          "width": {
+            "type": "number",
+            "format": "double"
+          },
           "minY": {
             "type": "number",
             "format": "double"
@@ -9213,14 +9526,6 @@
             "format": "double"
           },
           "area": {
-            "type": "number",
-            "format": "double"
-          },
-          "width": {
-            "type": "number",
-            "format": "double"
-          },
-          "diameter": {
             "type": "number",
             "format": "double"
           },
@@ -9252,17 +9557,17 @@
             "type": "integer",
             "format": "int32"
           },
-          "envelopeInternal": {
-            "$ref": "#/components/schemas/Envelope"
-          },
-          "centroid": {
-            "$ref": "#/components/schemas/Point"
-          },
           "coordinates": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/Coordinate"
             }
+          },
+          "envelopeInternal": {
+            "$ref": "#/components/schemas/Envelope"
+          },
+          "centroid": {
+            "$ref": "#/components/schemas/Point"
           },
           "coordinate": {
             "$ref": "#/components/schemas/Coordinate"
@@ -9413,6 +9718,42 @@
             "type": "number",
             "format": "double"
           },
+          "ascentInMeter": {
+            "type": "number",
+            "format": "double"
+          },
+          "descentInMeter": {
+            "type": "number",
+            "format": "double"
+          },
+          "minAltitude": {
+            "type": "number",
+            "format": "double"
+          },
+          "maxAltitude": {
+            "type": "number",
+            "format": "double"
+          },
+          "speedInKmh30sMax": {
+            "type": "number",
+            "format": "double"
+          },
+          "elevationGainPerHour30sMax": {
+            "type": "number",
+            "format": "double"
+          },
+          "elevationLossPerHour30sMax": {
+            "type": "number",
+            "format": "double"
+          },
+          "slopePercentageMax": {
+            "type": "number",
+            "format": "double"
+          },
+          "slopePercentageMin": {
+            "type": "number",
+            "format": "double"
+          },
           "utmZone": {
             "type": "string"
           },
@@ -9477,6 +9818,24 @@
           },
           "activityTypeSourceDetails": {
             "type": "string"
+          },
+          "highlightExclusionReason": {
+            "type": "string",
+            "enum": [
+              "GPS_NOISE",
+              "WRONG_ACTIVITY",
+              "IMPORT_ARTIFACT",
+              "OTHER"
+            ]
+          },
+          "statisticsExclusionReason": {
+            "type": "string",
+            "enum": [
+              "GPS_NOISE",
+              "WRONG_ACTIVITY",
+              "IMPORT_ARTIFACT",
+              "OTHER"
+            ]
           },
           "garminActivityId": {
             "type": "string"
@@ -9545,6 +9904,10 @@
             "type": "number",
             "format": "double"
           },
+          "powerWatts30sMax": {
+            "type": "number",
+            "format": "double"
+          },
           "normalizedPowerWatts": {
             "type": "number",
             "format": "double"
@@ -9588,6 +9951,9 @@
           "plannerProfile": {
             "type": "string"
           },
+          "plannerRouteJson": {
+            "type": "string"
+          },
           "createDate": {
             "type": "string",
             "format": "date-time"
@@ -9622,24 +9988,24 @@
             "enum": [
               "RAW",
               "RAW_OUTLIER_CLEANED",
-              "SIMPLIFIED_SHAPE",
-              "SIMPLIFIED_FIXED_POINTS"
+              "SIMPLIFIED_SHAPE"
             ]
           },
           "precisionInMeter": {
             "type": "number"
           },
-          "maxPoints": {
+          "numberOfPhysicalPoints": {
             "type": "integer",
-            "format": "int32"
+            "format": "int32",
+            "description": "Number of physical vertices in this track-data variant's geometry.",
+            "readOnly": true
           },
           "track": {
             "$ref": "#/components/schemas/LineString",
             "description": "Coordinate arrays [[lng, lat, elevation], ...]. Custom serialized by LineStringSerializer for bandwidth efficiency.",
             "items": {
               "type": "number",
-              "format": "double",
-              "description": "Coordinate arrays [[lng, lat, elevation], ...]. Custom serialized by LineStringSerializer for bandwidth efficiency."
+              "format": "double"
             }
           },
           "gpsTrackEvents": {
@@ -10030,6 +10396,787 @@
         }
       },
       "Type": {},
+      "ChartBucket": {
+        "type": "object",
+        "properties": {
+          "index": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "xStart": {
+            "type": "number",
+            "format": "double"
+          },
+          "xEnd": {
+            "type": "number",
+            "format": "double"
+          },
+          "firstPointIndex": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "lastPointIndex": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "representativePointIndex": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "firstTimestamp": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lastTimestamp": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "representativeTimestamp": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "metrics": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/MetricBucketStats"
+            }
+          }
+        }
+      },
+      "ChartSeriesResponse": {
+        "type": "object",
+        "properties": {
+          "trackId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "sourceTrackType": {
+            "type": "string"
+          },
+          "xMode": {
+            "type": "string",
+            "enum": [
+              "TIME",
+              "DISTANCE"
+            ]
+          },
+          "windowSec": {
+            "type": "number",
+            "format": "double"
+          },
+          "xStart": {
+            "type": "number",
+            "format": "double"
+          },
+          "xEnd": {
+            "type": "number",
+            "format": "double"
+          },
+          "startTimestamp": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "endTimestamp": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "bucketCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "canonicalPointCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "availableMetrics": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "ALTITUDE_M",
+                "DISTANCE_M",
+                "DURATION_S",
+                "ASCENT_M",
+                "DESCENT_M",
+                "SPEED_MOVING_WINDOW_KMH",
+                "SPEED_WINDOW_KMH",
+                "ELEVATION_GAIN_PER_HOUR_WINDOW",
+                "ELEVATION_LOSS_PER_HOUR_WINDOW",
+                "SLOPE_PERCENT",
+                "POWER_WATTS",
+                "POWER_WINDOW_WATTS",
+                "ENERGY_CUMULATIVE_WH"
+              ]
+            }
+          },
+          "metricDefinitions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MetricDefinition"
+            }
+          },
+          "buckets": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ChartBucket"
+            }
+          }
+        }
+      },
+      "MetricBucketStats": {
+        "type": "object",
+        "properties": {
+          "avg": {
+            "type": "number",
+            "format": "double"
+          },
+          "min": {
+            "type": "number",
+            "format": "double"
+          },
+          "max": {
+            "type": "number",
+            "format": "double"
+          },
+          "first": {
+            "type": "number",
+            "format": "double"
+          },
+          "last": {
+            "type": "number",
+            "format": "double"
+          },
+          "minPointIndex": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "maxPointIndex": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "sampleCount": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "MetricDefinition": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string",
+            "enum": [
+              "ALTITUDE_M",
+              "DISTANCE_M",
+              "DURATION_S",
+              "ASCENT_M",
+              "DESCENT_M",
+              "SPEED_MOVING_WINDOW_KMH",
+              "SPEED_WINDOW_KMH",
+              "ELEVATION_GAIN_PER_HOUR_WINDOW",
+              "ELEVATION_LOSS_PER_HOUR_WINDOW",
+              "SLOPE_PERCENT",
+              "POWER_WATTS",
+              "POWER_WINDOW_WATTS",
+              "ENERGY_CUMULATIVE_WH"
+            ]
+          },
+          "description": {
+            "type": "string"
+          },
+          "unit": {
+            "type": "string"
+          },
+          "responseFractionDigits": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "BRouterStatusDto": {
+        "type": "object",
+        "properties": {
+          "available": {
+            "type": "boolean"
+          },
+          "brouterPort": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "brouterRunning": {
+            "type": "boolean"
+          },
+          "segmentsDir": {
+            "type": "string"
+          },
+          "segmentsOnDisk": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "segmentsQueued": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "segmentsInProgress": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "segmentsCompletedThisRun": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "segmentsFailed": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "segmentsKnown404": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "segmentsValidationPhase": {
+            "type": "string"
+          },
+          "segmentsValidated": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "segmentsRepaired": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "segmentsValidationWarnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "segmentsValidationStartedAt": {
+            "type": "string"
+          },
+          "segmentsValidationCompletedAt": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "versionInfo": {
+            "$ref": "#/components/schemas/VersionInfoDto"
+          }
+        }
+      },
+      "ImageVersionInfoDto": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "string"
+          },
+          "buildTime": {
+            "type": "string"
+          }
+        }
+      },
+      "VersionInfoDto": {
+        "type": "object",
+        "properties": {
+          "image": {
+            "$ref": "#/components/schemas/ImageVersionInfoDto"
+          },
+          "components": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "data": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "PlannedTrackSummaryDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "distanceM": {
+            "type": "number",
+            "format": "double"
+          },
+          "centerLat": {
+            "type": "number",
+            "format": "double"
+          },
+          "centerLng": {
+            "type": "number",
+            "format": "double"
+          },
+          "createDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "profile": {
+            "type": "string"
+          }
+        }
+      },
+      "PlannedTrackDetailDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "profile": {
+            "type": "string"
+          },
+          "distanceM": {
+            "type": "number",
+            "format": "double"
+          },
+          "waypoints": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WaypointDto"
+            }
+          },
+          "coordinates": {
+            "type": "array",
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "number",
+                "format": "double"
+              }
+            }
+          },
+          "legs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LegResultDto"
+            }
+          },
+          "stats": {
+            "$ref": "#/components/schemas/LiveStatsDto"
+          }
+        }
+      },
+      "MapServerStatusDto": {
+        "type": "object",
+        "properties": {
+          "phase": {
+            "type": "string"
+          },
+          "ready": {
+            "type": "boolean"
+          },
+          "download_pct": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "download_bytes": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "download_total": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "message": {
+            "type": "string"
+          },
+          "tileSource": {
+            "type": "string",
+            "enum": [
+              "local",
+              "public"
+            ]
+          },
+          "archive_id": {
+            "type": "string"
+          },
+          "versionInfo": {
+            "$ref": "#/components/schemas/VersionInfoDto"
+          }
+        }
+      },
+      "MapBoundsDto": {
+        "type": "object",
+        "properties": {
+          "minLng": {
+            "type": "number",
+            "format": "double"
+          },
+          "minLat": {
+            "type": "number",
+            "format": "double"
+          },
+          "maxLng": {
+            "type": "number",
+            "format": "double"
+          },
+          "maxLat": {
+            "type": "number",
+            "format": "double"
+          }
+        }
+      },
+      "MapConfigDto": {
+        "type": "object",
+        "properties": {
+          "tileMode": {
+            "type": "string",
+            "enum": [
+              "local",
+              "remote"
+            ]
+          },
+          "tileBaseUrl": {
+            "type": "string"
+          },
+          "tileArchiveUrl": {
+            "type": "string"
+          },
+          "tilesetName": {
+            "type": "string"
+          },
+          "lowzoomTilesetName": {
+            "type": "string"
+          },
+          "lowzoomArchiveUrl": {
+            "type": "string"
+          },
+          "tileSource": {
+            "type": "string",
+            "enum": [
+              "local",
+              "public"
+            ]
+          },
+          "archiveId": {
+            "type": "string"
+          },
+          "remoteTileUrl": {
+            "type": "string"
+          },
+          "initialBounds": {
+            "$ref": "#/components/schemas/MapBoundsDto"
+          },
+          "demoAreaBbox": {
+            "type": "array",
+            "items": {
+              "type": "number",
+              "format": "double"
+            }
+          },
+          "demoAreaMaxZoom": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "plannerEnabled": {
+            "type": "boolean"
+          },
+          "plannerProfiles": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "LocationSearchResponseDto": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string"
+          },
+          "normalized_query": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "sort": {
+            "type": "string"
+          },
+          "ready": {
+            "type": "boolean"
+          },
+          "phase": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "results": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LocationSearchResultDto"
+            }
+          }
+        }
+      },
+      "LocationSearchResultDto": {
+        "type": "object",
+        "properties": {
+          "display_name": {
+            "type": "string"
+          },
+          "source_layer": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "kind_detail": {
+            "type": "string"
+          },
+          "min_zoom": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "max_zoom": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "lat": {
+            "type": "number",
+            "format": "double"
+          },
+          "lon": {
+            "type": "number",
+            "format": "double"
+          },
+          "distance_meters": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "country_code": {
+            "type": "string"
+          },
+          "country_name": {
+            "type": "string"
+          },
+          "admin1_code": {
+            "type": "string"
+          },
+          "admin1_name": {
+            "type": "string"
+          },
+          "admin1_level": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "lang": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        }
+      },
+      "LocationSearchStatusDto": {
+        "type": "object",
+        "properties": {
+          "phase": {
+            "type": "string"
+          },
+          "ready": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "db_path": {
+            "type": "string"
+          },
+          "source_build_date": {
+            "type": "string"
+          },
+          "source_attribution": {
+            "type": "string"
+          },
+          "source_url": {
+            "type": "string"
+          },
+          "source_license": {
+            "type": "string"
+          },
+          "source_license_url": {
+            "type": "string"
+          },
+          "sqlite_version": {
+            "type": "string"
+          },
+          "row_count": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "populated_place_count": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "terrain_count": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "versionInfo": {
+            "$ref": "#/components/schemas/VersionInfoDto"
+          }
+        }
+      },
+      "JobSummaryDto": {
+        "type": "object",
+        "properties": {
+          "job": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "total": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "pending": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "done": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "progressPercent": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "IndexSummaryDto": {
+        "type": "object",
+        "properties": {
+          "index": {
+            "type": "string"
+          },
+          "total": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "pending": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "completed": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "failed": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "removed": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "excluded": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "progressPercent": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "GpxUploadStatus": {
+        "type": "object",
+        "properties": {
+          "available": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      },
+      "ToolStatusDto": {
+        "type": "object",
+        "properties": {
+          "gcexportConfiguredVersion": {
+            "type": "string"
+          },
+          "gcexportVenvPresent": {
+            "type": "boolean"
+          },
+          "fitExportConfiguredProfile": {
+            "type": "string"
+          },
+          "fitExportConfiguredPackages": {
+            "type": "string"
+          },
+          "fitExportVenvPresent": {
+            "type": "boolean"
+          }
+        }
+      },
+      "DataFreshnessItemDto": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "revision": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "changedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "DataFreshnessResponseDto": {
+        "type": "object",
+        "properties": {
+          "freshnessToken": {
+            "type": "string"
+          },
+          "changedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DataFreshnessItemDto"
+            }
+          }
+        }
+      },
       "RelatedTrackInfo": {
         "type": "object",
         "properties": {
@@ -10110,6 +11257,10 @@
             "format": "int32"
           },
           "pointIndexMax": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "canonicalPointIndex": {
             "type": "integer",
             "format": "int32"
           },
@@ -10604,13 +11755,13 @@
             "type": "number",
             "format": "double"
           },
-          "distanceToPoint": {
-            "type": "number",
-            "format": "double"
-          },
           "timestamp": {
             "type": "string",
             "format": "date-time"
+          },
+          "distanceToPoint": {
+            "type": "number",
+            "format": "double"
           }
         }
       },
@@ -10686,6 +11837,12 @@
           },
           "defaultGpsTrackFilterName": {
             "type": "string"
+          },
+          "serverId": {
+            "type": "string"
+          },
+          "image": {
+            "$ref": "#/components/schemas/ImageVersionInfoDto"
           }
         }
       },
@@ -10759,6 +11916,42 @@
           "displayName": {
             "type": "string"
           },
+          "filterGroup": {
+            "type": "string"
+          },
+          "groupSemantics": {
+            "type": "string",
+            "enum": [
+              "CATEGORICAL",
+              "DATE_BUCKET",
+              "ORDINAL",
+              "NUMERIC_BUCKET"
+            ]
+          },
+          "coloringStrategy": {
+            "type": "string",
+            "enum": [
+              "CATEGORICAL",
+              "SEQUENTIAL_GRADIENT"
+            ]
+          },
+          "legendSortStrategy": {
+            "type": "string",
+            "enum": [
+              "LABEL_ASC",
+              "NUMERIC_ASC",
+              "COUNT_DESC"
+            ]
+          },
+          "preferredPalette": {
+            "type": "string"
+          },
+          "groupLabelTemplate": {
+            "type": "string"
+          },
+          "uiMetadata": {
+            "type": "string"
+          },
           "createDate": {
             "type": "string",
             "format": "date-time"
@@ -10766,6 +11959,64 @@
           "updateDate": {
             "type": "string",
             "format": "date-time"
+          }
+        }
+      },
+      "FilterEffectiveUiMetadata": {
+        "type": "object",
+        "properties": {
+          "metadataVersion": {
+            "type": "integer",
+            "format": "int32",
+            "description": "UI metadata schema version. Only version 2 is supported."
+          },
+          "paramGroups": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/FilterParamGroupMetadata"
+            },
+            "description": "Parameter groups keyed by group id."
+          },
+          "params": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/FilterParamMetadata"
+            },
+            "description": "Parameter metadata keyed by SQL parameter name."
+          },
+          "result": {
+            "$ref": "#/components/schemas/FilterResultMetadata",
+            "description": "Result rendering metadata."
+          }
+        }
+      },
+      "FilterGradientMetadata": {
+        "type": "object",
+        "properties": {
+          "bucketCount": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Number of gradient buckets.",
+            "minimum": 1
+          },
+          "metricLabel": {
+            "type": "string",
+            "description": "User-facing metric label."
+          },
+          "metricUnit": {
+            "type": "string",
+            "description": "User-facing metric unit."
+          },
+          "bucketLabel": {
+            "type": "string",
+            "description": "User-facing bucket label."
+          },
+          "direction": {
+            "type": "string",
+            "description": "Gradient direction.",
+            "enum": [
+              "low-to-high"
+            ]
           }
         }
       },
@@ -10790,6 +12041,107 @@
             "items": {
               "$ref": "#/components/schemas/ParamDefinition"
             }
+          },
+          "effectiveUiMetadata": {
+            "$ref": "#/components/schemas/FilterEffectiveUiMetadata"
+          }
+        }
+      },
+      "FilterOptionsSourceMetadata": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "description": "Option source kind.",
+            "enum": [
+              "originFilterResult"
+            ]
+          },
+          "resolvedFilterRef": {
+            "type": "string",
+            "description": "Resolved filter template ref used to load options."
+          }
+        }
+      },
+      "FilterParamGroupMetadata": {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string",
+            "description": "User-facing group label."
+          },
+          "order": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Ascending group display order."
+          },
+          "defaultOpen": {
+            "type": "string",
+            "description": "Initial group expansion behavior.",
+            "enum": [
+              "always",
+              "never",
+              "whenActive"
+            ]
+          }
+        }
+      },
+      "FilterParamMetadata": {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string",
+            "description": "User-facing parameter label."
+          },
+          "group": {
+            "type": "string",
+            "description": "Group id from paramGroups."
+          },
+          "widget": {
+            "type": "string",
+            "description": "Widget used to edit this parameter.",
+            "enum": [
+              "dateTime",
+              "trackPicker",
+              "number",
+              "text",
+              "geoCircle",
+              "geoRectangle",
+              "geoPolygon"
+            ]
+          },
+          "optional": {
+            "type": "boolean",
+            "description": "Whether the parameter may be left blank."
+          },
+          "unit": {
+            "type": "string",
+            "description": "User-facing value unit."
+          },
+          "originFilterRef": {
+            "type": "string",
+            "description": "Template filter where this effective parameter metadata was defined."
+          },
+          "relation": {
+            "type": "string",
+            "description": "Relationship between the selected filter and the parameter metadata origin.",
+            "enum": [
+              "selected",
+              "inherited"
+            ]
+          },
+          "optionsSource": {
+            "$ref": "#/components/schemas/FilterOptionsSourceMetadata",
+            "description": "Metadata source for widgets that need selectable options."
+          }
+        }
+      },
+      "FilterResultMetadata": {
+        "type": "object",
+        "properties": {
+          "gradient": {
+            "$ref": "#/components/schemas/FilterGradientMetadata",
+            "description": "Sequential gradient result rendering metadata."
           }
         }
       },
@@ -10857,6 +12209,10 @@
             "type": "number",
             "format": "double"
           },
+          "powerWatts30sMax": {
+            "type": "number",
+            "format": "double"
+          },
           "normalizedPowerWatts": {
             "type": "number",
             "format": "double"
@@ -10898,6 +12254,13 @@
             "format": "date-time"
           }
         }
+      }
+    },
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
       }
     }
   }

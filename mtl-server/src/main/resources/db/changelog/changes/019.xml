@@ -18,17 +18,6 @@
         </createIndex>
     </changeSet>
 
-    <!-- Backfill: schedule all existing UNIQUE/SUCCESS tracks for exploration calculation -->
-    <changeSet id="20260406_2_exploration_backfill" author="patrick.heusser">
-        <sql>
-            UPDATE gps_track
-            SET exploration_status = 'SCHEDULED'
-            WHERE load_status = 'SUCCESS'
-              AND duplicate_status = 'UNIQUE'
-              AND start_date IS NOT NULL;
-        </sql>
-    </changeSet>
-
     <!-- Recreate gps_track_v with exploration columns -->
     <changeSet id="20260406_3_view_exploration" author="patrick.heusser">
 

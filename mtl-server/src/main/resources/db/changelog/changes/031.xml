@@ -14,7 +14,7 @@
       Aliases: Weighted Average Power (Strava), Normalized Power / NP (Garmin,
       TrainingPeaks), xPower / IsoPower (GoldenCheetah).
 
-      Computed inside EnergyService at ingest; no backfill (DB cleared on redeploy).
+      Computed inside EnergyService at ingest; recreate the DB after derived-stat changes.
     -->
     <changeSet id="20260420_1_normalized_power_column" author="patrick.heusser">
         <addColumn tableName="gps_track">

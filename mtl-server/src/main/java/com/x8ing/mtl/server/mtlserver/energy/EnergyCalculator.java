@@ -1,5 +1,6 @@
 package com.x8ing.mtl.server.mtlserver.energy;
 
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.x8ing.mtl.server.mtlserver.db.entity.gps.GpsTrack;
 import com.x8ing.mtl.server.mtlserver.db.entity.gps.GpsTrackDataPoint;
 import org.springframework.stereotype.Component;
@@ -14,6 +15,10 @@ import java.util.Set;
  * Provides reusable helper methods for gravitational PE and kinetic energy.
  */
 @Component
+@JsonPropertyOrder({
+        "activityTypes",
+        "defaultEquipmentWeightKg"
+})
 public abstract class EnergyCalculator {
 
     /**
@@ -45,9 +50,24 @@ public abstract class EnergyCalculator {
     // ────────────────────────────────────────────────────────────────────
 
     /**
-     * Maximum speed (m/s) used for aero drag calculation. ~150 km/h. GPS artifacts above this are clamped.
+     * Default maximum speed (m/s) used for aero drag calculation. ~150 km/h.
+     * GPS artifacts above this are clamped for human-powered activities.
      */
-    protected static final double MAX_SPEED_MPS = 42.0;
+    protected static final double DEFAULT_MAX_AERO_SPEED_MPS = 42.0;
+
+    public static final double DEFAULT_MAX_POWER_WATTS = 2500.0;
+
+    /**
+     * Default maximum plausible instantaneous mechanical power (W). Human-powered
+     * activities use this as a GPS-artifact guard; motorized calculators can override.
+     */
+    public double getMaxPowerWatts() {
+        return DEFAULT_MAX_POWER_WATTS;
+    }
+
+    protected double getMaxAeroSpeedMps() {
+        return DEFAULT_MAX_AERO_SPEED_MPS;
+    }
 
     // ────────────────────────────────────────────────────────────────────
     // Shared physics helpers
@@ -74,7 +94,7 @@ public abstract class EnergyCalculator {
     /**
      * Aerodynamic drag energy over a distance: ½·Cd·A·ρ·v²·d
      * Always positive (drag always opposes motion).
-     * Speed is clamped to {@link #MAX_SPEED_MPS} to prevent GPS artifact amplification on v².
+     * Speed is clamped to {@link #getMaxAeroSpeedMps()} to prevent GPS artifact amplification on v².
      *
      * @param cd       drag coefficient
      * @param area     frontal area in m²
@@ -83,7 +103,7 @@ public abstract class EnergyCalculator {
      * @param distance distance in meters
      */
     protected double aeroDragEnergy(double cd, double area, double rho, double speedMps, double distance) {
-        double clampedSpeed = Math.min(speedMps, MAX_SPEED_MPS);
+        double clampedSpeed = Math.min(speedMps, getMaxAeroSpeedMps());
         return 0.5 * cd * area * rho * clampedSpeed * clampedSpeed * distance;
     }
 

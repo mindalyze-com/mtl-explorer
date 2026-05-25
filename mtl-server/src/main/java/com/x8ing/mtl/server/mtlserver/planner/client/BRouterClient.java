@@ -1,5 +1,6 @@
 package com.x8ing.mtl.server.mtlserver.planner.client;
 
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.x8ing.mtl.server.mtlserver.planner.config.PlannerProperties;
@@ -9,10 +10,13 @@ import com.x8ing.mtl.server.mtlserver.planner.dto.WaypointDto;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.MediaType;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
-import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.client.RestClientResponseException;
+import org.springframework.web.util.UriComponentsBuilder;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -29,6 +33,11 @@ import java.util.regex.Pattern;
 @Slf4j
 @Component
 @ConditionalOnProperty(prefix = "mtl.planner", name = "enabled", havingValue = "true")
+@JsonPropertyOrder({
+        "properties",
+        "restClient",
+        "mapper"
+})
 public class BRouterClient {
 
     private final PlannerProperties properties;
@@ -39,10 +48,19 @@ public class BRouterClient {
      * Pattern matching BRouter's "datafile E5_N45.rd5 not found" error.
      */
     private static final Pattern SEGMENT_NOT_FOUND = Pattern.compile("datafile\\s+\\S+\\.rd5\\s+not found", Pattern.CASE_INSENSITIVE);
+    private static final int ERROR_BODY_LOG_LIMIT = 2048;
+    private static final String EMPTY_ERROR_BODY = "<empty>";
+    private static final String TRUNCATED_SUFFIX = "...";
 
     public BRouterClient(PlannerProperties properties) {
         this.properties = properties;
-        this.restClient = RestClient.builder().build();
+        SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
+        Duration timeout = Duration.ofMillis(properties.getBrouterTimeoutMs());
+        requestFactory.setConnectTimeout(timeout);
+        requestFactory.setReadTimeout(timeout);
+        this.restClient = RestClient.builder()
+                .requestFactory(requestFactory)
+                .build();
     }
 
     /**
@@ -55,11 +73,15 @@ public class BRouterClient {
         // BRouter expects "lonlats=lon,lat|lon,lat" (WGS84).
         String lonlats = from.getLng() + "," + from.getLat() + "|" + to.getLng() + "," + to.getLat();
 
-        String url = properties.getBrouterBaseUrl() + PlannerConstants.BROUTER_ROUTE_PATH
-                     + "?lonlats=" + lonlats
-                     + "&profile=" + profile
-                     + "&alternativeidx=0"
-                     + "&format=" + PlannerConstants.BROUTER_FORMAT;
+        String url = UriComponentsBuilder
+                .fromUriString(properties.getBrouterBaseUrl())
+                .path(PlannerConstants.BROUTER_ROUTE_PATH)
+                .queryParam("lonlats", lonlats)
+                .queryParam("profile", profile)
+                .queryParam("alternativeidx", 0)
+                .queryParam("format", PlannerConstants.BROUTER_FORMAT)
+                .build()
+                .toUriString();
 
         try {
             String body = restClient.get()
@@ -73,20 +95,21 @@ public class BRouterClient {
             return parseGeoJson(body);
         } catch (BRouterException e) {
             throw e;
-        } catch (HttpClientErrorException e) {
-            String responseBody = e.getResponseBodyAsString();
+        } catch (RestClientResponseException e) {
+            String rawResponseBody = e.getResponseBodyAsString();
+            String responseBody = rawResponseBody == null ? "" : rawResponseBody;
+            String summarizedBody = summarizeErrorBody(responseBody);
             if (SEGMENT_NOT_FOUND.matcher(responseBody).find()) {
-                log.warn("BRouter segment missing for leg [{},{}]→[{},{}]: {}",
-                        from.getLat(), from.getLng(), to.getLat(), to.getLng(), responseBody.trim());
+                log.warn("BRouter segment missing for requested route leg: status={} body={}", e.getStatusCode(), summarizedBody);
                 throw new BRouterSegmentMissingException(
-                        "Routing data segment not available: " + responseBody.trim(),
+                        "Routing data segment not available",
                         from.getLat(), from.getLng(), to.getLat(), to.getLng());
             }
-            log.warn("BRouter HTTP error url={} status={} body={}", url, e.getStatusCode(), responseBody.trim());
-            throw new BRouterException("BRouter call failed: " + e.getMessage(), e);
+            log.warn("BRouter HTTP error status={} body={}", e.getStatusCode(), summarizedBody);
+            throw new BRouterException("BRouter call failed", e);
         } catch (Exception e) {
-            log.warn("BRouter call failed url={} err={}", url, e.toString());
-            throw new BRouterException("BRouter call failed: " + e.getMessage(), e);
+            log.warn("BRouter call failed: {}", e.getClass().getSimpleName());
+            throw new BRouterException("BRouter call failed", e);
         }
     }
 
@@ -129,7 +152,7 @@ public class BRouterClient {
         } catch (BRouterException e) {
             throw e;
         } catch (Exception e) {
-            throw new BRouterException("Failed to parse BRouter GeoJSON: " + e.getMessage(), e);
+            throw new BRouterException("Failed to parse BRouter GeoJSON", e);
         }
     }
 
@@ -145,6 +168,17 @@ public class BRouterClient {
             }
         }
         return descent;
+    }
+
+    static String summarizeErrorBody(String body) {
+        if (body == null || body.isBlank()) {
+            return EMPTY_ERROR_BODY;
+        }
+        String trimmed = body.strip();
+        if (trimmed.length() <= ERROR_BODY_LOG_LIMIT) {
+            return trimmed;
+        }
+        return trimmed.substring(0, ERROR_BODY_LOG_LIMIT) + TRUNCATED_SUFFIX;
     }
 
     private static double asDouble(JsonNode n) {

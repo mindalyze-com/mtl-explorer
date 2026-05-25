@@ -42,4 +42,24 @@
     <include file="/db/changelog/changes/035.xml"/>
     <include file="/db/changelog/changes/036.xml"/>
     <include file="/db/changelog/changes/037.xml"/>
+    <include file="/db/changelog/changes/038.xml"/>
+    <include file="/db/changelog/changes/039.xml"/>
+    <include file="/db/changelog/changes/040.xml"/>
+    <include file="/db/changelog/changes/041.xml"/>
+    <include file="/db/changelog/changes/042.xml"/>
+    <include file="/db/changelog/changes/043.xml"/>
+    <include file="/db/changelog/changes/044.xml"/>
+    <include file="/db/changelog/changes/045.xml"/>
+    <include file="/db/changelog/changes/046.xml"/>
+    <include file="/db/changelog/changes/047.xml"/>
+    <include file="/db/changelog/changes/048.xml"/>
+    <include file="/db/changelog/changes/049.xml"/>
+    <include file="/db/changelog/changes/050.xml"/>
+    <include file="/db/changelog/changes/051.xml"/>
+    <include file="/db/changelog/changes/052.xml"/>
+    <include file="/db/changelog/changes/053.xml"/>
+    <include file="/db/changelog/changes/054.xml"/>
+    <include file="/db/changelog/changes/055.xml"/>
+    <include file="/db/changelog/changes/056.xml"/>
+    <include file="/db/changelog/changes/057.xml"/>
 </databaseChangeLog>

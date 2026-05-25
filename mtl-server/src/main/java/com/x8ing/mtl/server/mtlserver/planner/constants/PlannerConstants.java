@@ -18,7 +18,7 @@ public final class PlannerConstants {
     /**
      * Max waypoints accepted in a single /route request — protects against accidental huge payloads.
      */
-    public static final int MAX_WAYPOINTS = 50;
+    public static final int MAX_WAYPOINTS = 150;
 
     /**
      * Below this distance (metres) two adjacent waypoints are considered the same point.
@@ -33,7 +33,7 @@ public final class PlannerConstants {
     /**
      * Max number of cached leg-results kept in memory (LRU eviction).
      */
-    public static final int SEGMENT_CACHE_MAX_SIZE = 500;
+    public static final int SEGMENT_CACHE_MAX_SIZE = 1000;
 
     /**
      * TTL for cached leg-results, in minutes.

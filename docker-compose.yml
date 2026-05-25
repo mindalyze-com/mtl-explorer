@@ -3,6 +3,8 @@ x-db-environment: &db-environment
   POSTGRES_USER: mtluser
   POSTGRES_PASSWORD: ${MTL_POSTGRES_PASSWORD:-MtlSuper123}
 
+x-image-pull-policy: &image-pull-policy ${MTL_IMAGE_PULL_POLICY:-always}
+
 services:
   db:
     image: postgis/postgis:18-3.6
@@ -34,11 +36,17 @@ services:
       -c synchronous_commit=off
 
   app:
-    image: wauwau0977/mytraillog:latest
+    # ${MTL_APP_IMAGE:-...} means: use MTL_APP_IMAGE when it is set,
+    # otherwise use the published image. Example local override:
+    # MTL_APP_IMAGE=mytraillog:local MTL_IMAGE_PULL_POLICY=never docker compose up -d
+    image: ${MTL_APP_IMAGE:-wauwau0977/mytraillog:latest}
+    pull_policy: *image-pull-policy
     depends_on:
       db:
         condition: service_healthy
       brouter:
+        condition: service_started
+      location-search:
         condition: service_started
     environment:
       <<: *db-environment
@@ -51,6 +59,8 @@ services:
       MTL_PLANNER_ENABLED: "true"
       MTL_PLANNER_BROUTER_BASE_URL: http://brouter:17777
       MTL_PLANNER_STATUS_URL: http://brouter:17778/status
+      MTL_LOCATION_SEARCH_STATUS_URL: http://location-search:8083/status
+      MTL_LOCATION_SEARCH_QUERY_URL: http://location-search:8083/search
       SERVER_SSL_ENABLED: "false"
     ports:
       - "18080:8080"
@@ -59,6 +69,8 @@ services:
       - ./data/gpx:/app/gpx
       - ./data/media:/app/media:ro
       - ./data/logs:/app/logs
+      # Optional Spring Boot overrides for this local checkout:
+      # - ./application.yml:/app/config/application.yml:ro
     deploy:
       resources:
         limits:
@@ -71,7 +83,9 @@ services:
     # docker compose --profile local-maps up -d
     # Without this profile, the app uses the hosted PMTiles service.
     profiles: ["local-maps"]
-    image: wauwau0977/mytraillog-maps:latest
+    # Override with MTL_MAP_IMAGE=mytraillog-maps:local and MTL_IMAGE_PULL_POLICY=never when testing a local build.
+    image: ${MTL_MAP_IMAGE:-wauwau0977/mytraillog-maps:latest}
+    pull_policy: *image-pull-policy
     ports:
       - "18081:8081"
     environment:
@@ -88,8 +102,31 @@ services:
         reservations:
           memory: 256m
 
+  location-search:
+    image: ${MTL_LOCATION_SEARCH_IMAGE:-wauwau0977/mytraillog-location-search:latest}
+    pull_policy: *image-pull-policy
+    expose:
+      - 8083
+    ports:
+      - "18083:8083"
+    environment:
+      PORT: "8083"
+      MTL_LOCATION_SEARCH_DB: /data/geonames-search.sqlite
+    restart: unless-stopped
+    # Optional local override when building the GeoNames DB yourself:
+    # volumes:
+    #   - ./data/location-search/geonames-search.sqlite:/data/geonames-search.sqlite:ro
+    deploy:
+      resources:
+        limits:
+          memory: 256m
+        reservations:
+          memory: 64m
+
   brouter:
-    image: wauwau0977/mytraillog-brouter:latest
+    # Override with MTL_BROUTER_IMAGE=mytraillog-brouter:local and MTL_IMAGE_PULL_POLICY=never when testing a local build.
+    image: ${MTL_BROUTER_IMAGE:-wauwau0977/mytraillog-brouter:latest}
+    pull_policy: *image-pull-policy
     expose:
       - 17777
       - 17778

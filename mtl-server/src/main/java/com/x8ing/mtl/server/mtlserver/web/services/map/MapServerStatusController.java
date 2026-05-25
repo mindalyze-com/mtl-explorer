@@ -1,6 +1,8 @@
 package com.x8ing.mtl.server.mtlserver.web.services.map;
 
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.x8ing.mtl.server.mtlserver.planner.config.PlannerProperties;
+import io.swagger.v3.oas.annotations.security.SecurityRequirements;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -13,24 +15,35 @@ import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/map")
+@JsonPropertyOrder({
+        "statusService",
+        "properties",
+        "plannerProperties",
+        "upstreamResolver",
+        "initialMapViewportService"
+})
 public class MapServerStatusController {
 
     private final MapServerStatusService statusService;
     private final MapServerProperties properties;
     private final PlannerProperties plannerProperties;
     private final MapUpstreamResolver upstreamResolver;
+    private final InitialMapViewportService initialMapViewportService;
 
     public MapServerStatusController(MapServerStatusService statusService,
                                      MapServerProperties properties,
                                      PlannerProperties plannerProperties,
-                                     MapUpstreamResolver upstreamResolver) {
+                                     MapUpstreamResolver upstreamResolver,
+                                     InitialMapViewportService initialMapViewportService) {
         this.statusService = statusService;
         this.properties = properties;
         this.plannerProperties = plannerProperties;
         this.upstreamResolver = upstreamResolver;
+        this.initialMapViewportService = initialMapViewportService;
     }
 
     @GetMapping("/status")
+    @SecurityRequirements
     public MapServerStatusDto getMapServerStatus() {
         return statusService.getStatus();
     }
@@ -54,9 +67,7 @@ public class MapServerStatusController {
             dto.setArchiveId(archiveId);
         }
         dto.setRemoteTileUrl(properties.getRemoteTileUrl());
-        dto.setInitialCenterLng(properties.getInitialCenterLng());
-        dto.setInitialCenterLat(properties.getInitialCenterLat());
-        dto.setInitialZoom(properties.getInitialZoom());
+        dto.setInitialBounds(initialMapViewportService.resolve(properties));
 
         // Demo area bounds — only populated when the property is set (demo mode)
         String bbox = properties.getDemoAreaBbox();

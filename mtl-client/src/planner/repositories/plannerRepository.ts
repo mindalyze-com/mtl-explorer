@@ -5,8 +5,7 @@
  * their generated signatures are too loose (server returns {@code object} or
  * a raw {@code Map<String,Object>}) or because we need behaviour the generator
  * cannot express (blob download for GPX, AbortSignal cancellation, typed
- * response shape for {@code /route} and {@code /plans/{id}} that the current
- * schema does not yet describe).
+ * response shape for {@code /route} that the current schema does not yet describe).
  *
  * Whenever {@code PlannerController} grows stricter return types, revisit this
  * file and move the remaining endpoints over to the generated client.
@@ -15,14 +14,15 @@ import { apiClient } from '@/utils/apiClient';
 import { getApiConfiguration } from '@/utils/openApiClient';
 import { PlannerControllerApi } from 'x8ing-mtl-api-typescript-fetch';
 import type {
+  PlannedTrackDetailDto,
   PlannedTrackSummaryDto,
   SavePlannedTrackDto,
   WaypointDto,
 } from 'x8ing-mtl-api-typescript-fetch/dist/esm/models/index';
-import { PLANNER_API_BASE } from '@/planner/constants/PlannerConstants';
+import { MAX_WAYPOINTS_FALLBACK, PLANNER_API_BASE } from '@/planner/constants/PlannerConstants';
 import type {
+  LegResult,
   LiveStats,
-  PlannedTrackDetail,
   PlannedTrackSummary,
   RouteResponse,
   SidecarStatus,
@@ -39,12 +39,16 @@ function getPlannerApi(): PlannerControllerApi {
   return new PlannerControllerApi(getApiConfiguration());
 }
 
-export async function fetchPlannerConfig(): Promise<{ profiles: string[]; defaultProfile: string; maxWaypoints: number }> {
+export async function fetchPlannerConfig(): Promise<{
+  profiles: string[];
+  defaultProfile: string;
+  maxWaypoints: number;
+}> {
   const raw = await getPlannerApi().config();
   return {
-    profiles: Array.isArray(raw.profiles) ? raw.profiles as string[] : [],
+    profiles: Array.isArray(raw.profiles) ? (raw.profiles as string[]) : [],
     defaultProfile: typeof raw.defaultProfile === 'string' ? raw.defaultProfile : 'trekking',
-    maxWaypoints: typeof raw.maxWaypoints === 'number' ? raw.maxWaypoints : 50,
+    maxWaypoints: typeof raw.maxWaypoints === 'number' ? raw.maxWaypoints : MAX_WAYPOINTS_FALLBACK,
   };
 }
 
@@ -53,7 +57,11 @@ export async function fetchPlannerConfig(): Promise<{ profiles: string[]; defaul
  * the generator emits {@code Promise<object>}. We still call it via axios to
  * preserve AbortSignal support and a properly typed response.
  */
-export async function computeRoute(waypoints: Waypoint[], profile: string, signal?: AbortSignal): Promise<RouteResponse> {
+export async function computeRoute(
+  waypoints: Waypoint[],
+  profile: string,
+  signal?: AbortSignal
+): Promise<RouteResponse> {
   const body = {
     waypoints: waypoints.map((w): WaypointDto => ({ lat: w.lat, lng: w.lng })),
     profile,
@@ -63,8 +71,7 @@ export async function computeRoute(waypoints: Waypoint[], profile: string, signa
 }
 
 export async function fetchSidecarStatus(): Promise<SidecarStatus> {
-  const raw = await getPlannerApi().status();
-  return raw as unknown as SidecarStatus;
+  return getPlannerApi().status();
 }
 
 export interface SaveArgs {
@@ -72,6 +79,10 @@ export interface SaveArgs {
   description?: string;
   profile: string;
   coordinates: [number, number, number][];
+  /** Original BRouter route legs, preserving per-leg stats and boundaries. */
+  legs: LegResult[];
+  /** Original BRouter aggregate stats for the saved route. */
+  stats: LiveStats;
   /** Original user waypoints (lat/lng) so the plan can be re-loaded into the editor. */
   waypoints: { lat: number; lng: number }[];
 }
@@ -82,10 +93,16 @@ export async function savePlannedRoute(args: SaveArgs): Promise<{ id: number; na
     description: args.description,
     profile: args.profile,
     coordinates: args.coordinates,
+    legs: args.legs,
+    stats: args.stats,
     waypoints: args.waypoints,
   };
   const raw = await getPlannerApi().save({ savePlannedTrackDto: dto });
-  return raw as unknown as { id: number; name: string; distanceM: number };
+  return {
+    id: raw.id ?? 0,
+    name: raw.name ?? '',
+    distanceM: raw.distanceM ?? 0,
+  };
 }
 
 export async function listPlannedTracks(): Promise<PlannedTrackSummary[]> {
@@ -98,22 +115,18 @@ export async function listPlannedTracks(): Promise<PlannedTrackSummary[]> {
     centerLat: p.centerLat ?? 0,
     centerLng: p.centerLng ?? 0,
     createDate: p.createDate ? new Date(p.createDate).toISOString() : '',
-    profile: (p as unknown as Record<string, unknown>).profile as string | null ?? null,
+    profile: ((p as unknown as Record<string, unknown>).profile as string | null) ?? null,
   }));
 }
 
-/**
- * Not yet exposed by the generated client (GET /api/planner/plans/{id} is a
- * new endpoint — the running server needs a restart + schema regen before it
- * appears). Kept on axios so the feature works against stale schemas too.
- */
-export async function loadPlannedTrack(id: number): Promise<PlannedTrackDetail> {
-  const r = await apiClient.get<PlannedTrackDetail>(`${PLANNER_API_BASE}/plans/${id}`);
-  return r.data;
+export async function loadPlannedTrack(id: number): Promise<PlannedTrackDetailDto> {
+  return getPlannerApi().loadPlan({ id });
 }
 
 export async function deletePlannedTrack(id: number): Promise<void> {
-  await getPlannerApi().deletePlan({ id });
+  // The endpoint returns 204 No Content; avoid the generated convenience method,
+  // which tries to parse an object response from the empty body.
+  await getPlannerApi().deletePlanRaw({ id });
 }
 
 /**
@@ -135,14 +148,9 @@ export async function downloadPlannedTrackGpx(id: number, name: string): Promise
 }
 
 function makeGpxFileName(name: string): string {
-  const baseName = name
-    .trim()
-    .replace(INVALID_FILENAME_CHARS, '-')
-    .replace(WHITESPACE_CHARS, ' ')
-    || GPX_FILENAME_FALLBACK;
-  return baseName.toLowerCase().endsWith(GPX_FILE_EXTENSION)
-    ? baseName
-    : `${baseName}${GPX_FILE_EXTENSION}`;
+  const baseName =
+    name.trim().replace(INVALID_FILENAME_CHARS, '-').replace(WHITESPACE_CHARS, ' ') || GPX_FILENAME_FALLBACK;
+  return baseName.toLowerCase().endsWith(GPX_FILE_EXTENSION) ? baseName : `${baseName}${GPX_FILE_EXTENSION}`;
 }
 
 /** Fire-and-forget: tell the sidecar to download segments covering the given bbox. */

@@ -566,6 +566,32 @@ body:has(.p-dialog-visible) {
     bottom: calc(var(--nav-sheet-h, 0px) + var(--safe-bottom, 0px)) !important;
 }
 
+/* MapLibre navigation controls: use the same translucent shell as MTL Explorer chrome. */
+.maplibregl-ctrl-group {
+    background: var(--surface-glass-heavy) !important;
+    border: 1px solid var(--border-medium) !important;
+    box-shadow: var(--shadow-sm) !important;
+    overflow: hidden !important;
+}
+
+.maplibregl-ctrl-group button {
+    background: transparent !important;
+    color: var(--text-secondary) !important;
+}
+
+.maplibregl-ctrl-group button + button {
+    border-top: 1px solid var(--border-default) !important;
+}
+
+.maplibregl-ctrl-group button:not(:disabled):hover {
+    background: var(--surface-hover) !important;
+    color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] .maplibregl-ctrl-group button .maplibregl-ctrl-icon {
+    filter: invert(1) brightness(1.6) opacity(0.82);
+}
+
 /* MapLibre scale control — minimal ruler style (no box, just a line) */
 .maplibregl-ctrl-scale {
     background: transparent !important;
@@ -678,8 +704,6 @@ body:has(.p-dialog-visible) {
     position: fixed;
     inset: 0;
     background: var(--on-photo-vignette);
-    backdrop-filter: blur(0.75px);
-    -webkit-backdrop-filter: blur(0.75px);
 }
 .photo-logo {
     --photo-logo-optical-offset: -0.5rem;

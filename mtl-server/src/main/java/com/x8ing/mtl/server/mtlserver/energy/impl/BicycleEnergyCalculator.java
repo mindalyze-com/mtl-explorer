@@ -19,13 +19,16 @@ import java.util.Set;
  *   <li>Rolling resistance: Cr·m·g·d</li>
  *   <li>Kinetic energy change: ½·m·(v₂²−v₁²)</li>
  * </ul>
- * Default constants for a road cyclist in drops position:
- * Cd=0.9, A=0.5 m², Cr=0.005, equipment=10 kg (road bike + shoes + helmet)
+ * Default constants represent a recreational road cyclist in an upright/relaxed position
+ * (CdA = Cd×A = 0.9×0.5 = 0.45 m²). Reference CdA values by riding position:
+ * aero tuck/drops ~0.22–0.28, normal drops ~0.28–0.34, hoods/relaxed ~0.35–0.40,
+ * upright/casual ~0.40–0.50. Override via {@link EnergyParameters} if needed.
+ * Cd=0.9, A=0.5 m², Cr=0.005, equipment=10 kg (road bike + shoes + helmet + water)
  */
 @Component
 public class BicycleEnergyCalculator extends EnergyCalculator {
 
-    protected static final double DEFAULT_CD = 0.9;
+    protected static final double DEFAULT_CD = 0.9;             // combined CdA = 0.45 m² (upright/relaxed position)
     protected static final double DEFAULT_FRONTAL_AREA = 0.5;  // m²
     protected static final double DEFAULT_CR = 0.005;           // road tire on asphalt
     protected static final double DEFAULT_EQUIPMENT_KG = 10.0;  // road bike + gear

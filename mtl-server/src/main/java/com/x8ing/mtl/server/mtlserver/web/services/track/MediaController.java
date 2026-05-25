@@ -1,5 +1,6 @@
 package com.x8ing.mtl.server.mtlserver.web.services.track;
 
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.x8ing.mtl.server.mtlserver.db.entity.media.MediaFile;
 import com.x8ing.mtl.server.mtlserver.db.entity.media.MediaPointDTO;
 import com.x8ing.mtl.server.mtlserver.db.repository.media.MediaRepository;
@@ -26,6 +27,9 @@ import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/media")
+@JsonPropertyOrder({
+        "mediaRepository"
+})
 public class MediaController {
 
     private static final Logger log = LoggerFactory.getLogger(MediaController.class);
@@ -77,7 +81,7 @@ public class MediaController {
                 .collect(Collectors.toList());
 
         return ResponseEntity.ok()
-                .cacheControl(CacheControl.maxAge(MEDIA_POINTS_CACHE_MINUTES, TimeUnit.MINUTES).cachePublic())
+                .cacheControl(CacheControl.maxAge(MEDIA_POINTS_CACHE_MINUTES, TimeUnit.MINUTES).cachePrivate().mustRevalidate())
                 .body(points);
     }
 

@@ -1,9 +1,13 @@
 package com.x8ing.mtl.server.mtlserver.web.global;
 
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import lombok.SneakyThrows;
 import org.springframework.stereotype.Component;
 
 @Component
+@JsonPropertyOrder({
+        "objectMapper"
+})
 public class Utils {
 
     private final MyObjectMapper objectMapper;

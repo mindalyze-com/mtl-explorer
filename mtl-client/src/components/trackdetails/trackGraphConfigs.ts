@@ -1,4 +1,4 @@
-import type { GpsTrackDataPoint } from 'x8ing-mtl-api-typescript-fetch/dist/esm/models/index';
+import type { ChartPoint, MetricKey } from '@/utils/chartSeriesAdapter';
 import type { ChartThemeConfig } from '@/utils/chartTheme';
 
 /**
@@ -6,14 +6,20 @@ import type { ChartThemeConfig } from '@/utils/chartTheme';
  *
  * Replaces the 6 near-identical TrackDetail*Graph.vue files with a single
  * <TrackGraph :config="..."> driven by these declarative configs.
+ *
+ * The graphs consume `ChartPoint`s produced by the on-demand chart-series
+ * endpoint (see `chartSeriesAdapter.ts`) — each ChartPoint represents one
+ * equal-width bucket over the canonical RAW_OUTLIER_CLEANED stream.
  */
 export interface TrackGraphConfig extends ChartThemeConfig {
   /** Bootstrap-icon class (without the leading 'bi-'-prefix wrapper). */
   icon: string;
   /** Header label shown above the chart. */
   title: string;
-  /** Pulls the y-value out of a data point. Return null/undefined to skip the point. */
-  extractY: (point: GpsTrackDataPoint) => number | null | undefined;
+  /** Pulls the y-value out of a chart point. Return null/undefined to skip the point. */
+  extractY: (point: ChartPoint) => number | null | undefined;
+  /** Metric bucket stats used for optional min/max range rendering. */
+  rangeMetricKey?: MetricKey;
   /** When true, points where extractY returns null/undefined are filtered out
    *  rather than emitted as null. Matches the legacy Energy/Power behavior. */
   filterNullY?: boolean;
@@ -26,6 +32,7 @@ const elevationConfig: TrackGraphConfig = {
   seriesColor: '#6366f1',
   unit: 'm',
   decimals: 0,
+  rangeMetricKey: 'ALTITUDE_M',
   extractY: (p) => p.pointAltitude,
 };
 
@@ -36,7 +43,9 @@ const elevationGainConfig: TrackGraphConfig = {
   seriesColor: '#16a34a',
   unit: 'm/h',
   decimals: 0,
-  extractY: (p) => p.elevationGainPerHourMovingWindow ?? 0,
+  filterNullY: true,
+  rangeMetricKey: 'ELEVATION_GAIN_PER_HOUR_WINDOW',
+  extractY: (p) => p.elevationGainPerHourWindow,
 };
 
 const speedConfig: TrackGraphConfig = {
@@ -48,7 +57,9 @@ const speedConfig: TrackGraphConfig = {
   decimals: 1,
   yMin: 0,
   connectNulls: true,
-  extractY: (p) => p.speedInKmhMovingWindow,
+  filterNullY: true,
+  rangeMetricKey: 'SPEED_WINDOW_KMH',
+  extractY: (p) => p.speedInKmhWindow,
 };
 
 const distanceConfig: TrackGraphConfig = {
@@ -83,7 +94,8 @@ const powerConfig: TrackGraphConfig = {
   decimals: 0,
   yMin: 0,
   filterNullY: true,
-  extractY: (p) => (p.powerWatts != null ? Math.round(p.powerWatts) : null),
+  rangeMetricKey: 'POWER_WINDOW_WATTS',
+  extractY: (p) => (p.powerWattsWindow != null ? Math.round(p.powerWattsWindow) : null),
 };
 
 export const trackGraphConfigs = {

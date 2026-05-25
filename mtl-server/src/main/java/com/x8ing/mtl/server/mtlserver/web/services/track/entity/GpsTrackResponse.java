@@ -1,10 +1,15 @@
 package com.x8ing.mtl.server.mtlserver.web.services.track.entity;
 
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.x8ing.mtl.server.mtlserver.db.entity.gps.GpsTrack;
 import com.x8ing.mtl.server.mtlserver.db.readonly.spring.QueryResult;
 import lombok.Data;
 
 @Data
+@JsonPropertyOrder({
+        "gpsTrack",
+        "filterMapping"
+})
 public class GpsTrackResponse {
 
     private GpsTrack gpsTrack;

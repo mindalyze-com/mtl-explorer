@@ -56,3 +56,12 @@ Thumbs.db
 *.wmv
 
 /logs/mtl-server-*.log.gz
+/data/
+
+# Generated GeoNames search database
+/docker-location-search/geonames-search/build/*
+!/docker-location-search/geonames-search/build/.gitkeep
+
+# Local Docker/Spring overrides
+/.env
+/application.yml

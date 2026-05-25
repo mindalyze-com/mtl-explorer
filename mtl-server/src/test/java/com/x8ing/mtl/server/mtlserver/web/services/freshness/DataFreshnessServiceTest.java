@@ -2,6 +2,7 @@ package com.x8ing.mtl.server.mtlserver.web.services.freshness;
 
 import com.x8ing.mtl.server.mtlserver.db.entity.freshness.DataFreshness;
 import com.x8ing.mtl.server.mtlserver.db.repository.freshness.DataFreshnessRepository;
+import com.x8ing.mtl.server.mtlserver.web.services.config.ServerIdentityService;
 import org.junit.jupiter.api.Test;
 
 import java.util.Date;
@@ -16,6 +17,8 @@ class DataFreshnessServiceTest {
     @Test
     void buildsReadableStableTokenFromSortedRepositoryRows() {
         DataFreshnessRepository repository = mock(DataFreshnessRepository.class);
+        ServerIdentityService serverIdentityService = mock(ServerIdentityService.class);
+        when(serverIdentityService.getServerId()).thenReturn("server-A");
         when(repository.findAllByOrderByDomainKeyAsc()).thenReturn(List.of(
                 row(DataFreshnessDomains.CONFIG, 12, 1000),
                 row(DataFreshnessDomains.FILTERS, 28, 3000),
@@ -25,10 +28,10 @@ class DataFreshnessServiceTest {
                 row(DataFreshnessDomains.TRACKS, 267, 2500)
         ));
 
-        DataFreshnessResponseDto response = new DataFreshnessService(repository).getDataFreshness();
+        DataFreshnessResponseDto response = new DataFreshnessService(repository, serverIdentityService).getDataFreshness();
 
         assertThat(response.freshnessToken()).isEqualTo(
-                "5nJmia__|config:12|filters:28|index:91|media:44|track_geometry:133|tracks:267"
+                "7Evm4d__|server_id:server-A|config:12|filters:28|index:91|media:44|track_geometry:133|tracks:267"
         );
         assertThat(response.changedAt()).isEqualTo(new Date(5000));
         assertThat(response.items()).extracting(DataFreshnessItemDto::key).containsExactly(

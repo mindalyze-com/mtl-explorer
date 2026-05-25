@@ -1,5 +1,7 @@
 package com.x8ing.mtl.server.mtlserver.web.security;
 
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
+import com.x8ing.mtl.server.mtlserver.db.repository.logs.WebUserSessionService;
 import com.x8ing.mtl.server.mtlserver.web.services.auth.AuthController;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -21,14 +23,21 @@ import java.io.IOException;
 import java.util.Arrays;
 
 @Slf4j
+@JsonPropertyOrder({
+        "jwtUtil",
+        "userDetailsService",
+        "webUserSessionService"
+})
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtUtil jwtUtil;
     private final UserDetailsService userDetailsService;
+    private final WebUserSessionService webUserSessionService;
 
-    public JwtAuthenticationFilter(JwtUtil jwtUtil, UserDetailsService userDetailsService) {
+    public JwtAuthenticationFilter(JwtUtil jwtUtil, UserDetailsService userDetailsService, WebUserSessionService webUserSessionService) {
         this.jwtUtil = jwtUtil;
         this.userDetailsService = userDetailsService;
+        this.webUserSessionService = webUserSessionService;
     }
 
     @Override
@@ -53,6 +62,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String userSessionId = jwtUtil.getUserSessionIdFromToken(jwt);
         if (userSessionId == null || userSessionId.isBlank()) {
             log.warn("JWT is valid but does not contain '{}' claim — ignoring token", JwtUtil.USER_SESSION_ID);
+            filterChain.doFilter(request, response);
+            return;
+        }
+        if (!webUserSessionService.isSessionActive(userSessionId)) {
+            log.warn("JWT contains inactive '{}' claim — ignoring token", JwtUtil.USER_SESSION_ID);
             filterChain.doFilter(request, response);
             return;
         }

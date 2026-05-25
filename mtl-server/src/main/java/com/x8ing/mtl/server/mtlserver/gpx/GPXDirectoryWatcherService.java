@@ -1,5 +1,6 @@
 package com.x8ing.mtl.server.mtlserver.gpx;
 
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.x8ing.mtl.server.mtlserver.db.repository.indexer.IndexerRepository;
 import com.x8ing.mtl.server.mtlserver.indexer.FileIndexer;
 import com.x8ing.mtl.server.mtlserver.indexer.FileIndexerImpl;
@@ -22,6 +23,15 @@ import java.util.List;
 
 @Service
 @Slf4j
+@JsonPropertyOrder({
+        "processingWorker",
+        "indexerRepository",
+        "watchDirectory",
+        "changeDetectionStrategy",
+        "liveWatchEnabled",
+        "fileIndexerImpl",
+        "txManager"
+})
 public class GPXDirectoryWatcherService {
 
     public static final String INDEX_GPS = "GPS"; // made public for cross-module event consumers

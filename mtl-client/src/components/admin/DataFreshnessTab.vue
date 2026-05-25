@@ -1,19 +1,19 @@
 <template>
   <div class="freshness-tab">
     <div v-if="!currentFreshness && !isFreshnessPollingHealthy" class="freshness-empty freshness-empty--error">
-      <i class="pi pi-exclamation-triangle"/>
+      <i class="pi pi-exclamation-triangle" />
       <span>Freshness status unavailable</span>
     </div>
 
     <div v-else-if="!currentFreshness" class="freshness-empty">
-      <i class="pi pi-spin pi-spinner"/>
+      <i class="pi pi-spin pi-spinner" />
       <span>Loading…</span>
     </div>
 
     <template v-else>
       <section :class="['freshness-hero', freshnessHeroClass]">
         <span class="freshness-hero__icon">
-          <i :class="freshnessHeroIcon"/>
+          <i :class="freshnessHeroIcon" />
         </span>
         <div class="freshness-hero__body">
           <span class="freshness-hero__title">{{ freshnessHeroTitle }}</span>
@@ -41,7 +41,8 @@
                 v-for="part in serverTokenDiff"
                 :key="part.key"
                 :class="{ 'freshness-token__char--changed': part.changed }"
-              >{{ part.char }}</span>
+                >{{ part.char }}</span
+              >
             </code>
           </div>
 
@@ -52,7 +53,8 @@
                 v-for="part in clientTokenDiff"
                 :key="part.key"
                 :class="{ 'freshness-token__char--changed': part.changed }"
-              >{{ part.char }}</span>
+                >{{ part.char }}</span
+              >
             </code>
           </div>
         </div>
@@ -69,13 +71,17 @@
           <div class="freshness-metric">
             <span class="freshness-metric__label">
               Revision sum
-              <i
+              <button
+                type="button"
                 class="pi pi-info-circle freshness-metric__help"
-                title="Sum of all domain revision counters. This is a quick activity signal only; freshness is detected by token equality."
-              />
+                aria-label="About revision sum"
+                @click.stop="showRevisionInfo"
+              ></button>
             </span>
             <span class="freshness-metric__value">{{ totalRevisions }}</span>
-            <span class="freshness-metric__hint">Tracked writes across all domains; compare tokens, not this number.</span>
+            <span class="freshness-metric__hint"
+              >Tracked writes across all domains; compare tokens, not this number.</span
+            >
           </div>
         </div>
 
@@ -87,7 +93,7 @@
           >
             <div class="freshness-card__top">
               <span class="freshness-card__icon">
-                <i :class="domainIcon(item.key)"/>
+                <i :class="domainIcon(item.key)" />
               </span>
               <span class="freshness-card__title">{{ domainLabel(item.key) }}</span>
               <span v-if="isDomainOutdated(item)" class="freshness-card__badge">Outdated</span>
@@ -105,12 +111,21 @@
         </div>
 
         <div class="freshness-actions">
-          <span :class="['freshness-health', isFreshnessPollingHealthy ? 'freshness-health--ok' : 'freshness-health--error']">
-            <i :class="isFreshnessPollingHealthy ? 'pi pi-check-circle' : 'pi pi-exclamation-triangle'"/>
+          <span
+            :class="[
+              'freshness-health',
+              isFreshnessPollingHealthy ? 'freshness-health--ok' : 'freshness-health--error',
+            ]"
+          >
+            <i :class="isFreshnessPollingHealthy ? 'pi pi-check-circle' : 'pi pi-exclamation-triangle'" />
             {{ isFreshnessPollingHealthy ? 'Polling healthy' : 'Polling failed' }}
           </span>
         </div>
       </section>
+
+      <Popover ref="revisionInfoPopover" append-to="body">
+        <p class="freshness-info-text">{{ REVISION_SUM_INFO }}</p>
+      </Popover>
     </template>
   </div>
 </template>
@@ -151,6 +166,8 @@ const TOKEN_DIFF_CLIENT_KEY_PREFIX = 'client-token';
 const TOKEN_READABLE_SEPARATOR = '__|';
 const TOKEN_ITEM_SEPARATOR = '|';
 const TOKEN_KEY_REVISION_SEPARATOR = ':';
+const REVISION_SUM_INFO =
+  'Sum of all domain revision counters. This is a quick activity signal only; freshness is detected by token equality.';
 
 interface TokenDiffPart {
   key: string;
@@ -165,13 +182,16 @@ const emit = defineEmits<{
 const { currentFreshness, lastChecked, refresh, isFreshnessPollingHealthy } = useDataFreshness();
 const refreshing = ref(false);
 const clientLastToken = ref(getAppliedDataFreshnessToken() ?? '');
+const revisionInfoPopover = ref<{ toggle: (event: Event) => void } | null>(null);
 
 const items = computed(() => [...(currentFreshness.value?.items ?? [])].sort(compareFreshnessItems));
 const serverToken = computed(() => currentFreshness.value?.freshnessToken ?? '');
 const maxRevision = computed(() => Math.max(1, ...items.value.map((item) => item.revision ?? 0)));
 const totalRevisions = computed(() => items.value.reduce((sum, item) => sum + (item.revision ?? 0), 0));
 const clientRevisionMap = computed(() => parseFreshnessTokenRevisions(clientLastToken.value));
-const shouldApplyDataRefresh = computed(() => Boolean(serverToken.value && serverToken.value !== clientLastToken.value));
+const shouldApplyDataRefresh = computed(() =>
+  Boolean(serverToken.value && serverToken.value !== clientLastToken.value)
+);
 const serverTokenDiff = computed(() =>
   buildTokenDiffParts(serverToken.value, clientLastToken.value, TOKEN_DIFF_SERVER_KEY_PREFIX)
 );
@@ -259,6 +279,10 @@ function isDomainOutdated(item: DataFreshnessItemDto): boolean {
 function formatChangedAt(value?: Date): string {
   if (!value) return 'not recorded';
   return formatDateAndTimeWithSeconds(value);
+}
+
+function showRevisionInfo(event: Event): void {
+  revisionInfoPopover.value?.toggle(event);
 }
 
 function displayToken(token?: string): string {
@@ -492,8 +516,30 @@ function refreshMapData(): Promise<boolean> {
 }
 
 .freshness-metric__help {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
   font-size: var(--text-xs-size);
   color: var(--text-muted);
+}
+
+.freshness-metric__help:hover,
+.freshness-metric__help:focus-visible {
+  color: var(--accent-muted);
+  outline: none;
+}
+
+.freshness-info-text {
+  max-width: min(260px, calc(100vw - 2rem));
+  font-size: var(--text-xs-size);
+  line-height: var(--text-xs-lh);
+  color: var(--text-secondary);
+  margin: 0;
+  padding: 0.1rem 0;
 }
 
 .freshness-metric__value {

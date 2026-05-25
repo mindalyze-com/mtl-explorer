@@ -1,5 +1,6 @@
 package com.x8ing.mtl.server.mtlserver.jobs.duplicate;
 
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.x8ing.mtl.server.mtlserver.db.entity.gps.GpsTrack;
 import com.x8ing.mtl.server.mtlserver.db.repository.gps.GpsTrackRepository;
 import lombok.extern.slf4j.Slf4j;
@@ -17,6 +18,9 @@ import java.util.List;
  */
 @Slf4j
 @Service
+@JsonPropertyOrder({
+        "gpsTrackRepository"
+})
 public class DuplicateDetectorAtomicWorker {
 
     private final GpsTrackRepository gpsTrackRepository;

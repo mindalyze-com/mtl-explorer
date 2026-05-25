@@ -1,9 +1,9 @@
 package com.x8ing.mtl.server.mtlserver.jobs.classifier.activitytype;
 
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.x8ing.mtl.server.mtlserver.db.entity.gps.GpsTrack;
 import com.x8ing.mtl.server.mtlserver.db.entity.gps.GpsTrackDataPoint;
 import com.x8ing.mtl.server.mtlserver.db.repository.gps.GpsTrackRepository;
-import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -16,6 +16,9 @@ import java.util.List;
 
 @Slf4j
 @Component
+@JsonPropertyOrder({
+        "gpsTrackRepository"
+})
 public class ActivityTypeAutoClassifier {
 
     private final GpsTrackRepository gpsTrackRepository;
@@ -24,35 +27,66 @@ public class ActivityTypeAutoClassifier {
         this.gpsTrackRepository = gpsTrackRepository;
     }
 
-    /**
-     * Classify the activity type for the given track and commit the result in its own
-     * transaction. Returns the determined activity type (may be null if classification
-     * failed), so the caller can decide whether to trigger a follow-up energy recalc
-     * AFTER this transaction has committed and the new type is visible to subsequent reads.
-     */
-    @SneakyThrows
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public GpsTrack.ACTIVITY_TYPE classifyActivity(GpsTrack gpsTrack, List<GpsTrackDataPoint> gpsTrackDataPointList) {
+    @JsonPropertyOrder({
+            "previousType",
+            "determinedType",
+            "updated"
+    })
+    public record ClassificationResult(
+            GpsTrack.ACTIVITY_TYPE previousType,
+            GpsTrack.ACTIVITY_TYPE determinedType,
+            boolean updated) {
+    }
 
-        if (gpsTrack == null) {
-            String msg = "GPS Track was null. That's invalid. Can't store";
+    @JsonPropertyOrder({
+            "activityType",
+            "activityTypeSource",
+            "activityTypeSourceDetails"
+    })
+    private record ActivityClassification(
+            GpsTrack.ACTIVITY_TYPE activityType,
+            GpsTrack.ACTIVITY_TYPE_SOURCE activityTypeSource,
+            String activityTypeSourceDetails) {
+    }
+
+    /**
+     * Classifies the activity type for the given track and commits only the classification
+     * columns in its own transaction. This avoids merging stale GpsTrack entities and
+     * overwriting unrelated state such as duplicate detection results.
+     */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public ClassificationResult classifyActivity(Long gpsTrackId, List<GpsTrackDataPoint> gpsTrackDataPointList) {
+
+        if (gpsTrackId == null) {
+            String msg = "GPS track ID was null. That's invalid. Can't classify";
             log.error(msg);
             throw new IllegalArgumentException(msg);
         }
 
-        if (CollectionUtils.isEmpty(gpsTrackDataPointList)) {
-            String msg = ("GPS track had no data points.  gpsTrack=%s, gpsTrackDataPointList=%s".formatted(gpsTrack, gpsTrackDataPointList));
-            log.warn(msg);
-            gpsTrack.setActivityTypeSource(GpsTrack.ACTIVITY_TYPE_SOURCE.FAILED);
-            gpsTrack.setActivityTypeSourceDetails(msg);
-        } else {
-            guessActivity(gpsTrack, gpsTrackDataPointList);
+        GpsTrack gpsTrack = gpsTrackRepository.findById(gpsTrackId)
+                .orElseThrow(() -> new IllegalArgumentException("GPS track not found. id=" + gpsTrackId));
+        GpsTrack.ACTIVITY_TYPE previousType = gpsTrack.getActivityType();
+        if (gpsTrack.getActivityTypeSource() != null) {
+            return new ClassificationResult(previousType, previousType, false);
         }
-        gpsTrackRepository.save(gpsTrack);
-        return gpsTrack.getActivityType();
+
+        ActivityClassification classification;
+        if (CollectionUtils.isEmpty(gpsTrackDataPointList)) {
+            String msg = "GPS track had no data points. gpsTrackId=%s".formatted(gpsTrackId);
+            log.warn(msg);
+            classification = new ActivityClassification(null, GpsTrack.ACTIVITY_TYPE_SOURCE.FAILED, msg);
+        } else {
+            classification = guessActivity(gpsTrack, gpsTrackDataPointList);
+        }
+        int updated = gpsTrackRepository.updateActivityClassificationIfPending(
+                gpsTrackId,
+                classification.activityType(),
+                classification.activityTypeSource(),
+                classification.activityTypeSourceDetails());
+        return new ClassificationResult(previousType, classification.activityType(), updated > 0);
     }
 
-    private static void guessActivity(GpsTrack gpsTrack, List<GpsTrackDataPoint> gpsTrackDataPointList) {
+    private static ActivityClassification guessActivity(GpsTrack gpsTrack, List<GpsTrackDataPoint> gpsTrackDataPointList) {
 
 
         GpsTrack.ACTIVITY_TYPE activityType = null;
@@ -62,7 +96,8 @@ public class ActivityTypeAutoClassifier {
         // check if we get something out of the filename
         activityType = guessBasedOnText(activityType, gpsTrack.getTrackName(), typeSourceDetails, "trackName");
         activityType = guessBasedOnText(activityType, gpsTrack.getTrackDescription(), typeSourceDetails, "trackDescription");
-        activityType = guessBasedOnText(activityType, gpsTrack.getIndexedFile().getName(), typeSourceDetails, "fileName");
+        String fileName = gpsTrack.getIndexedFile() == null ? null : gpsTrack.getIndexedFile().getName();
+        activityType = guessBasedOnText(activityType, fileName, typeSourceDetails, "fileName");
         activityType = guessBasedOnText(activityType, gpsTrack.getTrackType(), typeSourceDetails, "trackType"); // not reliable for me especially for older tracks
 
         // try enum mapping
@@ -123,9 +158,10 @@ public class ActivityTypeAutoClassifier {
 
         }
 
-        gpsTrack.setActivityType(activityType);
-        gpsTrack.setActivityTypeSourceDetails(typeSourceDetails.toString());
-        gpsTrack.setActivityTypeSource(GpsTrack.ACTIVITY_TYPE_SOURCE.AUTO_GUESS);
+        return new ActivityClassification(
+                activityType,
+                GpsTrack.ACTIVITY_TYPE_SOURCE.AUTO_GUESS,
+                typeSourceDetails.toString());
 
     }
 

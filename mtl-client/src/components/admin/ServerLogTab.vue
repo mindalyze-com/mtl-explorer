@@ -1,15 +1,14 @@
 <template>
   <div class="tab-content log-tab">
-
     <!-- Disabled / demo mode -->
     <div v-if="disabled" class="log-notice log-notice--warn">
-      <i class="pi pi-lock"/>
+      <i class="pi pi-lock" />
       <span>Server log viewer is disabled for this instance.</span>
     </div>
 
     <!-- Error loading -->
     <div v-else-if="error" class="log-notice log-notice--error">
-      <i class="pi pi-times-circle"/>
+      <i class="pi pi-times-circle" />
       <span>{{ error }}</span>
     </div>
 
@@ -24,8 +23,8 @@
           class="log-lines-select"
           @change="fetchLog"
         />
-        <span class="log-meta" v-if="lastUpdated">
-          <i class="pi pi-history" style="font-size: var(--text-xs-size);"/>
+        <span v-if="lastUpdated" class="log-meta">
+          <i class="pi pi-history" style="font-size: var(--text-xs-size)" />
           {{ timeSinceUpdate }}
         </span>
         <div class="log-toolbar-actions">
@@ -51,89 +50,87 @@
       <!-- Log output -->
       <div class="log-output-wrapper">
         <div v-if="!logLines.length && loading" class="log-placeholder">
-          <i class="pi pi-spin pi-spinner"/> Loading log…
+          <i class="pi pi-spin pi-spinner" /> Loading log…
         </div>
-        <div v-else-if="!logLines.length" class="log-placeholder">
-          No log output yet.
-        </div>
+        <div v-else-if="!logLines.length" class="log-placeholder">No log output yet.</div>
         <div v-else class="log-pre-wrapper">
           <pre class="log-pre" :class="{ 'log-pre--wrap': wrapLines }">{{ displayContent }}</pre>
         </div>
       </div>
-
     </template>
-
   </div>
 </template>
 
-<script>
-import { defineComponent } from 'vue';
+<script setup lang="ts">
+import { computed, ref } from 'vue';
 import { getServerLog } from '@/utils/ServiceHelper';
 
 const LINE_OPTIONS = [
-  { label: '50 lines',    value: 50   },
-  { label: '100 lines',   value: 100  },
-  { label: '200 lines',   value: 200  },
-  { label: '500 lines',   value: 500  },
+  { label: '50 lines', value: 50 },
+  { label: '100 lines', value: 100 },
+  { label: '200 lines', value: 200 },
+  { label: '500 lines', value: 500 },
   { label: '1 000 lines', value: 1000 },
   { label: '2 000 lines', value: 2000 },
 ];
 
-export default defineComponent({
-  name: 'ServerLogTab',
-  data() {
-    return {
-      logLines: [],
-      loading: false,
-      error: '',
-      disabled: false,
-      requestedLines: 200,
-      lastUpdated: null,
-      lineOptions: LINE_OPTIONS,
-      wrapLines: false,
-    };
-  },
-  computed: {
-    displayContent() {
-      return [...this.logLines].reverse().join('\n');
-    },
-    timeSinceUpdate() {
-      if (!this.lastUpdated) return '';
-      const secs = Math.floor((Date.now() - this.lastUpdated) / 1000);
-      if (secs < 5) return 'just now';
-      if (secs < 60) return `${secs}s ago`;
-      return `${Math.floor(secs / 60)}m ${secs % 60}s ago`;
-    },
-  },
-  methods: {
-    async fetchLog() {
-      this.loading = true;
-      this.error = '';
-      try {
-        const text = await getServerLog(this.requestedLines);
-        if (text === '' && !this.logLines.length) {
-          this.disabled = true;
-        } else {
-          this.disabled = false;
-          this.logLines = text ? text.trim().split('\n') : [];
-          this.lastUpdated = Date.now();
-        }
-      } catch (e) {
-        this.error = 'Failed to fetch log: ' + (e?.message || e);
-      } finally {
-        this.loading = false;
-      }
-    },
-    activate() {
-      this.logLines = [];
-      this.error = '';
-      this.disabled = false;
-      this.fetchLog();
-    },
-    deactivate() {
-      // no polling to tear down
-    },
-  },
+defineOptions({ name: 'ServerLogTab' });
+
+const logLines = ref<string[]>([]);
+const loading = ref(false);
+const error = ref('');
+const disabled = ref(false);
+const requestedLines = ref(200);
+const lastUpdated = ref<number | null>(null);
+const lineOptions = LINE_OPTIONS;
+const wrapLines = ref(false);
+
+const displayContent = computed(() => [...logLines.value].reverse().join('\n'));
+const timeSinceUpdate = computed(() => {
+  if (!lastUpdated.value) return '';
+  const secs = Math.floor((Date.now() - lastUpdated.value) / 1000);
+  if (secs < 5) return 'just now';
+  if (secs < 60) return `${secs}s ago`;
+  return `${Math.floor(secs / 60)}m ${secs % 60}s ago`;
+});
+
+function errorMessage(e: unknown): string {
+  return e instanceof Error ? e.message : String(e);
+}
+
+async function fetchLog() {
+  loading.value = true;
+  error.value = '';
+  try {
+    const text = await getServerLog(requestedLines.value);
+    if (text === '' && !logLines.value.length) {
+      disabled.value = true;
+    } else {
+      disabled.value = false;
+      logLines.value = text ? text.trim().split('\n') : [];
+      lastUpdated.value = Date.now();
+    }
+  } catch (e) {
+    error.value = 'Failed to fetch log: ' + errorMessage(e);
+  } finally {
+    loading.value = false;
+  }
+}
+
+function activate() {
+  logLines.value = [];
+  error.value = '';
+  disabled.value = false;
+  void fetchLog();
+}
+
+function deactivate() {
+  // no polling to tear down
+}
+
+defineExpose({
+  activate,
+  deactivate,
 });
 </script>
 

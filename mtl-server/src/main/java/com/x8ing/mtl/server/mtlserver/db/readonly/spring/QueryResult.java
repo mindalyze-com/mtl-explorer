@@ -1,6 +1,7 @@
 package com.x8ing.mtl.server.mtlserver.db.readonly.spring;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.x8ing.mtl.server.mtlserver.db.entity.gps.GpsTrack;
 import com.x8ing.mtl.server.mtlserver.web.services.track.entity.VersionAware;
 import lombok.Data;
@@ -10,10 +11,21 @@ import java.util.List;
 import java.util.Map;
 
 @Data
+@JsonPropertyOrder({
+        "resultEntries",
+        "trackVersions",
+        "standardFilterCount",
+        "filterGroups"
+})
 public class QueryResult implements VersionAware {
 
 
     @Data
+    @JsonPropertyOrder({
+            "id",
+            "group",
+            "gpsTrack"
+    })
     public static class QueryResultEntry {
 
         private Long id;

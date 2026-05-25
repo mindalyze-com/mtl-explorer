@@ -35,11 +35,26 @@
  *    event, the chart tooltip + crosshair lingered after the cursor left the map.
  */
 
-import { useTrackCursorSync, type TrackPoint } from '@/composables/trackCursorSync';
+import {
+  chartXForTrackPoint,
+  useTrackCursorSync,
+  type TrackCursorXMode,
+  type TrackPoint,
+} from '@/composables/trackCursorSync';
 import type Highcharts from 'highcharts';
 
 type ChartSyncMoveEvent = MouseEvent | PointerEvent | TouchEvent;
 type PrimaryChartInputEvent = MouseEvent | PointerEvent | Touch;
+type ChartPointer = {
+  normalize: (event: PrimaryChartInputEvent | TouchEvent) => Highcharts.PointerEventObject;
+};
+type ChartWithTrackSyncMeta = Highcharts.Chart & {
+  mtlTrackSyncXMode?: TrackCursorXMode;
+};
+type TrackSyncPoint = Highcharts.Point & {
+  canonicalPointIndex?: number;
+  ts?: number;
+};
 
 // Module-level registry so all chart components on the page share state.
 const registeredCharts = new Set<Highcharts.Chart>();
@@ -52,9 +67,7 @@ const PASSIVE_TOUCH_LISTENER: AddEventListenerOptions = { passive: true };
 const cursor = useTrackCursorSync();
 
 export function getPrimaryChartInputEvent(e: ChartSyncMoveEvent): PrimaryChartInputEvent | null {
-  return 'touches' in e
-    ? e.touches[0] ?? e.changedTouches[0] ?? null
-    : e;
+  return 'touches' in e ? (e.touches[0] ?? e.changedTouches[0] ?? null) : e;
 }
 
 export function useChartSync() {
@@ -70,12 +83,21 @@ export function useChartSync() {
     registeredCharts.delete(chart);
   }
 
-  function bindChart(chart: Highcharts.Chart): () => void {
+  function setChartXMode(chart: Highcharts.Chart, mode: TrackCursorXMode): void {
+    (chart as ChartWithTrackSyncMeta).mtlTrackSyncXMode = mode;
+  }
+
+  function getChartXMode(chart: Highcharts.Chart): TrackCursorXMode {
+    return (chart as ChartWithTrackSyncMeta).mtlTrackSyncXMode ?? cursor.getXMode();
+  }
+
+  function bindChart(chart: Highcharts.Chart, xMode: TrackCursorXMode = cursor.getXMode()): () => void {
     const container = chart.container;
     const onMove = (e: MouseEvent | TouchEvent) => syncMouseMove(e, chart);
     const onLeave = () => syncMouseLeave();
     const onClick = (e: MouseEvent) => syncClick(e, chart);
 
+    setChartXMode(chart, xMode);
     registerChart(chart);
     container.addEventListener('mousemove', onMove);
     container.addEventListener('mouseleave', onLeave);
@@ -100,7 +122,7 @@ export function useChartSync() {
   function normalizeChartEvent(e: ChartSyncMoveEvent, chart: Highcharts.Chart): Highcharts.PointerEventObject | null {
     const sourceEvent = getPrimaryChartInputEvent(e);
     if (!sourceEvent) return null;
-    return (chart as any).pointer.normalize(sourceEvent);
+    return (chart.pointer as ChartPointer).normalize(sourceEvent);
   }
 
   /**
@@ -108,22 +130,25 @@ export function useChartSync() {
    * other registered charts at the same x-position, and updates the map hover marker.
    */
   function syncMouseMove(e: ChartSyncMoveEvent, sourceChart: Highcharts.Chart): void {
-    let chartX: number | null = null;      // elapsed ms or distance, depending on current x-mode
-    let absoluteTs: number | null = null;  // absolute ms timestamp — used for time mode map sync
+    let chartX: number | null = null; // elapsed ms or distance, depending on current x-mode
+    let absoluteTs: number | null = null; // absolute ms timestamp — used for time mode map sync
+    let canonicalPointIndex: number | null = null;
 
     if (sourceChart.series?.length) {
       const event = normalizeChartEvent(e, sourceChart);
       const point = event ? sourceChart.series[0].searchPoint(event, true) : null;
       if (point) {
+        const syncPoint = point as TrackSyncPoint;
         chartX = point.x;
-        absoluteTs = (point as any).ts ?? null;
+        absoluteTs = syncPoint.ts ?? null;
+        canonicalPointIndex = syncPoint.canonicalPointIndex ?? null;
       }
     }
 
     // Bridge to map sync
     if (chartX != null) {
       showChartsAtXValue(chartX);
-      cursor.setHoverByChartPoint(chartX, absoluteTs, 'chart');
+      cursor.setHoverByChartPoint(chartX, absoluteTs, 'chart', canonicalPointIndex);
     }
   }
 
@@ -144,45 +169,57 @@ export function useChartSync() {
    */
   function syncClick(e: MouseEvent, sourceChart: Highcharts.Chart): void {
     if (!sourceChart.series?.length) return;
-    const event = (sourceChart as any).pointer.normalize(e);
+    const event = sourceChart.pointer.normalize(e);
     const point = sourceChart.series[0].searchPoint(event, true);
     if (!point) return;
-    cursor.setPinnedByChartPoint(point.x, (point as any).ts ?? null, 'chart');
+    const syncPoint = point as TrackSyncPoint;
+    cursor.setPinnedByChartPoint(point.x, syncPoint.ts ?? null, 'chart', syncPoint.canonicalPointIndex ?? null);
+  }
+
+  function clearLastHoveredPoints(): void {
+    for (const p of lastHoveredPoints) {
+      try {
+        p.setState('');
+      } catch {
+        /* point may have been destroyed */
+      }
+    }
+    lastHoveredPoints = [];
+  }
+
+  function showChartAtXValue(chart: Highcharts.Chart, xVal: number): void {
+    if (!chart.series?.length) return;
+    const points = chart.series[0].points;
+    if (!points?.length) return;
+
+    // Binary search for closest point by x-value
+    let lo = 0;
+    let hi = points.length - 1;
+    while (lo < hi) {
+      const mid = (lo + hi) >> 1;
+      if (points[mid].x < xVal) lo = mid + 1;
+      else hi = mid;
+    }
+    if (lo > 0 && Math.abs(points[lo - 1].x - xVal) < Math.abs(points[lo].x - xVal)) {
+      lo = lo - 1;
+    }
+    const point = points[lo];
+    if (point) {
+      point.setState('hover');
+      lastHoveredPoints.push(point);
+      chart.tooltip.refresh(point);
+      chart.xAxis[0].drawCrosshair(undefined, point);
+    }
   }
 
   /**
    * Show crosshair + tooltip + hover marker on all charts for a given x-value.
    */
   function showChartsAtXValue(xVal: number): void {
-    // Clear previous hover states
-    for (const p of lastHoveredPoints) {
-      try { p.setState(''); } catch { /* point may have been destroyed */ }
-    }
-    lastHoveredPoints = [];
+    clearLastHoveredPoints();
 
     registeredCharts.forEach((chart) => {
-      if (!chart.series?.length) return;
-      const points = chart.series[0].points;
-      if (!points?.length) return;
-
-      // Binary search for closest point by x-value
-      let lo = 0;
-      let hi = points.length - 1;
-      while (lo < hi) {
-        const mid = (lo + hi) >> 1;
-        if (points[mid].x < xVal) lo = mid + 1;
-        else hi = mid;
-      }
-      if (lo > 0 && Math.abs(points[lo - 1].x - xVal) < Math.abs(points[lo].x - xVal)) {
-        lo = lo - 1;
-      }
-      const point = points[lo];
-      if (point) {
-        point.setState('hover');
-        lastHoveredPoints.push(point);
-        chart.tooltip.refresh(point);
-        chart.xAxis[0].drawCrosshair(undefined, point);
-      }
+      showChartAtXValue(chart, xVal);
     });
   }
 
@@ -190,8 +227,13 @@ export function useChartSync() {
    * Show crosshair + tooltip on all charts for a given TrackPoint (called from map → charts).
    * Resolves the correct x-value based on the current xMode.
    */
-  function showChartsAtPoint(tp: Pick<TrackPoint, 'timestamp' | 'distanceKm'>): void {
-    showChartsAtXValue(cursor.chartXForPoint(tp));
+  function showChartsAtPoint(tp: Pick<TrackPoint, 'timestamp' | 'distanceKm' | 'chartX'>): void {
+    clearLastHoveredPoints();
+
+    registeredCharts.forEach((chart) => {
+      const xMode = getChartXMode(chart);
+      showChartAtXValue(chart, chartXForTrackPoint(tp, xMode, cursor.getStartTs()));
+    });
   }
 
   /** @deprecated use showChartsAtPoint */
@@ -203,26 +245,31 @@ export function useChartSync() {
    * Clear crosshairs, tooltips, and hover markers on all charts (called from map mouseout).
    */
   function clearChartCrosshairs(): void {
-    for (const p of lastHoveredPoints) {
-      try { p.setState(''); } catch { /* point may have been destroyed */ }
-    }
-    lastHoveredPoints = [];
+    clearLastHoveredPoints();
     registeredCharts.forEach((chart) => {
       chart.tooltip.hide();
       chart.xAxis[0].hideCrosshair();
     });
   }
 
+  function clearChartInteraction(): void {
+    clearChartCrosshairs();
+    cursor.clearHoverBySource('chart');
+    cursor.clearPinnedBySource('chart');
+  }
+
   return {
     bindChart,
     registerChart,
     unregisterChart,
+    setChartXMode,
     syncMouseMove,
     syncMouseLeave,
     syncClick,
     showChartsAtTimestamp,
     showChartsAtPoint,
     clearChartCrosshairs,
+    clearChartInteraction,
     setXMode,
   };
 }

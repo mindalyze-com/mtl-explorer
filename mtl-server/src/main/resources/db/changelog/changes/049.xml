@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.10.xsd">
+
+    <!--
+      Planner: persist the canonical BRouter route result for saved plans.
+
+      gps_track_data.track still stores the flattened routed LineString for map
+      rendering and GPX export. This versioned JSON payload preserves the
+      original route result so loading a plan can reproduce the saved route
+      exactly without calling BRouter until the user edits it. The single
+      document shape keeps future planner metadata extensible without adding
+      more narrow columns.
+    -->
+    <changeSet id="20260519_1_planner_saved_route_result" author="codex">
+        <addColumn tableName="gps_track">
+            <column name="planner_route_json" type="text"/>
+        </addColumn>
+    </changeSet>
+
+</databaseChangeLog>

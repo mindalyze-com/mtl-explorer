@@ -37,7 +37,7 @@ function addHillshade(style: StyleSpecification): StyleSpecification {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const existingLayers = style.layers as any[];
   // Place hillshade above all fill/polygon layers but below labels/symbols
-  const firstSymbolIdx = existingLayers.findIndex(l => l.type === 'symbol');
+  const firstSymbolIdx = existingLayers.findIndex((l) => l.type === 'symbol');
   const insertAt = firstSymbolIdx >= 0 ? firstSymbolIdx : existingLayers.length;
 
   return {
@@ -83,21 +83,16 @@ export function buildLocalVectorStyle(
   tilesetName: string,
   theme: MapTheme = 'light',
   glyphsUrl?: string,
-  options: LocalVectorStyleOptions = {},
+  options: LocalVectorStyleOptions = {}
 ): StyleSpecification {
-  return buildLocalVectorStyleFromArchiveUrl(
-    `${tileBaseUrl}/${tilesetName}.pmtiles`,
-    theme,
-    glyphsUrl,
-    options,
-  );
+  return buildLocalVectorStyleFromArchiveUrl(`${tileBaseUrl}/${tilesetName}.pmtiles`, theme, glyphsUrl, options);
 }
 
 export function buildLocalVectorStyleFromArchiveUrl(
   tileArchiveUrl: string,
   theme: MapTheme = 'light',
   glyphsUrl?: string,
-  options: LocalVectorStyleOptions = {},
+  options: LocalVectorStyleOptions = {}
 ): StyleSpecification {
   const sourceName = 'protomaps';
   const baseTheme: ProtomapsTheme = TOPO_BASE[theme] ?? (theme as ProtomapsTheme);
@@ -161,14 +156,12 @@ export function buildFallbackRasterStyle(): StyleSpecification {
  * URL of the official swisstopo Light Base Map vector style (includes hillshading).
  * Can be passed directly as a MapLibre style since it's a valid StyleSpecification URL.
  */
-export const SWISSTOPO_STYLE_URL =
-  'https://vectortiles.geo.admin.ch/styles/ch.swisstopo.lightbasemap.vt/style.json';
+export const SWISSTOPO_STYLE_URL = 'https://vectortiles.geo.admin.ch/styles/ch.swisstopo.lightbasemap.vt/style.json';
 
 /**
  * Higher-contrast swisstopo Base Map style: saturated landcover greens, color-coded roads.
  */
-export const SWISSTOPO_COLOR_STYLE_URL =
-  'https://vectortiles.geo.admin.ch/styles/ch.swisstopo.basemap.vt/style.json';
+export const SWISSTOPO_COLOR_STYLE_URL = 'https://vectortiles.geo.admin.ch/styles/ch.swisstopo.basemap.vt/style.json';
 
 /**
  * Swiss Mobility overlay tile URLs (XYZ raster tiles with transparency).

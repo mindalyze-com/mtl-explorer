@@ -1,5 +1,6 @@
 package com.x8ing.mtl.server.mtlserver.web.services.track.entity;
 
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.x8ing.mtl.server.mtlserver.db.entity.gps.GpsTrack;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -10,6 +11,14 @@ import java.util.Date;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
+@JsonPropertyOrder({
+        "id",
+        "name",
+        "description",
+        "startDate",
+        "sourceSegmentIndex",
+        "sourceParentTrackId"
+})
 public class RelatedTrackInfo {
 
     private Long id;

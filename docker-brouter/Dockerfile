@@ -1,6 +1,6 @@
-# syntax=docker/dockerfile:1.6
+# syntax=docker/dockerfile:1.24.0
 #
-# docker-brouter — BRouter (https://brouter.de) packaged as a MyTrailLog sidecar.
+# docker-brouter — BRouter (https://brouter.de) packaged as a MTL Explorer sidecar.
 #
 # Two processes run in parallel under a small Python orchestrator:
 #   1. BRouter HTTP router on :17777 (Java)           — answers routing requests
@@ -14,7 +14,7 @@
 
 FROM eclipse-temurin:21-jre-jammy
 
-ARG BROUTER_VERSION=1.7.5
+ARG BROUTER_VERSION=1.7.9
 ARG BROUTER_ZIP_URL=https://github.com/abrensch/brouter/releases/download/v${BROUTER_VERSION}/brouter-${BROUTER_VERSION}.zip
 
 ENV BROUTER_HOME=/opt/brouter \
@@ -35,6 +35,17 @@ RUN mkdir -p "${BROUTER_HOME}" "${BROUTER_SEGMENTS_DIR}" \
 
 COPY scripts/ /opt/brouter-orchestrator/
 RUN chmod +x /opt/brouter-orchestrator/*.py /opt/brouter-orchestrator/*.sh
+
+ARG MTL_IMAGE_VERSION=""
+ARG MTL_IMAGE_BUILD_TIME=""
+RUN set -eux; \
+    mkdir -p /opt/mtl; \
+    build_time="${MTL_IMAGE_BUILD_TIME:-$(date -u +%Y-%m-%dT%H:%M:%SZ)}"; \
+    printf '%s\n' "${MTL_IMAGE_VERSION}" > /opt/mtl/image-version; \
+    printf '%s\n' "${build_time}" > /opt/mtl/image-build-time
+ENV BROUTER_VERSION=${BROUTER_VERSION}
+ENV MTL_IMAGE_VERSION=${MTL_IMAGE_VERSION}
+ENV MTL_IMAGE_BUILD_TIME=${MTL_IMAGE_BUILD_TIME}
 
 EXPOSE 17777 17778
 VOLUME ["/segments4"]

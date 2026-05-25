@@ -53,9 +53,11 @@ public class StaticResourceCacheFilter extends OncePerRequestFilter {
             response.setHeader(HttpHeaders.CACHE_CONTROL, "public, max-age=86400");
             filterChain.doFilter(request, response);
         } else {
-            // API and dynamic responses: let the controller run first.
-            // Apply no-store fallback only if the controller didn't set Cache-Control itself,
-            // to avoid conflicting/duplicate directives (e.g. "no-store, max-age=3600, ...").
+            // API and dynamic responses: default to no-store before the response can be
+            // committed. Controllers that intentionally cache data overwrite this header.
+            if (response.getHeader(HttpHeaders.CACHE_CONTROL) == null) {
+                response.setHeader(HttpHeaders.CACHE_CONTROL, "no-store");
+            }
             filterChain.doFilter(request, response);
             if (response.getHeader(HttpHeaders.CACHE_CONTROL) == null) {
                 response.setHeader(HttpHeaders.CACHE_CONTROL, "no-store");

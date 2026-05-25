@@ -1,5 +1,6 @@
 package com.x8ing.mtl.server.mtlserver.jobs.exploration;
 
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -17,6 +18,9 @@ import java.util.Date;
  */
 @Repository
 @Slf4j
+@JsonPropertyOrder({
+        "jdbcTemplate"
+})
 public class ExplorationScoreQueryRepository {
 
     private final NamedParameterJdbcTemplate jdbcTemplate;
@@ -29,6 +33,11 @@ public class ExplorationScoreQueryRepository {
      * Result of the PostGIS exploration score query for a single track.
      */
     @Data
+    @JsonPropertyOrder({
+            "totalM",
+            "novelM",
+            "explorationScore"
+    })
     public static class ExplorationResult {
         /**
          * Total track length in meters (EPSG:3857 — may overestimate slightly at high latitudes).

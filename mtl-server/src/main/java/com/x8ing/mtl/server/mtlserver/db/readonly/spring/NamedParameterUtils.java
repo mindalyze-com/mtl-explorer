@@ -16,6 +16,7 @@
 
 package com.x8ing.mtl.server.mtlserver.db.readonly.spring;
 
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import org.springframework.dao.InvalidDataAccessApiUsageException;
 import org.springframework.util.Assert;
 
@@ -268,6 +269,11 @@ public abstract class NamedParameterUtils {
     }
 
 
+    @JsonPropertyOrder({
+            "parameterName",
+            "startIndex",
+            "endIndex"
+    })
     private static class ParameterHolder {
 
         private final String parameterName;

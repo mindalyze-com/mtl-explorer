@@ -1,5 +1,6 @@
 package com.x8ing.mtl.server.mtlserver.jobs.exploration;
 
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.x8ing.mtl.server.mtlserver.db.entity.gps.GpsTrack;
 import com.x8ing.mtl.server.mtlserver.db.repository.gps.GpsTrackRepository;
 import lombok.extern.slf4j.Slf4j;
@@ -12,6 +13,12 @@ import java.util.Date;
 
 @Slf4j
 @Service
+@JsonPropertyOrder({
+        "gpsTrackRepository",
+        "queryRepository",
+        "corridorWidthM",
+        "useTrackPrecision"
+})
 public class ExplorationScoreAtomicWorker {
 
     private final GpsTrackRepository gpsTrackRepository;

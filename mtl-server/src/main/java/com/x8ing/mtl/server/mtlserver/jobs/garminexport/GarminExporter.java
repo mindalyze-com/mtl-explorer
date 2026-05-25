@@ -1,5 +1,6 @@
 package com.x8ing.mtl.server.mtlserver.jobs.garminexport;
 
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.x8ing.mtl.server.mtlserver.db.entity.logs.SystemLog;
 import com.x8ing.mtl.server.mtlserver.db.repository.gps.GpsTrackRepository;
 import com.x8ing.mtl.server.mtlserver.db.repository.logs.SystemLogService;
@@ -31,6 +32,23 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 @Slf4j
 @Component
+@JsonPropertyOrder({
+        "enabled",
+        "gpsIndexReady",
+        "garminExportWrapperProgram",
+        "garminExcludeActivitiesFile",
+        "garminUserName",
+        "garminPassword",
+        "fitExportWrapperProgram",
+        "fitExportSaveDir",
+        "systemLogService",
+        "gpsTrackRepository",
+        "indexerStatusService",
+        "operationLock",
+        "garminToolInstallService",
+        "df",
+        "utils"
+})
 public class GarminExporter {
 
     @Value("${mtl.garmin-sync.enabled}")
@@ -113,6 +131,9 @@ public class GarminExporter {
 
     @Data
     @AllArgsConstructor
+    @JsonPropertyOrder({
+            "ids"
+    })
     private static final class GarminIgnoreJson {
         List<String> ids;
     }

@@ -2,6 +2,7 @@ package com.x8ing.mtl.server.mtlserver.web.services.analytics;
 
 import com.fasterxml.jackson.annotation.JsonAnyGetter;
 import com.fasterxml.jackson.annotation.JsonAnySetter;
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import lombok.Data;
 
 import java.util.LinkedHashMap;
@@ -9,6 +10,27 @@ import java.util.List;
 import java.util.Map;
 
 @Data
+@JsonPropertyOrder({
+        "userAgent",
+        "timezone",
+        "browserLanguage",
+        "browserLanguages",
+        "screenWidth",
+        "screenHeight",
+        "availableScreenWidth",
+        "availableScreenHeight",
+        "viewportWidth",
+        "viewportHeight",
+        "devicePixelRatio",
+        "colorDepth",
+        "platform",
+        "hardwareConcurrency",
+        "deviceMemoryGb",
+        "touchPoints",
+        "appDisplayMode",
+        "online",
+        "additionalProperties"
+})
 public class ClientEnvironmentRequest {
 
     private String userAgent;

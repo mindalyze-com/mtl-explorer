@@ -1,5 +1,6 @@
 package com.x8ing.mtl.server.mtlserver.jobs.sqlformat;
 
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.x8ing.mtl.server.mtlserver.db.entity.config.FilterConfigEntity;
 import com.x8ing.mtl.server.mtlserver.db.repository.config.FilterConfigRepository;
 import lombok.extern.slf4j.Slf4j;
@@ -16,6 +17,9 @@ import java.util.List;
  */
 @Slf4j
 @Service
+@JsonPropertyOrder({
+        "filterConfigRepository"
+})
 public class LiquibaseIndentFixerJob {
 
     private final FilterConfigRepository filterConfigRepository;

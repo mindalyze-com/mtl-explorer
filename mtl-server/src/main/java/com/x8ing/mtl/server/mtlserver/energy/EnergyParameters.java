@@ -1,5 +1,6 @@
 package com.x8ing.mtl.server.mtlserver.energy;
 
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import lombok.Builder;
 import lombok.Data;
 
@@ -11,6 +12,15 @@ import lombok.Data;
  */
 @Data
 @Builder(toBuilder = true)
+@JsonPropertyOrder({
+        "riderWeightKg",
+        "equipmentWeightKgOverride",
+        "airDensityOverride",
+        "dragCoefficientOverride",
+        "frontalAreaOverride",
+        "rollingCoefficientOverride",
+        "trackAverageSpeedMpsFallback"
+})
 public class EnergyParameters {
 
     public static final double DEFAULT_RIDER_WEIGHT_KG = 75.0;

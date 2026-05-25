@@ -16,6 +16,8 @@
 
 package com.x8ing.mtl.server.mtlserver.db.readonly.spring;
 
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -27,6 +29,14 @@ import java.util.List;
  * @since 2.0
  */
 @SuppressWarnings("LombokGetterMayBeUsed")
+@JsonPropertyOrder({
+        "originalSql",
+        "parameterNames",
+        "parameterIndexes",
+        "namedParameterCount",
+        "unnamedParameterCount",
+        "totalParameterCount"
+})
 public class ParsedSql {
 
     private final String originalSql;

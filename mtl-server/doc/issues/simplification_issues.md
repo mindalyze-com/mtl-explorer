@@ -118,7 +118,7 @@ Decision for now: still call `populatePointData()` on SIMPLIFIED_SHAPE (we need 
 | TracksController.java line ~143 | `defaultValue = "SIMPLIFIED"` → `defaultValue = "SIMPLIFIED_SHAPE"` |
 | GpsTrackRepository.java line ~30 | `track_type = 'SIMPLIFIED'` → `track_type = 'SIMPLIFIED_SHAPE'` in `@Query` |
 
-7. Update comments/Javadoc in GpsTrackVariantSelector.java, EnergyService.java, `GpsTrackDataRepository.java`, `ExplorationScoreAtomicWorker.java`, `TrackMotionAnalyzer.java`, PlannedTrackService.java
+7. Update comments/Javadoc in GpsTrackVariantSelector.java, EnergyService.java, `GpsTrackDataRepository.java`, `ExplorationScoreAtomicWorker.java`, `TrackStopDetector.java`, PlannedTrackService.java
 
 ### Phase C: Build the SIMPLIFIED_FIXED_POINTS Generator
 

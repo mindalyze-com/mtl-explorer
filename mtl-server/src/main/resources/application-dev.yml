@@ -14,10 +14,13 @@ mtl:
   map-server:
     status-url: http://localhost:18081/status  # local Docker or not running
     tile-upstream-url: http://localhost:18081   # local Docker map server
+  location-search:
+    status-url: http://localhost:18083/status
+    query-url: http://localhost:18083/search
   planner:
     enabled: true
-    brouter-base-url: http://localhost:17777
-    status-url: http://localhost:17778/status
+    brouter-base-url: http://mytraillog-brouter-1.orb.local:17777
+    status-url: http://mytraillog-brouter-1.orb.local:17778/status
   # media-watch-directory: "C:/Users/patri/Downloads/MTL_IMAGES_VIDEOS"
   # media-watch-directory: "P:/Daten/Daten_ALL/Bilder/Biographie"
   garmin-sync:

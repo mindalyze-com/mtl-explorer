@@ -1,5 +1,6 @@
 package com.x8ing.mtl.server.mtlserver.jobs.status;
 
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.x8ing.mtl.server.mtlserver.db.entity.gps.GpsTrack;
 import com.x8ing.mtl.server.mtlserver.db.repository.gps.GpsTrackRepository;
 import org.springframework.stereotype.Service;
@@ -10,6 +11,9 @@ import java.util.List;
 import java.util.Map;
 
 @Service
+@JsonPropertyOrder({
+        "gpsTrackRepository"
+})
 public class JobStatusService {
 
     private final GpsTrackRepository gpsTrackRepository;
@@ -18,6 +22,14 @@ public class JobStatusService {
         this.gpsTrackRepository = gpsTrackRepository;
     }
 
+    @JsonPropertyOrder({
+            "job",
+            "label",
+            "total",
+            "pending",
+            "done",
+            "progressPercent"
+    })
     public record JobSummaryDto(
             String job,
             String label,

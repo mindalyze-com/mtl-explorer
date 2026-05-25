@@ -3,6 +3,7 @@ import { FilterService, type FilterParamsRequest } from '@/components/filter/Fil
 import { getApiConfiguration } from '@/utils/openApiClient';
 import { extractCoordinates } from '@/utils/lineStringDeserializer';
 import { describeError, startStartupTimer, startupLog } from '@/utils/startupDiagnostics';
+import { logSanitizedError } from '@/utils/safeLogging';
 import { DETAIL_TRACK_PRECISION } from '@/utils/tracks/trackConstants';
 import type {
   ActiveTrackFilterRequest,
@@ -66,6 +67,10 @@ function addStringEntries(target: Map<number, string>, entries: Record<string, s
   }
 }
 
+function groupOrderFromAssignments(filterGroups: Map<number, string>): string[] {
+  return Array.from(new Set(filterGroups.values()));
+}
+
 export async function fetchFilteredTrackIds(signal?: AbortSignal): Promise<TrackFilterResultWithRequest> {
   try {
     const activeFilterRequest = await loadActiveFilterRequest();
@@ -88,12 +93,13 @@ export async function fetchFilteredTrackIds(signal?: AbortSignal): Promise<Track
     return {
       trackVersions,
       filterGroups,
+      legendGroupOrder: groupOrderFromAssignments(filterGroups),
       standardFilterCount: data.standardFilterCount ?? trackVersions.size,
       activeFilterRequest,
     };
   } catch (error: unknown) {
     if (isAbortError(error, signal)) throw error;
-    console.error('Error fetching filtered track IDs:', error);
+    logSanitizedError('Error fetching filtered track IDs:', error);
     throwOriginalError(error);
   }
 }
@@ -176,7 +182,7 @@ export async function fetchTrackBatch(args: {
   } catch (error: unknown) {
     if (isAbortError(error, args.signal)) throw error;
     timer.error('Track batch fetch failed', describeError(error));
-    console.error('Error fetching track batch:', error);
+    logSanitizedError('Error fetching track batch:', error);
     throwOriginalError(error);
   }
 }
@@ -205,7 +211,7 @@ export async function fetchDetailTrack(args: {
     };
   } catch (error: unknown) {
     if (isAbortError(error, args.signal)) throw error;
-    console.error('Error fetching detail track:', error);
+    logSanitizedError('Error fetching detail track:', error);
     throwOriginalError(error);
   }
 }

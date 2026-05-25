@@ -9,10 +9,12 @@
   </div>
 </template>
 
-<script lang="ts">
-import { defineComponent, type PropType } from 'vue';
+<script setup lang="ts">
+import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import type Highcharts from 'highcharts';
 import { formatDurationSmart } from '@/utils/Utils';
+
+defineOptions({ name: 'ComparisonChart' });
 
 /**
  * Per-series data entry for ComparisonChart.
@@ -20,12 +22,50 @@ import { formatDurationSmart } from '@/utils/Utils';
  * Each x/y point carries an optional third tuple element (timestamp in ms)
  * used solely for the tooltip to show the wall-clock time of each sample.
  */
-export interface ComparisonSeries {
+interface ComparisonSeries {
   name: string;
   color: string;
   dashStyle?: 'Solid' | 'Dash' | 'ShortDash';
-  data: Array<[number, number] | [number, number, number]>;
+  data: Array<[number, number | null] | [number, number | null, number]>;
 }
+
+type ComparisonTooltipPoint = Highcharts.Point & {
+  series: Highcharts.Series & { xAxis?: { max?: number } };
+};
+
+const props = withDefaults(
+  defineProps<{
+    title: string;
+    subtitle?: string;
+    icon?: string;
+    series: ComparisonSeries[];
+    xMode?: 'distance' | 'time';
+    unit?: string;
+    decimals?: number;
+    yMin?: number;
+    yZeroLine?: boolean;
+    height?: number;
+  }>(),
+  {
+    subtitle: '',
+    icon: 'bi-activity',
+    xMode: 'distance',
+    unit: '',
+    decimals: 1,
+    yMin: undefined,
+    yZeroLine: false,
+    height: 240,
+  }
+);
+
+const emit = defineEmits<{
+  'hover-x': [x: number];
+  'hover-leave': [];
+}>();
+
+const highchartsEl = ref<{ chart?: Highcharts.Chart } | null>(null);
+const chartOptions = ref<Highcharts.Options>(buildOptions());
+let hoverListeners: { container: HTMLElement; onMove: (e: MouseEvent) => void; onLeave: () => void } | null = null;
 
 function hexToRgba(hex: string, alpha: number): string {
   if (!hex || !hex.startsWith('#') || hex.length < 7) return hex;
@@ -42,177 +82,179 @@ function compactNum(v: number): string {
   return parseFloat(v.toFixed(1)).toString();
 }
 
-export default defineComponent({
-  name: 'ComparisonChart',
-  props: {
-    title: { type: String, required: true },
-    subtitle: { type: String, default: '' },
-    icon: { type: String, default: 'bi-activity' },
-    series: { type: Array as PropType<ComparisonSeries[]>, required: true },
-    xMode: { type: String as PropType<'distance' | 'time'>, default: 'distance' },
-    unit: { type: String, default: '' },
-    decimals: { type: Number, default: 1 },
-    yMin: { type: Number as PropType<number | undefined>, default: undefined },
-    yZeroLine: { type: Boolean, default: false },
-    height: { type: Number, default: 240 },
-  },
-  emits: ['hover-x', 'hover-leave'],
-  data(): { chartOptions: Highcharts.Options } {
-    return { chartOptions: this.buildOptions() };
-  },
-  mounted() {
-    this.$nextTick(() => this.attachHoverListeners());
-  },
-  beforeUnmount() {
-    this.detachHoverListeners();
-  },
-  watch: {
-    series: { deep: true, handler() { this.rebuild(); this.$nextTick(() => this.attachHoverListeners()); } },
-    xMode() { this.rebuild(); this.$nextTick(() => this.attachHoverListeners()); },
-    unit() { this.rebuild(); },
-    yMin() { this.rebuild(); },
-    yZeroLine() { this.rebuild(); },
-    decimals() { this.rebuild(); },
-  },
-  methods: {
-    attachHoverListeners() {
-      const el = this.$refs.highchartsEl as { chart?: Highcharts.Chart } | undefined;
-      const chart = el?.chart;
-      if (!chart) return;
-      this.detachHoverListeners();
-      const container = chart.container;
-      const onMove = (e: MouseEvent) => {
-        const evt = chart.pointer.normalize(e);
-        const x = (chart.xAxis[0] as Highcharts.Axis).toValue(evt.chartX);
-        this.$emit('hover-x', x);
-      };
-      const onLeave = () => this.$emit('hover-leave');
-      container.addEventListener('mousemove', onMove);
-      container.addEventListener('mouseleave', onLeave);
-      (this as unknown as { _hoverListeners: { container: HTMLElement; onMove: (e: MouseEvent) => void; onLeave: () => void } })._hoverListeners = { container, onMove, onLeave };
-    },
-    detachHoverListeners() {
-      const h = (this as unknown as { _hoverListeners?: { container: HTMLElement; onMove: (e: MouseEvent) => void; onLeave: () => void } })._hoverListeners;
-      if (h) {
-        h.container.removeEventListener('mousemove', h.onMove);
-        h.container.removeEventListener('mouseleave', h.onLeave);
-        (this as unknown as { _hoverListeners?: unknown })._hoverListeners = undefined;
-      }
-    },
-    rebuild() {
-      this.chartOptions = this.buildOptions();
-    },
-    buildOptions(): Highcharts.Options {
-      const styles = getComputedStyle(document.documentElement);
-      const token = (name: string) => styles.getPropertyValue(name).trim();
-      const textColor = token('--text-muted');
-      const gridColor = token('--chart-grid');
-      const zeroLineColor = token('--border-hover');
-      const tooltipBg = token('--chart-tooltip-bg');
-      const tooltipText = token('--chart-tooltip-text');
-      const borderColor = token('--border-default');
-      const isDistance = this.xMode === 'distance';
-      const unit = this.unit;
-      const decimals = this.decimals;
+function attachHoverListeners() {
+  const chart = highchartsEl.value?.chart;
+  if (!chart) return;
+  detachHoverListeners();
+  const container = chart.container;
+  const onMove = (e: MouseEvent) => {
+    const evt = chart.pointer.normalize(e);
+    const x = (chart.xAxis[0] as Highcharts.Axis).toValue(evt.chartX);
+    emit('hover-x', x);
+  };
+  const onLeave = () => emit('hover-leave');
+  container.addEventListener('mousemove', onMove);
+  container.addEventListener('mouseleave', onLeave);
+  hoverListeners = { container, onMove, onLeave };
+}
 
-      return {
-        chart: {
-          type: 'line',
-          height: this.height,
-          backgroundColor: 'transparent',
-          spacing: [6, 4, 10, 4],
-          style: {
-            fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
-          },
-        },
-        title: { text: undefined },
-        credits: { enabled: false },
-        legend: { enabled: false },
-        xAxis: {
-          type: 'linear',
-          crosshair: {
-            width: 1,
-            color: borderColor,
-            dashStyle: 'Dash',
-          },
-          labels: {
-            style: { color: textColor, fontSize: '12px' },
-            formatter(this: Highcharts.AxisLabelsFormatterContextObject) {
-              if (isDistance) {
-                return parseFloat((this.value as number).toFixed(1)) + '\u202fkm';
-              }
-              return formatDurationSmart(this.value as number, (this.axis as Highcharts.Axis).max as number);
-            },
-          },
-          lineColor: gridColor,
-          tickColor: 'transparent',
-          title: { text: undefined },
-        },
-        yAxis: {
-          gridLineColor: gridColor,
-          title: { text: undefined },
-          labels: {
-            style: { color: textColor, fontSize: '12px' },
-            formatter(this: Highcharts.AxisLabelsFormatterContextObject) {
-              const n = compactNum(this.value as number);
-              return (this.isLast && unit) ? n + '\u202f' + unit : n;
-            },
-          },
-          ...(this.yMin !== undefined ? { min: this.yMin } : {}),
-          ...(this.yZeroLine ? { plotLines: [{ value: 0, color: zeroLineColor, width: 1, zIndex: 3 }] } : {}),
-        },
-        tooltip: {
-          shared: true,
-          backgroundColor: tooltipBg,
-          borderColor,
-          borderRadius: 8,
-          borderWidth: 1,
-          shadow: false,
-          style: { color: tooltipText, fontSize: '12px' },
-          useHTML: true,
-          formatter(this: any) {
-            const header = isDistance
-              ? ((this.x as number).toFixed(2) + '\u202fkm')
-              : formatDurationSmart(this.x as number, this.points?.[0]?.series?.xAxis?.max as number);
-            const lines: string[] = [];
-            lines.push('<span style="font-size:10px">' + header + '</span>');
-            const points = (this.points || []) as Array<{ y: number | null; series: { name: string; color: string } }>;
-            for (const p of points) {
-              if (p.y == null) continue;
-              const val = (p.y as number).toFixed(decimals);
-              const unitStr = unit ? '\u202f' + unit : '';
-              lines.push(
-                '<span style="color:' + p.series.color + '">\u25CF</span> '
-                + p.series.name + ': <b>' + val + unitStr + '</b>'
-              );
-            }
-            return lines.join('<br/>');
-          },
-        },
-        plotOptions: {
-          series: {
-            animation: false,
-            lineWidth: 2,
-            marker: {
-              enabled: false,
-              states: { hover: { enabled: true, radius: 3, lineWidth: 0 } },
-            },
-            states: { hover: { lineWidthPlus: 0 } },
-          },
-        },
-        series: this.series.map(s => ({
-          type: 'line',
-          name: s.name,
-          color: s.color,
-          dashStyle: s.dashStyle || 'Solid',
-          data: s.data,
-          // Subtle glow on hover for better track discrimination in overlays.
-          states: { hover: { halo: { size: 6, attributes: { fill: hexToRgba(s.color, 0.25) } } } },
-        })) as Highcharts.SeriesOptionsType[],
-      };
+function detachHoverListeners() {
+  if (hoverListeners) {
+    hoverListeners.container.removeEventListener('mousemove', hoverListeners.onMove);
+    hoverListeners.container.removeEventListener('mouseleave', hoverListeners.onLeave);
+    hoverListeners = null;
+  }
+}
+
+function rebuild() {
+  chartOptions.value = buildOptions();
+}
+
+function buildOptions(): Highcharts.Options {
+  const styles = getComputedStyle(document.documentElement);
+  const token = (name: string) => styles.getPropertyValue(name).trim();
+  const textColor = token('--text-muted');
+  const gridColor = token('--chart-grid');
+  const zeroLineColor = token('--border-hover');
+  const tooltipBg = token('--chart-tooltip-bg');
+  const tooltipText = token('--chart-tooltip-text');
+  const borderColor = token('--border-default');
+  const isDistance = props.xMode === 'distance';
+  const unit = props.unit;
+  const decimals = props.decimals;
+
+  return {
+    chart: {
+      type: 'line',
+      height: props.height,
+      backgroundColor: 'transparent',
+      spacing: [6, 4, 10, 4],
+      style: {
+        fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
+      },
     },
-  },
+    title: { text: undefined },
+    credits: { enabled: false },
+    legend: { enabled: false },
+    xAxis: {
+      type: 'linear',
+      crosshair: {
+        width: 1,
+        color: borderColor,
+        dashStyle: 'Dash',
+      },
+      labels: {
+        style: { color: textColor, fontSize: '12px' },
+        formatter(this: Highcharts.AxisLabelsFormatterContextObject) {
+          if (isDistance) {
+            return parseFloat((this.value as number).toFixed(1)) + '\u202fkm';
+          }
+          return formatDurationSmart(this.value as number, (this.axis as Highcharts.Axis).max as number);
+        },
+      },
+      lineColor: gridColor,
+      tickColor: 'transparent',
+      title: { text: undefined },
+    },
+    yAxis: {
+      gridLineColor: gridColor,
+      title: { text: undefined },
+      labels: {
+        style: { color: textColor, fontSize: '12px' },
+        formatter(this: Highcharts.AxisLabelsFormatterContextObject) {
+          const n = compactNum(this.value as number);
+          return this.isLast && unit ? n + '\u202f' + unit : n;
+        },
+      },
+      ...(props.yMin !== undefined ? { min: props.yMin } : {}),
+      ...(props.yZeroLine ? { plotLines: [{ value: 0, color: zeroLineColor, width: 1, zIndex: 3 }] } : {}),
+    },
+    tooltip: {
+      shared: true,
+      backgroundColor: tooltipBg,
+      borderColor,
+      borderRadius: 8,
+      borderWidth: 1,
+      shadow: false,
+      style: { color: tooltipText, fontSize: '12px' },
+      useHTML: true,
+      formatter(this: Highcharts.Point) {
+        const points = (this.points ?? []) as ComparisonTooltipPoint[];
+        const header = isDistance
+          ? (this.x as number).toFixed(2) + '\u202fkm'
+          : formatDurationSmart(this.x as number, points[0]?.series?.xAxis?.max as number);
+        const lines: string[] = [];
+        lines.push('<span style="font-size:10px">' + header + '</span>');
+        for (const p of points) {
+          if (p.y == null) continue;
+          const val = (p.y as number).toFixed(decimals);
+          const unitStr = unit ? '\u202f' + unit : '';
+          lines.push(
+            '<span style="color:' +
+              String(p.series.color ?? '#999') +
+              '">\u25CF</span> ' +
+              p.series.name +
+              ': <b>' +
+              val +
+              unitStr +
+              '</b>'
+          );
+        }
+        return lines.join('<br/>');
+      },
+    },
+    plotOptions: {
+      series: {
+        animation: false,
+        lineWidth: 2,
+        marker: {
+          enabled: false,
+          states: { hover: { enabled: true, radius: 3, lineWidth: 0 } },
+        },
+        states: { hover: { lineWidthPlus: 0 } },
+      },
+    },
+    series: props.series.map((s) => ({
+      type: 'line',
+      name: s.name,
+      color: s.color,
+      dashStyle: s.dashStyle || 'Solid',
+      data: s.data,
+      // Subtle glow on hover for better track discrimination in overlays.
+      states: { hover: { halo: { size: 6, attributes: { fill: hexToRgba(s.color, 0.25) } } } },
+    })) as Highcharts.SeriesOptionsType[],
+  };
+}
+
+onMounted(() => {
+  nextTick(() => attachHoverListeners());
 });
+
+onBeforeUnmount(() => {
+  detachHoverListeners();
+});
+
+watch(
+  () => props.series,
+  () => {
+    rebuild();
+    nextTick(() => attachHoverListeners());
+  },
+  { deep: true }
+);
+
+watch(
+  () => props.xMode,
+  () => {
+    rebuild();
+    nextTick(() => attachHoverListeners());
+  }
+);
+
+watch(() => props.unit, rebuild);
+watch(() => props.yMin, rebuild);
+watch(() => props.yZeroLine, rebuild);
+watch(() => props.decimals, rebuild);
 </script>
 
 <style scoped>

@@ -1,5 +1,4 @@
 <template>
-
   <!-- placeholder for standard toasts -->
   <Toast position="top-center"></Toast>
 
@@ -15,9 +14,9 @@
 
 <script setup lang="ts">
 /// <reference types="vite-plugin-pwa/client" />
-import Toast from "primevue/toast";
-import {useToast} from "primevue/usetoast";
-import {onMounted, provide, watch} from "vue";
+import Toast from 'primevue/toast';
+import { useToast } from 'primevue/usetoast';
+import { onMounted, provide, watch } from 'vue';
 import { useRegisterSW } from 'virtual:pwa-register/vue';
 import { getServerBuildInfo } from '@/utils/ServiceHelper';
 import { applyServerDefaultLocale } from '@/composables/useLocale';
@@ -26,7 +25,7 @@ import { runConnectivityProbe } from '@/composables/useConnectivityProbe';
 const PWA_UPDATED_KEY = 'mtl-pwa-just-updated';
 
 const toast = useToast();
-provide("toast", toast);
+provide('toast', toast);
 
 onMounted(async () => {
   // Show post-reload "updated" toast if we just auto-updated
@@ -35,7 +34,7 @@ onMounted(async () => {
     toast.add({
       severity: 'success',
       summary: 'App Updated',
-      detail: 'My Trail Log was updated to the latest version.',
+      detail: 'MTL Explorer was updated to the latest version.',
       life: 5000,
       group: 'pwa',
     });
@@ -49,17 +48,20 @@ onMounted(async () => {
 });
 
 const { needRefresh, updateServiceWorker } = useRegisterSW({
-  onRegistered(r: any) {
-    console.log("✅ [PWA] Service Worker successfully registered with scope:", r?.scope);
+  onRegistered(r: ServiceWorkerRegistration | undefined) {
+    console.log('✅ [PWA] Service Worker successfully registered with scope:', r?.scope);
     if (r) {
-      setInterval(() => {
-        r.update();
-      }, 60 * 60 * 1000); // Check for updates hourly
+      setInterval(
+        () => {
+          r.update();
+        },
+        60 * 60 * 1000
+      ); // Check for updates hourly
     }
   },
-  onRegisterError(error: any) {
-    console.error("🚨 [PWA Error] Service Worker failed to register:", error);
-  }
+  onRegisterError(error: unknown) {
+    console.error('🚨 [PWA Error] Service Worker failed to register:', error);
+  },
 });
 
 watch(needRefresh, (isNeeded) => {

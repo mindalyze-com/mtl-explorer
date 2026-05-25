@@ -12,7 +12,7 @@
  *    PMTiles instance that can be registered with the Protocol — bypassing fetch().
  */
 
-import { PMTiles } from 'pmtiles';
+import { PMTiles, type Source } from 'pmtiles';
 
 const CACHE_NAME = 'mtl-lowzoom-tiles';
 
@@ -82,10 +82,7 @@ const hasCacheStorage = 'caches' in window;
  * @param lowzoomTileset   Tileset name without .pmtiles (e.g. "world-lowzoom")
  * @returns The URL from which the file can be loaded (either original or cache)
  */
-export async function ensureLowZoomCached(
-  tileUrlOrBaseUrl: string,
-  lowzoomTileset?: string,
-): Promise<string> {
+export async function ensureLowZoomCached(tileUrlOrBaseUrl: string, lowzoomTileset?: string): Promise<string> {
   const fileUrl = resolvePmtilesUrl(tileUrlOrBaseUrl, lowzoomTileset);
 
   // ---- Preferred: Cache Storage (secure contexts) ----
@@ -163,10 +160,7 @@ export async function clearLowZoomCache(): Promise<void> {
  *
  * Returns null if no cached blob is found.
  */
-export async function loadLowZoomFromCache(
-  tileUrlOrBaseUrl: string,
-  lowzoomTileset?: string,
-): Promise<PMTiles | null> {
+export async function loadLowZoomFromCache(tileUrlOrBaseUrl: string, lowzoomTileset?: string): Promise<PMTiles | null> {
   const fileUrl = resolvePmtilesUrl(tileUrlOrBaseUrl, lowzoomTileset);
 
   let buffer: ArrayBuffer | null = null;
@@ -206,14 +200,14 @@ export async function loadLowZoomFromCache(
   // Create an in-memory source that satisfies the PMTiles source interface.
   // PMTiles reads tiles via getBytes(offset, length) range requests — we
   // simply slice the ArrayBuffer instead of going to the network.
-  const source = {
+  const source: Source = {
     getKey: () => fileUrl,
     getBytes: async (offset: number, length: number) => ({
       data: buffer!.slice(offset, offset + length),
     }),
   };
 
-  return new PMTiles(source as any);
+  return new PMTiles(source);
 }
 
 function resolvePmtilesUrl(tileUrlOrBaseUrl: string, tileset?: string): string {

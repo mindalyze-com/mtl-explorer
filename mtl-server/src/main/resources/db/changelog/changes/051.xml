@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.10.xsd">
+
+    <changeSet id="20260523_1_statistics_overview_point_indexes" author="codex">
+        <comment>
+            Speed up server-side overview drilldowns that rank filtered tracks by
+            canonical moving-window point metrics such as quickest ascent.
+        </comment>
+
+        <createIndex indexName="gps_track_data_ix_track_type_track_id_id" tableName="gps_track_data" unique="false">
+            <column name="track_type"/>
+            <column name="gps_track_id"/>
+            <column name="id"/>
+        </createIndex>
+
+        <sql>
+            CREATE INDEX gps_track_data_points_ix_ascent_window
+                ON gps_track_data_points (gps_track_data_id, elevation_gain_per_hour_moving_window DESC)
+                WHERE elevation_gain_per_hour_moving_window IS NOT NULL;
+        </sql>
+
+        <rollback>
+            <dropIndex indexName="gps_track_data_ix_track_type_track_id_id" tableName="gps_track_data"/>
+            <sql>DROP INDEX IF EXISTS gps_track_data_points_ix_ascent_window;</sql>
+        </rollback>
+    </changeSet>
+
+    <changeSet id="20260523_2_gps_track_hot_path_indexes" author="codex">
+        <comment>
+            Add indexes for interactive track navigation, duplicate lookup,
+            segment sibling lookup, and good-track status counts at larger
+            libraries.
+        </comment>
+
+        <createIndex indexName="GPS_TRACK_IX_START_DATE_ID" tableName="gps_track" unique="false">
+            <column name="start_date"/>
+            <column name="id"/>
+        </createIndex>
+
+        <createIndex indexName="GPS_TRACK_IX_DUPLICATE_OF" tableName="gps_track" unique="false">
+            <column name="duplicate_of"/>
+        </createIndex>
+
+        <createIndex indexName="GPS_TRACK_IX_SOURCE_PARENT_SEGMENT" tableName="gps_track" unique="false">
+            <column name="source_parent_track_id"/>
+            <column name="source_segment_index"/>
+            <column name="id"/>
+        </createIndex>
+
+        <createIndex indexName="GPS_TRACK_IX_LOAD_DUPLICATE_STATUS" tableName="gps_track" unique="false">
+            <column name="load_status"/>
+            <column name="duplicate_status"/>
+        </createIndex>
+
+        <rollback>
+            <dropIndex indexName="GPS_TRACK_IX_START_DATE_ID" tableName="gps_track"/>
+            <dropIndex indexName="GPS_TRACK_IX_DUPLICATE_OF" tableName="gps_track"/>
+            <dropIndex indexName="GPS_TRACK_IX_SOURCE_PARENT_SEGMENT" tableName="gps_track"/>
+            <dropIndex indexName="GPS_TRACK_IX_LOAD_DUPLICATE_STATUS" tableName="gps_track"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
