@@ -35,6 +35,7 @@ docker buildx build --load -t mytraillog-location-search:local -f docker-locatio
 MTL_APP_IMAGE=mytraillog:local \
 MTL_BROUTER_IMAGE=mytraillog-brouter:local \
 MTL_LOCATION_SEARCH_IMAGE=mytraillog-location-search:local \
+MTL_IMAGE_PULL_POLICY=never \
 docker compose up -d
 ```
 
@@ -49,6 +50,7 @@ docker buildx build --load -t mytraillog-location-search:local -f docker-locatio
 $env:MTL_APP_IMAGE = "mytraillog:local"
 $env:MTL_BROUTER_IMAGE = "mytraillog-brouter:local"
 $env:MTL_LOCATION_SEARCH_IMAGE = "mytraillog-location-search:local"
+$env:MTL_IMAGE_PULL_POLICY = "never"
 docker compose up -d
 ```
 
@@ -57,8 +59,9 @@ For useful local location search, build
 mount your own database at `./data/location-search/geonames-search.sqlite`.
 
 The `MTL_*_IMAGE` variables tell Compose to use local images instead of the
-published defaults. After startup, use the same URL, login, data folders, and
-update commands described in [Home install](home-install.md).
+published defaults. `MTL_IMAGE_PULL_POLICY=never` prevents Compose from trying
+to pull those local-only tags. After startup, use the same URL, login, data
+folders, and update commands described in [Home install](home-install.md).
 
 ## Optional local map image
 
