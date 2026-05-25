@@ -27,6 +27,11 @@ Act as a strict tester:
 
 - Record the exact GitHub commit, server OS, RAM/disk baseline, Docker/Buildx/
   Compose versions, commands executed, and command results.
+- Record timings for the major phases, not every small command: Docker
+  prerequisite setup, checkout/preparation, container build, stack startup,
+  GPX download/import sync, deletion sync, and final verification. Include a
+  compact timing summary in the report because container-build duration is a
+  key result.
 - If Docker Engine, Buildx, or the Docker Compose plugin is missing, install
   only the missing Docker prerequisite, record the exact versions, and keep that
   setup work separate from the documented MTL Explorer flow.
@@ -40,6 +45,9 @@ Act as a strict tester:
   let MTL Explorer sync them. Use at least three GPX files unless a source is
   unavailable; record each source URL, destination filename, checksum, file
   size, trackpoint count, and timestamp count.
+- Use GPX files with a real track sequence (`trk`/`trkseg`/`trkpt`). MTL
+  Explorer does not support GPX files that only contain waypoints, and waypoint-
+  only samples are not valid evidence for import testing.
 - After the imported GPX files sync, delete one GPX file from the documented GPX
   folder, wait for MTL Explorer to process the deletion, and verify in the GUI
   that the deleted track is no longer counted or visible.
@@ -55,13 +63,24 @@ Act as a strict tester:
     `> **RESULT: FAIL - <one concise reason>**`.
   - After that first line, include the detailed report with goal, environment,
     exact steps, evidence, issues, and conclusion.
+  - Write `report.md` as a readable standalone report, not a raw transcript.
+    Use short summaries, tables, and concise evidence blocks so it can be read
+    top to bottom.
   - Keep the summary concise; put detailed command output in the evidence
     sections.
   - Keep the report package small: target 500 KB or less for `report.md` plus
     assets, with 1 MB as the maximum unless there is a clearly stated reason.
-  - Do not save endless logs. Crop command output to the relevant command,
-    version, success, failure, and error lines; use excerpts instead of raw full
-    logs when output is long.
+  - Keep log excerpts in `report.md` very short. If larger logs are needed,
+    save cropped log files under the run `assets/` folder and link to them from
+    the relevant evidence section. Do not include or save large raw logs; keep
+    each captured log focused on the relevant command, version, success,
+    failure, and error lines.
+  - Save attached log files with `.txt` filenames, never `.log`, because `.log`
+    files are intentionally ignored by Git.
+  - Keep each attached log `.txt` file at 5 KB or less. If the raw log is
+    larger, crop it to the relevant command, warning, error, exception, and
+    nearby context. Do not include repetitive progress output such as download
+    progress lines.
 - Save a concise Markdown report at:
   `documentation/testing/container-build/test_runs/<YYYY-MM-DD-short-slug>/report.md`
 - Save any small technical report assets under that same run directory, for

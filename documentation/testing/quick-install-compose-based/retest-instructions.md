@@ -7,7 +7,7 @@ from the root README. Replace the placeholders before sending.
 Please test the MTL Explorer quick install on this server:
 
 - IP: <server-ipv4>
-- SSH user: <ssh-user>
+- SSH user: root
 - SSH password/key note: <temporary-credential-or-access-note>
 
 Use GitHub `main` as the source:
@@ -40,6 +40,11 @@ Act as a strict tester:
 - Record the exact GitHub commit, server OS, RAM/disk baseline, Docker Engine
   version, Docker Compose plugin version, commands executed, and command
   results.
+- Record timings for the major phases, not every small command: Docker
+  prerequisite setup, quick-start directory/setup, image pull/container startup,
+  GPX download/import sync, deletion sync, GUI functional pass, and final
+  verification. Include a compact timing summary in the report because install
+  and container startup duration are key results.
 - Verify the README prerequisite first: Docker Engine and the Docker Compose
   plugin must be installed and support `docker compose`.
 - If Docker Engine or the Docker Compose plugin is missing, install only the
@@ -57,6 +62,9 @@ Act as a strict tester:
   and let MTL Explorer sync them. Use at least three GPX files unless a source
   is unavailable; record each source URL, destination filename, checksum, file
   size, trackpoint count, and timestamp count.
+- Use GPX files with a real track sequence (`trk`/`trkseg`/`trkpt`). MTL
+  Explorer does not support GPX files that only contain waypoints, and waypoint-
+  only samples are not valid evidence for import testing.
 - After the imported GPX files sync, delete one GPX file from `./data/gpx/`,
   wait for MTL Explorer to process the deletion, and verify in the GUI that the
   deleted track is no longer counted or visible.
@@ -79,13 +87,27 @@ Act as a strict tester:
     `> **RESULT: FAIL - <one concise reason>**`.
   - After that first line, include the detailed report with goal, environment,
     exact steps, evidence, screenshots/assets, issues, and conclusion.
+  - Write `report.md` as a readable standalone report, not a raw transcript.
+    Use short summaries, tables, and concise evidence blocks so it can be read
+    top to bottom.
+  - Embed important screenshots inline in the relevant detail sections with
+    short captions, while keeping the actual image files under the run `assets/`
+    folder.
   - Keep the summary concise; put detailed command output and screenshots in the
     evidence sections.
   - Keep the report package small: target 500 KB or less for `report.md` plus
     assets, with 1 MB as the maximum unless there is a clearly stated reason.
-  - Do not save endless logs. Crop command output to the relevant command,
-    version, success, failure, and error lines; use excerpts instead of raw full
-    logs when output is long.
+  - Keep log excerpts in `report.md` very short. If larger logs are needed,
+    save cropped log files under the run `assets/` folder and link to them from
+    the relevant evidence section. Do not include or save large raw logs; keep
+    each captured log focused on the relevant command, version, success,
+    failure, and error lines.
+  - Save attached log files with `.txt` filenames, never `.log`, because `.log`
+    files are intentionally ignored by Git.
+  - Keep each attached log `.txt` file at 5 KB or less. If the raw log is
+    larger, crop it to the relevant command, warning, error, exception, and
+    nearby context. Do not include repetitive progress output such as download
+    progress lines.
   - Capture only the important screenshots. Prefer a small pass set, and on
     failure focus screenshots on the failing page/state and the immediate
     evidence needed to understand it.

@@ -1,0 +1,3 @@
+{"downloaded_bytes": 43778, "downloaded_sha256": "2e4e10497723d46c061ab5c0bb0e10d18eecfa63b387e662552c952ab6963a88", "label": "FIT original", "match": true, "source_bytes": 43778, "source_sha256": "2e4e10497723d46c061ab5c0bb0e10d18eecfa63b387e662552c952ab6963a88"}
+{"downloaded_bytes": 46527, "downloaded_sha256": "d57b378ab9bd97eb66d6ab797f01c8c7fbd570fd584128104951b05722f4bf87", "label": "GPX original", "match": true, "source_bytes": 46527, "source_sha256": "d57b378ab9bd97eb66d6ab797f01c8c7fbd570fd584128104951b05722f4bf87"}
+{"downloaded_bytes": 243127, "label": "FIT export GPX", "sha256": "e30788794a436a54fb86fa39a26a34e52d19c810b975345c2855593f35dd3540", "time": 1786, "trkpt": 1785}

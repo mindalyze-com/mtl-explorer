@@ -15,6 +15,9 @@ These instructions apply to all agents working in this repository.
 ## Screenshots And Assets
 
 - Prefer WebP screenshots; use PNG only if needed.
+- For full end-user regression reports, keep compact screenshots for working
+  functions too, not only failures, so the report gives a readable visual
+  overview of the validated app.
 
 ## OpenAPI And Type Safety
 

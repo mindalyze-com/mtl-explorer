@@ -1,0 +1,3 @@
+Browser console warnings/errors captured from the regression session:
+- 2026-05-25T18:58:25.639Z error: Login error Object (expected during invalid-login check)
+- 2026-05-25T19:05:07.306Z warn: Highcharts warning: Consider including the accessibility.js module to make your chart more usable for people with disabilities.

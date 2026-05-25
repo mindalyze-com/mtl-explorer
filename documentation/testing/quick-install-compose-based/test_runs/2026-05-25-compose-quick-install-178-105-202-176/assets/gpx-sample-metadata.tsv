@@ -1,0 +1,4 @@
+source_url	destination	sha256	size_bytes	trkpt_count	trkpt_timestamp_count	track_name
+https://raw.githubusercontent.com/gps-touring/sample-gpx/master/RoscoffCoastal/Lannion_Plestin_parcours24.4RE.gpx	lannion-plestin-parcours24.4re.gpx	e76c692cbb5580f20013ce19995a9383361a8a0babec2db3e36f7064f316e85f	60917	381	381	Lannion_Plestin_parcours
+https://raw.githubusercontent.com/gps-touring/sample-gpx/master/RoscoffCoastal/Perros-Guirec_Trebeurden_parcours23.6RE.gpx	perros-guirec-trebeurden-parcours23.6re.gpx	61458bda350b077f35b481b5284678a7b2f48e7111de5810830cf850ddc793c1	91144	566	566	Perros-Guirec_Trebeurden_parcours
+https://raw.githubusercontent.com/gps-touring/sample-gpx/master/RoscoffCoastal/Trebeurden_Lannion_parcours13.2RE.gpx	trebeurden-lannion-parcours13.2re.gpx	3dfc4feb491557f99e9e94c3eb5c41886445954033c1a89935d7ee1b8583060e	44505	271	271	Trebeurden_Lannion_parcours

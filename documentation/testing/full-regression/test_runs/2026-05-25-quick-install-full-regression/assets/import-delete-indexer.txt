@@ -1,0 +1,13 @@
+2026-05-25T18:59:44.310Z  INFO 1 --- [idx-2] GPXStoreService              : Reading of track id=100000 and path= file=cerknicko-jezero.gpx did complete with status=SUCCESS and took processingTime=1.63s
+2026-05-25T18:59:44.436Z  INFO 1 --- [idx-3] GPXStoreService              : Reading of track id=100001 and path= file=blue_hills.gpx did complete with status=SUCCESS and took processingTime=1.75s
+2026-05-25T18:59:44.651Z  INFO 1 --- [idx-2] GPXStoreService              : Reading of track id=100002 and path= file=foxboro.gpx did complete with status=SUCCESS and took processingTime=297ms
+2026-05-25T18:59:44.665Z  INFO 1 --- [idx-4] GPXReader                    : Outlier detected in filepath=IndexedFile{id=300009, index='GPS', name='mojstrovka.gpx', path=''} coordinate=(13.748193, 46.43489, 1636.776 m=-2.147483647793E9) speed=inf m/s — entering probation
+2026-05-25T18:59:44.755Z  INFO 1 --- [idx-2] TrackFileConverterService    : GPSBabel converted xpress-4x-2020-10-17.fit → 243127 chars of GPX XML
+2026-05-25T18:59:44.778Z  INFO 1 --- [idx-4] GPXStoreService              : Reading of track id=100004 and path= file=mojstrovka.gpx did complete with status=SUCCESS and took processingTime=147ms
+2026-05-25T18:59:45.332Z  INFO 1 --- [idx-1] GPXStoreService              : Reading of track id=100005 and path= file=mystic_basin_trail.gpx did complete with status=SUCCESS and took processingTime=699ms
+2026-05-25T18:59:45.504Z  INFO 1 --- [idx-3] GPXStoreService              : Reading of track id=100003 and path= file=blue_hills.gpx did complete with status=SUCCESS and took processingTime=1.45s
+2026-05-25T18:59:45.690Z  INFO 1 --- [idx-2] GPXStoreService              : Reading of track id=100006 and path= file=xpress-4x-2020-10-17.fit did complete with status=SUCCESS and took processingTime=1.03s
+2026-05-25T19:03:21.398Z  INFO 1 --- [idx-2] GPXStoreService              : Reading of track id=100007 and path= file=around-visnjan-with-car.gpx did complete with status=SUCCESS and took processingTime=200ms
+2026-05-25T19:08:23.195Z  INFO 1 --- [http-nio-8080-exec-2] TrackFileConverterService    : GPSBabel converted xpress-4x-2020-10-17.fit → 243127 chars of GPX XML
+2026-05-25T19:17:24.437Z  INFO 1 --- [idx-3] GPXStoreService              : Did delete gpsTrack and it's track data for given id=100007 file=/around-visnjan-with-car.gpx
+2026-05-25T19:17:24.455Z  INFO 1 --- [idx-4] GPXStoreService              : Did delete gpsTrack and it's track data for given id=100002 file=/foxboro.gpx
