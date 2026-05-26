@@ -116,20 +116,39 @@ export function buildLocalVectorStyleFromArchiveUrl(
   return enableHillshade && theme in TOPO_BASE ? addHillshade(style) : style;
 }
 
+const REMOTE_RASTER_TILE_URLS: Partial<Record<MapTheme, string>> = {
+  dark: 'https://basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+  'light-topo': 'https://tile.opentopomap.org/{z}/{x}/{y}.png',
+};
+
+const REMOTE_RASTER_ATTRIBUTIONS: Partial<Record<MapTheme, string>> = {
+  dark:
+    '© <a href="https://openstreetmap.org">OpenStreetMap</a> contributors, ' +
+    '© <a href="https://carto.com/attributions">CARTO</a>',
+  'light-topo':
+    '© <a href="https://openstreetmap.org">OpenStreetMap</a> contributors, ' +
+    '<a href="https://opentopomap.org">OpenTopoMap</a> (<a href="https://creativecommons.org/licenses/by-sa/3.0/">CC-BY-SA</a>)',
+};
+
+const DEFAULT_RASTER_ATTRIBUTION = '© <a href="https://openstreetmap.org">OpenStreetMap</a> contributors';
+
 /**
  * Build a MapLibre style using remote raster tiles (e.g. OSM tile servers).
  *
  * @param remoteTileUrl  URL template with {z}, {x}, {y} placeholders
+ * @param theme          Optional theme to select a theme-appropriate tile server
  */
-export function buildRemoteRasterStyle(remoteTileUrl: string): StyleSpecification {
+export function buildRemoteRasterStyle(remoteTileUrl: string, theme?: MapTheme): StyleSpecification {
+  const tileUrl = (theme && REMOTE_RASTER_TILE_URLS[theme]) || remoteTileUrl;
+  const attribution = (theme && REMOTE_RASTER_ATTRIBUTIONS[theme]) || DEFAULT_RASTER_ATTRIBUTION;
   return {
     version: 8,
     sources: {
       'raster-tiles': {
         type: 'raster',
-        tiles: [remoteTileUrl],
+        tiles: [tileUrl],
         tileSize: 256,
-        attribution: '© <a href="https://openstreetmap.org">OpenStreetMap</a> contributors',
+        attribution,
       },
     },
     layers: [
@@ -148,8 +167,8 @@ export function buildRemoteRasterStyle(remoteTileUrl: string): StyleSpecificatio
  * Build a simple raster style for maximally lightweight mini-maps when the map config
  * is not yet loaded or we want a guaranteed-working fallback.
  */
-export function buildFallbackRasterStyle(): StyleSpecification {
-  return buildRemoteRasterStyle('https://tile.openstreetmap.org/{z}/{x}/{y}.png');
+export function buildFallbackRasterStyle(theme?: MapTheme): StyleSpecification {
+  return buildRemoteRasterStyle('https://tile.openstreetmap.org/{z}/{x}/{y}.png', theme);
 }
 
 /**

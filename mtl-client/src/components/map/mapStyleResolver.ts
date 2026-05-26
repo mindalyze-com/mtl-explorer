@@ -38,14 +38,15 @@ export function resolveConfiguredMapStyle(options: ResolveMapStyleOptions): Reso
       styleMode: 'local-vector',
     };
   }
+  const rasterTheme = theme as MapTheme;
   if (!isUsableTileTemplate(config.remoteTileUrl)) {
     return {
-      style: buildFallbackRasterStyle(),
+      style: buildFallbackRasterStyle(rasterTheme),
       styleMode: 'fallback-raster',
     };
   }
   return {
-    style: buildRemoteRasterStyle(config.remoteTileUrl),
+    style: buildRemoteRasterStyle(config.remoteTileUrl, rasterTheme),
     styleMode: 'remote-raster',
   };
 }
