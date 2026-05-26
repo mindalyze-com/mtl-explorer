@@ -1,0 +1,5 @@
+HOST=MTL-FULL-REGRESSION-TEST-v3-ChatGPT
+DATE=2026-05-26T04:08:11+00:00
+OS=Debian GNU/Linux 13 (trixie)
+Docker version 29.5.2, build 79eb04c
+Docker Compose version v5.1.4

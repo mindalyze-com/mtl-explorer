@@ -1,0 +1,13 @@
+Server-side data changes before SYN_01:
+- ADM_02 uploaded `ADM_02-upload-valid.gpx` to GPX-UPLOAD.
+- ADM_04 triggered manual GPS and MEDIA rescans.
+
+Visible banner:
+- New data available
+- Tracks, media, or settings changed since this view loaded.
+- Actions: Reload, Dismiss
+
+Admin Freshness context from ADM_07:
+- Status: Out of sync
+- Outdated domains: Index, Tracks, Geometry, Media
+- Latest change: 26/05/2026, 10:13:38

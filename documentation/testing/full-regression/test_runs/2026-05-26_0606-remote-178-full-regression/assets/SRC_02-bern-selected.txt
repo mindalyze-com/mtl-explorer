@@ -1,0 +1,7 @@
+Selected result: Bern, Switzerland / Capital / z4-15.
+Result after selection:
+- Search panel closed back to the map.
+- DOM contained `mtl-location-search-marker maplibregl-marker`.
+- Marker aria-label: Map marker.
+- Marker transform placed it in the visible viewport.
+- Marker clear button was present with aria-label `Clear search marker`.

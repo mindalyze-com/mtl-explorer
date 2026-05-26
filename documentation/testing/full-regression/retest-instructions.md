@@ -1,8 +1,8 @@
 # Full Regression Quick-Install Prompt
 
 Use this prompt when asking an agent to install MTL Explorer from the README,
-run the full end-user regression, write a report, and clean up the test server.
-Replace the placeholders before sending.
+run the full end-user regression with the resumable packet workflow, write a
+report, and clean up the test server. Replace the placeholders before sending.
 
 ````text
 Please test the MTL Explorer quick install plus full end-user regression on:
@@ -13,27 +13,43 @@ Please test the MTL Explorer quick install plus full end-user regression on:
 
 Use GitHub `main` from https://github.com/mindalyze-com/mtl-explorer.
 
-Read these source-of-truth files from that GitHub source before acting:
+Read these files from that GitHub source before acting:
 
 - `README.md`
 - `documentation/testing/frontend-regression-test-plan.md`
+- `documentation/testing/full-regression/workflow/resumable-workflow.md`
+- `documentation/testing/full-regression/workflow/packet-template.md`
 
 Derive all quick-install commands, app URLs, credentials, prerequisites, and
-import-folder paths from the README. Derive regression coverage from the test
-plan. Do not use memory or invented defaults; report missing required details as
-documentation gaps.
+import-folder paths from the README. Derive regression coverage and packet order
+from the coverage IDs in the test plan. Use one packet per coverage ID. Use the
+workflow files for state tracking, packet result format, and final report
+assembly. Do not use memory or invented defaults; report missing required
+details as documentation gaps.
 
 Execution guidance:
 
-- This is a long, evidence-heavy task. If sub-agents or delegated work are
-  available, split it into controlled work packets such as install/data
-  preparation, desktop regression, mobile/PWA/offline regression, and
-  evidence/report QA. The lead agent remains responsible for the final coverage
-  matrix, statuses, and conclusion.
-- Because these checks operate on the same installed app and imported dataset,
-  sub-agents may need to run in coordinated phases instead of fully in
-  parallel. Avoid concurrent actions that mutate shared data, browser session
-  state, import folders, or cleanup state.
+- This is a long, evidence-heavy task. Do not run it as one unstructured pass.
+  Create a run folder named
+  `documentation/testing/full-regression/test_runs/<YYYY-MM-DD_HHMM-short-slug>/`,
+  instantiate `run-state.md`, then work through the coverage IDs from
+  `frontend-regression-test-plan.md`, top to bottom. Use `HHMM` as the 24-hour
+  local run start time.
+- The lead/coordinator owns `run-state.md` and final `report.md`. Packet workers
+  may only write their own `packets/<coverage-id>.md` file and
+  `assets/<coverage-id>-*` files.
+- If sub-agents or delegated work are available, delegate only one coverage ID
+  per packet, with explicit prerequisites and handoff notes. The lead remains
+  responsible for the final coverage matrix, statuses, and conclusion.
+- Shared-state mutations must be serialized: `RUN_SETUP` first, import IDs
+  before UI checks, delete IDs after all checks that need the full imported
+  dataset, and `RUN_CLEANUP` last. Read-only UI packets may run in separate
+  browser contexts after import is complete.
+- If the run pauses or an agent stops, resume from `run-state.md` and the packet
+  files. Do not rely on conversation memory.
+- On resume, continue with the first `IN PROGRESS`, `NOT STARTED`, `PARTIAL`, or
+  `NOT COVERED` coverage ID in queue order. `PARTIAL` and `NOT COVERED` are
+  unfinished handoff states during an active run, not reasons to skip ahead.
 
 Install and test:
 
@@ -51,23 +67,28 @@ Install and test:
 
 Run the full user-facing regression plan:
 
-- Use the frontend regression test plan as the coverage matrix.
-- Mark source/static/API-type rows `NOT APPLICABLE - black-box quick-install regression`.
-- Treat every checklist bullet in the frontend regression test plan as a
-  required coverage item unless it is explicitly not applicable to the run.
-  Do not collapse a section into one passing row unless all child bullets were
-  actually exercised.
-- For every user-facing coverage item, record action, expected result, actual
+- Use the frontend regression test plan coverage IDs as the coverage matrix.
+- Create one packet file per coverage ID, for example `packets/TRD_01.md`.
+  Every packet result must follow `workflow/packet-template.md`.
+- Treat every coverage ID in the frontend regression test plan as required
+  unless it is explicitly not applicable to the run. Do not collapse an ID
+  prefix or chapter into one passing row unless all child IDs were actually
+  exercised.
+- For every user-facing coverage ID, record action, expected result, actual
   result, status, and evidence.
+- A packet is terminal only when its coverage ID has direct evidence for
+  `PASS`/`FAIL`, or a concrete terminal reason for `BLOCKED`/`NOT APPLICABLE`.
+  `PARTIAL` and `NOT COVERED` must remain resumable unless the user explicitly
+  approves closing the run with gaps.
 - Test desktop and narrow mobile/touch viewports. Include hard refresh, normal
   reload, back/forward navigation, a clean browser context where useful,
   console errors/warnings, and failed network requests.
 - Run offline/cache coverage only in an installed PWA / installed web-app
   browser context after one successful online load. If the app is only opened as
   a normal browser tab, do not fail the row for offline reload behavior; mark the
-  installed-PWA offline row `NOT APPLICABLE` or `NOT COVERED`, explain that
-  offline mode requires browser installation, then restore connectivity and
-  verify normal online recovery.
+  installed-PWA offline row `NOT APPLICABLE`, explain that offline mode requires
+  browser installation, then restore connectivity and verify normal online
+  recovery.
 
 Required data-change coverage:
 
@@ -96,11 +117,16 @@ Required data-change coverage:
 Strict result handling:
 
 - Do not pass a row just because a dependency, permission, sidecar, internet
-  service, or data source is unavailable. Use `BLOCKED` or `NOT COVERED`, explain
-  why, and state whether it blocks the full regression.
-- Do not pass a parent area when any child coverage item is skipped,
-  spot-checked only, or verified indirectly. Use `PARTIAL`, `NOT COVERED`, or
-  `NOT APPLICABLE` and name the missing child checks.
+  service, or data source is unavailable. Use `BLOCKED` or `NOT APPLICABLE` for
+  true terminal constraints, explain why, state what would unblock it, and state
+  whether it blocks the full regression.
+- Do not pass a parent area when any child coverage ID is skipped,
+  spot-checked only, or verified indirectly. Use `PARTIAL` as a resumable
+  handoff state and name the missing child checks. Use `BLOCKED` or
+  `NOT APPLICABLE` only for true terminal constraints.
+- Do not mark executable coverage `NOT COVERED` merely because it was not reached
+  yet. Leave it resumable and continue. If there is no direct execution
+  evidence, do not run cleanup or call the queue complete.
 - Assign findings IDs and severities: `P0`, `P1`, `P2`, or `P3`.
 - For each issue, include reproduction steps, expected/actual result,
   environment, evidence, and release impact.
@@ -111,16 +137,32 @@ Strict result handling:
 Report and evidence:
 
 - Write a standalone Markdown report, not a transcript.
+- Assemble the final report only from completed packet files and linked assets.
+  Do not invent final statuses from memory or broad impressions.
+- Before writing `report.md`, setting `Current coverage ID: COMPLETE`, or running
+  `RUN_CLEANUP`, enforce the finalization gate from
+  `workflow/resumable-workflow.md`: every coverage ID must be terminal
+  (`PASS`, `FAIL`, `BLOCKED`, or `NOT APPLICABLE`) and no packet/run-state row
+  may remain `NOT STARTED`, `IN PROGRESS`, `PARTIAL`, or `NOT COVERED`.
+- Run
+  `documentation/testing/full-regression/workflow/check-finalization-gate.py <run-folder>/run-state.md`
+  and require `Finalization gate: PASS` before normal report/cleanup.
+- If the finalization gate fails, update `run-state.md` with the first
+  resumable coverage ID and continue testing instead of assembling a gap report
+  or cleaning up. A gap report is allowed only if the user explicitly approves
+  early closure with remaining gaps; that report must be `FAIL`.
 - First line must be:
   `> **RESULT: PASS - <one concise reason>**` or
   `> **RESULT: FAIL - <one concise reason>**`.
 - Use `PASS` only if quick install succeeds, required regression coverage runs,
   cleanup succeeds, and no blocking/high-severity failures remain.
 - Include goal, scope, environment, extracted README facts, setup/install result,
-  timings, coverage matrix, issues, evidence, cleanup, blocked/untested areas,
-  and conclusion.
+  timings, coverage-ID matrix, issues, evidence, cleanup,
+  blocked/untested areas, and conclusion.
 - Save the report at
-  `documentation/testing/full-regression/test_runs/<YYYY-MM-DD-short-slug>/report.md`.
+  `documentation/testing/full-regression/test_runs/<YYYY-MM-DD_HHMM-short-slug>/report.md`.
+- Save packet results under
+  `documentation/testing/full-regression/test_runs/<YYYY-MM-DD_HHMM-short-slug>/packets/`.
 - Save screenshots/log snippets under the matching `assets/` folder. Prefer WebP
   screenshots, keep logs short, and avoid bulky traces unless needed for a
   failure.
@@ -139,6 +181,8 @@ Report and evidence:
 
 Cleanup:
 
+- Do not start cleanup until the finalization gate passes or the user explicitly
+  approves early closure with gaps.
 - Copy the report/evidence out of the disposable install directory first.
 - Stop the installed stack from the compose-file directory.
 - Verify MTL Explorer quick-install containers are no longer running.

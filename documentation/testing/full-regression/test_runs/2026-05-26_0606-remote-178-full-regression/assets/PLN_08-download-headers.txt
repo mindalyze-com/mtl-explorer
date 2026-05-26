@@ -1,0 +1,13 @@
+HTTP/1.1 200 
+Cache-Control: no-store
+Content-Disposition: form-data; name="attachment"; filename="planned-route-100020.gpx"
+X-Content-Type-Options: nosniff
+X-XSS-Protection: 0
+X-Frame-Options: DENY
+Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data: https:; connect-src 'self' https: http://localhost:* http://127.0.0.1:*; worker-src 'self' blob:; base-uri 'self'; object-src 'none'; frame-ancestors 'none'
+Referrer-Policy: same-origin
+Permissions-Policy: camera=(), microphone=(), geolocation=(self)
+Content-Type: application/gpx+xml
+Content-Length: 579
+Date: Tue, 26 May 2026 06:16:45 GMT
+

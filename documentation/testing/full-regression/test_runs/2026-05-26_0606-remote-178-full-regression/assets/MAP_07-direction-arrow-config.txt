@@ -1,0 +1,7 @@
+Config/search probes for direction arrow setting:
+[]
+OpenAPI config paths:
+/api/config/get
+/api/filter/resolve/{filterConfigId}
+/api/map/config
+/api/planner/config

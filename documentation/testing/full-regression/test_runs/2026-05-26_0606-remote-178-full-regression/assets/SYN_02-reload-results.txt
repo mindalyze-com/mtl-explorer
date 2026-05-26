@@ -1,0 +1,17 @@
+Reload action:
+- Before reload: freshness banner visible; map summary showed 10 / 10 Tracks; legend BICYCLE 9, WALKING 1.
+- Closing Admin and clicking the freshness banner Reload cleared the banner.
+
+Refreshed map/cache evidence:
+- Banner present after reload: false
+- Map summary after reload: 11 / 11 Tracks
+- Legend after reload: BICYCLE 10, WALKING 1
+
+Refreshed stats evidence:
+- Stats Overview showed 11 TRACKS.
+- Distance total: 1,262 km
+- Duration total: 1d 03h
+- Recent Activity included `ADM_02 Upload Validation`.
+- Latest activity milestone updated to `ADM_02 Upload Validation`, 26/05/2026, 10:05.
+
+Note: initial reload attempts while the Admin/Helpers overlay was open did not visibly apply; closing Admin and using the banner from the map surface refreshed successfully.

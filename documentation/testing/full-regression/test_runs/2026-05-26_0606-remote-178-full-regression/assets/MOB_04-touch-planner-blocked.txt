@@ -1,0 +1,15 @@
+MOB_04 touch planner constraint
+
+Coverage requirement:
+- Planner waypoints can be tapped, dragged, and inserted with touch.
+
+Available browser capabilities:
+- Browser: visibility, viewport.
+- Tab: pageAssets.
+- No touch input, touch event injection, pinch, or mobile device emulation capability is exposed.
+
+Related completed desktop coverage:
+- PLN_02 through PLN_08 exercised planner route creation, waypoint move/delete, stats updates, elevation hover, save/load/delete, and GPX export with desktop pointer automation.
+- PLN_11 was already marked BLOCKED for mobile/touch planner dragging in this same tooling context.
+
+Result: BLOCKED. This row requires touch-specific planner input and cannot be verified in the current browser runtime.

@@ -1,0 +1,5 @@
+after_logout_url=http://178.105.173.254:18080/mtl/login
+after_logout_text=© Patrick Heusser AGPL-3.0 Sign In
+relogin_url=http://178.105.173.254:18080/mtl/
+relogin_ready_ms=3628
+relogin_text_excerpt=1000 km 10 Tracks Stats Filter Map Animate Segments GPS Planner Admin

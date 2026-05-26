@@ -1,0 +1,22 @@
+Broken media setup and evidence for MED_05.
+
+Setup:
+- Restored original MED_JPEG_02_DSCN0010_COPY.jpg from backup.
+- Created valid duplicate data/media/full-regression-media/MED_BROKEN_AFTER_INDEX.jpg.
+- Ran MEDIA rescan.
+- New indexed media: {"id":400003,"name":"MED_BROKEN_AFTER_INDEX.jpg","lat":11.88512667,"lng":43.46744833}
+- Replaced MED_BROKEN_AFTER_INDEX.jpg with invalid text bytes after indexing.
+
+Endpoint check:
+GET /api/media/get/400003/content?maxSize=4096
+HTTP/1.1 200
+Content-Type: image/jpeg
+ETag: "media-400003-44-1779779616369-original-s4096"
+Response body size: 0 bytes
+file: empty
+
+UI observation:
+- Photos & Media layer showed Arezzo cluster "3".
+- Clicking the expanded point opened media preview at 3 / 3 for MED_BROKEN_AFTER_INDEX.jpg.
+- Preview body showed a blank/broken image area with the filename alt text.
+- No actionable error message, retry action, or dismissable recoverable error state appeared.

@@ -1,0 +1,18 @@
+Helpers/Garmin export tool status:
+- Helpers tile showed 2/2 READY.
+- Tool setup rows:
+  - gcexport: ready, releases
+  - fit-export: ready
+- /api/garmin-export/tool-status:
+  - gcexportConfiguredVersion=v4.6.2
+  - gcexportVenvPresent=true
+  - fitExportConfiguredProfile=default
+  - fitExportConfiguredPackages=garth fitparse gpxpy
+  - fitExportVenvPresent=true
+
+Install action evidence:
+- Clicked the gcexport Install action.
+- Command output reported:
+  - Admin install: gcexport version=v4.6.2
+  - SKIP: venv_gcexport_v4.6.2 already present - no install needed.
+  - gcexport active version updated to v4.6.2 in DB.

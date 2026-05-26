@@ -1,0 +1,19 @@
+Setup:
+- Uploaded `SYN_05-dismiss-upload.gpx`.
+- Upload API returned HTTP 200 with message: `'SYN_05-dismiss-upload.gpx' uploaded successfully. Indexing will begin shortly.`
+- Freshness banner appeared while Stats was open.
+
+Visible banner before dismiss:
+- New data available
+- Tracks, media, or settings changed since this view loaded.
+- Actions: Reload, Dismiss
+- Map/stat cache still showed 11 / 11 tracks before applying the new upload.
+
+Dismiss attempts:
+- Clicked Dismiss using the Playwright role locator.
+- Clicked Dismiss using the visible DOM node.
+- Clicked the button center coordinates at approximately x=976, y=681.
+
+Result:
+- Banner remained visible after all dismiss attempts and after waits of 3-7 seconds.
+- No immediate successful dismissed state could be verified.

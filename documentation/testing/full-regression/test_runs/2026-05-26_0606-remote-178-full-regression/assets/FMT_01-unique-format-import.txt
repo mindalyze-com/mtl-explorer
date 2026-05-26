@@ -1,0 +1,19 @@
+Warning: Permanently added '178.105.173.254' (ED25519) to the list of known hosts.
+copied unique files at 2026-05-26T04:44:00Z
+/root/mtl-full-regression-2026-05-26_0606/mtl-explorer/data/gpx/FMT_GDB_unique.gdb 4423 bytes
+/root/mtl-full-regression-2026-05-26_0606/mtl-explorer/data/gpx/FMT_GEOJSON_unique.geojson 26276 bytes
+/root/mtl-full-regression-2026-05-26_0606/mtl-explorer/data/gpx/FMT_IGC_unique.igc 6802 bytes
+/root/mtl-full-regression-2026-05-26_0606/mtl-explorer/data/gpx/FMT_KML_unique.kml 156122 bytes
+/root/mtl-full-regression-2026-05-26_0606/mtl-explorer/data/gpx/FMT_KMZ_unique.kmz 12237 bytes
+/root/mtl-full-regression-2026-05-26_0606/mtl-explorer/data/gpx/FMT_NMEA_unique.nmea 24840 bytes
+/root/mtl-full-regression-2026-05-26_0606/mtl-explorer/data/gpx/FMT_TCX_unique.tcx 86643 bytes
+relevant app log lines:
+app-1  | 2026-05-26T04:44:00.930Z  INFO 1 --- [watch-GPS] FileIndexerImpl              : Live watcher detected CREATE for: FMT_TCX_unique.tcx
+app-1  | 2026-05-26T04:44:00.932Z  INFO 1 --- [watch-GPS] FileIndexerImpl              : Live watcher detected CREATE for: FMT_KML_unique.kml
+app-1  | 2026-05-26T04:44:00.934Z  INFO 1 --- [watch-GPS] FileIndexerImpl              : Live watcher detected CREATE for: FMT_KMZ_unique.kmz
+app-1  | 2026-05-26T04:44:00.935Z  INFO 1 --- [watch-GPS] FileIndexerImpl              : Live watcher detected CREATE for: FMT_IGC_unique.igc
+app-1  | 2026-05-26T04:44:00.936Z  INFO 1 --- [watch-GPS] FileIndexerImpl              : Live watcher detected CREATE for: FMT_GEOJSON_unique.geojson
+app-1  | 2026-05-26T04:44:00.938Z  INFO 1 --- [watch-GPS] FileIndexerImpl              : Live watcher detected CREATE for: FMT_GDB_unique.gdb
+app-1  | 2026-05-26T04:44:00.940Z  INFO 1 --- [watch-GPS] FileIndexerImpl              : Live watcher detected CREATE for: FMT_NMEA_unique.nmea
+app-1  | 2026-05-26T04:44:04.086Z  INFO 1 --- [http-nio-8080-exec-9] LoggingFilter                : Request for url=/mtl/api/map/status completed in dT=0 for user=mtl user_session_id=Kdx3zc9VUj status=200 method=GET
+app-1  | 2026-05-26T04:44:04.356Z  INFO 1 --- [http-nio-8080-exec-1] LoggingFilter                : Request for url=/mtl/api/data-freshness completed in dT=1 for user=mtl user_session_id=Kdx3zc9VUj status=200 method=GET

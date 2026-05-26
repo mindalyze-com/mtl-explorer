@@ -1,0 +1,23 @@
+LOC_02 locale switch evidence
+
+Initial locale:
+- en-GB (31/12/2025, 1,234.56)
+- Preview before switch: 26/05/2026 ... 12,345.67
+
+Changed locale:
+- Selected de-DE (31.12.2025, 1.234,56) from Admin -> Settings -> Format locale.
+- Settings preview updated immediately to: 26.05.2026 11:05:55 - 12.345,67
+- Settings still reported browser auto-detected locale as en-GB.
+
+Stats surface after switch:
+- Summary distance updated to de-DE grouping: 1.262 km
+- Summary energy updated to de-DE grouping: 7.054 Wh
+- Dates updated to de-DE date order/separators: 26.05.2026, 11:20 and 20.07.2021, 23:11
+- Milestone range updated to: 01.01.2010 - 26.05.2026
+
+Formatting gap observed after switch:
+- Decimal distances still used period separators: 94.26 m, 15.69 m, 191.13 m, 3.60 km, 25.9 km
+- Decimal speed still used a period separator: 72.5 km/h
+- Under de-DE these values should use comma decimal separators.
+
+Result: FAIL. Changing locale updates Settings, dates, and grouped integer-like values without a reload, but decimal unit values on Stats/Recent Activity remain in en-style formatting.

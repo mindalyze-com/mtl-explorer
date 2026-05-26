@@ -1,0 +1,7 @@
+Action: clicked Zoom out repeatedly from the map until globe mode engaged.
+Intermediate low zoom: globe toggle became visible but inactive at approximately 500 km scale.
+Final low zoom: globe toggle was visible and active at approximately 2000 km scale.
+DOM evidence:
+- `.mtl-globe-ctrl` display: visible
+- `.mtl-globe-btn` class: `mtl-globe-btn mtl-globe-active`
+Visible map state: world-scale map remained rendered with 10 / 10 tracks.

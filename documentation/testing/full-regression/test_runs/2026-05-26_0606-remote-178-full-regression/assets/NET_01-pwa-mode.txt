@@ -1,0 +1,12 @@
+NET_01 installed-PWA scope evidence
+
+Coverage text:
+- Installed PWA / installed web-app mode only: after installing MTL Explorer in the browser and loading once online, reload while offline.
+- Normal browser tab is not expected to pass this offline reload check.
+
+Run context:
+- This full regression used a normal browser tab against the remote quick-install target.
+- No installed web-app/PWA shell was created as part of this run.
+- Browser automation capabilities exposed viewport and visibility only; no installed-app or offline browser mode capability was available in the in-app browser.
+
+Result: NOT APPLICABLE. The row explicitly applies to installed PWA/web-app mode, not the normal browser tab used for this run.

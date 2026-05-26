@@ -1,0 +1,41 @@
+Warning: Permanently added '178.105.173.254' (ED25519) to the list of known hosts.
+ mtl-explorer-app-1 Copying /root/mtl-full-regression-2026-05-26_0606/format-source-data-unique/FMT_TCX.gpx to mtl-explorer-app-1:/tmp/FMT_TCX.gpx
+ mtl-explorer-app-1 Copied /root/mtl-full-regression-2026-05-26_0606/format-source-data-unique/FMT_TCX.gpx to mtl-explorer-app-1:/tmp/FMT_TCX.gpx
+ mtl-explorer-app-1 Copying /root/mtl-full-regression-2026-05-26_0606/format-source-data-unique/FMT_KML.gpx to mtl-explorer-app-1:/tmp/FMT_KML.gpx
+ mtl-explorer-app-1 Copied /root/mtl-full-regression-2026-05-26_0606/format-source-data-unique/FMT_KML.gpx to mtl-explorer-app-1:/tmp/FMT_KML.gpx
+ mtl-explorer-app-1 Copying /root/mtl-full-regression-2026-05-26_0606/format-source-data-unique/FMT_KMZ.gpx to mtl-explorer-app-1:/tmp/FMT_KMZ.gpx
+ mtl-explorer-app-1 Copied /root/mtl-full-regression-2026-05-26_0606/format-source-data-unique/FMT_KMZ.gpx to mtl-explorer-app-1:/tmp/FMT_KMZ.gpx
+ mtl-explorer-app-1 Copying /root/mtl-full-regression-2026-05-26_0606/format-source-data-unique/FMT_IGC.gpx to mtl-explorer-app-1:/tmp/FMT_IGC.gpx
+ mtl-explorer-app-1 Copied /root/mtl-full-regression-2026-05-26_0606/format-source-data-unique/FMT_IGC.gpx to mtl-explorer-app-1:/tmp/FMT_IGC.gpx
+ mtl-explorer-app-1 Copying /root/mtl-full-regression-2026-05-26_0606/format-source-data-unique/FMT_GEOJSON.gpx to mtl-explorer-app-1:/tmp/FMT_GEOJSON.gpx
+ mtl-explorer-app-1 Copied /root/mtl-full-regression-2026-05-26_0606/format-source-data-unique/FMT_GEOJSON.gpx to mtl-explorer-app-1:/tmp/FMT_GEOJSON.gpx
+ mtl-explorer-app-1 Copying /root/mtl-full-regression-2026-05-26_0606/format-source-data-unique/FMT_GDB.gpx to mtl-explorer-app-1:/tmp/FMT_GDB.gpx
+ mtl-explorer-app-1 Copied /root/mtl-full-regression-2026-05-26_0606/format-source-data-unique/FMT_GDB.gpx to mtl-explorer-app-1:/tmp/FMT_GDB.gpx
+ mtl-explorer-app-1 Copying mtl-explorer-app-1:/tmp/FMT_TCX.tcx to /root/mtl-full-regression-2026-05-26_0606/format-source-data-unique/FMT_TCX.tcx
+ mtl-explorer-app-1 Copied mtl-explorer-app-1:/tmp/FMT_TCX.tcx to /root/mtl-full-regression-2026-05-26_0606/format-source-data-unique/FMT_TCX.tcx
+FMT_TCX.tcx  86643 bytes
+ mtl-explorer-app-1 Copying mtl-explorer-app-1:/tmp/FMT_KML.kml to /root/mtl-full-regression-2026-05-26_0606/format-source-data-unique/FMT_KML.kml
+ mtl-explorer-app-1 Copied mtl-explorer-app-1:/tmp/FMT_KML.kml to /root/mtl-full-regression-2026-05-26_0606/format-source-data-unique/FMT_KML.kml
+FMT_KML.kml  156122 bytes
+ mtl-explorer-app-1 Copying mtl-explorer-app-1:/tmp/FMT_KMZ.kmz to /root/mtl-full-regression-2026-05-26_0606/format-source-data-unique/FMT_KMZ.kmz
+ mtl-explorer-app-1 Copied mtl-explorer-app-1:/tmp/FMT_KMZ.kmz to /root/mtl-full-regression-2026-05-26_0606/format-source-data-unique/FMT_KMZ.kmz
+FMT_KMZ.kmz  12237 bytes
+ mtl-explorer-app-1 Copying mtl-explorer-app-1:/tmp/FMT_IGC.igc to /root/mtl-full-regression-2026-05-26_0606/format-source-data-unique/FMT_IGC.igc
+ mtl-explorer-app-1 Copied mtl-explorer-app-1:/tmp/FMT_IGC.igc to /root/mtl-full-regression-2026-05-26_0606/format-source-data-unique/FMT_IGC.igc
+FMT_IGC.igc  6802 bytes
+ mtl-explorer-app-1 Copying mtl-explorer-app-1:/tmp/FMT_GEOJSON.geojson to /root/mtl-full-regression-2026-05-26_0606/format-source-data-unique/FMT_GEOJSON.geojson
+ mtl-explorer-app-1 Copied mtl-explorer-app-1:/tmp/FMT_GEOJSON.geojson to /root/mtl-full-regression-2026-05-26_0606/format-source-data-unique/FMT_GEOJSON.geojson
+FMT_GEOJSON.geojson  26276 bytes
+ mtl-explorer-app-1 Copying mtl-explorer-app-1:/tmp/FMT_GDB.gdb to /root/mtl-full-regression-2026-05-26_0606/format-source-data-unique/FMT_GDB.gdb
+ mtl-explorer-app-1 Copied mtl-explorer-app-1:/tmp/FMT_GDB.gdb to /root/mtl-full-regression-2026-05-26_0606/format-source-data-unique/FMT_GDB.gdb
+FMT_GDB.gdb  4423 bytes
+FMT_NMEA.nmea  24840 bytes
+sha256:
+309f4dbe2abf4a9cd4e2df995e26697caa0cc6e83fb755892ffe44d7a2f6bf77  /root/mtl-full-regression-2026-05-26_0606/format-source-data-unique/FMT_TCX.tcx
+88c75aa2196c27369adb054ee3cc9530be64643b39bd9505f34c8bca3a4965a8  /root/mtl-full-regression-2026-05-26_0606/format-source-data-unique/FMT_KML.kml
+478cac6dca4671ef91b342cfe2a56634a82aaaa9b1b378d145a38fe329415dfb  /root/mtl-full-regression-2026-05-26_0606/format-source-data-unique/FMT_KMZ.kmz
+0ead3cf4890132a129d5d488fccfce5a47c9bbd86a8f0e084fda213b13da8c6f  /root/mtl-full-regression-2026-05-26_0606/format-source-data-unique/FMT_IGC.igc
+a310ca17203b8c7015eedd40498542444f058b8c0fb5ff0a56090f8067084321  /root/mtl-full-regression-2026-05-26_0606/format-source-data-unique/FMT_GEOJSON.geojson
+5d1c41ca8743aebc27e2df211dc47714db1b7e0598ff8680948096e20aa04bcf  /root/mtl-full-regression-2026-05-26_0606/format-source-data-unique/FMT_GDB.gdb
+9972ef64b0fba2a8ccb8a2376e191ed814d15ce6d857bc8d515938be6a34145f  /root/mtl-full-regression-2026-05-26_0606/format-source-data-unique/FMT_NMEA.nmea
+SSH_RC=0

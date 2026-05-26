@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="MTL Explorer Planner"
+     xmlns="http://www.topografix.com/GPX/1/1">
+  <trk>
+    <name>Regression PLN08 export route</name>
+    <trkseg>
+      <trkpt lat="28.678775" lon="0.909441"><ele>416.0</ele></trkpt>
+      <trkpt lat="28.677563" lon="0.914528"><ele>416.8</ele></trkpt>
+      <trkpt lat="28.673044" lon="0.928391"><ele>417.5</ele></trkpt>
+      <trkpt lat="28.671177" lon="0.934811"><ele>414.8</ele></trkpt>
+      <trkpt lat="28.664972" lon="0.966445"><ele>412.0</ele></trkpt>
+    </trkseg>
+  </trk>
+</gpx>

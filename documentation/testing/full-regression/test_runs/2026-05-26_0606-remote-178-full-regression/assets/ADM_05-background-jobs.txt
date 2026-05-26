@@ -1,0 +1,10 @@
+Jobs panel evidence after ADM_02 upload and ADM_04 rescans:
+- Duplicate Finder: DONE, 100%, 17 / 17 total.
+- Activity Classifier: DONE, 100%, 15 / 15 total.
+- Exploration Score: DONE, 100%, 13 / 13 total.
+- Refresh timestamp: Updated 10:14:22.
+
+API /api/jobs/status:
+- duplicate / Duplicate Finder: total=17 pending=0 done=17 progressPercent=100
+- activityType / Activity Classifier: total=15 pending=0 done=15 progressPercent=100
+- exploration / Exploration Score: total=13 pending=0 done=13 progressPercent=100

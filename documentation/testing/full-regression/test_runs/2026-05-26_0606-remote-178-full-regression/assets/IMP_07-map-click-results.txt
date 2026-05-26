@@ -1,0 +1,10 @@
+Map click results against visible imported GPX lines
+lannion	x=137	y=314	id=100003	title=Lannion_Plestin_parcours Lannion_Plestin_parcours1	Opened in prior CUA click and screenshot IMP_07-cua-click-lannion.png
+vitry	x=982	y=370	id=100000	title=Vitry le françois - langres on GPSies.com
+mosel	x=1137	y=276	id=NO_DETAIL_ID	title=NO_TITLE
+voieverte	x=1156	y=438	id=NO_DETAIL_ID	title=Moselradweg aus Wiki on GPSies.com
+jura	x=1198	y=505	id=100001	title=Jura Route 7 / 2011 on GPSies.com
+
+Overlap selection results
+mosel	rowY=538	id=100002	title=Moselradweg aus Wiki on GPSies.com
+voieverte	rowY=599	id=100004	title=voie verte haute vosges on GPSies.com

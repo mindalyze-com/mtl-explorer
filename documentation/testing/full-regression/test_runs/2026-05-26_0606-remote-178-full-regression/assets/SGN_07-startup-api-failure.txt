@@ -1,0 +1,21 @@
+url=http://178.105.173.254:18080/mtl/
+failed_requests=GET /mtl/api/map/config net::ERR_FAILED
+POST /mtl/api/analytics/client-environment net::ERR_FAILED
+GET /mtl/api/info/build net::ERR_FAILED
+GET /mtl/api/config/get?domain1=CLIENT&domain2=COLOR_PALETTE net::ERR_FAILED
+GET /mtl/api/info/build net::ERR_FAILED
+GET /mtl/api/indexer/status net::ERR_FAILED
+GET /mtl/api/jobs/status net::ERR_FAILED
+GET /mtl/api/map/config net::ERR_FAILED
+GET /mtl/api/map/status net::ERR_FAILED
+GET /mtl/api/location-search/status net::ERR_FAILED
+GET /mtl/api/data-freshness net::ERR_FAILED
+GET /mtl/api/info/build net::ERR_FAILED
+GET /mtl/api/map/config net::ERR_FAILED
+HEAD /mtl/api/info/build net::ERR_FAILED
+GET /mtl/api/filter/get net::ERR_FAILED
+GET /mtl/api/data-freshness net::ERR_FAILED
+POST /mtl/api/tracks/get-simplified?filterName=SmartBaseFilter&mode=ids net::ERR_FAILED
+POST /mtl/api/tracks/get-simplified?filterName=SmartBaseFilter&mode=ids net::ERR_FAILED
+visible_text=500 km 10 Tracks Offline — displaying cached tracks Stats Filter Map Animate Segments GPS Planner Admin
+retry_present=false

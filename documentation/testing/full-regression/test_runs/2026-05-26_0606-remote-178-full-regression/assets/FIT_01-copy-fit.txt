@@ -1,0 +1,4 @@
+COPY_START=2026-05-26T04:25:47+00:00
+DEST=data/gpx/Activity.fit
+-rw-r--r-- 1 root root 94096 May 26 04:25 data/gpx/Activity.fit
+949a238e1bb75c3684479785f76fa9a16888bb394518844248f488171d591387  data/gpx/Activity.fit

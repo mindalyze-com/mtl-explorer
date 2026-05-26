@@ -1,0 +1,54 @@
+- region "Map"
+- region "Map"
+- button "Zoom in"
+- button "Zoom out"
+- button "Drag to rotate map, click to reset north"
+- text: 
+- generic: 30 km
+- generic: 10 Tracks
+- button " Stats":
+  - generic: 
+  - generic: Stats
+- button " Filter":
+  - generic: 
+  - generic: Filter
+- button " Map":
+  - generic: 
+  - generic: Map
+- button " Animate" [active]:
+  - generic: 
+  - generic: Animate
+- button " Segments":
+  - generic: 
+  - generic: Segments
+- button " GPS":
+  - generic: 
+  - generic: GPS
+- button " Planner":
+  - generic: 
+  - generic: Planner
+- button " Admin":
+  - generic: 
+  - generic: Admin
+- button "About MTL Explorer"
+- generic: 
+- text: Animate
+- button "Fullscreen":
+  - generic: 
+- button "Close":
+  - generic: 
+- button "Play animation" [disabled]:
+  - generic: 
+- button "Stop animation" [disabled]:
+  - generic: 
+- generic: Speed
+- slider
+- generic: 20ms
+- generic: Tracks
+- generic: 0 / 0
+- slider
+- slider
+- generic: —
+- generic: —
+- generic: —
+- text:  

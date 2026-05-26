@@ -1,0 +1,22 @@
+Filter-driven heatmap evidence for HMO_03.
+
+Setup:
+- Viewport: Lannion, France.
+- Heatmap enabled at high opacity.
+- Filter enabled with Activities by keyword selected.
+
+Actions and observations:
+1. Empty keyword / all tracks:
+   - Map legend showed 10 / 10 Tracks.
+   - Lannion track and heatmap glow were visible.
+2. Keyword set to Jura:
+   - Live filter reduced map to 1 / 10 Tracks.
+   - Lannion track disappeared.
+   - Lannion heatmap glow disappeared.
+3. Keyword cleared via keyboard:
+   - Map returned to 10 / 10 Tracks.
+   - Lannion track and heatmap glow returned.
+
+State left:
+- Filtering remains on with Activities by keyword selected and empty keyword.
+- Heatmap remains enabled.

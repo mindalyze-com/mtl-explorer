@@ -1,0 +1,17 @@
+Zoom/edge-limit sequence:
+1. Started at low zoom/globe state.
+   - scale: 2000 km
+   - globe active: true
+   - map canvas count: 1
+2. Dragged the map hard left and right at low zoom.
+   - scale stayed 2000 km
+   - globe active stayed true
+   - map canvas count stayed 1
+   - map controls/sidebar remained visible
+3. Zoomed in repeatedly after edge panning.
+   - scale changed to 5 km
+   - globe active: false
+   - globe control hidden
+   - map canvas count stayed 1
+
+Conclusion: zoom/pan edge limits did not trap the map; zoom controls still changed state after low-zoom edge panning.

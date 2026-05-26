@@ -1,0 +1,2 @@
+mtl_explorer_present=true
+visible_excerpt=500 km 10 Tracks Stats Filter Map Animate Segments GPS Planner Admin × ABOUT & SOURCE MTL Explorer Version dev AGPL-3.0-or-later Commercial license available MTL Explorer is dual-licensed under AGPL-3.0-or-later and a separate commercial license. If you modify the software and make it available over a network, you must offer the corresponding source code of that running version. SOURCE CODE https://github.com/mindalyze-com/mtl-explorer COMMERCIAL INQUIRIES hey.lueg@gmail.com © 2020-2026 Patrick Heusser & contributors

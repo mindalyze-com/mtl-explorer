@@ -1,0 +1,161 @@
+- region "Map"
+- region "Map"
+- button "Zoom in"
+- button "Zoom out"
+- button "Drag to rotate map, click to reset north"
+- text: 
+- generic: 30 km
+- generic: 10 Tracks
+- button " Stats":
+  - generic: 
+  - generic: Stats
+- button " Filter":
+  - generic: 
+  - generic: Filter
+- button " Map":
+  - generic: 
+  - generic: Map
+- button " Animate":
+  - generic: 
+  - generic: Animate
+- button " Segments":
+  - generic: 
+  - generic: Segments
+- button " GPS":
+  - generic: 
+  - generic: GPS
+- button " Planner":
+  - generic: 
+  - generic: Planner
+- button " Admin":
+  - generic: 
+  - generic: Admin
+- button "About MTL Explorer"
+- generic: 
+- text: Segment Analyzer
+- button:
+  - generic: 
+- button:
+  - generic: 
+- button:
+  - generic: 
+  - generic: 3 / 3
+  - generic: tracks
+- switch [checked]
+- generic: Consolidated
+- button:
+  - generic: 
+  - generic: Compare
+  - generic: "3"
+- button:
+  - generic: 
+  - generic: Race
+  - generic: "3"
+- button:
+  - generic: 
+- button:
+  - generic: 
+  - text: Table
+- button:
+  - generic: 
+  - text: Trends
+- tabpanel:
+  - generic: Column metric
+  - button: speed
+  - button: time
+  - button: distance
+  - table:
+    - rowgroup:
+      - row:
+        - columnheader:
+          - checkbox [checked]
+        - columnheader:
+          - generic: Name
+        - columnheader:
+          - generic: Start
+        - columnheader:
+          - generic: Duration
+        - columnheader:
+        - columnheader:
+          - generic: A - B
+    - rowgroup:
+      - row:
+        - cell:
+          - checkbox [checked]
+        - cell:
+          - generic: JuraRoute72011.gpx
+        - cell: 01/01/2010, 01:00
+        - cell: 16h 55m
+        - cell:
+          - generic: 
+        - cell: "0"
+      - row:
+        - cell:
+          - checkbox [checked]
+        - cell:
+          - generic: JuraRoute72011.igc
+        - cell: 01/01/2010, 01:00
+        - cell: 16h 55m
+        - cell:
+          - generic: 
+        - cell: "0"
+      - row:
+        - cell:
+          - checkbox [checked]
+        - cell:
+          - generic: JuraRoute72011.nmea
+        - cell: 01/01/2010, 01:00
+        - cell: 1h 30m
+        - cell:
+          - generic: 
+        - cell: "16.17"
+- text: 
+- generic: 
+- text: Segment Analyzer (Race)
+- button "Fullscreen":
+  - generic: 
+- button "Close":
+  - generic: 
+- generic: Segment
+- button "A-B"
+- generic: Speed
+- slider
+- generic: 442x · 12s
+- region "Map"
+- generic: 5 km
+- generic: 
+- text: 3 racers
+- button "" [active]:
+  - generic: 
+- button "":
+  - generic: 
+- generic: 
+- generic: "1"
+- generic: JuraRoute72011.gpx
+- generic: 
+- generic: Bicycle
+- generic: 01/01/2010, 01:00
+- button "":
+  - generic: 
+- generic: 
+- generic: "2"
+- generic: JuraRoute72011.igc
+- generic: 
+- generic: Bicycle
+- generic: 01/01/2010, 01:00
+- button "":
+  - generic: 
+- generic: 
+- generic: "3"
+- generic: JuraRoute72011.nmea
+- generic: 
+- generic: Bicycle
+- generic: 01/01/2010, 01:00
+- button "":
+  - generic: 
+- generic: 
+- text: 01:29:35
+- generic: 
+- text: 16.2 km/h
+- generic: 
+- text: 24.15 km

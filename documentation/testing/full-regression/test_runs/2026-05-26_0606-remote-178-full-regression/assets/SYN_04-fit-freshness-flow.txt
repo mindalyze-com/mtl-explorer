@@ -1,0 +1,10 @@
+FIT conversion and freshness/cache evidence from completed packets:
+- FIT_01: Activity.fit copied into the watched import folder.
+- FIT_02: FIT converted via GPSBabel, indexed as #100005, displayed on map/list/stats.
+- FIT_03: FIT-backed detail overview, graphs, quality, related, events, and mini-map rendered.
+- FIT_04: original download returned Activity.fit matching uploaded checksum.
+- FIT_05: GPX export returned valid GPX with 3,601 trkpt points.
+- FIT_06: converter-unavailable state was not applicable because GPSBabel/FIT conversion succeeded.
+- Related freshness/cache behavior was then exercised again in SYN_01/SYN_02 with a native GPX upload and banner reload.
+
+Conclusion: the FIT import changed indexed/user-visible state the same way as native imports and produced usable map/list/stats/detail/export surfaces.

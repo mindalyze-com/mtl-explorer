@@ -1,0 +1,8 @@
+Valid NMEA replacement monitor cropped.
+app-1  | 2026-05-26T04:33:30.496Z  INFO 1 --- [idx-4] GPXStoreService              : Did delete gpsTrack and it's track data for given id=100011 file=/JuraRoute72011.nmea
+app-1  | 2026-05-26T04:33:30.497Z  INFO 1 --- [idx-4] TrackFileConverterService    : Converting JuraRoute72011.nmea (NMEA) to GPX: gpsbabel -i nmea -f /app/gpx/JuraRoute72011.nmea -o gpx,gpxver=1.1 -F -
+app-1  | 2026-05-26T04:33:30.513Z  INFO 1 --- [idx-4] TrackFileConverterService    : GPSBabel converted JuraRoute72011.nmea → 29868 chars of GPX XML
+app-1  | 2026-05-26T04:33:30.558Z  INFO 1 --- [idx-4] GPXReader                    : Track Data Summary:   - Outlier Corrector: GPXReader distance/probation filter   - Outliers Found: false   - Outliers Cleared By Correc
+app-1  | 2026-05-26T04:33:30.751Z  INFO 1 --- [idx-4] GPXStoreService              : GPS simplified timing trackId=100012 file=/JuraRoute72011.nmea total=58ms details=1m 12ms (115 pts), 5m 16ms (108 pts), 10m 11ms (97 pt
+app-1  | 2026-05-26T04:33:30.751Z  INFO 1 --- [idx-4] GPXStoreService              : GPS ingest timing trackId=100012 file=/JuraRoute72011.nmea status=SUCCESS Timing total 266ms; slowest denoise 97ms, simplified shapes 5
+app-1  | 2026-05-26T04:33:30.752Z  INFO 1 --- [idx-4] GPXStoreService              : Reading of track id=100012 and path= file=JuraRoute72011.nmea did complete with status=SUCCESS and took processingTime=267ms

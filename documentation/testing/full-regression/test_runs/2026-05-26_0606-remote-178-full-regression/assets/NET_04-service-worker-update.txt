@@ -1,0 +1,11 @@
+NET_04 service worker update scope evidence
+
+Coverage requirement:
+- Service worker update: a "new version available" prompt appears after an update; accepting it reloads cleanly.
+
+Run context:
+- Target was a fixed remote quick-install instance during this regression.
+- No new client build or service-worker version was deployed during the run.
+- Testing this row would require intentionally changing and redeploying the app bundle/service worker, which is outside this retest target.
+
+Result: NOT APPLICABLE. No service-worker update event occurred in this configured run.

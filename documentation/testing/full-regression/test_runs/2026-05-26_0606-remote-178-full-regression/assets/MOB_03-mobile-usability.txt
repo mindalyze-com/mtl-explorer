@@ -1,0 +1,21 @@
+MOB_03 narrow viewport usability evidence
+
+Viewport:
+- 390 x 844.
+- Document clientWidth 390, scrollWidth 390: no page-level horizontal overflow.
+
+Map controls:
+- Zoom in button was visible and clickable.
+- Scale changed from 1000 km to 500 km after clicking Zoom in.
+- Map retained 14 / 14 Tracks and legend counts.
+
+Stats/tables/charts:
+- Stats opened in the mobile layout.
+- Overview, Trends, and Tracks tabs were visible and clickable.
+- Tracks tab showed mobile list/card content with Sort controls and rows for LOC_04 Null Elevation, LOC_04 Boundary Formatting, SYN_05 Dismiss Validation, ADM_02 Upload Validation, and other tracks.
+- Visible bad-value scan: no NaN, undefined, or Infinity in body text.
+
+Layout notes:
+- Page-level width stayed at 390 px. Hidden or internally scrollable table DOM measured wider than the viewport, but the visible mobile Tracks surface presented the row data through the mobile list layout and did not expand the page.
+
+Result: PASS. Tables/list content, chart tab navigation, and map controls remained usable at narrow width without page-level overflow.

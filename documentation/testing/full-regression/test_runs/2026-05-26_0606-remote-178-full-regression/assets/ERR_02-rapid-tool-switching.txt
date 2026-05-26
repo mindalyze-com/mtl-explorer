@@ -1,0 +1,28 @@
+ERR_02 rapid tool switching evidence
+
+Viewport:
+- Desktop viewport restored to 1280 x 720.
+
+Action sequence:
+- Clicked Map, Stats, Filter, Planner, Segments, GPS, Animate, Admin, Map, Stats, Map with short waits between transitions.
+- Every requested tool button resolved to exactly one visible locator.
+
+Final UI state:
+- Active tool: Map.
+- Open sheet count: 1.
+- Open sheet: Map settings, showing Maps and data, Reset, OSM Topo, Swiss Color, Swiss Light, OSM Light, OSM Dark, and layer controls.
+
+Stale-state scan:
+- Track pick overlays: 0.
+- Planner markers: 0.
+- Segment/measure zones: 0.
+- Location search markers: 0.
+- Media preview open: false.
+- Map canvas cursor: auto.
+- Bad text scan: no NaN, undefined, or Infinity.
+
+Map interaction after switching:
+- Zoom out button resolved to one locator.
+- Scale changed from 300 km to 500 km after clicking Zoom out.
+
+Result: PASS. Rapid tool switching left a single coherent active tool/sheet and map controls remained responsive.

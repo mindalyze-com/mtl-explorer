@@ -1,0 +1,8 @@
+Server Log panel evidence:
+- Opened Admin -> Log.
+- Log lines loaded with timestamped Spring/LoggingFilter entries.
+- Representative entries included:
+  - 2026-05-26 08:17:48.671 / Request for url=/mtl/api/data-freshness / status=200 / method=GET
+  - 2026-05-26 08:17:54.774 / Request for url=/mtl/api/map/status / status=200 / method=GET
+  - 2026-05-26 08:18:04.854 / Request for url=/mtl/api/map/status / status=200 / method=GET
+- Clicked Refresh; newer log lines were visible afterward.

@@ -1,0 +1,14 @@
+Theme persistence sequence:
+- Dark mode was selected in Settings.
+- Hard page reload returned to /mtl/.
+  - document data-theme after reload: dark
+  - map loaded with 12 / 12 Tracks.
+- Safe logout reached /mtl/login.
+  - login page document data-theme: dark
+- Signed back in with README credentials.
+  - document data-theme after login: dark
+  - map loaded with 12 / 12 Tracks.
+
+Hard-refresh flash check:
+- The first captured post-DOM-load state after hard reload already had data-theme=dark.
+- The app's `useTheme.ts` applies the stored scheme at module import before Vue mounts, which supports avoiding a light mounted state before dark mode is applied.

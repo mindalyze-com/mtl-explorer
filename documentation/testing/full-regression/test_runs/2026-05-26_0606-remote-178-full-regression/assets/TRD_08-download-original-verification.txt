@@ -1,0 +1,8 @@
+gpx_track_id=100001
+http=200
+bytes=199962
+sha256=fcff577bd3c1a6dc2bb9e53abba8051d510d282f4fb0049d38be5300f92e354e
+expected_sha256=fcff577bd3c1a6dc2bb9e53abba8051d510d282f4fb0049d38be5300f92e354e
+sha_match=yes
+trkpt=1414
+fit_original_evidence=assets/FIT_04_05-download-verification.txt

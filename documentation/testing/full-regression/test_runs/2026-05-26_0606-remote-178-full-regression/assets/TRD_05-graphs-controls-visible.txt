@@ -1,0 +1,88 @@
+clicked=distance,range,point-plus,height-plus
+control_dom=[
+  {
+    "aria": null,
+    "cls": "toggle-btn",
+    "i": 84,
+    "pressed": null,
+    "text": "Time"
+  },
+  {
+    "aria": null,
+    "cls": "toggle-btn toggle-btn--active",
+    "i": 85,
+    "pressed": null,
+    "text": "Distance"
+  },
+  {
+    "aria": null,
+    "cls": "toggle-btn",
+    "i": 86,
+    "pressed": "false",
+    "text": "Range"
+  },
+  {
+    "aria": "Load fewer chart points",
+    "cls": "graphs-slider-icon-btn",
+    "i": 87,
+    "pressed": null,
+    "text": ""
+  },
+  {
+    "aria": "Load more chart points",
+    "cls": "graphs-slider-icon-btn",
+    "i": 88,
+    "pressed": null,
+    "text": ""
+  },
+  {
+    "aria": "Make graphs smaller",
+    "cls": "graphs-slider-icon-btn",
+    "i": 89,
+    "pressed": null,
+    "text": ""
+  },
+  {
+    "aria": "Make graphs bigger",
+    "cls": "graphs-slider-icon-btn",
+    "i": 90,
+    "pressed": null,
+    "text": ""
+  }
+]
+excerpt=- tabpanel "Graphs":
+  - generic: X Axis
+  - button " Time":
+    - generic: 
+    - text: Time
+  - button " Distance":
+    - generic: 
+    - text: Distance
+  - generic: Detail
+  - button " Range":
+    - generic: 
+    - text: Range
+  - text: Points
+  - generic: "375"
+  - button "Load fewer chart points":
+    - generic: 
+  - slider "Adjust chart point count"
+  - button "Load more chart points":
+    - generic: 
+  - generic: Height
+  - button "Make graphs smaller":
+    - generic: 
+  - slider "Adjust graph height"
+  - button "Make graphs bigger" [active]:
+    - generic: 
+  - generic: 
+  - text: Speed
+  - generic: 
+  - text: Elevation
+  - generic: 
+  - text: Elevation Gain Rate
+  - generic: 
+  - text: Cumulative Mechanical Energy
+  - generic: 
+  - text: Estimated Power
+

@@ -1,0 +1,33 @@
+QUERY=tcx
+ROW_COUNT=1
+No tracks match “tcx”
+
+QUERY=kml
+ROW_COUNT=1
+No tracks match “kml”
+
+QUERY=igc
+ROW_COUNT=1
+01/01/2010, 01:00 GNSSALTTRK IGCHDRS~HFPLTPILOT:Unknown~ Bicycle 273 km 7h 46m 35.1 1808 Wh 100.0% 26/05/2026, 06:31
+
+QUERY=gdb
+ROW_COUNT=1
+No tracks match “gdb”
+
+QUERY=nmea
+ROW_COUNT=1
+01/01/2010, 01:00 Track 100012 Bicycle 24.2 km 16m 15s 89.4 240 Wh 100.0% 26/05/2026, 06:33
+
+QUERY=geojson
+ROW_COUNT=1
+No tracks match “geojson”
+
+QUERY=kmz
+ROW_COUNT=1
+No tracks match “kmz”
+
+QUERY=JuraRoute72011
+ROW_COUNT=3
+01/01/2010, 01:00 Track 100012 Bicycle 24.2 km 16m 15s 89.4 240 Wh 100.0% 26/05/2026, 06:33
+01/01/2010, 01:00 GNSSALTTRK IGCHDRS~HFPLTPILOT:Unknown~ Bicycle 273 km 7h 46m 35.1 1808 Wh 100.0% 26/05/2026, 06:31
+01/01/2010, 01:00 Jura Route 7 / 2011 on GPSies.com Bicycle 273 km 7h 46m 35.1 1808 Wh 100.0% 26/05/2026, 06:15

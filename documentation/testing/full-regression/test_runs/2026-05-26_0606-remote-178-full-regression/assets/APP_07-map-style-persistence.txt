@@ -1,0 +1,17 @@
+APP_07 selected map style persistence evidence
+
+Target: http://178.105.173.254:18080/mtl/
+Browser state before test: signed in, UI theme dark.
+
+Actions:
+1. Opened Map panel.
+2. Selected OSM Dark as the active base style.
+3. Hard reloaded the page.
+4. Reopened Map panel and inspected active base style.
+
+Observed after reload:
+- UI theme remained dark.
+- Active base style retained the check on OSM Dark.
+- Map returned to usable state after reload.
+
+Result: PASS. Selected map style persisted across reload.

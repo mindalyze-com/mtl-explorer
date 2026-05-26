@@ -1,0 +1,12 @@
+Source page/license notes:
+GPX: https://github.com/gps-touring/sample-gpx (public GitHub sample GPX repository; license file not identified in quick data source check)
+FIT: https://github.com/garmin/fit-javascript-sdk test/data/Activity.fit (Garmin public SDK sample repository)
+
+Manifest:
+filename	bytes	sha256	trkpt_count	time_count
+JuraRoute72011.gpx	199962	fcff577bd3c1a6dc2bb9e53abba8051d510d282f4fb0049d38be5300f92e354e	1414	1415
+Lannion_Plestin_parcours24.4RE.gpx	60917	e76c692cbb5580f20013ce19995a9383361a8a0babec2db3e36f7064f316e85f	381	382
+MoselradwegAusWiki.gpx	415326	0f5263dee95a345a42585bde148ec741af4ed4eeb7451702f59c9c7f9bf761c3	2954	2955
+Vitry-le-Francois_Langres.gpx	238349	401218e3c1d1f366ee27ea8bc138d8422eff3bf6348a77183be83fef3e8d7d67	1688	1689
+VoieVerteHauteVosges.gpx	183733	0f417d6e76cfa581d3ada969e728694933fbffd062f61a8352ccc87637135f78	1298	1299
+Activity.fit	94096	949a238e1bb75c3684479785f76fa9a16888bb394518844248f488171d591387	FIT_BINARY	FIT_BINARY

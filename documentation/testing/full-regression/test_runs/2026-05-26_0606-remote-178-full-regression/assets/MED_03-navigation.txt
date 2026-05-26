@@ -1,0 +1,16 @@
+Media preview navigation evidence for MED_03.
+
+Opened from Arezzo media point:
+- Initial state: counter 2 / 2, image MED_JPEG_01_DSCN0010.jpg, content link /mtl/api/media/get/400002/content.
+- Previous photo button enabled; Next photo disabled.
+
+After clicking Previous photo:
+- Counter: 1 / 2
+- Image: MED_JPEG_02_DSCN0010_COPY.jpg
+- Previous photo disabled; Next photo enabled.
+- Content link: /mtl/api/media/get/400001/content.
+
+After clicking Next photo:
+- Counter: 2 / 2
+- Image: MED_JPEG_01_DSCN0010.jpg
+- Previous photo enabled; Next photo disabled.

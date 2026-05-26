@@ -1,0 +1,16 @@
+Five-GPX import and delete-two flow evidence from completed packets:
+- IMP_02: five GPX files copied into README watched folder.
+- IMP_03: live watcher detected all five files without manual rescan.
+- IMP_04: all five GPX imports completed SUCCESS and freshness reflected import.
+- IMP_05: freshness refresh showed imported data on map, stats, browser, and filter surfaces.
+- IMP_06: five imported names appeared in track list/search/stats/map/filter context.
+- IMP_07: map clicks opened all five imported GPX tracks.
+- IMP_08: track count increased from 0 to 5, one track per GPX.
+- IMP_09: stats/browser totals increased and heatmap rendered over imported tracks.
+- DEL_01: Vitry and VoieVerte GPX source files deleted.
+- DEL_02: automatic delete processing removed tracks 100000 and 100004.
+- DEL_03: deleted tracks disappeared from map/heatmap/list/search/filter context and stats dropped to 3.
+- DEL_04: remaining Jura track displayed and opened after deletion.
+- DEL_05: deletion verdict used user-visible surfaces, not stale URL/API probes.
+
+Conclusion: the required five-GPX import and delete-two flow passed across indexer state, freshness, map, browser, stats, filters, heatmap, and details.

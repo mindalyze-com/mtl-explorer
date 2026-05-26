@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="MTL Explorer full regression" xmlns="http://www.topografix.com/GPX/1/1">
+  <metadata>
+    <name>LOC_04 Boundary Formatting</name>
+  </metadata>
+  <trk>
+    <name>LOC_04 Boundary Formatting</name>
+    <type>cycling</type>
+    <trkseg>
+      <trkpt lat="0.000000" lon="0.000000">
+        <time>2026-05-26T09:10:00Z</time>
+      </trkpt>
+      <trkpt lat="0.000000" lon="0.000000">
+        <time>2026-05-26T09:11:00Z</time>
+      </trkpt>
+      <trkpt lat="0.000000" lon="179.000000">
+        <ele>200.0</ele>
+        <time>2026-05-26T09:12:00Z</time>
+      </trkpt>
+      <trkpt lat="0.000100" lon="179.000100">
+        <ele>50.0</ele>
+        <time>2026-05-26T09:13:00Z</time>
+      </trkpt>
+    </trkseg>
+  </trk>
+</gpx>

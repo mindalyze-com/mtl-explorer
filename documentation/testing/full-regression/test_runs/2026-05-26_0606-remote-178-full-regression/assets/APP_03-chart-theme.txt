@@ -1,0 +1,14 @@
+Stats Trends chart color evidence without page reload:
+- Light theme:
+  - data-theme: light
+  - Highcharts root count: 8
+  - chart text fill: rgb(100, 116, 139)
+  - chart background fill: transparent
+- Switched to dark through Admin -> Settings without reloading the page.
+- Dark theme:
+  - data-theme: dark
+  - Highcharts root count: 8
+  - chart text fill: rgb(148, 163, 184)
+  - chart background fill: transparent
+
+Conclusion: chart text colors changed with the selected theme without a page reload.

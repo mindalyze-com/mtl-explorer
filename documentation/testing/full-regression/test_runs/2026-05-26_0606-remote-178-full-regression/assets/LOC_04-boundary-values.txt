@@ -1,0 +1,25 @@
+LOC_04 boundary values evidence
+
+Disposable imports:
+- Uploaded LOC_04-boundary.gpx through /api/gpx-upload/upload.
+- Uploaded LOC_04-null-elevation.gpx through /api/gpx-upload/upload.
+- Client refreshed to 14 / 14 Tracks.
+
+API import details:
+- LOC_04 Boundary Formatting indexed as track 100023 with loadStatus SUCCESS.
+- Track 100023 stats: 2 points, 15.69 m, 0.0 m ascent, 150.0 m descent, min altitude 50.0 m, max altitude 200.0 m.
+- LOC_04 Null Elevation indexed as track 100024 with loadStatus SUCCESS.
+- Track 100024 stats: 3 points, 94.26 m, 0.0 m ascent, 0.0 m descent, min altitude 0.0 m, max altitude 0.0 m.
+
+Visible UI evidence in Stats -> Overview -> Recent Activity:
+- LOC_04 Null Elevation; Bicycle; 26/05/2026, 11:20; 94.26 m; 2m 00s
+- LOC_04 Boundary Formatting; Bicycle; 26/05/2026, 11:12; 15.69 m; 1m 00s
+- Summary totals remained populated: 14 tracks, 1,262 km, 1d 03h, 7,054 Wh.
+
+Bad-value scan on visible body text:
+- NaN: not present
+- undefined: not present
+- null: not present
+- Infinity: not present
+
+Result: PASS. Zero ascent/descent and no-elevation imports rendered as ordinary formatted values without blank or NaN-style output.

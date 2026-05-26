@@ -1,0 +1,12 @@
+Operational task UI evidence:
+- Vector Map Tiles: DONE 100%; detail `Using hosted map service`; metric `Protomaps archive public-default`; state `Hosted map service`.
+- Location Search: DONE 100%; detail `GeoNames location search ready`; metric `1332531 places (233251 populated, 1099280 terrain)`.
+- Routing Segments: READY 100%; detail `Routing segments are ready for planned routes`; metric `3 on disk`; BRouter 1.7.9.
+
+Endpoint evidence:
+- /api/map/config -> tileMode=local, tileSource=public, archiveId=public-default, plannerEnabled=true.
+- /api/map/status -> phase=public-fallback, ready=true, download_pct=100, message=Using hosted map service.
+- /api/location-search/status -> phase=ready, ready=true, message=GeoNames location search ready.
+- /api/planner/status -> available=true, brouterRunning=true, segmentsOnDisk=3, segmentsQueued=0, segmentsInProgress=[].
+
+Unavailable/downloading/disabled states did not occur in this healthy quick-install run; ready/hosted states included useful detail.

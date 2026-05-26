@@ -1,0 +1,15 @@
+MOB_05 touch gesture constraint
+
+Coverage requirement:
+- Map gestures including pinch, double-tap, and drag work after using each tool.
+
+Available evidence:
+- At 390 x 844, normal map controls and desktop-style pointer interactions remained usable.
+- Zoom in changed the map scale from 1000 km to 500 km.
+- Tool surfaces opened in the mobile layout.
+
+Blocking constraint:
+- Pinch and touch double-tap require touch input or mobile gesture emulation.
+- Browser capabilities expose viewport resizing only; no touch/pinch gesture capability is available.
+
+Result: BLOCKED. Pointer map controls were checked at mobile width, but touch gesture coverage cannot be completed with the available tooling.

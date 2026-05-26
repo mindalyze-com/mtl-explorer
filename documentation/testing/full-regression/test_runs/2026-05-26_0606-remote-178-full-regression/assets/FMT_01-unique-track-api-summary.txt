@@ -1,0 +1,6 @@
+100014	FMT_KML_unique.kml	COMPLETED_WITH_SUCCESS	Completed successfully	Path	180	31.88941
+100013	FMT_TCX_unique.tcx	COMPLETED_WITH_SUCCESS	Completed successfully	FMT TCX sample	180	35.93504
+100016	FMT_GEOJSON_unique.geojson	COMPLETED_WITH_SUCCESS	Completed successfully		0	null
+100018	FMT_NMEA_unique.nmea	COMPLETED_WITH_SUCCESS	Completed successfully		180	35.73389
+100017	FMT_GDB_unique.gdb	COMPLETED_WITH_SUCCESS	Completed successfully	FMT GDB sample	180	35.93508
+100015	FMT_IGC_unique.igc	COMPLETED_WITH_SUCCESS	Completed successfully	GNSSALTTRK	180	35.93364

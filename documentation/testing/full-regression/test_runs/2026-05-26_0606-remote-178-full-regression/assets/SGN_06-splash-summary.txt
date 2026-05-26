@@ -1,0 +1,3 @@
+splash_text=© Patrick Heusser AGPL-3.0 Sign In LOADING YOUR TRAILS
+ready_after_ms=2577
+ready_text=500 km 10 Tracks Stats Filter Map Animate Segments GPS Planner Admin

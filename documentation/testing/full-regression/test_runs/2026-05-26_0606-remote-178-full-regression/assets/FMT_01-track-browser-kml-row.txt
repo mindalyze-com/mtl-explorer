@@ -1,0 +1,103 @@
+- region "Map"
+- region "Map"
+- button "Zoom in"
+- button "Zoom out"
+- button "Drag to rotate map, click to reset north"
+- button "Toggle globe mode":
+  - generic: 
+- generic: 500 km
+- generic: 10 Tracks
+- generic: 
+- generic: New data available
+- generic: Tracks, media, or settings changed since this view loaded.
+- button " Reload":
+  - generic: 
+  - generic: Reload
+- button "Dismiss"
+- button " Stats":
+  - generic: 
+  - generic: Stats
+- button " Filter":
+  - generic: 
+  - generic: Filter
+- button " Map":
+  - generic: 
+  - generic: Map
+- button " Animate":
+  - generic: 
+  - generic: Animate
+- button " Segments":
+  - generic: 
+  - generic: Segments
+- button " GPS":
+  - generic: 
+  - generic: GPS
+- button " Planner":
+  - generic: 
+  - generic: Planner
+- button " Admin":
+  - generic: 
+  - generic: Admin
+- button "About MTL Explorer"
+- generic: 
+- button "Overview"
+- button "Trends"
+- button "Tracks"
+- button "Fullscreen":
+  - generic: 
+- button "Close":
+  - generic: 
+- text:                                                            
+- tabpanel:
+  - generic: 
+  - textbox "Search name, activity, date, file, creator…" [active]: Path
+  - strong: "0"
+  - text: of 10 tracks
+  - generic: ·
+  - generic: 0.00 m
+  - generic: ·
+  - generic: 0m 00s
+  - generic: 
+  - text: "Sort:"
+  - button "Date ":
+    - text: Date
+    - generic: 
+  - button "Imported"
+  - button "Distance"
+  - button "Duration"
+  - button "Name"
+  - button "Exploration"
+  - table:
+    - rowgroup:
+      - row "Start Track Activity Distance Duration Avg km/h Energy About energy Exploration Imported":
+        - columnheader
+        - columnheader "Start":
+          - generic: Start
+        - columnheader "Track":
+          - generic: Track
+        - columnheader "Activity":
+          - generic: Activity
+        - columnheader "Distance":
+          - generic: Distance
+        - columnheader "Duration":
+          - generic: Duration
+        - columnheader "Avg km/h":
+          - generic: Avg km/h
+        - columnheader "Energy About energy":
+          - generic: Energy
+          - button "About energy":
+            - generic: 
+        - columnheader "Exploration":
+          - generic: Exploration
+        - columnheader "Imported":
+          - generic: Imported
+    - rowgroup:
+      - row "No tracks match “Path”":
+        - cell "No tracks match “Path”"
+  - navigation:
+    - button "First Page" [disabled]:
+    - button "Previous Page" [disabled]:
+    - button "Next Page" [disabled]:
+    - button "Last Page" [disabled]:
+    - combobox "Rows per page" [disabled]: "25"
+- text:                         

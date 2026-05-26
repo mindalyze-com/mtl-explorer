@@ -1,0 +1,18 @@
+Action:
+- Opened Admin -> Jobs.
+- Clicked Rescan Media.
+
+Visible running/badge state:
+- Admin workspace Jobs tile showed `PROCESSING`.
+- Jobs panel showed `Manual MEDIA rescan has been queued.`
+- File Indexers section remained visible.
+- Current status after the quick scan settled:
+  - MEDIA DONE 100%, 5 / 5 total.
+  - GPS DONE 81%, 18 completed, 2 failed, 22 total.
+- Background jobs remained DONE 100%.
+
+Map interaction check:
+- Initial attempted Zoom out was disabled at current low zoom.
+- Zoom in remained enabled and changed scale from 1000 km to 500 km while the Jobs/processing state was visible.
+
+Conclusion: indexer activity surfaced as a visible processing badge/state and did not block map interaction.

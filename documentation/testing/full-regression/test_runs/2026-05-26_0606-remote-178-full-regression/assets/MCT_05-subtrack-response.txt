@@ -1,0 +1,17 @@
+Sub-track extraction check
+Endpoint: /mtl/api/tracks/details/get-sub-track?trackDataPointFrom=676448&trackDataPointTo=676536
+Source crossing: exact API A/B zones near JuraRoute72011 with 500 m radius; NMEA track #100012 last A->B crossing.
+
+Returned slice:
+- count: 89 points
+- first id/index: 676448 / 8
+- last id/index: 676536 / 96
+- gpsTrackDataId unique count: 1 (200091)
+- index range: 8..96
+- first lon/lat: 7.5850230586, 47.5500787306
+- last lon/lat: 7.4513857107, 47.4564288488
+- distance delta: 18101.42 m
+- duration delta: 4017 s
+- null metric tolerance: speed moving-window null for 63/89 points, but altitude and energy were present.
+
+Verdict: PASS - the endpoint returned an ordered in-track slice between the requested point IDs and tolerated missing per-point speed data without failing.

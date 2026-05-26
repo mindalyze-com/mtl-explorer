@@ -1,0 +1,6 @@
+Admin dialog state:
+- Admin workspace opened from the main navigation.
+- Tab/action groups visible: Data, System, Session.
+- Reachable entries included Upload, Jobs, Freshness, Garmin Sync, Log, Helpers, About, Settings, Session, Attribution.
+- Clicked `Open Upload`; Upload section opened in-place.
+- Upload panel text included: `Click or drag a .gpx file here` and `Files are saved to GPX-UPLOAD inside the GPX folder and automatically indexed.`

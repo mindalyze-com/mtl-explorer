@@ -1,0 +1,11 @@
+Close/reopen sequence:
+1. Started with Helpers panel open after the ADM_10 gcexport install action output.
+2. Clicked the Admin navigation tool to close the Admin workspace.
+   - Main `Admin workspace` text disappeared.
+   - The active Helpers child panel/output remained visible.
+3. Clicked Admin again to reopen.
+   - `Admin workspace` returned.
+   - Helpers panel remained open.
+   - Command output still included `[TOOL-INSTALL] ... gcexport active version updated to v4.6.2 in DB.`
+
+Conclusion: closing and reopening Admin did not lose the in-progress/recent Helpers panel state or command output.

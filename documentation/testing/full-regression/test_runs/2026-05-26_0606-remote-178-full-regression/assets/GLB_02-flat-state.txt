@@ -1,0 +1,7 @@
+Action: clicked Zoom in repeatedly after GLB_01 active globe state.
+Final scale indicator: 5 km
+DOM evidence after zoom-in:
+- `.mtl-globe-ctrl` display: none
+- `.mtl-globe-btn` class: `mtl-globe-btn`
+- active class present: false
+Visible map state: flat zoomed-in map remained rendered with 10 / 10 tracks.

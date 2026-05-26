@@ -1,0 +1,8 @@
+FORMAT_COPY=2026-05-26T04:31:20+00:00
+-rw-r--r-- 1 root root   34110 May 26 04:31 data/gpx/JuraRoute72011.gdb
+-rw-r--r-- 1 root root  204849 May 26 04:31 data/gpx/JuraRoute72011.geojson
+-rw-r--r-- 1 root root   52460 May 26 04:31 data/gpx/JuraRoute72011.igc
+-rw-r--r-- 1 root root 1234311 May 26 04:31 data/gpx/JuraRoute72011.kml
+-rw-r--r-- 1 root root   86890 May 26 04:31 data/gpx/JuraRoute72011.kmz
+-rw-r--r-- 1 root root  192944 May 26 04:31 data/gpx/JuraRoute72011.nmea
+-rw-r--r-- 1 root root  675542 May 26 04:31 data/gpx/JuraRoute72011.tcx

@@ -1,0 +1,2 @@
+GET /mtl/api/auth/demo-status
+{"demoMode":false,"username":"","password":""}

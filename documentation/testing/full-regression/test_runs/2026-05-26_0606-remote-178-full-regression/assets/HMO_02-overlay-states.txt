@@ -1,0 +1,30 @@
+Overlay toggle and opacity evidence for HMO_02.
+
+Worldwide overlays at Lannion:
+- Off baseline states:
+  - Hiking (worldwide): off
+  - Cycling (worldwide): off
+  - MTB (worldwide): off
+- Enabled independently:
+  - Hiking (worldwide): on, opacity set near 45%
+  - Cycling (worldwide): on, opacity set near 60%
+  - MTB (worldwide): on, opacity set near 75%
+- Result: Waymarked Trails route overlays appeared; existing GPS track line remained visible above/alongside overlay routes.
+
+Swiss overlays at Delémont:
+- Off baseline states:
+  - Hiking Routes: off
+  - Bike Routes: off
+  - MTB Routes: off
+  - Hiking Trails: off
+- Enabled independently:
+  - Hiking Routes: on, opacity set near 55%
+  - Bike Routes: on, opacity set near 70%
+  - MTB Routes: on
+  - Hiking Trails: on
+- Result: SchweizMobil/swisstopo overlays appeared in the Swiss viewport; visible GPS track geometry remained present while overlays rendered around it.
+
+State left:
+- Worldwide overlays off.
+- Swiss Hiking Routes, Bike Routes, MTB Routes, and Hiking Trails on.
+- Heatmap off.

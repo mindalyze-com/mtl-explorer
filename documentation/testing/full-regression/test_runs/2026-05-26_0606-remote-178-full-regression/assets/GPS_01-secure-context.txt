@@ -1,0 +1,9 @@
+Target URL: http://178.105.173.254:18080/mtl/
+Origin: http://178.105.173.254:18080
+Protocol: http:
+Host: 178.105.173.254:18080
+Localhost-equivalent: false
+Browser geolocation exposed in page context: false
+Visible app state after opening GPS: map remained usable with 10 / 10 tracks; a transient "GPS started" info toast appeared, but no browser permission prompt or live-location marker could be verified on the remote plain-HTTP origin.
+
+Coverage conclusion: GPS_01 confirms this quick-install run is on a remote plain-HTTP host, so live GPS permission and marker checks must be terminal NOT APPLICABLE per the frontend regression plan.

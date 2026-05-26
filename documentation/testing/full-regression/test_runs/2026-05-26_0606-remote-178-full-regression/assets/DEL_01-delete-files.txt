@@ -1,0 +1,6 @@
+DELETE_START=2026-05-26T04:23:37+00:00
+DELETED=data/gpx/Vitry-le-Francois_Langres.gpx data/gpx/VoieVerteHauteVosges.gpx
+Remaining GPX files:
+data/gpx/JuraRoute72011.gpx
+data/gpx/Lannion_Plestin_parcours24.4RE.gpx
+data/gpx/MoselradwegAusWiki.gpx

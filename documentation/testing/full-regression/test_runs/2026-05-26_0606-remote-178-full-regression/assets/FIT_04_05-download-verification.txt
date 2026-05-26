@@ -1,0 +1,14 @@
+{
+  "url": "http://178.105.173.254:18080/mtl/",
+  "trackId": 100005,
+  "sourceEndpoint": "/mtl/api/tracks/100005/source-file",
+  "gpxEndpoint": "/mtl/api/tracks/100005/gpx",
+  "visibleControlsEvidence": "assets/FIT_04_05-download-controls.webp",
+  "originalBytes": 94096,
+  "originalSha256": "949a238e1bb75c3684479785f76fa9a16888bb394518844248f488171d591387",
+  "originalMatchesUploaded": true,
+  "gpxBytes": 479844,
+  "gpxSha256": "8eaa4af6d85e92d4d471eb673d242748b32353f9055addddaefa525325fbc88d",
+  "gpxTrkptCount": 3601,
+  "gpxStartsWith": "<?xml version=\"1.0\" encoding=\"UTF-8\"?> <gpx version=\"1.1\" creator=\"GPSBabel - https://www.gpsbabel.org\" xmlns=\"http://www.topografix.com/GPX"
+}

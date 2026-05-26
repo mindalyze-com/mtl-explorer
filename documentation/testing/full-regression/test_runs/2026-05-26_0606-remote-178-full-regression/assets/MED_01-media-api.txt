@@ -1,0 +1,16 @@
+Media setup and viewport API check for MED_01.
+
+Target app: http://178.105.173.254:18080/mtl/
+Indexed sample media:
+- 400001 MED_JPEG_02_DSCN0010_COPY.jpg at lat 43.46745, lng 11.88513
+- 400002 MED_JPEG_01_DSCN0010.jpg at lat 43.46745, lng 11.88513
+
+Bounds request used while centered around Arezzo:
+GET /api/media/get-media-in-bounds?minLat=43.45&minLng=11.85&maxLat=43.49&maxLng=11.92
+
+Response:
+[{"id":400001,"lat":43.46745,"lng":11.88513},{"id":400002,"lat":43.46745,"lng":11.88513}]
+
+UI result:
+- Photos & Media layer toggled off: media marker disappeared.
+- Photos & Media layer toggled on: red cluster marker "2" appeared over the Arezzo media coordinate.

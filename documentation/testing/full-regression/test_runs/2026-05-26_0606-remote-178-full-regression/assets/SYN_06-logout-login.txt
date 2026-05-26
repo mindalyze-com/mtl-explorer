@@ -1,0 +1,18 @@
+Setup:
+- Applied outstanding freshness reload from the map surface after closing Stats.
+- Cache refreshed to 12 / 12 Tracks; legend BICYCLE 11, WALKING 1; banner cleared.
+
+Logout/login sequence:
+- Opened Admin -> Session.
+- Used the safe `Logout` action, not `Wipe & Logout`.
+- Reached `/mtl/login`.
+- Signed in with README credentials.
+
+After login:
+- URL returned to `/mtl/`.
+- Initial app text included `LOADING YOUR TRAILS`, then settled to map.
+- Map showed 12 / 12 Tracks.
+- Freshness banner after login: false.
+- Freshness banner after an additional 10 second wait: false.
+
+Conclusion: logout and login did not trigger an automatic refresh loop or repeated freshness banner.

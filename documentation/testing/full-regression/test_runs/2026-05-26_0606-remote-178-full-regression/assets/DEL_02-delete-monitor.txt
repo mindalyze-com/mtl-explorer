@@ -1,0 +1,4 @@
+POLL=1 DELETE_HINTS=2
+app-1  | 2026-05-26T04:23:45.388Z  INFO 1 --- [idx-4] GPXStoreService              : Did delete gpsTrack and it's track data for given id=100004 file=/VoieVerteHauteVosges.gpx
+app-1  | 2026-05-26T04:23:45.436Z  INFO 1 --- [idx-2] GPXStoreService              : Did delete gpsTrack and it's track data for given id=100000 file=/Vitry-le-Francois_Langres.gpx
+DELETE_MONITOR_SECONDS=0

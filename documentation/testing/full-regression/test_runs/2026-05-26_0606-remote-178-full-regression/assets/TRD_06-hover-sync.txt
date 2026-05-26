@@ -1,0 +1,75 @@
+chart_hover_excerpt=- tabpanel "Graphs":
+  - generic: X Axis
+  - button " Time":
+    - generic: 
+    - text: Time
+  - button " Distance":
+    - generic: 
+    - text: Distance
+  - generic: Detail
+  - button " Range":
+    - generic: 
+    - text: Range
+  - text: Points
+  - generic: "375"
+  - button "Load fewer chart points":
+    - generic: 
+  - slider "Adjust chart point count"
+  - button "Load more chart points":
+    - generic: 
+  - generic: Height
+  - button "Make graphs smaller":
+    - generic: 
+  - slider "Adjust graph height"
+  - button "Make graphs bigger" [active]:
+    - generic: 
+  - generic: 
+  - text: Speed
+  - generic: 
+  - text: Elevation
+  - generic: 
+  - text: Elevation Gain Rate
+  - generic: 
+  - text: Cumulative Mechanical Energy
+  - generic: 
+  - text: Estimated Power
+- text:                
+- generic: 
+map_hover_excerpt=- tabpanel "Graphs":
+  - generic: X Axis
+  - button " Time":
+    - generic: 
+    - text: Time
+  - button " Distance":
+    - generic: 
+    - text: Distance
+  - generic: Detail
+  - button " Range":
+    - generic: 
+    - text: Range
+  - text: Points
+  - generic: "375"
+  - button "Load fewer chart points":
+    - generic: 
+  - slider "Adjust chart point count"
+  - button "Load more chart points":
+    - generic: 
+  - generic: Height
+  - button "Make graphs smaller":
+    - generic: 
+  - slider "Adjust graph height"
+  - button "Make graphs bigger" [active]:
+    - generic: 
+  - generic: 
+  - text: Speed
+  - generic: 
+  - text: Elevation
+  - generic: 
+  - text: Elevation Gain Rate
+  - generic: 
+  - text: Cumulative Mechanical Energy
+  - generic: 
+  - text: Estimated Power
+- text:                
+- generic: 
+visual_evidence=chart hover, map hover, and cleared screenshots captured

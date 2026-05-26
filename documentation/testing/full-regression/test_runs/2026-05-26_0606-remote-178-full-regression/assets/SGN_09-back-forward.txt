@@ -1,0 +1,15 @@
+states:
+map-ready: url=http://178.105.173.254:18080/mtl/ text=500 km 10 Tracks Stats Filter Map Animate Segments GPS Planner Admin
+after-stats: url=http://178.105.173.254:18080/mtl/ text=500 km 10 Tracks Stats Filter Map Animate Segments GPS Planner Admin Overview Trends Tracks 10 TRACKS 1,262 km DISTANCE 1d 03h DURATION 7,052 Wh ENERGY ACTIVITY BREAKDOWN Tracks Distance Duration Energy Bicycle 9 9 Walki
+after-admin: url=http://178.105.173.254:18080/mtl/ text=500 km 10 Tracks Stats Filter Map Animate Segments GPS Planner Admin Admin SYSTEM UTILITY Admin workspace Manage imports, runtime tools, diagnostics, and local preferences without leaving the map. Quiet state Data Import
+after-back: url=http://178.105.173.254:18080/mtl/ text=500 km 10 Tracks Stats Filter Map Animate Segments GPS Planner Admin Admin SYSTEM UTILITY Admin workspace Manage imports, runtime tools, diagnostics, and local preferences without leaving the map. Quiet state Data Import
+after-forward: url=http://178.105.173.254:18080/mtl/ text=500 km 10 Tracks Stats Filter Map Animate Segments GPS Planner Admin Admin SYSTEM UTILITY Admin workspace Manage imports, runtime tools, diagnostics, and local preferences without leaving the map. Quiet state Data Import
+console_errors=2
+Failed to load resource: the server responded with a status of 401 ()
+Failed to load resource: the server responded with a status of 401 ()
+failed_requests=5
+HEAD http://178.105.173.254:18080/mtl/api/info/build net::ERR_ABORTED
+HEAD https://protomaps.github.io/basemaps-assets/fonts/Noto%20Sans%20Regular/0-255.pbf net::ERR_ABORTED
+HEAD https://tiles.mapterhorn.com/0/0/0.webp net::ERR_ABORTED
+HEAD https://tile.openstreetmap.org/0/0/0.png net::ERR_ABORTED
+HEAD https://protomaps.github.io/basemaps-assets/sprites/v4/light.json net::ERR_ABORTED

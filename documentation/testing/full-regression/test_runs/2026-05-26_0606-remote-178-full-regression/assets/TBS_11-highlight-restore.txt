@@ -1,0 +1,4 @@
+Temporary highlight exclusion created during TBS_11 was restored after evidence capture.
+Endpoint: PATCH /mtl/api/tracks/100002/statistics-exclusion
+Payload: {"highlightExclusionReason":null,"statisticsExclusionReason":null}
+Result: HTTP 200; subsequent reload showed Moselradweg restored as the Longest track highlight and no excluded-count badge.

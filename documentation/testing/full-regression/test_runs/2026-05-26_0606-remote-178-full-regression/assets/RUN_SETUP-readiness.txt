@@ -1,0 +1,10 @@
+LOCAL_HTTP_CODE=200
+APP_READINESS_SECONDS=5
+TITLE=MTL Explorer
+DATA_DIRS=data data/brouter-segments data/gpx data/gpx/GPX-UPLOAD data/logs data/media data/postgis data/postgis/base data/postgis/global data/postgis/pg_commit_ts data/postgis/pg_dynshmem data/postgis/pg_logical data/postgis/pg_multixact data/postgis/pg_notify data/postgis/pg_replslot data/postgis/pg_serial data/postgis/pg_snapshots data/postgis/pg_stat data/postgis/pg_stat_tmp data/postgis/pg_subtrans data/postgis/pg_tblspc data/postgis/pg_twophase data/postgis/pg_wal data/postgis/pg_xact 
+REMOTE_HTTP_CODE=200
+NAME                             IMAGE                                          COMMAND                  SERVICE           CREATED          STATUS                    PORTS
+mtl-explorer-app-1               wauwau0977/mytraillog:latest                   "/my-entrypoint.sh j…"   app               41 seconds ago   Up 29 seconds             0.0.0.0:18080->8080/tcp, [::]:18080->8080/tcp
+mtl-explorer-brouter-1           wauwau0977/mytraillog-brouter:latest           "/opt/brouter-orches…"   brouter           41 seconds ago   Up 40 seconds             17777-17778/tcp
+mtl-explorer-db-1                postgis/postgis:18-3.6                         "docker-entrypoint.s…"   db                41 seconds ago   Up 40 seconds (healthy)   5432/tcp
+mtl-explorer-location-search-1   wauwau0977/mytraillog-location-search:latest   "python /app/locatio…"   location-search   41 seconds ago   Up 40 seconds (healthy)   0.0.0.0:18083->8083/tcp, [::]:18083->8083/tcp

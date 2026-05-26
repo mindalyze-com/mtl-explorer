@@ -1,0 +1,30 @@
+APP_08 layer opacity and reset evidence
+
+Target: http://178.105.173.254:18080/mtl/
+Browser state before test: signed in, UI theme dark.
+
+Initial state with OSM Dark selected:
+- Base Map enabled, slider handle 100%.
+- GPS Tracks enabled, slider handle 100%.
+- Photos & Media disabled.
+- Track Points & Direction enabled, slider handle 100%.
+- Heatmap enabled, slider handle 100.
+
+Base map opacity:
+- Changed Base Map slider to 45%.
+- Leaflet base container style became: filter: grayscale(0.55) brightness(1.22); opacity: 0.45;
+- Hard reload preserved active OSM Dark style and Base Map handle 45%.
+- Base container style after reload still included opacity: 0.45.
+
+Reset after base map opacity change:
+- Reset restored active/default OSM Topo.
+- Base Map returned to 100%.
+- GPS Tracks returned to 100%.
+- Heatmap returned to disabled.
+
+GPS track opacity:
+- Changed GPS Tracks slider to 50% after reset.
+- Hard reload preserved GPS Tracks at 50%.
+- Final reset restored GPS Tracks to 100%, Base Map to 100%, and active/default OSM Topo.
+
+Result: PASS. Layer opacity sliders, basemap dimming, persistence, and reset-to-defaults behaved as expected for the tested layers.

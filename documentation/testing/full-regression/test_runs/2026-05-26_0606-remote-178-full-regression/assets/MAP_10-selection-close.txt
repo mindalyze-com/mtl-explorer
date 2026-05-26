@@ -1,0 +1,4 @@
+click_point=1198,505
+close_button_count=0
+opened_excerpt=500 km 10 Tracks Stats Filter Map Animate Segments GPS Planner Admin
+closed_excerpt=500 km 10 Tracks Stats Filter Map Animate Segments GPS Planner Admin

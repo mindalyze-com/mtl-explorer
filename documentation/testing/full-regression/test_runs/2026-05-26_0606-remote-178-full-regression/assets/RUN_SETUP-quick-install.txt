@@ -1,0 +1,8 @@
+RUN_PARENT=/root/mtl-full-regression-2026-05-26_0606
+COMPOSE_DIR=/root/mtl-full-regression-2026-05-26_0606/mtl-explorer
+QUICK_INSTALL_SECONDS=13
+NAME                             IMAGE                                          COMMAND                  SERVICE           CREATED          STATUS                    PORTS
+mtl-explorer-app-1               wauwau0977/mytraillog:latest                   "/my-entrypoint.sh j…"   app               11 seconds ago   Up Less than a second     0.0.0.0:18080->8080/tcp, [::]:18080->8080/tcp
+mtl-explorer-brouter-1           wauwau0977/mytraillog-brouter:latest           "/opt/brouter-orches…"   brouter           11 seconds ago   Up 10 seconds             17777-17778/tcp
+mtl-explorer-db-1                postgis/postgis:18-3.6                         "docker-entrypoint.s…"   db                11 seconds ago   Up 10 seconds (healthy)   5432/tcp
+mtl-explorer-location-search-1   wauwau0977/mytraillog-location-search:latest   "python /app/locatio…"   location-search   11 seconds ago   Up 10 seconds (healthy)   0.0.0.0:18083->8083/tcp, [::]:18083->8083/tcp

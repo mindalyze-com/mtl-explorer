@@ -1,0 +1,17 @@
+Viewport loading evidence for MED_02.
+
+All indexed regression media:
+[{"id":400000,"name":"MED_HEIC_01_IMG_5195.HEIC","lat":-94.28877222,"lng":39.05134444},{"id":400001,"name":"MED_JPEG_02_DSCN0010_COPY.jpg","lat":11.88512667,"lng":43.46744833},{"id":400002,"name":"MED_JPEG_01_DSCN0010.jpg","lat":11.88512667,"lng":43.46744833}]
+
+Arezzo media bounds:
+GET /api/media/get-media-in-bounds?minLat=43.45&minLng=11.85&maxLat=43.49&maxLng=11.92
+[{"id":400001,"lat":43.46745,"lng":11.88513},{"id":400002,"lat":43.46745,"lng":11.88513}]
+
+Nearby west-Arezzo bounds after pan/zoom:
+GET /api/media/get-media-in-bounds?minLat=43.45&minLng=11.80&maxLat=43.50&maxLng=11.86
+[]
+
+UI result:
+- Arezzo viewport showed media cluster "2".
+- After pan and zoom to the west-Arezzo area, the media cluster disappeared.
+- Returning to Arezzo showed the media cluster "2" again.

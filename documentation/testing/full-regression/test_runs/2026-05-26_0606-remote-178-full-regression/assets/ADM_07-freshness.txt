@@ -1,0 +1,16 @@
+Freshness banner:
+- Message: New data available
+- Detail: Tracks, media, or settings changed since this view loaded.
+- Actions visible: Reload, Dismiss
+
+Admin Freshness panel:
+- Current status: Out of sync
+- Detail: The server has changes that this client has not applied yet.
+- Checked: 10:16:48
+- Server token: index=108, media=5, track_geometry=153, tracks=126
+- Client token: index=84, media=4, track_geometry=144, tracks=120
+- Latest change: 26/05/2026, 10:13:38
+- Domains: 6
+- Revision sum: 484
+- Outdated domains shown: Index, Tracks, Geometry, Media
+- Polling status: Polling healthy

@@ -1,0 +1,966 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="GPSBabel - https://www.gpsbabel.org" xmlns="http://www.topografix.com/GPX/1/1">
+  <metadata>
+    <time>2026-05-26T04:35:26.538Z</time>
+    <bounds minlat="47.439798333" minlon="7.419748333" maxlat="47.553571667" maxlon="7.594586667"/>
+  </metadata>
+  <trk>
+    <trkseg>
+      <trkpt lat="47.546741667" lon="7.589465000">
+        <time>2010-01-01T00:00:00Z</time>
+      </trkpt>
+      <trkpt lat="47.546741667" lon="7.589465000">
+        <ele>276.000</ele>
+        <time>2010-01-01T00:00:59Z</time>
+        <geoidheight>0.0</geoidheight>
+        <fix>3d</fix>
+        <sat>8</sat>
+        <hdop>1.000000</hdop>
+      </trkpt>
+      <trkpt lat="47.548828333" lon="7.591198333">
+        <ele>278.000</ele>
+        <time>2010-01-01T00:01:47Z</time>
+        <geoidheight>0.0</geoidheight>
+        <fix>3d</fix>
+        <sat>8</sat>
+        <hdop>1.000000</hdop>
+      </trkpt>
+      <trkpt lat="47.550173333" lon="7.593213333">
+        <ele>276.000</ele>
+        <time>2010-01-01T00:02:31Z</time>
+        <geoidheight>0.0</geoidheight>
+        <fix>3d</fix>
+        <sat>8</sat>
+        <hdop>1.000000</hdop>
+      </trkpt>
+      <trkpt lat="47.551691667" lon="7.594586667">
+        <ele>275.000</ele>
+        <time>2010-01-01T00:03:31Z</time>
+        <geoidheight>0.0</geoidheight>
+        <fix>3d</fix>
+        <sat>8</sat>
+        <hdop>1.000000</hdop>
+      </trkpt>
+      <trkpt lat="47.553571667" lon="7.592300000">
+        <ele>276.000</ele>
+        <time>2010-01-01T00:04:11Z</time>
+        <geoidheight>0.0</geoidheight>
+        <fix>3d</fix>
+        <sat>8</sat>
+        <hdop>1.000000</hdop>
+      </trkpt>
+      <trkpt lat="47.553166667" lon="7.590013333">
+        <ele>264.000</ele>
+        <time>2010-01-01T00:05:09Z</time>
+        <geoidheight>0.0</geoidheight>
+        <fix>3d</fix>
+        <sat>8</sat>
+        <hdop>1.000000</hdop>
+      </trkpt>
+      <trkpt lat="47.551190000" lon="7.588151667">
+        <ele>277.000</ele>
+        <time>2010-01-01T00:06:09Z</time>
+        <geoidheight>0.0</geoidheight>
+        <fix>3d</fix>
+        <sat>8</sat>
+        <hdop>1.000000</hdop>
+      </trkpt>
+      <trkpt lat="47.550078333" lon="7.585021667">
+        <ele>271.000</ele>
+        <time>2010-01-01T00:07:04Z</time>
+        <geoidheight>0.0</geoidheight>
+        <fix>3d</fix>
+        <sat>8</sat>
+        <hdop>1.000000</hdop>
+      </trkpt>
+      <trkpt lat="47.548336667" lon="7.583018333">
+        <ele>274.000</ele>
+        <time>2010-01-01T00:07:53Z</time>
+        <geoidheight>0.0</geoidheight>
+        <fix>3d</fix>
+        <sat>8</sat>
+        <hdop>1.000000</hdop>
+      </trkpt>
+      <trkpt lat="47.547076667" lon="7.580761667">
+        <ele>274.000</ele>
+        <time>2010-01-01T00:08:40Z</time>
+        <geoidheight>0.0</geoidheight>
+        <fix>3d</fix>
+        <sat>8</sat>
+        <hdop>1.000000</hdop>
+      </trkpt>
+      <trkpt lat="47.545816667" lon="7.578628333">
+        <ele>271.000</ele>
+        <time>2010-01-01T00:09:29Z</time>
+        <geoidheight>0.0</geoidheight>
+        <fix>3d</fix>
+        <sat>8</sat>
+        <hdop>1.000000</hdop>
+      </trkpt>
+      <trkpt lat="47.543881667" lon="7.578116667">
+        <ele>279.000</ele>
+        <time>2010-01-01T00:10:22Z</time>
+        <geoidheight>0.0</geoidheight>
+        <fix>3d</fix>
+        <sat>8</sat>
+        <hdop>1.000000</hdop>
+      </trkpt>
+      <trkpt lat="47.541865000" lon="7.577126667">
+        <ele>284.000</ele>
+        <time>2010-01-01T00:11:07Z</time>
+        <geoidheight>0.0</geoidheight>
+        <fix>3d</fix>
+        <sat>8</sat>
+        <hdop>1.000000</hdop>
+      </trkpt>
+      <trkpt lat="47.540241667" lon="7.576000000">
+        <ele>281.000</ele>
+        <time>2010-01-01T00:11:54Z</time>
+        <geoidheight>0.0</geoidheight>
+        <fix>3d</fix>
+        <sat>8</sat>
+        <hdop>1.000000</hdop>
+      </trkpt>
+      <trkpt lat="47.538401667" lon="7.575218333">
+        <ele>281.000</ele>
+        <time>2010-01-01T00:12:44Z</time>
+        <geoidheight>0.0</geoidheight>
+        <fix>3d</fix>
+        <sat>8</sat>
+        <hdop>1.000000</hdop>
+      </trkpt>
+      <trkpt lat="47.536408333" lon="7.575243333">
+        <ele>285.000</ele>
+        <time>2010-01-01T00:13:32Z</time>
+        <geoidheight>0.0</geoidheight>
+        <fix>3d</fix>
+        <sat>8</sat>
+        <hdop>1.000000</hdop>
+      </trkpt>
+      <trkpt lat="47.534576667" lon="7.574335000">
+        <ele>288.000</ele>
+        <time>2010-01-01T00:14:18Z</time>
+        <geoidheight>0.0</geoidheight>
+        <fix>3d</fix>
+        <sat>8</sat>
+        <hdop>1.000000</hdop>
+      </trkpt>
+      <trkpt lat="47.532823333" lon="7.573403333">
+        <ele>290.000</ele>
+        <time>2010-01-01T00:15:06Z</time>
+        <geoidheight>0.0</geoidheight>
+        <fix>3d</fix>
+        <sat>8</sat>
+        <hdop>1.000000</hdop>
+      </trkpt>
+      <trkpt lat="47.530918333" lon="7.573196667">
+        <ele>289.000</ele>
+        <time>2010-01-01T00:15:57Z</time>
+        <geoidheight>0.0</geoidheight>
+        <fix>3d</fix>
+        <sat>8</sat>
+        <hdop>1.000000</hdop>
+      </trkpt>
+      <trkpt lat="47.528850000" lon="7.573291667">
+        <ele>292.000</ele>
+        <time>2010-01-01T00:16:44Z</time>
+        <geoidheight>0.0</geoidheight>
+        <fix>3d</fix>
+        <sat>8</sat>
+        <hdop>1.000000</hdop>
+      </trkpt>
+      <trkpt lat="47.526985000" lon="7.573225000">
+        <ele>291.000</ele>
+        <time>2010-01-01T00:17:30Z</time>
+        <geoidheight>0.0</geoidheight>
+        <fix>3d</fix>
+        <sat>8</sat>
+        <hdop>1.000000</hdop>
+      </trkpt>
+      <trkpt lat="47.525235000" lon="7.572220000">
+        <ele>293.000</ele>
+        <time>2010-01-01T00:18:17Z</time>
+        <geoidheight>0.0</geoidheight>
+        <fix>3d</fix>
+        <sat>8</sat>
+        <hdop>1.000000</hdop>
+      </trkpt>
+      <trkpt lat="47.523556667" lon="7.571061667">
+        <ele>292.000</ele>
+        <time>2010-01-01T00:19:05Z</time>
+        <geoidheight>0.0</geoidheight>
+        <fix>3d</fix>
+        <sat>8</sat>
+        <hdop>1.000000</hdop>
+      </trkpt>
+      <trkpt lat="47.522180000" lon="7.568998333">
+        <ele>292.000</ele>
+        <time>2010-01-01T00:19:56Z</time>
+        <geoidheight>0.0</geoidheight>
+        <fix>3d</fix>
+        <sat>8</sat>
+        <hdop>1.000000</hdop>
+      </trkpt>
+      <trkpt lat="47.520753333" lon="7.566873333">
+        <ele>297.000</ele>
+        <time>2010-01-01T00:20:42Z</time>
+        <geoidheight>0.0</geoidheight>
+        <fix>3d</fix>
+        <sat>8</sat>
+        <hdop>1.000000</hdop>
+      </trkpt>
+      <trkpt lat="47.519533333" lon="7.564798333">
+        <ele>292.000</ele>
+        <time>2010-01-01T00:21:27Z</time>
+        <geoidheight>0.0</geoidheight>
+        <fix>3d</fix>
+        <sat>8</sat>
+        <hdop>1.000000</hdop>
+      </trkpt>
+      <trkpt lat="47.518606667" lon="7.562500000">
+        <ele>295.000</ele>
+        <time>2010-01-01T00:22:16Z</time>
+        <geoidheight>0.0</geoidheight>
+        <fix>3d</fix>
+        <sat>8</sat>
+        <hdop>1.000000</hdop>
+      </trkpt>
+      <trkpt lat="47.516953333" lon="7.560921667">
+        <ele>296.000</ele>
+        <time>2010-01-01T00:23:02Z</time>
+        <geoidheight>0.0</geoidheight>
+        <fix>3d</fix>
+        <sat>8</sat>
+        <hdop>1.000000</hdop>
+      </trkpt>
+      <trkpt lat="47.515288333" lon="7.559736667">
+        <ele>295.000</ele>
+        <time>2010-01-01T00:23:47Z</time>
+        <geoidheight>0.0</geoidheight>
+        <fix>3d</fix>
+        <sat>8</sat>
+        <hdop>1.000000</hdop>
+      </trkpt>
+      <trkpt lat="47.513943333" lon="7.557926667">
+        <ele>297.000</ele>
+        <time>2010-01-01T00:24:33Z</time>
+        <geoidheight>0.0</geoidheight>
+        <fix>3d</fix>
+        <sat>8</sat>
+        <hdop>1.000000</hdop>
+      </trkpt>
+      <trkpt lat="47.512306667" lon="7.556670000">
+        <ele>296.000</ele>
+        <time>2010-01-01T00:25:22Z</time>
+        <geoidheight>0.0</geoidheight>
+        <fix>3d</fix>
+        <sat>8</sat>
+        <hdop>1.000000</hdop>
+      </trkpt>
+      <trkpt lat="47.510343333" lon="7.556381667">
+        <ele>297.000</ele>
+        <time>2010-01-01T00:26:05Z</time>
+        <geoidheight>0.0</geoidheight>
+        <fix>3d</fix>
+        <sat>8</sat>
+        <hdop>1.000000</hdop>
+      </trkpt>
+      <trkpt lat="47.508641667" lon="7.555906667">
+        <ele>297.000</ele>
+        <time>2010-01-01T00:26:53Z</time>
+        <geoidheight>0.0</geoidheight>
+        <fix>3d</fix>
+        <sat>8</sat>
+        <hdop>1.000000</hdop>
+      </trkpt>
+      <trkpt lat="47.506753333" lon="7.555340000">
+        <ele>297.000</ele>
+        <time>2010-01-01T00:27:39Z</time>
+        <geoidheight>0.0</geoidheight>
+        <fix>3d</fix>
+        <sat>8</sat>
+        <hdop>1.000000</hdop>
+      </trkpt>
+      <trkpt lat="47.504896667" lon="7.555115000">
+        <ele>299.000</ele>
+        <time>2010-01-01T00:28:26Z</time>
+        <geoidheight>0.0</geoidheight>
+        <fix>3d</fix>
+        <sat>8</sat>
+        <hdop>1.000000</hdop>
+      </trkpt>
+      <trkpt lat="47.503076667" lon="7.555736667">
+        <ele>303.000</ele>
+        <time>2010-01-01T00:29:11Z</time>
+        <geoidheight>0.0</geoidheight>
+        <fix>3d</fix>
+        <sat>8</sat>
+        <hdop>1.000000</hdop>
+      </trkpt>
+      <trkpt lat="47.501370000" lon="7.556666667">
+        <ele>302.000</ele>
+        <time>2010-01-01T00:29:54Z</time>
+        <geoidheight>0.0</geoidheight>
+        <fix>3d</fix>
+        <sat>8</sat>
+        <hdop>1.000000</hdop>
+      </trkpt>
+      <trkpt lat="47.499681667" lon="7.557281667">
+        <ele>306.000</ele>
+        <time>2010-01-01T00:30:44Z</time>
+        <geoidheight>0.0</geoidheight>
+        <fix>3d</fix>
+        <sat>8</sat>
+        <hdop>1.000000</hdop>
+      </trkpt>
+      <trkpt lat="47.497786667" lon="7.556301667">
+        <ele>306.000</ele>
+        <time>2010-01-01T00:31:32Z</time>
+        <geoidheight>0.0</geoidheight>
+        <fix>3d</fix>
+        <sat>8</sat>
+        <hdop>1.000000</hdop>
+      </trkpt>
+      <trkpt lat="47.496008333" lon="7.555201667">
+        <ele>307.000</ele>
+        <time>2010-01-01T00:32:18Z</time>
+        <geoidheight>0.0</geoidheight>
+        <fix>3d</fix>
+        <sat>8</sat>
+        <hdop>1.000000</hdop>
+      </trkpt>
+      <trkpt lat="47.494306667" lon="7.554143333">
+        <ele>308.000</ele>
+        <time>2010-01-01T00:33:04Z</time>
+        <geoidheight>0.0</geoidheight>
+        <fix>3d</fix>
+        <sat>8</sat>
+        <hdop>1.000000</hdop>
+      </trkpt>
+      <trkpt lat="47.492550000" lon="7.553226667">
+        <ele>309.000</ele>
+        <time>2010-01-01T00:33:52Z</time>
+        <geoidheight>0.0</geoidheight>
+        <fix>3d</fix>
+        <sat>8</sat>
+        <hdop>1.000000</hdop>
+      </trkpt>
+      <trkpt lat="47.490733333" lon="7.552238333">
+        <ele>310.000</ele>
+        <time>2010-01-01T00:34:39Z</time>
+        <geoidheight>0.0</geoidheight>
+        <fix>3d</fix>
+        <sat>8</sat>
+        <hdop>1.000000</hdop>
+      </trkpt>
+      <trkpt lat="47.488998333" lon="7.551135000">
+        <ele>310.000</ele>
+        <time>2010-01-01T00:35:26Z</time>
+        <geoidheight>0.0</geoidheight>
+        <fix>3d</fix>
+        <sat>8</sat>
+        <hdop>1.000000</hdop>
+      </trkpt>
+      <trkpt lat="47.487258333" lon="7.550190000">
+        <ele>314.000</ele>
+        <time>2010-01-01T00:36:11Z</time>
+        <geoidheight>0.0</geoidheight>
+        <fix>3d</fix>
+        <sat>8</sat>
+        <hdop>1.000000</hdop>
+      </trkpt>
+      <trkpt lat="47.485635000" lon="7.548930000">
+        <ele>321.000</ele>
+        <time>2010-01-01T00:36:56Z</time>
+        <geoidheight>0.0</geoidheight>
+        <fix>3d</fix>
+        <sat>8</sat>
+        <hdop>1.000000</hdop>
+      </trkpt>
+      <trkpt lat="47.484068333" lon="7.547585000">
+        <ele>325.000</ele>
+        <time>2010-01-01T00:37:41Z</time>
+        <geoidheight>0.0</geoidheight>
+        <fix>3d</fix>
+        <sat>8</sat>
+        <hdop>1.000000</hdop>
+      </trkpt>
+      <trkpt lat="47.483816667" lon="7.544973333">
+        <ele>324.000</ele>
+        <time>2010-01-01T00:38:28Z</time>
+        <geoidheight>0.0</geoidheight>
+        <fix>3d</fix>
+        <sat>8</sat>
+        <hdop>1.000000</hdop>
+      </trkpt>
+      <trkpt lat="47.484241667" lon="7.542208333">
+        <ele>324.000</ele>
+        <time>2010-01-01T00:39:12Z</time>
+        <geoidheight>0.0</geoidheight>
+        <fix>3d</fix>
+        <sat>8</sat>
+        <hdop>1.000000</hdop>
+      </trkpt>
+      <trkpt lat="47.485400000" lon="7.540293333">
+        <ele>321.000</ele>
+        <time>2010-01-01T00:39:56Z</time>
+        <geoidheight>0.0</geoidheight>
+        <fix>3d</fix>
+        <sat>8</sat>
+        <hdop>1.000000</hdop>
+      </trkpt>
+      <trkpt lat="47.486041667" lon="7.537806667">
+        <ele>321.000</ele>
+        <time>2010-01-01T00:40:43Z</time>
+        <geoidheight>0.0</geoidheight>
+        <fix>3d</fix>
+        <sat>8</sat>
+        <hdop>1.000000</hdop>
+      </trkpt>
+      <trkpt lat="47.486058333" lon="7.535003333">
+        <ele>323.000</ele>
+        <time>2010-01-01T00:41:28Z</time>
+        <geoidheight>0.0</geoidheight>
+        <fix>3d</fix>
+        <sat>8</sat>
+        <hdop>1.000000</hdop>
+      </trkpt>
+      <trkpt lat="47.486341667" lon="7.532385000">
+        <ele>330.000</ele>
+        <time>2010-01-01T00:42:14Z</time>
+        <geoidheight>0.0</geoidheight>
+        <fix>3d</fix>
+        <sat>8</sat>
+        <hdop>1.000000</hdop>
+      </trkpt>
+      <trkpt lat="47.486750000" lon="7.529731667">
+        <ele>333.000</ele>
+        <time>2010-01-01T00:43:00Z</time>
+        <geoidheight>0.0</geoidheight>
+        <fix>3d</fix>
+        <sat>8</sat>
+        <hdop>1.000000</hdop>
+      </trkpt>
+      <trkpt lat="47.486868333" lon="7.526955000">
+        <ele>339.000</ele>
+        <time>2010-01-01T00:43:47Z</time>
+        <geoidheight>0.0</geoidheight>
+        <fix>3d</fix>
+        <sat>8</sat>
+        <hdop>1.000000</hdop>
+      </trkpt>
+      <trkpt lat="47.486991667" lon="7.524193333">
+        <ele>342.000</ele>
+        <time>2010-01-01T00:44:32Z</time>
+        <geoidheight>0.0</geoidheight>
+        <fix>3d</fix>
+        <sat>8</sat>
+        <hdop>1.000000</hdop>
+      </trkpt>
+      <trkpt lat="47.487513333" lon="7.521606667">
+        <ele>348.000</ele>
+        <time>2010-01-01T00:45:19Z</time>
+        <geoidheight>0.0</geoidheight>
+        <fix>3d</fix>
+        <sat>8</sat>
+        <hdop>1.000000</hdop>
+      </trkpt>
+      <trkpt lat="47.488301667" lon="7.519063333">
+        <ele>355.000</ele>
+        <time>2010-01-01T00:46:08Z</time>
+        <geoidheight>0.0</geoidheight>
+        <fix>3d</fix>
+        <sat>8</sat>
+        <hdop>1.000000</hdop>
+      </trkpt>
+      <trkpt lat="47.488970000" lon="7.516363333">
+        <ele>357.000</ele>
+        <time>2010-01-01T00:46:55Z</time>
+        <geoidheight>0.0</geoidheight>
+        <fix>3d</fix>
+        <sat>8</sat>
+        <hdop>1.000000</hdop>
+      </trkpt>
+      <trkpt lat="47.489243333" lon="7.513581667">
+        <ele>363.000</ele>
+        <time>2010-01-01T00:47:40Z</time>
+        <geoidheight>0.0</geoidheight>
+        <fix>3d</fix>
+        <sat>8</sat>
+        <hdop>1.000000</hdop>
+      </trkpt>
+      <trkpt lat="47.489088333" lon="7.510906667">
+        <ele>365.000</ele>
+        <time>2010-01-01T00:48:27Z</time>
+        <geoidheight>0.0</geoidheight>
+        <fix>3d</fix>
+        <sat>8</sat>
+        <hdop>1.000000</hdop>
+      </trkpt>
+      <trkpt lat="47.489386667" lon="7.508160000">
+        <ele>371.000</ele>
+        <time>2010-01-01T00:49:14Z</time>
+        <geoidheight>0.0</geoidheight>
+        <fix>3d</fix>
+        <sat>8</sat>
+        <hdop>1.000000</hdop>
+      </trkpt>
+      <trkpt lat="47.489391667" lon="7.505336667">
+        <ele>375.000</ele>
+        <time>2010-01-01T00:50:05Z</time>
+        <geoidheight>0.0</geoidheight>
+        <fix>3d</fix>
+        <sat>8</sat>
+        <hdop>1.000000</hdop>
+      </trkpt>
+      <trkpt lat="47.489046667" lon="7.502393333">
+        <ele>376.000</ele>
+        <time>2010-01-01T00:50:50Z</time>
+        <geoidheight>0.0</geoidheight>
+        <fix>3d</fix>
+        <sat>8</sat>
+        <hdop>1.000000</hdop>
+      </trkpt>
+      <trkpt lat="47.488991667" lon="7.499693333">
+        <ele>377.000</ele>
+        <time>2010-01-01T00:51:10Z</time>
+        <geoidheight>0.0</geoidheight>
+        <fix>3d</fix>
+        <sat>8</sat>
+        <hdop>1.000000</hdop>
+      </trkpt>
+      <trkpt lat="47.488668333" lon="7.498625000">
+        <ele>386.000</ele>
+        <time>2010-01-01T00:51:52Z</time>
+        <geoidheight>0.0</geoidheight>
+        <fix>3d</fix>
+        <sat>8</sat>
+        <hdop>1.000000</hdop>
+      </trkpt>
+      <trkpt lat="47.486983333" lon="7.498626667">
+        <ele>386.000</ele>
+        <time>2010-01-01T00:52:36Z</time>
+        <geoidheight>0.0</geoidheight>
+        <fix>3d</fix>
+        <sat>8</sat>
+        <hdop>1.000000</hdop>
+      </trkpt>
+      <trkpt lat="47.485193333" lon="7.498675000">
+        <ele>390.000</ele>
+        <time>2010-01-01T00:53:21Z</time>
+        <geoidheight>0.0</geoidheight>
+        <fix>3d</fix>
+        <sat>8</sat>
+        <hdop>1.000000</hdop>
+      </trkpt>
+      <trkpt lat="47.483411667" lon="7.498915000">
+        <ele>398.000</ele>
+        <time>2010-01-01T00:54:06Z</time>
+        <geoidheight>0.0</geoidheight>
+        <fix>3d</fix>
+        <sat>8</sat>
+        <hdop>1.000000</hdop>
+      </trkpt>
+      <trkpt lat="47.481631667" lon="7.499416667">
+        <ele>406.000</ele>
+        <time>2010-01-01T00:54:49Z</time>
+        <geoidheight>0.0</geoidheight>
+        <fix>3d</fix>
+        <sat>8</sat>
+        <hdop>1.000000</hdop>
+      </trkpt>
+      <trkpt lat="47.480006667" lon="7.498430000">
+        <ele>418.000</ele>
+        <time>2010-01-01T00:55:34Z</time>
+        <geoidheight>0.0</geoidheight>
+        <fix>3d</fix>
+        <sat>8</sat>
+        <hdop>1.000000</hdop>
+      </trkpt>
+      <trkpt lat="47.478825000" lon="7.496426667">
+        <ele>431.000</ele>
+        <time>2010-01-01T00:56:19Z</time>
+        <geoidheight>0.0</geoidheight>
+        <fix>3d</fix>
+        <sat>8</sat>
+        <hdop>1.000000</hdop>
+      </trkpt>
+      <trkpt lat="47.477245000" lon="7.495143333">
+        <ele>449.000</ele>
+        <time>2010-01-01T00:57:04Z</time>
+        <geoidheight>0.0</geoidheight>
+        <fix>3d</fix>
+        <sat>8</sat>
+        <hdop>1.000000</hdop>
+      </trkpt>
+      <trkpt lat="47.475701667" lon="7.493755000">
+        <ele>480.000</ele>
+        <time>2010-01-01T00:57:49Z</time>
+        <geoidheight>0.0</geoidheight>
+        <fix>3d</fix>
+        <sat>8</sat>
+        <hdop>1.000000</hdop>
+      </trkpt>
+      <trkpt lat="47.474340000" lon="7.491953333">
+        <ele>500.000</ele>
+        <time>2010-01-01T00:58:37Z</time>
+        <geoidheight>0.0</geoidheight>
+        <fix>3d</fix>
+        <sat>8</sat>
+        <hdop>1.000000</hdop>
+      </trkpt>
+      <trkpt lat="47.472876667" lon="7.490173333">
+        <ele>508.000</ele>
+        <time>2010-01-01T00:59:26Z</time>
+        <geoidheight>0.0</geoidheight>
+        <fix>3d</fix>
+        <sat>8</sat>
+        <hdop>1.000000</hdop>
+      </trkpt>
+      <trkpt lat="47.471056667" lon="7.488961667">
+        <ele>514.000</ele>
+        <time>2010-01-01T01:00:11Z</time>
+        <geoidheight>0.0</geoidheight>
+        <fix>3d</fix>
+        <sat>8</sat>
+        <hdop>1.000000</hdop>
+      </trkpt>
+      <trkpt lat="47.469653333" lon="7.487313333">
+        <ele>507.000</ele>
+        <time>2010-01-01T01:00:53Z</time>
+        <geoidheight>0.0</geoidheight>
+        <fix>3d</fix>
+        <sat>8</sat>
+        <hdop>1.000000</hdop>
+      </trkpt>
+      <trkpt lat="47.470973333" lon="7.485761667">
+        <ele>523.000</ele>
+        <time>2010-01-01T01:01:37Z</time>
+        <geoidheight>0.0</geoidheight>
+        <fix>3d</fix>
+        <sat>8</sat>
+        <hdop>1.000000</hdop>
+      </trkpt>
+      <trkpt lat="47.471706667" lon="7.483330000">
+        <ele>530.000</ele>
+        <time>2010-01-01T01:02:22Z</time>
+        <geoidheight>0.0</geoidheight>
+        <fix>3d</fix>
+        <sat>8</sat>
+        <hdop>1.000000</hdop>
+      </trkpt>
+      <trkpt lat="47.471886667" lon="7.480713333">
+        <ele>533.000</ele>
+        <time>2010-01-01T01:03:07Z</time>
+        <geoidheight>0.0</geoidheight>
+        <fix>3d</fix>
+        <sat>8</sat>
+        <hdop>1.000000</hdop>
+      </trkpt>
+      <trkpt lat="47.471326667" lon="7.478180000">
+        <ele>534.000</ele>
+        <time>2010-01-01T01:03:53Z</time>
+        <geoidheight>0.0</geoidheight>
+        <fix>3d</fix>
+        <sat>8</sat>
+        <hdop>1.000000</hdop>
+      </trkpt>
+      <trkpt lat="47.470488333" lon="7.475741667">
+        <ele>523.000</ele>
+        <time>2010-01-01T01:04:39Z</time>
+        <geoidheight>0.0</geoidheight>
+        <fix>3d</fix>
+        <sat>8</sat>
+        <hdop>1.000000</hdop>
+      </trkpt>
+      <trkpt lat="47.469411667" lon="7.473511667">
+        <ele>510.000</ele>
+        <time>2010-01-01T01:05:24Z</time>
+        <geoidheight>0.0</geoidheight>
+        <fix>3d</fix>
+        <sat>8</sat>
+        <hdop>1.000000</hdop>
+      </trkpt>
+      <trkpt lat="47.468268333" lon="7.471426667">
+        <ele>514.000</ele>
+        <time>2010-01-01T01:06:08Z</time>
+        <geoidheight>0.0</geoidheight>
+        <fix>3d</fix>
+        <sat>8</sat>
+        <hdop>1.000000</hdop>
+      </trkpt>
+      <trkpt lat="47.467570000" lon="7.468991667">
+        <ele>514.000</ele>
+        <time>2010-01-01T01:06:52Z</time>
+        <geoidheight>0.0</geoidheight>
+        <fix>3d</fix>
+        <sat>8</sat>
+        <hdop>1.000000</hdop>
+      </trkpt>
+      <trkpt lat="47.467106667" lon="7.466478333">
+        <ele>517.000</ele>
+        <time>2010-01-01T01:07:35Z</time>
+        <geoidheight>0.0</geoidheight>
+        <fix>3d</fix>
+        <sat>8</sat>
+        <hdop>1.000000</hdop>
+      </trkpt>
+      <trkpt lat="47.465780000" lon="7.464841667">
+        <ele>527.000</ele>
+        <time>2010-01-01T01:08:20Z</time>
+        <geoidheight>0.0</geoidheight>
+        <fix>3d</fix>
+        <sat>8</sat>
+        <hdop>1.000000</hdop>
+      </trkpt>
+      <trkpt lat="47.464058333" lon="7.464073333">
+        <ele>535.000</ele>
+        <time>2010-01-01T01:09:04Z</time>
+        <geoidheight>0.0</geoidheight>
+        <fix>3d</fix>
+        <sat>8</sat>
+        <hdop>1.000000</hdop>
+      </trkpt>
+      <trkpt lat="47.462303333" lon="7.463893333">
+        <ele>551.000</ele>
+        <time>2010-01-01T01:09:46Z</time>
+        <geoidheight>0.0</geoidheight>
+        <fix>3d</fix>
+        <sat>8</sat>
+        <hdop>1.000000</hdop>
+      </trkpt>
+      <trkpt lat="47.460898333" lon="7.462421667">
+        <ele>570.000</ele>
+        <time>2010-01-01T01:10:31Z</time>
+        <geoidheight>0.0</geoidheight>
+        <fix>3d</fix>
+        <sat>8</sat>
+        <hdop>1.000000</hdop>
+      </trkpt>
+      <trkpt lat="47.459561667" lon="7.460666667">
+        <ele>603.000</ele>
+        <time>2010-01-01T01:11:16Z</time>
+        <geoidheight>0.0</geoidheight>
+        <fix>3d</fix>
+        <sat>8</sat>
+        <hdop>1.000000</hdop>
+      </trkpt>
+      <trkpt lat="47.458111667" lon="7.459006667">
+        <ele>603.000</ele>
+        <time>2010-01-01T01:12:03Z</time>
+        <geoidheight>0.0</geoidheight>
+        <fix>3d</fix>
+        <sat>8</sat>
+        <hdop>1.000000</hdop>
+      </trkpt>
+      <trkpt lat="47.457363333" lon="7.456491667">
+        <ele>634.000</ele>
+        <time>2010-01-01T01:12:47Z</time>
+        <geoidheight>0.0</geoidheight>
+        <fix>3d</fix>
+        <sat>8</sat>
+        <hdop>1.000000</hdop>
+      </trkpt>
+      <trkpt lat="47.456538333" lon="7.454186667">
+        <ele>657.000</ele>
+        <time>2010-01-01T01:13:34Z</time>
+        <geoidheight>0.0</geoidheight>
+        <fix>3d</fix>
+        <sat>8</sat>
+        <hdop>1.000000</hdop>
+      </trkpt>
+      <trkpt lat="47.456428333" lon="7.451383333">
+        <ele>664.000</ele>
+        <time>2010-01-01T01:14:01Z</time>
+        <geoidheight>0.0</geoidheight>
+        <fix>3d</fix>
+        <sat>8</sat>
+        <hdop>1.000000</hdop>
+      </trkpt>
+      <trkpt lat="47.455328333" lon="7.451121667">
+        <ele>660.000</ele>
+        <time>2010-01-01T01:14:49Z</time>
+        <geoidheight>0.0</geoidheight>
+        <fix>3d</fix>
+        <sat>8</sat>
+        <hdop>1.000000</hdop>
+      </trkpt>
+      <trkpt lat="47.453628333" lon="7.452365000">
+        <ele>703.000</ele>
+        <time>2010-01-01T01:15:35Z</time>
+        <geoidheight>0.0</geoidheight>
+        <fix>3d</fix>
+        <sat>8</sat>
+        <hdop>1.000000</hdop>
+      </trkpt>
+      <trkpt lat="47.451958333" lon="7.453611667">
+        <ele>718.000</ele>
+        <time>2010-01-01T01:16:20Z</time>
+        <geoidheight>0.0</geoidheight>
+        <fix>3d</fix>
+        <sat>8</sat>
+        <hdop>1.000000</hdop>
+      </trkpt>
+      <trkpt lat="47.450831667" lon="7.455651667">
+        <ele>745.000</ele>
+        <time>2010-01-01T01:16:56Z</time>
+        <geoidheight>0.0</geoidheight>
+        <fix>3d</fix>
+        <sat>8</sat>
+        <hdop>1.000000</hdop>
+      </trkpt>
+      <trkpt lat="47.450560000" lon="7.457801667">
+        <ele>759.000</ele>
+        <time>2010-01-01T01:17:14Z</time>
+        <geoidheight>0.0</geoidheight>
+        <fix>3d</fix>
+        <sat>8</sat>
+        <hdop>1.000000</hdop>
+      </trkpt>
+      <trkpt lat="47.449881667" lon="7.457608333">
+        <ele>756.000</ele>
+        <time>2010-01-01T01:18:00Z</time>
+        <geoidheight>0.0</geoidheight>
+        <fix>3d</fix>
+        <sat>8</sat>
+        <hdop>1.000000</hdop>
+      </trkpt>
+      <trkpt lat="47.449173333" lon="7.455053333">
+        <ele>758.000</ele>
+        <time>2010-01-01T01:18:48Z</time>
+        <geoidheight>0.0</geoidheight>
+        <fix>3d</fix>
+        <sat>8</sat>
+        <hdop>1.000000</hdop>
+      </trkpt>
+      <trkpt lat="47.449295000" lon="7.452201667">
+        <ele>779.000</ele>
+        <time>2010-01-01T01:19:33Z</time>
+        <geoidheight>0.0</geoidheight>
+        <fix>3d</fix>
+        <sat>8</sat>
+        <hdop>1.000000</hdop>
+      </trkpt>
+      <trkpt lat="47.449391667" lon="7.449526667">
+        <ele>784.000</ele>
+        <time>2010-01-01T01:20:21Z</time>
+        <geoidheight>0.0</geoidheight>
+        <fix>3d</fix>
+        <sat>8</sat>
+        <hdop>1.000000</hdop>
+      </trkpt>
+      <trkpt lat="47.449121667" lon="7.446703333">
+        <ele>791.000</ele>
+        <time>2010-01-01T01:21:07Z</time>
+        <geoidheight>0.0</geoidheight>
+        <fix>3d</fix>
+        <sat>8</sat>
+        <hdop>1.000000</hdop>
+      </trkpt>
+      <trkpt lat="47.448391667" lon="7.444176667">
+        <ele>799.000</ele>
+        <time>2010-01-01T01:21:53Z</time>
+        <geoidheight>0.0</geoidheight>
+        <fix>3d</fix>
+        <sat>8</sat>
+        <hdop>1.000000</hdop>
+      </trkpt>
+      <trkpt lat="47.447638333" lon="7.441705000">
+        <ele>799.000</ele>
+        <time>2010-01-01T01:22:40Z</time>
+        <geoidheight>0.0</geoidheight>
+        <fix>3d</fix>
+        <sat>8</sat>
+        <hdop>1.000000</hdop>
+      </trkpt>
+      <trkpt lat="47.446781667" lon="7.439218333">
+        <ele>804.000</ele>
+        <time>2010-01-01T01:23:29Z</time>
+        <geoidheight>0.0</geoidheight>
+        <fix>3d</fix>
+        <sat>8</sat>
+        <hdop>1.000000</hdop>
+      </trkpt>
+      <trkpt lat="47.445791667" lon="7.436668333">
+        <ele>809.000</ele>
+        <time>2010-01-01T01:24:15Z</time>
+        <geoidheight>0.0</geoidheight>
+        <fix>3d</fix>
+        <sat>8</sat>
+        <hdop>1.000000</hdop>
+      </trkpt>
+      <trkpt lat="47.445028333" lon="7.434208333">
+        <ele>812.000</ele>
+        <time>2010-01-01T01:24:59Z</time>
+        <geoidheight>0.0</geoidheight>
+        <fix>3d</fix>
+        <sat>8</sat>
+        <hdop>1.000000</hdop>
+      </trkpt>
+      <trkpt lat="47.444573333" lon="7.431705000">
+        <ele>797.000</ele>
+        <time>2010-01-01T01:25:44Z</time>
+        <geoidheight>0.0</geoidheight>
+        <fix>3d</fix>
+        <sat>8</sat>
+        <hdop>1.000000</hdop>
+      </trkpt>
+      <trkpt lat="47.444016667" lon="7.429126667">
+        <ele>808.000</ele>
+        <time>2010-01-01T01:26:21Z</time>
+        <geoidheight>0.0</geoidheight>
+        <fix>3d</fix>
+        <sat>8</sat>
+        <hdop>1.000000</hdop>
+      </trkpt>
+      <trkpt lat="47.442833333" lon="7.427790000">
+        <ele>805.000</ele>
+        <time>2010-01-01T01:27:03Z</time>
+        <geoidheight>0.0</geoidheight>
+        <fix>3d</fix>
+        <sat>8</sat>
+        <hdop>1.000000</hdop>
+      </trkpt>
+      <trkpt lat="47.441505000" lon="7.426296667">
+        <ele>797.000</ele>
+        <time>2010-01-01T01:27:49Z</time>
+        <geoidheight>0.0</geoidheight>
+        <fix>3d</fix>
+        <sat>8</sat>
+        <hdop>1.000000</hdop>
+      </trkpt>
+      <trkpt lat="47.440616667" lon="7.423865000">
+        <ele>790.000</ele>
+        <time>2010-01-01T01:28:35Z</time>
+        <geoidheight>0.0</geoidheight>
+        <fix>3d</fix>
+        <sat>8</sat>
+        <hdop>1.000000</hdop>
+      </trkpt>
+      <trkpt lat="47.439798333" lon="7.421418333">
+        <ele>780.000</ele>
+        <time>2010-01-01T01:29:20Z</time>
+        <geoidheight>0.0</geoidheight>
+        <fix>3d</fix>
+        <sat>8</sat>
+        <hdop>1.000000</hdop>
+      </trkpt>
+      <trkpt lat="47.441193333" lon="7.419748333">
+        <ele>775.000</ele>
+        <time>2010-01-01T01:30:08Z</time>
+        <geoidheight>0.0</geoidheight>
+        <fix>3d</fix>
+        <sat>8</sat>
+        <hdop>1.000000</hdop>
+      </trkpt>
+      <trkpt lat="47.442958333" lon="7.420991667">
+        <ele>750.000</ele>
+        <time>2010-01-01T01:30:46Z</time>
+        <geoidheight>0.0</geoidheight>
+        <fix>3d</fix>
+        <sat>8</sat>
+        <hdop>1.000000</hdop>
+      </trkpt>
+    </trkseg>
+  </trk>
+</gpx>

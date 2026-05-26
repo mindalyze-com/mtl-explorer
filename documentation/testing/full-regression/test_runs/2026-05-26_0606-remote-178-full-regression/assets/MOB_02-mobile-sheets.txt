@@ -1,0 +1,19 @@
+MOB_02 mobile sheet evidence
+
+Viewport:
+- 390 x 844.
+
+Filter bottom sheet:
+- Opened Filter from the mobile nav.
+- Active sheet rect before drag: x=0, y=236, width=390, height=608.
+- Sheet text included Filter, Colors, SQL, On, Filters, Settings, Activities by keyword, Live preview.
+- Close button was visible and closed the active filter sheet.
+
+Drag/snap attempts:
+- Pointer drag down on the active filter sheet handle/header did not change the sheet rect: it stayed y=236, height=608.
+- Pointer drag up/down on the navigation sheet did not change the nav sheet rect: it stayed y=712, height=132.
+
+Constraint:
+- The browser runtime exposes viewport resizing but no touch input or gesture emulation. The failed pointer drag is not enough to conclude the touch drag/snap behavior on a real mobile device.
+
+Result: BLOCKED. Mobile sheets open and close in narrow viewport, but touch drag/snap behavior cannot be verified with the available tooling.

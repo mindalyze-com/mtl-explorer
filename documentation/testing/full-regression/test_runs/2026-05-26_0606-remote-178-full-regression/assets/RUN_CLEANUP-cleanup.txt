@@ -1,0 +1,23 @@
+RUN_CLEANUP evidence
+
+Finalization gate:
+- Command: documentation/testing/full-regression/workflow/check-finalization-gate.py documentation/testing/full-regression/test_runs/2026-05-26_0606-remote-178-full-regression/run-state.md
+- Result: Finalization gate: PASS (168 coverage IDs terminal)
+
+Cleanup actions:
+- Connected to target over SSH as root.
+- Ran docker compose down from /root/mtl-full-regression-2026-05-26_0606/mtl-explorer.
+- Removed containers:
+  - mtl-explorer-app-1
+  - mtl-explorer-brouter-1
+  - mtl-explorer-db-1
+  - mtl-explorer-location-search-1
+- Removed network: mtl-explorer_default
+- Removed disposable directory: /root/mtl-full-regression-2026-05-26_0606
+
+Verification:
+- Running mtl-explorer containers: 0
+- Disposable directory exists: no
+- Listener on port 18080: 0
+
+Result: PASS. Quick-install stack stopped and disposable directory removed without touching unrelated Docker resources.

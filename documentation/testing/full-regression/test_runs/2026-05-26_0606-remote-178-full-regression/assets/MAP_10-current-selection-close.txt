@@ -1,0 +1,38 @@
+close_count=0
+closed_has_selection=false
+closed_excerpt=- region "Map"
+- region "Map"
+- button "Zoom in"
+- button "Zoom out"
+- button "Drag to rotate map, click to reset north"
+- button "Toggle globe mode":
+  - generic: 
+- generic: 500 km
+- button "Search location":
+  - generic: 
+- generic: 10 Tracks
+- button " Stats":
+  - generic: 
+  - generic: Stats
+- button " Filter":
+  - generic: 
+  - generic: Filter
+- button " Map":
+  - generic: 
+  - generic: Map
+- button " Animate":
+  - generic: 
+  - generic: Animate
+- button " Segments":
+  - generic: 
+  - generic: Segments
+- button " GPS":
+  - generic: 
+  - generic: GPS
+- button " Planner":
+  - generic: 
+  - generic: Planner
+- button " Admin":
+  - generic: 
+  - generic: Admin
+- button "About MTL Explorer"

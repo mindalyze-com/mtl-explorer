@@ -1,0 +1,66 @@
+[
+  {
+    "canvas": {
+      "h": 720,
+      "w": 1204,
+      "x": 76,
+      "y": 0
+    },
+    "i": 0,
+    "wrapper": {
+      "h": 720,
+      "w": 1204,
+      "x": 76,
+      "y": 0
+    },
+    "wrapperClass": "map-base maplibregl-map"
+  },
+  {
+    "canvas": {
+      "h": 720,
+      "w": 1204,
+      "x": 76,
+      "y": 0
+    },
+    "i": 1,
+    "wrapper": {
+      "h": 720,
+      "w": 1204,
+      "x": 76,
+      "y": 0
+    },
+    "wrapperClass": "map-overlay maplibregl-map"
+  },
+  {
+    "canvas": {
+      "h": 300,
+      "w": 879,
+      "x": 231,
+      "y": 421.4375
+    },
+    "i": 2,
+    "wrapper": {
+      "h": 0,
+      "w": 879,
+      "x": 231,
+      "y": 421.4375
+    },
+    "wrapperClass": "container sc-minimap"
+  },
+  {
+    "canvas": {
+      "h": 260,
+      "w": 881,
+      "x": 230,
+      "y": 820.875
+    },
+    "i": 3,
+    "wrapper": {
+      "h": 260,
+      "w": 881,
+      "x": 230,
+      "y": 820.875
+    },
+    "wrapperClass": "container vr-minimap"
+  }
+]

@@ -1,0 +1,23 @@
+  - strong: "10"
+  - text: tracks
+      - row "Start Track Activity Distance Duration Avg km/h Energy About energy Exploration Imported":
+      - row "20/07/2021, 23:11 Track 100005  Walking 3.60 km 59m 57s 3.6 347 Wh 100.0% 26/05/2026, 06:25":
+          - generic: Track 100005
+      - row "08/03/2013, 10:32 Lannion_Plestin_parcours Lannion_Plestin_parcours1  Bicycle 25.9 km 1h 13m 21.1 198 Wh 100.0% 26/05/2026, 06:15":
+          - generic: Lannion_Plestin_parcours Lannion_Plestin_parcours1
+      - row "01/01/2010, 01:00 Jura Route 7 / 2011 on GPSies.com  Bicycle 273 km 7h 46m 35.1 1808 Wh 100.0% 26/05/2026, 06:15":
+          - generic: Jura Route 7 / 2011 on GPSies.com
+      - row "01/01/2010, 01:00 Moselradweg aus Wiki on GPSies.com  Bicycle 518 km 6h 50m 75.7 1616 Wh 100.0% 26/05/2026, 06:15":
+          - generic: Moselradweg aus Wiki on GPSies.com
+      - row "01/01/2010, 01:00 FMT TCX sample  Bicycle 35.9 km 37m 05s 58.1 243 Wh  26/05/2026, 06:44":
+          - generic: FMT TCX sample
+      - row "01/01/2010, 01:00 Track 100018  Bicycle 35.7 km 37m 05s 57.8 307 Wh  26/05/2026, 06:44":
+          - generic: Track 100018
+      - row "01/01/2010, 01:00 GNSSALTTRK IGCHDRS~HFPLTPILOT:Unknown~  Bicycle 35.9 km 37m 05s 58.1 243 Wh  26/05/2026, 06:44":
+          - generic: GNSSALTTRK
+      - row "01/01/2010, 01:00 GNSSALTTRK IGCHDRS~HFPLTPILOT:Unknown~  Bicycle 273 km 7h 46m 35.1 1808 Wh 100.0% 26/05/2026, 06:31":
+          - generic: GNSSALTTRK
+      - row "01/01/2010, 01:00 FMT GDB sample  Bicycle 35.9 km 37m 05s 58.1 243 Wh  26/05/2026, 06:44":
+          - generic: FMT GDB sample
+      - row "01/01/2010, 01:00 Track 100012  Bicycle 24.2 km 16m 15s 89.4 240 Wh 100.0% 26/05/2026, 06:33":
+          - generic: Track 100012

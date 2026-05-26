@@ -1,0 +1,12 @@
+plan_id=100020
+plan_name=Regression PLN08 export route
+distance_m=5789
+detail_coordinate_count=5
+gpx_trkpt_count=5
+gpx_has_root=true
+gpx_name_matches=true
+trkpt_count_matches_detail=true
+first_point_matches_detail=true
+last_point_matches_detail=true
+bytes=579
+delete_status=204

@@ -1,0 +1,13 @@
+Admin Attribution panel listed:
+- MapLibre GL JS / Map rendering / BSD-3-Clause
+- OpenStreetMap / Map data / ODbL contributors
+- Protomaps Basemaps / Vector tiles / BSD-3-Clause
+- PMTiles / Tile archive format / BSD-3-Clause
+- Terrarium DEM / Elevation tiles / USGS, NGA, NASA
+- swisstopo / Swiss national maps
+- SchweizMobil / Trail overlays
+- Waymarked Trails / Worldwide route overlays / OSM data / CC BY-SA
+- Highcharts / Charts / Non-commercial use
+- GeoNames / Location search gazetteer / CC BY 4.0
+- GPSBabel / GPS file format conversion / GPL-2.0
+- BRouter / Offline bike routing / MIT

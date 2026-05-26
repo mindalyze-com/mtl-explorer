@@ -1,0 +1,4 @@
+initial_inputs=2
+url=http://178.105.173.254:18080/mtl/
+login_to_ready_ms=5213
+visible_excerpt=500 km 10 Tracks Stats Filter Map Animate Segments GPS Planner Admin

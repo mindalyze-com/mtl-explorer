@@ -1,0 +1,15 @@
+valid_point_tracks=14
+100012	JuraRoute72011.nmea		120
+100002	MoselradwegAusWiki.gpx	Moselradweg aus Wiki on GPSies.com	2949
+100014	FMT_KML_unique.kml	Path	180
+100013	FMT_TCX_unique.tcx	FMT TCX sample	180
+100018	FMT_NMEA_unique.nmea		180
+100008	JuraRoute72011.igc	GNSSALTTRK	1409
+100017	FMT_GDB_unique.gdb	FMT GDB sample	180
+100003	Lannion_Plestin_parcours24.4RE.gpx	Lannion_Plestin_parcours Lannion_Plestin_parcours1	381
+100015	FMT_IGC_unique.igc	GNSSALTTRK	180
+100005	Activity.fit		3600
+100001	JuraRoute72011.gpx	Jura Route 7 / 2011 on GPSies.com	1409
+100007	JuraRoute72011.kml	Path	1414
+100006	JuraRoute72011.tcx	Jura Route 7 / 	1409
+100010	JuraRoute72011.gdb	Jura Route 7 / 2011 on GPSies.com	1409

@@ -1,0 +1,8 @@
+PLN_11 requires mobile viewport plus touch input for planner waypoint placement/movement.
+
+Checked workspace tooling:
+- `node -e "require.resolve('playwright')"` exited nonzero.
+- `node -e "require.resolve('@playwright/test')"` exited nonzero.
+- `mtl-client/package.json` has Vitest/jsdom but no Playwright or browser/device test dependency.
+
+The in-app browser surface used for this run supports desktop pointer automation but does not expose a mobile viewport/touch emulation control. Desktop planner waypoint dragging was covered in PLN_04; it is not valid touch evidence for PLN_11.

@@ -1,0 +1,18 @@
+NET_03 401/403 auth redirect evidence
+
+Tooling:
+- Ran Playwright 1.60.0 from a temporary /tmp install using the system Google Chrome channel.
+- Test spec: assets/NET_03-auth-redirect.spec.ts
+
+Actions:
+1. Logged in with README credentials in a clean browser context.
+2. Waited for the main app at http://178.105.173.254:18080/mtl/.
+3. Replaced localStorage key mtl.jwt with an invalid token.
+4. Reloaded the app so API requests used the invalid Authorization header.
+
+Observed:
+- Browser redirected to: http://178.105.173.254:18080/mtl/login?reason=expired
+- Username field was visible on the login page.
+- Visible text included: AGPL-3.0 Sign In.
+
+Result: PASS. Invalid/expired auth caused a clean redirect to login.

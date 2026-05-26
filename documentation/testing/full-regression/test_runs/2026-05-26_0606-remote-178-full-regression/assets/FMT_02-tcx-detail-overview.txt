@@ -1,0 +1,4 @@
+Attempted user-facing detail navigation from the `FMT TCX sample` row in the Tracks tab.
+Result: the click left the Tracks table visible; no detail panel opened from this row interaction in the captured browser state.
+This is recorded as part of the FMT_02 failure because per-format details/charts could not be verified for every non-GPX format.
+See screenshot: assets/FMT_02-tcx-detail-overview.webp

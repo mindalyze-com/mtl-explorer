@@ -1,0 +1,79 @@
+actions=clicked  Distance; clicked  Range; clicked Load more chart points; clicked Make graphs bigger
+before:
+- tabpanel "Graphs":
+  - generic: X Axis
+  - button " Time":
+    - generic: 
+    - text: Time
+  - button " Distance":
+    - generic: 
+    - text: Distance
+  - generic: Detail
+  - button " Range" [pressed]:
+    - generic: 
+    - text: Range
+  - text: Points
+  - generic: "350"
+  - button "Load fewer chart points":
+    - generic: 
+  - slider "Adjust chart point count"
+  - button "Load more chart points":
+    - generic: 
+  - generic: Height
+  - button "Make graphs smaller":
+    - generic: 
+  - slider "Adjust graph height"
+  - button "Make graphs bigger":
+    - generic: 
+  - generic: 
+  - text: Speed
+  - generic: 
+  - text: Elevation
+  - generic: 
+  - text: Elevation Gain Rate
+  - generic: 
+  - text: Distance over Time
+  - generic: 
+  - text: Cumulative Mechanical Energy
+  - generic: 
+  - text: Estimated Power
+
+after:
+- tabpanel "Graphs":
+  - generic: X Axis
+  - button " Time":
+    - generic: 
+    - text: Time
+  - button " Distance":
+    - generic: 
+    - text: Distance
+  - generic: Detail
+  - button " Range" [pressed]:
+    - generic: 
+    - text: Range
+  - text: Points
+  - generic: "350"
+  - button "Load fewer chart points":
+    - generic: 
+  - slider "Adjust chart point count"
+  - button "Load more chart points":
+    - generic: 
+  - generic: Height
+  - button "Make graphs smaller":
+    - generic: 
+  - slider "Adjust graph height"
+  - button "Make graphs bigger":
+    - generic: 
+  - generic: 
+  - text: Speed
+  - generic: 
+  - text: Elevation
+  - generic: 
+  - text: Elevation Gain Rate
+  - generic: 
+  - text: Distance over Time
+  - generic: 
+  - text: Cumulative Mechanical Energy
+  - generic: 
+  - text: Estimated Power
+

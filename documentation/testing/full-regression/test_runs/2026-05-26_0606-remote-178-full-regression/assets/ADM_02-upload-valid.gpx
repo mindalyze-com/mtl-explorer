@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="MTL Explorer full regression ADM_02" xmlns="http://www.topografix.com/GPX/1/1">
+  <trk>
+    <name>ADM_02 Upload Validation</name>
+    <trkseg>
+      <trkpt lat="47.37690" lon="8.54170"><ele>408</ele><time>2026-05-26T08:05:00Z</time></trkpt>
+      <trkpt lat="47.37740" lon="8.54230"><ele>410</ele><time>2026-05-26T08:06:00Z</time></trkpt>
+      <trkpt lat="47.37810" lon="8.54320"><ele>412</ele><time>2026-05-26T08:07:00Z</time></trkpt>
+    </trkseg>
+  </trk>
+</gpx>

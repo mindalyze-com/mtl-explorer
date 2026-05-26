@@ -1,0 +1,5 @@
+SBP sample search summary:
+- No .sbp sample found in the repository or target run directories.
+- Installed GPSBabel format list shows: file --r--- sbp sbp NaviGPS GT-31/BGT-31 datalogger (.sbp), so GPSBabel can read but not generate SBP.
+- Focused web search found GPSBabel documentation for SBP but no directly downloadable GPS-bearing sample suitable for this regression.
+Reference: https://www.gpsbabel.org/htmldoc-development/fmt_sbp.html

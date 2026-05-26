@@ -1,0 +1,19 @@
+Theme switch sequence:
+- Started in Settings with Light selected.
+- Clicked Dark.
+  - document data-theme: dark
+  - pressed button: Dark
+  - button sample text/background contrast: 6.96
+  - panel text color changed to rgb(226, 232, 240)
+- Clicked Light.
+  - document data-theme: light
+  - pressed button: Light
+  - button sample text/background contrast: 7.07
+  - panel text color changed to rgb(51, 65, 85)
+- Clicked Dark again for persistence testing.
+  - document data-theme: dark
+  - pressed button: Dark
+
+Accessibility/readability note:
+- No white-on-white or black-on-black text was observed in the Settings and Admin controls during the switch.
+- The sampled active theme buttons exceeded 4.5:1 contrast in both themes.

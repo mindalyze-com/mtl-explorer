@@ -1,0 +1,12 @@
+Manual rescan UI evidence:
+- Clicked Rescan GPS -> UI message: Manual GPS rescan has been queued.
+- Clicked Rescan Media -> UI message: Manual MEDIA rescan has been queued.
+- Media indexer briefly displayed SCANNING 80% with 4 completed / 1 pending / 5 total.
+- Map interaction after rescans: Zoom out changed the map scale from 5 km to 10 km.
+
+Manual rescan API evidence:
+- POST /api/indexer/GPS/rescan -> {"index":"GPS","status":"STARTED","message":"Manual GPS rescan has been queued."}
+- POST /api/indexer/MEDIA/rescan -> {"index":"MEDIA","status":"STARTED","message":"Manual MEDIA rescan has been queued."}
+- Immediate repeated MEDIA requests returned STARTED rather than ALREADY_RUNNING because the scan completed quickly.
+
+Not-ready state: not applicable in this run because both GPS and MEDIA indexers were ready.

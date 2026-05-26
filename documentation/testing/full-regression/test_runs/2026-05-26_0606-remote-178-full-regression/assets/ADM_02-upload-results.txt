@@ -1,0 +1,12 @@
+Upload UI evidence:
+- Drop-zone text: Click or drag a .gpx file here
+- Hidden file input accept attribute: .gpx
+- UI does not advertise or pick FIT/TCX/KML/KMZ/IGC/SBP/NMEA/GeoJSON/GDB.
+
+API upload evidence:
+- GET /api/gpx-upload/status -> {"available":true,"message":"Upload directory is available."}
+- POST unsupported ADM_02-upload-unsupported.xyz -> HTTP 400; {"success":false,"message":"Unsupported file format. Accepted: .gpx, .fit, .tcx, .kml, .kmz, .igc, .sbp, .nmea, .geojson, .gdb"}
+- POST empty ADM_02-empty.gpx -> HTTP 400; {"success":false,"message":"Uploaded file is empty."}
+- POST valid ADM_02-upload-valid.gpx -> HTTP 200; {"success":true,"message":"'ADM_02-upload-valid.gpx' uploaded successfully. Indexing will begin shortly.","fileName":"ADM_02-upload-valid.gpx"}
+
+Coverage note: server-side success and error messages are clear, but the Admin upload UI limits selection to .gpx while the endpoint and coverage scope include multiple track formats.

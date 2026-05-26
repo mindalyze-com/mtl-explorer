@@ -1,0 +1,19 @@
+Jobs panel evidence:
+- Opened Admin -> Jobs after ADM_02 upload triggered a freshness banner.
+- File Indexers:
+  - MEDIA DONE 100%, 5 / 5 total.
+  - GPS DONE 80%, displayed counts 17 / 2 / 21 total.
+- Track Processing Jobs:
+  - Duplicate Finder DONE 100%, 17 / 17 total.
+  - Activity Classifier DONE 100%, 15 / 15 total.
+  - Exploration Score DONE 100%, 13 / 13 total.
+- Refresh button updated the panel timestamp from 10:10:09 to 10:11:06.
+
+API status evidence:
+- /api/indexer/status:
+  - MEDIA total=5 pending=0 completed=5 failed=0 removed=0 excluded=0 progressPercent=100
+  - GPS total=21 pending=0 completed=17 failed=2 removed=2 excluded=0 progressPercent=80
+- /api/jobs/status:
+  - Duplicate Finder total=17 pending=0 done=17 progressPercent=100
+  - Activity Classifier total=15 pending=0 done=15 progressPercent=100
+  - Exploration Score total=13 pending=0 done=13 progressPercent=100

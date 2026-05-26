@@ -1,0 +1,11 @@
+POLL=1 waiting
+app-1  | 2026-05-26T04:25:47.146Z  INFO 1 --- [watch-GPS] FileIndexerImpl              : Live watcher detected CREATE for: Activity.fit
+POLL=2 FIT_STATUS=SUCCESS
+app-1  | 2026-05-26T04:25:47.146Z  INFO 1 --- [watch-GPS] FileIndexerImpl              : Live watcher detected CREATE for: Activity.fit
+app-1  | 2026-05-26T04:25:57.158Z  INFO 1 --- [idx-1] TrackFileConverterService    : Converting Activity.fit (FIT) to GPX: gpsbabel -i garmin_fit -f /app/gpx/Activity.fit -o gpx,gpxver=1.1 -F -
+app-1  | 2026-05-26T04:25:57.183Z  INFO 1 --- [idx-1] TrackFileConverterService    : GPSBabel converted Activity.fit → 479844 chars of GPX XML
+app-1  | 2026-05-26T04:25:57.464Z  INFO 1 --- [idx-1] GPXReader                    : Track Data Summary:   - Outlier Corrector: GPXReader distance/probation filter   - Outliers Found: false   - Outliers Cleared By Corrector: 0 point(s)   - Distances (m):       • Max:    1.0       • Median: 1.0       • Avg:    1.0 file=Activity.fit
+app-1  | 2026-05-26T04:25:58.280Z  INFO 1 --- [idx-1] GPXStoreService              : GPS simplified timing trackId=100005 file=/Activity.fit total=60ms details=1m 15ms (2 pts), 5m 10ms (2 pts), 10m 8ms (2 pts), 50m 7ms (2 pts), 100m 6ms (2 pts), 500m 7ms (2 pts), 1000m 7ms (2 pts)
+app-1  | 2026-05-26T04:25:58.281Z  INFO 1 --- [idx-1] GPXStoreService              : GPS ingest timing trackId=100005 file=/Activity.fit status=SUCCESS Timing total 1.12s; slowest raw points 261ms, cleaned points 250ms, denoise 219ms, parse XML 133ms, break-stop filter 123ms, simplified shapes 60ms, gpsbabel 27ms, outlier filter 15ms.
+app-1  | 2026-05-26T04:25:58.283Z  INFO 1 --- [idx-1] GPXStoreService              : Reading of track id=100005 and path= file=Activity.fit did complete with status=SUCCESS and took processingTime=1.13s
+FIT_MONITOR_SECONDS=2

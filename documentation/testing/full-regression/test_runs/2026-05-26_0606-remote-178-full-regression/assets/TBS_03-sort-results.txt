@@ -1,0 +1,7 @@
+Date: 10 tracks | first row: 20/07/2021, 23:11 Track 100005  Walking 3.60 km 59m 57s 3.6 347 Wh 100.0% 26/05/2026, 06:25
+Imported: 10 tracks | first row: 01/01/2010, 01:00 Track 100018  Bicycle 35.7 km 37m 05s 57.8 307 Wh 100.0% 26/05/2026, 06:44
+Distance: 10 tracks | first row: 01/01/2010, 01:00 Moselradweg aus Wiki on GPSies.com  Bicycle 518 km 6h 50m 75.7 1616 Wh 100.0% 26/05/2026, 06:15
+Duration: 10 tracks | first row: 01/01/2010, 01:00 Jura Route 7 / 2011 on GPSies.com  Bicycle 273 km 7h 46m 35.1 1808 Wh 100.0% 26/05/2026, 06:15
+Name: 10 tracks | first row: 01/01/2010, 01:00 Track 100018  Bicycle 35.7 km 37m 05s 57.8 307 Wh 100.0% 26/05/2026, 06:44
+Exploration: 10 tracks | first row: 20/07/2021, 23:11 Track 100005  Walking 3.60 km 59m 57s 3.6 347 Wh 100.0% 26/05/2026, 06:25
+subset search Walking: 1 of 10 tracks

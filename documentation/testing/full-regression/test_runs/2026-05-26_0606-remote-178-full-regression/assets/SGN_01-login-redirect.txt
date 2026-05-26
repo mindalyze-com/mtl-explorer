@@ -1,0 +1,3 @@
+url=http://178.105.173.254:18080/mtl/login
+load_ms=1173
+visible_text=© Patrick Heusser AGPL-3.0 Sign In

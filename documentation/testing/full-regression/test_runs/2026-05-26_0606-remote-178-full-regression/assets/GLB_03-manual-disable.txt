@@ -1,0 +1,11 @@
+Manual globe disable sequence:
+1. Zoomed out until globe was active at 2000 km scale.
+   - class: `mtl-globe-btn mtl-globe-active`
+2. Clicked `Toggle globe mode`.
+   - class: `mtl-globe-btn`
+   - globe control remained visible but inactive at 2000 km scale.
+3. Nudged low zoom with Zoom out/Zoom in.
+   - class stayed `mtl-globe-btn`
+   - globe remained inactive at 1000 km scale.
+4. Clicked `Toggle globe mode` again.
+   - class returned to `mtl-globe-btn mtl-globe-active`.

@@ -1,0 +1,2 @@
+/root/mtl-full-regression-2026-05-26_0606/format-source-data/JuraRoute72011.nmea 240 16560
+0c738fbf0e82b8753bcfa804502d06d8e9ea897dae89afa1f49fdec5b2141430  data/gpx/JuraRoute72011.nmea

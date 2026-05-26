@@ -1,0 +1,10 @@
+tcx original http=200
+tcx gpx http=200
+kml original http=200
+kml gpx http=200
+igc original http=200
+igc gpx http=200
+gdb original http=200
+gdb gpx http=200
+nmea original http=200
+nmea gpx http=200

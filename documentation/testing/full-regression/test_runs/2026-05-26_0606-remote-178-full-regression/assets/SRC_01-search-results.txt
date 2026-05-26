@@ -1,0 +1,8 @@
+Search action: opened Location Search and entered "Bern".
+Result state: results appeared without page reload.
+Representative results:
+- Bern, Switzerland / CAPITAL / Z4-15
+- Berngjaeret, More og Romsdal, Norway / HILL / Z12-15
+- Bernartice, South Bohemian Region, Czechia / VILLAGE / Z11-15
+- Bernville, Pennsylvania, United States / VILLAGE / Z11-15
+- Bernina, Grisons, Switzerland / MOUNTAIN / Z12-15

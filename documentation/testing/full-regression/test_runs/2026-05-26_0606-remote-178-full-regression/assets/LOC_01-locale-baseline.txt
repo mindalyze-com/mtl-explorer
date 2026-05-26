@@ -1,0 +1,28 @@
+LOC_01 en-GB formatting baseline
+
+State:
+- Settings locale restored to en-GB.
+- Browser timezone: Europe/Zurich.
+- Visible map/data state: 14 / 14 Tracks after LOC_04 disposable imports.
+
+Settings evidence:
+- Format locale: en-GB (31/12/2025, 1,234.56)
+- Preview: 26/05/2026 11:13:17 - 12,345.67
+- Auto-detected: en-GB (browser: en-GB, timezone: Europe/Zurich)
+
+Stats evidence:
+- Summary distance: 1,262 km
+- Summary duration: 1d 03h
+- Summary energy: 7,054 Wh
+- Highlight ascent: 6,324 m
+- Highlight ascent rate: 3,919 m/h
+- Recent LOC_04 Null Elevation date/distance/duration: 26/05/2026, 11:20; 94.26 m; 2m 00s
+- Recent LOC_04 Boundary Formatting date/distance/duration: 26/05/2026, 11:12; 15.69 m; 1m 00s
+
+Bad-value scan on visible body text:
+- NaN: not present
+- undefined: not present
+- null: not present
+- Infinity: not present
+
+Result: PASS. Dates use day/month/year, grouped large numbers use commas, decimals use periods, and durations render as compact day/hour/minute text for the selected en-GB locale.

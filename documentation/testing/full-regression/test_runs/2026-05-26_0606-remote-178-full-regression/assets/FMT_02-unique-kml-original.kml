@@ -1,0 +1,4974 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2" xmlns:gx="http://www.google.com/kml/ext/2.2">
+  <Document>
+    <name>GPS device</name>
+    <snippet>Created Tue May 26 04:43:34 2026 GMT</snippet>
+    <LookAt>
+      <gx:TimeSpan>
+        <begin>2010-01-01T00:00:00Z</begin>
+        <end>2010-01-01T02:13:47Z</end>
+      </gx:TimeSpan>
+      <longitude>7.917789</longitude>
+      <latitude>47.489426</latitude>
+      <range>30977.973129</range>
+    </LookAt>
+    <!-- Normal track style -->
+    <Style id="track_n">
+      <IconStyle>
+        <scale>.5</scale>
+        <Icon>
+          <href>https://earth.google.com/images/kml-icons/track-directional/track-none.png</href>
+        </Icon>
+      </IconStyle>
+      <LabelStyle>
+        <scale>0</scale>
+      </LabelStyle>
+    </Style>
+    <!-- Highlighted track style -->
+    <Style id="track_h">
+      <IconStyle>
+        <scale>1.2</scale>
+        <Icon>
+          <href>https://earth.google.com/images/kml-icons/track-directional/track-none.png</href>
+        </Icon>
+      </IconStyle>
+    </Style>
+    <StyleMap id="track">
+      <Pair>
+        <key>normal</key>
+        <styleUrl>#track_n</styleUrl>
+      </Pair>
+      <Pair>
+        <key>highlight</key>
+        <styleUrl>#track_h</styleUrl>
+      </Pair>
+    </StyleMap>
+    <!-- Normal waypoint style -->
+    <Style id="waypoint_n">
+      <IconStyle>
+        <Icon>
+          <href>https://maps.google.com/mapfiles/kml/pal4/icon61.png</href>
+        </Icon>
+      </IconStyle>
+    </Style>
+    <!-- Highlighted waypoint style -->
+    <Style id="waypoint_h">
+      <IconStyle>
+        <scale>1.2</scale>
+        <Icon>
+          <href>https://maps.google.com/mapfiles/kml/pal4/icon61.png</href>
+        </Icon>
+      </IconStyle>
+    </Style>
+    <StyleMap id="waypoint">
+      <Pair>
+        <key>normal</key>
+        <styleUrl>#waypoint_n</styleUrl>
+      </Pair>
+      <Pair>
+        <key>highlight</key>
+        <styleUrl>#waypoint_h</styleUrl>
+      </Pair>
+    </StyleMap>
+    <Style id="lineStyle">
+      <LineStyle>
+        <color>99ffac59</color>
+        <width>6</width>
+      </LineStyle>
+    </Style>
+    <Folder>
+      <name>Tracks</name>
+      <Folder>
+        <name>FMT KML sample</name>
+        <snippet/>
+        <description>
+<![CDATA[<table>
+<tr><td><b>Distance</b> 22.3 mi </td></tr>
+<tr><td><b>Min Alt</b> 866.142 ft </td></tr>
+<tr><td><b>Max Alt</b> 2664.042 ft </td></tr>
+<tr><td><b>Min Speed</b> 9.6 mph </td></tr>
+<tr><td><b>Max Speed</b> 10.3 mph </td></tr>
+<tr><td><b>Avg Speed</b> 10.0 mph </td></tr>
+<tr><td><b>Start Time</b>2010-01-01T00:00:00Z</td></tr>
+<tr><td><b>End Time</b>2010-01-01T02:13:47Z</td></tr>
+</table>]]>
+</description>
+        <TimeSpan>
+          <begin>2010-01-01T00:00:00Z</begin>
+          <end>2010-01-01T02:13:47Z</end>
+        </TimeSpan>
+        <Folder>
+          <name>Points</name>
+          <Placemark>
+            <name>FMT KML sample-0</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 8.039465 </td></tr>
+<tr><td>Latitude: 47.546741 </td></tr>
+<tr><td>Altitude: 905.512 ft </td></tr>
+<tr><td>Heading: 7.3 </td></tr>
+<tr><td>Time: 2010-01-01T00:00:00Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>8.039465</longitude>
+              <latitude>47.546741</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T00:00:00Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>8.039465,47.546741,276.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-1</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 8.041199 </td></tr>
+<tr><td>Latitude: 47.548829 </td></tr>
+<tr><td>Altitude: 912.073 ft </td></tr>
+<tr><td>Speed: 10.1 mph </td></tr>
+<tr><td>Heading: 29.3 </td></tr>
+<tr><td>Time: 2010-01-01T00:00:59Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>8.041199</longitude>
+              <latitude>47.548829</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T00:00:59Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>8.041199,47.548829,278.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-2</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 8.043214 </td></tr>
+<tr><td>Latitude: 47.550174 </td></tr>
+<tr><td>Altitude: 905.512 ft </td></tr>
+<tr><td>Speed: 9.9 mph </td></tr>
+<tr><td>Heading: 45.3 </td></tr>
+<tr><td>Time: 2010-01-01T00:01:47Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>8.043214</longitude>
+              <latitude>47.550174</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T00:01:47Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>8.043214,47.550174,276.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-3</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 8.044586 </td></tr>
+<tr><td>Latitude: 47.551692 </td></tr>
+<tr><td>Altitude: 902.231 ft </td></tr>
+<tr><td>Speed: 10.1 mph </td></tr>
+<tr><td>Heading: 31.4 </td></tr>
+<tr><td>Time: 2010-01-01T00:02:31Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>8.044586</longitude>
+              <latitude>47.551692</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T00:02:31Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>8.044586,47.551692,275.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-4</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 8.042300 </td></tr>
+<tr><td>Latitude: 47.553571 </td></tr>
+<tr><td>Altitude: 905.512 ft </td></tr>
+<tr><td>Speed: 10.1 mph </td></tr>
+<tr><td>Heading: 320.6 </td></tr>
+<tr><td>Time: 2010-01-01T00:03:31Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>8.042300</longitude>
+              <latitude>47.553571</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T00:03:31Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>8.042300,47.553571,276.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-5</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 8.040013 </td></tr>
+<tr><td>Latitude: 47.553167 </td></tr>
+<tr><td>Altitude: 866.142 ft </td></tr>
+<tr><td>Speed: 9.9 mph </td></tr>
+<tr><td>Heading: 255.3 </td></tr>
+<tr><td>Time: 2010-01-01T00:04:11Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>8.040013</longitude>
+              <latitude>47.553167</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T00:04:11Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>8.040013,47.553167,264.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-6</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 8.038151 </td></tr>
+<tr><td>Latitude: 47.551190 </td></tr>
+<tr><td>Altitude: 908.793 ft </td></tr>
+<tr><td>Speed: 10.1 mph </td></tr>
+<tr><td>Heading: 212.4 </td></tr>
+<tr><td>Time: 2010-01-01T00:05:09Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>8.038151</longitude>
+              <latitude>47.551190</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T00:05:09Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>8.038151,47.551190,277.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-7</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 8.035022 </td></tr>
+<tr><td>Latitude: 47.550079 </td></tr>
+<tr><td>Altitude: 889.108 ft </td></tr>
+<tr><td>Speed: 9.9 mph </td></tr>
+<tr><td>Heading: 242.3 </td></tr>
+<tr><td>Time: 2010-01-01T00:06:09Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>8.035022</longitude>
+              <latitude>47.550079</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T00:06:09Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>8.035022,47.550079,271.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-8</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 8.033019 </td></tr>
+<tr><td>Latitude: 47.548337 </td></tr>
+<tr><td>Altitude: 898.950 ft </td></tr>
+<tr><td>Speed: 10.0 mph </td></tr>
+<tr><td>Heading: 217.8 </td></tr>
+<tr><td>Time: 2010-01-01T00:07:04Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>8.033019</longitude>
+              <latitude>47.548337</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T00:07:04Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>8.033019,47.548337,274.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-9</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 8.030762 </td></tr>
+<tr><td>Latitude: 47.547076 </td></tr>
+<tr><td>Altitude: 898.950 ft </td></tr>
+<tr><td>Speed: 10.1 mph </td></tr>
+<tr><td>Heading: 230.4 </td></tr>
+<tr><td>Time: 2010-01-01T00:07:53Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>8.030762</longitude>
+              <latitude>47.547076</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T00:07:53Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>8.030762,47.547076,274.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-10</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 8.028628 </td></tr>
+<tr><td>Latitude: 47.545816 </td></tr>
+<tr><td>Altitude: 889.108 ft </td></tr>
+<tr><td>Speed: 10.1 mph </td></tr>
+<tr><td>Heading: 228.8 </td></tr>
+<tr><td>Time: 2010-01-01T00:08:40Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>8.028628</longitude>
+              <latitude>47.545816</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T00:08:40Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>8.028628,47.545816,271.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-11</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 8.028117 </td></tr>
+<tr><td>Latitude: 47.543882 </td></tr>
+<tr><td>Altitude: 915.354 ft </td></tr>
+<tr><td>Speed: 10.0 mph </td></tr>
+<tr><td>Heading: 190.1 </td></tr>
+<tr><td>Time: 2010-01-01T00:09:29Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>8.028117</longitude>
+              <latitude>47.543882</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T00:09:29Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>8.028117,47.543882,279.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-12</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 8.027126 </td></tr>
+<tr><td>Latitude: 47.541865 </td></tr>
+<tr><td>Altitude: 931.759 ft </td></tr>
+<tr><td>Speed: 10.0 mph </td></tr>
+<tr><td>Heading: 198.3 </td></tr>
+<tr><td>Time: 2010-01-01T00:10:22Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>8.027126</longitude>
+              <latitude>47.541865</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T00:10:22Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>8.027126,47.541865,284.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-13</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 8.026000 </td></tr>
+<tr><td>Latitude: 47.540241 </td></tr>
+<tr><td>Altitude: 921.916 ft </td></tr>
+<tr><td>Speed: 9.9 mph </td></tr>
+<tr><td>Heading: 205.1 </td></tr>
+<tr><td>Time: 2010-01-01T00:11:07Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>8.026000</longitude>
+              <latitude>47.540241</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T00:11:07Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>8.026000,47.540241,281.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-14</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 8.025218 </td></tr>
+<tr><td>Latitude: 47.538401 </td></tr>
+<tr><td>Altitude: 921.916 ft </td></tr>
+<tr><td>Speed: 10.1 mph </td></tr>
+<tr><td>Heading: 196.0 </td></tr>
+<tr><td>Time: 2010-01-01T00:11:54Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>8.025218</longitude>
+              <latitude>47.538401</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T00:11:54Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>8.025218,47.538401,281.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-15</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 8.025243 </td></tr>
+<tr><td>Latitude: 47.536409 </td></tr>
+<tr><td>Altitude: 935.039 ft </td></tr>
+<tr><td>Speed: 9.9 mph </td></tr>
+<tr><td>Heading: 179.5 </td></tr>
+<tr><td>Time: 2010-01-01T00:12:44Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>8.025243</longitude>
+              <latitude>47.536409</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T00:12:44Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>8.025243,47.536409,285.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-16</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 8.024335 </td></tr>
+<tr><td>Latitude: 47.534577 </td></tr>
+<tr><td>Altitude: 944.882 ft </td></tr>
+<tr><td>Speed: 10.0 mph </td></tr>
+<tr><td>Heading: 198.5 </td></tr>
+<tr><td>Time: 2010-01-01T00:13:32Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>8.024335</longitude>
+              <latitude>47.534577</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T00:13:32Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>8.024335,47.534577,288.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-17</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 8.023403 </td></tr>
+<tr><td>Latitude: 47.532823 </td></tr>
+<tr><td>Altitude: 951.444 ft </td></tr>
+<tr><td>Speed: 10.1 mph </td></tr>
+<tr><td>Heading: 199.7 </td></tr>
+<tr><td>Time: 2010-01-01T00:14:18Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>8.023403</longitude>
+              <latitude>47.532823</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T00:14:18Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>8.023403,47.532823,290.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-18</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 8.023197 </td></tr>
+<tr><td>Latitude: 47.530918 </td></tr>
+<tr><td>Altitude: 948.163 ft </td></tr>
+<tr><td>Speed: 9.9 mph </td></tr>
+<tr><td>Heading: 184.2 </td></tr>
+<tr><td>Time: 2010-01-01T00:15:06Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>8.023197</longitude>
+              <latitude>47.530918</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T00:15:06Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>8.023197,47.530918,289.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-19</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 8.023291 </td></tr>
+<tr><td>Latitude: 47.528850 </td></tr>
+<tr><td>Altitude: 958.005 ft </td></tr>
+<tr><td>Speed: 10.1 mph </td></tr>
+<tr><td>Heading: 178.2 </td></tr>
+<tr><td>Time: 2010-01-01T00:15:57Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>8.023291</longitude>
+              <latitude>47.528850</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T00:15:57Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>8.023291,47.528850,292.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-20</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 8.023225 </td></tr>
+<tr><td>Latitude: 47.526985 </td></tr>
+<tr><td>Altitude: 954.724 ft </td></tr>
+<tr><td>Speed: 9.9 mph </td></tr>
+<tr><td>Heading: 181.4 </td></tr>
+<tr><td>Time: 2010-01-01T00:16:44Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>8.023225</longitude>
+              <latitude>47.526985</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T00:16:44Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>8.023225,47.526985,291.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-21</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 8.022220 </td></tr>
+<tr><td>Latitude: 47.525235 </td></tr>
+<tr><td>Altitude: 961.286 ft </td></tr>
+<tr><td>Speed: 10.2 mph </td></tr>
+<tr><td>Heading: 201.2 </td></tr>
+<tr><td>Time: 2010-01-01T00:17:30Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>8.022220</longitude>
+              <latitude>47.525235</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T00:17:30Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>8.022220,47.525235,293.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-22</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 8.021061 </td></tr>
+<tr><td>Latitude: 47.523557 </td></tr>
+<tr><td>Altitude: 958.005 ft </td></tr>
+<tr><td>Speed: 9.8 mph </td></tr>
+<tr><td>Heading: 205.0 </td></tr>
+<tr><td>Time: 2010-01-01T00:18:17Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>8.021061</longitude>
+              <latitude>47.523557</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T00:18:17Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>8.021061,47.523557,292.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-23</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 8.018998 </td></tr>
+<tr><td>Latitude: 47.522180 </td></tr>
+<tr><td>Altitude: 958.005 ft </td></tr>
+<tr><td>Speed: 10.2 mph </td></tr>
+<tr><td>Heading: 225.3 </td></tr>
+<tr><td>Time: 2010-01-01T00:19:05Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>8.018998</longitude>
+              <latitude>47.522180</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T00:19:05Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>8.018998,47.522180,292.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-24</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 8.016874 </td></tr>
+<tr><td>Latitude: 47.520754 </td></tr>
+<tr><td>Altitude: 974.409 ft </td></tr>
+<tr><td>Speed: 9.9 mph </td></tr>
+<tr><td>Heading: 225.2 </td></tr>
+<tr><td>Time: 2010-01-01T00:19:56Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>8.016874</longitude>
+              <latitude>47.520754</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T00:19:56Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>8.016874,47.520754,297.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-25</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 8.014798 </td></tr>
+<tr><td>Latitude: 47.519533 </td></tr>
+<tr><td>Altitude: 958.005 ft </td></tr>
+<tr><td>Speed: 10.1 mph </td></tr>
+<tr><td>Heading: 228.9 </td></tr>
+<tr><td>Time: 2010-01-01T00:20:42Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>8.014798</longitude>
+              <latitude>47.519533</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T00:20:42Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>8.014798,47.519533,292.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-26</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 8.012500 </td></tr>
+<tr><td>Latitude: 47.518607 </td></tr>
+<tr><td>Altitude: 967.848 ft </td></tr>
+<tr><td>Speed: 10.0 mph </td></tr>
+<tr><td>Heading: 239.2 </td></tr>
+<tr><td>Time: 2010-01-01T00:21:27Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>8.012500</longitude>
+              <latitude>47.518607</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T00:21:27Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>8.012500,47.518607,295.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-27</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 8.010922 </td></tr>
+<tr><td>Latitude: 47.516954 </td></tr>
+<tr><td>Altitude: 971.129 ft </td></tr>
+<tr><td>Speed: 10.0 mph </td></tr>
+<tr><td>Heading: 212.8 </td></tr>
+<tr><td>Time: 2010-01-01T00:22:16Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>8.010922</longitude>
+              <latitude>47.516954</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T00:22:16Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>8.010922,47.516954,296.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-28</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 8.009736 </td></tr>
+<tr><td>Latitude: 47.515289 </td></tr>
+<tr><td>Altitude: 967.848 ft </td></tr>
+<tr><td>Speed: 10.0 mph </td></tr>
+<tr><td>Heading: 205.7 </td></tr>
+<tr><td>Time: 2010-01-01T00:23:02Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>8.009736</longitude>
+              <latitude>47.515289</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T00:23:02Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>8.009736,47.515289,295.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-29</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 8.007926 </td></tr>
+<tr><td>Latitude: 47.513944 </td></tr>
+<tr><td>Altitude: 974.409 ft </td></tr>
+<tr><td>Speed: 10.1 mph </td></tr>
+<tr><td>Heading: 222.3 </td></tr>
+<tr><td>Time: 2010-01-01T00:23:47Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>8.007926</longitude>
+              <latitude>47.513944</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T00:23:47Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>8.007926,47.513944,297.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-30</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 8.006670 </td></tr>
+<tr><td>Latitude: 47.512307 </td></tr>
+<tr><td>Altitude: 971.129 ft </td></tr>
+<tr><td>Speed: 10.0 mph </td></tr>
+<tr><td>Heading: 207.4 </td></tr>
+<tr><td>Time: 2010-01-01T00:24:33Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>8.006670</longitude>
+              <latitude>47.512307</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T00:24:33Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>8.006670,47.512307,296.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-31</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 8.006382 </td></tr>
+<tr><td>Latitude: 47.510343 </td></tr>
+<tr><td>Altitude: 974.409 ft </td></tr>
+<tr><td>Speed: 10.0 mph </td></tr>
+<tr><td>Heading: 185.7 </td></tr>
+<tr><td>Time: 2010-01-01T00:25:22Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>8.006382</longitude>
+              <latitude>47.510343</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T00:25:22Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>8.006382,47.510343,297.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-32</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 8.005906 </td></tr>
+<tr><td>Latitude: 47.508641 </td></tr>
+<tr><td>Altitude: 974.409 ft </td></tr>
+<tr><td>Speed: 10.0 mph </td></tr>
+<tr><td>Heading: 190.7 </td></tr>
+<tr><td>Time: 2010-01-01T00:26:05Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>8.005906</longitude>
+              <latitude>47.508641</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T00:26:05Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>8.005906,47.508641,297.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-33</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 8.005340 </td></tr>
+<tr><td>Latitude: 47.506754 </td></tr>
+<tr><td>Altitude: 974.409 ft </td></tr>
+<tr><td>Speed: 10.0 mph </td></tr>
+<tr><td>Heading: 191.5 </td></tr>
+<tr><td>Time: 2010-01-01T00:26:53Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>8.005340</longitude>
+              <latitude>47.506754</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T00:26:53Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>8.005340,47.506754,297.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-34</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 8.005115 </td></tr>
+<tr><td>Latitude: 47.504896 </td></tr>
+<tr><td>Altitude: 980.971 ft </td></tr>
+<tr><td>Speed: 10.1 mph </td></tr>
+<tr><td>Heading: 184.7 </td></tr>
+<tr><td>Time: 2010-01-01T00:27:39Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>8.005115</longitude>
+              <latitude>47.504896</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T00:27:39Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>8.005115,47.504896,299.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-35</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 8.005736 </td></tr>
+<tr><td>Latitude: 47.503076 </td></tr>
+<tr><td>Altitude: 994.094 ft </td></tr>
+<tr><td>Speed: 9.9 mph </td></tr>
+<tr><td>Heading: 167.0 </td></tr>
+<tr><td>Time: 2010-01-01T00:28:26Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>8.005736</longitude>
+              <latitude>47.503076</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T00:28:26Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>8.005736,47.503076,303.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-36</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 8.006666 </td></tr>
+<tr><td>Latitude: 47.501370 </td></tr>
+<tr><td>Altitude: 990.814 ft </td></tr>
+<tr><td>Speed: 10.1 mph </td></tr>
+<tr><td>Heading: 159.8 </td></tr>
+<tr><td>Time: 2010-01-01T00:29:11Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>8.006666</longitude>
+              <latitude>47.501370</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T00:29:11Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>8.006666,47.501370,302.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-37</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 8.007281 </td></tr>
+<tr><td>Latitude: 47.499682 </td></tr>
+<tr><td>Altitude: 1003.937 ft </td></tr>
+<tr><td>Speed: 10.1 mph </td></tr>
+<tr><td>Heading: 166.2 </td></tr>
+<tr><td>Time: 2010-01-01T00:29:54Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>8.007281</longitude>
+              <latitude>47.499682</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T00:29:54Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>8.007281,47.499682,306.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-38</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 8.006302 </td></tr>
+<tr><td>Latitude: 47.497786 </td></tr>
+<tr><td>Altitude: 1003.937 ft </td></tr>
+<tr><td>Speed: 10.0 mph </td></tr>
+<tr><td>Heading: 199.2 </td></tr>
+<tr><td>Time: 2010-01-01T00:30:44Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>8.006302</longitude>
+              <latitude>47.497786</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T00:30:44Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>8.006302,47.497786,306.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-39</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 8.005202 </td></tr>
+<tr><td>Latitude: 47.496009 </td></tr>
+<tr><td>Altitude: 1007.218 ft </td></tr>
+<tr><td>Speed: 10.0 mph </td></tr>
+<tr><td>Heading: 202.7 </td></tr>
+<tr><td>Time: 2010-01-01T00:31:32Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>8.005202</longitude>
+              <latitude>47.496009</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T00:31:32Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>8.005202,47.496009,307.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-40</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 8.004143 </td></tr>
+<tr><td>Latitude: 47.494307 </td></tr>
+<tr><td>Altitude: 1010.499 ft </td></tr>
+<tr><td>Speed: 10.0 mph </td></tr>
+<tr><td>Heading: 202.8 </td></tr>
+<tr><td>Time: 2010-01-01T00:32:18Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>8.004143</longitude>
+              <latitude>47.494307</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T00:32:18Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>8.004143,47.494307,308.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-41</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 8.003226 </td></tr>
+<tr><td>Latitude: 47.492550 </td></tr>
+<tr><td>Altitude: 1013.780 ft </td></tr>
+<tr><td>Speed: 10.1 mph </td></tr>
+<tr><td>Heading: 199.4 </td></tr>
+<tr><td>Time: 2010-01-01T00:33:04Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>8.003226</longitude>
+              <latitude>47.492550</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T00:33:04Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>8.003226,47.492550,309.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-42</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 8.002239 </td></tr>
+<tr><td>Latitude: 47.490734 </td></tr>
+<tr><td>Altitude: 1017.060 ft </td></tr>
+<tr><td>Speed: 10.0 mph </td></tr>
+<tr><td>Heading: 200.2 </td></tr>
+<tr><td>Time: 2010-01-01T00:33:52Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>8.002239</longitude>
+              <latitude>47.490734</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T00:33:52Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>8.002239,47.490734,310.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-43</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 8.001135 </td></tr>
+<tr><td>Latitude: 47.488999 </td></tr>
+<tr><td>Altitude: 1017.060 ft </td></tr>
+<tr><td>Speed: 10.0 mph </td></tr>
+<tr><td>Heading: 203.3 </td></tr>
+<tr><td>Time: 2010-01-01T00:34:39Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>8.001135</longitude>
+              <latitude>47.488999</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T00:34:39Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>8.001135,47.488999,310.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-44</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 8.000190 </td></tr>
+<tr><td>Latitude: 47.487258 </td></tr>
+<tr><td>Altitude: 1030.184 ft </td></tr>
+<tr><td>Speed: 9.8 mph </td></tr>
+<tr><td>Heading: 200.1 </td></tr>
+<tr><td>Time: 2010-01-01T00:35:26Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>8.000190</longitude>
+              <latitude>47.487258</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T00:35:26Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>8.000190,47.487258,314.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-45</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.998930 </td></tr>
+<tr><td>Latitude: 47.485635 </td></tr>
+<tr><td>Altitude: 1053.150 ft </td></tr>
+<tr><td>Speed: 10.1 mph </td></tr>
+<tr><td>Heading: 207.7 </td></tr>
+<tr><td>Time: 2010-01-01T00:36:11Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.998930</longitude>
+              <latitude>47.485635</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T00:36:11Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.998930,47.485635,321.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-46</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.997585 </td></tr>
+<tr><td>Latitude: 47.484069 </td></tr>
+<tr><td>Altitude: 1066.273 ft </td></tr>
+<tr><td>Speed: 10.0 mph </td></tr>
+<tr><td>Heading: 210.1 </td></tr>
+<tr><td>Time: 2010-01-01T00:36:56Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.997585</longitude>
+              <latitude>47.484069</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T00:36:56Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.997585,47.484069,325.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-47</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.994973 </td></tr>
+<tr><td>Latitude: 47.483817 </td></tr>
+<tr><td>Altitude: 1062.992 ft </td></tr>
+<tr><td>Speed: 9.9 mph </td></tr>
+<tr><td>Heading: 261.9 </td></tr>
+<tr><td>Time: 2010-01-01T00:37:41Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.994973</longitude>
+              <latitude>47.483817</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T00:37:41Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.994973,47.483817,324.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-48</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.992208 </td></tr>
+<tr><td>Latitude: 47.484241 </td></tr>
+<tr><td>Altitude: 1062.992 ft </td></tr>
+<tr><td>Speed: 10.2 mph </td></tr>
+<tr><td>Heading: 282.8 </td></tr>
+<tr><td>Time: 2010-01-01T00:38:28Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.992208</longitude>
+              <latitude>47.484241</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T00:38:28Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.992208,47.484241,324.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-49</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.990293 </td></tr>
+<tr><td>Latitude: 47.485400 </td></tr>
+<tr><td>Altitude: 1053.150 ft </td></tr>
+<tr><td>Speed: 9.8 mph </td></tr>
+<tr><td>Heading: 311.8 </td></tr>
+<tr><td>Time: 2010-01-01T00:39:12Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.990293</longitude>
+              <latitude>47.485400</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T00:39:12Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.990293,47.485400,321.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-50</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.987806 </td></tr>
+<tr><td>Latitude: 47.486042 </td></tr>
+<tr><td>Altitude: 1053.150 ft </td></tr>
+<tr><td>Speed: 10.2 mph </td></tr>
+<tr><td>Heading: 290.9 </td></tr>
+<tr><td>Time: 2010-01-01T00:39:56Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.987806</longitude>
+              <latitude>47.486042</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T00:39:56Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.987806,47.486042,321.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-51</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.985003 </td></tr>
+<tr><td>Latitude: 47.486059 </td></tr>
+<tr><td>Altitude: 1059.711 ft </td></tr>
+<tr><td>Speed: 10.0 mph </td></tr>
+<tr><td>Heading: 270.5 </td></tr>
+<tr><td>Time: 2010-01-01T00:40:43Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.985003</longitude>
+              <latitude>47.486059</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T00:40:43Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.985003,47.486059,323.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-52</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.982385 </td></tr>
+<tr><td>Latitude: 47.486342 </td></tr>
+<tr><td>Altitude: 1082.677 ft </td></tr>
+<tr><td>Speed: 9.9 mph </td></tr>
+<tr><td>Heading: 279.1 </td></tr>
+<tr><td>Time: 2010-01-01T00:41:28Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.982385</longitude>
+              <latitude>47.486342</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T00:41:28Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.982385,47.486342,330.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-53</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.979732 </td></tr>
+<tr><td>Latitude: 47.486750 </td></tr>
+<tr><td>Altitude: 1092.520 ft </td></tr>
+<tr><td>Speed: 10.0 mph </td></tr>
+<tr><td>Heading: 282.8 </td></tr>
+<tr><td>Time: 2010-01-01T00:42:14Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.979732</longitude>
+              <latitude>47.486750</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T00:42:14Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.979732,47.486750,333.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-54</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.976955 </td></tr>
+<tr><td>Latitude: 47.486869 </td></tr>
+<tr><td>Altitude: 1112.205 ft </td></tr>
+<tr><td>Speed: 10.2 mph </td></tr>
+<tr><td>Heading: 273.6 </td></tr>
+<tr><td>Time: 2010-01-01T00:43:00Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.976955</longitude>
+              <latitude>47.486869</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T00:43:00Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.976955,47.486869,339.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-55</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.974193 </td></tr>
+<tr><td>Latitude: 47.486992 </td></tr>
+<tr><td>Altitude: 1122.047 ft </td></tr>
+<tr><td>Speed: 9.9 mph </td></tr>
+<tr><td>Heading: 273.8 </td></tr>
+<tr><td>Time: 2010-01-01T00:43:47Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.974193</longitude>
+              <latitude>47.486992</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T00:43:47Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.974193,47.486992,342.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-56</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.971606 </td></tr>
+<tr><td>Latitude: 47.487513 </td></tr>
+<tr><td>Altitude: 1141.732 ft </td></tr>
+<tr><td>Speed: 10.1 mph </td></tr>
+<tr><td>Heading: 286.6 </td></tr>
+<tr><td>Time: 2010-01-01T00:44:32Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.971606</longitude>
+              <latitude>47.487513</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T00:44:32Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.971606,47.487513,348.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-57</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.969063 </td></tr>
+<tr><td>Latitude: 47.488302 </td></tr>
+<tr><td>Altitude: 1164.698 ft </td></tr>
+<tr><td>Speed: 10.0 mph </td></tr>
+<tr><td>Heading: 294.7 </td></tr>
+<tr><td>Time: 2010-01-01T00:45:19Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.969063</longitude>
+              <latitude>47.488302</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T00:45:19Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.969063,47.488302,355.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-58</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.966364 </td></tr>
+<tr><td>Latitude: 47.488970 </td></tr>
+<tr><td>Altitude: 1171.260 ft </td></tr>
+<tr><td>Speed: 9.9 mph </td></tr>
+<tr><td>Heading: 290.1 </td></tr>
+<tr><td>Time: 2010-01-01T00:46:08Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.966364</longitude>
+              <latitude>47.488970</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T00:46:08Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.966364,47.488970,357.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-59</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.963582 </td></tr>
+<tr><td>Latitude: 47.489243 </td></tr>
+<tr><td>Altitude: 1190.945 ft </td></tr>
+<tr><td>Speed: 10.1 mph </td></tr>
+<tr><td>Heading: 278.3 </td></tr>
+<tr><td>Time: 2010-01-01T00:46:55Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.963582</longitude>
+              <latitude>47.489243</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T00:46:55Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.963582,47.489243,363.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-60</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.960906 </td></tr>
+<tr><td>Latitude: 47.489088 </td></tr>
+<tr><td>Altitude: 1197.507 ft </td></tr>
+<tr><td>Speed: 10.0 mph </td></tr>
+<tr><td>Heading: 265.1 </td></tr>
+<tr><td>Time: 2010-01-01T00:47:40Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.960906</longitude>
+              <latitude>47.489088</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T00:47:40Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.960906,47.489088,365.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-61</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.958160 </td></tr>
+<tr><td>Latitude: 47.489386 </td></tr>
+<tr><td>Altitude: 1217.192 ft </td></tr>
+<tr><td>Speed: 10.0 mph </td></tr>
+<tr><td>Heading: 279.1 </td></tr>
+<tr><td>Time: 2010-01-01T00:48:27Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.958160</longitude>
+              <latitude>47.489386</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T00:48:27Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.958160,47.489386,371.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-62</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.955337 </td></tr>
+<tr><td>Latitude: 47.489391 </td></tr>
+<tr><td>Altitude: 1230.315 ft </td></tr>
+<tr><td>Speed: 10.1 mph </td></tr>
+<tr><td>Heading: 270.1 </td></tr>
+<tr><td>Time: 2010-01-01T00:49:14Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.955337</longitude>
+              <latitude>47.489391</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T00:49:14Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.955337,47.489391,375.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-63</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.952394 </td></tr>
+<tr><td>Latitude: 47.489046 </td></tr>
+<tr><td>Altitude: 1233.596 ft </td></tr>
+<tr><td>Speed: 9.9 mph </td></tr>
+<tr><td>Heading: 260.2 </td></tr>
+<tr><td>Time: 2010-01-01T00:50:05Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.952394</longitude>
+              <latitude>47.489046</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T00:50:05Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.952394,47.489046,376.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-64</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.949694 </td></tr>
+<tr><td>Latitude: 47.488991 </td></tr>
+<tr><td>Altitude: 1236.877 ft </td></tr>
+<tr><td>Speed: 10.1 mph </td></tr>
+<tr><td>Heading: 268.3 </td></tr>
+<tr><td>Time: 2010-01-01T00:50:50Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.949694</longitude>
+              <latitude>47.488991</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T00:50:50Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.949694,47.488991,377.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-65</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.948625 </td></tr>
+<tr><td>Latitude: 47.488669 </td></tr>
+<tr><td>Altitude: 1266.404 ft </td></tr>
+<tr><td>Speed: 9.8 mph </td></tr>
+<tr><td>Heading: 246.0 </td></tr>
+<tr><td>Time: 2010-01-01T00:51:10Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.948625</longitude>
+              <latitude>47.488669</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T00:51:10Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.948625,47.488669,386.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-66</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.948626 </td></tr>
+<tr><td>Latitude: 47.486984 </td></tr>
+<tr><td>Altitude: 1266.404 ft </td></tr>
+<tr><td>Speed: 10.0 mph </td></tr>
+<tr><td>Heading: 180.0 </td></tr>
+<tr><td>Time: 2010-01-01T00:51:52Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.948626</longitude>
+              <latitude>47.486984</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T00:51:52Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.948626,47.486984,386.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-67</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.948675 </td></tr>
+<tr><td>Latitude: 47.485194 </td></tr>
+<tr><td>Altitude: 1279.528 ft </td></tr>
+<tr><td>Speed: 10.1 mph </td></tr>
+<tr><td>Heading: 178.9 </td></tr>
+<tr><td>Time: 2010-01-01T00:52:36Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.948675</longitude>
+              <latitude>47.485194</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T00:52:36Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.948675,47.485194,390.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-68</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.948915 </td></tr>
+<tr><td>Latitude: 47.483412 </td></tr>
+<tr><td>Altitude: 1305.774 ft </td></tr>
+<tr><td>Speed: 9.9 mph </td></tr>
+<tr><td>Heading: 174.8 </td></tr>
+<tr><td>Time: 2010-01-01T00:53:21Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.948915</longitude>
+              <latitude>47.483412</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T00:53:21Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.948915,47.483412,398.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-69</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.949416 </td></tr>
+<tr><td>Latitude: 47.481632 </td></tr>
+<tr><td>Altitude: 1332.021 ft </td></tr>
+<tr><td>Speed: 10.0 mph </td></tr>
+<tr><td>Heading: 169.2 </td></tr>
+<tr><td>Time: 2010-01-01T00:54:06Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.949416</longitude>
+              <latitude>47.481632</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T00:54:06Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.949416,47.481632,406.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-70</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.948430 </td></tr>
+<tr><td>Latitude: 47.480007 </td></tr>
+<tr><td>Altitude: 1371.391 ft </td></tr>
+<tr><td>Speed: 10.2 mph </td></tr>
+<tr><td>Heading: 202.3 </td></tr>
+<tr><td>Time: 2010-01-01T00:54:49Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.948430</longitude>
+              <latitude>47.480007</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T00:54:49Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.948430,47.480007,418.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-71</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.946426 </td></tr>
+<tr><td>Latitude: 47.478825 </td></tr>
+<tr><td>Altitude: 1414.042 ft </td></tr>
+<tr><td>Speed: 9.9 mph </td></tr>
+<tr><td>Heading: 228.9 </td></tr>
+<tr><td>Time: 2010-01-01T00:55:34Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.946426</longitude>
+              <latitude>47.478825</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T00:55:34Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.946426,47.478825,431.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-72</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.945143 </td></tr>
+<tr><td>Latitude: 47.477245 </td></tr>
+<tr><td>Altitude: 1473.097 ft </td></tr>
+<tr><td>Speed: 10.0 mph </td></tr>
+<tr><td>Heading: 208.8 </td></tr>
+<tr><td>Time: 2010-01-01T00:56:19Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.945143</longitude>
+              <latitude>47.477245</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T00:56:19Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.945143,47.477245,449.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-73</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.943755 </td></tr>
+<tr><td>Latitude: 47.475702 </td></tr>
+<tr><td>Altitude: 1574.803 ft </td></tr>
+<tr><td>Speed: 10.0 mph </td></tr>
+<tr><td>Heading: 211.3 </td></tr>
+<tr><td>Time: 2010-01-01T00:57:04Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.943755</longitude>
+              <latitude>47.475702</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T00:57:04Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.943755,47.475702,480.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-74</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.941953 </td></tr>
+<tr><td>Latitude: 47.474340 </td></tr>
+<tr><td>Altitude: 1640.420 ft </td></tr>
+<tr><td>Speed: 10.1 mph </td></tr>
+<tr><td>Heading: 221.8 </td></tr>
+<tr><td>Time: 2010-01-01T00:57:49Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.941953</longitude>
+              <latitude>47.474340</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T00:57:49Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.941953,47.474340,500.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-75</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.940174 </td></tr>
+<tr><td>Latitude: 47.472876 </td></tr>
+<tr><td>Altitude: 1666.667 ft </td></tr>
+<tr><td>Speed: 9.8 mph </td></tr>
+<tr><td>Heading: 219.4 </td></tr>
+<tr><td>Time: 2010-01-01T00:58:37Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.940174</longitude>
+              <latitude>47.472876</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T00:58:37Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.940174,47.472876,508.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-76</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.938961 </td></tr>
+<tr><td>Latitude: 47.471057 </td></tr>
+<tr><td>Altitude: 1686.352 ft </td></tr>
+<tr><td>Speed: 10.1 mph </td></tr>
+<tr><td>Heading: 204.3 </td></tr>
+<tr><td>Time: 2010-01-01T00:59:26Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.938961</longitude>
+              <latitude>47.471057</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T00:59:26Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.938961,47.471057,514.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-77</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.937313 </td></tr>
+<tr><td>Latitude: 47.469654 </td></tr>
+<tr><td>Altitude: 1663.386 ft </td></tr>
+<tr><td>Speed: 9.9 mph </td></tr>
+<tr><td>Heading: 218.5 </td></tr>
+<tr><td>Time: 2010-01-01T01:00:11Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.937313</longitude>
+              <latitude>47.469654</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T01:00:11Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.937313,47.469654,507.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-78</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.935761 </td></tr>
+<tr><td>Latitude: 47.470974 </td></tr>
+<tr><td>Altitude: 1715.879 ft </td></tr>
+<tr><td>Speed: 10.0 mph </td></tr>
+<tr><td>Heading: 321.5 </td></tr>
+<tr><td>Time: 2010-01-01T01:00:53Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.935761</longitude>
+              <latitude>47.470974</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T01:00:53Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.935761,47.470974,523.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-79</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.933330 </td></tr>
+<tr><td>Latitude: 47.471707 </td></tr>
+<tr><td>Altitude: 1738.845 ft </td></tr>
+<tr><td>Speed: 10.2 mph </td></tr>
+<tr><td>Heading: 294.0 </td></tr>
+<tr><td>Time: 2010-01-01T01:01:37Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.933330</longitude>
+              <latitude>47.471707</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T01:01:37Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.933330,47.471707,530.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-80</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.930714 </td></tr>
+<tr><td>Latitude: 47.471886 </td></tr>
+<tr><td>Altitude: 1748.688 ft </td></tr>
+<tr><td>Speed: 9.8 mph </td></tr>
+<tr><td>Heading: 275.8 </td></tr>
+<tr><td>Time: 2010-01-01T01:02:22Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.930714</longitude>
+              <latitude>47.471886</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T01:02:22Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.930714,47.471886,533.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-81</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.928180 </td></tr>
+<tr><td>Latitude: 47.471327 </td></tr>
+<tr><td>Altitude: 1751.969 ft </td></tr>
+<tr><td>Speed: 10.0 mph </td></tr>
+<tr><td>Heading: 251.9 </td></tr>
+<tr><td>Time: 2010-01-01T01:03:07Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.928180</longitude>
+              <latitude>47.471327</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T01:03:07Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.928180,47.471327,534.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-82</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.925741 </td></tr>
+<tr><td>Latitude: 47.470488 </td></tr>
+<tr><td>Altitude: 1715.879 ft </td></tr>
+<tr><td>Speed: 10.0 mph </td></tr>
+<tr><td>Heading: 243.0 </td></tr>
+<tr><td>Time: 2010-01-01T01:03:53Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.925741</longitude>
+              <latitude>47.470488</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T01:03:53Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.925741,47.470488,523.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-83</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.923512 </td></tr>
+<tr><td>Latitude: 47.469412 </td></tr>
+<tr><td>Altitude: 1673.228 ft </td></tr>
+<tr><td>Speed: 10.0 mph </td></tr>
+<tr><td>Heading: 234.5 </td></tr>
+<tr><td>Time: 2010-01-01T01:04:39Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.923512</longitude>
+              <latitude>47.469412</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T01:04:39Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.923512,47.469412,510.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-84</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.921427 </td></tr>
+<tr><td>Latitude: 47.468268 </td></tr>
+<tr><td>Altitude: 1686.352 ft </td></tr>
+<tr><td>Speed: 10.0 mph </td></tr>
+<tr><td>Heading: 230.9 </td></tr>
+<tr><td>Time: 2010-01-01T01:05:24Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.921427</longitude>
+              <latitude>47.468268</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T01:05:24Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.921427,47.468268,514.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-85</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.918991 </td></tr>
+<tr><td>Latitude: 47.467570 </td></tr>
+<tr><td>Altitude: 1686.352 ft </td></tr>
+<tr><td>Speed: 10.1 mph </td></tr>
+<tr><td>Heading: 247.0 </td></tr>
+<tr><td>Time: 2010-01-01T01:06:08Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.918991</longitude>
+              <latitude>47.467570</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T01:06:08Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.918991,47.467570,514.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-86</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.916479 </td></tr>
+<tr><td>Latitude: 47.467106 </td></tr>
+<tr><td>Altitude: 1696.194 ft </td></tr>
+<tr><td>Speed: 10.0 mph </td></tr>
+<tr><td>Heading: 254.7 </td></tr>
+<tr><td>Time: 2010-01-01T01:06:52Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.916479</longitude>
+              <latitude>47.467106</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T01:06:52Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.916479,47.467106,517.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-87</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.914841 </td></tr>
+<tr><td>Latitude: 47.465780 </td></tr>
+<tr><td>Altitude: 1729.003 ft </td></tr>
+<tr><td>Speed: 10.0 mph </td></tr>
+<tr><td>Heading: 219.9 </td></tr>
+<tr><td>Time: 2010-01-01T01:07:35Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.914841</longitude>
+              <latitude>47.465780</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T01:07:35Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.914841,47.465780,527.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-88</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.914073 </td></tr>
+<tr><td>Latitude: 47.464059 </td></tr>
+<tr><td>Altitude: 1755.249 ft </td></tr>
+<tr><td>Speed: 9.9 mph </td></tr>
+<tr><td>Heading: 196.8 </td></tr>
+<tr><td>Time: 2010-01-01T01:08:20Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.914073</longitude>
+              <latitude>47.464059</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T01:08:20Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.914073,47.464059,535.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-89</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.913893 </td></tr>
+<tr><td>Latitude: 47.462304 </td></tr>
+<tr><td>Altitude: 1807.743 ft </td></tr>
+<tr><td>Speed: 10.0 mph </td></tr>
+<tr><td>Heading: 184.0 </td></tr>
+<tr><td>Time: 2010-01-01T01:09:04Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.913893</longitude>
+              <latitude>47.462304</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T01:09:04Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.913893,47.462304,551.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-90</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.912421 </td></tr>
+<tr><td>Latitude: 47.460899 </td></tr>
+<tr><td>Altitude: 1870.079 ft </td></tr>
+<tr><td>Speed: 10.2 mph </td></tr>
+<tr><td>Heading: 215.3 </td></tr>
+<tr><td>Time: 2010-01-01T01:09:46Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.912421</longitude>
+              <latitude>47.460899</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T01:09:46Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.912421,47.460899,570.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-91</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.910666 </td></tr>
+<tr><td>Latitude: 47.459561 </td></tr>
+<tr><td>Altitude: 1978.346 ft </td></tr>
+<tr><td>Speed: 9.9 mph </td></tr>
+<tr><td>Heading: 221.6 </td></tr>
+<tr><td>Time: 2010-01-01T01:10:31Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.910666</longitude>
+              <latitude>47.459561</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T01:10:31Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.910666,47.459561,603.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-92</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.909006 </td></tr>
+<tr><td>Latitude: 47.458111 </td></tr>
+<tr><td>Altitude: 1978.346 ft </td></tr>
+<tr><td>Speed: 10.1 mph </td></tr>
+<tr><td>Heading: 217.7 </td></tr>
+<tr><td>Time: 2010-01-01T01:11:16Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.909006</longitude>
+              <latitude>47.458111</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T01:11:16Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.909006,47.458111,603.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-93</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.906491 </td></tr>
+<tr><td>Latitude: 47.457363 </td></tr>
+<tr><td>Altitude: 2080.052 ft </td></tr>
+<tr><td>Speed: 9.8 mph </td></tr>
+<tr><td>Heading: 246.3 </td></tr>
+<tr><td>Time: 2010-01-01T01:12:03Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.906491</longitude>
+              <latitude>47.457363</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T01:12:03Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.906491,47.457363,634.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-94</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.904187 </td></tr>
+<tr><td>Latitude: 47.456538 </td></tr>
+<tr><td>Altitude: 2155.512 ft </td></tr>
+<tr><td>Speed: 10.0 mph </td></tr>
+<tr><td>Heading: 242.1 </td></tr>
+<tr><td>Time: 2010-01-01T01:12:47Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.904187</longitude>
+              <latitude>47.456538</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T01:12:47Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.904187,47.456538,657.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-95</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.901384 </td></tr>
+<tr><td>Latitude: 47.456428 </td></tr>
+<tr><td>Altitude: 2178.478 ft </td></tr>
+<tr><td>Speed: 10.1 mph </td></tr>
+<tr><td>Heading: 266.7 </td></tr>
+<tr><td>Time: 2010-01-01T01:13:34Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.901384</longitude>
+              <latitude>47.456428</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T01:13:34Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.901384,47.456428,664.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-96</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.901122 </td></tr>
+<tr><td>Latitude: 47.455329 </td></tr>
+<tr><td>Altitude: 2165.354 ft </td></tr>
+<tr><td>Speed: 10.3 mph </td></tr>
+<tr><td>Heading: 189.2 </td></tr>
+<tr><td>Time: 2010-01-01T01:14:01Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.901122</longitude>
+              <latitude>47.455329</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T01:14:01Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.901122,47.455329,660.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-97</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.902365 </td></tr>
+<tr><td>Latitude: 47.453629 </td></tr>
+<tr><td>Altitude: 2306.430 ft </td></tr>
+<tr><td>Speed: 9.8 mph </td></tr>
+<tr><td>Heading: 153.7 </td></tr>
+<tr><td>Time: 2010-01-01T01:14:49Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.902365</longitude>
+              <latitude>47.453629</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T01:14:49Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.902365,47.453629,703.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-98</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.903612 </td></tr>
+<tr><td>Latitude: 47.451959 </td></tr>
+<tr><td>Altitude: 2355.643 ft </td></tr>
+<tr><td>Speed: 10.1 mph </td></tr>
+<tr><td>Heading: 153.2 </td></tr>
+<tr><td>Time: 2010-01-01T01:15:35Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.903612</longitude>
+              <latitude>47.451959</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T01:15:35Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.903612,47.451959,718.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-99</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.905652 </td></tr>
+<tr><td>Latitude: 47.450832 </td></tr>
+<tr><td>Altitude: 2444.226 ft </td></tr>
+<tr><td>Speed: 9.9 mph </td></tr>
+<tr><td>Heading: 129.2 </td></tr>
+<tr><td>Time: 2010-01-01T01:16:20Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.905652</longitude>
+              <latitude>47.450832</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T01:16:20Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.905652,47.450832,745.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-100</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.907802 </td></tr>
+<tr><td>Latitude: 47.450560 </td></tr>
+<tr><td>Altitude: 2490.157 ft </td></tr>
+<tr><td>Speed: 10.2 mph </td></tr>
+<tr><td>Heading: 100.6 </td></tr>
+<tr><td>Time: 2010-01-01T01:16:56Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.907802</longitude>
+              <latitude>47.450560</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T01:16:56Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.907802,47.450560,759.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-101</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.907609 </td></tr>
+<tr><td>Latitude: 47.449881 </td></tr>
+<tr><td>Altitude: 2480.315 ft </td></tr>
+<tr><td>Speed: 9.6 mph </td></tr>
+<tr><td>Heading: 190.9 </td></tr>
+<tr><td>Time: 2010-01-01T01:17:14Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.907609</longitude>
+              <latitude>47.449881</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T01:17:14Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.907609,47.449881,756.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-102</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.905054 </td></tr>
+<tr><td>Latitude: 47.449173 </td></tr>
+<tr><td>Altitude: 2486.877 ft </td></tr>
+<tr><td>Speed: 10.1 mph </td></tr>
+<tr><td>Heading: 247.7 </td></tr>
+<tr><td>Time: 2010-01-01T01:18:00Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.905054</longitude>
+              <latitude>47.449173</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T01:18:00Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.905054,47.449173,758.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-103</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.902202 </td></tr>
+<tr><td>Latitude: 47.449295 </td></tr>
+<tr><td>Altitude: 2555.774 ft </td></tr>
+<tr><td>Speed: 10.0 mph </td></tr>
+<tr><td>Heading: 273.6 </td></tr>
+<tr><td>Time: 2010-01-01T01:18:48Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.902202</longitude>
+              <latitude>47.449295</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T01:18:48Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.902202,47.449295,779.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-104</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.899527 </td></tr>
+<tr><td>Latitude: 47.449391 </td></tr>
+<tr><td>Altitude: 2572.178 ft </td></tr>
+<tr><td>Speed: 10.0 mph </td></tr>
+<tr><td>Heading: 273.0 </td></tr>
+<tr><td>Time: 2010-01-01T01:19:33Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.899527</longitude>
+              <latitude>47.449391</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T01:19:33Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.899527,47.449391,784.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-105</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.896703 </td></tr>
+<tr><td>Latitude: 47.449122 </td></tr>
+<tr><td>Altitude: 2595.144 ft </td></tr>
+<tr><td>Speed: 10.0 mph </td></tr>
+<tr><td>Heading: 262.0 </td></tr>
+<tr><td>Time: 2010-01-01T01:20:21Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.896703</longitude>
+              <latitude>47.449122</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T01:20:21Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.896703,47.449122,791.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-106</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.894177 </td></tr>
+<tr><td>Latitude: 47.448391 </td></tr>
+<tr><td>Altitude: 2621.391 ft </td></tr>
+<tr><td>Speed: 10.1 mph </td></tr>
+<tr><td>Heading: 246.8 </td></tr>
+<tr><td>Time: 2010-01-01T01:21:07Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.894177</longitude>
+              <latitude>47.448391</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T01:21:07Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.894177,47.448391,799.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-107</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.891705 </td></tr>
+<tr><td>Latitude: 47.447639 </td></tr>
+<tr><td>Altitude: 2621.391 ft </td></tr>
+<tr><td>Speed: 9.9 mph </td></tr>
+<tr><td>Heading: 245.8 </td></tr>
+<tr><td>Time: 2010-01-01T01:21:53Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.891705</longitude>
+              <latitude>47.447639</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T01:21:53Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.891705,47.447639,799.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-108</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.889218 </td></tr>
+<tr><td>Latitude: 47.446781 </td></tr>
+<tr><td>Altitude: 2637.795 ft </td></tr>
+<tr><td>Speed: 10.0 mph </td></tr>
+<tr><td>Heading: 243.0 </td></tr>
+<tr><td>Time: 2010-01-01T01:22:40Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.889218</longitude>
+              <latitude>47.446781</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T01:22:40Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.889218,47.446781,804.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-109</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.886668 </td></tr>
+<tr><td>Latitude: 47.445792 </td></tr>
+<tr><td>Altitude: 2654.199 ft </td></tr>
+<tr><td>Speed: 10.1 mph </td></tr>
+<tr><td>Heading: 240.2 </td></tr>
+<tr><td>Time: 2010-01-01T01:23:29Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.886668</longitude>
+              <latitude>47.445792</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T01:23:29Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.886668,47.445792,809.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-110</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.884208 </td></tr>
+<tr><td>Latitude: 47.445029 </td></tr>
+<tr><td>Altitude: 2664.042 ft </td></tr>
+<tr><td>Speed: 9.9 mph </td></tr>
+<tr><td>Heading: 245.4 </td></tr>
+<tr><td>Time: 2010-01-01T01:24:15Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.884208</longitude>
+              <latitude>47.445029</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T01:24:15Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.884208,47.445029,812.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-111</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.881705 </td></tr>
+<tr><td>Latitude: 47.444573 </td></tr>
+<tr><td>Altitude: 2614.829 ft </td></tr>
+<tr><td>Speed: 9.9 mph </td></tr>
+<tr><td>Heading: 254.9 </td></tr>
+<tr><td>Time: 2010-01-01T01:24:59Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.881705</longitude>
+              <latitude>47.444573</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T01:24:59Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.881705,47.444573,797.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-112</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.879126 </td></tr>
+<tr><td>Latitude: 47.444016 </td></tr>
+<tr><td>Altitude: 2650.919 ft </td></tr>
+<tr><td>Speed: 10.1 mph </td></tr>
+<tr><td>Heading: 252.3 </td></tr>
+<tr><td>Time: 2010-01-01T01:25:44Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.879126</longitude>
+              <latitude>47.444016</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T01:25:44Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.879126,47.444016,808.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-113</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.877790 </td></tr>
+<tr><td>Latitude: 47.442833 </td></tr>
+<tr><td>Altitude: 2641.076 ft </td></tr>
+<tr><td>Speed: 10.0 mph </td></tr>
+<tr><td>Heading: 217.4 </td></tr>
+<tr><td>Time: 2010-01-01T01:26:21Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.877790</longitude>
+              <latitude>47.442833</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T01:26:21Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.877790,47.442833,805.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-114</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.876297 </td></tr>
+<tr><td>Latitude: 47.441505 </td></tr>
+<tr><td>Altitude: 2614.829 ft </td></tr>
+<tr><td>Speed: 9.9 mph </td></tr>
+<tr><td>Heading: 217.2 </td></tr>
+<tr><td>Time: 2010-01-01T01:27:03Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.876297</longitude>
+              <latitude>47.441505</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T01:27:03Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.876297,47.441505,797.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-115</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.873865 </td></tr>
+<tr><td>Latitude: 47.440617 </td></tr>
+<tr><td>Altitude: 2591.864 ft </td></tr>
+<tr><td>Speed: 10.1 mph </td></tr>
+<tr><td>Heading: 241.6 </td></tr>
+<tr><td>Time: 2010-01-01T01:27:49Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.873865</longitude>
+              <latitude>47.440617</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T01:27:49Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.873865,47.440617,790.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-116</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.871418 </td></tr>
+<tr><td>Latitude: 47.439798 </td></tr>
+<tr><td>Altitude: 2559.055 ft </td></tr>
+<tr><td>Speed: 10.0 mph </td></tr>
+<tr><td>Heading: 243.7 </td></tr>
+<tr><td>Time: 2010-01-01T01:28:35Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.871418</longitude>
+              <latitude>47.439798</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T01:28:35Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.871418,47.439798,780.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-117</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.869749 </td></tr>
+<tr><td>Latitude: 47.441193 </td></tr>
+<tr><td>Altitude: 2542.651 ft </td></tr>
+<tr><td>Speed: 9.9 mph </td></tr>
+<tr><td>Heading: 321.0 </td></tr>
+<tr><td>Time: 2010-01-01T01:29:20Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.869749</longitude>
+              <latitude>47.441193</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T01:29:20Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.869749,47.441193,775.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-118</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.870992 </td></tr>
+<tr><td>Latitude: 47.442958 </td></tr>
+<tr><td>Altitude: 2460.630 ft </td></tr>
+<tr><td>Speed: 10.1 mph </td></tr>
+<tr><td>Heading: 25.5 </td></tr>
+<tr><td>Time: 2010-01-01T01:30:08Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.870992</longitude>
+              <latitude>47.442958</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T01:30:08Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.870992,47.442958,750.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-119</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.868755 </td></tr>
+<tr><td>Latitude: 47.443081 </td></tr>
+<tr><td>Altitude: 2467.192 ft </td></tr>
+<tr><td>Speed: 9.9 mph </td></tr>
+<tr><td>Heading: 274.7 </td></tr>
+<tr><td>Time: 2010-01-01T01:30:46Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.868755</longitude>
+              <latitude>47.443081</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T01:30:46Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.868755,47.443081,752.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-120</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.866484 </td></tr>
+<tr><td>Latitude: 47.442073 </td></tr>
+<tr><td>Altitude: 2365.486 ft </td></tr>
+<tr><td>Speed: 9.9 mph </td></tr>
+<tr><td>Heading: 236.7 </td></tr>
+<tr><td>Time: 2010-01-01T01:31:32Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.866484</longitude>
+              <latitude>47.442073</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T01:31:32Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.866484,47.442073,721.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-121</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.864342 </td></tr>
+<tr><td>Latitude: 47.441214 </td></tr>
+<tr><td>Altitude: 2365.486 ft </td></tr>
+<tr><td>Speed: 10.0 mph </td></tr>
+<tr><td>Heading: 239.3 </td></tr>
+<tr><td>Time: 2010-01-01T01:32:14Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.864342</longitude>
+              <latitude>47.441214</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T01:32:14Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.864342,47.441214,721.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-122</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.861644 </td></tr>
+<tr><td>Latitude: 47.440803 </td></tr>
+<tr><td>Altitude: 2381.890 ft </td></tr>
+<tr><td>Speed: 10.1 mph </td></tr>
+<tr><td>Heading: 257.3 </td></tr>
+<tr><td>Time: 2010-01-01T01:33:00Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.861644</longitude>
+              <latitude>47.440803</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T01:33:00Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.861644,47.440803,726.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-123</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.859374 </td></tr>
+<tr><td>Latitude: 47.439439 </td></tr>
+<tr><td>Altitude: 2316.273 ft </td></tr>
+<tr><td>Speed: 10.0 mph </td></tr>
+<tr><td>Heading: 228.4 </td></tr>
+<tr><td>Time: 2010-01-01T01:33:51Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.859374</longitude>
+              <latitude>47.439439</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T01:33:51Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.859374,47.439439,706.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-124</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.856992 </td></tr>
+<tr><td>Latitude: 47.438666 </td></tr>
+<tr><td>Altitude: 2286.745 ft </td></tr>
+<tr><td>Speed: 9.9 mph </td></tr>
+<tr><td>Heading: 244.4 </td></tr>
+<tr><td>Time: 2010-01-01T01:34:36Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.856992</longitude>
+              <latitude>47.438666</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T01:34:36Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.856992,47.438666,697.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-125</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.855664 </td></tr>
+<tr><td>Latitude: 47.437207 </td></tr>
+<tr><td>Altitude: 2250.656 ft </td></tr>
+<tr><td>Speed: 10.2 mph </td></tr>
+<tr><td>Heading: 211.6 </td></tr>
+<tr><td>Time: 2010-01-01T01:35:18Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.855664</longitude>
+              <latitude>47.437207</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T01:35:18Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.855664,47.437207,686.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-126</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.855442 </td></tr>
+<tr><td>Latitude: 47.435503 </td></tr>
+<tr><td>Altitude: 2234.252 ft </td></tr>
+<tr><td>Speed: 9.9 mph </td></tr>
+<tr><td>Heading: 185.0 </td></tr>
+<tr><td>Time: 2010-01-01T01:36:01Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.855442</longitude>
+              <latitude>47.435503</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T01:36:01Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.855442,47.435503,681.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-127</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.855403 </td></tr>
+<tr><td>Latitude: 47.433657 </td></tr>
+<tr><td>Altitude: 2175.197 ft </td></tr>
+<tr><td>Speed: 10.0 mph </td></tr>
+<tr><td>Heading: 180.8 </td></tr>
+<tr><td>Time: 2010-01-01T01:36:47Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.855403</longitude>
+              <latitude>47.433657</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T01:36:47Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.855403,47.433657,663.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-128</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.854353 </td></tr>
+<tr><td>Latitude: 47.432049 </td></tr>
+<tr><td>Altitude: 2073.491 ft </td></tr>
+<tr><td>Speed: 9.9 mph </td></tr>
+<tr><td>Heading: 203.8 </td></tr>
+<tr><td>Time: 2010-01-01T01:37:31Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.854353</longitude>
+              <latitude>47.432049</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T01:37:31Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.854353,47.432049,632.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-129</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.852732 </td></tr>
+<tr><td>Latitude: 47.430712 </td></tr>
+<tr><td>Altitude: 2030.840 ft </td></tr>
+<tr><td>Speed: 10.0 mph </td></tr>
+<tr><td>Heading: 219.4 </td></tr>
+<tr><td>Time: 2010-01-01T01:38:14Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.852732</longitude>
+              <latitude>47.430712</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T01:38:14Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.852732,47.430712,619.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-130</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.850412 </td></tr>
+<tr><td>Latitude: 47.429839 </td></tr>
+<tr><td>Altitude: 2007.874 ft </td></tr>
+<tr><td>Speed: 10.2 mph </td></tr>
+<tr><td>Heading: 240.9 </td></tr>
+<tr><td>Time: 2010-01-01T01:38:58Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.850412</longitude>
+              <latitude>47.429839</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T01:38:58Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.850412,47.429839,612.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-131</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.847896 </td></tr>
+<tr><td>Latitude: 47.430149 </td></tr>
+<tr><td>Altitude: 1942.257 ft </td></tr>
+<tr><td>Speed: 10.0 mph </td></tr>
+<tr><td>Heading: 280.3 </td></tr>
+<tr><td>Time: 2010-01-01T01:39:41Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.847896</longitude>
+              <latitude>47.430149</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T01:39:41Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.847896,47.430149,592.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-132</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.846134 </td></tr>
+<tr><td>Latitude: 47.431490 </td></tr>
+<tr><td>Altitude: 1932.415 ft </td></tr>
+<tr><td>Speed: 9.9 mph </td></tr>
+<tr><td>Heading: 318.4 </td></tr>
+<tr><td>Time: 2010-01-01T01:40:26Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.846134</longitude>
+              <latitude>47.431490</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T01:40:26Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.846134,47.431490,589.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-133</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.845168 </td></tr>
+<tr><td>Latitude: 47.430655 </td></tr>
+<tr><td>Altitude: 1863.517 ft </td></tr>
+<tr><td>Speed: 10.2 mph </td></tr>
+<tr><td>Heading: 218.0 </td></tr>
+<tr><td>Time: 2010-01-01T01:40:52Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.845168</longitude>
+              <latitude>47.430655</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T01:40:52Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.845168,47.430655,568.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-134</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.844961 </td></tr>
+<tr><td>Latitude: 47.429279 </td></tr>
+<tr><td>Altitude: 1797.900 ft </td></tr>
+<tr><td>Speed: 9.8 mph </td></tr>
+<tr><td>Heading: 185.8 </td></tr>
+<tr><td>Time: 2010-01-01T01:41:27Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.844961</longitude>
+              <latitude>47.429279</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T01:41:27Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.844961,47.429279,548.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-135</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.847287 </td></tr>
+<tr><td>Latitude: 47.428292 </td></tr>
+<tr><td>Altitude: 1765.092 ft </td></tr>
+<tr><td>Speed: 10.1 mph </td></tr>
+<tr><td>Heading: 122.1 </td></tr>
+<tr><td>Time: 2010-01-01T01:42:13Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.847287</longitude>
+              <latitude>47.428292</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T01:42:13Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.847287,47.428292,538.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-136</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.849708 </td></tr>
+<tr><td>Latitude: 47.427400 </td></tr>
+<tr><td>Altitude: 1696.194 ft </td></tr>
+<tr><td>Speed: 10.1 mph </td></tr>
+<tr><td>Heading: 118.6 </td></tr>
+<tr><td>Time: 2010-01-01T01:42:59Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.849708</longitude>
+              <latitude>47.427400</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T01:42:59Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.849708,47.427400,517.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-137</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.852164 </td></tr>
+<tr><td>Latitude: 47.426713 </td></tr>
+<tr><td>Altitude: 1581.365 ft </td></tr>
+<tr><td>Speed: 9.9 mph </td></tr>
+<tr><td>Heading: 112.5 </td></tr>
+<tr><td>Time: 2010-01-01T01:43:44Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.852164</longitude>
+              <latitude>47.426713</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T01:43:44Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.852164,47.426713,482.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-138</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.855002 </td></tr>
+<tr><td>Latitude: 47.426967 </td></tr>
+<tr><td>Altitude: 1486.220 ft </td></tr>
+<tr><td>Speed: 10.0 mph </td></tr>
+<tr><td>Heading: 82.5 </td></tr>
+<tr><td>Time: 2010-01-01T01:44:32Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.855002</longitude>
+              <latitude>47.426967</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T01:44:32Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.855002,47.426967,453.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-139</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.857688 </td></tr>
+<tr><td>Latitude: 47.427549 </td></tr>
+<tr><td>Altitude: 1489.501 ft </td></tr>
+<tr><td>Speed: 9.9 mph </td></tr>
+<tr><td>Heading: 72.2 </td></tr>
+<tr><td>Time: 2010-01-01T01:45:20Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.857688</longitude>
+              <latitude>47.427549</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T01:45:20Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.857688,47.427549,454.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-140</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.859839 </td></tr>
+<tr><td>Latitude: 47.427542 </td></tr>
+<tr><td>Altitude: 1430.446 ft </td></tr>
+<tr><td>Speed: 10.1 mph </td></tr>
+<tr><td>Heading: 90.3 </td></tr>
+<tr><td>Time: 2010-01-01T01:45:56Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.859839</longitude>
+              <latitude>47.427542</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T01:45:56Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.859839,47.427542,436.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-141</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.862443 </td></tr>
+<tr><td>Latitude: 47.427228 </td></tr>
+<tr><td>Altitude: 1417.323 ft </td></tr>
+<tr><td>Speed: 9.9 mph </td></tr>
+<tr><td>Heading: 100.1 </td></tr>
+<tr><td>Time: 2010-01-01T01:46:41Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.862443</longitude>
+              <latitude>47.427228</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T01:46:41Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.862443,47.427228,432.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-142</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.864925 </td></tr>
+<tr><td>Latitude: 47.426570 </td></tr>
+<tr><td>Altitude: 1374.672 ft </td></tr>
+<tr><td>Speed: 10.2 mph </td></tr>
+<tr><td>Heading: 111.4 </td></tr>
+<tr><td>Time: 2010-01-01T01:47:25Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.864925</longitude>
+              <latitude>47.426570</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T01:47:25Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.864925,47.426570,419.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-143</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.866957 </td></tr>
+<tr><td>Latitude: 47.425456 </td></tr>
+<tr><td>Altitude: 1377.953 ft </td></tr>
+<tr><td>Speed: 10.0 mph </td></tr>
+<tr><td>Heading: 129.0 </td></tr>
+<tr><td>Time: 2010-01-01T01:48:09Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.866957</longitude>
+              <latitude>47.425456</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T01:48:09Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.866957,47.425456,420.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-144</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.868765 </td></tr>
+<tr><td>Latitude: 47.426057 </td></tr>
+<tr><td>Altitude: 1374.672 ft </td></tr>
+<tr><td>Speed: 10.0 mph </td></tr>
+<tr><td>Heading: 63.8 </td></tr>
+<tr><td>Time: 2010-01-01T01:48:43Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.868765</longitude>
+              <latitude>47.426057</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T01:48:43Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.868765,47.426057,419.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-145</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.868111 </td></tr>
+<tr><td>Latitude: 47.425282 </td></tr>
+<tr><td>Altitude: 1377.953 ft </td></tr>
+<tr><td>Speed: 9.7 mph </td></tr>
+<tr><td>Heading: 209.7 </td></tr>
+<tr><td>Time: 2010-01-01T01:49:06Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.868111</longitude>
+              <latitude>47.425282</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T01:49:06Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.868111,47.425282,420.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-146</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.868916 </td></tr>
+<tr><td>Latitude: 47.425729 </td></tr>
+<tr><td>Altitude: 1374.672 ft </td></tr>
+<tr><td>Speed: 10.3 mph </td></tr>
+<tr><td>Heading: 50.6 </td></tr>
+<tr><td>Time: 2010-01-01T01:49:23Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.868916</longitude>
+              <latitude>47.425729</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T01:49:23Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.868916,47.425729,419.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-147</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.869995 </td></tr>
+<tr><td>Latitude: 47.425966 </td></tr>
+<tr><td>Altitude: 1374.672 ft </td></tr>
+<tr><td>Speed: 10.1 mph </td></tr>
+<tr><td>Heading: 72.0 </td></tr>
+<tr><td>Time: 2010-01-01T01:49:42Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.869995</longitude>
+              <latitude>47.425966</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T01:49:42Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.869995,47.425966,419.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-148</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.866308 </td></tr>
+<tr><td>Latitude: 47.425813 </td></tr>
+<tr><td>Altitude: 1377.953 ft </td></tr>
+<tr><td>Speed: 10.0 mph </td></tr>
+<tr><td>Heading: 266.5 </td></tr>
+<tr><td>Time: 2010-01-01T01:50:44Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.866308</longitude>
+              <latitude>47.425813</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T01:50:44Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.866308,47.425813,420.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-149</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.864297 </td></tr>
+<tr><td>Latitude: 47.426946 </td></tr>
+<tr><td>Altitude: 1384.514 ft </td></tr>
+<tr><td>Speed: 10.0 mph </td></tr>
+<tr><td>Heading: 309.8 </td></tr>
+<tr><td>Time: 2010-01-01T01:51:28Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.864297</longitude>
+              <latitude>47.426946</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T01:51:28Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.864297,47.426946,422.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-150</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.861761 </td></tr>
+<tr><td>Latitude: 47.427353 </td></tr>
+<tr><td>Altitude: 1420.604 ft </td></tr>
+<tr><td>Speed: 10.0 mph </td></tr>
+<tr><td>Heading: 283.3 </td></tr>
+<tr><td>Time: 2010-01-01T01:52:12Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.861761</longitude>
+              <latitude>47.427353</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T01:52:12Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.861761,47.427353,433.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-151</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.859158 </td></tr>
+<tr><td>Latitude: 47.427644 </td></tr>
+<tr><td>Altitude: 1430.446 ft </td></tr>
+<tr><td>Speed: 9.9 mph </td></tr>
+<tr><td>Heading: 279.4 </td></tr>
+<tr><td>Time: 2010-01-01T01:52:57Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.859158</longitude>
+              <latitude>47.427644</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T01:52:57Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.859158,47.427644,436.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-152</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.856483 </td></tr>
+<tr><td>Latitude: 47.427296 </td></tr>
+<tr><td>Altitude: 1512.467 ft </td></tr>
+<tr><td>Speed: 10.2 mph </td></tr>
+<tr><td>Heading: 259.1 </td></tr>
+<tr><td>Time: 2010-01-01T01:53:42Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.856483</longitude>
+              <latitude>47.427296</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T01:53:42Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.856483,47.427296,461.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-153</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.853972 </td></tr>
+<tr><td>Latitude: 47.426526 </td></tr>
+<tr><td>Altitude: 1519.029 ft </td></tr>
+<tr><td>Speed: 9.9 mph </td></tr>
+<tr><td>Heading: 245.6 </td></tr>
+<tr><td>Time: 2010-01-01T01:54:29Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.853972</longitude>
+              <latitude>47.426526</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T01:54:29Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.853972,47.426526,463.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-154</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.851349 </td></tr>
+<tr><td>Latitude: 47.426145 </td></tr>
+<tr><td>Altitude: 1453.412 ft </td></tr>
+<tr><td>Speed: 10.0 mph </td></tr>
+<tr><td>Heading: 257.9 </td></tr>
+<tr><td>Time: 2010-01-01T01:55:14Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.851349</longitude>
+              <latitude>47.426145</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T01:55:14Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.851349,47.426145,443.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-155</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.848687 </td></tr>
+<tr><td>Latitude: 47.426247 </td></tr>
+<tr><td>Altitude: 1443.570 ft </td></tr>
+<tr><td>Speed: 10.0 mph </td></tr>
+<tr><td>Heading: 273.2 </td></tr>
+<tr><td>Time: 2010-01-01T01:55:59Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.848687</longitude>
+              <latitude>47.426247</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T01:55:59Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.848687,47.426247,440.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-156</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.846119 </td></tr>
+<tr><td>Latitude: 47.426681 </td></tr>
+<tr><td>Altitude: 1476.378 ft </td></tr>
+<tr><td>Speed: 10.1 mph </td></tr>
+<tr><td>Heading: 284.0 </td></tr>
+<tr><td>Time: 2010-01-01T01:56:43Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.846119</longitude>
+              <latitude>47.426681</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T01:56:43Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.846119,47.426681,450.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-157</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.843955 </td></tr>
+<tr><td>Latitude: 47.427727 </td></tr>
+<tr><td>Altitude: 1502.625 ft </td></tr>
+<tr><td>Speed: 10.0 mph </td></tr>
+<tr><td>Heading: 305.5 </td></tr>
+<tr><td>Time: 2010-01-01T01:57:28Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.843955</longitude>
+              <latitude>47.427727</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T01:57:28Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.843955,47.427727,458.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-158</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.842057 </td></tr>
+<tr><td>Latitude: 47.428871 </td></tr>
+<tr><td>Altitude: 1538.714 ft </td></tr>
+<tr><td>Speed: 10.0 mph </td></tr>
+<tr><td>Heading: 311.7 </td></tr>
+<tr><td>Time: 2010-01-01T01:58:11Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.842057</longitude>
+              <latitude>47.428871</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T01:58:11Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.842057,47.428871,469.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-159</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.840186 </td></tr>
+<tr><td>Latitude: 47.430056 </td></tr>
+<tr><td>Altitude: 1558.399 ft </td></tr>
+<tr><td>Speed: 10.0 mph </td></tr>
+<tr><td>Heading: 313.1 </td></tr>
+<tr><td>Time: 2010-01-01T01:58:54Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.840186</longitude>
+              <latitude>47.430056</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T01:58:54Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.840186,47.430056,475.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-160</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.837564 </td></tr>
+<tr><td>Latitude: 47.430487 </td></tr>
+<tr><td>Altitude: 1653.543 ft </td></tr>
+<tr><td>Speed: 9.9 mph </td></tr>
+<tr><td>Heading: 283.7 </td></tr>
+<tr><td>Time: 2010-01-01T01:59:40Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.837564</longitude>
+              <latitude>47.430487</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T01:59:40Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.837564,47.430487,504.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-161</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.835065 </td></tr>
+<tr><td>Latitude: 47.430981 </td></tr>
+<tr><td>Altitude: 1545.276 ft </td></tr>
+<tr><td>Speed: 10.2 mph </td></tr>
+<tr><td>Heading: 286.3 </td></tr>
+<tr><td>Time: 2010-01-01T02:00:23Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.835065</longitude>
+              <latitude>47.430981</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T02:00:23Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.835065,47.430981,471.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-162</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.832915 </td></tr>
+<tr><td>Latitude: 47.432082 </td></tr>
+<tr><td>Altitude: 1525.591 ft </td></tr>
+<tr><td>Speed: 9.9 mph </td></tr>
+<tr><td>Heading: 307.1 </td></tr>
+<tr><td>Time: 2010-01-01T02:01:09Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.832915</longitude>
+              <latitude>47.432082</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T02:01:09Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.832915,47.432082,465.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-163</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.830424 </td></tr>
+<tr><td>Latitude: 47.432674 </td></tr>
+<tr><td>Altitude: 1555.118 ft </td></tr>
+<tr><td>Speed: 10.1 mph </td></tr>
+<tr><td>Heading: 289.4 </td></tr>
+<tr><td>Time: 2010-01-01T02:01:53Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.830424</longitude>
+              <latitude>47.432674</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T02:01:53Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.830424,47.432674,474.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-164</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.827812 </td></tr>
+<tr><td>Latitude: 47.433056 </td></tr>
+<tr><td>Altitude: 1633.858 ft </td></tr>
+<tr><td>Speed: 10.0 mph </td></tr>
+<tr><td>Heading: 282.2 </td></tr>
+<tr><td>Time: 2010-01-01T02:02:38Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.827812</longitude>
+              <latitude>47.433056</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T02:02:38Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.827812,47.433056,498.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-165</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.825408 </td></tr>
+<tr><td>Latitude: 47.433812 </td></tr>
+<tr><td>Altitude: 1666.667 ft </td></tr>
+<tr><td>Speed: 9.9 mph </td></tr>
+<tr><td>Heading: 294.9 </td></tr>
+<tr><td>Time: 2010-01-01T02:03:23Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.825408</longitude>
+              <latitude>47.433812</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T02:03:23Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.825408,47.433812,508.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-166</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.822785 </td></tr>
+<tr><td>Latitude: 47.434160 </td></tr>
+<tr><td>Altitude: 1601.050 ft </td></tr>
+<tr><td>Speed: 10.0 mph </td></tr>
+<tr><td>Heading: 281.1 </td></tr>
+<tr><td>Time: 2010-01-01T02:04:08Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.822785</longitude>
+              <latitude>47.434160</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T02:04:08Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.822785,47.434160,488.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-167</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.820094 </td></tr>
+<tr><td>Latitude: 47.434278 </td></tr>
+<tr><td>Altitude: 1564.961 ft </td></tr>
+<tr><td>Speed: 10.1 mph </td></tr>
+<tr><td>Heading: 273.7 </td></tr>
+<tr><td>Time: 2010-01-01T02:04:53Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.820094</longitude>
+              <latitude>47.434278</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T02:04:53Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.820094,47.434278,477.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-168</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.817471 </td></tr>
+<tr><td>Latitude: 47.434307 </td></tr>
+<tr><td>Altitude: 1584.646 ft </td></tr>
+<tr><td>Speed: 10.0 mph </td></tr>
+<tr><td>Heading: 270.9 </td></tr>
+<tr><td>Time: 2010-01-01T02:05:37Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.817471</longitude>
+              <latitude>47.434307</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T02:05:37Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.817471,47.434307,483.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-169</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.814830 </td></tr>
+<tr><td>Latitude: 47.434075 </td></tr>
+<tr><td>Altitude: 1601.050 ft </td></tr>
+<tr><td>Speed: 10.0 mph </td></tr>
+<tr><td>Heading: 262.6 </td></tr>
+<tr><td>Time: 2010-01-01T02:06:22Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.814830</longitude>
+              <latitude>47.434075</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T02:06:22Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.814830,47.434075,488.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-170</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.812244 </td></tr>
+<tr><td>Latitude: 47.434392 </td></tr>
+<tr><td>Altitude: 1584.646 ft </td></tr>
+<tr><td>Speed: 10.1 mph </td></tr>
+<tr><td>Heading: 280.3 </td></tr>
+<tr><td>Time: 2010-01-01T02:07:06Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.812244</longitude>
+              <latitude>47.434392</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T02:07:06Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.812244,47.434392,483.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-171</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.809609 </td></tr>
+<tr><td>Latitude: 47.434674 </td></tr>
+<tr><td>Altitude: 1660.105 ft </td></tr>
+<tr><td>Speed: 10.0 mph </td></tr>
+<tr><td>Heading: 279.0 </td></tr>
+<tr><td>Time: 2010-01-01T02:07:51Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.809609</longitude>
+              <latitude>47.434674</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T02:07:51Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.809609,47.434674,506.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-172</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.806991 </td></tr>
+<tr><td>Latitude: 47.435016 </td></tr>
+<tr><td>Altitude: 1620.735 ft </td></tr>
+<tr><td>Speed: 10.0 mph </td></tr>
+<tr><td>Heading: 280.9 </td></tr>
+<tr><td>Time: 2010-01-01T02:08:36Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.806991</longitude>
+              <latitude>47.435016</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T02:08:36Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.806991,47.435016,494.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-173</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.804341 </td></tr>
+<tr><td>Latitude: 47.434664 </td></tr>
+<tr><td>Altitude: 1656.824 ft </td></tr>
+<tr><td>Speed: 9.9 mph </td></tr>
+<tr><td>Heading: 258.9 </td></tr>
+<tr><td>Time: 2010-01-01T02:09:22Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.804341</longitude>
+              <latitude>47.434664</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T02:09:22Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.804341,47.434664,505.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-174</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.801837 </td></tr>
+<tr><td>Latitude: 47.435214 </td></tr>
+<tr><td>Altitude: 1584.646 ft </td></tr>
+<tr><td>Speed: 10.1 mph </td></tr>
+<tr><td>Heading: 288.0 </td></tr>
+<tr><td>Time: 2010-01-01T02:10:06Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.801837</longitude>
+              <latitude>47.435214</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T02:10:06Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.801837,47.435214,483.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-175</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.799451 </td></tr>
+<tr><td>Latitude: 47.436070 </td></tr>
+<tr><td>Altitude: 1594.488 ft </td></tr>
+<tr><td>Speed: 10.1 mph </td></tr>
+<tr><td>Heading: 297.9 </td></tr>
+<tr><td>Time: 2010-01-01T02:10:51Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.799451</longitude>
+              <latitude>47.436070</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T02:10:51Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.799451,47.436070,486.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-176</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.796806 </td></tr>
+<tr><td>Latitude: 47.436316 </td></tr>
+<tr><td>Altitude: 1686.352 ft </td></tr>
+<tr><td>Speed: 10.0 mph </td></tr>
+<tr><td>Heading: 277.8 </td></tr>
+<tr><td>Time: 2010-01-01T02:11:36Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.796806</longitude>
+              <latitude>47.436316</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T02:11:36Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.796806,47.436316,514.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-177</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.795071 </td></tr>
+<tr><td>Latitude: 47.437448 </td></tr>
+<tr><td>Altitude: 1643.701 ft </td></tr>
+<tr><td>Speed: 9.9 mph </td></tr>
+<tr><td>Heading: 314.0 </td></tr>
+<tr><td>Time: 2010-01-01T02:12:17Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.795071</longitude>
+              <latitude>47.437448</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T02:12:17Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.795071,47.437448,501.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-178</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.793110 </td></tr>
+<tr><td>Latitude: 47.438675 </td></tr>
+<tr><td>Altitude: 1624.016 ft </td></tr>
+<tr><td>Speed: 10.0 mph </td></tr>
+<tr><td>Heading: 312.8 </td></tr>
+<tr><td>Time: 2010-01-01T02:13:02Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.793110</longitude>
+              <latitude>47.438675</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T02:13:02Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.793110,47.438675,495.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT KML sample-179</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.790992 </td></tr>
+<tr><td>Latitude: 47.439769 </td></tr>
+<tr><td>Altitude: 1656.824 ft </td></tr>
+<tr><td>Speed: 10.0 mph </td></tr>
+<tr><td>Heading: 307.4 </td></tr>
+<tr><td>Time: 2010-01-01T02:13:47Z </td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.790992</longitude>
+              <latitude>47.439769</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2010-01-01T02:13:47Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.790992,47.439769,505.00</coordinates>
+            </Point>
+          </Placemark>
+        </Folder>
+        <Placemark>
+          <name>Path</name>
+          <styleUrl>#lineStyle</styleUrl>
+          <LineString>
+            <tessellate>1</tessellate>
+            <coordinates>
+8.039465,47.546741,276.00
+8.041199,47.548829,278.00
+8.043214,47.550174,276.00
+8.044586,47.551692,275.00
+8.042300,47.553571,276.00
+8.040013,47.553167,264.00
+8.038151,47.551190,277.00
+8.035022,47.550079,271.00
+8.033019,47.548337,274.00
+8.030762,47.547076,274.00
+8.028628,47.545816,271.00
+8.028117,47.543882,279.00
+8.027126,47.541865,284.00
+8.026000,47.540241,281.00
+8.025218,47.538401,281.00
+8.025243,47.536409,285.00
+8.024335,47.534577,288.00
+8.023403,47.532823,290.00
+8.023197,47.530918,289.00
+8.023291,47.528850,292.00
+8.023225,47.526985,291.00
+8.022220,47.525235,293.00
+8.021061,47.523557,292.00
+8.018998,47.522180,292.00
+8.016874,47.520754,297.00
+8.014798,47.519533,292.00
+8.012500,47.518607,295.00
+8.010922,47.516954,296.00
+8.009736,47.515289,295.00
+8.007926,47.513944,297.00
+8.006670,47.512307,296.00
+8.006382,47.510343,297.00
+8.005906,47.508641,297.00
+8.005340,47.506754,297.00
+8.005115,47.504896,299.00
+8.005736,47.503076,303.00
+8.006666,47.501370,302.00
+8.007281,47.499682,306.00
+8.006302,47.497786,306.00
+8.005202,47.496009,307.00
+8.004143,47.494307,308.00
+8.003226,47.492550,309.00
+8.002239,47.490734,310.00
+8.001135,47.488999,310.00
+8.000190,47.487258,314.00
+7.998930,47.485635,321.00
+7.997585,47.484069,325.00
+7.994973,47.483817,324.00
+7.992208,47.484241,324.00
+7.990293,47.485400,321.00
+7.987806,47.486042,321.00
+7.985003,47.486059,323.00
+7.982385,47.486342,330.00
+7.979732,47.486750,333.00
+7.976955,47.486869,339.00
+7.974193,47.486992,342.00
+7.971606,47.487513,348.00
+7.969063,47.488302,355.00
+7.966364,47.488970,357.00
+7.963582,47.489243,363.00
+7.960906,47.489088,365.00
+7.958160,47.489386,371.00
+7.955337,47.489391,375.00
+7.952394,47.489046,376.00
+7.949694,47.488991,377.00
+7.948625,47.488669,386.00
+7.948626,47.486984,386.00
+7.948675,47.485194,390.00
+7.948915,47.483412,398.00
+7.949416,47.481632,406.00
+7.948430,47.480007,418.00
+7.946426,47.478825,431.00
+7.945143,47.477245,449.00
+7.943755,47.475702,480.00
+7.941953,47.474340,500.00
+7.940174,47.472876,508.00
+7.938961,47.471057,514.00
+7.937313,47.469654,507.00
+7.935761,47.470974,523.00
+7.933330,47.471707,530.00
+7.930714,47.471886,533.00
+7.928180,47.471327,534.00
+7.925741,47.470488,523.00
+7.923512,47.469412,510.00
+7.921427,47.468268,514.00
+7.918991,47.467570,514.00
+7.916479,47.467106,517.00
+7.914841,47.465780,527.00
+7.914073,47.464059,535.00
+7.913893,47.462304,551.00
+7.912421,47.460899,570.00
+7.910666,47.459561,603.00
+7.909006,47.458111,603.00
+7.906491,47.457363,634.00
+7.904187,47.456538,657.00
+7.901384,47.456428,664.00
+7.901122,47.455329,660.00
+7.902365,47.453629,703.00
+7.903612,47.451959,718.00
+7.905652,47.450832,745.00
+7.907802,47.450560,759.00
+7.907609,47.449881,756.00
+7.905054,47.449173,758.00
+7.902202,47.449295,779.00
+7.899527,47.449391,784.00
+7.896703,47.449122,791.00
+7.894177,47.448391,799.00
+7.891705,47.447639,799.00
+7.889218,47.446781,804.00
+7.886668,47.445792,809.00
+7.884208,47.445029,812.00
+7.881705,47.444573,797.00
+7.879126,47.444016,808.00
+7.877790,47.442833,805.00
+7.876297,47.441505,797.00
+7.873865,47.440617,790.00
+7.871418,47.439798,780.00
+7.869749,47.441193,775.00
+7.870992,47.442958,750.00
+7.868755,47.443081,752.00
+7.866484,47.442073,721.00
+7.864342,47.441214,721.00
+7.861644,47.440803,726.00
+7.859374,47.439439,706.00
+7.856992,47.438666,697.00
+7.855664,47.437207,686.00
+7.855442,47.435503,681.00
+7.855403,47.433657,663.00
+7.854353,47.432049,632.00
+7.852732,47.430712,619.00
+7.850412,47.429839,612.00
+7.847896,47.430149,592.00
+7.846134,47.431490,589.00
+7.845168,47.430655,568.00
+7.844961,47.429279,548.00
+7.847287,47.428292,538.00
+7.849708,47.427400,517.00
+7.852164,47.426713,482.00
+7.855002,47.426967,453.00
+7.857688,47.427549,454.00
+7.859839,47.427542,436.00
+7.862443,47.427228,432.00
+7.864925,47.426570,419.00
+7.866957,47.425456,420.00
+7.868765,47.426057,419.00
+7.868111,47.425282,420.00
+7.868916,47.425729,419.00
+7.869995,47.425966,419.00
+7.866308,47.425813,420.00
+7.864297,47.426946,422.00
+7.861761,47.427353,433.00
+7.859158,47.427644,436.00
+7.856483,47.427296,461.00
+7.853972,47.426526,463.00
+7.851349,47.426145,443.00
+7.848687,47.426247,440.00
+7.846119,47.426681,450.00
+7.843955,47.427727,458.00
+7.842057,47.428871,469.00
+7.840186,47.430056,475.00
+7.837564,47.430487,504.00
+7.835065,47.430981,471.00
+7.832915,47.432082,465.00
+7.830424,47.432674,474.00
+7.827812,47.433056,498.00
+7.825408,47.433812,508.00
+7.822785,47.434160,488.00
+7.820094,47.434278,477.00
+7.817471,47.434307,483.00
+7.814830,47.434075,488.00
+7.812244,47.434392,483.00
+7.809609,47.434674,506.00
+7.806991,47.435016,494.00
+7.804341,47.434664,505.00
+7.801837,47.435214,483.00
+7.799451,47.436070,486.00
+7.796806,47.436316,514.00
+7.795071,47.437448,501.00
+7.793110,47.438675,495.00
+7.790992,47.439769,505.00
+</coordinates>
+          </LineString>
+        </Placemark>
+      </Folder>
+    </Folder>
+  </Document>
+</kml>

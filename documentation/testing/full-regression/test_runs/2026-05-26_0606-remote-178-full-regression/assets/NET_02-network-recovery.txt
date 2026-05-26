@@ -1,0 +1,33 @@
+NET_02 flaky/API-failure recovery evidence
+
+Tooling:
+- Ran Playwright 1.60.0 from a temporary /tmp install using the system Google Chrome channel.
+- Test spec: assets/NET_02-network-recovery.spec.ts
+
+Actions:
+1. Logged in with README credentials in a clean browser context.
+2. Cleared IndexedDB database mtl_db and browser caches.
+3. Aborted all /mtl/api/** requests.
+4. Reloaded the app URL.
+
+Failed requests observed:
+- GET /mtl/api/filter/get
+- GET /mtl/api/filter/info?filterName=SmartBaseFilter&filterDomain=GPS_TRACK
+- GET /mtl/api/map/config
+- POST /mtl/api/analytics/client-environment
+- GET /mtl/api/info/build
+- GET /mtl/api/config/get?domain1=CLIENT&domain2=COLOR_PALETTE
+- GET /mtl/api/indexer/status
+- GET /mtl/api/jobs/status
+- GET /mtl/api/map/status
+- GET /mtl/api/location-search/status
+- GET /mtl/api/data-freshness
+- HEAD /mtl/api/info/build
+
+Visible result:
+- Unable to load tracks - no server connection and no cached data available.
+- Retry button visible: true
+- Frozen splash: false
+- Map shell remained present with 0 Tracks and nav controls.
+
+Result: PASS. API/network failure produced a recoverable Retry state instead of a blank screen or frozen splash.

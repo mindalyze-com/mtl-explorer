@@ -1,0 +1,23 @@
+FMT import monitor cropped.
+app-1  | 2026-05-26T04:31:20.680Z  INFO 1 --- [watch-GPS] FileIndexerImpl              : Live watcher detected CREATE for: JuraRoute72011.tcx
+app-1  | 2026-05-26T04:31:20.681Z  INFO 1 --- [watch-GPS] FileIndexerImpl              : Live watcher detected CREATE for: JuraRoute72011.kml
+app-1  | 2026-05-26T04:31:20.685Z  INFO 1 --- [watch-GPS] FileIndexerImpl              : Live watcher detected CREATE for: JuraRoute72011.kmz
+app-1  | 2026-05-26T04:31:20.685Z  INFO 1 --- [watch-GPS] FileIndexerImpl              : Live watcher detected CREATE for: JuraRoute72011.igc
+app-1  | 2026-05-26T04:31:20.685Z  INFO 1 --- [watch-GPS] FileIndexerImpl              : Live watcher detected CREATE for: JuraRoute72011.nmea
+app-1  | 2026-05-26T04:31:20.685Z  INFO 1 --- [watch-GPS] FileIndexerImpl              : Live watcher detected CREATE for: JuraRoute72011.geojson
+app-1  | 2026-05-26T04:31:20.685Z  INFO 1 --- [watch-GPS] FileIndexerImpl              : Live watcher detected CREATE for: JuraRoute72011.gdb
+app-1  | 2026-05-26T04:31:31.777Z  INFO 1 --- [idx-1] GPXStoreService              : GPS ingest timing trackId=100006 file=/JuraRoute72011.tcx status=SUCCESS Timing total 1.08s; slowest simplified shapes 456ms, denoise 1
+app-1  | 2026-05-26T04:31:31.778Z  INFO 1 --- [idx-1] GPXStoreService              : Reading of track id=100006 and path= file=JuraRoute72011.tcx did complete with status=SUCCESS and took processingTime=1.08s
+app-1  | 2026-05-26T04:31:32.483Z  INFO 1 --- [idx-1] GPXStoreService              : GPS ingest timing trackId=100007 file=/JuraRoute72011.kml status=SUCCESS Timing total 697ms; slowest simplified shapes 226ms, raw point
+app-1  | 2026-05-26T04:31:32.484Z  INFO 1 --- [idx-1] GPXStoreService              : Reading of track id=100007 and path= file=JuraRoute72011.kml did complete with status=SUCCESS and took processingTime=698ms
+app-1  | 2026-05-26T04:31:32.496Z ERROR 1 --- [idx-1] TrackFileConverterService    : GPSBabel failed (exit 1) for /app/gpx/JuraRoute72011.kmz: Input type 'kmz' not recognized
+app-1  | Caused by: java.io.IOException: GPSBabel conversion failed (exit 1) for /app/gpx/JuraRoute72011.kmz: Input type 'kmz' not recognized
+app-1  | 2026-05-26T04:31:32.776Z  INFO 1 --- [idx-2] GPXStoreService              : GPS ingest timing trackId=100009 file=/JuraRoute72011.geojson status=EMPTY_FILE Timing total 62ms; slowest gpsbabel 34ms, parse XML 14m
+app-1  | 2026-05-26T04:31:32.784Z  INFO 1 --- [idx-2] GPXStoreService              : Reading of track id=100009 and path= file=JuraRoute72011.geojson did complete with status=EMPTY_FILE and took processingTime=70ms
+app-1  | 2026-05-26T04:31:32.994Z  INFO 1 --- [idx-4] GPXStoreService              : GPS ingest timing trackId=100011 file=/JuraRoute72011.nmea status=EMPTY_FILE Timing total 279ms; slowest gpsbabel 272ms, delete old tra
+app-1  | 2026-05-26T04:31:32.996Z  INFO 1 --- [idx-4] GPXStoreService              : Reading of track id=100011 and path= file=JuraRoute72011.nmea did complete with status=EMPTY_FILE and took processingTime=281ms
+app-1  | 2026-05-26T04:31:33.515Z  INFO 1 --- [idx-1] GPXStoreService              : GPS ingest timing trackId=100008 file=/JuraRoute72011.igc status=SUCCESS Timing total 1.01s; slowest simplified shapes 709ms, cleaned p
+app-1  | 2026-05-26T04:31:33.517Z  INFO 1 --- [idx-1] GPXStoreService              : Reading of track id=100008 and path= file=JuraRoute72011.igc did complete with status=SUCCESS and took processingTime=1.01s
+app-1  | 2026-05-26T04:31:33.785Z  INFO 1 --- [idx-3] GPXStoreService              : GPS ingest timing trackId=100010 file=/JuraRoute72011.gdb status=SUCCESS Timing total 1.06s; slowest simplified shapes 480ms, cleaned p
+app-1  | 2026-05-26T04:31:33.786Z  INFO 1 --- [idx-3] GPXStoreService              : Reading of track id=100010 and path= file=JuraRoute72011.gdb did complete with status=SUCCESS and took processingTime=1.06s
+FMT_MONITOR_SECONDS=0

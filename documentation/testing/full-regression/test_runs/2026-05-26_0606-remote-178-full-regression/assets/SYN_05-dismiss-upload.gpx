@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="MTL Explorer full regression SYN_05" xmlns="http://www.topografix.com/GPX/1/1">
+  <trk>
+    <name>SYN_05 Dismiss Validation</name>
+    <trkseg>
+      <trkpt lat="47.37910" lon="8.54420"><ele>411</ele><time>2026-05-26T08:25:00Z</time></trkpt>
+      <trkpt lat="47.37980" lon="8.54510"><ele>413</ele><time>2026-05-26T08:26:00Z</time></trkpt>
+      <trkpt lat="47.38030" lon="8.54600"><ele>415</ele><time>2026-05-26T08:27:00Z</time></trkpt>
+    </trkseg>
+  </trk>
+</gpx>

@@ -1,0 +1,190 @@
+clicked=682,582
+contains_speed=true
+contains_elevation=true
+contains_time=true
+excerpt=- region "Map"
+- region "Map"
+- button "Zoom in"
+- button "Zoom out"
+- button "Drag to rotate map, click to reset north"
+- button "Toggle globe mode":
+  - generic: 
+- generic: 500 km
+- generic: 10 Tracks
+- button " Stats":
+  - generic: 
+  - generic: Stats
+- button " Filter":
+  - generic: 
+  - generic: Filter
+- button " Map":
+  - generic: 
+  - generic: Map
+- button " Animate":
+  - generic: 
+  - generic: Animate
+- button " Segments":
+  - generic: 
+  - generic: Segments
+- button " GPS":
+  - generic: 
+  - generic: GPS
+- button " Planner":
+  - generic: 
+  - generic: Planner
+- button " Admin":
+  - generic: 
+  - generic: Admin
+- button "About MTL Explorer"
+- generic: 
+- generic: Track Details
+- generic: "#100001"
+- generic: 
+- generic: Bicycle
+- button "Fullscreen":
+  - generic: 
+- button "Close":
+  - generic: 
+- region "Map" [active]
+- button "Collapse map":
+  - generic: 
+- button "Toggle track events":
+  - generic: 
+  - generic: "1"
+- generic "Drag to resize"
+- tablist:
+  - tab "Overview" [selected]
+  - tab "Graphs"
+  - tab "Quality"
+  - tab "Related"
+  - tab "Events"
+- tabpanel "Overview":
+  - generic: Jura Route 7 / 2011 on GPSies.com
+  - button "Download original":
+    - generic: 
+  - generic: 
+  - text: 01/01/2010, 01:00
+  - generic: 
+  - generic: 273 km
+  - generic: Distance
+  - generic: 
+  - generic: 16h 55m
+  - generic: Duration
+  - generic: 
+  - generic: 6324 m
+  - generic: Ascent
+  - generic: 
+  - generic: 16.2 km/h
+  - generic: Avg Speed
+  - generic: 
+  - text: Timing
+  - generic: 
+  - generic: 7h 46m
+  - generic: Moving
+  - generic: 
+  - generic: 0h 01m
+  - generic: Stopped
+  - generic: 
+  - generic: "1"
+  - generic: Stops
+  - generic: 
+  - generic: 1m 03s
+  - generic: Longest Stop
+  - generic: 
+  - text: Speed
+  - generic: 
+  - generic: 16.2 km/h
+  - generic: Avg Speed
+  - generic: 
+  - generic: 35.1 km/h
+  - generic: Moving Avg
+  - generic: 
+  - generic: 19.8 km/h
+  - generic: Max 30s Speed
+  - generic: 
+  - text: Elevation
+  - generic: 
+  - generic: 6324 m
+  - generic: Ascent
+  - generic: 
+  - generic: 6202 m
+  - generic: Descent
+  - generic: 
+  - generic: 3116 m/h
+  - generic: Max 30s Climb
+  - generic: 
+  - generic: 317 m/h
+  - generic: Max 30s Desc.
+  - generic: 264 m
+  - generic: Min Alt.
+  - generic: 1354 m
+  - generic: Max Alt.
+  - generic: 1090 m
+  - generic: Range
+  - generic: 20.3%
+  - generic: Max Slope
+  - generic: "-19.5%"
+  - generic: Max Desc. Slope
+  - generic: 
+  - text: Energy
+  - button "About energy":
+    - generic: 
+  - generic: 
+  - generic: 1807.6 Wh
+  - generic: Net Total
+  - generic: 
+  - generic: 206 W
+  - text: Avg Power
+  - button "About Average Power":
+    - generic: 
+  - generic: 
+  - generic: 232 W
+  - text: Avg Moving Power
+  - button "About Average Moving Power":
+    - generic: 
+  - generic: 
+  - generic: 1114 W
+  - text: Max 30s Power
+  - button "About Max 30 second Power":
+    - generic: 
+  - generic: 
+  - generic: 85.0 kg
+  - generic: Mass Used
+  - generic: Breakdown
+  - generic: 1490.2 Wh
+  - generic: Gravitational ↑
+  - generic: 1461.8 Wh
+  - generic: Gravitational ↓
+  - generic: 244.0 Wh
+  - generic: Aero Drag
+  - generic: 316.5 Wh
+  - generic: Rolling Resist.
+  - generic: 13.0 Wh
+  - generic: Kinetic (pos.)
+  - generic: 
+  - text: Fitness
+  - generic: 
+  - generic: 304 W
+  - text: Normalized Power
+  - button "About Normalized Power":
+    - generic: 
+  - generic: 
+  - text: Exploration
+  - button "Exploration score explanation":
+    - generic: 
+  - generic: 
+  - generic: 100.0%
+  - generic: New Territory
+  - generic: 
+  - generic: 273 km
+  - generic: Novel Distance
+  - generic: 
+  - generic: 0.00 m
+  - generic: Known Distance
+  - generic " Track Details ":
+    - generic: 
+    - text: Track Details
+    - generic: 
+  - text:  
+- text:                             
+- generic: 

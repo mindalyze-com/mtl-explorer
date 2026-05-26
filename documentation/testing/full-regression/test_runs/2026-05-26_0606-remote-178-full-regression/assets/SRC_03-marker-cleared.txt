@@ -1,0 +1,7 @@
+Clear action: clicked the visible `Clear search marker` button on the Bern marker.
+Post-clear DOM check:
+- `.mtl-location-search-marker`: 0
+- `.mtl-location-search-marker__clear`: 0
+- `[aria-label="Map marker"]`: 0
+- `[aria-label="Clear search marker"]`: 0
+Visible app state: map remained usable with 10 / 10 tracks.

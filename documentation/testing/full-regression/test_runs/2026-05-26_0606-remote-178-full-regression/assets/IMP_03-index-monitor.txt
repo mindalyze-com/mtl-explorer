@@ -1,0 +1,24 @@
+GPX index monitor cropped at 2026-05-26T04:15:22+00:00
+Live watcher creates:
+app-1  | 2026-05-26T04:14:50.984Z  INFO 1 --- [watch-GPS] FileIndexerImpl              : Live watcher detected CREATE for: JuraRoute72011.gpx
+app-1  | 2026-05-26T04:14:50.994Z  INFO 1 --- [watch-GPS] FileIndexerImpl              : Live watcher detected CREATE for: Lannion_Plestin_parcours24.4RE.gpx
+app-1  | 2026-05-26T04:14:50.995Z  INFO 1 --- [watch-GPS] FileIndexerImpl              : Live watcher detected CREATE for: MoselradwegAusWiki.gpx
+app-1  | 2026-05-26T04:14:50.995Z  INFO 1 --- [watch-GPS] FileIndexerImpl              : Live watcher detected CREATE for: Vitry-le-Francois_Langres.gpx
+app-1  | 2026-05-26T04:14:50.995Z  INFO 1 --- [watch-GPS] FileIndexerImpl              : Live watcher detected CREATE for: VoieVerteHauteVosges.gpx
+SUCCESS lines:
+app-1  | 2026-05-26T04:15:04.383Z  INFO 1 --- [idx-1] GPXStoreService              : GPS ingest timing trackId=100003 file=/Lannion_Plestin_parcours24.4RE.gpx status=SUCCESS Timing total 1.29s; slowest simplified shapes 536ms, raw points 369ms, cleaned points 142ms, parse XML 58ms, motion/stops/events 51ms, denoise 27ms, outlier filter 21ms, break-stop filter 19ms.
+app-1  | 2026-05-26T04:15:04.399Z  INFO 1 --- [idx-1] GPXStoreService              : Reading of track id=100003 and path= file=Lannion_Plestin_parcours24.4RE.gpx did complete with status=SUCCESS and took processingTime=1.31s
+app-1  | 2026-05-26T04:15:05.265Z  INFO 1 --- [idx-3] GPXStoreService              : GPS ingest timing trackId=100000 file=/Vitry-le-Francois_Langres.gpx status=SUCCESS Timing total 4.23s; slowest raw points 1.79s, simplified shapes 1.00s, cleaned points 478ms, denoise 385ms, parse XML 286ms, break-stop filter 107ms, motion/stops/events 47ms, distance stats 41ms.
+app-1  | 2026-05-26T04:15:05.269Z  INFO 1 --- [idx-3] GPXStoreService              : Reading of track id=100000 and path= file=Vitry-le-Francois_Langres.gpx did complete with status=SUCCESS and took processingTime=4.23s
+app-1  | 2026-05-26T04:15:05.385Z  INFO 1 --- [idx-4] GPXStoreService              : GPS ingest timing trackId=100001 file=/JuraRoute72011.gpx status=SUCCESS Timing total 4.35s; slowest raw points 1.77s, simplified shapes 1.24s, cleaned points 389ms, denoise 363ms, parse XML 304ms, break-stop filter 72ms, distance stats 64ms, outlier filter 47ms.
+app-1  | 2026-05-26T04:15:05.387Z  INFO 1 --- [idx-4] GPXStoreService              : Reading of track id=100001 and path= file=JuraRoute72011.gpx did complete with status=SUCCESS and took processingTime=4.35s
+app-1  | 2026-05-26T04:15:05.924Z  INFO 1 --- [idx-1] GPXStoreService              : GPS ingest timing trackId=100004 file=/VoieVerteHauteVosges.gpx status=SUCCESS Timing total 1.47s; slowest simplified shapes 687ms, cleaned points 269ms, raw points 240ms, denoise 85ms, parse XML 60ms, motion/stops/events 38ms, break-stop filter 37ms, split segments 18ms.
+app-1  | 2026-05-26T04:15:05.927Z  INFO 1 --- [idx-1] GPXStoreService              : Reading of track id=100004 and path= file=VoieVerteHauteVosges.gpx did complete with status=SUCCESS and took processingTime=1.47s
+app-1  | 2026-05-26T04:15:06.096Z  INFO 1 --- [idx-2] GPXStoreService              : GPS ingest timing trackId=100002 file=/MoselradwegAusWiki.gpx status=SUCCESS Timing total 5.06s; slowest raw points 1.83s, simplified shapes 1.67s, cleaned points 563ms, parse XML 397ms, denoise 288ms, break-stop filter 186ms, outlier filter 43ms, motion/stops/events 40ms.
+app-1  | 2026-05-26T04:15:06.099Z  INFO 1 --- [idx-2] GPXStoreService              : Reading of track id=100002 and path= file=MoselradwegAusWiki.gpx did complete with status=SUCCESS and took processingTime=5.07s
+Indexed-file status hints:
+app-1  | 2026-05-26T04:15:04.399Z  INFO 1 --- [idx-1] GPXStoreService              : Reading of track id=100003 and path= file=Lannion_Plestin_parcours24.4RE.gpx did complete with status=SUCCESS and took processingTime=1.31s
+app-1  | 2026-05-26T04:15:05.269Z  INFO 1 --- [idx-3] GPXStoreService              : Reading of track id=100000 and path= file=Vitry-le-Francois_Langres.gpx did complete with status=SUCCESS and took processingTime=4.23s
+app-1  | 2026-05-26T04:15:05.387Z  INFO 1 --- [idx-4] GPXStoreService              : Reading of track id=100001 and path= file=JuraRoute72011.gpx did complete with status=SUCCESS and took processingTime=4.35s
+app-1  | 2026-05-26T04:15:05.927Z  INFO 1 --- [idx-1] GPXStoreService              : Reading of track id=100004 and path= file=VoieVerteHauteVosges.gpx did complete with status=SUCCESS and took processingTime=1.47s
+app-1  | 2026-05-26T04:15:06.099Z  INFO 1 --- [idx-2] GPXStoreService              : Reading of track id=100002 and path= file=MoselradwegAusWiki.gpx did complete with status=SUCCESS and took processingTime=5.07s

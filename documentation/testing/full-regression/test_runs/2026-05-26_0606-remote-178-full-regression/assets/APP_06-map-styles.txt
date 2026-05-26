@@ -1,0 +1,22 @@
+APP_06 map style independence evidence
+
+Target: http://178.105.173.254:18080/mtl/
+Browser state: signed in, UI theme dark.
+
+Map panel exposed these base styles:
+- OSM Topo
+- Swiss Color
+- Swiss Light
+- OSM Light
+- OSM Dark
+
+Selection observations in dark UI:
+- Initial active/default: star and check on OSM Topo.
+- Swiss Color selected: active check moved to Swiss Color.
+- Swiss Light selected: active check moved to Swiss Light.
+- OSM Light selected: active check moved to OSM Light.
+- OSM Dark selected: active check moved to OSM Dark.
+
+Expected from coverage text: light, dark, grayscale, light-topo, swisstopo, swisstopo-color can be selected with either UI theme.
+
+Result: FAIL. The available style list worked independently of dark UI theme for the exposed styles, but no grayscale style was exposed in the Map panel.

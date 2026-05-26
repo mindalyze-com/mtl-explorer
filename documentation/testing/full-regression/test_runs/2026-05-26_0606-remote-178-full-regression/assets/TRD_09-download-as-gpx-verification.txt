@@ -1,0 +1,7 @@
+gpx_track_id=100001
+http=200
+bytes=199962
+trkpt=1414
+root_prefix=<?xml version="1.0" encoding="UTF-8"?> <gpx xmlns="http://www.topografix.com/GP
+fit_gpx_evidence=assets/FIT_04_05-download-verification.txt
+format_gpx_evidence=assets/FMT_02-unique-download-verification.txt

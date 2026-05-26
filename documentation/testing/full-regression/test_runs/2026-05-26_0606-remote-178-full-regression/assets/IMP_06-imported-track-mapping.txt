@@ -1,0 +1,12 @@
+Imported GPX mapping after five-file import.
+
+| Source file | Imported track id | Visible track name | UI evidence |
+|---|---:|---|---|
+| Vitry-le-Francois_Langres.gpx | 100000 | Vitry le françois - langres on GPSies.com | Track browser row and stats highlights |
+| JuraRoute72011.gpx | 100001 | Jura Route 7 / 2011 on GPSies.com | Track browser row and stats highlights |
+| MoselradwegAusWiki.gpx | 100002 | Moselradweg aus Wiki on GPSies.com | Track browser row and stats highlights |
+| Lannion_Plestin_parcours24.4RE.gpx | 100003 | Lannion_Plestin_parcours Lannion_Plestin_parcours1 | Track browser row and recent activity |
+| VoieVerteHauteVosges.gpx | 100004 | voie verte haute vosges on GPSies.com | Track browser row and recent activity |
+
+Track ids came from app ingest log SUCCESS lines in `IMP_03-index-monitor.txt`.
+Visible names came from the Stats > Tracks table in `IMP_06-track-list-after-import.webp`.

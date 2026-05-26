@@ -1,0 +1,14 @@
+MOB_01 mobile context evidence
+
+Viewport action:
+- Applied browser viewport override: 390 x 844.
+- Observed page viewport: innerWidth 390, innerHeight 844.
+- Document width: clientWidth 390, scrollWidth 390.
+- Mobile navigation layout appeared with bottom nav order: Stats, Filter, Planner, Map, Animate, Segments, GPS, Admin.
+
+Touch capability check:
+- Browser capabilities exposed: visibility, viewport.
+- Tab capabilities exposed: pageAssets.
+- No touch, device emulation, or pinch/gesture capability was exposed by the browser runtime.
+
+Result: BLOCKED. Narrow mobile-width layout was exercised, but the "touch input enabled" half of this coverage ID cannot be satisfied in the available browser context.

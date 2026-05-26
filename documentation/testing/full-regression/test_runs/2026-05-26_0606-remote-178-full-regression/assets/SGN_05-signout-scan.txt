@@ -1,0 +1,157 @@
+url=http://178.105.173.254:18080/mtl/
+candidate_signout_controls=NONE
+buttons_before_about:
+0: Zoom in
+1: Zoom out
+2: Drag to rotate map, click to reset north
+3: Toggle globe mode
+4: Search location
+5: Stats
+6: Filter
+7: Map
+8: Animate
+9: Segments
+10: GPS
+11: Planner
+12: Admin
+13: About MTL Explorer
+14: Fullscreen
+15: Close
+16: location-search__sort-button location-search__sort-button--active
+17: location-search__sort-button
+18: Reset all layers to defaults
+19: Fullscreen
+20: Close
+21: Fullscreen
+22: Close
+23: Fullscreen
+24: Close
+25: Undo last point
+26: Clear all
+27: measure-toolbar-btn measure-toolbar-btn--analyze
+28: planner-header-tab planner-header-tab--active
+29: planner-header-tab
+30: BRouter status: checking
+31: Fullscreen
+32: Close
+33: planner-toolbar__profile-btn
+34: Undo
+35: Redo
+36: Clear route
+37: Save route
+38: stats-header-tab stats-header-tab--active
+39: stats-header-tab
+40: stats-header-tab
+41: Fullscreen
+42: Close
+43: cf-tab cf-tab--active
+44: cf-tab cf-tab--disabled
+45: SQL
+46: Fullscreen
+47: Close
+48: cf-primary-btn
+49: Fullscreen
+50: Close
+51: Back
+52: First Page
+53: Previous Page
+54: Next Page
+55: Last Page
+56: Fullscreen
+57: Close
+58: Open Upload
+59: Open Jobs
+60: Open Freshness
+61: Open Garmin Sync
+62: Open Log
+63: Open Helpers
+64: Open About
+65: Open Settings
+66: Open Session
+67: Open Attribution
+68: Fullscreen
+69: Close
+70: Fullscreen
+71: Close
+72: Fullscreen
+73: Close
+buttons_links_after_about:
+0: Zoom in
+1: Zoom out
+2: Drag to rotate map, click to reset north
+3: Toggle globe mode
+4: Search location
+5: Stats
+6: Filter
+7: Map
+8: Animate
+9: Segments
+10: GPS
+11: Planner
+12: Admin
+13: About MTL Explorer
+14: ×
+15: AGPL-3.0-or-later
+16: https://github.com/mindalyze-com/mtl-explorer
+17: hey.lueg@gmail.com
+18: Fullscreen
+19: Close
+20: location-search__sort-button location-search__sort-button--active
+21: location-search__sort-button
+22: Reset all layers to defaults
+23: Fullscreen
+24: Close
+25: Fullscreen
+26: Close
+27: Fullscreen
+28: Close
+29: Undo last point
+30: Clear all
+31: measure-toolbar-btn measure-toolbar-btn--analyze
+32: planner-header-tab planner-header-tab--active
+33: planner-header-tab
+34: BRouter status: checking
+35: Fullscreen
+36: Close
+37: planner-toolbar__profile-btn
+38: Undo
+39: Redo
+40: Clear route
+41: Save route
+42: stats-header-tab stats-header-tab--active
+43: stats-header-tab
+44: stats-header-tab
+45: Fullscreen
+46: Close
+47: cf-tab cf-tab--active
+48: cf-tab cf-tab--disabled
+49: SQL
+50: Fullscreen
+51: Close
+52: cf-primary-btn
+53: Fullscreen
+54: Close
+55: Back
+56: First Page
+57: Previous Page
+58: Next Page
+59: Last Page
+60: Fullscreen
+61: Close
+62: Open Upload
+63: Open Jobs
+64: Open Freshness
+65: Open Garmin Sync
+66: Open Log
+67: Open Helpers
+68: Open About
+69: Open Settings
+70: Open Session
+71: Open Attribution
+72: Fullscreen
+73: Close
+74: Fullscreen
+75: Close
+76: Fullscreen
+77: Close
+body_auth_terms=NONE

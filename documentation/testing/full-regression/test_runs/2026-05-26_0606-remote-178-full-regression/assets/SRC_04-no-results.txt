@@ -1,0 +1,4 @@
+Search query: zzzzzzzzzzqqqnotaplace
+Visible no-result message: No matches
+Marker count after no-result query: 0
+Map state: visible and usable with 10 / 10 tracks.

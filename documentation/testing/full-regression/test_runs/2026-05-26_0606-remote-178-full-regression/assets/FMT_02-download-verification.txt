@@ -1,0 +1,47 @@
+[
+  {
+    "format": "tcx",
+    "originalBytes": 675542,
+    "originalSha256": "1432c95425d719e48737253fbf0780adbedf1e334542b4899ba9f831331e38d5",
+    "gpxBytes": 192054,
+    "gpxSha256": "d79c5296123be08512250cb56bf3afbdc4b4b5fea1aed0d937a97cac3e8be322",
+    "gpxTrkptCount": 1414,
+    "gpxHead": "<?xml version=\"1.0\" encoding=\"UTF-8\"?> <gpx version=\"1.1\" creator=\"GPSBabel - ht"
+  },
+  {
+    "format": "kml",
+    "originalBytes": 1234311,
+    "originalSha256": "ced66ebdc72dde9f7625ddd520929eb3d88007ee3064f53e3c72b828e98ed967",
+    "gpxBytes": 1568631,
+    "gpxSha256": "3563def03427b33f6cdf82343fd01ae1d02170059be962293797ce5125f437ff",
+    "gpxTrkptCount": 1414,
+    "gpxHead": "<?xml version=\"1.0\" encoding=\"UTF-8\"?> <gpx version=\"1.1\" creator=\"GPSBabel - ht"
+  },
+  {
+    "format": "igc",
+    "originalBytes": 52460,
+    "originalSha256": "8606d0298fc240a89e03dd3cfef083317ffb997adec4fadeb6b9331273359140",
+    "gpxBytes": 191970,
+    "gpxSha256": "27f5640918da2a42a98b3b3e728b7730523980f0483995ea08c7c9793cf50fab",
+    "gpxTrkptCount": 1414,
+    "gpxHead": "<?xml version=\"1.0\" encoding=\"UTF-8\"?> <gpx version=\"1.1\" creator=\"GPSBabel - ht"
+  },
+  {
+    "format": "gdb",
+    "originalBytes": 34110,
+    "originalSha256": "82ded48d8df82d2c580ec1b24e863ea6191c0776f97f75c3d14026e06ade4577",
+    "gpxBytes": 192020,
+    "gpxSha256": "c0e7aa149beb29eb5f7a63b0bcecb49727fb2ca013b025cac732ac9b0535468d",
+    "gpxTrkptCount": 1414,
+    "gpxHead": "<?xml version=\"1.0\" encoding=\"UTF-8\"?> <gpx version=\"1.1\" creator=\"GPSBabel - ht"
+  },
+  {
+    "format": "nmea",
+    "originalBytes": 16560,
+    "originalSha256": "0c738fbf0e82b8753bcfa804502d06d8e9ea897dae89afa1f49fdec5b2141430",
+    "gpxBytes": 29868,
+    "gpxSha256": "b93d791f0035395a8b76f40a26103aec420d1d976bd84d567bdfc40e92f1990d",
+    "gpxTrkptCount": 120,
+    "gpxHead": "<?xml version=\"1.0\" encoding=\"UTF-8\"?> <gpx version=\"1.1\" creator=\"GPSBabel - ht"
+  }
+]

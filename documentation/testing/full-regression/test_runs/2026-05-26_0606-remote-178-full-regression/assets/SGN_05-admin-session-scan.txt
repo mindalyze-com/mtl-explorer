@@ -1,0 +1,30 @@
+url=http://178.105.173.254:18080/mtl/
+session_tab_button_count=1
+candidate_auth_controls=65: Session LOGOUT Logout credentials only or wipe all local app data. | 69: Logout | 70: Wipe & Logout | 71: Show session id
+visible_text_excerpt:
+500 km 10 Tracks Stats Filter Map Animate Segments GPS Planner Admin Admin SYSTEM UTILITY Admin workspace Manage imports, runtime tools, diagnostics, and local preferences without leaving the map. Quiet state Data Import and processing activity Upload IMPORT Import GPX files and inspect ingest readiness. Jobs IDLE Track indexer, map, and routing activity. Freshness TOKEN Inspect domain revisions and the current map data token. Garmin Sync REMOTE Trigger a remote Garmin export to pull new activity files. System Diagnostics, tools, and build details Log SERVER Inspect recent server output and runtime issues. Helpers 2/2 READY Reload tracks, manage helper tools, and run installs. About BUILD Client and server build details and runtime info. Session Preferences and account controls Settings LIGHT Adjust color scheme and locale formatting. Session LOGOUT Logout credentials only or wipe all local app data. Attribution SOURCES Libraries, datasets, and map data references. Session ACCOUNT Session Choose exactly what logout should remove from this device. Logout modes Keep local data for fast sign-in, or wipe everything this app can access. Credentials only Remove the JWT and server session cookie. Tracks, map cache, preferences, and UI state stay available. Logout Forget everything Logout, clear local/session storage, IndexedDB tracks, browser caches, readable cookies, and service workers. Wipe & Logout Your Session Request correlation id and token timing. Copy Created 26/05/2026, 06
+controls_excerpt:
+55: Fullscreen
+56: Close
+57: Upload IMPORT Import GPX files and inspect ingest readiness.
+58: Jobs IDLE Track indexer, map, and routing activity.
+59: Freshness TOKEN Inspect domain revisions and the current map data token.
+60: Garmin Sync REMOTE Trigger a remote Garmin export to pull new activity files.
+61: Log SERVER Inspect recent server output and runtime issues.
+62: Helpers 2/2 READY Reload tracks, manage helper tools, and run installs.
+63: About BUILD Client and server build details and runtime info.
+64: Settings LIGHT Adjust color scheme and locale formatting.
+65: Session LOGOUT Logout credentials only or wipe all local app data.
+66: Attribution SOURCES Libraries, datasets, and map data references.
+67: Fullscreen
+68: Close
+69: Logout
+70: Wipe & Logout
+71: Show session id
+72: Copy
+73: Fullscreen
+74: Close
+75: Fullscreen
+76: Close
+77: Fullscreen
+78: Close

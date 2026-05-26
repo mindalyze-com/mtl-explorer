@@ -1,0 +1,22 @@
+HEIC conversion evidence for MED_04.
+
+Media info:
+{"id":400000,"name":"MED_HEIC_01_IMG_5195.HEIC","path":"full-regression-media","fullPath":"/app/media/full-regression-media/MED_HEIC_01_IMG_5195.HEIC","cameraMake":"Apple","cameraModel":"iPhone 11 Pro Max","date":"2021-04-11T15:47:53.000+0000"}
+
+Bounds check:
+GET /api/media/get-media-in-bounds?minLat=39.03&minLng=-94.32&maxLat=39.07&maxLng=-94.26
+[{"id":400000,"lat":39.05134,"lng":-94.28877}]
+
+Content conversion check:
+GET /api/media/get/400000/content?maxSize=1024
+HTTP/1.1 200
+Content-Type: image/jpeg
+ETag: "media-400000-833284-1779778247134-jpeg92-s1024"
+
+Downloaded bytes:
+/tmp/mtl-heic-content.bin: JPEG image data, Exif Standard, manufacturer=Apple, model=iPhone 11 Pro Max
+ImageMagick identify: JPEG 793x1024 227533B
+
+UI result:
+- Media layer showed a single HEIC media point near Blue Springs, Missouri.
+- Clicking the point opened a visible photo preview for MED_HEIC_01_IMG_5195.HEIC.

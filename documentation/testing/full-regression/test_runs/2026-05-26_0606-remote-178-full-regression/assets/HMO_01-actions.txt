@@ -1,0 +1,14 @@
+Heatmap toggle and opacity evidence for HMO_01.
+
+Test viewport:
+- Location search: Lannion, France
+- Visible track: Lannion_Plestin_parcours24.4RE.gpx geometry in blue/purple over the map.
+
+Actions:
+1. Captured heatmap enabled at full opacity. Heatmap density rendered around the track and the track line remained visible above it.
+2. Toggled Heatmap off from Maps and data. The density glow disappeared and the track line remained visible.
+3. Toggled Heatmap on again and clicked the heatmap opacity track at about 38%. The heatmap returned at lower intensity while the track line remained visible.
+
+State left:
+- Heatmap enabled at reduced opacity.
+- A worldwide MTB overlay was accidentally enabled during interaction and is left for HMO_02 overlay coverage.

@@ -1,0 +1,19 @@
+QUERY=Jura
+ROW_COUNT=1
+01/01/2010, 01:00 Jura Route 7 / 2011 on GPSies.com Bicycle 273 km 7h 46m 35.1 1808 Wh 100.0% 26/05/2026, 06:15
+
+QUERY=Mosel
+ROW_COUNT=1
+01/01/2010, 01:00 Moselradweg aus Wiki on GPSies.com Bicycle 518 km 6h 50m 75.7 1616 Wh 100.0% 26/05/2026, 06:15
+
+QUERY=Vitry
+ROW_COUNT=1
+01/01/2010, 01:00 Vitry le françois - langres on GPSies.com Bicycle 147 km 4h 27m 33.0 471 Wh 100.0% 26/05/2026, 06:15
+
+QUERY=Voie
+ROW_COUNT=1
+01/01/2010, 01:00 voie verte haute vosges on GPSies.com Bicycle 78.5 km 3h 12m 24.4 436 Wh 100.0% 26/05/2026, 06:15
+
+QUERY=Lannion
+ROW_COUNT=1
+08/03/2013, 10:32 Lannion_Plestin_parcours Lannion_Plestin_parcours1 Bicycle 25.9 km 1h 13m 21.1 198 Wh 100.0% 26/05/2026, 06:15

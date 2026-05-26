@@ -1,0 +1,28 @@
+ERR_01 error recovery evidence
+
+Covered error cases:
+
+Failed track/map/API load:
+- NET_02 aborted /mtl/api/** requests in an isolated context.
+- App showed: Unable to load tracks - no server connection and no cached data available.
+- Retry button was visible.
+- Frozen splash: false.
+- Evidence: assets/NET_02-network-recovery.txt
+
+Expired/invalid session:
+- NET_03 replaced mtl.jwt with an invalid token in an isolated context.
+- App redirected to /mtl/login?reason=expired.
+- Login form was visible.
+- Evidence: assets/NET_03-auth-redirect.txt
+
+Broken media:
+- MED_05 indexed and then corrupted a disposable JPEG.
+- Media preview opened, but the main media area was blank/broken with no retry/actionable error message.
+- Server returned 200 image/jpeg with a 0-byte body.
+- Evidence: assets/MED_05-broken-media.txt and assets/MED_05-broken-preview.webp
+
+Planner route failure:
+- BRouter stayed ready in this configured run and PLN_10 marked forced route-fetch trouble not applicable.
+- Evidence: packets/PLN_10.md
+
+Result: FAIL. Track/map/API failure and expired session recovered cleanly, but the broken media error case did not show an actionable recoverable UI.

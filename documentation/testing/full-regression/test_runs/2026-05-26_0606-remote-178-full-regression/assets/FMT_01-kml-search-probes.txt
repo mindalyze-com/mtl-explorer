@@ -1,0 +1,20 @@
+TERM 100014
+  - strong: "0"
+      - row "No tracks match “100014”":
+        - cell "No tracks match “100014”"
+TERM KML
+  - strong: "0"
+      - row "No tracks match “KML”":
+        - cell "No tracks match “KML”"
+TERM FMT_KML
+  - strong: "0"
+      - row "No tracks match “FMT_KML”":
+        - cell "No tracks match “FMT_KML”"
+TERM FMT KML
+  - strong: "0"
+      - row "No tracks match “FMT KML”":
+        - cell "No tracks match “FMT KML”"
+TERM Path
+  - strong: "0"
+      - row "No tracks match “Path”":
+        - cell "No tracks match “Path”"

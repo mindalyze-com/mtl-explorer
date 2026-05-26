@@ -1,0 +1,6 @@
+Pre-import baseline captured 2026-05-26 06:13 CEST.
+
+- Map badge: 0 Tracks.
+- Statistics overview: "No tracks match the current filters."
+- Admin jobs: Duplicate Finder, Activity Classifier, Exploration Score all done with 0 total; location search done; routing segments ready.
+- Freshness token: server/client in sync with index:0, media:0, track_geometry:0, tracks:0.

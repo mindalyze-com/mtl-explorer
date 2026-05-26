@@ -1,0 +1,14 @@
+LOC_03 locale persistence evidence
+
+Action:
+- Selected de-DE in Admin -> Settings -> Format locale.
+- Hard reloaded the application.
+- Reopened Admin -> Settings.
+
+Observed after hard reload:
+- Selected locale remained: de-DE (31.12.2025, 1.234,56)
+- Preview after reload: 26.05.2026 11:08:12 - 12.345,67
+- Auto-detected browser locale remained visible as en-GB, distinct from the selected de-DE preference.
+- Map returned to usable state after reload.
+
+Result: PASS. Locale selection persisted across hard reload.
