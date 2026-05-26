@@ -124,7 +124,7 @@ const REMOTE_RASTER_TILE_URLS: Partial<Record<MapTheme, string>> = {
 const REMOTE_RASTER_ATTRIBUTIONS: Partial<Record<MapTheme, string>> = {
   dark:
     '© <a href="https://openstreetmap.org">OpenStreetMap</a> contributors, ' +
-    '© <a href="https://carto.com/attributions">CARTO</a>',
+    '© <a href="https://carto.com/attributions">Map tiles by Carto, under CC BY 3.0. Data by OpenStreetMap, under ODbL.</a>',
   'light-topo':
     '© <a href="https://openstreetmap.org">OpenStreetMap</a> contributors, ' +
     '<a href="https://opentopomap.org">OpenTopoMap</a> (<a href="https://creativecommons.org/licenses/by-sa/3.0/">CC-BY-SA</a>)',
