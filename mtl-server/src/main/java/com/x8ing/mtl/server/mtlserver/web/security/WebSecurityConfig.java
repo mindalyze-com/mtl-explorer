@@ -86,7 +86,7 @@ public class WebSecurityConfig {
                                 "base-uri 'self'; " +
                                 "object-src 'none'; " +
                                 "frame-ancestors 'none'"))
-                        .referrerPolicy(referrer -> referrer.policy(ReferrerPolicyHeaderWriter.ReferrerPolicy.SAME_ORIGIN))
+                        .referrerPolicy(referrer -> referrer.policy(ReferrerPolicyHeaderWriter.ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN))
                         .permissionsPolicyHeader(permissions -> permissions.policy("camera=(), microphone=(), geolocation=(self)"))
                 );
 
