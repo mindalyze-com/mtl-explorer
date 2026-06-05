@@ -12,6 +12,7 @@ import {
   saveGeometryRecords,
   saveTrackRecords,
 } from '@/utils/tracks/trackCacheDb';
+import type { GpsTrack } from 'x8ing-mtl-api-typescript-fetch';
 import {
   fetchDetailTrack,
   fetchFilteredTrackIds,
@@ -68,6 +69,10 @@ export function applyTrackFilter(options?: TrackFilterApplyOptions): Promise<Tra
 
 export function loadCachedTrackCollection(): Promise<TrackLoadResult | null> {
   return trackCollectionLoader.loadFromCache();
+}
+
+export function loadCachedTracks(): Promise<Map<number, GpsTrack>> {
+  return trackCollectionLoader.loadCachedTracks();
 }
 
 export function readBestCachedTrackShape(

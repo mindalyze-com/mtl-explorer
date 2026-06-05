@@ -1,0 +1,6 @@
+{
+  "query": "zzzzzz-no-such-place-mtl-regression",
+  "resultCount": 0,
+  "visibleMessage": "No matches",
+  "assertion": "PASS: empty query result showed clear no-match message."
+}

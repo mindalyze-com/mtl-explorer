@@ -1,0 +1,70 @@
+{
+  "state": {
+    "label": "after zoom cycle while disabled",
+    "globeControlPresent": true,
+    "globeButtonPresent": true,
+    "globeControlDisplay": "block",
+    "globeButtonVisible": true,
+    "globeButtonClasses": "mtl-globe-btn",
+    "globeButtonActive": false,
+    "canvas": {
+      "x": 76,
+      "y": 0,
+      "w": 1290,
+      "h": 900
+    }
+  },
+  "recentZoomLogs": [
+    "[zoom] 1.963 | globe",
+    "[zoom] 1.963 | globe",
+    "[zoom] 1.963 | globe",
+    "[zoom] 2.963 | globe",
+    "[zoom] 3.963 | mercator",
+    "[zoom] 4.963 | mercator",
+    "[zoom] 5.963 | mercator",
+    "[zoom] 6.963 | mercator",
+    "[zoom] 7.963 | mercator",
+    "[zoom] 6.963 | mercator",
+    "[zoom] 5.963 | mercator",
+    "[zoom] 4.963 | mercator",
+    "[zoom] 3.963 | mercator",
+    "[zoom] 2.963 | globe",
+    "[zoom] 1.963 | globe",
+    "[zoom] 1.963 | globe",
+    "[zoom] 1.963 | globe",
+    "[zoom] 2.963 | mercator",
+    "[zoom] 1.963 | mercator",
+    "[zoom] 1.000 | mercator"
+  ],
+  "body": "3000 km © OpenStreetMap | Elevation: Mapterhorn 13 Tracks Stats Filter Map Animate Segments GPS Planner Admin",
+  "activeBeforeManualDisable": {
+    "label": "active before manual disable",
+    "globeControlPresent": true,
+    "globeButtonPresent": true,
+    "globeControlDisplay": "block",
+    "globeButtonVisible": true,
+    "globeButtonClasses": "mtl-globe-btn mtl-globe-active",
+    "globeButtonActive": true,
+    "canvas": {
+      "x": 76,
+      "y": 0,
+      "w": 1290,
+      "h": 900
+    }
+  },
+  "afterManualDisable": {
+    "label": "after manual disable",
+    "globeControlPresent": true,
+    "globeButtonPresent": true,
+    "globeControlDisplay": "block",
+    "globeButtonVisible": true,
+    "globeButtonClasses": "mtl-globe-btn",
+    "globeButtonActive": false,
+    "canvas": {
+      "x": 76,
+      "y": 0,
+      "w": 1290,
+      "h": 900
+    }
+  }
+}

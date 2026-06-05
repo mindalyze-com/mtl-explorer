@@ -1,0 +1,4 @@
+APP_04 theme persistence evidence:
+- Theme after hard reload: dark
+- Theme after credentials-only logout/login: dark
+- Theme mutation log during hard reload: []

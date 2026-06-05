@@ -1,5 +1,25 @@
 import { type Ref, watchEffect } from 'vue';
 
+export const POINTER_DRAG_EXCLUDE_SELECTOR = [
+  'button',
+  'a',
+  '[role="button"]',
+  'input',
+  'select',
+  'textarea',
+  'label',
+  'summary',
+  '[contenteditable="true"]',
+  '[data-drag-exclude]',
+  '[data-sheet-drag-exclude]',
+  '.drag-exclude',
+  '.sheet-drag-exclude',
+].join(', ');
+
+export function isPointerDragExcluded(target: EventTarget | null): boolean {
+  return target instanceof Element && Boolean(target.closest(POINTER_DRAG_EXCLUDE_SELECTOR));
+}
+
 export interface DragState {
   /** Delta from drag start: [dx, dy]. Positive Y = finger moved down on screen. */
   movement: [number, number];
@@ -47,7 +67,7 @@ export function usePointerDrag(target: Ref<HTMLElement | null>, handler: (state:
     function onPointerDown(e: PointerEvent) {
       if (e.button !== 0) return; // primary button only
       // Don't intercept clicks on interactive elements inside the drag zone
-      if ((e.target as HTMLElement).closest('button, a, [role="button"], input, select, textarea')) return;
+      if (isPointerDragExcluded(e.target)) return;
       active = true;
       hasMoved = false;
       startX = e.clientX;

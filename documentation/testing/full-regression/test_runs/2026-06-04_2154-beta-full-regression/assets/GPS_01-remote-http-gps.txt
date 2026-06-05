@@ -1,0 +1,21 @@
+{
+  "targetOrigin": "http://167.233.16.201:18080",
+  "pageUrl": "http://167.233.16.201:18080/mtl/",
+  "protocol": "http:",
+  "isSecureContext": false,
+  "navigatorGeolocationPresent": true,
+  "permissionsQueryState": "prompt",
+  "clickedGpsNavigation": {
+    "attempted": true,
+    "ok": true,
+    "error": ""
+  },
+  "directGeolocationAttempt": {
+    "attempted": true,
+    "outcome": "error",
+    "code": 1,
+    "message": "Only secure origins are allowed (see: https://goo.gl/Y0ZkNV)."
+  },
+  "visibleGpsMessage": "GPS unavailable GPS needs HTTPS or localhost. Open MTL Explorer from a secure address to use live location.",
+  "relevantPlanConstraint": "Remote plain-HTTP quick-install origin; frontend-regression-test-plan.md says live GPS permission/marker checks are NOT APPLICABLE unless tested on localhost or HTTPS."
+}

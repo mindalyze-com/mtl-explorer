@@ -36,6 +36,7 @@ public class MediaController {
 
     private static final int MEDIA_POINTS_CACHE_MINUTES = 3;
     private static final int MEDIA_CONTENT_CACHE_HOURS = 1;
+    private static final long EMPTY_MEDIA_FILE_SIZE_BYTES = 0L;
 
     private final MediaRepository mediaRepository;
 
@@ -101,6 +102,9 @@ public class MediaController {
 
         Path mediaPath = Paths.get(mediaFile.getIndexedFile().getFullPath());
         long fileSize = Files.size(mediaPath);
+        if (fileSize <= EMPTY_MEDIA_FILE_SIZE_BYTES) {
+            throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "Media file is empty");
+        }
         long lastModifiedMillis = Files.getLastModifiedTime(mediaPath).toMillis();
         String fileName = mediaFile.getIndexedFile().getName();
         String lowerName = fileName != null ? fileName.toLowerCase() : "";

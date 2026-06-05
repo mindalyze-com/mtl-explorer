@@ -1,0 +1,27 @@
+{
+  "mapShows12": true,
+  "apiTrackCount": 12,
+  "deletedIdsAbsent": true,
+  "deletedNamesAbsent": true,
+  "searches": [
+    {
+      "file": "Vitry-le-Francois_Langres.gpx",
+      "resultText": "500 km\n© OpenStreetMap | Elevation: Mapterhorn\n12 Tracks\nStats\nFilter\nMap\nAnimate\nSegments\nGPS\nPlanner\nAdmin\nOverview\nTrends\nTracks\nVIEWS\nAll\nExcluded\nStats excluded\nNo activity\n0\nof 12 tracks\n·\n0.00 m\n·\n0m 00s\n SORT:\nDate\nImported\nDistance\nDuration\nName\nExploration\n\t\nSTART\n\t\nTRACK\n\t\nACTIVITY\n\t\nDISTANCE\n\t\nDURATION\n\t\nAVG KM/H\n\t\nENERGY\n\t\nEXPLORATION\n\t\nIMPORTED\n\nNo tracks match “Vitry-le-Francois_Langres.gpx”\n25",
+      "hasDeletedName": false,
+      "hasSelectableRow": 0
+    },
+    {
+      "file": "Lannion_Plestin_parcours24.4RE.gpx",
+      "resultText": "500 km\n© OpenStreetMap | Elevation: Mapterhorn\n12 Tracks\nStats\nFilter\nMap\nAnimate\nSegments\nGPS\nPlanner\nAdmin\nOverview\nTrends\nTracks\nVIEWS\nAll\nExcluded\nStats excluded\nNo activity\n0\nof 12 tracks\n·\n0.00 m\n·\n0m 00s\n SORT:\nDate\nImported\nDistance\nDuration\nName\nExploration\n\t\nSTART\n\t\nTRACK\n\t\nACTIVITY\n\t\nDISTANCE\n\t\nDURATION\n\t\nAVG KM/H\n\t\nENERGY\n\t\nEXPLORATION\n\t\nIMPORTED\n\nNo tracks match “Lannion_Plestin_parcours24.4RE.gpx”\n25",
+      "hasDeletedName": false,
+      "hasSelectableRow": 0
+    }
+  ],
+  "linkedDeletionEvidence": [
+    "assets/DEL_03-user-visible-removal.txt",
+    "assets/DEL_03-map-3-tracks.webp",
+    "assets/DEL_03-filter-3-tracks.webp",
+    "assets/DEL_03-heatmap-3-tracks.webp",
+    "assets/DEL_03-related-after-delete.webp"
+  ]
+}

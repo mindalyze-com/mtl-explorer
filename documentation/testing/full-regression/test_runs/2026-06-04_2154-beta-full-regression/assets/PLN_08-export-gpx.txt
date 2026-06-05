@@ -1,0 +1,9 @@
+{
+  "suggestedFilename": "PLN regression 1780613267868.gpx",
+  "savedBytes": 784,
+  "startsWithXmlOrGpx": true,
+  "hasGpxRoot": true,
+  "trkptCount": 8,
+  "hasTrackName": true,
+  "routeResponseCoordinateCount": 8
+}

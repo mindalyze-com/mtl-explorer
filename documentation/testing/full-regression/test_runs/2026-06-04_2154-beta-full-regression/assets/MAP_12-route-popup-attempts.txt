@@ -1,0 +1,17 @@
+enabled Hiking Routes
+enabled Bike Routes
+enabled MTB Routes
+enabled Hiking Trails
+after close text 500 km © OpenStreetMap | © SchweizMobil | © swisstopo | © Waymarked Trails | Elevation: Mapterhorn 11 Tracks Stats Filter Map Animate Segments GPS Planner Admin
+click 680,220 hit=false text=30 km © OpenStreetMap | © SchweizMobil | © swisstopo | © Waymarked Trails | Elevation: Mapterhorn 11 Tracks Stats Filter Map Animate Segments GPS Planner Admin
+click 720,250 hit=false text=30 km © OpenStreetMap | © SchweizMobil | © swisstopo | © Waymarked Trails | Elevation: Mapterhorn 11 Tracks Stats Filter Map Animate Segments GPS Planner Admin
+click 760,260 hit=false text=30 km © OpenStreetMap | © SchweizMobil | © swisstopo | © Waymarked Trails | Elevation: Mapterhorn 11 Tracks Stats Filter Map Animate Segments GPS Planner Admin
+click 650,270 hit=false text=30 km © OpenStreetMap | © SchweizMobil | © swisstopo | © Waymarked Trails | Elevation: Mapterhorn 11 Tracks Stats Filter Map Animate Segments GPS Planner Admin
+click 705,300 hit=false text=30 km © OpenStreetMap | © SchweizMobil | © swisstopo | © Waymarked Trails | Elevation: Mapterhorn 11 Tracks Stats Filter Map Animate Segments GPS Planner Admin
+click 805,245 hit=false text=30 km © OpenStreetMap | © SchweizMobil | © swisstopo | © Waymarked Trails | Elevation: Mapterhorn 11 Tracks Stats Filter Map Animate Segments GPS Planner Admin
+click 610,240 hit=false text=30 km © OpenStreetMap | © SchweizMobil | © swisstopo | © Waymarked Trails | Elevation: Mapterhorn 11 Tracks Stats Filter Map Animate Segments GPS Planner Admin
+click 750,190 hit=false text=30 km © OpenStreetMap | © SchweizMobil | © swisstopo | © Waymarked Trails | Elevation: Mapterhorn 11 Tracks Stats Filter Map Animate Segments GPS Planner Admin
+click 700,165 hit=false text=30 km © OpenStreetMap | © SchweizMobil | © swisstopo | © Waymarked Trails | Elevation: Mapterhorn 11 Tracks Stats Filter Map Animate Segments GPS Planner Admin
+click 790,320 hit=false text=30 km © OpenStreetMap | © SchweizMobil | © swisstopo | © Waymarked Trails | Elevation: Mapterhorn 11 Tracks Stats Filter Map Animate Segments GPS Planner Admin
+click 585,205 hit=false text=30 km © OpenStreetMap | © SchweizMobil | © swisstopo | © Waymarked Trails | Elevation: Mapterhorn 11 Tracks Stats Filter Map Animate Segments GPS Planner Admin
+click 545,250 hit=false text=30 km © OpenStreetMap | © SchweizMobil | © swisstopo | © Waymarked Trails | Elevation: Mapterhorn 11 Tracks Stats Filter Map Animate Segments GPS Planner Admin

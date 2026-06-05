@@ -1,0 +1,44 @@
+{
+  "rescanGpsMessage": "Manual GPS rescan has been queued.",
+  "rescanMediaMessage": "Manual MEDIA rescan has been queued.",
+  "afterRescanCards": [
+    {
+      "section": "File Indexers",
+      "text": "MEDIA done 100% 3131 total"
+    },
+    {
+      "section": "File Indexers",
+      "text": "GPS done 87% 1416 total"
+    },
+    {
+      "section": "Track Processing Jobs",
+      "text": "Duplicate Finder done 100% 1414 total"
+    },
+    {
+      "section": "Track Processing Jobs",
+      "text": "Activity Classifier done 100% 1414 total"
+    },
+    {
+      "section": "Track Processing Jobs",
+      "text": "Exploration Score done 100% 1414 total"
+    },
+    {
+      "section": "Map & Routing",
+      "text": "Vector Map Tiles done100%Using hosted map service Protomaps archive public-defaultHosted map service"
+    },
+    {
+      "section": "Map & Routing",
+      "text": "Location Search done100%GeoNames location search ready. Image 1.2 · Built 05/25/2026, 15:54:08 · Python 3.14.5 · Sqlite 3.53.1 · Apsw 3.53.1.0 · Source Attribution GeoNames · Source Url https://www.geonames.org/ · Source License CC-BY 4.0 · Source License Url https://creativecommons.org/licenses/by/4.0/ · Source Build Date 2026-05-24T22:14:20.822921Z · Schema Version geonames-search-v1 · Row Count 1332531 · Populated Place Count 233251 · Terrain Count 10992801332531 places (233251 populated, 1099280 terrain)"
+    },
+    {
+      "section": "Map & Routing",
+      "text": "Routing Segments ready100%Routing segments are ready for planned routes. Image 1.11 · Built 05/25/2026, 15:54:08 · BRouter 1.7.92 on disk"
+    }
+  ],
+  "mapAfterRescan": "300 km © OpenStreetMap | Elevation: Mapterhorn 14 Tracks Stats Filter Map Animate Segments GPS Planner Admin",
+  "assertions": {
+    "gpsMessageVisible": true,
+    "mediaMessageVisible": true,
+    "mapStillInteractive": true
+  }
+}

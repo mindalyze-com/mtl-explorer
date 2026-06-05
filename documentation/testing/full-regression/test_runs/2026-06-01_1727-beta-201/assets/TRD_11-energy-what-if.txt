@@ -1,0 +1,7 @@
+TRD_11 energy what-if recalculation evidence
+Track: #100005 Activity.fit
+Changed rider weight from 75 kg to 95 kg in the what-if dialog, then closed without Save.
+Checks: baseline75=true, changed95=true, previewChanged=true, notSaved=true
+before: input=75; range=75; totalWh=346.7; deltaWh=-0.0; avgPowerW=702; text=Adjust rider weight Current rider 75.0 kg Model mass 75.0 kg RIDER WEIGHT 75.0 kg kg 35 kg 180 kg Total 346.7 Wh Delta -0.0 Wh Avg power 702 W Reset Save
+changed to 95 kg: input=95; range=95; totalWh=439.1; deltaWh=; avgPowerW=889; text=Adjust rider weight Current rider 75.0 kg Model mass 75.0 kg RIDER WEIGHT 95.0 kg kg 35 kg 180 kg Total 439.1 Wh Delta +92.4 Wh Avg power 889 W Reset Save
+reopened without save: input=75; range=75; totalWh=346.7; deltaWh=-0.0; avgPowerW=702; text=Adjust rider weight Current rider 75.0 kg Model mass 75.0 kg RIDER WEIGHT 75.0 kg kg 35 kg 180 kg Total 346.7 Wh Delta -0.0 Wh Avg power 702 W Reset Save

@@ -1,0 +1,24 @@
+{
+  "stoppedAnimation": {
+    "playAria": "Play animation",
+    "stopDisabled": true,
+    "speed": "1000ms",
+    "tracks": "13 / 13"
+  },
+  "raceReset": {
+    "cards": [
+      "1 synthetic-crossing-a.gpx Bicycle 01/20/2026 0% 00:06:51 11.5 km/h 1.32 km",
+      "2 synthetic-crossing-b.gpx Bicycle 01/21/2026 0% 00:08:43 9.1 km/h 1.32 km"
+    ],
+    "startDisabled": false,
+    "resetDisabled": false
+  },
+  "afterCloseBeforeClick": "Map returned to normal 13-track state after closing animation/race overlays.",
+  "afterMapClick": "Normal map click opened a 2-track chooser with Codex synthetic crossing B and Codex synthetic crossing A.",
+  "statsAfterRace": "Stats opened after race cleanup and showed Overview, Trends, Tracks with 13 TRACKS, 972 km, 20h 46m, 4,533 Wh.",
+  "assertions": {
+    "raceResetAvailable": true,
+    "normalMapClickWorked": true,
+    "statsToolOpenedAfterRace": true
+  }
+}

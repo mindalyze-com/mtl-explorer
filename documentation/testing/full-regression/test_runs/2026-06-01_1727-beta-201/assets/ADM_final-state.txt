@@ -1,0 +1,5 @@
+Final Admin pass state:
+- Visible count text: 12 Tracks
+- Remote GPX-UPLOAD file list: empty.
+- Compose status: app container running image wauwau0977/mytraillog:beta; database, brouter, and location-search services running.
+- Notes: a discarded direct probe to /mtl/api/tracks returned 404 because that endpoint is not part of the app API; normal map requests use /mtl/api/tracks/get-simplified and the UI remained at 12 Tracks.

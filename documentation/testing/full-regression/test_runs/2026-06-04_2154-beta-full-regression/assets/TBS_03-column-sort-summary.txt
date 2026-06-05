@@ -1,0 +1,43 @@
+{
+  "summaryBefore": "11 tracks - 966 km - 20h 46m",
+  "summaryAfter": "11 tracks - 966 km - 20h 46m",
+  "sortableColumnsChecked": [
+    {
+      "header": "Start",
+      "result": "first two rows changed after toggling header sort"
+    },
+    {
+      "header": "Track",
+      "result": "first two rows changed after toggling header sort"
+    },
+    {
+      "header": "Activity",
+      "result": "first two rows changed after toggling header sort"
+    },
+    {
+      "header": "Distance",
+      "result": "first two rows changed after toggling header sort"
+    },
+    {
+      "header": "Duration",
+      "result": "first two rows changed after toggling header sort"
+    },
+    {
+      "header": "Avg km/h",
+      "result": "first two rows changed after toggling header sort"
+    },
+    {
+      "header": "Energy",
+      "result": "first two rows changed after toggling header sort"
+    },
+    {
+      "header": "Exploration",
+      "result": "header accepted sort toggles; visible order stayed stable because all current rows show 100.0% exploration"
+    },
+    {
+      "header": "Imported",
+      "result": "first two rows changed after toggling header sort"
+    }
+  ],
+  "codeReference": "mtl-client/src/components/track-browser/TrackBrowserTable.vue marks Start, Track, Activity, Distance, Duration, Avg km/h, Energy, Exploration, and Imported as sortable columns."
+}

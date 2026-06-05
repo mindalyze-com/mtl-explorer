@@ -1,6 +1,8 @@
-const APPLIED_DATA_FRESHNESS_TOKEN_KEY = 'mtl-applied-data-freshness-token';
-const DISMISSED_DATA_FRESHNESS_TOKEN_KEY = 'mtl-dismissed-data-freshness-token';
-const DISMISSED_DATA_FRESHNESS_EXPIRES_AT_KEY = 'mtl-dismissed-data-freshness-expires-at';
+import { readStorage, removeStorage, STORAGE_KEYS, writeStorage } from '@/utils/appStorage';
+
+const APPLIED_DATA_FRESHNESS_TOKEN_KEY = STORAGE_KEYS.dataFreshnessAppliedToken;
+const DISMISSED_DATA_FRESHNESS_TOKEN_KEY = STORAGE_KEYS.dataFreshnessDismissedToken;
+const DISMISSED_DATA_FRESHNESS_EXPIRES_AT_KEY = STORAGE_KEYS.dataFreshnessDismissedExpiresAt;
 
 export type DismissedDataFreshness = {
   token: string;
@@ -8,20 +10,20 @@ export type DismissedDataFreshness = {
 };
 
 export function getAppliedDataFreshnessToken(): string | null {
-  return localStorage.getItem(APPLIED_DATA_FRESHNESS_TOKEN_KEY);
+  return readStorage(APPLIED_DATA_FRESHNESS_TOKEN_KEY);
 }
 
 export function setAppliedDataFreshnessToken(token: string): void {
-  localStorage.setItem(APPLIED_DATA_FRESHNESS_TOKEN_KEY, token);
+  writeStorage(APPLIED_DATA_FRESHNESS_TOKEN_KEY, token);
 }
 
 export function clearAppliedDataFreshnessToken(): void {
-  localStorage.removeItem(APPLIED_DATA_FRESHNESS_TOKEN_KEY);
+  removeStorage(APPLIED_DATA_FRESHNESS_TOKEN_KEY);
 }
 
 export function getDismissedDataFreshness(nowMs = Date.now()): DismissedDataFreshness | null {
-  const token = localStorage.getItem(DISMISSED_DATA_FRESHNESS_TOKEN_KEY);
-  const expiresAt = Number(localStorage.getItem(DISMISSED_DATA_FRESHNESS_EXPIRES_AT_KEY));
+  const token = readStorage(DISMISSED_DATA_FRESHNESS_TOKEN_KEY);
+  const expiresAt = Number(readStorage(DISMISSED_DATA_FRESHNESS_EXPIRES_AT_KEY));
 
   if (!token || !Number.isFinite(expiresAt) || expiresAt <= nowMs) {
     clearDismissedDataFreshness();
@@ -42,12 +44,12 @@ export function setDismissedDataFreshness(
   }
 
   const dismissed = { token, expiresAt: nowMs + durationMs };
-  localStorage.setItem(DISMISSED_DATA_FRESHNESS_TOKEN_KEY, dismissed.token);
-  localStorage.setItem(DISMISSED_DATA_FRESHNESS_EXPIRES_AT_KEY, String(dismissed.expiresAt));
+  writeStorage(DISMISSED_DATA_FRESHNESS_TOKEN_KEY, dismissed.token);
+  writeStorage(DISMISSED_DATA_FRESHNESS_EXPIRES_AT_KEY, String(dismissed.expiresAt));
   return dismissed;
 }
 
 export function clearDismissedDataFreshness(): void {
-  localStorage.removeItem(DISMISSED_DATA_FRESHNESS_TOKEN_KEY);
-  localStorage.removeItem(DISMISSED_DATA_FRESHNESS_EXPIRES_AT_KEY);
+  removeStorage(DISMISSED_DATA_FRESHNESS_TOKEN_KEY);
+  removeStorage(DISMISSED_DATA_FRESHNESS_EXPIRES_AT_KEY);
 }

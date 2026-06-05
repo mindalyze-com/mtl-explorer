@@ -1,0 +1,77 @@
+--- data-freshness ---
+{
+    "freshnessToken": "1YnzQK__|server_id:Cg8oM1u6qqvmF4JAAqTxET|config:9|filters:83|index:15|media:0|track_geometry:30|tracks:30",
+    "changedAt": "2026-06-01T15:40:22.269+0000",
+    "items": [
+        {
+            "key": "config",
+            "revision": 9,
+            "changedAt": "2026-06-01T15:32:21.523+0000"
+        },
+        {
+            "key": "filters",
+            "revision": 83,
+            "changedAt": "2026-06-01T15:31:54.522+0000"
+        },
+        {
+            "key": "index",
+            "revision": 15,
+            "changedAt": "2026-06-01T15:39:38.590+0000"
+        },
+        {
+            "key": "media",
+            "revision": 0,
+            "changedAt": "2026-06-01T15:31:43.126+0000"
+        },
+        {
+            "key": "track_geometry",
+            "revision": 30,
+            "changedAt": "2026-06-01T15:39:34.182+0000"
+        },
+        {
+            "key": "tracks",
+            "revision": 30,
+            "changedAt": "2026-06-01T15:40:22.269+0000"
+        }
+    ]
+}
+--- indexer-status ---
+[
+    {
+        "index": "GPS",
+        "total": 5,
+        "pending": 0,
+        "completed": 5,
+        "failed": 0,
+        "removed": 0,
+        "excluded": 0,
+        "progressPercent": 100
+    }
+]
+--- jobs-status ---
+[
+    {
+        "job": "duplicate",
+        "label": "Duplicate Finder",
+        "total": 5,
+        "pending": 0,
+        "done": 5,
+        "progressPercent": 100
+    },
+    {
+        "job": "activityType",
+        "label": "Activity Classifier",
+        "total": 5,
+        "pending": 0,
+        "done": 5,
+        "progressPercent": 100
+    },
+    {
+        "job": "exploration",
+        "label": "Exploration Score",
+        "total": 5,
+        "pending": 0,
+        "done": 5,
+        "progressPercent": 100
+    }
+]

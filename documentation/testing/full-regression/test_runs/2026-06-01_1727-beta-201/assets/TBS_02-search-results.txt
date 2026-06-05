@@ -1,0 +1,10 @@
+TBS_02 track browser search evidence
+name:Jura: rows=1; first=["01/01/2010, 01:00 Jura Route 7 / 2011 on GPSies.com Bicycle 273 km 7h 46m 35.1 1,808 Wh 100.0% 06/01/2026, 17:39"]
+description:IGCHDRS: rows=1; first=["02/04/2026, 10:00 GNSSALTTRK IGCHDRS~HFPLTPILOT:Unknown~ Bicycle 1.50 km 0m 00s 10 Wh 100.0% 06/01/2026, 18:32"]
+date:07/20/2021: rows=1; first=["07/20/2021, 23:11 Track 100005 Walking 3.60 km 59m 57s 3.6 347 Wh 100.0% 06/01/2026, 18:09"]
+distance:3.60 km: rows=1; first=["07/20/2021, 23:11 Track 100005 Walking 3.60 km 59m 57s 3.6 347 Wh 100.0% 06/01/2026, 18:09"]
+duration:59m 57s: rows=1; first=["07/20/2021, 23:11 Track 100005 Walking 3.60 km 59m 57s 3.6 347 Wh 100.0% 06/01/2026, 18:09"]
+activity:Walking: rows=1; first=["07/20/2021, 23:11 Track 100005 Walking 3.60 km 59m 57s 3.6 347 Wh 100.0% 06/01/2026, 18:09"]
+file:Activity.fit: rows=1; first=["07/20/2021, 23:11 Track 100005 Walking 3.60 km 59m 57s 3.6 347 Wh 100.0% 06/01/2026, 18:09"]
+All matched=true
+Cleared search rows=12; allTrackText=true

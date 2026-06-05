@@ -1,0 +1,48 @@
+- generic: © Patrick Heusser
+- img "MTL Explorer"
+- paragraph:
+  - text: Almost there
+  - generic: .
+- region "Map"
+- region "Map"
+- button "Zoom in"
+- button "Zoom out"
+- button "Drag to rotate map, click to reset north"
+- text: 
+- button "Enable 3D terrain":
+  - generic: 
+- generic: 5 km
+- generic "Toggle attribution"
+- text: ©
+- link "OpenStreetMap":
+  - /url: https://openstreetmap.org
+- text: "| Elevation:"
+- link "Mapterhorn":
+  - /url: https://mapterhorn.com/attribution/
+- button "Search location":
+  - generic: 
+- generic: 0 Tracks
+- button " Stats":
+  - generic: 
+  - generic: Stats
+- button " Filter":
+  - generic: 
+  - generic: Filter
+- button " Planner":
+  - generic: 
+  - generic: Planner
+- button " Map":
+  - generic: 
+  - generic: Map
+- button " Animate":
+  - generic: 
+  - generic: Animate
+- button " Segments":
+  - generic: 
+  - generic: Segments
+- button " GPS":
+  - generic: 
+  - generic: GPS
+- button " Admin":
+  - generic: 
+  - generic: Admin

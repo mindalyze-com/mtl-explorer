@@ -4,6 +4,8 @@ import {
   collectionPrecisionForZoom,
   locationSearchTargetZoom,
   precisionForZoom,
+  shortestLongitudeDelta,
+  unwrapLngLatCoordinates,
 } from '@/components/map/mapGeometry';
 import { BACKGROUND_TRACK_PRECISION, DETAIL_TRACK_PRECISION, OVERVIEW_PRECISION } from '@/utils/tracks/trackConstants';
 
@@ -58,5 +60,22 @@ describe('map geometry helpers', () => {
     expect(locationSearchTargetZoom({ minZoom: 8, maxZoom: 9 })).toBe(12);
     expect(locationSearchTargetZoom({ minZoom: 20 })).toBe(15);
     expect(locationSearchTargetZoom({})).toBe(12.5);
+  });
+
+  it('unwraps dateline-crossing coordinate sequences to the short path', () => {
+    const unwrapped = unwrapLngLatCoordinates([
+      [179.9, 0],
+      [-179.9, 0],
+      [-179.8, 0],
+    ]);
+
+    expect(unwrapped[0][0]).toBeCloseTo(179.9);
+    expect(unwrapped[1][0]).toBeCloseTo(180.1);
+    expect(unwrapped[2][0]).toBeCloseTo(180.2);
+  });
+
+  it('computes the shortest longitude delta across the dateline', () => {
+    expect(shortestLongitudeDelta(179.9, -179.9)).toBeCloseTo(0.2);
+    expect(shortestLongitudeDelta(-179.9, 179.9)).toBeCloseTo(-0.2);
   });
 });

@@ -1,0 +1,35 @@
+ABORTED_PMTILES=3
+ABORTED_SAMPLES=http://167.233.16.201:18080/mtl/api/map-proxy/prod/planet.pmtiles?mtl-map-source=public&mtl-map-archive=public-default | http://167.233.16.201:18080/mtl/api/map-proxy/prod/planet.pmtiles?mtl-map-source=public&mtl-map-archive=public-default | http://167.233.16.201:18080/mtl/api/map-proxy/prod/world-lowzoom.pmtiles?mtl-map-source=public&mtl-map-archive=public-default
+REMOTE_PROVIDER_REQUESTS=98
+REMOTE_PROVIDER_SAMPLES=https://tile.openstreetmap.org/0/0/0.png | https://tile.opentopomap.org/11/1045/875.png | https://tile.opentopomap.org/11/1046/875.png | https://tile.opentopomap.org/11/1045/876.png | https://tile.opentopomap.org/11/1046/876.png | https://tile.opentopomap.org/11/1044/875.png | https://tile.opentopomap.org/11/1047/875.png | https://tile.opentopomap.org/11/1044/876.png | https://tile.opentopomap.org/11/1047/876.png | https://tile.opentopomap.org/11/1043/875.png
+MAP_VISIBLE=true
+HAS_LOADING_FAILURE=false
+BODY=500 km Elevation: Mapterhorn | Map data: © OpenStreetMap contributors, SRTM | Map style: © OpenTopoMap (CC-BY-SA) 11 Tracks Stats Filter Map Animate Segments GPS Planner Admin
+CONSOLE_RECENT
+warning: PMTiles HTTP cache failed; retrying archive range requests without browser cache. {url: /mtl/api/map-proxy/prod/planet.pmtiles?mtl-map-source=public&mtl-map-archive=public-default, message: Failed to fetch}
+error: Failed to load resource: net::ERR_FAILED
+warning: [MTL] Local vector map tiles failed; switched base map to raster fallback for this session. {message: Failed to fetch, sourceId: protomaps, tile: null, fallbackStyleMode: remote-raster}
+info: [track-cache] manual cache clear started
+info: [track-cache] manual cache clear complete {durationMs: 11}
+log: Downloading low-zoom PMTiles from /mtl/api/map-proxy/prod/world-lowzoom.pmtiles?mtl-map-source=public&mtl-map-archive=public-default … (IndexedDB fallback)
+error: Failed to load resource: net::ERR_FAILED
+warning: Failed to cache low-zoom tiles (IndexedDB): {name: TypeError, message: Failed to fetch}
+warning: [.WebGL-0x10400569000]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
+warning: [.WebGL-0x10400569000]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels (this message will no longer repeat)
+info: [track-cache] sync 10m: fetching 11/11 tracks in 1 batches {precision: 10, totalTracks: 11, cachedTracks: 0, staleOrMissingTracks: 11, staleGeometryCleared: 11}
+log: [tracks] Map layers rebuilt {durationMs: 3, trackCount: 11, overviewDotCount: 11, hasPalette: false, legendGroupCount: 0}
+info: [track-cache] sync 10m complete {precision: 10, totalTracks: 11, fetchedTracks: 11, cachedTracks: 0, batches: 1}
+log: [zoom] 3.000 | globe
+REQUEST_FAILED_RECENT
+GET https://tiles.mapterhorn.com/10/521/437.webp net::ERR_ABORTED
+GET https://tiles.mapterhorn.com/10/524/437.webp net::ERR_ABORTED
+GET https://tiles.mapterhorn.com/10/521/438.webp net::ERR_ABORTED
+GET https://tiles.mapterhorn.com/10/524/438.webp net::ERR_ABORTED
+GET https://tile.opentopomap.org/11/1045/875.png net::ERR_ABORTED
+GET https://tile.opentopomap.org/11/1046/875.png net::ERR_ABORTED
+GET https://tile.opentopomap.org/11/1045/876.png net::ERR_ABORTED
+GET https://tile.opentopomap.org/11/1046/876.png net::ERR_ABORTED
+GET https://tile.opentopomap.org/11/1044/875.png net::ERR_ABORTED
+GET https://tile.opentopomap.org/11/1047/875.png net::ERR_ABORTED
+GET https://tile.opentopomap.org/11/1044/876.png net::ERR_ABORTED
+GET https://tile.opentopomap.org/11/1047/876.png net::ERR_ABORTED

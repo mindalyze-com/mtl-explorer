@@ -38,7 +38,7 @@ export interface TrackPointIndex {
   findByChartX(xMode: TrackCursorXMode, chartX: number): TrackPoint | null;
   findByTimestamp(ts: number): TrackPoint | null;
   findByDistance(km: number): TrackPoint | null;
-  findByLatLng(lat: number, lng: number): TrackPoint | null;
+  findByLatLng(lat: number, lng: number, snapDistanceMeters?: number): TrackPoint | null;
 }
 
 const EMPTY_INDEX: TrackPointIndex = {
@@ -55,7 +55,10 @@ const EMPTY_INDEX: TrackPointIndex = {
 const MIN_SPATIAL_INDEX_POINTS = 800;
 const SPATIAL_GRID_DIMENSION = 64;
 const MIN_CELL_SIZE = 1e-12;
-const MAX_MAP_CURSOR_SNAP_METERS = 120;
+// Default snap radius used when a caller does not supply a zoom-aware value.
+// The minimap overrides this with a pixel-based distance so snapping stays
+// forgiving when zoomed out (where a fixed metric radius is sub-pixel).
+export const DEFAULT_MAP_CURSOR_SNAP_METERS = 120;
 const METERS_PER_LAT_DEGREE = 111_320;
 
 const pinnedPoint: Ref<TrackPoint | null> = ref(null);
@@ -149,8 +152,8 @@ function squaredLatLngDistanceMeters(point: TrackPoint, lat: number, lng: number
   return dLatMeters * dLatMeters + dLngMeters * dLngMeters;
 }
 
-function isWithinMapSnapDistance(distanceSqMeters: number): boolean {
-  return distanceSqMeters <= MAX_MAP_CURSOR_SNAP_METERS * MAX_MAP_CURSOR_SNAP_METERS;
+function isWithinMapSnapDistance(distanceSqMeters: number, snapDistanceMeters: number): boolean {
+  return distanceSqMeters <= snapDistanceMeters * snapDistanceMeters;
 }
 
 function squaredDistanceToBoundsMeters(
@@ -191,7 +194,12 @@ function squaredDistanceToOutsideBoundsMeters(
   return nearestOutsideMeters * nearestOutsideMeters;
 }
 
-function findNearestLinear(points: TrackPoint[], lat: number, lng: number): TrackPoint | null {
+function findNearestLinear(
+  points: TrackPoint[],
+  lat: number,
+  lng: number,
+  snapDistanceMeters: number
+): TrackPoint | null {
   if (points.length === 0 || !Number.isFinite(lat) || !Number.isFinite(lng)) return null;
 
   let best: TrackPoint | null = null;
@@ -203,7 +211,7 @@ function findNearestLinear(points: TrackPoint[], lat: number, lng: number): Trac
       bestDist = dist;
     }
   }
-  return best && isWithinMapSnapDistance(bestDist) ? best : null;
+  return best && isWithinMapSnapDistance(bestDist, snapDistanceMeters) ? best : null;
 }
 
 function gridKey(x: number, y: number): string {
@@ -258,8 +266,24 @@ function buildSpatialGrid(points: TrackPoint[]): SpatialGrid | null {
   };
 }
 
-function findNearestInGrid(grid: SpatialGrid, lat: number, lng: number): TrackPoint | null {
+function findNearestInGrid(grid: SpatialGrid, lat: number, lng: number, snapDistanceMeters: number): TrackPoint | null {
   if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+
+  const snapDistanceSq = snapDistanceMeters * snapDistanceMeters;
+
+  // Fast rejection: if the cursor is farther than the snap radius from the whole
+  // track bounding box, no point can ever be accepted. This is the common case when
+  // the map is zoomed out and the pointer hovers empty space away from the track, and
+  // it keeps the lookup O(1) there instead of degrading to a full O(n) grid scan.
+  const distanceToTrackBoundsSq = squaredDistanceToBoundsMeters(
+    lat,
+    lng,
+    grid.minLat,
+    grid.maxLat,
+    grid.minLng,
+    grid.maxLng
+  );
+  if (distanceToTrackBoundsSq > snapDistanceSq) return null;
 
   const centerX = cellForCoordinate(lng, grid.minLng, grid.cellWidth, grid.dimension);
   const centerY = cellForCoordinate(lat, grid.minLat, grid.cellHeight, grid.dimension);
@@ -304,12 +328,21 @@ function findNearestInGrid(grid: SpatialGrid, lat: number, lng: number): TrackPo
       );
 
       if (bestDist <= minOutsideDistanceSq) {
-        return isWithinMapSnapDistance(bestDist) ? best : null;
+        return isWithinMapSnapDistance(bestDist, snapDistanceMeters) ? best : null;
+      }
+
+      // No point inside the searched region is acceptable yet, and everything still
+      // unsearched lies beyond the snap radius, so further ring expansion could only
+      // find points we would reject. Stop here to keep the lookup bounded by the snap
+      // radius rather than scanning the whole track (matters when the cursor sits in an
+      // empty area inside the track bounds, e.g. the middle of a loop).
+      if (minOutsideDistanceSq > snapDistanceSq) {
+        return null;
       }
     }
   }
 
-  return best && isWithinMapSnapDistance(bestDist) ? best : null;
+  return best && isWithinMapSnapDistance(bestDist, snapDistanceMeters) ? best : null;
 }
 
 export function createTrackPointIndex(points: TrackPoint[]): TrackPointIndex {
@@ -353,8 +386,10 @@ export function createTrackPointIndex(points: TrackPoint[]): TrackPointIndex {
     findByChartX: (xMode: TrackCursorXMode, chartX: number) => nearestBySortedValue(chartXEntries[xMode], chartX),
     findByTimestamp: (ts: number) => nearestBySortedValue(timestampEntries, ts),
     findByDistance: (km: number) => nearestBySortedValue(distanceEntries, km),
-    findByLatLng: (lat: number, lng: number) =>
-      grid ? findNearestInGrid(grid, lat, lng) : findNearestLinear(indexedPoints, lat, lng),
+    findByLatLng: (lat: number, lng: number, snapDistanceMeters: number = DEFAULT_MAP_CURSOR_SNAP_METERS) =>
+      grid
+        ? findNearestInGrid(grid, lat, lng, snapDistanceMeters)
+        : findNearestLinear(indexedPoints, lat, lng, snapDistanceMeters),
   };
 }
 
@@ -431,8 +466,8 @@ export function useTrackCursorSync() {
     return trackPointIndex.findByDistance(km);
   }
 
-  function findPointByLatLng(lat: number, lng: number): TrackPoint | null {
-    return trackPointIndex.findByLatLng(lat, lng);
+  function findPointByLatLng(lat: number, lng: number, snapDistanceMeters?: number): TrackPoint | null {
+    return trackPointIndex.findByLatLng(lat, lng, snapDistanceMeters);
   }
 
   function setHoverPoint(point: TrackPoint | null, source: TrackCursorSource = 'system'): void {

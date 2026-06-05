@@ -1,0 +1,55 @@
+GPSBABEL
+
+GPSBabel Version 1.10.0
+
+
+GENERATED_BASE_GPX
+format-source-gdb.gpx 24
+ trkpt
+format-source-geojson.gpx 24
+ trkpt
+format-source-igc.gpx 24
+ trkpt
+format-source-kml.gpx 24
+ trkpt
+format-source-kmz.gpx 24
+ trkpt
+format-source-nmea.gpx 24
+ trkpt
+format-source-tcx.gpx 24
+ trkpt
+
+GENERATED_SAMPLES
+-rw-r--r--@ 1 pheusser  wheel    692 Jun  4 22:52 /tmp/mtl-regression-data-20260604-2154/format-sample.gdb
+-rw-r--r--@ 1 pheusser  wheel   3617 Jun  4 22:52 /tmp/mtl-regression-data-20260604-2154/format-sample.geojson
+-rw-r--r--@ 1 pheusser  wheel   1031 Jun  4 22:52 /tmp/mtl-regression-data-20260604-2154/format-sample.igc
+-rw-r--r--@ 1 pheusser  wheel  23640 Jun  4 22:52 /tmp/mtl-regression-data-20260604-2154/format-sample.kml
+-rw-r--r--@ 1 pheusser  wheel   2371 Jun  4 22:53 /tmp/mtl-regression-data-20260604-2154/format-sample.kmz
+-rw-r--r--@ 1 pheusser  wheel   3264 Jun  4 22:52 /tmp/mtl-regression-data-20260604-2154/format-sample.nmea
+-rw-r--r--@ 1 pheusser  wheel  12230 Jun  4 22:52 /tmp/mtl-regression-data-20260604-2154/format-sample.tcx
+
+CHECKSUMS
+a0492a2e5ae4b87de1baeb48d26ec822ad1cb5ed1ba090521f0507a4048092ef  /tmp/mtl-regression-data-20260604-2154/format-sample.tcx
+c03ae1457c263b2e18058fb82b175a4c9a2e2baad59a524c65e49d0e9f599ba2  /tmp/mtl-regression-data-20260604-2154/format-sample.kml
+e1b7255228af289b2e6f1a7ab667e2c63545ade8fc60750ab00a1d860b807d0d  /tmp/mtl-regression-data-20260604-2154/format-sample.kmz
+3cd19d2cb5d07f97e56e45ccc1546000fbd23df8c3eeddfc7fc53cf7a9bc38ba  /tmp/mtl-regression-data-20260604-2154/format-sample.igc
+a546b10b8069762c5ff7c54f9e7ea79ff23b59b797a6b07f30b534efe6722227  /tmp/mtl-regression-data-20260604-2154/format-sample.nmea
+7cd349fa8cb1b7dc5f442e382247baa76e0b1bec7b5b30a90fafaf0f8eac169e  /tmp/mtl-regression-data-20260604-2154/format-sample.geojson
+6f2dfcc7e8b18c194311de02b4d50491ff6afae386799bf52443507227c8d781  /tmp/mtl-regression-data-20260604-2154/format-sample.gdb
+
+ROUNDTRIP_TRKPT_COUNTS
+tcx 24
+
+kml 24
+
+kmz gpsbabel_direct_read_failed kml: Read error: Encountered incorrectly encoded content. (/tmp/mtl-regression-data-20260604-2154/format-sample.kmz, line 1, col 1) 
+kmz_unzipped_coordinates 25
+
+igc 24
+
+nmea 0
+
+geojson 0
+
+gdb 24
+

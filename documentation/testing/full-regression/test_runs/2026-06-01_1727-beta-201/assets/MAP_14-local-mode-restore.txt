@@ -1,0 +1,30 @@
+Override removed: 2026-06-01T17:55:00+00:00
+ Image wauwau0977/mytraillog:beta Pulling 
+ Image wauwau0977/mytraillog:beta Pulled 
+ Container mtl-explorer-app-1 Recreate 
+ Container mtl-explorer-app-1 Recreated 
+ Container mtl-explorer-app-1 Starting 
+ Container mtl-explorer-app-1 Started 
+HTTP status: 200
+Container env MTL_MAP_SERVER_TILE_MODE: 
+{
+  "tileMode": "local",
+  "tileArchiveUrl": "/mtl/api/map-proxy/prod/planet.pmtiles?mtl-map-source=public&mtl-map-archive=public-default",
+  "lowzoomArchiveUrl": "/mtl/api/map-proxy/prod/world-lowzoom.pmtiles?mtl-map-source=public&mtl-map-archive=public-default",
+  "remoteRasterStyles": {
+    "light": {
+      "url": "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+      "attribution": "\u00a9 <a href=\"https://www.openstreetmap.org/copyright\">OpenStreetMap</a> contributors"
+    },
+    "light-topo": {
+      "url": "https://tile.opentopomap.org/{z}/{x}/{y}.png",
+      "attribution": "Map data: \u00a9 <a href=\"https://www.openstreetmap.org/copyright\">OpenStreetMap</a> contributors, SRTM | Map style: \u00a9 <a href=\"https://opentopomap.org\">OpenTopoMap</a> (<a href=\"https://creativecommons.org/licenses/by-sa/3.0/\">CC-BY-SA</a>)"
+    },
+    "dark": {
+      "url": "https://basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png",
+      "attribution": "\u00a9 <a href=\"https://www.openstreetmap.org/copyright\">OpenStreetMap</a> contributors \u00a9 <a href=\"https://carto.com/attributions\">CARTO</a>"
+    }
+  }
+}
+NAME                 IMAGE                        COMMAND                  SERVICE   CREATED          STATUS          PORTS
+mtl-explorer-app-1   wauwau0977/mytraillog:beta   "/my-entrypoint.sh j…"   app       29 seconds ago   Up 29 seconds   0.0.0.0:18080->8080/tcp, [::]:18080->8080/tcp

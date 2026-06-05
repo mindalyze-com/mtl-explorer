@@ -1,0 +1,114 @@
+{
+  "planName": "PLN existing error 1780613451872",
+  "created": {
+    "saved": {
+      "id": 100016,
+      "name": "PLN existing error 1780613451872",
+      "distanceM": 1538
+    },
+    "routeStats": {
+      "distanceM": 1538,
+      "ascentM": 69,
+      "descentM": 4.5,
+      "durationSec": 717,
+      "legCount": 1,
+      "anyLegCached": true
+    },
+    "coordinateCount": 85
+  },
+  "locationResult": "Zürich Zurich, Switzerland CITY Z7-15",
+  "listState": {
+    "profile": "",
+    "notices": [],
+    "statCards": [],
+    "distance": "",
+    "duration": "",
+    "legs": "",
+    "highcharts": 0,
+    "planRows": [
+      "PLN existing error 1780613451872 1.5 km · Temporary saved route for PLN_10 error-state regression.Jun 5, 2026GPX"
+    ]
+  },
+  "loadedState": {
+    "profile": "Road Bike",
+    "notices": [
+      "Loaded plan shown as saved. The first edit will re-route all legs."
+    ],
+    "statCards": [
+      {
+        "label": "Distance",
+        "value": "1.54 km",
+        "text": "Distance1.54 km"
+      },
+      {
+        "label": "Ascent",
+        "value": "69 m",
+        "text": "Ascent69 m"
+      },
+      {
+        "label": "Descent",
+        "value": "5 m",
+        "text": "Descent5 m"
+      },
+      {
+        "label": "Duration",
+        "value": "11m",
+        "text": "Duration11m"
+      },
+      {
+        "label": "Legs",
+        "value": "1",
+        "text": "Legs1"
+      }
+    ],
+    "distance": "1.54 km",
+    "duration": "11m",
+    "legs": "1",
+    "highcharts": 1,
+    "planRows": []
+  },
+  "errorState": {
+    "profile": "Car",
+    "notices": [
+      "Route unavailable for these points. Move waypoints onto routable roads or trails, or try again later."
+    ],
+    "statCards": [
+      {
+        "label": "Distance",
+        "value": "1.54 km",
+        "text": "Distance1.54 km"
+      },
+      {
+        "label": "Ascent",
+        "value": "69 m",
+        "text": "Ascent69 m"
+      },
+      {
+        "label": "Descent",
+        "value": "5 m",
+        "text": "Descent5 m"
+      },
+      {
+        "label": "Duration",
+        "value": "11m",
+        "text": "Duration11m"
+      },
+      {
+        "label": "Legs",
+        "value": "1",
+        "text": "Legs1"
+      }
+    ],
+    "distance": "1.54 km",
+    "duration": "11m",
+    "legs": "1",
+    "highcharts": 1,
+    "planRows": []
+  },
+  "intercepted": [
+    {
+      "url": "http://167.233.16.201:18080/mtl/api/planner/route",
+      "postData": "{\"waypoints\":[{\"lat\":47.3769,\"lng\":8.5417},{\"lat\":47.381,\"lng\":8.548}],\"profile\":\"car-eco\"}"
+    }
+  ]
+}

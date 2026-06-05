@@ -1,0 +1,19 @@
+BEFORE
+total 1084
+drwxr-xr-x 2 root root   4096 Jun  4 19:58 GPX-UPLOAD
+-rw-r--r-- 1 root root 199962 Jun  4 20:10 JuraRoute72011.gpx
+-rw-r--r-- 1 root root  60917 Jun  4 20:10 Lannion_Plestin_parcours24.4RE.gpx
+-rw-r--r-- 1 root root 415326 Jun  4 20:10 MoselradwegAusWiki.gpx
+-rw-r--r-- 1 root root 238349 Jun  4 20:10 Vitry-le-Francois_Langres.gpx
+-rw-r--r-- 1 root root 183733 Jun  4 20:10 VoieVerteHauteVosges.gpx
+
+CHECKSUMS_FOR_DELETED
+e76c692cbb5580f20013ce19995a9383361a8a0babec2db3e36f7064f316e85f  data/gpx/Lannion_Plestin_parcours24.4RE.gpx
+0f417d6e76cfa581d3ada969e728694933fbffd062f61a8352ccc87637135f78  data/gpx/VoieVerteHauteVosges.gpx
+
+AFTER
+total 844
+drwxr-xr-x 2 root root   4096 Jun  4 19:58 GPX-UPLOAD
+-rw-r--r-- 1 root root 199962 Jun  4 20:10 JuraRoute72011.gpx
+-rw-r--r-- 1 root root 415326 Jun  4 20:10 MoselradwegAusWiki.gpx
+-rw-r--r-- 1 root root 238349 Jun  4 20:10 Vitry-le-Francois_Langres.gpx

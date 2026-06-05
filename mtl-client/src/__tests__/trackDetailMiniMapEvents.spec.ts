@@ -1,11 +1,13 @@
 import { flushPromises, mount } from '@vue/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { createPinia, setActivePinia } from 'pinia';
 import { nextTick } from 'vue';
 import TrackDetailMiniMap from '@/components/trackdetails/TrackDetailMiniMap.vue';
 import { useTrackMapSync } from '@/composables/useTrackMapSync';
 
 const maplibreMock = vi.hoisted(() => {
   type Listener = (...args: unknown[]) => void;
+  const MOCK_MAP_ZOOM = 12;
 
   class MockGeoJsonSource {
     data: GeoJSON.FeatureCollection;
@@ -32,9 +34,30 @@ const maplibreMock = vi.hoisted(() => {
   }
 
   class MockPopup {
+    static instances: MockPopup[] = [];
+
     setLngLat = vi.fn(() => this);
     setHTML = vi.fn(() => this);
     addTo = vi.fn(() => this);
+    remove = vi.fn();
+
+    constructor() {
+      MockPopup.instances.push(this);
+    }
+  }
+
+  class MockMarker {
+    static instances: MockMarker[] = [];
+
+    element?: HTMLElement;
+    setLngLat = vi.fn(() => this);
+    addTo = vi.fn(() => this);
+    remove = vi.fn();
+
+    constructor(options?: { element?: HTMLElement }) {
+      this.element = options?.element;
+      MockMarker.instances.push(this);
+    }
   }
 
   class MockMap {
@@ -48,11 +71,14 @@ const maplibreMock = vi.hoisted(() => {
     images = new Set<string>();
     listeners = new Map<string, Listener[]>();
     onceListeners = new Map<string, Listener[]>();
-    canvas = { style: { cursor: '' } };
+    canvas = { style: { cursor: '' }, addEventListener: vi.fn(), removeEventListener: vi.fn() };
     resize = vi.fn();
     fitBounds = vi.fn();
     moveLayer = vi.fn();
     remove = vi.fn();
+    getZoom = vi.fn(() => MOCK_MAP_ZOOM);
+    project = vi.fn((coordinate: [number, number]) => ({ x: coordinate[0] * 10_000, y: coordinate[1] * 10_000 }));
+    queryRenderedFeatures = vi.fn(() => []);
 
     constructor() {
       this.styleLoadedValue = MockMap.nextStyleLoaded;
@@ -141,6 +167,7 @@ const maplibreMock = vi.hoisted(() => {
   return {
     MockMap,
     MockLngLatBounds,
+    MockMarker,
     MockPopup,
   };
 });
@@ -149,6 +176,7 @@ vi.mock('maplibre-gl', () => ({
   default: {
     Map: maplibreMock.MockMap,
     LngLatBounds: maplibreMock.MockLngLatBounds,
+    Marker: maplibreMock.MockMarker,
     Popup: maplibreMock.MockPopup,
   },
 }));
@@ -157,9 +185,21 @@ vi.mock('@/utils/mapConfigService', () => ({
   MapConfigDtoTileModeEnum: { Local: 'local', Remote: 'remote' },
   fetchMapConfig: vi.fn(async () => ({
     tileMode: 'remote',
-    remoteTileUrl: 'https://example.test/{z}/{x}/{y}.png',
+    remoteRasterStyles: {
+      light: {
+        url: 'https://example.test/{z}/{x}/{y}.png',
+        attribution: '© Example Tiles',
+      },
+    },
   })),
   mainTileArchiveUrl: vi.fn(() => 'mock.pmtiles'),
+}));
+
+vi.mock('@/components/map/mapStyleResolver', () => ({
+  resolveConfiguredMapStyle: vi.fn(() => ({
+    style: { version: 8, sources: {}, layers: [] },
+    styleMode: 'test-style',
+  })),
 }));
 
 vi.mock('@/utils/mapStyle', () => ({
@@ -221,7 +261,11 @@ describe('TrackDetailMiniMap event layer', () => {
   beforeEach(() => {
     originalGetContext = HTMLCanvasElement.prototype.getContext;
     maplibreMock.MockMap.instances.length = 0;
+    maplibreMock.MockMarker.instances.length = 0;
+    maplibreMock.MockPopup.instances.length = 0;
     maplibreMock.MockMap.nextStyleLoaded = true;
+    localStorage.clear();
+    setActivePinia(createPinia());
     useTrackMapSync().clearAll();
     HTMLCanvasElement.prototype.getContext = vi.fn(() => ({
       scale: vi.fn(),
@@ -325,6 +369,58 @@ describe('TrackDetailMiniMap event layer', () => {
       ],
     });
     expect(map.fitBounds).toHaveBeenCalledTimes(1);
+  });
+
+  it('opens a point popup from a projected line segment when simplified points are sparse', async () => {
+    useTrackMapSync().setTrackPoints([
+      {
+        lat: 0,
+        lng: 0,
+        altitude: 126,
+        timestamp: 1_700_000_000_000,
+        distanceKm: 0,
+        pointIndex: 0,
+        canonicalPointIndex: 0,
+      },
+      {
+        lat: 0,
+        lng: 0,
+        altitude: 110,
+        timestamp: 1_700_001_800_000,
+        distanceKm: 1.8,
+        pointIndex: 50,
+        canonicalPointIndex: 50,
+      },
+      {
+        lat: 0,
+        lng: 0.03234,
+        altitude: 97,
+        timestamp: 1_700_003_600_000,
+        distanceKm: 3.6,
+        pointIndex: 100,
+        canonicalPointIndex: 100,
+      },
+    ]);
+    await mountMiniMap(
+      [],
+      [
+        [0, 0],
+        [0.03234, 0],
+      ]
+    );
+
+    const map = maplibreMock.MockMap.instances[0];
+    const clickHandler = map.listeners.get('click')?.[0];
+
+    clickHandler?.({
+      lngLat: { lng: 0.01617, lat: 0 },
+      point: { x: 161.7, y: 0 },
+    });
+
+    const popup = maplibreMock.MockPopup.instances.at(-1);
+    expect(popup?.setHTML).toHaveBeenCalledWith(expect.stringContaining('Track point'));
+    expect(popup?.setHTML).toHaveBeenCalledWith(expect.stringContaining('51'));
+    expect(popup?.setLngLat).toHaveBeenCalledWith([expect.closeTo(0.01617, 10), 0]);
   });
 
   it('draws a selected break highlight when the selected event key changes', async () => {

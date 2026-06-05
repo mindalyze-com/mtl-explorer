@@ -1,0 +1,8 @@
+FMT NMEA reindex summary
+
+2026-06-01T16:33:06Z after replacing fmt_sample_nmea.nmea with valid-fix RMC/GGA sentences:
+- App deleted previous EMPTY_FILE trackId=100009 for /fmt_sample_nmea.nmea.
+- GPSBabel converted fmt_sample_nmea.nmea to 2211 chars of GPX XML.
+- GPXReader found track data; max point distance 213.7 m, median 213.7 m.
+- GPS ingest timing trackId=100013 file=/fmt_sample_nmea.nmea status=SUCCESS.
+- Reading of track id=100013 file=fmt_sample_nmea.nmea completed with status=SUCCESS.

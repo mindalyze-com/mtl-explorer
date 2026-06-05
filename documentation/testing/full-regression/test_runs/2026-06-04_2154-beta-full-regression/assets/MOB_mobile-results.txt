@@ -1,0 +1,128 @@
+{
+  "mob01": {
+    "viewport": {
+      "w": 390,
+      "h": 844,
+      "dpr": 2,
+      "maxTouchPoints": 1
+    },
+    "navButtons": 8,
+    "canvas": true,
+    "openSheets": 0,
+    "bad": false,
+    "bodyText": "500 km © OpenStreetMap | Elevation: Mapterhorn 21 Tracks Stats Filter Planner Map Animate Segments GPS Admin"
+  },
+  "mob02": {
+    "before": {
+      "x": 0,
+      "y": 337.609375,
+      "w": 390,
+      "h": 506.390625
+    },
+    "afterDrag": {
+      "x": 0,
+      "y": 101.28125,
+      "w": 390,
+      "h": 742.71875
+    },
+    "afterClose": {
+      "openSheets": 0,
+      "canvas": true,
+      "bodyText": "500 km © OpenStreetMap | Elevation: Mapterhorn 21 Tracks Stats Filter Planner Map Animate Segments GPS Admin"
+    },
+    "assertions": {
+      "sheetOpened": true,
+      "sheetHeightChanged": true,
+      "sheetClosed": true
+    }
+  },
+  "mob03": {
+    "charts": 8,
+    "assertions": {
+      "tableVisible": true,
+      "chartsVisible": true,
+      "noBadLiterals": true,
+      "horizontalOverflowCount": 20
+    },
+    "tableOverflowSample": [
+      {
+        "tag": "TABLE",
+        "cls": "p-datatable-table",
+        "text": "",
+        "left": 16,
+        "right": 543.890625
+      },
+      {
+        "tag": "THEAD",
+        "cls": "p-datatable-thead",
+        "text": "",
+        "left": 16,
+        "right": 543.890625
+      },
+      {
+        "tag": "TR",
+        "cls": "",
+        "text": "",
+        "left": 16,
+        "right": 543.890625
+      }
+    ],
+    "bodyText": "500 km © OpenStreetMap | Elevation: Mapterhorn 21 Tracks Stats Filter Planner Map Animate Segments GPS Admin Overview Trends Tracks VIEWS All Excluded Stats excluded No activity 21 tracks · 1,804 km · 2d 06h SORT: Date Imported Distance Duration Name Exploration loc04-null-elevation-1780621876665 06/05/2026, 01:45 loc04-negative-elevation-1780621876665 Car 06/05/2026, 01:45 82.89 m 60 Wh syn05-dismiss-one synthetic 1780619130790 Bicycle 06/04/2026, 23:30 740.00 m 4 Wh syn05-dismiss-two synthetic 1780619155258 Bicycle 06/04/2026, 23:30 739.97 m 4 Wh syn-banner-upload synthetic 1780618906161 Bic"
+  },
+  "mob04": {
+    "assertions": {
+      "plannerOpen": true,
+      "mapCanvasPresent": true,
+      "noBadLiterals": true
+    },
+    "beforeText": "500 km © OpenStreetMap | Elevation: Mapterhorn 21 Tracks Stats Filter Planner Map Animate Segments GPS Admin Drawing Load Hiking Tap the map to add waypoints. Drag to adjust. Zoom in to start planning. Visible span must be under ~300 km. DISTANCE 0.00 km ASCENT 0 m DESCENT 0 m DURATION – LEGS 0 Elevation profile appears once a route is computed.",
+    "afterText": "500 km © OpenStreetMap | Elevation: Mapterhorn 21 Tracks Stats Filter Planner Map Animate Segments GPS Admin Drawing Load Hiking Tap the map to add waypoints. Drag to adjust. Zoom in to start planning. Visible span must be under ~300 km. DISTANCE 0.00 km ASCENT 0 m DESCENT 0 m DURATION – LEGS 0 Elevation profile appears once a route is computed."
+  },
+  "mob05": {
+    "gestures": [
+      {
+        "tool": "Stats",
+        "canvas": true,
+        "bad": false,
+        "openSheets": 0,
+        "bodyText": "500 km 21 Tracks Stats Filter Planner Map Animate Segments GPS Admin"
+      },
+      {
+        "tool": "Filter",
+        "canvas": true,
+        "bad": false,
+        "openSheets": 0,
+        "bodyText": "500 km 21 Tracks Stats Filter Planner Map Animate Segments GPS Admin"
+      },
+      {
+        "tool": "Map",
+        "canvas": true,
+        "bad": false,
+        "openSheets": 0,
+        "bodyText": "500 km 21 Tracks Stats Filter Planner Map Animate Segments GPS Admin"
+      },
+      {
+        "tool": "Planner",
+        "canvas": true,
+        "bad": false,
+        "openSheets": 0,
+        "bodyText": "500 km 21 Tracks Stats Filter Planner Map Animate Segments GPS Admin"
+      }
+    ],
+    "assertions": {
+      "allCanvas": true,
+      "noBadLiterals": true,
+      "sheetsClosed": true,
+      "pinchAttempted": true,
+      "pinchCanvasStillPresent": true
+    },
+    "pinch": {
+      "attempted": true,
+      "state": {
+        "canvas": true,
+        "bad": false,
+        "bodyText": "200 km © OpenStreetMap | Elevation: Mapterhorn 21 Tracks Stats Filter Planner Map Animate Segments GPS Admin"
+      }
+    }
+  }
+}

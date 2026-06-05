@@ -1,0 +1,89 @@
+{
+  "beforeReload": {
+    "actionBar": {
+      "primaryCount": "0",
+      "metrics": [
+        "0matching tracks",
+        "0categories"
+      ],
+      "status": "Live map",
+      "text": "Live map0matching tracks0categories Colors"
+    },
+    "geoSummaries": [
+      "CircleOptionalCircle at 25.1195, 24.4491 — r=987.7 km Redraw",
+      "RectangleOptional Draw on map",
+      "PolygonOptional Draw on map"
+    ],
+    "storage": {
+      "displayName": "Activities by keyword",
+      "filterName": "ActivitiesByKeyword",
+      "params": {
+        "stringParams": {
+          "SEARCH_WORD": "format"
+        },
+        "dateTimeParams": {
+          "DATE_TIME_FROM": "2000-01-01 00:00:00",
+          "DATE_TIME_TO": "2035-12-31 23:59:00"
+        },
+        "geoCircles": {
+          "GEO_CIRCLE_1": {
+            "lat": 25.119464382292378,
+            "lng": 24.449109354849867,
+            "radiusM": 987740
+          }
+        },
+        "geoRectangles": {},
+        "geoPolygons": {}
+      },
+      "palette": "8 Colors",
+      "legendSortStrategy": null
+    }
+  },
+  "afterReload": {
+    "actionBar": {
+      "primaryCount": "0",
+      "metrics": [
+        "0matching tracks",
+        "0categories"
+      ],
+      "status": "Live map",
+      "text": "Live map0matching tracks0categories Colors"
+    },
+    "geoSummaries": [
+      "CircleOptionalCircle at 25.1195, 24.4491 — r=987.7 km Redraw",
+      "RectangleOptional Draw on map",
+      "PolygonOptional Draw on map"
+    ],
+    "storage": {
+      "displayName": "Activities by keyword",
+      "filterName": "ActivitiesByKeyword",
+      "params": {
+        "stringParams": {
+          "SEARCH_WORD": "format"
+        },
+        "dateTimeParams": {
+          "DATE_TIME_FROM": "2000-01-01 00:00:00",
+          "DATE_TIME_TO": "2035-12-31 23:59:00"
+        },
+        "geoCircles": {
+          "GEO_CIRCLE_1": {
+            "lat": 25.119464382292378,
+            "lng": 24.449109354849867,
+            "radiusM": 987740
+          }
+        },
+        "geoRectangles": {},
+        "geoPolygons": {}
+      },
+      "palette": "8 Colors",
+      "legendSortStrategy": null
+    },
+    "inputs": {
+      "searchWord": "format",
+      "fromDate": "2000-01-01",
+      "fromTime": "00:00",
+      "toDate": "2035-12-31",
+      "toTime": "23:59"
+    }
+  }
+}

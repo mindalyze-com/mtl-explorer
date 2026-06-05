@@ -1,0 +1,13 @@
+{
+  "themeEvents": [],
+  "snapshot": {
+    "dataTheme": "dark",
+    "colorScheme": "dark",
+    "bodyText": "500 km © OpenStreetMap | Elevation: Mapterhorn 19 Tracks Stats Filter Map Animate Segments GPS Planner Admin"
+  },
+  "assertions": {
+    "noObservedLightTheme": true,
+    "observedDarkMutation": true,
+    "finalDark": true
+  }
+}

@@ -1,0 +1,11 @@
+poll=0 totalTracks=11 foundFormats=7/7 found=format-sample.tcx,format-sample.kml,format-sample.kmz,format-sample.igc,format-sample.nmea,format-sample.geojson,format-sample.gdb freshness=6Fsuzz__|server_id:4cPgaT3KHaptNtCyRmtRqJ|config:9|filters:83|index:45|media:0|track_geometry:78|tracks:52
+indexer=[{"index":"GPS","total":13,"pending":0,"completed":11,"failed":0,"removed":2,"excluded":0,"progressPercent":84}]
+FINAL_FORMAT_TRACKS
+file=format-sample.gdb id=100012 name=format-gdb-synthetic-track loadStatus=SUCCESS activity=undefined points=24 distanceM=3527.66 durationSecs=630 indexStatus=COMPLETED_WITH_SUCCESS
+file=format-sample.geojson id=100011 name=format-geojson-synthetic-track loadStatus=SUCCESS activity=undefined points=24 distanceM=3494.88 durationSecs=0 indexStatus=COMPLETED_WITH_SUCCESS
+file=format-sample.igc id=100009 name=GNSSALTTRK loadStatus=SUCCESS activity=undefined points=24 distanceM=3537.06 durationSecs=630 indexStatus=COMPLETED_WITH_SUCCESS
+file=format-sample.kml id=100007 name=Path loadStatus=SUCCESS activity=undefined points=24 distanceM=3507.27 durationSecs=0 indexStatus=COMPLETED_WITH_SUCCESS
+file=format-sample.kmz id=100008 name=Path loadStatus=SUCCESS activity=undefined points=24 distanceM=3504.18 durationSecs=0 indexStatus=COMPLETED_WITH_SUCCESS
+file=format-sample.nmea id=100010 name= loadStatus=SUCCESS activity=undefined points=24 distanceM=3380.3 durationSecs=630 indexStatus=COMPLETED_WITH_SUCCESS
+file=format-sample.tcx id=100006 name=format-tcx-synt loadStatus=SUCCESS activity=undefined points=24 distanceM=3546.44 durationSecs=630 indexStatus=COMPLETED_WITH_SUCCESS
+FINAL_INDEXER [{"index":"GPS","total":13,"pending":0,"completed":11,"failed":0,"removed":2,"excluded":0,"progressPercent":84}]

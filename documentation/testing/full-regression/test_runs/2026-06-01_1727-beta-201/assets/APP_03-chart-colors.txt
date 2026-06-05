@@ -1,0 +1,102 @@
+APP_03 chart theme evidence:
+- Light chart colors: [
+  {
+    "text": "",
+    "fill": "rgb(100, 116, 139)"
+  },
+  {
+    "text": "",
+    "fill": "rgb(100, 116, 139)"
+  },
+  {
+    "text": "2010-Q1",
+    "fill": "rgb(100, 116, 139)"
+  },
+  {
+    "text": "2021-Q3",
+    "fill": "rgb(100, 116, 139)"
+  },
+  {
+    "text": "2026-Q1",
+    "fill": "rgb(100, 116, 139)"
+  },
+  {
+    "text": "2026-Q2",
+    "fill": "rgb(100, 116, 139)"
+  },
+  {
+    "text": "0",
+    "fill": "rgb(100, 116, 139)"
+  },
+  {
+    "text": "10",
+    "fill": "rgb(100, 116, 139)"
+  },
+  {
+    "text": "20 h",
+    "fill": "rgb(100, 116, 139)"
+  },
+  {
+    "text": "",
+    "fill": "rgb(100, 116, 139)"
+  },
+  {
+    "text": "2010-Q1",
+    "fill": "rgb(100, 116, 139)"
+  },
+  {
+    "text": "2021-Q3",
+    "fill": "rgb(100, 116, 139)"
+  }
+]
+- Dark chart colors after UI theme switch without browser reload: [
+  {
+    "text": "",
+    "fill": "rgb(148, 163, 184)"
+  },
+  {
+    "text": "",
+    "fill": "rgb(148, 163, 184)"
+  },
+  {
+    "text": "2010-Q1",
+    "fill": "rgb(100, 116, 139)"
+  },
+  {
+    "text": "2021-Q3",
+    "fill": "rgb(100, 116, 139)"
+  },
+  {
+    "text": "2026-Q1",
+    "fill": "rgb(100, 116, 139)"
+  },
+  {
+    "text": "2026-Q2",
+    "fill": "rgb(100, 116, 139)"
+  },
+  {
+    "text": "0",
+    "fill": "rgb(100, 116, 139)"
+  },
+  {
+    "text": "10",
+    "fill": "rgb(100, 116, 139)"
+  },
+  {
+    "text": "20 h",
+    "fill": "rgb(100, 116, 139)"
+  },
+  {
+    "text": "",
+    "fill": "rgb(148, 163, 184)"
+  },
+  {
+    "text": "2010-Q1",
+    "fill": "rgb(100, 116, 139)"
+  },
+  {
+    "text": "2021-Q3",
+    "fill": "rgb(100, 116, 139)"
+  }
+]
+- Color arrays differ: true

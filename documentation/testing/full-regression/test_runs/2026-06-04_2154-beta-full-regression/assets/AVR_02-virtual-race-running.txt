@@ -1,0 +1,59 @@
+{
+  "locationResult": "Bern Bern, Switzerland CAPITAL Z4-15",
+  "measuredSegment": {
+    "ids": ["100017", "100018"],
+    "tracksPerZone": {"A": 2, "B": 2},
+    "segmentsStats": [{"point1": "A", "point2": "B", "label": "A-B", "count": 2, "timeDelta": 934.9490000000001}]
+  },
+  "preview": {
+    "racerPill": "2 racers",
+    "cards": [
+      "1 synthetic-crossing-a.gpx Bicycle 01/20/2026 0% 00:06:51 11.5 km/h 1.32 km",
+      "2 synthetic-crossing-b.gpx Bicycle 01/21/2026 0% 00:08:43 9.1 km/h 1.32 km"
+    ],
+    "ranks": ["1", "2"],
+    "minimapCanvases": 1,
+    "activeChips": ["A-B"],
+    "startDisabled": false,
+    "resetDisabled": false
+  },
+  "running": {
+    "racerPill": "2 racers",
+    "cards": [
+      "1 synthetic-crossing-a.gpx Bicycle 01/20/2026 26% 342.93 m 00:06:51 11.5 km/h 1.32 km",
+      "2 synthetic-crossing-b.gpx Bicycle 01/21/2026 20% 269.39 m 00:08:43 9.1 km/h 1.32 km"
+    ],
+    "ranks": ["1", "2"],
+    "minimapCanvases": 1,
+    "activeChips": ["A-B"],
+    "startDisabled": false,
+    "resetDisabled": false
+  },
+  "paused": {
+    "cards": [
+      "1 synthetic-crossing-a.gpx Bicycle 01/20/2026 30% 391.92 m 00:06:51 11.5 km/h 1.32 km",
+      "2 synthetic-crossing-b.gpx Bicycle 01/21/2026 23% 307.87 m 00:08:43 9.1 km/h 1.32 km"
+    ],
+    "startDisabled": false,
+    "resetDisabled": false
+  },
+  "reset": {
+    "cards": [
+      "1 synthetic-crossing-a.gpx Bicycle 01/20/2026 0% 00:06:51 11.5 km/h 1.32 km",
+      "2 synthetic-crossing-b.gpx Bicycle 01/21/2026 0% 00:08:43 9.1 km/h 1.32 km"
+    ],
+    "startDisabled": false,
+    "resetDisabled": false
+  },
+  "subtracks": [
+    {"status": 200, "pointCount": 2, "bounds": {"minLng": 7.447100052696799, "maxLng": 7.457199972898322, "minLat": 46.948100052696795, "maxLat": 46.95819997289832}, "invalid": 0, "zeroish": 0, "offContinent": 0},
+    {"status": 200, "pointCount": 2, "bounds": {"minLng": 7.447000052780105, "maxLng": 7.456999973148321, "minLat": 46.9480000527801, "maxLat": 46.95799997314832}, "invalid": 0, "zeroish": 0, "offContinent": 0}
+  ],
+  "assertions": {
+    "twoRacersLoaded": true,
+    "rankingVisible": true,
+    "progressUpdated": true,
+    "pauseWorked": true,
+    "resetReturnedToStart": true
+  }
+}

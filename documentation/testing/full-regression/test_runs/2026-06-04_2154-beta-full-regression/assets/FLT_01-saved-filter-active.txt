@@ -1,0 +1,53 @@
+{
+  "storageBeforeReload": {
+    "displayName": "Activities by type",
+    "filterName": "ActivitiesByMainTypes",
+    "params": {
+      "stringParams": {},
+      "dateTimeParams": {},
+      "geoCircles": {},
+      "geoRectangles": {},
+      "geoPolygons": {}
+    },
+    "palette": "8 Colors",
+    "legendSortStrategy": null
+  },
+  "storageAfterReload": {
+    "displayName": "Activities by type",
+    "filterName": "ActivitiesByMainTypes",
+    "params": {
+      "stringParams": {},
+      "dateTimeParams": {},
+      "geoCircles": {},
+      "geoRectangles": {},
+      "geoPolygons": {}
+    },
+    "palette": "8 Colors",
+    "legendSortStrategy": null
+  },
+  "activeRow": "Activities by type\nGets activities into main categories: Walking, Biking and Motorized ones.",
+  "actionBar": {
+    "primaryCount": "11",
+    "metrics": [
+      "11matching tracks",
+      "2categories"
+    ],
+    "status": "Live map",
+    "text": "Live map11matching tracks2categories Colors"
+  },
+  "mapLegend": {
+    "text": "11 / 11 TracksLegendCYCLING10ON_FOOT1",
+    "rows": [
+      {
+        "text": "CYCLING10",
+        "disabled": false
+      },
+      {
+        "text": "ON_FOOT1",
+        "disabled": false
+      }
+    ],
+    "bands": [],
+    "collapsed": false
+  }
+}

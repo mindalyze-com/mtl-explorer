@@ -444,6 +444,7 @@ import ActivityTypeBadge, {
   ACTIVITY_FALLBACK_COLOR,
   ACTIVITY_ICONS,
 } from '@/components/ui/ActivityTypeBadge.vue';
+import type { ActiveFilterRequest } from '@/stores/filterStore';
 
 const MILESTONE_LIMIT = 8;
 const DRILLDOWN_PREVIEW_LIMIT = 100;
@@ -545,6 +546,8 @@ const props = defineProps<{
   tracks?: GpsTrack[];
   tracksCount?: number;
   unfilteredTotal?: number;
+  filterRevision?: number;
+  filterRequest?: ActiveFilterRequest | null;
 }>();
 
 const emit = defineEmits<{
@@ -802,7 +805,13 @@ onBeforeUnmount(() => {
 });
 
 watch(
-  () => props.tracks,
+  () => props.filterRevision,
+  () => {
+    void loadOverview();
+  }
+);
+watch(
+  () => props.filterRequest,
   () => {
     void loadOverview();
   },
@@ -818,7 +827,7 @@ async function loadOverview() {
   loadError.value = false;
 
   try {
-    const data = await fetchStatisticsOverview(controller.signal);
+    const data = await fetchStatisticsOverview(controller.signal, props.filterRequest ?? undefined);
     if (requestId !== requestSerial || controller.signal.aborted) return;
     overviewData.value = data;
     selectedHighlightKey.value = null;

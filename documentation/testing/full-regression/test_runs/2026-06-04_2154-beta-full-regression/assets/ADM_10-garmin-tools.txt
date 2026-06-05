@@ -1,0 +1,88 @@
+{
+  "initialRows": [
+    {
+      "text": "gcexportready releases Install",
+      "inputs": [
+        {
+          "placeholder": "version e.g. v4.6.2",
+          "value": "v4.6.2"
+        }
+      ],
+      "buttons": [
+        {
+          "text": "Install",
+          "disabled": false,
+          "classes": "p-button p-component p-button-sm"
+        }
+      ]
+    },
+    {
+      "text": "fit-exportreadyInstall",
+      "inputs": [
+        {
+          "placeholder": "profile",
+          "value": "default"
+        },
+        {
+          "placeholder": "packages e.g. garth fitparse gpxpy",
+          "value": "garth fitparse gpxpy"
+        }
+      ],
+      "buttons": [
+        {
+          "text": "Install",
+          "disabled": false,
+          "classes": "p-button p-component p-button-sm"
+        }
+      ]
+    }
+  ],
+  "invalidVersion": "codex-regression-invalid-version",
+  "installButtonEnabledAfterInput": true,
+  "finalRows": [
+    {
+      "text": "gcexportready releases Install",
+      "inputs": [
+        {
+          "placeholder": "version e.g. v4.6.2",
+          "value": "v4.6.2"
+        }
+      ],
+      "buttons": [
+        {
+          "text": "Install",
+          "disabled": false,
+          "classes": "p-button p-component p-button-sm"
+        }
+      ]
+    },
+    {
+      "text": "fit-exportreadyInstall",
+      "inputs": [
+        {
+          "placeholder": "profile",
+          "value": "default"
+        },
+        {
+          "placeholder": "packages e.g. garth fitparse gpxpy",
+          "value": "garth fitparse gpxpy"
+        }
+      ],
+      "buttons": [
+        {
+          "text": "Install",
+          "disabled": false,
+          "classes": "p-button p-component p-button-sm"
+        }
+      ]
+    }
+  ],
+  "visibleOutcome": "Invalid gcexport version 'codex-regression-invalid-version'. Expected format: v<major>.<minor>[.<patch>] e.g. v4.6.2",
+  "assertions": {
+    "toolStatusVisible": true,
+    "installButtonEnabledAfterInput": true,
+    "loadingObserved": false,
+    "actionReportedOutcome": true,
+    "invalidActionDidNotHideToolStatus": true
+  }
+}

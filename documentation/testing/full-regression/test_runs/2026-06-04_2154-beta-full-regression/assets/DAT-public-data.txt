@@ -1,0 +1,17 @@
+source_page_license_notes:
+- gps-touring/sample-gpx public GitHub repository; raw README fetched, LICENSE raw path returned 404 during this run; used only public sample GPX URLs from the test plan.
+- garmin/fit-javascript-sdk public GitHub repository; Activity.fit from official SDK test data URL named in the test plan; raw LICENSE path returned 404 during this run.
+- synthetic-crossing-*.gpx are fully synthetic anonymized GPX files generated for DAT_07; no private GPX tracks used.
+
+| filename | source | sha256 | bytes | trkpt | timestamps | track names | imported ids/names |
+|---|---|---:|---:|---:|---:|---|---|
+| JuraRoute72011.gpx | https://raw.githubusercontent.com/gps-touring/sample-gpx/master/BrittanyJura/JuraRoute72011.gpx | fcff577bd3c1a6dc2bb9e53abba8051d510d282f4fb0049d38be5300f92e354e | 199962 | 1414 | 1414 | Jura Route 7 / 2011 on GPSies.com | pending import |
+| MoselradwegAusWiki.gpx | https://raw.githubusercontent.com/gps-touring/sample-gpx/master/BrittanyJura/MoselradwegAusWiki.gpx | 0f5263dee95a345a42585bde148ec741af4ed4eeb7451702f59c9c7f9bf761c3 | 415326 | 2954 | 2954 | Moselradweg aus Wiki on GPSies.com | pending import |
+| Vitry-le-Francois_Langres.gpx | https://raw.githubusercontent.com/gps-touring/sample-gpx/master/BrittanyJura/Vitry-le-Francois_Langres.gpx | 401218e3c1d1f366ee27ea8bc138d8422eff3bf6348a77183be83fef3e8d7d67 | 238349 | 1688 | 1688 | Vitry le françois - langres on GPSies.com | pending import |
+| VoieVerteHauteVosges.gpx | https://raw.githubusercontent.com/gps-touring/sample-gpx/master/BrittanyJura/VoieVerteHauteVosges.gpx | 0f417d6e76cfa581d3ada969e728694933fbffd062f61a8352ccc87637135f78 | 183733 | 1298 | 1298 | voie verte haute vosges on GPSies.com | pending import |
+| Lannion_Plestin_parcours24.4RE.gpx | https://raw.githubusercontent.com/gps-touring/sample-gpx/master/RoscoffCoastal/Lannion_Plestin_parcours24.4RE.gpx | e76c692cbb5580f20013ce19995a9383361a8a0babec2db3e36f7064f316e85f | 60917 | 381 | 381 | Lannion_Plestin_parcours; Lannion_Plestin_parcours1 | pending import |
+| Activity.fit | https://raw.githubusercontent.com/garmin/fit-javascript-sdk/main/test/data/Activity.fit | 949a238e1bb75c3684479785f76fa9a16888bb394518844248f488171d591387 | 94096 | 3601 | 3601 | GPSBabel converted FIT validation | pending import |
+| synthetic-crossing-a.gpx | fully synthetic anonymized regression fixture generated locally | 40d5ff83d03c76a178fde12000e2e6b1ffb4289d182c4b90a7211ed0b09689fa | 614 | 3 | 3 | Codex synthetic crossing A | pending import |
+| synthetic-crossing-b.gpx | fully synthetic anonymized regression fixture generated locally | 6d49937e97c6c0e0068e02b0bcf9b27a576ccb9b466082e6c9d91121b544ab3c | 614 | 3 | 3 | Codex synthetic crossing B | pending import |
+
+DAT_07 segment: zone A near 46.948000,7.447000 and zone B near 46.958000,7.457000; both synthetic tracks cross the same two zones with timestamped points.

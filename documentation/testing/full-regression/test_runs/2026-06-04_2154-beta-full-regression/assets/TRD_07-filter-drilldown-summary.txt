@@ -1,0 +1,95 @@
+{
+  "shapePreviewCount": 10,
+  "boxes": [
+    {
+      "i": 0,
+      "x": 377,
+      "y": 388,
+      "w": 48,
+      "h": 32,
+      "hasSvg": true,
+      "pathCount": 1
+    },
+    {
+      "i": 1,
+      "x": 377,
+      "y": 448,
+      "w": 48,
+      "h": 32,
+      "hasSvg": true,
+      "pathCount": 1
+    },
+    {
+      "i": 2,
+      "x": 377,
+      "y": 508,
+      "w": 48,
+      "h": 32,
+      "hasSvg": false,
+      "pathCount": 0
+    },
+    {
+      "i": 3,
+      "x": 377,
+      "y": 568,
+      "w": 48,
+      "h": 32,
+      "hasSvg": true,
+      "pathCount": 1
+    },
+    {
+      "i": 4,
+      "x": 377,
+      "y": 628,
+      "w": 48,
+      "h": 32,
+      "hasSvg": true,
+      "pathCount": 1
+    },
+    {
+      "i": 5,
+      "x": 377,
+      "y": 688,
+      "w": 48,
+      "h": 32,
+      "hasSvg": true,
+      "pathCount": 1
+    },
+    {
+      "i": 6,
+      "x": 377,
+      "y": 748,
+      "w": 48,
+      "h": 32,
+      "hasSvg": true,
+      "pathCount": 1
+    },
+    {
+      "i": 7,
+      "x": 377,
+      "y": 808,
+      "w": 48,
+      "h": 32,
+      "hasSvg": true,
+      "pathCount": 1
+    },
+    {
+      "i": 8,
+      "x": 377,
+      "y": 868,
+      "w": 48,
+      "h": 32,
+      "hasSvg": true,
+      "pathCount": 1
+    },
+    {
+      "i": 9,
+      "x": 377,
+      "y": 928,
+      "w": 48,
+      "h": 32,
+      "hasSvg": false,
+      "pathCount": 0
+    }
+  ]
+}

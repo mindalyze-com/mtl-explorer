@@ -1,0 +1,50 @@
+{
+  "state": {
+    "label": "after zooming in above flat threshold",
+    "globeControlPresent": true,
+    "globeButtonPresent": true,
+    "globeControlDisplay": "none",
+    "globeButtonVisible": false,
+    "globeButtonClasses": "mtl-globe-btn",
+    "globeButtonActive": false,
+    "canvas": {
+      "x": 76,
+      "y": 0,
+      "w": 1290,
+      "h": 900
+    }
+  },
+  "recentZoomLogs": [
+    "[zoom] 2.273 | globe",
+    "[zoom] 1.963 | globe",
+    "[zoom] 1.963 | globe",
+    "[zoom] 1.963 | globe",
+    "[zoom] 1.963 | globe",
+    "[zoom] 1.963 | globe",
+    "[zoom] 1.963 | globe",
+    "[zoom] 1.963 | globe",
+    "[zoom] 1.963 | globe",
+    "[zoom] 2.963 | globe",
+    "[zoom] 3.963 | mercator",
+    "[zoom] 4.963 | mercator",
+    "[zoom] 5.963 | mercator",
+    "[zoom] 6.963 | mercator",
+    "[zoom] 7.963 | mercator"
+  ],
+  "body": "20 km © OpenStreetMap | Elevation: Mapterhorn 13 Tracks Stats Filter Map Animate Segments GPS Planner Admin",
+  "afterZoomOut": {
+    "label": "after zooming out below globe threshold",
+    "globeControlPresent": true,
+    "globeButtonPresent": true,
+    "globeControlDisplay": "block",
+    "globeButtonVisible": true,
+    "globeButtonClasses": "mtl-globe-btn mtl-globe-active",
+    "globeButtonActive": true,
+    "canvas": {
+      "x": 76,
+      "y": 0,
+      "w": 1290,
+      "h": 900
+    }
+  }
+}

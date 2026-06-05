@@ -1,0 +1,17 @@
+'JuraRoute72011.gpx' -> '/root/mtl-regression-2026-06-01_1727-beta-201/mtl-explorer/data/gpx/JuraRoute72011.gpx'
+'MoselradwegAusWiki.gpx' -> '/root/mtl-regression-2026-06-01_1727-beta-201/mtl-explorer/data/gpx/MoselradwegAusWiki.gpx'
+'Vitry-le-Francois_Langres.gpx' -> '/root/mtl-regression-2026-06-01_1727-beta-201/mtl-explorer/data/gpx/Vitry-le-Francois_Langres.gpx'
+'VoieVerteHauteVosges.gpx' -> '/root/mtl-regression-2026-06-01_1727-beta-201/mtl-explorer/data/gpx/VoieVerteHauteVosges.gpx'
+'Lannion_Plestin_parcours24.4RE.gpx' -> '/root/mtl-regression-2026-06-01_1727-beta-201/mtl-explorer/data/gpx/Lannion_Plestin_parcours24.4RE.gpx'
+Imported watched-folder listing:
+JuraRoute72011.gpx 199962 bytes
+Lannion_Plestin_parcours24.4RE.gpx 60917 bytes
+MoselradwegAusWiki.gpx 415326 bytes
+Vitry-le-Francois_Langres.gpx 238349 bytes
+VoieVerteHauteVosges.gpx 183733 bytes
+Checksums in watched folder:
+fcff577bd3c1a6dc2bb9e53abba8051d510d282f4fb0049d38be5300f92e354e  /root/mtl-regression-2026-06-01_1727-beta-201/mtl-explorer/data/gpx/JuraRoute72011.gpx
+e76c692cbb5580f20013ce19995a9383361a8a0babec2db3e36f7064f316e85f  /root/mtl-regression-2026-06-01_1727-beta-201/mtl-explorer/data/gpx/Lannion_Plestin_parcours24.4RE.gpx
+0f5263dee95a345a42585bde148ec741af4ed4eeb7451702f59c9c7f9bf761c3  /root/mtl-regression-2026-06-01_1727-beta-201/mtl-explorer/data/gpx/MoselradwegAusWiki.gpx
+401218e3c1d1f366ee27ea8bc138d8422eff3bf6348a77183be83fef3e8d7d67  /root/mtl-regression-2026-06-01_1727-beta-201/mtl-explorer/data/gpx/Vitry-le-Francois_Langres.gpx
+0f417d6e76cfa581d3ada969e728694933fbffd062f61a8352ccc87637135f78  /root/mtl-regression-2026-06-01_1727-beta-201/mtl-explorer/data/gpx/VoieVerteHauteVosges.gpx

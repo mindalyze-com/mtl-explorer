@@ -101,14 +101,10 @@
                         <i :class="control.relation === 'inherited' ? 'bi bi-diagram-3' : 'bi bi-dot'"></i>
                       </span>
                     </div>
-                    <DatePicker
+                    <DateTimeParam
                       :id="control.name"
                       :model-value="dateTimeParam(control.name)"
-                      :show-time="true"
-                      date-format="dd.mm.yy"
-                      hour-format="24"
-                      show-seconds
-                      placeholder="select a date"
+                      :label="control.label"
                       class="filter-detail__full-width"
                       @update:model-value="emit('set-date-time-param', { name: control.name, value: $event })"
                     />
@@ -186,6 +182,7 @@ import {
 } from '@/utils/filterMetadata';
 import GeoShapeParam from '@/components/filter/GeoShapeParam.vue';
 import TrackIdParam from '@/components/filter/TrackIdParam.vue';
+import DateTimeParam from '@/components/filter/DateTimeParam.vue';
 
 const DEFAULT_PARAM_GROUP_KEY = '__ungrouped';
 const TRACK_PICKER_WIDGET = 'trackPicker';

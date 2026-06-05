@@ -1,0 +1,19 @@
+{
+  "beforeToken": "1uVYUf__|server_id:4cPgaT3KHaptNtCyRmtRqJ|config:9|filters:83|index:165|media:31|track_geometry:96|tracks:116",
+  "afterToken": "5aAXrT__|server_id:4cPgaT3KHaptNtCyRmtRqJ|config:9|filters:83|index:168|media:31|track_geometry:102|tracks:118",
+  "upload": {
+    "filename": "syn-banner-upload-1780618906161.gpx",
+    "name": "syn-banner-upload synthetic 1780618906161",
+    "result": {
+      "status": 200,
+      "text": "{\"success\":true,\"message\":\"'syn-banner-upload-1780618906161.gpx' uploaded successfully. Indexing will begin shortly.\",\"fileName\":\"syn-banner-upload-1780618906161.gpx\"}"
+    }
+  },
+  "bannerText": "New data available Tracks, media, or settings changed since this view loaded. Reload Dismiss",
+  "trackCountApi": 15,
+  "body": "500 km © OpenStreetMap | Elevation: Mapterhorn 14 Tracks New data available Tracks, media, or settings changed since this view loaded. Reload Dismiss Stats Filter Map Animate Segments GPS Planner Admin",
+  "assertions": {
+    "tokenChanged": true,
+    "bannerVisible": true
+  }
+}

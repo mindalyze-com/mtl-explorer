@@ -1,0 +1,11 @@
+freshnessToken=2axpe8__|server_id:Cg8oM1u6qqvmF4JAAqTxET|config:9|filters:83|index:24|media:0|track_geometry:36|tracks:38
+changedAt=2026-06-01T16:10:31.318+0000
+indexer=GPS total=6 completed=4 removed=2 failed=0 pending=0 progress=66
+job=duplicate total=4 done=4 pending=0 progress=100
+job=activityType total=4 done=4 pending=0 progress=100
+job=exploration total=4 done=4 pending=0 progress=100
+standardFilterCount=4 numberOfFilteredMatchedTracks=4
+trackId=100000 file=VoieVerteHauteVosges.gpx status=COMPLETED_WITH_SUCCESS loadStatus=SUCCESS name=voie verte haute vosges on GPSies.com points=1298 distanceM=78537.83 bbox=47.853477,6.631057 to 48.017893,6.901843
+trackId=100003 file=JuraRoute72011.gpx status=COMPLETED_WITH_SUCCESS loadStatus=SUCCESS name=Jura Route 7 / 2011 on GPSies.com points=1409 distanceM=273260.02 bbox=46.383851,6.177884 to 47.553529,7.594610
+trackId=100002 file=MoselradwegAusWiki.gpx status=COMPLETED_WITH_SUCCESS loadStatus=SUCCESS name=Moselradweg aus Wiki on GPSies.com points=2949 distanceM=517818.88 bbox=47.853473,6.021299 to 50.363855,7.593506
+trackId=100005 file=Activity.fit status=COMPLETED_WITH_SUCCESS loadStatus=SUCCESS name= points=3600 distanceM=3598.76 bbox=0.000000,0.000011 to 0.000000,0.032339

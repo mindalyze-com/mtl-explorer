@@ -3,6 +3,7 @@ import maplibregl from 'maplibre-gl';
 import { fetchMapConfig } from '@/utils/mapConfigService';
 import { TRACK_COLOR } from '@/utils/trackColors';
 import { resolveConfiguredMapStyle } from '@/components/map/mapStyleResolver';
+import { useMapSettingsStore } from '@/stores/mapSettingsStore';
 
 export type MiniMapBounds = [[number, number], [number, number]];
 export type MiniMapGeoJson = GeoJSON.FeatureCollection<GeoJSON.Geometry, Record<string, unknown>>;
@@ -26,8 +27,10 @@ interface UseMiniMapOptions {
 }
 
 export function useMiniMap(options: UseMiniMapOptions) {
+  const mapSettingsStore = useMapSettingsStore();
   let map: maplibregl.Map | null = null;
   let popup: maplibregl.Popup | null = null;
+  let resizeObserver: ResizeObserver | null = null;
   let initStarted = false;
   let destroyed = false;
 
@@ -41,7 +44,12 @@ export function useMiniMap(options: UseMiniMapOptions) {
     const config = await fetchMapConfig();
     if (destroyed || !options.container.value) return;
 
-    const { style } = resolveConfiguredMapStyle({ config, theme: 'light' });
+    mapSettingsStore.hydrate();
+    const { style } = resolveConfiguredMapStyle({
+      config,
+      theme: 'light',
+      mapSourceMode: mapSettingsStore.mapSourceMode,
+    });
     map = new maplibregl.Map({
       container: options.container.value,
       style,
@@ -221,14 +229,26 @@ export function useMiniMap(options: UseMiniMapOptions) {
   }
 
   function invalidateMapSize(): void {
-    map?.resize();
+    window.requestAnimationFrame(() => {
+      if (!destroyed) map?.resize();
+    });
+  }
+
+  function observeContainerSize(el: HTMLElement | null): void {
+    resizeObserver?.disconnect();
+    resizeObserver = null;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+    resizeObserver = new ResizeObserver(() => invalidateMapSize());
+    resizeObserver.observe(el);
   }
 
   onMounted(() => {
+    observeContainerSize(options.container.value);
     void initMap();
   });
 
   watch(options.container, (el) => {
+    observeContainerSize(el);
     if (el && !map) void initMap();
   });
 
@@ -248,6 +268,8 @@ export function useMiniMap(options: UseMiniMapOptions) {
     destroyed = true;
     popup?.remove();
     popup = null;
+    resizeObserver?.disconnect();
+    resizeObserver = null;
     map?.remove();
     map = null;
     initStarted = false;

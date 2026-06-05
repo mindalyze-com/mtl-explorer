@@ -1,0 +1,118 @@
+- region "Map"
+- region "Map"
+- button "Zoom in"
+- button "Zoom out"
+- button "Drag to rotate map, click to reset north"
+- text: 
+- button "Enable 3D terrain":
+  - generic: 
+- generic: 10 km
+- generic "Toggle attribution"
+- text: ©
+- link "OpenStreetMap":
+  - /url: https://openstreetmap.org
+- text: "| Elevation:"
+- link "Mapterhorn":
+  - /url: https://mapterhorn.com/attribution/
+- generic: 0 Tracks
+- button " Stats":
+  - generic: 
+  - generic: Stats
+- button " Filter":
+  - generic: 
+  - generic: Filter
+- button " Planner":
+  - generic: 
+  - generic: Planner
+- button " Map":
+  - generic: 
+  - generic: Map
+- button " Animate":
+  - generic: 
+  - generic: Animate
+- button " Segments":
+  - generic: 
+  - generic: Segments
+- button " GPS":
+  - generic: 
+  - generic: GPS
+- button " Admin" [active]:
+  - generic: 
+  - generic: Admin
+- generic: 
+- text: Admin
+- button "Fullscreen":
+  - generic: 
+- button "Close":
+  - generic: 
+- generic: System utility
+- heading "Admin workspace" [level=2]
+- paragraph: Manage imports, runtime tools, diagnostics, and local preferences without leaving the map.
+- generic: Quiet state
+- generic: Data
+- generic: Import and processing activity
+- button "Open Upload":
+  - generic: 
+  - generic: Upload
+  - generic: Import
+  - generic: Import GPX files and inspect ingest readiness.
+  - generic: 
+- button "Open Jobs":
+  - generic: 
+  - generic: Jobs
+  - generic: Idle
+  - generic: Track indexer, map, and routing activity.
+  - generic: 
+- button "Open Freshness":
+  - generic: 
+  - generic: Freshness
+  - generic: Token
+  - generic: Inspect domain revisions and the current map data token.
+  - generic: 
+- button "Open Garmin Sync":
+  - generic: 
+  - generic: Garmin Sync
+  - generic: Remote
+  - generic: Trigger a remote Garmin export to pull new activity files.
+  - generic: 
+- generic: System
+- generic: Diagnostics, tools, and build details
+- button "Open Log":
+  - generic: 
+  - generic: Log
+  - generic: Server
+  - generic: Inspect recent server output and runtime issues.
+  - generic: 
+- button "Open Helpers":
+  - generic: 
+  - generic: Helpers
+  - generic: 2/2 ready
+  - generic: Reload tracks, manage helper tools, and run installs.
+  - generic: 
+- button "Open About":
+  - generic: 
+  - generic: About
+  - generic: Build
+  - generic: Client and server build details and runtime info.
+  - generic: 
+- generic: Session
+- generic: Preferences and account controls
+- button "Open Settings":
+  - generic: 
+  - generic: Settings
+  - generic: Light
+  - generic: Adjust color scheme and locale formatting.
+  - generic: 
+- button "Open Session":
+  - generic: 
+  - generic: Session
+  - generic: Logout
+  - generic: Logout credentials only or wipe all local app data.
+  - generic: 
+- button "Open Attribution":
+  - generic: 
+  - generic: Attribution
+  - generic: Sources
+  - generic: Libraries, datasets, and map data references.
+  - generic: 
+- generic: 

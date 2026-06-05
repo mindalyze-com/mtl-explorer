@@ -1,0 +1,4 @@
+Map interaction after rescans:
+- Scale before zoom: 500 km
+- Scale after two zoom-in clicks: 100 km
+- Track count still present: 12 Tracks

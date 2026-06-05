@@ -1,0 +1,17 @@
+TBS_09 period chart switch evidence
+Available period options: YYYY (by year) | YYYY-Q (by year and quarter) | YYYY-MM (by year and month) | YYYY-WW (by year and week) | YYYY-MM-DD (by year, week and day) | Total
+
+daily: selected label=YYYY-MM-DD (by year, week and day)
+daily: period count=8, Highcharts containers=8
+daily: chart titles=
+daily: axis sample=2010-01-01 | 2021-07-20 | 2026-02-02 | 2026-02-04 | 2026-02-05 | 2026-02-07 | 2026-03-01 | 2026-06-01 | 0 | 10 | 20 h | 2010-01-01 | 2021-07-20 | 2026-02-02 | 2026-02-04 | 2026-02-05 | 2026-02-07 | 2026-03-01
+
+weekly: selected label=YYYY-WW (by year and week)
+weekly: period count=6, Highcharts containers=8
+weekly: chart titles=
+weekly: axis sample=2010-01 | 2021-29 | 2026-05 | 2026-06 | 2026-09 | 2026-22 | 0 | 10 | 20 h | 2010-01 | 2021-29 | 2026-05 | 2026-06 | 2026-09 | 2026-22 | 0 | 500 | 1k km
+
+monthly: selected label=YYYY-MM (by year and month)
+monthly: period count=5, Highcharts containers=8
+monthly: chart titles=
+monthly: axis sample=2010-01 | 2021-07 | 2026-02 | 2026-03 | 2026-06 | 0 | 10 | 20 h | 2010-01 | 2021-07 | 2026-02 | 2026-03 | 2026-06 | 0 | 500 | 1k km | 2010-01 | 2021-07

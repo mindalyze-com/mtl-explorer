@@ -1,0 +1,9 @@
+HOST=mtl-regression-test-v2
+DATE=2026-06-01T15:29:35+00:00
+Linux mtl-regression-test-v2 6.12.88+deb13-cloud-amd64 #1 SMP PREEMPT_DYNAMIC Debian 6.12.88-1 (2026-05-15) x86_64 GNU/Linux
+DOCKER=
+Filesystem      Size  Used Avail Use% Mounted on
+/dev/sda1        75G  988M   71G   2% /
+               total        used        free      shared  buff/cache   available
+Mem:           3.7Gi       304Mi       3.5Gi       580Ki       111Mi       3.4Gi
+Swap:             0B          0B          0B

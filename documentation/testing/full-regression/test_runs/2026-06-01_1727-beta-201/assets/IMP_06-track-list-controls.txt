@@ -1,0 +1,119 @@
+[
+  {
+    "i": 16,
+    "tag": "INPUT",
+    "type": "search",
+    "aria": null,
+    "placeholder": "City, peak, area",
+    "text": "",
+    "test": null
+  },
+  {
+    "i": 41,
+    "tag": "BUTTON",
+    "type": null,
+    "aria": null,
+    "placeholder": null,
+    "text": "Overview",
+    "test": null
+  },
+  {
+    "i": 43,
+    "tag": "BUTTON",
+    "type": null,
+    "aria": null,
+    "placeholder": null,
+    "text": "Tracks",
+    "test": null
+  },
+  {
+    "i": 48,
+    "tag": "BUTTON",
+    "type": null,
+    "aria": null,
+    "placeholder": null,
+    "text": "Tracks",
+    "test": "activity-metric-tracks"
+  },
+  {
+    "i": 49,
+    "tag": "BUTTON",
+    "type": null,
+    "aria": null,
+    "placeholder": null,
+    "text": "Distance",
+    "test": "activity-metric-distance"
+  },
+  {
+    "i": 50,
+    "tag": "BUTTON",
+    "type": null,
+    "aria": null,
+    "placeholder": null,
+    "text": "Duration",
+    "test": "activity-metric-duration"
+  },
+  {
+    "i": 64,
+    "tag": "BUTTON",
+    "type": null,
+    "aria": null,
+    "placeholder": null,
+    "text": "View all tracks",
+    "test": "recent-view-all"
+  },
+  {
+    "i": 83,
+    "tag": "BUTTON",
+    "type": "button",
+    "aria": null,
+    "placeholder": null,
+    "text": "All",
+    "test": null
+  },
+  {
+    "i": 87,
+    "tag": "INPUT",
+    "type": "text",
+    "aria": null,
+    "placeholder": "Search name, activity, date, file, creator\u2026",
+    "text": "",
+    "test": null
+  },
+  {
+    "i": 88,
+    "tag": "BUTTON",
+    "type": null,
+    "aria": null,
+    "placeholder": null,
+    "text": "Date",
+    "test": null
+  },
+  {
+    "i": 90,
+    "tag": "BUTTON",
+    "type": null,
+    "aria": null,
+    "placeholder": null,
+    "text": "Distance",
+    "test": null
+  },
+  {
+    "i": 91,
+    "tag": "BUTTON",
+    "type": null,
+    "aria": null,
+    "placeholder": null,
+    "text": "Duration",
+    "test": null
+  },
+  {
+    "i": 154,
+    "tag": "BUTTON",
+    "type": "button",
+    "aria": null,
+    "placeholder": null,
+    "text": "Overview",
+    "test": null
+  }
+]

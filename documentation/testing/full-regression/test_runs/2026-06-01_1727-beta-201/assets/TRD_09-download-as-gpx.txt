@@ -1,0 +1,11 @@
+TRD_09 Download as GPX evidence
+Source track: #100005 Activity.fit (FIT-backed)
+Clicked target: {"i":83,"tag":"BUTTON","text":"","aria":"Download GPX","title":"Download as GPX","cls":"track-header__action-btn","x":1188.390625,"y":472.1875,"w":32,"h":32,"visible":true}
+Suggested filename: Activity.gpx
+Byte size: 479844
+SHA-256: 13ca0a3e6dfaaeb67a14df68eb7bd57fb7d41cb2343d1eb8ab9725af8987ff25
+trkseg count: 1
+trkpt count: 3601
+Valid GPX with trackpoints: true
+Header excerpt: <?xml version="1.0" encoding="UTF-8"?> <gpx version="1.1" creator="GPSBabel - https://www.gpsbabel.org" xmlns="http://www.topografix.com/GPX/1/1"> <metadata> 
+Detail URL: http://167.233.16.201:18080/mtl/track/100005

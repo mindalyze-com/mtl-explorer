@@ -1,0 +1,20 @@
+FRESHNESS
+1fciyo__|server_id:4cPgaT3KHaptNtCyRmtRqJ|config:9|filters:83|index:15|media:0|track_geometry:30|tracks:30
+items=[('config', 9), ('filters', 83), ('index', 15), ('media', 0), ('track_geometry', 30), ('tracks', 30)]
+INDEXER
+[{"index":"GPS","total":5,"pending":0,"completed":5,"failed":0,"removed":0,"excluded":0,"progressPercent":100}]
+LIVE_WATCH_CREATE_LINES
+app-1  | 2026-06-04T20:10:32.461Z  INFO 1 --- [watch-GPS] FileIndexerImpl              : Live watcher detected CREATE for: JuraRoute72011.gpx
+app-1  | 2026-06-04T20:10:32.853Z  INFO 1 --- [watch-GPS] FileIndexerImpl              : Live watcher detected CREATE for: MoselradwegAusWiki.gpx
+app-1  | 2026-06-04T20:10:33.168Z  INFO 1 --- [watch-GPS] FileIndexerImpl              : Live watcher detected CREATE for: Vitry-le-Francois_Langres.gpx
+app-1  | 2026-06-04T20:10:33.432Z  INFO 1 --- [watch-GPS] FileIndexerImpl              : Live watcher detected CREATE for: VoieVerteHauteVosges.gpx
+app-1  | 2026-06-04T20:10:33.655Z  INFO 1 --- [watch-GPS] FileIndexerImpl              : Live watcher detected CREATE for: Lannion_Plestin_parcours24.4RE.gpx
+INGEST_SUCCESS_LINES
+app-1  | 2026-06-04T20:10:46.701Z  INFO 1 --- [idx-2] GPXStoreService              : GPS ingest timing trackId=100000 file=/JuraRoute72011.gpx status=SUCCESS Timing total 3.63s; slowest raw points 1.49s, simplified shapes 887ms, cleaned points 428ms, denoise 3
+app-1  | 2026-06-04T20:10:47.129Z  INFO 1 --- [idx-3] GPXStoreService              : GPS ingest timing trackId=100002 file=/MoselradwegAusWiki.gpx status=SUCCESS Timing total 3.81s; slowest raw points 1.65s, simplified shapes 832ms, cleaned points 604ms, denoi
+app-1  | 2026-06-04T20:10:46.584Z  INFO 1 --- [idx-4] GPXStoreService              : GPS ingest timing trackId=100001 file=/Vitry-le-Francois_Langres.gpx status=SUCCESS Timing total 3.02s; slowest raw points 1.41s, simplified shapes 870ms, cleaned points 258ms
+app-1  | 2026-06-04T20:10:46.503Z  INFO 1 --- [idx-1] GPXStoreService              : GPS ingest timing trackId=100003 file=/VoieVerteHauteVosges.gpx status=SUCCESS Timing total 1.70s; slowest simplified shapes 509ms, raw points 409ms, cleaned points 297ms, par
+app-1  | 2026-06-04T20:10:46.930Z  INFO 1 --- [idx-1] GPXStoreService              : GPS ingest timing trackId=100004 file=/Lannion_Plestin_parcours24.4RE.gpx status=SUCCESS Timing total 382ms; slowest simplified shapes 127ms, raw points 85ms, cleaned points 7
+BACKGROUND_JOB_LINES
+app-1  | 2026-06-04T20:11:02.977Z  INFO 1 --- [sched-4] DuplicateDetectorJob         : Completed found duplicates in 0 seconds for 5 tracks.
+app-1  | 2026-06-04T20:11:35.305Z  INFO 1 --- [sched-1] ExplorationScoreJob          : Exploration score job completed: 5 tracks in 7481ms

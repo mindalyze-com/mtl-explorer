@@ -6,6 +6,8 @@ export type MediaState = 'idle' | 'visible' | 'error';
 
 const DEBOUNCE_MS = 300;
 const BOUNDS_PADDING = 2;
+const MIN_LATITUDE = -90;
+const MAX_LATITUDE = 90;
 
 const SOURCE_ID = 'media-points';
 const CLUSTER_LAYER = 'media-clusters';
@@ -243,8 +245,8 @@ export class MediaOverlay {
     const latPad = (ne.lat - sw.lat) * BOUNDS_PADDING;
     const lngPad = (ne.lng - sw.lng) * BOUNDS_PADDING;
     const fetchBounds = new maplibregl.LngLatBounds(
-      [sw.lng - lngPad, sw.lat - latPad],
-      [ne.lng + lngPad, ne.lat + latPad]
+      [sw.lng - lngPad, clampLatitude(sw.lat - latPad)],
+      [ne.lng + lngPad, clampLatitude(ne.lat + latPad)]
     );
 
     this.loading = true;
@@ -289,4 +291,8 @@ export class MediaOverlay {
     };
     source.setData(geojson);
   }
+}
+
+function clampLatitude(latitude: number): number {
+  return Math.max(MIN_LATITUDE, Math.min(MAX_LATITUDE, latitude));
 }

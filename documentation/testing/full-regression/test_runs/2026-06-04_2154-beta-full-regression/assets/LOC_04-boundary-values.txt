@@ -1,0 +1,32 @@
+{
+  "uploadsAccepted": true,
+  "indexedTracks": [
+    {
+      "id": 100025,
+      "name": "loc04-null-elevation-1780621876665",
+      "dist": 0,
+      "dur": 0,
+      "stopped": 0
+    },
+    {
+      "id": 100026,
+      "name": "loc04-negative-elevation-1780621876665",
+      "dist": 82.89,
+      "dur": 0,
+      "ascent": 2.86,
+      "descent": 0,
+      "stopped": 0
+    }
+  ],
+  "freshUiExcerpt": "500 km © OpenStreetMap | Elevation: Mapterhorn 21 Tracks Stats Filter Map Animate Segments GPS Planner Admin Overview Trends Tracks 21 TRACKS 1,804 km DISTANCE 2d 06h DURATION 4,614 Wh ENERGY ACTIVITY BREAKDOWN Tracks Distance Duration Energy Bicycle 17 17 Car 1 1 Running 1 1 Unknown 1 1 Walking 1 1 HIGHLIGHTS Longest track syn07-indexer-running-1780620130688.gpx 829 km Longest duration syn07-indexer-running-1780620130688.gpx 1d 09h Biggest ascent syn07-indexer-running-1780620130688.gpx 86,496 m Quickest ascent Track 100010 50,000 m/h Most energy Jura Route 7 / 2011 on GPSies.com 1,808 Wh Fastest 30 s speed Moselradweg aus Wiki on GPSies.com 58.3 km/h Peak 30 s power Track 100010 2,500 W Most common activity Bicycle 17 tracks RECENT ACTIVITY View all tracks loc04-negative-elevation-1780621876665 Car 06/05/2026, 01:45 82.89 m 0m 02s loc04-null-elevation-1780621876665 06/05/2026, 01:45 0.00 m 0m 00s syn05-dismiss-two synthetic 1780619155258 Bicycle 06/04/2026, 23:30 739.97 m 3m 00s syn05-dismiss-one synthetic 1780619130790 Bicycle 06/04/2026, 23:30 740.00 m 3m 00s syn-dismiss-one synthetic 1780618991278 Bicycle 06/04/2026, 23:00 740.53 m 3m 00s RHYTHM & MILESTONES Most Active Periods Most active day 2026-06-04 1d 09h 11 tracks - 843 km Most active week 2026-W23 1d 09h 11 tracks - 843 km Most active month 2026-06 1d 09h 11 tracks - 843 km Most active weekday Thursday 1d 09h 11 tracks - 843 km Milestones First activity Jura Route 7 / 2011 on GPSies.com 01/01/2010, 01:00 Latest activity loc04-negative-elevation-1780621876665 06/05/2026, 01:45 First 50 km track Jura Route 7 / 201",
+  "assertions": {
+    "uploadsAccepted": true,
+    "indexedBoth": true,
+    "zeroDurationRendered": true,
+    "zeroDistanceRendered": true,
+    "largeValuesRendered": true,
+    "boundaryRowsVisible": true,
+    "noBadLiterals": true
+  },
+  "note": "The string \"null\" appears only inside the synthetic test track name loc04-null-elevation; visible values rendered as 0.00 m / 0m 00s, not as null/NaN."
+}

@@ -77,7 +77,22 @@ mtl:
     tile-base-url: /mtl/api/map-proxy           # base path returned to client; /prod scope appended dynamically
     tileset-name: planet                        # main tileset filename (without .pmtiles)
     lowzoom-tileset-name: world-lowzoom         # low-zoom extract for offline client cache
-    remote-tile-url: https://tile.openstreetmap.org/{z}/{x}/{y}.png  # raster URL when tile-mode=remote
+    # Remote raster styles used when tile-mode=remote, or as a temporary fallback
+    # when local vector tiles are unavailable. Each style needs its own tile URL
+    # and matching provider attribution. Override both fields together when using
+    # another provider; a deployment that changes only the URL owns any incorrect
+    # attribution. This is the intended no-code setup for Simon's use case:
+    # OSM Standard for light, OpenTopoMap for topo, and CARTO Dark Matter for dark.
+    remote-raster-styles:
+      light:
+        url: https://tile.openstreetmap.org/{z}/{x}/{y}.png
+        attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+      light-topo:
+        url: https://tile.opentopomap.org/{z}/{x}/{y}.png
+        attribution: 'Map data: © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, SRTM | Map style: © <a href="https://opentopomap.org">OpenTopoMap</a> (<a href="https://creativecommons.org/licenses/by-sa/3.0/">CC-BY-SA</a>)'
+      dark:
+        url: https://basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png
+        attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors © <a href="https://carto.com/attributions">CARTO</a>'
   location-search:
     enabled: true
     status-url: ${MTL_LOCATION_SEARCH_STATUS_URL:http://location-search:8083/status}

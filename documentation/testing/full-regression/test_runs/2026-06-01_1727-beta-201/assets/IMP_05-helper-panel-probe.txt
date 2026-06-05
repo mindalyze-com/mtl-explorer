@@ -1,0 +1,40 @@
+{
+  "body": "50 km\n© OpenStreetMap | Elevation: Mapterhorn\n5 Tracks\nStats\nFilter\nMap\nAnimate\nSegments\nGPS\nPlanner\nAdmin\nAdmin\nSYSTEM UTILITY\nAdmin workspace\n\nManage imports, runtime tools, diagnostics, and local preferences without leaving the map.\n\nQuiet state\nData\nImport and processing activity\nUpload\nIMPORT\nImport GPX files and inspect ingest readiness.\nJobs\nIDLE\nTrack indexer, map, and routing activity.\nFreshness\nTOKEN\nInspect domain revisions and the current map data token.\nGarmin Sync\nREMOTE\nTrigger a remote Garmin export to pull new activity files.\nSystem\nDiagnostics, tools, and build details\nLog\nSERVER\nInspect recent server output and runtime issues.\nHelpers\n2/2 READY\nReload tracks, manage helper tools, and run installs.\nAbout\nBUILD\nClient and server build details and runtime info.\nSession\nPreferences and account controls\nSettings\nLIGHT\nAdjust color scheme and locale formatting.\nSession\nLOGOUT\nLogout credentials only or wipe all local app data.\nAttribution\nSOURCES\nLibraries, datasets, and map data references.\nHelpers\nMAINTENANCE\nHelpers\n\nReload the local track cache, install helper tools, and run export commands.\n\nCache\nClear the local track cache and reload from server.\nReload Tracks\nClear cache and reload from server\nReload\nTool setup\nLocal helper environments for export and conversion tasks.\ngcexport\nready\nreleases\nInstall\nfit-export\nready\nInstall\nCommand output\nRecent install output appears here.\nWaiting for response…",
+  "buttons": [
+    {
+      "i": 61,
+      "text": "Jobs\nIDLE\nTrack indexer, map, and routing activity.",
+      "aria": "Open Jobs",
+      "disabled": false,
+      "cls": "admin-tile"
+    },
+    {
+      "i": 65,
+      "text": "Helpers\n2/2 READY\nReload tracks, manage helper tools, and run installs.",
+      "aria": "Open Helpers",
+      "disabled": false,
+      "cls": "admin-tile"
+    },
+    {
+      "i": 72,
+      "text": "Reload",
+      "aria": "Reload",
+      "disabled": false,
+      "cls": "p-button p-component p-button-sm"
+    },
+    {
+      "i": 73,
+      "text": "Install",
+      "aria": "Install",
+      "disabled": false,
+      "cls": "p-button p-component p-button-sm"
+    },
+    {
+      "i": 74,
+      "text": "Install",
+      "aria": "Install",
+      "disabled": false,
+      "cls": "p-button p-component p-button-sm"
+    }
+  ]
+}

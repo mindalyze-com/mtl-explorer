@@ -41,6 +41,8 @@
                 :tracks="tracks"
                 :tracks-count="tracksCount"
                 :unfiltered-total="unfilteredTotal"
+                :filter-revision="filterStore.trackSetRevision"
+                :filter-request="filterStore.activeFilterRequest"
                 @open-details="emit('open-details', $event)"
                 @view-all-tracks="showNewestTracks"
                 @view-highlight-exclusions="showHighlightExclusions"
@@ -50,6 +52,11 @@
             <!-- ── Tab 2: Track Log ── -->
             <TabPanel value="tracks">
               <div class="tracks-tab">
+                <TrackBrowserQuickViews
+                  v-model="trackQuickView"
+                  :options="trackQuickViewOptions"
+                  @update:model-value="onTrackQuickViewChanged"
+                />
                 <TrackBrowserControls
                   :query="trackQuery"
                   :summary="trackFilterSummary"
@@ -522,9 +529,11 @@ import { fetchStatistics as fetchStatisticsData } from '@/utils/ServiceHelper';
 import BottomSheet from '@/components/ui/BottomSheet.vue';
 import StatisticsOverview from '@/components/statistics/StatisticsOverview.vue';
 import TrackBrowserControls from '@/components/track-browser/TrackBrowserControls.vue';
+import TrackBrowserQuickViews from '@/components/track-browser/TrackBrowserQuickViews.vue';
 import TrackBrowserTable from '@/components/track-browser/TrackBrowserTable.vue';
 import { useTrackBrowser } from '@/components/track-browser/useTrackBrowser';
-import { HIGHLIGHT_EXCLUSIONS_TRACK_BROWSER_QUERY } from '@/utils/statisticsCuration';
+import { useFilterStore, type ActiveFilterRequest } from '@/stores/filterStore';
+import type { TrackBrowserOption, TrackBrowserPreset } from '@/components/track-browser/trackBrowser.types';
 import type { GpsTrack, GpsTrackStatistics } from 'x8ing-mtl-api-typescript-fetch/dist/esm/models/index';
 import type Highcharts from 'highcharts';
 
@@ -569,6 +578,7 @@ const props = withDefaults(
 );
 
 const emit = defineEmits<Emits>();
+const filterStore = useFilterStore();
 
 /** Compact number formatter for y-axis tick labels — no unit, no excess decimals */
 function compactNum(v: number): string {
@@ -695,6 +705,7 @@ const showMenu = ref(false);
 const activeTab = ref('overview');
 const statsView = ref<StatsView>('charts');
 const trackSortResetKey = ref(0);
+const trackQuickView = ref<TrackBrowserPreset>('all');
 const statisticData = ref<ExtendedGpsTrackStatistics[]>([]);
 const currentInfoText = ref('');
 const selectedGrouping = ref('YYYY-"Q"Q');
@@ -739,22 +750,49 @@ onBeforeUnmount(() => window.removeEventListener('resize', onResize));
 const isMobile = computed(() => windowWidth.value < MOBILE_STATS_BP);
 
 const tracksRef = computed(() => (props.tracks ?? []) as GpsTrack[]);
+const trackQuickViewOptions: TrackBrowserOption<TrackBrowserPreset>[] = [
+  { label: 'All', value: 'all' },
+  { label: 'Excluded', value: 'highlight-exclusions' },
+  { label: 'Stats excluded', value: 'statistics-exclusions' },
+  { label: 'No activity', value: 'missing-activity' },
+];
+const trackBrowserSourceTracks = computed(() => {
+  const tracks = tracksRef.value;
+  switch (trackQuickView.value) {
+    case 'highlight-exclusions':
+      return tracks.filter((track) => track.highlightExclusionReason || track.statisticsExclusionReason);
+    case 'statistics-exclusions':
+      return tracks.filter((track) => track.statisticsExclusionReason);
+    case 'missing-activity':
+      return tracks.filter((track) => !track.activityType);
+    case 'all':
+    default:
+      return tracks;
+  }
+});
 const {
   query: trackQuery,
   rows: trackRows,
   summary: trackFilterSummary,
   totalCount: trackTotalCount,
-} = useTrackBrowser(tracksRef);
+} = useTrackBrowser(trackBrowserSourceTracks);
+
+function onTrackQuickViewChanged() {
+  trackQuery.value = '';
+  trackSortResetKey.value += 1;
+}
 
 function showNewestTracks() {
   activeTab.value = 'tracks';
+  trackQuickView.value = 'all';
   trackQuery.value = '';
   trackSortResetKey.value += 1;
 }
 
 function showHighlightExclusions() {
   activeTab.value = 'tracks';
-  trackQuery.value = HIGHLIGHT_EXCLUSIONS_TRACK_BROWSER_QUERY;
+  trackQuickView.value = 'highlight-exclusions';
+  trackQuery.value = '';
   trackSortResetKey.value += 1;
 }
 
@@ -838,6 +876,12 @@ watch(filteredStatisticData, (newData) => {
 watch(selectedGrouping, () => {
   selectedSubUnit.value = null;
 });
+watch(
+  () => filterStore.trackSetRevision,
+  () => {
+    if (active.value) void fetchStatistics();
+  }
+);
 watch(statsView, (newVal) => {
   if (newVal === 'charts') {
     void nextTick(() => {
@@ -872,8 +916,12 @@ function onSheetClosed() {
 }
 
 async function fetchStatistics() {
-  const data = await fetchStatisticsData(selectedGrouping.value);
+  const data = await fetchStatisticsData(selectedGrouping.value, await currentFilterRequest());
   statisticData.value = data ?? [];
+}
+
+async function currentFilterRequest(): Promise<ActiveFilterRequest> {
+  return filterStore.activeFilterRequest ?? (await filterStore.getActiveFilterRequest());
 }
 
 function chartRefs(): Array<Ref<ChartComponent | null>> {

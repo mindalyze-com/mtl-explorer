@@ -1,0 +1,23 @@
+{
+  "attributionEntries": [
+    "MapLibre GL JSMap rendering · BSD-3-Clause",
+    "OpenStreetMapMap data · © ODbL contributors",
+    "Protomaps BasemapsVector tiles · BSD-3-Clause",
+    "PMTilesTile archive format · BSD-3-Clause",
+    "Terrarium DEMElevation tiles · USGS · NGA · NASA",
+    "swisstopoSwiss national maps · © swisstopo",
+    "SchweizMobilTrail overlays · © SchweizMobil",
+    "Waymarked TrailsWorldwide route overlays · OSM data · CC BY-SA",
+    "HighchartsCharts · Non-commercial use",
+    "GeoNamesLocation search gazetteer · CC BY 4.0",
+    "GPSBabelGPS file format conversion · GPL-2.0",
+    "BRouterOffline bike routing · MIT"
+  ],
+  "assertions": {
+    "hasMapLibre": true,
+    "hasOpenStreetMap": true,
+    "hasSwissTopo": true,
+    "hasHighcharts": true,
+    "hasGpsBabelOrBrouter": true
+  }
+}

@@ -1,0 +1,140 @@
+Jobs panel text excerpt:
+500 km © OpenStreetMap | Elevation: Mapterhorn 12 Tracks Stats Filter Map Animate Segments GPS Planner Admin Admin SYSTEM UTILITY Admin workspace Manage imports, runtime tools, diagnostics, and local preferences without leaving the map. Quiet state Data Import and processing activity Upload IMPORT Import GPX files and inspect ingest readiness. Jobs IDLE Track indexer, map, and routing activity. Freshness TOKEN Inspect domain revisions and the current map data token. Garmin Sync REMOTE Trigger a remote Garmin export to pull new activity files. System Diagnostics, tools, and build details Log SERVER Inspect recent server output and runtime issues. Helpers 2/2 READY Reload tracks, manage helper tools, and run installs. About BUILD Client and server build details and runtime info. Session Preferences and account controls Settings LIGHT Adjust color scheme and locale formatting. Session LOGOUT Logout credentials only or wipe all local app data. Attribution SOURCES Libraries, datasets, and map data references. Jobs PROCESSING Jobs Monitor background indexing and understand what the system is currently working on. Manual index rescan Docker Desktop on Windows with WSL2 can show copied files in the container without sending Linux file events. Queue a rescan after adding files from a Windows-mounted folder. Rescan GPS Rescan Media File Indexers GPS DONE 75% 12 16 total Track Processing Jobs Duplicate Finder DONE 100% 12 12 total Activity Classifier DONE 100% 12 12 total Exploration Score DONE 100% 12 12 total Map & Routing Vector Map Tiles DONE 100% Using hosted map service Protomaps archive public-default Hosted map service Location Search DONE 100% GeoNames location search ready. Image 1.2 · Built 05/25/2026, 15:54:08 · Python 3.14.5 · Sqlite 3.53.1 · Apsw 3.53.1.0 · Source Attribution GeoNames · Source Url https://www.geonames.org/ · Source License CC-BY 4.0 · Source License Url https://creativecommons.org/licenses/by/4.0/ · Source Build Date 2026-05-24T22:14:20.822921Z · Schema Version geonames-search-v1 · Row Count 1332531 · Populated Place Count 233251 · Terrain Count 1099280 1332531 places (233251 populated, 1099280 terrain) Routing Segments READY 100% Routing segments are ready for planned routes. Image 1.11 · Built 05/25/2026, 15:54:08 · BRouter 1.7.9 3 on disk Refresh Updated 11:58:55 PM
+
+Indexer API before rescan:
+[
+  {
+    "index": "GPS",
+    "total": 16,
+    "pending": 0,
+    "completed": 12,
+    "failed": 0,
+    "removed": 4,
+    "excluded": 0,
+    "progressPercent": 75
+  }
+]
+
+Job API before rescan:
+[
+  {
+    "job": "duplicate",
+    "label": "Duplicate Finder",
+    "total": 12,
+    "pending": 0,
+    "done": 12,
+    "progressPercent": 100
+  },
+  {
+    "job": "activityType",
+    "label": "Activity Classifier",
+    "total": 12,
+    "pending": 0,
+    "done": 12,
+    "progressPercent": 100
+  },
+  {
+    "job": "exploration",
+    "label": "Exploration Score",
+    "total": 12,
+    "pending": 0,
+    "done": 12,
+    "progressPercent": 100
+  }
+]
+
+Map status:
+{
+  "phase": "public-fallback",
+  "ready": true,
+  "download_pct": 100,
+  "download_bytes": 0,
+  "download_total": 0,
+  "message": "Using hosted map service",
+  "tileSource": "public",
+  "archive_id": "public-default",
+  "versionInfo": {
+    "components": {},
+    "data": {
+      "protomapsArchive": "public-default"
+    }
+  }
+}
+
+Location search status:
+{
+  "phase": "ready",
+  "ready": true,
+  "message": "GeoNames location search ready.",
+  "db_path": "/data/geonames-search.sqlite",
+  "source_build_date": "2026-05-24T22:14:20.822921Z",
+  "source_attribution": "GeoNames",
+  "source_url": "https://www.geonames.org/",
+  "source_license": "CC-BY 4.0",
+  "source_license_url": "https://creativecommons.org/licenses/by/4.0/",
+  "sqlite_version": "3.53.1",
+  "row_count": 1332531,
+  "populated_place_count": 233251,
+  "terrain_count": 1099280,
+  "versionInfo": {
+    "image": {
+      "version": "1.2",
+      "buildTime": "2026-05-25T13:54:08Z"
+    },
+    "components": {
+      "python": "3.14.5",
+      "sqlite": "3.53.1",
+      "apsw": "3.53.1.0"
+    },
+    "data": {
+      "sourceAttribution": "GeoNames",
+      "sourceUrl": "https://www.geonames.org/",
+      "sourceLicense": "CC-BY 4.0",
+      "sourceLicenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+      "sourceBuildDate": "2026-05-24T22:14:20.822921Z",
+      "schemaVersion": "geonames-search-v1",
+      "rowCount": "1332531",
+      "populatedPlaceCount": "233251",
+      "terrainCount": "1099280"
+    }
+  }
+}
+
+Planner status:
+{
+  "available": true,
+  "brouterPort": 17777,
+  "brouterRunning": true,
+  "segmentsDir": "/segments4",
+  "segmentsOnDisk": 3,
+  "segmentsQueued": 0,
+  "segmentsInProgress": [],
+  "segmentsCompletedThisRun": [
+    "E0_N25.rd5",
+    "E5_N25.rd5",
+    "E5_N45.rd5"
+  ],
+  "segmentsFailed": {},
+  "segmentsKnown404": 0,
+  "segmentsValidationPhase": "complete",
+  "segmentsValidated": 0,
+  "segmentsRepaired": [],
+  "segmentsValidationWarnings": [],
+  "segmentsValidationStartedAt": "2026-06-01T15:31:10.862321Z",
+  "segmentsValidationCompletedAt": "2026-06-01T15:31:10.862748Z",
+  "versionInfo": {
+    "image": {
+      "version": "1.11",
+      "buildTime": "2026-05-25T13:54:08Z"
+    },
+    "components": {
+      "brouter": "1.7.9"
+    },
+    "data": {}
+  }
+}
+
+
+Jobs refresh action:
+- Refresh timestamp before click: Updated 12:02:11 AM
+- Refresh timestamp after click: Updated 12:02:15 AM

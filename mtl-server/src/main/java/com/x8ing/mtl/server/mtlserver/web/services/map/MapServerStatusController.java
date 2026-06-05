@@ -10,7 +10,9 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @RestController
@@ -66,7 +68,7 @@ public class MapServerStatusController {
             dto.setTileSource(source);
             dto.setArchiveId(archiveId);
         }
-        dto.setRemoteTileUrl(properties.getRemoteTileUrl());
+        dto.setRemoteRasterStyles(toRemoteRasterStyles(properties.getRemoteRasterStyles()));
         dto.setInitialBounds(initialMapViewportService.resolve(properties));
 
         // Demo area bounds — only populated when the property is set (demo mode)
@@ -107,6 +109,24 @@ public class MapServerStatusController {
                 .queryParam(MapProxyConstants.CACHE_ARCHIVE_PARAM, archiveId)
                 .build()
                 .toUriString();
+    }
+
+    private static Map<String, MapRasterStyleDto> toRemoteRasterStyles(
+            Map<String, MapServerProperties.RemoteRasterStyleProperties> configuredStyles) {
+        Map<String, MapRasterStyleDto> styles = new LinkedHashMap<>();
+        if (configuredStyles == null) {
+            return styles;
+        }
+        configuredStyles.forEach((id, configuredStyle) -> {
+            if (configuredStyle == null) {
+                return;
+            }
+            MapRasterStyleDto dto = new MapRasterStyleDto();
+            dto.setUrl(configuredStyle.getUrl());
+            dto.setAttribution(configuredStyle.getAttribution());
+            styles.put(id, dto);
+        });
+        return styles;
     }
 
     private static String nonNull(String value) {

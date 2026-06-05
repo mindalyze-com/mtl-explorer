@@ -47,6 +47,12 @@ public enum MetricKey {
     SPEED_WINDOW_KMH("On-the-fly trailing-window average speed", "km/h", 2),
 
     /**
+     * Duration-weighted average of segment speeds whose ending point falls in
+     * the bucket.
+     */
+    SPEED_BUCKET_AVG_KMH("Duration-weighted bucket segment speed", "km/h", 2),
+
+    /**
      * On-the-fly trailing-window ascent rate (m/h).
      */
     ELEVATION_GAIN_PER_HOUR_WINDOW("On-the-fly trailing-window ascent rate", "m/h", 0),

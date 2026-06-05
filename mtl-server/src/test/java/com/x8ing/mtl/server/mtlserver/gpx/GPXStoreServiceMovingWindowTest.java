@@ -176,6 +176,79 @@ class GPXStoreServiceMovingWindowTest {
     }
 
     @Test
+    void preserveStopAnchors_keepsSourceOrderWhenTimestampsAreNotMonotonic() {
+        LineString source = GEOMETRY_FACTORY.createLineString(new Coordinate[]{
+                xyzm(0, 0, 1_000),
+                xyzm(10, 0, 1_100),
+                xyzm(10, 0, 1_220),
+                xyzm(30, 0, 10)
+        });
+        LineString simplified = GEOMETRY_FACTORY.createLineString(new Coordinate[]{
+                xyzm(0, 0, 1_000),
+                xyzm(30, 0, 10)
+        });
+
+        LineString preserved = GPXStoreService.preserveStopAnchors(simplified, source);
+
+        assertEquals(4, preserved.getNumPoints());
+        assertEquals(1_000.0, preserved.getCoordinateN(0).getM());
+        assertEquals(1_100.0, preserved.getCoordinateN(1).getM());
+        assertEquals(1_220.0, preserved.getCoordinateN(2).getM());
+        assertEquals(10.0, preserved.getCoordinateN(3).getM());
+    }
+
+    @Test
+    void preserveStopAnchors_ordersDuplicateTimestampsByNearestSourceCoordinate() {
+        LineString source = GEOMETRY_FACTORY.createLineString(new Coordinate[]{
+                xyzm(0, 0, 0),
+                xyzm(1, 0, 100),
+                xyzm(10, 0, 200),
+                xyzm(10, 0, 320),
+                xyzm(100, 0, 100),
+                xyzm(101, 0, 400)
+        });
+        LineString simplified = GEOMETRY_FACTORY.createLineString(new Coordinate[]{
+                xyzm(0, 0, 0),
+                xyzm(100, 0, 100),
+                xyzm(101, 0, 400)
+        });
+
+        LineString preserved = GPXStoreService.preserveStopAnchors(simplified, source);
+
+        assertEquals(0.0, xMeters(preserved, 0), 0.001);
+        assertEquals(101.0, xMeters(preserved, preserved.getNumPoints() - 1), 0.001);
+
+        int lastStopAnchorIndex = -1;
+        int duplicateTimestampLaterPointIndex = -1;
+        for (int i = 0; i < preserved.getNumPoints(); i++) {
+            double x = xMeters(preserved, i);
+            if (Math.abs(x - 10.0) < 0.001) {
+                lastStopAnchorIndex = i;
+            } else if (Math.abs(x - 100.0) < 0.001) {
+                duplicateTimestampLaterPointIndex = i;
+            }
+        }
+        assertTrue(lastStopAnchorIndex >= 0);
+        assertTrue(duplicateTimestampLaterPointIndex > lastStopAnchorIndex);
+    }
+
+    @Test
+    void canonicalPointIndexFor_ordersDuplicateTimestampsByNearestSourceCoordinate() {
+        LineString canonical = GEOMETRY_FACTORY.createLineString(new Coordinate[]{
+                xyzm(0, 0, 0),
+                xyzm(1, 0, 100),
+                xyzm(100, 0, 100),
+                xyzm(101, 0, 200)
+        });
+
+        Integer earlyDuplicate = GPXStoreService.canonicalPointIndexFor(canonical, xyzm(1, 0, 100));
+        Integer laterDuplicate = GPXStoreService.canonicalPointIndexFor(canonical, xyzm(100, 0, 100));
+
+        assertEquals(1, earlyDuplicate);
+        assertEquals(2, laterDuplicate);
+    }
+
+    @Test
     void restoreStopAnchorsAfterSmoothing_repinsMovedAnchorPair() {
         LineString smoothed = GEOMETRY_FACTORY.createLineString(new Coordinate[]{
                 xyzm(0, 0, 0),
@@ -333,5 +406,9 @@ class GPXStoreServiceMovingWindowTest {
 
     private static Coordinate xyzm(double xMeters, double yMeters, double timeS) {
         return new CoordinateXYZM(xMeters / 111_320.0, yMeters / 110_540.0, 100.0, timeS);
+    }
+
+    private static double xMeters(LineString lineString, int index) {
+        return lineString.getCoordinateN(index).getX() * 111_320.0;
     }
 }

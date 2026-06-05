@@ -1,0 +1,108 @@
+{
+  "mapLoaded": true,
+  "attribution": true,
+  "controls": true,
+  "trackOverlayCount": true,
+  "relevantResponses": [
+    {
+      "status": 200,
+      "url": "https://tiles.mapterhorn.com/0/0/0.webp"
+    },
+    {
+      "status": 200,
+      "url": "https://tile.openstreetmap.org/0/0/0.png"
+    },
+    {
+      "status": 200,
+      "url": "/mtl/api/map/config"
+    },
+    {
+      "status": 200,
+      "url": "/mtl/api/map/status"
+    },
+    {
+      "status": 200,
+      "url": "/mtl/api/map/config"
+    },
+    {
+      "status": 200,
+      "url": "/mtl/api/map/status"
+    },
+    {
+      "status": 200,
+      "url": "https://tiles.mapterhorn.com/tilejson.json"
+    },
+    {
+      "status": 200,
+      "url": "https://tiles.mapterhorn.com/10/522/438.webp"
+    },
+    {
+      "status": 200,
+      "url": "/mtl/api/tracks/get-simplified?filterName=SmartBaseFilter&mode=ids"
+    },
+    {
+      "status": 200,
+      "url": "https://tiles.mapterhorn.com/10/522/437.webp"
+    },
+    {
+      "status": 200,
+      "url": "https://tiles.mapterhorn.com/10/524/437.webp"
+    },
+    {
+      "status": 200,
+      "url": "https://tiles.mapterhorn.com/10/523/438.webp"
+    },
+    {
+      "status": 200,
+      "url": "https://tiles.mapterhorn.com/10/523/437.webp"
+    },
+    {
+      "status": 200,
+      "url": "https://tiles.mapterhorn.com/10/521/437.webp"
+    },
+    {
+      "status": 200,
+      "url": "https://tiles.mapterhorn.com/10/524/438.webp"
+    },
+    {
+      "status": 200,
+      "url": "https://tiles.mapterhorn.com/10/521/438.webp"
+    },
+    {
+      "status": 200,
+      "url": "/mtl/api/tracks/get-simplified?precisionInMeter=10&filterName=SmartBaseFilter&mode=full"
+    },
+    {
+      "status": 206,
+      "url": "/mtl/api/map-proxy/prod/planet.pmtiles?mtl-map-source=public&mtl-map-archive=public-default"
+    },
+    {
+      "status": 206,
+      "url": "/mtl/api/map-proxy/prod/planet.pmtiles?mtl-map-source=public&mtl-map-archive=public-default"
+    },
+    {
+      "status": 206,
+      "url": "/mtl/api/map-proxy/prod/planet.pmtiles?mtl-map-source=public&mtl-map-archive=public-default"
+    },
+    {
+      "status": 206,
+      "url": "/mtl/api/map-proxy/prod/planet.pmtiles?mtl-map-source=public&mtl-map-archive=public-default"
+    },
+    {
+      "status": 206,
+      "url": "/mtl/api/map-proxy/prod/planet.pmtiles?mtl-map-source=public&mtl-map-archive=public-default"
+    },
+    {
+      "status": 206,
+      "url": "/mtl/api/map-proxy/prod/planet.pmtiles?mtl-map-source=public&mtl-map-archive=public-default"
+    },
+    {
+      "status": 206,
+      "url": "/mtl/api/map-proxy/prod/planet.pmtiles?mtl-map-source=public&mtl-map-archive=public-default"
+    },
+    {
+      "status": 200,
+      "url": "https://tiles.mapterhorn.com/10/522/436.webp"
+    }
+  ]
+}

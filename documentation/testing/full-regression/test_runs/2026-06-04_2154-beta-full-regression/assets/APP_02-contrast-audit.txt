@@ -1,0 +1,83 @@
+{
+  "light": {
+    "dataTheme": "light",
+    "checked": 123,
+    "minRatio": 2.5640413904962034,
+    "lowestSample": [
+      {
+        "text": "Stats",
+        "fg": "rgb(148, 163, 184)",
+        "bg": "rgba(255, 255, 255, 0.95)",
+        "ratio": 2.56
+      },
+      {
+        "text": "Filter",
+        "fg": "rgb(148, 163, 184)",
+        "bg": "rgba(255, 255, 255, 0.95)",
+        "ratio": 2.56
+      },
+      {
+        "text": "Map",
+        "fg": "rgb(148, 163, 184)",
+        "bg": "rgba(255, 255, 255, 0.95)",
+        "ratio": 2.56
+      },
+      {
+        "text": "Animate",
+        "fg": "rgb(148, 163, 184)",
+        "bg": "rgba(255, 255, 255, 0.95)",
+        "ratio": 2.56
+      },
+      {
+        "text": "Segments",
+        "fg": "rgb(148, 163, 184)",
+        "bg": "rgba(255, 255, 255, 0.95)",
+        "ratio": 2.56
+      }
+    ]
+  },
+  "dark": {
+    "dataTheme": "dark",
+    "checked": 123,
+    "minRatio": 3.751444575665684,
+    "lowestSample": [
+      {
+        "text": "Stats",
+        "fg": "rgb(100, 116, 139)",
+        "bg": "rgba(15, 23, 42, 0.92)",
+        "ratio": 3.75
+      },
+      {
+        "text": "Filter",
+        "fg": "rgb(100, 116, 139)",
+        "bg": "rgba(15, 23, 42, 0.92)",
+        "ratio": 3.75
+      },
+      {
+        "text": "Map",
+        "fg": "rgb(100, 116, 139)",
+        "bg": "rgba(15, 23, 42, 0.92)",
+        "ratio": 3.75
+      },
+      {
+        "text": "Animate",
+        "fg": "rgb(100, 116, 139)",
+        "bg": "rgba(15, 23, 42, 0.92)",
+        "ratio": 3.75
+      },
+      {
+        "text": "Segments",
+        "fg": "rgb(100, 116, 139)",
+        "bg": "rgba(15, 23, 42, 0.92)",
+        "ratio": 3.75
+      }
+    ]
+  },
+  "assertions": {
+    "noWhiteOnWhiteOrBlackOnBlack": true,
+    "noNearIdenticalTextBackgroundPairs": true,
+    "checkedLight": 123,
+    "checkedDark": 123
+  },
+  "note": "Audit flags muted navigation/eyebrow labels below WCAG body-text contrast but found no white-on-white, black-on-black, or near-identical text/background pairs; visual screenshots were also captured in APP_01."
+}

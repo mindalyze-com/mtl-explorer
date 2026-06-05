@@ -1,0 +1,8 @@
+Client-side startup failure simulation
+
+Action: In a fresh browser context, allowed /mtl/api/auth/login but aborted other /mtl/api/* requests before sign-in.
+Observed URL: http://167.233.16.201:18080/mtl/
+Observed message: Unable to load tracks — no server connection and no cached data available.
+Observed recovery control: Retry
+Map shell remained responsive with 0 Tracks while retry was offered.
+Status: PASS

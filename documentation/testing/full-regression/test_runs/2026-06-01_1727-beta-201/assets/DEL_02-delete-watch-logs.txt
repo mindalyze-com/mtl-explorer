@@ -1,0 +1,4 @@
+app-1  | 2026-06-01T16:03:47.647Z  INFO 1 --- [idx-2] GPXStoreService              : Did delete gpsTrack and it's track data for given id=100004 file=/Lannion_Plestin_parcours24.4RE.gpx
+app-1  | 2026-06-01T16:03:47.674Z  INFO 1 --- [idx-3] GPXStoreService              : Did delete gpsTrack and it's track data for given id=100001 file=/Vitry-le-Francois_Langres.gpx
+app-1  | 2026-06-01T16:03:53.348Z  INFO 1 --- [http-nio-8080-exec-6] LoggingFilter                : Request for url=/mtl/api/data-freshness completed in dT=1 for user=mtl user_session_id=YRpCWZdBHv status=200 method=GET
+app-1  | 2026-06-01T16:04:24.348Z  INFO 1 --- [http-nio-8080-exec-5] LoggingFilter                : Request for url=/mtl/api/data-freshness completed in dT=1 for user=mtl user_session_id=YRpCWZdBHv status=200 method=GET

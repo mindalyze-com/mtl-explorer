@@ -1,0 +1,7 @@
+{
+  "cleanupAction": "Clicked the Planner navigation tool to leave location search; the search marker was removed.",
+  "markerCountAfterPick": 1,
+  "markerCountAfterClear": 0,
+  "markersAfterClear": [],
+  "assertion": "PASS: switching tools removed the search marker."
+}

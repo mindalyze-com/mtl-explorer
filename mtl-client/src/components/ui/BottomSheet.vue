@@ -10,6 +10,15 @@
       ></div>
     </transition>
 
+    <div
+      v-if="showDragHalo"
+      ref="haloEl"
+      class="sheet-drag-halo"
+      :style="[sheetHaloStyle, zIndex != null ? { zIndex } : undefined]"
+      aria-hidden="true"
+      @click="onDragZoneClick"
+    ></div>
+
     <!-- Sheet -->
     <div
       ref="sheetEl"
@@ -26,6 +35,7 @@
           'sheet--header-compact': headerMode === 'compact',
         },
       ]"
+      @transitionend="onSheetTransitionEnd"
     >
       <!-- Drag zone: handle + header combined so the entire top area is draggable -->
       <div
@@ -33,6 +43,7 @@
         class="sheet-drag-zone"
         :inert="isBackgrounded ? true : undefined"
         :aria-hidden="isBackgrounded ? 'true' : undefined"
+        @click="onDragZoneClick"
       >
         <div class="sheet-handle-zone">
           <div class="sheet-handle"></div>
@@ -45,7 +56,7 @@
               <span class="sheet-title"><i v-if="icon" :class="icon"></i>{{ title }}</span>
             </slot>
           </div>
-          <div class="sheet-header-actions">
+          <div class="sheet-header-actions" data-sheet-drag-exclude>
             <slot name="header-actions"></slot>
             <button
               class="sheet-fullscreen-btn"
@@ -60,7 +71,7 @@
           </div>
         </div>
 
-        <div v-else-if="headerMode === 'compact'" class="sheet-floating-actions">
+        <div v-else-if="headerMode === 'compact'" class="sheet-floating-actions" data-sheet-drag-exclude>
           <button
             class="sheet-fullscreen-btn"
             :aria-label="isFullscreen ? 'Exit fullscreen' : 'Fullscreen'"
@@ -171,11 +182,24 @@ export interface DetentDef {
   height: string | number;
 }
 export type Detent = DetentPreset | DetentDef;
+
+export interface BottomSheetLayoutState {
+  open: boolean;
+  detentId: string;
+  fullscreen: boolean;
+  dragging: boolean;
+  heightPx: number;
+  widthPx: number;
+  topPx: number;
+  rightPx: number;
+  bottomPx: number;
+  leftPx: number;
+}
 </script>
 
 <script setup lang="ts">
 import { ref, computed, watch, nextTick, onMounted, onUnmounted, useSlots } from 'vue';
-import { usePointerDrag } from '@/composables/usePointerDrag';
+import { isPointerDragExcluded, usePointerDrag, type DragState } from '@/composables/usePointerDrag';
 
 const DETENT_PRESETS: Record<DetentPreset, string> = {
   small: 'clamp(180px, 30vh, 280px)',
@@ -201,6 +225,8 @@ const props = withDefaults(
     fitContentInitial?: boolean;
     /** Programmatically jump to a detent (by id or index). */
     selectedDetent?: string | number;
+    /** Optional detent/height to use while this sheet is backgrounded by a higher sheet. */
+    backgroundDetent?: Detent | string | number;
     /** When true, no backdrop is rendered and clicks pass through to the map. */
     noBackdrop?: boolean;
     /** When true, the scroll-hint chevron at the bottom is never shown. */
@@ -218,6 +244,7 @@ const props = withDefaults(
     initialDetent: 0,
     fitContentInitial: false,
     selectedDetent: undefined,
+    backgroundDetent: undefined,
     noBackdrop: true,
     noScrollHint: false,
     sheetClass: '',
@@ -229,6 +256,7 @@ const emit = defineEmits<{
   (e: 'update:modelValue', value: boolean): void;
   (e: 'closed'): void;
   (e: 'detent-change', id: string): void;
+  (e: 'layout-change', value: BottomSheetLayoutState): void;
 }>();
 
 const sheetId = _nextSheetId++;
@@ -242,6 +270,7 @@ const activeDetentId = ref('');
 
 // Desktop detection for fullscreen button
 const DESKTOP_BP = 769;
+const SHEET_DRAG_HALO_PX = 10;
 const isDesktopWidth = ref(typeof window !== 'undefined' ? window.innerWidth >= DESKTOP_BP : false);
 function onWindowResize() {
   isDesktopWidth.value = window.innerWidth >= DESKTOP_BP;
@@ -260,7 +289,10 @@ function toggleFullscreen() {
 // Free-form height in px — the sheet stays exactly where you drag it
 const sheetHeight = ref(0);
 const handleEl = ref<HTMLElement | null>(null);
+const haloEl = ref<HTMLElement | null>(null);
 let dragStartHeight = 0;
+let suppressNextDragZoneClick = false;
+let backgroundRestoreState: { activeDetentId: string; fullscreen: boolean; heightPx: number } | null = null;
 
 const isOpen = computed(() => props.modelValue);
 const headerMode = computed(() => props.headerMode);
@@ -276,6 +308,13 @@ const isBackgrounded = computed(() => {
       (record.zIndex > current.zIndex || (record.zIndex === current.zIndex && record.openOrder > current.openOrder))
   );
 });
+const showDragHalo = computed(
+  () => isOpen.value && !isBackgrounded.value && !isFullscreen.value && !isDesktopWidth.value
+);
+const sheetHaloStyle = computed<Record<string, string>>(() => ({
+  '--sheet-current-height': `${sheetHeight.value}px`,
+  '--sheet-drag-halo-height': `${SHEET_DRAG_HALO_PX}px`,
+}));
 
 const minHeight = 60; // px — below this we close
 const FIT_CONTENT_DETENT_ID = 'fit-content';
@@ -288,6 +327,11 @@ interface ResolvedDetent {
 
 function resolveCssLength(value: string | number, vh: number): number {
   if (typeof value === 'number') return vh * Math.min(Math.max(value, 0), 1);
+  const trimmed = value.trim();
+  const pxMatch = /^([0-9]*\.?[0-9]+)px$/i.exec(trimmed);
+  if (pxMatch) return Number(pxMatch[1]);
+  const vhMatch = /^([0-9]*\.?[0-9]+)d?vh$/i.exec(trimmed);
+  if (vhMatch) return (Number(vhMatch[1]) / 100) * vh;
   const el = document.createElement('div');
   el.style.cssText = `position:fixed;left:-9999px;top:-9999px;visibility:hidden;height:${value};pointer-events:none`;
   document.body.appendChild(el);
@@ -317,6 +361,29 @@ function findDetentIndex(resolved: ResolvedDetent[], ref: string | number | unde
 
 function getResolvedDetents(): ResolvedDetent[] {
   return resolveDetents(props.detents ?? [], window.innerHeight);
+}
+
+function resolveDetentReference(ref: Detent | string | number | undefined): ResolvedDetent | null {
+  if (ref == null) return null;
+  const vh = window.innerHeight;
+
+  if (typeof ref === 'object') {
+    return resolveDetents([ref], vh)[0] ?? null;
+  }
+
+  const resolved = getResolvedDetents();
+  if (typeof ref === 'number') {
+    return resolved[findDetentIndex(resolved, ref)] ?? null;
+  }
+
+  const byId = resolved.find((detent) => detent.id === ref);
+  if (byId) return byId;
+
+  if (ref in DETENT_PRESETS) {
+    return { id: ref, heightPx: resolveCssLength(DETENT_PRESETS[ref as DetentPreset], vh) };
+  }
+
+  return { id: ref, heightPx: resolveCssLength(ref, vh) };
 }
 
 /** Compute the height the sheet should open at */
@@ -365,6 +432,34 @@ function computeAutoFitHeight(vh: number): number {
   return Math.max(minHeight, Math.min(idealH, softCap, maxPx));
 }
 
+function collapseToBackgroundDetent() {
+  const target = resolveDetentReference(props.backgroundDetent);
+  if (!target) return;
+
+  if (!backgroundRestoreState) {
+    backgroundRestoreState = {
+      activeDetentId: activeDetentId.value,
+      fullscreen: isFullscreen.value,
+      heightPx: sheetHeight.value,
+    };
+  }
+
+  isFullscreen.value = false;
+  sheetHeight.value = Math.max(minHeight, target.heightPx);
+  activeDetentId.value = target.id;
+  updateScrollHint();
+}
+
+function restoreFromBackgroundDetent() {
+  if (!backgroundRestoreState) return;
+  const restoreState = backgroundRestoreState;
+  backgroundRestoreState = null;
+  isFullscreen.value = restoreState.fullscreen;
+  sheetHeight.value = restoreState.heightPx;
+  activeDetentId.value = restoreState.activeDetentId;
+  updateScrollHint();
+}
+
 const sheetStyle = computed(() => {
   if (!isOpen.value && !isAnimatingOut.value) {
     return { height: '0px' };
@@ -386,6 +481,8 @@ const scrollTarget = ref<HTMLElement | null>(null);
 let scrollTargetListener: (() => void) | null = null;
 let contentObserver: MutationObserver | null = null;
 let sizeObserver: ResizeObserver | null = null;
+let sheetLayoutObserver: ResizeObserver | null = null;
+let layoutFrame: number | null = null;
 
 function findScrollableChild(root: HTMLElement): HTMLElement | null {
   const rootStyle = window.getComputedStyle(root);
@@ -423,6 +520,45 @@ function updateScrollHint() {
   }
   const { scrollTop, scrollHeight, clientHeight } = el;
   showScrollHint.value = scrollHeight > clientHeight + 4 && scrollTop < scrollHeight - clientHeight - 4;
+}
+
+function scheduleLayoutEmit() {
+  if (typeof window === 'undefined' || layoutFrame !== null) return;
+  layoutFrame = window.requestAnimationFrame(() => {
+    layoutFrame = null;
+    emitLayoutChange();
+  });
+}
+
+function emitLayoutChange() {
+  const vh = window.innerHeight;
+  const vw = window.innerWidth;
+  const rect = sheetEl.value?.getBoundingClientRect();
+  const visible = isOpen.value || isAnimatingOut.value;
+  const fallbackHeight = visible ? (isFullscreen.value ? vh : sheetHeight.value) : 0;
+  const heightPx = Math.max(0, rect?.height ?? fallbackHeight);
+  const widthPx = Math.max(0, rect?.width ?? vw);
+  const topPx = visible ? (rect?.top ?? vh - heightPx) : vh;
+  const rightPx = visible ? (rect?.right ?? vw) : vw;
+  const bottomPx = visible ? (rect?.bottom ?? vh) : vh;
+  const leftPx = visible ? (rect?.left ?? 0) : 0;
+
+  emit('layout-change', {
+    open: isOpen.value,
+    detentId: activeDetentId.value,
+    fullscreen: isFullscreen.value,
+    dragging: isDragging.value,
+    heightPx,
+    widthPx,
+    topPx,
+    rightPx,
+    bottomPx,
+    leftPx,
+  });
+}
+
+function onSheetTransitionEnd(event: TransitionEvent) {
+  if (event.propertyName === 'height') scheduleLayoutEmit();
 }
 
 function scrollDown() {
@@ -492,20 +628,52 @@ watch(
       resolveScrollTarget();
       startContentObserver();
       updateScrollHint();
+      scheduleLayoutEmit();
       _pushEscape(close);
     } else {
       _popEscape(close);
       _popOpenSheet(sheetId);
+      backgroundRestoreState = null;
       showScrollHint.value = false;
       stopContentObserver();
+      scheduleLayoutEmit();
     }
   },
   { immediate: true }
 );
 
+watch([sheetHeight, isOpen, isFullscreen, isDragging, activeDetentId], scheduleLayoutEmit, { flush: 'post' });
+
+watch(
+  sheetEl,
+  (newEl) => {
+    sheetLayoutObserver?.disconnect();
+    sheetLayoutObserver = null;
+    if (newEl) {
+      sheetLayoutObserver = new ResizeObserver(scheduleLayoutEmit);
+      sheetLayoutObserver.observe(newEl);
+      scheduleLayoutEmit();
+    }
+  },
+  { flush: 'post' }
+);
+
 watch(effectiveZIndex, (zIndex) => {
   if (isOpen.value) _updateOpenSheetZIndex(sheetId, zIndex);
 });
+
+watch(
+  [isBackgrounded, () => props.backgroundDetent],
+  ([backgrounded]) => {
+    if (!isOpen.value) return;
+    if (backgrounded && props.backgroundDetent != null) {
+      collapseToBackgroundDetent();
+    } else {
+      restoreFromBackgroundDetent();
+    }
+  },
+  { flush: 'post' }
+);
 
 function close() {
   isAnimatingOut.value = true;
@@ -518,8 +686,47 @@ function close() {
   emit('closed');
 }
 
-// ── Drag via native pointer events ──
-usePointerDrag(handleEl, ({ movement: [, my], velocity: vel, direction: [, dy], dragging, first, last }) => {
+function suppressDragZoneClickOnce() {
+  suppressNextDragZoneClick = true;
+  window.setTimeout(() => {
+    suppressNextDragZoneClick = false;
+  }, 0);
+}
+
+function snapToDetent(detent: ResolvedDetent) {
+  sheetHeight.value = detent.heightPx;
+  activeDetentId.value = detent.id;
+  emit('detent-change', activeDetentId.value);
+  updateScrollHint();
+}
+
+function snapToAdjacentDetent() {
+  if (isDragging.value || isBackgrounded.value || isFullscreen.value) return;
+  const resolved = getResolvedDetents();
+  if (resolved.length === 0) return;
+
+  const currentIdx = resolved.reduce(
+    (closest, _d, i) =>
+      Math.abs(resolved[i].heightPx - sheetHeight.value) < Math.abs(resolved[closest].heightPx - sheetHeight.value)
+        ? i
+        : closest,
+    0
+  );
+  const targetIdx =
+    resolved.length === 1 ? currentIdx : currentIdx < resolved.length - 1 ? currentIdx + 1 : currentIdx - 1;
+  snapToDetent(resolved[targetIdx]);
+}
+
+function onDragZoneClick(event: MouseEvent) {
+  if (suppressNextDragZoneClick) {
+    suppressNextDragZoneClick = false;
+    return;
+  }
+  if (isPointerDragExcluded(event.target)) return;
+  snapToAdjacentDetent();
+}
+
+function onSheetDrag({ movement: [, my], velocity: vel, direction: [, dy], dragging, first, last }: DragState) {
   if (first) {
     isDragging.value = true;
     dragStartHeight = sheetHeight.value;
@@ -534,6 +741,7 @@ usePointerDrag(handleEl, ({ movement: [, my], velocity: vel, direction: [, dy], 
 
   if (last) {
     isDragging.value = false;
+    suppressDragZoneClickOnce();
     const velocity = -(vel * dy);
 
     if (velocity < -0.5) {
@@ -581,7 +789,11 @@ usePointerDrag(handleEl, ({ movement: [, my], velocity: vel, direction: [, dy], 
       );
     }
   }
-});
+}
+
+// ── Drag via native pointer events ──
+usePointerDrag(handleEl, onSheetDrag);
+usePointerDrag(haloEl, onSheetDrag);
 
 // ── Programmatic detent jump ──
 watch(
@@ -600,12 +812,20 @@ watch(
 onUnmounted(() => {
   _popEscape(close);
   _popOpenSheet(sheetId);
+  if (layoutFrame !== null) {
+    window.cancelAnimationFrame(layoutFrame);
+    layoutFrame = null;
+  }
   if (scrollTarget.value && scrollTargetListener) {
     scrollTarget.value.removeEventListener('scroll', scrollTargetListener);
   }
   if (sizeObserver) {
     sizeObserver.disconnect();
     sizeObserver = null;
+  }
+  if (sheetLayoutObserver) {
+    sheetLayoutObserver.disconnect();
+    sheetLayoutObserver = null;
   }
   stopContentObserver();
 });
@@ -644,6 +864,7 @@ onUnmounted(() => {
   --bs-btn-close-icon: var(--text-xs-size);
   --bs-btn-fs-icon: var(--text-xs-size);
   --bs-body-pb: 0.75rem;
+  --bs-drag-target-min-h: 0px;
   --bs-float-top: 0.45rem;
   --bs-float-right: 0.85rem;
 
@@ -695,6 +916,18 @@ onUnmounted(() => {
   visibility: hidden;
 }
 
+.sheet-drag-halo {
+  position: fixed;
+  z-index: var(--z-bottom-sheet-content);
+  left: 0;
+  right: 0;
+  bottom: calc(var(--sheet-current-height, 0px) + max(env(safe-area-inset-bottom, 0px), 0.5rem));
+  height: var(--sheet-drag-halo-height, 10px);
+  cursor: grab;
+  touch-action: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
 .sheet--dragging {
   transition: none !important;
   cursor: grabbing;
@@ -706,6 +939,7 @@ onUnmounted(() => {
   flex: 0 0 auto;
   display: grid;
   grid-template-columns: 1fr;
+  min-height: var(--bs-drag-target-min-h);
   cursor: grab;
   touch-action: none;
   -webkit-user-select: none;
@@ -723,7 +957,7 @@ onUnmounted(() => {
   display: flex;
   align-items: flex-start;
   justify-content: center;
-  padding: var(--bs-handle-pt) 0 0;
+  padding: var(--bs-handle-pt) 0 var(--bs-handle-pb);
   pointer-events: none; /* drag captured by parent */
 }
 
@@ -896,6 +1130,7 @@ onUnmounted(() => {
     --bs-handle-pt: 0.4rem;
     --bs-handle-pb: 0.35rem;
     --bs-handle-w: 3rem;
+    --bs-drag-target-min-h: 44px;
     --bs-header-pt: 1.1rem;
   }
   .sheet--header-compact {

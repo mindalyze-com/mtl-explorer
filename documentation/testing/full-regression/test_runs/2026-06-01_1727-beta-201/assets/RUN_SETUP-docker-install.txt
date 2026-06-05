@@ -1,0 +1,44 @@
+Docker prerequisite install completed
+Docker version 29.5.2, build 79eb04c
+Docker Compose version v5.1.4
+active
+  cgroupfs-mount | cgroup-lite docker-model-plugin
+Recommended packages:
+  apparmor docker-ce-rootless-extras git pigz
+The following NEW packages will be installed:
+  containerd.io docker-buildx-plugin docker-ce docker-ce-cli
+  docker-compose-plugin
+0 upgraded, 5 newly installed, 0 to remove and 11 not upgraded.
+Need to get 88.8 MB of archives.
+After this operation, 352 MB of additional disk space will be used.
+Get:1 https://download.docker.com/linux/debian trixie/stable amd64 containerd.io amd64 2.2.4-1~debian.13~trixie [23.6 MB]
+Get:2 https://download.docker.com/linux/debian trixie/stable amd64 docker-ce-cli amd64 5:29.5.2-1~debian.13~trixie [17.0 MB]
+Get:3 https://download.docker.com/linux/debian trixie/stable amd64 docker-ce amd64 5:29.5.2-1~debian.13~trixie [22.9 MB]
+Get:4 https://download.docker.com/linux/debian trixie/stable amd64 docker-buildx-plugin amd64 0.34.1-1~debian.13~trixie [17.2 MB]
+Get:5 https://download.docker.com/linux/debian trixie/stable amd64 docker-compose-plugin amd64 5.1.4-1~debian.13~trixie [8127 kB]
+Fetched 88.8 MB in 1s (151 MB/s)
+Selecting previously unselected package containerd.io.
+(Reading database ... (Reading database ... 5%(Reading database ... 10%(Reading database ... 15%(Reading database ... 20%(Reading database ... 25%(Reading database ... 30%(Reading database ... 35%(Reading database ... 40%(Reading database ... 45%(Reading database ... 50%(Reading database ... 55%(Reading database ... 60%(Reading database ... 65%(Reading database ... 70%(Reading database ... 75%(Reading database ... 80%(Reading database ... 85%(Reading database ... 90%(Reading database ... 95%(Reading database ... 100%(Reading database ... 33982 files and directories currently installed.)
+Preparing to unpack .../containerd.io_2.2.4-1~debian.13~trixie_amd64.deb ...
+Unpacking containerd.io (2.2.4-1~debian.13~trixie) ...
+Selecting previously unselected package docker-ce-cli.
+Preparing to unpack .../docker-ce-cli_5%3a29.5.2-1~debian.13~trixie_amd64.deb ...
+Unpacking docker-ce-cli (5:29.5.2-1~debian.13~trixie) ...
+Selecting previously unselected package docker-ce.
+Preparing to unpack .../docker-ce_5%3a29.5.2-1~debian.13~trixie_amd64.deb ...
+Unpacking docker-ce (5:29.5.2-1~debian.13~trixie) ...
+Selecting previously unselected package docker-buildx-plugin.
+Preparing to unpack .../docker-buildx-plugin_0.34.1-1~debian.13~trixie_amd64.deb ...
+Unpacking docker-buildx-plugin (0.34.1-1~debian.13~trixie) ...
+Selecting previously unselected package docker-compose-plugin.
+Preparing to unpack .../docker-compose-plugin_5.1.4-1~debian.13~trixie_amd64.deb ...
+Unpacking docker-compose-plugin (5.1.4-1~debian.13~trixie) ...
+Setting up docker-buildx-plugin (0.34.1-1~debian.13~trixie) ...
+Setting up containerd.io (2.2.4-1~debian.13~trixie) ...
+Created symlink '/etc/systemd/system/multi-user.target.wants/containerd.service' → '/usr/lib/systemd/system/containerd.service'.
+Setting up docker-compose-plugin (5.1.4-1~debian.13~trixie) ...
+Setting up docker-ce-cli (5:29.5.2-1~debian.13~trixie) ...
+Setting up docker-ce (5:29.5.2-1~debian.13~trixie) ...
+Created symlink '/etc/systemd/system/multi-user.target.wants/docker.service' → '/usr/lib/systemd/system/docker.service'.
+Created symlink '/etc/systemd/system/sockets.target.wants/docker.socket' → '/usr/lib/systemd/system/docker.socket'.
+Processing triggers for man-db (2.13.1-1) ...

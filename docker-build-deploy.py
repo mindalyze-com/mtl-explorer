@@ -22,6 +22,7 @@ Examples:
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import shlex
 import subprocess
@@ -37,19 +38,24 @@ from typing import Iterable, Sequence
 # =============================================================================
 
 DOCKER_USERNAME = "wauwau0977"
+DOCKER_HUB_REGISTRY_URL = "https://index.docker.io/v1/"
+DOCKER_HUB_TOKEN_URLS = (
+    "https://index.docker.io/v1/access-token",
+    "https://index.docker.io/v1/refresh-token",
+)
 
 # Version tags. These are the most important values to check before every run.
 APP_IMAGE_NAME = "mytraillog"
-APP_VERSION_TAG = "1.272"  # version tag, (v. 1.1 -> 2025-10 release)
+APP_VERSION_TAG = "1.300"  # version tag, (v. 1.1 -> 2025-10 release)
 
 MAP_IMAGE_NAME = "mytraillog-maps"
-MAP_VERSION_TAG = "1.72"
+MAP_VERSION_TAG = "1.76"
 
 LOCATION_SEARCH_IMAGE_NAME = "mytraillog-location-search"
-LOCATION_SEARCH_VERSION_TAG = "1.2"
+LOCATION_SEARCH_VERSION_TAG = "1.6"
 
 BROUTER_IMAGE_NAME = "mytraillog-brouter"
-BROUTER_VERSION_TAG = "1.11"
+BROUTER_VERSION_TAG = "1.16"
 
 # Channel tags. Version + alpha are published by default; beta/latest are opt-in.
 ALPHA_TAG = "alpha"
@@ -65,6 +71,7 @@ DEFAULT_MULTI_PLATFORM = True
 DEFAULT_NO_CACHE = False
 DEFAULT_DOCKER_LOGIN = True
 DEFAULT_PULL_AFTER_PUBLISH = True
+DEFAULT_FORCE_DOCKER_LOGIN = False
 
 # Build settings.
 MULTI_PLATFORM_PLATFORMS = "linux/amd64,linux/arm64"
@@ -109,6 +116,7 @@ class ReleaseSettings:
     multi_platform: bool
     no_cache: bool
     docker_login: bool
+    force_docker_login: bool
     pull_after_publish: bool
     dry_run: bool
 
@@ -141,6 +149,7 @@ class SettingsDraft:
     multi_platform: bool
     no_cache: bool
     docker_login: bool
+    force_docker_login: bool
     pull_after_publish: bool
     dry_run: bool
 
@@ -247,6 +256,77 @@ def remote_ref(username: str, image_name: str, tag: str) -> str:
     return f"{username}/{image_name}:{tag}"
 
 
+def docker_config_path() -> Path:
+    return Path(os.environ.get("DOCKER_CONFIG", Path.home() / ".docker")) / "config.json"
+
+
+def load_docker_config() -> dict[str, object]:
+    config_path = docker_config_path()
+    try:
+        content = config_path.read_text(encoding="utf-8")
+    except FileNotFoundError:
+        return {}
+    except OSError:
+        return {}
+
+    try:
+        config = json.loads(content)
+    except json.JSONDecodeError:
+        return {}
+    return config if isinstance(config, dict) else {}
+
+
+def docker_hub_credentials_available() -> bool:
+    config = load_docker_config()
+    if docker_config_auth_available(config):
+        return True
+
+    helper = docker_credential_helper(config, DOCKER_HUB_REGISTRY_URL)
+    if not helper:
+        return False
+
+    return any(credential_helper_entry_exists(helper, url) for url in [DOCKER_HUB_REGISTRY_URL, *DOCKER_HUB_TOKEN_URLS])
+
+
+def docker_config_auth_available(config: dict[str, object]) -> bool:
+    auths = config.get("auths")
+    if not isinstance(auths, dict):
+        return False
+
+    for url in [DOCKER_HUB_REGISTRY_URL, *DOCKER_HUB_TOKEN_URLS]:
+        entry = auths.get(url)
+        if isinstance(entry, dict) and (entry.get("auth") or entry.get("identitytoken")):
+            return True
+    return False
+
+
+def docker_credential_helper(config: dict[str, object], registry_url: str) -> str | None:
+    cred_helpers = config.get("credHelpers")
+    if isinstance(cred_helpers, dict):
+        for key in [registry_url, "index.docker.io", "registry-1.docker.io"]:
+            helper = cred_helpers.get(key)
+            if isinstance(helper, str) and helper:
+                return helper
+
+    creds_store = config.get("credsStore")
+    return creds_store if isinstance(creds_store, str) and creds_store else None
+
+
+def credential_helper_entry_exists(helper: str, server_url: str) -> bool:
+    helper_bin = helper if helper.startswith("docker-credential-") else f"docker-credential-{helper}"
+    try:
+        result = subprocess.run(
+            [helper_bin, "get"],
+            input=server_url,
+            text=True,
+            capture_output=True,
+            timeout=5,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return False
+    return result.returncode == 0
+
+
 def describe_tags(version_tag: str, channel_tags: Sequence[str]) -> str:
     return " + ".join([version_tag, *channel_tags])
 
@@ -283,6 +363,7 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--no-cache", action="store_true", help="Disable Docker build cache.")
     parser.add_argument("--no-login", action="store_true", help="Do not run docker login before publishing.")
+    parser.add_argument("--force-login", action="store_true", help="Run docker login even if Docker Hub credentials already exist.")
     parser.add_argument("--no-pull-verify", action="store_true", help="Do not pull published refs after a full build.")
 
     parser.add_argument("--app-tag", default=None, help="Override the app version tag for this run.")
@@ -351,6 +432,7 @@ def initial_settings_draft(args: argparse.Namespace) -> SettingsDraft:
         multi_platform=multi_platform,
         no_cache=no_cache if full_build else False,
         docker_login=DEFAULT_DOCKER_LOGIN and not args.no_login,
+        force_docker_login=DEFAULT_FORCE_DOCKER_LOGIN or args.force_login,
         pull_after_publish=DEFAULT_PULL_AFTER_PUBLISH and not args.no_pull_verify if full_build else False,
         dry_run=args.dry_run,
     )
@@ -370,6 +452,7 @@ def release_settings_from_draft(draft: SettingsDraft) -> ReleaseSettings:
         multi_platform=draft.multi_platform,
         no_cache=draft.no_cache if draft.full_build else False,
         docker_login=draft.docker_login,
+        force_docker_login=draft.force_docker_login,
         pull_after_publish=draft.pull_after_publish if draft.full_build else False,
         dry_run=draft.dry_run,
     )
@@ -548,18 +631,59 @@ def print_plan(settings: ReleaseSettings) -> None:
     cache = "disabled" if settings.no_cache else "enabled" if settings.full_build else "n/a"
     platforms = settings.platforms if settings.full_build else "n/a"
     channels = ", ".join(settings.channel_tags) if settings.channel_tags else "(none)"
+    docker_login = docker_login_plan_label(settings)
     print(f"Operation:         {operation}")
     print(f"Version tags:      app={settings.app_version_tag}, maps={settings.map_version_tag}, location-search={settings.location_search_version_tag}, brouter={settings.brouter_version_tag}")
     print(f"Channel tags:      {channels}")
     print(f"Platforms:         {platforms}")
     print(f"Docker cache:      {cache}")
-    print(f"Docker login:      {'yes' if settings.docker_login else 'no'}")
+    print(f"Docker login:      {docker_login}")
     print(f"Dry run:           {'yes' if settings.dry_run else 'no'}")
 
     print()
     print("Images:")
     for image in image_configs(settings):
         print(f"  - {settings.docker_username}/{image.image_name}:{describe_tags(image.version_tag, settings.channel_tags)}")
+
+
+def docker_login_plan_label(settings: ReleaseSettings) -> str:
+    if not settings.docker_login:
+        return "no"
+    if settings.force_docker_login:
+        return "yes (forced)"
+    return "yes (skip when existing Docker Hub credentials are present)"
+
+
+def print_docker_login_recovery_hint(username: str) -> None:
+    warn("Docker login failed. On macOS this is often a stale Docker Hub entry in the keychain.")
+    warn("To clear only the Docker Hub helper entries, run:")
+    print()
+    print("  docker logout")
+    print(f"  for server in {shlex.quote(DOCKER_HUB_REGISTRY_URL)} {' '.join(shlex.quote(url) for url in DOCKER_HUB_TOKEN_URLS)}; do")
+    print("    printf '%s' \"$server\" | docker-credential-osxkeychain erase || true")
+    print("  done")
+    print(f"  docker login -u {shlex.quote(username)}")
+
+
+def docker_context_name() -> str:
+    try:
+        result = subprocess.run(["docker", "context", "show"], text=True, capture_output=True)
+    except OSError:
+        return ""
+    return result.stdout.strip() if result.returncode == 0 else ""
+
+
+def print_docker_daemon_recovery_hint() -> None:
+    context_name = docker_context_name()
+    if context_name:
+        warn(f"Docker daemon is not reachable for the active context: {context_name}")
+    else:
+        warn("Docker daemon is not reachable.")
+
+    if context_name == "orbstack":
+        warn("Start OrbStack, then rerun the release helper.")
+    else:
+        warn("Start Docker Desktop or your Docker daemon, or switch to a working context with `docker context use`.")
 
 
 class DockerReleaseRunner:
@@ -577,8 +701,10 @@ class DockerReleaseRunner:
 
     def run_full_build(self) -> None:
         section("Full Build")
+        self.ensure_docker_daemon()
+
         if self.settings.docker_login:
-            self.run_step("Docker login", ["docker", "login"])
+            self.run_docker_login()
         else:
             self.results.append(StepResult("Docker login", "SKIP", "--no-login"))
 
@@ -597,7 +723,7 @@ class DockerReleaseRunner:
     def run_tag_only(self) -> None:
         section("Tag Existing Version Images")
         if self.settings.docker_login:
-            self.run_step("Docker login", ["docker", "login"])
+            self.run_docker_login()
         else:
             self.results.append(StepResult("Docker login", "SKIP", "--no-login"))
 
@@ -614,6 +740,36 @@ class DockerReleaseRunner:
                     ["docker", "buildx", "imagetools", "inspect", target],
                     capture=True,
                 )
+
+    def run_docker_login(self) -> None:
+        if not self.settings.force_docker_login and docker_hub_credentials_available():
+            ok("Existing Docker Hub credentials found; skipping docker login.")
+            self.results.append(StepResult("Docker login", "SKIP", "existing Docker Hub credentials"))
+            return
+
+        result = self.run_step(
+            "Docker login",
+            ["docker", "login", "-u", self.settings.docker_username],
+            allow_failure=True,
+        )
+        if result is not None and result.returncode != 0:
+            print()
+            print_docker_login_recovery_hint(self.settings.docker_username)
+            self.print_summary()
+            raise SystemExit(result.returncode)
+
+    def ensure_docker_daemon(self) -> None:
+        result = self.run_step(
+            "Docker daemon",
+            ["docker", "info", "--format", "{{.ServerVersion}}"],
+            capture=True,
+            allow_failure=True,
+        )
+        if result is not None and result.returncode != 0:
+            print()
+            print_docker_daemon_recovery_hint()
+            self.print_summary()
+            raise SystemExit(result.returncode)
 
     def run_step(
         self,
@@ -793,7 +949,7 @@ class DockerReleaseRunner:
             detail = f" ({result.detail})" if result.detail else ""
             print(f"  {marker} {result.label}{detail}")
 
-        if self.settings.full_build:
+        if self.settings.full_build and self.published_pull_started():
             image_info = self.collect_image_info()
             if image_info:
                 print()
@@ -806,6 +962,9 @@ class DockerReleaseRunner:
             ok("All requested steps completed successfully.")
         else:
             error("One or more steps failed. Review the output above.")
+
+    def published_pull_started(self) -> bool:
+        return any(result.label.startswith("Pull ") for result in self.results)
 
 
 def main() -> None:

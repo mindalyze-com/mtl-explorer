@@ -5,7 +5,6 @@
     :palette="palette"
     :total-track-count="totalTrackCount"
     :visible-track-count="visibleTrackCount"
-    @filter-applied-event="onClose"
     @filter-changed-event="onFilterChanged"
     @filter-style-changed="onFilterStyleChanged"
     @start-geo-drawing="onStartGeoDrawing"
@@ -18,7 +17,6 @@
 import { computed, onMounted, ref } from 'vue';
 import { useFilterStore } from '@/stores/filterStore';
 import CustomFilter from '@/components/filter/CustomFilter.vue';
-import type { FilterResult } from '@/types/filter';
 import type { ParamDefinition } from 'x8ing-mtl-api-typescript-fetch/dist/esm/models/ParamDefinition';
 
 const EVENTS = {
@@ -38,7 +36,7 @@ defineProps<{
 const emit = defineEmits<{
   (event: 'tool-opened'): void;
   (event: 'tool-closed'): void;
-  (event: 'filterAppliedEvent', filterResult?: FilterResult): void;
+  (event: 'filterAppliedEvent'): void;
   (event: 'filter-style-changed'): void;
   (event: 'start-geo-drawing', paramDef: ParamDefinition): void;
   (event: 'clear-geo-shape', paramDef: ParamDefinition): void;
@@ -94,13 +92,8 @@ async function onSheetClosed() {
   }
 }
 
-function onClose() {
-  showMenu.value = false;
+function onFilterChanged() {
   emit(EVENTS.filterAppliedEvent);
-}
-
-function onFilterChanged(filterResult?: FilterResult) {
-  emit(EVENTS.filterAppliedEvent, filterResult);
 }
 
 function onFilterStyleChanged() {

@@ -32,6 +32,60 @@
           </div>
         </div>
 
+        <!-- Map source -->
+        <div class="msp-section-label">Map Source</div>
+        <div class="msp-source-segmented" role="group" aria-label="Map source">
+          <button
+            type="button"
+            class="msp-source-option"
+            :class="{ 'msp-source-option-active': mapSourceMode === 'auto' }"
+            :aria-pressed="mapSourceMode === 'auto'"
+            title="Automatic map source"
+            @click="$emit('update:map-source-mode', 'auto')"
+          >
+            <i class="bi bi-signpost-split"></i>
+            <span>Auto</span>
+          </button>
+          <button
+            type="button"
+            class="msp-source-option"
+            :class="{ 'msp-source-option-active': mapSourceMode === 'remote' }"
+            :aria-pressed="mapSourceMode === 'remote'"
+            title="Remote raster tiles"
+            @click="$emit('update:map-source-mode', 'remote')"
+          >
+            <i class="bi bi-grid-3x3-gap"></i>
+            <span>Remote</span>
+          </button>
+        </div>
+
+        <!-- View mode -->
+        <div class="msp-section-label">View Mode</div>
+        <LayerControl
+          label="3D Terrain"
+          info="Perspective terrain view using Mapterhorn elevation mesh"
+          :enabled="layerStates.terrain.enabled"
+          :opacity="layerStates.terrain.opacity"
+          :show-opacity="false"
+          color="#2563eb"
+          @update:enabled="$emit('set-terrain-mode-enabled', $event)"
+        />
+        <div v-if="layerStates.terrain.enabled" class="msp-terrain-relief">
+          <div class="msp-terrain-relief-header">
+            <span class="msp-terrain-relief-label">3D relief</span>
+            <span class="msp-terrain-relief-value">{{ terrainExaggeration.toFixed(1) }}x</span>
+          </div>
+          <MtlSlider
+            class="msp-terrain-relief-slider"
+            :model-value="terrainExaggeration"
+            :min="TERRAIN_EXAGGERATION_MIN"
+            :max="TERRAIN_EXAGGERATION_MAX"
+            :step="TERRAIN_EXAGGERATION_STEP"
+            aria-label="3D terrain relief"
+            @update:model-value="onTerrainExaggerationChange"
+          />
+        </div>
+
         <!-- Background layer -->
         <div class="msp-section-label">Background</div>
         <LayerControl
@@ -147,6 +201,13 @@
 import { ref } from 'vue';
 import BottomSheet from '@/components/ui/BottomSheet.vue';
 import LayerControl from '@/components/map/LayerControl.vue';
+import MtlSlider from '@/components/ui/MtlSlider.vue';
+import {
+  TERRAIN_EXAGGERATION_MAX,
+  TERRAIN_EXAGGERATION_MIN,
+  TERRAIN_EXAGGERATION_STEP,
+  sanitizeTerrainExaggeration,
+} from '@/components/map/terrainMode';
 
 type MapThemeOption = {
   code: string;
@@ -155,6 +216,8 @@ type MapThemeOption = {
   thumbnail: string;
 };
 
+type MapSourceMode = 'auto' | 'remote';
+
 type LayerState = {
   enabled: boolean;
   opacity: number;
@@ -162,20 +225,30 @@ type LayerState = {
 
 defineProps<{
   layerStates: Record<string, LayerState>;
+  mapSourceMode: MapSourceMode;
   modelValue: string;
+  terrainExaggeration: number;
   themes: MapThemeOption[];
 }>();
 
 const emit = defineEmits<{
   'change-layer-opacity': [layer: string, opacity: number];
+  'change-terrain-exaggeration': [exaggeration: number];
   'reset-settings': [];
+  'set-terrain-mode-enabled': [enabled: boolean];
   'toggle-layer': [layer: string];
   'tool-closed': [];
   'tool-opened': [];
+  'update:map-source-mode': [value: MapSourceMode];
   'update:modelValue': [value: string];
 }>();
 
 const isOpen = ref(false);
+
+function onTerrainExaggerationChange(value: number | number[]) {
+  const nextValue = Array.isArray(value) ? value[0] : value;
+  emit('change-terrain-exaggeration', sanitizeTerrainExaggeration(nextValue));
+}
 
 function toggle() {
   isOpen.value = !isOpen.value;
@@ -219,6 +292,70 @@ defineExpose({ toggle, close });
   opacity: 0.75;
   margin: -0.2rem 0 0.3rem;
   font-style: italic;
+}
+
+.msp-terrain-relief {
+  padding: 0 0.75rem 0.55rem 2.1rem;
+}
+
+.msp-terrain-relief-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin: -0.1rem 0 0.1rem;
+}
+
+.msp-terrain-relief-label {
+  font-size: var(--text-xs-size);
+  color: var(--text-faint);
+}
+
+.msp-terrain-relief-value {
+  font-variant-numeric: tabular-nums;
+  font-size: var(--text-xs-size);
+  color: var(--text-secondary);
+}
+
+.msp-terrain-relief-slider {
+  --mtl-slider-hit-padding-x: 11px;
+  --mtl-slider-hit-padding-y: 10px;
+  --mtl-slider-handle-size-default: 22px;
+  --mtl-slider-handle-size-coarse: 28px;
+  --mtl-slider-track-height-default: 10px;
+  --mtl-slider-track-height-coarse: 12px;
+  margin: 0 -11px;
+}
+
+.msp-source-segmented {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.25rem;
+  padding: 0.25rem;
+  border: 1px solid var(--border-medium);
+  border-radius: 8px;
+  background: var(--surface-elevated);
+}
+
+.msp-source-option {
+  min-height: 2.25rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: var(--text-sm-size);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.msp-source-option-active {
+  background: var(--surface-glass-heavy);
+  color: var(--text-primary);
+  box-shadow: var(--shadow-sm);
 }
 
 .msp-header-reset-btn {
@@ -318,5 +455,12 @@ defineExpose({ toggle, close });
   text-align: center;
   white-space: nowrap;
   color: var(--text-muted);
+}
+
+@media (pointer: coarse) {
+  .msp-terrain-relief-slider {
+    --mtl-slider-hit-padding-x: 14px;
+    margin: 0 -14px;
+  }
 }
 </style>

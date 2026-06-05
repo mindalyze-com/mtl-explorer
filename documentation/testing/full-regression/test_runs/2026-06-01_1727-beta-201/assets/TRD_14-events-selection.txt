@@ -1,0 +1,77 @@
+TRD_14 events-tab evidence
+Track #100002 / Moselradweg aus Wiki on GPSies.com
+API events:
+[
+  {
+    "id": 800050,
+    "type": "STOP",
+    "label": "SHORT_STOP",
+    "startPointIndex": 2504,
+    "endPointIndex": 2505,
+    "durationInSec": 73,
+    "startDistanceInMeter": 440189.68,
+    "description": "Dense GPS stop cluster: r80=60.6m, r90=102.7m, inliers=83%, rawPoints=6, deletedPoints=4"
+  }
+]
+
+UI states:
+{
+  "before": {
+    "label": "before",
+    "rowClass": "event-row event-row--break event-row--longest event-row--selectable",
+    "rowText": "Break 1 Jan 2, 2010, 4:00 AM - 4:02 AM DURATION 1m 13s POSITION 440.19 km",
+    "miniMapRect": {
+      "x": 278,
+      "y": 187,
+      "w": 961,
+      "h": 220
+    },
+    "rowRect": {
+      "x": 308,
+      "y": 526,
+      "w": 901,
+      "h": 75
+    },
+    "body": "300 km © OpenStreetMap | Elevation: Mapterhorn 12 Tracks Stats Filter Map Animate Segments GPS Planner Admin TRACK DETAILS #100002 Bicycle 1 3D Replay Overview Graphs Quality Related Events 1 BREAK LONGEST 1M 13S Break 1 Jan 2, 2010, 4:00 AM - 4:02 AM DURATION 1m 13s POSITION 440.19 km"
+  },
+  "selected": {
+    "label": "selected",
+    "rowClass": "event-row event-row--break event-row--longest event-row--selected event-row--selectable",
+    "rowText": "Break 1 Jan 2, 2010, 4:00 AM - 4:02 AM DURATION 1m 13s POSITION 440.19 km",
+    "miniMapRect": {
+      "x": 278,
+      "y": 187,
+      "w": 961,
+      "h": 220
+    },
+    "rowRect": {
+      "x": 308,
+      "y": 526,
+      "w": 901,
+      "h": 75
+    },
+    "body": "300 km © OpenStreetMap | Elevation: Mapterhorn 12 Tracks Stats Filter Map Animate Segments GPS Planner Admin TRACK DETAILS #100002 Bicycle 1 3D Replay Overview Graphs Quality Related Events 1 BREAK LONGEST 1M 13S Break 1 Jan 2, 2010, 4:00 AM - 4:02 AM DURATION 1m 13s POSITION 440.19 km"
+  },
+  "deselected": {
+    "label": "deselected",
+    "rowClass": "event-row event-row--break event-row--longest event-row--selectable",
+    "rowText": "Break 1 Jan 2, 2010, 4:00 AM - 4:02 AM DURATION 1m 13s POSITION 440.19 km",
+    "miniMapRect": {
+      "x": 278,
+      "y": 187,
+      "w": 961,
+      "h": 220
+    },
+    "rowRect": {
+      "x": 308,
+      "y": 526,
+      "w": 901,
+      "h": 75
+    },
+    "body": "300 km © OpenStreetMap | Elevation: Mapterhorn 12 Tracks Stats Filter Map Animate Segments GPS Planner Admin TRACK DETAILS #100002 Bicycle 1 3D Replay Overview Graphs Quality Related Events 1 BREAK LONGEST 1M 13S Break 1 Jan 2, 2010, 4:00 AM - 4:02 AM DURATION 1m 13s POSITION 440.19 km"
+  }
+}
+
+Selection class added: true
+Selection class removed after second click: true
+Screenshots compare mini-map/event row before selection, selected, and deselected.

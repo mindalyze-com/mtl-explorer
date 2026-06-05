@@ -1,0 +1,4 @@
+{
+  "before": "\t06/04/2026, 22:54\t\nformat-geojson-synthetic-track\nGenerated from route format-geojson-synthetic-track\n\t\nBicycle\n\t3.49 km\t0m 00s\t\t4 Wh\t100.0%\t06/04/2026, 22:54",
+  "body": "500 km © OpenStreetMap | Elevation: Mapterhorn 11 Tracks Stats Filter Map Animate Segments GPS Planner Admin TRACK DETAILS #100011 Bicycle 3D Replay Overview Graphs Quality Related Events format-geojson-synthetic-track 06/04/2026, 22:54 Generated from route format-geojson-synthetic-track TRACK CONTROLS ACTIVITY TYPE Bicycle Walking Hiking Running Mountain biking Stand-up paddle Rowing Kayaking Skiing Motorbiking Car Airplane Supersonic STATISTICS Included in statistics Exclude: GPS noise Exclude: wrong activity Exclude: import artifact Exclude: other EXPLORATION 100.0% New Territory 3.49 km Novel Distance 0.00 m Known Distance Track Details"
+}

@@ -1,0 +1,9 @@
+mapShows11Tracks=true
+Per-format user-facing verification:
+format=tcx id=100006 file=fmt_sample_tcx.tcx statsSearch=true details=true included=true graphs=true originalName=fmt_sample_tcx.tcx originalBytes=4599 originalHashMatch=true gpxName=fmt_sample_tcx.gpx gpxBytes=1604 gpxTrkseg=1 gpxTrkpt=8 gpxHasTrackpoints=true
+format=kml id=100007 file=fmt_sample_kml.kml statsSearch=true details=true included=true graphs=true originalName=fmt_sample_kml.kml originalBytes=9874 originalHashMatch=true gpxName=fmt_sample_kml.gpx gpxBytes=8763 gpxTrkseg=1 gpxTrkpt=8 gpxHasTrackpoints=true
+format=igc id=100008 file=fmt_sample_igc.igc statsSearch=true details=true included=true graphs=true originalName=fmt_sample_igc.igc originalBytes=439 originalHashMatch=true gpxName=fmt_sample_igc.gpx gpxBytes=1520 gpxTrkseg=1 gpxTrkpt=8 gpxHasTrackpoints=true
+format=nmea id=100013 file=fmt_sample_nmea.nmea statsSearch=true details=true included=true graphs=true originalName=fmt_sample_nmea.nmea originalBytes=1120 originalHashMatch=true gpxName=fmt_sample_nmea.gpx gpxBytes=2211 gpxTrkseg=1 gpxTrkpt=8 gpxHasTrackpoints=true
+format=geojson id=100010 file=fmt_sample_geojson.geojson statsSearch=true details=true included=true graphs=true originalName=fmt_sample_geojson.geojson originalBytes=1426 originalHashMatch=true gpxName=fmt_sample_geojson.gpx gpxBytes=1194 gpxTrkseg=1 gpxTrkpt=8 gpxHasTrackpoints=true
+format=gdb id=100012 file=fmt_sample_gdb.gdb statsSearch=true details=true included=true graphs=true originalName=fmt_sample_gdb.gdb originalBytes=299 originalHashMatch=true gpxName=fmt_sample_gdb.gpx gpxBytes=1482 gpxTrkseg=1 gpxTrkpt=8 gpxHasTrackpoints=true
+format=kmz id=100011 file=fmt_sample_kmz.kmz statsSearch=true details=true included=true graphs=true originalName=fmt_sample_kmz.kmz originalBytes=1545 originalHashMatch=true gpxName=fmt_sample_kmz.gpx gpxBytes=8763 gpxTrkseg=1 gpxTrkpt=8 gpxHasTrackpoints=true

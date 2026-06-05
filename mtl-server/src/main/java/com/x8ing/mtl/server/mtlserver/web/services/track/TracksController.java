@@ -20,6 +20,7 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.io.Resource;
@@ -238,7 +239,7 @@ public class TracksController {
     }
 
 
-    @RequestMapping("/save-track")
+    @PostMapping("/save-track")
     public GpsTrack saveTrack(@RequestBody GpsTrack gpsTrack) {
         // Detect activity-type change vs persisted state — if the user picks a new type,
         // stamp it as USER_SET (so the auto-classifier won't revisit) and trigger an
@@ -262,6 +263,34 @@ public class TracksController {
                         saved.getId(), e.getMessage(), e);
             }
         }
+        return saved;
+    }
+
+    @Operation(operationId = "updateTrackActivityType", summary = "Update the user-selected track activity type")
+    @PatchMapping("/{gpsTrackId}/activity-type")
+    public GpsTrack updateTrackActivityType(
+            @PathVariable Long gpsTrackId,
+            @Valid @RequestBody ActivityTypeUpdateRequest request
+    ) {
+        GpsTrack track = gpsTrackRepository.findById(gpsTrackId).orElseThrow();
+        GpsTrack.ACTIVITY_TYPE previousActivityType = track.getActivityType();
+        GpsTrack.ACTIVITY_TYPE newActivityType = request.activityType();
+        boolean activityTypeChanged = newActivityType != previousActivityType;
+        if (!activityTypeChanged) {
+            return track;
+        }
+
+        track.setActivityType(newActivityType);
+        track.setActivityTypeSource(GpsTrack.ACTIVITY_TYPE_SOURCE.USER_SET);
+        GpsTrack saved = gpsTrackRepository.save(track);
+
+        try {
+            energyService.recalculateEnergyForTrack(saved.getId(), energyService.getDefaultParameters());
+        } catch (Exception e) {
+            log.warn("Energy recalc after user activity-type change failed for trackId={}: {}",
+                    saved.getId(), e.getMessage(), e);
+        }
+
         return saved;
     }
 
@@ -406,7 +435,7 @@ public class TracksController {
 
 
     @RequestMapping(value = "/get-track-details-for-tracks-crossing-points")
-    public CrossingPointsResponse getCrossingPoints(@RequestBody CrossingPointsRequest crossingPointsRequest) {
+    public CrossingPointsResponseDto getCrossingPoints(@RequestBody CrossingPointsRequest crossingPointsRequest) {
 
         FilterRequestBean filter = crossingPointsRequest.getFilter();
         Long[] tracksIdFilterList = null;
@@ -414,7 +443,8 @@ public class TracksController {
             QueryResult queryResult = gpsTrackSQLFilter.getGpsTrackIdsForOptionalFilterName(filter.getFilterName(), filter.getParams());
             tracksIdFilterList = queryResult.asIdArray();
         }
-        return trackTimeBetweenTwoPoints.getTrackTimeBetweenPoints(crossingPointsRequest, tracksIdFilterList);
+        CrossingPointsResponse response = trackTimeBetweenTwoPoints.getTrackTimeBetweenPoints(crossingPointsRequest, tracksIdFilterList);
+        return CrossingPointsResponseDto.from(response);
     }
 
     /**
@@ -503,7 +533,7 @@ public class TracksController {
      * http://localhost:8080/mtl/api/tracks/details/get-sub-track?trackDataPointFrom=615396&trackDataPointTo=615484
      */
     @RequestMapping(value = "/details/get-sub-track")
-    public ResponseEntity<List<GpsTrackDataPoint>> getSubTrackDetails(
+    public ResponseEntity<List<GpsTrackDataPointDto>> getSubTrackDetails(
             @RequestParam(name = "trackDataPointFrom", required = true) Long trackDataPointFrom,
             @RequestParam(name = "trackDataPointTo", required = true) Long trackDataPointTo,
             @RequestParam(name = "fullTrack", required = false, defaultValue = "false") boolean fullTrack
@@ -526,9 +556,13 @@ public class TracksController {
             subTrackData = gpsTrackDataPointRepository.getSubTrackData(from.getGpsTrackDataId(), from.getPointIndex(), to.getPointIndex());
         }
 
+        List<GpsTrackDataPointDto> response = subTrackData.stream()
+                .map(GpsTrackDataPointDto::from)
+                .toList();
+
         return ResponseEntity.ok()
                 .cacheControl(privateTrackCacheControl())
-                .body(subTrackData);
+                .body(response);
     }
 
     private static CacheControl privateTrackCacheControl() {

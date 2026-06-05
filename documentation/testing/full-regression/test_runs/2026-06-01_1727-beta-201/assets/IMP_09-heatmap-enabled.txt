@@ -1,0 +1,30 @@
+{
+  "heatmapTextCount": 1,
+  "body": "50 km\n© OpenStreetMap | Elevation: Mapterhorn\n5 Tracks\nStats\nFilter\nMap\nAnimate\nSegments\nGPS\nPlanner\nAdmin\nMaps and data\nReset\nBASE MAP\n★\n✓\nOSM Topo\n★\nSwiss Color\nSwiss Light\nOSM Light\nOSM Gray\nOSM Dark\nMAP SOURCE\nAuto\nRemote\nVIEW MODE\n3D Terrain\nPerspective terrain view using Mapterhorn elevation mesh\nBACKGROUND\nBase Map\nThe background map tiles — street map, topo, or satellite imagery\nDATA LAYERS\nGPS Tracks\nAll your recorded activities drawn as colored lines on the map\nPhotos & Media\nGeotagged photos and media clustered by location\nTrack Points & Direction\nIndividual GPS points with direction arrows — only visible when zoomed in close\nHeatmap\nDensity overlay showing where you've been most frequently\nWAYMARKED TRAILS\nWorldwide routes from OpenStreetMap · styled by importance level\nHiking (worldwide)\nInternational, national, regional & local hiking routes\nCycling (worldwide)\nCycling route networks — EuroVelo, national & regional\nMTB (worldwide)\nMountain bike trails and routes\nSWISS OVERLAYS\nSwitzerland only — not available worldwide\nHiking Routes\nBike Routes\nMTB Routes\nHiking Trails\nAll signposted hiking trails (yellow, red-white, blue-white)",
+  "logs": [
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 401 ()"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 401 ()"
+    },
+    {
+      "type": "warning",
+      "text": "[.WebGL-0x1340057b000]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels"
+    },
+    {
+      "type": "warning",
+      "text": "[.WebGL-0x1340057c200]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels"
+    },
+    {
+      "type": "warning",
+      "text": "[.WebGL-0x1340057b000]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels"
+    },
+    {
+      "type": "warning",
+      "text": "[.WebGL-0x1340057b000]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels (this message will no longer repeat)"
+    }
+  ]
+}

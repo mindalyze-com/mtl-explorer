@@ -1,0 +1,30 @@
+clean_context_url=http://167.233.16.201:18080/mtl/filter
+SIMPLIFIED 200 {"standardFilterCount":5,"numberOfFilteredMatchedTracks":5,"trackVersions":{"100001":5,"100000":5,"100003":5,"100002":5,"100004":5},"filterGroups":{"100001":"BICYCLE","100000":"BICYCLE","100003":"BICYCLE","100002":"BICYCLE","100004":"BICYCLE"}}
+TRACKS 200 count=5
+FRESHNESS 200 {"freshnessToken":"1fciyo__|server_id:4cPgaT3KHaptNtCyRmtRqJ|config:9|filters:83|index:15|media:0|track_geometry:30|tracks:30","changedAt":"2026-06-04T20:11:27.833+0000","items":[{"key":"config","revision":9,"changedAt":"2026-06-04T19:59:27.631+0000"},{"key":"filters","revision":83,"changedAt":"2026-06-04T19:59:00.621+0000"},{"key":"index","revision":15,"changedAt":"2026-06-04T20:10:47.135+0000"},{"key":"media","revision":0,"changedAt":"2026-06-04T19:58:50.685+0000"},{"key":"track_geometry","revision":30,"changedAt":"2026-06-04T20:10:43.319+0000"},{"key":"tracks","revision":30,"changedAt":"202
+CONSOLE_RECENT
+log: [mtl] v1.0.0 | built: 2026-06-04T19:43:43.667Z | Browser
+error: Failed to load resource: the server responded with a status of 401 ()
+error: Failed to load resource: the server responded with a status of 401 ()
+table: [Object, Object, Object, Object, Object]
+log: fetch config for CLIENT COLOR_PALETTE 
+log: Filter (main) mounted.
+log: fetch filter info for filterName SmartBaseFilter
+log: fetch filters from server
+warning: [.WebGL-0x12400568400]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
+warning: [.WebGL-0x1240056cc00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
+info: [track-cache] manual cache clear started
+info: [track-cache] manual cache clear complete {durationMs: 4}
+info: [track-cache] sync 10m: fetching 5/5 tracks in 1 batches {precision: 10, totalTracks: 5, cachedTracks: 0, staleOrMissingTracks: 5, staleGeometryCleared: 5}
+warning: [.WebGL-0x12400568400]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
+warning: [.WebGL-0x12400568400]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels (this message will no longer repeat)
+log: [tracks] Map layers rebuilt {durationMs: 3, trackCount: 5, overviewDotCount: 5, hasPalette: false, legendGroupCount: 0}
+info: [track-cache] sync 10m complete {precision: 10, totalTracks: 5, fetchedTracks: 5, cachedTracks: 0, batches: 1}
+log: Downloading low-zoom PMTiles from /mtl/api/map-proxy/prod/world-lowzoom.pmtiles?mtl-map-source=public&mtl-map-archive=public-default … (IndexedDB fallback)
+log: Low-zoom PMTiles cached successfully (IndexedDB, 42.4 MB)
+REQUEST_FAILED_RECENT
+HEAD http://167.233.16.201:18080/mtl/api/info/build net::ERR_ABORTED
+HEAD https://tiles.mapterhorn.com/0/0/0.webp net::ERR_ABORTED
+HEAD https://protomaps.github.io/basemaps-assets/fonts/Noto%20Sans%20Regular/0-255.pbf net::ERR_ABORTED
+HEAD https://tile.openstreetmap.org/0/0/0.png net::ERR_ABORTED
+HEAD https://protomaps.github.io/basemaps-assets/sprites/v4/light.json net::ERR_ABORTED

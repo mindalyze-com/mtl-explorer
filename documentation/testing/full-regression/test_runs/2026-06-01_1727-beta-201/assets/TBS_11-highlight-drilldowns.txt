@@ -1,0 +1,42 @@
+TBS_11 highlight drilldown evidence
+Clicked highlight: Longest track | Moselradweg aus Wiki on GPSies.com | 518 km
+Drilldown rows: 1
+Moselradweg aus Wiki on GPSies.com
+Bicycle
+01/01/2010, 01:00
+518 km
+518 km - 6h 50m || 2
+Jura Route 7 / 2011 on GPSies.com
+Bicycle
+01/01/2010, 01:00
+273 km
+273 km - 7h 46m || 3
+voie verte haute vosges on GPSies.com
+Bicycle
+01/01/2010, 01:00
+78.5 km
+78.5 km - 3h 12m || 4
+Track 100005
+Walking
+07/20/2021, 23:11
+3.60 km
+3.60 km - 59m 57s || 5
+FMT TCX Synthet
+Bicycle
+02/02/2026, 10:00
+1.50 km
+1.50 km - 35m 00s || 6
+GNSSALTTRK
+Bicycle
+02/04/2026, 10:00
+1.50 km
+1.50 km - 35m 00s
+Opened highlight row: 1 | Moselradweg aus Wiki on GPSies.com | Bicycle | 01/01/2010, 01:00 | 518 km | 518 km - 6h 50m
+After open URL: http://167.233.16.201:18080/mtl/track/100002
+Detail visible after open: true
+Original curation: {"trackId":100000,"highlightExclusionReason":null,"statisticsExclusionReason":null}
+Temporary curation: {"trackId":100000,"highlightExclusionReason":"OTHER","statisticsExclusionReason":null}
+Excluded-count note: 1 track excluded
+Excluded list active tab: Tracks
+Excluded list contains test track: true
+Restored curation: {"trackId":100000,"highlightExclusionReason":null,"statisticsExclusionReason":null}

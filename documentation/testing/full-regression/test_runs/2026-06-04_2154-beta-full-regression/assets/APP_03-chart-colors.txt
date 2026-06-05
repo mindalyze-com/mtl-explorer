@@ -1,0 +1,116 @@
+{
+  "chartLight": {
+    "dataTheme": "light",
+    "chartCount": 8,
+    "chartTextToken": "#64748b",
+    "chartGridToken": "rgba(0, 0, 0, .06)",
+    "tooltipBgToken": "rgba(255, 255, 255, .97)",
+    "textFills": [
+      "rgb(100, 116, 139)",
+      "rgb(102, 102, 102)"
+    ],
+    "pathColors": [
+      {
+        "stroke": "rgba(255, 255, 255, .95)",
+        "fill": "#6366f1"
+      },
+      {
+        "stroke": "rgba(255, 255, 255, .95)",
+        "fill": "#f97316"
+      },
+      {
+        "stroke": "rgba(255, 255, 255, .95)",
+        "fill": "#3b82f6"
+      },
+      {
+        "stroke": "rgba(0, 0, 0, .06)",
+        "fill": "none"
+      },
+      {
+        "stroke": "rgba(0, 0, 0, .06)",
+        "fill": "none"
+      },
+      {
+        "stroke": "rgba(0, 0, 0, .06)",
+        "fill": "none"
+      },
+      {
+        "stroke": "rgba(0, 0, 0, .06)",
+        "fill": "none"
+      },
+      {
+        "stroke": "rgba(0, 0, 0, .06)",
+        "fill": "none"
+      },
+      {
+        "stroke": "rgba(0, 0, 0, .06)",
+        "fill": "none"
+      },
+      {
+        "stroke": "rgba(0, 0, 0, .06)",
+        "fill": "none"
+      }
+    ]
+  },
+  "chartDark": {
+    "dataTheme": "dark",
+    "chartCount": 8,
+    "chartTextToken": "#94a3b8",
+    "chartGridToken": "rgba(255, 255, 255, .06)",
+    "tooltipBgToken": "rgba(15, 23, 42, .95)",
+    "textFills": [
+      "rgb(148, 163, 184)",
+      "rgb(102, 102, 102)",
+      "rgb(100, 116, 139)"
+    ],
+    "pathColors": [
+      {
+        "stroke": "rgba(15, 23, 42, .92)",
+        "fill": "#6366f1"
+      },
+      {
+        "stroke": "rgba(15, 23, 42, .92)",
+        "fill": "#f97316"
+      },
+      {
+        "stroke": "rgba(15, 23, 42, .92)",
+        "fill": "#3b82f6"
+      },
+      {
+        "stroke": "rgba(255, 255, 255, .06)",
+        "fill": "none"
+      },
+      {
+        "stroke": "rgba(255, 255, 255, .06)",
+        "fill": "none"
+      },
+      {
+        "stroke": "rgba(255, 255, 255, .06)",
+        "fill": "none"
+      },
+      {
+        "stroke": "rgba(255, 255, 255, .06)",
+        "fill": "none"
+      },
+      {
+        "stroke": "rgba(255, 255, 255, .06)",
+        "fill": "none"
+      },
+      {
+        "stroke": "rgba(0, 0, 0, .06)",
+        "fill": "none"
+      },
+      {
+        "stroke": "rgba(0, 0, 0, .06)",
+        "fill": "none"
+      }
+    ]
+  },
+  "assertions": {
+    "chartPresentBefore": true,
+    "chartPresentAfter": true,
+    "noPageReloadNeeded": true,
+    "tokenChanged": true,
+    "observedSvgColorsChanged": true
+  }
+}

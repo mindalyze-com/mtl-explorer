@@ -1,11 +1,12 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import {
   chartXForTrackPoint,
   createTrackPointIndex,
   resolveChartPointTrackPoint,
   type TrackPoint,
 } from '@/composables/trackCursorSync';
-import { getPrimaryChartInputEvent } from '@/composables/useChartSync';
+import { getPrimaryChartInputEvent, useChartSync } from '@/composables/useChartSync';
+import type Highcharts from 'highcharts';
 
 function point(overrides: Partial<TrackPoint>): TrackPoint {
   return {
@@ -93,6 +94,50 @@ describe('trackCursorSync point index', () => {
   });
 });
 
+describe('trackCursorSync spatial grid lookup (large tracks)', () => {
+  // Above ~800 points createTrackPointIndex switches from a linear scan to the
+  // spatial grid, so build a track large enough to exercise the grid path.
+  function buildGridTrack(count: number): TrackPoint[] {
+    const result: TrackPoint[] = [];
+    for (let i = 0; i < count; i += 1) {
+      const t = i / (count - 1);
+      result.push(
+        point({
+          pointIndex: i,
+          timestamp: 1_000 + i,
+          distanceKm: t * 100,
+          lat: 47 + t,
+          lng: 8 + t,
+        })
+      );
+    }
+    return result;
+  }
+
+  const gridPoints = buildGridTrack(2_000);
+
+  it('snaps to the nearest point when the pointer is on the track', () => {
+    const index = createTrackPointIndex(gridPoints);
+    const target = gridPoints[1_000];
+
+    expect(index.findByLatLng(target.lat, target.lng)?.pointIndex).toBe(target.pointIndex);
+  });
+
+  it('returns null when the pointer is far outside the track bounds (zoomed out)', () => {
+    const index = createTrackPointIndex(gridPoints);
+
+    expect(index.findByLatLng(40, 2)).toBeNull();
+  });
+
+  it('returns null when the pointer is inside the track bounds but far from any point', () => {
+    const index = createTrackPointIndex(gridPoints);
+
+    // The track runs along the lat==lng diagonal; this corner is well inside the
+    // bounding box but more than the snap radius away from the diagonal.
+    expect(index.findByLatLng(47.1, 8.9)).toBeNull();
+  });
+});
+
 describe('getPrimaryChartInputEvent', () => {
   it('passes mouse events through unchanged', () => {
     const event = new MouseEvent('mousemove');
@@ -119,5 +164,68 @@ describe('getPrimaryChartInputEvent', () => {
     } as unknown as TouchEvent;
 
     expect(getPrimaryChartInputEvent(event)).toBe(changedTouch);
+  });
+});
+
+describe('useChartSync marker behavior', () => {
+  it('keeps one active hover marker and skips duplicate point refreshes', () => {
+    const firstSetState = vi.fn();
+    const secondSetState = vi.fn();
+    const firstPoint = { x: 10, setState: firstSetState } as unknown as Highcharts.Point;
+    const secondPoint = { x: 20, setState: secondSetState } as unknown as Highcharts.Point;
+    const drawCrosshair = vi.fn();
+    const refresh = vi.fn();
+    const searchPoint = vi
+      .fn()
+      .mockReturnValueOnce(firstPoint)
+      .mockReturnValueOnce(firstPoint)
+      .mockReturnValueOnce(secondPoint);
+    const chart = {
+      pointer: {
+        normalize: vi.fn(() => ({ chartX: 10, chartY: 10 })),
+      },
+      series: [
+        {
+          points: [firstPoint, secondPoint],
+          searchPoint,
+        },
+      ],
+      tooltip: {
+        hide: vi.fn(),
+        refresh,
+      },
+      xAxis: [
+        {
+          drawCrosshair,
+          hideCrosshair: vi.fn(),
+        },
+      ],
+    } as unknown as Highcharts.Chart;
+    const chartSync = useChartSync();
+
+    chartSync.registerChart(chart);
+    try {
+      chartSync.syncMouseMove(new MouseEvent('mousemove'), chart);
+
+      expect(firstSetState).toHaveBeenCalledWith('hover');
+      expect(refresh).toHaveBeenCalledWith(firstPoint);
+      expect(drawCrosshair).toHaveBeenCalledWith(undefined, firstPoint);
+
+      chartSync.syncMouseMove(new MouseEvent('mousemove'), chart);
+
+      expect(refresh).toHaveBeenCalledTimes(1);
+      expect(drawCrosshair).toHaveBeenCalledTimes(1);
+      expect(firstSetState).toHaveBeenCalledTimes(1);
+
+      chartSync.syncMouseMove(new MouseEvent('mousemove'), chart);
+
+      expect(firstSetState).toHaveBeenCalledWith('');
+      expect(secondSetState).toHaveBeenCalledWith('hover');
+      expect(refresh).toHaveBeenCalledWith(secondPoint);
+      expect(drawCrosshair).toHaveBeenCalledWith(undefined, secondPoint);
+    } finally {
+      chartSync.clearChartCrosshairs();
+      chartSync.unregisterChart(chart);
+    }
   });
 });

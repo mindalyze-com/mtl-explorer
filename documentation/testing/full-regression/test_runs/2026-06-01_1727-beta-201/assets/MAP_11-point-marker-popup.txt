@@ -1,0 +1,23 @@
+{
+  "coverageId": "MAP_11",
+  "action": "Used the high-zoom Track Points & Direction view at Rupt-sur-Moselle and clicked an actual circular direction/point marker on track 100000.",
+  "markerClick": {
+    "x": 591,
+    "y": 276,
+    "mapScale": "10 m"
+  },
+  "expected": "Clicking a rendered track-point marker shows a popup with point metrics.",
+  "actual": "Point popup opened for Track #100000 with point index, time, lat/lng, altitude, speed, distance, previous-point distance/time, duration, ascent/descent, slope, energy, and power metrics.",
+  "observedMetrics": {
+    "point": "997 / 1176",
+    "time": "01/01/2010, 04:43:03",
+    "latLng": "47.923000 / 6.658920",
+    "altitude": "423.4 m",
+    "speed": "17.2 km/h",
+    "distanceFromStart": "62.01 km",
+    "distancePreviousPoint": "16.9 m",
+    "timePreviousPoint": "1.0 s",
+    "slope": "-0.9 %",
+    "estimatedPower": "160 W"
+  }
+}

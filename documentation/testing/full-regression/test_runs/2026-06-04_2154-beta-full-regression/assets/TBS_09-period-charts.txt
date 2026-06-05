@@ -1,0 +1,47 @@
+{
+  "defaultQuarter": {
+    "label": "YYYY-Q (by year and quarter)",
+    "periods": 4,
+    "tracks": 11,
+    "distance": "966 km",
+    "duration": "20h 46m",
+    "energy": "4,525 Wh",
+    "svgCharts": 8,
+    "chartTitles": [
+      "Duration",
+      "Distance",
+      "Activity",
+      "Energy",
+      "Intensity Index",
+      "Training Load",
+      "Exploration"
+    ]
+  },
+  "monthly": {
+    "label": "YYYY-MM (by year and month)",
+    "periods": 4,
+    "tracks": 11,
+    "distance": "966 km",
+    "duration": "20h 46m",
+    "energy": "4,525 Wh",
+    "svgCharts": 8
+  },
+  "weekly": {
+    "label": "YYYY-WW (by year and week)",
+    "periods": 5,
+    "tracks": 11,
+    "distance": "966 km",
+    "duration": "20h 46m",
+    "energy": "4,525 Wh",
+    "svgCharts": 8
+  },
+  "daily": {
+    "label": "YYYY-MM-DD (by year, week and day)",
+    "periods": 7,
+    "tracks": 11,
+    "distance": "966 km",
+    "duration": "20h 46m",
+    "energy": "4,525 Wh",
+    "svgCharts": 8
+  }
+}

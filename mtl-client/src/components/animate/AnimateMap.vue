@@ -39,7 +39,14 @@
               </div>
               <div class="am-timeline">
                 <div class="am-timeline-slider-wrap">
-                  <Slider v-model="speedSliderPos" :min="0" :max="100" :step="1" class="am-timeline-slider" />
+                  <MtlSlider
+                    v-model="speedSliderPos"
+                    :min="0"
+                    :max="100"
+                    :step="1"
+                    class="am-timeline-slider"
+                    aria-label="Adjust animation speed"
+                  />
                 </div>
                 <div class="am-timeline-labels">
                   <span class="am-date"></span>
@@ -60,13 +67,14 @@
             </div>
             <div class="am-timeline">
               <div class="am-timeline-slider-wrap">
-                <Slider
+                <MtlSlider
                   v-model="rangeValue"
                   :range="true"
                   :min="0"
                   :max="Math.max(totalCount - 1, 0)"
                   :disabled="!sortedFeatures.length"
                   class="am-timeline-slider"
+                  aria-label="Select animation track range"
                   @change="onRangeChange"
                 />
                 <div
@@ -88,7 +96,14 @@
             <div class="am-section-head">
               <span class="am-section-title">Playback Speed</span>
             </div>
-            <Slider v-model="speedSliderPos" :min="0" :max="100" :step="1" class="am-speed-slider" />
+            <MtlSlider
+              v-model="speedSliderPos"
+              :min="0"
+              :max="100"
+              :step="1"
+              class="am-speed-slider"
+              aria-label="Adjust animation speed"
+            />
             <div class="am-speed-labels">
               <span class="am-speed-edge"><i class="bi bi-hourglass"></i> Slow</span>
               <span class="am-speed-ms">{{ animationSpeed }}ms</span>
@@ -103,7 +118,9 @@
 
 <script setup lang="ts">
 import { computed, getCurrentInstance, markRaw, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import type maplibregl from 'maplibre-gl';
 import BottomSheet from '@/components/ui/BottomSheet.vue';
+import MtlSlider from '@/components/ui/MtlSlider.vue';
 import { formatDate } from '@/utils/Utils';
 import { TRACK_COLOR } from '@/utils/trackColors';
 
@@ -112,6 +129,30 @@ const ANIMATE_MAX_VH = 60;
 const ANIMATE_DESKTOP_OPEN_HEIGHT = 320;
 const ANIMATE_MOBILE_OPEN_HEIGHT = 320;
 const RANGE_LOOKBACK_TRACK_COUNT = 50;
+const ANIMATION_LAYER_ID = 'animation-layer';
+const ANIMATION_SOURCE_ID = 'animation-source';
+const HIDDEN_TRACK_LAYER_OPACITY = 0;
+const HIDDEN_TRACK_LAYER_VISIBILITY = 'none';
+const TRACK_LAYER_PAINT_PROPERTIES = [
+  { layerId: 'tracks-layer', property: 'line-opacity', fallbackValue: 1 },
+  { layerId: 'tracks-highlight-layer', property: 'line-opacity', fallbackValue: 1 },
+  { layerId: 'tracks-highlight-dash-layer', property: 'line-opacity', fallbackValue: 1 },
+  { layerId: 'tracks-dot-layer', property: 'circle-opacity', fallbackValue: 1 },
+  { layerId: 'tracks-dot-layer', property: 'circle-stroke-opacity', fallbackValue: 1 },
+  { layerId: 'tracks-overview-dots', property: 'circle-opacity', fallbackValue: 0.85 },
+  { layerId: 'tracks-overview-dots', property: 'circle-stroke-opacity', fallbackValue: 1 },
+  { layerId: 'tracks-highlight-circle-layer', property: 'circle-opacity', fallbackValue: 1 },
+  { layerId: 'track-points-layer', property: 'icon-opacity', fallbackValue: 0.9 },
+] as const;
+const TRACK_LAYER_VISIBILITY_IDS = [
+  'tracks-layer',
+  'tracks-highlight-layer',
+  'tracks-highlight-dash-layer',
+  'tracks-dot-layer',
+  'tracks-overview-dots',
+  'tracks-highlight-circle-layer',
+  'track-points-layer',
+] as const;
 
 const EVENTS = {
   animate: 'animate',
@@ -121,18 +162,20 @@ const EVENTS = {
 } as const;
 
 type MapLike = {
-  getLayer: (id: string) => unknown;
-  setPaintProperty: (layerId: string, property: string, value: unknown) => void;
-  removeLayer: (id: string) => void;
-  getSource: (id: string) => { setData?: (data: unknown) => void } | undefined;
-  removeSource: (id: string) => void;
-  addSource: (id: string, source: unknown) => void;
-  addLayer: (layer: unknown) => void;
+  getLayer: maplibregl.Map['getLayer'];
+  getLayoutProperty?: maplibregl.Map['getLayoutProperty'];
+  getPaintProperty?: maplibregl.Map['getPaintProperty'];
+  setLayoutProperty?: maplibregl.Map['setLayoutProperty'];
+  setPaintProperty: maplibregl.Map['setPaintProperty'];
+  removeLayer: maplibregl.Map['removeLayer'];
+  getSource: maplibregl.Map['getSource'];
+  removeSource: maplibregl.Map['removeSource'];
+  addSource: maplibregl.Map['addSource'];
+  addLayer: maplibregl.Map['addLayer'];
 };
 
 type TrackFeature = {
   properties?: { startDate?: Date | number | string; [key: string]: unknown };
-  [key: string]: unknown;
 };
 
 type Emits = {
@@ -148,6 +191,7 @@ defineOptions({ name: 'AnimateMap' });
 
 const props = defineProps<{
   map?: MapLike | null;
+  geojson?: { features?: TrackFeature[] } | null;
 }>();
 
 const emit = defineEmits<Emits>();
@@ -164,6 +208,8 @@ const viewportWidth = ref(typeof window !== 'undefined' ? window.innerWidth : DE
 const color1 = [255, 0, 0] as const;
 const color2 = [0, 0, 255] as const;
 let timerId: ReturnType<typeof setInterval> | null = null;
+let trackLayerPaintBeforeAnimation = new Map<string, unknown>();
+let trackLayerVisibilityBeforeAnimation = new Map<string, unknown>();
 
 const isMobileViewport = computed(() => viewportWidth.value < DESKTOP_BP);
 const sheetOpenHeight = computed(() =>
@@ -242,6 +288,12 @@ const speedSliderPos = computed({
 watch(active, (val) => {
   if (val) prepareSortedFeatures();
 });
+watch(
+  () => props.geojson,
+  () => {
+    if (active.value) prepareSortedFeatures();
+  }
+);
 watch(animationSpeed, () => {
   // Restart the interval with new speed while animation is running
   if (timerId) {
@@ -260,7 +312,7 @@ onBeforeUnmount(() => {
   if (typeof window !== 'undefined') {
     window.removeEventListener('resize', onViewportResize);
   }
-  onStopAnimation();
+  if (hasAnimationStateToCleanUp()) closeAnimationSession();
 });
 
 function onViewportResize() {
@@ -272,30 +324,58 @@ async function toggle() {
   if (active.value) {
     emit('tool-opened');
     prepareSortedFeatures();
+    hideTrackLayersForAnimation();
   } else {
     onClose();
   }
 }
 
 function close() {
-  onClose();
+  if (!hasAnimationStateToCleanUp()) {
+    active.value = false;
+    return;
+  }
+  closeAnimationSession();
 }
 
 function onSheetClosed() {
-  onStopAnimation();
-  restoreTracksLayer();
+  closeAnimationSession({ emitToolClosed: true });
+}
+
+function closeAnimationSession({ emitToolClosed = false } = {}) {
+  const shouldEmitStop =
+    animationInProgress.value || timerId != null || Boolean(props.map?.getLayer(ANIMATION_LAYER_ID));
+  stopAnimationPlayback({ renderStoppedRange: false, emitStop: shouldEmitStop });
+  restoreTrackLayers();
   active.value = false;
-  emit('tool-closed');
+  if (emitToolClosed) {
+    emit('tool-closed');
+  }
 }
 
 function onClose() {
-  onStopAnimation();
-  restoreTracksLayer();
-  active.value = false;
+  closeAnimationSession();
+}
+
+function stopAnimationPlayback({ renderStoppedRange = true, emitStop = true } = {}) {
+  if (timerId) {
+    clearInterval(timerId);
+    timerId = null;
+  }
+  animationInProgress.value = false;
+  animationIndex.value = rangeValue.value[0] || 0;
+  if (renderStoppedRange && sortedFeatures.value.length) {
+    ensureAnimationLayer();
+    renderRangeFrame();
+  }
+  if (emitStop) {
+    emit(EVENTS.animationStop, 'animation stopped');
+  }
 }
 
 function prepareSortedFeatures() {
-  const geojson = (instance?.proxy?.$parent as { geojson?: { features?: TrackFeature[] } } | undefined)?.geojson;
+  const geojson =
+    props.geojson ?? (instance?.proxy?.$parent as { geojson?: { features?: TrackFeature[] } } | undefined)?.geojson;
   if (!geojson?.features?.length) {
     sortedFeatures.value = [];
     rangeValue.value = [0, 0];
@@ -315,21 +395,19 @@ function prepareSortedFeatures() {
 function ensureAnimationLayer() {
   const map = props.map;
   if (!map) return;
-  if (map.getLayer('tracks-layer')) {
-    map.setPaintProperty('tracks-layer', 'line-opacity', 0);
-  }
-  if (map.getLayer('animation-layer')) map.removeLayer('animation-layer');
-  if (map.getSource('animation-source')) map.removeSource('animation-source');
+  hideTrackLayersForAnimation();
+  if (map.getLayer(ANIMATION_LAYER_ID)) map.removeLayer(ANIMATION_LAYER_ID);
+  if (map.getSource(ANIMATION_SOURCE_ID)) map.removeSource(ANIMATION_SOURCE_ID);
 
-  map.addSource('animation-source', {
+  map.addSource(ANIMATION_SOURCE_ID, {
     type: 'geojson',
     data: { type: 'FeatureCollection', features: [] },
   });
   map.addLayer({
-    id: 'animation-layer',
+    id: ANIMATION_LAYER_ID,
     type: 'line',
-    source: 'animation-source',
-    layout: { 'line-join': 'round', 'line-cap': 'round' },
+    source: ANIMATION_SOURCE_ID,
+    layout: { 'line-join': 'round', 'line-cap': 'butt' },
     paint: {
       'line-color': ['coalesce', ['get', '_animColor'], TRACK_COLOR],
       'line-width': 4,
@@ -341,20 +419,70 @@ function ensureAnimationLayer() {
 function removeAnimationLayer() {
   const map = props.map;
   if (!map) return;
-  if (map.getLayer('animation-layer')) map.removeLayer('animation-layer');
-  if (map.getSource('animation-source')) map.removeSource('animation-source');
+  if (map.getLayer(ANIMATION_LAYER_ID)) map.removeLayer(ANIMATION_LAYER_ID);
+  if (map.getSource(ANIMATION_SOURCE_ID)) map.removeSource(ANIMATION_SOURCE_ID);
 }
 
-function restoreTracksLayer() {
+function hasAnimationStateToCleanUp() {
+  return (
+    active.value ||
+    animationInProgress.value ||
+    timerId != null ||
+    trackLayerPaintBeforeAnimation.size > 0 ||
+    trackLayerVisibilityBeforeAnimation.size > 0 ||
+    Boolean(props.map?.getLayer(ANIMATION_LAYER_ID))
+  );
+}
+
+function hideTrackLayersForAnimation() {
   const map = props.map;
-  removeAnimationLayer();
-  if (map?.getLayer('tracks-layer')) {
-    map.setPaintProperty('tracks-layer', 'line-opacity', 1);
+  if (!map) return;
+  for (const layerId of TRACK_LAYER_VISIBILITY_IDS) {
+    if (!map.getLayer(layerId)) continue;
+    if (!trackLayerVisibilityBeforeAnimation.has(layerId)) {
+      trackLayerVisibilityBeforeAnimation.set(layerId, map.getLayoutProperty?.(layerId, 'visibility') ?? 'visible');
+    }
+    map.setLayoutProperty?.(layerId, 'visibility', HIDDEN_TRACK_LAYER_VISIBILITY);
+  }
+  for (const { layerId, property, fallbackValue } of TRACK_LAYER_PAINT_PROPERTIES) {
+    if (!map.getLayer(layerId)) continue;
+    const snapshotKey = trackLayerPaintSnapshotKey(layerId, property);
+    if (!trackLayerPaintBeforeAnimation.has(snapshotKey)) {
+      trackLayerPaintBeforeAnimation.set(snapshotKey, map.getPaintProperty?.(layerId, property) ?? fallbackValue);
+    }
+    map.setPaintProperty(layerId, property, HIDDEN_TRACK_LAYER_OPACITY);
   }
 }
 
+function restoreTrackLayers() {
+  const map = props.map;
+  removeAnimationLayer();
+  if (!map) {
+    trackLayerPaintBeforeAnimation = new Map<string, unknown>();
+    trackLayerVisibilityBeforeAnimation = new Map<string, unknown>();
+    return;
+  }
+  for (const { layerId, property } of TRACK_LAYER_PAINT_PROPERTIES) {
+    const snapshotKey = trackLayerPaintSnapshotKey(layerId, property);
+    if (map.getLayer(layerId) && trackLayerPaintBeforeAnimation.has(snapshotKey)) {
+      map.setPaintProperty(layerId, property, trackLayerPaintBeforeAnimation.get(snapshotKey));
+    }
+  }
+  for (const layerId of TRACK_LAYER_VISIBILITY_IDS) {
+    if (map.getLayer(layerId) && trackLayerVisibilityBeforeAnimation.has(layerId)) {
+      map.setLayoutProperty?.(layerId, 'visibility', trackLayerVisibilityBeforeAnimation.get(layerId));
+    }
+  }
+  trackLayerPaintBeforeAnimation = new Map<string, unknown>();
+  trackLayerVisibilityBeforeAnimation = new Map<string, unknown>();
+}
+
+function trackLayerPaintSnapshotKey(layerId: string, property: string): string {
+  return `${layerId}:${property}`;
+}
+
 function setAnimationSourceData(features: TrackFeature[]) {
-  const source = props.map?.getSource('animation-source');
+  const source = props.map?.getSource(ANIMATION_SOURCE_ID) as { setData?: (data: unknown) => void } | undefined;
   if (source?.setData) {
     source.setData({ type: 'FeatureCollection', features });
   }
@@ -399,18 +527,7 @@ function onPauseAnimation() {
 }
 
 async function onStopAnimation() {
-  if (timerId) {
-    clearInterval(timerId);
-    timerId = null;
-  }
-  animationInProgress.value = false;
-  animationIndex.value = rangeValue.value[0] || 0;
-  // Re-render static range view after stopping
-  if (sortedFeatures.value.length) {
-    ensureAnimationLayer();
-    renderRangeFrame();
-  }
-  emit(EVENTS.animationStop, 'animation stopped');
+  stopAnimationPlayback();
 }
 
 function animationFunction() {
@@ -420,7 +537,7 @@ function animationFunction() {
     renderFrame();
     emit(EVENTS.animationFinished, 'animation has finished');
     onPauseAnimation();
-    restoreTracksLayer();
+    restoreTrackLayers();
     return;
   }
   renderFrame();
@@ -690,14 +807,6 @@ defineExpose({
   padding: 0.2rem 0.2rem;
 }
 
-.am-timeline-slider-wrap :deep(.p-slider .p-slider-handle) {
-  transition: box-shadow 0.15s ease;
-}
-.am-timeline-slider-wrap :deep(.p-slider .p-slider-handle:hover),
-.am-timeline-slider-wrap :deep(.p-slider .p-slider-handle:focus-visible) {
-  box-shadow: 0 0 0 5px var(--accent-glow);
-}
-
 /* Playhead marker on top of slider */
 .am-playhead {
   position: absolute;
@@ -823,23 +932,11 @@ defineExpose({
   }
 }
 
-/* ── Unified slider track height (single source of truth) ── */
-.am-root :deep(.p-slider) {
-  background: var(--slider-track);
-  height: 4px !important;
-  border-radius: 999px;
-}
-.am-root :deep(.p-slider .p-slider-range),
-.am-root :deep(.p-slider-range) {
-  background: var(--slider-gradient);
-  border-radius: 999px;
-}
-.am-root :deep(.p-slider .p-slider-handle) {
-  transition: box-shadow 0.15s ease;
-}
-.am-root :deep(.p-slider .p-slider-handle:hover),
-.am-root :deep(.p-slider .p-slider-handle:focus-visible) {
-  box-shadow: 0 0 0 5px var(--accent-glow);
+.am-timeline-slider,
+.am-speed-slider {
+  --mtl-slider-track-height-default: 4px;
+  --mtl-slider-track-height-coarse: 4px;
+  --mtl-slider-handle-halo-active: 0 0 0 5px var(--accent-glow);
 }
 
 @media (min-width: 769px) {

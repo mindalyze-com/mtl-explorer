@@ -24,6 +24,8 @@ import lombok.Data;
 public class EnergyParameters {
 
     public static final double DEFAULT_RIDER_WEIGHT_KG = 75.0;
+    public static final double MIN_RIDER_WEIGHT_KG = 35.0;
+    public static final double MAX_RIDER_WEIGHT_KG = 180.0;
     public static final double DEFAULT_EQUIPMENT_WEIGHT_KG = 0.0;
     public static final double DEFAULT_AIR_DENSITY = 1.225; // kg/m³ at sea level, 15°C
     public static final double GRAVITY = 9.81; // m/s²

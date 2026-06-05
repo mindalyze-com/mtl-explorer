@@ -1,0 +1,34 @@
+AVR_03 post-stop usability evidence
+{
+  "running": {
+    "playhead": "9.09091%",
+    "stopDisabled": false,
+    "tracksValue": "2 / 12",
+    "scale": "500 km"
+  },
+  "stopped": {
+    "playhead": null,
+    "stopDisabled": true,
+    "scale": "500 km"
+  },
+  "afterZoomIn": {
+    "scale": "300 km",
+    "activeTool": [
+      "Animate"
+    ]
+  },
+  "afterZoomOut": {
+    "scale": "500 km",
+    "activeTool": [
+      "Animate"
+    ]
+  },
+  "stats": {
+    "url": "http://167.233.16.201:18080/mtl/stats",
+    "activeTool": [
+      "Stats"
+    ],
+    "statsOpen": true,
+    "bodySample": "500 km © OpenStreetMap | Elevation: Mapterhorn 12 Tracks Stats Filter Map Animate Segments GPS Planner Admin Overview Trends Tracks 12 TRACKS 884 km DISTANCE 18h 49m DURATION 4,278 Wh ENERGY ACTIVITY BREAKDOWN Tracks Distance Duration Energy Bicycle 11 11 Walking 1 1 HIGHLIGHTS Longest track Moselradweg aus Wiki on GPSies.com 518 km Longest duratio"
+  }
+}

@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -72,14 +73,6 @@ public class EnergyService {
      * Conversion factor: 1 Wh = 3600 J.
      */
     private static final double JOULES_PER_WH = 3600.0;
-
-    /**
-     * Round to n decimal places.
-     */
-    private static double round(double value, int decimals) {
-        double factor = Math.pow(10, decimals);
-        return Math.round(value * factor) / factor;
-    }
 
     /**
      * Compute Normalized Power (NP) from a series of per-segment power values (W) and
@@ -320,9 +313,8 @@ public class EnergyService {
             double segmentTotalJoules = ec.totalPositiveJoules();
             cumulativeTotalJoules += segmentTotalJoules;
 
-            // Store per-point energy at full double precision — the DB columns are `double precision`
-            // with no scale limit. Any rounding happens at aggregation / display time only; otherwise
-            // small per-segment values (e.g. 0.003 Wh) collapse to 0 and the track-level totals drift.
+            // Store per-point energy without application-level rounding. Tiny per-segment
+            // values are summed into track totals; DB scale and UI rounding are separate.
             current.setEnergyGravitationalWh(ec.getGravitationalJoules() / JOULES_PER_WH);
             current.setEnergyAeroDragWh(ec.getAeroDragJoules() / JOULES_PER_WH);
             current.setEnergyRollingResistanceWh(ec.getRollingResistanceJoules() / JOULES_PER_WH);
@@ -331,15 +323,14 @@ public class EnergyService {
             current.setEnergyCumulativeWh(cumulativeTotalJoules / JOULES_PER_WH);
 
             // Power = Energy / Time (Joules / seconds = Watts), with guards against GPS glitches.
-            // Power is stored at integer-W resolution because that is already far finer than
-            // the underlying mechanical accuracy.
+            // Persisted scale is owned by the DB; the UI currently rounds to whole watts.
             Double duration = current.getDurationBetweenPointsInSec();
             double pointPowerW = 0;
             double pointDurationS = 0;
             if (!unreliableStopBoundaryPower && duration != null && duration >= MIN_SEGMENT_DURATION_SEC && segmentTotalJoules > 0) {
                 double power = segmentTotalJoules / duration;
                 double clampedPower = Math.min(power, maxPowerWatts);
-                current.setPowerWatts(round(clampedPower, 0));
+                current.setPowerWatts(clampedPower);
                 pointPowerW = clampedPower;
                 pointDurationS = duration;
 
@@ -406,6 +397,94 @@ public class EnergyService {
                 .normalizedPowerWatts(normalizedPower)
                 .weightKgUsed(totalMassKgUsed)
                 .build();
+    }
+
+    /**
+     * Calculate a track-level summary on detached copies of the points.
+     * Use this for read-only what-if scenarios so the API contract does not depend
+     * on JPA flush behavior.
+     */
+    public TrackEnergySummary calculateSummaryWithoutPersisting(List<GpsTrackDataPoint> points, GpsTrack.ACTIVITY_TYPE activityType, EnergyParameters params) {
+        return calculateAndPopulatePoints(copyEnergyInputPoints(points), activityType, params);
+    }
+
+    public double getDefaultEquipmentWeightKg(GpsTrack.ACTIVITY_TYPE activityType) {
+        return calculatorFactory.getCalculator(activityType).getDefaultEquipmentWeightKg();
+    }
+
+    public TrackEnergySummary subtractSummaries(TrackEnergySummary adjusted, TrackEnergySummary baseline) {
+        if (adjusted == null) adjusted = TrackEnergySummary.builder().build();
+        if (baseline == null) baseline = TrackEnergySummary.builder().build();
+
+        return TrackEnergySummary.builder()
+                .gravitationalAscentTotalWh(adjusted.getGravitationalAscentTotalWh() - baseline.getGravitationalAscentTotalWh())
+                .gravitationalDescentTotalWh(adjusted.getGravitationalDescentTotalWh() - baseline.getGravitationalDescentTotalWh())
+                .aeroDragTotalWh(adjusted.getAeroDragTotalWh() - baseline.getAeroDragTotalWh())
+                .rollingResistanceTotalWh(adjusted.getRollingResistanceTotalWh() - baseline.getRollingResistanceTotalWh())
+                .kineticPositiveTotalWh(adjusted.getKineticPositiveTotalWh() - baseline.getKineticPositiveTotalWh())
+                .kineticNegativeTotalWh(adjusted.getKineticNegativeTotalWh() - baseline.getKineticNegativeTotalWh())
+                .netEnergyTotalWh(adjusted.getNetEnergyTotalWh() - baseline.getNetEnergyTotalWh())
+                .powerWattsAvg(adjusted.getPowerWattsAvg() - baseline.getPowerWattsAvg())
+                .powerWattsMovingAvg(adjusted.getPowerWattsMovingAvg() - baseline.getPowerWattsMovingAvg())
+                .powerWattsMax(adjusted.getPowerWattsMax() - baseline.getPowerWattsMax())
+                .powerWatts30sMax(adjusted.getPowerWatts30sMax() - baseline.getPowerWatts30sMax())
+                .normalizedPowerWatts(adjusted.getNormalizedPowerWatts() - baseline.getNormalizedPowerWatts())
+                .weightKgUsed(adjusted.getWeightKgUsed() - baseline.getWeightKgUsed())
+                .build();
+    }
+
+    public TrackEnergySummary summaryFromTrack(GpsTrack track) {
+        if (track == null) return TrackEnergySummary.builder().build();
+
+        return TrackEnergySummary.builder()
+                .gravitationalAscentTotalWh(orZero(track.getEnergyGravitationalTotalWh()))
+                .gravitationalDescentTotalWh(orZero(track.getEnergyGravitationalDescentWh()))
+                .aeroDragTotalWh(orZero(track.getEnergyAeroDragTotalWh()))
+                .rollingResistanceTotalWh(orZero(track.getEnergyRollingResistanceTotalWh()))
+                .kineticPositiveTotalWh(orZero(track.getEnergyKineticPositiveTotalWh()))
+                .netEnergyTotalWh(orZero(track.getEnergyNetTotalWh()))
+                .powerWattsAvg(orZero(track.getPowerWattsAvg()))
+                .powerWattsMovingAvg(orZero(track.getPowerWattsMovingAvg()))
+                .powerWattsMax(orZero(track.getPowerWattsMax()))
+                .powerWatts30sMax(orZero(track.getPowerWatts30sMax()))
+                .normalizedPowerWatts(orZero(track.getNormalizedPowerWatts()))
+                .weightKgUsed(orZero(track.getEnergyWeightKgUsed()))
+                .build();
+    }
+
+    private List<GpsTrackDataPoint> copyEnergyInputPoints(List<GpsTrackDataPoint> points) {
+        List<GpsTrackDataPoint> copies = new ArrayList<>();
+        if (points == null) return copies;
+
+        for (GpsTrackDataPoint source : points) {
+            GpsTrackDataPoint copy = new GpsTrackDataPoint();
+            copy.setGpsTrackDataId(source.getGpsTrackDataId());
+            copy.setMovingWindowInSec(source.getMovingWindowInSec());
+            copy.setPointIndex(source.getPointIndex());
+            copy.setPointIndexMax(source.getPointIndexMax());
+            copy.setCanonicalPointIndex(source.getCanonicalPointIndex());
+            copy.setPointTimestamp(source.getPointTimestamp());
+            copy.setPointLongLat(source.getPointLongLat());
+            copy.setPointXY(source.getPointXY());
+            copy.setPointAltitude(source.getPointAltitude());
+            copy.setDistanceInMeterBetweenPoints(source.getDistanceInMeterBetweenPoints());
+            copy.setDistanceInMeterSinceStart(source.getDistanceInMeterSinceStart());
+            copy.setDurationBetweenPointsInSec(source.getDurationBetweenPointsInSec());
+            copy.setDurationSinceStart(source.getDurationSinceStart());
+            copy.setAscentInMeterBetweenPoints(source.getAscentInMeterBetweenPoints());
+            copy.setAscentInMeterSinceStart(source.getAscentInMeterSinceStart());
+            copy.setDescentInMeterSinceStart(source.getDescentInMeterSinceStart());
+            copy.setElevationGainPerHourMovingWindow(source.getElevationGainPerHourMovingWindow());
+            copy.setElevationLossPerHourMovingWindow(source.getElevationLossPerHourMovingWindow());
+            copy.setSpeedInKmhMovingWindow(source.getSpeedInKmhMovingWindow());
+            copy.setSlopePercentageInMovingWindow(source.getSlopePercentageInMovingWindow());
+            copies.add(copy);
+        }
+        return copies;
+    }
+
+    private double orZero(Double value) {
+        return value != null ? value : 0;
     }
 
     private boolean isUnreliableStopBoundaryPower(List<GpsTrackDataPoint> points, int index) {
@@ -560,18 +639,18 @@ public class EnergyService {
      * Apply a TrackEnergySummary to a GpsTrack entity (sets all energy total fields in Wh).
      */
     public void applyEnergyToTrack(GpsTrack track, TrackEnergySummary summary) {
-        track.setEnergyGravitationalTotalWh(round(summary.getGravitationalAscentTotalWh(), 1));
-        track.setEnergyGravitationalDescentWh(round(summary.getGravitationalDescentTotalWh(), 1));
-        track.setEnergyAeroDragTotalWh(round(summary.getAeroDragTotalWh(), 1));
-        track.setEnergyRollingResistanceTotalWh(round(summary.getRollingResistanceTotalWh(), 1));
-        track.setEnergyKineticPositiveTotalWh(round(summary.getKineticPositiveTotalWh(), 1));
-        track.setEnergyNetTotalWh(round(summary.getNetEnergyTotalWh(), 1));
-        track.setEnergyWeightKgUsed(round(summary.getWeightKgUsed(), 1));
-        track.setPowerWattsAvg(round(summary.getPowerWattsAvg(), 0));
-        track.setPowerWattsMovingAvg(round(summary.getPowerWattsMovingAvg(), 0));
-        track.setPowerWattsMax(round(summary.getPowerWattsMax(), 0));
-        track.setPowerWatts30sMax(round(summary.getPowerWatts30sMax(), 0));
-        track.setNormalizedPowerWatts(round(summary.getNormalizedPowerWatts(), 0));
+        track.setEnergyGravitationalTotalWh(summary.getGravitationalAscentTotalWh());
+        track.setEnergyGravitationalDescentWh(summary.getGravitationalDescentTotalWh());
+        track.setEnergyAeroDragTotalWh(summary.getAeroDragTotalWh());
+        track.setEnergyRollingResistanceTotalWh(summary.getRollingResistanceTotalWh());
+        track.setEnergyKineticPositiveTotalWh(summary.getKineticPositiveTotalWh());
+        track.setEnergyNetTotalWh(summary.getNetEnergyTotalWh());
+        track.setEnergyWeightKgUsed(summary.getWeightKgUsed());
+        track.setPowerWattsAvg(summary.getPowerWattsAvg());
+        track.setPowerWattsMovingAvg(summary.getPowerWattsMovingAvg());
+        track.setPowerWattsMax(summary.getPowerWattsMax());
+        track.setPowerWatts30sMax(summary.getPowerWatts30sMax());
+        track.setNormalizedPowerWatts(summary.getNormalizedPowerWatts());
     }
 
     /**
@@ -620,7 +699,7 @@ public class EnergyService {
         applyEnergyToTrack(track, summaryForTrack);
         track.addLoadMessage("Energy recalculated for activityType=" + track.getActivityType()
                              + " on canonical RAW_OUTLIER_CLEANED (Net Total: "
-                             + String.format("%.1f", summaryForTrack.getNetEnergyTotalWh()) + " Wh).");
+                             + String.format("%.2f", summaryForTrack.getNetEnergyTotalWh()) + " Wh).");
         gpsTrackRepository.save(track);
         return true;
     }

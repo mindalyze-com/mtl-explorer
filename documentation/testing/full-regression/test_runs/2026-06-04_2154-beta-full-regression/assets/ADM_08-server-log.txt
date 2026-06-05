@@ -1,0 +1,10 @@
+{
+  "logBeforeExcerpt": "200 lines just now No wrap Refresh 2026-06-05 00:14:48.886 INFO [http-nio-8080-exec-1] [user=] [sid=] --- LoggingFilter : Request for url=/mtl/api/planner/status completed in dT=7 for user=mtl user_session_id=REDACTED status=200 method=GET 2026-06-05 00:14:48.855 INFO [http-nio-8080-exec-6] [user=] [sid=] --- LoggingFilter : Request for url=/mtl/api/location-search/status completed in dT=187 for user=mtl user_session_id=REDACTED status=200 method=GET 2026-06-05 00:14:48.686 INFO [http-nio-80",
+  "logAfterExcerpt": "200 lines just now No wrap Refresh 2026-06-05 00:14:52.641 INFO [http-nio-8080-exec-5] [user=] [sid=] --- LoggingFilter : Request for url=/mtl/api/planner/status completed in dT=4 for user=mtl user_session_id=REDACTED status=200 method=GET 2026-06-05 00:14:52.606 INFO [http-nio-8080-exec-2] [user=] [sid=] --- LoggingFilter : Request for url=/mtl/api/location-search/status completed in dT=186 for user=mtl user_session_id=REDACTED status=200 method=GET 2026-06-05 00:14:52.429 INFO [http-nio-80",
+  "logLineCount": 199,
+  "assertions": {
+    "logLinesLoaded": true,
+    "refreshControlPresent": true,
+    "refreshedTimestampVisible": true
+  }
+}

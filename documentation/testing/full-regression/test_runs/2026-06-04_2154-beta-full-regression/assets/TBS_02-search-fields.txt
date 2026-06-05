@@ -1,0 +1,62 @@
+{
+  "name": {
+    "query": "Moselradweg",
+    "summary": "1\nof 11 tracks\n·\n518 km\n·\n6h 50m",
+    "rows": [
+      "01/01/2010, 01:00Moselradweg aus Wiki on GPSies.comBicycle518 km6h 50m75.71,616 Wh100.0% 06/04/2026, 22:10"
+    ],
+    "empty": ""
+  },
+  "description": {
+    "query": "Generated from route",
+    "summary": "1\nof 11 tracks\n·\n3.49 km\n·\n0m 00s",
+    "rows": [
+      "06/04/2026, 22:54format-geojson-synthetic-trackGenerated from route format-geojson-synthetic-trackBicycle3.49 km0m 00s4 Wh100.0% 06/04/2026, 22:54"
+    ],
+    "empty": ""
+  },
+  "date": {
+    "query": "2026-01-13",
+    "summary": "1\nof 11 tracks\n·\n3.54 km\n·\n10m 30s",
+    "rows": [
+      "01/13/2026, 09:00GNSSALTTRKIGCHDRS~HFPLTPILOT:Unknown~Bicycle3.54 km10m 30s20.227 Wh100.0% 06/04/2026, 22:54"
+    ],
+    "empty": ""
+  },
+  "distance": {
+    "query": "3537.06",
+    "summary": "1\nof 11 tracks\n·\n3.54 km\n·\n10m 30s",
+    "rows": [
+      "01/13/2026, 09:00GNSSALTTRKIGCHDRS~HFPLTPILOT:Unknown~Bicycle3.54 km10m 30s20.227 Wh100.0% 06/04/2026, 22:54"
+    ],
+    "empty": ""
+  },
+  "duration": {
+    "query": "10 min",
+    "summary": "5\nof 11 tracks\n·\n532 km\n·\n7h 32m",
+    "rows": [
+      "01/16/2026, 09:00format-gdb-synthetic-trackBicycle3.53 km10m 30s20.227 Wh100.0% 06/04/2026, 22:54",
+      "01/14/2026, 09:00Track 100010Bicycle3.38 km10m 30s19.3160 Wh100.0% 06/04/2026, 22:54",
+      "01/13/2026, 09:00GNSSALTTRKIGCHDRS~HFPLTPILOT:Unknown~Bicycle3.54 km10m 30s20.227 Wh100.0% 06/04/2026, 22:54",
+      "01/10/2026, 09:00format-tcx-syntBicycle3.55 km10m 30s20.327 Wh100.0% 06/04/2026, 22:54",
+      "01/01/2010, 01:00Moselradweg aus Wiki on GPSies.comBicycle518 km6h 50m75.71,616 Wh100.0% 06/04/2026, 22:10"
+    ],
+    "empty": ""
+  },
+  "activity": {
+    "query": "WALKING",
+    "summary": "1\nof 11 tracks\n·\n3.60 km\n·\n59m 57s",
+    "rows": [
+      "07/20/2021, 23:11Track 100005Walking3.60 km59m 57s3.6347 Wh100.0% 06/04/2026, 22:42"
+    ],
+    "empty": ""
+  },
+  "filePath": {
+    "query": "format-sample.nmea",
+    "summary": "1\nof 11 tracks\n·\n3.38 km\n·\n10m 30s",
+    "rows": [
+      "01/14/2026, 09:00Track 100010Bicycle3.38 km10m 30s19.3160 Wh100.0% 06/04/2026, 22:54"
+    ],
+    "empty": ""
+  }
+}

@@ -76,13 +76,27 @@ Run the full user-facing regression plan:
   exercised.
 - For every user-facing coverage ID, record action, expected result, actual
   result, status, and evidence.
-- A packet is terminal only when its coverage ID has direct evidence for
-  `PASS`/`FAIL`, or a concrete terminal reason for `BLOCKED`/`NOT APPLICABLE`.
-  `PARTIAL` and `NOT COVERED` must remain resumable unless the user explicitly
-  approves closing the run with gaps.
+- A packet is terminal only when its coverage ID has direct evidence for a
+  terminal status: `PASS`, `FAIL`, `BLOCKED`, `NOT APPLICABLE`, `FIXED`,
+  `REJECTED`, `NOT REPRODUCEABLE`, or `NOT REPRODUCIBLE`. `PARTIAL` and
+  `NOT COVERED` must remain resumable unless the user explicitly approves
+  closing the run with gaps.
 - Test desktop and narrow mobile/touch viewports. Include hard refresh, normal
   reload, back/forward navigation, a clean browser context where useful,
   console errors/warnings, and failed network requests.
+- For `MAP_13-MAP_15`, run a short isolated map-provider pass in addition to the
+  normal map checks. For quick-install compose targets, create a temporary
+  compose override that sets the app container environment
+  `MTL_MAP_SERVER_TILE_MODE=remote`, restart only the app service, then verify
+  the configured remote raster providers, attribution, and absence of
+  `/api/map-proxy` tile requests. For fallback coverage, simulate local vector
+  tile unavailability only when the environment exposes a safe control, such as
+  stopping the local `map-server` sidecar in a `local-maps` profile run or
+  blocking local PMTiles requests; otherwise mark `MAP_14` `BLOCKED` with the
+  missing control. For `MAP_15`, restore local-vector mode, use the in-app Map
+  Source control to select Remote, and confirm the persisted source override
+  uses remote raster tiles without proxy requests. Restore the original
+  deployment configuration before continuing the remaining coverage.
 - Run offline/cache coverage only in an installed PWA / installed web-app
   browser context after one successful online load. If the app is only opened as
   a normal browser tab, do not fail the row for offline reload behavior; mark the
@@ -142,8 +156,9 @@ Report and evidence:
 - Before writing `report.md`, setting `Current coverage ID: COMPLETE`, or running
   `RUN_CLEANUP`, enforce the finalization gate from
   `workflow/resumable-workflow.md`: every coverage ID must be terminal
-  (`PASS`, `FAIL`, `BLOCKED`, or `NOT APPLICABLE`) and no packet/run-state row
-  may remain `NOT STARTED`, `IN PROGRESS`, `PARTIAL`, or `NOT COVERED`.
+  (`PASS`, `FAIL`, `BLOCKED`, `NOT APPLICABLE`, `FIXED`, `REJECTED`,
+  `NOT REPRODUCEABLE`, or `NOT REPRODUCIBLE`) and no packet/run-state row may
+  remain `NOT STARTED`, `IN PROGRESS`, `PARTIAL`, or `NOT COVERED`.
 - Run
   `documentation/testing/full-regression/workflow/check-finalization-gate.py <run-folder>/run-state.md`
   and require `Finalization gate: PASS` before normal report/cleanup.
@@ -166,6 +181,14 @@ Report and evidence:
 - Save screenshots/log snippets under the matching `assets/` folder. Prefer WebP
   screenshots, keep logs short, and avoid bulky traces unless needed for a
   failure.
+- Keep each WebP screenshot asset at 85 KB (85,000 bytes) or less. Crop or
+  recompress screenshots that exceed the limit before finalizing the report.
+- In packet Markdown files, make every evidence asset reference clickable. Since
+  packet files live under `packets/`, link assets as
+  `[assets/<filename>](../assets/<filename>)`.
+- Embed packet WebP screenshots inline with Markdown image syntax, for example
+  `![Short caption](../assets/<coverage-id>-<short-name>.webp)`, so packet files
+  are readable without opening assets separately.
 - Keep compact screenshots for working functions as well as failures, so the
   report gives a useful visual overview of validated areas such as login, map,
   imports, browser, stats, filters, details, admin, planner, mobile, and

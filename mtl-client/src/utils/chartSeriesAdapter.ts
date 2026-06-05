@@ -8,7 +8,6 @@
  * canonical RAW_OUTLIER_CLEANED stream.
  */
 import { ChartSeriesControllerApi } from 'x8ing-mtl-api-typescript-fetch';
-import { getApiConfiguration } from '@/utils/openApiClient';
 import type {
   ChartBucket,
   ChartSeriesResponse,
@@ -16,7 +15,10 @@ import type {
   MetricBucketStats,
 } from 'x8ing-mtl-api-typescript-fetch/dist/esm/models/index';
 import { ChartSeriesResponseXModeEnum } from 'x8ing-mtl-api-typescript-fetch/dist/esm/models/ChartSeriesResponse';
-import type { ChartSeriesResponseAvailableMetricsEnum as GeneratedMetricKey } from 'x8ing-mtl-api-typescript-fetch/dist/esm/models/ChartSeriesResponse';
+import type {
+  ChartSeriesResponseAvailableMetricsEnum as GeneratedMetricKey,
+  ChartSeriesResponseRecommendedSpeedMetricEnum as GeneratedRecommendedSpeedMetric,
+} from 'x8ing-mtl-api-typescript-fetch/dist/esm/models/ChartSeriesResponse';
 
 // Re-export generated types so call sites only need one import.
 export type { ChartBucket, ChartSeriesResponse, MetricDefinition, MetricBucketStats };
@@ -36,6 +38,7 @@ export const MetricKey = {
   DescentM: 'DESCENT_M',
   SpeedMovingWindowKmh: 'SPEED_MOVING_WINDOW_KMH',
   SpeedWindowKmh: 'SPEED_WINDOW_KMH',
+  SpeedBucketAvgKmh: 'SPEED_BUCKET_AVG_KMH',
   ElevationGainPerHourWindow: 'ELEVATION_GAIN_PER_HOUR_WINDOW',
   ElevationLossPerHourWindow: 'ELEVATION_LOSS_PER_HOUR_WINDOW',
   SlopePercent: 'SLOPE_PERCENT',
@@ -68,11 +71,19 @@ export interface ChartPoint {
   pointAltitude: number | null;
   /** Windowed speed (km/h), trailing window — see windowSec in response. */
   speedInKmhWindow: number | null;
+  /** Duration-weighted bucket segment speed (km/h), sparse-track display fallback. */
+  speedBucketAvgKmh: number | null;
   elevationGainPerHourWindow: number | null;
   elevationLossPerHourWindow: number | null;
   /** Windowed estimated mechanical power (W), trailing window. */
   powerWattsWindow: number | null;
   energyCumulativeWh: number | null;
+}
+
+export interface TrackChartSeries {
+  points: ChartPoint[];
+  recommendedSpeedMetric: MetricKey | null;
+  availableMetrics: MetricKey[];
 }
 
 export interface FetchChartSeriesOptions {
@@ -84,7 +95,8 @@ export interface FetchChartSeriesOptions {
   metrics?: MetricKey[];
 }
 
-function getChartSeriesApi() {
+async function getChartSeriesApi() {
+  const { getApiConfiguration } = await import('@/utils/openApiClient');
   return new ChartSeriesControllerApi(getApiConfiguration());
 }
 
@@ -96,7 +108,7 @@ export async function fetchChartSeries(
   if (!Number.isFinite(trackId)) {
     throw new Error(`fetchChartSeries: invalid trackId ${gpsTrackId}`);
   }
-  return getChartSeriesApi().getChartSeries({
+  return (await getChartSeriesApi()).getChartSeries({
     trackId,
     x: options.xMode,
     maxBuckets: options.maxBuckets,
@@ -119,6 +131,7 @@ export function chartSeriesToPoints(response: ChartSeriesResponse): ChartPoint[]
   const points: ChartPoint[] = [];
   const buckets = response.buckets ?? [];
   const xMode = response.xMode ?? XMode.Time;
+  const responseStartTimestampMs = dateMs(response.startTimestamp);
   for (const b of buckets) {
     const metrics: ChartPointMetricStats = b.metrics ?? {};
     const get = (key: MetricKey, field: keyof MetricBucketStats = 'avg'): number | null => {
@@ -130,11 +143,12 @@ export function chartSeriesToPoints(response: ChartSeriesResponse): ChartPoint[]
 
     points.push({
       pointIndex: b.representativePointIndex ?? 0,
-      pointTimestamp: bucketRepresentativeTimestamp(b, xMode),
+      pointTimestamp: bucketRepresentativeTimestamp(b, xMode, responseStartTimestampMs),
       distanceInMeterSinceStart: get(MetricKey.DistanceM, 'last') ?? get(MetricKey.DistanceM),
       metricStats: metrics,
       pointAltitude: get(MetricKey.AltitudeM),
       speedInKmhWindow: get(MetricKey.SpeedWindowKmh),
+      speedBucketAvgKmh: get(MetricKey.SpeedBucketAvgKmh),
       elevationGainPerHourWindow: get(MetricKey.ElevationGainPerHourWindow),
       elevationLossPerHourWindow: get(MetricKey.ElevationLossPerHourWindow),
       powerWattsWindow: get(MetricKey.PowerWindowWatts),
@@ -144,12 +158,46 @@ export function chartSeriesToPoints(response: ChartSeriesResponse): ChartPoint[]
   return points;
 }
 
-function bucketRepresentativeTimestamp(bucket: ChartBucket, xMode: XMode): Date {
-  const parsed = bucket.representativeTimestamp;
-  if (parsed instanceof Date && Number.isFinite(parsed.getTime())) {
-    return parsed;
-  }
+export function chartSeriesToTrackChartSeries(response: ChartSeriesResponse): TrackChartSeries {
+  const availableMetrics = (response.availableMetrics ?? []) as MetricKey[];
+  const recommendedSpeedMetric = normalizeRecommendedSpeedMetric(
+    response.recommendedSpeedMetric,
+    availableMetrics
+  );
+  return {
+    points: chartSeriesToPoints(response),
+    recommendedSpeedMetric,
+    availableMetrics,
+  };
+}
+
+function normalizeRecommendedSpeedMetric(
+  value: GeneratedRecommendedSpeedMetric | null | undefined,
+  availableMetrics: MetricKey[]
+): MetricKey | null {
+  if (value == null) return null;
+  const metric = value as MetricKey;
+  return availableMetrics.includes(metric) ? metric : null;
+}
+
+function bucketRepresentativeTimestamp(bucket: ChartBucket, xMode: XMode, responseStartTimestampMs: number | null): Date {
+  const parsedMs = dateMs(bucket.representativeTimestamp);
+  if (parsedMs != null) return new Date(parsedMs);
 
   const xStart = bucket.xStart ?? 0;
-  return new Date(xMode === XMode.Time ? xStart * 1000 : xStart);
+  if (xMode === XMode.Time) {
+    const xEnd = bucket.xEnd ?? xStart;
+    const representativeElapsedSeconds = (xStart + xEnd) / 2;
+    const baseMs = responseStartTimestampMs ?? 0;
+    return new Date(baseMs + representativeElapsedSeconds * 1000);
+  }
+
+  return new Date(xStart);
+}
+
+function dateMs(value: Date | string | number | null | undefined): number | null {
+  if (value == null) return null;
+  const date = value instanceof Date ? value : new Date(value);
+  const ms = date.getTime();
+  return Number.isFinite(ms) ? ms : null;
 }

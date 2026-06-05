@@ -1,0 +1,32 @@
+generatedAt=2026-06-05T01:38:24.250Z
+overallPass=false
+
+[failed track load]
+url=http://167.233.16.201:18080/mtl/
+actionable=true
+blocked=2; retryText=true
+excerpt=© Patrick Heusser Unable to load tracks — no server connection and no cached data available. Retry 500 km © OpenStreetMap | Elevation: Mapterhorn 0 Tracks Stats Filter Map Animate Segments GPS Planner Admin
+
+[failed map config]
+url=http://167.233.16.201:18080/mtl/
+actionable=true
+blocked=3; fallbackConsole=4; visibleActionableControl=false
+excerpt=5 km © OpenStreetMap contributors 21 Tracks Stats Filter Map Animate Segments GPS Admin
+
+[failed media]
+url=http://167.233.16.201:18080/mtl/map-settings
+actionable=false
+settingsOpened=true; mediaClicked=true; mediaRequests=0; vueLngLatError=true
+excerpt=500 km © OpenStreetMap | Elevation: Mapterhorn 21 Tracks Stats Filter Map Animate Segments GPS Planner Admin Maps and data Reset BASE MAP ★ ✓ OSM Topo ★ Swiss Color Swiss Light OSM Light OSM Gray OSM Dark MAP SOURCE Auto Remote VIEW MODE 3D Terrain Perspective terrain view using 
+
+[failed planner route]
+url=http://167.233.16.201:18080/mtl/plan
+actionable=false
+dedicated planner route-error evidence is packet PLN_09; direct click probe did not add waypoints in this packet context.
+excerpt=5 km © OpenStreetMap | Elevation: Mapterhorn 21 Tracks Stats Filter Map Animate Segments GPS Planner Admin Drawing Load Hiking Tap the map to add waypoints. Drag to adjust. DISTANCE 0.00 km ASCENT 0 m DESCENT 0 m DURATION – LEGS 0 Elevation profile appears once a route is compute
+
+[expired session]
+url=http://167.233.16.201:18080/mtl/login
+actionable=true
+tokenPresentAfter=false; signIn=true
+excerpt=© Patrick Heusser AGPL-3.0 Sign In

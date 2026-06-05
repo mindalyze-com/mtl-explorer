@@ -33,6 +33,10 @@ import java.util.List;
 })
 public class ChartSeriesService {
 
+    static final double SPEED_WINDOW_GOOD_COVERAGE = 0.60;
+    static final double SPEED_FALLBACK_COVERAGE_MARGIN = 0.15;
+    private static final double COVERAGE_COMPARISON_EPSILON = 1e-12;
+
     private final GpsTrackRepository gpsTrackRepository;
     private final GpsTrackDataPointRepository gpsTrackDataPointRepository;
 
@@ -66,6 +70,7 @@ public class ChartSeriesService {
                 request.fromX(), request.toX(), request.metrics());
         ChartBucketBuilder.Result result = builder.build(points, rateSamples, rollingPower, config);
         List<MetricKey> availableMetrics = metricKeys(result.buckets());
+        MetricKey recommendedSpeedMetric = recommendSpeedMetric(result.buckets(), availableMetrics);
 
         return new ChartSeriesResponse(
                 trackId,
@@ -79,6 +84,7 @@ public class ChartSeriesService {
                 result.buckets().size(),
                 points.size(),
                 availableMetrics,
+                recommendedSpeedMetric,
                 metricDefinitions(availableMetrics),
                 result.buckets());
     }
@@ -102,6 +108,41 @@ public class ChartSeriesService {
         return keys.stream()
                 .map(MetricDefinition::from)
                 .toList();
+    }
+
+    static MetricKey recommendSpeedMetric(List<ChartBucket> buckets, List<MetricKey> availableMetrics) {
+        boolean hasWindowSpeed = availableMetrics.contains(MetricKey.SPEED_WINDOW_KMH);
+        boolean hasBucketAverageSpeed = availableMetrics.contains(MetricKey.SPEED_BUCKET_AVG_KMH);
+        int populatedBuckets = buckets.size();
+        if (populatedBuckets == 0) {
+            return hasWindowSpeed ? MetricKey.SPEED_WINDOW_KMH : null;
+        }
+
+        double windowCoverage = coverage(buckets, MetricKey.SPEED_WINDOW_KMH, populatedBuckets);
+        double bucketAverageCoverage = coverage(buckets, MetricKey.SPEED_BUCKET_AVG_KMH, populatedBuckets);
+
+        if (hasWindowSpeed && windowCoverage >= SPEED_WINDOW_GOOD_COVERAGE) {
+            return MetricKey.SPEED_WINDOW_KMH;
+        }
+        if (hasBucketAverageSpeed
+            && bucketAverageCoverage + COVERAGE_COMPARISON_EPSILON
+               >= windowCoverage + SPEED_FALLBACK_COVERAGE_MARGIN) {
+            return MetricKey.SPEED_BUCKET_AVG_KMH;
+        }
+        if (hasWindowSpeed) {
+            return MetricKey.SPEED_WINDOW_KMH;
+        }
+        if (hasBucketAverageSpeed) {
+            return MetricKey.SPEED_BUCKET_AVG_KMH;
+        }
+        return null;
+    }
+
+    private static double coverage(List<ChartBucket> buckets, MetricKey metricKey, int populatedBuckets) {
+        long coveredBuckets = buckets.stream()
+                .filter(bucket -> bucket.metrics().containsKey(metricKey))
+                .count();
+        return coveredBuckets / (double) populatedBuckets;
     }
 
     private static Double[] computeRollingPower(List<GpsTrackDataPoint> points, double windowSec) {

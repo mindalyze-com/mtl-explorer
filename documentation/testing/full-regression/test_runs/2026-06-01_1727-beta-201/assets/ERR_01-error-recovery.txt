@@ -1,0 +1,10 @@
+ERR_01 aggregate error recovery summary:
+
+- Failed track detail load: originally FAIL. In an already-loaded client shell, aborting the track detail, overview, chart-series, and related-track APIs for track 100000 left the UI at a bare `TRACK DETAILS #100000` shell with tabs only. No retry, actionable error text, or re-login path appeared. Evidence: ERR_01-failed-track-load.txt and ERR_01-failed-track-load.webp.
+- Failed track detail load fixed retest: PASS on 2026-06-04. Retesting the same aborted track-detail APIs on the local Vite frontend showed `Track details could not be loaded` with Retry and Back to map; the bare tabs-only shell no longer appeared. Evidence: ERR_01-failed-track-load-fixed.txt and ERR_01-failed-track-load-fixed.webp.
+- Failed track/map/config load: PASS. Aborting `/mtl/api/**` after clearing isolated browser caches showed `Unable to load tracks - no server connection and no cached data available.` plus a visible `Retry` button. Evidence: NET_02-network-recovery.txt and NET_02-network-recovery.webp.
+- Failed media: NOT APPLICABLE. No indexed media records exist in this configured run, so a broken media preview path cannot be safely exercised. Evidence: MED_media-availability.txt and MED_05.md.
+- Failed planner route: PASS. Simulated `segment-downloading` route response showed `Routing data for this area is being downloaded. Please retry in about 30 seconds. (auto-retry 1/6)`. Evidence: PLN_desktop-flow.txt and PLN_09-segment-downloading-notice.webp.
+- Expired session: PASS. Replacing `mtl.jwt` with an invalid token caused a 401 and redirected to `/mtl/login?reason=expired` with the login form visible. Evidence: NET_03-auth-redirect.txt and NET_03-auth-redirect.webp.
+
+Decision after 2026-06-04 retest: FIXED because the applicable failed track-detail-load case now shows an actionable recovery state.

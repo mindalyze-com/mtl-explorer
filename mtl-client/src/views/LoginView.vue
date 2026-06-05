@@ -185,7 +185,7 @@ async function handleLogin() {
       loginTimer.success('Login accepted by server');
       setToken(response.data.token);
       submitClientEnvironmentOnce();
-      sessionStorage.setItem('mtl-from-login', '1');
+      sessionStorage.setItem('mtl.from-login', '1');
       // Warm the map-config request before navigating; track data is loaded
       // by Map.vue in incremental batches so the first page can render early.
       fetchMapConfig();

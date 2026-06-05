@@ -1,0 +1,8 @@
+DEL_05 scope-control note
+
+Deletion pass/fail was determined from watched-folder removal, indexer removed=2,
+current API track lists, map/browser/filter/statistics/heatmap/selection/related
+surfaces, and remaining-track detail pages.
+
+No deleted-track stale URL or deleted-track API probe was used as a pass/fail
+criterion for DEL_01 through DEL_04.

@@ -1,0 +1,57 @@
+{
+  "title": "Admin workspace",
+  "stateChip": "Quiet state",
+  "tiles": [
+    {
+      "label": "Upload",
+      "meta": "Import",
+      "aria": "Open Upload"
+    },
+    {
+      "label": "Jobs",
+      "meta": "Idle",
+      "aria": "Open Jobs"
+    },
+    {
+      "label": "Freshness",
+      "meta": "Token",
+      "aria": "Open Freshness"
+    },
+    {
+      "label": "Garmin Sync",
+      "meta": "Remote",
+      "aria": "Open Garmin Sync"
+    },
+    {
+      "label": "Log",
+      "meta": "Server",
+      "aria": "Open Log"
+    },
+    {
+      "label": "Helpers",
+      "meta": "2/2 ready",
+      "aria": "Open Helpers"
+    },
+    {
+      "label": "About",
+      "meta": "Build",
+      "aria": "Open About"
+    },
+    {
+      "label": "Settings",
+      "meta": "Light",
+      "aria": "Open Settings"
+    },
+    {
+      "label": "Session",
+      "meta": "Logout",
+      "aria": "Open Session"
+    },
+    {
+      "label": "Attribution",
+      "meta": "Sources",
+      "aria": "Open Attribution"
+    }
+  ],
+  "visibleCloseButtons": 13
+}

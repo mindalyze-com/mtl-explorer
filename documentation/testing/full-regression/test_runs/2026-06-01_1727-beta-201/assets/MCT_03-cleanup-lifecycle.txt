@@ -1,0 +1,55 @@
+MCT_03 measure cleanup evidence
+{
+  "before": {
+    "url": "http://167.233.16.201:18080/mtl/segments",
+    "activeSegments": true,
+    "segmentText": true,
+    "flowNodes": 2,
+    "overlayText": "A0tracks0sharedtracks",
+    "analyzeDisabled": false,
+    "visibleCloseButtons": 13
+  },
+  "afterClose": {
+    "url": "http://167.233.16.201:18080/mtl/",
+    "activeSegments": false,
+    "segmentText": false,
+    "flowNodes": 0,
+    "measureToolbar": 1,
+    "overlay": false
+  },
+  "afterMapClick": {
+    "url": "http://167.233.16.201:18080/mtl/",
+    "activeSegments": false,
+    "segmentText": false,
+    "flowNodes": 0,
+    "measureToolbar": 1,
+    "trackSelectionVisible": false
+  },
+  "responsesBeforeAfterClick": 1,
+  "measureResponses": [
+    {
+      "phase": "beforeClose",
+      "url": "http://167.233.16.201:18080/mtl/api/tracks/get-track-ids-within-distance-of-point?filterName=SmartBaseFilter&longitude=3.797310500000208&latitude=32.56500912387655&distanceInMeter=14000",
+      "status": 200
+    },
+    {
+      "phase": "afterCloseClick",
+      "url": "http://167.233.16.201:18080/mtl/api/tracks/get-track-ids-within-distance-of-point?filterName=SmartBaseFilter&longitude=3.797310500000208&latitude=32.56500912387655&distanceInMeter=109053.59527157023",
+      "status": 200
+    }
+  ],
+  "logs": [
+    "warning: PMTiles HTTP cache failed; retrying archive range requests without browser cache. {url: /mtl/api/map-proxy/prod/planet.pmtiles?mtl-map-source=public&mtl-map-archive=public-default, message: Failed to fetch}",
+    "warning: PMTiles HTTP cache failed; retrying archive range requests without browser cache. {url: /mtl/api/map-proxy/prod/planet.pmtiles?mtl-map-source=public&mtl-map-archive=public-default, message: Failed to fetch}",
+    "warning: PMTiles HTTP cache failed; retrying archive range requests without browser cache. {url: /mtl/api/map-proxy/prod/planet.pmtiles?mtl-map-source=public&mtl-map-archive=public-default, message: Failed to fetch}",
+    "warning: PMTiles HTTP cache failed; retrying archive range requests without browser cache. {url: /mtl/api/map-proxy/prod/planet.pmtiles?mtl-map-source=public&mtl-map-archive=public-default, message: Failed to fetch}",
+    "warning: PMTiles HTTP cache failed; retrying archive range requests without browser cache. {url: /mtl/api/map-proxy/prod/planet.pmtiles?mtl-map-source=public&mtl-map-archive=public-default, message: Failed to fetch}",
+    "warning: PMTiles HTTP cache failed; retrying archive range requests without browser cache. {url: /mtl/api/map-proxy/prod/planet.pmtiles?mtl-map-source=public&mtl-map-archive=public-default, message: Failed to fetch}",
+    "warning: PMTiles HTTP cache failed; retrying archive range requests without browser cache. {url: /mtl/api/map-proxy/prod/planet.pmtiles?mtl-map-source=public&mtl-map-archive=public-default, message: Failed to fetch}",
+    "warning: PMTiles HTTP cache failed; retrying archive range requests without browser cache. {url: /mtl/api/map-proxy/prod/planet.pmtiles?mtl-map-source=public&mtl-map-archive=public-default, message: Failed to fetch}",
+    "warning: PMTiles HTTP cache failed; retrying archive range requests without browser cache. {url: /mtl/api/map-proxy/prod/planet.pmtiles?mtl-map-source=public&mtl-map-archive=public-default, message: Failed to fetch}",
+    "warning: PMTiles HTTP cache failed; retrying archive range requests without browser cache. {url: /mtl/api/map-proxy/prod/planet.pmtiles?mtl-map-source=public&mtl-map-archive=public-default, message: Failed to fetch}",
+    "warning: PMTiles HTTP cache failed; retrying archive range requests without browser cache. {url: /mtl/api/map-proxy/prod/planet.pmtiles?mtl-map-source=public&mtl-map-archive=public-default, message: Failed to fetch}",
+    "warning: PMTiles HTTP cache failed; retrying archive range requests without browser cache. {url: /mtl/api/map-proxy/prod/planet.pmtiles?mtl-map-source=public&mtl-map-archive=public-default, message: Failed to fetch}"
+  ]
+}

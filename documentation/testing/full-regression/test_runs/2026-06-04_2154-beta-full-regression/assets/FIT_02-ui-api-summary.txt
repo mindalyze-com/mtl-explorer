@@ -1,0 +1,27 @@
+TRACK_COUNT=4
+FIT_PRESENT=true
+FIT id=100005 file=Activity.fit loadStatus=SUCCESS activity=WALKING points=3600 distanceM=3598.76 durationSecs=3597
+DISTANCE_KM=941.9
+DURATION_HOURS=20.11
+ACTIVITY_BREAKDOWN={"BICYCLE":3,"WALKING":1}
+MAP_HAS_4_TRACKS=true
+STATS_HAS_4_TRACKS=true
+SEARCH_QUERY=Activity.fit
+SEARCH_QUERY_RETURNED_FIT_ROW=true
+SEARCH_TEXT_DISPLAYS_ACTIVITY_FIT_FILENAME=false
+SEARCH_HAS_WALKING=true
+CONSOLE_RECENT
+info: [track-cache] manual cache clear complete {durationMs: 21}
+info: [track-cache] sync 10m: fetching 4/4 tracks in 1 batches {precision: 10, totalTracks: 4, cachedTracks: 0, staleOrMissingTracks: 4, staleGeometryCleared: 4}
+warning: [.WebGL-0x12400578600]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
+warning: [.WebGL-0x12400578600]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels (this message will no longer repeat)
+log: [tracks] Map layers rebuilt {durationMs: 3, trackCount: 4, overviewDotCount: 4, hasPalette: false, legendGroupCount: 0}
+info: [track-cache] sync 10m complete {precision: 10, totalTracks: 4, fetchedTracks: 4, cachedTracks: 0, batches: 1}
+log: Downloading low-zoom PMTiles from /mtl/api/map-proxy/prod/world-lowzoom.pmtiles?mtl-map-source=public&mtl-map-archive=public-default … (IndexedDB fallback)
+log: Low-zoom PMTiles cached successfully (IndexedDB, 42.4 MB)
+REQUEST_FAILED_RECENT
+HEAD http://167.233.16.201:18080/mtl/api/info/build net::ERR_ABORTED
+HEAD https://tiles.mapterhorn.com/0/0/0.webp net::ERR_ABORTED
+HEAD https://protomaps.github.io/basemaps-assets/fonts/Noto%20Sans%20Regular/0-255.pbf net::ERR_ABORTED
+HEAD https://protomaps.github.io/basemaps-assets/sprites/v4/light.json net::ERR_ABORTED
+HEAD https://tile.openstreetmap.org/0/0/0.png net::ERR_ABORTED

@@ -1,0 +1,31 @@
+{
+  "selectedSegment": "A-B",
+  "expectedTrackIds": [100017, 100018],
+  "crossingPairs": {
+    "100017": {"from": 637011, "to": 637012, "distanceM": 1319.53, "timeSec": 411.331, "speedKmh": 11.5486},
+    "100018": {"from": 637008, "to": 637009, "distanceM": 1319.53, "timeSec": 523.618, "speedKmh": 9.0721}
+  },
+  "subTrackResponses": [
+    {
+      "trackId": 100018,
+      "status": 200,
+      "pointCount": 2,
+      "first": [7.447100052696799, 46.948100052696795],
+      "last": [7.457199972898322, 46.95819997289832],
+      "bounds": {"minLng": 7.447100052696799, "maxLng": 7.457199972898322, "minLat": 46.948100052696795, "maxLat": 46.95819997289832}
+    },
+    {
+      "trackId": 100017,
+      "status": 200,
+      "pointCount": 2,
+      "first": [7.447000052780105, 46.9480000527801],
+      "last": [7.456999973148321, 46.95799997314832],
+      "bounds": {"minLng": 7.447000052780105, "maxLng": 7.456999973148321, "minLat": 46.9480000527801, "maxLat": 46.95799997314832}
+    }
+  ],
+  "assertions": {
+    "atLeastTwoSubtrackResponses": true,
+    "everySliceHasAtLeastTwoPoints": true,
+    "everySliceStartsAndEndsNearBernSyntheticSegment": true
+  }
+}

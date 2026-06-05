@@ -1,0 +1,38 @@
+{
+  "chips": [
+    {
+      "text": "All 18",
+      "active": false
+    },
+    {
+      "text": "Core 1",
+      "active": false
+    },
+    {
+      "text": "Activity 4",
+      "active": false
+    },
+    {
+      "text": "Date & Time 5",
+      "active": false
+    },
+    {
+      "text": "Performance 4",
+      "active": true
+    },
+    {
+      "text": "Quality 4",
+      "active": false
+    }
+  ],
+  "speedSearchRows": [
+    "Tracks by avg speed (gradient)Colors matching tracks by average moving speed as a 0-99 gradient bucket, from slowest to fastest within the current result set. Optional params AVG_SPEED_MIN_KMH and AVG_SPEED_MAX_KMH can narrow the range before bucketing. This is useful for comparing effort, transport mode, or unusually fast and slow activities while still using the full gradient palette for the visible tracks.",
+    "Tracks by energy (gradient)Colors matching tracks by estimated net mechanical energy as a 0-99 gradient bucket, from lowest to highest energy within the current result set. Optional params ENERGY_MIN_KWH and ENERGY_MAX_KWH can narrow the range before bucketing. This is useful for comparing physically costly activities across distance, climbing, speed, and activity type."
+  ],
+  "performanceGroupRows": [
+    "Tracks by avg speed (gradient)Colors matching tracks by average moving speed as a 0-99 gradient bucket, from slowest to fastest within the current result set. Optional params AVG_SPEED_MIN_KMH and AVG_SPEED_MAX_KMH can narrow the range before bucketing. This is useful for comparing effort, transport mode, or unusually fast and slow activities while still using the full gradient palette for the visible tracks.",
+    "Tracks by distance (gradient)Colors matching tracks by distance as a 0-99 gradient bucket, from shortest to longest within the current result set. Optional params DISTANCE_MIN_KM and DISTANCE_MAX_KM can narrow the range before bucketing. This is useful for seeing short errands, medium loops, and long tours on the same map while preserving strong color contrast.",
+    "Tracks by elevation gain (gradient)Colors matching tracks by accumulated elevation gain as a 0-99 gradient bucket, from flattest to most climbing within the current result set. Optional params ELEVATION_GAIN_MIN_M and ELEVATION_GAIN_MAX_M can narrow the range before bucketing. This is useful for distinguishing flat routes from hilly or alpine days.",
+    "Tracks by energy (gradient)Colors matching tracks by estimated net mechanical energy as a 0-99 gradient bucket, from lowest to highest energy within the current result set. Optional params ENERGY_MIN_KWH and ENERGY_MAX_KWH can narrow the range before bucketing. This is useful for comparing physically costly activities across distance, climbing, speed, and activity type."
+  ]
+}

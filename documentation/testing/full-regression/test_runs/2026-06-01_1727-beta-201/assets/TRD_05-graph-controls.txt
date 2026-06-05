@@ -1,0 +1,34 @@
+TRD_05 graph controls evidence
+Graphs tab opened from map-selected track details.
+Final URL: http://167.233.16.201:18080/mtl/track/100002
+Checks: distanceAxisActive=true, rangeToggled=true, pointCountChanged=true, heightChanged=true, noLayoutBreak=true, restoredControls=true
+
+Clicked visible controls:
+- text=Distance; aria=; title=; class=toggle-btn
+- text=Range; aria=; title=Show min/max range; class=toggle-btn toggle-btn--active
+- text=(icon); aria=Load more chart points; title=Load more chart points; class=graphs-slider-icon-btn
+- text=(icon); aria=Make graphs bigger; title=Make graphs bigger; class=graphs-slider-icon-btn
+
+State transitions:
+- baseline: tab=Graphs; axis=Time; range=true; points=350; charts=6; heights=240/240/240/240/240/240; text=X AXIS Time Distance DETAIL Range POINTS 350 HEIGHT SPEED 0d 05h 0d 11h 0d 16h 0d 22h 1d 03h 0d 02h 0d 08h 0d 13h 0d 19h 1d 01h 1d 06h 0 20 40 60 80 km/h ELEVATION 0d 00h 0d 05h 0d 11h 0d 16h 0d 22h 1d 03h 0d 02h 0d 08h 0d 13h 0d 19h 1d 01h 1d 06h 0 200 400 600 800 m ELEVATION GAIN RATE 0d 05h 0d 11h 0d 16h 0d 22h 1d 0
+- after distance x-axis: tab=Graphs; axis=Distance; range=true; points=350; charts=5; heights=240/240/240/240/240; text=X AXIS Time Distance DETAIL Range POINTS 350 HEIGHT SPEED 50 km 100 km 150 km 200 km 250 km 300 km 350 km 400 km 450 km 500 km 0 20 40 60 80 km/h ELEVATION 0 km 50 km 100 km 150 km 200 km 250 km 300 km 350 km 400 km 450 km 500 km 0 200 400 600 800 m ELEVATION GAIN RATE 50 km 100 km 150 km 200 km 250 km 300 km 350 km 40
+- after range toggle off: tab=Graphs; axis=Distance; range=false; points=350; charts=5; heights=240/240/240/240/240; text=X AXIS Time Distance DETAIL Range POINTS 350 HEIGHT SPEED 50 km 100 km 150 km 200 km 250 km 300 km 350 km 400 km 450 km 500 km 0 20 40 60 km/h ELEVATION 0 km 50 km 100 km 150 km 200 km 250 km 300 km 350 km 400 km 450 km 500 km 0 200 400 600 800 m ELEVATION GAIN RATE 50 km 100 km 150 km 200 km 250 km 300 km 350 km 400 k
+- after more points: tab=Graphs; axis=Distance; range=false; points=375; charts=5; heights=240/240/240/240/240; text=X AXIS Time Distance DETAIL Range POINTS 375 HEIGHT SPEED 50 km 100 km 150 km 200 km 250 km 300 km 350 km 400 km 450 km 500 km 0 20 40 60 km/h ELEVATION 0 km 50 km 100 km 150 km 200 km 250 km 300 km 350 km 400 km 450 km 500 km 0 200 400 600 800 m ELEVATION GAIN RATE 50 km 100 km 150 km 200 km 250 km 300 km 350 km 400 k
+- after bigger height: tab=Graphs; axis=Distance; range=false; points=375; charts=5; heights=250/250/250/250/250; text=X AXIS Time Distance DETAIL Range POINTS 375 HEIGHT SPEED 50 km 100 km 150 km 200 km 250 km 300 km 350 km 400 km 450 km 500 km 0 20 40 60 km/h ELEVATION 0 km 50 km 100 km 150 km 200 km 250 km 300 km 350 km 400 km 450 km 500 km 0 200 400 600 800 m ELEVATION GAIN RATE 50 km 100 km 150 km 200 km 250 km 300 km 350 km 400 k
+- restored: tab=Graphs; axis=Time; range=true; points=350; charts=6; heights=250/250/250/250/250/250; text=X AXIS Time Distance DETAIL Range POINTS 350 HEIGHT SPEED 0d 02h 0d 05h 0d 08h 0d 11h 0d 13h 0d 16h 0d 19h 0d 22h 1d 01h 1d 03h 1d 06h 0 20 40 60 80 km/h ELEVATION 0d 00h 0d 02h 0d 05h 0d 08h 0d 11h 0d 13h 0d 16h 0d 19h 0d 22h 1d 01h 1d 03h 1d 06h 0 200 400 600 800 m ELEVATION GAIN RATE 0d 02h 0d 05h 0d 08h 0d 11h 0d 1
+
+Visible graph control buttons at baseline:
+- text=Time; aria=; title=; class=toggle-btn toggle-btn--active
+- text=Distance; aria=; title=; class=toggle-btn
+- text=Range; aria=; title=Show min/max range; class=toggle-btn toggle-btn--active
+- text=(icon); aria=Load fewer chart points; title=Load fewer chart points; class=graphs-slider-icon-btn
+- text=(icon); aria=Load more chart points; title=Load more chart points; class=graphs-slider-icon-btn
+- text=(icon); aria=Make graphs smaller; title=Make graphs smaller; class=graphs-slider-icon-btn
+- text=(icon); aria=Make graphs bigger; title=Make graphs bigger; class=graphs-slider-icon-btn
+
+Console warning/error count: 8
+- error: Failed to load resource: the server responded with a status of 401 ()
+- error: Failed to load resource: the server responded with a status of 401 ()
+- warning: [.WebGL-0x13400578600]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
+- warning: [.WebGL-0x1340057aa00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
+- warning: [.WebGL-0x13400578600]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels

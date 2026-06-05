@@ -1,0 +1,45 @@
+MCT_01 full UI measurement flow
+{
+  "center": {
+    "x": 758,
+    "y": 450
+  },
+  "clickB": {
+    "x": 639,
+    "y": 128
+  },
+  "beforeAnalyze": {
+    "flowText": "A1trackB1track1sharedtrack",
+    "analyzeDisabled": false,
+    "radiusText": "14000 m"
+  },
+  "responses": [
+    {
+      "url": "http://167.233.16.201:18080/mtl/api/tracks/get-track-details-for-tracks-crossing-points",
+      "status": 200
+    }
+  ],
+  "resultInfo": {
+    "url": "http://167.233.16.201:18080/mtl/segments",
+    "bodyText": "20 km © OpenStreetMap | Elevation: Mapterhorn 12 Tracks Stats Filter Map Animate Segments GPS Planner Admin Segment Analyzer 1 / 1 tracks Consolidated Compare 1 Race 1 Table Trends COLUMN METRIC Speed Time Distance NAME START DURATION A - B MoselradwegAusWiki.gpx 01/01/2010, 01:00 1d 07h 16.27",
+    "hasResults": true,
+    "tableLinks": [
+      "MoselradwegAusWiki.gpx"
+    ],
+    "rows": [
+      "MoselradwegAusWiki.gpx01/01/2010, 01:001d 07h16.27"
+    ],
+    "compareDisabled": false,
+    "raceDisabled": false,
+    "highcharts": 3
+  },
+  "logs": [
+    "error: Failed to load resource: the server responded with a status of 401 ()",
+    "error: Failed to load resource: the server responded with a status of 401 ()",
+    "warning: [.WebGL-0x10c00596e00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
+    "warning: [.WebGL-0x10c00599200]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
+    "warning: [.WebGL-0x10c00596e00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
+    "warning: [.WebGL-0x10c00596e00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels (this message will no longer repeat)",
+    "warning: Highcharts warning: Consider including the \"accessibility.js\" module to make your chart more usable for people with disabilities. Set the \"accessibility.enabled\" option to false to remove this warning. See https://www.highcharts.com/docs/accessibility/accessibility-module."
+  ]
+}

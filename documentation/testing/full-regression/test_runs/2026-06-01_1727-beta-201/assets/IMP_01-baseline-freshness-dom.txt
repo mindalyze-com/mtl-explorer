@@ -1,0 +1,176 @@
+- region "Map"
+- region "Map"
+- button "Zoom in"
+- button "Zoom out"
+- button "Drag to rotate map, click to reset north"
+- text: 
+- button "Enable 3D terrain":
+  - generic: 
+- generic: 10 km
+- generic "Toggle attribution"
+- text: ©
+- link "OpenStreetMap":
+  - /url: https://openstreetmap.org
+- text: "| Elevation:"
+- link "Mapterhorn":
+  - /url: https://mapterhorn.com/attribution/
+- generic: 0 Tracks
+- button " Stats":
+  - generic: 
+  - generic: Stats
+- button " Filter":
+  - generic: 
+  - generic: Filter
+- button " Planner":
+  - generic: 
+  - generic: Planner
+- button " Map":
+  - generic: 
+  - generic: Map
+- button " Animate":
+  - generic: 
+  - generic: Animate
+- button " Segments":
+  - generic: 
+  - generic: Segments
+- button " GPS":
+  - generic: 
+  - generic: GPS
+- button " Admin":
+  - generic: 
+  - generic: Admin
+- generic: 
+- text: Admin
+- button:
+  - generic: 
+- button:
+  - generic: 
+- generic: System utility
+- heading [level=2]: Admin workspace
+- paragraph: Manage imports, runtime tools, diagnostics, and local preferences without leaving the map.
+- generic: Quiet state
+- generic: Data
+- generic: Import and processing activity
+- button:
+  - generic: 
+  - generic: Upload
+  - generic: Import
+  - generic: Import GPX files and inspect ingest readiness.
+  - generic: 
+- button:
+  - generic: 
+  - generic: Jobs
+  - generic: Idle
+  - generic: Track indexer, map, and routing activity.
+  - generic: 
+- button:
+  - generic: 
+  - generic: Freshness
+  - generic: Token
+  - generic: Inspect domain revisions and the current map data token.
+  - generic: 
+- button:
+  - generic: 
+  - generic: Garmin Sync
+  - generic: Remote
+  - generic: Trigger a remote Garmin export to pull new activity files.
+  - generic: 
+- generic: System
+- generic: Diagnostics, tools, and build details
+- button:
+  - generic: 
+  - generic: Log
+  - generic: Server
+  - generic: Inspect recent server output and runtime issues.
+  - generic: 
+- button:
+  - generic: 
+  - generic: Helpers
+  - generic: 2/2 ready
+  - generic: Reload tracks, manage helper tools, and run installs.
+  - generic: 
+- button:
+  - generic: 
+  - generic: About
+  - generic: Build
+  - generic: Client and server build details and runtime info.
+  - generic: 
+- generic: Session
+- generic: Preferences and account controls
+- button:
+  - generic: 
+  - generic: Settings
+  - generic: Light
+  - generic: Adjust color scheme and locale formatting.
+  - generic: 
+- button:
+  - generic: 
+  - generic: Session
+  - generic: Logout
+  - generic: Logout credentials only or wipe all local app data.
+  - generic: 
+- button:
+  - generic: 
+  - generic: Attribution
+  - generic: Sources
+  - generic: Libraries, datasets, and map data references.
+  - generic: 
+- generic: 
+- generic: 
+- text: Current status
+- button "Fullscreen":
+  - generic: 
+- button "Close":
+  - generic: 
+- generic: 
+- generic: In sync
+- generic: The client is showing the latest server data.
+- generic: Checked 17:38:10
+- button "Refresh":
+  - generic: 
+  - generic: Refresh
+- generic: Server
+- code: 5TreFP__|server_id:Cg8oM1u6qqvmF4JAAqTxET|config:9|filters:83|index:0|media:0|track_geometry:0|tracks:0
+- generic: Client
+- code: 5TreFP__|server_id:Cg8oM1u6qqvmF4JAAqTxET|config:9|filters:83|index:0|media:0|track_geometry:0|tracks:0
+- generic: Latest change
+- generic: 01/06/2026, 17:32:21
+- generic: Domains
+- generic: "6"
+- text: Revision sum
+- button "About revision sum": 
+- generic: "92"
+- generic: Tracked writes across all domains; compare tokens, not this number.
+- generic: 
+- generic: Index
+- generic: r0
+- generic: index
+- generic: 01/06/2026, 17:31:43
+- generic: 
+- generic: Tracks
+- generic: r0
+- generic: tracks
+- generic: 01/06/2026, 17:31:43
+- generic: 
+- generic: Geometry
+- generic: r0
+- generic: track_geometry
+- generic: 01/06/2026, 17:31:43
+- generic: 
+- generic: Media
+- generic: r0
+- generic: media
+- generic: 01/06/2026, 17:31:43
+- generic: 
+- generic: Filters
+- generic: r83
+- generic: filters
+- generic: 01/06/2026, 17:31:54
+- generic: 
+- generic: Config
+- generic: r9
+- generic: config
+- generic: 01/06/2026, 17:32:21
+- generic: 
+- text: Polling healthy
+- generic: 

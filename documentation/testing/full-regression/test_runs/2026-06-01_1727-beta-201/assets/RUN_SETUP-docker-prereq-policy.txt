@@ -1,0 +1,7 @@
+docker.io:
+  Installed: (none)
+  Candidate: 26.1.5+dfsg1-9+b13
+  Version table:
+     26.1.5+dfsg1-9+b13 500
+        500 http://deb.debian.org/debian trixie/main amd64 Packages
+        500 http://mirror.hetzner.com/debian/packages trixie/main amd64 Packages

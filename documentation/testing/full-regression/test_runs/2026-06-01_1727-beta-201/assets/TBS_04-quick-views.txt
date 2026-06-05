@@ -1,0 +1,7 @@
+TBS_04 quick-view presets evidence
+All: active=[]; visibleRows=12; empty=false; summary="300 km © OpenStreetMap | Elevation: Mapterhorn 12 Tracks Stats Filter Map Animate Segments GPS Planner Admin Overview Trends Tracks VIEWS All Excluded Stats excluded No activity 12"
+Excluded: active=["Excluded"]; visibleRows=1; empty=true; summary="300 km © OpenStreetMap | Elevation: Mapterhorn 12 Tracks Stats Filter Map Animate Segments GPS Planner Admin Overview Trends Tracks VIEWS All Excluded Stats excluded No activity 0 "
+Stats excluded: active=["Stats excluded"]; visibleRows=1; empty=true; summary="300 km © OpenStreetMap | Elevation: Mapterhorn 12 Tracks Stats Filter Map Animate Segments GPS Planner Admin Overview Trends Tracks VIEWS All Excluded Stats excluded No activity 0 "
+No activity: active=["No activity"]; visibleRows=1; empty=true; summary="300 km © OpenStreetMap | Elevation: Mapterhorn 12 Tracks Stats Filter Map Animate Segments GPS Planner Admin Overview Trends Tracks VIEWS All Excluded Stats excluded No activity 0 "
+All search/sort after preset switching: input=Jura; rows=1; first="01/01/2010, 01:00 Jura Route 7 / 2011 on GPSies.com Bicycle 273 km 7h 46m 35.1 1,808 Wh 100.0% 06/01/2026, 17:39"; hasJura=true
+Cleared back to All: rows=12; allText=true

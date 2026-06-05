@@ -18,7 +18,13 @@
       </div>
       <div class="vr-control-row">
         <span class="vr-label">Speed</span>
-        <Slider v-model="playbackSpeedSelector" :min="0" :max="100" class="vr-speed-slider"></Slider>
+        <MtlSlider
+          v-model="playbackSpeedSelector"
+          :min="0"
+          :max="100"
+          class="vr-speed-slider"
+          aria-label="Adjust race playback speed"
+        />
         <span class="vr-speed-info">{{ speedInfoDisplay }}</span>
       </div>
     </div>
@@ -35,18 +41,38 @@
         @leave-racer="hoveredRacerIndex = null"
       ></MiniMap>
       <!-- Racer count pill — top right -->
-      <span v-if="selectedSegment && selectedSegmentCount != null" class="vr-map-racer-pill">
-        <i class="bi bi-people-fill"></i> {{ selectedSegmentCount }} racers
+      <span v-if="selectedSegment && raceRacerCount != null" class="vr-map-racer-pill">
+        <i class="bi bi-people-fill"></i> {{ raceRacerCount }} racer{{ raceRacerCount === 1 ? '' : 's' }}
       </span>
       <!-- Play / Reset — bottom center -->
       <div class="vr-map-playback">
-        <Button class="vr-start-btn" :disabled="!selectedSegment || isPreviewLoading" @click="onPlayPause">
+        <Button
+          class="vr-start-btn"
+          :disabled="!selectedSegment || isPreviewLoading || !hasStarted"
+          @click="onPlayPause"
+        >
           <i :class="isRunning ? 'bi bi-pause-fill' : 'bi bi-play-fill'"></i>
         </Button>
         <Button class="vr-reset-btn" :disabled="!hasStarted" severity="secondary" @click="onReset">
           <i class="bi bi-arrow-counterclockwise"></i>
         </Button>
       </div>
+    </div>
+
+    <div v-if="isPreviewLoading" class="vr-placeholder">
+      <i class="bi bi-hourglass-split"></i>
+      <p>Loading race segment…</p>
+    </div>
+
+    <div v-else-if="previewMessage" class="vr-placeholder">
+      <i class="bi bi-signpost-split"></i>
+      <p>{{ previewMessage }}</p>
+    </div>
+
+    <div v-if="showMinimap && skippedRacerCount > 0" class="vr-warning">
+      <i class="bi bi-info-circle"></i>
+      {{ skippedRacerCount }} selected racer{{ skippedRacerCount === 1 ? '' : 's' }} lacked enough segment data and
+      {{ skippedRacerCount === 1 ? 'was' : 'were' }} skipped.
     </div>
 
     <!-- Racers legend -->
@@ -74,16 +100,18 @@
 
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue';
-import type { CrossingPointsResponse, GpsTrackDataPoint } from 'x8ing-mtl-api-typescript-fetch/dist/esm/models/index';
+import type { CrossingPointsResponseDto, GpsTrackDataPointDto } from 'x8ing-mtl-api-typescript-fetch/dist/esm/models/index';
 import { fetchTrackSubTrackDetails } from '@/utils/ServiceHelper';
 import MiniMap from '@/components/map/MiniMap.vue';
 import RacerCard from '@/components/ui/RacerCard.vue';
+import MtlSlider from '@/components/ui/MtlSlider.vue';
 import { generateColors, formatDateAndTime, formatDuration, formatNumber, formatDistance } from '@/utils/Utils';
+import { normalizeSegmentSlice, type SegmentSliceResult } from '@/components/measure/segmentSlice';
 
 defineOptions({ name: 'VirtualRace' });
 
 type SegmentCode = { point1?: string; point2?: string; consolidated?: boolean; p1Visit?: number; p2Visit?: number };
-type TrackPoint = Omit<GpsTrackDataPoint, 'pointLongLat'> & { pointLongLat?: { coordinates?: number[] } };
+type TrackPoint = Omit<GpsTrackDataPointDto, 'pointLongLat'> & { pointLongLat?: { coordinates?: number[] } };
 type SegmentOption = { name?: string; count?: number; code: SegmentCode };
 type RaceTriggerPoint = { coordinate: { x: number; y: number }; name: string };
 type RaceCrossing = {
@@ -106,10 +134,17 @@ type RaceCrossingsPerTrack = {
 type MatchingCrossing = { crossings: [RaceCrossing, RaceCrossing]; gpsTrack: RaceGpsTrack };
 type RaceGeoJson = GeoJSON.FeatureCollection<GeoJSON.Geometry, Record<string, unknown>>;
 type MapBounds = [[number, number], [number, number]];
+type LngLat = [number, number];
+type RacerProgress = {
+  elapsedSec: number;
+  progressRatio: number;
+  distanceM: number;
+  finished: boolean;
+};
 
 const props = withDefaults(
   defineProps<{
-    measureServiceResult?: CrossingPointsResponse | null;
+    measureServiceResult?: CrossingPointsResponseDto | null;
     consolidateVisits?: boolean;
     initialSegment?: SegmentCode | null;
     selectedTrackIds?: Set<number>;
@@ -134,6 +169,7 @@ const playbackSpeedSelector = ref(49);
 const avgSegmentDurationSec = ref(0);
 const showMinimap = ref(false);
 const trackDetailDataResults = ref<TrackPoint[][] | null>(null);
+const raceDurationsSec = ref<number[]>([]);
 const simulationStartRealtime = ref(-1);
 const simulationColors = ref<string[]>([]);
 const raceGeoJson = ref<RaceGeoJson | null>(null);
@@ -149,6 +185,9 @@ const mapBounds = ref<MapBounds>([
   [8.525778, 47.5705],
 ]);
 const hoveredRacerIndex = ref<number | null>(null);
+const racerProgress = ref<RacerProgress[]>([]);
+const previewMessage = ref('');
+const skippedRacerCount = ref(0);
 
 // Derives speed multiplier from desired animation duration.
 // Slider pos 0 = 60s (slowest), pos 100 = 1s (fastest).
@@ -177,14 +216,16 @@ const availableSegments = computed<SegmentOption[]>(() => {
     if (!props.selectedTrackIds.has(tid)) continue;
     const countPerTP = new Map<string, number>();
     let lastCrossing: RaceCrossing | null = null;
+    let lastVisit: number | null = null;
     for (const crossing of trackCrossings.crossings) {
       const name = crossing.triggerPoint.name;
-      countPerTP.set(name, (countPerTP.get(name) || 0) + 1);
-      if (lastCrossing != null) {
+      const currentVisit = (countPerTP.get(name) || 0) + 1;
+      countPerTP.set(name, currentVisit);
+      if (lastCrossing != null && lastVisit != null) {
         const p1 = lastCrossing.triggerPoint.name;
-        const p1v = countPerTP.get(p1);
+        const p1v = lastVisit;
         const p2 = name;
-        const p2v = countPerTP.get(name);
+        const p2v = currentVisit;
         const key = p1 + p1v + '-' + p2 + p2v;
         if (!segmentMap.has(key)) {
           segmentMap.set(key, {
@@ -197,6 +238,7 @@ const availableSegments = computed<SegmentOption[]>(() => {
         segment.count = (segment.count || 0) + 1;
       }
       lastCrossing = crossing;
+      lastVisit = currentVisit;
     }
   }
   return Array.from(segmentMap.values());
@@ -238,6 +280,8 @@ const selectedSegmentCount = computed(() => {
   return seg?.count ?? null;
 });
 
+const raceRacerCount = computed(() => matchingCrossings.value?.length ?? selectedSegmentCount.value);
+
 // Right-side slider label: always in seconds, with derived multiplier when segment data loaded.
 const speedInfoDisplay = computed(() => {
   const secs = Math.max(1, Math.round(Math.exp((1 - playbackSpeedSelector.value / 100) * Math.log(60))));
@@ -265,7 +309,20 @@ const sortedRacers = computed(() => {
     originalIndex,
     durationSec: crossing.crossings?.[1]?.timeInSecSinceLastTriggerPoint ?? Number.POSITIVE_INFINITY,
   }));
-  entries.sort((a, b) => a.durationSec - b.durationSec);
+  if (hasStarted.value && racerProgress.value.length > 0) {
+    entries.sort((a, b) => {
+      const pa = racerProgress.value[a.originalIndex];
+      const pb = racerProgress.value[b.originalIndex];
+      if (pa?.finished && pb?.finished) return a.durationSec - b.durationSec;
+      if (pa?.finished) return -1;
+      if (pb?.finished) return 1;
+      const progressDiff = (pb?.progressRatio ?? 0) - (pa?.progressRatio ?? 0);
+      if (Math.abs(progressDiff) > 0.0001) return progressDiff;
+      return a.durationSec - b.durationSec;
+    });
+  } else {
+    entries.sort((a, b) => a.durationSec - b.durationSec);
+  }
   return entries;
 });
 
@@ -282,14 +339,19 @@ function asRaceCrossingsPerTrack(value: unknown): RaceCrossingsPerTrack {
   return value as RaceCrossingsPerTrack;
 }
 
-function matchesSelectedSegment(lastCrossing: RaceCrossing, crossing: RaceCrossing, countPerTP: Map<string, number>) {
+function matchesSelectedSegment(
+  lastCrossing: RaceCrossing,
+  crossing: RaceCrossing,
+  lastVisit: number | null,
+  currentVisit: number
+) {
   const seg = selectedSegment.value;
   if (!seg) return false;
   if (seg.point1 !== lastCrossing.triggerPoint?.name) return false;
   if (seg.point2 !== crossing.triggerPoint?.name) return false;
   if (seg.consolidated === false) {
-    if (seg.p1Visit !== countPerTP.get(lastCrossing.triggerPoint.name)) return false;
-    if (seg.p2Visit !== countPerTP.get(crossing.triggerPoint.name)) return false;
+    if (seg.p1Visit !== lastVisit) return false;
+    if (seg.p2Visit !== currentVisit) return false;
   }
   return true;
 }
@@ -308,18 +370,21 @@ function autoSelectSpeed() {
     if (!props.selectedTrackIds.has(tid)) continue;
     const countPerTP = new Map<string, number>();
     let lastCrossing: RaceCrossing | null = null;
+    let lastVisit: number | null = null;
     for (const crossing of crossings.crossings) {
       const name = crossing.triggerPoint.name;
-      countPerTP.set(name, (countPerTP.get(name) || 0) + 1);
+      const currentVisit = (countPerTP.get(name) || 0) + 1;
+      countPerTP.set(name, currentVisit);
       if (
         lastCrossing != null &&
-        matchesSelectedSegment(lastCrossing, crossing, countPerTP) &&
+        matchesSelectedSegment(lastCrossing, crossing, lastVisit, currentVisit) &&
         crossing.timeInSecSinceLastTriggerPoint
       ) {
         totalDuration += crossing.timeInSecSinceLastTriggerPoint;
         count++;
       }
       lastCrossing = crossing;
+      lastVisit = currentVisit;
     }
   }
   if (count > 0) {
@@ -335,11 +400,16 @@ function autoSelectSpeed() {
 }
 
 async function preparePreview() {
+  const token = ++prepareToken.value;
   if (!selectedSegment.value || !props.measureServiceResult) {
     stopAnimation();
     matchingCrossings.value = null;
     trackDetailDataResults.value = null;
+    raceDurationsSec.value = [];
     raceGeoJson.value = null;
+    racerProgress.value = [];
+    previewMessage.value = '';
+    skippedRacerCount.value = 0;
     showMinimap.value = false;
     return;
   }
@@ -348,51 +418,58 @@ async function preparePreview() {
   isPaused.value = false;
   pausedElapsedRealMs.value = 0;
   simulationStartRealtime.value = -1;
+  previewMessage.value = '';
+  skippedRacerCount.value = 0;
   isPreviewLoading.value = true;
 
-  const token = ++prepareToken.value;
   const activeTrackIds = new Set(props.selectedTrackIds);
 
   const nextMatchingCrossings: MatchingCrossing[] = [];
-  const fetchPromises: Array<Promise<GpsTrackDataPoint[]>> = [];
-  const nextTriggerPointsInvolved = new Map<string, RaceTriggerPoint>();
-
+  const fetchPromises: Array<Promise<GpsTrackDataPointDto[]>> = [];
   for (const [trackId, crossingsRaw] of Object.entries(props.measureServiceResult.crossings || {})) {
     const crossings = asRaceCrossingsPerTrack(crossingsRaw);
     const tid = Number(trackId);
     if (!activeTrackIds.has(tid)) continue;
     const countPerTP = new Map<string, number>();
     let lastCrossing: RaceCrossing | null = null;
+    let lastVisit: number | null = null;
     for (const crossing of crossings.crossings) {
       const name = crossing.triggerPoint.name;
-      countPerTP.set(name, (countPerTP.get(name) || 0) + 1);
+      const currentVisit = (countPerTP.get(name) || 0) + 1;
+      countPerTP.set(name, currentVisit);
       if (
         lastCrossing != null &&
-        matchesSelectedSegment(lastCrossing, crossing, countPerTP) &&
+        matchesSelectedSegment(lastCrossing, crossing, lastVisit, currentVisit) &&
         lastCrossing.gpsTrackDataPoint?.id != null &&
         crossing.gpsTrackDataPoint?.id != null
       ) {
         nextMatchingCrossings.push({ crossings: [lastCrossing, crossing], gpsTrack: crossings.gpsTrack });
-        nextTriggerPointsInvolved.set(crossing.triggerPoint.name, crossing.triggerPoint);
-        nextTriggerPointsInvolved.set(lastCrossing.triggerPoint.name, lastCrossing.triggerPoint);
         fetchPromises.push(fetchTrackSubTrackDetails(lastCrossing.gpsTrackDataPoint.id, crossing.gpsTrackDataPoint.id));
       }
       lastCrossing = crossing;
+      lastVisit = currentVisit;
     }
   }
 
-  let adjustedResults: TrackPoint[][];
+  let normalizedResults: SegmentSliceResult<TrackPoint>[];
   try {
     const results = await Promise.all(fetchPromises);
-    adjustedResults = results.map((track, i) =>
-      withVirtualEndpoints(track as TrackPoint[], nextMatchingCrossings[i]?.crossings)
+    normalizedResults = results.map((track, i) =>
+      normalizeSegmentSlice(track as TrackPoint[], nextMatchingCrossings[i]?.crossings, {
+        requirePositiveDistanceOrGeometry: true,
+        requirePositiveDuration: true,
+      })
     );
   } catch (error) {
     if (token !== prepareToken.value) return;
     console.error('Virtual race preview failed:', error);
     matchingCrossings.value = null;
     trackDetailDataResults.value = null;
+    raceDurationsSec.value = [];
     raceGeoJson.value = null;
+    racerProgress.value = [];
+    previewMessage.value = 'Could not load race segment data.';
+    skippedRacerCount.value = 0;
     showMinimap.value = false;
     return;
   } finally {
@@ -403,34 +480,60 @@ async function preparePreview() {
 
   if (token !== prepareToken.value) return; // stale — newer prepare in flight
 
-  if (!adjustedResults || adjustedResults.length === 0) {
+  const validMatchingCrossings: MatchingCrossing[] = [];
+  const validResults: TrackPoint[][] = [];
+  const validDurationsSec: number[] = [];
+  const validTriggerPointsInvolved = new Map<string, RaceTriggerPoint>();
+  for (let i = 0; i < normalizedResults.length; i++) {
+    const crossing = nextMatchingCrossings[i];
+    const segment = normalizedResults[i];
+    if (!crossing || !segment.valid) continue;
+    const points = segment.points;
+    validMatchingCrossings.push(crossing);
+    validResults.push(points);
+    validDurationsSec.push(segment.durationSec || segmentDurationFromPoints(points, crossing));
+    validTriggerPointsInvolved.set(crossing.crossings[0].triggerPoint.name, crossing.crossings[0].triggerPoint);
+    validTriggerPointsInvolved.set(crossing.crossings[1].triggerPoint.name, crossing.crossings[1].triggerPoint);
+  }
+
+  if (validResults.length === 0) {
     matchingCrossings.value = null;
     trackDetailDataResults.value = null;
+    raceDurationsSec.value = [];
     raceGeoJson.value = null;
+    racerProgress.value = [];
+    previewMessage.value = 'Selected tracks do not contain enough segment data to race.';
+    skippedRacerCount.value = normalizedResults.length;
+    showMinimap.value = false;
     return;
   }
 
-  matchingCrossings.value = nextMatchingCrossings;
-  trackDetailDataResults.value = adjustedResults;
-  triggerPointsInvolved.value = nextTriggerPointsInvolved;
+  skippedRacerCount.value = normalizedResults.length - validResults.length;
+  matchingCrossings.value = validMatchingCrossings;
+  trackDetailDataResults.value = validResults;
+  raceDurationsSec.value = validDurationsSec;
+  triggerPointsInvolved.value = validTriggerPointsInvolved;
 
   // Assign one color per unique track
-  const uniqueTrackIds = [...new Set(nextMatchingCrossings.map((mc) => mc.gpsTrack.id))];
+  const uniqueTrackIds = [...new Set(validMatchingCrossings.map((mc) => mc.gpsTrack.id))];
   const trackColorPalette = generateColors(uniqueTrackIds.length);
   const trackIdToColor = new Map(uniqueTrackIds.map((id, i) => [id, trackColorPalette[i]]));
-  simulationColors.value = nextMatchingCrossings.map((mc) => trackIdToColor.get(mc.gpsTrack.id) || '#2563eb');
+  simulationColors.value = validMatchingCrossings.map((mc) => trackIdToColor.get(mc.gpsTrack.id) || '#2563eb');
 
-  racerTrails.value = adjustedResults.map(() => []);
+  racerTrails.value = validResults.map(() => []);
+  racerProgress.value = initialRacerProgress(validResults.length);
 
   // Compute map bounds
   let cLatMin = Number.MAX_VALUE,
     cLatMax = -Number.MAX_VALUE;
   let cLongMin = Number.MAX_VALUE,
     cLongMax = -Number.MAX_VALUE;
-  for (const track of adjustedResults) {
+  let hasBoundsCoordinate = false;
+  for (const track of validResults) {
     for (const point of track) {
-      const coords = point.pointLongLat?.coordinates;
+      const coords = pointCoordinates(point);
       if (!coords) continue;
+      hasBoundsCoordinate = true;
       const lng = coords[0];
       const lat = coords[1];
       if (lat < cLatMin) cLatMin = lat;
@@ -438,6 +541,17 @@ async function preparePreview() {
       if (lng > cLongMax) cLongMax = lng;
       if (lng < cLongMin) cLongMin = lng;
     }
+  }
+  if (!hasBoundsCoordinate) {
+    matchingCrossings.value = null;
+    trackDetailDataResults.value = null;
+    raceDurationsSec.value = [];
+    raceGeoJson.value = null;
+    racerProgress.value = [];
+    previewMessage.value = 'Selected tracks do not contain enough segment data to race.';
+    skippedRacerCount.value = normalizedResults.length;
+    showMinimap.value = false;
+    return;
   }
   const dLat = (cLatMax - cLatMin) * 0.3;
   const dLong = (cLongMax - cLongMin) * 0.3;
@@ -447,7 +561,7 @@ async function preparePreview() {
   ];
 
   // Show racers at their start positions
-  buildRaceGeoJson(nextTriggerPointsInvolved);
+  buildRaceGeoJson(validTriggerPointsInvolved);
 
   showMinimap.value = true;
   nextTick(() => {
@@ -457,30 +571,15 @@ async function preparePreview() {
   });
 }
 
-function withVirtualEndpoints(track: TrackPoint[], crossingPair: [RaceCrossing, RaceCrossing] | undefined) {
-  if (!Array.isArray(track) || track.length === 0 || !Array.isArray(crossingPair) || crossingPair.length < 2) {
-    return track;
+function segmentDurationFromPoints(track: TrackPoint[], crossing: MatchingCrossing) {
+  const first = track[0];
+  const last = track[track.length - 1];
+  const startDuration = Number(first?.durationSinceStart);
+  const endDuration = Number(last?.durationSinceStart);
+  if (Number.isFinite(startDuration) && Number.isFinite(endDuration) && endDuration > startDuration) {
+    return endDuration - startDuration;
   }
-
-  const start = crossingPair[0]?.gpsTrackDataPoint;
-  const end = crossingPair[1]?.gpsTrackDataPoint;
-  if (!start || !end) return track;
-
-  const startDuration = start?.durationSinceStart;
-  const endDuration = end?.durationSinceStart;
-  if (typeof startDuration !== 'number' || typeof endDuration !== 'number') {
-    return track;
-  }
-
-  const inner = track.filter((point) => {
-    const pointDuration = point?.durationSinceStart;
-    if (typeof pointDuration !== 'number') {
-      return true;
-    }
-    return pointDuration > startDuration && pointDuration < endDuration;
-  });
-
-  return [start as TrackPoint, ...inner, end as TrackPoint];
+  return crossing.crossings?.[1]?.timeInSecSinceLastTriggerPoint ?? 0;
 }
 
 function buildRaceGeoJson(activeTriggerPointsInvolved: Map<string, RaceTriggerPoint>) {
@@ -503,16 +602,15 @@ function buildRaceGeoJson(activeTriggerPointsInvolved: Map<string, RaceTriggerPo
   for (const track of trackDetailDataResults.value || []) {
     trackIndex++;
     const simulationPoint = track[0];
+    const coords = pointCoordinates(simulationPoint);
+    if (!coords) continue;
     const color = simulationColors.value[trackIndex];
     const trackName = matchingCrossings.value?.[trackIndex]?.gpsTrack?.indexedFile?.name || 'Track ' + trackIndex;
     features.push({
       type: 'Feature',
       geometry: {
         type: 'Point',
-        coordinates: [
-          simulationPoint.pointLongLat?.coordinates?.[0] ?? 0,
-          simulationPoint.pointLongLat?.coordinates?.[1] ?? 0,
-        ],
+        coordinates: coords,
       },
       properties: { type: 'racer', trackIndex, color, trackName },
     });
@@ -528,6 +626,7 @@ function animateRace() {
 
   let foundAtLeastOne = false;
   const features: RaceGeoJson['features'] = [];
+  const nextProgress: RacerProgress[] = [];
 
   // Keep trigger points (they don't move)
   if (raceGeoJson.value) {
@@ -540,26 +639,45 @@ function animateRace() {
   for (const track of trackDetailDataResults.value) {
     trackIndex++;
     const trackStartTime = track[0].durationSinceStart || 0;
+    const segmentDurationSec = segmentDurationSeconds(trackIndex);
     const color = simulationColors.value[trackIndex];
 
-    let simulationPoint: TrackPoint | null = null;
-    for (const point of track) {
-      const trackTimeSinceStartInSeconds = (point.durationSinceStart || 0) - trackStartTime;
-      if (trackTimeSinceStartInSeconds > timeSinceStartSimulationInSeconds) {
-        foundAtLeastOne = true;
-        simulationPoint = point;
-        break;
+    let simulationPoint: TrackPoint | null = track[0];
+    let elapsedSec = 0;
+    if (timeSinceStartSimulationInSeconds <= 0) {
+      foundAtLeastOne = true;
+    } else {
+      for (let i = 1; i < track.length; i++) {
+        const previousPoint = track[i - 1];
+        const point = track[i];
+        const previousTimeSinceStartInSeconds = (previousPoint.durationSinceStart || 0) - trackStartTime;
+        const trackTimeSinceStartInSeconds = (point.durationSinceStart || 0) - trackStartTime;
+        if (trackTimeSinceStartInSeconds > timeSinceStartSimulationInSeconds) {
+          const spanSec = trackTimeSinceStartInSeconds - previousTimeSinceStartInSeconds;
+          const factor =
+            spanSec > 0 ? (timeSinceStartSimulationInSeconds - previousTimeSinceStartInSeconds) / spanSec : 1;
+          foundAtLeastOne = true;
+          simulationPoint = interpolateTrackPoint(previousPoint, point, factor);
+          elapsedSec = Math.max(0, timeSinceStartSimulationInSeconds);
+          break;
+        }
       }
     }
 
-    if (simulationPoint == null) {
+    if (simulationPoint == null || timeSinceStartSimulationInSeconds >= segmentDurationSec) {
       simulationPoint = track[track.length - 1];
+      elapsedSec = segmentDurationSec;
     }
 
-    const coord: [number, number] = [
-      simulationPoint.pointLongLat?.coordinates?.[0] || 0,
-      simulationPoint.pointLongLat?.coordinates?.[1] || 0,
-    ];
+    if (timeSinceStartSimulationInSeconds < segmentDurationSec) {
+      foundAtLeastOne = true;
+    }
+
+    const coord = pointCoordinates(simulationPoint);
+    if (!coord) {
+      nextProgress[trackIndex] = progressForSimulationPoint(trackIndex, track, simulationPoint, elapsedSec);
+      continue;
+    }
 
     // Append to trail (avoid duplicates)
     const trail = racerTrails.value[trackIndex];
@@ -567,6 +685,8 @@ function animateRace() {
     if (!last || last[0] !== coord[0] || last[1] !== coord[1]) {
       trail.push(coord);
     }
+
+    nextProgress[trackIndex] = progressForSimulationPoint(trackIndex, track, simulationPoint, elapsedSec);
 
     // Trail line
     if (trail.length >= 2) {
@@ -591,6 +711,7 @@ function animateRace() {
   }
 
   raceGeoJson.value = { type: 'FeatureCollection', features };
+  racerProgress.value = nextProgress;
 
   if (!foundAtLeastOne) {
     stopAnimation();
@@ -612,6 +733,7 @@ function onPlayPause() {
     // Fresh start — data already preloaded by preparePreview().
     if (!trackDetailDataResults.value || trackDetailDataResults.value.length === 0) return;
     racerTrails.value = trackDetailDataResults.value.map(() => []);
+    racerProgress.value = initialRacerProgress(trackDetailDataResults.value.length);
     buildRaceGeoJson(triggerPointsInvolved.value);
     simulationStartRealtime.value = new Date().getTime();
     animationTimerId.value = setInterval(animateRace, 33);
@@ -626,6 +748,7 @@ function onReset() {
   // Restore racers to their start positions without re-fetching.
   if (trackDetailDataResults.value && trackDetailDataResults.value.length > 0) {
     racerTrails.value = trackDetailDataResults.value.map(() => []);
+    racerProgress.value = initialRacerProgress(trackDetailDataResults.value.length);
     buildRaceGeoJson(triggerPointsInvolved.value);
   }
 }
@@ -645,9 +768,103 @@ function formatTrackDate(date: Date | string | number | null | undefined) {
   return formatDateAndTime(date);
 }
 
-function racerStats(entry: { crossing: MatchingCrossing }): Array<{ icon: string; text: string }> {
+function initialRacerProgress(count: number): RacerProgress[] {
+  return Array.from({ length: count }, () => ({ elapsedSec: 0, progressRatio: 0, distanceM: 0, finished: false }));
+}
+
+function segmentDurationSeconds(trackIndex: number): number {
+  const normalizedDuration = raceDurationsSec.value[trackIndex];
+  if (normalizedDuration && normalizedDuration > 0) return normalizedDuration;
+  return matchingCrossings.value?.[trackIndex]?.crossings?.[1]?.timeInSecSinceLastTriggerPoint ?? 0;
+}
+
+function interpolateTrackPoint(from: TrackPoint, to: TrackPoint, factor: number): TrackPoint {
+  const clampedFactor = Math.max(0, Math.min(1, factor));
+  const fromCoords = pointCoordinates(from);
+  const toCoords = pointCoordinates(to);
+  const interpolated = { ...to };
+
+  if (fromCoords && toCoords) {
+    interpolated.pointLongLat = {
+      ...to.pointLongLat,
+      coordinates: [
+        fromCoords[0] + (toCoords[0] - fromCoords[0]) * clampedFactor,
+        fromCoords[1] + (toCoords[1] - fromCoords[1]) * clampedFactor,
+      ],
+    };
+  }
+
+  interpolated.durationSinceStart = interpolateNumber(from.durationSinceStart, to.durationSinceStart, clampedFactor);
+  interpolated.distanceInMeterSinceStart = interpolateNumber(
+    from.distanceInMeterSinceStart,
+    to.distanceInMeterSinceStart,
+    clampedFactor
+  );
+  return interpolated;
+}
+
+function pointCoordinates(point: TrackPoint | null | undefined): LngLat | null {
+  const coords = point?.pointLongLat?.coordinates;
+  if (!Array.isArray(coords) || coords.length < 2) return null;
+  const lng = Number(coords[0]);
+  const lat = Number(coords[1]);
+  if (!Number.isFinite(lng) || !Number.isFinite(lat)) return null;
+  if (Math.abs(lng) > 180 || Math.abs(lat) > 90) return null;
+  return [lng, lat];
+}
+
+function interpolateNumber(
+  from: number | null | undefined,
+  to: number | null | undefined,
+  factor: number
+): number | undefined {
+  if (typeof from !== 'number' || typeof to !== 'number' || !Number.isFinite(from) || !Number.isFinite(to)) {
+    if (typeof to === 'number') return to;
+    if (typeof from === 'number') return from;
+    return undefined;
+  }
+  return from + (to - from) * factor;
+}
+
+function progressForSimulationPoint(
+  trackIndex: number,
+  track: TrackPoint[],
+  point: TrackPoint,
+  elapsedSec: number
+): RacerProgress {
+  const durationSec = segmentDurationSeconds(trackIndex);
+  const firstDistance = Number(track[0]?.distanceInMeterSinceStart ?? 0);
+  const currentDistance = Number(point.distanceInMeterSinceStart ?? firstDistance);
+  const fallbackDistance = matchingCrossings.value?.[trackIndex]?.crossings?.[1]?.distanceInMeterSinceLastTriggerPoint;
+  const progressRatio = durationSec > 0 ? Math.min(1, Math.max(0, elapsedSec / durationSec)) : 0;
+  const distanceM =
+    Number.isFinite(currentDistance) && currentDistance >= firstDistance
+      ? currentDistance - firstDistance
+      : Number(fallbackDistance ?? 0) * progressRatio;
+  return {
+    elapsedSec,
+    progressRatio,
+    distanceM,
+    finished: durationSec > 0 && progressRatio >= 1,
+  };
+}
+
+function racerStats(entry: {
+  crossing: MatchingCrossing;
+  originalIndex?: number;
+}): Array<{ icon: string; text: string }> {
   const crossing = entry.crossing.crossings[1];
   const stats = [];
+  const progress = entry.originalIndex == null ? null : racerProgress.value[entry.originalIndex];
+  if (progress && hasStarted.value) {
+    stats.push({
+      icon: progress.finished ? 'bi-flag-fill' : 'bi-flag',
+      text: `${formatNumber(progress.progressRatio * 100, 0)}%`,
+    });
+    if (progress.distanceM > 0) {
+      stats.push({ icon: 'bi-signpost-split', text: formatDistance(progress.distanceM) ?? '' });
+    }
+  }
   if (crossing?.timeInSecSinceLastTriggerPoint) {
     stats.push({ icon: 'bi-stopwatch', text: formatDuration(crossing.timeInSecSinceLastTriggerPoint * 1000) });
   }
@@ -699,6 +916,7 @@ onMounted(() => {
 });
 
 onBeforeUnmount(() => {
+  prepareToken.value++;
   stopAnimation();
 });
 </script>
@@ -813,6 +1031,8 @@ onBeforeUnmount(() => {
   flex: 1 1 0;
   min-width: 4rem;
   max-width: 14rem;
+  --mtl-slider-track-height-default: 4px;
+  --mtl-slider-track-height-coarse: 8px;
 }
 
 .vr-start-btn,
@@ -890,6 +1110,34 @@ onBeforeUnmount(() => {
   width: 100%;
   border-radius: 8px;
   overflow: hidden;
+}
+
+/* ── Placeholder ── */
+.vr-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 1.75rem 1rem;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: var(--text-sm-size);
+}
+
+.vr-placeholder i {
+  font-size: var(--text-3xl-size);
+  opacity: 0.7;
+}
+
+.vr-warning {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  background: var(--surface-glass);
+  color: var(--text-muted);
+  font-size: var(--text-sm-size);
 }
 
 /* ── Legend ── */

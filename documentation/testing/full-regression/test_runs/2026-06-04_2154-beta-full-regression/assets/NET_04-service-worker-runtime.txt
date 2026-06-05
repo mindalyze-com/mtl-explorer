@@ -1,0 +1,25 @@
+{
+  "runtime": {
+    "url": "http://167.233.16.201:18080/mtl/login",
+    "origin": "http://167.233.16.201:18080",
+    "protocol": "http:",
+    "isSecureContext": false,
+    "hasServiceWorkerApi": false,
+    "registrationsReadable": false,
+    "registrationCount": null,
+    "controllerPresent": false,
+    "registrationScopes": []
+  },
+  "servedAssets": {
+    "swStatus": "HTTP HEAD returned 200 during shell verification",
+    "swLastModified": "Thu, 04 Jun 2026 19:44:34 GMT",
+    "swContentLength": null,
+    "manifestLastModified": "Thu, 04 Jun 2026 19:44:34 GMT",
+    "manifestContentLength": "449"
+  },
+  "localCodeFacts": {
+    "appVue": "mtl-client/src/App.vue watches needRefresh and calls updateServiceWorker(true), then reloads and shows a post-reload App Updated toast.",
+    "viteConfig": "mtl-client/vite.config.ts uses VitePWA registerType prompt and Workbox precache."
+  },
+  "conclusion": "No service-worker update can be triggered in this remote plain-HTTP browser context: isSecureContext=false and navigator.serviceWorker is unavailable. A second deployed build would also be required to verify the new-version update path."
+}

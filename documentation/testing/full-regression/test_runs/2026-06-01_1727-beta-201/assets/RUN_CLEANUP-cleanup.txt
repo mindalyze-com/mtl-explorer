@@ -1,0 +1,18 @@
+RUN_CLEANUP evidence:
+
+- Finalization gate before cleanup: PASS (171 coverage IDs terminal).
+- Compose stop command:
+  `cd /root/mtl-regression-2026-06-01_1727-beta-201/mtl-explorer && docker compose down`
+- Compose stop result:
+  - Removed `mtl-explorer-app-1`
+  - Removed `mtl-explorer-brouter-1`
+  - Removed `mtl-explorer-location-search-1`
+  - Removed `mtl-explorer-db-1`
+  - Removed network `mtl-explorer_default`
+- Running-container verification:
+  `docker ps --format "{{.Names}} {{.Image}} {{.Status}}" | grep -E "mtl-explorer|mytraillog" || true`
+  returned no matching running containers.
+- Disposable directory removal:
+  `rm -rf /root/mtl-regression-2026-06-01_1727-beta-201`
+  followed by `test ! -e /root/mtl-regression-2026-06-01_1727-beta-201` returned `removed`.
+- Cleanup completed: 2026-06-02T01:27:50+02:00.

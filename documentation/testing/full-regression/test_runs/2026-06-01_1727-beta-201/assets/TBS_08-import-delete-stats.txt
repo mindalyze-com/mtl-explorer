@@ -1,0 +1,4 @@
+TBS_08 import/delete statistics update evidence
+Five-GPX import state: IMP_09-stats-overview.webp and IMP_09-stats-api-summary.txt captured five imported GPX tracks with totals, activity breakdown, period summaries, rankings, browser/map context, and heatmap density after import/reload.
+Post-delete state: DEL_03-stats-3-tracks.webp, DEL_03-filter-3-tracks.webp, and DEL_03-user-visible-removal.txt captured the visible dataset after deleting Vitry and Lannion source files: three remaining GPX tracks were visible and deleted track names were absent from user-facing surfaces.
+No current data mutation was performed for this packet; this verifies the required data-change flow evidence already captured in this run.

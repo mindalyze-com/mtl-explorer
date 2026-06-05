@@ -1,0 +1,72 @@
+{
+  "beforeMapReload": {
+    "dataTheme": "dark",
+    "colorScheme": "dark",
+    "mapSettings": {
+      "theme": "dark",
+      "mapSourceMode": "auto",
+      "legendCollapsed": false,
+      "basemapEnabled": true,
+      "terrainEnabled": false,
+      "terrainExaggeration": 1,
+      "tracksEnabled": true,
+      "trackPointsVisible": true,
+      "heatmapVisible": false,
+      "activeOverlays": [],
+      "layerOpacities": {
+        "basemap": 100,
+        "terrain": 100,
+        "tracks": 100,
+        "media": 100,
+        "trackpoints": 100,
+        "heatmap": 100,
+        "wanderland": 100,
+        "veloland": 100,
+        "mountainbikeland": 100,
+        "wanderwege": 100,
+        "wmt-hiking": 100,
+        "wmt-cycling": 100,
+        "wmt-mtb": 100
+      }
+    },
+    "locale": null,
+    "bodyText": "500 km © OpenStreetMap 19 Tracks Stats Filter Map Animate Segments GPS Planner Admin Maps and data Reset BASE MAP ★ OSM Topo ★ Swiss Color Swiss Light OSM Light OSM Gray ✓ OSM Dark MAP SOURCE Auto Remote VIEW MODE 3D Terrain Perspective terrain view using Mapterhorn elevation mesh BACKGROUND Base Map The background map tiles — street map, topo, or satellite imagery DATA LAYERS GPS Tracks All your recorded activities drawn as colored lines on the map Photos & Media Geotagged photos and media clustered by location Track Points & Direction Individual GPS points with direction arrows — only visibl"
+  },
+  "afterMapReload": {
+    "dataTheme": "dark",
+    "colorScheme": "dark",
+    "mapSettings": {
+      "theme": "dark",
+      "mapSourceMode": "auto",
+      "legendCollapsed": false,
+      "basemapEnabled": true,
+      "terrainEnabled": false,
+      "terrainExaggeration": 1,
+      "tracksEnabled": true,
+      "trackPointsVisible": true,
+      "heatmapVisible": false,
+      "activeOverlays": [],
+      "layerOpacities": {
+        "basemap": 100,
+        "terrain": 100,
+        "tracks": 100,
+        "media": 100,
+        "trackpoints": 100,
+        "heatmap": 100,
+        "wanderland": 100,
+        "veloland": 100,
+        "mountainbikeland": 100,
+        "wanderwege": 100,
+        "wmt-hiking": 100,
+        "wmt-cycling": 100,
+        "wmt-mtb": 100
+      }
+    },
+    "locale": null,
+    "bodyText": "500 km © OpenStreetMap 19 Tracks Stats Filter Map Animate Segments GPS Planner Admin Maps and data Reset BASE MAP ★ OSM Topo ★ Swiss Color Swiss Light OSM Light OSM Gray ✓ OSM Dark MAP SOURCE Auto Remote VIEW MODE 3D Terrain Perspective terrain view using Mapterhorn elevation mesh BACKGROUND Base Map The background map tiles — street map, topo, or satellite imagery DATA LAYERS GPS Tracks All your recorded activities drawn as colored lines on the map Photos & Media Geotagged photos and media clustered by location Track Points & Direction Individual GPS points with direction arrows — only visibl"
+  },
+  "assertions": {
+    "storedDarkBeforeReload": true,
+    "storedDarkAfterReload": true
+  }
+}

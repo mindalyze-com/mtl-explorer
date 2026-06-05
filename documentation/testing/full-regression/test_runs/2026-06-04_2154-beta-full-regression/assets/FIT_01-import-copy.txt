@@ -1,0 +1,12 @@
+LOCAL
+949a238e1bb75c3684479785f76fa9a16888bb394518844248f488171d591387  /tmp/mtl-regression-data-20260604-2154/Activity.fit
+-rw-r--r--@ 1 pheusser  wheel  94096 Jun  4 22:03 /tmp/mtl-regression-data-20260604-2154/Activity.fit
+
+REMOTE
+949a238e1bb75c3684479785f76fa9a16888bb394518844248f488171d591387  data/gpx/Activity.fit
+-rw-r--r-- 1 root root 94096 Jun  4 20:42 data/gpx/Activity.fit
+Activity.fit
+GPX-UPLOAD
+JuraRoute72011.gpx
+MoselradwegAusWiki.gpx
+Vitry-le-Francois_Langres.gpx

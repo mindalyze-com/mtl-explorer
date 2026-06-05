@@ -30,7 +30,7 @@ for each coverage packet. Use the same shape for `RUN_SETUP.md` and
 
 | Coverage ID | Action | Expected result | Actual result | Status | Evidence |
 |---|---|---|---|---|---|
-| TRD_01 | <what was done> | <expected UI/system result> | <observed result> | PASS/PARTIAL/FAIL/BLOCKED/NOT COVERED/NOT APPLICABLE | <assets/... or note> |
+| TRD_01 | <what was done> | <expected UI/system result> | <observed result> | PASS/PARTIAL/FAIL/BLOCKED/NOT COVERED/NOT APPLICABLE/FIXED/REJECTED/NOT REPRODUCEABLE/NOT REPRODUCIBLE | [assets/<coverage-id>-<short-name>.webp](../assets/<coverage-id>-<short-name>.webp); [assets/<coverage-id>-<short-name>.txt](../assets/<coverage-id>-<short-name>.txt) |
 
 ## Issues
 
@@ -41,8 +41,12 @@ for each coverage packet. Use the same shape for `RUN_SETUP.md` and
 
 | File | Purpose |
 |---|---|
-| assets/<coverage-id>-<short-name>.webp | <short caption> |
-| assets/<coverage-id>-<short-name>.txt | <short command/log summary> |
+| [assets/<coverage-id>-<short-name>.webp](../assets/<coverage-id>-<short-name>.webp) | <short caption> |
+| [assets/<coverage-id>-<short-name>.txt](../assets/<coverage-id>-<short-name>.txt) | <short command/log summary> |
+
+## Screenshot Evidence
+
+![<short caption>](../assets/<coverage-id>-<short-name>.webp)
 
 ## Timings
 
@@ -61,6 +65,13 @@ for each coverage packet. Use the same shape for `RUN_SETUP.md` and
 
 - Each packet covers one coverage ID and must have an explicit status.
 - `PASS` requires direct action and evidence, not a broad prefix summary.
+- `FIXED` requires direct retest evidence that a previously recorded issue now
+  behaves as expected.
+- `REJECTED` requires a concrete reason that the candidate issue is expected
+  behavior, invalid, or outside the coverage requirement.
+- `NOT REPRODUCEABLE` or `NOT REPRODUCIBLE` requires direct evidence that the
+  recorded reproduction path was attempted and did not reproduce the issue.
+  Prefer `NOT REPRODUCIBLE` for new entries; the gate accepts both spellings.
 - `PARTIAL` must name the missing child checks and keep the coverage ID
   resumable in `run-state.md`.
 - `NOT COVERED` means the coverage ID still lacks direct execution evidence; it
@@ -69,7 +80,13 @@ for each coverage packet. Use the same shape for `RUN_SETUP.md` and
   constraint and whether it blocks the full regression.
 - `NOT APPLICABLE` must explain why the coverage text does not apply to this
   configured run.
-- Evidence should be compact: WebP screenshots where useful, `.txt` log snippets
-  under 5 KB, and no bulky traces unless needed for a failure.
+- Evidence should be compact: WebP screenshots where useful, each WebP
+  screenshot asset at 85 KB (85,000 bytes) or less, `.txt` log snippets under
+  5 KB, and no bulky traces unless needed for a failure.
+- Every packet evidence asset reference must be a Markdown link. From packet
+  files, use `../assets/<filename>` as the href while keeping the visible label
+  as `assets/<filename>`.
+- Embed packet WebP screenshots inline with Markdown image syntax in `Screenshot
+  Evidence`; link text/log evidence instead of pasting long content.
 - If the packet mutates shared state, record the before and after state in the
   packet and in `run-state.md`.

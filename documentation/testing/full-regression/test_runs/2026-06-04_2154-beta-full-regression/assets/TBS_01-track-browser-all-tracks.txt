@@ -1,0 +1,25 @@
+{
+  "summary": "11\ntracks\n·\n966 km\n·\n20h 46m",
+  "headers": [
+    "Start",
+    "Track",
+    "Activity",
+    "Distance",
+    "Duration",
+    "Avg km/h",
+    "Energy",
+    "Exploration",
+    "Imported"
+  ],
+  "rows": [
+    "06/04/2026, 22:54format-geojson-synthetic-trackGenerated from route format-geojson-synthetic-trackBicycle3.49 km0m 00s4 Wh100.0% 06/04/2026, 22:54",
+    "06/04/2026, 22:54PathBicycle3.50 km0m 00s20 Wh100.0% 06/04/2026, 22:54",
+    "06/04/2026, 22:54PathBicycle3.51 km0m 00s20 Wh100.0% 06/04/2026, 22:54",
+    "01/16/2026, 09:00format-gdb-synthetic-trackBicycle3.53 km10m 30s20.227 Wh100.0% 06/04/2026, 22:54",
+    "01/14/2026, 09:00Track 100010Bicycle3.38 km10m 30s19.3160 Wh100.0% 06/04/2026, 22:54",
+    "01/13/2026, 09:00GNSSALTTRKIGCHDRS~HFPLTPILOT:Unknown~Bicycle3.54 km10m 30s20.227 Wh100.0% 06/04/2026, 22:54",
+    "01/10/2026, 09:00format-tcx-syntBicycle3.55 km10m 30s20.327 Wh100.0% 06/04/2026, 22:54",
+    "07/20/2021, 23:11Track 100005Walking3.60 km59m 57s3.6347 Wh100.0% 06/04/2026, 22:42"
+  ],
+  "apiTrackCount": 11
+}

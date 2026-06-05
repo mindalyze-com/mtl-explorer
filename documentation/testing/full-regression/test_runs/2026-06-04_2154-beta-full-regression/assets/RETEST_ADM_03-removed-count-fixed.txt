@@ -1,0 +1,41 @@
+{
+  "fixed": true,
+  "apiStatus": 200,
+  "gpsApi": {
+    "index": "GPS",
+    "total": 8,
+    "pending": 0,
+    "completed": 6,
+    "failed": 0,
+    "removed": 2,
+    "excluded": 0,
+    "progressPercent": 75
+  },
+  "gpsCard": "GPS\nDONE\n75%\n6\n2 removed\n8 total",
+  "cards": [
+    "MEDIA done 100% 3030 total",
+    "GPS done 75% 6 2 removed 8 total",
+    "Duplicate Finder done 100% 66 total",
+    "Activity Classifier done 100% 66 total",
+    "Exploration Score done 100% 66 total",
+    "Vector Map Tiles done100%Using hosted map service Protomaps archive public-defaultHosted map service",
+    "Location Search done100%GeoNames location search ready. Image 1.2 · Built 05/25/2026, 15:54:08 · Python 3.14.5 · Sqlite 3.53.1 · Apsw 3.53.1.0 · Source Attribution GeoNames · Source Url https://www.geonames.org/ · Source License CC-BY 4.0 · Source License Url https://creativecommons.org/licenses/by/4.0/ · Source Build Date 2026-05-24T22:14:20.822921Z · Schema Version geonames-search-v1 · Row Count 1332531 · Populated Place Count 233251 · Terrain Count 10992801332531 places (233251 populated, 1099280 terrain)",
+    "Routing Segments ready100%Routing segments are ready for planned routes. Image 1.11 · Built 05/25/2026, 15:54:08 · BRouter 1.7.9"
+  ],
+  "initial": {
+    "cards": [
+      "MEDIA done 100% 3030 total",
+      "GPS done 75% 6 2 removed 8 total",
+      "Duplicate Finder done 100% 66 total",
+      "Activity Classifier done 100% 66 total",
+      "Exploration Score done 100% 66 total",
+      "Vector Map Tiles done100%Using hosted map service Protomaps archive public-defaultHosted map service",
+      "Location Search done100%GeoNames location search ready. Image 1.2 · Built 05/25/2026, 15:54:08 · Python 3.14.5 · Sqlite 3.53.1 · Apsw 3.53.1.0 · Source Attribution GeoNames · Source Url https://www.geonames.org/ · Source License CC-BY 4.0 · Source License Url https://creativecommons.org/licenses/by/4.0/ · Source Build Date 2026-05-24T22:14:20.822921Z · Schema Version geonames-search-v1 · Row Count 1332531 · Populated Place Count 233251 · Terrain Count 10992801332531 places (233251 populated, 1099280 terrain)",
+      "Routing Segments ready100%Routing segments are ready for planned routes. Image 1.11 · Built 05/25/2026, 15:54:08 · BRouter 1.7.9"
+    ],
+    "body": "500 km\n© OpenStreetMap | Elevation: Mapterhorn\n6 Tracks\nStats\nFilter\nMap\nAnimate\nSegments\nGPS\nPlanner\nAdmin\nAdmin\nSYSTEM UTILITY\nAdmin workspace\n\nManage imports, runtime tools, diagnostics, and local preferences without leaving the map.\n\nQuiet state\nData\nImport and processing activity\nUpload\nIMPORT\nImport GPX files and inspect ingest readiness.\nJobs\nIDLE\nTrack indexer, map, and routing activity.\nFreshness\nTOKEN\nInspect domain revisions and the current map data token.\nGarmin Sync\nREMOTE\nTrigger a remote Garmin export to pull new activity files.\nSystem\nDiagnostics, tools, and build details\nLog\nSERVER\nInspect recent server output and runtime issues.\nHelpers\n2/2 READY\nReload tracks, manage helper tools, and run installs.\nAbout\nBUILD\nClient and server build details and runtime info.\nSession\nPreferences and account controls\nSettings\nLIGHT\nAdjust color scheme and locale formatting.\nSession\nLOGOUT\nLogout credentials only or wipe all local app data.\nAttribution\nSOURCES\nLibraries, datasets, and map data references.\nJobs\nPROCESSING\nJobs\n\nMonitor background indexing and understand what the system is currently working on.\n\nManual index rescan\n\nDocker Desktop on Windows with WSL2 can show copied files in the container without sending Linux file events. Queue a rescan after adding files from a Windows-mounted folder.\n\nRescan GPS\nRescan Media\nFile Indexers\nMEDIA\nDONE\n100%\n30\n30 total\nGPS\nDONE\n75%\n6\n2 removed\n8 total\nTrack Processing Jobs\nDuplicate Finder\nDONE\n100%\n6\n6 total\nActivity Classifier\nDONE\n100%\n6\n6 total\nExploration Score\nDONE\n100%\n6\n6 total\nMap & Routing\nVector Map Tiles\nDONE\n100%\nUsing hosted map service\nProtomaps archive public-default\nHosted map service\nLocation Search\nDONE\n100%\nGeoNames location search ready.\nImage 1.2 · Built 05/25/2026, 15:54:08 · Python 3.14.5 · Sqlite 3.53.1 · Apsw 3.53.1.0 · Source Attribution GeoNames · Source Url https://www.geonames.org/ · Source License CC-BY 4.0 · Source License Url https://creativecommons.org/licenses/by/4.0/ · Source Build Date 2026-05-24T22:14:20.822921Z · Schema Version geonames-search-v1 · Row Count 1332531 · Populated Place Count 233251 · Terrain Count 1099280\n1332531 places (233251 populated, 1099280 terrain)\nRouting Segments\nREADY\n100%\nRouting segments are ready for planned routes.\nImage 1.11 · Built 05/25/2026, 15:54:08 · BRouter 1.7.9\nRefresh\nUpdated 09:29:23 AM"
+  },
+  "consoleProblems": [],
+  "pageErrors": [],
+  "screenshot": "assets/RETEST_ADM_03-removed-count-fixed.webp"
+}

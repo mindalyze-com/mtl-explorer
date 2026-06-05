@@ -1,0 +1,52 @@
+{
+  "bannerAfterReload": "",
+  "countAfterReload": 15,
+  "body": "500 km © OpenStreetMap | Elevation: Mapterhorn 15 Tracks Stats Filter Map Animate Segments GPS Planner Admin Overview Trends Tracks 15 TRACKS 973 km DISTANCE 20h 46m DURATION 4,537 Wh ENERGY ACTIVITY BREAKDOWN Tracks Distance Duration Energy Bicycle 13 13 Unknown 1 1 Walking 1 1 HIGHLIGHTS Longest track Moselradweg aus Wiki on GPSies.com 518 km Longest duration Jura Route 7 / 2011 on GPSies.com 7h 46m Biggest ascent Jura Route 7 / 2011 on GPSies.com 6,324 m Quickest ascent Track 100010 50,000 m/h Most energy Jura Route 7 / 2011 on GPSies.com 1,808 Wh Fastest 30 s speed Moselradweg aus Wiki on GPSies.com 58.3 km/h Peak 30 s power Track 100010 2,500 W Most common activity Bicycle 13 tracks RECENT ACTIVITY View all tracks syn-banner-upload synthetic 1780618906161 06/04/2026, 23:00 740.55 m 3m 00s format-geojson-synthetic-track Bicycle 06/04/2026, 22:54 3.49 km 0m 00s Path Bicycle 06/04/2026, 22:54 3.50 km 0m 00s Path Bicycle 06/04/2026, 22:54 3.51 km 0m 00s ADM upload synthetic 2026-06-04_2154-beta-full-regression Bicycle 06/04/2026, 22:00 233.07 m 3m 00s RHYTHM & MILESTONES Most Active Periods Most active day 2010-01-01 19h 04m 3 tracks - 938 km Most active week 2009-W53 19h 04m 3 tracks - 938 km Most active month 2010-01 19h 04m 3 tracks - 938 km Most active weekday Friday 19h 15m 4 tracks - 942 km Milestones First activity Jura Route 7 / 2011 on GPSies.com 01/01/2010, 01:00 Latest activity syn-banner-upload synthetic 1780618906161 06/04/2026, 23:00 First 50 km track Jura Route 7 / 2011 on GPSies.com 273 km First 100 km track Jura Route 7 / 2011 on GPSies.com 273 km First 1000 m ascent Jura Route 7 / 2011 on GPSies.com 6,324 m First 2000 m ascent Jura Route 7 / 2011 on GPSies.com 6,324 m First 1000 Wh activity Jura Route 7 / 2011 on GPSies.com 1,808 Wh 01/01/2010 - 06/04/2026",
+  "localFreshness": {
+    "applied": "64LhPF__|server_id:4cPgaT3KHaptNtCyRmtRqJ|config:9|filters:83|index:168|media:31|track_geometry:102|tracks:119",
+    "dismissed": "",
+    "dismissedExpiresAt": 0,
+    "now": 1780618943680
+  },
+  "serverFreshness": {
+    "freshnessToken": "6jLUeW__|server_id:4cPgaT3KHaptNtCyRmtRqJ|config:9|filters:83|index:168|media:31|track_geometry:102|tracks:121",
+    "changedAt": "2026-06-05T00:22:22.958+0000",
+    "items": [
+      {
+        "key": "config",
+        "revision": 9,
+        "changedAt": "2026-06-04T19:59:27.631+0000"
+      },
+      {
+        "key": "filters",
+        "revision": 83,
+        "changedAt": "2026-06-04T19:59:00.621+0000"
+      },
+      {
+        "key": "index",
+        "revision": 168,
+        "changedAt": "2026-06-05T00:21:56.309+0000"
+      },
+      {
+        "key": "media",
+        "revision": 31,
+        "changedAt": "2026-06-04T23:27:17.717+0000"
+      },
+      {
+        "key": "track_geometry",
+        "revision": 102,
+        "changedAt": "2026-06-05T00:21:56.242+0000"
+      },
+      {
+        "key": "tracks",
+        "revision": 121,
+        "changedAt": "2026-06-05T00:22:22.958+0000"
+      }
+    ]
+  },
+  "assertions": {
+    "bannerGone": true,
+    "apiCountAtLeastAfterUpload": true,
+    "statsShowsTracks": true
+  }
+}

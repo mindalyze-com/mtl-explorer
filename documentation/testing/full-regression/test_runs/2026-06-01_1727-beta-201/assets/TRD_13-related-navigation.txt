@@ -1,0 +1,148 @@
+TRD_13 related-tracks evidence
+Temporary duplicate file: trd13_duplicate_map03.gpx -> track #100015
+Stats search row clicked: 03/01/2026, 11:00 MAP 03 Freshness Synthetic Bicycle 674.26 m 0m 00s 15 Wh 100.0% 06/01/2026, 19:10
+Opened URL: http://167.233.16.201:18080/mtl/track/100014
+
+Related tab sections:
+Show 3 older (3 remaining) Track #100005 Jul 20, 2021 FMT TCX Synthet Feb 2, 2026 GNSSALTTRK Feb 4, 2026 IGCHDRS~HFPLTPILOT:Unknown~ Track #100013 Feb 5, 2026 FMT GDB Synthetic Feb 7, 2026 PREVIOUS TRACKS 8
+CURRENT TRACK MAP 03 Freshness Synthetic Mar 1, 2026
+NEXT TRACKS 3 Path Jun 1, 2026 FMT GEOJSON Synthetic Jun 1, 2026 Generated from route FMT GEOJSON Synthetic Path Jun 1, 2026
+DUPLICATES 1 MAP 03 Freshness Synthetic Mar 1, 2026
+
+Duplicate card clicked: MAP 03 Freshness Synthetic Mar 1, 2026
+Navigation URL after click: http://167.233.16.201:18080/mtl/track/100014
+Navigation text contains #100015: true
+Navigation text excerpt: 300 km © OpenStreetMap | Elevation: Mapterhorn 12 Tracks Stats Filter Map Animate Segments GPS Planner Admin TRACK DETAILS #100015 Bicycle 3D Replay Overview Graphs Quality Related Events Show 3 older (3 remaining) Track #100005 Jul 20, 2021 FMT TCX Synthet Feb 2, 2026 GNSSALTTRK Feb 4, 2026 IGCHDRS~HFPLTPILOT:Unknown~ Track #100013 Feb 5, 2026 FMT GDB Synthetic Feb 7, 2026 PREVIOUS TRACKS 8 CURRENT TRACK MAP 03 Freshness Synthetic Mar 1, 2026 NEXT TRACKS 3 Path Jun 1, 2026 FMT GEOJSON Synthetic
+
+API state after duplicate import and UI click:
+{
+  "originalRelated": {
+    "duplicates": [
+      100015
+    ],
+    "previous": [
+      100012,
+      100013,
+      100008,
+      100006,
+      100005
+    ],
+    "next": [
+      100007,
+      100010,
+      100011
+    ]
+  },
+  "duplicateRelated": {
+    "duplicates": [
+      100015
+    ],
+    "previous": [
+      100012,
+      100013,
+      100008,
+      100006,
+      100005
+    ],
+    "next": [
+      100007,
+      100010,
+      100011
+    ]
+  },
+  "duplicateTrack": {
+    "id": 100015,
+    "file": "trd13_duplicate_map03.gpx",
+    "duplicateStatus": "DUPLICATE",
+    "duplicateOf": 100014,
+    "loadStatus": "SUCCESS"
+  },
+  "allTrackCount": 13,
+  "visibleIdCount": {
+    "standardFilterCount": 12,
+    "numberOfFilteredMatchedTracks": 12,
+    "trackVersions": {
+      "100000": 5,
+      "100002": 5,
+      "100003": 5,
+      "100005": 15,
+      "100006": 5,
+      "100007": 5,
+      "100008": 5,
+      "100010": 5,
+      "100011": 5,
+      "100012": 5,
+      "100013": 5,
+      "100014": 5
+    },
+    "filterGroups": {
+      "100000": "BICYCLE",
+      "100002": "BICYCLE",
+      "100003": "BICYCLE",
+      "100005": "WALKING",
+      "100006": "BICYCLE",
+      "100007": "BICYCLE",
+      "100008": "BICYCLE",
+      "100010": "BICYCLE",
+      "100011": "BICYCLE",
+      "100012": "BICYCLE",
+      "100013": "BICYCLE",
+      "100014": "BICYCLE"
+    }
+  }
+}
+
+Console warning/error count: 7
+error: Failed to load resource: the server responded with a status of 401 ()
+error: Failed to load resource: the server responded with a status of 401 ()
+warning: [.WebGL-0x13400576800]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
+warning: [.WebGL-0x13400579200]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
+warning: [.WebGL-0x13400576800]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
+warning: [.WebGL-0x13400576800]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels (this message will no longer repeat)
+warning: Highcharts warning: Consider including the "accessibility.js" module to make your chart more usable for people with disabilities. Set the "accessibility.enabled" option to false to remove this warning. See https://www.highcharts.com/docs/accessibility/accessibility-module.
+
+Cleanup after temporary duplicate:
+{
+  "idx": [
+    {
+      "index": "GPS",
+      "total": 15,
+      "pending": 0,
+      "completed": 12,
+      "failed": 0,
+      "removed": 3,
+      "excluded": 0,
+      "progressPercent": 80
+    }
+  ],
+  "jobs": [
+    {
+      "job": "duplicate",
+      "label": "Duplicate Finder",
+      "total": 12,
+      "pending": 0,
+      "done": 12,
+      "progressPercent": 100
+    },
+    {
+      "job": "activityType",
+      "label": "Activity Classifier",
+      "total": 12,
+      "pending": 0,
+      "done": 12,
+      "progressPercent": 100
+    },
+    {
+      "job": "exploration",
+      "label": "Exploration Score",
+      "total": 12,
+      "pending": 0,
+      "done": 12,
+      "progressPercent": 100
+    }
+  ],
+  "allTrackCount": 12,
+  "duplicatePresent": false,
+  "relDups": [],
+  "visible": 12
+}

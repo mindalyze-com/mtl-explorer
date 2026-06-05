@@ -39,6 +39,38 @@
       </div>
     </div>
 
+    <div class="section-label section-label--controls"><i class="bi bi-sliders"></i> Track Controls</div>
+    <div class="overview-control-panel" data-test="overview-track-controls">
+      <label class="overview-control">
+        <span class="overview-control__label">Activity Type</span>
+        <select
+          v-model="selectedActivityType"
+          class="overview-control__select"
+          :disabled="savingActivityType"
+          data-test="overview-activity-type-select"
+          @change="onActivityTypeSelect"
+        >
+          <option v-for="option in activityTypeOptions" :key="option.value" :value="option.value">
+            {{ option.label }}
+          </option>
+        </select>
+      </label>
+      <label class="overview-control">
+        <span class="overview-control__label">Statistics</span>
+        <select
+          v-model="selectedStatisticsExclusion"
+          class="overview-control__select"
+          :disabled="savingStatisticsExclusion"
+          data-test="overview-statistics-exclusion-select"
+          @change="onStatisticsExclusionSelect"
+        >
+          <option v-for="option in statisticsExclusionOptions" :key="option.value || 'included'" :value="option.value">
+            {{ option.label }}
+          </option>
+        </select>
+      </label>
+    </div>
+
     <!-- Loading skeleton -->
     <div v-if="!summaryReady" class="skeleton-grid">
       <div v-for="n in 4" :key="n" class="skeleton-tile"></div>
@@ -209,6 +241,17 @@
         >
           <i class="bi bi-info-circle"></i>
         </button>
+        <button
+          v-if="hasEnergy"
+          type="button"
+          class="energy-adjust-trigger"
+          data-test="energy-adjust-trigger"
+          aria-label="Adjust rider weight"
+          title="Adjust rider weight"
+          @click.stop="openEnergyAdjustDialog"
+        >
+          <i class="bi bi-pencil-square"></i>
+        </button>
       </div>
 
       <!-- Not yet calculated -->
@@ -293,13 +336,6 @@
           <div class="energy-tooltip" :class="{ 'energy-tooltip--visible': activeTooltip === 'maxPower' }">
             {{ wattsToKcalH(peakPowerWatts) }} kcal/h mechanical equivalent
           </div>
-        </div>
-        <div v-if="gpsTrack.energyWeightKgUsed" class="metric-tile metric-tile--energy">
-          <i class="bi bi-person metric-tile__icon metric-tile__icon--sm" style="color: var(--accent)"></i>
-          <div class="metric-tile__value metric-tile__value--sm">
-            {{ formatNumber(gpsTrack.energyWeightKgUsed, 1) }} kg
-          </div>
-          <div class="metric-tile__label">Mass Used</div>
         </div>
       </div>
 
@@ -534,6 +570,149 @@
       </div>
     </details>
 
+    <Dialog
+      v-model:visible="energyAdjustVisible"
+      modal
+      append-to="body"
+      header="Adjust rider weight"
+      class="energy-adjust-dialog"
+      :style="{ width: 'min(92vw, 32rem)' }"
+    >
+      <form class="energy-adjust" data-test="energy-adjust-dialog" @submit.prevent="saveEnergyRiderWeight">
+        <div class="energy-adjust__baseline">
+          <div>
+            <span>Current rider</span>
+            <strong>{{
+              energyWhatIfResult?.baselineRiderWeightKg != null
+                ? `${formatNumber(energyWhatIfResult.baselineRiderWeightKg, 1)} kg`
+                : '—'
+            }}</strong>
+          </div>
+          <div>
+            <span>Model mass</span>
+            <strong>{{
+              energyWhatIfResult?.baselineWeightKgUsed != null
+                ? `${formatNumber(energyWhatIfResult.baselineWeightKgUsed, 1)} kg`
+                : gpsTrack.energyWeightKgUsed != null
+                  ? `${formatNumber(gpsTrack.energyWeightKgUsed, 1)} kg`
+                  : '—'
+            }}</strong>
+          </div>
+        </div>
+
+        <div class="energy-adjust__field">
+          <div class="energy-adjust__label-row">
+            <label for="energy-rider-weight">Rider weight</label>
+            <span>{{ formatNumber(energyAdjustWeightKg, 1) }} kg</span>
+          </div>
+
+          <div class="energy-adjust__stepper">
+            <button
+              type="button"
+              class="energy-adjust__step-btn"
+              :disabled="energySaveLoading || energyAdjustWeightKg <= ENERGY_WEIGHT_MIN_KG"
+              aria-label="Decrease rider weight"
+              @click="nudgeEnergyAdjustWeight(-ENERGY_WEIGHT_STEP_KG)"
+            >
+              <i class="bi bi-dash-lg"></i>
+            </button>
+            <div class="energy-adjust__input-wrap">
+              <input
+                id="energy-rider-weight"
+                v-model.number="energyAdjustWeightKg"
+                type="number"
+                :min="ENERGY_WEIGHT_MIN_KG"
+                :max="ENERGY_WEIGHT_MAX_KG"
+                :step="ENERGY_WEIGHT_STEP_KG"
+                inputmode="decimal"
+                class="energy-adjust__input"
+                data-test="energy-rider-weight-input"
+                :disabled="energySaveLoading"
+                @input="queueEnergyWhatIf"
+                @change="commitEnergyAdjustWeight()"
+                @blur="commitEnergyAdjustWeight()"
+              />
+              <span>kg</span>
+            </div>
+            <button
+              type="button"
+              class="energy-adjust__step-btn"
+              :disabled="energySaveLoading || energyAdjustWeightKg >= ENERGY_WEIGHT_MAX_KG"
+              aria-label="Increase rider weight"
+              @click="nudgeEnergyAdjustWeight(ENERGY_WEIGHT_STEP_KG)"
+            >
+              <i class="bi bi-plus-lg"></i>
+            </button>
+          </div>
+
+          <input
+            v-model.number="energyAdjustWeightKg"
+            type="range"
+            :min="ENERGY_WEIGHT_MIN_KG"
+            :max="ENERGY_WEIGHT_MAX_KG"
+            :step="ENERGY_WEIGHT_STEP_KG"
+            class="energy-adjust__range"
+            aria-label="Rider weight"
+            :disabled="energySaveLoading"
+            @input="queueEnergyWhatIf"
+          />
+          <div class="energy-adjust__scale" aria-hidden="true">
+            <span>{{ ENERGY_WEIGHT_MIN_KG }} kg</span>
+            <span>{{ ENERGY_WEIGHT_MAX_KG }} kg</span>
+          </div>
+        </div>
+
+        <div v-if="energyWhatIfError" class="energy-adjust__error" data-test="energy-adjust-error">
+          {{ energyWhatIfError }}
+        </div>
+
+        <div v-if="energyWhatIfLoading && !energyWhatIfResult" class="energy-adjust__loading">
+          <i class="pi pi-spin pi-spinner"></i>
+          <span>Calculating</span>
+        </div>
+
+        <div
+          v-if="energyWhatIfResult"
+          class="energy-adjust__results"
+          :class="{ 'energy-adjust__results--updating': energyWhatIfLoading }"
+          data-test="energy-adjust-results"
+        >
+          <div class="energy-adjust__result energy-adjust__result--primary">
+            <span>Total</span>
+            <strong>{{ formatNumber(energyWhatIfResult.adjustedSummary?.netEnergyTotalWh, 1) }} Wh</strong>
+          </div>
+          <div class="energy-adjust__result" :class="energyWhatIfDeltaTone">
+            <span>Delta</span>
+            <strong>{{ formatSignedWh(energyWhatIfResult.deltaSummary?.netEnergyTotalWh) }}</strong>
+          </div>
+          <div class="energy-adjust__result">
+            <span>Avg power</span>
+            <strong>{{ formatNumber(energyWhatIfResult.adjustedSummary?.powerWattsAvg, 0) }} W</strong>
+          </div>
+        </div>
+
+        <div class="energy-adjust__actions">
+          <button
+            type="button"
+            class="energy-adjust__action energy-adjust__action--secondary"
+            :disabled="energySaveLoading || energyWhatIfResult?.baselineRiderWeightKg == null"
+            @click="resetEnergyAdjustWeight"
+          >
+            Reset
+          </button>
+          <button
+            type="submit"
+            class="energy-adjust__action energy-adjust__action--primary"
+            data-test="energy-adjust-save"
+            :disabled="energySaveLoading || !energyAdjustWeightValid || !energyWhatIfResult"
+          >
+            <i v-if="energySaveLoading" class="pi pi-spin pi-spinner"></i>
+            <span>{{ energySaveLoading ? 'Saving' : 'Save' }}</span>
+          </button>
+        </div>
+      </form>
+    </Dialog>
+
     <Popover ref="infoPopover" append-to="body">
       <div class="track-detail-info-text">
         <p v-for="(paragraph, paragraphIndex) in currentInfoContent" :key="paragraphIndex">
@@ -559,8 +738,22 @@ import {
 } from '@/utils/Utils';
 import type { ChartPoint } from '@/utils/chartSeriesAdapter';
 import ActivityTypeBadge from '@/components/ui/ActivityTypeBadge.vue';
-import type { GpsTrack } from 'x8ing-mtl-api-typescript-fetch/dist/esm/models/index';
-import { downloadTrackGpx as downloadTrackGpxFile, downloadTrackSourceFile } from '@/utils/ServiceHelper';
+import {
+  GpsTrackActivityTypeEnum,
+  GpsTrackStatisticsExclusionReasonEnum,
+  type EnergyWhatIfResponse,
+  type GpsTrack,
+  type GpsTrackActivityTypeEnum as ActivityType,
+  type GpsTrackStatisticsExclusionReasonEnum as StatisticsExclusionReason,
+} from 'x8ing-mtl-api-typescript-fetch/dist/esm/models/index';
+import {
+  calculateEnergyWhatIf,
+  downloadTrackGpx as downloadTrackGpxFile,
+  downloadTrackSourceFile,
+  saveTrackEnergyRiderWeight,
+  updateTrackActivityType,
+  updateTrackStatisticsExclusion,
+} from '@/utils/ServiceHelper';
 
 type TrackDetailInfoPopover = {
   toggle: (event: Event) => void;
@@ -580,6 +773,40 @@ const GPS_INDEX_NAME = 'GPS';
 const GPX_FILE_EXTENSION = '.gpx';
 const UNAVAILABLE_INDEXER_STATUSES = new Set(['REMOVED', 'EXCLUDED']);
 const COPY_STATUS_RESET_MS = 1800;
+const INCLUDED_STATISTICS_VALUE = '';
+const ENERGY_WEIGHT_DEFAULT_KG = 75;
+const ENERGY_WEIGHT_MIN_KG = 35;
+const ENERGY_WEIGHT_MAX_KG = 180;
+const ENERGY_WEIGHT_STEP_KG = 1;
+const ENERGY_PREVIEW_DEBOUNCE_MS = 250;
+const ENERGY_DELTA_CHANGED_EPSILON_WH = 0.05;
+const ENERGY_WEIGHT_CHANGED_EPSILON_KG = 0.05;
+const activityTypeOptions: Array<{ label: string; value: ActivityType }> = [
+  { label: 'Bicycle', value: GpsTrackActivityTypeEnum.Bicycle },
+  { label: 'Walking', value: GpsTrackActivityTypeEnum.Walking },
+  { label: 'Hiking', value: GpsTrackActivityTypeEnum.Hiking },
+  { label: 'Running', value: GpsTrackActivityTypeEnum.Running },
+  { label: 'Mountain biking', value: GpsTrackActivityTypeEnum.MountainBiking },
+  { label: 'Stand-up paddle', value: GpsTrackActivityTypeEnum.StandUpPaddle },
+  { label: 'Rowing', value: GpsTrackActivityTypeEnum.Rowing },
+  { label: 'Kayaking', value: GpsTrackActivityTypeEnum.Kayaking },
+  { label: 'Skiing', value: GpsTrackActivityTypeEnum.Skiing },
+  { label: 'Motorbiking', value: GpsTrackActivityTypeEnum.Motorbiking },
+  { label: 'Car', value: GpsTrackActivityTypeEnum.Car },
+  { label: 'Airplane', value: GpsTrackActivityTypeEnum.Airplane },
+  { label: 'Supersonic', value: GpsTrackActivityTypeEnum.SuperSonic },
+];
+const activityTypeValues = new Set<ActivityType>(Object.values(GpsTrackActivityTypeEnum));
+const statisticsExclusionOptions: Array<{ label: string; value: StatisticsExclusionReason | '' }> = [
+  { label: 'Included in statistics', value: INCLUDED_STATISTICS_VALUE },
+  { label: 'Exclude: GPS noise', value: GpsTrackStatisticsExclusionReasonEnum.GpsNoise },
+  { label: 'Exclude: wrong activity', value: GpsTrackStatisticsExclusionReasonEnum.WrongActivity },
+  { label: 'Exclude: import artifact', value: GpsTrackStatisticsExclusionReasonEnum.ImportArtifact },
+  { label: 'Exclude: other', value: GpsTrackStatisticsExclusionReasonEnum.Other },
+];
+const statisticsExclusionValues = new Set<StatisticsExclusionReason>(
+  Object.values(GpsTrackStatisticsExclusionReasonEnum)
+);
 
 defineOptions({
   name: 'TrackDetailOverview',
@@ -595,6 +822,10 @@ const props = withDefaults(
   }
 );
 
+const emit = defineEmits<{
+  'track-updated': [track: GpsTrack];
+}>();
+
 const gpsTrack = computed(() => props.gpsTrack);
 const infoPopover = ref<TrackDetailInfoPopover | null>(null);
 const summaryReady = ref(false);
@@ -602,10 +833,24 @@ const activeTooltip = ref<string | null>(null);
 const currentInfoContent = ref<InfoContent>([]);
 const showExplorationInfo = ref(false);
 const activeDownload = ref<TrackDownloadKind | null>(null);
+const selectedActivityType = ref<ActivityType | ''>('');
+const selectedStatisticsExclusion = ref<StatisticsExclusionReason | ''>(INCLUDED_STATISTICS_VALUE);
+const savingActivityType = ref(false);
+const savingStatisticsExclusion = ref(false);
 const trackIdCopied = ref(false);
 const trackIdCopyError = ref('');
+const energyAdjustVisible = ref(false);
+const energyAdjustWeightKg = ref(ENERGY_WEIGHT_DEFAULT_KG);
+const energyWhatIfLoading = ref(false);
+const energyWhatIfError = ref('');
+const energyWhatIfResult = ref<EnergyWhatIfResponse | null>(null);
+const energySaveLoading = ref(false);
 const toast = inject<ToastService>('toast', { add: () => undefined });
 let trackIdCopyResetTimer: number | null = null;
+let activityTypeSaveSerial = 0;
+let statisticsExclusionSaveSerial = 0;
+let energyWhatIfSerial = 0;
+let energyPreviewDebounceTimer: ReturnType<typeof window.setTimeout> | null = null;
 
 function infoText(text: string): InfoContent {
   return [[{ text }]];
@@ -672,6 +917,16 @@ const stoppedTimeMs = computed(() => {
 const hasEnergy = computed(() => props.gpsTrack?.energyNetTotalWh != null && props.gpsTrack.energyNetTotalWh !== 0);
 
 const peakPowerWatts = computed(() => props.gpsTrack?.powerWatts30sMax ?? 0);
+const energyAdjustWeightValid = computed(() => {
+  const weightKg = Number(energyAdjustWeightKg.value);
+  return Number.isFinite(weightKg) && weightKg >= ENERGY_WEIGHT_MIN_KG && weightKg <= ENERGY_WEIGHT_MAX_KG;
+});
+const energyWhatIfDeltaTone = computed(() => {
+  const deltaWh = Number(energyWhatIfResult.value?.deltaSummary?.netEnergyTotalWh ?? 0);
+  if (deltaWh > ENERGY_DELTA_CHANGED_EPSILON_WH) return 'energy-adjust__result--positive';
+  if (deltaWh < -ENERGY_DELTA_CHANGED_EPSILON_WH) return 'energy-adjust__result--negative';
+  return 'energy-adjust__result--neutral';
+});
 const totalAscent = computed(() => props.gpsTrack?.ascentInMeter ?? 0);
 const totalDescent = computed(() => props.gpsTrack?.descentInMeter ?? 0);
 const minAltitude = computed(() => props.gpsTrack?.minAltitude ?? 0);
@@ -747,6 +1002,8 @@ onMounted(() => {
 });
 
 onBeforeUnmount(() => {
+  energyWhatIfSerial++;
+  clearEnergyPreviewDebounce();
   if (trackIdCopyResetTimer != null) {
     window.clearTimeout(trackIdCopyResetTimer);
   }
@@ -760,6 +1017,24 @@ watch(
     }
   }
 );
+
+watch(
+  () => [props.gpsTrack?.id, props.gpsTrack?.activityType, props.gpsTrack?.statisticsExclusionReason],
+  () => {
+    selectedActivityType.value = props.gpsTrack?.activityType ?? '';
+    selectedStatisticsExclusion.value = props.gpsTrack?.statisticsExclusionReason ?? INCLUDED_STATISTICS_VALUE;
+    energyAdjustWeightKg.value = ENERGY_WEIGHT_DEFAULT_KG;
+    energyWhatIfResult.value = null;
+    energyWhatIfError.value = '';
+    energySaveLoading.value = false;
+    clearEnergyPreviewDebounce();
+  },
+  { immediate: true }
+);
+
+watch(energyAdjustVisible, (visible) => {
+  if (!visible) clearEnergyPreviewDebounce();
+});
 
 function whToJoules(wh: number | null | undefined): string {
   return formatNumber((wh ?? 0) * 3600, 0);
@@ -779,6 +1054,124 @@ function whToKcal(wh: number | null | undefined): string {
 
 function wattsToKcalH(w: number | null | undefined, decimals = 1): string {
   return formatNumber((w ?? 0) * 0.8604, decimals);
+}
+
+function clampEnergyWeight(value: number): number {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return ENERGY_WEIGHT_DEFAULT_KG;
+  return Math.min(ENERGY_WEIGHT_MAX_KG, Math.max(ENERGY_WEIGHT_MIN_KG, numeric));
+}
+
+function commitEnergyAdjustWeight(queuePreview = true): void {
+  energyAdjustWeightKg.value = clampEnergyWeight(energyAdjustWeightKg.value);
+  if (queuePreview) queueEnergyWhatIf();
+}
+
+function nudgeEnergyAdjustWeight(deltaKg: number): void {
+  energyAdjustWeightKg.value = clampEnergyWeight(Number(energyAdjustWeightKg.value) + deltaKg);
+  queueEnergyWhatIf();
+}
+
+async function resetEnergyAdjustWeight(): Promise<void> {
+  clearEnergyPreviewDebounce();
+  const baselineRiderWeightKg = energyWhatIfResult.value?.baselineRiderWeightKg;
+  if (baselineRiderWeightKg != null) {
+    energyAdjustWeightKg.value = clampEnergyWeight(baselineRiderWeightKg);
+  }
+  await loadEnergyWhatIf();
+}
+
+function clearEnergyPreviewDebounce(): void {
+  if (energyPreviewDebounceTimer != null) {
+    window.clearTimeout(energyPreviewDebounceTimer);
+    energyPreviewDebounceTimer = null;
+  }
+}
+
+function queueEnergyWhatIf(): void {
+  clearEnergyPreviewDebounce();
+  if (!energyAdjustWeightValid.value) return;
+
+  energyPreviewDebounceTimer = window.setTimeout(() => {
+    energyPreviewDebounceTimer = null;
+    void loadEnergyWhatIf(energyAdjustWeightKg.value);
+  }, ENERGY_PREVIEW_DEBOUNCE_MS);
+}
+
+function formatSignedWh(value: number | null | undefined): string {
+  const numeric = Number(value ?? 0);
+  const sign = numeric > 0 ? '+' : '';
+  return `${sign}${formatNumber(numeric, 1)} Wh`;
+}
+
+function openEnergyAdjustDialog(): void {
+  if (!props.gpsTrack?.id) return;
+  energyAdjustVisible.value = true;
+  void loadEnergyWhatIf();
+}
+
+async function saveEnergyRiderWeight(): Promise<void> {
+  const trackId = props.gpsTrack?.id;
+  if (trackId == null) return;
+
+  clearEnergyPreviewDebounce();
+  commitEnergyAdjustWeight(false);
+  if (!energyAdjustWeightValid.value) return;
+
+  energySaveLoading.value = true;
+  energyWhatIfLoading.value = false;
+  energyWhatIfError.value = '';
+  energyWhatIfSerial++;
+
+  try {
+    const savedTrack = await saveTrackEnergyRiderWeight(trackId, energyAdjustWeightKg.value);
+    emit('track-updated', savedTrack);
+    energyAdjustVisible.value = false;
+    toast.add({
+      severity: 'success',
+      summary: 'Energy saved',
+      detail: `This track now uses ${formatNumber(energyAdjustWeightKg.value, 1)} kg.`,
+      life: 2500,
+    });
+  } catch (error) {
+    console.warn('[track-details] failed to save rider-weight energy', { trackId, error });
+    energyWhatIfError.value = 'Could not save energy.';
+  } finally {
+    energySaveLoading.value = false;
+  }
+}
+
+async function loadEnergyWhatIf(riderWeightKg?: number): Promise<void> {
+  const trackId = props.gpsTrack?.id;
+  if (trackId == null) return;
+
+  const requestedWeightKg = riderWeightKg;
+  const requestSerial = ++energyWhatIfSerial;
+  energyWhatIfLoading.value = true;
+  energyWhatIfError.value = '';
+
+  try {
+    const result = await calculateEnergyWhatIf(trackId, requestedWeightKg);
+    if (requestSerial !== energyWhatIfSerial) return;
+    if (
+      requestedWeightKg != null &&
+      Math.abs(requestedWeightKg - Number(energyAdjustWeightKg.value)) > ENERGY_WEIGHT_CHANGED_EPSILON_KG
+    ) {
+      return;
+    }
+    energyWhatIfResult.value = result;
+
+    const responseWeightKg = result.requestedRiderWeightKg ?? result.baselineRiderWeightKg;
+    if (requestedWeightKg == null && responseWeightKg != null) {
+      energyAdjustWeightKg.value = clampEnergyWeight(responseWeightKg);
+    }
+  } catch (error) {
+    if (requestSerial !== energyWhatIfSerial) return;
+    console.warn('[track-details] failed to calculate energy what-if', { trackId, riderWeightKg, error });
+    energyWhatIfError.value = 'Could not calculate energy.';
+  } finally {
+    if (requestSerial === energyWhatIfSerial) energyWhatIfLoading.value = false;
+  }
 }
 
 async function downloadOriginal(): Promise<void> {
@@ -869,6 +1262,87 @@ async function runTrackDownload(kind: TrackDownloadKind): Promise<void> {
   } finally {
     activeDownload.value = null;
   }
+}
+
+async function onActivityTypeSelect(event: Event): Promise<void> {
+  const value = (event.target as HTMLSelectElement | null)?.value;
+  if (!value || !isActivityType(value)) {
+    selectedActivityType.value = props.gpsTrack?.activityType ?? '';
+    return;
+  }
+  await saveActivityType(value);
+}
+
+async function saveActivityType(activityType: ActivityType): Promise<void> {
+  const track = props.gpsTrack;
+  if (!track?.id || activityType === track.activityType) return;
+
+  const saveSerial = ++activityTypeSaveSerial;
+  savingActivityType.value = true;
+  try {
+    const savedTrack = await updateTrackActivityType(track.id, activityType);
+    if (saveSerial !== activityTypeSaveSerial) return;
+    emit('track-updated', savedTrack);
+    toast.add({ severity: 'success', summary: 'Activity type saved', life: 1800 });
+  } catch (error) {
+    if (saveSerial !== activityTypeSaveSerial) return;
+    console.warn('[track-details] failed to save activity type', { trackId: track.id, activityType, error });
+    selectedActivityType.value = track.activityType ?? '';
+    toast.add({
+      severity: 'error',
+      summary: 'Save failed',
+      detail: 'Could not update the activity type.',
+      life: 4000,
+    });
+  } finally {
+    if (saveSerial === activityTypeSaveSerial) savingActivityType.value = false;
+  }
+}
+
+async function onStatisticsExclusionSelect(event: Event): Promise<void> {
+  const value = (event.target as HTMLSelectElement | null)?.value ?? INCLUDED_STATISTICS_VALUE;
+  if (value !== INCLUDED_STATISTICS_VALUE && !isStatisticsExclusionReason(value)) {
+    selectedStatisticsExclusion.value = props.gpsTrack?.statisticsExclusionReason ?? INCLUDED_STATISTICS_VALUE;
+    return;
+  }
+  await saveStatisticsExclusion(value);
+}
+
+async function saveStatisticsExclusion(value: StatisticsExclusionReason | ''): Promise<void> {
+  const trackId = props.gpsTrack?.id;
+  if (trackId == null || value === (props.gpsTrack?.statisticsExclusionReason ?? INCLUDED_STATISTICS_VALUE)) return;
+
+  const saveSerial = ++statisticsExclusionSaveSerial;
+  savingStatisticsExclusion.value = true;
+  try {
+    const savedTrack = await updateTrackStatisticsExclusion(trackId, {
+      highlightExclusionReason: props.gpsTrack?.highlightExclusionReason,
+      statisticsExclusionReason: value || undefined,
+    });
+    if (saveSerial !== statisticsExclusionSaveSerial) return;
+    emit('track-updated', savedTrack);
+    toast.add({ severity: 'success', summary: 'Statistics curation saved', life: 1800 });
+  } catch (error) {
+    if (saveSerial !== statisticsExclusionSaveSerial) return;
+    console.warn('[track-details] failed to save statistics exclusion', { trackId, value, error });
+    selectedStatisticsExclusion.value = props.gpsTrack?.statisticsExclusionReason ?? INCLUDED_STATISTICS_VALUE;
+    toast.add({
+      severity: 'error',
+      summary: 'Save failed',
+      detail: 'Could not update statistics curation.',
+      life: 4000,
+    });
+  } finally {
+    if (saveSerial === statisticsExclusionSaveSerial) savingStatisticsExclusion.value = false;
+  }
+}
+
+function isActivityType(value: string): value is ActivityType {
+  return activityTypeValues.has(value as ActivityType);
+}
+
+function isStatisticsExclusionReason(value: string): value is StatisticsExclusionReason {
+  return statisticsExclusionValues.has(value as StatisticsExclusionReason);
 }
 
 function toggleTooltip(id: string) {
@@ -1003,6 +1477,48 @@ function computeSummary(details: ChartPoint[]) {
 .section-label i {
   font-size: var(--text-xs-size);
   opacity: 0.7;
+}
+
+.section-label--controls {
+  margin-top: 0.4rem;
+}
+
+.overview-control-panel {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  gap: 0.6rem;
+  padding: 0 1rem 0.75rem;
+}
+
+.overview-control {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.overview-control__label {
+  font-size: var(--text-xs-size);
+  line-height: var(--text-xs-lh);
+  color: var(--text-muted);
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.overview-control__select {
+  width: 100%;
+  min-height: 2.2rem;
+  border: 1px solid var(--border-default);
+  border-radius: 6px;
+  background: var(--surface-elevated);
+  color: var(--text-primary);
+  font-size: var(--text-sm-size);
+  padding: 0.35rem 0.55rem;
+}
+
+.overview-control__select:disabled {
+  opacity: 0.65;
+  cursor: progress;
 }
 
 /* ── Primary Metrics ── */
@@ -1269,9 +1785,311 @@ function computeSummary(details: ChartPoint[]) {
   background: var(--accent-bg) !important;
 }
 
+.energy-adjust-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.35rem;
+  height: 1.35rem;
+  margin-left: 0.05rem;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-faint);
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.energy-adjust-trigger:hover,
+.energy-adjust-trigger:focus-visible {
+  background: var(--surface-hover);
+  color: var(--text-secondary);
+  outline: none;
+}
+
+.energy-adjust-trigger i {
+  font-size: var(--text-xs-size);
+  line-height: 1;
+}
+
+.energy-adjust {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  min-width: 0;
+}
+
+.energy-adjust__baseline {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.55rem;
+}
+
+.energy-adjust__baseline div,
+.energy-adjust__result {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  background: var(--surface-elevated);
+}
+
+.energy-adjust__baseline span,
+.energy-adjust__result span {
+  color: var(--text-muted);
+  font-size: var(--text-xs-size);
+  line-height: var(--text-xs-lh);
+}
+
+.energy-adjust__baseline strong,
+.energy-adjust__result strong {
+  margin-top: 0.2rem;
+  color: var(--text-primary);
+  font-size: var(--text-base-size);
+  line-height: var(--text-base-lh);
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.energy-adjust__field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  min-width: 0;
+}
+
+.energy-adjust__label-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.energy-adjust__label-row label {
+  font-size: var(--text-xs-size);
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.energy-adjust__label-row span {
+  font-size: var(--text-xs-size);
+  font-weight: 700;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.energy-adjust__stepper {
+  display: grid;
+  grid-template-columns: 2.35rem minmax(0, 1fr) 2.35rem;
+  gap: 0.45rem;
+  align-items: center;
+}
+
+.energy-adjust__step-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.35rem;
+  height: 2.35rem;
+  border: 1px solid var(--border-default);
+  border-radius: 8px;
+  background: var(--surface-card);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease,
+    opacity 0.15s ease;
+}
+
+.energy-adjust__step-btn:hover:not(:disabled),
+.energy-adjust__step-btn:focus-visible {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--surface-hover);
+  outline: none;
+}
+
+.energy-adjust__step-btn:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+
+.energy-adjust__input-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  min-width: 0;
+  min-height: 2.35rem;
+  padding: 0 0.5rem;
+  border: 1px solid var(--border-medium);
+  border-radius: 8px;
+  background: var(--surface-input, var(--surface-card));
+  color: var(--text-secondary);
+}
+
+.energy-adjust__input {
+  width: 4.4rem;
+  border: none;
+  background: transparent;
+  color: var(--text-primary);
+  font-size: var(--text-base-size);
+  font-weight: 700;
+  text-align: center;
+  outline: none;
+  appearance: textfield;
+}
+
+.energy-adjust__input::-webkit-outer-spin-button,
+.energy-adjust__input::-webkit-inner-spin-button {
+  margin: 0;
+  appearance: none;
+}
+
+.energy-adjust__range {
+  width: 100%;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.energy-adjust__range:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
+.energy-adjust__scale {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  color: var(--text-faint);
+  font-size: var(--text-2xs-size);
+  line-height: var(--text-2xs-lh);
+}
+
+.energy-adjust__error {
+  padding: 0.55rem 0.7rem;
+  border: 1px solid color-mix(in srgb, var(--error) 35%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--error) 8%, transparent);
+  color: var(--error);
+  font-size: var(--text-sm-size);
+  line-height: var(--text-sm-lh);
+}
+
+.energy-adjust__loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  min-height: 4.5rem;
+  color: var(--text-muted);
+  font-size: var(--text-sm-size);
+}
+
+.energy-adjust__results {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.55rem;
+  min-width: 0;
+  transition: opacity 0.12s ease;
+}
+
+.energy-adjust__results--updating {
+  opacity: 0.72;
+}
+
+.energy-adjust__result {
+  justify-content: center;
+  min-height: 4.8rem;
+}
+
+.energy-adjust__result--primary {
+  border-color: var(--accent-subtle);
+  background: var(--accent-bg);
+}
+
+.energy-adjust__result--positive strong {
+  color: var(--warning);
+}
+
+.energy-adjust__result--negative strong {
+  color: var(--success);
+}
+
+.energy-adjust__result--neutral strong {
+  color: var(--text-primary);
+}
+
+.energy-adjust__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.55rem;
+  flex-wrap: wrap;
+}
+
+.energy-adjust__action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  min-height: 2.35rem;
+  padding: 0.4rem 0.85rem;
+  border: 1px solid var(--border-default);
+  border-radius: 8px;
+  font-size: var(--text-sm-size);
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease,
+    opacity 0.15s ease;
+}
+
+.energy-adjust__action--secondary {
+  background: var(--surface-card);
+  color: var(--text-secondary);
+}
+
+.energy-adjust__action--primary {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--accent-contrast, #fff);
+}
+
+.energy-adjust__action:hover:not(:disabled),
+.energy-adjust__action:focus-visible {
+  filter: brightness(0.98);
+  outline: none;
+}
+
+.energy-adjust__action:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
 /* ── Energy tooltip ── */
 .energy-tooltip-wrapper {
   cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    background-color 0.15s ease,
+    transform 0.12s ease;
+}
+
+.energy-tooltip-wrapper:hover {
+  border-color: var(--accent) !important;
+}
+
+.energy-tooltip-wrapper:active {
+  transform: scale(0.985);
 }
 
 .energy-tooltip {
@@ -1510,7 +2328,22 @@ function computeSummary(details: ChartPoint[]) {
 }
 
 /* ── Mobile ── */
+@media (max-width: 760px) {
+  .energy-adjust__results {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
 @media (max-width: 480px) {
+  .energy-adjust__baseline,
+  .energy-adjust__results {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .energy-adjust__result--primary {
+    grid-column: 1 / -1;
+  }
+
   .metrics-primary {
     grid-template-columns: repeat(2, 1fr);
   }

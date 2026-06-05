@@ -1,0 +1,12 @@
+HMO_01 heatmap toggle and opacity evidence
+Initial: {"url":"http://167.233.16.201:18080/mtl/map-settings","trackText":["12 Tracks"],"mapSettings":null,"filter":"default/other"}
+Heatmap toggle: {"before":{"label":"Heatmap","enabled":false,"sliderVisible":false,"opacity":null},"after":{"label":"Heatmap","enabled":true,"sliderVisible":true,"opacity":"100"}}
+Heatmap slider: {"before":"100","target":40,"after":"40"}
+Final heatmap state: {"label":"Heatmap","enabled":true,"sliderVisible":true,"opacity":"40"}
+GPS track layer remained: {"label":"GPS Tracks","enabled":true,"sliderVisible":true,"opacity":"100"}
+Map facts: {"url":"http://167.233.16.201:18080/mtl/map-settings","trackText":["12 Tracks"],"mapSettings":"{\"theme\":\"light-topo\",\"mapSourceMode\":\"auto\",\"legendCollapsed\":false,\"basemapEnabled\":true,\"terrainEnabled\":false,\"terrainExaggeration\":1,\"tracksEnabled\":true,\"trackPointsVisible\":true,\"heatmapVisible\":true,\"activeOverlays\":[],\"layerOpacities\":{\"basemap\":100,\"terrain\":100,\"tracks\":100,\"media\":100,\"trackpoints\":100,\"heatmap\":40,\"wanderland\":100,\"veloland\":100,\"mountainbikeland\":100,\"wanderwege\":100,\"wmt-hiking\":100,\"wmt-cycling\":100,\"wmt-mtb\":100}}","filter":"default/other"}
+Track/API request samples: http://167.233.16.201:18080/mtl/api/tracks/get-simplified?filterName=SmartBaseFilter&mode=ids
+http://167.233.16.201:18080/mtl/api/tracks/get-simplified?precisionInMeter=10&filterName=SmartBaseFilter&mode=full
+http://167.233.16.201:18080/mtl/api/tracks/get-simplified?filterName=SmartBaseFilter&mode=ids
+http://167.233.16.201:18080/mtl/api/tracks/get-simplified?precisionInMeter=1000&filterName=SmartBaseFilter&mode=full
+Console warnings/errors: none

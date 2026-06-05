@@ -1,0 +1,11 @@
+CROPPED: import wait log kept first and final attempts; repeated identical successful polling omitted.
+
+attempt=1 {"trackCount": 5, "foundCount": 5, "found": [{"id": 100002, "file": "MoselradwegAusWiki.gpx", "trackName": "Moselradweg aus Wiki on GPSies.com", "loadStatus": "SUCCESS", "activityType": "BICYCLE"}, {"id": 100004, "file": "Lannion_Plestin_parcours24.4RE.gpx", "trackName": "Lannion_Plestin_parcours Lannion_Plestin_parcours1", "loadStatus": "SUCCESS", "activityType": "BICYCLE"}, {"id": 100003, "file": "VoieVerteHauteVosges.gpx", "trackName": "voie verte haute vosges on GPSies.com", "loadStatus": "SUCCESS", "activityType": "BICYCLE"}, {"id": 100001, "file": "Vitry-le-Francois_Langres.gpx", "trackName": "Vitry le françois - langres on GPSies.com", "loadStatus": "SUCCESS", "activityType": "BICYCLE"}, {"id": 100000, "file": "JuraRoute72011.gpx", "trackName": "Jura Route 7 / 2011 on GPSies.com", "loadStatus": "SUCCESS", "activityType": "BICYCLE"}]}
+freshness=493r5c__|server_id:4cPgaT3KHaptNtCyRmtRqJ|config:9|filters:83|index:15|media:0|track_geometry:30|tracks:29
+indexer=[{"index":"GPS","total":5,"pending":0,"completed":5,"failed":0,"removed":0,"excluded":0,"progressPercent":100}]
+
+... omitted 12 repeated successful polling block(s) ...
+
+attempt=14 {"trackCount": 5, "foundCount": 5, "found": [{"id": 100004, "file": "Lannion_Plestin_parcours24.4RE.gpx", "trackName": "Lannion_Plestin_parcours Lannion_Plestin_parcours1", "loadStatus": "SUCCESS", "activityType": "BICYCLE"}, {"id": 100002, "file": "MoselradwegAusWiki.gpx", "trackName": "Moselradweg aus Wiki on GPSies.com", "loadStatus": "SUCCESS", "activityType": "BICYCLE"}, {"id": 100003, "file": "VoieVerteHauteVosges.gpx", "trackName": "voie verte haute vosges on GPSies.com", "loadStatus": "SUCCESS", "activityType": "BICYCLE"}, {"id": 100001, "file": "Vitry-le-Francois_Langres.gpx", "trackName": "Vitry le françois - langres on GPSies.com", "loadStatus": "SUCCESS", "activityType": "BICYCLE"}, {"id": 100000, "file": "JuraRoute72011.gpx", "trackName": "Jura Route 7 / 2011 on GPSies.com", "loadStatus": "SUCCESS", "activityType": "BICYCLE"}]}
+freshness=1fciyo__|server_id:4cPgaT3KHaptNtCyRmtRqJ|config:9|filters:83|index:15|media:0|track_geometry:30|tracks:30
+indexer=[{"index":"GPS","total":5,"pending":0,"completed":5,"failed":0,"removed":0,"excluded":0,"progressPercent":100}]

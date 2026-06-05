@@ -64,7 +64,7 @@ typical trail or road width plus GPS positional inaccuracy (~5–10m).
 ### `use-track-precision` (default: 10)
 
 Which of the pre-computed simplified track variants to use for geometry operations.
-Each track is stored at multiple precision levels (1m, 5m, 10m, 50m, 100m, 500m, 1000m).
+Each track is stored at multiple precision levels (1m, 10m, 100m, 1000m).
 
 - 10m gives good shape fidelity (tight switchbacks are preserved)
 - Raw (0m) would be more accurate but 10–100× slower per query
@@ -266,7 +266,7 @@ to 3 decimal places before storage.
 | Column                  | Type               | Notes                            |
 |-------------------------|--------------------|----------------------------------|
 | `exploration_status`    | `VARCHAR(255)`     | Enum string, see lifecycle above |
-| `exploration_score`     | `DOUBLE PRECISION` | 0.0–1.0, NULL until calculated   |
+| `exploration_score`     | `NUMERIC(4,3)`     | 0.0–1.0, NULL until calculated   |
 | `exploration_calc_date` | `TIMESTAMP`        | When the score was last computed |
 
 `novel_length_m` and `known_length_m` are **not stored** — derivable at display time:

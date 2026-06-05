@@ -1,0 +1,9 @@
+{
+  "afterLogoutUrl": "http://167.233.16.201:18080/mtl/login",
+  "afterLogoutHadSignIn": true,
+  "reloginUrl": "http://167.233.16.201:18080/mtl/",
+  "reloginMapShows11Tracks": true,
+  "reloginHasMap": true,
+  "logoutText": "© Patrick Heusser\nAGPL-3.0\nSign In",
+  "reloginText": "500 km\n© OpenStreetMap | Elevation: Mapterhorn\n11 Tracks\nStats\nFilter\nMap\nAnimate\nSegments\nGPS\nPlanner\nAdmin"
+}

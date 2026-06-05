@@ -1,0 +1,13 @@
+Admin workspace evidence:
+- Track count text: ["© Patrick HeusserLoading your trails500 km© OpenStreetMap | Elevation: Mapterhorn12 Tracks","© Patrick HeusserLoading your trails500 km© OpenStreetMap | Elevation: Mapterhorn12 Tracks","500 km© OpenStreetMap | Elevation: Mapterhorn12 Tracks","500 km© OpenStreetMap | Elevation: Mapterhorn12 Tracks","500 km© OpenStreetMap | Elevation: Mapterhorn12 Tracks","12 Tracks","12 Tracks","12 Tracks"]
+- Tiles:
+  - Open Upload: UploadImportImport GPX files and inspect ingest readiness.
+  - Open Jobs: JobsIdleTrack indexer, map, and routing activity.
+  - Open Freshness: FreshnessTokenInspect domain revisions and the current map data token.
+  - Open Garmin Sync: Garmin SyncRemoteTrigger a remote Garmin export to pull new activity files.
+  - Open Log: LogServerInspect recent server output and runtime issues.
+  - Open Helpers: Helpers2/2 readyReload tracks, manage helper tools, and run installs.
+  - Open About: AboutBuildClient and server build details and runtime info.
+  - Open Settings: SettingsLightAdjust color scheme and locale formatting.
+  - Open Session: SessionLogoutLogout credentials only or wipe all local app data.
+  - Open Attribution: AttributionSourcesLibraries, datasets, and map data references.

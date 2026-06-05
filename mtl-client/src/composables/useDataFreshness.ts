@@ -1,16 +1,12 @@
-import { computed, onMounted, onUnmounted, ref } from 'vue';
-import { getDataFreshness, type DataFreshnessResponseDto } from '@/utils/serverAdminApi';
+import { storeToRefs } from 'pinia';
+import { onMounted, onUnmounted } from 'vue';
+import type { DataFreshnessResponseDto } from '@/utils/serverAdminApi';
+import { useDataFreshnessStore } from '@/stores/dataFreshnessStore';
 
 const DATA_FRESHNESS_POLL_INTERVAL_MS = 30_000;
 
-const currentFreshness = ref<DataFreshnessResponseDto | null>(null);
-const lastChecked = ref('');
-const isFreshnessPollingHealthy = ref(true);
-const serverFreshnessToken = computed(() => currentFreshness.value?.freshnessToken ?? '');
-
 let consumerCount = 0;
 let timerId: ReturnType<typeof setTimeout> | null = null;
-let _pollWarnShown = false;
 
 function scheduleNext() {
   if (consumerCount <= 0) return;
@@ -26,24 +22,7 @@ async function poll() {
 }
 
 export async function refresh(): Promise<DataFreshnessResponseDto | null> {
-  try {
-    const data = await getDataFreshness();
-    currentFreshness.value = data;
-    lastChecked.value = new Date().toLocaleTimeString(undefined, {
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-    });
-    isFreshnessPollingHealthy.value = true;
-    return data;
-  } catch (err) {
-    isFreshnessPollingHealthy.value = false;
-    if (!_pollWarnShown) {
-      console.warn('[MTL] Data freshness polling failed — server may be unreachable or blocked:', err);
-      _pollWarnShown = true;
-    }
-    return null;
-  }
+  return useDataFreshnessStore().refresh();
 }
 
 function startPolling() {
@@ -58,6 +37,18 @@ function stopPolling() {
 }
 
 export function useDataFreshness() {
+  const store = useDataFreshnessStore();
+  const {
+    currentFreshness,
+    serverFreshnessToken,
+    lastChecked,
+    isFreshnessPollingHealthy,
+    appliedToken,
+    dismissedToken,
+    dismissedExpiresAt,
+    reloading,
+  } = storeToRefs(store);
+
   onMounted(() => {
     consumerCount++;
     if (consumerCount === 1) startPolling();
@@ -72,7 +63,18 @@ export function useDataFreshness() {
     currentFreshness,
     serverFreshnessToken,
     lastChecked,
-    refresh,
+    refresh: store.refresh,
     isFreshnessPollingHealthy,
+    appliedFreshnessToken: appliedToken,
+    dismissedFreshnessToken: dismissedToken,
+    dismissedFreshnessExpiresAt: dismissedExpiresAt,
+    freshnessReloading: reloading,
+    syncFreshnessStorage: store.hydrateFromStorage,
+    markAppliedFreshnessToken: store.markAppliedToken,
+    clearAppliedFreshnessToken: store.clearAppliedToken,
+    dismissFreshnessToken: store.dismissToken,
+    clearFreshnessDismissal: store.clearDismissal,
+    setFreshnessReloading: store.setReloading,
+    freshnessStore: store,
   };
 }

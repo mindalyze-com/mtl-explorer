@@ -72,8 +72,8 @@ user explicitly approves closing the run with remaining coverage gaps.
 - Run `RUN_SETUP` first: install MTL Explorer, record README facts, URLs,
   credentials source, environment, baseline state, and access details.
 - Then work coverage IDs from `frontend-regression-test-plan.md` top to bottom.
-- Do not skip ahead unless the current ID is `BLOCKED`, `NOT APPLICABLE`, or
-  explicitly needs later app state.
+- Do not skip ahead unless the current ID is terminal or explicitly needs later
+  app state.
 - Import/data IDs naturally prepare the shared dataset for later UI IDs.
 - Delete IDs run after all IDs that need the full imported dataset.
 - Run `RUN_CLEANUP` last: final report, evidence audit, stack shutdown, and
@@ -88,7 +88,8 @@ coverage into a terminal result just to produce a report.
 ### Status Semantics
 
 - Terminal statuses for normal queue advancement: `PASS`, `FAIL`, `BLOCKED`,
-  and `NOT APPLICABLE`.
+  `NOT APPLICABLE`, `FIXED`, `REJECTED`, `NOT REPRODUCEABLE`, and
+  `NOT REPRODUCIBLE`.
 - Resumable statuses: `NOT STARTED`, `IN PROGRESS`, `PARTIAL`, and
   `NOT COVERED`.
 - `PARTIAL` means some direct evidence exists, but required child behavior is
@@ -101,6 +102,13 @@ coverage into a terminal result just to produce a report.
 - Use `NOT APPLICABLE` only when the coverage text genuinely does not apply to
   the configured run, such as plain-HTTP live geolocation checks on a remote
   non-localhost origin.
+- Use `FIXED` only when retesting a previously recorded issue proves the
+  expected behavior now works.
+- Use `REJECTED` only when a candidate issue is closed as expected behavior,
+  invalid, or outside the coverage requirement, with the reason recorded.
+- Use `NOT REPRODUCEABLE` or `NOT REPRODUCIBLE` only when the tester attempted
+  the recorded reproduction path and could not reproduce the issue. Prefer
+  `NOT REPRODUCIBLE` for new entries; the gate accepts both spellings.
 
 ### Resume Selection
 
@@ -125,7 +133,8 @@ Before creating `report.md`, setting `Current coverage ID: COMPLETE`, or running
   `PARTIAL`, or `NOT COVERED`.
 - Any unexecuted-but-required item must remain resumable, not be summarized away.
 - If an item cannot execute, convert it to `BLOCKED` or `NOT APPLICABLE` with a
-  precise reason and unblock path.
+  precise reason and unblock path. For issue-retest outcomes, use `FIXED`,
+  `REJECTED`, or `NOT REPRODUCIBLE` only with direct retest evidence.
 - If the user explicitly requests early closure with gaps, record that approval
   in Final Assembly Notes, keep the result `FAIL`, and then cleanup may proceed.
 
@@ -152,8 +161,8 @@ checker result means the run is still resumable.
 - Packet workers only edit their own packet file and matching
   `assets/<coverage-id>-*` files.
 - A packet is terminal only when its coverage ID has action, expected result,
-  actual result, status, and evidence for `PASS`/`FAIL`, or a clear terminal
-  reason for `BLOCKED`/`NOT APPLICABLE`. `PARTIAL` and `NOT COVERED` packets are
+  actual result, status, and evidence for a terminal status. `PARTIAL` and
+  `NOT COVERED` packets are
   handoff packets and remain resumable during a normal full regression.
 - If a packet stops midway, leave its status as `IN PROGRESS` or `BLOCKED` in
   `run-state.md` and include handoff notes in the packet file.
@@ -213,9 +222,11 @@ files are the durable record.
 ```
 
 Use statuses consistently: `NOT STARTED`, `IN PROGRESS`, `PASS`, `PARTIAL`,
-`FAIL`, `BLOCKED`, `NOT COVERED`, or `NOT APPLICABLE`. For queue advancement,
-only `PASS`, `FAIL`, `BLOCKED`, and `NOT APPLICABLE` are terminal unless the
-user approved early closure with gaps.
+`FAIL`, `BLOCKED`, `NOT COVERED`, `NOT APPLICABLE`, `FIXED`, `REJECTED`,
+`NOT REPRODUCEABLE`, or `NOT REPRODUCIBLE`. For queue advancement, `PASS`,
+`FAIL`, `BLOCKED`, `NOT APPLICABLE`, `FIXED`, `REJECTED`,
+`NOT REPRODUCEABLE`, and `NOT REPRODUCIBLE` are terminal unless the user
+approved early closure with gaps.
 
 ## Final Report
 

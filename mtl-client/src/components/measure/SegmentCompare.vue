@@ -64,6 +64,7 @@
       <p v-if="matchingCandidates.length === 0">
         None of the selected tracks cross this segment. Try a different segment or add tracks.
       </p>
+      <p v-else-if="segmentDataMessage">{{ segmentDataMessage }}</p>
       <p v-else>Preparing comparison…</p>
     </div>
 
@@ -75,6 +76,12 @@
     <div v-if="unmatchedCount > 0 && !loading" class="sc-warning">
       <i class="bi bi-info-circle"></i>
       {{ unmatchedCount }} of {{ selectedTrackIds.size }} selected tracks don't cross this segment and were skipped.
+    </div>
+
+    <div v-if="hasData && skippedSegmentDataCount > 0 && !loading" class="sc-warning">
+      <i class="bi bi-info-circle"></i>
+      {{ skippedSegmentDataCount }} selected track{{ skippedSegmentDataCount === 1 ? '' : 's' }} lacked enough segment
+      data and {{ skippedSegmentDataCount === 1 ? 'was' : 'were' }} skipped.
     </div>
 
     <!-- Results -->
@@ -134,20 +141,22 @@
 
 <script setup lang="ts">
 import { computed, inject, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
-import type { CrossingPointsResponse, GpsTrackDataPoint } from 'x8ing-mtl-api-typescript-fetch/dist/esm/models/index';
+import type { CrossingPointsResponseDto, GpsTrackDataPointDto } from 'x8ing-mtl-api-typescript-fetch/dist/esm/models/index';
 import ComparisonChart from '@/components/measure/ComparisonChart.vue';
 import MiniMap from '@/components/map/MiniMap.vue';
 import type { MiniMapBounds, MiniMapGeoJson } from '@/components/map/useMiniMap';
 import RacerCard from '@/components/ui/RacerCard.vue';
 import { fetchTrackSubTrackDetails } from '@/utils/ServiceHelper';
 import { generateColors, formatDuration, formatNumber, formatDateAndTime } from '@/utils/Utils';
+import { normalizeSegmentSlice } from '@/components/measure/segmentSlice';
 
 defineOptions({ name: 'SegmentCompare' });
 
 type ToastService = { add: (message: Record<string, unknown>) => void };
 type SegmentCode = { point1?: string; point2?: string; consolidated?: boolean; p1Visit?: number; p2Visit?: number };
 type AvailableSegment = { name?: string; count?: number; code: SegmentCode };
-type TrackPoint = Omit<GpsTrackDataPoint, 'pointLongLat'> & { pointLongLat?: { coordinates?: number[] } };
+type TrackPoint = Omit<GpsTrackDataPointDto, 'pointLongLat'> & { pointLongLat?: { coordinates?: number[] } };
+type LngLat = [number, number];
 type SegmentGpsTrack = {
   activityType?: string;
   indexedFile?: { name?: string };
@@ -155,6 +164,8 @@ type SegmentGpsTrack = {
 };
 type SegmentCrossing = {
   gpsTrackDataPoint?: TrackPoint & { id?: number };
+  distanceInMeterSinceLastTriggerPoint?: number;
+  timeInSecSinceLastTriggerPoint?: number;
   triggerPoint: { name: string };
 };
 type SegmentCrossingsPerTrack = {
@@ -167,9 +178,17 @@ type ComparisonSeries = {
   data: Array<[number, number | null] | [number, number | null, number]>;
   name: string;
 };
-type LoadedData = { trackId: number; gpsTrack?: SegmentGpsTrack; crossingEnd: SegmentCrossing; points: TrackPoint[] };
+type LoadedData = {
+  distanceM: number;
+  durationSec: number;
+  gpsTrack?: SegmentGpsTrack;
+  crossingEnd: SegmentCrossing;
+  points: TrackPoint[];
+  trackId: number;
+};
 type MatchingCandidate = {
   crossingEnd: SegmentCrossing;
+  crossingStart: SegmentCrossing;
   fromId: number;
   gpsTrack?: SegmentGpsTrack;
   toId: number;
@@ -276,7 +295,7 @@ const FETCH_CONCURRENCY = 5;
 
 const props = withDefaults(
   defineProps<{
-    measureServiceResult: CrossingPointsResponse;
+    measureServiceResult: CrossingPointsResponseDto;
     consolidateVisits?: boolean;
     selectedTrackIds: Set<number>;
     selectedSegment?: SegmentCode | null;
@@ -305,9 +324,11 @@ const loading = ref(false);
 /** Array of { trackId, gpsTrack, crossingPair, points } */
 const loadedData = ref<LoadedData[]>([]);
 const unmatchedCount = ref(0);
+const skippedSegmentDataCount = ref(0);
 const gapReferenceTrackId = ref<number | null>(null);
 const hoverX = ref<number | null>(null);
 const loadKey = ref<number | null>(null);
+let loadSeq = 0;
 let autoLoadTimer: ReturnType<typeof setTimeout> | null = null;
 
 const selectedSegmentKey = computed(() => {
@@ -315,6 +336,11 @@ const selectedSegmentKey = computed(() => {
 });
 
 const tracksToFetchCount = computed(() => matchingCandidates.value.length);
+
+const segmentDataMessage = computed(() => {
+  if (skippedSegmentDataCount.value === 0) return '';
+  return 'Selected tracks do not contain enough segment data to compare.';
+});
 
 function asSegmentCrossingsPerTrack(value: unknown): SegmentCrossingsPerTrack {
   return value as SegmentCrossingsPerTrack;
@@ -331,12 +357,14 @@ const matchingCandidates = computed<MatchingCandidate[]>(() => {
     if (!props.selectedTrackIds.has(tid)) continue;
     const countPerTP = new Map<string, number>();
     let last: SegmentCrossing | null = null;
+    let lastVisit: number | null = null;
     for (const c of trackCrossings.crossings || []) {
       const name = c.triggerPoint.name;
-      countPerTP.set(name, (countPerTP.get(name) || 0) + 1);
+      const currentVisit = (countPerTP.get(name) || 0) + 1;
+      countPerTP.set(name, currentVisit);
       if (
         last != null &&
-        matchesSegment(last, c, countPerTP, seg) &&
+        matchesSegment(last, c, lastVisit, currentVisit, seg) &&
         last.gpsTrackDataPoint?.id != null &&
         c.gpsTrackDataPoint?.id != null
       ) {
@@ -345,12 +373,14 @@ const matchingCandidates = computed<MatchingCandidate[]>(() => {
           gpsTrack: trackCrossings.gpsTrack,
           fromId: last.gpsTrackDataPoint.id,
           toId: c.gpsTrackDataPoint.id,
+          crossingStart: last,
           crossingEnd: c,
         });
         // Only take the first match per track to keep the comparison unambiguous.
         break;
       }
       last = c;
+      lastVisit = currentVisit;
     }
   }
   return out;
@@ -366,8 +396,8 @@ const racers = computed<RacerSummary[]>(() => {
   return loadedData.value.map((d, i) => {
     const first = d.points[0];
     const last = d.points[d.points.length - 1];
-    const durationSec = (last.durationSinceStart || 0) - (first.durationSinceStart || 0);
-    const distanceM = (last.distanceInMeterSinceStart || 0) - (first.distanceInMeterSinceStart || 0);
+    const durationSec = d.durationSec;
+    const distanceM = d.distanceM;
     const avgSpeedKmh = durationSec > 0 ? (distanceM / durationSec) * 3.6 : 0;
     let ascentM = null;
     if (last.ascentInMeterSinceStart != null && first.ascentInMeterSinceStart != null) {
@@ -439,10 +469,11 @@ const mapGeoJson = computed<MiniMapGeoJson | null>(() => {
   // Track lines.
   loadedData.value.forEach((d, i) => {
     const color = racers.value[i]?.color;
-    const coords = [];
+    const coords: LngLat[] = [];
     for (const p of d.points) {
-      if (!p.pointLongLat?.coordinates) continue;
-      coords.push([p.pointLongLat.coordinates[0], p.pointLongLat.coordinates[1]]);
+      const pointCoords = pointCoordinates(p);
+      if (!pointCoords) continue;
+      coords.push(pointCoords);
     }
     if (coords.length < 2) return;
     features.push({
@@ -457,12 +488,13 @@ const mapGeoJson = computed<MiniMapGeoJson | null>(() => {
     loadedData.value.forEach((d, i) => {
       const color = racers.value[i]?.color;
       const point = findPointForHoverX(d, hoverX.value as number);
-      if (!point?.pointLongLat?.coordinates) return;
+      const coords = pointCoordinates(point);
+      if (!coords) return;
       features.push({
         type: 'Feature',
         geometry: {
           type: 'Point',
-          coordinates: [point.pointLongLat.coordinates[0], point.pointLongLat.coordinates[1]],
+          coordinates: coords,
         },
         properties: { type: 'racer', trackIndex: i, color, trackName: racers.value[i]?.name },
       });
@@ -480,7 +512,7 @@ const mapBounds = computed<MiniMapBounds | null>(() => {
     lngMax = Number.NEGATIVE_INFINITY;
   for (const d of loadedData.value) {
     for (const p of d.points) {
-      const c = p.pointLongLat?.coordinates;
+      const c = pointCoordinates(p);
       if (!c) continue;
       if (c[0] < lngMin) lngMin = c[0];
       if (c[0] > lngMax) lngMax = c[0];
@@ -516,17 +548,25 @@ function scheduleAutoLoad(delayMs = 300) {
   }, delayMs);
 }
 
+function invalidateLoad() {
+  loadSeq += 1;
+  loadKey.value = loadSeq;
+  loading.value = false;
+  skippedSegmentDataCount.value = 0;
+}
+
 function matchesSegment(
   prev: SegmentCrossing,
   curr: SegmentCrossing,
-  countPerTP: Map<string, number>,
+  prevVisit: number | null,
+  currVisit: number,
   seg: SegmentCode
 ) {
   if (seg.point1 !== prev.triggerPoint?.name) return false;
   if (seg.point2 !== curr.triggerPoint?.name) return false;
   if (seg.consolidated === false) {
-    if (seg.p1Visit !== countPerTP.get(prev.triggerPoint.name)) return false;
-    if (seg.p2Visit !== countPerTP.get(curr.triggerPoint.name)) return false;
+    if (seg.p1Visit !== prevVisit) return false;
+    if (seg.p2Visit !== currVisit) return false;
   }
   return true;
 }
@@ -600,6 +640,16 @@ function findPointForHoverX(d: LoadedData, currentHoverX: number) {
   return d.points[d.points.length - 1];
 }
 
+function pointCoordinates(point: TrackPoint | null | undefined): LngLat | null {
+  const coords = point?.pointLongLat?.coordinates;
+  if (!Array.isArray(coords) || coords.length < 2) return null;
+  const lng = Number(coords[0]);
+  const lat = Number(coords[1]);
+  if (!Number.isFinite(lng) || !Number.isFinite(lat)) return null;
+  if (Math.abs(lng) > 180 || Math.abs(lat) > 90) return null;
+  return [lng, lat];
+}
+
 async function onLoad() {
   const candidates = matchingCandidates.value;
   unmatchedCount.value = props.selectedTrackIds.size - candidates.length;
@@ -610,13 +660,14 @@ async function onLoad() {
     return;
   }
   loading.value = true;
-  const currentLoadKey = Date.now();
+  const currentLoadKey = ++loadSeq;
   loadKey.value = currentLoadKey;
   try {
     const results = await fetchInBatches(candidates, FETCH_CONCURRENCY);
     // Guard against stale responses if user kicked a second load before the first finished.
     if (loadKey.value !== currentLoadKey) return;
     loadedData.value = results;
+    skippedSegmentDataCount.value = candidates.length - results.length;
     // Default gap reference to the fastest track (shortest segment duration).
     if (gapReferenceTrackId.value == null && racers.value.length > 0) {
       const fastest = racers.value.slice().sort((a, b) => a.durationSec - b.durationSec)[0];
@@ -630,6 +681,7 @@ async function onLoad() {
       }, 50);
     });
   } catch (e) {
+    if (loadKey.value !== currentLoadKey) return;
     console.error('SegmentCompare load failed', e);
     toast?.add({
       severity: 'error',
@@ -649,11 +701,22 @@ async function fetchInBatches(candidates: MatchingCandidate[], batchSize: number
     const batchResults = await Promise.all(
       batch.map(async (c) => {
         const points = (await fetchTrackSubTrackDetails(c.fromId, c.toId)) as TrackPoint[];
-        return { trackId: c.trackId, gpsTrack: c.gpsTrack, crossingEnd: c.crossingEnd, points };
+        const segment = normalizeSegmentSlice(points, [c.crossingStart, c.crossingEnd], {
+          requirePositiveDistanceOrGeometry: true,
+        });
+        if (!segment.valid) return null;
+        return {
+          trackId: c.trackId,
+          gpsTrack: c.gpsTrack,
+          crossingEnd: c.crossingEnd,
+          points: segment.points,
+          durationSec: segment.durationSec,
+          distanceM: segment.distanceM,
+        };
       })
     );
     for (const r of batchResults) {
-      if (r.points && r.points.length >= 2) results.push(r);
+      if (r) results.push(r);
     }
   }
   return results;
@@ -784,6 +847,7 @@ watch(
 );
 
 watch(localSegment, () => {
+  invalidateLoad();
   loadedData.value = [];
   gapReferenceTrackId.value = null;
   scheduleAutoLoad();
@@ -792,6 +856,8 @@ watch(localSegment, () => {
 watch(
   () => props.selectedTrackIds,
   () => {
+    invalidateLoad();
+    loadedData.value = [];
     scheduleAutoLoad();
   }
 );
@@ -799,6 +865,7 @@ watch(
 watch(
   () => props.consolidateVisits,
   () => {
+    invalidateLoad();
     loadedData.value = [];
     gapReferenceTrackId.value = null;
   }
@@ -810,6 +877,7 @@ onMounted(() => {
 });
 
 onBeforeUnmount(() => {
+  invalidateLoad();
   if (autoLoadTimer) clearTimeout(autoLoadTimer);
 });
 </script>
@@ -1057,8 +1125,10 @@ onBeforeUnmount(() => {
 /* Mini map */
 .sc-minimap-wrap {
   height: 260px;
+  min-height: 260px;
+  flex: 0 0 260px;
   border: 1px solid var(--border-subtle);
-  border-radius: 10px;
+  border-radius: 8px;
   overflow: hidden;
   background: var(--surface-glass);
 }

@@ -47,10 +47,12 @@
       <p v-if="previewError" class="filter-action-bar__message">{{ previewError }}</p>
     </div>
 
-    <button type="button" class="filter-action-bar__button" :disabled="!canOpenResultsView" @click="openColors">
-      Colors
-      <i class="bi bi-arrow-right"></i>
-    </button>
+    <div class="filter-action-bar__actions">
+      <button type="button" class="filter-action-bar__button" :disabled="!canOpenResultsView" @click="openColors">
+        Colors
+        <i class="bi bi-arrow-right"></i>
+      </button>
+    </div>
   </footer>
 </template>
 
@@ -77,11 +79,11 @@ const emit = defineEmits<{
 
 const statusTitle = computed((): string => {
   if (props.previewError) return 'Preview needs attention';
-  if (props.isPreviewLoading) return props.hasPreviewResult ? 'Updating live preview' : 'Calculating live preview';
-  if (props.hasPreviewResult) return 'Live preview';
+  if (props.isPreviewLoading) return props.hasPreviewResult ? 'Updating map' : 'Calculating preview';
+  if (props.hasPreviewResult) return 'Live map';
   return 'Waiting for parameters';
 });
-const statusLabel = computed((): string => (props.previewError ? 'Preview issue' : 'Live preview'));
+const statusLabel = computed((): string => (props.previewError ? 'Preview issue' : 'Live map'));
 
 const trackMetricValue = computed((): string => {
   if (props.previewError) return '!';
@@ -172,6 +174,13 @@ function openColors(): void {
   gap: 0.7rem 0.85rem;
 }
 
+.filter-action-bar__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.45rem;
+}
+
 .filter-action-bar__live {
   display: inline-flex;
   align-items: center;
@@ -224,7 +233,7 @@ function openColors(): void {
 .filter-action-bar__metric {
   min-width: 0;
   display: grid;
-  grid-template-columns: 3.5ch minmax(0, 1fr);
+  grid-template-columns: max-content minmax(0, 1fr);
   gap: 0.4rem;
   align-items: baseline;
   min-height: 2.25rem;
@@ -240,6 +249,7 @@ function openColors(): void {
 }
 
 .filter-action-bar__metric-value {
+  min-width: 3.5ch;
   color: var(--text-primary);
   font-size: var(--text-xl-size, 1.35rem);
   font-weight: 850;
@@ -341,6 +351,25 @@ function openColors(): void {
   color: var(--text-inverse);
 }
 
+.filter-action-bar__button--secondary {
+  border-color: var(--border-medium);
+  background: transparent;
+  color: var(--text-secondary);
+  box-shadow: none;
+}
+
+.filter-action-bar__button--secondary:hover {
+  border-color: var(--border-hover);
+  background: var(--surface-hover);
+  color: var(--text-primary);
+}
+
+.filter-action-bar__button--primary {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--text-inverse);
+}
+
 .filter-action-bar__button:disabled {
   border-color: var(--border-default);
   background: var(--surface-glass-heavy, var(--surface-ground));
@@ -418,6 +447,10 @@ function openColors(): void {
     width: auto;
     min-height: 2.35rem;
     padding: 0.5rem 0.7rem;
+  }
+
+  .filter-action-bar__actions {
+    justify-content: flex-start;
   }
 }
 </style>

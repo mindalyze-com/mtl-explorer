@@ -1,0 +1,48 @@
+{
+  "coverageId": "MAP_14",
+  "simulation": "Playwright blocked local PMTiles archive requests matching /mtl/api/map-proxy/prod/*.pmtiles in a clean browser context.",
+  "config": {
+    "tileMode": "local",
+    "tileArchiveUrl": "/mtl/api/map-proxy/prod/planet.pmtiles?mtl-map-source=public&mtl-map-archive=public-default",
+    "lowzoomArchiveUrl": "/mtl/api/map-proxy/prod/world-lowzoom.pmtiles?mtl-map-source=public&mtl-map-archive=public-default"
+  },
+  "blockedPmtilesRequests": [
+    "http://167.233.16.201:18080/mtl/api/map-proxy/prod/planet.pmtiles",
+    "http://167.233.16.201:18080/mtl/api/map-proxy/prod/planet.pmtiles",
+    "http://167.233.16.201:18080/mtl/api/map-proxy/prod/world-lowzoom.pmtiles"
+  ],
+  "fallback": {
+    "consoleWarningSeen": true,
+    "consoleWarning": "warning: [MTL] Local vector map tiles failed; switched base map to raster fallback for this session. {message: Failed to fetch, sourceId: protomaps, tile: null, fallbackStyleMode: remote-raster}",
+    "remoteTopoProviderSeen": true,
+    "attributionSeen": true,
+    "mapShows12Tracks": true
+  },
+  "interaction": {
+    "scaleBefore": "1000 km",
+    "scaleAfter": "500 km",
+    "zoomChangedScale": true,
+    "trackSelectionOpened": true,
+    "selectionTextSample": "4 tracks — select for details",
+    "trackSelectionOptions": [
+      "voie verte haute vosges on GPSies.com",
+      "Jura Route 7 / 2011 on GPSies.com",
+      "Moselradweg aus Wiki on GPSies.com",
+      "MAP 03 Freshness Synthetic"
+    ]
+  },
+  "failedRequestSummary": [
+    {
+      "url": "http://167.233.16.201:18080/mtl/api/map-proxy/prod/planet.pmtiles",
+      "error": "net::ERR_FAILED"
+    },
+    {
+      "url": "http://167.233.16.201:18080/mtl/api/map-proxy/prod/planet.pmtiles",
+      "error": "net::ERR_FAILED"
+    },
+    {
+      "url": "http://167.233.16.201:18080/mtl/api/map-proxy/prod/world-lowzoom.pmtiles",
+      "error": "net::ERR_FAILED"
+    }
+  ]
+}

@@ -1,0 +1,7 @@
+FLT_07 legend filtering evidence
+All visible: chip=true; rows=[{"text":"BICYCLE\n11","cls":"mtl-card__row","disabled":false,"visible":true},{"text":"WALKING\n1","cls":"mtl-card__row","disabled":false,"visible":true}]; sample=300 km © OpenStreetMap | Elevation: Mapterhorn 12 / 12 Tracks Legend BICYCLE 11 WALKING 1 Stats Filter Map Animate Segments GPS Planner Admin
+Walking hidden: chip=true; walkingDisabled=true; rows=[{"text":"BICYCLE\n11","cls":"mtl-card__row","disabled":false,"visible":true},{"text":"WALKING\n1","cls":"mtl-card__row mtl-card__row--disabled","disabled":true,"visible":true}]
+Legend collapsed: collapsed=true; chipStill11=true
+Walking restored: chip=true; walkingDisabled=false
+Bicycle hidden: chip=true; bicycleDisabled=true; rows=[{"text":"BICYCLE\n11","cls":"mtl-card__row mtl-card__row--disabled","disabled":true,"visible":true},{"text":"WALKING\n1","cls":"mtl-card__row","disabled":false,"visible":true}]
+All restored: chip=true; anyDisabled=false; navEntries=1

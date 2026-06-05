@@ -1,0 +1,54 @@
+{
+  "setupSync": {
+    "serverToken": "31wrrr__|server_id:4cPgaT3KHaptNtCyRmtRqJ|config:9|filters:83|index:171|media:31|track_geometry:108|tracks:128",
+    "local": {
+      "applied": "31wrrr__|server_id:4cPgaT3KHaptNtCyRmtRqJ|config:9|filters:83|index:171|media:31|track_geometry:108|tracks:128",
+      "dismissed": "",
+      "dismissedExpiresAt": 0,
+      "now": 1780619130752
+    }
+  },
+  "beforeDismissToken": "31wrrr__|server_id:4cPgaT3KHaptNtCyRmtRqJ|config:9|filters:83|index:171|media:31|track_geometry:108|tracks:128",
+  "uploadDismiss1": {
+    "filename": "syn05-dismiss-one-1780619130790.gpx",
+    "name": "syn05-dismiss-one synthetic 1780619130790",
+    "result": {
+      "status": 200,
+      "text": "{\"success\":true,\"message\":\"'syn05-dismiss-one-1780619130790.gpx' uploaded successfully. Indexing will begin shortly.\",\"fileName\":\"syn05-dismiss-one-1780619130790.gpx\"}"
+    }
+  },
+  "tokenDismiss1": "7WGFQT__|server_id:4cPgaT3KHaptNtCyRmtRqJ|config:9|filters:83|index:174|media:31|track_geometry:114|tracks:130",
+  "bannerDismiss1": "New data available Tracks, media, or settings changed since this view loaded. Reload Dismiss",
+  "bannerAfterDismiss": "",
+  "afterDismissState": {
+    "applied": "31wrrr__|server_id:4cPgaT3KHaptNtCyRmtRqJ|config:9|filters:83|index:171|media:31|track_geometry:108|tracks:128",
+    "dismissed": "3eMhvy__|server_id:4cPgaT3KHaptNtCyRmtRqJ|config:9|filters:83|index:174|media:31|track_geometry:114|tracks:133",
+    "dismissedExpiresAt": 1780619453248,
+    "now": 1780619155254
+  },
+  "uploadDismiss2": {
+    "filename": "syn05-dismiss-two-1780619155258.gpx",
+    "name": "syn05-dismiss-two synthetic 1780619155258",
+    "result": {
+      "status": 200,
+      "text": "{\"success\":true,\"message\":\"'syn05-dismiss-two-1780619155258.gpx' uploaded successfully. Indexing will begin shortly.\",\"fileName\":\"syn05-dismiss-two-1780619155258.gpx\"}"
+    }
+  },
+  "tokenDismiss2": "3eMhvy__|server_id:4cPgaT3KHaptNtCyRmtRqJ|config:9|filters:83|index:174|media:31|track_geometry:114|tracks:133",
+  "visibleDuringSnooze": [],
+  "bannerAfterExpiry": "New data available Tracks, media, or settings changed since this view loaded. Reload Dismiss",
+  "finalLocalFreshness": {
+    "applied": "31wrrr__|server_id:4cPgaT3KHaptNtCyRmtRqJ|config:9|filters:83|index:171|media:31|track_geometry:108|tracks:128",
+    "dismissed": "",
+    "dismissedExpiresAt": 0,
+    "now": 1780619458408
+  },
+  "finalBody": "500 km © OpenStreetMap | Elevation: Mapterhorn 16 Tracks New data available Tracks, media, or settings changed since this view loaded. Reload Dismiss Stats Filter Map Animate Segments GPS Planner Admin",
+  "assertions": {
+    "firstBannerVisible": true,
+    "dismissedHidden": true,
+    "hiddenThroughNextPoll": true,
+    "serverChangedAgain": true,
+    "reappearedAfterSnooze": true
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "shows12Tracks": true,
+  "hasLoadingText": false,
+  "mapControlsStillVisible": true,
+  "visualReview": "settled screenshot shows base map and controls without stale overlay or runaway spinner",
+  "nonBlockingAbortedRequestsDuringPan": 10,
+  "note": "Request aborts occurred only during rapid pan/zoom tile cancellation; settled screenshot had no missing-tile or spinner symptoms."
+}

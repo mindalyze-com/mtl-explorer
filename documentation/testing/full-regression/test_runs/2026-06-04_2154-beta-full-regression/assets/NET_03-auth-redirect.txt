@@ -1,0 +1,10 @@
+{
+  "url": "http://167.233.16.201:18080/mtl/login",
+  "tokenPresent": false,
+  "bodyExcerpt": "© Patrick Heusser AGPL-3.0 Sign In",
+  "assertions": {
+    "redirectedToLogin": true,
+    "loginVisible": true,
+    "tokenCleared": true
+  }
+}

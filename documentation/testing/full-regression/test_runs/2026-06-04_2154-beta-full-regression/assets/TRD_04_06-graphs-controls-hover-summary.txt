@@ -1,0 +1,21 @@
+CHART_COUNT=6
+CHART_NAMES_PRESENT=SPEED|ELEVATION|ELEVATION GAIN RATE|DISTANCE OVER TIME|CUMULATIVE MECHANICAL ENERGY|ESTIMATED POWER
+DATA_RANGE_MENTIONS=12
+INITIAL_ACTIVE=Time|Range
+INITIAL_POINTS=350
+INITIAL_CHART_SIZE={"w":884,"h":240,"x":279,"y":552}
+DISTANCE_ACTIVE=Distance|Range
+RANGE_OFF_ACTIVE=Distance
+FEWER_POINTS=325
+RESTORED_POINTS=350
+BIGGER_CHART_SIZE={"w":884,"h":250,"x":279,"y":552}
+RESTORED_CHART_SIZE={"w":884,"h":240,"x":279,"y":552}
+MINI_MAP_BOX={"i":2,"x":261,"y":115.1875,"w":920,"h":220}
+CHART_HOVER_STATE={"tooltipNodes":0,"crosshairNodes":0,"hoverPointNodes":0}
+MINIMAP_HOVER_STATE={"tooltipNodes":0,"crosshairNodes":0,"hoverPointNodes":0}
+LEAVE_STATE={"tooltipNodes":0,"crosshairNodes":0,"hoverPointNodes":0,"popups":0}
+TRD_04_PASS=true
+TRD_05_PASS=true
+TRD_06_PASS=true
+REQUEST_FAILED_RECENT=GET http://167.233.16.201:18080/mtl/api/map-proxy/prod/planet.pmtiles?mtl-map-source=public&mtl-map-archive=public-default net::ERR_ABORTED | GET http://167.233.16.201:18080/mtl/api/map-proxy/prod/planet.pmtiles?mtl-map-source=public&mtl-map-archive=public-default net::ERR_ABORTED | GET http://167.233.16.201:18080/mtl/api/map-proxy/prod/planet.pmtiles?mtl-map-source=public&mtl-map-archive=public-default net::ERR_ABORTED | GET http://167.233.16.201:18080/mtl/api/map-proxy/prod/planet.pmtiles?mtl-map-source=public&mtl-map-archive=public-default net::ERR_ABORTED | GET http://167.233.16.201:18080/mtl/api/map-proxy/prod/planet.pmtiles?mtl-map-source=public&mtl-map-archive=public-default net::ERR_ABORTED | GET http://167.233.16.201:18080/mtl/api/map-proxy/prod/planet.pmtiles?mtl-map-source=public&mtl-map-archive=public-default net::ERR_ABORTED | GET http://167.233.16.201:18080/mtl/api/map-proxy/prod/planet.pmtiles?mtl-map-source=public&mtl-map-archive=public-default net::ERR_ABORTED | GET http://167.233.16.201:18080/mtl/api/map-proxy/prod/planet.pmtiles?mtl-map-source=public&mtl-map-archive=public-default net::ERR_ABORTED
+CONSOLE_RECENT=info: [track-cache] sync 10m: fetching 11/11 tracks in 1 batches {precision: 10, totalTracks: 11, cachedTracks: 0, staleOrMissingTracks: 11, staleGeometryCleared: 11} | log: [tracks] Map layers rebuilt {durationMs: 2, trackCount: 11, overviewDotCount: 11, hasPalette: false, legendGroupCount: 0} | info: [track-cache] sync 10m complete {precision: 10, totalTracks: 11, fetchedTracks: 11, cachedTracks: 0, batches: 1} | log: Downloading low-zoom PMTiles from /mtl/api/map-proxy/prod/world-lowzoom.pmtiles?mtl-map-source=public&mtl-map-archive=public-default … (IndexedDB fallback) | log: Low-zoom PMTiles cached successfully (IndexedDB, 42.4 MB) | log: fetch chart series (DISTANCE, maxBuckets=350) for 100005 | log: fetch chart series (DISTANCE, maxBuckets=325) for 100005 | log: fetch chart series (DISTANCE, maxBuckets=350) for 100005

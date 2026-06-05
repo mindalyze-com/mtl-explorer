@@ -1,0 +1,29 @@
+CONTROL_VISIBLE=true
+SUGGESTED_FILENAME=Activity.gpx
+SAVED_PATH=/tmp/mtl-regression-playwright-20260604-2154/downloads/FIT_05-Activity.gpx
+DOWNLOADED_SIZE=479844
+DOWNLOADED_SHA256=aabc921765728504735765149239b293fdcfcff141c6f691744727ac8af27ff9
+VALID_XML=true
+TRK_COUNT=1
+TRKSEG_COUNT=1
+TRKPT_COUNT=3601
+WPT_COUNT=0
+HAS_REAL_TRACKPOINTS=true
+ONLY_WAYPOINTS=false
+FIRST_BYTES=<?xml version="1.0" encoding="UTF-8"?> <gpx version="1.1" creator="GPSBabel - https://www.gpsbabel.org" xmlns="http://ww
+CONSOLE_RECENT
+table: [Object, Object, Object, Object, Object]
+info: [track-cache] manual cache clear started
+info: [track-cache] manual cache clear complete {durationMs: 28}
+info: [track-cache] sync 10m: fetching 4/4 tracks in 1 batches {precision: 10, totalTracks: 4, cachedTracks: 0, staleOrMissingTracks: 4, staleGeometryCleared: 4}
+log: [tracks] Map layers rebuilt {durationMs: 2, trackCount: 4, overviewDotCount: 4, hasPalette: false, legendGroupCount: 0}
+info: [track-cache] sync 10m complete {precision: 10, totalTracks: 4, fetchedTracks: 4, cachedTracks: 0, batches: 1}
+log: Downloading low-zoom PMTiles from /mtl/api/map-proxy/prod/world-lowzoom.pmtiles?mtl-map-source=public&mtl-map-archive=public-default … (IndexedDB fallback)
+log: Low-zoom PMTiles cached successfully (IndexedDB, 42.4 MB)
+REQUEST_FAILED_RECENT
+GET http://167.233.16.201:18080/mtl/api/map-proxy/prod/planet.pmtiles?mtl-map-source=public&mtl-map-archive=public-default net::ERR_ABORTED
+GET http://167.233.16.201:18080/mtl/api/map-proxy/prod/planet.pmtiles?mtl-map-source=public&mtl-map-archive=public-default net::ERR_ABORTED
+GET http://167.233.16.201:18080/mtl/api/map-proxy/prod/planet.pmtiles?mtl-map-source=public&mtl-map-archive=public-default net::ERR_ABORTED
+GET http://167.233.16.201:18080/mtl/api/map-proxy/prod/planet.pmtiles?mtl-map-source=public&mtl-map-archive=public-default net::ERR_ABORTED
+GET http://167.233.16.201:18080/mtl/api/map-proxy/prod/planet.pmtiles?mtl-map-source=public&mtl-map-archive=public-default net::ERR_ABORTED
+GET http://167.233.16.201:18080/mtl/api/map-proxy/prod/planet.pmtiles?mtl-map-source=public&mtl-map-archive=public-default net::ERR_ABORTED

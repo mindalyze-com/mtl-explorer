@@ -1,0 +1,143 @@
+AVR_02 virtual race evidence
+{
+  "result": {
+    "body": "20 km © OpenStreetMap | Elevation: Mapterhorn 12 Tracks Stats Filter Map Animate Segments GPS Planner Admin Segment Analyzer 2 / 2 tracks Consolidated Compare 2 Race 2 Table Trends COLUMN METRIC Speed Time Distance NAME START DURATION A - B VoieVerteHauteVosges.gpx 01/01/2010, 01:00 4h 43m 16.22 MoselradwegAusWiki.gpx 01/01/2010, 01:00 1d 07h 16.11",
+    "links": [
+      "VoieVerteHauteVosges.gpx",
+      "MoselradwegAusWiki.gpx"
+    ],
+    "raceDisabled": false,
+    "selectedPill": "2 / 2tracks"
+  },
+  "ready": {
+    "racerPill": "2 racers",
+    "startDisabled": false,
+    "resetDisabled": false,
+    "startIcon": "bi bi-play-fill",
+    "speedInfo": "262x · 12s",
+    "warnings": [],
+    "cards": [
+      {
+        "rank": "1",
+        "name": "VoieVerteHauteVosges.gpx",
+        "stats": [
+          "0%",
+          "00:43:35",
+          "16.2 km/h",
+          "11.78 km"
+        ]
+      },
+      {
+        "rank": "2",
+        "name": "MoselradwegAusWiki.gpx",
+        "stats": [
+          "0%",
+          "01:02:28",
+          "16.1 km/h",
+          "16.77 km"
+        ]
+      }
+    ]
+  },
+  "running": {
+    "startIcon": "bi bi-pause-fill",
+    "cards": [
+      {
+        "rank": "1",
+        "name": "VoieVerteHauteVosges.gpx",
+        "stats": [
+          "22%",
+          "2.65 km",
+          "00:43:35",
+          "16.2 km/h",
+          "11.78 km"
+        ]
+      },
+      {
+        "rank": "2",
+        "name": "MoselradwegAusWiki.gpx",
+        "stats": [
+          "16%",
+          "2.63 km",
+          "01:02:28",
+          "16.1 km/h",
+          "16.77 km"
+        ]
+      }
+    ]
+  },
+  "paused": {
+    "startIcon": "bi bi-play-fill",
+    "cards": [
+      {
+        "rank": "1",
+        "name": "VoieVerteHauteVosges.gpx",
+        "stats": [
+          "29%",
+          "3.40 km",
+          "00:43:35",
+          "16.2 km/h",
+          "11.78 km"
+        ]
+      },
+      {
+        "rank": "2",
+        "name": "MoselradwegAusWiki.gpx",
+        "stats": [
+          "20%",
+          "3.38 km",
+          "01:02:28",
+          "16.1 km/h",
+          "16.77 km"
+        ]
+      }
+    ]
+  },
+  "reset": {
+    "startIcon": "bi bi-play-fill",
+    "cards": [
+      {
+        "rank": "1",
+        "name": "VoieVerteHauteVosges.gpx",
+        "stats": [
+          "0%",
+          "00:43:35",
+          "16.2 km/h",
+          "11.78 km"
+        ]
+      },
+      {
+        "rank": "2",
+        "name": "MoselradwegAusWiki.gpx",
+        "stats": [
+          "0%",
+          "01:02:28",
+          "16.1 km/h",
+          "16.77 km"
+        ]
+      }
+    ]
+  },
+  "responses": [
+    {
+      "url": "http://167.233.16.201:18080/mtl/api/tracks/get-track-details-for-tracks-crossing-points",
+      "status": 200
+    },
+    {
+      "url": "http://167.233.16.201:18080/mtl/api/tracks/details/get-sub-track?trackDataPointFrom=607154&trackDataPointTo=607309",
+      "status": 200
+    },
+    {
+      "url": "http://167.233.16.201:18080/mtl/api/tracks/details/get-sub-track?trackDataPointFrom=610195&trackDataPointTo=610250",
+      "status": 200
+    },
+    {
+      "url": "http://167.233.16.201:18080/mtl/api/tracks/details/get-sub-track?trackDataPointFrom=607154&trackDataPointTo=607309",
+      "status": 200
+    },
+    {
+      "url": "http://167.233.16.201:18080/mtl/api/tracks/details/get-sub-track?trackDataPointFrom=610195&trackDataPointTo=610250",
+      "status": 200
+    }
+  ]
+}

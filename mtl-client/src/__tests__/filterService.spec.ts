@@ -54,3 +54,16 @@ describe('FilterService active state', () => {
     ).toBe(false);
   });
 });
+
+describe('FilterService param migration', () => {
+  it('keeps persisted geo rectangles when new-format params include track ids', () => {
+    const params = {
+      geoRectangles: {
+        VIEWPORT: { minLat: 46, minLng: 7, maxLat: 47, maxLng: 8 },
+      },
+      trackIds: [101, 102],
+    };
+
+    expect(FilterService.migrateFilterParams(params)).toEqual(params);
+  });
+});

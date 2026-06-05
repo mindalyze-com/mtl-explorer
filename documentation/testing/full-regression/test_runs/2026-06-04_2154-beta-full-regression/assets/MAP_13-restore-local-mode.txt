@@ -1,0 +1,11 @@
+REMOVE_OVERRIDE
+
+PS
+NAME                             IMAGE                                          COMMAND                  SERVICE           CREATED             STATUS                       PORTS
+mtl-explorer-app-1               wauwau0977/mytraillog:beta                     "/my-entrypoint.sh j…"   app               2 seconds ago       Up Less than a second        0.0.0.0:18080->8080/tcp, :::18080->8080/tcp
+mtl-explorer-brouter-1           wauwau0977/mytraillog-brouter:latest           "/opt/brouter-orches…"   brouter           About an hour ago   Up About an hour             17777-17778/tcp
+mtl-explorer-db-1                postgis/postgis:18-3.6                         "docker-entrypoint.s…"   db                About an hour ago   Up About an hour (healthy)   5432/tcp
+mtl-explorer-location-search-1   wauwau0977/mytraillog-location-search:latest   "python /app/locatio…"   location-search   About an hour ago   Up About an hour (healthy)   0.0.0.0:18083->8083/tcp, :::18083->8083/tcp
+
+RESTORED_CONFIG
+{"tileMode":"local","tileBaseUrl":"/mtl/api/map-proxy/prod","tileArchiveUrl":"/mtl/api/map-proxy/prod/planet.pmtiles?mtl-map-source=public&mtl-map-archive=public-default","tilesetName":"planet","lowzoomTilesetName":"world-lowzoom","lowzoomArchiveUrl":"/mtl/api/map-proxy/prod/world-lowzoom.pmtiles?mtl-map-source=public&mtl-map-archive=public-default","tileSource":"public","archiveId":"public-default","remoteRasterStyles":{"light":{"url":"https://tile.openstreetmap.org/{z}/{x}/{y}.png","attribution":"© <a href=\"https://www.openstreetmap.org/copyright\">OpenStreetMap</a> contributors"},"light-topo":{"url":"https://tile.opentopomap.org/{z}/{x}/{y}.png","attribution":"Map data: © <a href=\"https://www.openstreetmap.org/copyright\">OpenStreetMap</a> contributors, SRTM | Map style: © <a href=\"https://opentopomap.org\">OpenTopoMap</a> (<a href=\"https://creativecommons.org/licenses/by-sa/3.0/\">CC-BY-SA</a>)"},"dark":{"url":"https://basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png","attribution":"© <a href=\"https://www.openstreetmap.org/copyright\">OpenStreetMap</a> contributors © <a href=\"https://carto.com/attributions\">CARTO</a>"}},"initialBounds":{"minLng":1.1E-5,"minLat":0.0,"maxLng":7.7322,"maxLat":50.363855},"plannerEnabled":true,"plannerProfiles":["trekking","fastbike","hiking-mountain","car-eco"]}

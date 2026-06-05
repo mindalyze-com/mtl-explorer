@@ -1,0 +1,11 @@
+HMO_02 map overlay independence and opacity evidence
+Overall: PASS
+Method: seven fresh browser contexts; each cleaned map/filter storage, opened Maps and data, toggled exactly one overlay on, adjusted its own row-scoped opacity slider, verified GPS Tracks stayed enabled, then toggled the overlay off.
+Results:
+- Hiking (worldwide): off->on false->true; opacity 100->50 target 50; off restored true; GPS tracks enabled true; request domains 167.233.16.201,tile.waymarkedtrails.org
+- Cycling (worldwide): off->on false->true; opacity 100->70 target 70; off restored true; GPS tracks enabled true; request domains 167.233.16.201,tile.waymarkedtrails.org
+- MTB (worldwide): off->on false->true; opacity 100->60 target 60; off restored true; GPS tracks enabled true; request domains 167.233.16.201,tile.waymarkedtrails.org
+- Hiking Routes: off->on false->true; opacity 100->45 target 45; off restored true; GPS tracks enabled true; request domains 167.233.16.201,wmts.geo.admin.ch
+- Bike Routes: off->on false->true; opacity 100->30 target 30; off restored true; GPS tracks enabled true; request domains 167.233.16.201,wmts.geo.admin.ch
+- MTB Routes: off->on false->true; opacity 100->55 target 55; off restored true; GPS tracks enabled true; request domains 167.233.16.201,wmts.geo.admin.ch
+- Hiking Trails: off->on false->true; opacity 100->80 target 80; off restored true; GPS tracks enabled true; request domains 167.233.16.201,wmts.geo.admin.ch

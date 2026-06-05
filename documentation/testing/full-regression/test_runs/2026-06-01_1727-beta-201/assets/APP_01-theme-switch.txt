@@ -1,0 +1,4 @@
+APP_01 theme switch evidence:
+- After Light click data-theme: light
+- After Dark click data-theme: dark
+- Settings text present in dark: true

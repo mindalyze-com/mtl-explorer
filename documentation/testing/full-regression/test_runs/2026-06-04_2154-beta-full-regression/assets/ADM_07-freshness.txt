@@ -1,0 +1,10 @@
+{
+  "beforeExcerpt": "In sync The client is showing the latest server data. Checked 02:14:39 AM Refresh Server token and client token visible. LATEST CHANGE 06/05/2026, 02:11:36 DOMAINS 6 REVISION SUM 500 Tracked writes across all domains; compare tokens, not this number. Index r165 index 06/05/2026, 02:11:36 Tracks r116 tracks 06/05/2026, 02:10:27 Geometry r96 track_geometry 06/05/2026, 02:09:45 Media r31 media 06/05/2026, 01:27:17 Filters r83 filters 06/04/2026, 21:59:00 Config r9 config 06/04/2026, 21:59:27 Polling healthy",
+  "afterExcerpt": "In sync The client is showing the latest server data. Checked 02:14:44 AM Refresh Server token and client token visible. LATEST CHANGE 06/05/2026, 02:11:36 DOMAINS 6 REVISION SUM 500 Tracked writes across all domains; compare tokens, not this number. Index r165 index 06/05/2026, 02:11:36 Tracks r116 tracks 06/05/2026, 02:10:27 Geometry r96 track_geometry 06/05/2026, 02:09:45 Media r31 media 06/05/2026, 01:27:17 Filters r83 filters 06/04/2026, 21:59:00 Config r9 config 06/04/2026, 21:59:27 Polling healthy",
+  "assertions": {
+    "hasLatestChange": true,
+    "hasCheckedTimestamp": true,
+    "refreshButtonPresent": true,
+    "afterStillShowsStatus": true
+  }
+}

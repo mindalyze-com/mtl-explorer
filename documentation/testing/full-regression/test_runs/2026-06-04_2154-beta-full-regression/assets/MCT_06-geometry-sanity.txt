@@ -1,0 +1,136 @@
+{
+  "selectedSegment": "A-B",
+  "compareState": {
+    "racerCards": [
+      "synthetic-crossing-a.gpxBicycle01/20/2026, 10:00 00:06:51 11.5 km/h 1.32 km",
+      "synthetic-crossing-b.gpxBicycle01/21/2026, 10:00 00:08:43 9.1 km/h 1.32 km"
+    ],
+    "chartTitles": [
+      "Speed",
+      "Altitude"
+    ],
+    "chartCount": 2,
+    "highcharts": 2,
+    "minimapCanvases": 1,
+    "segmentChips": [
+      "A-B",
+      "Distance",
+      "Time",
+      "Speed",
+      "Altitude",
+      "Est. Power",
+      "Mechanical Energy (rebased)",
+      "Slope",
+      "Pacing — time over distance",
+      "Time gap vs. reference"
+    ]
+  },
+  "subTrackResponses": [
+    {
+      "status": 200,
+      "url": "/mtl/api/tracks/details/get-sub-track?trackDataPointFrom=637008&trackDataPointTo=637009",
+      "pointCount": 2,
+      "first": [
+        7.447100052696799,
+        46.948100052696795
+      ],
+      "last": [
+        7.457199972898322,
+        46.95819997289832
+      ],
+      "bounds": {
+        "minLng": 7.447100052696799,
+        "maxLng": 7.457199972898322,
+        "minLat": 46.948100052696795,
+        "maxLat": 46.95819997289832
+      },
+      "invalid": 0,
+      "zeroish": 0,
+      "offContinent": 0
+    },
+    {
+      "status": 200,
+      "url": "/mtl/api/tracks/details/get-sub-track?trackDataPointFrom=637011&trackDataPointTo=637012",
+      "pointCount": 2,
+      "first": [
+        7.447000052780105,
+        46.9480000527801
+      ],
+      "last": [
+        7.456999973148321,
+        46.95799997314832
+      ],
+      "bounds": {
+        "minLng": 7.447000052780105,
+        "maxLng": 7.456999973148321,
+        "minLat": 46.9480000527801,
+        "maxLat": 46.95799997314832
+      },
+      "invalid": 0,
+      "zeroish": 0,
+      "offContinent": 0
+    },
+    {
+      "status": 200,
+      "url": "/mtl/api/tracks/details/get-sub-track?trackDataPointFrom=637008&trackDataPointTo=637009",
+      "pointCount": 2,
+      "first": [
+        7.447100052696799,
+        46.948100052696795
+      ],
+      "last": [
+        7.457199972898322,
+        46.95819997289832
+      ],
+      "bounds": {
+        "minLng": 7.447100052696799,
+        "maxLng": 7.457199972898322,
+        "minLat": 46.948100052696795,
+        "maxLat": 46.95819997289832
+      },
+      "invalid": 0,
+      "zeroish": 0,
+      "offContinent": 0
+    },
+    {
+      "status": 200,
+      "url": "/mtl/api/tracks/details/get-sub-track?trackDataPointFrom=637011&trackDataPointTo=637012",
+      "pointCount": 2,
+      "first": [
+        7.447000052780105,
+        46.9480000527801
+      ],
+      "last": [
+        7.456999973148321,
+        46.95799997314832
+      ],
+      "bounds": {
+        "minLng": 7.447000052780105,
+        "maxLng": 7.456999973148321,
+        "minLat": 46.9480000527801,
+        "maxLat": 46.95799997314832
+      },
+      "invalid": 0,
+      "zeroish": 0,
+      "offContinent": 0
+    }
+  ],
+  "sanity": {
+    "subTrackCount": 4,
+    "invalid": 0,
+    "zeroish": 0,
+    "offContinent": 0,
+    "combinedBounds": {
+      "minLng": 7.447000052780105,
+      "maxLng": 7.457199972898322,
+      "minLat": 46.9480000527801,
+      "maxLat": 46.95819997289832
+    },
+    "withinBernEnvelope": true
+  },
+  "assertions": {
+    "minimapRendered": true,
+    "noZeroOrGlobalCoordinates": true,
+    "boundsStayNearSelectedTracks": true
+  }
+}

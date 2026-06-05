@@ -69,8 +69,9 @@ Inside it create run-state.md, packets/, and assets/ before testing.
 
 Work one coverage ID per packet, top to bottom. After each packet, save the
 packet file and update run-state.md. Finish only after all required coverage IDs
-are terminal (`PASS`, `FAIL`, `BLOCKED`, or `NOT APPLICABLE`), final report.md
-is assembled from packet files, and cleanup is verified.
+are terminal (`PASS`, `FAIL`, `BLOCKED`, `NOT APPLICABLE`, `FIXED`, `REJECTED`,
+`NOT REPRODUCEABLE`, or `NOT REPRODUCIBLE`), final report.md is assembled from
+packet files, and cleanup is verified.
 
 Before report.md, Current coverage ID: COMPLETE, or RUN_CLEANUP, enforce the
 endless coverage gate from resumable-workflow.md: no coverage ID may remain NOT
@@ -80,4 +81,6 @@ documentation/testing/full-regression/workflow/check-finalization-gate.py agains
 the run-state file and require Finalization gate: PASS before normal cleanup. If
 the gate fails, keep the run resumable and continue with the first unfinished
 coverage ID.
+
+For that particular test do not use latest but use the "beta" tag "wauwau0977/mytraillog:beta"
 ```

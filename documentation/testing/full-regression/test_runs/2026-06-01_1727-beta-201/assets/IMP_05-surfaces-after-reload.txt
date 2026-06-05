@@ -1,0 +1,59 @@
+{
+  "url": "http://167.233.16.201:18080/mtl/",
+  "reloadMethod": "clean browser context loaded documented root URL after import",
+  "mapText": "50 km\n© OpenStreetMap | Elevation: Mapterhorn\n5 Tracks\nStats\nFilter\nMap\nAnimate\nSegments\nGPS\nPlanner\nAdmin",
+  "statsText": "50 km\n© OpenStreetMap | Elevation: Mapterhorn\n5 Tracks\nStats\nFilter\nMap\nAnimate\nSegments\nGPS\nPlanner\nAdmin\nOverview\nTrends\nTracks\nVIEWS\nAll\nExcluded\nStats excluded\nNo activity\n5\ntracks\n·\n1,043 km\n·\n23h 31m\n SORT:\nDate\nImported\nDistance\nDuration\nName\nExploration\n\t\nSTART\n\t\nTRACK\n\t\nACTIVITY\n\t\nDISTANCE\n\t\nDURATION\n\t\nAVG KM/H\n\t\nENERGY\n\t\nEXPLORATION\n\t\nIMPORTED\n\n\n\t03/08/2013, 10:32\t\nLannion_Plestin_parcours Lannion_Plestin_parcours1\n\t\nBicycle\n\t25.9 km\t1h 13m\t21.1\t198 Wh\t100.0%\t06/01/2026, 17:39\n\n\t01/01/2010, 01:00\t\nvoie verte haute vosges on GPSies.com\n\t\nBicycle\n\t78.5 km\t3h 12m\t24.4\t436 Wh\t100.0%\t06/01/2026, 17:39\n\n\t01/01/2010, 01:00\t\nJura Route 7 / 2011 on GPSies.com\n\t\nBicycle\n\t273 km\t7h 46m\t35.1\t1,808 Wh\t100.0%\t06/01/2026, 17:39\n\n\t01/01/2010, 01:00\t\nMoselradweg aus Wiki on GPSies.com\n\t\nBicycle\n\t518 km\t6h 50m\t75.7\t1,616 Wh\t100.0%\t06/01/2026, 17:39\n\n\t01/01/2010, 01:00\t\nVitry le françois - langres on GPSies.com\n\t\nBicycle\n\t147 km\t4h 27m\t33.0\t471 Wh\t100.0%\t06/01/2026, 17:39\n1\n25",
+  "filterText": "50 km\n© OpenStreetMap | Elevation: Mapterhorn\n5 Tracks\nStats\nFilter\nMap\nAnimate\nSegments\nGPS\nPlanner\nAdmin\nFilter\nColors\nSQL\nOff\nFiltering is off\n\nTurn filtering on to narrow tracks by type, date or geo area, group them, and color the map. The Colors and SQL tabs unlock once a filter is selected.\n\nEnable filter",
+  "errors": [],
+  "logs": [
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 401 ()"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 401 ()"
+    },
+    {
+      "type": "requestfailed",
+      "url": "http://167.233.16.201:18080/mtl/api/info/build",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "type": "requestfailed",
+      "url": "https://tiles.mapterhorn.com/0/0/0.webp",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "type": "requestfailed",
+      "url": "https://tile.openstreetmap.org/0/0/0.png",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "type": "requestfailed",
+      "url": "https://protomaps.github.io/basemaps-assets/fonts/Noto%20Sans%20Regular/0-255.pbf",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "type": "requestfailed",
+      "url": "https://protomaps.github.io/basemaps-assets/sprites/v4/light.json",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "type": "warning",
+      "text": "[.WebGL-0x10400578600]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels"
+    },
+    {
+      "type": "warning",
+      "text": "[.WebGL-0x10400579800]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels"
+    },
+    {
+      "type": "warning",
+      "text": "[.WebGL-0x10400578600]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels"
+    },
+    {
+      "type": "warning",
+      "text": "[.WebGL-0x10400578600]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels (this message will no longer repeat)"
+    }
+  ]
+}

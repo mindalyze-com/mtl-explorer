@@ -1,0 +1,19 @@
+{
+  "coverageId": "TRD_01",
+  "action": "Opened GPX-backed track #100000 and FIT-backed track #100005 through map navigation.",
+  "gpx": {
+    "opened": true,
+    "id": 100000,
+    "sourceFile": "VoieVerteHauteVosges.gpx",
+    "visibleTitle": "voie verte haute vosges on GPSies.com",
+    "activity": "Bicycle"
+  },
+  "fit": {
+    "opened": true,
+    "id": 100005,
+    "sourceFile": "Activity.fit",
+    "visibleTitle": "Activity.fit",
+    "activity": "Walking"
+  },
+  "navigation": "Map overlap selector for GPX; map overview FIT dot for FIT."
+}

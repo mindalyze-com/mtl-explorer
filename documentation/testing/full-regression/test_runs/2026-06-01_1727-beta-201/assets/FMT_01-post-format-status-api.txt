@@ -1,0 +1,17 @@
+freshnessToken=6bpLv8__|server_id:Cg8oM1u6qqvmF4JAAqTxET|config:9|filters:83|index:48|media:0|track_geometry:78|tracks:85
+indexer=GPS total=13 completed=11 removed=2 failed=0 pending=0 progress=84
+job=duplicate total=11 done=11 pending=0 progress=100
+job=activityType total=11 done=11 pending=0 progress=100
+job=exploration total=11 done=11 pending=0 progress=100
+standardFilterCount=11 numberOfFilteredMatchedTracks=11
+trackId=100000 file=VoieVerteHauteVosges.gpx status=COMPLETED_WITH_SUCCESS loadStatus=SUCCESS name=voie verte haute vosges on GPSies.com points=1298 distanceM=78537.83
+trackId=100003 file=JuraRoute72011.gpx status=COMPLETED_WITH_SUCCESS loadStatus=SUCCESS name=Jura Route 7 / 2011 on GPSies.com points=1409 distanceM=273260.02
+trackId=100002 file=MoselradwegAusWiki.gpx status=COMPLETED_WITH_SUCCESS loadStatus=SUCCESS name=Moselradweg aus Wiki on GPSies.com points=2949 distanceM=517818.88
+trackId=100005 file=Activity.fit status=COMPLETED_WITH_SUCCESS loadStatus=SUCCESS name= points=3600 distanceM=3598.76
+trackId=100006 file=fmt_sample_tcx.tcx status=COMPLETED_WITH_SUCCESS loadStatus=SUCCESS name=FMT TCX Synthet points=8 distanceM=1498.48
+trackId=100008 file=fmt_sample_igc.igc status=COMPLETED_WITH_SUCCESS loadStatus=SUCCESS name=GNSSALTTRK points=8 distanceM=1496.87
+trackId=100013 file=fmt_sample_nmea.nmea status=COMPLETED_WITH_SUCCESS loadStatus=SUCCESS name= points=8 distanceM=1282.35
+trackId=100012 file=fmt_sample_gdb.gdb status=COMPLETED_WITH_SUCCESS loadStatus=SUCCESS name=FMT GDB Synthetic points=8 distanceM=1494.45
+trackId=100007 file=fmt_sample_kml.kml status=COMPLETED_WITH_SUCCESS loadStatus=SUCCESS name=Path points=8 distanceM=1446.96
+trackId=100010 file=fmt_sample_geojson.geojson status=COMPLETED_WITH_SUCCESS loadStatus=SUCCESS name=FMT GEOJSON Synthetic points=8 distanceM=1444.62
+trackId=100011 file=fmt_sample_kmz.kmz status=COMPLETED_WITH_SUCCESS loadStatus=SUCCESS name=Path points=8 distanceM=1443.06

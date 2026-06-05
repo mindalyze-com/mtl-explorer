@@ -1,0 +1,20 @@
+TBS_03 sort and visible summary evidence
+Header sorts:
+Start: aria=none; first="06/01/2026, 18:32 Path Bicycle 1.44 km 0m 00s 9 Wh 100.0% 06/01/2026, 18:32"
+Track: aria=ascending; first="02/07/2026, 10:00 FMT GDB Synthetic Bicycle 1.49 km 0m 00s 10 Wh 100.0% 06/01/2026, 18:32"
+Activity: aria=ascending; first="06/01/2026, 18:32 Path Bicycle 1.44 km 0m 00s 9 Wh 100.0% 06/01/2026, 18:32"
+Distance: aria=ascending; first="03/01/2026, 11:00 MAP 03 Freshness Synthetic Bicycle 674.26 m 0m 00s 15 Wh 100.0% 06/01/2026, 19:10"
+Duration: aria=ascending; first="06/01/2026, 18:32 Path Bicycle 1.44 km 0m 00s 9 Wh 100.0% 06/01/2026, 18:32"
+Avg km/h: aria=ascending; first="07/20/2021, 23:11 Track 100005 Walking 3.60 km 59m 57s 3.6 347 Wh 100.0% 06/01/2026, 18:09"
+Energy: aria=ascending; first="06/01/2026, 18:32 FMT GEOJSON Synthetic Generated from route FMT GEOJSON Synthetic Bicycle 1.44 km 0m 00s 2 Wh 100.0% 06/01/2026, 18:32"
+Exploration: aria=ascending; first="06/01/2026, 18:32 Path Bicycle 1.44 km 0m 00s 9 Wh 100.0% 06/01/2026, 18:32"
+Imported: aria=ascending; first="01/01/2010, 01:00 voie verte haute vosges on GPSies.com Bicycle 78.5 km 3h 12m 24.4 436 Wh 100.0% 06/01/2026, 17:39"
+Sort chips:
+Date: first="06/01/2026, 18:32 Path Bicycle 1.44 km 0m 00s 9 Wh 100.0% 06/01/2026, 18:32"
+Imported: first="03/01/2026, 11:00 MAP 03 Freshness Synthetic Bicycle 674.26 m 0m 00s 15 Wh 100.0% 06/01/2026, 19:10"
+Distance: first="01/01/2010, 01:00 Moselradweg aus Wiki on GPSies.com Bicycle 518 km 6h 50m 75.7 1,616 Wh 100.0% 06/01/2026, 17:39"
+Duration: first="01/01/2010, 01:00 Jura Route 7 / 2011 on GPSies.com Bicycle 273 km 7h 46m 35.1 1,808 Wh 100.0% 06/01/2026, 17:39"
+Name: first="01/01/2010, 01:00 voie verte haute vosges on GPSies.com Bicycle 78.5 km 3h 12m 24.4 436 Wh 100.0% 06/01/2026, 17:39"
+Exploration: first="06/01/2026, 18:32 Path Bicycle 1.44 km 0m 00s 9 Wh 100.0% 06/01/2026, 18:32"
+Walking summary: oneRow=true; hasOneTrackSummary=true; row="07/20/2021, 23:11 Track 100005 Walking 3.60 km 59m 57s 3.6 347 Wh 100.0% 06/01/2026, 18:09"
+Cleared search firstRows=3

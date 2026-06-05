@@ -1,10 +1,14 @@
 import axios from 'axios';
-import { TracksControllerApi, FilterControllerApi, ConfigControllerApi } from 'x8ing-mtl-api-typescript-fetch';
 import {
-  CrossingPointsResponseFromJSONTyped,
-  CrossingsPerTrackFromJSON,
+  TracksControllerApi,
+  FilterControllerApi,
+  ConfigControllerApi,
+  EnergyControllerApi,
+} from 'x8ing-mtl-api-typescript-fetch';
+import {
+  CrossingPointsResponseDtoFromJSONTyped,
   QueryResultEntryFromJSON,
-  type CrossingPointsResponse,
+  type CrossingPointsResponseDto,
   QueryResultFromJSONTyped,
   type QueryResult,
   ConfigEntityFromJSONTyped,
@@ -12,9 +16,12 @@ import {
   type FilterInfo,
   type GpsTrack,
   type GpsTrackDataPoint,
+  type GpsTrackDataPointDto,
   type RelatedTracks,
+  type EnergyWhatIfResponse,
   type GpsTrackStatistics,
   type StatisticsExclusionUpdateRequest,
+  type ActivityTypeUpdateRequest,
   type StatisticsOverviewResponseDto,
   type QueryResultEntry,
   type TriggerPoint,
@@ -22,15 +29,21 @@ import {
 
 import { type FilterParamsRequest, FilterService } from '@/components/filter/FilterService';
 import type { FilterResult } from '@/types/filter';
+import { useFilterStore, type ActiveFilterRequest } from '@/stores/filterStore';
 import { apiClient } from '@/utils/apiClient';
 import { getApiConfiguration } from '@/utils/openApiClient';
 import { logSanitizedError } from '@/utils/safeLogging';
-import { chartSeriesToPoints, fetchChartSeries, XMode, type ChartPoint } from '@/utils/chartSeriesAdapter';
+import {
+  chartSeriesToTrackChartSeries,
+  fetchChartSeries,
+  XMode,
+  type TrackChartSeries,
+} from '@/utils/chartSeriesAdapter';
 import {
   clampTrackDetailsChartPointCount,
   TRACK_DETAILS_CHART_POINTS_DEFAULT,
 } from '@/utils/trackDetailsChartPointSettings';
-export type { ChartPoint } from '@/utils/chartSeriesAdapter';
+export type { ChartPoint, TrackChartSeries } from '@/utils/chartSeriesAdapter';
 
 // ─── Back-compat re-exports ─────────────────────────────────────────────────
 // Admin / diagnostic API surface lives in serverAdminApi.ts. Re-exported here
@@ -71,6 +84,22 @@ const GPX_FILE_EXTENSION = '.gpx';
 const INVALID_FILENAME_CHARS = /[\\/:*?"<>|]+/g;
 const WHITESPACE_CHARS = /\s+/g;
 
+function isAbortLikeError(error: unknown, signal?: AbortSignal): boolean {
+  if (signal?.aborted) return true;
+  if (error == null || typeof error !== 'object') return false;
+
+  const candidate = error as { name?: unknown; code?: unknown; cause?: unknown };
+  if (
+    candidate.name === 'AbortError' ||
+    candidate.name === 'CanceledError' ||
+    candidate.code === 'ERR_CANCELED'
+  ) {
+    return true;
+  }
+
+  return candidate.cause !== error && isAbortLikeError(candidate.cause);
+}
+
 /**
  * Flatten a FilterParamsRequest into a simple {key: value} map.
  * Used for server endpoints that still accept Map<String, String>.
@@ -81,6 +110,23 @@ function flattenFilterParams(params: FilterParamsRequest | undefined): Record<st
   if (params.stringParams) Object.assign(flat, params.stringParams);
   if (params.dateTimeParams) Object.assign(flat, params.dateTimeParams);
   return flat;
+}
+
+async function loadActiveFilterRequest(): Promise<ActiveFilterRequest> {
+  try {
+    const filterStore = useFilterStore();
+    return await filterStore.getActiveFilterRequest();
+  } catch {
+    const clientFilterConfig = await FilterService.loadClientFilterConfig();
+    return {
+      filterName: clientFilterConfig.filterInfo?.filterConfig?.filterName ?? '',
+      filterParams: clientFilterConfig.filterParams,
+    };
+  }
+}
+
+async function resolveActiveFilterRequest(filterRequest?: ActiveFilterRequest): Promise<ActiveFilterRequest> {
+  return filterRequest ?? (await loadActiveFilterRequest());
 }
 
 // getApiConfiguration moved to @/utils/openApiClient (shared with serverAdminApi).
@@ -95,6 +141,30 @@ function getFilterApi() {
 
 function getConfigApi() {
   return new ConfigControllerApi(getApiConfiguration());
+}
+
+function getEnergyApi() {
+  return new EnergyControllerApi(getApiConfiguration());
+}
+
+export async function calculateEnergyWhatIf(
+  gpsTrackId: number | string,
+  riderWeightKg?: number
+): Promise<EnergyWhatIfResponse> {
+  return await getEnergyApi().calculateEnergyWhatIf({
+    gpsTrackId: Number(gpsTrackId),
+    riderWeightKg,
+  });
+}
+
+export async function saveTrackEnergyRiderWeight(
+  gpsTrackId: number | string,
+  riderWeightKg: number
+): Promise<GpsTrack> {
+  return await getEnergyApi().saveTrackRiderWeight({
+    gpsTrackId: Number(gpsTrackId),
+    riderWeightKg,
+  });
 }
 
 export async function downloadTrackSourceFile(gpsTrackId: number | string, fallbackName?: string): Promise<void> {
@@ -115,6 +185,20 @@ export async function updateTrackStatisticsExclusion(
     gpsTrackId: Number(gpsTrackId),
     statisticsExclusionUpdateRequest: request,
   });
+}
+
+export async function updateTrackActivityType(
+  gpsTrackId: number | string,
+  activityType: ActivityTypeUpdateRequest['activityType']
+): Promise<GpsTrack> {
+  return await getTracksApi().updateTrackActivityType({
+    gpsTrackId: Number(gpsTrackId),
+    activityTypeUpdateRequest: { activityType },
+  });
+}
+
+export async function saveTrack(gpsTrack: GpsTrack): Promise<GpsTrack> {
+  return await getTracksApi().saveTrack({ gpsTrack });
 }
 
 async function downloadRawResponse(response: Response, fallbackName: string): Promise<void> {
@@ -161,8 +245,7 @@ function makeGpxFileName(fileName: string | null | undefined): string {
 
 export async function getRelatedTracks(gpsTrackId: number | string): Promise<RelatedTracks> {
   try {
-    const clientFilterConfig = await FilterService.loadClientFilterConfig();
-    const filterName = clientFilterConfig.filterInfo?.filterConfig?.filterName ?? '';
+    const { filterName } = await loadActiveFilterRequest();
 
     const api = getTracksApi();
     const result = await api.getRelatedTracks({
@@ -193,11 +276,9 @@ export async function fetchTrackDetailsForCrossingPoints(
   triggerPoints: TriggerPoint[],
   radius: number,
   signal?: AbortSignal
-): Promise<CrossingPointsResponse> {
+): Promise<CrossingPointsResponseDto> {
   try {
-    const clientFilterConfig = await FilterService.loadClientFilterConfig();
-    const filterParams = clientFilterConfig.filterParams;
-    const filterName = clientFilterConfig.filterInfo?.filterConfig?.filterName ?? '';
+    const { filterName, filterParams } = await loadActiveFilterRequest();
 
     const request = {
       triggerPoints: triggerPoints,
@@ -208,31 +289,24 @@ export async function fetchTrackDetailsForCrossingPoints(
       },
     };
 
-    // POST with complex body — bypasses the generated client because the
-    // CrossingPointsResponse map fields aren't deserialized correctly.
+    // POST with complex body; axios lets us pass the abort signal through the
+    // shared API client while still using the generated DTO converter below.
     const response = await apiClient.post(`api/tracks/get-track-details-for-tracks-crossing-points`, request, {
       signal,
     });
 
-    // Convert to typed object
-    const data = CrossingPointsResponseFromJSONTyped(response.data, false);
-    // Fix generator bug: map-typed fields are not deserialized by CrossingPointsResponseFromJSONTyped
-    if (response.data.crossings) {
-      data.crossings = Object.fromEntries(
-        Object.entries(response.data.crossings).map(([k, v]) => [k, CrossingsPerTrackFromJSON(v)])
-      );
-    }
-    // Pass through per-zone track counts (not in generated types yet)
-    if (response.data.tracksPerZone) {
-      data.tracksPerZone = response.data.tracksPerZone;
-    }
-    return data;
+    return CrossingPointsResponseDtoFromJSONTyped(response.data, false);
   } catch (error: unknown) {
     if (axios.isCancel(error)) throw error;
     logSanitizedError('Error getting track details for crossing points:', error);
     throw new Error(String(error));
   }
 }
+
+type RawDatedPoint<T> = Omit<Partial<T>, 'createDate' | 'pointTimestamp'> & {
+  createDate?: string | Date;
+  pointTimestamp?: string | Date;
+};
 
 export async function fetchTrackIdsWithinDistanceOfPoint(
   longitude: number,
@@ -241,9 +315,7 @@ export async function fetchTrackIdsWithinDistanceOfPoint(
   signal?: AbortSignal
 ): Promise<number[]> {
   try {
-    const clientFilterConfig = await FilterService.loadClientFilterConfig();
-    const filterParams = clientFilterConfig.filterParams;
-    const filterName = clientFilterConfig.filterInfo?.filterConfig?.filterName ?? '';
+    const { filterName, filterParams } = await loadActiveFilterRequest();
 
     const response = await apiClient.post(
       `api/tracks/get-track-ids-within-distance-of-point?filterName=${filterName}&longitude=${longitude}&latitude=${latitude}&distanceInMeter=${distanceInMeter}`,
@@ -259,11 +331,12 @@ export async function fetchTrackIdsWithinDistanceOfPoint(
   }
 }
 
-export async function fetchStatistics(grouping: string): Promise<GpsTrackStatistics[]> {
+export async function fetchStatistics(
+  grouping: string,
+  filterRequest?: ActiveFilterRequest
+): Promise<GpsTrackStatistics[]> {
   try {
-    const clientFilterConfig = await FilterService.loadClientFilterConfig();
-    const filterParams = clientFilterConfig.filterParams;
-    const filterName = clientFilterConfig.filterInfo?.filterConfig?.filterName ?? '';
+    const { filterName, filterParams } = await resolveActiveFilterRequest(filterRequest);
 
     const response = await apiClient.post(
       `api/tracks/get-track-statistics?groupByDateFormat=${grouping}&filterName=${filterName}`,
@@ -277,11 +350,12 @@ export async function fetchStatistics(grouping: string): Promise<GpsTrackStatist
   }
 }
 
-export async function fetchStatisticsOverview(signal?: AbortSignal): Promise<StatisticsOverviewResponseDto> {
+export async function fetchStatisticsOverview(
+  signal?: AbortSignal,
+  filterRequest?: ActiveFilterRequest
+): Promise<StatisticsOverviewResponseDto> {
   try {
-    const clientFilterConfig = await FilterService.loadClientFilterConfig();
-    const filterParams = clientFilterConfig.filterParams;
-    const filterName = clientFilterConfig.filterInfo?.filterConfig?.filterName ?? '';
+    const { filterName, filterParams } = await resolveActiveFilterRequest(filterRequest);
 
     return await getTracksApi().getTrackOverview(
       {
@@ -291,42 +365,37 @@ export async function fetchStatisticsOverview(signal?: AbortSignal): Promise<Sta
       { signal }
     );
   } catch (error: unknown) {
+    if (isAbortLikeError(error, signal)) throw error;
     logSanitizedError('Error fetching statistics overview:', error);
-    throw new Error(String(error));
+    throw error instanceof Error ? error : new Error(String(error));
   }
 }
 
 /**
- * Convert raw JSON data-point objects into a shape compatible with GpsTrackDataPoint.
+ * Convert raw JSON data-point objects into generated data-point shapes.
  *
- * The generated PointFromJSON deserializer mangles JTS Point coordinates: the server
- * serialises them as GeoJSON ([lng, lat] number arrays) but PointFromJSON maps each
- * element through CoordinateFromJSON, producing {x: undefined, y: undefined, …}.
- * By fetching with axios we keep the raw GeoJSON intact, and we only need to convert
- * date strings to Date objects (which the generated client normally does for us).
+ * Some legacy endpoints still expose JTS Point fields, whose generated PointFromJSON
+ * deserializer does not preserve numeric coordinate arrays. Fetching with axios keeps
+ * those coordinate arrays intact; DTO endpoints already expose the same numeric shape.
+ * The only shared conversion needed here is date strings to Date objects.
  */
-type RawGpsTrackDataPoint = GpsTrackDataPoint & {
-  pointTimestamp?: string | Date;
-  createDate?: string | Date;
-};
-
-function convertDataPointDates(raw: RawGpsTrackDataPoint[]): GpsTrackDataPoint[] {
+function convertDataPointDates<T extends { createDate?: Date; pointTimestamp?: Date }>(raw: RawDatedPoint<T>[]): T[] {
   return raw.map((d) => ({
     ...d,
     pointTimestamp: d.pointTimestamp ? new Date(d.pointTimestamp) : undefined,
     createDate: d.createDate ? new Date(d.createDate) : undefined,
-  }));
+  })) as T[];
 }
 
 export async function fetchTrackSubTrackDetails(
   trackDataPointFrom: number,
   trackDataPointTo: number
-): Promise<GpsTrackDataPoint[]> {
+): Promise<GpsTrackDataPointDto[]> {
   try {
     const response = await apiClient.get(
       `api/tracks/details/get-sub-track?trackDataPointFrom=${trackDataPointFrom}&trackDataPointTo=${trackDataPointTo}`
     );
-    return convertDataPointDates(response.data);
+    return convertDataPointDates<GpsTrackDataPointDto>(response.data);
   } catch (error: unknown) {
     logSanitizedError('Error fetching track sub track details:', error);
     throw new Error(String(error));
@@ -340,8 +409,8 @@ export async function fetchTrackSubTrackDetails(
  * `mtl-server/doc/issues/canonical_metric_lod_architecture.md`. The server
  * now computes equal-width buckets on demand from the canonical
  * RAW_OUTLIER_CLEANED stream and returns per-metric statistics per bucket.
- * The buckets are projected into a flat `ChartPoint[]` so the existing
- * chart configs (`trackGraphConfigs.ts`) can render them unchanged.
+ * The buckets are projected into chart metadata plus a flat `ChartPoint[]`
+ * so the existing chart configs (`trackGraphConfigs.ts`) can render them.
  *
  * Authoritative track-level totals (energyNetTotalWh, powerWattsAvg/Max,
  * trackLengthInMeter, ascent/descent) are still read straight off the
@@ -363,12 +432,12 @@ export async function fetchTrackDetails(
   gpsTrackId: number | string,
   xMode: XMode = XMode.Time,
   chartPointCount: number = TRACK_DETAILS_CHART_POINTS_DEFAULT
-): Promise<ChartPoint[]> {
+): Promise<TrackChartSeries> {
   try {
     const maxBuckets = clampTrackDetailsChartPointCount(chartPointCount);
     console.log(`fetch chart series (${xMode}, maxBuckets=${maxBuckets}) for`, gpsTrackId);
     const response = await fetchChartSeries(gpsTrackId, { xMode, maxBuckets });
-    return chartSeriesToPoints(response);
+    return chartSeriesToTrackChartSeries(response);
   } catch (error: unknown) {
     logSanitizedError('Error fetching track chart series:', error);
     throw new Error(String(error));
@@ -395,7 +464,7 @@ export async function fetchTrackPointsForRenderedShape(
     const response = await apiClient.get(
       `api/tracks/get/${gpsTrackId}/details?trackType=SIMPLIFIED_SHAPE&precisionInMeter=${precisionInMeter}`
     );
-    return convertDataPointDates(response.data);
+    return convertDataPointDates<GpsTrackDataPoint>(response.data);
   } catch (error: unknown) {
     logSanitizedError('Error fetching track points for map popup:', error);
     throw new Error(String(error));
@@ -421,7 +490,7 @@ export async function fetchTrackCanonicalPoints(gpsTrackId: number | string): Pr
     const response = await apiClient.get(
       `api/tracks/get/${gpsTrackId}/details?trackType=RAW_OUTLIER_CLEANED&precisionInMeter=0`
     );
-    return convertDataPointDates(response.data);
+    return convertDataPointDates<GpsTrackDataPoint>(response.data);
   } catch (error: unknown) {
     logSanitizedError('Error fetching canonical track points:', error);
     throw new Error(String(error));

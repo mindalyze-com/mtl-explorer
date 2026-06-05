@@ -70,6 +70,7 @@ Run this in every full regression and every release-candidate data-change pass.
   - `https://raw.githubusercontent.com/gps-touring/sample-gpx/master/RoscoffCoastal/Lannion_Plestin_parcours24.4RE.gpx`
 - **DAT_05** Use at least **one public FIT activity file with GPS positions**. Suggested verified FIT source: Garmin's official FIT SDK examples, e.g. `https://raw.githubusercontent.com/garmin/fit-javascript-sdk/main/test/data/Activity.fit`.
 - **DAT_06** Do not count non-GPS FIT files or waypoint-only GPX files as positive evidence. They are useful negative tests only: MTL Explorer should fail, ignore, or mark them clearly without adding map tracks, corrupting stats, or blanking the UI.
+- **DAT_07** For measure / comparison / virtual-race checks, include at least one repeatable two-point segment with two or more tracks crossing the same two zones. Use public tracks or fully synthetic anonymized GPX data; do not use private local GPX files as fixtures or report evidence.
 
 ### Five-GPX Import, Index, Map, And Stats Flow
 
@@ -105,7 +106,7 @@ Run this in every full regression and every release-candidate data-change pass.
 
 ### Other Supported Track Formats
 
-- **FMT_01** The server accepts `.gpx`, `.fit`, `.tcx`, `.kml`, `.kmz`, `.igc`, `.sbp`, `.nmea`, `.geojson`, and `.gdb`. For a full release regression, test at least one GPS-bearing sample for each available format, or mark that format `NOT COVERED` with the reason.
+- **FMT_01** The server accepts `.gpx`, `.fit`, `.tcx`, `.kml`, `.kmz`, `.igc`, `.nmea`, `.geojson`, and `.gdb`. For a full release regression, test at least one GPS-bearing sample for each available format, or mark that format `NOT COVERED` with the reason.
 - **FMT_02** For each non-GPX format tested, verify upload acceptance, GPSBabel conversion, map display, details/charts, statistics inclusion, **Download original source file**, and **Download as GPX**.
 
 ## 1. Sign-in And First Load
@@ -128,12 +129,35 @@ Run this in every full regression and every release-candidate data-change pass.
 - **MAP_04** Deleted tracks from the required data-change flow disappear from all map sources, selection lists, and popups.
 - **MAP_05** Zoom in on a track → detail/precision improves (no duplicate or broken lines).
 - **MAP_06** Fast pan/zoom doesn't leave stale lines, missing tiles, or runaway loading spinners.
-- **MAP_07** Direction arrows appear on tracks at high zoom (if enabled in settings).
+- **MAP_07** Direction arrows appear on tracks at high zoom when Track Points & Direction is enabled.
+  Use a track whose current high-zoom rendered shape has visible in-viewport point vertices.
+  A sparse two-point or straight synthetic track whose endpoints are outside the viewport is not valid evidence:
+  the line may cross the screen while no arrow marker is expected at the visible midpoint.
 - **MAP_08** Click a single track → it highlights and details open.
 - **MAP_09** Click an area where several tracks overlap → a selection list appears; picking one opens its details.
 - **MAP_10** Deselect / close the selection → the map returns to its normal state.
-- **MAP_11** Clicking a point on a track shows a popup with the expected metrics (time, speed, elevation, etc.).
+- **MAP_11** Clicking a rendered track-point marker shows a popup with the expected metrics
+  (time, speed, elevation, etc.). Click an actual direction-arrow/point marker, not only the
+  connecting track line.
 - **MAP_12** Swiss Mobility routes popup (where applicable) shows nearby official routes and closes cleanly.
+- **MAP_13** Intentional remote raster mode: with `mtl.map-server.tile-mode=remote`,
+  `/api/map/config` exposes `remoteRasterStyles` for `light`, `light-topo`, and
+  `dark`, and does not expose legacy `remoteTileUrl`. Select OSM Light, OSM Topo,
+  and OSM Dark; each loads map tiles from its configured provider URL, shows the
+  matching attribution, keeps the map interactive, and makes no `/api/map-proxy`
+  tile requests.
+- **MAP_14** Remote raster fallback from local vector mode: when local vector
+  PMTiles are not ready or fail at runtime, the map does not blank or freeze. It
+  switches to the configured remote raster style for the selected map theme, uses
+  the configured attribution, and continues to support pan, zoom, track display,
+  and track selection. If the environment cannot safely simulate local tile
+  unavailability, mark this row `BLOCKED` with the missing control.
+- **MAP_15** Manual remote raster source override: in a local-vector deployment,
+  open Maps and data, switch Map Source from Auto to Remote, and verify the base
+  map reloads from the configured remote raster provider without `/api/map-proxy`
+  tile requests. OSM raster themes remain selectable, Swiss vector themes are not
+  offered in Remote mode, the setting persists after reload, and Reset restores
+  Auto.
 
 ## 3. Track Details
 
@@ -156,7 +180,7 @@ Run this in every full regression and every release-candidate data-change pass.
 
 - **FLT_01** Open the filter panel → previously saved filter is still active and shown as a chip.
 - **FLT_02** Browse the filter catalog; search and grouping work.
-- **FLT_03** Pick a filter → its parameters appear; apply, reset, and cancel all behave correctly.
+- **FLT_03** Pick a filter → its parameters appear; parameter edits auto-apply immediately; clearing or removing parameters resets their effect; active chips, visible count, map, legend, and stats reflect the current state without stale pending UI.
 - **FLT_04** Date, text, and geo parameters all save and re-apply correctly after reload.
 - **FLT_05** **Geo drawing**: draw a circle, rectangle, and polygon; undo, cancel, finish, and clear all work; saved shapes reappear next time.
 - **FLT_06** Applied filter updates: visible track count, map colors, legend, and stats — without a full page reload.
@@ -198,12 +222,14 @@ Run this in every full regression and every release-candidate data-change pass.
 - **MCT_03** Stop the measure tool → all temporary markers and listeners are cleaned up.
 - **MCT_04** Segment comparison: pick several tracks → comparison chart + map align them correctly even with missing data.
 - **MCT_05** Sub-track / segment extraction (between two points on a track) returns the expected slice.
+- **MCT_06** Segment geometry sanity: after selecting a measured segment, the comparison map line stays within the selected tracks' real local bounds. There must be no straight global line, jump to `[0,0]`, or off-continent segment such as a line toward South Africa.
 
 ## 8. Animation And Virtual Race
 
 - **AVR_01** Start animation: tracks play back smoothly; pause, reset, and speed controls work.
 - **AVR_02** Virtual race: multiple racers move together; ranking and racer cards update in real time.
 - **AVR_03** Stopping or finishing animation/race leaves map gestures and tools usable (no stuck state).
+- **AVR_04** Virtual race GPS geometry regression: start a race from a measured segment with multiple racers and verify each racer marker and trail stays on the actual segment. The map must not zoom to world-scale bounds, draw a long straight line away from the route, or show a racer/trail near `[0,0]` or South Africa.
 
 ## 9. Media (Photos)
 
@@ -266,7 +292,9 @@ Run this in every full regression and every release-candidate data-change pass.
   freshness banner, map, browser, stats, filters, heatmap, and details all
   reflect the new source-of-truth files.
 - **SYN_04** FIT conversion import changes freshness and cache state the same way a native GPX import does.
-- **SYN_05** Dismissing the banner doesn't loop or re-show immediately.
+- **SYN_05** Dismissing the banner snoozes it for five minutes; it stays hidden
+  through the next freshness polling cycle even if the server token changes
+  again, and may reappear after the snooze if the client is still out of sync.
 - **SYN_06** Logging out and back in does not re-trigger an automatic data refresh repeatedly.
 - **SYN_07** Indexer-running state surfaces as a badge but doesn't block map interaction.
 
@@ -322,3 +350,4 @@ Run this in every full regression and every release-candidate data-change pass.
 | Offline / cache | `NET_01-NET_04`: installed PWA / installed web-app mode only. Normal browser-tab runs should mark offline reload `NOT APPLICABLE` or `NOT COVERED` unless the app is installed. |
 | Data-change | `DAT`, `IMP`, `FIT`, `DEL`, and `SYN`: import, FIT conversion, delete-two-track flow, freshness, cache refresh, map, browser, stats, filters, heatmap, and details. |
 | Theme | `APP_01-APP_08`: toggle dark/light and each map style; verify UI, charts, map, and persistence. |
+| Remote raster maps | `MAP_13-MAP_15`: intentional remote tile mode, per-theme provider URLs and attribution, local-vector fallback when tiles are unavailable, and the manual Remote map source override. |

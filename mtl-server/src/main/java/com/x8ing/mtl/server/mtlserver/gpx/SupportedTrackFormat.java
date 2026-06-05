@@ -21,7 +21,6 @@ public enum SupportedTrackFormat {
     KML("kml", "kml"),                  // Google Earth KML
     KMZ("kmz", "kmz"),                  // Google Earth KMZ (zipped KML)
     IGC("igc", "igc"),                  // FAI glider/paraglider logger
-    SBP("sbp", "sbp"),                  // NaviGPS binary
     NMEA("nmea", "nmea"),               // NMEA 0183 sentences
     GEOJSON("geojson", "geojson"),      // GeoJSON
     GDB("gdb", "gdb"),                  // Garmin MapSource GDB
@@ -63,7 +62,7 @@ public enum SupportedTrackFormat {
     /**
      * Returns a regex fragment matching all supported extensions (case-insensitive),
      * suitable for use in a Java NIO {@code PathMatcher}.
-     * Example output: {@code .*(?i)\.(gpx|fit|tcx|kml|kmz|igc|sbp|nmea)$}
+     * Example output: {@code .*(?i)\.(gpx|fit|tcx|kml|kmz|igc|nmea)$}
      */
     public static String inclusionRegex() {
         StringBuilder sb = new StringBuilder(".*(?i)\\.(");

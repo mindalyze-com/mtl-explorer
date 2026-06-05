@@ -1,0 +1,107 @@
+MCT_04 segment comparison evidence
+{
+  "center": {
+    "x": 758,
+    "y": 450
+  },
+  "clickA": {
+    "x": 893,
+    "y": 574
+  },
+  "clickB": {
+    "x": 823,
+    "y": 549
+  },
+  "beforeAnalyze": {
+    "flowText": "A2tracksB2tracks2sharedtracks",
+    "analyzeDisabled": false,
+    "radiusText": "14000 m"
+  },
+  "resultInfo": {
+    "body": "20 km © OpenStreetMap | Elevation: Mapterhorn 12 Tracks Stats Filter Map Animate Segments GPS Planner Admin Segment Analyzer 2 / 2 tracks Consolidated Compare 2 Race 2 Table Trends COLUMN METRIC Speed Time Distance NAME START DURATION A - B B - A VoieVerteHauteVosges.gpx 01/01/2010, 01:00 4h 43m 17.26 16.15 MoselradwegAusWiki.gpx 01/01/2010, 01:00 1d 07h 0.00 ",
+    "links": [
+      "VoieVerteHauteVosges.gpx",
+      "MoselradwegAusWiki.gpx"
+    ],
+    "compareDisabled": false,
+    "selectedPill": "2 / 2tracks",
+    "rows": [
+      "VoieVerteHauteVosges.gpx01/01/2010, 01:004h 43m17.2616.15",
+      "MoselradwegAusWiki.gpx01/01/2010, 01:001d 07h0.00"
+    ]
+  },
+  "compareInfo": {
+    "body": "20 km © OpenStreetMap | Elevation: Mapterhorn 12 Tracks Stats Filter Map Animate Segments GPS Planner Admin Segment Analyzer 2 / 2 tracks Consolidated Compare 2 Race 2 Table Trends COLUMN METRIC Speed Time Distance NAME START DURATION A - B B - A VoieVerteHauteVosges.gpx 01/01/2010, 01:00 4h 43m 17.26 16.15 MoselradwegAusWiki.gpx 01/01/2010, 01:00 1d 07h 0.00 Segment Analyzer (Compare) Segment A-B B-A X-axis Distance Time Metrics Speed Altitude Est. Power Mechanical Energy (rebased) Slope Pacing — time over distance Time gap vs. reference 1 selected track lacked enough segment data and was skipped. VoieVerteHauteVosges.gpx Bicycle 01/01/2010, 01:00 01:16:14 17.3 km/h 21.93 km 1,013 W Reference: VoieVerteHauteVosges.gpx clear 3 km Speed 0 km 2 km 4 km 6 km 8 km 10 km 12 km 14 km 16 km 18 km 20 km 22 km 0 10 20 30 40 km/h Altitude 0 km 2 km 4 km 6 km 8 km 10 km 12 km 14 km 16 km 18 km 20 km 22 km 350 400 450 500 550 m",
+    "selectedTracks": "2 / 2tracks",
+    "chips": [
+      "A-B",
+      "B-A",
+      "Distance",
+      "Time",
+      "Speed",
+      "Altitude",
+      "Est. Power",
+      "Mechanical Energy (rebased)",
+      "Slope",
+      "Pacing — time over distance",
+      "Time gap vs. reference"
+    ],
+    "warnings": [
+      "1 selected track lacked enough segment data and was skipped."
+    ],
+    "racerCards": [
+      "VoieVerteHauteVosges.gpxBicycle01/01/2010, 01:00 01:16:14 17.3 km/h 21.93 km 1,013 W",
+      "VoieVerteHauteVosges.gpxBicycle01/01/2010, 01:00 01:16:14 17.3 km/h 21.93 km 1,013 W",
+      "VoieVerteHauteVosges.gpxBicycle01/01/2010, 01:00 01:16:14 17.3 km/h 21.93 km 1,013 W",
+      "VoieVerteHauteVosges.gpxBicycle01/01/2010, 01:00",
+      "VoieVerteHauteVosges.gpxBicycle01/01/2010, 01:00",
+      "VoieVerteHauteVosges.gpxBicycle",
+      "VoieVerteHauteVosges.gpx",
+      "Bicycle",
+      "Bicycle",
+      "01/01/2010, 01:00",
+      "01:16:14 17.3 km/h 21.93 km 1,013 W",
+      "01:16:14",
+      "17.3 km/h",
+      "21.93 km",
+      "1,013 W",
+      "Reference: VoieVerteHauteVosges.gpxclear",
+      "VoieVerteHauteVosges.gpx",
+      "clear"
+    ],
+    "highcharts": 3,
+    "minimap": true,
+    "hasData": true
+  },
+  "responses": [
+    {
+      "url": "http://167.233.16.201:18080/mtl/api/tracks/get-track-details-for-tracks-crossing-points",
+      "status": 200
+    },
+    {
+      "url": "http://167.233.16.201:18080/mtl/api/tracks/details/get-sub-track?trackDataPointFrom=607105&trackDataPointTo=607373",
+      "status": 200
+    },
+    {
+      "url": "http://167.233.16.201:18080/mtl/api/tracks/details/get-sub-track?trackDataPointFrom=610153&trackDataPointTo=610252",
+      "status": 200
+    },
+    {
+      "url": "http://167.233.16.201:18080/mtl/api/tracks/details/get-sub-track?trackDataPointFrom=607105&trackDataPointTo=607373",
+      "status": 200
+    },
+    {
+      "url": "http://167.233.16.201:18080/mtl/api/tracks/details/get-sub-track?trackDataPointFrom=610153&trackDataPointTo=610252",
+      "status": 200
+    }
+  ],
+  "logs": [
+    "error: Failed to load resource: the server responded with a status of 401 ()",
+    "error: Failed to load resource: the server responded with a status of 401 ()",
+    "warning: [.WebGL-0x12c00595000]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
+    "warning: [.WebGL-0x12c00597400]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
+    "warning: [.WebGL-0x12c00595000]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
+    "warning: [.WebGL-0x12c00595000]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels (this message will no longer repeat)",
+    "warning: Highcharts warning: Consider including the \"accessibility.js\" module to make your chart more usable for people with disabilities. Set the \"accessibility.enabled\" option to false to remove this warning. See https://www.highcharts.com/docs/accessibility/accessibility-module."
+  ]
+}

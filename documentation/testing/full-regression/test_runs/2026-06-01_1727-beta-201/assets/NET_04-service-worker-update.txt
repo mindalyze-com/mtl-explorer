@@ -1,0 +1,13 @@
+NET_04 service worker update applicability:
+{
+  "before": {
+    "supported": false
+  },
+  "updateResults": [],
+  "after": {
+    "supported": false
+  },
+  "hasUpdatePrompt": false,
+  "bodyExcerpt": "500 km © OpenStreetMap | Elevation: Mapterhorn 12 Tracks Stats Filter Map Animate Segments GPS Planner Admin"
+}
+- Decision: NOT APPLICABLE because no new service-worker/client version was deployed during this fixed beta-target regression run.

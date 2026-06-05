@@ -1,0 +1,157 @@
+{
+  "chart": {
+    "x": 279,
+    "y": 551.71875,
+    "width": 884,
+    "height": 240
+  },
+  "mini": {
+    "i": 2,
+    "x": 261,
+    "y": 115.1875,
+    "w": 920,
+    "h": 220
+  },
+  "out": [
+    {
+      "name": "line-mid",
+      "x": 765,
+      "y": 614,
+      "dom": [],
+      "bodyHasPoint": false
+    },
+    {
+      "name": "line-left",
+      "x": 473,
+      "y": 614,
+      "dom": [
+        {
+          "tag": "path",
+          "cls": "highcharts-crosshair highcharts-crosshair-thin",
+          "text": "",
+          "x": 473,
+          "y": 556,
+          "w": 0,
+          "h": 196
+        },
+        {
+          "tag": "g",
+          "cls": "highcharts-label highcharts-tooltip highcharts-color-undefined",
+          "text": "",
+          "x": 356,
+          "y": 586,
+          "w": 234,
+          "h": 67
+        },
+        {
+          "tag": "DIV",
+          "cls": "highcharts-label highcharts-tooltip highcharts-color-undefined",
+          "text": "0h 10m · 11:21 PM3.6 km/hmin 3.6 km/h · max 3.6 km/h · spread 0.0 km/h",
+          "x": 355,
+          "y": 592,
+          "w": 0,
+          "h": 0
+        },
+        {
+          "tag": "path",
+          "cls": "highcharts-crosshair highcharts-crosshair-thin",
+          "text": "",
+          "x": 479,
+          "y": 851,
+          "w": 0,
+          "h": 196
+        },
+        {
+          "tag": "g",
+          "cls": "highcharts-label highcharts-tooltip highcharts-color-undefined",
+          "text": "",
+          "x": 394,
+          "y": 953,
+          "w": 173,
+          "h": 67
+        },
+        {
+          "tag": "DIV",
+          "cls": "highcharts-label highcharts-tooltip highcharts-color-undefined",
+          "text": "0h 10m · 11:21 PM14 mmin 8 m · max 19 m · spread 10 m",
+          "x": 393,
+          "y": 952,
+          "w": 0,
+          "h": 0
+        }
+      ],
+      "bodyHasPoint": false
+    },
+    {
+      "name": "mini-line-mid",
+      "x": 739,
+      "y": 181,
+      "dom": [
+        {
+          "tag": "path",
+          "cls": "highcharts-crosshair highcharts-crosshair-thin",
+          "text": "",
+          "x": 473,
+          "y": 556,
+          "w": 0,
+          "h": 196
+        },
+        {
+          "tag": "g",
+          "cls": "highcharts-label highcharts-tooltip highcharts-color-undefined",
+          "text": "",
+          "x": 356,
+          "y": 586,
+          "w": 234,
+          "h": 67
+        },
+        {
+          "tag": "DIV",
+          "cls": "highcharts-label highcharts-tooltip highcharts-color-undefined",
+          "text": "0h 10m · 11:21 PM3.6 km/hmin 3.6 km/h · max 3.6 km/h · spread 0.0 km/h",
+          "x": 355,
+          "y": 592,
+          "w": 0,
+          "h": 0
+        },
+        {
+          "tag": "path",
+          "cls": "highcharts-crosshair highcharts-crosshair-thin",
+          "text": "",
+          "x": 479,
+          "y": 851,
+          "w": 0,
+          "h": 196
+        },
+        {
+          "tag": "g",
+          "cls": "highcharts-label highcharts-tooltip highcharts-color-undefined",
+          "text": "",
+          "x": 394,
+          "y": 953,
+          "w": 173,
+          "h": 67
+        },
+        {
+          "tag": "DIV",
+          "cls": "highcharts-label highcharts-tooltip highcharts-color-undefined",
+          "text": "0h 10m · 11:21 PM14 mmin 8 m · max 19 m · spread 10 m",
+          "x": 393,
+          "y": 952,
+          "w": 0,
+          "h": 0
+        }
+      ],
+      "bodyHasPoint": false
+    },
+    {
+      "name": "leave",
+      "counts": {
+        "tooltip": 4,
+        "crosshair": 2,
+        "hoverPoint": 0,
+        "popup": 0
+      }
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+app-1  | 2026-06-01T15:39:56.601Z  INFO 1 --- [sched-2] DuplicateDetectorJob         : Need to check for duplicates. tracksToBeChecked=5 timeTolerance: PT20M
+app-1  | 2026-06-01T15:39:56.842Z  INFO 1 --- [sched-2] DuplicateDetectorJob         : Completed found duplicates in 0 seconds for 5 tracks.
+app-1  | 2026-06-01T15:40:10.852Z  INFO 1 --- [http-nio-8080-exec-5] LoggingFilter                : Request for url=/mtl/api/data-freshness completed in dT=12 for user=mtl user_session_id=YRpCWZdBHv status=200 method=GET
+app-1  | 2026-06-01T15:40:17.841Z  INFO 1 --- [sched-1] ActivityTypeClassifierJob    : Completed ActivityTypeClassifier job in 1 seconds for 5 tracks.
+app-1  | 2026-06-01T15:40:21.655Z  INFO 1 --- [sched-4] ExplorationScoreJob          : Exploration score job: processing 5 tracks (max=20, workerThreads=3)
+app-1  | 2026-06-01T15:40:31.173Z  INFO 1 --- [sched-4] ExplorationScoreJob          : Exploration score job completed: 5 tracks in 9518ms
+app-1  | 2026-06-01T15:40:40.911Z  INFO 1 --- [http-nio-8080-exec-9] LoggingFilter                : Request for url=/mtl/api/data-freshness completed in dT=3 for user=mtl user_session_id=YRpCWZdBHv status=200 method=GET
+app-1  | 2026-06-01T15:41:02.006Z  INFO 1 --- [http-nio-8080-exec-4] LoggingFilter                : Request for url=/mtl/admin completed in dT=6 for user=mtl user_session_id=YRpCWZdBHv status=404 method=GET
+app-1  | 2026-06-01T15:41:02.024Z  INFO 1 --- [http-nio-8080-exec-3] LoggingFilter                : Request for url=/mtl/api/data-freshness completed in dT=6 for user=mtl user_session_id=YRpCWZdBHv status=200 method=GET
+app-1  | 2026-06-01T15:42:30.512Z  INFO 1 --- [http-nio-8080-exec-2] LoggingFilter                : Request for url=/mtl/api/data-freshness completed in dT=3 for user=mtl user_session_id=YRpCWZdBHv status=200 method=GET
+app-1  | 2026-06-01T15:42:30.660Z  INFO 1 --- [http-nio-8080-exec-10] LoggingFilter                : Request for url=/mtl/api/data-freshness completed in dT=7 for user=mtl user_session_id=YRpCWZdBHv status=200 method=GET
+app-1  | 2026-06-01T15:42:30.739Z  INFO 1 --- [http-nio-8080-exec-8] LoggingFilter                : Request for url=/mtl/api/tracks/get-simplified completed in dT=17 for user=mtl user_session_id=YRpCWZdBHv status=200 method=POST
+app-1  | 2026-06-01T15:42:30.827Z  INFO 1 --- [http-nio-8080-exec-2] GpsTrackAndDataService       : Loaded all tracks: dtData=30, dtJavaMerge=4, dTotal=34
+app-1  | 2026-06-01T15:42:30.964Z  INFO 1 --- [http-nio-8080-exec-2] LoggingFilter                : Request for url=/mtl/api/tracks/get-simplified completed in dT=178 for user=mtl user_session_id=YRpCWZdBHv status=200 method=POST
+app-1  | 2026-06-01T15:43:01.354Z  INFO 1 --- [http-nio-8080-exec-7] LoggingFilter                : Request for url=/mtl/api/data-freshness completed in dT=4 for user=mtl user_session_id=YRpCWZdBHv status=200 method=GET
+app-1  | 2026-06-01T15:43:32.349Z  INFO 1 --- [http-nio-8080-exec-3] LoggingFilter                : Request for url=/mtl/api/data-freshness completed in dT=3 for user=mtl user_session_id=YRpCWZdBHv status=200 method=GET
+app-1  | 2026-06-01T15:43:44.599Z  INFO 1 --- [http-nio-8080-exec-1] LoggingFilter                : Request for url=/mtl/api/data-freshness completed in dT=2 for user=mtl user_session_id=YRpCWZdBHv status=200 method=GET
+app-1  | 2026-06-01T15:43:44.664Z  INFO 1 --- [http-nio-8080-exec-10] LoggingFilter                : Request for url=/mtl/api/data-freshness completed in dT=9 for user=mtl user_session_id=YRpCWZdBHv status=200 method=GET
+app-1  | 2026-06-01T15:43:44.735Z  INFO 1 --- [http-nio-8080-exec-2] LoggingFilter                : Request for url=/mtl/api/tracks/get-simplified completed in dT=20 for user=mtl user_session_id=YRpCWZdBHv status=200 method=POST
+app-1  | 2026-06-01T15:43:44.813Z  INFO 1 --- [http-nio-8080-exec-3] GpsTrackAndDataService       : Loaded all tracks: dtData=20, dtJavaMerge=0, dTotal=20
+app-1  | 2026-06-01T15:43:44.857Z  INFO 1 --- [http-nio-8080-exec-3] LoggingFilter                : Request for url=/mtl/api/tracks/get-simplified completed in dT=71 for user=mtl user_session_id=YRpCWZdBHv status=200 method=POST
+app-1  | 2026-06-01T15:44:15.352Z  INFO 1 --- [http-nio-8080-exec-1] LoggingFilter                : Request for url=/mtl/api/data-freshness completed in dT=4 for user=mtl user_session_id=YRpCWZdBHv status=200 method=GET

@@ -1,29 +1,37 @@
 import { flushPromises, mount } from '@vue/test-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { createPinia, setActivePinia } from 'pinia';
 import { defineComponent, nextTick } from 'vue';
 import TrackDetails from '@/components/trackdetails/TrackDetails.vue';
-import { XMode } from '@/utils/chartSeriesAdapter';
+import { MetricKey, XMode, type TrackChartSeries } from '@/utils/chartSeriesAdapter';
+import { GpsTrackActivityTypeEnum, type GpsTrack } from 'x8ing-mtl-api-typescript-fetch/dist/esm/models/index';
 import {
   roundToNiceTrackDetailsChartPointCount,
   TRACK_DETAILS_CHART_POINTS_DEFAULT,
   trackDetailsChartPointCountToSliderValue,
   trackDetailsChartPointSliderValueToCount,
 } from '@/utils/trackDetailsChartPointSettings';
-import { USER_PREFS_KEYS } from '@/utils/userPrefs';
+import { STORAGE_KEYS } from '@/utils/appStorage';
 
 const mocks = vi.hoisted(() => ({
+  calculateEnergyWhatIf: vi.fn(),
   clearChartInteraction: vi.fn(),
   fetchDetailTrackAtPrecision: vi.fn(),
   fetchTrackDetails: vi.fn(),
   fetchTrackPointsForRenderedShape: vi.fn(),
   getRelatedTracks: vi.fn(),
+  saveTrackEnergyRiderWeight: vi.fn(),
+  updateTrackActivityType: vi.fn(),
   setXMode: vi.fn(),
 }));
 
 vi.mock('@/utils/ServiceHelper', () => ({
+  calculateEnergyWhatIf: mocks.calculateEnergyWhatIf,
   fetchTrackDetails: mocks.fetchTrackDetails,
   fetchTrackPointsForRenderedShape: mocks.fetchTrackPointsForRenderedShape,
   getRelatedTracks: mocks.getRelatedTracks,
+  saveTrackEnergyRiderWeight: mocks.saveTrackEnergyRiderWeight,
+  updateTrackActivityType: mocks.updateTrackActivityType,
 }));
 
 vi.mock('@/utils/tracks/trackCollectionLoader', () => ({
@@ -61,15 +69,17 @@ const TrackDetailMiniMapStub = defineComponent({
   name: 'TrackDetailMiniMap',
   props: {
     gpsTrackId: Number,
+    replayEnabled: Boolean,
     selectedEventKey: [String, Number],
     trackCoordinates: Array,
     trackEvents: Array,
   },
-  emits: ['select-event'],
+  emits: ['select-event', 'start-3d-replay'],
   template: `
-    <div data-test="mini-map" :data-selected="selectedEventKey ?? ''">
+    <div data-test="mini-map" :data-selected="selectedEventKey ?? ''" :data-replay-enabled="String(replayEnabled)">
       <button data-test="mini-select-event" @click="$emit('select-event', 7)">Select event</button>
       <button data-test="mini-clear-event" @click="$emit('select-event', null)">Clear event</button>
+      <button data-test="mini-start-replay" @click="$emit('start-3d-replay')">3D Replay</button>
     </div>
   `,
 });
@@ -84,13 +94,14 @@ const TrackGraphStub = defineComponent({
     xMode: String,
   },
   template:
-    '<div data-test="track-graph" :data-sync-enabled="String(syncEnabled)" :data-show-range="String(showRange)" />',
+    '<div data-test="track-graph" :data-config-title="config && config.title" :data-sync-enabled="String(syncEnabled)" :data-show-range="String(showRange)" />',
 });
 
-function mockTrack() {
+function mockTrack(overrides: Partial<GpsTrack> = {}): GpsTrack {
   return {
     id: 1,
     trackName: 'Test Track',
+    activityType: GpsTrackActivityTypeEnum.Walking,
     gpsTracksData: [
       {
         gpsTrackEvents: [
@@ -104,27 +115,60 @@ function mockTrack() {
         ],
       },
     ],
-  };
+    ...overrides,
+  } as GpsTrack;
 }
 
-async function mountTrackDetails() {
-  mocks.fetchDetailTrackAtPrecision.mockResolvedValue({
+function mockDetailTrackResponse() {
+  return {
     coordinates: [
       [8.4, 47.3],
       [8.5, 47.4],
     ],
     gpsTrack: mockTrack(),
     fromCache: false,
-  });
-  mocks.fetchTrackDetails.mockResolvedValue([]);
+  };
+}
+
+function mockTrackChartSeries(overrides: Partial<TrackChartSeries> = {}): TrackChartSeries {
+  return {
+    points: [],
+    recommendedSpeedMetric: null,
+    availableMetrics: [],
+    ...overrides,
+  };
+}
+
+async function mountTrackDetails(
+  options: {
+    chartSeries?: TrackChartSeries;
+    detailTrackError?: unknown;
+    chartDetailsError?: unknown;
+    relatedTracksError?: unknown;
+  } = {}
+) {
+  mocks.fetchDetailTrackAtPrecision.mockResolvedValue(mockDetailTrackResponse());
+  if (options.detailTrackError) {
+    mocks.fetchDetailTrackAtPrecision.mockRejectedValueOnce(options.detailTrackError);
+  }
+
+  mocks.fetchTrackDetails.mockResolvedValue(options.chartSeries ?? mockTrackChartSeries());
+  if (options.chartDetailsError) {
+    mocks.fetchTrackDetails.mockRejectedValueOnce(options.chartDetailsError);
+  }
+
   mocks.fetchTrackPointsForRenderedShape.mockResolvedValue([]);
+
   mocks.getRelatedTracks.mockResolvedValue({});
+  if (options.relatedTracksError) {
+    mocks.getRelatedTracks.mockRejectedValueOnce(options.relatedTracksError);
+  }
 
   const wrapper = mount(TrackDetails, {
     props: { gpsTrackId: 1 },
     global: {
       stubs: {
-        Slider: true,
+        MtlSlider: true,
         Tab: PassthroughStub,
         TabList: PassthroughStub,
         TabPanel: PassthroughStub,
@@ -149,12 +193,90 @@ describe('TrackDetails tab-scoped interactions', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
+    setActivePinia(createPinia());
   });
 
   it('loads chart details with the default chart point count', async () => {
     await mountTrackDetails();
 
     expect(mocks.fetchTrackDetails).toHaveBeenCalledWith(1, XMode.Time, TRACK_DETAILS_CHART_POINTS_DEFAULT);
+  });
+
+  it('uses bucket-average speed graph config when recommended by the server', async () => {
+    const wrapper = await mountTrackDetails({
+      chartSeries: mockTrackChartSeries({
+        recommendedSpeedMetric: MetricKey.SpeedBucketAvgKmh,
+        availableMetrics: [MetricKey.SpeedBucketAvgKmh],
+      }),
+    });
+
+    expect(wrapper.find('[data-test="track-graph"]').attributes('data-config-title')).toBe('Speed (bucket avg)');
+  });
+
+  it('bubbles in-panel track navigation to the route owner', async () => {
+    const wrapper = await mountTrackDetails();
+    mocks.fetchDetailTrackAtPrecision.mockClear();
+
+    (wrapper.vm as unknown as { navigateToTrack: (trackId: number) => void }).navigateToTrack(2);
+    await nextTick();
+
+    expect(wrapper.emitted('navigate-track')).toEqual([[2]]);
+    expect(mocks.fetchDetailTrackAtPrecision).not.toHaveBeenCalled();
+  });
+
+  it('refreshes parent-facing track metadata after an in-panel activity update', async () => {
+    const wrapper = await mountTrackDetails();
+
+    expect(wrapper.emitted('track-loaded')?.[0]?.[0]).toMatchObject({
+      id: 1,
+      activityType: GpsTrackActivityTypeEnum.Walking,
+    });
+
+    (wrapper.vm as unknown as { onTrackUpdated: (track: GpsTrack) => void }).onTrackUpdated(
+      mockTrack({ activityType: GpsTrackActivityTypeEnum.Bicycle })
+    );
+    await nextTick();
+
+    expect(wrapper.emitted('track-loaded')?.at(-1)?.[0]).toEqual({
+      id: 1,
+      name: 'Test Track',
+      description: '',
+      activityType: GpsTrackActivityTypeEnum.Bicycle,
+    });
+  });
+
+  it('shows actionable recovery when the required track load fails', async () => {
+    const wrapper = await mountTrackDetails({ detailTrackError: new Error('track detail request failed') });
+
+    expect(wrapper.find('[data-test="tabs"]').exists()).toBe(false);
+    expect(wrapper.get('[data-test="track-detail-load-error"]').text()).toContain('Track details could not be loaded');
+    expect(wrapper.get('[data-test="track-detail-load-error"]').text()).toContain('Retry');
+    expect(wrapper.get('[data-test="track-detail-load-error"]').text()).toContain('Back to map');
+
+    await wrapper.get('[data-test="track-detail-back"]').trigger('click');
+    expect(wrapper.emitted('back-to-map')).toEqual([[]]);
+
+    await wrapper.get('[data-test="track-detail-retry"]').trigger('click');
+    await flushPromises();
+    await nextTick();
+
+    expect(wrapper.find('[data-test="track-detail-load-error"]').exists()).toBe(false);
+    expect(wrapper.find('[data-test="tabs"]').exists()).toBe(true);
+    expect(mocks.fetchDetailTrackAtPrecision).toHaveBeenCalledTimes(2);
+  });
+
+  it('keeps the panel usable when chart or related-track requests fail', async () => {
+    const wrapper = await mountTrackDetails({
+      chartDetailsError: new Error('chart request failed'),
+      relatedTracksError: new Error('related request failed'),
+    });
+
+    expect(wrapper.find('[data-test="track-detail-load-error"]').exists()).toBe(false);
+    expect(wrapper.find('[data-test="tabs"]').exists()).toBe(true);
+    expect(wrapper.get('[data-test="track-detail-chart-error"]').text()).toContain('Track graphs could not be loaded');
+    expect(wrapper.get('[data-test="track-detail-related-error"]').text()).toContain(
+      'Related tracks could not be loaded'
+    );
   });
 
   it('keeps range bands enabled by default', async () => {
@@ -173,7 +295,7 @@ describe('TrackDetails tab-scoped interactions', () => {
     await wrapper.find('[data-test="range-toggle"]').trigger('click');
     await nextTick();
 
-    expect(localStorage.getItem(USER_PREFS_KEYS.trackGraphRangeBand)).toBe('false');
+    expect(readStoredTrackPreferences().showRangeBand).toBe(false);
     expect((wrapper.vm as unknown as { showRangeBand: boolean }).showRangeBand).toBe(false);
     expect(wrapper.find('[data-test="range-toggle"]').attributes('aria-pressed')).toBe('false');
     expect(
@@ -182,7 +304,7 @@ describe('TrackDetails tab-scoped interactions', () => {
   });
 
   it('loads an existing disabled range band preference', async () => {
-    localStorage.setItem(USER_PREFS_KEYS.trackGraphRangeBand, 'false');
+    localStorage.setItem(STORAGE_KEYS.trackDetailsPreferences, JSON.stringify({ showRangeBand: false }));
 
     const wrapper = await mountTrackDetails();
 
@@ -201,7 +323,7 @@ describe('TrackDetails tab-scoped interactions', () => {
     ).onChartPointCountSlideEnd({ value: trackDetailsChartPointCountToSliderValue(1200) });
     await flushPromises();
 
-    expect(localStorage.getItem(USER_PREFS_KEYS.trackChartPointCount)).toBe('1200');
+    expect(readStoredTrackPreferences().chartPointCount).toBe(1200);
     expect(mocks.fetchTrackDetails).toHaveBeenCalledWith(1, XMode.Time, 1200);
   });
 
@@ -217,26 +339,26 @@ describe('TrackDetails tab-scoped interactions', () => {
     await flushPromises();
 
     expect(expectedPointCount).not.toBe(769);
-    expect(localStorage.getItem(USER_PREFS_KEYS.trackChartPointCount)).toBe(String(expectedPointCount));
+    expect(readStoredTrackPreferences().chartPointCount).toBe(expectedPointCount);
     expect(mocks.fetchTrackDetails).toHaveBeenCalledWith(1, XMode.Time, expectedPointCount);
   });
 
   it('resets an old below-minimum stored chart point count to the default', async () => {
-    localStorage.setItem(USER_PREFS_KEYS.trackChartPointCount, '1');
+    localStorage.setItem(STORAGE_KEYS.trackDetailsPreferences, JSON.stringify({ chartPointCount: 1 }));
 
     await mountTrackDetails();
 
-    expect(localStorage.getItem(USER_PREFS_KEYS.trackChartPointCount)).toBe('350');
+    expect(readStoredTrackPreferences().chartPointCount).toBe(TRACK_DETAILS_CHART_POINTS_DEFAULT);
     expect(mocks.fetchTrackDetails).toHaveBeenCalledWith(1, XMode.Time, TRACK_DETAILS_CHART_POINTS_DEFAULT);
   });
 
   it('rounds old oddly precise stored chart point counts to nice counts', async () => {
-    localStorage.setItem(USER_PREFS_KEYS.trackChartPointCount, '769');
+    localStorage.setItem(STORAGE_KEYS.trackDetailsPreferences, JSON.stringify({ chartPointCount: 769 }));
     const expectedPointCount = roundToNiceTrackDetailsChartPointCount(769);
 
     await mountTrackDetails();
 
-    expect(localStorage.getItem(USER_PREFS_KEYS.trackChartPointCount)).toBe(String(expectedPointCount));
+    expect(readStoredTrackPreferences().chartPointCount).toBe(expectedPointCount);
     expect(mocks.fetchTrackDetails).toHaveBeenCalledWith(1, XMode.Time, expectedPointCount);
   });
 
@@ -275,4 +397,30 @@ describe('TrackDetails tab-scoped interactions', () => {
     expect(mocks.clearChartInteraction).toHaveBeenCalledTimes(1);
     expect(wrapper.find('[data-test="track-graph"]').attributes('data-sync-enabled')).toBe('false');
   });
+
+  it('emits the loaded detail shape when starting 3D replay', async () => {
+    const wrapper = await mountTrackDetails();
+    mocks.fetchTrackDetails.mockClear();
+
+    expect(wrapper.find('[data-test="mini-map"]').attributes('data-replay-enabled')).toBe('true');
+
+    await wrapper.find('[data-test="mini-start-replay"]').trigger('click');
+    await flushPromises();
+
+    const events = wrapper.emitted('start-3d-replay');
+    expect(mocks.fetchTrackDetails).toHaveBeenCalledWith(1, XMode.Time, 1000);
+    expect(events).toHaveLength(1);
+    expect(events?.[0]?.[0]).toMatchObject({
+      trackId: 1,
+      coordinates: [
+        [8.4, 47.3],
+        [8.5, 47.4],
+      ],
+      gpsTrack: { id: 1, trackName: 'Test Track' },
+    });
+  });
 });
+
+function readStoredTrackPreferences(): Record<string, unknown> {
+  return JSON.parse(localStorage.getItem(STORAGE_KEYS.trackDetailsPreferences) ?? '{}') as Record<string, unknown>;
+}

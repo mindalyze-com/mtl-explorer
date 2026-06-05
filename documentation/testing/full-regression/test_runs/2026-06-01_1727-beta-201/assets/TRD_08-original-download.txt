@@ -1,0 +1,10 @@
+TRD_08 original source download evidence
+Track: #100002 Moselradweg aus Wiki on GPSies.com
+Source file from manifest: MoselradwegAusWiki.gpx
+Expected SHA-256: 0f5263dee95a345a42585bde148ec741af4ed4eeb7451702f59c9c7f9bf761c3
+Downloaded filename: MoselradwegAusWiki.gpx
+Downloaded byte size: 415326
+Downloaded SHA-256: 0f5263dee95a345a42585bde148ec741af4ed4eeb7451702f59c9c7f9bf761c3
+Checksum matches manifest: true
+File starts with: <?xml version="1.0" encoding="UTF-8"?> <gpx xmlns="http://www.topografix.com/GPX/1/1" xmlns:gpsies="http://www.gpsies.c
+URL after click: http://167.233.16.201:18080/mtl/track/100002

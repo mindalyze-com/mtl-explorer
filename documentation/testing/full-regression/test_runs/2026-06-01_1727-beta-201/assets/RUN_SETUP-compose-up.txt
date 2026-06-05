@@ -1,0 +1,33 @@
+Start: 2026-06-01T15:30:53+00:00
+Before containers:
+Compose images from config:
+wauwau0977/mytraillog:beta
+wauwau0977/mytraillog-location-search:latest
+wauwau0977/mytraillog-brouter:latest
+postgis/postgis:18-3.6
+Starting stack...
+After containers:
+NAME                             IMAGE                                          COMMAND                  SERVICE           CREATED          STATUS                    PORTS
+mtl-explorer-app-1               wauwau0977/mytraillog:beta                     "/my-entrypoint.sh j…"   app               11 seconds ago   Up Less than a second     0.0.0.0:18080->8080/tcp, [::]:18080->8080/tcp
+mtl-explorer-brouter-1           wauwau0977/mytraillog-brouter:latest           "/opt/brouter-orches…"   brouter           11 seconds ago   Up 11 seconds             17777-17778/tcp
+mtl-explorer-db-1                postgis/postgis:18-3.6                         "docker-entrypoint.s…"   db                11 seconds ago   Up 11 seconds (healthy)   5432/tcp
+mtl-explorer-location-search-1   wauwau0977/mytraillog-location-search:latest   "python /app/locatio…"   location-search   11 seconds ago   Up 11 seconds (healthy)   0.0.0.0:18083->8083/tcp, [::]:18083->8083/tcp
+End: 2026-06-01T15:31:21+00:00
+
+[download progress omitted; full raw output intentionally not retained]
+
+Start: 2026-06-01T15:30:53+00:00
+Before containers:
+Compose images from config:
+wauwau0977/mytraillog:beta
+wauwau0977/mytraillog-location-search:latest
+wauwau0977/mytraillog-brouter:latest
+postgis/postgis:18-3.6
+Starting stack...
+After containers:
+NAME                             IMAGE                                          COMMAND                  SERVICE           CREATED          STATUS                    PORTS
+mtl-explorer-app-1               wauwau0977/mytraillog:beta                     "/my-entrypoint.sh j…"   app               11 seconds ago   Up Less than a second     0.0.0.0:18080->8080/tcp, [::]:18080->8080/tcp
+mtl-explorer-brouter-1           wauwau0977/mytraillog-brouter:latest           "/opt/brouter-orches…"   brouter           11 seconds ago   Up 11 seconds             17777-17778/tcp
+mtl-explorer-db-1                postgis/postgis:18-3.6                         "docker-entrypoint.s…"   db                11 seconds ago   Up 11 seconds (healthy)   5432/tcp
+mtl-explorer-location-search-1   wauwau0977/mytraillog-location-search:latest   "python /app/locatio…"   location-search   11 seconds ago   Up 11 seconds (healthy)   0.0.0.0:18083->8083/tcp, [::]:18083->8083/tcp
+End: 2026-06-01T15:31:21+00:00

@@ -1,0 +1,10 @@
+SYN_06 logout/login evidence:
+- Count before logout: 12 Tracks
+- Credentials-only JWT/token present before click: true
+- JWT/token present 4s after credentials-only click: false
+- URL 4s after credentials-only click: http://167.233.16.201:18080/mtl/login
+- Login screen reached after click/manual login route: true
+- Count after login and 12s wait: 12 Tracks
+- New data banner visible after login wait: false
+- Loading text still visible after wait: false
+- App still responsive after login: true

@@ -1,13 +1,7 @@
 <template>
   <Teleport to="body">
-    <!-- Extended tap zone: invisible area above the collapsed sheet to make it easier to re-expand -->
-    <div
-      v-if="!isDesktop"
-      class="nav-sheet__expand-zone"
-      :class="{ 'nav-sheet__expand-zone--active': currentSnap === 'collapsed' }"
-      @click="snapTo('expanded')"
-      @touchstart.prevent="snapTo('expanded')"
-    ></div>
+    <!-- Small drag halo above the sheet for real-device finger tolerance. -->
+    <div v-if="!isDesktop" ref="haloEl" class="nav-sheet__drag-halo" aria-hidden="true"></div>
 
     <!-- ─── Mobile: bottom sheet with tool grid ─── -->
     <div
@@ -21,16 +15,21 @@
       :style="sheetStyle"
     >
       <!-- Drag handle: also acts as click-to-expand when collapsed -->
-      <div
-        ref="handleEl"
-        class="nav-sheet__handle-zone"
-        @click="currentSnap === 'collapsed' ? snapTo('expanded') : undefined"
-      >
+      <div ref="handleHitEl" class="nav-sheet__handle-hit-zone" aria-hidden="true"></div>
+      <div ref="handleTapEl" class="nav-sheet__handle-tap-zone" aria-hidden="true" @click="onDragTap"></div>
+      <div class="nav-sheet__handle-zone" aria-hidden="true">
         <div class="nav-sheet__handle"></div>
       </div>
 
       <!-- Tool grid -->
-      <div ref="gridEl" class="nav-sheet__grid">
+      <div
+        ref="gridEl"
+        class="nav-sheet__grid"
+        @pointerdown="onToolGridPointerDown"
+        @pointermove="onToolGridPointerMove"
+        @pointerup="onToolGridPointerEnd"
+        @pointercancel="onToolGridPointerEnd"
+      >
         <!-- Row 1: primary tools -->
         <div class="nav-sheet__row">
           <button
@@ -42,7 +41,7 @@
               'nav-sheet__tool--alert': alertSet.has(tool.id),
               'nav-sheet__tool--drifted': driftedSet.has(tool.id),
             }"
-            @click="$emit('select', tool.id)"
+            @click="onToolClick($event, tool.id)"
           >
             <i :class="iconFor(tool)"></i>
             <span class="nav-sheet__tool-label">{{ tool.label }}</span>
@@ -60,7 +59,7 @@
               'nav-sheet__tool--alert': alertSet.has(tool.id),
               'nav-sheet__tool--drifted': driftedSet.has(tool.id),
             }"
-            @click="$emit('select', tool.id)"
+            @click="onToolClick($event, tool.id)"
           >
             <i :class="iconFor(tool)"></i>
             <span class="nav-sheet__tool-label">{{ tool.label }}</span>
@@ -95,7 +94,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
-import { usePointerDrag } from '@/composables/usePointerDrag';
+import { usePointerDrag, type DragState } from '@/composables/usePointerDrag';
 import AppBrandButton from '@/components/info/AppBrandButton.vue';
 
 export interface ToolDef {
@@ -118,7 +117,7 @@ const props = defineProps<{
   driftedToolIds?: string[];
 }>();
 
-defineEmits<{
+const emit = defineEmits<{
   (e: 'select', toolId: string): void;
 }>();
 
@@ -160,16 +159,34 @@ const secondaryTools = computed(() => {
 // ── Mobile sheet drag ──
 const sheetEl = ref<HTMLElement | null>(null);
 const gridEl = ref<HTMLElement | null>(null);
-const handleEl = ref<HTMLElement | null>(null);
+const handleHitEl = ref<HTMLElement | null>(null);
+const handleTapEl = ref<HTMLElement | null>(null);
+const haloEl = ref<HTMLElement | null>(null);
 const isDragging = ref(false);
 const sheetHeight = ref(0);
 let dragStartHeight = 0;
+let suppressNextDragTap = false;
+let suppressToolClickUntil = 0;
 
 // Snap points in px (computed after mount)
-const HANDLE_HEIGHT = 26; // drag handle zone (sized for comfortable tap target)
+const HANDLE_HEIGHT = 26; // sheet chrome budget; CSS keeps the visible handle row tighter
 const ROW_HEIGHT = 50; // each tool row height
 const ROW_GAP = 2; // gap between rows
 const BOTTOM_PAD = 4; // bottom padding
+const TOOL_GRID_DRAG_THRESHOLD_PX = 10;
+const TOOL_GRID_VERTICAL_DOMINANCE = 1.2;
+const TOOL_GRID_CLICK_SUPPRESS_MS = 250;
+const TOOL_GRID_VELOCITY_WINDOW_MS = 80;
+
+interface ToolGridDragState {
+  pointerId: number;
+  startX: number;
+  startY: number;
+  dragging: boolean;
+  trail: Array<{ x: number; y: number; t: number }>;
+}
+
+let toolGridDragState: ToolGridDragState | null = null;
 
 const collapsedHeight = HANDLE_HEIGHT + 20; // handle + breathing room for safe-area
 const expandedHeight = HANDLE_HEIGHT + ROW_HEIGHT + ROW_GAP + ROW_HEIGHT + BOTTOM_PAD; // handle + 2 rows
@@ -232,43 +249,147 @@ function snapTo(snap: SnapName) {
   }
 }
 
-// ── Drag via usePointerDrag composable ──
-usePointerDrag(handleEl, ({ movement: [, my], velocity: vel, direction: [, dy], first, last }) => {
-  if (first) {
-    dragStartHeight = sheetHeight.value;
-    isDragging.value = true;
-  }
+function suppressDragTapOnce() {
+  suppressNextDragTap = true;
+  window.setTimeout(() => {
+    suppressNextDragTap = false;
+  }, 0);
+}
 
-  if (!last) {
-    // During drag: my > 0 = finger moved down = sheet shrinks
-    const delta = -my; // positive = dragging up = increasing height
-    sheetHeight.value = Math.max(collapsedHeight * 0.5, Math.min(dragStartHeight + delta, expandedHeight));
+function onDragTap() {
+  if (suppressNextDragTap) {
+    suppressNextDragTap = false;
+    return;
   }
+  snapTo(currentSnap.value === 'collapsed' ? 'expanded' : 'collapsed');
+}
+
+function beginSheetDrag() {
+  dragStartHeight = sheetHeight.value;
+  isDragging.value = true;
+}
+
+function updateSheetDrag(my: number) {
+  // During drag: my > 0 = finger moved down = sheet shrinks
+  const delta = -my; // positive = dragging up = increasing height
+  sheetHeight.value = Math.max(collapsedHeight * 0.5, Math.min(dragStartHeight + delta, expandedHeight));
+}
+
+function finishSheetDrag(vel: number, dy: number) {
+  isDragging.value = false;
+  // velocity in px/ms; dy: -1=up, 1=down
+  // positive upVelocity = expand, negative = collapse
+  const upVelocity = -(vel * dy);
+
+  if (upVelocity < -0.3) {
+    snapTo('collapsed');
+  } else if (upVelocity > 0.3) {
+    snapTo('expanded');
+  } else {
+    const h = sheetHeight.value;
+    const snapPoints: Array<{ name: SnapName; h: number }> = [
+      { name: 'collapsed', h: collapsedHeight },
+      { name: 'expanded', h: expandedHeight },
+    ];
+    let best = snapPoints[0];
+    for (const sp of snapPoints) {
+      if (Math.abs(h - sp.h) < Math.abs(h - best.h)) best = sp;
+    }
+    snapTo(best.name);
+  }
+}
+
+function onSheetDrag({ movement: [, my], velocity: vel, direction: [, dy], first, last }: DragState) {
+  if (first) beginSheetDrag();
+  if (!last) updateSheetDrag(my);
 
   if (last) {
-    isDragging.value = false;
-    // velocity in px/ms; dy: -1=up, 1=down
-    // positive upVelocity = expand, negative = collapse
-    const upVelocity = -(vel * dy);
-
-    if (upVelocity < -0.3) {
-      snapTo('collapsed');
-    } else if (upVelocity > 0.3) {
-      snapTo('expanded');
-    } else {
-      const h = sheetHeight.value;
-      const snapPoints: Array<{ name: SnapName; h: number }> = [
-        { name: 'collapsed', h: collapsedHeight },
-        { name: 'expanded', h: expandedHeight },
-      ];
-      let best = snapPoints[0];
-      for (const sp of snapPoints) {
-        if (Math.abs(h - sp.h) < Math.abs(h - best.h)) best = sp;
-      }
-      snapTo(best.name);
-    }
+    suppressDragTapOnce();
+    finishSheetDrag(vel, dy);
   }
-});
+}
+
+function suppressToolClickOnce() {
+  suppressToolClickUntil = Date.now() + TOOL_GRID_CLICK_SUPPRESS_MS;
+  window.setTimeout(() => {
+    if (Date.now() >= suppressToolClickUntil) suppressToolClickUntil = 0;
+  }, TOOL_GRID_CLICK_SUPPRESS_MS);
+}
+
+function onToolClick(event: MouseEvent, toolId: string) {
+  if (Date.now() < suppressToolClickUntil) {
+    suppressToolClickUntil = 0;
+    event.preventDefault();
+    event.stopPropagation();
+    return;
+  }
+  emit('select', toolId);
+}
+
+function onToolGridPointerDown(event: PointerEvent) {
+  if (event.button !== 0 || isDesktop.value) return;
+  if (!(event.target instanceof Element) || !event.target.closest('.nav-sheet__tool')) return;
+
+  toolGridDragState = {
+    pointerId: event.pointerId,
+    startX: event.clientX,
+    startY: event.clientY,
+    dragging: false,
+    trail: [{ x: event.clientX, y: event.clientY, t: Date.now() }],
+  };
+  gridEl.value?.setPointerCapture(event.pointerId);
+}
+
+function onToolGridPointerMove(event: PointerEvent) {
+  const state = toolGridDragState;
+  if (!state || state.pointerId !== event.pointerId) return;
+
+  const mx = event.clientX - state.startX;
+  const my = event.clientY - state.startY;
+  const absX = Math.abs(mx);
+  const absY = Math.abs(my);
+  const now = Date.now();
+
+  state.trail.push({ x: event.clientX, y: event.clientY, t: now });
+  while (state.trail.length > 2 && now - state.trail[0].t > TOOL_GRID_VELOCITY_WINDOW_MS) state.trail.shift();
+
+  if (!state.dragging) {
+    if (absY < TOOL_GRID_DRAG_THRESHOLD_PX) return;
+    if (absY < absX * TOOL_GRID_VERTICAL_DOMINANCE) return;
+
+    state.dragging = true;
+    suppressToolClickOnce();
+    beginSheetDrag();
+  }
+
+  event.preventDefault();
+  updateSheetDrag(my);
+}
+
+function onToolGridPointerEnd(event: PointerEvent) {
+  const state = toolGridDragState;
+  if (!state || state.pointerId !== event.pointerId) return;
+  toolGridDragState = null;
+
+  if (!state.dragging) return;
+
+  event.preventDefault();
+  suppressToolClickOnce();
+
+  const now = Date.now();
+  state.trail.push({ x: event.clientX, y: event.clientY, t: now });
+  const oldest = state.trail[0];
+  const dt = now - oldest.t;
+  const recentDx = event.clientX - oldest.x;
+  const recentDy = event.clientY - oldest.y;
+  const velocity = dt > 0 ? Math.sqrt(recentDx * recentDx + recentDy * recentDy) / dt : 0;
+  finishSheetDrag(velocity, Math.sign(recentDy));
+}
+
+// ── Drag via usePointerDrag composable ──
+usePointerDrag(handleHitEl, onSheetDrag);
+usePointerDrag(handleTapEl, onSheetDrag);
+usePointerDrag(haloEl, onSheetDrag);
 
 // ── Expose for parent ──
 defineExpose({
@@ -286,6 +407,8 @@ defineExpose({
    ═══════════════════════════════════════════════ */
 
 .nav-sheet {
+  --nav-sheet-drag-halo-h: 10px;
+  --nav-sheet-handle-hit-h: 34px;
   position: fixed;
   z-index: var(--z-nav-sheet);
   left: 0;
@@ -309,6 +432,31 @@ defineExpose({
   transition: none !important;
 }
 
+.nav-sheet__handle-hit-zone {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 3;
+  height: var(--nav-sheet-handle-hit-h);
+  cursor: grab;
+  touch-action: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.nav-sheet__handle-tap-zone {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  z-index: 4;
+  width: 88px;
+  height: 24px;
+  transform: translateX(-50%);
+  cursor: grab;
+  touch-action: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
 /* ─── Handle ─── */
 .nav-sheet__handle-zone {
   flex: 0 0 auto;
@@ -316,8 +464,7 @@ defineExpose({
   align-items: center;
   justify-content: center;
   padding: 6px 0 4px;
-  cursor: grab;
-  touch-action: none;
+  pointer-events: none;
 }
 
 .nav-sheet__handle {
@@ -340,6 +487,7 @@ defineExpose({
   gap: 2px;
   padding: 0 0.5rem;
   overflow: hidden;
+  touch-action: none;
 }
 
 .nav-sheet__row {
@@ -455,20 +603,17 @@ defineExpose({
   pointer-events: none;
 }
 
-/* ─── Extended tap zone above collapsed sheet ─── */
-.nav-sheet__expand-zone {
+/* ─── Small drag halo above the sheet ─── */
+.nav-sheet__drag-halo {
   position: fixed;
-  z-index: var(--z-nav-backdrop);
+  z-index: var(--z-nav-sheet);
   left: 0;
   right: 0;
-  /* Positioned just above the collapsed sheet height */
-  bottom: calc(48px + env(safe-area-inset-bottom, 0px));
-  height: 64px;
-  pointer-events: none;
-  cursor: pointer;
-}
-.nav-sheet__expand-zone--active {
-  pointer-events: auto;
+  bottom: calc(var(--nav-sheet-h, 0px) + max(env(safe-area-inset-bottom, 0px), 0.25rem));
+  height: var(--nav-sheet-drag-halo-h, 10px);
+  cursor: grab;
+  touch-action: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
 /* ═══════════════════════════════════════════════

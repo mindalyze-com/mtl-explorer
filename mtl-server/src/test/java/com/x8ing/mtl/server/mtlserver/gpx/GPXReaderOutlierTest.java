@@ -5,11 +5,14 @@ import com.x8ing.mtl.server.mtlserver.logic.motion.TrackStopDetector;
 import org.junit.jupiter.api.Test;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.CoordinateXYZM;
+import org.locationtech.jts.geom.LineString;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -219,6 +222,32 @@ class GPXReaderOutlierTest {
         FilterResult r = runFilter(input);
 
         assertEquals(10, r.accepted.size(), "Probation points should be discarded at end of track");
+    }
+
+    @Test
+    void anonymizedLongPauseFarTailAtEnd_pointsDiscarded() {
+        IndexedFile indexedFile = new IndexedFile();
+        indexedFile.setName("anonymized-long-pause-far-tail.gpx");
+        indexedFile.setFullPath(indexedFile.getName());
+
+        GPXReader reader = new GPXReader();
+        List<GPXReader.LoadResult> results = reader.importGpxXml(
+                indexedFile,
+                anonymizedLongPauseFarTailGpxXml());
+
+        assertEquals(1, results.size(), "The bad tail should be discarded before temporal splitting");
+        GPXReader.LoadResult result = results.getFirst();
+
+        assertEquals(38, result.trackRAW.getNumPoints(), "The anonymized source has the original point cadence");
+        assertEquals(32, result.trackCleaned.getNumPoints(), "The short far-away tail must stay out of cleaned geometry");
+        assertTrue(result.gpsTrack.getDidFilterOutlierByDistance());
+        assertTrue(result.gpsTrack.getLoadMessages().contains("Outliers Cleared By Corrector: 6 point(s)"));
+        assertTrue(GPXReader.getDistanceOfWGS84(result.trackRAW) > 10_000,
+                "RAW must still contain the far-away tail jump");
+        assertTrue(GPXReader.getDistanceOfWGS84(result.trackCleaned) < 5,
+                "Cleaned geometry should only contain the near-stationary first section");
+        assertTrue(maxAdjacentDistance(result.trackCleaned) < 1,
+                "Cleaned geometry must not retain an invented jump");
     }
 
     @Test
@@ -469,6 +498,50 @@ class GPXReaderOutlierTest {
         return new CoordinateXYZM(lon, lat, ele, epochSec);
     }
 
+    private static String anonymizedLongPauseFarTailGpxXml() {
+        List<Coordinate> coordinates = new ArrayList<>();
+        long baseEpochS = 1_700_000_000L;
+        double homeLon = 8.541700;
+        double homeLat = 47.376900;
+        double tailLon = 8.740000;
+        double tailLat = 47.377400;
+
+        for (int i = 0; i < 32; i++) {
+            coordinates.add(coord(homeLon + i * 0.0000005, homeLat, 410.0, baseEpochS + i));
+        }
+
+        long tailStartEpochS = baseEpochS + 108_821L;
+        for (int i = 0; i < 6; i++) {
+            coordinates.add(coord(tailLon + i * 0.0000005, tailLat, 410.0, tailStartEpochS + i));
+        }
+
+        StringBuilder xml = new StringBuilder();
+        xml.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
+        xml.append("<gpx version=\"1.1\" creator=\"MTL Explorer test\" xmlns=\"http://www.topografix.com/GPX/1/1\">\n");
+        xml.append("  <trk><name>anonymized long pause far tail</name><trkseg>\n");
+        for (Coordinate coordinate : coordinates) {
+            xml.append(String.format(Locale.ROOT,
+                    "    <trkpt lat=\"%.8f\" lon=\"%.8f\"><ele>%.1f</ele><time>%s</time></trkpt>%n",
+                    coordinate.getY(),
+                    coordinate.getX(),
+                    coordinate.getZ(),
+                    Instant.ofEpochSecond((long) coordinate.getM())));
+        }
+        xml.append("  </trkseg></trk>\n");
+        xml.append("</gpx>\n");
+        return xml.toString();
+    }
+
+    private static double maxAdjacentDistance(LineString lineString) {
+        double max = 0.0;
+        for (int i = 1; i < lineString.getNumPoints(); i++) {
+            max = Math.max(max, GPXReader.getDistanceBetweenTwoWGS84(
+                    lineString.getCoordinateN(i - 1),
+                    lineString.getCoordinateN(i)));
+        }
+        return max;
+    }
+
     private static TrackStopDetector.StopRange stopRange(double startTimeS, double endTimeS) {
         return new TrackStopDetector.StopRange(
                 0,
@@ -632,6 +705,42 @@ class GPXReaderOutlierTest {
         assertEquals(2, segments.size());
         assertEquals(3, segments.get(0).size());
         assertEquals(2, segments.get(1).size());
+    }
+
+    @Test
+    void timeOrderTreatment_removesBackwardJumpBeforeTemporalSplit() {
+        double baseT = 1_600_000_000.0;
+        List<Coordinate> coords = List.of(
+                coord(8.0, 47.0, 500.0, baseT),
+                coord(8.001, 47.0, 500.0, baseT + 3600),
+                coord(8.002, 47.0, 500.0, baseT - 35 * 24 * 3600.0),
+                coord(8.003, 47.0, 500.0, baseT + 7200)
+        );
+
+        List<Coordinate> filtered = GPXReader.withoutStaleBackwardTimeJumpPoints(coords);
+        List<List<Coordinate>> segments = GPXReader.splitByTemporalGaps(filtered);
+
+        assertEquals(1, segments.size());
+        assertEquals(3, segments.getFirst().size());
+    }
+
+    @Test
+    void withoutStaleBackwardTimeJumpPoints_removesInterleavedOldPoints() {
+        double baseT = 1_600_000_000.0;
+        List<Coordinate> coords = List.of(
+                coord(8.0, 47.0, 500.0, baseT),
+                coord(8.001, 47.0, 500.0, baseT + 3600),
+                coord(8.002, 47.0, 500.0, baseT - 35 * 24 * 3600.0),
+                coord(8.003, 47.0, 500.0, baseT - 35 * 24 * 3600.0 + 60),
+                coord(8.004, 47.0, 500.0, baseT + 7200)
+        );
+
+        List<Coordinate> filtered = GPXReader.withoutStaleBackwardTimeJumpPoints(coords);
+
+        assertEquals(3, filtered.size());
+        assertEquals(baseT, filtered.get(0).getM(), 0.0);
+        assertEquals(baseT + 3600, filtered.get(1).getM(), 0.0);
+        assertEquals(baseT + 7200, filtered.get(2).getM(), 0.0);
     }
 
     @Test

@@ -1,0 +1,18 @@
+GPS_04 / MTL-FR-005 fixed retest
+Date: 2026-06-04
+
+Scope:
+- Retested the client fix on a plain-HTTP non-loopback local URL: http://192.168.2.77:5173/mtl/
+- No screenshot is stored here because the retest used the developer's local instance and local GPX tracks are private.
+
+Observed fixed behavior:
+- Clicking GPS showed a warning toast with summary: GPS unavailable.
+- Warning detail: GPS needs HTTPS or localhost. Open MTL Explorer from a secure address to use live location.
+- The app did not display GPS started.
+- The GPS navigation button kept the normal nav-panel__tool class and did not remain in the enabled/following state.
+- The client preflight blocked navigator.geolocation.watchPosition on the insecure origin.
+
+Verification commands:
+- npm test -- gpsLocate.spec.ts
+- npm run type-check
+- npm run build-only

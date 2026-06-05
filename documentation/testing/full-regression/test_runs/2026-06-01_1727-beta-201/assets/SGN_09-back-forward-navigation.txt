@@ -1,0 +1,78 @@
+{
+  "states": [
+    {
+      "label": "map-start",
+      "url": "http://167.233.16.201:18080/mtl/",
+      "hasMap": true,
+      "hasStats": false,
+      "hasDetails": false,
+      "text": "500 km\n© OpenStreetMap | Elevation: Mapterhorn\n11 Tracks\nStats\nFilter\nMap\nAnimate\nSegments\nGPS\nPlanner\nAdmin"
+    },
+    {
+      "label": "stats",
+      "url": "http://167.233.16.201:18080/mtl/stats",
+      "hasMap": true,
+      "hasStats": true,
+      "hasDetails": false,
+      "text": "500 km\n© OpenStreetMap | Elevation: Mapterhorn\n11 Tracks\nStats\nFilter\nMap\nAnimate\nSegments\nGPS\nPlanner\nAdmin\nOverview\nTrends\nTracks\n11\nTRACKS\n883 km\nDISTANCE\n18h 49m\nDURATION\n4,264 Wh\nENERGY\nACTIVITY BREAKDOWN\nTracks\nDistance\nDuration\nEnergy\nBicycle\n"
+    },
+    {
+      "label": "details",
+      "url": "http://167.233.16.201:18080/mtl/track/100010",
+      "hasMap": true,
+      "hasStats": false,
+      "hasDetails": true,
+      "text": "500 km\n© OpenStreetMap | Elevation: Mapterhorn\n11 Tracks\nStats\nFilter\nMap\nAnimate\nSegments\nGPS\nPlanner\nAdmin\nTRACK DETAILS\n#100010\nBicycle\n3D Replay\nOverview\nGraphs\nQuality\nRelated\nEvents\nFMT GEOJSON Synthetic\n 06/01/2026, 18:32\n Generated from route"
+    },
+    {
+      "label": "back-1",
+      "url": "http://167.233.16.201:18080/mtl/stats",
+      "hasMap": true,
+      "hasStats": true,
+      "hasDetails": false,
+      "text": "500 km\n© OpenStreetMap | Elevation: Mapterhorn\n11 Tracks\nStats\nFilter\nMap\nAnimate\nSegments\nGPS\nPlanner\nAdmin\nOverview\nTrends\nTracks\nVIEWS\nAll\nExcluded\nStats excluded\nNo activity\n1\nof 11 tracks\n·\n1.44 km\n·\n0m 00s\n SORT:\nDate\nImported\nDistance\nDuration"
+    },
+    {
+      "label": "back-2",
+      "url": "http://167.233.16.201:18080/mtl/",
+      "hasMap": true,
+      "hasStats": false,
+      "hasDetails": false,
+      "text": "500 km\n© OpenStreetMap | Elevation: Mapterhorn\n11 Tracks\nStats\nFilter\nMap\nAnimate\nSegments\nGPS\nPlanner\nAdmin"
+    },
+    {
+      "label": "forward-1",
+      "url": "http://167.233.16.201:18080/mtl/stats",
+      "hasMap": true,
+      "hasStats": true,
+      "hasDetails": false,
+      "text": "500 km\n© OpenStreetMap | Elevation: Mapterhorn\n11 Tracks\nStats\nFilter\nMap\nAnimate\nSegments\nGPS\nPlanner\nAdmin\nOverview\nTrends\nTracks\nVIEWS\nAll\nExcluded\nStats excluded\nNo activity\n1\nof 11 tracks\n·\n1.44 km\n·\n0m 00s\n SORT:\nDate\nImported\nDistance\nDuration"
+    },
+    {
+      "label": "forward-2",
+      "url": "http://167.233.16.201:18080/mtl/track/100010",
+      "hasMap": true,
+      "hasStats": false,
+      "hasDetails": true,
+      "text": "500 km\n© OpenStreetMap | Elevation: Mapterhorn\n11 Tracks\nStats\nFilter\nMap\nAnimate\nSegments\nGPS\nPlanner\nAdmin\nTRACK DETAILS\n#100010\nBicycle\n3D Replay\nOverview\nGraphs\nQuality\nRelated\nEvents\nFMT GEOJSON Synthetic\n 06/01/2026, 18:32\n Generated from route"
+    }
+  ],
+  "assertions": {
+    "startMap": true,
+    "statsView": true,
+    "detailsView": true,
+    "backReturnedStats": true,
+    "backReturnedMap": true,
+    "forwardReturnedStats": true,
+    "forwardReturnedDetails": true,
+    "blockingErrors": true
+  },
+  "filteredErrors": [],
+  "browserWarnings": [
+    {
+      "type": "warning",
+      "text": "Highcharts warning: Consider including the \"accessibility.js\" module to make your chart more usable for people with disabilities. Set the \"accessibility.enabled\" option to false to remove this warning. See https://www.hi"
+    }
+  ],
+  "note": "Only observed warning was the already-recorded Highcharts accessibility module warning (MTL-FR-002); no navigation-blocking errors or failed view transitions occurred."
+}

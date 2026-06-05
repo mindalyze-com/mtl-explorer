@@ -1,0 +1,21 @@
+{
+  "mapText": "© Patrick Heusser\n\nPREPARING MAP LAYERS\n\n50 km\n© OpenStreetMap | Elevation: Mapterhorn\n3 Tracks\nStats\nFilter\nMap\nAnimate\nSegments\nGPS\nPlanner\nAdmin",
+  "statsText": "50 km\n© OpenStreetMap | Elevation: Mapterhorn\n3 Tracks\nStats\nFilter\nMap\nAnimate\nSegments\nGPS\nPlanner\nAdmin\nOverview\nTrends\nTracks\nVIEWS\nAll\nExcluded\nStats excluded\nNo activity\n3\ntracks\n·\n870 km\n·\n17h 49m\n SORT:\nDate\nImported\nDistance\nDuration\nName\nExploration\n\t\nSTART\n\t\nTRACK\n\t\nACTIVITY\n\t\nDISTANCE\n\t\nDURATION\n\t\nAVG KM/H\n\t\nENERGY\n\t\nEXPLORATION\n\t\nIMPORTED\n\n\n\t01/01/2010, 01:00\t\nvoie verte haute vosges on GPSies.com\n\t\nBicycle\n\t78.5 km\t3h 12m\t24.4\t436 Wh\t100.0%\t06/01/2026, 17:39\n\n\t01/01/2010, 01:00\t\nJura Route 7 / 2011 on GPSies.com\n\t\nBicycle\n\t273 km\t7h 46m\t35.1\t1,808 Wh\t100.0%\t06/01/2026, 17:39\n\n\t01/01/2010, 01:00\t\nMoselradweg aus Wiki on GPSies.com\n\t\nBicycle\n\t518 km\t6h 50m\t75.7\t1,616 Wh\t100.0%\t06/01/2026, 17:39\n1\n25",
+  "filterText": "50 km\n© OpenStreetMap | Elevation: Mapterhorn\n3 Tracks\nStats\nFilter\nMap\nAnimate\nSegments\nGPS\nPlanner\nAdmin\nFilter\nColors\nSQL\nOff\nFiltering is off\n\nTurn filtering on to narrow tracks by type, date or geo area, group them, and color the map. The Colors and SQL tabs unlock once a filter is selected.\n\nEnable filter",
+  "heatText": "50 km\n© OpenStreetMap | Elevation: Mapterhorn\n3 Tracks\nStats\nFilter\nMap\nAnimate\nSegments\nGPS\nPlanner\nAdmin\nMaps and data\nReset\nBASE MAP\n★\n✓\nOSM Topo\n★\nSwiss Color\nSwiss Light\nOSM Light\nOSM Gray\nOSM Dark\nMAP SOURCE\nAuto\nRemote\nVIEW MODE\n3D Terrain\nPerspective terrain view using Mapterhorn elevation mesh\nBACKGROUND\nBase Map\nThe background map tiles — street map, topo, or satellite imagery\nDATA LAYERS\nGPS Tracks\nAll your recorded activities drawn as colored lines on the map\nPhotos & Media\nGeotagged photos and media clustered by location\nTrack Points & Direction\nIndividual GPS points with direction arrows — only visible when zoomed in close\nHeatmap\nDensity overlay showing where you've been most frequently\nWAYMARKED TRAILS\nWorldwide routes from OpenStreetMap · styled by importance level\nHiking (worldwide)\nInternational, national, regional & local hiking routes\nCycling (worldwide)\nCycling route networks — EuroVelo, national & regional\nMTB (worldwide)\nMountain bike trails and routes\nSWISS OVERLAYS\nSwitzerland only — not available worldwide\nHiking Routes\nBike Routes\nMTB Routes\nHiking Trails\nAll signposted hiking trails (yellow, red-white, blue-white)",
+  "relatedText": "50 km\n© OpenStreetMap | Elevation: Mapterhorn\n3 Tracks\nStats\nFilter\nMap\nAnimate\nSegments\nGPS\nPlanner\nAdmin",
+  "deletedPresence": {
+    "Lannion_Plestin_parcours": {
+      "map": false,
+      "stats": false,
+      "filter": false,
+      "related": false
+    },
+    "Vitry le fran": {
+      "map": false,
+      "stats": false,
+      "filter": false,
+      "related": false
+    }
+  }
+}

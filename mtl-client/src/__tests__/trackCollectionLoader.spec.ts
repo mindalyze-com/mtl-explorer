@@ -164,6 +164,36 @@ class MemoryTrackCache implements TrackCacheGateway {
 }
 
 describe('TrackCollectionLoader', () => {
+  it('exposes cached track metadata without loading geometry', async () => {
+    const cache = new MemoryTrackCache();
+    const tracks = new Map([
+      [1, makeTrack(1)],
+      [2, makeTrack(2)],
+    ]);
+    await cache.saveTracks(tracks);
+    await cache.saveGeometry([
+      {
+        trackId: 1,
+        precision: OVERVIEW_PRECISION,
+        coordinates: [
+          [7, 46],
+          [8, 47],
+        ],
+      },
+    ]);
+    const loader = createTrackCollectionLoader({
+      cache,
+      fetchFilteredTrackIds: vi.fn(),
+      fetchTrackBatch: vi.fn(),
+      fetchDetailTrack: vi.fn(),
+    });
+
+    const cachedTracks = await loader.loadCachedTracks();
+
+    expect([...cachedTracks.keys()]).toEqual([1, 2]);
+    expect(cache.loadBestGeometryCalls).toBe(0);
+  });
+
   it('hydrates 10,042 overview tracks in 1,000-track batches', async () => {
     const ids = Array.from({ length: 10042 }, (_, idx) => idx + 1);
     const cache = new MemoryTrackCache();

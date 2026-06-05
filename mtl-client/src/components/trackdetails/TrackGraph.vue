@@ -173,9 +173,11 @@ function updateChart() {
       const rangeLow = typeof stats?.min === 'number' ? stats.min : null;
       const rangeHigh = typeof stats?.max === 'number' ? stats.max : null;
       if (rangeLow !== null && rangeHigh !== null) {
-        point.rangeLow = rangeLow;
-        point.rangeHigh = rangeHigh;
-        rangeData.push({ x, low: rangeLow, high: rangeHigh, ts: absTs, canonicalPointIndex: item.pointIndex });
+        const low = Math.min(rangeLow, rangeHigh);
+        const high = Math.max(rangeLow, rangeHigh);
+        point.rangeLow = low;
+        point.rangeHigh = high;
+        rangeData.push({ x, low, high, ts: absTs, canonicalPointIndex: item.pointIndex });
       }
     }
 

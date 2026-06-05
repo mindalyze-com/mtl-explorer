@@ -1,7 +1,7 @@
 import { ref, watch } from 'vue';
-import { USER_PREFS_KEYS, migrateLegacyKeys } from '@/utils/userPrefs';
+import { readStorage, STORAGE_KEYS, writeStorage } from '@/utils/appStorage';
 
-const STORAGE_KEY = USER_PREFS_KEYS.locale;
+const STORAGE_KEY = STORAGE_KEYS.locale;
 
 /**
  * Well-known locale presets the user can choose from.
@@ -76,8 +76,7 @@ export function detectBestLocale(): LocaleDetection {
 }
 
 function getInitialLocale(): string {
-  migrateLegacyKeys();
-  const saved = localStorage.getItem(STORAGE_KEY);
+  const saved = readStorage(STORAGE_KEY);
   if (saved !== null) return saved;
   // First visit: auto-detect but do NOT persist — let applyServerDefaultLocale()
   // take precedence if the server provides a default.
@@ -90,7 +89,7 @@ const formatLocale = ref<string>(getInitialLocale());
 watch(formatLocale, (next) => {
   // Always persist — even '' means "user explicitly chose browser default"
   // and must not be overridden by the server default on next visit.
-  localStorage.setItem(STORAGE_KEY, next);
+  writeStorage(STORAGE_KEY, next);
 });
 
 /**
@@ -123,10 +122,10 @@ export function useLocale() {
  */
 export function applyServerDefaultLocale(serverDefault: string | null | undefined): void {
   if (!serverDefault) return;
-  const saved = localStorage.getItem(STORAGE_KEY);
+  const saved = readStorage(STORAGE_KEY);
   if (saved === null) {
     // No explicit user choice — use the server suggestion
-    localStorage.setItem(STORAGE_KEY, serverDefault);
+    writeStorage(STORAGE_KEY, serverDefault);
     formatLocale.value = serverDefault;
   }
 }

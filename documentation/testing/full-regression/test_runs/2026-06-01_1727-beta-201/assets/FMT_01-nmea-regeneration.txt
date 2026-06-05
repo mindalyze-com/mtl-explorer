@@ -1,0 +1,1 @@
+format=nmea action=replaced-with-valid-fix-sentences bytes=1120 sha256=2a5576e24e2a034fc14611bac3df4b5f4c73a6094c678f0de902a41e7fcafaee first=$GPRMC,090000.000,A,4507.200,N,00702.400,E,6.0,45.0,050226,,,A*56

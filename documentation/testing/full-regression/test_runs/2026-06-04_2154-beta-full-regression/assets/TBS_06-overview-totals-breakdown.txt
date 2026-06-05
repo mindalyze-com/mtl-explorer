@@ -1,0 +1,48 @@
+{
+  "overview": {
+    "summaryTracks": "11Tracks",
+    "summaryDistance": "966 kmDistance",
+    "summaryDuration": "20h 46m Duration",
+    "summaryEnergy": "4,525 Wh Energy",
+    "filterBanner": "",
+    "activityRows": [
+      "Bicycle1010",
+      "Walking11"
+    ],
+    "highlights": [
+      "Longest trackMoselradweg aus Wiki on GPSies.com518 km",
+      "Longest durationJura Route 7 / 2011 on GPSies.com7h 46m",
+      "Biggest ascentJura Route 7 / 2011 on GPSies.com6,324 m",
+      "Quickest ascentTrack 10001050,000 m/h",
+      "Most energyJura Route 7 / 2011 on GPSies.com1,808 Wh",
+      "Fastest 30 s speedMoselradweg aus Wiki on GPSies.com58.3 km/h",
+      "Peak 30 s powerTrack 1000102,500 W",
+      "Most common activityBicycle10 tracks"
+    ],
+    "recentRows": [
+      "format-geojson-synthetic-trackBicycle06/04/2026, 22:543.49 km0m 00s",
+      "PathBicycle06/04/2026, 22:543.50 km0m 00s",
+      "PathBicycle06/04/2026, 22:543.51 km0m 00s",
+      "format-gdb-synthetic-trackBicycle01/16/2026, 09:003.53 km10m 30s",
+      "Track 100010Bicycle01/14/2026, 09:003.38 km10m 30s"
+    ],
+    "activePeriods": [
+      "Most active day2010-01-0119h 04m3 tracks - 938 km",
+      "Most active week2009-W5319h 04m3 tracks - 938 km",
+      "Most active month2010-0119h 04m3 tracks - 938 km",
+      "Most active weekdayFriday19h 15m4 tracks - 942 km"
+    ],
+    "milestones": [
+      "First activityJura Route 7 / 2011 on GPSies.com01/01/2010, 01:00",
+      "Latest activityformat-geojson-synthetic-track06/04/2026, 22:54",
+      "First 50 km trackJura Route 7 / 2011 on GPSies.com273 km",
+      "First 100 km trackJura Route 7 / 2011 on GPSies.com273 km",
+      "First 1000 m ascentJura Route 7 / 2011 on GPSies.com6,324 m",
+      "First 2000 m ascentJura Route 7 / 2011 on GPSies.com6,324 m",
+      "First 1000 Wh activityJura Route 7 / 2011 on GPSies.com1,808 Wh"
+    ],
+    "empty": "",
+    "dateRange": "01/01/2010 - 06/04/2026",
+    "exclusionNote": ""
+  }
+}

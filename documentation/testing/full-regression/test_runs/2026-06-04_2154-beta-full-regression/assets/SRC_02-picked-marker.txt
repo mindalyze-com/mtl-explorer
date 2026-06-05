@@ -1,0 +1,23 @@
+{
+  "selectedResult": {
+    "i": 0,
+    "text": "ZürichZurich, SwitzerlandCityz7-15"
+  },
+  "markerCountBefore": 0,
+  "markerCountAfter": 1,
+  "markersAfterPick": [
+    {
+      "i": 0,
+      "text": "",
+      "cls": "mtl-location-search-marker maplibregl-marker maplibregl-marker-anchor-bottom",
+      "aria": "Map marker",
+      "title": "",
+      "x": 704,
+      "y": 416,
+      "w": 34,
+      "h": 34,
+      "visible": true
+    }
+  ],
+  "assertion": "PASS: selecting a result placed a map marker."
+}

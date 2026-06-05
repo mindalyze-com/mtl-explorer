@@ -2,18 +2,19 @@
  * mapConfigService.ts — Fetches and caches the server-side map configuration.
  *
  * The config tells the client whether to use local vector tiles (PMTiles from docker-maps)
- * or remote raster tiles (OSM from the internet).
+ * or remote raster tiles from configured providers.
  */
 
 import { apiClient } from '@/utils/apiClient';
 import { describeError, startStartupTimer, startupLog } from '@/utils/startupDiagnostics';
-import { USER_PREFS_KEYS } from '@/utils/userPrefs';
+import { readJsonStorage, STORAGE_KEYS, writeJsonStorage } from '@/utils/appStorage';
 import {
   MapConfigDtoTileModeEnum,
   MapConfigDtoTileSourceEnum,
   type MapConfigDto,
 } from 'x8ing-mtl-api-typescript-fetch/dist/esm/models/MapConfigDto';
 import type { MapBoundsDto } from 'x8ing-mtl-api-typescript-fetch/dist/esm/models/MapBoundsDto';
+import type { MapRasterStyleDto } from 'x8ing-mtl-api-typescript-fetch/dist/esm/models/MapRasterStyleDto';
 
 export { MapConfigDtoTileModeEnum, MapConfigDtoTileSourceEnum };
 
@@ -29,7 +30,7 @@ export type MapConfig = MapConfigDto & {
   lowzoomArchiveUrl?: string;
   tileSource?: MapTileSource;
   archiveId?: string;
-  remoteTileUrl: string;
+  remoteRasterStyles: Record<string, MapRasterStyleDto>;
   /** Initial map viewport bounds from explicit config, stored tracks, or server default. */
   initialBounds?: MapBoundsDto;
   /** Legacy bounded-map metadata, normally omitted. */
@@ -49,12 +50,30 @@ const DEFAULT_CONFIG: MapConfig = {
   tileBaseUrl: '',
   tilesetName: 'planet',
   lowzoomTilesetName: 'world-lowzoom',
-  remoteTileUrl: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+  remoteRasterStyles: {
+    light: {
+      url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+      attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    },
+    'light-topo': {
+      url: 'https://tile.opentopomap.org/{z}/{x}/{y}.png',
+      attribution:
+        'Map data: © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, SRTM | ' +
+        'Map style: © <a href="https://opentopomap.org">OpenTopoMap</a> ' +
+        '(<a href="https://creativecommons.org/licenses/by-sa/3.0/">CC-BY-SA</a>)',
+    },
+    dark: {
+      url: 'https://basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
+      attribution:
+        '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors ' +
+        '© <a href="https://carto.com/attributions">CARTO</a>',
+    },
+  },
   plannerEnabled: false,
   plannerProfiles: [],
 };
 
-const STORAGE_KEY = USER_PREFS_KEYS.mapConfigCache;
+const STORAGE_KEY = STORAGE_KEYS.mapConfigCache;
 
 let cachedConfig: MapConfig | null = null;
 /**
@@ -103,36 +122,28 @@ export async function fetchMapConfig(): Promise<MapConfig> {
         lowzoomTilesetName: cachedConfig.lowzoomTilesetName,
       });
       // Persist so we can restore the last known map viewport/tile config when offline.
-      try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(cachedConfig));
-      } catch {
-        /* quota */
-      }
+      writeJsonStorage(STORAGE_KEY, cachedConfig);
       return cachedConfig;
     } catch (e) {
       timer.warn('Map config fetch failed; falling back', describeError(e));
       console.warn('Failed to fetch map config, falling back to offline / remote raster mode:', e);
       // Try to restore last-known-good config from localStorage
-      try {
-        const stored = localStorage.getItem(STORAGE_KEY);
-        if (stored) {
-          const fallback: MapConfig = { ...JSON.parse(stored), offline: true };
-          startupLog('mapconfig', 'Restored map config from localStorage', {
-            tileMode: fallback.tileMode,
-            tileBaseUrl: fallback.tileBaseUrl,
-          });
-          console.log('Restored map config from localStorage (offline mode)');
-          // Intentionally NOT memoized into cachedConfig so a subsequent
-          // caller (or background retry) can still fetch the real config.
-          return fallback;
-        }
-      } catch {
-        /* corrupt JSON */
+      const stored = readJsonStorage<MapConfig | null>(STORAGE_KEY, null);
+      if (stored) {
+        const fallback: MapConfig = { ...stored, offline: true };
+        startupLog('mapconfig', 'Restored map config from localStorage', {
+          tileMode: fallback.tileMode,
+          tileBaseUrl: fallback.tileBaseUrl,
+        });
+        console.log('Restored map config from localStorage (offline mode)');
+        // Intentionally NOT memoized into cachedConfig so a subsequent
+        // caller (or background retry) can still fetch the real config.
+        return fallback;
       }
       const fallback: MapConfig = { ...DEFAULT_CONFIG, tileMode: 'remote', offline: true };
       startupLog('mapconfig', 'Using built-in remote fallback config', {
         tileMode: fallback.tileMode,
-        remoteTileUrl: fallback.remoteTileUrl,
+        remoteRasterStyles: Object.keys(fallback.remoteRasterStyles),
       });
       return fallback;
     } finally {

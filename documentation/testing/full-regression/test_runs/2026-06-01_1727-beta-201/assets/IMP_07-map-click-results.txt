@@ -1,0 +1,53 @@
+[
+  {
+    "expectedId": "100004",
+    "click": {
+      "x": 133,
+      "y": 399
+    },
+    "directDetailOpened": true,
+    "observedTitleOrSelection": "Lannion_Plestin_parcours Lannion_Plestin_parcours1"
+  },
+  {
+    "expectedId": "100001",
+    "click": {
+      "x": 1122,
+      "y": 486
+    },
+    "directDetailOpened": true,
+    "observedTitleOrSelection": "Vitry le fran\u00e7ois - langres on GPSies.com"
+  },
+  {
+    "expectedId": "100002",
+    "click": {
+      "x": 1245,
+      "y": 317
+    },
+    "directDetailOpened": true,
+    "observedTitleOrSelection": "Moselradweg aus Wiki on GPSies.com"
+  },
+  {
+    "expectedId": "100003",
+    "click": {
+      "x": 1322,
+      "y": 655
+    },
+    "directDetailOpened": true,
+    "observedTitleOrSelection": "Jura Route 7 / 2011 on GPSies.com"
+  },
+  {
+    "expectedId": "100000",
+    "click": {
+      "x": 1305,
+      "y": 541
+    },
+    "directDetailOpened": false,
+    "observedTitleOrSelection": "voie verte haute vosges on GPSies.com"
+  },
+  {
+    "expectedId": "100000",
+    "click": "follow-up selection from overlap list",
+    "directDetailOpened": true,
+    "observedTitleOrSelection": "Selected voie verte from 2-track overlap list and opened #100000 details."
+  }
+]

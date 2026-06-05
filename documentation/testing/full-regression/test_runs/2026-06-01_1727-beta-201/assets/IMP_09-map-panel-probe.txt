@@ -1,0 +1,27 @@
+{
+  "body": "50 km\n© OpenStreetMap | Elevation: Mapterhorn\n5 Tracks\nStats\nFilter\nMap\nAnimate\nSegments\nGPS\nPlanner\nAdmin\nMaps and data\nReset\nBASE MAP\n★\n✓\nOSM Topo\n★\nSwiss Color\nSwiss Light\nOSM Light\nOSM Gray\nOSM Dark\nMAP SOURCE\nAuto\nRemote\nVIEW MODE\n3D Terrain\nPerspective terrain view using Mapterhorn elevation mesh\nBACKGROUND\nBase Map\nThe background map tiles — street map, topo, or satellite imagery\nDATA LAYERS\nGPS Tracks\nAll your recorded activities drawn as colored lines on the map\nPhotos & Media\nGeotagged photos and media clustered by location\nTrack Points & Direction\nIndividual GPS points with direction arrows — only visible when zoomed in close\nHeatmap\nDensity overlay showing where you've been most frequently\nWAYMARKED TRAILS\nWorldwide routes from OpenStreetMap · styled by importance level\nHiking (worldwide)\nInternational, national, regional & local hiking routes\nCycling (worldwide)\nCycling route networks — EuroVelo, national & regional\nMTB (worldwide)\nMountain bike trails and routes\nSWISS OVERLAYS\nSwitzerland only — not available worldwide\nHiking Routes\nBike Routes\nMTB Routes\nHiking Trails\nAll signposted hiking trails (yellow, red-white, blue-white)",
+  "controls": [
+    {
+      "i": 2,
+      "tag": "BUTTON",
+      "type": "button",
+      "aria": "Drag to rotate map, click to reset north",
+      "text": "Drag to rotate map, click to reset north"
+    },
+    {
+      "i": 7,
+      "tag": "BUTTON",
+      "type": null,
+      "aria": null,
+      "text": "Map"
+    },
+    {
+      "i": 95,
+      "tag": "INPUT",
+      "type": "checkbox",
+      "aria": "Show context tracks",
+      "text": "Show context tracks",
+      "checked": false
+    }
+  ]
+}

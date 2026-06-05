@@ -21,14 +21,11 @@
  *    wrong point. Fix: showChartsAtPoint() picks timestamp or distanceKm based
  *    on currentXMode before calling showChartsAtXValue().
  *
- * 2. Chart point marker (circle) not shown during map hover.
+ * 2. Chart point markers must be managed per chart.
  *    tooltip.refresh() + drawCrosshair() move the tooltip and crosshair line,
- *    but do NOT light up the per-point circle marker.  You must also call
- *    point.setState('hover') explicitly.  The chartTheme already configures
- *    marker.states.hover.enabled = true, but that only activates when the
- *    state is set programmatically here.
- *    Remember to call point.setState('') (tracked in lastHoveredPoints) when
- *    the hover ends, otherwise the circle stays lit indefinitely.
+ *    but do NOT light up the per-point circle marker.  Calling
+ *    point.setState('hover') does that, but the previous point for the same
+ *    chart must be cleared first; otherwise hover circles can stay behind.
  *
  * 3. Map mouseout did not clear chart crosshairs.
  *    Without an explicit clearChartCrosshairs() call on MapLibre's 'mouseout'
@@ -51,16 +48,24 @@ type ChartPointer = {
 type ChartWithTrackSyncMeta = Highcharts.Chart & {
   mtlTrackSyncXMode?: TrackCursorXMode;
 };
+type ChartWithNativeHoverPoints = Highcharts.Chart & {
+  hoverPoint?: Highcharts.Point;
+  hoverPoints?: Highcharts.Point[];
+};
 type TrackSyncPoint = Highcharts.Point & {
   canonicalPointIndex?: number;
   ts?: number;
+};
+type PointWithState = Highcharts.Point & {
+  state?: string;
 };
 
 // Module-level registry so all chart components on the page share state.
 const registeredCharts = new Set<Highcharts.Chart>();
 
-// Track last-hovered points so we can clear their state on leave.
-let lastHoveredPoints: Highcharts.Point[] = [];
+// Track last-hovered points so we can clear their state on move/leave.
+const lastHoveredPoints = new Set<Highcharts.Point>();
+const lastShownPointByChart = new WeakMap<Highcharts.Chart, Highcharts.Point>();
 
 const PASSIVE_TOUCH_LISTENER: AddEventListenerOptions = { passive: true };
 
@@ -81,6 +86,7 @@ export function useChartSync() {
 
   function unregisterChart(chart: Highcharts.Chart): void {
     registeredCharts.delete(chart);
+    lastShownPointByChart.delete(chart);
   }
 
   function setChartXMode(chart: Highcharts.Chart, mode: TrackCursorXMode): void {
@@ -157,8 +163,9 @@ export function useChartSync() {
    * and removes the hover marker (pinned stays).
    */
   function syncMouseLeave(): void {
+    clearAllHoveredPoints();
     registeredCharts.forEach((chart) => {
-      chart.tooltip.hide();
+      chart.tooltip.hide(0);
       chart.xAxis[0].hideCrosshair();
     });
     cursor.clearHover();
@@ -176,21 +183,77 @@ export function useChartSync() {
     cursor.setPinnedByChartPoint(point.x, syncPoint.ts ?? null, 'chart', syncPoint.canonicalPointIndex ?? null);
   }
 
-  function clearLastHoveredPoints(): void {
-    for (const p of lastHoveredPoints) {
+  function collectNativeHoverPoints(points: Set<Highcharts.Point>): void {
+    registeredCharts.forEach((chart) => {
+      const hoverChart = chart as ChartWithNativeHoverPoints;
+      if (hoverChart.hoverPoint) {
+        points.add(hoverChart.hoverPoint);
+      }
+      hoverChart.hoverPoints?.forEach((point) => points.add(point));
+    });
+  }
+
+  function collectSeriesHoverStatePoints(points: Set<Highcharts.Point>): void {
+    registeredCharts.forEach((chart) => {
+      chart.series?.forEach((series) => {
+        series.points?.forEach((point) => {
+          if ((point as PointWithState).state === 'hover') {
+            points.add(point);
+          }
+        });
+      });
+    });
+  }
+
+  function clearHoveredPoints(points: Set<Highcharts.Point>): void {
+    for (const p of points) {
       try {
         p.setState('');
       } catch {
         /* point may have been destroyed */
       }
     }
-    lastHoveredPoints = [];
+  }
+
+  function clearShownPointForChart(chart: Highcharts.Chart): void {
+    const previousPoint = lastShownPointByChart.get(chart);
+    if (!previousPoint) return;
+
+    lastShownPointByChart.delete(chart);
+    lastHoveredPoints.delete(previousPoint);
+    clearHoveredPoints(new Set([previousPoint]));
+  }
+
+  function clearAllHoveredPoints(): void {
+    const pointsToClear = new Set(lastHoveredPoints);
+    collectNativeHoverPoints(pointsToClear);
+    collectSeriesHoverStatePoints(pointsToClear);
+    lastHoveredPoints.clear();
+    registeredCharts.forEach((chart) => lastShownPointByChart.delete(chart));
+    clearHoveredPoints(pointsToClear);
+  }
+
+  function isChartVisible(chart: Highcharts.Chart): boolean {
+    const rect = chart.container?.getBoundingClientRect?.();
+    if (!rect) return true;
+    if (rect.width <= 0 || rect.height <= 0) return false;
+
+    const view = chart.container.ownerDocument?.defaultView ?? window;
+    return rect.bottom > 0 && rect.right > 0 && rect.top < view.innerHeight && rect.left < view.innerWidth;
   }
 
   function showChartAtXValue(chart: Highcharts.Chart, xVal: number): void {
     if (!chart.series?.length) return;
+    if (!isChartVisible(chart)) {
+      clearShownPointForChart(chart);
+      return;
+    }
+
     const points = chart.series[0].points;
-    if (!points?.length) return;
+    if (!points?.length) {
+      clearShownPointForChart(chart);
+      return;
+    }
 
     // Binary search for closest point by x-value
     let lo = 0;
@@ -204,20 +267,25 @@ export function useChartSync() {
       lo = lo - 1;
     }
     const point = points[lo];
-    if (point) {
-      point.setState('hover');
-      lastHoveredPoints.push(point);
-      chart.tooltip.refresh(point);
-      chart.xAxis[0].drawCrosshair(undefined, point);
+    if (!point) {
+      clearShownPointForChart(chart);
+      return;
     }
+
+    if (lastShownPointByChart.get(chart) === point) return;
+
+    clearShownPointForChart(chart);
+    point.setState('hover');
+    lastHoveredPoints.add(point);
+    lastShownPointByChart.set(chart, point);
+    chart.tooltip.refresh(point);
+    chart.xAxis[0].drawCrosshair(undefined, point);
   }
 
   /**
    * Show crosshair + tooltip + hover marker on all charts for a given x-value.
    */
   function showChartsAtXValue(xVal: number): void {
-    clearLastHoveredPoints();
-
     registeredCharts.forEach((chart) => {
       showChartAtXValue(chart, xVal);
     });
@@ -228,8 +296,6 @@ export function useChartSync() {
    * Resolves the correct x-value based on the current xMode.
    */
   function showChartsAtPoint(tp: Pick<TrackPoint, 'timestamp' | 'distanceKm' | 'chartX'>): void {
-    clearLastHoveredPoints();
-
     registeredCharts.forEach((chart) => {
       const xMode = getChartXMode(chart);
       showChartAtXValue(chart, chartXForTrackPoint(tp, xMode, cursor.getStartTs()));
@@ -245,9 +311,10 @@ export function useChartSync() {
    * Clear crosshairs, tooltips, and hover markers on all charts (called from map mouseout).
    */
   function clearChartCrosshairs(): void {
-    clearLastHoveredPoints();
+    clearAllHoveredPoints();
     registeredCharts.forEach((chart) => {
-      chart.tooltip.hide();
+      lastShownPointByChart.delete(chart);
+      chart.tooltip.hide(0);
       chart.xAxis[0].hideCrosshair();
     });
   }

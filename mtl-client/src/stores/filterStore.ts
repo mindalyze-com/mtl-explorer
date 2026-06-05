@@ -1,30 +1,40 @@
 import { defineStore } from 'pinia';
-import { computed, ref, shallowRef } from 'vue';
+import { computed, markRaw, ref, shallowRef } from 'vue';
 import { ClientFilterConfig, FilterService, type FilterParamsRequest } from '@/components/filter/FilterService';
+import type { FilterResult } from '@/types/filter';
+
+export type ActiveFilterRequest = {
+  filterName: string;
+  filterParams: FilterParamsRequest | undefined;
+};
+
+export type FilterStoreSaveOptions = {
+  trackSetChanged?: boolean;
+};
 
 /**
- * Reactive cache around `FilterService`.
+ * Active filter state for the map and filter UI.
  *
  * Rationale:
- *   - `FilterService` is a static class that talks to localStorage + the
- *     server. Most call sites await `loadClientFilterConfig()` repeatedly and
- *     have to manage their own `active` flag.
- *   - This store keeps the resolved `ClientFilterConfig` in a reactive ref so
- *     consumers can subscribe (`storeToRefs`, `watch`) instead of polling.
+ *   - `FilterService` is the persistence/hydration layer: localStorage +
+ *     server fallback metadata.
+ *   - This store owns the in-app active filter config and, when available, the
+ *     resolved filter result that should be rendered on the map.
  *
  * Migration strategy:
- *   - `FilterService` remains the I/O layer. Writes go through the service.
- *   - Components that need reactivity should call `useFilterStore()` and read
- *     `config` / `isStandard`.
- *   - When other code mutates state through `FilterService.saveClientFilterConfig`
- *     directly, callers should also call `store.refresh()` so subscribers see
- *     the change. (Eventually all writes should funnel through `store.save()`.)
+ *   - Writes should go through this store, not directly through
+ *     `FilterService.saveClientFilterConfig`.
+ *   - Non-component data loaders should ask the store for
+ *     `getActiveFilterRequest()` and only fall back to `FilterService` in test
+ *     or bootstrap contexts where Pinia is not active yet.
  */
 export const useFilterStore = defineStore('filter', () => {
   // shallowRef: the config object is large + nested but treated as immutable
   // (whole object swapped on each load/save), so deep reactivity is wasted.
   const config = shallowRef<ClientFilterConfig | null>(null);
+  const activeResult = shallowRef<FilterResult | null>(null);
   const loading = ref<Promise<ClientFilterConfig> | null>(null);
+  const trackSetRevision = ref(0);
 
   /**
    * Resolve the current config. First call hits FilterService (localStorage +
@@ -46,18 +56,38 @@ export const useFilterStore = defineStore('filter', () => {
   }
 
   /** Persist a new config and update the reactive ref atomically. */
-  function save(cfg: ClientFilterConfig | null): void {
+  function save(cfg: ClientFilterConfig | null, options: FilterStoreSaveOptions = {}): void {
     FilterService.saveClientFilterConfig(cfg);
     config.value = cfg;
+    activeResult.value = null;
+    if (options.trackSetChanged ?? true) {
+      markTrackSetChanged();
+    }
   }
 
   /**
-   * Re-read the config from FilterService — used when external code (legacy
-   * call sites still calling FilterService.saveClientFilterConfig directly)
-   * has mutated localStorage and we need subscribers to see the change.
+   * Persist the active config and remember the exact resolved result that the
+   * map should render. This is the live-filter path used after a successful
+   * preview resolve.
+   */
+  function applyResolvedFilter(cfg: ClientFilterConfig, result: FilterResult): void {
+    FilterService.saveClientFilterConfig(cfg);
+    config.value = cfg;
+    activeResult.value = markRaw(result);
+    markTrackSetChanged();
+  }
+
+  /**
+   * Re-read the config from the persistence layer. This is mainly for startup
+   * hydration and for any still-migrating legacy code paths that mutate
+   * localStorage outside this store.
    */
   async function refresh(): Promise<ClientFilterConfig> {
     return ensureLoaded(true);
+  }
+
+  function markTrackSetChanged(): void {
+    trackSetRevision.value += 1;
   }
 
   /**
@@ -76,14 +106,34 @@ export const useFilterStore = defineStore('filter', () => {
 
   /** Convenience accessor for the current filterParams (or null). */
   const filterParams = computed<FilterParamsRequest | null>(() => config.value?.filterParams ?? null);
+  const activeFilterRequest = computed<ActiveFilterRequest | null>(() =>
+    config.value == null ? null : activeFilterRequestFromConfig(config.value)
+  );
+
+  async function getActiveFilterRequest(): Promise<ActiveFilterRequest> {
+    const cfg = await ensureLoaded();
+    return activeFilterRequestFromConfig(cfg);
+  }
 
   return {
     config,
+    activeResult,
+    trackSetRevision,
     isStandard,
     isActive,
     filterParams,
+    activeFilterRequest,
     ensureLoaded,
     refresh,
     save,
+    applyResolvedFilter,
+    getActiveFilterRequest,
   };
 });
+
+function activeFilterRequestFromConfig(clientFilterConfig: ClientFilterConfig): ActiveFilterRequest {
+  return {
+    filterName: clientFilterConfig.filterInfo?.filterConfig?.filterName ?? '',
+    filterParams: clientFilterConfig.filterParams,
+  };
+}

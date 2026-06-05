@@ -23,6 +23,35 @@ export function isSameOrBetterPrecision(incomingPrecision: number, currentPrecis
   return incomingPrecision <= currentPrecision;
 }
 
+export function normalizeLongitude(lng: number): number {
+  if (!Number.isFinite(lng)) return lng;
+  const normalized = ((((lng + 180) % 360) + 360) % 360) - 180;
+  return normalized === -180 && lng > 0 ? 180 : normalized;
+}
+
+export function shortestLongitudeDelta(fromLng: number, toLng: number): number {
+  return ((((toLng - fromLng) % 360) + 540) % 360) - 180;
+}
+
+export function unwrapLongitudeToReference(lng: number, referenceLng: number): number {
+  if (!Number.isFinite(lng) || !Number.isFinite(referenceLng)) return lng;
+  return referenceLng + shortestLongitudeDelta(referenceLng, lng);
+}
+
+export function unwrapLngLatCoordinates<T extends number[]>(coordinates: T[]): T[] {
+  let previousLng: number | null = null;
+  return coordinates.map((coordinate) => {
+    const lng = Number(coordinate[0]);
+    const rawDelta = previousLng == null ? 0 : lng - previousLng;
+    const unwrappedLng =
+      previousLng == null || Math.abs(rawDelta) <= 180 ? lng : previousLng + shortestLongitudeDelta(previousLng, lng);
+    previousLng = Number.isFinite(unwrappedLng) ? unwrappedLng : previousLng;
+    const next = coordinate.slice() as T;
+    next[0] = unwrappedLng;
+    return next;
+  });
+}
+
 export function buildTrackOverviewFeatures(
   geojson: GeoJSON.FeatureCollection | null | undefined
 ): GeoJSON.Feature<GeoJSON.Point>[] {
@@ -85,7 +114,18 @@ export function locationSearchTargetZoom(result: LocationSearchZoomResult | null
   if (kind === 'park' || kind === 'national_park' || kind === 'nature_reserve') return LOCATION_SEARCH_AREA_ZOOM;
   if (
     result?.sourceLayer === 'pois' ||
-    ['peak', 'mountain', 'pass', 'ridge', 'hill', 'viewpoint', 'alpine_hut', 'wilderness_hut', 'shelter', 'camp_site'].includes(kind)
+    [
+      'peak',
+      'mountain',
+      'pass',
+      'ridge',
+      'hill',
+      'viewpoint',
+      'alpine_hut',
+      'wilderness_hut',
+      'shelter',
+      'camp_site',
+    ].includes(kind)
   ) {
     return LOCATION_SEARCH_POI_ZOOM;
   }

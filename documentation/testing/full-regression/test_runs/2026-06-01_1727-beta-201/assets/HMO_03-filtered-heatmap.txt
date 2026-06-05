@@ -1,0 +1,23 @@
+HMO_03 heatmap updates after filter change evidence
+Initial unfiltered facts: {"url":"http://167.233.16.201:18080/mtl/map-settings","trackText":["12 Tracks"],"mapSettings":null,"filterStorage":"default/other"}
+Heatmap enabled on all tracks: {"enabled":true,"opacity":"100","sliderVisible":true}
+API /api/filter/resolve/800002 with SEARCH_WORD MAP 03 returned status 200; resultIds=[100014]; standardFilterCount=12.
+After applying filter and reloading root: {"url":"http://167.233.16.201:18080/mtl/","trackText":["1 / 12 Tracks"],"mapSettings":"{\"theme\":\"light-topo\",\"mapSourceMode\":\"auto\",\"legendCollapsed\":false,\"basemapEnabled\":true,\"terrainEnabled\":false,\"terrainExaggeration\":1,\"tracksEnabled\":true,\"trackPointsVisible\":true,\"heatmapVisible\":true,\"activeOverlays\":[],\"layerOpacities\":{\"basemap\":100,\"terrain\":100,\"tracks\":100,\"media\":100,\"trackpoints\":100,\"heatmap\":100,\"wanderland\":100,\"veloland\":100,\"mountainbikeland\":100,\"wanderwege\":100,\"wmt-hiking\":100,\"wmt-cycling\":100,\"wmt-mtb\":100}}","filterStorage":"ActivitiesByKeyword MAP 03"}
+Filtered heatmap state in Maps and data: {"enabled":true,"opacity":"100","sliderVisible":true}
+Filtered panel facts: {"url":"http://167.233.16.201:18080/mtl/map-settings","trackText":["1 / 12 Tracks"],"mapSettings":"{\"theme\":\"light-topo\",\"mapSourceMode\":\"auto\",\"legendCollapsed\":false,\"basemapEnabled\":true,\"terrainEnabled\":false,\"terrainExaggeration\":1,\"tracksEnabled\":true,\"trackPointsVisible\":true,\"heatmapVisible\":true,\"activeOverlays\":[],\"layerOpacities\":{\"basemap\":100,\"terrain\":100,\"tracks\":100,\"media\":100,\"trackpoints\":100,\"heatmap\":100,\"wanderland\":100,\"veloland\":100,\"mountainbikeland\":100,\"wanderwege\":100,\"wmt-hiking\":100,\"wmt-cycling\":100,\"wmt-mtb\":100}}","filterStorage":"ActivitiesByKeyword MAP 03"}
+Restore before reload: {"url":"http://167.233.16.201:18080/mtl/map-settings","trackText":["1 / 12 Tracks"],"mapSettings":"{\"theme\":\"light-topo\",\"mapSourceMode\":\"auto\",\"legendCollapsed\":false,\"basemapEnabled\":true,\"terrainEnabled\":false,\"terrainExaggeration\":1,\"tracksEnabled\":true,\"trackPointsVisible\":true,\"heatmapVisible\":false,\"activeOverlays\":[],\"layerOpacities\":{\"basemap\":100,\"terrain\":100,\"tracks\":100,\"media\":100,\"trackpoints\":100,\"heatmap\":100,\"wanderland\":100,\"veloland\":100,\"mountainbikeland\":100,\"wanderwege\":100,\"wmt-hiking\":100,\"wmt-cycling\":100,\"wmt-mtb\":100}}","filterStorage":null}
+Restore after reload: {"url":"http://167.233.16.201:18080/mtl/","trackText":["12 Tracks"],"mapSettings":"{\"theme\":\"light-topo\",\"mapSourceMode\":\"auto\",\"legendCollapsed\":false,\"basemapEnabled\":true,\"terrainEnabled\":false,\"terrainExaggeration\":1,\"tracksEnabled\":true,\"trackPointsVisible\":true,\"heatmapVisible\":false,\"activeOverlays\":[],\"layerOpacities\":{\"basemap\":100,\"terrain\":100,\"tracks\":100,\"media\":100,\"trackpoints\":100,\"heatmap\":100,\"wanderland\":100,\"veloland\":100,\"mountainbikeland\":100,\"wanderwege\":100,\"wmt-hiking\":100,\"wmt-cycling\":100,\"wmt-mtb\":100}}","filterStorage":"default/other"}
+Filtered requests included the client-side filter reload path:
+http://167.233.16.201:18080/mtl/api/filter/info?filterName=SmartBaseFilter&filterDomain=GPS_TRACK
+http://167.233.16.201:18080/mtl/api/tracks/get-simplified?filterName=SmartBaseFilter&mode=ids
+http://167.233.16.201:18080/mtl/api/tracks/get-simplified?precisionInMeter=1000&filterName=SmartBaseFilter&mode=full
+http://167.233.16.201:18080/mtl/api/filter/resolve?filterDomain=GPS_TRACK&filterName=ActivitiesByKeyword&includeGPSTrack=true
+http://167.233.16.201:18080/mtl/api/filter/get
+http://167.233.16.201:18080/mtl/api/filter/info?filterName=ActivitiesByKeyword&filterDomain=GPS_TRACK
+http://167.233.16.201:18080/mtl/api/filter/resolve/800000?includeGPSTrack=true
+http://167.233.16.201:18080/mtl/api/filter/resolve/800002?includeGPSTrack=false
+http://167.233.16.201:18080/mtl/api/tracks/get-simplified?filterName=ActivitiesByKeyword&mode=ids
+http://167.233.16.201:18080/mtl/api/filter/get
+http://167.233.16.201:18080/mtl/api/filter/info?filterName=SmartBaseFilter&filterDomain=GPS_TRACK
+http://167.233.16.201:18080/mtl/api/tracks/get-simplified?filterName=SmartBaseFilter&mode=ids
+Console warnings/errors: none

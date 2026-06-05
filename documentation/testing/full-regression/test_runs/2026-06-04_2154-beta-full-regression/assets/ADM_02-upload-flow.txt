@@ -1,0 +1,44 @@
+{
+  "uploadFiles": {
+    "validPath": "/tmp/mtl-regression-playwright-20260604-2154/adm-upload-regression-1780618165513.gpx",
+    "emptyPath": "/tmp/mtl-regression-playwright-20260604-2154/adm-upload-regression-1780618165513-empty.gpx",
+    "unsupportedPath": "/tmp/mtl-regression-playwright-20260604-2154/adm-upload-regression-1780618165513.txt",
+    "validFileName": "adm-upload-regression-1780618165513.gpx"
+  },
+  "uploadAvailabilityText": "INGESTION Upload Import new GPS material and verify ingest status before processing. Click or drag .gpx, .fit, .tcx, .kml, .kmz, .igc, .nmea, .geojson, .gdb here Files are saved to GPX-UPLOAD inside the GPX folder and automatically indexed.",
+  "unsupportedMessage": "Unsupported file format. Accepted: .gpx, .fit, .tcx, .kml, .kmz, .igc, .nmea, .geojson, .gdb.",
+  "emptyMessage": "Selected file is empty. Choose a non-empty GPS track file.",
+  "selectedFileText": "adm-upload-regression-1780618165513.gpx658 B Upload",
+  "uploadRouteHit": true,
+  "loadingState": {
+    "text": "Upload",
+    "disabled": true,
+    "classes": "p-button p-component p-button-loading p-button-sm"
+  },
+  "finalNotice": "'adm-upload-regression-1780618165513.gpx' uploaded successfully. Indexing will begin shortly.",
+  "finalNoticeClass": "upload-notice upload-notice--success",
+  "body": "500 km © OpenStreetMap | Elevation: Mapterhorn 13 Tracks Stats Filter Map Animate Segments GPS Planner Admin Admin SYSTEM UTILITY Admin workspace Manage imports, runtime tools, diagnostics, and local preferences without leaving the map. Quiet state Data Import and processing activity Upload IMPORT Import GPX files and inspect ingest readiness. Jobs IDLE Track indexer, map, and routing activity. Freshness TOKEN Inspect domain revisions and the current map data token. Garmin Sync REMOTE Trigger a remote Garmin export to pull new activity files. System Diagnostics, tools, and build details Log SERVER Inspect recent server output and runtime issues. Helpers 2/2 READY Reload tracks, manage helper tools, and run installs. About BUILD Client and server build details and runtime info. Session Preferences and account controls Settings LIGHT Adjust color scheme and locale formatting. Session LOGOUT Logout credentials only or wipe all local app data. Attribution SOURCES Libraries, datasets, and map data references. Upload INGESTION Upload Import new GPS material and verify ingest status before processing. Click or drag .gpx, .fit, .tcx, .kml, .kmz, .igc, .nmea, .geojson, .gdb here 'adm-upload-regression-1780618165513.gpx' uploaded successfully. Indexing will begin shortly. Files are saved to GPX-UPLOAD inside the GPX folder and automatically indexed.",
+  "failedRequests": [
+    {
+      "url": "https://protomaps.github.io/basemaps-assets/fonts/Noto%20Sans%20Regular/0-255.pbf",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "https://protomaps.github.io/basemaps-assets/sprites/v4/light.json",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "https://tile.openstreetmap.org/0/0/0.png",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "https://tiles.mapterhorn.com/0/0/0.webp",
+      "failure": "net::ERR_ABORTED"
+    },
+    {
+      "url": "http://167.233.16.201:18080/mtl/api/info/build",
+      "failure": "net::ERR_ABORTED"
+    }
+  ],
+  "relevantConsole": []
+}

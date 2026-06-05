@@ -1,0 +1,8 @@
+Manual rescan evidence:
+- Clicked Rescan GPS -> UI message: Manual GPS rescan has been queued.
+- Clicked Rescan Media -> UI message: Manual MEDIA rescan has been queued.
+- Settled status after rescans:
+Indexer GPS: completed=12 pending=0 failed=0 total=16 progress=75%
+Job Duplicate Finder: done=12 pending=0 total=12 progress=100%
+Job Activity Classifier: done=12 pending=0 total=12 progress=100%
+Job Exploration Score: done=12 pending=0 total=12 progress=100%

@@ -33,6 +33,9 @@ import java.util.List;
  * @param availableMetrics    union of metric keys actually present in at
  *                            least one bucket — convenience for the client
  *                            so it can decide which graphs to render
+ * @param recommendedSpeedMetric server recommendation for the speed graph
+ *                               channel. Either {@code null} or a member of
+ *                               {@code availableMetrics}
  * @param metricDefinitions   metadata for each available metric key,
  *                            including description, unit, and response
  *                            precision
@@ -50,6 +53,7 @@ import java.util.List;
         "bucketCount",
         "canonicalPointCount",
         "availableMetrics",
+        "recommendedSpeedMetric",
         "metricDefinitions",
         "buckets"
 })
@@ -64,6 +68,7 @@ public record ChartSeriesResponse(long trackId,
                                   int bucketCount,
                                   int canonicalPointCount,
                                   List<MetricKey> availableMetrics,
+                                  MetricKey recommendedSpeedMetric,
                                   List<MetricDefinition> metricDefinitions,
                                   List<ChartBucket> buckets) {
 }

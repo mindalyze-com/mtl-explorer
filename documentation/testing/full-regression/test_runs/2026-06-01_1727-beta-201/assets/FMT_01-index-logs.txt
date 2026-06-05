@@ -1,0 +1,12 @@
+FMT format watcher/index summary
+
+2026-06-01T16:31:52Z live watcher detected creates for: fmt_sample_tcx.tcx, fmt_sample_kml.kml, fmt_sample_igc.igc, fmt_sample_nmea.nmea, fmt_sample_geojson.geojson, fmt_sample_gdb.gdb, fmt_sample_kmz.kmz.
+
+Initial conversion results:
+- tcx: GPSBabel converted fmt_sample_tcx.tcx to GPX; trackId=100006 status=SUCCESS.
+- kml: GPSBabel converted fmt_sample_kml.kml to GPX; trackId=100007 status=SUCCESS.
+- igc: GPSBabel converted fmt_sample_igc.igc to GPX; trackId=100008 status=SUCCESS.
+- nmea first attempt: GPSBabel converted fmt_sample_nmea.nmea to 232 chars GPX; app recorded trackId=100009 status=EMPTY_FILE because generated sentences had invalid-fix flags.
+- geojson: GPSBabel converted fmt_sample_geojson.geojson to GPX; trackId=100010 status=SUCCESS.
+- kmz: extracted KMZ doc.kml, GPSBabel converted to GPX; trackId=100011 status=SUCCESS.
+- gdb: GPSBabel converted fmt_sample_gdb.gdb to GPX; trackId=100012 status=SUCCESS.

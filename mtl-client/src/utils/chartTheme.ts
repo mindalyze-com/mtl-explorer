@@ -21,6 +21,8 @@ export interface ChartThemeConfig {
   yMin?: number;
   /** Connect null data points (default false) */
   connectNulls?: boolean;
+  /** Optional tooltip label for a min/max range band. */
+  rangeTooltipLabel?: string;
   /** X-axis mode: 'time' (default) or 'distance' */
   xMode?: 'time' | 'distance';
 }
@@ -125,9 +127,10 @@ export function buildChartOptions(config: ChartThemeConfig): Highcharts.Options 
         const decimals = config.decimals !== undefined ? config.decimals : 1;
         const val = (this.y as number).toFixed(decimals);
         const unit = config.unit ? `\u202f${config.unit}` : '';
+        const rangeLabel = config.rangeTooltipLabel ? `${config.rangeTooltipLabel}: ` : '';
         const rangeText =
           rangeLow != null && rangeHigh != null
-            ? `<br/><span style="font-size:10px">min ${rangeLow.toFixed(decimals)}${unit} · max ${rangeHigh.toFixed(decimals)}${unit} · spread ${(rangeHigh - rangeLow).toFixed(decimals)}${unit}</span>`
+            ? `<br/><span style="font-size:10px">${rangeLabel}min ${rangeLow.toFixed(decimals)}${unit} · max ${rangeHigh.toFixed(decimals)}${unit} · spread ${(rangeHigh - rangeLow).toFixed(decimals)}${unit}</span>`
             : '';
         if (isDistance) {
           const km = (this.x as number).toFixed(1);

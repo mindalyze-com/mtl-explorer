@@ -1,0 +1,28 @@
+{
+  "heatmapToggle": {
+    "before": {
+      "label": "Heatmap",
+      "icon": "bi lc-check bi-circle",
+      "enabled": false,
+      "text": "HeatmapDensity overlay showing where you've been most frequently"
+    },
+    "after": {
+      "label": "Heatmap",
+      "icon": "bi lc-check bi-check-circle-fill",
+      "enabled": true,
+      "text": "HeatmapDensity overlay showing where you've been most frequently"
+    }
+  },
+  "heatmapOpacity": {
+    "label": "Heatmap",
+    "before": "Heatmap Density overlay showing where you've been most frequently",
+    "after": "Heatmap Density overlay showing where you've been most frequently",
+    "sliderPresent": true
+  },
+  "body": "500 km © OpenStreetMap | Elevation: Mapterhorn 13 Tracks Stats Filter Map Animate Segments GPS Planner Admin",
+  "assertions": {
+    "heatmapEnabled": true,
+    "opacitySliderPresent": true,
+    "tracksStillVisible": true
+  }
+}

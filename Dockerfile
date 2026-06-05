@@ -8,8 +8,52 @@ ARG GCEXPORT_DEFAULT_VERSION=v4.6.2
 ARG GCEXPORT_GARMINCONNECT_REQUIREMENT=garminconnect==0.3.2
 ARG FIT_EXPORT_DEFAULT_PROFILE=default
 ARG FIT_EXPORT_DEFAULT_PACKAGES="garth fitparse gpxpy"
+ARG GPSBABEL_VERSION=1.10.0
+ARG GPSBABEL_GIT_REF=gpsbabel_1_10_0
 
 FROM node:20-bookworm-slim AS node-toolchain
+
+FROM eclipse-temurin:21-jre-jammy AS gpsbabel-builder
+
+ARG GPSBABEL_VERSION
+ARG GPSBABEL_GIT_REF
+
+RUN <<'EOF'
+set -eux
+apt-get update
+apt-get install -y --no-install-recommends \
+  ca-certificates \
+  git \
+  build-essential \
+  cmake \
+  ninja-build \
+  qt6-base-dev \
+  libqt6serialport6-dev \
+  libqt6core5compat6-dev \
+  libgl-dev \
+  pkg-config \
+  zlib1g-dev \
+  libusb-1.0-0-dev \
+  libshp-dev
+work_dir="$(mktemp -d)"
+git clone --depth 1 --branch "${GPSBABEL_GIT_REF}" https://github.com/GPSBabel/gpsbabel.git "${work_dir}/gpsbabel"
+cd "${work_dir}/gpsbabel"
+cmake -S . -B build -G Ninja \
+  -DCMAKE_BUILD_TYPE=Release \
+  -DGPSBABEL_MAPPREVIEW=OFF \
+  -DGPSBABEL_WITH_LIBUSB=pkgconfig \
+  -DGPSBABEL_WITH_SHAPELIB=pkgconfig \
+  -DGPSBABEL_WITH_ZLIB=pkgconfig
+cmake --build build --target gpsbabel --parallel "$(nproc)"
+mkdir -p /opt/gpsbabel/bin
+./build/gpsbabel -V | tee /opt/gpsbabel/version-output
+grep -Fx "GPSBabel Version ${GPSBABEL_VERSION}" /opt/gpsbabel/version-output
+cp ./build/gpsbabel /opt/gpsbabel/bin/gpsbabel
+printf 'source:%s\n' "${GPSBABEL_GIT_REF}" > /opt/gpsbabel/provider
+chmod +x /opt/gpsbabel/bin/gpsbabel
+/opt/gpsbabel/bin/gpsbabel -V
+rm -rf "${work_dir}" /var/lib/apt/lists/* /root/.cache
+EOF
 
 FROM maven:3.9-eclipse-temurin-21 AS app-builder
 
@@ -34,6 +78,7 @@ ARG GCEXPORT_DEFAULT_VERSION
 ARG GCEXPORT_GARMINCONNECT_REQUIREMENT
 ARG FIT_EXPORT_DEFAULT_PROFILE
 ARG FIT_EXPORT_DEFAULT_PACKAGES
+ARG GPSBABEL_VERSION
 ENV GCEXPORT_DEFAULT_VERSION=${GCEXPORT_DEFAULT_VERSION}
 ENV FIT_EXPORT_DEFAULT_PROFILE=${FIT_EXPORT_DEFAULT_PROFILE}
 ENV FIT_EXPORT_DEFAULT_PACKAGES=${FIT_EXPORT_DEFAULT_PACKAGES}
@@ -41,6 +86,7 @@ ENV FIT_EXPORT_DEFAULT_PACKAGES=${FIT_EXPORT_DEFAULT_PACKAGES}
 # Set locale to UTF-8 so the JVM uses UTF-8 for file-system path encoding (sun.jnu.encoding)
 ENV LANG=C.UTF-8
 ENV LC_ALL=C.UTF-8
+ENV PATH="/usr/local/bin:${PATH}"
 
 # Install required runtime packages.
 # eclipse-temurin:21-jre-jammy includes the jdk.jfr module. jattach keeps
@@ -61,10 +107,28 @@ RUN apt-get update && \
 # Install python3-pip and python3-venv (needed for garmin export setup)
 # Install imagemagick + libheif-dev for HEIC-to-JPEG conversion in MediaController
 # Install python3-pillow + fonts for demo-photo generation
-RUN apt-get update && apt-get install -y --no-install-recommends python3-pip python3-venv imagemagick libheif-dev python3-pillow fonts-dejavu-core gpsbabel \
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      python3-pip \
+      python3-venv \
+      imagemagick \
+      libheif-dev \
+      python3-pillow \
+      fonts-dejavu-core \
+      libqt6core6 \
+      libqt6core5compat6 \
+      libshp2 \
+      libusb-1.0-0 \
     && pip3 install piexif \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* /root/.cache/pip
+
+COPY --from=gpsbabel-builder /opt/gpsbabel/bin/gpsbabel /usr/local/bin/gpsbabel
+COPY --from=gpsbabel-builder /opt/gpsbabel/provider /opt/mtl/gpsbabel-provider
+COPY --from=gpsbabel-builder /opt/gpsbabel/version-output /opt/mtl/gpsbabel-version
+RUN set -eux; \
+    test "$(command -v gpsbabel)" = "/usr/local/bin/gpsbabel"; \
+    gpsbabel -V | tee /opt/mtl/gpsbabel-runtime-version; \
+    grep -Fx "GPSBabel Version ${GPSBABEL_VERSION}" /opt/mtl/gpsbabel-runtime-version
 
 # Copy garmin_export folder and pre-install the default gcexport version
 # install_gcexport.sh is idempotent: skips if venv_gcexport_<version>/ already exists

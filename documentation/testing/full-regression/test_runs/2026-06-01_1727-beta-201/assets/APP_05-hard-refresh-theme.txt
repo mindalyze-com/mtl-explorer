@@ -1,0 +1,5 @@
+APP_05 hard-refresh evidence:
+- Stored theme before reload: dark
+- First recorded/mutated data-theme values: []
+- Final data-theme after reload: dark
+- Observed light theme during reload: false

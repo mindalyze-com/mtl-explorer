@@ -1,0 +1,9 @@
+SGN_01 url=http://167.233.16.201:18080/mtl/login onLogin=true hasUsername=false hasPassword=false
+SGN_02 url=http://167.233.16.201:18080/mtl/ reachedMap=true requestFailures=5
+SGN_03 url=http://167.233.16.201:18080/mtl/login stayedLogin=true hasError=true excerpt=Invalid username or password. © Patrick Heusser AGPL-3.0 Sign In SIGNING IN
+SGN_04 demoBannerPresent=false loginExcerpt=© Patrick Heusser AGPL-3.0 Sign In
+SGN_05 afterLogoutUrl=http://167.233.16.201:18080/mtl/login returnedLogin=false loginAgainMap=true
+SGN_08 hasBrand=true hasSource=true hasLicense=true
+SGN_09 statsUrl=http://167.233.16.201:18080/mtl/stats detailUrl=http://167.233.16.201:18080/mtl/track/100005 backUrl=http://167.233.16.201:18080/mtl/stats backOk=true forwardOk=true failedRequests=45
+SGN_06 splashCaptured=true loadedMap=true
+SGN_07 hasRetry=true notFrozen=true excerpt=© Patrick Heusser Unable to load tracks — no server connection and no cached data available. Retry 500 km © OpenStreetMap contributors 0 Tracks Stats Filter Map Animate Segments GPS Planner Admin

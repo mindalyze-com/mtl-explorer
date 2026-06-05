@@ -1,0 +1,31 @@
+TRD_06 chart and mini-map hover synchronization evidence
+Track: #100002 / Moselradweg, Graphs tab after details-sheet scroll
+URL: http://167.233.16.201:18080/mtl/track/100002
+Checks: chartHoverTooltip=true, visualStaleCleared=true, miniMapHoverChart=false
+Mini-map canvas during test: x=278 y=1083 w=961 h=220
+
+2026-06-04 local retest:
+- Local app opened at http://localhost:5173/mtl/track/100001 on the Graphs tab.
+- Chart hover showed the speed tooltip/crosshair and a red mini-map cursor.
+- Mini-map hover moved the chart tooltip/cursor from 8m 30s to 10m 45s and moved the red mini-map cursor to the hovered route point.
+- Result: MTL-FR-003 was not reproducible in the local retest.
+
+Chart hover:
+- Coordinate scan found a chart hover hit at 550,1435.
+- Highcharts reported 6 tooltip/crosshair groups and 2 hover classes.
+- Tooltip excerpts included speed, elevation, gain, distance, energy, and power values.
+- Screenshot TRD_06-chart-hover.webp shows the graph tooltip/crosshair plus a red synchronized point on the mini-map.
+
+Leave behavior:
+- Mouse moved to the left sidebar after chart hover.
+- Screenshot TRD_06-after-leave.webp shows no visible graph tooltip/crosshair and no red mini-map hover point.
+- Highcharts retained hidden tooltip DOM text after leave, so visual screenshot state was used for the stale-cursor check.
+
+Mini-map hover:
+- Tried route-point coordinates 770,1115; 775,1135; 760,1155; 740,1175; 725,1195; 710,1215; 700,1235; 690,1255; 780,1110; 800,1100; 850,1095; 700,1280.
+- Screenshot TRD_06-minimap-hover.webp shows no visible graph tooltip/crosshair after hovering the mini-map route area.
+- Result: mini-map-to-chart hover synchronization was not observed in this run.
+
+Console warning/error count: 8
+- Initial unauthenticated startup probes returned 401 before login.
+- WebGL ReadPixels performance warnings were logged during map rendering.

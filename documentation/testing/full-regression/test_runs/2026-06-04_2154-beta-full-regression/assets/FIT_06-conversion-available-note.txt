@@ -1,0 +1,9 @@
+FIT_06 applicability note
+
+The configured quick-install run has FIT conversion available. Activity.fit was
+accepted, indexed successfully as track 100005, displayed in the map/browser/
+statistics, opened in detail views, downloaded as the original FIT, and exported
+as valid GPX with 3,601 trkpt elements.
+
+The fallback requirement for a clear conversion/indexing error when GPSBabel or
+FIT conversion is unavailable does not apply to this successful-conversion run.

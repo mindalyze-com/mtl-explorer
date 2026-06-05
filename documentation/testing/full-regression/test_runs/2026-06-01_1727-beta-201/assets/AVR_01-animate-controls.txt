@@ -1,0 +1,86 @@
+AVR_01 animate controls evidence
+{
+  "states": [
+    {
+      "label": "open-default",
+      "playLabel": "Play animation",
+      "stopDisabled": true,
+      "tracksValue": "12 / 12",
+      "currentDate": "01/01/2010",
+      "inlineSpeed": "20ms",
+      "speedMs": "20ms",
+      "playheadLeft": null
+    },
+    {
+      "label": "speed-slow-1000ms",
+      "playLabel": "Play animation",
+      "stopDisabled": true,
+      "tracksValue": "12 / 12",
+      "currentDate": "01/01/2010",
+      "inlineSpeed": "1000ms",
+      "speedMs": "1000ms",
+      "playheadLeft": null
+    },
+    {
+      "label": "playing-1",
+      "playLabel": "Pause animation",
+      "stopDisabled": false,
+      "tracksValue": "1 / 12",
+      "currentDate": "01/01/2010",
+      "inlineSpeed": "1000ms",
+      "speedMs": "1000ms",
+      "playheadLeft": "0%"
+    },
+    {
+      "label": "playing-2",
+      "playLabel": "Pause animation",
+      "stopDisabled": false,
+      "tracksValue": "3 / 12",
+      "currentDate": "01/01/2010",
+      "inlineSpeed": "1000ms",
+      "speedMs": "1000ms",
+      "playheadLeft": "18.1818%"
+    },
+    {
+      "label": "paused-1",
+      "playLabel": "Play animation",
+      "stopDisabled": false,
+      "tracksValue": "12 / 12",
+      "currentDate": "01/01/2010",
+      "inlineSpeed": "1000ms",
+      "speedMs": "1000ms",
+      "playheadLeft": "18.1818%"
+    },
+    {
+      "label": "paused-2",
+      "playLabel": "Play animation",
+      "stopDisabled": false,
+      "tracksValue": "12 / 12",
+      "currentDate": "01/01/2010",
+      "inlineSpeed": "1000ms",
+      "speedMs": "1000ms",
+      "playheadLeft": "18.1818%"
+    },
+    {
+      "label": "speed-fast-1ms",
+      "playLabel": "Play animation",
+      "stopDisabled": false,
+      "tracksValue": "12 / 12",
+      "currentDate": "01/01/2010",
+      "inlineSpeed": "1ms",
+      "speedMs": "1ms",
+      "playheadLeft": "18.1818%"
+    },
+    {
+      "label": "stopped-reset",
+      "playLabel": "Play animation",
+      "stopDisabled": true,
+      "tracksValue": "12 / 12",
+      "currentDate": "01/01/2010",
+      "inlineSpeed": "1ms",
+      "speedMs": "1ms",
+      "playheadLeft": null
+    }
+  ],
+  "note": "Playback advanced 1/12 -> 3/12 at 1000ms, pause kept playhead at 18.1818%, speed slider changed 1000ms -> 1ms, stop reset playhead and disabled Stop."
+}

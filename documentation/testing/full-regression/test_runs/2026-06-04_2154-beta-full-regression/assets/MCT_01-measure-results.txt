@@ -1,0 +1,145 @@
+{
+  "importedSyntheticFiles": {
+    "hashes": {
+      "synthetic-crossing-a.gpx": "51eeaceaaa823263dd5b6fc44a882e96be0511bda7ce772c71e762c5296b58b6",
+      "synthetic-crossing-b.gpx": "28c048262772ca250d0b6b1f02aa7275d3d9acbcd06efe8a2d229eb268fe5e1e"
+    },
+    "importProbe": {
+      "totalTracks": 13,
+      "syntheticTracks": [
+        {
+          "id": 100018,
+          "file": "synthetic-crossing-b.gpx",
+          "status": "SUCCESS",
+          "points": 3,
+          "name": "Codex synthetic crossing B"
+        },
+        {
+          "id": 100017,
+          "file": "synthetic-crossing-a.gpx",
+          "status": "SUCCESS",
+          "points": 3,
+          "name": "Codex synthetic crossing A"
+        }
+      ],
+      "crossingIds": [
+        "100017",
+        "100018"
+      ],
+      "tracksPerZone": {
+        "A": 2,
+        "B": 2
+      },
+      "segmentsStats": [
+        {
+          "point1": "A",
+          "point2": "B",
+          "label": "A-B",
+          "count": 2,
+          "timeDelta": 0
+        }
+      ]
+    }
+  },
+  "locationResult": "Bern Bern, Switzerland CAPITAL Z4-15",
+  "canvasBox": {
+    "x": 76,
+    "y": 0,
+    "w": 1290,
+    "h": 900
+  },
+  "clickEvidence": {
+    "aScreen": {
+      "x": 721,
+      "y": 450
+    },
+    "bScreen": {
+      "x": 776,
+      "y": 365
+    }
+  },
+  "beforeAnalyzeText": "1 km © OpenStreetMap | Elevation: Mapterhorn A 2 tracks B 2 tracks 2 SHARED tracks 13 Tracks Stats Filter Map Animate Segments GPS Planner Admin Segment Analyzer Undo Clear all Analyze 490 m TAP MAP 2 zones ready • next: C Place zones on the map where your routes pass through. The analyzer finds all tracks crossing every zone and compares sector times between them.",
+  "afterAnalyzeText": "1 km © OpenStreetMap | Elevation: Mapterhorn 13 Tracks Stats Filter Map Animate Segments GPS Planner Admin Segment Analyzer 2 / 2 tracks Consolidated Compare 2 Race 2 Table Trends COLUMN METRIC Speed Time Distance NAME START DURATION A - B synthetic-crossing-b.gpx 01/21/2026, 10:00 16m 00s 9.07 synthetic-crossing-a.gpx 01/20/2026, 10:00 12m 00s 11.55",
+  "latestCrossingRequest": {
+    "url": "http://167.233.16.201:18080/mtl/api/tracks/get-track-details-for-tracks-crossing-points",
+    "postData": "{\"triggerPoints\":[{\"name\":\"A\",\"coordinate\":{\"x\":7.447439999998352,\"y\":46.94808999999975}},{\"name\":\"B\",\"coordinate\":{\"x\":7.456881375730603,\"y\":46.95804992343352}}],\"radius\":490,\"filter\":{\"filterName\":\"SmartBaseFilter\",\"params\":{}}}"
+  },
+  "latestCrossingResponse": {
+    "status": 200,
+    "ids": [
+      "100017",
+      "100018"
+    ],
+    "tracksPerZone": {
+      "A": 2,
+      "B": 2
+    },
+    "segmentsStats": [
+      {
+        "point1": "A",
+        "point2": "B",
+        "label": "A-B",
+        "count": 2,
+        "timeDelta": 934.9490000000001
+      }
+    ],
+    "tracks": {
+      "100017": {
+        "file": "synthetic-crossing-a.gpx",
+        "name": "Codex synthetic crossing A",
+        "crossings": [
+          {
+            "trigger": "A",
+            "pointId": 637011,
+            "lngLat": [
+              7.447202329273715,
+              46.94820232927371
+            ],
+            "distanceM": 0,
+            "timeSec": 0,
+            "speedKmh": 0
+          },
+          {
+            "trigger": "B",
+            "pointId": 637012,
+            "lngLat": [
+              7.456995843273247,
+              46.957995843273245
+            ],
+            "distanceM": 1319.529822864331,
+            "timeSec": 411.331,
+            "speedKmh": 11.548624738499145
+          }
+        ]
+      },
+      "100018": {
+        "file": "synthetic-crossing-b.gpx",
+        "name": "Codex synthetic crossing B",
+        "crossings": [
+          {
+            "trigger": "A",
+            "pointId": 637008,
+            "lngLat": [
+              7.447202329273717,
+              46.94820232927371
+            ],
+            "distanceM": 0,
+            "timeSec": 0,
+            "speedKmh": 0
+          },
+          {
+            "trigger": "B",
+            "pointId": 637009,
+            "lngLat": [
+              7.456995843273247,
+              46.957995843273245
+            ],
+            "distanceM": 1319.5264437525707,
+            "timeSec": 523.618,
+            "speedKmh": 9.072062452989114
+          }
+        ]
+      }
+    }
+  }
+}

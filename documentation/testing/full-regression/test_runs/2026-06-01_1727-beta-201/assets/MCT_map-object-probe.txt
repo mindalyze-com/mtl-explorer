@@ -1,0 +1,27 @@
+{
+  "windowKeys": [
+    "onappinstalled",
+    "onbeforetoggle",
+    "ondragleave",
+    "ontoggle",
+    "createImageBitmap",
+    "__VUE_INSTANCE_SETTERS__",
+    "__VUE_SSR_SETTERS__",
+    "__VUE__"
+  ],
+  "canvasOwn": [],
+  "canvasProps": [
+    "onbeforetoggle",
+    "ondragleave",
+    "ontoggle",
+    "togglePopover"
+  ],
+  "contOwn": [],
+  "contProps": [
+    "onbeforetoggle",
+    "ondragleave",
+    "ontoggle",
+    "togglePopover"
+  ],
+  "bodyData": []
+}

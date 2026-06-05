@@ -1,0 +1,16 @@
+{
+  "action": "clicked visible Download GPX button on FIT detail Overview",
+  "suggestedFilename": "Activity.gpx",
+  "bytes": 479844,
+  "sha256": "04f174213a948d764415c2949923e52d60f12614c1a27e7b28114ccb1af2769b",
+  "startsWithXml": true,
+  "containsGpxRoot": true,
+  "trkCount": 1,
+  "trksegCount": 1,
+  "trkptCount": 3601,
+  "wptCount": 0,
+  "hasRealTrackpoints": true,
+  "notWaypointOnly": true,
+  "firstTrackpointSnippet": "<trkpt lat=\"0.000000000\" lon=\"0.000000000\"> <ele>127.000</ele> <time>2021-07-20T21:11:20Z</time> </trkpt>",
+  "tempDownloadedPath": "/tmp/mtl-playwright-regression/Activity.gpx"
+}

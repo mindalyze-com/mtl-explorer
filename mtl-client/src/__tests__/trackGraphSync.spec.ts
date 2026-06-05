@@ -60,6 +60,7 @@ function chartPoint(overrides: Partial<ChartPoint> = {}): ChartPoint {
     },
     pointAltitude: 110,
     speedInKmhWindow: null,
+    speedBucketAvgKmh: null,
     elevationGainPerHourWindow: null,
     elevationLossPerHourWindow: null,
     powerWattsWindow: null,
@@ -192,6 +193,39 @@ describe('TrackGraph range band rendering', () => {
       y: 110,
       rangeLow: 100,
       rangeHigh: 130,
+    });
+  });
+
+  it('normalizes malformed range data without changing the center line', async () => {
+    const wrapper = await mountGraph(false, {
+      graphConfig: rangeConfig,
+      showRange: true,
+      trackDetails: [
+        chartPoint({
+          metricStats: {
+            [ALTITUDE_METRIC_KEY]: {
+              avg: 110,
+              min: 130,
+              max: 100,
+              sampleCount: 4,
+            },
+          },
+        }),
+      ],
+    });
+
+    const series = (
+      wrapper.vm as unknown as { chartOptions: { series: Array<{ data?: Array<Record<string, unknown>> }> } }
+    ).chartOptions.series;
+
+    expect(series[0].data?.[0]).toMatchObject({
+      y: 110,
+      rangeLow: 100,
+      rangeHigh: 130,
+    });
+    expect(series[1].data?.[0]).toMatchObject({
+      low: 100,
+      high: 130,
     });
   });
 });

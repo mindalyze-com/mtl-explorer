@@ -15,6 +15,7 @@ import {
   GpxUploadControllerApi,
   IndexerStatusControllerApi,
   JobStatusControllerApi,
+  ResponseError,
   ServerInfoControllerApi,
   ServerLogControllerApi,
   type BuildInfoResponse,
@@ -134,8 +135,40 @@ export async function getGpxUploadStatus(): Promise<GpxUploadStatus> {
   return getGpxUploadApi().getUploadStatus();
 }
 
+function isObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+async function getGpxUploadErrorResult(error: unknown): Promise<GpxUploadResult | null> {
+  if (!(error instanceof ResponseError)) {
+    return null;
+  }
+
+  try {
+    const payload: unknown = await error.response.clone().json();
+    if (!isObject(payload) || typeof payload.message !== 'string' || payload.message.length === 0) {
+      return null;
+    }
+    return {
+      success: typeof payload.success === 'boolean' ? payload.success : false,
+      message: payload.message,
+      fileName: typeof payload.fileName === 'string' ? payload.fileName : undefined,
+    };
+  } catch {
+    return null;
+  }
+}
+
 export async function uploadGpxFile(file: File): Promise<GpxUploadResult> {
-  return getGpxUploadApi().uploadGpxFile({ file });
+  try {
+    return await getGpxUploadApi().uploadGpxFile({ file });
+  } catch (error) {
+    const uploadErrorResult = await getGpxUploadErrorResult(error);
+    if (uploadErrorResult) {
+      return uploadErrorResult;
+    }
+    throw error;
+  }
 }
 
 // ─── Server Log ──────────────────────────────────────────────────────────────
@@ -158,7 +191,7 @@ export type { AdminOperationalTask } from '@/utils/adminOperationalTasks';
 // counters as required — the server always returns them, and the fetch helpers
 // normalize any missing values to 0 before handing data to the UI.
 export type IndexSummary = Required<
-  Pick<IndexSummaryDto, 'pending' | 'failed' | 'completed' | 'total' | 'progressPercent'>
+  Pick<IndexSummaryDto, 'pending' | 'failed' | 'completed' | 'removed' | 'excluded' | 'total' | 'progressPercent'>
 > &
   IndexSummaryDto;
 export type JobSummary = Required<Pick<JobSummaryDto, 'pending' | 'done' | 'total' | 'progressPercent'>> &
@@ -183,6 +216,8 @@ export async function getIndexerStatus(): Promise<IndexSummary[]> {
     pending: s.pending ?? 0,
     failed: s.failed ?? 0,
     completed: s.completed ?? 0,
+    removed: s.removed ?? 0,
+    excluded: s.excluded ?? 0,
     total: s.total ?? 0,
     progressPercent: s.progressPercent ?? 0,
   }));

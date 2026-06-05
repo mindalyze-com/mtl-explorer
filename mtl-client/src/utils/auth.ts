@@ -1,10 +1,10 @@
 import axios from 'axios';
 import router from '@/router';
-import { USER_PREFS_KEYS, migrateLegacyKeys } from '@/utils/userPrefs';
+import { clearStorage, readStorage, removeStorage, STORAGE_KEYS, writeStorage } from '@/utils/appStorage';
 import { apiUrl } from '@/utils/apiBase';
 import { logSanitizedError } from '@/utils/safeLogging';
 
-const TOKEN_KEY = USER_PREFS_KEYS.jwt;
+const TOKEN_KEY = STORAGE_KEYS.jwt;
 const JWT_PART_COUNT = 3;
 const JWT_USERNAME_CLAIM = 'sub';
 const JWT_USER_SESSION_ID_CLAIM = 'user_session_id';
@@ -15,8 +15,7 @@ const SECONDS_TO_MILLISECONDS = 1000;
 type JwtPayload = Record<string, unknown>;
 
 export function getToken(): string | null {
-  migrateLegacyKeys();
-  return localStorage.getItem(TOKEN_KEY);
+  return readStorage(TOKEN_KEY);
 }
 
 export function getUserSessionId(): string | null {
@@ -36,7 +35,7 @@ export function getTokenIssuedAt(): Date | null {
 }
 
 export function setToken(token: string) {
-  localStorage.setItem(TOKEN_KEY, token);
+  writeStorage(TOKEN_KEY, token);
 }
 
 /**
@@ -50,7 +49,7 @@ export function setToken(token: string) {
  * the next login (deleting the freshly-set HttpOnly cookie).
  */
 export function clearToken() {
-  localStorage.removeItem(TOKEN_KEY);
+  removeStorage(TOKEN_KEY);
 }
 
 export function redirectToLoginAfterAuthFailure(hadCredential = !!getToken()) {
@@ -68,7 +67,7 @@ export function redirectToLoginAfterAuthFailure(hadCredential = !!getToken()) {
  * the HttpOnly cookie. Everything else remains in place for a quick login.
  */
 export async function logoutCredentialsOnly(): Promise<void> {
-  localStorage.removeItem(TOKEN_KEY);
+  removeStorage(TOKEN_KEY);
   try {
     await fetch(apiUrl('api/auth/logout'), { method: 'POST', credentials: 'include' });
   } catch {
@@ -88,7 +87,7 @@ export async function logoutAndForgetEverything(): Promise<void> {
   }
 
   try {
-    localStorage.clear();
+    clearStorage();
   } catch {
     /* best-effort */
   }

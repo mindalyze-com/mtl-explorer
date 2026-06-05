@@ -1,0 +1,45 @@
+{
+  "selectedSegment": "A-B",
+  "clickEvidence": {
+    "aScreen": {"x": 721, "y": 450},
+    "bScreen": {"x": 776, "y": 365}
+  },
+  "crossingSummary": {
+    "ids": ["100017", "100018"],
+    "tracksPerZone": {"A": 2, "B": 2},
+    "segment": {"label": "A-B", "count": 2, "timeDelta": 934.949}
+  },
+  "compareState": {
+    "racerCards": [
+      "synthetic-crossing-a.gpx Bicycle 00:06:51 11.5 km/h 1.32 km",
+      "synthetic-crossing-b.gpx Bicycle 00:08:43 9.1 km/h 1.32 km"
+    ],
+    "chartTitles": ["Speed", "Altitude"],
+    "chartCount": 2,
+    "highcharts": 2,
+    "minimapCanvases": 1,
+    "segmentChips": [
+      "A-B",
+      "Distance",
+      "Time",
+      "Speed",
+      "Altitude",
+      "Est. Power",
+      "Mechanical Energy (rebased)",
+      "Slope",
+      "Pacing - time over distance",
+      "Time gap vs. reference"
+    ]
+  },
+  "subTrackFetches": [
+    "/mtl/api/tracks/details/get-sub-track?trackDataPointFrom=637008&trackDataPointTo=637009",
+    "/mtl/api/tracks/details/get-sub-track?trackDataPointFrom=637011&trackDataPointTo=637012"
+  ],
+  "assertions": {
+    "comparisonOverlayOpened": true,
+    "severalTracksSelected": true,
+    "comparisonChartsRendered": true,
+    "comparisonMiniMapRendered": true,
+    "sparseSyntheticSegmentDataStillRendered": true
+  }
+}

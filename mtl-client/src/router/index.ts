@@ -17,15 +17,6 @@ const router = createRouter({
       component: HomeView,
       meta: { requiresAuth: true },
     },
-    // Additive deep-link routes (C.8). All currently render the same HomeView
-    // (which contains Map.vue) — Map.vue does not yet react to the route
-    // params, so these are presently equivalent to '/'. When C.1 lands and
-    // Map.vue is decomposed, a router-aware composable will read these
-    // params to auto-open the corresponding overlay (track details, planner
-    // session, statistics panel) on first render. Defining them now lets
-    // browser history, sharable URLs and back/forward navigation start
-    // working immediately, and avoids breaking pasted links once the
-    // behavior is wired up.
     {
       path: '/track/:id(\\d+)',
       name: 'track-detail',
@@ -45,6 +36,36 @@ const router = createRouter({
       name: 'stats',
       component: HomeView,
       meta: { requiresAuth: true, deepLink: 'stats' },
+    },
+    {
+      path: '/filter',
+      name: 'filter',
+      component: HomeView,
+      meta: { requiresAuth: true, deepLink: 'filter' },
+    },
+    {
+      path: '/map-settings',
+      name: 'map-settings',
+      component: HomeView,
+      meta: { requiresAuth: true, deepLink: 'map' },
+    },
+    {
+      path: '/animate',
+      name: 'animate',
+      component: HomeView,
+      meta: { requiresAuth: true, deepLink: 'animate' },
+    },
+    {
+      path: '/segments',
+      name: 'segments',
+      component: HomeView,
+      meta: { requiresAuth: true, deepLink: 'measure' },
+    },
+    {
+      path: '/admin',
+      name: 'admin',
+      component: HomeView,
+      meta: { requiresAuth: true, deepLink: 'admin' },
     },
     {
       path: '/about',

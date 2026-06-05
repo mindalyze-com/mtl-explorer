@@ -1,0 +1,9 @@
+LOC cleanup state:
+- Initial visible count after file removal: 12
+- Final visible count: 12
+- Final count reached 12: true
+- Rescan trigger: not needed
+- Remote loc04 files remaining: none
+- API /tracks/get status: 200
+- API contains LOC 04/loc04 markers: false
+- Fresh body excerpt: 500 km © OpenStreetMap | Elevation: Mapterhorn 12 Tracks Stats Filter Map Animate Segments GPS Planner Admin

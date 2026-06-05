@@ -1,0 +1,115 @@
+[
+  {
+    "kind": "GPX",
+    "source_url": "https://raw.githubusercontent.com/gps-touring/sample-gpx/master/BrittanyJura/JuraRoute72011.gpx",
+    "source_page_license_note": "GitHub gps-touring/sample-gpx public sample repository; GitHub API reported no license metadata.",
+    "destination_filename": "JuraRoute72011.gpx",
+    "remote_path": "/root/mtl-regression-2026-06-01_1727-beta-201/test-inputs/JuraRoute72011.gpx",
+    "sha256": "fcff577bd3c1a6dc2bb9e53abba8051d510d282f4fb0049d38be5300f92e354e",
+    "byte_size": 199962,
+    "trkpt_count": 1414,
+    "timestamp_count": 1414,
+    "track_names_in_file": [
+      "Jura Route 7 / 2011 on GPSies.com"
+    ],
+    "imported_track_ids": [
+      100003
+    ],
+    "imported_track_names": [
+      "Jura Route 7 / 2011 on GPSies.com"
+    ]
+  },
+  {
+    "kind": "GPX",
+    "source_url": "https://raw.githubusercontent.com/gps-touring/sample-gpx/master/BrittanyJura/MoselradwegAusWiki.gpx",
+    "source_page_license_note": "GitHub gps-touring/sample-gpx public sample repository; GitHub API reported no license metadata.",
+    "destination_filename": "MoselradwegAusWiki.gpx",
+    "remote_path": "/root/mtl-regression-2026-06-01_1727-beta-201/test-inputs/MoselradwegAusWiki.gpx",
+    "sha256": "0f5263dee95a345a42585bde148ec741af4ed4eeb7451702f59c9c7f9bf761c3",
+    "byte_size": 415326,
+    "trkpt_count": 2954,
+    "timestamp_count": 2954,
+    "track_names_in_file": [
+      "Moselradweg aus Wiki on GPSies.com"
+    ],
+    "imported_track_ids": [
+      100002
+    ],
+    "imported_track_names": [
+      "Moselradweg aus Wiki on GPSies.com"
+    ]
+  },
+  {
+    "kind": "GPX",
+    "source_url": "https://raw.githubusercontent.com/gps-touring/sample-gpx/master/BrittanyJura/Vitry-le-Francois_Langres.gpx",
+    "source_page_license_note": "GitHub gps-touring/sample-gpx public sample repository; GitHub API reported no license metadata.",
+    "destination_filename": "Vitry-le-Francois_Langres.gpx",
+    "remote_path": "/root/mtl-regression-2026-06-01_1727-beta-201/test-inputs/Vitry-le-Francois_Langres.gpx",
+    "sha256": "401218e3c1d1f366ee27ea8bc138d8422eff3bf6348a77183be83fef3e8d7d67",
+    "byte_size": 238349,
+    "trkpt_count": 1688,
+    "timestamp_count": 1688,
+    "track_names_in_file": [
+      "Vitry le fran\u00e7ois - langres on GPSies.com"
+    ],
+    "imported_track_ids": [
+      100001
+    ],
+    "imported_track_names": [
+      "Vitry le fran\u00e7ois - langres on GPSies.com"
+    ]
+  },
+  {
+    "kind": "GPX",
+    "source_url": "https://raw.githubusercontent.com/gps-touring/sample-gpx/master/BrittanyJura/VoieVerteHauteVosges.gpx",
+    "source_page_license_note": "GitHub gps-touring/sample-gpx public sample repository; GitHub API reported no license metadata.",
+    "destination_filename": "VoieVerteHauteVosges.gpx",
+    "remote_path": "/root/mtl-regression-2026-06-01_1727-beta-201/test-inputs/VoieVerteHauteVosges.gpx",
+    "sha256": "0f417d6e76cfa581d3ada969e728694933fbffd062f61a8352ccc87637135f78",
+    "byte_size": 183733,
+    "trkpt_count": 1298,
+    "timestamp_count": 1298,
+    "track_names_in_file": [
+      "voie verte haute vosges on GPSies.com"
+    ],
+    "imported_track_ids": [
+      100000
+    ],
+    "imported_track_names": [
+      "voie verte haute vosges on GPSies.com"
+    ]
+  },
+  {
+    "kind": "GPX",
+    "source_url": "https://raw.githubusercontent.com/gps-touring/sample-gpx/master/RoscoffCoastal/Lannion_Plestin_parcours24.4RE.gpx",
+    "source_page_license_note": "GitHub gps-touring/sample-gpx public sample repository; GitHub API reported no license metadata.",
+    "destination_filename": "Lannion_Plestin_parcours24.4RE.gpx",
+    "remote_path": "/root/mtl-regression-2026-06-01_1727-beta-201/test-inputs/Lannion_Plestin_parcours24.4RE.gpx",
+    "sha256": "e76c692cbb5580f20013ce19995a9383361a8a0babec2db3e36f7064f316e85f",
+    "byte_size": 60917,
+    "trkpt_count": 381,
+    "timestamp_count": 381,
+    "track_names_in_file": [
+      "Lannion_Plestin_parcours",
+      "Lannion_Plestin_parcours1"
+    ],
+    "imported_track_ids": [
+      100004
+    ],
+    "imported_track_names": [
+      "Lannion_Plestin_parcours Lannion_Plestin_parcours1"
+    ]
+  },
+  {
+    "kind": "FIT",
+    "source_url": "https://raw.githubusercontent.com/garmin/fit-javascript-sdk/main/test/data/Activity.fit",
+    "source_page_license_note": "Garmin FIT JavaScript SDK test data; GitHub license metadata is NOASSERTION and LICENSE.txt is Garmin FIT Protocol License Agreement.",
+    "destination_filename": "Activity.fit",
+    "remote_path": "/root/mtl-regression-2026-06-01_1727-beta-201/test-inputs/Activity.fit",
+    "sha256": "949a238e1bb75c3684479785f76fa9a16888bb394518844248f488171d591387",
+    "byte_size": 94096,
+    "trkpt_count": null,
+    "timestamp_count": null,
+    "track_names_in_file": []
+  }
+]

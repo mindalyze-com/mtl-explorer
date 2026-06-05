@@ -1,0 +1,16 @@
+SGN_04 applicability decision
+
+Coverage condition:
+If demo mode is active, the login screen shows the demo credentials banner.
+
+Observed run state:
+- Quick-install login screen redirected to /mtl/login.
+- Login screen showed Sign In and no demo credentials banner text.
+- README-documented local credentials are mtl / change-me.
+
+Terminal decision:
+NOT APPLICABLE for this configured quick-install run because demo mode was not active.
+
+Linked evidence:
+- assets/SGN_01-signed-out-login.txt
+- assets/SGN_01-signed-out-login.webp

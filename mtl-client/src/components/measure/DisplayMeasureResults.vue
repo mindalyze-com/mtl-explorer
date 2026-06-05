@@ -337,7 +337,7 @@
 
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
-import type { CrossingPointsResponse } from 'x8ing-mtl-api-typescript-fetch/dist/esm/models/index';
+import type { CrossingPointsResponseDto } from 'x8ing-mtl-api-typescript-fetch/dist/esm/models/index';
 import type Highcharts from 'highcharts';
 import ToggleSwitch from 'primevue/toggleswitch';
 import {
@@ -408,7 +408,7 @@ function asMeasureCrossingsPerTrack(value: unknown): MeasureCrossingsPerTrack {
 }
 
 const props = defineProps<{
-  measureServiceResult: CrossingPointsResponse;
+  measureServiceResult: CrossingPointsResponseDto;
 }>();
 
 const emit = defineEmits<{
@@ -638,14 +638,16 @@ const availableSegments = computed<SegmentOption[]>(() => {
     const trackCrossings = asMeasureCrossingsPerTrack(trackCrossingsRaw);
     const countPerTP = new Map<string, number>();
     let last: MeasureCrossing | null = null;
+    let lastVisit: number | null = null;
     for (const c of trackCrossings.crossings) {
       const name = c.triggerPoint.name;
-      countPerTP.set(name, (countPerTP.get(name) || 0) + 1);
-      if (last != null) {
+      const currentVisit = (countPerTP.get(name) || 0) + 1;
+      countPerTP.set(name, currentVisit);
+      if (last != null && lastVisit != null) {
         const p1 = last.triggerPoint.name;
-        const p1v = countPerTP.get(p1);
+        const p1v = lastVisit;
         const p2 = name;
-        const p2v = countPerTP.get(p2);
+        const p2v = currentVisit;
         const key = p1 + p1v + '-' + p2 + p2v;
         if (!segMap.has(key)) {
           segMap.set(key, {
@@ -658,6 +660,7 @@ const availableSegments = computed<SegmentOption[]>(() => {
         segment.count = (segment.count || 0) + 1;
       }
       last = c;
+      lastVisit = currentVisit;
     }
   }
   return Array.from(segMap.values());

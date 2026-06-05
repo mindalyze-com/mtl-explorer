@@ -12,6 +12,7 @@ import com.x8ing.mtl.server.mtlserver.energy.EnergyService;
 import com.x8ing.mtl.server.mtlserver.logic.crossing.TrackTimeBetweenTwoPoints;
 import com.x8ing.mtl.server.mtlserver.logic.grouping.sql.FilterParamResolver;
 import com.x8ing.mtl.server.mtlserver.logic.grouping.sql.GpsTrackSQLFilter;
+import com.x8ing.mtl.server.mtlserver.web.services.track.entity.ActivityTypeUpdateRequest;
 import com.x8ing.mtl.server.mtlserver.web.services.track.entity.StatisticsExclusionUpdateRequest;
 import com.x8ing.mtl.server.mtlserver.web.services.track.entity.StatisticsOverviewResponseDto;
 import org.junit.jupiter.api.Test;
@@ -23,11 +24,54 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class TracksControllerStatisticsExclusionTest {
+
+    @Test
+    void updatesTrackActivityTypeAsUserSetAndRecalculatesEnergy() {
+        GpsTrackRepository repository = mock(GpsTrackRepository.class);
+        EnergyService energyService = mock(EnergyService.class);
+        GpsTrack track = new GpsTrack();
+        track.setId(42L);
+        track.setActivityType(GpsTrack.ACTIVITY_TYPE.BICYCLE);
+        when(repository.findById(42L)).thenReturn(Optional.of(track));
+        when(repository.save(any(GpsTrack.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        GpsTrack saved = controller(repository, mock(GpsTrackSQLFilter.class), energyService).updateTrackActivityType(
+                42L,
+                new ActivityTypeUpdateRequest(GpsTrack.ACTIVITY_TYPE.WALKING)
+        );
+
+        assertThat(saved.getActivityType()).isEqualTo(GpsTrack.ACTIVITY_TYPE.WALKING);
+        assertThat(saved.getActivityTypeSource()).isEqualTo(GpsTrack.ACTIVITY_TYPE_SOURCE.USER_SET);
+        verify(repository).save(track);
+        verify(energyService).getDefaultParameters();
+        verify(energyService).recalculateEnergyForTrack(eq(42L), any());
+    }
+
+    @Test
+    void skipsActivityTypeSaveWhenValueIsUnchanged() {
+        GpsTrackRepository repository = mock(GpsTrackRepository.class);
+        EnergyService energyService = mock(EnergyService.class);
+        GpsTrack track = new GpsTrack();
+        track.setId(42L);
+        track.setActivityType(GpsTrack.ACTIVITY_TYPE.BICYCLE);
+        when(repository.findById(42L)).thenReturn(Optional.of(track));
+
+        GpsTrack saved = controller(repository, mock(GpsTrackSQLFilter.class), energyService).updateTrackActivityType(
+                42L,
+                new ActivityTypeUpdateRequest(GpsTrack.ACTIVITY_TYPE.BICYCLE)
+        );
+
+        assertThat(saved).isSameAs(track);
+        verify(repository, never()).save(any(GpsTrack.class));
+        verify(energyService, never()).recalculateEnergyForTrack(any(), any());
+    }
 
     @Test
     void updatesTrackStatisticsExclusionReasons() {
@@ -108,6 +152,10 @@ class TracksControllerStatisticsExclusionTest {
     }
 
     private static TracksController controller(GpsTrackRepository repository, GpsTrackSQLFilter filter) {
+        return controller(repository, filter, mock(EnergyService.class));
+    }
+
+    private static TracksController controller(GpsTrackRepository repository, GpsTrackSQLFilter filter, EnergyService energyService) {
         return new TracksController(
                 repository,
                 mock(TrackTimeBetweenTwoPoints.class),
@@ -117,7 +165,7 @@ class TracksControllerStatisticsExclusionTest {
                 mock(GpsTrackEventRepository.class),
                 filter,
                 mock(FilterParamResolver.class),
-                mock(EnergyService.class),
+                energyService,
                 mock(TrackFileExportService.class),
                 Runnable::run
         );

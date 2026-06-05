@@ -1,0 +1,5 @@
+url=http://167.233.16.201:18080/mtl/login
+usernameFields=1
+passwordFields=1
+signInButtons=1
+body=© Patrick Heusser AGPL-3.0 Sign In

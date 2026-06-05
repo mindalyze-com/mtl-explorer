@@ -1,0 +1,29 @@
+SYN_07 fixed local retest evidence
+
+- Date: 2026-06-04
+- Target: local dev instance at http://localhost:5173/mtl/admin with server on http://localhost:8080/mtl/
+- Fix verified: visible Admin status polling uses the fast cadence while the Admin sheet is open, with an immediate refresh on open.
+- Baseline API state before verification:
+  - GPS indexer pending=0
+  - Duplicate Finder pending=0
+  - Activity Classifier pending=0
+  - Exploration Score pending=0
+  - Admin home showed Quiet state and Jobs Idle
+- Trigger source: fully synthetic watched-folder GPX `syn07_fix_verify_large.gpx`
+- Capture API state:
+  - GPS indexer pending=1
+  - Duplicate Finder pending=0
+  - Activity Classifier pending=0
+  - Exploration Score pending=0
+- Fixed UI result:
+  - Admin home changed to Jobs active
+  - Jobs tile changed to Live
+  - The previous stale Quiet state / Jobs Idle window did not persist through the visible Admin polling interval
+- Map interaction check:
+  - Zoom remained responsive in the same flow, changing scale from 500 m to 300 m
+- Cleanup:
+  - Removed `syn07_fix_verify_large.gpx`
+  - Triggered cleanup GPS rescan
+  - Final GPS pending=0
+  - All background jobs pending=0
+  - No `syn*.gpx` files remained in `/Users/pheusser/Downloads/gpx_demo_large`

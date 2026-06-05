@@ -2,7 +2,8 @@ mtl:
   # gpx-watch-directory: "C:/Users/patri/Downloads/GPX_ALL"
   # gpx-watch-directory: "C:/Users/patri/Downloads/GPX_WATCHER_3"
   # gpx-watch-directory: "/Users/pheusser/Documents/GPX_WATCHER_3A" # MAC
-  gpx-watch-directory: "/Users/pheusser/Downloads/gpx2" # MAC
+  # gpx-watch-directory: "/Users/pheusser/Downloads/gpx2" # MAC
+  gpx-watch-directory: "/Users/pheusser/Downloads/gpx_demo_large" # MAC
   # gpx-watch-directory: "/Users/pheusser/Downloads/gpx2_outlier_only" # MAC
   # gpx-watch-directory: "/Volumes/raspberry/MyTrailLogBeta2/gpx" # NAS mounted on MAC
   media-watch-directory: "/Users/pheusser/Downloads/MTL_Media/"

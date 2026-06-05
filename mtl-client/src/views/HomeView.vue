@@ -58,7 +58,7 @@ import { clearSplashLogoTop, consumeSplashLogoTop } from '@/utils/splashLogoPosi
 
 const MINIMUM_SPLASH_MS = 1500;
 const SPLASH_MESSAGE_INTERVAL_MS = 2000;
-const FROM_LOGIN_KEY = 'mtl-from-login';
+const FROM_LOGIN_KEY = 'mtl.from-login';
 const SPLASH_MESSAGES = [
   'Loading your trails',
   'Preparing map layers',

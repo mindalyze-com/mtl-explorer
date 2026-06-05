@@ -1,0 +1,47 @@
+{
+  "initial": {
+    "playAria": "Play animation",
+    "stopDisabled": true,
+    "speed": "20ms",
+    "tracks": "13 / 13",
+    "hasPlayhead": false
+  },
+  "slowSpeed": {
+    "speed": "1000ms",
+    "tracks": "13 / 13"
+  },
+  "running": {
+    "playAria": "Pause animation",
+    "stopDisabled": false,
+    "speed": "1000ms",
+    "tracks": "2 / 13",
+    "playheadLeft": "40.9062px",
+    "hasPlayhead": true
+  },
+  "paused": {
+    "playAria": "Play animation",
+    "stopDisabled": false,
+    "speed": "1000ms",
+    "tracks": "13 / 13",
+    "hasPlayhead": true
+  },
+  "stopped": {
+    "playAria": "Play animation",
+    "stopDisabled": true,
+    "speed": "1000ms",
+    "tracks": "13 / 13",
+    "hasPlayhead": false
+  },
+  "fastSpeed": {
+    "speed": "1ms",
+    "tracks": "13 / 13"
+  },
+  "assertions": {
+    "openedWithTracks": true,
+    "speedChangedToSlow": true,
+    "playStarted": true,
+    "pauseRestoredPlayControl": true,
+    "stopResetControl": true,
+    "speedChangedAgain": true
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "coverageId": "MAP_12",
+  "action": "Enabled Swiss Bike Routes, searched La Chaux-de-Fonds, clicked the visible orange Swiss route overlay, then closed the route popup.",
+  "overlayState": {
+    "checked": true,
+    "opacity": "100"
+  },
+  "popup": {
+    "present": true,
+    "routeType": "BIKE",
+    "routeNameObserved": "Arc jurassien (Le Locle - Tramelan)",
+    "routeNumberObserved": "#54",
+    "attributionIncludesSchweizMobil": true
+  },
+  "closeResult": {
+    "popupGone": true,
+    "mapShows12Tracks": true,
+    "attributionStillPresent": true
+  }
+}

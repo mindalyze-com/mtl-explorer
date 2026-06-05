@@ -1,0 +1,54 @@
+{
+  "clicked": {
+    "x": 750,
+    "y": 85
+  },
+  "visiblePicks": [
+    {
+      "i": 0,
+      "text": "Vitry le françois - langres on GPSies.com Bicycle 01/01/2010",
+      "x": 275,
+      "y": 627,
+      "w": 891,
+      "h": 55,
+      "display": "flex",
+      "visibility": "visible"
+    },
+    {
+      "i": 1,
+      "text": "Moselradweg aus Wiki on GPSies.com Bicycle 01/01/2010",
+      "x": 275,
+      "y": 690,
+      "w": 891,
+      "h": 55,
+      "display": "flex",
+      "visibility": "visible"
+    }
+  ],
+  "shapePreviewCount": 2,
+  "boxes": [
+    {
+      "i": 0,
+      "x": 288,
+      "y": 638,
+      "w": 48,
+      "h": 32,
+      "display": "flex",
+      "visibility": "visible",
+      "hasSvg": true,
+      "pathCount": 1
+    },
+    {
+      "i": 1,
+      "x": 288,
+      "y": 702,
+      "w": 48,
+      "h": 32,
+      "display": "flex",
+      "visibility": "visible",
+      "hasSvg": true,
+      "pathCount": 1
+    }
+  ],
+  "body": "500 km © OpenStreetMap | Elevation: Mapterhorn 11 Tracks Stats Filter Map Animate Segments GPS Planner Admin 2 tracks — select for details Vitry le françois - langres on GPSies.com Bicycle 01/01/2010 Moselradweg aus Wiki on GPSies.com Bicycle 01/01/2010"
+}

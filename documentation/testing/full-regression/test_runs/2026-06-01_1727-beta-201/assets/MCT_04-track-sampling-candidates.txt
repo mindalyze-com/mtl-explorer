@@ -1,0 +1,7 @@
+MCT_04 candidate scan summary
+Current detail track counts: 100000:24, 100001:0, 100002:135, 100003:67, 100005:2, 100006:2, 100007:2, 100008:2, 100009:0, 100010:2, 100011:2, 100012:2, 100013:3, 100014:2
+Confirmed UI-radius pair: A=(6.82297,47.9553), B=(6.63236,48.00208), radius=14000m
+Tracks per zone: {"A":2,"B":2}
+Crossing tracks: 100000, 100002
+Segment stats: [{"point1":"A","point2":"B","label":"A-B","count":2,"timeDelta":4569.63},{"point1":"B","point2":"A","label":"B-A","count":1,"timeDelta":4741.037}]
+First track crossings: [{"id":"100000","crossings":[{"zone":"A","pointId":607105,"idx":704,"t":0,"d":0},{"zone":"B","pointId":607373,"idx":971,"t":4569.63,"d":21906.677525680298},{"zone":"A","pointId":608670,"idx":1217,"t":4741.037,"d":21274.467655190347}]},{"id":"100002","crossings":[{"zone":"A","pointId":610153,"idx":0,"t":0,"d":0},{"zone":"B","pointId":610252,"idx":99,"t":0,"d":0}]}]

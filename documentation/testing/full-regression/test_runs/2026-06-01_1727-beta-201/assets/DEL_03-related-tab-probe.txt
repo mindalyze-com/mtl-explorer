@@ -1,0 +1,16 @@
+{
+  "buttons": [
+    {
+      "i": 88,
+      "text": "Overview",
+      "aria": null,
+      "cls": "trc__seg"
+    }
+  ],
+  "count": 0,
+  "text": "50 km\n© OpenStreetMap | Elevation: Mapterhorn\n3 Tracks\nStats\nFilter\nMap\nAnimate\nSegments\nGPS\nPlanner\nAdmin",
+  "deletedPresence": {
+    "Lannion": false,
+    "Vitry": false
+  }
+}

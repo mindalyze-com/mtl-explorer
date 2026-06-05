@@ -17,13 +17,13 @@
 ## What it is
 
 MTL Explorer imports Garmin, GPX, and FIT tracks, shows them on a map, analyzes
-track statistics, and can plan routes with BRouter. It is designed for
-self-hosting with Docker Compose.
+track statistics, replays activities with a cinematic 3D camera, and can plan
+routes with BRouter. It is designed for self-hosting with Docker Compose.
 Location search runs in a separate GeoNames SQLite sidecar.
 
 See the [feature overview](documentation/features.md) for the current capability list.
 
-[Why I built MTL Explorer](why-i-built-mtl-explorer.md): the project started
+[Why I built MTL Explorer](documentation/why-i-built-mtl-explorer.md): the project started
 from the need to see thousands of Garmin tracks on one map, then grew into a
 personal exploration, planning, and statistics tool.
 

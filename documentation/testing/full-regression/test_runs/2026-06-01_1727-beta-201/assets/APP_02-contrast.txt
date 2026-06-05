@@ -1,0 +1,42 @@
+APP_02 readability evidence:
+- Visual screenshots captured in light and dark mode: APP_02-light-readable.webp, APP_02-dark-readable.webp.
+- No sampled text appeared white-on-white or black-on-black in the captured Settings/Admin surfaces.
+- Computed sample colors in dark mode after screenshot:
+[
+  {
+    "selector": ".nav-panel__tool",
+    "text": "Stats",
+    "color": "rgb(100, 116, 139)",
+    "background": "rgba(0, 0, 0, 0)"
+  },
+  {
+    "selector": ".admin-hero__title",
+    "text": "Admin workspace",
+    "color": "rgb(241, 245, 249)",
+    "background": "rgba(0, 0, 0, 0)"
+  },
+  {
+    "selector": ".admin-tile__label",
+    "text": "Upload",
+    "color": "rgb(241, 245, 249)",
+    "background": "rgba(0, 0, 0, 0)"
+  },
+  {
+    "selector": ".action-label",
+    "text": "Color scheme",
+    "color": "rgb(241, 245, 249)",
+    "background": "rgba(0, 0, 0, 0)"
+  },
+  {
+    "selector": ".action-hint",
+    "text": "Switch between the light and dark client surfaces.",
+    "color": "rgb(100, 116, 139)",
+    "background": "rgba(0, 0, 0, 0)"
+  },
+  {
+    "selector": ".panel-intro__title",
+    "text": "Settings",
+    "color": "rgb(241, 245, 249)",
+    "background": "rgba(0, 0, 0, 0)"
+  }
+]

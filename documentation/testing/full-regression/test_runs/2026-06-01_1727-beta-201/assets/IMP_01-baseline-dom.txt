@@ -1,0 +1,153 @@
+- region "Map"
+- region "Map"
+- button "Zoom in"
+- button "Zoom out"
+- button "Drag to rotate map, click to reset north"
+- text: 
+- button "Enable 3D terrain":
+  - generic: 
+- generic: 10 km
+- generic "Toggle attribution"
+- text: ©
+- link "OpenStreetMap":
+  - /url: https://openstreetmap.org
+- text: "| Elevation:"
+- link "Mapterhorn":
+  - /url: https://mapterhorn.com/attribution/
+- button "Search location":
+  - generic: 
+- generic: 0 Tracks
+- button " Stats":
+  - generic: 
+  - generic: Stats
+- button " Filter":
+  - generic: 
+  - generic: Filter
+- button " Planner":
+  - generic: 
+  - generic: Planner
+- button " Map":
+  - generic: 
+  - generic: Map
+- button " Animate":
+  - generic: 
+  - generic: Animate
+- button " Segments":
+  - generic: 
+  - generic: Segments
+- button " GPS":
+  - generic: 
+  - generic: GPS
+- button " Admin":
+  - generic: 
+  - generic: Admin
+
+---STATS---
+- region "Map"
+- region "Map"
+- button "Zoom in"
+- button "Zoom out"
+- button "Drag to rotate map, click to reset north"
+- text: 
+- button "Enable 3D terrain":
+  - generic: 
+- generic: 10 km
+- generic "Toggle attribution"
+- text: ©
+- link "OpenStreetMap":
+  - /url: https://openstreetmap.org
+- text: "| Elevation:"
+- link "Mapterhorn":
+  - /url: https://mapterhorn.com/attribution/
+- generic: 0 Tracks
+- button " Stats" [active]:
+  - generic: 
+  - generic: Stats
+- button " Filter":
+  - generic: 
+  - generic: Filter
+- button " Planner":
+  - generic: 
+  - generic: Planner
+- button " Map":
+  - generic: 
+  - generic: Map
+- button " Animate":
+  - generic: 
+  - generic: Animate
+- button " Segments":
+  - generic: 
+  - generic: Segments
+- button " GPS":
+  - generic: 
+  - generic: GPS
+- button " Admin":
+  - generic: 
+  - generic: Admin
+- generic: 
+- button "Overview"
+- button "Trends"
+- button "Tracks"
+- button "Fullscreen":
+  - generic: 
+- button "Close":
+  - generic: 
+- tabpanel:
+  - generic: 
+  - generic: No tracks match the current filters.
+- text:      
+
+---ADMIN---
+- region "Map"
+- region "Map"
+- button "Zoom in"
+- button "Zoom out"
+- button "Drag to rotate map, click to reset north"
+- text: 
+- button "Enable 3D terrain":
+  - generic: 
+- generic: 10 km
+- generic "Toggle attribution"
+- text: ©
+- link "OpenStreetMap":
+  - /url: https://openstreetmap.org
+- text: "| Elevation:"
+- link "Mapterhorn":
+  - /url: https://mapterhorn.com/attribution/
+- generic: 0 Tracks
+- button " Stats" [active]:
+  - generic: 
+  - generic: Stats
+- button " Filter":
+  - generic: 
+  - generic: Filter
+- button " Planner":
+  - generic: 
+  - generic: Planner
+- button " Map":
+  - generic: 
+  - generic: Map
+- button " Animate":
+  - generic: 
+  - generic: Animate
+- button " Segments":
+  - generic: 
+  - generic: Segments
+- button " GPS":
+  - generic: 
+  - generic: GPS
+- button " Admin":
+  - generic: 
+  - generic: Admin
+- generic: 
+- button "Overview"
+- button "Trends"
+- button "Tracks"
+- button "Fullscreen":
+  - generic: 
+- button "Close":
+  - generic: 
+- tabpanel:
+  - generic: 
+  - generic: No tracks match the current filters.
+- text:      

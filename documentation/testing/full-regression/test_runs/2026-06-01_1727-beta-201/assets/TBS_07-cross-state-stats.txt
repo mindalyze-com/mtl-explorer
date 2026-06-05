@@ -1,0 +1,5 @@
+TBS_07 cross-state statistics evidence
+Empty dataset: IMP_01 baseline captured map/browser/stats before imports; stats baseline asset is IMP_01-baseline-stats.webp.
+Single-track state: FLT_03-stats-filtered.webp shows Stats filtered to 1 of 12 tracks, Moselradweg totals, Bicycle breakdown, and one-track highlights.
+Many-track state: TBS_06-overview-top.webp shows all 12 tracks, 884 km, 18h49m, 4,278 Wh, Bicycle/Walking breakdown, highlights, period summaries, milestones, and date range.
+No data mutation was performed for this packet; all three states are direct packet evidence from this run.

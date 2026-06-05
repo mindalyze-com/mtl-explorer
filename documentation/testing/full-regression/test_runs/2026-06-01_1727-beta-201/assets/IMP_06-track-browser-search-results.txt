@@ -1,0 +1,27 @@
+[
+  {
+    "query": "JuraRoute72011.gpx",
+    "containsQuery": false,
+    "body": "50 km © OpenStreetMap | Elevation: Mapterhorn 5 Tracks Stats Filter Map Animate Segments GPS Planner Admin Overview Trends Tracks VIEWS All Excluded Stats excluded No activity 1 of 5 tracks · 273 km · 7h 46m SORT: Date Imported Distance Duration Name Exploration START TRACK ACTIVITY DISTANCE DURATION AVG KM/H ENERGY EXPLORATION IMPORTED 01/01/2010, 01:00 Jura Route 7 / 2011 on GPSies.com Bicycle 273 km 7h 46m 35.1 1,808 Wh 100.0% 06/01/2026, 17:39 1 25"
+  },
+  {
+    "query": "MoselradwegAusWiki.gpx",
+    "containsQuery": false,
+    "body": "50 km © OpenStreetMap | Elevation: Mapterhorn 5 Tracks Stats Filter Map Animate Segments GPS Planner Admin Overview Trends Tracks VIEWS All Excluded Stats excluded No activity 1 of 5 tracks · 518 km · 6h 50m SORT: Date Imported Distance Duration Name Exploration START TRACK ACTIVITY DISTANCE DURATION AVG KM/H ENERGY EXPLORATION IMPORTED 01/01/2010, 01:00 Moselradweg aus Wiki on GPSies.com Bicycle 518 km 6h 50m 75.7 1,616 Wh 100.0% 06/01/2026, 17:39 1 25"
+  },
+  {
+    "query": "Vitry-le-Francois_Langres.gpx",
+    "containsQuery": false,
+    "body": "50 km © OpenStreetMap | Elevation: Mapterhorn 5 Tracks Stats Filter Map Animate Segments GPS Planner Admin Overview Trends Tracks VIEWS All Excluded Stats excluded No activity 1 of 5 tracks · 147 km · 4h 27m SORT: Date Imported Distance Duration Name Exploration START TRACK ACTIVITY DISTANCE DURATION AVG KM/H ENERGY EXPLORATION IMPORTED 01/01/2010, 01:00 Vitry le françois - langres on GPSies.com Bicycle 147 km 4h 27m 33.0 471 Wh 100.0% 06/01/2026, 17:39 1 25"
+  },
+  {
+    "query": "VoieVerteHauteVosges.gpx",
+    "containsQuery": false,
+    "body": "50 km © OpenStreetMap | Elevation: Mapterhorn 5 Tracks Stats Filter Map Animate Segments GPS Planner Admin Overview Trends Tracks VIEWS All Excluded Stats excluded No activity 1 of 5 tracks · 78.5 km · 3h 12m SORT: Date Imported Distance Duration Name Exploration START TRACK ACTIVITY DISTANCE DURATION AVG KM/H ENERGY EXPLORATION IMPORTED 01/01/2010, 01:00 voie verte haute vosges on GPSies.com Bicycle 78.5 km 3h 12m 24.4 436 Wh 100.0% 06/01/2026, 17:39 1 25"
+  },
+  {
+    "query": "Lannion_Plestin_parcours24.4RE.gpx",
+    "containsQuery": false,
+    "body": "50 km © OpenStreetMap | Elevation: Mapterhorn 5 Tracks Stats Filter Map Animate Segments GPS Planner Admin Overview Trends Tracks VIEWS All Excluded Stats excluded No activity 1 of 5 tracks · 25.9 km · 1h 13m SORT: Date Imported Distance Duration Name Exploration START TRACK ACTIVITY DISTANCE DURATION AVG KM/H ENERGY EXPLORATION IMPORTED 03/08/2013, 10:32 Lannion_Plestin_parcours Lannion_Plestin_parcours1 Bicycle 25.9 km 1h 13m 21.1 198 Wh 100.0% 06/01/2026, 17:39 1 25"
+  }
+]

@@ -1,0 +1,25 @@
+{
+  "statsSequence": [
+    {"label":"two-waypoint-route","distance":"0.44 km","ascent":"0 m","duration":"1m","legs":"1"},
+    {"label":"after-insert","distance":"0.69 km","ascent":"0 m","duration":"1m","legs":"2"},
+    {"label":"after-drag-first-waypoint","distance":"0.69 km","ascent":"0 m","duration":"1m","legs":"2"},
+    {"label":"after-delete-selected-waypoint","distance":"0.25 km","ascent":"0 m","duration":"0m","legs":"1"},
+    {"label":"after-undo-delete","distance":"0.58 km","ascent":"1 m","duration":"1m","legs":"2"},
+    {"label":"after-redo-delete","distance":"0.25 km","ascent":"0 m","duration":"0m","legs":"1"},
+    {"label":"after-clear","distance":"0.00 km","ascent":"0 m","duration":"-","legs":"0"},
+    {"label":"after-undo-clear","distance":"0.25 km","ascent":"0 m","duration":"0m","legs":"1"},
+    {"label":"after-redo-clear","distance":"0.00 km","ascent":"0 m","duration":"-","legs":"0"},
+    {"label":"restored-for-save","distance":"0.25 km","ascent":"0 m","duration":"0m","legs":"1"}
+  ],
+  "assertions": [
+    "route insertion increased Legs from 1 to 2",
+    "drag kept route valid and recomputed",
+    "delete reduced route to 1 leg",
+    "undo restored deleted waypoint to 2 legs",
+    "redo returned to deleted 1-leg state",
+    "clear reset distance to 0.00 km and legs to 0",
+    "undo restored a route after clear",
+    "redo cleared again",
+    "final undo restored a 1-leg route for save/export"
+  ]
+}

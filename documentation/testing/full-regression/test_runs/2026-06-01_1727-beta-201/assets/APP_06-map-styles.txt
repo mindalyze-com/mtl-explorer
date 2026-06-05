@@ -1,0 +1,89 @@
+APP_06 map style independence evidence:
+[
+  {
+    "uiTheme": "light",
+    "requested": "OSM Topo",
+    "active": "OSM Topo",
+    "storedTheme": "light-topo",
+    "sourceMode": "auto"
+  },
+  {
+    "uiTheme": "light",
+    "requested": "Swiss Color",
+    "active": "Swiss Color",
+    "storedTheme": "swisstopo-color",
+    "sourceMode": "auto"
+  },
+  {
+    "uiTheme": "light",
+    "requested": "Swiss Light",
+    "active": "Swiss Light",
+    "storedTheme": "swisstopo",
+    "sourceMode": "auto"
+  },
+  {
+    "uiTheme": "light",
+    "requested": "OSM Light",
+    "active": "OSM Light",
+    "storedTheme": "light",
+    "sourceMode": "auto"
+  },
+  {
+    "uiTheme": "light",
+    "requested": "OSM Gray",
+    "active": "OSM Gray",
+    "storedTheme": "grayscale",
+    "sourceMode": "auto"
+  },
+  {
+    "uiTheme": "light",
+    "requested": "OSM Dark",
+    "active": "OSM Dark",
+    "storedTheme": "dark",
+    "sourceMode": "auto"
+  },
+  {
+    "uiTheme": "dark",
+    "requested": "OSM Topo",
+    "active": "OSM Topo",
+    "storedTheme": "light-topo",
+    "sourceMode": "auto"
+  },
+  {
+    "uiTheme": "dark",
+    "requested": "Swiss Color",
+    "active": "Swiss Color",
+    "storedTheme": "swisstopo-color",
+    "sourceMode": "auto"
+  },
+  {
+    "uiTheme": "dark",
+    "requested": "Swiss Light",
+    "active": "Swiss Light",
+    "storedTheme": "swisstopo",
+    "sourceMode": "auto"
+  },
+  {
+    "uiTheme": "dark",
+    "requested": "OSM Light",
+    "active": "OSM Light",
+    "storedTheme": "light",
+    "sourceMode": "auto"
+  },
+  {
+    "uiTheme": "dark",
+    "requested": "OSM Gray",
+    "active": "OSM Gray",
+    "storedTheme": "grayscale",
+    "sourceMode": "auto"
+  },
+  {
+    "uiTheme": "dark",
+    "requested": "OSM Dark",
+    "active": "OSM Dark",
+    "storedTheme": "dark",
+    "sourceMode": "auto"
+  }
+]
+
+Missing/mismatched active styles: []

@@ -11,7 +11,6 @@ import Tooltip from 'primevue/tooltip';
 // per-component imports as files are converted to <script setup> so unused
 // PrimeVue components can be tree-shaken from the bundle.
 import Button from 'primevue/button';
-import Slider from 'primevue/slider';
 import InputText from 'primevue/inputtext';
 import ProgressSpinner from 'primevue/progressspinner';
 import DynamicDialog from 'primevue/dynamicdialog';
@@ -113,7 +112,6 @@ export function installPrimeVue(app: App): void {
 
 function registerGlobalComponents(app: App): void {
   app.component('Button', Button);
-  app.component('Slider', Slider);
   app.component('Toast', Toast);
   app.component('InputText', InputText);
   app.component('ProgressSpinner', ProgressSpinner);

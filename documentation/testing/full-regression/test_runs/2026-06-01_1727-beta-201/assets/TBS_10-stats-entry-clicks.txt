@@ -1,0 +1,55 @@
+TBS_10 stats-entry interaction evidence
+Initial URL: http://167.233.16.201:18080/mtl/stats
+Highlight rows visible: Longest track
+Moselradweg aus Wiki on GPSies.com
+518 km | Longest duration
+Jura Route 7 / 2011 on GPSies.com
+7h 46m | Biggest ascent
+Jura Route 7 / 2011 on GPSies.com
+6,324 m | Quickest ascent
+Track 100005
+3,919 m/h | Most energy
+Jura Route 7 / 2011 on GPSies.com
+1,808 Wh | Fastest 30 s speed
+Moselradweg aus Wiki on GPSies.com
+58.3 km/h
+Active period rows visible: Most active day
+2010-01-01
+17h 49m
+3 tracks - 870 km || Most active week
+2009-W53
+17h 49m
+3 tracks - 870 km || Most active month
+2010-01
+17h 49m
+3 tracks - 870 km || Most active weekday
+Friday
+17h 49m
+3 tracks - 870 km
+Clicked period row: Most active day | 2010-01-01 | 17h 49m | 3 tracks - 870 km
+Period drilldown: Most active day | 1 | 2010-01-01 | 3 tracks | 17h 49m | 870 km | 2 | 2021-07-20 | 1 tracks | 59m 57s | 3.60 km | 3 | 2026-06-01 | 3 tracks | 0m 00s | 4.33 km | 4 | 2026-02-02 | 1 tracks | 0m 00s | 1.50 km | 5 | 2026-02-04 | 1 tracks | 0m 00s | 1.50 km | 6 | 2026-02-07 | 1 tracks | 0m 00s | 1.49 km | 7 | 2026-02-05 | 1 tracks | 0m 00s | 1.28 km | 8 | 2026-03-01 | 1 tracks | 0m 00s | 674.26 m
+Recent rows visible: Path
+Bicycle
+06/01/2026, 18:32
+1.44 km
+0m 00s || FMT GEOJSON Synthetic
+Bicycle
+06/01/2026, 18:32
+1.44 km
+0m 00s || Path
+Bicycle
+06/01/2026, 18:32
+1.45 km
+0m 00s || MAP 03 Freshness Synthetic
+Bicycle
+03/01/2026, 11:00
+674.26 m
+25m 00s || FMT GDB Synthetic
+Bicycle
+02/07/2026, 10:00
+1.49 km
+35m 00s
+After View all tracks active tab: Tracks
+Clicked milestone (milestone-first-activity): First activity | voie verte haute vosges on GPSies.com | 01/01/2010, 01:00
+After milestone URL: http://167.233.16.201:18080/mtl/track/100000
+Detail visible after milestone: true

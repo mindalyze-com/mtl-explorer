@@ -1,0 +1,34 @@
+{
+  "before": {
+    "actionBar": "LIVE MAP\n3\nmatching tracks\n1\ncategory\nColors",
+    "mapCards": [
+      "3 / 11 TracksLegendBICYCLE3"
+    ],
+    "storage": {
+      "displayName": "Activities by keyword",
+      "filterName": "ActivitiesByKeyword",
+      "params": {
+        "stringParams": {
+          "SEARCH_WORD": "format"
+        },
+        "dateTimeParams": {},
+        "geoCircles": {},
+        "geoRectangles": {},
+        "geoPolygons": {}
+      },
+      "palette": "8 Colors"
+    }
+  },
+  "after": {
+    "offPanel": "Filtering is off\n\nTurn filtering on to narrow tracks by type, date or geo area, group them, and color the map. The Colors and SQL tabs unlock once a filter is selected.\n\nEnable filter",
+    "mapCards": [
+      "11 Tracks"
+    ],
+    "storage": {
+      "displayName": "Smart Base Filter",
+      "filterName": "SmartBaseFilter",
+      "params": {},
+      "palette": null
+    }
+  }
+}

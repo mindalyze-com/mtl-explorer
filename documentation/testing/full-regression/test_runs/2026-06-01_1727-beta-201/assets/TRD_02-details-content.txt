@@ -1,0 +1,37 @@
+TRD_02 detail load evidence
+Opened URL: http://167.233.16.201:18080/mtl/track/100000
+Track: #100000 / voie verte haute vosges on GPSies.com / GPX-backed public import
+Navigation: default map overlap selector -> track details sheet.
+Overview/body contains track name: true
+Overview/body contains track id: true
+
+Overview: PASS
+- active tab=Overview; panel rect={"x":296,"y":1124,"w":925,"h":1595}; checks=true/true
+- mini-map visible in details sheet=true
+- active text excerpt: voie verte haute vosges on GPSies.com 01/01/2010, 01:00 TRACK CONTROLS ACTIVITY TYPE Bicycle Walking Hiking Running Mountain biking Stand-up paddle Rowing Kayaking Skiing Motorbiking Car Airplane Supersonic STATISTICS Included in statistics Exclude: GPS noise Exclude: wrong activity Exclude: import artifact Exclude: other 78.5 km Distance 4h 43m Duration 1,183 m Ascent 16.6 km/h Avg Speed TIMING 3h 12m Moving 0h 00m Stopped 0 Stops SPEED 16.6 km/h Avg Speed 24.4 km/h Moving Avg 44.5 km/h Max 30s Speed ELEVATION 1,1
+
+Graphs: PASS
+- active tab=Graphs; panel rect={"x":296,"y":1136,"w":925,"h":1842}; checks=true/true/true/true
+- graph containers present=12
+- active text excerpt: X AXIS Time Distance DETAIL Range POINTS 350 HEIGHT SPEED 0h 00m 2h 46m 0h 33m 1h 06m 1h 40m 2h 13m 3h 20m 3h 53m 4h 26m 0 20 40 60 km/h ELEVATION 0h 00m 2h 46m 0h 33m 1h 06m 1h 40m 2h 13m 3h 20m 3h 53m 4h 26m 500 1k m 250 750 ELEVATION GAIN RATE 0h 00m 2h 46m 0h 33m 1h 06m 1h 40m 2h 13m 3h 20m 3h 53m 4h 26m 0 1k 2k 3k 4k m/h DISTANCE OVER TIME 0h 00m 2h 46m 0h 33m 1h 06m 1h 40m 2h 13m 3h 20m 3h 53m 4h 26m 0 100 km 25 50 75 CUMULATIVE MECHANICAL ENERGY 0h 00m 2h 46m 0h 33m 1h 06m 1h 40m 2h 13m 3h 20m 3h 53m 4h 26m 
+
+Quality: PASS
+- active tab=Quality; panel rect={"x":296,"y":1124,"w":925,"h":741}; checks=true/true
+- active text excerpt: SUCCESS UNIQUE Load Messages POINT QUALITY 1298 Total Points 60.55 m Avg Pt. Distance 42.87 m Median Pt. Distance 985.86 m Max Pt. Distance STATISTICS CURATION HIGHLIGHTS Included STATISTICS Included ACTIVITY CLASSIFICATION ACTIVITY Bicycle SOURCE AUTO_GUESS SOURCE DETAILS Start Auto Guessing Activity Type. Activity type not found in name or text fields. Try using speed. Speed percentiles: 66%-percentile: 16.8 km/h, 95%-percentile: 19.6 km/h. Guessed based on speed to be type bicycle. GEO COVERAGE CENTER 47.932198,
+
+Related: PASS
+- active tab=Related; panel rect={"x":296,"y":1124,"w":925,"h":541}; checks=true/true
+- active text excerpt: PREVIOUS TRACKS none CURRENT TRACK voie verte haute vosges on GPSies.com Jan 1, 2010 NEXT TRACKS 9 Track #100005 Jul 20, 2021 FMT TCX Synthet Feb 2, 2026 GNSSALTTRK Feb 4, 2026 IGCHDRS~HFPLTPILOT:Unknown~ Track #100013 Feb 5, 2026 FMT GDB Synthetic Feb 7, 2026 Show 4 more (4 remaining)
+
+Events: PASS
+- active tab=Events; panel rect={"x":296,"y":1124,"w":925,"h":76}; checks=true
+- active text excerpt: No track events
+
+Console warning/error count: 8
+- error: Failed to load resource: the server responded with a status of 401 ()
+- error: Failed to load resource: the server responded with a status of 401 ()
+- warning: [.WebGL-0x10c00577400]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
+- warning: [.WebGL-0x10c00573800]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
+- warning: [.WebGL-0x10c00577400]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
+Request failure count: 9
+Overall active panel assertions: PASS

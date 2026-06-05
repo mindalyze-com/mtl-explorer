@@ -1,0 +1,10 @@
+FLT_01 saved active filter evidence
+Setup: enabled Filter, selected Activities by keyword, entered Keyword = MAP 03.
+Prepared chip before root navigation: 1 / 12 Tracks; Legend BICYCLE 1.
+Root navigation: http://167.233.16.201:18080/mtl/ displayed active filter chip 1 / 12 Tracks with funnel icon.
+Persisted localStorage: filterName=ActivitiesByKeyword; stringParams.SEARCH_WORD=MAP 03.
+Reopened filter panel: header toggle On; active catalog row=Activities by keyword; keyword input=MAP 03.
+Action bar after reopen: LIVE MAP; 1 matching tracks; 1 category; Colors enabled.
+API resolve /api/filter/resolve/800002 with SEARCH_WORD MAP 03 returned resultIds=[100014], standardFilterCount=12.
+Screenshots: FLT_01-prepared-filter.webp, FLT_01-active-chip.webp, FLT_01-reopened-filter.webp.
+Console: only startup 401 probes were captured; no filter-specific error.

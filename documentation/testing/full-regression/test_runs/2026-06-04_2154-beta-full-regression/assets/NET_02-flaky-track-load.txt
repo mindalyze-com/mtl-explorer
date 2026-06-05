@@ -1,0 +1,14 @@
+{
+  "blocked": [
+    "http://167.233.16.201:18080/mtl/api/tracks/get-simplified?filterName=SmartBaseFilter&mode=ids",
+    "http://167.233.16.201:18080/mtl/api/tracks/get-simplified?filterName=SmartBaseFilter&mode=ids"
+  ],
+  "url": "http://167.233.16.201:18080/mtl/",
+  "bodyExcerpt": "© Patrick Heusser Unable to load tracks — no server connection and no cached data available. Retry 500 km © OpenStreetMap | Elevation: Mapterhorn 0 Tracks Stats Filter Map Animate Segments GPS Planner Admin",
+  "assertions": {
+    "requestsBlocked": true,
+    "retryVisible": true,
+    "actionableError": true,
+    "notBlank": true
+  }
+}

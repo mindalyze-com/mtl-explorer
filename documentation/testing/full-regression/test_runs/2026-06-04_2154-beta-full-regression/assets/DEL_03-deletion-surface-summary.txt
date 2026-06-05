@@ -1,0 +1,39 @@
+TRACK_COUNT=3
+FILES=JuraRoute72011.gpx,MoselradwegAusWiki.gpx,Vitry-le-Francois_Langres.gpx
+DELETED_FILES_ABSENT=true
+SIMPLIFIED standardFilterCount=3 numberOfFilteredMatchedTracks=3
+DISTANCE_KM=938.3
+DURATION_HOURS=19.12
+ASCENT_M=11412
+DESCENT_M=11570
+ACTIVITY_BREAKDOWN={"BICYCLE":3}
+SEARCH_RESULTS=query=Lannion rowCount=2 containsDeleted=false containsNoTracks=true excerpt=50 km © OpenStreetMap | Elevation: Mapterhorn 3 Tracks Stats Filter Map Animate Segments GPS Planner Admin Overview Trends Tracks VIEWS All Excluded Stats excluded No activity 0 of 3 tracks · 0.00 m · 0m 00s SORT: Date Imported Distance Duration Name Exploration START TRACK ACTIVITY DISTANCE DURATION AVG KM/H ENERGY EXPLORATION IMPORTED No tracks match “Lannion” 25 | query=VoieVerte rowCount=2 containsDeleted=false containsNoTracks=true excerpt=50 km © OpenStreetMap | Elevation: Mapterhorn 3 Tracks Stats Filter Map Animate Segments GPS Planner Admin Overview Trends Tracks VIEWS All Excluded Stats excluded No activity 0 of 3 tracks · 0.00 m · 0m 00s SORT: Date Imported Distance Duration Name Exploration START TRACK ACTIVITY DISTANCE DURATION AVG KM/H ENERGY EXPLORATION IMPORTED No tracks match “VoieVerte” 25
+MAP_CONTAINS_DELETED=false
+STATS_CONTAINS_DELETED=false
+FILTER_CONTAINS_DELETED=false
+SELECTION_CONTAINS_DELETED=false
+RELATED_CONTAINS_DELETED=false
+ALL_SURFACE_EXCERPTS_CONTAIN_DELETED=false
+HEATMAP_CLASS_BEFORE=bi lc-check bi-circle
+HEATMAP_CLASS_AFTER=bi lc-check bi-check-circle-fill
+HEATMAP_CLASS_RESTORED=bi lc-check bi-circle
+REMAINING_TRACKS
+id=100000 file=JuraRoute72011.gpx trackName=Jura Route 7 / 2011 on GPSies.com
+id=100002 file=MoselradwegAusWiki.gpx trackName=Moselradweg aus Wiki on GPSies.com
+id=100001 file=Vitry-le-Francois_Langres.gpx trackName=Vitry le françois - langres on GPSies.com
+CONSOLE_RECENT
+info: [track-cache] cache read complete {tracks: 3, geometries: 3, renderedTracks: 3, durationMs: 2}
+log: fetch resolveFilter for filterConfigId 800000 {}
+log: fetch resolveFilter for filterConfigId 800003 {stringParams: Object, dateTimeParams: Object, geoCircles: Object, geoRectangles: Object, geoPolygons: Object}
+log: [Map] Suppressing filter event during initial load — track collection loader already applies the active filter
+log: [tracks] Map layers rebuilt {durationMs: 1, trackCount: 3, overviewDotCount: 3, hasPalette: false, legendGroupCount: 0}
+log: Low-zoom PMTiles already cached (IndexedDB)
+info: [track-cache] sync 10m: cache hit for 3 tracks {precision: 10, totalTracks: 3, cachedTracks: 3, staleOrMissingTracks: 0, staleGeometryCleared: 0}
+info: [track-cache] sync 10m complete {precision: 10, totalTracks: 3, fetchedTracks: 0, cachedTracks: 3, batches: 0}
+REQUEST_FAILED_RECENT
+HEAD https://tile.openstreetmap.org/0/0/0.png net::ERR_ABORTED
+HEAD https://protomaps.github.io/basemaps-assets/fonts/Noto%20Sans%20Regular/0-255.pbf net::ERR_ABORTED
+HEAD https://protomaps.github.io/basemaps-assets/sprites/v4/light.json net::ERR_ABORTED
+HEAD https://tiles.mapterhorn.com/0/0/0.webp net::ERR_ABORTED
+HEAD https://tile.openstreetmap.org/0/0/0.png net::ERR_ABORTED
+HEAD http://167.233.16.201:18080/mtl/api/info/build net::ERR_ABORTED

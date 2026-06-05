@@ -1,0 +1,19 @@
+{
+  "before": {
+    "settingsPreview": "Preview: 06/05/2026 03:09:21 — 12,345.67",
+    "selectText": "en-US  (12/31/2025, 1,234.56)"
+  },
+  "after": {
+    "settingsPreview": "Preview: 05.06.2026 03:09:23 — 12.345,67",
+    "selectText": "de-DE  (31.12.2025, 1.234,56)",
+    "statsExcerpt": "500 km © OpenStreetMap | Elevation: Mapterhorn 19 Tracks Stats Filter Map Animate Segments GPS Planner Admin Overview Trends Tracks 19 TRACKS 1.804 km DISTANCE 2d 06h DURATION 4.554 Wh ENERGY ACTIVITY BREAKDOWN Tracks Distance Duration Energy Bicycle 17 17 Running 1 1 Walking 1 1 HIGHLIGHTS Longest track syn07-indexer-running-1780620130688.gpx 829 km Longest duration syn07-indexer-running-1780620130688.gpx 1d 09h Biggest ascent syn07-indexer-running-1780620130688.gpx 86.496 m Quickest ascent Track 100010 50.000 m/h Most energy Jura Route 7 / 2011 on GPSies.com 1.808 Wh Fastest 30 s speed Moselradweg aus Wiki on GPSies.com 58,3 km/h Peak 30 s power Track 100010 2.500 W Most common activity Bi",
+    "locale": "de-DE"
+  },
+  "assertions": {
+    "storedDeDe": true,
+    "previewChanged": true,
+    "statsUseGermanSeparators": true,
+    "noReloadUsed": true,
+    "noBadLiterals": true
+  }
+}

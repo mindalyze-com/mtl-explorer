@@ -1,0 +1,4 @@
+- heading "Whitelabel Error Page" [level=1]
+- paragraph: This application has no explicit mapping for /error, so you are seeing this as a fallback.
+- generic: Mon Jun 01 15:41:02 UTC 2026
+- generic: There was an unexpected error (type=Not Found, status=404).

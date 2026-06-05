@@ -21,8 +21,8 @@ describe('extractCoordinates', () => {
       } as unknown as NonNullable<ExtractCoordinatesInput>[number],
     ];
     expect(extractCoordinates(data)).toEqual([
-      [1, 2],
-      [3, 4],
+      [1, 2, 100],
+      [3, 4, 200],
       [5, 6],
     ]);
   });
@@ -41,6 +41,40 @@ describe('extractCoordinates', () => {
     expect(extractCoordinates(data)).toEqual([
       [10, 20],
       [30, 40],
+    ]);
+  });
+
+  it('preserves z from generated OpenAPI coordinate objects when present', () => {
+    const data = [
+      {
+        track: {
+          coordinates: [
+            { x: 10, y: 20, z: 123.4 },
+            { x: 30, y: 40, z: Number.NaN },
+          ],
+        },
+      } as unknown as NonNullable<ExtractCoordinatesInput>[number],
+    ];
+    expect(extractCoordinates(data)).toEqual([
+      [10, 20, 123.4],
+      [30, 40],
+    ]);
+  });
+
+  it('preserves z from cached array coordinate payloads when present', () => {
+    const data = [
+      {
+        track: {
+          coordinates: [
+            [7, 8, 500],
+            [9, 10],
+          ],
+        },
+      } as unknown as NonNullable<ExtractCoordinatesInput>[number],
+    ];
+    expect(extractCoordinates(data)).toEqual([
+      [7, 8, 500],
+      [9, 10],
     ]);
   });
 

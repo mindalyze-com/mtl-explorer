@@ -1,0 +1,6 @@
+poll=0 count=3 files=JuraRoute72011.gpx,MoselradwegAusWiki.gpx,Vitry-le-Francois_Langres.gpx missingDeleted=true freshness=6WpZHf__|server_id:4cPgaT3KHaptNtCyRmtRqJ|config:9|filters:83|index:21|media:0|track_geometry:30|tracks:32
+indexer=[{"index":"GPS","total":5,"pending":0,"completed":3,"failed":0,"removed":2,"excluded":0,"progressPercent":60}]
+FINAL_TRACKS
+id=100000 file=JuraRoute72011.gpx trackName=Jura Route 7 / 2011 on GPSies.com loadStatus=SUCCESS
+id=100002 file=MoselradwegAusWiki.gpx trackName=Moselradweg aus Wiki on GPSies.com loadStatus=SUCCESS
+id=100001 file=Vitry-le-Francois_Langres.gpx trackName=Vitry le françois - langres on GPSies.com loadStatus=SUCCESS

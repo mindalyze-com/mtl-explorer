@@ -1,0 +1,555 @@
+{
+  "build": {
+    "version": "0.0.1-SNAPSHOT",
+    "buildTime": "2026-06-05T07:16:31.676Z",
+    "defaultGpsTrackFilterName": "SmartBaseFilter",
+    "serverId": "AZ3FbncnMpUk3baNtisGDc",
+    "image": {
+      "version": "1.300",
+      "buildTime": "2026-06-05T07:16:20Z"
+    }
+  },
+  "generatedAt": "2026-06-05T07:27:17.529Z",
+  "target": "http://167.233.16.201:18080/mtl",
+  "image": {
+    "version": "1.300",
+    "buildTime": "2026-06-05T07:16:20Z"
+  },
+  "MED_01_I01": {
+    "fixed": true,
+    "mediaRowText": "Photos & Media\nGeotagged photos and media clustered by location",
+    "mediaEvents": [
+      {
+        "url": "http://167.233.16.201:18080/mtl/api/media/get-media-in-bounds?minLat=-90&minLng=-244.21697623156948&maxLat=90&maxLng=251.81159723156992",
+        "status": 200,
+        "count": 30,
+        "sample": [
+          {
+            "id": 400030,
+            "lat": 46.57,
+            "lng": 8.67
+          },
+          {
+            "id": 400031,
+            "lat": 46.62,
+            "lng": 8.72
+          },
+          {
+            "id": 400032,
+            "lat": 46.5,
+            "lng": 8.6
+          },
+          {
+            "id": 400033,
+            "lat": 46.53,
+            "lng": 8.63
+          },
+          {
+            "id": 400034,
+            "lat": 46.58,
+            "lng": 8.68
+          },
+          {
+            "id": 400035,
+            "lat": 46.67,
+            "lng": 8.77
+          },
+          {
+            "id": 400036,
+            "lat": 47.48703,
+            "lng": 7.52422
+          },
+          {
+            "id": 400037,
+            "lat": 47.43969,
+            "lng": 7.32759
+          }
+        ]
+      }
+    ],
+    "latest": {
+      "url": "http://167.233.16.201:18080/mtl/api/media/get-media-in-bounds?minLat=-90&minLng=-244.21697623156948&maxLat=90&maxLng=251.81159723156992",
+      "status": 200,
+      "count": 30,
+      "sample": [
+        {
+          "id": 400030,
+          "lat": 46.57,
+          "lng": 8.67
+        },
+        {
+          "id": 400031,
+          "lat": 46.62,
+          "lng": 8.72
+        },
+        {
+          "id": 400032,
+          "lat": 46.5,
+          "lng": 8.6
+        },
+        {
+          "id": 400033,
+          "lat": 46.53,
+          "lng": 8.63
+        },
+        {
+          "id": 400034,
+          "lat": 46.58,
+          "lng": 8.68
+        },
+        {
+          "id": 400035,
+          "lat": 46.67,
+          "lng": 8.77
+        },
+        {
+          "id": 400036,
+          "lat": 47.48703,
+          "lng": 7.52422
+        },
+        {
+          "id": 400037,
+          "lat": 47.43969,
+          "lng": 7.32759
+        }
+      ]
+    },
+    "invalidLngLatSeen": false,
+    "consoleProblems": [],
+    "pageErrors": [],
+    "screenshot": "assets/RETEST_MED_01-media-toggle-fixed.webp"
+  },
+  "ADM_03_I01": {
+    "fixed": true,
+    "apiStatus": 200,
+    "gpsApi": {
+      "index": "GPS",
+      "total": 8,
+      "pending": 0,
+      "completed": 6,
+      "failed": 0,
+      "removed": 2,
+      "excluded": 0,
+      "progressPercent": 75
+    },
+    "gpsCard": "GPS\nDONE\n75%\n6\n2 removed\n8 total",
+    "cards": [
+      "MEDIA done 100% 3030 total",
+      "GPS done 75% 6 2 removed 8 total",
+      "Duplicate Finder done 100% 66 total",
+      "Activity Classifier done 100% 66 total",
+      "Exploration Score done 100% 66 total",
+      "Vector Map Tiles done100%Using hosted map service Protomaps archive public-defaultHosted map service",
+      "Location Search done100%GeoNames location search ready. Image 1.2 · Built 05/25/2026, 15:54:08 · Python 3.14.5 · Sqlite 3.53.1 · Apsw 3.53.1.0 · Source Attribution GeoNames · Source Url https://www.geonames.org/ · Source License CC-BY 4.0 · Source License Url https://creativecommons.org/licenses/by/4.0/ · Source Build Date 2026-05-24T22:14:20.822921Z · Schema Version geonames-search-v1 · Row Count 1332531 · Populated Place Count 233251 · Terrain Count 10992801332531 places (233251 populated, 1099280 terrain)",
+      "Routing Segments ready100%Routing segments are ready for planned routes. Image 1.11 · Built 05/25/2026, 15:54:08 · BRouter 1.7.9"
+    ],
+    "initial": {
+      "cards": [
+        "MEDIA done 100% 3030 total",
+        "GPS done 75% 6 2 removed 8 total",
+        "Duplicate Finder done 100% 66 total",
+        "Activity Classifier done 100% 66 total",
+        "Exploration Score done 100% 66 total",
+        "Vector Map Tiles done100%Using hosted map service Protomaps archive public-defaultHosted map service",
+        "Location Search done100%GeoNames location search ready. Image 1.2 · Built 05/25/2026, 15:54:08 · Python 3.14.5 · Sqlite 3.53.1 · Apsw 3.53.1.0 · Source Attribution GeoNames · Source Url https://www.geonames.org/ · Source License CC-BY 4.0 · Source License Url https://creativecommons.org/licenses/by/4.0/ · Source Build Date 2026-05-24T22:14:20.822921Z · Schema Version geonames-search-v1 · Row Count 1332531 · Populated Place Count 233251 · Terrain Count 10992801332531 places (233251 populated, 1099280 terrain)",
+        "Routing Segments ready100%Routing segments are ready for planned routes. Image 1.11 · Built 05/25/2026, 15:54:08 · BRouter 1.7.9"
+      ],
+      "body": "500 km\n© OpenStreetMap | Elevation: Mapterhorn\n6 Tracks\nStats\nFilter\nMap\nAnimate\nSegments\nGPS\nPlanner\nAdmin\nAdmin\nSYSTEM UTILITY\nAdmin workspace\n\nManage imports, runtime tools, diagnostics, and local preferences without leaving the map.\n\nQuiet state\nData\nImport and processing activity\nUpload\nIMPORT\nImport GPX files and inspect ingest readiness.\nJobs\nIDLE\nTrack indexer, map, and routing activity.\nFreshness\nTOKEN\nInspect domain revisions and the current map data token.\nGarmin Sync\nREMOTE\nTrigger a remote Garmin export to pull new activity files.\nSystem\nDiagnostics, tools, and build details\nLog\nSERVER\nInspect recent server output and runtime issues.\nHelpers\n2/2 READY\nReload tracks, manage helper tools, and run installs.\nAbout\nBUILD\nClient and server build details and runtime info.\nSession\nPreferences and account controls\nSettings\nLIGHT\nAdjust color scheme and locale formatting.\nSession\nLOGOUT\nLogout credentials only or wipe all local app data.\nAttribution\nSOURCES\nLibraries, datasets, and map data references.\nJobs\nPROCESSING\nJobs\n\nMonitor background indexing and understand what the system is currently working on.\n\nManual index rescan\n\nDocker Desktop on Windows with WSL2 can show copied files in the container without sending Linux file events. Queue a rescan after adding files from a Windows-mounted folder.\n\nRescan GPS\nRescan Media\nFile Indexers\nMEDIA\nDONE\n100%\n30\n30 total\nGPS\nDONE\n75%\n6\n2 removed\n8 total\nTrack Processing Jobs\nDuplicate Finder\nDONE\n100%\n6\n6 total\nActivity Classifier\nDONE\n100%\n6\n6 total\nExploration Score\nDONE\n100%\n6\n6 total\nMap & Routing\nVector Map Tiles\nDONE\n100%\nUsing hosted map service\nProtomaps archive public-default\nHosted map service\nLocation Search\nDONE\n100%\nGeoNames location search ready.\nImage 1.2 · Built 05/25/2026, 15:54:08 · Python 3.14.5 · Sqlite 3.53.1 · Apsw 3.53.1.0 · Source Attribution GeoNames · Source Url https://www.geonames.org/ · Source License CC-BY 4.0 · Source License Url https://creativecommons.org/licenses/by/4.0/ · Source Build Date 2026-05-24T22:14:20.822921Z · Schema Version geonames-search-v1 · Row Count 1332531 · Populated Place Count 233251 · Terrain Count 1099280\n1332531 places (233251 populated, 1099280 terrain)\nRouting Segments\nREADY\n100%\nRouting segments are ready for planned routes.\nImage 1.11 · Built 05/25/2026, 15:54:08 · BRouter 1.7.9\nRefresh\nUpdated 09:29:23 AM"
+    },
+    "consoleProblems": [],
+    "pageErrors": [],
+    "screenshot": "assets/RETEST_ADM_03-removed-count-fixed.webp"
+  },
+  "MED_03_I01": {
+    "fixed": true,
+    "selected": "Delémont\nJura, Switzerland\nCITY\nZ7-15",
+    "latestPositive": {
+      "url": "http://167.233.16.201:18080/mtl/api/media/get-media-in-bounds?minLat=47.193461634775076&minLng=6.960702825942377&maxLat=47.536376073621625&maxLng=7.727992981186588",
+      "status": 200,
+      "count": 7,
+      "sample": [
+        {
+          "id": 400036,
+          "lat": 47.48703,
+          "lng": 7.52422
+        },
+        {
+          "id": 400037,
+          "lat": 47.43969,
+          "lng": 7.32759
+        },
+        {
+          "id": 400040,
+          "lat": 47.43406,
+          "lng": 7.28112
+        },
+        {
+          "id": 400050,
+          "lat": 47.31301,
+          "lng": 7.13403
+        },
+        {
+          "id": 400052,
+          "lat": 47.20521,
+          "lng": 6.99397
+        },
+        {
+          "id": 400053,
+          "lat": 47.38938,
+          "lng": 7.14029
+        },
+        {
+          "id": 400055,
+          "lat": 47.36675,
+          "lng": 7.15902
+        }
+      ]
+    },
+    "mediaEvents": [
+      {
+        "url": "http://167.233.16.201:18080/mtl/api/media/get-media-in-bounds?minLat=47.33222843706042&minLng=7.2713593380727275&maxLat=47.39763075205997&maxLng=7.4177006619265455",
+        "status": 200,
+        "count": 0,
+        "sample": []
+      },
+      {
+        "url": "http://167.233.16.201:18080/mtl/api/media/get-media-in-bounds?minLat=47.193461634775076&minLng=6.960702825942377&maxLat=47.536376073621625&maxLng=7.727992981186588",
+        "status": 200,
+        "count": 7,
+        "sample": [
+          {
+            "id": 400036,
+            "lat": 47.48703,
+            "lng": 7.52422
+          },
+          {
+            "id": 400037,
+            "lat": 47.43969,
+            "lng": 7.32759
+          },
+          {
+            "id": 400040,
+            "lat": 47.43406,
+            "lng": 7.28112
+          },
+          {
+            "id": 400050,
+            "lat": 47.31301,
+            "lng": 7.13403
+          },
+          {
+            "id": 400052,
+            "lat": 47.20521,
+            "lng": 6.99397
+          },
+          {
+            "id": 400053,
+            "lat": 47.38938,
+            "lng": 7.14029
+          },
+          {
+            "id": 400055,
+            "lat": 47.36675,
+            "lng": 7.15902
+          }
+        ]
+      }
+    ],
+    "state": {
+      "filename": "demo_photo_00003.jpg",
+      "counter": "1 / 5",
+      "errorTitle": "",
+      "errorDetail": "",
+      "retryVisible": false,
+      "downloadVisible": false,
+      "imageVisible": true,
+      "body": "2 km\n© OpenStreetMap | Elevation: Mapterhorn\n6 Tracks\nStats\nFilter\nMap\nAnimate\nSegments\nGPS\nPlanner\nAdmin\nPhoto\n1 / 5\ndemo_photo_00003.jpg\n📅 06/05/2026\n📷 MTL Explorer Regression Synthetic\nmed-regression"
+    },
+    "consoleProblems": [
+      {
+        "type": "error",
+        "text": "Failed to load resource: the server responded with a status of 404 ()"
+      }
+    ],
+    "pageErrors": [],
+    "screenshots": [
+      "assets/RETEST_MED_03-visible-media-pins.webp",
+      "assets/RETEST_MED_03-photo-sheet-fixed.webp"
+    ]
+  },
+  "ERR_01_I01": {
+    "fixed": true,
+    "basis": "ERR_01-I01 repro path is the Photos & Media toggle throwing Invalid LngLat before a media request; MED_01 retest now shows a successful media request and no Invalid LngLat/page error.",
+    "med01": {
+      "latest": {
+        "url": "http://167.233.16.201:18080/mtl/api/media/get-media-in-bounds?minLat=-90&minLng=-244.21697623156948&maxLat=90&maxLng=251.81159723156992",
+        "status": 200,
+        "count": 30,
+        "sample": [
+          {
+            "id": 400030,
+            "lat": 46.57,
+            "lng": 8.67
+          },
+          {
+            "id": 400031,
+            "lat": 46.62,
+            "lng": 8.72
+          },
+          {
+            "id": 400032,
+            "lat": 46.5,
+            "lng": 8.6
+          },
+          {
+            "id": 400033,
+            "lat": 46.53,
+            "lng": 8.63
+          },
+          {
+            "id": 400034,
+            "lat": 46.58,
+            "lng": 8.68
+          },
+          {
+            "id": 400035,
+            "lat": 46.67,
+            "lng": 8.77
+          },
+          {
+            "id": 400036,
+            "lat": 47.48703,
+            "lng": 7.52422
+          },
+          {
+            "id": 400037,
+            "lat": 47.43969,
+            "lng": 7.32759
+          }
+        ]
+      },
+      "invalidLngLatSeen": false,
+      "screenshot": "assets/RETEST_MED_01-media-toggle-fixed.webp"
+    }
+  },
+  "MED_05": {
+    "fixed": true,
+    "selected": "Delémont\nJura, Switzerland\nCITY\nZ7-15",
+    "state": {
+      "filename": "demo_photo_00003.jpg",
+      "counter": "",
+      "errorTitle": "Preview unavailable",
+      "errorDetail": "The media file could not be decoded by the browser.",
+      "retryVisible": true,
+      "downloadVisible": true,
+      "imageVisible": false,
+      "body": "2 km\n© OpenStreetMap | Elevation: Mapterhorn\n6 Tracks\nStats\nFilter\nMap\nAnimate\nSegments\nGPS\nPlanner\nAdmin\nPhoto\nPreview unavailable\nThe media file could not be decoded by the browser.\nRetry\nDownload\ndemo_photo_00003.jpg\n📅 06/05/2026\n📷 MTL Explorer Regression Synthetic\nmed-regression"
+    },
+    "mediaEvents": [
+      {
+        "url": "http://167.233.16.201:18080/mtl/api/media/get-media-in-bounds?minLat=47.33222843706042&minLng=7.2713593380727275&maxLat=47.39763075205997&maxLng=7.4177006619265455",
+        "status": 200,
+        "count": 0,
+        "sample": []
+      },
+      {
+        "url": "http://167.233.16.201:18080/mtl/api/media/get-media-in-bounds?minLat=47.19346163477232&minLng=6.960702825934106&maxLat=47.53637607361901&maxLng=7.727992981178318",
+        "status": 200,
+        "count": 7,
+        "sample": [
+          {
+            "id": 400036,
+            "lat": 47.48703,
+            "lng": 7.52422
+          },
+          {
+            "id": 400037,
+            "lat": 47.43969,
+            "lng": 7.32759
+          },
+          {
+            "id": 400040,
+            "lat": 47.43406,
+            "lng": 7.28112
+          },
+          {
+            "id": 400050,
+            "lat": 47.31301,
+            "lng": 7.13403
+          },
+          {
+            "id": 400052,
+            "lat": 47.20521,
+            "lng": 6.99397
+          },
+          {
+            "id": 400053,
+            "lat": 47.38938,
+            "lng": 7.14029
+          },
+          {
+            "id": 400055,
+            "lat": 47.36675,
+            "lng": 7.15902
+          }
+        ]
+      }
+    ],
+    "consoleProblems": [
+      {
+        "type": "error",
+        "text": "Failed to load resource: the server responded with a status of 500 ()"
+      },
+      {
+        "type": "error",
+        "text": "Failed to load resource: the server responded with a status of 500 ()"
+      }
+    ],
+    "pageErrors": [],
+    "screenshot": "assets/RETEST_MED_05-broken-photo-recovery-fixed.webp"
+  },
+  "TRD_10_I01": {
+    "fixed": true,
+    "resetBefore": {
+      "status": 200,
+      "activityType": "WALKING"
+    },
+    "before": {
+      "header": "TRACK DETAILS\n#100005\nWalking",
+      "select": "WALKING"
+    },
+    "after": {
+      "header": "TRACK DETAILS\n#100005\nBicycle",
+      "select": "BICYCLE",
+      "api": {
+        "status": 200,
+        "json": {
+          "id": 100005,
+          "indexedFile": {
+            "id": 300004,
+            "index": "GPS",
+            "name": "Activity.fit",
+            "basePath": "/app/gpx",
+            "fullPath": "/app/gpx/Activity.fit",
+            "path": "",
+            "size": 94096,
+            "lastModifiedDate": "2026-06-05T06:09:28.670+0000",
+            "createDate": "2026-06-05T06:10:07.421+0000",
+            "indexAddedDate": "2026-06-05T06:10:07.421+0000",
+            "indexUpdateDate": "2026-06-05T06:10:11.422+0000",
+            "indexerStatus": "COMPLETED_WITH_SUCCESS",
+            "indexerInvocations": 1,
+            "lastMessage": "Completed successfully",
+            "version": 2
+          },
+          "creator": "GPSBabel - https://www.gpsbabel.org",
+          "gpxVersion": "1.1",
+          "metaLink": "",
+          "metaTime": "2026-06-05T06:10:08.795+0000",
+          "trackName": "",
+          "trackType": "",
+          "trackDescription": "",
+          "startDate": "2021-07-20T21:11:21.000+0000",
+          "endDate": "2021-07-20T22:11:20.000+0000",
+          "trackDurationInMotionSecs": 3597,
+          "trackDurationStoppedSecs": 0,
+          "trackStopCount": 0,
+          "trackLongestStopSecs": 0,
+          "maxDistanceBetweenPoints": 1.02,
+          "medianDistanceBetweenPoints": 1,
+          "avgDistanceBetweenPoints": 1,
+          "didFilterOutlierByDistance": false,
+          "numberOfTrackPoints": 3600,
+          "trackLengthInMeter": 3598.76,
+          "ascentInMeter": 1666.68,
+          "descentInMeter": 1694.6,
+          "minAltitude": 3.15,
+          "maxAltitude": 125.85,
+          "speedInKmh30sMax": 3.61,
+          "elevationGainPerHour30sMax": 3918.85,
+          "elevationLossPerHour30sMax": 3898.16,
+          "slopePercentageMax": 100.71,
+          "slopePercentageMin": -100.73,
+          "utmZone": "EPSG:32631",
+          "loadStatus": "SUCCESS",
+          "loadMessages": "- Starting import of GPX file.\n- Track Data Summary:\n  - Outlier Corrector: GPXReader distance/probation filter\n  - Outliers Found: false\n  - Outliers Cleared By Corrector: 0 point(s)\n  - Distances (m):\n      • Max:    1.0\n      • Median: 1.0\n      • Avg:    1.0\n- Elevation denoised via smoothing algorithm.\n- Energy calculation deferred until activity type is classified.\n- Simplified track variants created (1m to 1000m).\n- Timing simplified: 1m 35ms (2 pts), 10m 31ms (2 pts), 100m 19ms (2 pts), 1000m 49ms (2 pts).\n- Timing total 2.68s; slowest raw points 1.01s, cleaned points 787ms, denoise 204ms, parse XML 203ms, break-stop filter 178ms, simplified shapes 134ms, gpsbabel 87ms, outlier filter 22ms.\n- Energy recalculated for activityType=WALKING on canonical RAW_OUTLIER_CLEANED (Net Total: 346.67 Wh).\n- Energy recalculated for activityType=BICYCLE on canonical RAW_OUTLIER_CLEANED (Net Total: 395.10 Wh).\n- Energy recalculated for activityType=WALKING on canonical RAW_OUTLIER_CLEANED (Net Total: 346.67 Wh).\n- Energy recalculated for activityType=BICYCLE on canonical RAW_OUTLIER_CLEANED (Net Total: 395.10 Wh).\n- Energy recalculated for activityType=WALKING on canonical RAW_OUTLIER_CLEANED (Net Total: 346.67 Wh).\n- Energy recalculated for activityType=BICYCLE on canonical RAW_OUTLIER_CLEANED (Net Total: 395.10 Wh).\n- Energy recalculated for activityType=WALKING on canonical RAW_OUTLIER_CLEANED (Net Total: 346.67 Wh).\n- Energy recalculated for activityType=BICYCLE on canonical RAW_OUTLIER_CLEANED (Net Total: 395.10 Wh).",
+          "duplicateStatus": "UNIQUE",
+          "gpsTracksData": [
+            {
+              "id": 200037,
+              "gpsTrackId": 100005,
+              "createDate": "2026-06-05T06:10:11.300+0000",
+              "trackType": "SIMPLIFIED_SHAPE",
+              "precisionInMeter": 1,
+              "numberOfPhysicalPoints": 2,
+              "track": [
+                [
+                  0.00001,
+                  0,
+                  125.8,
+                  1626815481
+                ],
+                [
+                  0.03234,
+                  0,
+                  96.9,
+                  1626819080
+                ]
+              ],
+              "gpsTrackEvents": []
+            }
+          ],
+          "activityType": "BICYCLE",
+          "activityTypeSource": "USER_SET",
+          "activityTypeSourceDetails": "Start Auto Guessing Activity Type. \nActivity type not found in name or text fields. Try using speed. \nSpeed percentiles: 66%-percentile: 3.6 km/h, 95%-percentile: 3.6 km/h. \nGuessed based on speed to be type walking. \n",
+          "bboxMinLat": 0,
+          "bboxMaxLat": 0,
+          "bboxMinLng": 0.000011,
+          "bboxMaxLng": 0.032339,
+          "centerLat": 0,
+          "centerLng": 0.016175,
+          "energyGravitationalTotalWh": 392.89,
+          "energyGravitationalDescentWh": 399.59,
+          "energyAeroDragTotalWh": 0.28,
+          "energyRollingResistanceTotalWh": 4.17,
+          "energyKineticPositiveTotalWh": 0,
+          "energyNetTotalWh": 395.1,
+          "energyWeightKgUsed": 85,
+          "powerWattsAvg": 793.74,
+          "powerWattsMovingAvg": 395.43,
+          "powerWattsMax": 896.66,
+          "powerWatts30sMax": 856.92,
+          "normalizedPowerWatts": 670.85,
+          "explorationStatus": "CALCULATED",
+          "explorationScore": 1,
+          "explorationCalcDate": "2026-06-05T06:10:38.728+0000",
+          "trackSource": "IMPORTED",
+          "createDate": "2026-06-05T06:10:08.825+0000",
+          "updateDate": "2026-06-05T06:10:09.443+0000",
+          "version": 19
+        },
+        "text": "{\"id\":100005,\"indexedFile\":{\"id\":300004,\"index\":\"GPS\",\"name\":\"Activity.fit\",\"basePath\":\"/app/gpx\",\"fullPath\":\"/app/gpx/Activity.fit\",\"path\":\"\",\"size\":94096,\"lastModifiedDate\":\"2026-06-05T06:09:28.670+0000\",\"createDate\":\"2026-06-05T06:10:07.421+0000\",\"indexAddedDate\":\"2026-06-05T06:10:07.421+0000\",\"indexUpdateDate\":\"2026-06-05T06:10:11.422+0000\",\"indexerStatus\":\"COMPLETED_WITH_SUCCESS\",\"indexerInvocations\":1,\"lastMessage\":\"Completed successfully\",\"version\":2},\"creator\":\"GPSBabel - https://www.gpsbabel.org\",\"gpxVersion\":\"1.1\",\"metaLink\":\"\",\"metaTime\":\"2026-06-05T06:10:08.795+0000\",\"trackName\":\"\",\"trackType\":\"\",\"trackDescription\":\"\",\"startDate\":\"2021-07-20T21:11:21.000+0000\",\"endDate\":\"2021-07-20T22:11:20.000+0000\",\"trackDurationInMotionSecs\":3597.0,\"trackDurationStoppedSecs\":0.0,\"trackStopCount\":0,\"trackLongestStopSecs\":0.0,\"maxDistanceBetweenPoints\":1.02,\"medianDistanceBetweenPoints\":1.0,\"avgDistanceBetweenPoints\":1.0,\"didFilterOutlierByDistance\":false,\"numberOfTrackPoints\":3600,\"trackLengthInMeter\":3598.76,\"ascentInMeter\":1666.68,\"descentInMeter\":1694.6,\"minAltitude\":3.15,\"maxAltitude\":125.85,\"speedInKmh30sMax\":3.61,\"elevationGainPerHour30sMax\":3918.85,\"elevationLossPerHour30sMax\":3898.16,\"slopePercentageMax\":100.71,\"slopePercentageMin\":-100.73,\"utmZone\":\"EPSG:32631\",\"loadStatus\":\"SUCCESS\",\"loadMessages\":\"- Starting import of GPX file.\\n- Track Data Summary:\\n  - Outlier Corrector: GPXReader distance/probation filter\\n  - Outliers Found: false\\n  - Outliers Cleared By Corrector: 0 point(s)\\n  - Distances (m):\\n      • Max:    1.0\\n      • Median: 1.0\\n      • Avg:    1.0\\n- Elevation denoised via smoothing algorithm.\\n- Energy calculation deferred until activity type is classified.\\n- Simplified track variants created (1m to 1000m).\\n- Timing simplified: 1m 35ms (2 pts), 10m 31ms (2 pts), 100m 19ms (2 pts), 1000m 49ms (2 pts).\\n- Timing total 2.68s; slowest raw points 1.01s, cleaned points 787ms, denoise 204ms, parse XML 203ms, break-stop filter 178ms, simplified shapes 134ms, gpsbabel 87ms, outlier filter 22ms.\\n- Energy recalculated for activityType=WALKING on canonical RAW_OUTLIER_CLEANED (Net Total: 346.67 Wh).\\n- Energy recalculated for activityType=BICYCLE on canonical RAW_OUTLIER_CLEANED (Net Total: 395.10 Wh).\\n- Energy recalculated for activityType=WALKING on canonical RAW_OUTLIER_CLEANED (Net Total: 346.67 Wh).\\n- Energy recalculated for activityType=BICYCLE on canonical RAW_OUTLIER_CLEANED (Net Total: 395.10 Wh).\\n- Energy recalculated for activityType=WALKING on canonical RAW_OUTLIER_CLEANED (Net Total: 346.67 Wh).\\n- Energy recalculated for activityType=BICYCLE on canonical RAW_OUTLIER_CLEANED (Net Total: 395.10 Wh).\\n- Energy recalculated for activityType=WALKING on canonical RAW_OUTLIER_CLEANED (Net Total: 346.67 Wh).\\n- Energy recalculated for activityType=BICYCLE on canonical RAW_OUTLIER_CLEANED (Net Total: 395.10 Wh).\",\"duplicateStatus\":\"UNIQUE\",\"gpsTracksData\":[{\"id\":200037,\"gpsTrackId\":100005,\"createDate\":\"2026-06-05T06:10:11.300+0000\",\"trackType\":\"SIMPLIFIED_SHAPE\",\"precisionInMeter\":1.00,\"numberOfPhysicalPoints\":2,\"track\":[[0.000010,0.000000,125.8,1626815481.000000],[0.032340,0.000000,96.9,1626819080.000000]],\"gpsTrackEvents\":[]}],\"activityType\":\"BICYCLE\",\"activityTypeSource\":\"USER_SET\",\"activityTypeSourceDetails\":\"Start Auto Guessing Activity Type. \\nActivity type not found in name or text fields. Try using speed. \\nSpeed percentiles: 66%-percentile: 3.6 km/h, 95%-percentile: 3.6 km/h. \\nGuessed based on speed to be type walking. \\n\",\"bboxMinLat\":0.000000,\"bboxMaxLat\":0.000000,\"bboxMinLng\":0.000011,\"bboxMaxLng\":0.032339,\"centerLat\":0.000000,\"centerLng\":0.016175,\"energyGravitationalTotalWh\":392.89,\"energyGravitationalDescentWh\":399.59,\"energyAeroDragTotalWh\":0.28,\"energyRollingResistanceTotalWh\":4.17,\"energyKineticPositiveTotalWh\":0.0,\"energyNetTotalWh\":395.1,\"energyWeightKgUsed\":85.0,\"powerWattsAvg\":793.74,\"powerWattsMovingAvg\":395.43,\"powerWattsMax\":896.66,\"powerWatts30sMax\":856.92,\"normalizedPowerWatts\":670.85,\"explorationStatus\":\"CALCULATED\",\"explorationScore\":1.0,\"explorationCalcDate\":\"2026-06-05T06:10:38.728+0000\",\"trackSource\":\"IMPORTED\",\"createDate\":\"2026-06-05T06:10:08.825+0000\",\"updateDate\":\"2026-06-05T06:10:09.443+0000\",\"version\":19}"
+      },
+      "patchStatus": 200,
+      "patchActivityType": "BICYCLE"
+    },
+    "headerUpdated": true,
+    "consoleProblems": [
+      {
+        "type": "warning",
+        "text": "[MTL] Data freshness polling failed — server may be unreachable or blocked: {name: FetchError, message: The request failed and the interceptors did not return an alternative response}"
+      }
+    ],
+    "pageErrors": [],
+    "screenshot": "assets/RETEST_TRD_10-header-badge-fixed.webp",
+    "restore": {
+      "restore": {
+        "status": 200,
+        "activityType": "WALKING"
+      },
+      "restoredActivityType": "WALKING"
+    }
+  },
+  "allPreviouslyOpenItemsFixed": true,
+  "formerBlockedCoveragePass": true
+}

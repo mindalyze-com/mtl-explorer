@@ -1,0 +1,7 @@
+FLT_04 date/text/geo persistence evidence
+Before reload: keyword=Moselradweg; fromDate=2010-01-01; filteredChip=true; geoText=["Circle\nOptional\nDraw on map","Rectangle\nOptional\nRectangle (42.280...48.535, 1.807...13.475)\nRedraw","Polygon\nOptional\nDraw on map"]
+Before storage: string={"SEARCH_WORD":"Moselradweg"}; dateTime={"DATE_TIME_FROM":"2010-01-01 00:00:00"}; rectangles={"GEO_RECTANGLE_1":{"minLat":42.28016206020135,"maxLat":48.53471095018688,"minLng":1.806926958965903,"maxLng":13.474692544330424}}
+After root reload map: filteredChip=true; textSample=300 km © OpenStreetMap | Elevation: Mapterhorn 1 / 12 Tracks Legend BICYCLE 1 Stats Filter Map Animate Segments GPS Planner Admin
+After reopen: keyword=Moselradweg; fromDate=2010-01-01; filteredChip=true; geoText=["Circle\nOptional\nDraw on map","Rectangle\nOptional\nRectangle (42.280…48.535, 1.807…13.475)\nRedraw","Polygon\nOptional\nDraw on map"]
+After storage: string={"SEARCH_WORD":"Moselradweg"}; dateTime={"DATE_TIME_FROM":"2010-01-01 00:00:00"}; rectangles={"GEO_RECTANGLE_1":{"minLat":42.28016206020135,"maxLat":48.53471095018688,"minLng":1.806926958965903,"maxLng":13.474692544330424}}
+Persistence booleans: keyword=true; date=true; geoRectangle=true

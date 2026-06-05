@@ -1,0 +1,61 @@
+{
+  "coverageId": "MAP_15",
+  "config": {
+    "tileMode": "local"
+  },
+  "before": {
+    "activeSource": "Automatic map source",
+    "themes": [
+      "OSM Topo",
+      "Swiss Color",
+      "Swiss Light",
+      "OSM Light",
+      "OSM Gray",
+      "OSM Dark"
+    ]
+  },
+  "afterRemote": {
+    "activeSource": "Remote raster tiles",
+    "themes": [
+      "OSM Topo",
+      "OSM Light",
+      "OSM Gray",
+      "OSM Dark"
+    ],
+    "swissVectorThemesOffered": false,
+    "attributionIncludesOpenTopoMap": true,
+    "attributionIncludesOpenStreetMap": true,
+    "mapShows12Tracks": true
+  },
+  "networkAfterRemoteBeforeReset": {
+    "mapProxyTileRequests": 0,
+    "providerHost": "tile.opentopomap.org",
+    "sampleProviderRequests": [
+      "https://tile.opentopomap.org/4/8/6.png",
+      "https://tile.opentopomap.org/4/7/6.png",
+      "https://tile.opentopomap.org/11/1045/875.png"
+    ]
+  },
+  "afterReload": {
+    "activeSource": "Remote raster tiles",
+    "themes": [
+      "OSM Topo",
+      "OSM Light",
+      "OSM Gray",
+      "OSM Dark"
+    ],
+    "persisted": true
+  },
+  "afterReset": {
+    "activeSource": "Automatic map source",
+    "themes": [
+      "OSM Topo",
+      "Swiss Color",
+      "Swiss Light",
+      "OSM Light",
+      "OSM Gray",
+      "OSM Dark"
+    ],
+    "restoredAuto": true
+  }
+}

@@ -1,0 +1,27 @@
+MCT_02 result row navigation evidence
+{
+  "before": {
+    "url": "http://167.233.16.201:18080/mtl/segments",
+    "links": [
+      "MoselradwegAusWiki.gpx"
+    ],
+    "body": "20 km © OpenStreetMap | Elevation: Mapterhorn 12 Tracks Stats Filter Map Animate Segments GPS Planner Admin Segment Analyzer 1 / 1 tracks Consolidated Compare 1 Race 1 Table Trends COLUMN METRIC Speed Time Distance NAME START DURATION A - B MoselradwegAusWiki.gpx 01/01/2010, 01:00 1d 07h 16.27"
+  },
+  "after": {
+    "url": "http://167.233.16.201:18080/mtl/track/100002",
+    "body": "20 km © OpenStreetMap | Elevation: Mapterhorn 12 Tracks Stats Filter Map Animate Segments GPS Planner Admin TRACK DETAILS #100002 Bicycle 1 3D Replay Overview Graphs Quality Related Events Moselradweg aus Wiki on GPSies.com 01/01/2010, 01:00 TRACK CONTROLS ACTIVITY TYPE Bicycle Walking Hiking Running Mountain biking Stand-up paddle Rowing Kayaking Skiing Motorbiking Car Airplane Supersonic STATISTICS Included in statistics Exclude: GPS noise Exclude: wrong activity Exclude: import artifact Exclude: other 518 km Distance 1d 07h Duration 4,380 m Ascent 16.3 km/h Avg Speed TIMING 0d 06h Moving 0d 00h Stopped 1 Stops 1m 13s Longest Stop SPEED 16.3 km/h Avg Speed 75.7 km/h Moving Avg 58.3 km/h Max 30s Speed ELEVATION 4,380 m Ascent 4,917 m Descent 3,848 m/h Max 30s Climb 2,717 m/h Max 30s Desc. 61 m Min Alt. 601 m Max Alt. 540 m Range 13.5% Max Slope -12.4% Max Desc. Slope ENERGY 1,615.7 Wh Net Total 210 W Avg Power 236 W Avg Moving Power 1,081 W Max 30s Power BREAKDOWN 1,139.3 Wh Gravitational ↑ 1,263.6 Wh Gravitational ↓ 268.2 Wh Aero Drag 599.7 Wh Rolling Resist. 37.8 Wh Kinetic (pos.) FITNESS 183 W Normalized Power EXPLORATION 100.0% New Territory 518 km Novel Distance 0.00 m Known Distance Track Details Segment Analyzer 1 / 1 tracks Consolidated Compare 1 Race 1 Table Trends COLUMN METRIC Speed Time Distance NAME START DURATION A - B MoselradwegAusWiki.gpx 01/01/2010, 01:00 1d 07h 16.27",
+    "detailVisible": true,
+    "highcharts": 9,
+    "miniMaps": 5
+  },
+  "logs": [
+    "error: Failed to load resource: the server responded with a status of 401 ()",
+    "error: Failed to load resource: the server responded with a status of 401 ()",
+    "warning: [.WebGL-0x13400576800]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
+    "warning: [.WebGL-0x13400578c00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
+    "warning: [.WebGL-0x13400576800]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
+    "warning: [.WebGL-0x13400576800]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels (this message will no longer repeat)",
+    "error: Failed to load resource: the server responded with a status of 404 ()",
+    "warning: Highcharts warning: Consider including the \"accessibility.js\" module to make your chart more usable for people with disabilities. Set the \"accessibility.enabled\" option to false to remove this warning. See https://www.highcharts.com/docs/accessibility/accessibility-module."
+  ]
+}

@@ -1,0 +1,101 @@
+{
+  "many": {
+    "summaryTracks": "11Tracks",
+    "summaryDistance": "966 kmDistance",
+    "summaryDuration": "20h 46m Duration",
+    "summaryEnergy": "4,525 Wh Energy",
+    "filterBanner": "",
+    "activityRows": [
+      "Bicycle1010",
+      "Walking11"
+    ],
+    "highlights": [
+      "Longest trackMoselradweg aus Wiki on GPSies.com518 km",
+      "Longest durationJura Route 7 / 2011 on GPSies.com7h 46m",
+      "Biggest ascentJura Route 7 / 2011 on GPSies.com6,324 m",
+      "Quickest ascentTrack 10001050,000 m/h",
+      "Most energyJura Route 7 / 2011 on GPSies.com1,808 Wh",
+      "Fastest 30 s speedMoselradweg aus Wiki on GPSies.com58.3 km/h",
+      "Peak 30 s powerTrack 1000102,500 W",
+      "Most common activityBicycle10 tracks"
+    ],
+    "recentRows": [
+      "format-geojson-synthetic-trackBicycle06/04/2026, 22:543.49 km0m 00s",
+      "PathBicycle06/04/2026, 22:543.50 km0m 00s",
+      "PathBicycle06/04/2026, 22:543.51 km0m 00s",
+      "format-gdb-synthetic-trackBicycle01/16/2026, 09:003.53 km10m 30s",
+      "Track 100010Bicycle01/14/2026, 09:003.38 km10m 30s"
+    ],
+    "activePeriods": [
+      "Most active day2010-01-0119h 04m3 tracks - 938 km",
+      "Most active week2009-W5319h 04m3 tracks - 938 km",
+      "Most active month2010-0119h 04m3 tracks - 938 km",
+      "Most active weekdayFriday19h 15m4 tracks - 942 km"
+    ],
+    "milestones": [
+      "First activityJura Route 7 / 2011 on GPSies.com01/01/2010, 01:00",
+      "Latest activityformat-geojson-synthetic-track06/04/2026, 22:54",
+      "First 50 km trackJura Route 7 / 2011 on GPSies.com273 km",
+      "First 100 km trackJura Route 7 / 2011 on GPSies.com273 km",
+      "First 1000 m ascentJura Route 7 / 2011 on GPSies.com6,324 m",
+      "First 2000 m ascentJura Route 7 / 2011 on GPSies.com6,324 m",
+      "First 1000 Wh activityJura Route 7 / 2011 on GPSies.com1,808 Wh"
+    ],
+    "empty": "",
+    "dateRange": "01/01/2010 - 06/04/2026",
+    "exclusionNote": ""
+  },
+  "single": {
+    "summaryTracks": "1Tracks",
+    "summaryDistance": "3.60 kmDistance",
+    "summaryDuration": "59m 57s Duration",
+    "summaryEnergy": "347 Wh Energy",
+    "filterBanner": "Showing 1 of 11 tracks",
+    "activityRows": [
+      "Walking11"
+    ],
+    "highlights": [
+      "Longest trackTrack 1000053.60 km",
+      "Longest durationTrack 10000559m 57s",
+      "Biggest ascentTrack 1000051,667 m",
+      "Quickest ascentTrack 1000053,919 m/h",
+      "Most energyTrack 100005347 Wh",
+      "Fastest 30 s speedTrack 1000053.6 km/h",
+      "Peak 30 s powerTrack 100005752 W",
+      "Most common activityWalking1 tracks"
+    ],
+    "recentRows": [
+      "Track 100005Walking07/20/2021, 23:113.60 km59m 57s"
+    ],
+    "activePeriods": [
+      "Most active day2021-07-2059m 57s1 tracks - 3.60 km",
+      "Most active week2021-W2959m 57s1 tracks - 3.60 km",
+      "Most active month2021-0759m 57s1 tracks - 3.60 km",
+      "Most active weekdayTuesday59m 57s1 tracks - 3.60 km"
+    ],
+    "milestones": [
+      "First activityTrack 10000507/20/2021, 23:11",
+      "Latest activityTrack 10000507/20/2021, 23:11",
+      "First 500 m ascentTrack 1000051,667 m",
+      "First 1000 m ascentTrack 1000051,667 m"
+    ],
+    "empty": "",
+    "dateRange": "07/20/2021 - 07/20/2021",
+    "exclusionNote": ""
+  },
+  "empty": {
+    "summaryTracks": "",
+    "summaryDistance": "",
+    "summaryDuration": "",
+    "summaryEnergy": "",
+    "filterBanner": "Showing 0 of 11 tracks",
+    "activityRows": [],
+    "highlights": [],
+    "recentRows": [],
+    "activePeriods": [],
+    "milestones": [],
+    "empty": "No tracks match the current filters.",
+    "dateRange": "",
+    "exclusionNote": ""
+  }
+}

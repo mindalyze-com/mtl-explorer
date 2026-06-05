@@ -1,5 +1,11 @@
-import { TracksControllerApi, type GpsTrack, type TracksSimplifiedResponse } from 'x8ing-mtl-api-typescript-fetch';
+import {
+  GpsTrackFromJSON,
+  TracksControllerApi,
+  type GpsTrack,
+  type TracksSimplifiedResponse,
+} from 'x8ing-mtl-api-typescript-fetch';
 import { FilterService, type FilterParamsRequest } from '@/components/filter/FilterService';
+import { useFilterStore } from '@/stores/filterStore';
 import { getApiConfiguration } from '@/utils/openApiClient';
 import { extractCoordinates } from '@/utils/lineStringDeserializer';
 import { describeError, startStartupTimer, startupLog } from '@/utils/startupDiagnostics';
@@ -18,21 +24,24 @@ function getTracksApi() {
   return new TracksControllerApi(getApiConfiguration());
 }
 
-function parseTrack(rawTrack: GpsTrack): GpsTrack {
-  return {
-    ...rawTrack,
-    startDate: rawTrack.startDate ? new Date(rawTrack.startDate) : undefined,
-    endDate: rawTrack.endDate ? new Date(rawTrack.endDate) : undefined,
-    createDate: rawTrack.createDate ? new Date(rawTrack.createDate) : undefined,
-  };
+export function normalizeTrackDates(rawTrack: GpsTrack): GpsTrack {
+  // Raw track endpoints are used for geometry because the server emits
+  // LineString as coordinate arrays, but model fields should still go through
+  // the generated parser so OpenAPI date-time fields become Date objects.
+  return GpsTrackFromJSON(rawTrack);
 }
 
 export async function loadActiveFilterRequest(): Promise<ActiveTrackFilterRequest> {
-  const clientFilterConfig = await FilterService.loadClientFilterConfig();
-  return {
-    filterName: clientFilterConfig.filterInfo?.filterConfig?.filterName ?? '',
-    filterParams: clientFilterConfig.filterParams,
-  };
+  try {
+    const filterStore = useFilterStore();
+    return await filterStore.getActiveFilterRequest();
+  } catch {
+    const clientFilterConfig = await FilterService.loadClientFilterConfig();
+    return {
+      filterName: clientFilterConfig.filterInfo?.filterConfig?.filterName ?? '',
+      filterParams: clientFilterConfig.filterParams,
+    };
+  }
 }
 
 function isAbortError(error: unknown, signal?: AbortSignal): boolean {
@@ -154,7 +163,7 @@ export async function fetchTrackBatch(args: {
     for (const trackResponse of data) {
       const rawTrack = trackResponse.gpsTrack;
       if (!rawTrack) continue;
-      const track = parseTrack(rawTrack);
+      const track = normalizeTrackDates(rawTrack);
       if (track.id == null) continue;
 
       tracksById.set(track.id, track);
@@ -206,7 +215,7 @@ export async function fetchDetailTrack(args: {
     );
     const rawTrack = (await rawResponse.raw.json()) as GpsTrack;
     return {
-      gpsTrack: parseTrack(rawTrack),
+      gpsTrack: normalizeTrackDates(rawTrack),
       coordinates: extractCoordinates(rawTrack.gpsTracksData),
     };
   } catch (error: unknown) {

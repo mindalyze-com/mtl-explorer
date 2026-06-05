@@ -1,0 +1,48 @@
+SYN_05 dismiss evidence:
+- Baseline count before import: 12 Tracks
+- Added fully synthetic watched-folder file: syn05b_dismiss_validation.gpx
+- Banner visible before dismiss: true
+- Count while banner visible: 12 Tracks
+- First Dismiss click error: (none)
+- Banner visible 6s after first click: false
+- Banner visible 6s after second DOM click if needed: false
+- Settled status after import: {
+  "idx": [
+    {
+      "index": "GPS",
+      "total": 20,
+      "pending": 0,
+      "completed": 13,
+      "failed": 0,
+      "removed": 7,
+      "excluded": 0,
+      "progressPercent": 65
+    }
+  ],
+  "jobs": [
+    {
+      "job": "duplicate",
+      "label": "Duplicate Finder",
+      "total": 13,
+      "pending": 0,
+      "done": 13,
+      "progressPercent": 100
+    },
+    {
+      "job": "activityType",
+      "label": "Activity Classifier",
+      "total": 13,
+      "pending": 0,
+      "done": 13,
+      "progressPercent": 100
+    },
+    {
+      "job": "exploration",
+      "label": "Exploration Score",
+      "total": 13,
+      "pending": 0,
+      "done": 13,
+      "progressPercent": 100
+    }
+  ]
+}

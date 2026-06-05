@@ -1,0 +1,157 @@
+{
+  "overlayResults": [
+    {
+      "before": {
+        "label": "Hiking (worldwide)",
+        "icon": "bi lc-check bi-circle",
+        "enabled": false,
+        "text": "Hiking (worldwide)International, national, regional & local hiking routes"
+      },
+      "after": {
+        "label": "Hiking (worldwide)",
+        "icon": "bi lc-check bi-check-circle-fill",
+        "enabled": true,
+        "text": "Hiking (worldwide)International, national, regional & local hiking routes"
+      }
+    },
+    {
+      "before": {
+        "label": "Cycling (worldwide)",
+        "icon": "bi lc-check bi-circle",
+        "enabled": false,
+        "text": "Cycling (worldwide)Cycling route networks — EuroVelo, national & regional"
+      },
+      "after": {
+        "label": "Cycling (worldwide)",
+        "icon": "bi lc-check bi-check-circle-fill",
+        "enabled": true,
+        "text": "Cycling (worldwide)Cycling route networks — EuroVelo, national & regional"
+      }
+    },
+    {
+      "before": {
+        "label": "MTB (worldwide)",
+        "icon": "bi lc-check bi-circle",
+        "enabled": false,
+        "text": "MTB (worldwide)Mountain bike trails and routes"
+      },
+      "after": {
+        "label": "MTB (worldwide)",
+        "icon": "bi lc-check bi-check-circle-fill",
+        "enabled": true,
+        "text": "MTB (worldwide)Mountain bike trails and routes"
+      }
+    },
+    {
+      "before": {
+        "label": "Hiking Routes",
+        "icon": "bi lc-check bi-circle",
+        "enabled": false,
+        "text": "Hiking Routes"
+      },
+      "after": {
+        "label": "Hiking Routes",
+        "icon": "bi lc-check bi-check-circle-fill",
+        "enabled": true,
+        "text": "Hiking Routes"
+      }
+    },
+    {
+      "before": {
+        "label": "Bike Routes",
+        "icon": "bi lc-check bi-circle",
+        "enabled": false,
+        "text": "Bike Routes"
+      },
+      "after": {
+        "label": "Bike Routes",
+        "icon": "bi lc-check bi-check-circle-fill",
+        "enabled": true,
+        "text": "Bike Routes"
+      }
+    },
+    {
+      "before": {
+        "label": "MTB Routes",
+        "icon": "bi lc-check bi-circle",
+        "enabled": false,
+        "text": "MTB Routes"
+      },
+      "after": {
+        "label": "MTB Routes",
+        "icon": "bi lc-check bi-check-circle-fill",
+        "enabled": true,
+        "text": "MTB Routes"
+      }
+    },
+    {
+      "before": {
+        "label": "Hiking Trails",
+        "icon": "bi lc-check bi-circle",
+        "enabled": false,
+        "text": "Hiking TrailsAll signposted hiking trails (yellow, red-white, blue-white)"
+      },
+      "after": {
+        "label": "Hiking Trails",
+        "icon": "bi lc-check bi-check-circle-fill",
+        "enabled": true,
+        "text": "Hiking TrailsAll signposted hiking trails (yellow, red-white, blue-white)"
+      }
+    }
+  ],
+  "overlayOpacity": {
+    "label": "Hiking Routes",
+    "before": "Hiking Routes",
+    "after": "Hiking Routes",
+    "sliderPresent": true
+  },
+  "stillEnabledAfterOpacity": [
+    {
+      "label": "Hiking (worldwide)",
+      "icon": "bi lc-check bi-check-circle-fill",
+      "enabled": true,
+      "text": "Hiking (worldwide)International, national, regional & local hiking routes"
+    },
+    {
+      "label": "Cycling (worldwide)",
+      "icon": "bi lc-check bi-check-circle-fill",
+      "enabled": true,
+      "text": "Cycling (worldwide)Cycling route networks — EuroVelo, national & regional"
+    },
+    {
+      "label": "MTB (worldwide)",
+      "icon": "bi lc-check bi-check-circle-fill",
+      "enabled": true,
+      "text": "MTB (worldwide)Mountain bike trails and routes"
+    },
+    {
+      "label": "Hiking Routes",
+      "icon": "bi lc-check bi-check-circle-fill",
+      "enabled": true,
+      "text": "Hiking Routes"
+    },
+    {
+      "label": "Bike Routes",
+      "icon": "bi lc-check bi-check-circle-fill",
+      "enabled": true,
+      "text": "Bike Routes"
+    },
+    {
+      "label": "MTB Routes",
+      "icon": "bi lc-check bi-check-circle-fill",
+      "enabled": true,
+      "text": "MTB Routes"
+    },
+    {
+      "label": "Hiking Trails",
+      "icon": "bi lc-check bi-check-circle-fill",
+      "enabled": true,
+      "text": "Hiking TrailsAll signposted hiking trails (yellow, red-white, blue-white)"
+    }
+  ],
+  "assertions": {
+    "allOverlayRowsEnabled": true,
+    "opacitySliderPresent": true,
+    "independentRowsTracked": true
+  }
+}

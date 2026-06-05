@@ -19,7 +19,7 @@ Each row also has matching `gps_track_data_points` rows.
 |---|---:|---|---|
 | `RAW` | `precisionInMeter = 0` | Parsed source points before outlier cleanup. Exact `0,0` fixes are skipped, and missing elevation may be carried forward from the last known elevation, so this is not a byte-for-byte GPX copy. | Audit/debug only in normal app flow. |
 | `RAW_OUTLIER_CLEANED` | `precisionInMeter = 0` | Outlier-removed, stop-collapsed, denoised full-density stream. This is the canonical source for track metrics. | Motion duration, stop events, energy totals, measure/crossing analysis, source for derived variants. |
-| `SIMPLIFIED_SHAPE` | `precisionInMeter = 1, 5, 10, 50, 100, 500, 1000` | PostGIS Douglas-Peucker geometry simplification of `RAW_OUTLIER_CLEANED`, snapped to grid, with stop anchors preserved. | Map rendering, map point popups, geo SQL filters, nearby-track lookup, exploration score. |
+| `SIMPLIFIED_SHAPE` | `precisionInMeter = 1, 10, 100, 1000` | PostGIS Douglas-Peucker geometry simplification of `RAW_OUTLIER_CLEANED`, snapped to grid, with stop anchors preserved. | Map rendering, map point popups, geo SQL filters, nearby-track lookup, exploration score. |
 | `SIMPLIFIED_FIXED_POINTS` | `maxPoints = 750 or 1500` | Time-uniform downsample of `RAW_OUTLIER_CLEANED`. Absolute fields, cumulative totals, moving-window metrics, and energy are copied from the cleaned full-density points; between-point deltas are recomputed between retained points. | Track Details charts, tables, minimap, lightweight per-point display. |
 
 Source of truth: `GpsTrackData.TRACK_TYPE`.

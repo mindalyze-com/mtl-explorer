@@ -5,9 +5,9 @@ analyzing, replaying, and planning routes from personal track data.
 
 ## Archive and import
 
-- Watch-folder import for GPX, FIT, TCX, KML/KMZ, IGC, SBP, NMEA, GeoJSON, and GDB; non-GPX files are converted with GPSBabel.
+- Watch-folder import for GPX, FIT, TCX, KML/KMZ, IGC, NMEA, GeoJSON, and GDB; non-GPX files are converted with GPSBabel.
 - Garmin Connect sync/import that pulls new activity files with gcexport, skips known Garmin activity IDs, and retries selected failures through FIT export.
-- Admin GPX upload, Garmin tool management, and manual GPS/media rescans from the app.
+- Admin track-file upload for supported GPS formats, Garmin tool management, and manual GPS/media rescans from the app.
 - Background indexing for GPS files and geotagged media, with progress for indexers, duplicate detection, activity classification, and exploration scoring.
 - Import cleanup for bad GPS fixes, stationary drift, elevation noise, long temporal gaps, and empty or failed files.
 - Raw, cleaned, and simplified track geometries for precise detail views and fast archive rendering.
@@ -19,6 +19,7 @@ analyzing, replaying, and planning routes from personal track data.
 - Full archive MapLibre map with cache-first track loading, background sync, stale-data detection, and offline fallback.
 - Base themes for OSM topo/light/dark and Swiss Color/Light topographic maps, backed by local PMTiles or remote raster tiles depending on deployment.
 - Maps and data panel with thumbnail theme selection, layer visibility/opacity sliders, and reset defaults.
+- Opt-in 3D terrain view using Mapterhorn elevation tiles, with synchronized base/overlay maps and a compact map control.
 - Layer controls for basemap, tracks, photo/media, GPS points, heatmap, Waymarked Trails, and Swiss route/trail overlays.
 - Waymarked worldwide hiking/cycling/MTB overlays and Swiss hiking, bike, MTB, and signposted trail overlays.
 - Swiss route identification on map click when Swiss overlays are active.
@@ -43,8 +44,9 @@ analyzing, replaying, and planning routes from personal track data.
 - Graphs for speed, elevation, elevation gain rate, distance over time, cumulative mechanical energy, and estimated power.
 - Graph controls for time/distance axes, min/max bands, point density, and chart height.
 - Resizable/collapsible mini-map synchronized with graphs and events, including pinned chart points and hover cross-highlighting.
+- 3D track replay from Track Details with duration presets, cinematic camera modes, smoothed camera rails, terrain-aware route progress, and 2D fallback.
 - Quality tab with load, duplicate, outlier, point-spacing, activity-source, geo-coverage, GPX metadata, and indexer details.
-- Quality tab curation controls and Quality filters for excluding and refinding noisy or misclassified tracks.
+- Overview/Quality curation controls and Quality filters for correcting activity type, excluding unreliable tracks, and refinding noisy or misclassified tracks.
 - Header actions for downloading the original indexed source file or exporting the track as GPX.
 - Related tab for previous/next activities, duplicates, and derived split segments.
 - Events tab for detected breaks, photo stops, GPS gaps, durations, positions, and longest-break highlighting.
@@ -73,6 +75,7 @@ analyzing, replaying, and planning routes from personal track data.
 - Segment comparison with speed, altitude, power, energy, slope, pacing, and time-gap charts.
 - Virtual Race replay for selected segment attempts with moving markers, trails, rankings, and playback speed.
 - Archive animation that replays visible tracks over time with date range and speed controls.
+- Single-track 3D replay for inspecting one activity as a cinematic fly-through.
 
 ## Planner
 

@@ -1,0 +1,8 @@
+DUPLICATE_STATUSES=[{"id":100009,"file":"format-sample.igc","duplicateStatus":"UNIQUE"},{"id":100008,"file":"format-sample.kmz","duplicateStatus":"UNIQUE"},{"id":100002,"file":"MoselradwegAusWiki.gpx","duplicateStatus":"UNIQUE"},{"id":100005,"file":"Activity.fit","duplicateStatus":"UNIQUE"},{"id":100001,"file":"Vitry-le-Francois_Langres.gpx","duplicateStatus":"UNIQUE"},{"id":100012,"file":"format-sample.gdb","duplicateStatus":"UNIQUE"},{"id":100000,"file":"JuraRoute72011.gpx","duplicateStatus":"UNIQUE"},{"id":100006,"file":"format-sample.tcx","duplicateStatus":"UNIQUE"},{"id":100007,"file":"format-sample.kml","duplicateStatus":"UNIQUE"},{"id":100010,"file":"format-sample.nmea","duplicateStatus":"UNIQUE"},{"id":100011,"file":"format-sample.geojson","duplicateStatus":"UNIQUE"}]
+DUPLICATE_GROUP_APPLICABLE=false
+RELATED_HAS_PREVIOUS=true
+RELATED_HAS_CURRENT=true
+RELATED_HAS_NEXT=true
+CLICKED_RELATED_URL=http://167.233.16.201:18080/mtl/track/100000
+CLICK_NAVIGATED_TO_JURA=true
+TRD_13_PASS=true

@@ -1,0 +1,58 @@
+{
+  "click": {
+    "opened": false,
+    "candidate": {
+      "id": 400013,
+      "lat": 47.20521,
+      "lng": 6.99397,
+      "x": 312.56799715082,
+      "y": 725.3913969356116,
+      "nearestPx": 246.7268053608173
+    },
+    "attempts": 5
+  },
+  "previewBeforeNav": {
+    "title": "",
+    "fileName": "",
+    "meta": [],
+    "navCounter": "",
+    "hasImage": false,
+    "hasError": false,
+    "errorText": "",
+    "retryVisible": false,
+    "nextDisabled": null,
+    "prevDisabled": null
+  },
+  "navigation": {
+    "direction": "none",
+    "before": {
+      "title": "",
+      "fileName": "",
+      "meta": [],
+      "navCounter": "",
+      "hasImage": false,
+      "hasError": false,
+      "errorText": "",
+      "retryVisible": false,
+      "nextDisabled": null,
+      "prevDisabled": null
+    },
+    "after": {
+      "title": "",
+      "fileName": "",
+      "meta": [],
+      "navCounter": "",
+      "hasImage": false,
+      "hasError": false,
+      "errorText": "",
+      "retryVisible": false,
+      "nextDisabled": null,
+      "prevDisabled": null
+    }
+  },
+  "assertions": {
+    "pinOpenedPreview": false,
+    "metadataVisible": false,
+    "navigationWorked": false
+  }
+}

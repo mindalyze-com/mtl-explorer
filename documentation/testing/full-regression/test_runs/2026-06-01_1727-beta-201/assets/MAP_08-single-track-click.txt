@@ -1,0 +1,23 @@
+{
+  "coverageId": "MAP_08",
+  "action": "Searched for Rupt-sur-Moselle, clicked an isolated visible segment of GPX track 100000 at the 100 m map scale.",
+  "expected": "A single track click highlights the track and opens track details.",
+  "actual": "The clicked line changed to highlighted blue/orange styling and the Track Details sheet opened for #100000 (Bicycle), with Overview/Graphs/Quality/Related/Events tabs visible.",
+  "selectedTrack": {
+    "id": 100000,
+    "sourceFile": "VoieVerteHauteVosges.gpx",
+    "title": "voie verte haute vosges on GPSies.com"
+  },
+  "visibleAssertions": {
+    "mapScale": "100 m",
+    "mapShows12Tracks": true,
+    "detailsHeader": "TRACK DETAILS #100000 Bicycle",
+    "tabsVisible": [
+      "Overview",
+      "Graphs",
+      "Quality",
+      "Related",
+      "Events"
+    ]
+  }
+}

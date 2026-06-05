@@ -1,0 +1,168 @@
+{
+  "beforeUndo": {
+    "toolbar": "Draw Polygon\n1 point — need at least 3\nUndo\nFinish\nCancel",
+    "canUndo": true,
+    "canFinish": false
+  },
+  "afterUndo": {
+    "toolbar": "Draw Polygon\nClick to place first point\nUndo\nFinish\nCancel",
+    "canUndo": false,
+    "canFinish": false
+  },
+  "afterFinishedShapes": {
+    "actionBar": {
+      "primaryCount": "0",
+      "metrics": [
+        "0matching tracks",
+        "0categories"
+      ],
+      "status": "Live map",
+      "text": "Live map0matching tracks0categories Colors"
+    },
+    "geoSummaries": [
+      "CircleOptionalCircle at 25.1195, 24.4491 — r=987.7 km Redraw",
+      "RectangleOptionalRectangle (14.674…25.119, 24.449…30.122) Redraw",
+      "PolygonOptionalPolygon with 3 points Redraw"
+    ],
+    "storage": {
+      "displayName": "Smart Base Filter",
+      "filterName": "SmartBaseFilter",
+      "params": {
+        "stringParams": {},
+        "dateTimeParams": {
+          "DATE_TIME_FROM": "2000-01-01 00:00:00",
+          "DATE_TIME_TO": "2035-12-31 23:59:00"
+        },
+        "geoCircles": {
+          "GEO_CIRCLE_1": {
+            "lat": 25.119464382292378,
+            "lng": 24.449109354849867,
+            "radiusM": 987740
+          }
+        },
+        "geoRectangles": {
+          "GEO_RECTANGLE_1": {
+            "minLat": 14.674116216804592,
+            "maxLat": 25.119464382292378,
+            "minLng": 24.449109354849867,
+            "maxLng": 30.122163420850114
+          }
+        },
+        "geoPolygons": {
+          "GEO_POLYGON_1": {
+            "coordinates": [
+              [
+                8.520919092616623,
+                41.43327491429977
+              ],
+              [
+                33.831468002467204,
+                17.19162736993627
+              ],
+              [
+                -10.243798202616688,
+                36.34199929391589
+              ]
+            ]
+          }
+        }
+      },
+      "palette": "8 Colors",
+      "legendSortStrategy": null
+    }
+  },
+  "afterReload": {
+    "actionBar": {
+      "primaryCount": "0",
+      "metrics": [
+        "0matching tracks",
+        "0categories"
+      ],
+      "status": "Live map",
+      "text": "Live map0matching tracks0categories Colors"
+    },
+    "geoSummaries": [
+      "CircleOptionalCircle at 25.1195, 24.4491 — r=987.7 km Redraw",
+      "RectangleOptionalRectangle (14.674…25.119, 24.449…30.122) Redraw",
+      "PolygonOptionalPolygon with 3 points Redraw"
+    ],
+    "storage": {
+      "displayName": "Smart Base Filter",
+      "filterName": "SmartBaseFilter",
+      "params": {
+        "stringParams": {},
+        "dateTimeParams": {
+          "DATE_TIME_FROM": "2000-01-01 00:00:00",
+          "DATE_TIME_TO": "2035-12-31 23:59:00"
+        },
+        "geoCircles": {
+          "GEO_CIRCLE_1": {
+            "lat": 25.119464382292378,
+            "lng": 24.449109354849867,
+            "radiusM": 987740
+          }
+        },
+        "geoRectangles": {
+          "GEO_RECTANGLE_1": {
+            "minLat": 14.674116216804592,
+            "maxLat": 25.119464382292378,
+            "minLng": 24.449109354849867,
+            "maxLng": 30.122163420850114
+          }
+        },
+        "geoPolygons": {
+          "GEO_POLYGON_1": {
+            "coordinates": [
+              [
+                8.520919092616623,
+                41.43327491429977
+              ],
+              [
+                33.831468002467204,
+                17.19162736993627
+              ],
+              [
+                -10.243798202616688,
+                36.34199929391589
+              ]
+            ]
+          }
+        }
+      },
+      "palette": "8 Colors",
+      "legendSortStrategy": null
+    }
+  },
+  "afterClear": {
+    "actionBar": {
+      "primaryCount": "11",
+      "metrics": [
+        "11matching tracks",
+        "2categories"
+      ],
+      "status": "Live map",
+      "text": "Live map11matching tracks2categories Colors"
+    },
+    "geoSummaries": [
+      "CircleOptional Draw on map",
+      "RectangleOptional Draw on map",
+      "PolygonOptional Draw on map"
+    ],
+    "storage": {
+      "displayName": "Smart Base Filter",
+      "filterName": "SmartBaseFilter",
+      "params": {
+        "stringParams": {},
+        "dateTimeParams": {
+          "DATE_TIME_FROM": "2000-01-01 00:00:00",
+          "DATE_TIME_TO": "2035-12-31 23:59:00"
+        },
+        "geoCircles": {},
+        "geoRectangles": {},
+        "geoPolygons": {}
+      },
+      "palette": "8 Colors",
+      "legendSortStrategy": null
+    }
+  }
+}

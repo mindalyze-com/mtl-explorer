@@ -30,6 +30,18 @@
         <i class="bi bi-pause-circle"></i>
         <span v-if="trackEvents.length > 0" class="event-count">{{ trackEvents.length }}</span>
       </button>
+
+      <button
+        class="map-overlay-replay-btn"
+        type="button"
+        :disabled="!replayEnabled"
+        aria-label="Start 3D replay"
+        title="Start 3D replay"
+        @click.stop="emit('start-3d-replay')"
+      >
+        <i class="bi bi-badge-3d"></i>
+        <span>3D Replay</span>
+      </button>
     </div>
 
     <!-- Bottom-sheet style resize handle -->
@@ -46,22 +58,35 @@ import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { useTrackMapSync, type TrackPoint } from '@/composables/useTrackMapSync';
 import { useChartSync } from '@/composables/useChartSync';
-import { fetchMapConfig, mainTileArchiveUrl, MapConfigDtoTileModeEnum } from '@/utils/mapConfigService';
-import { buildLocalVectorStyleFromArchiveUrl, buildRemoteRasterStyle } from '@/utils/mapStyle';
+import { fetchMapConfig } from '@/utils/mapConfigService';
+import { resolveConfiguredMapStyle } from '@/components/map/mapStyleResolver';
 import { TRACK_COLOR } from '@/utils/trackColors';
-import { USER_PREFS_KEYS, migrateLegacyKeys } from '@/utils/userPrefs';
+import {
+  TRACK_DETAIL_MINI_MAP_HEIGHT_DEFAULT,
+  TRACK_DETAIL_MINI_MAP_HEIGHT_MAX,
+  TRACK_DETAIL_MINI_MAP_HEIGHT_MIN,
+  TRACK_DETAIL_MINI_MAP_HEIGHT_MOBILE_DEFAULT,
+  useTrackDetailsPreferencesStore,
+} from '@/stores/trackDetailsPreferencesStore';
+import { useMapSettingsStore } from '@/stores/mapSettingsStore';
+import { formatDateAndTimeWithSeconds, formatDistanceSmart, formatDurationSmart, formatNumber } from '@/utils/Utils';
 import type { GpsTrackEvent } from 'x8ing-mtl-api-typescript-fetch/dist/esm/models/index';
+import { unwrapLngLatCoordinates } from '@/components/map/mapGeometry';
+import {
+  clamp01,
+  numericRangeForItems,
+  projectClickToTrackLine,
+  valueAtFraction,
+  type TrackLineProjection,
+} from '@/components/map/trackLineHitTest';
 
-const STORAGE_KEY = USER_PREFS_KEYS.trackMiniMapHeight;
-const MIN_HEIGHT = 80;
-const MAX_HEIGHT = 600;
-const DEFAULT_HEIGHT = 220;
-const DEFAULT_HEIGHT_MOBILE = 160;
+const MIN_HEIGHT = TRACK_DETAIL_MINI_MAP_HEIGHT_MIN;
+const MAX_HEIGHT = TRACK_DETAIL_MINI_MAP_HEIGHT_MAX;
+const DEFAULT_HEIGHT = TRACK_DETAIL_MINI_MAP_HEIGHT_DEFAULT;
+const DEFAULT_HEIGHT_MOBILE = TRACK_DETAIL_MINI_MAP_HEIGHT_MOBILE_DEFAULT;
 
 const SOURCE_ID = 'detail-track';
 const TRACK_LAYER = 'detail-track-layer';
-const MARKER_SOURCE = 'detail-marker';
-const MARKER_LAYER = 'detail-marker-layer';
 const EVENT_SOURCE = 'detail-events';
 const EVENT_LAYER = 'detail-events-layer';
 const SELECTED_EVENT_SOURCE = 'detail-selected-event';
@@ -79,6 +104,19 @@ const SELECTED_EVENT_HALO_COLOR = '#f97316';
 const SELECTED_EVENT_CORE_COLOR = '#fff7ed';
 const SELECTED_EVENT_CORE_STROKE = '#ea580c';
 const METERS_PER_KILOMETER = 1000;
+const SEGMENT_CLICK_TOLERANCE_PX = 12;
+const SEGMENT_CLICK_TOLERANCE_METERS = 120;
+// Hover snap tolerance expressed in screen pixels. Converting this to meters at the
+// current zoom keeps snapping equally forgiving whether zoomed in or out (a fixed
+// metric radius becomes sub-pixel when zoomed out, so the cursor would almost never
+// snap to the line).
+const HOVER_SNAP_TOLERANCE_PX = 18;
+// Web Mercator ground resolution (meters per pixel) at the equator, zoom 0.
+const MERCATOR_METERS_PER_PIXEL_Z0 = 156543.03392804097;
+// Visual style for the DOM hover marker (mirrors the previous circle layer).
+const HOVER_MARKER_DIAMETER_PX = 14;
+const HOVER_MARKER_FILL = '#e63946';
+const HOVER_MARKER_STROKE = '#fff';
 type EventFeatureProperties = {
   duration?: string;
   eventKey?: string | number;
@@ -89,23 +127,13 @@ type PendingMapHover = {
   lat: number;
   lng: number;
 };
+type ClickPointTarget = {
+  point: TrackPoint;
+  anchor: [number, number];
+};
 
 function isMobile() {
   return window.innerWidth <= 768;
-}
-
-function loadStoredHeight(): number {
-  try {
-    migrateLegacyKeys();
-    const v = localStorage.getItem(STORAGE_KEY);
-    if (v) {
-      const n = parseInt(v, 10);
-      if (n >= MIN_HEIGHT && n <= MAX_HEIGHT) return n;
-    }
-  } catch {
-    /* ignore */
-  }
-  return isMobile() ? DEFAULT_HEIGHT_MOBILE : DEFAULT_HEIGHT;
 }
 
 defineOptions({
@@ -115,6 +143,7 @@ defineOptions({
 const props = withDefaults(
   defineProps<{
     gpsTrackId: number;
+    replayEnabled?: boolean;
     trackEvents?: GpsTrackEvent[];
     trackCoordinates?: number[][];
     selectedEventKey?: string | number | null;
@@ -128,16 +157,20 @@ const props = withDefaults(
 
 const emit = defineEmits<{
   'select-event': [key: string | number | null];
+  'start-3d-replay': [];
 }>();
 
 const mapEl = ref<HTMLElement | null>(null);
 const mapBodyEl = ref<HTMLElement | null>(null);
 const isCollapsed = ref(false);
-const mapHeight = ref(loadStoredHeight());
+const preferencesStore = useTrackDetailsPreferencesStore();
+const mapSettingsStore = useMapSettingsStore();
+const mapHeight = ref(preferencesStore.ensureMiniMapHeight(isMobile() ? DEFAULT_HEIGHT_MOBILE : DEFAULT_HEIGHT));
 const showEvents = ref(props.trackEvents.length > 0);
 
 let map: maplibregl.Map | null = null;
 let mapReady = false;
+let hoverMarker: maplibregl.Marker | null = null;
 
 let eventLayerRetryScheduled = false;
 let eventLayerRetryMap: maplibregl.Map | null = null;
@@ -145,6 +178,8 @@ let eventLayerRetryHandler: (() => void) | null = null;
 let pendingMapHover: PendingMapHover | null = null;
 let mapHoverFrame: number | null = null;
 let lastSyncedHoverPointIndex: number | null = null;
+let pointPopup: maplibregl.Popup | null = null;
+let canvasLeaveHandler: (() => void) | null = null;
 
 // ── Resize via native pointer drag ──
 const resizeHandleEl = ref<HTMLElement | null>(null);
@@ -160,11 +195,7 @@ usePointerDrag(resizeHandleEl, ({ movement: [, my], dragging, first, last }) => 
     map?.resize();
   }
   if (last) {
-    try {
-      localStorage.setItem(STORAGE_KEY, String(mapHeight.value));
-    } catch {
-      /* ignore */
-    }
+    mapHeight.value = preferencesStore.setMiniMapHeight(mapHeight.value);
     nextTick(() => map?.resize());
   }
 });
@@ -177,6 +208,7 @@ const {
   getTrackPoints,
   findPointByDistance,
   findPointByIndex,
+  findPointByCanonicalIndex,
   findPointByLatLng,
   findPointByTimestamp,
   setPinnedPoint,
@@ -190,12 +222,12 @@ async function initMap() {
   if (!mapEl.value) return;
 
   const config = await fetchMapConfig();
-  let style;
-  if (config.tileMode === MapConfigDtoTileModeEnum.Local) {
-    style = buildLocalVectorStyleFromArchiveUrl(mainTileArchiveUrl(config), 'light');
-  } else {
-    style = buildRemoteRasterStyle(config.remoteTileUrl);
-  }
+  mapSettingsStore.hydrate();
+  const { style } = resolveConfiguredMapStyle({
+    config,
+    theme: 'light',
+    mapSourceMode: mapSettingsStore.mapSourceMode,
+  });
 
   map = markRaw(
     new maplibregl.Map({
@@ -233,10 +265,12 @@ async function initMap() {
   drawEvents();
 
   map.on('click', (e: maplibregl.MapMouseEvent) => {
-    const pt = findPointByLatLng(e.lngLat.lat, e.lngLat.lng);
-    if (pt) {
-      setPinnedPoint(pt);
-      showChartsAtPoint(pt);
+    if (clickedEventFeature(e)) return;
+    const target = findClickPointTarget(e);
+    if (target) {
+      setPinnedPoint(target.point);
+      showChartsAtPoint(target.point);
+      showPointPopup(target.point, target.anchor);
     }
   });
 
@@ -244,15 +278,20 @@ async function initMap() {
     scheduleMapHover(e.lngLat.lat, e.lngLat.lng);
   });
 
-  map.on('mouseout', () => {
+  const clearMapInteraction = () => {
     cancelMapHover();
     lastSyncedHoverPointIndex = null;
     clearHover();
     clearChartCrosshairs();
-  });
+  };
+
+  map.on('mouseout', clearMapInteraction);
+  canvasLeaveHandler = clearMapInteraction;
+  map.getCanvas().addEventListener('mouseleave', clearMapInteraction);
 
   map.on('dblclick', () => {
     setPinnedPoint(null);
+    clearPointPopup();
   });
 
   const onEventFeatureClick = (e: maplibregl.MapLayerMouseEvent) => {
@@ -284,6 +323,149 @@ async function initMap() {
   map.on('mouseleave', EVENT_LAYER, () => {
     if (map) map.getCanvas().style.cursor = '';
   });
+}
+
+function clickedEventFeature(e: maplibregl.MapMouseEvent): boolean {
+  if (!map) return false;
+  const layers = [EVENT_LAYER, SELECTED_EVENT_HALO_LAYER, SELECTED_EVENT_CORE_LAYER].filter((layerId) =>
+    map?.getLayer(layerId)
+  );
+  if (layers.length === 0) return false;
+  return map.queryRenderedFeatures(e.point, { layers }).length > 0;
+}
+
+function clearPointPopup() {
+  if (pointPopup) {
+    pointPopup.remove();
+    pointPopup = null;
+  }
+}
+
+function showPointPopup(point: TrackPoint, anchor: [number, number] = [point.lng, point.lat]) {
+  if (!map) return;
+  clearPointPopup();
+  pointPopup = new maplibregl.Popup({ closeButton: true, closeOnClick: true, maxWidth: '280px' })
+    .setLngLat(anchor)
+    .setHTML(pointPopupHtml(point))
+    .addTo(map);
+}
+
+function findClickPointTarget(e: maplibregl.MapMouseEvent): ClickPointTarget | null {
+  const directPoint = findPointByLatLng(e.lngLat.lat, e.lngLat.lng, currentHoverSnapMeters(e.lngLat.lat));
+  if (directPoint) return { point: directPoint, anchor: [directPoint.lng, directPoint.lat] };
+
+  // Sparse simplified tracks can draw a visible line with only start/end vertices.
+  // On click, hit-test that rendered line and resolve the projected fraction back
+  // to the nearest real chart/canonical point without densifying map state.
+  const projection = findRenderedLineProjection(e);
+  if (!projection) return null;
+
+  const projectedPoint = findPointForTrackFraction(projection.fraction);
+  if (!projectedPoint) return null;
+
+  return {
+    point: {
+      ...projectedPoint,
+      lng: projection.anchor[0],
+      lat: projection.anchor[1],
+    },
+    anchor: projection.anchor,
+  };
+}
+
+function findRenderedLineProjection(e: maplibregl.MapMouseEvent): TrackLineProjection | null {
+  const coordinates = trackLineCoordinates();
+  if (coordinates.length < 2) return null;
+
+  return projectClickToTrackLine({
+    map,
+    clickPoint: e.point,
+    lngLat: e.lngLat,
+    coordinates,
+    pixelTolerance: SEGMENT_CLICK_TOLERANCE_PX,
+    meterTolerance: SEGMENT_CLICK_TOLERANCE_METERS,
+  });
+}
+
+function findPointForTrackFraction(fraction: number): TrackPoint | null {
+  const points = getTrackPoints();
+  if (points.length === 0) return null;
+
+  const distanceRange = numericRangeForItems(points, (point) => point.distanceKm);
+  if (distanceRange && distanceRange.max > distanceRange.min) {
+    return findPointByDistance(valueAtFraction(distanceRange, fraction));
+  }
+
+  const canonicalRange = numericRangeForItems(points, (point) => point.canonicalPointIndex);
+  if (canonicalRange && canonicalRange.max > canonicalRange.min) {
+    return findPointByCanonicalIndex(valueAtFraction(canonicalRange, fraction));
+  }
+
+  const pointIndexRange = numericRangeForItems(points, (point) => point.pointIndex);
+  if (pointIndexRange) {
+    return findPointByIndex(valueAtFraction(pointIndexRange, fraction));
+  }
+
+  return points[0] ?? null;
+}
+
+function pointPopupHtml(point: TrackPoint): string {
+  const rows = [
+    ['Point', formatNumber(displayPointIndex(point) + 1, 0)],
+    ['Time', formatPointTime(point.timestamp)],
+    ['Distance', formatDistanceSmart(point.distanceKm * METERS_PER_KILOMETER)],
+    ['Elevation', point.altitude == null ? '—' : `${formatNumber(point.altitude, 1)} m`],
+    ['Speed', formatPointSpeed(point)],
+    ['Elapsed', formatElapsed(point)],
+  ];
+  return `
+    <div class="detail-point-popup">
+      <strong>Track point</strong>
+      <table>
+        ${rows
+          .map(
+            ([label, value]) =>
+              `<tr><td class="detail-point-popup__label">${escapeHtml(label)}</td><td>${escapeHtml(value)}</td></tr>`
+          )
+          .join('')}
+      </table>
+    </div>`;
+}
+
+function formatPointTime(timestamp: number): string {
+  if (!Number.isFinite(timestamp) || timestamp <= 0) return '—';
+  return formatDateAndTimeWithSeconds(new Date(timestamp));
+}
+
+function displayPointIndex(point: TrackPoint): number {
+  return Number.isFinite(point.canonicalPointIndex) ? (point.canonicalPointIndex as number) : point.pointIndex;
+}
+
+function formatElapsed(point: TrackPoint): string {
+  const first = getTrackPoints()[0];
+  if (!first || !Number.isFinite(first.timestamp) || !Number.isFinite(point.timestamp)) return '—';
+  const elapsed = Math.max(0, point.timestamp - first.timestamp);
+  return formatDurationSmart(elapsed);
+}
+
+function formatPointSpeed(point: TrackPoint): string {
+  const points = getTrackPoints();
+  const index = points.findIndex((candidate) => sameTrackPoint(candidate, point));
+  const prev = index > 0 ? points[index - 1] : null;
+  const next = index >= 0 && index < points.length - 1 ? points[index + 1] : null;
+  const a = prev ?? point;
+  const b = next ?? point;
+  const dtMs = b.timestamp - a.timestamp;
+  const dKm = b.distanceKm - a.distanceKm;
+  if (!Number.isFinite(dtMs) || dtMs <= 0 || !Number.isFinite(dKm) || dKm < 0) return '—';
+  return `${formatNumber(dKm / (dtMs / 3_600_000), 1)} km/h`;
+}
+
+function sameTrackPoint(a: TrackPoint, b: TrackPoint): boolean {
+  if (a.canonicalPointIndex != null && b.canonicalPointIndex != null) {
+    return a.canonicalPointIndex === b.canonicalPointIndex;
+  }
+  return a.pointIndex === b.pointIndex;
 }
 
 function drawTrack() {
@@ -326,14 +508,8 @@ function drawTrack() {
   );
   map.fitBounds(bounds, { padding: 20 });
 
-  // Ensure marker layer renders on top of the track layer.
-  // Bug: when initMap() runs before setTrackPoints() completes, updateMarker(null)
-  // creates the MARKER_LAYER first and drawTrack() then adds TRACK_LAYER on top,
-  // hiding the red dot.  moveLayer() after every drawTrack() call keeps the
-  // marker always on top regardless of initialization order.
-  if (map.getLayer(MARKER_LAYER)) {
-    map.moveLayer(MARKER_LAYER);
-  }
+  // The hover marker is a DOM overlay (maplibregl.Marker) and always renders on top
+  // of the canvas, so it no longer needs explicit layer reordering after drawTrack().
   if (map.getLayer(EVENT_LAYER) && map.isStyleLoaded()) {
     map.moveLayer(EVENT_LAYER);
     moveSelectedEventLayersToTop();
@@ -353,11 +529,12 @@ function trackLineCoordinates(): [number, number][] {
   const propCoordinates = props.trackCoordinates
     .map(pointToLngLat)
     .filter((point): point is [number, number] => point !== null);
-  if (propCoordinates.length > 0) return propCoordinates;
+  if (propCoordinates.length > 0) return unwrapLngLatCoordinates(propCoordinates);
 
-  return getTrackPoints()
+  const syncCoordinates = getTrackPoints()
     .map((p) => [p.lng, p.lat] as [number, number])
     .filter((c) => isFinite(c[0]) && isFinite(c[1]));
+  return unwrapLngLatCoordinates(syncCoordinates);
 }
 
 function cancelMapHover() {
@@ -368,8 +545,21 @@ function cancelMapHover() {
   }
 }
 
+// Ground resolution (meters per screen pixel) at the current map zoom/latitude.
+function mapMetersPerPixel(lat: number): number {
+  const zoom = map?.getZoom() ?? 0;
+  const latRad = (lat * Math.PI) / 180;
+  return (MERCATOR_METERS_PER_PIXEL_Z0 * Math.cos(latRad)) / Math.pow(2, zoom);
+}
+
+// Convert the fixed pixel hover tolerance to meters at the current zoom so snapping
+// stays equally forgiving when zoomed out (where a fixed metric radius is sub-pixel).
+function currentHoverSnapMeters(lat: number): number {
+  return HOVER_SNAP_TOLERANCE_PX * mapMetersPerPixel(lat);
+}
+
 function syncMapHover(lat: number, lng: number) {
-  const pt = findPointByLatLng(lat, lng);
+  const pt = findPointByLatLng(lat, lng, currentHoverSnapMeters(lat));
   if (!pt) return;
   if (lastSyncedHoverPointIndex === pt.pointIndex) return;
 
@@ -742,45 +932,43 @@ function toggleEvents() {
   drawEvents();
 }
 
+function ensureHoverMarker(): maplibregl.Marker | null {
+  if (!map) return null;
+  if (hoverMarker) return hoverMarker;
+
+  const el = document.createElement('div');
+  el.style.width = `${HOVER_MARKER_DIAMETER_PX}px`;
+  el.style.height = `${HOVER_MARKER_DIAMETER_PX}px`;
+  el.style.borderRadius = '50%';
+  el.style.background = HOVER_MARKER_FILL;
+  el.style.border = `2px solid ${HOVER_MARKER_STROKE}`;
+  el.style.boxSizing = 'border-box';
+  // The marker must never intercept pointer events, otherwise it would swallow the
+  // map mousemove stream while scrubbing along the track.
+  el.style.pointerEvents = 'none';
+
+  hoverMarker = new maplibregl.Marker({ element: el });
+  return hoverMarker;
+}
+
 function updateMarker(point: TrackPoint | null) {
-  // NOTE: do NOT guard with map.loaded() here.
-  // MapLibre returns loaded() = false whenever any tiles are still being
-  // fetched (e.g. while the user pans or zooms).  Guarding on it causes
-  // every hover update to be silently dropped during tile loading, making
-  // the marker appear frozen.  The GeoJSON source operations (addSource /
-  // setData) are safe to call regardless of tile-loading state.
+  // The hover marker is a DOM overlay (maplibregl.Marker), not a GeoJSON circle
+  // layer.  Moving it via setLngLat() only updates a CSS transform on the marker
+  // element and does NOT trigger a WebGL repaint of the map.  The previous
+  // implementation called GeoJSONSource.setData() on every hover, which forced
+  // MapLibre to re-render the entire style — including the full track line — on
+  // each animation frame.  That repaint dominated CPU time when zoomed out (the
+  // whole large track is in view) and was the real cause of the sluggish scrub.
   if (!map) return;
 
-  const markerGeojson: GeoJSON.FeatureCollection = {
-    type: 'FeatureCollection',
-    features: point
-      ? [
-          {
-            type: 'Feature',
-            geometry: { type: 'Point', coordinates: [point.lng, point.lat] },
-            properties: {},
-          },
-        ]
-      : [],
-  };
-
-  const source = map.getSource(MARKER_SOURCE) as maplibregl.GeoJSONSource | undefined;
-  if (source) {
-    source.setData(markerGeojson);
-  } else {
-    map.addSource(MARKER_SOURCE, { type: 'geojson', data: markerGeojson });
-    map.addLayer({
-      id: MARKER_LAYER,
-      type: 'circle',
-      source: MARKER_SOURCE,
-      paint: {
-        'circle-radius': 7,
-        'circle-color': '#e63946',
-        'circle-stroke-width': 2,
-        'circle-stroke-color': '#fff',
-      },
-    });
+  if (!point) {
+    hoverMarker?.remove();
+    return;
   }
+
+  const marker = ensureHoverMarker();
+  if (!marker) return;
+  marker.setLngLat([point.lng, point.lat]).addTo(map);
 }
 
 watch(
@@ -820,6 +1008,15 @@ const mountMap = () => {
 onBeforeUnmount(() => {
   clearEventLayerRetry();
   cancelMapHover();
+  clearPointPopup();
+  if (map && canvasLeaveHandler) {
+    map.getCanvas().removeEventListener('mouseleave', canvasLeaveHandler);
+    canvasLeaveHandler = null;
+  }
+  if (hoverMarker) {
+    hoverMarker.remove();
+    hoverMarker = null;
+  }
   if (map) {
     map.remove();
     map = null;
@@ -963,6 +1160,39 @@ watch(
   cursor: default;
 }
 
+.map-overlay-replay-btn {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  z-index: 1001;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.15rem;
+  gap: 0.4rem;
+  border: 1px solid var(--border-medium);
+  border-radius: 999px;
+  background: var(--surface-glass-heavy);
+  color: var(--text-primary);
+  cursor: pointer;
+  font-size: var(--text-xs-size);
+  font-weight: 700;
+  line-height: var(--text-xs-lh);
+  padding: 0.35rem 0.8rem;
+  box-shadow: var(--shadow-sm);
+  backdrop-filter: blur(2px);
+}
+
+.map-overlay-replay-btn:hover:not(:disabled) {
+  border-color: var(--accent-muted);
+  background: var(--accent-subtle);
+}
+
+.map-overlay-replay-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
 .event-count {
   min-width: 1.25em;
   font-size: var(--text-xs-size);
@@ -1009,5 +1239,29 @@ watch(
 .resize-handle:active .resize-grip {
   width: 48px;
   background: var(--text-faint);
+}
+
+.mini-map-wrapper :deep(.detail-point-popup) {
+  font-size: var(--text-xs-size);
+  color: var(--text-primary);
+}
+
+.mini-map-wrapper :deep(.detail-point-popup strong) {
+  display: block;
+  margin-bottom: 0.35rem;
+}
+
+.mini-map-wrapper :deep(.detail-point-popup table) {
+  border-collapse: collapse;
+}
+
+.mini-map-wrapper :deep(.detail-point-popup td) {
+  padding: 0.08rem 0.35rem 0.08rem 0;
+  white-space: nowrap;
+}
+
+.mini-map-wrapper :deep(.detail-point-popup__label) {
+  color: var(--text-muted);
+  font-weight: 600;
 }
 </style>

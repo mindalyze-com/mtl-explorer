@@ -1,0 +1,8 @@
+summary trackCount=5 distanceM=1042712.01 durationMs=84660000.0 energyWh=4527.34 oldestStart=2010-01-01T00:00:00.000+0000 newestStart=2013-03-08T09:32:24.000+0000
+activityBreakdown=BICYCLE tracks=5 distanceM=1042712.01 durationMs=84660000.0
+ranking longest-distance topTrackId=100002 value=517818.88
+ranking longest-duration topTrackId=100003 value=28015000.0
+ranking biggest-ascent topTrackId=100003 value=6324.19
+ranking quickest-ascent topTrackId=100002 value=3847.95
+ranking most-energy topTrackId=100003 value=1807.64
+periods=2010-01 tracks=4 dist=1016829 durationSecs=80251; 2013-03 tracks=1 dist=25882 durationSecs=4409

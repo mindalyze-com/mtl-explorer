@@ -5,6 +5,9 @@ import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
+
 @Data
 @Component
 @ConfigurationProperties(prefix = "mtl.map-server")
@@ -23,7 +26,7 @@ import org.springframework.stereotype.Component;
         "tileBaseUrl",
         "tilesetName",
         "lowzoomTilesetName",
-        "remoteTileUrl",
+        "remoteRasterStyles",
         "initialBounds",
         "proxyConnectTimeoutMs",
         "proxyReadTimeoutMs",
@@ -34,6 +37,20 @@ import org.springframework.stereotype.Component;
         "demoAreaMaxZoom"
 })
 public class MapServerProperties {
+
+    public static final String REMOTE_RASTER_STYLE_LIGHT = "light";
+    public static final String REMOTE_RASTER_STYLE_LIGHT_TOPO = "light-topo";
+    public static final String REMOTE_RASTER_STYLE_DARK = "dark";
+
+    private static final String OSM_ATTRIBUTION =
+            "© <a href=\"https://www.openstreetmap.org/copyright\">OpenStreetMap</a> contributors";
+    private static final String OPENTOPOMAP_ATTRIBUTION =
+            "Map data: © <a href=\"https://www.openstreetmap.org/copyright\">OpenStreetMap</a> contributors, SRTM | " +
+                    "Map style: © <a href=\"https://opentopomap.org\">OpenTopoMap</a> " +
+                    "(<a href=\"https://creativecommons.org/licenses/by-sa/3.0/\">CC-BY-SA</a>)";
+    private static final String CARTO_ATTRIBUTION =
+            "© <a href=\"https://www.openstreetmap.org/copyright\">OpenStreetMap</a> contributors " +
+                    "© <a href=\"https://carto.com/attributions\">CARTO</a>";
 
     /**
      * Full URL to the map-server status endpoint, e.g. http://map-server:8081/status
@@ -116,9 +133,32 @@ public class MapServerProperties {
     private String lowzoomTilesetName = "world-lowzoom";
 
     /**
-     * Raster tile URL template for remote mode. Must contain {z}, {x}, {y} placeholders.
+     * Remote raster map styles exposed to the browser when {@link #tileMode} is
+     * {@code remote}, or when local vector tiles are temporarily unavailable.
+     *
+     * <p>Each entry key is a frontend map theme id. The app currently expects
+     * three provider-backed entries:
+     * <ul>
+     *   <li>{@code light}: regular remote raster map, defaulting to OSM Standard.</li>
+     *   <li>{@code light-topo}: topographic remote raster map, defaulting to OpenTopoMap.</li>
+     *   <li>{@code dark}: dark remote raster map, defaulting to CARTO Dark Matter.</li>
+     * </ul>
+     *
+     * <p>The {@code grayscale} UI theme intentionally derives from {@code light}
+     * and applies a client-side grayscale raster paint, so it does not need a
+     * fourth provider URL.
+     *
+     * <p>To use another provider, override both {@code url} and
+     * {@code attribution} for the relevant style. For example, Simon's remote
+     * raster setup can keep OSM Standard for {@code light}, use OpenTopoMap for
+     * {@code light-topo}, and use CARTO Dark Matter for {@code dark}; each entry
+     * must carry the attribution required by that provider. If a deployment
+     * points a style at a custom provider but leaves the attribution wrong or
+     * blank, that deployment owns the incorrect attribution.
+     *
+     * <p>URL templates must contain {@code {z}}, {@code {x}}, and {@code {y}}.
      */
-    private String remoteTileUrl = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
+    private Map<String, RemoteRasterStyleProperties> remoteRasterStyles = defaultRemoteRasterStyles();
 
     /**
      * Optional initial map bounds. When unset, the server derives the initial
@@ -164,4 +204,44 @@ public class MapServerProperties {
      * Legacy maximum zoom level for bounded local maps. Normally unset.
      */
     private Integer demoAreaMaxZoom;
+
+    @Data
+    @JsonPropertyOrder({
+            "url",
+            "attribution"
+    })
+    public static class RemoteRasterStyleProperties {
+
+        /**
+         * Raster tile URL template. Must contain {@code {z}}, {@code {x}}, and {@code {y}}.
+         */
+        private String url;
+
+        /**
+         * Provider attribution shown by MapLibre for this raster source. Keep it
+         * matched to {@link #url}; do not reuse OSM attribution for non-OSM tile providers.
+         */
+        private String attribution;
+    }
+
+    private static Map<String, RemoteRasterStyleProperties> defaultRemoteRasterStyles() {
+        Map<String, RemoteRasterStyleProperties> styles = new LinkedHashMap<>();
+        styles.put(
+                REMOTE_RASTER_STYLE_LIGHT,
+                remoteRasterStyle("https://tile.openstreetmap.org/{z}/{x}/{y}.png", OSM_ATTRIBUTION));
+        styles.put(
+                REMOTE_RASTER_STYLE_LIGHT_TOPO,
+                remoteRasterStyle("https://tile.opentopomap.org/{z}/{x}/{y}.png", OPENTOPOMAP_ATTRIBUTION));
+        styles.put(
+                REMOTE_RASTER_STYLE_DARK,
+                remoteRasterStyle("https://basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png", CARTO_ATTRIBUTION));
+        return styles;
+    }
+
+    private static RemoteRasterStyleProperties remoteRasterStyle(String url, String attribution) {
+        RemoteRasterStyleProperties style = new RemoteRasterStyleProperties();
+        style.setUrl(url);
+        style.setAttribution(attribution);
+        return style;
+    }
 }

@@ -1,0 +1,86 @@
+{
+  "locationResult": "Zürich Zurich, Switzerland CITY Z7-15",
+  "config": {
+    "plannerConfig": {
+      "defaultProfile": "trekking",
+      "maxWaypoints": 150,
+      "profiles": [
+        "trekking",
+        "fastbike",
+        "hiking-mountain",
+        "car-eco"
+      ]
+    },
+    "status": {
+      "available": true,
+      "brouterPort": 17777,
+      "brouterRunning": true,
+      "segmentsDir": "/segments4",
+      "segmentsOnDisk": 2,
+      "segmentsQueued": 0,
+      "segmentsInProgress": [],
+      "segmentsCompletedThisRun": [
+        "E10_N45.rd5",
+        "E5_N45.rd5"
+      ],
+      "segmentsFailed": {},
+      "segmentsKnown404": 0,
+      "segmentsValidationPhase": "complete",
+      "segmentsValidated": 0,
+      "segmentsRepaired": [],
+      "segmentsValidationWarnings": [],
+      "segmentsValidationStartedAt": "2026-06-04T19:58:17.974445Z",
+      "segmentsValidationCompletedAt": "2026-06-04T19:58:17.974622Z",
+      "versionInfo": {
+        "image": {
+          "version": "1.11",
+          "buildTime": "2026-05-25T13:54:08Z"
+        },
+        "components": {
+          "brouter": "1.7.9"
+        },
+        "data": {}
+      }
+    }
+  },
+  "profileState": {
+    "profile": "Road Bike",
+    "notices": [],
+    "statCards": [
+      {
+        "label": "Distance",
+        "value": "0.00 km",
+        "text": "Distance0.00 km"
+      },
+      {
+        "label": "Ascent",
+        "value": "0 m",
+        "text": "Ascent0 m"
+      },
+      {
+        "label": "Descent",
+        "value": "0 m",
+        "text": "Descent0 m"
+      },
+      {
+        "label": "Duration",
+        "value": "–",
+        "text": "Duration–"
+      },
+      {
+        "label": "Legs",
+        "value": "0",
+        "text": "Legs0"
+      }
+    ],
+    "distance": "0.00 km",
+    "ascent": "0 m",
+    "descent": "0 m",
+    "duration": "–",
+    "legs": "0",
+    "highcharts": 0,
+    "hoverMarkers": 0,
+    "saveDisabled": true,
+    "bodyExcerpt": "100 m© OpenStreetMap | Elevation: Mapterhorn11 Tracks StatsFilterMapAnimateSegmentsGPSPlannerAdminSearchImportanceNear mapZürichZurich, SwitzerlandCityz7-15Zürich (Kreis 11)Zurich, SwitzerlandNeighbourhoodz11-15Zürich (Kreis 3)Zurich, SwitzerlandNeighbourhoodz11-15Zürich (Kreis 9)Zurich, SwitzerlandNeighbourhoodz11-15Zürich (Kreis 10)Zurich, SwitzerlandNeighbourhoodz11-15Zürich (Kreis 7)Zurich, SwitzerlandNeighbourhoodz11-15Zürich (Kreis 6)Zurich, SwitzerlandNeighbourhoodz11-15Zürich (Kreis 2)Zurich, SwitzerlandNeighbourhoodz11-15Zürich (Kreis 12)Zurich, SwitzerlandNeighbourhoodz11-15Zürich (Kreis 8)Zurich, SwitzerlandNeighbourhoodz11-15Zürich (Kreis 4) / AussersihlZurich, SwitzerlandNeighbourhoodz11-15Zürich (Kreis 5)Zurich, SwitzerlandNeighbourhoodz11-15Zürich (Kreis 1)Zurich, Switzerlan"
+  }
+}

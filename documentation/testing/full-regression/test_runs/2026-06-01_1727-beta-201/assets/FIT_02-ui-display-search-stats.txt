@@ -1,0 +1,20 @@
+{
+  "mapText": "500 km\n© OpenStreetMap | Elevation: Mapterhorn\n4 Tracks\nStats\nFilter\nMap\nAnimate\nSegments\nGPS\nPlanner\nAdmin",
+  "overviewSummary": "4 TRACKS; 873 km; 18h 49m; 4,206 Wh; Activity breakdown includes Walking 1; Recent activity includes Track 100005 Walking 3.60 km 59m 57s.",
+  "tracksSummary": "Stats Tracks table shows 4 tracks; Track 100005 Walking 3.60 km 59m 57s plus three remaining GPX tracks.",
+  "searchQuery": "Activity.fit",
+  "searchResult": "1 of 4 tracks; Track 100005; Walking; 3.60 km; 59m 57s.",
+  "assertions": {
+    "mapShowsFourTracks": true,
+    "statsOverviewShowsFourTracks": true,
+    "statsTracksShowsFourTracks": true,
+    "searchShowsOneOfFour": true,
+    "searchShowsFitTrackName": true,
+    "searchIncludesWalking": true
+  },
+  "nonBlockingBrowserNoise": [
+    "pre-login /api/info/build 401",
+    "external raster/font request aborts during page teardown",
+    "WebGL ReadPixels performance warnings"
+  ]
+}

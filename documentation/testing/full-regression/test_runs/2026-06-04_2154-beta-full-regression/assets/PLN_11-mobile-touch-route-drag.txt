@@ -1,0 +1,171 @@
+{
+  "viewport": {
+    "width": 390,
+    "height": 844,
+    "hasTouch": true,
+    "isMobile": true
+  },
+  "locationResult": "Zürich Zurich, Switzerland CITY Z7-15",
+  "canvasBox": {
+    "index": 0,
+    "x": 0,
+    "y": 0,
+    "w": 390,
+    "h": 844
+  },
+  "tapPoints": {
+    "p1": {
+      "x": 163.79999999999998,
+      "y": 151.92
+    },
+    "p2": {
+      "x": 241.8,
+      "y": 185.68
+    }
+  },
+  "afterFirstTap": {
+    "notices": [],
+    "distance": "0.00 km",
+    "ascent": "0 m",
+    "duration": "–",
+    "legs": "0",
+    "highcharts": 0,
+    "statCards": [
+      {
+        "label": "Distance",
+        "value": "0.00 km",
+        "text": "Distance0.00 km"
+      },
+      {
+        "label": "Ascent",
+        "value": "0 m",
+        "text": "Ascent0 m"
+      },
+      {
+        "label": "Descent",
+        "value": "0 m",
+        "text": "Descent0 m"
+      },
+      {
+        "label": "Duration",
+        "value": "–",
+        "text": "Duration–"
+      },
+      {
+        "label": "Legs",
+        "value": "0",
+        "text": "Legs0"
+      }
+    ]
+  },
+  "afterRoute": {
+    "notices": [],
+    "distance": "0.20 km",
+    "ascent": "1 m",
+    "duration": "0m",
+    "legs": "1",
+    "highcharts": 1,
+    "statCards": [
+      {
+        "label": "Distance",
+        "value": "0.20 km",
+        "text": "Distance0.20 km"
+      },
+      {
+        "label": "Ascent",
+        "value": "1 m",
+        "text": "Ascent1 m"
+      },
+      {
+        "label": "Descent",
+        "value": "0 m",
+        "text": "Descent0 m"
+      },
+      {
+        "label": "Duration",
+        "value": "0m",
+        "text": "Duration0m"
+      },
+      {
+        "label": "Legs",
+        "value": "1",
+        "text": "Legs1"
+      }
+    ]
+  },
+  "drag": {
+    "from": {
+      "x": 163.79999999999998,
+      "y": 151.92
+    },
+    "to": {
+      "x": 199.79999999999998,
+      "y": 179.92
+    }
+  },
+  "afterTouchDrag": {
+    "notices": [],
+    "distance": "0.08 km",
+    "ascent": "1 m",
+    "duration": "0m",
+    "legs": "1",
+    "highcharts": 1,
+    "statCards": [
+      {
+        "label": "Distance",
+        "value": "0.08 km",
+        "text": "Distance0.08 km"
+      },
+      {
+        "label": "Ascent",
+        "value": "1 m",
+        "text": "Ascent1 m"
+      },
+      {
+        "label": "Descent",
+        "value": "0 m",
+        "text": "Descent0 m"
+      },
+      {
+        "label": "Duration",
+        "value": "0m",
+        "text": "Duration0m"
+      },
+      {
+        "label": "Legs",
+        "value": "1",
+        "text": "Legs1"
+      }
+    ]
+  },
+  "routeResponses": [
+    {
+      "status": 200,
+      "stats": {
+        "distanceM": 198,
+        "ascentM": 1,
+        "descentM": 0,
+        "durationSec": 35,
+        "legCount": 1,
+        "anyLegCached": false
+      },
+      "legCount": 1,
+      "coordinateCount": 18,
+      "error": null
+    },
+    {
+      "status": 200,
+      "stats": {
+        "distanceM": 76,
+        "ascentM": 1,
+        "descentM": 0,
+        "durationSec": 13,
+        "legCount": 1,
+        "anyLegCached": false
+      },
+      "legCount": 1,
+      "coordinateCount": 6,
+      "error": null
+    }
+  ]
+}

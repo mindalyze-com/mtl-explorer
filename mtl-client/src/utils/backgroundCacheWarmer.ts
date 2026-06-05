@@ -1,8 +1,8 @@
 import { backgrounds } from '@/utils/backgrounds';
-import { USER_PREFS_KEYS, migrateLegacyKeys } from '@/utils/userPrefs';
+import { readStorage, STORAGE_KEYS, writeStorage } from '@/utils/appStorage';
 
 const CACHE_NAME = 'mtl-backgrounds';
-const CACHE_VERSION_KEY = USER_PREFS_KEYS.backgroundCacheVersion;
+const CACHE_VERSION_KEY = STORAGE_KEYS.backgroundCacheVersion;
 type NavigatorWithConnection = Navigator & {
   connection?: {
     effectiveType?: string;
@@ -15,12 +15,11 @@ export function warmBackgroundCache(): void {
 
   const warm = async () => {
     // 1. Cache invalidation on app update to prevent permanently stale images
-    migrateLegacyKeys();
-    const cachedVersion = localStorage.getItem(CACHE_VERSION_KEY);
+    const cachedVersion = readStorage(CACHE_VERSION_KEY);
     if (cachedVersion !== __APP_VERSION__) {
       try {
         await caches.delete(CACHE_NAME);
-        localStorage.setItem(CACHE_VERSION_KEY, __APP_VERSION__);
+        writeStorage(CACHE_VERSION_KEY, __APP_VERSION__);
       } catch {
         // silently continue
       }

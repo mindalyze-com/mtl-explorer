@@ -1,0 +1,5 @@
+LOC_03 locale persistence evidence:
+- Stored mtl.locale after reload: de-DE
+- Settings preview after reload: Preview: 02.06.2026 00:59:28 — 12.345,67
+- de-DE visible after reload: true
+- German decimal comma after reload: true

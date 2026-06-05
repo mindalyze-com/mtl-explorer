@@ -1,0 +1,30 @@
+MAP_05 zoomBeforeAfterCaptured=true
+MAP_06 noLoadingSpinner=true mapText=20 km 11 Tracks Stats Filter Map Animate Segments GPS Planner Admin
+MAP_07 directionBefore=bi lc-check bi-check-circle-fill directionAfter=bi lc-check bi-check-circle-fill enabled=true
+MAP_11 pointPopup=true excerpt=500 km © OpenStreetMap | Elevation: Mapterhorn 11 Tracks Stats Filter Map Animate Segments GPS Planner Admin TRACK DETAILS #100005 Walking Track point Point 1,805 Time 07/20/2021, 23:41:25 Distance 1.81 km Elevation 96.9 m Speed 3.6 km/h Elapsed 29m 59s × 3D Replay Overview Graphs Quality Related Ev
+MAP_12 swissOverlayText=500 km © OpenStreetMap | © SchweizMobil | © Waymarked Trails | Elevation: Mapterhorn 11 Tracks Stats Filter Map Animate Segments GPS Planner Admin
+MAP_12 routePopupDetected=false
+CONSOLE_RECENT
+error: Failed to load resource: the server responded with a status of 400 ()
+error: {name: Error, message: AJAXError:  (400): https://wmts.geo.admin.ch/1.0.0/ch.astra.veloland/default/current/3857/2/1/1.png}
+error: {name: Error, message: AJAXError:  (400): https://wmts.geo.admin.ch/1.0.0/ch.astra.veloland/default/current/3857/2/2/2.png}
+error: {name: Error, message: AJAXError:  (400): https://wmts.geo.admin.ch/1.0.0/ch.astra.veloland/default/current/3857/2/1/2.png}
+error: {name: Error, message: AJAXError:  (400): https://wmts.geo.admin.ch/1.0.0/ch.astra.veloland/default/current/3857/3/5/2.png}
+error: {name: Error, message: AJAXError:  (400): https://wmts.geo.admin.ch/1.0.0/ch.astra.veloland/default/current/3857/3/5/4.png}
+error: Failed to load resource: the server responded with a status of 400 ()
+error: Failed to load resource: the server responded with a status of 400 ()
+error: Failed to load resource: the server responded with a status of 400 ()
+error: {name: Error, message: AJAXError:  (400): https://wmts.geo.admin.ch/1.0.0/ch.astra.veloland/default/current/3857/1/0/0.png}
+error: {name: Error, message: AJAXError:  (400): https://wmts.geo.admin.ch/1.0.0/ch.astra.veloland/default/current/3857/1/1/1.png}
+error: {name: Error, message: AJAXError:  (400): https://wmts.geo.admin.ch/1.0.0/ch.astra.veloland/default/current/3857/1/0/1.png}
+REQUEST_FAILED_RECENT
+GET http://167.233.16.201:18080/mtl/api/map-proxy/prod/planet.pmtiles?mtl-map-source=public&mtl-map-archive=public-default net::ERR_ABORTED
+GET http://167.233.16.201:18080/mtl/api/map-proxy/prod/planet.pmtiles?mtl-map-source=public&mtl-map-archive=public-default net::ERR_ABORTED
+GET http://167.233.16.201:18080/mtl/api/map-proxy/prod/planet.pmtiles?mtl-map-source=public&mtl-map-archive=public-default net::ERR_ABORTED
+GET http://167.233.16.201:18080/mtl/api/map-proxy/prod/planet.pmtiles?mtl-map-source=public&mtl-map-archive=public-default net::ERR_ABORTED
+GET http://167.233.16.201:18080/mtl/api/map-proxy/prod/planet.pmtiles?mtl-map-source=public&mtl-map-archive=public-default net::ERR_ABORTED
+GET http://167.233.16.201:18080/mtl/api/map-proxy/prod/planet.pmtiles?mtl-map-source=public&mtl-map-archive=public-default net::ERR_ABORTED
+GET http://167.233.16.201:18080/mtl/api/map-proxy/prod/planet.pmtiles?mtl-map-source=public&mtl-map-archive=public-default net::ERR_ABORTED
+GET http://167.233.16.201:18080/mtl/api/map-proxy/prod/planet.pmtiles?mtl-map-source=public&mtl-map-archive=public-default net::ERR_ABORTED
+GET http://167.233.16.201:18080/mtl/api/map-proxy/prod/planet.pmtiles?mtl-map-source=public&mtl-map-archive=public-default net::ERR_ABORTED
+GET http://167.233.16.201:18080/mtl/api/map-proxy/prod/planet.pmtiles?mtl-map-source=public&mtl-map-archive=public-default net::ERR_ABORTED

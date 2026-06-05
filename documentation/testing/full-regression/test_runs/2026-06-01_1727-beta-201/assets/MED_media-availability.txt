@@ -1,0 +1,13 @@
+MED media availability evidence
+{
+  "worldBounds": {
+    "status": 200,
+    "count": 0,
+    "bodySample": "[]"
+  },
+  "withLocation": {
+    "status": 200,
+    "count": 0,
+    "bodySample": "[]"
+  }
+}

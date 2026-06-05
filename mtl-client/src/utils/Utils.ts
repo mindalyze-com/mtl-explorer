@@ -52,11 +52,7 @@ export function formatDateAndTimeWithSeconds(date: Date | string | number | null
 }
 
 export function formatNumber(num: number | null | undefined, digits: number): string {
-  if (num) {
-    return num.toFixed(digits);
-  } else {
-    return num == null ? '' : String(num);
-  }
+  return num == null ? '' : formatLocaleNumber(num, digits);
 }
 
 export function formatDate(date: Date | string | number | null | undefined) {
@@ -116,9 +112,9 @@ export function formatBytes(bytes: number, decimals = 2) {
 }
 
 export function formatDistance(meters: number, decimals = 2) {
-  if (meters < 1) return (meters * 100).toFixed(decimals) + ' cm';
-  if (meters >= 1 && meters < 1000) return meters.toFixed(decimals) + ' m';
-  if (meters >= 1000) return (meters / 1000).toFixed(decimals) + ' km';
+  if (meters < 1) return formatLocaleNumber(meters * 100, decimals) + ' cm';
+  if (meters >= 1 && meters < 1000) return formatLocaleNumber(meters, decimals) + ' m';
+  if (meters >= 1000) return formatLocaleNumber(meters / 1000, decimals) + ' km';
 }
 
 /**
@@ -134,7 +130,7 @@ export function formatDistanceSmart(meters: number, maxMeters?: number): string 
   const ref = maxMeters ?? meters;
   if (ref < 1000) {
     // Stay in metres — no thousands ever relevant here
-    return meters.toFixed(2) + ' m';
+    return formatLocaleNumber(meters, 2) + ' m';
   }
   const refKm = ref / 1000;
   const decimals = refKm < 10 ? 2 : refKm < 100 ? 1 : 0;
@@ -147,7 +143,7 @@ export function formatDistanceSmart(meters: number, maxMeters?: number): string 
     });
     return formatted + ' km';
   }
-  return km.toFixed(decimals) + ' km';
+  return formatLocaleNumber(km, decimals) + ' km';
 }
 
 /**
@@ -221,13 +217,13 @@ export function formatDurationTooltip(millis: number): string {
  */
 export function formatDistanceTooltip(meters: number): string {
   if (meters == null || isNaN(meters)) return '—';
-  if (meters < 1) return (meters * 100).toFixed(2) + ' cm';
-  if (meters < 1000) return meters.toFixed(2) + ' m';
+  if (meters < 1) return formatLocaleNumber(meters * 100, 2) + ' cm';
+  if (meters < 1000) return formatLocaleNumber(meters, 2) + ' m';
   const km = meters / 1000;
   if (km >= 1000) {
     return km.toLocaleString(getFormatLocale(), { minimumFractionDigits: 3, maximumFractionDigits: 3 }) + ' km';
   }
-  return km.toFixed(3) + ' km';
+  return formatLocaleNumber(km, 3) + ' km';
 }
 
 export function generateColors(n: number) {

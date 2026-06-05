@@ -2,6 +2,9 @@ import { PMTiles, type Source, type RangeResponse } from 'pmtiles';
 
 export const MAP_ARCHIVE_STALE_EVENT = 'mtl-map-archive-stale';
 
+const CONTENT_RANGE_SIZE_PREFIX = 'bytes */';
+const FORCE_CACHE_DISABLED_URLS = new Set<string>();
+
 /**
  * A PMTiles Source that uses `cache: 'force-cache'` on fetch() calls.
  *
@@ -15,8 +18,13 @@ export const MAP_ARCHIVE_STALE_EVENT = 'mtl-map-archive-stale';
  * If the server-side PMTiles file changes (ETag mismatch), the library's own ETag
  * comparison detects this and sets `mustReload`, which flips to `cache: 'reload'`
  * to bypass stale cache entries.
+ *
+ * Some managed Chromium/Edge installations intermittently fail cached Range
+ * reads with net::ERR_CACHE_OPERATION_NOT_SUPPORTED. If a force-cache request
+ * fails before producing a usable response, retry without the HTTP cache and
+ * keep using no-store for this archive for the rest of the page session.
  */
-class CachingFetchSource implements Source {
+export class CachingFetchSource implements Source {
   private url: string;
   private mustReload = false;
 
@@ -29,12 +37,42 @@ class CachingFetchSource implements Source {
   }
 
   async getBytes(offset: number, length: number, signal?: AbortSignal, etag?: string): Promise<RangeResponse> {
-    const headers = new Headers();
-    headers.set('Range', `bytes=${offset}-${offset + length - 1}`);
+    const cacheMode = this.cacheMode();
+    try {
+      return await this.fetchRangeResponse(offset, length, cacheMode, signal, etag);
+    } catch (error) {
+      if (!shouldRetryWithoutForceCache(cacheMode, signal, error)) {
+        throw error;
+      }
+
+      FORCE_CACHE_DISABLED_URLS.add(this.url);
+      console.warn('PMTiles HTTP cache failed; retrying archive range requests without browser cache.', {
+        url: this.url,
+        message: describeError(error),
+      });
+      return this.fetchRangeResponse(offset, length, 'no-store', signal, etag);
+    }
+  }
+
+  private cacheMode(): RequestCache {
+    if (FORCE_CACHE_DISABLED_URLS.has(this.url)) {
+      return 'no-store';
+    }
+    return this.mustReload ? 'reload' : 'force-cache';
+  }
+
+  private async fetchRangeResponse(
+    offset: number,
+    length: number,
+    cache: RequestCache,
+    signal?: AbortSignal,
+    etag?: string
+  ): Promise<RangeResponse> {
+    const headers = byteRangeHeaders(offset, length);
 
     const resp = await fetch(this.url, {
       signal,
-      cache: this.mustReload ? 'reload' : 'force-cache',
+      cache,
       headers,
     });
 
@@ -46,24 +84,35 @@ class CachingFetchSource implements Source {
     // Handle edge case: archive smaller than initial probe size
     if (offset === 0 && resp.status === 416) {
       const contentRange = resp.headers.get('Content-Range');
-      if (!contentRange || !contentRange.startsWith('bytes */')) {
+      if (!contentRange || !contentRange.startsWith(CONTENT_RANGE_SIZE_PREFIX)) {
         throw new Error('Missing content-length on 416 response');
       }
-      const actualLength = +contentRange.substr(8);
-      headers.set('Range', `bytes=0-${actualLength - 1}`);
+      const actualLength = Number(contentRange.slice(CONTENT_RANGE_SIZE_PREFIX.length));
+      if (!Number.isSafeInteger(actualLength) || actualLength <= 0) {
+        throw new Error('Invalid content-length on 416 response');
+      }
+      const retryHeaders = byteRangeHeaders(0, actualLength);
       const retry = await fetch(this.url, {
         signal,
-        cache: 'reload',
-        headers,
+        cache: probeRetryCacheMode(cache),
+        headers: retryHeaders,
       });
       if (retry.status === 409) {
         notifyMapArchiveStale(this.url);
         throw new Error('Map archive changed; refreshing map config.');
       }
+      const retryEtag = getStrongEtag(retry);
+      if (retry.status === 416 || (etag && retryEtag && retryEtag !== etag)) {
+        this.mustReload = true;
+        throw new Error('Server returned non-matching ETag. PMTiles file may have changed.');
+      }
+      if (retry.status >= 300) {
+        throw new Error(`Bad response code: ${retry.status}`);
+      }
       const a = await retry.arrayBuffer();
       return {
         data: a,
-        etag: getStrongEtag(retry) || undefined,
+        etag: retryEtag || undefined,
         cacheControl: retry.headers.get('Cache-Control') || undefined,
         expires: retry.headers.get('Expires') || undefined,
       };
@@ -100,10 +149,44 @@ class CachingFetchSource implements Source {
   }
 }
 
+function byteRangeHeaders(offset: number, length: number): Headers {
+  const headers = new Headers();
+  headers.set('Range', `bytes=${offset}-${offset + length - 1}`);
+  return headers;
+}
+
 function getStrongEtag(resp: Response): string | null {
   const etag = resp.headers.get('ETag');
   if (etag?.startsWith('W/')) return null; // weak etag not useful
   return etag;
+}
+
+function probeRetryCacheMode(cache: RequestCache): RequestCache {
+  return cache === 'no-store' ? 'no-store' : 'reload';
+}
+
+function shouldRetryWithoutForceCache(cache: RequestCache, signal: AbortSignal | undefined, error: unknown): boolean {
+  if (cache === 'no-store' || signal?.aborted || isAbortError(error)) {
+    return false;
+  }
+
+  return error instanceof TypeError || isCacheOperationFailure(error);
+}
+
+function isAbortError(error: unknown): boolean {
+  return typeof DOMException !== 'undefined' && error instanceof DOMException && error.name === 'AbortError';
+}
+
+function isCacheOperationFailure(error: unknown): boolean {
+  const message = describeError(error);
+  return message.includes('ERR_CACHE_');
+}
+
+function describeError(error: unknown): string {
+  if (error instanceof Error) {
+    return error.message;
+  }
+  return String(error);
 }
 
 function notifyMapArchiveStale(url: string): void {

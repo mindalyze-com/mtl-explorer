@@ -11,33 +11,52 @@
         <div v-if="isSwapPending" class="mp__loading-rail" aria-hidden="true">
           <span class="mp__loading-rail-bar"></span>
         </div>
-        <div v-if="showNavigation" class="mp__nav-dock" aria-label="Photo navigation">
-          <button class="mp__nav-btn" :disabled="!canGoPrev" aria-label="Previous photo" @click.stop="emit('prev')">
-            <i class="bi bi-chevron-left"></i>
-          </button>
-          <span class="mp__nav-counter">{{ navIndex }} / {{ navTotal }}</span>
-          <button class="mp__nav-btn" :disabled="!canGoNext" aria-label="Next photo" @click.stop="emit('next')">
-            <i class="bi bi-chevron-right"></i>
-          </button>
+        <div v-if="hasLoadError" class="mp__error" role="alert">
+          <i class="bi bi-exclamation-triangle"></i>
+          <span class="mp__error-title">Preview unavailable</span>
+          <span class="mp__error-detail">{{ loadError }}</span>
+          <div class="mp__error-actions">
+            <button class="mp__error-btn" type="button" @click.stop="retryLoad">
+              <i class="bi bi-arrow-clockwise"></i>
+              Retry
+            </button>
+            <a :href="downloadUrl" :download="fileName || `media-${mediaId}`" class="mp__error-btn">
+              <i class="bi bi-download"></i>
+              Download
+            </a>
+          </div>
         </div>
-        <!-- Cross-dissolve: back layer shows old image fading out -->
-        <img v-if="backSrc" :src="backSrc" class="mp__media mp__media--back" aria-hidden="true" />
-        <!-- Front layer: current media -->
-        <video
-          v-if="isVideo"
-          :src="mediaUrl"
-          controls
-          preload="metadata"
-          class="mp__media mp__media--video"
-          :class="{ 'mp__media--entering': isCrossFading }"
-        />
-        <img
-          v-else
-          :src="displayUrl"
-          :alt="fileName"
-          class="mp__media mp__media--image"
-          :class="{ 'mp__media--entering': isCrossFading }"
-        />
+        <template v-else>
+          <div v-if="showNavigation" class="mp__nav-dock" aria-label="Photo navigation">
+            <button class="mp__nav-btn" :disabled="!canGoPrev" aria-label="Previous photo" @click.stop="emit('prev')">
+              <i class="bi bi-chevron-left"></i>
+            </button>
+            <span class="mp__nav-counter">{{ navIndex }} / {{ navTotal }}</span>
+            <button class="mp__nav-btn" :disabled="!canGoNext" aria-label="Next photo" @click.stop="emit('next')">
+              <i class="bi bi-chevron-right"></i>
+            </button>
+          </div>
+          <!-- Cross-dissolve: back layer shows old image fading out -->
+          <img v-if="backSrc" :src="backSrc" class="mp__media mp__media--back" aria-hidden="true" />
+          <!-- Front layer: current media -->
+          <video
+            v-if="isVideo"
+            :src="mediaUrl"
+            controls
+            preload="metadata"
+            class="mp__media mp__media--video"
+            :class="{ 'mp__media--entering': isCrossFading }"
+            @error="onMediaError"
+          />
+          <img
+            v-else
+            :src="displayUrl"
+            :alt="fileName"
+            class="mp__media mp__media--image"
+            :class="{ 'mp__media--entering': isCrossFading }"
+            @error="onMediaError"
+          />
+        </template>
       </div>
 
       <div class="mp__meta">
@@ -105,6 +124,10 @@ const {
   showNavigation,
   canGoPrev,
   canGoNext,
+  hasLoadError,
+  loadError,
+  retryLoad,
+  onMediaError,
 } = useMediaPreview(props);
 </script>
 
@@ -170,6 +193,64 @@ const {
 .mp__media--video {
   position: relative;
   z-index: 1;
+}
+
+.mp__error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  max-width: min(30rem, 100%);
+  text-align: center;
+  color: var(--text-secondary);
+  padding: 1rem;
+  z-index: 2;
+}
+
+.mp__error > i {
+  font-size: var(--text-3xl-size);
+  color: var(--warning);
+}
+
+.mp__error-title {
+  font-size: var(--text-base-size);
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.mp__error-detail {
+  font-size: var(--text-sm-size);
+  line-height: var(--text-sm-lh);
+}
+
+.mp__error-actions {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-top: 0.25rem;
+}
+
+.mp__error-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: 2rem;
+  padding: 0.25rem 0.65rem;
+  border: 1px solid var(--border-medium);
+  border-radius: 6px;
+  background: var(--surface-hover);
+  color: var(--text-primary);
+  font-size: var(--text-sm-size);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.mp__error-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
 }
 
 /* Back layer: old image dissolving out */

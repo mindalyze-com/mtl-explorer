@@ -1,0 +1,17 @@
+app-1  | 2026-06-01T15:39:24.122Z  INFO 1 --- [watch-GPS] FileIndexerImpl              : Live watcher detected CREATE for: JuraRoute72011.gpx
+app-1  | 2026-06-01T15:39:24.126Z  INFO 1 --- [watch-GPS] FileIndexerImpl              : Live watcher detected CREATE for: MoselradwegAusWiki.gpx
+app-1  | 2026-06-01T15:39:24.129Z  INFO 1 --- [watch-GPS] FileIndexerImpl              : Live watcher detected CREATE for: Vitry-le-Francois_Langres.gpx
+app-1  | 2026-06-01T15:39:24.132Z  INFO 1 --- [watch-GPS] FileIndexerImpl              : Live watcher detected CREATE for: VoieVerteHauteVosges.gpx
+app-1  | 2026-06-01T15:39:24.136Z  INFO 1 --- [watch-GPS] FileIndexerImpl              : Live watcher detected CREATE for: Lannion_Plestin_parcours24.4RE.gpx
+app-1  | 2026-06-01T15:39:37.800Z  INFO 1 --- [idx-1] GPXStoreService              : Reading of track id=100000 and path= file=VoieVerteHauteVosges.gpx did complete with status=SUCCESS and took processingTime=3.61s
+app-1  | 2026-06-01T15:39:37.890Z  INFO 1 --- [idx-2] GPXStoreService              : Reading of track id=100001 and path= file=Vitry-le-Francois_Langres.gpx did complete with status=SUCCESS and took processingTime=3.71s
+app-1  | 2026-06-01T15:39:37.943Z  INFO 1 --- [idx-3] GPXStoreService              : Reading of track id=100003 and path= file=JuraRoute72011.gpx did complete with status=SUCCESS and took processingTime=1.74s
+app-1  | 2026-06-01T15:39:38.193Z  INFO 1 --- [idx-1] GPXStoreService              : Reading of track id=100004 and path= file=Lannion_Plestin_parcours24.4RE.gpx did complete with status=SUCCESS and took processingTime=337ms
+app-1  | 2026-06-01T15:39:38.586Z  INFO 1 --- [idx-4] GPXStoreService              : Reading of track id=100002 and path= file=MoselradwegAusWiki.gpx did complete with status=SUCCESS and took processingTime=4.40s
+app-1  | 2026-06-01T15:39:56.601Z  INFO 1 --- [sched-2] DuplicateDetectorJob         : Need to check for duplicates. tracksToBeChecked=5 timeTolerance: PT20M
+app-1  | 2026-06-01T15:39:56.842Z  INFO 1 --- [sched-2] DuplicateDetectorJob         : Completed found duplicates in 0 seconds for 5 tracks.
+Compose ps:
+mtl-explorer-app-1               wauwau0977/mytraillog:beta                     "/my-entrypoint.sh j…"   app               9 minutes ago   Up 8 minutes             0.0.0.0:18080->8080/tcp, [::]:18080->8080/tcp
+mtl-explorer-brouter-1           wauwau0977/mytraillog-brouter:latest           "/opt/brouter-orches…"   brouter           9 minutes ago   Up 9 minutes             17777-17778/tcp
+mtl-explorer-db-1                postgis/postgis:18-3.6                         "docker-entrypoint.s…"   db                9 minutes ago   Up 9 minutes (healthy)   5432/tcp
+mtl-explorer-location-search-1   wauwau0977/mytraillog-location-search:latest   "python /app/locatio…"   location-search   9 minutes ago   Up 9 minutes (healthy)   0.0.0.0:18083->8083/tcp, [::]:18083->8083/tcp

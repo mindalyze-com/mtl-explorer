@@ -1,0 +1,78 @@
+{
+  "keywordApplied": {
+    "actionBar": {
+      "primaryCount": "3",
+      "metrics": [
+        "3matching tracks",
+        "1category"
+      ],
+      "status": "Live map",
+      "text": "Live map3matching tracks1category Colors"
+    },
+    "mapLegend": {
+      "text": "3 / 11 TracksLegendBICYCLE3",
+      "rows": [
+        {
+          "text": "BICYCLE3",
+          "disabled": false
+        }
+      ],
+      "bands": [],
+      "collapsed": false
+    },
+    "storage": {
+      "displayName": "Activities by keyword",
+      "filterName": "ActivitiesByKeyword",
+      "params": {
+        "stringParams": {
+          "SEARCH_WORD": "format"
+        },
+        "dateTimeParams": {},
+        "geoCircles": {},
+        "geoRectangles": {},
+        "geoPolygons": {}
+      },
+      "palette": "8 Colors",
+      "legendSortStrategy": null
+    }
+  },
+  "keywordCleared": {
+    "actionBar": {
+      "primaryCount": "11",
+      "metrics": [
+        "11matching tracks",
+        "2categories"
+      ],
+      "status": "Live map",
+      "text": "Live map11matching tracks2categories Colors"
+    },
+    "mapLegend": {
+      "text": "11 / 11 TracksLegendBICYCLE10WALKING1",
+      "rows": [
+        {
+          "text": "BICYCLE10",
+          "disabled": false
+        },
+        {
+          "text": "WALKING1",
+          "disabled": false
+        }
+      ],
+      "bands": [],
+      "collapsed": false
+    },
+    "storage": {
+      "displayName": "Activities by keyword",
+      "filterName": "ActivitiesByKeyword",
+      "params": {
+        "stringParams": {},
+        "dateTimeParams": {},
+        "geoCircles": {},
+        "geoRectangles": {},
+        "geoPolygons": {}
+      },
+      "palette": "8 Colors",
+      "legendSortStrategy": null
+    }
+  }
+}

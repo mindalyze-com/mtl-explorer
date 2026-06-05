@@ -5,6 +5,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * DTO returned by GET /api/map/config — tells the frontend how to load map tiles.
@@ -22,7 +23,7 @@ import java.util.List;
         "lowzoomArchiveUrl",
         "tileSource",
         "archiveId",
-        "remoteTileUrl",
+        "remoteRasterStyles",
         "initialBounds",
         "demoAreaBbox",
         "demoAreaMaxZoom",
@@ -77,9 +78,10 @@ public class MapConfigDto {
     private String archiveId;
 
     /**
-     * Raster tile URL template used when tileMode is "remote"
+     * Remote raster style configs keyed by map theme id, e.g. "light",
+     * "light-topo", and "dark".
      */
-    private String remoteTileUrl;
+    private Map<String, MapRasterStyleDto> remoteRasterStyles;
 
     /**
      * Initial map bounds. Configured explicitly, derived from stored track

@@ -1,0 +1,7 @@
+generatedAt=2026-06-05T01:43:08.078Z
+pass=true
+sequenceOk=true; count=15
+beforeSheets=0; afterSheets=0
+beforeRemnants=0; afterRemnants=0
+staleCursor=false; zoomInOk=true; canvasCount=2
+sequence=Stats > Filter > Map > Segments > Planner > Admin > Animate > Stats > Map > Planner > GPS > Filter > Stats > Admin > Map

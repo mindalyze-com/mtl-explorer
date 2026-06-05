@@ -1,0 +1,15 @@
+{
+  "filterBefore": "500 km © OpenStreetMap | © SchweizMobil | © swisstopo | © Waymarked Trails | Elevation: Mapterhorn 13 Tracks Stats Filter Map Animate Segments GPS Planner Admin",
+  "filterState": {
+    "actionBar": "Live map4matching tracks1category Colors",
+    "primaryCount": "4",
+    "activeFilter": "Activities by keywordFilter for tracks which have a certain word in their name or description.",
+    "searchWord": "synthetic"
+  },
+  "filterAfter": "500 km © OpenStreetMap | © SchweizMobil | © swisstopo | © Waymarked Trails | Elevation: Mapterhorn 4 / 13 Tracks Legend BICYCLE 4 Stats Filter Map Animate Segments GPS Planner Admin",
+  "assertions": {
+    "keywordApplied": true,
+    "filteredVisibleCountChanged": true,
+    "heatmapEvidenceCaptured": true
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "beforeScale": "500 km",
+  "afterScale": "10 km",
+  "beforeShows12": true,
+  "afterShows12": true,
+  "zoomAction": "seven mouse-wheel zoom-in steps centered on visible GPX track cluster",
+  "visualReview": "after screenshot shows a closer, continuous track line with no duplicate/broken line artifacts or runaway loading spinner"
+}

@@ -1,0 +1,23 @@
+{
+  "mediaSetup": {
+    "apiStatus": 200,
+    "locatableCount": 30,
+    "heicId": 400028,
+    "indexedHeicNote": "HEIC is indexed but not locatable because ImageMagick stripped GPS EXIF during synthetic conversion."
+  },
+  "beforeIcon": "bi lc-check bi-circle",
+  "afterIcon": "bi lc-check bi-circle",
+  "firstBoundsRequest": null,
+  "consoleProblems": [
+    {
+      "type": "error",
+      "text": "🚨 [Vue Error] Component failed to render or execute: {name: Error, message: Invalid LngLat latitude value: must be between -90 and 90} https://vuejs.org/error-reference/#runtime-6"
+    }
+  ],
+  "assertions": {
+    "layerToggledOn": false,
+    "boundsRequestStarted": false,
+    "invalidLngLatErrorSeen": true,
+    "locatableSyntheticPhotosAvailable": true
+  }
+}

@@ -1,0 +1,5 @@
+{
+  "hasMtlExplorer": true,
+  "hasAbout": true,
+  "text": "500 km\n© OpenStreetMap | Elevation: Mapterhorn\n11 Tracks\nStats\nFilter\nMap\nAnimate\nSegments\nGPS\nPlanner\nAdmin\n×\n\nABOUT & SOURCE\n\nMTL Explorer\n\nVersion dev\n\nAGPL-3.0-or-later\nCommercial license available\n\nMTL Explorer is dual-licensed under AGPL-3.0-or-later and a separate commercial license.\n\nIf you modify the software and make it available over a network, you must offer the corresponding source code of that running version.\n\nSOURCE CODE\n\nhttps://github.com/mindalyze-com/mtl-explorer\n\nCOMMERCIAL INQUIRIES\n\nhey.lueg@gmail.com\n\n© 2020-2026 Patrick Heusser & contributors"
+}

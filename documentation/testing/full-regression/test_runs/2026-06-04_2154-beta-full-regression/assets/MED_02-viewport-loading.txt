@@ -1,0 +1,75 @@
+{
+  "viewportEvidence": {
+    "initial": {
+      "searchResult": "Delémont Jura, Switzerland CITY Z7-15",
+      "toggleResponse": {
+        "params": {
+          "minLat": 47.33222843706042,
+          "minLng": 7.275329007416246,
+          "maxLat": 47.39763075205997,
+          "maxLng": 7.4137309925847035
+        },
+        "count": 0
+      }
+    },
+    "afterPanZoom": {
+      "zoomOutClick": 3,
+      "params": {
+        "minLat": 47.10329478543869,
+        "minLng": 6.790922059330057,
+        "maxLat": 47.62651331830995,
+        "maxLng": 7.898137940678566
+      },
+      "count": 8,
+      "sample": [
+        {
+          "id": 400000,
+          "lat": 47.48703,
+          "lng": 7.52422
+        },
+        {
+          "id": 400001,
+          "lat": 47.43969,
+          "lng": 7.32759
+        },
+        {
+          "id": 400007,
+          "lat": 47.43406,
+          "lng": 7.28112
+        },
+        {
+          "id": 400008,
+          "lat": 47.11038,
+          "lng": 6.8729
+        },
+        {
+          "id": 400013,
+          "lat": 47.20521,
+          "lng": 6.99397
+        },
+        {
+          "id": 400020,
+          "lat": 47.38938,
+          "lng": 7.14029
+        },
+        {
+          "id": 400026,
+          "lat": 47.31301,
+          "lng": 7.13403
+        },
+        {
+          "id": 400029,
+          "lat": 47.36675,
+          "lng": 7.15902
+        }
+      ]
+    }
+  },
+  "assertions": {
+    "localToggleSucceeded": true,
+    "initialRequestUsedBounds": true,
+    "panZoomRequestedDifferentBounds": true,
+    "notWholeWorldRequest": true,
+    "mediaLoadedAfterViewportChange": true
+  }
+}

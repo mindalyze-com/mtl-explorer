@@ -1,0 +1,22 @@
+GPX_OPEN_URL=http://167.233.16.201:18080/mtl/track/100000
+GPX_EXPECTED_ID=100000
+GPX_SOURCE_FILE=JuraRoute72011.gpx
+GPX_DETAIL_HAS_NAME=true
+GPX_DETAIL_HAS_ID=true
+FIT_OPEN_URL=http://167.233.16.201:18080/mtl/track/100005
+FIT_EXPECTED_ID=100005
+FIT_SOURCE_FILE=Activity.fit
+FIT_DETAIL_HAS_NAME=true
+FIT_DETAIL_HAS_ID=true
+OVERVIEW_LOADED=true
+MINI_MAP_CANVASES=[{"i":0,"x":76,"y":0,"w":1290,"h":900},{"i":1,"x":76,"y":0,"w":1290,"h":900},{"i":2,"x":261,"y":115,"w":920,"h":220}]
+GRAPHS_LOADED=true
+QUALITY_LOADED=true
+RELATED_LOADED=true
+EVENTS_LOADED=true
+TAB_CHECKS=[{"tab":"Overview","blank":false,"contains":["Activity.fit","TRACK CONTROLS","STATISTICS","ENERGY"]},{"tab":"Graphs","blank":false,"excerpt":"500 km © OpenStreetMap | Elevation: Mapterhorn 11 Tracks Stats Filter Map Animate Segments GPS Planner Admin TRACK DETAILS #100005 Walking 3D Replay Overview Graphs Quality Related Events X AXIS Time Distance DETAIL Range POINTS 350 HEIGHT SPEED Chart Combinat"},{"tab":"Quality","blank":false,"excerpt":"500 km © OpenStreetMap | Elevation: Mapterhorn 11 Tracks Stats Filter Map Animate Segments GPS Planner Admin TRACK DETAILS #100005 Walking 3D Replay Overview Graphs Quality Related Events SUCCESS UNIQUE Load Messages POINT QUALITY 3600 Total Points 1.00 m Avg "},{"tab":"Related","blank":false,"excerpt":"500 km © OpenStreetMap | Elevation: Mapterhorn 11 Tracks Stats Filter Map Animate Segments GPS Planner Admin TRACK DETAILS #100005 Walking 3D Replay Overview Graphs Quality Related Events Jura Route 7 / 2011 on GPSies.com Jan 1, 2010 Vitry le françois - langre"},{"tab":"Events","blank":false,"excerpt":"500 km © OpenStreetMap | Elevation: Mapterhorn 11 Tracks Stats Filter Map Animate Segments GPS Planner Admin TRACK DETAILS #100005 Walking 3D Replay Overview Graphs Quality Related Events No track events"},{"tab":"Overview","blank":false,"excerpt":"500 km © OpenStreetMap | Elevation: Mapterhorn 11 Tracks Stats Filter Map Animate Segments GPS Planner Admin TRACK DETAILS #100005 Walking 3D Replay Overview Graphs Quality Related Events Activity.fit 07/20/2021, 23:11 TRACK CONTROLS ACTIVITY TYPE Bicycle Walk"}]
+TAB_API_HITS_AFTER_DIRECT_OPEN=135
+TAB_LOOP_RISK_HITS=3
+REQUEST_FAILED_COUNT=58
+REQUEST_FAILED_RECENT=GET http://167.233.16.201:18080/mtl/api/map-proxy/prod/planet.pmtiles?mtl-map-source=public&mtl-map-archive=public-default net::ERR_ABORTED | GET http://167.233.16.201:18080/mtl/api/map-proxy/prod/planet.pmtiles?mtl-map-source=public&mtl-map-archive=public-default net::ERR_ABORTED | GET http://167.233.16.201:18080/mtl/api/map-proxy/prod/planet.pmtiles?mtl-map-source=public&mtl-map-archive=public-default net::ERR_ABORTED | GET http://167.233.16.201:18080/mtl/api/map-proxy/prod/planet.pmtiles?mtl-map-source=public&mtl-map-archive=public-default net::ERR_ABORTED | GET http://167.233.16.201:18080/mtl/api/map-proxy/prod/planet.pmtiles?mtl-map-source=public&mtl-map-archive=public-default net::ERR_ABORTED
+CONSOLE_RECENT=log: fetch track points (SIMPLIFIED_SHAPE @ 1m, map popup) for 100005 | log: fetch filters from server | table: [Object, Object, Object, Object, Object] | info: [track-cache] cache read complete {tracks: 11, geometries: 11, renderedTracks: 11, durationMs: 1} | log: [tracks] Map layers rebuilt {durationMs: 1, trackCount: 11, overviewDotCount: 11, hasPalette: false, legendGroupCount: 0} | log: Low-zoom PMTiles already cached (IndexedDB) | info: [track-cache] sync 1000m: cache hit for 11 tracks {precision: 1000, totalTracks: 11, cachedTracks: 11, staleOrMissingTracks: 0, staleGeometryCleared: 0} | info: [track-cache] sync 1000m complete {precision: 1000, totalTracks: 11, fetchedTracks: 0, cachedTracks: 11, batches: 0}

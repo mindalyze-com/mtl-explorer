@@ -1,0 +1,15 @@
+TRACK_COUNT=5
+FILES:
+- id=100000 file=JuraRoute72011.gpx trackName=Jura Route 7 / 2011 on GPSies.com loadStatus=SUCCESS indexerStatus=COMPLETED_WITH_SUCCESS points=1409 distanceM=273260.02 activity=BICYCLE
+- id=100004 file=Lannion_Plestin_parcours24.4RE.gpx trackName=Lannion_Plestin_parcours Lannion_Plestin_parcours1 loadStatus=SUCCESS indexerStatus=COMPLETED_WITH_SUCCESS points=381 distanceM=25882.44 activity=BICYCLE
+- id=100002 file=MoselradwegAusWiki.gpx trackName=Moselradweg aus Wiki on GPSies.com loadStatus=SUCCESS indexerStatus=COMPLETED_WITH_SUCCESS points=2949 distanceM=517818.88 activity=BICYCLE
+- id=100001 file=Vitry-le-Francois_Langres.gpx trackName=Vitry le françois - langres on GPSies.com loadStatus=SUCCESS indexerStatus=COMPLETED_WITH_SUCCESS points=1688 distanceM=147212.84 activity=BICYCLE
+- id=100003 file=VoieVerteHauteVosges.gpx trackName=voie verte haute vosges on GPSies.com loadStatus=SUCCESS indexerStatus=COMPLETED_WITH_SUCCESS points=1298 distanceM=78537.83 activity=BICYCLE
+FULL_MAP_GEOMETRY:
+- id=100002 file=MoselradwegAusWiki.gpx geometry_entries=1 filterGroup=BICYCLE
+- id=100003 file=VoieVerteHauteVosges.gpx geometry_entries=1 filterGroup=BICYCLE
+- id=100001 file=Vitry-le-Francois_Langres.gpx geometry_entries=1 filterGroup=BICYCLE
+- id=100000 file=JuraRoute72011.gpx geometry_entries=1 filterGroup=BICYCLE
+- id=100004 file=Lannion_Plestin_parcours24.4RE.gpx geometry_entries=1 filterGroup=BICYCLE
+SIMPLIFIED standardFilterCount=5 numberOfFilteredMatchedTracks=5 trackIds=100000,100001,100002,100003,100004
+Stats/Tracks UI summary and aggregate totals are in IMP_05-stats-after-reload.txt and IMP_05-tracks-after-reload.txt.

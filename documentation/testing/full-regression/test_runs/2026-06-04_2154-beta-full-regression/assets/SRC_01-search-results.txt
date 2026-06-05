@@ -1,0 +1,28 @@
+{
+  "query": "Zurich",
+  "resultCount": 20,
+  "firstResults": [
+    {
+      "i": 0,
+      "text": "ZürichZurich, SwitzerlandCityz7-15"
+    },
+    {
+      "i": 1,
+      "text": "Zürich (Kreis 11)Zurich, SwitzerlandNeighbourhoodz11-15"
+    },
+    {
+      "i": 2,
+      "text": "Zürich (Kreis 3)Zurich, SwitzerlandNeighbourhoodz11-15"
+    },
+    {
+      "i": 3,
+      "text": "Zürich (Kreis 9)Zurich, SwitzerlandNeighbourhoodz11-15"
+    },
+    {
+      "i": 4,
+      "text": "Zürich (Kreis 10)Zurich, SwitzerlandNeighbourhoodz11-15"
+    }
+  ],
+  "beforeMarkerCount": 0,
+  "assertion": "PASS: query returned visible location results."
+}

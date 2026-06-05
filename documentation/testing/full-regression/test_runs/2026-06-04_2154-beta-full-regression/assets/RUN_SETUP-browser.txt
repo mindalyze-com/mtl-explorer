@@ -1,0 +1,31 @@
+signed_out_url=http://167.233.16.201:18080/mtl/login
+post_login_url=http://167.233.16.201:18080/mtl/
+title=MTL Explorer
+body_text=5 km © OpenStreetMap | Elevation: Mapterhorn 0 Tracks Stats Filter Map Animate Segments GPS Planner Admin
+elapsed_ms=9298
+console_recent=
+log: [mtl] v1.0.0 | built: 2026-06-04T19:43:43.667Z | Browser
+error: Failed to load resource: the server responded with a status of 401 ()
+error: Failed to load resource: the server responded with a status of 401 ()
+table: [Object, Object, Object, Object, Object]
+log: fetch config for CLIENT COLOR_PALETTE 
+log: Filter (main) mounted.
+log: fetch filter info for filterName SmartBaseFilter
+log: fetch filters from server
+warning: [.WebGL-0x1140057aa00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
+warning: [.WebGL-0x1140057ce00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
+info: [track-cache] manual cache clear started
+info: [track-cache] manual cache clear complete {durationMs: 6}
+info: [track-cache] sync 10m: cache hit for 0 tracks {precision: 10, totalTracks: 0, cachedTracks: 0, staleOrMissingTracks: 0, staleGeometryCleared: 0}
+info: [track-cache] sync 10m complete {precision: 10, totalTracks: 0, fetchedTracks: 0, cachedTracks: 0, batches: 0}
+warning: [.WebGL-0x1140057aa00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
+warning: [.WebGL-0x1140057aa00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels (this message will no longer repeat)
+log: [tracks] Map layers rebuilt {durationMs: 3, trackCount: 0, overviewDotCount: 0, hasPalette: false, legendGroupCount: 0}
+log: Downloading low-zoom PMTiles from /mtl/api/map-proxy/prod/world-lowzoom.pmtiles?mtl-map-source=public&mtl-map-archive=public-default … (IndexedDB fallback)
+log: Low-zoom PMTiles cached successfully (IndexedDB, 42.4 MB)
+requestfailed_recent=
+HEAD http://167.233.16.201:18080/mtl/api/info/build net::ERR_ABORTED
+HEAD https://tile.openstreetmap.org/0/0/0.png net::ERR_ABORTED
+HEAD https://protomaps.github.io/basemaps-assets/fonts/Noto%20Sans%20Regular/0-255.pbf net::ERR_ABORTED
+HEAD https://protomaps.github.io/basemaps-assets/sprites/v4/light.json net::ERR_ABORTED
+HEAD https://tiles.mapterhorn.com/0/0/0.webp net::ERR_ABORTED

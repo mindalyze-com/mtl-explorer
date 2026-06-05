@@ -1,0 +1,52 @@
+{
+  "light": {
+    "dataTheme": "light",
+    "colorScheme": null,
+    "mapSettings": {},
+    "locale": null,
+    "bodyText": "500 km © OpenStreetMap | Elevation: Mapterhorn 19 Tracks Stats Filter Map Animate Segments GPS Planner Admin Admin SYSTEM UTILITY Admin workspace Manage imports, runtime tools, diagnostics, and local preferences without leaving the map. Quiet state Data Import and processing activity Upload IMPORT Import GPX files and inspect ingest readiness. Jobs IDLE Track indexer, map, and routing activity. Freshness TOKEN Inspect domain revisions and the current map data token. Garmin Sync REMOTE Trigger a remote Garmin export to pull new activity files. System Diagnostics, tools, and build details Log "
+  },
+  "dark": {
+    "dataTheme": "dark",
+    "colorScheme": "dark",
+    "mapSettings": {},
+    "locale": null,
+    "bodyText": "500 km © OpenStreetMap | Elevation: Mapterhorn 19 Tracks Stats Filter Map Animate Segments GPS Planner Admin Admin SYSTEM UTILITY Admin workspace Manage imports, runtime tools, diagnostics, and local preferences without leaving the map. Quiet state Data Import and processing activity Upload IMPORT Import GPX files and inspect ingest readiness. Jobs IDLE Track indexer, map, and routing activity. Freshness TOKEN Inspect domain revisions and the current map data token. Garmin Sync REMOTE Trigger a remote Garmin export to pull new activity files. System Diagnostics, tools, and build details Log "
+  },
+  "tokenComparison": {
+    "lightTokens": {
+      "--text-primary": "#1e293b",
+      "--text-secondary": "#334155",
+      "--text-muted": "#64748b",
+      "--text-faint": "#94a3b8",
+      "--surface-ground": "",
+      "--surface-card": "",
+      "--surface-overlay": "",
+      "--border-default": "rgba(0, 0, 0, .08)",
+      "--chart-text": "#64748b",
+      "--chart-grid": "rgba(0, 0, 0, .06)",
+      "--chart-tooltip-bg": "rgba(255, 255, 255, .97)",
+      "--chart-tooltip-text": "#334155"
+    },
+    "darkTokens": {
+      "--text-primary": "#f1f5f9",
+      "--text-secondary": "#e2e8f0",
+      "--text-muted": "#94a3b8",
+      "--text-faint": "#64748b",
+      "--surface-ground": "",
+      "--surface-card": "",
+      "--surface-overlay": "",
+      "--border-default": "rgba(255, 255, 255, .08)",
+      "--chart-text": "#94a3b8",
+      "--chart-grid": "rgba(255, 255, 255, .06)",
+      "--chart-tooltip-bg": "rgba(15, 23, 42, .95)",
+      "--chart-tooltip-text": "#e2e8f0"
+    }
+  },
+  "assertions": {
+    "lightApplied": true,
+    "darkApplied": true,
+    "tokensChanged": true
+  },
+  "note": "Default light mode may have no localStorage value; data-theme=light is the applied state."
+}

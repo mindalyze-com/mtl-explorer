@@ -197,6 +197,7 @@ function mountOverview(toggle = vi.fn()) {
       ] as GpsTrack[],
       tracksCount: 99,
       unfilteredTotal: 4,
+      filterRevision: 0,
     },
     global: {
       directives: { tooltip: {} },
@@ -230,7 +231,18 @@ describe('StatisticsOverview', () => {
     expect(wrapper.text()).not.toContain('99');
   });
 
-  it('updates from the server when the filtered track set changes', async () => {
+  it('does not refetch when map track metadata batches change', async () => {
+    fetchStatisticsOverviewMock.mockResolvedValueOnce(overview());
+
+    const wrapper = mountOverview();
+    await flush();
+    await wrapper.setProps({ tracks: [{ id: 99 }] as GpsTrack[] });
+    await flush();
+
+    expect(fetchStatisticsOverviewMock).toHaveBeenCalledOnce();
+  });
+
+  it('updates from the server when the applied filter revision changes', async () => {
     fetchStatisticsOverviewMock
       .mockResolvedValueOnce(overview())
       .mockResolvedValueOnce(
@@ -239,7 +251,7 @@ describe('StatisticsOverview', () => {
 
     const wrapper = mountOverview();
     await flush();
-    await wrapper.setProps({ tracks: [{ id: 99 }] as GpsTrack[] });
+    await wrapper.setProps({ filterRevision: 1 });
     await flush();
 
     expect(fetchStatisticsOverviewMock).toHaveBeenCalledTimes(2);

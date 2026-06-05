@@ -1,0 +1,7 @@
+{
+  "url": "http://167.233.16.201:18080/mtl/login",
+  "hasSignIn": true,
+  "hasUsername": false,
+  "hasPassword": false,
+  "text": "© Patrick Heusser\nAGPL-3.0\nSign In"
+}

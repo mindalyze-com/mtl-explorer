@@ -1,0 +1,7 @@
+{
+  "url": "http://167.233.16.201:18080/mtl/",
+  "hasMap": true,
+  "hasTracks": true,
+  "hasStats": true,
+  "text": "500 km\n© OpenStreetMap | Elevation: Mapterhorn\n11 Tracks\nStats\nFilter\nMap\nAnimate\nSegments\nGPS\nPlanner\nAdmin"
+}

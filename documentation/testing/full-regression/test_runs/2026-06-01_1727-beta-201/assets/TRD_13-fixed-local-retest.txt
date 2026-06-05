@@ -1,0 +1,25 @@
+TRD_13 / MTL-FR-004 fixed local retest, 2026-06-04
+
+Environment:
+- Local frontend: http://localhost:5173/mtl/
+- Local backend: http://localhost:8080/mtl/
+- Browser: Codex in-app browser
+
+Original failure reproduced before the fix:
+- Opened http://localhost:5173/mtl/track/100001.
+- Switched to Related.
+- Clicked related card `Demo Trip 1384426590620000386` (backend id `#101716` in this local database).
+- Detail sheet changed to `#101716`, but browser URL stayed `http://localhost:5173/mtl/track/100001`.
+
+Fix retest:
+- Reloaded http://localhost:5173/mtl/track/100001 after applying the client fix.
+- Switched to Related.
+- Clicked related card `Demo Trip 1384426590620000386`.
+- Detail sheet changed to `#101716`.
+- Browser URL changed to `http://localhost:5173/mtl/track/101716`.
+
+Automated check:
+- `npm test -- trackDetailsTabs.spec.ts`
+- Result: 1 test file passed, 13 tests passed.
+
+Result: FIXED.

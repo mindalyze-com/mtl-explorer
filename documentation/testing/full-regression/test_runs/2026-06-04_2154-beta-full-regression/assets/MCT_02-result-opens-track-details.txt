@@ -1,0 +1,7 @@
+{
+  "clicked": "synthetic-crossing-b.gpx",
+  "expectedTrackId": 100018,
+  "url": "http://167.233.16.201:18080/mtl/track/100018",
+  "bodyText": "1 km © OpenStreetMap | Elevation: Mapterhorn 13 Tracks Stats Filter Map Animate Segments GPS Planner Admin TRACK DETAILS #100018 Bicycle 3D Replay Overview Graphs Quality Related Events Codex synthetic crossing B 01/21/2026, 10:00 TRACK CONTROLS ACTIVITY TYPE Bicycle Walking Hiking Running Mountain biking Stand-up paddle Rowing Kayaking Skiing Motorbiking Car Airplane Supersonic STATISTICS Included in statistics Exclude: GPS noise Exclude: wrong activity Exclude: import artifact Exclude: other 2.75 km Distance 16m 00s Duration 9 m Ascent 10.3 km/h Avg Speed TIMING 0m 00s Moving 0m 00s Stopped 0 Stops SPEED 10.3 km/h Avg Speed ELEVATION 9 m Ascent 5 m Descent 542 m Min Alt. 551 m Max Alt. 9 m Range 0.0% Max Slope 0.0% Max Desc. Slope ENERGY 4.1 Wh Net Total 0 W Avg Power 0 W Max 30s Power BREAKDOWN 2.1 Wh Gravitational ↑ 1.2 Wh Gravitational ↓ 0.0 Wh Aero Drag 3.2 Wh Rolling Resist. 0.0 Wh Kinetic (pos.) EXPLORATION 0.0% New Territory 0.00 m Novel Distance 2.75 km Known Distance Track Details Segment Analyzer 2 / 2 tracks Consolidated Compare 2 Race 2 Table Trends COLUMN METRIC Speed Time Distance NAME START DURATION A - B synthetic-crossing-b.gpx 01/21/2026, 10:00 16m 00s 9.07 synthetic-crossing-a.gpx 01/20/2026, 10:00 12m 00s 11.55",
+  "openedTrackDetails": true
+}

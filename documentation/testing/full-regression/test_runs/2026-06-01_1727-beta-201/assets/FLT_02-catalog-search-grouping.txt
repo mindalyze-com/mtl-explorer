@@ -1,0 +1,8 @@
+FLT_02 filter catalog evidence
+Server total=18; groups={"Date & Time":5,"Quality":4,"Activity":4,"Core":1,"Performance":4}
+All chips=All 18*, Core 1, Activity 4, Date & Time 5, Performance 4, Quality 4
+All groups=CORE:1, ACTIVITY:4, DATE & TIME:5, PERFORMANCE:4, QUALITY:4
+Activity chip active=true; rows=Activities by type | Activities by keyword | Non Motorized Tracks | Motorized Tracks
+Search gradient query=gradient; groups=PERFORMANCE:Tracks by avg speed (gradient)|Tracks by distance (gradient)|Tracks by elevation gain (gradient)|Tracks by energy (gradient); empty=none
+Search duplicate query=duplicate; groups=QUALITY:Duplicate tracks; empty=none
+Assertions: total=18; chips show Core 1, Activity 4, Date & Time 5, Performance 4, Quality 4; Activity group shows 4 rows; search gradient shows 4 Performance rows; search duplicate shows Duplicate tracks.

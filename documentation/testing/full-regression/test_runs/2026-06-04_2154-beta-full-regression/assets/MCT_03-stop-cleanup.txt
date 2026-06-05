@@ -1,0 +1,13 @@
+{
+  "stopClicks": {
+    "aScreen": {"x": 721, "y": 450},
+    "bScreen": {"x": 776, "y": 365}
+  },
+  "beforeStopText": "Measure active with A 2 tracks, B 2 tracks, 2 shared tracks, Analyze enabled, radius 490 m.",
+  "afterCloseText": "Measure sheet and flow overlay gone; nav/map visible.",
+  "afterExtraMapClickText": "Normal map click opened the track picker for synthetic-crossing-a/b, not a measure zone.",
+  "requestsDuringActiveMeasure": 2,
+  "postCloseMapClickUsedNormalTrackSelection": true,
+  "measureSheetVisibleAfterClose": false,
+  "flowNodesAfterClose": 0
+}

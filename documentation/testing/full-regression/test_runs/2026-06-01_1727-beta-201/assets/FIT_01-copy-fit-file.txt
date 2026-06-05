@@ -1,0 +1,7 @@
+'/root/mtl-regression-2026-06-01_1727-beta-201/test-inputs/Activity.fit' -> '/root/mtl-regression-2026-06-01_1727-beta-201/mtl-explorer/data/gpx/Activity.fit'
+Watched folder FIT listing:
+Activity.fit 94096 bytes
+JuraRoute72011.gpx 199962 bytes
+MoselradwegAusWiki.gpx 415326 bytes
+VoieVerteHauteVosges.gpx 183733 bytes
+949a238e1bb75c3684479785f76fa9a16888bb394518844248f488171d591387  /root/mtl-regression-2026-06-01_1727-beta-201/mtl-explorer/data/gpx/Activity.fit

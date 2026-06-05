@@ -1,0 +1,314 @@
+[
+  {
+    "q": "Charmes",
+    "status": 200,
+    "results": [
+      {
+        "name": "Charmes",
+        "country": "France",
+        "admin1": "Grand Est",
+        "lat": 48.3722,
+        "lon": 6.29117,
+        "kind": "village",
+        "distA_m": 22189,
+        "distB_m": 46354
+      },
+      {
+        "name": "Charmes",
+        "country": "France",
+        "admin1": "Hauts-de-France",
+        "lat": 49.65345,
+        "lon": 3.37857,
+        "kind": "village",
+        "distA_m": 276166,
+        "distB_m": 223019
+      },
+      {
+        "name": "Charmes-sur-Rhône",
+        "country": "France",
+        "admin1": "Rhône-Alpes",
+        "lat": 44.86367,
+        "lon": 4.83533,
+        "kind": "village",
+        "distA_m": 391005,
+        "distB_m": 446312
+      }
+    ]
+  },
+  {
+    "q": "Epinal",
+    "status": 200,
+    "results": [
+      {
+        "name": "Épinal",
+        "country": "France",
+        "admin1": "Grand Est",
+        "lat": 48.18324,
+        "lon": 6.45304,
+        "kind": "city",
+        "distA_m": 2070,
+        "distB_m": 69923
+      }
+    ]
+  },
+  {
+    "q": "Thaon-les-Vosges",
+    "status": 200,
+    "results": [
+      {
+        "name": "Thaon-les-Vosges",
+        "country": "France",
+        "admin1": "Grand Est",
+        "lat": 48.25,
+        "lon": 6.41667,
+        "kind": "town",
+        "distA_m": 5838,
+        "distB_m": 62027
+      }
+    ]
+  },
+  {
+    "q": "Vincey",
+    "status": 200,
+    "results": [
+      {
+        "name": "Vincey",
+        "country": "France",
+        "admin1": "Grand Est",
+        "lat": 48.33749,
+        "lon": 6.33134,
+        "kind": "village",
+        "distA_m": 17360,
+        "distB_m": 50847
+      }
+    ]
+  },
+  {
+    "q": "Nomexy",
+    "status": 200,
+    "results": [
+      {
+        "name": "Nomexy",
+        "country": "France",
+        "admin1": "Grand Est",
+        "lat": 48.30741,
+        "lon": 6.38572,
+        "kind": "village",
+        "distA_m": 12618,
+        "distB_m": 55245
+      }
+    ]
+  },
+  {
+    "q": "Portieux",
+    "status": 200,
+    "results": [
+      {
+        "name": "Portieux",
+        "country": "France",
+        "admin1": "Grand Est",
+        "lat": 48.34466,
+        "lon": 6.34465,
+        "kind": "village",
+        "distA_m": 17619,
+        "distB_m": 50364
+      }
+    ]
+  },
+  {
+    "q": "Pont-a-Mousson",
+    "status": 200,
+    "results": [
+      {
+        "name": "Pont-à-Mousson",
+        "country": "France",
+        "admin1": "Grand Est",
+        "lat": 48.90702,
+        "lon": 6.05635,
+        "kind": "town",
+        "distA_m": 83552,
+        "distB_m": 15718
+      },
+      {
+        "name": "Blénod-lès-Pont-à-Mousson",
+        "country": "France",
+        "admin1": "Grand Est",
+        "lat": 48.88487,
+        "lon": 6.04844,
+        "kind": "town",
+        "distA_m": 81452,
+        "distB_m": 13762
+      },
+      {
+        "name": "Norroy-lès-Pont-à-Mousson",
+        "country": "France",
+        "admin1": "Grand Est",
+        "lat": 48.93495,
+        "lon": 6.03078,
+        "kind": "village",
+        "distA_m": 87114,
+        "distB_m": 19314
+      }
+    ]
+  },
+  {
+    "q": "Pompey",
+    "status": 200,
+    "results": [
+      {
+        "name": "Pompey",
+        "country": "France",
+        "admin1": "Grand Est",
+        "lat": 48.76876,
+        "lon": 6.12639,
+        "kind": "town",
+        "distA_m": 67355,
+        "distB_m": 1386
+      },
+      {
+        "name": "Pompeya",
+        "country": "Mexico",
+        "admin1": "Veracruz",
+        "lat": 20.02556,
+        "lon": -97.06361,
+        "kind": "village",
+        "distA_m": 9311737,
+        "distB_m": 9265952
+      },
+      {
+        "name": "Pompeya",
+        "country": "Mexico",
+        "admin1": "Nuevo León",
+        "lat": 23.67752,
+        "lon": -99.93737,
+        "kind": "hill",
+        "distA_m": 9194895,
+        "distB_m": 9145380
+      },
+      {
+        "name": "Pompey Knob",
+        "country": "Australia",
+        "admin1": "Northern Territory",
+        "lat": -16.41186,
+        "lon": 131.08997,
+        "kind": "mountain",
+        "distA_m": 13903386,
+        "distB_m": 13907613
+      },
+      {
+        "name": "Pompey Peak",
+        "country": "United States",
+        "admin1": "Washington",
+        "lat": 46.50122,
+        "lon": -121.76703,
+        "kind": "mountain",
+        "distA_m": 8351809,
+        "distB_m": 8286204
+      }
+    ]
+  },
+  {
+    "q": "Nancy",
+    "status": 200,
+    "results": [
+      {
+        "name": "Nancy",
+        "country": "France",
+        "admin1": "Grand Est",
+        "lat": 48.68439,
+        "lon": 6.18496,
+        "kind": "city",
+        "distA_m": 57067,
+        "distB_m": 10799
+      },
+      {
+        "name": "Nancy Ridge",
+        "country": "United States",
+        "admin1": "Virginia",
+        "lat": 36.94816,
+        "lon": -82.34403,
+        "kind": "ridge",
+        "distA_m": 6966838,
+        "distB_m": 6918827
+      },
+      {
+        "name": "Nancy Peak",
+        "country": "Australia",
+        "admin1": "Western Australia",
+        "lat": -34.68184,
+        "lon": 117.8629,
+        "kind": "peak",
+        "distA_m": 14303397,
+        "distB_m": 14337844
+      },
+      {
+        "name": "Nancy Mountain",
+        "country": "United States",
+        "admin1": "North Carolina",
+        "lat": 35.09733,
+        "lon": -82.83208,
+        "kind": "mountain",
+        "distA_m": 7136773,
+        "distB_m": 7089813
+      },
+      {
+        "name": "Nancy Mountain",
+        "country": "United States",
+        "admin1": "New Hampshire",
+        "lat": 43.10536,
+        "lon": -72.05814,
+        "kind": "mountain",
+        "distA_m": 5856601,
+        "distB_m": 5808661
+      }
+    ]
+  },
+  {
+    "q": "Dieulouard",
+    "status": 200,
+    "results": [
+      {
+        "name": "Dieulouard",
+        "country": "France",
+        "admin1": "Grand Est",
+        "lat": 48.84137,
+        "lon": 6.06782,
+        "kind": "village",
+        "distA_m": 76431,
+        "distB_m": 8924
+      }
+    ]
+  },
+  {
+    "q": "Blénod-lès-Pont-à-Mousson",
+    "status": 200,
+    "results": [
+      {
+        "name": "Blénod-lès-Pont-à-Mousson",
+        "country": "France",
+        "admin1": "Grand Est",
+        "lat": 48.88487,
+        "lon": 6.04844,
+        "kind": "town",
+        "distA_m": 81452,
+        "distB_m": 13762
+      }
+    ]
+  },
+  {
+    "q": "Liverdun",
+    "status": 200,
+    "results": [
+      {
+        "name": "Liverdun",
+        "country": "France",
+        "admin1": "Grand Est",
+        "lat": 48.74973,
+        "lon": 6.06372,
+        "kind": "town",
+        "distA_m": 67180,
+        "distB_m": 6398
+      }
+    ]
+  }
+]

@@ -1,0 +1,12 @@
+Before delete:
+JuraRoute72011.gpx 199962 bytes
+Lannion_Plestin_parcours24.4RE.gpx 60917 bytes
+MoselradwegAusWiki.gpx 415326 bytes
+Vitry-le-Francois_Langres.gpx 238349 bytes
+VoieVerteHauteVosges.gpx 183733 bytes
+removed 'Lannion_Plestin_parcours24.4RE.gpx'
+removed 'Vitry-le-Francois_Langres.gpx'
+After delete:
+JuraRoute72011.gpx 199962 bytes
+MoselradwegAusWiki.gpx 415326 bytes
+VoieVerteHauteVosges.gpx 183733 bytes

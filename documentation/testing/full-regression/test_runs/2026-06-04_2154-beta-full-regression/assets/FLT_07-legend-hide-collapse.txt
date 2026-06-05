@@ -1,0 +1,47 @@
+{
+  "expandedBeforeHide": {
+    "text": "11 / 11 TracksLegendCYCLING10ON_FOOT1",
+    "rows": [
+      {
+        "text": "CYCLING10",
+        "disabled": false
+      },
+      {
+        "text": "ON_FOOT1",
+        "disabled": false
+      }
+    ],
+    "bands": [],
+    "collapsed": false
+  },
+  "afterHide": {
+    "text": "10 / 11 TracksLegendCYCLING10ON_FOOT1",
+    "rows": [
+      {
+        "text": "CYCLING10",
+        "disabled": false
+      },
+      {
+        "text": "ON_FOOT1",
+        "disabled": true
+      }
+    ],
+    "bands": [],
+    "collapsed": false
+  },
+  "afterCollapse": {
+    "text": "10 / 11 TracksLegendCYCLING10ON_FOOT1",
+    "rows": [
+      {
+        "text": "CYCLING10",
+        "disabled": false
+      },
+      {
+        "text": "ON_FOOT1",
+        "disabled": true
+      }
+    ],
+    "bands": [],
+    "collapsed": true
+  }
+}

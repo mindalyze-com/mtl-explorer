@@ -1,0 +1,100 @@
+{
+  "coverageId": "MAP_13",
+  "config": {
+    "tileMode": "remote",
+    "hasLegacyRemoteTileUrl": false,
+    "remoteRasterStyleKeys": [
+      "dark",
+      "light",
+      "light-topo"
+    ],
+    "remoteRasterStyleUrls": {
+      "light": "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+      "light-topo": "https://tile.opentopomap.org/{z}/{x}/{y}.png",
+      "dark": "https://basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png"
+    }
+  },
+  "results": [
+    {
+      "label": "OSM Light",
+      "expectedHost": "tile.openstreetmap.org",
+      "providerRequestSeen": true,
+      "attributionSeen": true,
+      "mapShows12Tracks": true,
+      "scaleBefore": "1000 km",
+      "scaleAfter": "500 km",
+      "interactiveZoomChangedScale": true,
+      "mapProxyRequestsForTheme": 0,
+      "sampleProviderRequests": [
+        "GET https://tile.openstreetmap.org/3/4/3.png",
+        "GET https://tile.openstreetmap.org/3/3/3.png",
+        "GET https://tile.openstreetmap.org/3/4/2.png",
+        "GET https://tile.openstreetmap.org/3/3/2.png",
+        "GET https://tile.openstreetmap.org/3/4/4.png"
+      ]
+    },
+    {
+      "label": "OSM Topo",
+      "expectedHost": "tile.opentopomap.org",
+      "providerRequestSeen": true,
+      "attributionSeen": true,
+      "mapShows12Tracks": true,
+      "scaleBefore": "500 km",
+      "scaleAfter": "200 km",
+      "interactiveZoomChangedScale": true,
+      "mapProxyRequestsForTheme": 0,
+      "sampleProviderRequests": [
+        "GET https://tile.opentopomap.org/4/8/6.png",
+        "GET https://tile.opentopomap.org/4/7/6.png",
+        "GET https://tile.opentopomap.org/4/8/7.png",
+        "GET https://tile.opentopomap.org/4/7/7.png",
+        "GET https://tile.opentopomap.org/4/8/5.png"
+      ]
+    },
+    {
+      "label": "OSM Dark",
+      "expectedHost": "basemaps.cartocdn.com",
+      "providerRequestSeen": true,
+      "attributionSeen": true,
+      "mapShows12Tracks": true,
+      "scaleBefore": "200 km",
+      "scaleAfter": "100 km",
+      "interactiveZoomChangedScale": true,
+      "mapProxyRequestsForTheme": 0,
+      "sampleProviderRequests": [
+        "GET https://basemaps.cartocdn.com/dark_all/6/32/26.png",
+        "GET https://basemaps.cartocdn.com/dark_all/6/31/26.png",
+        "GET https://basemaps.cartocdn.com/dark_all/6/32/27.png",
+        "GET https://basemaps.cartocdn.com/dark_all/6/31/27.png",
+        "GET https://basemaps.cartocdn.com/dark_all/6/32/25.png"
+      ]
+    }
+  ],
+  "totalMapProxyRequests": 0,
+  "providerHostsSeen": [
+    "tile.openstreetmap.org",
+    "tile.opentopomap.org",
+    "basemaps.cartocdn.com"
+  ],
+  "failedProviderRequests": [
+    {
+      "method": "HEAD",
+      "url": "https://tile.openstreetmap.org/0/0/0.png",
+      "error": "net::ERR_ABORTED"
+    }
+  ],
+  "consoleNotes": [
+    "info: [track-cache] sync 1000m: fetching 12/12 tracks in 1 batches {precision: 1000, totalTracks: 12, cachedTracks: 0, staleOrMissingTracks: 12, staleGeometryCleared: 12}",
+    "log: [tracks] Map layers rebuilt {durationMs: 4, trackCount: 12, overviewDotCount: 12, hasPalette: false, legendGroupCount: 0}",
+    "info: [track-cache] sync 1000m complete {precision: 1000, totalTracks: 12, fetchedTracks: 12, cachedTracks: 0, batches: 1}",
+    "log: [tracks] Map layers rebuilt {durationMs: 2, trackCount: 12, overviewDotCount: 12, hasPalette: false, legendGroupCount: 0}",
+    "log: [zoom] 2.885 | globe",
+    "log: [zoom] 3.474 | globe",
+    "log: [tracks] Map layers rebuilt {durationMs: 1, trackCount: 12, overviewDotCount: 12, hasPalette: false, legendGroupCount: 0}",
+    "log: [zoom] 4.064 | mercator",
+    "log: [zoom] 4.653 | mercator",
+    "log: [tracks] Map layers rebuilt {durationMs: 1, trackCount: 12, overviewDotCount: 12, hasPalette: false, legendGroupCount: 0}",
+    "log: [zoom] 5.243 | mercator",
+    "log: [zoom] 5.832 | mercator"
+  ]
+}

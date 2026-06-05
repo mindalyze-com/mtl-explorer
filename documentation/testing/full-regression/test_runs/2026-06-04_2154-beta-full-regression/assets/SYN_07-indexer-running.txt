@@ -1,0 +1,90 @@
+{
+  "fileName": "syn07-indexer-running-1780620130688.gpx",
+  "upload": {
+    "ok": true,
+    "status": 200,
+    "bytes": 12240224,
+    "json": {
+      "success": true,
+      "message": "'syn07-indexer-running-1780620130688.gpx' uploaded successfully. Indexing will begin shortly.",
+      "fileName": "syn07-indexer-running-1780620130688.gpx"
+    },
+    "text": "{\"success\":true,\"message\":\"'syn07-indexer-running-1780620130688.gpx' uploaded successfully. Indexing will begin shortly.\",\"fileName\":\"syn07-indexer-running-1780620130688.gpx\"}"
+  },
+  "beforeStatus": [
+    {
+      "index": "MEDIA",
+      "total": 31,
+      "pending": 0,
+      "completed": 31,
+      "failed": 0,
+      "removed": 0,
+      "excluded": 0,
+      "progressPercent": 100
+    },
+    {
+      "index": "GPS",
+      "total": 20,
+      "pending": 0,
+      "completed": 18,
+      "failed": 0,
+      "removed": 2,
+      "excluded": 0,
+      "progressPercent": 90
+    }
+  ],
+  "pendingSample": {
+    "t": 10,
+    "gps": {
+      "index": "GPS",
+      "total": 21,
+      "pending": 1,
+      "completed": 18,
+      "failed": 0,
+      "removed": 2,
+      "excluded": 0,
+      "progressPercent": 85
+    },
+    "ok": true,
+    "statusCode": 200
+  },
+  "visibleRunningState": {
+    "activeChipVisible": true,
+    "jobsTileLive": true,
+    "indexerPanelScanning": true
+  },
+  "mapInteraction": {
+    "zoomVisible": true,
+    "zoomClicked": true,
+    "mapControlsVisible": true
+  },
+  "finalStatus": [
+    {
+      "index": "MEDIA",
+      "total": 31,
+      "pending": 0,
+      "completed": 31,
+      "failed": 0,
+      "removed": 0,
+      "excluded": 0,
+      "progressPercent": 100
+    },
+    {
+      "index": "GPS",
+      "total": 21,
+      "pending": 0,
+      "completed": 19,
+      "failed": 0,
+      "removed": 2,
+      "excluded": 0,
+      "progressPercent": 90
+    }
+  ],
+  "assertions": {
+    "uploadAccepted": true,
+    "pendingObserved": true,
+    "runningBadgeVisible": true,
+    "mapInteractionWorked": true,
+    "settled": true
+  }
+}

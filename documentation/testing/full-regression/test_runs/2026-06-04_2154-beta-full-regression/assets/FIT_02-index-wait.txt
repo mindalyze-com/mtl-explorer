@@ -1,0 +1,8 @@
+poll=0 count=4 hasFit=true files=Activity.fit,JuraRoute72011.gpx,MoselradwegAusWiki.gpx,Vitry-le-Francois_Langres.gpx freshness=58qGQZ__|server_id:4cPgaT3KHaptNtCyRmtRqJ|config:9|filters:83|index:24|media:0|track_geometry:36|tracks:37
+fit id=100005 name= status=SUCCESS points=3600 distanceM=3598.76 durationSecs=3597
+indexer=[{"index":"GPS","total":6,"pending":0,"completed":4,"failed":0,"removed":2,"excluded":0,"progressPercent":66}]
+FINAL_TRACKS
+id=100005 file=Activity.fit trackName= loadStatus=SUCCESS points=3600 distanceM=3598.76 activity=WALKING
+id=100000 file=JuraRoute72011.gpx trackName=Jura Route 7 / 2011 on GPSies.com loadStatus=SUCCESS points=1409 distanceM=273260.02 activity=BICYCLE
+id=100002 file=MoselradwegAusWiki.gpx trackName=Moselradweg aus Wiki on GPSies.com loadStatus=SUCCESS points=2949 distanceM=517818.88 activity=BICYCLE
+id=100001 file=Vitry-le-Francois_Langres.gpx trackName=Vitry le françois - langres on GPSies.com loadStatus=SUCCESS points=1688 distanceM=147212.84 activity=BICYCLE

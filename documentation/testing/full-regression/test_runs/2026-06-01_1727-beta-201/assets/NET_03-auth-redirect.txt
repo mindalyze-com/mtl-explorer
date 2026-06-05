@@ -1,0 +1,46 @@
+NET_03 invalid auth redirect evidence:
+{
+  "before": {
+    "url": "http://167.233.16.201:18080/mtl/",
+    "text": "© Patrick Heusser LOADING YOUR TRAILS 5 km © OpenStreetMap | Elevation: Mapterhorn 0 Tracks Stats Filter Map Animate Segments GPS Planner Admin",
+    "jwtLength": 169
+  },
+  "after": {
+    "url": "http://167.233.16.201:18080/mtl/login?reason=expired",
+    "text": "© Patrick Heusser AGPL-3.0 Sign In",
+    "hasLoginForm": 2,
+    "hasSignIn": true
+  },
+  "apiResponses": [
+    "200 POST http://167.233.16.201:18080/mtl/api/auth/login",
+    "204 POST http://167.233.16.201:18080/mtl/api/analytics/client-environment",
+    "200 GET http://167.233.16.201:18080/mtl/api/map/config",
+    "200 GET http://167.233.16.201:18080/mtl/api/jobs/status",
+    "200 GET http://167.233.16.201:18080/mtl/api/indexer/status",
+    "200 GET http://167.233.16.201:18080/mtl/api/info/build",
+    "200 GET http://167.233.16.201:18080/mtl/api/config/get?domain1=CLIENT&domain2=COLOR_PALETTE",
+    "200 GET http://167.233.16.201:18080/mtl/api/map/config",
+    "200 GET http://167.233.16.201:18080/mtl/api/map/status",
+    "200 GET http://167.233.16.201:18080/mtl/api/data-freshness",
+    "200 GET http://167.233.16.201:18080/mtl/api/info/build",
+    "200 GET http://167.233.16.201:18080/mtl/api/filter/info?filterName=SmartBaseFilter&filterDomain=GPS_TRACK",
+    "200 GET http://167.233.16.201:18080/mtl/api/data-freshness",
+    "200 GET http://167.233.16.201:18080/mtl/api/map/status",
+    "200 POST http://167.233.16.201:18080/mtl/api/tracks/get-simplified?filterName=SmartBaseFilter&mode=ids",
+    "200 GET http://167.233.16.201:18080/mtl/api/filter/get",
+    "206 GET http://167.233.16.201:18080/mtl/api/map-proxy/prod/planet.pmtiles?mtl-map-source=public&mtl-map-archive=public-default",
+    "200 POST http://167.233.16.201:18080/mtl/api/tracks/get-simplified?precisionInMeter=10&filterName=SmartBaseFilter&mode=full",
+    "200 GET http://167.233.16.201:18080/mtl/api/location-search/status",
+    "206 GET http://167.233.16.201:18080/mtl/api/map-proxy/prod/planet.pmtiles?mtl-map-source=public&mtl-map-archive=public-default",
+    "200 GET http://167.233.16.201:18080/mtl/api/planner/status",
+    "206 GET http://167.233.16.201:18080/mtl/api/map-proxy/prod/planet.pmtiles?mtl-map-source=public&mtl-map-archive=public-default",
+    "206 GET http://167.233.16.201:18080/mtl/api/map-proxy/prod/planet.pmtiles?mtl-map-source=public&mtl-map-archive=public-default",
+    "206 GET http://167.233.16.201:18080/mtl/api/map-proxy/prod/planet.pmtiles?mtl-map-source=public&mtl-map-archive=public-default",
+    "206 GET http://167.233.16.201:18080/mtl/api/map-proxy/prod/planet.pmtiles?mtl-map-source=public&mtl-map-archive=public-default",
+    "206 GET http://167.233.16.201:18080/mtl/api/map-proxy/prod/planet.pmtiles?mtl-map-source=public&mtl-map-archive=public-default",
+    "206 GET http://167.233.16.201:18080/mtl/api/map-proxy/prod/planet.pmtiles?mtl-map-source=public&mtl-map-archive=public-default",
+    "401 GET http://167.233.16.201:18080/mtl/api/info/build",
+    "200 GET http://167.233.16.201:18080/mtl/api/auth/demo-status",
+    "200 HEAD http://167.233.16.201:18080/mtl/api/info/build"
+  ]
+}

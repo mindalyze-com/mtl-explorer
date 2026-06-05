@@ -1,0 +1,66 @@
+{
+  "beforeLogoutFreshness": {
+    "serverToken": "1xH8XP__|server_id:4cPgaT3KHaptNtCyRmtRqJ|config:9|filters:83|index:177|media:31|track_geometry:120|tracks:140",
+    "applied": "1xH8XP__|server_id:4cPgaT3KHaptNtCyRmtRqJ|config:9|filters:83|index:177|media:31|track_geometry:120|tracks:140",
+    "dismissed": ""
+  },
+  "logoutNavigations": [
+    {
+      "time": 1780619603075,
+      "url": "http://167.233.16.201:18080/mtl/admin"
+    },
+    {
+      "time": 1780619603083,
+      "url": "http://167.233.16.201:18080/mtl/login"
+    },
+    {
+      "time": 1780619603099,
+      "url": "http://167.233.16.201:18080/mtl/login"
+    },
+    {
+      "time": 1780619603119,
+      "url": "http://167.233.16.201:18080/mtl/login"
+    },
+    {
+      "time": 1780619603817,
+      "url": "http://167.233.16.201:18080/mtl/login"
+    },
+    {
+      "time": 1780619603817,
+      "url": "http://167.233.16.201:18080/mtl/"
+    }
+  ],
+  "navCountImmediatelyAfterLogin": 2,
+  "navCountAfterPolling": 2,
+  "finalBanner": "",
+  "afterLoginFreshness": {
+    "serverToken": "1xH8XP__|server_id:4cPgaT3KHaptNtCyRmtRqJ|config:9|filters:83|index:177|media:31|track_geometry:120|tracks:140",
+    "applied": "1xH8XP__|server_id:4cPgaT3KHaptNtCyRmtRqJ|config:9|filters:83|index:177|media:31|track_geometry:120|tracks:140",
+    "dismissed": ""
+  },
+  "finalBody": "1000 km © OpenStreetMap | Elevation: Mapterhorn 18 Tracks Stats Filter Map Animate Segments GPS Planner Admin",
+  "consoleFreshnessMessages": [
+    {
+      "type": "info",
+      "text": "[track-cache] sync 10m: fetching 18/18 tracks in 1 batches {precision: 10, totalTracks: 18, cachedTracks: 0, staleOrMissingTracks: 18, staleGeometryCleared: 18}"
+    },
+    {
+      "type": "info",
+      "text": "[track-cache] sync 10m complete {precision: 10, totalTracks: 18, fetchedTracks: 18, cachedTracks: 0, batches: 1}"
+    },
+    {
+      "type": "info",
+      "text": "[track-cache] sync 1000m: fetching 18/18 tracks in 1 batches {precision: 1000, totalTracks: 18, cachedTracks: 0, staleOrMissingTracks: 18, staleGeometryCleared: 0}"
+    },
+    {
+      "type": "info",
+      "text": "[track-cache] sync 1000m complete {precision: 1000, totalTracks: 18, fetchedTracks: 18, cachedTracks: 0, batches: 1}"
+    }
+  ],
+  "assertions": {
+    "returnedToApp": true,
+    "noFreshnessBannerAfterLoginWait": true,
+    "noRepeatedNavigationsAfterLogin": true,
+    "freshnessStateReadable": true
+  }
+}

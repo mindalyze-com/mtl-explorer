@@ -352,6 +352,7 @@ import type {
 } from 'x8ing-mtl-api-typescript-fetch/dist/esm/models/index';
 import { FilterConfigEntityLegendSortStrategyEnum } from 'x8ing-mtl-api-typescript-fetch/dist/esm/models/FilterConfigEntity';
 import { fetchFilters, fetchResolveFilter, type ResolveFilterResult } from '@/utils/ServiceHelper';
+import { loadCachedTracks } from '@/utils/tracks/trackCollectionLoader';
 import { format } from 'date-fns';
 import { ColorPalette } from '@/components/filter/ColorPalette';
 import {
@@ -390,7 +391,6 @@ import FilterSqlPreview from '@/components/filter/FilterSqlPreview.vue';
 import TrackShapePreview from '@/components/ui/TrackShapePreview.vue';
 
 const EVENTS = {
-  filterAppliedEvent: 'filterAppliedEvent',
   filterChangedEvent: 'filterChangedEvent',
   filterStyleChanged: 'filter-style-changed',
   startGeoDrawing: 'start-geo-drawing',
@@ -419,8 +419,7 @@ type GeoShapes = {
 type Emits = {
   (event: 'update:show', value: boolean): void;
   (event: 'closed'): void;
-  (event: 'filterAppliedEvent'): void;
-  (event: 'filterChangedEvent', result?: ResolveFilterResult): void;
+  (event: 'filterChangedEvent'): void;
   (event: 'filter-style-changed'): void;
   (event: 'start-geo-drawing', paramDef: ParamDefinition): void;
   (event: 'clear-geo-shape', paramDef: ParamDefinition): void;
@@ -447,6 +446,7 @@ const filterEnabled = ref(false);
 const activeView = ref<ActiveView>('filter');
 const filterWorkbenchMode = ref<FilterWorkbenchMode>('detail');
 const previewResult = ref<QueryResult | null>(null);
+const previewFilterResult = ref<ResolveFilterResult | null>(null);
 const isPreviewLoading = ref(false);
 const previewError = ref<string | null>(null);
 const sqlViewMode = ref<SqlViewMode>('template');
@@ -459,7 +459,7 @@ const trackIdCandidateTracks = shallowRef<GpsTrack[]>([]);
 const isTrackIdCandidatesLoading = ref(false);
 
 let previewDebounceTimer: ReturnType<typeof setTimeout> | null = null;
-let previewAbortController: AbortController | null = null;
+let previewRequestSeq = 0;
 let trackIdCandidateDebounceTimer: ReturnType<typeof setTimeout> | null = null;
 let trackIdCandidateLoadSeq = 0;
 let lastTrackIdCandidateLoadKey = '';
@@ -652,7 +652,7 @@ onMounted(async () => {
     const fetchedFilters = await fetchFilters();
     filters.value = sortFilterInfos(fetchedFilters);
 
-    const clientFilterConfig = await FilterService.loadClientFilterConfig();
+    const clientFilterConfig = normalizeClientFilterConfig(await filterStore.ensureLoaded());
     const filterConfig = clientFilterConfig?.filterInfo?.filterConfig;
 
     const selectedFilterInfo = fetchedFilters.find((f) => {
@@ -696,7 +696,6 @@ onMounted(async () => {
 onBeforeUnmount(() => {
   if (previewDebounceTimer) clearTimeout(previewDebounceTimer);
   if (trackIdCandidateDebounceTimer) clearTimeout(trackIdCandidateDebounceTimer);
-  previewAbortController?.abort();
 });
 
 function legendSortContextNote(strategy: LegendSortStrategy): string | null {
@@ -729,9 +728,15 @@ function legendSortContextNote(strategy: LegendSortStrategy): string | null {
 
 function setDateTimeParam(name: string | undefined, value: Date | Date[] | (Date | null)[] | null | undefined): void {
   if (!name) return;
-  const map = selectedFilter.value.filterParams.dateTimeParams as Record<string, unknown> | undefined;
-  if (!map) return;
-  map[name] = value as unknown as string;
+  const params = ensureFilterParamMaps(selectedFilter.value.filterParams);
+  const map = params.dateTimeParams as Record<string, unknown>;
+  const nextValue = Array.isArray(value) ? value.find((item): item is Date => item instanceof Date) : value;
+  if (nextValue instanceof Date && !Number.isNaN(nextValue.getTime())) {
+    map[name] = nextValue;
+  } else {
+    delete map[name];
+  }
+  selectedFilter.value.filterParams = params;
   onParamChanged(name);
 }
 
@@ -874,7 +879,8 @@ function onPaletteChanged() {
       getProcessedParams(),
       selectedFilter.value.palette,
       selectedFilter.value.legendSortStrategy
-    )
+    ),
+    { trackSetChanged: false }
   );
   emit(EVENTS.filterStyleChanged);
 }
@@ -896,7 +902,8 @@ function onLegendSortChanged(value: unknown) {
       getProcessedParams(),
       selectedFilter.value.palette,
       selectedFilter.value.legendSortStrategy
-    )
+    ),
+    { trackSetChanged: false }
   );
   emit(EVENTS.filterStyleChanged);
 }
@@ -960,23 +967,55 @@ function parseCandidateTrack(rawTrack: GpsTrack): GpsTrack {
   };
 }
 
+function isStandardTrackPickerSource(sourceFilterInfo: FilterInfo): boolean {
+  return FilterService.isStandardFilterWithStandardParams(ClientFilterConfig.of(sourceFilterInfo, {}));
+}
+
+function expectedTrackPickerCandidateCount(): number | null {
+  const count = Number(props.totalTrackCount);
+  return Number.isFinite(count) && count > 0 ? count : null;
+}
+
+function normalizeCandidateTracks(rawTracks: Iterable<GpsTrack>): GpsTrack[] {
+  return [...rawTracks].filter((track): track is GpsTrack => Boolean(track?.id)).map(parseCandidateTrack);
+}
+
+async function loadCachedTrackIdCandidates(sourceFilterInfo: FilterInfo): Promise<GpsTrack[] | null> {
+  if (!isStandardTrackPickerSource(sourceFilterInfo)) return null;
+
+  const expectedCount = expectedTrackPickerCandidateCount();
+  if (expectedCount == null) return null;
+
+  const cachedTracks = await loadCachedTracks();
+  if (cachedTracks.size !== expectedCount) return null;
+
+  return normalizeCandidateTracks(cachedTracks.values());
+}
+
 async function loadTrackIdCandidates() {
   const sourceFilterInfo = selectedTrackPickerSourceFilterInfo();
   const filterId = sourceFilterInfo?.filterConfig?.id;
   if (!filterId || !filterEnabled.value) return;
 
-  const loadKey = JSON.stringify({ filterId });
+  const loadKey = JSON.stringify({ filterId, expectedCount: expectedTrackPickerCandidateCount() });
   if (loadKey === lastTrackIdCandidateLoadKey && trackIdCandidateTracks.value.length > 0) return;
 
   const seq = ++trackIdCandidateLoadSeq;
   isTrackIdCandidatesLoading.value = true;
   try {
+    const cachedCandidates = await loadCachedTrackIdCandidates(sourceFilterInfo);
+    if (seq !== trackIdCandidateLoadSeq) return;
+    if (cachedCandidates) {
+      trackIdCandidateTracks.value = cachedCandidates;
+      lastTrackIdCandidateLoadKey = loadKey;
+      return;
+    }
+
     const result = await fetchResolveFilter(filterId, {}, true);
     if (seq !== trackIdCandidateLoadSeq) return;
-    trackIdCandidateTracks.value = (result.queryResult.resultEntries ?? [])
-      .map((entry) => entry.gpsTrack)
-      .filter((track): track is GpsTrack => Boolean(track?.id))
-      .map(parseCandidateTrack);
+    trackIdCandidateTracks.value = normalizeCandidateTracks(
+      (result.queryResult.resultEntries ?? []).map((entry) => entry.gpsTrack).filter(Boolean) as GpsTrack[]
+    );
     lastTrackIdCandidateLoadKey = loadKey;
   } catch (error) {
     if (seq !== trackIdCandidateLoadSeq) return;
@@ -989,13 +1028,10 @@ async function loadTrackIdCandidates() {
   }
 }
 
-async function executeLivePreview() {
+async function executeLivePreview(): Promise<ResolveFilterResult | null> {
   const filterId = selectedFilter.value?.filterInfo?.filterConfig?.id;
-  if (!filterId) return;
-
-  // Abort any in-flight request
-  if (previewAbortController) previewAbortController.abort();
-  previewAbortController = new AbortController();
+  if (!filterId) return null;
+  const requestSeq = ++previewRequestSeq;
 
   isPreviewLoading.value = true;
   previewError.value = null;
@@ -1011,30 +1047,39 @@ async function executeLivePreview() {
     ) {
       previewResult.value = null;
       drillDownFullResult.value = null;
-      return;
+      previewFilterResult.value = null;
+      return null;
     }
 
     const result = await fetchResolveFilter(filterId, processedParams, false);
+    if (requestSeq !== previewRequestSeq || !filterEnabled.value) return null;
+    previewFilterResult.value = result;
     previewResult.value = result.queryResult;
     rebuildPreviewPalette();
-    // Auto-apply: persist and notify map immediately after every successful preview
-    filterStore.save(
-      ClientFilterConfig.of(
-        selectedFilter.value.filterInfo,
-        processedParams,
-        selectedFilter.value.palette,
-        selectedFilter.value.legendSortStrategy
-      )
-    );
     drillDownFullResult.value = null;
-    emit(EVENTS.filterChangedEvent, result);
+    applyResolvedPreview(result);
+    return result;
   } catch (error: unknown) {
-    if (error instanceof Error && (error.name === 'AbortError' || error.message?.includes('abort'))) return;
+    if (error instanceof Error && (error.name === 'AbortError' || error.message?.includes('abort'))) return null;
     previewError.value = 'Preview failed. Check parameter values or switch to a different filter.';
+    previewFilterResult.value = null;
     console.error('Live preview error:', error);
+    return null;
   } finally {
     isPreviewLoading.value = false;
   }
+}
+
+function applyResolvedPreview(result: ResolveFilterResult): void {
+  const cfg = ClientFilterConfig.of(
+    selectedFilter.value.filterInfo,
+    getProcessedParams(),
+    selectedFilter.value.palette,
+    selectedFilter.value.legendSortStrategy
+  );
+  filterStore.applyResolvedFilter(cfg, result);
+  selectedFilter.value = normalizeClientFilterConfig(cfg);
+  emit(EVENTS.filterChangedEvent);
 }
 
 function rebuildPreviewPalette() {
@@ -1091,6 +1136,7 @@ function showAllTracks() {
     activeView.value = 'filter';
     filterStore.save(cfg);
     previewResult.value = null;
+    previewFilterResult.value = null;
     drillDownFullResult.value = null;
     emit(EVENTS.filterChangedEvent);
 

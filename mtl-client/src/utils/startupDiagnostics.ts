@@ -1,6 +1,6 @@
-import { USER_PREFS_KEYS } from '@/utils/userPrefs';
+import { readStorage, removeStorage, STORAGE_KEYS, writeStorage } from '@/utils/appStorage';
 
-const STORAGE_KEY = USER_PREFS_KEYS.startupCrashGuard;
+const STORAGE_KEY = STORAGE_KEYS.startupCrashGuard;
 const QUERY_PARAM = 'startupDiag';
 
 const appBootStartedAt = typeof performance !== 'undefined' ? performance.now() : Date.now();
@@ -32,24 +32,16 @@ function hasWindow(): boolean {
 
 function readStoredEnabled(): boolean {
   if (!hasWindow()) return false;
-  try {
-    return window.localStorage.getItem(STORAGE_KEY) === '1';
-  } catch {
-    return false;
-  }
+  return readStorage(STORAGE_KEY) === '1';
 }
 
 function persistEnabled(enabled: boolean): void {
   diagnosticsEnabledCache = enabled;
   if (!hasWindow()) return;
-  try {
-    if (enabled) {
-      window.localStorage.setItem(STORAGE_KEY, '1');
-    } else {
-      window.localStorage.removeItem(STORAGE_KEY);
-    }
-  } catch {
-    // Ignore localStorage access failures.
+  if (enabled) {
+    writeStorage(STORAGE_KEY, '1');
+  } else {
+    removeStorage(STORAGE_KEY);
   }
 }
 

@@ -58,6 +58,7 @@ vi.mock('@/components/filter/FilterService', () => ({
 
 import { useFilterStore } from '@/stores/filterStore';
 import { FilterService } from '@/components/filter/FilterService';
+import type { FilterResult } from '@/types/filter';
 
 describe('useFilterStore', () => {
   beforeEach(async () => {
@@ -69,6 +70,7 @@ describe('useFilterStore', () => {
   it('isStandard defaults to true before load', () => {
     const store = useFilterStore();
     expect(store.config).toBeNull();
+    expect(store.activeResult).toBeNull();
     expect(store.isStandard).toBe(true);
     expect(store.isActive).toBe(false);
   });
@@ -95,11 +97,59 @@ describe('useFilterStore', () => {
       filterParams: {},
       palette: {},
     } as ClientFilterConfig;
+    expect(store.trackSetRevision).toBe(0);
     store.save(cfg);
     expect(FilterService.saveClientFilterConfig).toHaveBeenCalledWith(cfg);
     expect(store.config).toBe(cfg);
+    expect(store.activeResult).toBeNull();
     expect(store.isStandard).toBe(false);
     expect(store.isActive).toBe(true);
+    expect(store.trackSetRevision).toBe(1);
+  });
+
+  it('can persist style-only changes without marking the track set stale', () => {
+    const store = useFilterStore();
+    const cfg = {
+      filterInfo: { filterConfig: { filterName: 'SmartBaseFilter', filterDomain: 'GPS_TRACK' } },
+      filterParams: {},
+      palette: { id: 1, pColors: ['#123456'] },
+    } as ClientFilterConfig;
+
+    store.save(cfg, { trackSetChanged: false });
+
+    expect(FilterService.saveClientFilterConfig).toHaveBeenCalledWith(cfg);
+    expect(store.config).toBe(cfg);
+    expect(store.trackSetRevision).toBe(0);
+  });
+
+  it('applyResolvedFilter persists config and exposes the active result/request', async () => {
+    const store = useFilterStore();
+    const cfg = {
+      filterInfo: { filterConfig: { filterName: 'NonMotorized', filterDomain: 'GPS_TRACK' } },
+      filterParams: { stringParams: { ACTIVITY: 'human' } },
+      palette: {},
+    } as ClientFilterConfig;
+    const result: FilterResult = {
+      trackVersions: new Map([[1, 7]]),
+      filterGroups: new Map([[1, 'WALKING']]),
+      standardFilterCount: 10,
+    };
+
+    expect(store.trackSetRevision).toBe(0);
+    store.applyResolvedFilter(cfg, result);
+
+    expect(FilterService.saveClientFilterConfig).toHaveBeenCalledWith(cfg);
+    expect(store.config).toBe(cfg);
+    expect(store.activeResult).toBe(result);
+    expect(store.trackSetRevision).toBe(1);
+    expect(store.activeFilterRequest).toEqual({
+      filterName: 'NonMotorized',
+      filterParams: { stringParams: { ACTIVITY: 'human' } },
+    });
+    await expect(store.getActiveFilterRequest()).resolves.toEqual({
+      filterName: 'NonMotorized',
+      filterParams: { stringParams: { ACTIVITY: 'human' } },
+    });
   });
 
   it('treats a default filter with a palette as active', () => {

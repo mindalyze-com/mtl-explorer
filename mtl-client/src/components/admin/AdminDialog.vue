@@ -691,8 +691,8 @@ import IndexerStatusTab from '@/components/admin/IndexerStatusTab.vue';
 import DataFreshnessTab from '@/components/admin/DataFreshnessTab.vue';
 import AttributionTab from '@/components/admin/AttributionTab.vue';
 import { clearTrackCache } from '@/utils/tracks/trackCollectionLoader';
-import { clearAppliedDataFreshnessToken } from '@/utils/dataFreshnessStorage';
 import { useIndexerStatus } from '@/composables/useIndexerStatus';
+import { useDataFreshnessStore } from '@/stores/dataFreshnessStore';
 import { displayValue, versionInfoRows, type VersionInfoRow } from '@/utils/versionInfo';
 
 const CREDENTIALS_LOGOUT_TIMEOUT_MS = 2500;
@@ -754,7 +754,15 @@ type Emits = {
 defineOptions({ name: 'AdminDialog' });
 
 const emit = defineEmits<Emits>();
-const { isIndexing: indexerIsIndexing, isJobPending, isOperationalTaskActive, operationalTasks } = useIndexerStatus();
+const dataFreshnessStore = useDataFreshnessStore();
+const {
+  isIndexing: indexerIsIndexing,
+  isJobPending,
+  isOperationalTaskActive,
+  operationalTasks,
+  refresh: refreshIndexerStatus,
+  setFastPolling: setIndexerStatusFastPolling,
+} = useIndexerStatus();
 const isAnyPending = computed(() => indexerIsIndexing.value || isJobPending.value || isOperationalTaskActive.value);
 const { colorScheme: themeColorScheme, setScheme } = useTheme();
 const schemeOptions = [
@@ -1091,7 +1099,9 @@ function externalComponentIcon(taskId: string): string {
 }
 
 watch(isOpen, (opened) => {
+  setIndexerStatusFastPolling(opened);
   if (opened) {
+    void refreshIndexerStatus();
     void loadToolStatus();
   } else {
     hideSessionId();
@@ -1101,6 +1111,7 @@ watch(isOpen, (opened) => {
 watch(userSessionId, () => hideSessionId());
 
 onBeforeUnmount(() => {
+  setIndexerStatusFastPolling(false);
   if (sessionCopyResetTimer) {
     clearTimeout(sessionCopyResetTimer);
   }
@@ -1200,7 +1211,7 @@ async function onReloadTracks() {
   reloadError.value = '';
   try {
     await clearTrackCache();
-    clearAppliedDataFreshnessToken();
+    dataFreshnessStore.clearAppliedToken();
     emit('reload-tracks', (success = true, message = '') => {
       reloadSuccess.value = success;
       reloadError.value = success ? '' : message || 'Failed to reload';

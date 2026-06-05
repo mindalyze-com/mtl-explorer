@@ -1,33 +1,21 @@
-import { ref, computed, onMounted, onUnmounted } from 'vue';
-import {
-  getAdminOperationalTasks,
-  getIndexerStatus,
-  getJobStatus,
-  type AdminOperationalTask,
-  type IndexSummary,
-  type JobSummary,
-} from '@/utils/serverAdminApi';
-
-// ── Module-level singleton: shared across all consumers ──────────────────────
-// Polling starts when the first consumer mounts, stops when the last unmounts.
-
-const summaries = ref<IndexSummary[]>([]);
-const jobSummaries = ref<JobSummary[]>([]);
-const operationalTasks = ref<AdminOperationalTask[]>([]);
-const lastRefreshed = ref('');
-const isIndexing = computed(() => summaries.value.some((s) => s.pending > 0));
-const isJobPending = computed(() => jobSummaries.value.some((s) => s.pending > 0));
-const isOperationalTaskActive = computed(() => operationalTasks.value.some((s) => s.active));
+import { storeToRefs } from 'pinia';
+import { onMounted, onUnmounted } from 'vue';
+import { useIndexerStatusStore } from '@/stores/indexerStatusStore';
 
 let consumerCount = 0;
+let fastPollingConsumerCount = 0;
 let timerId: ReturnType<typeof setTimeout> | null = null;
-let _pollWarnShown = false;
 
 const POLL_INTERVAL_ACTIVE_MS = 5_000; // 5 s while indexing / jobs / operational tasks are active
 const POLL_INTERVAL_IDLE_MS = 60_000; // 60 s when nothing is happening
+const POLL_INTERVAL_VISIBLE_STATUS_MS = 1_000; // 1 s while a status surface is visible
 
 function currentInterval() {
-  return isIndexing.value || isJobPending.value || isOperationalTaskActive.value
+  const store = useIndexerStatusStore();
+  if (fastPollingConsumerCount > 0) {
+    return POLL_INTERVAL_VISIBLE_STATUS_MS;
+  }
+  return store.isIndexing || store.isJobPending || store.isOperationalTaskActive
     ? POLL_INTERVAL_ACTIVE_MS
     : POLL_INTERVAL_IDLE_MS;
 }
@@ -42,30 +30,13 @@ function scheduleNext() {
 
 async function poll() {
   await refresh();
-  scheduleNext();
+  if (consumerCount > 0) {
+    scheduleNext();
+  }
 }
 
 async function refresh() {
-  try {
-    const [indexData, jobData, operationalData] = await Promise.all([
-      getIndexerStatus(),
-      getJobStatus(),
-      getAdminOperationalTasks(),
-    ]);
-    summaries.value = indexData;
-    jobSummaries.value = jobData;
-    operationalTasks.value = operationalData;
-    lastRefreshed.value = new Date().toLocaleTimeString(undefined, {
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-    });
-  } catch (err) {
-    if (!_pollWarnShown) {
-      console.warn('[MTL] Indexer/job status polling failed — server may be unreachable or blocked:', err);
-      _pollWarnShown = true;
-    }
-  }
+  return useIndexerStatusStore().refresh();
 }
 
 function startPolling() {
@@ -79,15 +50,42 @@ function stopPolling() {
   }
 }
 
+function rescheduleNext() {
+  stopPolling();
+  scheduleNext();
+}
+
 // ── Composable ───────────────────────────────────────────────────────────────
 
 export function useIndexerStatus() {
+  const store = useIndexerStatusStore();
+  const {
+    summaries,
+    jobSummaries,
+    operationalTasks,
+    lastRefreshed,
+    isIndexerStatusPollingHealthy,
+    isIndexing,
+    isJobPending,
+    isOperationalTaskActive,
+  } = storeToRefs(store);
+  let fastPollingEnabled = false;
+
+  function setFastPolling(enabled: boolean) {
+    if (fastPollingEnabled === enabled) return;
+    fastPollingEnabled = enabled;
+    fastPollingConsumerCount += enabled ? 1 : -1;
+    fastPollingConsumerCount = Math.max(0, fastPollingConsumerCount);
+    rescheduleNext();
+  }
+
   onMounted(() => {
     consumerCount++;
     if (consumerCount === 1) startPolling();
   });
 
   onUnmounted(() => {
+    setFastPolling(false);
     consumerCount = Math.max(0, consumerCount - 1);
     if (consumerCount === 0) stopPolling();
   });
@@ -97,9 +95,11 @@ export function useIndexerStatus() {
     jobSummaries,
     operationalTasks,
     lastRefreshed,
+    isIndexerStatusPollingHealthy,
     isIndexing,
     isJobPending,
     isOperationalTaskActive,
-    refresh,
+    refresh: store.refresh,
+    setFastPolling,
   };
 }

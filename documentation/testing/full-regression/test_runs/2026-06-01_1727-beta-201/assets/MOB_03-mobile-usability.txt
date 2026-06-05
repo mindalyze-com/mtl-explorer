@@ -1,0 +1,576 @@
+MOB_03 mobile usability evidence:
+{
+  "scaleBefore": "500 km",
+  "scaleAfter": "300 km",
+  "overview": {
+    "label": "overview",
+    "innerWidth": 390,
+    "docScrollWidth": 390,
+    "bodyScrollWidth": 390,
+    "text": "500 km © OpenStreetMap | Elevation: Mapterhorn 12 Tracks Stats Filter Planner Map Animate Segments GPS Admin Overview Trends Tracks 12 TRACKS 884 km DISTANCE 18h 49m DURATION 4,278 Wh ENERGY ACTIVITY BREAKDOWN Tracks Distance Duration Energy Bicycle 11 11 Walking 1 1 HIGHLIGHTS Longest track Moselradweg aus Wiki on GPSies.com 518 km Longest duration Jura Route 7 / 2011 on GPSies.com 7h 46m Biggest ascent Jura Route 7 / 2011 on GPSies.com 6,324 m Quickest ascent Track 100005 3,919 m/h Most energy Jura Route 7 / 2011 on GPSies.com 1,808 Wh Fastest 30 s speed Moselradweg aus Wiki on GPSies.com 58.3 km/h Peak 30 s power Jura Route 7 / 2011 on GPSies.com 1,114 W Most common activity Bicycle 11 tracks RECENT ACTIVITY View all tracks Path Bicycle 06/01/2026, 18:32 1.44 km 0m 00s FMT GEOJSON Synthetic Bicycle 06/01/2026, 18:32 1.44 km 0m 00s Path Bicycle 06/01/2026, 18:32 1.45 km 0m 00s MAP 03 Freshness Synthetic Bicycle 03/01/2026, 11:00 674.26 m 25m 00s FMT GDB Synthetic Bicycle 02/07/2026, 10:00 1.49 km 35m 00s RHYTHM & MILESTONES Most Active Periods Most active day 2010-01-01 17h 49m 3 tracks - 870 km Most active week 2009-W53 17h 49m 3 tracks - 870 km Most active month 2010-01 17h 49m",
+    "overflows": [
+      {
+        "i": 412,
+        "tag": "BUTTON",
+        "cls": "sheet-fullscreen-btn",
+        "text": "Fullscreen",
+        "x": 316.421875,
+        "y": 356.40625,
+        "w": 25.59375,
+        "h": 25.59375,
+        "clientWidth": 24,
+        "scrollWidth": 32,
+        "visible": true
+      },
+      {
+        "i": 414,
+        "tag": "BUTTON",
+        "cls": "sheet-close-btn",
+        "text": "Close",
+        "x": 348.40625,
+        "y": 356.40625,
+        "w": 25.59375,
+        "h": 25.59375,
+        "clientWidth": 24,
+        "scrollWidth": 32,
+        "visible": true
+      }
+    ],
+    "charts": [
+      {
+        "tag": "DIV",
+        "w": 180,
+        "h": 180,
+        "text": "Created with Highcharts 12.6.0"
+      },
+      {
+        "tag": "svg",
+        "w": 180,
+        "h": 180,
+        "text": "Created with Highcharts 12.6.0"
+      },
+      {
+        "tag": "DIV",
+        "w": 0,
+        "h": 0,
+        "text": "Created with Highcharts 12.6.02010-Q12021-Q32026-Q12026-Q201020 h515"
+      },
+      {
+        "tag": "svg",
+        "w": 0,
+        "h": 0,
+        "text": "Created with Highcharts 12.6.02010-Q12021-Q32026-Q12026-Q201020 h515"
+      },
+      {
+        "tag": "DIV",
+        "w": 0,
+        "h": 0,
+        "text": "Created with Highcharts 12.6.02010-Q12021-Q32026-Q12026-Q201k km1k …200400600800"
+      },
+      {
+        "tag": "svg",
+        "w": 0,
+        "h": 0,
+        "text": "Created with Highcharts 12.6.02010-Q12021-Q32026-Q12026-Q201k km1k …200400600800"
+      },
+      {
+        "tag": "DIV",
+        "w": 0,
+        "h": 0,
+        "text": "Created with Highcharts 12.6.02010-Q12021-Q32026-Q12026-Q20246135"
+      },
+      {
+        "tag": "svg",
+        "w": 0,
+        "h": 0,
+        "text": "Created with Highcharts 12.6.02010-Q12021-Q32026-Q12026-Q20246135"
+      },
+      {
+        "tag": "DIV",
+        "w": 0,
+        "h": 0,
+        "text": "Created with Highcharts 12.6.02010-Q12021-Q32026-Q12026-Q202k4k6k Wh"
+      },
+      {
+        "tag": "svg",
+        "w": 0,
+        "h": 0,
+        "text": "Created with Highcharts 12.6.02010-Q12021-Q32026-Q12026-Q202k4k6k Wh"
+      },
+      {
+        "tag": "DIV",
+        "w": 0,
+        "h": 0,
+        "text": "Created with Highcharts 12.6.02010-Q12021-Q32026-Q12026-Q2024135"
+      },
+      {
+        "tag": "svg",
+        "w": 0,
+        "h": 0,
+        "text": "Created with Highcharts 12.6.02010-Q12021-Q32026-Q12026-Q2024135"
+      },
+      {
+        "tag": "DIV",
+        "w": 0,
+        "h": 0,
+        "text": "Created with Highcharts 12.6.02010-Q12021-Q32026-Q12026-Q201k2505007501.3k1.5k1.8k"
+      },
+      {
+        "tag": "svg",
+        "w": 0,
+        "h": 0,
+        "text": "Created with Highcharts 12.6.02010-Q12021-Q32026-Q12026-Q201k2505007501.3k1.5k1.8k"
+      },
+      {
+        "tag": "DIV",
+        "w": 0,
+        "h": 0,
+        "text": "Created with Highcharts 12.6.02010-Q12021-Q32026-Q12026-Q2010020406080120 %"
+      },
+      {
+        "tag": "svg",
+        "w": 0,
+        "h": 0,
+        "text": "Created with Highcharts 12.6.02010-Q12021-Q32026-Q12026-Q2010020406080120 %"
+      }
+    ]
+  },
+  "trends": {
+    "label": "trends",
+    "innerWidth": 390,
+    "docScrollWidth": 390,
+    "bodyScrollWidth": 390,
+    "text": "500 km © OpenStreetMap | Elevation: Mapterhorn 12 Tracks Stats Filter Planner Map Animate Segments GPS Admin Overview Trends Tracks YYYY-Q (by year and quarter) All sub-units Table Charts 4 Periods 12 Tracks 884 km Total Dist. 18h 49m Total Time 4,278 Wh Total Energy DURATION 2010-Q1 2021-Q3 2026-Q1 2026-Q2 0 10 20 h DISTANCE 2010-Q1 2021-Q3 2026-Q1 2026-Q2 0 1k km 500 ACTIVITY 2010-Q1 2021-Q3 2026-Q1 2026-Q2 0 2 4 6 ENERGY 2010-Q1 2021-Q3 2026-Q1 2026-Q2 0 2k 4k 6k Wh INTENSITY INDEX 2010-Q1 2021-Q3 2026-Q1 2026-Q2 0 2 4 6 TRAINING LOAD 2010-Q1 2021-Q3 2026-Q1 2026-Q2 0 1k 2k EXPLORATION 2010-Q1 2021-Q3 2026-Q1 2026-Q2 0 100 50 150 %",
+    "overflows": [
+      {
+        "i": 412,
+        "tag": "BUTTON",
+        "cls": "sheet-fullscreen-btn",
+        "text": "Fullscreen",
+        "x": 316.421875,
+        "y": 356.40625,
+        "w": 25.59375,
+        "h": 25.59375,
+        "clientWidth": 24,
+        "scrollWidth": 32,
+        "visible": true
+      },
+      {
+        "i": 414,
+        "tag": "BUTTON",
+        "cls": "sheet-close-btn",
+        "text": "Close",
+        "x": 348.40625,
+        "y": 356.40625,
+        "w": 25.59375,
+        "h": 25.59375,
+        "clientWidth": 24,
+        "scrollWidth": 32,
+        "visible": true
+      },
+      {
+        "i": 1035,
+        "tag": "DIV",
+        "cls": "stats-summary",
+        "text": "4 Periods 12 Tracks 884 km Total Dist. 18h 49m Total Time 4,278 Wh Total Energy",
+        "x": 18,
+        "y": 550.53125,
+        "w": 354,
+        "h": 38.78125,
+        "clientWidth": 354,
+        "scrollWidth": 841,
+        "visible": true
+      }
+    ],
+    "charts": [
+      {
+        "tag": "DIV",
+        "w": 0,
+        "h": 0,
+        "text": "Created with Highcharts 12.6.0"
+      },
+      {
+        "tag": "svg",
+        "w": 0,
+        "h": 0,
+        "text": "Created with Highcharts 12.6.0"
+      },
+      {
+        "tag": "DIV",
+        "w": 354,
+        "h": 185,
+        "text": "Created with Highcharts 12.6.02010-Q12021-Q32026-Q12026-Q201020 h"
+      },
+      {
+        "tag": "svg",
+        "w": 354,
+        "h": 185,
+        "text": "Created with Highcharts 12.6.02010-Q12021-Q32026-Q12026-Q201020 h"
+      },
+      {
+        "tag": "DIV",
+        "w": 354,
+        "h": 185,
+        "text": "Created with Highcharts 12.6.02010-Q12021-Q32026-Q12026-Q201k km500"
+      },
+      {
+        "tag": "svg",
+        "w": 354,
+        "h": 185,
+        "text": "Created with Highcharts 12.6.02010-Q12021-Q32026-Q12026-Q201k km500"
+      },
+      {
+        "tag": "DIV",
+        "w": 354,
+        "h": 185,
+        "text": "Created with Highcharts 12.6.02010-Q12021-Q32026-Q12026-Q20246"
+      },
+      {
+        "tag": "svg",
+        "w": 354,
+        "h": 185,
+        "text": "Created with Highcharts 12.6.02010-Q12021-Q32026-Q12026-Q20246"
+      },
+      {
+        "tag": "DIV",
+        "w": 354,
+        "h": 185,
+        "text": "Created with Highcharts 12.6.02010-Q12021-Q32026-Q12026-Q202k4k6k Wh"
+      },
+      {
+        "tag": "svg",
+        "w": 354,
+        "h": 185,
+        "text": "Created with Highcharts 12.6.02010-Q12021-Q32026-Q12026-Q202k4k6k Wh"
+      },
+      {
+        "tag": "DIV",
+        "w": 354,
+        "h": 185,
+        "text": "Created with Highcharts 12.6.02010-Q12021-Q32026-Q12026-Q20246"
+      },
+      {
+        "tag": "svg",
+        "w": 354,
+        "h": 185,
+        "text": "Created with Highcharts 12.6.02010-Q12021-Q32026-Q12026-Q20246"
+      },
+      {
+        "tag": "DIV",
+        "w": 354,
+        "h": 185,
+        "text": "Created with Highcharts 12.6.02010-Q12021-Q32026-Q12026-Q201k2k"
+      },
+      {
+        "tag": "svg",
+        "w": 354,
+        "h": 185,
+        "text": "Created with Highcharts 12.6.02010-Q12021-Q32026-Q12026-Q201k2k"
+      },
+      {
+        "tag": "DIV",
+        "w": 354,
+        "h": 185,
+        "text": "Created with Highcharts 12.6.02010-Q12021-Q32026-Q12026-Q2010050150 %"
+      },
+      {
+        "tag": "svg",
+        "w": 354,
+        "h": 185,
+        "text": "Created with Highcharts 12.6.02010-Q12021-Q32026-Q12026-Q2010050150 %"
+      }
+    ]
+  },
+  "tracks": {
+    "label": "tracks",
+    "innerWidth": 390,
+    "docScrollWidth": 390,
+    "bodyScrollWidth": 390,
+    "text": "500 km © OpenStreetMap | Elevation: Mapterhorn 12 Tracks Stats Filter Planner Map Animate Segments GPS Admin Overview Trends Tracks VIEWS All Excluded Stats excluded No activity 12 tracks · 884 km · 18h 49m SORT: Date Imported Distance Duration Name Exploration Path Bicycle 06/01/2026, 18:32 1.44 km 9 Wh FMT GEOJSON Synthetic Bicycle Generated from route FMT GEOJSON Synthetic 06/01/2026, 18:32 1.44 km 2 Wh Path Bicycle 06/01/2026, 18:32 1.45 km 9 Wh MAP 03 Freshness Synthetic Bicycle 03/01/2026, 11:00 674.26 m 15 Wh FMT GDB Synthetic Bicycle 02/07/2026, 10:00 1.49 km 10 Wh Track 100013 Bicycle 02/05/2026, 10:00 1.28 km 8 Wh GNSSALTTRK Bicycle IGCHDRS~HFPLTPILOT:Unknown~ 02/04/2026, 10:00 1.50 km 10 Wh FMT TCX Synthet Bicycle 02/02/2026, 10:00 1.50 km 10 Wh Track 100005 Walking 07/20/2021, 23:11 3.60 km 59m 57s 347 Wh Moselradweg aus Wiki on GPSies.com Bicycle 01/01/2010, 01:00 518 km 6h 50m 1,616 Wh Jura Route 7 / 2011 on GPSies.com Bicycle 01/01/2010, 01:00 273 km 7h 46m 1,808 Wh voie verte haute vosges on GPSies.com Bicycle 01/01/2010, 01:00 78.5 km 3h 12m 436 Wh",
+    "overflows": [
+      {
+        "i": 412,
+        "tag": "BUTTON",
+        "cls": "sheet-fullscreen-btn",
+        "text": "Fullscreen",
+        "x": 316.421875,
+        "y": 356.40625,
+        "w": 25.59375,
+        "h": 25.59375,
+        "clientWidth": 24,
+        "scrollWidth": 32,
+        "visible": true
+      },
+      {
+        "i": 414,
+        "tag": "BUTTON",
+        "cls": "sheet-close-btn",
+        "text": "Close",
+        "x": 348.40625,
+        "y": 356.40625,
+        "w": 25.59375,
+        "h": 25.59375,
+        "clientWidth": 24,
+        "scrollWidth": 32,
+        "visible": true
+      },
+      {
+        "i": 832,
+        "tag": "DIV",
+        "cls": "track-browser-card__desc",
+        "text": "Generated from route FMT GEOJSON Synthetic",
+        "x": 100.578125,
+        "y": 794.78125,
+        "w": 247.234375,
+        "h": 17,
+        "clientWidth": 247,
+        "scrollWidth": 307,
+        "visible": true
+      }
+    ],
+    "charts": [
+      {
+        "tag": "DIV",
+        "w": 0,
+        "h": 0,
+        "text": "Created with Highcharts 12.6.0"
+      },
+      {
+        "tag": "svg",
+        "w": 0,
+        "h": 0,
+        "text": "Created with Highcharts 12.6.0"
+      },
+      {
+        "tag": "DIV",
+        "w": 0,
+        "h": 0,
+        "text": "Created with Highcharts 12.6.02010-Q12021-Q32026-Q12026-Q201020 h"
+      },
+      {
+        "tag": "svg",
+        "w": 0,
+        "h": 0,
+        "text": "Created with Highcharts 12.6.02010-Q12021-Q32026-Q12026-Q201020 h"
+      },
+      {
+        "tag": "DIV",
+        "w": 0,
+        "h": 0,
+        "text": "Created with Highcharts 12.6.02010-Q12021-Q32026-Q12026-Q201k km500"
+      },
+      {
+        "tag": "svg",
+        "w": 0,
+        "h": 0,
+        "text": "Created with Highcharts 12.6.02010-Q12021-Q32026-Q12026-Q201k km500"
+      },
+      {
+        "tag": "DIV",
+        "w": 0,
+        "h": 0,
+        "text": "Created with Highcharts 12.6.02010-Q12021-Q32026-Q12026-Q20246"
+      },
+      {
+        "tag": "svg",
+        "w": 0,
+        "h": 0,
+        "text": "Created with Highcharts 12.6.02010-Q12021-Q32026-Q12026-Q20246"
+      },
+      {
+        "tag": "DIV",
+        "w": 0,
+        "h": 0,
+        "text": "Created with Highcharts 12.6.02010-Q12021-Q32026-Q12026-Q202k4k6k Wh"
+      },
+      {
+        "tag": "svg",
+        "w": 0,
+        "h": 0,
+        "text": "Created with Highcharts 12.6.02010-Q12021-Q32026-Q12026-Q202k4k6k Wh"
+      },
+      {
+        "tag": "DIV",
+        "w": 0,
+        "h": 0,
+        "text": "Created with Highcharts 12.6.02010-Q12021-Q32026-Q12026-Q20246"
+      },
+      {
+        "tag": "svg",
+        "w": 0,
+        "h": 0,
+        "text": "Created with Highcharts 12.6.02010-Q12021-Q32026-Q12026-Q20246"
+      },
+      {
+        "tag": "DIV",
+        "w": 0,
+        "h": 0,
+        "text": "Created with Highcharts 12.6.02010-Q12021-Q32026-Q12026-Q201k2k"
+      },
+      {
+        "tag": "svg",
+        "w": 0,
+        "h": 0,
+        "text": "Created with Highcharts 12.6.02010-Q12021-Q32026-Q12026-Q201k2k"
+      },
+      {
+        "tag": "DIV",
+        "w": 0,
+        "h": 0,
+        "text": "Created with Highcharts 12.6.02010-Q12021-Q32026-Q12026-Q2010050150 %"
+      },
+      {
+        "tag": "svg",
+        "w": 0,
+        "h": 0,
+        "text": "Created with Highcharts 12.6.02010-Q12021-Q32026-Q12026-Q2010050150 %"
+      }
+    ]
+  },
+  "mapMetrics": {
+    "label": "map after zoom",
+    "innerWidth": 390,
+    "docScrollWidth": 390,
+    "bodyScrollWidth": 390,
+    "text": "300 km © OpenStreetMap | Elevation: Mapterhorn 12 Tracks Stats Filter Planner Map Animate Segments GPS Admin Overview Trends Tracks VIEWS All Excluded Stats excluded No activity 12 tracks · 884 km · 18h 49m SORT: Date Imported Distance Duration Name Exploration Path Bicycle 06/01/2026, 18:32 1.44 km 9 Wh FMT GEOJSON Synthetic Bicycle Generated from route FMT GEOJSON Synthetic 06/01/2026, 18:32 1.44 km 2 Wh Path Bicycle 06/01/2026, 18:32 1.45 km 9 Wh MAP 03 Freshness Synthetic Bicycle 03/01/2026, 11:00 674.26 m 15 Wh FMT GDB Synthetic Bicycle 02/07/2026, 10:00 1.49 km 10 Wh Track 100013 Bicycle 02/05/2026, 10:00 1.28 km 8 Wh GNSSALTTRK Bicycle IGCHDRS~HFPLTPILOT:Unknown~ 02/04/2026, 10:00 1.50 km 10 Wh FMT TCX Synthet Bicycle 02/02/2026, 10:00 1.50 km 10 Wh Track 100005 Walking 07/20/2021, 23:11 3.60 km 59m 57s 347 Wh Moselradweg aus Wiki on GPSies.com Bicycle 01/01/2010, 01:00 518 km 6h 50m 1,616 Wh Jura Route 7 / 2011 on GPSies.com Bicycle 01/01/2010, 01:00 273 km 7h 46m 1,808 Wh voie verte haute vosges on GPSies.com Bicycle 01/01/2010, 01:00 78.5 km 3h 12m 436 Wh",
+    "overflows": [
+      {
+        "i": 412,
+        "tag": "BUTTON",
+        "cls": "sheet-fullscreen-btn",
+        "text": "Fullscreen",
+        "x": 316.421875,
+        "y": 356.40625,
+        "w": 25.59375,
+        "h": 25.59375,
+        "clientWidth": 24,
+        "scrollWidth": 32,
+        "visible": true
+      },
+      {
+        "i": 414,
+        "tag": "BUTTON",
+        "cls": "sheet-close-btn",
+        "text": "Close",
+        "x": 348.40625,
+        "y": 356.40625,
+        "w": 25.59375,
+        "h": 25.59375,
+        "clientWidth": 24,
+        "scrollWidth": 32,
+        "visible": true
+      },
+      {
+        "i": 832,
+        "tag": "DIV",
+        "cls": "track-browser-card__desc",
+        "text": "Generated from route FMT GEOJSON Synthetic",
+        "x": 100.578125,
+        "y": 794.78125,
+        "w": 247.234375,
+        "h": 17,
+        "clientWidth": 247,
+        "scrollWidth": 307,
+        "visible": true
+      }
+    ],
+    "charts": [
+      {
+        "tag": "DIV",
+        "w": 0,
+        "h": 0,
+        "text": "Created with Highcharts 12.6.0"
+      },
+      {
+        "tag": "svg",
+        "w": 0,
+        "h": 0,
+        "text": "Created with Highcharts 12.6.0"
+      },
+      {
+        "tag": "DIV",
+        "w": 0,
+        "h": 0,
+        "text": "Created with Highcharts 12.6.02010-Q12021-Q32026-Q12026-Q201020 h"
+      },
+      {
+        "tag": "svg",
+        "w": 0,
+        "h": 0,
+        "text": "Created with Highcharts 12.6.02010-Q12021-Q32026-Q12026-Q201020 h"
+      },
+      {
+        "tag": "DIV",
+        "w": 0,
+        "h": 0,
+        "text": "Created with Highcharts 12.6.02010-Q12021-Q32026-Q12026-Q201k km500"
+      },
+      {
+        "tag": "svg",
+        "w": 0,
+        "h": 0,
+        "text": "Created with Highcharts 12.6.02010-Q12021-Q32026-Q12026-Q201k km500"
+      },
+      {
+        "tag": "DIV",
+        "w": 0,
+        "h": 0,
+        "text": "Created with Highcharts 12.6.02010-Q12021-Q32026-Q12026-Q20246"
+      },
+      {
+        "tag": "svg",
+        "w": 0,
+        "h": 0,
+        "text": "Created with Highcharts 12.6.02010-Q12021-Q32026-Q12026-Q20246"
+      },
+      {
+        "tag": "DIV",
+        "w": 0,
+        "h": 0,
+        "text": "Created with Highcharts 12.6.02010-Q12021-Q32026-Q12026-Q202k4k6k Wh"
+      },
+      {
+        "tag": "svg",
+        "w": 0,
+        "h": 0,
+        "text": "Created with Highcharts 12.6.02010-Q12021-Q32026-Q12026-Q202k4k6k Wh"
+      },
+      {
+        "tag": "DIV",
+        "w": 0,
+        "h": 0,
+        "text": "Created with Highcharts 12.6.02010-Q12021-Q32026-Q12026-Q20246"
+      },
+      {
+        "tag": "svg",
+        "w": 0,
+        "h": 0,
+        "text": "Created with Highcharts 12.6.02010-Q12021-Q32026-Q12026-Q20246"
+      },
+      {
+        "tag": "DIV",
+        "w": 0,
+        "h": 0,
+        "text": "Created with Highcharts 12.6.02010-Q12021-Q32026-Q12026-Q201k2k"
+      },
+      {
+        "tag": "svg",
+        "w": 0,
+        "h": 0,
+        "text": "Created with Highcharts 12.6.02010-Q12021-Q32026-Q12026-Q201k2k"
+      },
+      {
+        "tag": "DIV",
+        "w": 0,
+        "h": 0,
+        "text": "Created with Highcharts 12.6.02010-Q12021-Q32026-Q12026-Q2010050150 %"
+      },
+      {
+        "tag": "svg",
+        "w": 0,
+        "h": 0,
+        "text": "Created with Highcharts 12.6.02010-Q12021-Q32026-Q12026-Q2010050150 %"
+      }
+    ]
+  }
+}

@@ -1,0 +1,28 @@
+Planner desktop flow evidence
+Selected location: Zürich | Zurich, Switzerland | CITY | Z7-15
+Profile options: Hiking | Road Bike | Mountain Hiking | Car
+Selected profile: Road Bike
+Base route stats: {"distance":"0.83 km","distanceKm":0.83,"ascent":"11 m","descent":"0 m","duration":"2m","legs":"1","legsNum":1}
+Insert drag: {"insertStart":{"x":720,"y":236},"insertEnd":{"x":720,"y":206}}; stats={"distance":"0.94 km","distanceKm":0.94,"ascent":"15 m","descent":"0 m","duration":"2m","legs":"2","legsNum":2}
+Move drag: {"moveStart":{"x":720,"y":206},"moveEnd":{"x":760,"y":224}}; stats={"distance":"0.89 km","distanceKm":0.89,"ascent":"16 m","descent":"0 m","duration":"2m","legs":"2","legsNum":2}
+PLN_04_afterDelete: stats={"distance":"0.83 km","distanceKm":0.83,"ascent":"11 m","descent":"0 m","duration":"2m","legs":"1","legsNum":1} saveDisabled=false clearDisabled=false undoDisabled=false redoDisabled=true highcharts=1 hoverMarkers=0 deleteMarkers=0 errors=
+PLN_04_afterUndoDelete: stats={"distance":"0.89 km","distanceKm":0.89,"ascent":"16 m","descent":"0 m","duration":"2m","legs":"2","legsNum":2} saveDisabled=false clearDisabled=false undoDisabled=false redoDisabled=false highcharts=1 hoverMarkers=0 deleteMarkers=0 errors=
+PLN_04_afterRedoDelete: stats={"distance":"0.83 km","distanceKm":0.83,"ascent":"11 m","descent":"0 m","duration":"2m","legs":"1","legsNum":1} saveDisabled=false clearDisabled=false undoDisabled=false redoDisabled=true highcharts=1 hoverMarkers=0 deleteMarkers=0 errors=
+PLN_04_afterClear: stats={"distance":"0.00 km","distanceKm":0,"ascent":"0 m","descent":"0 m","duration":"–","legs":"0","legsNum":0} saveDisabled=true clearDisabled=true undoDisabled=false redoDisabled=true highcharts=0 hoverMarkers=0 deleteMarkers=0 errors=
+PLN_04_afterUndoClear: stats={"distance":"0.83 km","distanceKm":0.83,"ascent":"11 m","descent":"0 m","duration":"2m","legs":"1","legsNum":1} saveDisabled=false clearDisabled=false undoDisabled=false redoDisabled=false highcharts=1 hoverMarkers=0 deleteMarkers=0 errors=
+PLN_04_afterRedoClear: stats={"distance":"0.00 km","distanceKm":0,"ascent":"0 m","descent":"0 m","duration":"–","legs":"0","legsNum":0} saveDisabled=true clearDisabled=true undoDisabled=false redoDisabled=true highcharts=0 hoverMarkers=0 deleteMarkers=0 errors=
+PLN_04_restoredForSave: stats={"distance":"0.83 km","distanceKm":0.83,"ascent":"11 m","descent":"0 m","duration":"2m","legs":"1","legsNum":1} saveDisabled=false clearDisabled=false undoDisabled=false redoDisabled=false highcharts=1 hoverMarkers=0 deleteMarkers=0 errors=
+PLN_05: stats={"distance":"0.83 km","distanceKm":0.83,"ascent":"11 m","descent":"0 m","duration":"2m","legs":"1","legsNum":1} saveDisabled=false clearDisabled=false undoDisabled=false redoDisabled=false highcharts=1 hoverMarkers=0 deleteMarkers=0 errors=
+PLN_06: stats={"distance":"0.83 km","distanceKm":0.83,"ascent":"11 m","descent":"0 m","duration":"2m","legs":"1","legsNum":1} saveDisabled=false clearDisabled=false undoDisabled=false redoDisabled=false highcharts=1 hoverMarkers=0 deleteMarkers=0 errors=
+Plan name: FR PLN 2026-06-01 1780346251979
+Saved plans after save: [{"id":100016,"name":"FR PLN 2026-06-01 1780346251979","distanceM":831,"description":"Full regression temporary planner route","profile":"fastbike"}]
+Load list: FR PLN 2026-06-01 1780346251979
+0.8 km
+· Full regression temporary planner route
+Jun 1, 2026
+GPX
+Loaded plan stats: {"distance":"0.83 km","distanceKm":0.83,"ascent":"11 m","descent":"0 m","duration":"2m","legs":"1","legsNum":1}; notices=Loaded plan shown as saved. The first edit will re-route all legs.
+GPX export: {"suggestedFilename":"FR PLN 2026-06-01 1780346251979.gpx","bytes":4080,"trkptCount":56,"hasGpx":true,"hasTrk":true}
+Route trouble: stats={"distance":"0.83 km","distanceKm":0.83,"ascent":"11 m","descent":"0 m","duration":"2m","legs":"1","legsNum":1}; errors=Routing data for this area is being downloaded. Please retry in about 30 seconds. (auto-retry 1/6); highcharts=1
+Saved plans after delete: []
+Final cleanup: {"ok":true,"deleted":[]}

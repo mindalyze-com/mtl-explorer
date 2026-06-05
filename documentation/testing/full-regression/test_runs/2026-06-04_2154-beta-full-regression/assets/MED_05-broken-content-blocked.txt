@@ -1,0 +1,19 @@
+{
+  "mediaId": 400014,
+  "fileName": "demo_photo_00030.jpg",
+  "uiStatus": "BLOCKED: media markers did not render/open a Photo sheet in MED_03, so broken-photo UI could not be reached through the app flow.",
+  "directBrokenContent": {
+    "status": 500,
+    "contentType": "application/json",
+    "body": "{\"timestamp\":\"2026-06-04T23:48:40.499+0000\",\"status\":500,\"error\":\"Internal Server Error\",\"path\":\"/mtl/api/media/get/400014/content\"}"
+  },
+  "restoredContent": {
+    "status": 200,
+    "contentType": "image/jpeg",
+    "byteSize": 12379
+  },
+  "assertions": {
+    "directEndpointFailsWhenFileMissing": true,
+    "fileRestored": true
+  }
+}

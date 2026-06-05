@@ -72,7 +72,13 @@
 
           <!-- Row 2: Bare radius slider -->
           <div class="measure-radius-bare">
-            <Slider v-model="radiusSelector" class="measure-bar-slider" :min="1" :max="100" />
+            <MtlSlider
+              v-model="radiusSelector"
+              class="measure-bar-slider"
+              :min="1"
+              :max="100"
+              aria-label="Detection radius"
+            />
             <span class="measure-radius-hint">{{ radiusDisplay }} m</span>
           </div>
 
@@ -111,10 +117,11 @@
 <script setup lang="ts">
 import { computed, inject, nextTick, onBeforeUnmount, onMounted, provide, ref, watch } from 'vue';
 import type maplibregl from 'maplibre-gl';
-import type { CrossingPointsResponse, TriggerPoint } from 'x8ing-mtl-api-typescript-fetch/dist/esm/models/index';
+import type { CrossingPointsResponseDto, TriggerPoint } from 'x8ing-mtl-api-typescript-fetch/dist/esm/models/index';
 import { fetchTrackDetailsForCrossingPoints, fetchTrackIdsWithinDistanceOfPoint } from '@/utils/ServiceHelper';
 import DisplayMeasureResults from '@/components/measure/DisplayMeasureResults.vue';
 import BottomSheet from '@/components/ui/BottomSheet.vue';
+import MtlSlider from '@/components/ui/MtlSlider.vue';
 import { EVENT_MEASURE_BETWEEN_POINTS_DIALOG_MAXIMIZED_EVENT } from '@/utils/Utils';
 
 defineOptions({ name: 'MeasureBetweenPoints' });
@@ -148,8 +155,9 @@ const zoneTrackCounts = ref<Array<number | undefined>>([]);
 const zoneTrackIds = ref<Array<number[] | null | undefined>>([]);
 const zoneHasVisibleTracks = ref<boolean[]>([]);
 const zoneCountAbortControllers = ref<Array<AbortController | undefined>>([]);
+const zoneCountRequestTokens = ref<Array<number | undefined>>([]);
 let radiusCountDebounceTimer: ReturnType<typeof setTimeout> | null = null;
-const measureServiceResult = ref<CrossingPointsResponse | null>(null);
+const measureServiceResult = ref<CrossingPointsResponseDto | null>(null);
 const showResults = ref(false);
 const numberOfCrossings = ref(0);
 const measureSourceIds = ref<string[]>([]);
@@ -159,6 +167,8 @@ const isLoading = ref(false);
 const viewportWidth = ref(typeof window !== 'undefined' ? window.innerWidth : 1024);
 const viewportHeight = ref(typeof window !== 'undefined' ? window.innerHeight : 900);
 let crossingFetchAbortController: AbortController | null = null;
+let crossingFetchToken = 0;
+let zoneCountRequestToken = 0;
 
 function radius() {
   const val = Math.round(Math.pow(1.1, radiusSelector.value));
@@ -366,6 +376,7 @@ async function onCancelSelection() {
   zoneTrackCounts.value = [];
   zoneTrackIds.value = [];
   zoneHasVisibleTracks.value = [];
+  zoneCountRequestTokens.value = [];
 }
 
 function onUndoLastPoint() {
@@ -378,6 +389,7 @@ function onUndoLastPoint() {
     zoneCountAbortControllers.value[idx]?.abort();
     zoneCountAbortControllers.value.splice(idx, 1);
   }
+  zoneCountRequestTokens.value.splice(idx, 1);
   zoneTrackCounts.value.splice(idx, 1);
   zoneTrackIds.value.splice(idx, 1);
   zoneHasVisibleTracks.value.splice(idx, 1);
@@ -419,6 +431,8 @@ function cancelAllZoneCountRequests() {
     if (ac) ac.abort();
   }
   zoneCountAbortControllers.value = [];
+  zoneCountRequestToken++;
+  zoneCountRequestTokens.value = [];
   if (radiusCountDebounceTimer) {
     clearTimeout(radiusCountDebounceTimer);
     radiusCountDebounceTimer = null;
@@ -426,8 +440,10 @@ function cancelAllZoneCountRequests() {
 }
 
 function cancelCrossingFetch() {
+  crossingFetchToken++;
   crossingFetchAbortController?.abort();
   crossingFetchAbortController = null;
+  isLoading.value = false;
 }
 
 function isAbortError(error: unknown): boolean {
@@ -445,12 +461,19 @@ async function onFinishSelection() {
   if (isAnalyzeDisabled.value) {
     return;
   }
+  cancelCrossingFetch();
+  const requestToken = ++crossingFetchToken;
+  const requestTriggerPoints = triggerPoints.value.map((point) => ({
+    ...point,
+    coordinate: { ...point.coordinate },
+  }));
+  const requestRadius = radius();
   isLoading.value = true;
   const abortController = new AbortController();
   crossingFetchAbortController = abortController;
   try {
-    const data = await fetchTrackDetailsForCrossingPoints(triggerPoints.value, radius(), abortController.signal);
-    if (abortController.signal.aborted) return;
+    const data = await fetchTrackDetailsForCrossingPoints(requestTriggerPoints, requestRadius, abortController.signal);
+    if (requestToken !== crossingFetchToken || abortController.signal.aborted) return;
     measureServiceResult.value = data;
     numberOfCrossings.value =
       measureServiceResult.value.crossings != null ? Object.keys(measureServiceResult.value.crossings).length : 0;
@@ -465,10 +488,12 @@ async function onFinishSelection() {
     zoneTrackCounts.value = [];
     zoneTrackIds.value = [];
     zoneHasVisibleTracks.value = [];
+    zoneCountRequestTokens.value = [];
     nextTick(() => {
       showResults.value = true;
     });
   } catch (error) {
+    if (requestToken !== crossingFetchToken) return;
     if (isAbortError(error)) return;
     console.error('Measure fetch failed:', error);
     toast?.add({
@@ -478,10 +503,10 @@ async function onFinishSelection() {
       life: 2000,
     });
   } finally {
-    if (crossingFetchAbortController === abortController) {
+    if (requestToken === crossingFetchToken && crossingFetchAbortController === abortController) {
       crossingFetchAbortController = null;
+      isLoading.value = false;
     }
-    isLoading.value = false;
   }
 }
 
@@ -498,6 +523,7 @@ function onMeasureClosed() {
   zoneTrackCounts.value = [];
   zoneTrackIds.value = [];
   zoneHasVisibleTracks.value = [];
+  zoneCountRequestTokens.value = [];
 }
 
 function onResultsClosed() {
@@ -529,6 +555,7 @@ function onMapClick(e: MapClickEvent) {
   zoneHasVisibleTracks.value.push(hasVisible);
   zoneTrackCounts.value.push(undefined); // undefined = loading
   zoneTrackIds.value.push(undefined);
+  zoneCountRequestTokens.value.push(undefined);
 
   const zoneColor = getZoneColor(idx);
 
@@ -727,16 +754,25 @@ async function fetchZoneTrackCount(idx: number) {
 
   const point = triggerPoints.value[idx];
   if (!point) return;
+  const requestToken = ++zoneCountRequestToken;
+  const requestRadius = radius();
+  zoneCountRequestTokens.value[idx] = requestToken;
+
+  const isCurrentZoneRequest = () =>
+    zoneCountRequestTokens.value[idx] === requestToken &&
+    triggerPoints.value[idx]?.name === point.name &&
+    triggerPoints.value[idx]?.coordinate?.x === point.coordinate.x &&
+    triggerPoints.value[idx]?.coordinate?.y === point.coordinate.y;
 
   try {
     const trackIds = await fetchTrackIdsWithinDistanceOfPoint(
       point.coordinate.x,
       point.coordinate.y,
-      radius(),
+      requestRadius,
       ac.signal
     );
     // Check zone still exists (user may have undone it)
-    if (idx < triggerPoints.value.length) {
+    if (isCurrentZoneRequest()) {
       zoneTrackIds.value[idx] = trackIds;
       zoneTrackCounts.value[idx] = trackIds.length;
       // Also update color based on server result (overrides client-side hint)
@@ -747,11 +783,12 @@ async function fetchZoneTrackCount(idx: number) {
       zoneTrackCounts.value = [...zoneTrackCounts.value];
     }
   } catch (e) {
+    if (!isCurrentZoneRequest()) return;
     const error = e as { name?: string; message?: string } | undefined;
     if (error?.name === 'CanceledError') return;
     if (error?.message?.includes('canceled')) return;
     // On error, mark as unknown
-    if (idx < triggerPoints.value.length) {
+    if (isCurrentZoneRequest()) {
       zoneTrackIds.value[idx] = null;
       zoneTrackCounts.value[idx] = -1;
       updateZoneColor(idx);
@@ -768,6 +805,7 @@ function debouncedRefreshAllZoneCounts() {
     triggerPoints.value.forEach((_, idx) => {
       zoneTrackIds.value[idx] = undefined;
       zoneTrackCounts.value[idx] = undefined; // reset to loading
+      zoneCountRequestTokens.value[idx] = undefined;
       updateZoneColor(idx);
       fetchZoneTrackCount(idx);
     });
@@ -1153,25 +1191,12 @@ defineExpose({
 .measure-bar-slider {
   width: 100%;
   align-self: center;
-  --p-slider-handle-width: 20px;
-  --p-slider-handle-height: 20px;
-}
-
-.measure-bar-slider :deep(.p-slider) {
-  background: var(--slider-track);
-  height: 8px;
-  border-radius: 999px;
-}
-
-.measure-bar-slider :deep(.p-slider .p-slider-range) {
-  background: var(--slider-gradient);
-  border-radius: 999px;
-}
-
-.measure-bar-slider :deep(.p-slider .p-slider-handle) {
-  background: var(--slider-handle);
-  border: 2px solid var(--slider-handle-border);
-  box-shadow: 0 0 0 5px var(--accent-subtle);
+  --mtl-slider-handle-size-default: 20px;
+  --mtl-slider-handle-size-coarse: 28px;
+  --mtl-slider-track-height-default: 8px;
+  --mtl-slider-track-height-coarse: 12px;
+  --mtl-slider-handle-halo: 0 0 0 5px var(--accent-subtle);
+  --mtl-slider-handle-halo-active: 0 0 0 5px var(--accent-subtle);
 }
 
 .measure-zone-section {
@@ -1318,16 +1343,8 @@ defineExpose({
   }
 
   .measure-bar-slider {
-    --p-slider-handle-width: 28px;
-    --p-slider-handle-height: 28px;
-  }
-
-  .measure-bar-slider :deep(.p-slider) {
-    height: 12px;
-  }
-
-  .measure-bar-slider :deep(.p-slider .p-slider-handle) {
-    box-shadow: 0 0 0 8px var(--accent-subtle);
+    --mtl-slider-handle-halo: 0 0 0 8px var(--accent-subtle);
+    --mtl-slider-handle-halo-active: 0 0 0 8px var(--accent-subtle);
   }
 }
 </style>

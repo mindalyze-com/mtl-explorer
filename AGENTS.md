@@ -6,11 +6,26 @@ These instructions apply to all agents working in this repository.
 
 - Use **MTL Explorer** in public docs, UI, releases, and comments.
 
+## Version Control
+
+- GitHub is a public mirror and may be behind; never merge or rebase GitHub
+  branches/PRs into this workspace.
+- Treat GitHub PRs only as patch ideas; apply manually only when appropriate.
+- Do not publish or infer the private primary version history from GitHub.
+
 ## Documentation Style
 
 - Keep README, markup, and agent notes concise; link out.
 - Keep root `README.md` GitHub-friendly: tables, badges, collapsibles.
 - For major user-facing features, update `documentation/features.md` if warranted.
+
+## Frontend UX
+
+- For UI changes, design the full user flow before editing; avoid narrow visual patches.
+
+## Calculation Ownership
+
+- Keep advanced domain calculations on the server; change APIs rather than duplicating logic in the client.
 
 ## Screenshots And Assets
 
@@ -18,6 +33,8 @@ These instructions apply to all agents working in this repository.
 - For full end-user regression reports, keep compact screenshots for working
   functions too, not only failures, so the report gives a readable visual
   overview of the validated app.
+- Local GPX tracks are private. Never commit, copy, vendor, or derive fixtures
+  from them; use public data or fully synthetic anonymized tests instead.
 
 ## OpenAPI And Type Safety
 

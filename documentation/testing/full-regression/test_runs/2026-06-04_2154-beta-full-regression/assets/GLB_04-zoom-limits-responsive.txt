@@ -1,0 +1,83 @@
+{
+  "beforeEdgePan": {
+    "label": "low zoom before edge pan",
+    "globeControlDisplay": "block",
+    "globeButtonVisible": true,
+    "globeButtonClasses": "mtl-globe-btn mtl-globe-active",
+    "globeButtonActive": true,
+    "canvas": {
+      "x": 76,
+      "y": 0,
+      "w": 1290,
+      "h": 900
+    }
+  },
+  "afterEdgePans": {
+    "label": "after aggressive edge pans",
+    "globeControlDisplay": "block",
+    "globeButtonVisible": true,
+    "globeButtonClasses": "mtl-globe-btn mtl-globe-active",
+    "globeButtonActive": true,
+    "canvas": {
+      "x": 76,
+      "y": 0,
+      "w": 1290,
+      "h": 900
+    }
+  },
+  "afterRepeatedZoomOut": {
+    "label": "after repeated zoom out at floor",
+    "globeControlDisplay": "block",
+    "globeButtonVisible": true,
+    "globeButtonClasses": "mtl-globe-btn mtl-globe-active",
+    "globeButtonActive": true,
+    "canvas": {
+      "x": 76,
+      "y": 0,
+      "w": 1290,
+      "h": 900
+    }
+  },
+  "afterRecoveredZoomIn": {
+    "label": "after zooming back in from floor",
+    "globeControlDisplay": "none",
+    "globeButtonVisible": false,
+    "globeButtonClasses": "mtl-globe-btn",
+    "globeButtonActive": false,
+    "canvas": {
+      "x": 76,
+      "y": 0,
+      "w": 1290,
+      "h": 900
+    }
+  },
+  "zoomLogs": [
+    "[zoom] 2.273 | globe",
+    "[zoom] 1.963 | globe",
+    "[zoom] 1.963 | globe",
+    "[zoom] 1.963 | globe",
+    "[zoom] 1.963 | globe",
+    "[zoom] 1.963 | globe",
+    "[zoom] 1.963 | globe",
+    "[zoom] 1.963 | globe",
+    "[zoom] 1.963 | globe",
+    "[zoom] 0.294 | globe",
+    "[zoom] 0.294 | globe",
+    "[zoom] 0.294 | globe",
+    "[zoom] 0.294 | globe",
+    "[zoom] 0.294 | globe",
+    "[zoom] 0.294 | globe",
+    "[zoom] 1.294 | globe",
+    "[zoom] 2.294 | globe",
+    "[zoom] 3.294 | globe",
+    "[zoom] 4.294 | mercator",
+    "[zoom] 5.293 | mercator",
+    "[zoom] 6.293 | mercator"
+  ],
+  "body": "20 km 13 Tracks Stats Filter Map Animate Segments GPS Planner Admin",
+  "assertions": {
+    "canvasRemainedVisible": true,
+    "zoomOutReachedFloorWithoutTrap": true,
+    "zoomInRecoveredToFlat": true
+  }
+}

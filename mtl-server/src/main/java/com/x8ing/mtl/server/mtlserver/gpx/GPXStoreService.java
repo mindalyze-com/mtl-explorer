@@ -67,11 +67,8 @@ public class GPXStoreService {
     private static final int MIN_LINESTRING_POINTS = 2;
     private static final List<BigDecimal> SIMPLIFIED_PRECISIONS = List.of(
             GpsTrackData.PRECISION_1M,
-            GpsTrackData.PRECISION_5M,
             GpsTrackData.PRECISION_10M,
-            GpsTrackData.PRECISION_50M,
             GpsTrackData.PRECISION_100M,
-            GpsTrackData.PRECISION_500M,
             GpsTrackData.PRECISION_1000M);
 
     private static final int SAVE_CHUNK_SIZE = 500; // flush+clear after every N points to cap Hibernate 1st-level cache memory
@@ -84,6 +81,7 @@ public class GPXStoreService {
     private static final double MAX_SPEED_KMH = MetricConstants.MAX_SPEED_KMH;
     private static final double MAX_SLOPE_PERCENTAGE = 500.0;
     private static final double STOP_ANCHOR_TIME_TOLERANCE_S = 0.001;
+    private static final int UNKNOWN_SOURCE_COORDINATE_INDEX = Integer.MAX_VALUE;
 
     public GPXStoreService(
             GpsTrackRepository gpsRepository,
@@ -737,19 +735,9 @@ public class GPXStoreService {
         }
         LineString lineString = simplified.getTrack();
 
-        Map<Long, Integer> canonicalIndexByEpochSec = Collections.emptyMap();
-        if (canonicalTrack != null && !canonicalTrack.isEmpty()) {
-            canonicalIndexByEpochSec = new HashMap<>(canonicalTrack.getNumPoints());
-            for (int i = 0; i < canonicalTrack.getNumPoints(); i++) {
-                double m = canonicalTrack.getCoordinateN(i).getM();
-                if (!Double.isNaN(m) && m > 0) {
-                    // First occurrence wins on duplicate timestamps — the canonical
-                    // RAW_OUTLIER_CLEANED stream is authoritative; preferring the
-                    // lower index keeps cursor sync stable.
-                    canonicalIndexByEpochSec.putIfAbsent((long) m, i);
-                }
-            }
-        }
+        SourceCoordinateOrder canonicalOrder = canonicalTrack != null && !canonicalTrack.isEmpty()
+                ? SourceCoordinateOrder.from(canonicalTrack)
+                : SourceCoordinateOrder.empty();
 
         GeometryFactory geometryFactory = new GeometryFactory();
         GPXReader gpxReader = new GPXReader();
@@ -782,7 +770,7 @@ public class GPXStoreService {
             if (!Double.isNaN(m) && m > 0) {
                 long epochSec = (long) m;
                 p.setPointTimestamp(Timestamp.from(Instant.ofEpochSecond(epochSec)));
-                Integer canonicalIndex = canonicalIndexByEpochSec.get(epochSec);
+                Integer canonicalIndex = canonicalOrder.indexOfOrNull(currentPoint);
                 if (canonicalIndex != null) {
                     p.setCanonicalPointIndex(canonicalIndex);
                 }
@@ -839,10 +827,80 @@ public class GPXStoreService {
             return simplified;
         }
 
-        coordinates.sort(Comparator.comparingDouble(Coordinate::getM));
+        SourceCoordinateOrder sourceOrder = SourceCoordinateOrder.from(source);
+        coordinates.sort(Comparator
+                .comparingInt(sourceOrder::indexOf)
+                .thenComparingDouble(Coordinate::getM));
         LineString line = simplified.getFactory().createLineString(coordinates.toArray(Coordinate[]::new));
         line.setSRID(simplified.getSRID());
         return line;
+    }
+
+    private static long epochSecond(Coordinate coordinate) {
+        double m = coordinate.getM();
+        if (Double.isNaN(m)) {
+            return Long.MIN_VALUE;
+        }
+        return (long) m;
+    }
+
+    static Integer canonicalPointIndexFor(LineString canonicalTrack, Coordinate coordinate) {
+        if (canonicalTrack == null || coordinate == null || canonicalTrack.isEmpty()) {
+            return null;
+        }
+        return SourceCoordinateOrder.from(canonicalTrack).indexOfOrNull(coordinate);
+    }
+
+    private record SourceCoordinateOrder(Map<Long, List<SourceCoordinate>> byEpochSec) {
+
+        static SourceCoordinateOrder empty() {
+            return new SourceCoordinateOrder(Collections.emptyMap());
+        }
+
+        static SourceCoordinateOrder from(LineString source) {
+            Map<Long, List<SourceCoordinate>> orderByEpochSec = new HashMap<>(source.getNumPoints());
+            for (int i = 0; i < source.getNumPoints(); i++) {
+                Coordinate coordinate = source.getCoordinateN(i);
+                long epochSec = epochSecond(coordinate);
+                if (epochSec != Long.MIN_VALUE) {
+                    orderByEpochSec
+                            .computeIfAbsent(epochSec, ignored -> new ArrayList<>())
+                            .add(new SourceCoordinate(i, coordinate.getX(), coordinate.getY()));
+                }
+            }
+            return new SourceCoordinateOrder(orderByEpochSec);
+        }
+
+        Integer indexOfOrNull(Coordinate coordinate) {
+            int index = indexOf(coordinate);
+            return index == UNKNOWN_SOURCE_COORDINATE_INDEX ? null : index;
+        }
+
+        int indexOf(Coordinate coordinate) {
+            List<SourceCoordinate> candidates = byEpochSec.get(epochSecond(coordinate));
+            if (candidates == null || candidates.isEmpty()) {
+                return UNKNOWN_SOURCE_COORDINATE_INDEX;
+            }
+            SourceCoordinate best = candidates.getFirst();
+            double bestDistanceSq = best.distanceSq(coordinate);
+            for (int i = 1; i < candidates.size(); i++) {
+                SourceCoordinate candidate = candidates.get(i);
+                double distanceSq = candidate.distanceSq(coordinate);
+                if (distanceSq < bestDistanceSq) {
+                    best = candidate;
+                    bestDistanceSq = distanceSq;
+                }
+            }
+            return best.index();
+        }
+    }
+
+    private record SourceCoordinate(int index, double x, double y) {
+        double distanceSq(Coordinate coordinate) {
+            double dx = x - coordinate.getX();
+            double dy = y - coordinate.getY();
+            return dx * dx + dy * dy;
+        }
     }
 
     static LineString restoreStopAnchorsAfterSmoothing(LineString lineString,

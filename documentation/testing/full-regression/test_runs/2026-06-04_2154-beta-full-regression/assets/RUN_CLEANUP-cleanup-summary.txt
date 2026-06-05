@@ -1,0 +1,8 @@
+[cleanup] target: root@167.233.16.201
+[cleanup] compose directory: /root/mtl-regression-2026-06-04_2154-beta-full-regression/mtl-explorer
+[cleanup] before down: app/db/location-search/brouter containers were running for the mtl-explorer compose project.
+[cleanup] command: docker compose down from the compose directory.
+[cleanup] result: app, db, brouter, and location-search containers stopped and removed; mtl-explorer_default network removed.
+[cleanup] after down: no matching MTL Explorer containers were listed by docker ps.
+[cleanup] disposable directory removed: /root/mtl-regression-2026-06-04_2154-beta-full-regression
+[cleanup] status: PASS

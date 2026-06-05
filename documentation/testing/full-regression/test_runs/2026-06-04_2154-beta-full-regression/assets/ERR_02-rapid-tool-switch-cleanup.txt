@@ -1,0 +1,135 @@
+{
+  "generatedAt": "2026-06-05T01:43:08.078Z",
+  "sequence": [
+    {
+      "label": "Stats",
+      "ok": true
+    },
+    {
+      "label": "Filter",
+      "ok": true
+    },
+    {
+      "label": "Map",
+      "ok": true
+    },
+    {
+      "label": "Segments",
+      "ok": true
+    },
+    {
+      "label": "Planner",
+      "ok": true
+    },
+    {
+      "label": "Admin",
+      "ok": true
+    },
+    {
+      "label": "Animate",
+      "ok": true
+    },
+    {
+      "label": "Stats",
+      "ok": true
+    },
+    {
+      "label": "Map",
+      "ok": true
+    },
+    {
+      "label": "Planner",
+      "ok": true
+    },
+    {
+      "label": "GPS",
+      "ok": true
+    },
+    {
+      "label": "Filter",
+      "ok": true
+    },
+    {
+      "label": "Stats",
+      "ok": true
+    },
+    {
+      "label": "Admin",
+      "ok": true
+    },
+    {
+      "label": "Map",
+      "ok": true
+    }
+  ],
+  "beforeZoom": {
+    "url": "http://167.233.16.201:18080/mtl/",
+    "visibleSheets": [],
+    "visibleSheetCount": 0,
+    "visibleRemnants": [],
+    "visibleRemnantCount": 0,
+    "bodyCursor": "auto",
+    "htmlCursor": "auto",
+    "canvases": [
+      {
+        "cursor": "auto",
+        "width": 1204,
+        "height": 850
+      },
+      {
+        "cursor": "grab",
+        "width": 1204,
+        "height": 850
+      }
+    ],
+    "canvasCount": 2,
+    "bodyExcerpt": "500 km © OpenStreetMap | Elevation: Mapterhorn 21 Tracks GPS unavailable GPS needs HTTPS or localhost. Open MTL Explorer from a secure address to use live location. Stats Filter Map Animate Segments GPS Planner Admin"
+  },
+  "afterZoom": {
+    "url": "http://167.233.16.201:18080/mtl/",
+    "visibleSheets": [],
+    "visibleSheetCount": 0,
+    "visibleRemnants": [],
+    "visibleRemnantCount": 0,
+    "bodyCursor": "auto",
+    "htmlCursor": "auto",
+    "canvases": [
+      {
+        "cursor": "auto",
+        "width": 1204,
+        "height": 850
+      },
+      {
+        "cursor": "grab",
+        "width": 1204,
+        "height": 850
+      }
+    ],
+    "canvasCount": 2,
+    "bodyExcerpt": "300 km © OpenStreetMap | Elevation: Mapterhorn 21 Tracks Stats Filter Map Animate Segments GPS Planner Admin"
+  },
+  "zoomInOk": true,
+  "staleCursor": false,
+  "pageErrors": [],
+  "consoleTail": [
+    "[log] [mtl] v1.0.0 | built: 2026-06-04T19:43:43.667Z | Browser",
+    "[log] fetch config for CLIENT COLOR_PALETTE ",
+    "[log] Filter (main) mounted.",
+    "[log] fetch filter info for filterName SmartBaseFilter",
+    "[log] fetch filters from server",
+    "[table] [Object, Object, Object, Object, Object]",
+    "[info] [track-cache] manual cache clear started",
+    "[info] [track-cache] manual cache clear complete {durationMs: 5}",
+    "[warning] [.WebGL-0x12c0056a200]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
+    "[warning] [.WebGL-0x12c0056ea00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
+    "[warning] [.WebGL-0x12c0056a200]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
+    "[warning] [.WebGL-0x12c0056ea00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels (this message will no longer repeat)",
+    "[info] [track-cache] sync 10m: fetching 21/21 tracks in 1 batches {precision: 10, totalTracks: 21, cachedTracks: 0, staleOrMissingTracks: 21, staleGeometryCleared: 21}",
+    "[log] [tracks] Map layers rebuilt {durationMs: 3, trackCount: 21, overviewDotCount: 20, hasPalette: false, legendGroupCount: 0}",
+    "[info] [track-cache] sync 10m complete {precision: 10, totalTracks: 21, fetchedTracks: 21, cachedTracks: 0, batches: 1}",
+    "[log] Downloading low-zoom PMTiles from /mtl/api/map-proxy/prod/world-lowzoom.pmtiles?mtl-map-source=public&mtl-map-archive=public-default … (IndexedDB fallback)",
+    "[log] Low-zoom PMTiles cached successfully (IndexedDB, 42.4 MB)",
+    "[log] [zoom] 4.180 | mercator"
+  ],
+  "pass": true
+}

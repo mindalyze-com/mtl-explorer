@@ -1,0 +1,8 @@
+{
+  "text": "50 km\n© OpenStreetMap | Elevation: Mapterhorn\n3 Tracks\nStats\nFilter\nMap\nAnimate\nSegments\nGPS\nPlanner\nAdmin\nTRACK DETAILS\n#100002\nBicycle\n1\n3D Replay\nOverview\nGraphs\nQuality\nRelated\nEvents\nMoselradweg aus Wiki on GPSies.com\n 01/01/2010, 01:00\nTRACK CONTROLS\nACTIVITY TYPE\nBicycle\nWalking\nHiking\nRunning\nMountain biking\nStand-up paddle\nRowing\nKayaking\nSkiing\nMotorbiking\nCar\nAirplane\nSupersonic\nSTATISTICS\nIncluded in statistics\nExclude: GPS noise\nExclude: wrong activity\nExclude: import artifact\nExclude: other\n518 km\nDistance\n1d 07h\nDuration\n4,380 m\nAscent\n16.3 km/h\nAvg Speed\nTIMING\n0d 06h\nMoving\n0d 00h\nStopped\n1\nStops\n1m 13s\nLongest Stop\nSPEED\n16.3 km/h\nAvg Speed\n75.7 km/h\nMoving Avg\n58.3 km/h\nMax 30s Speed\nELEVATION\n4,380 m\nAscent\n4,917 m\nDescent\n3,848 m/h\nMax 30s Climb\n2,717 m/h\nMax 30s Desc.\n61 m\nMin Alt.\n601 m\nMax Alt.\n540 m\nRange\n13.5%\nMax Slope\n-12.4%\nMax Desc. Slope\nENERGY\n1,615.7 Wh\nNet Total\n210 W\nAvg Power\n236 W\nAvg Moving Power\n1,081 W\nMax 30s Power\nBREAKDOWN\n1,139.3 Wh\nGravitational ↑\n1,263.6 Wh\nGravitational ↓\n268.2 Wh\nAero Drag\n599.7 Wh\nRolling Resist.\n37.8 Wh\nKinetic (pos.)\nFITNESS\n183 W\nNormalized Power\nEXPLORATION\n100.0%\nNew Territory\n518 km\nNovel Distance\n0.00 m\nKnown Distance\nTrack Details",
+  "deletedPresence": {
+    "Lannion": false,
+    "Vitry": false
+  },
+  "error": null
+}

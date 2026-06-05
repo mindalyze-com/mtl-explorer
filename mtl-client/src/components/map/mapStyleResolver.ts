@@ -1,4 +1,5 @@
 import { mainTileArchiveUrl, MapConfigDtoTileModeEnum, type MapConfig } from '@/utils/mapConfigService';
+import type { MapSourceMode } from '@/stores/mapSettingsStore';
 import type { StyleSpecification } from 'maplibre-gl';
 import {
   buildFallbackRasterStyle,
@@ -12,40 +13,77 @@ import {
 export interface ResolvedMapStyle {
   style: string | StyleSpecification;
   styleMode: string;
+  attributions: string[];
 }
 
 interface ResolveMapStyleOptions {
   config: MapConfig;
   theme: string;
   localTilesReady?: boolean;
+  mapSourceMode?: MapSourceMode;
 }
+
+const REMOTE_RASTER_THEME_CODES = new Set<string>(['light', 'light-topo', 'dark', 'grayscale']);
 
 function isUsableTileTemplate(value: unknown): value is string {
   return typeof value === 'string' && value.includes('{z}') && value.includes('{x}') && value.includes('{y}');
 }
 
+export function isRemoteRasterMapTheme(theme: string): boolean {
+  return REMOTE_RASTER_THEME_CODES.has(theme);
+}
+
+function remoteRasterThemeKey(theme: MapTheme): string {
+  return theme === 'grayscale' ? 'light' : theme;
+}
+
+function configuredRemoteRasterStyle(config: MapConfig, theme: string) {
+  const rasterTheme = theme as MapTheme;
+  return config.remoteRasterStyles?.[remoteRasterThemeKey(rasterTheme)] ?? config.remoteRasterStyles?.light;
+}
+
+export function collectStyleAttributions(style: string | StyleSpecification): string[] {
+  if (typeof style === 'string') return [];
+  const attributions = new Set<string>();
+  for (const source of Object.values(style.sources ?? {})) {
+    const sourceAttribution = (source as { attribution?: unknown }).attribution;
+    const attribution = typeof sourceAttribution === 'string' ? sourceAttribution.trim() : '';
+    if (attribution) attributions.add(attribution);
+  }
+  return [...attributions];
+}
+
 export function resolveConfiguredMapStyle(options: ResolveMapStyleOptions): ResolvedMapStyle {
   const { config, theme } = options;
-  if (theme === 'swisstopo') {
-    return { style: SWISSTOPO_STYLE_URL, styleMode: 'swisstopo' };
+  const forceRemoteRaster = options.mapSourceMode === 'remote';
+  if (!forceRemoteRaster && theme === 'swisstopo') {
+    return { style: SWISSTOPO_STYLE_URL, styleMode: 'swisstopo', attributions: [] };
   }
-  if (theme === 'swisstopo-color') {
-    return { style: SWISSTOPO_COLOR_STYLE_URL, styleMode: 'swisstopo-color' };
+  if (!forceRemoteRaster && theme === 'swisstopo-color') {
+    return { style: SWISSTOPO_COLOR_STYLE_URL, styleMode: 'swisstopo-color', attributions: [] };
   }
-  if (config.tileMode === MapConfigDtoTileModeEnum.Local && options.localTilesReady !== false) {
+  if (!forceRemoteRaster && config.tileMode === MapConfigDtoTileModeEnum.Local && options.localTilesReady !== false) {
+    const style = buildLocalVectorStyleFromArchiveUrl(mainTileArchiveUrl(config), theme as MapTheme);
     return {
-      style: buildLocalVectorStyleFromArchiveUrl(mainTileArchiveUrl(config), theme as MapTheme),
+      style,
       styleMode: 'local-vector',
+      attributions: collectStyleAttributions(style),
     };
   }
-  if (!isUsableTileTemplate(config.remoteTileUrl)) {
+  const rasterTheme = theme as MapTheme;
+  const rasterStyle = configuredRemoteRasterStyle(config, rasterTheme);
+  if (!isUsableTileTemplate(rasterStyle?.url)) {
+    const style = buildFallbackRasterStyle(rasterTheme);
     return {
-      style: buildFallbackRasterStyle(),
+      style,
       styleMode: 'fallback-raster',
+      attributions: collectStyleAttributions(style),
     };
   }
+  const style = buildRemoteRasterStyle(rasterStyle.url, rasterTheme, rasterStyle.attribution ?? '');
   return {
-    style: buildRemoteRasterStyle(config.remoteTileUrl),
+    style,
     styleMode: 'remote-raster',
+    attributions: collectStyleAttributions(style),
   };
 }

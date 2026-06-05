@@ -135,7 +135,6 @@ import { computed, onMounted, onUnmounted, ref } from 'vue';
 import Button from 'primevue/button';
 import type { DataFreshnessItemDto } from 'x8ing-mtl-api-typescript-fetch';
 import { useDataFreshness } from '@/composables/useDataFreshness';
-import { getAppliedDataFreshnessToken } from '@/utils/dataFreshnessStorage';
 import { formatDateAndTimeWithSeconds } from '@/utils/Utils';
 
 const DOMAIN_LABELS: Record<string, string> = {
@@ -179,9 +178,16 @@ const emit = defineEmits<{
   (e: 'refresh-data', done: (success?: boolean) => void): void;
 }>();
 
-const { currentFreshness, lastChecked, refresh, isFreshnessPollingHealthy } = useDataFreshness();
+const {
+  currentFreshness,
+  lastChecked,
+  refresh,
+  isFreshnessPollingHealthy,
+  appliedFreshnessToken,
+  syncFreshnessStorage,
+} = useDataFreshness();
 const refreshing = ref(false);
-const clientLastToken = ref(getAppliedDataFreshnessToken() ?? '');
+const clientLastToken = computed(() => appliedFreshnessToken.value);
 const revisionInfoPopover = ref<{ toggle: (event: Event) => void } | null>(null);
 
 const items = computed(() => [...(currentFreshness.value?.items ?? [])].sort(compareFreshnessItems));
@@ -220,7 +226,7 @@ const freshnessHeroIcon = computed(() => {
 });
 
 function refreshClientLastToken(): void {
-  clientLastToken.value = getAppliedDataFreshnessToken() ?? '';
+  syncFreshnessStorage();
 }
 
 function onStorageChanged(): void {

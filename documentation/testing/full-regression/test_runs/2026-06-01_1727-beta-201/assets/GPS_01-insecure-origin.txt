@@ -1,0 +1,5 @@
+GPS secure-origin/app evidence
+Browser facts: {"href":"http://167.233.16.201:18080/mtl/","protocol":"http:","host":"167.233.16.201:18080","isSecureContext":false,"geolocationPresent":true,"permission":"prompt","geoAttempt":{"success":false,"code":1,"message":"Only secure origins are allowed (see: https://goo.gl/Y0ZkNV)."}}
+GPS panel/body excerpt: 500 km © OpenStreetMap | Elevation: Mapterhorn 12 Tracks Info GPS started Stats Filter Map Animate Segments GPS Planner Admin
+Console: info: [track-cache] sync 10m: fetching 12/12 tracks in 1 batches {precision: 10, totalTracks: 12, cachedTracks: 0, staleOrMissingTracks: 12, staleGeometryCleared: 12}
+error: ERROR(1): Only secure origins are allowed (see: https://goo.gl/Y0ZkNV).

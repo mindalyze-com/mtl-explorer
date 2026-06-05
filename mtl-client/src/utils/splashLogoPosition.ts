@@ -1,4 +1,4 @@
-const SPLASH_LOGO_TOP_KEY = 'mtl-splash-logo-top';
+const SPLASH_LOGO_TOP_KEY = 'mtl.splash.logo-top';
 const MIN_LOGO_TOP_PX = 0;
 const MAX_LOGO_TOP_VIEWPORT_RATIO = 0.85;
 

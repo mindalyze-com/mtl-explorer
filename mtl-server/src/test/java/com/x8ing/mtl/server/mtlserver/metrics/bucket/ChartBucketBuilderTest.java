@@ -1,6 +1,7 @@
 package com.x8ing.mtl.server.mtlserver.metrics.bucket;
 
 import com.x8ing.mtl.server.mtlserver.db.entity.gps.GpsTrackDataPoint;
+import com.x8ing.mtl.server.mtlserver.metrics.MetricConstants;
 import com.x8ing.mtl.server.mtlserver.metrics.chart.MetricDefinition;
 import com.x8ing.mtl.server.mtlserver.metrics.window.WindowedRateSample;
 import org.junit.jupiter.api.Test;
@@ -64,6 +65,82 @@ class ChartBucketBuilderTest {
         assertThat(bucket.firstTimestamp()).isEqualTo(Instant.parse("2026-05-18T06:10:11Z"));
         assertThat(bucket.lastTimestamp()).isEqualTo(Instant.parse("2026-05-18T06:10:31Z"));
         assertThat(bucket.representativeTimestamp()).isEqualTo(Instant.parse("2026-05-18T06:10:21Z"));
+    }
+
+    @Test
+    void speedBucketAverageUsesDurationWeightedMeanAndSharedExtrema() {
+        ChartBucketBuilder.Result result = new ChartBucketBuilder().build(
+                List.of(
+                        segmentPoint(0.0, 0.0, null, null),
+                        segmentPoint(10.0, 100.0, 100.0, 10.0),
+                        segmentPoint(40.0, 150.0, 50.0, 30.0)),
+                null,
+                null,
+                new ChartBucketBuilder.Config(
+                        XMode.TIME,
+                        1,
+                        null,
+                        null,
+                        List.of(MetricKey.SPEED_BUCKET_AVG_KMH)));
+
+        MetricBucketStats speed = result.buckets().getFirst().metrics().get(MetricKey.SPEED_BUCKET_AVG_KMH);
+
+        assertThat(speed.getAvg()).isEqualTo(13.5);
+        assertThat(speed.getMin()).isEqualTo(6.0);
+        assertThat(speed.getMax()).isEqualTo(36.0);
+        assertThat(speed.getMin()).isLessThanOrEqualTo(speed.getAvg());
+        assertThat(speed.getAvg()).isLessThanOrEqualTo(speed.getMax());
+        assertThat(speed.getSampleCount()).isEqualTo(2);
+    }
+
+    @Test
+    void speedBucketAverageRejectsInvalidSegmentsButKeepsStoppedSegments() {
+        ChartBucketBuilder.Result result = new ChartBucketBuilder().build(
+                List.of(
+                        segmentPoint(0.0, 0.0, null, null),
+                        segmentPoint(10.0, 10.0, -1.0, 10.0),
+                        segmentPoint(20.0, 20.0, Double.NaN, 10.0),
+                        segmentPoint(30.0, 30.0, 10.0, 0.0),
+                        segmentPoint(40.0, 40.0, 10.0, -1.0),
+                        segmentPoint(50.0, 40.0, 0.0, 10.0)),
+                null,
+                null,
+                new ChartBucketBuilder.Config(
+                        XMode.TIME,
+                        1,
+                        null,
+                        null,
+                        List.of(MetricKey.SPEED_BUCKET_AVG_KMH)));
+
+        MetricBucketStats speed = result.buckets().getFirst().metrics().get(MetricKey.SPEED_BUCKET_AVG_KMH);
+
+        assertThat(speed.getAvg()).isEqualTo(0.0);
+        assertThat(speed.getMin()).isEqualTo(0.0);
+        assertThat(speed.getMax()).isEqualTo(0.0);
+        assertThat(speed.getSampleCount()).isEqualTo(1);
+    }
+
+    @Test
+    void speedBucketAverageClampsBeforeAccumulation() {
+        double tooFastDistance = (MetricConstants.MAX_SPEED_KMH + 123.0) / MetricConstants.MPS_TO_KMH * 10.0;
+        ChartBucketBuilder.Result result = new ChartBucketBuilder().build(
+                List.of(
+                        segmentPoint(0.0, 0.0, null, null),
+                        segmentPoint(10.0, tooFastDistance, tooFastDistance, 10.0)),
+                null,
+                null,
+                new ChartBucketBuilder.Config(
+                        XMode.TIME,
+                        1,
+                        null,
+                        null,
+                        List.of(MetricKey.SPEED_BUCKET_AVG_KMH)));
+
+        MetricBucketStats speed = result.buckets().getFirst().metrics().get(MetricKey.SPEED_BUCKET_AVG_KMH);
+
+        assertThat(speed.getAvg()).isEqualTo(MetricConstants.MAX_SPEED_KMH);
+        assertThat(speed.getMin()).isEqualTo(MetricConstants.MAX_SPEED_KMH);
+        assertThat(speed.getMax()).isEqualTo(MetricConstants.MAX_SPEED_KMH);
     }
 
     @Test
@@ -133,6 +210,26 @@ class ChartBucketBuilderTest {
         point.setDurationBetweenPointsInSec(durationBetweenPoints);
         point.setPowerWatts(powerWatts);
         point.setEnergyCumulativeWh(energyCumulativeWh);
+        return point;
+    }
+
+    private static GpsTrackDataPoint segmentPoint(double durationSinceStart,
+                                                  double distanceSinceStart,
+                                                  Double distanceBetweenPoints,
+                                                  Double durationBetweenPoints) {
+        GpsTrackDataPoint point = point(
+                durationSinceStart,
+                distanceSinceStart,
+                100.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                durationBetweenPoints != null ? durationBetweenPoints : 0.0,
+                0.0,
+                0.0);
+        point.setDistanceInMeterBetweenPoints(distanceBetweenPoints);
+        point.setDurationBetweenPointsInSec(durationBetweenPoints);
         return point;
     }
 }

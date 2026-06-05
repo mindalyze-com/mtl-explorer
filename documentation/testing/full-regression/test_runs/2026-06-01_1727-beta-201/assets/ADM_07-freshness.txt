@@ -1,0 +1,40 @@
+Freshness panel excerpt:
+500 km © OpenStreetMap | Elevation: Mapterhorn 12 Tracks Stats Filter Map Animate Segments GPS Planner Admin Admin SYSTEM UTILITY Admin workspace Manage imports, runtime tools, diagnostics, and local preferences without leaving the map. Quiet state Data Import and processing activity Upload IMPORT Import GPX files and inspect ingest readiness. Jobs IDLE Track indexer, map, and routing activity. Freshness TOKEN Inspect domain revisions and the current map data token. Garmin Sync REMOTE Trigger a remote Garmin export to pull new activity files. System Diagnostics, tools, and build details Log SERVER Inspect recent server output and runtime issues. Helpers 2/2 READY Reload tracks, manage helper tools, and run installs. About BUILD Client and server build details and runtime info. Session Preferences and account controls Settings LIGHT Adjust color scheme and locale formatting. Session LOGOUT Logout credentials only or wipe all local app data. Attribution SOURCES Libraries, datasets, and map data references. Current status In sync The client is showing the latest server data. Checked 11:58:56 PM Refresh Server 6iaCHY__|server_id:Cg8oM1u6qqvmF4JAAqTxET|config:9|filters:83|index:75|media:0|track_geometry:96|tracks:116 Client 6iaCHY__|server_id:Cg8oM1u6qqvmF4JAAqTxET|config:9|filters:83|index:75|media:0|track_geometry:96|tracks:116 LATEST CHANGE 06/01/2026, 23:47:07 DOMAINS 6 REVISION SUM 379 Tracked writes across all domains; compare tokens, not this number. Index r75 index 06/01/2026, 23:47:07 Tracks r116 tracks 06/01/2026, 23:47:07 Geometry r96 track_geometry 06/01/2026, 23:46:09 Media r0 media 06/01/2026, 17:31:43 Filters r83 filters 06/01/2026, 17:31:54 Config r9 config 06/01/2026, 17:32:21 Polling healthy
+
+Data freshness API:
+{
+  "freshnessToken": "2MKExz__|server_id:Cg8oM1u6qqvmF4JAAqTxET|config:9|filters:83|index:87|media:0|track_geometry:96|tracks:116",
+  "changedAt": "2026-06-01T21:59:00.350+0000",
+  "items": [
+    {
+      "key": "config",
+      "revision": 9,
+      "changedAt": "2026-06-01T15:32:21.523+0000"
+    },
+    {
+      "key": "filters",
+      "revision": 83,
+      "changedAt": "2026-06-01T15:31:54.522+0000"
+    },
+    {
+      "key": "index",
+      "revision": 87,
+      "changedAt": "2026-06-01T21:59:00.350+0000"
+    },
+    {
+      "key": "media",
+      "revision": 0,
+      "changedAt": "2026-06-01T15:31:43.126+0000"
+    },
+    {
+      "key": "track_geometry",
+      "revision": 96,
+      "changedAt": "2026-06-01T21:46:09.062+0000"
+    },
+    {
+      "key": "tracks",
+      "revision": 116,
+      "changedAt": "2026-06-01T21:47:07.085+0000"
+    }
+  ]
+}

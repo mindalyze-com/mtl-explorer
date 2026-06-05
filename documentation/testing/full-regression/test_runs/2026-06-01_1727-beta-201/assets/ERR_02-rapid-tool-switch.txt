@@ -1,0 +1,557 @@
+ERR_02 rapid tool switching evidence:
+{
+  "sequence": [
+    "Stats",
+    "Filter",
+    "Planner",
+    "Map",
+    "Animate",
+    "Segments",
+    "GPS",
+    "Admin",
+    "Map",
+    "Stats",
+    "Tracks",
+    "Filter",
+    "Planner",
+    "Segments",
+    "Map"
+  ],
+  "afterSwitch": {
+    "label": "after rapid switch to Map",
+    "url": "http://167.233.16.201:18080/mtl/map-settings",
+    "text": "500 km © OpenStreetMap | Elevation: Mapterhorn 12 Tracks Stats Filter Map Animate Segments GPS Planner Admin Maps and data Reset BASE MAP ★ ✓ OSM Topo ★ Swiss Color Swiss Light OSM Light OSM Gray OSM Dark MAP SOURCE Auto Remote VIEW MODE 3D Terrain Perspective terrain view using Mapterhorn elevation mesh BACKGROUND Base Map The background map tiles — street map, topo, or satellite imagery DATA LAYERS GPS Tracks All your recorded activities drawn as colored lines on the map Photos & Media Geotagged photos and media clustered by location Track Points & Direction Individual GPS points with direction arrows — only visible when zoomed in close Heatmap Density overlay showing where you've been most frequently WAYMARKED TRAILS Worldwide routes from OpenStreetMap · styled by importance level Hiking (worldwide) International, national, regional & local hiking routes Cycling (worldwide) Cycling route networks — EuroVelo, national & regional MTB (worldwide) Mountain bike trails and routes SWISS OVERLAYS Switzerland only — not available worldwide Hiking Routes Bike Routes MTB Routes Hiking Trails All signposted hiking trails (yellow, red-white, blue-white)",
+    "forbidden": {
+      "planner": false,
+      "segments": false,
+      "animate": false,
+      "gps": false
+    },
+    "visibleSheets": [
+      {
+        "i": 0,
+        "cls": "nav-panel",
+        "x": 0,
+        "y": 0,
+        "w": 76,
+        "h": 720,
+        "text": "Stats Filter Map Animate Segments GPS Planner Admin",
+        "visible": true
+      },
+      {
+        "i": 1,
+        "cls": "nav-panel__grid",
+        "x": 0,
+        "y": 12,
+        "w": 75,
+        "h": 566,
+        "text": "Stats Filter Map Animate Segments GPS Planner Admin",
+        "visible": true
+      },
+      {
+        "i": 2,
+        "cls": "nav-panel__tool",
+        "x": 5.5,
+        "y": 16,
+        "w": 64,
+        "h": 68,
+        "text": "Stats",
+        "visible": true
+      },
+      {
+        "i": 3,
+        "cls": "nav-panel__tool-label",
+        "x": 23.515625,
+        "y": 59,
+        "w": 27.953125,
+        "h": 14,
+        "text": "Stats",
+        "visible": true
+      },
+      {
+        "i": 4,
+        "cls": "nav-panel__tool",
+        "x": 5.5,
+        "y": 86,
+        "w": 64,
+        "h": 68,
+        "text": "Filter",
+        "visible": true
+      },
+      {
+        "i": 5,
+        "cls": "nav-panel__tool-label",
+        "x": 23.796875,
+        "y": 129,
+        "w": 27.390625,
+        "h": 14,
+        "text": "Filter",
+        "visible": true
+      },
+      {
+        "i": 6,
+        "cls": "nav-panel__tool nav-panel__tool--active",
+        "x": 5.5,
+        "y": 156,
+        "w": 64,
+        "h": 68,
+        "text": "Map",
+        "visible": true
+      },
+      {
+        "i": 7,
+        "cls": "nav-panel__tool-label",
+        "x": 25.640625,
+        "y": 199,
+        "w": 23.71875,
+        "h": 14,
+        "text": "Map",
+        "visible": true
+      },
+      {
+        "i": 8,
+        "cls": "nav-panel__tool",
+        "x": 5.5,
+        "y": 226,
+        "w": 64,
+        "h": 68,
+        "text": "Animate",
+        "visible": true
+      },
+      {
+        "i": 9,
+        "cls": "nav-panel__tool-label",
+        "x": 15.0625,
+        "y": 269,
+        "w": 44.875,
+        "h": 14,
+        "text": "Animate",
+        "visible": true
+      },
+      {
+        "i": 10,
+        "cls": "nav-panel__tool",
+        "x": 5.5,
+        "y": 296,
+        "w": 64,
+        "h": 68,
+        "text": "Segments",
+        "visible": true
+      },
+      {
+        "i": 11,
+        "cls": "nav-panel__tool-label",
+        "x": 10,
+        "y": 339,
+        "w": 55,
+        "h": 14,
+        "text": "Segments",
+        "visible": true
+      },
+      {
+        "i": 12,
+        "cls": "nav-panel__tool",
+        "x": 5.5,
+        "y": 366,
+        "w": 64,
+        "h": 68,
+        "text": "GPS",
+        "visible": true
+      },
+      {
+        "i": 13,
+        "cls": "nav-panel__tool-label",
+        "x": 24.640625,
+        "y": 409,
+        "w": 25.703125,
+        "h": 14,
+        "text": "GPS",
+        "visible": true
+      },
+      {
+        "i": 14,
+        "cls": "nav-panel__tool",
+        "x": 5.5,
+        "y": 436,
+        "w": 64,
+        "h": 68,
+        "text": "Planner",
+        "visible": true
+      },
+      {
+        "i": 15,
+        "cls": "nav-panel__tool-label",
+        "x": 16.390625,
+        "y": 479,
+        "w": 42.203125,
+        "h": 14,
+        "text": "Planner",
+        "visible": true
+      },
+      {
+        "i": 16,
+        "cls": "nav-panel__tool",
+        "x": 5.5,
+        "y": 506,
+        "w": 64,
+        "h": 68,
+        "text": "Admin",
+        "visible": true
+      },
+      {
+        "i": 17,
+        "cls": "nav-panel__tool-label",
+        "x": 20.1875,
+        "y": 549,
+        "w": 34.625,
+        "h": 14,
+        "text": "Admin",
+        "visible": true
+      },
+      {
+        "i": 30,
+        "cls": "sheet sheet--open",
+        "x": 218,
+        "y": 324,
+        "w": 920,
+        "h": 396,
+        "text": "Maps and data Reset BASE MAP ★ ✓ OSM Topo ★ Swiss Color Swiss Light OSM Light OSM Gray OSM Dark MAP SOURCE Auto Remote VIEW MODE 3D Terrain ",
+        "visible": true
+      },
+      {
+        "i": 31,
+        "cls": "sheet-drag-zone",
+        "x": 218,
+        "y": 324,
+        "w": 920,
+        "h": 43.96875,
+        "text": "Maps and data Reset",
+        "visible": true
+      },
+      {
+        "i": 34,
+        "cls": "sheet-header",
+        "x": 218,
+        "y": 324,
+        "w": 920,
+        "h": 43.96875,
+        "text": "Maps and data Reset",
+        "visible": true
+      },
+      {
+        "i": 35,
+        "cls": "sheet-header-content",
+        "x": 234,
+        "y": 337.78125,
+        "w": 737.09375,
+        "h": 18,
+        "text": "Maps and data",
+        "visible": true
+      },
+      {
+        "i": 36,
+        "cls": "sheet-title",
+        "x": 234,
+        "y": 337.78125,
+        "w": 123.34375,
+        "h": 18,
+        "text": "Maps and data",
+        "visible": true
+      },
+      {
+        "i": 37,
+        "cls": "sheet-header-actions",
+        "x": 983.09375,
+        "y": 333.59375,
+        "w": 138.90625,
+        "h": 26.375,
+        "text": "Reset",
+        "visible": true
+      },
+      {
+        "i": 40,
+        "cls": "sheet-body",
+        "x": 218,
+        "y": 367.96875,
+        "w": 920,
+        "h": 344.03125,
+        "text": "BASE MAP ★ ✓ OSM Topo ★ Swiss Color Swiss Light OSM Light OSM Gray OSM Dark MAP SOURCE Auto Remote VIEW MODE 3D Terrain Perspective terrain ",
+        "visible": true
+      }
+    ],
+    "width": 1280
+  },
+  "afterMapClick": {
+    "label": "after post-switch map click",
+    "url": "http://167.233.16.201:18080/mtl/map-settings",
+    "text": "500 km © OpenStreetMap | Elevation: Mapterhorn 12 Tracks Stats Filter Map Animate Segments GPS Planner Admin Maps and data Reset BASE MAP ★ ✓ OSM Topo ★ Swiss Color Swiss Light OSM Light OSM Gray OSM Dark MAP SOURCE Auto Remote VIEW MODE 3D Terrain Perspective terrain view using Mapterhorn elevation mesh BACKGROUND Base Map The background map tiles — street map, topo, or satellite imagery DATA LAYERS GPS Tracks All your recorded activities drawn as colored lines on the map Photos & Media Geotagged photos and media clustered by location Track Points & Direction Individual GPS points with direction arrows — only visible when zoomed in close Heatmap Density overlay showing where you've been most frequently WAYMARKED TRAILS Worldwide routes from OpenStreetMap · styled by importance level Hiking (worldwide) International, national, regional & local hiking routes Cycling (worldwide) Cycling route networks — EuroVelo, national & regional MTB (worldwide) Mountain bike trails and routes SWISS OVERLAYS Switzerland only — not available worldwide Hiking Routes Bike Routes MTB Routes Hiking Trails All signposted hiking trails (yellow, red-white, blue-white)",
+    "forbidden": {
+      "planner": false,
+      "segments": false,
+      "animate": false,
+      "gps": false
+    },
+    "visibleSheets": [
+      {
+        "i": 0,
+        "cls": "nav-panel",
+        "x": 0,
+        "y": 0,
+        "w": 76,
+        "h": 720,
+        "text": "Stats Filter Map Animate Segments GPS Planner Admin",
+        "visible": true
+      },
+      {
+        "i": 1,
+        "cls": "nav-panel__grid",
+        "x": 0,
+        "y": 12,
+        "w": 75,
+        "h": 566,
+        "text": "Stats Filter Map Animate Segments GPS Planner Admin",
+        "visible": true
+      },
+      {
+        "i": 2,
+        "cls": "nav-panel__tool",
+        "x": 5.5,
+        "y": 16,
+        "w": 64,
+        "h": 68,
+        "text": "Stats",
+        "visible": true
+      },
+      {
+        "i": 3,
+        "cls": "nav-panel__tool-label",
+        "x": 23.515625,
+        "y": 59,
+        "w": 27.953125,
+        "h": 14,
+        "text": "Stats",
+        "visible": true
+      },
+      {
+        "i": 4,
+        "cls": "nav-panel__tool",
+        "x": 5.5,
+        "y": 86,
+        "w": 64,
+        "h": 68,
+        "text": "Filter",
+        "visible": true
+      },
+      {
+        "i": 5,
+        "cls": "nav-panel__tool-label",
+        "x": 23.796875,
+        "y": 129,
+        "w": 27.390625,
+        "h": 14,
+        "text": "Filter",
+        "visible": true
+      },
+      {
+        "i": 6,
+        "cls": "nav-panel__tool nav-panel__tool--active",
+        "x": 5.5,
+        "y": 156,
+        "w": 64,
+        "h": 68,
+        "text": "Map",
+        "visible": true
+      },
+      {
+        "i": 7,
+        "cls": "nav-panel__tool-label",
+        "x": 25.640625,
+        "y": 199,
+        "w": 23.71875,
+        "h": 14,
+        "text": "Map",
+        "visible": true
+      },
+      {
+        "i": 8,
+        "cls": "nav-panel__tool",
+        "x": 5.5,
+        "y": 226,
+        "w": 64,
+        "h": 68,
+        "text": "Animate",
+        "visible": true
+      },
+      {
+        "i": 9,
+        "cls": "nav-panel__tool-label",
+        "x": 15.0625,
+        "y": 269,
+        "w": 44.875,
+        "h": 14,
+        "text": "Animate",
+        "visible": true
+      },
+      {
+        "i": 10,
+        "cls": "nav-panel__tool",
+        "x": 5.5,
+        "y": 296,
+        "w": 64,
+        "h": 68,
+        "text": "Segments",
+        "visible": true
+      },
+      {
+        "i": 11,
+        "cls": "nav-panel__tool-label",
+        "x": 10,
+        "y": 339,
+        "w": 55,
+        "h": 14,
+        "text": "Segments",
+        "visible": true
+      },
+      {
+        "i": 12,
+        "cls": "nav-panel__tool",
+        "x": 5.5,
+        "y": 366,
+        "w": 64,
+        "h": 68,
+        "text": "GPS",
+        "visible": true
+      },
+      {
+        "i": 13,
+        "cls": "nav-panel__tool-label",
+        "x": 24.640625,
+        "y": 409,
+        "w": 25.703125,
+        "h": 14,
+        "text": "GPS",
+        "visible": true
+      },
+      {
+        "i": 14,
+        "cls": "nav-panel__tool",
+        "x": 5.5,
+        "y": 436,
+        "w": 64,
+        "h": 68,
+        "text": "Planner",
+        "visible": true
+      },
+      {
+        "i": 15,
+        "cls": "nav-panel__tool-label",
+        "x": 16.390625,
+        "y": 479,
+        "w": 42.203125,
+        "h": 14,
+        "text": "Planner",
+        "visible": true
+      },
+      {
+        "i": 16,
+        "cls": "nav-panel__tool",
+        "x": 5.5,
+        "y": 506,
+        "w": 64,
+        "h": 68,
+        "text": "Admin",
+        "visible": true
+      },
+      {
+        "i": 17,
+        "cls": "nav-panel__tool-label",
+        "x": 20.1875,
+        "y": 549,
+        "w": 34.625,
+        "h": 14,
+        "text": "Admin",
+        "visible": true
+      },
+      {
+        "i": 30,
+        "cls": "sheet sheet--open",
+        "x": 218,
+        "y": 324,
+        "w": 920,
+        "h": 396,
+        "text": "Maps and data Reset BASE MAP ★ ✓ OSM Topo ★ Swiss Color Swiss Light OSM Light OSM Gray OSM Dark MAP SOURCE Auto Remote VIEW MODE 3D Terrain ",
+        "visible": true
+      },
+      {
+        "i": 31,
+        "cls": "sheet-drag-zone",
+        "x": 218,
+        "y": 324,
+        "w": 920,
+        "h": 43.96875,
+        "text": "Maps and data Reset",
+        "visible": true
+      },
+      {
+        "i": 34,
+        "cls": "sheet-header",
+        "x": 218,
+        "y": 324,
+        "w": 920,
+        "h": 43.96875,
+        "text": "Maps and data Reset",
+        "visible": true
+      },
+      {
+        "i": 35,
+        "cls": "sheet-header-content",
+        "x": 234,
+        "y": 337.78125,
+        "w": 737.09375,
+        "h": 18,
+        "text": "Maps and data",
+        "visible": true
+      },
+      {
+        "i": 36,
+        "cls": "sheet-title",
+        "x": 234,
+        "y": 337.78125,
+        "w": 123.34375,
+        "h": 18,
+        "text": "Maps and data",
+        "visible": true
+      },
+      {
+        "i": 37,
+        "cls": "sheet-header-actions",
+        "x": 983.09375,
+        "y": 333.59375,
+        "w": 138.90625,
+        "h": 26.375,
+        "text": "Reset",
+        "visible": true
+      },
+      {
+        "i": 40,
+        "cls": "sheet-body",
+        "x": 218,
+        "y": 367.96875,
+        "w": 920,
+        "h": 344.03125,
+        "text": "BASE MAP ★ ✓ OSM Topo ★ Swiss Color Swiss Light OSM Light OSM Gray OSM Dark MAP SOURCE Auto Remote VIEW MODE 3D Terrain Perspective terrain ",
+        "visible": true
+      }
+    ],
+    "width": 1280
+  },
+  "consoleMessages": [
+    "error: Failed to load resource: the server responded with a status of 401 ()",
+    "error: Failed to load resource: the server responded with a status of 401 ()",
+    "warning: [.WebGL-0x10400579800]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
+    "warning: [.WebGL-0x1040057aa00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
+    "warning: [.WebGL-0x10400579800]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
+    "warning: [.WebGL-0x10400579800]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels (this message will no longer repeat)"
+  ],
+  "passNoLeftovers": true
+}

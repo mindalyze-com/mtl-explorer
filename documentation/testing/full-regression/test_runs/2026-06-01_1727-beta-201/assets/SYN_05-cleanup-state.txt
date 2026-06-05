@@ -1,0 +1,4 @@
+SYN_05 cleanup state:
+- Removed syn05b_dismiss_validation.gpx.
+- Fresh context visible count: 12 Tracks
+- Remaining syn*.gpx files: (none)

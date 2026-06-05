@@ -1,0 +1,102 @@
+{
+  "navigationEntriesBefore": 1,
+  "navigationEntriesAfter": 1,
+  "actionBarBeforeClose": {
+    "primaryCount": "8",
+    "metrics": [
+      "8matching tracks",
+      "8categories"
+    ],
+    "status": "Live map",
+    "text": "Live map8matching tracks8categories Colors"
+  },
+  "mapLegend": {
+    "text": "8 / 11 TracksLegend00-11112-24125-36137-49150-61162-74175-86187-991",
+    "rows": [],
+    "bands": [
+      {
+        "text": "00-111",
+        "disabled": false,
+        "partial": false
+      },
+      {
+        "text": "12-241",
+        "disabled": false,
+        "partial": false
+      },
+      {
+        "text": "25-361",
+        "disabled": false,
+        "partial": false
+      },
+      {
+        "text": "37-491",
+        "disabled": false,
+        "partial": false
+      },
+      {
+        "text": "50-611",
+        "disabled": false,
+        "partial": false
+      },
+      {
+        "text": "62-741",
+        "disabled": false,
+        "partial": false
+      },
+      {
+        "text": "75-861",
+        "disabled": false,
+        "partial": false
+      },
+      {
+        "text": "87-991",
+        "disabled": false,
+        "partial": false
+      }
+    ],
+    "collapsed": false
+  },
+  "statsTiles": [
+    {
+      "value": "3",
+      "label": "Periods"
+    },
+    {
+      "value": "8",
+      "label": "Tracks"
+    },
+    {
+      "value": "28.1 km",
+      "label": "Total Dist."
+    },
+    {
+      "value": "1h 41m",
+      "label": "Total Time"
+    },
+    {
+      "value": "631 Wh",
+      "label": "Total Energy"
+    }
+  ],
+  "storage": {
+    "displayName": "Tracks by distance (gradient)",
+    "filterName": "TracksByDistanceGradient",
+    "params": {
+      "stringParams": {
+        "DISTANCE_MIN_KM": "0",
+        "DISTANCE_MAX_KM": "5"
+      },
+      "dateTimeParams": {
+        "DATE_TIME_FROM": "2000-01-01 00:00:00",
+        "DATE_TIME_TO": "2035-12-31 23:59:00"
+      },
+      "geoCircles": {},
+      "geoRectangles": {},
+      "geoPolygons": {}
+    },
+    "palette": "Gradient Map Saturated",
+    "legendSortStrategy": null
+  },
+  "expectedServerCount": 8
+}

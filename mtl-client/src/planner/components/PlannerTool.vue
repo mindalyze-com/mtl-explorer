@@ -405,7 +405,7 @@ import {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type MapLike = any;
 type PlannerPointerKind = 'mouse' | 'touch';
-type PlannerInteractionMode = 'waypointPointerDown' | 'waypointDragging';
+type PlannerInteractionMode = 'waypointPointerDown' | 'waypointDragging' | 'routePointerDown';
 type PlannerScreenPoint = { x: number; y: number };
 type PlannerLngLat = { lng: number; lat: number };
 type PlannerInteraction = {
@@ -413,6 +413,7 @@ type PlannerInteraction = {
   pointerKind: PlannerPointerKind;
   startPoint: PlannerScreenPoint;
   lastLngLat: PlannerLngLat;
+  routeLegIndex?: number;
   waypointId?: string;
   touchId?: number;
 };
@@ -1095,6 +1096,25 @@ function handleMapPointerDown(ev: PlannerMapPointerEvent) {
     syncSources();
     return;
   }
+
+  if (!planner.viewportTooLarge.value) {
+    const routeHit = inspectRouteHit(point, pointerKind);
+    if (routeHit.selectedLegIndex !== null) {
+      finishPlannerInteraction(false);
+      preventPlannerEvent(ev);
+      suppressNextMapClick(clickSuppressionFor(pointerKind), point);
+      setMapGestureDragEnabled(false);
+      selectedWaypointId.value = null;
+      plannerInteraction.value = {
+        mode: 'routePointerDown',
+        pointerKind,
+        startPoint: point,
+        lastLngLat: lngLatFromEvent(ev),
+        routeLegIndex: routeHit.selectedLegIndex,
+        touchId: touchIdentifierForEvent(ev) ?? undefined,
+      };
+    }
+  }
 }
 
 function handleMapPointerMove(ev: PlannerMapPointerEvent) {
@@ -1106,6 +1126,14 @@ function handleMapPointerMove(ev: PlannerMapPointerEvent) {
 
   preventPlannerEvent(ev);
   suppressNextMapClick(clickSuppressionFor(interaction.pointerKind), point);
+
+  if (interaction.mode === 'routePointerDown') {
+    plannerInteraction.value = {
+      ...interaction,
+      lastLngLat: lngLatFromEvent(ev),
+    };
+    return;
+  }
 
   if (interaction.mode === 'waypointPointerDown' && movedPx < thresholdPx) return;
 
@@ -1130,6 +1158,12 @@ function handleMapPointerUp(ev: PlannerMapPointerEvent) {
     return;
   }
 
+  if (interaction.mode === 'routePointerDown') {
+    const lngLat = ev.lngLat ? lngLatFromEvent(ev) : interaction.lastLngLat;
+    finishPlannerInteraction(true, lngLat);
+    return;
+  }
+
   finishPlannerInteraction(false);
 }
 
@@ -1145,10 +1179,14 @@ function finishPlannerInteraction(commit: boolean, lngLat?: PlannerLngLat) {
   const interaction = plannerInteraction.value;
   if (!interaction) return;
   const waypointId = interaction.mode === 'waypointDragging' ? interaction.waypointId : undefined;
+  const routeLegIndex = interaction.mode === 'routePointerDown' ? interaction.routeLegIndex : undefined;
   const finalLngLat = lngLat ?? interaction.lastLngLat;
 
   if (commit && waypointId) {
     planner.moveWaypoint(waypointId, finalLngLat.lat, finalLngLat.lng);
+  } else if (commit && routeLegIndex != null) {
+    const waypoint = planner.insertWaypoint(routeLegIndex, finalLngLat.lat, finalLngLat.lng);
+    selectedWaypointId.value = waypoint?.id ?? null;
   }
 
   plannerInteraction.value = null;

@@ -1,0 +1,7 @@
+SYN_01 data-change evidence:
+- Baseline before import: 12 Tracks
+- Baseline freshness token: 2stoDx__|server_id:Cg8oM1u6qqvmF4JAAqTxET|config:10|filters:83|index:99|media:0|track_geometry:108|tracks:130
+- Added fully synthetic watched-folder file: syn01b_sync_reload_validation.gpx
+- Count while banner visible before reload: 13 Tracks
+- Banner text visible: true
+- Banner excerpt: New data available Tracks, media, or settings changed since this view loaded. Reload

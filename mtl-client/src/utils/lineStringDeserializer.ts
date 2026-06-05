@@ -39,7 +39,7 @@ export function extractCoordinates(trackDataList: GpsTrackData[] | undefined | n
     // Case 1: bare array from custom server serializer.
     if (Array.isArray(track)) {
       for (const c of track as unknown[]) {
-        const coordinates = finiteCoordinatePair(c);
+        const coordinates = finiteCoordinateTuple(c);
         if (coordinates) out.push(coordinates);
       }
       continue;
@@ -51,11 +51,11 @@ export function extractCoordinates(trackDataList: GpsTrackData[] | undefined | n
       for (const c of obj.coordinates as unknown[]) {
         if (c == null) continue;
         if (Array.isArray(c)) {
-          const coordinates = finiteCoordinatePair(c);
+          const coordinates = finiteCoordinateTuple(c);
           if (coordinates) out.push(coordinates);
         } else {
-          const xy = c as { x?: unknown; y?: unknown };
-          const coordinates = finiteCoordinatePair([xy.x, xy.y]);
+          const xy = c as { x?: unknown; y?: unknown; z?: unknown };
+          const coordinates = finiteCoordinateTuple([xy.x, xy.y, xy.z]);
           if (coordinates) out.push(coordinates);
         }
       }
@@ -69,11 +69,13 @@ export function extractCoordinates(trackDataList: GpsTrackData[] | undefined | n
   return out;
 }
 
-function finiteCoordinatePair(value: unknown): number[] | null {
+function finiteCoordinateTuple(value: unknown): number[] | null {
   if (!Array.isArray(value) || value.length < 2) return null;
   const lng = toFiniteCoordinate(value[0]);
   const lat = toFiniteCoordinate(value[1]);
-  return lng == null || lat == null ? null : [lng, lat];
+  if (lng == null || lat == null) return null;
+  const elevation = toFiniteCoordinate(value[2]);
+  return elevation == null ? [lng, lat] : [lng, lat, elevation];
 }
 
 function toFiniteCoordinate(value: unknown): number | null {

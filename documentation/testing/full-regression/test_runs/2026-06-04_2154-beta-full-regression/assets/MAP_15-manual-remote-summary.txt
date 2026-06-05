@@ -1,0 +1,40 @@
+LOCAL_CONFIG_TILE_MODE=local
+BEFORE_AUTO_ACTIVE=true
+REMOTE_SELECTED_TEXT=500 km Elevation: Mapterhorn | Map data: © OpenStreetMap contributors, SRTM | Map style: © OpenTopoMap (CC-BY-SA) 11 Tracks Stats Filter Map Animate Segments GPS Planner Admin Maps and data Reset BASE MAP ★ ✓ OSM Topo OSM Light OSM Gray OSM Dark MAP SOURCE Auto Remote VIEW MODE 3D Terrain Perspective terrain view using Mapterhorn elevation mesh BACKGROUND Base Map The background map tiles — street map, topo, or satellite imagery DATA LAYERS GPS Tracks All your recorded activities drawn as colore
+REMOTE_AFTER_RELOAD_TEXT=500 km Elevation: Mapterhorn | Map data: © OpenStreetMap contributors, SRTM | Map style: © OpenTopoMap (CC-BY-SA) 11 Tracks Stats Filter Map Animate Segments GPS Planner Admin Maps and data Reset BASE MAP ★ ✓ OSM Topo OSM Light OSM Gray OSM Dark MAP SOURCE Auto Remote VIEW MODE 3D Terrain Perspective terrain view using Mapterhorn elevation mesh BACKGROUND Base Map The background map tiles — street map, topo, or satellite imagery DATA LAYERS GPS Tracks All your recorded activities drawn as colore
+RESET_TEXT=500 km © OpenStreetMap | Elevation: Mapterhorn 11 Tracks Stats Filter Map Animate Segments GPS Planner Admin Maps and data Reset BASE MAP ★ ✓ OSM Topo ★ Swiss Color Swiss Light OSM Light OSM Gray OSM Dark MAP SOURCE Auto Remote VIEW MODE 3D Terrain Perspective terrain view using Mapterhorn elevation mesh BACKGROUND Base Map The background map tiles — street map, topo, or satellite imagery DATA LAYERS GPS Tracks All your recorded activities drawn as colored lines on the map Photos & Media Geotagg
+REMOTE_PROVIDER_REQUESTS_AFTER_SWITCH=20
+REMOTE_PROVIDER_REQUESTS_AFTER_RELOAD=65
+MAP_PROXY_AFTER_SWITCH=0
+MAP_PROXY_AFTER_RELOAD=0
+OSM_THEMES_VISIBLE_REMOTE=true
+SWISS_THEMES_VISIBLE_REMOTE=false
+REMOTE_PERSISTED_AFTER_RELOAD=true
+RESET_RESTORED_AUTO=true
+AFTER_RESET_MAP_PROXY_REQUESTS=11
+CONSOLE_RECENT
+log: [tracks] Map layers rebuilt {durationMs: 2, trackCount: 11, overviewDotCount: 11, hasPalette: false, legendGroupCount: 0}
+log: Low-zoom PMTiles already cached (IndexedDB)
+log: [tracks] Map layers rebuilt {durationMs: 1, trackCount: 11, overviewDotCount: 11, hasPalette: false, legendGroupCount: 0}
+log: [mtl] v1.0.0 | built: 2026-06-04T19:43:43.667Z | Browser
+log: fetch config for CLIENT COLOR_PALETTE 
+log: Filter (main) mounted.
+log: fetch filters from server
+table: [Object, Object, Object, Object, Object]
+info: [track-cache] cache read complete {tracks: 11, geometries: 11, renderedTracks: 11, durationMs: 1}
+log: [tracks] Map layers rebuilt {durationMs: 2, trackCount: 11, overviewDotCount: 11, hasPalette: false, legendGroupCount: 0}
+info: [track-cache] sync 1000m: fetching 11/11 tracks in 1 batches {precision: 1000, totalTracks: 11, cachedTracks: 0, staleOrMissingTracks: 11, staleGeometryCleared: 0}
+info: [track-cache] sync 1000m complete {precision: 1000, totalTracks: 11, fetchedTracks: 11, cachedTracks: 0, batches: 1}
+log: [tracks] Map layers rebuilt {durationMs: 2, trackCount: 11, overviewDotCount: 11, hasPalette: false, legendGroupCount: 0}
+log: Low-zoom PMTiles already cached (IndexedDB)
+REQUEST_FAILED_RECENT
+HEAD http://167.233.16.201:18080/mtl/api/info/build net::ERR_ABORTED
+HEAD https://tiles.mapterhorn.com/0/0/0.webp net::ERR_ABORTED
+HEAD https://protomaps.github.io/basemaps-assets/fonts/Noto%20Sans%20Regular/0-255.pbf net::ERR_ABORTED
+HEAD https://protomaps.github.io/basemaps-assets/sprites/v4/light.json net::ERR_ABORTED
+HEAD https://tile.openstreetmap.org/0/0/0.png net::ERR_ABORTED
+HEAD https://tiles.mapterhorn.com/0/0/0.webp net::ERR_ABORTED
+HEAD http://167.233.16.201:18080/mtl/api/info/build net::ERR_ABORTED
+HEAD https://protomaps.github.io/basemaps-assets/fonts/Noto%20Sans%20Regular/0-255.pbf net::ERR_ABORTED
+HEAD https://protomaps.github.io/basemaps-assets/sprites/v4/light.json net::ERR_ABORTED
+HEAD https://tile.openstreetmap.org/0/0/0.png net::ERR_ABORTED

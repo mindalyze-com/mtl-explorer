@@ -1,0 +1,26 @@
+CONSOLE_RECENT
+log: [mtl] v1.0.0 | built: 2026-06-04T19:43:43.667Z | Browser
+log: fetch config for CLIENT COLOR_PALETTE 
+log: Filter (main) mounted.
+log: mounted
+log: load gpsTrack details for id=100005
+log: fetch chart series (TIME, maxBuckets=350) for 100005
+log: fetch track points (SIMPLIFIED_SHAPE @ 1m, map popup) for 100005
+log: fetch filters from server
+table: [Object, Object, Object, Object, Object]
+info: [track-cache] cache read complete {tracks: 11, geometries: 11, renderedTracks: 11, durationMs: 1}
+log: [tracks] Map layers rebuilt {durationMs: 1, trackCount: 11, overviewDotCount: 11, hasPalette: false, legendGroupCount: 0}
+info: [track-cache] sync 1000m: cache hit for 11 tracks {precision: 1000, totalTracks: 11, cachedTracks: 11, staleOrMissingTracks: 0, staleGeometryCleared: 0}
+info: [track-cache] sync 1000m complete {precision: 1000, totalTracks: 11, fetchedTracks: 0, cachedTracks: 11, batches: 0}
+log: Low-zoom PMTiles already cached (IndexedDB)
+REQUEST_FAILED_RECENT
+GET http://167.233.16.201:18080/mtl/api/map-proxy/prod/planet.pmtiles?mtl-map-source=public&mtl-map-archive=public-default net::ERR_ABORTED
+HEAD https://protomaps.github.io/basemaps-assets/fonts/Noto%20Sans%20Regular/0-255.pbf net::ERR_ABORTED
+HEAD https://protomaps.github.io/basemaps-assets/sprites/v4/light.json net::ERR_ABORTED
+HEAD https://tiles.mapterhorn.com/0/0/0.webp net::ERR_ABORTED
+HEAD https://tile.openstreetmap.org/0/0/0.png net::ERR_ABORTED
+HEAD http://167.233.16.201:18080/mtl/api/info/build net::ERR_ABORTED
+GET http://167.233.16.201:18080/mtl/api/map-proxy/prod/planet.pmtiles?mtl-map-source=public&mtl-map-archive=public-default net::ERR_ABORTED
+GET http://167.233.16.201:18080/mtl/api/map-proxy/prod/planet.pmtiles?mtl-map-source=public&mtl-map-archive=public-default net::ERR_ABORTED
+GET http://167.233.16.201:18080/mtl/api/map-proxy/prod/planet.pmtiles?mtl-map-source=public&mtl-map-archive=public-default net::ERR_ABORTED
+GET http://167.233.16.201:18080/mtl/api/map-proxy/prod/planet.pmtiles?mtl-map-source=public&mtl-map-archive=public-default net::ERR_ABORTED

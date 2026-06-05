@@ -1,0 +1,30 @@
+local ready after 1s
+Local status: 200 http://localhost:18080/mtl/
+Local HTML snippet: <!DOCTYPE html> <html lang="en">   <head>     <meta charset="UTF-8">     <link rel="icon" type="image/png" sizes="256x256" href="favicon-256.png">     <link rel="icon" href="favicon.ico" sizes="any">     <link rel="apple-touch-icon" href="apple-touch-icon.png">     <link rel="manifest" href="manifest.webmanifest">     <meta name="theme-color" conte
+Container ps:
+NAME                             IMAGE                                          COMMAND                  SERVICE           CREATED          STATUS                    PORTS
+mtl-explorer-app-1               wauwau0977/mytraillog:beta                     "/my-entrypoint.sh j…"   app               57 seconds ago   Up 45 seconds             0.0.0.0:18080->8080/tcp, [::]:18080->8080/tcp
+mtl-explorer-brouter-1           wauwau0977/mytraillog-brouter:latest           "/opt/brouter-orches…"   brouter           57 seconds ago   Up 56 seconds             17777-17778/tcp
+mtl-explorer-db-1                postgis/postgis:18-3.6                         "docker-entrypoint.s…"   db                57 seconds ago   Up 56 seconds (healthy)   5432/tcp
+mtl-explorer-location-search-1   wauwau0977/mytraillog-location-search:latest   "python /app/locatio…"   location-search   57 seconds ago   Up 56 seconds (healthy)   0.0.0.0:18083->8083/tcp, [::]:18083->8083/tcp
+App image inspect:
+wauwau0977/mytraillog:beta sha256:a42f29e01cf11c343bcd876d0fc2aebf7bcd9334b3cefae31cf8492d773c488b
+App logs tail:
+app-1  | 2026-06-01T15:31:50.102Z  INFO 1 --- [main] FilterConfigInitializer      : No external application.yml filter configs found.
+app-1  | 2026-06-01T15:31:50.395Z  INFO 1 --- [main] ServerIdentityService        : Generated stable server id for hosted map traffic
+app-1  | 2026-06-01T15:31:50.400Z  INFO 1 --- [main] ServerInfoController         : mtl-server started. Build version info:  0.0.1-SNAPSHOT / 2026-06-01T15:17:40.161Z / serverId=Cg8oM1u6qqvmF4JAAqTxET / image=1.280 / imageBuild=2026-06-01T15:17:25Z
+app-1  | 2026-06-01T15:31:50.744Z  WARN 1 --- [main] JpaBaseConfiguration$JpaWebConfiguration : spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+app-1  | 2026-06-01T15:31:50.767Z  INFO 1 --- [main] WelcomePageHandlerMapping    : Adding welcome page: class path resource [static/index.html]
+app-1  | 2026-06-01T15:31:50.949Z  WARN 1 --- [main] User                         : User.withDefaultPasswordEncoder() is considered unsafe for production and is only intended for sample applications.
+
+[app log tail cropped to startup summary and readiness lines]
+app-1  | 2026-06-01T15:31:50.400Z  INFO 1 --- [main] ServerInfoController         : mtl-server started. Build version info:  0.0.1-SNAPSHOT / 2026-06-01T15:17:40.161Z / serverId=Cg8oM1u6qqvmF4JAAqTxET / image=1.280 / imageBuild=2026-06-01T15:17:25Z
+app-1  | 2026-06-01T15:31:51.495Z  INFO 1 --- [main] TomcatWebServer              : Tomcat started on port 8080 (http) with context path '/mtl'
+app-1  | 2026-06-01T15:31:51.898Z  INFO 1 --- [main] MtlServerApplication         : Started MtlServerApplication in 14.542 seconds (process running for 15.328)
+app-1  | 2026-06-01T15:31:51.932Z  INFO 1 --- [main] ServerInfoController         : mtl-server started. Build version info:  0.0.1-SNAPSHOT / 2026-06-01T15:17:40.161Z / serverId=Cg8oM1u6qqvmF4JAAqTxET / image=1.280 / imageBuild=2026-06-01T15:17:25Z
+app-1  | 2026-06-01T15:31:51.936Z  INFO 1 --- [sched-1] GPXDirectoryWatcherService   : GPX Directory watcher service starting on directory /app/gpx
+app-1  | 2026-06-01T15:31:51.959Z  INFO 1 --- [idx-boot-MEDIA] FileIndexerImpl              : Initial scan fully completed for index=MEDIA in 15 ms (0 files, 0.0 files/sec)
+app-1  | 2026-06-01T15:31:51.959Z  INFO 1 --- [idx-boot-GPS] FileIndexerImpl              : Initial scan fully completed for index=GPS in 16 ms (0 files, 0.0 files/sec)
+app-1  | 2026-06-01T15:31:51.968Z  INFO 1 --- [idx-boot-GPS] FileIndexerImpl              : Live watcher started at /app/gpx
+Remote status from coordinator:
+200 http://167.233.16.201:18080/mtl/

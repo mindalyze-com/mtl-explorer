@@ -1,0 +1,15 @@
+{
+  "coverageId": "MAP_10",
+  "action": "Opened the overlap selector from the default map cluster and clicked its close control without selecting a track.",
+  "before": {
+    "selectorPresent": true,
+    "header": "3 tracks — select for details"
+  },
+  "after": {
+    "selectorGone": true,
+    "detailsGone": true,
+    "mapShows12Tracks": true,
+    "mapScale": "500 km"
+  },
+  "actual": "Selection sheet closed cleanly; the normal map remained visible with 12 Tracks and no Track Details sheet."
+}

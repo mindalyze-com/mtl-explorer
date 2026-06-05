@@ -1,0 +1,25 @@
+URL=http://167.233.16.201:18080/mtl/track/100005
+MINIMAP_CANVAS=true {"i":2,"x":261,"y":115.1875,"w":920,"h":220}
+OVERVIEW_OK=true
+GRAPHS_OK=true
+QUALITY_OK=true
+RELATED_OK=true
+EVENTS_OK=true
+POINT_POPUP_OK=true
+POINT_POPUP_EXCERPT=500 km © OpenStreetMap | Elevation: Mapterhorn 4 Tracks Stats Filter Map Animate Segments GPS Planner Admin TRACK DETAILS #100005 Walking Track point Point 1,805 Time 07/20/2021, 23:41:25 Distance 1.81 km Elevation 96.9 m Speed 3.6 km/h Elapsed 29m 59s × 3D Replay Overview Graphs Quality Related Events Activity.fit 07/20/2021, 23:11 TRACK CONTROLS ACTIVITY TYPE Bicycle Walking Hiking Running Mountain biking Stand-up paddle Rowing Kayaking Skiing Motorbiking Car Airplane Supersonic STATISTICS Included in statistics Exclude: GPS noise Exclude: wrong activity Exclude: import artifact Exclude: other 3.60 km Distance 59m 59s Duration 1,667 m Ascen
+CONSOLE_RECENT
+table: [Object, Object, Object, Object, Object]
+info: [track-cache] manual cache clear started
+info: [track-cache] manual cache clear complete {durationMs: 4}
+info: [track-cache] sync 10m: fetching 4/4 tracks in 1 batches {precision: 10, totalTracks: 4, cachedTracks: 0, staleOrMissingTracks: 4, staleGeometryCleared: 4}
+log: [tracks] Map layers rebuilt {durationMs: 2, trackCount: 4, overviewDotCount: 4, hasPalette: false, legendGroupCount: 0}
+info: [track-cache] sync 10m complete {precision: 10, totalTracks: 4, fetchedTracks: 4, cachedTracks: 0, batches: 1}
+log: Downloading low-zoom PMTiles from /mtl/api/map-proxy/prod/world-lowzoom.pmtiles?mtl-map-source=public&mtl-map-archive=public-default … (IndexedDB fallback)
+log: Low-zoom PMTiles cached successfully (IndexedDB, 42.4 MB)
+REQUEST_FAILED_RECENT
+GET http://167.233.16.201:18080/mtl/api/map-proxy/prod/planet.pmtiles?mtl-map-source=public&mtl-map-archive=public-default net::ERR_ABORTED
+GET http://167.233.16.201:18080/mtl/api/map-proxy/prod/planet.pmtiles?mtl-map-source=public&mtl-map-archive=public-default net::ERR_ABORTED
+GET http://167.233.16.201:18080/mtl/api/map-proxy/prod/planet.pmtiles?mtl-map-source=public&mtl-map-archive=public-default net::ERR_ABORTED
+GET http://167.233.16.201:18080/mtl/api/map-proxy/prod/planet.pmtiles?mtl-map-source=public&mtl-map-archive=public-default net::ERR_ABORTED
+GET http://167.233.16.201:18080/mtl/api/map-proxy/prod/planet.pmtiles?mtl-map-source=public&mtl-map-archive=public-default net::ERR_ABORTED
+GET http://167.233.16.201:18080/mtl/api/map-proxy/prod/planet.pmtiles?mtl-map-source=public&mtl-map-archive=public-default net::ERR_ABORTED

@@ -1,0 +1,99 @@
+{
+  "selections": [
+    {
+      "uiTheme": "light",
+      "selected": "OSM Topo",
+      "dataTheme": "light",
+      "storedTheme": "light-topo",
+      "mapSourceMode": "auto"
+    },
+    {
+      "uiTheme": "light",
+      "selected": "Swiss Color",
+      "dataTheme": "light",
+      "storedTheme": "swisstopo-color",
+      "mapSourceMode": "auto"
+    },
+    {
+      "uiTheme": "light",
+      "selected": "Swiss Light",
+      "dataTheme": "light",
+      "storedTheme": "swisstopo",
+      "mapSourceMode": "auto"
+    },
+    {
+      "uiTheme": "light",
+      "selected": "OSM Light",
+      "dataTheme": "light",
+      "storedTheme": "light",
+      "mapSourceMode": "auto"
+    },
+    {
+      "uiTheme": "light",
+      "selected": "OSM Gray",
+      "dataTheme": "light",
+      "storedTheme": "grayscale",
+      "mapSourceMode": "auto"
+    },
+    {
+      "uiTheme": "light",
+      "selected": "OSM Dark",
+      "dataTheme": "light",
+      "storedTheme": "dark",
+      "mapSourceMode": "auto"
+    },
+    {
+      "uiTheme": "dark",
+      "selected": "OSM Topo",
+      "dataTheme": "dark",
+      "storedTheme": "light-topo",
+      "mapSourceMode": "auto"
+    },
+    {
+      "uiTheme": "dark",
+      "selected": "Swiss Color",
+      "dataTheme": "dark",
+      "storedTheme": "swisstopo-color",
+      "mapSourceMode": "auto"
+    },
+    {
+      "uiTheme": "dark",
+      "selected": "Swiss Light",
+      "dataTheme": "dark",
+      "storedTheme": "swisstopo",
+      "mapSourceMode": "auto"
+    },
+    {
+      "uiTheme": "dark",
+      "selected": "OSM Light",
+      "dataTheme": "dark",
+      "storedTheme": "light",
+      "mapSourceMode": "auto"
+    },
+    {
+      "uiTheme": "dark",
+      "selected": "OSM Gray",
+      "dataTheme": "dark",
+      "storedTheme": "grayscale",
+      "mapSourceMode": "auto"
+    },
+    {
+      "uiTheme": "dark",
+      "selected": "OSM Dark",
+      "dataTheme": "dark",
+      "storedTheme": "dark",
+      "mapSourceMode": "auto"
+    }
+  ],
+  "assertions": {
+    "allStylesSelectedInBothThemes": true,
+    "includesAllCodes": [
+      "dark",
+      "grayscale",
+      "light",
+      "light-topo",
+      "swisstopo",
+      "swisstopo-color"
+    ]
+  }
+}

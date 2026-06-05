@@ -1,0 +1,15 @@
+Location search evidence
+Open facts: {"url":"http://167.233.16.201:18080/mtl/","body":"500 km © OpenStreetMap | Elevation: Mapterhorn 12 Tracks Stats Filter Map Animate Segments GPS Planner Admin Search Importance Near map","markerCount":0,"markerClearCount":0,"results":[],"states":[]}
+Bern results: {"url":"http://167.233.16.201:18080/mtl/","body":"500 km © OpenStreetMap | Elevation: Mapterhorn 12 Tracks Stats Filter Map Animate Segments GPS Planner Admin Search Importance Near map Bern Bern, Switzerland CAPITAL Z4-15 Berngjæret Møre og Romsdal, Norway HILL Z12-15 Bernartice South Bohemian Region, Czechia VILLAGE Z11-15 Bernville Pennsylvania, United States VILLAGE Z11-15 Bernartice Hradec Králové Region, Czechia VILLAGE Z11-15 Bernkogel State of Salzburg, Austria MOUNTAIN Z12-15 Bernhartshöhe Baden-Wurttemberg, Germany HILL Z12-15 Bernhardshöhe Saxony, Germany HILL Z12-15 Bernhardshøgda Trøndelag, Norway HILL Z12-15 Bernsdorfer Kuppe Hesse, Germany HILL Z12-15 Bernina Grisons, Switzerland MOUNTAIN Z12-15 Bernese Alps Valais, Switzerland MOUNTAIN Z12-15 Bernal Chiapas, Mexico MOUNTAIN Z12-15 Bernal Sinaloa, Mexico MOUNTAIN Z12-15 Bernerberget Svalbard, Svalbard and Jan Mayen MOUNTAIN Z12-15 Bernbergskopf North Rhine-Westphalia, Germany HILL Z12-15 Bernalda Basilicate, Italy CITY Z7-15 Berndorf Lower Austria, Austria CITY Z7-15 Bernareggio Lombardy, Italy CITY Z7-15 Bernal Piura, Peru CITY Z7-15","markerCount":0,"markerClearCount":0,"results":["Bern","Berngjæret","Bernartice","Bernville","Bernartice","Bernkogel","Bernhartshöhe","Bernhardshöhe"],"states":[]}
+First selected: Bern | Bern, Switzerland
+After select: {"url":"http://167.233.16.201:18080/mtl/","body":"100 m © OpenStreetMap | Elevation: Mapterhorn 12 Tracks Stats Filter Map Animate Segments GPS Planner Admin","markerCount":1,"markerClearCount":1,"results":["Bern","Berngjæret","Bernartice","Bernville","Bernartice","Bernkogel","Bernhartshöhe","Bernhardshöhe"],"states":[]}
+Clear method: marker clear button; after clear: {"url":"http://167.233.16.201:18080/mtl/","body":"100 m © OpenStreetMap | Elevation: Mapterhorn 12 Tracks Stats Filter Map Animate Segments GPS Planner Admin","markerCount":0,"markerClearCount":0,"results":["Bern","Berngjæret","Bernartice","Bernville","Bernartice","Bernkogel","Bernhartshöhe","Bernhardshöhe"],"states":[]}
+Short query state: ["Keep typing"]
+No-match state: ["No matches"]; results=[]
+Requests: http://167.233.16.201:18080/mtl/api/location-search/status
+http://167.233.16.201:18080/mtl/api/location-search/status
+http://167.233.16.201:18080/mtl/api/location-search?q=Bern&limit=20&sort=importance&lat=25.1819275&lon=3.7973105
+http://167.233.16.201:18080/mtl/api/location-search/status
+http://167.233.16.201:18080/mtl/api/location-search?q=Bern&limit=20&sort=importance&lat=25.1819275&lon=3.7973105
+http://167.233.16.201:18080/mtl/api/location-search?q=zzzxqnotaplace&limit=20&sort=importance&lat=25.1819275&lon=3.7973105
+Console warnings/errors: none

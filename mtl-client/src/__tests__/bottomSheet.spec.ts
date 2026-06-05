@@ -22,14 +22,17 @@ async function flushSheetUpdates() {
   await nextTick();
 }
 
-function mountStackHarness(options: {
-  lowerOpen?: boolean;
-  upperOpen?: boolean;
-  lowerZIndex?: number;
-  upperZIndex?: number;
-  lowerNoBackdrop?: boolean;
-  upperNoBackdrop?: boolean;
-} = {}) {
+function mountStackHarness(
+  options: {
+    lowerOpen?: boolean;
+    upperOpen?: boolean;
+    lowerZIndex?: number;
+    upperZIndex?: number;
+    lowerBackgroundDetent?: unknown;
+    lowerNoBackdrop?: boolean;
+    upperNoBackdrop?: boolean;
+  } = {}
+) {
   const wrapper = mount(
     defineComponent({
       components: { BottomSheet },
@@ -37,6 +40,7 @@ function mountStackHarness(options: {
         return {
           lowerOpen: options.lowerOpen ?? true,
           upperOpen: options.upperOpen ?? false,
+          lowerBackgroundDetent: options.lowerBackgroundDetent,
           lowerZIndex: options.lowerZIndex ?? 5000,
           upperZIndex: options.upperZIndex ?? 5100,
           lowerNoBackdrop: options.lowerNoBackdrop ?? true,
@@ -48,6 +52,7 @@ function mountStackHarness(options: {
           v-model="lowerOpen"
           title="Lower Sheet"
           :detents="[{ height: 0.5 }]"
+          :background-detent="lowerBackgroundDetent"
           :z-index="lowerZIndex"
           :no-backdrop="lowerNoBackdrop"
         >
@@ -61,6 +66,39 @@ function mountStackHarness(options: {
           :no-backdrop="upperNoBackdrop"
         >
           <button type="button">Upper Action</button>
+        </BottomSheet>
+      `,
+    }),
+    { attachTo: document.body }
+  );
+  mountedWrappers.push(wrapper);
+  return wrapper;
+}
+
+function mountInteractionHarness() {
+  const wrapper = mount(
+    defineComponent({
+      components: { BottomSheet },
+      data() {
+        return {
+          open: true,
+          actionClicks: 0,
+        };
+      },
+      template: `
+        <BottomSheet
+          v-model="open"
+          title="Interactive Sheet"
+          :detents="[
+            { id: 'low', height: '200px' },
+            { id: 'high', height: '400px' },
+          ]"
+          initial-detent="low"
+        >
+          <template #header-actions>
+            <button class="header-action" type="button" @click="actionClicks++">Action</button>
+          </template>
+          <div>Body</div>
         </BottomSheet>
       `,
     }),
@@ -136,7 +174,7 @@ describe('BottomSheet stacking', () => {
   });
 
   it('does not render an extra viewport backdrop for an explicit stacked child noBackdrop sheet', async () => {
-    const wrapper = mountStackHarness({
+    mountStackHarness({
       lowerNoBackdrop: false,
       upperNoBackdrop: true,
       upperOpen: true,
@@ -144,5 +182,59 @@ describe('BottomSheet stacking', () => {
     await flushSheetUpdates();
 
     expect(document.body.querySelectorAll('.sheet-backdrop')).toHaveLength(1);
+  });
+
+  it('collapses to a configured background detent and restores when foregrounded', async () => {
+    const wrapper = mountStackHarness({ lowerBackgroundDetent: { id: 'peek', height: '80px' } });
+    await flushSheetUpdates();
+
+    const lowerSheet = findSheet('Lower Sheet');
+    const originalHeight = lowerSheet.style.height;
+
+    (wrapper.vm as unknown as { upperOpen: boolean }).upperOpen = true;
+    await flushSheetUpdates();
+
+    expect(lowerSheet.style.height).toBe('80px');
+
+    (wrapper.vm as unknown as { upperOpen: boolean }).upperOpen = false;
+    await flushSheetUpdates();
+
+    expect(lowerSheet.style.height).toBe(originalHeight);
+  });
+
+  it('snaps to the adjacent detent when the drag zone is tapped', async () => {
+    mountInteractionHarness();
+    await flushSheetUpdates();
+
+    const sheet = findSheet('Interactive Sheet');
+    const dragZone = sheet.querySelector('.sheet-drag-zone');
+    if (!dragZone) throw new Error('Drag zone not found');
+
+    expect(sheet.style.height).toBe('200px');
+
+    dragZone.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    await flushSheetUpdates();
+
+    expect(sheet.style.height).toBe('400px');
+
+    dragZone.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    await flushSheetUpdates();
+
+    expect(sheet.style.height).toBe('200px');
+  });
+
+  it('does not snap when header actions are tapped', async () => {
+    const wrapper = mountInteractionHarness();
+    await flushSheetUpdates();
+
+    const sheet = findSheet('Interactive Sheet');
+    const action = sheet.querySelector('.header-action');
+    if (!action) throw new Error('Header action not found');
+
+    action.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    await flushSheetUpdates();
+
+    expect(sheet.style.height).toBe('200px');
+    expect((wrapper.vm as unknown as { actionClicks: number }).actionClicks).toBe(1);
   });
 });

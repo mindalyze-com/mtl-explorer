@@ -1,0 +1,31 @@
+Globe mode evidence
+Initial: {"scale":"500 km","tracks":"12 Tracks","globeActive":false,"globeVisible":true,"globeClass":"mtl-globe-btn","centerText":"500 km © OpenStreetMap | Elevation: Mapterhorn 12 Tracks Stats Filter Map Animate Segments GPS Planner Admin"}
+GLB_01 zoom-out states: [{"scale":"500 km","tracks":"12 Tracks","globeActive":false,"globeVisible":true,"globeClass":"mtl-globe-btn","centerText":"500 km © OpenStreetMap | Elevation: Mapterhorn 12 Tracks Stats Filter Map Animate Segments GPS Planner Admin"},{"scale":"1000 km","tracks":"12 Tracks","globeActive":true,"globeVisible":true,"globeClass":"mtl-globe-btn mtl-globe-active","centerText":"1000 km © OpenStreetMap | Elevation: Mapterhorn 12 Tracks Stats Filter Map Animate Segments GPS Planner Admin"}]
+GLB_01 final: {"scale":"1000 km","tracks":"12 Tracks","globeActive":true,"globeVisible":true,"globeClass":"mtl-globe-btn mtl-globe-active","centerText":"1000 km © OpenStreetMap | Elevation: Mapterhorn 12 Tracks Stats Filter Map Animate Segments GPS Planner Admin"}
+GLB_02 zoom-in states: [{"scale":"1000 km","tracks":"12 Tracks","globeActive":true,"globeVisible":true,"globeClass":"mtl-globe-btn mtl-globe-active","centerText":"1000 km © OpenStreetMap | Elevation: Mapterhorn 12 Tracks Stats Filter Map Animate Segments GPS Planner Admin"},{"scale":"500 km","tracks":"12 Tracks","globeActive":true,"globeVisible":true,"globeClass":"mtl-globe-btn mtl-globe-active","centerText":"500 km © OpenStreetMap | Elevation: Mapterhorn 12 Tracks Stats Filter Map Animate Segments GPS Planner Admin"},{"scale":"300 km","tracks":"12 Tracks","globeActive":false,"globeVisible":false,"globeClass":"mtl-globe-btn","centerText":"300 km © OpenStreetMap | Elevation: Mapterhorn 12 Tracks Stats Filter Map Animate Segments GPS Planner Admin"}]
+GLB_02 final: {"scale":"300 km","tracks":"12 Tracks","globeActive":false,"globeVisible":false,"globeClass":"mtl-globe-btn","centerText":"300 km © OpenStreetMap | Elevation: Mapterhorn 12 Tracks Stats Filter Map Animate Segments GPS Planner Admin"}
+GLB_03 before manual disable: {"scale":"1000 km","tracks":"12 Tracks","globeActive":true,"globeVisible":true,"globeClass":"mtl-globe-btn mtl-globe-active","centerText":"1000 km © OpenStreetMap | Elevation: Mapterhorn 12 Tracks Stats Filter Map Animate Segments GPS Planner Admin"}
+GLB_03 after manual disable: {"scale":"1000 km","tracks":"12 Tracks","globeActive":false,"globeVisible":true,"globeClass":"mtl-globe-btn","centerText":"1000 km © OpenStreetMap | Elevation: Mapterhorn 12 Tracks Stats Filter Map Animate Segments GPS Planner Admin"}
+GLB_03 after more low-zoom zoom-out: {"scale":"3000 km","tracks":"12 Tracks","globeActive":false,"globeVisible":true,"globeClass":"mtl-globe-btn","centerText":"3000 km © OpenStreetMap | Elevation: Mapterhorn 12 Tracks Stats Filter Map Animate Segments GPS Planner Admin"}
+GLB_03 re-enabled for cleanup/next check: {"scale":"1000 km","tracks":"12 Tracks","globeActive":true,"globeVisible":true,"globeClass":"mtl-globe-btn mtl-globe-active","centerText":"1000 km © OpenStreetMap | Elevation: Mapterhorn 12 Tracks Stats Filter Map Animate Segments GPS Planner Admin"}
+GLB_04 after repeated zoom out: {"scale":"1000 km","tracks":"12 Tracks","globeActive":true,"globeVisible":true,"globeClass":"mtl-globe-btn mtl-globe-active","centerText":"1000 km © OpenStreetMap | Elevation: Mapterhorn 12 Tracks Stats Filter Map Animate Segments GPS Planner Admin"}
+GLB_04 after repeated zoom in: {"scale":"1 km","tracks":"12 Tracks","globeActive":false,"globeVisible":false,"globeClass":"mtl-globe-btn","centerText":"1 km © OpenStreetMap | Elevation: Mapterhorn 12 Tracks Stats Filter Map Animate Segments GPS Planner Admin"}
+Zoom logs: [zoom] 2.360 | globe
+[zoom] 3.360 | globe
+[zoom] 4.360 | mercator
+[zoom] 3.360 | mercator
+[zoom] 2.360 | globe
+[zoom] 1.360 | mercator
+[zoom] 1.000 | mercator
+[zoom] 2.221 | globe
+[zoom] 3.221 | globe
+[zoom] 4.221 | mercator
+[zoom] 5.218 | mercator
+[zoom] 6.218 | mercator
+[zoom] 7.218 | mercator
+[zoom] 8.214 | mercator
+[zoom] 9.202 | mercator
+[zoom] 10.193 | mercator
+[zoom] 11.172 | mercator
+[zoom] 12.172 | mercator
+Console warnings/errors: none

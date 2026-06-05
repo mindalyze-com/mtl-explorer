@@ -1,0 +1,64 @@
+MOB_02 mobile sheet evidence:
+{
+  "initialNav": {
+    "x": 0,
+    "y": 712,
+    "w": 390,
+    "h": 132,
+    "text": "Stats Filter Planner Map Animate Segments GPS Admin"
+  },
+  "filterOpen": {
+    "x": 0,
+    "y": 236.328125,
+    "w": 390,
+    "h": 607.671875,
+    "text": "Filter Colors SQL Off Filtering is off Turn filtering on to narrow tracks by type, date or geo area, group them, and color the map. The Colors and SQL tabs unlock once a filter is "
+  },
+  "filterAfterClose": {
+    "x": 0,
+    "y": 836,
+    "w": 390,
+    "h": 8,
+    "text": ""
+  },
+  "filterReopened": {
+    "x": 0,
+    "y": 236.328125,
+    "w": 390,
+    "h": 607.671875,
+    "text": "Filter Colors SQL Off Filtering is off Turn filtering on to narrow tracks by type, date or geo area, group them, and color the map. The Colors and SQL tabs unlock once a filter is "
+  },
+  "filterAfterUpSnap": {
+    "x": 0,
+    "y": 236.328125,
+    "w": 390,
+    "h": 607.671875,
+    "text": "Filter Colors SQL Off Filtering is off Turn filtering on to narrow tracks by type, date or geo area, group them, and color the map. The Colors and SQL tabs unlock once a filter is "
+  },
+  "navExpanded": {
+    "x": 0,
+    "y": 712,
+    "w": 390,
+    "h": 132,
+    "text": "Stats Filter Planner Map Animate Segments GPS Admin"
+  },
+  "navCollapsed": {
+    "x": 0,
+    "y": 798,
+    "w": 390,
+    "h": 46,
+    "text": "Stats Filter Planner Map Animate Segments GPS Admin"
+  },
+  "navExpandedAgain": {
+    "x": 0,
+    "y": 712,
+    "w": 390,
+    "h": 132,
+    "text": "Stats Filter Planner Map Animate Segments GPS Admin"
+  },
+  "finalBody": {
+    "scrollWidth": 390,
+    "bodyWidth": 390,
+    "text": "500 km © OpenStreetMap | Elevation: Mapterhorn 12 Tracks Stats Filter Planner Map Animate Segments GPS Admin"
+  }
+}

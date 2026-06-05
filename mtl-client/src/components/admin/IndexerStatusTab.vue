@@ -1,7 +1,10 @@
 <template>
   <div class="indexer-tab">
     <!-- Loading state: show only when all status groups are empty -->
-    <div v-if="summaries.length === 0 && jobSummaries.length === 0 && operationalTasks.length === 0" class="indexer-empty">
+    <div
+      v-if="summaries.length === 0 && jobSummaries.length === 0 && operationalTasks.length === 0"
+      class="indexer-empty"
+    >
       <i class="pi pi-spin pi-spinner" style="font-size: var(--text-lg-size); color: var(--text-faint)" />
       <span>Loading…</span>
     </div>
@@ -73,6 +76,12 @@
           </span>
           <span v-if="s.failed > 0" class="stat stat--failed" :title="`${s.failed} failed`">
             <i class="pi pi-times-circle" /> {{ s.failed }}
+          </span>
+          <span v-if="s.removed > 0" class="stat stat--removed" :title="`${s.removed} removed`">
+            <i class="pi pi-trash" /> {{ s.removed }} removed
+          </span>
+          <span v-if="s.excluded > 0" class="stat stat--excluded" :title="`${s.excluded} excluded`">
+            <i class="pi pi-ban" /> {{ s.excluded }} excluded
           </span>
           <span class="stat stat--total">{{ s.total }} total</span>
         </div>
@@ -449,6 +458,12 @@ function operationalTaskBadgeIcon(task: AdminOperationalTask): string {
 }
 .stat--failed {
   color: var(--error);
+}
+.stat--removed {
+  color: var(--text-secondary);
+}
+.stat--excluded {
+  color: var(--text-muted);
 }
 
 .stat--detail {

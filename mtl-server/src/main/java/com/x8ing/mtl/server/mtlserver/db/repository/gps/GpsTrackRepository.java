@@ -303,15 +303,15 @@ public interface GpsTrackRepository extends JpaRepository<GpsTrack, Long> {
                 round((percentile_disc(0.5) WITHIN GROUP (ORDER BY COALESCE(power_watts_avg, 0)))::numeric, 1) AS powerWattsAvgMed,
                 round((percentile_disc(0.5) WITHIN GROUP (ORDER BY COALESCE(normalized_power_watts, 0)))::numeric, 1) AS normalizedPowerMed,
                 round(avg(CASE
-                    WHEN COALESCE(normalized_power_watts, 0) > 0 AND cast(:threshold_power AS double precision) > 0
-                    THEN normalized_power_watts / cast(:threshold_power AS double precision)
+                    WHEN COALESCE(normalized_power_watts, 0)::double precision > 0 AND cast(:threshold_power AS double precision) > 0
+                    THEN normalized_power_watts::double precision / cast(:threshold_power AS double precision)
                 END)::numeric, 3) AS intensityIndexAvg,
                 round(avg(CASE
-                    WHEN COALESCE(normalized_power_watts, 0) > 0
-                        AND COALESCE(track_duration_in_motion_secs, 0) > 0
+                    WHEN COALESCE(normalized_power_watts, 0)::double precision > 0
+                        AND COALESCE(track_duration_in_motion_secs, 0)::double precision > 0
                         AND cast(:threshold_power AS double precision) > 0
-                    THEN POWER(normalized_power_watts / cast(:threshold_power AS double precision), 2)
-                         * (track_duration_in_motion_secs / 3600.0) * 100
+                    THEN POWER(normalized_power_watts::double precision / cast(:threshold_power AS double precision), 2)
+                         * (track_duration_in_motion_secs::double precision / 3600.0) * 100
                 END)::numeric, 1) AS trainingLoadPerRideAvg,
                 round(avg(CASE WHEN exploration_status = 'CALCULATED' AND exploration_score IS NOT NULL THEN exploration_score END)::numeric, 3) AS explorationScoreAvg
             FROM q

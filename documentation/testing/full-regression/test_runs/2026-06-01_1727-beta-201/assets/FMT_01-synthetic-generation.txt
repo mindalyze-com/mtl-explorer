@@ -1,0 +1,68 @@
+[
+  {
+    "format": "tcx",
+    "dest": "/app/gpx/fmt_sample_tcx.tcx",
+    "command": "gpsbabel -i gpx -f /tmp/mtl-fmt-src/fmt_source_tcx.gpx -o gtrnctr -F /app/gpx/fmt_sample_tcx.tcx",
+    "returncode": 0,
+    "status": "generated",
+    "bytes": 4599,
+    "sha256": "e7e10c60e4d8f39ba4facf34737337b02e12e32572e6713a3237112b39ca4660"
+  },
+  {
+    "format": "kml",
+    "dest": "/app/gpx/fmt_sample_kml.kml",
+    "command": "gpsbabel -i gpx -f /tmp/mtl-fmt-src/fmt_source_kml.gpx -o kml -F /app/gpx/fmt_sample_kml.kml",
+    "returncode": 0,
+    "status": "generated",
+    "bytes": 9874,
+    "sha256": "0538099dce769047241778ef5b04d4c5b7eaa627f880e7ebb006e00ecf357978"
+  },
+  {
+    "format": "igc",
+    "dest": "/app/gpx/fmt_sample_igc.igc",
+    "command": "gpsbabel -i gpx -f /tmp/mtl-fmt-src/fmt_source_igc.gpx -o igc -F /app/gpx/fmt_sample_igc.igc",
+    "returncode": 0,
+    "status": "generated",
+    "bytes": 439,
+    "sha256": "90b9d1d468ae4db64c26a585e6c5f0cc4bc42f06787b811ecb66968d5a645b50"
+  },
+  {
+    "format": "nmea",
+    "dest": "/app/gpx/fmt_sample_nmea.nmea",
+    "command": "gpsbabel -i gpx -f /tmp/mtl-fmt-src/fmt_source_nmea.gpx -o nmea -F /app/gpx/fmt_sample_nmea.nmea",
+    "returncode": 0,
+    "status": "generated",
+    "bytes": 1088,
+    "sha256": "4fe83cd29dc93f3f499057617965ed81d89df53646c395ceceeca6139886a904"
+  },
+  {
+    "format": "geojson",
+    "dest": "/app/gpx/fmt_sample_geojson.geojson",
+    "command": "gpsbabel -i gpx -f /tmp/mtl-fmt-src/fmt_source_geojson.gpx -o geojson -F /app/gpx/fmt_sample_geojson.geojson",
+    "returncode": 0,
+    "status": "generated",
+    "bytes": 1426,
+    "sha256": "0d8268b798e7d2accd79e58f2773616904381cbe98106e3517d875cbce51d7bc"
+  },
+  {
+    "format": "gdb",
+    "dest": "/app/gpx/fmt_sample_gdb.gdb",
+    "command": "gpsbabel -i gpx -f /tmp/mtl-fmt-src/fmt_source_gdb.gpx -o gdb -F /app/gpx/fmt_sample_gdb.gdb",
+    "returncode": 0,
+    "status": "generated",
+    "bytes": 299,
+    "sha256": "5bb4a8c7ffc8ed2b8e9e39eb87074aa63a0dea5ced9dfd2839d0e8d31d21fb90"
+  },
+  {
+    "format": "kmz",
+    "dest": "/app/gpx/fmt_sample_kmz.kmz",
+    "command": "gpsbabel -i gpx -f /tmp/mtl-fmt-src/fmt_source_kmz.gpx -o kml -F /tmp/mtl-fmt-src/fmt_sample_kmz_doc.kml && zip doc.kml as KMZ",
+    "returncode": 0,
+    "status": "generated",
+    "bytes": 1545,
+    "sha256": "4a09f995a70fcb76aefa05da5f8fdcfb90303968d75458b96fa3cf29e97f02a9",
+    "kmz_entries": [
+      "doc.kml"
+    ]
+  }
+]

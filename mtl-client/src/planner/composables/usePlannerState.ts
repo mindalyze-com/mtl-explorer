@@ -25,9 +25,20 @@ const SEGMENT_RETRY_DELAY_MS = 8_000;
 const SEGMENT_RETRY_MAX = 6;
 /** Tiny tolerance for comparing saved waypoint orientation against saved geometry. */
 const WAYPOINT_ORIENTATION_EPSILON = 1e-12;
+const ROUTING_UNAVAILABLE_MESSAGE =
+  'Route unavailable for these points. Move waypoints onto routable roads or trails, or try again later.';
+const ROUTING_FAILED_MESSAGE = 'Route calculation failed. Please adjust the route or try again later.';
+const MACHINE_ERROR_KEY = /^[a-z0-9]+(?:-[a-z0-9]+)+$/;
 
 let idCounter = 0;
 const nextId = () => `wp-${Date.now().toString(36)}-${(idCounter++).toString(36)}`;
+
+function routeErrorMessage(errorCode?: string, fallback?: string): string {
+  if (errorCode === 'routing-unavailable') return ROUTING_UNAVAILABLE_MESSAGE;
+  if (errorCode === 'routing-failed') return ROUTING_FAILED_MESSAGE;
+  if (errorCode && !MACHINE_ERROR_KEY.test(errorCode)) return errorCode;
+  return fallback ?? ROUTING_FAILED_MESSAGE;
+}
 
 export function usePlannerState() {
   const waypoints = ref<Waypoint[]>([]);
@@ -178,14 +189,17 @@ export function usePlannerState() {
   }
 
   /** Insert a new draggable waypoint at a given position between existing ones. */
-  function insertWaypoint(afterIndex: number, lat: number, lng: number) {
-    if (viewportTooLarge.value) return;
-    if (!canAddWaypoint()) return;
+  function insertWaypoint(afterIndex: number, lat: number, lng: number): Waypoint | null {
+    if (viewportTooLarge.value) return null;
+    if (!canAddWaypoint()) return null;
+    if (!Number.isInteger(afterIndex) || afterIndex < 0 || afterIndex >= waypoints.value.length) return null;
     clearPristine();
     snapshotForUndo();
-    const idx = Math.max(0, Math.min(afterIndex + 1, waypoints.value.length));
-    waypoints.value.splice(idx, 0, { id: nextId(), lat, lng });
+    const idx = afterIndex + 1;
+    const waypoint = { id: nextId(), lat, lng };
+    waypoints.value.splice(idx, 0, waypoint);
     scheduleRecompute();
+    return waypoint;
   }
 
   function moveWaypoint(id: string, lat: number, lng: number) {
@@ -424,7 +438,7 @@ export function usePlannerState() {
         }, SEGMENT_RETRY_DELAY_MS);
       } else {
         segmentRetryCount = 0;
-        lastError.value = errorCode ?? err?.message ?? 'routing-failed';
+        lastError.value = routeErrorMessage(errorCode, err?.message);
       }
     } finally {
       if (requestSeq === routeRequestSeq) computing.value = false;

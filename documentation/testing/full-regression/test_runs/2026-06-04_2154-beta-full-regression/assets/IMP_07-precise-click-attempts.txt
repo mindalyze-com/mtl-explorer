@@ -1,0 +1,21 @@
+lannion1 (135,410) url=http://167.233.16.201:18080/mtl/track/100004 found=Lannion_Plestin_parcours
+vitry1 (1005,450) url=http://167.233.16.201:18080/mtl/ found=none
+vitry2 (990,430) url=http://167.233.16.201:18080/mtl/ found=none
+vitry3 (1030,475) url=http://167.233.16.201:18080/mtl/ found=none
+mosel1 (1250,240) url=http://167.233.16.201:18080/mtl/ found=none
+mosel2 (1220,300) url=http://167.233.16.201:18080/mtl/ found=none
+mosel3 (1190,370) url=http://167.233.16.201:18080/mtl/ found=none
+mosel4 (1280,185) url=http://167.233.16.201:18080/mtl/track/100002 found=Moselradweg
+jura1 (1200,790) url=http://167.233.16.201:18080/mtl/ found=none
+jura2 (1160,735) url=http://167.233.16.201:18080/mtl/track/100000 found=Jura Route
+voie (1260,540) url=http://167.233.16.201:18080/mtl/ found=none
+voie (1240,520) url=http://167.233.16.201:18080/mtl/ found=voie verte|Moselradweg
+canvases=[{"i":0,"x":76,"y":0,"w":1290,"h":900},{"i":1,"x":76,"y":0,"w":1290,"h":900},{"i":2,"x":261,"y":628.1875,"w":920,"h":220}]
+pointPopup canvas=2 rel=0.45,0.52
+vitry-extra1 (980,520) url=http://167.233.16.201:18080/mtl/ found=none
+vitry-extra2 (1000,560) url=http://167.233.16.201:18080/mtl/ found=none
+vitry-extra3 (930,500) url=http://167.233.16.201:18080/mtl/ found=none
+vitry-extra4 (1030,575) url=http://167.233.16.201:18080/mtl/ found=none
+vitry-extra5 (965,610) url=http://167.233.16.201:18080/mtl/ found=none
+vitry-extra6 (910,535) url=http://167.233.16.201:18080/mtl/ found=none
+vitry-grid-hit (1010,410) url=http://167.233.16.201:18080/mtl/track/100001

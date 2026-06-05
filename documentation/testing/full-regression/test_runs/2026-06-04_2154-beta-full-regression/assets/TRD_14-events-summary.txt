@@ -1,0 +1,9 @@
+EVENT_TEXT_PRESENT=true
+BEFORE_CLASS=event-row event-row--break event-row--longest event-row--selectable
+SELECTED_CLASS=event-row event-row--break event-row--longest event-row--selected event-row--selectable
+SELECTED_CLASS_CHANGED=true
+SELECTED_TEXT_STILL_PRESENT=true
+MINI_MAP_CANVASES=[{"i":0,"x":76,"y":0,"w":1290,"h":900},{"i":1,"x":76,"y":0,"w":1290,"h":900},{"i":2,"x":261,"y":115,"w":920,"h":220}]
+DESELECTED_CLASS=event-row event-row--break event-row--longest event-row--selectable
+DESELECTED_CLASS_RESTORED=true
+TRD_14_PASS=true

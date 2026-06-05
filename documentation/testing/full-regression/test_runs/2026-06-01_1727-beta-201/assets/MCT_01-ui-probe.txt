@@ -1,0 +1,278 @@
+MCT_01 UI probe
+{
+  "navInfo": [
+    {
+      "i": 0,
+      "text": "",
+      "cls": "maplibregl-ctrl-zoom-in",
+      "aria": "Zoom in",
+      "title": "Zoom in"
+    },
+    {
+      "i": 1,
+      "text": "",
+      "cls": "maplibregl-ctrl-zoom-out",
+      "aria": "Zoom out",
+      "title": "Zoom out"
+    },
+    {
+      "i": 2,
+      "text": "",
+      "cls": "maplibregl-ctrl-compass",
+      "aria": "Drag to rotate map, click to reset north",
+      "title": "Drag to rotate map, click to reset north"
+    },
+    {
+      "i": 5,
+      "text": "OpenStreetMap",
+      "cls": "",
+      "aria": null,
+      "title": null
+    },
+    {
+      "i": 6,
+      "text": "Mapterhorn",
+      "cls": "",
+      "aria": null,
+      "title": null
+    },
+    {
+      "i": 8,
+      "text": "Stats",
+      "cls": "nav-panel__tool",
+      "aria": null,
+      "title": "Stats"
+    },
+    {
+      "i": 9,
+      "text": "Filter",
+      "cls": "nav-panel__tool",
+      "aria": null,
+      "title": "Filter"
+    },
+    {
+      "i": 10,
+      "text": "Map",
+      "cls": "nav-panel__tool",
+      "aria": null,
+      "title": "Map"
+    },
+    {
+      "i": 12,
+      "text": "Segments",
+      "cls": "nav-panel__tool",
+      "aria": null,
+      "title": "Segments"
+    },
+    {
+      "i": 14,
+      "text": "Planner",
+      "cls": "nav-panel__tool",
+      "aria": null,
+      "title": "Planner"
+    },
+    {
+      "i": 20,
+      "text": "Near map",
+      "cls": "location-search__sort-button",
+      "aria": null,
+      "title": null
+    },
+    {
+      "i": 24,
+      "text": "Auto",
+      "cls": "msp-source-option msp-source-option-active",
+      "aria": null,
+      "title": "Automatic map source"
+    },
+    {
+      "i": 33,
+      "text": "Drawing",
+      "cls": "planner-header-tab planner-header-tab--active",
+      "aria": null,
+      "title": null
+    },
+    {
+      "i": 34,
+      "text": "Load",
+      "cls": "planner-header-tab",
+      "aria": null,
+      "title": null
+    },
+    {
+      "i": 38,
+      "text": "Hiking",
+      "cls": "planner-toolbar__profile-btn",
+      "aria": null,
+      "title": null
+    },
+    {
+      "i": 39,
+      "text": "",
+      "cls": "planner-action-btn",
+      "aria": "Undo",
+      "title": "Undo"
+    },
+    {
+      "i": 40,
+      "text": "",
+      "cls": "planner-action-btn",
+      "aria": "Redo",
+      "title": "Redo"
+    },
+    {
+      "i": 41,
+      "text": "",
+      "cls": "planner-action-btn",
+      "aria": "Clear route",
+      "title": "Clear route"
+    },
+    {
+      "i": 42,
+      "text": "",
+      "cls": "planner-action-btn",
+      "aria": "Save route",
+      "title": "Save route"
+    },
+    {
+      "i": 43,
+      "text": "Overview",
+      "cls": "stats-header-tab stats-header-tab--active",
+      "aria": null,
+      "title": null
+    },
+    {
+      "i": 44,
+      "text": "Trends",
+      "cls": "stats-header-tab",
+      "aria": null,
+      "title": null
+    },
+    {
+      "i": 45,
+      "text": "Tracks",
+      "cls": "stats-header-tab",
+      "aria": null,
+      "title": null
+    },
+    {
+      "i": 48,
+      "text": "Filter",
+      "cls": "cf-tab cf-tab--active",
+      "aria": null,
+      "title": null
+    },
+    {
+      "i": 53,
+      "text": "Enable filter",
+      "cls": "cf-primary-btn",
+      "aria": null,
+      "title": null
+    },
+    {
+      "i": 64,
+      "text": "JobsIdleTrack indexer, map, and routing activity.",
+      "cls": "admin-tile",
+      "aria": "Open Jobs",
+      "title": null
+    },
+    {
+      "i": 65,
+      "text": "FreshnessTokenInspect domain revisions and the current map data token.",
+      "cls": "admin-tile",
+      "aria": "Open Freshness",
+      "title": null
+    },
+    {
+      "i": 68,
+      "text": "Helpers0/2 readyReload tracks, manage helper tools, and run installs.",
+      "cls": "admin-tile",
+      "aria": "Open Helpers",
+      "title": null
+    },
+    {
+      "i": 72,
+      "text": "AttributionSourcesLibraries, datasets, and map data references.",
+      "cls": "admin-tile",
+      "aria": "Open Attribution",
+      "title": null
+    }
+  ],
+  "openInfo1": {
+    "url": "http://167.233.16.201:18080/mtl/segments",
+    "segmentText": true,
+    "analyzeDisabled": true,
+    "radiusText": "2000 m",
+    "sliderCount": 7,
+    "flowNodes": 0,
+    "canvas": true,
+    "activeToolButtons": [
+      {
+        "text": "Stats",
+        "cls": "nav-panel__tool",
+        "disabled": false
+      },
+      {
+        "text": "Map",
+        "cls": "nav-panel__tool",
+        "disabled": false
+      },
+      {
+        "text": "Segments",
+        "cls": "nav-panel__tool nav-panel__tool--active",
+        "disabled": false
+      },
+      {
+        "text": "Planner",
+        "cls": "nav-panel__tool",
+        "disabled": false
+      },
+      {
+        "text": "Undo",
+        "cls": "measure-toolbar-btn",
+        "disabled": true
+      },
+      {
+        "text": "Clear all",
+        "cls": "measure-toolbar-btn",
+        "disabled": true
+      },
+      {
+        "text": "Analyze",
+        "cls": "measure-toolbar-btn measure-toolbar-btn--analyze",
+        "disabled": true
+      }
+    ]
+  },
+  "afterSlider": {
+    "radiusText": "14000 m"
+  },
+  "clickResult": {
+    "flowNodes": 2,
+    "overlayText": "A0tracks0sharedtracks",
+    "analyzeDisabled": false,
+    "radiusText": "14000 m"
+  },
+  "logs": [
+    "warning: Unable to load glyph range 3, 768-1023. Rendering codepoint U+0391 locally instead. Error: AJAXError: Failed to fetch (0): https://protomaps.github.io/basemaps-assets/fonts/Noto Sans Regular/768-1023.pbf",
+    "warning: Unable to load glyph range 3, 768-1023. Rendering codepoint U+03AE locally instead. Error: AJAXError: Failed to fetch (0): https://protomaps.github.io/basemaps-assets/fonts/Noto Sans Regular/768-1023.pbf",
+    "warning: Unable to load glyph range 3, 768-1023. Rendering codepoint U+03B1 locally instead. Error: AJAXError: Failed to fetch (0): https://protomaps.github.io/basemaps-assets/fonts/Noto Sans Regular/768-1023.pbf",
+    "warning: Unable to load glyph range 3, 768-1023. Rendering codepoint U+03B8 locally instead. Error: AJAXError: Failed to fetch (0): https://protomaps.github.io/basemaps-assets/fonts/Noto Sans Regular/768-1023.pbf",
+    "warning: Unable to load glyph range 3, 768-1023. Rendering codepoint U+03BD locally instead. Error: AJAXError: Failed to fetch (0): https://protomaps.github.io/basemaps-assets/fonts/Noto Sans Regular/768-1023.pbf",
+    "warning: Unable to load glyph range 6, 1536-1791. Rendering codepoint U+0626 locally instead. Error: AJAXError: Failed to fetch (0): https://protomaps.github.io/basemaps-assets/fonts/Noto Sans Regular/1536-1791.pbf",
+    "warning: Unable to load glyph range 6, 1536-1791. Rendering codepoint U+0627 locally instead. Error: AJAXError: Failed to fetch (0): https://protomaps.github.io/basemaps-assets/fonts/Noto Sans Regular/1536-1791.pbf",
+    "warning: Unable to load glyph range 6, 1536-1791. Rendering codepoint U+0628 locally instead. Error: AJAXError: Failed to fetch (0): https://protomaps.github.io/basemaps-assets/fonts/Noto Sans Regular/1536-1791.pbf",
+    "warning: Unable to load glyph range 6, 1536-1791. Rendering codepoint U+062C locally instead. Error: AJAXError: Failed to fetch (0): https://protomaps.github.io/basemaps-assets/fonts/Noto Sans Regular/1536-1791.pbf",
+    "warning: Unable to load glyph range 6, 1536-1791. Rendering codepoint U+062D locally instead. Error: AJAXError: Failed to fetch (0): https://protomaps.github.io/basemaps-assets/fonts/Noto Sans Regular/1536-1791.pbf",
+    "warning: Unable to load glyph range 6, 1536-1791. Rendering codepoint U+062F locally instead. Error: AJAXError: Failed to fetch (0): https://protomaps.github.io/basemaps-assets/fonts/Noto Sans Regular/1536-1791.pbf",
+    "warning: Unable to load glyph range 6, 1536-1791. Rendering codepoint U+0631 locally instead. Error: AJAXError: Failed to fetch (0): https://protomaps.github.io/basemaps-assets/fonts/Noto Sans Regular/1536-1791.pbf",
+    "warning: Unable to load glyph range 6, 1536-1791. Rendering codepoint U+0632 locally instead. Error: AJAXError: Failed to fetch (0): https://protomaps.github.io/basemaps-assets/fonts/Noto Sans Regular/1536-1791.pbf",
+    "warning: Unable to load glyph range 6, 1536-1791. Rendering codepoint U+0634 locally instead. Error: AJAXError: Failed to fetch (0): https://protomaps.github.io/basemaps-assets/fonts/Noto Sans Regular/1536-1791.pbf",
+    "warning: Unable to load glyph range 6, 1536-1791. Rendering codepoint U+0639 locally instead. Error: AJAXError: Failed to fetch (0): https://protomaps.github.io/basemaps-assets/fonts/Noto Sans Regular/1536-1791.pbf",
+    "warning: Unable to load glyph range 6, 1536-1791. Rendering codepoint U+0642 locally instead. Error: AJAXError: Failed to fetch (0): https://protomaps.github.io/basemaps-assets/fonts/Noto Sans Regular/1536-1791.pbf",
+    "warning: Unable to load glyph range 6, 1536-1791. Rendering codepoint U+0644 locally instead. Error: AJAXError: Failed to fetch (0): https://protomaps.github.io/basemaps-assets/fonts/Noto Sans Regular/1536-1791.pbf",
+    "warning: Unable to load glyph range 6, 1536-1791. Rendering codepoint U+0645 locally instead. Error: AJAXError: Failed to fetch (0): https://protomaps.github.io/basemaps-assets/fonts/Noto Sans Regular/1536-1791.pbf",
+    "warning: Unable to load glyph range 6, 1536-1791. Rendering codepoint U+0648 locally instead. Error: AJAXError: Failed to fetch (0): https://protomaps.github.io/basemaps-assets/fonts/Noto Sans Regular/1536-1791.pbf",
+    "warning: Unable to load glyph range 6, 1536-1791. Rendering codepoint U+064A locally instead. Error: AJAXError: Failed to fetch (0): https://protomaps.github.io/basemaps-assets/fonts/Noto Sans Regular/1536-1791.pbf"
+  ]
+}

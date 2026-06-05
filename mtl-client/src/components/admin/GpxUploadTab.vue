@@ -33,9 +33,15 @@
       >
         <i class="pi pi-file-arrow-up drop-icon" />
         <span class="drop-label">
-          {{ isDragging ? 'Drop GPX file here' : 'Click or drag a .gpx file here' }}
+          {{ isDragging ? 'Drop track file here' : `Click or drag ${acceptedFormatLabel} here` }}
         </span>
-        <input ref="fileInput" type="file" accept=".gpx" style="display: none" @change="onFileSelected" />
+        <input
+          ref="fileInput"
+          type="file"
+          :accept="acceptedFileAccept"
+          style="display: none"
+          @change="onFileSelected"
+        />
       </div>
 
       <!-- Selected file + upload button -->
@@ -79,6 +85,8 @@ import { ref } from 'vue';
 import { getGpxUploadStatus, uploadGpxFile, type GpxUploadResult, type GpxUploadStatus } from '@/utils/ServiceHelper';
 
 const GPX_UPLOAD_SUBDIR = 'GPX-UPLOAD';
+const ACCEPTED_TRACK_EXTENSIONS = ['gpx', 'fit', 'tcx', 'kml', 'kmz', 'igc', 'nmea', 'geojson', 'gdb'];
+const EMPTY_FILE_MESSAGE = 'Selected file is empty. Choose a non-empty GPS track file.';
 
 defineOptions({ name: 'GpxUploadTab' });
 
@@ -93,6 +101,8 @@ const uploading = ref(false);
 const uploadResult = ref<UploadResult | null>(null);
 const gpxUploadSubdir = GPX_UPLOAD_SUBDIR;
 const fileInput = ref<HTMLInputElement | null>(null);
+const acceptedFileAccept = ACCEPTED_TRACK_EXTENSIONS.map((extension) => `.${extension}`).join(',');
+const acceptedFormatLabel = ACCEPTED_TRACK_EXTENSIONS.map((extension) => `.${extension}`).join(', ');
 
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
@@ -125,8 +135,15 @@ function onFileSelected(event: Event) {
 
 function setFile(file: File) {
   uploadResult.value = null;
-  if (!file.name.toLowerCase().endsWith('.gpx')) {
-    uploadResult.value = { success: false, message: 'Only .gpx files are accepted.' };
+  selectedFile.value = null;
+  const lowerName = file.name.toLowerCase();
+  const isAccepted = ACCEPTED_TRACK_EXTENSIONS.some((extension) => lowerName.endsWith(`.${extension}`));
+  if (!isAccepted) {
+    uploadResult.value = { success: false, message: `Unsupported file format. Accepted: ${acceptedFormatLabel}.` };
+    return;
+  }
+  if (file.size === 0) {
+    uploadResult.value = { success: false, message: EMPTY_FILE_MESSAGE };
     return;
   }
   selectedFile.value = file;

@@ -1,0 +1,32 @@
+TOTAL_TRACKS=11
+STATS_TEXT_HAS_11=true
+BROWSER_SEARCH_FORMAT_SAMPLE=true
+ALL_FORMAT_CHECKS_PASS=true
+FORMAT_RESULTS
+tcx id=100006 file=format-sample.tcx load=SUCCESS points=24 statsIncluded=true overview=true graphs=true controls=true origSuggested=format-sample.tcx origMatch=true gpxSuggested=format-sample.gpx gpxValid=true gpxTrkpt=24
+kml id=100007 file=format-sample.kml load=SUCCESS points=24 statsIncluded=true overview=true graphs=true controls=true origSuggested=format-sample.kml origMatch=true gpxSuggested=format-sample.gpx gpxValid=true gpxTrkpt=24
+kmz id=100008 file=format-sample.kmz load=SUCCESS points=24 statsIncluded=true overview=true graphs=true controls=true origSuggested=format-sample.kmz origMatch=true gpxSuggested=format-sample.gpx gpxValid=true gpxTrkpt=24
+igc id=100009 file=format-sample.igc load=SUCCESS points=24 statsIncluded=true overview=true graphs=true controls=true origSuggested=format-sample.igc origMatch=true gpxSuggested=format-sample.gpx gpxValid=true gpxTrkpt=24
+nmea id=100010 file=format-sample.nmea load=SUCCESS points=24 statsIncluded=true overview=true graphs=true controls=true origSuggested=format-sample.nmea origMatch=true gpxSuggested=format-sample.gpx gpxValid=true gpxTrkpt=24
+geojson id=100011 file=format-sample.geojson load=SUCCESS points=24 statsIncluded=true overview=true graphs=true controls=true origSuggested=format-sample.geojson origMatch=true gpxSuggested=format-sample.gpx gpxValid=true gpxTrkpt=24
+gdb id=100012 file=format-sample.gdb load=SUCCESS points=24 statsIncluded=true overview=true graphs=true controls=true origSuggested=format-sample.gdb origMatch=true gpxSuggested=format-sample.gpx gpxValid=true gpxTrkpt=24
+CONSOLE_RECENT
+log: load gpsTrack details for id=100012
+log: fetch chart series (TIME, maxBuckets=350) for 100012
+log: fetch track points (SIMPLIFIED_SHAPE @ 1m, map popup) for 100012
+log: fetch filters from server
+table: [Object, Object, Object, Object, Object]
+info: [track-cache] cache read complete {tracks: 11, geometries: 11, renderedTracks: 11, durationMs: 1}
+log: [tracks] Map layers rebuilt {durationMs: 1, trackCount: 11, overviewDotCount: 11, hasPalette: false, legendGroupCount: 0}
+log: Low-zoom PMTiles already cached (IndexedDB)
+info: [track-cache] sync 1000m: cache hit for 11 tracks {precision: 1000, totalTracks: 11, cachedTracks: 11, staleOrMissingTracks: 0, staleGeometryCleared: 0}
+info: [track-cache] sync 1000m complete {precision: 1000, totalTracks: 11, fetchedTracks: 0, cachedTracks: 11, batches: 0}
+REQUEST_FAILED_RECENT
+GET http://167.233.16.201:18080/mtl/api/map-proxy/prod/planet.pmtiles?mtl-map-source=public&mtl-map-archive=public-default net::ERR_ABORTED
+GET http://167.233.16.201:18080/mtl/api/map-proxy/prod/planet.pmtiles?mtl-map-source=public&mtl-map-archive=public-default net::ERR_ABORTED
+GET http://167.233.16.201:18080/mtl/api/map-proxy/prod/planet.pmtiles?mtl-map-source=public&mtl-map-archive=public-default net::ERR_ABORTED
+HEAD https://protomaps.github.io/basemaps-assets/sprites/v4/light.json net::ERR_ABORTED
+HEAD https://protomaps.github.io/basemaps-assets/fonts/Noto%20Sans%20Regular/0-255.pbf net::ERR_ABORTED
+HEAD https://tiles.mapterhorn.com/0/0/0.webp net::ERR_ABORTED
+HEAD https://tile.openstreetmap.org/0/0/0.png net::ERR_ABORTED
+HEAD http://167.233.16.201:18080/mtl/api/info/build net::ERR_ABORTED

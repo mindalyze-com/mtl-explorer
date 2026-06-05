@@ -1,12 +1,12 @@
 /**
  * mapStyle.ts — Generates MapLibre GL style objects for both local (vector/PMTiles)
- * and remote (raster/OSM) tile modes.
+ * and remote raster tile modes.
  *
  * Uses @protomaps/basemaps for vector tile styling with Protomaps-flavored layers.
  */
 
 import { layers, LIGHT, DARK, GRAYSCALE, type Flavor } from '@protomaps/basemaps';
-import type { StyleSpecification } from 'maplibre-gl';
+import type { RasterDEMSourceSpecification, StyleSpecification } from 'maplibre-gl';
 
 export type MapTheme = 'light' | 'dark' | 'grayscale' | 'light-topo' | 'swisstopo' | 'swisstopo-color';
 
@@ -14,6 +14,21 @@ type ProtomapsTheme = 'light' | 'dark' | 'grayscale';
 
 interface LocalVectorStyleOptions {
   hillshade?: boolean;
+}
+
+export const TERRAIN_DEM_SOURCE_ID = 'terrain-dem';
+export const MAPTERHORN_TERRAIN_TILEJSON_URL = 'https://tiles.mapterhorn.com/tilejson.json';
+export const TERRAIN_HILLSHADE_LAYER_ID = 'terrain-hillshade';
+
+export function createTerrainDemSource(): RasterDEMSourceSpecification {
+  return {
+    type: 'raster-dem',
+    url: MAPTERHORN_TERRAIN_TILEJSON_URL,
+    encoding: 'terrarium',
+    tileSize: 512,
+    maxzoom: 15,
+    attribution: 'Elevation: <a href="https://mapterhorn.com/attribution/">Mapterhorn</a>',
+  };
 }
 
 // Maps topo-enhanced themes to their underlying protomaps flavor
@@ -26,6 +41,25 @@ const THEME_FLAVORS: Record<ProtomapsTheme, Flavor> = {
   dark: DARK,
   grayscale: GRAYSCALE,
 };
+
+const DARK_RASTER_PAINT = {
+  'raster-brightness-min': 0,
+  'raster-brightness-max': 0.55,
+  'raster-contrast': 0.25,
+  'raster-saturation': -0.75,
+} as const;
+
+const GRAYSCALE_RASTER_PAINT = {
+  'raster-saturation': -1,
+} as const;
+
+const RASTER_PAINT_BY_THEME: Partial<Record<MapTheme, typeof DARK_RASTER_PAINT | typeof GRAYSCALE_RASTER_PAINT>> = {
+  dark: DARK_RASTER_PAINT,
+  grayscale: GRAYSCALE_RASTER_PAINT,
+};
+
+export const DEFAULT_RASTER_ATTRIBUTION =
+  '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
 
 /**
  * Enriches a StyleSpecification with a hillshade layer using free Terrarium DEM tiles.
@@ -44,21 +78,14 @@ function addHillshade(style: StyleSpecification): StyleSpecification {
     ...style,
     sources: {
       ...style.sources,
-      'terrain-dem': {
-        type: 'raster-dem',
-        tiles: ['https://tiles.mapterhorn.com/{z}/{x}/{y}.webp'],
-        tileSize: 512,
-        encoding: 'terrarium',
-        maxzoom: 15,
-        attribution: 'Elevation: <a href="https://mapterhorn.com/attribution/">Mapterhorn</a>',
-      },
+      [TERRAIN_DEM_SOURCE_ID]: createTerrainDemSource(),
     },
     layers: [
       ...existingLayers.slice(0, insertAt),
       {
-        id: 'terrain-hillshade',
+        id: TERRAIN_HILLSHADE_LAYER_ID,
         type: 'hillshade',
-        source: 'terrain-dem',
+        source: TERRAIN_DEM_SOURCE_ID,
         paint: {
           'hillshade-shadow-color': '#535344',
           'hillshade-highlight-color': '#FFFFFF',
@@ -117,39 +144,48 @@ export function buildLocalVectorStyleFromArchiveUrl(
 }
 
 /**
- * Build a MapLibre style using remote raster tiles (e.g. OSM tile servers).
+ * Build a MapLibre style using remote raster tiles.
  *
- * @param remoteTileUrl  URL template with {z}, {x}, {y} placeholders
+ * @param tileUrl        URL template with {z}, {x}, {y} placeholders
+ * @param theme          Optional theme used for client-side raster styling
+ * @param attribution    Provider attribution HTML for this raster source
  */
-export function buildRemoteRasterStyle(remoteTileUrl: string): StyleSpecification {
-  return {
+export function buildRemoteRasterStyle(
+  tileUrl: string,
+  theme?: MapTheme,
+  attribution = DEFAULT_RASTER_ATTRIBUTION
+): StyleSpecification {
+  const rasterPaint = theme ? RASTER_PAINT_BY_THEME[theme] : undefined;
+  const rasterLayer = {
+    id: 'raster-layer',
+    type: 'raster',
+    source: 'raster-tiles',
+    minzoom: 0,
+    maxzoom: 19,
+    ...(rasterPaint ? { paint: rasterPaint } : {}),
+  } as const;
+  const style = {
     version: 8,
     sources: {
       'raster-tiles': {
         type: 'raster',
-        tiles: [remoteTileUrl],
+        tiles: [tileUrl],
         tileSize: 256,
-        attribution: '© <a href="https://openstreetmap.org">OpenStreetMap</a> contributors',
+        attribution,
       },
     },
-    layers: [
-      {
-        id: 'raster-layer',
-        type: 'raster',
-        source: 'raster-tiles',
-        minzoom: 0,
-        maxzoom: 19,
-      },
-    ],
+    layers: [rasterLayer],
   } as StyleSpecification;
+
+  return theme === 'light-topo' ? addHillshade(style) : style;
 }
 
 /**
  * Build a simple raster style for maximally lightweight mini-maps when the map config
  * is not yet loaded or we want a guaranteed-working fallback.
  */
-export function buildFallbackRasterStyle(): StyleSpecification {
-  return buildRemoteRasterStyle('https://tile.openstreetmap.org/{z}/{x}/{y}.png');
+export function buildFallbackRasterStyle(theme?: MapTheme): StyleSpecification {
+  return buildRemoteRasterStyle('https://tile.openstreetmap.org/{z}/{x}/{y}.png', theme, DEFAULT_RASTER_ATTRIBUTION);
 }
 
 /**

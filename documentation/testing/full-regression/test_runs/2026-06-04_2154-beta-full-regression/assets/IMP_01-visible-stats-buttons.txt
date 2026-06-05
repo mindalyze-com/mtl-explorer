@@ -1,0 +1,218 @@
+[
+  {
+    "i": 0,
+    "text": "Zoom in",
+    "cls": "maplibregl-ctrl-zoom-in",
+    "visible": true,
+    "box": [
+      87,
+      11,
+      29,
+      29
+    ]
+  },
+  {
+    "i": 1,
+    "text": "Zoom out",
+    "cls": "maplibregl-ctrl-zoom-out",
+    "visible": true,
+    "box": [
+      87,
+      40,
+      29,
+      29
+    ]
+  },
+  {
+    "i": 2,
+    "text": "Drag to rotate map, click to reset north",
+    "cls": "maplibregl-ctrl-compass",
+    "visible": true,
+    "box": [
+      87,
+      69,
+      29,
+      29
+    ]
+  },
+  {
+    "i": 4,
+    "text": "Enable 3D terrain",
+    "cls": "mtl-terrain-btn",
+    "visible": true,
+    "box": [
+      87,
+      110,
+      29,
+      29
+    ]
+  },
+  {
+    "i": 5,
+    "text": "Stats",
+    "cls": "nav-panel__tool nav-panel__tool--active",
+    "visible": true,
+    "box": [
+      6,
+      16,
+      64,
+      68
+    ]
+  },
+  {
+    "i": 6,
+    "text": "Filter",
+    "cls": "nav-panel__tool",
+    "visible": true,
+    "box": [
+      6,
+      86,
+      64,
+      68
+    ]
+  },
+  {
+    "i": 7,
+    "text": "Map",
+    "cls": "nav-panel__tool",
+    "visible": true,
+    "box": [
+      6,
+      156,
+      64,
+      68
+    ]
+  },
+  {
+    "i": 8,
+    "text": "Animate",
+    "cls": "nav-panel__tool",
+    "visible": true,
+    "box": [
+      6,
+      226,
+      64,
+      68
+    ]
+  },
+  {
+    "i": 9,
+    "text": "Segments",
+    "cls": "nav-panel__tool",
+    "visible": true,
+    "box": [
+      6,
+      296,
+      64,
+      68
+    ]
+  },
+  {
+    "i": 10,
+    "text": "GPS",
+    "cls": "nav-panel__tool",
+    "visible": true,
+    "box": [
+      6,
+      366,
+      64,
+      68
+    ]
+  },
+  {
+    "i": 11,
+    "text": "Planner",
+    "cls": "nav-panel__tool",
+    "visible": true,
+    "box": [
+      6,
+      436,
+      64,
+      68
+    ]
+  },
+  {
+    "i": 12,
+    "text": "Admin",
+    "cls": "nav-panel__tool",
+    "visible": true,
+    "box": [
+      6,
+      506,
+      64,
+      68
+    ]
+  },
+  {
+    "i": 13,
+    "text": "About MTL Explorer",
+    "cls": "app-brand__button",
+    "visible": true,
+    "box": [
+      15,
+      842,
+      46,
+      46
+    ]
+  },
+  {
+    "i": 40,
+    "text": "Overview",
+    "cls": "stats-header-tab stats-header-tab--active",
+    "visible": true,
+    "box": [
+      301,
+      118,
+      85,
+      28
+    ]
+  },
+  {
+    "i": 41,
+    "text": "Trends",
+    "cls": "stats-header-tab",
+    "visible": true,
+    "box": [
+      388,
+      118,
+      68,
+      28
+    ]
+  },
+  {
+    "i": 42,
+    "text": "Tracks",
+    "cls": "stats-header-tab",
+    "visible": true,
+    "box": [
+      459,
+      118,
+      67,
+      28
+    ]
+  },
+  {
+    "i": 43,
+    "text": "Fullscreen",
+    "cls": "sheet-fullscreen-btn",
+    "visible": true,
+    "box": [
+      1107,
+      119,
+      26,
+      26
+    ]
+  },
+  {
+    "i": 44,
+    "text": "Close",
+    "cls": "sheet-close-btn",
+    "visible": true,
+    "box": [
+      1139,
+      119,
+      26,
+      26
+    ]
+  }
+]

@@ -1,0 +1,206 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.10.xsd">
+
+    <changeSet id="20260601_1_tighten_numeric_scales" author="codex">
+        <comment>
+            Replace unconstrained double-precision derived metrics with explicit
+            numeric scales. Coordinates intentionally remain unchanged. The view
+            is dropped and recreated in the same transaction because PostgreSQL
+            will not alter column types while gps_track_v depends on them.
+        </comment>
+        <dropView viewName="gps_track_v"/>
+        <sql dbms="postgresql">
+            <![CDATA[
+            ALTER TABLE gps_track
+                ALTER COLUMN track_duration_in_motion_secs TYPE numeric(12,2) USING round(track_duration_in_motion_secs::numeric, 2),
+                ALTER COLUMN track_duration_stopped_secs TYPE numeric(12,2) USING round(track_duration_stopped_secs::numeric, 2),
+                ALTER COLUMN track_longest_stop_secs TYPE numeric(12,2) USING round(track_longest_stop_secs::numeric, 2),
+                ALTER COLUMN ascent_in_meter TYPE numeric(12,2) USING round(ascent_in_meter::numeric, 2),
+                ALTER COLUMN descent_in_meter TYPE numeric(12,2) USING round(descent_in_meter::numeric, 2),
+                ALTER COLUMN min_altitude TYPE numeric(12,2) USING round(min_altitude::numeric, 2),
+                ALTER COLUMN max_altitude TYPE numeric(12,2) USING round(max_altitude::numeric, 2),
+                ALTER COLUMN speed_in_kmh_30s_max TYPE numeric(8,2) USING round(speed_in_kmh_30s_max::numeric, 2),
+                ALTER COLUMN elevation_gain_per_hour_30s_max TYPE numeric(12,2) USING round(elevation_gain_per_hour_30s_max::numeric, 2),
+                ALTER COLUMN elevation_loss_per_hour_30s_max TYPE numeric(12,2) USING round(elevation_loss_per_hour_30s_max::numeric, 2),
+                ALTER COLUMN slope_percentage_max TYPE numeric(8,2) USING round(slope_percentage_max::numeric, 2),
+                ALTER COLUMN slope_percentage_min TYPE numeric(8,2) USING round(slope_percentage_min::numeric, 2),
+                ALTER COLUMN energy_gravitational_total_wh TYPE numeric(16,2) USING round(energy_gravitational_total_wh::numeric, 2),
+                ALTER COLUMN energy_gravitational_descent_wh TYPE numeric(16,2) USING round(energy_gravitational_descent_wh::numeric, 2),
+                ALTER COLUMN energy_aero_drag_total_wh TYPE numeric(16,2) USING round(energy_aero_drag_total_wh::numeric, 2),
+                ALTER COLUMN energy_rolling_resistance_total_wh TYPE numeric(16,2) USING round(energy_rolling_resistance_total_wh::numeric, 2),
+                ALTER COLUMN energy_kinetic_positive_total_wh TYPE numeric(16,2) USING round(energy_kinetic_positive_total_wh::numeric, 2),
+                ALTER COLUMN energy_net_total_wh TYPE numeric(16,2) USING round(energy_net_total_wh::numeric, 2),
+                ALTER COLUMN energy_weight_kg_used TYPE numeric(8,2) USING round(energy_weight_kg_used::numeric, 2),
+                ALTER COLUMN power_watts_avg TYPE numeric(12,2) USING round(power_watts_avg::numeric, 2),
+                ALTER COLUMN power_watts_moving_avg TYPE numeric(12,2) USING round(power_watts_moving_avg::numeric, 2),
+                ALTER COLUMN power_watts_max TYPE numeric(12,2) USING round(power_watts_max::numeric, 2),
+                ALTER COLUMN power_watts_30s_max TYPE numeric(12,2) USING round(power_watts_30s_max::numeric, 2),
+                ALTER COLUMN normalized_power_watts TYPE numeric(12,2) USING round(normalized_power_watts::numeric, 2),
+                ALTER COLUMN exploration_score TYPE numeric(4,3) USING round(exploration_score::numeric, 3);
+
+            COMMENT ON COLUMN gps_track.energy_gravitational_total_wh IS
+                'Track-level energy total in Wh, stored at numeric(16,2). Per-point energy columns keep higher scale because tiny segment values are summed before these display-oriented totals are persisted.';
+            COMMENT ON COLUMN gps_track.energy_gravitational_descent_wh IS
+                'Track-level energy total in Wh, stored at numeric(16,2). Per-point energy columns keep higher scale because tiny segment values are summed before these display-oriented totals are persisted.';
+            COMMENT ON COLUMN gps_track.energy_aero_drag_total_wh IS
+                'Track-level energy total in Wh, stored at numeric(16,2). Per-point energy columns keep higher scale because tiny segment values are summed before these display-oriented totals are persisted.';
+            COMMENT ON COLUMN gps_track.energy_rolling_resistance_total_wh IS
+                'Track-level energy total in Wh, stored at numeric(16,2). Per-point energy columns keep higher scale because tiny segment values are summed before these display-oriented totals are persisted.';
+            COMMENT ON COLUMN gps_track.energy_kinetic_positive_total_wh IS
+                'Track-level energy total in Wh, stored at numeric(16,2). Per-point energy columns keep higher scale because tiny segment values are summed before these display-oriented totals are persisted.';
+            COMMENT ON COLUMN gps_track.energy_net_total_wh IS
+                'Track-level energy total in Wh, stored at numeric(16,2). Per-point energy columns keep higher scale because tiny segment values are summed before these display-oriented totals are persisted.';
+            ]]>
+        </sql>
+        <sql dbms="postgresql">
+            <![CDATA[
+            ALTER TABLE gps_track_data
+                ALTER COLUMN precision_in_meter TYPE numeric(8,2) USING round(precision_in_meter::numeric, 2);
+            ]]>
+        </sql>
+        <sql dbms="postgresql">
+            <![CDATA[
+            ALTER TABLE gps_track_data_points
+                ALTER COLUMN elevation_loss_per_hour_moving_window TYPE numeric(12,2) USING round(elevation_loss_per_hour_moving_window::numeric, 2),
+                ALTER COLUMN energy_gravitational_wh TYPE numeric(22,10) USING round(energy_gravitational_wh::numeric, 10),
+                ALTER COLUMN energy_aero_drag_wh TYPE numeric(22,10) USING round(energy_aero_drag_wh::numeric, 10),
+                ALTER COLUMN energy_rolling_resistance_wh TYPE numeric(22,10) USING round(energy_rolling_resistance_wh::numeric, 10),
+                ALTER COLUMN energy_kinetic_wh TYPE numeric(22,10) USING round(energy_kinetic_wh::numeric, 10),
+                ALTER COLUMN energy_total_wh TYPE numeric(22,10) USING round(energy_total_wh::numeric, 10),
+                ALTER COLUMN energy_cumulative_wh TYPE numeric(22,10) USING round(energy_cumulative_wh::numeric, 10),
+                ALTER COLUMN power_watts TYPE numeric(12,2) USING round(power_watts::numeric, 2);
+
+            COMMENT ON COLUMN gps_track_data_points.energy_gravitational_wh IS
+                'Per-point energy component in Wh, stored at numeric(22,10) intentionally. Individual GPS segments can be far below 0.01 Wh, and rounding them too early would drift summed track totals; UI and track totals round separately.';
+            COMMENT ON COLUMN gps_track_data_points.energy_aero_drag_wh IS
+                'Per-point energy component in Wh, stored at numeric(22,10) intentionally. Individual GPS segments can be far below 0.01 Wh, and rounding them too early would drift summed track totals; UI and track totals round separately.';
+            COMMENT ON COLUMN gps_track_data_points.energy_rolling_resistance_wh IS
+                'Per-point energy component in Wh, stored at numeric(22,10) intentionally. Individual GPS segments can be far below 0.01 Wh, and rounding them too early would drift summed track totals; UI and track totals round separately.';
+            COMMENT ON COLUMN gps_track_data_points.energy_kinetic_wh IS
+                'Per-point energy component in Wh, stored at numeric(22,10) intentionally. Individual GPS segments can be far below 0.01 Wh, and rounding them too early would drift summed track totals; UI and track totals round separately.';
+            COMMENT ON COLUMN gps_track_data_points.energy_total_wh IS
+                'Per-point total energy in Wh, stored at numeric(22,10) intentionally. Individual GPS segments can be far below 0.01 Wh, and rounding them too early would drift summed track totals; UI and track totals round separately.';
+            COMMENT ON COLUMN gps_track_data_points.energy_cumulative_wh IS
+                'Per-point cumulative energy in Wh, stored at numeric(22,10) to preserve the high-scale sum of tiny segment values; response and UI layers round separately.';
+            ]]>
+        </sql>
+        <sql dbms="postgresql">
+            <![CDATA[
+            ALTER TABLE gps_track_event
+                ALTER COLUMN confidence TYPE numeric(5,2) USING round(confidence::numeric, 2);
+
+            ALTER TABLE web_client_environment_log
+                ALTER COLUMN device_pixel_ratio TYPE numeric(4,2) USING round(device_pixel_ratio::numeric, 2),
+                ALTER COLUMN device_memory_gb TYPE numeric(6,2) USING round(device_memory_gb::numeric, 2);
+            ]]>
+        </sql>
+        <createView viewName="gps_track_v">
+            <![CDATA[
+            SELECT gt.id,
+                   gt.file_id,
+                   gt.creator,
+                   gt.gpx_version,
+                   gt.meta_name,
+                   gt.meta_description,
+                   gt.meta_time,
+                   gt.meta_author,
+                   gt.track_name,
+                   gt.track_description,
+                   gt.start_date,
+                   gt.end_date,
+                   gt.track_duration_in_motion_secs,
+                   gt.track_duration_stopped_secs,
+                   gt.track_stop_count,
+                   gt.track_longest_stop_secs,
+                   gt.median_distance_between_points,
+                   gt.avg_distance_between_points,
+                   gt.max_distance_between_points,
+                   gt.did_filter_outlier_by_distance,
+                   gt.number_of_track_points,
+                   gt.track_length_in_meter,
+                   gt.ascent_in_meter,
+                   gt.descent_in_meter,
+                   gt.min_altitude,
+                   gt.max_altitude,
+                   gt.speed_in_kmh_30s_max,
+                   gt.elevation_gain_per_hour_30s_max,
+                   gt.elevation_loss_per_hour_30s_max,
+                   gt.slope_percentage_max,
+                   gt.slope_percentage_min,
+                   gt.track_type,
+                   gt.utm_zone,
+                   gt.create_date,
+                   gt.load_status,
+                   gt.load_messages,
+                   gt.duplicate_status,
+                   gt.duplicate_of,
+                   gt.activity_type,
+                   gt.activity_type_source,
+                   gt.activity_type_source_details,
+                   gt.highlight_exclusion_reason,
+                   gt.statistics_exclusion_reason,
+                   gt.garmin_activity_id,
+                   gt.meta_link,
+                   gt.update_date,
+                   gt.duplicate_details,
+                   gt.bbox_min_lat,
+                   gt.bbox_max_lat,
+                   gt.bbox_min_lng,
+                   gt.bbox_max_lng,
+                   gt.center_lat,
+                   gt.center_lng,
+                   gt.energy_gravitational_total_wh,
+                   gt.energy_gravitational_descent_wh,
+                   gt.energy_aero_drag_total_wh,
+                   gt.energy_rolling_resistance_total_wh,
+                   gt.energy_kinetic_positive_total_wh,
+                   gt.energy_net_total_wh,
+                   gt.energy_weight_kg_used,
+                   gt.power_watts_avg,
+                   gt.power_watts_moving_avg,
+                   gt.power_watts_max,
+                   gt.power_watts_30s_max,
+                   gt.normalized_power_watts,
+                   gt.source_segment_index,
+                   gt.source_parent_track_id,
+                   gt.exploration_status,
+                   gt.exploration_score,
+                   gt.exploration_calc_date,
+                   gt.track_source,
+                   gt.planner_profile,
+                   ixf.index              AS f_index,
+                   ixf.name               AS f_name,
+                   ixf.path               AS f_path,
+                   ixf.base_path          AS f_base_path,
+                   ixf.full_path          AS f_full_path,
+                   ixf.size               AS f_size,
+                   ixf.indexer_id         AS f_indexer_id,
+                   ixf.last_modified_date AS f_last_modified_date,
+                   ixf.index_added_date   AS f_index_added_date,
+                   ixf.index_update_date  AS f_index_update_date,
+                   ixf.indexer_status     AS f_indexer_status,
+                   ixf.last_message       AS f_last_message,
+                   gd.id                  AS gd_id,
+                   gd.create_date         AS gd_create_date,
+                   gd.precision_in_meter  AS gd_precision_in_meter,
+                   gd.track_type          AS gd_track_type,
+                   gd.track               AS gd_track,
+                   gd_raw.id              AS gd_raw_id,
+                   gd_raw.track           AS gd_raw_track
+            FROM gps_track gt
+                     LEFT JOIN indexed_file ixf ON gt.file_id = ixf.id
+                     LEFT JOIN gps_track_data gd
+                               ON gt.id = gd.gps_track_id AND gd.precision_in_meter = 1 AND
+                                  gd.track_type = 'SIMPLIFIED_SHAPE'
+                     LEFT JOIN gps_track_data gd_raw
+                               ON gt.id = gd_raw.gps_track_id AND gd_raw.precision_in_meter = 0 AND
+                                  gd_raw.track_type = 'RAW_OUTLIER_CLEANED'
+            ]]>
+        </createView>
+    </changeSet>
+
+</databaseChangeLog>

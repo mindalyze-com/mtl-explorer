@@ -1,0 +1,29 @@
+Helpers/Garmin export tool status:
+- Helpers panel before action screenshot: ADM_10-helpers-status.webp
+- Tool status before: {
+  "gcexportConfiguredVersion": "v4.6.2",
+  "gcexportVenvPresent": true,
+  "fitExportConfiguredProfile": "default",
+  "fitExportConfiguredPackages": "garth fitparse gpxpy",
+  "fitExportVenvPresent": true
+}
+- Initial command output: Waiting for response…
+- Clicked first Install action in Helpers tool setup.
+- Tool status after: {
+  "gcexportConfiguredVersion": "v4.6.2",
+  "gcexportVenvPresent": true,
+  "fitExportConfiguredProfile": "default",
+  "fitExportConfiguredPackages": "garth fitparse gpxpy",
+  "fitExportVenvPresent": true
+}
+- Command output after install/update:
+[TOOL-INSTALL] Admin install: gcexport version=v4.6.2
+[TOOL-INSTALL] === gcexport install: version=v4.6.2 ===
+[TOOL-INSTALL]     base dir : /app/garmin_export
+[TOOL-INSTALL]     venv dir : /app/garmin_export/venv_gcexport_v4.6.2
+[TOOL-INSTALL]     src  dir : /app/garmin_export/gcexport_src_v4.6.2
+[TOOL-INSTALL] SKIP: venv_gcexport_v4.6.2 already present — no install needed.
+[TOOL-INSTALL] gcexport active version updated to v4.6.2 in DB.
+
+- Helpers panel excerpt after install/update:
+500 km © OpenStreetMap | Elevation: Mapterhorn 12 Tracks Stats Filter Map Animate Segments GPS Planner Admin Admin SYSTEM UTILITY Admin workspace Manage imports, runtime tools, diagnostics, and local preferences without leaving the map. Quiet state Data Import and processing activity Upload IMPORT Import GPX files and inspect ingest readiness. Jobs IDLE Track indexer, map, and routing activity. Freshness TOKEN Inspect domain revisions and the current map data token. Garmin Sync REMOTE Trigger a remote Garmin export to pull new activity files. System Diagnostics, tools, and build details Log SERVER Inspect recent server output and runtime issues. Helpers 2/2 READY Reload tracks, manage helper tools, and run installs. About BUILD Client and server build details and runtime info. Session Preferences and account controls Settings LIGHT Adjust color scheme and locale formatting. Session LOGOUT Logout credentials only or wipe all local app data. Attribution SOURCES Libraries, datasets, and map data references. Helpers MAINTENANCE Helpers Reload the local track cache, install helper tools, and run export commands. Cache Clear the local track cache and reload from server. Reload Tracks Clear cache and reload from server Reload Tool setup Local helper environments for export and conversion tasks. gcexport ready releases Install fit-export ready Install Command output Recent install output appears here. [TOOL-INSTALL] Admin install: gcexport version=v4.6.2 [TOOL-INSTALL] === gcexport install: version=v4.6.2 === [TOOL-INSTALL] base dir : /app/garmin_export [TOOL-INSTALL] venv dir : /app/garmin_export/venv_gcexport_v4.6.2 [TOOL-INSTALL] src dir : /app/garmin_export/gcexport_src_v4.6.2 [TOOL-INSTALL] SKIP: venv_gcexport_v4.6.2 already present — no install needed. [TOOL-INSTALL] gcexport active version updated to v4.6.2 in DB.

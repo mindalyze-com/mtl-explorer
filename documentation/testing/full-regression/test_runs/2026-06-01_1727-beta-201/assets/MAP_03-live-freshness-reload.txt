@@ -1,0 +1,9 @@
+{
+  "beforeShows11": true,
+  "importOutput": "created=/root/mtl-regression-2026-06-01_1727-beta-201/mtl-explorer/data/gpx/map03_freshness.gpx bytes=848 sha256=d896990701778ccbe9bdbfdc7816f7deea83999e73a8590458050fe21dcc367d",
+  "promptSeen": true,
+  "clickedReloadOrRefresh": true,
+  "promptText": "500 km\n© OpenStreetMap | Elevation: Mapterhorn\n11 Tracks\nNew data available\nTracks, media, or settings changed since this view loaded.\nReload\nDismiss\nStats\nFilter\nMap\nAnimate\nSegments\nGPS\nPlanner\nAdmin",
+  "afterShows12": true,
+  "afterText": "500 km\n© OpenStreetMap | Elevation: Mapterhorn\n12 Tracks\nStats\nFilter\nMap\nAnimate\nSegments\nGPS\nPlanner\nAdmin"
+}

@@ -1,0 +1,42 @@
+{
+  "apiIndexer": [
+    {
+      "index": "MEDIA",
+      "total": 31,
+      "pending": 0,
+      "completed": 31,
+      "failed": 0,
+      "removed": 0,
+      "excluded": 0,
+      "progressPercent": 100
+    },
+    {
+      "index": "GPS",
+      "total": 16,
+      "pending": 0,
+      "completed": 14,
+      "failed": 0,
+      "removed": 2,
+      "excluded": 0,
+      "progressPercent": 87
+    }
+  ],
+  "uiFileIndexerCards": [
+    {
+      "section": "File Indexers",
+      "text": "MEDIA done 100% 3131 total"
+    },
+    {
+      "section": "File Indexers",
+      "text": "GPS done 87% 1416 total"
+    }
+  ],
+  "refreshBefore": "Updated 02:11:33 AM",
+  "refreshAfter": "Updated 02:11:35 AM",
+  "assertions": {
+    "gpsApiRemovedCount": 2,
+    "uiMentionsRemoved": false,
+    "refreshUpdated": true
+  },
+  "issue": "FAIL: API exposes GPS removed count but Jobs UI does not render removed files."
+}

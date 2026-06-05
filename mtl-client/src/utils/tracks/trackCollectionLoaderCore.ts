@@ -507,6 +507,10 @@ export class TrackCollectionLoader {
     }
   }
 
+  async loadCachedTracks(): Promise<Map<number, GpsTrack>> {
+    return this.deps.cache.loadAllTracks();
+  }
+
   async readCachedTrackAtPrecision(
     trackId: number,
     precision: number,

@@ -1,0 +1,37 @@
+TRD_03 repeated tab switching evidence
+Track: #100000 GPX-backed detail route opened from map selection
+Final URL: http://167.233.16.201:18080/mtl/track/100000
+Switch sequence: Overview -> Graphs -> Quality -> Related -> Events -> Graphs -> Quality -> Overview -> Events -> Related -> Overview
+All active panels nonblank and selected correctly: true
+Blank/wrong panels: 0
+Requests during tab loop: 3
+Repeated API loop detected: false
+
+Per-switch results:
+- Overview: active=Overview; ok=true; textLen=1010; newRequests=0; excerpt=voie verte haute vosges on GPSies.com 01/01/2010, 01:00 TRACK CONTROLS ACTIVITY TYPE Bicycle Walking Hiking Running Mountain biking Stand-up paddle Rowing Kayak
+- Graphs: active=Graphs; ok=true; textLen=634; newRequests=0; excerpt=X AXIS Time Distance DETAIL Range POINTS 350 HEIGHT SPEED 0h 00m 2h 46m 0h 33m 1h 06m 1h 40m 2h 13m 3h 20m 3h 53m 4h 26m 0 20 40 60 km/h ELEVATION 0h 00m 2h 46m
+- Quality: active=Quality; ok=true; textLen=637; newRequests=0; excerpt=SUCCESS UNIQUE Load Messages POINT QUALITY 1298 Total Points 60.55 m Avg Pt. Distance 42.87 m Median Pt. Distance 985.86 m Max Pt. Distance STATISTICS CURATION 
+- Related: active=Related; ok=true; textLen=286; newRequests=1; excerpt=PREVIOUS TRACKS none CURRENT TRACK voie verte haute vosges on GPSies.com Jan 1, 2010 NEXT TRACKS 9 Track #100005 Jul 20, 2021 FMT TCX Synthet Feb 2, 2026 GNSSAL
+- Events: active=Events; ok=true; textLen=15; newRequests=0; excerpt=No track events
+- Graphs: active=Graphs; ok=true; textLen=634; newRequests=0; excerpt=X AXIS Time Distance DETAIL Range POINTS 350 HEIGHT SPEED 0h 00m 2h 46m 0h 33m 1h 06m 1h 40m 2h 13m 3h 20m 3h 53m 4h 26m 0 20 40 60 km/h ELEVATION 0h 00m 2h 46m
+- Quality: active=Quality; ok=true; textLen=637; newRequests=1; excerpt=SUCCESS UNIQUE Load Messages POINT QUALITY 1298 Total Points 60.55 m Avg Pt. Distance 42.87 m Median Pt. Distance 985.86 m Max Pt. Distance STATISTICS CURATION 
+- Overview: active=Overview; ok=true; textLen=1010; newRequests=0; excerpt=voie verte haute vosges on GPSies.com 01/01/2010, 01:00 TRACK CONTROLS ACTIVITY TYPE Bicycle Walking Hiking Running Mountain biking Stand-up paddle Rowing Kayak
+- Events: active=Events; ok=true; textLen=15; newRequests=0; excerpt=No track events
+- Related: active=Related; ok=true; textLen=286; newRequests=0; excerpt=PREVIOUS TRACKS none CURRENT TRACK voie verte haute vosges on GPSies.com Jan 1, 2010 NEXT TRACKS 9 Track #100005 Jul 20, 2021 FMT TCX Synthet Feb 2, 2026 GNSSAL
+- Overview: active=Overview; ok=true; textLen=1010; newRequests=1; excerpt=voie verte haute vosges on GPSies.com 01/01/2010, 01:00 TRACK CONTROLS ACTIVITY TYPE Bicycle Walking Hiking Running Mountain biking Stand-up paddle Rowing Kayak
+
+Top request counts during tab loop:
+- 3 x /mtl/api/map/status
+
+Console warning/error count: 8
+- error: Failed to load resource: the server responded with a status of 401 ()
+- error: Failed to load resource: the server responded with a status of 401 ()
+- warning: [.WebGL-0x12c00574400]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
+- warning: [.WebGL-0x12c0057aa00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
+- warning: [.WebGL-0x12c00574400]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
+Request failures during tab loop/context: 9
+- HEAD http://167.233.16.201:18080/mtl/api/info/build -> net::ERR_ABORTED
+- HEAD https://tiles.mapterhorn.com/0/0/0.webp -> net::ERR_ABORTED
+- HEAD https://tile.openstreetmap.org/0/0/0.png -> net::ERR_ABORTED
+- HEAD https://protomaps.github.io/basemaps-assets/sprites/v4/light.json -> net::ERR_ABORTED
+- HEAD https://protomaps.github.io/basemaps-assets/fonts/Noto%20Sans%20Regular/0-255.pbf -> net::ERR_ABORTED

@@ -1,0 +1,22 @@
+Imported source mapping after GPX, FIT, and synthetic-format imports.
+
+Public GPX files:
+- JuraRoute72011.gpx -> id=100000; name=Jura Route 7 / 2011 on GPSies.com; status=SUCCESS
+- Lannion_Plestin_parcours24.4RE.gpx -> id=100004; name=Lannion_Plestin_parcours Lannion_Plestin_parcours1; status=SUCCESS; later deleted as part of DEL coverage
+- MoselradwegAusWiki.gpx -> id=100002; name=Moselradweg aus Wiki on GPSies.com; status=SUCCESS
+- Vitry-le-Francois_Langres.gpx -> id=100001; name=Vitry le françois - langres on GPSies.com; status=SUCCESS
+- VoieVerteHauteVosges.gpx -> id=100003; name=voie verte haute vosges on GPSies.com; status=SUCCESS; later deleted as part of DEL coverage
+
+FIT file:
+- Activity.fit -> id=100005; name=Track 100005 / Activity.fit; status=SUCCESS
+
+Synthetic non-GPX conversion fixtures:
+- format-sample.tcx -> id=100006; name=format-tcx-synt; status=SUCCESS
+- format-sample.kml -> id=100007; name=Path; status=SUCCESS
+- format-sample.kmz -> id=100008; name=Path; status=SUCCESS
+- format-sample.igc -> id=100009; name=GNSSALTTRK; status=SUCCESS
+- format-sample.nmea -> id=100010; name=<blank>; status=SUCCESS
+- format-sample.geojson -> id=100011; name=format-geojson-synthetic-track; status=SUCCESS
+- format-sample.gdb -> id=100012; name=format-gdb-synthetic-track; status=SUCCESS
+
+Evidence sources: DAT-public-data.txt for source metadata, IMP_03-track-summary.txt for GPX import IDs/names, FIT_02-ui-api-summary.txt for FIT import, and FMT_02-format-verification-summary.txt for synthetic non-GPX conversions.

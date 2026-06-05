@@ -1,0 +1,50 @@
+{
+  "chartBox": {
+    "x": 277,
+    "y": 441.546875,
+    "width": 888,
+    "height": 420.859375
+  },
+  "afterElevationHover": {
+    "profile": "Road Bike",
+    "notices": [],
+    "statCards": [
+      {
+        "label": "Distance",
+        "value": "0.25 km",
+        "text": "Distance0.25 km"
+      },
+      {
+        "label": "Ascent",
+        "value": "0 m",
+        "text": "Ascent0 m"
+      },
+      {
+        "label": "Descent",
+        "value": "0 m",
+        "text": "Descent0 m"
+      },
+      {
+        "label": "Duration",
+        "value": "0m",
+        "text": "Duration0m"
+      },
+      {
+        "label": "Legs",
+        "value": "1",
+        "text": "Legs1"
+      }
+    ],
+    "distance": "0.25 km",
+    "ascent": "0 m",
+    "descent": "0 m",
+    "duration": "0m",
+    "legs": "1",
+    "highcharts": 1,
+    "hoverMarkers": 0,
+    "saveDisabled": false,
+    "bodyExcerpt": "100 m© OpenStreetMap | Elevation: Mapterhorn11 Tracks StatsFilterMapAnimateSegmentsGPSPlannerAdminSearchImportanceNear mapZürichZurich, SwitzerlandCityz7-15Zürich (Kreis 11)Zurich, SwitzerlandNeighbourhoodz11-15Zürich (Kreis 3)Zurich, SwitzerlandNeighbourhoodz11-15Zürich (Kreis 9)Zurich, SwitzerlandNeighbourhoodz11-15Zürich (Kreis 10)Zurich, SwitzerlandNeighbourhoodz11-15Zürich (Kreis 7)Zurich, SwitzerlandNeighbourhoodz11-15Zürich (Kreis 6)Zurich, SwitzerlandNeighbourhoodz11-15Zürich (Kreis 2)Zurich, SwitzerlandNeighbourhoodz11-15Zürich (Kreis 12)Zurich, SwitzerlandNeighbourhoodz11-15Zürich (Kreis 8)Zurich, SwitzerlandNeighbourhoodz11-15Zürich (Kreis 4) / AussersihlZurich, SwitzerlandNeighbourhoodz11-15Zürich (Kreis 5)Zurich, SwitzerlandNeighbourhoodz11-15Zürich (Kreis 1)Zurich, Switzerlan"
+  },
+  "hoverMarkerVisible": false,
+  "highcharts": 1
+}

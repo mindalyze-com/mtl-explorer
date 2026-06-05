@@ -5,6 +5,15 @@
 <script setup lang="ts">
 import { inject, onBeforeUnmount } from 'vue';
 
+const GPS_TOAST_LIFE_MS = 4000;
+const GEOLOCATION_ERROR_CODE = {
+  permissionDenied: 1,
+  positionUnavailable: 2,
+  timeout: 3,
+} as const;
+const SECURE_CONTEXT_GPS_MESSAGE =
+  'GPS needs HTTPS or localhost. Open MTL Explorer from a secure address to use live location.';
+
 const EVENTS = {
   locationUpdate: 'locationUpdate',
   deviceEnabledDisabled: 'deviceEnabledDisabled',
@@ -25,30 +34,93 @@ const toast = inject('toast') as {
 };
 
 let watcherId: number | undefined;
+let gpsEnabled = false;
+let activeWatchToken = 0;
 
 onBeforeUnmount(() => {
-  if (watcherId !== undefined) {
-    navigator.geolocation.clearWatch(watcherId);
-    watcherId = undefined;
-  }
+  stopWatch(false);
 });
 
 function toggle() {
-  void locate();
-  if (watcherId !== undefined) {
-    emit('tool-opened');
-  }
+  locate();
 }
 
 function close() {
+  stopWatch(false);
+}
+
+function isSecureLocationContext() {
+  if (typeof window.isSecureContext === 'boolean') {
+    return window.isSecureContext;
+  }
+
+  const secureLocalHostnames = new Set(['localhost', '127.0.0.1', '[::1]', '::1']);
+  return window.location.protocol === 'https:' || secureLocalHostnames.has(window.location.hostname);
+}
+
+function showToast(severity: string, summary: string, detail: string) {
+  toast.add({ severity, summary, detail, life: GPS_TOAST_LIFE_MS });
+}
+
+function confirmGpsStarted(position: GeolocationPosition) {
+  if (!gpsEnabled) {
+    gpsEnabled = true;
+    emit(EVENTS.deviceEnabledDisabled, true);
+    emit('tool-opened');
+    showToast('info', 'GPS', 'GPS started');
+  }
+
+  emit(EVENTS.locationUpdate, position);
+}
+
+function describeGeolocationError(err: GeolocationPositionError) {
+  if (!isSecureLocationContext() || err.message.toLowerCase().includes('secure origin')) {
+    return SECURE_CONTEXT_GPS_MESSAGE;
+  }
+
+  if (err.code === GEOLOCATION_ERROR_CODE.permissionDenied) {
+    return 'GPS permission was denied. Enable location access for this site and try again.';
+  }
+
+  if (err.code === GEOLOCATION_ERROR_CODE.positionUnavailable) {
+    return 'GPS position is currently unavailable. Check device location services and try again.';
+  }
+
+  if (err.code === GEOLOCATION_ERROR_CODE.timeout) {
+    return 'GPS timed out before a position was found. Move to a place with better signal and try again.';
+  }
+
+  return 'Unable to get GPS location.';
+}
+
+function stopWatch(showStoppedToast: boolean) {
+  activeWatchToken += 1;
+  const hadWatcher = watcherId !== undefined;
   if (watcherId !== undefined) {
     navigator.geolocation.clearWatch(watcherId);
     watcherId = undefined;
-    emit('deviceEnabledDisabled', false);
+  }
+
+  const wasEnabled = gpsEnabled;
+  gpsEnabled = false;
+  if (wasEnabled || hadWatcher) {
+    emit(EVENTS.deviceEnabledDisabled, false);
+  }
+  if (showStoppedToast && wasEnabled) {
+    showToast('info', 'GPS', 'GPS stopped');
   }
 }
 
-async function locate() {
+function handleGeolocationError(token: number, err: GeolocationPositionError) {
+  if (token !== activeWatchToken) return;
+
+  console.warn(`GPS unavailable (${err.code}): ${err.message}`);
+  const detail = describeGeolocationError(err);
+  stopWatch(false);
+  showToast('warning', 'GPS unavailable', detail);
+}
+
+function locate() {
   try {
     const options: PositionOptions = {
       enableHighAccuracy: true,
@@ -56,29 +128,42 @@ async function locate() {
       maximumAge: 0,
     };
 
+    if (watcherId !== undefined) {
+      console.log('stop gps');
+      stopWatch(true);
+      return;
+    }
+
+    if (!isSecureLocationContext()) {
+      showToast('warning', 'GPS unavailable', SECURE_CONTEXT_GPS_MESSAGE);
+      emit(EVENTS.deviceEnabledDisabled, false);
+      return;
+    }
+
+    if (!navigator.geolocation) {
+      showToast('warning', 'GPS unavailable', 'GPS is not available in this browser.');
+      emit(EVENTS.deviceEnabledDisabled, false);
+      return;
+    }
+
+    activeWatchToken += 1;
+    const token = activeWatchToken;
+
     const success = (pos: GeolocationPosition) => {
-      emit(EVENTS.locationUpdate, pos);
+      if (token !== activeWatchToken || watcherId === undefined) return;
+      confirmGpsStarted(pos);
     };
 
     function error(err: GeolocationPositionError) {
-      console.error(`ERROR(${err.code}): ${err.message}`);
+      handleGeolocationError(token, err);
     }
 
-    if (watcherId === undefined) {
-      console.log('start GPS');
-      watcherId = navigator.geolocation.watchPosition(success, error, options);
-      emit(EVENTS.deviceEnabledDisabled, true);
-      toast.add({ severity: 'info', summary: 'Info', detail: 'GPS started', life: 2000 });
-    } else {
-      console.log('stop gps');
-      navigator.geolocation.clearWatch(watcherId);
-      watcherId = undefined;
-      emit(EVENTS.deviceEnabledDisabled, false);
-      toast.add({ severity: 'info', summary: 'Info', detail: 'GPS stopped', life: 2000 });
-    }
+    console.log('start GPS');
+    watcherId = navigator.geolocation.watchPosition(success, error, options);
   } catch (error) {
     console.error('Error getting GPS location:', error);
-    toast.add({ severity: 'warning', summary: 'Info', detail: 'Unable to get GPS location', life: 2000 });
+    stopWatch(false);
+    showToast('warning', 'GPS unavailable', 'Unable to get GPS location.');
   }
 }
 

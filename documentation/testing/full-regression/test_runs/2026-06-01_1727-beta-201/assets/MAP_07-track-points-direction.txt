@@ -1,0 +1,42 @@
+{
+  "coverageId": "MAP_07",
+  "action": "Opened Maps and data to confirm Track Points & Direction layer enabled at 100% opacity, then used location search for Rupt-sur-Moselle and zoomed to 10 m on dense public GPX track 100000.",
+  "layerState": {
+    "labelPresent": true,
+    "text": "Track Points & Direction Individual GPS points with direction arrows — only visible when zoomed in close",
+    "checkedIcon": true,
+    "opacity": "100"
+  },
+  "mapState": {
+    "scale": "10 m",
+    "mapShows12": true,
+    "url": "http://167.233.16.201:18080/mtl/",
+    "visibleText": "10 m © OpenStreetMap | Elevation: Mapterhorn 12 Tracks Stats Filter Map Animate Segments GPS Planner Admin"
+  },
+  "visualReview": "Screenshot shows in-viewport blue circular GPS point markers with direction arrows on the rendered track line; marker evidence is from a dense public GPX-backed route, not a sparse two-point synthetic track.",
+  "relevantTrack": {
+    "id": 100000,
+    "sourceFile": "VoieVerteHauteVosges.gpx",
+    "simplifiedPointsFromAPI": 629
+  },
+  "ignoredNetworkFailures": [
+    "HEAD http://167.233.16.201:18080/mtl/api/info/build net::ERR_ABORTED",
+    "HEAD https://protomaps.github.io/basemaps-assets/fonts/Noto%20Sans%20Regular/0-255.pbf net::ERR_ABORTED",
+    "HEAD https://tiles.mapterhorn.com/0/0/0.webp net::ERR_ABORTED",
+    "HEAD https://tile.openstreetmap.org/0/0/0.png net::ERR_ABORTED",
+    "HEAD https://protomaps.github.io/basemaps-assets/sprites/v4/light.json net::ERR_ABORTED",
+    "GET https://tiles.mapterhorn.com/4/8/7.webp net::ERR_ABORTED",
+    "GET https://tiles.mapterhorn.com/4/7/7.webp net::ERR_ABORTED",
+    "GET https://tiles.mapterhorn.com/4/9/7.webp net::ERR_ABORTED"
+  ],
+  "consoleNotes": [
+    "error: Failed to load resource: the server responded with a status of 404 ()",
+    "log: [zoom] 15.000 | mercator",
+    "log: [zoom] 15.694 | mercator",
+    "log: [zoom] 16.389 | mercator",
+    "log: [zoom] 17.083 | mercator",
+    "log: [zoom] 17.778 | mercator",
+    "log: [zoom] 18.472 | mercator",
+    "log: Adjusting 2 tracks to 1m (zoom 18.472323680977684)"
+  ]
+}

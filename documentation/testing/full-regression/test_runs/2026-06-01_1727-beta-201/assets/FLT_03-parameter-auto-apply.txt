@@ -1,0 +1,9 @@
+FLT_03 parameter auto-apply and reset evidence
+Actions: opened Filter, used Activities by keyword parameter, edited Keyword to Moselradweg, opened Stats, reopened Filter, cleared Keyword.
+Keyword edit: DOM input changed from MAP 03 to Moselradweg; the map live-applied without an Apply button or full browser reload.
+Filtered map: chip=true; legendBicycle1=true; screenshot shows one visible Bicycle track.
+Stats filtered: chip=true; containsMosel=true; textHasOneTrack=true
+Cleared map: chip=true; actionBar=true; legendBicycle11=true; legendWalking1=true
+Persisted filterName=ActivitiesByKeyword; stringParams={}
+Filtered text sample: 300 km © OpenStreetMap | Elevation: Mapterhorn 1 / 12 Tracks Legend BICYCLE 1 Stats Filter Map Animate Segments GPS Planner Admin
+Cleared text sample: 300 km © OpenStreetMap | Elevation: Mapterhorn 12 / 12 Tracks Legend BICYCLE 11 WALKING 1 Stats Filter Map Animate Segments GPS Planner Admin Filter Colors 12 SQL On Choose a filter 18 filters All 18 Core 1 Activity 4 Date & Time 5 Performance 4 Quality 4 CORE Smart Base Filter Filters tracks by date range and optional geographic shapes (circle, rectangle, polygon). All geo params are optional — if not given, they are ignored. ACTIVITY Activities by type Gets activities into main categories: Walking, Biking and Motorized ones. Activities by keyword Filter for tracks which have a certain word in their name or description. Non Motorized Tracks 

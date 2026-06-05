@@ -11,10 +11,11 @@
       <div v-if="previousTracksInTime.length" class="track-list prev-list">
         <!-- Tracks are stored desc (recent first from backend), we display oldest→newest (reversed) -->
         <button v-if="prevRemaining > 0" class="expand-btn expand-btn-top" @click="showMorePrev()">
-          ▲ Show {{ Math.min(PAGE_SIZE, prevRemaining) }} older ({{ prevRemaining }} remaining)
+          <i class="bi bi-chevron-up"></i> Show {{ Math.min(PAGE_SIZE, prevRemaining) }} older ({{ prevRemaining }}
+          remaining)
         </button>
         <button v-if="prevShowCount > PAGE_SIZE" class="expand-btn expand-btn-top" @click="showLessPrev()">
-          ▲ Show less
+          <i class="bi bi-chevron-up"></i> Show less
         </button>
 
         <div v-for="track in prevTracksShown" :key="track.id" class="track-card" @click="navigateTrack(track.id)">
@@ -29,17 +30,17 @@
       </div>
 
       <div class="section-header prev-header">
-        <span class="section-icon">↑</span>
+        <i class="bi bi-arrow-up section-icon"></i>
         <span class="section-label">Previous Tracks</span>
         <span v-if="previousTracksInTime.length" class="section-count">{{ previousTracksInTime.length }}</span>
-        <span v-else class="empty-inline">— none</span>
+        <span v-else class="empty-inline">none</span>
       </div>
     </section>
 
     <!-- ── CURRENT TRACK ─────────────────────────────────── -->
     <section class="current-track-card">
       <div class="current-top-line">
-        <span class="current-star">★</span>
+        <i class="bi bi-geo-alt-fill current-star"></i>
         <span class="current-badge">Current Track</span>
       </div>
       <div v-if="gpsTrack && gpsTrack.id" class="current-body">
@@ -52,7 +53,7 @@
     <!-- ── NEXT TRACKS ────────────────────────────────────── -->
     <section class="timeline-section">
       <div class="section-header next-header">
-        <span class="section-icon">↓</span>
+        <i class="bi bi-arrow-down section-icon"></i>
         <span class="section-label">Next Tracks</span>
         <span v-if="nextTracksInTime.length" class="section-count">{{ nextTracksInTime.length }}</span>
       </div>
@@ -69,9 +70,12 @@
         </div>
 
         <button v-if="nextRemaining > 0" class="expand-btn" @click="showMoreNext()">
-          ▼ Show {{ Math.min(PAGE_SIZE, nextRemaining) }} more ({{ nextRemaining }} remaining)
+          <i class="bi bi-chevron-down"></i> Show {{ Math.min(PAGE_SIZE, nextRemaining) }} more ({{ nextRemaining }}
+          remaining)
         </button>
-        <button v-if="nextShowCount > PAGE_SIZE" class="expand-btn" @click="showLessNext()">▼ Show less</button>
+        <button v-if="nextShowCount > PAGE_SIZE" class="expand-btn" @click="showLessNext()">
+          <i class="bi bi-chevron-down"></i> Show less
+        </button>
       </div>
       <div v-else class="empty-label">No next tracks</div>
     </section>
@@ -79,7 +83,7 @@
     <!-- ── DUPLICATES ─────────────────────────────────────── -->
     <section v-if="duplicates && duplicates.length" class="timeline-section duplicates-section">
       <div class="section-header dup-header">
-        <span class="section-icon">⊛</span>
+        <i class="bi bi-files section-icon"></i>
         <span class="section-label">Duplicates</span>
         <span class="section-count">{{ duplicates.length }}</span>
       </div>
@@ -99,7 +103,7 @@
     <!-- ── DERIVED SEGMENTS ───────────────────────────────── -->
     <section v-if="segmentSiblings && segmentSiblings.length" class="timeline-section segments-section">
       <div class="section-header seg-header">
-        <span class="section-icon">◧</span>
+        <i class="bi bi-scissors section-icon"></i>
         <span class="section-label">Derived Segments</span>
         <span class="section-count">{{ segmentSiblings.length }}</span>
       </div>
@@ -264,7 +268,7 @@ function formatDate(dateVal: string | number | Date): string {
   display: flex;
   flex-direction: column;
   width: 100%;
-  padding: 12px 4px 24px;
+  padding: 0.5rem 0.25rem 1.25rem;
   gap: 0;
   position: relative;
 }
@@ -279,47 +283,51 @@ function formatDate(dateVal: string | number | Date): string {
 .section-header {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 8px 10px 6px;
-  font-size: var(--text-xs-size);
+  gap: 0.4rem;
+  padding: 0.75rem 1rem 0.35rem;
+  font-size: var(--text-2xs-size);
   font-weight: 600;
   letter-spacing: 0.07em;
   text-transform: uppercase;
-  color: var(--text-muted);
+  color: var(--text-faint);
 }
 
 .section-icon {
-  font-size: var(--text-base-size);
+  font-size: var(--text-xs-size);
   opacity: 0.7;
 }
 
 .section-count {
   margin-left: auto;
-  background: var(--surface-glass);
-  border-radius: 10px;
-  padding: 1px 7px;
+  background: var(--surface-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: 999px;
+  padding: 0.05rem 0.45rem;
   font-size: var(--text-2xs-size);
+  font-weight: 700;
+  letter-spacing: 0;
   color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
 }
 
 .prev-header {
-  color: var(--text-muted);
+  color: var(--text-faint);
 }
 .next-header {
-  color: var(--text-muted);
+  color: var(--text-faint);
 }
 .dup-header {
-  color: var(--text-muted);
+  color: var(--text-faint);
 }
 
 /* ── Track List ────────────────────────────────────────── */
 .track-list {
   display: flex;
   flex-direction: column;
-  padding-left: 14px;
+  padding-left: 0.875rem;
   border-left: 2px solid var(--border-subtle);
-  margin: 0 10px 4px 20px;
-  gap: 0;
+  margin: 0 0.75rem 0.25rem 1.5rem;
+  gap: 0.125rem;
 }
 
 .prev-list {
@@ -333,21 +341,33 @@ function formatDate(dateVal: string | number | Date): string {
 .track-card {
   display: flex;
   align-items: flex-start;
-  gap: 10px;
-  padding: 8px 10px 8px 0;
+  gap: 0.625rem;
+  padding: 0.5rem 0.625rem;
   cursor: pointer;
-  border-radius: 6px;
-  transition: background 0.15s;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    transform 0.12s ease;
   position: relative;
 }
 
 .track-card:hover {
-  background: var(--surface-glass);
+  background: var(--surface-hover);
+  border-color: var(--border-default);
+  transform: translateX(2px);
+}
+
+.track-card:active {
+  transform: translateX(2px) scale(0.995);
 }
 
 .track-card__shape {
   flex-shrink: 0;
+  border-radius: 6px;
   opacity: 0.7;
+  transition: opacity 0.15s ease;
 }
 
 .track-card:hover .track-card__shape {
@@ -357,14 +377,22 @@ function formatDate(dateVal: string | number | Date): string {
 /* ── Dot ───────────────────────────────────────────────── */
 .track-dot {
   flex-shrink: 0;
-  width: 9px;
-  height: 9px;
+  width: 0.5rem;
+  height: 0.5rem;
   border-radius: 50%;
-  margin-top: 5px;
-  margin-left: -19px;
+  margin-top: 0.4rem;
+  margin-left: -1.3125rem;
   border: 2px solid var(--accent-text);
   background: var(--surface-glass-heavy);
   z-index: 1;
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.track-card:hover .track-dot {
+  transform: scale(1.25);
+  box-shadow: 0 0 0 3px var(--accent-bg);
 }
 
 .prev-dot {
@@ -387,24 +415,30 @@ function formatDate(dateVal: string | number | Date): string {
 
 .track-name {
   font-size: var(--text-sm-size);
-  font-weight: 500;
-  color: var(--accent-text);
+  font-weight: 600;
+  color: var(--text-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 100%;
+  transition: color 0.15s ease;
+}
+
+.track-card:hover .track-name {
+  color: var(--accent-text);
 }
 
 .track-date {
   font-size: var(--text-xs-size);
   color: var(--text-muted);
-  margin-top: 1px;
+  margin-top: 0.125rem;
+  font-variant-numeric: tabular-nums;
 }
 
 .track-desc {
   font-size: var(--text-xs-size);
   color: var(--text-muted);
-  margin-top: 3px;
+  margin-top: 0.1875rem;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
@@ -416,55 +450,65 @@ function formatDate(dateVal: string | number | Date): string {
   font-size: var(--text-sm-size);
   color: var(--text-muted);
   font-style: italic;
-  padding: 6px 20px 10px;
+  padding: 0.375rem 1.5rem 0.625rem;
 }
 
 /* ── Expand Button ─────────────────────────────────────── */
 .expand-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
   align-self: flex-start;
   background: none;
   border: none;
   color: var(--accent-text);
   font-size: var(--text-xs-size);
+  font-weight: 600;
   cursor: pointer;
-  padding: 4px 0 6px;
-  opacity: 0.75;
-  transition: opacity 0.15s;
+  padding: 0.375rem 0.4rem;
+  border-radius: 6px;
+  opacity: 0.85;
+  transition:
+    opacity 0.15s ease,
+    background 0.15s ease;
 }
 .expand-btn:hover {
   opacity: 1;
+  background: var(--accent-bg);
 }
 
 .expand-btn-top {
-  margin-bottom: 4px;
+  margin-bottom: 0.25rem;
 }
 
 .empty-inline {
-  font-size: var(--text-xs-size);
-  color: var(--text-muted);
+  font-size: var(--text-2xs-size);
+  color: var(--text-faint);
   font-style: italic;
-  margin-left: 2px;
+  margin-left: 0.125rem;
+  text-transform: none;
+  letter-spacing: 0;
 }
 
 /* ── Current Track Card ────────────────────────────────── */
 .current-track-card {
-  margin: 8px 10px;
-  padding: 12px 14px;
+  margin: 0.5rem 0.75rem;
+  padding: 0.75rem 0.875rem;
   border-radius: 8px;
-  border: 1.5px solid var(--accent-text);
-  background: var(--surface-glass);
+  border: 1px solid var(--accent-text);
+  background: var(--accent-bg);
   position: relative;
 }
 
 .current-top-line {
   display: flex;
   align-items: center;
-  gap: 6px;
-  margin-bottom: 6px;
+  gap: 0.4rem;
+  margin-bottom: 0.375rem;
 }
 
 .current-star {
-  font-size: var(--text-base-size);
+  font-size: var(--text-sm-size);
   color: var(--accent-text);
 }
 
@@ -516,8 +560,8 @@ function formatDate(dateVal: string | number | Date): string {
 
 /* ── Derived Segments ──────────────────────────────────── */
 .segments-section {
-  margin-top: 18px;
-  padding-top: 12px;
+  margin-top: 1.125rem;
+  padding-top: 0.75rem;
   border-top: 1px solid var(--border-subtle);
 }
 
@@ -532,8 +576,8 @@ function formatDate(dateVal: string | number | Date): string {
   font-size: var(--text-2xs-size);
   font-weight: 700;
   border-radius: 4px;
-  padding: 1px 5px;
-  margin-right: 5px;
+  padding: 0.0625rem 0.3125rem;
+  margin-right: 0.3125rem;
   vertical-align: middle;
 }
 

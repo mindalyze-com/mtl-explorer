@@ -2,6 +2,7 @@ package com.x8ing.mtl.server.mtlserver.metrics.bucket;
 
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.x8ing.mtl.server.mtlserver.db.entity.gps.GpsTrackDataPoint;
+import com.x8ing.mtl.server.mtlserver.metrics.MetricConstants;
 import com.x8ing.mtl.server.mtlserver.metrics.window.WindowedRateSample;
 
 import java.time.Instant;
@@ -120,6 +121,7 @@ public final class ChartBucketBuilder {
             offer(row, MetricKey.ASCENT_M, p.getAscentInMeterSinceStart(), 1.0, i);
             offer(row, MetricKey.DESCENT_M, p.getDescentInMeterSinceStart(), 1.0, i);
             offer(row, MetricKey.SPEED_MOVING_WINDOW_KMH, p.getSpeedInKmhMovingWindow(), weight, i);
+            offerBucketAverageSpeed(row, p, i);
             offer(row, MetricKey.SLOPE_PERCENT, p.getSlopePercentageInMovingWindow(), weight, i);
             offer(row, MetricKey.POWER_WATTS, p.getPowerWatts(), weight, i);
             offer(row, MetricKey.ENERGY_CUMULATIVE_WH, p.getEnergyCumulativeWh(), 1.0, i);
@@ -212,5 +214,22 @@ public final class ChartBucketBuilder {
         MetricBucketAccumulator acc = row.get(key);
         if (acc == null) return;
         acc.add(value, weight, pointIndex);
+    }
+
+    private static void offerBucketAverageSpeed(Map<MetricKey, MetricBucketAccumulator> row,
+                                                GpsTrackDataPoint point,
+                                                int pointIndex) {
+        MetricBucketAccumulator acc = row.get(MetricKey.SPEED_BUCKET_AVG_KMH);
+        if (acc == null) return;
+
+        Double distance = point.getDistanceInMeterBetweenPoints();
+        if (distance == null || !Double.isFinite(distance) || distance < 0) return;
+
+        Double duration = point.getDurationBetweenPointsInSec();
+        if (duration == null || !Double.isFinite(duration) || duration <= 0) return;
+
+        // Shared cap is a sanity ceiling; it does not smooth realistic GPS jitter spikes.
+        double speedKmh = Math.min(distance / duration * MetricConstants.MPS_TO_KMH, MetricConstants.MAX_SPEED_KMH);
+        acc.add(speedKmh, duration, pointIndex);
     }
 }

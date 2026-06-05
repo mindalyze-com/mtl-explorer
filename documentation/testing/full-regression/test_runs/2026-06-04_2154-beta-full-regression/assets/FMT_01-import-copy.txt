@@ -1,0 +1,24 @@
+LOCAL_SAMPLES
+a0492a2e5ae4b87de1baeb48d26ec822ad1cb5ed1ba090521f0507a4048092ef  /tmp/mtl-regression-data-20260604-2154/format-sample.tcx
+c03ae1457c263b2e18058fb82b175a4c9a2e2baad59a524c65e49d0e9f599ba2  /tmp/mtl-regression-data-20260604-2154/format-sample.kml
+e1b7255228af289b2e6f1a7ab667e2c63545ade8fc60750ab00a1d860b807d0d  /tmp/mtl-regression-data-20260604-2154/format-sample.kmz
+3cd19d2cb5d07f97e56e45ccc1546000fbd23df8c3eeddfc7fc53cf7a9bc38ba  /tmp/mtl-regression-data-20260604-2154/format-sample.igc
+237f15e80800bd5836e4801c6b5a13c9499fda250bd08c36753d62edc0569bef  /tmp/mtl-regression-data-20260604-2154/format-sample.nmea
+7cd349fa8cb1b7dc5f442e382247baa76e0b1bec7b5b30a90fafaf0f8eac169e  /tmp/mtl-regression-data-20260604-2154/format-sample.geojson
+6f2dfcc7e8b18c194311de02b4d50491ff6afae386799bf52443507227c8d781  /tmp/mtl-regression-data-20260604-2154/format-sample.gdb
+
+REMOTE_SAMPLES
+a0492a2e5ae4b87de1baeb48d26ec822ad1cb5ed1ba090521f0507a4048092ef  data/gpx/format-sample.tcx
+c03ae1457c263b2e18058fb82b175a4c9a2e2baad59a524c65e49d0e9f599ba2  data/gpx/format-sample.kml
+e1b7255228af289b2e6f1a7ab667e2c63545ade8fc60750ab00a1d860b807d0d  data/gpx/format-sample.kmz
+3cd19d2cb5d07f97e56e45ccc1546000fbd23df8c3eeddfc7fc53cf7a9bc38ba  data/gpx/format-sample.igc
+237f15e80800bd5836e4801c6b5a13c9499fda250bd08c36753d62edc0569bef  data/gpx/format-sample.nmea
+7cd349fa8cb1b7dc5f442e382247baa76e0b1bec7b5b30a90fafaf0f8eac169e  data/gpx/format-sample.geojson
+6f2dfcc7e8b18c194311de02b4d50491ff6afae386799bf52443507227c8d781  data/gpx/format-sample.gdb
+data/gpx/format-sample.gdb
+data/gpx/format-sample.geojson
+data/gpx/format-sample.igc
+data/gpx/format-sample.kml
+data/gpx/format-sample.kmz
+data/gpx/format-sample.nmea
+data/gpx/format-sample.tcx

@@ -10,10 +10,9 @@ import { fetchFilterInfo, getServerBuildInfo } from '@/utils/ServiceHelper';
 import { ColorPalette } from '@/components/filter/ColorPalette';
 import { markRaw } from 'vue';
 import { hasCompleteStringParamsForDefinitions, pruneFilterParamsForDefinitions } from '@/utils/filterParams';
+import { readJsonStorage, STORAGE_KEYS, writeStorage, type AppStorageKey } from '@/utils/appStorage';
 
-/**
- * @deprecated Use FilterParamsRequest instead. Kept for backward compat with localStorage migration.
- */
+/** @deprecated Use FilterParamsRequest instead. Kept for the legacy flat filter parameter shape. */
 export type FilterParams = {
   [key: string]: string; // Both keys and values are strings
 };
@@ -63,7 +62,7 @@ export class FilterService {
     return this.defaultGpsFilterNamePromise;
   }
 
-  private static readonly STORAGE_KEY_CLIENT_FILTER_CONFIG = 'clientFilterConfig';
+  private static readonly STORAGE_KEY_CLIENT_FILTER_CONFIG = STORAGE_KEYS.clientFilterConfig;
 
   private static hasFilterUiMetadata(filterInfo?: FilterInfo | null): boolean {
     const filterConfig = filterInfo?.filterConfig;
@@ -100,8 +99,7 @@ export class FilterService {
     }
   }
 
-  // General-purpose method to save an object to localStorage
-  private static saveToLocalStorage<T>(key: string, object: T): void {
+  private static saveToStorage<T>(key: AppStorageKey, object: T): void {
     if (object !== null && object !== undefined) {
       const seen = new WeakSet();
       const jsonObject = JSON.stringify(object, (_key, value) => {
@@ -112,26 +110,21 @@ export class FilterService {
         }
         return value;
       });
-      localStorage.setItem(key, jsonObject);
+      writeStorage(key, jsonObject);
     }
   }
 
-  // General-purpose method to load an object from localStorage
-  private static loadFromLocalStorage<T>(key: string): T | null {
-    const jsonString = localStorage.getItem(key);
-    if (isEmptyOrNil(jsonString) || jsonString == null) {
-      return null;
-    }
-    return JSON.parse(jsonString) as T;
+  private static loadFromStorage<T>(key: AppStorageKey): T | null {
+    return readJsonStorage<T | null>(key, null, (parsed) => (isEmptyOrNil(parsed) ? null : (parsed as T)));
   }
 
   static saveClientFilterConfig(clientFilterConfig: ClientFilterConfig | null): void {
     // Convert the FilterInfo object into JSON before saving
-    this.saveToLocalStorage(this.STORAGE_KEY_CLIENT_FILTER_CONFIG, clientFilterConfig);
+    this.saveToStorage(this.STORAGE_KEY_CLIENT_FILTER_CONFIG, clientFilterConfig);
   }
 
   static async loadClientFilterConfig(): Promise<ClientFilterConfig> {
-    let clientFilterConfig = this.loadFromLocalStorage<ClientFilterConfig>(this.STORAGE_KEY_CLIENT_FILTER_CONFIG);
+    let clientFilterConfig = this.loadFromStorage<ClientFilterConfig>(this.STORAGE_KEY_CLIENT_FILTER_CONFIG);
     const defaultFilter = await this.getDefaultGpsFilterName();
 
     if (!clientFilterConfig) {
@@ -184,7 +177,14 @@ export class FilterService {
   static migrateFilterParams(params: unknown): FilterParamsRequest {
     if (!params || typeof params !== 'object') return {};
     // Already new format: has at least one recognized field and no unrecognized ones
-    const knownFields = new Set(['stringParams', 'dateTimeParams', 'geoCircles', 'geoRectangles', 'geoPolygons']);
+    const knownFields = new Set([
+      'stringParams',
+      'dateTimeParams',
+      'geoCircles',
+      'geoRectangles',
+      'geoPolygons',
+      'trackIds',
+    ]);
     const rawParams = params as Record<string, unknown>;
     const keys = Object.keys(rawParams);
     if (keys.length === 0) return {};

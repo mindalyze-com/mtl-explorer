@@ -191,9 +191,11 @@ public class GPXReader {
             // -> SIMPLIFIED_FIXED_POINTS) is built from the cleaned stream and
             // therefore inherits the cleanup. RAW is left untouched.
             activeTiming.time("break-stop filter", () -> applyBreakStopTreatment(filterResult, gpsTrack));
+            activeTiming.time("time-order filter", () -> applyTimeOrderTreatment(filterResult, gpsTrack));
 
             // Fix A: extract time bounds from CLEANED coordinates (after outlier removal)
             activeTiming.time("time bounds", () -> extractTimeBoundsFromCleaned(filterResult.cleanedCoordinates, gpsTrack));
+            applyFallbackTimeBounds(gpsTrack, indexedFile);
 
             // Split by temporal gaps (>12h between consecutive cleaned points), except known stop anchors.
             List<List<Coordinate>> segments = activeTiming.time("split segments",
@@ -234,6 +236,7 @@ public class GPXReader {
 
                 // Per-segment time bounds from cleaned coordinates
                 activeTiming.time("segment time bounds", () -> extractTimeBoundsFromCleaned(segCoords, segTrack));
+                applyFallbackTimeBounds(segTrack, indexedFile);
 
                 // Per-segment outlier result with just this segment's coordinates
                 OutlierFilterResult segFilter = new OutlierFilterResult();
@@ -329,6 +332,34 @@ public class GPXReader {
         }
     }
 
+    private void applyFallbackTimeBounds(GpsTrack gpsTrack, IndexedFile indexedFile) {
+        if (gpsTrack.getStartDate() != null) {
+            if (gpsTrack.getEndDate() == null) {
+                gpsTrack.setEndDate(gpsTrack.getStartDate());
+            }
+            return;
+        }
+
+        Date fallbackDate = firstNonNull(
+                gpsTrack.getMetaTime(),
+                indexedFile == null ? null : indexedFile.getLastModifiedDate(),
+                indexedFile == null ? null : indexedFile.getCreateDate(),
+                indexedFile == null ? null : indexedFile.getIndexAddedDate());
+        if (fallbackDate == null) return;
+
+        gpsTrack.setStartDate(fallbackDate);
+        gpsTrack.setEndDate(fallbackDate);
+        gpsTrack.addLoadMessage("No per-point timestamps found; using source metadata/file date as track date.");
+    }
+
+    @SafeVarargs
+    private static <T> T firstNonNull(T... values) {
+        for (T value : values) {
+            if (value != null) return value;
+        }
+        return null;
+    }
+
     private static int indexOfExact(List<Coordinate> list, Coordinate target, int startIndex) {
         for (int i = startIndex; i < list.size(); i++) {
             Coordinate c = list.get(i);
@@ -349,8 +380,12 @@ public class GPXReader {
     }
 
     /**
-     * Split cleaned coordinates into sub-lists wherever consecutive points have a temporal gap > threshold,
+     * Split cleaned coordinates into sub-lists wherever consecutive points have a forward temporal gap > threshold,
      * except synthetic stop anchor pairs backed by detected stop ranges.
+     * <p>
+     * GPX/TCX conversion tools can emit physically ordered points with stale timestamps mixed in.
+     * Those backward jumps are handled by the time-order treatment before this split; splitting
+     * them here would create many one-point pseudo-tracks from corrupt interleaved samples.
      */
     static List<List<Coordinate>> splitByTemporalGaps(List<Coordinate> cleanedCoords,
                                                       List<TrackStopDetector.StopRange> stopRanges) {
@@ -367,7 +402,7 @@ public class GPXReader {
             double prevT = previous.getM();
             double currT = currentPoint.getM();
             if (!Double.isNaN(prevT) && !Double.isNaN(currT)
-                && (currT - prevT) > SEGMENT_GAP_THRESHOLD_S
+                && currT - prevT > SEGMENT_GAP_THRESHOLD_S
                 && !isKnownStopAnchorPair(previous, currentPoint, stopRanges)) {
                 segments.add(current);
                 current = new ArrayList<>();
@@ -474,12 +509,7 @@ public class GPXReader {
         result.cleanedCoordinates.addAll(treated.cleanedCoordinates());
         result.stopRanges.clear();
         result.stopRanges.addAll(treated.stops());
-        result.distancesBetweenPoints.clear();
-        for (int i = 1; i < result.cleanedCoordinates.size(); i++) {
-            result.distancesBetweenPoints.add(getDistanceBetweenTwoWGS84(
-                    result.cleanedCoordinates.get(i),
-                    result.cleanedCoordinates.get(i - 1)));
-        }
+        rebuildDistancesBetweenCleanedPoints(result);
         gpsTrack.addLoadMessage(String.format(
                 "Outlier corrector %s: removed %d isolated spike point(s); collapsed %d stationary-drift point(s) into %d stop anchor pair(s).",
                 BreakStopTreatment.CORRECTOR_NAME,
@@ -489,6 +519,61 @@ public class GPXReader {
         log.info("Break-stop treatment applied: spikes={} stops={} collapsedPoints={} file={}",
                 treated.spikesRemoved(), treated.stops().size(), treated.collapsedPoints(),
                 gpsTrack.getIndexedFile() != null ? gpsTrack.getIndexedFile().getName() : "?");
+    }
+
+    private void applyTimeOrderTreatment(OutlierFilterResult result, GpsTrack gpsTrack) {
+        if (result.cleanedCoordinates.size() < 2) {
+            return;
+        }
+        List<Coordinate> filtered = withoutStaleBackwardTimeJumpPoints(result.cleanedCoordinates);
+        int removed = result.cleanedCoordinates.size() - filtered.size();
+        if (removed <= 0) {
+            return;
+        }
+
+        result.cleanedCoordinates.clear();
+        result.cleanedCoordinates.addAll(filtered);
+        result.outlierCount += removed;
+        rebuildDistancesBetweenCleanedPoints(result);
+        gpsTrack.addLoadMessage(String.format(
+                "Outlier corrector GPXReader time-order filter: removed %d stale point(s) with timestamp more than %.0f hours earlier than the previous accepted point.",
+                removed,
+                SEGMENT_GAP_THRESHOLD_S / 3600.0));
+        log.info("Time-order treatment removed {} stale backward timestamp point(s) file={}",
+                removed,
+                gpsTrack.getIndexedFile() != null ? gpsTrack.getIndexedFile().getName() : "?");
+    }
+
+    static List<Coordinate> withoutStaleBackwardTimeJumpPoints(List<Coordinate> coordinates) {
+        if (coordinates == null || coordinates.size() < 2) {
+            return coordinates == null ? List.of() : new ArrayList<>(coordinates);
+        }
+
+        List<Coordinate> filtered = new ArrayList<>(coordinates.size());
+        double lastKeptTime = Double.NaN;
+        for (Coordinate coordinate : coordinates) {
+            double currentTime = coordinate.getM();
+            if (!Double.isNaN(lastKeptTime)
+                && !Double.isNaN(currentTime)
+                && lastKeptTime - currentTime > SEGMENT_GAP_THRESHOLD_S) {
+                continue;
+            }
+
+            filtered.add(coordinate);
+            if (!Double.isNaN(currentTime)) {
+                lastKeptTime = currentTime;
+            }
+        }
+        return filtered;
+    }
+
+    private void rebuildDistancesBetweenCleanedPoints(OutlierFilterResult result) {
+        result.distancesBetweenPoints.clear();
+        for (int i = 1; i < result.cleanedCoordinates.size(); i++) {
+            result.distancesBetweenPoints.add(getDistanceBetweenTwoWGS84(
+                    result.cleanedCoordinates.get(i),
+                    result.cleanedCoordinates.get(i - 1)));
+        }
     }
 
     private List<TrackStopDetector.StopRange> stopRangesForSegment(List<TrackStopDetector.StopRange> stopRanges,

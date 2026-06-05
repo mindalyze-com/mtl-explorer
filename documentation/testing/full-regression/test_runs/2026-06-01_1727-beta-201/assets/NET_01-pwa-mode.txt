@@ -1,0 +1,10 @@
+NET_01 installed PWA applicability:
+{
+  "url": "http://167.233.16.201:18080/mtl/login",
+  "displayModeStandalone": false,
+  "displayModeBrowser": true,
+  "navigatorStandalone": false,
+  "serviceWorkerSupported": false,
+  "serviceWorkerRegistrations": []
+}
+- Decision: NOT APPLICABLE because this regression run uses a normal browser tab, not an installed web-app/PWA context.

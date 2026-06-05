@@ -16,7 +16,6 @@ const ONE_WORD_COMPONENT_IGNORES = [
   'Popover',
   'Row',
   'Select',
-  'Slider',
   'Tab',
   'Tabs',
   'Textarea',
@@ -55,11 +54,31 @@ export default [
       'vue/no-unused-vars': 'warn',
       'no-console': 'off',
       'no-debugger': 'warn',
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector:
+            "CallExpression[callee.object.name='localStorage'][callee.property.name=/^(getItem|setItem|removeItem|clear)$/]",
+          message: 'Use src/utils/appStorage.ts instead of raw localStorage access.',
+        },
+        {
+          selector:
+            "CallExpression[callee.object.object.name='window'][callee.object.property.name='localStorage'][callee.property.name=/^(getItem|setItem|removeItem|clear)$/]",
+          message: 'Use src/utils/appStorage.ts instead of raw localStorage access.',
+        },
+      ],
+    },
+  },
+  {
+    files: ['src/utils/appStorage.ts'],
+    rules: {
+      'no-restricted-syntax': 'off',
     },
   },
   {
     files: ['src/**/__tests__/**/*.ts'],
     rules: {
+      'no-restricted-syntax': 'off',
       'vue/multi-word-component-names': 'off',
       'vue/one-component-per-file': 'off',
       'vue/require-default-prop': 'off',

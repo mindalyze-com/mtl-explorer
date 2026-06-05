@@ -56,8 +56,8 @@ function applyHighchartsTheme(): void {
       borderColor: borderDefault,
     },
     plotOptions: {
-      line: { marker: { enabled: false } },
-      area: { marker: { enabled: false } },
+      line: { marker: { enabled: false, states: { hover: { enabled: true, radius: 3, lineWidth: 0 } } } },
+      area: { marker: { enabled: false, states: { hover: { enabled: true, radius: 3, lineWidth: 0 } } } },
     },
     credits: { enabled: false },
   });

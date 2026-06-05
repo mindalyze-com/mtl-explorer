@@ -1,0 +1,11 @@
+{
+  "action": "clicked visible Download original button on FIT detail Overview",
+  "suggestedFilename": "Activity.fit",
+  "bytes": 94096,
+  "sha256": "949a238e1bb75c3684479785f76fa9a16888bb394518844248f488171d591387",
+  "expectedSha256": "949a238e1bb75c3684479785f76fa9a16888bb394518844248f488171d591387",
+  "sha256MatchesManifest": true,
+  "fitHeaderAsciiBytes8To11": ".FIT",
+  "remainsFitByHeader": true,
+  "tempDownloadedPath": "/tmp/mtl-playwright-regression/Activity.fit"
+}

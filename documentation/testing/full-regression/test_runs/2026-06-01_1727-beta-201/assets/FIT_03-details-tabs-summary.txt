@@ -1,0 +1,84 @@
+{
+  "url": "http://167.233.16.201:18080/mtl/track/100005",
+  "tabs": {
+    "Overview": [
+      "TRACK DETAILS",
+      "#100005",
+      "Walking",
+      "Activity.fit",
+      "Included in statistics",
+      "3.60 km",
+      "Distance",
+      "59m 59s",
+      "Duration",
+      "1,667 m",
+      "Ascent",
+      "Avg Speed",
+      "59m 57s",
+      "Novel Distance",
+      "Known Distance"
+    ],
+    "Graphs": [
+      "© OpenStreetMap | Elevation: Mapterhorn",
+      "Graphs",
+      "X AXIS",
+      "Time",
+      "Distance",
+      "POINTS",
+      "HEIGHT",
+      "SPEED",
+      "ELEVATION",
+      "ELEVATION GAIN RATE",
+      "DISTANCE OVER TIME"
+    ],
+    "Quality": [
+      "SUCCESS",
+      "UNIQUE",
+      "Load Messages",
+      "POINT QUALITY",
+      "3600 Total Points",
+      "Walking",
+      "AUTO_GUESS",
+      "Geo Coverage",
+      "File & Indexer section present"
+    ],
+    "Related": [
+      "4 Tracks",
+      "Related",
+      "Track #100005",
+      "No next tracks"
+    ],
+    "Events": [
+      "4 Tracks",
+      "Events",
+      "No track events"
+    ]
+  },
+  "assertions": {
+    "overviewHasSourceMetricsMiniMap": true,
+    "graphsRender": true,
+    "relatedTabRendered": true,
+    "eventsTabRendered": true,
+    "pointPopupCheckCompleted": true,
+    "qualityTabRendered": true
+  },
+  "pointPopup": {
+    "action": "hovered and clicked center of FIT mini-map canvas",
+    "popupTexts": [
+      "Track point\nPoint\t1,805\nTime\t07/20/2021, 23:41:25\nDistance\t1.81 km\nElevation\t96.9 m\nSpeed\t3.6 km/h\nElapsed\t29m 59s\n×",
+      "Track point\nPoint\t1,805\nTime\t07/20/2021, 23:41:25\nDistance\t1.81 km\nElevation\t96.9 m\nSpeed\t3.6 km/h\nElapsed\t29m 59s\n×",
+      "Track point\nPoint\t1,805\nTime\t07/20/2021, 23:41:25\nDistance\t1.81 km\nElevation\t96.9 m\nSpeed\t3.6 km/h\nElapsed\t29m 59s",
+      "Point",
+      "Time",
+      "Distance",
+      "Elevation",
+      "Speed",
+      "Elapsed",
+      "×"
+    ],
+    "renderedWithoutCrash": true
+  },
+  "browserNoise": [
+    "pre-login build request 401; Highcharts accessibility warning; PMTiles requests aborted during page teardown"
+  ]
+}

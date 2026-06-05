@@ -24,6 +24,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -451,6 +452,45 @@ class EnergyCalculationTest {
                 "Track summary should expose peak 30-second estimated power");
         assertTrue(summary.getPowerWatts30sMax() <= summary.getPowerWattsMax() + 1.0,
                 "30-second peak should be no larger than raw per-segment peak on this steady test");
+    }
+
+    @Test
+    void calculateSummaryWithoutPersisting_shouldNotMutateOriginalPoints() {
+        GpsTrackDataPoint p1 = makePoint(0, 0, 500.0, 0.0, 0.0);
+        p1.setSpeedInKmhMovingWindow(18.0);
+        GpsTrackDataPoint p2 = makePoint(10_000, 1, 510.0, 100.0, 10.0);
+        p2.setSpeedInKmhMovingWindow(18.0);
+
+        EnergyService service = new EnergyService(buildFactory(), null, null, null, null);
+        TrackEnergySummary summary = service.calculateSummaryWithoutPersisting(
+                List.of(p1, p2),
+                GpsTrack.ACTIVITY_TYPE.BICYCLE,
+                defaultParams);
+
+        assertTrue(summary.getNetEnergyTotalWh() > 0, "What-if summary should be computed on copied points");
+        assertNull(p2.getEnergyTotalWh(), "What-if calculation must not populate original point energy");
+        assertNull(p2.getPowerWatts(), "What-if calculation must not populate original point power");
+    }
+
+    @Test
+    void subtractSummaries_shouldReturnServerSideDelta() {
+        EnergyService service = new EnergyService(buildFactory(), null, null, null, null);
+        TrackEnergySummary baseline = TrackEnergySummary.builder()
+                .netEnergyTotalWh(100)
+                .powerWattsAvg(150)
+                .weightKgUsed(85)
+                .build();
+        TrackEnergySummary adjusted = TrackEnergySummary.builder()
+                .netEnergyTotalWh(125)
+                .powerWattsAvg(180)
+                .weightKgUsed(95)
+                .build();
+
+        TrackEnergySummary delta = service.subtractSummaries(adjusted, baseline);
+
+        assertEquals(25.0, delta.getNetEnergyTotalWh(), 0.001);
+        assertEquals(30.0, delta.getPowerWattsAvg(), 0.001);
+        assertEquals(10.0, delta.getWeightKgUsed(), 0.001);
     }
 
     // ─── Helpers ─────────────────────────────────────────────────────────

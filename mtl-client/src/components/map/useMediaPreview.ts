@@ -25,6 +25,7 @@ export function useMediaPreview(props: MediaPreviewProps) {
   const activeMediaId = ref<number | null>(null);
   const displayUrl = ref<string>('');
   const info = ref<MediaInfo | null>(null);
+  const loadError = ref('');
 
   const mediaUrl = computed(() =>
     activeMediaId.value != null ? mediaContentUrl(activeMediaId.value, PREVIEW_MAX_SIZE) : ''
@@ -42,12 +43,14 @@ export function useMediaPreview(props: MediaPreviewProps) {
   const showNavigation = computed(() => (props.navTotal ?? 0) > 1 && (props.navIndex ?? 0) > 0);
   const canGoPrev = computed(() => props.canGoPrev ?? false);
   const canGoNext = computed(() => props.canGoNext ?? false);
+  const hasLoadError = computed(() => loadError.value.length > 0);
 
   /** Fetch image bytes and return a blob URL that is cache-independent. */
   async function fetchImageBlobUrl(url: string): Promise<string> {
     const resp = await fetch(url);
     if (!resp.ok) throw new Error(`Failed to fetch image: ${resp.status}`);
     const blob = await resp.blob();
+    if (blob.size === 0) throw new Error('Image response was empty');
     return URL.createObjectURL(blob);
   }
 
@@ -71,8 +74,10 @@ export function useMediaPreview(props: MediaPreviewProps) {
     const token = ++loadToken;
     const nextUrl = mediaContentUrl(id, PREVIEW_MAX_SIZE);
     const hasCurrentMedia = activeMediaId.value != null;
+    let nextInfo: MediaInfo | null = null;
 
     clearCrossFade();
+    loadError.value = '';
 
     if (hasCurrentMedia) {
       isSwapPending.value = true;
@@ -81,7 +86,7 @@ export function useMediaPreview(props: MediaPreviewProps) {
     }
 
     try {
-      const nextInfo = await getMediaInfo(id).catch(() => null);
+      nextInfo = await getMediaInfo(id).catch(() => null);
       const nextIsVideo = nextInfo?.indexedFile?.name ? isVideoFileName(nextInfo.indexedFile.name) : false;
       const readyUrl = nextIsVideo ? nextUrl : await fetchImageBlobUrl(nextUrl).catch(() => nextUrl);
 
@@ -95,6 +100,7 @@ export function useMediaPreview(props: MediaPreviewProps) {
       info.value = nextInfo;
       activeMediaId.value = id;
       displayUrl.value = nextIsVideo ? '' : readyUrl;
+      loadError.value = '';
 
       if (oldDisplayUrl) {
         backSrc.value = oldDisplayUrl;
@@ -109,11 +115,12 @@ export function useMediaPreview(props: MediaPreviewProps) {
       }
 
       prefetchNeighbors();
-    } catch {
+    } catch (error) {
       if (token !== loadToken) return;
-      info.value = null;
+      info.value = nextInfo;
       activeMediaId.value = id;
-      displayUrl.value = nextUrl;
+      displayUrl.value = '';
+      loadError.value = previewErrorMessage(error);
     } finally {
       if (token === loadToken) {
         loading.value = false;
@@ -142,7 +149,19 @@ export function useMediaPreview(props: MediaPreviewProps) {
     displayUrl.value = '';
     activeMediaId.value = null;
     info.value = null;
+    loadError.value = '';
     loading.value = false;
+  }
+
+  function retryLoad() {
+    const id = activeMediaId.value ?? props.mediaId;
+    if (id == null) return;
+    void load(id);
+  }
+
+  function onMediaError() {
+    if (activeMediaId.value == null || loadError.value) return;
+    loadError.value = 'The media file could not be decoded by the browser.';
   }
 
   watch(
@@ -190,9 +209,18 @@ export function useMediaPreview(props: MediaPreviewProps) {
     showNavigation,
     canGoPrev,
     canGoNext,
+    hasLoadError,
+    loadError,
+    retryLoad,
+    onMediaError,
   };
 }
 
 function isVideoFileName(fileName: string): boolean {
   return /\.(mp4|mov|m4v|3gp|avi|mkv)$/i.test(fileName);
+}
+
+function previewErrorMessage(error: unknown): string {
+  if (error instanceof Error && error.message) return error.message;
+  return 'The media file could not be loaded.';
 }

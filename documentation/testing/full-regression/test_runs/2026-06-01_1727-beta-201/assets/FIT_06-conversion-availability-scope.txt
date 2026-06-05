@@ -1,0 +1,18 @@
+FIT_06 applicability decision
+
+Coverage condition:
+If GPSBabel or FIT conversion is unavailable, the UI shows a clear conversion/indexing error and the failure is recorded as blocking for FIT support.
+
+Observed run state:
+- GPSBabel was available in the installed beta image.
+- Activity.fit converted to GPX and indexed successfully as track 100005.
+- Original FIT download and converted GPX download both passed.
+
+Terminal decision:
+NOT APPLICABLE for this configured run because the unavailable-converter condition did not occur. No black-box quick-install control was exposed to safely disable GPSBabel without mutating the installed app outside the user-facing regression scope.
+
+Linked positive evidence:
+- assets/FIT_02-fit-index-logs.txt
+- assets/FIT_02-post-fit-status-api.txt
+- assets/FIT_04-download-original-checksum.txt
+- assets/FIT_05-download-gpx-validation.txt

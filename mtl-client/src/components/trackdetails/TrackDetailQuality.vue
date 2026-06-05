@@ -30,7 +30,7 @@
     </details>
 
     <!-- Point Quality Metrics -->
-    <div class="section-label"><i class="bi bi-dot"></i> Point Quality</div>
+    <div class="section-label"><i class="bi bi-rulers"></i> Point Quality</div>
     <div class="metrics-grid">
       <div class="metric-tile">
         <div class="metric-tile__value metric-tile__value--sm">{{ gpsTrack.numberOfTrackPoints ?? '—' }}</div>
@@ -74,6 +74,7 @@
           :options="exclusionReasonOptions"
           option-label="label"
           option-value="value"
+          placeholder="Included"
           class="curation-select"
           :disabled="savingCuration"
           data-test="highlight-exclusion-select"
@@ -87,6 +88,7 @@
           :options="exclusionReasonOptions"
           option-label="label"
           option-value="value"
+          placeholder="Included"
           class="curation-select"
           :disabled="savingCuration"
           data-test="statistics-exclusion-select"
@@ -508,8 +510,12 @@ function formatOptionalBytes(v: number | null | undefined): string {
   display: flex;
   gap: 0.5rem;
   flex-wrap: wrap;
-  padding: 0.85rem 1rem;
-  border-bottom: 1px solid var(--border-subtle);
+  align-items: center;
+  margin: 0.6rem 0.5rem 0.1rem;
+  padding: 0.6rem 0.7rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  background: var(--surface-elevated);
 }
 
 .status-badge {
@@ -520,7 +526,7 @@ function formatOptionalBytes(v: number | null | undefined): string {
   font-weight: 600;
   letter-spacing: 0.05em;
   text-transform: uppercase;
-  padding: 0.25rem 0.7rem;
+  padding: 0.3rem 0.75rem;
   border-radius: 999px;
   border: 1px solid transparent;
 }
@@ -581,10 +587,16 @@ function formatOptionalBytes(v: number | null | undefined): string {
   flex-direction: column;
   align-items: center;
   text-align: center;
-  padding: 0.6rem 0.4rem;
+  padding: 0.65rem 0.4rem;
   border-radius: 8px;
+  border: 1px solid var(--border-subtle);
   background: var(--surface-elevated);
   margin: 0.2rem;
+  transition: border-color 0.15s ease;
+}
+
+.metric-tile:hover {
+  border-color: var(--border-default);
 }
 
 .metric-tile__value--sm {
@@ -610,11 +622,12 @@ function formatOptionalBytes(v: number | null | undefined): string {
 .curation-panel {
   display: flex;
   flex-direction: column;
-  gap: 0.4rem;
+  gap: 0;
   margin: 0 0.5rem 0.35rem;
-  padding: 0.5rem;
-  border: 1px solid var(--border-default);
-  border-radius: 8px;
+  padding: 0.25rem 0.65rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  background: var(--surface-elevated);
 }
 
 .curation-row {
@@ -623,12 +636,17 @@ function formatOptionalBytes(v: number | null | undefined): string {
   align-items: center;
   gap: 0.75rem;
   min-width: 0;
+  padding: 0.5rem 0;
+}
+
+.curation-row + .curation-row {
+  border-top: 1px solid var(--border-subtle);
 }
 
 .curation-row__label {
   color: var(--text-muted);
   font-size: var(--text-xs-size);
-  font-weight: 650;
+  font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
@@ -642,6 +660,7 @@ function formatOptionalBytes(v: number | null | undefined): string {
   display: flex;
   align-items: center;
   gap: 0.45rem;
+  margin-bottom: 0.4rem;
   padding: 0.4rem 0.5rem;
   border-radius: 6px;
   background: var(--warning-bg);
@@ -773,6 +792,11 @@ function formatOptionalBytes(v: number | null | undefined): string {
   user-select: none;
   list-style: none;
   background: var(--surface-elevated);
+  transition: color 0.15s ease;
+}
+
+.info-drawer__summary:hover {
+  color: var(--text-secondary);
 }
 
 .info-drawer__summary::-webkit-details-marker {

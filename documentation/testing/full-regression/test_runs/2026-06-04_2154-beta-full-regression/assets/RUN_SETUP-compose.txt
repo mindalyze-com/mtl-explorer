@@ -1,0 +1,33 @@
+os=Debian GNU/Linux 13 (trixie)
+docker=Docker version 26.1.5+dfsg1, build a72d7cd
+compose=Docker Compose version 2.26.1-4
+images:
+wauwau0977/mytraillog:beta
+wauwau0977/mytraillog-location-search:latest
+wauwau0977/mytraillog-brouter:latest
+postgis/postgis:18-3.6
+ps:
+NAME                             IMAGE                                          STATUS                   PORTS
+mtl-explorer-app-1               wauwau0977/mytraillog:beta                     Up 2 minutes             0.0.0.0:18080->8080/tcp, :::18080->8080/tcp
+mtl-explorer-brouter-1           wauwau0977/mytraillog-brouter:latest           Up 3 minutes             17777-17778/tcp
+mtl-explorer-db-1                postgis/postgis:18-3.6                         Up 3 minutes (healthy)   5432/tcp
+mtl-explorer-location-search-1   wauwau0977/mytraillog-location-search:latest   Up 3 minutes (healthy)   0.0.0.0:18083->8083/tcp, :::18083->8083/tcp
+local_url_http=200
+import_folder=/root/mtl-regression-2026-06-04_2154-beta-full-regression/mtl-explorer/data/gpx
+app_log_startup:
+app-1  | 2026-06-04T20:00:58.343Z  INFO 1 --- [http-nio-8080-exec-4] LoggingFilter                : Request for url=/mtl/api/map-proxy/prod/planet.pmtiles completed in dT=41 for user=mtl user_session_id=XwxKFLHMVn status=206 method=GET
+app-1  | 2026-06-04T20:00:58.424Z  INFO 1 --- [http-nio-8080-exec-5] LoggingFilter                : Request for url=/mtl/api/map-proxy/prod/planet.pmtiles completed in dT=42 for user=mtl user_session_id=XwxKFLHMVn status=206 method=GET
+app-1  | 2026-06-04T20:00:58.496Z  INFO 1 --- [http-nio-8080-exec-1] LoggingFilter                : Request for url=/mtl/api/map-proxy/prod/planet.pmtiles completed in dT=42 for user=mtl user_session_id=XwxKFLHMVn status=206 method=GET
+app-1  | 2026-06-04T20:00:58.580Z  INFO 1 --- [http-nio-8080-exec-7] LoggingFilter                : Request for url=/mtl/api/map-proxy/prod/planet.pmtiles completed in dT=39 for user=mtl user_session_id=XwxKFLHMVn status=206 method=GET
+app-1  | 2026-06-04T20:00:59.383Z  INFO 1 --- [http-nio-8080-exec-2] LoggingFilter                : Request for url=/mtl/api/map/status completed in dT=2 for user=mtl user_session_id=XwxKFLHMVn status=200 method=GET
+app-1  | 2026-06-04T20:00:59.392Z  INFO 1 --- [http-nio-8080-exec-6] LoggingFilter                : Request for url=/mtl/api/data-freshness completed in dT=9 for user=mtl user_session_id=XwxKFLHMVn status=200 method=GET
+app-1  | 2026-06-04T20:00:59.670Z  INFO 1 --- [http-nio-8080-exec-10] LoggingFilter                : Request for url=/mtl/api/map-proxy/prod/planet.pmtiles completed in dT=94 for user=mtl user_session_id=XwxKFLHMVn status=206 method=GET
+app-1  | 2026-06-04T20:01:00.000Z  INFO 1 --- [http-nio-8080-exec-3] LoggingFilter                : Request for url=/mtl/api/map-proxy/prod/planet.pmtiles completed in dT=180 for user=mtl user_session_id=XwxKFLHMVn status=206 method=GET
+app-1  | 2026-06-04T20:01:00.103Z  INFO 1 --- [http-nio-8080-exec-9] LoggingFilter                : Request for url=/mtl/api/map-proxy/prod/planet.pmtiles completed in dT=155 for user=mtl user_session_id=XwxKFLHMVn status=206 method=GET
+app-1  | 2026-06-04T20:01:00.196Z  INFO 1 --- [http-nio-8080-exec-4] LoggingFilter                : Request for url=/mtl/api/map-proxy/prod/planet.pmtiles completed in dT=129 for user=mtl user_session_id=XwxKFLHMVn status=206 method=GET
+app-1  | 2026-06-04T20:01:00.264Z  INFO 1 --- [http-nio-8080-exec-1] LoggingFilter                : Request for url=/mtl/api/map-proxy/prod/planet.pmtiles completed in dT=74 for user=mtl user_session_id=XwxKFLHMVn status=206 method=GET
+app-1  | 2026-06-04T20:01:00.354Z  INFO 1 --- [http-nio-8080-exec-5] LoggingFilter                : Request for url=/mtl/api/map-proxy/prod/planet.pmtiles completed in dT=184 for user=mtl user_session_id=XwxKFLHMVn status=206 method=GET
+app-1  | 2026-06-04T20:01:00.382Z  INFO 1 --- [http-nio-8080-exec-7] LoggingFilter                : Request for url=/mtl/api/map-proxy/prod/planet.pmtiles completed in dT=66 for user=mtl user_session_id=XwxKFLHMVn status=206 method=GET
+app-1  | 2026-06-04T20:01:01.102Z  INFO 1 --- [http-nio-8080-exec-8] LoggingFilter                : Request for url=/mtl/api/map-proxy/prod/world-lowzoom.pmtiles completed in dT=1294 for user=mtl user_session_id=XwxKFLHMVn status=200 method=GET
+app-1  | 2026-06-04T20:01:04.492Z  INFO 1 --- [http-nio-8080-exec-2] LoggingFilter                : Request for url=/mtl/api/map/status completed in dT=2 for user=mtl user_session_id=XwxKFLHMVn status=200 method=GET
+app-1  | 2026-06-04T20:01:27.939Z  INFO 1 --- [http-nio-8080-exec-4] LoggingFilter                : Request for url=/mtl/ completed in dT=3 for user=n/a user_session_id=n/a status=200 method=GET

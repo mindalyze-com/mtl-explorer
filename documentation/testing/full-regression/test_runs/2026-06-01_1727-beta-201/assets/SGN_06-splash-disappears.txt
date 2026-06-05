@@ -1,0 +1,8 @@
+{
+  "splashUrl": "http://167.233.16.201:18080/mtl/",
+  "splashHadLoading": true,
+  "loadedHadLoading": false,
+  "loadedHas11Tracks": true,
+  "splashText": "© Patrick Heusser\nAGPL-3.0\nSign In\n\nLOADING YOUR TRAILS",
+  "loadedText": "500 km\n© OpenStreetMap | Elevation: Mapterhorn\n11 Tracks\nStats\nFilter\nMap\nAnimate\nSegments\nGPS\nPlanner\nAdmin"
+}

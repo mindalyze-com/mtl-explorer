@@ -22,7 +22,7 @@ import { getServerBuildInfo } from '@/utils/ServiceHelper';
 import { applyServerDefaultLocale } from '@/composables/useLocale';
 import { runConnectivityProbe } from '@/composables/useConnectivityProbe';
 
-const PWA_UPDATED_KEY = 'mtl-pwa-just-updated';
+const PWA_UPDATED_KEY = 'mtl.pwa.just-updated';
 
 const toast = useToast();
 provide('toast', toast);

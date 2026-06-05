@@ -1,4 +1,4 @@
-import type { ChartPoint, MetricKey } from '@/utils/chartSeriesAdapter';
+import { MetricKey, type ChartPoint } from '@/utils/chartSeriesAdapter';
 import type { ChartThemeConfig } from '@/utils/chartTheme';
 
 /**
@@ -32,7 +32,7 @@ const elevationConfig: TrackGraphConfig = {
   seriesColor: '#6366f1',
   unit: 'm',
   decimals: 0,
-  rangeMetricKey: 'ALTITUDE_M',
+  rangeMetricKey: MetricKey.AltitudeM,
   extractY: (p) => p.pointAltitude,
 };
 
@@ -44,7 +44,7 @@ const elevationGainConfig: TrackGraphConfig = {
   unit: 'm/h',
   decimals: 0,
   filterNullY: true,
-  rangeMetricKey: 'ELEVATION_GAIN_PER_HOUR_WINDOW',
+  rangeMetricKey: MetricKey.ElevationGainPerHourWindow,
   extractY: (p) => p.elevationGainPerHourWindow,
 };
 
@@ -58,8 +58,16 @@ const speedConfig: TrackGraphConfig = {
   yMin: 0,
   connectNulls: true,
   filterNullY: true,
-  rangeMetricKey: 'SPEED_WINDOW_KMH',
+  rangeMetricKey: MetricKey.SpeedWindowKmh,
   extractY: (p) => p.speedInKmhWindow,
+};
+
+const speedBucketAverageConfig: TrackGraphConfig = {
+  ...speedConfig,
+  title: 'Speed (bucket avg)',
+  rangeMetricKey: MetricKey.SpeedBucketAvgKmh,
+  rangeTooltipLabel: 'bucket segment range',
+  extractY: (p) => p.speedBucketAvgKmh,
 };
 
 const distanceConfig: TrackGraphConfig = {
@@ -94,7 +102,7 @@ const powerConfig: TrackGraphConfig = {
   decimals: 0,
   yMin: 0,
   filterNullY: true,
-  rangeMetricKey: 'POWER_WINDOW_WATTS',
+  rangeMetricKey: MetricKey.PowerWindowWatts,
   extractY: (p) => (p.powerWattsWindow != null ? Math.round(p.powerWattsWindow) : null),
 };
 
@@ -108,3 +116,7 @@ export const trackGraphConfigs = {
 } as const;
 
 export type TrackGraphConfigKey = keyof typeof trackGraphConfigs;
+
+export function speedGraphConfigFor(recommendedSpeedMetric: MetricKey | null | undefined): TrackGraphConfig {
+  return recommendedSpeedMetric === MetricKey.SpeedBucketAvgKmh ? speedBucketAverageConfig : speedConfig;
+}

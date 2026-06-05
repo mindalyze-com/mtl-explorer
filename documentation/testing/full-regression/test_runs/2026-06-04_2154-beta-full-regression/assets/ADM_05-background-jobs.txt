@@ -1,0 +1,48 @@
+{
+  "jobApi": [
+    {
+      "job": "duplicate",
+      "label": "Duplicate Finder",
+      "total": 14,
+      "pending": 0,
+      "done": 14,
+      "progressPercent": 100
+    },
+    {
+      "job": "activityType",
+      "label": "Activity Classifier",
+      "total": 14,
+      "pending": 0,
+      "done": 14,
+      "progressPercent": 100
+    },
+    {
+      "job": "exploration",
+      "label": "Exploration Score",
+      "total": 14,
+      "pending": 0,
+      "done": 14,
+      "progressPercent": 100
+    }
+  ],
+  "pollingAttempts": 0,
+  "uiJobCards": [
+    {
+      "section": "Track Processing Jobs",
+      "text": "Duplicate Finder done 100% 1414 total"
+    },
+    {
+      "section": "Track Processing Jobs",
+      "text": "Activity Classifier done 100% 1414 total"
+    },
+    {
+      "section": "Track Processing Jobs",
+      "text": "Exploration Score done 100% 1414 total"
+    }
+  ],
+  "assertions": {
+    "duplicateVisible": true,
+    "explorationVisible": true,
+    "allJobsSettled": true
+  }
+}
