@@ -303,6 +303,20 @@ describe('TrackDetails tab-scoped interactions', () => {
     ).toBe(true);
   });
 
+  it('keeps graph tuning controls collapsed until the mobile tuning button opens them', async () => {
+    const wrapper = await mountTrackDetails();
+    const tuningButton = wrapper.get('[data-test="graph-tuning-toggle"]');
+
+    expect(tuningButton.attributes('aria-expanded')).toBe('false');
+    expect(wrapper.get('.graphs-toolbar').classes()).not.toContain('graphs-toolbar--tuning-open');
+
+    await tuningButton.trigger('click');
+    await nextTick();
+
+    expect(tuningButton.attributes('aria-expanded')).toBe('true');
+    expect(wrapper.get('.graphs-toolbar').classes()).toContain('graphs-toolbar--tuning-open');
+  });
+
   it('loads an existing disabled range band preference', async () => {
     localStorage.setItem(STORAGE_KEYS.trackDetailsPreferences, JSON.stringify({ showRangeBand: false }));
 

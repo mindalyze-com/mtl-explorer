@@ -68,7 +68,7 @@
                 Retry
               </button>
             </div>
-            <div v-else class="graphs-toolbar">
+            <div v-else :class="['graphs-toolbar', { 'graphs-toolbar--tuning-open': graphTuningOpen }]">
               <div class="graphs-toolbar-section graphs-axis-section">
                 <span class="graphs-toolbar-label">X Axis</span>
                 <div class="graphs-toggle">
@@ -103,77 +103,92 @@
                 </div>
               </div>
 
-              <div class="graphs-toolbar-section graphs-range-section">
-                <span class="graphs-toolbar-label">
-                  Points
-                  <span class="graphs-toolbar-value">{{ chartPointCount }}</span>
-                </span>
-                <div class="graphs-slider-shell">
-                  <button
-                    class="graphs-slider-icon-btn"
-                    type="button"
-                    :disabled="chartPointCount <= CHART_POINT_COUNT_MIN"
-                    aria-label="Load fewer chart points"
-                    title="Load fewer chart points"
-                    @click="nudgeChartPointCount(-CHART_POINT_SLIDER_NUDGE_STEP)"
-                  >
-                    <i class="bi bi-dash-lg"></i>
-                  </button>
-                  <MtlSlider
-                    v-model="chartPointSliderValue"
-                    :min="CHART_POINT_SLIDER_MIN"
-                    :max="CHART_POINT_SLIDER_MAX"
-                    :step="CHART_POINT_SLIDER_STEP"
-                    class="graphs-count-slider"
-                    aria-label="Adjust chart point count"
-                    @change="onChartPointCountInput"
-                    @slideend="onChartPointCountSlideEnd"
-                  />
-                  <button
-                    class="graphs-slider-icon-btn"
-                    type="button"
-                    :disabled="chartPointCount >= CHART_POINT_COUNT_MAX"
-                    aria-label="Load more chart points"
-                    title="Load more chart points"
-                    @click="nudgeChartPointCount(CHART_POINT_SLIDER_NUDGE_STEP)"
-                  >
-                    <i class="bi bi-plus-lg"></i>
-                  </button>
-                </div>
-              </div>
+              <button
+                type="button"
+                data-test="graph-tuning-toggle"
+                :class="['graphs-mobile-tuning-toggle', { 'graphs-mobile-tuning-toggle--active': graphTuningOpen }]"
+                :aria-expanded="graphTuningOpen"
+                aria-controls="track-graph-tuning-controls"
+                :aria-label="`Graph tuning, ${chartPointCount} points, ${graphHeightPx} pixel height`"
+                title="Graph tuning"
+                @click="toggleGraphTuning"
+              >
+                <i class="bi bi-sliders2"></i>
+              </button>
 
-              <div class="graphs-toolbar-section graphs-range-section">
-                <span class="graphs-toolbar-label">Height</span>
-                <div class="graphs-slider-shell">
-                  <button
-                    class="graphs-slider-icon-btn"
-                    type="button"
-                    :disabled="graphHeightPx <= GRAPH_HEIGHT_MIN"
-                    aria-label="Make graphs smaller"
-                    title="Make graphs smaller"
-                    @click="nudgeGraphHeight(-GRAPH_HEIGHT_STEP)"
-                  >
-                    <i class="bi bi-arrows-collapse-vertical"></i>
-                  </button>
-                  <MtlSlider
-                    v-model="graphHeightPx"
-                    :min="GRAPH_HEIGHT_MIN"
-                    :max="GRAPH_HEIGHT_MAX"
-                    :step="GRAPH_HEIGHT_STEP"
-                    class="graphs-height-slider"
-                    aria-label="Adjust graph height"
-                    @change="onGraphHeightCommit"
-                  />
-                  <button
-                    class="graphs-slider-icon-btn"
-                    type="button"
-                    :disabled="graphHeightPx >= GRAPH_HEIGHT_MAX"
-                    aria-label="Make graphs bigger"
-                    title="Make graphs bigger"
-                    @click="nudgeGraphHeight(GRAPH_HEIGHT_STEP)"
-                  >
-                    <i class="bi bi-arrows-expand-vertical"></i>
-                  </button>
+              <div id="track-graph-tuning-controls" class="graphs-tuning-controls">
+                <div class="graphs-toolbar-section graphs-range-section graphs-tuning-section">
+                  <span class="graphs-toolbar-label">
+                    Points
+                    <span class="graphs-toolbar-value">{{ chartPointCount }}</span>
+                  </span>
+                  <div class="graphs-slider-shell">
+                    <button
+                      class="graphs-slider-icon-btn"
+                      type="button"
+                      :disabled="chartPointCount <= CHART_POINT_COUNT_MIN"
+                      aria-label="Load fewer chart points"
+                      title="Load fewer chart points"
+                      @click="nudgeChartPointCount(-CHART_POINT_SLIDER_NUDGE_STEP)"
+                    >
+                      <i class="bi bi-dash-lg"></i>
+                    </button>
+                    <MtlSlider
+                      v-model="chartPointSliderValue"
+                      :min="CHART_POINT_SLIDER_MIN"
+                      :max="CHART_POINT_SLIDER_MAX"
+                      :step="CHART_POINT_SLIDER_STEP"
+                      class="graphs-count-slider"
+                      aria-label="Adjust chart point count"
+                      @change="onChartPointCountInput"
+                      @slideend="onChartPointCountSlideEnd"
+                    />
+                    <button
+                      class="graphs-slider-icon-btn"
+                      type="button"
+                      :disabled="chartPointCount >= CHART_POINT_COUNT_MAX"
+                      aria-label="Load more chart points"
+                      title="Load more chart points"
+                      @click="nudgeChartPointCount(CHART_POINT_SLIDER_NUDGE_STEP)"
+                    >
+                      <i class="bi bi-plus-lg"></i>
+                    </button>
+                  </div>
+                </div>
+
+                <div class="graphs-toolbar-section graphs-range-section graphs-tuning-section">
+                  <span class="graphs-toolbar-label">Height</span>
+                  <div class="graphs-slider-shell">
+                    <button
+                      class="graphs-slider-icon-btn"
+                      type="button"
+                      :disabled="graphHeightPx <= GRAPH_HEIGHT_MIN"
+                      aria-label="Make graphs smaller"
+                      title="Make graphs smaller"
+                      @click="nudgeGraphHeight(-GRAPH_HEIGHT_STEP)"
+                    >
+                      <i class="bi bi-arrows-collapse-vertical"></i>
+                    </button>
+                    <MtlSlider
+                      v-model="graphHeightPx"
+                      :min="GRAPH_HEIGHT_MIN"
+                      :max="GRAPH_HEIGHT_MAX"
+                      :step="GRAPH_HEIGHT_STEP"
+                      class="graphs-height-slider"
+                      aria-label="Adjust graph height"
+                      @change="onGraphHeightCommit"
+                    />
+                    <button
+                      class="graphs-slider-icon-btn"
+                      type="button"
+                      :disabled="graphHeightPx >= GRAPH_HEIGHT_MAX"
+                      aria-label="Make graphs bigger"
+                      title="Make graphs bigger"
+                      @click="nudgeGraphHeight(GRAPH_HEIGHT_STEP)"
+                    >
+                      <i class="bi bi-arrows-expand-vertical"></i>
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -436,6 +451,7 @@ const selectedTrackEventKey = ref<string | number | null>(null);
 const activeTab = ref<TrackDetailTab>(TRACK_DETAIL_TAB_OVERVIEW);
 const xMode = ref<'time' | 'distance'>('time');
 const chartPointSliderValue = ref(trackDetailsChartPointCountToSliderValue(initialChartPointCount));
+const graphTuningOpen = ref(false);
 const isLoading = ref(false);
 const loadError = ref<string | null>(null);
 const chartLoadError = ref<string | null>(null);
@@ -601,6 +617,10 @@ async function nudgeChartPointCount(delta: number) {
 function toggleRangeBand() {
   trackDetailsPreferencesStore.toggleRangeBand();
   triggerChartReflow();
+}
+
+function toggleGraphTuning() {
+  graphTuningOpen.value = !graphTuningOpen.value;
 }
 
 // Called only on mouseup/touchend — saves and reflows without disturbing drag.
@@ -772,6 +792,7 @@ async function load(trackId: number) {
   miniMapCoordinates.value = [];
   renderedShapePoints.value = [];
   selectedTrackEventKey.value = null;
+  graphTuningOpen.value = false;
   loadError.value = null;
   chartLoadError.value = null;
   relatedLoadError.value = null;
@@ -1041,6 +1062,14 @@ function onTrackUpdated(track: GpsTrack) {
   border-right: none;
 }
 
+.graphs-tuning-controls {
+  display: contents;
+}
+
+.graphs-mobile-tuning-toggle {
+  display: none;
+}
+
 .graphs-axis-section {
   min-width: 0;
 }
@@ -1170,22 +1199,100 @@ function onTrackUpdated(track: GpsTrack) {
   }
 
   .graphs-toolbar {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr) minmax(5.6rem, auto) 2.75rem;
+    align-items: stretch;
     margin-inline: 0.75rem;
+    overflow: hidden;
   }
 
   .graphs-toolbar-section {
-    padding: 0.75rem;
+    padding: 0.35rem;
+    border-right: 1px solid var(--border-subtle);
+    border-bottom: none;
+  }
+
+  .graphs-axis-section,
+  .graphs-range-band-section {
+    justify-content: center;
+    min-height: 3.25rem;
+  }
+
+  .graphs-axis-section .graphs-toolbar-label,
+  .graphs-range-band-section .graphs-toolbar-label {
+    display: none;
+  }
+
+  .graphs-axis-section {
+    grid-column: 1;
+  }
+
+  .graphs-range-band-section {
+    grid-column: 2;
+    min-width: 5.6rem;
+  }
+
+  .graphs-mobile-tuning-toggle {
+    display: inline-flex;
+    grid-column: 3;
+    align-items: center;
+    justify-content: center;
+    min-width: 2.75rem;
+    min-height: 2.75rem;
+    padding: 0;
+    color: var(--text-secondary);
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    transition:
+      background 0.15s,
+      color 0.15s;
+  }
+
+  .graphs-mobile-tuning-toggle:hover,
+  .graphs-mobile-tuning-toggle--active {
+    color: var(--accent-text);
+    background: var(--surface-glass);
+  }
+
+  .graphs-mobile-tuning-toggle i {
+    font-size: var(--text-base-size);
+  }
+
+  .graphs-tuning-controls {
+    display: none;
+    grid-column: 1 / -1;
+    grid-template-columns: 1fr;
+    background: color-mix(in srgb, var(--surface-elevated) 72%, transparent);
+    border-top: 1px solid var(--border-subtle);
+  }
+
+  .graphs-toolbar--tuning-open .graphs-tuning-controls {
+    display: grid;
+  }
+
+  .graphs-tuning-controls .graphs-toolbar-section {
+    min-height: 0;
+    padding: 0.7rem 0.75rem;
     border-right: none;
     border-bottom: 1px solid var(--border-subtle);
   }
 
-  .graphs-toolbar-section:last-child {
+  .graphs-tuning-controls .graphs-toolbar-section:last-child {
     border-bottom: none;
   }
 
   .graphs-toolbar-label {
     min-width: 0;
+  }
+
+  .graphs-toggle {
+    height: 100%;
+    min-height: 2.5rem;
+  }
+
+  .toggle-btn {
+    min-height: 2.35rem;
+    padding-inline: 0.5rem;
   }
 
   .graphs-slider-shell {

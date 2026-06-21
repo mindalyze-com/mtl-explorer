@@ -47,6 +47,10 @@ public class ActivityTypeAutoClassifierTest {
         assertGuess("SUP Alone on lake zurich", GpsTrack.ACTIVITY_TYPE.STAND_UP_PADDLE);
         assertGuess("Going with my SUP", GpsTrack.ACTIVITY_TYPE.STAND_UP_PADDLE);
 
+        assertGuess("Rudern: mit Silja auf Boot", GpsTrack.ACTIVITY_TYPE.ROWING);
+        assertGuess("auf Boot", GpsTrack.ACTIVITY_TYPE.ROWING);
+        assertGuess("reboot after deploy", null);
+
         // Special case: Should not recognize SUP
         assertGuess("Was a super trip. ", null); // contains the word "SUP" which could wrongly get SUP (Standup Paddle)
         assertGuess("SUPER trip ", null); // contains the word "SUP" which could wrongly get SUP (Standup Paddle)
@@ -59,6 +63,29 @@ public class ActivityTypeAutoClassifierTest {
         GpsTrack.ACTIVITY_TYPE guessed = ActivityTypeAutoClassifier.guessBasedOnText(null, text, new StringBuilder(), "source1");
         Assertions.assertEquals(expected, guessed);
         System.out.printf("Did guess type '%s' based on text '%s'%n", expected, text);
+    }
+
+    @Test
+    void testGarminTrackTypeMatching() {
+        assertTrackType("rowing_v2", GpsTrack.ACTIVITY_TYPE.ROWING);
+        assertTrackType("RoWiNg_V2", GpsTrack.ACTIVITY_TYPE.ROWING);
+        assertTrackType("SPORT_ROWING", GpsTrack.ACTIVITY_TYPE.ROWING);
+        assertTrackType("SUB_SPORT_INDOOR_ROWING", GpsTrack.ACTIVITY_TYPE.ROWING);
+        assertTrackType("stand_up_paddleboarding_v2", GpsTrack.ACTIVITY_TYPE.STAND_UP_PADDLE);
+        assertTrackType("road_biking", GpsTrack.ACTIVITY_TYPE.BICYCLE);
+        assertTrackType("indoor_cycling", GpsTrack.ACTIVITY_TYPE.BICYCLE);
+        assertTrackType("e_mountain_biking", GpsTrack.ACTIVITY_TYPE.MOUNTAIN_BIKING);
+        assertTrackType("cross_country_skiing", GpsTrack.ACTIVITY_TYPE.SKIING);
+        assertTrackType("motorcycling", GpsTrack.ACTIVITY_TYPE.MOTORBIKING);
+        assertTrackType("driving", GpsTrack.ACTIVITY_TYPE.CAR);
+        assertTrackType("flying", GpsTrack.ACTIVITY_TYPE.AIRPLANE);
+        assertTrackType("unknown_garmin_type", null);
+    }
+
+    private static void assertTrackType(String trackType, GpsTrack.ACTIVITY_TYPE expected) {
+        GpsTrack.ACTIVITY_TYPE guessed = ActivityTypeAutoClassifier.guessBasedOnTrackType(null, trackType, new StringBuilder());
+        Assertions.assertEquals(expected, guessed);
+        System.out.printf("Did guess type '%s' based on track type '%s'%n", expected, trackType);
     }
 
     @Test
@@ -88,6 +115,59 @@ public class ActivityTypeAutoClassifierTest {
         verify(gpsTrackRepository).updateActivityClassificationIfPending(
                 eq(42L),
                 eq(GpsTrack.ACTIVITY_TYPE.MOUNTAIN_BIKING),
+                eq(GpsTrack.ACTIVITY_TYPE_SOURCE.AUTO_GUESS),
+                contains("trackName"));
+    }
+
+    @Test
+    void classifyActivityUsesGarminRowingV2TrackType() {
+        GpsTrackRepository gpsTrackRepository = mock(GpsTrackRepository.class);
+        ActivityTypeAutoClassifier classifier = new ActivityTypeAutoClassifier(gpsTrackRepository);
+        GpsTrack track = new GpsTrack();
+        track.setId(44L);
+        track.setTrackType("rowing_v2");
+        when(gpsTrackRepository.findById(44L)).thenReturn(Optional.of(track));
+        when(gpsTrackRepository.updateActivityClassificationIfPending(
+                eq(44L),
+                eq(GpsTrack.ACTIVITY_TYPE.ROWING),
+                eq(GpsTrack.ACTIVITY_TYPE_SOURCE.AUTO_GUESS),
+                contains("GPX/Garmin track type"))).thenReturn(1);
+
+        ActivityTypeAutoClassifier.ClassificationResult result =
+                classifier.classifyActivity(44L, List.of(new GpsTrackDataPoint()));
+
+        assertTrue(result.updated());
+        assertEquals(GpsTrack.ACTIVITY_TYPE.ROWING, result.determinedType());
+        verify(gpsTrackRepository).updateActivityClassificationIfPending(
+                eq(44L),
+                eq(GpsTrack.ACTIVITY_TYPE.ROWING),
+                eq(GpsTrack.ACTIVITY_TYPE_SOURCE.AUTO_GUESS),
+                contains("GPX/Garmin track type"));
+    }
+
+    @Test
+    void classifyActivityKeepsTitlePrecedenceOverGarminTrackType() {
+        GpsTrackRepository gpsTrackRepository = mock(GpsTrackRepository.class);
+        ActivityTypeAutoClassifier classifier = new ActivityTypeAutoClassifier(gpsTrackRepository);
+        GpsTrack track = new GpsTrack();
+        track.setId(45L);
+        track.setTrackType("BICYCLE");
+        track.setTrackName("Rudern: mit Silja auf Boot");
+        when(gpsTrackRepository.findById(45L)).thenReturn(Optional.of(track));
+        when(gpsTrackRepository.updateActivityClassificationIfPending(
+                eq(45L),
+                eq(GpsTrack.ACTIVITY_TYPE.ROWING),
+                eq(GpsTrack.ACTIVITY_TYPE_SOURCE.AUTO_GUESS),
+                contains("trackName"))).thenReturn(1);
+
+        ActivityTypeAutoClassifier.ClassificationResult result =
+                classifier.classifyActivity(45L, List.of(new GpsTrackDataPoint()));
+
+        assertTrue(result.updated());
+        assertEquals(GpsTrack.ACTIVITY_TYPE.ROWING, result.determinedType());
+        verify(gpsTrackRepository).updateActivityClassificationIfPending(
+                eq(45L),
+                eq(GpsTrack.ACTIVITY_TYPE.ROWING),
                 eq(GpsTrack.ACTIVITY_TYPE_SOURCE.AUTO_GUESS),
                 contains("trackName"));
     }

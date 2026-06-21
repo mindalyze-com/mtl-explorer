@@ -1,0 +1,10 @@
+{
+  "extends": "./tsconfig.app.json",
+  "include": ["env.d.ts", "src/__tests__/mapDataFreshnessReload.spec.ts"],
+  "exclude": [],
+  "compilerOptions": {
+    "composite": false,
+    "noEmit": true,
+    "types": ["vitest/globals"]
+  }
+}

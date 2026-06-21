@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 
 @Slf4j
 @Component
@@ -22,6 +23,73 @@ import java.util.List;
 public class ActivityTypeAutoClassifier {
 
     private final GpsTrackRepository gpsTrackRepository;
+
+    private static final Map<String, GpsTrack.ACTIVITY_TYPE> GARMIN_TRACK_TYPE_ALIASES = Map.ofEntries(
+            Map.entry("street_running", GpsTrack.ACTIVITY_TYPE.RUNNING),
+            Map.entry("trail_running", GpsTrack.ACTIVITY_TYPE.RUNNING),
+            Map.entry("track_running", GpsTrack.ACTIVITY_TYPE.RUNNING),
+            Map.entry("treadmill_running", GpsTrack.ACTIVITY_TYPE.RUNNING),
+            Map.entry("indoor_running", GpsTrack.ACTIVITY_TYPE.RUNNING),
+            Map.entry("virtual_run", GpsTrack.ACTIVITY_TYPE.RUNNING),
+            Map.entry("ultra_run", GpsTrack.ACTIVITY_TYPE.RUNNING),
+            Map.entry("obstacle_run", GpsTrack.ACTIVITY_TYPE.RUNNING),
+
+            Map.entry("casual_walking", GpsTrack.ACTIVITY_TYPE.WALKING),
+            Map.entry("speed_walking", GpsTrack.ACTIVITY_TYPE.WALKING),
+            Map.entry("fitness_walking", GpsTrack.ACTIVITY_TYPE.WALKING),
+            Map.entry("indoor_walking", GpsTrack.ACTIVITY_TYPE.WALKING),
+
+            Map.entry("mountaineering", GpsTrack.ACTIVITY_TYPE.HIKING),
+            Map.entry("rucking", GpsTrack.ACTIVITY_TYPE.HIKING),
+
+            Map.entry("cycling", GpsTrack.ACTIVITY_TYPE.BICYCLE),
+            Map.entry("biking", GpsTrack.ACTIVITY_TYPE.BICYCLE),
+            Map.entry("road_biking", GpsTrack.ACTIVITY_TYPE.BICYCLE),
+            Map.entry("road_cycling", GpsTrack.ACTIVITY_TYPE.BICYCLE),
+            Map.entry("indoor_cycling", GpsTrack.ACTIVITY_TYPE.BICYCLE),
+            Map.entry("virtual_ride", GpsTrack.ACTIVITY_TYPE.BICYCLE),
+            Map.entry("gravel_cycling", GpsTrack.ACTIVITY_TYPE.BICYCLE),
+            Map.entry("gravel_biking", GpsTrack.ACTIVITY_TYPE.BICYCLE),
+            Map.entry("cyclocross", GpsTrack.ACTIVITY_TYPE.BICYCLE),
+            Map.entry("track_cycling", GpsTrack.ACTIVITY_TYPE.BICYCLE),
+            Map.entry("recumbent_cycling", GpsTrack.ACTIVITY_TYPE.BICYCLE),
+            Map.entry("hand_cycling", GpsTrack.ACTIVITY_TYPE.BICYCLE),
+            Map.entry("e_biking", GpsTrack.ACTIVITY_TYPE.BICYCLE),
+
+            Map.entry("e_mountain_biking", GpsTrack.ACTIVITY_TYPE.MOUNTAIN_BIKING),
+
+            Map.entry("cross_country_skiing", GpsTrack.ACTIVITY_TYPE.SKIING),
+            Map.entry("alpine_skiing", GpsTrack.ACTIVITY_TYPE.SKIING),
+            Map.entry("resort_skiing", GpsTrack.ACTIVITY_TYPE.SKIING),
+            Map.entry("backcountry_skiing", GpsTrack.ACTIVITY_TYPE.SKIING),
+            Map.entry("skate_skiing", GpsTrack.ACTIVITY_TYPE.SKIING),
+            Map.entry("classic_skiing", GpsTrack.ACTIVITY_TYPE.SKIING),
+            Map.entry("indoor_skiing", GpsTrack.ACTIVITY_TYPE.SKIING),
+
+            Map.entry("indoor_rowing", GpsTrack.ACTIVITY_TYPE.ROWING),
+            Map.entry("rowing_machine", GpsTrack.ACTIVITY_TYPE.ROWING),
+
+            Map.entry("kayak", GpsTrack.ACTIVITY_TYPE.KAYAKING),
+            Map.entry("sea_kayaking", GpsTrack.ACTIVITY_TYPE.KAYAKING),
+            Map.entry("whitewater_kayaking", GpsTrack.ACTIVITY_TYPE.KAYAKING),
+
+            Map.entry("stand_up_paddleboarding", GpsTrack.ACTIVITY_TYPE.STAND_UP_PADDLE),
+            Map.entry("stand_up_paddle", GpsTrack.ACTIVITY_TYPE.STAND_UP_PADDLE),
+            Map.entry("paddleboarding", GpsTrack.ACTIVITY_TYPE.STAND_UP_PADDLE),
+            Map.entry("sup", GpsTrack.ACTIVITY_TYPE.STAND_UP_PADDLE),
+
+            Map.entry("motorcycling", GpsTrack.ACTIVITY_TYPE.MOTORBIKING),
+            Map.entry("motorcycle", GpsTrack.ACTIVITY_TYPE.MOTORBIKING),
+            Map.entry("motor_biking", GpsTrack.ACTIVITY_TYPE.MOTORBIKING),
+
+            Map.entry("driving", GpsTrack.ACTIVITY_TYPE.CAR),
+            Map.entry("automotive", GpsTrack.ACTIVITY_TYPE.CAR),
+            Map.entry("off_roading", GpsTrack.ACTIVITY_TYPE.CAR),
+            Map.entry("auto_racing", GpsTrack.ACTIVITY_TYPE.CAR),
+
+            Map.entry("flying", GpsTrack.ACTIVITY_TYPE.AIRPLANE),
+            Map.entry("aviation", GpsTrack.ACTIVITY_TYPE.AIRPLANE)
+    );
 
     public ActivityTypeAutoClassifier(GpsTrackRepository gpsTrackRepository) {
         this.gpsTrackRepository = gpsTrackRepository;
@@ -99,17 +167,7 @@ public class ActivityTypeAutoClassifier {
         String fileName = gpsTrack.getIndexedFile() == null ? null : gpsTrack.getIndexedFile().getName();
         activityType = guessBasedOnText(activityType, fileName, typeSourceDetails, "fileName");
         activityType = guessBasedOnText(activityType, gpsTrack.getTrackType(), typeSourceDetails, "trackType"); // not reliable for me especially for older tracks
-
-        // try enum mapping
-        //noinspection ConstantValue
-        if (activityType == null && gpsTrack.getTrackType() != null) {
-            try {
-                activityType = GpsTrack.ACTIVITY_TYPE.valueOf(StringUtils.trim(StringUtils.upperCase(gpsTrack.getTrackType())));
-                typeSourceDetails.append("Found a matching enum through the activity type info. \n");
-            } catch (Exception e) {
-                // ignore
-            }
-        }
+        activityType = guessBasedOnTrackType(activityType, gpsTrack.getTrackType(), typeSourceDetails);
 
         if (activityType == null) {
 
@@ -165,6 +223,51 @@ public class ActivityTypeAutoClassifier {
 
     }
 
+    static GpsTrack.ACTIVITY_TYPE guessBasedOnTrackType(GpsTrack.ACTIVITY_TYPE currentType, String trackType, StringBuilder typeSourceDetails) {
+
+        if (currentType != null || StringUtils.isBlank(trackType)) {
+            return currentType;
+        }
+
+        for (String token : StringUtils.split(trackType, " ,;/")) {
+            GpsTrack.ACTIVITY_TYPE found = mapTrackTypeToken(token);
+            if (found != null) {
+                typeSourceDetails.append("Found the activity based on GPX/Garmin track type '").append(token).append("'. \n");
+                return found;
+            }
+        }
+
+        typeSourceDetails.append("Could not map GPX/Garmin track type '").append(trackType).append("'. \n");
+        return null;
+    }
+
+    private static GpsTrack.ACTIVITY_TYPE mapTrackTypeToken(String token) {
+        if (StringUtils.isBlank(token)) {
+            return null;
+        }
+
+        String normalized = normalizeTrackTypeToken(token);
+
+        GpsTrack.ACTIVITY_TYPE mapped = GARMIN_TRACK_TYPE_ALIASES.get(normalized);
+        if (mapped != null) {
+            return mapped;
+        }
+
+        try {
+            return GpsTrack.ACTIVITY_TYPE.valueOf(StringUtils.upperCase(normalized));
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private static String normalizeTrackTypeToken(String token) {
+        return StringUtils.lowerCase(StringUtils.trim(token))
+                .replaceAll("[^a-z0-9]+", "_")
+                .replaceAll("^_+|_+$", "")
+                .replaceAll("_v\\d+$", "")
+                .replaceFirst("^(sport|sub_sport)_", "");
+    }
+
     static GpsTrack.ACTIVITY_TYPE guessBasedOnText(GpsTrack.ACTIVITY_TYPE currentType, String text, StringBuilder typeSourceDetails, String source) {
 
         // if we already know one, then return
@@ -178,30 +281,35 @@ public class ActivityTypeAutoClassifier {
             text = StringUtils.lowerCase(text);
             text = StringUtils.trim(text);
 
-            //noinspection ConstantValue
-            if (found == null && text.matches(".*walking.*") || text.matches(".*spazieren.*")) {
+            if (found == null && matchesAny(text, ".*walking.*", ".*spazieren.*")) {
                 found = GpsTrack.ACTIVITY_TYPE.WALKING;
             }
-            if (found == null && text.matches(".*langlauf.*") || text.matches(".*skiing.*")) {
+            if (found == null && matchesAny(text, ".*langlauf.*", ".*skiing.*")) {
                 found = GpsTrack.ACTIVITY_TYPE.SKIING;
             }
-            if (found == null && text.matches(".*hiking.*") || text.matches(".*wandern.*")) {
+            if (found == null && matchesAny(text, ".*hiking.*", ".*wandern.*")) {
                 found = GpsTrack.ACTIVITY_TYPE.HIKING;
             }
-            if (found == null && text.matches(".*running.*") || text.matches(".*rennen.*") || text.matches(".*joggen.*")) {
+            if (found == null && matchesAny(text, ".*running.*", ".*rennen.*", ".*joggen.*")) {
                 found = GpsTrack.ACTIVITY_TYPE.RUNNING;
             }
-            if (found == null && text.matches(".*mountain biking.*") || text.matches(".*mountain_biking.*") || text.matches(".*\\s*mtb([^a-z]|$).*")) {
+            if (found == null && matchesAny(text, ".*mountain biking.*", ".*mountain_biking.*", ".*\\s*mtb([^a-z]|$).*")) {
                 found = GpsTrack.ACTIVITY_TYPE.MOUNTAIN_BIKING;
             }
-            if (found == null && text.matches(".*cycling") || text.matches(".*cycle") || text.matches("velo") || text.matches("fahrrad")) {
+            if (found == null && matchesAny(text, ".*cycling", ".*cycle", "velo", "fahrrad")) {
                 found = GpsTrack.ACTIVITY_TYPE.BICYCLE;
             }
-            if (found == null && text.matches("car([^a-z]|$).*") || text.matches("\\s*auto([^a-z]|$).*") || text.matches(".*\\s*motor([^a-z]|$).*") || text.matches(".*\\s*driving([^a-z]|$).*")) {
+            if (found == null && matchesAny(text, "car([^a-z]|$).*", "\\s*auto([^a-z]|$).*", ".*\\s*motor([^a-z]|$).*", ".*\\s*driving([^a-z]|$).*")) {
                 found = GpsTrack.ACTIVITY_TYPE.CAR;
             }
+            if (found == null && matchesAny(text,
+                    ".*(^|[^a-z])rudern?([^a-z]|$).*",
+                    ".*(^|[^a-z])ruderboot([^a-z]|$).*",
+                    ".*(^|[^a-z])boot([^a-z]|$).*")) {
+                found = GpsTrack.ACTIVITY_TYPE.ROWING;
+            }
             // SUP is part of too many other words, hence only if a text starts with it
-            if (found == null && text.matches(".*\\s*sup([^a-z]|$).*") || text.matches(".*stand up paddle.*")) {
+            if (found == null && matchesAny(text, ".*\\s*sup([^a-z]|$).*", ".*stand up paddle.*")) {
                 found = GpsTrack.ACTIVITY_TYPE.STAND_UP_PADDLE;
             }
         }
@@ -210,6 +318,15 @@ public class ActivityTypeAutoClassifier {
         }
 
         return found;
+    }
+
+    private static boolean matchesAny(String text, String... patterns) {
+        for (String pattern : patterns) {
+            if (text.matches(pattern)) {
+                return true;
+            }
+        }
+        return false;
     }
 
 }

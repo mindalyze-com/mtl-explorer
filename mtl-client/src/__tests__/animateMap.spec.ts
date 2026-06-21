@@ -52,6 +52,34 @@ describe('AnimateMap track source', () => {
     expect(wrapper.text()).toContain('2 / 2');
   });
 
+  it('keeps fast on the right by inverting the playback delay mapping', async () => {
+    const wrapper = mount(AnimateMap, {
+      global: {
+        stubs: {
+          BottomSheet: BottomSheetStub,
+          MtlSlider: MtlSliderStub,
+        },
+      },
+    });
+    const vm = wrapper.vm as unknown as { toggle: () => Promise<void>; speedSliderPos: number; animationSpeed: number };
+
+    await vm.toggle();
+    await nextTick();
+
+    const speedLabelsText = wrapper.find('.am-speed-labels').text();
+    expect(speedLabelsText.indexOf('Slow')).toBeLessThan(speedLabelsText.indexOf('Fast'));
+
+    vm.speedSliderPos = 0;
+    await nextTick();
+    expect(vm.animationSpeed).toBe(1000);
+    expect(wrapper.find('.am-speed-ms').text()).toBe('1000ms');
+
+    vm.speedSliderPos = 100;
+    await nextTick();
+    expect(vm.animationSpeed).toBe(1);
+    expect(wrapper.find('.am-speed-ms').text()).toBe('1ms');
+  });
+
   it('does not reset track opacity when closed while inactive', () => {
     const map = {
       getLayer: vi.fn((id: string) => (id === 'tracks-layer' ? { id } : undefined)),

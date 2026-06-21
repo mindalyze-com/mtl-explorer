@@ -46,13 +46,14 @@ import { useMapStateStore } from '@/stores/mapStateStore';
 import { storeToRefs } from 'pinia';
 import { isRemoteRasterMapTheme } from '@/components/map/mapStyleResolver';
 import { TOPO_CONTRAST_THEME } from '@/utils/mapStyle';
+import type { MapCameraState } from '@/components/map/mapRendererTypes';
 
 type ControllerMethod = (this: MapControllerRuntime, ...args: unknown[]) => unknown;
 type BoundControllerMethod = (...args: unknown[]) => unknown;
 
 /** Detent positions for the track details bottom sheet. */
 const TRACK_DETAILS_DETENTS: TrackDetailsDetent[] = [
-  { id: 'compact', height: '35vh' },
+  { id: 'compact', height: '66vh' },
   { id: 'default', height: '75vh' },
   { id: 'expanded', height: '92vh' },
 ];
@@ -612,7 +613,20 @@ export function useMainMapController(
   }
 
   function beforeUnmount(this: MapControllerRuntime) {
-    if (mapStateStore.mapMode !== '3d') {
+    if (mapStateStore.mapMode === '3d' && this.overlayMap) {
+      const center = this.overlayMap.getCenter();
+      const camera: MapCameraState = {
+        center: [center.lng, center.lat],
+        zoom: this.overlayMap.getZoom(),
+        bearing: this.overlayMap.getBearing(),
+        pitch: this.overlayMap.getPitch(),
+      };
+      const roll = this.overlayMap.getRoll?.();
+      if (roll != null && Number.isFinite(roll)) camera.roll = roll;
+      const elevation = this.overlayMap.getCenterElevation?.();
+      if (elevation != null && Number.isFinite(elevation)) camera.elevation = elevation;
+      mapStateStore.setReturnViewportCamera(camera);
+    } else {
       this.stop3dTrackReplay({ restore: false });
     }
     this.stopMapStatusPolling();

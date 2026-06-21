@@ -27,6 +27,7 @@ import { describeError, startStartupTimer, startupLog, startupWarn } from '@/uti
 import { ensurePMTilesProtocol, registerCachingPMTilesArchive } from '@/utils/maplibrePmtilesProtocol';
 import { configureExternalAttributionLinks } from '@/utils/externalAttributionLinks';
 import type { MapControllerMethodDefinitions, MapRendererLifecycleMethods } from './mapControllerRuntime';
+import { useMapStateStore } from '@/stores/mapStateStore';
 
 const GLOBE_ENTER_ZOOM = 3;
 const GLOBE_EXIT_ZOOM = 3.8;
@@ -321,12 +322,22 @@ export function useMapRendererLifecycle(
       // Preserve current viewport so theme switches don't jump the map position.
       // On first load, start from server-provided bounds and fit them after map load.
       const hadOverlayMap = !!this.overlayMap;
-      const initialBounds = hadOverlayMap ? null : initialBoundsFromConfig(this.mapConfig.initialBounds);
-      let initialCenter = initialBounds ? centerFromBounds(initialBounds) : this.mapCenter;
+      const mapStateStore = useMapStateStore();
+      const returnViewportCamera = hadOverlayMap ? null : mapStateStore.returnViewportCamera;
+      const initialBounds =
+        hadOverlayMap || returnViewportCamera ? null : initialBoundsFromConfig(this.mapConfig.initialBounds);
+      let initialCenter =
+        returnViewportCamera?.center ?? (initialBounds ? centerFromBounds(initialBounds) : this.mapCenter);
       let initialZoom = DEFAULT_MAP_ZOOM;
+      let initialBearing = returnViewportCamera?.bearing ?? 0;
+      let initialPitch = returnViewportCamera?.pitch ?? 0;
       if (hadOverlayMap) {
         initialCenter = [this.overlayMap.getCenter().lng, this.overlayMap.getCenter().lat];
         initialZoom = this.overlayMap.getZoom();
+        initialBearing = this.overlayMap.getBearing();
+        initialPitch = this.overlayMap.getPitch();
+      } else if (returnViewportCamera) {
+        initialZoom = returnViewportCamera.zoom;
       }
 
       // Tear down previous maps
@@ -447,6 +458,8 @@ export function useMapRendererLifecycle(
           style,
           center: initialCenter,
           zoom: initialZoom,
+          bearing: initialBearing,
+          pitch: initialPitch,
           minZoom: MERCATOR_MIN_ZOOM,
           attributionControl: false,
           interactive: false, // base map just renders — overlay drives interaction
@@ -511,6 +524,8 @@ export function useMapRendererLifecycle(
           },
           center: initialCenter,
           zoom: initialZoom,
+          bearing: initialBearing,
+          pitch: initialPitch,
           minZoom: MERCATOR_MIN_ZOOM,
           attributionControl: false,
           dragRotate: true,

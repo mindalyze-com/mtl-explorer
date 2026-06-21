@@ -2,16 +2,19 @@ import { flushPromises, mount } from '@vue/test-utils';
 import { defineComponent, nextTick } from 'vue';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import TrackDetailQuality from '@/components/trackdetails/TrackDetailQuality.vue';
-import { updateTrackStatisticsExclusion } from '@/utils/ServiceHelper';
+import { updateTrackActivityType, updateTrackStatisticsExclusion } from '@/utils/ServiceHelper';
 import {
+  GpsTrackActivityTypeEnum,
   StatisticsExclusionUpdateRequestHighlightExclusionReasonEnum as ExclusionReasonEnum,
   type GpsTrack,
 } from 'x8ing-mtl-api-typescript-fetch/dist/esm/models/index';
 
 vi.mock('@/utils/ServiceHelper', () => ({
+  updateTrackActivityType: vi.fn(),
   updateTrackStatisticsExclusion: vi.fn(),
 }));
 
+const updateTrackActivityTypeMock = vi.mocked(updateTrackActivityType);
 const updateTrackStatisticsExclusionMock = vi.mocked(updateTrackStatisticsExclusion);
 
 const SelectStub = defineComponent({
@@ -60,7 +63,7 @@ function track(overrides: Partial<GpsTrack> = {}): GpsTrack {
     trackName: 'Noisy ride',
     loadStatus: 'SUCCESS',
     duplicateStatus: 'UNIQUE',
-    activityType: 'BICYCLE',
+    activityType: GpsTrackActivityTypeEnum.Bicycle,
     numberOfTrackPoints: 120,
     avgDistanceBetweenPoints: 8,
     medianDistanceBetweenPoints: 7,
@@ -85,7 +88,26 @@ function mountQuality(gpsTrack = track()) {
 
 describe('TrackDetailQuality statistics curation', () => {
   beforeEach(() => {
+    updateTrackActivityTypeMock.mockReset();
     updateTrackStatisticsExclusionMock.mockReset();
+  });
+
+  it('edits activity type from the curation panel', async () => {
+    const gpsTrack = track();
+    updateTrackActivityTypeMock.mockResolvedValueOnce({
+      ...gpsTrack,
+      activityType: GpsTrackActivityTypeEnum.Running,
+    } as GpsTrack);
+
+    const wrapper = mountQuality(gpsTrack);
+
+    await wrapper.find('[data-test="activity-type-select"]').setValue(GpsTrackActivityTypeEnum.Running);
+    await flush();
+
+    expect(updateTrackActivityTypeMock).toHaveBeenCalledWith(51, GpsTrackActivityTypeEnum.Running);
+    expect(wrapper.emitted('track-updated')?.[0]?.[0]).toEqual(
+      expect.objectContaining({ activityType: GpsTrackActivityTypeEnum.Running })
+    );
   });
 
   it('edits highlight and statistics exclusion reasons immediately', async () => {

@@ -369,6 +369,7 @@ describe('TrackDetailMiniMap event layer', () => {
       ],
     });
     expect(map.fitBounds).toHaveBeenCalledTimes(1);
+    expect(map.fitBounds.mock.calls[0]?.[1]).toMatchObject({ padding: 20, duration: 0 });
   });
 
   it('draws track coordinates after initial map load even while tiles are still loading', async () => {
@@ -392,6 +393,7 @@ describe('TrackDetailMiniMap event layer', () => {
       ],
     });
     expect(map.fitBounds).toHaveBeenCalledTimes(1);
+    expect(map.fitBounds.mock.calls[0]?.[1]).toMatchObject({ padding: 20, duration: 0 });
   });
 
   it('opens a point popup from a projected line segment when simplified points are sparse', async () => {

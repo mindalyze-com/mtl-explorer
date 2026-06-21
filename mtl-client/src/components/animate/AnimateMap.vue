@@ -41,8 +41,8 @@
                 <div class="am-timeline-slider-wrap">
                   <MtlSlider
                     v-model="speedSliderPos"
-                    :min="0"
-                    :max="100"
+                    :min="ANIMATION_SPEED_SLIDER_MIN"
+                    :max="ANIMATION_SPEED_SLIDER_MAX"
                     :step="1"
                     class="am-timeline-slider"
                     aria-label="Adjust animation speed"
@@ -98,8 +98,8 @@
             </div>
             <MtlSlider
               v-model="speedSliderPos"
-              :min="0"
-              :max="100"
+              :min="ANIMATION_SPEED_SLIDER_MIN"
+              :max="ANIMATION_SPEED_SLIDER_MAX"
               :step="1"
               class="am-speed-slider"
               aria-label="Adjust animation speed"
@@ -129,6 +129,10 @@ const ANIMATE_MAX_VH = 60;
 const ANIMATE_DESKTOP_OPEN_HEIGHT = 320;
 const ANIMATE_MOBILE_OPEN_HEIGHT = 320;
 const RANGE_LOOKBACK_TRACK_COUNT = 50;
+const ANIMATION_SPEED_MIN_MS = 1;
+const ANIMATION_SPEED_MAX_MS = 1000;
+const ANIMATION_SPEED_SLIDER_MIN = 0;
+const ANIMATION_SPEED_SLIDER_MAX = 100;
 const ANIMATION_LAYER_ID = 'animation-layer';
 const ANIMATION_SOURCE_ID = 'animation-source';
 const HIDDEN_TRACK_LAYER_OPACITY = 0;
@@ -267,21 +271,28 @@ const rangeDateEnd = computed(() => {
   const d = parseFeatureStartDate(f);
   return d ? formatDate(d) : '—';
 });
-// Logarithmic speed slider: maps linear 0–100 position ↔ 1–1000 ms
+// Logarithmic speed slider: left is slow (long delay), right is fast (short delay).
 const speedSliderPos = computed({
   get() {
-    const minMs = 1,
-      maxMs = 1000;
-    const pos = Math.round(
-      ((Math.log(animationSpeed.value) - Math.log(minMs)) / (Math.log(maxMs) - Math.log(minMs))) * 100
-    );
-    return Math.min(100, Math.max(0, pos));
+    const normalizedDelay =
+      (Math.log(animationSpeed.value) - Math.log(ANIMATION_SPEED_MIN_MS)) /
+      (Math.log(ANIMATION_SPEED_MAX_MS) - Math.log(ANIMATION_SPEED_MIN_MS));
+    const sliderSpan = ANIMATION_SPEED_SLIDER_MAX - ANIMATION_SPEED_SLIDER_MIN;
+    const pos = Math.round(ANIMATION_SPEED_SLIDER_MIN + (1 - normalizedDelay) * sliderSpan);
+    return Math.min(ANIMATION_SPEED_SLIDER_MAX, Math.max(ANIMATION_SPEED_SLIDER_MIN, pos));
   },
   set(pos: number) {
-    const minMs = 1,
-      maxMs = 1000;
-    const ms = Math.round(Math.exp(Math.log(minMs) + (pos / 100) * (Math.log(maxMs) - Math.log(minMs))));
-    animationSpeed.value = Math.min(1000, Math.max(1, ms));
+    const sliderSpan = ANIMATION_SPEED_SLIDER_MAX - ANIMATION_SPEED_SLIDER_MIN;
+    const clampedPos = Math.min(ANIMATION_SPEED_SLIDER_MAX, Math.max(ANIMATION_SPEED_SLIDER_MIN, pos));
+    const normalizedSlider = (clampedPos - ANIMATION_SPEED_SLIDER_MIN) / sliderSpan;
+    const normalizedDelay = 1 - normalizedSlider;
+    const ms = Math.round(
+      Math.exp(
+        Math.log(ANIMATION_SPEED_MIN_MS) +
+          normalizedDelay * (Math.log(ANIMATION_SPEED_MAX_MS) - Math.log(ANIMATION_SPEED_MIN_MS))
+      )
+    );
+    animationSpeed.value = Math.min(ANIMATION_SPEED_MAX_MS, Math.max(ANIMATION_SPEED_MIN_MS, ms));
   },
 });
 

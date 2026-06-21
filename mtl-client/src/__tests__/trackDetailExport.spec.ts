@@ -2,18 +2,13 @@ import { flushPromises, mount } from '@vue/test-utils';
 import { defineComponent, nextTick } from 'vue';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import TrackDetailOverview from '@/components/trackdetails/TrackDetailOverview.vue';
-import {
-  GpsTrackActivityTypeEnum,
-  GpsTrackStatisticsExclusionReasonEnum,
-} from 'x8ing-mtl-api-typescript-fetch/dist/esm/models/index';
+import { GpsTrackActivityTypeEnum } from 'x8ing-mtl-api-typescript-fetch/dist/esm/models/index';
 
 const mocks = vi.hoisted(() => ({
   calculateEnergyWhatIf: vi.fn(),
   downloadTrackGpx: vi.fn(),
   downloadTrackSourceFile: vi.fn(),
   saveTrackEnergyRiderWeight: vi.fn(),
-  updateTrackActivityType: vi.fn(),
-  updateTrackStatisticsExclusion: vi.fn(),
 }));
 
 vi.mock('@/utils/ServiceHelper', () => ({
@@ -21,8 +16,6 @@ vi.mock('@/utils/ServiceHelper', () => ({
   downloadTrackGpx: mocks.downloadTrackGpx,
   downloadTrackSourceFile: mocks.downloadTrackSourceFile,
   saveTrackEnergyRiderWeight: mocks.saveTrackEnergyRiderWeight,
-  updateTrackActivityType: mocks.updateTrackActivityType,
-  updateTrackStatisticsExclusion: mocks.updateTrackStatisticsExclusion,
 }));
 
 const ActivityTypeBadgeStub = defineComponent({
@@ -179,41 +172,4 @@ describe('Track Detail original and GPX export', () => {
     );
   });
 
-  it('updates activity type from the overview controls', async () => {
-    mocks.updateTrackActivityType.mockResolvedValueOnce({
-      id: 1,
-      activityType: GpsTrackActivityTypeEnum.Running,
-      indexedFile: { index: 'GPS', name: 'ride.fit', path: 'ride.fit' },
-    });
-    const wrapper = mountOverview('ride.fit');
-
-    await wrapper.find('[data-test="overview-activity-type-select"]').setValue(GpsTrackActivityTypeEnum.Running);
-    await flushPromises();
-
-    expect(mocks.updateTrackActivityType).toHaveBeenCalledWith(1, GpsTrackActivityTypeEnum.Running);
-    expect(wrapper.emitted('track-updated')?.[0]?.[0]).toEqual(expect.objectContaining({ activityType: 'RUNNING' }));
-  });
-
-  it('updates statistics exclusion from the overview controls', async () => {
-    mocks.updateTrackStatisticsExclusion.mockResolvedValueOnce({
-      id: 1,
-      activityType: GpsTrackActivityTypeEnum.Bicycle,
-      statisticsExclusionReason: GpsTrackStatisticsExclusionReasonEnum.WrongActivity,
-      indexedFile: { index: 'GPS', name: 'ride.fit', path: 'ride.fit' },
-    });
-    const wrapper = mountOverview('ride.fit');
-
-    await wrapper
-      .find('[data-test="overview-statistics-exclusion-select"]')
-      .setValue(GpsTrackStatisticsExclusionReasonEnum.WrongActivity);
-    await flushPromises();
-
-    expect(mocks.updateTrackStatisticsExclusion).toHaveBeenCalledWith(1, {
-      highlightExclusionReason: undefined,
-      statisticsExclusionReason: GpsTrackStatisticsExclusionReasonEnum.WrongActivity,
-    });
-    expect(wrapper.emitted('track-updated')?.[0]?.[0]).toEqual(
-      expect.objectContaining({ statisticsExclusionReason: 'WRONG_ACTIVITY' })
-    );
-  });
 });

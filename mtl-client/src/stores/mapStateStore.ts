@@ -3,6 +3,7 @@ import { reactive, ref, shallowRef } from 'vue';
 import { REPLAY_DEFAULT_CAMERA_PRESET, REPLAY_DEFAULT_CAMERA_SMOOTHNESS } from '@/components/replay/trackReplayCamera';
 import { REPLAY_DEFAULT_TARGET_DURATION_SECONDS } from '@/components/replay/trackReplayPath';
 import type {
+  MapCameraState,
   MapRendererMode,
   MapSheetState,
   ReplaySourceData,
@@ -54,6 +55,7 @@ export const useMapStateStore = defineStore('mapState', () => {
   const sheets = reactive<MapSheetState>({ ...DEFAULT_SHEET_STATE });
   const replay = reactive<ReplayViewState>({ ...DEFAULT_REPLAY_VIEW_STATE });
   const replaySource = shallowRef<ReplaySourceData | null>(null);
+  const returnViewportCamera = ref<MapCameraState | null>(null);
 
   function setMapMode(mode: MapRendererMode): void {
     mapMode.value = mode;
@@ -85,6 +87,33 @@ export const useMapStateStore = defineStore('mapState', () => {
     Object.assign(replay, DEFAULT_REPLAY_VIEW_STATE, overrides);
   }
 
+  function setReturnViewportCamera(camera: MapCameraState | null | undefined): void {
+    if (!camera || !Array.isArray(camera.center) || camera.center.length < 2) {
+      returnViewportCamera.value = null;
+      return;
+    }
+    const [lng, lat] = camera.center;
+    const zoom = Number(camera.zoom);
+    const bearing = Number(camera.bearing);
+    const pitch = Number(camera.pitch);
+    if (![lng, lat, zoom, bearing, pitch].every((value) => Number.isFinite(Number(value)))) {
+      returnViewportCamera.value = null;
+      return;
+    }
+    returnViewportCamera.value = {
+      center: [Number(lng), Number(lat)],
+      zoom,
+      bearing,
+      pitch,
+      ...(Number.isFinite(Number(camera.roll)) ? { roll: Number(camera.roll) } : {}),
+      ...(Number.isFinite(Number(camera.elevation)) ? { elevation: Number(camera.elevation) } : {}),
+    };
+  }
+
+  function clearReturnViewportCamera(): void {
+    returnViewportCamera.value = null;
+  }
+
   function enter3DReplay(options: Enter3DReplayOptions): void {
     const trackId = Number(options.trackId);
     if (!Number.isFinite(trackId)) return;
@@ -114,6 +143,7 @@ export const useMapStateStore = defineStore('mapState', () => {
   function resetSessionState(): void {
     mapMode.value = '2d';
     replaySource.value = null;
+    clearReturnViewportCamera();
     clearSelectedTrack();
     setActiveTool(null);
     setSheetState(DEFAULT_SHEET_STATE);
@@ -128,6 +158,7 @@ export const useMapStateStore = defineStore('mapState', () => {
     sheets,
     replay,
     replaySource,
+    returnViewportCamera,
     setMapMode,
     setSelectedTrack,
     clearSelectedTrack,
@@ -135,6 +166,8 @@ export const useMapStateStore = defineStore('mapState', () => {
     setSheetState,
     patchReplayState,
     resetReplayState,
+    setReturnViewportCamera,
+    clearReturnViewportCamera,
     enter3DReplay,
     exit3DReplay,
     resetSessionState,

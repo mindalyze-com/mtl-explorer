@@ -16,6 +16,7 @@ describe('useMapStateStore', () => {
     expect(store.replay.active).toBe(false);
     expect(store.replay.showContextTracks).toBe(false);
     expect(store.replay.showTelemetry).toBe(true);
+    expect(store.returnViewportCamera).toBeNull();
   });
 
   it('stores selected track metadata without renderer internals', () => {
@@ -106,5 +107,38 @@ describe('useMapStateStore', () => {
     expect(store.activeToolId).toBe('filter');
     expect(store.sheets.trackDetailsVisible).toBe(true);
     expect(store.sheets.mediaVisible).toBe(true);
+  });
+
+  it('stores a sanitized 2D return viewport for replay renderer swaps', () => {
+    const store = useMapStateStore();
+
+    store.setReturnViewportCamera({
+      center: [8.66, 47.41],
+      zoom: 12.5,
+      bearing: 15,
+      pitch: 20,
+      roll: 2,
+      elevation: 420,
+    });
+
+    expect(store.returnViewportCamera).toEqual({
+      center: [8.66, 47.41],
+      zoom: 12.5,
+      bearing: 15,
+      pitch: 20,
+      roll: 2,
+      elevation: 420,
+    });
+
+    store.resetSessionState();
+    expect(store.returnViewportCamera).toBeNull();
+
+    store.setReturnViewportCamera({
+      center: [Number.NaN, 47.41],
+      zoom: 12.5,
+      bearing: 15,
+      pitch: 20,
+    });
+    expect(store.returnViewportCamera).toBeNull();
   });
 });

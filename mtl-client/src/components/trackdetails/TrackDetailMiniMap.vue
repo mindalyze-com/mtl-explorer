@@ -110,6 +110,8 @@ const SELECTED_EVENT_CORE_STROKE = '#ea580c';
 const METERS_PER_KILOMETER = 1000;
 const SEGMENT_CLICK_TOLERANCE_PX = 12;
 const SEGMENT_CLICK_TOLERANCE_METERS = 120;
+const TRACK_FIT_BOUNDS_PADDING_PX = 20;
+const TRACK_FIT_BOUNDS_DURATION_MS = 0;
 // Hover snap tolerance expressed in screen pixels. Converting this to meters at the
 // current zoom keeps snapping equally forgiving whether zoomed in or out (a fixed
 // metric radius becomes sub-pixel when zoomed out, so the cursor would almost never
@@ -503,7 +505,7 @@ function drawTrack() {
     (b, c) => b.extend(c as [number, number]),
     new maplibregl.LngLatBounds(coordinates[0], coordinates[0])
   );
-  map.fitBounds(bounds, { padding: 20 });
+  map.fitBounds(bounds, { padding: TRACK_FIT_BOUNDS_PADDING_PX, duration: TRACK_FIT_BOUNDS_DURATION_MS });
 
   // The hover marker is a DOM overlay (maplibregl.Marker) and always renders on top
   // of the canvas, so it no longer needs explicit layer reordering after drawTrack().
@@ -1004,7 +1006,7 @@ function toggleCollapse() {
           (b, c) => b.extend(c as [number, number]),
           new maplibregl.LngLatBounds(coordinates[0], coordinates[0])
         );
-        map?.fitBounds(bounds, { padding: 20 });
+        map?.fitBounds(bounds, { padding: TRACK_FIT_BOUNDS_PADDING_PX, duration: TRACK_FIT_BOUNDS_DURATION_MS });
       }
     });
   }

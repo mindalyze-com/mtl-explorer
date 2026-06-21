@@ -4,6 +4,12 @@
     <div class="track-header">
       <div class="track-header__top">
         <span class="track-header__name">{{ trackDisplayName }}</span>
+      </div>
+      <div v-if="canDownloadTrackSource || gpsTrack.startDate" class="track-header__meta">
+        <span v-if="gpsTrack.startDate" class="track-header__date">
+          <i class="bi bi-calendar3"></i>
+          {{ formatDateAndTime(new Date(gpsTrack.startDate)) }}
+        </span>
         <div v-if="canDownloadTrackSource" class="track-header__actions">
           <button
             type="button"
@@ -28,47 +34,9 @@
           </button>
         </div>
       </div>
-      <div class="track-header__meta">
-        <span v-if="gpsTrack.startDate">
-          <i class="bi bi-calendar3"></i>
-          {{ formatDateAndTime(new Date(gpsTrack.startDate)) }}
-        </span>
-      </div>
       <div v-if="trackDescription" class="track-header__desc">
         <i class="bi bi-card-text"></i> {{ trackDescription }}
       </div>
-    </div>
-
-    <div class="section-label section-label--controls"><i class="bi bi-sliders"></i> Track Controls</div>
-    <div class="overview-control-panel" data-test="overview-track-controls">
-      <label class="overview-control">
-        <span class="overview-control__label">Activity Type</span>
-        <select
-          v-model="selectedActivityType"
-          class="overview-control__select"
-          :disabled="savingActivityType"
-          data-test="overview-activity-type-select"
-          @change="onActivityTypeSelect"
-        >
-          <option v-for="option in activityTypeOptions" :key="option.value" :value="option.value">
-            {{ option.label }}
-          </option>
-        </select>
-      </label>
-      <label class="overview-control">
-        <span class="overview-control__label">Statistics</span>
-        <select
-          v-model="selectedStatisticsExclusion"
-          class="overview-control__select"
-          :disabled="savingStatisticsExclusion"
-          data-test="overview-statistics-exclusion-select"
-          @change="onStatisticsExclusionSelect"
-        >
-          <option v-for="option in statisticsExclusionOptions" :key="option.value || 'included'" :value="option.value">
-            {{ option.label }}
-          </option>
-        </select>
-      </label>
     </div>
 
     <!-- Loading skeleton -->
@@ -739,20 +707,14 @@ import {
 import type { ChartPoint } from '@/utils/chartSeriesAdapter';
 import ActivityTypeBadge from '@/components/ui/ActivityTypeBadge.vue';
 import {
-  GpsTrackActivityTypeEnum,
-  GpsTrackStatisticsExclusionReasonEnum,
   type EnergyWhatIfResponse,
   type GpsTrack,
-  type GpsTrackActivityTypeEnum as ActivityType,
-  type GpsTrackStatisticsExclusionReasonEnum as StatisticsExclusionReason,
 } from 'x8ing-mtl-api-typescript-fetch/dist/esm/models/index';
 import {
   calculateEnergyWhatIf,
   downloadTrackGpx as downloadTrackGpxFile,
   downloadTrackSourceFile,
   saveTrackEnergyRiderWeight,
-  updateTrackActivityType,
-  updateTrackStatisticsExclusion,
 } from '@/utils/ServiceHelper';
 
 type TrackDetailInfoPopover = {
@@ -773,7 +735,6 @@ const GPS_INDEX_NAME = 'GPS';
 const GPX_FILE_EXTENSION = '.gpx';
 const UNAVAILABLE_INDEXER_STATUSES = new Set(['REMOVED', 'EXCLUDED']);
 const COPY_STATUS_RESET_MS = 1800;
-const INCLUDED_STATISTICS_VALUE = '';
 const ENERGY_WEIGHT_DEFAULT_KG = 75;
 const ENERGY_WEIGHT_MIN_KG = 35;
 const ENERGY_WEIGHT_MAX_KG = 180;
@@ -781,32 +742,6 @@ const ENERGY_WEIGHT_STEP_KG = 1;
 const ENERGY_PREVIEW_DEBOUNCE_MS = 250;
 const ENERGY_DELTA_CHANGED_EPSILON_WH = 0.05;
 const ENERGY_WEIGHT_CHANGED_EPSILON_KG = 0.05;
-const activityTypeOptions: Array<{ label: string; value: ActivityType }> = [
-  { label: 'Bicycle', value: GpsTrackActivityTypeEnum.Bicycle },
-  { label: 'Walking', value: GpsTrackActivityTypeEnum.Walking },
-  { label: 'Hiking', value: GpsTrackActivityTypeEnum.Hiking },
-  { label: 'Running', value: GpsTrackActivityTypeEnum.Running },
-  { label: 'Mountain biking', value: GpsTrackActivityTypeEnum.MountainBiking },
-  { label: 'Stand-up paddle', value: GpsTrackActivityTypeEnum.StandUpPaddle },
-  { label: 'Rowing', value: GpsTrackActivityTypeEnum.Rowing },
-  { label: 'Kayaking', value: GpsTrackActivityTypeEnum.Kayaking },
-  { label: 'Skiing', value: GpsTrackActivityTypeEnum.Skiing },
-  { label: 'Motorbiking', value: GpsTrackActivityTypeEnum.Motorbiking },
-  { label: 'Car', value: GpsTrackActivityTypeEnum.Car },
-  { label: 'Airplane', value: GpsTrackActivityTypeEnum.Airplane },
-  { label: 'Supersonic', value: GpsTrackActivityTypeEnum.SuperSonic },
-];
-const activityTypeValues = new Set<ActivityType>(Object.values(GpsTrackActivityTypeEnum));
-const statisticsExclusionOptions: Array<{ label: string; value: StatisticsExclusionReason | '' }> = [
-  { label: 'Included in statistics', value: INCLUDED_STATISTICS_VALUE },
-  { label: 'Exclude: GPS noise', value: GpsTrackStatisticsExclusionReasonEnum.GpsNoise },
-  { label: 'Exclude: wrong activity', value: GpsTrackStatisticsExclusionReasonEnum.WrongActivity },
-  { label: 'Exclude: import artifact', value: GpsTrackStatisticsExclusionReasonEnum.ImportArtifact },
-  { label: 'Exclude: other', value: GpsTrackStatisticsExclusionReasonEnum.Other },
-];
-const statisticsExclusionValues = new Set<StatisticsExclusionReason>(
-  Object.values(GpsTrackStatisticsExclusionReasonEnum)
-);
 
 defineOptions({
   name: 'TrackDetailOverview',
@@ -833,10 +768,6 @@ const activeTooltip = ref<string | null>(null);
 const currentInfoContent = ref<InfoContent>([]);
 const showExplorationInfo = ref(false);
 const activeDownload = ref<TrackDownloadKind | null>(null);
-const selectedActivityType = ref<ActivityType | ''>('');
-const selectedStatisticsExclusion = ref<StatisticsExclusionReason | ''>(INCLUDED_STATISTICS_VALUE);
-const savingActivityType = ref(false);
-const savingStatisticsExclusion = ref(false);
 const trackIdCopied = ref(false);
 const trackIdCopyError = ref('');
 const energyAdjustVisible = ref(false);
@@ -847,8 +778,6 @@ const energyWhatIfResult = ref<EnergyWhatIfResponse | null>(null);
 const energySaveLoading = ref(false);
 const toast = inject<ToastService>('toast', { add: () => undefined });
 let trackIdCopyResetTimer: number | null = null;
-let activityTypeSaveSerial = 0;
-let statisticsExclusionSaveSerial = 0;
 let energyWhatIfSerial = 0;
 let energyPreviewDebounceTimer: ReturnType<typeof window.setTimeout> | null = null;
 
@@ -1019,10 +948,8 @@ watch(
 );
 
 watch(
-  () => [props.gpsTrack?.id, props.gpsTrack?.activityType, props.gpsTrack?.statisticsExclusionReason],
+  () => [props.gpsTrack?.id, props.gpsTrack?.activityType],
   () => {
-    selectedActivityType.value = props.gpsTrack?.activityType ?? '';
-    selectedStatisticsExclusion.value = props.gpsTrack?.statisticsExclusionReason ?? INCLUDED_STATISTICS_VALUE;
     energyAdjustWeightKg.value = ENERGY_WEIGHT_DEFAULT_KG;
     energyWhatIfResult.value = null;
     energyWhatIfError.value = '';
@@ -1264,87 +1191,6 @@ async function runTrackDownload(kind: TrackDownloadKind): Promise<void> {
   }
 }
 
-async function onActivityTypeSelect(event: Event): Promise<void> {
-  const value = (event.target as HTMLSelectElement | null)?.value;
-  if (!value || !isActivityType(value)) {
-    selectedActivityType.value = props.gpsTrack?.activityType ?? '';
-    return;
-  }
-  await saveActivityType(value);
-}
-
-async function saveActivityType(activityType: ActivityType): Promise<void> {
-  const track = props.gpsTrack;
-  if (!track?.id || activityType === track.activityType) return;
-
-  const saveSerial = ++activityTypeSaveSerial;
-  savingActivityType.value = true;
-  try {
-    const savedTrack = await updateTrackActivityType(track.id, activityType);
-    if (saveSerial !== activityTypeSaveSerial) return;
-    emit('track-updated', savedTrack);
-    toast.add({ severity: 'success', summary: 'Activity type saved', life: 1800 });
-  } catch (error) {
-    if (saveSerial !== activityTypeSaveSerial) return;
-    console.warn('[track-details] failed to save activity type', { trackId: track.id, activityType, error });
-    selectedActivityType.value = track.activityType ?? '';
-    toast.add({
-      severity: 'error',
-      summary: 'Save failed',
-      detail: 'Could not update the activity type.',
-      life: 4000,
-    });
-  } finally {
-    if (saveSerial === activityTypeSaveSerial) savingActivityType.value = false;
-  }
-}
-
-async function onStatisticsExclusionSelect(event: Event): Promise<void> {
-  const value = (event.target as HTMLSelectElement | null)?.value ?? INCLUDED_STATISTICS_VALUE;
-  if (value !== INCLUDED_STATISTICS_VALUE && !isStatisticsExclusionReason(value)) {
-    selectedStatisticsExclusion.value = props.gpsTrack?.statisticsExclusionReason ?? INCLUDED_STATISTICS_VALUE;
-    return;
-  }
-  await saveStatisticsExclusion(value);
-}
-
-async function saveStatisticsExclusion(value: StatisticsExclusionReason | ''): Promise<void> {
-  const trackId = props.gpsTrack?.id;
-  if (trackId == null || value === (props.gpsTrack?.statisticsExclusionReason ?? INCLUDED_STATISTICS_VALUE)) return;
-
-  const saveSerial = ++statisticsExclusionSaveSerial;
-  savingStatisticsExclusion.value = true;
-  try {
-    const savedTrack = await updateTrackStatisticsExclusion(trackId, {
-      highlightExclusionReason: props.gpsTrack?.highlightExclusionReason,
-      statisticsExclusionReason: value || undefined,
-    });
-    if (saveSerial !== statisticsExclusionSaveSerial) return;
-    emit('track-updated', savedTrack);
-    toast.add({ severity: 'success', summary: 'Statistics curation saved', life: 1800 });
-  } catch (error) {
-    if (saveSerial !== statisticsExclusionSaveSerial) return;
-    console.warn('[track-details] failed to save statistics exclusion', { trackId, value, error });
-    selectedStatisticsExclusion.value = props.gpsTrack?.statisticsExclusionReason ?? INCLUDED_STATISTICS_VALUE;
-    toast.add({
-      severity: 'error',
-      summary: 'Save failed',
-      detail: 'Could not update statistics curation.',
-      life: 4000,
-    });
-  } finally {
-    if (saveSerial === statisticsExclusionSaveSerial) savingStatisticsExclusion.value = false;
-  }
-}
-
-function isActivityType(value: string): value is ActivityType {
-  return activityTypeValues.has(value as ActivityType);
-}
-
-function isStatisticsExclusionReason(value: string): value is StatisticsExclusionReason {
-  return statisticsExclusionValues.has(value as StatisticsExclusionReason);
-}
-
 function toggleTooltip(id: string) {
   activeTooltip.value = activeTooltip.value === id ? null : id;
 }
@@ -1378,17 +1224,14 @@ function computeSummary(details: ChartPoint[]) {
 }
 
 .track-header__top {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.5rem;
-  flex-wrap: wrap;
+  display: block;
 }
 
 .track-header__name {
+  display: block;
   font-size: var(--text-lg-size);
   font-weight: 700;
   color: var(--text-primary);
-  flex: 1 1 auto;
   line-height: var(--text-lg-lh);
   word-break: break-word;
 }
@@ -1397,6 +1240,7 @@ function computeSummary(details: ChartPoint[]) {
   display: inline-flex;
   align-items: center;
   gap: 0.25rem;
+  margin-left: auto;
 }
 
 .track-header__action-btn {
@@ -1434,15 +1278,23 @@ function computeSummary(details: ChartPoint[]) {
 
 .track-header__meta {
   display: flex;
-  align-items: baseline;
-  gap: 0.75rem;
-  margin-top: 0.35rem;
+  align-items: center;
+  gap: 0.6rem;
+  justify-content: space-between;
+  margin-top: 0.45rem;
   font-size: var(--text-sm-size);
   color: var(--text-muted);
   flex-wrap: wrap;
 }
 
-.track-header__meta i {
+.track-header__date {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+  line-height: var(--text-sm-lh);
+}
+
+.track-header__date i {
   font-size: var(--text-xs-size);
   margin-right: 0.25rem;
   opacity: 0.7;
@@ -1477,48 +1329,6 @@ function computeSummary(details: ChartPoint[]) {
 .section-label i {
   font-size: var(--text-xs-size);
   opacity: 0.7;
-}
-
-.section-label--controls {
-  margin-top: 0.4rem;
-}
-
-.overview-control-panel {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
-  gap: 0.6rem;
-  padding: 0 1rem 0.75rem;
-}
-
-.overview-control {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  min-width: 0;
-}
-
-.overview-control__label {
-  font-size: var(--text-xs-size);
-  line-height: var(--text-xs-lh);
-  color: var(--text-muted);
-  font-weight: 700;
-  text-transform: uppercase;
-}
-
-.overview-control__select {
-  width: 100%;
-  min-height: 2.2rem;
-  border: 1px solid var(--border-default);
-  border-radius: 6px;
-  background: var(--surface-elevated);
-  color: var(--text-primary);
-  font-size: var(--text-sm-size);
-  padding: 0.35rem 0.55rem;
-}
-
-.overview-control__select:disabled {
-  opacity: 0.65;
-  cursor: progress;
 }
 
 /* ── Primary Metrics ── */
