@@ -1,0 +1,16 @@
+TBS_08 import/delete stats transition evidence
+
+Run-local prior evidence:
+- IMP_09 post-import: 5 tracks, 1,042,712.01 m, 84,660 s, Bicycle 5; Stats Overview/Tracks and period sections captured.
+- DEL_03 post-delete: 3 tracks, 816,961.34 m, 57,035 s, deleted IDs 100000/100001 absent; stats/browser/filter/map captured.
+
+Fresh current no-stale check:
+- Current filtered IDs: 100002, 100003, 100004, 100005, 100014, 100015, 100016, 100017, 100018, 100019, 100020, 100021, 100023
+- Deleted IDs still present: <none>
+- Current overview summary: {"trackCount":13,"distanceM":825062.56,"durationMs":60632000,"energyWh":4022.94,"oldestStart":"2010-01-01T00:00:00.000+0000","newestStart":"2026-06-19T18:52:21.644+0000"}
+- API matches for Vitry-le-Francois_Langres.gpx: []
+- API matches for VoieVerteHauteVosges.gpx: []
+- API matches for Vitry: []
+- API matches for voie verte: []
+- Browser search Vitry: rows=["No tracks match “Vitry”"]
+- Browser search voie verte: rows=["No tracks match “voie verte”"]

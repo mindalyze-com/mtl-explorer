@@ -1,0 +1,17 @@
+# FMT_02 per-format verification
+
+Stats API filtered to tested non-GPX IDs: trackCount=7, distanceM=23247.83, activityBreakdown=BICYCLE:7
+
+| Ext | Track ID | Detail | Map | Graphs | Original UI download | GPX UI download | Status |
+|---|---:|---|---|---|---|---:|---|
+| .tcx | 100007 | ok | ok | ok | fmt-synthetic.tcx hash ok | 24 trkpt | PASS |
+| .kml | 100008 | ok | ok | ok | fmt-synthetic.kml hash ok | 24 trkpt | PASS |
+| .igc | 100009 | ok | ok | ok | fmt-synthetic.igc hash ok | 24 trkpt | PASS |
+| .nmea | 100010 | ok | ok | ok | fmt-synthetic.nmea hash ok | 24 trkpt | PASS |
+| .kmz | 100011 | ok | ok | ok | fmt-synthetic.kmz hash ok | 24 trkpt | PASS |
+| .geojson | 100012 | ok | ok | ok | fmt-synthetic.geojson hash ok | 24 trkpt | PASS |
+| .gdb | 100013 | ok | ok | ok | fmt-synthetic.gdb hash ok | 24 trkpt | PASS |
+
+UI download events observed: .tcx: original=fmt-synthetic.tcx; gpx=fmt-synthetic.gpx / .kml: original=fmt-synthetic.kml; gpx=fmt-synthetic.gpx / .igc: original=fmt-synthetic.igc; gpx=fmt-synthetic.gpx / .nmea: original=fmt-synthetic.nmea; gpx=fmt-synthetic.gpx / .kmz: original=fmt-synthetic.kmz; gpx=fmt-synthetic.gpx / .geojson: original=fmt-synthetic.geojson; gpx=fmt-synthetic.gpx / .gdb: original=fmt-synthetic.gdb; gpx=fmt-synthetic.gpx
+Previously covered non-GPX FIT: Activity.fit imported/indexed in FIT_02, original source download passed in FIT_04, and GPX download passed in FIT_05.
+Result: PASS

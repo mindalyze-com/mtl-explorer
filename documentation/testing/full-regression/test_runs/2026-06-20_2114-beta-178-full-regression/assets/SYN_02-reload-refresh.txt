@@ -1,0 +1,10 @@
+SYN_02:
+- before map chip/token: 13 Tracks; 552pig__|server_id:4wB4qutecBAh3SvkCNbjuE|config:12|filters:85|index:87|media:0|track_geometry:114|tracks:124
+- upload result: {"success":true,"message":"'SYN_02-reload-refresh-20260621024035.gpx' uploaded successfully. Indexing will begin shortly.","fileName":"SYN_02-reload-refresh-20260621024035.gpx"}
+- uploaded track: {"id":100022,"file":"SYN_02-reload-refresh-20260621024035.gpx","status":"COMPLETED_WITH_SUCCESS","points":11}
+- stale map chip before banner reload: 13 Tracks
+- after reload map chip: 14 Tracks
+- stats sample after reload: ["500 km","© OpenStreetMap","14 Tracks","Stats","Filter","Map","Animate","Segments","GPS","Planner","Admin","Overview","Trends","Tracks","14","TRACKS","989 km","DISTANCE","20h 04m","DURATION","4,442 Wh","ENERGY","13,810 m","ASCENT","ACTIVITY BREAKDOWN","Tracks","Distance","Duration","Energy","Bicycle","9","9","Hiking","3","3","Walking","2","2","HIGHLIGHTS","Longest track","Moselradweg aus Wiki on GPSies.com","518 km","Longest duration","Jura Route 7 / 2011 on GPSies.com","7h 46m","Biggest ascent","Jura Route 7 / 2011 on GPSies.com","6,324 m","Quickest ascent","Track 100005","3,919 m/h","Most energy","Jura Route 7 / 2011 on GPSies.com","1,808 Wh","Fastest 30 s speed","Moselradweg aus Wiki on GPSies.com","58.3 km/h","Peak 30 s power","Jura Route 7 / 2011 on GPSies.com","1,114 W","Most common activity","Bicycle","9 tracks","RECENT ACTIVITY","View all tracks","SYN_02-reload-refresh-20260621024035.gpx","Hiking","21/06/2026, 05:25","2.31 km","10m 00s","SYN_01-freshness-import-20260621023820.gpx","Hiking","21/06/2026, 05:00","2.07 km","9m 00s","ADM_02-adm-upload-success-20260621021405.gpx","Hiking","21/06/2026, 04:45","2.53 km","11m 00s"]
+- assertions: {"uploadAccepted":true,"trackIndexed":true,"bannerAppeared":true,"mapCountRefreshed":true,"statsRefreshed":true}
+- network errors sample: []
+- console messages sample: []

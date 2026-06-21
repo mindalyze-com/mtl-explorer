@@ -1,0 +1,25 @@
+Status: PASS
+Plan name: PLN_07 Codex saved route 1782000798654
+Saved id: 100014
+Zoom clicks until planner usable: 6
+Checks: savedApi=true, savedVisible=true, loadedOk=true, deletedOk=true
+Planner response summary: 200:/mtl/api/planner/status | 200:/mtl/api/planner/config | 200:/mtl/api/planner/status | 200:/mtl/api/planner/status | 202:/mtl/api/planner/prewarm | 200:/mtl/api/planner/route | 200:/mtl/api/planner/save | 200:/mtl/api/planner/plans | 200:/mtl/api/planner/plans | 200:/mtl/api/planner/plans | 200:/mtl/api/planner/plans/100014 | 200:/mtl/api/planner/plans | 204:/mtl/api/planner/plans/100014 | 200:/mtl/api/planner/status | 200:/mtl/api/planner/plans
+Snapshots:
+planner-opened: {"activeTab":"Drawing","distance":"0.00 km","ascent":"0 m","duration":"–","legs":"0","planRowsMatchingName":0,"planRowsSample":[],"saveDialogVisible":false}
+route-ready-to-save: {"activeTab":"Drawing","distance":"555.03 km","ascent":"688 m","duration":"26h 24m","legs":"1","planRowsMatchingName":0,"planRowsSample":[],"saveDialogVisible":false}
+save-dialog-filled: {"activeTab":"Drawing","distance":"555.03 km","ascent":"688 m","duration":"26h 24m","legs":"1","planRowsMatchingName":0,"planRowsSample":[],"saveDialogVisible":true}
+load-tab-saved-plan-visible: {"activeTab":"Load","distance":"","ascent":"","duration":"","legs":"","planRowsMatchingName":1,"planRowsSample":["PLN_07 Codex saved route 1782000798654 555.0 km · Temporary PLN_07 full-regression saved route.21 Jun 2026GPX"],"saveDialogVisible":false}
+saved-plan-loaded: {"activeTab":"Drawing","distance":"555.03 km","ascent":"688 m","duration":"26h 24m","legs":"1","planRowsMatchingName":0,"planRowsSample":[],"saveDialogVisible":false}
+deleted-list: {"activeTab":"Load","distance":"","ascent":"","duration":"","legs":"","planRowsMatchingName":0,"planRowsSample":[],"saveDialogVisible":false}
+Cleanup attempted: false
+Page errors: 0
+Console planner/error/warn messages: 9
+log: Downloading low-zoom PMTiles from /mtl/api/map-proxy/prod/world-lowzoom.pmtiles?mtl-map-source=public&mtl-map-archive=public-default … (IndexedDB fallback)
+log: Low-zoom PMTiles cached successfully (IndexedDB, 42.4 MB)
+log: [zoom] 3.907 | mercator
+log: [zoom] 4.907 | mercator
+log: [zoom] 5.907 | mercator
+log: [zoom] 6.907 | mercator
+log: [zoom] 7.907 | mercator
+log: [zoom] 8.907 | mercator
+info: [planner] Viewport prewarm: 300km side → bbox=[2.38,26.70,5.43,29.39]

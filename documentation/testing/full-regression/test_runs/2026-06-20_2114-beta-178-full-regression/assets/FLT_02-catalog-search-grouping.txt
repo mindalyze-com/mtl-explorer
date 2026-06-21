@@ -1,0 +1,20 @@
+FLT_02 filter catalog search/grouping evidence
+Status: PASS
+URL: http://178.104.209.132:18080/mtl/filter
+
+Default catalog: 18 filters, rows=18, active chip=All 18
+Default chips: All 18 [active] | Core 1 | Activity 4 | Date & Time 5 | Performance 4 | Quality 4
+Core (1): Smart Base Filter [selected]
+Activity (4): Activities by type, Activities by keyword, Non Motorized Tracks, Motorized Tracks
+Date & Time (5): Tracks by year, Tracks by day, Tracks by quarter, Tracks by day of week, Tracks by time of day
+Performance (4): Tracks by avg speed (gradient), Tracks by distance (gradient), Tracks by elevation gain (gradient), Tracks by energy (gradient)
+Quality (4): Suspicious tracks, Duplicate tracks, Tracks with Errors, Statistics curation
+
+Search query: "speed", rows=2, active chip=All 18
+Performance (2): Tracks by avg speed (gradient), Tracks by energy (gradient)
+
+Group chip after clearing search: query="", rows=4, active chip=Performance 4
+Performance (4): Tracks by avg speed (gradient), Tracks by distance (gradient), Tracks by elevation gain (gradient), Tracks by energy (gradient)
+
+Screenshots: FLT_02-catalog-default.webp=31952B, FLT_02-catalog-search-speed.webp=30200B, FLT_02-catalog-performance-group.webp=34170B
+Console counts: warnings=0; errors=0; pageErrors=0

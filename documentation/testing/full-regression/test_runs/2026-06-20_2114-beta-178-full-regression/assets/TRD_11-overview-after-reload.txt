@@ -1,0 +1,11 @@
+TRD_11 clean reload persistent-state verification
+Status: PASS
+URL: http://178.104.209.132:18080/mtl/track/100005
+Activity: Walking (WALKING)
+Overview net energy: 346.7 Wh
+Overview avg power: 702 W
+Overview kcal values: 298, 603.9, 298.5, 647.2
+Energy excerpt: Energy 346.7 Wh Net Total1,248,012 J · 298 kcal mechanical equivalent 702 W Avg Power 603.9 kcal/h mechanical equivalent 347 W Avg Moving Power 298.5 kcal/h mechanical equivalent · excl. breaks 752 W Max 30s Power 647.2 kcal/h mechanical equivalent Breakdown346.7 Wh Gravitational ↑352.6 Wh Gravitational ↓0.0 Wh Aero Drag0.0 Wh Rolling Resist.0.0 Wh Kinetic (pos.)
+Console warnings/errors: error: Failed to load resource: the server responded with a status of 404 () || error: Failed to load resource: the server responded with a status of 404 ()
+Page errors: none captured
+Screenshot: TRD_11-overview-after-reload.webp {"q":"76","resizeWidth":"900","size":9230}

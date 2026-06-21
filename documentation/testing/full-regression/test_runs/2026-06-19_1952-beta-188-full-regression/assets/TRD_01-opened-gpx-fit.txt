@@ -1,0 +1,19 @@
+TRD_01 GPX/FIT detail opening evidence
+
+GPX-backed track:
+- Source packet: DEL_04.
+- User-facing navigation: Stats/track browser search for remaining source filenames after deletion.
+- Opened track id: 100003.
+- Source filename searched: MoselradwegAusWiki.gpx.
+- Visible row name: Moselradweg aus Wiki on GPSies.com.
+- Result: Track Details opened with map and Overview content.
+
+FIT-backed track:
+- Source packet: FIT_03.
+- User-facing navigation: Stats > Tracks search result.
+- Opened track id: 100005.
+- Source filename/name: Activity.fit.
+- Result: Track Details opened with Overview, detail mini-map, tabs, and controls.
+
+Conclusion:
+TRD_01 passes. One GPX-backed and one FIT-backed track were opened from user-facing navigation and their track IDs/source filenames are recorded.

@@ -96,6 +96,7 @@ function overview(overrides: Partial<StatisticsOverviewResponseDto> = {}): Stati
       trackCount: 2,
       distanceM: 125_000,
       durationMs: 28_800_000,
+      ascentM: 1500,
       energyWh: 1_800,
       oldestStart: new Date(2026, 0, 1, 10),
       newestStart: new Date(2026, 0, 3, 12),
@@ -226,6 +227,7 @@ describe('StatisticsOverview', () => {
 
     expect(fetchStatisticsOverviewMock).toHaveBeenCalledOnce();
     expect(wrapper.find('[data-test="summary-tracks"]').text()).toContain('2');
+    expect(wrapper.find('[data-test="summary-ascent"]').text()).toContain('1,500 m');
     expect(wrapper.find('[data-test="filter-banner"]').text()).toContain('Showing 2 of 4 tracks');
     expect(wrapper.text()).toContain('Filtered century');
     expect(wrapper.text()).not.toContain('99');

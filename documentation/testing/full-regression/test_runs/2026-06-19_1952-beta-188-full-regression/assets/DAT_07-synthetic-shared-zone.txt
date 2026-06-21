@@ -1,0 +1,6 @@
+Synthetic shared-zone data staged outside watched import folder:
+- synthetic/synthetic-shared-zone-a.gpx
+- synthetic/synthetic-shared-zone-b.gpx
+Both are fully synthetic, anonymized Zurich-area mini tracks with four timestamped trkpt points.
+Both cross the same small coordinate corridor from about 47.3768,8.5415 to 47.3780,8.5433, making a repeatable two-point segment for measuring/comparison/virtual-race checks.
+Checksums and counts are in DAT_03-source-manifest.txt.

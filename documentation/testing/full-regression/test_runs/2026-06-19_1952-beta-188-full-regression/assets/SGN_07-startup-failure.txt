@@ -1,0 +1,29 @@
+SGN_07 startup failure / retry evidence
+
+Target: http://188.245.169.80:18080/mtl/
+Fault injected: stopped only the quick-install db service while leaving the app service running.
+
+Observed during fault:
+- Browser navigation/reload to the app did not complete; the page navigation command timed out.
+- No visible retry action or actionable failure state was observed.
+
+Observed after restoring db:
+- The db service was started again and later reported running/healthy.
+- Server API recovery checks succeeded from the target host:
+  - /mtl/v3/api-docs -> HTTP 200 application/json
+  - /mtl/api/auth/demo-status -> HTTP 200 application/json
+- Authenticated API checks after db recovery returned tracks and data-freshness successfully.
+- Fresh browser tabs still showed the startup/progress shell instead of a retry UI:
+  - MTL Explorer branding / copyright
+  - rotating startup text such as "Loading your trails", "Almost there", and "Preparing activity stats"
+  - map region present
+  - "0 Tracks"
+  - no retry control
+
+Recovery performed:
+- Restarted the app service after restoring db.
+- Verified all quick-install compose services were running afterward; db and location-search were healthy.
+- Rechecked unauthenticated API endpoints successfully.
+
+Conclusion:
+SGN_07 fails. When the startup dependency is unavailable, the client can remain in a frozen/progress startup state without an actionable retry.

@@ -1,0 +1,8 @@
+Five public GPX files staged outside watched import folder:
+- JuraRoute72011.gpx: 1,414 trkpt
+- MoselradwegAusWiki.gpx: 2,954 trkpt
+- Vitry-le-Francois_Langres.gpx: 1,688 trkpt
+- VoieVerteHauteVosges.gpx: 1,298 trkpt
+- Lannion_Plestin_parcours24.4RE.gpx: 381 trkpt
+All have real trk/trkseg/trkpt sequences and are not waypoint-only files.
+Source details/checksums: DAT_03-source-manifest.txt.

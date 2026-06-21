@@ -1,0 +1,38 @@
+FLT_02 filter catalog browsing/search evidence
+
+Initial catalog state:
+- Search box empty.
+- Active group chip: `All 18`.
+- Group chips: `All 18`, `Core 1`, `Activity 4`, `Date & Time 5`, `Performance 4`, `Quality 4`.
+- Visible group titles: CORE, ACTIVITY, DATE & TIME, PERFORMANCE, QUALITY.
+- Visible rows: 18 total, including active `Activities by keyword`.
+
+Group browsing:
+- Clicked `Activity 4` chip.
+- Active group chip changed to `Activity 4`.
+- Visible group title became ACTIVITY only.
+- Visible rows reduced to four:
+  - Activities by type
+  - Activities by keyword
+  - Non Motorized Tracks
+  - Motorized Tracks
+
+Search:
+- Returned to `All 18`.
+- Entered catalog search query `distance`.
+- Search value showed `distance`.
+- Visible group title became PERFORMANCE.
+- Visible rows reduced to:
+  - Tracks by distance (gradient)
+  - Tracks by energy (gradient), whose description includes distance.
+
+Clear search:
+- Cleared search box.
+- Search value returned to empty.
+- Active group chip remained `All 18`.
+- Full group title set returned: CORE, ACTIVITY, DATE & TIME, PERFORMANCE, QUALITY.
+- Full 18-row catalog returned.
+
+State left:
+- Catalog search cleared.
+- Active filter remains `Activities by keyword` with keyword `synthetic` from FLT_01.

@@ -1,0 +1,92 @@
+# IMP_01 baseline API summary
+{
+  "captured": "2026-06-19T20:06:57+0200 CEST",
+  "tracks_get": {
+    "count": 0,
+    "sample": null
+  },
+  "tracks_get_simplified": {
+    "standardFilterCount": 0,
+    "numberOfFilteredMatchedTracks": 0,
+    "filteredTracksCount": 0
+  },
+  "track_overview_summary": {
+    "trackCount": 0,
+    "distanceM": 0.0,
+    "durationMs": 0.0,
+    "energyWh": 0.0
+  },
+  "freshness": {
+    "freshnessToken": "6tTvRs__|server_id:RBDC887cKZ7gqxDqg7roVv|config:9|filters:85|index:0|media:0|track_geometry:0|tracks:0",
+    "changedAt": "2026-06-19T17:55:22.364+0000",
+    "items": [
+      {
+        "key": "config",
+        "revision": 9,
+        "changedAt": "2026-06-19T17:55:22.364+0000"
+      },
+      {
+        "key": "filters",
+        "revision": 85,
+        "changedAt": "2026-06-19T17:54:55.378+0000"
+      },
+      {
+        "key": "index",
+        "revision": 0,
+        "changedAt": "2026-06-19T17:54:45.553+0000"
+      },
+      {
+        "key": "media",
+        "revision": 0,
+        "changedAt": "2026-06-19T17:54:45.553+0000"
+      },
+      {
+        "key": "track_geometry",
+        "revision": 0,
+        "changedAt": "2026-06-19T17:54:45.553+0000"
+      },
+      {
+        "key": "tracks",
+        "revision": 0,
+        "changedAt": "2026-06-19T17:54:45.553+0000"
+      }
+    ]
+  },
+  "indexer_status": [],
+  "jobs_status": [
+    {
+      "job": "duplicate",
+      "label": "Duplicate Finder",
+      "total": 0,
+      "pending": 0,
+      "done": 0,
+      "progressPercent": 100
+    },
+    {
+      "job": "activityType",
+      "label": "Activity Classifier",
+      "total": 0,
+      "pending": 0,
+      "done": 0,
+      "progressPercent": 100
+    },
+    {
+      "job": "exploration",
+      "label": "Exploration Score",
+      "total": 0,
+      "pending": 0,
+      "done": 0,
+      "progressPercent": 100
+    }
+  ],
+  "map_config_summary": {
+    "tileMode": "local",
+    "tileSource": "public",
+    "remoteRasterStyles": [
+      "dark",
+      "light",
+      "light-topo"
+    ],
+    "hasRemoteTileUrl": false
+  }
+}

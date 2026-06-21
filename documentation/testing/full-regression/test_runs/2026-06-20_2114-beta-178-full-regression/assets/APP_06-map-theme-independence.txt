@@ -1,0 +1,19 @@
+available theme tiles in Light: 7
+select light / OSM Topo Contrast: {"uiTheme":"light","requestedUi":"light","label":"OSM Topo Contrast","code":"topo-contrast","storedTheme":"topo-contrast","active":["PreferredOSM Topo Contrast"],"canvases":[{"w":1204,"h":900},{"w":1204,"h":900}]}
+select light / OSM Topo Light: {"uiTheme":"light","requestedUi":"light","label":"OSM Topo Light","code":"light-topo","storedTheme":"light-topo","active":["OSM Topo Light"],"canvases":[{"w":1204,"h":900},{"w":1204,"h":900}]}
+select light / Swiss Topo Color: {"uiTheme":"light","requestedUi":"light","label":"Swiss Topo Color","code":"swisstopo-color","storedTheme":"swisstopo-color","active":["SwissSwiss Topo Color"],"canvases":[{"w":1204,"h":900},{"w":1204,"h":900}]}
+select light / Swiss Topo Light: {"uiTheme":"light","requestedUi":"light","label":"Swiss Topo Light","code":"swisstopo","storedTheme":"swisstopo","active":["Swiss Topo Light"],"canvases":[{"w":1204,"h":900},{"w":1204,"h":900}]}
+select light / OSM Light: {"uiTheme":"light","requestedUi":"light","label":"OSM Light","code":"light","storedTheme":"light","active":["OSM Light"],"canvases":[{"w":1204,"h":900},{"w":1204,"h":900}]}
+select light / OSM Gray: {"uiTheme":"light","requestedUi":"light","label":"OSM Gray","code":"grayscale","storedTheme":"grayscale","active":["OSM Gray"],"canvases":[{"w":1204,"h":900},{"w":1204,"h":900}]}
+select light / OSM Dark: {"uiTheme":"light","requestedUi":"light","label":"OSM Dark","code":"dark","storedTheme":"dark","active":["OSM Dark"],"canvases":[{"w":1204,"h":900},{"w":1204,"h":900}]}
+available theme tiles in Dark: 7
+select dark / OSM Topo Contrast: {"uiTheme":"dark","requestedUi":"dark","label":"OSM Topo Contrast","code":"topo-contrast","storedTheme":"topo-contrast","active":["PreferredOSM Topo Contrast"],"canvases":[{"w":1204,"h":900},{"w":1204,"h":900}]}
+select dark / OSM Topo Light: {"uiTheme":"dark","requestedUi":"dark","label":"OSM Topo Light","code":"light-topo","storedTheme":"light-topo","active":["OSM Topo Light"],"canvases":[{"w":1204,"h":900},{"w":1204,"h":900}]}
+select dark / Swiss Topo Color: {"uiTheme":"dark","requestedUi":"dark","label":"Swiss Topo Color","code":"swisstopo-color","storedTheme":"swisstopo-color","active":["SwissSwiss Topo Color"],"canvases":[{"w":1204,"h":900},{"w":1204,"h":900}]}
+select dark / Swiss Topo Light: {"uiTheme":"dark","requestedUi":"dark","label":"Swiss Topo Light","code":"swisstopo","storedTheme":"swisstopo","active":["Swiss Topo Light"],"canvases":[{"w":1204,"h":900},{"w":1204,"h":900}]}
+select dark / OSM Light: {"uiTheme":"dark","requestedUi":"dark","label":"OSM Light","code":"light","storedTheme":"light","active":["OSM Light"],"canvases":[{"w":1204,"h":900},{"w":1204,"h":900}]}
+select dark / OSM Gray: {"uiTheme":"dark","requestedUi":"dark","label":"OSM Gray","code":"grayscale","storedTheme":"grayscale","active":["OSM Gray"],"canvases":[{"w":1204,"h":900},{"w":1204,"h":900}]}
+select dark / OSM Dark: {"uiTheme":"dark","requestedUi":"dark","label":"OSM Dark","code":"dark","storedTheme":"dark","active":["OSM Dark"],"canvases":[{"w":1204,"h":900},{"w":1204,"h":900}]}
+Result count: 14
+Console/page errors: []
+PASS: true

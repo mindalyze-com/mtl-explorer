@@ -1,0 +1,9 @@
+FLT_04 date/text/geo persistence evidence
+Status: FAIL
+Before reload: match=2, groups=1, keyword=Path, from=2000-01-01 00:00, to=2035-12-31 23:59, geo=Circle at 34.7442, 5.8696 — r=588.1 km
+After reload: match=2, groups=1, keyword=Path, from=2000-01-01 00:00, to=2035-12-31 23:59, geo=
+Storage before keys: string=SEARCH_WORD; date=DATE_TIME_FROM,DATE_TIME_TO; circles=
+Storage after keys: string=SEARCH_WORD; date=DATE_TIME_FROM,DATE_TIME_TO; circles=
+Storage after circle: {}
+Screenshots: FLT_04-params-before-reload.webp=27788B(q76,w1200), FLT_04-params-after-reload.webp=31326B(q76,w1200)
+Console counts: warnings=0; errors=2; pageErrors=0

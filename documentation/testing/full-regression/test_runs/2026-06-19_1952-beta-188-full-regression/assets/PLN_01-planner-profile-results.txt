@@ -1,0 +1,15 @@
+PLN_01 planner open/profile results
+
+[opened]
+- URL: http://188.245.169.80:18080/mtl/plan
+- active nav: Planner
+- header tabs: [{"text":"Drawing","cls":"planner-header-tab planner-header-tab--active"},{"text":"Load","cls":"planner-header-tab"}]
+- profile controls: [{"text":"Hiking","cls":"planner-toolbar__profile-btn"}]
+- status markers: ready, Hiking, Cycling, Distance, Ascent, Duration, Elevation profile
+
+[profile]
+- initial profile button: Hiking
+- visible profile options: [{"text":"Hiking","cls":"planner-toolbar__profile-btn"},{"text":"Hiking","cls":"planner-toolbar__dropdown-item is-active"},{"text":"Road Bike","cls":"planner-toolbar__dropdown-item"},{"text":"Mountain Hiking","cls":"planner-toolbar__dropdown-item"}]
+- selected target: Road Bike
+- post-selection profile controls: [{"text":"Road Bike","cls":"planner-toolbar__profile-btn"}]
+- status markers: ready, Hiking, Cycling, Distance, Ascent, Duration, Elevation profile

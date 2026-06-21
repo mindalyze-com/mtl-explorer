@@ -1,0 +1,23 @@
+MAP_14 local-vector fallback evidence
+
+Coverage requirement:
+- In local-vector mode, simulate local PMTiles unavailability only when a safe control exists.
+- Examples from workflow: stop a local map-server sidecar in a local-maps profile or block local PMTiles requests.
+- Otherwise mark MAP_14 BLOCKED with the missing control.
+
+Target environment facts:
+- Quick-install compose services: app, db, brouter, location-search.
+- No local map-server sidecar is present in this quick-install stack.
+- Before the MAP_13 temporary remote override, /api/map/status reported:
+  - ready: true
+  - phase: public-fallback
+  - message: Using hosted map service
+  - archive_id: public-default
+- /api/map/config in normal mode used `/mtl/api/map-proxy/prod/planet.pmtiles` for the public default archive.
+
+Reason not simulated:
+- There is no safe, documented control in this quick-install deployment to make only local vector PMTiles unavailable while leaving the app, tracks, and other services intact.
+- Stopping the app or network broadly would test generic outage handling rather than local-vector fallback.
+
+Conclusion:
+MAP_14 is BLOCKED. The run lacks a safe control for local vector tile unavailability.

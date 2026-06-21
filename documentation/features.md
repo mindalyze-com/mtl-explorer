@@ -17,7 +17,7 @@ analyzing, replaying, and planning routes from personal track data.
 ## Map
 
 - Full archive MapLibre map with cache-first track loading, background sync, stale-data detection, and offline fallback.
-- Base themes for OSM topo/light/dark and Swiss Color/Light topographic maps, backed by local PMTiles or remote raster tiles depending on deployment.
+- Base themes for OSM Topo Contrast, OSM Topo Light, OSM Light/Gray/Dark, and Swiss Topo Color/Light maps, backed by local PMTiles or remote raster tiles depending on deployment.
 - Maps and data panel with thumbnail theme selection, layer visibility/opacity sliders, and reset defaults.
 - Opt-in 3D terrain view using Mapterhorn elevation tiles, with synchronized base/overlay maps and a compact map control.
 - Layer controls for basemap, tracks, photo/media, GPS points, heatmap, Waymarked Trails, and Swiss route/trail overlays.

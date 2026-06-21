@@ -1,0 +1,15 @@
+# TRD_02 detail surface cross-check
+
+Source evidence:
+- TRD_01 opened FIT-backed Track 100005 from Stats > Tracks search.
+- FIT_03 opened Track 100005 and captured detail surfaces for Overview, Graphs, Quality, Related, and Events.
+
+Required surfaces and evidence:
+- Overview: FIT_03 overview screenshot/text shows Track Details #100005, Activity.fit, statistics, controls, and mini-map.
+- Charts: FIT_03 graphs screenshot/text shows speed and elevation charts plus graph controls.
+- Related-tracks list: FIT_03 related screenshot/text shows previous tracks and current track.
+- Event list: FIT_03 events screenshot/text shows the Events tab loaded and reported no track events.
+- Mini-map: FIT_03 overview and retest point-popup screenshots show the detail mini-map rendered.
+- Quality info: FIT_03 quality screenshot/text shows load messages, point quality, curation, and activity classification.
+
+Result: PASS

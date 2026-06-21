@@ -1,0 +1,6 @@
+ACC_05 explicit constraint log
+- Target origin is remote plain HTTP: http://178.104.209.132:18080/mtl/. Per GPS_01, live geolocation permission/marker checks may be NOT APPLICABLE on this origin because browsers require HTTPS or localhost.
+- Target initially had no Docker command and inactive Docker service. Docker prerequisites were installed from Docker's stable Debian apt repository before MTL Explorer quick install.
+- SSH password was expired on first login and the server required immediate password rotation before commands could run. The rotated credential is not recorded in run artifacts.
+- In-app browser plugin failed before initialization with local metadata error; standalone Playwright 1.61.0 with installed Google Chrome channel is the browser automation fallback.
+- Offline installed-PWA behavior will be handled by NET_01 semantics; normal browser tab evidence cannot pass installed-PWA-only offline reload.

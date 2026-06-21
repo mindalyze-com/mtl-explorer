@@ -7,11 +7,16 @@ import org.springframework.stereotype.Service;
 
 import java.util.*;
 
+import static com.x8ing.mtl.server.mtlserver.gpx.GPXDirectoryWatcherService.INDEX_GPS;
+import static com.x8ing.mtl.server.mtlserver.jobs.media.indexer.MediaIndexerService.INDEX_MEDIA;
+
 @Service
 @JsonPropertyOrder({
         "indexerRepository"
 })
 public class IndexerStatusService {
+
+    private static final List<String> DEFAULT_INDEX_NAMES = List.of(INDEX_GPS, INDEX_MEDIA);
 
     private final IndexerRepository indexerRepository;
 
@@ -62,6 +67,9 @@ public class IndexerStatusService {
             grouped.computeIfAbsent(idx, k -> new EnumMap<>(IndexedFile.IndexerStatus.class))
                     .put(status, count);
         }
+        for (String defaultIndexName : DEFAULT_INDEX_NAMES) {
+            grouped.computeIfAbsent(defaultIndexName, k -> new EnumMap<>(IndexedFile.IndexerStatus.class));
+        }
         List<IndexSummaryDto> result = new ArrayList<>();
         for (Map.Entry<String, Map<IndexedFile.IndexerStatus, Long>> entry : grouped.entrySet()) {
             String idx = entry.getKey();
@@ -80,4 +88,3 @@ public class IndexerStatusService {
     }
 
 }
-

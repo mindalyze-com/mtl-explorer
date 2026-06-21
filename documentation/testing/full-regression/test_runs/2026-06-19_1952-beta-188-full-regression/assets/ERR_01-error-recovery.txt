@@ -1,0 +1,11 @@
+ERR_01 error recovery summary
+
+Coverage asks for actionable recovery for failed track/map/config/media/planner/session cases.
+
+Executed evidence in this run:
+- Failed track/map/API load: FAIL, from NET_02. After clearing local browser caches and aborting /mtl/api/**, the app stayed non-blank with map canvas visible, but showed only "0 Tracks" and no visible retry/offline/error message.
+- Expired session: PASS, from NET_03. Invalid JWT redirected to /mtl/login?reason=expired, showed login form, and cleared the token.
+- Failed planner route: PASS, from PLN_09 and PLN_10. Segment-downloading and route-unavailable simulations showed actionable notices, auto-retry or preserved existing route display, and cleaned up route mocks/plans.
+- Failed media: BLOCKED in this run by MED_05 because no indexed media exists and there is no current filesystem access to seed media fixtures.
+
+Result: FAIL. At least one required error path, failed track/map/API load without local cache, did not show an actionable recovery state.

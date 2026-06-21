@@ -1,0 +1,13 @@
+Captured: 2026-06-19T23:52:27.405Z
+APP_01 light settings: dataTheme=light, stored=, visibleSettings=true
+APP_01 light stats: dataTheme=light, trackCount=16 Tracks, surface=rgba(255, 255, 255, .88), text=#1e293b
+APP_01 dark settings: dataTheme=dark, stored=dark, visibleSettings=true
+APP_01 dark stats: dataTheme=dark, trackCount=16 Tracks, surface=rgba(15, 23, 42, .88), text=#f1f5f9
+APP_02 light contrast sample count=110, min=[{"text":"Overview","ratio":4.47,"color":"rgb(99, 102, 241)","bg":"rgb(255, 255, 255)"},{"text":"Tracks","ratio":4.47,"color":"rgb(99, 102, 241)","bg":"rgb(255, 255, 255)"},{"text":"View all tracks","ratio":4.47,"color":"rgb(99, 102, 241)","bg":"rgb(255, 255, 255)"},{"text":"Filter","ratio":4.76,"color":"rgb(100, 116, 139)","bg":"rgb(255, 255, 255)"},{"text":"Map","ratio":4.76,"color":"rgb(100, 116, 139)","bg":"rgb(255, 255, 255)"},{"text":"Animate","ratio":4.76,"color":"rgb(100, 116, 139)","bg":"rgb(255, 255, 255)"}]
+APP_02 dark contrast sample count=110, min=[{"text":"Filter","ratio":3.75,"color":"rgb(100, 116, 139)","bg":"rgb(15, 23, 42)"},{"text":"Map","ratio":3.75,"color":"rgb(100, 116, 139)","bg":"rgb(15, 23, 42)"},{"text":"Animate","ratio":3.75,"color":"rgb(100, 116, 139)","bg":"rgb(15, 23, 42)"},{"text":"Segments","ratio":3.75,"color":"rgb(100, 116, 139)","bg":"rgb(15, 23, 42)"},{"text":"GPS","ratio":3.75,"color":"rgb(100, 116, 139)","bg":"rgb(15, 23, 42)"},{"text":"Planner","ratio":3.75,"color":"rgb(100, 116, 139)","bg":"rgb(15, 23, 42)"}]
+APP_03 chart vars: light chartText=#64748b, dark chartText=#94a3b8, light grid=rgba(0, 0, 0, .06), dark grid=rgba(255, 255, 255, .06)
+APP_04 first reload frame: dataTheme=dark, bodyBg=rgb(10, 10, 15)
+APP_04 settled reload: dataTheme=dark, stored=dark, trackCount=16 Tracks
+APP_04 login screen: visible=true, dataTheme=dark, stored=dark
+APP_04 after login: dataTheme=dark, stored=dark, trackCount=16 Tracks
+APP_05 hard refresh: first observable dataTheme=dark, bodyBg=rgb(10, 10, 15); settled dataTheme=dark, bodyBg=rgb(10, 10, 15)

@@ -1,0 +1,22 @@
+Status: BLOCKED
+Reason: Route-hit insertion/drag could not be reliably targeted from browser automation in the current planner layout.
+
+Baseline: PLN_02 passed route creation. Two map clicks triggered a 200 planner route response and live planner stats showed 491.75 km, 678 m ascent, 947 m descent, 23h 28m, 1 leg.
+
+Attempt 1: Clicking the geometric midpoint between the two waypoint clicks created a third waypoint and recomputed the route, but the request order was start, original end, new point. That appended after the end instead of inserting between existing waypoints.
+
+Attempt 2: A route-response coordinate was projected back to the map and clicked. No second planner route request fired, so the route geometry was not hit.
+
+Attempt 3: Clicking a visible orange line on the map also appended a third waypoint. The last route body was start, end, new:
+{"waypoints":[{"lat":28.548011,"lng":3.63456},{"lat":28.5167,"lng":4.04046},{"lat":28.037183,"lng":2.664373}],"profile":"trekking"}
+
+Attempt 4: Dragging the planner sheet down to expose the lower route area closed/detached the sheet, leaving no interactive planner route target. Last measured sheet top: 937.59375. No second route request fired.
+
+Last attempt route setup:
+Original waypoints: [{"lat":28.5587159484203,"lng":3.628767347042924},{"lat":28.526738789151864,"lng":4.0433381781065805}]
+Projected route coordinate: [3.214979,28.225361,633.75]
+Projected insertion click: (417,349)
+Route API success count: 1
+Page errors: 0
+
+Conclusion: Route creation and appending are covered by adjacent planner packets, but PLN_03's specific "insert waypoint by dragging/clicking the existing leg" path remains blocked by automation targeting rather than a confirmed product failure.

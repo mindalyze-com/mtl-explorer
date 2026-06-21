@@ -1,0 +1,31 @@
+MAP_12 Swiss routes popup evidence
+
+Map config/status:
+- /api/map/config tileMode: local.
+- /api/map/config tileSource: public.
+- /api/map/config archiveId: public-default.
+- /api/map/status ready: true.
+- /api/map/status phase: public-fallback.
+- /api/map/status message: Using hosted map service.
+
+Map settings DOM:
+- 13 Tracks visible.
+- Swiss map themes exposed:
+  - Swiss Topo Color
+  - Swiss Topo Light
+- Swiss/route overlay copy exposed:
+  - Worldwide routes from OpenStreetMap · styled by importance level
+  - International, national, regional & local hiking routes
+  - Mountain bike trails and routes
+  - Swiss Overlays
+  - Hiking Routes
+  - Bike Routes
+  - MTB Routes
+
+Blocking constraint:
+- MAP_12 requires clicking canvas-rendered nearby official routes and verifying a popup closes cleanly.
+- The available browser path could not deterministically target canvas-rendered map features, and screenshot/canvas inspection was unavailable after SGN_07.
+- Therefore the route popup could not be opened or closed with direct evidence.
+
+Conclusion:
+MAP_12 is BLOCKED. Swiss route/overlay UI is present, but the required popup interaction could not be executed through available map hit-testing controls.

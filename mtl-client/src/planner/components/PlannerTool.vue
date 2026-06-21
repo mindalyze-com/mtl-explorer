@@ -584,6 +584,18 @@ async function toggle() {
   }
 }
 
+async function open() {
+  if (active.value) return;
+  active.value = true;
+  emit('active-changed', true);
+  emit('tool-opened');
+  if (!configLoaded.value) {
+    await loadConfig();
+    configLoaded.value = true;
+  }
+  attachToMap();
+}
+
 function close() {
   if (!active.value) return;
   active.value = false;
@@ -1508,6 +1520,7 @@ onBeforeUnmount(() => {
 
 defineExpose({
   isOpen,
+  open,
   toggle,
   close,
   saveCurrent,

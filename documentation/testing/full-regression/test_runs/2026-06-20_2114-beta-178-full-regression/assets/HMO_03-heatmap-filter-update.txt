@@ -1,0 +1,17 @@
+coverage=HMO_03
+status=PASS
+beforeCount=10 Tracks
+afterCount=2 / 10 Tracks
+heatmapVisibleBefore=true
+heatmapVisibleAfter=true
+filterName=ActivitiesByKeyword
+filterDisplayName=Activities by keyword
+filterKeyword=Path
+filterSheetSummary=Live map2matching tracks1category Colors
+canvasCount=2
+screenshotBeforeSha256=e7e66bc1f95f57f592ffe6fffb3c223a6202f5015322daf2503abe8a57f6132f
+screenshotAfterSha256=11b216beb8f3a5b55dc4857f8769c81c4076ee5e12c65d1eb307065219a6cc00
+screenshotDiffPixels=1151773
+assertions={"beforeCountHasTracks":true,"afterCountFiltered":true,"heatmapVisibleBefore":true,"heatmapVisibleAfter":true,"filterKeywordPersisted":true,"screenshotChanged":true,"canvasesRendered":true,"pageErrors":0}
+networkErrors.sample=["401 /mtl/api/info/build","401 /mtl/api/info/build"]
+consoleMessages.sample=["error: Failed to load resource: the server responded with a status of 401 ()","error: Failed to load resource: the server responded with a status of 401 ()","warning: PMTiles HTTP cache failed; retrying archive range requests without browser cache. {url: /mtl/api/map-proxy/prod/planet.pmtiles?mtl-map-source=public&mtl-map-archive=public-default, message: Failed to fetch}","warning: PMTiles HTTP cache failed; retrying archive range requests without browser cache. {url: /mtl/api/map-proxy/prod/planet.pmtiles?mtl-map-source=public&mtl-map-archive=public-default, message: Failed to fetch}","warning: PMTiles HTTP cache failed; retrying archive range requests without browser cache. {url: /mtl/api/map-proxy/prod/planet.pmtiles?mtl-map-source=public&mtl-map-archive=public-default, message: Failed to fetch}","warning: PMTiles HTTP cache failed; retrying archive range requests without browser cache. {url: /mtl/api/map-proxy/prod/planet.pmtiles?mtl-map-source=public&mtl-map-archive=public-default, message: Failed to fetch}"]

@@ -136,26 +136,23 @@ export function useChartSync() {
    * other registered charts at the same x-position, and updates the map hover marker.
    */
   function syncMouseMove(e: ChartSyncMoveEvent, sourceChart: Highcharts.Chart): void {
-    let chartX: number | null = null; // elapsed ms or distance, depending on current x-mode
-    let absoluteTs: number | null = null; // absolute ms timestamp — used for time mode map sync
-    let canonicalPointIndex: number | null = null;
-
     if (sourceChart.series?.length) {
       const event = normalizeChartEvent(e, sourceChart);
       const point = event ? sourceChart.series[0].searchPoint(event, true) : null;
       if (point) {
-        const syncPoint = point as TrackSyncPoint;
-        chartX = point.x;
-        absoluteTs = syncPoint.ts ?? null;
-        canonicalPointIndex = syncPoint.canonicalPointIndex ?? null;
+        syncPointHover(point);
       }
     }
+  }
 
-    // Bridge to map sync
-    if (chartX != null) {
-      showChartsAtXValue(chartX);
-      cursor.setHoverByChartPoint(chartX, absoluteTs, 'chart', canonicalPointIndex);
-    }
+  /**
+   * Called from Highcharts' native point hover events. This is more reliable than
+   * container mousemove alone when SVG elements or wrapper updates absorb events.
+   */
+  function syncPointHover(point: Highcharts.Point): void {
+    const syncPoint = point as TrackSyncPoint;
+    showChartsAtXValue(point.x);
+    cursor.setHoverByChartPoint(point.x, syncPoint.ts ?? null, 'chart', syncPoint.canonicalPointIndex ?? null);
   }
 
   /**
@@ -331,6 +328,7 @@ export function useChartSync() {
     unregisterChart,
     setChartXMode,
     syncMouseMove,
+    syncPointHover,
     syncMouseLeave,
     syncClick,
     showChartsAtTimestamp,

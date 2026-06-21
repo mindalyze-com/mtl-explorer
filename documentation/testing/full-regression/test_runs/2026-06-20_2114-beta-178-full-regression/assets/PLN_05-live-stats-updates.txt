@@ -1,0 +1,25 @@
+Status: PASS
+Zoom clicks until planner usable: 6
+Checks: zeroOk=true, routedOk=true, clearOk=true, undoOk=true, redoOk=true, reqOk=true
+Route responses: 200,200
+Route requests:
+{"index":1,"waypointCount":2,"profile":"trekking","waypoints":[{"lat":"28.301491","lng":"3.823824"},{"lat":"28.278283","lng":"4.122530"}]}
+{"index":2,"waypointCount":2,"profile":"trekking","waypoints":[{"lat":"28.301491","lng":"3.823824"},{"lat":"28.278283","lng":"4.122530"}]}
+Snapshots:
+initial-zero: {"distance":"0.00 km","ascent":"0 m","descent":"0 m","duration":"–","legs":"0","notices":[],"clearDisabled":true,"undoDisabled":true,"redoDisabled":true}
+after-one-waypoint: {"distance":"0.00 km","ascent":"0 m","descent":"0 m","duration":"–","legs":"0","notices":[],"clearDisabled":false,"undoDisabled":false,"redoDisabled":true}
+after-route-computed: {"distance":"555.03 km","ascent":"688 m","descent":"999 m","duration":"26h 24m","legs":"1","notices":[],"clearDisabled":false,"undoDisabled":false,"redoDisabled":true}
+after-clear: {"distance":"0.00 km","ascent":"0 m","descent":"0 m","duration":"–","legs":"0","notices":[],"clearDisabled":true,"undoDisabled":false,"redoDisabled":true}
+after-undo-clear: {"distance":"555.03 km","ascent":"688 m","descent":"999 m","duration":"26h 24m","legs":"1","notices":[],"clearDisabled":false,"undoDisabled":false,"redoDisabled":false}
+after-redo-clear: {"distance":"0.00 km","ascent":"0 m","descent":"0 m","duration":"–","legs":"0","notices":[],"clearDisabled":true,"undoDisabled":false,"redoDisabled":true}
+Page errors: 0
+Console planner/error/warn messages: 9
+log: Downloading low-zoom PMTiles from /mtl/api/map-proxy/prod/world-lowzoom.pmtiles?mtl-map-source=public&mtl-map-archive=public-default … (IndexedDB fallback)
+log: Low-zoom PMTiles cached successfully (IndexedDB, 42.4 MB)
+log: [zoom] 3.907 | mercator
+log: [zoom] 4.907 | mercator
+log: [zoom] 5.907 | mercator
+log: [zoom] 6.907 | mercator
+log: [zoom] 7.907 | mercator
+log: [zoom] 8.907 | mercator
+info: [planner] Viewport prewarm: 300km side → bbox=[2.38,26.70,5.43,29.39]

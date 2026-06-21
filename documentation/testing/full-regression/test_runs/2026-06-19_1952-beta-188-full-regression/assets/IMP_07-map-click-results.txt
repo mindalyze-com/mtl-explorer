@@ -1,0 +1,17 @@
+# IMP_07 map geometry/click summary
+{
+  "captured": "2026-06-19T20:19:48+0200 CEST",
+  "detail_map_geometry_loaded_for_track_ids": [
+    100000,
+    100001,
+    100002,
+    100003,
+    100004
+  ],
+  "line_click_attempt": {
+    "track_id": 100002,
+    "action": "Closed details after centering on Jura track, clicked visible rendered line around x=1160 y=438.",
+    "result": "Track Details #100002 reopened, confirming map rendered-line hit path for one imported track."
+  },
+  "blocked_remainder": "Could not produce deterministic direct map-click and point-popup evidence for each imported track with the current in-app browser/map hit-testing controls. Opening details by URL verified geometry and detail rendering for all five, but does not satisfy every click/popup clause."
+}

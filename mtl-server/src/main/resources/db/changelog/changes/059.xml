@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.10.xsd">
+
+    <changeSet id="20260616_1_tracks_by_year_optional_bounds" author="codex">
+        <comment>
+            Treat missing or blank TracksByYear bounds as open-ended and expose
+            both year fields as optional filter parameters.
+        </comment>
+        <update tableName="filter_config">
+            <column name="expression">
+                <![CDATA[
+                select
+                    id,
+                    to_char(gt.start_date, 'YYYY') as grp
+                from
+                    gps_track gt
+                where
+                    1 = 1
+                    and (
+                        NULLIF(BTRIM(:YEAR_FROM), '') IS NULL
+                        or gt.start_date >= make_date(CAST(NULLIF(BTRIM(:YEAR_FROM), '') AS integer), 1, 1)
+                    )
+                    and (
+                        NULLIF(BTRIM(:YEAR_TO), '') IS NULL
+                        or gt.start_date < make_date(CAST(NULLIF(BTRIM(:YEAR_TO), '') AS integer) + 1, 1, 1)
+                    )
+                    and gt.start_date >= '1971-01-01'
+                    and gt.duplicate_status = 'UNIQUE'
+                    and gt.load_status = 'SUCCESS'
+                order by
+                    start_date
+                ]]>
+            </column>
+            <column name="ui_metadata">
+                <![CDATA[
+                {
+                  "metadataVersion": 2,
+                  "paramGroups": {
+                    "filter": { "label": "Year", "order": 30, "defaultOpen": true }
+                  },
+                  "params": {
+                    "YEAR_FROM": {
+                      "label": "From year",
+                      "group": "filter",
+                      "widget": "number",
+                      "optional": true
+                    },
+                    "YEAR_TO": {
+                      "label": "To year",
+                      "group": "filter",
+                      "widget": "number",
+                      "optional": true
+                    }
+                  }
+                }
+                ]]>
+            </column>
+            <where>filter_domain = 'GPS_TRACK' AND filter_name = 'TracksByYear'</where>
+        </update>
+    </changeSet>
+
+</databaseChangeLog>

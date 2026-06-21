@@ -1,0 +1,12 @@
+SYN_05:
+- initial token: 31aGxA__|server_id:4wB4qutecBAh3SvkCNbjuE|config:12|filters:85|index:96|media:0|track_geometry:132|tracks:142
+- first rescan token: 5A6HeD__|server_id:4wB4qutecBAh3SvkCNbjuE|config:12|filters:85|index:102|media:0|track_geometry:132|tracks:142
+- banner before dismiss: ["500 km","© OpenStreetMap","15 Tracks","Stats","Filter","Map","Animate","Segments","GPS","Planner","Admin","New data available","Tracks, media, or settings changed since this view loaded.","Reload","Dismiss"]
+- after dismiss visible: false; sample=["500 km","© OpenStreetMap","15 Tracks","Stats","Filter","Map","Animate","Segments","GPS","Planner","Admin"]
+- second rescan token while snoozed: 1yr4NA__|server_id:4wB4qutecBAh3SvkCNbjuE|config:12|filters:85|index:108|media:0|track_geometry:132|tracks:142
+- hidden after second token change/poll cycle: true; sample=["500 km","© OpenStreetMap","15 Tracks","Stats","Filter","Map","Animate","Segments","GPS","Planner","Admin"]
+- elapsed after dismiss: 315148 ms
+- reappeared after snooze: true; sample=["500 km","© OpenStreetMap","15 Tracks","Stats","Filter","Map","Animate","Segments","GPS","Planner","Admin","New data available","Tracks, media, or settings changed since this view loaded.","Reload","Dismiss"]
+- assertions: {"firstBannerAppeared":true,"dismissHidBanner":true,"stayedHiddenAfterSecondTokenChange":true,"waitedAtLeastFiveMinutes":true,"reappearedAfterSnooze":true}
+- network errors sample: []
+- console messages sample: []

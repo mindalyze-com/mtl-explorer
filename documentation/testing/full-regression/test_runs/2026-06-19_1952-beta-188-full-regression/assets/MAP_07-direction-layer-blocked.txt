@@ -1,0 +1,29 @@
+MAP_07 Track Points & Direction evidence
+
+Actions performed:
+- Opened Maps and data panel.
+- Located the Track Points & Direction layer copy:
+  - "Track Points & Direction"
+  - "Individual GPS points with direction arrows — only visible when zoomed in close"
+- Located the "Track Points & Direction opacity" slider.
+- Slider state:
+  - aria-valuenow: 100
+  - aria-valuemin: 0
+  - aria-valuemax: 100
+- Clicked Zoom in eight times.
+
+High-zoom state:
+- URL: http://188.245.169.80:18080/mtl/map-settings
+- Scale label: 300 m.
+- Visible count: 11 Tracks.
+- Map regions and zoom controls present.
+- Console warnings/errors captured from the tab: none.
+
+Blocking constraint:
+- Direction arrows render inside the MapLibre canvas, not as DOM nodes.
+- The in-app browser screenshot path timed out repeatedly after SGN_07, including clipped screenshots.
+- Canvas pixel inspection was not available through the browser read-only evaluate runtime.
+- Therefore direct visual proof that the arrow markers appeared could not be captured in this run.
+
+Conclusion:
+MAP_07 is BLOCKED. The required layer is present and enabled at high zoom, but direct arrow visibility cannot be verified with the available browser evidence path.

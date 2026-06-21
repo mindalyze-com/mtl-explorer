@@ -27,14 +27,9 @@
         <span class="attrib-entry-desc">Tile archive format · BSD-3-Clause</span>
         <i class="pi pi-external-link" />
       </a>
-      <a
-        href="https://github.com/tilezen/joerd/blob/master/docs/attribution.md"
-        target="_blank"
-        rel="noopener noreferrer"
-        class="attrib-entry"
-      >
-        <span class="attrib-entry-name">Terrarium DEM</span>
-        <span class="attrib-entry-desc">Elevation tiles · USGS · NGA · NASA</span>
+      <a href="https://mapterhorn.com/attribution/" target="_blank" rel="noopener noreferrer" class="attrib-entry">
+        <span class="attrib-entry-name">Mapterhorn terrain</span>
+        <span class="attrib-entry-desc">Elevation tiles · open DEM source attribution</span>
         <i class="pi pi-external-link" />
       </a>
       <a href="https://www.swisstopo.admin.ch" target="_blank" rel="noopener noreferrer" class="attrib-entry">

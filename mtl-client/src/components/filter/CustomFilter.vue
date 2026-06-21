@@ -908,6 +908,18 @@ function onLegendSortChanged(value: unknown) {
   emit(EVENTS.filterStyleChanged);
 }
 
+function persistCurrentFilterDraft(): void {
+  filterStore.save(
+    ClientFilterConfig.of(
+      selectedFilter.value.filterInfo,
+      getProcessedParams(),
+      selectedFilter.value.palette,
+      selectedFilter.value.legendSortStrategy
+    ),
+    { trackSetChanged: false }
+  );
+}
+
 function togglePalettePreview() {
   palettePreviewExpanded.value = !palettePreviewExpanded.value;
 }
@@ -1200,6 +1212,8 @@ function onClearGeoShape(paramDef: ParamDefinition) {
       if (params.geoPolygons) delete params.geoPolygons[paramDef.name];
       break;
   }
+  selectedFilter.value.filterParams = params;
+  persistCurrentFilterDraft();
   emit(EVENTS.clearGeoShape, paramDef);
   scheduleLivePreview();
   scheduleTrackIdCandidateLoad();
@@ -1225,6 +1239,8 @@ function onGeoDrawingComplete(paramDef: ParamDefinition, shape: GeoCircle | GeoR
       params.geoPolygons[paramDef.name] = shape as GeoPolygon;
       break;
   }
+  selectedFilter.value.filterParams = params;
+  persistCurrentFilterDraft();
   scheduleLivePreview();
   scheduleTrackIdCandidateLoad();
 }

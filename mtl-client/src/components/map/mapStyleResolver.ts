@@ -5,8 +5,10 @@ import {
   buildFallbackRasterStyle,
   buildLocalVectorStyleFromArchiveUrl,
   buildRemoteRasterStyle,
+  normalizeMapTheme,
   SWISSTOPO_COLOR_STYLE_URL,
   SWISSTOPO_STYLE_URL,
+  TOPO_CONTRAST_THEME,
   type MapTheme,
 } from '@/utils/mapStyle';
 
@@ -34,6 +36,7 @@ export function isRemoteRasterMapTheme(theme: string): boolean {
 }
 
 function remoteRasterThemeKey(theme: MapTheme): string {
+  if (theme === TOPO_CONTRAST_THEME) return 'light-topo';
   return theme === 'grayscale' ? 'light' : theme;
 }
 
@@ -54,7 +57,8 @@ export function collectStyleAttributions(style: string | StyleSpecification): st
 }
 
 export function resolveConfiguredMapStyle(options: ResolveMapStyleOptions): ResolvedMapStyle {
-  const { config, theme } = options;
+  const { config } = options;
+  const theme = normalizeMapTheme(options.theme);
   const forceRemoteRaster = options.mapSourceMode === 'remote';
   if (!forceRemoteRaster && theme === 'swisstopo') {
     return { style: SWISSTOPO_STYLE_URL, styleMode: 'swisstopo', attributions: [] };
@@ -63,24 +67,23 @@ export function resolveConfiguredMapStyle(options: ResolveMapStyleOptions): Reso
     return { style: SWISSTOPO_COLOR_STYLE_URL, styleMode: 'swisstopo-color', attributions: [] };
   }
   if (!forceRemoteRaster && config.tileMode === MapConfigDtoTileModeEnum.Local && options.localTilesReady !== false) {
-    const style = buildLocalVectorStyleFromArchiveUrl(mainTileArchiveUrl(config), theme as MapTheme);
+    const style = buildLocalVectorStyleFromArchiveUrl(mainTileArchiveUrl(config), theme);
     return {
       style,
       styleMode: 'local-vector',
       attributions: collectStyleAttributions(style),
     };
   }
-  const rasterTheme = theme as MapTheme;
-  const rasterStyle = configuredRemoteRasterStyle(config, rasterTheme);
+  const rasterStyle = configuredRemoteRasterStyle(config, theme);
   if (!isUsableTileTemplate(rasterStyle?.url)) {
-    const style = buildFallbackRasterStyle(rasterTheme);
+    const style = buildFallbackRasterStyle(theme);
     return {
       style,
       styleMode: 'fallback-raster',
       attributions: collectStyleAttributions(style),
     };
   }
-  const style = buildRemoteRasterStyle(rasterStyle.url, rasterTheme, rasterStyle.attribution ?? '');
+  const style = buildRemoteRasterStyle(rasterStyle.url, theme, rasterStyle.attribution ?? '');
   return {
     style,
     styleMode: 'remote-raster',

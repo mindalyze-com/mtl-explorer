@@ -1,0 +1,48 @@
+FLT_03 parameter auto-apply evidence
+
+Starting state:
+- Active filter: Activities by keyword.
+- Previous keyword from FLT_01: synthetic.
+
+Parameter edit:
+- Edited KEYWORD parameter to `Jura`.
+- Saved client config updated stringParams.SEARCH_WORD to `Jura`.
+- No loading/pending text remained after update.
+
+Filter/map/legend after edit:
+- Map count: `1 / 13 Tracks`.
+- Filter tab badge: `1`.
+- Live map summary: `LIVE MAP 1 matching tracks 1 category`.
+- Legend: `CYCLING 1`.
+- Active parameter indicator: `1 active`.
+
+Stats after edit:
+- Stats page URL: `/mtl/stats`.
+- Header count: `1 / 13 Tracks`.
+- Stats summary: `Showing 1 of 13 tracks`.
+- Hero stats: `1 TRACKS`, `273 km DISTANCE`, `7h 46m DURATION`, `1,808 Wh ENERGY`.
+- Activity breakdown showed Bicycle 1.
+- Recent/highlight entries were for `Jura Route 7 / 2011 on GPSies.com`.
+
+Parameter clear:
+- Cleared the KEYWORD parameter.
+- Saved keyword became null/absent.
+- No loading/pending text remained after update.
+
+Filter/map/legend after clear:
+- Map count: `13 / 13 Tracks`.
+- Filter tab badge: `13`.
+- Live map summary: `LIVE MAP 13 matching tracks 2 categories`.
+- Legend: `CYCLING 12`, `ON_FOOT 1`.
+- Active parameter indicator cleared.
+
+Stats after clear:
+- Header count: `13 / 13 Tracks`.
+- Hero stats: `13 TRACKS`, `825 km DISTANCE`, `16h 50m DURATION`, `4,023 Wh ENERGY`.
+- Activity breakdown showed Bicycle 12 and Walking 1.
+- Stats period summary showed `13 Tracks`.
+
+State left:
+- Filter remains enabled.
+- KEYWORD parameter cleared.
+- Full visible set restored to 13 / 13 tracks.

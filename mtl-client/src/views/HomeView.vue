@@ -57,6 +57,7 @@ import logoSvg from '@/assets/logo/logo3/mtl-logo-3_vector.svg';
 import { clearSplashLogoTop, consumeSplashLogoTop } from '@/utils/splashLogoPosition';
 
 const MINIMUM_SPLASH_MS = 1500;
+const MAXIMUM_SPLASH_MS = 12_000;
 const SPLASH_MESSAGE_INTERVAL_MS = 2000;
 const FROM_LOGIN_KEY = 'mtl.from-login';
 const SPLASH_MESSAGES = [
@@ -82,17 +83,20 @@ const curtainStyle = computed<CSSProperties | undefined>(() => {
 
 let curtainShownAt = 0;
 let splashMessageTimer: ReturnType<typeof setInterval> | null = null;
+let splashFallbackTimer: ReturnType<typeof setTimeout> | null = null;
 
 onMounted(() => {
   curtainShownAt = performance.now();
   sessionStorage.removeItem(FROM_LOGIN_KEY);
   if (!fromLogin.value) clearSplashLogoTop();
   startSplashMessages();
+  splashFallbackTimer = setTimeout(forceHideCurtainAfterTimeout, MAXIMUM_SPLASH_MS);
   startupLog('curtain', 'Home view mounted; curtain visible', { fromLogin: fromLogin.value });
 });
 
 onUnmounted(() => {
   stopSplashMessages();
+  stopSplashFallbackTimer();
 });
 
 function startSplashMessages() {
@@ -113,12 +117,30 @@ function stopSplashMessages() {
   splashMessageTimer = null;
 }
 
+function stopSplashFallbackTimer() {
+  if (!splashFallbackTimer) return;
+  clearTimeout(splashFallbackTimer);
+  splashFallbackTimer = null;
+}
+
 function hideCurtain() {
   showCurtain.value = false;
   stopSplashMessages();
+  stopSplashFallbackTimer();
+}
+
+function forceHideCurtainAfterTimeout() {
+  splashFallbackTimer = null;
+  if (!showCurtain.value || loadFailed.value) return;
+  startupWarn('curtain', 'Startup curtain timed out; revealing map shell');
+  hideCurtain();
 }
 
 function onTracksLoaded() {
+  if (loadFailed.value) {
+    startupWarn('curtain', 'tracks-loaded received after load-failed; keeping startup error visible');
+    return;
+  }
   const elapsed = performance.now() - curtainShownAt;
   const remaining = Math.max(0, MINIMUM_SPLASH_MS - elapsed);
   startupLog('curtain', 'tracks-loaded received', { elapsedMs: Math.round(elapsed), delayMs: Math.round(remaining) });
@@ -205,6 +227,7 @@ function retryLoad() {
 /* Curtain exit — fade into the map */
 .curtain-leave-active {
   transition: opacity 0.6s ease;
+  pointer-events: none;
 }
 .curtain-leave-to {
   opacity: 0;

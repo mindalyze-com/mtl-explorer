@@ -1,0 +1,14 @@
+MAP_10 selection close/deselect evidence
+
+Dependency:
+- MAP_10 requires an open overlap selection list from MAP_09.
+- MAP_09 imported valid synthetic overlap data and proved the backend overlap candidate set [100021, 100023].
+- MAP_09 could not open the user-facing selection list through available browser canvas hit-testing.
+
+Current state:
+- Browser map remained on /mtl/ with 13 visible tracks.
+- No selection list or selected-track detail surface was open after MAP_09 grid click attempts.
+- Console warnings/errors captured during MAP_09 attempts: none.
+
+Conclusion:
+MAP_10 is BLOCKED. There was no user-facing overlap selection list to close or deselect because MAP_09 could not open it.

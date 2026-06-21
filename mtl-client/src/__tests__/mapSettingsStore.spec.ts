@@ -4,6 +4,7 @@ import {
   DEFAULT_LAYER_OPACITIES,
   DEFAULT_MAP_SOURCE_MODE,
   DEFAULT_MAP_THEME,
+  DEFAULT_REMOTE_RASTER_MAP_THEME,
   useMapSettingsStore,
 } from '@/stores/mapSettingsStore';
 import { STORAGE_KEYS } from '@/utils/appStorage';
@@ -150,11 +151,24 @@ describe('useMapSettingsStore', () => {
     expect(store.mapSourceMode).toBe(DEFAULT_MAP_SOURCE_MODE);
   });
 
-  it('normalizes Swiss themes when remote raster source mode is active', () => {
+  it('falls back to the default map theme for old or unknown preferences', () => {
     localStorage.setItem(
       STORAGE_KEYS.mapSettings,
       JSON.stringify({
-        theme: 'swisstopo-color',
+        theme: 'color-topo',
+      })
+    );
+
+    const store = useMapSettingsStore();
+
+    expect(store.theme).toBe(DEFAULT_MAP_THEME);
+  });
+
+  it('normalizes local-vector themes when remote raster source mode is active', () => {
+    localStorage.setItem(
+      STORAGE_KEYS.mapSettings,
+      JSON.stringify({
+        theme: DEFAULT_MAP_THEME,
         mapSourceMode: 'remote',
       })
     );
@@ -162,9 +176,66 @@ describe('useMapSettingsStore', () => {
     const store = useMapSettingsStore();
 
     expect(store.mapSourceMode).toBe('remote');
-    expect(store.theme).toBe(DEFAULT_MAP_THEME);
+    expect(store.theme).toBe(DEFAULT_REMOTE_RASTER_MAP_THEME);
 
     store.setTheme('swisstopo');
+    expect(store.theme).toBe(DEFAULT_REMOTE_RASTER_MAP_THEME);
+
+    store.setTheme('swisstopo-color');
+    expect(store.theme).toBe(DEFAULT_REMOTE_RASTER_MAP_THEME);
+
+    store.setTheme(DEFAULT_MAP_THEME);
+    expect(store.theme).toBe(DEFAULT_REMOTE_RASTER_MAP_THEME);
+  });
+
+  it('restores the automatic OSM Topo Contrast default when leaving remote mode', () => {
+    const store = useMapSettingsStore();
+
+    store.setMapSourceMode('remote');
+    expect(store.theme).toBe(DEFAULT_REMOTE_RASTER_MAP_THEME);
+
+    store.setTheme('dark');
+    expect(store.theme).toBe('dark');
+
+    store.setMapSourceMode('auto');
+    expect(store.mapSourceMode).toBe(DEFAULT_MAP_SOURCE_MODE);
+    expect(store.theme).toBe(DEFAULT_MAP_THEME);
+    expect(readStoredMapSettings()).toMatchObject({
+      theme: DEFAULT_MAP_THEME,
+      automaticTheme: DEFAULT_MAP_THEME,
+      mapSourceMode: DEFAULT_MAP_SOURCE_MODE,
+    });
+  });
+
+  it('preserves an explicitly selected automatic map theme across remote mode', () => {
+    const store = useMapSettingsStore();
+
+    store.setTheme('swisstopo-color');
+    store.setMapSourceMode('remote');
+
+    expect(store.theme).toBe(DEFAULT_REMOTE_RASTER_MAP_THEME);
+    expect(readStoredMapSettings()).toMatchObject({
+      automaticTheme: 'swisstopo-color',
+      mapSourceMode: 'remote',
+    });
+
+    store.setTheme('dark');
+    store.setMapSourceMode('auto');
+
+    expect(store.theme).toBe('swisstopo-color');
+  });
+
+  it('migrates the legacy automatic remote topo fallback back to the current default', () => {
+    localStorage.setItem(
+      STORAGE_KEYS.mapSettings,
+      JSON.stringify({
+        theme: DEFAULT_REMOTE_RASTER_MAP_THEME,
+        mapSourceMode: 'auto',
+      })
+    );
+
+    const store = useMapSettingsStore();
+
     expect(store.theme).toBe(DEFAULT_MAP_THEME);
   });
 });

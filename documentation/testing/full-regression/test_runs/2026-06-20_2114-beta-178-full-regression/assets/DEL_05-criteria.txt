@@ -1,0 +1,10 @@
+DEL_05 deletion-flow criteria evidence
+The deletion pass used user-visible surfaces as the pass/fail criteria:
+- map count and old map click locations
+- Stats > Tracks deleted-name searches
+- filter count
+- heatmap density after deletion
+- Stats overview totals
+- Related tab on a remaining track
+Deleted-track API probes or stale deleted-track URLs were intentionally not used as pass/fail criteria.
+Supporting packet: packets/DEL_03.md

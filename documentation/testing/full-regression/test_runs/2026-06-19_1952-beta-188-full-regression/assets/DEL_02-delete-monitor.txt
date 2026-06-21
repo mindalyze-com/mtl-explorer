@@ -1,0 +1,2 @@
+Delete monitor elapsed_seconds=0.3 settled=True rescan_triggered=False
+20:24:05 poll=0 count=3 names=['JuraRoute72011.gpx', 'MoselradwegAusWiki.gpx', 'Lannion_Plestin_parcours24.4RE.gpx'] indexer=[{'index': 'GPS', 'total': 5, 'pending': 0, 'completed': 3, 'failed': 0, 'removed': 2, 'excluded': 0, 'progressPercent': 60}] jobs_pending=0 freshness=4mbHPe__|server_id:RBDC887cKZ7gqxDqg7roVv|config:9|filters:85|index:21|media:0|track_geometry:30|tracks:32

@@ -1,0 +1,40 @@
+FLT_01 persisted active filter evidence
+
+Browser context:
+- The in-app browser session became stuck after reload at `ALMOST THERE` / `0 Tracks` while the API still returned 14 tracks.
+- This matches the already-recorded SGN_07 startup-progress failure pattern, so the verification continued in a clean isolated Chrome context.
+
+Setup in clean browser:
+- Opened app and logged in with README quick-start credentials.
+- Initial map loaded with `13 Tracks`.
+- Opened Filter panel.
+- Enabled filtering.
+- Selected `Activities by keyword`.
+- Entered keyword parameter `synthetic`.
+
+Before reload:
+- Visible map count changed to `2 / 13 Tracks`.
+- Live map summary showed `2 matching tracks`.
+- Filter tab badge showed `2`.
+- Filter catalog active row: `Activities by keyword`.
+- Saved client filter config contained:
+  - filterName: `ActivitiesByKeyword`
+  - displayName: `Activities by keyword`
+  - stringParams.SEARCH_WORD: `synthetic`
+
+After reload and reopening Filter:
+- URL: http://188.245.169.80:18080/mtl/filter
+- Visible map count remained `2 / 13 Tracks`.
+- Live map summary: `LIVE MAP 2 matching tracks 1 category`.
+- Active filter row remained `Activities by keyword`.
+- Keyword input value remained `synthetic`.
+- Saved client filter config still contained `ActivitiesByKeyword` and `SEARCH_WORD=synthetic`.
+- Visible chip/active indicators included:
+  - nav-panel__tool--alert on Filter.
+  - Filter tab badge `2`.
+  - filter-catalog__chip `All 18`.
+  - filter-detail-param-group__active `1 active`.
+
+State left:
+- Clean Chrome context is active at `/mtl/filter`.
+- Filter remains enabled with `Activities by keyword`, keyword `synthetic`, matching 2 of 13 visible tracks.

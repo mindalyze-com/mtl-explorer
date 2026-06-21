@@ -1,0 +1,7 @@
+ACC_03 final report source audit
+Run directory: documentation/testing/full-regression/test_runs/2026-06-20_2114-beta-178-full-regression
+Completed packet files present: 3
+Packets with required detail table: ['ACC_01.md', 'ACC_02.md', 'RUN_SETUP.md']
+Packets missing required detail table: none
+report.md exists: False
+Result: final report is deferred; packet detail tables are the source of truth.

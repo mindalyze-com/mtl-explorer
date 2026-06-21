@@ -1,0 +1,19 @@
+SGN_08 About / public-facing branding evidence
+
+Target: http://188.245.169.80:18080/mtl/admin
+Page title: MTL Explorer
+Browser state: authenticated app shell recovered after SGN_07; map shell reported 11 Tracks.
+
+Observed DOM after opening Admin > About:
+- button "About MTL Explorer"
+- heading "About"
+- paragraph: Client and server build details and current runtime environment.
+- Server section with Version, Built, Server ID, Image, and Image built fields.
+- Client section with Version, Built, Running as, User, and Session ID fields.
+- External components section with Vector Map Tiles, Routing Segments, and Location Search entries.
+
+Screenshot note:
+- Browser screenshot capture timed out after the SGN_07 outage/recovery test, including a clipped retry. This packet uses direct DOM evidence instead of a WebP screenshot.
+
+Conclusion:
+SGN_08 passes. "MTL Explorer" appears in the page title and public-facing About control, and the About surface opens with runtime/build copy.

@@ -1,0 +1,30 @@
+Status: PASS
+Plan name: PLN_08 Codex GPX export 1782000939485
+Saved id: 100015
+Download suggested filename: PLN_08 Codex GPX export 1782000939485.gpx
+Downloaded path: /tmp/mtl-playwright/downloads/PLN_08-1782000952575-PLN_08 Codex GPX export 1782000939485.gpx
+Downloaded size bytes: 177570
+Downloaded sha256: 3696b4796482c650c0b6445590cdb434bd76d8071a976b0fdd3a49d6591d70e5
+Zoom clicks until planner usable: 6
+Checks: savedVisible=true, hasStructure=true, countMatches=true, endpointsMatch=true, deletedOk=true
+Coordinate counts: saved=2578, gpx=2578
+First saved [lng,lat]: [3.482038,28.304204]; first GPX [lon,lat]: [3.482038,28.304204]
+Last saved [lng,lat]: [4.682209,28.457422]; last GPX [lon,lat]: [4.682209,28.457422]
+Planner response summary: 200:GET:/mtl/api/planner/status | 200:GET:/mtl/api/planner/config | 200:GET:/mtl/api/planner/status | 200:GET:/mtl/api/planner/status | 202:POST:/mtl/api/planner/prewarm | 200:POST:/mtl/api/planner/route | 200:POST:/mtl/api/planner/save | 200:GET:/mtl/api/planner/plans | 200:GET:/mtl/api/planner/plans | 200:GET:/mtl/api/planner/plans/100015 | 200:GET:/mtl/api/planner/plans | 200:GET:/mtl/api/planner/plans/100015/gpx | 204:DELETE:/mtl/api/planner/plans/100015 | 200:GET:/mtl/api/planner/status | 200:GET:/mtl/api/planner/plans
+Snapshots:
+planner-opened: {"activeTab":"Drawing","distance":"0.00 km","ascent":"0 m","duration":"–","legs":"0","planRowsMatchingName":0,"planRowsSample":[]}
+route-ready-to-save: {"activeTab":"Drawing","distance":"555.03 km","ascent":"688 m","duration":"26h 24m","legs":"1","planRowsMatchingName":0,"planRowsSample":[]}
+load-tab-export-plan-visible: {"activeTab":"Load","distance":"","ascent":"","duration":"","legs":"","planRowsMatchingName":1,"planRowsSample":["PLN_08 Codex GPX export 1782000939485 555.0 km · Temporary PLN_08 full-regression GPX export route.21 Jun 2026GPX"]}
+deleted-list: {"activeTab":"Load","distance":"","ascent":"","duration":"","legs":"","planRowsMatchingName":0,"planRowsSample":[]}
+Cleanup attempted: false
+Page errors: 0
+Console planner/error/warn messages: 9
+log: Downloading low-zoom PMTiles from /mtl/api/map-proxy/prod/world-lowzoom.pmtiles?mtl-map-source=public&mtl-map-archive=public-default … (IndexedDB fallback)
+log: Low-zoom PMTiles cached successfully (IndexedDB, 42.4 MB)
+log: [zoom] 3.907 | mercator
+log: [zoom] 4.907 | mercator
+log: [zoom] 5.907 | mercator
+log: [zoom] 6.907 | mercator
+log: [zoom] 7.907 | mercator
+log: [zoom] 8.907 | mercator
+info: [planner] Viewport prewarm: 300km side → bbox=[2.38,26.70,5.43,29.39]

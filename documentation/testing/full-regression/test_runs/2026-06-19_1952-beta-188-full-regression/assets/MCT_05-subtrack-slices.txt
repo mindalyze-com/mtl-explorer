@@ -1,0 +1,113 @@
+{
+  "triggerPoints": [
+    {
+      "name": "A",
+      "coordinate": {
+        "x": 8.5415,
+        "y": 47.3768
+      }
+    },
+    {
+      "name": "B",
+      "coordinate": {
+        "x": 8.5433,
+        "y": 47.378
+      }
+    }
+  ],
+  "radius": 200,
+  "segment": "A-B",
+  "expectation": "The live sub-track endpoint must return the inclusive slice between the A/B crossing data-point IDs, stay inside the synthetic Zurich corridor, preserve endpoint IDs, and keep distance/time monotonic.",
+  "slices": [
+    {
+      "trackId": "100021",
+      "name": "synthetic-shared-zone-a.gpx",
+      "fromId": 637009,
+      "toId": 637012,
+      "httpStatus": 200,
+      "pointCount": 4,
+      "first": {
+        "id": 637009,
+        "lon": 8.541500001454787,
+        "lat": 47.37680000096986,
+        "duration": 0,
+        "timestamp": "2026-01-01T12:00:00.000+0000"
+      },
+      "last": {
+        "id": 637012,
+        "lon": 8.543299998442606,
+        "lat": 47.377999998961734,
+        "distance": 190.47,
+        "duration": 180,
+        "timestamp": "2026-01-01T12:03:00.000+0000"
+      },
+      "bounds": {
+        "minLon": 8.541500001454787,
+        "maxLon": 8.543299998442606,
+        "minLat": 47.37680000096986,
+        "maxLat": 47.377999998961734
+      },
+      "monotonicDistance": true,
+      "monotonicDuration": true,
+      "zeroLikeCount": 0,
+      "endpointIdsMatch": true,
+      "corridorBounds": {
+        "minLon": 8.5413,
+        "maxLon": 8.5435,
+        "minLat": 47.3766,
+        "maxLat": 47.3782
+      },
+      "withinCorridorBounds": true
+    },
+    {
+      "trackId": "100023",
+      "name": "synthetic-map09-cross-zone-c.gpx",
+      "fromId": 637040,
+      "toId": 637041,
+      "httpStatus": 200,
+      "pointCount": 2,
+      "first": {
+        "id": 637040,
+        "lon": 8.542099996936628,
+        "lat": 47.37760000204225,
+        "distance": 63.49,
+        "duration": 60,
+        "timestamp": "2021-08-01T09:01:00.000+0000"
+      },
+      "last": {
+        "id": 637041,
+        "lon": 8.542700003061233,
+        "lat": 47.37719999795918,
+        "distance": 126.98,
+        "duration": 120,
+        "timestamp": "2021-08-01T09:02:00.000+0000"
+      },
+      "bounds": {
+        "minLon": 8.542099996936628,
+        "maxLon": 8.542700003061233,
+        "minLat": 47.37719999795918,
+        "maxLat": 47.37760000204225
+      },
+      "monotonicDistance": true,
+      "monotonicDuration": true,
+      "zeroLikeCount": 0,
+      "endpointIdsMatch": true,
+      "corridorBounds": {
+        "minLon": 8.5413,
+        "maxLon": 8.5435,
+        "minLat": 47.3766,
+        "maxLat": 47.3782
+      },
+      "withinCorridorBounds": true
+    }
+  ],
+  "assertions": {
+    "hasAtLeastTwoPairs": true,
+    "allHttpOk": true,
+    "allHaveAtLeastTwoPoints": true,
+    "allEndpointIdsMatch": true,
+    "allWithinZurichCorridor": true,
+    "allMonotonic": true,
+    "noZeroLikeCoordinates": true
+  }
+}

@@ -1,0 +1,22 @@
+Captured: 2026-06-19T23:58:33.346Z
+APP_06 map style matrix:
+- light: OSM Topo Contrast -> PREFERRED OSM Topo Contrast
+- light: OSM Topo Light -> OSM Topo Light
+- light: Swiss Topo Color -> SWISS Swiss Topo Color
+- light: Swiss Topo Light -> Swiss Topo Light
+- light: OSM Light -> OSM Light
+- light: OSM Gray -> OSM Gray
+- light: OSM Dark -> OSM Dark
+- dark: OSM Topo Contrast -> PREFERRED OSM Topo Contrast
+- dark: OSM Topo Light -> OSM Topo Light
+- dark: Swiss Topo Color -> SWISS Swiss Topo Color
+- dark: Swiss Topo Light -> Swiss Topo Light
+- dark: OSM Light -> OSM Light
+- dark: OSM Gray -> OSM Gray
+- dark: OSM Dark -> OSM Dark
+APP_06 all styles selected under both UI themes: true.
+APP_07 before reload: active=OSM Gray, stored theme=grayscale, source=auto, Base Map opacity=100, GPS Tracks opacity=100.
+APP_07 after reload: active=OSM Gray, stored theme=grayscale, source=auto, track count=16 Tracks.
+APP_08 changed sliders: Base Map opacity=35, GPS Tracks opacity=65; stored layerOpacities.basemap=35 and tracks=65.
+APP_08 after reload: Base Map opacity=35, GPS Tracks opacity=65 persisted with stored theme=grayscale.
+APP_08 explicit reset check: start defaults were OSM Topo Contrast with Base Map/GPS Tracks/Track Points at 100. After changing Base Map to 35 and GPS Tracks to 65, clicking the Maps and data Reset header button restored Base Map=100, GPS Tracks=100, Track Points=100, theme=topo-contrast, source=auto. After another reload, the same defaults persisted.

@@ -1,0 +1,6 @@
+Public FIT file staged outside watched import folder:
+- public-fit/Activity.fit
+- Source URL: https://raw.githubusercontent.com/garmin/fit-javascript-sdk/main/test/data/Activity.fit
+- Size: 94,096 bytes
+- SHA-256: 949a238e1bb75c3684479785f76fa9a16888bb394518844248f488171d591387
+Import/display/conversion evidence will be recorded in FIT_01-FIT_06.

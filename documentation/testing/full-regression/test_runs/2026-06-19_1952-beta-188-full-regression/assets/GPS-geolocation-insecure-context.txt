@@ -1,0 +1,53 @@
+{
+  "capturedAt": "2026-06-19T22:54:35.777Z",
+  "target": "http://188.245.169.80:18080/mtl/",
+  "testPlanNote": "Remote plain-HTTP quick-install origin; live GPS permission/marker/follow/disable checks are not applicable per GPS_01 queue text.",
+  "beforeClick": {
+    "href": "http://188.245.169.80:18080/mtl/",
+    "protocol": "http:",
+    "hostname": "188.245.169.80",
+    "isSecureContext": false,
+    "hasGeolocation": true,
+    "permissionState": "denied",
+    "permissionError": null,
+    "trackCount": "0 Tracks"
+  },
+  "gpsButtonCount": 1,
+  "afterClick": {
+    "href": "http://188.245.169.80:18080/mtl/",
+    "protocol": "http:",
+    "hostname": "188.245.169.80",
+    "isSecureContext": false,
+    "hasGeolocation": true,
+    "permissionState": "denied",
+    "permissionError": null,
+    "trackCount": "13 Tracks",
+    "visibleGpsUnavailable": true,
+    "visibleSecureOriginMessage": true,
+    "bodyTextLines": [
+      "500 km",
+      "© OpenStreetMap | Elevation: Mapterhorn",
+      "13 Tracks",
+      "GPS unavailable",
+      "GPS needs HTTPS or localhost. Open MTL Explorer from a secure address to use live location.",
+      "Stats",
+      "Filter",
+      "Map",
+      "Animate",
+      "Segments",
+      "GPS",
+      "Planner",
+      "Admin"
+    ]
+  },
+  "consoleWarningsOrErrors": [
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 401 ()"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 401 ()"
+    }
+  ]
+}

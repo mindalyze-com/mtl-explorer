@@ -1,0 +1,11 @@
+TRD_10 activity type and energy recalculation evidence
+Track: 100005
+Status: PASS
+Before activity: Walking (WALKING); UI net energy: 346.7 Wh; kcal text values: 298, 603.9, 298.5, 647.2
+Changed activity: Bicycle (BICYCLE); patch activity: BICYCLE; patch net energy Wh: 395.10414999999676; UI net energy: 395.1 Wh; kcal text values: 340, 682.9, 340.2, 737.3
+Restored activity: Walking (WALKING); patch activity: WALKING; patch net energy Wh: 346.6690499999997; UI net energy: 346.7 Wh
+Energy excerpt after change: Energy 395.1 Wh Net Total1,422,375 J · 340 kcal mechanical equivalent 794 W Avg Power 682.9 kcal/h mechanical equivalent 395 W Avg Moving Power 340.2 kcal/h mechanical equivalent · excl. breaks 857 W Max 30s Power 737.3 kcal/h mechanical equivalent Breakdown392.9 Wh Gravitational ↑399.6 Wh Gravitational ↓0.3 Wh Aero Drag4.2 Wh Rolling Resist.0.0 Wh Kinetic (pos.)
+Toast/error text after change: toast="" error=""
+Console warnings/errors: error: Failed to load resource: the server responded with a status of 404 () || error: Failed to load resource: the server responded with a status of 404 ()
+Page errors: none captured
+Screenshots: TRD_10-activity-select-bicycle.webp {"q":"74","resizeWidth":"1200","size":32948}; TRD_10-energy-updated.webp {"q":"74","resizeWidth":"1200","size":33562}

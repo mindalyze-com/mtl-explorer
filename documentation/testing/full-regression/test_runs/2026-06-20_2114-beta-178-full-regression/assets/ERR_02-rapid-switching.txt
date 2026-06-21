@@ -1,0 +1,22 @@
+ERR_02 rapid tool switching
+Tools clicked (24): 1:Stats, 1:Filter, 1:Planner, 1:Map, 1:Animate, 1:Segments, 1:GPS, 1:Admin, 2:Stats, 2:Filter, 2:Planner, 2:Map, 2:Animate, 2:Segments, 2:GPS, 2:Admin, 3:Stats, 3:Filter, 3:Planner, 3:Map, 3:Animate, 3:Segments, 3:GPS, 3:Admin
+Before interaction scale: 500 km
+Before open sheets: 0
+After URL: http://178.104.209.132:18080/mtl/
+After scale: 200 km
+Scale changed after zoom-in control: true
+Blank page: false
+16 Tracks visible: true
+Canvas count: 2
+Visible sheets after Escape: []
+Visible artifact counts: {".planner-hover-marker":0,".planner-waypoint-delete-marker":0,".planner-waypoint-marker":0,".maplibregl-popup":0,".measure-zone-marker":0,".race-marker":0,".gps-marker":0,".location-marker":0,".mp":0}
+Canvas cursors: [{"i":0,"inline":"","computed":"auto"},{"i":1,"inline":"","computed":"grab"}]
+Visible tool text hits: ["StatsFilterMapAnimateSegmentsGPSPlannerAdmin","StatsFilterMapAnimateSegmentsGPSPlannerAdmin","Filter","Filter"]
+Document horizontal overflow: 0
+Console warnings/errors: 5
+error: Failed to load resource: the server responded with a status of 404 ()
+error: Failed to load resource: the server responded with a status of 404 ()
+error: Failed to load resource: the server responded with a status of 404 ()
+error: Failed to load resource: the server responded with a status of 404 ()
+error: Failed to load resource: the server responded with a status of 404 ()
+Page errors: 0

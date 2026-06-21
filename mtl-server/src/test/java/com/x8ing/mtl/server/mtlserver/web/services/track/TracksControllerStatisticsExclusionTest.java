@@ -16,18 +16,20 @@ import com.x8ing.mtl.server.mtlserver.web.services.track.entity.ActivityTypeUpda
 import com.x8ing.mtl.server.mtlserver.web.services.track.entity.StatisticsExclusionUpdateRequest;
 import com.x8ing.mtl.server.mtlserver.web.services.track.entity.StatisticsOverviewResponseDto;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 class TracksControllerStatisticsExclusionTest {
@@ -124,14 +126,13 @@ class TracksControllerStatisticsExclusionTest {
                 period(1, "week", "2026-W21", "2026-W21", 8L, 80_000.0, 20_000_000.0),
                 period(1, "weekday", "7", "Sunday", 5L, 50_000.0, 12_000_000.0)
         );
-        when(filter.getGpsTrackIdsForOptionalFilterName("SmartBaseFilter", Map.of())).thenReturn(queryResult(1L, 2L));
         when(repository.getTrackOverviewActivityBreakdown(any(Long[].class))).thenReturn(List.of());
         when(repository.getTrackOverviewTrackRankings(any(Long[].class), anyInt())).thenReturn(List.of());
         when(repository.getTrackOverviewRecentActivities(any(Long[].class))).thenReturn(List.of());
         when(repository.getTrackOverviewPeriodDistributions(any(Long[].class), anyInt())).thenReturn(periods);
         when(repository.getTrackOverviewMilestones(any(Long[].class))).thenReturn(List.of());
 
-        StatisticsOverviewResponseDto response = controller(repository, filter).getTrackOverview(Map.of(), "SmartBaseFilter");
+        StatisticsOverviewResponseDto response = controller(repository, filter).getTrackOverview(List.of(1L, 2L));
 
         assertThat(response.activePeriods())
                 .extracting(
@@ -144,7 +145,27 @@ class TracksControllerStatisticsExclusionTest {
                         org.assertj.core.groups.Tuple.tuple("week", "2026-W21", 20),
                         org.assertj.core.groups.Tuple.tuple("weekday", "7", 40)
                 );
-        verify(filter).getGpsTrackIdsForOptionalFilterName("SmartBaseFilter", Map.of());
+        verifyNoInteractions(filter);
+    }
+
+    @Test
+    void trackStatisticsUseProvidedTrackIdsWithoutResolvingFilter() {
+        GpsTrackRepository repository = mock(GpsTrackRepository.class);
+        GpsTrackSQLFilter filter = mock(GpsTrackSQLFilter.class);
+        EnergyService energyService = mock(EnergyService.class);
+        when(energyService.getThresholdPowerWatts()).thenReturn(250.0);
+
+        var response = controller(repository, filter, energyService).getTrackStatistics(
+                List.of(5L, 8L),
+                "YYYY",
+                null
+        );
+
+        assertThat(response).isEmpty();
+        ArgumentCaptor<Long[]> trackIds = ArgumentCaptor.forClass(Long[].class);
+        verify(repository).getTrackStatistics(eq("YYYY"), isNull(), trackIds.capture(), eq(250.0));
+        assertThat(trackIds.getValue()).containsExactly(5L, 8L);
+        verifyNoInteractions(filter);
     }
 
     private static TracksController controller(GpsTrackRepository repository) {

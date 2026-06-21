@@ -145,10 +145,12 @@ describe('useFilterStore', () => {
     expect(store.activeFilterRequest).toEqual({
       filterName: 'NonMotorized',
       filterParams: { stringParams: { ACTIVITY: 'human' } },
+      resolvedTrackIds: [1],
     });
     await expect(store.getActiveFilterRequest()).resolves.toEqual({
       filterName: 'NonMotorized',
       filterParams: { stringParams: { ACTIVITY: 'human' } },
+      resolvedTrackIds: [1],
     });
   });
 

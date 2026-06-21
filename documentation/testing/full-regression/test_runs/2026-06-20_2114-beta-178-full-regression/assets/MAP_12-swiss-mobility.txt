@@ -1,0 +1,19 @@
+# MAP_12 Swiss Mobility route popup evidence
+
+Transient active overlays: wanderland, veloland
+Click workflow: default map, mouse-wheel zoom around viewport coordinate (804,118) six times, then clicked the same coordinate.
+Overlay tile requests observed: 473
+Identify events: request https://api3.geo.admin.ch/rest/services/api/MapServer/identify?geometry=7.251469269696031,47.00431946930712&geometryType=esriGeometryPoint&layers=all:ch.astra.wanderland,ch.astra.veloland&mapExtent=1.8319513219660166,42.88662591294917,11.986103081175969,47.600 | response 200
+SchweizMobil attribution visible: true
+
+Popup visible before close: 1
+Popup text sample:  NEARBY ROUTES HIKING ViaBerna (Biel/Bienne - Aarberg) #38 HIKING ViaBerna (Aarberg - Frauenkappelen) #38 BIKE Aare-Route (Bern - Nidau) #8 BIKE Le Jorat–Trois Lacs–Emme (Payerne - Aarberg) #44 BIKE Le Jorat–Trois Lacs–Emme (Aarberg - Kirchberg) #44 BIKE Gürbe–Sense (Bern - Aarberg) #74 BIKE L'Areuse–Emme–Sihl (Neuchâtel - Bern) #94 BIKE Frienisberg-Fernsichtroute (Hinterkappelen - Hinterkappelen) #890
+Route item sample: HikingViaBerna (Biel/Bienne - Aarberg)#38 | HikingViaBerna (Aarberg - Frauenkappelen)#38 | BikeAare-Route (Bern - Nidau)#8 | BikeLe Jorat–Trois Lacs–Emme (Payerne - Aarberg)#44 | BikeLe Jorat–Trois Lacs–Emme (Aarberg - Kirchberg)#44 | BikeGürbe–Sense (Bern - Aarberg)#74 | BikeL'Areuse–Emme–Sihl (Neuchâtel - Bern)#94 | BikeFrienisberg-Fernsichtroute (Hinterkappelen - Hinterkappelen)#890
+
+Popup visible after close: 0
+Nearby Routes text after close: false
+Map canvases after close: 2
+
+Persistent storage note: overlays were enabled only in this transient Playwright context; the saved browser-state file was not rewritten.
+Elapsed ms: 18009
+Result: PASS

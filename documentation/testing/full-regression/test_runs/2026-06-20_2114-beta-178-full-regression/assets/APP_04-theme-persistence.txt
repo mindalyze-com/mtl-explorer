@@ -1,0 +1,7 @@
+before-reload: {"dataTheme":"dark","stored":"dark","sample":"500 km\n© OpenStreetMap\n16 Tracks\nStats\nFilter\nMap\nAnimate\nSegments\nGPS\nPlanner\nAdmin","navBg":"rgba(15, 23, 42, 0.92)"}
+after-reload: {"dataTheme":"dark","stored":"dark","sample":"500 km\n© OpenStreetMap\n16 Tracks\nStats\nFilter\nMap\nAnimate\nSegments\nGPS\nPlanner\nAdmin","navBg":"rgba(15, 23, 42, 0.92)"}
+login-after-logout: {"dataTheme":"dark","stored":"dark","sample":"© Patrick Heusser\nAGPL-3.0\nSign In","navBg":"rgb(10, 10, 15)"}
+after-relogin: {"dataTheme":"dark","stored":"dark","sample":"1000 km\n© OpenStreetMap\n16 Tracks\nStats\nFilter\nMap\nAnimate\nSegments\nGPS\nPlanner\nAdmin","navBg":"rgba(15, 23, 42, 0.92)"}
+Login visible: true
+Console/page errors: []
+PASS: true

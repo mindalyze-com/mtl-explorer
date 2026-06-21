@@ -1,0 +1,37 @@
+Status: PASS
+Resolved visible track IDs: 100000,100001,100002,100005,100008,100009,100011,100012
+Empty dataset OK: true
+Single track OK: true
+Many tracks OK: true
+Page errors: 0
+Console warnings/errors: 2
+
+Empty overview summary:
+{"trackCount":0,"distanceM":0,"durationMs":0,"ascentM":0,"energyWh":0,"activityBreakdown":"","rankingRows":0,"periods":"weekday:7","milestoneCount":0}
+Empty TOTAL stats:
+
+
+Single overview summary:
+{"trackCount":1,"distanceM":3598.76,"durationMs":3597000,"ascentM":1666.68,"energyWh":346.67,"activityBreakdown":"WALKING:1:3599","rankingRows":7,"periods":"day:1, week:1, month:1, weekday:7","milestoneCount":4}
+Single TOTAL stats:
+TOTAL tracks=1 dist=3598 durSecs=3597
+
+Many overview summary:
+{"trackCount":8,"distanceM":955195.08,"durationMs":72276000,"ascentM":13559.849999999999,"energyWh":4367.59,"activityBreakdown":"BICYCLE:7:951596, WALKING:1:3599","rankingRows":39,"periods":"day:3, week:3, month:3, weekday:7","milestoneCount":10}
+Many TOTAL stats:
+TOTAL tracks=8 dist=955195 durSecs=72276
+
+Many Stats UI sample:
+500 km © OpenStreetMap 8 Tracks Stats Filter Map Animate Segments GPS Planner Admin Overview Trends Tracks 8 TRACKS 955 km DISTANCE 20h 04m DURATION 4,368 Wh ENERGY 13,560 m ASCENT ACTIVITY BREAKDOWN Tracks Distance Duration Energy Bicycle 7 7 Walking 1 1 HIGHLIGHTS Longest track Moselradweg aus Wiki on GPSies.com 518 km Longest duration Jura Route 7 / 2011 on GPSies.com 7h 46m Biggest ascent Jura Route 7 / 2011 on GPSies.com 6,324 m Quickest ascent Track 100005 3,919 m/h Most energy Jura Route 7 / 2011 on GPSies.com 1,808 Wh Fastest 30 s speed Moselradweg aus Wiki on GPSies.com 58.3 km/h Peak 30 s power Jura Route 7 / 2011 on GPSies.com 1,114 W Most common activity Bicycle 7 tracks RECENT ACTIVITY View all tracks FMT synthetic regression track Bicycle 20/06/2026, 22:20 3.31 km 0m 00s Path Bicycle 20/06/2026, 22:20 3.31 km 0m 00s Path Bicycle 20/06/2026, 22:20 3.31 km 0m 00s GNSSALTTRK B
+
+Prior empty UI/API baseline evidence:
+IMP_01-baseline.txt and IMP_01-baseline-stats.webp recorded a real 0-track install state.
+Prior many overview evidence:
+TBS_06-overview-statistics.txt recorded the current many-track Overview/Trends UI.
+
+Page errors detail:
+(none)
+
+Console warnings/errors detail:
+error: Failed to load resource: net::ERR_FAILED
+warning: Failed to cache low-zoom tiles (IndexedDB): {name: TypeError, message: Failed to fetch}

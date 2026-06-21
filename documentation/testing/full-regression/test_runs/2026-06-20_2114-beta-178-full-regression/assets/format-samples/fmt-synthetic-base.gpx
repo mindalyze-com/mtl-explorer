@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="MTL Explorer synthetic regression" xmlns="http://www.topografix.com/GPX/1/1">
+  <metadata><name>FMT synthetic regression track</name></metadata>
+  <trk><name>FMT synthetic regression track</name><type>hiking</type><trkseg>
+    <trkpt lat="46.500000" lon="7.800000"><ele>1000.0</ele><time>2026-06-20T10:00:00Z</time></trkpt>
+    <trkpt lat="46.501250" lon="7.801045"><ele>1007.0</ele><time>2026-06-20T10:01:00Z</time></trkpt>
+    <trkpt lat="46.502500" lon="7.802059"><ele>1014.0</ele><time>2026-06-20T10:02:00Z</time></trkpt>
+    <trkpt lat="46.503750" lon="7.803013"><ele>1021.0</ele><time>2026-06-20T10:03:00Z</time></trkpt>
+    <trkpt lat="46.505000" lon="7.803883"><ele>1028.0</ele><time>2026-06-20T10:04:00Z</time></trkpt>
+    <trkpt lat="46.506250" lon="7.804648"><ele>1035.0</ele><time>2026-06-20T10:05:00Z</time></trkpt>
+    <trkpt lat="46.507500" lon="7.805295"><ele>1042.0</ele><time>2026-06-20T10:06:00Z</time></trkpt>
+    <trkpt lat="46.508750" lon="7.805818"><ele>1049.0</ele><time>2026-06-20T10:07:00Z</time></trkpt>
+    <trkpt lat="46.510000" lon="7.806219"><ele>1056.0</ele><time>2026-06-20T10:08:00Z</time></trkpt>
+    <trkpt lat="46.511250" lon="7.806506"><ele>1063.0</ele><time>2026-06-20T10:09:00Z</time></trkpt>
+    <trkpt lat="46.512500" lon="7.806697"><ele>1070.0</ele><time>2026-06-20T10:10:00Z</time></trkpt>
+    <trkpt lat="46.513750" lon="7.806813"><ele>1077.0</ele><time>2026-06-20T10:11:00Z</time></trkpt>
+    <trkpt lat="46.515000" lon="7.806882"><ele>1084.0</ele><time>2026-06-20T10:12:00Z</time></trkpt>
+    <trkpt lat="46.516250" lon="7.806934"><ele>1091.0</ele><time>2026-06-20T10:13:00Z</time></trkpt>
+    <trkpt lat="46.517500" lon="7.806998"><ele>1098.0</ele><time>2026-06-20T10:14:00Z</time></trkpt>
+    <trkpt lat="46.518750" lon="7.807107"><ele>1105.0</ele><time>2026-06-20T10:15:00Z</time></trkpt>
+    <trkpt lat="46.520000" lon="7.807286"><ele>1112.0</ele><time>2026-06-20T10:16:00Z</time></trkpt>
+    <trkpt lat="46.521250" lon="7.807560"><ele>1119.0</ele><time>2026-06-20T10:17:00Z</time></trkpt>
+    <trkpt lat="46.522500" lon="7.807945"><ele>1126.0</ele><time>2026-06-20T10:18:00Z</time></trkpt>
+    <trkpt lat="46.523750" lon="7.808451"><ele>1133.0</ele><time>2026-06-20T10:19:00Z</time></trkpt>
+    <trkpt lat="46.525000" lon="7.809082"><ele>1140.0</ele><time>2026-06-20T10:20:00Z</time></trkpt>
+    <trkpt lat="46.526250" lon="7.809832"><ele>1147.0</ele><time>2026-06-20T10:21:00Z</time></trkpt>
+    <trkpt lat="46.527500" lon="7.810689"><ele>1154.0</ele><time>2026-06-20T10:22:00Z</time></trkpt>
+    <trkpt lat="46.528750" lon="7.811633"><ele>1161.0</ele><time>2026-06-20T10:23:00Z</time></trkpt>
+  </trkseg></trk>
+</gpx>

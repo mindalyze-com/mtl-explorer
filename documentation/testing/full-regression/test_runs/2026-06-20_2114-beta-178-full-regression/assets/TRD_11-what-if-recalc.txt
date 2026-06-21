@@ -1,0 +1,12 @@
+TRD_11 energy what-if recalculation evidence
+Track: 100005
+Status: PASS
+Reload note: the first post-preview reload attempt left the detail route before screenshot capture, so persistent-state verification was repeated by direct loading /mtl/track/100005.
+Overview before: activity=Walking (WALKING); net=346.7 Wh; avgPower=702 W; kcal=298, 603.9, 298.5, 647.2
+Baseline dialog: input=75 kg; response baselineRider=75; response totalWh=346.6690499999997; results=Total=346.7 Wh; Delta=-0.0 Wh; Avg power=702 W
+Custom preview: targetWeight=95 kg; response requested=95; response totalWh=439.1141299999927; deltaWh=92.4441299999927; results=Total=439.1 Wh; Delta=+92.4 Wh; Avg power=889 W
+No-save verification: save POST count=0; direct reload overview net=346.7 Wh; avgPower=702 W; activity=Walking (WALKING)
+What-if responses observed: {weight:baseline, totalWh:346.6690499999997, deltaWh:-0.0009500000003299647}; {weight:95, totalWh:439.1141299999927, deltaWh:92.4441299999927}
+Console warnings/errors: error: Failed to load resource: the server responded with a status of 404 () || error: Failed to load resource: the server responded with a status of 404 ()
+Page errors: none captured
+Screenshots: TRD_11-what-if-custom-weight.webp {"q":"74","resizeWidth":"1200","size":16978}; TRD_11-overview-after-reload.webp {"q":"76","resizeWidth":"900","size":9230}

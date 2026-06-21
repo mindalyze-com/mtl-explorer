@@ -1,0 +1,82 @@
+FLT_05 geo drawing results
+
+Initial state
+- URL: http://188.245.169.80:18080/mtl/filter
+- Filter workbench open on Activities by keyword.
+- Base scope expanded.
+- Keyword, date, circle, rectangle, and polygon parameter maps were empty.
+- Result: 13 / 13 Tracks; legend CYCLING 12 and ON_FOOT 1.
+
+Circle cancel
+- Started Circle draw with the Circle "Draw on map" control.
+- Toolbar displayed: Draw Circle / Click to place center / Undo / Cancel.
+- Undo was disabled before placing a point; Cancel was enabled.
+- Clicked Cancel.
+- Toolbar closed, result stayed 13 / 13 Tracks, and no circle/rectangle/polygon summaries or persisted geo params were created.
+- Reopened /mtl/filter to continue because Cancel leaves the filter sheet hidden after the draw overlay closes.
+
+Circle draw
+- Started Circle draw again.
+- First map click changed the toolbar to: Draw Circle / Click to set radius / Undo / Cancel.
+- Undo became enabled.
+- Second map click saved the circle.
+- Saved summary: Circle at 30.4246, -3.0574 - r=1015.4 km.
+- Persisted circle:
+  lat: 30.424560140906564
+  lng: -3.0573708034123683
+  radiusM: 1015405
+- Result after circle: 0 / 13 Tracks.
+
+Rectangle draw
+- Started Rectangle draw.
+- First map click changed the toolbar to: Draw Rectangle / Click to place opposite corner / Undo / Cancel.
+- Undo and Cancel were enabled.
+- Second map click saved the rectangle.
+- Saved summary: Rectangle (16.565...37.100, -12.273...21.998).
+- Persisted rectangle:
+  minLat: 16.56452030628344
+  maxLat: 37.10030133982016
+  minLng: -12.272719509536387
+  maxLng: 21.998376960548967
+
+Polygon undo and finish
+- Started Polygon draw and placed three points.
+- Toolbar displayed: Draw Polygon / 3 points - double-click or press Finish / Undo / Finish / Cancel.
+- Undo and Finish were enabled.
+- Clicked Undo.
+- Toolbar changed to: Draw Polygon / 2 points - need at least 3 / Undo / Finish / Cancel.
+- Finish was disabled at 2 points.
+- Added a replacement third point.
+- Toolbar returned to 3 points and Finish enabled.
+- Clicked Finish.
+- Saved summary: Polygon with 3 points.
+- Persisted polygon coordinates:
+  - [-9.826580694518839, 35.975367213246145]
+  - [12.241013059092552, 37.001982178605004]
+  - [24.403769387502507, 20.154216300394936]
+
+Saved shape persistence
+- Before reload, summaries were present for Circle, Rectangle, and Polygon.
+- Before reload, result was 0 / 13 Tracks.
+- Reloaded http://188.245.169.80:18080/mtl/filter.
+- After reload, all three summaries reappeared unchanged:
+  - Circle at 30.4246, -3.0574 - r=1015.4 km
+  - Rectangle (16.565...37.100, -12.273...21.998)
+  - Polygon with 3 points
+- After reload, persisted geoCircles, geoRectangles, and geoPolygons still contained the same values.
+- After reload, result stayed 0 / 13 Tracks.
+
+Clear all saved shapes
+- Cleared the Circle, Rectangle, and Polygon with their Clear shape controls.
+- After clearing all three shapes:
+  - No geo summaries remained.
+  - geoCircles, geoRectangles, and geoPolygons were empty.
+  - Result returned to 13 / 13 Tracks.
+- Reloaded /mtl/filter again and confirmed the cleared state persisted with 13 / 13 Tracks and empty geo parameter maps.
+
+Screenshot assets
+- FLT_05-circle-cancel-toolbar.png: Circle draw toolbar before Cancel.
+- FLT_05-polygon-undo-finish-toolbar.png: Polygon toolbar after Undo/replacement point with Finish available.
+- FLT_05-all-shapes-before-reload.png: Circle, Rectangle, and Polygon summaries before reload.
+- FLT_05-shapes-reappeared-after-reload.png: Saved summaries after reload.
+- FLT_05-shapes-cleared.png: Geo controls after clearing all shapes.

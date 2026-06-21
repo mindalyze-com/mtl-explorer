@@ -1,0 +1,28 @@
+Captured: 2026-06-19T23:32:00.845Z
+Current freshness token: 5Wq1oy__|server_id:RBDC887cKZ7gqxDqg7roVv|config:9|filters:85|index:258|media:0|track_geometry:150|tracks:180
+Current map UI count before SYN_02 surface capture: 15 Tracks
+SYN synthetic tracks found via /api/tracks/get: 1
+SYN synthetic track names: syn-cache-refresh-20260619232459
+SYN_02 stats overview count text: 15 Tracks; sample contains 15: true
+SYN_02 track tab search sample contains syn-cache-refresh: true
+SYN_05 base token: 5Wq1oy__|server_id:RBDC887cKZ7gqxDqg7roVv|config:9|filters:85|index:258|media:0|track_geometry:150|tracks:180
+SYN_05 rescan1: status=200, message=Manual GPS rescan has been queued.
+SYN_05 first changed token: 5YPurR__|server_id:RBDC887cKZ7gqxDqg7roVv|config:9|filters:85|index:272|media:0|track_geometry:150|tracks:180
+SYN_05 banner before dismiss: visible=true, title=New data available, buttons=Reload|Dismiss
+SYN_05 after dismiss: visible=false, dismissedTokenSet=true, snoozeMs=190625
+SYN_05 rescan2: status=200, message=Manual GPS rescan has been queued.
+SYN_05 second changed token: 6imCmG__|server_id:RBDC887cKZ7gqxDqg7roVv|config:9|filters:85|index:304|media:0|track_geometry:150|tracks:180
+SYN_05 after 36s poll: visible=false, dismissedTokenSet=true, snoozeMs=190625
+SYN_06 base token: 4Uhuz1__|server_id:RBDC887cKZ7gqxDqg7roVv|config:9|filters:85|index:318|media:0|track_geometry:150|tracks:180
+SYN_06 rescan: status=200, message=Manual GPS rescan has been queued.
+SYN_06 out-of-sync token: 7LMFM3__|server_id:RBDC887cKZ7gqxDqg7roVv|config:9|filters:85|index:348|media:0|track_geometry:150|tracks:180
+SYN_06 login form visible after logout: true
+SYN_06 after relogin: bannerVisible=false, appliedEqualsServer=true, mapCount=15 Tracks
+SYN_06 auto-refresh console count: 0
+SYN_07 rescan: status=200, message=Manual GPS rescan has been queued.
+SYN_07 map interaction: drag and wheel completed
+SYN_07 admin/status sample includes Jobs=true, active/idle/quiet=true
+SYN_07 index status: [{"index":"GPS","total":26,"pending":0,"completed":16,"failed":0,"removed":10,"excluded":0,"progressPercent":61}]
+SYN_07 jobs status: [{"job":"duplicate","label":"Duplicate Finder","total":16,"pending":0,"done":16,"progressPercent":100},{"job":"activityType","label":"Activity Classifier","total":16,"pending":0,"done":16,"progressPercent":100},{"job":"exploration","label":"Exploration Score","total":16,"pending":0,"done":16,"progressPercent":100}]
+Console events containing Freshness: (none)
+Failed requests: HEAD https://protomaps.github.io/basemaps-assets/fonts/Noto%20Sans%20Regular/0-255.pbf net::ERR_ABORTED || HEAD https://tiles.mapterhorn.com/0/0/0.webp net::ERR_ABORTED || HEAD https://protomaps.github.io/basemaps-assets/sprites/v4/light.json net::ERR_ABORTED || HEAD http://188.245.169.80:18080/mtl/api/info/build net::ERR_ABORTED || HEAD https://tile.openstreetmap.org/0/0/0.png net::ERR_ABORTED || GET http://188.245.169.80:18080/mtl/api/map-proxy/prod/planet.pmtiles?mtl-map-source=public&mtl-map-archive=public-default net::ERR_ABORTED || GET http://188.245.169.80:18080/mtl/api/map-proxy/prod/planet.pmtiles?mtl-map-source=public&mtl-map-archive=public-default net::ERR_ABORTED || GET http://188.245.169.80:18080/mtl/api/map-proxy/prod/planet.pmtiles?mtl-map-source=public&mtl-map-archive=public-default net::ERR_ABORTED

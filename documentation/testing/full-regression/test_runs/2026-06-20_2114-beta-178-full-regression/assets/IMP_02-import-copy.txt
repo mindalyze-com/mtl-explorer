@@ -1,0 +1,29 @@
+IMP_02 five-GPX watched-folder import copy
+Timestamp UTC: 2026-06-20T19:33:52+00:00
+Source: /root/mtl-full-regression-2026-06-20_2114-beta-178-full-regression/source-data
+Destination: /root/mtl-full-regression-2026-06-20_2114-beta-178-full-regression/data/gpx
+Before destination files:
+JuraRoute72011.gpx missing
+MoselradwegAusWiki.gpx missing
+Vitry-le-Francois_Langres.gpx missing
+VoieVerteHauteVosges.gpx missing
+Lannion_Plestin_parcours24.4RE.gpx missing
+Copying files...
+After destination files:
+fcff577bd3c1a6dc2bb9e53abba8051d510d282f4fb0049d38be5300f92e354e  /root/mtl-full-regression-2026-06-20_2114-beta-178-full-regression/data/gpx/JuraRoute72011.gpx
+0f5263dee95a345a42585bde148ec741af4ed4eeb7451702f59c9c7f9bf761c3  /root/mtl-full-regression-2026-06-20_2114-beta-178-full-regression/data/gpx/MoselradwegAusWiki.gpx
+401218e3c1d1f366ee27ea8bc138d8422eff3bf6348a77183be83fef3e8d7d67  /root/mtl-full-regression-2026-06-20_2114-beta-178-full-regression/data/gpx/Vitry-le-Francois_Langres.gpx
+0f417d6e76cfa581d3ada969e728694933fbffd062f61a8352ccc87637135f78  /root/mtl-full-regression-2026-06-20_2114-beta-178-full-regression/data/gpx/VoieVerteHauteVosges.gpx
+e76c692cbb5580f20013ce19995a9383361a8a0babec2db3e36f7064f316e85f  /root/mtl-full-regression-2026-06-20_2114-beta-178-full-regression/data/gpx/Lannion_Plestin_parcours24.4RE.gpx
+Non-GPX source files intentionally not copied:
+Activity.fit
+synthetic-shared-zone-a.gpx
+synthetic-shared-zone-b.gpx
+Watched folder listing:
+total 1084
+drwxr-xr-x 2 root root   4096 Jun 20 19:19 GPX-UPLOAD
+-rw-r--r-- 1 root root 199962 Jun 20 19:33 JuraRoute72011.gpx
+-rw-r--r-- 1 root root  60917 Jun 20 19:33 Lannion_Plestin_parcours24.4RE.gpx
+-rw-r--r-- 1 root root 415326 Jun 20 19:33 MoselradwegAusWiki.gpx
+-rw-r--r-- 1 root root 238349 Jun 20 19:33 Vitry-le-Francois_Langres.gpx
+-rw-r--r-- 1 root root 183733 Jun 20 19:33 VoieVerteHauteVosges.gpx

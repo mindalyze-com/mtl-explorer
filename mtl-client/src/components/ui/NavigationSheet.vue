@@ -1,7 +1,16 @@
 <template>
   <Teleport to="body">
     <!-- Small drag halo above the sheet for real-device finger tolerance. -->
-    <div v-if="!isDesktop" ref="haloEl" class="nav-sheet__drag-halo" aria-hidden="true"></div>
+    <div
+      v-if="!isDesktop"
+      ref="haloEl"
+      class="nav-sheet__drag-halo"
+      aria-hidden="true"
+      @pointerdown="onNavTouchPointerDown($event, 'halo')"
+      @pointermove="onNavTouchPointerMove"
+      @pointerup="onNavTouchPointerEnd"
+      @pointercancel="onNavTouchPointerEnd"
+    ></div>
 
     <!-- ─── Mobile: bottom sheet with tool grid ─── -->
     <div
@@ -15,8 +24,25 @@
       :style="sheetStyle"
     >
       <!-- Drag handle: also acts as click-to-expand when collapsed -->
-      <div ref="handleHitEl" class="nav-sheet__handle-hit-zone" aria-hidden="true"></div>
-      <div ref="handleTapEl" class="nav-sheet__handle-tap-zone" aria-hidden="true" @click="onDragTap"></div>
+      <div
+        ref="handleHitEl"
+        class="nav-sheet__handle-hit-zone"
+        aria-hidden="true"
+        @pointerdown="onNavTouchPointerDown($event, 'handle')"
+        @pointermove="onNavTouchPointerMove"
+        @pointerup="onNavTouchPointerEnd"
+        @pointercancel="onNavTouchPointerEnd"
+      ></div>
+      <div
+        ref="handleTapEl"
+        class="nav-sheet__handle-tap-zone"
+        aria-hidden="true"
+        @click="onDragTap"
+        @pointerdown="onNavTouchPointerDown($event, 'handle')"
+        @pointermove="onNavTouchPointerMove"
+        @pointerup="onNavTouchPointerEnd"
+        @pointercancel="onNavTouchPointerEnd"
+      ></div>
       <div class="nav-sheet__handle-zone" aria-hidden="true">
         <div class="nav-sheet__handle"></div>
       </div>
@@ -25,10 +51,10 @@
       <div
         ref="gridEl"
         class="nav-sheet__grid"
-        @pointerdown="onToolGridPointerDown"
-        @pointermove="onToolGridPointerMove"
-        @pointerup="onToolGridPointerEnd"
-        @pointercancel="onToolGridPointerEnd"
+        @pointerdown="onNavTouchPointerDown($event, 'grid')"
+        @pointermove="onNavTouchPointerMove"
+        @pointerup="onNavTouchPointerEnd"
+        @pointercancel="onNavTouchPointerEnd"
       >
         <!-- Row 1: primary tools -->
         <div class="nav-sheet__row">
@@ -41,6 +67,8 @@
               'nav-sheet__tool--alert': alertSet.has(tool.id),
               'nav-sheet__tool--drifted': driftedSet.has(tool.id),
             }"
+            :data-tool-id="tool.id"
+            type="button"
             @click="onToolClick($event, tool.id)"
           >
             <i :class="iconFor(tool)"></i>
@@ -59,6 +87,8 @@
               'nav-sheet__tool--alert': alertSet.has(tool.id),
               'nav-sheet__tool--drifted': driftedSet.has(tool.id),
             }"
+            :data-tool-id="tool.id"
+            type="button"
             @click="onToolClick($event, tool.id)"
           >
             <i :class="iconFor(tool)"></i>
@@ -94,7 +124,6 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
-import { usePointerDrag, type DragState } from '@/composables/usePointerDrag';
 import AppBrandButton from '@/components/info/AppBrandButton.vue';
 
 export interface ToolDef {
@@ -165,28 +194,42 @@ const haloEl = ref<HTMLElement | null>(null);
 const isDragging = ref(false);
 const sheetHeight = ref(0);
 let dragStartHeight = 0;
-let suppressNextDragTap = false;
-let suppressToolClickUntil = 0;
 
 // Snap points in px (computed after mount)
 const HANDLE_HEIGHT = 26; // sheet chrome budget; CSS keeps the visible handle row tighter
 const ROW_HEIGHT = 50; // each tool row height
 const ROW_GAP = 2; // gap between rows
 const BOTTOM_PAD = 4; // bottom padding
-const TOOL_GRID_DRAG_THRESHOLD_PX = 10;
+const TOOL_GRID_DRAG_THRESHOLD_PX = 16;
 const TOOL_GRID_VERTICAL_DOMINANCE = 1.2;
-const TOOL_GRID_CLICK_SUPPRESS_MS = 250;
 const TOOL_GRID_VELOCITY_WINDOW_MS = 80;
+const HANDLE_TOUCH_DRAG_THRESHOLD_PX = 6;
+const TOUCH_TAP_TOLERANCE_PX = 10;
+const NATIVE_CLICK_SUPPRESS_MS = 450;
+const NATIVE_CLICK_SUPPRESS_RADIUS_PX = 32;
 
-interface ToolGridDragState {
+type NavTouchGestureZone = 'grid' | 'handle' | 'halo';
+
+interface NavTouchGestureState {
   pointerId: number;
+  zone: NavTouchGestureZone;
   startX: number;
   startY: number;
+  startHeight: number;
   dragging: boolean;
+  toolId: string | null;
+  captureEl: HTMLElement | null;
   trail: Array<{ x: number; y: number; t: number }>;
 }
 
-let toolGridDragState: ToolGridDragState | null = null;
+interface NativeClickSuppression {
+  until: number;
+  x: number;
+  y: number;
+}
+
+let navTouchGestureState: NavTouchGestureState | null = null;
+let nativeClickSuppression: NativeClickSuppression | null = null;
 
 const collapsedHeight = HANDLE_HEIGHT + 20; // handle + breathing room for safe-area
 const expandedHeight = HANDLE_HEIGHT + ROW_HEIGHT + ROW_GAP + ROW_HEIGHT + BOTTOM_PAD; // handle + 2 rows
@@ -198,6 +241,7 @@ const currentSnap = ref<SnapName>('expanded');
 onMounted(() => {
   sheetHeight.value = expandedHeight;
   updateCssVar();
+  document.addEventListener('click', onDocumentClickCapture, true);
 });
 
 // Keep CSS variable in sync so other elements can position above the sheet.
@@ -210,6 +254,7 @@ watch(sheetHeight, updateCssVar);
 watch(isDesktop, updateCssVar);
 
 onUnmounted(() => {
+  document.removeEventListener('click', onDocumentClickCapture, true);
   document.documentElement.style.removeProperty('--nav-sheet-h');
 });
 
@@ -249,23 +294,13 @@ function snapTo(snap: SnapName) {
   }
 }
 
-function suppressDragTapOnce() {
-  suppressNextDragTap = true;
-  window.setTimeout(() => {
-    suppressNextDragTap = false;
-  }, 0);
-}
-
-function onDragTap() {
-  if (suppressNextDragTap) {
-    suppressNextDragTap = false;
-    return;
-  }
+function onDragTap(event?: MouseEvent) {
+  if (event && consumeSuppressedNativeClick(event)) return;
   snapTo(currentSnap.value === 'collapsed' ? 'expanded' : 'collapsed');
 }
 
-function beginSheetDrag() {
-  dragStartHeight = sheetHeight.value;
+function beginSheetDrag(startHeight = sheetHeight.value) {
+  dragStartHeight = startHeight;
   isDragging.value = true;
 }
 
@@ -299,50 +334,35 @@ function finishSheetDrag(vel: number, dy: number) {
   }
 }
 
-function onSheetDrag({ movement: [, my], velocity: vel, direction: [, dy], first, last }: DragState) {
-  if (first) beginSheetDrag();
-  if (!last) updateSheetDrag(my);
-
-  if (last) {
-    suppressDragTapOnce();
-    finishSheetDrag(vel, dy);
-  }
-}
-
-function suppressToolClickOnce() {
-  suppressToolClickUntil = Date.now() + TOOL_GRID_CLICK_SUPPRESS_MS;
-  window.setTimeout(() => {
-    if (Date.now() >= suppressToolClickUntil) suppressToolClickUntil = 0;
-  }, TOOL_GRID_CLICK_SUPPRESS_MS);
-}
-
 function onToolClick(event: MouseEvent, toolId: string) {
-  if (Date.now() < suppressToolClickUntil) {
-    suppressToolClickUntil = 0;
-    event.preventDefault();
-    event.stopPropagation();
-    return;
-  }
+  if (consumeSuppressedNativeClick(event)) return;
   emit('select', toolId);
 }
 
-function onToolGridPointerDown(event: PointerEvent) {
+function onNavTouchPointerDown(event: PointerEvent, zone: NavTouchGestureZone) {
   if (event.button !== 0 || isDesktop.value) return;
-  if (!(event.target instanceof Element) || !event.target.closest('.nav-sheet__tool')) return;
+  if (event.pointerType !== 'touch') return;
 
-  toolGridDragState = {
+  stopOwnedTouchEvent(event);
+  const captureEl = event.currentTarget instanceof HTMLElement ? event.currentTarget : null;
+  navTouchGestureState = {
     pointerId: event.pointerId,
+    zone,
     startX: event.clientX,
     startY: event.clientY,
+    startHeight: sheetHeight.value,
     dragging: false,
+    toolId: zone === 'grid' ? toolIdFromTouchTarget(event.target) : null,
+    captureEl,
     trail: [{ x: event.clientX, y: event.clientY, t: Date.now() }],
   };
-  gridEl.value?.setPointerCapture(event.pointerId);
+  capturePointer(captureEl, event.pointerId);
 }
 
-function onToolGridPointerMove(event: PointerEvent) {
-  const state = toolGridDragState;
+function onNavTouchPointerMove(event: PointerEvent) {
+  const state = navTouchGestureState;
   if (!state || state.pointerId !== event.pointerId) return;
+  stopOwnedTouchEvent(event);
 
   const mx = event.clientX - state.startX;
   const my = event.clientY - state.startY;
@@ -354,27 +374,38 @@ function onToolGridPointerMove(event: PointerEvent) {
   while (state.trail.length > 2 && now - state.trail[0].t > TOOL_GRID_VELOCITY_WINDOW_MS) state.trail.shift();
 
   if (!state.dragging) {
-    if (absY < TOOL_GRID_DRAG_THRESHOLD_PX) return;
-    if (absY < absX * TOOL_GRID_VERTICAL_DOMINANCE) return;
+    if (state.zone === 'grid') {
+      if (absY < TOOL_GRID_DRAG_THRESHOLD_PX) return;
+      if (absY < absX * TOOL_GRID_VERTICAL_DOMINANCE) return;
+    } else if (absY < HANDLE_TOUCH_DRAG_THRESHOLD_PX) {
+      return;
+    }
 
     state.dragging = true;
-    suppressToolClickOnce();
-    beginSheetDrag();
+    beginSheetDrag(state.startHeight);
   }
 
-  event.preventDefault();
   updateSheetDrag(my);
 }
 
-function onToolGridPointerEnd(event: PointerEvent) {
-  const state = toolGridDragState;
+function onNavTouchPointerEnd(event: PointerEvent) {
+  const state = navTouchGestureState;
   if (!state || state.pointerId !== event.pointerId) return;
-  toolGridDragState = null;
+  navTouchGestureState = null;
+  stopOwnedTouchEvent(event);
+  releasePointer(state.captureEl, event.pointerId);
+  suppressNativeClickNear(event);
 
-  if (!state.dragging) return;
-
-  event.preventDefault();
-  suppressToolClickOnce();
+  if (!state.dragging) {
+    if (event.type !== 'pointercancel' && isTapGesture(state, event)) {
+      if (state.zone === 'grid') {
+        if (state.toolId) emit('select', state.toolId);
+      } else {
+        snapTo(currentSnap.value === 'collapsed' ? 'expanded' : 'collapsed');
+      }
+    }
+    return;
+  }
 
   const now = Date.now();
   state.trail.push({ x: event.clientX, y: event.clientY, t: now });
@@ -386,10 +417,81 @@ function onToolGridPointerEnd(event: PointerEvent) {
   finishSheetDrag(velocity, Math.sign(recentDy));
 }
 
-// ── Drag via usePointerDrag composable ──
-usePointerDrag(handleHitEl, onSheetDrag);
-usePointerDrag(handleTapEl, onSheetDrag);
-usePointerDrag(haloEl, onSheetDrag);
+function stopOwnedTouchEvent(event: PointerEvent) {
+  event.preventDefault();
+  event.stopPropagation();
+}
+
+function toolIdFromTouchTarget(target: EventTarget | null): string | null {
+  const toolElement = target instanceof Element ? (target.closest('[data-tool-id]') as HTMLElement | null) : null;
+  if (!toolElement || !gridEl.value?.contains(toolElement)) return null;
+  return toolElement.dataset.toolId ?? null;
+}
+
+function isTapGesture(state: NavTouchGestureState, event: PointerEvent): boolean {
+  const dx = event.clientX - state.startX;
+  const dy = event.clientY - state.startY;
+  return Math.sqrt(dx * dx + dy * dy) <= TOUCH_TAP_TOLERANCE_PX;
+}
+
+function capturePointer(element: HTMLElement | null, pointerId: number) {
+  if (typeof element?.setPointerCapture !== 'function') return;
+  try {
+    element.setPointerCapture(pointerId);
+  } catch {
+    // The pointer may already be released by the browser on rapid cancel paths.
+  }
+}
+
+function releasePointer(element: HTMLElement | null, pointerId: number) {
+  if (
+    typeof element?.hasPointerCapture !== 'function' ||
+    typeof element.releasePointerCapture !== 'function' ||
+    !element.hasPointerCapture(pointerId)
+  ) {
+    return;
+  }
+  try {
+    element.releasePointerCapture(pointerId);
+  } catch {
+    // Ignore stale pointer capture state on browser-driven cancellation.
+  }
+}
+
+function suppressNativeClickNear(event: PointerEvent) {
+  nativeClickSuppression = {
+    until: Date.now() + NATIVE_CLICK_SUPPRESS_MS,
+    x: event.clientX,
+    y: event.clientY,
+  };
+  window.setTimeout(() => {
+    if (nativeClickSuppression && Date.now() >= nativeClickSuppression.until) {
+      nativeClickSuppression = null;
+    }
+  }, NATIVE_CLICK_SUPPRESS_MS);
+}
+
+function consumeSuppressedNativeClick(event: MouseEvent): boolean {
+  const suppression = nativeClickSuppression;
+  if (!suppression) return false;
+  if (Date.now() > suppression.until) {
+    nativeClickSuppression = null;
+    return false;
+  }
+  const dx = event.clientX - suppression.x;
+  const dy = event.clientY - suppression.y;
+  if (dx * dx + dy * dy > NATIVE_CLICK_SUPPRESS_RADIUS_PX * NATIVE_CLICK_SUPPRESS_RADIUS_PX) return false;
+
+  nativeClickSuppression = null;
+  event.preventDefault();
+  event.stopPropagation();
+  event.stopImmediatePropagation?.();
+  return true;
+}
+
+function onDocumentClickCapture(event: MouseEvent) {
+  consumeSuppressedNativeClick(event);
+}
 
 // ── Expose for parent ──
 defineExpose({
@@ -408,7 +510,12 @@ defineExpose({
 
 .nav-sheet {
   --nav-sheet-drag-halo-h: 10px;
-  --nav-sheet-handle-hit-h: 34px;
+  --nav-sheet-handle-pt: 6px;
+  --nav-sheet-handle-pb: 4px;
+  --nav-sheet-handle-bar-h: 0.2rem;
+  --nav-sheet-handle-hit-h: calc(
+    var(--nav-sheet-handle-pt) + var(--nav-sheet-handle-bar-h) + var(--nav-sheet-handle-pb)
+  );
   position: fixed;
   z-index: var(--z-nav-sheet);
   left: 0;
@@ -450,7 +557,7 @@ defineExpose({
   left: 50%;
   z-index: 4;
   width: 88px;
-  height: 24px;
+  height: var(--nav-sheet-handle-hit-h);
   transform: translateX(-50%);
   cursor: grab;
   touch-action: none;
@@ -463,13 +570,13 @@ defineExpose({
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 6px 0 4px;
+  padding: var(--nav-sheet-handle-pt) 0 var(--nav-sheet-handle-pb);
   pointer-events: none;
 }
 
 .nav-sheet__handle {
   width: 2.5rem;
-  height: 0.2rem;
+  height: var(--nav-sheet-handle-bar-h);
   border-radius: 2px;
   background: var(--border-hover);
   transition: background 0.2s;

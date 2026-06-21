@@ -65,7 +65,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             filterChain.doFilter(request, response);
             return;
         }
-        if (!webUserSessionService.isSessionActive(userSessionId)) {
+        boolean sessionActive;
+        try {
+            sessionActive = webUserSessionService.isSessionActive(userSessionId);
+        } catch (RuntimeException ex) {
+            log.warn("Unable to validate JWT session '{}' due to {} - treating request as unauthenticated", userSessionId, ex.getClass().getSimpleName());
+            log.debug("JWT session validation failed", ex);
+            filterChain.doFilter(request, response);
+            return;
+        }
+        if (!sessionActive) {
             log.warn("JWT contains inactive '{}' claim — ignoring token", JwtUtil.USER_SESSION_ID);
             filterChain.doFilter(request, response);
             return;

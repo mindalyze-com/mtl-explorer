@@ -1,0 +1,25 @@
+MAP_05 zoom precision evidence
+
+Browser map interaction:
+- Starting URL: http://188.245.169.80:18080/mtl/
+- Before zoom:
+  - Map regions present.
+  - Zoom in / Zoom out controls present.
+  - Scale label: 500 km.
+  - Visible count: 11 Tracks.
+- Action: clicked visible Zoom in control four times.
+- After zoom:
+  - URL remained /mtl/.
+  - Map regions present.
+  - Scale label changed to 100 km.
+  - Visible count remained 11 Tracks.
+  - Console warnings/errors captured from the tab: none.
+
+Simplified geometry endpoint evidence:
+- POST /mtl/api/tracks/get-simplified?precisionInMeter=1000&mode=full -> 11 filteredTracks, 229 point-like coordinate pairs.
+- POST /mtl/api/tracks/get-simplified?precisionInMeter=100&mode=full -> 11 filteredTracks, 1252 point-like coordinate pairs.
+- POST /mtl/api/tracks/get-simplified?precisionInMeter=10&mode=full -> 11 filteredTracks, 3809 point-like coordinate pairs.
+- POST /mtl/api/tracks/get-simplified?precisionInMeter=1&mode=full -> 11 filteredTracks, 4636 point-like coordinate pairs.
+
+Conclusion:
+MAP_05 passes. Zooming in changed map precision/scale without losing the track overlay, and the backing simplified geometry API returns more detailed geometry at finer precision while preserving the 11-track set.

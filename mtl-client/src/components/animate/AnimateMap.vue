@@ -330,6 +330,14 @@ async function toggle() {
   }
 }
 
+function open() {
+  if (active.value) return;
+  active.value = true;
+  emit('tool-opened');
+  prepareSortedFeatures();
+  hideTrackLayersForAnimation();
+}
+
 function close() {
   if (!hasAnimationStateToCleanUp()) {
     active.value = false;
@@ -630,6 +638,7 @@ function interpolateColor(
 }
 
 defineExpose({
+  open,
   toggle,
   close,
 });

@@ -1,0 +1,15 @@
+# SGN_09 browser history evidence
+
+| Step | URL | Map canvases | Text marker |
+|---|---|---:|---|
+| map-start | http://178.104.209.132:18080/mtl/ | 2 | Stats |
+| stats-click | http://178.104.209.132:18080/mtl/stats | 2 | Stats |
+| admin-click | http://178.104.209.132:18080/mtl/admin | 2 | Admin |
+| back-to-stats | http://178.104.209.132:18080/mtl/stats | 2 | Stats |
+| back-to-map | http://178.104.209.132:18080/mtl/ | 2 | Stats |
+| forward-to-stats | http://178.104.209.132:18080/mtl/stats | 2 | Stats |
+| forward-to-admin | http://178.104.209.132:18080/mtl/admin | 2 | Admin |
+
+Console/page errors: none
+
+Result: PASS

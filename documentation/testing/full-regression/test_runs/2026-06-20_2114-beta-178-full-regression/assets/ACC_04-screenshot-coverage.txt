@@ -1,0 +1,6 @@
+ACC_04 compact screenshot audit
+RUN_SETUP-login-screen.webp: exists=True bytes=56130
+RUN_SETUP-map-after-login.webp: exists=True bytes=73520
+Limit: each WebP <= 85000 bytes
+Working flows represented: signed-out login screen; signed-in map shell after README credential login
+Future UI packets should continue adding compact WebP evidence for representative passing and failing behavior.

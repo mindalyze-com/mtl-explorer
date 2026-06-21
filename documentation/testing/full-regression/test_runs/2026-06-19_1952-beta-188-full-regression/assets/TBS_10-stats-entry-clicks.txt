@@ -1,0 +1,19 @@
+TBS_10 stats-entry click results
+
+[period row]
+- clicked: Most active day
+- active rows: ["Most active day2010-01-0114h 37m2 tracks - 791 km"]
+- period drilldown: Most active day12010-01-012 tracks14h 37m791 km22013-03-081 tracks1h 13m25.9 km32021-07-201 tracks59m 57s3.60 km42021-08-015 tracks0m 00s2.54 km52026-06-193 tracks0m 00s1.77 km62026-01-011 tracks0m 00s190.47 m
+
+[view all tracks]
+- active tab after click: Tracks
+- leading rows: ["19/06/2026, 20:52FMT GEOJSON Unique TrackGenerated from route FMT GEOJSON Unique TrackBicycle589.26 m0m 00s1 Wh100.0% 19/06/2026, 20:52","19/06/2026, 20:52PathBicycle590.64 m0m 00s9 Wh100.0% 19/06/2026, 20:52","19/06/2026, 20:52PathBicycle590.30 m0m 00s9 Wh100.0% 19/06/2026, 20:52"]
+
+[recent row]
+- clicked row: FMT GEOJSON Unique TrackBicycle19/06/2026, 20:52589.26 m0m 00s
+- detail URL: http://188.245.169.80:18080/mtl/track/100019
+- Track Details text present: true
+
+[cleanup]
+- URL: http://188.245.169.80:18080/mtl/stats
+- active tab: Overview

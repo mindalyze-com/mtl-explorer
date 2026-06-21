@@ -1,0 +1,6 @@
+ACC_02 parent-section shortcut audit
+Run-state: documentation/testing/full-regression/test_runs/2026-06-20_2114-beta-178-full-regression/run-state.md
+Atomic coverage rows: 175
+Run packet rows: ['RUN_SETUP', 'RUN_CLEANUP']
+Invalid or parent-section rows: ['Field', 'Run id', 'Target server', 'SSH user', 'Source', 'App URL', 'Started', 'Coordinator', 'ID']
+Result: queue uses one row per coverage ID; no broad section PASS rows are present.

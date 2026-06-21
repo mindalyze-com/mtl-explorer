@@ -1,0 +1,18 @@
+# MAP_10 selection close evidence
+
+URL after close: http://178.104.209.132:18080/mtl/
+Initial map canvases: 2
+Initial text sample: 500 km © OpenStreetMap 8 Tracks Stats Filter Map Animate Segments GPS Planner Admin
+
+Action: clicked current overlap at viewport coordinate (790,97).
+Selection open: true
+Open text sample: 500 km © OpenStreetMap 8 Tracks Stats Filter Map Animate Segments GPS Planner Admin 2 tracks — select for details Vitry le françois - langres on GPSies.com Bicycle 01/01/2010 Moselradweg aus Wiki on GPSies.com Bicycle 01/01/2010
+Visible close button used: index=12, rect={"index":12,"x":1200.796875,"y":594.59375,"w":24,"h":24,"visible":true}
+
+Selection closed: true
+Details open after close: false
+Closed map canvases: 2
+Closed text sample: 500 km © OpenStreetMap 8 Tracks Stats Filter Map Animate Segments GPS Planner Admin
+
+Elapsed ms: 8597
+Result: PASS

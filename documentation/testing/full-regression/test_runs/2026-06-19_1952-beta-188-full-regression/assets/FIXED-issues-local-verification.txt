@@ -1,0 +1,33 @@
+Fixed status update: 2026-06-20
+
+Scope:
+- The seven failing coverage IDs from this regression were fixed in the current workspace and marked FIXED in the latest run artifacts.
+- The original remote beta target was not rerun; remote cleanup/access was already blocked for this run. Evidence below is local implementation and automated verification evidence.
+
+Coverage IDs marked FIXED:
+- SGN_07 / NET_02 / ERR_01: startup and no-cache API outage recovery now keep the retry/error curtain visible instead of hiding behind a 0 Tracks map.
+- SGN_09: browser Back/Forward route sync now explicitly opens the route target panel.
+- TBS_04: Stats Tracks quick-view switches preserve the user's active search and sort.
+- TBS_06: Stats overview summary now includes server-side ascentM and renders an Ascent tile.
+- ADM_03: indexer status now always returns GPS and MEDIA rows, including zero-count MEDIA.
+
+Changed code paths:
+- mtl-client/src/components/map/Map2DRenderer.vue
+- mtl-client/src/views/HomeView.vue
+- mtl-client/src/components/map/composables/useMapTools.ts
+- mtl-client/src/components/statistics/Statistics.vue
+- mtl-client/src/components/statistics/StatisticsOverview.vue
+- mtl-server/src/main/java/com/x8ing/mtl/server/mtlserver/indexer/IndexerStatusService.java
+- mtl-server/src/main/java/com/x8ing/mtl/server/mtlserver/db/repository/gps/GpsTrackRepository.java
+- mtl-server/src/main/java/com/x8ing/mtl/server/mtlserver/web/services/track/entity/StatisticsOverviewResponseDto.java
+- mtl-api/open-api-schema/schema.json
+
+Verification commands:
+- mtl-client: npm test -> 76 files passed, 375 tests passed.
+- mtl-client: npm run build -> passed.
+- mtl-api/mtl-api-typescript-fetch: mvn -pl mtl-api/mtl-api-typescript-fetch generate-resources -> passed.
+- generated TypeScript API package: npm install && npm run build -> passed.
+- mtl-server: mvn -pl mtl-server -Dtest=IndexerStatusServiceTest test -> passed, 2 tests.
+
+Known verification limitation:
+- Full mtl-server test suite still requires a local Postgres datasource. Local port 5432 was unavailable and Docker/OrbStack was unavailable, so full Spring context tests could not be used as fixed evidence for this report update.

@@ -1,0 +1,22 @@
+Status: PASS
+Current visible IDs: 100000,100001,100002,100005,100008,100009,100011,100012
+Current deleted-name search OK: true
+Page errors: 0
+Console warnings/errors: 2
+
+Current deleted-name searches:
+voie verte: summary="0 of 8 tracks · 0.00 m · 0m 00s" dataRows=0 empty=true deletedVisible=false
+Lannion: summary="0 of 8 tracks · 0.00 m · 0m 00s" dataRows=0 empty=true deletedVisible=false
+
+Historical import delta evidence:
+IMP_09-totals.txt: baseline 0 -> five GPX tracks, 1,042,712.01 m, 84,660,000 ms, 12,936.09 m ascent, 4,527.34 Wh; Stats UI 5 tracks / 1,043 km / 23h 31m.
+
+Historical delete delta evidence:
+DEL_03-surfaces.txt: after deleting Lannion and Voie, API/UI count 3, Stats 3 tracks / 938 km / 19h 04m, deleted browser searches 0 of 3, related tab excludes deleted names.
+
+Page errors detail:
+(none)
+
+Console warnings/errors detail:
+error: Failed to load resource: net::ERR_FAILED
+warning: Failed to cache low-zoom tiles (IndexedDB): {name: TypeError, message: Failed to fetch}

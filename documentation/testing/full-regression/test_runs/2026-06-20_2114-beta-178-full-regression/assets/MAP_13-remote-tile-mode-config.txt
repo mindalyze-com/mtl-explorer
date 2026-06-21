@@ -1,0 +1,13 @@
+# MAP_13 remote tile-mode applicability evidence
+
+Config HTTP status: 200
+tileMode: local
+tileBaseUrl: /mtl/api/map-proxy/prod
+tileArchiveUrl present: true
+remoteRasterStyles keys: light, light-topo, dark
+legacy remoteTileUrl present: false
+
+Coverage precondition: server must be configured with mtl.map-server.tile-mode=remote.
+Current run source: quick-install local-vector deployment using beta image override.
+
+Result: NOT APPLICABLE

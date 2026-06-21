@@ -1,0 +1,19 @@
+Status: PASS
+Scenario: Sub-track extraction for MCT_04 synthetic A-B segment.
+Crossing request: A=(7.4200,46.9700), B=(7.4900,47.0400), radius=700 m.
+Crossing API: HTTP 200, tracksPerZone A=2/B=2, segment A-B count=2
+
+Track 100017 synthetic-mct04-shared-a.gpx
+- sub-track request: HTTP 200 from=636846 to=636859
+- points=14, idRange=636846..636859, endpointsMatch=true
+- lng=7.422988..7.490441, lat=46.971830..47.040037, maxStepDeg=0.008094
+- monotonicTime=true, monotonicDistance=true, zeroLikeCoordinates=false
+
+Track 100018 synthetic-mct04-shared-b.gpx
+- sub-track request: HTTP 200 from=636827 to=636842
+- points=16, idRange=636827..636842, endpointsMatch=true
+- lng=7.421589..7.505584, lat=46.966625..47.046000, maxStepDeg=0.011225
+- monotonicTime=true, monotonicDistance=true, zeroLikeCoordinates=false
+
+Checks: {"twoTracks":true,"slicesValid":true}
+Final status: PASS

@@ -1,0 +1,46 @@
+[start two-leg route after PLN_03]
+stats: {"distance":"1.08 km","ascent":"1 m","descent":"0 m","duration":"3m","legs":2,"chartPoints":4}
+buttons disabled: {"undo":false,"redo":true,"clear":false,"save":false}
+delete marker: {"x":680,"y":172,"w":27,"h":27}
+
+[after moving selected waypoint from (666,188) to (626,156)]
+stats: {"distance":"1.08 km","ascent":"1 m","descent":"0 m","duration":"3m","legs":2,"chartPoints":4}
+buttons disabled: {"undo":false,"redo":true,"clear":false,"save":false}
+delete marker moved to: {"x":640,"y":140,"w":27,"h":27}
+
+[after undo move]
+stats: {"distance":"1.08 km","ascent":"1 m","descent":"0 m","duration":"3m","legs":2,"chartPoints":4}
+buttons disabled: {"undo":false,"redo":false,"clear":false,"save":false}
+delete marker restored to: {"x":680,"y":172,"w":27,"h":27}
+
+[after redo move]
+stats: {"distance":"1.08 km","ascent":"1 m","descent":"0 m","duration":"3m","legs":2,"chartPoints":4}
+buttons disabled: {"undo":false,"redo":true,"clear":false,"save":false}
+delete marker moved again to: {"x":640,"y":140,"w":27,"h":27}
+
+[after deleting selected waypoint]
+stats: {"distance":"1.08 km","ascent":"1 m","descent":"0 m","duration":"3m","legs":1,"chartPoints":2}
+buttons disabled: {"undo":false,"redo":true,"clear":false,"save":false}
+delete marker: null
+
+[after undo delete]
+stats: {"distance":"1.08 km","ascent":"1 m","descent":"0 m","duration":"3m","legs":2,"chartPoints":4}
+buttons disabled: {"undo":false,"redo":false,"clear":false,"save":false}
+
+[after redo delete]
+stats: {"distance":"1.08 km","ascent":"1 m","descent":"0 m","duration":"3m","legs":1,"chartPoints":2}
+buttons disabled: {"undo":false,"redo":true,"clear":false,"save":false}
+
+[after clear route]
+stats: {"distance":"0.00 km","ascent":"0 m","descent":"0 m","duration":"-","legs":0,"chartPoints":null}
+buttons disabled: {"undo":false,"redo":true,"clear":true,"save":true}
+
+[after undo clear]
+stats: {"distance":"1.08 km","ascent":"1 m","descent":"0 m","duration":"3m","legs":1,"chartPoints":2}
+buttons disabled: {"undo":false,"redo":false,"clear":false,"save":false}
+
+[after redo clear]
+stats: {"distance":"0.00 km","ascent":"0 m","descent":"0 m","duration":"-","legs":0,"chartPoints":null}
+buttons disabled: {"undo":false,"redo":true,"clear":true,"save":true}
+
+screenshots: {"start":"assets/PLN_04-start-two-leg-route.jpg","moved":"assets/PLN_04-waypoint-moved.jpg","deleted":"assets/PLN_04-waypoint-deleted.jpg","cleared":"assets/PLN_04-route-cleared.jpg","undoClear":"assets/PLN_04-undo-clear-restored.jpg"}

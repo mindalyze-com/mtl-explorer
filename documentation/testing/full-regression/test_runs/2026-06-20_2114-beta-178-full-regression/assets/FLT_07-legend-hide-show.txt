@@ -1,0 +1,7 @@
+FLT_07 legend hide/show evidence
+Status: PASS
+Before: chip="2 / 8 Tracks", rows=CYCLING2:visible
+After hide: chip="0 / 8 Tracks", rows=CYCLING2:disabled
+Restored: chip="2 / 8 Tracks", rows=CYCLING2:visible
+Screenshots: FLT_07-legend-before-hide.webp=61458B(q76,w1200), FLT_07-legend-cycling-hidden.webp=60368B(q76,w1200), FLT_07-legend-restored.webp=61406B(q76,w1200)
+Console counts: warnings=0; errors=4; pageErrors=0

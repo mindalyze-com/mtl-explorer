@@ -1,0 +1,7 @@
+NET_04 service-worker update applicability
+URL: http://188.245.169.80:18080/mtl/
+isSecureContext=false
+navigator.serviceWorker available=false
+display-mode browser=true, standalone=false
+manifest links: http://188.245.169.80:18080/mtl/manifest.webmanifest, http://188.245.169.80:18080/mtl/manifest.webmanifest
+Result: NOT APPLICABLE. On the remote plain-HTTP origin, service workers cannot register in this browser context, so no update prompt/update-accept flow can be triggered. A second deployed build would also be required for a real update event.

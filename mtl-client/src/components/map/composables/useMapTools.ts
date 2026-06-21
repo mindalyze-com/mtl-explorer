@@ -2,12 +2,82 @@ import { markRaw } from 'vue';
 import maplibregl from 'maplibre-gl';
 import { GeoDrawingOverlay } from '@/layers/GeoDrawingOverlay';
 import { locationSearchTargetZoom as resolveLocationSearchTargetZoom } from '@/components/map/mapGeometry';
-import type { MapControllerMethodDefinitions, MapToolsMethods } from './mapControllerRuntime';
+import type { MapControllerMethodDefinitions, MapPoint, MapToolsMethods } from './mapControllerRuntime';
 
 const LOCATION_SEARCH_FLY_DURATION_MS = 900;
 const TRACK_DETAILS_MAP_DETENT = 'compact';
 const TRACK_DETAILS_DEFAULT_DETENT = 'default';
 const TRACK_DETAILS_EXPANDED_DETENT = 'expanded';
+const SWISS_MOBILITY_POPUP_HORIZONTAL_OFFSET_PX = 12;
+const SWISS_MOBILITY_POPUP_VERTICAL_OFFSET_PX = -10;
+const SWISS_MOBILITY_POPUP_EDGE_GAP_PX = 12;
+const SWISS_MOBILITY_POPUP_ESTIMATED_WIDTH_PX = 300;
+const SWISS_MOBILITY_POPUP_MIN_VISIBLE_HEIGHT_PX = 44;
+const TOOL_REF_NAMES = [
+  'infoTool',
+  'animateTool',
+  'measureTool',
+  'plannerTool',
+  'statistics',
+  'filterTool',
+  'mapSettingsTool',
+  'gpsLocate',
+  'adminTool',
+] as const;
+const TOOL_REF_BY_ID: Record<string, string> = {
+  animate: 'animateTool',
+  measure: 'measureTool',
+  planner: 'plannerTool',
+  stats: 'statistics',
+  filter: 'filterTool',
+  map: 'mapSettingsTool',
+  gps: 'gpsLocate',
+  admin: 'adminTool',
+};
+
+type SwissMobilityPopupViewport = {
+  width?: number;
+  height?: number;
+};
+
+function finitePositive(value: number | undefined): number | undefined {
+  return typeof value === 'number' && Number.isFinite(value) && value > 0 ? value : undefined;
+}
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(Math.max(value, min), max);
+}
+
+export function resolveSwissMobilityPopupPosition(
+  point: MapPoint,
+  viewport: SwissMobilityPopupViewport = {}
+): MapPoint {
+  const preferredX = point.x + SWISS_MOBILITY_POPUP_HORIZONTAL_OFFSET_PX;
+  const preferredY = point.y + SWISS_MOBILITY_POPUP_VERTICAL_OFFSET_PX;
+  const viewportWidth = finitePositive(viewport.width);
+  const viewportHeight = finitePositive(viewport.height);
+  const x =
+    viewportWidth === undefined
+      ? preferredX
+      : clamp(
+          preferredX,
+          SWISS_MOBILITY_POPUP_EDGE_GAP_PX,
+          Math.max(
+            SWISS_MOBILITY_POPUP_EDGE_GAP_PX,
+            viewportWidth - SWISS_MOBILITY_POPUP_ESTIMATED_WIDTH_PX - SWISS_MOBILITY_POPUP_EDGE_GAP_PX
+          )
+        );
+  const y =
+    viewportHeight === undefined
+      ? preferredY
+      : clamp(
+          preferredY,
+          SWISS_MOBILITY_POPUP_EDGE_GAP_PX,
+          Math.max(SWISS_MOBILITY_POPUP_EDGE_GAP_PX, viewportHeight - SWISS_MOBILITY_POPUP_MIN_VISIBLE_HEIGHT_PX)
+        );
+
+  return { x, y };
+}
 
 export function useMapTools(_deps: Record<string, never> = {}): MapControllerMethodDefinitions<MapToolsMethods> {
   const methods: MapControllerMethodDefinitions<MapToolsMethods> = {
@@ -149,18 +219,7 @@ export function useMapTools(_deps: Record<string, never> = {}): MapControllerMet
     },
 
     closeAllToolsExcept(skipRefName) {
-      const toolRefs = [
-        'infoTool',
-        'animateTool',
-        'measureTool',
-        'plannerTool',
-        'statistics',
-        'filterTool',
-        'mapSettingsTool',
-        'gpsLocate',
-        'adminTool',
-      ];
-      for (const name of toolRefs) {
+      for (const name of TOOL_REF_NAMES) {
         const ref = this.$refs[name];
         if (name !== skipRefName && ref?.close) {
           ref.close();
@@ -194,17 +253,7 @@ export function useMapTools(_deps: Record<string, never> = {}): MapControllerMet
 
     onToolSelect(toolId) {
       if (!toolId) return;
-      const toolMap: Record<string, string> = {
-        animate: 'animateTool',
-        measure: 'measureTool',
-        planner: 'plannerTool',
-        stats: 'statistics',
-        filter: 'filterTool',
-        map: 'mapSettingsTool',
-        gps: 'gpsLocate',
-        admin: 'adminTool',
-      };
-      const refName = toolMap[toolId];
+      const refName = TOOL_REF_BY_ID[toolId];
       if (!refName) return;
       this.closeTransientOverlaysForToolSwitch();
 
@@ -253,8 +302,22 @@ export function useMapTools(_deps: Record<string, never> = {}): MapControllerMet
         this.activeToolId = null;
         return;
       }
-      if (this.activeToolId === toolId) return;
-      this.onToolSelect(toolId);
+      const refName = TOOL_REF_BY_ID[toolId];
+      if (!refName) return;
+      this._syncingView = true;
+      this.closeTransientOverlaysForToolSwitch();
+      this.closeAllToolsExcept(refName);
+      const ref = this.$refs[refName];
+      if (ref?.open) {
+        ref.open();
+      } else if (this.activeToolId !== toolId) {
+        ref?.toggle?.();
+      }
+      this.activeToolId = toolId === 'gps' ? null : toolId;
+      this.$nextTick(() => {
+        this.activeToolId = toolId === 'gps' ? null : toolId;
+        this._syncingView = false;
+      });
     },
 
     syncTrackDetailRoute(trackId) {
@@ -306,6 +369,7 @@ export function useMapTools(_deps: Record<string, never> = {}): MapControllerMet
     },
 
     onToolClosed() {
+      if (this._syncingView) return;
       this.activeToolId = null;
       // Clear geo shape overlays when filter sheet is closed (unless actively drawing)
       if (!this.geoDrawingParamDef && this.geoDrawingOverlay) {
@@ -389,10 +453,10 @@ export function useMapTools(_deps: Record<string, never> = {}): MapControllerMet
         });
         this.swissMobilityPopup = {
           visible: true,
-          pos: {
-            x: point.x + 12,
-            y: point.y - 10,
-          },
+          pos: resolveSwissMobilityPopupPosition(point, {
+            width: canvas.clientWidth || canvas.width,
+            height: canvas.clientHeight || canvas.height,
+          }),
           routes,
         };
       } catch {

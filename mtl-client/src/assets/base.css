@@ -19,8 +19,8 @@
   /* ── Text (light) ── */
   --text-primary:   #1e293b;   /* slate-800 */
   --text-secondary: #334155;   /* slate-700 */
-  --text-muted:     #64748b;   /* slate-500 */
-  --text-faint:     #94a3b8;   /* slate-400 */
+  --text-muted:     #475569;   /* slate-600 */
+  --text-faint:     #64748b;   /* slate-500 */
   --text-inverse:   #f1f5f9;   /* slate-100 */
 
   /* ── Borders (light) ── */
@@ -169,6 +169,7 @@
   --z-tool-overlay:        5200;     /* Tool overlays anchored on the map */
   --z-modal-mask:          5500;     /* PrimeVue Dialog mask */
   --z-modal:               5501;     /* PrimeVue Dialog */
+  --z-freshness-banner:    5550;     /* Data freshness action above tool sheets */
   --z-popup:               5600;     /* Select/Datepicker/Popover/MultiSelect/menus */
   --z-tooltip:             5700;     /* PrimeVue tooltips */
   --z-popup-over-bottomsheet: 6000;  /* Dropdowns inside BottomSheet (must beat 5501 modal) */

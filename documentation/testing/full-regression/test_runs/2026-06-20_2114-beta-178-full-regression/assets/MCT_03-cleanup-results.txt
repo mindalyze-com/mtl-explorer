@@ -1,0 +1,41 @@
+Status: PASS
+Scenario: Segment Analyzer cleanup after stopping the measure tool.
+
+Setup:
+- Opened Segment Analyzer from the ready map nav.
+- Initial state: sheet visible=1, overlay visible=0, flow nodes=0, Clear disabled=true, Analyze disabled=true, radius=2000 m.
+- Dragged radius slider to 14000 m.
+- Clicked the map at [698,130] to create one temporary zone.
+
+Active tool evidence:
+- Sheet visible=1.
+- Overlay visible=1.
+- Flow nodes=2.
+- Overlay text: A 0 tracks, 0 shared tracks.
+- Clear disabled=false.
+- Analyze disabled=false.
+- Zone-count API returned 200:
+  POST /mtl/api/tracks/get-track-ids-within-distance-of-point?filterName=SmartBaseFilter&longitude=5.360451247694357&latitude=46.40581765292262&distanceInMeter=14000
+
+Stop and cleanup evidence:
+- Toggled Segments off.
+- URL returned to /mtl/.
+- Stopped state: sheet visible=0, overlay visible=0, flow nodes=0.
+- Post-stop map click opened normal track detail /mtl/track/100000, but sheet visible=0, overlay visible=0, flow nodes=0.
+- Repeat post-stop click left sheet visible=0, overlay visible=0, flow nodes=0.
+
+Post-stop API evidence:
+- Normal map proximity calls occurred after stopping:
+  POST /mtl/api/tracks/get-track-ids-within-distance-of-point?filterName=SmartBaseFilter&longitude=5.360451247694357&latitude=46.40581765292262&distanceInMeter=89225.01083143296
+  POST /mtl/api/tracks/get-track-ids-within-distance-of-point?filterName=SmartBaseFilter&longitude=6.233228796310016&latitude=45.64835330920863&distanceInMeter=90456.12764087223
+- No post-stop Segment Analyzer zone-count call reused the active 14000 m radius.
+
+Checks:
+- zoneOverlayVisible=true
+- zoneFlowNodes=2
+- zoneRequestOk=true
+- stoppedClean=true
+- postStopClean=true
+- postStopZoneCalls=[]
+- pageErrors=0
+- Final status=PASS

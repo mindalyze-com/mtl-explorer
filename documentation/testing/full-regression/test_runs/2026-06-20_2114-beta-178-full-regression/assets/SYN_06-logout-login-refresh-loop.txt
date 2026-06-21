@@ -1,0 +1,11 @@
+Before logout map count: 15 Tracks
+JWT after logout present: false
+Login DOM visible: true
+After relogin map count: 15 Tracks
+Freshness banner after relogin wait: false
+Post-relogin navigation count: 0
+Post-relogin API/tile-like request count: 0
+Repeated auto-refresh loop detected: false
+Post-relogin navigations: []
+Post-relogin sampled requests: []
+PASS: true

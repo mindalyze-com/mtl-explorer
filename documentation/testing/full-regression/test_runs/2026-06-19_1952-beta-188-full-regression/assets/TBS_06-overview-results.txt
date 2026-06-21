@@ -1,0 +1,12 @@
+TBS_06 statistics overview results
+
+Observed present:
+- Totals: 13 Tracks, 825 km Distance, 16h 50m Duration, 4,023 Wh Energy.
+- Activity breakdown: Bicycle 12, Walking 1.
+- Rankings/highlights: Longest track, Longest duration, Biggest ascent, Quickest ascent, Most energy, speed/power highlights, most common activity.
+- Rhythm/Milestones: most active day/week/month/weekday, first/latest activity, distance/ascent/energy milestones.
+- Period charts: Trends tab showed 5 Periods, 13 Tracks, 825 km Total Dist., 16h 50m Total Time, 4,023 Wh Total Energy, with Highcharts charts.
+
+Missing/failed check:
+- No visible total elevation/ascent/gain statistic was found on the Stats Overview surfaces; only biggest/quickest ascent rankings and ascent milestones were visible.
+- visible total-elevation label matches: <none>

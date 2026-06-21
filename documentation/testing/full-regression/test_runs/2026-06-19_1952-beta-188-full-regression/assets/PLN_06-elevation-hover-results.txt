@@ -1,0 +1,10 @@
+[profile rendered before hover]
+{"label":"profile rendered before hover","chartRect":{"x":234,"y":388,"w":888,"h":295},"chartPoints":5,"highchartsSvg":true,"markerRect":null,"topAtMarker":null}
+
+[after hovering chart point index 1]
+{"hoveredPoint":{"index":1,"x":511,"y":455},"label":"after hovering chart point index 1","chartRect":{"x":234,"y":388,"w":888,"h":295},"chartPoints":5,"highchartsSvg":true,"markerRect":{"x":754,"y":55,"w":14,"h":14},"topAtMarker":{"tag":"CANVAS","cls":"maplibregl-canvas","at":{"x":761,"y":62}}}
+
+[after moving pointer away from profile]
+{"label":"after moving pointer away from profile","chartRect":{"x":234,"y":388,"w":888,"h":295},"chartPoints":5,"highchartsSvg":true,"markerRect":null,"topAtMarker":null}
+
+screenshots: {"rendered":"assets/PLN_06-profile-rendered.jpg","hover":"assets/PLN_06-profile-hover-highlight.jpg"}

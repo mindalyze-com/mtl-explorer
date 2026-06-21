@@ -1,0 +1,95 @@
+{
+  "capturedAt": "2026-06-19T22:58:38.479Z",
+  "target": "http://188.245.169.80:18080/mtl/",
+  "successfulQuery": "Zurich",
+  "noResultQuery": "qzzxqzzxqzzxqzzx",
+  "src01": {
+    "label": "SRC_01 results after Zurich query",
+    "url": "http://188.245.169.80:18080/mtl/",
+    "trackCount": "13 Tracks",
+    "sheetVisible": true,
+    "inputValue": "Zurich",
+    "resultCount": 20,
+    "resultTexts": [
+      "ZürichZurich, SwitzerlandCityz7-15",
+      "Zürich (Kreis 11)Zurich, SwitzerlandNeighbourhoodz11-15",
+      "Zürich (Kreis 3)Zurich, SwitzerlandNeighbourhoodz11-15",
+      "Zürich (Kreis 9)Zurich, SwitzerlandNeighbourhoodz11-15",
+      "Zürich (Kreis 10)Zurich, SwitzerlandNeighbourhoodz11-15"
+    ],
+    "stateText": "",
+    "markerCount": 0,
+    "markerClearButtonCount": 0,
+    "markerRect": null,
+    "hasNoMatches": false
+  },
+  "src02": {
+    "label": "SRC_02 selected first location result",
+    "url": "http://188.245.169.80:18080/mtl/",
+    "trackCount": "13 Tracks",
+    "sheetVisible": true,
+    "inputValue": "Zurich",
+    "resultCount": 20,
+    "resultTexts": [
+      "ZürichZurich, SwitzerlandCityz7-15",
+      "Zürich (Kreis 11)Zurich, SwitzerlandNeighbourhoodz11-15",
+      "Zürich (Kreis 3)Zurich, SwitzerlandNeighbourhoodz11-15",
+      "Zürich (Kreis 9)Zurich, SwitzerlandNeighbourhoodz11-15",
+      "Zürich (Kreis 10)Zurich, SwitzerlandNeighbourhoodz11-15"
+    ],
+    "stateText": "",
+    "markerCount": 1,
+    "markerClearButtonCount": 1,
+    "markerRect": {
+      "x": 661,
+      "y": 326,
+      "width": 34,
+      "height": 34
+    },
+    "hasNoMatches": false
+  },
+  "src03": {
+    "label": "SRC_03 marker cleared with marker clear button",
+    "url": "http://188.245.169.80:18080/mtl/",
+    "trackCount": "13 Tracks",
+    "sheetVisible": true,
+    "inputValue": "Zurich",
+    "resultCount": 20,
+    "resultTexts": [
+      "ZürichZurich, SwitzerlandCityz7-15",
+      "Zürich (Kreis 11)Zurich, SwitzerlandNeighbourhoodz11-15",
+      "Zürich (Kreis 3)Zurich, SwitzerlandNeighbourhoodz11-15",
+      "Zürich (Kreis 9)Zurich, SwitzerlandNeighbourhoodz11-15",
+      "Zürich (Kreis 10)Zurich, SwitzerlandNeighbourhoodz11-15"
+    ],
+    "stateText": "",
+    "markerCount": 0,
+    "markerClearButtonCount": 0,
+    "markerRect": null,
+    "hasNoMatches": false
+  },
+  "src04": {
+    "label": "SRC_04 no-result query",
+    "url": "http://188.245.169.80:18080/mtl/",
+    "trackCount": "13 Tracks",
+    "sheetVisible": true,
+    "inputValue": "qzzxqzzxqzzxqzzx",
+    "resultCount": 0,
+    "resultTexts": [],
+    "stateText": "No matches",
+    "markerCount": 0,
+    "markerClearButtonCount": 0,
+    "markerRect": null,
+    "hasNoMatches": true
+  },
+  "consoleWarningsOrErrors": [
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 401 ()"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 401 ()"
+    }
+  ]
+}

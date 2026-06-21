@@ -1,0 +1,6 @@
+Report detail policy
+- Each packet uses the workflow packet template with action, expected result, actual result, status, and evidence.
+- run-state.md tracks every ID explicitly.
+- Final report cannot be assembled until check-finalization-gate.py reports PASS.
+- Broad section summaries are insufficient unless all child IDs have terminal packet evidence.
+Result: report assembly will show per-ID coverage rather than broad section-only conclusions.

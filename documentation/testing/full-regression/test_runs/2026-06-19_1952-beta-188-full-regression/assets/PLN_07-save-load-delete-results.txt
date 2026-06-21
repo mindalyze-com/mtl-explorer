@@ -1,0 +1,51 @@
+[before save]
+activeTab: Drawing
+cards: {"Distance":"2.60 km","Ascent":"1 m","Descent":"0 m","Duration":"7m","Legs":"2"}
+listHasPlan: false
+apiMatches: []
+saveEnabled: true
+
+[save dialog filled]
+activeTab: Drawing
+cards: {"Distance":"2.60 km","Ascent":"1 m","Descent":"0 m","Duration":"7m","Legs":"2"}
+listHasPlan: false
+apiMatches: []
+saveEnabled: true
+
+[after save api/list refresh]
+activeTab: Drawing
+cards: {"Distance":"2.60 km","Ascent":"1 m","Descent":"0 m","Duration":"7m","Legs":"2"}
+listHasPlan: false
+apiMatches: [{"id":100024,"name":"PLN_07 regression 2026-06-19 2342","distanceM":2598,"description":"Full regression temporary saved plan; delete during PLN_07.","profile":"fastbike"}]
+saveEnabled: true
+
+[load tab after save]
+activeTab: Load
+cards: {}
+listHasPlan: true
+apiMatches: [{"id":100024,"name":"PLN_07 regression 2026-06-19 2342","distanceM":2598,"description":"Full regression temporary saved plan; delete during PLN_07.","profile":"fastbike"}]
+saveEnabled: true
+
+[after loading saved plan]
+activeTab: Drawing
+cards: {"Distance":"2.60 km","Ascent":"1 m","Descent":"0 m","Duration":"7m","Legs":"2"}
+listHasPlan: false
+apiMatches: [{"id":100024,"name":"PLN_07 regression 2026-06-19 2342","distanceM":2598,"description":"Full regression temporary saved plan; delete during PLN_07.","profile":"fastbike"}]
+saveEnabled: true
+
+[delete dialog open]
+activeTab: Load
+cards: {}
+listHasPlan: true
+apiMatches: [{"id":100024,"name":"PLN_07 regression 2026-06-19 2342","distanceM":2598,"description":"Full regression temporary saved plan; delete during PLN_07.","profile":"fastbike"}]
+saveEnabled: true
+
+[after deleting saved plan]
+activeTab: Load
+cards: {}
+listHasPlan: false
+apiMatches: []
+saveEnabled: true
+
+planName: PLN_07 regression 2026-06-19 2342
+screenshots: {"saveDialog":"assets/PLN_07-save-dialog.jpg","savedList":"assets/PLN_07-saved-list.jpg","loadedPlan":"assets/PLN_07-loaded-plan.jpg","deleteDialog":"assets/PLN_07-delete-dialog.jpg","deletedList":"assets/PLN_07-deleted-list.jpg"}

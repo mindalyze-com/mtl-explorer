@@ -1,0 +1,10 @@
+ACC_01 coverage queue audit
+Plan source: documentation/testing/frontend-regression-test-plan.md
+Run-state source: documentation/testing/full-regression/test_runs/2026-06-20_2114-beta-178-full-regression/run-state.md
+Plan coverage IDs: 175
+Run-state coverage rows: 175
+Run packets: RUN_SETUP, RUN_CLEANUP
+Missing IDs: none
+Extra IDs: none
+First ID: ACC_01
+Last ID: ERR_02

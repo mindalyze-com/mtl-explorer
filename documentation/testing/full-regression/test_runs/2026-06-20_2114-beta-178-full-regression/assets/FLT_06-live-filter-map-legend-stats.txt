@@ -1,0 +1,8 @@
+FLT_06 live applied filter update evidence
+Status: PASS
+Cleared panel: match=8, groups=2, loading=false, error=false
+Applied panel: match=2, groups=1, keyword=Path, loading=false, error=false
+Map: chip="2 / 8 Tracks", funnel=true, legend=CYCLING2, canvas=2, curtain=false, failed=false
+Stats: banner="Showing 2 of 8 tracks", tracks=2, distance=6.63 km, activity=Bicycle22
+Screenshots: FLT_06-filtered-map-legend.webp=47820B(q76,w1200), FLT_06-filtered-stats.webp=24612B(q76,w1200)
+Console counts: warnings=0; errors=4; pageErrors=0

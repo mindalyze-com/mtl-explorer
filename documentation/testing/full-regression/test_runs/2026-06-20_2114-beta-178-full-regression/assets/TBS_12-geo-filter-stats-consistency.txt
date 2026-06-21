@@ -1,0 +1,43 @@
+Status: PASS
+Geo circle: lat=46.95, lng=7.44, radiusM=200000
+Map filtered count OK: true
+Stats Overview uses filtered set: true
+Stats Trends uses filtered set: true
+Track Browser uses filtered set: true
+Server resolved/API totals OK: true
+Clear restored all tracks: true
+Resolved geo IDs: 100000,100001,100002,100008,100009,100011,100012
+API overview: tracks=7, distanceM=951596.32, durationMs=68679000
+API TOTAL stats: tracks=7, distance=951596, durationSecs=68679
+Page errors: 0
+Console warnings/errors: 10
+
+Filtered overview sample:
+500 km © OpenStreetMap 7 / 8 Tracks Stats Filter Map Animate Segments GPS Planner Admin Overview Trends Tracks Showing 7 of 8 tracks 7 TRACKS 952 km DISTANCE 19h 04m DURATION 4,021 Wh ENERGY 11,893 m ASCENT ACTIVITY BREAKDOWN Tracks Distance Duration Energy Bicycle 7 7 HIGHLIGHTS Longest track Moselradweg aus Wiki on GPSies.com 518 km Longest duration Jura Route 7 / 2011 on GPSies.com 7h 46m Biggest ascent Jura Route 7 / 2011 on GPSies.com 6,324 m Quickest ascent Moselradweg aus Wiki on GPSies.com 3,848 m/h Most energy Jura Route 7 / 2011 on GPSies.com 1,808 Wh Fastest 30 s speed Moselradweg a
+
+Filtered trends sample:
+500 km © OpenStreetMap 7 / 8 Tracks Stats Filter Map Animate Segments GPS Planner Admin Overview Trends Tracks YYYY-Q (by year and quarter) All sub-units Table Charts 2 PERIODS 7 TRACKS 952 km TOTAL DIST. 19h 04m TOTAL TIME 4,021 Wh TOTAL ENERGY DURATION 2010-Q1 2026-Q2 0 10 20 30 h DISTANCE 2010-Q1 2026-Q2 0 1k km 500 ACTIVITY 2010-Q1 2026-Q2 0 2 4 6 ENERGY 2010-Q1 2026-Q2 0 2k 4k 6k Wh INTENSITY INDEX 2010-Q1 2026-Q2 0 1 2 TRAINING LOAD 2010-Q1 2026-Q2 0 1k 2k EXPLORATION 2010-Q1 2026-Q2 0 100
+
+Filtered track browser sample:
+500 km © OpenStreetMap 7 / 8 Tracks Stats Filter Map Animate Segments GPS Planner Admin Overview Trends Tracks VIEWS All Excluded Stats excluded No activity 7 tracks · 952 km · 19h 04m SORT: Date Imported Distance Duration Name Exploration START TRACK ACTIVITY DISTANCE DURATION AVG KM/H ENERGY EXPLORATION IMPORTED 20/06/2026, 22:20 FMT synthetic regression track Generated from route FMT synthetic regression track Bicycle 3.31 km 0m 00s 4 Wh 0.0% 20/06/2026, 22:20 20/06/2026, 22:20 Path Bicycle 3
+
+Cleared overview sample:
+500 km © OpenStreetMap 8 Tracks Stats Filter Map Animate Segments GPS Planner Admin Overview Trends Tracks 8 TRACKS 955 km DISTANCE 20h 04m DURATION 4,368 Wh ENERGY 13,560 m ASCENT ACTIVITY BREAKDOWN Tracks Distance Duration Energy Bicycle 7 7 Walking 1 1 HIGHLIGHTS Longest track Moselradweg aus Wiki on GPSies.com 518 km Longest duration Jura Route 7 / 2011 on GPSies.com 7h 46m Biggest ascent Jura Route 7 / 2011 on GPSies.com 6,324 m Quickest ascent Track 100005 3,919 m/h Most energy Jura Route 
+
+Notes:
+Geo drawing/persistence defects are already tracked by FLT_04/FLT_05; this packet verifies the stats surfaces against an active SmartBaseFilter geo circle and restores the original filter state.
+
+Page errors detail:
+(none)
+
+Console warnings/errors detail:
+error: Failed to load resource: net::ERR_FAILED
+warning: Failed to cache low-zoom tiles (IndexedDB): {name: TypeError, message: Failed to fetch}
+error: Failed to load resource: net::ERR_FAILED
+warning: Failed to cache low-zoom tiles (IndexedDB): {name: TypeError, message: Failed to fetch}
+error: Failed to load resource: net::ERR_FAILED
+warning: Failed to cache low-zoom tiles (IndexedDB): {name: TypeError, message: Failed to fetch}
+error: Failed to load resource: net::ERR_FAILED
+warning: Failed to cache low-zoom tiles (IndexedDB): {name: TypeError, message: Failed to fetch}
+error: Failed to load resource: net::ERR_FAILED
+warning: Failed to cache low-zoom tiles (IndexedDB): {name: TypeError, message: Failed to fetch}

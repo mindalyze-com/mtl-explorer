@@ -1,0 +1,16 @@
+ADM_08:
+- before API status/line count: 200/79.
+- after refresh API status/line count: 200/79.
+- visible Log panel controls: 200 lines, just now, No wrap, Refresh.
+- visible log lines loaded: recent LoggingFilter entries for `/mtl/api/admin/server-log`, `/mtl/api/indexer/status`, `/mtl/api/jobs/status`, `/mtl/api/map/status`, `/mtl/api/map/config`, `/mtl/api/location-search/status`, and `/mtl/api/planner/status`.
+- compact redacted server-log tail sample:
+  - 2026-06-21 02:28:45 admin/server-log status=200 method=GET user=mtl session=<redacted>
+  - 2026-06-21 02:28:45 indexer/status status=200 method=GET user=mtl session=<redacted>
+  - 2026-06-21 02:28:45 map/status status=200 method=GET user=mtl session=<redacted>
+  - 2026-06-21 02:28:45 location-search/status status=200 method=GET user=mtl session=<redacted>
+  - 2026-06-21 02:28:45 jobs/status status=200 method=GET user=mtl session=<redacted>
+  - 2026-06-21 02:28:45 map/config status=200 method=GET user=mtl session=<redacted>
+  - 2026-06-21 02:28:46 planner/status status=200 method=GET user=mtl session=<redacted>
+- assertions: {"apiLoaded":true,"uiLoaded":true,"refreshSucceeded":true,"logLinesAvailable":true}
+- network errors sample: []
+- console messages sample: PMTiles cache retry warning only.

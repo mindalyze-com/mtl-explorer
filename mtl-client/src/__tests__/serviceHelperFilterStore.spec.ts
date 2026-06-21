@@ -6,12 +6,16 @@ const mocks = vi.hoisted(() => {
     get: vi.fn(),
     post: vi.fn(),
   };
+  const tracksApi = {
+    getTracksSimplified1: vi.fn(),
+  };
   const getActiveFilterRequest = vi.fn();
   const useFilterStore = vi.fn(() => ({ getActiveFilterRequest }));
   const loadClientFilterConfig = vi.fn();
 
   return {
     apiClient,
+    tracksApi,
     getActiveFilterRequest,
     useFilterStore,
     loadClientFilterConfig,
@@ -20,6 +24,25 @@ const mocks = vi.hoisted(() => {
 
 vi.mock('@/utils/apiClient', () => ({
   apiClient: mocks.apiClient,
+}));
+
+vi.mock('x8ing-mtl-api-typescript-fetch', () => ({
+  TracksControllerApi: vi.fn(function () {
+    return mocks.tracksApi;
+  }),
+  FilterControllerApi: vi.fn(function () {
+    return {};
+  }),
+  ConfigControllerApi: vi.fn(function () {
+    return {};
+  }),
+  EnergyControllerApi: vi.fn(function () {
+    return {};
+  }),
+}));
+
+vi.mock('@/utils/openApiClient', () => ({
+  getApiConfiguration: vi.fn(() => ({})),
 }));
 
 vi.mock('@/stores/filterStore', () => ({
@@ -43,9 +66,10 @@ import {
   fetchTrackIdsWithinDistanceOfPoint,
 } from '@/utils/ServiceHelper';
 
-function filterRequest(filterName: string): ActiveFilterRequest {
+function filterRequest(filterName: string, resolvedTrackIds: number[] | undefined = [101, 102]): ActiveFilterRequest {
   return {
     filterName,
+    resolvedTrackIds,
     filterParams: {
       stringParams: { ACTIVITY: 'bike' },
       dateTimeParams: { DATE_TIME_FROM: '2026-01-01T00:00:00' },
@@ -57,11 +81,18 @@ describe('ServiceHelper active filter resolution', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.apiClient.post.mockResolvedValue({ data: [] });
+    mocks.tracksApi.getTracksSimplified1.mockResolvedValue({
+      trackVersions: { 21: 1, 22: 1 },
+      standardFilterCount: 2,
+    });
     mocks.getActiveFilterRequest.mockResolvedValue(filterRequest('StoreFilter'));
     mocks.useFilterStore.mockReturnValue({ getActiveFilterRequest: mocks.getActiveFilterRequest });
     mocks.loadClientFilterConfig.mockResolvedValue({
       filterInfo: { filterConfig: { filterName: 'LegacyFilter' } },
-      filterParams: { stringParams: { ACTIVITY: 'run' } },
+      filterParams: {
+        stringParams: { ACTIVITY: 'run' },
+        geoRectangles: { GEO_RECTANGLE_1: { minLat: 46, minLng: 7, maxLat: 47, maxLng: 8 } },
+      },
     });
   });
 
@@ -71,12 +102,10 @@ describe('ServiceHelper active filter resolution', () => {
     expect(mocks.useFilterStore).toHaveBeenCalledOnce();
     expect(mocks.getActiveFilterRequest).toHaveBeenCalledOnce();
     expect(FilterService.loadClientFilterConfig).not.toHaveBeenCalled();
+    expect(mocks.tracksApi.getTracksSimplified1).not.toHaveBeenCalled();
     expect(mocks.apiClient.post).toHaveBeenCalledWith(
-      'api/tracks/get-track-statistics?groupByDateFormat=yyyy-MM&filterName=StoreFilter',
-      {
-        ACTIVITY: 'bike',
-        DATE_TIME_FROM: '2026-01-01T00:00:00',
-      }
+      'api/tracks/get-track-statistics?groupByDateFormat=yyyy-MM',
+      [101, 102]
     );
   });
 
@@ -104,9 +133,20 @@ describe('ServiceHelper active filter resolution', () => {
     await fetchStatistics('yyyy');
 
     expect(FilterService.loadClientFilterConfig).toHaveBeenCalledOnce();
+    expect(mocks.tracksApi.getTracksSimplified1).toHaveBeenCalledWith(
+      {
+        mode: 'ids',
+        filterName: 'LegacyFilter',
+        filterParamsRequest: {
+          stringParams: { ACTIVITY: 'run' },
+          geoRectangles: { GEO_RECTANGLE_1: { minLat: 46, minLng: 7, maxLat: 47, maxLng: 8 } },
+        },
+      },
+      { signal: undefined }
+    );
     expect(mocks.apiClient.post).toHaveBeenCalledWith(
-      'api/tracks/get-track-statistics?groupByDateFormat=yyyy&filterName=LegacyFilter',
-      { ACTIVITY: 'run' }
+      'api/tracks/get-track-statistics?groupByDateFormat=yyyy',
+      [21, 22]
     );
   });
 

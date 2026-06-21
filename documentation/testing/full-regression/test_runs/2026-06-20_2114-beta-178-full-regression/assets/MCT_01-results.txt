@@ -1,0 +1,13 @@
+Status: PASS
+Activation: opened /mtl/segments, retoggled Segments after map readiness, detection radius 13000 m, Analyze disabled before zones=true.
+Zone placement: clicked A [698,130] -> /mtl/api/tracks/get-track-ids-within-distance-of-point?filterName=SmartBaseFilter&longitude=6.488069275328826&latitude=48.2205974894635&distanceInMeter=13000 and B [695,125] -> /mtl/api/tracks/get-track-ids-within-distance-of-point?filterName=SmartBaseFilter&longitude=6.12635525917355&latitude=48.72322822744073&distanceInMeter=13000; overlay=A1trackB1track1sharedtrack.
+Analyze result: rows=1; topbar=1 / 1tracksConsolidatedCompare1Race1; firstRow=MoselradwegAusWiki.gpx01/01/2010, 01:001d 07h16.27.
+Speed metric text: NameStartDurationA - BMoselradwegAusWiki.gpx01/01/2010, 01:001d 07h16.27
+Time metric text: NameStartDurationA - BMoselradwegAusWiki.gpx01/01/2010, 01:001d 07h05:03:10
+Distance metric text: NameStartDurationA - BMoselradwegAusWiki.gpx01/01/2010, 01:001d 07h82,194
+API events: 200:POST:/mtl/api/tracks/get-track-ids-within-distance-of-point?filterName=SmartBaseFilter&longitude=6.488069275328826&latitude=48.2205974894635&distanceInMeter=13000 | 200:POST:/mtl/api/tracks/get-track-ids-within-distance-of-point?filterName=SmartBaseFilter&longitude=6.12635525917355&latitude=48.72322822744073&distanceInMeter=13000 | 200:POST:/mtl/api/tracks/get-track-details-for-tracks-crossing-points
+Checks: zonesPlaced=true, resultListVisible=true, speedMetricVisible=true, timeMetricVisible=true, distanceMetricVisible=true.
+Page errors: 0
+Console notes: 2
+log: Downloading low-zoom PMTiles from /mtl/api/map-proxy/prod/world-lowzoom.pmtiles?mtl-map-source=public&mtl-map-archive=public-default … (IndexedDB fallback)
+log: Low-zoom PMTiles cached successfully (IndexedDB, 42.4 MB)

@@ -25,8 +25,17 @@
             @click="$emit('update:modelValue', theme.code)"
           >
             <div class="msp-theme-swatch" :style="{ backgroundImage: `url(${theme.thumbnail})` }">
-              <span v-if="theme.featured" class="msp-theme-badge">★</span>
-              <span v-if="modelValue === theme.code" class="msp-theme-selected">✓</span>
+              <span
+                v-if="theme.badgeLabel"
+                class="msp-theme-badge"
+                :class="theme.badgeTone ? `msp-theme-badge--${theme.badgeTone}` : undefined"
+              >
+                <i :class="theme.badgeTone === 'swiss' ? 'bi bi-geo-alt-fill' : 'bi bi-stars'"></i>
+                {{ theme.badgeLabel }}
+              </span>
+              <span v-if="modelValue === theme.code" class="msp-theme-selected" aria-label="Selected map theme">
+                <i class="bi bi-check-lg"></i>
+              </span>
             </div>
             <span class="msp-theme-label">{{ theme.name }}</span>
           </div>
@@ -211,7 +220,8 @@ import {
 
 type MapThemeOption = {
   code: string;
-  featured?: boolean;
+  badgeLabel?: string;
+  badgeTone?: 'preferred' | 'swiss';
   name: string;
   thumbnail: string;
 };
@@ -255,6 +265,12 @@ function toggle() {
   if (isOpen.value) emit('tool-opened');
 }
 
+function open() {
+  if (isOpen.value) return;
+  isOpen.value = true;
+  emit('tool-opened');
+}
+
 function close() {
   isOpen.value = false;
 }
@@ -262,7 +278,7 @@ function close() {
 // Map.vue calls `mapSettingsTool.toggle()` / `.close()` via $refs
 // (see closeAllToolsExcept). With <script setup>, members are private
 // unless explicitly exposed.
-defineExpose({ toggle, close });
+defineExpose({ open, toggle, close });
 </script>
 
 <style scoped>
@@ -416,8 +432,8 @@ defineExpose({ toggle, close });
   aspect-ratio: 16 / 10;
   border-radius: 4px;
   border: 1px solid var(--border-medium);
-  background-size: 300% 300%;
-  background-position: 100% 0%;
+  background-size: 155% auto;
+  background-position: center 60%;
   position: relative;
 }
 @media (min-width: 640px) {
@@ -429,31 +445,60 @@ defineExpose({ toggle, close });
   position: absolute;
   top: 3px;
   right: 4px;
-  font-size: var(--text-xs-size);
-  line-height: var(--text-xs-lh);
-  background: var(--warning-bg);
-  color: var(--warning-text);
-  border-radius: 3px;
-  padding: 1px 3px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.12rem;
+  max-width: calc(100% - 0.5rem);
+  font-size: 0.44rem;
+  line-height: 0.56rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  background: rgba(12, 19, 32, 0.82);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  border-radius: 999px;
+  padding: 0.04rem 0.22rem;
+  box-shadow: 0 0.25rem 0.7rem rgba(12, 19, 32, 0.22);
   pointer-events: none;
+  white-space: nowrap;
+}
+.msp-theme-badge--preferred {
+  background: color-mix(in srgb, var(--primary-color) 86%, #162033);
+}
+.msp-theme-badge--swiss {
+  background: color-mix(in srgb, var(--error) 82%, #721818);
+}
+.msp-theme-badge i {
+  font-size: 0.42rem;
+  line-height: 1;
 }
 .msp-theme-selected {
   position: absolute;
   top: 3px;
   left: 4px;
-  font-size: var(--text-xs-size);
-  line-height: var(--text-xs-lh);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.15rem;
+  height: 1.15rem;
+  font-size: var(--text-2xs-size);
+  line-height: 1;
   background: var(--primary-color);
   color: var(--text-primary);
-  border-radius: 3px;
-  padding: 1px 3px;
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  border-radius: 999px;
+  box-shadow: 0 0.25rem 0.7rem rgba(12, 19, 32, 0.2);
   pointer-events: none;
 }
 .msp-theme-label {
   font-size: var(--text-xs-size);
-  margin-top: 0.2rem;
+  line-height: var(--text-xs-lh);
+  min-height: calc(var(--text-xs-lh) * 2);
+  margin-top: 0.25rem;
   text-align: center;
-  white-space: nowrap;
+  white-space: normal;
+  overflow-wrap: anywhere;
   color: var(--text-muted);
 }
 

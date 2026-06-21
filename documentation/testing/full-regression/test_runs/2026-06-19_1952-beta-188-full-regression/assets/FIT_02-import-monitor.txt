@@ -1,0 +1,22 @@
+# FIT_02 import monitor
+{
+  "elapsed_seconds": 67.5,
+  "settled": true,
+  "fit_track": {
+    "id": 100005,
+    "source_file": "Activity.fit",
+    "indexerStatus": "COMPLETED_WITH_SUCCESS",
+    "lastMessage": "Completed successfully",
+    "loadStatus": "SUCCESS",
+    "creator": "GPSBabel - https://www.gpsbabel.org",
+    "activityType": "WALKING",
+    "trackpoints": 3600,
+    "distanceM": 3598.76,
+    "startDate": "2021-07-20T21:11:21.000+0000",
+    "endDate": "2021-07-20T22:11:20.000+0000"
+  },
+  "polls": [
+    "20:28:25 poll=0 count=4 fit_ids=[100005] indexer=[{'index': 'GPS', 'total': 6, 'pending': 0, 'completed': 4, 'failed': 0, 'removed': 2, 'excluded': 0, 'progressPercent': 66}] jobs_pending=1 freshness=6raYxL__|server_id:RBDC887cKZ7gqxDqg7roVv|config:9|filters:85|index:24|media:0|track_geometry:36|tracks:37",
+    "20:29:32 poll=29 count=4 fit_ids=[100005] indexer=[{'index': 'GPS', 'total': 6, 'pending': 0, 'completed': 4, 'failed': 0, 'removed': 2, 'excluded': 0, 'progressPercent': 66}] jobs_pending=0 freshness=41VN7V__|server_id:RBDC887cKZ7gqxDqg7roVv|config:9|filters:85|index:24|media:0|track_geometry:36|tracks:38"
+  ]
+}

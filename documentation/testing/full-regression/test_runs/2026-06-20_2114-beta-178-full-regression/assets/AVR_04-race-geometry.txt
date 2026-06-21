@@ -1,0 +1,12 @@
+Prevalidated race response: {"status":200,"ids":["100017","100018"],"tracksPerZone":{"A":2,"B":2},"segmentsStats":[{"point1":"A","point2":"B","label":"A-B","count":2,"timeDelta":1884.395}]}
+Zones before Analyze: {"analyzeDisabled":false,"text":"A0tracksB0tracks!sharedtracks"}
+Results before Race: {"resultNames":["synthetic-mct04-shared-b.gpx","synthetic-mct04-shared-a.gpx"],"raceButtonVisible":true}
+race-ready: {"label":"race-ready","racerPill":"2 racers","speedInfo":"78x · 12s","cards":["1synthetic-mct04-shared-a.gpxBicycle01/02/2026, 11:00 0% 00:13:21 42.4 km/h 9.43 km","2synthetic-mct04-shared-b.gpxBicycle02/02/2026, 11:00 0% 00:18:03 38.1 km/h 11.46 km"],"progress":[0,0],"mini":[{"w":896,"h":260,"x":230,"y":1009}],"warning":""}
+after-speed-adjust: {"speedInfo":"16x · 60s"}
+race-running: {"label":"race-running","racerPill":"2 racers","speedInfo":"16x · 60s","cards":["1synthetic-mct04-shared-a.gpxBicycle01/02/2026, 11:00 3% 358.71 m 00:13:21 42.4 km/h 9.43 km","2synthetic-mct04-shared-b.gpxBicycle02/02/2026, 11:00 3% 329.59 m 00:18:03 38.1 km/h 11.46 km"],"progress":[3,3],"mini":[{"w":896,"h":567,"x":230,"y":189}],"warning":""}
+Sub-track 1: {"idx":1,"url":"/mtl/api/tracks/details/get-sub-track?trackDataPointFrom=636827&trackDataPointTo=636842","status":200,"points":16,"lng":"7.421589..7.505584","lat":"46.966625..47.046000","maxStepDeg":0.011225,"zeroLikeCoordinates":false,"offCorridorCoordinates":false,"enoughPoints":true}
+Sub-track 2: {"idx":2,"url":"/mtl/api/tracks/details/get-sub-track?trackDataPointFrom=636846&trackDataPointTo=636859","status":200,"points":14,"lng":"7.422988..7.490441","lat":"46.971830..47.040037","maxStepDeg":0.008094,"zeroLikeCoordinates":false,"offCorridorCoordinates":false,"enoughPoints":true}
+Assertions: {"expectedRows":true,"racerPillTwo":true,"twoCards":true,"progressStarted":true,"miniMapRendered":true,"noRaceWarning":true,"subtracksFetched":true,"subtrackStatusesOk":true,"subtrackEnoughPoints":true,"noZeroLikeCoordinates":true,"allInBernCorridor":true,"noLargeStraightJump":true,"pageErrors":0}
+Final status: PASS
+Console notes sample: 
+Page errors: 

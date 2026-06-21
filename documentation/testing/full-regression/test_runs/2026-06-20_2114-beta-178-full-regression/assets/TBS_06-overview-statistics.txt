@@ -1,0 +1,57 @@
+Status: PASS
+Summary tiles OK: true
+Activity breakdown OK: true
+Highlights/rankings OK: true
+Most active periods OK: true
+Milestones OK: true
+Activity + Trends charts OK: true
+Page errors: 0
+Console warnings/errors: 2
+
+Overview summary tiles:
+{"tracks":"8Tracks","distance":"955 kmDistance","duration":"20h 04m Duration","energy":"4,368 Wh Energy","ascent":"13,560 mAscent"}
+
+Activity rows:
+Bicycle77
+Walking11
+
+Highlight rows:
+Longest trackMoselradweg aus Wiki on GPSies.com518 km
+Longest durationJura Route 7 / 2011 on GPSies.com7h 46m
+Biggest ascentJura Route 7 / 2011 on GPSies.com6,324 m
+Quickest ascentTrack 1000053,919 m/h
+Most energyJura Route 7 / 2011 on GPSies.com1,808 Wh
+Fastest 30 s speedMoselradweg aus Wiki on GPSies.com58.3 km/h
+Peak 30 s powerJura Route 7 / 2011 on GPSies.com1,114 W
+Most common activityBicycle7 tracks
+
+Active period rows:
+Most active day2010-01-0119h 04m3 tracks - 938 km
+Most active week2009-W5319h 04m3 tracks - 938 km
+Most active month2010-0119h 04m3 tracks - 938 km
+Most active weekdayFriday19h 04m3 tracks - 938 km
+
+Milestone rows:
+First activityJura Route 7 / 2011 on GPSies.com01/01/2010, 01:00
+Latest activityFMT synthetic regression track20/06/2026, 22:20
+First 50 km trackJura Route 7 / 2011 on GPSies.com273 km
+First 100 km trackJura Route 7 / 2011 on GPSies.com273 km
+First 1000 m ascentJura Route 7 / 2011 on GPSies.com6,324 m
+First 2000 m ascentJura Route 7 / 2011 on GPSies.com6,324 m
+First 1000 Wh activityJura Route 7 / 2011 on GPSies.com1,808 Wh
+
+Trends chart count:
+7
+Trends summary tiles:
+3 Periods
+8 Tracks
+955 km Total Dist.
+20h 04m Total Time
+4,368 Wh Total Energy
+
+Page errors detail:
+(none)
+
+Console warnings/errors detail:
+error: Failed to load resource: net::ERR_FAILED
+warning: Failed to cache low-zoom tiles (IndexedDB): {name: TypeError, message: Failed to fetch}

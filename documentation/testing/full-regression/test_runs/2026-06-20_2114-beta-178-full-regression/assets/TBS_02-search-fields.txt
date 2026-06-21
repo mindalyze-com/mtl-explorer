@@ -1,0 +1,11 @@
+TBS_02 track browser search evidence
+Status: PASS
+name: query="Jura" count=1 rows= | 01/01/2010, 01:00 | Jura Route 7 / 2011 on GPSies.com | Bicycle | 273 km | 7h 46m | 35.1 | 1,808 Wh | 100.0% | 20/06/2026, 21:34
+description: query="Generated from route" count=1 rows= | 20/06/2026, 22:20 | FMT synthetic regression trackGenerated from route FMT synthetic regression track | Bicycle | 3.31 km | 0m 00s |  | 4 Wh | 0.0% | 20/06/2026, 22:20
+date: query="20/06/2026" count=8 rows= | 20/06/2026, 22:20 | FMT synthetic regression trackGenerated from route FMT synthetic regression track | Bicycle | 3.31 km | 0m 00s |  | 4 Wh | 0.0% | 20/06/2026, 22:20 /  | 20/06/2026, 22:20 | Path | Bicycle | 3.31 km | 0m 00s |  | 41 Wh | 0.0% | 20/06/2026, 22:20 /  | 20/06/2026, 22:20 | Path | Bicycle | 3.31 km | 0m 00s |  | 41 Wh | 0.0% | 20/06/2026, 22:20 /  | 20/06/2026, 12:00 | GNSSALTTRKIGCHDRS~HFPLTPILOT:Unknown~ | Bicycle | 3.37 km | 0m 00s |  | 41 Wh | 100.0% | 20/06/2026, 22:20 /  | 20/07/2021, 23:11 | Track 100005 | Walking | 3.60 km | 59m 57s | 3.6 | 347 Wh | 100.0% | 20/06/2026, 22:02
+distance: query="518 km" count=1 rows= | 01/01/2010, 01:00 | Moselradweg aus Wiki on GPSies.com | Bicycle | 518 km | 6h 50m | 75.7 | 1,616 Wh | 100.0% | 20/06/2026, 21:34
+duration: query="59m 57s" count=1 rows= | 20/07/2021, 23:11 | Track 100005 | Walking | 3.60 km | 59m 57s | 3.6 | 347 Wh | 100.0% | 20/06/2026, 22:02
+activity: query="Walking" count=1 rows= | 20/07/2021, 23:11 | Track 100005 | Walking | 3.60 km | 59m 57s | 3.6 | 347 Wh | 100.0% | 20/06/2026, 22:02
+file path: query="Activity.fit" count=1 rows= | 20/07/2021, 23:11 | Track 100005 | Walking | 3.60 km | 59m 57s | 3.6 | 347 Wh | 100.0% | 20/06/2026, 22:02
+Screenshot: TBS_02-search-file-path.webp=15188B(q76,w1200)
+Console counts: warnings=0; errors=0; pageErrors=0

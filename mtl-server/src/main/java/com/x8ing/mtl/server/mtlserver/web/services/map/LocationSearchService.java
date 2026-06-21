@@ -1,9 +1,11 @@
 package com.x8ing.mtl.server.mtlserver.web.services.map;
 
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
+import com.x8ing.mtl.server.mtlserver.config.MtlCacheConfig;
 import com.x8ing.mtl.server.mtlserver.web.services.config.ServerIdentityService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.info.BuildProperties;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
@@ -53,6 +55,7 @@ public class LocationSearchService {
                 .build();
     }
 
+    @Cacheable(cacheNames = MtlCacheConfig.LOCATION_SEARCH_STATUS_CACHE, sync = true)
     public LocationSearchStatusDto getStatus() {
         if (!properties.isEnabled()) {
             return LocationSearchStatusDto.unavailable("disabled", "Location search is disabled.");

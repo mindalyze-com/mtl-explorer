@@ -1,0 +1,98 @@
+{
+  "before": {
+    "url": "http://188.245.169.80:18080/mtl/map-settings",
+    "bodyHasTracks": "13 Tracks",
+    "gpsTracks": {
+      "label": "GPS Tracks",
+      "text": "GPS TracksAll your recorded activities drawn as colored lines on the map",
+      "iconClass": "bi lc-check bi-check-circle-fill",
+      "enabled": true,
+      "sliderVisible": true,
+      "ariaValue": "100",
+      "ariaLabel": "GPS Tracks opacity"
+    },
+    "heatmap": {
+      "label": "Heatmap",
+      "text": "HeatmapDensity overlay showing where you've been most frequently",
+      "iconClass": "bi lc-check bi-circle",
+      "enabled": false,
+      "sliderVisible": false,
+      "ariaValue": null,
+      "ariaLabel": null
+    },
+    "mapSettings": null
+  },
+  "after": {
+    "url": "http://188.245.169.80:18080/mtl/map-settings",
+    "visibleTrackText": "13 Tracks",
+    "gpsTracks": {
+      "label": "GPS Tracks",
+      "text": "GPS TracksAll your recorded activities drawn as colored lines on the map",
+      "iconClass": "bi lc-check bi-check-circle-fill",
+      "enabled": true,
+      "sliderVisible": true,
+      "ariaValue": "100",
+      "ariaLabel": "GPS Tracks opacity"
+    },
+    "heatmap": {
+      "label": "Heatmap",
+      "text": "HeatmapDensity overlay showing where you've been most frequently",
+      "iconClass": "bi lc-check bi-check-circle-fill",
+      "enabled": true,
+      "sliderVisible": true,
+      "ariaValue": "50",
+      "ariaLabel": "Heatmap opacity"
+    },
+    "mapSettings": {
+      "theme": "topo-contrast",
+      "mapSourceMode": "auto",
+      "legendCollapsed": false,
+      "basemapEnabled": true,
+      "terrainEnabled": false,
+      "terrainExaggeration": 1,
+      "tracksEnabled": true,
+      "trackPointsVisible": true,
+      "heatmapVisible": true,
+      "activeOverlays": [],
+      "layerOpacities": {
+        "basemap": 100,
+        "terrain": 100,
+        "tracks": 100,
+        "media": 100,
+        "trackpoints": 100,
+        "heatmap": 50,
+        "wanderland": 100,
+        "veloland": 100,
+        "mountainbikeland": 100,
+        "wanderwege": 100,
+        "wmt-hiking": 100,
+        "wmt-cycling": 100,
+        "wmt-mtb": 100
+      }
+    },
+    "canvasCount": 2,
+    "pageTextSummary": "Map settings visible; page showed 13 Tracks, GPS Tracks, and Heatmap row with opacity slider."
+  },
+  "assertions": {
+    "heatmapEnabled": true,
+    "heatmapSliderVisible": true,
+    "heatmapOpacityAdjusted": true,
+    "gpsTracksStillEnabled": true,
+    "trackCountStillVisible": true
+  },
+  "consoleProblems": [
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 401 ()"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 401 ()"
+    },
+    {
+      "type": "warning",
+      "text": "Client environment analytics submission failed {name: FetchError, message: The request failed and the interceptors did not return an alternative response}"
+    }
+  ],
+  "failedRequestsNote": "Only aborted initial/navigation probes and analytics submission were recorded; no heatmap/layer request failed."
+}

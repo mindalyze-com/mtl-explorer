@@ -6,6 +6,7 @@ import type { FilterResult } from '@/types/filter';
 export type ActiveFilterRequest = {
   filterName: string;
   filterParams: FilterParamsRequest | undefined;
+  resolvedTrackIds?: number[];
 };
 
 export type FilterStoreSaveOptions = {
@@ -107,12 +108,12 @@ export const useFilterStore = defineStore('filter', () => {
   /** Convenience accessor for the current filterParams (or null). */
   const filterParams = computed<FilterParamsRequest | null>(() => config.value?.filterParams ?? null);
   const activeFilterRequest = computed<ActiveFilterRequest | null>(() =>
-    config.value == null ? null : activeFilterRequestFromConfig(config.value)
+    config.value == null ? null : activeFilterRequestFromConfig(config.value, activeResult.value)
   );
 
   async function getActiveFilterRequest(): Promise<ActiveFilterRequest> {
     const cfg = await ensureLoaded();
-    return activeFilterRequestFromConfig(cfg);
+    return activeFilterRequestFromConfig(cfg, activeResult.value);
   }
 
   return {
@@ -131,9 +132,13 @@ export const useFilterStore = defineStore('filter', () => {
   };
 });
 
-function activeFilterRequestFromConfig(clientFilterConfig: ClientFilterConfig): ActiveFilterRequest {
+function activeFilterRequestFromConfig(
+  clientFilterConfig: ClientFilterConfig,
+  filterResult?: FilterResult | null
+): ActiveFilterRequest {
   return {
     filterName: clientFilterConfig.filterInfo?.filterConfig?.filterName ?? '',
     filterParams: clientFilterConfig.filterParams,
+    resolvedTrackIds: filterResult ? Array.from(filterResult.trackVersions.keys()) : undefined,
   };
 }

@@ -1,0 +1,9 @@
+ADM_06:
+- map config API: tileMode=local, plannerEnabled=true, tileSource=public, archiveId=public-default.
+- map status API: phase=public-fallback, ready=true, download_pct=100, message="Using hosted map service", archive=public-default.
+- location search status API: phase=ready, ready=true, message="GeoNames location search ready.", row_count=1332531, populated=233251, terrain=1099280, source=GeoNames CC-BY 4.0.
+- planner status API: available=true, brouterRunning=true, segmentsOnDisk=2, queued=0, inProgress=0, failed=0, validationPhase=complete, BRouter=1.7.9.
+- visible Map & Routing section: ["Map & Routing","Vector Map Tiles","DONE","100%","Using hosted map service","Protomaps archive public-default","Hosted map service","Location Search","DONE","100%","GeoNames location search ready.","1332531 places (233251 populated, 1099280 terrain)","Routing Segments","READY","100%","Routing segments are ready for planned routes.","Image 1.16 ... BRouter 1.7.9","2 on disk","Updated 04:21:20"]
+- assertions: {"mapTaskVisible":true,"locationTaskVisible":true,"routingTaskVisible":true,"apiReady":true,"usefulDetailsVisible":true}
+- network errors sample: []
+- console messages sample: PMTiles cache retry and external Mapterhorn DEM tile warnings only; previous MAP_06 triage rejected these as non-blocking provider issues.

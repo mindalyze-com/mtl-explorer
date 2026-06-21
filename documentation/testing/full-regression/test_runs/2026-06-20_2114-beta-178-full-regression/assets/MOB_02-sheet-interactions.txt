@@ -1,0 +1,24 @@
+MOB_02 sheet interaction evidence
+URL: http://178.104.209.132:18080/mtl/
+Nav initial: {"top":712,"bottom":844,"height":132,"className":"nav-sheet","cssVar":"132px"}
+Nav collapsed: {"top":798,"bottom":844,"height":46,"className":"nav-sheet nav-sheet--collapsed","cssVar":"46px"}
+Nav expanded: {"top":712,"bottom":844,"height":132,"className":"nav-sheet","cssVar":"132px"}
+Stats initial: {"className":"sheet sheet--open","top":337.609375,"bottom":844,"height":506.390625,"text":"Overview Trends Tracks 16Tracks1,588 kmDistance1d 01h Duration 54,347 Wh Energy 14,494 mAscentActivity BreakdownTracksDi"}
+Stats large: {"className":"sheet sheet--open","top":101.28125,"bottom":844,"height":742.71875,"text":"Overview Trends Tracks 16Tracks1,588 kmDistance1d 01h Duration 54,347 Wh Energy 14,494 mAscentActivity BreakdownTracksDi"}
+After drag-down sheets: [{"className":"sheet sheet--open","top":337.609375,"bottom":844,"height":506.390625,"text":"Overview Trends Tracks 16Tracks1,588 kmDistance1d 01h Duration 54,347 Wh Energy 14,494 mAscentActivity BreakdownTracksDi"}]
+Close method: close-button
+Open sheets after close: []
+OverflowX after interactions: 0
+Screenshots: nav-collapsed 78370b q=64; nav-expanded 83814b q=72; stats-large 31290b q=72; after-close 83814b q=72
+
+Checks:
+- PASS nav starts expanded
+- PASS nav drag down snaps collapsed
+- PASS nav drag up snaps expanded
+- PASS Stats bottom sheet opens at medium detent
+- PASS Stats bottom sheet drag up snaps larger
+- PASS Stats bottom sheet closes after drag/button
+- PASS no horizontal overflow after interactions
+- PASS no visible NaN/undefined/null after interactions
+
+Console/page errors: none

@@ -1,0 +1,52 @@
+FLT_07 legend group results
+
+Initial state
+- URL: http://188.245.169.80:18080/mtl/filter
+- Selected filter: Activities by keyword.
+- Keyword/date/geo params were clear.
+- Result: 13 / 13 Tracks.
+- Map legend: CYCLING 12, ON_FOOT 1.
+- Both map legend rows showed eye-fill icons and no disabled row class.
+
+Colors tab preview
+- Opened the Colors tab for the active filter.
+- Colors tab label: Colors 13.
+- Map legend still showed: 13 / 13 Tracks / CYCLING 12 / ON_FOOT 1.
+- Colors tab grouped breakdown showed the same active-filter categories:
+  - CYCLING / Tap to review matching tracks / 12
+  - ON_FOOT / Tap to review matching tracks / 1
+- This confirms the preview and the map legend share the same active-filter category mapping.
+
+Map legend collapse
+- Closed the filter sheet before interacting with the map legend, because the sheet backdrop intentionally intercepts map clicks while open.
+- Clicked the map legend toggle.
+- Collapsed state became true; chevron changed to down.
+- Map card text changed to: 13 / 13 Tracks / Legend.
+- Category rows were hidden from the visible card while the count stayed 13 / 13 Tracks.
+
+Hide ON_FOOT group
+- Re-expanded the map legend.
+- Clicked the ON_FOOT row.
+- Count immediately changed from 13 / 13 Tracks to 12 / 13 Tracks.
+- ON_FOOT row class became mtl-card__row mtl-card__row--disabled.
+- ON_FOOT icon changed from eye-fill to eye-slash.
+- CYCLING row remained enabled with count 12.
+
+Restore ON_FOOT group
+- Clicked the ON_FOOT row again.
+- Count immediately returned to 13 / 13 Tracks.
+- ON_FOOT disabled class was removed.
+- ON_FOOT icon changed back to eye-fill.
+- Final map legend: CYCLING 12, ON_FOOT 1.
+
+Handoff cleanup
+- Navigated back to http://188.245.169.80:18080/mtl/filter.
+- Filter sheet open.
+- Result: 13 / 13 Tracks.
+- Disabled legend rows: none.
+
+Screenshot assets
+- FLT_07-legend-baseline.png: expanded baseline map legend.
+- FLT_07-legend-collapsed.png: collapsed legend card.
+- FLT_07-on-foot-hidden.png: ON_FOOT hidden and count reduced.
+- FLT_07-on-foot-restored.png: ON_FOOT restored and count returned.

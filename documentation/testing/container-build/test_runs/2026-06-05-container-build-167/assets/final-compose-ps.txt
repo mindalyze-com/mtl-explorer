@@ -1,0 +1,5 @@
+NAME                             IMAGE                              COMMAND                  SERVICE           CREATED         STATUS                   PORTS
+mtl-explorer-app-1               mytraillog:local                   "/my-entrypoint.sh j…"   app               8 minutes ago   Up 8 minutes             0.0.0.0:18080->8080/tcp, [::]:18080->8080/tcp
+mtl-explorer-brouter-1           mytraillog-brouter:local           "/opt/brouter-orches…"   brouter           8 minutes ago   Up 8 minutes             17777-17778/tcp
+mtl-explorer-db-1                postgis/postgis:18-3.6             "docker-entrypoint.s…"   db                8 minutes ago   Up 8 minutes (healthy)   5432/tcp
+mtl-explorer-location-search-1   mytraillog-location-search:local   "python /app/locatio…"   location-search   8 minutes ago   Up 8 minutes (healthy)   0.0.0.0:18083->8083/tcp, [::]:18083->8083/tcp

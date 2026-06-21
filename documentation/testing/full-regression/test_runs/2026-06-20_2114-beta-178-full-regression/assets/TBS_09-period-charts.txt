@@ -1,0 +1,26 @@
+Status: PASS
+Daily charts OK: true
+Weekly charts OK: true
+Monthly charts OK: true
+Totals stayed consistent: true
+Page errors: 0
+Console warnings/errors: 2
+
+Daily selected: YYYY-MM-DD (by year, week and day)
+Daily chart count: 7
+Daily labels: 2010-01-01, 2021-07-20, 2026-06-20, 0, 10, 20, 30 h, 500, 1k km, 2, 4, 6, 2k, 4k, 6k Wh, 1k, 50, 100, 150 %
+
+Weekly selected: YYYY-WW (by year and week)
+Weekly chart count: 7
+Weekly labels: 2010-01, 2021-29, 2026-25 (week labels rendered as year-week numbers), 0, 10, 20, 30 h, 500, 1k km, 2, 4, 6, 2k, 4k, 6k Wh, 1k, 50, 100, 150 %
+
+Monthly selected: YYYY-MM (by year and month)
+Monthly chart count: 7
+Monthly labels: 2010-01, 2021-07, 2026-06, 0, 10, 20, 30 h, 500, 1k km, 2, 4, 6, 2k, 4k, 6k Wh, 1k, 50, 100, 150 %
+
+Page errors detail:
+(none)
+
+Console warnings/errors detail:
+error: Failed to load resource: net::ERR_FAILED
+warning: Failed to cache low-zoom tiles (IndexedDB): {name: TypeError, message: Failed to fetch}

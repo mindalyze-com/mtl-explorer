@@ -1,0 +1,169 @@
+{
+  "states": [
+    {
+      "label": "opened-speed-1000ms",
+      "url": "http://188.245.169.80:18080/mtl/animate",
+      "animateOpen": true,
+      "playButton": {
+        "aria": "Play animation",
+        "disabled": false
+      },
+      "stopButton": {
+        "disabled": true
+      },
+      "trackSummary": [
+        "13 / 13"
+      ],
+      "speedLabels": [
+        "1000ms"
+      ],
+      "dateLabels": [
+        "01/01/2010",
+        "01/01/2010",
+        "19/06/2026"
+      ],
+      "playheads": [],
+      "activeToolButtons": [
+        {
+          "text": "Animate",
+          "cls": "nav-panel__tool nav-panel__tool--active"
+        }
+      ]
+    },
+    {
+      "label": "after-play-1.35s",
+      "url": "http://188.245.169.80:18080/mtl/animate",
+      "animateOpen": true,
+      "playButton": {
+        "aria": "Pause animation",
+        "disabled": false
+      },
+      "stopButton": {
+        "disabled": false
+      },
+      "trackSummary": [
+        "2 / 13"
+      ],
+      "speedLabels": [
+        "1000ms"
+      ],
+      "dateLabels": [
+        "01/01/2010",
+        "01/01/2010",
+        "19/06/2026"
+      ],
+      "playheads": [
+        "left: 8.33333%;"
+      ],
+      "activeToolButtons": [
+        {
+          "text": "Animate",
+          "cls": "nav-panel__tool nav-panel__tool--active"
+        }
+      ]
+    },
+    {
+      "label": "after-pause",
+      "url": "http://188.245.169.80:18080/mtl/animate",
+      "animateOpen": true,
+      "playButton": {
+        "aria": "Play animation",
+        "disabled": false
+      },
+      "stopButton": {
+        "disabled": false
+      },
+      "trackSummary": [
+        "13 / 13"
+      ],
+      "speedLabels": [
+        "1000ms"
+      ],
+      "dateLabels": [
+        "01/01/2010",
+        "01/01/2010",
+        "19/06/2026"
+      ],
+      "playheads": [
+        "left: 8.33333%;"
+      ],
+      "activeToolButtons": [
+        {
+          "text": "Animate",
+          "cls": "nav-panel__tool nav-panel__tool--active"
+        }
+      ]
+    },
+    {
+      "label": "after-resume",
+      "url": "http://188.245.169.80:18080/mtl/animate",
+      "animateOpen": true,
+      "playButton": {
+        "aria": "Pause animation",
+        "disabled": false
+      },
+      "stopButton": {
+        "disabled": false
+      },
+      "trackSummary": [
+        "3 / 13"
+      ],
+      "speedLabels": [
+        "1000ms"
+      ],
+      "dateLabels": [
+        "01/01/2010",
+        "08/03/2013",
+        "19/06/2026"
+      ],
+      "playheads": [
+        "left: 16.6667%;"
+      ],
+      "activeToolButtons": [
+        {
+          "text": "Animate",
+          "cls": "nav-panel__tool nav-panel__tool--active"
+        }
+      ]
+    },
+    {
+      "label": "after-stop-reset",
+      "url": "http://188.245.169.80:18080/mtl/animate",
+      "animateOpen": true,
+      "playButton": {
+        "aria": "Play animation",
+        "disabled": false
+      },
+      "stopButton": {
+        "disabled": true
+      },
+      "trackSummary": [
+        "13 / 13"
+      ],
+      "speedLabels": [
+        "1000ms"
+      ],
+      "dateLabels": [
+        "01/01/2010",
+        "01/01/2010",
+        "19/06/2026"
+      ],
+      "playheads": [],
+      "activeToolButtons": [
+        {
+          "text": "Animate",
+          "cls": "nav-panel__tool nav-panel__tool--active"
+        }
+      ]
+    }
+  ],
+  "assertions": {
+    "openedWithTracks": true,
+    "speedControlChanged": true,
+    "playEnteredPauseState": true,
+    "playheadVisibleWhilePlaying": true,
+    "pauseReturnedPlayState": true,
+    "resumeEnteredPauseState": true,
+    "stopResetToPlayable": true
+  }
+}

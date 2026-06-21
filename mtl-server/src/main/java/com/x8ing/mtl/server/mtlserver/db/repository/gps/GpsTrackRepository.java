@@ -332,6 +332,7 @@ public interface GpsTrackRepository extends JpaRepository<GpsTrack, Long> {
                     start_date,
                     GREATEST(0, COALESCE(track_length_in_meter, 0))::double precision AS distance_m,
                     (GREATEST(0, COALESCE(track_duration_in_motion_secs, EXTRACT(EPOCH FROM (end_date - start_date)), 0)) * 1000.0)::double precision AS duration_ms,
+                    GREATEST(0, COALESCE(ascent_in_meter, 0))::double precision AS ascent_m,
                     GREATEST(0, COALESCE(energy_net_total_wh, 0))::double precision AS energy_wh
                 FROM gps_track
                 WHERE id = ANY(:filterIds)
@@ -341,6 +342,7 @@ public interface GpsTrackRepository extends JpaRepository<GpsTrack, Long> {
                 COUNT(*)::bigint AS trackCount,
                 COALESCE(SUM(distance_m), 0)::double precision AS distanceM,
                 COALESCE(SUM(duration_ms), 0)::double precision AS durationMs,
+                COALESCE(SUM(ascent_m), 0)::double precision AS ascentM,
                 COALESCE(SUM(energy_wh), 0)::double precision AS energyWh,
                 MIN(start_date) AS oldestStart,
                 MAX(start_date) AS newestStart

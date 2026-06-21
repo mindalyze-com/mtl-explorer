@@ -63,6 +63,32 @@ class LocationSearchServerTest(unittest.TestCase):
             self.assertIn("versionInfo", status)
             self.assertEqual(status["versionInfo"]["components"]["sqlite"], sqlite3.sqlite_version)
 
+    def test_status_uses_metadata_counts_without_table_counts(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            db_path = Path(temp_dir) / "geonames-search.sqlite"
+            create_sample_db(db_path)
+            engine = NoCountSearchEngine(SearchConfig(db_path=db_path))
+
+            status = engine.status()
+
+            self.assertTrue(status["ready"])
+            self.assertEqual(status["row_count"], 8)
+            self.assertEqual(status["populated_place_count"], 3)
+            self.assertEqual(status["terrain_count"], 5)
+
+    def test_status_falls_back_to_counts_when_metadata_counts_are_missing(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            db_path = Path(temp_dir) / "geonames-search.sqlite"
+            create_sample_db(db_path, include_count_metadata=False)
+            engine = SearchEngine(SearchConfig(db_path=db_path))
+
+            status = engine.status()
+
+            self.assertTrue(status["ready"])
+            self.assertEqual(status["row_count"], 8)
+            self.assertEqual(status["populated_place_count"], 3)
+            self.assertEqual(status["terrain_count"], 5)
+
     def test_search_exact_ascii_prefix_peak_distance_and_short_query(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             db_path = Path(temp_dir) / "geonames-search.sqlite"
@@ -142,7 +168,13 @@ class LocationSearchServerTest(unittest.TestCase):
                 thread.join(timeout=5)
 
 
-def create_sample_db(db_path: Path) -> None:
+class NoCountSearchEngine(SearchEngine):
+    @staticmethod
+    def count(connection, table: str, where_clause: str | None = None) -> int:
+        raise AssertionError("status should use metadata counts without querying tables")
+
+
+def create_sample_db(db_path: Path, *, include_count_metadata: bool = True) -> None:
     connection = sqlite3.connect(db_path)
     try:
         connection.executescript(SCHEMA_SQL)
@@ -171,19 +203,22 @@ def create_sample_db(db_path: Path) -> None:
             "INSERT INTO place_names_fts(rowid, normalized_name, alternate_names) VALUES (?, ?, ?)",
             [(row[0], row[3], row[4]) for row in places],
         )
-        connection.executemany(
-            "INSERT INTO metadata(key, value) VALUES (?, ?)",
-            [
-                ("schema_version", "geonames-search-v1"),
-                ("build_time", "2026-05-24T00:00:00Z"),
-                ("source_attribution", "GeoNames"),
-                ("source_license", "CC-BY 4.0"),
-                ("source_license_url", "https://creativecommons.org/licenses/by/4.0/"),
-                ("row_count", "8"),
-                ("populated_place_count", "3"),
-                ("terrain_count", "5"),
-            ],
-        )
+        metadata = [
+            ("schema_version", "geonames-search-v1"),
+            ("build_time", "2026-05-24T00:00:00Z"),
+            ("source_attribution", "GeoNames"),
+            ("source_license", "CC-BY 4.0"),
+            ("source_license_url", "https://creativecommons.org/licenses/by/4.0/"),
+        ]
+        if include_count_metadata:
+            metadata.extend(
+                [
+                    ("row_count", "8"),
+                    ("populated_place_count", "3"),
+                    ("terrain_count", "5"),
+                ]
+            )
+        connection.executemany("INSERT INTO metadata(key, value) VALUES (?, ?)", metadata)
         connection.commit()
     finally:
         connection.close()

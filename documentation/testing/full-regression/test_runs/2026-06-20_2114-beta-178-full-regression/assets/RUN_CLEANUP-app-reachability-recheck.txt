@@ -1,0 +1,4 @@
+RUN_CLEANUP app reachability recheck
+Timestamp local: 2026-06-21 06:34:40 CEST
+URL: http://178.104.209.132:18080/mtl/
+Result: HTTP 200 bytes=1826 time=0.086923

@@ -1,0 +1,34 @@
+{
+  "captured": "2026-06-19T20:13:49+0200 CEST",
+  "api_track_count": 5,
+  "track_ids": [
+    100001,
+    100000,
+    100002,
+    100003,
+    100004
+  ],
+  "simplified_filtered_count": 5,
+  "standardFilterCount": 5,
+  "stats_summary_for_track_ids": {
+    "trackCount": 5,
+    "distanceM": 1042712.01,
+    "durationMs": 84660000.0,
+    "energyWh": 4527.34,
+    "oldestStart": "2010-01-01T00:00:00.000+0000",
+    "newestStart": "2013-03-08T09:32:24.000+0000"
+  },
+  "track_names": [
+    "voie verte haute vosges on GPSies.com",
+    "Vitry le fran\u00e7ois - langres on GPSies.com",
+    "Jura Route 7 / 2011 on GPSies.com",
+    "Moselradweg aus Wiki on GPSies.com",
+    "Lannion_Plestin_parcours Lannion_Plestin_parcours1"
+  ],
+  "ui_evidence": [
+    "map 5 Tracks",
+    "Stats Overview 5 tracks / 1,043 km / 23h 31m",
+    "Stats Tracks tab table with five rows",
+    "Filter panel open over 5-track map"
+  ]
+}

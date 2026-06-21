@@ -1,0 +1,21 @@
+# FIT_04 original download evidence
+
+URL: http://178.104.209.132:18080/mtl/track/100005
+Control: aria-label=Download original; title=Download original indexed file
+Suggested filename: Activity.fit
+Saved temp path: /tmp/mtl-playwright/downloads/FIT_04-Activity.fit
+Downloaded size bytes: 94096
+Expected source size bytes: 94096
+SHA-256: 949a238e1bb75c3684479785f76fa9a16888bb394518844248f488171d591387
+Expected SHA-256: 949a238e1bb75c3684479785f76fa9a16888bb394518844248f488171d591387
+FIT marker bytes 8-11: .FIT
+FIT header size byte: 14
+FIT protocol version byte: 32
+FIT profile version raw: 2147
+FIT data size from header: 94080
+Filename matches expected Activity.fit: true
+Hash matches public source metadata: true
+Size matches public source metadata: true
+FIT marker valid: true
+
+Result: PASS

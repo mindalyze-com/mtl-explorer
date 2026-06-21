@@ -1,0 +1,15 @@
+# FIT_04 original source download
+
+Visible UI control checked before download verification:
+- FIT detail Overview shows a unique "Download original" button for track 100005.
+
+Authenticated endpoint verification:
+- GET /mtl/api/tracks/100005/source-file
+- HTTP status: 200
+- Content-Type: application/octet-stream
+- Content-Disposition: attachment; filename="=?UTF-8?Q?Activity.fit?="; filename*=UTF-8''Activity.fit
+- Downloaded size: 94,096 bytes
+- Downloaded SHA-256: 949a238e1bb75c3684479785f76fa9a16888bb394518844248f488171d591387
+- Uploaded/source SHA-256: 949a238e1bb75c3684479785f76fa9a16888bb394518844248f488171d591387
+- First 16 bytes hex: 0e206308806f01002e4649549e434000
+- Result: downloaded original remains FIT and matches the uploaded checksum.

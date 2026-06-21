@@ -1,0 +1,39 @@
+[cleared]
+- zoom prompt: false
+- scale: 20 m, 0m
+- stats: ["0.00 km","0 m","0 m","–","0"]
+- sheet: Drawing Load Road BikeTap the map to add waypoints. Drag to adjust.Distance0.00 kmAscent0 mDescent0 mDuration–Legs0 Elevation profile appears once a route is computed.
+
+[zoomed out]
+- zoom prompt: false
+- scale: 200 m, 0m
+- stats: ["0.00 km","0 m","0 m","–","0"]
+- sheet: Drawing Load Road BikeTap the map to add waypoints. Drag to adjust.Distance0.00 kmAscent0 mDescent0 mDuration–Legs0 Elevation profile appears once a route is computed.
+
+[long route first point]
+- zoom prompt: false
+- scale: 200 m, 0m
+- stats: ["0.00 km","0 m","0 m","–","0"]
+- sheet: Drawing Load Road BikeTap the map to add waypoints. Drag to adjust.Distance0.00 kmAscent0 mDescent0 mDuration–Legs0 Elevation profile appears once a route is computed.
+
+[long route before drag]
+- zoom prompt: false
+- scale: 200 m, 0m
+- stats: ["1.08 km","1 m","0 m","3m","1"]
+- sheet: Drawing Load Road BikeTap the map to add waypoints. Drag to adjust.Distance1.08 kmAscent1 mDescent0 mDuration3mLegs1ChartChart with 2 data points.The chart has 1 X axis displaying values. Data ranges from -0.01077 to 1.077.The chart has 1 Y axis displaying values. Data ranges from 360.5 to 361.5.Created with Highcharts 12.6.00 km0.1 km0.2 km0.3 km0.4 km0.5 km0.6 km0.7 km0.8 km0.9 km1 km360361361361361362362 mEnd of interactive chart.
+
+[after second long route drag]
+- zoom prompt: false
+- scale: 200 m, 0m
+- stats: ["1.08 km","1 m","0 m","3m","1"]
+- sheet: Drawing Load Road BikeTap the map to add waypoints. Drag to adjust.Distance1.08 kmAscent1 mDescent0 mDuration3mLegs1ChartChart with 2 data points.The chart has 1 X axis displaying values. Data ranges from -0.01077 to 1.077.The chart has 1 Y axis displaying values. Data ranges from 360.5 to 361.5.Created with Highcharts 12.6.00 km0.1 km0.2 km0.3 km0.4 km0.5 km0.6 km0.7 km0.8 km0.9 km1 km360361361361361362362 mEnd of interactive chart.
+
+[before exact route-line drag]
+- screenshot: assets/PLN_03-before-exact-route-drag.jpg
+- route-line point selected by screenshot-pixel analysis: page (666,124), drag target page (666,188)
+- stats: {"distance":"1.08 km","ascent":"1 m","descent":"0 m","duration":"3m","legs":1}
+
+[after exact route-line drag]
+- screenshot: assets/PLN_03-after-exact-route-drag.jpg
+- stats: {"distance":"1.08 km","ascent":"1 m","descent":"0 m","duration":"3m","legs":2}
+- elevation chart: chart text changed from 2 data points to 4 data points.

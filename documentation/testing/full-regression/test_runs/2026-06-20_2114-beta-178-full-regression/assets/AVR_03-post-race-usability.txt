@@ -1,0 +1,8 @@
+Prevalidated response: {"status":200,"ids":["100017","100018"],"segmentsStats":[{"point1":"A","point2":"B","label":"A-B","count":2,"timeDelta":1884.395}]}
+Race cards running: ["1synthetic-mct04-shared-a.gpxBicycle01/02/2026, 11:00 13% 1.37 km 00:13:21 42.4 km/h 9.43 km","2synthetic-mct04-shared-b.gpxBicycle02/02/2026, 11:00 10% 1.26 km 00:18:03 38.1 km/h 11.46 km"]
+Race cards after reset: ["1synthetic-mct04-shared-a.gpxBicycle01/02/2026, 11:00 0% 00:13:21 42.4 km/h 9.43 km","2synthetic-mct04-shared-b.gpxBicycle02/02/2026, 11:00 0% 00:18:03 38.1 km/h 11.46 km"]
+Closed state: {"url":"http://178.104.209.132:18080/mtl/","openSheets":0,"raceVisible":0,"measureVisible":0,"resultsVisible":0,"bodySample":"500 km © OpenStreetMap 10 Tracks Stats Filter Map Animate Segments GPS Planner Admin"}
+Scale before/after zoom: {"scaleBefore":"500 km","scaleAfter":"300 km"}
+Assertions: {"resetReturnedZero":true,"sheetsClosed":true,"mapZoomWorked":true,"mapToolOpened":true,"pageErrors":0}
+Final status: PASS
+Console notes sample: error: Failed to load resource: the server responded with a status of 404 ()

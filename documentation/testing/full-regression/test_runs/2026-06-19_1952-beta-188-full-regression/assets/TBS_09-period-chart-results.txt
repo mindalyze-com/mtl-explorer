@@ -1,0 +1,24 @@
+TBS_09 time-period chart switch results
+
+[monthly]
+- selected period: YYYY-MM (by year and month)
+- summaries: 6 Periods 13 Tracks 825 km Total Dist. 16h 50m Total Time 4,023 Wh Total Energy
+- highcharts containers: 14
+- chart categories sample: Created with Highcharts 12.6.02010-012013-032021-072021-082026-012026-0601020 h || Created with Highcharts 12.6.02010-012013-032021-072021-082026-012026-0601020 h
+- metric charts present: duration=true, distance=true, activity=true, energy=true
+
+[weekly]
+- selected period: YYYY-WW (by year and week)
+- summaries: 6 Periods 13 Tracks 825 km Total Dist. 16h 50m Total Time 4,023 Wh Total Energy
+- highcharts containers: 14
+- chart categories sample: Created with Highcharts 12.6.02010-012013-102021-292021-312026-012026-2501020 h || Created with Highcharts 12.6.02010-012013-102021-292021-312026-012026-2501020 h
+- metric charts present: duration=true, distance=true, activity=true, energy=true
+
+[daily]
+- selected period: YYYY-MM-DD (by year, week and day)
+- summaries: 6 Periods 13 Tracks 825 km Total Dist. 16h 50m Total Time 4,023 Wh Total Energy
+- highcharts containers: 14
+- chart categories sample: Created with Highcharts 12.6.02010-01-012013-03-082021-07-202021-08-012026-01-012026-06-1901020 h || Created with Highcharts 12.6.02010-01-012013-03-082021-07-202021-08-012026-01-012026-06-1901020 h
+- metric charts present: duration=true, distance=true, activity=true, energy=true
+
+[cleanup] selected period: YYYY-Q (by year and quarter)

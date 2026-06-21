@@ -1,0 +1,14 @@
+[before waypoint retry]
+- zoom prompt: false
+- stats: ["0.00 km","0 m","0 m","–","0"]
+- sheet: Drawing Load Road BikeTap the map to add waypoints. Drag to adjust.Distance0.00 kmAscent0 mDescent0 mDuration–Legs0 Elevation profile appears once a route is computed.
+
+[after first click]
+- zoom prompt: false
+- stats: ["0.00 km","0 m","0 m","–","0"]
+- sheet: Drawing Load Road BikeTap the map to add waypoints. Drag to adjust.Distance0.00 kmAscent0 mDescent0 mDuration–Legs0 Elevation profile appears once a route is computed.
+
+[after second click]
+- zoom prompt: false
+- stats: ["0.02 km","0 m","0 m","0m","1"]
+- sheet: Drawing Load Road BikeTap the map to add waypoints. Drag to adjust.Distance0.02 kmAscent0 mDescent0 mDuration0mLegs1ChartChart with 2 data points.The chart has 1 X axis displaying values. Data ranges from -0.00024 to 0.024.The chart has 1 Y axis displaying values. Data ranges from 360.75 to 361.5.Created with Highcharts 12.6.00 km0 km0 km0 km0 km0 km0 km0 km0 km0 km361361361361362362 mEnd of interactive chart.

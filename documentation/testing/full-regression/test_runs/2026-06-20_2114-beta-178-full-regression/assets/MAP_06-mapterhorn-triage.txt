@@ -1,0 +1,25 @@
+# MAP_06 Mapterhorn provider/code triage
+
+Triage result: non-blocking upstream provider issue.
+
+Regression observation:
+- The MAP_06 stress evidence recorded app/API request failures: 0.
+- The UI settled with track detail still open, map canvases rendered, `8 Tracks`, and no visible loading/spinner/progress classes.
+- The only recorded 4xx/5xx responses were two identical remote DEM tile responses:
+  - `404 https://tiles.mapterhorn.com/4/6/5.webp`
+
+Direct provider check:
+- `HEAD https://tiles.mapterhorn.com/4/6/5.webp` returned `HTTP/2 404`.
+- `HEAD https://tiles.mapterhorn.com/0/0/0.webp` returned `HTTP/2 200`.
+- `GET https://tiles.mapterhorn.com/tilejson.json` returned TileJSON advertising `https://tiles.mapterhorn.com/{z}/{x}/{y}.webp` with global bounds and `tileSize: 512`.
+
+Code-path evidence:
+- `mtl-client/src/utils/mapStyle.ts` defines `terrain-dem` from `https://tiles.mapterhorn.com/tilejson.json`.
+- `mtl-client/src/utils/mapStyle.ts` enables hillshade for `light-topo` and `topo-contrast`, and `addHillshade()` injects the Mapterhorn `terrain-dem` source plus a `terrain-hillshade` layer.
+- `mtl-client/src/stores/mapSettingsStore.ts` defaults the map theme to `topo-contrast`, so the default background can request Mapterhorn DEM tiles even when explicit 3D terrain is off.
+- `mtl-client/src/components/map/composables/useMapRendererLifecycle.ts` has runtime fallback only for local vector `protomaps` source failures; `terrain-dem` errors are logged as generic MapLibre base-map errors.
+- `mtl-server/src/main/resources/application.yml` remote raster styles are OSM/OpenTopoMap/CARTO and do not configure the observed Mapterhorn URL as an MTL-served tile endpoint.
+
+Release interpretation:
+- This remains useful evidence because users may see missing hillshade/terrain pixels in that tile position.
+- It is not a release-blocking MTL Explorer defect from this evidence alone: the app did not serve the 404, app/API calls did not fail, and the visible map workflow stayed usable after the stress interaction.

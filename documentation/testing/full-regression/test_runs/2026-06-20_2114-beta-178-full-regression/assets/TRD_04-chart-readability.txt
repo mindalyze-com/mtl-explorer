@@ -1,0 +1,29 @@
+TRD_04 chart readability evidence
+URL: http://178.104.209.132:18080/mtl/track/100005
+Selected tab: [{"text":"Graphs","selected":"true"}]
+Chart cards found: 6
+
+Required chart observations:
+- Speed: present=true; viewportRect={"x":296,"y":-394,"width":925,"height":296}
+  text=SpeedChartCombination chart with 2 data series.The chart has 1 X axis displaying values. Data ranges from 51000 to 3589000.The chart has 1 Y axis displaying values. Data ranges from 3.59 to 3.6.Created with Highcharts 12.6.00h 08m0h 16m0h 25m0h 33m0h 41m0h 50m0h 58m01234 km/hEnd of interactive chart.
+  svgText=0h 08m | 0h 16m | 0h 25m | 0h 33m | 0h 41m | 0h 50m | 0h 58m | 0 | 1 | 2 | 3 | 4 km/h
+- Elevation: present=true; viewportRect={"x":296,"y":-98,"width":925,"height":296}
+  text=ElevationChartCombination chart with 2 data series.The chart has 1 X axis displaying values. Data ranges from -35890 to 3589000.The chart has 1 Y axis displaying values. Data ranges from 3.2 to 125.9.Created with Highcharts 12.6.00h 00m0h 08m0h 16m0h 25m0h 33m0h 41m0h 50m0h 58m050100150 mEnd of interactive chart.
+  svgText=0h 00m | 0h 08m | 0h 16m | 0h 25m | 0h 33m | 0h 41m | 0h 50m | 0h 58m | 0 | 50 | 100 | 150 m
+- Elevation Gain Rate: present=true; viewportRect={"x":296,"y":197,"width":925,"height":296}
+  text=Elevation Gain RateChartCombination chart with 2 data series.The chart has 1 X axis displaying values. Data ranges from 51000 to 3589000.The chart has 1 Y axis displaying values. Data ranges from 0 to 3749.Created with Highcharts 12.6.00h 08m0h 16m0h 25m0h 33m0h 41m0h 50m0h 58m01k2k3k4k m/hEnd of interactive chart.
+  svgText=0h 08m | 0h 16m | 0h 25m | 0h 33m | 0h 41m | 0h 50m | 0h 58m | 0 | 1k | 2k | 3k | 4k m/h
+- Distance over Time: present=true; viewportRect={"x":296,"y":493,"width":925,"height":296}
+  text=Distance over TimeChartChart with 350 data points.The chart has 1 X axis displaying values. Data ranges from -35890 to 3589000.The chart has 1 Y axis displaying values. Data ranges from 0.009800000000000001 to 3.5988.Created with Highcharts 12.6.00h 00m0h 08m0h 16m0h 25m0h 33m0h 41m0h 50m0h 58m01234 kmEnd of interactive chart.
+  svgText=0h 00m | 0h 08m | 0h 16m | 0h 25m | 0h 33m | 0h 41m | 0h 50m | 0h 58m | 0 | 1 | 2 | 3 | 4 km
+
+Body contains Speed: true
+Body contains Elevation: true
+Body contains Distance: true
+Body contains km/h: true
+Body contains m/h: true
+Body contains km: true
+Console warnings/errors captured: 2
+console: error: Failed to load resource: the server responded with a status of 404 ()
+console: error: Failed to load resource: the server responded with a status of 404 ()
+Page errors captured: 0

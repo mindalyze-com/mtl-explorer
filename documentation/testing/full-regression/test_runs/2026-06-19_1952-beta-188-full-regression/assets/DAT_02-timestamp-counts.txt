@@ -1,0 +1,7 @@
+Timestamped GPX check:
+- JuraRoute72011.gpx: 1,414/1,414 trkpt have time
+- MoselradwegAusWiki.gpx: 2,954/2,954 trkpt have time
+- Vitry-le-Francois_Langres.gpx: 1,688/1,688 trkpt have time
+- VoieVerteHauteVosges.gpx: 1,298/1,298 trkpt have time
+- Lannion_Plestin_parcours24.4RE.gpx: 381/381 trkpt have time
+Result: all five public GPX files support duration/speed/moving-time/period checks.

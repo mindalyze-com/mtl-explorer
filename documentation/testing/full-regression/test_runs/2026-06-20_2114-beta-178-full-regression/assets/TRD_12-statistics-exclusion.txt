@@ -1,0 +1,12 @@
+TRD_12 statistics exclusion evidence
+Track: 100005
+Status: PASS
+Initial statistics select value: Included
+Before include stats: UI tracks=8; UI distance=955 km; API count=8; API distanceM=955195.08; statsExcluded=0; API input IDs include track=true
+Exclude save: {"skipped":false,"beforeValue":"","afterValue":"WRONG_ACTIVITY","response":{"id":100005,"statisticsExclusionReason":"WRONG_ACTIVITY","highlightExclusionReason":null}}
+After exclude stats: UI tracks=7; UI distance=952 km; API count=7; API distanceM=951596.32; statsExcluded=1; distance delta=3598.8 m; API input IDs include track=true
+Note: get-simplified mode=ids still returns the excluded track as an input ID; get-track-overview applies statistics exclusions server-side, as shown by count/distance/exclusion-summary changes.
+Restore save: {"skipped":false,"beforeValue":"WRONG_ACTIVITY","afterValue":"","response":{"id":100005,"statisticsExclusionReason":null,"highlightExclusionReason":null}}
+After restore stats: UI tracks=8; UI distance=955 km; API count=8; API distanceM=955195.08; statsExcluded=0
+Console counts: warnings=11; errors=3; pageErrors=0
+Screenshots: before={"q":"78","resizeWidth":"1000","size":6270}; excluded={"q":"78","resizeWidth":"1000","size":5922}; restored={"q":"78","resizeWidth":"1000","size":6100}

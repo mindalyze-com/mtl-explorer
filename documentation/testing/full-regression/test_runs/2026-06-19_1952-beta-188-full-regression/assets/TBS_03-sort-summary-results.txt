@@ -1,0 +1,27 @@
+TBS_03 sort and visible-summary results
+
+Context:
+- URL: http://188.245.169.80:18080/mtl/stats
+- View: Stats > Tracks
+- Filter state: Off
+- Search state: cleared except during the summary subset check
+- Dataset: 13 tracks
+
+Column sort observations:
+- Date/Start: Date sort chip active; START header aria-sort=descending; leading rows were FMT GEOJSON Unique Track, Path, Path from 19/06/2026 20:52.
+- Track: TRACK header aria-sort=ascending; Name sort chip active; leading rows were FMT GDB Unique Track, FMT GEOJSON Unique Track, FMT TCX Unique.
+- Activity: ACTIVITY header aria-sort=ascending; leading rows were Bicycle rows before the Walking row.
+- Distance: DISTANCE header aria-sort=ascending; Distance sort chip active; leading rows were synthetic-shared-zone-a 190.47 m, synthetic-map09-cross-zone-c 190.47 m, Track 100017 537.53 m.
+- Duration: DURATION header aria-sort=ascending; Duration sort chip active; leading rows were zero-duration rows.
+- Avg km/h: AVG KM/H header aria-sort=ascending; leading rows included Track 100005 3.6, Lannion 21.1, Jura 35.1.
+- Energy: ENERGY header aria-sort=ascending; leading rows had 1 Wh, 2 Wh, 3 Wh.
+- Exploration: EXPLORATION header aria-sort=ascending; Exploration sort chip active; synthetic-shared-zone-a with 66.7% appeared before 100.0% rows.
+- Imported: IMPORTED header aria-sort=ascending; Imported sort chip active; older 20:08 imported tracks appeared before later imports.
+
+Visible summary observations:
+- Baseline summary: 13 tracks · 825 km · 16h 50m.
+- Search `Jura`: 1 of 13 tracks · 273 km, and only Jura Route 7 / 2011 on GPSies.com was visible.
+- Search cleared: 13 tracks · 825 km restored.
+
+State after packet:
+- Browser left on /mtl/stats, Tracks tab active, search cleared, filter Off, Date sort chip active.

@@ -1,0 +1,21 @@
+Captured: 2026-06-19T23:15:08.312Z
+Synthetic upload accepted: adm-upload-20260619231033.gpx
+Admin home groups: Data, System, Session
+Admin home tiles: Upload, Jobs, Freshness, Garmin Sync, Log, Helpers, About, Settings, Session, Attribution
+Upload success screenshot shows accepted formats and success; validation screenshot shows unsupported and empty-file errors.
+Current indexer: GPS: pending=0, completed=15, failed=0, removed=10, excluded=0, total=25, pct=60
+Current jobs: Duplicate Finder: pending=0, done=15, total=15, pct=100 | Activity Classifier: pending=0, done=15, total=15, pct=100 | Exploration Score: pending=0, done=15, total=15, pct=100
+Freshness token: 5AK7zf__|server_id:RBDC887cKZ7gqxDqg7roVv|config:9|filters:85|index:225|media:0|track_geometry:144|tracks:174
+Freshness domains: config:r9, filters:r85, index:r225, media:r0, track_geometry:r144, tracks:r174
+Map config tileMode=local, plannerEnabled=true
+Map status ready=true, phase=public-fallback, message=Using hosted map service
+Location search ready=true, phase=ready, rows=n/a
+Planner status available=true, running=true, queued=0
+Server log API returned status=200, hasContent=true
+Attribution screenshot covers MapLibre, OpenStreetMap, Protomaps, PMTiles, DEM, swisstopo, SchweizMobil, Waymarked Trails, Highcharts, GeoNames, GPSBabel, BRouter.
+Garmin Sync has Run/action output: true
+Tool status API: gcexport=true, fitExport=true, version=v4.6.2
+Helpers status has gcexport/fit-export: true
+Invalid install result visible: true
+ADM_11 detail reopen preserved output: true
+ADM_11 full reopen preserved output: true

@@ -1,0 +1,136 @@
+MCT_03 Segment Analyzer cleanup evidence
+
+[
+  {
+    "step": "initial",
+    "url": "http://188.245.169.80:18080/mtl/",
+    "overlayCount": 0,
+    "overlayText": [],
+    "toolbar": [
+      {
+        "text": "Undo",
+        "disabled": true
+      },
+      {
+        "text": "Clear all",
+        "disabled": true
+      },
+      {
+        "text": "Analyze",
+        "disabled": true
+      }
+    ],
+    "activeToolButtons": [],
+    "visibleSegmentSheets": []
+  },
+  {
+    "step": "openedSegments",
+    "url": "http://188.245.169.80:18080/mtl/segments",
+    "overlayCount": 0,
+    "overlayText": [],
+    "toolbar": [
+      {
+        "text": "Undo",
+        "disabled": true
+      },
+      {
+        "text": "Clear all",
+        "disabled": true
+      },
+      {
+        "text": "Analyze",
+        "disabled": true
+      }
+    ],
+    "activeToolButtons": [
+      "Segments"
+    ],
+    "visibleSegmentSheets": [
+      "Segment Analyzer",
+      "Segment Analyzer",
+      "Segment Analyzer",
+      "Segment Analyzer",
+      "UndoClear allAnalyze2000 mTap mapPlace zone A Place zones on the map where your routes pass through. The analyzer finds ",
+      "UndoClear allAnalyze2000 mTap mapPlace zone A Place zones on the map where your routes pass through. The analyzer finds "
+    ]
+  },
+  {
+    "step": "afterZoneA",
+    "url": "http://188.245.169.80:18080/mtl/segments",
+    "overlayCount": 1,
+    "overlayText": [
+      "A0tracks0sharedtracks"
+    ],
+    "toolbar": [
+      {
+        "text": "Undo",
+        "disabled": false
+      },
+      {
+        "text": "Clear all",
+        "disabled": false
+      },
+      {
+        "text": "Analyze",
+        "disabled": false
+      }
+    ],
+    "activeToolButtons": [
+      "Segments"
+    ],
+    "visibleSegmentSheets": [
+      "Segment Analyzer",
+      "Segment Analyzer",
+      "Segment Analyzer",
+      "Segment Analyzer",
+      "UndoClear allAnalyze2000 mTap map1 zone ready • next: B Place zones on the map where your routes pass through. The analy",
+      "UndoClear allAnalyze2000 mTap map1 zone ready • next: B Place zones on the map where your routes pass through. The analy"
+    ]
+  },
+  {
+    "step": "afterStop",
+    "url": "http://188.245.169.80:18080/mtl/",
+    "overlayCount": 0,
+    "overlayText": [],
+    "toolbar": [
+      {
+        "text": "Undo",
+        "disabled": true
+      },
+      {
+        "text": "Clear all",
+        "disabled": true
+      },
+      {
+        "text": "Analyze",
+        "disabled": true
+      }
+    ],
+    "activeToolButtons": [],
+    "visibleSegmentSheets": []
+  },
+  {
+    "step": "afterPostStopMapClick",
+    "url": "http://188.245.169.80:18080/mtl/",
+    "overlayCount": 0,
+    "overlayText": [],
+    "toolbar": [
+      {
+        "text": "Undo",
+        "disabled": true
+      },
+      {
+        "text": "Clear all",
+        "disabled": true
+      },
+      {
+        "text": "Analyze",
+        "disabled": true
+      }
+    ],
+    "activeToolButtons": [],
+    "visibleSegmentSheets": []
+  }
+]
+
+Expected cleanup signature: active zone overlay appears after map click, disappears after toggling Segments off, Segments is no longer active, and a post-stop map click does not recreate the overlay or visible Segment Analyzer sheet.

@@ -1,0 +1,25 @@
+LOC_03 locale persistence evidence
+URL: http://178.104.209.132:18080/mtl/
+Before reload locale: en-US
+After reload locale: en-US
+Before/after performance.timeOrigin: 1782013175848.9 / 1782013179376.5
+Stats screenshot: LOC_03-stats-after-reload-en-us.webp (56766 bytes, q=70)
+Settings screenshot: LOC_03-settings-after-reload-en-us.webp (57226 bytes, q=70)
+
+Checks:
+- PASS before reload locale is en-US
+- PASS before reload Stats uses en-US formatting
+- PASS reload occurred
+- PASS after reload locale remains en-US
+- PASS after reload Stats uses en-US grouped totals
+- PASS after reload Stats uses en-US dates
+- PASS settings after reload still displays en-US
+- PASS no visible NaN/undefined after reload
+
+Post-reload Stats snippet:
+16 TRACKS 1,588 km DISTANCE 1d 01h DURATION 54,347 Wh ENERGY 14,494 m ASCENT ACTIVITY BREAKDOWN Tracks Distance Duration Energy Bicycle 10 10 Hiking 3 3 Walking 2 2 Running 1 1 HIGHLIGHTS Longest track SYN_07 indexer running synthetic 595 km Longest duration Jura Route 7 / 2011 on GPSies.com 7h 46m Biggest ascent Jura Route 7 / 2011 on GPSies.com 6,324 m Quickest ascent Track 100005 3,919 m/h Most energy SYN_07 indexer running synthetic 49,861 Wh Fastest 30 s speed SYN_07 indexer running synthetic 117.6 km/h Peak 30 s power SYN_07 indexer running synthetic 2,500 W Most common activity Bicycle 10 tracks RECENT ACTIVITY View all tracks SYN_07 indexer running synthetic Running 06/21/2026, 08:10 595 km 5h 33m
+
+Post-reload Settings snippet:
+Format locale Controls date, time, and number formatting without changing app language. en-US (12/31/2025, 1,234.56) Preview: 06/21/2026 05:39:44 — 12,345.67 Auto-detected: en-GB (browser: en-GB · timezone: Europe/Zurich)
+
+Console/page errors: none

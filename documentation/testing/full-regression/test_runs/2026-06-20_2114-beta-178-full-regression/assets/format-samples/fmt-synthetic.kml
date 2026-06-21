@@ -1,0 +1,762 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2" xmlns:gx="http://www.google.com/kml/ext/2.2">
+  <Document>
+    <name>GPS device</name>
+    <snippet>Created Sat Jun 20 20:16:33 2026 GMT</snippet>
+    <LookAt>
+      <gx:TimeSpan>
+        <begin>2026-06-20T10:00:00Z</begin>
+        <end>2026-06-20T10:23:00Z</end>
+      </gx:TimeSpan>
+      <longitude>7.805816</longitude>
+      <latitude>46.514375</latitude>
+      <range>4318.851505</range>
+    </LookAt>
+    <!-- Normal track style -->
+    <Style id="track_n">
+      <IconStyle>
+        <scale>.5</scale>
+        <Icon>
+          <href>https://earth.google.com/images/kml-icons/track-directional/track-none.png</href>
+        </Icon>
+      </IconStyle>
+      <LabelStyle>
+        <scale>0</scale>
+      </LabelStyle>
+    </Style>
+    <!-- Highlighted track style -->
+    <Style id="track_h">
+      <IconStyle>
+        <scale>1.2</scale>
+        <Icon>
+          <href>https://earth.google.com/images/kml-icons/track-directional/track-none.png</href>
+        </Icon>
+      </IconStyle>
+    </Style>
+    <StyleMap id="track">
+      <Pair>
+        <key>normal</key>
+        <styleUrl>#track_n</styleUrl>
+      </Pair>
+      <Pair>
+        <key>highlight</key>
+        <styleUrl>#track_h</styleUrl>
+      </Pair>
+    </StyleMap>
+    <!-- Normal waypoint style -->
+    <Style id="waypoint_n">
+      <IconStyle>
+        <Icon>
+          <href>https://maps.google.com/mapfiles/kml/pal4/icon61.png</href>
+        </Icon>
+      </IconStyle>
+    </Style>
+    <!-- Highlighted waypoint style -->
+    <Style id="waypoint_h">
+      <IconStyle>
+        <scale>1.2</scale>
+        <Icon>
+          <href>https://maps.google.com/mapfiles/kml/pal4/icon61.png</href>
+        </Icon>
+      </IconStyle>
+    </Style>
+    <StyleMap id="waypoint">
+      <Pair>
+        <key>normal</key>
+        <styleUrl>#waypoint_n</styleUrl>
+      </Pair>
+      <Pair>
+        <key>highlight</key>
+        <styleUrl>#waypoint_h</styleUrl>
+      </Pair>
+    </StyleMap>
+    <Style id="lineStyle">
+      <LineStyle>
+        <color>99ffac59</color>
+        <width>6</width>
+      </LineStyle>
+    </Style>
+    <Folder>
+      <name>Tracks</name>
+      <Folder>
+        <name>FMT synthetic regression track</name>
+        <snippet/>
+        <description>
+<![CDATA[<table>
+<tr><td><b>Distance</b> 2.1 mi</td></tr>
+<tr><td><b>Min Alt</b> 3280.840 ft</td></tr>
+<tr><td><b>Max Alt</b> 3809.055 ft</td></tr>
+<tr><td><b>Min Speed</b> 5.2 mph</td></tr>
+<tr><td><b>Max Speed</b> 6.0 mph</td></tr>
+<tr><td><b>Avg Speed</b> 5.5 mph</td></tr>
+<tr><td><b>Start Time</b> 2026-06-20T10:00:00Z</td></tr>
+<tr><td><b>End Time</b> 2026-06-20T10:23:00Z</td></tr>
+</table>
+]]>
+</description>
+        <TimeSpan>
+          <begin>2026-06-20T10:00:00Z</begin>
+          <end>2026-06-20T10:23:00Z</end>
+        </TimeSpan>
+        <Folder>
+          <name>Points</name>
+          <Placemark>
+            <name>FMT synthetic regression track-0</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.800000</td></tr>
+<tr><td>Latitude: 46.500000</td></tr>
+<tr><td>Altitude: 3280.840 ft</td></tr>
+<tr><td>Time: 2026-06-20T10:00:00Z</td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.800000</longitude>
+              <latitude>46.500000</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2026-06-20T10:00:00Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.800000,46.500000,1000.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT synthetic regression track-1</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.801045</td></tr>
+<tr><td>Latitude: 46.501250</td></tr>
+<tr><td>Altitude: 3303.806 ft</td></tr>
+<tr><td>Speed: 6.0 mph</td></tr>
+<tr><td>Heading: 29.9</td></tr>
+<tr><td>Time: 2026-06-20T10:01:00Z</td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.801045</longitude>
+              <latitude>46.501250</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2026-06-20T10:01:00Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.801045,46.501250,1007.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT synthetic regression track-2</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.802059</td></tr>
+<tr><td>Latitude: 46.502500</td></tr>
+<tr><td>Altitude: 3326.772 ft</td></tr>
+<tr><td>Speed: 5.9 mph</td></tr>
+<tr><td>Heading: 29.2</td></tr>
+<tr><td>Time: 2026-06-20T10:02:00Z</td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.802059</longitude>
+              <latitude>46.502500</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2026-06-20T10:02:00Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.802059,46.502500,1014.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT synthetic regression track-3</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.803013</td></tr>
+<tr><td>Latitude: 46.503750</td></tr>
+<tr><td>Altitude: 3349.738 ft</td></tr>
+<tr><td>Speed: 5.9 mph</td></tr>
+<tr><td>Heading: 27.7</td></tr>
+<tr><td>Time: 2026-06-20T10:03:00Z</td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.803013</longitude>
+              <latitude>46.503750</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2026-06-20T10:03:00Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.803013,46.503750,1021.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT synthetic regression track-4</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.803883</td></tr>
+<tr><td>Latitude: 46.505000</td></tr>
+<tr><td>Altitude: 3372.703 ft</td></tr>
+<tr><td>Speed: 5.8 mph</td></tr>
+<tr><td>Heading: 25.6</td></tr>
+<tr><td>Time: 2026-06-20T10:04:00Z</td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.803883</longitude>
+              <latitude>46.505000</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2026-06-20T10:04:00Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.803883,46.505000,1028.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT synthetic regression track-5</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.804648</td></tr>
+<tr><td>Latitude: 46.506250</td></tr>
+<tr><td>Altitude: 3395.669 ft</td></tr>
+<tr><td>Speed: 5.6 mph</td></tr>
+<tr><td>Heading: 22.8</td></tr>
+<tr><td>Time: 2026-06-20T10:05:00Z</td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.804648</longitude>
+              <latitude>46.506250</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2026-06-20T10:05:00Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.804648,46.506250,1035.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT synthetic regression track-6</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.805295</td></tr>
+<tr><td>Latitude: 46.507500</td></tr>
+<tr><td>Altitude: 3418.635 ft</td></tr>
+<tr><td>Speed: 5.5 mph</td></tr>
+<tr><td>Heading: 19.6</td></tr>
+<tr><td>Time: 2026-06-20T10:06:00Z</td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.805295</longitude>
+              <latitude>46.507500</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2026-06-20T10:06:00Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.805295,46.507500,1042.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT synthetic regression track-7</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.805818</td></tr>
+<tr><td>Latitude: 46.508750</td></tr>
+<tr><td>Altitude: 3441.601 ft</td></tr>
+<tr><td>Speed: 5.4 mph</td></tr>
+<tr><td>Heading: 16.1</td></tr>
+<tr><td>Time: 2026-06-20T10:07:00Z</td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.805818</longitude>
+              <latitude>46.508750</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2026-06-20T10:07:00Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.805818,46.508750,1049.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT synthetic regression track-8</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.806219</td></tr>
+<tr><td>Latitude: 46.510000</td></tr>
+<tr><td>Altitude: 3464.567 ft</td></tr>
+<tr><td>Speed: 5.3 mph</td></tr>
+<tr><td>Heading: 12.5</td></tr>
+<tr><td>Time: 2026-06-20T10:08:00Z</td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.806219</longitude>
+              <latitude>46.510000</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2026-06-20T10:08:00Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.806219,46.510000,1056.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT synthetic regression track-9</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.806506</td></tr>
+<tr><td>Latitude: 46.511250</td></tr>
+<tr><td>Altitude: 3487.533 ft</td></tr>
+<tr><td>Speed: 5.3 mph</td></tr>
+<tr><td>Heading: 9.0</td></tr>
+<tr><td>Time: 2026-06-20T10:09:00Z</td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.806506</longitude>
+              <latitude>46.511250</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2026-06-20T10:09:00Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.806506,46.511250,1063.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT synthetic regression track-10</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.806697</td></tr>
+<tr><td>Latitude: 46.512500</td></tr>
+<tr><td>Altitude: 3510.499 ft</td></tr>
+<tr><td>Speed: 5.2 mph</td></tr>
+<tr><td>Heading: 6.0</td></tr>
+<tr><td>Time: 2026-06-20T10:10:00Z</td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.806697</longitude>
+              <latitude>46.512500</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2026-06-20T10:10:00Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.806697,46.512500,1070.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT synthetic regression track-11</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.806813</td></tr>
+<tr><td>Latitude: 46.513750</td></tr>
+<tr><td>Altitude: 3533.465 ft</td></tr>
+<tr><td>Speed: 5.2 mph</td></tr>
+<tr><td>Heading: 3.7</td></tr>
+<tr><td>Time: 2026-06-20T10:11:00Z</td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.806813</longitude>
+              <latitude>46.513750</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2026-06-20T10:11:00Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.806813,46.513750,1077.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT synthetic regression track-12</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.806882</td></tr>
+<tr><td>Latitude: 46.515000</td></tr>
+<tr><td>Altitude: 3556.430 ft</td></tr>
+<tr><td>Speed: 5.2 mph</td></tr>
+<tr><td>Heading: 2.2</td></tr>
+<tr><td>Time: 2026-06-20T10:12:00Z</td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.806882</longitude>
+              <latitude>46.515000</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2026-06-20T10:12:00Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.806882,46.515000,1084.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT synthetic regression track-13</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.806934</td></tr>
+<tr><td>Latitude: 46.516250</td></tr>
+<tr><td>Altitude: 3579.396 ft</td></tr>
+<tr><td>Speed: 5.2 mph</td></tr>
+<tr><td>Heading: 1.6</td></tr>
+<tr><td>Time: 2026-06-20T10:13:00Z</td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.806934</longitude>
+              <latitude>46.516250</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2026-06-20T10:13:00Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.806934,46.516250,1091.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT synthetic regression track-14</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.806998</td></tr>
+<tr><td>Latitude: 46.517500</td></tr>
+<tr><td>Altitude: 3602.362 ft</td></tr>
+<tr><td>Speed: 5.2 mph</td></tr>
+<tr><td>Heading: 2.0</td></tr>
+<tr><td>Time: 2026-06-20T10:14:00Z</td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.806998</longitude>
+              <latitude>46.517500</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2026-06-20T10:14:00Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.806998,46.517500,1098.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT synthetic regression track-15</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.807107</td></tr>
+<tr><td>Latitude: 46.518750</td></tr>
+<tr><td>Altitude: 3625.328 ft</td></tr>
+<tr><td>Speed: 5.2 mph</td></tr>
+<tr><td>Heading: 3.4</td></tr>
+<tr><td>Time: 2026-06-20T10:15:00Z</td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.807107</longitude>
+              <latitude>46.518750</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2026-06-20T10:15:00Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.807107,46.518750,1105.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT synthetic regression track-16</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.807286</td></tr>
+<tr><td>Latitude: 46.520000</td></tr>
+<tr><td>Altitude: 3648.294 ft</td></tr>
+<tr><td>Speed: 5.2 mph</td></tr>
+<tr><td>Heading: 5.6</td></tr>
+<tr><td>Time: 2026-06-20T10:16:00Z</td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.807286</longitude>
+              <latitude>46.520000</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2026-06-20T10:16:00Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.807286,46.520000,1112.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT synthetic regression track-17</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.807560</td></tr>
+<tr><td>Latitude: 46.521250</td></tr>
+<tr><td>Altitude: 3671.260 ft</td></tr>
+<tr><td>Speed: 5.2 mph</td></tr>
+<tr><td>Heading: 8.6</td></tr>
+<tr><td>Time: 2026-06-20T10:17:00Z</td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.807560</longitude>
+              <latitude>46.521250</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2026-06-20T10:17:00Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.807560,46.521250,1119.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT synthetic regression track-18</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.807945</td></tr>
+<tr><td>Latitude: 46.522500</td></tr>
+<tr><td>Altitude: 3694.226 ft</td></tr>
+<tr><td>Speed: 5.3 mph</td></tr>
+<tr><td>Heading: 12.0</td></tr>
+<tr><td>Time: 2026-06-20T10:18:00Z</td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.807945</longitude>
+              <latitude>46.522500</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2026-06-20T10:18:00Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.807945,46.522500,1126.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT synthetic regression track-19</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.808451</td></tr>
+<tr><td>Latitude: 46.523750</td></tr>
+<tr><td>Altitude: 3717.192 ft</td></tr>
+<tr><td>Speed: 5.4 mph</td></tr>
+<tr><td>Heading: 15.6</td></tr>
+<tr><td>Time: 2026-06-20T10:19:00Z</td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.808451</longitude>
+              <latitude>46.523750</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2026-06-20T10:19:00Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.808451,46.523750,1133.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT synthetic regression track-20</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.809082</td></tr>
+<tr><td>Latitude: 46.525000</td></tr>
+<tr><td>Altitude: 3740.157 ft</td></tr>
+<tr><td>Speed: 5.5 mph</td></tr>
+<tr><td>Heading: 19.2</td></tr>
+<tr><td>Time: 2026-06-20T10:20:00Z</td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.809082</longitude>
+              <latitude>46.525000</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2026-06-20T10:20:00Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.809082,46.525000,1140.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT synthetic regression track-21</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.809832</td></tr>
+<tr><td>Latitude: 46.526250</td></tr>
+<tr><td>Altitude: 3763.123 ft</td></tr>
+<tr><td>Speed: 5.6 mph</td></tr>
+<tr><td>Heading: 22.4</td></tr>
+<tr><td>Time: 2026-06-20T10:21:00Z</td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.809832</longitude>
+              <latitude>46.526250</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2026-06-20T10:21:00Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.809832,46.526250,1147.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT synthetic regression track-22</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.810689</td></tr>
+<tr><td>Latitude: 46.527500</td></tr>
+<tr><td>Altitude: 3786.089 ft</td></tr>
+<tr><td>Speed: 5.7 mph</td></tr>
+<tr><td>Heading: 25.3</td></tr>
+<tr><td>Time: 2026-06-20T10:22:00Z</td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.810689</longitude>
+              <latitude>46.527500</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2026-06-20T10:22:00Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.810689,46.527500,1154.00</coordinates>
+            </Point>
+          </Placemark>
+          <Placemark>
+            <name>FMT synthetic regression track-23</name>
+            <snippet/>
+            <description><![CDATA[
+<table>
+<tr><td>Longitude: 7.811633</td></tr>
+<tr><td>Latitude: 46.528750</td></tr>
+<tr><td>Altitude: 3809.055 ft</td></tr>
+<tr><td>Speed: 5.8 mph</td></tr>
+<tr><td>Heading: 27.5</td></tr>
+<tr><td>Time: 2026-06-20T10:23:00Z</td></tr>
+</table>
+]]></description>
+            <LookAt>
+              <longitude>7.811633</longitude>
+              <latitude>46.528750</latitude>
+              <tilt>66</tilt>
+            </LookAt>
+            <TimeStamp>
+              <when>2026-06-20T10:23:00Z</when>
+            </TimeStamp>
+            <styleUrl>#track</styleUrl>
+            <Point>
+              <coordinates>7.811633,46.528750,1161.00</coordinates>
+            </Point>
+          </Placemark>
+        </Folder>
+        <Placemark>
+          <name>Path</name>
+          <styleUrl>#lineStyle</styleUrl>
+          <LineString>
+            <tessellate>1</tessellate>
+            <coordinates>
+7.800000,46.500000,1000.00
+7.801045,46.501250,1007.00
+7.802059,46.502500,1014.00
+7.803013,46.503750,1021.00
+7.803883,46.505000,1028.00
+7.804648,46.506250,1035.00
+7.805295,46.507500,1042.00
+7.805818,46.508750,1049.00
+7.806219,46.510000,1056.00
+7.806506,46.511250,1063.00
+7.806697,46.512500,1070.00
+7.806813,46.513750,1077.00
+7.806882,46.515000,1084.00
+7.806934,46.516250,1091.00
+7.806998,46.517500,1098.00
+7.807107,46.518750,1105.00
+7.807286,46.520000,1112.00
+7.807560,46.521250,1119.00
+7.807945,46.522500,1126.00
+7.808451,46.523750,1133.00
+7.809082,46.525000,1140.00
+7.809832,46.526250,1147.00
+7.810689,46.527500,1154.00
+7.811633,46.528750,1161.00
+</coordinates>
+          </LineString>
+        </Placemark>
+      </Folder>
+    </Folder>
+  </Document>
+</kml>

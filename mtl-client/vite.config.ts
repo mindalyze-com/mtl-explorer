@@ -122,7 +122,7 @@ export default defineConfig(({ mode }) => {
           ignoreURLParametersMatching: [/^.*$/],
         },
         devOptions: {
-          enabled: true,
+          enabled: false,
         },
       }),
     ],

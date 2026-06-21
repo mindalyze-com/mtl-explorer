@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="MTL Explorer Planner"
+     xmlns="http://www.topografix.com/GPX/1/1">
+  <trk>
+    <name>PLN_08 GPX regression 2026-06-19 2346</name>
+    <trkseg>
+      <trkpt lat="29.427889" lon="1.35928"><ele>360.5</ele></trkpt>
+      <trkpt lat="29.431287" lon="1.365284"><ele>361.5</ele></trkpt>
+      <trkpt lat="29.431287" lon="1.365284"><ele>361.0</ele></trkpt>
+      <trkpt lat="29.424175" lon="1.35272"><ele>360.3</ele></trkpt>
+      <trkpt lat="29.421997" lon="1.348781"><ele>360.3</ele></trkpt>
+    </trkseg>
+  </trk>
+</gpx>

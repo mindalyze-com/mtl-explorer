@@ -1,0 +1,180 @@
+{
+  "states": [
+    {
+      "label": "paused-race-start",
+      "url": "http://188.245.169.80:18080/mtl/segments",
+      "raceOpen": true,
+      "raceCards": [
+        "1synthetic-map09-cross-zone-c.gpxBicycle01/08/2021, 11:00 43% 1.85 m 00:00:04 3.8 km/h 4.31 m",
+        "2synthetic-shared-zone-a.gpxBicycle01/01/2026, 13:00 1% 63.49 m"
+      ],
+      "openSheetTitles": [
+        "Segment Analyzer",
+        "Segment Analyzer",
+        "Segment Analyzer",
+        "Segment Analyzer (Race)",
+        "Segment Analyzer (Race)",
+        "Segment Analyzer (Race)"
+      ],
+      "activeToolButtons": [
+        {
+          "text": "Segments",
+          "cls": "nav-panel__tool nav-panel__tool--active"
+        }
+      ],
+      "scaleLabels": [
+        "500 km",
+        "500 km",
+        "2000 m",
+        "2000 m",
+        "0 m",
+        "0 m",
+        "0 m",
+        "100 m",
+        "100 m",
+        "100 m",
+        "100 m",
+        "100 m",
+        "100 m",
+        "0 km",
+        "0 km",
+        "0 km",
+        "0 km",
+        "0 km",
+        "0 km",
+        "412414416418420 m"
+      ],
+      "mapOpen": true,
+      "statsOpen": true
+    },
+    {
+      "label": "after-race-reset",
+      "url": "http://188.245.169.80:18080/mtl/segments",
+      "raceOpen": true,
+      "raceCards": [
+        "1synthetic-shared-zone-a.gpxBicycle01/01/2026, 13:00 0%",
+        "2synthetic-map09-cross-zone-c.gpxBicycle01/08/2021, 11:00 0% 00:00:04 3.8 km/h 4.31 m"
+      ],
+      "openSheetTitles": [
+        "Segment Analyzer",
+        "Segment Analyzer",
+        "Segment Analyzer",
+        "Segment Analyzer (Race)",
+        "Segment Analyzer (Race)",
+        "Segment Analyzer (Race)"
+      ],
+      "activeToolButtons": [
+        {
+          "text": "Segments",
+          "cls": "nav-panel__tool nav-panel__tool--active"
+        }
+      ],
+      "scaleLabels": [
+        "500 km",
+        "500 km",
+        "2000 m",
+        "2000 m",
+        "0 m",
+        "0 m",
+        "0 m",
+        "100 m",
+        "100 m",
+        "100 m",
+        "100 m",
+        "100 m",
+        "100 m",
+        "0 km",
+        "0 km",
+        "0 km",
+        "0 km",
+        "0 km",
+        "0 km",
+        "412414416418420 m"
+      ],
+      "mapOpen": true,
+      "statsOpen": true
+    },
+    {
+      "label": "after-closing-race-sheets",
+      "url": "http://188.245.169.80:18080/mtl/",
+      "raceOpen": false,
+      "raceCards": [],
+      "openSheetTitles": [],
+      "activeToolButtons": [],
+      "scaleLabels": [
+        "500 km",
+        "500 km",
+        "2000 m",
+        "2000 m",
+        "0 m",
+        "0 m",
+        "0 m"
+      ],
+      "mapOpen": true,
+      "statsOpen": true
+    },
+    {
+      "label": "after-zoom-in",
+      "url": "http://188.245.169.80:18080/mtl/",
+      "raceOpen": false,
+      "raceCards": [],
+      "openSheetTitles": [],
+      "activeToolButtons": [],
+      "scaleLabels": [
+        "300 km",
+        "300 km",
+        "2000 m",
+        "2000 m",
+        "0 m",
+        "0 m",
+        "0 m"
+      ],
+      "mapOpen": true,
+      "statsOpen": true,
+      "beforeZoomLabels": [
+        "500 km",
+        "500 km",
+        "2000 m",
+        "2000 m",
+        "0 m",
+        "0 m",
+        "0 m"
+      ]
+    },
+    {
+      "label": "map-tool-opened",
+      "url": "http://188.245.169.80:18080/mtl/map-settings",
+      "raceOpen": false,
+      "raceCards": [],
+      "openSheetTitles": [
+        "Maps and data Reset",
+        "Maps and data Reset",
+        "Maps and data"
+      ],
+      "activeToolButtons": [
+        {
+          "text": "Map",
+          "cls": "nav-panel__tool nav-panel__tool--active"
+        }
+      ],
+      "scaleLabels": [
+        "300 km",
+        "300 km",
+        "2000 m",
+        "2000 m",
+        "0 m",
+        "0 m",
+        "0 m"
+      ],
+      "mapOpen": true,
+      "statsOpen": true
+    }
+  ],
+  "assertions": {
+    "startedFromRace": true,
+    "resetReturnedCardsToZero": true,
+    "raceSheetsClosed": true,
+    "zoomControlUsable": true,
+    "mapToolOpenedAfterRace": true
+  }
+}

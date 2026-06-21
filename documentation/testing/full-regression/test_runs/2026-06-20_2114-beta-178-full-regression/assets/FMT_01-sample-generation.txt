@@ -1,0 +1,16 @@
+# FMT synthetic sample generation
+
+Directory: /Users/pheusser/IdeaProjects/mytraillog/documentation/testing/full-regression/test_runs/2026-06-20_2114-beta-178-full-regression/assets/format-samples
+Base points: 24
+NMEA was regenerated with valid RMC/GGA fixes after local smoke testing.
+
+| Extension | GPSBabel/output format | File | Size | SHA-256 |
+|---|---|---|---:|---|
+| .gpx | gpx-native | fmt-synthetic-base.gpx | 2739 | d877595cd3d04bee705c3d2d4ae1a44162d4e53bd7606c8cba790d4adec8a85c |
+| .tcx | gtrnctr | fmt-synthetic.tcx | 12255 | 56469b416ef282d4ed292f2d4e0668d5d986f3c08a315485ced125cc9b63a673 |
+| .kml | kml | fmt-synthetic.kml | 23754 | 7ca1ef169bae8b0e81a2e963d8f40fdd3a16079e77338e09511750709e0b34cb |
+| .kmz | zip(doc.kml) | fmt-synthetic.kmz | 2564 | 8065ed293d9ad312bb5922e6422229c5b6e26bee1ebca28230b36b020a30ba8e |
+| .igc | igc | fmt-synthetic.igc | 1031 | f010382dbbcdeb07e1b72647ae58981d25b8c1d9e1e80e12c827c2f51fc59845 |
+| .nmea | nmea | fmt-synthetic.nmea | 3312 | 4f7b54141fef531de4f9bb91c2fff028562f6fef4df047a1a75d52cf1db93a7e |
+| .geojson | geojson | fmt-synthetic.geojson | 3720 | af5088ca695b2268ff52589ac66fb437ea82537c6d8749b3af90f404ed0d2f2c |
+| .gdb | gdb | fmt-synthetic.gdb | 696 | 3f0f5d19c4844382354de59057661059515b8be1a3dab648010a447effebb4fb |

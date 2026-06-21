@@ -1,0 +1,10 @@
+# SGN_04 demo banner applicability evidence
+
+Demo status HTTP: 200
+Demo status body: {"demoMode":false,"username":"","password":""}
+Login demo banner text present: false
+Coverage decision: demo mode inactive
+
+Visible text sample: © Patrick Heusser AGPL-3.0 Sign In
+
+Result: NOT APPLICABLE

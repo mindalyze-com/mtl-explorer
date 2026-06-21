@@ -1,0 +1,41 @@
+TRD_11 energy what-if evidence
+
+Track:
+- 100005 / Activity.fit
+
+UI path:
+- Opened Track #100005 Overview.
+- Clicked Adjust rider weight.
+- Dialog opened with:
+  - Current rider: 75.0 kg
+  - Model mass: 75.0 kg
+  - Rider weight input: 75 kg
+  - Total: 346.7 Wh
+  - Delta: -0.0 Wh
+
+What-if change:
+- Changed Rider weight input to 85 kg.
+- Dialog recalculated without saving:
+  - Rider weight: 85.0 kg
+  - Total: 392.9 Wh
+  - Delta: +46.2 Wh
+  - Avg power: 796 W
+
+No-save close:
+- Closed the dialog without pressing Save.
+
+API final state after close:
+- energyWeightKgUsed: 75.0
+- energyNetTotalWh: 346.67
+- energyGravitationalTotalWh: 346.67
+- energyAeroDragTotalWh: 0.0
+- energyRollingResistanceTotalWh: 0.0
+
+Read-only what-if API check:
+- /api/energy/what-if/100005?riderWeightKg=85 returned adjustedWeightKgUsed 85.0.
+- adjustedSummary.netEnergyTotalWh: 392.8915900000038.
+- baselineSummary.netEnergyTotalWh: 346.67.
+- baselineRiderWeightKg: 75.0.
+
+Conclusion:
+TRD_11 passes. The what-if rider weight updates displayed values and does not permanently save when closed without Save.

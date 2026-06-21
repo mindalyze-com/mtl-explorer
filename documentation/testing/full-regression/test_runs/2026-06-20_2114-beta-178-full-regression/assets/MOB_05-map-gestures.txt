@@ -1,0 +1,14 @@
+MOB_05 mobile map gesture evidence
+URL: http://178.104.209.132:18080/mtl/
+Results: [{"tool":"Stats","before":"3000 km","beforeDouble":"3000 km","afterDouble":"2000 km","beforePinch":"2000 km","afterPinch":"3000 km","dragOk":true,"finalOk":{"canvas":2,"chip":true,"overflow":0,"hasBad":false}},{"tool":"Filter","before":"3000 km","beforeDouble":"3000 km","afterDouble":"2000 km","beforePinch":"2000 km","afterPinch":"3000 km","dragOk":true,"finalOk":{"canvas":2,"chip":true,"overflow":0,"hasBad":false}},{"tool":"Planner","before":"3000 km","beforeDouble":"3000 km","afterDouble":"2000 km","beforePinch":"2000 km","afterPinch":"3000 km","dragOk":true,"finalOk":{"canvas":2,"chip":true,"overflow":0,"hasBad":false}},{"tool":"Map","before":"3000 km","beforeDouble":"3000 km","afterDouble":"2000 km","beforePinch":"2000 km","afterPinch":"3000 km","dragOk":true,"finalOk":{"canvas":2,"chip":true,"overflow":0,"hasBad":false}},{"tool":"Animate","before":"3000 km","beforeDouble":"3000 km","afterDouble":"2000 km","beforePinch":"2000 km","afterPinch":"3000 km","dragOk":true,"finalOk":{"canvas":2,"chip":true,"overflow":0,"hasBad":false}},{"tool":"Segments","before":"3000 km","beforeDouble":"3000 km","afterDouble":"2000 km","beforePinch":"2000 km","afterPinch":"3000 km","dragOk":true,"finalOk":{"canvas":2,"chip":true,"overflow":0,"hasBad":false}},{"tool":"GPS","before":"3000 km","beforeDouble":"3000 km","afterDouble":"2000 km","beforePinch":"2000 km","afterPinch":"3000 km","dragOk":true,"finalOk":{"canvas":2,"chip":true,"overflow":0,"hasBad":false}},{"tool":"Admin","before":"3000 km","beforeDouble":"3000 km","afterDouble":"2000 km","beforePinch":"2000 km","afterPinch":"3000 km","dragOk":true,"finalOk":{"canvas":2,"chip":true,"overflow":0,"hasBad":false}}]
+Screenshot: MOB_05-map-gestures-after-tools.webp (29642 bytes, q=72)
+
+Checks:
+- PASS all tools exercised
+- PASS drag kept map usable after every tool
+- PASS double-tap changed scale after every tool
+- PASS pinch changed scale after every tool
+- PASS final map state valid after every tool
+- PASS no page/console errors during gesture loop
+
+Console/page errors: none

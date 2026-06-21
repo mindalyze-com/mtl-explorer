@@ -108,6 +108,7 @@ import {
 } from '@/utils/chartSeriesAdapter';
 import type { GpsTrack } from 'x8ing-mtl-api-typescript-fetch/dist/esm/models/index';
 import { unwrapLngLatCoordinates } from '@/components/map/mapGeometry';
+import { configureExternalAttributionLinks } from '@/utils/externalAttributionLinks';
 
 type ToastLike = { add: (options: { severity: string; summary: string; detail?: string; life?: number }) => void };
 type InteractionHandlers = {
@@ -220,6 +221,7 @@ let telemetryWarningShown = false;
 let lastReplayCameraViewportKey = '';
 let replayCameraViewportFrame: number | null = null;
 let replayViewportOcclusionObserver: ReturnType<typeof observeReplayViewportOcclusion> | null = null;
+let attributionLinkCleanup: (() => void) | null = null;
 
 const replayTrackId = computed(() => {
   const trackId = Number(replay.value.currentTrackId ?? selectedTrackId.value);
@@ -411,6 +413,20 @@ async function createMap(mapConfig: MapConfig, path: ReplayPath) {
   map.addControl(new maplibregl.NavigationControl(MAP_NAVIGATION_CONTROL_OPTIONS), 'top-left');
   map.addControl(new maplibregl.ScaleControl({ maxWidth: 100 }), 'bottom-left');
   map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-right');
+  attributionLinkCleanup?.();
+  attributionLinkCleanup = configureExternalAttributionLinks(
+    typeof map.getContainer === 'function' ? map.getContainer() : (mapContainer.value as HTMLElement),
+    {
+      onBlocked: (url) => {
+        toast.add({
+          severity: 'warn',
+          summary: 'External link blocked',
+          detail: `Open this link in your browser: ${url}`,
+          life: 7000,
+        });
+      },
+    }
+  );
 
   await waitForMapLoad(map);
   enableTerrainView(map, {
@@ -862,6 +878,8 @@ function cleanup3DResources() {
   replayController = null;
   replayViewportOcclusionObserver?.disconnect();
   replayViewportOcclusionObserver = null;
+  attributionLinkCleanup?.();
+  attributionLinkCleanup = null;
   removeInteractionHandlers();
   if (map?.getLayer(TRACK_REPLAY_LAYER_ID)) {
     map.removeLayer(TRACK_REPLAY_LAYER_ID);

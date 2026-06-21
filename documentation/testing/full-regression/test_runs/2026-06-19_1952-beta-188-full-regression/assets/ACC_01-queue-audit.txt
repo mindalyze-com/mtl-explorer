@@ -1,0 +1,8 @@
+Coverage queue audit
+Source: documentation/testing/frontend-regression-test-plan.md
+Extraction: every bold coverage ID matching [A-Z]{3}_[0-9]{2}, in document order.
+Run-state rows: RUN_SETUP + all extracted IDs + RUN_CLEANUP.
+Extracted functional/accounting IDs: 175
+First IDs: ACC_01, ACC_02, ACC_03, ACC_04, ACC_05, DAT_01, DAT_02, DAT_03
+Last IDs: MOB_04, MOB_05, NET_01, NET_02, NET_03, NET_04, ERR_01, ERR_02
+Result: every checklist coverage ID is represented as a required run-state row and packet target.

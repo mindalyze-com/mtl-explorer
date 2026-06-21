@@ -1,0 +1,30 @@
+LOC locale sweep summary
+Target: http://188.245.169.80:18080/mtl/
+Viewport/browser locale: 1366x900, en-GB, Europe/Zurich
+
+LOC_01 en-GB baseline:
+- Settings combo: en-GB (31/12/2025, 1,234.56); storage=null; Preview: 20/06/2026 02:12:31 — 12,345.67
+- Stats sample: 16 TRACKS 1,036 km DISTANCE 23h 47m DURATION 6,053 Wh ENERGY
+- Tracks search sample: 1 of 16 tracks · 1.11 km · 0m 00s; row date/distance 19/06/2026, 23:20 syn-cache-refresh-20260619232459 Bicycle 1.11 km 0m 00s
+
+LOC_02 de-DE immediate switch:
+- Settings combo/storage: de-DE (31.12.2025, 1.234,56); storage=de-DE; Preview: 20.06.2026 02:12:41 — 12.345,67
+- No reload artifact: URL stayed http://188.245.169.80:18080/mtl/admin; Loading your trails count=0
+- Stats sample: 16 TRACKS 1.036 km DISTANCE 23h 47m DURATION 6.053 Wh ENERGY
+- Tracks search sample: 1 of 16 tracks · 1,11 km · 0m 00s; row date/distance 19.06.2026, 23:20 syn-cache-refresh-20260619232459 Bicycle 1,11 km 0m 00s
+
+LOC_03 reload persistence:
+- After reload settings: de-DE (31.12.2025, 1.234,56); storage=de-DE; Preview: 20.06.2026 02:12:56 — 12.345,67
+- Reloaded stats sample: 16 TRACKS 1.036 km DISTANCE 23h 47m DURATION 6.053 Wh ENERGY
+
+LOC_04 boundary values:
+- Zero/small row text: VIEWS All Excluded Stats excluded No activity 1 of 16 tracks · 1,11 km · 0m 00s SORT: Date Imported Distance Duration Name Exploration START TRACK ACTIVITY DISTANCE DURATION AVG KM/H ENERGY EXPLORATION IMPORTED 19.06.2026, 23:20 syn-cache-refresh-20260619232459 Bicycle 1,11 km 0m 00s 7 Wh 100,0% 20.06.2026, 01:25 1 25
+- Lannion detail sample: 25,9 km Distance 3h 42m Duration 341 m Ascent 7,0 km/h Avg Speed TIMING 1h 13m Moving 0h 12m Stopped 1 Stops 12m 25s Longest Stop SPEED 7,0 km/h Avg Speed 21,1 km/h Moving Avg 72,5 km/h Max 30s Speed ELEVATION 341 m Ascent 335 m Descent 1.686 m/h Max 30s Climb 2.333 m/h Max 30s Desc. -4 m Min Alt. 114 m Max Alt. 118 m Range
+- API facts: total=17; synthetic id=100028, 1108.36 m; Lannion id=100004, minAltitude=-4.38
+- Null-field scan: no current track had null min/max elevation; API aggregate ascent/descent fields were null for current tracks, and sampled UI rendered computed ascent/descent or sensible values without blank/NaN output.
+- Bad formatting scan over sampled UI text: PASS (no NaN/undefined/null tokens).
+
+Cleanup/state:
+- Locale restored to en-GB (31/12/2025, 1,234.56); storage=en-GB.
+- Timings: login/main map ready 4537ms; LOC_01 en-GB baseline captured 14053ms; LOC_02 de-DE immediate switch captured 24293ms; LOC_03 reload persistence captured 35016ms; LOC_04 boundary checks captured 45022ms; restored en-GB 48559ms.
+- Console events observed: error: Failed to load resource: the server responded with a status of 401 () | error: Failed to load resource: the server responded with a status of 401 () | error: Failed to load resource: the server responded with a status of 404 () | error: Failed to load resource: the server responded with a status of 404 () | warning: Highcharts warning #15: www.highcharts.com/errors/15/

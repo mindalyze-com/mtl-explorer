@@ -1,0 +1,7 @@
+FLT_08 clear filter restores all evidence
+Status: PASS
+Before map: chip="2 / 8 Tracks", funnel=true, rows=CYCLING2
+After map: chip="8 Tracks", funnel=false, rows=none
+Stats after clear: banner="", tracks=8, distance=955 km
+Screenshots: FLT_08-before-clear-active-filter.webp=61458B(q76,w1200), FLT_08-filter-off-panel.webp=8864B(q76,w1200), FLT_08-filter-disabled-map.webp=60868B(q76,w1200), FLT_08-filter-disabled-stats.webp=30716B(q76,w1200)
+Console counts: warnings=0; errors=6; pageErrors=0

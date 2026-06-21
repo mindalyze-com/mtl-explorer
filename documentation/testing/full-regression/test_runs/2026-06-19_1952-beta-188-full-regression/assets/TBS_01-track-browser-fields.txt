@@ -1,0 +1,35 @@
+TBS_01 track browser fields
+
+State
+- URL: http://188.245.169.80:18080/mtl/stats
+- Active stats tab: Tracks
+- Filtering: Off from FLT_08, all tracks visible.
+
+Track browser summary
+- Header/map count: 13 Tracks
+- Track browser summary: 13 tracks - 825 km - 16h 50m
+- View chips: All, Excluded, Stats excluded, No activity
+- Sort controls: Date, Imported, Distance, Duration, Name, Exploration
+- Search input placeholder: Search name, activity, date, file, creator...
+
+Visible columns / fields
+- START
+- TRACK
+- ACTIVITY
+- DISTANCE
+- DURATION
+- AVG KM/H
+- ENERGY
+- EXPLORATION
+- IMPORTED
+
+Representative rows
+- FMT GEOJSON Unique Track / Bicycle / 19/06/2026, 20:52 / 589.26 m / 0m 00s / 1 Wh / 100.0% / 19/06/2026, 20:52
+- Path / Bicycle / 19/06/2026, 20:52 / 590.64 m / 0m 00s / 9 Wh / 100.0% / 19/06/2026, 20:52
+- synthetic-shared-zone-a / Bicycle / 01/01/2026, 13:00 / 190.47 m / 0m 00s / 3 Wh / 66.7% / 19/06/2026, 21:34
+- Track 100005 / Walking / 20/07/2021, 23:11 / 3.60 km / 59m 57s / 3.6 avg km/h / 347 Wh / 100.0% / 19/06/2026, 20:28
+- Jura Route 7 / 2011 on GPSies.com / Bicycle / 01/01/2010, 01:00 / 273 km / 7h 46m / 35.1 avg km/h / 1,808 Wh / 100.0% / 19/06/2026, 20:08
+- Moselradweg aus Wiki on GPSies.com / Bicycle / 01/01/2010, 01:00 / 518 km / 6h 50m / 75.7 avg km/h / 1,616 Wh / 100.0% / 19/06/2026, 20:08
+
+Result
+- Track browser lists all visible tracks with name, date, distance, duration, activity, energy, exploration, and imported timestamp fields.

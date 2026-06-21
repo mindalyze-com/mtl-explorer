@@ -1,0 +1,8 @@
+Suggested GPX source coverage:
+The five public GPX files are exactly the regression-plan suggested gps-touring/sample-gpx raw URLs:
+- BrittanyJura/JuraRoute72011.gpx
+- BrittanyJura/MoselradwegAusWiki.gpx
+- BrittanyJura/Vitry-le-Francois_Langres.gpx
+- BrittanyJura/VoieVerteHauteVosges.gpx
+- RoscoffCoastal/Lannion_Plestin_parcours24.4RE.gpx
+All source URLs and checksums are recorded in DAT_03-source-manifest.txt.

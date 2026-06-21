@@ -1,0 +1,33 @@
+NET_02 flaky connection retry check
+API abort count before retry: 17
+Failure URL: http://178.104.209.132:18080/mtl/
+Failure blank: false
+Failure body text length: 195
+Failure has Retry button: true
+Failure still showing splash: false
+Failure text sample: © Patrick Heusser Unable to load tracks — no server connection and no cached data available. Retry 500 km © OpenStreetMap contributors 0 Tracks Stats Filter Map Animate Segments GPS Planner Admin
+Recovery URL: http://178.104.209.132:18080/mtl/
+Recovery blank: false
+Recovery body text length: 84
+Recovery has Retry button: false
+Recovery has 16 Tracks: true
+Recovery still showing splash: false
+Recovery canvas count: 2
+Request failures observed: 18
+failed GET /mtl/api/map/config :: net::ERR_FAILED
+failed POST /mtl/api/analytics/client-environment :: net::ERR_FAILED
+failed GET /mtl/api/info/build :: net::ERR_FAILED
+failed GET /mtl/api/config/get?domain1=CLIENT&domain2=COLOR_PALETTE :: net::ERR_FAILED
+failed GET /mtl/api/info/build :: net::ERR_FAILED
+failed GET /mtl/api/indexer/status :: net::ERR_FAILED
+failed GET /mtl/api/jobs/status :: net::ERR_FAILED
+failed GET /mtl/api/map/config :: net::ERR_FAILED
+Console warnings/errors: 30
+error: 🚨 [Network Drop] apiClient request failed without a server response {name: AxiosError, message: Network Error, code: ERR_NETWORK, status: undefined, statusText: undefined}
+warning: Failed to fetch map config, falling back to offline / remote raster mode: {name: AxiosError, message: Network Error, code: ERR_NETWORK, status: undefined, statusText: undefined}
+error: Failed to load resource: net::ERR_FAILED
+error: Failed to load resource: net::ERR_FAILED
+warning: Client environment analytics submission failed {name: FetchError, message: The request failed and the interceptors did not return an alternative response}
+error: Failed to load resource: net::ERR_FAILED
+error: Failed to load resource: net::ERR_FAILED
+error: Error fetching config: {name: FetchError, message: The request failed and the interceptors did not return an alternative response} {domain1: CLIENT, domain2: COLOR_PALETTE, domain3: }

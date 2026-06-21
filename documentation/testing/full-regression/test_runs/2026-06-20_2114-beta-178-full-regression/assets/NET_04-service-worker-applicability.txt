@@ -1,0 +1,15 @@
+NET_04 service-worker update prompt applicability check
+URL: http://178.104.209.132:18080/mtl/
+Title: MTL Explorer
+display-mode browser: true
+display-mode standalone: false
+display-mode minimal-ui: false
+display-mode fullscreen: false
+serviceWorker supported: false
+serviceWorker registrations: []
+manifest href: http://178.104.209.132:18080/mtl/manifest.webmanifest
+new-version/update prompt text visible: false
+has 16 Tracks: true
+blank page: false
+visible text sample: 500 km © OpenStreetMap 16 Tracks Stats Filter Map Animate Segments GPS Planner Admin
+console warnings/errors: 0

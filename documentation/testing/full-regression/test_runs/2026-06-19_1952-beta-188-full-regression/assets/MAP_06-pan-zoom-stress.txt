@@ -1,0 +1,25 @@
+MAP_06 pan/zoom stress evidence
+
+Starting state:
+- URL: http://188.245.169.80:18080/mtl/
+- Map regions present.
+- Scale label: 50 km.
+- Visible count: 11 Tracks.
+
+Actions:
+- Clicked Zoom in three times with short intervals.
+- Clicked Zoom out five times with short intervals.
+- Dragged across the map canvas through multiple points.
+- Waited for the map to settle.
+
+Settled state:
+- URL remained /mtl/.
+- Map regions present; one map region active after drag.
+- Zoom in / Zoom out controls present.
+- Scale label: 100 km.
+- Visible count: 11 Tracks.
+- No loading, preparing, retry, or spinner text found in the captured DOM lines.
+- Console warnings/errors captured from the tab: none.
+
+Conclusion:
+MAP_06 passes. Fast pan/zoom did not leave stale loading UI, missing track count, or console errors.

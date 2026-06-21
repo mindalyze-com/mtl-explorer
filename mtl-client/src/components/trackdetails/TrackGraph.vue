@@ -50,6 +50,11 @@ type TrackGraphProps = {
 type HighchartsEl = {
   chart?: Highcharts.Chart;
 };
+type SeriesWithPointEvents = Highcharts.SeriesOptionsType & {
+  point?: {
+    events?: Highcharts.PointEventsOptionsObject;
+  };
+};
 
 defineOptions({
   name: 'TrackGraph',
@@ -64,7 +69,7 @@ const props = withDefaults(defineProps<TrackGraphProps>(), {
 const config = computed(() => props.config);
 const highchartsEl = ref<HighchartsEl | null>(null);
 const chartOptions = shallowRef<Highcharts.Options>(buildTrackGraphOptions(props.config, props.xMode, props.showRange));
-const { bindChart, setChartXMode } = useChartSync();
+const { bindChart, setChartXMode, syncPointHover } = useChartSync();
 let cleanupChartSync: (() => void) | undefined;
 
 /**
@@ -212,7 +217,11 @@ function buildTrackGraphOptions(
 ): Highcharts.Options {
   const options = buildChartOptions({ ...config, xMode });
   if (!shouldRenderRangeBand(config, showRange)) {
-    return options;
+    const series = (options.series ?? []) as Highcharts.SeriesOptionsType[];
+    return {
+      ...options,
+      series: series.map((series, index) => (index === 0 ? withTrackSyncPointEvents(series) : series)),
+    };
   }
 
   const bandColor = hexToRgba(config.seriesColor, RANGE_BAND_ALPHA);
@@ -223,7 +232,7 @@ function buildTrackGraphOptions(
       type: 'line',
     },
     series: [
-      {
+      withTrackSyncPointEvents({
         type: 'line',
         name: config.seriesName,
         data: [],
@@ -236,7 +245,7 @@ function buildTrackGraphOptions(
           states: { hover: { enabled: true, radius: 3, lineWidth: 0 } },
         },
         states: { hover: { lineWidthPlus: 0 } },
-      },
+      }),
       {
         type: 'arearange',
         name: `${config.seriesName} range`,
@@ -252,6 +261,23 @@ function buildTrackGraphOptions(
       },
     ] as Highcharts.SeriesOptionsType[],
   };
+}
+
+function withTrackSyncPointEvents(series: Highcharts.SeriesOptionsType): Highcharts.SeriesOptionsType {
+  const pointSeries = series as SeriesWithPointEvents;
+  return {
+    ...pointSeries,
+    point: {
+      ...pointSeries.point,
+      events: {
+        ...pointSeries.point?.events,
+        mouseOver(this: Highcharts.Point) {
+          if (!props.syncEnabled) return;
+          syncPointHover(this);
+        },
+      },
+    },
+  } as Highcharts.SeriesOptionsType;
 }
 
 function toMillis(ts: ChartPoint['pointTimestamp']): number {

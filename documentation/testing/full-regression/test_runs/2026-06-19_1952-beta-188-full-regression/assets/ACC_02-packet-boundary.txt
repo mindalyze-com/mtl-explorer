@@ -1,0 +1,6 @@
+Packet boundary policy
+- One packet file per coverage ID under packets/<Coverage ID>.md.
+- Parent/chapter headings are not terminal coverage rows and cannot be marked PASS for children.
+- Any skipped child ID remains its own NOT STARTED/IN PROGRESS/PARTIAL/NOT COVERED row until terminal evidence exists.
+- Final report matrix must be assembled from packet files only.
+Result: no parent-section collapse is being used.

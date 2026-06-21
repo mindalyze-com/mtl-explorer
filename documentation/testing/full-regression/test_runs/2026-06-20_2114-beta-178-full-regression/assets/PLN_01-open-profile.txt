@@ -1,0 +1,18 @@
+Status: PASS
+Initial profile: Hiking
+Available profiles: Hiking, Road Bike, Mountain Hiking, Car
+Selected profile after click: Road Bike
+BRouter status pill visible: true
+Planner sheet has Drawing/Load tabs and map hint: true
+Page errors: 0
+Console warnings/errors: 2
+
+Planner text sample:
+500 km © OpenStreetMap 8 Tracks Stats Filter Map Animate Segments GPS Planner Admin Drawing Load Road Bike Tap the map to add waypoints. Drag to adjust. Zoom in to start planning. Visible span must be under ~300 km. DISTANCE 0.00 km ASCENT 0 m DESCENT 0 m DURATION – LEGS 0 Elevation profile appears once a route is computed.
+
+Page errors detail:
+(none)
+
+Console warnings/errors detail:
+error: Failed to load resource: net::ERR_FAILED
+warning: Failed to cache low-zoom tiles (IndexedDB): {name: TypeError, message: Failed to fetch}

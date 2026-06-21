@@ -1,0 +1,27 @@
+MAP_01 first-open map evidence
+
+URL: http://188.245.169.80:18080/mtl/
+Title: MTL Explorer
+
+Observed visible DOM:
+- region "Map" present.
+- Zoom in and Zoom out controls present.
+- Enable 3D terrain control present.
+- Search location control present.
+- 11 Tracks count shown.
+- Navigation buttons shown: Stats, Filter, Map, Animate, Segments, GPS, Planner, Admin.
+- About MTL Explorer control shown.
+
+Canvas / map-layer checks:
+- Two MapLibre canvases were present, matching base map and overlay map layers.
+- Each canvas had class "maplibregl-canvas".
+- Each canvas was 1204 x 720 CSS pixels and 2408 x 1440 backing pixels.
+- Map regions included map-base maplibregl-map and map-overlay maplibregl-map containers.
+
+State checks:
+- Loading splash text was absent after load.
+- Retry text was absent.
+- Console warnings/errors captured from the tab: none.
+
+Conclusion:
+MAP_01 passes. The base map and overlay canvases loaded on first open with expected map controls and no console errors.

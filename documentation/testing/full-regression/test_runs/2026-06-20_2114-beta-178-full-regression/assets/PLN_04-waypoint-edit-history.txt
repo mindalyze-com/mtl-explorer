@@ -1,0 +1,37 @@
+Status: PASS
+Zoom clicks until planner usable: 6
+Route request count: 5
+Successful route responses: 5
+Delete method: marker
+Initial route stats: {"distance":"555.03 km","ascent":"688 m","descent":"999 m","duration":"26h 24m","legs":"1","clearDisabled":false,"undoDisabled":false,"redoDisabled":true,"deleteMarkerVisible":false,"notices":[]}
+Moved route stats: {"distance":"555.03 km","ascent":"688 m","descent":"999 m","duration":"26h 24m","legs":"1","clearDisabled":false,"undoDisabled":false,"redoDisabled":true,"deleteMarkerVisible":true,"notices":[]}
+Route requests:
+{"index":1,"waypointCount":2,"profile":"trekking","waypoints":[{"lat":"28.301491","lng":"3.823824"},{"lat":"28.278283","lng":"4.122530"}]}
+{"index":2,"waypointCount":2,"profile":"trekking","waypoints":[{"lat":"28.301491","lng":"3.823824"},{"lat":"28.234431","lng":"4.198671"}]}
+{"index":3,"waypointCount":2,"profile":"trekking","waypoints":[{"lat":"28.301491","lng":"3.823824"},{"lat":"28.234431","lng":"4.198671"}]}
+{"index":4,"waypointCount":2,"profile":"trekking","waypoints":[{"lat":"28.301491","lng":"3.823824"},{"lat":"28.234431","lng":"4.198671"}]}
+{"index":5,"waypointCount":2,"profile":"trekking","waypoints":[{"lat":"28.301491","lng":"3.823824"},{"lat":"28.234431","lng":"4.198671"}]}
+Snapshots:
+planner-opened-after-zoom: {"distance":"0.00 km","ascent":"0 m","descent":"0 m","duration":"–","legs":"0","clearDisabled":true,"undoDisabled":true,"redoDisabled":true,"deleteMarkerVisible":false,"notices":[]}
+after-first-waypoint: {"distance":"0.00 km","ascent":"0 m","descent":"0 m","duration":"–","legs":"0","clearDisabled":false,"undoDisabled":false,"redoDisabled":true,"deleteMarkerVisible":false,"notices":[]}
+after-two-waypoint-route: {"distance":"555.03 km","ascent":"688 m","descent":"999 m","duration":"26h 24m","legs":"1","clearDisabled":false,"undoDisabled":false,"redoDisabled":true,"deleteMarkerVisible":false,"notices":[]}
+after-waypoint-drag: {"distance":"555.03 km","ascent":"688 m","descent":"999 m","duration":"26h 24m","legs":"1","clearDisabled":false,"undoDisabled":false,"redoDisabled":true,"deleteMarkerVisible":true,"notices":[]}
+after-select-moved-waypoint: {"distance":"555.03 km","ascent":"688 m","descent":"999 m","duration":"26h 24m","legs":"1","clearDisabled":false,"undoDisabled":false,"redoDisabled":true,"deleteMarkerVisible":true,"notices":[]}
+after-delete-waypoint: {"distance":"0.00 km","ascent":"0 m","descent":"0 m","duration":"–","legs":"0","clearDisabled":false,"undoDisabled":false,"redoDisabled":true,"deleteMarkerVisible":false,"notices":[]}
+after-undo-delete: {"distance":"555.03 km","ascent":"688 m","descent":"999 m","duration":"26h 24m","legs":"1","clearDisabled":false,"undoDisabled":false,"redoDisabled":false,"deleteMarkerVisible":false,"notices":[]}
+after-redo-delete: {"distance":"0.00 km","ascent":"0 m","descent":"0 m","duration":"–","legs":"0","clearDisabled":false,"undoDisabled":false,"redoDisabled":true,"deleteMarkerVisible":false,"notices":[]}
+after-restore-before-clear: {"distance":"555.03 km","ascent":"688 m","descent":"999 m","duration":"26h 24m","legs":"1","clearDisabled":false,"undoDisabled":false,"redoDisabled":false,"deleteMarkerVisible":false,"notices":[]}
+after-clear-route: {"distance":"0.00 km","ascent":"0 m","descent":"0 m","duration":"–","legs":"0","clearDisabled":true,"undoDisabled":false,"redoDisabled":true,"deleteMarkerVisible":false,"notices":[]}
+after-undo-clear: {"distance":"555.03 km","ascent":"688 m","descent":"999 m","duration":"26h 24m","legs":"1","clearDisabled":false,"undoDisabled":false,"redoDisabled":false,"deleteMarkerVisible":false,"notices":[]}
+after-redo-clear: {"distance":"0.00 km","ascent":"0 m","descent":"0 m","duration":"–","legs":"0","clearDisabled":true,"undoDisabled":false,"redoDisabled":true,"deleteMarkerVisible":false,"notices":[]}
+Page errors: 0
+Console planner/error/warn messages: 9
+log: Downloading low-zoom PMTiles from /mtl/api/map-proxy/prod/world-lowzoom.pmtiles?mtl-map-source=public&mtl-map-archive=public-default … (IndexedDB fallback)
+log: Low-zoom PMTiles cached successfully (IndexedDB, 42.4 MB)
+log: [zoom] 3.907 | mercator
+log: [zoom] 4.907 | mercator
+log: [zoom] 5.907 | mercator
+log: [zoom] 6.907 | mercator
+log: [zoom] 7.907 | mercator
+log: [zoom] 8.907 | mercator
+info: [planner] Viewport prewarm: 300km side → bbox=[2.38,26.70,5.43,29.39]

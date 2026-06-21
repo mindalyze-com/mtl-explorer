@@ -5,7 +5,14 @@ import {
   resolveConfiguredMapStyle,
 } from '@/components/map/mapStyleResolver';
 import { MapConfigDtoTileModeEnum, type MapConfig } from '@/utils/mapConfigService';
-import { DEFAULT_RASTER_ATTRIBUTION, TERRAIN_DEM_SOURCE_ID, TERRAIN_HILLSHADE_LAYER_ID } from '@/utils/mapStyle';
+import {
+  DEFAULT_RASTER_ATTRIBUTION,
+  TERRAIN_DEM_SOURCE_ID,
+  TERRAIN_HILLSHADE_LAYER_ID,
+  TOPO_CONTRAST_THEME,
+  TOPO_CONTRAST_URBAN_AREA_LAYER_ID,
+  TOPO_CONTRAST_URBAN_LANDUSE_LAYER_ID,
+} from '@/utils/mapStyle';
 import type { StyleSpecification } from 'maplibre-gl';
 
 type TestRasterStyle = StyleSpecification & {
@@ -14,6 +21,15 @@ type TestRasterStyle = StyleSpecification & {
     [TERRAIN_DEM_SOURCE_ID]?: unknown;
   };
   layers: Array<{ id: string; paint?: Record<string, number> }>;
+};
+
+type TestVectorStyle = StyleSpecification & {
+  layers: Array<
+    StyleSpecification['layers'][number] & {
+      layout?: Record<string, unknown>;
+      paint?: Record<string, unknown>;
+    }
+  >;
 };
 
 function mapConfig(overrides: Partial<MapConfig> = {}): MapConfig {
@@ -71,6 +87,79 @@ describe('resolveConfiguredMapStyle', () => {
     expect(resolved.styleMode).toBe('remote-raster');
     expect(resolved.attributions).toEqual(['© Example Light Tiles']);
     expect(style.sources['raster-tiles'].tiles).toEqual([remoteTileUrl]);
+  });
+
+  it('builds the local OSM Topo Contrast vector style with hillshade and stronger city map emphasis', () => {
+    const resolved = resolveConfiguredMapStyle({
+      config: mapConfig(),
+      theme: TOPO_CONTRAST_THEME,
+      localTilesReady: true,
+    });
+
+    const style = resolved.style as TestVectorStyle;
+    const highwayLayer = style.layers.find((layer) => layer.id === 'roads_highway');
+    const landcoverLayer = style.layers.find((layer) => layer.id === 'landcover');
+    const urbanAreaLayer = style.layers.find((layer) => layer.id === TOPO_CONTRAST_URBAN_AREA_LAYER_ID);
+    const urbanLanduseLayer = style.layers.find((layer) => layer.id === TOPO_CONTRAST_URBAN_LANDUSE_LAYER_ID);
+    const buildingLayer = style.layers.find((layer) => layer.id === 'buildings');
+    const cityLayer = style.layers.find((layer) => layer.id === 'places_locality');
+    const landcoverLayerIndex = style.layers.findIndex((layer) => layer.id === 'landcover');
+    const urbanAreaLayerIndex = style.layers.findIndex((layer) => layer.id === TOPO_CONTRAST_URBAN_AREA_LAYER_ID);
+    const urbanLanduseLayerIndex = style.layers.findIndex(
+      (layer) => layer.id === TOPO_CONTRAST_URBAN_LANDUSE_LAYER_ID
+    );
+    const parkLayerIndex = style.layers.findIndex((layer) => layer.id === 'landuse_park');
+    const hillshadeLayerIndex = style.layers.findIndex((layer) => layer.id === TERRAIN_HILLSHADE_LAYER_ID);
+    expect(resolved.styleMode).toBe('local-vector');
+    expect(style.layers.some((layer) => layer.id === TERRAIN_HILLSHADE_LAYER_ID)).toBe(true);
+    expect(highwayLayer?.paint?.['line-color']).toBe('#ef8a4a');
+    expect(cityLayer?.paint?.['text-color']).toBe('#25211d');
+    expect(urbanAreaLayer?.type).toBe('fill');
+    expect(urbanAreaLayer?.source).toBe(landcoverLayer?.source);
+    expect(urbanAreaLayer?.['source-layer']).toBe(landcoverLayer?.['source-layer']);
+    expect(urbanAreaLayer?.filter).toEqual(['==', ['get', 'kind'], 'urban_area']);
+    expect(urbanAreaLayer?.paint?.['fill-color']).toBe('#e2d0c3');
+    expect(urbanAreaLayer?.paint?.['fill-outline-color']).toBe('rgba(166, 126, 99, 0.42)');
+    expect(countZoomExpressions(urbanAreaLayer?.paint?.['fill-opacity'])).toBe(1);
+    expect(urbanLanduseLayer?.type).toBe('fill');
+    expect(urbanLanduseLayer?.source).toBe(landcoverLayer?.source);
+    expect(urbanLanduseLayer?.['source-layer']).toBe('landuse');
+    expect(urbanLanduseLayer?.filter).toEqual(['in', 'kind', 'residential', 'commercial', 'retail', 'industrial']);
+    expect(urbanLanduseLayer?.paint?.['fill-color']).toBe('#e7cdbc');
+    expect(urbanLanduseLayer?.paint?.['fill-outline-color']).toBe('rgba(163, 112, 84, 0.5)');
+    expect(countZoomExpressions(urbanLanduseLayer?.paint?.['fill-opacity'])).toBe(1);
+    expect(landcoverLayerIndex).toBeGreaterThanOrEqual(0);
+    expect(urbanAreaLayerIndex).toBe(landcoverLayerIndex + 1);
+    expect(urbanLanduseLayerIndex).toBe(landcoverLayerIndex + 2);
+    expect(urbanLanduseLayerIndex).toBeLessThan(parkLayerIndex);
+    expect(urbanAreaLayerIndex).toBeLessThan(hillshadeLayerIndex);
+    expect(buildingLayer?.paint?.['fill-opacity']).toBe(0.64);
+    expect(cityLayer?.layout?.['text-size']).toEqual(expect.arrayContaining(['interpolate', ['linear'], ['zoom']]));
+    expect(JSON.stringify(cityLayer?.layout?.['text-size'])).toContain('23');
+    expect(JSON.stringify(cityLayer?.layout?.['text-font'])).toContain('Noto Sans Medium');
+    expect(cityLayer?.paint?.['text-halo-width']).toBe(1.6);
+  });
+
+  it('keeps local OSM Topo Contrast expressions compatible with MapLibre zoom expression rules', () => {
+    const resolved = resolveConfiguredMapStyle({
+      config: mapConfig(),
+      theme: TOPO_CONTRAST_THEME,
+      localTilesReady: true,
+    });
+
+    const style = resolved.style as TestVectorStyle;
+    const invalidExpressions = style.layers.flatMap((layer) => {
+      const scopedEntries = [
+        ...Object.entries(layer.layout ?? {}).map(([property, value]) => [`layout.${property}`, value] as const),
+        ...Object.entries(layer.paint ?? {}).map(([property, value]) => [`paint.${property}`, value] as const),
+      ];
+
+      return scopedEntries
+        .filter(([, value]) => countZoomExpressions(value) > 1)
+        .map(([property]) => `${layer.id}.${property}`);
+    });
+
+    expect(invalidExpressions).toEqual([]);
   });
 
   it('keeps swisstopo styles only in automatic mode', () => {
@@ -201,6 +290,15 @@ describe('resolveConfiguredMapStyle', () => {
 
   it('reports remote raster-compatible themes for the map source setting', () => {
     expect(isRemoteRasterMapTheme('light-topo')).toBe(true);
+    expect(isRemoteRasterMapTheme(TOPO_CONTRAST_THEME)).toBe(false);
     expect(isRemoteRasterMapTheme('swisstopo')).toBe(false);
   });
 });
+
+function countZoomExpressions(value: unknown): number {
+  if (!Array.isArray(value)) return 0;
+  const [operator, , input] = value;
+  const current =
+    (operator === 'interpolate' || operator === 'step') && Array.isArray(input) && input[0] === 'zoom' ? 1 : 0;
+  return current + value.reduce((count, item) => count + countZoomExpressions(item), 0);
+}

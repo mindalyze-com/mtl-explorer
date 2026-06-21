@@ -1,11 +1,16 @@
 package com.x8ing.mtl.server.mtlserver.logic.grouping.sql.template;
 
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
+import com.x8ing.mtl.server.mtlserver.db.entity.config.FilterConfigEntity;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
-import org.thymeleaf.TemplateEngine;
-import org.thymeleaf.TemplateSpec;
-import org.thymeleaf.context.Context;
-import org.thymeleaf.templatemode.TemplateMode;
+
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Deque;
+import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 
 /**
@@ -18,53 +23,50 @@ import org.thymeleaf.templatemode.TemplateMode;
 
 @Service
 @JsonPropertyOrder({
-        "templateEngine"
+        "referenceResolver"
 })
 public class TemplateProcessingService {
 
-    private final TemplateEngine templateEngine;
+    private static final Pattern TEMPLATE_INCLUDE_PATTERN = Pattern.compile("\\[\\[\\s*~\\{\\s*([^}]+?)\\s*}\\s*]]");
 
-    // for variables in Thymeleaf TEXT syntax, e.g. [(${userName})]
-    //private static final String PARAM_REGEXP = "\\[\\(\\$\\{([^}]+)}\\)]";
+    private final FilterTemplateReferenceResolver referenceResolver;
 
-
-    public TemplateProcessingService(CustomTemplateResolver customTemplateResolver) {
-        this.templateEngine = new TemplateEngine();
-        this.templateEngine.setTemplateResolver(customTemplateResolver);
-        customTemplateResolver.setTemplateMode(TemplateMode.TEXT);
+    public TemplateProcessingService(FilterTemplateReferenceResolver referenceResolver) {
+        this.referenceResolver = referenceResolver;
     }
 
     public String processTemplate(String templatePath) {
-
-        Context context = new Context();
-
-        //context.setVariables(params);
-
-        // Process the template using the TemplateEngine and return the result
-        // issue: does not carry template mode...
-        // return templateEngine.process(templatePath, context);
-        //TemplateSpec spec = new TemplateSpec(templatePath, TemplateMode.TEXT); // mode TEXT won't be passed from Resolver if not given in spec... bug?
-        TemplateSpec spec = new TemplateSpec(templatePath, "text/plain"); // Still hacky XXX TODO
-
-        return templateEngine.process(spec, context);
+        return processTemplate(templatePath, new ArrayDeque<>());
     }
 
+    private String processTemplate(String templatePath, Deque<String> stack) {
+        String currentPath = StringUtils.trimToEmpty(templatePath);
+        if (stack.contains(currentPath)) {
+            List<String> cycle = new ArrayList<>(stack);
+            cycle.add(currentPath);
+            throw new IllegalStateException("Detected a cycle in filter template includes: " + String.join(" -> ", cycle));
+        }
 
-//    /**
-//     * Extract all variables in the format ${PARAM} from the SQL string.
-//     */
-//    public Set<String> extractVariables(String template) {
-//        Set<String> variables = new HashSet<>();
-//
-//        // Regular expression to find variables in the format ${PARAM}
-//        Pattern pattern = Pattern.compile(PARAM_REGEXP);
-//        Matcher matcher = pattern.matcher(template);
-//
-//        while (matcher.find()) {
-//            variables.add(matcher.group(1)); // Add the variable name
-//        }
-//
-//        return variables;
-//    }
+        FilterConfigEntity filter = referenceResolver.resolve(currentPath);
+        stack.addLast(currentPath);
+        String resolved = expandIncludes(filter.getExpression(), stack);
+        stack.removeLast();
+        return resolved;
+    }
+
+    private String expandIncludes(String expression, Deque<String> stack) {
+        if (StringUtils.isBlank(expression)) {
+            return expression;
+        }
+
+        Matcher matcher = TEMPLATE_INCLUDE_PATTERN.matcher(expression);
+        StringBuffer resolved = new StringBuffer();
+        while (matcher.find()) {
+            String includedTemplatePath = StringUtils.trim(matcher.group(1));
+            matcher.appendReplacement(resolved, Matcher.quoteReplacement(processTemplate(includedTemplatePath, stack)));
+        }
+        matcher.appendTail(resolved);
+        return resolved.toString();
+    }
 
 }

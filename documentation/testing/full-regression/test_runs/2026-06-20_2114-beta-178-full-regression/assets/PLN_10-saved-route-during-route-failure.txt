@@ -1,0 +1,26 @@
+Status: PASS
+Plan name: PLN_10 Codex resilient plan 1782001181056
+Saved id: 100016
+Zoom clicks until planner usable: 6
+Checks: loadedOk=true, routeFailures=1, failureVisible=true, savedStillVisible=true, deletedOk=true
+Saved route stats: distance=555.03 km, ascent=688 m, duration=26h 24m, legs=1
+Planner response summary: 200:GET:/mtl/api/planner/status | 200:GET:/mtl/api/planner/status | 200:GET:/mtl/api/planner/config | 200:GET:/mtl/api/planner/status | 202:POST:/mtl/api/planner/prewarm | 200:POST:/mtl/api/planner/route | 200:POST:/mtl/api/planner/save | 200:GET:/mtl/api/planner/plans | 200:GET:/mtl/api/planner/plans | 200:GET:/mtl/api/planner/plans | 200:GET:/mtl/api/planner/plans/100016 | 503:POST:/mtl/api/planner/route | 200:GET:/mtl/api/planner/plans | 200:GET:/mtl/api/planner/status | 204:DELETE:/mtl/api/planner/plans/100016 | 200:GET:/mtl/api/planner/plans
+Snapshots:
+route-ready-to-save: {"activeTab":"Drawing","profile":"Hiking","distance":"555.03 km","ascent":"688 m","duration":"26h 24m","legs":"1","chartPresent":true,"notices":[],"planRowsMatchingName":0,"planRowsSample":[]}
+load-tab-plan-visible: {"activeTab":"Load","profile":"","distance":"","ascent":"","duration":"","legs":"","chartPresent":false,"notices":[],"planRowsMatchingName":1,"planRowsSample":["PLN_10 Codex resilient plan 1782001181056 555.0 km · Temporary PLN_10 full-regression route.21 Jun 2026GPX"]}
+saved-plan-loaded-before-new-route-failure: {"activeTab":"Drawing","profile":"Hiking","distance":"555.03 km","ascent":"688 m","duration":"26h 24m","legs":"1","chartPresent":true,"notices":["Loaded plan shown as saved. The first edit will re-route all legs."],"planRowsMatchingName":0,"planRowsSample":[]}
+saved-plan-visible-during-route-failure: {"activeTab":"Drawing","profile":"Road Bike","distance":"555.03 km","ascent":"688 m","duration":"26h 24m","legs":"1","chartPresent":true,"notices":["Downloading routing data for this area... (auto-retry 1/6)"],"planRowsMatchingName":0,"planRowsSample":[]}
+deleted-list: {"activeTab":"Load","profile":"","distance":"","ascent":"","duration":"","legs":"","chartPresent":false,"notices":[],"planRowsMatchingName":0,"planRowsSample":[]}
+Cleanup attempted: false
+Page errors: 0
+Console planner/error/warn messages: 10
+log: Downloading low-zoom PMTiles from /mtl/api/map-proxy/prod/world-lowzoom.pmtiles?mtl-map-source=public&mtl-map-archive=public-default … (IndexedDB fallback)
+log: Low-zoom PMTiles cached successfully (IndexedDB, 42.4 MB)
+log: [zoom] 3.907 | mercator
+log: [zoom] 4.907 | mercator
+log: [zoom] 5.907 | mercator
+log: [zoom] 6.907 | mercator
+log: [zoom] 7.907 | mercator
+log: [zoom] 8.907 | mercator
+info: [planner] Viewport prewarm: 300km side → bbox=[2.38,26.70,5.43,29.39]
+info: [planner] Segment downloading — auto-retry 1/6 in 8000ms

@@ -1,5 +1,10 @@
 <template>
-  <div class="mini-map-wrapper" :class="{ collapsed: isCollapsed }">
+  <div
+    class="mini-map-wrapper"
+    :class="{ collapsed: isCollapsed }"
+    @mouseleave="clearMapInteraction"
+    @pointerleave="clearMapInteraction"
+  >
     <!-- Collapsed strip: just a thin bar to re-expand -->
     <div v-if="isCollapsed" class="mini-map-collapsed-strip" title="Expand map" @click="toggleCollapse">
       <i class="bi bi-chevron-down"></i>
@@ -73,7 +78,6 @@ import { formatDateAndTimeWithSeconds, formatDistanceSmart, formatDurationSmart,
 import type { GpsTrackEvent } from 'x8ing-mtl-api-typescript-fetch/dist/esm/models/index';
 import { unwrapLngLatCoordinates } from '@/components/map/mapGeometry';
 import {
-  clamp01,
   numericRangeForItems,
   projectClickToTrackLine,
   valueAtFraction,
@@ -277,13 +281,6 @@ async function initMap() {
   map.on('mousemove', (e: maplibregl.MapMouseEvent) => {
     scheduleMapHover(e.lngLat.lat, e.lngLat.lng);
   });
-
-  const clearMapInteraction = () => {
-    cancelMapHover();
-    lastSyncedHoverPointIndex = null;
-    clearHover();
-    clearChartCrosshairs();
-  };
 
   map.on('mouseout', clearMapInteraction);
   canvasLeaveHandler = clearMapInteraction;
@@ -560,12 +557,26 @@ function currentHoverSnapMeters(lat: number): number {
 
 function syncMapHover(lat: number, lng: number) {
   const pt = findPointByLatLng(lat, lng, currentHoverSnapMeters(lat));
-  if (!pt) return;
+  if (!pt) {
+    clearMapHoverArtifacts();
+    return;
+  }
   if (lastSyncedHoverPointIndex === pt.pointIndex) return;
 
   lastSyncedHoverPointIndex = pt.pointIndex;
   setHoverPoint(pt);
   showChartsAtPoint(pt);
+}
+
+function clearMapHoverArtifacts() {
+  lastSyncedHoverPointIndex = null;
+  clearHover();
+  clearChartCrosshairs();
+}
+
+function clearMapInteraction() {
+  cancelMapHover();
+  clearMapHoverArtifacts();
 }
 
 function scheduleMapHover(lat: number, lng: number) {
@@ -1005,7 +1016,19 @@ const mountMap = () => {
   });
 };
 
+function isTrackHoverSurface(target: EventTarget | null): boolean {
+  if (!(target instanceof Element)) return false;
+  return Boolean(mapBodyEl.value?.contains(target) || target.closest('.highcharts-container'));
+}
+
+function clearMapInteractionOutsideSurfaces(event: MouseEvent | PointerEvent) {
+  if (isTrackHoverSurface(event.target)) return;
+  clearMapInteraction();
+}
+
 onBeforeUnmount(() => {
+  document.removeEventListener('mousemove', clearMapInteractionOutsideSurfaces, true);
+  document.removeEventListener('pointermove', clearMapInteractionOutsideSurfaces, true);
   clearEventLayerRetry();
   cancelMapHover();
   clearPointPopup();
@@ -1072,6 +1095,8 @@ watch(
 );
 
 onMounted(() => {
+  document.addEventListener('mousemove', clearMapInteractionOutsideSurfaces, true);
+  document.addEventListener('pointermove', clearMapInteractionOutsideSurfaces, true);
   mountMap();
 });
 

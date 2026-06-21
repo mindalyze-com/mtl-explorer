@@ -1,0 +1,166 @@
+# DEL_03/DEL_04 deletion surface summary
+{
+  "captured": "2026-06-19T20:26:41+0200 CEST",
+  "remaining_api_count": 3,
+  "remaining_ids_files_names": [
+    {
+      "id": 100002,
+      "file": "JuraRoute72011.gpx",
+      "name": "Jura Route 7 / 2011 on GPSies.com"
+    },
+    {
+      "id": 100003,
+      "file": "MoselradwegAusWiki.gpx",
+      "name": "Moselradweg aus Wiki on GPSies.com"
+    },
+    {
+      "id": 100004,
+      "file": "Lannion_Plestin_parcours24.4RE.gpx",
+      "name": "Lannion_Plestin_parcours Lannion_Plestin_parcours1"
+    }
+  ],
+  "deleted_files_expected_absent": [
+    "Vitry-le-Francois_Langres.gpx",
+    "VoieVerteHauteVosges.gpx"
+  ],
+  "deleted_ids_expected_absent": [
+    100000,
+    100001
+  ],
+  "simplified_filtered_count": 3,
+  "statistics_summary_remaining_ids": {
+    "trackCount": 3,
+    "distanceM": 816961.34,
+    "durationMs": 57035000.0,
+    "energyWh": 3620.8100000000004,
+    "oldestStart": "2010-01-01T00:00:00.000+0000",
+    "newestStart": "2013-03-08T09:32:24.000+0000"
+  },
+  "related_response_contains_deleted_ids": false,
+  "browser_search_results": [
+    {
+      "countMatches": [
+        "50\u00a0km\n3 Tracks",
+        "50\u00a0km\n3 Tracks",
+        "50\u00a0km\n3 Tracks",
+        "50\u00a0km\n3 Tracks",
+        "50\u00a0km\n3 Tracks",
+        "3 Tracks",
+        "3 Tracks",
+        "3 Tracks"
+      ],
+      "hasDeletedName": true,
+      "needle": "Vitry-le-Francois_Langres.gpx",
+      "rows": [
+        "No tracks match \u201cVitry-le-Francois_Langres.gpx\u201d"
+      ]
+    },
+    {
+      "countMatches": [
+        "50\u00a0km\n3 Tracks",
+        "50\u00a0km\n3 Tracks",
+        "50\u00a0km\n3 Tracks",
+        "50\u00a0km\n3 Tracks",
+        "50\u00a0km\n3 Tracks",
+        "3 Tracks",
+        "3 Tracks",
+        "3 Tracks"
+      ],
+      "hasDeletedName": true,
+      "needle": "VoieVerteHauteVosges.gpx",
+      "rows": []
+    },
+    {
+      "countMatches": [
+        "50\u00a0km\n3 Tracks",
+        "50\u00a0km\n3 Tracks",
+        "50\u00a0km\n3 Tracks",
+        "50\u00a0km\n3 Tracks",
+        "50\u00a0km\n3 Tracks",
+        "3 Tracks",
+        "3 Tracks",
+        "3 Tracks"
+      ],
+      "hasDeletedName": true,
+      "needle": "Vitry",
+      "rows": [
+        "No tracks match \u201cVitry\u201d"
+      ]
+    },
+    {
+      "countMatches": [
+        "50\u00a0km\n3 Tracks",
+        "50\u00a0km\n3 Tracks",
+        "50\u00a0km\n3 Tracks",
+        "50\u00a0km\n3 Tracks",
+        "50\u00a0km\n3 Tracks",
+        "3 Tracks",
+        "3 Tracks",
+        "3 Tracks"
+      ],
+      "hasDeletedName": true,
+      "needle": "voie verte",
+      "rows": [
+        "No tracks match \u201cvoie verte\u201d"
+      ]
+    },
+    {
+      "countMatches": [
+        "50\u00a0km\n3 Tracks",
+        "50\u00a0km\n3 Tracks",
+        "50\u00a0km\n3 Tracks",
+        "50\u00a0km\n3 Tracks",
+        "50\u00a0km\n3 Tracks",
+        "3 Tracks",
+        "3 Tracks",
+        "3 Tracks"
+      ],
+      "hasDeletedName": false,
+      "needle": "JuraRoute72011.gpx",
+      "rows": [
+        "01/01/2010, 01:00\t\nJura Route 7 / 2011 on GPSies.com\n\t\nBicycle\n\t273 km\t7h 46m\t35.1\t1,808 Wh\t100.0%\t19/06/2026, 20:08"
+      ]
+    },
+    {
+      "countMatches": [
+        "50\u00a0km\n3 Tracks",
+        "50\u00a0km\n3 Tracks",
+        "50\u00a0km\n3 Tracks",
+        "50\u00a0km\n3 Tracks",
+        "50\u00a0km\n3 Tracks",
+        "3 Tracks",
+        "3 Tracks",
+        "3 Tracks"
+      ],
+      "hasDeletedName": false,
+      "needle": "MoselradwegAusWiki.gpx",
+      "rows": [
+        "01/01/2010, 01:00\t\nMoselradweg aus Wiki on GPSies.com\n\t\nBicycle\n\t518 km\t6h 50m\t75.7\t1,616 Wh\t100.0%\t19/06/2026, 20:08"
+      ]
+    },
+    {
+      "countMatches": [
+        "50\u00a0km\n3 Tracks",
+        "50\u00a0km\n3 Tracks",
+        "50\u00a0km\n3 Tracks",
+        "50\u00a0km\n3 Tracks",
+        "50\u00a0km\n3 Tracks",
+        "3 Tracks",
+        "3 Tracks",
+        "3 Tracks"
+      ],
+      "hasDeletedName": false,
+      "needle": "Lannion_Plestin_parcours24.4RE.gpx",
+      "rows": [
+        "08/03/2013, 10:32\t\nLannion_Plestin_parcours Lannion_Plestin_parcours1\n\t\nBicycle\n\t25.9 km\t1h 13m\t21.1\t198 Wh\t100.0%\t19/06/2026, 20:08"
+      ]
+    }
+  ],
+  "ui_evidence": [
+    "map 3 Tracks",
+    "Stats 3 tracks / 817 km / 15h 50m",
+    "deleted filename/name searches return no track rows",
+    "remaining filename searches return rows",
+    "Filter panel open over 3-track map"
+  ]
+}

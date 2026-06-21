@@ -1,0 +1,5 @@
+Positive data-scope check:
+- Five positive GPX import candidates all contain trk/trkseg/trkpt sequences.
+- The positive FIT candidate is the Garmin Activity.fit sample from the regression plan.
+- No waypoint-only GPX, non-GPS FIT, empty file, or unsupported extension is counted as positive import evidence.
+- Negative/unsupported/empty-file behavior is reserved for upload/admin format checks.

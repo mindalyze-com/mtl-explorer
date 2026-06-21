@@ -142,7 +142,7 @@ Run this in every full regression and every release-candidate data-change pass.
 - **MAP_12** Swiss Mobility routes popup (where applicable) shows nearby official routes and closes cleanly.
 - **MAP_13** Intentional remote raster mode: with `mtl.map-server.tile-mode=remote`,
   `/api/map/config` exposes `remoteRasterStyles` for `light`, `light-topo`, and
-  `dark`, and does not expose legacy `remoteTileUrl`. Select OSM Light, OSM Topo,
+  `dark`, and does not expose legacy `remoteTileUrl`. Select OSM Light, OSM Topo Light,
   and OSM Dark; each loads map tiles from its configured provider URL, shows the
   matching attribution, keeps the map interactive, and makes no `/api/map-proxy`
   tile requests.
@@ -200,6 +200,11 @@ Run this in every full regression and every release-candidate data-change pass.
 - **TBS_09** Time-period charts (daily/weekly/monthly) render and switch correctly.
 - **TBS_10** Clicking a stats entry navigates / filters / highlights as expected.
 - **TBS_11** Highlight drilldowns open the expected track list, open a selected track, and expose excluded-highlight counts where applicable.
+- **TBS_12** Statistics use the same resolved track set as the active filter:
+  apply a geo-drawn filter (circle, rectangle, or polygon) that changes the
+  visible map count, then verify Stats Overview totals, Trends track totals,
+  and the Stats Tracks tab all match the filtered map count. Repeat after a
+  reload to confirm the fallback ID-resolution path still matches.
 
 ## 6. Planner
 
@@ -305,7 +310,7 @@ Run this in every full regression and every release-candidate data-change pass.
 - **APP_03** Charts re-color on theme switch without needing a reload.
 - **APP_04** Selected theme persists across reload and login.
 - **APP_05** Hard refresh in dark mode does not flash the light theme first.
-- **APP_06** Map theme is independent: each of the available map styles (light, dark, grayscale, light-topo, swisstopo, swisstopo-color) can be selected with either UI theme.
+- **APP_06** Map theme is independent: each of the available map styles (light, dark, grayscale, light-topo, topo-contrast, swisstopo, swisstopo-color) can be selected with either UI theme.
 - **APP_07** Selected map style persists across reload.
 - **APP_08** Layer opacity sliders, basemap dimming, and reset-to-defaults all behave and persist.
 

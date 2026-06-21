@@ -2,6 +2,7 @@ import { defineStore } from 'pinia';
 import { computed, ref } from 'vue';
 import { readJsonStorage, STORAGE_KEYS, writeJsonStorage } from '@/utils/appStorage';
 import { sanitizeTerrainExaggeration, TERRAIN_EXAGGERATION_DEFAULT } from '@/components/map/terrainMode';
+import { normalizeMapTheme, TOPO_CONTRAST_THEME, type MapTheme } from '@/utils/mapStyle';
 
 const OVERLAY_LAYER_IDS = [
   'wanderland',
@@ -20,9 +21,10 @@ export type MapSourceMode = 'auto' | 'remote';
 
 const OVERLAY_LAYER_ID_SET = new Set<string>(OVERLAY_LAYER_IDS);
 const MAP_SOURCE_MODES = new Set<MapSourceMode>(['auto', 'remote']);
-const REMOTE_RASTER_MAP_THEMES = new Set<string>(['light', 'light-topo', 'dark', 'grayscale']);
+const REMOTE_RASTER_MAP_THEMES = new Set<MapTheme>(['light', 'light-topo', 'dark', 'grayscale']);
 
-export const DEFAULT_MAP_THEME = 'light-topo';
+export const DEFAULT_MAP_THEME = TOPO_CONTRAST_THEME;
+export const DEFAULT_REMOTE_RASTER_MAP_THEME: MapTheme = 'light-topo';
 export const DEFAULT_MAP_SOURCE_MODE: MapSourceMode = 'auto';
 
 export const DEFAULT_LAYER_OPACITIES: Record<string, number> = {
@@ -48,6 +50,7 @@ export type MapLayerState = {
 
 type PersistedMapSettings = {
   theme?: unknown;
+  automaticTheme?: unknown;
   mapSourceMode?: unknown;
   legendCollapsed?: unknown;
   basemapEnabled?: unknown;
@@ -62,7 +65,8 @@ type PersistedMapSettings = {
 
 export const useMapSettingsStore = defineStore('mapSettings', () => {
   const hydrated = ref(false);
-  const theme = ref(DEFAULT_MAP_THEME);
+  const theme = ref<MapTheme>(DEFAULT_MAP_THEME);
+  const automaticTheme = ref<MapTheme>(DEFAULT_MAP_THEME);
   const mapSourceMode = ref<MapSourceMode>(DEFAULT_MAP_SOURCE_MODE);
   const legendCollapsed = ref(false);
   const basemapEnabled = ref(true);
@@ -96,9 +100,13 @@ export const useMapSettingsStore = defineStore('mapSettings', () => {
     const stored = readJsonStorage<PersistedMapSettings>(STORAGE_KEYS.mapSettings, {}, (value) =>
       isRecord(value) ? value : {}
     );
-    theme.value = sanitizeTheme(stored.theme);
     mapSourceMode.value = sanitizeMapSourceMode(stored.mapSourceMode);
-    theme.value = sanitizeThemeForSourceMode(mapSourceMode.value, theme.value);
+    const storedTheme = sanitizeTheme(stored.theme);
+    automaticTheme.value = sanitizeAutomaticTheme(stored, mapSourceMode.value, storedTheme);
+    theme.value =
+      mapSourceMode.value === 'remote'
+        ? sanitizeThemeForSourceMode(mapSourceMode.value, storedTheme)
+        : automaticTheme.value;
     legendCollapsed.value = sanitizeBoolean(stored.legendCollapsed, false);
     activeOverlays.value = sanitizeOverlayIds(stored.activeOverlays);
     layerOpacities.value = sanitizeLayerOpacities(stored.layerOpacities);
@@ -116,12 +124,22 @@ export const useMapSettingsStore = defineStore('mapSettings', () => {
   function setTheme(nextTheme: string): void {
     const sanitizedTheme = sanitizeTheme(nextTheme);
     theme.value = sanitizeThemeForSourceMode(mapSourceMode.value, sanitizedTheme);
+    if (mapSourceMode.value === 'auto') {
+      automaticTheme.value = theme.value;
+    }
     persistPreferences();
   }
 
   function setMapSourceMode(nextMode: unknown): void {
-    mapSourceMode.value = sanitizeMapSourceMode(nextMode);
-    theme.value = sanitizeThemeForSourceMode(mapSourceMode.value, theme.value);
+    const sanitizedMode = sanitizeMapSourceMode(nextMode);
+    if (mapSourceMode.value === 'auto') {
+      automaticTheme.value = theme.value;
+    }
+    mapSourceMode.value = sanitizedMode;
+    theme.value =
+      mapSourceMode.value === 'remote'
+        ? sanitizeThemeForSourceMode(mapSourceMode.value, theme.value)
+        : automaticTheme.value;
     persistPreferences();
   }
 
@@ -198,6 +216,7 @@ export const useMapSettingsStore = defineStore('mapSettings', () => {
 
   function reset(): void {
     theme.value = DEFAULT_MAP_THEME;
+    automaticTheme.value = DEFAULT_MAP_THEME;
     mapSourceMode.value = DEFAULT_MAP_SOURCE_MODE;
     legendCollapsed.value = false;
     basemapEnabled.value = true;
@@ -226,6 +245,7 @@ export const useMapSettingsStore = defineStore('mapSettings', () => {
   function persistPreferences(): void {
     writeJsonStorage(STORAGE_KEYS.mapSettings, {
       theme: theme.value,
+      automaticTheme: automaticTheme.value,
       mapSourceMode: mapSourceMode.value,
       legendCollapsed: legendCollapsed.value,
       basemapEnabled: basemapEnabled.value,
@@ -290,8 +310,22 @@ function sanitizeLayerOpacities(opacities: unknown): Record<string, number> {
   return nextOpacities;
 }
 
-function sanitizeTheme(value: unknown): string {
-  return typeof value === 'string' && value.trim() ? value : DEFAULT_MAP_THEME;
+function sanitizeTheme(value: unknown): MapTheme {
+  return normalizeMapTheme(value, DEFAULT_MAP_THEME);
+}
+
+function sanitizeAutomaticTheme(
+  stored: PersistedMapSettings,
+  sourceMode: MapSourceMode,
+  storedTheme: MapTheme
+): MapTheme {
+  if (Object.prototype.hasOwnProperty.call(stored, 'automaticTheme')) {
+    return sanitizeTheme(stored.automaticTheme);
+  }
+  if (sourceMode === 'auto' && storedTheme !== DEFAULT_REMOTE_RASTER_MAP_THEME) {
+    return storedTheme;
+  }
+  return DEFAULT_MAP_THEME;
 }
 
 function sanitizeMapSourceMode(value: unknown): MapSourceMode {
@@ -300,12 +334,12 @@ function sanitizeMapSourceMode(value: unknown): MapSourceMode {
     : DEFAULT_MAP_SOURCE_MODE;
 }
 
-function isRemoteRasterMapTheme(value: string): boolean {
+function isRemoteRasterMapTheme(value: MapTheme): boolean {
   return REMOTE_RASTER_MAP_THEMES.has(value);
 }
 
-function sanitizeThemeForSourceMode(sourceMode: MapSourceMode, value: string): string {
-  return sourceMode === 'remote' && !isRemoteRasterMapTheme(value) ? DEFAULT_MAP_THEME : value;
+function sanitizeThemeForSourceMode(sourceMode: MapSourceMode, value: MapTheme): MapTheme {
+  return sourceMode === 'remote' && !isRemoteRasterMapTheme(value) ? DEFAULT_REMOTE_RASTER_MAP_THEME : value;
 }
 
 function sanitizeBoolean(value: unknown, fallback: boolean): boolean {

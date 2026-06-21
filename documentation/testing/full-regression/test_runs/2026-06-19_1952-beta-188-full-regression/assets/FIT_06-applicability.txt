@@ -1,0 +1,13 @@
+# FIT_06 applicability
+
+Coverage text:
+- If GPSBabel or FIT conversion is unavailable, the UI shows a clear conversion/indexing error and the failure is recorded as blocking for FIT support.
+
+Run result:
+- GPSBabel/FIT conversion was available in this beta quick-install run.
+- FIT_02 imported Activity.fit as track 100005 with indexerStatus COMPLETED_WITH_SUCCESS and loadStatus SUCCESS.
+- FIT_03 opened the FIT-backed track details and Quality showed SUCCESS, UNIQUE, and 3,600 total points.
+- No unavailable-conversion UI/error path was present to exercise.
+
+Status:
+- NOT APPLICABLE for this run.

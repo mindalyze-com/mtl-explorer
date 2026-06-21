@@ -1,0 +1,13 @@
+FLT_01 saved active filter precondition evidence
+Status: BLOCKED
+URL: http://178.104.209.132:18080/mtl/filter
+Map chip: "8 Tracks"; funnel icon present=false
+Filter toggle: Off
+Off-card text: Filtering is off Turn filtering on to narrow tracks by type, date or geo area, group them, and color the map. The Colors and SQL tabs unlock once a filter is selected. Enable filter
+Persisted filter: GPS_TRACK/SmartBaseFilter (Smart Base Filter)
+Persisted filter param keys: {}
+Persisted palette keys: none
+Selected catalog rows: none
+Conclusion: no previously saved active filter is present in this run; FLT_01 cannot verify an active chip without creating state first.
+Console counts: warnings=0; errors=0; pageErrors=0
+Screenshot: FLT_01-filter-inactive.webp {"q":"76","resizeWidth":"1200","size":27368}

@@ -1,0 +1,64 @@
+TBS_02 track browser search matrix
+
+State
+- URL: http://188.245.169.80:18080/mtl/stats
+- Active tab: Tracks
+- Filtering: Off
+- Starting summary: 13 tracks - 825 km - 16h 50m
+- Search input placeholder: Search name, activity, date, file, creator...
+
+Search cases
+
+1. Name
+- Query: Jura
+- Visible result: 1 of 13 tracks - 273 km - 7h 46m
+- Matching row: Jura Route 7 / 2011 on GPSies.com / Bicycle / 01/01/2010, 01:00 / 273 km / 7h 46m / 1,808 Wh
+- Status: PASS
+
+2. Description
+- Query: Generated
+- Visible result: 1 of 13 tracks - 589.26 m - 0m 00s
+- Matching row: FMT GEOJSON Unique Track with description text "Generated from route FMT GEOJSON Unique Track"
+- Status: PASS
+
+3. Date
+- Query: 2010
+- Visible result: 2 of 13 tracks - 791 km - 14h 37m
+- Matching rows: Jura Route 7 / 2011 on GPSies.com and Moselradweg aus Wiki on GPSies.com, both dated 01/01/2010, 01:00
+- Status: PASS
+
+4. Distance
+- Query: 518
+- Visible result: 1 of 13 tracks - 518 km - 6h 50m
+- Matching row: Moselradweg aus Wiki on GPSies.com / 518 km
+- Status: PASS
+
+5. Duration
+- Query: 59m
+- Visible result: 1 of 13 tracks - 3.60 km - 59m 57s
+- Matching row: Track 100005 / Walking / 59m 57s
+- Status: PASS
+
+6. Activity
+- Query: Walking
+- Visible result: 1 of 13 tracks - 3.60 km - 59m 57s
+- Matching row: Track 100005 / Walking
+- Status: PASS
+
+7. File/source path
+- Query: Activity.fit
+- Visible result: 1 of 13 tracks - 3.60 km - 59m 57s
+- Matching row: Track 100005 / Walking
+- Note: the literal file name is not shown in the table row, so this verifies hidden file/source text is included in the search index.
+- Status: PASS
+
+8. File extension
+- Query: .fit
+- Visible result: 1 of 13 tracks - 3.60 km - 59m 57s
+- Matching row: Track 100005 / Walking
+- Note: the literal extension is not shown in the table row, so this verifies hidden file/source text is included in the search index.
+- Status: PASS
+
+Cleanup
+- Cleared the search input.
+- Final summary returned to 13 tracks - 825 km.

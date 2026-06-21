@@ -1,0 +1,15 @@
+[mobile context]
+viewport: 390x844, isMobile=true, hasTouch=true, deviceScaleFactor=2
+input: touchscreen taps for placement; CDP Input.dispatchTouchEvent touchStart/touchMove/touchEnd for waypoint drag
+
+[zoomed into planning range]
+{"scale":"10 km","prompt":false,"screenshot":"assets/PLN_11-mobile-planning-range.jpg"}
+
+[panned to land]
+{"area":"Cornwall / Bodmin-Fowey map view","screenshot":"assets/PLN_11-mobile-panned.jpg"}
+
+[after touch placement]
+{"taps":[[230,145],[260,220]],"cards":{"Distance":"18.97 km","Ascent":"255 m","Descent":"232 m","Duration":"1h 8m","Legs":"1"},"chartPoints":568,"screenshot":"assets/PLN_11-mobile-touch-route.webp"}
+
+[after touch drag]
+{"drag":[[260,220],[310,190]],"cards":{"Distance":"22.30 km","Ascent":"372 m","Descent":"330 m","Duration":"1h 31m","Legs":"1"},"chartPoints":620,"screenshot":"assets/PLN_11-mobile-waypoint-dragged.webp"}

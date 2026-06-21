@@ -10,11 +10,13 @@ import { ColorPalette } from '@/components/filter/ColorPalette';
 import { REPLAY_DEFAULT_TARGET_DURATION_SECONDS } from '@/components/replay/trackReplayPath';
 import { REPLAY_DEFAULT_CAMERA_PRESET, REPLAY_DEFAULT_CAMERA_SMOOTHNESS } from '@/components/replay/trackReplayCamera';
 import { describeError, startupError, startupLog } from '@/utils/startupDiagnostics';
-import thumbOsmTopo from '@/assets/map-layer/osm_topo.jpg';
-import thumbSwissColor from '@/assets/map-layer/swiss_color_contrast.jpg';
-import thumbSwissLight from '@/assets/map-layer/swiss_topo_light.jpg';
-import thumbOsmLight from '@/assets/map-layer/osm_light.jpg';
-import thumbOsmDark from '@/assets/map-layer/osm_dark.jpg';
+import thumbOsmTopoLight from '@/assets/map-layer/osm_topo_light.webp';
+import thumbOsmTopoContrast from '@/assets/map-layer/osm_topo_contrast.webp';
+import thumbSwissTopoColor from '@/assets/map-layer/swiss_topo_color.webp';
+import thumbSwissTopoLight from '@/assets/map-layer/swiss_topo_light.webp';
+import thumbOsmLight from '@/assets/map-layer/osm_light.webp';
+import thumbOsmGray from '@/assets/map-layer/osm_gray.webp';
+import thumbOsmDark from '@/assets/map-layer/osm_dark.webp';
 import { useMapTools } from '@/components/map/composables/useMapTools';
 import { useMapLayerSettings } from '@/components/map/composables/useMapLayerSettings';
 import { useTerrainMode } from '@/components/map/composables/useTerrainMode';
@@ -43,6 +45,7 @@ import type {
 import { useMapStateStore } from '@/stores/mapStateStore';
 import { storeToRefs } from 'pinia';
 import { isRemoteRasterMapTheme } from '@/components/map/mapStyleResolver';
+import { TOPO_CONTRAST_THEME } from '@/utils/mapStyle';
 
 type ControllerMethod = (this: MapControllerRuntime, ...args: unknown[]) => unknown;
 type BoundControllerMethod = (...args: unknown[]) => unknown;
@@ -104,11 +107,24 @@ export function useMainMapController(
     loadingTrackBatches: false,
     loadingTracks10m: false,
     mapThemes: [
-      { name: 'OSM Topo', code: 'light-topo', thumbnail: thumbOsmTopo, featured: true },
-      { name: 'Swiss Color', code: 'swisstopo-color', thumbnail: thumbSwissColor, featured: true },
-      { name: 'Swiss Light', code: 'swisstopo', thumbnail: thumbSwissLight },
+      {
+        name: 'OSM Topo Contrast',
+        code: TOPO_CONTRAST_THEME,
+        thumbnail: thumbOsmTopoContrast,
+        badgeLabel: 'Preferred',
+        badgeTone: 'preferred',
+      },
+      { name: 'OSM Topo Light', code: 'light-topo', thumbnail: thumbOsmTopoLight },
+      {
+        name: 'Swiss Topo Color',
+        code: 'swisstopo-color',
+        thumbnail: thumbSwissTopoColor,
+        badgeLabel: 'Swiss',
+        badgeTone: 'swiss',
+      },
+      { name: 'Swiss Topo Light', code: 'swisstopo', thumbnail: thumbSwissTopoLight },
       { name: 'OSM Light', code: 'light', thumbnail: thumbOsmLight },
-      { name: 'OSM Gray', code: 'grayscale', thumbnail: thumbOsmLight },
+      { name: 'OSM Gray', code: 'grayscale', thumbnail: thumbOsmGray },
       { name: 'OSM Dark', code: 'dark', thumbnail: thumbOsmDark },
     ],
 
@@ -221,6 +237,7 @@ export function useMainMapController(
     detailDebounceTimer: null,
     activeOverlays: [...mapSettingsStore.activeOverlays],
     _terrainControl: null,
+    _attributionLinkCleanup: null,
     _terrainTrackLayer: null,
     _syncingView: false, // guard to prevent recursive view-sync loops
     trackPointsVisible: mapSettingsStore.trackPointsVisible, // toggle for direction-arrow point markers
@@ -621,6 +638,8 @@ export function useMainMapController(
     }
     if (this.overlayMap) {
       this.detachTrackPointLayerHandlers();
+      this._attributionLinkCleanup?.();
+      this._attributionLinkCleanup = null;
       this.overlayMap.remove();
       this.overlayMap = undefined;
       this._terrainControl = null;

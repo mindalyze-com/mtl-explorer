@@ -1,0 +1,18 @@
+MAP_11 track-point marker popup evidence
+
+Coverage requirement:
+- Click an actual rendered track-point/direction-arrow marker.
+- Verify the popup shows expected metrics such as time, speed, elevation, distance, and related point fields.
+
+Relevant completed evidence:
+- MAP_07 enabled Track Points & Direction and attempted high-zoom marker evidence.
+- MAP_07 could not place or query a visible in-viewport marker through browser-accessible controls.
+- FIT_03 opened a Track point popup with metric rows after a FIT detail mini-map click, proving the popup content path exists, but that was not a direct rendered marker click.
+
+Why this does not fully satisfy MAP_11:
+- MAP_11 explicitly requires clicking an actual direction-arrow/point marker, not only the connecting track line or detail mini-map.
+- The marker layer is rendered inside the MapLibre canvas as `track-points-layer`; it is not exposed as DOM nodes.
+- The app does not expose a browser-accessible MapLibre instance for deterministic `queryRenderedFeatures` targeting in this run.
+
+Conclusion:
+MAP_11 is BLOCKED. Popup metric content is proven by FIT_03, but direct click evidence on a rendered track-point marker could not be captured.

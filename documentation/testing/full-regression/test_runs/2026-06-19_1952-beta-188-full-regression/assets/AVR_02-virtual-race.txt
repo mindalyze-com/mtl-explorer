@@ -1,0 +1,98 @@
+{
+  "states": [
+    {
+      "label": "race-ready-slow",
+      "racerPill": [
+        "2 racers"
+      ],
+      "speedInfo": [
+        "60s"
+      ],
+      "segment": "A-B",
+      "startIcon": "play",
+      "resetDisabled": false,
+      "racerCards": [
+        "1synthetic-shared-zone-a.gpxBicycle01/01/2026, 13:00 0%",
+        "2synthetic-map09-cross-zone-c.gpxBicycle01/08/2021, 11:00 0% 00:00:04 3.8 km/h 4.31 m"
+      ],
+      "warnings": [],
+      "minimap": {
+        "w": 937,
+        "h": 638
+      }
+    },
+    {
+      "label": "race-running-0.7s",
+      "racerPill": [
+        "2 racers"
+      ],
+      "speedInfo": [
+        "60s"
+      ],
+      "segment": "A-B",
+      "startIcon": "pause",
+      "resetDisabled": false,
+      "racerCards": [
+        "1synthetic-map09-cross-zone-c.gpxBicycle01/08/2021, 11:00 17% 73.44 cm 00:00:04 3.8 km/h 4.31 m",
+        "2synthetic-shared-zone-a.gpxBicycle01/01/2026, 13:00 0% 63.49 m"
+      ],
+      "warnings": [],
+      "minimap": {
+        "w": 937,
+        "h": 613
+      }
+    },
+    {
+      "label": "race-running-1.7s",
+      "racerPill": [
+        "2 racers"
+      ],
+      "speedInfo": [
+        "60s"
+      ],
+      "segment": "A-B",
+      "startIcon": "pause",
+      "resetDisabled": false,
+      "racerCards": [
+        "1synthetic-map09-cross-zone-c.gpxBicycle01/08/2021, 11:00 42% 1.82 m 00:00:04 3.8 km/h 4.31 m",
+        "2synthetic-shared-zone-a.gpxBicycle01/01/2026, 13:00 1% 63.49 m"
+      ],
+      "warnings": [],
+      "minimap": {
+        "w": 937,
+        "h": 613
+      }
+    },
+    {
+      "label": "race-paused",
+      "racerPill": [
+        "2 racers"
+      ],
+      "speedInfo": [
+        "60s"
+      ],
+      "segment": "A-B",
+      "startIcon": "play",
+      "resetDisabled": false,
+      "racerCards": [
+        "1synthetic-map09-cross-zone-c.gpxBicycle01/08/2021, 11:00 43% 1.85 m 00:00:04 3.8 km/h 4.31 m",
+        "2synthetic-shared-zone-a.gpxBicycle01/01/2026, 13:00 1% 63.49 m"
+      ],
+      "warnings": [],
+      "minimap": {
+        "w": 937,
+        "h": 613
+      }
+    }
+  ],
+  "assertions": {
+    "resultRaceButtonOpened": true,
+    "raceReadyWithTwoRacers": true,
+    "minimapRendered": true,
+    "speedControlSlowed": true,
+    "raceStarted": true,
+    "racerCardsShowProgress": true,
+    "progressUpdatesBetweenSamples": true,
+    "pausedKeepsRaceVisible": true
+  }
+}

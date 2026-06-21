@@ -14,7 +14,7 @@ from dataclasses import dataclass
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any, Callable, Iterable
 from urllib.parse import parse_qs, urlparse
 
 try:
@@ -174,16 +174,20 @@ class SearchEngine:
         try:
             with self.connect() as connection:
                 metadata = self.read_metadata(connection)
-                row_count = int_metadata(metadata, "row_count", self.count(connection, "places"))
-                populated_place_count = int_metadata(
+                row_count = int_metadata_or_count(
+                    metadata,
+                    "row_count",
+                    lambda: self.count(connection, "places"),
+                )
+                populated_place_count = int_metadata_or_count(
                     metadata,
                     "populated_place_count",
-                    self.count(connection, "places", "feature_class = 'P'"),
+                    lambda: self.count(connection, "places", "feature_class = 'P'"),
                 )
-                terrain_count = int_metadata(
+                terrain_count = int_metadata_or_count(
                     metadata,
                     "terrain_count",
-                    self.count(connection, "places", "feature_class = 'T'"),
+                    lambda: self.count(connection, "places", "feature_class = 'T'"),
                 )
             return {
                 "phase": READY_PHASE,
@@ -661,11 +665,11 @@ def source_build_date(metadata: dict[str, str]) -> str | None:
     return metadata_value(metadata, "build_time") or metadata_value(metadata, "source_all_countries_timestamp")
 
 
-def int_metadata(metadata: dict[str, str], key: str, fallback: int) -> int:
+def int_metadata_or_count(metadata: dict[str, str], key: str, count_fallback: Callable[[], int]) -> int:
     try:
         return int(metadata.get(key, ""))
-    except ValueError:
-        return fallback
+    except (TypeError, ValueError):
+        return count_fallback()
 
 
 def first_param(params: dict[str, list[str]], key: str, default: str = "") -> str:

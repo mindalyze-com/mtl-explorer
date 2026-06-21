@@ -1,0 +1,43 @@
+TRD_05 graph controls evidence
+
+Target detail:
+- Track: 100005 / Activity.fit
+- URL: http://188.245.169.80:18080/mtl/track/100005
+- Opened Graphs tab.
+
+Initial state:
+- Time and Distance axis buttons present.
+- Range button pressed.
+- Load fewer/more chart points buttons present.
+- Adjust chart point count slider aria-valuenow: 174.
+- Adjust graph height slider aria-valuenow: 240.
+- Charts showed range series and line series, e.g. Speed range with 345 data points and Speed line with 345 data points.
+
+Distance axis:
+- Clicked Distance.
+- Distance button became active.
+- Charts remained rendered with data series.
+
+Range toggle:
+- Clicked Range.
+- Range button no longer showed pressed state.
+- Charts changed from combination/range series to line-only charts, e.g. Speed line with 345 data points.
+
+Point-count controls:
+- Clicked Load fewer chart points.
+- Point slider changed 174 -> 169.
+- Chart data points dropped, e.g. Speed 345 -> 320 and Elevation 350 -> 325.
+- Clicked Load more chart points.
+- Point slider returned 169 -> 174.
+- Chart data points returned to Speed 345 and Elevation 350.
+
+Graph-height slider:
+- Pressed ArrowRight on Adjust graph height slider.
+- Height slider changed 240 -> 250.
+- Charts remained rendered with data points.
+
+Console note:
+- Browser log buffer still contained earlier restart/warmup warnings from MAP_13/MAP_15. No blank graph panel or layout breakage appeared during the control checks.
+
+Conclusion:
+TRD_05 passes. The x-axis, range, point-count, and graph-height controls updated graph state without layout breakage.

@@ -1,0 +1,30 @@
+LOC_04 boundary values evidence
+URL: http://178.104.209.132:18080/mtl/
+Locale: en-US
+API scan: {"trackCount":21,"minAltitudeNulls":0,"maxAltitudeNulls":0,"zeroDurations":15,"maxLength":594975.16,"slopeMinNegatives":[{"id":100001,"slopePercentageMin":-8.86},{"id":100002,"slopePercentageMin":-12.42},{"id":100000,"slopePercentageMin":-19.53},{"id":100025,"slopePercentageMin":-0.3},{"id":100005,"slopePercentageMin":-100.73}]}
+Null-elevation override changed: ascentInMeter=171, descentInMeter=0, minAltitude=900, maxAltitude=1071, elevationGainPerHour30sMax=0, elevationLossPerHour30sMax=0, energyGravitationalTotalWh=39.61, energyGravitationalDescentWh=0
+Stats table screenshot: LOC_04-boundary-stats-table.webp (73144 bytes, q=70)
+Negative slope screenshot: LOC_04-negative-slope-detail.webp (42076 bytes, q=70)
+Null elevation simulation screenshot: LOC_04-null-elevation-sim.webp (55894 bytes, q=70)
+
+Checks:
+- PASS Stats table shows zero durations as 0m 00s
+- PASS Stats table shows large values with locale formatting
+- PASS Stats table has no visible NaN/undefined/null
+- PASS Track 100005 shows negative descent slope
+- PASS Track 100005 zero/large metric fields are readable
+- PASS Track 100005 has no visible NaN/undefined/null
+- PASS API scan found no real null altitude fields in current tracks
+- PASS Null-elevation simulation route was applied
+- PASS Null-elevation simulation renders fallbacks instead of NaN/null
+
+Stats table boundary snippet:
+Summary 16 tracks / 1,588 km / 1d 01h; SYN_07 row Running 595 km 5h 33m 49,861 Wh; Track 100024 row Bicycle 3.97 km 0m 00s 44 Wh; multiple synthetic rows show 0m 00s and 0.0% without NaN/undefined/null.
+
+Negative slope detail snippet:
+TRACK DETAILS #100005 Walking 3D Replay Overview Graphs Quality Related Events Activity.fit 07/20/2021, 23:11 TRACK CONTROLS ACTIVITY TYPE Bicycle Walking Hiking Running Mountain biking Stand-up paddle Rowing Kayaking Skiing Motorbiking Car Airplane Supersonic STATISTICS Included in statistics Exclude: GPS noise Exclude: wrong activity Exclude: import artifact Exclude: other 3.60 km Distance 59m 59s Duration 1,667 m Ascent 3.6 km/h Avg Speed TIMING 59m 57s Moving 0m 00s Stopped 0 Stops SPEED 3.6 km/h Avg Speed 3.6 km/h Moving Avg 3.6 km/h Max 30s Speed ELEVATION 1,667 m Ascent 1,695 m Descent 3,919 m/h Max 30s Climb 3,898 m/h Max 30s Desc. 3 m Min Alt. 126 m Max Alt. 123 m Range 100.7% Max Slope -100.7% Max Desc. Slope ENERGY 346.7 Wh Net Total 702 W Avg Power 347 W Avg Moving Power 752 W Max 30s Power BREAKDOWN 346.7 Wh Gravitational ↑ 352.6 Wh Gravitational ↓ 0.0 Wh Aero Drag 0.0 Wh Rolling Resist. 0.0 Wh Kinetic (pos.) FITNESS 589 W Normalized Power EXPLORATION 100.0% New Territory 3.60 km Novel Distance 0.00 m Known Distance
+
+Null-elevation simulation snippet:
+TRACK DETAILS #100024 Bicycle 3D Replay Overview Graphs Quality Related Events SYN_04-synthetic-fit-20260621024711.fit 06/21/2026, 06:00 TRACK CONTROLS ACTIVITY TYPE Bicycle Walking Hiking Running Mountain biking Stand-up paddle Rowing Kayaking Skiing Motorbiking Car Airplane Supersonic STATISTICS Included in statistics Exclude: GPS noise Exclude: wrong activity Exclude: import artifact Exclude: other 3.97 km Distance 19m 00s Duration 0 m Ascent 12.5 km/h Avg Speed TIMING 0m 00s Moving 0m 00s Stopped 0 Stops SPEED 12.5 km/h Avg Speed ELEVATION 0 m Ascent 0 m Descent 0 m Min Alt. 0 m Max Alt. 0 m Range 0.0% Max Slope 0.0% Max Desc. Slope ENERGY 44.2 Wh Net Total 0 W Avg Power 0 W Max 30s Power BREAKDOWN 0.0 Wh Aero Drag 4.6 Wh Rolling Resist. 0.0 Wh Kinetic (pos.) EXPLORATION 100.0% New Territory 3.97 km Novel Distance 0.00 m Known Distance
+
+Console/page errors: console error: Failed to load resource: the server responded with a status of 404 () | console error: Failed to load resource: the server responded with a status of 404 ()

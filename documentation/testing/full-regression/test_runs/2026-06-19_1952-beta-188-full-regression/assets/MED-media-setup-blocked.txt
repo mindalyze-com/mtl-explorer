@@ -1,0 +1,29 @@
+Media setup availability check, 2026-06-19T22:36Z.
+
+Authenticated app/API access:
+- POST /mtl/api/auth/login with README credentials returned HTTP 200.
+- GET /mtl/api/media/get-media-with-location-info returned [].
+- GET /mtl/api/media/get-media-in-bounds?minLat=-90&minLng=-180&maxLat=90&maxLng=180 returned [].
+- POST /mtl/api/indexer/MEDIA/rescan returned HTTP 200:
+  {"index":"MEDIA","status":"STARTED","message":"Manual MEDIA rescan has been queued."}
+- After settling, GET /mtl/api/indexer/status still returned only the GPS indexer row:
+  [{"index":"GPS","total":24,"pending":0,"completed":14,"failed":0,"removed":10,"excluded":0,"progressPercent":58}]
+- After the rescan settled, media-with-location still returned [].
+
+Available app API paths:
+- /mtl/v3/api-docs exposes media read/content endpoints and GPX upload.
+- No media upload endpoint is exposed.
+
+Documented filesystem path:
+- docker-compose.yml mounts ./data/media to /app/media:ro.
+- documentation/home-install.md says to put geotagged photos/videos into ./data/media/.
+
+Filesystem access blocker:
+- RUN_SETUP rotated the expired temporary SSH password and did not store the new value in repo artifacts.
+- SSH with key-only auth failed.
+- SSH with the original temporary credential supplied for setup failed after rotation.
+- Without current SSH/filesystem access, this run cannot place synthetic geotagged JPEG/HEIC files in the watched data/media folder.
+
+Unblock path:
+- Provide the current root SSH credential, or another filesystem write path to /root/mtl-full-regression-2026-06-19_1952-beta-188-full-regression/data/media.
+- Then stage synthetic geotagged media, queue POST /mtl/api/indexer/MEDIA/rescan, wait for media records, and rerun MED_01-MED_05.

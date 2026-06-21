@@ -1,0 +1,44 @@
+TRD_10 activity type / energy recalculation evidence
+
+Track:
+- 100005 / Activity.fit
+
+Before UI change:
+- activityType: WALKING
+- activityTypeSource: AUTO_GUESS
+- energyNetTotalWh: 346.67
+- energyAeroDragTotalWh: 0.0
+- energyGravitationalTotalWh: 346.67
+- energyRollingResistanceTotalWh: 0.0
+
+UI action:
+- Opened /mtl/track/100005.
+- Activity type select was value WALKING.
+- Selected BICYCLE through the visible activity-type select.
+
+After selecting Bicycle:
+- UI select value: BICYCLE.
+- API activityType: BICYCLE
+- API activityTypeSource: USER_SET
+- API energyNetTotalWh: 395.1
+- API energyAeroDragTotalWh: 0.28
+- API energyGravitationalTotalWh: 392.89
+- API energyRollingResistanceTotalWh: 4.17
+
+Restore action:
+- Selected WALKING through the visible activity-type select.
+
+Final state:
+- UI select value: WALKING.
+- API activityType: WALKING
+- API activityTypeSource: USER_SET
+- API energyNetTotalWh: 346.67
+- API energyAeroDragTotalWh: 0.0
+- API energyGravitationalTotalWh: 346.67
+- API energyRollingResistanceTotalWh: 0.0
+
+Residual note:
+- The app/API exposes only a user-selected activity type update, not a reset-to-auto source control. The visible activity type and energy values were restored; activityTypeSource remains USER_SET.
+
+Conclusion:
+TRD_10 passes. Changing activity type via the UI saved successfully and recalculated energy values automatically.

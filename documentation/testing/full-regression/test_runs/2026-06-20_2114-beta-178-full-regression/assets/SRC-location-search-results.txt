@@ -1,0 +1,10 @@
+coverage=SRC_01-SRC_04
+status=PASS
+initialTrackCount=0 Tracks
+src01={"query":"Zurich","resultCount":20,"firstResult":"Zürich","trackCount":"10 Tracks","canvasCount":2}
+src02={"markerCount":1,"clearButtonCount":1,"markerRect":{"x":661,"y":416,"width":34,"height":34},"canvasRect":{"x":76,"y":0,"width":1204,"height":900},"trackCount":"10 Tracks","canvasCount":2}
+src03={"markerCount":0,"clearButtonCount":0,"trackCount":"10 Tracks","canvasCount":2}
+src04={"query":"qzzxqzzxqzzxqzzx","resultCount":0,"stateMessage":"No matches","markerCount":0,"trackCount":"10 Tracks"}
+assertions={"src01ResultsAppear":true,"src02MarkerPlaced":true,"src03MarkerCleared":true,"src04NoResults":true,"mapUsable":true,"pageErrors":0}
+networkErrors.sample=["401 http://178.104.209.132:18080/mtl/api/info/build","401 http://178.104.209.132:18080/mtl/api/info/build"]
+consoleMessages.sample=["error: Failed to load resource: the server responded with a status of 401 ()","error: Failed to load resource: the server responded with a status of 401 ()"]

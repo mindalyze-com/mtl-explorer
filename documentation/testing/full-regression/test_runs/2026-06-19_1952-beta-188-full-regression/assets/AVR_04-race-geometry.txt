@@ -1,0 +1,144 @@
+{
+  "segment": "A-B",
+  "triggerPoints": [
+    {
+      "name": "A",
+      "coordinate": {
+        "x": 8.5415,
+        "y": 47.3768
+      }
+    },
+    {
+      "name": "B",
+      "coordinate": {
+        "x": 8.5433,
+        "y": 47.378
+      }
+    }
+  ],
+  "radius": 200,
+  "ui": {
+    "ready": {
+      "racerPill": [
+        "2 racers"
+      ],
+      "speedInfo": [
+        "60s"
+      ],
+      "cards": [
+        "1synthetic-shared-zone-a.gpxBicycle01/01/2026, 13:00 0%",
+        "2synthetic-map09-cross-zone-c.gpxBicycle01/08/2021, 11:00 0% 00:00:04 3.8 km/h 4.31 m"
+      ],
+      "minimap": {
+        "w": 937,
+        "h": 638
+      },
+      "warnings": []
+    },
+    "running": {
+      "racerPill": [
+        "2 racers"
+      ],
+      "cards": [
+        "1synthetic-map09-cross-zone-c.gpxBicycle01/08/2021, 11:00 29% 1.26 m 00:00:04 3.8 km/h 4.31 m",
+        "2synthetic-shared-zone-a.gpxBicycle01/01/2026, 13:00 1% 63.49 m"
+      ],
+      "startIcon": "pause",
+      "minimap": {
+        "w": 937,
+        "h": 613
+      },
+      "warnings": []
+    }
+  },
+  "corridorBounds": {
+    "minLon": 8.5413,
+    "maxLon": 8.5435,
+    "minLat": 47.3766,
+    "maxLat": 47.3782
+  },
+  "combinedBounds": {
+    "minLon": 8.541500001454787,
+    "maxLon": 8.543299998442606,
+    "minLat": 47.37680000096986,
+    "maxLat": 47.377999998961734
+  },
+  "geometry": [
+    {
+      "trackId": "100021",
+      "name": "synthetic-shared-zone-a.gpx",
+      "pointCount": 4,
+      "pointIds": [
+        637009,
+        637010,
+        637011,
+        637012
+      ],
+      "first": {
+        "id": 637009,
+        "lon": 8.541500001454787,
+        "lat": 47.37680000096986
+      },
+      "last": {
+        "id": 637012,
+        "lon": 8.543299998442606,
+        "lat": 47.377999998961734
+      },
+      "bounds": {
+        "minLon": 8.541500001454787,
+        "maxLon": 8.543299998442606,
+        "minLat": 47.37680000096986,
+        "maxLat": 47.377999998961734
+      },
+      "spanLon": 0.0017999969878186306,
+      "spanLat": 0.0011999979918755344,
+      "maxStepDeg": 0.0007211176159515061,
+      "zeroLikeCount": 0,
+      "offContinentCount": 0,
+      "southAfricaLikeCount": 0
+    },
+    {
+      "trackId": "100023",
+      "name": "synthetic-map09-cross-zone-c.gpx",
+      "pointCount": 2,
+      "pointIds": [
+        637040,
+        637041
+      ],
+      "first": {
+        "id": 637040,
+        "lon": 8.542099996936628,
+        "lat": 47.37760000204225
+      },
+      "last": {
+        "id": 637041,
+        "lon": 8.542700003061233,
+        "lat": 47.37719999795918
+      },
+      "bounds": {
+        "minLon": 8.542099996936628,
+        "maxLon": 8.542700003061233,
+        "minLat": 47.37719999795918,
+        "maxLat": 47.37760000204225
+      },
+      "spanLon": 0.0006000061246052013,
+      "spanLat": 0.00040000408306894997,
+      "maxStepDeg": 0.0007211176159515061,
+      "zeroLikeCount": 0,
+      "offContinentCount": 0,
+      "southAfricaLikeCount": 0
+    }
+  ],
+  "assertions": {
+    "raceStartedWithTwoRacers": true,
+    "raceMinimapRendered": true,
+    "racerCardsShowLocalProgress": true,
+    "allSlicesHavePoints": true,
+    "combinedWithinZurichCorridor": true,
+    "localSpanOnly": true,
+    "noLargeJump": true,
+    "noZeroLikeCoordinates": true,
+    "noOffContinentOrSouthAfrica": true,
+    "noRaceWarnings": true
+  }
+}

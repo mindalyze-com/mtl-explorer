@@ -1,0 +1,26 @@
+# FMT_01 upload/index evidence
+
+Upload status endpoint: HTTP 200 {"available":true,"message":"Upload directory is available."}
+Poll elapsed seconds: 15
+
+| Ext | Local file | Upload HTTP | Saved name | Track ID | Load | Indexer | Points |
+|---|---|---:|---|---:|---|---|---:|
+| .gpx | fmt-synthetic-base.gpx | 200 | fmt-synthetic-base.gpx | 100006 | SUCCESS | COMPLETED_WITH_SUCCESS | 24 |
+| .tcx | fmt-synthetic.tcx | 200 | fmt-synthetic.tcx | 100007 | SUCCESS | COMPLETED_WITH_SUCCESS | 24 |
+| .kml | fmt-synthetic.kml | 200 | fmt-synthetic.kml | 100008 | SUCCESS | COMPLETED_WITH_SUCCESS | 24 |
+| .kmz | fmt-synthetic.kmz | 200 | fmt-synthetic.kmz | 100011 | SUCCESS | COMPLETED_WITH_SUCCESS | 24 |
+| .igc | fmt-synthetic.igc | 200 | fmt-synthetic.igc | 100009 | SUCCESS | COMPLETED_WITH_SUCCESS | 24 |
+| .nmea | fmt-synthetic.nmea | 200 | fmt-synthetic.nmea | 100010 | SUCCESS | COMPLETED_WITH_SUCCESS | 24 |
+| .geojson | fmt-synthetic.geojson | 200 | fmt-synthetic.geojson | 100012 | SUCCESS | COMPLETED_WITH_SUCCESS | 24 |
+| .gdb | fmt-synthetic.gdb | 200 | fmt-synthetic.gdb | 100013 | SUCCESS | COMPLETED_WITH_SUCCESS | 24 |
+
+Previously covered accepted format: .fit via Activity.fit in FIT_01/FIT_02.
+Indexer status summary:
+- GPS: total=14, pending=0, completed=12, failed=0, removed=2, progress=85
+- MEDIA: total=0, pending=0, completed=0, failed=0, removed=0, progress=100
+Jobs status summary:
+- duplicate: total=12, pending=8, done=4, progress=33
+- activityType: total=12, pending=8, done=4, progress=33
+- exploration: total=12, pending=8, done=4, progress=33
+
+Result: PASS

@@ -1,0 +1,12 @@
+TRD_13 related tracks evidence
+Track: 100009
+Status: PASS
+API previous IDs: 100005:Track #100005 | 100001:Vitry le françois - langres on GPSies.com | 100002:Moselradweg aus Wiki on GPSies.com | 100000:Jura Route 7 / 2011 on GPSies.com
+API next IDs: 100008:Path | 100011:Path | 100012:FMT synthetic regression track
+API duplicate IDs: 100007:FMT synthetic r | 100013:FMT synthetic regression track | 100010:Track #100010 | 100006:FMT synthetic regression track
+DOM before header=#100009; section headers=Previous Tracks4 / Next Tracks3 / Duplicates4
+DOM card counts: previous=4; next=3; duplicates=4
+Clicked first next row: target=100008; text=Path20 Jun 2026
+DOM after click: header=#100008; current=Current TrackPath20 Jun 2026
+Console counts: warnings=0; errors=2; pageErrors=0
+Screenshots: prevNext={"q":"76","resizeWidth":"1200","size":15702}; duplicates={"q":"76","resizeWidth":"1200","size":7610}; navigation={"q":"76","resizeWidth":"1200","size":40200}

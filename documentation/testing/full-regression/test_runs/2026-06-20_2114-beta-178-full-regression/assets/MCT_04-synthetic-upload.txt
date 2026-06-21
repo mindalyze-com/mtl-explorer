@@ -1,0 +1,26 @@
+# MCT_04 synthetic upload/import evidence
+
+Synthetic data only; no private/local GPX source used.
+Generated locally for this packet and uploaded through `/mtl/api/gpx-upload/upload`
+using the saved authenticated browser state.
+
+Files:
+- synthetic-mct04-shared-a.gpx: bytes=2688 sha256=5770135c8bc6c872c02c1241859f5d27c05f2c6656d6272a0d0bb4994cd34a03, curved diagonal west corridor
+- synthetic-mct04-shared-b.gpx: bytes=2588 sha256=9d96cf682eab2f5c8ad9380e9de8c16bc24fbce306416edc531779865ca0c80c, east detour between same A/B zones with sparse elevation
+
+Upload:
+- Upload status: HTTP 200, upload directory available.
+- synthetic-mct04-shared-a.gpx: HTTP 200, saved as synthetic-mct04-shared-a.gpx.
+- synthetic-mct04-shared-b.gpx: HTTP 200, saved as synthetic-mct04-shared-b.gpx.
+
+Indexed tracks:
+- id=100017 file=synthetic-mct04-shared-a.gpx load=SUCCESS indexer=COMPLETED_WITH_SUCCESS points=18
+- id=100018 file=synthetic-mct04-shared-b.gpx load=SUCCESS indexer=COMPLETED_WITH_SUCCESS points=18
+
+Stable prevalidation:
+- Trigger A: x=7.4200, y=46.9700
+- Trigger B: x=7.4900, y=47.0400
+- Radius: 700 m
+- Crossing API: HTTP 200, tracksPerZone A=2/B=2, segment A-B count=2, crossing tracks 100017 and 100018.
+
+Result: PASS

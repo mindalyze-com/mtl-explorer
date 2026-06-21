@@ -1152,8 +1152,7 @@ onUnmounted(() => {
   right: 0;
   height: 4.5rem;
   background: linear-gradient(to bottom, transparent 0%, var(--surface-glass-heavy) 60%);
-  pointer-events: auto;
-  cursor: pointer;
+  pointer-events: none;
   z-index: 1;
   display: flex;
   align-items: flex-end;
@@ -1166,6 +1165,8 @@ onUnmounted(() => {
   color: var(--text-secondary);
   animation: scroll-hint-bounce 1.6s ease-in-out infinite;
   opacity: 0.85;
+  pointer-events: auto;
+  cursor: pointer;
 }
 
 @keyframes scroll-hint-bounce {
@@ -1216,6 +1217,10 @@ onUnmounted(() => {
 
 /* ─── Desktop with nav panel: offset centering ─── */
 @media (min-width: 1024px) {
+  .sheet-backdrop {
+    left: var(--nav-panel-w, 64px);
+  }
+
   .sheet {
     left: var(--nav-panel-w, 64px);
     right: 0;

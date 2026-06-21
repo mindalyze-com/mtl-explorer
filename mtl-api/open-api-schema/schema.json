@@ -42,15 +42,24 @@
                 }
             }
         },
-        "/api/tracks/get-track-overview": {
+        "/api/tracks/get-track-statistics": {
             "post": {
                 "tags": [
                     "tracks-controller"
                 ],
-                "operationId": "getTrackOverview",
+                "operationId": "getTrackStatistics",
                 "parameters": [
                     {
-                        "name": "filterName",
+                        "name": "groupByDateFormat",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "default": "YYYY-MM"
+                        }
+                    },
+                    {
+                        "name": "filterValue",
                         "in": "query",
                         "required": false,
                         "schema": {
@@ -62,9 +71,46 @@
                     "content": {
                         "application/json": {
                             "schema": {
-                                "type": "object",
-                                "additionalProperties": {
-                                    "type": "string"
+                                "type": "array",
+                                "items": {
+                                    "type": "integer",
+                                    "format": "int64"
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/GpsTrackStatistics"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/tracks/get-track-overview": {
+            "post": {
+                "tags": [
+                    "tracks-controller"
+                ],
+                "operationId": "getTrackOverview",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "array",
+                                "items": {
+                                    "type": "integer",
+                                    "format": "int64"
                                 }
                             }
                         }
@@ -2894,428 +2940,6 @@
                                     "type": "array",
                                     "items": {
                                         "$ref": "#/components/schemas/GpsTrack"
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/api/tracks/get-track-statistics": {
-            "get": {
-                "tags": [
-                    "tracks-controller"
-                ],
-                "operationId": "getTrackStatistics",
-                "parameters": [
-                    {
-                        "name": "groupByDateFormat",
-                        "in": "query",
-                        "required": false,
-                        "schema": {
-                            "type": "string",
-                            "default": "YYYY-MM"
-                        }
-                    },
-                    {
-                        "name": "filterName",
-                        "in": "query",
-                        "required": false,
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "filterValue",
-                        "in": "query",
-                        "required": false,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "type": "object",
-                                "additionalProperties": {
-                                    "type": "string"
-                                }
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "content": {
-                            "*/*": {
-                                "schema": {
-                                    "type": "array",
-                                    "items": {
-                                        "$ref": "#/components/schemas/GpsTrackStatistics"
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            },
-            "put": {
-                "tags": [
-                    "tracks-controller"
-                ],
-                "operationId": "getTrackStatistics_2",
-                "parameters": [
-                    {
-                        "name": "groupByDateFormat",
-                        "in": "query",
-                        "required": false,
-                        "schema": {
-                            "type": "string",
-                            "default": "YYYY-MM"
-                        }
-                    },
-                    {
-                        "name": "filterName",
-                        "in": "query",
-                        "required": false,
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "filterValue",
-                        "in": "query",
-                        "required": false,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "type": "object",
-                                "additionalProperties": {
-                                    "type": "string"
-                                }
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "content": {
-                            "*/*": {
-                                "schema": {
-                                    "type": "array",
-                                    "items": {
-                                        "$ref": "#/components/schemas/GpsTrackStatistics"
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            },
-            "post": {
-                "tags": [
-                    "tracks-controller"
-                ],
-                "operationId": "getTrackStatistics_1",
-                "parameters": [
-                    {
-                        "name": "groupByDateFormat",
-                        "in": "query",
-                        "required": false,
-                        "schema": {
-                            "type": "string",
-                            "default": "YYYY-MM"
-                        }
-                    },
-                    {
-                        "name": "filterName",
-                        "in": "query",
-                        "required": false,
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "filterValue",
-                        "in": "query",
-                        "required": false,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "type": "object",
-                                "additionalProperties": {
-                                    "type": "string"
-                                }
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "content": {
-                            "*/*": {
-                                "schema": {
-                                    "type": "array",
-                                    "items": {
-                                        "$ref": "#/components/schemas/GpsTrackStatistics"
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            },
-            "delete": {
-                "tags": [
-                    "tracks-controller"
-                ],
-                "operationId": "getTrackStatistics_3",
-                "parameters": [
-                    {
-                        "name": "groupByDateFormat",
-                        "in": "query",
-                        "required": false,
-                        "schema": {
-                            "type": "string",
-                            "default": "YYYY-MM"
-                        }
-                    },
-                    {
-                        "name": "filterName",
-                        "in": "query",
-                        "required": false,
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "filterValue",
-                        "in": "query",
-                        "required": false,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "type": "object",
-                                "additionalProperties": {
-                                    "type": "string"
-                                }
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "content": {
-                            "*/*": {
-                                "schema": {
-                                    "type": "array",
-                                    "items": {
-                                        "$ref": "#/components/schemas/GpsTrackStatistics"
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            },
-            "options": {
-                "tags": [
-                    "tracks-controller"
-                ],
-                "operationId": "getTrackStatistics_6",
-                "parameters": [
-                    {
-                        "name": "groupByDateFormat",
-                        "in": "query",
-                        "required": false,
-                        "schema": {
-                            "type": "string",
-                            "default": "YYYY-MM"
-                        }
-                    },
-                    {
-                        "name": "filterName",
-                        "in": "query",
-                        "required": false,
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "filterValue",
-                        "in": "query",
-                        "required": false,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "type": "object",
-                                "additionalProperties": {
-                                    "type": "string"
-                                }
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "content": {
-                            "*/*": {
-                                "schema": {
-                                    "type": "array",
-                                    "items": {
-                                        "$ref": "#/components/schemas/GpsTrackStatistics"
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            },
-            "head": {
-                "tags": [
-                    "tracks-controller"
-                ],
-                "operationId": "getTrackStatistics_5",
-                "parameters": [
-                    {
-                        "name": "groupByDateFormat",
-                        "in": "query",
-                        "required": false,
-                        "schema": {
-                            "type": "string",
-                            "default": "YYYY-MM"
-                        }
-                    },
-                    {
-                        "name": "filterName",
-                        "in": "query",
-                        "required": false,
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "filterValue",
-                        "in": "query",
-                        "required": false,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "type": "object",
-                                "additionalProperties": {
-                                    "type": "string"
-                                }
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "content": {
-                            "*/*": {
-                                "schema": {
-                                    "type": "array",
-                                    "items": {
-                                        "$ref": "#/components/schemas/GpsTrackStatistics"
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            },
-            "patch": {
-                "tags": [
-                    "tracks-controller"
-                ],
-                "operationId": "getTrackStatistics_4",
-                "parameters": [
-                    {
-                        "name": "groupByDateFormat",
-                        "in": "query",
-                        "required": false,
-                        "schema": {
-                            "type": "string",
-                            "default": "YYYY-MM"
-                        }
-                    },
-                    {
-                        "name": "filterName",
-                        "in": "query",
-                        "required": false,
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "filterValue",
-                        "in": "query",
-                        "required": false,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "type": "object",
-                                "additionalProperties": {
-                                    "type": "string"
-                                }
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "content": {
-                            "*/*": {
-                                "schema": {
-                                    "type": "array",
-                                    "items": {
-                                        "$ref": "#/components/schemas/GpsTrackStatistics"
                                     }
                                 }
                             }
@@ -8579,7 +8203,11 @@
             "Envelope": {
                 "type": "object",
                 "properties": {
-                    "area": {
+                    "height": {
+                        "type": "number",
+                        "format": "double"
+                    },
+                    "width": {
                         "type": "number",
                         "format": "double"
                     },
@@ -8599,15 +8227,11 @@
                         "type": "number",
                         "format": "double"
                     },
+                    "area": {
+                        "type": "number",
+                        "format": "double"
+                    },
                     "diameter": {
-                        "type": "number",
-                        "format": "double"
-                    },
-                    "height": {
-                        "type": "number",
-                        "format": "double"
-                    },
-                    "width": {
                         "type": "number",
                         "format": "double"
                     },
@@ -8624,12 +8248,6 @@
                         "$ref": "#/components/schemas/GeometryFactory"
                     },
                     "userData": {},
-                    "simple": {
-                        "type": "boolean"
-                    },
-                    "coordinate": {
-                        "$ref": "#/components/schemas/Coordinate"
-                    },
                     "dimension": {
                         "type": "integer",
                         "format": "int32"
@@ -8644,22 +8262,8 @@
                     "geometryType": {
                         "type": "string"
                     },
-                    "numGeometries": {
-                        "type": "integer",
-                        "format": "int32"
-                    },
-                    "precisionModel": {
-                        "$ref": "#/components/schemas/PrecisionModel"
-                    },
-                    "rectangle": {
+                    "simple": {
                         "type": "boolean"
-                    },
-                    "area": {
-                        "type": "number",
-                        "format": "double"
-                    },
-                    "interiorPoint": {
-                        "$ref": "#/components/schemas/Point"
                     },
                     "numPoints": {
                         "type": "integer",
@@ -8679,6 +8283,26 @@
                         "$ref": "#/components/schemas/Envelope"
                     },
                     "centroid": {
+                        "$ref": "#/components/schemas/Point"
+                    },
+                    "coordinate": {
+                        "$ref": "#/components/schemas/Coordinate"
+                    },
+                    "numGeometries": {
+                        "type": "integer",
+                        "format": "int32"
+                    },
+                    "precisionModel": {
+                        "$ref": "#/components/schemas/PrecisionModel"
+                    },
+                    "rectangle": {
+                        "type": "boolean"
+                    },
+                    "area": {
+                        "type": "number",
+                        "format": "double"
+                    },
+                    "interiorPoint": {
                         "$ref": "#/components/schemas/Point"
                     },
                     "length": {
@@ -9272,9 +8896,6 @@
                         "$ref": "#/components/schemas/GeometryFactory"
                     },
                     "userData": {},
-                    "coordinate": {
-                        "$ref": "#/components/schemas/Coordinate"
-                    },
                     "dimension": {
                         "type": "integer",
                         "format": "int32"
@@ -9292,6 +8913,9 @@
                     "coordinateSequence": {
                         "$ref": "#/components/schemas/CoordinateSequence"
                     },
+                    "closed": {
+                        "type": "boolean"
+                    },
                     "numPoints": {
                         "type": "integer",
                         "format": "int32"
@@ -9302,6 +8926,9 @@
                             "$ref": "#/components/schemas/Coordinate"
                         }
                     },
+                    "coordinate": {
+                        "$ref": "#/components/schemas/Coordinate"
+                    },
                     "ring": {
                         "type": "boolean"
                     },
@@ -9310,9 +8937,6 @@
                     },
                     "endPoint": {
                         "$ref": "#/components/schemas/Point"
-                    },
-                    "closed": {
-                        "type": "boolean"
                     },
                     "length": {
                         "type": "number",
@@ -9323,6 +8947,16 @@
                     },
                     "simple": {
                         "type": "boolean"
+                    },
+                    "srid": {
+                        "type": "integer",
+                        "format": "int32"
+                    },
+                    "envelopeInternal": {
+                        "$ref": "#/components/schemas/Envelope"
+                    },
+                    "centroid": {
+                        "$ref": "#/components/schemas/Point"
                     },
                     "numGeometries": {
                         "type": "integer",
@@ -9339,16 +8973,6 @@
                         "format": "double"
                     },
                     "interiorPoint": {
-                        "$ref": "#/components/schemas/Point"
-                    },
-                    "srid": {
-                        "type": "integer",
-                        "format": "int32"
-                    },
-                    "envelopeInternal": {
-                        "$ref": "#/components/schemas/Envelope"
-                    },
-                    "centroid": {
                         "$ref": "#/components/schemas/Point"
                     },
                     "valid": {
@@ -9372,12 +8996,6 @@
                             "$ref": "#/components/schemas/Coordinate"
                         }
                     },
-                    "simple": {
-                        "type": "boolean"
-                    },
-                    "coordinate": {
-                        "$ref": "#/components/schemas/Coordinate"
-                    },
                     "dimension": {
                         "type": "integer",
                         "format": "int32"
@@ -9395,10 +9013,6 @@
                     "coordinateSequence": {
                         "$ref": "#/components/schemas/CoordinateSequence"
                     },
-                    "numPoints": {
-                        "type": "integer",
-                        "format": "int32"
-                    },
                     "x": {
                         "type": "number",
                         "format": "double"
@@ -9407,8 +9021,28 @@
                         "type": "number",
                         "format": "double"
                     },
+                    "simple": {
+                        "type": "boolean"
+                    },
+                    "numPoints": {
+                        "type": "integer",
+                        "format": "int32"
+                    },
+                    "coordinate": {
+                        "$ref": "#/components/schemas/Coordinate"
+                    },
                     "empty": {
                         "type": "boolean"
+                    },
+                    "srid": {
+                        "type": "integer",
+                        "format": "int32"
+                    },
+                    "envelopeInternal": {
+                        "$ref": "#/components/schemas/Envelope"
+                    },
+                    "centroid": {
+                        "$ref": "#/components/schemas/Point"
                     },
                     "numGeometries": {
                         "type": "integer",
@@ -9425,16 +9059,6 @@
                         "format": "double"
                     },
                     "interiorPoint": {
-                        "$ref": "#/components/schemas/Point"
-                    },
-                    "srid": {
-                        "type": "integer",
-                        "format": "int32"
-                    },
-                    "envelopeInternal": {
-                        "$ref": "#/components/schemas/Envelope"
-                    },
-                    "centroid": {
                         "$ref": "#/components/schemas/Point"
                     },
                     "length": {
@@ -9474,6 +9098,81 @@
                 }
             },
             "Type": {},
+            "GpsTrackStatistics": {
+                "type": "object",
+                "properties": {
+                    "groupBy": {
+                        "type": "string"
+                    },
+                    "subGroup": {
+                        "type": "string"
+                    },
+                    "daysWithActivities": {
+                        "type": "integer",
+                        "format": "int64"
+                    },
+                    "numberOfTracks": {
+                        "type": "integer",
+                        "format": "int64"
+                    },
+                    "totalTrackDurationSecs": {
+                        "type": "integer",
+                        "format": "int64"
+                    },
+                    "totalTrackDurationDays": {
+                        "type": "number",
+                        "format": "double"
+                    },
+                    "trackDurationSecsMed": {
+                        "type": "integer",
+                        "format": "int32"
+                    },
+                    "trackDurationSecsAvg": {
+                        "type": "integer",
+                        "format": "int32"
+                    },
+                    "trackLengthInMeterSum": {
+                        "type": "integer",
+                        "format": "int32"
+                    },
+                    "trackLengthInMeterMed": {
+                        "type": "integer",
+                        "format": "int32"
+                    },
+                    "trackLengthInMeterAvg": {
+                        "type": "integer",
+                        "format": "int32"
+                    },
+                    "distanceBetweenGpsPointsMed": {
+                        "type": "number",
+                        "format": "double"
+                    },
+                    "energyNetTotalWhSum": {
+                        "type": "number",
+                        "format": "double"
+                    },
+                    "powerWattsAvgMed": {
+                        "type": "number",
+                        "format": "double"
+                    },
+                    "normalizedPowerMed": {
+                        "type": "number",
+                        "format": "double"
+                    },
+                    "intensityIndexAvg": {
+                        "type": "number",
+                        "format": "double"
+                    },
+                    "trainingLoadPerRideAvg": {
+                        "type": "number",
+                        "format": "double"
+                    },
+                    "explorationScoreAvg": {
+                        "type": "number",
+                        "format": "double"
+                    }
+                }
+            },
             "ActivityBreakdown": {
                 "type": "object",
                 "properties": {
@@ -9614,6 +9313,10 @@
                         "format": "double"
                     },
                     "durationMs": {
+                        "type": "number",
+                        "format": "double"
+                    },
+                    "ascentM": {
                         "type": "number",
                         "format": "double"
                     },
@@ -10531,7 +10234,7 @@
                     },
                     "attribution": {
                         "type": "string",
-                        "example": "\u00a9 <a href=\"https://www.openstreetmap.org/copyright\">OpenStreetMap</a> contributors"
+                        "example": "© <a href=\"https://www.openstreetmap.org/copyright\">OpenStreetMap</a> contributors"
                     }
                 }
             },
@@ -11066,81 +10769,6 @@
                         "format": "double"
                     },
                     "powerWatts": {
-                        "type": "number",
-                        "format": "double"
-                    }
-                }
-            },
-            "GpsTrackStatistics": {
-                "type": "object",
-                "properties": {
-                    "groupBy": {
-                        "type": "string"
-                    },
-                    "subGroup": {
-                        "type": "string"
-                    },
-                    "daysWithActivities": {
-                        "type": "integer",
-                        "format": "int64"
-                    },
-                    "numberOfTracks": {
-                        "type": "integer",
-                        "format": "int64"
-                    },
-                    "totalTrackDurationSecs": {
-                        "type": "integer",
-                        "format": "int64"
-                    },
-                    "totalTrackDurationDays": {
-                        "type": "number",
-                        "format": "double"
-                    },
-                    "trackDurationSecsMed": {
-                        "type": "integer",
-                        "format": "int32"
-                    },
-                    "trackDurationSecsAvg": {
-                        "type": "integer",
-                        "format": "int32"
-                    },
-                    "trackLengthInMeterSum": {
-                        "type": "integer",
-                        "format": "int32"
-                    },
-                    "trackLengthInMeterMed": {
-                        "type": "integer",
-                        "format": "int32"
-                    },
-                    "trackLengthInMeterAvg": {
-                        "type": "integer",
-                        "format": "int32"
-                    },
-                    "distanceBetweenGpsPointsMed": {
-                        "type": "number",
-                        "format": "double"
-                    },
-                    "energyNetTotalWhSum": {
-                        "type": "number",
-                        "format": "double"
-                    },
-                    "powerWattsAvgMed": {
-                        "type": "number",
-                        "format": "double"
-                    },
-                    "normalizedPowerMed": {
-                        "type": "number",
-                        "format": "double"
-                    },
-                    "intensityIndexAvg": {
-                        "type": "number",
-                        "format": "double"
-                    },
-                    "trainingLoadPerRideAvg": {
-                        "type": "number",
-                        "format": "double"
-                    },
-                    "explorationScoreAvg": {
                         "type": "number",
                         "format": "double"
                     }

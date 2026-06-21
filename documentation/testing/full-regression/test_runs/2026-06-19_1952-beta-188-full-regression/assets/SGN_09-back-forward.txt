@@ -1,0 +1,24 @@
+SGN_09 browser back/forward evidence
+
+Clean sequence:
+1. Open fresh tab at http://188.245.169.80:18080/mtl/
+   - URL: /mtl/
+   - DOM: 11 Tracks; map region; nav buttons Stats, Filter, Map.
+2. Click Stats.
+   - URL: /mtl/stats
+   - DOM: 11 Tracks; button "Stats" active.
+3. Click Filter.
+   - URL: /mtl/filter
+   - DOM: 11 Tracks; button "Filter" active; heading "Filtering is off".
+4. Browser Back.
+   - URL changed to /mtl/stats.
+   - DOM still showed button "Filter" active.
+   - DOM still lacked restored Stats active state/content in the captured key lines.
+5. Browser Forward.
+   - URL changed back to /mtl/filter.
+   - DOM showed Filter active and heading "Filtering is off".
+
+Console warnings/errors captured from the tab: none.
+
+Conclusion:
+SGN_09 fails. Browser forward from stats to filter worked, but browser Back from Filter to Stats left the UI in the Filter view while the address bar showed /mtl/stats.

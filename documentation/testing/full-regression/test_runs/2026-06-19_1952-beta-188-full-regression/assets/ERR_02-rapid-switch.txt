@@ -1,0 +1,9 @@
+ERR_02 rapid switching evidence
+Sequence: Stats -> Filter -> Map -> Animate -> Segments -> Planner -> Admin -> Stats -> Map -> Filter -> Planner -> Animate -> Segments -> Admin
+Visited states: Stats@stats:sheets=1; Filter@filter:sheets=1; Map@map-settings:sheets=1; Animate@animate:sheets=1; Segments@segments:sheets=1; Planner@plan:sheets=1; Admin@admin:sheets=1; Stats@stats:sheets=1; Map@map-settings:sheets=1; Filter@filter:sheets=1; Planner@plan:sheets=1; Animate@animate:sheets=1; Segments@segments:sheets=1; Admin@admin:sheets=1
+Final URL: http://188.245.169.80:18080/mtl/
+Final state: trackText=16 Tracks, activeSheets=0, dialogs=0, canvas=true, cursor=auto
+Leftover markers/listeners/tool DOM flags: {"geoDrawToolbar":false,"measureResults":false,"plannerShell":false,"animateSheet":false,"adminWorkspace":false,"statsRoot":false,"filterRoot":true,"locationMarker":false}. The Filter component root remains mounted but not visible; no Filter sheet or toolbar text remained in the body sample.
+Body sample: 500 km © OpenStreetMap | Elevation: Mapterhorn 16 Tracks Stats Filter Map Animate Segments GPS Planner Admin
+Console events: error: Failed to load resource: the server responded with a status of 401 () | error: Failed to load resource: the server responded with a status of 401 ()
+Result: PASS. Rapid switching did not leave visible stale sheets/toolbars/markers/cursors; map remained usable.

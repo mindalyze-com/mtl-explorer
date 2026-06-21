@@ -1,0 +1,8 @@
+NET_03 auth failure redirect evidence
+Before invalid token: {"url":"http://188.245.169.80:18080/mtl/","tokenBefore":true,"trackText":"16 Tracks"}
+Action: replaced localStorage mtl.jwt with invalid-token-for-net-03 and reloaded /mtl/.
+After URL: http://188.245.169.80:18080/mtl/login?reason=expired
+Login form visible: true
+Token after redirect: null
+Visible text sample: © Patrick Heusser AGPL-3.0 Sign In
+Result: PASS. Invalid/expired session redirected to login with reason=expired and cleared the bad token.

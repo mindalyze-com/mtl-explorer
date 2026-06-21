@@ -182,35 +182,37 @@
     </transition>
 
     <!-- ─── Data freshness banner ─── -->
-    <transition name="fade">
-      <div v-if="showDataFreshnessBanner" class="mtl-data-freshness">
-        <div class="mtl-data-freshness__content">
-          <i class="bi bi-arrow-repeat"></i>
-          <div class="mtl-data-freshness__text">
-            <div class="mtl-data-freshness__title">New data available</div>
-            <div class="mtl-data-freshness__detail">Tracks, media, or settings changed since this view loaded.</div>
+    <Teleport to="body">
+      <transition name="fade">
+        <div v-if="showDataFreshnessBanner" class="mtl-data-freshness">
+          <div class="mtl-data-freshness__content">
+            <i class="bi bi-arrow-repeat"></i>
+            <div class="mtl-data-freshness__text">
+              <div class="mtl-data-freshness__title">New data available</div>
+              <div class="mtl-data-freshness__detail">Tracks, media, or settings changed since this view loaded.</div>
+            </div>
+          </div>
+          <div class="mtl-data-freshness__actions">
+            <button
+              class="mtl-data-freshness__btn mtl-data-freshness__btn--primary"
+              :disabled="freshnessReloading"
+              @click="onMapFreshnessBrowserReload"
+            >
+              <i class="bi bi-arrow-clockwise"></i>
+              <span>Reload</span>
+            </button>
+            <button
+              type="button"
+              class="mtl-data-freshness__btn"
+              :disabled="freshnessReloading"
+              @click="onDataFreshnessDismiss(serverFreshnessToken)"
+            >
+              Dismiss
+            </button>
           </div>
         </div>
-        <div class="mtl-data-freshness__actions">
-          <button
-            class="mtl-data-freshness__btn mtl-data-freshness__btn--primary"
-            :disabled="freshnessReloading"
-            @click="onMapFreshnessBrowserReload"
-          >
-            <i class="bi bi-arrow-clockwise"></i>
-            <span>Reload</span>
-          </button>
-          <button
-            type="button"
-            class="mtl-data-freshness__btn"
-            :disabled="freshnessReloading"
-            @click="onDataFreshnessDismiss(serverFreshnessToken)"
-          >
-            Dismiss
-          </button>
-        </div>
-      </div>
-    </transition>
+      </transition>
+    </Teleport>
 
     <!-- ─── Track details bottom sheet ─── -->
     <BottomSheet
@@ -357,8 +359,17 @@
       v-if="swissMobilityPopup.visible"
       class="swiss-mobility-popup"
       :style="{ left: swissMobilityPopup.pos.x + 'px', top: swissMobilityPopup.pos.y + 'px' }"
+      @click.stop
     >
-      <div class="swiss-mobility-popup-close" @click="closeSwissMobilityPopup">&times;</div>
+      <button
+        class="swiss-mobility-popup-close"
+        type="button"
+        aria-label="Close nearby routes popup"
+        title="Close"
+        @click.stop="closeSwissMobilityPopup"
+      >
+        <i class="bi bi-x-lg" aria-hidden="true"></i>
+      </button>
       <div class="swiss-mobility-popup-header"><i class="bi bi-signpost-split"></i> Nearby Routes</div>
       <ul class="swiss-mobility-route-list">
         <li v-for="(mobilityRoute, i) in swissMobilityPopup.routes" :key="i" class="swiss-mobility-route-item">
@@ -462,6 +473,7 @@ const {
   showLoader,
   loadingTrackBatches,
   loadingTracks10m,
+  initialLoadDone,
   mapThemesForPanel,
   mapThemeSelected,
   mapSourceMode,
@@ -599,6 +611,24 @@ const {
   adminTool,
 });
 
+let tracksReadyEmitted = false;
+
+function emitTracksReadyOnce() {
+  if (tracksReadyEmitted) return;
+  tracksReadyEmitted = true;
+  emit('tracks-loaded');
+}
+
+watch(
+  [initialLoadDone, visibleTrackCount, totalTrackCount],
+  ([_isInitialLoadDone, visibleCount, totalCount]) => {
+    if (visibleCount > 0 || totalCount > 0) {
+      emitTracksReadyOnce();
+    }
+  },
+  { immediate: true }
+);
+
 const TOOL_ROUTE_NAMES: Record<string, string> = {
   stats: 'stats',
   filter: 'filter',
@@ -690,6 +720,11 @@ watch([trackDetailsVisible, trackDetailsId], ([visible, id]) => {
 }
 
 .container {
+  --mtl-location-search-fab-size: 3rem;
+  --mtl-map-attribution-strip-h: 0.85rem;
+  --mtl-map-attribution-bottom-gap: 0px;
+  --mtl-location-search-bottom-gap: 0.4rem;
+
   display: flex;
   flex: 1 1 auto;
   min-height: 0;
@@ -732,6 +767,41 @@ watch([trackDetailsVisible, trackDetailsId], ([visible, id]) => {
 
 .map-base :deep(.maplibregl-control-container) {
   display: none;
+}
+
+.map-overlay :deep(.maplibregl-ctrl-bottom-right) {
+  right: 0;
+  bottom: calc(var(--nav-sheet-h, 0px) + var(--safe-bottom, 0px));
+}
+
+.map-overlay :deep(.maplibregl-ctrl-bottom-right .maplibregl-ctrl) {
+  margin: 0 var(--mtl-map-attribution-bottom-gap) var(--mtl-map-attribution-bottom-gap) 0;
+}
+
+.map-overlay :deep(.maplibregl-ctrl-attrib) {
+  max-width: min(80vw, 34rem);
+  min-height: 0;
+  overflow: hidden;
+  padding: 0 0.32rem;
+  border-radius: 2px;
+  background: rgba(15, 23, 42, 0.48);
+  box-shadow: none;
+  color: rgba(248, 250, 252, 0.68);
+  font-size: 0.58rem;
+  font-weight: 400;
+  line-height: var(--mtl-map-attribution-strip-h);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.map-overlay :deep(.maplibregl-ctrl-attrib a) {
+  color: inherit;
+  text-decoration: none;
+}
+
+.map-overlay :deep(.maplibregl-ctrl-attrib a:hover) {
+  color: rgba(248, 250, 252, 0.88);
+  text-decoration: underline;
 }
 
 /* ─── Custom map control buttons ─── */
@@ -869,12 +939,15 @@ watch([trackDetailsVisible, trackDetailsId], ([visible, id]) => {
   position: fixed;
   z-index: var(--z-map-overlay-raised);
   right: calc(0.85rem + var(--safe-right, 0px));
-  bottom: calc(var(--nav-sheet-h, 92px) + 0.95rem + var(--safe-bottom, 0px));
+  bottom: calc(
+    var(--nav-sheet-h, 92px) + var(--safe-bottom, 0px) + var(--mtl-map-attribution-strip-h) +
+      var(--mtl-map-attribution-bottom-gap) + var(--mtl-location-search-bottom-gap)
+  );
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 3rem;
-  height: 3rem;
+  width: var(--mtl-location-search-fab-size);
+  height: var(--mtl-location-search-fab-size);
   border: 1px solid var(--border-medium);
   border-radius: 50%;
   background: var(--surface-glass-light);
@@ -901,8 +974,8 @@ watch([trackDetailsVisible, trackDetailsId], ([visible, id]) => {
 }
 
 @media (min-width: 1024px) {
-  .mtl-location-search-fab {
-    bottom: calc(1.2rem + var(--safe-bottom, 0px));
+  .container {
+    --mtl-location-search-bottom-gap: 0.55rem;
   }
 }
 
@@ -1020,7 +1093,7 @@ watch([trackDetailsVisible, trackDetailsId], ([visible, id]) => {
 /* ─── Data freshness banner ─── */
 .mtl-data-freshness {
   position: fixed;
-  z-index: var(--z-map-overlay);
+  z-index: var(--z-freshness-banner);
   left: 50%;
   bottom: calc(var(--nav-sheet-h, 92px) + 0.8rem + var(--safe-bottom, 0px));
   transform: translateX(-50%);
@@ -1298,20 +1371,37 @@ watch([trackDetailsVisible, trackDetailsId], ([visible, id]) => {
   border: 1px solid var(--border-medium);
   border-radius: 0.75rem;
   box-shadow: var(--shadow-lg);
-  max-width: 300px;
-  min-width: 180px;
+  width: min(300px, calc(100% - 24px));
+  min-width: min(180px, calc(100% - 24px));
+  max-height: min(28rem, calc(100% - 24px));
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 .swiss-mobility-popup-close {
   position: absolute;
-  top: 4px;
-  right: 8px;
+  top: 0.25rem;
+  right: 0.35rem;
+  width: 1.75rem;
+  height: 1.75rem;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
   cursor: pointer;
-  font-size: var(--text-lg-size);
+  font-size: var(--text-xs-size);
   color: var(--text-muted);
   z-index: 1;
-  transition: color 0.15s;
+  transition:
+    background 0.15s,
+    color 0.15s;
 }
-.swiss-mobility-popup-close:hover {
+.swiss-mobility-popup-close:hover,
+.swiss-mobility-popup-close:focus-visible {
+  background: var(--surface-hover);
   color: var(--text-primary);
 }
 .swiss-mobility-popup-header {
@@ -1320,13 +1410,15 @@ watch([trackDetailsVisible, trackDetailsId], ([visible, id]) => {
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: var(--text-faint);
-  padding: 0.4rem 0.85rem 0.3rem;
+  padding: 0.4rem 2.6rem 0.3rem 0.85rem;
   border-bottom: 1px solid var(--border-subtle);
 }
 .swiss-mobility-route-list {
   list-style: none;
   margin: 0;
   padding: 0;
+  min-height: 0;
+  overflow-y: auto;
 }
 .swiss-mobility-route-item {
   display: flex;

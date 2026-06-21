@@ -1,0 +1,40 @@
+TRD_14 event tab evidence
+
+API event scan:
+- Current authenticated track count: 14.
+- Tracks with detected events:
+  - 100002: 1 event, STOP / DETECTED, SHORT_STOP, duration 63s.
+  - 100003: 1 event, STOP / DETECTED, SHORT_STOP, duration 73s.
+  - 100004: 1 event, STOP / DETECTED, LONG_BREAK, duration 745s.
+
+Track tested:
+- URL: http://188.245.169.80:18080/mtl/track/100004
+
+Events tab visible state:
+- TRACK DETAILS #100004
+- Events tab selected.
+- Mini-map wrapper rendered above the tabs.
+- Mini-map event overlay button active with count 1.
+- Events panel showed:
+  - 1 break
+  - Longest 12m 25s
+  - Break 1
+  - 8 Mar 2013, 12:15 - 12:27
+  - GPS GAP
+  - Duration 12m 25s
+  - Position 1.84 km - 1.86 km
+  - Low-displacement GPS recording gap: distance=14.5m, impliedSpeed=0.07 km/h
+
+Selection behavior:
+- Before click: event row class was `event-row event-row--break event-row--longest event-row--selectable`; aria-pressed=false.
+- First click: event row class became `event-row event-row--break event-row--longest event-row--selected event-row--selectable`; aria-pressed=true; outline became solid 2px.
+- Second click: event row class returned to `event-row event-row--break event-row--longest event-row--selectable`; aria-pressed=false.
+
+Blocked visual sub-check:
+- The selected mini-map highlight is canvas-rendered.
+- Browser screenshot capture timed out on Page.captureScreenshot.
+- Direct mini-map canvas readback was unavailable in this browser context (`canvas.toDataURL is not a function`).
+- The mini-map highlight position could not be directly verified as pixels/layers in this run.
+
+State left:
+- Event row deselected on Track #100004.

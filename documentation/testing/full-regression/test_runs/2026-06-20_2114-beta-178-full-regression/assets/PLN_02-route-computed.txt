@@ -1,0 +1,34 @@
+Status: PASS
+Warning before extra zoom: false
+Clicked points: (622,162) and (826,180)
+Route API success: true
+Route API responses: 200:{"legs":[{"coordinates":[[3.482038,28.304204,593.75],[3.481623,28.304045,592.0],[3.481379,28.303967,591.25],[3.481266,28
+Live stats match: DISTANCE 491.75 km ASCENT 678 m DESCENT 947 m DURATION 23h 28m LEGS 1
+Distance km: 491.75
+Legs: 1
+Route error notice visible: false
+Page errors: 0
+Console messages captured: 17
+
+Planner text sample:
+10 km © OpenStreetMap 8 Tracks Stats Filter Map Animate Segments GPS Planner Admin Drawing Load Hiking Tap the map to add waypoints. Drag to adjust. DISTANCE 491.75 km ASCENT 678 m DESCENT 947 m DURATION 23h 28m LEGS 1 Chart Chart with 2524 data points. The chart has 1 X axis displaying values. Data ranges from -4.91748 to 491.748. The chart has 1 Y axis displaying values. Data ranges from 359 to 700.75. 0 km 50 km 100 km 150 km 200 km 250 km 300 km 350 km 400 km 450 km 300 350 400 450 500 550 600 650 700 750 m End of interactive chart.
+
+Page errors detail:
+(none)
+
+Console messages detail:
+log: Filter (main) mounted.
+log: fetch filters from server
+info: [track-cache] sync 10m: fetching 8/8 tracks in 1 batches {precision: 10, totalTracks: 8, cachedTracks: 0, staleOrMissingTracks: 8, staleGeometryCleared: 8}
+log: [tracks] Map layers rebuilt {durationMs: 7, trackCount: 8, overviewDotCount: 8, hasPalette: false, legendGroupCount: 0}
+info: [track-cache] sync 10m complete {precision: 10, totalTracks: 8, fetchedTracks: 8, cachedTracks: 0, batches: 1}
+log: Downloading low-zoom PMTiles from /mtl/api/map-proxy/prod/world-lowzoom.pmtiles?mtl-map-source=public&mtl-map-archive=public-default … (IndexedDB fallback)
+log: Low-zoom PMTiles cached successfully (IndexedDB, 42.4 MB)
+error: Failed to load resource: the server responded with a status of 404 ()
+log: [zoom] 4.113 | mercator
+log: [zoom] 4.941 | mercator
+log: [zoom] 5.781 | mercator
+log: [zoom] 6.605 | mercator
+log: [zoom] 7.447 | mercator
+log: [zoom] 8.447 | mercator
+info: [planner] Viewport prewarm: 300km side → bbox=[2.38,26.70,5.43,29.39]

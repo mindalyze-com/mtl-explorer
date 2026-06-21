@@ -25,6 +25,7 @@ import { collectStyleAttributions, resolveConfiguredMapStyle } from '@/component
 import { ensureLowZoomCached, loadLowZoomFromCache } from '@/utils/lowZoomCacheService';
 import { describeError, startStartupTimer, startupLog, startupWarn } from '@/utils/startupDiagnostics';
 import { ensurePMTilesProtocol, registerCachingPMTilesArchive } from '@/utils/maplibrePmtilesProtocol';
+import { configureExternalAttributionLinks } from '@/utils/externalAttributionLinks';
 import type { MapControllerMethodDefinitions, MapRendererLifecycleMethods } from './mapControllerRuntime';
 
 const GLOBE_ENTER_ZOOM = 3;
@@ -40,6 +41,16 @@ const MAP_STATUS_POLL_INTERVAL_MS = 5000;
 const MAP_STATUS_POLL_TIMEOUT_MS = 8000;
 const LOCAL_VECTOR_STYLE_MODE = 'local-vector';
 const LOCAL_VECTOR_SOURCE_ID = 'protomaps';
+const MAPTERHORN_ATTRIBUTION_PATTERN = /mapterhorn/i;
+
+function warnExternalAttributionBlocked(toast: unknown, url: string) {
+  toast?.add?.({
+    severity: 'warn',
+    summary: 'External link blocked',
+    detail: `Open this link in your browser: ${url}`,
+    life: 7000,
+  });
+}
 
 let runtimeRasterFallbackLoggedThisSession = false;
 function initialBoundsFromConfig(bounds: any) {
@@ -157,6 +168,8 @@ export function useMapRendererLifecycle(
 
     setOverlayAttributionControl(attributions) {
       if (!this.overlayMap) return;
+      this._attributionLinkCleanup?.();
+      this._attributionLinkCleanup = null;
       if (this._attributionControl && typeof this.overlayMap.removeControl === 'function') {
         try {
           this.overlayMap.removeControl(this._attributionControl);
@@ -164,14 +177,26 @@ export function useMapRendererLifecycle(
           // The overlay map may already be tearing down during a reload.
         }
       }
-      const customAttribution = Array.isArray(attributions) && attributions.length > 0 ? attributions : undefined;
+      const visibleAttributions = Array.isArray(attributions)
+        ? attributions.filter((attribution) => !MAPTERHORN_ATTRIBUTION_PATTERN.test(attribution))
+        : [];
+      const customAttribution = visibleAttributions.length > 0 ? visibleAttributions : undefined;
       this._attributionControl = markRaw(
         new maplibregl.AttributionControl({
-          compact: true,
+          compact: false,
           customAttribution,
         })
       );
       this.overlayMap.addControl(this._attributionControl, 'bottom-right');
+      const attributionLinkContainer =
+        typeof this.overlayMap.getContainer === 'function'
+          ? this.overlayMap.getContainer()
+          : this.$refs.mapOverlayContainer;
+      this._attributionLinkCleanup = markRaw(
+        configureExternalAttributionLinks(attributionLinkContainer, {
+          onBlocked: (url) => warnExternalAttributionBlocked(this.$toast, url),
+        })
+      );
     },
 
     async handleMapArchiveStale(event) {
@@ -307,6 +332,8 @@ export function useMapRendererLifecycle(
       // Tear down previous maps
       if (this.overlayMap) {
         this.detachTrackPointLayerHandlers();
+        this._attributionLinkCleanup?.();
+        this._attributionLinkCleanup = null;
         this.overlayMap.remove();
         this.overlayMap = undefined;
         this._terrainControl = null;

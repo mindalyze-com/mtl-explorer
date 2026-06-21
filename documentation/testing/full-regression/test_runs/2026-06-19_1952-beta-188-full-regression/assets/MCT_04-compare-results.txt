@@ -1,0 +1,101 @@
+{
+  "note": "UI Analyze used a route-fulfilled copy of this same prevalidated backend response to avoid brittle main-map pixel targeting; Compare/sub-track rendering used live UI and live sub-track API fetches.",
+  "prevalidatedMeasureResponse": {
+    "ids": [
+      "100021",
+      "100023"
+    ],
+    "names": {
+      "100021": "synthetic-shared-zone-a.gpx",
+      "100023": "synthetic-map09-cross-zone-c.gpx"
+    },
+    "crossingCounts": {
+      "100021": 2,
+      "100023": 2
+    },
+    "tracksPerZone": {
+      "A": 2,
+      "B": 2
+    },
+    "segmentsStats": [
+      {
+        "point1": "A",
+        "point2": "B",
+        "label": "A-B",
+        "count": 2,
+        "timeDelta": 4.077
+      }
+    ],
+    "triggerPoints": [
+      {
+        "name": "A",
+        "coordinate": {
+          "x": 8.5415,
+          "y": 47.3768
+        }
+      },
+      {
+        "name": "B",
+        "coordinate": {
+          "x": 8.5433,
+          "y": 47.378
+        }
+      }
+    ],
+    "radius": 200
+  },
+  "resultRows": [
+    "synthetic-shared-zone-a.gpx01/01/2026, 13:003m 00s0.00",
+    "synthetic-map09-cross-zone-c.gpx01/08/2021, 11:003m 00s3.81"
+  ],
+  "selectedTracksPill": [
+    "2 / 2tracks"
+  ],
+  "compareRacerCards": [
+    "synthetic-shared-zone-a.gpxBicycle01/01/2026, 13:00 00:03:00 0.0 km/h 0.00 km 0 W",
+    "synthetic-map09-cross-zone-c.gpxBicycle01/08/2021, 11:00 00:00:04 3.8 km/h 0.00 km"
+  ],
+  "segmentAndMetricChips": [
+    "A-B",
+    "Distance",
+    "Time",
+    "Speed",
+    "Altitude",
+    "Est. Power",
+    "Mechanical Energy (rebased)",
+    "Slope",
+    "Pacing — time over distance",
+    "Time gap vs. reference"
+  ],
+  "minimapCanvases": [
+    {
+      "cls": "maplibregl-canvas",
+      "x": 290.59375,
+      "y": 442.921875,
+      "w": 935,
+      "h": 258
+    }
+  ],
+  "chartCount": 3,
+  "chartSummaries": [
+    "Created with Highcharts 12.6.0Speed (km/h)A - B2025012345",
+    "Created with Highcharts 12.6.00 km0 km0 km0.1 km0.1 km0.1 km0.1 km0.1 km0.2 km0.2 km",
+    "Created with Highcharts 12.6.00 km0 km0 km0.1 km0.1 km0.1 km0.1 km0.1 km0.2 km0.2 km412414416418420 m"
+  ],
+  "warnings": [],
+  "subTrackRequests": [
+    "/mtl/api/tracks/details/get-sub-track?trackDataPointFrom=637009&trackDataPointTo=637012",
+    "/mtl/api/tracks/details/get-sub-track?trackDataPointFrom=637040&trackDataPointTo=637041",
+    "/mtl/api/tracks/details/get-sub-track?trackDataPointFrom=637009&trackDataPointTo=637012",
+    "/mtl/api/tracks/details/get-sub-track?trackDataPointFrom=637040&trackDataPointTo=637041"
+  ],
+  "assertions": {
+    "atLeastTwoCrossingTracks": true,
+    "resultRowsVisible": true,
+    "compareOpened": true,
+    "minimapRendered": true,
+    "chartsRendered": true,
+    "subTracksFetched": true,
+    "noNoDataPlaceholder": true
+  }
+}

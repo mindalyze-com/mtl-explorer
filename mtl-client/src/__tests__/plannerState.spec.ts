@@ -160,4 +160,29 @@ describe('usePlannerState', () => {
     expect(planner.lastError.value).not.toBe('segment-downloading');
     infoSpy.mockRestore();
   });
+
+  it('clears segment-downloading route errors when clearing the route', async () => {
+    vi.useFakeTimers();
+    const infoSpy = vi.spyOn(console, 'info').mockImplementation(() => {});
+    computeRouteMock.mockRejectedValueOnce({
+      response: {
+        data: {
+          error: 'segment-downloading',
+          detail: 'Routing data for this area is being downloaded. Please retry in about 30 seconds.',
+        },
+      },
+    });
+    const planner = usePlannerState();
+    planner.setViewport(47, 8, 47.1, 8.1);
+    planner.addWaypoint(47, 8);
+    planner.addWaypoint(47.02, 8.02);
+    await planner.recomputeNow();
+
+    planner.clearAll();
+
+    expect(planner.waypoints.value).toEqual([]);
+    expect(planner.lastError.value).toBeNull();
+    expect(planner.computing.value).toBe(false);
+    infoSpy.mockRestore();
+  });
 });

@@ -8,17 +8,49 @@
 import { layers, LIGHT, DARK, GRAYSCALE, type Flavor } from '@protomaps/basemaps';
 import type { RasterDEMSourceSpecification, StyleSpecification } from 'maplibre-gl';
 
-export type MapTheme = 'light' | 'dark' | 'grayscale' | 'light-topo' | 'swisstopo' | 'swisstopo-color';
+export type MapTheme =
+  | 'light'
+  | 'dark'
+  | 'grayscale'
+  | 'light-topo'
+  | 'topo-contrast'
+  | 'swisstopo'
+  | 'swisstopo-color';
 
-type ProtomapsTheme = 'light' | 'dark' | 'grayscale';
+export const TOPO_CONTRAST_THEME: MapTheme = 'topo-contrast';
+
+const MAP_THEME_CODES = new Set<string>([
+  'light',
+  'dark',
+  'grayscale',
+  'light-topo',
+  TOPO_CONTRAST_THEME,
+  'swisstopo',
+  'swisstopo-color',
+]);
+
+export function normalizeMapTheme(theme: unknown, fallback: MapTheme = 'light'): MapTheme {
+  if (typeof theme !== 'string') return fallback;
+  const trimmedTheme = theme.trim();
+  return MAP_THEME_CODES.has(trimmedTheme) ? (trimmedTheme as MapTheme) : fallback;
+}
 
 interface LocalVectorStyleOptions {
   hillshade?: boolean;
 }
 
+type StyleLayer = Omit<StyleSpecification['layers'][number], 'layout' | 'paint'> & {
+  filter?: unknown;
+  layout?: Record<string, unknown>;
+  paint?: Record<string, unknown>;
+  'source-layer'?: string;
+};
+
 export const TERRAIN_DEM_SOURCE_ID = 'terrain-dem';
 export const MAPTERHORN_TERRAIN_TILEJSON_URL = 'https://tiles.mapterhorn.com/tilejson.json';
 export const TERRAIN_HILLSHADE_LAYER_ID = 'terrain-hillshade';
+export const TOPO_CONTRAST_URBAN_AREA_LAYER_ID = 'topo-contrast-urban-area';
+export const TOPO_CONTRAST_URBAN_LANDUSE_LAYER_ID = 'topo-contrast-urban-landuse';
 
 export function createTerrainDemSource(): RasterDEMSourceSpecification {
   return {
@@ -31,16 +63,155 @@ export function createTerrainDemSource(): RasterDEMSourceSpecification {
   };
 }
 
-// Maps topo-enhanced themes to their underlying protomaps flavor
-const TOPO_BASE: Partial<Record<MapTheme, ProtomapsTheme>> = {
-  'light-topo': 'light',
+const TOPO_CONTRAST_FLAVOR: Flavor = {
+  ...LIGHT,
+  background: '#d5d8cf',
+  earth: '#ede7d7',
+  park_a: '#c6ddb4',
+  park_b: '#a8cf92',
+  hospital: '#ead6d6',
+  industrial: '#d8d4ca',
+  school: '#eadfc6',
+  wood_a: '#bfd8b3',
+  wood_b: '#8fc784',
+  pedestrian: '#efe8d2',
+  scrub_a: '#d6dba8',
+  scrub_b: '#becf79',
+  glacier: '#f6f7f5',
+  sand: '#eadba3',
+  beach: '#f0dea4',
+  aerodrome: '#d8dbe1',
+  runway: '#d2d1d0',
+  water: '#6fc4e8',
+  zoo: '#b7d6b1',
+  military: '#dfc3c3',
+  buildings: '#c9c2b5',
+  minor_service_casing: '#d1cbc0',
+  minor_casing: '#c7c1b6',
+  link_casing: '#c9b7a2',
+  major_casing_late: '#c9ad7e',
+  highway_casing_late: '#b95642',
+  other: '#c9c0ad',
+  minor_service: '#f6f3e8',
+  minor_a: '#f8f4e8',
+  minor_b: '#ffffff',
+  link: '#ffe8b0',
+  major_casing_early: '#c9ad7e',
+  major: '#ffd36e',
+  highway_casing_early: '#b95642',
+  highway: '#ef8a4a',
+  railway: '#6f777b',
+  boundaries: '#8f8a80',
+  bridges_minor_casing: '#c7c1b6',
+  bridges_link_casing: '#c9b7a2',
+  bridges_major_casing: '#c9ad7e',
+  bridges_highway_casing: '#b95642',
+  bridges_minor: '#ffffff',
+  bridges_link: '#ffe8b0',
+  bridges_major: '#ffd36e',
+  bridges_highway: '#ef8a4a',
+  roads_label_minor: '#675f58',
+  roads_label_minor_halo: '#ffffff',
+  roads_label_major: '#5d5146',
+  roads_label_major_halo: '#fff5df',
+  ocean_label: '#227fa6',
+  subplace_label: '#5f5a52',
+  subplace_label_halo: '#f2ead8',
+  city_label: '#25211d',
+  city_label_halo: '#fff6e5',
+  state_label: '#665f58',
+  state_label_halo: '#f4ead7',
+  country_label: '#423b34',
+  address_label: '#675f58',
+  address_label_halo: '#ffffff',
+  landcover: {
+    grassland: 'rgba(203, 232, 189, 1)',
+    barren: 'rgba(239, 226, 182, 1)',
+    urban_area: 'rgba(221, 216, 207, 1)',
+    farmland: 'rgba(217, 232, 184, 1)',
+    glacier: 'rgba(248, 250, 250, 1)',
+    scrub: 'rgba(217, 221, 168, 1)',
+    forest: 'rgba(184, 217, 175, 1)',
+  },
 };
 
-const THEME_FLAVORS: Record<ProtomapsTheme, Flavor> = {
+const THEME_FLAVORS: Partial<Record<MapTheme, Flavor>> = {
   light: LIGHT,
+  'light-topo': LIGHT,
+  [TOPO_CONTRAST_THEME]: TOPO_CONTRAST_FLAVOR,
   dark: DARK,
   grayscale: GRAYSCALE,
 };
+
+const HILLSHADE_THEMES = new Set<MapTheme>(['light-topo', TOPO_CONTRAST_THEME]);
+
+const TOPO_CONTRAST_URBAN_AREA_FILL_COLOR = '#e2d0c3';
+const TOPO_CONTRAST_URBAN_AREA_OUTLINE_COLOR = 'rgba(166, 126, 99, 0.42)';
+const TOPO_CONTRAST_URBAN_LANDUSE_KINDS = ['residential', 'commercial', 'retail', 'industrial'] as const;
+const TOPO_CONTRAST_URBAN_LANDUSE_FILL_COLOR = '#e7cdbc';
+const TOPO_CONTRAST_URBAN_LANDUSE_OUTLINE_COLOR = 'rgba(163, 112, 84, 0.5)';
+const TOPO_CONTRAST_URBAN_AREA_OPACITY = [
+  'interpolate',
+  ['linear'],
+  ['zoom'],
+  5,
+  0.34,
+  7,
+  0.56,
+  9,
+  0.62,
+  13,
+  0.34,
+  15,
+  0.18,
+];
+const TOPO_CONTRAST_URBAN_LANDUSE_OPACITY = [
+  'interpolate',
+  ['linear'],
+  ['zoom'],
+  7,
+  0.26,
+  10,
+  0.5,
+  12,
+  0.56,
+  15,
+  0.36,
+];
+
+const TOPO_CONTRAST_CITY_LABEL_TEXT_SIZE = [
+  'interpolate',
+  ['linear'],
+  ['zoom'],
+  2,
+  ['case', ['<', ['get', 'population_rank'], 13], 9, ['>=', ['get', 'population_rank'], 13], 14, 0],
+  4,
+  ['case', ['<', ['get', 'population_rank'], 13], 11, ['>=', ['get', 'population_rank'], 13], 16, 0],
+  6,
+  ['case', ['<', ['get', 'population_rank'], 12], 12, ['>=', ['get', 'population_rank'], 12], 18, 0],
+  8,
+  ['case', ['<', ['get', 'population_rank'], 11], 12, ['>=', ['get', 'population_rank'], 11], 19, 0],
+  10,
+  ['case', ['<', ['get', 'population_rank'], 9], 13, ['>=', ['get', 'population_rank'], 9], 21, 0],
+  15,
+  ['case', ['<', ['get', 'population_rank'], 8], 13, ['>=', ['get', 'population_rank'], 8], 23, 0],
+];
+
+const TOPO_CONTRAST_CITY_LABEL_FONT = [
+  'case',
+  ['<=', ['get', 'min_zoom'], 8],
+  ['literal', ['Noto Sans Medium']],
+  ['literal', ['Noto Sans Regular']],
+];
+
+const TOPO_CONTRAST_CITY_LABEL_PADDING = ['interpolate', ['linear'], ['zoom'], 5, 2, 8, 5, 12, 8];
+const TOPO_CONTRAST_BUILDING_OPACITY = 0.64;
+const TOPO_CONTRAST_BUILDING_OUTLINE = '#a99f91';
+const TOPO_CONTRAST_CITY_ICON_SIZE = 0.85;
+const TOPO_CONTRAST_CITY_HALO_BLUR = 0.2;
+const TOPO_CONTRAST_CITY_HALO_WIDTH = 1.6;
+const TOPO_CONTRAST_SUBPLACE_HALO_BLUR = 0.15;
+const TOPO_CONTRAST_SUBPLACE_HALO_WIDTH = 1.2;
 
 const DARK_RASTER_PAINT = {
   'raster-brightness-min': 0,
@@ -97,6 +268,97 @@ function addHillshade(style: StyleSpecification): StyleSpecification {
   } as StyleSpecification;
 }
 
+function createTopoContrastUrbanAreaLayer(landcoverLayer: StyleLayer): StyleLayer {
+  return {
+    ...landcoverLayer,
+    id: TOPO_CONTRAST_URBAN_AREA_LAYER_ID,
+    filter: ['==', ['get', 'kind'], 'urban_area'],
+    paint: {
+      'fill-color': TOPO_CONTRAST_URBAN_AREA_FILL_COLOR,
+      'fill-opacity': TOPO_CONTRAST_URBAN_AREA_OPACITY,
+      'fill-outline-color': TOPO_CONTRAST_URBAN_AREA_OUTLINE_COLOR,
+    },
+  };
+}
+
+function createTopoContrastUrbanLanduseLayer(landcoverLayer: StyleLayer): StyleLayer {
+  return {
+    ...landcoverLayer,
+    id: TOPO_CONTRAST_URBAN_LANDUSE_LAYER_ID,
+    'source-layer': 'landuse',
+    filter: ['in', 'kind', ...TOPO_CONTRAST_URBAN_LANDUSE_KINDS],
+    paint: {
+      'fill-color': TOPO_CONTRAST_URBAN_LANDUSE_FILL_COLOR,
+      'fill-opacity': TOPO_CONTRAST_URBAN_LANDUSE_OPACITY,
+      'fill-outline-color': TOPO_CONTRAST_URBAN_LANDUSE_OUTLINE_COLOR,
+    },
+  };
+}
+
+function enhanceTopoContrastLayers(styleLayers: StyleSpecification['layers']): StyleSpecification['layers'] {
+  const enhancedLayers: StyleLayer[] = [];
+
+  for (const layer of styleLayers) {
+    const styleLayer = layer as StyleLayer;
+
+    if (layer.id === 'landcover') {
+      enhancedLayers.push(
+        styleLayer,
+        createTopoContrastUrbanAreaLayer(styleLayer),
+        createTopoContrastUrbanLanduseLayer(styleLayer)
+      );
+      continue;
+    }
+
+    if (layer.id === 'buildings') {
+      enhancedLayers.push({
+        ...styleLayer,
+        paint: {
+          ...(styleLayer.paint ?? {}),
+          'fill-opacity': TOPO_CONTRAST_BUILDING_OPACITY,
+          'fill-outline-color': TOPO_CONTRAST_BUILDING_OUTLINE,
+        },
+      });
+      continue;
+    }
+
+    if (layer.id === 'places_locality') {
+      enhancedLayers.push({
+        ...styleLayer,
+        layout: {
+          ...(styleLayer.layout ?? {}),
+          'icon-size': TOPO_CONTRAST_CITY_ICON_SIZE,
+          'text-font': TOPO_CONTRAST_CITY_LABEL_FONT,
+          'text-padding': TOPO_CONTRAST_CITY_LABEL_PADDING,
+          'text-size': TOPO_CONTRAST_CITY_LABEL_TEXT_SIZE,
+        },
+        paint: {
+          ...(styleLayer.paint ?? {}),
+          'text-halo-blur': TOPO_CONTRAST_CITY_HALO_BLUR,
+          'text-halo-width': TOPO_CONTRAST_CITY_HALO_WIDTH,
+        },
+      });
+      continue;
+    }
+
+    if (layer.id === 'places_subplace') {
+      enhancedLayers.push({
+        ...styleLayer,
+        paint: {
+          ...(styleLayer.paint ?? {}),
+          'text-halo-blur': TOPO_CONTRAST_SUBPLACE_HALO_BLUR,
+          'text-halo-width': TOPO_CONTRAST_SUBPLACE_HALO_WIDTH,
+        },
+      });
+      continue;
+    }
+
+    enhancedLayers.push(styleLayer);
+  }
+
+  return enhancedLayers as StyleSpecification['layers'];
+}
+
 /**
  * Build a MapLibre style for local vector PMTiles served from the companion map server.
  *
@@ -121,10 +383,11 @@ export function buildLocalVectorStyleFromArchiveUrl(
   glyphsUrl?: string,
   options: LocalVectorStyleOptions = {}
 ): StyleSpecification {
+  const normalizedTheme = normalizeMapTheme(theme);
   const sourceName = 'protomaps';
-  const baseTheme: ProtomapsTheme = TOPO_BASE[theme] ?? (theme as ProtomapsTheme);
-  const flavor = THEME_FLAVORS[baseTheme] ?? LIGHT;
+  const flavor = THEME_FLAVORS[normalizedTheme] ?? LIGHT;
   const enableHillshade = options.hillshade ?? true;
+  const baseLayers = layers(sourceName, flavor, { lang: 'en' });
 
   const style: StyleSpecification = {
     version: 8,
@@ -137,10 +400,10 @@ export function buildLocalVectorStyleFromArchiveUrl(
         attribution: '© <a href="https://openstreetmap.org">OpenStreetMap</a>',
       },
     },
-    layers: layers(sourceName, flavor, { lang: 'en' }),
+    layers: normalizedTheme === TOPO_CONTRAST_THEME ? enhanceTopoContrastLayers(baseLayers) : baseLayers,
   } as StyleSpecification;
 
-  return enableHillshade && theme in TOPO_BASE ? addHillshade(style) : style;
+  return enableHillshade && HILLSHADE_THEMES.has(normalizedTheme) ? addHillshade(style) : style;
 }
 
 /**
@@ -155,7 +418,8 @@ export function buildRemoteRasterStyle(
   theme?: MapTheme,
   attribution = DEFAULT_RASTER_ATTRIBUTION
 ): StyleSpecification {
-  const rasterPaint = theme ? RASTER_PAINT_BY_THEME[theme] : undefined;
+  const normalizedTheme = theme ? normalizeMapTheme(theme) : undefined;
+  const rasterPaint = normalizedTheme ? RASTER_PAINT_BY_THEME[normalizedTheme] : undefined;
   const rasterLayer = {
     id: 'raster-layer',
     type: 'raster',
@@ -177,7 +441,7 @@ export function buildRemoteRasterStyle(
     layers: [rasterLayer],
   } as StyleSpecification;
 
-  return theme === 'light-topo' ? addHillshade(style) : style;
+  return normalizedTheme && HILLSHADE_THEMES.has(normalizedTheme) ? addHillshade(style) : style;
 }
 
 /**

@@ -1,0 +1,20 @@
+# TRD_01 open GPX-backed and FIT-backed details evidence
+
+GPX path: map overlap selection at viewport coordinate (790,97), then clicked Vitry entry.
+Selection text sample: 500 km © OpenStreetMap 8 Tracks Stats Filter Map Animate Segments GPS Planner Admin 2 tracks — select for details Vitry le françois - langres on GPSies.com Bicycle 01/01/2010 Moselradweg aus Wiki on GPSies.com Bicycle 01/01/2010
+GPX source file: Vitry-le-Francois_Langres.gpx
+GPX expected track ID: 100001
+GPX detail URL observed: http://178.104.209.132:18080/mtl/track/100001
+GPX detail contains TRACK DETAILS #100001 and name: true
+GPX text sample: 500 km © OpenStreetMap 8 Tracks Stats Filter Map Animate Segments GPS Planner Admin TRACK DETAILS #100001 Bicycle 3D Replay Overview Graphs Quality Related Events Vitry le françois - langres on GPSies.com 01/01/2010, 01:00 TRACK CONTROLS ACTIVITY TYPE Bicycle Walking Hiking Running Mountain biking Stand-up paddle Rowing Kayaking Skiing Motorbiking Car Airplane Supersonic STATISTICS Included in statistics Exclude: GPS noise Exclude: wrong activity
+
+FIT path: Stats nav -> Tracks tab -> search Activity.fit -> clicked Track 100005 row.
+FIT source file: Activity.fit
+FIT expected track ID: 100005
+Stats search text sample: 500 km © OpenStreetMap 8 Tracks Stats Filter Map Animate Segments GPS Planner Admin Overview Trends Tracks VIEWS All Excluded Stats excluded No activity 1 of 8 tracks · 3.60 km · 59m 57s SORT: Date Imported Distance Duration Name Exploration START TRACK ACTIVITY DISTANCE DURATION AVG KM/H ENERGY EXPLORATION IMPORTED 20/07/2021, 23:11 Track 100005 Walking 3.60 km 59m 57s 3.6 347 Wh 100.0% 20/06/2026, 22:02 1 25
+FIT detail URL observed: http://178.104.209.132:18080/mtl/track/100005
+FIT detail contains TRACK DETAILS #100005 and Activity.fit: true
+FIT text sample: 500 km © OpenStreetMap 8 Tracks Stats Filter Map Animate Segments GPS Planner Admin TRACK DETAILS #100005 Walking 3D Replay Overview Graphs Quality Related Events Activity.fit 20/07/2021, 23:11 TRACK CONTROLS ACTIVITY TYPE Bicycle Walking Hiking Running Mountain biking Stand-up paddle Rowing Kayaking Skiing Motorbiking Car Airplane Supersonic STATISTICS Included in statistics Exclude: GPS noise Exclude: wrong activity Exclude: import artifact Exc
+
+Elapsed ms: 22721
+Result: PASS

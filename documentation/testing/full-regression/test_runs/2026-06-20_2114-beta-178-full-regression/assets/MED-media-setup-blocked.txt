@@ -1,0 +1,12 @@
+Status: BLOCKED
+Scenario: Media coverage prerequisite check for MED_01..MED_05.
+App URL: http://178.104.209.132:18080/mtl/
+Watched media folder: /root/mtl-full-regression-2026-06-20_2114-beta-178-full-regression/data/media -> /app/media
+get-media-with-location-info: HTTP 200, count=0
+get-media-in-bounds world: HTTP 200, count=0
+MEDIA indexer before rescan: {"index":"MEDIA","total":0,"pending":0,"completed":0,"failed":0,"removed":0,"excluded":0,"progressPercent":100}
+POST /api/indexer/MEDIA/rescan: HTTP 200, body={"index":"MEDIA","status":"STARTED","message":"Manual MEDIA rescan has been queued."}
+MEDIA indexer after rescan: {"index":"MEDIA","total":0,"pending":0,"completed":0,"failed":0,"removed":0,"excluded":0,"progressPercent":100}
+Media API write-path check: OpenAPI/controller expose read/content endpoints and MEDIA rescan only; no media upload/create endpoint exists.
+Filesystem access check: host key was reset with a throwaway known-hosts file, but the supplied setup SSH access note is rejected after setup-time password rotation (sshpass exit 5, Permission denied).
+Conclusion: no indexed media exists and this run cannot seed synthetic media into data/media; media UI rows are blocked until current filesystem access or a media-upload fixture path is available.

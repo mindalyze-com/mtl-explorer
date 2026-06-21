@@ -50,6 +50,15 @@
           </button>
         </div>
       </div>
+      <div v-if="summary.totalAscent > 0" class="hero-tile" data-test="summary-ascent">
+        <div class="hero-tile__icon-wrap" style="--tile-accent: var(--warning-text)">
+          <i class="bi bi-arrow-up-right"></i>
+        </div>
+        <div v-tooltip.top="{ value: summary.totalAscentFull, showDelay: 400 }" class="hero-tile__value">
+          {{ summary.totalAscentFormatted }}
+        </div>
+        <div class="hero-tile__label">Ascent</div>
+      </div>
     </div>
 
     <div v-if="hasTracks" class="dashboard-grid">
@@ -617,6 +626,7 @@ const summary = computed(() => {
   const data = overviewData.value?.summary;
   const totalDistanceMeters = numberValue(data?.distanceM);
   const totalDurationMillis = numberValue(data?.durationMs);
+  const totalAscent = numberValue(data?.ascentM);
   const totalEnergy = numberValue(data?.energyWh);
   const oldestStart = parseDate(data?.oldestStart);
   const newestStart = parseDate(data?.newestStart);
@@ -627,6 +637,9 @@ const summary = computed(() => {
     totalDistanceFull: formatDistanceTooltip(totalDistanceMeters),
     totalDurationFormatted: formatDurationSmart(totalDurationMillis),
     totalDurationFull: formatDurationTooltip(totalDurationMillis),
+    totalAscent,
+    totalAscentFormatted: formatMeters(totalAscent),
+    totalAscentFull: `${formatLocaleNumber(Math.round(totalAscent))} m`,
     totalEnergy,
     totalEnergyFormatted: formatEnergy(totalEnergy),
     dateRangeLabel: oldestStart && newestStart ? `${formatDate(oldestStart)} - ${formatDate(newestStart)}` : '',

@@ -1,4 +1,4 @@
-import { DEFAULT_LAYER_OPACITIES, DEFAULT_MAP_THEME } from '@/stores/mapSettingsStore';
+import { DEFAULT_LAYER_OPACITIES } from '@/stores/mapSettingsStore';
 import { MAP_OVERLAYS } from '@/utils/mapStyle';
 import { isRemoteRasterMapTheme } from '@/components/map/mapStyleResolver';
 import { TRACK_COLOR } from '@/utils/trackColors';
@@ -412,9 +412,6 @@ export function useMapLayerSettings(deps: {
     async onMapSourceModeChangeEvent(sourceMode) {
       const nextMode = sourceMode === 'remote' ? 'remote' : 'auto';
       mapSettingsStore.setMapSourceMode(nextMode);
-      if (nextMode === 'remote' && !isRemoteRasterMapTheme(mapSettingsStore.theme)) {
-        mapSettingsStore.setTheme(DEFAULT_MAP_THEME);
-      }
       this.syncMapSettingsFromStore();
       this.showLoader = true;
       try {

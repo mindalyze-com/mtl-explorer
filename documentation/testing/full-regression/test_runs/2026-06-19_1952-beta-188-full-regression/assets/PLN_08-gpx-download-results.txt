@@ -1,0 +1,35 @@
+[drawing route before GPX save]
+activeTab: Drawing
+cards: {"Distance":"2.60 km","Ascent":"1 m","Descent":"0 m","Duration":"7m","Legs":"2"}
+listHasPlan: false
+apiMatches: []
+
+[after saving GPX plan]
+activeTab: Drawing
+cards: {"Distance":"2.60 km","Ascent":"1 m","Descent":"0 m","Duration":"7m","Legs":"2"}
+listHasPlan: false
+apiMatches: [{"id":100025,"name":"PLN_08 GPX regression 2026-06-19 2346","distanceM":2598,"description":"Full regression temporary GPX export plan; delete during PLN_08.","profile":"fastbike"}]
+
+[load tab before GPX export]
+activeTab: Load
+cards: {}
+listHasPlan: true
+apiMatches: [{"id":100025,"name":"PLN_08 GPX regression 2026-06-19 2346","distanceM":2598,"description":"Full regression temporary GPX export plan; delete during PLN_08.","profile":"fastbike"}]
+
+[after deleting GPX plan]
+activeTab: Load
+cards: {}
+listHasPlan: false
+apiMatches: []
+
+[download]
+
+suggestedFilename: PLN_08 GPX regression 2026-06-19 2346.gpx
+
+savedAs: assets/PLN_08-downloaded-plan.gpx
+
+gpxBytes: 585
+
+validation: {"parserErrors":0,"root":"gpx","trkptCount":5,"rteptCount":0,"pointCount":5,"detailCoordinateCount":5,"sameCount":true,"firstPoint":{"lat":29.427889,"lon":1.35928,"ele":360.5},"firstCoordinate":[1.35928,29.427889,360.5],"lastPoint":{"lat":29.421997,"lon":1.348781,"ele":360.3},"lastCoordinate":[1.348781,29.421997,360.25],"maxLatDelta":0,"maxLonDelta":0,"maxEleDelta":0.05000000000001137,"valid":true}
+
+screenshots: {"saveDialog":"assets/PLN_08-save-dialog.jpg","exportList":"assets/PLN_08-export-list.jpg","deletedList":"assets/PLN_08-deleted-list.jpg"}

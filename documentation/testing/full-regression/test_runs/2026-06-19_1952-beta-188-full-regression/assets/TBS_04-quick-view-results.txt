@@ -1,0 +1,37 @@
+TBS_04 quick-view and preservation results
+
+Context:
+- URL: http://188.245.169.80:18080/mtl/stats
+- View: Stats > Tracks
+- Filter state: Off
+- Dataset: 13 tracks
+
+Preset subset checks:
+- All: selected state true; table showed 13 tracks.
+- Excluded: selected state true; table showed the empty row "No tracks match the current view."
+- Stats excluded: selected state true; table showed the empty row "No tracks match the current view."
+- No activity: selected state true; table showed the empty row "No tracks match the current view."
+- Returning to All restored the full 13-track table.
+
+Search/sort preservation check with real user-style interactions:
+1. On All, selected Distance sort and typed search `Path`.
+   - Search input: `Path`
+   - Sort: Distance active, DISTANCE aria-sort=descending
+   - Visible rows: 2 Path tracks, 590.64 m then 590.30 m
+2. Clicked Excluded.
+   - Active view: Excluded
+   - Search input changed to empty
+   - Sort reset to Date, START aria-sort=descending
+   - Visible row: "No tracks match the current view."
+3. Clicked All.
+   - Active view: All
+   - Search input remained empty
+   - Sort remained Date
+   - Full 13-track table returned
+
+Result:
+- Preset buttons switch the browser subset, but they do not preserve the active search/sort state.
+- Coverage status: FAIL.
+
+State after packet:
+- Browser left on /mtl/stats, Tracks tab active, All selected, search empty, Date sort active.

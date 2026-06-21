@@ -1,0 +1,24 @@
+# MAP_01_MAP_02 base map and track count evidence
+
+Map canvases: 2
+UI visible track count: 8
+API track count: 12
+API SUCCESS track count: 12
+Loaded map/tile/style request samples: 30
+- /mtl/assets/vendor-map-DNVN2dqC.css
+- /mtl/assets/vendor-map-DDcshSJR.js
+- /mtl/api/map/config
+- /mtl/api/map/status
+- https://tiles.mapterhorn.com/tilejson.json
+- https://protomaps.github.io/basemaps-assets/sprites/v4/light.png
+- https://protomaps.github.io/basemaps-assets/sprites/v4/light.json
+- https://tiles.mapterhorn.com/10/523/438.webp
+- https://tiles.mapterhorn.com/10/523/437.webp
+- https://tiles.mapterhorn.com/10/522/437.webp
+
+Source names: Activity.fit, JuraRoute72011.gpx, MoselradwegAusWiki.gpx, Vitry-le-Francois_Langres.gpx, fmt-synthetic-base.gpx, fmt-synthetic.gdb, fmt-synthetic.geojson, fmt-synthetic.igc, fmt-synthetic.kml, fmt-synthetic.kmz, fmt-synthetic.nmea, fmt-synthetic.tcx
+
+Visible text sample: 1000 km © OpenStreetMap 8 Tracks Stats Filter Map Animate Segments GPS Planner Admin
+
+MAP_01 result: PASS
+MAP_02 result: PASS

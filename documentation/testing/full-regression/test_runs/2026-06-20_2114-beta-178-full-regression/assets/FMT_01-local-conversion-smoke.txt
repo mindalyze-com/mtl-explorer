@@ -1,0 +1,11 @@
+# FMT local conversion smoke test
+
+| Extension | Server GPSBabel format | Exit | GPX chars | trkpt count | SHA-256 of GPX stdout | Stderr |
+|---|---|---:|---:|---:|---|---|
+| .tcx | gtrnctr | 0 | 3788 | 24 | 1df175475364a3ebf921b1160adf79a668eeb08ecc6d9ea682831bd783f70092 |  |
+| .kml | kml | 0 | 26319 | 24 | 4e917836281751b8721441aef0b28a01e33d7d92e0504117701a45614f40aca3 |  |
+| .igc | igc | 0 | 3704 | 24 | 36d0048e8806346ab07387e6a4754c147179b5776d717dc9cfb82ae83c9d67af |  |
+| .nmea | nmea | 0 | 6202 | 24 | 6f98ff502d9674a803d60b72c00c5b438040dc912dd9cff96aeeef08b3554f26 |  |
+| .geojson | geojson | 0 | 2668 | 24 | 76d88f0bd4bda9a2e5ec0e83a1cd6b22ab8328bdf03ca598886aee37ecd5e446 |  |
+| .gdb | gdb | 0 | 3679 | 24 | 5afc040715323b5b9c69ae9cb97d4760c7abfa49df745c8b994c1b10e99dccf7 |  |
+| .kmz | extract doc.kml -> kml | 0 | see .kml | see .kml | zip contains doc.kml | doc.kml packaged by zip |

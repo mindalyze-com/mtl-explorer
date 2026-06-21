@@ -1,0 +1,8 @@
+DEL_02 delete processing wait evidence
+Started: 2026-06-20T19:52:40.544Z
+Finished: 2026-06-20T19:55:25.094Z
+Duration seconds: 165
+Manual Rescan GPS needed: no
+Sample count: 80
+Final sample: {"t":163,"gps":{"index":"GPS","total":5,"pending":0,"completed":3,"failed":0,"removed":2,"excluded":0,"progressPercent":60},"count":3,"freshnessToken":"3zD6nY__|server_id:4wB4qutecBAh3SvkCNbjuE|config:9|filters:85|index:21|media:0|track_geometry:30|tracks:32","jobs":[{"job":"duplicate","total":3,"pending":0,"done":3,"progressPercent":100},{"job":"activityType","total":3,"pending":0,"done":3,"progressPercent":100},{"job":"exploration","total":3,"pending":0,"done":3,"progressPercent":100}]}
+Interpretation: GPS total includes removed entries; terminal deletion state is completed=3, removed=2, pending=0, failed=0, visible count=3, jobs pending=0.

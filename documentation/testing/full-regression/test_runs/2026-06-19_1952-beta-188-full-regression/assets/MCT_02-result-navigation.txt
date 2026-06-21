@@ -1,0 +1,11 @@
+[before result link click]
+url: http://188.245.169.80:18080/mtl/segments
+open sheet: Segment Analyzer result table
+result row: JuraRoute72011.gpx, start 01/01/2010 01:00, duration 16h 55m, distance metric values 41,070 / 7,527
+
+[after result link click]
+url: http://188.245.169.80:18080/mtl/track/100002
+open sheets: Track Details and Segment Analyzer
+track details: #100002, Bicycle, Jura Route 7 / 2011 on GPSies.com, distance 273 km, duration 16h 55m, ascent 6,324 m
+
+screenshots: {"before":"assets/MCT_02-before-row-click.jpg","after":"assets/MCT_02-track-details-opened.jpg"}

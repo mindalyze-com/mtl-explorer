@@ -1,0 +1,30 @@
+ADM admin validation summary
+Packets captured so far:
+- ADM_01 PASS
+
+ADM_01:
+- title: Admin workspace
+- state chip: Quiet state
+- tiles: Upload, Jobs, Freshness, Garmin Sync, Log, Helpers, About, Settings, Session, Attribution
+- track count text: 0 Tracks
+- assertions: {"adminTitle":true,"expectedTilesVisible":true,"tilesReachable":true,"mapStillRendered":true}
+
+Network errors sample: ["401 http://178.104.209.132:18080/mtl/api/info/build","401 http://178.104.209.132:18080/mtl/api/info/build"]
+Console messages sample: ["error: Failed to load resource: the server responded with a status of 401 ()","error: Failed to load resource: the server responded with a status of 401 ()","error: Error fetching track batch: {name: TypeError, message: Failed to fetch}","warning: PMTiles HTTP cache failed; retrying archive range requests without browser cache. {url: /mtl/api/map-proxy/prod/planet.pmtiles?mtl-map-source=public&mtl-map-archive=public-default, message: Failed to fetch}"]
+
+ADM_02:
+- validation screenshot covers unsupported and empty-file errors from UI file picker.
+- progress screenshot covers loading state during valid upload; first valid upload indexed as {"id":100019,"file":"ADM_02-adm-upload-20260621020618.gpx","status":"COMPLETED_WITH_SUCCESS","points":5}.
+- upload availability: 200 {"available":true,"message":"Upload directory is available."}
+- before GPS indexer: {"index":"GPS","total":17,"pending":0,"completed":15,"failed":0,"removed":2,"excluded":0,"progressPercent":88}
+- before ADM_02 tracks: [{"id":100019,"file":"ADM_02-adm-upload-20260621020618.gpx","status":"COMPLETED_WITH_SUCCESS","points":5}]
+- staged success file: ADM_02-adm-upload-success-20260621021405.gpx1.6 KB
+Upload
+- success notice: 'ADM_02-adm-upload-success-20260621021405.gpx' uploaded successfully. Indexing will begin shortly.
+- uploaded track: {"id":100020,"file":"ADM_02-adm-upload-success-20260621021405.gpx","status":"COMPLETED_WITH_SUCCESS","points":12}
+- after GPS indexer: {"index":"GPS","total":18,"pending":0,"completed":16,"failed":0,"removed":2,"excluded":0,"progressPercent":88}
+- after ADM_02 tracks: [{"id":100020,"file":"ADM_02-adm-upload-success-20260621021405.gpx","status":"COMPLETED_WITH_SUCCESS","points":12},{"id":100019,"file":"ADM_02-adm-upload-20260621020618.gpx","status":"COMPLETED_WITH_SUCCESS","points":5}]
+- map chip text after success: 11 Tracks
+- assertions: {"uploadAvailable":true,"validFileStaged":true,"successVisible":true,"uploadedTrackIndexed":true,"indexerPendingZero":true,"noNewGpsFailures":true}
+- network errors sample: []
+- console messages sample: ["warning: PMTiles HTTP cache failed; retrying archive range requests without browser cache. {url: /mtl/api/map-proxy/prod/planet.pmtiles?mtl-map-source=public&mtl-map-archive=public-default, message: Failed to fetch}","warning: PMTiles HTTP cache failed; retrying archive range requests without browser cache. {url: /mtl/api/map-proxy/prod/planet.pmtiles?mtl-map-source=public&mtl-map-archive=public-default, message: Failed to fetch}"]

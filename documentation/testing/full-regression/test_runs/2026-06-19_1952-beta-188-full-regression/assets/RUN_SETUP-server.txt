@@ -1,0 +1,21 @@
+Target: 188.245.169.80
+SSH user: root
+SSH setup: initial supplied temporary password was expired; password was rotated for this run and not stored in artifacts.
+Host: ubuntu-4gb-fsn1-1
+OS: Ubuntu 26.04 LTS
+Kernel: Linux 7.0.0-15-generic x86_64 GNU/Linux
+Docker: Docker version 29.1.3, build 29.1.3-0ubuntu4.1
+Compose: Docker Compose version 2.40.3+ds1-0ubuntu1
+Disposable directory: /root/mtl-full-regression-2026-06-19_1952-beta-188-full-regression
+Compose source: https://raw.githubusercontent.com/mindalyze-com/mtl-explorer/main/docker-compose.yml
+Beta override: MTL_APP_IMAGE=wauwau0977/mytraillog:beta
+Running app image: wauwau0977/mytraillog:beta
+Running app image id: sha256:f5c285f89f596350bc4468fdabc64c8ed4a2d0352801b2a9b663978b9628c237
+Import folder: /root/mtl-full-regression-2026-06-19_1952-beta-188-full-regression/data/gpx
+Server-local HTTP: HTTP 200 bytes 1826 at http://127.0.0.1:18080/mtl/
+Remote HTTP: HTTP 200 bytes 1826 at http://188.245.169.80:18080/mtl/
+Containers:
+- app: Up, 0.0.0.0:18080->8080/tcp, image wauwau0977/mytraillog:beta
+- db: Up healthy, image postgis/postgis:18-3.6
+- brouter: Up, image wauwau0977/mytraillog-brouter:latest
+- location-search: Up healthy, 0.0.0.0:18083->8083/tcp, image wauwau0977/mytraillog-location-search:latest

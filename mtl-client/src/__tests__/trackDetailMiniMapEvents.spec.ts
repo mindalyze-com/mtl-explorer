@@ -1,4 +1,5 @@
 import { flushPromises, mount } from '@vue/test-utils';
+import type { VueWrapper } from '@vue/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createPinia, setActivePinia } from 'pinia';
 import { nextTick } from 'vue';
@@ -172,6 +173,11 @@ const maplibreMock = vi.hoisted(() => {
   };
 });
 
+const chartSyncMocks = vi.hoisted(() => ({
+  clearChartCrosshairs: vi.fn(),
+  showChartsAtPoint: vi.fn(),
+}));
+
 vi.mock('maplibre-gl', () => ({
   default: {
     Map: maplibreMock.MockMap,
@@ -202,10 +208,21 @@ vi.mock('@/components/map/mapStyleResolver', () => ({
   })),
 }));
 
+vi.mock('@/composables/useChartSync', () => ({
+  useChartSync: () => ({
+    clearChartCrosshairs: chartSyncMocks.clearChartCrosshairs,
+    showChartsAtPoint: chartSyncMocks.showChartsAtPoint,
+  }),
+}));
+
 vi.mock('@/utils/mapStyle', () => ({
+  TOPO_CONTRAST_THEME: 'topo-contrast',
   buildLocalVectorStyleFromArchiveUrl: vi.fn(() => ({ version: 8, sources: {}, layers: [] })),
   buildRemoteRasterStyle: vi.fn(() => ({ version: 8, sources: {}, layers: [] })),
+  normalizeMapTheme: vi.fn((theme, fallback = 'light') => theme ?? fallback),
 }));
+
+const mountedWrappers: VueWrapper[] = [];
 
 function trackEvent(lng: number, lat: number) {
   return {
@@ -237,6 +254,7 @@ async function mountMiniMap(trackEvents: Record<string, unknown>[] = [], trackCo
     },
     attachTo: document.body,
   });
+  mountedWrappers.push(wrapper);
   await nextTick();
   await flushPromises();
   await nextTick();
@@ -264,6 +282,8 @@ describe('TrackDetailMiniMap event layer', () => {
     maplibreMock.MockMarker.instances.length = 0;
     maplibreMock.MockPopup.instances.length = 0;
     maplibreMock.MockMap.nextStyleLoaded = true;
+    chartSyncMocks.clearChartCrosshairs.mockReset();
+    chartSyncMocks.showChartsAtPoint.mockReset();
     localStorage.clear();
     setActivePinia(createPinia());
     useTrackMapSync().clearAll();
@@ -283,6 +303,9 @@ describe('TrackDetailMiniMap event layer', () => {
   });
 
   afterEach(() => {
+    for (const wrapper of mountedWrappers.splice(0)) {
+      wrapper.unmount();
+    }
     useTrackMapSync().clearAll();
     HTMLCanvasElement.prototype.getContext = originalGetContext;
     document.body.innerHTML = '';
@@ -510,5 +533,15 @@ describe('TrackDetailMiniMap event layer', () => {
     });
 
     expect(wrapper.emitted('select-event')).toEqual([[null]]);
+  });
+
+  it('clears chart hover artifacts when the pointer leaves the mini-map wrapper', async () => {
+    const wrapper = await mountMiniMap();
+
+    await wrapper.find('.mini-map-wrapper').trigger('pointerleave');
+    await wrapper.find('.mini-map-wrapper').trigger('mouseleave');
+    document.dispatchEvent(new MouseEvent('mousemove', { bubbles: true }));
+
+    expect(chartSyncMocks.clearChartCrosshairs).toHaveBeenCalledTimes(3);
   });
 });

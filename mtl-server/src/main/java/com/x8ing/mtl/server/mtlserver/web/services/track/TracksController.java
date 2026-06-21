@@ -448,31 +448,27 @@ public class TracksController {
     }
 
     /**
-     * http://localhost:8080/mtl/api/tracks/get-track-statistics?groupByDateFormat=YYYY-WW
+     * POST http://localhost:8080/mtl/api/tracks/get-track-statistics?groupByDateFormat=YYYY-WW
      */
-    @RequestMapping(value = "/get-track-statistics")
+    @PostMapping(value = "/get-track-statistics")
     public List<GpsTrackStatistics> getTrackStatistics(
-            @RequestBody(required = false) Map<String, String> params,
+            @RequestBody(required = false) List<Long> trackIds,
             @RequestParam(name = "groupByDateFormat", defaultValue = "YYYY-MM") String groupByDateFormat,
-            @RequestParam(name = "filterName", required = false) String filterName,
             @RequestParam(name = "filterValue", required = false) String filterValue
     ) {
-        QueryResult filterIds = gpsTrackSQLFilter.getGpsTrackIdsForOptionalFilterName(filterName, params);
-        return gpsTrackRepository.getTrackStatistics(groupByDateFormat, filterValue, filterIds.asIdArray(), energyService.getThresholdPowerWatts());
+        return gpsTrackRepository.getTrackStatistics(groupByDateFormat, filterValue, toTrackIdArray(trackIds), energyService.getThresholdPowerWatts());
     }
 
     @PostMapping(value = "/get-track-overview")
     public StatisticsOverviewResponseDto getTrackOverview(
-            @RequestBody(required = false) Map<String, String> params,
-            @RequestParam(name = "filterName", required = false) String filterName
+            @RequestBody(required = false) List<Long> trackIds
     ) {
         TimingCollector timing = new TimingCollector();
         Long[] ids = new Long[0];
 
         try {
-            QueryResult filterIds = timing.timeUnchecked("resolveFilter",
-                    () -> gpsTrackSQLFilter.getGpsTrackIdsForOptionalFilterName(filterName, params));
-            Long[] filterTrackIds = filterIds.asIdArray();
+            Long[] filterTrackIds = timing.timeUnchecked("trackIds",
+                    () -> toTrackIdArray(trackIds));
             ids = filterTrackIds;
 
             var summaryFuture = overviewAsync(timing, "summary",
@@ -525,8 +521,15 @@ public class TracksController {
                     exclusionSummaryFuture.join()
             );
         } finally {
-            logStatisticsOverviewTiming(filterName, params, ids, timing);
+            logStatisticsOverviewTiming(ids, timing);
         }
+    }
+
+    private static Long[] toTrackIdArray(List<Long> trackIds) {
+        if (trackIds == null || trackIds.isEmpty()) {
+            return new Long[0];
+        }
+        return trackIds.toArray(Long[]::new);
     }
 
     /**
@@ -571,22 +574,16 @@ public class TracksController {
                 .mustRevalidate();
     }
 
-    private static void logStatisticsOverviewTiming(String filterName, Map<String, String> params, Long[] ids, TimingCollector timing) {
+    private static void logStatisticsOverviewTiming(Long[] ids, TimingCollector timing) {
         long totalElapsedMs = timing.totalElapsedMs();
-        String effectiveFilterName = filterName == null || filterName.isBlank() ? "<default>" : filterName;
-        int filterParamCount = params == null ? 0 : params.size();
         int trackCount = ids == null ? 0 : ids.length;
 
         if (totalElapsedMs >= STATISTICS_OVERVIEW_SLOW_LOG_THRESHOLD_MS) {
-            log.info("Statistics overview slow request: filterName={}, filterParamCount={}, trackCount={}, {}",
-                    effectiveFilterName,
-                    filterParamCount,
+            log.info("Statistics overview slow request: trackCount={}, {}",
                     trackCount,
                     timing.formatSummary());
         } else if (log.isDebugEnabled()) {
-            log.debug("Statistics overview timing: filterName={}, filterParamCount={}, trackCount={}, {}",
-                    effectiveFilterName,
-                    filterParamCount,
+            log.debug("Statistics overview timing: trackCount={}, {}",
                     trackCount,
                     timing.formatSummary());
         }
@@ -601,12 +598,13 @@ public class TracksController {
 
     private static StatisticsOverviewResponseDto.Summary toOverviewSummary(GpsTrackOverviewSummary summary) {
         if (summary == null) {
-            return new StatisticsOverviewResponseDto.Summary(0, 0, 0, 0, null, null);
+            return new StatisticsOverviewResponseDto.Summary(0, 0, 0, 0, 0, null, null);
         }
         return new StatisticsOverviewResponseDto.Summary(
                 longValue(summary.getTrackCount()),
                 doubleValue(summary.getDistanceM()),
                 doubleValue(summary.getDurationMs()),
+                doubleValue(summary.getAscentM()),
                 doubleValue(summary.getEnergyWh()),
                 summary.getOldestStart(),
                 summary.getNewestStart()

@@ -1,0 +1,28 @@
+TRD_06 chart/mini-map hover sync evidence
+
+Target detail:
+- Track: 100005 / Activity.fit
+- URL: http://188.245.169.80:18080/mtl/track/100005
+- Graphs tab open with Distance axis active and charts rendered.
+
+Target discovery:
+- First chart bounding box: x=236, y=537, width=884, height=250.
+- Detail mini-map canvas bounding box: x=218, y=101, width=920, height=220.
+
+Pointer actions:
+- Moved pointer to chart target at x=678, y=620.
+- Moved pointer to mini-map target at x=678, y=210.
+- Moved pointer away to x=100, y=700.
+
+Observed DOM:
+- Charts remained rendered before/after hover attempts.
+- Querying for Highcharts tooltip/crosshair/hover classes and popup/hover elements returned no observable tooltip/hover DOM nodes.
+- DOM snapshots still exposed the chart regions and map regions, but did not expose mini-map highlight or chart cursor state.
+
+Blocking constraint:
+- The expected sync is visual: chart hover should highlight a mini-map point and mini-map hover should highlight a chart point.
+- The mini-map highlight is canvas-rendered, and current screenshot/canvas pixel inspection is unavailable in this browser session.
+- Pointer moves did not produce a DOM-visible tooltip/crosshair signal that could substitute for visual verification.
+
+Conclusion:
+TRD_06 is BLOCKED. The hover surfaces are targetable, but the required visual synchronization cannot be verified with the available evidence path.

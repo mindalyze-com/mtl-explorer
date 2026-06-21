@@ -1,0 +1,91 @@
+# SGN_06 splash/load DOM evidence
+
+Splash snapshot flags:
+- has MTL Explorer branding: true
+- has loading message: true
+- has login fields: false
+
+Splash excerpt:
+- generic: © Patrick Heusser
+- img "MTL Explorer"
+- paragraph:
+  - text: Loading your trails
+  - generic: .
+- button "Search location":
+  - generic: 
+- generic: 0 Tracks
+- button " Stats":
+  - generic: 
+  - generic: Stats
+- button " Filter":
+  - generic: 
+  - generic: Filter
+- button " Map":
+  - generic: 
+  - generic: Map
+- button " Animate":
+  - generic: 
+  - generic: Animate
+- button " Segments":
+  - generic: 
+  - generic: Segments
+- button " GPS":
+  - generic: 
+  - generic: GPS
+- button " Planner":
+  - generic: 
+  - generic: Planner
+- button " Admin":
+  - generic: 
+  - generic: Admin
+- button "About MTL Explorer"
+
+Loaded snapshot flags:
+- has map region: true
+- has 11 Tracks: true
+- still has loading message: false
+
+Loaded excerpt:
+- generic: © Patrick Heusser
+- img "MTL Explorer"
+- paragraph:
+  - text: Preparing map layers
+  - generic: .
+- region "Map"
+- region "Map"
+- button "Zoom in"
+- button "Zoom out"
+- button "Drag to rotate map, click to reset north"
+- button "Toggle globe mode":
+  - generic: 
+- button "Enable 3D terrain":
+  - generic: 
+- generic: 500 km
+- button "Search location":
+  - generic: 
+- generic: 11 Tracks
+- button " Stats":
+  - generic: 
+  - generic: Stats
+- button " Filter":
+  - generic: 
+  - generic: Filter
+- button " Map":
+  - generic: 
+  - generic: Map
+- button " Animate":
+  - generic: 
+  - generic: Animate
+- button " Segments":
+  - generic: 
+  - generic: Segments
+- button " GPS":
+  - generic: 
+  - generic: GPS
+- button " Planner":
+  - generic: 
+  - generic: Planner
+- button " Admin":
+  - generic: 
+  - generic: Admin
+- button "About MTL Explorer"

@@ -1,0 +1,26 @@
+APP_05 hard-refresh dark-mode flash audit
+
+Final theme: dark
+Stored theme: dark
+Sample count: 237
+Rendered app sample count: 233
+Light rendered samples: 0
+Non-dark rendered samples: 0
+Console/page errors: []
+
+First pre-render samples:
+- t=287ms theme=null bodyText="" navExists=false bodyBg=rgb(10, 10, 15)
+- t=289ms theme=null bodyText="" navExists=false bodyBg=rgb(10, 10, 15)
+- t=297ms theme=null bodyText="" navExists=false bodyBg=rgb(10, 10, 15)
+- t=388ms theme=dark bodyText="" navExists=false bodyBg=rgb(10, 10, 15)
+
+First rendered app samples:
+- t=459ms theme=dark bodyText="LOADING YOUR TRAILS ... 0 Tracks ... Stats Filter Map ... Admin" navExists=true navBg=rgba(15, 23, 42, 0.92)
+- t=469ms theme=dark bodyText="LOADING YOUR TRAILS ... 0 Tracks ... Stats Filter Map ... Admin" navExists=true navBg=rgba(15, 23, 42, 0.92)
+- t=476ms theme=dark bodyText="LOADING YOUR TRAILS ... 0 Tracks ... Stats Filter Map ... Admin" navExists=true navBg=rgba(15, 23, 42, 0.92)
+
+Last rendered app samples:
+- t=2439ms theme=dark bodyText="LOADING YOUR TRAILS ... 500 km ... 16 Tracks ... Stats Filter Map ... Admin" navExists=true navBg=rgba(15, 23, 42, 0.92)
+- t=2497ms theme=dark bodyText="LOADING YOUR TRAILS ... 500 km ... 16 Tracks ... Stats Filter Map ... Admin" navExists=true navBg=rgba(15, 23, 42, 0.92)
+
+PASS: true

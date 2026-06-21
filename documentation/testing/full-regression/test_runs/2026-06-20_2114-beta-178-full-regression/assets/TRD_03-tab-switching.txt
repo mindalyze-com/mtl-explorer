@@ -1,0 +1,15 @@
+# TRD_03 tab switching evidence
+
+Track: 100005 / Activity.fit
+Tabs switched: Overview -> Graphs -> Quality -> Related -> Events -> Overview -> Graphs -> Quality -> Related -> Events
+Observation summary: Overview:loaded=true; Graphs:loaded=true; Quality:loaded=true; Related:loaded=true; Events:loaded=true; Overview:loaded=true; Graphs:loaded=true; Quality:loaded=true; Related:loaded=true; Events:loaded=true
+
+API requests during switch phase: 0
+Request counts by endpoint: {}
+Max repeat count for one endpoint during switch phase: 0
+API requests at switch end / after 4s idle: 6/6
+
+All tab content loaded: true
+No refetch loop observed: true
+Elapsed ms: 22070
+Result: PASS

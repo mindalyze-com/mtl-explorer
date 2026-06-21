@@ -1,0 +1,73 @@
+[drawing route before saving existing route]
+activeTab: Drawing
+noticeError: ""
+noticeInfo: ""
+cards: {"Distance":"4.54 km","Ascent":"2 m","Descent":"0 m","Duration":"12m","Legs":"3"}
+chartPoints: 8
+listHasPlan: false
+apiMatches: []
+routeInterceptCount: n/a
+
+[after saving existing route plan]
+activeTab: Drawing
+noticeError: ""
+noticeInfo: ""
+cards: {"Distance":"4.54 km","Ascent":"2 m","Descent":"0 m","Duration":"12m","Legs":"3"}
+chartPoints: 8
+listHasPlan: false
+apiMatches: [{"id":100026,"name":"PLN_10 existing route regression 2026-06-19 2350","distanceM":4545,"profile":"fastbike"}]
+routeInterceptCount: n/a
+
+[load tab before failure mock]
+activeTab: Load
+noticeError: ""
+noticeInfo: ""
+cards: {}
+chartPoints: null
+listHasPlan: true
+apiMatches: [{"id":100026,"name":"PLN_10 existing route regression 2026-06-19 2350","distanceM":4545,"profile":"fastbike"}]
+routeInterceptCount: n/a
+
+[saved plan loaded while route endpoint mocked]
+activeTab: Drawing
+noticeError: ""
+noticeInfo: "Loaded plan shown as saved. The first edit will re-route all legs."
+cards: {"Distance":"4.54 km","Ascent":"2 m","Descent":"0 m","Duration":"12m","Legs":"3"}
+chartPoints: 8
+listHasPlan: false
+apiMatches: [{"id":100026,"name":"PLN_10 existing route regression 2026-06-19 2350","distanceM":4545,"profile":"fastbike"}]
+routeInterceptCount: 0
+
+[after edit with mocked routing-unavailable response]
+activeTab: Drawing
+noticeError: "Route unavailable for these points. Move waypoints onto routable roads or trails, or try again later."
+noticeInfo: ""
+cards: {"Distance":"4.54 km","Ascent":"2 m","Descent":"0 m","Duration":"12m","Legs":"3"}
+chartPoints: 8
+listHasPlan: false
+apiMatches: [{"id":100026,"name":"PLN_10 existing route regression 2026-06-19 2350","distanceM":4545,"profile":"fastbike"}]
+routeInterceptCount: 1
+
+[after reloading saved route with mock removed]
+activeTab: Drawing
+noticeError: ""
+noticeInfo: "Loaded plan shown as saved. The first edit will re-route all legs."
+cards: {"Distance":"4.54 km","Ascent":"2 m","Descent":"0 m","Duration":"12m","Legs":"3"}
+chartPoints: 8
+listHasPlan: false
+apiMatches: [{"id":100026,"name":"PLN_10 existing route regression 2026-06-19 2350","distanceM":4545,"profile":"fastbike"}]
+routeInterceptCount: 1
+
+[after deleting temporary existing route plan]
+activeTab: Load
+noticeError: ""
+noticeInfo: ""
+cards: {}
+chartPoints: null
+listHasPlan: false
+apiMatches: []
+routeInterceptCount: 1
+
+interceptedRouteRequests: 1
+firstInterceptedBody: {"waypoints":[{"lat":29.42800557243946,"lng":1.3591956653537522},{"lat":29.431340948074535,"lng":1.3652463413771727},{"lat":29.42200162027534,"lng":1.3487793116923683},{"lat":29.430673881710433,"lng":1.3662675525207817},{"lat":29.43034034688567,"lng":1.3672887636636233}],"profile":"fastbike"}
+screenshots: {"savedList":"assets/PLN_10-saved-list.jpg","loadedUnderFailure":"assets/PLN_10-loaded-existing-under-route-failure.jpg","failureNotice":"assets/PLN_10-new-data-failure-existing-route-visible.jpg","deletedList":"assets/PLN_10-deleted-list.jpg"}

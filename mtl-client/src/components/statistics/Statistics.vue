@@ -778,8 +778,7 @@ const {
 } = useTrackBrowser(trackBrowserSourceTracks);
 
 function onTrackQuickViewChanged() {
-  trackQuery.value = '';
-  trackSortResetKey.value += 1;
+  // Keep the user's table search and sort when switching between track presets.
 }
 
 function showNewestTracks() {
@@ -900,6 +899,15 @@ async function toggle() {
   showMenu.value = !showMenu.value;
   active.value = !active.value;
   if (active.value) {
+    emit('tool-opened');
+    await fetchStatistics();
+  }
+}
+
+async function open() {
+  showMenu.value = true;
+  if (!active.value) {
+    active.value = true;
     emit('tool-opened');
     await fetchStatistics();
   }
@@ -1040,6 +1048,7 @@ function showInfo(event: Event, text: string) {
 
 defineExpose({
   active,
+  open,
   toggle,
   close,
   fetchStatistics,

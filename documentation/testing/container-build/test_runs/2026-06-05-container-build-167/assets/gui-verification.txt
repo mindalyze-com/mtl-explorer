@@ -1,0 +1,10 @@
+URL: http://167.233.16.201:18080/mtl/stats
+Title: MTL Explorer
+Visible map counter present: true ("3 / 3 Tracks")
+Stats track count present: true ("3 Tracks")
+Deleted track name visible: false ("2020-12-18 07:24:29")
+Deleted filename visible: false ("around-visnjan-with-car.gpx")
+Remaining visible track signals:
+- Current Track: 02 AUG 2020 08:50: true
+- 8/22/2014 18:48: true
+- ACTIVE LOG ACTIVE LOG #2: true

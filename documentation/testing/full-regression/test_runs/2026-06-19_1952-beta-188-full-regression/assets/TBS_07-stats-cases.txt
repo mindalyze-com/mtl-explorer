@@ -1,0 +1,29 @@
+TBS_07 stats correctness for many, single, and empty track sets
+
+All IDs: 100002, 100003, 100004, 100005, 100014, 100015, 100016, 100017, 100018, 100019, 100020, 100021, 100023
+
+[many]
+- filter TRACK_IDS: 100002,100003,100004,100005,100014,100015,100016,100017,100018,100019,100020,100021,100023
+- API summary: trackCount=13, distanceM=825062.56, durationMs=60632000, energyWh=4022.94
+- API activity breakdown: [{"activityType":"BICYCLE","trackCount":12,"distanceM":821463.8,"durationMs":57035000,"energyWh":3676.27},{"activityType":"WALKING","trackCount":1,"distanceM":3598.76,"durationMs":3597000,"energyWh":346.67}]
+- API period groups: [{"periodType":"day","rows":6},{"periodType":"week","rows":6},{"periodType":"month","rows":6},{"periodType":"weekday","rows":7}]
+- API stats rows: [{"subGroup":"Q1","trackLengthInMeterSum":791078,"energyNetTotalWhSum":3423.3},{"subGroup":"Q1","trackLengthInMeterSum":25882,"energyNetTotalWhSum":197.5},{"subGroup":"Q3","trackLengthInMeterSum":6140,"energyNetTotalWhSum":381.6},{"subGroup":"Q1","trackLengthInMeterSum":190,"energyNetTotalWhSum":2.5},{"subGroup":"Q2","trackLengthInMeterSum":1770,"energyNetTotalWhSum":18}]
+- UI markers: 13Tracks, 825 km, 273 km, 0 m, 16h 50m, 7h 46m, 0m 00s, 4,023 Wh, 1,808 Wh, 0 Wh, Bicycle1212, Walking11
+
+[single]
+- filter TRACK_IDS: 100002
+- API summary: trackCount=1, distanceM=273260.02, durationMs=28015000, energyWh=1807.64
+- API activity breakdown: [{"activityType":"BICYCLE","trackCount":1,"distanceM":273260.02,"durationMs":28015000,"energyWh":1807.64}]
+- API period groups: [{"periodType":"day","rows":1},{"periodType":"week","rows":1},{"periodType":"month","rows":1},{"periodType":"weekday","rows":7}]
+- API stats rows: [{"subGroup":"Q1","trackLengthInMeterSum":273260,"energyNetTotalWhSum":1807.6}]
+- UI markers: Showing 1 of 13 tracks, 1Tracks, 273 km, 0 m, 7h 46m, 0m 00s, 1,808 Wh, 0 Wh, Bicycle11
+
+[empty]
+- filter TRACK_IDS: 999999999
+- API summary: trackCount=0, distanceM=0, durationMs=0, energyWh=0
+- API activity breakdown: []
+- API period groups: [{"periodType":"weekday","rows":7}]
+- API stats rows: []
+- UI markers: Showing 0 of 13 tracks, 0 m, 0m 00s
+
+Cleanup UI markers: 13Tracks, 825 km, 273 km, 0 m, 16h 50m, 7h 46m, 0m 00s, 4,023 Wh, 1,808 Wh, 0 Wh, Bicycle1212, Walking11

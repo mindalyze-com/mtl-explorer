@@ -1,0 +1,24 @@
+Status: PASS
+Zoom clicks until planner usable: 6
+Checks: chartOk=true, hoverOkVisible=true, hoverOkPresent=true, clearedOk=true
+Hover candidate: fx=0.08, fy=0.36, markerRect={"x":334,"y":195,"width":14,"height":14}
+Route responses: 200
+Route requests:
+{"index":1,"waypointCount":2,"profile":"trekking"}
+Snapshots:
+planner-opened: {"chartPresent":false,"chartText":"","markerPresent":false,"markerRect":null,"markerVisibleInViewport":false,"tooltipText":"","legs":"0","distance":"0.00 km"}
+route-rendered: {"chartPresent":true,"chartText":"Created with Highcharts 12.6.00 km50 km100 km150 km200 km250 km300 km350 km400 km450 km500 km550 km300400500600700800 m","markerPresent":false,"markerRect":null,"markerVisibleInViewport":false,"tooltipText":"","legs":"1","distance":"555.03 km"}
+hover-0.02-0.28: {"chartPresent":true,"chartText":"Created with Highcharts 12.6.00 km50 km100 km150 km200 km250 km300 km350 km400 km450 km500 km550 km300400500600700800 m","markerPresent":false,"markerRect":null,"markerVisibleInViewport":false,"tooltipText":"","legs":"1","distance":"555.03 km"}
+hover-selected: {"chartPresent":true,"chartText":"Created with Highcharts 12.6.00 km50 km100 km150 km200 km250 km300 km350 km400 km450 km500 km550 km300400500600700800 m9.33 km576 m -1.0%","markerPresent":true,"markerRect":{"x":334,"y":195,"width":14,"height":14},"markerVisibleInViewport":true,"tooltipText":"9.33 km576 m","legs":"1","distance":"555.03 km"}
+after-chart-leave: {"chartPresent":true,"chartText":"Created with Highcharts 12.6.00 km50 km100 km150 km200 km250 km300 km350 km400 km450 km500 km550 km300400500600700800 m9.33 km576 m -1.0%","markerPresent":false,"markerRect":null,"markerVisibleInViewport":false,"tooltipText":"9.33 km576 m","legs":"1","distance":"555.03 km"}
+Page errors: 0
+Console planner/error/warn messages: 9
+log: Downloading low-zoom PMTiles from /mtl/api/map-proxy/prod/world-lowzoom.pmtiles?mtl-map-source=public&mtl-map-archive=public-default … (IndexedDB fallback)
+log: Low-zoom PMTiles cached successfully (IndexedDB, 42.4 MB)
+log: [zoom] 3.907 | mercator
+log: [zoom] 4.907 | mercator
+log: [zoom] 5.907 | mercator
+log: [zoom] 6.907 | mercator
+log: [zoom] 7.907 | mercator
+log: [zoom] 8.907 | mercator
+info: [planner] Viewport prewarm: 300km side → bbox=[2.38,26.70,5.43,29.39]

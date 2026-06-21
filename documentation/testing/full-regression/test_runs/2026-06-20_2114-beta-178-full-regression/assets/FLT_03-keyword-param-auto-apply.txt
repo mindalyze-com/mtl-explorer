@@ -1,0 +1,14 @@
+FLT_03 keyword filter parameter auto-apply evidence
+Status: PASS
+Parameter input visible: true; selected filter before edit: Activities by keyword
+API expected for SEARCH_WORD=Path: 2/8 ids=100008,100011 groups=CYCLING,CYCLING
+Applied panel: match=2, groups=1, loading=false, error=false, value="Path", active=Activities by keyword
+Applied map: chip="2 / 8 Tracks", funnel=true, legendRows=CYCLING2
+Applied stats: banner="Showing 2 of 8 tracks", tracks=2, distance=6.63 km, nav=toolbar click
+API expected after clear: 8/8 groups=CYCLING,CYCLING,CYCLING,ON_FOOT,CYCLING,CYCLING,CYCLING,CYCLING
+Cleared panel: match=8, groups=2, loading=false, error=false, value=""
+Cleared map: chip="8 / 8 Tracks", funnel=true, legendRows=CYCLING7 | ON_FOOT1
+Cleared stats: banner="", tracks=8, distance=955 km, nav=toolbar click
+Persisted filter: ActivitiesByKeyword; stringParams={}
+Screenshots: FLT_03-keyword-path-applied.webp=26508B(q76,w1200), FLT_03-map-filtered-path.webp=61388B(q76,w1200), FLT_03-stats-filtered-path.webp=24612B(q76,w1200), FLT_03-keyword-cleared.webp=26378B(q76,w1200), FLT_03-map-cleared.webp=61422B(q76,w1200)
+Console counts: warnings=0; errors=0; pageErrors=0

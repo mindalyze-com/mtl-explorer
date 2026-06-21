@@ -1,0 +1,20 @@
+MAP_11 track-point marker popup evidence
+
+Relevant completed evidence:
+- FIT_03 opened FIT-backed Track 100005 from Stats > Tracks.
+- FIT_03 clicked the detail mini-map/track line and opened a Track point popup.
+- Popup content showed:
+  - point 1,805
+  - timestamp
+  - distance
+  - elevation
+  - speed
+  - elapsed time
+
+Why this does not fully satisfy MAP_11:
+- MAP_11 requires clicking an actual rendered track-point/direction-arrow marker, not only the connecting track line.
+- MAP_07 could not directly verify/capture the canvas-rendered direction arrows because screenshots and canvas pixel inspection were unavailable in the current browser session.
+- The available browser controls could not deterministically target a marker inside the MapLibre canvas.
+
+Conclusion:
+MAP_11 is BLOCKED. Track-point popup content is proven by FIT_03, but direct marker-click evidence could not be captured.

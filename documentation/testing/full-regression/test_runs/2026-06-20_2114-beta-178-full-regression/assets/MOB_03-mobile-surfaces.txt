@@ -1,0 +1,20 @@
+MOB_03 mobile table/chart/map-control evidence
+URL: http://178.104.209.132:18080/mtl/
+Table metrics: {"cards":16,"summaryTextSplitAcrossLines":true,"hasSearch":true,"hasRows":true,"horizontalContainers":[{"scrollWidth":528,"clientWidth":358}]}
+Table overflow: {"docOverflowX":0,"bodyOverflowX":0,"controlledEllipsisRows":5,"uncontrolledRows":[]}
+Chart metrics: {"highcharts":8,"chartContainers":7,"hasControls":true,"textHasNaN":false}
+Chart overflow: {"docOverflowX":0,"bodyOverflowX":0,"rows":[]}
+Map metrics: {"canvasCount":2,"trackChip":true,"docOverflowX":0,"hasNaN":false}
+Scale before/after zoom-in: 500 km / 300 km
+Screenshots: table 63582b q=72; charts 39898b q=72; map 49344b q=72
+
+Checks:
+- PASS mobile table/card list visible and searchable
+- PASS table/list containment has no document overflow
+- PASS no uncontrolled visible text overflow in table/list view
+- PASS mobile charts render Highcharts containers
+- PASS charts view has no document/text overflow
+- PASS map zoom control remains usable
+- PASS no visible NaN/undefined/null in checked views
+
+Console/page errors: none

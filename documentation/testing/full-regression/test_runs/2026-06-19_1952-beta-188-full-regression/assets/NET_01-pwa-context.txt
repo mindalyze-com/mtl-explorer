@@ -1,0 +1,6 @@
+NET_01 installed-PWA context check
+URL: http://188.245.169.80:18080/mtl/
+display-mode browser=true, standalone=false, minimal-ui=false
+isSecureContext=false; serviceWorkerAvailable=false; controller=null
+manifest links: http://188.245.169.80:18080/mtl/manifest.webmanifest, http://188.245.169.80:18080/mtl/manifest.webmanifest
+Result: NOT APPLICABLE. The test plan scopes this row to installed PWA/web-app mode; this run used normal browser contexts.

@@ -1,0 +1,11 @@
+TRD_14 events tab and mini-map selection evidence
+Track: 100000
+Status: PASS
+API track: Jura Route 7 / 2011 on GPSies.com; events=1; GPS_GAP present=false
+API event summary: 800000:STOP/DETECTED duration=63s index=1219-1220 distance=235885.09
+DOM before: header=#100000; eventButton=1; breakSummary=1 breakLongest 1m 03s; rows=1; first={"index":0,"key":"800000","className":"event-row event-row--break event-row--longest event-row--selectable","ariaPressed":"false","title":"Break 1","time":"1 Jan 2010, 15:35 - 15:36","badge":"","duration":"1m 03s","position":"235.89 km","description":""}
+DOM selected: selectedCount=1; first aria=true; class=event-row event-row--break event-row--longest event-row--selected event-row--selectable
+DOM deselected: selectedCount=0; first aria=false; class=event-row event-row--break event-row--longest event-row--selectable
+Mini-map selected vs deselected pixel diff: {"status":1,"raw":"1133 (0.00532921)","diffPixels":1133}
+Console counts: warnings=0; errors=2; pageErrors=0
+Screenshots: list={"q":"76","resizeWidth":"1200","size":38280}; selected={"q":"76","resizeWidth":"1200","size":38462}; deselected={"q":"76","resizeWidth":"1200","size":38106}

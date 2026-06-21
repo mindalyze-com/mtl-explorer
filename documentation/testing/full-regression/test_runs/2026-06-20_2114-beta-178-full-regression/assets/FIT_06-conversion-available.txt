@@ -1,0 +1,6 @@
+# FIT_06 conversion-unavailable condition evidence
+
+Coverage condition: If GPSBabel or FIT conversion is unavailable, the UI shows a clear conversion/indexing error and the failure is recorded as blocking for FIT support.
+Observed run state: FIT conversion is available.
+Supporting packets: FIT_02 PASS imported and indexed Activity.fit; FIT_04 PASS downloaded original FIT; FIT_05 PASS downloaded converted GPX with 3,601 trkpt elements.
+Decision: NOT APPLICABLE because the unavailable-conversion condition did not occur in this run.

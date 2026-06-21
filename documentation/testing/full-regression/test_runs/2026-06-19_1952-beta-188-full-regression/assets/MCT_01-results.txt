@@ -1,0 +1,16 @@
+[tool activation]
+Opened /mtl/segments; retoggled Segments after map readiness so map click listener was installed.
+Detection radius after retoggle: 2000 m.
+
+[zone placement]
+Zone A click: (742,388); Zone B click: (902,318).
+Overlay after zone B: A=1 track, B=1 track, shared=1 track; Analyze enabled.
+Screenshot: assets/MCT_01-zones-placed-retry.webp
+
+[analyze result]
+Topbar: 1 / 1 tracks; result row: JuraRoute72011.gpx, start 01/01/2010 01:00, duration 16h 55m.
+Speed metric row values: 16.16 / 16.02.
+Time metric row values: 02:32:27 / 00:28:11.
+Distance metric row values: 41,070 / 7,527.
+Metric chips present: speed, time, distance.
+Screenshots: assets/MCT_01-results-list.jpg; assets/MCT_01-results-distance-metric.jpg

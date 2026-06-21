@@ -1,0 +1,23 @@
+Status: PASS
+Result link clicked: MoselradwegAusWiki.gpx
+Opened URL: http://178.104.209.132:18080/mtl/track/100002
+Track details header: Track Details#100002Bicycle
+
+Validated behavior:
+- Segment Analyzer results listed MoselradwegAusWiki.gpx before navigation.
+- Clicking the result link opened the Track Details view for track 100002.
+- The detail view showed the expected Track Details header, activity label, tabs, stats, and map.
+- The segment-detail API path was exercised before/while opening the detail view.
+
+Relevant API events:
+- 200 POST /mtl/api/tracks/get-track-ids-within-distance-of-point?filterName=SmartBaseFilter&longitude=6.488069275328826&latitude=48.2205974894635&distanceInMeter=13000
+- 200 POST /mtl/api/tracks/get-track-ids-within-distance-of-point?filterName=SmartBaseFilter&longitude=6.12635525917355&latitude=48.72322822744073&distanceInMeter=13000
+- 200 POST /mtl/api/tracks/get-track-details-for-tracks-crossing-points
+- 200 GET /mtl/api/tracks/details/get-sub-track?trackDataPointFrom=610577&trackDataPointTo=611453
+- 200 GET /mtl/api/tracks/get/100002?precisionInMeter=1
+- 200 GET /mtl/api/tracks/related/100002?filterName=SmartBaseFilter
+- 200 GET /mtl/api/tracks/get/100002/details?trackType=SIMPLIFIED_SHAPE&precisionInMeter=1
+- 200 GET /mtl/api/tracks/100002/chart-series?x=TIME&maxBuckets=350
+
+Page errors: 0
+Console notes: 0

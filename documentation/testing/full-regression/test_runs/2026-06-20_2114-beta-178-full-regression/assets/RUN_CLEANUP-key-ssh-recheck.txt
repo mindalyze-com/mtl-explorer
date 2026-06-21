@@ -1,0 +1,9 @@
+RUN_CLEANUP key-based SSH access recheck
+Timestamp local: 2026-06-21 CEST
+Target: root@178.104.209.132
+Command: true
+
+root@178.104.209.132: Permission denied (publickey,password).
+key ssh exit code: 255
+
+Local control socket search found no reusable SSH control session for this host.

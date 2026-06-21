@@ -1,0 +1,15 @@
+# FIT_03 detail summary
+
+Track opened from user-facing Stats > Tracks search result:
+- track id: 100005
+- source/name: Activity.fit
+- activity: Walking
+- statistics state: Included in statistics
+
+Tabs verified:
+- Overview: detail mini-map, Activity.fit title, Download original, Download GPX, date, controls, distance, duration, ascent, speed, timing, energy, fitness, exploration.
+- Graphs: Time/Distance controls, Range control, point-count slider, graph-height slider, Speed, Elevation, Elevation Gain Rate, Distance over Time, Cumulative Mechanical Energy, Estimated Power charts.
+- Quality: SUCCESS, UNIQUE, 3600 total points, point-distance metrics, activity auto-classification, geo coverage, GPX metadata, File & Indexer sections.
+- Related: prior tracks and current Track #100005 render.
+- Events: empty-state renders as "No track events".
+- Mini-map/point popup: clicking the FIT track line opened a Track point popup showing point 1,805, timestamp, distance, elevation, speed, and elapsed time.

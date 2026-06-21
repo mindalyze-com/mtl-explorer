@@ -1,0 +1,162 @@
+{
+  "beforeTrackText": "13 Tracks",
+  "afterTrackText": "13 Tracks",
+  "gpsTracks": {
+    "label": "GPS Tracks",
+    "iconClass": "bi lc-check bi-check-circle-fill",
+    "enabled": true,
+    "sliderVisible": true,
+    "ariaValue": "100",
+    "ariaLabel": "GPS Tracks opacity"
+  },
+  "overlays": [
+    {
+      "id": "wmt-hiking",
+      "label": "Hiking (worldwide)",
+      "state": {
+        "label": "Hiking (worldwide)",
+        "iconClass": "bi lc-check bi-check-circle-fill",
+        "enabled": true,
+        "sliderVisible": true,
+        "ariaValue": "70",
+        "ariaLabel": "Hiking (worldwide) opacity"
+      }
+    },
+    {
+      "id": "wmt-cycling",
+      "label": "Cycling (worldwide)",
+      "state": {
+        "label": "Cycling (worldwide)",
+        "iconClass": "bi lc-check bi-check-circle-fill",
+        "enabled": true,
+        "sliderVisible": true,
+        "ariaValue": "70",
+        "ariaLabel": "Cycling (worldwide) opacity"
+      }
+    },
+    {
+      "id": "wmt-mtb",
+      "label": "MTB (worldwide)",
+      "state": {
+        "label": "MTB (worldwide)",
+        "iconClass": "bi lc-check bi-check-circle-fill",
+        "enabled": true,
+        "sliderVisible": true,
+        "ariaValue": "70",
+        "ariaLabel": "MTB (worldwide) opacity"
+      }
+    },
+    {
+      "id": "wanderland",
+      "label": "Hiking Routes",
+      "state": {
+        "label": "Hiking Routes",
+        "iconClass": "bi lc-check bi-check-circle-fill",
+        "enabled": true,
+        "sliderVisible": true,
+        "ariaValue": "70",
+        "ariaLabel": "Hiking Routes opacity"
+      }
+    },
+    {
+      "id": "veloland",
+      "label": "Bike Routes",
+      "state": {
+        "label": "Bike Routes",
+        "iconClass": "bi lc-check bi-check-circle-fill",
+        "enabled": true,
+        "sliderVisible": true,
+        "ariaValue": "70",
+        "ariaLabel": "Bike Routes opacity"
+      }
+    },
+    {
+      "id": "mountainbikeland",
+      "label": "MTB Routes",
+      "state": {
+        "label": "MTB Routes",
+        "iconClass": "bi lc-check bi-check-circle-fill",
+        "enabled": true,
+        "sliderVisible": true,
+        "ariaValue": "70",
+        "ariaLabel": "MTB Routes opacity"
+      }
+    },
+    {
+      "id": "wanderwege",
+      "label": "Hiking Trails",
+      "state": {
+        "label": "Hiking Trails",
+        "iconClass": "bi lc-check bi-check-circle-fill",
+        "enabled": true,
+        "sliderVisible": true,
+        "ariaValue": "70",
+        "ariaLabel": "Hiking Trails opacity"
+      }
+    }
+  ],
+  "persisted": {
+    "activeOverlays": [
+      "wmt-hiking",
+      "wmt-cycling",
+      "wmt-mtb",
+      "wanderland",
+      "veloland",
+      "mountainbikeland",
+      "wanderwege"
+    ],
+    "overlayOpacities": {
+      "wmt-hiking": 70,
+      "wmt-cycling": 70,
+      "wmt-mtb": 70,
+      "wanderland": 70,
+      "veloland": 70,
+      "mountainbikeland": 70,
+      "wanderwege": 70
+    }
+  },
+  "assertions": {
+    "allSevenEnabled": true,
+    "allSlidersVisible": true,
+    "allOpacityAdjustedTo70": true,
+    "activeOverlaysPersisted": true,
+    "gpsTracksStillEnabled": true,
+    "trackCountStillVisible": true
+  },
+  "notes": "Overlay raster layers are added below heatmap/tracks/media by the app controller; user-visible check confirms tracks remain enabled and count remains visible while all overlays are on.",
+  "consoleProblems": [
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 401 ()"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 401 ()"
+    },
+    {
+      "type": "warning",
+      "text": "Client environment analytics submission failed {name: FetchError, message: The request failed and the interceptors did not return an alternative response}"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 400 ()"
+    },
+    {
+      "type": "error",
+      "text": "{name: Error, message: AJAXError:  (400): https://wmts.geo.admin.ch/1.0.0…h.astra.wanderland/default/current/3857/4/7/5.png}"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 400 ()"
+    },
+    {
+      "type": "error",
+      "text": "{name: Error, message: AJAXError:  (400): https://wmts.geo.admin.ch/1.0.0…h.astra.wanderland/default/current/3857/4/8/8.png}"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 400 ()"
+    }
+  ],
+  "failedRequestsNote": "External raster tile failures, if any, are not product API failures; no layer-control action failed."
+}

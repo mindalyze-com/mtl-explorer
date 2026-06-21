@@ -1,0 +1,23 @@
+# MAP_14 runtime raster fallback evidence
+
+Simulation: browser route aborted only `/mtl/api/map-proxy/prod/*.pmtiles` requests; server was not changed.
+Aborted local PMTiles requests: 3
+Observed local map-proxy requests: 3
+Observed remote raster tile requests: 89
+Remote tile sample: https://tile.openstreetmap.org/0/0/0.png | https://tile.opentopomap.org/11/1046/875.png | https://tile.opentopomap.org/11/1046/876.png | https://tile.opentopomap.org/11/1045/875.png | https://tile.opentopomap.org/11/1045/876.png | https://tile.opentopomap.org/11/1047/875.png
+Console fallback messages: warning: PMTiles HTTP cache failed; retrying archive range requests without browser cache. {url: /mtl/api/map-proxy/prod/planet.pmtiles?mtl-map-source=public&mtl-map-archive=public-default, message: Failed to fetch} | warning: [MTL] Local vector map tiles failed; switched base map to raster fallback for this session. {message: Failed to fetch, sourceId: protomaps, tile: null, fallbackStyleMode: remote-raster} | log: Downloading low-zoom PMTiles from /mtl/api/map-proxy/prod/world-lowzoom.pmtiles?mtl-map-source=public&mtl-map-archive=public-default … (IndexedDB fallback)
+
+Fallback canvases: 2
+Fallback attribution has OpenTopoMap/OpenStreetMap: true
+Fallback text sample: 500 km Map data: © OpenStreetMap contributors, SRTM | Map style: © OpenTopoMap (CC-BY-SA) 8 Tracks Stats Filter Map Animate Segments GPS Planner Admin
+
+Interaction checks after fallback:
+- Track selection at (790,97) opened overlap list: true
+- Selection text sample: 500 km Map data: © OpenStreetMap contributors, SRTM | Map style: © OpenTopoMap (CC-BY-SA) 8 Tracks Stats Filter Map Animate Segments GPS Planner Admin 2 tracks — select for details Vitry le françois - langres on GPSies.com Bicycle 01/01/2010 Moselradweg aus Wiki on GPSies.com Bicycle 01/01/2010
+- Pan/zoom completed after closing selection: true
+- Pan/zoom canvases: 2
+- Remote tile requests before/after pan-zoom: 49/89
+- Pan/zoom text sample: 300 km Map data: © OpenStreetMap contributors, SRTM | Map style: © OpenTopoMap (CC-BY-SA) 8 Tracks Stats Filter Map Animate Segments GPS Planner Admin
+
+Elapsed ms: 17350
+Result: PASS

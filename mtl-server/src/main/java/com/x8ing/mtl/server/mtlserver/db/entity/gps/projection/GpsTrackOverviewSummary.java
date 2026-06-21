@@ -8,6 +8,7 @@ import java.util.Date;
         "trackCount",
         "distanceM",
         "durationMs",
+        "ascentM",
         "energyWh",
         "oldestStart",
         "newestStart"
@@ -19,6 +20,8 @@ public interface GpsTrackOverviewSummary {
     Double getDistanceM();
 
     Double getDurationMs();
+
+    Double getAscentM();
 
     Double getEnergyWh();
 

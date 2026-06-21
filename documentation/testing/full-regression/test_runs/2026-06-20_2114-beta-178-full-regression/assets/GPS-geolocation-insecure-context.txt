@@ -1,0 +1,7 @@
+coverage=GPS_01-GPS_05
+status=NOT APPLICABLE
+countBefore=0 Tracks
+facts={"href":"http://178.104.209.132:18080/mtl/","origin":"http://178.104.209.132:18080","protocol":"http:","hostname":"178.104.209.132","isSecureContext":false,"hasGeolocationApi":true,"geolocationPermission":"denied","gpsUnavailableVisible":true,"secureOriginMessageVisible":true,"trackCountText":"10 Tracks","canvasCount":2}
+assertions={"plainHttpRemote":true,"insecureContext":true,"warningVisible":true,"mapStillUsable":true}
+networkErrors.sample=["401 http://178.104.209.132:18080/mtl/api/info/build","401 http://178.104.209.132:18080/mtl/api/info/build"]
+consoleMessages.sample=["error: Failed to load resource: the server responded with a status of 401 ()","error: Failed to load resource: the server responded with a status of 401 ()"]

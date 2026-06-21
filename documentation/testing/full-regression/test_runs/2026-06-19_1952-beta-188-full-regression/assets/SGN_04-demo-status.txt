@@ -1,0 +1,9 @@
+# SGN_04 demo-mode status
+
+GET /mtl/api/auth/demo-status
+- HTTP status: 200
+- Response: {"username":"","password":"","demoMode":false}
+
+Result:
+- Demo mode is not active in this quick-install beta run.
+- The login-screen demo credentials banner is therefore not applicable.

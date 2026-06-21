@@ -1,0 +1,19 @@
+MOB_04 mobile planner touch evidence
+URL: http://178.104.209.132:18080/mtl/plan
+Ready: {"scale":"10 km","distance":"0.00 km","ascent":"0 m","descent":"0 m","duration":"–","legs":"0","chart":0,"notices":[]}
+After placement: {"scale":"10 km","distance":"9.33 km","ascent":"5 m","descent":"27 m","duration":"25m","legs":"1","chart":1,"notices":[]}
+After route-line tap attempt: {"scale":"10 km","distance":"9.58 km","ascent":"5 m","descent":"27 m","duration":"26m","legs":"2","chart":1,"notices":[]}
+After drag: {"scale":"10 km","distance":"9.21 km","ascent":"5 m","descent":"27 m","duration":"25m","legs":"2","chart":1,"notices":[]}
+Route events: [{"i":1,"status":200,"wps":2,"waypoints":[{"lat":28.452715503943196,"lng":4.179419920238615},{"lat":28.3644140255617,"lng":4.509275431527016}],"coordinateCount":0},{"i":2,"status":200,"wps":3,"waypoints":[{"lat":28.452715503943196,"lng":4.179419920238615},{"lat":28.3644140255617,"lng":4.509275431527016},{"lat":28.40857396571741,"lng":4.344347675882403}],"coordinateCount":0},{"i":3,"status":200,"wps":3,"waypoints":[{"lat":28.452715503943196,"lng":4.179419920238615},{"lat":28.30129651188436,"lng":4.437567711681766},{"lat":28.40857396571741,"lng":4.344347675882403}],"coordinateCount":0}]
+Clear result: {"scale":"10 km","distance":"0.00 km","ascent":"0 m","descent":"0 m","duration":"–","legs":"0","chart":0,"notices":[]}
+Screenshots: route 40614b q=72; insert 39578b q=72; drag 40236b q=72
+
+Checks:
+- PASS zoom guard cleared
+- PASS touch taps created routed leg
+- BLOCKED route-line touch insertion not proven: the waypoint count became 3, but the request order was start, original end, new point, which indicates append rather than insertion into the existing leg.
+- PASS touch drag recomputed 3-waypoint route
+- PASS transient route cleared or browser-confined
+- PASS no planner page errors
+
+Planner console/page messages: error: Unable to preventDefault inside passive event listener invocation.

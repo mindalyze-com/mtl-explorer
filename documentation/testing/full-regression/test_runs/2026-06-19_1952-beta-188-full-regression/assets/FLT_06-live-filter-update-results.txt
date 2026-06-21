@@ -1,0 +1,71 @@
+FLT_06 live filter update results
+
+Setup
+- URL before live-change marker: http://188.245.169.80:18080/mtl/filter
+- Selected filter: Activities by keyword.
+- Filter parameters were reset before the marker was created.
+- No explicit page reload was performed after setting the marker.
+- No-reload marker: marker-1781901715500-0.5367493018809364
+
+Baseline before live change
+- Marker present: marker-1781901715500-0.5367493018809364
+- URL: /mtl/filter
+- Result: 13 / 13 Tracks
+- Colors tab: Colors 13
+- Legend text in page: CYCLING 12, ON_FOOT 1
+- Persisted params:
+  stringParams: {}
+  dateTimeParams: {}
+  geoCircles: {}
+  geoRectangles: {}
+  geoPolygons: {}
+
+Live apply
+- Entered Keyword "Jura" in the selected filter parameter input.
+- Marker still present: marker-1781901715500-0.5367493018809364
+- URL stayed /mtl/filter.
+- Result changed in place to 1 / 13 Tracks.
+- Colors tab changed to Colors 1.
+- Legend changed to CYCLING 1.
+- Persisted params:
+  stringParams:
+    SEARCH_WORD: Jura
+  dateTimeParams: {}
+  geoCircles: {}
+  geoRectangles: {}
+  geoPolygons: {}
+
+Stats without full reload
+- Clicked Stats in the side navigation.
+- Marker still present: marker-1781901715500-0.5367493018809364
+- URL changed by SPA navigation to /mtl/stats.
+- Header count remained 1 / 13 Tracks.
+- Stats text: Showing 1 of 13 tracks.
+- Stats summary:
+  - 1 TRACKS
+  - 273 km DISTANCE
+  - 7h 46m DURATION
+  - 1,808 Wh ENERGY
+  - Activity breakdown: Bicycle 1
+  - Highlight/recent track: Jura Route 7 / 2011 on GPSies.com
+
+Restore without full reload
+- Clicked Filter in side navigation.
+- Cleared the keyword input.
+- Marker still present: marker-1781901715500-0.5367493018809364
+- URL: /mtl/filter
+- Result returned to 13 / 13 Tracks.
+- Colors tab returned to Colors 13.
+- Legend returned to CYCLING 12 and ON_FOOT 1.
+- Persisted params returned to empty maps:
+  stringParams: {}
+  dateTimeParams: {}
+  geoCircles: {}
+  geoRectangles: {}
+  geoPolygons: {}
+
+Screenshot assets
+- FLT_06-baseline-full-map.png: baseline count, legend, and colors state.
+- FLT_06-filtered-map-live.png: in-place filtered map/count/legend/colors state.
+- FLT_06-filtered-stats-live.png: filtered stats state.
+- FLT_06-restored-map-live.png: restored map/count/legend/colors state.

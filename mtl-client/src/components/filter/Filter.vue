@@ -77,6 +77,12 @@ async function toggle() {
   }
 }
 
+function open() {
+  if (showMenu.value) return;
+  showMenu.value = true;
+  emit('tool-opened');
+}
+
 function close() {
   showMenu.value = false;
 }
@@ -119,6 +125,7 @@ function getGeoShapes(): GeoShapes {
 }
 
 defineExpose({
+  open,
   toggle,
   close,
   resetFilter,

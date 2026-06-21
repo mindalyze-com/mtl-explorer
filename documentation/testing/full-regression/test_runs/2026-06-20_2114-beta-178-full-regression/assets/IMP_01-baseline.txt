@@ -1,0 +1,32 @@
+# IMP_01 baseline evidence
+Checked: 2026-06-20T19:32:45.956Z
+URL after admin check: http://178.104.209.132:18080/mtl/admin
+Map visible text: 5 km © OpenStreetMap 0 Tracks Stats Filter Map Animate Segments GPS Planner Admin
+Stats visible text: 5 km © OpenStreetMap 0 Tracks Stats Filter Map Animate Segments GPS Planner Admin Overview Trends Tracks No tracks match the current filters.
+Admin visible text: 5 km © OpenStreetMap 0 Tracks Stats Filter Map Animate Segments GPS Planner Admin Admin SYSTEM UTILITY Admin workspace Manage imports, runtime tools, diagnostics, and local preferences without leaving the map. Quiet state Data Import and processing activity Upload IMPORT Import GPX files and inspect ingest readiness. Jobs IDLE Track indexer, map, and routing activity. Freshness TOKEN Inspect domain revisions and the current map data token. Garmin Sync REMOTE Trigger a remote Garmin export to pul ...
+Baseline map/track-browser count from visible UI: 0 Tracks
+
+API status/body summaries:
+data-freshness status=200 body={"freshnessToken":"47KYzR__|server_id:4wB4qutecBAh3SvkCNbjuE|config:9|filters:85|index:0|media:0|track_geometry:0|tracks:0","changedAt":"2026-06-20T19:20:17.556+0000","items":[{"key":"config","revision":9,"changedAt":"2026-06-20T19:20:17.556+0000"},{"key":"filters","revision":85,"changedAt":"2026-06-20T19:19:50.548+0000"},{"key":"index","revision":0,"changedAt":"2026-06-20T19:19:39.981+0000"},{"key":"media","revision":0,"changedAt":"2026-06-20T19:19:39.981+0000"},{"key":"track_geometry","revision":0,"changedAt":"2026-06-20T19:19:39.981+0000"},{"key":"tracks","revision":0,"changedAt":"2026-06-20T19:19:39.981+0000"}]}
+indexer/status status=200 body=[{"index":"GPS","total":0,"pending":0,"completed":0,"failed":0,"removed":0,"excluded":0,"progressPercent":100},{"index":"MEDIA","total":0,"pending":0,"completed":0,"failed":0,"removed":0,"excluded":0,"progressPercent":100}]
+jobs/status status=200 body=[{"job":"duplicate","label":"Duplicate Finder","total":0,"pending":0,"done":0,"progressPercent":100},{"job":"activityType","label":"Activity Classifier","total":0,"pending":0,"done":0,"progressPercent":100},{"job":"exploration","label":"Exploration Score","total":0,"pending":0,"done":0,"progressPercent":100}]
+tracks/get-simplified ids status=200 body={"standardFilterCount":0,"numberOfFilteredMatchedTracks":0,"trackVersions":{},"filterGroups":{}}
+POST tracks/get-track-overview [] status=200 body summary: trackCount=0 distanceM=0 durationMs=0 ascentM=0 energyWh=0; activityBreakdown=[], trackRankings=[], milestones=[], exclusion counts 0
+POST tracks/get-track-statistics [] status=200 body=[]
+
+Request failures / console warnings sample:
+Network warning sample: expected map tile/font probe HEAD requests aborted during route changes; no app API failures observed in baseline capture.
+Network warning sample: expected map tile/font probe HEAD requests aborted during route changes; no app API failures observed in baseline capture.
+Network warning sample: expected map tile/font probe HEAD requests aborted during route changes; no app API failures observed in baseline capture.
+Network warning sample: expected map tile/font probe HEAD requests aborted during route changes; no app API failures observed in baseline capture.
+Network warning sample: expected map tile/font probe HEAD requests aborted during route changes; no app API failures observed in baseline capture.
+Network warning sample: expected map tile/font probe HEAD requests aborted during route changes; no app API failures observed in baseline capture.
+Network warning sample: expected map tile/font probe HEAD requests aborted during route changes; no app API failures observed in baseline capture.
+Network warning sample: expected map tile/font probe HEAD requests aborted during route changes; no app API failures observed in baseline capture.
+Network warning sample: expected map tile/font probe HEAD requests aborted during route changes; no app API failures observed in baseline capture.
+Network warning sample: expected map tile/font probe HEAD requests aborted during route changes; no app API failures observed in baseline capture.
+Network warning sample: expected map tile/font probe HEAD requests aborted during route changes; no app API failures observed in baseline capture.
+Network warning sample: expected map tile/font probe HEAD requests aborted during route changes; no app API failures observed in baseline capture.
+Network warning sample: expected map tile/font probe HEAD requests aborted during route changes; no app API failures observed in baseline capture.
+Network warning sample: expected map tile/font probe HEAD requests aborted during route changes; no app API failures observed in baseline capture.
+Network warning sample: expected map tile/font probe HEAD requests aborted during route changes; no app API failures observed in baseline capture.

@@ -1,0 +1,32 @@
+TRD_13 related tracks evidence
+
+Start URL:
+- http://188.245.169.80:18080/mtl/track/100022
+
+Start Related tab visible text excerpt:
+- TRACK DETAILS #100022
+- Related tab selected.
+- Previous Tracks section showed 9 tracks, including Track #100017 and synthetic-map09-cross-zone-c.
+- Current Track section showed synthetic-shared-zone-b.
+- Next Tracks section showed 3 tracks.
+- Duplicates section showed 1 duplicate: synthetic-shared-zone-b.
+
+Action:
+- Clicked a visible related track card in the Related tab.
+
+Result:
+- Browser navigated from /mtl/track/100022 to /mtl/track/100017.
+- Destination page still displayed TRACK DETAILS #100017 with Related tab selected.
+- Destination Related tab showed Previous Tracks, Current Track, and Next Tracks sections.
+
+Destination URL:
+- http://188.245.169.80:18080/mtl/track/100017
+
+Destination visible text excerpt:
+- TRACK DETAILS #100017
+- Related
+- Previous Tracks 4
+- Current Track Track #100017
+- Next Tracks 5
+- synthetic-map09-cross-zone-c
+- synthetic-shared-zone-a

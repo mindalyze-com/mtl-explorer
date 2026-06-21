@@ -1,0 +1,39 @@
+Track detail failure simulation
+  Intercepted track detail responses: 1
+  Responses: 503 http://178.104.209.132:18080/mtl/api/tracks/get/100005?precisionInMeter=1 | 200 http://178.104.209.132:18080/mtl/api/tracks/get/100005/details?trackType=SIMPLIFIED_SHAPE&precisionInMeter=1
+  URL: http://178.104.209.132:18080/mtl/track/100005
+  Blank page: false
+  Track error visible: true
+  Retry visible: true
+  Back to map visible: true
+  Canvas count: 3
+  Error text: Track details could not be loadedCheck the server connection, then retry loading this track or go back to the map.RetryBack to map
+  Console warnings/errors: 4
+  error: Failed to load resource: the server responded with a status of 503 (Service Unavailable)
+  error: Error fetching detail track: {name: ResponseError, message: Response returned an error code}
+  warning: [track-details] failed to load required track details {trackId: 100005, error: Object}
+  error: Failed to load resource: the server responded with a status of 404 ()
+
+Media preview failure simulation
+  Bounds responses fulfilled: 1
+  Synthetic point: {"id":424242,"lat":0,"lng":4.286981500000991}
+  Click points tried: [[721,722],[721,707],[695,722],[746,722],[721,691],[682,707],[759,707]]
+  Info responses fulfilled: 1
+  Content failures fulfilled: 2
+  URL: http://178.104.209.132:18080/mtl/
+  Blank page: false
+  Media sheet/error open: true
+  Preview unavailable visible: true
+  Retry visible: true
+  Download visible: true
+  Canvas count: 2
+  Close buttons: 13
+  Media error text: Preview unavailableThe media file could not be decoded by the browser. Retry Download
+  Console warnings/errors: 2
+  error: Failed to load resource: the server responded with a status of 503 (Service Unavailable)
+  error: Failed to load resource: the server responded with a status of 503 (Service Unavailable)
+
+Cross-referenced direct recovery evidence in existing packets
+  Failed map config/startup API: NET_02 shows nonblank Retry state and successful Retry recovery.
+  Failed planner route: PLN_09 shows segment-downloading/actionable auto-retry notice and no blank page.
+  Expired session: NET_03 shows 401 and 403 redirect to login with session-expired message.

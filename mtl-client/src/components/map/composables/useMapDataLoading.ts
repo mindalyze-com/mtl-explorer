@@ -331,15 +331,8 @@ export function useMapDataLoading(deps: {
       }
     },
 
-    reloadBrowserForFreshness(done) {
-      freshnessStore.setReloading(true);
-      this.showLoader = true;
-      done?.(true);
-      window.location.reload();
-    },
-
-    onMapFreshnessBrowserReload() {
-      this.reloadBrowserForFreshness();
+    async onMapFreshnessBrowserReload() {
+      return this.onDataFreshnessReload();
     },
 
     async onAdminReloadTracks(done) {
@@ -354,7 +347,8 @@ export function useMapDataLoading(deps: {
     },
 
     async onAdminRefreshFreshnessData(done) {
-      this.reloadBrowserForFreshness(done);
+      const success = await this.onDataFreshnessReload();
+      done?.(success);
     },
 
     async fetchTracksAndFallback() {

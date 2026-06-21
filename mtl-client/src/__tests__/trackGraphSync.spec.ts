@@ -4,6 +4,7 @@ import { defineComponent, h, nextTick } from 'vue';
 import TrackGraph from '@/components/trackdetails/TrackGraph.vue';
 import type { TrackGraphConfig } from '@/components/trackdetails/trackGraphConfigs';
 import type { ChartPoint, MetricKey } from '@/utils/chartSeriesAdapter';
+import type Highcharts from 'highcharts';
 
 const chartSyncMocks = vi.hoisted(() => ({
   bindChart: vi.fn(),
@@ -12,12 +13,14 @@ const chartSyncMocks = vi.hoisted(() => ({
   },
   cleanup: vi.fn(),
   setChartXMode: vi.fn(),
+  syncPointHover: vi.fn(),
 }));
 
 vi.mock('@/composables/useChartSync', () => ({
   useChartSync: () => ({
     bindChart: chartSyncMocks.bindChart,
     setChartXMode: chartSyncMocks.setChartXMode,
+    syncPointHover: chartSyncMocks.syncPointHover,
   }),
 }));
 
@@ -69,6 +72,23 @@ function chartPoint(overrides: Partial<ChartPoint> = {}): ChartPoint {
   };
 }
 
+function firstSeriesPointMouseOver(wrapper: ReturnType<typeof mount>) {
+  const series = (
+    wrapper.vm as unknown as {
+      chartOptions: {
+        series: Array<{
+          point?: {
+            events?: {
+              mouseOver?: (this: Highcharts.Point) => void;
+            };
+          };
+        }>;
+      };
+    }
+  ).chartOptions.series;
+  return series[0].point?.events?.mouseOver;
+}
+
 async function mountGraph(
   syncEnabled: boolean,
   options: {
@@ -103,6 +123,7 @@ describe('TrackGraph chart sync binding', () => {
     chartSyncMocks.bindChart.mockReset();
     chartSyncMocks.cleanup.mockReset();
     chartSyncMocks.setChartXMode.mockReset();
+    chartSyncMocks.syncPointHover.mockReset();
     chartSyncMocks.bindChart.mockReturnValue(chartSyncMocks.cleanup);
   });
 
@@ -129,6 +150,24 @@ describe('TrackGraph chart sync binding', () => {
 
     expect(chartSyncMocks.bindChart).toHaveBeenCalledTimes(2);
   });
+
+  it('bridges native Highcharts point hover into track cursor sync', async () => {
+    const wrapper = await mountGraph(true, { trackDetails: [chartPoint()] });
+    const point = { x: 10 } as Highcharts.Point;
+
+    firstSeriesPointMouseOver(wrapper)?.call(point);
+
+    expect(chartSyncMocks.syncPointHover).toHaveBeenCalledWith(point);
+  });
+
+  it('does not bridge native point hover while chart sync is disabled', async () => {
+    const wrapper = await mountGraph(false, { trackDetails: [chartPoint()] });
+    const point = { x: 10 } as Highcharts.Point;
+
+    firstSeriesPointMouseOver(wrapper)?.call(point);
+
+    expect(chartSyncMocks.syncPointHover).not.toHaveBeenCalled();
+  });
 });
 
 describe('TrackGraph range band rendering', () => {
@@ -136,6 +175,7 @@ describe('TrackGraph range band rendering', () => {
     chartSyncMocks.bindChart.mockReset();
     chartSyncMocks.cleanup.mockReset();
     chartSyncMocks.setChartXMode.mockReset();
+    chartSyncMocks.syncPointHover.mockReset();
     chartSyncMocks.bindChart.mockReturnValue(chartSyncMocks.cleanup);
   });
 

@@ -25,6 +25,7 @@ PLAN_ID_RE = re.compile(r"\*\*([A-Z]{3}_[0-9]{2})\*\*")
 RUN_ROW_RE = re.compile(
     r"^\|\s*([A-Z]{3}_[0-9]{2}|RUN_SETUP|RUN_CLEANUP)\s*\|\s*([^|]+?)\s*\|"
 )
+MARKDOWN_LINK_RE = re.compile(r"^\[[^\]]+\]\(([^)]+)\)$")
 
 
 def usage() -> int:
@@ -38,6 +39,14 @@ def usage() -> int:
 
 def normalize_status(value: str) -> str:
     return " ".join(value.strip().upper().split())
+
+
+def normalize_packet_cell(value: str) -> str:
+    value = value.strip()
+    match = MARKDOWN_LINK_RE.match(value)
+    if match:
+        return match.group(1).strip()
+    return value
 
 
 def load_plan_ids(script_path: Path) -> list[str]:
@@ -56,7 +65,7 @@ def load_run_rows(run_state_path: Path) -> dict[str, tuple[str, str]]:
         cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
         if len(cells) < 4 or cells[0] == "Coverage ID":
             continue
-        rows[coverage_id] = (normalize_status(cells[1]), cells[3])
+        rows[coverage_id] = (normalize_status(cells[1]), normalize_packet_cell(cells[3]))
     return rows
 
 

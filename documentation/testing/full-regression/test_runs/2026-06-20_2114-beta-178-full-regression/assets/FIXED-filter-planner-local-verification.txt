@@ -1,0 +1,32 @@
+Local fix verification for FLT_04, FLT_05, and PLN-09-P3
+Date: 2026-06-21
+
+Disposition:
+- FLT_04: FIXED locally.
+- FLT_05: FIXED locally through the same geo-shape persistence fix as FLT_04.
+- PLN-09-P3: FIXED locally.
+
+Code changes:
+- mtl-client/src/components/filter/CustomFilter.vue
+  - Geo draw/clear handlers now reassign the updated filter params and immediately persist the current filter draft through the existing filter store save path.
+  - The persisted draft uses getProcessedParams() and trackSetChanged=false, so it does not introduce new API shape or server calculation behavior.
+- mtl-client/src/planner/composables/usePlannerState.ts
+  - clearAll() now clears pending recompute/retry timers, aborts stale route work, resets the segment retry counter, clears lastError, and resets computing state.
+
+Focused verification:
+- Command:
+  npm test -- --run src/__tests__/plannerState.spec.ts src/__tests__/filterParams.spec.ts src/__tests__/filterService.spec.ts src/__tests__/filterStore.spec.ts src/__tests__/serviceHelperFilterStore.spec.ts
+- Result:
+  Test Files 5 passed (5)
+  Tests 30 passed (30)
+
+- Command:
+  npm run type-check
+- Result:
+  vue-tsc --build --force completed successfully.
+
+Coverage notes:
+- FLT_04 original failure was real: the drawn circle was visible before reload, but no geoCircles entry was persisted.
+- FLT_05 original saved-shape failure was downstream of the same missing persisted geo shape.
+- PLN_09 already passed its main segment-downloading coverage; only the stale-clear issue PLN-09-P3 was open.
+- Full browser regression was not rerun after the local fix.

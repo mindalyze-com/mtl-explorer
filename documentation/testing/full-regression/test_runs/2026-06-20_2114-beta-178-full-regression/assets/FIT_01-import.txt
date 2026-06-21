@@ -1,0 +1,8 @@
+FIT_01 public FIT watched-folder import
+Timestamp UTC: 2026-06-20T20:02:38+00:00
+Source: /root/mtl-full-regression-2026-06-20_2114-beta-178-full-regression/source-data/Activity.fit
+Destination: /root/mtl-full-regression-2026-06-20_2114-beta-178-full-regression/data/gpx/Activity.fit
+Destination missing before copy
+949a238e1bb75c3684479785f76fa9a16888bb394518844248f488171d591387  /root/mtl-full-regression-2026-06-20_2114-beta-178-full-regression/source-data/Activity.fit
+949a238e1bb75c3684479785f76fa9a16888bb394518844248f488171d591387  /root/mtl-full-regression-2026-06-20_2114-beta-178-full-regression/data/gpx/Activity.fit
+-rw-r--r-- 1 root root 94096 Jun 20 20:02 /root/mtl-full-regression-2026-06-20_2114-beta-178-full-regression/data/gpx/Activity.fit

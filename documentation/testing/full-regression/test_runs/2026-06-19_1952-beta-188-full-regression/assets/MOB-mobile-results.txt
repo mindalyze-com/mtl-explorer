@@ -1,0 +1,24 @@
+MOB mobile/touch sweep summary
+Viewport: 390x844, dpr=2, maxTouchPoints=1
+Initial map: 16 Tracks, scale=500 km, canvas=true, mobile nav=StatsFilterPlannerMapAnimateSegmentsGPSAdmin
+
+MOB_02 sheets:
+- Nav collapse/expand: height 132px -> 46px (nav-sheet nav-sheet--collapsed) -> 132px.
+- Stats sheet drag: y/h 338/506 -> 101/743; close left 0 active sheets and URL http://188.245.169.80:18080/mtl/.
+
+MOB_03 responsive surfaces:
+- Tracks mobile card sample: VIEWS All Excluded Stats excluded No activity 1 of 16 tracks · 1.11 km · 0m 00s SORT: Date Imported Distance Duration Name Exploration syn-cache-refresh-20260619232459 Bicycle 19/06/2026, 23:20 1.11 km 7 Wh
+- Trends chart count: 16; text sample: YYYY-Q (by year and quarter) All sub-units Table Charts 5 Periods 16 Tracks 1,036 km Total Dist. 23h 47m Total Time 6,053 Wh Total Energy DURATION 2010-Q1 2013-Q1 2021-Q3 2026-Q1 2026-Q2 0 10 20 h DISTANCE 2010-Q1 2013-Q1 2021-Q3 2026-Q1 2026-Q2 0 1k km 500 AC
+- Map controls: 500 km -> zoom-in 300 km -> zoom-out 500 km.
+- Overflow scan: long synthetic track name was ellipsized inside its card; Trends summary is an intentional horizontal pill strip. Screenshots showed no text escaping/overlapping controls.
+
+MOB_04 planner touch evidence:
+- Reused completed PLN_11 direct mobile planner test: touch taps placed two waypoints, route computed, touch drag moved a waypoint and recomputed stats.
+
+MOB_05 gestures after tools:
+- Gesture loop scale/canvas results: stats:500 km->300 km,canvas=true; filter:300 km->200 km,canvas=true; map:200 km->100 km,canvas=true; animate:100 km->50 km,canvas=true; measure:50 km->30 km,canvas=true; gps:30 km->10 km,canvas=true; planner:10 km->10 km,canvas=true; admin:10 km->5 km,canvas=true.
+- Planner focused retry: opened Planner at /mtl/plan, then after close drag/double-tap/pinch changed scale 500 km -> 100 km; canvas=true, 16 Tracks visible.
+- Final state: URL=http://188.245.169.80:18080/mtl/, scale=5 km, activeSheets=0, canvas=true.
+
+Timings: MOB_01 mobile map ready 4673ms; MOB_02 sheets exercised 10168ms; MOB_03 responsive surfaces exercised 18876ms; MOB_05 gestures after tools 134155ms.
+Console events: error: Failed to load resource: the server responded with a status of 401 () | error: Failed to load resource: the server responded with a status of 401 ()

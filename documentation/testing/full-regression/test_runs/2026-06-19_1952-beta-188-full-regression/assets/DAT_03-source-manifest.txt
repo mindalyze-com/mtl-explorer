@@ -1,0 +1,62 @@
+Source data manifest
+Source page/license notes:
+- GPX: public GitHub repository gps-touring/sample-gpx, suggested by regression plan.
+- FIT: Garmin FIT JavaScript SDK public test data, suggested by regression plan.
+- Synthetic: fully synthetic anonymized Zurich-area mini tracks generated for repeatable shared-zone checks; not derived from private GPX.
+
+FILE public-gpx/JuraRoute72011.gpx
+  source_url: https://raw.githubusercontent.com/gps-touring/sample-gpx/master/BrittanyJura/JuraRoute72011.gpx
+  bytes: 199962
+  sha256: fcff577bd3c1a6dc2bb9e53abba8051d510d282f4fb0049d38be5300f92e354e
+  trkpt_count: 1414
+  timestamp_count: 1414
+  gpx_track_names: ['Jura Route 7 / 2011 on GPSies.com']
+FILE public-gpx/MoselradwegAusWiki.gpx
+  source_url: https://raw.githubusercontent.com/gps-touring/sample-gpx/master/BrittanyJura/MoselradwegAusWiki.gpx
+  bytes: 415326
+  sha256: 0f5263dee95a345a42585bde148ec741af4ed4eeb7451702f59c9c7f9bf761c3
+  trkpt_count: 2954
+  timestamp_count: 2954
+  gpx_track_names: ['Moselradweg aus Wiki on GPSies.com']
+FILE public-gpx/Vitry-le-Francois_Langres.gpx
+  source_url: https://raw.githubusercontent.com/gps-touring/sample-gpx/master/BrittanyJura/Vitry-le-Francois_Langres.gpx
+  bytes: 238349
+  sha256: 401218e3c1d1f366ee27ea8bc138d8422eff3bf6348a77183be83fef3e8d7d67
+  trkpt_count: 1688
+  timestamp_count: 1688
+  gpx_track_names: ['Vitry le françois - langres on GPSies.com']
+FILE public-gpx/VoieVerteHauteVosges.gpx
+  source_url: https://raw.githubusercontent.com/gps-touring/sample-gpx/master/BrittanyJura/VoieVerteHauteVosges.gpx
+  bytes: 183733
+  sha256: 0f417d6e76cfa581d3ada969e728694933fbffd062f61a8352ccc87637135f78
+  trkpt_count: 1298
+  timestamp_count: 1298
+  gpx_track_names: ['voie verte haute vosges on GPSies.com']
+FILE public-gpx/Lannion_Plestin_parcours24.4RE.gpx
+  source_url: https://raw.githubusercontent.com/gps-touring/sample-gpx/master/RoscoffCoastal/Lannion_Plestin_parcours24.4RE.gpx
+  bytes: 60917
+  sha256: e76c692cbb5580f20013ce19995a9383361a8a0babec2db3e36f7064f316e85f
+  trkpt_count: 381
+  timestamp_count: 381
+  gpx_track_names: ['Lannion_Plestin_parcours', 'Lannion_Plestin_parcours1']
+FILE public-fit/Activity.fit
+  source_url: https://raw.githubusercontent.com/garmin/fit-javascript-sdk/main/test/data/Activity.fit
+  bytes: 94096
+  sha256: 949a238e1bb75c3684479785f76fa9a16888bb394518844248f488171d591387
+  trkpt_count: 0
+  timestamp_count: 0
+  gpx_track_names: n/a
+FILE synthetic/synthetic-shared-zone-a.gpx
+  source_url: synthetic://MTL-Explorer-regression/shared-zone-a
+  bytes: 622
+  sha256: 67c19d80c85458be9b18a3a678ef48db3c5ba399803906bd3a0e40dcd797ca28
+  trkpt_count: 4
+  timestamp_count: 4
+  gpx_track_names: ['synthetic-shared-zone-a']
+FILE synthetic/synthetic-shared-zone-b.gpx
+  source_url: synthetic://MTL-Explorer-regression/shared-zone-b
+  bytes: 622
+  sha256: 49a49ce9f64129d66a7cb519815d02933bb1e4486c0b84d432f840eff9847c0c
+  trkpt_count: 4
+  timestamp_count: 4
+  gpx_track_names: ['synthetic-shared-zone-b']

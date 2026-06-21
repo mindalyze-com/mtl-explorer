@@ -1,0 +1,41 @@
+{
+  "before": {
+    "countText": "13 Tracks",
+    "heatmapVisible": true
+  },
+  "filterApplied": {
+    "countText": "1 / 13 Tracks",
+    "keywordValue": "Jura",
+    "pageTextSummary": "Filter page showed 1 / 13 Tracks after Keyword Jura."
+  },
+  "after": {
+    "countText": "1 / 13 Tracks",
+    "heatmapVisible": true,
+    "heatmapOpacity": 100
+  },
+  "screenshotDiff": {
+    "beforeAfterChangedPixels": "9826 (0.00937309)"
+  },
+  "assertions": {
+    "heatmapEnabledBeforeFilter": true,
+    "baselineHadAllTracks": true,
+    "keywordFilterApplied": true,
+    "filteredCountVisible": true,
+    "heatmapStillEnabledAfterFilter": true
+  },
+  "consoleProblems": [
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 401 ()"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 401 ()"
+    },
+    {
+      "type": "warning",
+      "text": "Client environment analytics submission failed {name: FetchError, message: The request failed and the interceptors did not return an alternative response}"
+    }
+  ],
+  "failedRequestsNote": "Only startup/navigation/auth/analytics noise was observed; no filter or heatmap action failed."
+}

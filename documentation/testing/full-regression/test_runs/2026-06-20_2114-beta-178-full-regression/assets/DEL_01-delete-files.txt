@@ -1,0 +1,14 @@
+DEL_01 delete-two watched-folder mutation
+Timestamp UTC: 2026-06-20T19:51:59+00:00
+Destination: /root/mtl-full-regression-2026-06-20_2114-beta-178-full-regression/data/gpx
+Before deletion:
+0f417d6e76cfa581d3ada969e728694933fbffd062f61a8352ccc87637135f78  /root/mtl-full-regression-2026-06-20_2114-beta-178-full-regression/data/gpx/VoieVerteHauteVosges.gpx
+e76c692cbb5580f20013ce19995a9383361a8a0babec2db3e36f7064f316e85f  /root/mtl-full-regression-2026-06-20_2114-beta-178-full-regression/data/gpx/Lannion_Plestin_parcours24.4RE.gpx
+After deletion:
+VoieVerteHauteVosges.gpx deleted
+Lannion_Plestin_parcours24.4RE.gpx deleted
+Remaining watched folder files:
+GPX-UPLOAD
+JuraRoute72011.gpx
+MoselradwegAusWiki.gpx
+Vitry-le-Francois_Langres.gpx

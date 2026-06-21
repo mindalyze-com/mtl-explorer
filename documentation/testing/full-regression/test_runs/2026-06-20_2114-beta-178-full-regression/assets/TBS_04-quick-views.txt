@@ -1,0 +1,63 @@
+Status: PASS
+Buttons seen: All, Excluded, Stats excluded, No activity
+Initial All and preset switches active correctly: true
+Empty subset states acceptable: true
+Returned All view has 8 data rows: true
+Search/sort after quick views preserved usability: true
+Page errors: 0
+Console warnings/errors: 0
+
+View: Initial All
+  Active quick view: All
+  Query: (empty)
+  Summary: 8 tracks · 955 km · 20h 04m
+  Data row count: 8
+  Empty state: (none)
+  Active sort: Date
+  First rows:  | 20/06/2026, 22:20 | FMT synthetic regression trackGenerated from route FMT synthetic regression track | Bicycle | 3.31 km | 0m 00s |  | 4 Wh | 0.0% | 20/06/2026, 22:20 ||  | 20/06/2026, 22:20 | Path | Bicycle | 3.31 km | 0m 00s |  | 41 Wh | 0.0% | 20/06/2026, 22:20 ||  | 20/06/2026, 22:20 | Path | Bicycle | 3.31 km | 0m 00s |  | 41 Wh | 0.0% | 20/06/2026, 22:20
+View: Excluded
+  Active quick view: Excluded
+  Query: (empty)
+  Summary: 0 tracks · 0.00 m · 0m 00s
+  Data row count: 0
+  Empty state: No tracks match the current view.
+  Active sort: Date
+  First rows: (none)
+View: Stats excluded
+  Active quick view: Stats excluded
+  Query: (empty)
+  Summary: 0 tracks · 0.00 m · 0m 00s
+  Data row count: 0
+  Empty state: No tracks match the current view.
+  Active sort: Date
+  First rows: (none)
+View: No activity
+  Active quick view: No activity
+  Query: (empty)
+  Summary: 0 tracks · 0.00 m · 0m 00s
+  Data row count: 0
+  Empty state: No tracks match the current view.
+  Active sort: Date
+  First rows: (none)
+View: All
+  Active quick view: All
+  Query: (empty)
+  Summary: 8 tracks · 955 km · 20h 04m
+  Data row count: 8
+  Empty state: (none)
+  Active sort: Date
+  First rows:  | 20/06/2026, 22:20 | FMT synthetic regression trackGenerated from route FMT synthetic regression track | Bicycle | 3.31 km | 0m 00s |  | 4 Wh | 0.0% | 20/06/2026, 22:20 ||  | 20/06/2026, 22:20 | Path | Bicycle | 3.31 km | 0m 00s |  | 41 Wh | 0.0% | 20/06/2026, 22:20 ||  | 20/06/2026, 22:20 | Path | Bicycle | 3.31 km | 0m 00s |  | 41 Wh | 0.0% | 20/06/2026, 22:20
+View: All + search Path + sort Distance
+  Active quick view: All
+  Query: Path
+  Summary: 2 of 8 tracks · 6.63 km · 0m 00s
+  Data row count: 2
+  Empty state: (none)
+  Active sort: Distance
+  First rows:  | 20/06/2026, 22:20 | Path | Bicycle | 3.31 km | 0m 00s |  | 41 Wh | 0.0% | 20/06/2026, 22:20 ||  | 20/06/2026, 22:20 | Path | Bicycle | 3.31 km | 0m 00s |  | 41 Wh | 0.0% | 20/06/2026, 22:20
+
+Page errors detail:
+(none)
+
+Console warnings/errors detail:
+(none)

@@ -41,7 +41,8 @@ export type MapTheme = {
   name: string;
   code: string;
   thumbnail: string;
-  featured?: boolean;
+  badgeLabel?: string;
+  badgeTone?: 'preferred' | 'swiss';
 };
 
 export type MapToolDefinition = {
@@ -380,6 +381,7 @@ export type MapControllerState = {
   _onOnline?: (() => void) | null;
   _resizeObserver?: ResizeObserver | null;
   _attributionControl?: maplibregl.IControl | null;
+  _attributionLinkCleanup?: (() => void) | null;
   _globeControl?: maplibregl.IControl | null;
 };
 
@@ -611,19 +613,18 @@ export type MapDataLoadingMethods = {
   shouldAutoFreshenAfterLogin(): boolean;
   maybeAutoFreshenAfterLogin(): void;
   captureAppliedFreshnessToken(): Promise<void>;
-  clearTrackCacheWhenServerFreshnessChanged(): Promise<void>;
-  onDataFreshnessReload(options?: { force?: boolean; preserveCache?: boolean }): Promise<void>;
+  clearTrackCacheWhenServerFreshnessChanged(): Promise<boolean>;
+  onDataFreshnessReload(options?: { silent?: boolean }): Promise<boolean>;
   onDataFreshnessDismiss(tokenOverride?: string | null | undefined): void;
   currentCollectionPrecision(): number;
-  maybeLoadBackgroundTracks(filterResult?: unknown): void;
+  maybeLoadBackgroundTracks(filterResult?: unknown): boolean;
   loadMapData(fetchResult: unknown): Promise<void>;
   publishGpsTrackMetadataChanges(): void;
   mergeTrackResult(fetchResult: unknown, options?: { pruneMissing?: boolean }): Promise<void>;
   mergeTrackPage(fetchResult: unknown): Promise<void>;
-  reloadBrowserForFreshness(done?: () => void): void;
-  onMapFreshnessBrowserReload(): void;
-  onAdminReloadTracks(done?: () => void): Promise<void>;
-  onAdminRefreshFreshnessData(done?: () => void): Promise<void>;
+  onMapFreshnessBrowserReload(): Promise<boolean>;
+  onAdminReloadTracks(done?: (success?: boolean, message?: string) => void): Promise<void>;
+  onAdminRefreshFreshnessData(done?: (success?: boolean) => void): Promise<void>;
   fetchTracksAndFallback(): Promise<void>;
   _backgroundSync(timer?: unknown): Promise<void>;
   loadAllTracksAt10m(filterResult?: unknown): Promise<void>;

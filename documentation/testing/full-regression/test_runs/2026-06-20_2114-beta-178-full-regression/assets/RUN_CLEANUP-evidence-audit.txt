@@ -1,0 +1,12 @@
+RUN_CLEANUP evidence audit
+Packet files: 177
+Asset files: 455
+Packet asset references checked: 1358
+Packet files with status rows: 177
+Missing referenced assets: 0
+Oversize WebP assets: 0
+Oversize txt assets: 0
+.log assets: 0
+Warnings: 0
+Errors: 0
+Audit result: PASS

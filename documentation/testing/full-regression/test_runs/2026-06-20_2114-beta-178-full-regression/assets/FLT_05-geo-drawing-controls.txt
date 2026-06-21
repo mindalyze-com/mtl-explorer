@@ -1,0 +1,16 @@
+FLT_05 geo drawing coverage evidence
+Status: FAIL
+
+Direct persistence evidence:
+- FLT_04 drew a Circle geo param in the filter UI, then reloaded.
+- Before reload screenshot showed the Circle summary.
+- Persisted filter storage had no geoCircles, and after reload the Circle control returned to Draw on map.
+- This fails the FLT_05 requirement that saved geo shapes reappear next time.
+
+Additional drawing-control attempts in this packet:
+- Circle/rectangle/polygon automation was attempted through the visible map drawing toolbar.
+- A full matrix run reached polygon finish but the filter sheet did not reopen after the Finish attempt within 30s.
+- A reduced matrix run later timed out waiting for the filter sheet to reopen after an auto-finished shape.
+
+Issue linkage:
+- Covered by FLT-04-P2: geo filter shapes are not persisted or re-applied after reload.

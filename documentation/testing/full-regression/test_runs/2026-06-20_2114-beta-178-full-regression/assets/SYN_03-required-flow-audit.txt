@@ -1,0 +1,20 @@
+SYN_03 required import/delete flow audit:
+- Direct source packets:
+  - IMP_01..IMP_09 cover baseline, five-GPX import, indexing, freshness reload, map, browser, stats, filter, heatmap, and details after import.
+  - DEL_01..DEL_05 cover deleting two imported source files, delete processing, map/browser/filter/heatmap/stats/related/detail absence, remaining-track usability, and user-visible criteria.
+- Current indexer API:
+  - GPS total=20, completed=18, removed=2, pending=0, failed=0, excluded=0, progress=90.
+  - MEDIA total=0, completed=0, removed=0, pending=0, failed=0.
+- Current source-of-truth track API for original five-GPX flow:
+  - Present: JuraRoute72011.gpx -> track 100000, COMPLETED_WITH_SUCCESS, SUCCESS, 1409 points.
+  - Present: Vitry-le-Francois_Langres.gpx -> track 100001, COMPLETED_WITH_SUCCESS, SUCCESS, 1688 points.
+  - Present: MoselradwegAusWiki.gpx -> track 100002, COMPLETED_WITH_SUCCESS, SUCCESS, 2949 points.
+  - Absent from active tracks: VoieVerteHauteVosges.gpx and Lannion_Plestin_parcours24.4RE.gpx.
+- Supporting evidence already captured:
+  - IMP_05 map/filter/stats/browser reload screenshots.
+  - IMP_06 per-file search/filter/map evidence.
+  - IMP_07 map-click/detail evidence.
+  - IMP_09 stats, browser summary, and heatmap density evidence.
+  - DEL_03 deleted-name absence across map/browser/filter/heatmap/stats/related surfaces.
+  - DEL_04 remaining-track search/detail evidence.
+- Assertions: {"indexerSettled":true,"deletedRemovedCountIsTwo":true,"remainingOriginalGpxPresent":true,"deletedOriginalGpxAbsentFromActiveTracks":true,"priorPacketsCoverRequiredSurfaces":true}

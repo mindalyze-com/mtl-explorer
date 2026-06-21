@@ -1,0 +1,39 @@
+TBS_12 geo-filter stats alignment results
+
+Rectangle filter: {"minLat":46,"maxLat":48,"minLng":5,"maxLng":8}
+Resolved IDs: 100002, 100003
+Resolved count: 2 / 13
+Overview API summary: {"trackCount":2,"distanceM":791078.9,"durationMs":52626000,"energyWh":3423.3,"oldestStart":"2010-01-01T00:00:00.000+0000","newestStart":"2010-01-01T00:00:00.000+0000"}
+Trend API rows: [{"subGroup":"Q1","trackLengthInMeterSum":791078,"energyNetTotalWhSum":3423.3}]
+
+[filter/map count after rectangle]
+- url: http://188.245.169.80:18080/mtl/filter
+- active tab: Overview
+- markers: 2 / 13 Tracks
+- table rows: [""]
+
+[stats overview after rectangle]
+- url: http://188.245.169.80:18080/mtl/stats
+- active tab: Overview
+- markers: 2 / 13 Tracks, 2 Tracks, Showing 2 of 13 tracks, 2 tracks ·, 791 km, 14h 37m, 3,423 Wh, Bicycle22, Jura Route 7, Moselradweg
+
+[trends after rectangle]
+- url: http://188.245.169.80:18080/mtl/stats
+- active tab: Trends
+- markers: 2 / 13 Tracks, 2 Tracks, Showing 2 of 13 tracks, 2 tracks ·, 791 km, 14h 37m, 3,423 Wh, Bicycle22, Jura Route 7, Moselradweg
+
+[tracks after rectangle]
+- url: http://188.245.169.80:18080/mtl/stats
+- active tab: Tracks
+- markers: 2 / 13 Tracks, 2 Tracks, Showing 2 of 13 tracks, 2 tracks ·, 791 km, 14h 37m, 3,423 Wh, Bicycle22, Jura Route 7, Moselradweg
+- table rows: ["01/01/2010, 01:00Jura Route 7 / 2011 on GPSies.comBicycle273 km7h 46m35.11,808 Wh100.0% 19/06/2026, 20:08","01/01/2010, 01:00Moselradweg aus Wiki on GPSies.comBicycle518 km6h 50m75.71,616 Wh100.0% 19/06/2026, 20:08"]
+
+[stats overview after reload]
+- url: http://188.245.169.80:18080/mtl/stats
+- active tab: Overview
+- markers: 2 / 13 Tracks, 2 Tracks, Showing 2 of 13 tracks, 2 tracks ·, 791 km, 14h 37m, 3,423 Wh, Bicycle22, Jura Route 7, Moselradweg
+
+[cleanup restored]
+- url: http://188.245.169.80:18080/mtl/stats
+- active tab: Overview
+- markers: 791 km, 14h 37m, Jura Route 7, Moselradweg

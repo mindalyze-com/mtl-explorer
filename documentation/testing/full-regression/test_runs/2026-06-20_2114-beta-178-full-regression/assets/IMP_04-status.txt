@@ -1,0 +1,25 @@
+# IMP_04 upload/index/job status evidence
+Checked: 2026-06-20T19:36:02.794Z
+
+Summary:
+- Track count after import: 5.
+- Freshness token after import: `5jqZYU__|server_id:4wB4qutecBAh3SvkCNbjuE|config:9|filters:85|index:15|media:0|track_geometry:30|tracks:30`.
+- Baseline freshness token from IMP_01 was `47KYzR__|server_id:4wB4qutecBAh3SvkCNbjuE|config:9|filters:85|index:0|media:0|track_geometry:0|tracks:0`.
+- Freshness changedAt after import: `2026-06-20T19:34:33.835+0000`.
+
+Indexer status:
+- GPS: total 5, pending 0, completed 5, failed 0, removed 0, excluded 0, progress 100.
+- MEDIA: total 0, pending 0, completed 0, failed 0, removed 0, excluded 0, progress 100.
+
+Background jobs:
+- Duplicate Finder: total 5, pending 0, done 5, progress 100.
+- Activity Classifier: total 5, pending 0, done 5, progress 100.
+- Exploration Score: total 5, pending 0, done 5, progress 100.
+
+Admin UI text observed:
+- 50 km © OpenStreetMap 5 Tracks Stats Filter Map Animate Segments GPS Planner Admin Admin SYSTEM UTILITY Admin workspace Manage imports, runtime tools, diagnostics, and local preferences without leaving the map. Quiet state Data Import and processing activity Upload IMPORT Import GPX files and inspect ingest readiness. Jobs IDLE Track indexer, map, and routing activity. Freshness TOKEN Inspect domain revisions and the current map data token. Garmin Sync REMOTE Trigger a remote Garmin export to pull new activity files. System Diagnostics, tools, and build details Log SERVER Inspect recent server output and runtime issues. Helpers 2/2 READY Reload tracks, manage helper tools, and run installs. About BUILD Client and server build details and runtime info. Session Preferences and account controls Settings LIGHT Adjust color scheme and locale formatting. Session LOGOUT Logout credentials only or wipe all local app data. Attribution SOURCES Libraries, datasets, and map data references.
+
+Conclusion:
+- All five GPX imports reached completed GPS indexing with no failures.
+- Data freshness changed from the baseline token.
+- Background jobs settled after the import.

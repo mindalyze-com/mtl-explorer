@@ -86,6 +86,17 @@
               </button>
             </template>
           </Column>
+          <Column header="" style="width: 3.5rem; min-width: 3.5rem; max-width: 3.5rem">
+            <template #body="slotProps">
+              <TrackShapePreview
+                :track-id="slotProps.data.id"
+                :width="48"
+                :height="32"
+                :padding="3"
+                class="track-id-param__shape"
+              />
+            </template>
+          </Column>
 
           <Column field="id" header="ID" sortable style="width: 5rem; min-width: 5rem" />
           <Column field="displayName" header="Track" sortable style="min-width: 14rem">
@@ -116,6 +127,7 @@ import type { ParamDefinition } from 'x8ing-mtl-api-typescript-fetch/dist/esm/mo
 import { formatDateAndTime } from '@/utils/Utils';
 import { addTrackIdToText, formatTrackIds, parseTrackIdText, removeTrackIdFromText } from '@/utils/trackIdFilter';
 import { useTrackBrowser } from '@/components/track-browser/useTrackBrowser';
+import TrackShapePreview from '@/components/ui/TrackShapePreview.vue';
 
 defineOptions({ name: 'TrackIdParam' });
 

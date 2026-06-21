@@ -1,0 +1,29 @@
+LOC_01 locale formatting evidence
+URL: http://178.104.209.132:18080/mtl/
+Stored locale: de-CH
+Settings screenshot: LOC_01-settings-de-ch.webp (57338 bytes, q=70)
+Stats screenshot: LOC_01-stats-overview-de-ch.webp (56776 bytes, q=70)
+
+Checks:
+- PASS stored locale is de-CH
+- PASS settings preview has Swiss thousands separator
+- PASS settings preview has dd.mm.yyyy date
+- PASS stats total distance has Swiss separator
+- PASS stats total energy/ascent have Swiss separators
+- PASS stats dates use dd.mm.yyyy with comma time
+- PASS stats durations render compactly
+- PASS stats has no NaN/undefined visible
+
+Settings preview snippet:
+Format locale Controls date, time, and number formatting without changing app language. de-CH (31.12.2025, 1'234.56) Preview: 21.06.2026 05:34:52 — 12'345.67 Auto-detected: en-GB (browser: en-GB · timezone: Europe/Zurich)
+
+Stats summary snippet:
+16 TRACKS 1'588 km DISTANCE 1d 01h DURATION 54'347 Wh ENERGY 14'494 m ASCENT
+
+Recent activity snippet:
+RECENT ACTIVITY View all tracks SYN_07 indexer running synthetic Running 21.06.2026, 08:10 595 km 5h 33m Track 100024 Bicycle 21.06.2026, 06:00 3.97 km 19m 00s SYN_02-reload-refresh-20260621024035.gpx Hiking 21.06.2026, 05:25 2.31 km 10m 00s SYN_01-freshness-import-20260621023820.gpx Hiking 21.06.2026, 05:00 2.07 km 9m 00s ADM_02-adm-upload-success-20260621021405.gpx Hiking 21.06.2026, 04:45 2.53 km 11m 00s RHYTHM & MILESTONES
+
+Milestone/date snippet:
+First activity Jura Route 7 / 2011 on GPSies.com 01.01.2010, 01:00 Latest activity SYN_07 indexer running synthetic 21.06.2026, 08:10 First 50 km track Jura Route 7 / 2011 on GPSies.com 273 km First 100 km track Jura Route 7 / 2011 on GPSies.com 273 km First 1000 m ascent Jura Route 7 / 2011 on GPSies.com 6'324 m First 2000 m ascent Jura Route 7 / 2011 on GPSies.com 6'324 m First 1000 Wh activity Jura Route 7 / 2011 on GPSies.com 1'808 Wh 01.01.2010 - 21.06.2026
+
+Console/page errors: none

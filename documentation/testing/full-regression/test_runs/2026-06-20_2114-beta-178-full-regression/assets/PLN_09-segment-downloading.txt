@@ -1,0 +1,26 @@
+Status: PASS
+Zoom clicks until planner usable: 6
+Intercepted route requests: 1
+Checks: messageOk=true, noRouteOk=true
+Injected route response: HTTP 503 {error:"segment-downloading", detail:"Downloading routing data for this area..."}
+Route request waypoint counts:
+1: 2
+Snapshots:
+planner-opened: {"notices":[],"errorNotice":"","distance":"0.00 km","legs":"0","saveDisabled":true,"clearDisabled":true}
+after-first-waypoint: {"notices":[],"errorNotice":"","distance":"0.00 km","legs":"0","saveDisabled":true,"clearDisabled":false}
+segment-downloading-visible: {"notices":["Downloading routing data for this area... (auto-retry 1/6)"],"errorNotice":"Downloading routing data for this area... (auto-retry 1/6)","distance":"0.00 km","legs":"0","saveDisabled":true,"clearDisabled":false}
+after-clear: {"notices":["Downloading routing data for this area... (auto-retry 1/6)"],"errorNotice":"Downloading routing data for this area... (auto-retry 1/6)","distance":"0.00 km","legs":"0","saveDisabled":true,"clearDisabled":true}
+Page errors: 0
+Console planner/error/warn messages: 12
+log: Downloading low-zoom PMTiles from /mtl/api/map-proxy/prod/world-lowzoom.pmtiles?mtl-map-source=public&mtl-map-archive=public-default … (IndexedDB fallback)
+log: Low-zoom PMTiles cached successfully (IndexedDB, 42.4 MB)
+error: Failed to load resource: the server responded with a status of 404 ()
+log: [zoom] 3.907 | mercator
+log: [zoom] 4.907 | mercator
+log: [zoom] 5.907 | mercator
+log: [zoom] 6.907 | mercator
+log: [zoom] 7.907 | mercator
+log: [zoom] 8.907 | mercator
+info: [planner] Viewport prewarm: 300km side → bbox=[2.38,26.70,5.43,29.39]
+error: Failed to load resource: the server responded with a status of 503 (Service Unavailable)
+info: [planner] Segment downloading — auto-retry 1/6 in 8000ms

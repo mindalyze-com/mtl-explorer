@@ -96,6 +96,28 @@ class DynamicSqlServiceTest {
         assertTrue(DynamicSqlService.getNamedParamsForSQL(null).isEmpty(), "must return empty");
     }
 
+    @Test
+    void getNamedParamsForOptionalYearBoundsSql() {
+        String sql = """
+                select id
+                from gps_track gt
+                where (
+                    NULLIF(BTRIM(:YEAR_FROM), '') IS NULL
+                    or gt.start_date >= make_date(CAST(NULLIF(BTRIM(:YEAR_FROM), '') AS integer), 1, 1)
+                )
+                and (
+                    NULLIF(BTRIM(:YEAR_TO), '') IS NULL
+                    or gt.start_date < make_date(CAST(NULLIF(BTRIM(:YEAR_TO), '') AS integer) + 1, 1, 1)
+                )
+                """;
+
+        Set<String> namedParamsForSQL = DynamicSqlService.getNamedParamsForSQL(sql);
+        assertIterableEquals(List.of("YEAR_FROM", "YEAR_TO"), namedParamsForSQL);
+
+        Map<String, String> paramsOut = DynamicSqlService.fillParamsWithNullIfNotGiven(sql, Map.of("YEAR_FROM", "2020"));
+        assertEquals("{YEAR_FROM=2020, YEAR_TO=null}", format(paramsOut));
+    }
+
 
     @Test
     void testFillMissingParams1() {

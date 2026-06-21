@@ -224,9 +224,25 @@ export function usePlannerState() {
   function clearAll() {
     clearPristine();
     snapshotForUndo();
+    if (debounceTimer !== null) {
+      window.clearTimeout(debounceTimer);
+      debounceTimer = null;
+    }
+    if (segmentRetryTimer !== null) {
+      window.clearTimeout(segmentRetryTimer);
+      segmentRetryTimer = null;
+    }
+    if (abortCtrl) {
+      abortCtrl.abort();
+      abortCtrl = null;
+    }
+    routeRequestSeq++;
+    segmentRetryCount = 0;
     waypoints.value = [];
     legs.value = [];
     stats.value = emptyStats();
+    computing.value = false;
+    lastError.value = null;
   }
 
   /**

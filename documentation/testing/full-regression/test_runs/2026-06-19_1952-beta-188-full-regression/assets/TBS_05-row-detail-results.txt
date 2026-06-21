@@ -1,0 +1,21 @@
+TBS_05 row navigation results
+
+Before click:
+- URL: http://188.245.169.80:18080/mtl/stats
+- Search: Jura
+- Row count: 1
+- Row: 01/01/2010, 01:00Jura Route 7 / 2011 on GPSies.comBicycle273 km7h 46m35.11,808 Wh100.0% 19/06/2026, 20:08
+
+After clicking Jura row:
+- URL: http://188.245.169.80:18080/mtl/track/100002
+- Jura title present: true
+- Overview present: true
+- Graphs present: true
+- Quality present: true
+- Related present: true
+- Visible detail buttons: Overview | Back | Overview | Graphs | Quality | Related | Events | Overview
+
+Cleanup:
+- URL: http://188.245.169.80:18080/mtl/stats
+- Search: <empty>
+- Row count: 13

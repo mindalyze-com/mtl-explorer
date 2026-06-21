@@ -1,0 +1,12 @@
+Captured active badge: 2026-06-19T23:34:09.646Z
+Synthetic upload: syn-indexer-active-20260619233341.gpx
+Synthetic GPX bytes: 2500311
+Upload result: status=200, success=true, message='syn-indexer-active-20260619233341.gpx' uploaded successfully. Indexing will begin shortly.
+Before index status: [{"index":"GPS","total":26,"pending":0,"completed":16,"failed":0,"removed":10,"excluded":0,"progressPercent":61}]
+Pending observed after ms: 10231; status=[{"index":"GPS","total":27,"pending":1,"completed":16,"failed":0,"removed":10,"excluded":0,"progressPercent":59}]
+Map interaction while pending: drag and wheel completed while indexer pending window active
+Admin badge UI: hasJobsActive=true, hasQuiet=false, trackCount=15 Tracks
+Admin text sample: 500 km 15 Tracks Stats Filter Map Animate Segments GPS Planner Admin Admin SYSTEM UTILITY Admin workspace Manage imports, runtime tools, diagnostics, and local preferences without leaving the map. Jobs active Data Import and processing activity Upload IMPORT Import GPX files and inspect ingest readiness. Jobs LIVE Track indexer, map, and routing activity. Freshness TOKEN Inspect domain revisions and the current map data token. Garmin Sync REMOTE Trigger a remote Garmin export to pull new activity files. System Diagnostics, tools, and build details Log SERVER Inspect recent server output and runtime issues. Helpers 2/2 READY Reload tracks, manage helper tools, and run installs. About BUILD Cl
+Settled after ms: 6177; status=[{"index":"GPS","total":27,"pending":0,"completed":17,"failed":0,"removed":10,"excluded":0,"progressPercent":62}]
+Track count before upload API: 16
+Track count after settle API: 17

@@ -1,0 +1,28 @@
+TRD_05 graph controls evidence
+URL: http://178.104.209.132:18080/mtl/track/100005
+Result: PASS
+
+Pass checks:
+- Distance x-axis became active and chart x labels changed from time labels to km labels.
+- Distance mode removed the time-only "Distance over Time" chart.
+- Range toggle changed from active/aria-pressed=true to inactive/aria-pressed=false.
+- Point-count slider changed the visible count from 350 to 425 and requested chart-series with maxBuckets=425.
+- Graph-height slider changed from 240 to 340 and the Speed chart CSS height grew from 240px to 340px.
+- No chart inline error, page error, card overlap, or horizontal overflow was detected.
+
+Snapshots:
+- Initial defaults: tab=Graphs; cards=6; points=350; buttons=Time active, Distance inactive, Range active pressed=true; relevant sliders: point now=174, height now=240; headers=Speed | Elevation | Elevation Gain Rate | Distance over Time | Cumulative Mechanical Energy | Estimated Power; Speed chart height=240px; x/y SVG labels=0h 08m | 0h 16m | 0h 25m | 0h 33m | 0h 41m | 0h 50m | 0h 58m | 0 | 1 | 2 | 3 | 4 km/h.
+- After Distance toggle: tab=Graphs; cards=5; points=350; buttons=Time inactive, Distance active, Range active pressed=true; Distance over Time present=false; Speed x/y SVG labels=0.5 km | 1 km | 1.5 km | 2 km | 2.5 km | 3 km | 3.5 km | 0 | 1 | 2 | 3 | 4 km/h.
+- After Range toggle off: cards=5; points=350; Range active=false, aria-pressed=false; storedPreferences={"graphHeightPx":240,"showRangeBand":false,"chartPointCount":350}.
+- After point-count slider PageUp: cards=5; visible points=425; point slider now=185; storedPreferences={"graphHeightPx":240,"showRangeBand":false,"chartPointCount":425}.
+- After graph-height slider PageUp: cards=5; height slider now=340; Speed chart height=340px; layoutIssues=(none); storedPreferences={"graphHeightPx":340,"showRangeBand":false,"chartPointCount":425}.
+
+Chart/control requests observed:
+- GET /mtl/api/tracks/get/100005/details?trackType=SIMPLIFIED_SHAPE&precisionInMeter=1
+- GET /mtl/api/tracks/100005/chart-series?x=TIME&maxBuckets=350
+- GET /mtl/api/tracks/100005/chart-series?x=DISTANCE&maxBuckets=350
+- GET /mtl/api/tracks/100005/chart-series?x=DISTANCE&maxBuckets=425
+
+Console warnings/errors captured: 2 generic tile/resource 404 messages.
+Page errors captured: 0.
+Preferences reset to {"graphHeightPx":240,"showRangeBand":true,"chartPointCount":350} after evidence capture.

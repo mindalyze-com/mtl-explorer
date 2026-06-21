@@ -1,0 +1,6 @@
+filename	source_url	sha256	size_bytes	trkpt_count	trkpt_with_time_count	time_tag_count	trk_count	trkseg_count
+Mojstrovka.gpx	https://raw.githubusercontent.com/tkrajina/gpxpy/dev/test_files/Mojstrovka.gpx	ed9fe789e69b47349fda26001a68f5eddec878cd0d48b3c241811c2bfa2c7f7d	23290	184	184	185	1	1
+around-visnjan-with-car.gpx	https://raw.githubusercontent.com/tkrajina/gpxpy/dev/test_files/around-visnjan-with-car.gpx	7c624f58f0675d00f780e258f0004ae7868429c8c9e577f38afda2974b507fe6	12231	104	104	105	1	1
+cerknicko-jezero.gpx	https://raw.githubusercontent.com/tkrajina/gpxpy/dev/test_files/cerknicko-jezero.gpx	8bad699d4c32633dd65d98c0c8ae6372da5ed01c24f7e3afd9f6b642a9976671	36362	296	296	298	8	8
+2014-with-wpts.gpx	https://raw.githubusercontent.com/tkrajina/gpx-cmd-tools/master/test_files/2014-with-wpts.gpx	64b89ac734a42f207282a7732b048637becbc7f2dc5ebcf45b12be0af3b9da9c	41368	413	413	413	1	1
+2020.gpx	https://raw.githubusercontent.com/tkrajina/gpx-cmd-tools/master/test_files/2020.gpx	424fd060e85a44bcb8b22e444afbe79a77fc8d5d551cd3a5f29d58c8fd89ba1e	157881	1491	1491	1492	1	1

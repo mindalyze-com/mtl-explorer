@@ -1,0 +1,6 @@
+DAT_07 synthetic shared-zone GPX staging
+Generated fully synthetic anonymized GPX tracks; no private/local GPX data used.
+Shared corridor: approx lat 46.9500-47.0508, lon 7.3992-7.5000.
+Both tracks contain 18 timestamped trkpt elements crossing the same start/end zones.
+synthetic-shared-zone-a.gpx: bytes=2178 sha256=5bb2b1bef22e1ab048f88e58df69101e60d312519e395c2368dd04a1a5b3cdf5
+synthetic-shared-zone-b.gpx: bytes=2178 sha256=90a3997dfb57cbde8b5b06d91b1e9b6f33d48024c6e0a2f173bb1743fac725b0

@@ -1,0 +1,5 @@
+before-reload: {"label":"before-reload","uiTheme":"dark","storedMapTheme":"dark","active":["OSM Dark"],"text":"500 km\n© OpenStreetMap\n16 Tracks\nStats\nFilter\nMap\nAnimate\nSegments\nGPS\nPlanner\nAdmin","canvases":[{"w":1204,"h":900},{"w":1204,"h":900}]}
+after-reload-before-panel: {"label":"after-reload-before-panel","uiTheme":"dark","storedMapTheme":"dark","active":["OSM Dark"],"text":"500 km\n© OpenStreetMap\n16 Tracks\nStats\nFilter\nMap\nAnimate\nSegments\nGPS\nPlanner\nAdmin","canvases":[{"w":1204,"h":900},{"w":1204,"h":900}]}
+after-reload-map-panel: {"label":"after-reload-map-panel","uiTheme":"dark","storedMapTheme":"dark","active":["OSM Dark"],"text":"500 km\n© OpenStreetMap\n16 Tracks\nStats\nFilter\nMap\nAnimate\nSegments\nGPS\nPlanner\nAdmin\nMaps and data\nReset\nBASE MAP\nPREFERRED\nOSM Topo Contrast\nOSM Topo Light\nSWISS\nSwiss Topo Color\nSwiss Topo Light\nOSM","canvases":[{"w":1204,"h":900},{"w":1204,"h":900}]}
+Console/page errors: []
+PASS: true

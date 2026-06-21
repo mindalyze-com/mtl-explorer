@@ -1,0 +1,21 @@
+# FIT_05 GPX export verification
+
+Visible UI control checked before endpoint verification:
+- FIT detail Overview shows a unique "Download GPX" button for track 100005.
+
+Authenticated endpoint verification:
+- GET /mtl/api/tracks/100005/gpx
+- HTTP status: 200
+- Content-Type: application/gpx+xml
+- Content-Disposition: attachment; filename="=?UTF-8?Q?Activity.gpx?="; filename*=UTF-8''Activity.gpx
+- Downloaded size: 479,844 bytes
+- Downloaded SHA-256: 61e261c70e65aed1a7e96f3a097b6c2ea5a5cd87945d8cc7f4f51e1c37e7d9ce
+- XML root: {http://www.topografix.com/GPX/1/1}gpx
+- GPX version: 1.1
+- trk count: 1
+- trkseg count: 1
+- trkpt count: 3,601
+- wpt count: 0
+- first trkpt: lat 0.000000000, lon 0.000000000, ele 127.000, time 2021-07-20T21:11:20Z
+- last trkpt: lat 0.000000000, lon 0.032339310, ele 97.000, time 2021-07-20T22:11:20Z
+- Result: GPX export is valid GPX with real trackpoints, not waypoint-only data.

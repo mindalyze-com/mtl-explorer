@@ -1,0 +1,19 @@
+Before map count: 15 Tracks
+Before GPS status: {"index":"GPS","total":22,"pending":0,"completed":20,"failed":0,"removed":2,"excluded":0,"progressPercent":90}
+Admin opened for fast status polling.
+Synthetic GPX file: SYN_07-indexer-running-20260621050700.gpx, bytes=2040369, trkpts=20000
+Upload result: HTTP 200 {"success":true,"message":"'SYN_07-indexer-running-20260621050700.gpx' uploaded successfully. Indexing will begin shortly.","fileName":"SYN_07-indexer-running-20260621050700.gpx"}
+Pending GPS status: {"index":"GPS","total":23,"pending":1,"completed":20,"failed":0,"removed":2,"excluded":0,"progressPercent":86}
+Pending samples: [{"pending":0,"total":22,"completed":20,"failed":0,"removed":2,"progressPercent":90},{"pending":0,"total":22,"completed":20,"failed":0,"removed":2,"progressPercent":90},{"pending":0,"total":22,"completed":20,"failed":0,"removed":2,"progressPercent":90},{"pending":0,"total":22,"completed":20,"failed":0,"removed":2,"progressPercent":90},{"pending":0,"total":22,"completed":20,"failed":0,"removed":2,"progressPercent":90},{"pending":0,"total":22,"completed":20,"failed":0,"removed":2,"progressPercent":90},{"pending":0,"total":22,"completed":20,"failed":0,"removed":2,"progressPercent":90},{"pending":0,"total":22,"completed":20,"failed":0,"removed":2,"progressPercent":90},{"pending":0,"total":22,"completed":20,"failed":0,"removed":2,"progressPercent":90},{"pending":0,"total":22,"completed":20,"failed":0,"removed":2,"progressPercent":90},{"pending":0,"total":22,"completed":20,"failed":0,"removed":2,"progressPercent":90},{"pending":0,"total":22,"completed":20,"failed":0,"removed":2,"progressPercent":90},{"pending":0,"total":22,"completed":20,"failed":0,"removed":2,"progressPercent":90},{"pending":0,"total":22,"completed":20,"failed":0,"removed":2,"progressPercent":90},{"pending":0,"total":22,"completed":20,"failed":0,"removed":2,"progressPercent":90},{"pending":0,"total":22,"completed":20,"failed":0,"removed":2,"progressPercent":90},{"pending":0,"total":22,"completed":20,"failed":0,"removed":2,"progressPercent":90},{"pending":0,"total":22,"completed":20,"failed":0,"removed":2,"progressPercent":90},{"pending":0,"total":22,"completed":20,"failed":0,"removed":2,"progressPercent":90},{"pending":1,"total":23,"completed":20,"failed":0,"removed":2,"progressPercent":86}]
+Jobs active chip visible: true
+Admin nav alert visible: true
+Map scale before zoom: 500 km
+Map scale after zoom: 300 km
+Map zoom changed during indexing: true
+Map still had track count during indexing: true
+Settled GPS status: {"index":"GPS","total":23,"pending":0,"completed":21,"failed":0,"removed":2,"excluded":0,"progressPercent":91}
+Uploaded track: {"id":100025,"status":"COMPLETED_WITH_SUCCESS","load":"SUCCESS","duplicateStatus":"NOT_CHECKED_YET"}
+After settlement/sync map count: 15 Tracks
+PASS: true
+Post-check map count: 16 Tracks
+Post-check jobs: duplicate 21/21 pending 0; activityType 21/21 pending 0; exploration 21/21 pending 0.

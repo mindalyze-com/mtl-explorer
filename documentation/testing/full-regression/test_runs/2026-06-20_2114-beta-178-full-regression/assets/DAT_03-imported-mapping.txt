@@ -1,0 +1,12 @@
+# Imported GPX mapping after IMP_06
+
+Each mapping comes from authenticated `/mtl/api/tracks/get` after Stats > Tracks search verification.
+
+| Source file | Imported track ID | Imported track name | Indexer status | Detail URL |
+|---|---:|---|---|---|
+| JuraRoute72011.gpx | 100000 | Jura Route 7 / 2011 on GPSies.com | COMPLETED_WITH_SUCCESS | http://178.104.209.132:18080/mtl/track/100000 |
+| MoselradwegAusWiki.gpx | 100002 | Moselradweg aus Wiki on GPSies.com | COMPLETED_WITH_SUCCESS | http://178.104.209.132:18080/mtl/track/100002 |
+| Vitry-le-Francois_Langres.gpx | 100001 | Vitry le françois - langres on GPSies.com | COMPLETED_WITH_SUCCESS | http://178.104.209.132:18080/mtl/track/100001 |
+| VoieVerteHauteVosges.gpx | 100003 | voie verte haute vosges on GPSies.com | COMPLETED_WITH_SUCCESS | http://178.104.209.132:18080/mtl/track/100003 |
+| Lannion_Plestin_parcours24.4RE.gpx | 100004 | Lannion_Plestin_parcours Lannion_Plestin_parcours1 | COMPLETED_WITH_SUCCESS | http://178.104.209.132:18080/mtl/track/100004 |
+| Activity.fit | 100005 | Track 100005 | COMPLETED_WITH_SUCCESS | http://178.104.209.132:18080/mtl/track/100005 |

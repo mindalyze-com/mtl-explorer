@@ -1,0 +1,42 @@
+TRD_12 statistics exclusion evidence
+
+Track:
+- 100005 / Activity.fit
+
+Before exclusion:
+- UI statistics select: Included in statistics.
+- API grouped statistics:
+  - stats_rows: 6
+  - sum_numberOfTracks: 13
+  - sum_distance: 825059 m
+  - sum_energy: 4022.9 Wh
+- Track statisticsExclusionReason: null.
+
+Exclude action:
+- Changed the second detail select to Exclude: GPS noise.
+- UI select value: GPS_NOISE.
+- UI select text: Exclude: GPS noise.
+
+After exclusion:
+- Track statisticsExclusionReason: GPS_NOISE.
+- API grouped statistics:
+  - stats_rows: 5
+  - sum_numberOfTracks: 12
+  - sum_distance: 821461 m
+  - sum_energy: 3676.2 Wh
+
+Re-include action:
+- Changed the second detail select back to Included in statistics.
+- UI select value: empty.
+- UI select text: Included in statistics.
+
+Final state:
+- Track statisticsExclusionReason: null.
+- API grouped statistics:
+  - stats_rows: 6
+  - sum_numberOfTracks: 13
+  - sum_distance: 825059 m
+  - sum_energy: 4022.9 Wh
+
+Conclusion:
+TRD_12 passes. Excluding the track removed it from statistics totals, and re-including restored the totals.

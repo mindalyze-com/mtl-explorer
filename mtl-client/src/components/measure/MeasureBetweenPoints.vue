@@ -355,6 +355,18 @@ async function toggle() {
   }
 }
 
+async function open() {
+  if (active.value) return;
+  active.value = true;
+  emit('active-changed', true);
+  emit('tool-opened');
+  if (props.map) {
+    radiusSelector.value = radiusSelectorForExtent();
+    clickHandler = (e) => onMapClick(e);
+    props.map.on('click', clickHandler);
+  }
+}
+
 function close() {
   if (!active.value) return;
   cancelCrossingFetch();
@@ -864,6 +876,7 @@ onBeforeUnmount(() => {
 });
 
 defineExpose({
+  open,
   toggle,
   close,
   onMaximize,

@@ -1,0 +1,18 @@
+# MAP_07 track points direction evidence
+
+Coverage requires a high-zoom rendered track shape with visible in-viewport point vertices.
+
+Attempted:
+- Enabled Track Points & Direction from Maps and data.
+- Opened GPX-backed track 100000 and loaded 1m details.
+- Tried route-detail centering, closing the detail sheet, and cluster-targeted zooming.
+
+Observed:
+- Track Points & Direction opacity control was present after enabling the layer.
+- Track 100000 fine geometry has 1,383 1m points.
+- The captured high-zoom map screenshot did not contain a visible track or point vertices; it is invalid evidence for this row.
+
+Blocking condition:
+- The browser-accessible UI did not provide a reliable map-centering/query control for placing the high-zoom viewport on an actual rendered point vertex, and the MapLibre map instance is not exposed for direct `queryRenderedFeatures` verification.
+
+Result: BLOCKED

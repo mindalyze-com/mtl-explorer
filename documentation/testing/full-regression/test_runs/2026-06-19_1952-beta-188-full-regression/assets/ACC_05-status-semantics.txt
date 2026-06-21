@@ -1,0 +1,7 @@
+Constraint and status semantics
+Terminal statuses: PASS, FAIL, BLOCKED, NOT APPLICABLE, FIXED, REJECTED, NOT REPRODUCEABLE, NOT REPRODUCIBLE.
+Resumable statuses: NOT STARTED, IN PROGRESS, PARTIAL, NOT COVERED.
+BLOCKED requires a concrete dependency/tooling/data/environment constraint and an unblock path.
+NOT APPLICABLE requires the coverage text to genuinely not apply to this configured run.
+Finalization is forbidden while any required ID remains resumable unless the user explicitly approves early closure with gaps.
+Result: status handling is recorded before test execution continues.

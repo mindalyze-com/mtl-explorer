@@ -1,0 +1,12 @@
+# SGN_01 signed-out redirect evidence
+
+URL after opening app: http://178.104.209.132:18080/mtl/login
+Title: MTL Explorer
+Password inputs: 1
+Text inputs: 1
+Buttons: AGPL-3.0, Sign In
+Login text present: true
+
+Visible text sample: © Patrick Heusser AGPL-3.0 Sign In
+
+Result: PASS

@@ -1,0 +1,21 @@
+[empty route before adding points]
+cards: {"Distance":"0.00 km","Ascent":"0 m","Descent":"0 m","Duration":"–","Legs":"0"}
+chartPoints: null
+emptyProfileHint: true
+
+[after first waypoint]
+cards: {"Distance":"0.00 km","Ascent":"0 m","Descent":"0 m","Duration":"–","Legs":"0"}
+chartPoints: null
+emptyProfileHint: true
+
+[after second waypoint / one-leg route]
+cards: {"Distance":"0.69 km","Ascent":"1 m","Descent":"0 m","Duration":"1m","Legs":"1"}
+chartPoints: 2
+emptyProfileHint: false
+
+[after third waypoint / extended route]
+cards: {"Distance":"2.60 km","Ascent":"1 m","Descent":"0 m","Duration":"7m","Legs":"2"}
+chartPoints: 5
+emptyProfileHint: false
+
+screenshots: {"empty":"assets/PLN_05-empty-stats.jpg","oneLeg":"assets/PLN_05-one-leg-stats.jpg","extended":"assets/PLN_05-extended-route-stats.jpg"}

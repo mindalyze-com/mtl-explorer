@@ -1,0 +1,117 @@
+# IMP_06 imported track mapping and surface verification
+{
+  "captured": "2026-06-19T20:15:42+0200 CEST",
+  "imported_mapping": [
+    {
+      "source_file": "JuraRoute72011.gpx",
+      "track_id": 100002,
+      "indexed_status": "COMPLETED_WITH_SUCCESS",
+      "imported_track_name": "Jura Route 7 / 2011 on GPSies.com",
+      "trackpoints": 1409,
+      "distance_m": 273260.02,
+      "activity": "BICYCLE",
+      "bbox": [
+        46.383851,
+        6.177884,
+        47.553529,
+        7.59461
+      ],
+      "browser_search_visible_rows": [
+        "01/01/2010, 01:00\t\nJura Route 7 / 2011 on GPSies.com\n\t\nBicycle\n\t273 km\t7h 46m\t35.1\t1,808 Wh\t100.0%\t19/06/2026, 20:08"
+      ]
+    },
+    {
+      "source_file": "Lannion_Plestin_parcours24.4RE.gpx",
+      "track_id": 100004,
+      "indexed_status": "COMPLETED_WITH_SUCCESS",
+      "imported_track_name": "Lannion_Plestin_parcours Lannion_Plestin_parcours1",
+      "trackpoints": 381,
+      "distance_m": 25882.44,
+      "activity": "BICYCLE",
+      "bbox": [
+        48.668187,
+        -3.643429,
+        48.732899,
+        -3.444529
+      ],
+      "browser_search_visible_rows": [
+        "08/03/2013, 10:32\t\nLannion_Plestin_parcours Lannion_Plestin_parcours1\n\t\nBicycle\n\t25.9 km\t1h 13m\t21.1\t198 Wh\t100.0%\t19/06/2026, 20:08"
+      ]
+    },
+    {
+      "source_file": "MoselradwegAusWiki.gpx",
+      "track_id": 100003,
+      "indexed_status": "COMPLETED_WITH_SUCCESS",
+      "imported_track_name": "Moselradweg aus Wiki on GPSies.com",
+      "trackpoints": 2949,
+      "distance_m": 517818.88,
+      "activity": "BICYCLE",
+      "bbox": [
+        47.853473,
+        6.021299,
+        50.363855,
+        7.593506
+      ],
+      "browser_search_visible_rows": [
+        "01/01/2010, 01:00\t\nMoselradweg aus Wiki on GPSies.com\n\t\nBicycle\n\t518 km\t6h 50m\t75.7\t1,616 Wh\t100.0%\t19/06/2026, 20:08"
+      ]
+    },
+    {
+      "source_file": "Vitry-le-Francois_Langres.gpx",
+      "track_id": 100000,
+      "indexed_status": "COMPLETED_WITH_SUCCESS",
+      "imported_track_name": "Vitry le fran\u00e7ois - langres on GPSies.com",
+      "trackpoints": 1688,
+      "distance_m": 147212.84,
+      "activity": "BICYCLE",
+      "bbox": [
+        47.867241,
+        4.688954,
+        48.680408,
+        5.378706
+      ],
+      "browser_search_visible_rows": [
+        "01/01/2010, 01:00\t\nVitry le fran\u00e7ois - langres on GPSies.com\n\t\nBicycle\n\t147 km\t4h 27m\t33.0\t471 Wh\t100.0%\t19/06/2026, 20:08"
+      ]
+    },
+    {
+      "source_file": "VoieVerteHauteVosges.gpx",
+      "track_id": 100001,
+      "indexed_status": "COMPLETED_WITH_SUCCESS",
+      "imported_track_name": "voie verte haute vosges on GPSies.com",
+      "trackpoints": 1298,
+      "distance_m": 78537.83,
+      "activity": "BICYCLE",
+      "bbox": [
+        47.853477,
+        6.631057,
+        48.017893,
+        6.901843
+      ],
+      "browser_search_visible_rows": [
+        "01/01/2010, 01:00\t\nvoie verte haute vosges on GPSies.com\n\t\nBicycle\n\t78.5 km\t3h 12m\t24.4\t436 Wh\t100.0%\t19/06/2026, 20:08"
+      ]
+    }
+  ],
+  "map_loaded_dataset": {
+    "simplified_filtered_count": 5,
+    "standardFilterCount": 5,
+    "numberOfFilteredMatchedTracks": 5
+  },
+  "statistics_summary_for_imported_ids": {
+    "trackCount": 5,
+    "distanceM": 1042712.01,
+    "durationMs": 84660000.0,
+    "energyWh": 4527.34,
+    "oldestStart": "2010-01-01T00:00:00.000+0000",
+    "newestStart": "2013-03-08T09:32:24.000+0000"
+  },
+  "filter_result_evidence": "Filter panel screenshot opens over 5 Tracks; default standard filter result count is 5 and includes all imported IDs.",
+  "browser_search_terms_checked": [
+    "JuraRoute72011.gpx",
+    "MoselradwegAusWiki.gpx",
+    "Vitry-le-Francois_Langres.gpx",
+    "VoieVerteHauteVosges.gpx",
+    "Lannion_Plestin_parcours24.4RE.gpx"
+  ]
+}

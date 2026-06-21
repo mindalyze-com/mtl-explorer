@@ -1,0 +1,21 @@
+[before simulated missing-data edit]
+activeTab: Drawing
+notice: ""
+cards: {"Distance":"2.60 km","Ascent":"1 m","Descent":"0 m","Duration":"7m","Legs":"2"}
+chartPoints: 5
+
+[after simulated segment-downloading response]
+activeTab: Drawing
+notice: "Routing data for this area is being downloaded. Please retry in about 30 seconds. (auto-retry 1/6)"
+cards: {"Distance":"2.60 km","Ascent":"1 m","Descent":"0 m","Duration":"7m","Legs":"2"}
+chartPoints: 5
+
+[after one-shot mock removed and auto-retry window elapsed]
+activeTab: Drawing
+notice: ""
+cards: {"Distance":"4.54 km","Ascent":"2 m","Descent":"0 m","Duration":"12m","Legs":"3"}
+chartPoints: 8
+
+interceptedRouteRequests: 1
+firstInterceptedBody: {"waypoints":[{"lat":29.42800557243946,"lng":1.3591956653537522},{"lat":29.431340948074535,"lng":1.3652463413771727},{"lat":29.42200162027534,"lng":1.3487793116923683},{"lat":29.430673881710433,"lng":1.3662675525207817}],"profile":"fastbike"}
+screenshots: {"before":"assets/PLN_09-before-simulated-missing-data.jpg","notice":"assets/PLN_09-segment-downloading-notice.jpg","recovered":"assets/PLN_09-after-auto-retry.jpg"}

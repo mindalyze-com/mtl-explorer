@@ -1,0 +1,37 @@
+# RUN_SETUP setup summary
+Timestamp UTC: 2026-06-20T19:21:43+00:00
+Host: mtl-regression-v3
+OS: Debian GNU/Linux 13 (trixie)
+Kernel: Linux 6.12.88+deb13-cloud-amd64 x86_64 GNU/Linux
+Docker prerequisite before install: docker command missing; service inactive
+Docker installed from Docker stable Debian apt repo
+Docker: Docker version 29.6.0, build fb59821
+Compose: Docker Compose version v5.1.4
+Compose directory: /root/mtl-full-regression-2026-06-20_2114-beta-178-full-regression
+README compose source: https://raw.githubusercontent.com/mindalyze-com/mtl-explorer/main/docker-compose.yml
+App image override: MTL_APP_IMAGE=wauwau0977/mytraillog:beta
+App URL local: http://localhost:18080/mtl/
+App URL remote: http://178.104.209.132:18080/mtl/
+Login credentials source: README mtl/change-me
+Import folder: /root/mtl-full-regression-2026-06-20_2114-beta-178-full-regression/data/gpx -> /app/gpx
+HTTP local check: 200 bytes=1826
+Server info:
+{"error":"Unauthorized"}
+Compose ps:
+NAME                                                                             IMAGE                                          COMMAND                  SERVICE           CREATED         STATUS                   PORTS
+mtl-full-regression-2026-06-20_2114-beta-178-full-regression-app-1               wauwau0977/mytraillog:beta                     "/my-entrypoint.sh j…"   app               2 minutes ago   Up 2 minutes             0.0.0.0:18080->8080/tcp, [::]:18080->8080/tcp
+mtl-full-regression-2026-06-20_2114-beta-178-full-regression-brouter-1           wauwau0977/mytraillog-brouter:latest           "/opt/brouter-orches…"   brouter           2 minutes ago   Up 2 minutes             17777-17778/tcp
+mtl-full-regression-2026-06-20_2114-beta-178-full-regression-db-1                postgis/postgis:18-3.6                         "docker-entrypoint.s…"   db                2 minutes ago   Up 2 minutes (healthy)   5432/tcp
+mtl-full-regression-2026-06-20_2114-beta-178-full-regression-location-search-1   wauwau0977/mytraillog-location-search:latest   "python /app/locatio…"   location-search   2 minutes ago   Up 2 minutes (healthy)   0.0.0.0:18083->8083/tcp, [::]:18083->8083/tcp
+Relevant app startup lines:
+app-1  | 2026-06-20T19:19:46.241Z  INFO 1 --- [main] ServerInfoController         : mtl-server started. Build version info:  0.0.1-SNAPSHOT / 2026-06-20T18:47:08.572Z / serverId=4wB4qutecBAh3SvkCNbjuE / image=1.305 / imageBuild=2026-06-20T18:46:55Z
+app-1  | 2026-06-20T19:19:47.529Z  INFO 1 --- [main] TomcatWebServer              : Tomcat started on port 8080 (http) with context path '/mtl'
+app-1  | 2026-06-20T19:19:47.877Z  INFO 1 --- [main] ServerInfoController         : mtl-server started. Build version info:  0.0.1-SNAPSHOT / 2026-06-20T18:47:08.572Z / serverId=4wB4qutecBAh3SvkCNbjuE / image=1.305 / imageBuild=2026-06-20T18:46:55Z
+app-1  | 2026-06-20T19:19:47.881Z  INFO 1 --- [sched-1] GPXDirectoryWatcherService   : GPX Directory watcher service starting on directory /app/gpx
+app-1  | 2026-06-20T19:19:47.911Z  INFO 1 --- [idx-boot-GPS] FileIndexerImpl              : Initial scan fully completed for index=GPS in 21 ms (0 files, 0.0 files/sec)
+app-1  | 2026-06-20T19:19:47.911Z  INFO 1 --- [idx-boot-MEDIA] FileIndexerImpl              : Initial scan fully completed for index=MEDIA in 21 ms (0 files, 0.0 files/sec)
+app-1  | 2026-06-20T19:19:49.543Z  INFO 1 --- [http-nio-8080-exec-1] LoggingFilter                : Request for url=/mtl/ completed in dT=41 for user=n/a user_session_id=n/a status=200 method=GET
+app-1  | 2026-06-20T19:20:39.719Z  INFO 1 --- [http-nio-8080-exec-2] LoggingFilter                : Request for url=/mtl/ completed in dT=8 for user=n/a user_session_id=n/a status=200 method=HEAD
+app-1  | 2026-06-20T19:21:07.310Z  INFO 1 --- [http-nio-8080-exec-4] LoggingFilter                : Request for url=/mtl/ completed in dT=7 for user=n/a user_session_id=n/a status=200 method=GET
+app-1  | 2026-06-20T19:21:19.696Z  INFO 1 --- [http-nio-8080-exec-4] LoggingFilter                : Request for url=/mtl/ completed in dT=16 for user=n/a user_session_id=n/a status=200 method=GET
+app-1  | 2026-06-20T19:21:43.853Z  INFO 1 --- [http-nio-8080-exec-8] LoggingFilter                : Request for url=/mtl/ completed in dT=8 for user=n/a user_session_id=n/a status=200 method=GET

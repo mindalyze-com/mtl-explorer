@@ -1,0 +1,11 @@
+TBS_11 highlight drilldown results
+
+- API exclusion summary: {"highlightExcludedTrackCount":0,"statisticsExcludedTrackCount":0}
+- Highlight exclusion count note visible: false
+- Drilldown title: Longest track
+- Active highlight row: ["Longest trackMoselradweg aus Wiki on GPSies.com518 km"]
+- Drilldown rows: ["1Moselradweg aus Wiki on GPSies.comBicycle01/01/2010, 01:00518 km518 km - 6h 50m","2Jura Route 7 / 2011 on GPSies.comBicycle01/01/2010, 01:00273 km273 km - 7h 46m","3Lannion_Plestin_parcours Lannion_Plestin_parcours1Bicycle08/03/2013, 10:3225.9 km25.9 km - 1h 13m","4Track 100005Walking20/07/2021, 23:113.60 km3.60 km - 59m 57s","5FMT TCX UniqueBicycle01/08/2021, 10:00605.78 m605.78 m - 9m 00s","6GNSSALTTRKBicycle01/08/2021, 10:00604.36 m604.36 m - 9m 00s","7FMT GDB Unique TrackBicycle01/08/2021, 10:00603.65 m603.65 m - 9m 00s","8PathBicycle19/06/2026, 20:52590.64 m590.64 m - 0m 00s"]
+- Opened first drilldown row URL: http://188.245.169.80:18080/mtl/track/100003
+- Mosel title present: true
+- Track Details present: true
+- Cleanup: {"url":"http://188.245.169.80:18080/mtl/stats","activeTab":"Overview"}

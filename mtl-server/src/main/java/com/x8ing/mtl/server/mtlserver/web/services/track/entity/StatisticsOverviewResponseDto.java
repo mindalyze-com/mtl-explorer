@@ -30,6 +30,7 @@ public record StatisticsOverviewResponseDto(
             "trackCount",
             "distanceM",
             "durationMs",
+            "ascentM",
             "energyWh",
             "oldestStart",
             "newestStart"
@@ -38,6 +39,7 @@ public record StatisticsOverviewResponseDto(
             long trackCount,
             double distanceM,
             double durationMs,
+            double ascentM,
             double energyWh,
             Date oldestStart,
             Date newestStart

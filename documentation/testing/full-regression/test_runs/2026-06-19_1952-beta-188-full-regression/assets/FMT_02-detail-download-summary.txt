@@ -1,0 +1,25 @@
+# FMT_02 detail, statistics, and download evidence
+
+Browser/UI evidence:
+- After refresh the map header showed 11 Tracks.
+- Stats overview showed 11 Tracks and included FMT rows in Recent Activity.
+- Stats > Tracks search for `fmt_` showed 7 of 11 tracks with distance, energy, exploration, and import timestamps.
+
+Per-format detail/graphs browser checks:
+- fmt_tcx_unique.tcx id=100014: Overview, mini-map, Download original, Download GPX, Graphs tab, Highcharts, Speed, Elevation, Distance over Time, X Axis/Range/point/height controls all rendered.
+- fmt_kml_unique.kml id=100016: same checks passed.
+- fmt_kmz_unique.kmz id=100015: same checks passed.
+- fmt_nmea_unique.nmea id=100017: same checks passed.
+- fmt_igc_unique.igc id=100018: same checks passed.
+- fmt_geojson_unique.geojson id=100019: same checks passed.
+- fmt_gdb_unique.gdb id=100020: same checks passed.
+
+Original source and GPX export checks:
+- fmt_gdb_unique.gdb id=100020 load=SUCCESS points=10 dup=UNIQUE original=200/350 sha_match=True gpx=200/10trkpt/0wpt
+- fmt_geojson_unique.geojson id=100019 load=SUCCESS points=10 dup=UNIQUE original=200/1700 sha_match=True gpx=200/10trkpt/0wpt
+- fmt_igc_unique.igc id=100018 load=SUCCESS points=10 dup=UNIQUE original=200/513 sha_match=True gpx=200/10trkpt/0wpt
+- fmt_kml_unique.kml id=100016 load=SUCCESS points=10 dup=UNIQUE original=200/11596 sha_match=True gpx=200/10trkpt/10wpt
+- fmt_kmz_unique.kmz id=100015 load=SUCCESS points=10 dup=UNIQUE original=200/1597 sha_match=True gpx=200/10trkpt/10wpt
+- fmt_nmea_unique.nmea id=100017 load=SUCCESS points=10 dup=UNIQUE original=200/1360 sha_match=True gpx=200/10trkpt/0wpt
+- fmt_tcx_unique.tcx id=100014 load=SUCCESS points=10 dup=UNIQUE original=200/5551 sha_match=True gpx=200/10trkpt/1wpt
+- overall: PASS

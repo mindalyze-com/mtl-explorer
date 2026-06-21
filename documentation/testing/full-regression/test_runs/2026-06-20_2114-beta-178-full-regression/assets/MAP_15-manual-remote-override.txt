@@ -1,0 +1,31 @@
+# MAP_15 manual remote override evidence
+
+Context setup: transient browser localStorage seeded to mapSourceMode=auto only once via sessionStorage guard; saved browser-state file was not rewritten.
+Initial visible themes: OSM Topo Contrast, OSM Topo Light, Swiss Topo Color, Swiss Topo Light, OSM Light, OSM Gray, OSM Dark
+Initial source buttons: [{"text":"Auto","pressed":"true","cls":"msp-source-option msp-source-option-active"},{"text":"Remote","pressed":"false","cls":"msp-source-option"}]
+
+After clicking Map Source -> Remote:
+- source buttons: [{"text":"Auto","pressed":"false","cls":"msp-source-option"},{"text":"Remote","pressed":"true","cls":"msp-source-option msp-source-option-active"}]
+- localStorage mapSourceMode/theme: remote/light-topo
+- visible themes: OSM Topo Light, OSM Light, OSM Gray, OSM Dark
+- remote tile requests: 24
+- local map-proxy requests: 0
+- remote tile sample: https://tile.opentopomap.org/4/8/6.png | https://tile.opentopomap.org/4/7/6.png | https://tile.opentopomap.org/4/8/7.png | https://tile.opentopomap.org/4/7/7.png | https://tile.opentopomap.org/4/8/5.png
+
+After reload:
+- source buttons: [{"text":"Auto","pressed":"false","cls":"msp-source-option"},{"text":"Remote","pressed":"true","cls":"msp-source-option msp-source-option-active"}]
+- localStorage mapSourceMode/theme: remote/light-topo
+- visible themes: OSM Topo Light, OSM Light, OSM Gray, OSM Dark
+- remote tile requests: 49
+- local map-proxy requests: 0
+- remote tile sample: https://tile.opentopomap.org/11/1046/875.png | https://tile.opentopomap.org/11/1046/876.png | https://tile.opentopomap.org/11/1045/875.png | https://tile.opentopomap.org/11/1045/876.png | https://tile.opentopomap.org/11/1047/875.png
+
+After Reset:
+- source buttons: [{"text":"Auto","pressed":"true","cls":"msp-source-option msp-source-option-active"},{"text":"Remote","pressed":"false","cls":"msp-source-option"}]
+- localStorage mapSourceMode/theme: auto/topo-contrast
+- visible themes include Swiss: true
+- visible themes: OSM Topo Contrast, OSM Topo Light, Swiss Topo Color, Swiss Topo Light, OSM Light, OSM Gray, OSM Dark
+
+Checks: remoteActive=true; reloadRemoteActive=true; resetAuto=true; remoteHasOnlyRasterThemes=true; noProxyAfterRemote=true; noProxyAfterReload=true
+Elapsed ms: 32527
+Result: PASS

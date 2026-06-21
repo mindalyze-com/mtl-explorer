@@ -1,0 +1,6 @@
+Screenshot/evidence policy
+- Screenshot evidence is saved under assets/ and linked from packets as ../assets/<file>.
+- WebP is preferred; RUN_SETUP-login.webp is 70,580 bytes, under the 85,000 byte limit.
+- Passing representative UI surfaces will get compact screenshots during functional packets, not just failures.
+- Text evidence files use .txt and must stay under 5 KB unless cropped further.
+Result: compact evidence capture is active before functional testing.

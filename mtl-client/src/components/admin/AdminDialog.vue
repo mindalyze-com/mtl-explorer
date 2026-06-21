@@ -748,7 +748,7 @@ type Emits = {
   (event: 'tool-opened'): void;
   (event: 'tool-closed'): void;
   (event: 'reload-tracks', done: (success?: boolean, message?: string) => void): void;
-  (event: 'refresh-freshness-data', done: () => void): void;
+  (event: 'refresh-freshness-data', done: (success?: boolean) => void): void;
 };
 
 defineOptions({ name: 'AdminDialog' });
@@ -1126,6 +1126,12 @@ function toggle() {
   if (isOpen.value) emit('tool-opened');
 }
 
+function open() {
+  if (isOpen.value) return;
+  isOpen.value = true;
+  emit('tool-opened');
+}
+
 function close() {
   isOpen.value = false;
 }
@@ -1223,7 +1229,7 @@ async function onReloadTracks() {
   }
 }
 
-function onRefreshFreshnessData(done: () => void) {
+function onRefreshFreshnessData(done: (success?: boolean) => void) {
   emit('refresh-freshness-data', done);
 }
 
@@ -1314,6 +1320,7 @@ async function runAction(fn: () => Promise<string>) {
 }
 
 defineExpose({
+  open,
   toggle,
   close,
 });

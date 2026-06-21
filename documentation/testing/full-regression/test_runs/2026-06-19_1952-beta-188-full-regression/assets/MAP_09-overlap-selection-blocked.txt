@@ -1,0 +1,36 @@
+MAP_09 overlap selection-list evidence
+
+Dataset mutation for this packet:
+- Copied staged synthetic shared-zone files into watched import folder:
+  - synthetic-shared-zone-a.gpx -> track 100021, UNIQUE, SUCCESS, bbox [47.3768, 8.5415, 47.378, 8.5433]
+  - synthetic-shared-zone-b.gpx -> track 100022, DUPLICATE, SUCCESS, bbox [47.37682, 8.54148, 47.37802, 8.54332]
+- Added one additional fully synthetic crossing file:
+  - synthetic-map09-cross-zone-c.gpx -> track 100023, UNIQUE, SUCCESS, bbox [47.3768, 8.5415, 47.378, 8.5433]
+
+Rendered/current state:
+- Authenticated /api/tracks/get total: 14 tracks.
+- /api/tracks/get-simplified?precisionInMeter=10&mode=full visible simplified count: 13 tracks.
+- Browser root map after reload showed 13 Tracks.
+- Stats > Tracks listed both visible overlap fixtures:
+  - synthetic-shared-zone-a
+  - synthetic-map09-cross-zone-c
+
+Backend overlap/proximity evidence:
+- GET /api/tracks/get-track-ids-within-distance-of-point?longitude=8.5424&latitude=47.3774&distanceInMeter=20 returned [100021, 100023].
+- The same two IDs were returned at 50 m, 100 m, and 200 m.
+
+Browser interaction attempts:
+- Opened synthetic-map09-cross-zone-c from Stats > Tracks; URL became /mtl/track/100023.
+- Accepted the visible Reload action after import; the app showed 13 Tracks.
+- Closed Track Details to return to the map centered from the detail flow.
+- Clicked the map center at x=678 y=360.
+- Clicked an 11-point grid around the center: (678,360), (638,340), (718,340), (638,380), (718,380), (678,320), (678,400), (600,360), (756,360), (560,300), (800,420).
+- No selection list or Track Details surface opened from those clicks.
+- Console warnings/errors captured from the tab: none.
+
+Blocking constraint:
+- The data condition for a multi-track overlap exists and is proven by API.
+- The user-facing map click could not be targeted deterministically through the current browser/canvas controls.
+
+Conclusion:
+MAP_09 is BLOCKED. The overlap data and backend hit candidate set exist, but the required user-facing selection list could not be opened through the available map hit-testing path.

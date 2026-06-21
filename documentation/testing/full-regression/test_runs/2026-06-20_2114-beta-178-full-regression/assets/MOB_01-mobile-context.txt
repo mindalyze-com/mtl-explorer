@@ -1,0 +1,14 @@
+MOB_01 mobile context evidence
+URL: http://178.104.209.132:18080/mtl/
+Screenshot: MOB_01-mobile-map-nav.webp (83672 bytes, q=72)
+Metrics: {"innerWidth":390,"innerHeight":844,"maxTouchPoints":1,"coarse":true,"hoverNone":true,"overflowX":0,"bodyOverflowX":0,"navTools":["Stats","Filter","Planner","Map","Animate","Segments","GPS","Admin"],"canvasCount":2,"visibleButtons":89,"hasTrackChip":true,"hasMapScale":true,"hasNaN":false}
+
+Checks:
+- PASS viewport is 390x844
+- PASS touch/coarse pointer is enabled
+- PASS map/canvas and track chip are visible
+- PASS mobile nav sheet exposes expected tools
+- PASS no horizontal document overflow
+- PASS no visible NaN/undefined/null
+
+Console/page errors: none

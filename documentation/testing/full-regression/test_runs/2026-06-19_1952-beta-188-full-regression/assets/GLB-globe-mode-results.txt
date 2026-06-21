@@ -1,0 +1,32 @@
+Captured: 2026-06-20T01:03 CEST
+Target: http://188.245.169.80:18080/mtl/
+Method: Desktop Chrome, authenticated map, MapLibre zoom/globe controls.
+
+GLB_01 - auto globe after zoom out:
+- Flat precondition: scale 200 km, globe control hidden, active=false, 13 Tracks.
+- After zooming out: scale 1000 km, globe control visible, active=true, zoom controls enabled, 13 Tracks.
+
+GLB_02 - returns to flat after zoom in:
+- After zooming back in: scale 200 km, globe control hidden, active=false, zoom controls enabled, 13 Tracks.
+
+GLB_03 - manual disable respected:
+- Before manual disable: scale 1000 km, globe visible, active=true.
+- After clicking Toggle globe mode: scale 1000 km, globe visible, active=false.
+- After zooming in while disabled: scale 500 km, globe visible, active=false.
+- After zooming out while disabled: scale 1000 km, globe visible, active=false.
+- After clicking Toggle globe mode again: scale 1000 km, globe visible, active=true.
+
+GLB_04 - zoom limits/recovery:
+- Repeated zoom out clicks: 10. Result scale 2000 km, globe visible, active=true, zoom controls still enabled, 13 Tracks.
+- Zoom back in clicks: 4. Result scale 200 km, globe hidden, active=false, zoom controls still enabled, 13 Tracks.
+
+Representative console zoom logs:
+- [zoom] 4.860 | mercator
+- [zoom] 2.949 | globe
+- [zoom] 1.949 | mercator
+- [zoom] 2.943 | mercator
+- [zoom] 1.943 | mercator
+- [zoom] 1.641 | globe
+- [zoom] 2.418 | globe
+- [zoom] 3.195 | globe
+- [zoom] 3.973 | mercator

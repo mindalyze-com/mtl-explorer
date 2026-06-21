@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.10.xsd">
+
+    <changeSet id="20260619_1_keyword_filter_main_activity_groups" author="codex">
+        <comment>
+            Make ActivitiesByKeyword inherit the main activity grouping from
+            ActivitiesByMainTypes and allow the keyword to match that inherited
+            group value.
+        </comment>
+        <update tableName="filter_config">
+            <column name="expression">
+                <![CDATA[
+                SELECT categorized.id, categorized.grp
+                FROM (
+                    [[~{/GPS_TRACK/ActivitiesByMainTypes}]]
+                ) categorized
+                JOIN gps_track gt ON gt.id = categorized.id
+                WHERE (
+                    NULLIF(BTRIM(:SEARCH_WORD), '') IS NULL
+                    OR gt.meta_name ILIKE '%' || BTRIM(:SEARCH_WORD) || '%'
+                    OR gt.meta_description ILIKE '%' || BTRIM(:SEARCH_WORD) || '%'
+                    OR gt.track_name ILIKE '%' || BTRIM(:SEARCH_WORD) || '%'
+                    OR gt.track_description ILIKE '%' || BTRIM(:SEARCH_WORD) || '%'
+                    OR categorized.grp ILIKE '%' || BTRIM(:SEARCH_WORD) || '%'
+                    OR REPLACE(categorized.grp, '_', ' ') ILIKE '%' || BTRIM(:SEARCH_WORD) || '%'
+                )
+                ORDER BY gt.start_date
+                ]]>
+            </column>
+            <where>filter_domain = 'GPS_TRACK' AND filter_name = 'ActivitiesByKeyword'</where>
+        </update>
+    </changeSet>
+
+</databaseChangeLog>

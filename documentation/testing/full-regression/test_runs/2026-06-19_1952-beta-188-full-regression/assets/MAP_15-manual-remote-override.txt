@@ -1,0 +1,53 @@
+MAP_15 manual remote raster source override evidence
+
+Deployment restoration:
+- Removed docker-compose.override.yml from the disposable install directory.
+- Recreated only the app service with docker compose up -d app.
+- Readiness reached HTTP 200 on /mtl/v3/api-docs after 14 polls.
+- Compose ps showed the app using only docker-compose.yml; db remained healthy.
+
+Local-mode config before UI override:
+- /api/map/config tileMode: local.
+- /api/map/config tileSource: public.
+- /api/map/config tileArchiveUrl: /mtl/api/map-proxy/prod/planet.pmtiles?mtl-map-source=public&mtl-map-archive=public-default.
+- /api/map/config lowzoomArchiveUrl: /mtl/api/map-proxy/prod/world-lowzoom.pmtiles?mtl-map-source=public&mtl-map-archive=public-default.
+- /api/map/config remoteRasterStyles keys: dark, light, light-topo.
+- /api/map/config remoteTileUrl: absent.
+
+Initial UI state:
+- Fresh tab loaded /mtl/map-settings with 13 Tracks.
+- Map Source Auto was pressed.
+- Theme list included local/vector choices, including Swiss Topo Color and Swiss Topo Light.
+
+Remote source override:
+- Clicked Map Source Remote.
+- Remote became pressed; Auto became unpressed.
+- Theme list narrowed to OSM raster themes only:
+  - OSM Topo Light
+  - OSM Light
+  - OSM Gray
+  - OSM Dark
+- Swiss Topo Color and Swiss Topo Light were not offered in Remote mode.
+- OSM Dark was active after the first override and showed attribution: © OpenStreetMap contributors © CARTO.
+- 13 Tracks remained visible.
+
+Persistence:
+- Reloaded /mtl/map-settings.
+- Remote remained pressed.
+- Theme list remained OSM-only.
+- 13 Tracks remained visible.
+
+Isolated no-proxy check:
+- Server timestamp before isolated Remote check: 2026-06-19T19:48:54Z.
+- Switched Remote again after Reset/Auto idle.
+- Remote was pressed with OSM-only themes and OSM Topo Light attribution.
+- docker compose logs --since="2026-06-19T19:48:54Z" app | grep -F "/api/map-proxy" returned no matches.
+
+Reset:
+- Clicked Reset.
+- Auto became pressed; Remote became unpressed.
+- Theme list restored local/vector choices, including Swiss Topo Color and Swiss Topo Light.
+- 13 Tracks remained visible.
+
+Conclusion:
+MAP_15 passes. In local mode, the manual Remote source override persists after reload, limits choices to OSM raster themes, avoids /api/map-proxy during an isolated remote check, and Reset restores Auto/local theme availability.

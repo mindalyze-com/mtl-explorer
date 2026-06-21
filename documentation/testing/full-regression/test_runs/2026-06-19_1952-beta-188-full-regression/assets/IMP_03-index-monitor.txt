@@ -1,0 +1,22 @@
+IMP_03 / IMP_04 index monitor summary
+
+Elapsed: 42.6 seconds
+Settled: true
+
+Watcher result:
+- Manual Rescan GPS was not used.
+- First poll already showed tracks=5 and filtered=5.
+- GPS indexer stayed at total=5, pending=0, completed=5, failed=0, removed=0, excluded=0, progress=100%.
+
+Poll highlights:
+- 20:08:50 poll=0 tracks=5 filtered=5 jobs_pending=10 freshness=1jPz3Z__|...|track_geometry:30|tracks:15
+- 20:08:57 poll=3 tracks=5 filtered=5 jobs_pending=8 freshness=3WXnXv__|...|track_geometry:30|tracks:18
+- 20:09:00 poll=4 tracks=5 filtered=5 jobs_pending=5 freshness=2RbHb8__|...|track_geometry:30|tracks:25
+- 20:09:23 poll=13 tracks=5 filtered=5 jobs_pending=4 freshness=6ZoRW6__|...|track_geometry:30|tracks:27
+- 20:09:26 poll=14 tracks=5 filtered=5 jobs_pending=1 freshness=2awWcX__|...|track_geometry:30|tracks:29
+- 20:09:32 poll=16 tracks=5 filtered=5 jobs_pending=0 freshness=3RVmL8__|...|track_geometry:30|tracks:30
+
+Conclusion:
+- Live watcher reacted and indexed 5/5 files.
+- Background jobs settled to pending=0 by poll 16.
+- Freshness token changed repeatedly during import/indexing, ending with tracks:30 and track_geometry:30.

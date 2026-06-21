@@ -1,0 +1,22 @@
+TRD_07 track shape preview evidence
+
+Covered surfaces with existing evidence:
+- Track browser / Stats Tracks:
+  - IMP_05-browser-after-reload.webp
+  - IMP_06-track-browser-search.webp
+  - FMT_02-track-browser-formats.webp
+- Filter panel:
+  - IMP_05-filter-after-reload.webp
+  - DEL_03-filter-after-delete.webp
+- Stats/browser after deletion:
+  - DEL_03-browser-after-delete.webp
+- Related tracks:
+  - FIT_03-related.webp
+
+Blocking gap:
+- TRD_07 also requires the track shape preview in selection lists.
+- MAP_09 could not open an overlap selection list even after importing synthetic overlap tracks and proving backend candidates [100021, 100023].
+- Without an open selection list, the selection-list thumbnail/shape preview could not be verified.
+
+Conclusion:
+TRD_07 is BLOCKED. Shape preview evidence exists for browser/filter/stats/related surfaces, but the selection-list part is blocked by MAP_09.

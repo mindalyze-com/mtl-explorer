@@ -1,0 +1,60 @@
+# IMP_09 post-import totals and surfaces
+{
+  "captured": "2026-06-19T20:22:48+0200 CEST",
+  "baseline": {
+    "trackCount": 0,
+    "distanceM": 0,
+    "durationMs": 0,
+    "ascentM": 0,
+    "descentM": 0
+  },
+  "post_import": {
+    "trackCount": 5,
+    "distanceM_sum": 1042712.01,
+    "durationMovingSeconds_sum": 84660.0,
+    "ascentM_sum": 12936.09,
+    "descentM_sum": 13086.28,
+    "activityBreakdownFromTracks": {
+      "BICYCLE": 5
+    },
+    "overviewSummary": {
+      "trackCount": 5,
+      "distanceM": 1042712.01,
+      "durationMs": 84660000.0,
+      "energyWh": 4527.34,
+      "oldestStart": "2010-01-01T00:00:00.000+0000",
+      "newestStart": "2013-03-08T09:32:24.000+0000"
+    },
+    "activityBreakdown": [
+      {
+        "activityType": "BICYCLE",
+        "trackCount": 5,
+        "distanceM": 1042712.01,
+        "durationMs": 84660000.0,
+        "energyWh": 4527.34
+      }
+    ],
+    "rankingLabels": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ],
+    "periodDistributionTypes": [
+      "day",
+      "week",
+      "month",
+      "weekday"
+    ],
+    "milestoneCount": 10
+  },
+  "ui_evidence": [
+    "Stats Overview: 5 tracks, 1,043 km, 23h 31m, Bicycle 5, rankings/highlights visible",
+    "Stats lower section: recent activity, most active day/week/month/weekday, milestones visible",
+    "Stats Tracks browser summary: 5 tracks, 1,043 km, 23h 31m",
+    "Heatmap overlay visibly draws density over imported tracks"
+  ]
+}

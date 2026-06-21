@@ -1,0 +1,32 @@
+LOC_02 locale switch evidence
+URL: http://178.104.209.132:18080/mtl/
+Before locale: de-CH
+After locale: en-US
+Before/after performance.timeOrigin: 1782013089800 / 1782013089800
+Load events after initial page load: 0
+Before Stats screenshot: LOC_02-before-de-ch-stats.webp (56652 bytes, q=70)
+Settings screenshot: LOC_02-settings-en-us.webp (57398 bytes, q=70)
+After Stats screenshot: LOC_02-after-en-us-stats.webp (48756 bytes, q=70)
+
+Checks:
+- PASS before locale starts at de-CH
+- PASS before Stats has de-CH grouped totals
+- PASS before Stats has de-CH dates
+- PASS after locale is en-US
+- PASS settings preview has en-US formatting
+- PASS after Stats has en-US grouped totals
+- PASS after Stats has en-US dates
+- PASS after Stats no stale de-CH total separators
+- PASS no full page reload during switch/return
+- PASS no visible NaN/undefined after switch
+
+Settings snippet after switch:
+Format locale Controls date, time, and number formatting without changing app language. en-US (12/31/2025, 1,234.56) Preview: 06/21/2026 05:38:16 — 12,345.67 Auto-detected: en-GB (browser: en-GB · timezone: Europe/Zurich)
+
+Before Stats snippet:
+16 TRACKS 1'588 km DISTANCE 1d 01h DURATION 54'347 Wh ENERGY 14'494 m ASCENT ACTIVITY BREAKDOWN Tracks Distance Duration Energy Bicycle 10 10 Hiking 3 3 Walking 2 2 Running 1 1 HIGHLIGHTS Longest track SYN_07 indexer running synthetic 595 km Longest duration Jura Route 7 / 2011 on GPSies.com 7h 46m Biggest ascent Jura Route 7 / 2011 on GPSies.com 6'324 m Quickest ascent Track 100005 3'919 m/h Most energy SYN_07 indexer running synthetic 49'861 Wh Fastest 30 s speed SYN_07 indexer running synthetic 117.6 km/h Peak 30 s power SYN_07 indexer running synthetic 2'500 W Most common activity Bicycle 10 tracks RECENT ACTIVITY View all tracks SYN_07 indexer running synthetic Running 21.06.2026, 08:10 595 km 5h 33m
+
+After Stats snippet:
+16 TRACKS 1,588 km DISTANCE 1d 01h DURATION 54,347 Wh ENERGY 14,494 m ASCENT ACTIVITY BREAKDOWN Tracks Distance Duration Energy Bicycle 10 10 Hiking 3 3 Walking 2 2 Running 1 1 HIGHLIGHTS Longest track SYN_07 indexer running synthetic 595 km Longest duration Jura Route 7 / 2011 on GPSies.com 7h 46m Biggest ascent Jura Route 7 / 2011 on GPSies.com 6,324 m Quickest ascent Track 100005 3,919 m/h Most energy SYN_07 indexer running synthetic 49,861 Wh Fastest 30 s speed SYN_07 indexer running synthetic 117.6 km/h Peak 30 s power SYN_07 indexer running synthetic 2,500 W Most common activity Bicycle 10 tracks RECENT ACTIVITY View all tracks SYN_07 indexer running synthetic Running 06/21/2026, 08:10 595 km 5h 33m
+
+Console/page errors: none

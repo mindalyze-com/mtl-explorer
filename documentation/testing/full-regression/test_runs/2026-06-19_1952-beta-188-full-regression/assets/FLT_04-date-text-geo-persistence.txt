@@ -1,0 +1,67 @@
+FLT_04 date/text/geo parameter persistence
+
+Browser context:
+- Clean isolated Chrome context. The in-app browser remained unavailable for reliable UI checks after the already-recorded SGN_07 startup-progress failure.
+
+Setup:
+- URL before parameter edits: http://188.245.169.80:18080/mtl/filter
+- Selected filter: Activities by keyword (ActivitiesByKeyword)
+- Starting result after FLT_03 reset: 13 / 13 Tracks
+
+Actions:
+1. Opened Base scope for the selected filter.
+2. Filled From date/time through visible controls:
+   - From date: 2021-01-01
+   - From time: 00:00
+3. Filled To date/time through visible controls:
+   - To date: 2026-12-31
+   - To time: 23:59
+4. Filled the selected filter keyword input with synthetic.
+5. Observed immediate auto-apply before geo:
+   - Result: 2 / 13 Tracks
+   - Legend: CYCLING 2
+   - Filter tab badge: 2
+6. Clicked Circle "Draw on map", placed center on the map, then clicked again to set radius.
+7. Observed the circle parameter auto-apply:
+   - Toolbar changed from "Click to place center" to "Click to set radius" after first map click.
+   - Result after setting radius: 0 / 13 Tracks.
+   - Persisted circle: lat 28.03051623126504, lng 4.593010287793618, radiusM 937111.
+8. Reloaded the app and reopened the filter controls.
+
+Post-reload verification:
+- URL: http://188.245.169.80:18080/mtl/
+- Result: 0 / 13 Tracks
+- Filter alert indicator: present
+- Selected filter from persisted state: ActivitiesByKeyword
+- Visible date/time controls after reload:
+  - From date: 2021-01-01
+  - From time: 00:00
+  - To date: 2026-12-31
+  - To time: 23:59
+- Visible keyword input after reload:
+  - synthetic
+- Persisted filter parameters after reload:
+  stringParams:
+    SEARCH_WORD: synthetic
+  dateTimeParams:
+    DATE_TIME_FROM: 2021-01-01 00:00:00
+    DATE_TIME_TO: 2026-12-31 23:59:00
+  geoCircles:
+    GEO_CIRCLE_1:
+      lat: 28.03051623126504
+      lng: 4.593010287793618
+      radiusM: 937111
+  geoRectangles: {}
+  geoPolygons: {}
+
+Cleanup for next packet:
+- Reset only client-side filter parameter maps.
+- Navigated back to http://188.245.169.80:18080/mtl/filter.
+- Confirmed result restored to 13 / 13 Tracks.
+- Confirmed selected filter remained ActivitiesByKeyword.
+- Confirmed persisted parameter maps are empty:
+  stringParams: {}
+  dateTimeParams: {}
+  geoCircles: {}
+  geoRectangles: {}
+  geoPolygons: {}

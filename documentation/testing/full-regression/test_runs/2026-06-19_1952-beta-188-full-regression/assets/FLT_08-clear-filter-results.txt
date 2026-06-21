@@ -1,0 +1,46 @@
+FLT_08 clear filter results
+
+Baseline
+- URL: http://188.245.169.80:18080/mtl/filter
+- Filter header switch: On
+- Result: 13 / 13 Tracks
+- Map legend: 13 / 13 Tracks / CYCLING 12 / ON_FOOT 1
+- Filter params:
+  stringParams: {}
+  dateTimeParams: {}
+  geoCircles: {}
+  geoRectangles: {}
+  geoPolygons: {}
+
+Narrowed state
+- Entered Keyword "Jura" in the selected Activities by keyword parameter input.
+- Filter header switch: On
+- Result changed to 1 / 13 Tracks.
+- Map legend changed to CYCLING 1.
+- Colors tab changed to Colors 1.
+- Filter params:
+  stringParams:
+    SEARCH_WORD: Jura
+  dateTimeParams: {}
+  geoCircles: {}
+  geoRectangles: {}
+  geoPolygons: {}
+
+Clear/disable action
+- Clicked the filter header On/Off switch.
+- Filter header switch changed to Off.
+- Result restored to 13 Tracks with no slash count.
+- Map card changed to 13 Tracks and no category legend rows.
+- Filter body showed the Filtering is off card and Enable filter action.
+- Filter params became an empty object.
+
+Final handoff state
+- Reopened http://188.245.169.80:18080/mtl/filter.
+- Filter header switch remained Off.
+- Result remained 13 Tracks.
+- Off card remained visible.
+
+Screenshot assets
+- FLT_08-keyword-narrowed-before-clear.png: Keyword narrowed state before clearing.
+- FLT_08-filter-disabled-restored.png: Header switch disabled filtering and restored all tracks.
+- FLT_08-final-clean-filter-off.png: Final clean filter-off handoff state.

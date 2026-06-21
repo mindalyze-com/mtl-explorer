@@ -1,0 +1,6 @@
+Copied public GPX files to watched import folder: /root/mtl-full-regression-2026-06-19_1952-beta-188-full-regression/data/gpx
+JuraRoute72011.gpx 199962 bytes
+Lannion_Plestin_parcours24.4RE.gpx 60917 bytes
+MoselradwegAusWiki.gpx 415326 bytes
+Vitry-le-Francois_Langres.gpx 238349 bytes
+VoieVerteHauteVosges.gpx 183733 bytes

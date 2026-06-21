@@ -23,6 +23,7 @@ import {
   type StatisticsExclusionUpdateRequest,
   type ActivityTypeUpdateRequest,
   type StatisticsOverviewResponseDto,
+  StatisticsOverviewResponseDtoFromJSONTyped,
   type QueryResultEntry,
   type TriggerPoint,
 } from 'x8ing-mtl-api-typescript-fetch/dist/esm/models/index';
@@ -81,6 +82,7 @@ export type {
 export const CONFIG_DOMAIN1_CLIENT = 'CLIENT';
 const TRACK_SOURCE_FILENAME_FALLBACK = 'track-source';
 const GPX_FILE_EXTENSION = '.gpx';
+const TRACKS_SIMPLIFIED_MODE_IDS = 'ids';
 const INVALID_FILENAME_CHARS = /[\\/:*?"<>|]+/g;
 const WHITESPACE_CHARS = /\s+/g;
 
@@ -110,6 +112,38 @@ function flattenFilterParams(params: FilterParamsRequest | undefined): Record<st
   if (params.stringParams) Object.assign(flat, params.stringParams);
   if (params.dateTimeParams) Object.assign(flat, params.dateTimeParams);
   return flat;
+}
+
+function queryString(params: Record<string, string | number | undefined>): string {
+  const searchParams = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    if (value == null || value === '') continue;
+    searchParams.set(key, String(value));
+  }
+  const value = searchParams.toString();
+  return value ? `?${value}` : '';
+}
+
+async function resolveStatisticsTrackIds(
+  filterRequest: ActiveFilterRequest,
+  signal?: AbortSignal
+): Promise<number[]> {
+  if (filterRequest.resolvedTrackIds) {
+    return [...filterRequest.resolvedTrackIds];
+  }
+
+  const result = await getTracksApi().getTracksSimplified1(
+    {
+      mode: TRACKS_SIMPLIFIED_MODE_IDS,
+      filterName: filterRequest.filterName || undefined,
+      filterParamsRequest: filterRequest.filterParams,
+    },
+    { signal }
+  );
+
+  return Object.keys(result.trackVersions ?? {})
+    .map(Number)
+    .filter((trackId) => Number.isSafeInteger(trackId) && trackId > 0);
 }
 
 async function loadActiveFilterRequest(): Promise<ActiveFilterRequest> {
@@ -336,11 +370,14 @@ export async function fetchStatistics(
   filterRequest?: ActiveFilterRequest
 ): Promise<GpsTrackStatistics[]> {
   try {
-    const { filterName, filterParams } = await resolveActiveFilterRequest(filterRequest);
+    const activeFilterRequest = await resolveActiveFilterRequest(filterRequest);
+    const trackIds = await resolveStatisticsTrackIds(activeFilterRequest);
 
     const response = await apiClient.post(
-      `api/tracks/get-track-statistics?groupByDateFormat=${grouping}&filterName=${filterName}`,
-      flattenFilterParams(filterParams)
+      `api/tracks/get-track-statistics${queryString({
+        groupByDateFormat: grouping,
+      })}`,
+      trackIds
     );
 
     return response.data;
@@ -355,15 +392,15 @@ export async function fetchStatisticsOverview(
   filterRequest?: ActiveFilterRequest
 ): Promise<StatisticsOverviewResponseDto> {
   try {
-    const { filterName, filterParams } = await resolveActiveFilterRequest(filterRequest);
+    const activeFilterRequest = await resolveActiveFilterRequest(filterRequest);
+    const trackIds = await resolveStatisticsTrackIds(activeFilterRequest, signal);
 
-    return await getTracksApi().getTrackOverview(
-      {
-        filterName: filterName || undefined,
-        requestBody: flattenFilterParams(filterParams),
-      },
+    const response = await apiClient.post(
+      `api/tracks/get-track-overview`,
+      trackIds,
       { signal }
     );
+    return StatisticsOverviewResponseDtoFromJSONTyped(response.data, false);
   } catch (error: unknown) {
     if (isAbortLikeError(error, signal)) throw error;
     logSanitizedError('Error fetching statistics overview:', error);

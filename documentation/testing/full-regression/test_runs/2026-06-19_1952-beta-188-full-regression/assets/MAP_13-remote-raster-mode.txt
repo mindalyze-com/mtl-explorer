@@ -1,0 +1,39 @@
+MAP_13 intentional remote raster mode evidence
+
+Deployment mutation:
+- Created docker-compose.override.yml in the disposable install directory:
+  services:
+    app:
+      environment:
+        MTL_MAP_SERVER_TILE_MODE: remote
+- Ran docker compose up -d app.
+- Readiness reached HTTP 200 on /mtl/v3/api-docs after 15 polls.
+- Compose ps showed app, db, brouter, and location-search running; db and location-search healthy.
+
+Map config after restart:
+- /api/map/config tileMode: remote.
+- /api/map/config tileSource: null.
+- /api/map/config remoteTileUrl: absent.
+- /api/map/config tileArchiveUrl: null.
+- /api/map/config lowzoomArchiveUrl: null.
+- remoteRasterStyles keys: dark, light, light-topo.
+- light URL: https://tile.openstreetmap.org/{z}/{x}/{y}.png
+- light-topo URL: https://tile.opentopomap.org/{z}/{x}/{y}.png
+- dark URL: https://basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png
+
+Browser UI checks:
+- Fresh tab loaded /mtl/ with map controls and 13 Tracks.
+- Map settings exposed OSM Light, OSM Topo Light, and OSM Dark.
+- Selecting OSM Light made it active and showed attribution: © OpenStreetMap contributors.
+- Selecting OSM Topo Light made it active and showed attribution mentioning Mapterhorn, OpenStreetMap, SRTM, OpenTopoMap, and CC-BY-SA.
+- Selecting OSM Dark made it active and showed attribution: © OpenStreetMap contributors © CARTO.
+- Map controls remained present and 13 Tracks stayed visible for all three theme selections.
+
+Proxy check:
+- docker compose logs --since=10m app | grep -F "/api/map-proxy" returned no matches after the remote-mode pass.
+
+Console note:
+- Browser console retained network-drop messages from the app restart/warmup window before the endpoint was ready. The theme-selection checks themselves completed with active themes, attribution, and visible map state.
+
+Conclusion:
+MAP_13 passes. Intentional remote raster mode exposed the required remote style config, allowed the required OSM theme selections with matching attribution, kept the map usable, and showed no app-log evidence of /api/map-proxy tile requests.

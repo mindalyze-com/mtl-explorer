@@ -1,0 +1,9 @@
+IMP_03 indexing wait evidence
+Started: 2026-06-20T19:34:40.749Z
+Finished: 2026-06-20T19:34:40.816Z
+Duration seconds: 0
+Manual Rescan GPS needed: no
+Sample count: 1
+Final sample: {"t":0,"gps":{"index":"GPS","total":5,"pending":0,"completed":5,"failed":0,"removed":0,"excluded":0,"progressPercent":100},"jobs":[{"job":"duplicate","pending":0,"done":5,"total":5,"progressPercent":100},{"job":"activityType","pending":0,"done":5,"total":5,"progressPercent":100},{"job":"exploration","pending":0,"done":5,"total":5,"progressPercent":100}],"freshnessToken":"5jqZYU__|server_id:4wB4qutecBAh3SvkCNbjuE|config:9|filters:85|index:15|media:0|track_geometry:30|tracks:30"}
+First samples:
+{"t":0,"gps":{"index":"GPS","total":5,"pending":0,"completed":5,"failed":0,"removed":0,"excluded":0,"progressPercent":100},"jobs":[{"job":"duplicate","pending":0,"done":5,"total":5,"progressPercent":100},{"job":"activityType","pending":0,"done":5,"total":5,"progressPercent":100},{"job":"exploration","pending":0,"done":5,"total":5,"progressPercent":100}],"freshnessToken":"5jqZYU__|server_id:4wB4qutecBAh3SvkCNbjuE|config:9|filters:85|index:15|media:0|track_geometry:30|tracks:30"}

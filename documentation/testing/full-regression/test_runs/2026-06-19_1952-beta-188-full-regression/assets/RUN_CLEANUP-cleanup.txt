@@ -1,0 +1,25 @@
+Timestamp: 2026-06-20T02:37:56+0200 CEST
+Run id: 2026-06-19_1952-beta-188-full-regression
+
+Finalization gate:
+Finalization gate: PASS (175 coverage IDs terminal)
+
+Final report:
+documentation/testing/full-regression/test_runs/2026-06-19_1952-beta-188-full-regression/report.md
+
+Evidence audit:
+- Image assets over 85,000 bytes: none
+- Text assets over 5,000 bytes: none
+- JSON/HAR/ZIP artifacts: none
+- Removed unreferenced generated artifacts:
+  - assets/IMP_09-map-panel-before-heatmap.png
+  - assets/IMP_06-browser-search-results.json
+  - assets/IMP_07-detail-map-results.json
+- Recompressed referenced screenshot:
+  - assets/NET_03-auth-redirect.webp, final size 81,626 bytes
+
+Cleanup status:
+- Local evidence/report cleanup complete.
+- Browser contexts used by scripted checks were closed by their scripts.
+- Remote stack shutdown and disposable directory removal were not verified because current SSH/filesystem access to the target is unavailable after setup password rotation.
+- RUN_CLEANUP is terminal BLOCKED on remote cleanup access.

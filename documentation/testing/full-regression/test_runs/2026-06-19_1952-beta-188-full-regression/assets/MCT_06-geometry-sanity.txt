@@ -1,0 +1,130 @@
+{
+  "segment": "A-B",
+  "triggerPoints": [
+    {
+      "name": "A",
+      "coordinate": {
+        "x": 8.5415,
+        "y": 47.3768
+      }
+    },
+    {
+      "name": "B",
+      "coordinate": {
+        "x": 8.5433,
+        "y": 47.378
+      }
+    }
+  ],
+  "radius": 200,
+  "corridorBounds": {
+    "minLon": 8.5413,
+    "maxLon": 8.5435,
+    "minLat": 47.3766,
+    "maxLat": 47.3782
+  },
+  "combinedBounds": {
+    "minLon": 8.541500001454787,
+    "maxLon": 8.543299998442606,
+    "minLat": 47.37680000096986,
+    "maxLat": 47.377999998961734
+  },
+  "uiState": {
+    "compareOpen": true,
+    "minimapCanvases": [
+      {
+        "cls": "maplibregl-canvas",
+        "x": 290.59375,
+        "y": 442.921875,
+        "w": 935,
+        "h": 258
+      }
+    ],
+    "chartCount": 3,
+    "warnings": []
+  },
+  "slices": [
+    {
+      "trackId": "100021",
+      "name": "synthetic-shared-zone-a.gpx",
+      "fromId": 637009,
+      "toId": 637012,
+      "httpStatus": 200,
+      "pointCount": 4,
+      "first": {
+        "id": 637009,
+        "lon": 8.541500001454787,
+        "lat": 47.37680000096986
+      },
+      "last": {
+        "id": 637012,
+        "lon": 8.543299998442606,
+        "lat": 47.377999998961734
+      },
+      "bounds": {
+        "minLon": 8.541500001454787,
+        "maxLon": 8.543299998442606,
+        "minLat": 47.37680000096986,
+        "maxLat": 47.377999998961734
+      },
+      "spanLon": 0.0017999969878186306,
+      "spanLat": 0.0011999979918755344,
+      "maxStepDeg": 0.0007211176159515061,
+      "zeroLikeCount": 0,
+      "offContinentCount": 0,
+      "southAfricaLikeCount": 0,
+      "pointIds": [
+        637009,
+        637010,
+        637011,
+        637012
+      ]
+    },
+    {
+      "trackId": "100023",
+      "name": "synthetic-map09-cross-zone-c.gpx",
+      "fromId": 637040,
+      "toId": 637041,
+      "httpStatus": 200,
+      "pointCount": 2,
+      "first": {
+        "id": 637040,
+        "lon": 8.542099996936628,
+        "lat": 47.37760000204225
+      },
+      "last": {
+        "id": 637041,
+        "lon": 8.542700003061233,
+        "lat": 47.37719999795918
+      },
+      "bounds": {
+        "minLon": 8.542099996936628,
+        "maxLon": 8.542700003061233,
+        "minLat": 47.37719999795918,
+        "maxLat": 47.37760000204225
+      },
+      "spanLon": 0.0006000061246052013,
+      "spanLat": 0.00040000408306894997,
+      "maxStepDeg": 0.0007211176159515061,
+      "zeroLikeCount": 0,
+      "offContinentCount": 0,
+      "southAfricaLikeCount": 0,
+      "pointIds": [
+        637040,
+        637041
+      ]
+    }
+  ],
+  "assertions": {
+    "compareOpen": true,
+    "minimapRendered": true,
+    "allHttpOk": true,
+    "allHaveEnoughPoints": true,
+    "combinedWithinZurichCorridor": true,
+    "localSpanOnly": true,
+    "noLargeStep": true,
+    "noZeroLikeCoordinates": true,
+    "noOffContinentCoordinates": true,
+    "noWarnings": true
+  }
+}

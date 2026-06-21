@@ -1,0 +1,25 @@
+Status: PASS
+Mobile context: viewport 390x844, isMobile=true, hasTouch=true, deviceScaleFactor=2.
+Setup: opened Planner on mobile, zoom guard cleared after 5 zoom taps.
+Ready state: no planner notices=true; stats 0.00 km, ascent 0 m, descent 0 m, duration –, legs 0.
+Touch placement: touchscreen taps at [120,100] and [350,170] -> 2.91 km, ascent 2 m, descent 0 m, duration 8m, legs 1, chart=true.
+Touch drag: CDP Input.dispatchTouchEvent from [350,170] to [300,220] -> 65.62 km, ascent 8 m, descent 68 m, duration 3h 3m, legs 1, chart=true.
+Route events:
+1: status=200, profile=trekking, wps=2, distanceM=2909, ascentM=2, durationSec=484, waypoints=[{"lat":"28.737944","lng":"3.722596"},{"lat":"28.587889","lng":"4.284490"}]
+2: status=200, profile=trekking, wps=2, distanceM=65624, ascentM=8, durationSec=10986, waypoints=[{"lat":"28.737944","lng":"3.722596"},{"lat":"28.480576","lng":"4.162339"}]
+Checks: mobileContext=true, planningPromptCleared=true, touchPlacementComputedRoute=true, touchDragRecomputedRoute=true, routeEventsOk=true.
+Snapshots:
+planning-ready: {"url":"http://178.104.209.132:18080/mtl/plan","profile":"Hiking","distance":"0.00 km","ascent":"0 m","descent":"0 m","duration":"–","legs":"0","chartPresent":false,"notices":[],"sheetTop":836}
+after-touch-placement: {"url":"http://178.104.209.132:18080/mtl/plan","profile":"Hiking","distance":"2.91 km","ascent":"2 m","descent":"0 m","duration":"8m","legs":"1","chartPresent":true,"notices":[],"sheetTop":836}
+after-touch-drag: {"url":"http://178.104.209.132:18080/mtl/plan","profile":"Hiking","distance":"65.62 km","ascent":"8 m","descent":"68 m","duration":"3h 3m","legs":"1","chartPresent":true,"notices":[],"sheetTop":836}
+Page errors: 0
+Console planner/error/warn messages: 9
+log: Downloading low-zoom PMTiles from /mtl/api/map-proxy/prod/world-lowzoom.pmtiles?mtl-map-source=public&mtl-map-archive=public-default … (IndexedDB fallback)
+log: Low-zoom PMTiles cached successfully (IndexedDB, 42.4 MB)
+log: [zoom] 4.169 | mercator
+log: [zoom] 5.169 | mercator
+log: [zoom] 6.169 | mercator
+log: [zoom] 7.169 | mercator
+log: [zoom] 8.169 | mercator
+info: [planner] Viewport prewarm: 300km side → bbox=[2.38,26.69,5.43,29.39]
+error: Unable to preventDefault inside passive event listener invocation.

@@ -1,0 +1,7 @@
+ADM_05:
+- jobs API: [{"job":"duplicate","label":"Duplicate Finder","total":16,"pending":0,"done":16,"progressPercent":100},{"job":"activityType","label":"Activity Classifier","total":16,"pending":0,"done":16,"progressPercent":100},{"job":"exploration","label":"Exploration Score","total":16,"pending":0,"done":16,"progressPercent":100}]
+- indexer API: [{"index":"GPS","total":18,"pending":0,"completed":16,"failed":0,"removed":2,"excluded":0,"progressPercent":88},{"index":"MEDIA","total":0,"pending":0,"completed":0,"failed":0,"removed":0,"excluded":0,"progressPercent":100}]
+- visible Track Processing Jobs section: ["Track Processing Jobs","Duplicate Finder","DONE","100%","16","16 total","Activity Classifier","DONE","100%","16","16 total","Exploration Score","DONE","100%","16","16 total","Map & Routing","Vector Map Tiles","DONE","100%","Using hosted map service","Protomaps archive public-default"]
+- assertions: {"jobsApiOk":true,"duplicateVisible":true,"explorationVisible":true,"activityVisible":true,"settledAfterImports":true}
+- network errors sample: []
+- console messages sample: ["warning: PMTiles HTTP cache failed; retrying archive range requests without browser cache. {url: /mtl/api/map-proxy/prod/planet.pmtiles?mtl-map-source=public&mtl-map-archive=public-default, message: Failed to fetch}"]

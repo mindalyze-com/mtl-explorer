@@ -1,0 +1,16 @@
+MAP_02 map track count evidence
+
+UI evidence from root map tab:
+- URL: http://188.245.169.80:18080/mtl/
+- Map regions present.
+- Zoom controls present.
+- Visible map count: 11 Tracks.
+- Console warnings/errors captured from the tab: none.
+
+Authenticated API evidence:
+- /mtl/api/auth/login with README credentials succeeded.
+- /mtl/api/tracks/get returned 11 tracks.
+- Track IDs returned: 100017, 100002, 100014, 100018, 100003, 100004, 100005, 100019, 100016, 100015, 100020.
+
+Conclusion:
+MAP_02 passes. The map-visible track count matches the authenticated track API count for the current imported dataset.

@@ -1,0 +1,22 @@
+TRD_08 original source download evidence
+Pass checks: {"GPX original":true,"FIT original":true}
+
+GPX original: track 100001
+  URL: http://178.104.209.132:18080/mtl/track/100001
+  suggested=Vitry-le-Francois_Langres.gpx; expected=Vitry-le-Francois_Langres.gpx; filenameMatches=true
+  size=238349; expectedSize=238349; sizeMatches=true
+  sha256=401218e3c1d1f366ee27ea8bc138d8422eff3bf6348a77183be83fef3e8d7d67
+  expectedSha256=401218e3c1d1f366ee27ea8bc138d8422eff3bf6348a77183be83fef3e8d7d67; shaMatches=true
+  marker="<?xml version=\"1.0\" encoding=\"UTF-8\"?> <gpx xmlns=\"http://www.topografix.com/GPX/1/1\" xmlns:gpsies=\"http://www.gpsies.c"
+FIT original: track 100005
+  URL: http://178.104.209.132:18080/mtl/track/100005
+  suggested=Activity.fit; expected=Activity.fit; filenameMatches=true
+  size=94096; expectedSize=94096; sizeMatches=true
+  sha256=949a238e1bb75c3684479785f76fa9a16888bb394518844248f488171d591387
+  expectedSha256=949a238e1bb75c3684479785f76fa9a16888bb394518844248f488171d591387; shaMatches=true
+  marker=".FIT"
+Console warnings/errors captured: 2
+  error: Failed to load resource: the server responded with a status of 404 ()
+  error: Failed to load resource: the server responded with a status of 404 ()
+Page errors captured: 0
+RESULT: PASS
