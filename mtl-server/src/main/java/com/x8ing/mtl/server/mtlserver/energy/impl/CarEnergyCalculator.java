@@ -22,33 +22,17 @@ public class CarEnergyCalculator extends WheeledMotorVehicleEnergyCalculator {
     private static final double DEFAULT_VEHICLE_WEIGHT_KG = 1500.0;
     private static final double DEFAULT_MAX_POWER_WATTS = 250_000.0;
 
+    public CarEnergyCalculator() {
+        super(
+                DEFAULT_CD,
+                DEFAULT_FRONTAL_AREA,
+                DEFAULT_CR,
+                DEFAULT_VEHICLE_WEIGHT_KG,
+                DEFAULT_MAX_POWER_WATTS);
+    }
+
     @Override
     public Set<GpsTrack.ACTIVITY_TYPE> getActivityTypes() {
         return Set.of(GpsTrack.ACTIVITY_TYPE.CAR);
-    }
-
-    @Override
-    public double getDefaultEquipmentWeightKg() {
-        return DEFAULT_VEHICLE_WEIGHT_KG;
-    }
-
-    @Override
-    protected double getDefaultCd() {
-        return DEFAULT_CD;
-    }
-
-    @Override
-    protected double getDefaultFrontalArea() {
-        return DEFAULT_FRONTAL_AREA;
-    }
-
-    @Override
-    protected double getDefaultCr() {
-        return DEFAULT_CR;
-    }
-
-    @Override
-    public double getMaxPowerWatts() {
-        return DEFAULT_MAX_POWER_WATTS;
     }
 }

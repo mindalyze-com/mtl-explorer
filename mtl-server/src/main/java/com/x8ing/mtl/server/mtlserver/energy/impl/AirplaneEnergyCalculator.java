@@ -2,9 +2,8 @@ package com.x8ing.mtl.server.mtlserver.energy.impl;
 
 import com.x8ing.mtl.server.mtlserver.db.entity.gps.GpsTrack;
 import com.x8ing.mtl.server.mtlserver.db.entity.gps.GpsTrackDataPoint;
-import com.x8ing.mtl.server.mtlserver.energy.EnergyCalculator;
-import com.x8ing.mtl.server.mtlserver.energy.EnergyComponents;
 import com.x8ing.mtl.server.mtlserver.energy.EnergyParameters;
+import com.x8ing.mtl.server.mtlserver.energy.FluidDragEnergyCalculator;
 import org.springframework.stereotype.Component;
 
 import java.util.Set;
@@ -20,7 +19,7 @@ import java.util.Set;
  * or aircraft-specific configuration.
  */
 @Component
-public class AirplaneEnergyCalculator extends EnergyCalculator {
+public class AirplaneEnergyCalculator extends FluidDragEnergyCalculator {
 
     private static final double DEFAULT_CD = 1.0;
     private static final double DEFAULT_FRONTAL_AREA = 0.04; // per-passenger equivalent CdA when Cd=1
@@ -63,32 +62,18 @@ public class AirplaneEnergyCalculator extends EnergyCalculator {
     }
 
     @Override
-    public EnergyComponents calculateBetweenPoints(GpsTrackDataPoint current, GpsTrackDataPoint prev, EnergyParameters params) {
-        if (prev == null) return EnergyComponents.ZERO;
-
-        double distance = segmentDistance(current);
-        if (distance <= 0) return EnergyComponents.ZERO;
-
-        double totalMass = params.getTotalMassKg(getDefaultEquipmentWeightKg());
+    protected double calculateDragJoules(
+            GpsTrackDataPoint current,
+            GpsTrackDataPoint prev,
+            EnergyParameters params,
+            double distance
+    ) {
         double cd = params.getDragCoefficient(getDefaultCd());
         double area = params.getFrontalArea(getDefaultFrontalArea());
         double rho = airDensityForSegment(current, prev, params);
-
-        double gravity = gravitationalEnergy(totalMass, current.getPointAltitude(), prev.getPointAltitude());
-
         double speedForDrag = Math.min(smoothedSpeedMps(current, params), getMaxAeroSpeedMps());
         double effectiveCd = effectiveDragCoefficient(cd, speedForDrag);
-        double aeroDrag = 0.5 * effectiveCd * area * rho * speedForDrag * speedForDrag * distance;
-
-        double currentSpeed = smoothedSpeedMps(current, params);
-        double prevSpeed = smoothedSpeedMps(prev, params);
-        double kinetic = kineticEnergyChange(totalMass, currentSpeed, prevSpeed);
-
-        return EnergyComponents.builder()
-                .gravitationalJoules(gravity)
-                .aeroDragJoules(aeroDrag)
-                .kineticJoules(kinetic)
-                .build();
+        return 0.5 * effectiveCd * area * rho * speedForDrag * speedForDrag * distance;
     }
 
     private double airDensityForSegment(GpsTrackDataPoint current, GpsTrackDataPoint prev, EnergyParameters params) {

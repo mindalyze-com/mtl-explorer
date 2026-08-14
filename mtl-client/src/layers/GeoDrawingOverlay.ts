@@ -1,4 +1,7 @@
 import maplibregl from 'maplibre-gl';
+import { formatRadius } from '@/utils/Utils';
+import { createGeoJsonCircle } from '@/utils/geoJson';
+import { VIZ_ACCENT_COLOR } from '@/utils/visualizationColors';
 
 export type GeoShapeType = 'circle' | 'rectangle' | 'polygon';
 
@@ -21,10 +24,38 @@ export interface DrawnPolygon {
 
 export type DrawnShape = DrawnCircle | DrawnRectangle | DrawnPolygon;
 
-const SHAPE_COLOR = '#6366f1';
+const SHAPE_COLOR = VIZ_ACCENT_COLOR;
 const SHAPE_FILL_OPACITY = 0.15;
 const SHAPE_LINE_WIDTH = 2;
 const SHAPE_LINE_OPACITY = 0.7;
+const CIRCLE_PREVIEW_RADIUS_M = 100;
+const CIRCLE_PREVIEW_LABEL_SOURCE_ID = 'geo-preview-circle-label';
+
+function measurementLabelLayer(sourceId: string): maplibregl.SymbolLayerSpecification {
+  return {
+    id: sourceId,
+    type: 'symbol',
+    source: sourceId,
+    layout: {
+      'text-field': ['get', 'label'],
+      'text-size': 13,
+      'text-font': ['Noto Sans Medium'],
+      'text-anchor': 'center',
+      'text-allow-overlap': true,
+    },
+    paint: {
+      'text-color': SHAPE_COLOR,
+      'text-halo-color': 'rgba(255,255,255,0.9)',
+      'text-halo-width': 2,
+    },
+  };
+}
+
+type MeasurementLabel = {
+  lng: number;
+  lat: number;
+  text: () => string;
+};
 
 /**
  * Manages drawing geo shapes (circle, rectangle, polygon) on a MapLibre map.
@@ -35,6 +66,7 @@ export class GeoDrawingOverlay {
   private sourceIds: string[] = [];
   private layerIds: string[] = [];
   private shapeCounter = 0;
+  private measurementLabels = new Map<string, MeasurementLabel>();
 
   // Drawing state
   private drawingMode: GeoShapeType | null = null;
@@ -45,6 +77,7 @@ export class GeoDrawingOverlay {
   private circleCenter: maplibregl.LngLat | null = null;
   private circleDragHandler: ((e: maplibregl.MapMouseEvent) => void) | null = null;
   private circleClickHandler: ((e: maplibregl.MapMouseEvent) => void) | null = null;
+  private circlePreviewRadiusM: number | null = null;
 
   // Rectangle drawing state
   private rectFirstCorner: maplibregl.LngLat | null = null;
@@ -145,16 +178,17 @@ export class GeoDrawingOverlay {
 
   /** Finish polygon drawing (programmatic — e.g. from a "Finish" button). */
   finishPolygon(): void {
-    if (this.drawingMode !== 'polygon' || this.polygonPoints.length < 3) return;
-    const coords: [number, number][] = this.polygonPoints.map((p) => [p.lng, p.lat]);
-    const shape: DrawnPolygon = { coordinates: coords };
-    this.finishDrawing(shape);
+    this.finishCurrentPolygon();
   }
 
   /**
    * Cancel any in-progress drawing without finalizing.
    */
   cancelDrawing(): void {
+    this.resetDrawingSession();
+  }
+
+  private resetDrawingSession(): void {
     this.removeDrawingHandlers();
     this.removePreviewLayers();
     this.drawingMode = null;
@@ -172,13 +206,10 @@ export class GeoDrawingOverlay {
    */
   renderCircle(circle: DrawnCircle, color: string = SHAPE_COLOR, name?: string): string {
     const id = `geo-shape-${this.shapeCounter++}`;
-    const geoJson = this.createGeoJsonCircle(circle.lng, circle.lat, circle.radiusM);
+    const geoJson = createGeoJsonCircle(circle.lng, circle.lat, circle.radiusM);
 
     this.addFillAndOutline(id, geoJson, color);
-    const labelParts: string[] = [];
-    if (name) labelParts.push(name);
-    labelParts.push(formatRadius(circle.radiusM));
-    this.addCenterLabel(id, circle.lng, circle.lat, labelParts.join('\n'));
+    this.addCenterLabel(id, circle.lng, circle.lat, () => this.measurementLabel(name, formatRadius(circle.radiusM)));
     return id;
   }
 
@@ -200,10 +231,9 @@ export class GeoDrawingOverlay {
       new maplibregl.LngLat(centerLng, rect.minLat),
       new maplibregl.LngLat(centerLng, rect.maxLat)
     );
-    const labelParts: string[] = [];
-    if (name) labelParts.push(name);
-    labelParts.push(`${formatRadius(widthM)} × ${formatRadius(heightM)}`);
-    this.addCenterLabel(id, centerLng, centerLat, labelParts.join('\n'));
+    this.addCenterLabel(id, centerLng, centerLat, () =>
+      this.measurementLabel(name, `${formatRadius(widthM)} × ${formatRadius(heightM)}`)
+    );
     return id;
   }
 
@@ -246,10 +276,9 @@ export class GeoDrawingOverlay {
         );
         perimeterM += this.distanceInMeters(a, b);
       }
-      const labelParts: string[] = [];
-      if (name) labelParts.push(name);
-      labelParts.push(`${rawCoords.length} pts, ${formatRadius(perimeterM)} perimeter`);
-      this.addCenterLabel(id, centroidLng, centroidLat, labelParts.join('\n'));
+      this.addCenterLabel(id, centroidLng, centroidLat, () =>
+        this.measurementLabel(name, `${rawCoords.length} pts, ${formatRadius(perimeterM)} perimeter`)
+      );
     }
     return id;
   }
@@ -258,6 +287,7 @@ export class GeoDrawingOverlay {
    * Remove a specific rendered shape by its id.
    */
   removeShape(shapeId: string): void {
+    this.measurementLabels.delete(shapeId);
     const layerSuffixes = ['-fill', '-outline', '-label'];
     for (const suffix of layerSuffixes) {
       const layerId = shapeId + suffix;
@@ -304,7 +334,22 @@ export class GeoDrawingOverlay {
     }
     this.layerIds = [];
     this.sourceIds = [];
+    this.measurementLabels.clear();
     this.shapeCounter = 0;
+  }
+
+  refreshMeasurementLabels(): void {
+    for (const [baseId, label] of this.measurementLabels) {
+      this.updateLabelSource(baseId + '-label', label.lng, label.lat, label.text());
+    }
+    if (this.circleCenter && this.circlePreviewRadiusM != null) {
+      this.updateLabelSource(
+        CIRCLE_PREVIEW_LABEL_SOURCE_ID,
+        this.circleCenter.lng,
+        this.circleCenter.lat,
+        formatRadius(this.circlePreviewRadiusM)
+      );
+    }
   }
 
   destroy(): void {
@@ -316,31 +361,21 @@ export class GeoDrawingOverlay {
 
   private startCircleDrawing(): void {
     this.circleCenter = null;
+    this.circlePreviewRadiusM = null;
 
     this.circleClickHandler = (e: maplibregl.MapMouseEvent) => {
       if (!this.circleCenter) {
         // First click: set center
         this.circleCenter = e.lngLat;
-        // Show a preview circle at 100m initially
+        this.circlePreviewRadiusM = CIRCLE_PREVIEW_RADIUS_M;
+        // Show a preview circle at the default radius initially.
         const previewId = `geo-preview-circle`;
         this.rectPreviewSourceId = previewId; // reuse field for cleanup
-        const geoJson = this.createGeoJsonCircle(e.lngLat.lng, e.lngLat.lat, 100);
-        this.map.addSource(previewId, { type: 'geojson', data: geoJson });
-        this.map.addLayer({
-          id: previewId + '-fill',
-          type: 'fill',
-          source: previewId,
-          paint: { 'fill-color': SHAPE_COLOR, 'fill-opacity': SHAPE_FILL_OPACITY },
-        });
-        this.map.addLayer({
-          id: previewId + '-outline',
-          type: 'line',
-          source: previewId,
-          paint: { 'line-color': SHAPE_COLOR, 'line-width': SHAPE_LINE_WIDTH, 'line-opacity': SHAPE_LINE_OPACITY },
-        });
+        const geoJson = createGeoJsonCircle(e.lngLat.lng, e.lngLat.lat, CIRCLE_PREVIEW_RADIUS_M);
+        this.addAreaPreviewLayers(previewId, false, geoJson);
 
         // Add a live radius label at center
-        const labelId = `geo-preview-circle-label`;
+        const labelId = CIRCLE_PREVIEW_LABEL_SOURCE_ID;
         this.map.addSource(labelId, {
           type: 'geojson',
           data: {
@@ -349,31 +384,20 @@ export class GeoDrawingOverlay {
               {
                 type: 'Feature',
                 geometry: { type: 'Point', coordinates: [e.lngLat.lng, e.lngLat.lat] },
-                properties: { label: '100 m' },
+                properties: { label: formatRadius(CIRCLE_PREVIEW_RADIUS_M) },
               },
             ],
           },
         });
-        this.map.addLayer({
-          id: labelId,
-          type: 'symbol',
-          source: labelId,
-          layout: {
-            'text-field': ['get', 'label'],
-            'text-size': 13,
-            'text-font': ['Noto Sans Medium'],
-            'text-anchor': 'center',
-            'text-allow-overlap': true,
-          },
-          paint: { 'text-color': SHAPE_COLOR, 'text-halo-color': 'rgba(255,255,255,0.9)', 'text-halo-width': 2 },
-        });
+        this.map.addLayer(measurementLabelLayer(labelId));
 
         // Listen for mouse move to update radius + label
         this.circleDragHandler = (moveEvent: maplibregl.MapMouseEvent) => {
           const radiusM = this.distanceInMeters(this.circleCenter!, moveEvent.lngLat);
+          this.circlePreviewRadiusM = radiusM;
           const source = this.map.getSource(previewId) as maplibregl.GeoJSONSource;
           if (source) {
-            source.setData(this.createGeoJsonCircle(this.circleCenter!.lng, this.circleCenter!.lat, radiusM));
+            source.setData(createGeoJsonCircle(this.circleCenter!.lng, this.circleCenter!.lat, radiusM));
           }
           const labelSource = this.map.getSource(labelId) as maplibregl.GeoJSONSource;
           if (labelSource) {
@@ -407,6 +431,31 @@ export class GeoDrawingOverlay {
 
   // ── Rectangle Drawing ──
 
+  private addAreaPreviewLayers(
+    previewId: string,
+    dashedOutline = false,
+    data: GeoJSON.FeatureCollection = { type: 'FeatureCollection', features: [] }
+  ): void {
+    this.map.addSource(previewId, { type: 'geojson', data });
+    this.map.addLayer({
+      id: previewId + '-fill',
+      type: 'fill',
+      source: previewId,
+      paint: { 'fill-color': SHAPE_COLOR, 'fill-opacity': SHAPE_FILL_OPACITY },
+    });
+    this.map.addLayer({
+      id: previewId + '-outline',
+      type: 'line',
+      source: previewId,
+      paint: {
+        'line-color': SHAPE_COLOR,
+        'line-width': SHAPE_LINE_WIDTH,
+        'line-opacity': SHAPE_LINE_OPACITY,
+        ...(dashedOutline ? { 'line-dasharray': [2, 2] } : {}),
+      },
+    });
+  }
+
   private startRectangleDrawing(): void {
     this.rectFirstCorner = null;
 
@@ -417,23 +466,7 @@ export class GeoDrawingOverlay {
         const previewId = `geo-preview-rect`;
         this.rectPreviewSourceId = previewId;
 
-        const emptyGeoJson: GeoJSON.FeatureCollection = {
-          type: 'FeatureCollection',
-          features: [],
-        };
-        this.map.addSource(previewId, { type: 'geojson', data: emptyGeoJson });
-        this.map.addLayer({
-          id: previewId + '-fill',
-          type: 'fill',
-          source: previewId,
-          paint: { 'fill-color': SHAPE_COLOR, 'fill-opacity': SHAPE_FILL_OPACITY },
-        });
-        this.map.addLayer({
-          id: previewId + '-outline',
-          type: 'line',
-          source: previewId,
-          paint: { 'line-color': SHAPE_COLOR, 'line-width': SHAPE_LINE_WIDTH, 'line-opacity': SHAPE_LINE_OPACITY },
-        });
+        this.addAreaPreviewLayers(previewId);
 
         this.rectMoveHandler = (moveEvent: maplibregl.MapMouseEvent) => {
           const rect = this.cornersToRect(this.rectFirstCorner!, moveEvent.lngLat);
@@ -460,28 +493,7 @@ export class GeoDrawingOverlay {
     const previewId = `geo-preview-polygon`;
     this.polygonPreviewSourceId = previewId;
 
-    const emptyGeoJson: GeoJSON.FeatureCollection = {
-      type: 'FeatureCollection',
-      features: [],
-    };
-    this.map.addSource(previewId, { type: 'geojson', data: emptyGeoJson });
-    this.map.addLayer({
-      id: previewId + '-fill',
-      type: 'fill',
-      source: previewId,
-      paint: { 'fill-color': SHAPE_COLOR, 'fill-opacity': SHAPE_FILL_OPACITY },
-    });
-    this.map.addLayer({
-      id: previewId + '-outline',
-      type: 'line',
-      source: previewId,
-      paint: {
-        'line-color': SHAPE_COLOR,
-        'line-width': SHAPE_LINE_WIDTH,
-        'line-opacity': SHAPE_LINE_OPACITY,
-        'line-dasharray': [2, 2],
-      },
-    });
+    this.addAreaPreviewLayers(previewId, true);
 
     // Track timing to suppress click events that are part of a double-click
     let lastClickTime = 0;
@@ -511,11 +523,7 @@ export class GeoDrawingOverlay {
 
     this.polygonDblClickHandler = (e: maplibregl.MapMouseEvent) => {
       e.preventDefault();
-      if (this.polygonPoints.length >= 3) {
-        const coords: [number, number][] = this.polygonPoints.map((p) => [p.lng, p.lat]);
-        const shape: DrawnPolygon = { coordinates: coords };
-        this.finishDrawing(shape);
-      }
+      this.finishCurrentPolygon();
     };
 
     this.map.on('click', this.polygonClickHandler);
@@ -565,18 +573,15 @@ export class GeoDrawingOverlay {
 
   // ── Helpers ──
 
+  private finishCurrentPolygon(): void {
+    if (this.drawingMode !== 'polygon' || this.polygonPoints.length < 3) return;
+    const coordinates: [number, number][] = this.polygonPoints.map((point) => [point.lng, point.lat]);
+    this.finishDrawing({ coordinates });
+  }
+
   private finishDrawing(shape: DrawnShape): void {
     const callback = this.drawingCallback;
-    this.removeDrawingHandlers();
-    this.removePreviewLayers();
-    this.drawingMode = null;
-    this.drawingCallback = null;
-    this.onStateChange = null;
-    try {
-      this.map.getCanvas().style.cursor = '';
-    } catch {
-      /* map may be destroyed */
-    }
+    this.resetDrawingSession();
     if (callback) callback(shape);
   }
 
@@ -610,6 +615,7 @@ export class GeoDrawingOverlay {
       this.polygonDblClickHandler = null;
     }
     this.circleCenter = null;
+    this.circlePreviewRadiusM = null;
     this.rectFirstCorner = null;
     this.polygonPoints = [];
   }
@@ -631,7 +637,7 @@ export class GeoDrawingOverlay {
       }
     }
     // Remove preview labels (e.g. live circle radius)
-    const labelIds = ['geo-preview-circle-label'];
+    const labelIds = [CIRCLE_PREVIEW_LABEL_SOURCE_ID];
     for (const id of labelIds) {
       try {
         if (this.map.getLayer(id)) this.map.removeLayer(id);
@@ -646,6 +652,7 @@ export class GeoDrawingOverlay {
     }
     this.rectPreviewSourceId = null;
     this.polygonPreviewSourceId = null;
+    this.circlePreviewRadiusM = null;
   }
 
   private addFillAndOutline(id: string, geoJson: GeoJSON.FeatureCollection, color: string): void {
@@ -669,41 +676,40 @@ export class GeoDrawingOverlay {
     this.layerIds.push(id + '-outline');
   }
 
-  private addCenterLabel(baseId: string, lng: number, lat: number, text: string): void {
+  private addCenterLabel(baseId: string, lng: number, lat: number, text: () => string): void {
     const sourceId = baseId + '-label';
+    const measurementLabel = { lng, lat, text };
+    this.measurementLabels.set(baseId, measurementLabel);
     this.map.addSource(sourceId, {
       type: 'geojson',
-      data: {
-        type: 'FeatureCollection',
-        features: [
-          {
-            type: 'Feature',
-            geometry: { type: 'Point', coordinates: [lng, lat] },
-            properties: { label: text },
-          },
-        ],
-      },
+      data: this.labelGeoJson(lng, lat, text()),
     });
     this.sourceIds.push(sourceId);
 
-    this.map.addLayer({
-      id: sourceId,
-      type: 'symbol',
-      source: sourceId,
-      layout: {
-        'text-field': ['get', 'label'],
-        'text-size': 13,
-        'text-font': ['Noto Sans Medium'],
-        'text-anchor': 'center',
-        'text-allow-overlap': true,
-      },
-      paint: {
-        'text-color': SHAPE_COLOR,
-        'text-halo-color': 'rgba(255,255,255,0.9)',
-        'text-halo-width': 2,
-      },
-    });
+    this.map.addLayer(measurementLabelLayer(sourceId));
     this.layerIds.push(sourceId);
+  }
+
+  private updateLabelSource(sourceId: string, lng: number, lat: number, text: string): void {
+    const source = this.map.getSource(sourceId) as maplibregl.GeoJSONSource | undefined;
+    source?.setData(this.labelGeoJson(lng, lat, text));
+  }
+
+  private labelGeoJson(lng: number, lat: number, text: string): GeoJSON.FeatureCollection {
+    return {
+      type: 'FeatureCollection',
+      features: [
+        {
+          type: 'Feature',
+          geometry: { type: 'Point', coordinates: [lng, lat] },
+          properties: { label: text },
+        },
+      ],
+    };
+  }
+
+  private measurementLabel(name: string | undefined, measurement: string): string {
+    return name ? `${name}\n${measurement}` : measurement;
   }
 
   private cornersToRect(a: maplibregl.LngLat, b: maplibregl.LngLat): DrawnRectangle {
@@ -740,33 +746,6 @@ export class GeoDrawingOverlay {
   }
 
   /**
-   * Create a GeoJSON circle approximated as a 64-point polygon.
-   * Same algorithm as MeasureBetweenPoints.vue.
-   */
-  private createGeoJsonCircle(lng: number, lat: number, radiusMeters: number, points = 64): GeoJSON.FeatureCollection {
-    const coords: [number, number][] = [];
-    const earthRadius = 6371000;
-    const latRad = (lat * Math.PI) / 180;
-    const lngRad = (lng * Math.PI) / 180;
-    for (let i = 0; i <= points; i++) {
-      const angle = (i / points) * 2 * Math.PI;
-      const dLat = (radiusMeters / earthRadius) * Math.cos(angle);
-      const dLng = (radiusMeters / (earthRadius * Math.cos(latRad))) * Math.sin(angle);
-      coords.push([((lngRad + dLng) * 180) / Math.PI, ((latRad + dLat) * 180) / Math.PI]);
-    }
-    return {
-      type: 'FeatureCollection',
-      features: [
-        {
-          type: 'Feature',
-          geometry: { type: 'Polygon', coordinates: [coords] },
-          properties: {},
-        },
-      ],
-    };
-  }
-
-  /**
    * Calculate distance in meters between two lat/lng points using the Haversine formula.
    */
   private distanceInMeters(a: maplibregl.LngLat, b: maplibregl.LngLat): number {
@@ -779,11 +758,4 @@ export class GeoDrawingOverlay {
       sinDLat * sinDLat + Math.cos((a.lat * Math.PI) / 180) * Math.cos((b.lat * Math.PI) / 180) * sinDLng * sinDLng;
     return R * 2 * Math.atan2(Math.sqrt(aVal), Math.sqrt(1 - aVal));
   }
-}
-
-function formatRadius(meters: number): string {
-  if (meters >= 1000) {
-    return `${(meters / 1000).toFixed(1)} km`;
-  }
-  return `${Math.round(meters)} m`;
 }

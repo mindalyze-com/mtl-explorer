@@ -1,6 +1,22 @@
 import colormap from 'colormap';
 import _ from 'lodash';
 import { getFormatLocale } from '@/composables/useLocale';
+import { getMeasurementSystem } from '@/composables/useMeasurementSystem';
+import {
+  formatElevationM,
+  formatLongDistanceM,
+  formatMassKg,
+  formatShortDistanceM,
+  formatSpeedKmh,
+  formatVerticalRateMPerH,
+  MEASUREMENT_DISPLAY_PROFILES,
+  METERS_PER_KILOMETER,
+  METERS_PER_MILE,
+} from '@/utils/units';
+
+const SECONDS_PER_MINUTE = 60;
+const SECONDS_PER_HOUR = 3600;
+const MPS_TO_KMH = 3.6;
 
 export const EVENT_MEASURE_BETWEEN_POINTS_DIALOG_MAXIMIZED_EVENT =
   'EVENT_MEASURE_BETWEEN_POINTS_DIALOG_MAXIMIZED_EVENT';
@@ -19,26 +35,18 @@ export function formatDuration(durationInMillis: number) {
 }
 
 export function formatDateAndTime(date: Date | string | number | null | undefined) {
-  if (!date) return '';
-  if (!(date instanceof Date)) date = new Date(date);
-  if (isNaN(date.getTime())) return '';
-  const options: Intl.DateTimeFormatOptions = {
+  return formatDateValue(date, {
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',
     hour: '2-digit',
     minute: '2-digit',
     hour12: false,
-  };
-
-  return date.toLocaleString(getFormatLocale(), options);
+  });
 }
 
 export function formatDateAndTimeWithSeconds(date: Date | string | number | null | undefined) {
-  if (!date) return '';
-  if (!(date instanceof Date)) date = new Date(date);
-  if (isNaN(date.getTime())) return '';
-  const options: Intl.DateTimeFormatOptions = {
+  return formatDateValue(date, {
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',
@@ -46,9 +54,17 @@ export function formatDateAndTimeWithSeconds(date: Date | string | number | null
     minute: '2-digit',
     second: '2-digit',
     hour12: false,
-  };
+  });
+}
 
-  return date.toLocaleString(getFormatLocale(), options);
+export function toValidDate(value: Date | string | number | null | undefined): Date | null {
+  if (value == null) return null;
+  const date = value instanceof Date ? value : new Date(value);
+  return Number.isFinite(date.getTime()) ? date : null;
+}
+
+export function toValidDateMs(value: Date | string | number | null | undefined): number | null {
+  return toValidDate(value)?.getTime() ?? null;
 }
 
 export function formatNumber(num: number | null | undefined, digits: number): string {
@@ -56,15 +72,17 @@ export function formatNumber(num: number | null | undefined, digits: number): st
 }
 
 export function formatDate(date: Date | string | number | null | undefined) {
-  if (!date) return '';
-  if (!(date instanceof Date)) date = new Date(date);
-  if (isNaN(date.getTime())) return '';
-  const options: Intl.DateTimeFormatOptions = {
+  return formatDateValue(date, {
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',
-  };
+  });
+}
 
+function formatDateValue(date: Date | string | number | null | undefined, options: Intl.DateTimeFormatOptions): string {
+  if (!date) return '';
+  if (!(date instanceof Date)) date = new Date(date);
+  if (isNaN(date.getTime())) return '';
   return date.toLocaleString(getFormatLocale(), options);
 }
 
@@ -112,9 +130,64 @@ export function formatBytes(bytes: number, decimals = 2) {
 }
 
 export function formatDistance(meters: number, decimals = 2) {
-  if (meters < 1) return formatLocaleNumber(meters * 100, decimals) + ' cm';
-  if (meters >= 1 && meters < 1000) return formatLocaleNumber(meters, decimals) + ' m';
-  if (meters >= 1000) return formatLocaleNumber(meters / 1000, decimals) + ' km';
+  if (!Number.isFinite(meters)) return undefined;
+  const system = getMeasurementSystem();
+  if (system === 'METRIC' && meters < 1) return formatLocaleNumber(meters * 100, decimals) + ' cm';
+  if (meters < longDistanceThresholdM(system)) {
+    return formatShortDistanceM(meters, system, { fractionDigits: decimals });
+  }
+  return formatLongDistanceM(meters, system, { fractionDigits: decimals });
+}
+
+export function formatRadius(meters: number): string {
+  const system = getMeasurementSystem();
+  return meters >= longDistanceThresholdM(system)
+    ? formatLongDistanceM(meters, system, { fractionDigits: 1 })
+    : formatShortDistanceM(meters, system);
+}
+
+export function formatCompactDistance(meters: number): string {
+  if (!Number.isFinite(meters)) return '';
+  const system = getMeasurementSystem();
+  return meters < longDistanceThresholdM(system)
+    ? formatShortDistanceM(meters, system)
+    : formatLongDistanceM(meters, system, { fractionDigits: 2 });
+}
+
+export function formatElevation(meters: number, decimals = 0): string {
+  return formatElevationM(meters, getMeasurementSystem(), { fractionDigits: decimals });
+}
+
+export function formatSpeed(kilometersPerHour: number, decimals = 1): string {
+  return formatSpeedKmh(kilometersPerHour, getMeasurementSystem(), { fractionDigits: decimals });
+}
+
+export function formatVerticalRate(metersPerHour: number, decimals = 0): string {
+  return formatVerticalRateMPerH(metersPerHour, getMeasurementSystem(), { fractionDigits: decimals });
+}
+
+export function formatMass(kilograms: number, decimals = 1): string {
+  return formatMassKg(kilograms, getMeasurementSystem(), { fractionDigits: decimals });
+}
+
+export function currentMeasurementUnit(dimension: keyof (typeof MEASUREMENT_DISPLAY_PROFILES)['METRIC']): string {
+  return MEASUREMENT_DISPLAY_PROFILES[getMeasurementSystem()][dimension];
+}
+
+export function formatCompactDurationSeconds(seconds: number): string {
+  if (!Number.isFinite(seconds)) return '';
+
+  const rounded = Math.round(seconds);
+  const hours = Math.floor(rounded / SECONDS_PER_HOUR);
+  const minutes = Math.floor((rounded % SECONDS_PER_HOUR) / SECONDS_PER_MINUTE);
+  const remainingSeconds = rounded % SECONDS_PER_MINUTE;
+  if (hours > 0) return `${hours}h ${minutes.toString().padStart(2, '0')}m`;
+  if (minutes <= 0) return `${remainingSeconds}s`;
+  return `${minutes}m ${remainingSeconds.toString().padStart(2, '0')}s`;
+}
+
+export function metersPerSecondToKilometersPerHour(metersPerSecond: number): number {
+  return metersPerSecond * MPS_TO_KMH;
 }
 
 /**
@@ -127,23 +200,14 @@ export function formatDistance(meters: number, decimals = 2) {
  */
 export function formatDistanceSmart(meters: number, maxMeters?: number): string {
   if (meters == null || isNaN(meters)) return '—';
+  const system = getMeasurementSystem();
   const ref = maxMeters ?? meters;
-  if (ref < 1000) {
-    // Stay in metres — no thousands ever relevant here
-    return formatLocaleNumber(meters, 2) + ' m';
+  if (ref < longDistanceThresholdM(system)) {
+    return formatShortDistanceM(meters, system, { fractionDigits: 2 });
   }
-  const refKm = ref / 1000;
-  const decimals = refKm < 10 ? 2 : refKm < 100 ? 1 : 0;
-  const km = meters / 1000;
-  if (km >= 1000) {
-    // Use de-CH for ' separator, then append the unit
-    const formatted = km.toLocaleString(getFormatLocale(), {
-      minimumFractionDigits: decimals,
-      maximumFractionDigits: decimals,
-    });
-    return formatted + ' km';
-  }
-  return formatLocaleNumber(km, decimals) + ' km';
+  const referenceLongDistance = system === 'METRIC' ? ref / METERS_PER_KILOMETER : ref / METERS_PER_MILE;
+  const decimals = referenceLongDistance < 10 ? 2 : referenceLongDistance < 100 ? 1 : 0;
+  return formatLongDistanceM(meters, system, { fractionDigits: decimals });
 }
 
 /**
@@ -217,13 +281,16 @@ export function formatDurationTooltip(millis: number): string {
  */
 export function formatDistanceTooltip(meters: number): string {
   if (meters == null || isNaN(meters)) return '—';
-  if (meters < 1) return formatLocaleNumber(meters * 100, 2) + ' cm';
-  if (meters < 1000) return formatLocaleNumber(meters, 2) + ' m';
-  const km = meters / 1000;
-  if (km >= 1000) {
-    return km.toLocaleString(getFormatLocale(), { minimumFractionDigits: 3, maximumFractionDigits: 3 }) + ' km';
+  const system = getMeasurementSystem();
+  if (system === 'METRIC' && meters < 1) return formatLocaleNumber(meters * 100, 2) + ' cm';
+  if (meters < longDistanceThresholdM(system)) {
+    return formatShortDistanceM(meters, system, { fractionDigits: 2 });
   }
-  return formatLocaleNumber(km, 3) + ' km';
+  return formatLongDistanceM(meters, system, { fractionDigits: 3 });
+}
+
+function longDistanceThresholdM(system: ReturnType<typeof getMeasurementSystem>): number {
+  return system === 'METRIC' ? METERS_PER_KILOMETER : METERS_PER_MILE;
 }
 
 export function generateColors(n: number) {

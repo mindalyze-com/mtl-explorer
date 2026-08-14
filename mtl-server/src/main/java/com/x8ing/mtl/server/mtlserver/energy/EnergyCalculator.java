@@ -160,4 +160,58 @@ public abstract class EnergyCalculator {
         Double d = point.getDistanceInMeterBetweenPoints();
         return d != null ? d : 0;
     }
+
+    /**
+     * Shared gravity, drag, optional surface resistance, and kinetic model used
+     * by the standard human-powered and road-vehicle calculators.
+     */
+    protected EnergyComponents calculateStandardEnergy(
+            GpsTrackDataPoint current,
+            GpsTrackDataPoint prev,
+            EnergyParameters params,
+            double defaultDragCoefficient,
+            double defaultFrontalArea,
+            Double defaultResistanceCoefficient
+    ) {
+        if (prev == null || segmentDistance(current) <= 0) return EnergyComponents.ZERO;
+
+        double distance = segmentDistance(current);
+        double totalMass = params.getTotalMassKg(getDefaultEquipmentWeightKg());
+        double dragCoefficient = params.getDragCoefficient(defaultDragCoefficient);
+        double frontalArea = params.getFrontalArea(defaultFrontalArea);
+        double speedForDrag = smoothedSpeedMps(current, params);
+        double resistance = defaultResistanceCoefficient == null
+                ? 0.0
+                : rollingResistanceEnergy(
+                        params.getRollingCoefficient(defaultResistanceCoefficient), totalMass, distance);
+
+        return EnergyComponents.builder()
+                .gravitationalJoules(gravitationalEnergy(
+                        totalMass, current.getPointAltitude(), prev.getPointAltitude()))
+                .aeroDragJoules(aeroDragEnergy(
+                        dragCoefficient, frontalArea, params.getAirDensity(), speedForDrag, distance))
+                .rollingResistanceJoules(resistance)
+                .kineticJoules(kineticEnergyChange(
+                        totalMass, smoothedSpeedMps(current, params), smoothedSpeedMps(prev, params)))
+                .build();
+    }
+
+    /**
+     * Shared conservative model for activities without drag or resistance.
+     */
+    protected EnergyComponents calculateGravityAndKineticEnergy(
+            GpsTrackDataPoint current,
+            GpsTrackDataPoint prev,
+            EnergyParameters params
+    ) {
+        if (prev == null || segmentDistance(current) <= 0) return EnergyComponents.ZERO;
+
+        double totalMass = params.getTotalMassKg(getDefaultEquipmentWeightKg());
+        return EnergyComponents.builder()
+                .gravitationalJoules(gravitationalEnergy(
+                        totalMass, current.getPointAltitude(), prev.getPointAltitude()))
+                .kineticJoules(kineticEnergyChange(
+                        totalMass, smoothedSpeedMps(current, params), smoothedSpeedMps(prev, params)))
+                .build();
+    }
 }

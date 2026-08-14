@@ -2,7 +2,7 @@
   <div class="geo-param">
     <div class="geo-param__label-row">
       <label class="filter-field__label">{{ paramDef.label }}</label>
-      <span v-if="optional" class="geo-param__optional">Optional</span>
+      <span v-if="optional" class="geo-param__optional optional-badge">Optional</span>
     </div>
     <div class="geo-param__row">
       <template v-if="hasValue">
@@ -25,6 +25,7 @@ import type { ParamDefinition } from 'x8ing-mtl-api-typescript-fetch/dist/esm/mo
 import type { GeoCircle } from 'x8ing-mtl-api-typescript-fetch/dist/esm/models/GeoCircle';
 import type { GeoRectangle } from 'x8ing-mtl-api-typescript-fetch/dist/esm/models/GeoRectangle';
 import type { GeoPolygon } from 'x8ing-mtl-api-typescript-fetch/dist/esm/models/GeoPolygon';
+import { formatRadius } from '@/utils/Utils';
 
 defineOptions({ name: 'GeoShapeParam' });
 
@@ -90,11 +91,6 @@ function startDrawing() {
 function clearShape() {
   emit('clear-geo-shape', props.paramDef);
 }
-
-function formatRadius(meters: number): string {
-  if (meters >= 1000) return `${(meters / 1000).toFixed(1)} km`;
-  return `${Math.round(meters)} m`;
-}
 </script>
 
 <style scoped>
@@ -112,21 +108,6 @@ function formatRadius(meters: number): string {
   gap: 0.35rem;
   min-width: 0;
   flex-wrap: wrap;
-}
-
-.geo-param__optional {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 1.25rem;
-  border-radius: 999px;
-  padding: 0.12rem 0.45rem;
-  color: var(--text-muted);
-  background: var(--surface-glass-heavy, var(--surface-ground));
-  font-size: var(--text-xs-size);
-  font-weight: 700;
-  line-height: 1;
-  white-space: nowrap;
 }
 
 .geo-param__row {

@@ -1,0 +1,29 @@
+TBS_06 Statistics Overview
+
+Totals:
+- Tracks: 12
+- Distance: 993 km
+- Duration: 21h 43m
+- Energy: 4,906 Wh
+- Ascent: 14,438 m
+
+Activity breakdown:
+- Bicycle: 11
+- Walking: 1
+- Tracks, Distance, Duration, and Energy metric toggles present.
+- Breakdown chart rendered.
+
+Rankings/highlights:
+- Longest: Moselradweg..., 518 km
+- Longest duration: Jura Route 7 / 2011..., 7h 46m
+- Biggest ascent: Jura Route 7 / 2011..., 6,324 m
+- Quickest ascent: Track 100005, 3,919 m/h
+- Most energy: Jura Route 7 / 2011..., 1,808 Wh
+- Fastest 30 s: Track 100016, 72.5 km/h
+- Peak 30 s power: Lannion_Plestin_parcours..., 2,188 W
+- Most common activity: Bicycle, 11 tracks
+
+Periods and milestones:
+- Most active day, week, month, and weekday were populated.
+- First/latest activity and distance, ascent, and energy milestones were populated.
+- Timeline range: 01/01/2010 - 13/08/2026.

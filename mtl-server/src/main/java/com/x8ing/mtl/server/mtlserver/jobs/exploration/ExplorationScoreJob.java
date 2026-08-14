@@ -7,6 +7,7 @@ import com.x8ing.mtl.server.mtlserver.db.repository.config.ConfigRepository;
 import com.x8ing.mtl.server.mtlserver.db.repository.gps.GpsTrackRepository;
 import com.x8ing.mtl.server.mtlserver.gpx.GPXDirectoryWatcherService;
 import com.x8ing.mtl.server.mtlserver.indexer.IndexerStatusService;
+import com.x8ing.mtl.server.mtlserver.utils.ThreadFactories;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.PageRequest;
@@ -17,7 +18,6 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicInteger;
 
 @Slf4j
 @Service
@@ -166,7 +166,7 @@ public class ExplorationScoreJob {
         }
 
         ExecutorService executor = Executors.newFixedThreadPool(effectiveWorkerThreads,
-                namedThreadFactory(EXPLORATION_THREAD_PREFIX));
+                ThreadFactories.named(EXPLORATION_THREAD_PREFIX));
         try {
             List<Future<?>> futures = new ArrayList<>(tracks.size());
             for (GpsTrack track : tracks) {
@@ -239,15 +239,6 @@ public class ExplorationScoreJob {
         config.value = value;
         config.updateDate = new Date();
         configRepository.save(config);
-    }
-
-    private static ThreadFactory namedThreadFactory(String prefix) {
-        AtomicInteger counter = new AtomicInteger(0);
-        return runnable -> {
-            Thread thread = new Thread(runnable);
-            thread.setName(prefix + "-" + counter.incrementAndGet());
-            return thread;
-        };
     }
 
 }

@@ -1,0 +1,16 @@
+Coverage ID: FLT_08
+
+Restrictive state
+- View: Activities by keyword.
+- Keyword: Jura.
+- Current result: 1 matching track.
+- Map count: 1 / 12 Tracks.
+
+Reset filter
+- Selected Reset filter from the overview.
+- Current result returned to 12 matching tracks.
+- Map count returned to 12 Tracks.
+- Filter view returned to Smart Base Filter.
+- Criteria returned to No criteria.
+- Activities-by-keyword legend/coloring was removed with the view reset.
+

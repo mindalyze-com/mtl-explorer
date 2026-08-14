@@ -1,0 +1,28 @@
+Coverage ID: FLT_03
+View: Activities by keyword
+
+Parameter appearance
+- Choosing the view exposed Filter criteria.
+- Criteria included date range, area, selected tracks, and view option KEYWORD.
+
+Edit without Apply
+- Entered keyword Jura.
+- Waited 700 ms.
+- Map chip stayed 12 / 12 Tracks and Current result stayed 12 matching tracks.
+- No active-criterion summary appeared.
+- The criteria sheet explicitly required its Apply button.
+
+After Apply
+- Map chip changed to 1 / 12 Tracks.
+- Current result changed to 1 matching track.
+- Legend changed to CYCLING 1.
+- Criteria summary changed to 1 criterion active.
+- Statistics Overview changed to Showing 1 of 12 tracks with Jura-only totals: 273 km, 7h 46m, 1,808 Wh, 6,324 m ascent.
+
+Clear/reset
+- Reset criteria left the map at 1 / 12 until Apply was selected.
+- Apply then restored 12 / 12 Tracks, 12 matching tracks, and No criteria.
+
+Issue
+- FLT-03-P2: parameter edits and resets do not auto-apply. The required Apply step contradicts the frozen criterion and leaves map/count/legend/stats stale until selected.
+

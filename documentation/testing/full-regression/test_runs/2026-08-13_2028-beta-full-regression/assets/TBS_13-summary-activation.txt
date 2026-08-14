@@ -1,0 +1,21 @@
+TBS_13 Statistics resolved-set summary activation
+
+Test state:
+- Exact WALKING filter
+- Statistics Overview: Showing 1 of 12 tracks
+- Summary accessible name: Open Filter. Showing 1 of 12 tracks
+
+Pointer:
+- Desktop activation opened Filter directly at 1 matching track.
+- Mobile 390 x 844 summary fit at 315 x 34.5 px without overflow.
+- Mobile activation opened Filter directly at 1 matching track.
+
+Keyboard harness limitation:
+- The summary was focused (document.activeElement was the filter-banner button).
+- Locator Enter, Space, uppercase ENTER, Return, coordinate-keypress Enter/Space, and DOM keypress could not dispatch a working activation.
+- Control check: the same keyboard mechanisms also could not activate the known-working native Statistics Trends tab.
+- This prevents attributing the keyboard result to MTL Explorer rather than the browser automation surface.
+
+Cleanup:
+- Restored All categories and twelve tracks.
+- Restored the desktop viewport.

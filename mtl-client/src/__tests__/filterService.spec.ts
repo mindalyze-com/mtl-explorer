@@ -53,6 +53,15 @@ describe('FilterService active state', () => {
       })
     ).toBe(false);
   });
+
+  it('treats every exact result-category selection as active, including an empty whitelist', () => {
+    expect(
+      FilterService.isStandardFilterWithStandardParams({
+        filterInfo: filterInfo('SmartBaseFilter'),
+        filterParams: { resultGroupSelection: { includedGroups: [] } },
+      })
+    ).toBe(false);
+  });
 });
 
 describe('FilterService param migration', () => {
@@ -62,6 +71,16 @@ describe('FilterService param migration', () => {
         VIEWPORT: { minLat: 46, minLng: 7, maxLat: 47, maxLng: 8 },
       },
       trackIds: [101, 102],
+    };
+
+    expect(FilterService.migrateFilterParams(params)).toEqual(params);
+  });
+
+  it('keeps a persisted exact result-category selection in the typed format', () => {
+    const params = {
+      resultGroupSelection: {
+        includedGroups: [{ value: 'WALKING' }, { value: null }],
+      },
     };
 
     expect(FilterService.migrateFilterParams(params)).toEqual(params);

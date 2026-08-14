@@ -12,6 +12,17 @@ const mocks = vi.hoisted(() => {
   const getActiveFilterRequest = vi.fn();
   const useFilterStore = vi.fn(() => ({ getActiveFilterRequest }));
   const loadClientFilterConfig = vi.fn();
+  const loadActiveFilterRequest = vi.fn(async () => {
+    try {
+      return await useFilterStore().getActiveFilterRequest();
+    } catch {
+      const config = await loadClientFilterConfig();
+      return {
+        filterName: config.filterInfo?.filterConfig?.filterName ?? '',
+        filterParams: config.filterParams,
+      };
+    }
+  });
 
   return {
     apiClient,
@@ -19,6 +30,7 @@ const mocks = vi.hoisted(() => {
     getActiveFilterRequest,
     useFilterStore,
     loadClientFilterConfig,
+    loadActiveFilterRequest,
   };
 });
 
@@ -47,6 +59,7 @@ vi.mock('@/utils/openApiClient', () => ({
 
 vi.mock('@/stores/filterStore', () => ({
   useFilterStore: mocks.useFilterStore,
+  loadActiveFilterRequest: mocks.loadActiveFilterRequest,
 }));
 
 vi.mock('@/components/filter/FilterService', () => ({
@@ -62,8 +75,10 @@ vi.mock('@/utils/safeLogging', () => ({
 import { FilterService } from '@/components/filter/FilterService';
 import {
   fetchStatistics,
+  fetchStatisticsOverview,
   fetchTrackDetailsForCrossingPoints,
   fetchTrackIdsWithinDistanceOfPoint,
+  getRelatedTracks,
 } from '@/utils/ServiceHelper';
 
 function filterRequest(filterName: string, resolvedTrackIds: number[] | undefined = [101, 102]): ActiveFilterRequest {
@@ -73,6 +88,7 @@ function filterRequest(filterName: string, resolvedTrackIds: number[] | undefine
     filterParams: {
       stringParams: { ACTIVITY: 'bike' },
       dateTimeParams: { DATE_TIME_FROM: '2026-01-01T00:00:00' },
+      resultGroupSelection: { includedGroups: [{ value: 'WALKING' }] },
     },
   };
 }
@@ -109,6 +125,18 @@ describe('ServiceHelper active filter resolution', () => {
     );
   });
 
+  it('sends the measurement system for semantic overview milestones', async () => {
+    mocks.apiClient.post.mockResolvedValueOnce({ data: { measurementSystem: 'US_CUSTOMARY', milestones: [] } });
+
+    await fetchStatisticsOverview('US_CUSTOMARY');
+
+    expect(mocks.apiClient.post).toHaveBeenCalledWith(
+      'api/tracks/get-track-overview?measurementSystem=US_CUSTOMARY',
+      [101, 102],
+      { signal: undefined }
+    );
+  });
+
   it('uses the filter store for distance lookups before FilterService fallback', async () => {
     await fetchTrackIdsWithinDistanceOfPoint(7.4, 46.9, 250);
 
@@ -118,11 +146,24 @@ describe('ServiceHelper active filter resolution', () => {
     expect(mocks.apiClient.post).toHaveBeenCalledWith(
       'api/tracks/get-track-ids-within-distance-of-point?filterName=StoreFilter&longitude=7.4&latitude=46.9&distanceInMeter=250',
       {
-        ACTIVITY: 'bike',
-        DATE_TIME_FROM: '2026-01-01T00:00:00',
+        stringParams: { ACTIVITY: 'bike' },
+        dateTimeParams: { DATE_TIME_FROM: '2026-01-01T00:00:00' },
+        resultGroupSelection: { includedGroups: [{ value: 'WALKING' }] },
       },
       { signal: undefined }
     );
+  });
+
+  it('sends the typed selection for related-track resolution', async () => {
+    mocks.apiClient.post.mockResolvedValueOnce({ data: {} });
+
+    await getRelatedTracks(55);
+
+    expect(mocks.apiClient.post).toHaveBeenCalledWith('api/tracks/related/55?filterName=StoreFilter', {
+      stringParams: { ACTIVITY: 'bike' },
+      dateTimeParams: { DATE_TIME_FROM: '2026-01-01T00:00:00' },
+      resultGroupSelection: { includedGroups: [{ value: 'WALKING' }] },
+    });
   });
 
   it('falls back to FilterService when the filter store is unavailable', async () => {
@@ -191,13 +232,22 @@ describe('ServiceHelper active filter resolution', () => {
       },
     });
 
-    const result = await fetchTrackDetailsForCrossingPoints(
-      [{ name: 'A', coordinate: { x: 8.5, y: 47.5 } }],
-      30
-    );
+    const result = await fetchTrackDetailsForCrossingPoints([{ name: 'A', coordinate: { x: 8.5, y: 47.5 } }], 30);
 
     const point = result.crossings?.['1']?.crossings?.[0]?.gpsTrackDataPoint?.pointLongLat?.coordinates;
     expect(point).toEqual([8.5, 47.5, 430]);
     expect(typeof point?.[0]).toBe('number');
+    expect(mocks.apiClient.post).toHaveBeenCalledWith(
+      'api/tracks/get-track-details-for-tracks-crossing-points',
+      expect.objectContaining({
+        filter: {
+          filterName: 'StoreFilter',
+          params: expect.objectContaining({
+            resultGroupSelection: { includedGroups: [{ value: 'WALKING' }] },
+          }),
+        },
+      }),
+      { signal: undefined }
+    );
   });
 });

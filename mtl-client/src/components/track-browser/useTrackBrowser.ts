@@ -1,5 +1,12 @@
 import { computed, ref, type Ref } from 'vue';
-import { formatDate, formatDateAndTime, formatDistanceSmart, formatDurationSmart, formatNumber } from '@/utils/Utils';
+import {
+  formatDate,
+  formatDateAndTime,
+  formatDistanceSmart,
+  formatDurationSmart,
+  formatNumber,
+  formatSpeed,
+} from '@/utils/Utils';
 import { curationSearchValues } from '@/utils/statisticsCuration';
 import type { TrackBrowserSummary, TrackRowViewModel } from './trackBrowser.types';
 import type { GpsTrack } from 'x8ing-mtl-api-typescript-fetch/dist/esm/models/index';
@@ -99,6 +106,7 @@ function buildTrackSearchText(row: Omit<TrackRowViewModel, 'searchText'>): strin
     ...distanceSearchValues(distanceMeters),
     ...durationSearchValues(row.durationMillis),
     ...formattedMetricSearchValues(row.avgSpeedKmh, SPEED_FRACTION_DIGITS),
+    row.avgSpeedKmh == null ? '' : formatSpeed(row.avgSpeedKmh, SPEED_FRACTION_DIGITS),
     ...energyWh,
     row.explorationStatus,
     ...curationSearchValues(row),

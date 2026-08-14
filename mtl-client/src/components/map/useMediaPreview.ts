@@ -2,6 +2,7 @@ import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue';
 import { getMediaInfo, mediaContentUrl } from '@/repositories/mediaRepository';
 import { formatDate } from '@/utils/Utils';
 import type { MediaInfo } from '@/repositories/mediaRepository';
+import { useAsyncState } from '@/composables/useAsyncState';
 
 export const PREVIEW_MAX_SIZE = 4096;
 export const CROSSFADE_MS = 190;
@@ -18,14 +19,13 @@ export interface MediaPreviewProps {
 export function useMediaPreview(props: MediaPreviewProps) {
   let loadToken = 0;
   let crossFadeTimer: ReturnType<typeof setTimeout> | null = null;
-  const loading = ref(false);
+  const { loading, error: loadError } = useAsyncState('');
   const isSwapPending = ref(false);
   const isCrossFading = ref(false);
   const backSrc = ref<string | null>(null);
   const activeMediaId = ref<number | null>(null);
   const displayUrl = ref<string>('');
   const info = ref<MediaInfo | null>(null);
-  const loadError = ref('');
 
   const mediaUrl = computed(() =>
     activeMediaId.value != null ? mediaContentUrl(activeMediaId.value, PREVIEW_MAX_SIZE) : ''

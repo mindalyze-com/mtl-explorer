@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Map GPX, FIT, and Garmin Tracks | MTL Explorer</title>
+  <meta name="description" content="Use MTL Explorer to keep GPX, FIT, and Garmin tracks in a self-hosted archive and review the complete history on one private map.">
+  <meta name="robots" content="index, follow, max-image-preview:large">
+  <link rel="canonical" href="https://mindalyze-com.github.io/mtl-explorer/gpx-track-map/">
+  <meta property="og:site_name" content="MTL Explorer">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://mindalyze-com.github.io/mtl-explorer/gpx-track-map/">
+  <meta property="og:title" content="Map GPX, FIT, and Garmin Tracks | MTL Explorer">
+  <meta property="og:description" content="Keep a self-hosted GPS archive and review all imported tracks on one map.">
+  <meta property="og:image" content="https://mindalyze-com.github.io/mtl-explorer/assets/feature-showcase/large/filters.webp">
+  <meta property="og:image:type" content="image/webp">
+  <meta property="og:image:width" content="2199">
+  <meta property="og:image:height" content="1561">
+  <meta property="og:image:alt" content="MTL Explorer showing a complete GPS track archive on a map">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:image" content="https://mindalyze-com.github.io/mtl-explorer/assets/feature-showcase/large/filters.webp">
+  <link rel="icon" href="../favicon.ico" sizes="any">
+  <link rel="stylesheet" href="../site-page.css">
+  <link rel="preload" as="image" type="image/webp" href="../assets/feature-showcase/preview/filters.webp">
+  <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebPage",
+      "name": "Map GPX, FIT, and Garmin Tracks",
+      "url": "https://mindalyze-com.github.io/mtl-explorer/gpx-track-map/",
+      "description": "A guide to the self-hosted GPS archive and track map in MTL Explorer.",
+      "isPartOf": {
+        "@type": "WebSite",
+        "name": "MTL Explorer",
+        "url": "https://mindalyze-com.github.io/mtl-explorer/"
+      }
+    }
+  </script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="site-header-inner">
+      <a class="brand" href="../">
+        <img src="../mtl_logo_3_only_vector.svg" width="43" height="51" alt="">
+        <span><strong>MTL Explorer</strong><span>Self-hosted GPS archive</span></span>
+      </a>
+      <nav class="site-nav" aria-label="Primary navigation">
+        <a href="../#features">Features</a>
+        <a href="../docker-install/">Install</a>
+        <a class="button-small" href="https://mtl-demo.mindalyze.com/mtl/">Live demo</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="page">
+    <nav class="breadcrumb" aria-label="Breadcrumb"><a href="../">Home</a> / GPS track map</nav>
+
+    <section class="hero">
+      <div>
+        <p class="eyebrow">GPS track map</p>
+        <h1>Map your complete GPS track archive.</h1>
+        <p class="lead">MTL Explorer imports activity files into a self-hosted archive. It can display thousands of tracks together, then narrow the map by activity, year, or a custom filter.</p>
+        <div class="actions">
+          <a class="button" href="https://mtl-demo.mindalyze.com/mtl/">Open the demo</a>
+          <a class="button-secondary" href="../docker-install/">Install with Docker</a>
+        </div>
+      </div>
+      <figure class="hero-media">
+        <img src="../assets/feature-showcase/preview/filters.webp" srcset="../assets/feature-showcase/thumb/filters.webp 360w, ../assets/feature-showcase/medium/filters.webp 720w, ../assets/feature-showcase/preview/filters.webp 1099w, ../assets/feature-showcase/large/filters.webp 2199w" sizes="(max-width: 900px) calc(100vw - 40px), 570px" width="1099" height="780" alt="MTL Explorer map showing many imported GPS tracks and filter controls" fetchpriority="high">
+        <figcaption>Imported tracks shown together on one map.</figcaption>
+      </figure>
+    </section>
+
+    <section class="section" id="files">
+      <div class="section-head">
+        <h2>Keep different file types in one archive.</h2>
+        <p>MTL Explorer accepts common GPS and activity formats, including GPX, FIT, TCX, KML/KMZ, IGC, NMEA, GeoJSON, and GDB. Garmin imports can run alongside files placed in the import folder.</p>
+      </div>
+      <div class="content-grid">
+        <article class="card">
+          <h3>Local storage</h3>
+          <p>The files, processed tracks, photographs, database, and optional map tiles stay on the host you control.</p>
+        </article>
+        <article class="card">
+          <h3>Background processing</h3>
+          <p>Imports are indexed in the background. Duplicate detection and outlier handling prepare the tracks for map and statistics views.</p>
+        </article>
+        <article class="card">
+          <h3>Track details</h3>
+          <p>Select a track to inspect its date, distance, time, moving speed, elevation, energy, and other available measurements.</p>
+        </article>
+        <article class="card">
+          <h3>Photographs</h3>
+          <p>Photographs with location data can appear beside the matching tracks, without publishing the archive to an external service.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="section" id="filters">
+      <div class="split">
+        <div class="copy">
+          <p class="eyebrow">Filters</p>
+          <h2>Change what the map and statistics include.</h2>
+          <p>Saved filters control the visible subset of the archive. Tracks can be grouped by activity or year, while SQL-based rules support more specific selections.</p>
+          <ul class="plain-list">
+            <li>Color tracks by activity type or year.</li>
+            <li>Use the same selected subset in map and statistics views.</li>
+            <li>Save focused filters for repeated use.</li>
+          </ul>
+        </div>
+        <figure class="media">
+          <img src="../assets/feature-showcase/thumb/map-filter-sql.webp" srcset="../assets/feature-showcase/thumb/map-filter-sql.webp 360w, ../assets/feature-showcase/medium/map-filter-sql.webp 720w, ../assets/feature-showcase/preview/map-filter-sql.webp 1099w" sizes="(max-width: 900px) calc(100vw - 40px), 530px" width="1099" height="607" alt="MTL Explorer SQL filter editor and grouped map tracks" loading="lazy" decoding="async">
+          <figcaption>A saved filter used to group tracks on the map.</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section class="section" id="statistics">
+      <div class="split">
+        <figure class="media">
+          <img src="../assets/feature-showcase/thumb/statistics-trends.webp" srcset="../assets/feature-showcase/thumb/statistics-trends.webp 360w, ../assets/feature-showcase/medium/statistics-trends.webp 720w, ../assets/feature-showcase/preview/statistics-trends.webp 1099w" sizes="(max-width: 900px) calc(100vw - 40px), 530px" width="1099" height="780" alt="MTL Explorer statistics trend charts for imported activities" loading="lazy" decoding="async">
+          <figcaption>Trend charts for the currently selected tracks.</figcaption>
+        </figure>
+        <div class="copy">
+          <p class="eyebrow">Statistics</p>
+          <h2>Review totals and changes over time.</h2>
+          <p>Statistics use the active archive selection. Views can compare distance, moving time, energy, and activity counts across years, quarters, months, or weeks.</p>
+          <p>The exploration score reports how much new territory an activity added to the existing archive.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="mobile">
+      <div class="section-head">
+        <h2>Use the archive from a mobile browser.</h2>
+        <p>The responsive interface includes the track map, statistics, segment tools, and current GPS position. Cached tracks and map data provide basic support when the network is unavailable.</p>
+      </div>
+      <div class="related">
+        <a class="button-secondary" href="../segment-analysis/">Segment analysis</a>
+        <a class="button-secondary" href="../route-planner/">Route planning</a>
+        <a class="button-secondary" href="../docker-install/">Docker installation</a>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="site-footer-inner">
+      <span>MTL Explorer · Self-hosted GPS archive</span>
+      <nav aria-label="Footer navigation"><a href="../">Home</a><a href="https://github.com/mindalyze-com/mtl-explorer">GitHub</a></nav>
+    </div>
+  </footer>
+</body>
+</html>

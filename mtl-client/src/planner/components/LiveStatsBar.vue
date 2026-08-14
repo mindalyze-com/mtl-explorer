@@ -4,19 +4,19 @@
       <article class="stat-card stat-card--distance">
         <span class="stat-card__icon"><i class="bi bi-bezier2" /></span>
         <span class="stat-card__label">Distance</span>
-        <strong class="stat-card__value">{{ formatKm(stats.distanceM) }}</strong>
+        <strong class="stat-card__value">{{ formatDistanceSmart(stats.distanceM) }}</strong>
       </article>
 
       <article class="stat-card stat-card--ascent">
         <span class="stat-card__icon"><i class="bi bi-arrow-up-right" /></span>
         <span class="stat-card__label">Ascent</span>
-        <strong class="stat-card__value">{{ formatM(stats.ascentM) }}</strong>
+        <strong class="stat-card__value">{{ formatElevation(stats.ascentM) }}</strong>
       </article>
 
       <article class="stat-card stat-card--descent">
         <span class="stat-card__icon"><i class="bi bi-arrow-down-right" /></span>
         <span class="stat-card__label">Descent</span>
-        <strong class="stat-card__value">{{ formatM(stats.descentM) }}</strong>
+        <strong class="stat-card__value">{{ formatElevation(stats.descentM) }}</strong>
       </article>
 
       <article class="stat-card stat-card--duration">
@@ -36,11 +36,10 @@
 
 <script setup lang="ts">
 import type { LiveStats } from '@/planner/types';
+import { formatDistanceSmart, formatElevation } from '@/utils/Utils';
 
 defineProps<{ stats: LiveStats }>();
 
-const formatKm = (m: number) => (m / 1000).toFixed(2) + ' km';
-const formatM = (m: number) => Math.round(m) + ' m';
 const formatDuration = (s: number) => {
   if (!s || s <= 0) return '–';
   const h = Math.floor(s / 3600);
@@ -108,19 +107,19 @@ const formatDuration = (s: number) => {
   line-height: var(--text-2xs-lh);
 }
 .stat-card--distance {
-  color: #4f46e5;
+  color: var(--viz-indigo);
 }
 .stat-card--ascent {
-  color: #15803d;
+  color: var(--viz-green);
 }
 .stat-card--descent {
-  color: #2563eb;
+  color: var(--viz-blue);
 }
 .stat-card--duration {
-  color: #ea580c;
+  color: var(--viz-orange-strong);
 }
 .stat-card--legs {
-  color: #a21caf;
+  color: var(--viz-magenta);
 }
 @media (max-width: 640px) {
   .live-stats-bar__grid {

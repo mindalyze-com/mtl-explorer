@@ -1,0 +1,24 @@
+Baseline:
+- Required port-18080 Q1 map.
+- DOM map marker count: 0.
+
+Primed disposable state:
+- Opened Segments.
+- Clicked the map once.
+- Segment Analyzer showed "1 zone ready • next: B" and the no-nearby-tracks dismissible alert.
+
+Switch stress:
+- Immediately selected Planner -> Filter -> Animate -> Segments -> Map.
+- Added only 50 ms between requested selections; the browser controller itself settled each click in about 3.03 s.
+- Final URL: /mtl/map-settings.
+- Final surface: Map settings only.
+- No Segment Analyzer, Filter, Route Planner, or Virtual Race surface remained.
+- No zone-ready state or no-nearby-tracks alert remained.
+
+Post-switch cleanup/interaction:
+- Closed Map settings.
+- A neutral map click created no segment zone or segment alert, proving the old placement listener was inactive.
+- DOM map marker count: 0.
+- Map canvas inline style: width: 1204px; height: 720px; (no stale cursor override).
+- Zoom In changed the scale from 500 km to 300 km.
+- Final URL: /mtl/; populated map and main navigation remained usable.

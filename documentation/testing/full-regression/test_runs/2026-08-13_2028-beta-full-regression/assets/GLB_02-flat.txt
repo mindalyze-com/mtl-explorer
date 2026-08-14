@@ -1,0 +1,8 @@
+Globe exit transition
+
+- Started at the fitted 2,000 km globe.
+- Used Zoom in four times.
+- At 100 km scale the view returned to a flat Europe map with rectangular
+  bounds and normal labels.
+- The low-zoom globe toggle disappeared outside the globe zone.
+- Zoom and map controls remained usable.

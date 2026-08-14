@@ -1,0 +1,17 @@
+Coverage ID: TRD_13
+
+Starting track #100016
+- Related showed 7 previous tracks and 4 next tracks.
+- Clicking the first previous Lannion card navigated to `/mtl/track/100004` and rendered #100004.
+
+Track #100004 Related
+- Previous Tracks: 2 (Mosel and Jura).
+- Current Track: Lannion_Plestin_parcours Lannion_Plestin_parcours1, 8 Mar 2013.
+- Next Tracks: 9; five initially shown with four more available.
+- Duplicates: 3.
+- Duplicate cards: Lannion_Plestin, Lannion_Plestin_parcours, and Track #100013.
+
+Duplicate navigation
+- Clicking the first duplicate card navigated to `/mtl/track/100007` and rendered #100007.
+- Related API independently reported duplicate IDs 100007, 100012, and 100013 for #100004.
+

@@ -1,0 +1,11 @@
+GPS disabled-state message
+
+Action: clicked GPS on remote plain HTTP.
+Visible result:
+- Heading: GPS unavailable
+- Message: GPS needs HTTPS or localhost. Open MTL Explorer from a secure
+  address to use live location.
+- Dismiss control: visible X button.
+
+The map, navigation, filter result, and background remained usable; the app did
+not freeze or show a blank surface.

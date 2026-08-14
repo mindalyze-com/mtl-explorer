@@ -10,6 +10,7 @@ import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.Date;
 import java.util.List;
 
 @Repository
@@ -81,6 +82,19 @@ public interface GpsTrackDataPointRepository extends JpaRepository<GpsTrackDataP
             @Param("gps_track_data_id") Long gpsTrackDataId,
             @Param("track_data_point_index_from") Integer pointIndexFrom,
             @Param("track_data_point_index_to") Integer pointIndexTo);
+
+    @Query(nativeQuery = true, value = """
+            select * from gps_track_data_points gtdp
+            where gtdp.gps_track_data_id = :gps_track_data_id
+              and gtdp.point_long_lat is not null
+              and gtdp.point_timestamp >= :track_data_point_time_from
+              and gtdp.point_timestamp <= :track_data_point_time_to
+            order by gtdp.point_timestamp, gtdp.point_index
+            """)
+    List<GpsTrackDataPoint> getSubTrackDataByTimestamp(
+            @Param("gps_track_data_id") Long gpsTrackDataId,
+            @Param("track_data_point_time_from") Date timestampFrom,
+            @Param("track_data_point_time_to") Date timestampTo);
 
     @Query(nativeQuery = true, value = """
             select distinct gt.id from gps_track gt

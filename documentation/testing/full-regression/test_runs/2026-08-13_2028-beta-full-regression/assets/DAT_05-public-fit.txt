@@ -1,0 +1,20 @@
+DAT_05 public GPS-bearing FIT validation
+
+Source repository: https://github.com/garmin/fit-javascript-sdk
+Raw source: https://raw.githubusercontent.com/garmin/fit-javascript-sdk/main/test/data/Activity.fit
+License: https://raw.githubusercontent.com/garmin/fit-javascript-sdk/main/LICENSE.txt
+License note: Garmin FIT Protocol License Agreement; non-exclusive, royalty-free limited internal-use grant subject to its terms.
+Destination filename: Activity.fit
+Staging folder: /root/mtl-full-regression-2026-08-13_2028-beta-full-regression/test-data/public
+Bytes: 94096
+SHA-256: 949a238e1bb75c3684479785f76fa9a16888bb394518844248f488171d591387
+Header bytes 8-11: .FIT
+
+Validation tool: official @garmin/fitsdk 21.213.0
+FIT integrity: true
+Decode errors: 0
+Record messages: 3601
+GPS-bearing record messages: 3601
+Timestamped record messages: 3601
+
+The file is a positive GPS-bearing FIT activity fixture and remains outside the watched import folder until FIT_01.

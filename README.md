@@ -27,6 +27,14 @@ See the [feature overview](documentation/features.md) for the current capability
 from the need to see thousands of Garmin tracks on one map, then grew into a
 personal exploration, planning, and statistics tool.
 
+Note: MTL Explorer is a long-running personal project. This GitHub repository is
+a recently published public mirror; primary development happens in a private
+repository, so the public commit history may look younger than the project
+itself and may not include all intermediate steps. AI tools helped polish parts
+of the user experience, but MTL Explorer is not an automatically generated
+project. Even with the most advanced AI tools available today, that is not (yet?)
+possible.
+
 Repository layout:
 
 - `mtl-server/` - Spring Boot backend.

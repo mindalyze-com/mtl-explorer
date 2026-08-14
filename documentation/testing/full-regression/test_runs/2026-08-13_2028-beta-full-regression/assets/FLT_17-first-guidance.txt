@@ -1,0 +1,19 @@
+FLT_17 first-time Filter guidance
+
+Clean context:
+- Used a fresh application origin with no prior MTL Explorer browser state.
+- Signed in and opened Filter for the first time.
+
+Automatic guidance:
+- Opened automatically before the normal Filter overview.
+- Title: How filters work
+- Badge: Important
+- Explains that the current result is app-wide across map, track lists, statistics, trends, milestones, and heatmap.
+- Explains that coloring changes how matching tracks are drawn, not which tracks count.
+- Back to Filter and Close controls were both visible.
+- Got it was visible.
+
+Acknowledgement:
+- Got it returned to the normal Current result view.
+- Closed and reopened Filter.
+- Guidance did not open again; Important and Got it were absent.

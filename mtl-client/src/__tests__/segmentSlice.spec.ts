@@ -1,9 +1,29 @@
 import { describe, expect, it } from 'vitest';
 import {
+  buildVisitSegmentOptions,
   normalizeSegmentSlice,
   type SegmentSliceCrossing,
   type SegmentTrackPoint,
 } from '@/components/measure/segmentSlice';
+
+describe('buildVisitSegmentOptions', () => {
+  it('counts numbered visit pairs across tracks', () => {
+    const crossings = (names: string[]) => names.map((name) => ({ triggerPoint: { name } }));
+
+    expect(buildVisitSegmentOptions([crossings(['A', 'B', 'A']), crossings(['A', 'B'])])).toEqual([
+      {
+        name: 'A1 - B1',
+        count: 2,
+        code: { point1: 'A', p1Visit: 1, point2: 'B', p2Visit: 1, consolidated: false },
+      },
+      {
+        name: 'B1 - A2',
+        count: 1,
+        code: { point1: 'B', p1Visit: 1, point2: 'A', p2Visit: 2, consolidated: false },
+      },
+    ]);
+  });
+});
 
 type TestPoint = SegmentTrackPoint & {
   speedInKmhMovingWindow?: number;

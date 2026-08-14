@@ -1,0 +1,21 @@
+Coverage ID: DEL_01
+Watched folder: /root/mtl-full-regression-2026-08-13_2028-beta-full-regression/data/gpx
+
+Deleted source files:
+- Vitry-le-Francois_Langres.gpx
+  sha256: 401218e3c1d1f366ee27ea8bc138d8422eff3bf6348a77183be83fef3e8d7d67
+  mapped record before deletion: #100001 Vitry le françois - langres on GPSies.com
+- VoieVerteHauteVosges.gpx
+  sha256: 0f417d6e76cfa581d3ada969e728694933fbffd062f61a8352ccc87637135f78
+  mapped record before deletion: #100003 voie verte haute vosges on GPSies.com
+
+delete_started_utc: 2026-08-13T19:09:02.297Z
+delete_finished_utc: 2026-08-13T19:09:02.300Z
+
+Watched-folder count: 5 -> 3
+Remaining files:
+- JuraRoute72011.gpx
+- Lannion_Plestin_parcours24.4RE.gpx
+- MoselradwegAusWiki.gpx
+
+The staged public source copies remain outside the watched folder, so the disposable test state can be reconstructed if later coverage requires it.

@@ -17,18 +17,22 @@
 import Toast from 'primevue/toast';
 import { useToast } from 'primevue/usetoast';
 import { onMounted, provide, watch } from 'vue';
+import { useRoute } from 'vue-router';
 import { useRegisterSW } from 'virtual:pwa-register/vue';
 import { getServerBuildInfo } from '@/utils/ServiceHelper';
 import { applyServerDefaultLocale } from '@/composables/useLocale';
+import { applyServerDefaultMeasurementSystem } from '@/composables/useMeasurementSystem';
 import { runConnectivityProbe } from '@/composables/useConnectivityProbe';
+import { isAuthenticated } from '@/utils/auth';
 
 const PWA_UPDATED_KEY = 'mtl.pwa.just-updated';
 const DEV_SERVICE_WORKER_RELOAD_KEY = 'mtl.dev-sw-cleanup-reloaded';
 
 const toast = useToast();
+const route = useRoute();
 provide('toast', toast);
 
-onMounted(async () => {
+onMounted(() => {
   if (import.meta.env.DEV) {
     void cleanupDevServiceWorkers();
   }
@@ -45,12 +49,27 @@ onMounted(async () => {
     });
   }
 
-  const buildInfo = await getServerBuildInfo().catch(() => null);
-  if (buildInfo) applyServerDefaultLocale(buildInfo.defaultLocale);
+  void applyAuthenticatedServerDefaults();
 
   // ── Connectivity probe: detect blocked CDNs / network filters ──
   runConnectivityProbe();
 });
+
+watch(
+  () => route.fullPath,
+  () => void applyAuthenticatedServerDefaults()
+);
+
+let serverDefaultsApplied = false;
+
+async function applyAuthenticatedServerDefaults() {
+  if (serverDefaultsApplied || !isAuthenticated()) return;
+  const buildInfo = await getServerBuildInfo().catch(() => null);
+  if (!buildInfo) return;
+  applyServerDefaultLocale(buildInfo.defaultLocale);
+  applyServerDefaultMeasurementSystem(buildInfo.defaultMeasurementSystem);
+  serverDefaultsApplied = true;
+}
 
 async function cleanupDevServiceWorkers() {
   if (!('serviceWorker' in navigator)) {

@@ -2,6 +2,7 @@ import type { CSSProperties, ComputedRef, Ref, ToRefs } from 'vue';
 import type maplibregl from 'maplibre-gl';
 import type { ColorPalette } from '@/components/filter/ColorPalette';
 import type { DrawnCircle, DrawnPolygon, DrawnRectangle, DrawnShape, GeoShapeType } from '@/layers/GeoDrawingOverlay';
+import type { MAP_OVERLAYS } from '@/utils/mapStyle';
 import type { MapCameraState, MapRendererMode } from '@/components/map/mapRendererTypes';
 import type { MapSourceMode } from '@/stores/mapSettingsStore';
 import type { ReplayCameraRail, ReplayCameraViewport } from '@/components/replay/replayCameraRailPlanner';
@@ -9,7 +10,7 @@ import type { ReplayCameraScreenGuard } from '@/components/replay/replayCameraSc
 import type { ReplayCameraPresetId, ReplayPath } from '@/components/replay/trackReplayPath';
 import type { TrackReplayController, ReplayPlaybackFrame } from '@/components/replay/trackReplayController';
 import type { TrackReplayLayer } from '@/components/replay/TrackReplayLayer';
-import type { ReplayViewportPadding } from '@/components/replay/replayViewportOcclusion';
+import type { ReplayViewportOcclusionLayout, ReplayViewportPadding } from '@/components/replay/replayViewportOcclusion';
 import type { ChartPoint } from '@/utils/chartSeriesAdapter';
 import type {
   GpsTrack,
@@ -17,14 +18,13 @@ import type {
   LocationSearchResultDto,
   ParamDefinition,
 } from 'x8ing-mtl-api-typescript-fetch/dist/esm/models/index';
+import type { ToastService } from '@/types/ui';
 
 export type TrackId = number;
 export type Coordinates = [number, number];
 export type MapPoint = { x: number; y: number };
 export type MapCenter = { lat: number; lng: number };
-export type ToastLike = {
-  add: (options: { severity: string; summary: string; detail?: string; life?: number }) => void;
-};
+export type ToastLike = ToastService;
 export type MapControllerEmit = {
   (event: 'tracks-loaded'): void;
   (event: 'load-failed'): void;
@@ -133,6 +133,11 @@ export type TrackDetailsDetent = {
   height: string;
 };
 
+export type MapToolNavigationTarget = {
+  toolId: string;
+  state?: unknown;
+};
+
 export type MediaPoint = Record<string, unknown> & {
   id?: number | null;
   lat: number;
@@ -155,6 +160,7 @@ export type GeoDrawingOverlay = {
   renderCircle: (circle: DrawnCircle, color?: string, name?: string) => string;
   renderRectangle: (rectangle: DrawnRectangle, color?: string, name?: string) => string;
   renderPolygon: (polygon: DrawnPolygon, color?: string, name?: string) => string;
+  refreshMeasurementLabels: () => void;
   destroy: () => void;
   renderExisting?: () => void;
 };
@@ -174,6 +180,13 @@ export type TrackPointLayerHandlers = {
   mouseleave: () => void;
 };
 
+export type TrackPointPopupContext = {
+  lngLat: MapCenter | Coordinates;
+  trackId: number;
+  point: GpsTrackDataPoint;
+  canonical?: GpsTrackDataPoint | null;
+};
+
 export type GeoDrawingShapes = {
   labels?: Record<string, string>;
   circles: Record<string, DrawnCircle | null | undefined>;
@@ -187,6 +200,8 @@ export type MapControllerRefs = Record<
       close?: () => void;
       open?: () => void;
       toggle?: () => void;
+      getNavigationState?: () => unknown;
+      restoreNavigationState?: (state: unknown) => void;
       renderExistingGeoShapes?: () => void;
       onGeoDrawingComplete?: (paramDef: ParamDefinition, shape: DrawnShape) => void;
       getGeoShapes?: () => GeoDrawingShapes;
@@ -212,17 +227,7 @@ export type TrackReplayRestoreState = {
   selectedTrackId: number | null;
   terrainEnabled: boolean;
 };
-export type TrackReplayControlsLayout = {
-  open?: boolean;
-  detentId?: string;
-  fullscreen?: boolean;
-  dragging?: boolean;
-  heightPx?: number;
-  widthPx?: number;
-  topPx?: number;
-  rightPx?: number;
-  bottomPx?: number;
-  leftPx?: number;
+export type TrackReplayControlsLayout = ReplayViewportOcclusionLayout & {
   width?: number;
   height?: number;
   top?: number;
@@ -294,6 +299,7 @@ export type MapControllerState = {
   legendGradientBucketCount: number;
   legendCollapsed: boolean;
   hiddenGroups: Set<string>;
+  renderedFilterConfigId: number | null;
   gpsTracksById: Map<number, GpsTrack>;
   gpsTrackIdToFeature: Map<number, TrackFeature>;
   selectedTrackId: number | null;
@@ -309,6 +315,7 @@ export type MapControllerState = {
   trackDetailsSelectedDetent: string | number | undefined;
   trackDetailsId: number | null;
   trackDetailsInfo: TrackDetailsInfo;
+  trackDetailsReturnTarget: MapToolNavigationTarget | null;
   trackReplayActive: boolean;
   trackReplayLoading: boolean;
   trackReplayPlaying: boolean;
@@ -372,6 +379,7 @@ export type MapControllerState = {
   trackPointsDetailsCache: Map<string, GpsTrackDataPoint[]>;
   trackPointsCanonicalCache: Map<number, GpsTrackDataPoint[]>;
   trackPointsPopup: maplibregl.Popup | null;
+  trackPointsPopupContext: TrackPointPopupContext | null;
   trackPointLayerHandlers: TrackPointLayerHandlers | null;
   geoDrawingOverlay: GeoDrawingOverlay | null;
   geoDrawingParamDef: GeoDrawingParamDef | null;
@@ -464,6 +472,8 @@ export type MapToolsMethods = {
   onPlannerActiveChanged(isActive: boolean): void;
   closeAllToolsExcept(skipRefName?: string | null): void;
   closeTransientOverlaysForToolSwitch(): void;
+  captureActiveToolNavigation(): void;
+  restoreToolNavigation(toolId: string): void;
   onToolSelect(toolId: string | null): void;
   syncToolToRoute(toolId: string | null): void;
   syncTrackDetailRoute(trackId: number | string | null): void;
@@ -479,6 +489,8 @@ export type MapToolsMethods = {
   onTrackDetailsLoaded(metadata: TrackDetailsInfo): void;
 };
 
+export type MapOverlay = (typeof MAP_OVERLAYS)[number];
+
 export type MapLayerSettingsMethods = {
   resolveTrackLineColor(): Promise<unknown>;
   updateTrackStyle(): Promise<void>;
@@ -488,6 +500,7 @@ export type MapLayerSettingsMethods = {
   ): TEntry[];
   _overlayPaintForSlider(slider: number, hueRotate?: number): Record<string, unknown>;
   _overlayBeforeId(): string | undefined;
+  _addOverlay(overlay: MapOverlay, opacity: number, beforeId?: string): void;
   applyActiveOverlays(): void;
   removeAllOverlays(): void;
   onResetMapSettings(): Promise<void>;
@@ -518,6 +531,7 @@ export type TerrainModeMethods = {
   syncBaseMapToOverlay(): void;
   jumpOverlayCameraAndSyncBase(view: MapCameraStateWithPadding): void;
   setBaseMapTerrainSync(enabled: boolean): void;
+  handleTerrainUnavailable(detail: string, notify: boolean): void;
   applyTerrainPreference(options?: { animate?: boolean }): void;
 };
 
@@ -548,6 +562,7 @@ export type TrackLayersMethods = {
 };
 
 export type TrackPointLayerMethods = {
+  closeTrackPointPopup(): void;
   detachTrackPointLayerHandlers(): void;
   attachTrackPointLayerHandlers(): void;
   updateTrackPointsSource(): void;
@@ -559,6 +574,7 @@ export type TrackPointLayerMethods = {
     point: GpsTrackDataPoint,
     canonical?: GpsTrackDataPoint | null
   ): void;
+  refreshTrackPointPopupMeasurementLabels(): void;
 };
 
 export type TrackReplayMethods = {
@@ -569,6 +585,7 @@ export type TrackReplayMethods = {
   addTrackReplayLayer(path: ReplayPath): void;
   removeTrackReplayLayer(): void;
   onTrackReplayFrame(frame: ReplayPlaybackFrame): void;
+  refreshTrackReplayMeasurementLabels(): void;
   rebuildTrackReplayCameraRail(): ReplayCameraRail | null;
   trackReplayCameraViewport(): ReplayCameraViewport | undefined;
   trackReplayCameraViewportPadding(baseMarginPx?: number): ReplayViewportPadding;
@@ -620,13 +637,20 @@ export type MapDataLoadingMethods = {
   maybeLoadBackgroundTracks(filterResult?: unknown): boolean;
   loadMapData(fetchResult: unknown): Promise<void>;
   publishGpsTrackMetadataChanges(): void;
+  mergeTrackFeatures(fetchResult: unknown): {
+    changed: boolean;
+    incomingIds: Set<number>;
+    trackDataChanged: boolean;
+  };
   mergeTrackResult(fetchResult: unknown, options?: { pruneMissing?: boolean }): Promise<void>;
   mergeTrackPage(fetchResult: unknown): Promise<void>;
+  showCachedTrackFallback(cached: unknown, loadMessage: string, emittedMessage: string): Promise<void>;
   onMapFreshnessBrowserReload(): Promise<boolean>;
   onAdminReloadTracks(done?: (success?: boolean, message?: string) => void): Promise<void>;
   onAdminRefreshFreshnessData(done?: (success?: boolean) => void): Promise<void>;
   fetchTracksAndFallback(): Promise<void>;
   _backgroundSync(timer?: unknown): Promise<void>;
+  applyBackgroundTrackPage(pageData: unknown, signal: AbortSignal): boolean;
   loadAllTracksAt10m(filterResult?: unknown): Promise<void>;
   onBrowserOnline(): void;
   scheduleRetry(): void;
@@ -641,6 +665,7 @@ export type MapDataLoadingMethods = {
 export type MapRendererLifecycleMethods = {
   startMapStatusPolling(): void;
   stopMapStatusPolling(): void;
+  disposeRendererMaps(): void;
   applyRuntimeRasterBasemapFallback(errorEvent?: unknown, message?: string, tileId?: string): void;
   setOverlayAttributionControl(attributions?: string[]): void;
   handleMapArchiveStale(event?: Event): Promise<void>;

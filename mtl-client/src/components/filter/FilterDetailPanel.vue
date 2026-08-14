@@ -1,30 +1,27 @@
 <template>
   <div class="filter-detail">
-    <section class="filter-detail__hero">
-      <span class="filter-detail__hero-icon">
-        <i :class="groupIcon(filterGroupLabel)"></i>
-      </span>
-      <div class="filter-detail__hero-copy">
-        <span class="filter-detail__group">{{ filterGroupLabel }}</span>
-        <h2 class="filter-detail__title">{{ selectedFilterLabel }}</h2>
-        <p v-if="filterDescription" class="filter-detail__description">{{ filterDescription }}</p>
-      </div>
-    </section>
-
-    <section v-if="paramControlCount > 0" class="filter-detail-section">
+    <section class="filter-detail-section" aria-labelledby="filter-criteria-title">
       <div class="filter-detail-section__head">
-        <h3 class="filter-detail-section__title">Parameters</h3>
-        <span class="filter-detail-section__count">{{ formatParamCount(paramControlCount) }}</span>
+        <span class="filter-detail-section__icon filter-section-icon">
+          <i class="bi bi-sliders" aria-hidden="true"></i>
+        </span>
+        <div class="filter-detail-section__copy">
+          <h3 id="filter-criteria-title" class="filter-detail-section__title filter-section-title">Filter criteria</h3>
+          <p class="filter-detail-section__help filter-section-help">Controls which tracks match.</p>
+        </div>
       </div>
 
-      <div class="filter-detail-param-sections">
+      <div v-if="paramControlCount > 0" class="filter-detail-param-sections">
         <section
           v-for="section in paramSections"
           :key="section.key"
           class="filter-detail-param-section"
           :class="[
             `filter-detail-param-section--${section.tone}`,
-            { 'filter-detail-param-section--collapsed': !isParamSectionOpen(section) },
+            {
+              'filter-detail-param-section--collapsed': !isParamSectionOpen(section),
+              'filter-detail-param-section--single': paramSections.length === 1,
+            },
           ]"
         >
           <button
@@ -34,15 +31,11 @@
             :aria-expanded="isParamSectionOpen(section)"
             @click="toggleParamSection(section)"
           >
-            <span class="filter-detail-param-section__icon">
-              <i :class="section.icon"></i>
-            </span>
             <span class="filter-detail-param-section__copy">
               <span class="filter-detail-param-section__title-row">
                 <span class="filter-detail-param-section__title">{{ section.title }}</span>
-                <span class="filter-detail-param-section__badge">{{ section.badge }}</span>
               </span>
-              <span class="filter-detail-param-section__subline">{{ sectionSummary(section) }}</span>
+              <span class="filter-detail-param-section__subline">{{ section.description }}</span>
             </span>
             <span class="filter-detail-param-section__meta">
               <span v-if="section.activeCount > 0" class="filter-detail-param-section__active">
@@ -53,28 +46,53 @@
           </button>
 
           <div v-else class="filter-detail-param-section__summary">
-            <span class="filter-detail-param-section__icon">
-              <i :class="section.icon"></i>
-            </span>
             <span class="filter-detail-param-section__copy">
               <span class="filter-detail-param-section__title-row">
                 <span class="filter-detail-param-section__title">{{ section.title }}</span>
-                <span class="filter-detail-param-section__badge">{{ section.badge }}</span>
               </span>
-              <span class="filter-detail-param-section__subline">{{ sectionSummary(section) }}</span>
+              <span class="filter-detail-param-section__subline">{{ section.description }}</span>
             </span>
           </div>
 
           <div v-show="isParamSectionOpen(section)" class="filter-detail-param-section__body">
             <section v-for="group in section.groups" :key="group.key" class="filter-detail-param-group">
-              <div class="filter-detail-param-group__head">
-                <h4 class="filter-detail-param-group__title">{{ group.label }}</h4>
-                <span v-if="group.activeCount > 0" class="filter-detail-param-group__active">
+              <div
+                class="filter-detail-param-group__head"
+                :class="{ 'filter-detail-param-group__head--area': isAreaGroup(group) }"
+              >
+                <div class="filter-detail-param-group__heading">
+                  <h4 class="filter-detail-param-group__title">{{ displayGroupLabel(group) }}</h4>
+                  <span v-if="isAreaGroup(group)" class="filter-detail-param-group__summary">{{
+                    areaSummary(group)
+                  }}</span>
+                  <span v-else-if="isTrackPickerGroup(group)" class="filter-detail-param-group__summary">
+                    {{ trackPickerSummary(group) }}
+                  </span>
+                </div>
+                <button
+                  v-if="isAreaGroup(group)"
+                  type="button"
+                  class="filter-detail-param-group__area-action filter-action-text"
+                  :aria-expanded="isAreaGroupOpen(group)"
+                  :aria-controls="areaGroupDomId(section, group)"
+                  @click="toggleAreaGroup(group)"
+                >
+                  {{ group.activeCount > 0 ? 'Edit areas' : 'Draw area' }}
+                  <i :class="isAreaGroupOpen(group) ? 'bi bi-chevron-up' : 'bi bi-chevron-down'"></i>
+                </button>
+                <span
+                  v-else-if="!isTrackPickerGroup(group) && group.activeCount > 0"
+                  class="filter-detail-param-group__active"
+                >
                   {{ formatActiveCount(group.activeCount) }}
                 </span>
               </div>
 
-              <div class="filter-detail__params-grid">
+              <div
+                v-show="!isAreaGroup(group) || isAreaGroupOpen(group)"
+                :id="isAreaGroup(group) ? areaGroupDomId(section, group) : undefined"
+                class="filter-detail__params-grid"
+              >
                 <div
                   v-for="control in group.controls"
                   :key="control.name"
@@ -87,19 +105,18 @@
                       :model-value="stringParam(control.name)"
                       :tracks="trackIdCandidateTracks"
                       :loading="trackIdCandidatesLoading"
-                      :optional="control.optional"
-                      :origin-title="originDebugTitle(control)"
+                      :optional="false"
+                      :show-header="false"
                       @update:model-value="emit('set-string-param', { name: control.name, value: $event })"
                     />
                   </template>
 
                   <template v-else-if="isDateTimeControl(control)">
                     <div class="filter-detail-field__label-row">
-                      <label class="filter-detail-field__label" :for="control.name">{{ control.label }}</label>
-                      <span v-if="control.optional" class="filter-detail-field__pill">Optional</span>
-                      <span class="filter-detail-field__origin" :title="originDebugTitle(control)">
-                        <i :class="control.relation === 'inherited' ? 'bi bi-diagram-3' : 'bi bi-dot'"></i>
-                      </span>
+                      <label class="filter-detail-field__label filter-meta-label" :for="control.name">
+                        {{ control.label }}
+                      </label>
+                      <span v-if="!control.optional" class="filter-detail-field__required">Required</span>
                     </div>
                     <DateTimeParam
                       :id="control.name"
@@ -128,7 +145,7 @@
                           ? selectedFilter?.filterParams?.geoPolygons?.[control.name]
                           : undefined
                       "
-                      :optional="control.optional"
+                      :optional="false"
                       @start-geo-drawing="emit('start-geo-drawing', $event)"
                       @clear-geo-shape="emit('clear-geo-shape', $event)"
                     />
@@ -136,21 +153,22 @@
 
                   <template v-else>
                     <div class="filter-detail-field__label-row">
-                      <label class="filter-detail-field__label" :for="control.name">{{ control.label }}</label>
-                      <span v-if="control.unit" class="filter-detail-field__unit">{{ control.unit }}</span>
-                      <span v-if="control.optional" class="filter-detail-field__pill">Optional</span>
-                      <span class="filter-detail-field__origin" :title="originDebugTitle(control)">
-                        <i :class="control.relation === 'inherited' ? 'bi bi-diagram-3' : 'bi bi-dot'"></i>
-                      </span>
+                      <label class="filter-detail-field__label filter-meta-label" :for="control.name">
+                        {{ control.label }}
+                      </label>
+                      <span v-if="displayUnit(control)" class="filter-detail-field__unit">{{
+                        displayUnit(control)
+                      }}</span>
+                      <span v-if="!control.optional" class="filter-detail-field__required">Required</span>
                     </div>
                     <InputText
                       :id="control.name"
-                      :value="stringParam(control.name)"
+                      :value="displayStringParam(control)"
                       :type="isNumberControl(control) ? 'number' : 'text'"
                       :inputmode="isNumberControl(control) ? 'decimal' : undefined"
                       placeholder="enter a value"
                       class="filter-detail__full-width"
-                      @input="onStringInput(control.name, $event)"
+                      @input="onStringInput(control, $event)"
                     />
                   </template>
                 </div>
@@ -159,11 +177,10 @@
           </div>
         </section>
       </div>
-    </section>
 
-    <section v-else class="filter-detail__empty-params">
-      <i class="bi bi-sliders"></i>
-      <span>No parameters for this filter</span>
+      <p v-else class="filter-detail__empty">
+        This view has no criteria. All tracks continue to the Included categories section.
+      </p>
     </section>
   </div>
 </template>
@@ -174,15 +191,13 @@ import type { FilterParamsRequest } from '@/components/filter/FilterService';
 import type { FilterInfo } from 'x8ing-mtl-api-typescript-fetch/dist/esm/models/FilterInfo';
 import type { ParamDefinition } from 'x8ing-mtl-api-typescript-fetch/dist/esm/models/ParamDefinition';
 import type { GpsTrack } from 'x8ing-mtl-api-typescript-fetch/dist/esm/models/index';
-import {
-  effectiveUiMetadata,
-  resolveFilterGroupLabel,
-  type FilterParamGroupMetadata,
-  type FilterParamMetadata,
-} from '@/utils/filterMetadata';
+import { effectiveUiMetadata, type FilterParamGroupMetadata, type FilterParamMetadata } from '@/utils/filterMetadata';
 import GeoShapeParam from '@/components/filter/GeoShapeParam.vue';
 import TrackIdParam from '@/components/filter/TrackIdParam.vue';
 import DateTimeParam from '@/components/filter/DateTimeParam.vue';
+import { useMeasurementSystem } from '@/composables/useMeasurementSystem';
+import { filterParamCanonicalValue, filterParamDisplayUnit, filterParamDisplayValue } from '@/utils/filterParamUnits';
+import { parseTrackIdText } from '@/utils/trackIdFilter';
 
 const DEFAULT_PARAM_GROUP_KEY = '__ungrouped';
 const TRACK_PICKER_WIDGET = 'trackPicker';
@@ -198,7 +213,6 @@ type ParamControl = {
   widget: string;
   unit?: string;
   relation?: string;
-  originFilterRef?: string;
   optional: boolean;
   metadata: FilterParamMetadata;
   paramDefinition: ParamDefinition;
@@ -216,8 +230,7 @@ type ParamGroup = {
 type ParamSection = {
   key: 'specific' | 'base';
   title: string;
-  badge: string;
-  icon: string;
+  description: string;
   tone: 'specific' | 'base';
   collapsible: boolean;
   groups: ParamGroup[];
@@ -250,13 +263,10 @@ const emit = defineEmits<{
 }>();
 
 const baseScopeOpen = ref(false);
+const expandedAreaGroups = ref<Set<string>>(new Set());
+const { measurementSystem } = useMeasurementSystem();
 
 const filterInfo = computed((): FilterInfo | undefined => props.selectedFilter?.filterInfo);
-const filterGroupLabel = computed((): string =>
-  filterInfo.value ? resolveFilterGroupLabel(filterInfo.value) : 'Filter'
-);
-const selectedFilterLabel = computed((): string => filterInfo.value?.filterConfig?.displayName ?? 'Select a filter');
-const filterDescription = computed((): string => filterInfo.value?.filterConfig?.description ?? '');
 const paramDefinitions = computed((): ParamDefinition[] => filterInfo.value?.paramDefinitions ?? []);
 const paramDefinitionsByName = computed((): Map<string, ParamDefinition> => {
   return new Map(
@@ -280,7 +290,6 @@ const paramControls = computed((): ParamControl[] => {
         widget,
         unit: typeof metadata.unit === 'string' ? metadata.unit : undefined,
         relation: metadata.relation,
-        originFilterRef: metadata.originFilterRef,
         optional: metadata.optional === true,
         metadata,
         paramDefinition: {
@@ -307,11 +316,10 @@ const paramSections = computed((): ParamSection[] => {
   if (inheritedControls.length > 0) {
     sections.push({
       key: 'base',
-      title: 'Base scope',
-      badge: 'Shared',
-      icon: 'bi bi-diagram-3',
+      title: 'Show tracks',
+      description: 'Criteria that change the track set across MTL Explorer.',
       tone: 'base',
-      collapsible: selectedControls.length > 0,
+      collapsible: false,
       groups: groupControls(inheritedControls),
       count: inheritedControls.length,
       activeCount: countActiveControls(inheritedControls),
@@ -321,9 +329,10 @@ const paramSections = computed((): ParamSection[] => {
   if (selectedControls.length > 0) {
     sections.push({
       key: 'specific',
-      title: hasInheritedControls ? 'Filter-specific parameters' : 'Parameters',
-      badge: hasInheritedControls ? 'Specific' : 'Selected',
-      icon: hasInheritedControls ? 'bi bi-sliders' : 'bi bi-funnel',
+      title: hasInheritedControls ? 'View options' : 'Show tracks',
+      description: hasInheritedControls
+        ? 'Options used only by this view.'
+        : 'Criteria that change the track set across MTL Explorer.',
       tone: 'specific',
       collapsible: false,
       groups: groupControls(selectedControls),
@@ -347,6 +356,7 @@ watch(
   selectedFilterKey,
   () => {
     baseScopeOpen.value = defaultBaseScopeOpen.value;
+    expandedAreaGroups.value = new Set();
   },
   { immediate: true }
 );
@@ -389,9 +399,22 @@ function stringParam(name: string): string {
   return props.selectedFilter?.filterParams?.stringParams?.[name] ?? '';
 }
 
-function onStringInput(name: string, event: Event): void {
+function displayStringParam(control: ParamControl): string {
+  const value = stringParam(control.name);
+  return isNumberControl(control) ? filterParamDisplayValue(value, control.unit, measurementSystem.value) : value;
+}
+
+function displayUnit(control: ParamControl): string | undefined {
+  return isNumberControl(control) ? filterParamDisplayUnit(control.unit, measurementSystem.value) : control.unit;
+}
+
+function onStringInput(control: ParamControl, event: Event): void {
   const target = event.target as HTMLInputElement | null;
-  emit('set-string-param', { name, value: target?.value ?? '' });
+  const value = target?.value ?? '';
+  emit('set-string-param', {
+    name: control.name,
+    value: isNumberControl(control) ? filterParamCanonicalValue(value, control.unit, measurementSystem.value) : value,
+  });
 }
 
 function countActiveControls(controls: ParamControl[]): number {
@@ -427,17 +450,51 @@ function toggleParamSection(section: ParamSection): void {
   baseScopeOpen.value = !baseScopeOpen.value;
 }
 
-function sectionSummary(section: ParamSection): string {
-  const groupLabels = section.groups.map((group) => group.label).join(' / ');
-  return groupLabels ? `${formatParamCount(section.count)} / ${groupLabels}` : formatParamCount(section.count);
-}
-
-function formatParamCount(count: number): string {
-  return `${count} ${count === 1 ? 'parameter' : 'parameters'}`;
-}
-
 function formatActiveCount(count: number): string {
   return `${count} active`;
+}
+
+function displayGroupLabel(group: ParamGroup): string {
+  if (group.controls.length > 0 && group.controls.every(isDateTimeControl)) return 'Date range';
+  if (group.controls.length > 0 && group.controls.every(isGeoControl)) return 'Area';
+  if (group.controls.length > 0 && group.controls.every(isTrackPickerControl)) return 'Selected tracks';
+  return group.label;
+}
+
+function isAreaGroup(group: ParamGroup): boolean {
+  return group.controls.length > 0 && group.controls.every(isGeoControl);
+}
+
+function areaSummary(group: ParamGroup): string {
+  if (group.activeCount === 0) return 'No area';
+  return group.activeCount === 1 ? '1 area' : `${group.activeCount} areas`;
+}
+
+function isTrackPickerGroup(group: ParamGroup): boolean {
+  return group.controls.length > 0 && group.controls.every(isTrackPickerControl);
+}
+
+function trackPickerSummary(group: ParamGroup): string {
+  const selectedCount = group.controls.reduce(
+    (count, control) => count + parseTrackIdText(stringParam(control.name)).length,
+    0
+  );
+  return selectedCount === 0 ? 'All tracks' : `${selectedCount} selected ${selectedCount === 1 ? 'track' : 'tracks'}`;
+}
+
+function isAreaGroupOpen(group: ParamGroup): boolean {
+  return expandedAreaGroups.value.has(group.key);
+}
+
+function toggleAreaGroup(group: ParamGroup): void {
+  const next = new Set(expandedAreaGroups.value);
+  if (next.has(group.key)) next.delete(group.key);
+  else next.add(group.key);
+  expandedAreaGroups.value = next;
+}
+
+function areaGroupDomId(section: ParamSection, group: ParamGroup): string {
+  return `filter-area-${section.key}-${group.key.replace(/[^a-zA-Z0-9_-]/g, '-')}`;
 }
 
 function isGeoParam(paramDefinition: ParamDefinition): boolean {
@@ -476,32 +533,26 @@ function isGeoControl(control: ParamControl): boolean {
     isGeoParam(control.paramDefinition)
   );
 }
-
-function originDebugTitle(control: ParamControl): string {
-  const relation = control.relation || 'selected';
-  const origin = control.originFilterRef || 'unknown origin';
-  return `${relation}: ${origin}`;
-}
-
-function groupIcon(groupLabel: string): string {
-  const normalized = groupLabel.toLowerCase();
-  if (normalized.includes('activity')) return 'bi bi-bicycle';
-  if (normalized.includes('date') || normalized.includes('time')) return 'bi bi-calendar3';
-  if (normalized.includes('quality')) return 'bi bi-shield-exclamation';
-  if (normalized.includes('performance')) return 'bi bi-speedometer2';
-  if (normalized.includes('people')) return 'bi bi-people';
-  if (normalized.includes('core')) return 'bi bi-funnel';
-  if (normalized.includes('user')) return 'bi bi-person';
-  return 'bi bi-sliders';
-}
 </script>
 
 <style scoped>
 .filter-detail {
   display: flex;
+  flex: 0 0 auto;
   flex-direction: column;
-  gap: 1.2rem;
   min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--border-subtle, var(--border-default));
+  border-radius: 0.75rem;
+  background: var(--surface-glass-heavy, var(--surface-elevated));
+}
+
+.filter-detail__empty {
+  margin: 0;
+  padding: 0.2rem 0;
+  color: var(--text-muted);
+  font-size: var(--text-sm-size);
+  line-height: var(--text-sm-lh);
 }
 
 .filter-detail__hero {
@@ -560,33 +611,26 @@ function groupIcon(groupLabel: string): string {
 .filter-detail-section {
   display: flex;
   flex-direction: column;
-  gap: 0.8rem;
+  gap: 1rem;
+  padding: 1rem;
 }
 
 .filter-detail-section__head {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.filter-detail-section__copy {
   display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 0.5rem;
-  padding-bottom: 0.35rem;
-  border-bottom: 1px solid var(--border-subtle, var(--border-default));
+  min-width: 0;
+  flex-direction: column;
+  gap: 0.12rem;
 }
 
-.filter-detail-section__title {
+.filter-detail-section__help {
   margin: 0;
-  font-size: var(--text-xs-size);
-  font-weight: 700;
-  line-height: var(--text-xs-lh);
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-}
-
-.filter-detail-section__count {
-  color: var(--text-muted);
-  font-size: var(--text-xs-size);
-  font-weight: 600;
-  opacity: 0.65;
 }
 
 .filter-detail-param-sections {
@@ -605,11 +649,25 @@ function groupIcon(groupLabel: string): string {
 }
 
 .filter-detail-param-section--specific {
-  border-color: color-mix(in srgb, var(--accent, #6366f1) 24%, var(--border-subtle, var(--border-default)));
+  border-color: color-mix(in srgb, var(--accent) 24%, var(--border-subtle));
 }
 
 .filter-detail-param-section--base {
   background: var(--surface-glass-heavy);
+}
+
+.filter-detail-param-section--single {
+  overflow: visible;
+  border: 0;
+  background: transparent;
+}
+
+.filter-detail-param-section--single > .filter-detail-param-section__summary {
+  display: none;
+}
+
+.filter-detail-param-section--single > .filter-detail-param-section__body {
+  padding: 0;
 }
 
 .filter-detail-param-section__summary {
@@ -764,6 +822,35 @@ function groupIcon(groupLabel: string): string {
   min-height: 1.25rem;
 }
 
+.filter-detail-param-group__heading {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.filter-detail-param-group__summary {
+  color: var(--text-muted);
+  font-size: var(--text-xs-size);
+  font-weight: 600;
+}
+
+.filter-detail-param-group__area-action {
+  min-height: 2.75rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.65rem;
+  border: 1px solid var(--border-medium);
+  border-radius: 0.4rem;
+  background: var(--surface-glass-heavy);
+}
+
+.filter-detail-param-group__area-action:hover {
+  background: var(--surface-hover);
+  border-color: var(--accent);
+}
+
 .filter-detail-param-group__title {
   margin: 0;
   color: var(--text-primary);
@@ -802,10 +889,6 @@ function groupIcon(groupLabel: string): string {
   display: inline-block;
   min-width: 0;
   overflow-wrap: anywhere;
-  color: var(--text-muted);
-  font-size: var(--text-xs-size);
-  font-weight: 700;
-  line-height: var(--text-xs-lh);
   text-transform: uppercase;
   letter-spacing: 0.06em;
 }
@@ -814,6 +897,13 @@ function groupIcon(groupLabel: string): string {
   color: var(--text-muted);
   font-size: var(--text-xs-size);
   font-weight: 600;
+  line-height: var(--text-xs-lh);
+}
+
+.filter-detail-field__required {
+  color: var(--error);
+  font-size: var(--text-xs-size);
+  font-weight: 700;
   line-height: var(--text-xs-lh);
 }
 

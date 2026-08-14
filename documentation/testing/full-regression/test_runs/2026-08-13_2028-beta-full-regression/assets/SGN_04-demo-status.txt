@@ -1,0 +1,5 @@
+GET /mtl/api/auth/demo-status
+HTTP 200
+{"demoMode":false,"password":"","username":""}
+
+The signed-out login screen contained no demo-credential banner. The frozen requirement is conditional on demo mode being active, so it does not apply to this installation.

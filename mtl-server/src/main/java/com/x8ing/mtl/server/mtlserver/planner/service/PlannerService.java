@@ -5,6 +5,7 @@ import com.x8ing.mtl.server.mtlserver.planner.client.BRouterClient;
 import com.x8ing.mtl.server.mtlserver.planner.config.PlannerProperties;
 import com.x8ing.mtl.server.mtlserver.planner.constants.PlannerConstants;
 import com.x8ing.mtl.server.mtlserver.planner.dto.*;
+import com.x8ing.mtl.server.mtlserver.utils.GeoCoordinateUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
@@ -31,11 +32,6 @@ import java.util.*;
         "legCache"
 })
 public class PlannerService {
-
-    private static final double MIN_LATITUDE = -90.0;
-    private static final double MAX_LATITUDE = 90.0;
-    private static final double MIN_LONGITUDE = -180.0;
-    private static final double MAX_LONGITUDE = 180.0;
 
     private final BRouterClient brouterClient;
     private final PlannerProperties properties;
@@ -147,20 +143,8 @@ public class PlannerService {
         if (waypoint == null) {
             throw new IllegalArgumentException("Waypoint is required");
         }
-        validateLatitude(waypoint.getLat());
-        validateLongitude(waypoint.getLng());
-    }
-
-    private void validateLatitude(double latitude) {
-        if (!Double.isFinite(latitude) || latitude < MIN_LATITUDE || latitude > MAX_LATITUDE) {
-            throw new IllegalArgumentException("Latitude must be between -90 and 90");
-        }
-    }
-
-    private void validateLongitude(double longitude) {
-        if (!Double.isFinite(longitude) || longitude < MIN_LONGITUDE || longitude > MAX_LONGITUDE) {
-            throw new IllegalArgumentException("Longitude must be between -180 and 180");
-        }
+        GeoCoordinateUtils.requireValidLatitude(waypoint.getLat());
+        GeoCoordinateUtils.requireValidLongitude(waypoint.getLng());
     }
 
     private String cacheKey(WaypointDto a, WaypointDto b, String profile) {
@@ -177,9 +161,10 @@ public class PlannerService {
      * Haversine-free rough distance check, good enough for the "skip zero leg" guard.
      */
     private double distanceMetersApprox(WaypointDto a, WaypointDto b) {
-        double dLat = (b.getLat() - a.getLat()) * 111_320.0;
+        double dLat = (b.getLat() - a.getLat()) * GeoCoordinateUtils.APPROX_METERS_PER_DEGREE_LATITUDE;
         double meanLat = Math.toRadians((a.getLat() + b.getLat()) / 2);
-        double dLng = (b.getLng() - a.getLng()) * 111_320.0 * Math.cos(meanLat);
+        double dLng = (b.getLng() - a.getLng())
+                      * GeoCoordinateUtils.APPROX_METERS_PER_DEGREE_LATITUDE * Math.cos(meanLat);
         return Math.sqrt(dLat * dLat + dLng * dLng);
     }
 

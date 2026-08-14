@@ -213,8 +213,12 @@ export function useTrackLayers(_deps: Record<string, never> = {}): MapController
       if (!this.overlayMap || !this.geojson) return;
       const startedAt = performance.now();
       this.visibleTrackCount = 0;
-      // Reset group visibility when tracks are reloaded
-      this.hiddenGroups = new Set();
+      const filterConfigId =
+        (this.activeTrackFilterResult as { filterConfigId?: number } | null | undefined)?.filterConfigId ?? null;
+      if (filterConfigId !== this.renderedFilterConfigId) {
+        this.hiddenGroups = new Set();
+      }
+      this.renderedFilterConfigId = filterConfigId;
       const lineColor = (await this.resolveTrackLineColor()) as maplibregl.DataDrivenPropertyValueSpecification<string>;
       this.visibleTrackCount = this.geojson.features.length;
       this.detachTrackPointLayerHandlers();

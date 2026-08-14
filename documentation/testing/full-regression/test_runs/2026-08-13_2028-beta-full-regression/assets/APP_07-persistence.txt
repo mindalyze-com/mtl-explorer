@@ -1,0 +1,11 @@
+Map style persistence
+
+- UI theme: light.
+- Map source: Automatic.
+- Selected map style: OSM Dark.
+- Closed Map settings.
+- Reloaded the browser and allowed the map to settle.
+- Reopened Map settings.
+- CURRENT MAP remained OSM Dark.
+- Source remained Automatic source; terrain remained 2D map.
+

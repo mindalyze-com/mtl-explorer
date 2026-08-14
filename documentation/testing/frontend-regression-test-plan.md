@@ -37,6 +37,7 @@ coverage IDs, not section numbers alone.
 | `MOB` | Responsive mobile and touch |
 | `NET` | Offline and network issues |
 | `ERR` | Error recovery |
+| `UXP` | UX performance |
 
 - **ACC_01** Treat every checklist bullet as a required coverage item unless it is
   explicitly not applicable to the run.
@@ -175,6 +176,7 @@ Run this in every full regression and every release-candidate data-change pass.
 - **TRD_12** **Exclude from statistics** toggle → the track stops counting in stats overview; re-including it brings it back.
 - **TRD_13** **Related tracks** show duplicates and previous/next tracks; clicking one navigates to it.
 - **TRD_14** **Events tab** shows detected stops / GPS gaps where present; selecting an event highlights the matching mini-map position and deselects cleanly.
+- **TRD_15** Open Track Details from **Statistics → Tracks** and from **Filter → Review tracks**. Closing details returns to the same originating sheet and list state. Repeat with browser Back/Forward and on narrow mobile; a direct track-detail link closes to the map.
 
 ## 4. Filters
 
@@ -186,6 +188,19 @@ Run this in every full regression and every release-candidate data-change pass.
 - **FLT_06** Applied filter updates: visible track count, map colors, legend, and stats — without a full page reload.
 - **FLT_07** Legend reflects the active filter (categories or gradient); collapsing/hiding groups updates the map immediately.
 - **FLT_08** Clearing the filter restores all tracks.
+- **FLT_09** Choose a grouped year filter, select two result categories, and verify the map, visible count, track browser, heatmap, Statistics Overview, Trends, and Stats Tracks all use the same selected tracks.
+- **FLT_10** Repeat result-category selection with main activity groups and exact activity types such as Walking and Hiking. Labels and counts remain correct.
+- **FLT_11** Change date, text, or geo parameters while an exact result-category selection is active. The selection remains active; newly discovered categories remain unchecked.
+- **FLT_12** Select none and verify the empty result is intentional and stable. Select every available category and verify it returns to All categories when there are no unavailable saved categories.
+- **FLT_13** Change parameters so a selected category has no matches. It remains visible as unavailable and can be removed.
+- **FLT_14** Switch to a different filter and verify the result-category selection clears. Select the current filter again and verify its selection remains.
+- **FLT_15** Reload with an exact result-category selection. It is restored before the first resolution and all filter-aware views still match.
+- **FLT_16** Hide a group with the map legend visibility control. Map visibility changes, but statistics do not. Changing the global Result categories selection resets temporary legend hiding during map reload.
+- **FLT_17** In a clean browser context, open Filter for the first time. The filter-behavior page opens automatically, shows the Important badge, explains app-wide results and map coloring, and keeps Back and Close available. **Got it** returns to Filter and prevents another automatic opening.
+- **FLT_18** Reopen Filter as a returning user on desktop and narrow mobile. Guidance stays inside the Current result card, remains compact without overflow, and **Read more** opens the full explanation without the Important badge. Back returns to Filter; Close closes the sheet.
+- **FLT_19** Pause and resume from the **Apply filter** switch in **Current result**. The result status, map, statistics, persisted state, and switch position remain synchronized on desktop and mobile; no header switch or duplicate action appears.
+- **FLT_20** Open **Review tracks** from the quiet footer action beside **Reset filter**. The review uses the same track-browser view as Statistics → Tracks, including search, summary, responsive table/cards, sorting, pagination, map selection, and track details. Recheck Statistics → Tracks after the shared-component change.
+- **FLT_21** Filter and **Review tracks** use the standard Filter sheet dimensions and detents. Verify the nested review does not jump to an oversized desktop sheet and remains usable at both mobile detents.
 
 ## 5. Track Browser And Statistics
 
@@ -205,6 +220,7 @@ Run this in every full regression and every release-candidate data-change pass.
   visible map count, then verify Stats Overview totals, Trends track totals,
   and the Stats Tracks tab all match the filtered map count. Repeat after a
   reload to confirm the fallback ID-resolution path still matches.
+- **TBS_13** When Statistics Overview shows **Showing X of Y tracks**, activate the summary with pointer and keyboard. It opens Filter directly on desktop and mobile.
 
 ## 6. Planner
 
@@ -231,7 +247,7 @@ Run this in every full regression and every release-candidate data-change pass.
 
 ## 8. Animation And Virtual Race
 
-- **AVR_01** Start animation: tracks play back smoothly; pause, reset, and speed controls work.
+- **AVR_01** Open Animate on desktop and mobile: existing tracks remain visible until preview or playback starts; Play collapses to the map-first transport bar; pause, resume, stop, expand, reset, date range, duration, and speed controls work.
 - **AVR_02** Virtual race: multiple racers move together; ranking and racer cards update in real time.
 - **AVR_03** Stopping or finishing animation/race leaves map gestures and tools usable (no stuck state).
 - **AVR_04** Virtual race GPS geometry regression: start a race from a measured segment with multiple racers and verify each racer marker and trail stays on the actual segment. The map must not zoom to world-scale bounds, draw a long straight line away from the route, or show a racer/trail near `[0,0]` or South Africa.
@@ -277,7 +293,7 @@ Run this in every full regression and every release-candidate data-change pass.
 
 ## 14. Admin Tools
 
-- **ADM_01** Open the admin dialog; the tab list is reachable and usable.
+- **ADM_01** Open the Admin center; the overview and grouped section navigation are reachable and usable on desktop and mobile.
 - **ADM_02** **Track file upload**: drag or pick GPX/FIT/etc.; upload availability, accepted formats, progress, success, unsupported-format errors, and empty-file errors are clear.
 - **ADM_03** **Indexer status**: shows GPS and media pending/running/completed/failed/removed state; refresh updates over time.
 - **ADM_04** **Manual rescan**: **Rescan GPS** and **Rescan Media** show queued/already-running/not-ready states without breaking map interaction.
@@ -285,9 +301,10 @@ Run this in every full regression and every release-candidate data-change pass.
 - **ADM_06** **Operational tasks**: vector map tiles, location search, and routing segment status show ready/downloading/unavailable/disabled states with useful detail.
 - **ADM_07** **Data freshness**: shows last-update timestamp and offers reload.
 - **ADM_08** **Server log**: log lines load and refresh.
-- **ADM_09** **Attribution**: shows expected map/data sources.
+- **ADM_09** **About and credits**: the public About page shows the expected map, library, and data sources before and after login; Back returns to the previous Admin section or the login/map fallback.
 - **ADM_10** **Garmin export tools** (if present): status of installed exporters; install/update actions report success or error.
 - **ADM_11** Closing/reopening the dialog doesn't lose state mid-action.
+- **ADM_12** Direct Admin section URLs, browser Back/Forward, mobile Back, and closing the sheet keep the section and map routes synchronized.
 
 ## 15. Data Updates And Sync
 
@@ -320,6 +337,9 @@ Run this in every full regression and every release-candidate data-change pass.
 - **LOC_02** Changing locale (if available) updates formatting across the app without reload artifacts.
 - **LOC_03** Locale persists across reload.
 - **LOC_04** Boundary values (zero, very large, negative gain, null elevation) render sensibly, not as "NaN" or blank.
+- **LOC_05** **Metric / imperial measurement flow**: in **Admin → Preferences → Region & units**, select Metric and record representative values from Statistics, Track Browser, Track Details and graphs, a map point popup, filters with numeric distance/elevation parameters, measuring or segment comparison, Planner, and replay/animation.
+  Switch to **Imperial (US)** without changing the underlying track, route, or segment. Distance, elevation, speed, vertical rate, and weight values must convert consistently (`km`/`m`/`km/h`/`m/h`/`kg` → `mi`/`ft`/`mph`/`ft/h`/`lb`), while duration, dates, watts, and watt-hours remain semantically unchanged. No checked view may mix metric and imperial units.
+  Reload the app and confirm the imperial preference and converted values persist, then use **Use default** or select Metric and confirm metric values return after another reload. Capture compact paired evidence from Preferences, Statistics, and at least one detailed metric surface.
 
 ## 18. Responsive / Mobile / Touch
 
@@ -328,6 +348,7 @@ Run this in every full regression and every release-candidate data-change pass.
 - **MOB_03** Tables, charts, and map controls stay usable; no text overflows.
 - **MOB_04** Planner waypoints can be tapped, dragged, and inserted with touch.
 - **MOB_05** Map gestures (pinch, double-tap, drag) work after using each tool.
+- **MOB_06** Every filter-sheet opening starts on Filters. Selecting a catalog filter opens Settings, and the Settings switch remains directly usable before selecting another filter.
 
 ## 19. Offline And Network Issues
 
@@ -345,6 +366,25 @@ Run this in every full regression and every release-candidate data-change pass.
 - **ERR_01** Trigger or simulate: failed track load, failed map config, failed media, failed planner route, expired session. Each shows an actionable message (retry, re-login, dismiss) rather than freezing or going blank.
 - **ERR_02** Rapid switching between tools does not leave the previous tool's markers, listeners, or cursors behind.
 
+## 21. UX Performance
+
+- **UXP_01** Start from a signed-in, warmed desktop session with the required
+  imported data present and background jobs settled. Capture browser main-thread
+  responsiveness and every completed first-party application API `fetch`/XHR
+  while running three consecutive journeys through map pan/zoom, Filter
+  apply/reset, Statistics Overview and Tracks, track search and details tabs,
+  Planner open/close, and return to the map. Each input must show visible feedback
+  within 200 ms, no measured main-thread stall may exceed 500 ms, every first-party
+  application API response must finish within 2 seconds with its expected status
+  and UI result, and no request may remain unexpectedly pending. Exclude static
+  assets, map tiles/providers, uploads, downloads, and intentionally cancelled
+  requests from the API budget. After the third journey, map pan/zoom and the main
+  navigation must still respond. Save a timing table with action feedback, maximum
+  stall, API route/status/duration, pending or failed requests, and any console
+  error; a screenshot alone is not enough evidence. Any exceeded budget,
+  unexpected response/result, error, or loss of interaction fails this coverage
+  item.
+
 ## Suggested Regression Passes
 
 | Pass | Scope |
@@ -355,4 +395,6 @@ Run this in every full regression and every release-candidate data-change pass.
 | Offline / cache | `NET_01-NET_04`: installed PWA / installed web-app mode only. Normal browser-tab runs should mark offline reload `NOT APPLICABLE` or `NOT COVERED` unless the app is installed. |
 | Data-change | `DAT`, `IMP`, `FIT`, `DEL`, and `SYN`: import, FIT conversion, delete-two-track flow, freshness, cache refresh, map, browser, stats, filters, heatmap, and details. |
 | Theme | `APP_01-APP_08`: toggle dark/light and each map style; verify UI, charts, map, and persistence. |
+| Locale and units | `LOC_01-LOC_05`: verify locale formatting and persistence, then run the metric/imperial conversion and persistence flow. |
 | Remote raster maps | `MAP_13-MAP_15`: intentional remote tile mode, per-theme provider URLs and attribution, local-vector fallback when tiles are unavailable, and the manual Remote map source override. |
+| UX performance | `UXP_01`: repeat the core desktop journey with browser responsiveness and first-party API timing capture. |

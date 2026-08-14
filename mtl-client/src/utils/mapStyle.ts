@@ -165,19 +165,7 @@ const TOPO_CONTRAST_URBAN_AREA_OPACITY = [
   15,
   0.18,
 ];
-const TOPO_CONTRAST_URBAN_LANDUSE_OPACITY = [
-  'interpolate',
-  ['linear'],
-  ['zoom'],
-  7,
-  0.26,
-  10,
-  0.5,
-  12,
-  0.56,
-  15,
-  0.36,
-];
+const TOPO_CONTRAST_URBAN_LANDUSE_OPACITY = ['interpolate', ['linear'], ['zoom'], 7, 0.26, 10, 0.5, 12, 0.56, 15, 0.36];
 
 const TOPO_CONTRAST_CITY_LABEL_TEXT_SIZE = [
   'interpolate',

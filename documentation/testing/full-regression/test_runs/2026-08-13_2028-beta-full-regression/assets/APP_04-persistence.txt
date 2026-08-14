@@ -1,0 +1,9 @@
+Dark theme persistence
+
+- Selected Dark in Admin Preferences.
+- Before reload: data-theme=dark.
+- Normal browser reload: data-theme=dark; body background rgb(10, 10, 15).
+- Credentials-only sign-out: /mtl/login retained data-theme=dark and rgb(10, 10, 15).
+- Valid sign-in: /mtl/ retained data-theme=dark and rgb(10, 10, 15).
+- No theme preference had to be selected again.
+

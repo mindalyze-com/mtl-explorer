@@ -1,0 +1,11 @@
+Locale persistence
+
+- Saved locale before reload: de-CH.
+- Reloaded Statistics at /mtl/stats.
+- After reload:
+  - Date remained 11.03.2013, 10:32.
+  - Energy remained 4'410 Wh.
+  - Ascent remained 12'392 m.
+- Admin Preferences selector remained: de-CH (31.12.2025, 1'234.56).
+- Restored en-GB after evidence for the remaining run.
+

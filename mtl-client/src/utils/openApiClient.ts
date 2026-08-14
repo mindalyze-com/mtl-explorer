@@ -9,14 +9,17 @@
  * so we keep building a new Configuration each call.
  */
 import { Configuration, type Middleware } from 'x8ing-mtl-api-typescript-fetch';
-import { getAuthHeaderValue, getToken, redirectToLoginAfterAuthFailure } from '@/utils/auth';
+import {
+  getAuthHeaderValue,
+  getToken,
+  isAuthenticationFailureStatus,
+  redirectToLoginAfterAuthFailure,
+} from '@/utils/auth';
 import { backendBasePath } from '@/utils/apiBase';
-
-const AUTH_FAILURE_STATUSES = new Set([401, 403]);
 
 const authFailureMiddleware: Middleware = {
   async post({ response }) {
-    if (AUTH_FAILURE_STATUSES.has(response.status)) {
+    if (isAuthenticationFailureStatus(response.status)) {
       redirectToLoginAfterAuthFailure(!!getToken());
     }
     return response;

@@ -8,6 +8,8 @@
  * can accept either without conversion.
  */
 export interface FilterResult {
+  /** Stable selected-view identity used for preserving map-only visibility across live updates. */
+  filterConfigId?: number;
   /** Track ID → server entity version, used for client-side cache invalidation */
   trackVersions: Map<number, number>;
   /** Track ID → group assignment (for colour coding on the map) */
@@ -16,4 +18,10 @@ export interface FilterResult {
   legendGroupOrder?: string[];
   /** Total unfiltered track count (denominator for "N of M Tracks") */
   standardFilterCount: number;
+  /** True when the dynamic SQL returned a grp column. */
+  groupingAvailable?: boolean;
+  /** Raw group catalog before the exact result-category selection is applied. */
+  availableGroups?: import('x8ing-mtl-api-typescript-fetch/dist/esm/models/FilterResultGroupSummary').FilterResultGroupSummary[];
+  /** Dynamic SQL row count before the exact result-category selection is applied. */
+  preGroupSelectionCount?: number;
 }

@@ -33,6 +33,7 @@
           'sheet--backgrounded': isBackgrounded,
           'sheet--fullscreen': isFullscreen,
           'sheet--header-compact': headerMode === 'compact',
+          'sheet--viewport-centered': viewportCentered,
         },
       ]"
       @transitionend="onSheetTransitionEnd"
@@ -50,14 +51,17 @@
         </div>
 
         <!-- Header -->
-        <div v-if="hasHeader" class="sheet-header">
-          <div class="sheet-header-content">
+        <div
+          v-if="hasHeader || headerMode === 'compact'"
+          :class="hasHeader ? 'sheet-header' : 'sheet-floating-actions'"
+        >
+          <div v-if="hasHeader" class="sheet-header-content">
             <slot name="title">
               <span class="sheet-title"><i v-if="icon" :class="icon"></i>{{ title }}</span>
             </slot>
           </div>
-          <div class="sheet-header-actions" data-sheet-drag-exclude>
-            <slot name="header-actions"></slot>
+          <div class="sheet-window-actions" data-sheet-drag-exclude>
+            <slot v-if="hasHeader" name="header-actions"></slot>
             <button
               class="sheet-fullscreen-btn"
               :aria-label="isFullscreen ? 'Exit fullscreen' : 'Fullscreen'"
@@ -70,41 +74,48 @@
             </button>
           </div>
         </div>
+      </div>
 
-        <div v-else-if="headerMode === 'compact'" class="sheet-floating-actions" data-sheet-drag-exclude>
+      <div class="sheet-body-frame">
+        <!-- Scrollable content -->
+        <div
+          ref="bodyEl"
+          class="sheet-body"
+          :inert="isBackgrounded ? true : undefined"
+          :aria-hidden="isBackgrounded ? 'true' : undefined"
+          @scroll="updateScrollHint"
+        >
+          <slot></slot>
+        </div>
+
+        <!-- Scroll fade hint: confined to content so it never covers a footer. -->
+        <div
+          v-if="showScrollHint && !noScrollHint"
+          class="sheet-scroll-hint"
+          :inert="isBackgrounded ? true : undefined"
+          :aria-hidden="isBackgrounded ? 'true' : undefined"
+        >
           <button
-            class="sheet-fullscreen-btn"
-            :aria-label="isFullscreen ? 'Exit fullscreen' : 'Fullscreen'"
-            @click.stop="toggleFullscreen"
+            type="button"
+            class="sheet-scroll-hint__button"
+            :aria-label="`Scroll down: ${scrollHintLabel}`"
+            @click="scrollDown"
           >
-            <i :class="isFullscreen ? 'bi bi-fullscreen-exit' : 'bi bi-arrows-fullscreen'"></i>
-          </button>
-          <button class="sheet-close-btn" aria-label="Close" @click.stop="close">
-            <i class="bi bi-x-lg"></i>
+            <span class="sheet-scroll-hint__label">{{ scrollHintLabel }}</span>
+            <i class="bi bi-chevron-down sheet-scroll-hint__icon" aria-hidden="true"></i>
           </button>
         </div>
       </div>
 
-      <!-- Content -->
+      <!-- Persistent controls stay outside the scroll hint and content region. -->
       <div
-        ref="bodyEl"
-        class="sheet-body"
+        v-if="slots.footer"
+        ref="footerEl"
+        class="sheet-footer"
         :inert="isBackgrounded ? true : undefined"
         :aria-hidden="isBackgrounded ? 'true' : undefined"
-        @scroll="updateScrollHint"
       >
-        <slot></slot>
-      </div>
-
-      <!-- Scroll fade hint -->
-      <div
-        v-if="showScrollHint && !noScrollHint"
-        class="sheet-scroll-hint"
-        :inert="isBackgrounded ? true : undefined"
-        :aria-hidden="isBackgrounded ? 'true' : undefined"
-        @click="scrollDown"
-      >
-        <i class="bi bi-chevron-down sheet-scroll-hint__icon"></i>
+        <slot name="footer"></slot>
       </div>
 
       <div v-if="isBackgrounded" class="sheet-stack-scrim" aria-hidden="true"></div>
@@ -122,6 +133,7 @@ import { shallowReactive } from 'vue';
 const _escapeStack: Array<() => void> = [];
 
 const DEFAULT_SHEET_Z_INDEX = 5001;
+const SHEET_SCROLL_TARGET_CLASS = 'sheet-scroll-target';
 
 interface OpenSheetRecord {
   id: number;
@@ -231,8 +243,12 @@ const props = withDefaults(
     noBackdrop?: boolean;
     /** When true, the scroll-hint chevron at the bottom is never shown. */
     noScrollHint?: boolean;
+    /** Visible desktop label for the scroll hint. Hidden on mobile. */
+    scrollHintLabel?: string;
     /** Optional CSS class for sheet-specific surface variants. */
     sheetClass?: string | string[] | Record<string, boolean>;
+    /** Center against the full viewport instead of the desktop navigation-aware content area. */
+    viewportCentered?: boolean;
     /** Override the CSS z-index for stacking sheets on top of each other. */
     zIndex?: number;
   }>(),
@@ -247,7 +263,9 @@ const props = withDefaults(
     backgroundDetent: undefined,
     noBackdrop: true,
     noScrollHint: false,
+    scrollHintLabel: 'More content',
     sheetClass: '',
+    viewportCentered: false,
     zIndex: undefined,
   }
 );
@@ -262,6 +280,7 @@ const emit = defineEmits<{
 const sheetId = _nextSheetId++;
 const sheetEl = ref<HTMLElement | null>(null);
 const bodyEl = ref<HTMLElement | null>(null);
+const footerEl = ref<HTMLElement | null>(null);
 const isDragging = ref(false);
 const isAnimatingOut = ref(false);
 const showScrollHint = ref(false);
@@ -272,11 +291,49 @@ const activeDetentId = ref('');
 const DESKTOP_BP = 769;
 const SHEET_DRAG_HALO_PX = 10;
 const isDesktopWidth = ref(typeof window !== 'undefined' ? window.innerWidth >= DESKTOP_BP : false);
+let viewportResizeFrame: number | null = null;
+
 function onWindowResize() {
   isDesktopWidth.value = window.innerWidth >= DESKTOP_BP;
+  if (!isOpen.value || isDragging.value || isFullscreen.value) return;
+  if (viewportResizeFrame !== null) window.cancelAnimationFrame(viewportResizeFrame);
+  viewportResizeFrame = window.requestAnimationFrame(() => {
+    viewportResizeFrame = null;
+    if (isBackgrounded.value && props.backgroundDetent != null) {
+      const backgroundTarget = resolveDetentReference(props.backgroundDetent);
+      if (backgroundTarget) {
+        sheetHeight.value = Math.max(minHeight, backgroundTarget.heightPx);
+        activeDetentId.value = backgroundTarget.id;
+      }
+      if (backgroundRestoreState) {
+        const resolved = getResolvedDetents();
+        const restoredDetent = resolved.find((detent) => detent.id === backgroundRestoreState?.activeDetentId);
+        backgroundRestoreState.heightPx =
+          restoredDetent?.heightPx ?? Math.min(backgroundRestoreState.heightPx, window.innerHeight * 0.98);
+      }
+    } else {
+      const resolved = getResolvedDetents();
+      if (resolved.length === 0 || activeDetentId.value === FIT_CONTENT_DETENT_ID) {
+        sheetHeight.value = computeInitialHeight();
+      } else {
+        const activeDetent = resolved.find((detent) => detent.id === activeDetentId.value);
+        sheetHeight.value = activeDetent?.heightPx ?? Math.min(sheetHeight.value, window.innerHeight * 0.98);
+      }
+    }
+    resolveScrollTarget();
+    updateScrollHint();
+    scheduleLayoutEmit();
+  });
 }
-onMounted(() => window.addEventListener('resize', onWindowResize));
-onUnmounted(() => window.removeEventListener('resize', onWindowResize));
+onMounted(() => {
+  window.addEventListener('resize', onWindowResize);
+  window.visualViewport?.addEventListener('resize', onWindowResize);
+});
+onUnmounted(() => {
+  window.removeEventListener('resize', onWindowResize);
+  window.visualViewport?.removeEventListener('resize', onWindowResize);
+  if (viewportResizeFrame !== null) window.cancelAnimationFrame(viewportResizeFrame);
+});
 
 function toggleFullscreen() {
   isFullscreen.value = !isFullscreen.value;
@@ -420,7 +477,8 @@ function computeContentIdealHeight(fallbackHeight = 200): number {
   const body = bodyEl.value;
   const chromeH = (dragZone?.offsetHeight ?? 0) + 12;
   const contentH = body ? body.scrollHeight : 200;
-  return chromeH + contentH;
+  const footerH = footerEl.value?.offsetHeight ?? 0;
+  return chromeH + contentH + footerH;
 }
 
 /** Content-aware auto-fit when no detents are specified */
@@ -574,6 +632,7 @@ function scrollDown() {
 // re-running the hint check so it reflects the final layout (and any content
 // additions/removals, fullscreen toggle, orientation changes, window resize).
 watch(scrollTarget, (newEl, oldEl) => {
+  oldEl?.classList.remove(SHEET_SCROLL_TARGET_CLASS);
   if (oldEl && scrollTargetListener) {
     oldEl.removeEventListener('scroll', scrollTargetListener);
   }
@@ -582,6 +641,7 @@ watch(scrollTarget, (newEl, oldEl) => {
     sizeObserver = null;
   }
   if (newEl) {
+    newEl.classList.add(SHEET_SCROLL_TARGET_CLASS);
     scrollTargetListener = updateScrollHint;
     newEl.addEventListener('scroll', scrollTargetListener, { passive: true });
     sizeObserver = new ResizeObserver(() => updateScrollHint());
@@ -635,6 +695,7 @@ watch(
       _popOpenSheet(sheetId);
       backgroundRestoreState = null;
       showScrollHint.value = false;
+      scrollTarget.value = null;
       stopContentObserver();
       scheduleLayoutEmit();
     }
@@ -650,7 +711,11 @@ watch(
     sheetLayoutObserver?.disconnect();
     sheetLayoutObserver = null;
     if (newEl) {
-      sheetLayoutObserver = new ResizeObserver(scheduleLayoutEmit);
+      sheetLayoutObserver = new ResizeObserver(() => {
+        scheduleLayoutEmit();
+        resolveScrollTarget();
+        updateScrollHint();
+      });
       sheetLayoutObserver.observe(newEl);
       scheduleLayoutEmit();
     }
@@ -700,18 +765,20 @@ function snapToDetent(detent: ResolvedDetent) {
   updateScrollHint();
 }
 
+function nearestDetentIndex(detents: ResolvedDetent[], heightPx: number): number {
+  return detents.reduce(
+    (closest, detent, index) =>
+      Math.abs(detent.heightPx - heightPx) < Math.abs(detents[closest].heightPx - heightPx) ? index : closest,
+    0
+  );
+}
+
 function snapToAdjacentDetent() {
   if (isDragging.value || isBackgrounded.value || isFullscreen.value) return;
   const resolved = getResolvedDetents();
   if (resolved.length === 0) return;
 
-  const currentIdx = resolved.reduce(
-    (closest, _d, i) =>
-      Math.abs(resolved[i].heightPx - sheetHeight.value) < Math.abs(resolved[closest].heightPx - sheetHeight.value)
-        ? i
-        : closest,
-    0
-  );
+  const currentIdx = nearestDetentIndex(resolved, sheetHeight.value);
   const targetIdx =
     resolved.length === 1 ? currentIdx : currentIdx < resolved.length - 1 ? currentIdx + 1 : currentIdx - 1;
   snapToDetent(resolved[targetIdx]);
@@ -764,14 +831,7 @@ function onSheetDrag({ movement: [, my], velocity: vel, direction: [, dy], dragg
           const revIdx = [...resolved].reverse().findIndex((d) => d.heightPx < sheetHeight.value - 8);
           targetIdx = revIdx >= 0 ? resolved.length - 1 - revIdx : 0;
         } else {
-          targetIdx = resolved.reduce(
-            (closest, _d, i) =>
-              Math.abs(resolved[i].heightPx - sheetHeight.value) <
-              Math.abs(resolved[closest].heightPx - sheetHeight.value)
-                ? i
-                : closest,
-            0
-          );
+          targetIdx = nearestDetentIndex(resolved, sheetHeight.value);
         }
         sheetHeight.value = resolved[targetIdx].heightPx;
         activeDetentId.value = resolved[targetIdx].id;
@@ -819,6 +879,7 @@ onUnmounted(() => {
   if (scrollTarget.value && scrollTargetListener) {
     scrollTarget.value.removeEventListener('scroll', scrollTargetListener);
   }
+  scrollTarget.value?.classList.remove(SHEET_SCROLL_TARGET_CLASS);
   if (sizeObserver) {
     sizeObserver.disconnect();
     sizeObserver = null;
@@ -868,10 +929,6 @@ onUnmounted(() => {
   --bs-float-top: 0.45rem;
   --bs-float-right: 0.85rem;
 
-  --sheet-inline-gap: 1rem;
-  --sheet-desktop-max-width: 920px;
-  --sheet-desktop-wide-max-width: 1180px;
-  --sheet-desktop-wide-width: 72vw;
   position: fixed;
   z-index: var(--z-bottom-sheet-content);
   left: 0;
@@ -886,7 +943,7 @@ onUnmounted(() => {
   border-top-right-radius: 1.25rem;
   box-shadow: var(--shadow-sheet);
   color: var(--text-secondary);
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: var(--font-family-ui);
   transition: height 0.45s cubic-bezier(0.22, 1, 0.36, 1);
   overflow: hidden;
   padding-bottom: max(env(safe-area-inset-bottom, 0px), 0.5rem);
@@ -1005,7 +1062,7 @@ onUnmounted(() => {
   white-space: nowrap;
 }
 
-.sheet-header-actions {
+.sheet-window-actions {
   display: flex;
   align-items: center;
   gap: var(--bs-actions-gap);
@@ -1022,32 +1079,7 @@ onUnmounted(() => {
   z-index: 1;
 }
 
-.sheet-fullscreen-btn {
-  position: relative;
-  background: var(--surface-hover);
-  border: 1px solid var(--border-medium);
-  color: var(--text-muted);
-  width: var(--bs-btn-size);
-  height: var(--bs-btn-size);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: var(--bs-btn-fs-icon);
-  cursor: pointer;
-  transition: all 0.15s;
-  flex-shrink: 0;
-}
-.sheet-fullscreen-btn::after {
-  content: '';
-  position: absolute;
-  inset: -0.55rem;
-}
-.sheet-fullscreen-btn:hover {
-  color: var(--text-primary);
-  background: var(--surface-active);
-}
-
+.sheet-fullscreen-btn,
 .sheet-close-btn {
   position: relative;
   background: var(--surface-hover);
@@ -1059,16 +1091,23 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: var(--bs-btn-close-icon);
   cursor: pointer;
   transition: all 0.15s;
   flex-shrink: 0;
 }
+.sheet-fullscreen-btn {
+  font-size: var(--bs-btn-fs-icon);
+}
+.sheet-close-btn {
+  font-size: var(--bs-btn-close-icon);
+}
+.sheet-fullscreen-btn::after,
 .sheet-close-btn::after {
   content: '';
   position: absolute;
   inset: -0.55rem;
 }
+.sheet-fullscreen-btn:hover,
 .sheet-close-btn:hover {
   color: var(--text-primary);
   background: var(--surface-active);
@@ -1090,30 +1129,54 @@ onUnmounted(() => {
 }
 
 /* ─── Body ─── */
-/* The sheet body is a neutral flex column — no padding, no scrolling.
-   Slot content is responsible for its own padding, overflow, and layout.
+/* The sheet body is the safe fallback scroll container. Simple sheet content
+   scrolls here automatically; structured screens may provide a nested target.
 
    !! SCROLL CHAIN CONTRACT !!
-   For anything inside the slot to scroll, EVERY ancestor must propagate
-   the height constraint. The required chain is:
+   For a NESTED target to scroll, every ancestor must propagate the height
+   constraint. The required chain is:
 
      .sheet            → overflow: hidden, fixed px height
-     .sheet-body       → flex: 1 1 auto; min-height: 0; overflow: hidden
+     .sheet-body-frame → flex: 1 1 auto; min-height: 0; overflow: hidden
+     .sheet-body       → flex: 1 1 auto; min-height: 0; overflow-y: auto
      [slot root]       → MUST have: display:flex; flex-direction:column;
                                      flex:1 1 auto; min-height:0; overflow:hidden
      [scroll target]   → flex: 1 1 auto; min-height: 0; overflow-y: auto
 
-   Missing `overflow: hidden` on the direct slot child (e.g. .admin-root,
-   .stats-root) is the most common mistake — the child grows unbounded and
-   overflow-y: auto on its descendants never activates. */
+   If that nested chain is incomplete, .sheet-body remains scrollable instead
+   of clipping the content. */
+.sheet-body-frame {
+  position: relative;
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
 .sheet-body {
   flex: 1 1 auto;
   min-height: 0;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
   padding: 0 0 var(--bs-body-pb);
   touch-action: pan-y;
+}
+
+.sheet-footer {
+  position: relative;
+  z-index: 2;
+  flex: 0 0 auto;
+  min-width: 0;
+  background: inherit;
+}
+
+:global(.sheet-scroll-target) {
+  overscroll-behavior-y: contain;
+  touch-action: pan-y;
+  -webkit-overflow-scrolling: touch;
 }
 
 @media (min-width: 769px) {
@@ -1160,13 +1223,70 @@ onUnmounted(() => {
   padding-bottom: 0.5rem;
 }
 
-.sheet-scroll-hint__icon {
-  font-size: var(--text-lg-size);
+.sheet-scroll-hint__button {
+  display: inline-flex;
+  width: 2.25rem;
+  height: 2.25rem;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
   color: var(--text-secondary);
-  animation: scroll-hint-bounce 1.6s ease-in-out infinite;
-  opacity: 0.85;
+  font: inherit;
   pointer-events: auto;
   cursor: pointer;
+}
+
+.sheet-scroll-hint__label {
+  display: none;
+}
+
+.sheet-scroll-hint__button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.sheet-scroll-hint__icon {
+  color: inherit;
+  font-size: var(--text-lg-size);
+  animation: scroll-hint-bounce 1.6s ease-in-out infinite;
+  opacity: 0.85;
+  pointer-events: none;
+}
+
+@media (min-width: 769px) {
+  .sheet-scroll-hint {
+    height: 5.25rem;
+    padding-bottom: 0.75rem;
+  }
+
+  .sheet-scroll-hint__button {
+    width: auto;
+    height: 2rem;
+    gap: 0.4rem;
+    padding: 0 0.75rem 0 0.85rem;
+    border: 1px solid var(--border-medium);
+    background: var(--surface-sheet-solid);
+    box-shadow: var(--shadow-sm);
+    font-size: var(--text-xs-size);
+    font-weight: var(--font-semibold);
+  }
+
+  .sheet-scroll-hint__button:hover {
+    border-color: var(--border-hover);
+    background: var(--surface-hover);
+    color: var(--text-primary);
+  }
+
+  .sheet-scroll-hint__label {
+    display: inline;
+  }
+
+  .sheet-scroll-hint__icon {
+    font-size: var(--text-sm-size);
+  }
 }
 
 @keyframes scroll-hint-bounce {
@@ -1216,6 +1336,10 @@ onUnmounted(() => {
 }
 
 /* ─── Desktop with nav panel: offset centering ─── */
+.sheet--viewport-centered {
+  --nav-panel-w: 0px;
+}
+
 @media (min-width: 1024px) {
   .sheet-backdrop {
     left: var(--nav-panel-w, 64px);

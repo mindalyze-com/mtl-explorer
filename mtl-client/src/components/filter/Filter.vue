@@ -9,6 +9,8 @@
     @filter-style-changed="onFilterStyleChanged"
     @start-geo-drawing="onStartGeoDrawing"
     @clear-geo-shape="onClearGeoShape"
+    @select-track="emit('select-track', $event)"
+    @open-details="emit('open-details', $event)"
     @closed="onSheetClosed"
   />
 </template>
@@ -18,6 +20,7 @@ import { computed, onMounted, ref } from 'vue';
 import { useFilterStore } from '@/stores/filterStore';
 import CustomFilter from '@/components/filter/CustomFilter.vue';
 import type { ParamDefinition } from 'x8ing-mtl-api-typescript-fetch/dist/esm/models/ParamDefinition';
+import type { FilterMapInteractionEvents } from '@/components/filter/filterEvents';
 
 const EVENTS = {
   filterAppliedEvent: 'filterAppliedEvent',
@@ -33,14 +36,13 @@ defineProps<{
   visibleTrackCount?: number | null;
 }>();
 
-const emit = defineEmits<{
-  (event: 'tool-opened'): void;
-  (event: 'tool-closed'): void;
-  (event: 'filterAppliedEvent'): void;
-  (event: 'filter-style-changed'): void;
-  (event: 'start-geo-drawing', paramDef: ParamDefinition): void;
-  (event: 'clear-geo-shape', paramDef: ParamDefinition): void;
-}>();
+const emit = defineEmits<
+  FilterMapInteractionEvents & {
+    'tool-opened': [];
+    'tool-closed': [];
+    filterAppliedEvent: [];
+  }
+>();
 
 type GeoShapes = {
   circles: Record<string, unknown>;
@@ -52,6 +54,8 @@ type GeoShapes = {
 type CustomFilterPublic = {
   onGeoDrawingComplete: (paramDef: ParamDefinition, shape: unknown) => void;
   getGeoShapes: () => GeoShapes;
+  getNavigationState: () => unknown;
+  restoreNavigationState: (state: unknown) => void;
 };
 
 const showMenu = ref(false);
@@ -85,6 +89,14 @@ function open() {
 
 function close() {
   showMenu.value = false;
+}
+
+function getNavigationState(): unknown {
+  return customFilter.value?.getNavigationState();
+}
+
+function restoreNavigationState(state: unknown) {
+  customFilter.value?.restoreNavigationState(state);
 }
 
 function resetFilter() {}
@@ -128,6 +140,8 @@ defineExpose({
   open,
   toggle,
   close,
+  getNavigationState,
+  restoreNavigationState,
   resetFilter,
   onGeoDrawingComplete,
   getGeoShapes,

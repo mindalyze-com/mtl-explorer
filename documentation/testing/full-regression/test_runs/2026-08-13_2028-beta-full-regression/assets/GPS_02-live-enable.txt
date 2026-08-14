@@ -1,0 +1,9 @@
+Attempted the GPS enable action by opening the GPS tool.
+
+No browser permission prompt or locate marker can be requested from this
+remote plain-HTTP origin. The app stopped before geolocation and showed:
+"GPS needs HTTPS or localhost. Open MTL Explorer from a secure address to use
+live location."
+
+Unblock path: run the same app from localhost or HTTPS and repeat the enable,
+accept, and marker assertion.

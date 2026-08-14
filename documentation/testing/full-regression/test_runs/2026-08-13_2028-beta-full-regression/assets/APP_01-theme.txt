@@ -1,0 +1,19 @@
+Immediate UI theme switch
+
+Light:
+- document data-theme: light
+- body background: rgb(240, 240, 240)
+- body foreground: rgb(0, 0, 0)
+
+Dark immediately after selection:
+- document data-theme: dark
+- body background: rgb(10, 10, 15)
+- body foreground: rgb(254, 215, 170)
+- Admin panels and controls re-themed without reload.
+- Statistics opened with eight chart roots on the dark sheet.
+- Filter sheet/navigation and its buttons used dark-theme foreground/background values.
+
+Light immediately after second selection:
+- document data-theme returned to light
+- original body background/foreground values restored without reload.
+

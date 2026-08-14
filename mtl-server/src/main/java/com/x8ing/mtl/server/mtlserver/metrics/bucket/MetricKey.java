@@ -1,8 +1,5 @@
 package com.x8ing.mtl.server.mtlserver.metrics.bucket;
 
-import java.math.BigDecimal;
-import java.math.RoundingMode;
-
 /**
  * Catalogue of canonical metric series that the chart bucket builder
  * understands. Keys are exposed as JSON strings so the frontend can
@@ -118,9 +115,6 @@ public enum MetricKey {
     }
 
     private Double roundForResponse(Double value) {
-        if (value == null || !Double.isFinite(value)) return value;
-        return BigDecimal.valueOf(value)
-                .setScale(responseFractionDigits, RoundingMode.HALF_UP)
-                .doubleValue();
+        return MetricResponseRounding.round(value, responseFractionDigits);
     }
 }

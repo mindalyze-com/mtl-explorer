@@ -4,6 +4,8 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.x8ing.mtl.server.mtlserver.db.entity.gps.GpsTrackDataPoint;
 import com.x8ing.mtl.server.mtlserver.gpx.GPXReader;
 import com.x8ing.mtl.server.mtlserver.logic.crossing.beans.SegmentNotes;
+import com.x8ing.mtl.server.mtlserver.metrics.MetricConstants;
+import com.x8ing.mtl.server.mtlserver.utils.GeoCoordinateUtils;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.Point;
 
@@ -40,7 +42,6 @@ public final class TrackStopDetector {
     private static final int LOCAL_LINEAR_MIN_POINTS = 4;
     private static final double LOCAL_LINEAR_MIN_NET_DISPLACEMENT_M = 5.0;
     private static final double LOCAL_LINEAR_MIN_RATIO = 0.80;
-    private static final double APPROX_METERS_PER_DEGREE_LATITUDE = 111_320.0;
     private static final double MERGE_MAX_TIME_GAP_S = 300.0;
     private static final double MERGE_MAX_CENTER_DISTANCE_M = 150.0;
     private static final double EPISODE_BRIDGE_MOVEMENT_MIN_DURATION_S = 20.0;
@@ -58,8 +59,6 @@ public final class TrackStopDetector {
     private static final double RECORDING_GAP_MIN_DURATION_S = 600.0;
     private static final double RECORDING_GAP_MAX_DISTANCE_M = 150.0;
     private static final double RECORDING_GAP_MAX_IMPLIED_SPEED_KMH = 0.5;
-    private static final double SECONDS_PER_HOUR = 3600.0;
-    private static final double METERS_PER_KILOMETER = 1000.0;
 
     static final List<StopProfile> PROFILES = List.of(
             new StopProfile(
@@ -538,38 +537,37 @@ public final class TrackStopDetector {
 
             Coordinate center = new Coordinate(current.range().centerLng(), current.range().centerLat());
             double distanceToCenter = GPXReader.getDistanceBetweenTwoWGS84(center, next.coordinate());
-            if (distanceToCenter > profile.exitRadiusM()) {
-                EscapePeek peek = peekReturnAfterEscape(points, endOrdinal + 1, center, profile);
-                if (peek.status() == EscapeStatus.RETURNED) {
-                    Candidate absorbed = evaluateRange(points, startOrdinal, peek.returnOrdinal(), profile);
-                    if (absorbed != null) {
-                        current = absorbed;
-                        endOrdinal = absorbed.endOrdinal();
-                        continue;
-                    }
-                }
-                break;
-            }
-
-            Candidate extended = evaluateRange(points, startOrdinal, endOrdinal + 1, profile);
-            if (extended != null) {
-                current = extended;
-                endOrdinal = extended.endOrdinal();
-                continue;
-            }
-
-            EscapePeek peek = peekReturnAfterEscape(points, endOrdinal + 1, center, profile);
-            if (peek.status() == EscapeStatus.RETURNED) {
-                Candidate absorbed = evaluateRange(points, startOrdinal, peek.returnOrdinal(), profile);
-                if (absorbed != null) {
-                    current = absorbed;
-                    endOrdinal = absorbed.endOrdinal();
+            if (distanceToCenter <= profile.exitRadiusM()) {
+                Candidate extended = evaluateRange(points, startOrdinal, endOrdinal + 1, profile);
+                if (extended != null) {
+                    current = extended;
+                    endOrdinal = extended.endOrdinal();
                     continue;
                 }
+            }
+
+            Candidate absorbed = absorbReturnAfterEscape(
+                    points, startOrdinal, endOrdinal, center, profile);
+            if (absorbed != null) {
+                current = absorbed;
+                endOrdinal = absorbed.endOrdinal();
+                continue;
             }
             break;
         }
         return current;
+    }
+
+    private static Candidate absorbReturnAfterEscape(List<TimedPoint> points,
+                                                      int startOrdinal,
+                                                      int endOrdinal,
+                                                      Coordinate center,
+                                                      StopProfile profile) {
+        EscapePeek peek = peekReturnAfterEscape(points, endOrdinal + 1, center, profile);
+        if (peek.status() != EscapeStatus.RETURNED) {
+            return null;
+        }
+        return evaluateRange(points, startOrdinal, peek.returnOrdinal(), profile);
     }
 
     private static Candidate evaluateRange(List<TimedPoint> points,
@@ -767,11 +765,11 @@ public final class TrackStopDetector {
 
         for (int i = 0; i < vectorCount; i++) {
             Coordinate coordinate = points.get(startOrdinal + i + 1).coordinate();
-            double currentX = (coordinate.getX() - origin.getX()) * metersPerDegreeLongitude;
-            double currentY = (coordinate.getY() - origin.getY()) * APPROX_METERS_PER_DEGREE_LATITUDE;
-            double dx = currentX - previousX;
-            double dy = currentY - previousY;
-            double segmentLength = Math.hypot(dx, dy);
+            PlanarSegment segment = projectSegment(
+                    coordinate, origin, metersPerDegreeLongitude, previousX, previousY);
+            double dx = segment.dx();
+            double dy = segment.dy();
+            double segmentLength = segment.length();
             if (segmentLength > 0.0) {
                 double unitDx = dx / segmentLength;
                 double unitDy = dy / segmentLength;
@@ -784,8 +782,8 @@ public final class TrackStopDetector {
                 nonZeroVectorCount++;
             }
             pathLength += segmentLength;
-            previousX = currentX;
-            previousY = currentY;
+            previousX = segment.endX();
+            previousY = segment.endY();
         }
         if (nonZeroVectorCount < PERSISTENT_DIRECTION_MIN_VECTOR_COUNT
             || pathLength < PERSISTENT_DIRECTION_MIN_PATH_M) {
@@ -810,13 +808,13 @@ public final class TrackStopDetector {
 
         for (int i = startOrdinal + 1; i <= endOrdinal; i++) {
             Coordinate coordinate = points.get(i).coordinate();
-            double currentX = (coordinate.getX() - origin.getX()) * metersPerDegreeLongitude;
-            double currentY = (coordinate.getY() - origin.getY()) * APPROX_METERS_PER_DEGREE_LATITUDE;
-            double dx = currentX - previousX;
-            double dy = currentY - previousY;
-            double segmentLengthM = Math.hypot(dx, dy);
-            previousX = currentX;
-            previousY = currentY;
+            PlanarSegment segment = projectSegment(
+                    coordinate, origin, metersPerDegreeLongitude, previousX, previousY);
+            double dx = segment.dx();
+            double dy = segment.dy();
+            double segmentLengthM = segment.length();
+            previousX = segment.endX();
+            previousY = segment.endY();
 
             if (segmentLengthM < DIRECTIONAL_ENTROPY_MIN_VECTOR_LENGTH_M) {
                 continue;
@@ -853,6 +851,22 @@ public final class TrackStopDetector {
         double topTwoRatio = (top1 + top2) / (double) vectorCount;
         return normalizedEntropy <= DIRECTIONAL_ENTROPY_MAX_NORMALIZED
                && topTwoRatio >= DIRECTIONAL_ENTROPY_MIN_TOP_TWO_RATIO;
+    }
+
+    private static PlanarSegment projectSegment(Coordinate coordinate,
+                                                Coordinate origin,
+                                                double metersPerDegreeLongitude,
+                                                double previousX,
+                                                double previousY) {
+        double currentX = (coordinate.getX() - origin.getX()) * metersPerDegreeLongitude;
+        double currentY = (coordinate.getY() - origin.getY())
+                          * GeoCoordinateUtils.APPROX_METERS_PER_DEGREE_LATITUDE;
+        double dx = currentX - previousX;
+        double dy = currentY - previousY;
+        return new PlanarSegment(currentX, currentY, dx, dy, Math.hypot(dx, dy));
+    }
+
+    private record PlanarSegment(double endX, double endY, double dx, double dy, double length) {
     }
 
     private static int headingBin(double dx, double dy) {
@@ -895,7 +909,7 @@ public final class TrackStopDetector {
     }
 
     private static double metersPerDegreeLongitude(double latitude) {
-        return APPROX_METERS_PER_DEGREE_LATITUDE * Math.cos(Math.toRadians(latitude));
+        return GeoCoordinateUtils.APPROX_METERS_PER_DEGREE_LATITUDE * Math.cos(Math.toRadians(latitude));
     }
 
     private static boolean endsInUnconfirmedEscape(List<TimedPoint> points,
@@ -1152,7 +1166,8 @@ public final class TrackStopDetector {
         if (distanceM > RECORDING_GAP_MAX_DISTANCE_M) {
             return null;
         }
-        double impliedSpeedKmh = distanceM / durationS * SECONDS_PER_HOUR / METERS_PER_KILOMETER;
+        double impliedSpeedKmh = distanceM / durationS
+                                 * MetricConstants.SECONDS_PER_HOUR / MetricConstants.METERS_PER_KILOMETER;
         if (impliedSpeedKmh > RECORDING_GAP_MAX_IMPLIED_SPEED_KMH) {
             return null;
         }
@@ -1365,8 +1380,7 @@ public final class TrackStopDetector {
         if (values.length == 0) {
             return 0.0;
         }
-        double[] sorted = values.clone();
-        Arrays.sort(sorted);
+        double[] sorted = sortedCopy(values);
         return medianSorted(sorted, sorted.length);
     }
 
@@ -1384,11 +1398,16 @@ public final class TrackStopDetector {
         if (values.length == 0) {
             return 0.0;
         }
-        double[] sorted = values.clone();
-        Arrays.sort(sorted);
+        double[] sorted = sortedCopy(values);
         int index = (int) Math.ceil(percentile / 100.0 * sorted.length) - 1;
         index = Math.max(0, Math.min(sorted.length - 1, index));
         return sorted[index];
+    }
+
+    private static double[] sortedCopy(double[] values) {
+        double[] sorted = values.clone();
+        Arrays.sort(sorted);
+        return sorted;
     }
 
     private static double max(double[] values) {

@@ -37,12 +37,15 @@ const maplibreMock = vi.hoisted(() => {
   class MockPopup {
     static instances: MockPopup[] = [];
 
+    options?: Record<string, unknown>;
     setLngLat = vi.fn(() => this);
     setHTML = vi.fn(() => this);
+    setDOMContent = vi.fn(() => this);
     addTo = vi.fn(() => this);
     remove = vi.fn();
 
-    constructor() {
+    constructor(options?: Record<string, unknown>) {
+      this.options = options;
       MockPopup.instances.push(this);
     }
   }
@@ -443,8 +446,14 @@ describe('TrackDetailMiniMap event layer', () => {
     });
 
     const popup = maplibreMock.MockPopup.instances.at(-1);
-    expect(popup?.setHTML).toHaveBeenCalledWith(expect.stringContaining('Track point'));
-    expect(popup?.setHTML).toHaveBeenCalledWith(expect.stringContaining('51'));
+    const content = popup?.setDOMContent.mock.calls[0]?.[0] as HTMLDivElement;
+    expect(content.querySelector('.mtl-point-popup-header')?.textContent).toBe('Track point');
+    expect(content.textContent).toContain('51');
+    expect(popup?.options).toMatchObject({
+      closeButton: true,
+      closeOnClick: true,
+      className: 'mtl-point-popup-container',
+    });
     expect(popup?.setLngLat).toHaveBeenCalledWith([expect.closeTo(0.01617, 10), 0]);
   });
 

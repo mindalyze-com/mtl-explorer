@@ -6,7 +6,7 @@ import {
   TERRAIN_CAMERA_EASE_MS,
   TERRAIN_TARGET_PITCH,
 } from '@/components/map/terrainMode';
-import type { MapCameraState } from '@/components/map/mapRendererTypes';
+import { readMapCameraState } from '@/components/map/mapRendererTypes';
 import type { MapControllerMethodDefinitions, TerrainModeMethods } from './mapControllerRuntime';
 
 export function useTerrainMode(deps: {
@@ -85,16 +85,7 @@ export function useTerrainMode(deps: {
 
     overlayCameraView() {
       if (!this.overlayMap) return null;
-      const center = this.overlayMap.getCenter();
-      const view: MapCameraState = {
-        center: [center.lng, center.lat],
-        zoom: this.overlayMap.getZoom(),
-        bearing: this.overlayMap.getBearing(),
-        pitch: this.overlayMap.getPitch(),
-      };
-      const roll = this.overlayMap.getRoll?.();
-      if (Number.isFinite(roll)) view.roll = roll;
-      return view;
+      return readMapCameraState(this.overlayMap);
     },
 
     resolveOverlayCenterElevation(center) {
@@ -151,6 +142,21 @@ export function useTerrainMode(deps: {
       if (!enabled) this.map?.setCenterElevation?.(0);
     },
 
+    handleTerrainUnavailable(detail, notify) {
+      mapSettingsStore.setLayerEnabled('terrain', false);
+      this.syncMapSettingsFromStore();
+      this._terrainControl?.setActive(false);
+      this.applyTracksVisibility();
+      if (notify) {
+        this.$toast?.add({
+          severity: 'warn',
+          summary: '3D terrain unavailable',
+          detail,
+          life: 3500,
+        });
+      }
+    },
+
     applyTerrainPreference({ animate = false } = {}) {
       if (!this.map || !this.overlayMap) return;
       if (!this.terrainEnabled) {
@@ -173,18 +179,7 @@ export function useTerrainMode(deps: {
       const hasOfflineSources =
         allowAddSource || (terrainSourceAvailable(this.map) && terrainSourceAvailable(this.overlayMap));
       if (!hasOfflineSources) {
-        mapSettingsStore.setLayerEnabled('terrain', false);
-        this.syncMapSettingsFromStore();
-        this._terrainControl?.setActive(false);
-        this.applyTracksVisibility();
-        if (animate) {
-          this.$toast?.add({
-            severity: 'warn',
-            summary: '3D terrain unavailable',
-            detail: 'Remote elevation tiles are not available while offline.',
-            life: 3500,
-          });
-        }
+        this.handleTerrainUnavailable('Remote elevation tiles are not available while offline.', animate);
         return;
       }
       let baseEnabled = false;
@@ -204,18 +199,7 @@ export function useTerrainMode(deps: {
       if (!baseEnabled || !overlayEnabled) {
         disableTerrainView(this.map);
         disableTerrainView(this.overlayMap);
-        mapSettingsStore.setLayerEnabled('terrain', false);
-        this.syncMapSettingsFromStore();
-        this._terrainControl?.setActive(false);
-        this.applyTracksVisibility();
-        if (animate) {
-          this.$toast?.add({
-            severity: 'warn',
-            summary: '3D terrain unavailable',
-            detail: 'Elevation tiles could not be loaded for this map style.',
-            life: 3500,
-          });
-        }
+        this.handleTerrainUnavailable('Elevation tiles could not be loaded for this map style.', animate);
         return;
       }
       this._terrainControl?.setActive(true);

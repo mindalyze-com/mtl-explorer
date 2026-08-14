@@ -16,11 +16,13 @@ import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
+import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.net.MalformedURLException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -37,6 +39,8 @@ public class MediaController {
     private static final int MEDIA_POINTS_CACHE_MINUTES = 3;
     private static final int MEDIA_CONTENT_CACHE_HOURS = 1;
     private static final long EMPTY_MEDIA_FILE_SIZE_BYTES = 0L;
+    private static final String IMAGE_MAGICK_COMMAND = "convert";
+    private static final String IMAGE_MAGICK_QUALITY = "92";
 
     private final MediaRepository mediaRepository;
 
@@ -149,32 +153,9 @@ public class MediaController {
         log.info("HEIC conversion: starting ImageMagick convert for {} (maxSize={})", fileName, maxSize);
         long t0 = System.currentTimeMillis();
 
-        response.setStatus(HttpServletResponse.SC_OK);
-        response.setContentType(MediaType.IMAGE_JPEG_VALUE);
-        response.setHeader(HttpHeaders.ETAG, eTag);
-        response.setDateHeader(HttpHeaders.LAST_MODIFIED, lastModifiedMillis);
-        response.setHeader(HttpHeaders.CACHE_CONTROL, mediaContentCacheControl().getHeaderValue());
+        prepareGeneratedImageResponse(response, MediaType.IMAGE_JPEG_VALUE, eTag, lastModifiedMillis);
 
-        ProcessBuilder pb;
-        if (maxSize != null && maxSize > 0) {
-            pb = new ProcessBuilder(
-                    "convert", mediaPath.toAbsolutePath().toString(),
-                    "-resize", maxSize + "x" + maxSize + ">",
-                    "-quality", "92", "jpeg:-");
-        } else {
-            pb = new ProcessBuilder(
-                    "convert", mediaPath.toAbsolutePath().toString(),
-                    "-quality", "92", "jpeg:-");
-        }
-        pb.redirectError(ProcessBuilder.Redirect.DISCARD);
-        Process proc = pb.start();
-        try (var in = proc.getInputStream();
-             var out = response.getOutputStream()) {
-            in.transferTo(out);
-            out.flush();
-        } finally {
-            proc.destroyForcibly();
-        }
+        streamProcessOutput(imageMagickProcess(mediaPath, maxSize, "jpeg"), response);
         log.info("HEIC conversion: finished {} in {}ms", fileName, System.currentTimeMillis() - t0);
     }
 
@@ -191,19 +172,38 @@ public class MediaController {
         String outputFormat = contentType.contains("png") ? "png" : "jpeg";
         String outputMediaType = outputFormat.equals("png") ? MediaType.IMAGE_PNG_VALUE : MediaType.IMAGE_JPEG_VALUE;
 
+        prepareGeneratedImageResponse(response, outputMediaType, eTag, lastModifiedMillis);
+
+        streamProcessOutput(imageMagickProcess(mediaPath, maxSize, outputFormat), response);
+        log.info("Image resize: finished {} in {}ms", fileName, System.currentTimeMillis() - t0);
+    }
+
+    private static ProcessBuilder imageMagickProcess(Path mediaPath, Integer maxSize, String outputFormat) {
+        List<String> command = new ArrayList<>(List.of(
+                IMAGE_MAGICK_COMMAND,
+                mediaPath.toAbsolutePath().toString()));
+        if (maxSize != null && maxSize > 0) {
+            // ">" suffix = only shrink, never enlarge
+            command.addAll(List.of("-resize", maxSize + "x" + maxSize + ">"));
+        }
+        command.addAll(List.of("-quality", IMAGE_MAGICK_QUALITY, outputFormat + ":-"));
+        return new ProcessBuilder(command);
+    }
+
+    private static void prepareGeneratedImageResponse(HttpServletResponse response,
+                                                      String contentType,
+                                                      String eTag,
+                                                      long lastModifiedMillis) {
         response.setStatus(HttpServletResponse.SC_OK);
-        response.setContentType(outputMediaType);
+        response.setContentType(contentType);
         response.setHeader(HttpHeaders.ETAG, eTag);
         response.setDateHeader(HttpHeaders.LAST_MODIFIED, lastModifiedMillis);
         response.setHeader(HttpHeaders.CACHE_CONTROL, mediaContentCacheControl().getHeaderValue());
+    }
 
-        // ">" suffix = only shrink, never enlarge
-        ProcessBuilder pb = new ProcessBuilder(
-                "convert", mediaPath.toAbsolutePath().toString(),
-                "-resize", maxSize + "x" + maxSize + ">",
-                "-quality", "92", outputFormat + ":-");
-        pb.redirectError(ProcessBuilder.Redirect.DISCARD);
-        Process proc = pb.start();
+    private void streamProcessOutput(ProcessBuilder processBuilder, HttpServletResponse response) throws IOException {
+        processBuilder.redirectError(ProcessBuilder.Redirect.DISCARD);
+        Process proc = processBuilder.start();
         try (var in = proc.getInputStream();
              var out = response.getOutputStream()) {
             in.transferTo(out);
@@ -211,7 +211,6 @@ public class MediaController {
         } finally {
             proc.destroyForcibly();
         }
-        log.info("Image resize: finished {} in {}ms", fileName, System.currentTimeMillis() - t0);
     }
 
     private static boolean browserAcceptsHeic(String acceptHeader) {

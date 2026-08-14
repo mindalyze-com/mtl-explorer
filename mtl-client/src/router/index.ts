@@ -62,7 +62,7 @@ const router = createRouter({
       meta: { requiresAuth: true, deepLink: 'measure' },
     },
     {
-      path: '/admin',
+      path: '/admin/:section?',
       name: 'admin',
       component: HomeView,
       meta: { requiresAuth: true, deepLink: 'admin' },

@@ -1,0 +1,11 @@
+Configured browser origin: http://91.99.12.14.nip.io:18080/mtl/
+Transport: remote plain HTTP, neither localhost nor HTTPS.
+
+Opening GPS produced:
+- GPS unavailable
+- GPS needs HTTPS or localhost. Open MTL Explorer from a secure address to use
+  live location.
+
+Per frozen GPS_01 coverage text, live permission and marker checks on this
+origin are NOT APPLICABLE - expected browser limitation. A localhost or HTTPS
+origin would be required.

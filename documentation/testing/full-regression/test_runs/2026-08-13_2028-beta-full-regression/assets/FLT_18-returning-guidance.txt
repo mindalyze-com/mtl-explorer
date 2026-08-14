@@ -1,0 +1,18 @@
+FLT_18 returning-user guidance layout
+
+Desktop viewport: 1280 x 720
+- Guidance stayed inside Current result.
+- Card text: How this result works / The current result is used throughout MTL Explorer. / Read more.
+- Card: 364 x 108 px; client width and scroll width both 362 px.
+- Read more opened How filters work without the Important badge.
+- Full guidance body: client width 1280 px, scroll width 1280 px.
+- Back returned to Current result.
+
+Narrow viewport: 390 x 844
+- Guidance stayed inside Current result.
+- Compact card text: Filters apply everywhere. / Read more.
+- Card: 316 x 44 px; client width and scroll width both 314 px; client and scroll height both 42 px.
+- Read more opened How filters work without the Important badge.
+- Full guidance body: client width 390 px, scroll width 390 px.
+- Back returned to Current result.
+- Close closed the Filter sheet.

@@ -1,0 +1,24 @@
+TBS_12 Statistics resolved geo-filter set
+
+Baseline:
+- Map and filter: 12 tracks.
+
+Geo filter:
+- Drew a circle over the central European tracks in Smart Base Filter.
+- Filter: 2 matching tracks.
+- Map: 2 of 12 tracks.
+
+Before reload:
+- Statistics Overview: Showing 2 of 12 tracks; 2 TRACKS.
+- Statistics Trends: 2 TRACKS, 1 period.
+- Statistics Tracks: 2 tracks, 791 km, 14h 37m.
+
+After browser reload:
+- Map: 2 of 12 tracks.
+- Statistics Overview: Showing 2 of 12 tracks; 2 TRACKS.
+- Statistics Trends: 2 TRACKS.
+- Statistics Tracks: 2 tracks, 791 km, 14h 37m.
+
+Cleanup:
+- Cleared the circle and applied.
+- Filter and map returned to 12 tracks.

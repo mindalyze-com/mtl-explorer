@@ -1,0 +1,25 @@
+Coverage ID: FLT_11
+View: Tracks by year
+
+Initial parameters
+- FROM YEAR 2010.
+- TO YEAR 2010.
+- Base result: 2010 category with 2 tracks.
+
+Exact category selection
+- Cleared selection and selected only 2010.
+- Master All categories checkbox: false.
+- 2010 checkbox: true.
+- Summary: 1 of 1 selected.
+
+Parameter change
+- Changed TO YEAR from 2010 to 2013 and applied.
+- The base parameter range discovered category 2013 with 6 tracks.
+- Current exact result remained 2 matching tracks / 2 of 12 because only 2010 stayed selected.
+
+Post-change category state
+- Summary: 1 of 2 selected.
+- Master All categories: false.
+- 2010: checked.
+- Newly discovered 2013: unchecked.
+

@@ -15,17 +15,15 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
 
 import java.io.IOException;
-import java.io.OutputStream;
 import java.net.InetSocketAddress;
-import java.net.URLDecoder;
-import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static com.x8ing.mtl.server.mtlserver.web.services.map.LocationSearchTestSupport.parseQuery;
+import static com.x8ing.mtl.server.mtlserver.web.services.map.LocationSearchTestSupport.writeJson;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -134,31 +132,6 @@ class LocationSearchServiceCacheTest {
         Cache cache = cacheManager.getCache(MtlCacheConfig.LOCATION_SEARCH_STATUS_CACHE);
         assertThat(cache).isNotNull();
         return cache;
-    }
-
-    private static Map<String, String> parseQuery(String rawQuery) {
-        Map<String, String> params = new HashMap<>();
-        if (rawQuery == null || rawQuery.isBlank()) {
-            return params;
-        }
-        for (String pair : rawQuery.split("&")) {
-            String[] parts = pair.split("=", 2);
-            params.put(decode(parts[0]), parts.length == 2 ? decode(parts[1]) : "");
-        }
-        return params;
-    }
-
-    private static String decode(String value) {
-        return URLDecoder.decode(value, StandardCharsets.UTF_8);
-    }
-
-    private static void writeJson(com.sun.net.httpserver.HttpExchange exchange, String body) throws IOException {
-        byte[] bytes = body.getBytes(StandardCharsets.UTF_8);
-        exchange.getResponseHeaders().set("Content-Type", "application/json");
-        exchange.sendResponseHeaders(200, bytes.length);
-        try (OutputStream output = exchange.getResponseBody()) {
-            output.write(bytes);
-        }
     }
 
     @Configuration

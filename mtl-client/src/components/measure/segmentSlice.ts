@@ -5,6 +5,86 @@ export type SegmentTrackPoint = {
   pointLongLat?: { coordinates?: number[] } | null;
 };
 
+export type SegmentSelectionCode = {
+  point1?: string;
+  point2?: string;
+  consolidated?: boolean;
+  p1Visit?: number;
+  p2Visit?: number;
+};
+
+export function segmentSelectionKey(selection: { code: SegmentSelectionCode }): string {
+  const code = selection.code;
+  if (code.consolidated === false) {
+    return `${String(code.point1)}${String(code.p1Visit)}-${String(code.point2)}${String(code.p2Visit)}`;
+  }
+  return `${String(code.point1)}||${String(code.point2)}`;
+}
+
+export type VisitSegmentCrossing = {
+  triggerPoint: { name: string };
+};
+
+export type VisitSegmentOption = {
+  name: string;
+  count: number;
+  code: SegmentSelectionCode;
+};
+
+export function buildVisitSegmentOptions<T extends VisitSegmentCrossing>(
+  crossingGroups: Iterable<readonly T[]>
+): VisitSegmentOption[] {
+  const segmentMap = new Map<string, VisitSegmentOption>();
+  for (const crossings of crossingGroups) {
+    const visitsByTrigger = new Map<string, number>();
+    let previous: T | null = null;
+    let previousVisit: number | null = null;
+
+    for (const crossing of crossings) {
+      const point2 = crossing.triggerPoint.name;
+      const point2Visit = (visitsByTrigger.get(point2) ?? 0) + 1;
+      visitsByTrigger.set(point2, point2Visit);
+
+      if (previous && previousVisit != null) {
+        const point1 = previous.triggerPoint.name;
+        const key = `${point1}${previousVisit}-${point2}${point2Visit}`;
+        const existing = segmentMap.get(key);
+        if (existing) {
+          existing.count += 1;
+        } else {
+          segmentMap.set(key, {
+            name: `${point1}${previousVisit} - ${point2}${point2Visit}`,
+            count: 1,
+            code: {
+              point1,
+              p1Visit: previousVisit,
+              point2,
+              p2Visit: point2Visit,
+              consolidated: false,
+            },
+          });
+        }
+      }
+
+      previous = crossing;
+      previousVisit = point2Visit;
+    }
+  }
+  return Array.from(segmentMap.values());
+}
+
+export function validTrackPointCoordinates(
+  point: { pointLongLat?: { coordinates?: number[] } | null } | null | undefined
+): [number, number] | null {
+  const coords = point?.pointLongLat?.coordinates;
+  if (!Array.isArray(coords) || coords.length < 2) return null;
+  const lng = Number(coords[0]);
+  const lat = Number(coords[1]);
+  if (!Number.isFinite(lng) || !Number.isFinite(lat)) return null;
+  if (Math.abs(lng) > 180 || Math.abs(lat) > 90) return null;
+  return [lng, lat];
+}
+
 export type SegmentSliceCrossing<T extends SegmentTrackPoint = SegmentTrackPoint> = {
   gpsTrackDataPoint?: (T & { id?: number }) | null;
   distanceInMeterSinceLastTriggerPoint?: number | null;
@@ -142,29 +222,18 @@ function sameTrackPointSample(a: SegmentTrackPoint | undefined, b: SegmentTrackP
 }
 
 function coordinatesDiffer(a: SegmentTrackPoint, b: SegmentTrackPoint) {
-  const aCoords = pointCoordinates(a);
-  const bCoords = pointCoordinates(b);
+  const aCoords = validTrackPointCoordinates(a);
+  const bCoords = validTrackPointCoordinates(b);
   if (!aCoords || !bCoords) {
     return false;
   }
   return (
-    Math.abs(aCoords[0] - bCoords[0]) > EPSILON_COORDINATES ||
-    Math.abs(aCoords[1] - bCoords[1]) > EPSILON_COORDINATES
+    Math.abs(aCoords[0] - bCoords[0]) > EPSILON_COORDINATES || Math.abs(aCoords[1] - bCoords[1]) > EPSILON_COORDINATES
   );
 }
 
 function hasFinitePointCoordinates(point: SegmentTrackPoint) {
-  return pointCoordinates(point) != null;
-}
-
-function pointCoordinates(point: SegmentTrackPoint): [number, number] | null {
-  const coords = point.pointLongLat?.coordinates;
-  if (!Array.isArray(coords) || coords.length < 2) return null;
-  const lng = Number(coords[0]);
-  const lat = Number(coords[1]);
-  if (!Number.isFinite(lng) || !Number.isFinite(lat)) return null;
-  if (Math.abs(lng) > 180 || Math.abs(lat) > 90) return null;
-  return [lng, lat];
+  return validTrackPointCoordinates(point) != null;
 }
 
 function patchFlatEndpointMetric<T extends SegmentTrackPoint>(

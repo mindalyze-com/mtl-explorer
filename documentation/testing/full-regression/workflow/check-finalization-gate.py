@@ -22,6 +22,7 @@ TERMINAL_STATUSES = {
 ALL_STATUSES = OPEN_STATUSES | TERMINAL_STATUSES
 
 PLAN_ID_RE = re.compile(r"\*\*([A-Z]{3}_[0-9]{2})\*\*")
+PLAN_SNAPSHOT_NAME = "coverage-plan.md"
 RUN_ROW_RE = re.compile(
     r"^\|\s*([A-Z]{3}_[0-9]{2}|RUN_SETUP|RUN_CLEANUP)\s*\|\s*([^|]+?)\s*\|"
 )
@@ -49,10 +50,32 @@ def normalize_packet_cell(value: str) -> str:
     return value
 
 
-def load_plan_ids(script_path: Path) -> list[str]:
-    plan_path = script_path.parents[2] / "frontend-regression-test-plan.md"
+def load_plan_ids(plan_path: Path) -> list[str]:
     plan_text = plan_path.read_text(encoding="utf-8")
     return list(dict.fromkeys(PLAN_ID_RE.findall(plan_text)))
+
+
+def resolve_plan_ids(
+    run_state_path: Path, run_rows: dict[str, tuple[str, str]]
+) -> tuple[list[str], str | None]:
+    snapshot_path = run_state_path.parent / PLAN_SNAPSHOT_NAME
+    if snapshot_path.exists():
+        return load_plan_ids(snapshot_path), None
+
+    legacy_ids = [
+        coverage_id
+        for coverage_id in run_rows
+        if not coverage_id.startswith("RUN_")
+    ]
+    if legacy_ids:
+        return legacy_ids, (
+            f"legacy run has no {PLAN_SNAPSHOT_NAME}; using its recorded run-state queue"
+        )
+
+    plan_path = Path(__file__).resolve().parents[2] / "frontend-regression-test-plan.md"
+    return load_plan_ids(plan_path), (
+        f"run has no {PLAN_SNAPSHOT_NAME} or recorded coverage rows; using {plan_path}"
+    )
 
 
 def load_run_rows(run_state_path: Path) -> dict[str, tuple[str, str]]:
@@ -91,11 +114,13 @@ def main(argv: list[str]) -> int:
         return 2
 
     run_dir = run_state_path.parent
-    plan_ids = load_plan_ids(Path(__file__).resolve())
     run_rows = load_run_rows(run_state_path)
+    plan_ids, plan_warning = resolve_plan_ids(run_state_path, run_rows)
 
     errors: list[str] = []
     warnings: list[str] = []
+    if plan_warning:
+        warnings.append(plan_warning)
 
     for coverage_id in plan_ids:
         row = run_rows.get(coverage_id)

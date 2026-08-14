@@ -128,9 +128,7 @@ export function normalizeMapTask(
   });
 }
 
-export function normalizeLocationSearchTask(
-  status: LocationSearchStatusDto | null | undefined
-): AdminOperationalTask {
+export function normalizeLocationSearchTask(status: LocationSearchStatusDto | null | undefined): AdminOperationalTask {
   if (!status) {
     return task(TASK_LOCATION_SEARCH, 'Location Search', 'warning', 'unavailable', {
       detail: 'Location search status is not reachable.',
@@ -229,7 +227,9 @@ function task(
   label: string,
   state: AdminOperationalTaskState,
   statusLabel: string,
-  options: Partial<Pick<AdminOperationalTask, 'indeterminate' | 'progressPercent' | 'detail' | 'metric' | 'versionInfo'>>
+  options: Partial<
+    Pick<AdminOperationalTask, 'indeterminate' | 'progressPercent' | 'detail' | 'metric' | 'versionInfo'>
+  >
 ): AdminOperationalTask {
   return {
     id,

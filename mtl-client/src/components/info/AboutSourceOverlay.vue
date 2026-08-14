@@ -1,60 +1,121 @@
 <template>
-  <Teleport to="body">
-    <Transition name="about-fade">
-      <div v-if="visible" class="about-overlay-backdrop" @click="close">
-        <div
-          class="about-overlay-panel"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="about-source-title"
-          @click.stop
-        >
-          <button class="about-overlay-close" aria-label="Close" @click="close">&times;</button>
-          <div class="about-overlay-header">
-            <p class="about-overlay-kicker">About &amp; Source</p>
-            <h2 id="about-source-title" class="about-overlay-title">MTL Explorer</h2>
-            <p class="about-overlay-version">Version {{ version }}</p>
-          </div>
-          <div class="about-overlay-chips" aria-label="License summary">
-            <span class="about-overlay-chip">AGPL-3.0-or-later</span>
-            <span class="about-overlay-chip">Commercial license available</span>
-          </div>
-          <div class="about-overlay-divider"></div>
-          <div class="about-overlay-body">
-            <p class="about-overlay-text">
-              MTL Explorer is dual-licensed under
-              <a href="https://www.gnu.org/licenses/agpl-3.0.html" target="_blank" rel="noopener">AGPL-3.0-or-later</a>
-              and a separate commercial license.
-            </p>
-            <p class="about-overlay-text">
-              If you modify the software and make it available over a network, you must offer the corresponding source
-              code of that running version.
-            </p>
-            <div class="about-overlay-section">
-              <p class="about-overlay-label">Source code</p>
-              <p class="about-overlay-text">
-                <a :href="APP_SOURCE_URL" target="_blank" rel="noopener">{{ APP_SOURCE_URL }}</a>
-              </p>
-            </div>
-            <div class="about-overlay-section">
-              <p class="about-overlay-label">Commercial inquiries</p>
-              <p class="about-overlay-text">
-                <a :href="`mailto:${APP_CONTACT_EMAIL}`">{{ APP_CONTACT_EMAIL }}</a>
-              </p>
-            </div>
-            <p class="about-overlay-text about-overlay-copyright">
-              &copy; 2020-2026 Patrick Heusser &amp; contributors
-            </p>
+  <BottomSheet
+    :model-value="visible"
+    title="About MTL Explorer"
+    icon="bi bi-info-circle"
+    :detents="[
+      { id: 'comfortable', height: 'min(650px, 84vh)' },
+      { id: 'large', height: '94vh' },
+    ]"
+    initial-detent="comfortable"
+    sheet-class="sheet--solid-over-map sheet--about-source"
+    @update:model-value="emit('update:visible', $event)"
+  >
+    <div class="about-source">
+      <section class="about-source__overview" aria-labelledby="about-source-title">
+        <div class="about-source__identity">
+          <span class="about-source__logo" aria-hidden="true">
+            <img :src="logoMark" alt="" />
+          </span>
+          <div>
+            <span class="settings-eyebrow about-source__eyebrow">This installation</span>
+            <h2 id="about-source-title">MTL Explorer</h2>
+            <p>Self-hosted GPS track and trail log.</p>
           </div>
         </div>
-      </div>
-    </Transition>
-  </Teleport>
+
+        <dl class="about-source__build" aria-label="Installation information">
+          <div>
+            <dt>Version</dt>
+            <dd>{{ version }}</dd>
+          </div>
+          <div>
+            <dt>License</dt>
+            <dd>AGPL-3.0-or-later</dd>
+          </div>
+        </dl>
+
+        <a class="about-source__primary" :href="APP_SOURCE_URL" target="_blank" rel="noopener noreferrer">
+          <i class="bi bi-code-slash" aria-hidden="true"></i>
+          View source code
+        </a>
+      </section>
+
+      <section class="about-source__section" aria-labelledby="about-source-license">
+        <div class="settings-section-heading about-source__section-heading">
+          <h3 id="about-source-license">Open source</h3>
+          <p>Use, inspect, modify, and share under the AGPL.</p>
+        </div>
+
+        <p class="about-source__license-copy">
+          MTL Explorer is dual-licensed under the
+          <a href="https://www.gnu.org/licenses/agpl-3.0.html" target="_blank" rel="noopener noreferrer">
+            GNU AGPL, version 3 or later</a
+          >, and a separate commercial license.
+        </p>
+      </section>
+
+      <section class="about-source__section" aria-labelledby="about-source-links">
+        <div class="settings-section-heading about-source__section-heading">
+          <h3 id="about-source-links">Project</h3>
+          <p>Source, licensing, and full project information.</p>
+        </div>
+
+        <div class="settings-list about-source__list">
+          <a
+            class="settings-row"
+            :href="`${APP_SOURCE_URL}/blob/main/LICENSE`"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <i class="bi bi-file-text settings-row__icon about-source__row-icon" aria-hidden="true"></i>
+            <span class="settings-row__body about-source__row-copy">
+              <strong>License text</strong>
+              <span class="settings-row__description">Read the full license terms for this project.</span>
+            </span>
+            <span class="settings-row__value about-source__row-value">AGPL-3.0-or-later</span>
+            <i class="bi bi-box-arrow-up-right settings-row__chevron about-source__row-arrow" aria-hidden="true"></i>
+          </a>
+
+          <a class="settings-row" :href="`mailto:${APP_CONTACT_EMAIL}`">
+            <i class="bi bi-briefcase settings-row__icon about-source__row-icon" aria-hidden="true"></i>
+            <span class="settings-row__body about-source__row-copy">
+              <strong>Commercial licensing</strong>
+              <span class="settings-row__description">Ask about alternative license terms.</span>
+            </span>
+            <span class="settings-row__value about-source__row-value">{{ APP_CONTACT_EMAIL }}</span>
+            <i class="bi bi-chevron-right settings-row__chevron about-source__row-arrow" aria-hidden="true"></i>
+          </a>
+
+          <button class="settings-row about-source__details-trigger" type="button" @click="showFullAbout = true">
+            <i class="bi bi-book settings-row__icon about-source__row-icon" aria-hidden="true"></i>
+            <span class="settings-row__body about-source__row-copy">
+              <strong>About and credits</strong>
+              <span class="settings-row__description">Read licenses, attribution, and project details.</span>
+            </span>
+            <span class="settings-row__value about-source__row-value">Full details</span>
+            <i class="bi bi-chevron-right settings-row__chevron about-source__row-arrow" aria-hidden="true"></i>
+          </button>
+        </div>
+      </section>
+
+      <footer class="about-source__footer">
+        <span>&copy; 2020-2026 Patrick Heusser and contributors</span>
+        <span>AGPL-3.0-or-later</span>
+      </footer>
+    </div>
+  </BottomSheet>
+
+  <AboutView v-if="showFullAbout" embedded @closed="closeFullAbout" />
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, defineAsyncComponent, ref } from 'vue';
+import logoMark from '@/assets/logo/logo3/mtl_logo_3_only_vector.svg';
+import BottomSheet from '@/components/ui/BottomSheet.vue';
 import { APP_CONTACT_EMAIL, APP_SOURCE_URL } from '@/utils/appBranding';
+
+defineOptions({ name: 'AboutSourceOverlay' });
 
 defineProps<{
   visible: boolean;
@@ -64,279 +125,226 @@ const emit = defineEmits<{
   (event: 'update:visible', value: boolean): void;
 }>();
 
+const AboutView = defineAsyncComponent(() => import('@/views/AboutView.vue'));
 const version = computed<string>(() => (import.meta.env.VITE_APP_VERSION as string) || 'dev');
+const showFullAbout = ref(false);
 
-function close(): void {
+function closeFullAbout() {
+  showFullAbout.value = false;
   emit('update:visible', false);
 }
 </script>
 
 <style scoped>
-.about-overlay-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: var(--z-popup-over-bottomsheet, 6000);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: clamp(1rem, 3vw, 2rem);
-  background: linear-gradient(to bottom, rgba(9, 12, 18, 0.08), rgba(9, 12, 18, 0.18));
-  backdrop-filter: blur(1.5px);
-  -webkit-backdrop-filter: blur(1.5px);
+.about-source {
+  width: 100%;
+  margin: 0 auto;
+  padding: 0.45rem 1rem calc(1rem + env(safe-area-inset-bottom));
+  box-sizing: border-box;
+  color: var(--text-secondary);
 }
 
-.about-overlay-panel {
+.about-source__overview {
   position: relative;
-  width: 100%;
-  max-width: min(34rem, calc(100vw - 2rem));
-  max-height: min(40rem, calc(100vh - 3rem));
-  overflow: hidden;
-  padding: 1rem 1rem 0.95rem;
-  border-radius: 18px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.88), rgba(255, 255, 255, 0.78));
-  backdrop-filter: blur(20px) saturate(115%);
-  -webkit-backdrop-filter: blur(20px) saturate(115%);
-  border: 1px solid rgba(255, 255, 255, 0.42);
-  box-shadow:
-    0 14px 40px rgba(0, 0, 0, 0.14),
-    inset 0 1px 0 rgba(255, 255, 255, 0.48);
+  display: flex;
+  min-height: 13.25rem;
+  box-sizing: border-box;
+  flex-direction: column;
+  padding: 0.75rem 0.25rem 0.9rem 1.05rem;
+}
+
+.about-source__overview::before {
+  position: absolute;
+  top: 0.8rem;
+  bottom: 0.8rem;
+  left: 0;
+  width: 0.2rem;
+  border-radius: 999px;
+  background: var(--accent);
+  content: '';
+}
+
+.about-source__identity {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.8rem;
+}
+
+.about-source__logo {
+  display: grid;
+  width: 3.25rem;
+  height: 3.25rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--accent) 18%, var(--border-default));
+  border-radius: 0.75rem;
+  background: color-mix(in srgb, var(--accent) 7%, transparent);
+}
+
+.about-source__logo img {
+  width: 48%;
+  height: 62%;
+  object-fit: contain;
+}
+
+.about-source__identity h2 {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: var(--text-xl-size);
+  font-weight: var(--font-bold);
+  line-height: var(--text-xl-lh);
+}
+
+.about-source__eyebrow {
+  margin-bottom: 0.15rem;
+}
+
+.about-source__identity p {
+  margin: 0.18rem 0 0;
+  color: var(--text-muted);
+  font-size: var(--text-sm-size);
+  line-height: var(--text-sm-lh);
+}
+
+.about-source__build {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  margin: 0.9rem 0 0;
+}
+
+.about-source__build div {
+  min-width: 0;
+}
+
+.about-source__build dt {
+  color: var(--text-muted);
+  font-size: var(--text-xs-size);
+  line-height: var(--text-xs-lh);
+}
+
+.about-source__build dd {
+  margin: 0.08rem 0 0;
+  color: var(--text-secondary);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: var(--text-sm-size);
+  font-weight: var(--font-semibold);
+  line-height: var(--text-sm-lh);
+}
+
+.about-source__primary {
+  display: inline-flex;
+  min-height: 2.5rem;
+  align-self: flex-start;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  margin-top: auto;
+  padding: 0.48rem 0.7rem;
+  border-radius: 0.55rem;
+  background: color-mix(in srgb, var(--accent) 11%, transparent);
+  color: var(--accent-text);
+  font-size: var(--text-sm-size);
+  font-weight: var(--font-semibold);
+  text-decoration: none;
+}
+
+.about-source__primary:hover {
+  background: color-mix(in srgb, var(--accent) 17%, transparent);
+}
+
+.about-source__primary:focus-visible,
+.about-source__list > :is(a, button):focus-visible {
+  position: relative;
+  z-index: 1;
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.about-source__section {
   display: flex;
   flex-direction: column;
   gap: 0.7rem;
+  padding: 1rem 0.15rem 0;
 }
 
-:global([data-theme='dark']) .about-overlay-panel {
-  background: linear-gradient(180deg, rgba(13, 17, 24, 0.86), rgba(13, 17, 24, 0.78));
-  border-color: rgba(255, 255, 255, 0.09);
-  box-shadow:
-    0 18px 44px rgba(0, 0, 0, 0.42),
-    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+.about-source__section + .about-source__section {
+  margin-top: 1.2rem;
 }
 
-.about-overlay-close {
-  position: absolute;
-  top: 0.75rem;
-  right: 0.8rem;
-  background: rgba(0, 0, 0, 0.04);
-  border: 1px solid rgba(0, 0, 0, 0.06);
-  border-radius: 999px;
-  cursor: pointer;
-  font-size: 0.65rem;
-  color: rgba(0, 0, 0, 0.28);
-  width: 1.5rem;
-  height: 1.5rem;
-  padding: 0;
-  line-height: 1;
-  transition:
-    color 0.15s ease,
-    background-color 0.15s ease,
-    border-color 0.15s ease;
-}
-.about-overlay-close:hover {
-  color: rgba(0, 0, 0, 0.62);
-  background: rgba(0, 0, 0, 0.08);
-  border-color: rgba(0, 0, 0, 0.08);
-}
-
-:global([data-theme='dark']) .about-overlay-close {
-  color: rgba(255, 255, 255, 0.28);
-  background: rgba(255, 255, 255, 0.04);
-  border-color: rgba(255, 255, 255, 0.06);
-}
-
-:global([data-theme='dark']) .about-overlay-close:hover {
-  color: rgba(255, 255, 255, 0.68);
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(255, 255, 255, 0.08);
-}
-
-.about-overlay-header {
-  display: flex;
-  flex-direction: column;
-  gap: 0.18rem;
-  padding-right: 2rem;
-}
-
-.about-overlay-kicker {
+.about-source__license-copy {
   margin: 0;
-  font-size: 0.68rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: rgba(0, 0, 0, 0.36);
+  color: var(--text-secondary);
+  font-size: var(--text-sm-size);
+  line-height: 1.55;
 }
 
-.about-overlay-title {
-  margin: 0;
-  font-size: clamp(1.05rem, 2vw, 1.25rem);
-  font-weight: 600;
-  line-height: 1.15;
-  color: rgba(0, 0, 0, 0.72);
-}
-
-.about-overlay-version {
-  margin: 0;
-  font-size: 0.7rem;
-  color: rgba(0, 0, 0, 0.36);
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-}
-
-:global([data-theme='dark']) .about-overlay-kicker {
-  color: rgba(255, 255, 255, 0.34);
-}
-
-:global([data-theme='dark']) .about-overlay-title {
-  color: rgba(255, 255, 255, 0.74);
-}
-
-:global([data-theme='dark']) .about-overlay-version {
-  color: rgba(255, 255, 255, 0.3);
-}
-
-.about-overlay-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.45rem;
-}
-
-.about-overlay-chip {
-  display: inline-flex;
-  align-items: center;
-  min-height: 1.5rem;
-  padding: 0.15rem 0.55rem;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.46);
-  border: 1px solid rgba(0, 0, 0, 0.06);
-  color: rgba(0, 0, 0, 0.46);
-  font-size: 0.68rem;
-  white-space: nowrap;
-}
-
-:global([data-theme='dark']) .about-overlay-chip {
-  background: rgba(255, 255, 255, 0.05);
-  border-color: rgba(255, 255, 255, 0.08);
-  color: rgba(255, 255, 255, 0.4);
-}
-
-.about-overlay-divider {
-  height: 1px;
-  background: linear-gradient(90deg, rgba(0, 0, 0, 0.08), rgba(0, 0, 0, 0.03));
-  margin: 0;
-}
-:global([data-theme='dark']) .about-overlay-divider {
-  background: linear-gradient(90deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.03));
-}
-
-.about-overlay-body {
-  display: flex;
-  flex-direction: column;
-  gap: 0.65rem;
-  overflow-y: auto;
-  padding-right: 0.2rem;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(0, 0, 0, 0.14) transparent;
-}
-
-.about-overlay-body::-webkit-scrollbar {
-  width: 5px;
-}
-
-.about-overlay-body::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.about-overlay-body::-webkit-scrollbar-thumb {
-  border-radius: 999px;
-  background: rgba(0, 0, 0, 0.14);
-}
-
-:global([data-theme='dark']) .about-overlay-body {
-  scrollbar-color: rgba(255, 255, 255, 0.14) transparent;
-}
-
-:global([data-theme='dark']) .about-overlay-body::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.14);
-}
-
-.about-overlay-section {
-  display: flex;
-  flex-direction: column;
-  gap: 0.18rem;
-  padding: 0.55rem 0.7rem;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.34);
-  border: 1px solid rgba(0, 0, 0, 0.05);
-}
-
-:global([data-theme='dark']) .about-overlay-section {
-  background: rgba(255, 255, 255, 0.04);
-  border-color: rgba(255, 255, 255, 0.06);
-}
-
-.about-overlay-label {
-  margin: 0;
-  font-size: 0.66rem;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: rgba(0, 0, 0, 0.34);
-}
-
-:global([data-theme='dark']) .about-overlay-label {
-  color: rgba(255, 255, 255, 0.3);
-}
-
-.about-overlay-text {
-  margin: 0;
-  font-size: 0.76rem;
-  line-height: 1.45;
-  color: rgba(0, 0, 0, 0.5);
-}
-.about-overlay-text a {
-  color: rgba(0, 0, 0, 0.58);
-  text-decoration: underline;
+.about-source__license-copy a {
+  color: var(--accent-text);
   text-underline-offset: 2px;
 }
-.about-overlay-text a:hover {
-  color: rgba(0, 0, 0, 0.78);
+
+.about-source__list > .settings-row {
+  grid-template-columns: 1.6rem minmax(0, 1fr) minmax(7rem, auto) auto;
 }
 
-:global([data-theme='dark']) .about-overlay-text {
-  color: rgba(255, 255, 255, 0.42);
+.about-source__footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.25rem 1rem;
+  padding: 1.15rem 0.15rem 0.25rem;
+  color: var(--text-faint);
+  font-size: var(--text-xs-size);
+  line-height: var(--text-xs-lh);
 }
 
-:global([data-theme='dark']) .about-overlay-text a {
-  color: rgba(255, 255, 255, 0.48);
-}
-
-:global([data-theme='dark']) .about-overlay-text a:hover {
-  color: rgba(255, 255, 255, 0.68);
-}
-
-.about-overlay-copyright {
-  color: rgba(0, 0, 0, 0.3);
-  padding-top: 0.15rem;
-}
-:global([data-theme='dark']) .about-overlay-copyright {
-  color: rgba(255, 255, 255, 0.24);
-}
-
-@media (max-width: 540px) {
-  .about-overlay-panel {
-    max-width: calc(100vw - 1.25rem);
-    max-height: calc(100vh - 1.5rem);
-    border-radius: 16px;
-    padding: 0.9rem 0.9rem 0.85rem;
+@media screen and (max-width: 600px) {
+  :global(.sheet.sheet--about-source .sheet-fullscreen-btn) {
+    display: none;
   }
-}
 
-.about-fade-enter-active,
-.about-fade-leave-active {
-  transition:
-    opacity 0.2s ease,
-    transform 0.2s ease;
-}
-.about-fade-enter-from,
-.about-fade-leave-to {
-  opacity: 0;
-  transform: scale(0.97);
+  .about-source {
+    padding: 0.4rem 1rem calc(1.1rem + env(safe-area-inset-bottom));
+  }
+
+  .about-source__overview {
+    min-height: 13.5rem;
+    padding-left: 0.9rem;
+  }
+
+  .about-source__identity {
+    align-items: flex-start;
+    gap: 0.7rem;
+  }
+
+  .about-source__logo {
+    width: 2.9rem;
+    height: 2.9rem;
+  }
+
+  .about-source__build {
+    gap: 0.8rem 1.25rem;
+  }
+
+  .about-source__section + .about-source__section {
+    margin-top: 1rem;
+  }
+
+  .about-source__list > :is(a, button) {
+    min-height: 4.25rem;
+    grid-template-columns: 1.45rem minmax(0, 1fr) auto;
+    gap: 0.65rem;
+    padding: 0.7rem 0.1rem;
+  }
+
+  .about-source__row-value {
+    display: none;
+  }
+
+  .about-source__footer {
+    flex-direction: column;
+  }
 }
 </style>

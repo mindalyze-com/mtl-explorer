@@ -1,0 +1,25 @@
+IMP_06 per-source UI verification after normal reload recovery
+
+Each exact source filename was entered in Statistics > Tracks search and returned one visible matching row:
+- JuraRoute72011.gpx -> Track 100000 -> Jura Route 7 / 2011 on GPSies.com
+- MoselradwegAusWiki.gpx -> Track 100002 -> Moselradweg aus Wiki on GPSies.com
+- Vitry-le-Francois_Langres.gpx -> Track 100001 -> Vitry le françois - langres on GPSies.com
+- VoieVerteHauteVosges.gpx -> Track 100003 -> voie verte haute vosges on GPSies.com
+- Lannion_Plestin_parcours24.4RE.gpx -> Track 100004 -> Lannion_Plestin_parcours Lannion_Plestin_parcours1
+
+Map direct evidence:
+- Clicking the Brittany geometry opened Track 100004.
+- Clicking the Vitry-Langres geometry opened Track 100001.
+- Clicking the Mosel geometry opened Track 100002.
+- Clicking the Jura geometry opened Track 100000.
+- Clicking the Vosges/Mosel overlap opened a two-track selection list; selecting voie verte opened Track 100003.
+
+Statistics Overview:
+- Totals: 5 tracks, 1,043 km, 23h 31m, 4,527 Wh, 12,936 m ascent.
+- Recent Activity contains all five imported track names.
+
+Filter:
+- Current result: 5 matching tracks, Smart Base Filter, No criteria, All 1 categories.
+- Filter > Review tracks lists all five names with 5 tracks, 1,043 km, 23h 31m.
+
+No console error/warning was observed during the search/map verification.

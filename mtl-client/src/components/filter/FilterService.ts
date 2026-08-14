@@ -183,6 +183,7 @@ export class FilterService {
       'geoCircles',
       'geoRectangles',
       'geoPolygons',
+      'resultGroupSelection',
       'trackIds',
     ]);
     const rawParams = params as Record<string, unknown>;
@@ -228,7 +229,8 @@ export class FilterService {
         _.isEmpty(filterParams.stringParams) &&
         _.isEmpty(filterParams.geoCircles) &&
         _.isEmpty(filterParams.geoRectangles) &&
-        _.isEmpty(filterParams.geoPolygons));
+        _.isEmpty(filterParams.geoPolygons) &&
+        filterParams.resultGroupSelection == null);
     return isStandardFilter && isStandardParams;
   }
 

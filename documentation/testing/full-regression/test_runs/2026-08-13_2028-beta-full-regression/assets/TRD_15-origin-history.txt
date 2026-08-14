@@ -1,0 +1,23 @@
+Coverage ID: TRD_15
+
+Direct detail
+- Opened `/mtl/track/100000` directly.
+- Close returned to `/mtl/` with the 12-track map and no detail tabs.
+
+Statistics > Tracks, desktop
+- Filtered Statistics Tracks to Activity.fit: two visible table rows (header + #100005).
+- Opened #100005.
+- Close returned to `/mtl/stats` on the active Tracks tab, but the table showed 13 visible rows (header + all 12 tracks); the search was lost.
+- Repeated with browser Back: filtered table had two visible rows before open; Back returned to `/mtl/stats` with 13 visible rows. Forward returned to `/mtl/track/100005` and rendered #100005.
+
+Filter > Review tracks, desktop
+- Exact source-filename search Activity.fit unexpectedly produced zero matches; Track 100005 search produced one result and is used only for this origin-return test.
+- Close from #100005 returned to `/mtl/filter` with the nested review still open, one matching track, and two visible rows.
+- Browser Back likewise restored the one-result review; Forward restored #100005 details.
+
+Narrow mobile
+- This terminal failure was established on desktop before the repeat. The selected in-app browser exposes no viewport resize/emulation capability, so a narrow repeat was not used to overwrite or soften the reproducible failure.
+
+Issue
+- TRD-15-P2: Statistics > Tracks loses its search/result set when Track Details closes or browser Back returns to the origin. Filter Review preserves the same kind of state.
+

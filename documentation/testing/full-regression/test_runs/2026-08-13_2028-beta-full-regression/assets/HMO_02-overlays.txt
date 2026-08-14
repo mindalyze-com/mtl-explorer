@@ -1,0 +1,16 @@
+Route-overlay independence and opacity
+
+All seven exposed overlays were enabled individually, verified at 1/7, and
+disabled before testing the next:
+- Worldwide Hiking: opacity slider present at 100.
+- Worldwide Cycling: opacity slider present at 100.
+- Worldwide Mountain biking: opacity slider present at 100.
+- Swiss Hiking routes: opacity slider present at 100.
+- Swiss Cycling routes: opacity slider present at 100.
+- Swiss Mountain bike routes: opacity slider present at 100.
+- Swiss Hiking trails: opacity slider present at 100.
+
+Worldwide Cycling was then enabled and changed to 40% opacity. Its labeled
+Waymarked Trails network visibly lightened while the blue user-track geometry
+remained strong above it at intersections. Heatmap remained a separate lower
+layer. Cycling was restored off after capture; all route overlays ended off.

@@ -10,6 +10,7 @@ import com.x8ing.mtl.server.mtlserver.db.entity.gps.GpsTrackData;
 import com.x8ing.mtl.server.mtlserver.db.repository.gps.GpsTrackDataRepository;
 import com.x8ing.mtl.server.mtlserver.db.repository.gps.GpsTrackEventRepository;
 import com.x8ing.mtl.server.mtlserver.db.repository.gps.GpsTrackRepository;
+import com.x8ing.mtl.server.mtlserver.planner.PlannerGeometryMetrics;
 import com.x8ing.mtl.server.mtlserver.planner.constants.PlannerConstants;
 import com.x8ing.mtl.server.mtlserver.planner.dto.*;
 import lombok.extern.slf4j.Slf4j;
@@ -190,16 +191,11 @@ public class PlannedTrackService {
      * Full plan payload for re-hydrating the editor: original waypoints +
      * already-routed geometry + the profile the route was built with.
      *
-     * @throws IllegalArgumentException if the track does not exist or is not PLANNED
+    * @throws IllegalArgumentException if the track does not exist or is not PLANNED
      */
     public PlannedTrackDetailDto loadDetail(long id) {
-        GpsTrack track = gpsTrackRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Plan not found: " + id));
-        if (track.getTrackSource() != GpsTrack.TRACK_SOURCE.PLANNED) {
-            throw new IllegalArgumentException("Track " + id + " is not a planned route");
-        }
-        GpsTrackData data = gpsTrackDataRepository.findFirstByGpsTrackIdAndPrecisionInMeter(
-                id, GpsTrackData.PRECISION_1M);
+        GpsTrack track = requirePlannedTrack(id);
+        GpsTrackData data = loadPlanGeometry(id);
 
         PlannedTrackDetailDto out = new PlannedTrackDetailDto();
         out.setId(track.getId());
@@ -254,13 +250,8 @@ public class PlannedTrackService {
      * @throws IllegalArgumentException if the track does not exist or is not PLANNED
      */
     public String buildGpx(long id) {
-        GpsTrack track = gpsTrackRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Plan not found: " + id));
-        if (track.getTrackSource() != GpsTrack.TRACK_SOURCE.PLANNED) {
-            throw new IllegalArgumentException("Track " + id + " is not a planned route");
-        }
-        GpsTrackData data = gpsTrackDataRepository.findFirstByGpsTrackIdAndPrecisionInMeter(
-                id, GpsTrackData.PRECISION_1M);
+        GpsTrack track = requirePlannedTrack(id);
+        GpsTrackData data = loadPlanGeometry(id);
         if (data == null || data.getTrack() == null) {
             throw new IllegalArgumentException("No geometry found for plan: " + id);
         }
@@ -283,6 +274,20 @@ public class PlannedTrackService {
         sb.append("  </trk>\n");
         sb.append("</gpx>");
         return sb.toString();
+    }
+
+    private GpsTrack requirePlannedTrack(long id) {
+        GpsTrack track = gpsTrackRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Plan not found: " + id));
+        if (track.getTrackSource() != GpsTrack.TRACK_SOURCE.PLANNED) {
+            throw new IllegalArgumentException("Track " + id + " is not a planned route");
+        }
+        return track;
+    }
+
+    private GpsTrackData loadPlanGeometry(long id) {
+        return gpsTrackDataRepository.findFirstByGpsTrackIdAndPrecisionInMeter(
+                id, GpsTrackData.PRECISION_1M);
     }
 
     private static String escapeXml(String s) {
@@ -398,7 +403,7 @@ public class PlannedTrackService {
         if (legs != null && !legs.isEmpty()) {
             return aggregateLegStats(legs);
         }
-        ElevationTotals elevationTotals = computeAscentDescent(coords);
+        PlannerGeometryMetrics.ElevationTotals elevationTotals = PlannerGeometryMetrics.elevationTotals(coords);
         LiveStatsDto stats = new LiveStatsDto();
         stats.setDistanceM(track.getTrackLengthInMeter() == null ? geometryLength(coords) : track.getTrackLengthInMeter());
         stats.setAscentM(track.getAscentInMeter() == null ? elevationTotals.ascentM() : track.getAscentInMeter());
@@ -415,27 +420,6 @@ public class PlannedTrackService {
             lengthM += haversine(coords.get(i - 1)[1], coords.get(i - 1)[0], coords.get(i)[1], coords.get(i)[0]);
         }
         return lengthM;
-    }
-
-    private static ElevationTotals computeAscentDescent(List<double[]> coords) {
-        double ascent = 0.0;
-        double descent = 0.0;
-        for (int i = 1; i < coords.size(); i++) {
-            double dz = coords.get(i)[2] - coords.get(i - 1)[2];
-            if (dz > PlannerConstants.MIN_ELEVATION_DELTA_M) {
-                ascent += dz;
-            } else if (dz < -PlannerConstants.MIN_ELEVATION_DELTA_M) {
-                descent += -dz;
-            }
-        }
-        return new ElevationTotals(ascent, descent);
-    }
-
-    @JsonPropertyOrder({
-            "ascentM",
-            "descentM"
-    })
-    private record ElevationTotals(double ascentM, double descentM) {
     }
 
     @JsonPropertyOrder({

@@ -2,137 +2,215 @@
   <div>
     <BottomSheet
       v-model="active"
-      title="Animate"
-      icon="bi bi-play-circle"
       :detents="sheetDetents"
       initial-detent="open"
+      :selected-detent="selectedSheetDetent"
       no-backdrop
+      :sheet-class="sheetClass"
+      @detent-change="onSheetDetentChange"
       @closed="onSheetClosed"
     >
-      <div v-if="active" class="am-root">
-        <section class="am-overview">
-          <div class="am-overview-top">
-            <div class="am-hero-controls">
-              <button
-                class="am-play-hero"
-                :disabled="!hasFeatures"
-                :aria-label="animationInProgress ? 'Pause animation' : 'Play animation'"
-                @click="onPlayPauseToggle"
-              >
-                <i :class="animationInProgress ? 'bi bi-pause-fill' : 'bi bi-play-fill'"></i>
-              </button>
-              <button
-                class="am-stop-btn"
-                :disabled="!animationInProgress && animationIndex === rangeValue[0]"
-                aria-label="Stop animation"
-                @click="onStopAnimation"
-              >
-                <i class="bi bi-stop-fill"></i>
-              </button>
-            </div>
+      <template #title>
+        <div class="am-header">
+          <i class="bi bi-play-circle am-header__icon" aria-hidden="true"></i>
+          <h2 class="am-header__title compact-heading">Animate</h2>
+        </div>
+      </template>
 
-            <section class="am-section am-section--inline-speed">
-              <div class="am-section-head am-timeline-head">
-                <div class="am-tracks-summary">
-                  <span class="am-section-label">Speed</span>
-                </div>
-              </div>
-              <div class="am-timeline">
-                <div class="am-timeline-slider-wrap">
-                  <MtlSlider
-                    v-model="speedSliderPos"
-                    :min="ANIMATION_SPEED_SLIDER_MIN"
-                    :max="ANIMATION_SPEED_SLIDER_MAX"
-                    :step="1"
-                    class="am-timeline-slider"
-                    aria-label="Adjust animation speed"
-                  />
-                </div>
-                <div class="am-timeline-labels">
-                  <span class="am-date"></span>
-                  <span class="am-date-current">{{ animationSpeed }}ms</span>
-                  <span class="am-date am-date--end"></span>
-                </div>
-              </div>
-            </section>
+      <div v-if="active" class="am-root" :class="{ 'am-root--compact': isPlaybackCompact }">
+        <div v-if="!hasFeatures" class="am-empty" role="status">
+          <span class="am-empty__icon"><i class="bi bi-signpost-split" aria-hidden="true"></i></span>
+          <div>
+            <h3>No tracks to animate</h3>
+            <p>Change the filter or import tracks, then open Animate again.</p>
+          </div>
+        </div>
+
+        <section
+          v-else-if="isPlaybackCompact"
+          class="am-compact"
+          :class="`am-compact--${playbackPhase}`"
+          aria-labelledby="am-compact-title"
+          aria-live="polite"
+        >
+          <div class="am-compact__copy">
+            <span class="am-eyebrow settings-eyebrow">{{ playbackStatusLabel }}</span>
+            <div class="am-compact__summary">
+              <h3 id="am-compact-title">{{ playbackHeadline }}</h3>
+              <span>{{ playedTrackCount }} / {{ rangeTrackCount }}</span>
+            </div>
           </div>
 
-          <section class="am-section am-section--timeline">
-            <div class="am-section-head am-timeline-head">
-              <div class="am-tracks-summary">
-                <span class="am-section-label">Tracks</span>
-                <span class="am-tracks-separator"> </span>
-                <span class="am-tracks-value">{{ visibleCount }} / {{ rangeTrackCount }}</span>
-              </div>
+          <div class="am-compact__controls">
+            <button
+              type="button"
+              class="am-compact__expand"
+              aria-label="Open playback settings"
+              @click="openPlaybackSettings"
+            >
+              <i class="bi bi-chevron-up" aria-hidden="true"></i>
+            </button>
+            <button
+              v-if="playbackPhase === 'playing' || playbackPhase === 'paused'"
+              type="button"
+              class="am-stop-button"
+              aria-label="Stop animation and open playback settings"
+              @click="onStopAnimation"
+            >
+              <i class="bi bi-stop-fill" aria-hidden="true"></i>
+              <span>Stop</span>
+            </button>
+            <button
+              ref="compactPlayButton"
+              type="button"
+              class="am-play-button am-play-button--compact"
+              :aria-label="playButtonAriaLabel"
+              @click="onPlayPauseToggle"
+            >
+              <i :class="animationInProgress ? 'bi bi-pause-fill' : 'bi bi-play-fill'" aria-hidden="true"></i>
+              <span>{{ playButtonLabel }}</span>
+            </button>
+          </div>
+
+          <div class="am-compact__progress" aria-hidden="true">
+            <span :style="{ width: playbackProgressPercent + '%' }"></span>
+          </div>
+        </section>
+
+        <template v-else>
+          <section
+            class="am-playback status-rail"
+            :class="`am-playback--${playbackPhase}`"
+            aria-labelledby="am-playback-title"
+            aria-live="polite"
+          >
+            <div class="am-playback__copy">
+              <span class="am-eyebrow settings-eyebrow">{{ playbackStatusLabel }}</span>
+              <h3 id="am-playback-title" class="am-playback__headline">{{ playbackHeadline }}</h3>
+              <p class="am-playback__detail">{{ playbackDetail }}</p>
             </div>
-            <div class="am-timeline">
-              <div class="am-timeline-slider-wrap">
-                <MtlSlider
-                  v-model="rangeValue"
-                  :range="true"
-                  :min="0"
-                  :max="Math.max(totalCount - 1, 0)"
-                  :disabled="!sortedFeatures.length"
-                  class="am-timeline-slider"
-                  aria-label="Select animation track range"
-                  @change="onRangeChange"
-                />
-                <div
-                  v-if="showPlayhead"
-                  class="am-playhead"
-                  :style="{ left: playheadPercent + '%' }"
-                  aria-hidden="true"
-                ></div>
-              </div>
-              <div class="am-timeline-labels">
-                <span class="am-date">{{ rangeDateStart }}</span>
-                <span class="am-date-current">{{ currentDateLabel }}</span>
-                <span class="am-date am-date--end">{{ rangeDateEnd }}</span>
-              </div>
+
+            <div class="am-playback__controls">
+              <button
+                type="button"
+                class="am-reset-button"
+                :disabled="!playbackResetAvailable"
+                aria-label="Reset animation to the beginning"
+                @click="onResetAnimation"
+              >
+                <i class="bi bi-arrow-counterclockwise" aria-hidden="true"></i>
+                <span>Reset</span>
+              </button>
+              <button type="button" class="am-play-button" :aria-label="playButtonAriaLabel" @click="onPlayPauseToggle">
+                <i :class="animationInProgress ? 'bi bi-pause-fill' : 'bi bi-play-fill'" aria-hidden="true"></i>
+                <span>{{ playButtonLabel }}</span>
+              </button>
             </div>
           </section>
 
-          <section class="am-section am-section--speed">
-            <div class="am-section-head">
-              <span class="am-section-title">Playback Speed</span>
+          <section class="am-settings" aria-labelledby="am-settings-title">
+            <div class="am-settings__heading settings-section-heading">
+              <div>
+                <h3 id="am-settings-title">Playback settings</h3>
+                <p>Choose which tracks play and how quickly they appear.</p>
+              </div>
             </div>
-            <MtlSlider
-              v-model="speedSliderPos"
-              :min="ANIMATION_SPEED_SLIDER_MIN"
-              :max="ANIMATION_SPEED_SLIDER_MAX"
-              :step="1"
-              class="am-speed-slider"
-              aria-label="Adjust animation speed"
-            />
-            <div class="am-speed-labels">
-              <span class="am-speed-edge"><i class="bi bi-hourglass"></i> Slow</span>
-              <span class="am-speed-ms">{{ animationSpeed }}ms</span>
-              <span class="am-speed-edge am-speed-edge--end">Fast <i class="bi bi-lightning-charge-fill"></i></span>
+
+            <div class="am-settings__grid">
+              <section class="am-setting am-setting--range" aria-labelledby="am-range-title">
+                <div class="am-setting__head">
+                  <span class="am-setting__icon"><i class="bi bi-calendar-range" aria-hidden="true"></i></span>
+                  <div class="am-setting__copy">
+                    <h4 id="am-range-title">Date range</h4>
+                    <p>{{ rangeSummary }}</p>
+                  </div>
+                  <span class="am-setting__value">{{ rangeTrackCount }} {{ trackCountLabel }}</span>
+                </div>
+
+                <div class="am-slider-wrap">
+                  <MtlSlider
+                    v-model="rangeValue"
+                    :range="true"
+                    :min="0"
+                    :max="Math.max(totalCount - 1, 0)"
+                    class="am-slider"
+                    aria-label="Select animation date range"
+                    :aria-value-text="[rangeDateStart, rangeDateEnd]"
+                    @change="onRangeChange"
+                  />
+                  <div
+                    v-if="showPlayhead"
+                    class="am-playhead"
+                    :style="{ left: playheadPercent + '%' }"
+                    aria-hidden="true"
+                  ></div>
+                </div>
+                <div class="am-range-labels" aria-hidden="true">
+                  <span>{{ rangeDateStart }}</span>
+                  <span>{{ rangeDateEnd }}</span>
+                </div>
+              </section>
+
+              <section class="am-setting am-setting--speed" aria-labelledby="am-speed-title">
+                <div class="am-setting__head">
+                  <span class="am-setting__icon"><i class="bi bi-speedometer2" aria-hidden="true"></i></span>
+                  <div class="am-setting__copy">
+                    <h4 id="am-speed-title">Playback speed</h4>
+                    <p>{{ estimatedDurationLabel }}</p>
+                  </div>
+                  <span class="am-setting__value">{{ speedLabel }}</span>
+                </div>
+
+                <MtlSlider
+                  v-model="speedSliderPos"
+                  :min="ANIMATION_SPEED_SLIDER_MIN"
+                  :max="ANIMATION_SPEED_SLIDER_MAX"
+                  :step="1"
+                  class="am-slider"
+                  aria-label="Adjust animation speed"
+                  :aria-value-text="`${speedLabel}, ${animationSpeed} milliseconds per track`"
+                />
+                <div class="am-speed-labels" aria-hidden="true">
+                  <span><i class="bi bi-hourglass" aria-hidden="true"></i> Slow</span>
+                  <span class="am-speed-ms">{{ animationSpeed }} ms per track</span>
+                  <span>Fast <i class="bi bi-lightning-charge-fill" aria-hidden="true"></i></span>
+                </div>
+              </section>
             </div>
           </section>
-        </section>
+        </template>
       </div>
     </BottomSheet>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, getCurrentInstance, markRaw, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { computed, getCurrentInstance, markRaw, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import type maplibregl from 'maplibre-gl';
 import BottomSheet from '@/components/ui/BottomSheet.vue';
 import MtlSlider from '@/components/ui/MtlSlider.vue';
 import { formatDate } from '@/utils/Utils';
 import { TRACK_COLOR } from '@/utils/trackColors';
 
-const DESKTOP_BP = 769;
-const ANIMATE_MAX_VH = 60;
-const ANIMATE_DESKTOP_OPEN_HEIGHT = 320;
-const ANIMATE_MOBILE_OPEN_HEIGHT = 320;
+const MOBILE_VIEWPORT_BREAKPOINT_PX = 769;
+const ANIMATE_PLAYBACK_HEIGHT = 'clamp(9.75rem, 20vh, 10.5rem)';
+const ANIMATE_DESKTOP_OPEN_HEIGHT = 'min(60vh, 27rem)';
+const ANIMATE_MOBILE_OPEN_HEIGHT = 'min(74vh, 34rem)';
+const ANIMATE_MAX_HEIGHT = '92vh';
 const RANGE_LOOKBACK_TRACK_COUNT = 50;
 const ANIMATION_SPEED_MIN_MS = 1;
 const ANIMATION_SPEED_MAX_MS = 1000;
 const ANIMATION_SPEED_SLIDER_MIN = 0;
 const ANIMATION_SPEED_SLIDER_MAX = 100;
+const MILLISECONDS_PER_SECOND = 1000;
+const SECONDS_PER_MINUTE = 60;
+const ANIMATION_SPEED_LABELS = [
+  { minimumSliderPosition: 85, label: 'Very fast' },
+  { minimumSliderPosition: 65, label: 'Fast' },
+  { minimumSliderPosition: 40, label: 'Balanced' },
+  { minimumSliderPosition: 20, label: 'Slow' },
+  { minimumSliderPosition: ANIMATION_SPEED_SLIDER_MIN, label: 'Very slow' },
+] as const;
 const ANIMATION_LAYER_ID = 'animation-layer';
 const ANIMATION_SOURCE_ID = 'animation-source';
 const HIDDEN_TRACK_LAYER_OPACITY = 0;
@@ -182,6 +260,9 @@ type TrackFeature = {
   properties?: { startDate?: Date | number | string; [key: string]: unknown };
 };
 
+type PlaybackPhase = 'ready' | 'playing' | 'paused' | 'finished';
+type SheetDetentId = 'playback' | 'open' | 'max';
+
 type Emits = {
   (event: 'animate', payload: { animateIndexCurrent: number; animateIndexMax: number; currentDate: Date }): void;
   (event: 'animationFinished', message: string): void;
@@ -207,7 +288,10 @@ const animationSpeed = ref(20);
 const sortedFeatures = ref<TrackFeature[]>([]);
 const animationIndex = ref(0);
 const rangeValue = ref<[number, number]>([0, 0]);
-const viewportWidth = ref(typeof window !== 'undefined' ? window.innerWidth : DESKTOP_BP);
+const playbackPhase = ref<PlaybackPhase>('ready');
+const selectedSheetDetent = ref<SheetDetentId>('open');
+const compactPlayButton = ref<HTMLButtonElement | null>(null);
+const viewportWidth = ref(typeof window !== 'undefined' ? window.innerWidth : MOBILE_VIEWPORT_BREAKPOINT_PX);
 
 const color1 = [255, 0, 0] as const;
 const color2 = [0, 0, 255] as const;
@@ -215,35 +299,37 @@ let timerId: ReturnType<typeof setInterval> | null = null;
 let trackLayerPaintBeforeAnimation = new Map<string, unknown>();
 let trackLayerVisibilityBeforeAnimation = new Map<string, unknown>();
 
-const isMobileViewport = computed(() => viewportWidth.value < DESKTOP_BP);
-const sheetOpenHeight = computed(() =>
-  isMobileViewport.value ? ANIMATE_MOBILE_OPEN_HEIGHT : ANIMATE_DESKTOP_OPEN_HEIGHT
-);
-const sheetDetents = computed(() => {
-  const openPx = sheetOpenHeight.value;
-  const collapsedPx = Math.max(120, Math.min(openPx - 60, Math.round(openPx * 0.72)));
-  return [
-    { id: 'collapsed', height: `${collapsedPx}px` },
-    { id: 'open', height: `${openPx}px` },
-    { id: 'max', height: `${ANIMATE_MAX_VH}vh` },
-  ];
-});
 const hasFeatures = computed(() => sortedFeatures.value.length > 0);
+const sheetDetents = computed(() => [
+  { id: 'playback', height: ANIMATE_PLAYBACK_HEIGHT },
+  {
+    id: 'open',
+    height:
+      viewportWidth.value < MOBILE_VIEWPORT_BREAKPOINT_PX ? ANIMATE_MOBILE_OPEN_HEIGHT : ANIMATE_DESKTOP_OPEN_HEIGHT,
+  },
+  { id: 'max', height: ANIMATE_MAX_HEIGHT },
+]);
+const isPlaybackCompact = computed(() => selectedSheetDetent.value === 'playback');
+const sheetClass = computed(() =>
+  isPlaybackCompact.value
+    ? ['sheet--solid-over-map', 'sheet--animate', 'sheet--animate-playback']
+    : ['sheet--solid-over-map', 'sheet--animate']
+);
 const totalCount = computed(() => sortedFeatures.value.length);
 const rangeTrackCount = computed(() => {
   if (!sortedFeatures.value.length) return 0;
   return rangeValue.value[1] - rangeValue.value[0] + 1;
 });
-const visibleCount = computed(() => {
-  if (!sortedFeatures.value.length) return 0;
-  if (animationInProgress.value) {
-    return Math.max(0, animationIndex.value - rangeValue.value[0] + 1);
-  }
-  return rangeTrackCount.value;
+const trackCountLabel = computed(() => (rangeTrackCount.value === 1 ? 'track' : 'tracks'));
+const playedTrackCount = computed(() => {
+  if (!hasFeatures.value || playbackPhase.value === 'ready') return 0;
+  return Math.min(rangeTrackCount.value, Math.max(1, animationIndex.value - rangeValue.value[0] + 1));
 });
-const showPlayhead = computed(
-  () => hasFeatures.value && (animationInProgress.value || animationIndex.value > rangeValue.value[0])
-);
+const playbackProgressPercent = computed(() => {
+  if (!rangeTrackCount.value) return 0;
+  return Math.min(100, Math.max(0, (playedTrackCount.value / rangeTrackCount.value) * 100));
+});
+const showPlayhead = computed(() => hasFeatures.value && playbackPhase.value !== 'ready');
 const playheadPercent = computed(() => {
   if (sortedFeatures.value.length <= 1) return 0;
   const max = sortedFeatures.value.length - 1;
@@ -271,6 +357,9 @@ const rangeDateEnd = computed(() => {
   const d = parseFeatureStartDate(f);
   return d ? formatDate(d) : '—';
 });
+const rangeSummary = computed(() =>
+  rangeDateStart.value === rangeDateEnd.value ? rangeDateStart.value : `${rangeDateStart.value} – ${rangeDateEnd.value}`
+);
 // Logarithmic speed slider: left is slow (long delay), right is fast (short delay).
 const speedSliderPos = computed({
   get() {
@@ -295,14 +384,71 @@ const speedSliderPos = computed({
     animationSpeed.value = Math.min(ANIMATION_SPEED_MAX_MS, Math.max(ANIMATION_SPEED_MIN_MS, ms));
   },
 });
-
-watch(active, (val) => {
-  if (val) prepareSortedFeatures();
+const speedLabel = computed(() => {
+  const position = speedSliderPos.value;
+  return (
+    ANIMATION_SPEED_LABELS.find(({ minimumSliderPosition }) => position >= minimumSliderPosition)?.label ??
+    ANIMATION_SPEED_LABELS[ANIMATION_SPEED_LABELS.length - 1].label
+  );
 });
+const estimatedDurationLabel = computed(() => {
+  const durationMs = rangeTrackCount.value * animationSpeed.value;
+  if (durationMs < MILLISECONDS_PER_SECOND) return 'Plays in under 1 second';
+  const totalSeconds = Math.ceil(durationMs / MILLISECONDS_PER_SECOND);
+  if (totalSeconds < SECONDS_PER_MINUTE) return `Plays in about ${totalSeconds} seconds`;
+  const minutes = Math.floor(totalSeconds / SECONDS_PER_MINUTE);
+  const seconds = totalSeconds % SECONDS_PER_MINUTE;
+  return seconds === 0 ? `Plays in about ${minutes} min` : `Plays in about ${minutes} min ${seconds} sec`;
+});
+const playbackStatusLabel = computed(() => {
+  switch (playbackPhase.value) {
+    case 'playing':
+      return 'Playing';
+    case 'paused':
+      return 'Paused';
+    case 'finished':
+      return 'Finished';
+    default:
+      return 'Playback ready';
+  }
+});
+const playbackHeadline = computed(() => {
+  if (playbackPhase.value === 'finished') return 'Replay complete';
+  if (playbackPhase.value === 'playing' || playbackPhase.value === 'paused') return currentDateLabel.value;
+  return `${rangeTrackCount.value} ${trackCountLabel.value} ready`;
+});
+const playbackDetail = computed(() => {
+  if (playbackPhase.value === 'playing') {
+    return `${playedTrackCount.value} of ${rangeTrackCount.value} tracks replayed`;
+  }
+  if (playbackPhase.value === 'paused') {
+    return `${playedTrackCount.value} of ${rangeTrackCount.value} tracks replayed · Resume when ready`;
+  }
+  if (playbackPhase.value === 'finished') {
+    return `${rangeTrackCount.value} tracks replayed through ${rangeDateEnd.value}`;
+  }
+  return rangeSummary.value;
+});
+const playbackResetAvailable = computed(
+  () => animationInProgress.value || playbackPhase.value === 'paused' || playbackPhase.value === 'finished'
+);
+const playButtonLabel = computed(() => {
+  if (animationInProgress.value) return 'Pause';
+  if (playbackPhase.value === 'paused') return 'Resume';
+  if (playbackPhase.value === 'finished') return 'Replay';
+  return 'Play';
+});
+const playButtonAriaLabel = computed(() => `${playButtonLabel.value} animation`);
+
 watch(
   () => props.geojson,
   () => {
-    if (active.value) prepareSortedFeatures();
+    if (!active.value) return;
+    const shouldEmitStop = animationInProgress.value || timerId != null || hasAnimationLayer();
+    stopAnimationPlayback({ renderStoppedRange: false, emitStop: shouldEmitStop });
+    restoreTrackLayers();
+    selectedSheetDetent.value = 'open';
+    prepareSortedFeatures();
   }
 );
 watch(animationSpeed, () => {
@@ -314,15 +460,11 @@ watch(animationSpeed, () => {
 });
 
 onMounted(() => {
-  if (typeof window !== 'undefined') {
-    window.addEventListener('resize', onViewportResize);
-  }
+  if (typeof window !== 'undefined') window.addEventListener('resize', onViewportResize);
 });
 
 onBeforeUnmount(() => {
-  if (typeof window !== 'undefined') {
-    window.removeEventListener('resize', onViewportResize);
-  }
+  if (typeof window !== 'undefined') window.removeEventListener('resize', onViewportResize);
   if (hasAnimationStateToCleanUp()) closeAnimationSession();
 });
 
@@ -333,9 +475,9 @@ function onViewportResize() {
 async function toggle() {
   active.value = !active.value;
   if (active.value) {
+    selectedSheetDetent.value = 'open';
     emit('tool-opened');
     prepareSortedFeatures();
-    hideTrackLayersForAnimation();
   } else {
     onClose();
   }
@@ -344,9 +486,9 @@ async function toggle() {
 function open() {
   if (active.value) return;
   active.value = true;
+  selectedSheetDetent.value = 'open';
   emit('tool-opened');
   prepareSortedFeatures();
-  hideTrackLayersForAnimation();
 }
 
 function close() {
@@ -362,10 +504,10 @@ function onSheetClosed() {
 }
 
 function closeAnimationSession({ emitToolClosed = false } = {}) {
-  const shouldEmitStop =
-    animationInProgress.value || timerId != null || Boolean(props.map?.getLayer(ANIMATION_LAYER_ID));
+  const shouldEmitStop = animationInProgress.value || timerId != null || hasAnimationLayer();
   stopAnimationPlayback({ renderStoppedRange: false, emitStop: shouldEmitStop });
   restoreTrackLayers();
+  selectedSheetDetent.value = 'open';
   active.value = false;
   if (emitToolClosed) {
     emit('tool-closed');
@@ -376,6 +518,16 @@ function onClose() {
   closeAnimationSession();
 }
 
+function onSheetDetentChange(detentId: string) {
+  if (detentId === 'playback' || detentId === 'open' || detentId === 'max') {
+    selectedSheetDetent.value = detentId;
+  }
+}
+
+function openPlaybackSettings() {
+  selectedSheetDetent.value = 'open';
+}
+
 function stopAnimationPlayback({ renderStoppedRange = true, emitStop = true } = {}) {
   if (timerId) {
     clearInterval(timerId);
@@ -383,6 +535,7 @@ function stopAnimationPlayback({ renderStoppedRange = true, emitStop = true } = 
   }
   animationInProgress.value = false;
   animationIndex.value = rangeValue.value[0] || 0;
+  playbackPhase.value = 'ready';
   if (renderStoppedRange && sortedFeatures.value.length) {
     ensureAnimationLayer();
     renderRangeFrame();
@@ -398,6 +551,7 @@ function prepareSortedFeatures() {
   if (!geojson?.features?.length) {
     sortedFeatures.value = [];
     rangeValue.value = [0, 0];
+    playbackPhase.value = 'ready';
     return;
   }
   sortedFeatures.value = markRaw(
@@ -407,6 +561,7 @@ function prepareSortedFeatures() {
   );
   rangeValue.value = [0, sortedFeatures.value.length - 1];
   animationIndex.value = 0;
+  playbackPhase.value = 'ready';
 }
 
 // ─── Shared layer helpers ──────────────────────────────────────
@@ -414,32 +569,38 @@ function prepareSortedFeatures() {
 function ensureAnimationLayer() {
   const map = props.map;
   if (!map) return;
-  hideTrackLayersForAnimation();
-  if (map.getLayer(ANIMATION_LAYER_ID)) map.removeLayer(ANIMATION_LAYER_ID);
-  if (map.getSource(ANIMATION_SOURCE_ID)) map.removeSource(ANIMATION_SOURCE_ID);
-
-  map.addSource(ANIMATION_SOURCE_ID, {
-    type: 'geojson',
-    data: { type: 'FeatureCollection', features: [] },
-  });
-  map.addLayer({
-    id: ANIMATION_LAYER_ID,
-    type: 'line',
-    source: ANIMATION_SOURCE_ID,
-    layout: { 'line-join': 'round', 'line-cap': 'butt' },
-    paint: {
-      'line-color': ['coalesce', ['get', '_animColor'], TRACK_COLOR],
-      'line-width': 4,
-      'line-opacity': 1,
-    },
-  });
+  const animationLayerExists = Boolean(map.getLayer(ANIMATION_LAYER_ID));
+  if (!animationLayerExists) hideTrackLayersForAnimation();
+  if (!map.getSource(ANIMATION_SOURCE_ID)) {
+    map.addSource(ANIMATION_SOURCE_ID, {
+      type: 'geojson',
+      data: { type: 'FeatureCollection', features: [] },
+    });
+  }
+  if (!animationLayerExists) {
+    map.addLayer({
+      id: ANIMATION_LAYER_ID,
+      type: 'line',
+      source: ANIMATION_SOURCE_ID,
+      layout: { 'line-join': 'round', 'line-cap': 'butt' },
+      paint: {
+        'line-color': ['coalesce', ['get', '_animColor'], TRACK_COLOR],
+        'line-width': 4,
+        'line-opacity': 1,
+      },
+    });
+  }
 }
 
 function removeAnimationLayer() {
   const map = props.map;
   if (!map) return;
-  if (map.getLayer(ANIMATION_LAYER_ID)) map.removeLayer(ANIMATION_LAYER_ID);
-  if (map.getSource(ANIMATION_SOURCE_ID)) map.removeSource(ANIMATION_SOURCE_ID);
+  try {
+    if (map.getLayer(ANIMATION_LAYER_ID)) map.removeLayer(ANIMATION_LAYER_ID);
+    if (map.getSource(ANIMATION_SOURCE_ID)) map.removeSource(ANIMATION_SOURCE_ID);
+  } catch {
+    // The map can be disposed before this tool unmounts.
+  }
 }
 
 function hasAnimationStateToCleanUp() {
@@ -449,8 +610,16 @@ function hasAnimationStateToCleanUp() {
     timerId != null ||
     trackLayerPaintBeforeAnimation.size > 0 ||
     trackLayerVisibilityBeforeAnimation.size > 0 ||
-    Boolean(props.map?.getLayer(ANIMATION_LAYER_ID))
+    hasAnimationLayer()
   );
+}
+
+function hasAnimationLayer() {
+  try {
+    return Boolean(props.map?.getLayer(ANIMATION_LAYER_ID));
+  } catch {
+    return false;
+  }
 }
 
 function hideTrackLayersForAnimation() {
@@ -475,25 +644,26 @@ function hideTrackLayersForAnimation() {
 
 function restoreTrackLayers() {
   const map = props.map;
-  removeAnimationLayer();
-  if (!map) {
+  try {
+    removeAnimationLayer();
+    if (!map) return;
+    for (const { layerId, property } of TRACK_LAYER_PAINT_PROPERTIES) {
+      const snapshotKey = trackLayerPaintSnapshotKey(layerId, property);
+      if (map.getLayer(layerId) && trackLayerPaintBeforeAnimation.has(snapshotKey)) {
+        map.setPaintProperty(layerId, property, trackLayerPaintBeforeAnimation.get(snapshotKey));
+      }
+    }
+    for (const layerId of TRACK_LAYER_VISIBILITY_IDS) {
+      if (map.getLayer(layerId) && trackLayerVisibilityBeforeAnimation.has(layerId)) {
+        map.setLayoutProperty?.(layerId, 'visibility', trackLayerVisibilityBeforeAnimation.get(layerId));
+      }
+    }
+  } catch {
+    // The map can be disposed before this tool unmounts.
+  } finally {
     trackLayerPaintBeforeAnimation = new Map<string, unknown>();
     trackLayerVisibilityBeforeAnimation = new Map<string, unknown>();
-    return;
   }
-  for (const { layerId, property } of TRACK_LAYER_PAINT_PROPERTIES) {
-    const snapshotKey = trackLayerPaintSnapshotKey(layerId, property);
-    if (map.getLayer(layerId) && trackLayerPaintBeforeAnimation.has(snapshotKey)) {
-      map.setPaintProperty(layerId, property, trackLayerPaintBeforeAnimation.get(snapshotKey));
-    }
-  }
-  for (const layerId of TRACK_LAYER_VISIBILITY_IDS) {
-    if (map.getLayer(layerId) && trackLayerVisibilityBeforeAnimation.has(layerId)) {
-      map.setLayoutProperty?.(layerId, 'visibility', trackLayerVisibilityBeforeAnimation.get(layerId));
-    }
-  }
-  trackLayerPaintBeforeAnimation = new Map<string, unknown>();
-  trackLayerVisibilityBeforeAnimation = new Map<string, unknown>();
 }
 
 function trackLayerPaintSnapshotKey(layerId: string, property: string): string {
@@ -532,21 +702,32 @@ async function onStartAnimation() {
   }
   ensureAnimationLayer();
   animationInProgress.value = true;
+  playbackPhase.value = 'playing';
   renderFrame();
   timerId = setInterval(animationFunction, animationSpeed.value);
   emit(EVENTS.animationStart, 'animation has started');
+  selectedSheetDetent.value = 'playback';
+  await nextTick();
+  compactPlayButton.value?.focus({ preventScroll: true });
 }
 
-function onPauseAnimation() {
+function onPauseAnimation(nextPhase: PlaybackPhase = 'paused') {
   if (timerId) {
     clearInterval(timerId);
     timerId = null;
   }
   animationInProgress.value = false;
+  playbackPhase.value = nextPhase;
 }
 
-async function onStopAnimation() {
+function onResetAnimation() {
   stopAnimationPlayback();
+}
+
+function onStopAnimation() {
+  stopAnimationPlayback({ renderStoppedRange: false });
+  restoreTrackLayers();
+  selectedSheetDetent.value = 'open';
 }
 
 function animationFunction() {
@@ -555,7 +736,7 @@ function animationFunction() {
     animationIndex.value = rangeValue.value[1];
     renderFrame();
     emit(EVENTS.animationFinished, 'animation has finished');
-    onPauseAnimation();
+    onPauseAnimation('finished');
     restoreTrackLayers();
     return;
   }
@@ -619,14 +800,11 @@ function renderRangeFrame() {
 
 function onRangeChange() {
   if (!sortedFeatures.value.length) return;
-  // Editing the range while animating interrupts playback.
   if (animationInProgress.value) {
     onPauseAnimation();
   }
-  // Snap scrub index back into the selected range.
-  if (animationIndex.value < rangeValue.value[0] || animationIndex.value > rangeValue.value[1]) {
-    animationIndex.value = rangeValue.value[0];
-  }
+  animationIndex.value = rangeValue.value[0];
+  playbackPhase.value = 'ready';
   ensureAnimationLayer();
   renderRangeFrame();
   emit(EVENTS.animationStart, 'range filter active');
@@ -656,188 +834,427 @@ defineExpose({
 </script>
 
 <style scoped>
+:global(.sheet.sheet--animate-playback .sheet-fullscreen-btn) {
+  display: none;
+}
+
+.am-header {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.am-header__icon {
+  color: var(--accent-text);
+  font-size: var(--text-sm-size);
+}
+
 .am-root {
   display: flex;
+  width: 100%;
+  margin: 0 auto;
+  padding: 0.5rem 1rem 1.1rem;
+  box-sizing: border-box;
   flex: 1 1 auto;
   flex-direction: column;
+  gap: 1.3rem;
   min-height: 0;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior-y: contain;
-  padding: 0.1rem 1rem 1rem;
   color: var(--text-secondary);
+  scrollbar-width: none;
 }
 
-.am-overview {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  min-height: 0;
+.am-root::-webkit-scrollbar {
+  display: none;
 }
 
-.am-overview-top {
-  display: flex;
+.am-root--compact {
+  justify-content: center;
+  gap: 0;
+  padding: 0.25rem 1rem 0.6rem;
+  overflow: hidden;
+}
+
+.am-compact {
+  position: relative;
+  display: grid;
+  width: 100%;
+  min-width: 0;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  flex-wrap: wrap;
-  min-height: 2.6rem;
   gap: 0.75rem;
+  padding: 0.15rem 0 0.65rem;
 }
 
-.am-tracks-summary {
-  display: flex;
-  flex-direction: row;
-  align-items: baseline;
-  gap: 0.35em;
+.am-compact__copy {
   min-width: 0;
 }
 
-/* ── Type scale ─────────────────────────────────────────────────
-   xs-caps : 0.65rem / weight 600 / uppercase / text-muted      (labels)
-   sm      : 0.75rem / weight 400 / text-secondary              (dates, edges)
-   md-val  : 0.9rem  / weight 600 / text-primary or accent-text (key numbers)
-─────────────────────────────────────────────────────────────── */
-
-.am-section-label {
-  font-size: var(--text-2xs-size);
-  font-weight: 600;
-  line-height: var(--text-2xs-lh);
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
-  color: var(--text-muted);
+.am-compact__copy .am-eyebrow {
+  margin-bottom: 0.1rem;
 }
 
-.am-tracks-value {
-  font-size: var(--text-xs-size);
-  font-weight: 400;
-  line-height: var(--text-xs-lh);
-  color: var(--text-muted);
-}
-
-.am-hero-controls {
+.am-compact__summary {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.55rem;
-}
-
-.am-play-hero {
-  width: 2.6rem;
-  height: 2.6rem;
-  border: none;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: var(--text-2xl-size);
-  line-height: var(--text-2xl-lh);
-  color: white;
-  background: var(--accent);
-  cursor: pointer;
-  transition:
-    background 0.15s ease,
-    opacity 0.15s ease;
-  padding: 0;
-}
-.am-play-hero .bi-play-fill {
-  /* Visually center the play triangle */
-  transform: translateX(2px);
-}
-
-.am-play-hero:hover:not(:disabled) {
-  background: var(--accent-hover);
-}
-
-.am-play-hero:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-}
-
-.am-stop-btn {
-  width: 2.6rem;
-  height: 2.6rem;
-  border: 1px solid var(--border-medium);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: var(--text-lg-size);
-  color: var(--text-muted);
-  background: var(--surface-elevated);
-  cursor: pointer;
-  transition:
-    background 0.15s,
-    color 0.15s,
-    border-color 0.15s;
-  flex-shrink: 0;
-}
-.am-stop-btn:hover:not(:disabled) {
-  background: var(--surface-hover);
-  color: var(--text-primary);
-}
-.am-stop-btn:disabled {
-  opacity: 0.35;
-  cursor: not-allowed;
-}
-
-.am-section {
-  display: flex;
-  flex-direction: column;
-  gap: 0.65rem;
-  padding-top: 0.85rem;
-  border-top: 1px solid var(--border-subtle);
-}
-
-.am-section--timeline {
-  padding-top: 0;
-  border-top: none;
-}
-
-.am-section-head {
-  display: flex;
+  min-width: 0;
   align-items: baseline;
-  justify-content: space-between;
-  gap: 0.75rem;
+  gap: 0.45rem;
 }
 
-.am-section-title {
-  font-size: var(--text-2xs-size);
-  font-weight: 600;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
-  color: var(--text-muted);
-}
-
-.am-speed-ms {
-  font-size: var(--text-xs-size);
-  font-weight: 400;
-  color: var(--text-muted);
-  letter-spacing: 0.01em;
+.am-compact__summary h3 {
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  color: var(--text-primary);
+  font-size: var(--text-base-size);
+  font-weight: var(--font-bold);
+  line-height: var(--text-base-lh);
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.am-timeline {
+.am-compact__summary span {
+  flex: 0 0 auto;
+  color: var(--text-muted);
+  font-size: var(--text-xs-size);
+  font-weight: var(--font-semibold);
+  line-height: var(--text-xs-lh);
+  white-space: nowrap;
+}
+
+.am-compact__controls {
   display: flex;
-  flex-direction: column;
+  align-items: center;
   gap: 0.4rem;
+}
+
+.am-compact__expand,
+.am-stop-button,
+.am-reset-button,
+.am-play-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 0.6rem;
+  background: var(--surface-hover);
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: var(--text-sm-size);
+  font-weight: var(--font-semibold);
+  line-height: var(--text-sm-lh);
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease,
+    opacity 0.15s ease;
+}
+
+.am-compact__expand,
+.am-stop-button {
+  min-height: 2.6rem;
+}
+
+.am-compact__expand {
+  width: 2.6rem;
+  padding: 0;
+  border: 1px solid var(--border-medium);
+  border-radius: 50%;
+}
+
+.am-stop-button {
+  gap: 0.3rem;
+  padding: 0.5rem 0.65rem;
+}
+
+.am-compact__expand:hover,
+.am-stop-button:hover {
+  background: var(--surface-active);
+  color: var(--text-primary);
+}
+
+.am-compact__expand:focus-visible,
+.am-stop-button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.am-compact__progress {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 3px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--border-default);
+}
+
+.am-compact__progress span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--accent);
+  transition: width 0.18s linear;
+}
+
+.am-compact--finished .am-compact__progress span {
+  background: var(--success);
+}
+
+.am-empty {
+  display: flex;
+  min-height: 14rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.9rem;
+  padding: 1rem;
+  text-align: left;
+}
+
+.am-empty__icon {
+  display: inline-flex;
+  width: 2.7rem;
+  height: 2.7rem;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--surface-hover);
+  color: var(--text-muted);
+  font-size: var(--text-lg-size);
+}
+
+.am-empty h3,
+.am-empty p {
+  margin: 0;
+}
+
+.am-empty h3 {
+  color: var(--text-primary);
+  font-size: var(--text-base-size);
+  font-weight: var(--font-bold);
+  line-height: var(--text-base-lh);
+}
+
+.am-empty p {
+  margin-top: 0.2rem;
+  line-height: var(--text-xs-lh);
+  font-size: var(--text-xs-size);
+  color: var(--text-muted);
+}
+
+.am-playback {
+  position: relative;
+  display: flex;
+  min-height: 9.4rem;
+  box-sizing: border-box;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1.25rem;
+  padding: 0.8rem 0.15rem 0.8rem 1.05rem;
+}
+
+.am-playback--paused::before {
+  background: var(--border-medium);
+}
+
+.am-playback--finished::before {
+  background: var(--success);
+}
+
+.am-playback__copy {
   min-width: 0;
 }
 
-.am-timeline-slider-wrap {
-  position: relative;
-  padding: 0.2rem 0.2rem;
+.am-playback__headline {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: var(--text-lg-size);
+  font-weight: var(--font-bold);
+  line-height: var(--text-lg-lh);
 }
 
-/* Playhead marker on top of slider */
+.am-playback__detail {
+  min-height: var(--text-sm-lh);
+  margin: 0.3rem 0 0;
+  color: var(--text-muted);
+  font-size: var(--text-sm-size);
+  line-height: var(--text-sm-lh);
+}
+
+.am-playback__controls {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 0.55rem;
+  padding-top: 0.35rem;
+}
+
+.am-reset-button,
+.am-play-button {
+  min-height: 2.65rem;
+  gap: 0.45rem;
+}
+
+.am-reset-button {
+  padding: 0.5rem 0.7rem;
+  background: transparent;
+  color: var(--text-secondary);
+}
+
+.am-reset-button:hover:not(:disabled) {
+  background: var(--surface-hover);
+  color: var(--text-primary);
+}
+
+.am-reset-button:disabled {
+  cursor: default;
+  opacity: 0.38;
+}
+
+.am-play-button {
+  min-width: 6.2rem;
+  padding: 0.5rem 0.9rem;
+  background: var(--accent);
+  color: white;
+}
+
+.am-play-button:hover {
+  background: var(--accent-hover);
+}
+
+.am-play-button .bi-play-fill {
+  transform: translateX(1px);
+}
+
+.am-play-button--compact {
+  min-width: 5.8rem;
+  min-height: 2.6rem;
+  padding: 0.45rem 0.75rem;
+}
+
+.am-play-button:focus-visible,
+.am-reset-button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.am-settings {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.am-settings__heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  padding: 0 0.15rem;
+}
+
+.am-settings__grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(16.75rem, 0.8fr);
+  border-top: 1px solid var(--border-default);
+  border-bottom: 1px solid var(--border-default);
+}
+
+.am-setting {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.8rem 0.15rem 0.75rem;
+}
+
+.am-setting--range {
+  padding-right: 1.15rem;
+  border-right: 1px solid var(--border-subtle, var(--border-default));
+}
+
+.am-setting--speed {
+  padding-left: 1.15rem;
+}
+
+.am-setting__head {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: 1.5rem minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.am-setting__icon {
+  display: inline-flex;
+  width: 1.5rem;
+  height: 1.5rem;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  font-size: var(--text-base-size);
+}
+
+.am-setting__copy {
+  min-width: 0;
+}
+
+.am-setting__copy h4,
+.am-setting__copy p {
+  margin: 0;
+}
+
+.am-setting__copy h4 {
+  color: var(--text-primary);
+  font-size: var(--text-sm-size);
+  font-weight: var(--font-semibold);
+  line-height: var(--text-sm-lh);
+}
+
+.am-setting__copy p {
+  margin-top: 0.05rem;
+  overflow: hidden;
+  color: var(--text-muted);
+  font-size: var(--text-xs-size);
+  line-height: var(--text-xs-lh);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media screen and (min-width: 769px) {
+  .am-setting--speed .am-setting__copy p {
+    white-space: normal;
+  }
+}
+
+.am-setting__value {
+  overflow: hidden;
+  color: var(--text-secondary);
+  font-size: var(--text-xs-size);
+  font-weight: var(--font-semibold);
+  line-height: var(--text-xs-lh);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.am-slider-wrap {
+  position: relative;
+}
+
 .am-playhead {
   position: absolute;
-  top: 0;
-  bottom: 0;
+  top: 0.35rem;
+  bottom: 0.35rem;
   width: 2px;
   background: var(--accent);
   transform: translateX(-1px);
   pointer-events: none;
   border-radius: 1px;
 }
+
 .am-playhead::before {
   content: '';
   position: absolute;
@@ -847,157 +1264,149 @@ defineExpose({
   height: 10px;
   border-radius: 50%;
   background: var(--accent);
-  border: 2px solid var(--surface-elevated);
+  border: 2px solid var(--surface-sheet-solid);
   transform: translate(-50%, -50%);
 }
 
-.am-timeline-labels {
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
-  align-items: center;
-  font-size: var(--text-xs-size);
-  color: var(--text-muted);
-  gap: 0.5rem;
-}
-.am-date {
-  font-weight: 400;
-  color: var(--text-muted);
-}
-.am-date--end {
-  text-align: right;
-}
-.am-date-current {
-  font-size: var(--text-xs-size);
-  font-weight: 400;
-  color: var(--text-muted);
-  text-align: center;
-  letter-spacing: 0.01em;
-}
-
-.am-speed-edge {
-  font-size: var(--text-xs-size);
-  font-weight: 400;
-  color: var(--text-muted);
-}
-
+.am-range-labels,
 .am-speed-labels {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.75rem;
+  gap: 0.65rem;
+  color: var(--text-muted);
+  font-size: var(--text-xs-size);
+  line-height: var(--text-xs-lh);
 }
 
-.am-speed-edge--end {
+.am-speed-labels > span:last-child {
   text-align: right;
 }
 
-/* Inline speed in first row — desktop only */
-.am-section--inline-speed {
-  display: none;
+.am-speed-ms {
+  text-align: center;
+  white-space: nowrap;
 }
 
-@media (min-width: 769px) {
-  .am-overview {
-    display: grid;
-    grid-template-columns: auto minmax(360px, 1.6fr) minmax(260px, 0.9fr);
-    align-items: start;
-    column-gap: 1rem;
-    row-gap: 0;
-  }
-
-  .am-overview-top {
-    display: contents;
-  }
-
-  .am-hero-controls {
-    grid-column: 1;
-    grid-row: 1;
-    align-self: center;
-  }
-
-  .am-section--inline-speed {
-    grid-column: 3;
-    grid-row: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 0.2rem;
-    min-width: 0;
-    padding-top: 0;
-    border-top: none;
-  }
-
-  .am-section--speed {
-    display: none;
-  }
-
-  .am-section--timeline {
-    grid-column: 2;
-    grid-row: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 0.2rem;
-    min-width: 0;
-    padding-top: 0;
-    border-top: none;
-  }
-
-  .am-timeline-head {
-    margin: 0;
-    min-height: 1.35rem;
-    align-items: center;
-  }
-
-  .am-timeline {
-    min-width: 0;
-  }
-}
-
-.am-timeline-slider,
-.am-speed-slider {
+.am-slider {
   --mtl-slider-track-height-default: 4px;
   --mtl-slider-track-height-coarse: 4px;
   --mtl-slider-handle-halo-active: 0 0 0 5px var(--accent-glow);
 }
 
-@media (min-width: 769px) {
-  .am-root {
-    padding: 0.2rem 1rem 1rem;
+@media screen and (max-width: 768px) {
+  :global(.sheet.sheet--animate .sheet-fullscreen-btn) {
+    display: none;
   }
 
-  .am-overview {
-    gap: 0.9rem;
+  .am-root {
+    padding: 0.55rem 1rem calc(1.1rem + env(safe-area-inset-bottom));
+    gap: 1.05rem;
+  }
+
+  .am-root--compact {
+    padding: 0.2rem 0.85rem calc(0.55rem + env(safe-area-inset-bottom));
+  }
+
+  .am-compact {
+    gap: 0.55rem;
+  }
+
+  .am-playback {
+    min-height: 9.8rem;
+    flex-direction: column;
+    gap: 0.8rem;
+    padding: 0.75rem 0.1rem 0.75rem 0.9rem;
+  }
+
+  .am-playback::before {
+    top: 0.8rem;
+    bottom: 0.8rem;
+  }
+
+  .am-playback__detail {
+    min-height: calc(2 * var(--text-sm-lh));
+  }
+
+  .am-playback__controls {
+    width: 100%;
+    justify-content: flex-end;
+    padding-top: 0;
+  }
+
+  .am-play-button {
+    min-width: 6.5rem;
+  }
+
+  .am-settings__grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .am-setting--range,
+  .am-setting--speed {
+    padding: 0.75rem 0.1rem 0.7rem;
+    border-right: 0;
+  }
+
+  .am-setting--range {
+    border-bottom: 1px solid var(--border-subtle, var(--border-default));
+  }
+
+  .am-setting__head {
+    grid-template-columns: 1.45rem minmax(0, 1fr) auto;
   }
 }
 
-@media only screen and (max-width: 600px) {
-  .am-root {
-    padding: 0.1rem 0.75rem 0.9rem;
+@media screen and (max-width: 420px) {
+  .am-settings__heading p,
+  .am-speed-ms {
+    display: none;
   }
 
-  .am-overview {
-    gap: 0.65rem;
+  .am-setting {
+    gap: 0.2rem;
   }
 
-  .am-overview-top {
-    flex-wrap: wrap;
-    min-height: 2.3rem;
-    gap: 0.65rem;
+  .am-setting__copy p {
+    max-width: 11.5rem;
   }
 
-  .am-play-hero {
-    width: 2.3rem;
-    height: 2.3rem;
-    font-size: var(--text-lg-size);
+  .am-reset-button,
+  .am-play-button {
+    min-height: 2.55rem;
   }
 
-  .am-stop-btn {
-    width: 2.3rem;
-    height: 2.3rem;
-    font-size: var(--text-base-size);
+  .am-compact__expand,
+  .am-stop-button,
+  .am-play-button--compact {
+    min-height: 2.55rem;
   }
 
-  .am-timeline-labels {
-    font-size: var(--text-xs-size);
+  .am-compact__expand {
+    width: 2.55rem;
+  }
+
+  .am-stop-button {
+    padding-inline: 0.55rem;
+  }
+
+  .am-play-button--compact {
+    min-width: 5.35rem;
+    padding-inline: 0.65rem;
+  }
+}
+
+@media screen and (max-width: 350px) {
+  .am-compact__summary span,
+  .am-stop-button span {
+    display: none;
+  }
+
+  .am-stop-button {
+    width: 2.55rem;
+    padding: 0;
+    border: 1px solid var(--border-medium);
+    border-radius: 50%;
   }
 }
 </style>

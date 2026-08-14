@@ -20,8 +20,6 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
@@ -219,23 +217,7 @@ public class GarminExporter {
             command.add(garminExcludeActivitiesFile);
             command.add(gcexportVersion);
 
-            // Create a ProcessBuilder instance for the command
-            ProcessBuilder builder = new ProcessBuilder(command);
-            builder.redirectErrorStream(true); // redirect stderr to stdout
-
-            // Start the process
-            Process process = builder.start();
-
-            // Read the output
-            try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    log(line, programOutput, false);
-                }
-            }
-
-            // Wait for the process to terminate
-            int exitCode = process.waitFor();
+            int exitCode = GarminProcessRunner.run(command, line -> log(line, programOutput, false));
 
             long dt = System.currentTimeMillis() - t0;
 
@@ -341,21 +323,10 @@ public class GarminExporter {
             command.add(fitExportSaveDir);
             command.add(fitProfile); // versioned venv profile (e.g. "default")
 
-            ProcessBuilder builder = new ProcessBuilder(command);
-            builder.redirectErrorStream(true);
-
-            Process process = builder.start();
-
-            try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    String logLine = "[FIT-EXPORT] " + line;
-                    log(logLine, programOutput, false);
-                    fitExportOutput.append(line).append("\n");
-                }
-            }
-
-            int exitCode = process.waitFor();
+            int exitCode = GarminProcessRunner.run(command, line -> {
+                log("[FIT-EXPORT] " + line, programOutput, false);
+                fitExportOutput.append(line).append("\n");
+            });
 
             if (exitCode == 0) {
                 log("✅ Successfully exported activity %s using FIT export tool".formatted(activityId), programOutput, true);

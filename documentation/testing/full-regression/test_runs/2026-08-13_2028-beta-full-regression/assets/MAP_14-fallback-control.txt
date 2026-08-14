@@ -1,0 +1,17 @@
+MAP_14 local-vector fallback control audit
+
+Restored original Compose app service on frozen image:
+- image: wauwau0977/mytraillog:beta
+- image ID: sha256:e3ccb3a856d377a9931ed0d395c01eacbc24c066f37c496c4d2fe4a093daa1a8
+- MTL_MAP_SERVER_TILE_MODE is absent; authenticated config reports tileMode=local.
+
+Live map status/config:
+- phase: public-fallback
+- ready: true
+- message: Using hosted map service
+- tileSource: public
+- archiveId: public-default
+- tileBaseUrl: /mtl/api/map-proxy/prod
+- tileArchiveUrl: /mtl/api/map-proxy/prod/planet.pmtiles?mtl-map-source=public&mtl-map-archive=public-default
+
+The quick-install stack has services app, db, brouter, and location-search only. It has no local-maps profile service or map-server sidecar. Its normal local tile-mode is already proxying a hosted/public PMTiles fallback. The run exposes no safe, scoped switch to fail only the local PMTiles archive while preserving the application and public fallback path. Per the frozen requirement and retest instructions, MAP_14 is blocked when this control is unavailable.

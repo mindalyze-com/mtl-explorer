@@ -1,0 +1,22 @@
+Coverage ID: DEL_03
+Deleted records: #100001 Vitry; #100003 VoieVerte
+
+Freshness helper result:
+- Map count: 5 -> 3
+- Statistics Trends: 3 tracks, 817 km, 15h 50m, 3,621 Wh
+- Statistics Track Browser: 3 tracks, 817 km, 15h 50m; deleted-name searches returned 0 of 3 and "No tracks match".
+- Filter Current result: incorrectly remained 5 matching tracks.
+- Filter Review tracks: incorrectly remained 5 tracks, 1,043 km, 23h 31m and still listed both deleted records.
+
+This reproduces the cross-surface freshness defect first recorded as IMP-05-P1, now in the opposite 5->3 direction. The server, map, and Statistics were current while Filter retained its old cached dataset.
+
+Normal browser reload recovery:
+- Filter Current result: 3 matching tracks
+- Filter Review tracks: 3 tracks, 817 km, 15h 50m
+- Only Jura #100000, Mosel #100002, and Lannion #100004 remain.
+- Main map shows exactly those three geometries; old Vitry and VoieVerte lines are absent.
+- At the prior Mosel/VoieVerte overlap, a click opens Mosel #100002 directly; no stale two-track chooser appears.
+- Mosel Related shows Previous: none and Next: Lannion; neither deleted record appears.
+- Heatmap contains only the three remaining route paths; no Vitry path or VoieVerte loop remains.
+
+Result: FAIL because the normal freshness Reload did not remove deleted records from Filter. All required user-visible surfaces became correct only after a full browser reload.

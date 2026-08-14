@@ -6,24 +6,24 @@
           <i class="bi bi-graph-up stats-sheet-icon"></i>
           <div class="stats-header-tabs">
             <button
-              class="stats-header-tab"
-              :class="{ 'stats-header-tab--active': activeTab === 'overview' }"
+              class="stats-header-tab sheet-header-tab"
+              :class="{ 'sheet-header-tab--active': activeTab === 'overview' }"
               @pointerdown.stop
               @click="activeTab = 'overview'"
             >
               Overview
             </button>
             <button
-              class="stats-header-tab"
-              :class="{ 'stats-header-tab--active': activeTab === 'stats' }"
+              class="stats-header-tab sheet-header-tab"
+              :class="{ 'sheet-header-tab--active': activeTab === 'stats' }"
               @pointerdown.stop
               @click="activeTab = 'stats'"
             >
               Trends
             </button>
             <button
-              class="stats-header-tab"
-              :class="{ 'stats-header-tab--active': activeTab === 'tracks' }"
+              class="stats-header-tab sheet-header-tab"
+              :class="{ 'sheet-header-tab--active': activeTab === 'tracks' }"
               @pointerdown.stop
               @click="activeTab = 'tracks'"
             >
@@ -33,17 +33,19 @@
         </div>
       </template>
       <div v-if="active" class="statistics-root">
-        <Tabs v-model:value="activeTab">
+        <Tabs v-model:value="activeTab" class="sheet-scroll-tabs">
           <TabPanels>
             <!-- ── Tab 1: Overview ── -->
             <TabPanel value="overview">
               <StatisticsOverview
-                :tracks="tracks"
+                :tracks="statisticsTracks"
                 :tracks-count="tracksCount"
                 :unfiltered-total="unfilteredTotal"
                 :filter-revision="filterStore.trackSetRevision"
                 :filter-request="filterStore.activeFilterRequest"
                 @open-details="emit('open-details', $event)"
+                @open-filter="emit('open-filter')"
+                @track-updated="onOverviewTrackUpdated"
                 @view-all-tracks="showNewestTracks"
                 @view-highlight-exclusions="showHighlightExclusions"
               />
@@ -52,26 +54,18 @@
             <!-- ── Tab 2: Track Log ── -->
             <TabPanel value="tracks">
               <div class="tracks-tab">
-                <TrackBrowserQuickViews
-                  v-model="trackQuickView"
-                  :options="trackQuickViewOptions"
-                  @update:model-value="onTrackQuickViewChanged"
-                />
-                <TrackBrowserControls
-                  :query="trackQuery"
-                  :summary="trackFilterSummary"
-                  :total-count="trackTotalCount"
-                  @update:query="trackQuery = $event"
-                />
-                <TrackBrowserTable
-                  :rows="trackRows"
+                <TrackBrowserView
+                  ref="trackBrowserView"
+                  :tracks="trackBrowserSourceTracks"
                   :selected-track-id="selectedTrackId ?? null"
-                  :query="trackQuery"
-                  :compact="isMobile"
-                  :sort-reset-key="trackSortResetKey"
+                  :reset-key="trackBrowserResetKey"
                   @select-track="emit('select-track', $event)"
                   @open-details="emit('open-details', $event)"
-                />
+                >
+                  <template #toolbar>
+                    <TrackBrowserQuickViews v-model="trackQuickView" :options="trackQuickViewOptions" />
+                  </template>
+                </TrackBrowserView>
               </div>
             </TabPanel>
 
@@ -106,15 +100,21 @@
                       />
                     </div>
                     <!-- ── Table / Charts toggle ── -->
-                    <div class="stats-view-toggle">
+                    <div class="stats-view-toggle view-toggle">
                       <button
-                        :class="['toggle-btn', { 'toggle-btn--active': statsView === 'table' }]"
+                        :class="[
+                          'toggle-btn view-toggle-button',
+                          { 'view-toggle-button--active': statsView === 'table' },
+                        ]"
                         @click="statsView = 'table'"
                       >
                         <i class="bi bi-table"></i> Table
                       </button>
                       <button
-                        :class="['toggle-btn', { 'toggle-btn--active': statsView === 'charts' }]"
+                        :class="[
+                          'toggle-btn view-toggle-button',
+                          { 'view-toggle-button--active': statsView === 'charts' },
+                        ]"
                         @click="statsView = 'charts'"
                       >
                         <i class="bi bi-bar-chart-line"></i> Charts
@@ -217,8 +217,10 @@
                         style="min-width: 5rem"
                       />
                       <Column
-                        field="totalTrackDurationSecs"
-                        header="Duration"
+                        v-for="column in smartValueColumns"
+                        :key="column.field"
+                        :field="column.field"
+                        :header="column.header"
                         :sortable="true"
                         header-class="number-column"
                         class="number-column"
@@ -227,68 +229,11 @@
                         <template #body="slotProps">
                           <span
                             v-tooltip.top="{
-                              value: formatDurationTooltip(slotProps.data.totalTrackDurationSecs * 1000),
+                              value: smartValueTooltip(slotProps.data, column),
                               showDelay: 400,
                             }"
                           >
-                            {{ formatDurationSmart(slotProps.data.totalTrackDurationSecs * 1000, durColMaxMs) }}
-                          </span>
-                        </template>
-                      </Column>
-                      <Column
-                        field="trackDurationSecsMed"
-                        header="Avg Duration"
-                        :sortable="true"
-                        header-class="number-column"
-                        class="number-column"
-                        style="min-width: 8rem"
-                      >
-                        <template #body="slotProps">
-                          <span
-                            v-tooltip.top="{
-                              value: formatDurationTooltip(slotProps.data.trackDurationSecsMed * 1000),
-                              showDelay: 400,
-                            }"
-                          >
-                            {{ formatDurationSmart(slotProps.data.trackDurationSecsMed * 1000, durColMaxMs) }}
-                          </span>
-                        </template>
-                      </Column>
-                      <Column
-                        field="trackLengthInMeterSum"
-                        header="Distance"
-                        :sortable="true"
-                        header-class="number-column"
-                        class="number-column"
-                        style="min-width: 8rem"
-                      >
-                        <template #body="slotProps">
-                          <span
-                            v-tooltip.top="{
-                              value: formatDistanceTooltip(slotProps.data.trackLengthInMeterSum),
-                              showDelay: 400,
-                            }"
-                          >
-                            {{ formatDistanceSmart(slotProps.data.trackLengthInMeterSum, distColMaxM) }}
-                          </span>
-                        </template>
-                      </Column>
-                      <Column
-                        field="trackLengthInMeterMed"
-                        header="Avg Dist."
-                        :sortable="true"
-                        header-class="number-column"
-                        class="number-column"
-                        style="min-width: 8rem"
-                      >
-                        <template #body="slotProps">
-                          <span
-                            v-tooltip.top="{
-                              value: formatDistanceTooltip(slotProps.data.trackLengthInMeterMed),
-                              showDelay: 400,
-                            }"
-                          >
-                            {{ formatDistanceSmart(slotProps.data.trackLengthInMeterMed, distColMaxM) }}
+                            {{ formatSmartValue(slotProps.data, column) }}
                           </span>
                         </template>
                       </Column>
@@ -412,25 +357,25 @@
                 <!-- ── Charts (inline) ── -->
                 <div v-if="statsView === 'charts' && filteredStatisticData.length > 0" class="charts-scroll">
                   <div class="chart-card">
-                    <div class="chart-header" style="--chart-header-accent: var(--chart-series-1)">
+                    <div class="chart-header chart-section-header" style="--chart-header-accent: var(--chart-series-1)">
                       <i class="bi bi-clock" style="color: var(--chart-series-1)"></i> Duration
                     </div>
                     <highcharts ref="chartDuration" :options="chartOptionsDuration" class="stat-chart" />
                   </div>
                   <div class="chart-card">
-                    <div class="chart-header" style="--chart-header-accent: var(--chart-series-2)">
+                    <div class="chart-header chart-section-header" style="--chart-header-accent: var(--chart-series-2)">
                       <i class="bi bi-signpost-split" style="color: var(--chart-series-2)"></i> Distance
                     </div>
                     <highcharts ref="chartDistance" :options="chartOptionsDistance" class="stat-chart" />
                   </div>
                   <div class="chart-card">
-                    <div class="chart-header" style="--chart-header-accent: var(--info)">
+                    <div class="chart-header chart-section-header" style="--chart-header-accent: var(--info)">
                       <i class="bi bi-bar-chart-line" style="color: var(--info)"></i> Activity
                     </div>
                     <highcharts ref="chartActivity" :options="chartOptionsActivity" class="stat-chart" />
                   </div>
                   <div v-if="summaryStats.hasEnergy" class="chart-card">
-                    <div class="chart-header" style="--chart-header-accent: var(--chart-series-3)">
+                    <div class="chart-header chart-section-header" style="--chart-header-accent: var(--chart-series-3)">
                       <i class="bi bi-lightning-charge" style="color: var(--chart-series-3)"></i> Energy
                       <button
                         class="info-btn info-btn--header"
@@ -443,7 +388,7 @@
                     <highcharts ref="chartEnergy" :options="chartOptionsEnergy" class="stat-chart" />
                   </div>
                   <div v-if="summaryStats.hasFitness" class="chart-card">
-                    <div class="chart-header" style="--chart-header-accent: var(--error)">
+                    <div class="chart-header chart-section-header" style="--chart-header-accent: var(--error)">
                       <i class="bi bi-speedometer2" style="color: var(--error)"></i> Intensity Index
                       <button
                         class="info-btn info-btn--header"
@@ -456,7 +401,10 @@
                     <highcharts ref="chartIntensityIndex" :options="chartOptionsIntensityIndex" class="stat-chart" />
                   </div>
                   <div v-if="summaryStats.hasFitness" class="chart-card">
-                    <div class="chart-header" style="--chart-header-accent: var(--accent-text-light)">
+                    <div
+                      class="chart-header chart-section-header"
+                      style="--chart-header-accent: var(--accent-text-light)"
+                    >
                       <i class="bi bi-heart-pulse" style="color: var(--accent-text-light)"></i> Training Load
                       <button
                         class="info-btn info-btn--header"
@@ -469,7 +417,7 @@
                     <highcharts ref="chartTrainingLoad" :options="chartOptionsTrainingLoad" class="stat-chart" />
                   </div>
                   <div class="chart-card">
-                    <div class="chart-header" style="--chart-header-accent: var(--success)">
+                    <div class="chart-header chart-section-header" style="--chart-header-accent: var(--success)">
                       <i class="bi bi-compass" style="color: var(--success)"></i> Exploration
                       <button
                         class="info-btn info-btn--header"
@@ -506,20 +454,10 @@
 </template>
 
 <script setup lang="ts">
-import {
-  computed,
-  markRaw,
-  nextTick,
-  onBeforeUnmount,
-  onMounted,
-  ref,
-  shallowRef,
-  watch,
-  type Ref,
-  type ShallowRef,
-} from 'vue';
+import { computed, markRaw, nextTick, ref, shallowRef, watch, type Ref, type ShallowRef } from 'vue';
 import {
   formatDistanceSmart as formatDistanceSmartUtil,
+  formatDistance,
   formatDurationSmart as formatDurationSmartUtil,
   formatDurationTooltip as formatDurationTooltipUtil,
   formatDistanceTooltip as formatDistanceTooltipUtil,
@@ -528,25 +466,41 @@ import {
 import { fetchStatistics as fetchStatisticsData } from '@/utils/ServiceHelper';
 import BottomSheet from '@/components/ui/BottomSheet.vue';
 import StatisticsOverview from '@/components/statistics/StatisticsOverview.vue';
-import TrackBrowserControls from '@/components/track-browser/TrackBrowserControls.vue';
 import TrackBrowserQuickViews from '@/components/track-browser/TrackBrowserQuickViews.vue';
-import TrackBrowserTable from '@/components/track-browser/TrackBrowserTable.vue';
-import { useTrackBrowser } from '@/components/track-browser/useTrackBrowser';
+import TrackBrowserView from '@/components/track-browser/TrackBrowserView.vue';
 import { useFilterStore, type ActiveFilterRequest } from '@/stores/filterStore';
 import type { TrackBrowserOption, TrackBrowserPreset } from '@/components/track-browser/trackBrowser.types';
 import type { GpsTrack, GpsTrackStatistics } from 'x8ing-mtl-api-typescript-fetch/dist/esm/models/index';
 import type Highcharts from 'highcharts';
+import { compactNum, hexToRgba } from '@/utils/chartTheme';
+import { useMeasurementSystem } from '@/composables/useMeasurementSystem';
+import { useMediaQuery } from '@/composables/useMediaQuery';
 
 const MOBILE_STATS_BP = 768;
 const CHART_REFLOW_DELAY_MS = 80;
 
 type StatsView = 'table' | 'charts';
+type StatisticsTab = 'overview' | 'stats' | 'tracks';
+type StatisticsNavigationState = {
+  tab: StatisticsTab;
+  trackQuickView: TrackBrowserPreset;
+  trackBrowserState?: unknown;
+};
+type TrackBrowserViewRef = {
+  getNavigationState: () => unknown;
+  restoreNavigationState: (state: unknown) => void;
+};
 type ChartComponent = { chart?: Highcharts.Chart };
 type ExtendedGpsTrackStatistics = GpsTrackStatistics & {
   explorationScoreAvg?: number;
   intensityIndexAvg?: number;
   normalizedPowerMed?: number;
   trainingLoadPerRideAvg?: number;
+};
+type SmartValueColumn = {
+  field: 'totalTrackDurationSecs' | 'trackDurationSecsMed' | 'trackLengthInMeterSum' | 'trackLengthInMeterMed';
+  header: string;
+  kind: 'duration' | 'distance';
 };
 type MutableChartOptions = Highcharts.Options & {
   xAxis: Highcharts.XAxisOptions & { categories?: string[] };
@@ -558,6 +512,7 @@ type Emits = {
   (event: 'tool-closed'): void;
   (event: 'select-track', trackId: number | string): void;
   (event: 'open-details', trackId: number | string): void;
+  (event: 'open-filter'): void;
 };
 
 defineOptions({ name: 'Statistics' });
@@ -579,22 +534,7 @@ const props = withDefaults(
 
 const emit = defineEmits<Emits>();
 const filterStore = useFilterStore();
-
-/** Compact number formatter for y-axis tick labels — no unit, no excess decimals */
-function compactNum(v: number): string {
-  if (v === 0) return '0';
-  if (Math.abs(v) >= 1000) return (v / 1000).toFixed(v % 1000 === 0 ? 0 : 1) + 'k';
-  if (Math.abs(v) >= 10) return Math.round(v).toString();
-  return parseFloat(v.toFixed(1)).toString();
-}
-
-function hexToRgba(hex: string, alpha: number): string {
-  const h = hex.replace('#', '');
-  const r = parseInt(h.substring(0, 2), 16);
-  const g = parseInt(h.substring(2, 4), 16);
-  const b = parseInt(h.substring(4, 6), 16);
-  return `rgba(${r},${g},${b},${alpha})`;
-}
+const { measurementSystem } = useMeasurementSystem();
 
 function cssToken(name: string): string {
   return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
@@ -604,7 +544,8 @@ function buildStatChart(
   seriesName: string,
   seriesColorToken: string,
   unit: string,
-  tooltipFormatter: (v: number) => string
+  tooltipFormatter: (v: number) => string,
+  axisFormatter?: (v: number) => string
 ): Highcharts.Options {
   const textColor = cssToken('--chart-text');
   const gridColor = cssToken('--chart-grid');
@@ -635,6 +576,7 @@ function buildStatChart(
       labels: {
         style: { color: textColor, fontSize: '12px' },
         formatter(this: Highcharts.AxisLabelsFormatterContextObject) {
+          if (axisFormatter) return axisFormatter(this.value as number);
           return this.isLast && unit
             ? compactNum(this.value as number) + '\u202f' + unit
             : compactNum(this.value as number);
@@ -697,14 +639,17 @@ const INFO_INTENSITY_INDEX =
   'Intensity Index = estimated NP ÷ your threshold power. 1.0 ≈ all-out 1 h effort if estimated power matches your real power.';
 const INFO_TRAINING_LOAD =
   'Training Load per ride = (estimated NP ÷ threshold)² × moving hours × 100. It scales duration and intensity, but inherits the limits of the estimated mechanical-power model.';
-const INFO_EXPLORATION =
-  'Average share of each track covering ground not visited before (within a 25 m grid). Calculated as a background job after indexing — may take a moment to appear.';
+const EXPLORATION_CORRIDOR_WIDTH_M = 25;
+const INFO_EXPLORATION = computed(
+  () =>
+    `Average share of each track covering ground not visited before (within a ${formatDistance(EXPLORATION_CORRIDOR_WIDTH_M, 0)} grid). Calculated as a background job after indexing — may take a moment to appear.`
+);
 
 const active = ref(false);
 const showMenu = ref(false);
-const activeTab = ref('overview');
+const activeTab = ref<StatisticsTab>('overview');
 const statsView = ref<StatsView>('charts');
-const trackSortResetKey = ref(0);
+const trackBrowserResetKey = ref(0);
 const trackQuickView = ref<TrackBrowserPreset>('all');
 const statisticData = ref<ExtendedGpsTrackStatistics[]>([]);
 const currentInfoText = ref('');
@@ -718,9 +663,15 @@ const statisticGroupings = [
   { name: 'YYYY-MM-DD (by year, week and day)', code: 'YYYY-MM-DD' },
   { name: 'Total', code: 'TOTAL' },
 ];
+const smartValueColumns: SmartValueColumn[] = [
+  { field: 'totalTrackDurationSecs', header: 'Duration', kind: 'duration' },
+  { field: 'trackDurationSecsMed', header: 'Avg Duration', kind: 'duration' },
+  { field: 'trackLengthInMeterSum', header: 'Distance', kind: 'distance' },
+  { field: 'trackLengthInMeterMed', header: 'Avg Dist.', kind: 'distance' },
+];
 const chartOptionsDuration = shallowRef(buildStatChart('Duration', '--chart-series-1', 'h', (v) => fmtHours(v)));
 const chartOptionsDistance = shallowRef(
-  buildStatChart('Distance', '--chart-series-2', 'km', (v) => v.toFixed(1) + ' km')
+  buildStatChart('Distance', '--chart-series-2', '', formatDistanceSmartUtil, formatDistanceSmartUtil)
 );
 const chartOptionsActivity = shallowRef(buildStatChart('Tracks', '--info', '', (v) => Math.round(v).toString()));
 const chartOptionsEnergy = shallowRef(
@@ -740,24 +691,35 @@ const chartIntensityIndex = ref<ChartComponent | null>(null);
 const chartTrainingLoad = ref<ChartComponent | null>(null);
 const chartExploration = ref<ChartComponent | null>(null);
 const infoPopover = ref<{ toggle: (event: Event) => void } | null>(null);
+const trackBrowserView = ref<TrackBrowserViewRef | null>(null);
 
-const windowWidth = ref(typeof window !== 'undefined' ? window.innerWidth : 1024);
-function onResize() {
-  windowWidth.value = window.innerWidth;
-}
-onMounted(() => window.addEventListener('resize', onResize));
-onBeforeUnmount(() => window.removeEventListener('resize', onResize));
-const isMobile = computed(() => windowWidth.value < MOBILE_STATS_BP);
+const isMobile = useMediaQuery(`(max-width: ${MOBILE_STATS_BP - 1}px)`);
 
-const tracksRef = computed(() => (props.tracks ?? []) as GpsTrack[]);
 const trackQuickViewOptions: TrackBrowserOption<TrackBrowserPreset>[] = [
   { label: 'All', value: 'all' },
   { label: 'Excluded', value: 'highlight-exclusions' },
   { label: 'Stats excluded', value: 'statistics-exclusions' },
   { label: 'No activity', value: 'missing-activity' },
 ];
+const trackOverrides = shallowRef<Map<number, GpsTrack>>(new Map());
+const statisticsTracks = computed(() => {
+  if (trackOverrides.value.size === 0) return props.tracks ?? [];
+
+  const sourceTracks = props.tracks ?? [];
+  const sourceIds = new Set<number>();
+  const mergedTracks = sourceTracks.map((track) => {
+    const trackId = Number(track.id);
+    if (!Number.isFinite(trackId)) return track;
+    sourceIds.add(trackId);
+    return trackOverrides.value.get(trackId) ?? track;
+  });
+  for (const [trackId, track] of trackOverrides.value) {
+    if (!sourceIds.has(trackId)) mergedTracks.push(track);
+  }
+  return mergedTracks;
+});
 const trackBrowserSourceTracks = computed(() => {
-  const tracks = tracksRef.value;
+  const tracks = statisticsTracks.value;
   switch (trackQuickView.value) {
     case 'highlight-exclusions':
       return tracks.filter((track) => track.highlightExclusionReason || track.statisticsExclusionReason);
@@ -770,29 +732,25 @@ const trackBrowserSourceTracks = computed(() => {
       return tracks;
   }
 });
-const {
-  query: trackQuery,
-  rows: trackRows,
-  summary: trackFilterSummary,
-  totalCount: trackTotalCount,
-} = useTrackBrowser(trackBrowserSourceTracks);
 
-function onTrackQuickViewChanged() {
-  // Keep the user's table search and sort when switching between track presets.
+function onOverviewTrackUpdated(track: GpsTrack): void {
+  const trackId = Number(track.id);
+  if (!Number.isFinite(trackId)) return;
+  const sourceTrack = statisticsTracks.value.find((candidate) => Number(candidate.id) === trackId);
+  const nextOverrides = new Map(trackOverrides.value);
+  nextOverrides.set(trackId, { ...sourceTrack, ...track });
+  trackOverrides.value = nextOverrides;
 }
-
 function showNewestTracks() {
   activeTab.value = 'tracks';
   trackQuickView.value = 'all';
-  trackQuery.value = '';
-  trackSortResetKey.value += 1;
+  trackBrowserResetKey.value += 1;
 }
 
 function showHighlightExclusions() {
   activeTab.value = 'tracks';
   trackQuickView.value = 'highlight-exclusions';
-  trackQuery.value = '';
-  trackSortResetKey.value += 1;
+  trackBrowserResetKey.value += 1;
 }
 
 const availableSubUnits = computed((): string[] => {
@@ -829,6 +787,24 @@ const durColMaxMs = computed((): number => {
     ...data.map((d: GpsTrackStatistics) => (d.trackDurationSecsMed ?? 0) * 1000)
   );
 });
+
+function smartValue(row: ExtendedGpsTrackStatistics, column: SmartValueColumn): number {
+  const value = Number(row[column.field]);
+  return Number.isFinite(value) ? value : 0;
+}
+
+function smartValueTooltip(row: ExtendedGpsTrackStatistics, column: SmartValueColumn): string {
+  const value = smartValue(row, column);
+  return column.kind === 'duration' ? formatDurationTooltip(value * 1000) : formatDistanceTooltip(value);
+}
+
+function formatSmartValue(row: ExtendedGpsTrackStatistics, column: SmartValueColumn): string {
+  const value = smartValue(row, column);
+  return column.kind === 'duration'
+    ? formatDurationSmart(value * 1000, durColMaxMs.value)
+    : formatDistanceSmart(value, distColMaxM.value);
+}
+
 const summaryStats = computed(
   (): {
     periods: number;
@@ -872,6 +848,7 @@ const summaryStats = computed(
 watch(filteredStatisticData, (newData) => {
   updateCharts(newData);
 });
+watch(measurementSystem, () => updateCharts(filteredStatisticData.value));
 watch(selectedGrouping, () => {
   selectedSubUnit.value = null;
 });
@@ -916,6 +893,32 @@ async function open() {
 function close() {
   showMenu.value = false;
   active.value = false;
+}
+
+function getNavigationState(): StatisticsNavigationState {
+  return {
+    tab: activeTab.value,
+    trackQuickView: trackQuickView.value,
+    trackBrowserState: trackBrowserView.value?.getNavigationState(),
+  };
+}
+
+function restoreNavigationState(state: unknown) {
+  if (!state || typeof state !== 'object' || !('tab' in state)) return;
+  const tab = state.tab;
+  if (tab === 'overview' || tab === 'stats' || tab === 'tracks') {
+    activeTab.value = tab;
+  }
+  if (
+    'trackQuickView' in state &&
+    typeof state.trackQuickView === 'string' &&
+    trackQuickViewOptions.some((option) => option.value === state.trackQuickView)
+  ) {
+    trackQuickView.value = state.trackQuickView;
+  }
+  if ('trackBrowserState' in state) {
+    void nextTick(() => trackBrowserView.value?.restoreNavigationState(state.trackBrowserState));
+  }
 }
 
 function onSheetClosed() {
@@ -970,7 +973,7 @@ function updateCharts(data: ExtendedGpsTrackStatistics[]) {
     chartDistance,
     chartOptionsDistance,
     categories,
-    data.map((o: GpsTrackStatistics) => parseFloat(((o.trackLengthInMeterSum ?? 0) / 1000).toFixed(2)))
+    data.map((o: GpsTrackStatistics) => o.trackLengthInMeterSum ?? 0)
   );
   setChart(
     chartActivity,
@@ -1051,6 +1054,8 @@ defineExpose({
   open,
   toggle,
   close,
+  getNavigationState,
+  restoreNavigationState,
   fetchStatistics,
 });
 </script>
@@ -1074,14 +1079,6 @@ defineExpose({
   overflow: hidden;
 }
 
-/* ── Tabs fill the remaining space; only panels scroll ── */
-:deep(.p-tabs) {
-  display: flex;
-  flex-direction: column;
-  flex: 1 1 auto;
-  min-height: 0;
-}
-
 /* stats-sheet-icon: muted identity mark, non-interactive */
 .stats-header-nav {
   display: flex;
@@ -1102,47 +1099,14 @@ defineExpose({
   min-width: 0;
 }
 
-.stats-header-tab {
-  padding: 0.25rem 0.7rem;
-  border-radius: 1rem;
-  border: none;
-  background: transparent;
-  color: var(--text-secondary);
-  font-size: var(--text-sm-size);
-  font-weight: 600;
-  cursor: pointer;
-  transition:
-    background 0.15s,
-    color 0.15s;
-  white-space: nowrap;
-  line-height: var(--text-sm-lh);
-}
-
-.stats-header-tab:not(.stats-header-tab--active):hover {
-  background: var(--surface-hover);
-  color: var(--text-primary);
-}
-
-.stats-header-tab--active {
-  background: var(--accent-subtle);
-  color: var(--accent-text);
-  font-weight: 600;
-}
-
-:deep(.p-tabpanels) {
-  flex: 1 1 auto;
-  min-height: 0;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-  overscroll-behavior-y: contain;
-}
-
 :deep(.p-tabpanel) {
-  min-height: 0;
   padding-top: 0.5rem;
 }
 
 .tracks-tab {
+  display: flex;
+  min-height: 0;
+  flex: 1 1 auto;
   padding: 0;
   margin-top: -0.5rem;
 }
@@ -1273,43 +1237,8 @@ defineExpose({
 
 /* ── Table / Charts toggle ── */
 .stats-view-toggle {
-  display: flex;
   flex: 0 0 auto;
-  align-items: center;
-  background: var(--surface-elevated);
-  border: 1px solid var(--border-default);
-  border-radius: 8px;
-  padding: 3px;
-  gap: 2px;
 }
-.toggle-btn {
-  display: flex;
-  align-items: center;
-  gap: 0.3rem;
-  padding: 0.28rem 0.65rem;
-  border-radius: 5px;
-  border: none;
-  background: transparent;
-  color: var(--text-muted);
-  font-size: var(--text-xs-size);
-  font-weight: 600;
-  cursor: pointer;
-  transition:
-    background 0.15s,
-    color 0.15s;
-  white-space: nowrap;
-  font-family: inherit;
-}
-.toggle-btn:hover {
-  color: var(--text-secondary);
-  background: var(--surface-hover);
-}
-.toggle-btn--active {
-  background: var(--surface-glass-heavy);
-  color: var(--accent-text);
-  box-shadow: var(--shadow-sm);
-}
-
 /* ── Chart cards ── */
 .charts-scroll {
   width: 100%;
@@ -1327,18 +1256,7 @@ defineExpose({
   padding-bottom: 0;
 }
 .chart-header {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: var(--text-xs-size);
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--text-secondary);
   padding: 1.25rem 1rem 0.6rem;
-}
-.chart-header i {
-  font-size: var(--text-sm-size);
 }
 .stat-chart {
   width: 100%;
@@ -1425,24 +1343,8 @@ defineExpose({
 
 /* ── Info icons ── */
 .info-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-  border: none;
-  background: transparent;
-  cursor: pointer;
-  color: var(--text-faint);
-  font-size: var(--text-2xs-size);
-  line-height: var(--text-2xs-lh);
-  transition: color 0.15s;
   vertical-align: middle;
   margin-left: 2px;
-}
-.info-btn:hover,
-.info-btn:focus-visible {
-  color: var(--accent-muted);
-  outline: none;
 }
 .info-btn--header {
   font-size: var(--text-xs-size);
@@ -1456,11 +1358,6 @@ defineExpose({
 /* Info popover content */
 .stat-info-text {
   max-width: 240px;
-  font-size: var(--text-xs-size);
-  line-height: var(--text-xs-lh);
-  color: var(--text-secondary);
-  margin: 0;
-  padding: 0.1rem 0;
 }
 
 /* ── Exploration pending state ── */

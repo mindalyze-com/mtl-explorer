@@ -56,30 +56,14 @@
         @pointerup="onNavTouchPointerEnd"
         @pointercancel="onNavTouchPointerEnd"
       >
-        <!-- Row 1: primary tools -->
-        <div class="nav-sheet__row">
+        <div
+          v-for="row in toolRows"
+          :key="row.id"
+          class="nav-sheet__row"
+          :class="{ 'nav-sheet__row--secondary': row.secondary }"
+        >
           <button
-            v-for="tool in primaryTools"
-            :key="tool.id"
-            class="nav-sheet__tool"
-            :class="{
-              'nav-sheet__tool--active': activeTool === tool.id,
-              'nav-sheet__tool--alert': alertSet.has(tool.id),
-              'nav-sheet__tool--drifted': driftedSet.has(tool.id),
-            }"
-            :data-tool-id="tool.id"
-            type="button"
-            @click="onToolClick($event, tool.id)"
-          >
-            <i :class="iconFor(tool)"></i>
-            <span class="nav-sheet__tool-label">{{ tool.label }}</span>
-          </button>
-        </div>
-
-        <!-- Row 2: secondary tools -->
-        <div class="nav-sheet__row nav-sheet__row--secondary">
-          <button
-            v-for="tool in secondaryTools"
+            v-for="tool in row.tools"
             :key="tool.id"
             class="nav-sheet__tool"
             :class="{
@@ -184,6 +168,10 @@ const secondaryTools = computed(() => {
   const primarySet = new Set(primaryTools.value.map((t) => t.id));
   return props.tools.filter((t) => !primarySet.has(t.id));
 });
+const toolRows = computed(() => [
+  { id: 'primary', tools: primaryTools.value, secondary: false },
+  { id: 'secondary', tools: secondaryTools.value, secondary: true },
+]);
 
 // ── Mobile sheet drag ──
 const sheetEl = ref<HTMLElement | null>(null);
@@ -650,13 +638,18 @@ defineExpose({
 }
 
 /* Alert dot: subtle status indicator — filter active on map */
-.nav-sheet__tool--alert {
+.nav-sheet__tool--alert,
+.nav-panel__tool--alert {
   position: relative;
 }
-.nav-sheet__tool--alert i {
+.nav-sheet__tool--alert i,
+.nav-panel__tool--alert i {
   position: relative;
 }
-.nav-sheet__tool--alert i::after {
+.nav-sheet__tool--alert i::after,
+.nav-panel__tool--alert i::after,
+.nav-sheet__tool--drifted i::after,
+.nav-panel__tool--drifted i::after {
   content: '';
   position: absolute;
   top: -3px;
@@ -664,6 +657,10 @@ defineExpose({
   width: 7px;
   height: 7px;
   border-radius: 50%;
+}
+
+.nav-sheet__tool--alert i::after,
+.nav-panel__tool--alert i::after {
   background: var(--alert-dot);
   box-shadow:
     0 0 6px var(--alert-dot-glow),
@@ -684,20 +681,16 @@ defineExpose({
 }
 
 /* Drifted dot: GPS on but map not following — amber, no animation */
-.nav-sheet__tool--drifted {
+.nav-sheet__tool--drifted,
+.nav-panel__tool--drifted {
   position: relative;
 }
-.nav-sheet__tool--drifted i {
+.nav-sheet__tool--drifted i,
+.nav-panel__tool--drifted i {
   position: relative;
 }
-.nav-sheet__tool--drifted i::after {
-  content: '';
-  position: absolute;
-  top: -3px;
-  right: -5px;
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
+.nav-sheet__tool--drifted i::after,
+.nav-panel__tool--drifted i::after {
   background: var(--warning);
   box-shadow:
     0 0 6px var(--alert-dot-glow),
@@ -807,49 +800,6 @@ defineExpose({
   background: var(--accent-subtle) !important;
   color: var(--text-primary) !important;
   box-shadow: 0 0 10px var(--accent-glow);
-}
-
-/* Alert dot: subtle status indicator — filter active on map */
-.nav-panel__tool--alert {
-  position: relative;
-}
-.nav-panel__tool--alert i {
-  position: relative;
-}
-.nav-panel__tool--alert i::after {
-  content: '';
-  position: absolute;
-  top: -3px;
-  right: -5px;
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--alert-dot);
-  box-shadow:
-    0 0 6px var(--alert-dot-glow),
-    0 0 2px var(--alert-dot);
-  animation: alert-pulse 2s ease-in-out infinite;
-}
-
-/* Drifted dot: GPS on but map not following — amber, no animation */
-.nav-panel__tool--drifted {
-  position: relative;
-}
-.nav-panel__tool--drifted i {
-  position: relative;
-}
-.nav-panel__tool--drifted i::after {
-  content: '';
-  position: absolute;
-  top: -3px;
-  right: -5px;
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--warning);
-  box-shadow:
-    0 0 6px var(--alert-dot-glow),
-    0 0 2px var(--warning);
 }
 
 /* ═══════════════════════════════════════════════

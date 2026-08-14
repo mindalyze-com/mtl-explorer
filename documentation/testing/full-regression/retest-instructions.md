@@ -10,31 +10,46 @@ Please test the MTL Explorer quick install plus full end-user regression on:
 - IP: <server-ipv4>
 - SSH user: root
 - SSH password/key note: <temporary-credential-or-access-note>
+- App image: <app-image>
+- Compose image override: `MTL_APP_IMAGE`
 
-Use GitHub `main` from https://github.com/mindalyze-com/mtl-explorer.
+Use GitHub `main` from https://github.com/mindalyze-com/mtl-explorer for the
+quick-install README and Compose source.
 
-Read these files from that GitHub source before acting:
+Read the quick-install facts from that GitHub source before acting:
 
 - `README.md`
+
+Read these workflow files from the current workspace before acting:
+
 - `documentation/testing/frontend-regression-test-plan.md`
 - `documentation/testing/full-regression/workflow/resumable-workflow.md`
 - `documentation/testing/full-regression/workflow/packet-template.md`
+- `documentation/testing/full-regression/workflow/init-run.py`
 
 Derive all quick-install commands, app URLs, credentials, prerequisites, and
 import-folder paths from the README. Derive regression coverage and packet order
 from the coverage IDs in the test plan. Use one packet per coverage ID. Use the
 workflow files for state tracking, packet result format, and final report
-assembly. Do not use memory or invented defaults; report missing required
-details as documentation gaps.
+assembly. Freeze the current workspace test plan when initializing the run and
+use that snapshot for the complete run. Do not use memory or invented defaults;
+report missing required details as documentation gaps.
 
 Execution guidance:
 
 - This is a long, evidence-heavy task. Do not run it as one unstructured pass.
-  Create a run folder named
-  `documentation/testing/full-regression/test_runs/<YYYY-MM-DD_HHMM-short-slug>/`,
-  instantiate `run-state.md`, then work through the coverage IDs from
-  `frontend-regression-test-plan.md`, top to bottom. Use `HHMM` as the 24-hour
-  local run start time.
+  Before testing, run `workflow/init-run.py` exactly once with the target server,
+  SSH user, app image, and a short slug. The initializer creates the run folder,
+  `run-state.md`, `coverage-plan.md`, `packets/`, and `assets/`. Use the printed
+  run folder and work through its frozen coverage IDs from top to bottom.
+
+  ```bash
+  documentation/testing/full-regression/workflow/init-run.py \
+    --server <server-ipv4> \
+    --ssh-user root \
+    --app-image <app-image> \
+    --slug <short-slug>
+  ```
 - The lead/coordinator owns `run-state.md` and final `report.md`. Packet workers
   may only write their own `packets/<coverage-id>.md` file and
   `assets/<coverage-id>-*` files.
@@ -45,8 +60,9 @@ Execution guidance:
   before UI checks, delete IDs after all checks that need the full imported
   dataset, and `RUN_CLEANUP` last. Read-only UI packets may run in separate
   browser contexts after import is complete.
-- If the run pauses or an agent stops, resume from `run-state.md` and the packet
-  files. Do not rely on conversation memory.
+- If the run pauses or an agent stops, resume from `run-state.md`, its sibling
+  `coverage-plan.md`, and the packet files. Do not rely on conversation memory
+  or replace the snapshot with the current workspace plan.
 - On resume, continue with the first `IN PROGRESS`, `NOT STARTED`, `PARTIAL`, or
   `NOT COVERED` coverage ID in queue order. `PARTIAL` and `NOT COVERED` are
   unfinished handoff states during an active run, not reasons to skip ahead.
@@ -55,7 +71,14 @@ Install and test:
 
 - Work over SSH in a fresh disposable directory on the target server.
 - Follow the README quick-install steps exactly, except for the disposable
-  parent directory needed to isolate the run.
+  parent directory needed to isolate the run and the requested app-image
+  override.
+- Before the first Compose start, set `MTL_APP_IMAGE=<app-image>` in the
+  disposable Compose installation. Use the same override for every later
+  Compose operation in the run.
+- Verify the effective image with Compose configuration and the running app
+  container. Record the requested image reference, resolved image ID or digest,
+  and reported MTL Explorer build/version in `RUN_SETUP` evidence.
 - Install only missing Docker prerequisites if needed, and report that setup
   separately from the MTL Explorer result.
 - Treat this as a black-box installed-app regression. Do not inspect or change
@@ -67,10 +90,10 @@ Install and test:
 
 Run the full user-facing regression plan:
 
-- Use the frontend regression test plan coverage IDs as the coverage matrix.
+- Use the run's frozen `coverage-plan.md` coverage IDs as the coverage matrix.
 - Create one packet file per coverage ID, for example `packets/TRD_01.md`.
   Every packet result must follow `workflow/packet-template.md`.
-- Treat every coverage ID in the frontend regression test plan as required
+- Treat every coverage ID in the run's frozen `coverage-plan.md` as required
   unless it is explicitly not applicable to the run. Do not collapse an ID
   prefix or chapter into one passing row unless all child IDs were actually
   exercised.

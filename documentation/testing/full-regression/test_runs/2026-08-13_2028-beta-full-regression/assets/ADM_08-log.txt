@@ -1,0 +1,9 @@
+Server log refresh
+
+- Header: 200 lines / just now
+- Wrap control: No wrap
+- First timestamp before Refresh: 2026-08-13 23:48:00.591
+- First timestamp after Refresh: 2026-08-13 23:48:16.797
+- Visible parsed log-line count after Refresh: 200
+- Lines include timestamp, level, worker/thread, logger, request detail, duration, user/session, status, and method.
+

@@ -1,0 +1,18 @@
+Chart theme response without browser reload
+
+Light Statistics:
+- Eight Highcharts roots rendered.
+- Axis labels used rgb(100, 116, 139).
+- Grid lines used rgba(0, 0, 0, .06).
+
+After changing to Dark in Preferences and returning to Statistics without a browser reload:
+- Eight Highcharts roots rendered.
+- Dark surface and cards applied.
+- First chart grid lines changed to rgba(255, 255, 255, .06), suitable for the dark surface.
+- Data series and labels remained visible.
+
+After changing back to Light without a browser reload:
+- Eight Highcharts roots rendered.
+- Grid lines returned to rgba(0, 0, 0, .06).
+- Light surface and chart labels remained readable.
+

@@ -18,7 +18,11 @@
       <div class="filter-action-bar__metrics">
         <div class="filter-action-bar__metric filter-action-bar__metric--primary">
           <span class="filter-action-bar__metric-value">{{ trackMetricValue }}</span>
-          <span class="filter-action-bar__metric-label">matching tracks</span>
+          <span class="filter-action-bar__metric-label">selected tracks</span>
+        </div>
+        <div class="filter-action-bar__metric">
+          <span class="filter-action-bar__metric-value">{{ totalMatchMetricValue }}</span>
+          <span class="filter-action-bar__metric-label">total matches</span>
         </div>
         <div class="filter-action-bar__metric">
           <span class="filter-action-bar__metric-value">{{ groupMetricValue }}</span>
@@ -65,7 +69,9 @@ const CATEGORY_SWATCH_LIMIT = 8;
 
 const props = defineProps<{
   activeTrackCountDisplay: string;
-  previewGroupCount: number;
+  preSelectionTrackCount: number;
+  availableCategoryCount: number;
+  selectedCategoryCount: number;
   categoryColors?: string[];
   hasPreviewResult: boolean;
   isPreviewLoading: boolean;
@@ -96,12 +102,18 @@ const groupMetricValue = computed((): string => {
   if (props.previewError) return '!';
   if (props.isPreviewLoading && !props.hasPreviewResult) return '...';
   if (!props.hasPreviewResult) return '...';
-  return String(props.previewGroupCount);
+  return `${props.selectedCategoryCount}/${props.availableCategoryCount}`;
+});
+
+const totalMatchMetricValue = computed((): string => {
+  if (props.previewError) return '!';
+  if (props.isPreviewLoading && !props.hasPreviewResult) return '...';
+  if (!props.hasPreviewResult) return '...';
+  return String(props.preSelectionTrackCount);
 });
 
 const categoryMetricLabel = computed((): string => {
-  if (props.previewGroupCount === 1) return 'category';
-  return 'categories';
+  return 'categories selected';
 });
 const categoryColorSwatches = computed((): string[] => {
   if (!props.hasPreviewResult || props.previewError) return [];
@@ -134,7 +146,7 @@ function openColors(): void {
   gap: 0.85rem;
   margin-top: auto;
   padding: 0.65rem 0.75rem;
-  border: 1px solid color-mix(in srgb, var(--accent, #6366f1) 18%, var(--border-default));
+  border: 1px solid color-mix(in srgb, var(--accent) 18%, var(--border-default));
   border-radius: 0.5rem;
   background: linear-gradient(
     135deg,
@@ -226,7 +238,7 @@ function openColors(): void {
 .filter-action-bar__metrics {
   min-width: 0;
   display: grid;
-  grid-template-columns: repeat(2, minmax(7.25rem, 1fr));
+  grid-template-columns: repeat(3, minmax(6.5rem, 1fr));
   gap: 0.45rem;
 }
 
@@ -244,7 +256,7 @@ function openColors(): void {
 }
 
 .filter-action-bar__metric--primary {
-  border-color: color-mix(in srgb, var(--accent, #6366f1) 34%, var(--border-default));
+  border-color: color-mix(in srgb, var(--accent) 34%, var(--border-default));
   background: color-mix(in srgb, var(--accent-subtle) 44%, var(--surface-elevated));
 }
 
@@ -412,7 +424,7 @@ function openColors(): void {
   }
 
   .filter-action-bar__metrics {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .filter-action-bar__metric {

@@ -1,0 +1,27 @@
+Coverage ID: TRD_04
+Track: #100000
+Graph point setting: 350
+X axis: Time
+
+SPEED (BUCKET AVG)
+- Combination chart, two series.
+- Y range: 0 to 320.76 km/h.
+- Readable time ticks from 0h 00m to 16h 40m and speed ticks from 0 to 400 km/h.
+
+ELEVATION
+- Combination chart, two series.
+- Y range: 264.1 to 1,354 m.
+- Readable time and elevation ticks.
+
+ELEVATION GAIN RATE
+- Combination chart, two series.
+- Y range: 0 to 3,116 m/h.
+- Readable time and gain-rate ticks.
+
+DISTANCE OVER TIME
+- 350 data points.
+- Y range: 684.4 to 273,260 m.
+- Readable distance ticks from 0 to 300 km.
+
+Additional populated charts: cumulative mechanical energy and estimated power.
+

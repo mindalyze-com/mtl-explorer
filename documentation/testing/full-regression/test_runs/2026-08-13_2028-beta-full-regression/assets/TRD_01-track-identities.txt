@@ -1,0 +1,21 @@
+Coverage ID: TRD_01
+
+GPX-backed track
+- User-facing origin: Statistics > Tracks.
+- Exact filename search: JuraRoute72011.gpx.
+- Search result: one row.
+- Track ID: 100000.
+- Detail name: Jura Route 7 / 2011 on GPSies.com.
+- Source mapping: frozen run evidence DAT_03-source-mapping.txt.
+
+FIT-backed track
+- User-facing origin: Statistics > Tracks.
+- Exact filename search: Activity.fit.
+- Search result: one row.
+- Track ID: 100005.
+- Track Browser label: Track 100005.
+- Detail name: Activity.fit.
+- Source mapping: frozen run evidence DAT_03-source-mapping.txt.
+
+Both tracks opened Track Details from the visible Statistics track table in this packet.
+

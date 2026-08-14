@@ -1,0 +1,17 @@
+Required five-GPX import and delete-two flow result
+
+Import phase:
+- Five public GPX files copied to the watched folder.
+- Watcher indexed 5 / 5 and background jobs settled.
+- Freshness banner appeared.
+- IMP_05 failed: helper Reload updated map/browser but Filter and Statistics stayed at zero until a normal browser reload (IMP-05-P1).
+- After the normal reload, map, browser, Statistics, Filter, heatmap, and details represented all five sources.
+
+Delete phase:
+- Exact Vitry and VoieVerte sources removed; watcher deleted IDs 100001 and 100003.
+- Freshness banner appeared and Reload changed map/Statistics 5 to 3.
+- DEL_03 failed: Filter retained both deleted records and prior totals until a normal browser reload (DEL-03-P1, later fixed locally in this workspace but the requested beta image still exhibited it).
+- After the normal reload, all end-user surfaces reflected the exact three remaining source files.
+
+Aggregate result: FAIL because the frozen requirement says the whole flow passes; both freshness-Reload transitions required a hard browser reload to reach consistent state.
+

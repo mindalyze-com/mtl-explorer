@@ -1,0 +1,17 @@
+Segment Analyzer execution, 2026-08-14
+
+Map center: Lannion, Brittany, France; map scale 100 m.
+Zone A: 8 intersecting tracks.
+Zone B: 7 intersecting tracks.
+Shared result: 7 tracks; Consolidated view selected 5.
+
+The result table exposed Speed, Time, and Distance column metrics.
+Time examples:
+- Lannion-format-unique.nmea: A-A 00:04:15; A-B 00:09:06.
+- Lannion-format-unique.gdb, .tcx, and source GPX: A-A 00:04:09; A-B 00:09:09.
+Distance examples:
+- Lannion-format-unique.nmea: A-A 120; A-B -497.
+- Lannion-format-unique.gdb, .tcx, and source GPX: A-A 110; A-B -655.
+
+The imported zero-duration GeoJSON/KML/KMZ variants appeared with 00:00:00 and
+0 values, while timed source-format tracks contained populated measurements.

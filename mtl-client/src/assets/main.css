@@ -1,98 +1,117 @@
 @import './base.css';
+@import './component-primitives.css';
+@import '../components/trackdetails/trackDetailsShared.css';
 
 /* =================================================================== */
 /* 1. TOKENS & CORE SETUP */
 /* =================================================================== */
 :root {
-    /* =========================================
+  /* =========================================
        TYPOGRAPHY SCALE (Tailwind-inspired)
        Base: html = 16px → 1rem
     ========================================= */
-    --text-2xs-size: 0.625rem;   /* 10px */
-    --text-2xs-lh:   0.75rem;
+  --font-family-ui: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
 
-    --text-xs-size:  0.75rem;    /* 12px */
-    --text-xs-lh:    1rem;
+  --text-2xs-size: 0.625rem; /* 10px */
+  --text-2xs-lh: 0.75rem;
 
-    --text-sm-size:  0.875rem;   /* 14px */
-    --text-sm-lh:    1.25rem;
+  --text-xs-size: 0.75rem; /* 12px */
+  --text-xs-lh: 1rem;
 
-    --text-base-size: 1rem;      /* 16px */
-    --text-base-lh:   1.5rem;
+  --text-sm-size: 0.875rem; /* 14px */
+  --text-sm-lh: 1.25rem;
 
-    --text-lg-size:  1.125rem;   /* 18px */
-    --text-lg-lh:    1.75rem;
+  --text-base-size: 1rem; /* 16px */
+  --text-base-lh: 1.5rem;
 
-    --text-xl-size:  1.25rem;    /* 20px */
-    --text-xl-lh:    1.75rem;
+  --text-lg-size: 1.125rem; /* 18px */
+  --text-lg-lh: 1.75rem;
 
-    --text-2xl-size: 1.5rem;     /* 24px */
-    --text-2xl-lh:   2rem;
+  --text-xl-size: 1.25rem; /* 20px */
+  --text-xl-lh: 1.75rem;
 
-    --text-3xl-size: 1.875rem;   /* 30px */
-    --text-3xl-lh:   2.25rem;
+  --text-2xl-size: 1.5rem; /* 24px */
+  --text-2xl-lh: 2rem;
 
-    --text-4xl-size: 2.25rem;    /* 36px */
-    --text-4xl-lh:   2.5rem;
+  --text-3xl-size: 1.875rem; /* 30px */
+  --text-3xl-lh: 2.25rem;
 
-    /* Font weights */
-    --font-normal:   400;
-    --font-medium:   500;
-    --font-semibold: 600;
-    --font-bold:     700;
+  --text-4xl-size: 2.25rem; /* 36px */
+  --text-4xl-lh: 2.5rem;
 
-    /* Sizing tokens */
-    --dlg-max-width:  min(96svw, 1100px);
-    --dlg-max-height: min(92svh, 90rem);
-    --dlg-min-width:  min(92svw, 320px);
+  /* Font weights */
+  --font-normal: 400;
+  --font-medium: 500;
+  --font-semibold: 600;
+  --font-bold: 700;
 
-    /* Inner paddings */
-    --dlg-padding: 1rem;
-    --dlg-gap:     0.75rem;
+  /* Sizing tokens */
+  --dlg-max-width: min(96svw, 1100px);
+  --dlg-max-height: min(92svh, 90rem);
+  --dlg-min-width: min(92svw, 320px);
 
-    /* Safe areas for notches */
-    --safe-top:    max(env(safe-area-inset-top), 0px);
-    --safe-right:  max(env(safe-area-inset-right), 0px);
-    --safe-bottom: max(env(safe-area-inset-bottom), 0px);
-    --safe-left:   max(env(safe-area-inset-left), 0px);
+  /* Inner paddings */
+  --dlg-padding: 1rem;
+  --dlg-gap: 0.75rem;
 
-    /* Nav panel width — kept in sync with NavigationSheet.vue breakpoints.
+  /* Safe areas for notches */
+  --safe-top: max(env(safe-area-inset-top), 0px);
+  --safe-right: max(env(safe-area-inset-right), 0px);
+  --safe-bottom: max(env(safe-area-inset-bottom), 0px);
+  --safe-left: max(env(safe-area-inset-left), 0px);
+
+  /* Nav panel width — kept in sync with NavigationSheet.vue breakpoints.
        Declared here via CSS so the map container has the correct value from
        the very first frame (avoids black-gap flash before onMounted fires). */
-    --nav-panel-w: 0px;
+  --nav-panel-w: 0px;
 
-    /* Stable splash/curtain viewport sizing. Avoid dynamic viewport units here:
+  /* Stable splash/curtain viewport sizing. Avoid dynamic viewport units here:
        mobile browsers change them while dismissing the keyboard or browser
        chrome, which visibly moves the centered logo during login handoff. */
-    --splash-viewport-height: 100svh;
-    --splash-content-top: calc(env(safe-area-inset-top) + clamp(7rem, 24svh, 16rem));
+  --splash-viewport-height: 100svh;
+  --splash-content-top: calc(env(safe-area-inset-top) + clamp(7rem, 24svh, 16rem));
 }
 @media (min-width: 1024px) {
-    :root { --nav-panel-w: 68px; }
+  :root {
+    --nav-panel-w: 68px;
+  }
 }
 @media (min-width: 1280px) {
-    :root { --nav-panel-w: 76px; }
+  :root {
+    --nav-panel-w: 76px;
+  }
 }
 @media (max-height: 500px) and (orientation: landscape) {
-    :root { --splash-content-top: calc(env(safe-area-inset-top) + clamp(1.5rem, 8svh, 3rem)); }
+  :root {
+    --splash-content-top: calc(env(safe-area-inset-top) + clamp(1.5rem, 8svh, 3rem));
+  }
 }
 
 html {
-    font-size: 16px;
+  font-size: 16px;
 }
 
-html, body {
-    height: 100%;
-    margin: 0;
-    padding: 0;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-    background: #0a0a0f;
+html,
+body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  font-family: var(--font-family-ui);
+  background: var(--map-container-bg);
+}
+
+button,
+input,
+select,
+textarea {
+  font-family: var(--font-family-ui);
 }
 
 /* Disable text selection on mobile — prevents accidental highlights during
    map gestures, drag interactions, and tap navigation. */
 @media (max-width: 1023px) {
-  body, #app {
+  body,
+  #app {
     -webkit-user-select: none;
     user-select: none;
     /* manipulation: allows single-finger pan/tap but suppresses double-tap zoom */
@@ -101,17 +120,18 @@ html, body {
 }
 
 #app {
-    height: 100svh;
-    min-height: 100svh;
-    display: flex;
-    flex-direction: column;
-    position: relative;
+  height: 100svh;
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  position: relative;
 }
 
 /* Icon defaults */
-.bi, .pi {
-    font-size: var(--text-base-size);
-    color: currentColor;
+.bi,
+.pi {
+  font-size: var(--text-base-size);
+  color: currentColor;
 }
 
 /* =================================================================== */
@@ -119,11 +139,15 @@ html, body {
 /* =================================================================== */
 
 body:has(.p-dialog-visible) {
-    overflow: hidden;
+  overflow: hidden;
 }
 
-.p-dialog-mask { z-index: var(--z-modal-mask) !important; }
-.p-dialog       { z-index: var(--z-modal) !important; }
+.p-dialog-mask {
+  z-index: var(--z-modal-mask) !important;
+}
+.p-dialog {
+  z-index: var(--z-modal) !important;
+}
 
 /* .tool-dialog rules removed — tools now use BottomSheet, not PrimeVue Dialog */
 
@@ -135,93 +159,97 @@ body:has(.p-dialog-visible) {
 .p-multiselect-overlay,
 .p-autocomplete-overlay,
 .p-tieredmenu,
-.p-contextmenu { z-index: var(--z-popup) !important; }
-.p-tooltip      { z-index: var(--z-tooltip) !important; }
+.p-contextmenu {
+  z-index: var(--z-popup) !important;
+}
+.p-tooltip {
+  z-index: var(--z-tooltip) !important;
+}
 
 /* Toast container — top-center, safe-area aware, constrained width.
    Must be above the loading curtain (z-index 9999) so PWA update
    prompts remain clickable during startup.  */
 .p-toast {
-    z-index: var(--z-toast) !important;
-    /* Respect the device notch; PrimeVue inline-styles set top, so we add
+  z-index: var(--z-toast) !important;
+  /* Respect the device notch; PrimeVue inline-styles set top, so we add
        extra inset via padding on the container itself */
-    padding-top: calc(var(--safe-top) + 0.25rem) !important;
-    width: min(420px, calc(100svw - 2rem)) !important;
+  padding-top: calc(var(--safe-top) + 0.25rem) !important;
+  width: min(420px, calc(100svw - 2rem)) !important;
 }
 
 /* --- Dialog Shell Layout --- */
 .p-dialog {
-    display: flex;
-    flex-direction: column;
-    overflow: hidden; /* Contains all inner scrolling */
+  display: flex;
+  flex-direction: column;
+  overflow: hidden; /* Contains all inner scrolling */
 
-    /* Sizing from tokens */
-    max-inline-size: var(--dlg-max-width);
-    max-block-size:  var(--dlg-max-height);
-    min-inline-size: var(--dlg-min-width);
+  /* Sizing from tokens */
+  max-inline-size: var(--dlg-max-width);
+  max-block-size: var(--dlg-max-height);
+  min-inline-size: var(--dlg-min-width);
 }
 
 .p-dialog:not(.p-dialog-maximized) {
-    /* Subtle vertical centering feel */
-    margin-top: clamp(0.5rem, 4svh, 3rem);
+  /* Subtle vertical centering feel */
+  margin-top: clamp(0.5rem, 4svh, 3rem);
 }
 
 .p-dialog .p-dialog-header,
 .p-dialog .p-dialog-footer {
-    padding: var(--dlg-padding);
-    flex: 0 0 auto;
+  padding: var(--dlg-padding);
+  flex: 0 0 auto;
 }
 
 /* Default content behavior: flex child that scrolls */
 .p-dialog > .p-dialog-content {
-    display: flex;
-    flex-direction: column;
-    flex: 1 1 auto;
-    min-height: 0;
-    min-width: 0;
-    overflow: auto;
-    padding: var(--dlg-padding);
-    -webkit-overflow-scrolling: touch;
-    overscroll-behavior: contain;
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+  overflow: auto;
+  padding: var(--dlg-padding);
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
 }
 
 /* Opt-out when delegating scroll further inside */
 .p-dialog > .p-dialog-content.content-no-scroll {
-    overflow: hidden;
-    padding: 0; /* typically desired when inner root handles spacing */
+  overflow: hidden;
+  padding: 0; /* typically desired when inner root handles spacing */
 }
 
 /* --- Maximized State --- */
 .p-dialog.p-dialog-maximized {
-    max-inline-size: 100svw;
-    max-block-size:  100svh;
-    inline-size:     100svw;
-    block-size:      100svh;
-    border-radius:   0;
-    padding:         0;
+  max-inline-size: 100svw;
+  max-block-size: 100svh;
+  inline-size: 100svw;
+  block-size: 100svh;
+  border-radius: 0;
+  padding: 0;
 }
 .p-dialog.p-dialog-maximized .p-dialog-content {
-    padding-inline: calc(var(--dlg-padding) + var(--safe-left)) calc(var(--dlg-padding) + var(--safe-right));
-    padding-block:  calc(var(--dlg-padding) + var(--safe-top))  calc(var(--dlg-padding) + var(--safe-bottom));
+  padding-inline: calc(var(--dlg-padding) + var(--safe-left)) calc(var(--dlg-padding) + var(--safe-right));
+  padding-block: calc(var(--dlg-padding) + var(--safe-top)) calc(var(--dlg-padding) + var(--safe-bottom));
 }
 .p-dialog.p-dialog-maximized .p-dialog-header,
 .p-dialog.p-dialog-maximized .p-dialog-footer {
-    padding-inline: calc(var(--dlg-padding) + var(--safe-left)) calc(var(--dlg-padding) + var(--safe-right));
+  padding-inline: calc(var(--dlg-padding) + var(--safe-left)) calc(var(--dlg-padding) + var(--safe-right));
 }
 
 /* --- DataTable Helpers --- */
 .p-datatable .p-datatable-tbody > tr > td.number-column {
-    text-align: right;
-    font-feature-settings: "tnum";
+  text-align: right;
+  font-feature-settings: 'tnum';
 }
 .p-datatable .p-datatable-thead > tr > th.number-column > .p-column-header-content {
-    display: flex;
-    justify-content: flex-end;
+  display: flex;
+  justify-content: flex-end;
 }
 
 .maplibregl-map {
-    overscroll-behavior: none;
-    /* touch-action: none;  // enable if pinch/trackpad gestures feel odd on mobile */
+  overscroll-behavior: none;
+  /* touch-action: none;  // enable if pinch/trackpad gestures feel odd on mobile */
 }
 
 /* =================================================================== */
@@ -230,86 +258,261 @@ body:has(.p-dialog-visible) {
 
 /* Use inside .content-no-scroll to create a flex layout root */
 .dialog-flex-root {
-    display: flex;
-    flex-direction: column;
-    flex: 1 1 auto;
-    min-height: 0;
-    min-width: 0;
-    overflow: hidden; /* This root does not scroll */
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden; /* This root does not scroll */
 }
 
 /* Use on a TabView wrapper to enable flex-based panel layouts */
 .tab-stack {
-    display: flex;
-    flex-direction: column;
-    flex: 1 1 auto;
-    min-height: 0;
-    min-width: 0; /* prevent accidental horizontal overflow */
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0; /* prevent accidental horizontal overflow */
 }
 .tab-stack > .p-tabs {
-    display: flex;
-    flex-direction: column;
-    flex: 1 1 auto;
-    min-height: 0;
-    min-width: 0; /* prevent accidental horizontal overflow */
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0; /* prevent accidental horizontal overflow */
 }
 .tab-stack :is(.p-tabpanels) {
-    flex: 1 1 auto;
-    min-height: 0;
-    min-width: 0;
-    overflow: auto;                      /* The panel container is the scroller */
-    -webkit-overflow-scrolling: touch;   /* silky iOS momentum scroll */
-    overscroll-behavior-y: contain;      /* keep wheel/touch contained */
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+  overflow: auto; /* The panel container is the scroller */
+  -webkit-overflow-scrolling: touch; /* silky iOS momentum scroll */
+  overscroll-behavior-y: contain; /* keep wheel/touch contained */
 }
 
 /* Hide inactive panels, stretch active one */
-.tab-stack :is(.p-tabpanel:not([data-p-active="true"])) {
-    display: none !important; /* CRITICAL: remove from layout/scroll calc */
+.tab-stack :is(.p-tabpanel:not([data-p-active='true'])) {
+  display: none !important; /* CRITICAL: remove from layout/scroll calc */
 }
-.tab-stack :is(.p-tabpanel[data-p-active="true"]) {
-    display: flex;
-    flex-direction: column;
-    min-height: 0;
-    min-width: 0; /* prevent intrinsic width from forcing x-scroll */
-    padding: 0;   /* children own their horizontal/vertical breathing room via var(--dlg-padding) */
+.tab-stack :is(.p-tabpanel[data-p-active='true']) {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0; /* prevent intrinsic width from forcing x-scroll */
+  padding: 0; /* children own their horizontal/vertical breathing room via var(--dlg-padding) */
 }
 
 /* General purpose scroll regions */
 .panel-scroll {
-    flex: 1 1 auto;
-    min-height: 0;
-    min-width: 0;
-    overflow: auto;
-    -webkit-overflow-scrolling: touch;
-    overscroll-behavior-y: contain;
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
 }
 .panel-scroll--no-x {
-    overflow-y: auto;
-    overflow-x: hidden;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 /* Horizontal scroll wrapper for wide tables */
 .table-scroll-wrapper {
-    max-width: 100%;
-    overflow-x: auto;
-    overflow-y: hidden;
-    -webkit-overflow-scrolling: touch;
-    touch-action: pan-x;
-    overscroll-behavior-x: contain;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-x;
+  overscroll-behavior-x: contain;
 }
-.intrinsic-table { width: max-content; }
+.intrinsic-table {
+  width: max-content;
+}
 
 /* Chart containers that should grow to fill remaining space */
 .chart-fill {
-    flex: 1 1 auto;
-    width: 100%;
-    min-height: 320px;
+  flex: 1 1 auto;
+  width: 100%;
+  min-height: 320px;
+}
+
+/* Shared shell for map layer setting sheets. */
+.map-layer-sheet {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  box-sizing: border-box;
+  flex-direction: column;
+  gap: var(--map-layer-sheet-gap, 1rem);
+  padding: 0.35rem 1rem 1.5rem;
+}
+
+.map-layer-sheet__intro p {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: var(--text-sm-size);
+  line-height: var(--text-sm-lh);
+}
+
+.map-layer-sheet__intro span {
+  display: block;
+  margin-top: 0.18rem;
+  color: var(--accent-text);
+  font-size: var(--text-xs-size);
+  font-weight: var(--font-semibold);
+  line-height: var(--text-xs-lh);
+}
+
+.map-layer-list {
+  border-block: 1px solid var(--border-default);
+  background: transparent;
+}
+
+.map-layer-list .lc {
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.map-layer-list .lc:last-child {
+  border-bottom: 0;
+}
+
+/* Shared information hierarchy used by filter, map, and about settings. */
+.settings-eyebrow {
+  display: block;
+  margin-bottom: 0.25rem;
+  color: var(--text-muted);
+  font-size: var(--text-xs-size);
+  font-weight: var(--font-bold);
+  line-height: var(--text-xs-lh);
+  letter-spacing: 0.065em;
+  text-transform: uppercase;
+}
+
+.settings-section-heading p {
+  margin: 0.12rem 0 0;
+  color: var(--text-muted);
+  font-size: var(--text-xs-size);
+  line-height: var(--text-xs-lh);
+}
+
+.settings-list {
+  overflow: hidden;
+  border-block: 1px solid var(--border-default);
+}
+
+.settings-row {
+  display: grid;
+  width: 100%;
+  min-height: 4.35rem;
+  grid-template-columns: 1.6rem minmax(0, 1fr) minmax(6rem, auto) auto;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.78rem 0.15rem;
+  border: 0;
+  border-bottom: 1px solid var(--border-subtle);
+  background: transparent;
+  color: var(--text-primary);
+  font: inherit;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.settings-row:last-child {
+  border-bottom: 0;
+}
+
+.settings-row:hover:not(:disabled) {
+  background: var(--surface-hover);
+}
+
+.settings-row:focus-visible {
+  position: relative;
+  z-index: 1;
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.settings-row__icon {
+  display: inline-flex;
+  width: 1.6rem;
+  height: 1.6rem;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: var(--text-base-size);
+  transition: color 0.15s ease;
+}
+
+.settings-row:hover:not(:disabled) .settings-row__icon {
+  color: var(--accent-text);
+}
+
+.settings-row__body {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0.12rem;
+}
+
+.settings-row__body strong {
+  font-size: var(--text-sm-size);
+  font-weight: var(--font-semibold);
+  line-height: var(--text-sm-lh);
+}
+
+.settings-row__body :is(small, .settings-row__description) {
+  overflow: hidden;
+  color: var(--text-muted);
+  font-size: var(--text-xs-size);
+  line-height: var(--text-xs-lh);
+  text-overflow: ellipsis;
+}
+
+.settings-row__description {
+  white-space: nowrap;
+}
+
+.settings-row__value {
+  max-width: 15rem;
+  overflow: hidden;
+  color: var(--text-secondary);
+  font-size: var(--text-sm-size);
+  font-weight: var(--font-semibold);
+  line-height: var(--text-sm-lh);
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.settings-row__chevron {
+  display: inline-flex;
+  width: 1.4rem;
+  min-height: 2.25rem;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent-text);
+  font-size: var(--text-base-size);
+  transition: transform 0.15s ease;
+}
+
+.settings-row:hover:not(:disabled) .settings-row__chevron {
+  transform: translateX(0.12rem);
+}
+
+@media screen and (max-width: 600px) {
+  .map-layer-sheet {
+    padding-inline: 0.75rem;
+  }
 }
 
 /* Optional padded inner root if you want safe-area padding while delegating scroll */
 .dialog-flex-root--padded {
-    padding-inline: calc(var(--dlg-padding) + var(--safe-left)) calc(var(--dlg-padding) + var(--safe-right));
-    padding-block:  calc(var(--dlg-padding) + var(--safe-top))  calc(var(--dlg-padding) + var(--safe-bottom));
+  padding-inline: calc(var(--dlg-padding) + var(--safe-left)) calc(var(--dlg-padding) + var(--safe-right));
+  padding-block: calc(var(--dlg-padding) + var(--safe-top)) calc(var(--dlg-padding) + var(--safe-bottom));
 }
 
 /* =================================================================== */
@@ -318,25 +521,25 @@ body:has(.p-dialog-visible) {
 /*    for inline spacing automatically compresses on small screens.     */
 /* =================================================================== */
 @media (max-width: 767px) {
-    :root {
-        --dlg-padding: 0.35rem;
-        --dlg-gap:     0.4rem;
-    }
+  :root {
+    --dlg-padding: 0.35rem;
+    --dlg-gap: 0.4rem;
+  }
 
-    /* Remove PrimeVue's bulky default tabview padding on narrow screens so content fits */
-    .tab-stack :is(.p-tabpanels),
-    .p-tabpanels {
-        padding: 0; 
-    }
+  /* Remove PrimeVue's bulky default tabview padding on narrow screens so content fits */
+  .tab-stack :is(.p-tabpanels),
+  .p-tabpanels {
+    padding: 0;
+  }
 
-    /* PrimeVue DataTable cell padding — reduce for all sm-density tables */
-    .p-datatable-sm .p-datatable-thead > tr > th,
-    .p-datatable-sm .p-datatable-tbody > tr > td {
-        padding-inline: 0.3rem;
-        padding-block:  0.3rem;
-    }
+  /* PrimeVue DataTable cell padding — reduce for all sm-density tables */
+  .p-datatable-sm .p-datatable-thead > tr > th,
+  .p-datatable-sm .p-datatable-tbody > tr > td {
+    padding-inline: 0.3rem;
+    padding-block: 0.3rem;
+  }
 
-    /* BottomSheet handles fullscreen tool views — no more .tool-dialog overrides needed */
+  /* BottomSheet handles fullscreen tool views — no more .tool-dialog overrides needed */
 }
 
 /* =================================================================== */
@@ -349,60 +552,60 @@ body:has(.p-dialog-visible) {
 /* DataTable: transparent body inside sheet/dialog */
 .sheet .p-datatable,
 .p-dialog .p-datatable {
-    color: var(--table-row-text);
+  color: var(--table-row-text);
 }
 .sheet .p-datatable .p-datatable-header,
 .p-dialog .p-datatable .p-datatable-header {
-    background: transparent;
-    border-color: var(--table-border);
+  background: transparent;
+  border-color: var(--table-border);
 }
 .sheet .p-datatable .p-datatable-thead > tr > th,
 .p-dialog .p-datatable .p-datatable-thead > tr > th {
-    background: var(--table-header-bg);
-    color: var(--table-header-text);
-    border-color: var(--table-border);
-    font-size: var(--text-xs-size);
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
+  background: var(--table-header-bg);
+  color: var(--table-header-text);
+  border-color: var(--table-border);
+  font-size: var(--text-xs-size);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 .sheet .p-datatable .p-datatable-tbody > tr,
 .p-dialog .p-datatable .p-datatable-tbody > tr {
-    background: transparent;
-    color: var(--table-row-text);
+  background: transparent;
+  color: var(--table-row-text);
 }
 .sheet .p-datatable .p-datatable-tbody > tr > td,
 .p-dialog .p-datatable .p-datatable-tbody > tr > td {
-    border-color: var(--table-border);
-    font-size: var(--text-sm-size);
+  border-color: var(--table-border);
+  font-size: var(--text-sm-size);
 }
 .sheet .p-datatable .p-datatable-tbody > tr:hover,
 .p-dialog .p-datatable .p-datatable-tbody > tr:hover {
-    background: var(--table-row-hover);
+  background: var(--table-row-hover);
 }
 .sheet .p-datatable .p-datatable-footer,
 .p-dialog .p-datatable .p-datatable-footer {
-    background: transparent;
-    border-color: var(--table-border);
+  background: transparent;
+  border-color: var(--table-border);
 }
 
 /* Paginator */
 .sheet .p-paginator,
 .p-dialog .p-paginator {
-    background: transparent;
-    border-color: var(--table-border);
+  background: transparent;
+  border-color: var(--table-border);
 }
 
 /* Tabs: transparent list + panels inside sheets */
 .sheet .p-tablist,
 .sheet .p-tabpanels {
-    background: transparent;
+  background: transparent;
 }
 
 /* Panel */
 .sheet .p-panel .p-panel-content,
 .p-dialog .p-panel .p-panel-content {
-    background: transparent;
+  background: transparent;
 }
 
 /* =================================================================== */
@@ -414,227 +617,238 @@ body:has(.p-dialog-visible) {
 /* =================================================================== */
 
 /* Dialog */
-[data-theme="dark"] .p-dialog {
-    background: var(--surface-glass-heavy) !important;
-    backdrop-filter: var(--blur-heavy) !important;
-    -webkit-backdrop-filter: var(--blur-heavy) !important;
-    border: 1px solid var(--border-medium) !important;
+[data-theme='dark'] .p-dialog {
+  background: var(--surface-glass-heavy) !important;
+  backdrop-filter: var(--blur-heavy) !important;
+  -webkit-backdrop-filter: var(--blur-heavy) !important;
+  border: 1px solid var(--border-medium) !important;
 }
-[data-theme="dark"] .p-dialog > .p-dialog-content,
-[data-theme="dark"] .p-dialog .p-dialog-header,
-[data-theme="dark"] .p-dialog .p-dialog-footer {
-    background: transparent !important;
+[data-theme='dark'] .p-dialog > .p-dialog-content,
+[data-theme='dark'] .p-dialog .p-dialog-header,
+[data-theme='dark'] .p-dialog .p-dialog-footer {
+  background: transparent !important;
 }
 
 /* PrimeVue form controls: keep dark mode genuinely dark across inputs,
    selects, textareas, segmented controls, and teleported filter fields. */
-[data-theme="dark"] :is(.p-inputtext, .p-textarea, .p-select, .p-datepicker, .p-inputnumber-input) {
-    background: var(--surface-glass-heavy) !important;
-    color: var(--text-secondary) !important;
-    border-color: var(--border-strong) !important;
-    box-shadow: none !important;
+[data-theme='dark'] :is(.p-inputtext, .p-textarea, .p-select, .p-datepicker, .p-inputnumber-input) {
+  background: var(--surface-glass-heavy) !important;
+  color: var(--text-secondary) !important;
+  border-color: var(--border-strong) !important;
+  box-shadow: none !important;
 }
 
-[data-theme="dark"] :is(.p-inputtext, .p-textarea, .p-select, .p-datepicker, .p-inputnumber-input):enabled:hover,
-[data-theme="dark"] .p-select:not(.p-disabled):hover {
-    border-color: var(--border-hover) !important;
+[data-theme='dark'] :is(.p-inputtext, .p-textarea, .p-select, .p-datepicker, .p-inputnumber-input):enabled:hover,
+[data-theme='dark'] .p-select:not(.p-disabled):hover {
+  border-color: var(--border-hover) !important;
 }
 
-[data-theme="dark"] :is(.p-inputtext, .p-textarea, .p-select, .p-datepicker, .p-inputnumber-input):enabled:focus,
-[data-theme="dark"] .p-select.p-focus {
-    border-color: var(--accent-text) !important;
-    box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent-text) 35%, transparent) !important;
+[data-theme='dark'] :is(.p-inputtext, .p-textarea, .p-select, .p-datepicker, .p-inputnumber-input):enabled:focus,
+[data-theme='dark'] .p-select.p-focus {
+  border-color: var(--accent-text) !important;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent-text) 35%, transparent) !important;
 }
 
-[data-theme="dark"] :is(.p-inputtext, .p-textarea, .p-inputnumber-input)::placeholder,
-[data-theme="dark"] .p-select-label.p-placeholder {
-    color: var(--text-faint) !important;
+[data-theme='dark'] :is(.p-inputtext, .p-textarea, .p-inputnumber-input)::placeholder,
+[data-theme='dark'] .p-select-label.p-placeholder {
+  color: var(--text-faint) !important;
 }
 
-[data-theme="dark"] .p-select-dropdown {
-    color: var(--text-muted) !important;
+[data-theme='dark'] .p-select-dropdown {
+  color: var(--text-muted) !important;
 }
 
-[data-theme="dark"] .p-select-label,
-[data-theme="dark"] .p-select-option,
-[data-theme="dark"] .p-datepicker,
-[data-theme="dark"] .p-datepicker-panel {
-    color: var(--text-secondary) !important;
+[data-theme='dark'] .p-select-label,
+[data-theme='dark'] .p-select-option,
+[data-theme='dark'] .p-datepicker,
+[data-theme='dark'] .p-datepicker-panel {
+  color: var(--text-secondary) !important;
 }
 
-[data-theme="dark"] .p-selectbutton .p-togglebutton {
-    background: var(--surface-glass-subtle) !important;
-    border-color: var(--border-default) !important;
-    color: var(--text-muted) !important;
+[data-theme='dark'] .p-selectbutton .p-togglebutton {
+  background: var(--surface-glass-subtle) !important;
+  border-color: var(--border-default) !important;
+  color: var(--text-muted) !important;
 }
 
-[data-theme="dark"] .p-selectbutton .p-togglebutton.p-togglebutton-checked {
-    background: color-mix(in srgb, var(--accent) 26%, rgba(15, 23, 42, 0.9)) !important;
-    border-color: color-mix(in srgb, var(--accent-text) 45%, transparent) !important;
-    color: var(--text-primary) !important;
+[data-theme='dark'] .p-selectbutton .p-togglebutton.p-togglebutton-checked {
+  background: color-mix(in srgb, var(--accent) 26%, rgba(15, 23, 42, 0.9)) !important;
+  border-color: color-mix(in srgb, var(--accent-text) 45%, transparent) !important;
+  color: var(--text-primary) !important;
 }
 
 /* Toast — modern compact glass card */
 /* Light mode base */
 .p-toast-message {
-    border-radius: 1rem !important;
-    overflow: hidden !important;
-    margin-bottom: 0.5rem !important;
-    background: rgba(255, 255, 255, 0.92) !important;
-    backdrop-filter: blur(18px) saturate(1.4) !important;
-    -webkit-backdrop-filter: blur(18px) saturate(1.4) !important;
-    border: 1px solid rgba(0, 0, 0, 0.08) !important;
-    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.10), 0 1px 5px rgba(0, 0, 0, 0.06) !important;
+  border-radius: 1rem !important;
+  overflow: hidden !important;
+  margin-bottom: 0.5rem !important;
+  background: var(--toast-surface) !important;
+  backdrop-filter: var(--blur-heavy) !important;
+  -webkit-backdrop-filter: var(--blur-heavy) !important;
+  border: 1px solid var(--border-default) !important;
+  box-shadow: var(--toast-shadow) !important;
 }
 
 /* Dark mode override */
-[data-theme="dark"] .p-toast-message {
-    background: var(--surface-glass) !important;
-    backdrop-filter: var(--blur-heavy) !important;
-    -webkit-backdrop-filter: var(--blur-heavy) !important;
-    border: 1px solid var(--border-medium) !important;
-    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.35), 0 1px 5px rgba(0, 0, 0, 0.25) !important;
+[data-theme='dark'] .p-toast-message {
+  border-color: var(--border-medium) !important;
 }
 
 /* Severity accent strip (left border colour overrides the uniform border) */
-.p-toast-message-info    { border-left: 3px solid #3b82f6 !important; }
-.p-toast-message-success { border-left: 3px solid #22c55e !important; }
-.p-toast-message-warn    { border-left: 3px solid #f59e0b !important; }
-.p-toast-message-error   { border-left: 3px solid #ef4444 !important; }
+.p-toast-message-info {
+  border-left: 3px solid var(--toast-info) !important;
+}
+.p-toast-message-success {
+  border-left: 3px solid var(--toast-success) !important;
+}
+.p-toast-message-warn {
+  border-left: 3px solid var(--toast-warning) !important;
+}
+.p-toast-message-error {
+  border-left: 3px solid var(--toast-error) !important;
+}
 
 /* Compact content area */
 .p-toast-message-content {
-    padding: 0.75rem 0.875rem !important;
-    gap: 0.625rem !important;
-    align-items: flex-start !important;
+  padding: 0.75rem 0.875rem !important;
+  gap: 0.625rem !important;
+  align-items: flex-start !important;
 }
 
 /* Summary (title) */
 .p-toast-summary {
-    font-size: var(--text-sm-size) !important;
-    font-weight: 600 !important;
-    letter-spacing: 0.01em !important;
-    line-height: var(--text-sm-lh) !important;
+  font-size: var(--text-sm-size) !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.01em !important;
+  line-height: var(--text-sm-lh) !important;
 }
 
 /* Detail body */
 .p-toast-detail {
-    font-size: var(--text-xs-size) !important;
-    line-height: var(--text-xs-lh) !important;
-    opacity: 0.75 !important;
-    margin-top: 0.125rem !important;
+  font-size: var(--text-xs-size) !important;
+  line-height: var(--text-xs-lh) !important;
+  opacity: 0.75 !important;
+  margin-top: 0.125rem !important;
 }
 
 /* Severity icon */
 .p-toast-message-icon {
-    font-size: var(--text-base-size) !important;
-    flex-shrink: 0 !important;
-    margin-top: 0.1rem !important;
+  font-size: var(--text-base-size) !important;
+  flex-shrink: 0 !important;
+  margin-top: 0.1rem !important;
 }
 
 /* Close button — smaller footprint */
 .p-toast-close-button {
-    width: 1.5rem !important;
-    height: 1.5rem !important;
-    border-radius: 50% !important;
-    margin: -0.125rem -0.25rem 0 0 !important;
+  width: 1.5rem !important;
+  height: 1.5rem !important;
+  border-radius: 50% !important;
+  margin: -0.125rem -0.25rem 0 0 !important;
 }
 
 /* Select / MultiSelect / Autocomplete / Menu overlays */
-[data-theme="dark"] .p-select-overlay,
-[data-theme="dark"] .p-multiselect-overlay,
-[data-theme="dark"] .p-autocomplete-overlay,
-[data-theme="dark"] .p-tieredmenu,
-[data-theme="dark"] .p-contextmenu,
-[data-theme="dark"] .p-popover {
-    background: var(--surface-glass-heavy) !important;
-    backdrop-filter: var(--blur-heavy) !important;
-    -webkit-backdrop-filter: var(--blur-heavy) !important;
-    border: 1px solid var(--border-medium) !important;
+[data-theme='dark'] .p-select-overlay,
+[data-theme='dark'] .p-multiselect-overlay,
+[data-theme='dark'] .p-autocomplete-overlay,
+[data-theme='dark'] .p-tieredmenu,
+[data-theme='dark'] .p-contextmenu,
+[data-theme='dark'] .p-popover {
+  background: var(--surface-glass-heavy) !important;
+  backdrop-filter: var(--blur-heavy) !important;
+  -webkit-backdrop-filter: var(--blur-heavy) !important;
+  border: 1px solid var(--border-medium) !important;
 }
 
 /* DatePicker */
-[data-theme="dark"] .p-datepicker-panel {
-    background: var(--surface-glass-heavy) !important;
-    backdrop-filter: var(--blur-heavy) !important;
-    -webkit-backdrop-filter: var(--blur-heavy) !important;
-    border: 1px solid var(--border-medium) !important;
+[data-theme='dark'] .p-datepicker-panel {
+  background: var(--surface-glass-heavy) !important;
+  backdrop-filter: var(--blur-heavy) !important;
+  -webkit-backdrop-filter: var(--blur-heavy) !important;
+  border: 1px solid var(--border-medium) !important;
 }
 
 /* MapLibre: lift bottom-left controls above the navigation sheet on mobile */
 .maplibregl-ctrl-bottom-left {
-    bottom: calc(var(--nav-sheet-h, 0px) + var(--safe-bottom, 0px)) !important;
+  bottom: calc(var(--nav-sheet-h, 0px) + var(--safe-bottom, 0px)) !important;
 }
 
 /* MapLibre navigation controls: use the same translucent shell as MTL Explorer chrome. */
 .maplibregl-ctrl-group {
-    background: var(--surface-glass-heavy) !important;
-    border: 1px solid var(--border-medium) !important;
-    box-shadow: var(--shadow-sm) !important;
-    overflow: hidden !important;
+  background: var(--surface-glass-heavy) !important;
+  border: 1px solid var(--border-medium) !important;
+  box-shadow: var(--shadow-sm) !important;
+  overflow: hidden !important;
 }
 
 .maplibregl-ctrl-group button {
-    background: transparent !important;
-    color: var(--text-secondary) !important;
+  background: transparent !important;
+  color: var(--text-secondary) !important;
 }
 
 .maplibregl-ctrl-group button + button {
-    border-top: 1px solid var(--border-default) !important;
+  border-top: 1px solid var(--border-default) !important;
 }
 
 .maplibregl-ctrl-group button:not(:disabled):hover {
-    background: var(--surface-hover) !important;
-    color: var(--text-primary) !important;
+  background: var(--surface-hover) !important;
+  color: var(--text-primary) !important;
 }
 
-[data-theme="dark"] .maplibregl-ctrl-group button .maplibregl-ctrl-icon {
-    filter: invert(1) brightness(1.6) opacity(0.82);
+[data-theme='dark'] .maplibregl-ctrl-group button .maplibregl-ctrl-icon {
+  filter: invert(1) brightness(1.6) opacity(0.82);
 }
 
 /* MapLibre scale control — minimal ruler style (no box, just a line) */
 .maplibregl-ctrl-scale {
-    background: transparent !important;
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
-    color: rgba(51, 65, 85, 0.7) !important;
-    font-size: var(--text-2xs-size) !important;
-    font-weight: 500 !important;
-    letter-spacing: 0.02em !important;
-    padding: 0 0 3px 0 !important;
-    line-height: var(--text-2xs-lh) !important;
-    text-align: center !important;
-    /* Only left, right (tick ends) and bottom (ruler line) borders */
-    border-top: none !important;
-    border-left: 2px solid rgba(51, 65, 85, 0.5) !important;
-    border-right: 2px solid rgba(51, 65, 85, 0.5) !important;
-    border-bottom: 2px solid rgba(51, 65, 85, 0.5) !important;
-    border-radius: 0 !important;
-    box-shadow: none !important;
-    text-shadow: 0 0 4px rgba(255,255,255,0.8) !important;
+  background: transparent !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  color: var(--map-scale-text) !important;
+  font-size: var(--text-2xs-size) !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.02em !important;
+  padding: 0 0 3px 0 !important;
+  line-height: var(--text-2xs-lh) !important;
+  text-align: center !important;
+  /* Only left, right (tick ends) and bottom (ruler line) borders */
+  border-top: none !important;
+  border-left: 2px solid var(--map-scale-line) !important;
+  border-right: 2px solid var(--map-scale-line) !important;
+  border-bottom: 2px solid var(--map-scale-line) !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  text-shadow: var(--map-scale-shadow) !important;
 }
-[data-theme="dark"] .maplibregl-ctrl-scale {
-    color: rgba(203, 213, 225, 0.7) !important;
-    border-left-color: rgba(203, 213, 225, 0.5) !important;
-    border-right-color: rgba(203, 213, 225, 0.5) !important;
-    border-bottom-color: rgba(203, 213, 225, 0.5) !important;
-    text-shadow: 0 0 4px rgba(0,0,0,0.8) !important;
+[data-theme='dark'] .maplibregl-ctrl-scale {
+  color: var(--map-scale-text) !important;
+  border-color: var(--map-scale-line) !important;
+  border-top: none !important;
+  text-shadow: var(--map-scale-shadow) !important;
 }
 
 /* Highlight.js code blocks inside sheet/dialog (dark mode) */
-[data-theme="dark"] .sheet .hljs,
-[data-theme="dark"] .p-dialog .hljs {
-    background: var(--code-bg);
-    color: var(--text-secondary);
+[data-theme='dark'] .sheet .hljs,
+[data-theme='dark'] .p-dialog .hljs {
+  background: var(--code-bg);
+  color: var(--text-secondary);
 }
-[data-theme="dark"] .sheet .hljs-keyword,
-[data-theme="dark"] .p-dialog .hljs-keyword { color: var(--accent-text) !important; }
-[data-theme="dark"] .sheet .hljs-string,
-[data-theme="dark"] .p-dialog .hljs-string  { color: var(--success) !important; }
-[data-theme="dark"] .sheet .hljs-number,
-[data-theme="dark"] .p-dialog .hljs-number  { color: var(--warning) !important; }
-[data-theme="dark"] .sheet .hljs-comment,
-[data-theme="dark"] .p-dialog .hljs-comment { color: var(--text-faint) !important; }
+[data-theme='dark'] .sheet .hljs-keyword,
+[data-theme='dark'] .p-dialog .hljs-keyword {
+  color: var(--accent-text) !important;
+}
+[data-theme='dark'] .sheet .hljs-string,
+[data-theme='dark'] .p-dialog .hljs-string {
+  color: var(--success) !important;
+}
+[data-theme='dark'] .sheet .hljs-number,
+[data-theme='dark'] .p-dialog .hljs-number {
+  color: var(--warning) !important;
+}
+[data-theme='dark'] .sheet .hljs-comment,
+[data-theme='dark'] .p-dialog .hljs-comment {
+  color: var(--text-faint) !important;
+}
 
 /* =================================================================== */
 /* 7. UTILITY CLASSES — REUSABLE PATTERNS                              */
@@ -643,190 +857,224 @@ body:has(.p-dialog-visible) {
 /* =================================================================== */
 
 /* Typography size utilities */
-.text-2xs  { font-size: var(--text-2xs-size);  line-height: var(--text-2xs-lh); }
-.text-xs   { font-size: var(--text-xs-size);   line-height: var(--text-xs-lh); }
-.text-sm   { font-size: var(--text-sm-size);   line-height: var(--text-sm-lh); }
-.text-base { font-size: var(--text-base-size); line-height: var(--text-base-lh); }
-.text-lg   { font-size: var(--text-lg-size);   line-height: var(--text-lg-lh); }
-.text-xl   { font-size: var(--text-xl-size);   line-height: var(--text-xl-lh); }
-.text-2xl  { font-size: var(--text-2xl-size);  line-height: var(--text-2xl-lh); }
-.text-3xl  { font-size: var(--text-3xl-size);  line-height: var(--text-3xl-lh); }
-.text-4xl  { font-size: var(--text-4xl-size);  line-height: var(--text-4xl-lh); }
+.text-2xs {
+  font-size: var(--text-2xs-size);
+  line-height: var(--text-2xs-lh);
+}
+.text-xs {
+  font-size: var(--text-xs-size);
+  line-height: var(--text-xs-lh);
+}
+.text-sm {
+  font-size: var(--text-sm-size);
+  line-height: var(--text-sm-lh);
+}
+.text-base {
+  font-size: var(--text-base-size);
+  line-height: var(--text-base-lh);
+}
+.text-lg {
+  font-size: var(--text-lg-size);
+  line-height: var(--text-lg-lh);
+}
+.text-xl {
+  font-size: var(--text-xl-size);
+  line-height: var(--text-xl-lh);
+}
+.text-2xl {
+  font-size: var(--text-2xl-size);
+  line-height: var(--text-2xl-lh);
+}
+.text-3xl {
+  font-size: var(--text-3xl-size);
+  line-height: var(--text-3xl-lh);
+}
+.text-4xl {
+  font-size: var(--text-4xl-size);
+  line-height: var(--text-4xl-lh);
+}
 
 /* Typography weight utilities */
-.font-normal   { font-weight: var(--font-normal); }
-.font-medium   { font-weight: var(--font-medium); }
-.font-semibold { font-weight: var(--font-semibold); }
-.font-bold     { font-weight: var(--font-bold); }
+.font-normal {
+  font-weight: var(--font-normal);
+}
+.font-medium {
+  font-weight: var(--font-medium);
+}
+.font-semibold {
+  font-weight: var(--font-semibold);
+}
+.font-bold {
+  font-weight: var(--font-bold);
+}
 
 /* Glassmorphism — three intensity steps, all token-driven.
    Apply to a container that should look like a frosted card. */
 .glass {
-    background: var(--surface-glass);
-    backdrop-filter: var(--blur-standard);
-    -webkit-backdrop-filter: var(--blur-standard);
-    border: 1px solid var(--border-medium);
+  background: var(--surface-glass);
+  backdrop-filter: var(--blur-standard);
+  -webkit-backdrop-filter: var(--blur-standard);
+  border: 1px solid var(--border-medium);
 }
 .glass-heavy {
-    background: var(--surface-glass-heavy);
-    backdrop-filter: var(--blur-heavy);
-    -webkit-backdrop-filter: var(--blur-heavy);
-    border: 1px solid var(--border-medium);
+  background: var(--surface-glass-heavy);
+  backdrop-filter: var(--blur-heavy);
+  -webkit-backdrop-filter: var(--blur-heavy);
+  border: 1px solid var(--border-medium);
 }
 .glass-sheet {
-    background: var(--surface-glass);
-    backdrop-filter: var(--blur-sheet);
-    -webkit-backdrop-filter: var(--blur-sheet);
-    border: 1px solid var(--border-medium);
+  background: var(--surface-glass);
+  backdrop-filter: var(--blur-sheet);
+  -webkit-backdrop-filter: var(--blur-sheet);
+  border: 1px solid var(--border-medium);
 }
 .glass-light {
-    background: var(--surface-glass-light);
-    backdrop-filter: var(--blur-light);
-    -webkit-backdrop-filter: var(--blur-light);
-    border: 1px solid var(--border-default);
+  background: var(--surface-glass-light);
+  backdrop-filter: var(--blur-light);
+  -webkit-backdrop-filter: var(--blur-light);
+  border: 1px solid var(--border-default);
 }
 
 /* Photo-backdrop primitives — used by login + curtain views which sit
    over a darkened photographic background, regardless of color scheme. */
 .photo-backdrop {
-    position: fixed;
-    inset: 0;
-    width: 100vw;
-    height: 100vh;
-    height: 100lvh;
-    background-size: cover;
-    background-position: center;
-    transform: scale(1.018);
-    transform-origin: center;
-    filter: saturate(1.04) contrast(1.03);
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  height: 100lvh;
+  background-size: cover;
+  background-position: center;
+  transform: scale(1.018);
+  transform-origin: center;
+  filter: saturate(1.04) contrast(1.03);
 }
 .photo-vignette {
-    position: fixed;
-    inset: 0;
-    background: var(--on-photo-vignette);
+  position: fixed;
+  inset: 0;
+  background: var(--on-photo-vignette);
 }
 .photo-logo {
-    --photo-logo-optical-offset: -0.5rem;
+  --photo-logo-optical-offset: -0.5rem;
 
-    width: min(210px, 66vw);
-    height: auto;
-    margin: 0;
-    position: relative;
-    transform: translateX(var(--photo-logo-optical-offset));
-    filter:
-        brightness(0) invert(1)
-        drop-shadow(0 2px 3px rgba(0, 0, 0, 0.68))
-        drop-shadow(0 5px 12px rgba(0, 0, 0, 0.30))
-        drop-shadow(0 9px 22px rgba(0, 0, 0, 0.18));
+  width: min(210px, 66vw);
+  height: auto;
+  margin: 0;
+  position: relative;
+  transform: translateX(var(--photo-logo-optical-offset));
+  filter: brightness(0) invert(1) drop-shadow(0 2px 3px rgba(0, 0, 0, 0.68)) drop-shadow(0 5px 12px rgba(0, 0, 0, 0.3))
+    drop-shadow(0 9px 22px rgba(0, 0, 0, 0.18));
 }
 .photo-loader {
-    display: flex;
-    width: min(420px, 78vw);
-    flex-direction: column;
-    align-items: center;
-    gap: 1rem;
-    animation: photoLoaderBreathe 3.2s ease-in-out infinite;
+  display: flex;
+  width: min(420px, 78vw);
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  animation: photoLoaderBreathe 3.2s ease-in-out infinite;
 }
 .photo-status {
-    font-size: var(--text-sm-size);
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: var(--on-photo-text-strong);
-    margin: 0;
-    text-shadow: var(--on-photo-text-shadow);
+  font-size: var(--text-sm-size);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--on-photo-text-strong);
+  margin: 0;
+  text-shadow: var(--on-photo-text-shadow);
 }
 .photo-progress-track {
-    width: 100%;
-    height: 2px;
-    margin: 0 auto;
-    border-radius: 1px;
-    background: var(--on-photo-surface-lo);
-    overflow: hidden;
+  width: 100%;
+  height: 2px;
+  margin: 0 auto;
+  border-radius: 1px;
+  background: var(--on-photo-surface-lo);
+  overflow: hidden;
 }
 .photo-progress-bar {
-    width: 40%;
-    height: 100%;
-    border-radius: 1px;
-    background: var(--on-photo-text-strong);
-    animation: photoProgressSlide 1.8s ease-in-out infinite;
+  width: 40%;
+  height: 100%;
+  border-radius: 1px;
+  background: var(--on-photo-text-strong);
+  animation: photoProgressSlide 1.8s ease-in-out infinite;
 }
 .photo-dots::after {
-    content: '';
-    display: inline-block;
-    width: 1.2em;
-    text-align: left;
-    animation: photoDots 1.5s steps(3, end) infinite;
+  content: '';
+  display: inline-block;
+  width: 1.2em;
+  text-align: left;
+  animation: photoDots 1.5s steps(3, end) infinite;
 }
 .photo-credit {
-    position: absolute;
-    bottom: 10px;
-    right: 14px;
-    z-index: 2;
-    font-size: var(--text-2xs-size);
-    letter-spacing: 0.03em;
-    color: var(--on-photo-text-faint);
-    pointer-events: none;
-    user-select: none;
-    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.80), 0 2px 8px rgba(0, 0, 0, 0.40);
+  position: absolute;
+  bottom: 10px;
+  right: 14px;
+  z-index: 2;
+  font-size: var(--text-2xs-size);
+  letter-spacing: 0.03em;
+  color: var(--on-photo-text-faint);
+  pointer-events: none;
+  user-select: none;
+  text-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.8),
+    0 2px 8px rgba(0, 0, 0, 0.4);
 }
 
 @keyframes photoLoaderBreathe {
-    0%,
-    100% {
-        opacity: 0.88;
-    }
-    50% {
-        opacity: 1;
-    }
+  0%,
+  100% {
+    opacity: 0.88;
+  }
+  50% {
+    opacity: 1;
+  }
 }
 
 @keyframes photoDots {
-    0% {
-        content: '.';
-    }
-    33% {
-        content: '..';
-    }
-    66% {
-        content: '...';
-    }
-    100% {
-        content: '';
-    }
+  0% {
+    content: '.';
+  }
+  33% {
+    content: '..';
+  }
+  66% {
+    content: '...';
+  }
+  100% {
+    content: '';
+  }
 }
 
 @keyframes photoProgressSlide {
-    0% {
-        transform: translateX(-100%);
-    }
-    100% {
-        transform: translateX(250%);
-    }
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(250%);
+  }
 }
 
 @media (max-height: 500px) and (orientation: landscape) {
-    .photo-logo {
-        width: 140px;
-    }
+  .photo-logo {
+    width: 140px;
+  }
 
-    .photo-loader {
-        width: min(320px, 72vw);
-        gap: 0.85rem;
-    }
+  .photo-loader {
+    width: min(320px, 72vw);
+    gap: 0.85rem;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .photo-loader,
-    .photo-progress-bar,
-    .photo-dots::after {
-        animation: none;
-    }
+  .photo-loader,
+  .photo-progress-bar,
+  .photo-dots::after {
+    animation: none;
+  }
 
-    .photo-dots::after {
-        content: '...';
-    }
+  .photo-dots::after {
+    content: '...';
+  }
 
-    .photo-progress-bar {
-        width: 100%;
-    }
+  .photo-progress-bar {
+    width: 100%;
+  }
 }

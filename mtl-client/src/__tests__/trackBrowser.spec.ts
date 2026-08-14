@@ -1,9 +1,16 @@
 import { computed, ref } from 'vue';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import type { GpsTrack } from 'x8ing-mtl-api-typescript-fetch';
 import { useTrackBrowser } from '@/components/track-browser/useTrackBrowser';
+import { useMeasurementSystem } from '@/composables/useMeasurementSystem';
+
+const measurementPreference = useMeasurementSystem();
 
 describe('useTrackBrowser', () => {
+  beforeEach(() => {
+    measurementPreference.setMeasurementSystem('METRIC');
+  });
+
   it('searches GPX metadata names used as display names', () => {
     const tracks = ref<GpsTrack[]>([
       {

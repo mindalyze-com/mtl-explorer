@@ -34,23 +34,17 @@ public class GarminExportController {
 
     @PostMapping("/install-gcexport")
     public ResponseEntity<String> installGcexport(@RequestParam String version) {
-        try {
-            String output = garminToolInstallService.installGcexport(version);
-            return ResponseEntity.ok(output);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        } catch (IllegalStateException e) {
-            return ResponseEntity.status(409).body(e.getMessage());
-        } catch (Exception e) {
-            return ResponseEntity.internalServerError().body("Install failed: " + e.getMessage());
-        }
+        return installTool(() -> garminToolInstallService.installGcexport(version));
     }
 
     @PostMapping("/install-fit-export")
     public ResponseEntity<String> installFitExport(@RequestParam String profile, @RequestParam String packages) {
+        return installTool(() -> garminToolInstallService.installFitExport(profile, packages));
+    }
+
+    private ResponseEntity<String> installTool(InstallOperation operation) {
         try {
-            String output = garminToolInstallService.installFitExport(profile, packages);
-            return ResponseEntity.ok(output);
+            return ResponseEntity.ok(operation.run());
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         } catch (IllegalStateException e) {
@@ -59,5 +53,9 @@ public class GarminExportController {
             return ResponseEntity.internalServerError().body("Install failed: " + e.getMessage());
         }
     }
-}
 
+    @FunctionalInterface
+    private interface InstallOperation {
+        String run() throws Exception;
+    }
+}

@@ -1,0 +1,23 @@
+Mobile sheet interaction
+
+Viewport: 390 x 844.
+
+Track Details:
+- Visible mobile sheet at y=67.5, height=776.5.
+- Semantic and coordinate Close checks were attempted; the correct current close bounds were required after sheet movement.
+- Close at the current bounds hid Track Details and restored the map.
+
+Filter bottom sheet:
+- Opened at y=108, height=736.
+- Exact 48 x 4 px sheet handle located at x=171, y=112.4.
+- Pointer drag from the exact handle changed the sheet to y=142, height=702 and it settled there.
+- Semantic Close hid the Filter sheet.
+
+Navigation sheet:
+- Visible at y=712, height=132.
+- Exact handle and drag halo were targeted repeatedly with pointer drag.
+- It did not move from y=712/height=132.
+- Browser exposes no touch-event/emulation capability, so the touch-specific drag path could not be executed or distinguished from a touch-only handler.
+
+Unblock path: repeat the navigation drag/snap check with a touch-capable device/emulator.
+

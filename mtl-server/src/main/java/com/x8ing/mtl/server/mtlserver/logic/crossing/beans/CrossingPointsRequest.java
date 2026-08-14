@@ -1,7 +1,7 @@
 package com.x8ing.mtl.server.mtlserver.logic.crossing.beans;
 
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
-import com.x8ing.mtl.server.mtlserver.web.services.track.entity.FilterRequestBean;
+import com.x8ing.mtl.server.mtlserver.web.services.track.entity.filter.FilterRequestBean;
 import lombok.Data;
 
 import java.util.List;

@@ -1,0 +1,21 @@
+FLT_13 unavailable selected category removal
+
+Initial range: 2010-2013
+Initial exact selection: 2010 and 2013
+Range changed to: 2010-2010
+Result after range change: 2 of 12 tracks
+
+Included categories before removal:
+- 2010: checked, 2 matches
+- 2013: checked, 0 matches, marked missing with "No matches with current parameters"
+- Summary: 1 of 1 selected
+
+Action:
+- Unchecked the unavailable 2013 row.
+- Applied the category change.
+- Reopened Included categories.
+
+Verified final state:
+- 2010 remains checked with 2 matches.
+- 2013 is absent from the exact selection.
+- The result remains 2 of 12 tracks.

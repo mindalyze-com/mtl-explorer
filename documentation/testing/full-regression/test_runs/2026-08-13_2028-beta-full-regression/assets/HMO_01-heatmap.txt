@@ -1,0 +1,9 @@
+Heatmap layer result
+
+- Map > Your data changed from 1/4 to 2/4 shown after enabling Heatmap.
+- At 100% opacity, multicolor density hotspots rendered along the Lannion
+  tracks while the full blue track geometry remained visible above them.
+- Heatmap opacity slider was changed from aria-valuenow 100 to 40.
+- The panel showed Opacity 40%, and the live map showed a correspondingly
+  lighter density surface while the track lines stayed unchanged and readable.
+- Track opacity remained 100%.

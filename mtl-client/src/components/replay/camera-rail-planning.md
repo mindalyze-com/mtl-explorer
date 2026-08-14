@@ -586,4 +586,3 @@ This plan does not require:
 
 The first implementation should focus on the camera rail architecture and
 duration-aware smoothing. More advanced optimization can come later.
-

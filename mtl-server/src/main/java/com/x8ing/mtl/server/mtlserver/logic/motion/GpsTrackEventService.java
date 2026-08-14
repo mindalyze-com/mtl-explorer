@@ -5,6 +5,7 @@ import com.x8ing.mtl.server.mtlserver.db.entity.gps.GpsTrackDataPoint;
 import com.x8ing.mtl.server.mtlserver.db.entity.gps.GpsTrackEvent;
 import com.x8ing.mtl.server.mtlserver.db.repository.gps.GpsTrackEventRepository;
 import com.x8ing.mtl.server.mtlserver.gpx.GPXReader;
+import com.x8ing.mtl.server.mtlserver.metrics.MetricConstants;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,9 +18,6 @@ import java.util.Locale;
         "gpsTrackEventRepository"
 })
 public class GpsTrackEventService {
-
-    private static final double SECONDS_PER_HOUR = 3600.0;
-    private static final double METERS_PER_KILOMETER = 1000.0;
 
     private final GpsTrackEventRepository gpsTrackEventRepository;
 
@@ -83,7 +81,8 @@ public class GpsTrackEventService {
                                           GpsTrackDataPoint endPoint) {
         if (range.evidence() == TrackStopDetector.StopEvidence.RECORDING_GAP) {
             double distanceM = distanceBetween(startPoint, endPoint);
-            double impliedSpeedKmh = distanceM / Math.max(range.durationInSec(), 1.0) * SECONDS_PER_HOUR / METERS_PER_KILOMETER;
+            double impliedSpeedKmh = distanceM / Math.max(range.durationInSec(), 1.0)
+                                     * MetricConstants.SECONDS_PER_HOUR / MetricConstants.METERS_PER_KILOMETER;
             return String.format(Locale.ROOT,
                     "Low-displacement GPS recording gap: distance=%.1fm, impliedSpeed=%.2f km/h",
                     distanceM,

@@ -4,7 +4,7 @@
     <Transition name="curtain">
       <div
         v-if="showCurtain"
-        class="curtain-wrapper"
+        class="curtain-wrapper splash-viewport"
         :class="{ 'has-captured-logo-position': capturedLogoTop !== null }"
         :style="curtainStyle"
       >
@@ -196,13 +196,7 @@ function retryLoad() {
   width: 100%;
   height: 100%;
   height: var(--splash-viewport-height);
-  box-sizing: border-box;
   z-index: 9999;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
 }
 
 .curtain-wrapper.has-captured-logo-position {
@@ -278,14 +272,5 @@ function retryLoad() {
   100% {
     transform: translateX(350%);
   }
-}
-
-.bar-fade-enter-active,
-.bar-fade-leave-active {
-  transition: opacity 0.3s ease;
-}
-.bar-fade-enter-from,
-.bar-fade-leave-to {
-  opacity: 0;
 }
 </style>

@@ -11,6 +11,8 @@
 </template>
 
 <script lang="ts">
+import { VIZ_ACCENT_COLOR, VIZ_ORANGE_COLOR, VIZ_SLATE_COLOR } from '@/utils/visualizationColors';
+
 /**
  * Canonical mapping of activity types to Bootstrap Icons and brand colours.
  * Importable for use outside this component (charts, legends, etc.).
@@ -32,18 +34,18 @@ export const ACTIVITY_ICONS: Record<string, string> = {
 };
 
 export const ACTIVITY_COLORS: Record<string, string> = {
-  BICYCLE: '#6366f1',
+  BICYCLE: VIZ_ACCENT_COLOR,
   HIKING: '#22c55e',
   WALKING: '#3b82f6',
-  RUNNING: '#f97316',
-  CAR: '#64748b',
+  RUNNING: VIZ_ORANGE_COLOR,
+  CAR: VIZ_SLATE_COLOR,
   SKIING: '#06b6d4',
   MOUNTAIN_BIKING: '#a855f7',
   STAND_UP_PADDLE: '#0ea5e9',
   ROWING: '#14b8a6',
   KAYAKING: '#06b6d4',
   MOTORBIKING: '#f59e0b',
-  AIRPLANE: '#64748b',
+  AIRPLANE: VIZ_SLATE_COLOR,
   SUPER_SONIC: '#ef4444',
 };
 

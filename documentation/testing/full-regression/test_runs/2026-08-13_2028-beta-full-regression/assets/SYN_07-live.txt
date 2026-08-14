@@ -1,0 +1,10 @@
+Indexer-running badge and map interaction
+
+- Copied public MoselradwegAusWiki.gpx under disposable name mtl-syn07-public.gpx.
+- Admin navigation showed Processing / Live.
+- GPS card showed SCANNING, 70%, 14 completed, 1 running, 5 removed, 20 total.
+- Closed Admin while the live state was still present.
+- Main map remained responsive: Zoom In changed scale 500 km to 300 km.
+- Filtered map count remained 8 / 12 during the scan.
+- Removed the exact disposable copy afterward; original public staged source was untouched.
+

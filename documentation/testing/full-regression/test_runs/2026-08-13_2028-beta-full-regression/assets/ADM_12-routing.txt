@@ -1,0 +1,11 @@
+Admin route synchronization
+
+- Direct URL /mtl/admin/logs loaded Server log.
+- Selecting Processing changed URL to /mtl/admin/processing.
+- Browser Back restored /mtl/admin/logs and the Server log body.
+- Browser Forward restored /mtl/admin/processing and the Processing body.
+- Mobile viewport 390 x 844 showed Back to overview.
+- Mobile Back to overview changed URL to /mtl/admin and restored the overview.
+- Close changed URL to /mtl/ and removed the Admin dialog.
+- Desktop viewport override was reset afterward.
+

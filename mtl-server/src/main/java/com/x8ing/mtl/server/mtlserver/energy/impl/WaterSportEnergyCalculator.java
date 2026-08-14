@@ -3,9 +3,8 @@ package com.x8ing.mtl.server.mtlserver.energy.impl;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.x8ing.mtl.server.mtlserver.db.entity.gps.GpsTrack;
 import com.x8ing.mtl.server.mtlserver.db.entity.gps.GpsTrackDataPoint;
-import com.x8ing.mtl.server.mtlserver.energy.EnergyCalculator;
-import com.x8ing.mtl.server.mtlserver.energy.EnergyComponents;
 import com.x8ing.mtl.server.mtlserver.energy.EnergyParameters;
+import com.x8ing.mtl.server.mtlserver.energy.FluidDragEnergyCalculator;
 
 import java.util.Set;
 
@@ -28,7 +27,7 @@ import java.util.Set;
         "activityTypes",
         "defaultCdTimesArea"
 })
-public abstract class WaterSportEnergyCalculator extends EnergyCalculator {
+public abstract class WaterSportEnergyCalculator extends FluidDragEnergyCalculator {
 
     protected static final double WATER_DENSITY = 1000.0;       // kg/m³
     private static final double DEFAULT_MAX_WATER_SPEED_MPS = 12.0;
@@ -39,32 +38,16 @@ public abstract class WaterSportEnergyCalculator extends EnergyCalculator {
     protected abstract double getDefaultCdTimesArea();
 
     @Override
-    public EnergyComponents calculateBetweenPoints(GpsTrackDataPoint current, GpsTrackDataPoint prev, EnergyParameters params) {
-        if (prev == null) return EnergyComponents.ZERO;
-
-        double distance = segmentDistance(current);
-        if (distance <= 0) return EnergyComponents.ZERO;
-
-        double totalMass = params.getTotalMassKg(getDefaultEquipmentWeightKg());
-
-        // Gravity (relevant for river descent/ascent sections)
-        double gravity = gravitationalEnergy(totalMass, current.getPointAltitude(), prev.getPointAltitude());
-
+    protected double calculateDragJoules(
+            GpsTrackDataPoint current,
+            GpsTrackDataPoint prev,
+            EnergyParameters params,
+            double distance
+    ) {
         // Water drag: ½ · (Cd·A) · ρ_water · v² · d
         // Use the combined Cd·A product — user can override via dragCoefficient and frontalArea
         double cdA = params.getDragCoefficient(1.0) * params.getFrontalArea(getDefaultCdTimesArea());
         double speed = Math.min(smoothedSpeedMps(current, params), DEFAULT_MAX_WATER_SPEED_MPS);
-        double waterDrag = 0.5 * cdA * WATER_DENSITY * speed * speed * distance;
-
-        // Kinetic energy change — use smoothed speed to avoid GPS jitter amplification on v²
-        double currentSpeed = smoothedSpeedMps(current, params);
-        double prevSpeed = smoothedSpeedMps(prev, params);
-        double kinetic = kineticEnergyChange(totalMass, currentSpeed, prevSpeed);
-
-        return EnergyComponents.builder()
-                .gravitationalJoules(gravity)
-                .aeroDragJoules(waterDrag) // stored in aero_drag field (represents fluid drag — water in this case)
-                .kineticJoules(kinetic)
-                .build();
+        return 0.5 * cdA * WATER_DENSITY * speed * speed * distance;
     }
 }

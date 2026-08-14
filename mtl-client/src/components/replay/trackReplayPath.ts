@@ -1,6 +1,15 @@
 import type { GpsTrack, GpsTrackDataPoint } from 'x8ing-mtl-api-typescript-fetch/dist/esm/models/index';
 import { bearing, haversineDistance, shortestLongitudeDelta } from '@/components/map/mapGeometry';
 import type { ChartPoint } from '@/utils/chartSeriesAdapter';
+import { lowerBoundClampedIndex, nearestSortedIndex } from '@/utils/sortedSearch';
+import { toValidDateMs } from '@/utils/Utils';
+import {
+  clamp01 as clampProgress,
+  finiteNumberOrNull as finiteNumber,
+  interpolationProgress,
+  interpolateNullableNumber as interpolateNullable,
+  lerpNumber as lerp,
+} from '@/utils/numbers';
 
 export const REPLAY_TARGET_DURATION_PRESETS_SECONDS = [10, 15, 30, 45, 60, 90] as const;
 export const REPLAY_DEFAULT_TARGET_DURATION_SECONDS = 45;
@@ -221,17 +230,12 @@ export function sampleReplayPathAtElapsedSeconds(
   const next = path.points[hi];
   const prevElapsed = prev.elapsedSeconds ?? 0;
   const nextElapsed = next.elapsedSeconds ?? prevElapsed;
-  const span = Math.max(nextElapsed - prevElapsed, Number.EPSILON);
-  const t = Math.max(0, Math.min(1, (targetElapsedSeconds - prevElapsed) / span));
+  const t = interpolationProgress(prevElapsed, nextElapsed, targetElapsedSeconds);
 
   return {
-    lng: interpolateLongitude(prev.lng, next.lng, t),
-    lat: lerp(prev.lat, next.lat, t),
-    elevation: interpolateNullable(prev.elevation, next.elevation, t),
+    ...interpolateReplayPoint(prev, next, t),
     distanceMeters: lerp(prev.distanceMeters, next.distanceMeters, t),
     elapsedSeconds: targetElapsedSeconds,
-    headingDegrees: interpolateBearing(prev.headingDegrees, next.headingDegrees, t),
-    sourceIndex: Math.round(lerp(prev.sourceIndex, next.sourceIndex, t)),
     progress,
   };
 }
@@ -241,7 +245,7 @@ export function distanceProgressForReplaySample(
   sample: Pick<ReplayPathSample, 'distanceMeters'> | null
 ): number {
   if (!sample || path.totalDistanceMeters <= 0) return 0;
-  return Math.max(0, Math.min(1, sample.distanceMeters / path.totalDistanceMeters));
+  return clampProgress(sample.distanceMeters / path.totalDistanceMeters);
 }
 
 function sampleReplayPathByDistanceProgress(path: ReplayPath, progress: number): ReplayPathSample | null {
@@ -259,18 +263,24 @@ function sampleReplayPathByDistanceProgress(path: ReplayPath, progress: number):
   }
   const prev = path.points[hi - 1];
   const next = path.points[hi];
-  const span = Math.max(next.distanceMeters - prev.distanceMeters, Number.EPSILON);
-  const t = Math.max(0, Math.min(1, (targetDistance - prev.distanceMeters) / span));
+  const t = interpolationProgress(prev.distanceMeters, next.distanceMeters, targetDistance);
 
+  return {
+    ...interpolateReplayPoint(prev, next, t),
+    distanceMeters: targetDistance,
+    progress: safeProgress,
+  };
+}
+
+function interpolateReplayPoint(prev: ReplayPathPoint, next: ReplayPathPoint, t: number): ReplayPathPoint {
   return {
     lng: interpolateLongitude(prev.lng, next.lng, t),
     lat: lerp(prev.lat, next.lat, t),
     elevation: interpolateNullable(prev.elevation, next.elevation, t),
-    distanceMeters: targetDistance,
+    distanceMeters: lerp(prev.distanceMeters, next.distanceMeters, t),
     elapsedSeconds: interpolateNullable(prev.elapsedSeconds, next.elapsedSeconds, t),
     headingDegrees: interpolateBearing(prev.headingDegrees, next.headingDegrees, t),
     sourceIndex: Math.round(lerp(prev.sourceIndex, next.sourceIndex, t)),
-    progress: safeProgress,
   };
 }
 
@@ -278,7 +288,7 @@ export function interpolateBearing(fromDegrees: number, toDegrees: number, t: nu
   const from = normalizeDegrees(fromDegrees);
   const to = normalizeDegrees(toDegrees);
   const delta = ((((to - from) % 360) + 540) % 360) - 180;
-  return normalizeDegrees(from + delta * Math.max(0, Math.min(1, t)));
+  return normalizeDegrees(from + delta * clampProgress(t));
 }
 
 function buildRawReplayPoints(coordinates: number[][]): RawReplayPoint[] {
@@ -315,13 +325,9 @@ function sampleRawPointAtDistance(points: RawReplayPoint[], targetDistance: numb
   const span = Math.max(next.distanceMeters - prev.distanceMeters, Number.EPSILON);
   const t = (targetDistance - prev.distanceMeters) / span;
   return {
-    lng: interpolateLongitude(prev.lng, next.lng, t),
-    lat: lerp(prev.lat, next.lat, t),
-    elevation: interpolateNullable(prev.elevation, next.elevation, t),
+    ...interpolateReplayPoint({ ...prev, headingDegrees: 0 }, { ...next, headingDegrees: 0 }, t),
     distanceMeters: targetDistance,
-    elapsedSeconds: interpolateNullable(prev.elapsedSeconds, next.elapsedSeconds, t),
     headingDegrees: 0,
-    sourceIndex: Math.round(lerp(prev.sourceIndex, next.sourceIndex, t)),
   };
 }
 
@@ -422,32 +428,12 @@ function nearestRenderedPoint(
   targetCanonicalPointIndex: number
 ): IndexedRenderedPoint | null {
   if (points.length === 0) return null;
-  let lo = 0;
-  let hi = points.length - 1;
-  while (lo < hi) {
-    const mid = (lo + hi) >>> 1;
-    if (points[mid].canonicalPointIndex < targetCanonicalPointIndex) lo = mid + 1;
-    else hi = mid;
-  }
-  if (
-    lo > 0 &&
-    Math.abs(points[lo - 1].canonicalPointIndex - targetCanonicalPointIndex) <=
-      Math.abs(points[lo].canonicalPointIndex - targetCanonicalPointIndex)
-  ) {
-    return points[lo - 1];
-  }
-  return points[lo];
+  const index = nearestSortedIndex(points, targetCanonicalPointIndex, (point) => point.canonicalPointIndex, true);
+  return points[index];
 }
 
 function firstPointAtOrAfterElapsed(points: ReplayPathPoint[], elapsedSeconds: number): number {
-  let low = 0;
-  let high = points.length - 1;
-  while (low < high) {
-    const mid = Math.floor((low + high) / 2);
-    if ((points[mid].elapsedSeconds ?? 0) < elapsedSeconds) low = mid + 1;
-    else high = mid;
-  }
-  return low;
+  return lowerBoundClampedIndex(points, elapsedSeconds, (point) => point.elapsedSeconds ?? 0);
 }
 
 function nearestDistinctPoint(points: ReplayPathPoint[], index: number, direction: -1 | 1): ReplayPathPoint | null {
@@ -469,38 +455,10 @@ function pointCoordinates(point: unknown): [number, number] | null {
   return lng == null || lat == null ? null : [lng, lat];
 }
 
-function interpolateNullable(a: number | null, b: number | null, t: number): number | null {
-  if (a == null && b == null) return null;
-  if (a == null) return b;
-  if (b == null) return a;
-  return lerp(a, b, t);
-}
-
 function interpolateLongitude(fromLng: number, toLng: number, t: number): number {
   return fromLng + shortestLongitudeDelta(fromLng, toLng) * t;
 }
 
-function lerp(a: number, b: number, t: number): number {
-  return a + (b - a) * t;
-}
-
 function normalizeDegrees(degrees: number): number {
   return ((degrees % 360) + 360) % 360;
-}
-
-function toValidDateMs(value: Date | string | number | null | undefined): number | null {
-  if (value == null) return null;
-  const date = value instanceof Date ? value : new Date(value);
-  const ms = date.getTime();
-  return Number.isFinite(ms) ? ms : null;
-}
-
-function finiteNumber(value: unknown): number | null {
-  const numeric = Number(value);
-  return Number.isFinite(numeric) ? numeric : null;
-}
-
-function clampProgress(progress: number): number {
-  if (!Number.isFinite(progress)) return 0;
-  return Math.max(0, Math.min(1, progress));
 }

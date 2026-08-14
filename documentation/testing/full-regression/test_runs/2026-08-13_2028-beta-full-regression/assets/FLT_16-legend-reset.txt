@@ -1,0 +1,23 @@
+FLT_16 map visibility and global category behavior
+
+Starting global result:
+- Tracks by quarter
+- Exact category selection: Q1
+- Filter and Statistics: 8 of 12 tracks
+- Map: 8 of 12 tracks
+
+Temporary legend hiding:
+- Hid Q1 with the map legend visibility control.
+- Map changed immediately to 0 of 12 tracks.
+- Statistics remained 8 of 12 tracks (TRACKS 8).
+
+Global category change:
+- Changed Included categories from exact Q1 to All categories and applied.
+- Filter changed to 12 matching tracks.
+- Statistics changed to TRACKS 12.
+- Expected map reload to clear temporary Q1 hiding.
+- Actual map stayed at 4 of 12 tracks with "1 hidden"; Q1 remained hidden and Q3 remained visible.
+
+Recovery:
+- Used Show all.
+- Map returned to 12 of 12 tracks and the hidden indicator cleared.

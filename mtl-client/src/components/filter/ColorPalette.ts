@@ -37,43 +37,30 @@ export class ColorPalette {
 
   // Method to assign a color to a group
   public getColorForGroup(group: string, countForStatistics: boolean = false): string {
-    this.incrementGroupCounter(group, countForStatistics);
-
-    // If the group is already assigned a color, return it
-    if (this.groupColorMap.has(group)) {
-      return this.groupColorMap.get(group)!;
-    }
-
-    // If no colors are defined, return a default color (red in this case)
-    if (!this.pColors || this.pColors.length === 0) {
-      return '#FF0000';
-    }
-
-    // Calculate the index of the color for this group by cycling through available colors
-    const colorIndex = this.groupColorMap.size % this.pColors.length;
-
-    // Assign the calculated color to the group
-    const assignedColor: string = this.pColors[colorIndex];
-    this.groupColorMap.set(group, assignedColor);
-
-    return assignedColor;
+    return this.assignGroupColor(group, countForStatistics, (colors) => this.groupColorMap.size % colors.length);
   }
 
   public getColorForGroupAtIndex(group: string, colorIndex: number, countForStatistics: boolean = false): string {
+    return this.assignGroupColor(group, countForStatistics, (colors) =>
+      Math.max(0, Math.min(colors.length - 1, colorIndex))
+    );
+  }
+
+  private assignGroupColor(
+    group: string,
+    countForStatistics: boolean,
+    resolveColorIndex: (colors: string[]) => number
+  ): string {
     this.incrementGroupCounter(group, countForStatistics);
 
-    if (this.groupColorMap.has(group)) {
-      return this.groupColorMap.get(group)!;
-    }
+    if (this.groupColorMap.has(group)) return this.groupColorMap.get(group)!;
 
     if (!this.pColors || this.pColors.length === 0) {
       return '#FF0000';
     }
 
-    const safeColorIndex = Math.max(0, Math.min(this.pColors.length - 1, colorIndex));
-    const assignedColor: string = this.pColors[safeColorIndex];
+    const assignedColor = this.pColors[resolveColorIndex(this.pColors)];
     this.groupColorMap.set(group, assignedColor);
-
     return assignedColor;
   }
 
@@ -98,6 +85,8 @@ export class ColorPalette {
   }
 
   static of(configEntity: ConfigEntity | ColorPalette | undefined | null): ColorPalette {
+    if (configEntity instanceof ColorPalette) return configEntity;
+
     const colorPalette = new ColorPalette();
 
     if (configEntity) {

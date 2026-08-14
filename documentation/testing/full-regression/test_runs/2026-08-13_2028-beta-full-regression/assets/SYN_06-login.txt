@@ -1,0 +1,11 @@
+Logout/login refresh-loop check
+
+- Credentials-only sign-out returned to /mtl/login.
+- Valid login at 2026-08-14T00:05:51.507Z.
+- New server session: 44REjnsQkZ.
+- Map settled at 8 / 12 Tracks with no freshness banner or Map updated toast.
+- Initial load made two expected get-simplified requests at 00:05:52, both 200 (18 ms and 104 ms).
+- Freshness polling completed at 00:06:22 with 200 in 1 ms.
+- No additional get-simplified request followed that polling cycle.
+- UI check at 00:06:23 retained 8 / 12, no banner, and no refresh toast.
+

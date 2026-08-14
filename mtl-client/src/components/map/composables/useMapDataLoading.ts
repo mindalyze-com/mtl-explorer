@@ -2,7 +2,6 @@
 // @ts-nocheck
 /* eslint-disable @typescript-eslint/no-unused-vars, @typescript-eslint/no-explicit-any -- Data loading still crosses broad API/cache shapes. */
 import { markRaw } from 'vue';
-import axios from 'axios';
 import { GeoDrawingOverlay } from '@/layers/GeoDrawingOverlay';
 import { checkServerAuth, fetchTrackCanonicalPoints, fetchTrackPointsForRenderedShape } from '@/utils/ServiceHelper';
 import { getToken, isAuthError, redirectToLoginAfterAuthFailure } from '@/utils/auth';
@@ -28,7 +27,12 @@ import {
   precisionForZoom,
 } from '@/components/map/mapGeometry';
 import { describeError, startStartupTimer, startupLog, startupWarn } from '@/utils/startupDiagnostics';
-import type { MapControllerMethodDefinitions, MapDataLoadingMethods } from './mapControllerRuntime';
+import { isAbortLikeError } from '@/utils/errors';
+import type {
+  MapControllerMethodDefinitions,
+  MapControllerRuntime,
+  MapDataLoadingMethods,
+} from './mapControllerRuntime';
 
 const DETAIL_BOUNDS_PADDING = 2;
 const DETAIL_DEBOUNCE_MS = 500;
@@ -37,12 +41,23 @@ const DETAIL_MAX_CONCURRENT_1M = 1;
 const TRACK_POINTS_MIN_ZOOM = 16;
 const DEFAULT_MAP_ZOOM = 10;
 
-function isAbortLikeError(error: unknown): boolean {
-  return (
-    (error instanceof DOMException && error.name === 'AbortError') ||
-    (error instanceof Error && error.name === 'AbortError') ||
-    axios.isCancel(error)
-  );
+function loadAndMergeTrackCollection(runtime: MapControllerRuntime, precision: number) {
+  return loadTrackCollectionPaged(precision, {
+    onPage: (page) => runtime.mergeTrackPage(page),
+    pageSize: TRACK_LOAD_BATCH_SIZE,
+  });
+}
+
+async function applyFreshTrackCollection(runtime: MapControllerRuntime, serverData: any): Promise<void> {
+  if (runtime.geojson) {
+    await runtime.mergeTrackResult(serverData, { pruneMissing: true });
+  } else {
+    await runtime.loadMapData(serverData);
+  }
+  runtime.isOffline = false;
+  runtime.maybeLoadBackgroundTracks(serverData.filterResult);
+  runtime.scheduleDetailCheck();
+  await runtime.captureAppliedFreshnessToken();
 }
 
 export function useMapDataLoading(deps: {
@@ -108,25 +123,13 @@ export function useMapDataLoading(deps: {
       this.loadingTrackBatches = true;
       try {
         await this.clearTrackCacheWhenServerFreshnessChanged();
+        await filterStore.refreshResolvedFilter();
         const collectionPrecision = this.currentCollectionPrecision();
-        const serverData = await loadTrackCollectionPaged(collectionPrecision, {
-          onPage: (page) => this.mergeTrackPage(page),
-          pageSize: TRACK_LOAD_BATCH_SIZE,
-        });
+        const serverData = await loadAndMergeTrackCollection(this, collectionPrecision);
         this.totalTrackCount = serverData.standardFilterCount;
-        if (this.geojson) {
-          await this.mergeTrackResult(serverData, {
-            pruneMissing: true,
-          });
-        } else {
-          await this.loadMapData(serverData);
-        }
+        await applyFreshTrackCollection(this, serverData);
         this.cachedTracksLoaded = true;
         this.initialLoadDone = true;
-        this.isOffline = false;
-        this.maybeLoadBackgroundTracks(serverData.filterResult);
-        this.scheduleDetailCheck();
-        await this.captureAppliedFreshnessToken();
         if (!silent) {
           this.$toast.add({
             severity: 'success',
@@ -198,6 +201,39 @@ export function useMapDataLoading(deps: {
       this.gpsTracksById = markRaw(new Map(this.gpsTracksById));
     },
 
+    mergeTrackFeatures(fetchResult) {
+      const incomingIds = new Set();
+      let changed = false;
+      let trackDataChanged = false;
+      for (const [trackId, feature] of fetchResult.gpsTrackIdToFeature) {
+        const numId = Number(trackId);
+        incomingIds.add(numId);
+        const existingFeature = this.gpsTrackIdToFeature.get(numId);
+        const incomingPrecision = fetchResult.trackPrecisions?.get(numId) ?? OVERVIEW_PRECISION;
+        const currentPrecision = this.trackPrecisions.get(numId) ?? OVERVIEW_PRECISION;
+        if (existingFeature) {
+          existingFeature.properties = feature.properties;
+          if (isSameOrBetterPrecision(incomingPrecision, currentPrecision)) {
+            existingFeature.geometry = feature.geometry;
+            this.trackPrecisions.set(numId, incomingPrecision);
+          }
+          this.gpsTrackIdToFeature.set(numId, existingFeature);
+        } else {
+          this.geojson.features.push(feature);
+          this.gpsTrackIdToFeature.set(numId, feature);
+          this.trackPrecisions.set(numId, incomingPrecision);
+        }
+        changed = true;
+
+        const gpsTrack = fetchResult.gpsTracksById.get(trackId) ?? fetchResult.gpsTracksById.get(numId);
+        if (gpsTrack) {
+          this.gpsTracksById.set(numId, gpsTrack);
+          trackDataChanged = true;
+        }
+      }
+      return { changed, incomingIds, trackDataChanged };
+    },
+
     async mergeTrackResult(fetchResult, { pruneMissing = false } = {}) {
       if (!fetchResult?.geojson?.features?.length) {
         if (pruneMissing && this.geojson) {
@@ -219,35 +255,10 @@ export function useMapDataLoading(deps: {
         return;
       }
       this.activeTrackFilterResult = fetchResult.filterResult ?? this.activeTrackFilterResult;
-      const incomingIds = new Set();
-      let changed = false;
-      let trackDataChanged = false;
-      for (const [trackId, feature] of fetchResult.gpsTrackIdToFeature) {
-        const numId = Number(trackId);
-        incomingIds.add(numId);
-        const existingFeature = this.gpsTrackIdToFeature.get(numId);
-        const incomingPrecision = fetchResult.trackPrecisions?.get(numId) ?? OVERVIEW_PRECISION;
-        const currentPrecision = this.trackPrecisions.get(numId) ?? OVERVIEW_PRECISION;
-        if (existingFeature) {
-          existingFeature.properties = feature.properties;
-          if (isSameOrBetterPrecision(incomingPrecision, currentPrecision)) {
-            existingFeature.geometry = feature.geometry;
-            this.trackPrecisions.set(numId, incomingPrecision);
-          }
-          this.gpsTrackIdToFeature.set(numId, existingFeature);
-          changed = true;
-        } else {
-          this.geojson.features.push(feature);
-          this.gpsTrackIdToFeature.set(numId, feature);
-          this.trackPrecisions.set(numId, incomingPrecision);
-          changed = true;
-        }
-        const gpsTrack = fetchResult.gpsTracksById.get(trackId) ?? fetchResult.gpsTracksById.get(numId);
-        if (gpsTrack) {
-          this.gpsTracksById.set(numId, gpsTrack);
-          trackDataChanged = true;
-        }
-      }
+      const merged = this.mergeTrackFeatures(fetchResult);
+      const incomingIds = merged.incomingIds;
+      let changed = merged.changed;
+      let trackDataChanged = merged.trackDataChanged;
       if (pruneMissing) {
         const beforeLength = this.geojson.features.length;
         this.geojson.features = this.geojson.features.filter((feature) => {
@@ -292,33 +303,7 @@ export function useMapDataLoading(deps: {
         await this.loadMapData(fetchResult);
         return;
       }
-      let changed = false;
-      let trackDataChanged = false;
-      for (const [trackId, feature] of fetchResult.gpsTrackIdToFeature) {
-        const numId = Number(trackId);
-        const existingFeature = this.gpsTrackIdToFeature.get(numId);
-        const precision = fetchResult.trackPrecisions?.get(numId) ?? OVERVIEW_PRECISION;
-        const currentPrecision = this.trackPrecisions.get(numId) ?? OVERVIEW_PRECISION;
-        if (existingFeature) {
-          existingFeature.properties = feature.properties;
-          if (isSameOrBetterPrecision(precision, currentPrecision)) {
-            existingFeature.geometry = feature.geometry;
-            this.trackPrecisions.set(numId, precision);
-          }
-          this.gpsTrackIdToFeature.set(numId, existingFeature);
-          changed = true;
-        } else {
-          this.geojson.features.push(feature);
-          this.gpsTrackIdToFeature.set(numId, feature);
-          this.trackPrecisions.set(numId, precision);
-          changed = true;
-        }
-        const gpsTrack = fetchResult.gpsTracksById.get(trackId) ?? fetchResult.gpsTracksById.get(numId);
-        if (gpsTrack) {
-          this.gpsTracksById.set(numId, gpsTrack);
-          trackDataChanged = true;
-        }
-      }
+      const { changed, trackDataChanged } = this.mergeTrackFeatures(fetchResult);
       if (trackDataChanged) {
         this.publishGpsTrackMetadataChanges();
       }
@@ -349,6 +334,19 @@ export function useMapDataLoading(deps: {
     async onAdminRefreshFreshnessData(done) {
       const success = await this.onDataFreshnessReload();
       done?.(success);
+    },
+
+    async showCachedTrackFallback(cached, loadMessage, emittedMessage) {
+      startupLog('tracks', loadMessage, {
+        featureCount: cached.geojson?.features?.length ?? 0,
+      });
+      await this.loadMapData(cached);
+      this.isOffline = true;
+      this.cachedTracksLoaded = true;
+      this.showLoader = false;
+      this.$emit('tracks-loaded');
+      startupLog('tracks', emittedMessage);
+      this.fitToTrackBounds(cached.geojson);
     },
 
     async fetchTracksAndFallback() {
@@ -401,16 +399,11 @@ export function useMapDataLoading(deps: {
           });
           const cached = await loadCachedTrackCollection();
           if (cached && !this.cachedTracksLoaded) {
-            startupLog('tracks', 'Using cached tracks after startup fallback timeout', {
-              featureCount: cached.geojson?.features?.length ?? 0,
-            });
-            await this.loadMapData(cached);
-            this.isOffline = true;
-            this.cachedTracksLoaded = true;
-            this.showLoader = false;
-            this.$emit('tracks-loaded');
-            startupLog('tracks', 'tracks-loaded emitted from cached fallback');
-            this.fitToTrackBounds(cached.geojson);
+            await this.showCachedTrackFallback(
+              cached,
+              'Using cached tracks after startup fallback timeout',
+              'tracks-loaded emitted from cached fallback'
+            );
           }
         }
       }, CACHE_FALLBACK_TIMEOUT_MS);
@@ -484,16 +477,11 @@ export function useMapDataLoading(deps: {
         if (!this.cachedTracksLoaded) {
           const cached = await loadCachedTrackCollection();
           if (cached) {
-            startupLog('tracks', 'Recovered from startup failure using cached tracks', {
-              featureCount: cached.geojson?.features?.length ?? 0,
-            });
-            await this.loadMapData(cached);
-            this.isOffline = true;
-            this.cachedTracksLoaded = true;
-            this.showLoader = false;
-            this.$emit('tracks-loaded');
-            startupLog('tracks', 'tracks-loaded emitted from cached recovery');
-            this.fitToTrackBounds(cached.geojson);
+            await this.showCachedTrackFallback(
+              cached,
+              'Recovered from startup failure using cached tracks',
+              'tracks-loaded emitted from cached recovery'
+            );
           } else {
             this.showLoader = false;
             startupWarn('tracks', 'No cached tracks available; emitting load-failed');
@@ -517,10 +505,7 @@ export function useMapDataLoading(deps: {
         startupLog('sync', 'Background sync: fetching server data', {
           precision: collectionPrecision,
         });
-        const serverData = await loadTrackCollectionPaged(collectionPrecision, {
-          onPage: (page) => this.mergeTrackPage(page),
-          pageSize: TRACK_LOAD_BATCH_SIZE,
-        });
+        const serverData = await loadAndMergeTrackCollection(this, collectionPrecision);
         this.totalTrackCount = serverData.standardFilterCount;
         await this.mergeTrackResult(serverData, {
           pruneMissing: true,
@@ -549,6 +534,33 @@ export function useMapDataLoading(deps: {
       }
     },
 
+    applyBackgroundTrackPage(pageData, signal) {
+      if (signal.aborted) return false;
+      let changed = false;
+      let trackDataChanged = false;
+      for (const [trackId, feature] of pageData.gpsTrackIdToFeature) {
+        if (signal.aborted) return false;
+        const numId = Number(trackId);
+        const gpsTrack = pageData.gpsTracksById.get(trackId) ?? pageData.gpsTracksById.get(numId);
+        if (gpsTrack) {
+          this.gpsTracksById.set(numId, gpsTrack);
+          trackDataChanged = true;
+        }
+        const currentPrecision = this.trackPrecisions.get(numId) ?? OVERVIEW_PRECISION;
+        if (currentPrecision <= BACKGROUND_TRACK_PRECISION) continue;
+        const existingFeature = this.gpsTrackIdToFeature.get(numId);
+        if (existingFeature?.geometry && feature?.geometry) {
+          existingFeature.geometry.coordinates = feature.geometry.coordinates;
+          existingFeature.geometry.type = feature.geometry.type;
+          changed = true;
+        }
+        this.trackPrecisions.set(numId, BACKGROUND_TRACK_PRECISION);
+      }
+      if (trackDataChanged) this.publishGpsTrackMetadataChanges();
+      if (changed) this.updateTracksSource();
+      return changed;
+    },
+
     async loadAllTracksAt10m(filterResult) {
       if (this.bulk10mController) this.bulk10mController.abort();
       this.bulk10mController = markRaw(new AbortController());
@@ -556,34 +568,7 @@ export function useMapDataLoading(deps: {
       this.loadingTracks10m = true;
       try {
         console.log('Background: loading all tracks at 10m…');
-        const applyPage = async (pageData) => {
-          if (signal.aborted) return;
-          let changed = false;
-          let trackDataChanged = false;
-          for (const [trackId, feature] of pageData.gpsTrackIdToFeature) {
-            const numId = Number(trackId);
-            const gpsTrack = pageData.gpsTracksById.get(trackId) ?? pageData.gpsTracksById.get(numId);
-            if (gpsTrack) {
-              this.gpsTracksById.set(numId, gpsTrack);
-              trackDataChanged = true;
-            }
-            const currentPrecision = this.trackPrecisions.get(numId) ?? OVERVIEW_PRECISION;
-            if (currentPrecision <= BACKGROUND_TRACK_PRECISION) continue;
-            const existingFeature = this.gpsTrackIdToFeature.get(numId);
-            if (existingFeature?.geometry && feature?.geometry) {
-              existingFeature.geometry.coordinates = feature.geometry.coordinates;
-              existingFeature.geometry.type = feature.geometry.type;
-              changed = true;
-            }
-            this.trackPrecisions.set(numId, BACKGROUND_TRACK_PRECISION);
-          }
-          if (trackDataChanged) {
-            this.publishGpsTrackMetadataChanges();
-          }
-          if (changed) {
-            this.updateTracksSource();
-          }
-        };
+        const applyPage = (pageData) => this.applyBackgroundTrackPage(pageData, signal);
         const data10m = await loadTrackCollectionPaged(BACKGROUND_TRACK_PRECISION, {
           signal,
           filterResult,
@@ -591,36 +576,7 @@ export function useMapDataLoading(deps: {
           pageSize: TRACK_LOAD_BATCH_SIZE,
         });
         if (signal.aborted) return;
-        let trackDataChanged = false;
-        for (const [trackId, feature] of data10m.gpsTrackIdToFeature) {
-          if (signal.aborted) return;
-          const numId = Number(trackId);
-          const gpsTrack = data10m.gpsTracksById.get(trackId) ?? data10m.gpsTracksById.get(numId);
-          if (gpsTrack) {
-            this.gpsTracksById.set(numId, gpsTrack);
-            trackDataChanged = true;
-          }
-          const currentPrecision = this.trackPrecisions.get(numId) ?? OVERVIEW_PRECISION;
-          if (currentPrecision <= BACKGROUND_TRACK_PRECISION) continue;
-
-          // Update the in-memory feature coordinates
-          const existingFeature = this.gpsTrackIdToFeature.get(numId);
-          if (existingFeature?.geometry) {
-            const newCoords = feature.geometry.coordinates;
-            existingFeature.geometry.coordinates = newCoords;
-            // Sync geometry type: handles both upgrade (Point→LineString for tracks that
-            // were degenerate at overview precision but have real coords at 10m) and the
-            // reverse (LineString→Point for tracks whose 10m data is still degenerate,
-            // which would otherwise leave a LineString with flat [lng,lat] coordinates).
-            existingFeature.geometry.type = feature.geometry.type;
-          }
-          this.trackPrecisions.set(numId, BACKGROUND_TRACK_PRECISION);
-        }
-        if (trackDataChanged) {
-          this.publishGpsTrackMetadataChanges();
-        }
-        // Update the source data to reflect new coordinates
-        this.updateTracksSource();
+        this.applyBackgroundTrackPage(data10m, signal);
         console.log('Background 10m load complete');
       } catch (e) {
         if (signal.aborted || isAbortLikeError(e)) {
@@ -654,18 +610,8 @@ export function useMapDataLoading(deps: {
       try {
         const collectionPrecision = this.currentCollectionPrecision();
         const serverData = await loadTrackCollectionPaged(collectionPrecision);
-        if (this.geojson) {
-          await this.mergeTrackResult(serverData, {
-            pruneMissing: true,
-          });
-        } else {
-          await this.loadMapData(serverData);
-        }
-        this.isOffline = false;
+        await applyFreshTrackCollection(this, serverData);
         this.retryCount = 0;
-        this.maybeLoadBackgroundTracks(serverData.filterResult);
-        this.scheduleDetailCheck();
-        await this.captureAppliedFreshnessToken();
         // If the initial map style was the offline raster fallback (e.g. the
         // /api/map/config call timed out on first login), rebuild the style
         // now that connectivity is back — no page reload needed.
@@ -847,6 +793,9 @@ export function useMapDataLoading(deps: {
         return;
       }
       console.log('map got filter applied — using IDs-only fast path');
+      // Legend visibility is a temporary map-only refinement. A global filter
+      // change starts a new result and must not inherit hidden categories.
+      this.hiddenGroups = new Set();
       this.showLoader = true;
       try {
         // Fast path: fetch only matching IDs from server, resolve data from local cache

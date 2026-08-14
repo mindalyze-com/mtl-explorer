@@ -74,7 +74,14 @@ import {
   useTrackDetailsPreferencesStore,
 } from '@/stores/trackDetailsPreferencesStore';
 import { useMapSettingsStore } from '@/stores/mapSettingsStore';
-import { formatDateAndTimeWithSeconds, formatDistanceSmart, formatDurationSmart, formatNumber } from '@/utils/Utils';
+import {
+  formatDateAndTimeWithSeconds,
+  formatDistanceSmart,
+  formatDurationSmart,
+  formatElevation,
+  formatNumber,
+  formatSpeed,
+} from '@/utils/Utils';
 import type { GpsTrackEvent } from 'x8ing-mtl-api-typescript-fetch/dist/esm/models/index';
 import { unwrapLngLatCoordinates } from '@/components/map/mapGeometry';
 import {
@@ -83,6 +90,15 @@ import {
   valueAtFraction,
   type TrackLineProjection,
 } from '@/components/map/trackLineHitTest';
+import { createTrackPointPopup, type TrackPointPopupRow } from '@/components/map/trackPointPopup';
+import {
+  formatTrackEventDateTime as eventTimeLabel,
+  trackEventKey as eventKey,
+  trackEventKeysEqual as eventKeysEqual,
+  trackEventTimeMs as eventTimeMs,
+  trackEventTypeLabel as eventTypeLabel,
+} from '@/utils/trackEvents';
+import { VIZ_ORANGE_COLOR, VIZ_ORANGE_STRONG_COLOR } from '@/utils/visualizationColors';
 
 const MIN_HEIGHT = TRACK_DETAIL_MINI_MAP_HEIGHT_MIN;
 const MAX_HEIGHT = TRACK_DETAIL_MINI_MAP_HEIGHT_MAX;
@@ -102,11 +118,11 @@ const EVENT_ICON_DIAMOND_SIZE = 13;
 const EVENT_ICON_CORNER_RADIUS = 2.5;
 const EVENT_ICON_STROKE_WIDTH = 1;
 const DEFAULT_DEVICE_PIXEL_RATIO = 1;
-const STOP_EVENT_MARKER_FILL = '#f97316';
+const STOP_EVENT_MARKER_FILL = VIZ_ORANGE_COLOR;
 const STOP_EVENT_MARKER_STROKE = '#7c2d12';
-const SELECTED_EVENT_HALO_COLOR = '#f97316';
+const SELECTED_EVENT_HALO_COLOR = STOP_EVENT_MARKER_FILL;
 const SELECTED_EVENT_CORE_COLOR = '#fff7ed';
-const SELECTED_EVENT_CORE_STROKE = '#ea580c';
+const SELECTED_EVENT_CORE_STROKE = VIZ_ORANGE_STRONG_COLOR;
 const METERS_PER_KILOMETER = 1000;
 const SEGMENT_CLICK_TOLERANCE_PX = 12;
 const SEGMENT_CLICK_TOLERANCE_METERS = 120;
@@ -343,10 +359,13 @@ function clearPointPopup() {
 function showPointPopup(point: TrackPoint, anchor: [number, number] = [point.lng, point.lat]) {
   if (!map) return;
   clearPointPopup();
-  pointPopup = new maplibregl.Popup({ closeButton: true, closeOnClick: true, maxWidth: '280px' })
-    .setLngLat(anchor)
-    .setHTML(pointPopupHtml(point))
-    .addTo(map);
+  pointPopup = createTrackPointPopup({
+    map,
+    lngLat: anchor,
+    title: 'Track point',
+    rows: pointPopupRows(point),
+    closeOnClick: true,
+  });
 }
 
 function findClickPointTarget(e: maplibregl.MapMouseEvent): ClickPointTarget | null {
@@ -408,27 +427,15 @@ function findPointForTrackFraction(fraction: number): TrackPoint | null {
   return points[0] ?? null;
 }
 
-function pointPopupHtml(point: TrackPoint): string {
-  const rows = [
-    ['Point', formatNumber(displayPointIndex(point) + 1, 0)],
-    ['Time', formatPointTime(point.timestamp)],
-    ['Distance', formatDistanceSmart(point.distanceKm * METERS_PER_KILOMETER)],
-    ['Elevation', point.altitude == null ? '—' : `${formatNumber(point.altitude, 1)} m`],
-    ['Speed', formatPointSpeed(point)],
-    ['Elapsed', formatElapsed(point)],
+function pointPopupRows(point: TrackPoint): TrackPointPopupRow[] {
+  return [
+    { label: 'Point', value: formatNumber(displayPointIndex(point) + 1, 0) },
+    { label: 'Time', value: formatPointTime(point.timestamp) },
+    { label: 'Distance', value: formatDistanceSmart(point.distanceKm * METERS_PER_KILOMETER) },
+    { label: 'Elevation', value: point.altitude == null ? '—' : formatElevation(point.altitude, 1) },
+    { label: 'Speed', value: formatPointSpeed(point) },
+    { label: 'Elapsed', value: formatElapsed(point) },
   ];
-  return `
-    <div class="detail-point-popup">
-      <strong>Track point</strong>
-      <table>
-        ${rows
-          .map(
-            ([label, value]) =>
-              `<tr><td class="detail-point-popup__label">${escapeHtml(label)}</td><td>${escapeHtml(value)}</td></tr>`
-          )
-          .join('')}
-      </table>
-    </div>`;
 }
 
 function formatPointTime(timestamp: number): string {
@@ -457,7 +464,7 @@ function formatPointSpeed(point: TrackPoint): string {
   const dtMs = b.timestamp - a.timestamp;
   const dKm = b.distanceKm - a.distanceKm;
   if (!Number.isFinite(dtMs) || dtMs <= 0 || !Number.isFinite(dKm) || dKm < 0) return '—';
-  return `${formatNumber(dKm / (dtMs / 3_600_000), 1)} km/h`;
+  return formatSpeed(dKm / (dtMs / 3_600_000), 1);
 }
 
 function sameTrackPoint(a: TrackPoint, b: TrackPoint): boolean {
@@ -595,21 +602,6 @@ function scheduleMapHover(lat: number, lng: number) {
   });
 }
 
-function eventKey(event: GpsTrackEvent): string | number {
-  return event.id ?? `${event.startPointIndex ?? 'x'}-${eventTimeMs(event.startTimestamp)}`;
-}
-
-function eventKeysEqual(a: string | number | null | undefined, b: string | number | null | undefined): boolean {
-  return a != null && b != null && String(a) === String(b);
-}
-
-function eventTimeMs(value: GpsTrackEvent['startTimestamp']): number {
-  if (!value) return 0;
-  const date = typeof value === 'string' ? new Date(value) : (value as Date);
-  const time = date.getTime();
-  return Number.isFinite(time) ? time : 0;
-}
-
 function eventPoint(event: GpsTrackEvent): [number, number] | null {
   const startPoint = pointToLngLat(event.startPointLongLat as unknown);
   if (startPoint) return startPoint;
@@ -690,24 +682,6 @@ function pointToLngLat(point: unknown): [number, number] | null {
   const lng = Number(p.x);
   const lat = Number(p.y);
   return Number.isFinite(lng) && Number.isFinite(lat) ? [lng, lat] : null;
-}
-
-function eventTypeLabel(value: string | undefined): string {
-  if (!value) return 'Event';
-  return value
-    .toLowerCase()
-    .replaceAll('_', ' ')
-    .replace(/\b\w/g, (c) => c.toUpperCase());
-}
-
-function eventTimeLabel(value: GpsTrackEvent['startTimestamp']): string {
-  if (!value) return '';
-  const date = typeof value === 'string' ? new Date(value) : (value as Date);
-  if (!Number.isFinite(date.getTime())) return '';
-  return new Intl.DateTimeFormat(undefined, {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-  }).format(date);
 }
 
 function eventDurationLabel(seconds: number | undefined): string {
@@ -1266,29 +1240,5 @@ watch(
 .resize-handle:active .resize-grip {
   width: 48px;
   background: var(--text-faint);
-}
-
-.mini-map-wrapper :deep(.detail-point-popup) {
-  font-size: var(--text-xs-size);
-  color: var(--text-primary);
-}
-
-.mini-map-wrapper :deep(.detail-point-popup strong) {
-  display: block;
-  margin-bottom: 0.35rem;
-}
-
-.mini-map-wrapper :deep(.detail-point-popup table) {
-  border-collapse: collapse;
-}
-
-.mini-map-wrapper :deep(.detail-point-popup td) {
-  padding: 0.08rem 0.35rem 0.08rem 0;
-  white-space: nowrap;
-}
-
-.mini-map-wrapper :deep(.detail-point-popup__label) {
-  color: var(--text-muted);
-  font-weight: 600;
 }
 </style>

@@ -13,6 +13,16 @@
 import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import type Highcharts from 'highcharts';
 import { formatDurationSmart } from '@/utils/Utils';
+import {
+  buildChartOptions,
+  chartMeasurementDisplayValue,
+  chartMeasurementUnit,
+  hexToRgba,
+  type ChartMeasurementDimension,
+} from '@/utils/chartTheme';
+import { useMeasurementSystem } from '@/composables/useMeasurementSystem';
+import { longDistanceDisplayValue, MEASUREMENT_DISPLAY_PROFILES } from '@/utils/units';
+import { VIZ_ACCENT_COLOR } from '@/utils/visualizationColors';
 
 defineOptions({ name: 'ComparisonChart' });
 
@@ -41,6 +51,7 @@ const props = withDefaults(
     series: ComparisonSeries[];
     xMode?: 'distance' | 'time';
     unit?: string;
+    measurementDimension?: ChartMeasurementDimension;
     decimals?: number;
     yMin?: number;
     yZeroLine?: boolean;
@@ -51,6 +62,7 @@ const props = withDefaults(
     icon: 'bi-activity',
     xMode: 'distance',
     unit: '',
+    measurementDimension: undefined,
     decimals: 1,
     yMin: undefined,
     yZeroLine: false,
@@ -64,23 +76,9 @@ const emit = defineEmits<{
 }>();
 
 const highchartsEl = ref<{ chart?: Highcharts.Chart } | null>(null);
+const { measurementSystem } = useMeasurementSystem();
 const chartOptions = ref<Highcharts.Options>(buildOptions());
 let hoverListeners: { container: HTMLElement; onMove: (e: MouseEvent) => void; onLeave: () => void } | null = null;
-
-function hexToRgba(hex: string, alpha: number): string {
-  if (!hex || !hex.startsWith('#') || hex.length < 7) return hex;
-  const r = parseInt(hex.slice(1, 3), 16);
-  const g = parseInt(hex.slice(3, 5), 16);
-  const b = parseInt(hex.slice(5, 7), 16);
-  return `rgba(${r},${g},${b},${alpha})`;
-}
-
-function compactNum(v: number): string {
-  if (v === 0) return '0';
-  if (Math.abs(v) >= 1000) return (v / 1000).toFixed(v % 1000 === 0 ? 0 : 1) + 'k';
-  if (Math.abs(v) >= 10) return Math.round(v).toString();
-  return parseFloat(v.toFixed(1)).toString();
-}
 
 function attachHoverListeners() {
   const chart = highchartsEl.value?.chart;
@@ -113,81 +111,52 @@ function rebuild() {
 function buildOptions(): Highcharts.Options {
   const styles = getComputedStyle(document.documentElement);
   const token = (name: string) => styles.getPropertyValue(name).trim();
-  const textColor = token('--text-muted');
-  const gridColor = token('--chart-grid');
   const zeroLineColor = token('--border-hover');
-  const tooltipBg = token('--chart-tooltip-bg');
-  const tooltipText = token('--chart-tooltip-text');
-  const borderColor = token('--border-default');
   const isDistance = props.xMode === 'distance';
-  const unit = props.unit;
+  const unit = props.measurementDimension
+    ? chartMeasurementUnit(props.measurementDimension, measurementSystem.value)
+    : props.unit;
   const decimals = props.decimals;
+  const baseOptions = buildChartOptions({
+    seriesName: props.series[0]?.name ?? '',
+    seriesColor: props.series[0]?.color ?? VIZ_ACCENT_COLOR,
+    unit,
+    measurementDimension: props.measurementDimension,
+    decimals,
+    yMin: props.yMin,
+    xMode: props.xMode,
+    textColorToken: '--text-muted',
+    chartType: 'line',
+    height: props.height,
+    spacing: [6, 4, 10, 4],
+    responsive: false,
+  });
 
   return {
-    chart: {
-      type: 'line',
-      height: props.height,
-      backgroundColor: 'transparent',
-      spacing: [6, 4, 10, 4],
-      style: {
-        fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
-      },
-    },
-    title: { text: undefined },
-    credits: { enabled: false },
-    legend: { enabled: false },
-    xAxis: {
-      type: 'linear',
-      crosshair: {
-        width: 1,
-        color: borderColor,
-        dashStyle: 'Dash',
-      },
-      labels: {
-        style: { color: textColor, fontSize: '12px' },
-        formatter(this: Highcharts.AxisLabelsFormatterContextObject) {
-          if (isDistance) {
-            return parseFloat((this.value as number).toFixed(1)) + '\u202fkm';
-          }
-          return formatDurationSmart(this.value as number, (this.axis as Highcharts.Axis).max as number);
-        },
-      },
-      lineColor: gridColor,
-      tickColor: 'transparent',
-      title: { text: undefined },
-    },
+    ...baseOptions,
     yAxis: {
-      gridLineColor: gridColor,
-      title: { text: undefined },
-      labels: {
-        style: { color: textColor, fontSize: '12px' },
-        formatter(this: Highcharts.AxisLabelsFormatterContextObject) {
-          const n = compactNum(this.value as number);
-          return this.isLast && unit ? n + '\u202f' + unit : n;
-        },
-      },
-      ...(props.yMin !== undefined ? { min: props.yMin } : {}),
+      ...(baseOptions.yAxis as Highcharts.YAxisOptions),
       ...(props.yZeroLine ? { plotLines: [{ value: 0, color: zeroLineColor, width: 1, zIndex: 3 }] } : {}),
     },
     tooltip: {
+      ...(baseOptions.tooltip as Highcharts.TooltipOptions),
       shared: true,
-      backgroundColor: tooltipBg,
-      borderColor,
-      borderRadius: 8,
-      borderWidth: 1,
-      shadow: false,
-      style: { color: tooltipText, fontSize: '12px' },
-      useHTML: true,
       formatter(this: Highcharts.Point) {
         const points = (this.points ?? []) as ComparisonTooltipPoint[];
         const header = isDistance
-          ? (this.x as number).toFixed(2) + '\u202fkm'
+          ? longDistanceDisplayValue((this.x as number) * 1000, measurementSystem.value).toFixed(2) +
+            '\u202f' +
+            MEASUREMENT_DISPLAY_PROFILES[measurementSystem.value].longDistance
           : formatDurationSmart(this.x as number, points[0]?.series?.xAxis?.max as number);
         const lines: string[] = [];
         lines.push('<span style="font-size:10px">' + header + '</span>');
         for (const p of points) {
           if (p.y == null) continue;
-          const val = (p.y as number).toFixed(decimals);
+          const val = chartMeasurementDisplayValue(
+            p.y as number,
+            props.measurementDimension,
+            measurementSystem.value
+          ).toFixed(decimals);
           const unitStr = unit ? '\u202f' + unit : '';
           lines.push(
             '<span style="color:' +
@@ -252,6 +221,8 @@ watch(
 );
 
 watch(() => props.unit, rebuild);
+watch(() => props.measurementDimension, rebuild);
+watch(measurementSystem, rebuild);
 watch(() => props.yMin, rebuild);
 watch(() => props.yZeroLine, rebuild);
 watch(() => props.decimals, rebuild);

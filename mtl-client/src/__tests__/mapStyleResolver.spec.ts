@@ -105,9 +105,7 @@ describe('resolveConfiguredMapStyle', () => {
     const cityLayer = style.layers.find((layer) => layer.id === 'places_locality');
     const landcoverLayerIndex = style.layers.findIndex((layer) => layer.id === 'landcover');
     const urbanAreaLayerIndex = style.layers.findIndex((layer) => layer.id === TOPO_CONTRAST_URBAN_AREA_LAYER_ID);
-    const urbanLanduseLayerIndex = style.layers.findIndex(
-      (layer) => layer.id === TOPO_CONTRAST_URBAN_LANDUSE_LAYER_ID
-    );
+    const urbanLanduseLayerIndex = style.layers.findIndex((layer) => layer.id === TOPO_CONTRAST_URBAN_LANDUSE_LAYER_ID);
     const parkLayerIndex = style.layers.findIndex((layer) => layer.id === 'landuse_park');
     const hillshadeLayerIndex = style.layers.findIndex((layer) => layer.id === TERRAIN_HILLSHADE_LAYER_ID);
     expect(resolved.styleMode).toBe('local-vector');

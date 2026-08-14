@@ -3,6 +3,7 @@ package com.x8ing.mtl.server.mtlserver.jobs.media.indexer;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.x8ing.mtl.server.mtlserver.db.entity.indexer.IndexedFile;
 import com.x8ing.mtl.server.mtlserver.db.repository.indexer.IndexerRepository;
+import com.x8ing.mtl.server.mtlserver.indexer.IndexedFileLookup;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -38,9 +39,8 @@ public class MediaProcessingWorker {
      */
     @Transactional
     public void processCreateOrChange(String index, long fileId, boolean changed) {
-        IndexedFile f = indexerRepository.findById(fileId).orElse(null);
+        IndexedFile f = IndexedFileLookup.findOrLog(indexerRepository, fileId, log, "Media process");
         if (f == null) {
-            log.warn("Media process: fileId={} disappeared", fileId);
             return;
         }
         // Domain-only: let exceptions bubble so observer completion can mark success/failure
@@ -55,9 +55,8 @@ public class MediaProcessingWorker {
      */
     @Transactional
     public void processDelete(String index, long fileId) {
-        IndexedFile f = indexerRepository.findById(fileId).orElse(null);
+        IndexedFile f = IndexedFileLookup.findOrLog(indexerRepository, fileId, log, "Media delete");
         if (f == null) {
-            log.warn("Media delete: fileId={} disappeared", fileId);
             return;
         }
         // Domain-only: no indexer state writes here; throw to signal failure to observer

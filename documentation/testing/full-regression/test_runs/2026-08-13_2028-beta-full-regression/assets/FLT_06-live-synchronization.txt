@@ -1,0 +1,20 @@
+Coverage ID: FLT_06
+View: Activities by keyword
+
+Baseline
+- 12 matching tracks.
+- Map count: 12 / 12 Tracks.
+- Legend categories: CYCLING 11, ON_FOOT 1.
+
+Applied keyword Jura
+- Current result: 1 matching track.
+- Map count: 1 / 12 Tracks.
+- Legend: CYCLING 1.
+- Statistics: Showing 1 of 12 tracks.
+- Statistics totals: 1 track, 273 km, 7h 46m, 1,808 Wh, 6,324 m ascent.
+- Statistics activity breakdown: Bicycle 1.
+- No full browser-page reload was used for the update.
+
+Restore
+- Reset and Apply returned 12 matching tracks and 12 / 12 map count.
+

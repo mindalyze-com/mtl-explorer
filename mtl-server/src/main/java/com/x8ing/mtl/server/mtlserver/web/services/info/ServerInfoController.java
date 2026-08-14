@@ -51,15 +51,18 @@ public class ServerInfoController {
     @RequestMapping("/build")
     public BuildInfoResponse getBuild() {
         String defaultLocale = mtlAppProperties.getDefaultLocale();
+        var defaultMeasurementSystem = mtlAppProperties.getDefaultMeasurementSystem();
         String defaultFilterName = FilterConfigEntity.DEFAULT_GPS_TRACK_FILTER_NAME;
         String serverId = serverIdentityService.getServerId();
         ImageVersionInfoDto imageInfo = dockerImageInfoService.getImageInfo();
         if (buildProperties.isPresent()) {
             var props = buildProperties.get();
             String buildTime = props.getTime() != null ? props.getTime().toString() : null;
-            return new BuildInfoResponse(props.getVersion(), buildTime, defaultLocale, defaultFilterName, serverId, imageInfo);
+            return new BuildInfoResponse(props.getVersion(), buildTime, defaultLocale, defaultMeasurementSystem,
+                    defaultFilterName, serverId, imageInfo);
         } else {
-            return new BuildInfoResponse("n/a", null, defaultLocale, defaultFilterName, serverId, imageInfo);
+            return new BuildInfoResponse("n/a", null, defaultLocale, defaultMeasurementSystem,
+                    defaultFilterName, serverId, imageInfo);
         }
     }
 

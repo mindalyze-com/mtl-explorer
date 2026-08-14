@@ -1,0 +1,10 @@
+Photo preview navigation
+
+- Clicked the individual media pin at 100 m scale.
+- Photo sheet opened at 1 / 4 with mtl-synthetic-broken.jpg and the rendered
+  orange/purple gradient.
+- Previous photo was disabled at the first item; Next photo was enabled.
+- Next changed the sheet to 2 / 4, mtl-synthetic-b.jpg.
+- Previous returned to 1 / 4, mtl-synthetic-broken.jpg.
+- The image, position indicator, filename, navigation controls, and download
+  control stayed visible throughout.

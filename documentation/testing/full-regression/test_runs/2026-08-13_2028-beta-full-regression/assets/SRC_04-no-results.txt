@@ -1,0 +1,6 @@
+Location-search empty and no-result checks
+
+- Query `zzzz-no-such-mtl-place-4819` settled to the clear message `No matches`.
+- Clearing the query to empty also showed `No matches` rather than a spinner,
+  stale Zurich entries, or a blank result surface.
+- Importance and Near map ordering controls remained visible.

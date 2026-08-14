@@ -19,18 +19,15 @@ import { storeToRefs } from 'pinia';
 import Map2DRenderer from '@/components/map/Map2DRenderer.vue';
 import Map3DRenderer from '@/components/map/Map3DRenderer.vue';
 import { useMapStateStore } from '@/stores/mapStateStore';
+import type { MapControllerEmit, MapControllerProps } from '@/components/map/composables/mapControllerRuntime';
 
 defineOptions({
   name: 'Map',
   inheritAttrs: false,
 });
 
-const props = withDefaults(defineProps<{ fromLogin?: boolean }>(), { fromLogin: false });
-const emit = defineEmits<{
-  'tracks-loaded': [];
-  'load-failed': [];
-  syncing: [value: boolean];
-}>();
+const props = withDefaults(defineProps<MapControllerProps>(), { fromLogin: false });
+const emit = defineEmits<MapControllerEmit>();
 
 const mapStateStore = useMapStateStore();
 mapStateStore.resetSessionState();

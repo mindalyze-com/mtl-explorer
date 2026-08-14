@@ -80,6 +80,7 @@ public class DynamicSqlService {
 
                     boolean groupColumnExists = isColumnPresent(rs, COLUMN_GROUP);
                     QueryResult queryResult = new QueryResult();
+                    queryResult.setGroupingAvailable(groupColumnExists);
 
                     while (rs.next()) {
                         QueryResult.QueryResultEntry resultEntry = new QueryResult.QueryResultEntry();

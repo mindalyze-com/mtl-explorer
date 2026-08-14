@@ -8,8 +8,8 @@
           <button
             v-for="seg in availableSegments"
             :key="segmentChipKey(seg)"
-            class="vr-chip"
-            :class="{ 'vr-chip--active': selectedSegmentKey === segmentChipKey(seg) }"
+            class="vr-chip selection-chip"
+            :class="{ 'selection-chip--active': selectedSegmentKey === segmentChipKey(seg) }"
             @click="selectedSegment = seg.code"
           >
             {{ seg.name }}
@@ -59,12 +59,12 @@
       </div>
     </div>
 
-    <div v-if="isPreviewLoading" class="vr-placeholder">
+    <div v-if="isPreviewLoading" class="vr-placeholder empty-placeholder">
       <i class="bi bi-hourglass-split"></i>
       <p>Loading race segment…</p>
     </div>
 
-    <div v-else-if="previewMessage" class="vr-placeholder">
+    <div v-else-if="previewMessage" class="vr-placeholder empty-placeholder">
       <i class="bi bi-signpost-split"></i>
       <p>{{ previewMessage }}</p>
     </div>
@@ -100,17 +100,35 @@
 
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue';
-import type { CrossingPointsResponseDto, GpsTrackDataPointDto } from 'x8ing-mtl-api-typescript-fetch/dist/esm/models/index';
+import type {
+  CrossingPointsResponseDto,
+  GpsTrackDataPointDto,
+} from 'x8ing-mtl-api-typescript-fetch/dist/esm/models/index';
 import { fetchTrackSubTrackDetails } from '@/utils/ServiceHelper';
 import MiniMap from '@/components/map/MiniMap.vue';
 import RacerCard from '@/components/ui/RacerCard.vue';
 import MtlSlider from '@/components/ui/MtlSlider.vue';
-import { generateColors, formatDateAndTime, formatDuration, formatNumber, formatDistance } from '@/utils/Utils';
-import { normalizeSegmentSlice, type SegmentSliceResult } from '@/components/measure/segmentSlice';
+import {
+  generateColors,
+  formatDateAndTime,
+  formatDuration,
+  formatNumber,
+  formatDistance,
+  formatSpeed,
+} from '@/utils/Utils';
+import {
+  buildVisitSegmentOptions,
+  normalizeSegmentSlice,
+  segmentSelectionKey,
+  validTrackPointCoordinates,
+  type SegmentSelectionCode,
+  type SegmentSliceResult,
+} from '@/components/measure/segmentSlice';
+import { VIZ_BLUE_COLOR } from '@/utils/visualizationColors';
 
 defineOptions({ name: 'VirtualRace' });
 
-type SegmentCode = { point1?: string; point2?: string; consolidated?: boolean; p1Visit?: number; p2Visit?: number };
+type SegmentCode = SegmentSelectionCode;
 type TrackPoint = Omit<GpsTrackDataPointDto, 'pointLongLat'> & { pointLongLat?: { coordinates?: number[] } };
 type SegmentOption = { name?: string; count?: number; code: SegmentCode };
 type RaceTriggerPoint = { coordinate: { x: number; y: number }; name: string };
@@ -209,39 +227,11 @@ const availableSegments = computed<SegmentOption[]>(() => {
   }
 
   // Unconsolidated: discover all numbered visit pairs from raw crossing data (filtered by selection)
-  const segmentMap = new Map<string, SegmentOption>();
-  for (const [trackId, trackCrossingsRaw] of Object.entries(props.measureServiceResult.crossings || {})) {
-    const trackCrossings = asRaceCrossingsPerTrack(trackCrossingsRaw);
-    const tid = Number(trackId);
-    if (!props.selectedTrackIds.has(tid)) continue;
-    const countPerTP = new Map<string, number>();
-    let lastCrossing: RaceCrossing | null = null;
-    let lastVisit: number | null = null;
-    for (const crossing of trackCrossings.crossings) {
-      const name = crossing.triggerPoint.name;
-      const currentVisit = (countPerTP.get(name) || 0) + 1;
-      countPerTP.set(name, currentVisit);
-      if (lastCrossing != null && lastVisit != null) {
-        const p1 = lastCrossing.triggerPoint.name;
-        const p1v = lastVisit;
-        const p2 = name;
-        const p2v = currentVisit;
-        const key = p1 + p1v + '-' + p2 + p2v;
-        if (!segmentMap.has(key)) {
-          segmentMap.set(key, {
-            name: p1 + p1v + ' - ' + p2 + p2v,
-            count: 0,
-            code: { point1: p1, p1Visit: p1v, point2: p2, p2Visit: p2v, consolidated: false },
-          });
-        }
-        const segment = segmentMap.get(key)!;
-        segment.count = (segment.count || 0) + 1;
-      }
-      lastCrossing = crossing;
-      lastVisit = currentVisit;
-    }
-  }
-  return Array.from(segmentMap.values());
+  return buildVisitSegmentOptions(
+    Object.entries(props.measureServiceResult.crossings || {})
+      .filter(([trackId]) => props.selectedTrackIds.has(Number(trackId)))
+      .map(([, trackCrossingsRaw]) => asRaceCrossingsPerTrack(trackCrossingsRaw).crossings)
+  );
 });
 
 // Selected-track-filtered count per consolidated segment key (point1||point2).
@@ -326,14 +316,7 @@ const sortedRacers = computed(() => {
   return entries;
 });
 
-function segmentChipKey(seg: SegmentOption) {
-  const code = seg.code;
-  if (!code) return '';
-  if (code.consolidated === false) {
-    return String(code.point1) + String(code.p1Visit) + '-' + String(code.point2) + String(code.p2Visit);
-  }
-  return String(code.point1) + '||' + String(code.point2);
-}
+const segmentChipKey = segmentSelectionKey;
 
 function asRaceCrossingsPerTrack(value: unknown): RaceCrossingsPerTrack {
   return value as RaceCrossingsPerTrack;
@@ -356,37 +339,40 @@ function matchesSelectedSegment(
   return true;
 }
 
+function selectedRaceSegmentMatches(): MatchingCrossing[] {
+  if (!props.measureServiceResult) return [];
+  const matches: MatchingCrossing[] = [];
+  for (const [trackId, crossingsRaw] of Object.entries(props.measureServiceResult.crossings || {})) {
+    const crossings = asRaceCrossingsPerTrack(crossingsRaw);
+    if (!props.selectedTrackIds.has(Number(trackId))) continue;
+    const visitsByTriggerPoint = new Map<string, number>();
+    let previousCrossing: RaceCrossing | null = null;
+    let previousVisit: number | null = null;
+    for (const crossing of crossings.crossings) {
+      const name = crossing.triggerPoint.name;
+      const currentVisit = (visitsByTriggerPoint.get(name) || 0) + 1;
+      visitsByTriggerPoint.set(name, currentVisit);
+      if (previousCrossing && matchesSelectedSegment(previousCrossing, crossing, previousVisit, currentVisit)) {
+        matches.push({ crossings: [previousCrossing, crossing], gpsTrack: crossings.gpsTrack });
+      }
+      previousCrossing = crossing;
+      previousVisit = currentVisit;
+    }
+  }
+  return matches;
+}
+
 function autoSelectSpeed() {
   const TARGET_SECONDS = 12;
   if (!selectedSegment.value || !props.measureServiceResult) {
     avgSegmentDurationSec.value = 0;
     return;
   }
-  let totalDuration = 0;
-  let count = 0;
-  for (const [trackId, crossingsRaw] of Object.entries(props.measureServiceResult.crossings || {})) {
-    const crossings = asRaceCrossingsPerTrack(crossingsRaw);
-    const tid = Number(trackId);
-    if (!props.selectedTrackIds.has(tid)) continue;
-    const countPerTP = new Map<string, number>();
-    let lastCrossing: RaceCrossing | null = null;
-    let lastVisit: number | null = null;
-    for (const crossing of crossings.crossings) {
-      const name = crossing.triggerPoint.name;
-      const currentVisit = (countPerTP.get(name) || 0) + 1;
-      countPerTP.set(name, currentVisit);
-      if (
-        lastCrossing != null &&
-        matchesSelectedSegment(lastCrossing, crossing, lastVisit, currentVisit) &&
-        crossing.timeInSecSinceLastTriggerPoint
-      ) {
-        totalDuration += crossing.timeInSecSinceLastTriggerPoint;
-        count++;
-      }
-      lastCrossing = crossing;
-      lastVisit = currentVisit;
-    }
-  }
+  const durations = selectedRaceSegmentMatches()
+    .map((match) => match.crossings[1].timeInSecSinceLastTriggerPoint)
+    .filter((duration): duration is number => Boolean(duration));
+  const totalDuration = durations.reduce((sum, duration) => sum + duration, 0);
+  const count = durations.length;
   if (count > 0) {
     avgSegmentDurationSec.value = totalDuration / count;
     // Set slider so animation runs for TARGET_SECONDS.
@@ -403,14 +389,7 @@ async function preparePreview() {
   const token = ++prepareToken.value;
   if (!selectedSegment.value || !props.measureServiceResult) {
     stopAnimation();
-    matchingCrossings.value = null;
-    trackDetailDataResults.value = null;
-    raceDurationsSec.value = [];
-    raceGeoJson.value = null;
-    racerProgress.value = [];
-    previewMessage.value = '';
-    skippedRacerCount.value = 0;
-    showMinimap.value = false;
+    clearPreparedRace();
     return;
   }
 
@@ -422,33 +401,13 @@ async function preparePreview() {
   skippedRacerCount.value = 0;
   isPreviewLoading.value = true;
 
-  const activeTrackIds = new Set(props.selectedTrackIds);
-
   const nextMatchingCrossings: MatchingCrossing[] = [];
   const fetchPromises: Array<Promise<GpsTrackDataPointDto[]>> = [];
-  for (const [trackId, crossingsRaw] of Object.entries(props.measureServiceResult.crossings || {})) {
-    const crossings = asRaceCrossingsPerTrack(crossingsRaw);
-    const tid = Number(trackId);
-    if (!activeTrackIds.has(tid)) continue;
-    const countPerTP = new Map<string, number>();
-    let lastCrossing: RaceCrossing | null = null;
-    let lastVisit: number | null = null;
-    for (const crossing of crossings.crossings) {
-      const name = crossing.triggerPoint.name;
-      const currentVisit = (countPerTP.get(name) || 0) + 1;
-      countPerTP.set(name, currentVisit);
-      if (
-        lastCrossing != null &&
-        matchesSelectedSegment(lastCrossing, crossing, lastVisit, currentVisit) &&
-        lastCrossing.gpsTrackDataPoint?.id != null &&
-        crossing.gpsTrackDataPoint?.id != null
-      ) {
-        nextMatchingCrossings.push({ crossings: [lastCrossing, crossing], gpsTrack: crossings.gpsTrack });
-        fetchPromises.push(fetchTrackSubTrackDetails(lastCrossing.gpsTrackDataPoint.id, crossing.gpsTrackDataPoint.id));
-      }
-      lastCrossing = crossing;
-      lastVisit = currentVisit;
-    }
+  for (const match of selectedRaceSegmentMatches()) {
+    const [start, end] = match.crossings;
+    if (start.gpsTrackDataPoint?.id == null || end.gpsTrackDataPoint?.id == null) continue;
+    nextMatchingCrossings.push(match);
+    fetchPromises.push(fetchTrackSubTrackDetails(start.gpsTrackDataPoint.id, end.gpsTrackDataPoint.id));
   }
 
   let normalizedResults: SegmentSliceResult<TrackPoint>[];
@@ -463,14 +422,7 @@ async function preparePreview() {
   } catch (error) {
     if (token !== prepareToken.value) return;
     console.error('Virtual race preview failed:', error);
-    matchingCrossings.value = null;
-    trackDetailDataResults.value = null;
-    raceDurationsSec.value = [];
-    raceGeoJson.value = null;
-    racerProgress.value = [];
-    previewMessage.value = 'Could not load race segment data.';
-    skippedRacerCount.value = 0;
-    showMinimap.value = false;
+    clearPreparedRace('Could not load race segment data.');
     return;
   } finally {
     if (token === prepareToken.value) {
@@ -497,14 +449,7 @@ async function preparePreview() {
   }
 
   if (validResults.length === 0) {
-    matchingCrossings.value = null;
-    trackDetailDataResults.value = null;
-    raceDurationsSec.value = [];
-    raceGeoJson.value = null;
-    racerProgress.value = [];
-    previewMessage.value = 'Selected tracks do not contain enough segment data to race.';
-    skippedRacerCount.value = normalizedResults.length;
-    showMinimap.value = false;
+    clearPreparedRace('Selected tracks do not contain enough segment data to race.', normalizedResults.length);
     return;
   }
 
@@ -518,7 +463,7 @@ async function preparePreview() {
   const uniqueTrackIds = [...new Set(validMatchingCrossings.map((mc) => mc.gpsTrack.id))];
   const trackColorPalette = generateColors(uniqueTrackIds.length);
   const trackIdToColor = new Map(uniqueTrackIds.map((id, i) => [id, trackColorPalette[i]]));
-  simulationColors.value = validMatchingCrossings.map((mc) => trackIdToColor.get(mc.gpsTrack.id) || '#2563eb');
+  simulationColors.value = validMatchingCrossings.map((mc) => trackIdToColor.get(mc.gpsTrack.id) || VIZ_BLUE_COLOR);
 
   racerTrails.value = validResults.map(() => []);
   racerProgress.value = initialRacerProgress(validResults.length);
@@ -543,14 +488,7 @@ async function preparePreview() {
     }
   }
   if (!hasBoundsCoordinate) {
-    matchingCrossings.value = null;
-    trackDetailDataResults.value = null;
-    raceDurationsSec.value = [];
-    raceGeoJson.value = null;
-    racerProgress.value = [];
-    previewMessage.value = 'Selected tracks do not contain enough segment data to race.';
-    skippedRacerCount.value = normalizedResults.length;
-    showMinimap.value = false;
+    clearPreparedRace('Selected tracks do not contain enough segment data to race.', normalizedResults.length);
     return;
   }
   const dLat = (cLatMax - cLatMin) * 0.3;
@@ -569,6 +507,17 @@ async function preparePreview() {
       minimapRef.value.invalidateMapSize();
     }
   });
+}
+
+function clearPreparedRace(message = '', skippedCount = 0) {
+  matchingCrossings.value = null;
+  trackDetailDataResults.value = null;
+  raceDurationsSec.value = [];
+  raceGeoJson.value = null;
+  racerProgress.value = [];
+  previewMessage.value = message;
+  skippedRacerCount.value = skippedCount;
+  showMinimap.value = false;
 }
 
 function segmentDurationFromPoints(track: TrackPoint[], crossing: MatchingCrossing) {
@@ -803,15 +752,7 @@ function interpolateTrackPoint(from: TrackPoint, to: TrackPoint, factor: number)
   return interpolated;
 }
 
-function pointCoordinates(point: TrackPoint | null | undefined): LngLat | null {
-  const coords = point?.pointLongLat?.coordinates;
-  if (!Array.isArray(coords) || coords.length < 2) return null;
-  const lng = Number(coords[0]);
-  const lat = Number(coords[1]);
-  if (!Number.isFinite(lng) || !Number.isFinite(lat)) return null;
-  if (Math.abs(lng) > 180 || Math.abs(lat) > 90) return null;
-  return [lng, lat];
-}
+const pointCoordinates = validTrackPointCoordinates;
 
 function interpolateNumber(
   from: number | null | undefined,
@@ -869,7 +810,7 @@ function racerStats(entry: {
     stats.push({ icon: 'bi-stopwatch', text: formatDuration(crossing.timeInSecSinceLastTriggerPoint * 1000) });
   }
   if (crossing?.avgSpeedSinceLastTriggerPoint) {
-    stats.push({ icon: 'bi-speedometer', text: formatNumber(crossing.avgSpeedSinceLastTriggerPoint, 1) + ' km/h' });
+    stats.push({ icon: 'bi-speedometer', text: formatSpeed(crossing.avgSpeedSinceLastTriggerPoint, 1) });
   }
   if (crossing?.distanceInMeterSinceLastTriggerPoint) {
     stats.push({
@@ -983,37 +924,6 @@ onBeforeUnmount(() => {
   display: none;
 }
 
-.vr-chip {
-  padding: 0.3rem 0.65rem;
-  border-radius: 999px;
-  border: 1px solid var(--border-default);
-  background: var(--surface-glass);
-  color: var(--text-muted);
-  font-size: var(--text-xs-size);
-  font-weight: 600;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-  font-family: inherit;
-  white-space: nowrap;
-  transition:
-    background 0.15s,
-    color 0.15s,
-    border-color 0.15s;
-}
-
-.vr-chip:hover {
-  color: var(--text-secondary);
-  background: var(--surface-hover);
-}
-
-.vr-chip--active {
-  background: var(--accent-text);
-  color: var(--text-inverse);
-  border-color: var(--accent-text);
-}
-
 .vr-racer-pill {
   font-size: var(--text-xs-size);
   font-weight: 600;
@@ -1113,22 +1023,6 @@ onBeforeUnmount(() => {
 }
 
 /* ── Placeholder ── */
-.vr-placeholder {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.4rem;
-  padding: 1.75rem 1rem;
-  text-align: center;
-  color: var(--text-muted);
-  font-size: var(--text-sm-size);
-}
-
-.vr-placeholder i {
-  font-size: var(--text-3xl-size);
-  opacity: 0.7;
-}
-
 .vr-warning {
   display: flex;
   align-items: center;

@@ -1,0 +1,39 @@
+DAT_01 public GPX staging and track-sequence validation
+
+Source page: https://github.com/gps-touring/sample-gpx
+Source page description: "GPX files for testing"
+License note: the public repository does not display a LICENSE file; usage here is limited to this disposable black-box regression.
+Staging folder: /root/mtl-full-regression-2026-08-13_2028-beta-full-regression/test-data/public
+Watched import folder file count after staging: 0
+
+JuraRoute72011.gpx
+URL: https://raw.githubusercontent.com/gps-touring/sample-gpx/master/BrittanyJura/JuraRoute72011.gpx
+Bytes: 199962
+SHA-256: fcff577bd3c1a6dc2bb9e53abba8051d510d282f4fb0049d38be5300f92e354e
+trk: 1; trkseg: 1; trkpt: 1414
+
+MoselradwegAusWiki.gpx
+URL: https://raw.githubusercontent.com/gps-touring/sample-gpx/master/BrittanyJura/MoselradwegAusWiki.gpx
+Bytes: 415326
+SHA-256: 0f5263dee95a345a42585bde148ec741af4ed4eeb7451702f59c9c7f9bf761c3
+trk: 1; trkseg: 1; trkpt: 2954
+
+Vitry-le-Francois_Langres.gpx
+URL: https://raw.githubusercontent.com/gps-touring/sample-gpx/master/BrittanyJura/Vitry-le-Francois_Langres.gpx
+Bytes: 238349
+SHA-256: 401218e3c1d1f366ee27ea8bc138d8422eff3bf6348a77183be83fef3e8d7d67
+trk: 1; trkseg: 1; trkpt: 1688
+
+VoieVerteHauteVosges.gpx
+URL: https://raw.githubusercontent.com/gps-touring/sample-gpx/master/BrittanyJura/VoieVerteHauteVosges.gpx
+Bytes: 183733
+SHA-256: 0f417d6e76cfa581d3ada969e728694933fbffd062f61a8352ccc87637135f78
+trk: 1; trkseg: 1; trkpt: 1298
+
+Lannion_Plestin_parcours24.4RE.gpx
+URL: https://raw.githubusercontent.com/gps-touring/sample-gpx/master/RoscoffCoastal/Lannion_Plestin_parcours24.4RE.gpx
+Bytes: 60917
+SHA-256: e76c692cbb5580f20013ce19995a9383361a8a0babec2db3e36f7064f316e85f
+trk: 2; trkseg: 2; trkpt: 381
+
+All five files contain trk, trkseg, and real trkpt sequences. None is waypoint-only. Files remain outside the watched import folder until IMP_02.

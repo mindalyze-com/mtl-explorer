@@ -105,6 +105,24 @@ describe('MtlSlider', () => {
     ]);
   });
 
+  it('exposes human-readable values for single and range sliders', async () => {
+    const wrapper = mount(MtlSlider, {
+      props: { modelValue: 50, min: 0, max: 100, ariaValueText: 'Balanced speed' },
+    });
+
+    expect(wrapper.find('.mtl-slider__handle').attributes('aria-valuetext')).toBe('Balanced speed');
+
+    await wrapper.setProps({
+      modelValue: [10, 90],
+      range: true,
+      ariaValueText: ['June 2007', 'May 2026'],
+    });
+
+    const handles = wrapper.findAll('.mtl-slider__handle');
+    expect(handles[0].attributes('aria-valuetext')).toBe('June 2007');
+    expect(handles[1].attributes('aria-valuetext')).toBe('May 2026');
+  });
+
   it('does not emit updates while disabled', async () => {
     const wrapper = mount(MtlSlider, {
       props: { modelValue: 20, min: 0, max: 100, disabled: true },

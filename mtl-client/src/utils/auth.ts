@@ -11,6 +11,7 @@ const JWT_USER_SESSION_ID_CLAIM = 'user_session_id';
 const JWT_ISSUED_AT_CLAIM = 'iat';
 const JWT_EXPIRATION_CLAIM = 'exp';
 const SECONDS_TO_MILLISECONDS = 1000;
+const HTTP_UNAUTHORIZED = 401;
 
 type JwtPayload = Record<string, unknown>;
 
@@ -53,6 +54,9 @@ export function clearToken() {
 }
 
 export function redirectToLoginAfterAuthFailure(hadCredential = !!getToken()) {
+  // Ignore late failures from the authenticated view after navigation to a
+  // public route. In particular, opening About must not clear a valid session.
+  if (!router.currentRoute.value.meta.requiresAuth) return;
   clearToken();
   router
     .push({
@@ -217,17 +221,22 @@ function decodeBase64Url(value: string): string {
 
 export function isAuthError(error: unknown): boolean {
   if (axios.isAxiosError(error) && error.response) {
-    const status = error.response.status;
-    return status === 401 || status === 403;
+    return isAuthenticationFailureStatus(error.response.status);
   }
   const status = (error as { response?: { status?: number } })?.response?.status;
-  if (status === 401 || status === 403) {
-    return true;
-  }
-  return false;
+  return isAuthenticationFailureStatus(status);
 }
 
-function requestHadAuthHeader(config: unknown): boolean {
+/**
+ * The server returns 401 when credentials are missing, expired, or invalid.
+ * A 403 means the authenticated user cannot perform that particular action,
+ * so it must not clear an otherwise valid session.
+ */
+export function isAuthenticationFailureStatus(status: unknown): boolean {
+  return status === HTTP_UNAUTHORIZED;
+}
+
+export function requestHadAuthHeader(config: unknown): boolean {
   const headers = (config as { headers?: unknown } | undefined)?.headers;
   if (!headers) return false;
   const getHeader = (headers as { get?: (name: string) => unknown }).get;
@@ -261,7 +270,7 @@ axios.interceptors.response.use(
       );
     }
 
-    if (error.response && (error.response.status === 401 || error.response.status === 403)) {
+    if (error.response && isAuthenticationFailureStatus(error.response.status)) {
       // Don't redirect if the failed request was the login call itself
       const url = error.config?.url || '';
       if (!url.includes('/api/auth/login')) {

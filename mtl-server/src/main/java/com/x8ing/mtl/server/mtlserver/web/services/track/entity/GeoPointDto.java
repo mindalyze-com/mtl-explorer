@@ -1,6 +1,7 @@
 package com.x8ing.mtl.server.mtlserver.web.services.track.entity;
 
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
+import com.x8ing.mtl.server.mtlserver.utils.GeoCoordinateUtils;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -14,9 +15,6 @@ import org.locationtech.jts.geom.Point;
         "coordinates"
 })
 public class GeoPointDto {
-
-    private static final double MAX_LONGITUDE_DEGREES = 180.0;
-    private static final double MAX_LATITUDE_DEGREES = 90.0;
 
     /**
      * Coordinates in the source point's CRS.
@@ -51,8 +49,6 @@ public class GeoPointDto {
     }
 
     private static boolean isValidLongLat(double lng, double lat) {
-        return isFiniteCoordinate(lng, lat)
-               && Math.abs(lng) <= MAX_LONGITUDE_DEGREES
-               && Math.abs(lat) <= MAX_LATITUDE_DEGREES;
+        return GeoCoordinateUtils.isValidLongitude(lng) && GeoCoordinateUtils.isValidLatitude(lat);
     }
 }

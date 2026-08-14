@@ -199,6 +199,18 @@ export function filterOptionGroupItemCount(groups: FilterOptionGroup[]): number 
   return groups.reduce((count, group) => count + group.items.length, 0);
 }
 
+export function filterGroupIcon(groupLabel: string): string {
+  const normalized = groupLabel.toLowerCase();
+  if (normalized.includes('activity')) return 'bi bi-bicycle';
+  if (normalized.includes('date') || normalized.includes('time')) return 'bi bi-calendar3';
+  if (normalized.includes('quality')) return 'bi bi-shield-exclamation';
+  if (normalized.includes('performance')) return 'bi bi-speedometer2';
+  if (normalized.includes('people')) return 'bi bi-people';
+  if (normalized.includes('core')) return 'bi bi-funnel';
+  if (normalized.includes('user')) return 'bi bi-person';
+  return 'bi bi-sliders';
+}
+
 export function filterMatchesCatalogQuery(filterInfo: FilterInfo, groupLabel: string, query: string): boolean {
   const normalizedQuery = normalizeCatalogSearchText(query);
   if (!normalizedQuery) return true;

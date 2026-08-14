@@ -1,0 +1,12 @@
+Coverage ID: FIT_04
+User action: Track Details #100005 > Overview > Download original
+Browser download artifact: /Users/pheusser/Downloads/Unconfirmed 728262.crdownload
+Browser note: the in-app Chromium context retained its temporary `.crdownload` name after completing all bytes.
+
+Downloaded bytes: 94096
+Downloaded file identification: FIT Map data
+Downloaded SHA-256: 949a238e1bb75c3684479785f76fa9a16888bb394518844248f488171d591387
+Uploaded/staged SHA-256: 949a238e1bb75c3684479785f76fa9a16888bb394518844248f488171d591387
+Checksum match: yes
+
+The content is byte-for-byte the uploaded FIT source and remains FIT. The exact test download will be removed during local cleanup.

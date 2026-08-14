@@ -3,6 +3,7 @@ import {
   buildFilterOptionGroups,
   colorForFilterGroup,
   compareLegendEntries,
+  filterGroupIcon,
   filterOptionGroupsByCatalogSearch,
   isSameFilterInfo,
   optionalFilterParamNames,
@@ -99,6 +100,12 @@ describe('filter metadata', () => {
 
     expect(visibleGroups.map((group) => group.label)).toEqual(['Quality']);
     expect(visibleGroups[0].items.map((filter) => filter.filterConfig?.displayName)).toEqual(['Duplicate tracks']);
+  });
+
+  it('maps filter groups to shared icons', () => {
+    expect(filterGroupIcon('Date & Time')).toBe('bi bi-calendar3');
+    expect(filterGroupIcon('User')).toBe('bi bi-person');
+    expect(filterGroupIcon('Other')).toBe('bi bi-sliders');
   });
 
   it('matches filter identity by id before falling back to domain and name', () => {

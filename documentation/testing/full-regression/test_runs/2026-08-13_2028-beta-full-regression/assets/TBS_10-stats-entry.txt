@@ -1,0 +1,17 @@
+TBS_10 Statistics entry activation
+
+Source:
+- Statistics Overview -> Recent Activity
+- Entry: Track 100016
+- Activity: Bicycle
+- Start: 11/03/2013, 10:32
+- Distance: 25.8 km
+- Duration: 1h 13m
+
+Action:
+- Clicked the Recent Activity entry.
+
+Result:
+- Track Details opened for #100016.
+- Bicycle identity and populated Overview matched the clicked Statistics entry.
+- The map retained the active twelve-track resolved set behind the detail navigation.

@@ -1,0 +1,15 @@
+Readable text audit
+
+Visual inspection:
+- Light Admin Preferences: headings, descriptions, values, controls, navigation, selected state, stale badge, and freshness banner readable.
+- Dark Admin Preferences: same surfaces readable; freshness banner intentionally retained a light high-contrast surface.
+- Dark Statistics: totals, labels, chart legend, cards, tabs, map controls, and banner readable.
+
+Computed contrast audit of 31 visible direct-text elements in Admin Preferences:
+- Light minimum contrast ratio: 4.47:1
+- Dark minimum contrast ratio: 4.15:1
+- Visible elements below 3:1 in light: 0
+- Visible elements below 3:1 in dark: 0
+
+No white-on-white, black-on-black, missing text, or illegible selected-state text was observed.
+

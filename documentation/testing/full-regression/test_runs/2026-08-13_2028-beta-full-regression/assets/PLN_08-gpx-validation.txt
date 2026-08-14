@@ -1,0 +1,21 @@
+PLN_08 GPX export validation
+
+Saved plan: Regression Plan PLN08
+Displayed route: 7.69 km, 50 m ascent, 38 m descent, 22m, 4 legs.
+
+Downloaded artifact:
+- Browser file: /Users/pheusser/Downloads/Unconfirmed 543767.crdownload
+- Size: 29 KB
+- File type: XML 1.0 document, ASCII text
+- xmllint --noout: PASS
+- GPX version: 1.1
+- Creator: MTL Explorer Planner
+- Track name: Regression Plan PLN08
+- Track points: 426
+- First: 47.368103, 8.560426
+- Last: 47.351429, 8.554974
+- Bounds: lat 47.349837-47.370521; lon 8.538695-8.562910
+- Haversine length over exported points: 7,663.2 m, matching displayed 7.69 km within expected routing/stat rounding.
+- Elevation values were present.
+
+The saved plan was deleted after export. The exact browser download is registered for final cleanup.

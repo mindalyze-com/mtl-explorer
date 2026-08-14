@@ -251,6 +251,34 @@ export function useMapTools(_deps: Record<string, never> = {}): MapControllerMet
       this.closeSwissMobilityPopup();
     },
 
+    captureActiveToolNavigation() {
+      const toolId = this.activeToolId;
+      const refName = toolId ? TOOL_REF_BY_ID[toolId] : undefined;
+      const toolRef = refName ? this.$refs[refName] : undefined;
+      this.trackDetailsReturnTarget = toolId
+        ? {
+            toolId,
+            state: toolRef?.getNavigationState?.(),
+          }
+        : null;
+    },
+
+    restoreToolNavigation(toolId) {
+      const target = this.trackDetailsReturnTarget;
+      if (!target) return;
+      if (target.toolId !== toolId) {
+        this.trackDetailsReturnTarget = null;
+        return;
+      }
+
+      const refName = TOOL_REF_BY_ID[toolId];
+      const toolRef = refName ? this.$refs[refName] : undefined;
+      this.$nextTick(() => {
+        toolRef?.restoreNavigationState?.(target.state);
+        this.trackDetailsReturnTarget = null;
+      });
+    },
+
     onToolSelect(toolId) {
       if (!toolId) return;
       const refName = TOOL_REF_BY_ID[toolId];
@@ -300,6 +328,7 @@ export function useMapTools(_deps: Record<string, never> = {}): MapControllerMet
       if (!toolId) {
         this.closeAllToolsExcept(null);
         this.activeToolId = null;
+        this.trackDetailsReturnTarget = null;
         return;
       }
       const refName = TOOL_REF_BY_ID[toolId];
@@ -314,6 +343,7 @@ export function useMapTools(_deps: Record<string, never> = {}): MapControllerMet
         ref?.toggle?.();
       }
       this.activeToolId = toolId === 'gps' ? null : toolId;
+      this.restoreToolNavigation(toolId);
       this.$nextTick(() => {
         this.activeToolId = toolId === 'gps' ? null : toolId;
         this._syncingView = false;
@@ -323,6 +353,9 @@ export function useMapTools(_deps: Record<string, never> = {}): MapControllerMet
     syncTrackDetailRoute(trackId) {
       const normalizedTrackId = Number(trackId);
       if (trackId == null || !Number.isFinite(normalizedTrackId)) return;
+      if (!this.trackDetailsVisible && !this.trackDetailsReturnTarget) {
+        this.captureActiveToolNavigation();
+      }
       this.closeAllToolsExcept(null);
       this.activeToolId = null;
       if (
@@ -484,6 +517,9 @@ export function useMapTools(_deps: Record<string, never> = {}): MapControllerMet
     openTrackDetails(trackId, initialDetent = TRACK_DETAILS_DEFAULT_DETENT) {
       const normalizedTrackId = Number(trackId ?? this.selectedTrackId);
       if (!Number.isFinite(normalizedTrackId)) return;
+      if (!this.trackDetailsVisible && !this.trackDetailsReturnTarget) {
+        this.captureActiveToolNavigation();
+      }
       const feature = this.gpsTrackIdToFeature.get(normalizedTrackId) || this.selectedFeature;
       const p = feature?.properties;
       this.trackDetailsId = normalizedTrackId;

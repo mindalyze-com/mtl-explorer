@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://mindalyze-com.github.io/mtl-explorer/sitemap.xml

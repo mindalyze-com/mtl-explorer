@@ -4,8 +4,9 @@ import {
   type GpsTrack,
   type TracksSimplifiedResponse,
 } from 'x8ing-mtl-api-typescript-fetch';
-import { FilterService, type FilterParamsRequest } from '@/components/filter/FilterService';
-import { useFilterStore } from '@/stores/filterStore';
+import type { FilterParamsRequest } from '@/components/filter/FilterService';
+import { loadActiveFilterRequest as loadStoredActiveFilterRequest } from '@/stores/filterStore';
+import { isAbortLikeError } from '@/utils/errors';
 import { getApiConfiguration } from '@/utils/openApiClient';
 import { extractCoordinates } from '@/utils/lineStringDeserializer';
 import { describeError, startStartupTimer, startupLog } from '@/utils/startupDiagnostics';
@@ -32,24 +33,7 @@ export function normalizeTrackDates(rawTrack: GpsTrack): GpsTrack {
 }
 
 export async function loadActiveFilterRequest(): Promise<ActiveTrackFilterRequest> {
-  try {
-    const filterStore = useFilterStore();
-    return await filterStore.getActiveFilterRequest();
-  } catch {
-    const clientFilterConfig = await FilterService.loadClientFilterConfig();
-    return {
-      filterName: clientFilterConfig.filterInfo?.filterConfig?.filterName ?? '',
-      filterParams: clientFilterConfig.filterParams,
-    };
-  }
-}
-
-function isAbortError(error: unknown, signal?: AbortSignal): boolean {
-  return (
-    signal?.aborted === true ||
-    (error instanceof DOMException && error.name === 'AbortError') ||
-    (error instanceof Error && error.name === 'AbortError')
-  );
+  return loadStoredActiveFilterRequest();
 }
 
 function throwOriginalError(error: unknown): never {
@@ -107,7 +91,7 @@ export async function fetchFilteredTrackIds(signal?: AbortSignal): Promise<Track
       activeFilterRequest,
     };
   } catch (error: unknown) {
-    if (isAbortError(error, signal)) throw error;
+    if (isAbortLikeError(error, signal)) throw error;
     logSanitizedError('Error fetching filtered track IDs:', error);
     throwOriginalError(error);
   }
@@ -189,7 +173,7 @@ export async function fetchTrackBatch(args: {
       standardFilterCount: envelope.standardFilterCount ?? tracksById.size,
     };
   } catch (error: unknown) {
-    if (isAbortError(error, args.signal)) throw error;
+    if (isAbortLikeError(error, args.signal)) throw error;
     timer.error('Track batch fetch failed', describeError(error));
     logSanitizedError('Error fetching track batch:', error);
     throwOriginalError(error);
@@ -219,7 +203,7 @@ export async function fetchDetailTrack(args: {
       coordinates: extractCoordinates(rawTrack.gpsTracksData),
     };
   } catch (error: unknown) {
-    if (isAbortError(error, args.signal)) throw error;
+    if (isAbortLikeError(error, args.signal)) throw error;
     logSanitizedError('Error fetching detail track:', error);
     throwOriginalError(error);
   }

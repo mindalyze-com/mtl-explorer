@@ -9,6 +9,7 @@ import com.x8ing.mtl.server.mtlserver.db.repository.gps.GpsTrackRepository;
 import com.x8ing.mtl.server.mtlserver.db.repository.gps.GpsTrackVariantSelector;
 import com.x8ing.mtl.server.mtlserver.gpx.GPXReader;
 import com.x8ing.mtl.server.mtlserver.logic.crossing.beans.*;
+import com.x8ing.mtl.server.mtlserver.utils.GeoCoordinateUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.GeometryFactory;
@@ -152,7 +153,7 @@ public class TrackTimeBetweenTwoPoints {
                 trackId
         );
 
-        recomputeCrossingDeltas(crossingList);
+        recomputeCrossingDeltas(crossingList, gpsTrackDataPoints);
 
         // Annotate each segment (previous crossing → this crossing) from the
         // stop events already produced during import. Stop classification is
@@ -249,7 +250,7 @@ public class TrackTimeBetweenTwoPoints {
                         // the closest approach to the center.
                         GpsTrackDataPoint crossingPoint = interpolateCrossingPointByFactor(
                                 p1, p2, ca.factor, gpsTrackId);
-                        recordCrossing(crossingPoint, triggerPoint, gpsTrackId, crossings);
+                        recordCrossing(crossingPoint, triggerPoint, gpsTrackId, ca.distance, crossings);
                         log.debug("Tangent crossing detected for trigger point '{}'", triggerPoint.name);
                     }
                     // else: segment never touches the zone; nothing to do.
@@ -299,10 +300,10 @@ public class TrackTimeBetweenTwoPoints {
     ) {
         GpsTrackDataPoint crossingPoint = interpolateCrossingPointByFactor(
                 best.p1, best.p2, best.factor, gpsTrackId);
-        recordCrossing(crossingPoint, triggerPoint, gpsTrackId, crossings);
+        recordCrossing(crossingPoint, triggerPoint, gpsTrackId, best.distance, crossings);
     }
 
-    private void recomputeCrossingDeltas(List<Crossing> crossings) {
+    static void recomputeCrossingDeltas(List<Crossing> crossings, List<GpsTrackDataPoint> trackPoints) {
         if (crossings == null || crossings.isEmpty()) {
             return;
         }
@@ -315,16 +316,14 @@ public class TrackTimeBetweenTwoPoints {
 
             if (previous != null
                 && crossing.gpsTrackDataPoint != null
-                && previous.gpsTrackDataPoint != null
-                && crossing.gpsTrackDataPoint.getPointTimestamp() != null
-                && previous.gpsTrackDataPoint.getPointTimestamp() != null
-                && crossing.gpsTrackDataPoint.getDistanceInMeterSinceStart() != null
-                && previous.gpsTrackDataPoint.getDistanceInMeterSinceStart() != null) {
-
-                double timeInSec = (crossing.gpsTrackDataPoint.getPointTimestamp().getTime()
-                                    - previous.gpsTrackDataPoint.getPointTimestamp().getTime()) / 1000.0;
-                double distanceInMeter = crossing.gpsTrackDataPoint.getDistanceInMeterSinceStart()
-                                         - previous.gpsTrackDataPoint.getDistanceInMeterSinceStart();
+                && previous.gpsTrackDataPoint != null) {
+                double timeInSec = positiveTimeDeltaSeconds(
+                        previous.gpsTrackDataPoint,
+                        crossing.gpsTrackDataPoint);
+                double distanceInMeter = segmentDistanceMeters(
+                        previous.gpsTrackDataPoint,
+                        crossing.gpsTrackDataPoint,
+                        trackPoints);
 
                 crossing.timeInSecSinceLastTriggerPoint = timeInSec;
                 crossing.distanceInMeterSinceLastTriggerPoint = distanceInMeter;
@@ -334,6 +333,75 @@ public class TrackTimeBetweenTwoPoints {
             }
             previous = crossing;
         }
+    }
+
+    private static double positiveTimeDeltaSeconds(GpsTrackDataPoint from, GpsTrackDataPoint to) {
+        if (from.getPointTimestamp() == null || to.getPointTimestamp() == null) {
+            return 0;
+        }
+        return Math.max(0, (to.getPointTimestamp().getTime() - from.getPointTimestamp().getTime()) / 1000.0);
+    }
+
+    /**
+     * Computes a segment length from its geometry instead of subtracting track-wide cumulative values.
+     * Some valid source files store timed track sections out of chronological order. Their crossings are
+     * intentionally sorted by time, so subtracting storage-order cumulative distances can become negative.
+     */
+    private static double segmentDistanceMeters(GpsTrackDataPoint from,
+                                                GpsTrackDataPoint to,
+                                                List<GpsTrackDataPoint> trackPoints) {
+        List<GpsTrackDataPoint> orderedInnerPoints = innerPointsForSegment(from, to, trackPoints);
+        double distance = 0;
+        GpsTrackDataPoint previous = from;
+        for (GpsTrackDataPoint point : orderedInnerPoints) {
+            distance += distanceMeters(previous, point);
+            previous = point;
+        }
+        distance += distanceMeters(previous, to);
+        return Double.isFinite(distance) ? distance : 0;
+    }
+
+    private static List<GpsTrackDataPoint> innerPointsForSegment(GpsTrackDataPoint from,
+                                                                 GpsTrackDataPoint to,
+                                                                 List<GpsTrackDataPoint> trackPoints) {
+        if (trackPoints == null || trackPoints.isEmpty()) {
+            return List.of();
+        }
+
+        Date fromTime = from.getPointTimestamp();
+        Date toTime = to.getPointTimestamp();
+        if (fromTime != null && toTime != null && toTime.after(fromTime)) {
+            return trackPoints.stream()
+                    .filter(Objects::nonNull)
+                    .filter(point -> point.getPointTimestamp() != null)
+                    .filter(point -> point.getPointTimestamp().after(fromTime)
+                                     && point.getPointTimestamp().before(toTime))
+                    .sorted(Comparator
+                            .comparing(GpsTrackDataPoint::getPointTimestamp)
+                            .thenComparing(GpsTrackDataPoint::getPointIndex, Comparator.nullsLast(Integer::compareTo)))
+                    .toList();
+        }
+
+        Integer fromIndex = from.getPointIndex();
+        Integer toIndex = to.getPointIndex();
+        if (fromIndex == null || toIndex == null || toIndex <= fromIndex) {
+            return List.of();
+        }
+        return trackPoints.stream()
+                .filter(Objects::nonNull)
+                .filter(point -> point.getPointIndex() != null)
+                .filter(point -> point.getPointIndex() > fromIndex && point.getPointIndex() < toIndex)
+                .sorted(Comparator.comparing(GpsTrackDataPoint::getPointIndex))
+                .toList();
+    }
+
+    private static double distanceMeters(GpsTrackDataPoint from, GpsTrackDataPoint to) {
+        if (from == null || to == null || from.getPointLongLat() == null || to.getPointLongLat() == null) {
+            return 0;
+        }
+        return GPXReader.getDistanceBetweenTwoWGS84(
+                from.getPointLongLat().getCoordinate(),
+                to.getPointLongLat().getCoordinate());
     }
 
     // ---------------------------------------------------------------------
@@ -417,7 +485,8 @@ public class TrackTimeBetweenTwoPoints {
         Coordinate p1 = p1Point.getPointLongLat().getCoordinate();
         Coordinate p2 = p2Point.getPointLongLat().getCoordinate();
 
-        double metersPerDegLon = 111320.0 * Math.cos(Math.toRadians(center.y));
+        double metersPerDegLon = GeoCoordinateUtils.APPROX_METERS_PER_DEGREE_LATITUDE
+                                 * Math.cos(Math.toRadians(center.y));
         double metersPerDegLat = 110540.0;
 
         double x1 = (p1.x - center.x) * metersPerDegLon;
@@ -495,6 +564,7 @@ public class TrackTimeBetweenTwoPoints {
             GpsTrackDataPoint crossingPoint,
             TriggerPoint triggerPoint,
             Long gpsTrackId,
+            double distanceToTriggerPointInMeter,
             List<Crossing> crossings
     ) {
         // Create and store the crossing
@@ -502,7 +572,7 @@ public class TrackTimeBetweenTwoPoints {
                 triggerPoint,
                 crossingPoint,
                 gpsTrackId,
-                0.0, // Distance to trigger point is approximately 0 at the crossing
+                distanceToTriggerPointInMeter,
                 0,
                 0,
                 0,

@@ -54,21 +54,16 @@ public class FilterTemplateGraphResolver {
 
     private void visit(FilterConfigEntity filter, Map<String, FilterConfigEntity> orderedFilters, Deque<String> stack) {
         String currentPath = templatePathFor(filter);
-        if (stack.contains(currentPath)) {
-            List<String> cycle = new ArrayList<>(stack);
-            cycle.add(currentPath);
-            throw new IllegalStateException("Detected a cycle in filter template includes: " + String.join(" -> ", cycle));
-        }
         if (orderedFilters.containsKey(currentPath)) {
             return;
         }
 
-        stack.addLast(currentPath);
+        FilterTemplateTraversal.enter(stack, currentPath);
         for (String includedTemplatePath : findIncludedTemplatePaths(filter.getExpression())) {
             FilterConfigEntity includedFilter = referenceResolver.resolve(includedTemplatePath);
             visit(includedFilter, orderedFilters, stack);
         }
-        stack.removeLast();
+        FilterTemplateTraversal.leave(stack);
 
         orderedFilters.putIfAbsent(currentPath, filter);
         log.debug("Resolved filter template graph node: {}", currentPath);

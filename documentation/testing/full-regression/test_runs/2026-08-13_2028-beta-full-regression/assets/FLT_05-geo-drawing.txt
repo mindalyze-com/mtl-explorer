@@ -1,0 +1,33 @@
+Coverage ID: FLT_05
+
+Rectangle
+- Entered Draw Rectangle.
+- First corner changed the hint to Click to place opposite corner.
+- Pointer move plus second click finalized the rectangle and reopened Filter.
+- Saved display: Rectangle (18.597…45.232, -20.768…22.629).
+
+Circle
+- Entered Draw Circle.
+- Center changed hint from Click to place center to Click to set radius.
+- Undo returned to Click to place center.
+- Replaced center and radius clicks finalized the circle.
+- Saved display: Circle at 32.8398, -5.7769 — r=1,049.5 km.
+- Started Redraw, placed a center, then Cancel removed the draw toolbar without overwriting the saved circle.
+
+Polygon
+- Entered Draw Polygon.
+- With two points the toolbar said need at least 3 and Finish remained unavailable.
+- Three points enabled Finish.
+- A subsequent Undo reduced the point count 4→3 while keeping Finish available.
+- Finish finalized the shape and reopened Filter.
+- Saved display: Polygon with 3 points.
+
+Persistence and clear
+- Reload restored all three saved shape descriptions and Redraw actions.
+- Three Clear shape actions removed circle, rectangle, and polygon.
+- Area returned to No area with all three Draw on map actions.
+- After Apply and reset of the remaining date/text criteria, the filter returned to 12 matching tracks / 12 of 12.
+
+Browser note
+- Some draw-toolbar commands temporarily invalidated the automation tab handle while the browser tab itself stayed open. Rebinding to the same tab preserved state; this did not alter the user-visible results.
+

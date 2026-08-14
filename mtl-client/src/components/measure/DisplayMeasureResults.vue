@@ -97,15 +97,15 @@
 
         <!-- Two-tab toggle: Table | Trends -->
         <div class="measure-topbar-row measure-topbar-row--tabs">
-          <div class="measure-view-toggle">
+          <div class="measure-view-toggle view-toggle">
             <button
-              :class="['measure-toggle-btn', { 'measure-toggle-btn--active': activeTab === '0' }]"
+              :class="['measure-toggle-btn view-toggle-button', { 'view-toggle-button--active': activeTab === '0' }]"
               @click="activeTab = '0'"
             >
               <i class="bi bi-table"></i> Table
             </button>
             <button
-              :class="['measure-toggle-btn', { 'measure-toggle-btn--active': activeTab === '1' }]"
+              :class="['measure-toggle-btn view-toggle-button', { 'view-toggle-button--active': activeTab === '1' }]"
               @click="activeTab = '1'"
             >
               <i class="bi bi-activity"></i> Trends
@@ -260,6 +260,7 @@
                   :key="col.field"
                   :field="col.field"
                   :header="col.header"
+                  :sort-field="col.sortField"
                   sortable
                   :style="isMobile ? 'min-width: 5.75rem' : 'min-width: 8rem'"
                 >
@@ -341,17 +342,19 @@ import type { CrossingPointsResponseDto } from 'x8ing-mtl-api-typescript-fetch/d
 import type Highcharts from 'highcharts';
 import ToggleSwitch from 'primevue/toggleswitch';
 import {
+  formatDistanceSmart,
   formatDuration,
-  formatNumber,
   formatDurationSmart,
   formatDurationTooltip,
   formatDateAndTime,
   formatDateCompact,
+  formatSpeed,
 } from '@/utils/Utils';
 import VirtualRace from '@/components/virtual-race/VirtualRace.vue';
 import SegmentCompare from '@/components/measure/SegmentCompare.vue';
 import MeasureGraph from '@/components/measure/MeasureGraph.vue';
 import BottomSheet from '@/components/ui/BottomSheet.vue';
+import { buildVisitSegmentOptions } from '@/components/measure/segmentSlice';
 
 defineOptions({ name: 'DisplayMeasureResults' });
 
@@ -432,12 +435,12 @@ const allResults = computed(() => {
   if (!props.measureServiceResult) {
     return {
       tableData: [] as TableRow[],
-      columns: [] as Array<{ field: string; header: string }>,
+      columns: [] as Array<{ field: string; header: string; sortField: string }>,
       graphSeries: [] as GraphSeries[],
     };
   }
 
-  const durationMillisPostfix = '-DurationMillis';
+  const sortValuePostfix = '-sortValue';
   const speedPostfix = '-speed';
   const allColumns = new Map<string, string>();
   const tableData: TableRow[] = [];
@@ -519,18 +522,18 @@ const allResults = computed(() => {
         } else {
           switch (crossingUnitSelected.value) {
             case CROSSING_UNITS.time: {
-              tableRow[segmentKey + durationMillisPostfix] = trackCrossing.timeInSecSinceLastTriggerPoint * 1000;
+              tableRow[segmentKey + sortValuePostfix] = trackCrossing.timeInSecSinceLastTriggerPoint * 1000;
               tableRow[segmentKey] = formatDuration(trackCrossing.timeInSecSinceLastTriggerPoint * 1000);
               break;
             }
             case CROSSING_UNITS.speed: {
-              tableRow[segmentKey + durationMillisPostfix] = trackCrossing.avgSpeedSinceLastTriggerPoint;
-              tableRow[segmentKey] = formatNumber(trackCrossing.avgSpeedSinceLastTriggerPoint, 2);
+              tableRow[segmentKey + sortValuePostfix] = trackCrossing.avgSpeedSinceLastTriggerPoint;
+              tableRow[segmentKey] = formatSpeed(trackCrossing.avgSpeedSinceLastTriggerPoint, 2);
               break;
             }
             case CROSSING_UNITS.distance: {
-              tableRow[segmentKey + durationMillisPostfix] = trackCrossing.distanceInMeterSinceLastTriggerPoint;
-              tableRow[segmentKey] = formatNumber(trackCrossing.distanceInMeterSinceLastTriggerPoint, 0);
+              tableRow[segmentKey + sortValuePostfix] = trackCrossing.distanceInMeterSinceLastTriggerPoint;
+              tableRow[segmentKey] = formatDistanceSmart(trackCrossing.distanceInMeterSinceLastTriggerPoint);
               break;
             }
             default: {
@@ -556,18 +559,18 @@ const allResults = computed(() => {
 
         switch (crossingUnitSelected.value) {
           case CROSSING_UNITS.time: {
-            tableRow[segmentKey + durationMillisPostfix] = avgTimeSec * 1000;
+            tableRow[segmentKey + sortValuePostfix] = avgTimeSec * 1000;
             tableRow[segmentKey] = formatDuration(avgTimeSec * 1000);
             break;
           }
           case CROSSING_UNITS.speed: {
-            tableRow[segmentKey + durationMillisPostfix] = avgSpeed;
-            tableRow[segmentKey] = formatNumber(avgSpeed, 2);
+            tableRow[segmentKey + sortValuePostfix] = avgSpeed;
+            tableRow[segmentKey] = formatSpeed(avgSpeed, 2);
             break;
           }
           case CROSSING_UNITS.distance: {
-            tableRow[segmentKey + durationMillisPostfix] = avgDistance;
-            tableRow[segmentKey] = formatNumber(avgDistance, 0);
+            tableRow[segmentKey + sortValuePostfix] = avgDistance;
+            tableRow[segmentKey] = formatDistanceSmart(avgDistance);
             break;
           }
         }
@@ -597,9 +600,9 @@ const allResults = computed(() => {
     tableData.push(tableRow);
   }
 
-  const columns: Array<{ field: string; header: string }> = [];
+  const columns: Array<{ field: string; header: string; sortField: string }> = [];
   allColumns.forEach((v, k) => {
-    columns.push({ field: k, header: v });
+    columns.push({ field: k, header: v, sortField: k + sortValuePostfix });
   });
 
   const graphSeries: GraphSeries[] = [];
@@ -633,37 +636,11 @@ const availableSegments = computed<SegmentOption[]>(() => {
       code: { point1: s.point1, point2: s.point2, consolidated: true },
     }));
   }
-  const segMap = new Map<string, SegmentOption>();
-  for (const [, trackCrossingsRaw] of Object.entries(props.measureServiceResult.crossings || {})) {
-    const trackCrossings = asMeasureCrossingsPerTrack(trackCrossingsRaw);
-    const countPerTP = new Map<string, number>();
-    let last: MeasureCrossing | null = null;
-    let lastVisit: number | null = null;
-    for (const c of trackCrossings.crossings) {
-      const name = c.triggerPoint.name;
-      const currentVisit = (countPerTP.get(name) || 0) + 1;
-      countPerTP.set(name, currentVisit);
-      if (last != null && lastVisit != null) {
-        const p1 = last.triggerPoint.name;
-        const p1v = lastVisit;
-        const p2 = name;
-        const p2v = currentVisit;
-        const key = p1 + p1v + '-' + p2 + p2v;
-        if (!segMap.has(key)) {
-          segMap.set(key, {
-            name: p1 + p1v + ' - ' + p2 + p2v,
-            count: 0,
-            code: { point1: p1, p1Visit: p1v, point2: p2, p2Visit: p2v, consolidated: false },
-          });
-        }
-        const segment = segMap.get(key)!;
-        segment.count = (segment.count || 0) + 1;
-      }
-      last = c;
-      lastVisit = currentVisit;
-    }
-  }
-  return Array.from(segMap.values());
+  return buildVisitSegmentOptions(
+    Object.values(props.measureServiceResult.crossings || {}).map(
+      (trackCrossingsRaw) => asMeasureCrossingsPerTrack(trackCrossingsRaw).crossings
+    )
+  );
 });
 
 const allSelected = computed(() => {
@@ -870,6 +847,10 @@ watch(consolidateVisits, () => {
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
+}
+
+.measure-context-label,
+.measure-control-label {
   color: var(--text-muted);
   font-size: var(--text-2xs-size);
   font-weight: 700;
@@ -907,23 +888,7 @@ watch(consolidateVisits, () => {
 }
 
 .measure-context-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
   padding: 0.3rem 0.6rem;
-  border-radius: 999px;
-  background: var(--surface-glass);
-  border: 1px solid var(--border-default);
-  color: var(--text-secondary);
-  cursor: pointer;
-  font-family: inherit;
-  font-size: var(--text-xs-size);
-  line-height: var(--text-xs-lh);
-  white-space: nowrap;
-  transition:
-    background 0.15s,
-    color 0.15s,
-    border-color 0.15s;
 }
 
 .measure-context-pill:hover {
@@ -974,10 +939,15 @@ watch(consolidateVisits, () => {
 }
 
 .measure-action-btn {
+  padding: 0.35rem 0.7rem;
+  font-weight: 700;
+}
+
+.measure-context-pill,
+.measure-action-btn {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-  padding: 0.35rem 0.7rem;
   border-radius: 999px;
   background: var(--surface-glass);
   border: 1px solid var(--border-default);
@@ -985,14 +955,13 @@ watch(consolidateVisits, () => {
   cursor: pointer;
   font-family: inherit;
   font-size: var(--text-xs-size);
-  font-weight: 700;
   line-height: var(--text-xs-lh);
   white-space: nowrap;
   transition:
     background 0.15s,
     color 0.15s,
-    transform 0.12s,
-    border-color 0.15s;
+    border-color 0.15s,
+    transform 0.12s;
 }
 
 .measure-action-btn:hover:not(:disabled) {
@@ -1102,15 +1071,6 @@ watch(consolidateVisits, () => {
   align-items: center;
   gap: 0.5rem;
   min-width: 0;
-}
-
-.measure-control-label {
-  color: var(--text-muted);
-  font-size: var(--text-2xs-size);
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  white-space: nowrap;
 }
 
 /* Metric chips */
@@ -1224,62 +1184,11 @@ watch(consolidateVisits, () => {
 }
 
 .measure-view-toggle {
-  display: flex;
   width: 100%;
-  align-items: center;
-  background: var(--surface-elevated);
-  border: 1px solid var(--border-default);
-  border-radius: 8px;
-  padding: 3px;
-  gap: 2px;
 }
 
 .measure-toggle-btn {
   flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.3rem;
-  padding: 0.28rem 0.65rem;
-  border-radius: 5px;
-  border: none;
-  background: transparent;
-  color: var(--text-muted);
-  font-size: var(--text-xs-size);
-  font-weight: 600;
-  cursor: pointer;
-  transition:
-    background 0.15s,
-    color 0.15s;
-  white-space: nowrap;
-  font-family: inherit;
-}
-
-.measure-toggle-btn:hover {
-  color: var(--text-secondary);
-  background: var(--surface-hover);
-}
-
-.measure-toggle-btn--active {
-  background: var(--surface-glass-heavy);
-  color: var(--accent-text);
-  box-shadow: var(--shadow-sm);
-}
-
-.measure-toggle-badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 1.15rem;
-  height: 1.15rem;
-  padding: 0 0.3rem;
-  border-radius: 999px;
-  background: var(--accent-text);
-  color: var(--text-inverse);
-  font-size: var(--text-2xs-size);
-  font-weight: 700;
-  line-height: var(--text-2xs-lh);
-  margin-left: 0.1rem;
 }
 
 .measure-select-cell {

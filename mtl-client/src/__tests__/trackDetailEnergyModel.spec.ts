@@ -3,6 +3,9 @@ import { defineComponent, nextTick } from 'vue';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import TrackDetailOverview from '@/components/trackdetails/TrackDetailOverview.vue';
 import { GpsTrackActivityTypeEnum } from 'x8ing-mtl-api-typescript-fetch/dist/esm/models/index';
+import { useMeasurementSystem } from '@/composables/useMeasurementSystem';
+
+const measurementPreference = useMeasurementSystem();
 
 const mocks = vi.hoisted(() => ({
   calculateEnergyWhatIf: vi.fn(),
@@ -123,6 +126,7 @@ function mountEnergyOverview() {
 describe('Track Detail energy adjustment', () => {
   beforeEach(() => {
     localStorage.clear();
+    measurementPreference.setMeasurementSystem('METRIC');
     vi.clearAllMocks();
   });
 
@@ -225,5 +229,29 @@ describe('Track Detail energy adjustment', () => {
       energyNetTotalWh: 242.5,
       energyWeightKgUsed: 92,
     });
+  });
+
+  it('shows pounds but sends canonical kilograms to the energy API', async () => {
+    vi.useFakeTimers();
+    measurementPreference.setMeasurementSystem('US_CUSTOMARY');
+    mocks.calculateEnergyWhatIf
+      .mockResolvedValueOnce(energyResponse(230, 0, 75))
+      .mockResolvedValueOnce(energyResponse(242.5, 12.5, 81.6466266));
+    const wrapper = mountEnergyOverview();
+    await nextTick();
+
+    await wrapper.find('[data-test="energy-adjust-trigger"]').trigger('click');
+    await flushPromises();
+    await nextTick();
+
+    expect(wrapper.find<HTMLInputElement>('[data-test="energy-rider-weight-input"]').element.value).toBe('165.3');
+    expect(wrapper.find('[data-test="energy-adjust-dialog"]').text()).toContain('lb');
+
+    await wrapper.find('[data-test="energy-rider-weight-input"]').setValue('180');
+    await vi.advanceTimersByTimeAsync(250);
+    await flushPromises();
+
+    const requestedKilograms = mocks.calculateEnergyWhatIf.mock.calls[1]?.[1];
+    expect(requestedKilograms).toBeCloseTo(81.6466266, 7);
   });
 });

@@ -1,0 +1,13 @@
+Coverage ID: FIT_01
+Source: Garmin official FIT SDK Activity.fit staged in disposable test-data/public
+Source sha256: 949a238e1bb75c3684479785f76fa9a16888bb394518844248f488171d591387
+Source bytes: 94096
+Prevalidated GPS records: 3,601 timestamped position records
+
+Destination: /root/mtl-full-regression-2026-08-13_2028-beta-full-regression/data/gpx/Activity.fit
+fit_copy_started_utc: 2026-08-13T19:15:03.176Z
+fit_copy_finished_utc: 2026-08-13T19:15:03.183Z
+Copy timing: 7 ms
+Watched-folder count: 3 -> 4
+
+The source and watched checksums match. The copy used the documented watched import folder; processing results follow in FIT_02.

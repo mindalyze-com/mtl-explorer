@@ -1,0 +1,15 @@
+FLT_21 Filter sheet and nested review layout
+
+Desktop viewport: 1280 x 720
+- Filter sheet: x 218, y 86, width 920, height 634.
+- Nested Review tracks sheet: x 218, y 86, width 920, height 634.
+- The background Filter kept the same standard bounds.
+- Nested review did not jump to an oversized sheet.
+
+Mobile viewport: 390 x 844
+- Both Filter and nested review used full width.
+- Standard detent: x 0, y 108, width 390, height 736 (min(88vh, 46rem)).
+- Tapping the sheet handle moved Review tracks to the second standard detent: x 0, y 42.2, width 390, height 801.8 (95vh).
+- Search summary and Track 100005 card remained available at the large detent.
+- Tapping the handle again restored x 0, y 108, width 390, height 736.
+- Search summary and Track 100005 card remained available after return.

@@ -1,0 +1,19 @@
+Locale change without reload
+
+Available choices:
+- Browser default
+- de-CH, de-DE, en-US, en-GB, fr-CH, fr-FR, it-CH
+
+Changed en-GB -> de-CH in Admin Preferences without browser reload.
+
+Preference preview changed immediately:
+- Before: 14/08/2026 02:21:57 — 12,345.67
+- After: 14.08.2026 02:25:09 — 12'345.67
+
+Statistics changed immediately without reload:
+- Date: 11/03/2013 -> 11.03.2013
+- Energy: 4,410 Wh -> 4'410 Wh
+- Ascent: 12,392 m -> 12'392 m
+- Distance/duration stayed semantically 919 km / 20h 43m.
+- No stale mixed-locale artifact was seen.
+

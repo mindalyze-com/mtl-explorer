@@ -38,7 +38,16 @@ type SwissMobilityPopupTestContext = {
 };
 
 type RouteToolSyncTestContext = {
-  $refs: Record<string, { close?: () => void; open?: () => void; toggle?: () => void }>;
+  $refs: Record<
+    string,
+    {
+      close?: () => void;
+      open?: () => void;
+      toggle?: () => void;
+      getNavigationState?: () => unknown;
+      restoreNavigationState?: (state: unknown) => void;
+    }
+  >;
   $nextTick: (callback: () => void) => void;
   activeToolId: string | null;
   _syncingView: boolean;
@@ -48,6 +57,7 @@ type RouteToolSyncTestContext = {
   selectedTrackId: number | null;
   trackDetailsSelectedDetent?: string;
   trackDetailsInfo: { id: number | null; name: string; description: string; activityType: string };
+  trackDetailsReturnTarget: { toolId: string; state?: unknown } | null;
   mediaSheetVisible: boolean;
   trackSelectionSheetVisible: boolean;
   locationSearchVisible: boolean;
@@ -160,6 +170,7 @@ describe('map route tool sync', () => {
       trackDetailsId: null,
       selectedTrackId: null,
       trackDetailsInfo: { id: null, name: '', description: '', activityType: '' },
+      trackDetailsReturnTarget: null,
       mediaSheetVisible: false,
       trackSelectionSheetVisible: false,
       locationSearchVisible: false,
@@ -177,5 +188,81 @@ describe('map route tool sync', () => {
     expect(filterClose).toHaveBeenCalledOnce();
     expect(context.activeToolId).toBe('stats');
     expect(context._syncingView).toBe(false);
+  });
+
+  it('restores the originating tool subview after Track Details closes', () => {
+    const reviewState = { screen: 'review', reviewGroup: null };
+    const filterOpen = vi.fn();
+    const restoreNavigationState = vi.fn();
+    const context = bindMapToolsMethods<RouteToolSyncTestContext>({
+      $refs: {
+        filterTool: {
+          open: filterOpen,
+          getNavigationState: () => reviewState,
+          restoreNavigationState,
+        },
+      },
+      $nextTick: (callback) => callback(),
+      activeToolId: 'filter',
+      _syncingView: false,
+      trackReplayActive: false,
+      trackDetailsVisible: false,
+      trackDetailsId: null,
+      selectedTrackId: null,
+      trackDetailsInfo: { id: null, name: '', description: '', activityType: '' },
+      trackDetailsReturnTarget: null,
+      mediaSheetVisible: false,
+      trackSelectionSheetVisible: false,
+      locationSearchVisible: false,
+      locationSearchMarker: null,
+      selectionPopupTrackIds: [],
+      swissMobilityPopup: { visible: false, pos: { x: 0, y: 0 }, routes: [] },
+      geoDrawingParamDef: null,
+      geoDrawingOverlay: null,
+      closeMediaSheet: vi.fn(),
+    });
+
+    context.captureActiveToolNavigation();
+    expect(context.trackDetailsReturnTarget).toEqual({ toolId: 'filter', state: reviewState });
+
+    context.activeToolId = null;
+    context.syncToolToRoute('filter');
+
+    expect(filterOpen).toHaveBeenCalledOnce();
+    expect(restoreNavigationState).toHaveBeenCalledWith(reviewState);
+    expect(context.trackDetailsReturnTarget).toBeNull();
+  });
+
+  it('keeps the original return target while navigating through track-detail history', () => {
+    const returnTarget = { toolId: 'filter', state: { screen: 'review', reviewGroup: null } };
+    const context = bindMapToolsMethods({
+      $refs: {},
+      $nextTick: (callback: () => void) => callback(),
+      activeToolId: null,
+      trackReplayActive: false,
+      trackDetailsVisible: false,
+      trackDetailsId: null,
+      trackDetailsInitialDetent: 'default',
+      trackDetailsSelectedDetent: undefined,
+      trackDetailsInfo: { id: null, name: '', description: '', activityType: '' },
+      trackDetailsReturnTarget: returnTarget,
+      selectedTrackId: null,
+      selectedFeature: null,
+      gpsTrackIdToFeature: new Map(),
+      mediaSheetVisible: false,
+      trackSelectionSheetVisible: false,
+      locationSearchVisible: false,
+      locationSearchMarker: null,
+      selectionPopupTrackIds: [],
+      swissMobilityPopup: { visible: false, pos: { x: 0, y: 0 }, routes: [] },
+      closeMediaSheet: vi.fn(),
+      selectTrackById: vi.fn(),
+    });
+
+    context.syncTrackDetailRoute(42);
+
+    expect(context.trackDetailsReturnTarget).toBe(returnTarget);
+    expect(context.trackDetailsId).toBe(42);
+    expect(context.trackDetailsVisible).toBe(true);
   });
 });

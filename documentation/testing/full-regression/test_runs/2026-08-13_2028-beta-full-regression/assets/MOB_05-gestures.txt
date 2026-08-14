@@ -1,0 +1,17 @@
+Mobile gesture execution
+
+Pointer gesture evidence at 390 x 844:
+- Initial pointer double-click changed scale 500 km -> 300 km; pointer drag completed.
+- After Filter: double-click 300 km -> 200 km; drag completed.
+- After Map settings: double-click 200 km -> 100 km; drag completed.
+- After Segments: double-click 100 km -> 50 km; drag completed.
+- Map remained responsive after every tool.
+
+Touch-specific requirement:
+- No touch-event/emulation capability is advertised.
+- Pinch cannot be expressed by the pointer-only browser surface.
+- Double-click is not attributable as native double-tap.
+- Pointer drag is not attributable as touch drag.
+
+Unblock path: rerun pinch, double-tap, and drag after each tool on a touch-capable device/emulator.
+

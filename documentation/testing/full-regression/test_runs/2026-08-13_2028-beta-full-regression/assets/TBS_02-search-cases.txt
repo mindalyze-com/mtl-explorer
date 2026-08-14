@@ -1,0 +1,13 @@
+TBS_02 Track Browser search cases
+
+Base result: 12 tracks
+
+- Name: "Moselradweg" -> 1 of 12, Moselradweg aus Wiki on GPSies.com, 518 km, 6h 50m.
+- Description: "Generated from route" -> 1 of 12, Lannion_Plestin_parcours..., 23.5 km.
+- Start date: "20/07/2021" -> 1 of 12, Track 100005.
+- Distance: "518 km" -> 1 of 12, Moselradweg..., 518 km.
+- Duration: "6h 50m" -> 1 of 12, Moselradweg..., 6h 50m.
+- Activity: "Walking" -> 1 of 12, Track 100005, Walking.
+- File path/name: "Activity.fit" -> 1 of 12, Track 100005.
+
+Each result summary recalculated the visible count, distance, and duration.

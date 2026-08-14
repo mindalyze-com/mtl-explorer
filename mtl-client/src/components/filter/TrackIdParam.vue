@@ -1,25 +1,11 @@
 <template>
   <div class="track-id-param">
-    <div class="track-id-param__head">
-      <label class="track-id-param__label" :for="inputId">{{ label }}</label>
+    <div v-if="showHeader" class="track-id-param__head">
+      <label class="track-id-param__label filter-meta-label" :for="inputId">{{ label }}</label>
       <span class="track-id-param__head-meta">
-        <span v-if="optional" class="track-id-param__optional">Optional</span>
-        <span class="track-id-param__count">{{ selectedTrackIds.length }} selected</span>
-        <span v-if="originTitle" class="track-id-param__origin" :title="originTitle">
-          <i class="bi bi-diagram-3"></i>
-        </span>
+        <span class="track-id-param__count filter-meta-label">{{ selectionSummary }}</span>
       </span>
     </div>
-
-    <textarea
-      :id="inputId"
-      class="track-id-param__textarea"
-      :value="modelValue || ''"
-      rows="2"
-      placeholder="Paste track IDs"
-      @input="onTextInput"
-      @blur="normalizeText"
-    ></textarea>
 
     <div v-if="selectedTrackIds.length > 0" class="track-id-param__selected" aria-label="Selected tracks">
       <button
@@ -36,9 +22,9 @@
       <button type="button" class="track-id-param__clear" @click="emit('update:modelValue', '')">Clear</button>
     </div>
 
-    <button type="button" class="track-id-param__open" @click="dialogVisible = true">
+    <button :id="inputId" type="button" class="track-id-param__open" @click="openDialog">
       <i class="bi bi-list-check"></i>
-      <span>Choose tracks</span>
+      <span>{{ selectedTrackIds.length > 0 ? 'Edit selected tracks' : 'Choose tracks' }}</span>
     </button>
 
     <Dialog
@@ -78,11 +64,11 @@
               <button
                 type="button"
                 class="track-id-param__toggle"
-                :class="{ 'track-id-param__toggle--selected': isSelected(slotProps.data.id) }"
-                :aria-label="isSelected(slotProps.data.id) ? 'Remove track' : 'Add track'"
-                @click="toggleTrack(slotProps.data.id)"
+                :class="{ 'track-id-param__toggle--selected': isDraftSelected(slotProps.data.id) }"
+                :aria-label="isDraftSelected(slotProps.data.id) ? 'Remove track' : 'Add track'"
+                @click="toggleDraftTrack(slotProps.data.id)"
               >
-                <i :class="isSelected(slotProps.data.id) ? 'bi bi-check-lg' : 'bi bi-plus-lg'"></i>
+                <i :class="isDraftSelected(slotProps.data.id) ? 'bi bi-check-lg' : 'bi bi-plus-lg'"></i>
               </button>
             </template>
           </Column>
@@ -116,6 +102,15 @@
           </Column>
         </DataTable>
       </div>
+      <template #footer>
+        <div class="track-id-param__dialog-footer">
+          <span>{{ draftTrackIds.length }} selected</span>
+          <div>
+            <Button label="Cancel" text @click="cancelDialog" />
+            <Button label="Done" @click="applyDialog" />
+          </div>
+        </div>
+      </template>
     </Dialog>
   </div>
 </template>
@@ -131,14 +126,23 @@ import TrackShapePreview from '@/components/ui/TrackShapePreview.vue';
 
 defineOptions({ name: 'TrackIdParam' });
 
-const props = defineProps<{
-  paramDef?: ParamDefinition;
-  modelValue?: string | null;
-  tracks: GpsTrack[];
-  loading?: boolean;
-  optional?: boolean;
-  originTitle?: string;
-}>();
+const props = withDefaults(
+  defineProps<{
+    paramDef?: ParamDefinition;
+    modelValue?: string | null;
+    tracks: GpsTrack[];
+    loading?: boolean;
+    optional?: boolean;
+    originTitle?: string;
+    showHeader?: boolean;
+  }>(),
+  {
+    paramDef: undefined,
+    modelValue: null,
+    originTitle: undefined,
+    showHeader: true,
+  }
+);
 
 const emit = defineEmits<{
   (event: 'update:modelValue', value: string): void;
@@ -147,14 +151,19 @@ const emit = defineEmits<{
 const inputId = computed(() => props.paramDef?.name ?? 'TRACK_IDS');
 const label = computed(() => props.paramDef?.label || 'Selected tracks');
 const dialogVisible = ref(false);
+const draftValue = ref('');
 const selectedTrackIds = computed(() => parseTrackIdText(props.modelValue));
-const selectedTrackIdSet = computed(() => new Set(selectedTrackIds.value));
+const draftTrackIds = computed(() => parseTrackIdText(draftValue.value));
+const draftTrackIdSet = computed(() => new Set(draftTrackIds.value));
+const selectionSummary = computed(() =>
+  selectedTrackIds.value.length === 0 ? 'No track selection' : `${selectedTrackIds.value.length} selected`
+);
 const tracksById = computed(() => new Map(props.tracks.map((track) => [Number(track.id), track])));
 const { query, rows } = useTrackBrowser(toRef(props, 'tracks'));
 
-function isSelected(trackId: unknown): boolean {
+function isDraftSelected(trackId: unknown): boolean {
   const id = Number(trackId);
-  return Number.isFinite(id) && selectedTrackIdSet.value.has(id);
+  return Number.isFinite(id) && draftTrackIdSet.value.has(id);
 }
 
 function selectedTrackLabel(trackId: number): string {
@@ -163,26 +172,30 @@ function selectedTrackLabel(trackId: number): string {
   return name ? `#${trackId} ${name}` : `#${trackId}`;
 }
 
-function toggleTrack(trackId: unknown): void {
+function toggleDraftTrack(trackId: unknown): void {
   const id = Number(trackId);
   if (!Number.isSafeInteger(id) || id <= 0) return;
-  emit(
-    'update:modelValue',
-    isSelected(id) ? removeTrackIdFromText(props.modelValue, id) : addTrackIdToText(props.modelValue, id)
-  );
+  draftValue.value = isDraftSelected(id)
+    ? removeTrackIdFromText(draftValue.value, id)
+    : addTrackIdToText(draftValue.value, id);
 }
 
 function removeTrack(trackId: number): void {
   emit('update:modelValue', removeTrackIdFromText(props.modelValue, trackId));
 }
 
-function onTextInput(event: Event): void {
-  const target = event.target as HTMLTextAreaElement | null;
-  emit('update:modelValue', target?.value ?? '');
+function openDialog(): void {
+  draftValue.value = formatTrackIds(selectedTrackIds.value);
+  dialogVisible.value = true;
 }
 
-function normalizeText(): void {
-  emit('update:modelValue', formatTrackIds(selectedTrackIds.value));
+function cancelDialog(): void {
+  dialogVisible.value = false;
+}
+
+function applyDialog(): void {
+  emit('update:modelValue', formatTrackIds(draftTrackIds.value));
+  dialogVisible.value = false;
 }
 
 function formatDateAndTimeValue(value: Date | string | undefined | null): string {
@@ -210,6 +223,23 @@ function formatDateAndTimeValue(value: Date | string | undefined | null): string
   justify-content: space-between;
 }
 
+.track-id-param__dialog-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  width: 100%;
+  color: var(--text-secondary);
+  font-size: var(--text-sm-size);
+  font-weight: 700;
+}
+
+.track-id-param__dialog-footer > div {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
 .track-id-param__head-meta {
   display: inline-flex;
   align-items: center;
@@ -219,31 +249,12 @@ function formatDateAndTimeValue(value: Date | string | undefined | null): string
 
 .track-id-param__label,
 .track-id-param__count {
-  color: var(--text-muted);
-  font-size: var(--text-xs-size);
-  font-weight: 700;
-  line-height: var(--text-xs-lh);
   text-transform: uppercase;
   letter-spacing: 0.06em;
 }
 
 .track-id-param__count {
   opacity: 0.75;
-  white-space: nowrap;
-}
-
-.track-id-param__optional {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 1.25rem;
-  border-radius: 999px;
-  padding: 0.12rem 0.45rem;
-  color: var(--text-muted);
-  background: var(--surface-glass-heavy, var(--surface-ground));
-  font-size: var(--text-xs-size);
-  font-weight: 700;
-  line-height: 1;
   white-space: nowrap;
 }
 

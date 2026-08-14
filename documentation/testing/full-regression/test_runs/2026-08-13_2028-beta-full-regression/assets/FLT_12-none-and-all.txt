@@ -1,0 +1,23 @@
+Coverage ID: FLT_12
+View: Tracks by year
+Year range: 2010-2013
+Available categories: 2010 (2), 2013 (6)
+
+Select none
+- Clear selection produced 0 of 2 selected.
+- Apply produced No tracks match, 0 of 2 categories, and 0 / 12 Tracks.
+- Normal browser reload restored the same intentional zero result and two active year criteria.
+
+Select every available category
+- Select current produced 2 of 2 selected.
+- Apply restored 8 matching tracks and 8 / 12 Tracks.
+- Overview showed 2 of 2 categories, not All 2 categories.
+- Reopened checkbox state:
+  - All categories master: unchecked.
+  - 2010: checked.
+  - 2013: checked.
+- No unavailable/missing saved category existed.
+
+Issue
+- FLT-12-P2: selecting every currently available category does not normalize to All categories. The exact set remains pinned, so future categories will not be included automatically.
+

@@ -1,0 +1,23 @@
+Coverage ID: FIT_02
+Source copy finished: 2026-08-13T19:15:03.183Z
+
+Automatic import log:
+- 19:15:03.184Z: live watcher detected CREATE Activity.fit
+- 19:15:13.202Z: converting FIT with GPSBabel `garmin_fit` -> GPX 1.1
+- 19:15:13.324Z: conversion produced 479,844 characters of GPX XML
+- 19:15:15.850Z: ingest timing for trackId=100005, status=SUCCESS, total 2.65 s
+- 19:15:15.862Z: Activity.fit processing completed SUCCESS in 2.67 s
+- 19:15:20.135Z: exploration score job completed (track 100005, 100.0%)
+- 19:15:24.686Z: duplicate detector completed for one track
+- 19:15:27.204Z: activity classifier completed for one track
+
+Copy-to-ingest-complete: 12.679 s
+Manual rescan: not used
+
+Browser verification after freshness Reload:
+- Main map count: 3 -> 4; fourth record included in the map dataset.
+- Track Browser: 4 tracks, 821 km, 16h 50m.
+- Exact source search `Activity.fit`: 1 of 4 tracks.
+- Search row: Track 100005, Walking, 3.60 km, 59m 57s, 347 Wh.
+- Open row: Track Details #100005, name Activity.fit, populated route mini-map and Overview.
+- Statistics totals and row include the new FIT activity.

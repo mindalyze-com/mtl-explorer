@@ -1,0 +1,21 @@
+Map opacity and reset sequence
+
+Modified settings:
+- Base map opacity: 100 -> 40
+- GPS tracks opacity: 100 -> 65
+- Heatmap opacity retained the earlier 40 setting
+- OSM Dark map style remained selected
+
+After closing settings and reloading:
+- Base map opacity: 40
+- GPS tracks opacity: 65
+- Heatmap opacity: 40
+- The dimmed background and visible track layer remained usable.
+
+Reset map settings:
+- Current map changed OSM Dark -> OSM Topo Contrast
+- Map source remained Automatic and terrain 2D
+- Base map opacity returned to 100
+- GPS tracks opacity returned to 100
+- Default second visible data layer returned to Track points and direction at 100
+

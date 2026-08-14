@@ -1,0 +1,24 @@
+MAP_13 remote raster UI/provider matrix
+
+OSM Light:
+- selected explicitly in Map style
+- visible attribution: OpenStreetMap
+- zoom changed scale 500 km -> 300 km
+- 12 Tracks remained visible
+- configured provider sample returned HTTP 200
+
+OSM Topo Light:
+- selected explicitly in Map style
+- visible attribution: OpenStreetMap, OpenTopoMap, CC-BY-SA
+- zoom changed scale 300 km -> 200 km
+- 12 Tracks remained visible
+- configured provider sample returned HTTP 200
+
+OSM Dark:
+- selected explicitly in Map style
+- visible attribution: OpenStreetMap and CARTO
+- zoom changed scale 200 km -> 100 km
+- 12 Tracks remained visible
+- configured provider sample returned HTTP 200
+
+Disposable app logs since remote-mode startup contain 0 `/mtl/api/map-proxy` request lines.

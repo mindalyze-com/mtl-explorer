@@ -1,0 +1,15 @@
+Coverage ID: FIT_05
+User action: Track Details #100005 > Overview > Download GPX
+Browser download artifact: /Users/pheusser/Downloads/Unconfirmed 879718.crdownload
+Browser note: the in-app Chromium context retained its temporary `.crdownload` name after completing all bytes.
+
+Downloaded bytes: 479844
+Downloaded file identification: XML 1.0 document
+XML validation: PASS (`xmllint --noout`)
+GPX root: version 1.1, creator GPSBabel
+Trackpoints (`trkpt`): 3601
+Waypoints (`wpt`): 0
+Time elements: 3602 (one metadata timestamp plus 3,601 trackpoint timestamps)
+SHA-256: 70359f96af46d89cc29e8438e0180f32c4a29c211dcbcc654d454c42ec423afb
+
+The download is a valid GPX with a real track segment and 3,601 timestamped trackpoints, not a waypoint-only export. The exact test download will be removed during local cleanup.

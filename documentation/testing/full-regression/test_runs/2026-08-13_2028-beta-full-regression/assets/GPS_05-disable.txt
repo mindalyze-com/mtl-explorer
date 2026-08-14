@@ -1,0 +1,11 @@
+GPS disable applicability
+
+The insecure-origin guard prevented creation of a geolocation watch, locate
+marker, or follow session. There is therefore no live GPS state that can be
+disabled or observed stopping updates in this configured run.
+
+The visible disabled notice can be dismissed, but that is message cleanup, not
+the live disable behavior required by GPS_05.
+
+Unblock path: run on localhost/HTTPS, accept location, observe at least one
+marker update, disable GPS, and verify marker removal plus no further updates.

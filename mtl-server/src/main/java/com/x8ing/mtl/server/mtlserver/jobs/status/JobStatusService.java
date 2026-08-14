@@ -57,17 +57,13 @@ public class JobStatusService {
         long pending = counts.getOrDefault(GpsTrack.DUPLICATE_CHECK_STATUS.NOT_CHECKED_YET, 0L);
         long done = counts.getOrDefault(GpsTrack.DUPLICATE_CHECK_STATUS.UNIQUE, 0L)
                     + counts.getOrDefault(GpsTrack.DUPLICATE_CHECK_STATUS.DUPLICATE, 0L);
-        long total = pending + done;
-        int progress = total > 0 ? (int) (done * 100L / total) : 100;
-        return new JobSummaryDto("duplicate", "Duplicate Finder", total, pending, done, progress);
+        return summary("duplicate", "Duplicate Finder", pending, done);
     }
 
     private JobSummaryDto buildActivityTypeSummary() {
         long pending = gpsTrackRepository.countActivityTypePending();
         long done = gpsTrackRepository.countActivityTypeDone();
-        long total = pending + done;
-        int progress = total > 0 ? (int) (done * 100L / total) : 100;
-        return new JobSummaryDto("activityType", "Activity Classifier", total, pending, done, progress);
+        return summary("activityType", "Activity Classifier", pending, done);
     }
 
     private JobSummaryDto buildExplorationSummary() {
@@ -84,8 +80,12 @@ public class JobStatusService {
         // no geometry — treated as done so that pending→0 reflects actual completion, not silent vanishing.
         long done = counts.getOrDefault(GpsTrack.EXPLORATION_STATUS.CALCULATED, 0L)
                     + gpsTrackRepository.countExplorationExplicitlySkipped();
+        return summary("exploration", "Exploration Score", pending, done);
+    }
+
+    private static JobSummaryDto summary(String job, String label, long pending, long done) {
         long total = pending + done;
         int progress = total > 0 ? (int) (done * 100L / total) : 100;
-        return new JobSummaryDto("exploration", "Exploration Score", total, pending, done, progress);
+        return new JobSummaryDto(job, label, total, pending, done, progress);
     }
 }

@@ -1,0 +1,9 @@
+Mobile/touch capability check
+
+- Explicit responsive viewport: 390 x 844.
+- Mobile Track Details, navigation, map controls, freshness banner, tabs, and metrics rendered.
+- Browser-advertised tab capabilities were inspected.
+- Touch-event/emulation capability entries: 0.
+- The available automation surface provides pointer click/drag but cannot enable a real touch input mode or emit touch events.
+- Unblock path: rerun touch-specific checks in a browser/device harness that advertises touch event emulation.
+

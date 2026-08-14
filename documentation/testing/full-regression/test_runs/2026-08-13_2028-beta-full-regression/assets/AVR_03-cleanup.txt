@@ -1,0 +1,15 @@
+Post-race usability check
+
+Race completion:
+- Both racers reached 100%.
+- Source GPX finished at 109.89 m; NMEA at 120.35 m.
+
+Cleanup and control:
+- Closed Race and Segment Analyzer with Escape.
+- URL returned to /mtl/ with only the normal 12-track map state.
+- Map Zoom in worked; scale changed from 100 m to 50 m.
+- Filter tool opened normally and showed 12 matching tracks, Smart Base Filter,
+  no criteria, and normal configuration controls.
+
+No race overlay, playback control, captured map listener, or stuck state
+remained after finish/close.

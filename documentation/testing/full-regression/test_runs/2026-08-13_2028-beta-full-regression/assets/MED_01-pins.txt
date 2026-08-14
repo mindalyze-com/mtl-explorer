@@ -1,0 +1,11 @@
+Synthetic disposable media setup and layer result
+
+Four generated, non-private geotagged files were indexed through Admin Rescan Media:
+- media 400000 mtl-synthetic-a.jpg: 48.6920, -3.5340
+- media 400001 mtl-synthetic-broken.jpg: 48.6915, -3.5320
+- media 400002 mtl-synthetic-b.jpg: 48.6924, -3.5330
+- media 400003 mtl-synthetic-c.heic: 48.6918, -3.5350
+
+Map > Your data changed from 2/4 to 3/4 shown when Photos and media was
+enabled. After moving to the media area, the map displayed a red cluster of 3
+and one red single-media pin at 100 m scale.

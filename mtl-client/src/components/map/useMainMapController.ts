@@ -46,7 +46,8 @@ import { useMapStateStore } from '@/stores/mapStateStore';
 import { storeToRefs } from 'pinia';
 import { isRemoteRasterMapTheme } from '@/components/map/mapStyleResolver';
 import { TOPO_CONTRAST_THEME } from '@/utils/mapStyle';
-import type { MapCameraState } from '@/components/map/mapRendererTypes';
+import { readMapCameraState } from '@/components/map/mapRendererTypes';
+import { useMeasurementSystem } from '@/composables/useMeasurementSystem';
 
 type ControllerMethod = (this: MapControllerRuntime, ...args: unknown[]) => unknown;
 type BoundControllerMethod = (...args: unknown[]) => unknown;
@@ -84,6 +85,7 @@ export function useMainMapController(
   const mapSettingsStore = useMapSettingsStore();
   const mapStateStore = useMapStateStore();
   const mapStateRefs = storeToRefs(mapStateStore);
+  const { measurementSystem } = useMeasurementSystem();
 
   const state = reactive<MapControllerState>({
     map: undefined, // base map (tiles + mobility overlays)
@@ -150,6 +152,7 @@ export function useMainMapController(
     legendGradientBucketCount: 100,
     legendCollapsed: mapSettingsStore.legendCollapsed,
     hiddenGroups: new Set(),
+    renderedFilterConfigId: null,
     gpsTracksById: markRaw(new Map()),
     gpsTrackIdToFeature: markRaw(new Map()),
     selectedTrackId: mapStateStore.selectedTrackId,
@@ -165,6 +168,7 @@ export function useMainMapController(
     trackDetailsSelectedDetent: undefined,
     trackDetailsId: null,
     trackDetailsInfo: { id: null, name: '', description: '', activityType: '' },
+    trackDetailsReturnTarget: null,
     trackReplayActive: false,
     trackReplayLoading: false,
     trackReplayPlaying: false,
@@ -178,7 +182,7 @@ export function useMainMapController(
     trackReplaySpeedFactorLabel: '—',
     trackReplayCameraPreset: REPLAY_DEFAULT_CAMERA_PRESET,
     trackReplayCameraSmoothness: REPLAY_DEFAULT_CAMERA_SMOOTHNESS,
-    trackReplayDistanceLabel: '0 m',
+    trackReplayDistanceLabel: '—',
     trackReplayElapsedLabel: '0m 00s',
     trackReplayTotalLabel: '45s',
     _trackReplayPath: null,
@@ -251,6 +255,7 @@ export function useMainMapController(
     // given track, so no precision component is needed.
     trackPointsCanonicalCache: markRaw(new Map()), // trackId → GpsTrackDataPoint[]
     trackPointsPopup: null, // active MapLibre popup for a clicked point
+    trackPointsPopupContext: null,
     trackPointLayerHandlers: null,
     // Geo drawing
     geoDrawingOverlay: null,
@@ -614,18 +619,7 @@ export function useMainMapController(
 
   function beforeUnmount(this: MapControllerRuntime) {
     if (mapStateStore.mapMode === '3d' && this.overlayMap) {
-      const center = this.overlayMap.getCenter();
-      const camera: MapCameraState = {
-        center: [center.lng, center.lat],
-        zoom: this.overlayMap.getZoom(),
-        bearing: this.overlayMap.getBearing(),
-        pitch: this.overlayMap.getPitch(),
-      };
-      const roll = this.overlayMap.getRoll?.();
-      if (roll != null && Number.isFinite(roll)) camera.roll = roll;
-      const elevation = this.overlayMap.getCenterElevation?.();
-      if (elevation != null && Number.isFinite(elevation)) camera.elevation = elevation;
-      mapStateStore.setReturnViewportCamera(camera);
+      mapStateStore.setReturnViewportCamera(readMapCameraState(this.overlayMap, true));
     } else {
       this.stop3dTrackReplay({ restore: false });
     }
@@ -636,10 +630,7 @@ export function useMainMapController(
     if (this.detailDebounceTimer) clearTimeout(this.detailDebounceTimer);
     if (this.detailAbortController) this.detailAbortController.abort();
     if (this.bulk10mController) this.bulk10mController.abort();
-    if (this.trackPointsPopup) {
-      this.trackPointsPopup.remove();
-      this.trackPointsPopup = null;
-    }
+    this.closeTrackPointPopup();
     this.clearLocationSearchMarker();
     if (this._resizeObserver) this._resizeObserver.disconnect();
     if (this.heatmapOverlay) {
@@ -650,25 +641,18 @@ export function useMainMapController(
       this.geoDrawingOverlay.destroy();
       this.geoDrawingOverlay = null;
     }
-    if (this.overlayMap) {
-      this.detachTrackPointLayerHandlers();
-      this._attributionLinkCleanup?.();
-      this._attributionLinkCleanup = null;
-      this.overlayMap.remove();
-      this.overlayMap = undefined;
-      this._terrainControl = null;
-      this._terrainTrackLayer = null;
-    }
-    if (this.map) {
-      this.map.remove();
-      this.map = undefined;
-    }
+    this.disposeRendererMaps();
   }
 
   onMounted(() => mounted.call(ctx));
   onBeforeUnmount(() => beforeUnmount.call(ctx));
 
   watch(serverFreshnessToken, () => ctx.maybeAutoFreshenAfterLogin());
+  watch(measurementSystem, () => {
+    ctx.geoDrawingOverlay?.refreshMeasurementLabels();
+    ctx.refreshTrackPointPopupMeasurementLabels();
+    ctx.refreshTrackReplayMeasurementLabels();
+  });
   watch(
     () => state.initialLoadDone,
     () => ctx.maybeAutoFreshenAfterLogin()

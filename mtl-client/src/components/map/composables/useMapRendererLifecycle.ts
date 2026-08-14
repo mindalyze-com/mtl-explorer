@@ -3,7 +3,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars, @typescript-eslint/no-explicit-any -- Renderer setup still crosses broad MapLibre/runtime config shapes. */
 import { markRaw } from 'vue';
 import maplibregl from 'maplibre-gl';
-import axios from 'axios';
 import { apiClient } from '@/utils/apiClient';
 import { fetchTrackIdsWithinDistanceOfPoint } from '@/utils/ServiceHelper';
 import { getToken, redirectToLoginAfterAuthFailure } from '@/utils/auth';
@@ -28,6 +27,7 @@ import { ensurePMTilesProtocol, registerCachingPMTilesArchive } from '@/utils/ma
 import { configureExternalAttributionLinks } from '@/utils/externalAttributionLinks';
 import type { MapControllerMethodDefinitions, MapRendererLifecycleMethods } from './mapControllerRuntime';
 import { useMapStateStore } from '@/stores/mapStateStore';
+import { isAbortLikeError } from '@/utils/errors';
 
 const GLOBE_ENTER_ZOOM = 3;
 const GLOBE_EXIT_ZOOM = 3.8;
@@ -133,6 +133,23 @@ export function useMapRendererLifecycle(
       }
     },
 
+    disposeRendererMaps() {
+      if (this.overlayMap) {
+        this.detachTrackPointLayerHandlers();
+        this._attributionLinkCleanup?.();
+        this._attributionLinkCleanup = null;
+        this.overlayMap.remove();
+        this.overlayMap = undefined;
+      }
+      if (this.map) {
+        this.map.remove();
+        this.map = undefined;
+      }
+      this._terrainControl = null;
+      this._terrainTrackLayer = null;
+      this._attributionControl = null;
+    },
+
     applyRuntimeRasterBasemapFallback(errorEvent, message, tileId) {
       if (this.baseMapRuntimeFallbackApplied || this.baseMapStyleMode !== LOCAL_VECTOR_STYLE_MODE || !this.map) {
         return false;
@@ -233,10 +250,7 @@ export function useMapRendererLifecycle(
       this.selectedFeature = null;
       this.closeSelectionPopup();
       this.closeSwissMobilityPopup();
-      if (this.trackPointsPopup) {
-        this.trackPointsPopup.remove();
-        this.trackPointsPopup = null;
-      }
+      this.closeTrackPointPopup();
       this.trackPointsDetailsCache.clear();
       this.trackPointsCanonicalCache.clear();
       if (this.detailDebounceTimer) clearTimeout(this.detailDebounceTimer);
@@ -341,19 +355,7 @@ export function useMapRendererLifecycle(
       }
 
       // Tear down previous maps
-      if (this.overlayMap) {
-        this.detachTrackPointLayerHandlers();
-        this._attributionLinkCleanup?.();
-        this._attributionLinkCleanup = null;
-        this.overlayMap.remove();
-        this.overlayMap = undefined;
-        this._terrainControl = null;
-        this._attributionControl = null;
-      }
-      if (this.map) {
-        this.map.remove();
-        this.map = undefined;
-      }
+      this.disposeRendererMaps();
       ensurePMTilesProtocol();
       // Pre-register PMTiles instances with force-cache fetch so Chrome serves
       // cached 206 responses from disk instead of revalidating every range request.
@@ -727,7 +729,7 @@ export function useMapRendererLifecycle(
             }
           })
           .catch((err) => {
-            if (err.name === 'AbortError' || axios.isCancel(err)) return;
+            if (isAbortLikeError(err)) return;
             console.error('Track proximity query failed:', err);
           });
       });

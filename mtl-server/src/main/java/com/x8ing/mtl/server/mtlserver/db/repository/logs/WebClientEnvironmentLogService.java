@@ -12,6 +12,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.Date;
 import java.util.List;
 
+import static org.apache.commons.lang3.StringUtils.truncate;
+
 @Service
 @JsonPropertyOrder({
         "webClientEnvironmentLogRepository",
@@ -86,8 +88,4 @@ public class WebClientEnvironmentLogService {
         return second;
     }
 
-    private static String truncate(String value, int maxLength) {
-        if (value == null) return null;
-        return value.length() <= maxLength ? value : value.substring(0, maxLength);
-    }
 }

@@ -1,4 +1,5 @@
 import { PMTiles, type Source, type RangeResponse } from 'pmtiles';
+import { isAbortLikeError } from '@/utils/errors';
 
 export const MAP_ARCHIVE_STALE_EVENT = 'mtl-map-archive-stale';
 
@@ -166,15 +167,11 @@ function probeRetryCacheMode(cache: RequestCache): RequestCache {
 }
 
 function shouldRetryWithoutForceCache(cache: RequestCache, signal: AbortSignal | undefined, error: unknown): boolean {
-  if (cache === 'no-store' || signal?.aborted || isAbortError(error)) {
+  if (cache === 'no-store' || isAbortLikeError(error, signal)) {
     return false;
   }
 
   return error instanceof TypeError || isCacheOperationFailure(error);
-}
-
-function isAbortError(error: unknown): boolean {
-  return typeof DOMException !== 'undefined' && error instanceof DOMException && error.name === 'AbortError';
 }
 
 function isCacheOperationFailure(error: unknown): boolean {

@@ -1,0 +1,24 @@
+UI theme / map theme independence matrix
+
+Automatic source reported seven themes.
+
+With dark UI, each selection became the CURRENT MAP without errors:
+- OSM Topo Contrast
+- OSM Topo Light
+- Swiss Topo Color
+- Swiss Topo Light
+- OSM Light
+- OSM Gray
+- OSM Dark
+
+With light UI, each selection again became the CURRENT MAP without errors:
+- OSM Topo Contrast
+- OSM Topo Light
+- Swiss Topo Color
+- Swiss Topo Light
+- OSM Light
+- OSM Gray
+- OSM Dark
+
+This includes light maps under dark UI and the dark map under light UI. The UI theme and map style were independent.
+

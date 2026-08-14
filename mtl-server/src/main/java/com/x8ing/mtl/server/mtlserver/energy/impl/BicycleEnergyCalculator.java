@@ -1,10 +1,7 @@
 package com.x8ing.mtl.server.mtlserver.energy.impl;
 
 import com.x8ing.mtl.server.mtlserver.db.entity.gps.GpsTrack;
-import com.x8ing.mtl.server.mtlserver.db.entity.gps.GpsTrackDataPoint;
-import com.x8ing.mtl.server.mtlserver.energy.EnergyCalculator;
-import com.x8ing.mtl.server.mtlserver.energy.EnergyComponents;
-import com.x8ing.mtl.server.mtlserver.energy.EnergyParameters;
+import com.x8ing.mtl.server.mtlserver.energy.StandardEnergyCalculator;
 import org.springframework.stereotype.Component;
 
 import java.util.Set;
@@ -26,7 +23,7 @@ import java.util.Set;
  * Cd=0.9, A=0.5 m², Cr=0.005, equipment=10 kg (road bike + shoes + helmet + water)
  */
 @Component
-public class BicycleEnergyCalculator extends EnergyCalculator {
+public class BicycleEnergyCalculator extends StandardEnergyCalculator {
 
     protected static final double DEFAULT_CD = 0.9;             // combined CdA = 0.45 m² (upright/relaxed position)
     protected static final double DEFAULT_FRONTAL_AREA = 0.5;  // m²
@@ -56,38 +53,7 @@ public class BicycleEnergyCalculator extends EnergyCalculator {
     }
 
     @Override
-    public EnergyComponents calculateBetweenPoints(GpsTrackDataPoint current, GpsTrackDataPoint prev, EnergyParameters params) {
-        if (prev == null) return EnergyComponents.ZERO;
-
-        double distance = segmentDistance(current);
-        if (distance <= 0) return EnergyComponents.ZERO;
-
-        double totalMass = params.getTotalMassKg(getDefaultEquipmentWeightKg());
-        double cd = params.getDragCoefficient(getDefaultCd());
-        double area = params.getFrontalArea(getDefaultFrontalArea());
-        double cr = params.getRollingCoefficient(getDefaultCr());
-        double rho = params.getAirDensity();
-
-        // Gravity
-        double gravity = gravitationalEnergy(totalMass, current.getPointAltitude(), prev.getPointAltitude());
-
-        // Aero drag — use smoothed speed (moving window) to avoid GPS noise amplification on v²
-        double speedForDrag = smoothedSpeedMps(current, params);
-        double aeroDrag = aeroDragEnergy(cd, area, rho, speedForDrag, distance);
-
-        // Rolling resistance
-        double rolling = rollingResistanceEnergy(cr, totalMass, distance);
-
-        // Kinetic energy change — use smoothed speed (moving window) to avoid GPS jitter amplification on v²
-        double currentSpeed = smoothedSpeedMps(current, params);
-        double prevSpeed = smoothedSpeedMps(prev, params);
-        double kinetic = kineticEnergyChange(totalMass, currentSpeed, prevSpeed);
-
-        return EnergyComponents.builder()
-                .gravitationalJoules(gravity)
-                .aeroDragJoules(aeroDrag)
-                .rollingResistanceJoules(rolling)
-                .kineticJoules(kinetic)
-                .build();
+    protected Double getDefaultResistanceCoefficient() {
+        return getDefaultCr();
     }
 }

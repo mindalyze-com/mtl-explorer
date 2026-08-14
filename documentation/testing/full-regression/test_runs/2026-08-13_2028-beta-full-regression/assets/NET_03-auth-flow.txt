@@ -1,0 +1,14 @@
+Unauthenticated first-party responses:
+- GET /mtl/api/tracks -> 401 {"error":"Unauthorized"}
+- GET /mtl/api/statistics/overview -> 401 {"error":"Unauthorized"}
+- GET /mtl/api/admin/status -> 401 {"error":"Unauthorized"}
+
+Browser flow:
+1. Used Admin > Session > Sign out.
+2. Browser reached /mtl/login with a ready Username, Password, and Sign In form.
+3. Navigated directly to protected /mtl/admin while signed out.
+4. Browser ended at /mtl/login with the same ready form; no protected shell or blank page appeared.
+5. Signed in with the documented local credentials.
+6. Browser returned to /mtl/ and restored the 8/12 Q1 map after 3.676 s total observation.
+
+No 403 endpoint is exposed to this single-role quick-install account; the exercised unauthorized response is HTTP 401.

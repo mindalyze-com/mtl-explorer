@@ -251,10 +251,10 @@ describe('TrackDetails tab-scoped interactions', () => {
     expect(wrapper.find('[data-test="tabs"]').exists()).toBe(false);
     expect(wrapper.get('[data-test="track-detail-load-error"]').text()).toContain('Track details could not be loaded');
     expect(wrapper.get('[data-test="track-detail-load-error"]').text()).toContain('Retry');
-    expect(wrapper.get('[data-test="track-detail-load-error"]').text()).toContain('Back to map');
+    expect(wrapper.get('[data-test="track-detail-load-error"]').text()).toContain('Back');
 
     await wrapper.get('[data-test="track-detail-back"]').trigger('click');
-    expect(wrapper.emitted('back-to-map')).toEqual([[]]);
+    expect(wrapper.emitted('back')).toEqual([[]]);
 
     await wrapper.get('[data-test="track-detail-retry"]').trigger('click');
     await flushPromises();

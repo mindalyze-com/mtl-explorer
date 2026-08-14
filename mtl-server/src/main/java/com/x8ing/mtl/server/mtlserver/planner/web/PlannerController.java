@@ -11,6 +11,7 @@ import com.x8ing.mtl.server.mtlserver.planner.service.AutoPrewarmService;
 import com.x8ing.mtl.server.mtlserver.planner.service.PlannedTrackService;
 import com.x8ing.mtl.server.mtlserver.planner.service.PlannerService;
 import com.x8ing.mtl.server.mtlserver.planner.service.PlannerStatusService;
+import com.x8ing.mtl.server.mtlserver.utils.GeoCoordinateUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.HttpHeaders;
@@ -44,10 +45,6 @@ public class PlannerController {
     private static final String MIN_LAT = "minLat";
     private static final String MAX_LNG = "maxLng";
     private static final String MAX_LAT = "maxLat";
-    private static final double MIN_LATITUDE = -90.0;
-    private static final double MAX_LATITUDE = 90.0;
-    private static final double MIN_LONGITUDE = -180.0;
-    private static final double MAX_LONGITUDE = 180.0;
 
     private final PlannerService plannerService;
     private final PlannedTrackService plannedTrackService;
@@ -133,24 +130,12 @@ public class PlannerController {
         double minLat = getRequiredDouble(bbox, MIN_LAT);
         double maxLng = getRequiredDouble(bbox, MAX_LNG);
         double maxLat = getRequiredDouble(bbox, MAX_LAT);
-        validateLongitude(minLng);
-        validateLongitude(maxLng);
-        validateLatitude(minLat);
-        validateLatitude(maxLat);
+        GeoCoordinateUtils.requireValidLongitude(minLng);
+        GeoCoordinateUtils.requireValidLongitude(maxLng);
+        GeoCoordinateUtils.requireValidLatitude(minLat);
+        GeoCoordinateUtils.requireValidLatitude(maxLat);
         if (minLng > maxLng || minLat > maxLat) {
             throw new IllegalArgumentException("Bounding box min values must be less than or equal to max values");
-        }
-    }
-
-    private void validateLatitude(double latitude) {
-        if (!Double.isFinite(latitude) || latitude < MIN_LATITUDE || latitude > MAX_LATITUDE) {
-            throw new IllegalArgumentException("Latitude must be between -90 and 90");
-        }
-    }
-
-    private void validateLongitude(double longitude) {
-        if (!Double.isFinite(longitude) || longitude < MIN_LONGITUDE || longitude > MAX_LONGITUDE) {
-            throw new IllegalArgumentException("Longitude must be between -180 and 180");
         }
     }
 

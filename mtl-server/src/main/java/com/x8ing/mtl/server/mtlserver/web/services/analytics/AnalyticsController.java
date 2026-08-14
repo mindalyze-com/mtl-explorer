@@ -2,6 +2,7 @@ package com.x8ing.mtl.server.mtlserver.web.services.analytics;
 
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.x8ing.mtl.server.mtlserver.db.repository.logs.WebClientEnvironmentLogService;
+import com.x8ing.mtl.server.mtlserver.web.ClientAddressResolver;
 import com.x8ing.mtl.server.mtlserver.web.security.JwtUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
@@ -17,8 +18,6 @@ import static org.springframework.http.HttpStatus.UNAUTHORIZED;
 })
 public class AnalyticsController {
 
-    private static final String X_FORWARDED_FOR_HEADER = "X-Forwarded-For";
-    private static final String X_REAL_IP_HEADER = "X-Real-IP";
     private static final String USER_AGENT_HEADER = "User-Agent";
 
     private final WebClientEnvironmentLogService webClientEnvironmentLogService;
@@ -38,20 +37,8 @@ public class AnalyticsController {
         webClientEnvironmentLogService.saveClientEnvironment(
                 clientEnvironmentRequest,
                 userSessionId,
-                resolveClientIp(request),
+                ClientAddressResolver.resolveForwarded(request),
                 request.getHeader(USER_AGENT_HEADER)
         );
-    }
-
-    private String resolveClientIp(HttpServletRequest request) {
-        String xff = request.getHeader(X_FORWARDED_FOR_HEADER);
-        if (xff != null && !xff.isBlank()) {
-            return xff.split(",")[0].trim();
-        }
-        String realIp = request.getHeader(X_REAL_IP_HEADER);
-        if (realIp != null && !realIp.isBlank()) {
-            return realIp.trim();
-        }
-        return request.getRemoteAddr();
     }
 }

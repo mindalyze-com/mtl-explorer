@@ -1,0 +1,9 @@
+Timestamped trackpoint validation
+
+JuraRoute72011.gpx: trkpt=1414; timestamped trkpt=1414
+Lannion_Plestin_parcours24.4RE.gpx: trkpt=381; timestamped trkpt=381
+MoselradwegAusWiki.gpx: trkpt=2954; timestamped trkpt=2954
+Vitry-le-Francois_Langres.gpx: trkpt=1688; timestamped trkpt=1688
+VoieVerteHauteVosges.gpx: trkpt=1298; timestamped trkpt=1298
+
+Every trackpoint in all five positive GPX files contains a time element.

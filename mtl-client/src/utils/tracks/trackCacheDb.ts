@@ -71,46 +71,45 @@ async function enqueueCacheMutation<T>(operation: () => Promise<T>): Promise<T> 
   }
 }
 
-export async function saveTrackRecords(tracks: Map<number, GpsTrack>): Promise<void> {
-  if (tracks.size === 0) return;
+async function runCacheMutation(
+  failureMessage: string,
+  operation: (targetDb: TrackCacheDatabase, isCurrent: () => boolean) => Promise<void>
+): Promise<void> {
   const generation = cacheGeneration;
   await waitForCacheReset();
   await enqueueCacheMutation(async () => {
     if (generation !== cacheGeneration) return;
     const targetDb = db;
+    const isCurrent = () => generation === cacheGeneration && targetDb === db;
     try {
-      const now = Date.now();
-      const records = [...tracks].map(([trackId, gpsTrack]) => ({
-        trackId,
-        gpsTrack,
-        entityVersion: gpsTrack.version ?? 0,
-        updatedAt: now,
-      }));
-      if (generation !== cacheGeneration || targetDb !== db) return;
-      await targetDb.tracks.bulkPut(records);
-    } catch (e) {
-      if (generation !== cacheGeneration || targetDb !== db) return;
-      console.error('Failed to save tracks to IndexedDB:', e);
+      await operation(targetDb, isCurrent);
+    } catch (error) {
+      if (isCurrent()) console.error(failureMessage, error);
     }
+  });
+}
+
+export async function saveTrackRecords(tracks: Map<number, GpsTrack>): Promise<void> {
+  if (tracks.size === 0) return;
+  await runCacheMutation('Failed to save tracks to IndexedDB:', async (targetDb, isCurrent) => {
+    const now = Date.now();
+    const records = [...tracks].map(([trackId, gpsTrack]) => ({
+      trackId,
+      gpsTrack,
+      entityVersion: gpsTrack.version ?? 0,
+      updatedAt: now,
+    }));
+    if (!isCurrent()) return;
+    await targetDb.tracks.bulkPut(records);
   });
 }
 
 export async function saveGeometryRecords(entries: TrackGeometryEntry[]): Promise<void> {
   if (entries.length === 0) return;
-  const generation = cacheGeneration;
-  await waitForCacheReset();
-  await enqueueCacheMutation(async () => {
-    if (generation !== cacheGeneration) return;
-    const targetDb = db;
-    try {
-      const now = Date.now();
-      const records = buildGeometryRecords(entries, now);
-      if (generation !== cacheGeneration || targetDb !== db) return;
-      await targetDb.geometry.bulkPut(records);
-    } catch (e) {
-      if (generation !== cacheGeneration || targetDb !== db) return;
-      console.error('Failed to save geometry to IndexedDB:', e);
-    }
+  await runCacheMutation('Failed to save geometry to IndexedDB:', async (targetDb, isCurrent) => {
+    const records = buildGeometryRecords(entries, Date.now());
+    if (!isCurrent()) return;
+    await targetDb.geometry.bulkPut(records);
   });
 }
 
@@ -129,46 +128,28 @@ export async function saveTrackBatchRecords(
   geometryEntries: TrackGeometryEntry[]
 ): Promise<void> {
   if (tracks.size === 0 && geometryEntries.length === 0) return;
-  const generation = cacheGeneration;
-  await waitForCacheReset();
-  await enqueueCacheMutation(async () => {
-    if (generation !== cacheGeneration) return;
-    const targetDb = db;
-    try {
-      const now = Date.now();
-      const trackRecords = [...tracks].map(([trackId, gpsTrack]) => ({
-        trackId,
-        gpsTrack,
-        entityVersion: gpsTrack.version ?? 0,
-        updatedAt: now,
-      }));
-      const geometryRecords = buildGeometryRecords(geometryEntries, now);
-      if (generation !== cacheGeneration || targetDb !== db) return;
-      await targetDb.transaction('rw', targetDb.tracks, targetDb.geometry, async () => {
-        if (trackRecords.length > 0) await targetDb.tracks.bulkPut(trackRecords);
-        if (geometryRecords.length > 0) await targetDb.geometry.bulkPut(geometryRecords);
-      });
-    } catch (e) {
-      if (generation !== cacheGeneration || targetDb !== db) return;
-      console.error('Failed to save track batch to IndexedDB:', e);
-    }
+  await runCacheMutation('Failed to save track batch to IndexedDB:', async (targetDb, isCurrent) => {
+    const now = Date.now();
+    const trackRecords = [...tracks].map(([trackId, gpsTrack]) => ({
+      trackId,
+      gpsTrack,
+      entityVersion: gpsTrack.version ?? 0,
+      updatedAt: now,
+    }));
+    const geometryRecords = buildGeometryRecords(geometryEntries, now);
+    if (!isCurrent()) return;
+    await targetDb.transaction('rw', targetDb.tracks, targetDb.geometry, async () => {
+      if (trackRecords.length > 0) await targetDb.tracks.bulkPut(trackRecords);
+      if (geometryRecords.length > 0) await targetDb.geometry.bulkPut(geometryRecords);
+    });
   });
 }
 
 export async function deleteGeometryForTracks(trackIds: number[]): Promise<void> {
   if (trackIds.length === 0) return;
-  const generation = cacheGeneration;
-  await waitForCacheReset();
-  await enqueueCacheMutation(async () => {
-    if (generation !== cacheGeneration) return;
-    const targetDb = db;
-    try {
-      if (generation !== cacheGeneration || targetDb !== db) return;
-      await targetDb.geometry.where('trackId').anyOf(trackIds).delete();
-    } catch (e) {
-      if (generation !== cacheGeneration || targetDb !== db) return;
-      console.error('Failed to delete stale geometry from IndexedDB:', e);
-    }
+  await runCacheMutation('Failed to delete stale geometry from IndexedDB:', async (targetDb, isCurrent) => {
+    if (!isCurrent()) return;
+    await targetDb.geometry.where('trackId').anyOf(trackIds).delete();
   });
 }
 

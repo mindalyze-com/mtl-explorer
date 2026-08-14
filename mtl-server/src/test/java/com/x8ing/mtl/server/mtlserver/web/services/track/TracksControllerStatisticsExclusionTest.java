@@ -10,8 +10,10 @@ import com.x8ing.mtl.server.mtlserver.db.repository.gps.GpsTrackEventRepository;
 import com.x8ing.mtl.server.mtlserver.db.repository.gps.GpsTrackRepository;
 import com.x8ing.mtl.server.mtlserver.energy.EnergyService;
 import com.x8ing.mtl.server.mtlserver.logic.crossing.TrackTimeBetweenTwoPoints;
-import com.x8ing.mtl.server.mtlserver.logic.grouping.sql.FilterParamResolver;
-import com.x8ing.mtl.server.mtlserver.logic.grouping.sql.GpsTrackSQLFilter;
+import com.x8ing.mtl.server.mtlserver.logic.grouping.sql.FilterExecutionService;
+import com.x8ing.mtl.server.mtlserver.measurement.MeasurementSystem;
+import com.x8ing.mtl.server.mtlserver.measurement.MilestoneDimension;
+import com.x8ing.mtl.server.mtlserver.measurement.MilestoneResult;
 import com.x8ing.mtl.server.mtlserver.web.services.track.entity.ActivityTypeUpdateRequest;
 import com.x8ing.mtl.server.mtlserver.web.services.track.entity.StatisticsExclusionUpdateRequest;
 import com.x8ing.mtl.server.mtlserver.web.services.track.entity.StatisticsOverviewResponseDto;
@@ -44,7 +46,7 @@ class TracksControllerStatisticsExclusionTest {
         when(repository.findById(42L)).thenReturn(Optional.of(track));
         when(repository.save(any(GpsTrack.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        GpsTrack saved = controller(repository, mock(GpsTrackSQLFilter.class), energyService).updateTrackActivityType(
+        GpsTrack saved = controller(repository, mock(FilterExecutionService.class), energyService).updateTrackActivityType(
                 42L,
                 new ActivityTypeUpdateRequest(GpsTrack.ACTIVITY_TYPE.WALKING)
         );
@@ -65,7 +67,7 @@ class TracksControllerStatisticsExclusionTest {
         track.setActivityType(GpsTrack.ACTIVITY_TYPE.BICYCLE);
         when(repository.findById(42L)).thenReturn(Optional.of(track));
 
-        GpsTrack saved = controller(repository, mock(GpsTrackSQLFilter.class), energyService).updateTrackActivityType(
+        GpsTrack saved = controller(repository, mock(FilterExecutionService.class), energyService).updateTrackActivityType(
                 42L,
                 new ActivityTypeUpdateRequest(GpsTrack.ACTIVITY_TYPE.BICYCLE)
         );
@@ -119,7 +121,7 @@ class TracksControllerStatisticsExclusionTest {
     @Test
     void derivesActivePeriodsFromTopPeriodDistributionRows() {
         GpsTrackRepository repository = mock(GpsTrackRepository.class);
-        GpsTrackSQLFilter filter = mock(GpsTrackSQLFilter.class);
+        FilterExecutionService filter = mock(FilterExecutionService.class);
         List<GpsTrackOverviewPeriod> periods = List.of(
                 period(1, "day", "2026-05-24", "2026-05-24", 3L, 30_000.0, 9_000_000.0),
                 period(2, "day", "2026-05-23", "2026-05-23", 2L, 20_000.0, 7_000_000.0),
@@ -130,9 +132,12 @@ class TracksControllerStatisticsExclusionTest {
         when(repository.getTrackOverviewTrackRankings(any(Long[].class), anyInt())).thenReturn(List.of());
         when(repository.getTrackOverviewRecentActivities(any(Long[].class))).thenReturn(List.of());
         when(repository.getTrackOverviewPeriodDistributions(any(Long[].class), anyInt())).thenReturn(periods);
-        when(repository.getTrackOverviewMilestones(any(Long[].class))).thenReturn(List.of());
+        when(repository.getTrackOverviewActivityBounds(any(Long[].class))).thenReturn(List.of());
 
-        StatisticsOverviewResponseDto response = controller(repository, filter).getTrackOverview(List.of(1L, 2L));
+        StatisticsOverviewResponseDto response = controller(repository, filter).getTrackOverview(
+                List.of(1L, 2L),
+                MeasurementSystem.METRIC
+        );
 
         assertThat(response.activePeriods())
                 .extracting(
@@ -151,7 +156,7 @@ class TracksControllerStatisticsExclusionTest {
     @Test
     void trackStatisticsUseProvidedTrackIdsWithoutResolvingFilter() {
         GpsTrackRepository repository = mock(GpsTrackRepository.class);
-        GpsTrackSQLFilter filter = mock(GpsTrackSQLFilter.class);
+        FilterExecutionService filter = mock(FilterExecutionService.class);
         EnergyService energyService = mock(EnergyService.class);
         when(energyService.getThresholdPowerWatts()).thenReturn(250.0);
 
@@ -168,15 +173,55 @@ class TracksControllerStatisticsExclusionTest {
         verifyNoInteractions(filter);
     }
 
-    private static TracksController controller(GpsTrackRepository repository) {
-        return controller(repository, mock(GpsTrackSQLFilter.class));
+    @Test
+    void evaluatesAndReturnsMilestonesForTheRequestedMeasurementSystem() {
+        GpsTrackRepository repository = mock(GpsTrackRepository.class);
+        StatisticsMilestoneService milestoneService = mock(StatisticsMilestoneService.class);
+        when(repository.getTrackOverviewActivityBounds(any(Long[].class))).thenReturn(List.of());
+        when(milestoneService.findMilestones(any(Long[].class), eq(MeasurementSystem.US_CUSTOMARY)))
+                .thenReturn(List.of(new MilestoneResult(
+                        MilestoneDimension.DISTANCE,
+                        160_934.4,
+                        5,
+                        42L,
+                        165_000.0
+                )));
+
+        StatisticsOverviewResponseDto response = controller(
+                repository,
+                mock(FilterExecutionService.class),
+                mock(EnergyService.class),
+                milestoneService
+        ).getTrackOverview(List.of(7L, 42L), MeasurementSystem.US_CUSTOMARY);
+
+        assertThat(response.measurementSystem()).isEqualTo(MeasurementSystem.US_CUSTOMARY);
+        assertThat(response.milestones()).singleElement().satisfies(milestone -> {
+            assertThat(milestone.dimension()).isEqualTo(MilestoneDimension.DISTANCE);
+            assertThat(milestone.thresholdM()).isEqualTo(160_934.4);
+            assertThat(milestone.achievedM()).isEqualTo(165_000.0);
+            assertThat(milestone.trackId()).isEqualTo(42L);
+            assertThat(milestone.thresholdWh()).isNull();
+        });
     }
 
-    private static TracksController controller(GpsTrackRepository repository, GpsTrackSQLFilter filter) {
+    private static TracksController controller(GpsTrackRepository repository) {
+        return controller(repository, mock(FilterExecutionService.class));
+    }
+
+    private static TracksController controller(GpsTrackRepository repository, FilterExecutionService filter) {
         return controller(repository, filter, mock(EnergyService.class));
     }
 
-    private static TracksController controller(GpsTrackRepository repository, GpsTrackSQLFilter filter, EnergyService energyService) {
+    private static TracksController controller(GpsTrackRepository repository, FilterExecutionService filter, EnergyService energyService) {
+        return controller(repository, filter, energyService, mock(StatisticsMilestoneService.class));
+    }
+
+    private static TracksController controller(
+            GpsTrackRepository repository,
+            FilterExecutionService filter,
+            EnergyService energyService,
+            StatisticsMilestoneService milestoneService
+    ) {
         return new TracksController(
                 repository,
                 mock(TrackTimeBetweenTwoPoints.class),
@@ -185,9 +230,9 @@ class TracksControllerStatisticsExclusionTest {
                 mock(GpsTrackDataPointRepository.class),
                 mock(GpsTrackEventRepository.class),
                 filter,
-                mock(FilterParamResolver.class),
                 energyService,
                 mock(TrackFileExportService.class),
+                milestoneService,
                 Runnable::run
         );
     }

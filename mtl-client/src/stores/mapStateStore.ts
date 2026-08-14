@@ -26,7 +26,7 @@ const DEFAULT_REPLAY_VIEW_STATE: ReplayViewState = {
   autoFollow: true,
   currentTrackId: null,
   trackLabel: '',
-  distanceLabel: '0 m',
+  distanceLabel: '—',
   elapsedLabel: '0m 00s',
   remainingLabel: '0m 00s',
   totalLabel: '45s',

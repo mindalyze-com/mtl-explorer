@@ -10,7 +10,7 @@ for each coverage packet. Use the same shape for `RUN_SETUP.md` and
 
 ## Scope
 
-- Coverage source:
+- Coverage source: [coverage-plan.md](../coverage-plan.md)
 - Coverage ID or run packet:
 - In scope:
 - Out of scope:

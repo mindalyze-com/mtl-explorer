@@ -1,0 +1,20 @@
+Coverage ID: TRD_10
+Track: #100005 Activity.fit
+
+Initial persisted activity: Walking
+Initial overview net energy: 346.7 Wh
+
+Change
+- Quality activity combobox offered Bicycle, Walking, Hiking, Running, Mountain biking, Stand-up paddle, Rowing, Kayaking, Skiing, Motorbiking, Car, Airplane, and Supersonic.
+- Selected Bicycle.
+- Quality immediately showed ACTIVITY TYPE Bicycle and SUCCESS.
+- PATCH /mtl/api/tracks/100005/activity-type returned HTTP 200 in 1,365 ms.
+- Overview then showed Bicycle and net energy 395.1 Wh.
+
+Restore
+- Selected Walking again.
+- Second PATCH returned HTTP 200 in 738 ms.
+- Overview returned to Walking and net energy 346.7 Wh.
+
+Energy delta for the saved what-if activity change: +48.4 Wh.
+

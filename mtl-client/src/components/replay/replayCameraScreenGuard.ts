@@ -1,5 +1,6 @@
 import type { ReplayCameraFrame } from '@/components/replay/trackReplayCamera';
 import { sampleReplayPath, type ReplayPath } from '@/components/replay/trackReplayPath';
+import { clamp01 as clampProgress, lerpNumber as lerp } from '@/utils/numbers';
 
 type ScreenPoint = {
   x: number;
@@ -236,7 +237,12 @@ function projectedReplayBounds(
   return pointCount > 0 ? bounds : null;
 }
 
-function screenContentShift(boundsMin: number, boundsMax: number, visibleMin: number, visibleMax: number): number {
+export function screenContentShift(
+  boundsMin: number,
+  boundsMax: number,
+  visibleMin: number,
+  visibleMax: number
+): number {
   if (boundsMin < visibleMin) return visibleMin - boundsMin;
   if (boundsMax > visibleMax) return visibleMax - boundsMax;
   return 0;
@@ -247,15 +253,6 @@ function easeResidual(current: number, target: number, tightenEase: number, rele
   return current + (target - current) * ease;
 }
 
-function clampProgress(progress: number): number {
-  if (!Number.isFinite(progress)) return 0;
-  return Math.max(0, Math.min(1, progress));
-}
-
 function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
-}
-
-function lerp(from: number, to: number, t: number): number {
-  return from + (to - from) * t;
 }

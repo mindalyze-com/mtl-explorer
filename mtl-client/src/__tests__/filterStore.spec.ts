@@ -13,6 +13,9 @@ type MockFilterConfig = {
 // globals (highcharts/highlight.js Vue plugin), so we replace the whole
 // module with a self-contained fake.
 let __stored: ClientFilterConfig | null = null;
+const { fetchResolveFilterMock } = vi.hoisted(() => ({
+  fetchResolveFilterMock: vi.fn(),
+}));
 const __reset = () => {
   __stored = null;
 };
@@ -54,6 +57,10 @@ vi.mock('@/components/filter/FilterService', () => ({
       return !(isStdFilter && isStdParams) || hasPalette;
     }),
   },
+}));
+
+vi.mock('@/utils/filterApi', () => ({
+  fetchResolveFilter: fetchResolveFilterMock,
 }));
 
 import { useFilterStore } from '@/stores/filterStore';
@@ -126,13 +133,19 @@ describe('useFilterStore', () => {
     const store = useFilterStore();
     const cfg = {
       filterInfo: { filterConfig: { filterName: 'NonMotorized', filterDomain: 'GPS_TRACK' } },
-      filterParams: { stringParams: { ACTIVITY: 'human' } },
+      filterParams: {
+        stringParams: { ACTIVITY: 'human' },
+        resultGroupSelection: { includedGroups: [{ value: 'WALKING' }] },
+      },
       palette: {},
     } as ClientFilterConfig;
     const result: FilterResult = {
       trackVersions: new Map([[1, 7]]),
       filterGroups: new Map([[1, 'WALKING']]),
       standardFilterCount: 10,
+      groupingAvailable: true,
+      availableGroups: [{ key: { value: 'WALKING' }, count: 1 }],
+      preGroupSelectionCount: 4,
     };
 
     expect(store.trackSetRevision).toBe(0);
@@ -144,14 +157,57 @@ describe('useFilterStore', () => {
     expect(store.trackSetRevision).toBe(1);
     expect(store.activeFilterRequest).toEqual({
       filterName: 'NonMotorized',
-      filterParams: { stringParams: { ACTIVITY: 'human' } },
+      filterParams: {
+        stringParams: { ACTIVITY: 'human' },
+        resultGroupSelection: { includedGroups: [{ value: 'WALKING' }] },
+      },
       resolvedTrackIds: [1],
     });
     await expect(store.getActiveFilterRequest()).resolves.toEqual({
       filterName: 'NonMotorized',
-      filterParams: { stringParams: { ACTIVITY: 'human' } },
+      filterParams: {
+        stringParams: { ACTIVITY: 'human' },
+        resultGroupSelection: { includedGroups: [{ value: 'WALKING' }] },
+      },
       resolvedTrackIds: [1],
     });
+  });
+
+  it.each([
+    { transition: 'import', beforeIds: [], afterIds: [1, 2, 3, 4, 5] },
+    { transition: 'deletion', beforeIds: [1, 2, 3, 4, 5], afterIds: [1, 3, 5] },
+  ])('re-resolves cached filter IDs after a $transition freshness change', async ({ beforeIds, afterIds }) => {
+    const store = useFilterStore();
+    const cfg = {
+      filterInfo: { filterConfig: { id: 7, filterName: 'SmartBaseFilter', filterDomain: 'GPS_TRACK' } },
+      filterParams: {},
+      palette: {},
+    } as ClientFilterConfig;
+    store.applyResolvedFilter(cfg, {
+      trackVersions: new Map(beforeIds.map((id) => [id, 1])),
+      filterGroups: new Map(),
+      standardFilterCount: beforeIds.length,
+    });
+    const refreshedResult = {
+      queryResult: {
+        resultEntries: afterIds.map((id) => ({ id })),
+        standardFilterCount: afterIds.length,
+      },
+      filterConfigId: 7,
+      trackVersions: new Map(afterIds.map((id) => [id, 2])),
+      filterGroups: new Map(),
+      standardFilterCount: afterIds.length,
+    };
+    fetchResolveFilterMock.mockResolvedValueOnce(refreshedResult);
+    const revisionBeforeRefresh = store.trackSetRevision;
+
+    await expect(store.refreshResolvedFilter()).resolves.toBe(refreshedResult);
+
+    expect(fetchResolveFilterMock).toHaveBeenCalledWith(7, {}, false);
+    expect(store.activeResult).toBe(refreshedResult);
+    expect(store.activeFilterRequest?.resolvedTrackIds).toEqual(afterIds);
+    expect(store.trackSetRevision).toBe(revisionBeforeRefresh + 1);
+    expect(store.dataFreshnessRevision).toBe(1);
   });
 
   it('treats a default filter with a palette as active', () => {

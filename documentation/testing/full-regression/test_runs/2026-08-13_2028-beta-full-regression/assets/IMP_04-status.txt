@@ -1,0 +1,22 @@
+IMP_04 completed import and processing status
+
+Admin Processing after settlement:
+- GPS: done, 100%, 5 completed / 5 total
+- MEDIA: done, 100%, 0 / 0
+- Duplicate Finder: done, 100%, 5 / 5
+- Activity Classifier: done, 100%, 5 / 5
+- Exploration Score: done, 100%, 5 / 5
+- No failed count or failure state displayed
+
+Baseline freshness token:
+1QdsKX__|server_id:EsZnoj3ZRgJsCaXxRjr9wq|config:9|filters:85|index:0|media:0|track_geometry:0|tracks:0
+
+Post-import server token:
+2sZFmN__|server_id:EsZnoj3ZRgJsCaXxRjr9wq|config:9|filters:85|index:15|media:0|track_geometry:30|tracks:30
+
+Post-import client token before Reload:
+49Sf3t__|server_id:EsZnoj3ZRgJsCaXxRjr9wq|config:9|filters:85|index:15|media:0|track_geometry:30|tracks:10
+
+Admin Data status: Out of sync; server changes not yet applied.
+New data available banner: visible with Reload and Dismiss.
+This proves freshness changed while retaining the stale client until IMP_05.

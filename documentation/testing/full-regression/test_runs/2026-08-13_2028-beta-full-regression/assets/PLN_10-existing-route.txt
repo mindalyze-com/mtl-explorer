@@ -1,0 +1,18 @@
+PLN_10 existing route during routing trouble
+
+Before the failing edit:
+- Loaded saved-state plan notice was present.
+- Existing route: 7.69 km, 50 m ascent, 38 m descent, 22m, 4 legs.
+- Elevation profile: 426 points.
+
+During missing-segment download:
+- Downloading/auto-retry message appeared.
+- The exact old 7.69 km stats, four legs, and 426-point elevation chart remained visible.
+
+After retry became unavailable:
+- Clear unavailable message appeared.
+- The same old route stats and chart remained visible.
+
+Recovery:
+- Undo removed the failed remote waypoint and cleared the error.
+- The existing route remained exactly 7.69 km, four legs, 426 chart points.

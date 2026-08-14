@@ -1,0 +1,25 @@
+FLT_20 shared Review tracks browser
+
+Filtered result: exact WALKING, 1 of 12 tracks (Track 100005)
+
+Review tracks from Filter:
+- Quiet footer action opened Matching tracks.
+- Summary: 1 track, 3.60 km, 59m 57s.
+- Desktop table showed all expected columns and Track 100005.
+- Search for Track 100005: 1 of 1 tracks.
+- Search for no such track: 0 of 1 tracks, zero distance and duration.
+- Name sorting became active.
+- Pagination remained on the single page with page size 25; next/previous were unavailable for the one-row result.
+- Selecting the row focused the selected track and opened Track Details #100005.
+- Closing details returned to Review tracks with the Track 100005 search retained.
+
+Responsive review at 390 x 844:
+- Shared view used track-browser-view--compact.
+- Desktop table changed to a track-browser-card.
+- Card retained track name, activity, start, distance, duration, and energy.
+- Search, summary, and all sort chips remained visible.
+
+Statistics -> Tracks recheck at desktop:
+- Statistics first reported Showing 1 of 12 tracks.
+- Tracks tab used the shared track-browser-view.
+- It showed the same one-row desktop table, summary values, search, sorting, and pagination/page-size controls.

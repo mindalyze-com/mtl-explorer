@@ -1,0 +1,11 @@
+FIT freshness/cache sequence
+
+- Pre-FIT synchronized baseline: 3 GPX tracks.
+- Copied official GPS-bearing Activity.fit unchanged to watched folder: 94,096 bytes.
+- Live watcher and GPSBabel conversion completed successfully as track #100005.
+- Freshness banner appeared without rescan.
+- Freshness Reload changed the map 3 to 4 tracks.
+- Statistics/Track Browser changed to 4 tracks, 821 km, 16h 50m.
+- Exact Activity.fit search returned one record and opened populated details.
+- The native FIT source followed the same freshness/cache transition as a GPX import.
+

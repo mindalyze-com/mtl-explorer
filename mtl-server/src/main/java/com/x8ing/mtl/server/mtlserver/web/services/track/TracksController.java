@@ -8,13 +8,17 @@ import com.x8ing.mtl.server.mtlserver.db.entity.gps.projection.*;
 import com.x8ing.mtl.server.mtlserver.db.readonly.spring.QueryResult;
 import com.x8ing.mtl.server.mtlserver.db.repository.gps.*;
 import com.x8ing.mtl.server.mtlserver.energy.EnergyService;
+import com.x8ing.mtl.server.mtlserver.gpx.GPXReader;
 import com.x8ing.mtl.server.mtlserver.logic.crossing.TrackTimeBetweenTwoPoints;
 import com.x8ing.mtl.server.mtlserver.logic.crossing.beans.CrossingPointsRequest;
 import com.x8ing.mtl.server.mtlserver.logic.crossing.beans.CrossingPointsResponse;
-import com.x8ing.mtl.server.mtlserver.logic.grouping.sql.FilterParamResolver;
-import com.x8ing.mtl.server.mtlserver.logic.grouping.sql.GpsTrackSQLFilter;
+import com.x8ing.mtl.server.mtlserver.logic.grouping.sql.FilterExecutionService;
+import com.x8ing.mtl.server.mtlserver.measurement.MeasurementSystem;
+import com.x8ing.mtl.server.mtlserver.measurement.MilestoneResult;
 import com.x8ing.mtl.server.mtlserver.utils.TimingCollector;
 import com.x8ing.mtl.server.mtlserver.web.services.track.entity.*;
+import com.x8ing.mtl.server.mtlserver.web.services.track.entity.filter.FilterParamsRequest;
+import com.x8ing.mtl.server.mtlserver.web.services.track.entity.filter.FilterRequestBean;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -46,10 +50,10 @@ import java.util.stream.Collectors;
         "gpsTrackDataRepository",
         "gpsTrackDataPointRepository",
         "gpsTrackEventRepository",
-        "gpsTrackSQLFilter",
-        "filterParamResolver",
+        "filterExecutionService",
         "energyService",
         "trackFileExportService",
+        "statisticsMilestoneService",
         "statisticsOverviewExecutor"
 })
 public class TracksController {
@@ -80,13 +84,13 @@ public class TracksController {
 
     private final GpsTrackEventRepository gpsTrackEventRepository;
 
-    private final GpsTrackSQLFilter gpsTrackSQLFilter;
-
-    private final FilterParamResolver filterParamResolver;
+    private final FilterExecutionService filterExecutionService;
 
     private final EnergyService energyService;
 
     private final TrackFileExportService trackFileExportService;
+
+    private final StatisticsMilestoneService statisticsMilestoneService;
 
     private final Executor statisticsOverviewExecutor;
 
@@ -97,10 +101,10 @@ public class TracksController {
             GpsTrackDataRepository gpsTrackDataRepository,
             GpsTrackDataPointRepository gpsTrackDataPointRepository,
             GpsTrackEventRepository gpsTrackEventRepository,
-            GpsTrackSQLFilter gpsTrackSQLFilter,
-            FilterParamResolver filterParamResolver,
+            FilterExecutionService filterExecutionService,
             EnergyService energyService,
             TrackFileExportService trackFileExportService,
+            StatisticsMilestoneService statisticsMilestoneService,
             @Qualifier("statisticsOverviewExecutor") Executor statisticsOverviewExecutor
     ) {
         this.gpsTrackRepository = gpsTrackRepository;
@@ -109,10 +113,10 @@ public class TracksController {
         this.gpsTrackDataRepository = gpsTrackDataRepository;
         this.gpsTrackDataPointRepository = gpsTrackDataPointRepository;
         this.gpsTrackEventRepository = gpsTrackEventRepository;
-        this.gpsTrackSQLFilter = gpsTrackSQLFilter;
-        this.filterParamResolver = filterParamResolver;
+        this.filterExecutionService = filterExecutionService;
         this.energyService = energyService;
         this.trackFileExportService = trackFileExportService;
+        this.statisticsMilestoneService = statisticsMilestoneService;
         this.statisticsOverviewExecutor = statisticsOverviewExecutor;
     }
 
@@ -171,11 +175,11 @@ public class TracksController {
 
     @RequestMapping("/related/{gpsTrackId}")
     public RelatedTracks getRelatedTracks(
-            @RequestBody(required = false) Map<String, String> params,
+            @RequestBody(required = false) FilterParamsRequest params,
             @PathVariable Long gpsTrackId,
             @RequestParam(name = "filterName", required = false) String filterName) {
 
-        QueryResult filterIds = gpsTrackSQLFilter.getGpsTrackIdsForOptionalFilterName(filterName, params);
+        QueryResult filterIds = filterExecutionService.executeOptionalFilterName(filterName, params);
 
         List<Long> dupIds = gpsTrackRepository.getDuplicatesForGpsTrackId(gpsTrackId);
         List<Long> prevIds = gpsTrackRepository.getRelatedTrackIdsPrevious(gpsTrackId, filterIds.asIdArray());
@@ -191,34 +195,32 @@ public class TracksController {
         gpsTrackRepository.findAllById(allIds).forEach(t -> allById.put(t.getId(), t));
 
         // Previous: repo returns desc (most recent first) — preserve that order for the frontend
-        List<RelatedTrackInfo> previousTracks = prevIds.stream()
-                .filter(allById::containsKey)
-                .map(id -> RelatedTrackInfo.from(allById.get(id)))
-                .collect(Collectors.toList());
+        List<RelatedTrackInfo> previousTracks = relatedTrackInfos(prevIds, allById);
 
         // Next: repo returns asc (soonest first)
-        List<RelatedTrackInfo> nextTracks = nextIds.stream()
-                .filter(allById::containsKey)
-                .map(id -> RelatedTrackInfo.from(allById.get(id)))
-                .collect(Collectors.toList());
+        List<RelatedTrackInfo> nextTracks = relatedTrackInfos(nextIds, allById);
 
-        List<RelatedTrackInfo> duplicates = dupIds.stream()
-                .filter(allById::containsKey)
-                .map(id -> RelatedTrackInfo.from(allById.get(id)))
-                .collect(Collectors.toList());
+        List<RelatedTrackInfo> duplicates = relatedTrackInfos(dupIds, allById);
 
         RelatedTracks relatedTracks = new RelatedTracks();
         relatedTracks.setPreviousTracksInTime(previousTracks);
         relatedTracks.setNextTracksInTime(nextTracks);
         relatedTracks.setDuplicates(duplicates);
 
-        List<RelatedTrackInfo> segmentSiblings = siblingIds.stream()
-                .filter(allById::containsKey)
-                .map(id -> RelatedTrackInfo.from(allById.get(id)))
-                .collect(Collectors.toList());
+        List<RelatedTrackInfo> segmentSiblings = relatedTrackInfos(siblingIds, allById);
         relatedTracks.setSegmentSiblings(segmentSiblings);
 
         return relatedTracks;
+    }
+
+    private static List<RelatedTrackInfo> relatedTrackInfos(
+            List<Long> trackIds,
+            Map<Long, GpsTrack> tracksById
+    ) {
+        return trackIds.stream()
+                .filter(tracksById::containsKey)
+                .map(id -> RelatedTrackInfo.from(tracksById.get(id)))
+                .collect(Collectors.toList());
     }
 
     @RequestMapping(value = "/get/{gpsTrackId}/details")
@@ -256,12 +258,7 @@ public class TracksController {
         GpsTrack saved = gpsTrackRepository.save(gpsTrack);
 
         if (activityTypeChanged) {
-            try {
-                energyService.recalculateEnergyForTrack(saved.getId(), energyService.getDefaultParameters());
-            } catch (Exception e) {
-                log.warn("Energy recalc after user activity-type change failed for trackId={}: {}",
-                        saved.getId(), e.getMessage(), e);
-            }
+            recalculateEnergyAfterActivityTypeChange(saved);
         }
         return saved;
     }
@@ -284,14 +281,17 @@ public class TracksController {
         track.setActivityTypeSource(GpsTrack.ACTIVITY_TYPE_SOURCE.USER_SET);
         GpsTrack saved = gpsTrackRepository.save(track);
 
+        recalculateEnergyAfterActivityTypeChange(saved);
+        return saved;
+    }
+
+    private void recalculateEnergyAfterActivityTypeChange(GpsTrack track) {
         try {
-            energyService.recalculateEnergyForTrack(saved.getId(), energyService.getDefaultParameters());
+            energyService.recalculateEnergyForTrack(track.getId(), energyService.getDefaultParameters());
         } catch (Exception e) {
             log.warn("Energy recalc after user activity-type change failed for trackId={}: {}",
-                    saved.getId(), e.getMessage(), e);
+                    track.getId(), e.getMessage(), e);
         }
-
-        return saved;
     }
 
     @PatchMapping("/{gpsTrackId}/statistics-exclusion")
@@ -322,8 +322,7 @@ public class TracksController {
             @RequestParam(name = "filterName", required = false) String filterName,
             @RequestParam(name = "mode", defaultValue = "full") String mode) {
 
-        Map<String, String> sqlParams = filterParamResolver.expand(params);
-        QueryResult filterIds = gpsTrackSQLFilter.getGpsTrackIdsForOptionalFilterName(filterName, sqlParams);
+        QueryResult filterIds = filterExecutionService.executeOptionalFilterName(filterName, params);
 
         // ── mode=ids: lightweight path — return IDs + versions + filter groups ──
         if ("ids".equalsIgnoreCase(mode)) {
@@ -339,19 +338,10 @@ public class TracksController {
             }
 
             // Fetch (id, version) pairs for all matched IDs
-            Map<Long, Long> trackVersions = new HashMap<>();
-            if (!ids.isEmpty()) {
-                List<Object[]> versionRows = gpsTrackRepository.findVersionsByIds(ids.toArray(Long[]::new));
-                for (Object[] row : versionRows) {
-                    trackVersions.put((Long) row[0], (Long) row[1]);
-                }
-            }
+            Map<Long, Long> trackVersions = gpsTrackRepository.findVersionMapByIds(ids);
 
-            QueryResult standardFilterResult = gpsTrackSQLFilter.getGpsTrackIdsForOptionalFilterName(null, Collections.emptyMap());
-            long standardFilterCount = (standardFilterResult != null && standardFilterResult.getResultEntries() != null)
-                    ? standardFilterResult.getResultEntries().size()
-                    : ids.size();
-            return TracksSimplifiedResponse.idsOnly(standardFilterCount, ids.size(), trackVersions, groups);
+            return TracksSimplifiedResponse.idsOnly(
+                    filterExecutionService.standardFilterCount(ids.size()), ids.size(), trackVersions, groups);
         }
 
         // ── mode=full (default): return full track data with geometry ──
@@ -384,29 +374,25 @@ public class TracksController {
             responses.sort(Comparator.comparing(o -> o.getGpsTrack().getId()));
         }
 
-        QueryResult standardFilterResult = gpsTrackSQLFilter.getGpsTrackIdsForOptionalFilterName(null, Collections.emptyMap());
-        long standardFilterCount = (standardFilterResult != null && standardFilterResult.getResultEntries() != null)
-                ? standardFilterResult.getResultEntries().size()
-                : responses.size();
-
-        return new TracksSimplifiedResponse(standardFilterCount, responses.size(), responses);
+        return new TracksSimplifiedResponse(
+                filterExecutionService.standardFilterCount(responses.size()), responses.size(), responses);
     }
 
     @RequestMapping(value = "/get-track-ids-within-distance-of-point")
     public List<Long> getTrackIdsWithinDistanceOfPoint(
             @RequestParam(name = "filterName", required = false) String filterName,
-            @RequestBody(required = false) Map<String, String> params,
+            @RequestBody(required = false) FilterParamsRequest params,
             @RequestParam(name = "longitude") Double longitude,
             @RequestParam(name = "latitude") Double latitude,
             @RequestParam(name = "distanceInMeter") Double distanceInMeter
     ) {
-        QueryResult filterIds = gpsTrackSQLFilter.getGpsTrackIdsForOptionalFilterName(filterName, params);
+        QueryResult filterIds = filterExecutionService.executeOptionalFilterName(filterName, params);
         return gpsTrackRepository.getTracksWithinDistanceToPoint(longitude, latitude, distanceInMeter, filterIds.asIdArray());
     }
 
     @RequestMapping(value = "/get-tracks-within-distance-of-point")
     public List<GpsTrack> getTracksWithinDistanceOfPoint(
-            @RequestBody(required = false) Map<String, String> params,
+            @RequestBody(required = false) FilterParamsRequest params,
             @RequestParam(name = "longitude") Double longitude,
             @RequestParam(name = "latitude") Double latitude,
             @RequestParam(name = "distanceInMeter") Double distanceInMeter,
@@ -438,11 +424,12 @@ public class TracksController {
     public CrossingPointsResponseDto getCrossingPoints(@RequestBody CrossingPointsRequest crossingPointsRequest) {
 
         FilterRequestBean filter = crossingPointsRequest.getFilter();
-        Long[] tracksIdFilterList = null;
-        if (filter != null) {
-            QueryResult queryResult = gpsTrackSQLFilter.getGpsTrackIdsForOptionalFilterName(filter.getFilterName(), filter.getParams());
-            tracksIdFilterList = queryResult.asIdArray();
-        }
+        QueryResult queryResult = filter == null
+                ? filterExecutionService.executeStandardFilter()
+                : filterExecutionService.executeOptionalFilterName(
+                        filter.getFilterName(),
+                        filter.getParams());
+        Long[] tracksIdFilterList = queryResult.asIdArray();
         CrossingPointsResponse response = trackTimeBetweenTwoPoints.getTrackTimeBetweenPoints(crossingPointsRequest, tracksIdFilterList);
         return CrossingPointsResponseDto.from(response);
     }
@@ -461,7 +448,8 @@ public class TracksController {
 
     @PostMapping(value = "/get-track-overview")
     public StatisticsOverviewResponseDto getTrackOverview(
-            @RequestBody(required = false) List<Long> trackIds
+            @RequestBody(required = false) List<Long> trackIds,
+            @RequestParam(name = "measurementSystem", defaultValue = "METRIC") MeasurementSystem measurementSystem
     ) {
         TimingCollector timing = new TimingCollector();
         Long[] ids = new Long[0];
@@ -490,10 +478,13 @@ public class TracksController {
             var periodDistributionsFuture = overviewAsync(timing, "periodDistributions",
                     () -> toPeriodDistributions(gpsTrackRepository.getTrackOverviewPeriodDistributions(filterTrackIds, STATISTICS_OVERVIEW_TOP_LIST_LIMIT)));
 
-            var milestonesFuture = overviewAsync(timing, "milestones",
-                    () -> gpsTrackRepository.getTrackOverviewMilestones(filterTrackIds).stream()
+            var activityBoundsFuture = overviewAsync(timing, "activityBounds",
+                    () -> gpsTrackRepository.getTrackOverviewActivityBounds(filterTrackIds).stream()
                             .map(TracksController::toTrackRef)
                             .toList());
+
+            var milestonesFuture = overviewAsync(timing, "milestones",
+                    () -> statisticsMilestoneService.findMilestones(filterTrackIds, measurementSystem));
 
             var exclusionSummaryFuture = overviewAsync(timing, "exclusionSummary",
                     () -> toExclusionSummary(gpsTrackRepository.getTrackOverviewExclusions(filterTrackIds)));
@@ -504,20 +495,25 @@ public class TracksController {
                     trackRankingsFuture,
                     recentActivitiesFuture,
                     periodDistributionsFuture,
+                    activityBoundsFuture,
                     milestonesFuture,
                     exclusionSummaryFuture
             ).join();
 
             var periodDistributions = periodDistributionsFuture.join();
+            var activityBounds = activityBoundsFuture.join();
 
             return new StatisticsOverviewResponseDto(
+                    measurementSystem,
                     summaryFuture.join(),
                     activityBreakdownFuture.join(),
                     trackRankingsFuture.join(),
                     recentActivitiesFuture.join(),
                     toActivePeriods(periodDistributions),
                     periodDistributions,
-                    milestonesFuture.join(),
+                    activityBound(activityBounds, "first-activity"),
+                    activityBound(activityBounds, "latest-activity"),
+                    milestonesFuture.join().stream().map(TracksController::toMilestone).toList(),
                     exclusionSummaryFuture.join()
             );
         } finally {
@@ -552,20 +548,102 @@ public class TracksController {
                     .formatted(from.getGpsTrackDataId(), to.getGpsTrackDataId()));
         }
 
-        List<GpsTrackDataPoint> subTrackData = new ArrayList<>();
+        List<GpsTrackDataPoint> subTrackData;
+        boolean chronologicalFallback = false;
         if (fullTrack) {
             subTrackData = gpsTrackDataPointRepository.getSubTrackData(from.getGpsTrackDataId(), 0, to.getPointIndexMax());
+        } else if (requiresChronologicalSlice(from, to)) {
+            chronologicalFallback = true;
+            subTrackData = gpsTrackDataPointRepository.getSubTrackDataByTimestamp(
+                    from.getGpsTrackDataId(),
+                    from.getPointTimestamp(),
+                    to.getPointTimestamp());
         } else {
             subTrackData = gpsTrackDataPointRepository.getSubTrackData(from.getGpsTrackDataId(), from.getPointIndex(), to.getPointIndex());
         }
 
         List<GpsTrackDataPointDto> response = subTrackData.stream()
                 .map(GpsTrackDataPointDto::from)
-                .toList();
+                .collect(Collectors.toCollection(ArrayList::new));
+        if (chronologicalFallback) {
+            rebaseSubTrackMetrics(response);
+        }
 
         return ResponseEntity.ok()
                 .cacheControl(privateTrackCacheControl())
                 .body(response);
+    }
+
+    private static boolean requiresChronologicalSlice(GpsTrackDataPoint from, GpsTrackDataPoint to) {
+        if (from.getPointTimestamp() == null
+            || to.getPointTimestamp() == null
+            || !to.getPointTimestamp().after(from.getPointTimestamp())) {
+            return false;
+        }
+        boolean reversedPointOrder = from.getPointIndex() != null
+                                     && to.getPointIndex() != null
+                                     && to.getPointIndex() < from.getPointIndex();
+        boolean reversedCumulativeDistance = from.getDistanceInMeterSinceStart() != null
+                                             && to.getDistanceInMeterSinceStart() != null
+                                             && to.getDistanceInMeterSinceStart() < from.getDistanceInMeterSinceStart();
+        return reversedPointOrder || reversedCumulativeDistance;
+    }
+
+    private static void rebaseSubTrackMetrics(List<GpsTrackDataPointDto> points) {
+        if (points == null || points.isEmpty()) {
+            return;
+        }
+
+        GpsTrackDataPointDto first = points.getFirst();
+        double baseDistance = finiteOrZero(first.getDistanceInMeterSinceStart());
+        double baseDuration = finiteOrZero(first.getDurationSinceStart());
+        Date firstTimestamp = first.getPointTimestamp();
+        double distanceSinceStart = baseDistance;
+
+        first.setDistanceInMeterBetweenPoints(0d);
+        first.setDistanceInMeterSinceStart(baseDistance);
+        first.setDurationBetweenPointsInSec(0d);
+        first.setDurationSinceStart(baseDuration);
+
+        GpsTrackDataPointDto previous = first;
+        for (int i = 1; i < points.size(); i++) {
+            GpsTrackDataPointDto current = points.get(i);
+            double distanceBetweenPoints = dtoDistanceMeters(previous, current);
+            distanceSinceStart += distanceBetweenPoints;
+            current.setDistanceInMeterBetweenPoints(distanceBetweenPoints);
+            current.setDistanceInMeterSinceStart(distanceSinceStart);
+
+            double durationBetweenPoints = dateDeltaSeconds(previous.getPointTimestamp(), current.getPointTimestamp());
+            current.setDurationBetweenPointsInSec(durationBetweenPoints);
+            current.setDurationSinceStart(baseDuration + dateDeltaSeconds(firstTimestamp, current.getPointTimestamp()));
+            previous = current;
+        }
+    }
+
+    private static double dtoDistanceMeters(GpsTrackDataPointDto from, GpsTrackDataPointDto to) {
+        if (from.getPointLongLat() == null || to.getPointLongLat() == null) {
+            return 0;
+        }
+        double[] fromCoordinates = from.getPointLongLat().getCoordinates();
+        double[] toCoordinates = to.getPointLongLat().getCoordinates();
+        if (fromCoordinates == null || toCoordinates == null
+            || fromCoordinates.length < 2 || toCoordinates.length < 2) {
+            return 0;
+        }
+        return GPXReader.getDistanceBetweenTwoWGS84(
+                new org.locationtech.jts.geom.Coordinate(fromCoordinates[0], fromCoordinates[1]),
+                new org.locationtech.jts.geom.Coordinate(toCoordinates[0], toCoordinates[1]));
+    }
+
+    private static double dateDeltaSeconds(Date from, Date to) {
+        if (from == null || to == null) {
+            return 0;
+        }
+        return Math.max(0, (to.getTime() - from.getTime()) / 1000.0);
+    }
+
+    private static double finiteOrZero(Double value) {
+        return value != null && Double.isFinite(value) ? value : 0;
     }
 
     private static CacheControl privateTrackCacheControl() {
@@ -642,6 +720,39 @@ public class TracksController {
                 row.getTrackId(),
                 doubleValue(row.getValue())
         );
+    }
+
+    private static StatisticsOverviewResponseDto.TrackRef activityBound(
+            List<StatisticsOverviewResponseDto.TrackRef> bounds,
+            String rowKey
+    ) {
+        return bounds.stream()
+                .filter(bound -> rowKey.equals(bound.rowKey()))
+                .findFirst()
+                .orElse(null);
+    }
+
+    private static StatisticsOverviewResponseDto.Milestone toMilestone(MilestoneResult result) {
+        return switch (result.dimension()) {
+            case DISTANCE, ASCENT -> new StatisticsOverviewResponseDto.Milestone(
+                    result.sortOrder(),
+                    result.dimension(),
+                    result.trackId(),
+                    result.thresholdCanonical(),
+                    result.achievedCanonical(),
+                    null,
+                    null
+            );
+            case ENERGY -> new StatisticsOverviewResponseDto.Milestone(
+                    result.sortOrder(),
+                    result.dimension(),
+                    result.trackId(),
+                    null,
+                    null,
+                    result.thresholdCanonical(),
+                    result.achievedCanonical()
+            );
+        };
     }
 
     private static StatisticsOverviewResponseDto.PeriodRow toPeriodRow(GpsTrackOverviewPeriod period) {

@@ -1,0 +1,23 @@
+IMP_05 data-freshness Reload result
+
+Precondition:
+- Fresh empty quick install loaded in the browser.
+- Five public GPX files indexed successfully; all jobs settled 5/5.
+- New data available banner visible while map showed stale 0 Tracks.
+
+Action and immediate result:
+1. Clicked the banner Reload action.
+2. Map changed to 5 Tracks.
+3. Statistics > Tracks showed 5 tracks, 1,043 km, 23h 31m, and all five rows.
+4. Filter showed No tracks match with Apply filter checked, Smart Base Filter, No criteria, and no categories available.
+5. Statistics Overview showed Showing 0 of 5 tracks and No tracks match the current filters.
+6. Closing/reopening Filter and waiting two seconds did not change the zero result.
+7. Browser console error/warning log was empty.
+
+Recovery:
+8. Performed a normal browser reload at /mtl/stats.
+9. Statistics Overview then showed 5 Tracks, 1,043 km, 23h 31m, 4,527 Wh, and 12,936 m ascent.
+10. Filter then showed 5 matching tracks and All 1 categories.
+11. Map and Track Browser continued to show five tracks.
+
+Finding IMP-05-P1: the in-app freshness Reload leaves the default filter/statistics result stale on the fresh empty-to-five-track import path. A full browser reload is required to synchronize those surfaces.

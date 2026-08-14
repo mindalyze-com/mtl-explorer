@@ -1,0 +1,8 @@
+Globe boundary check
+
+- Entered the automatic fitted globe at the low-zoom boundary.
+- At the outer zoom limit the globe remained horizontally draggable; a westward drag changed the visible hemisphere.
+- Zoom In remained usable and changed the scale from 1,000 km to 500 km.
+- Zoom Out returned through 1,000 km to the 2,000 km full-globe view.
+- The map stayed interactive and never became trapped against a flat-map edge.
+

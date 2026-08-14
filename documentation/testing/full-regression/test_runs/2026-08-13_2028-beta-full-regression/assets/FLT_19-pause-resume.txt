@@ -1,0 +1,22 @@
+FLT_19 Apply filter pause/resume
+
+Test filter:
+- Smart Base Filter
+- Exact category selection: WALKING only
+- Active result: 1 of 12 tracks
+
+Narrow viewport: 390 x 844
+- Exactly one visible Apply filter switch; role=switch, aria-checked=true.
+- Pause: status became Filter paused; copy said all tracks are shown and setup is kept; map became 12 tracks; switch false.
+- Statistics after closing Filter: TRACKS 12.
+- Reload while paused: map and Statistics stayed at 12.
+- Reopened Filter after reload: Filter paused; switch false; exact 1-of-2 category setup retained.
+- Resume: Current result became 1 matching track; map 1/12; switch true.
+- Statistics after closing Filter: TRACKS 1.
+
+Desktop viewport: 1280 x 720
+- Exactly one visible Apply filter switch; no header copy or duplicate action.
+- Started active at 1 matching track with switch true.
+- Pause: Filter paused; map 12; switch false; Statistics TRACKS 12.
+- Reopened Filter: switch remained false.
+- Resume: 1 matching track; map 1/12; switch true.

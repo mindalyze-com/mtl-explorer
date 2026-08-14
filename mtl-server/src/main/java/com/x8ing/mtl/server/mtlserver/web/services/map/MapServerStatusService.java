@@ -2,11 +2,9 @@ package com.x8ing.mtl.server.mtlserver.web.services.map;
 
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 
-import java.time.Duration;
 import java.time.Instant;
 
 /**
@@ -53,12 +51,7 @@ public class MapServerStatusService {
     }
 
     private static RestClient buildStatusClient(MapServerProperties properties) {
-        SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
-        Duration timeout = Duration.ofMillis(properties.getLocalProbeTimeoutMs());
-        requestFactory.setConnectTimeout(timeout);
-        requestFactory.setReadTimeout(timeout);
-        return RestClient.builder()
-                .requestFactory(requestFactory)
+        return MapRestClientFactory.builder(properties)
                 .defaultHeader("Accept", "application/json")
                 .build();
     }

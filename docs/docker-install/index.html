@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Install MTL Explorer with Docker Compose</title>
+  <meta name="description" content="Install the self-hosted MTL Explorer GPS archive with Docker Compose, open the local web interface, and configure data directories and login settings.">
+  <meta name="robots" content="index, follow, max-image-preview:large">
+  <link rel="canonical" href="https://mindalyze-com.github.io/mtl-explorer/docker-install/">
+  <meta property="og:site_name" content="MTL Explorer">
+  <meta property="og:type" content="article">
+  <meta property="og:url" content="https://mindalyze-com.github.io/mtl-explorer/docker-install/">
+  <meta property="og:title" content="Install MTL Explorer with Docker Compose">
+  <meta property="og:description" content="Start the self-hosted GPS archive with Docker Compose and configure its local data directories.">
+  <meta property="og:image" content="https://mindalyze-com.github.io/mtl-explorer/assets/feature-showcase/large/filters.webp">
+  <meta property="og:image:type" content="image/webp">
+  <meta property="og:image:width" content="2199">
+  <meta property="og:image:height" content="1561">
+  <meta property="og:image:alt" content="MTL Explorer GPS track archive running in a browser">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:image" content="https://mindalyze-com.github.io/mtl-explorer/assets/feature-showcase/large/filters.webp">
+  <link rel="icon" href="../favicon.ico" sizes="any">
+  <link rel="stylesheet" href="../site-page.css">
+  <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "TechArticle",
+      "headline": "Install MTL Explorer with Docker Compose",
+      "url": "https://mindalyze-com.github.io/mtl-explorer/docker-install/",
+      "description": "Installation steps for the self-hosted MTL Explorer GPS archive.",
+      "about": {"@type": "SoftwareApplication", "name": "MTL Explorer"}
+    }
+  </script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="site-header-inner">
+      <a class="brand" href="../">
+        <img src="../mtl_logo_3_only_vector.svg" width="43" height="51" alt="">
+        <span><strong>MTL Explorer</strong><span>Self-hosted GPS archive</span></span>
+      </a>
+      <nav class="site-nav" aria-label="Primary navigation">
+        <a href="../#features">Features</a>
+        <a href="../gpx-track-map/">Track map</a>
+        <a class="button-small" href="https://mtl-demo.mindalyze.com/mtl/">Live demo</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="page">
+    <nav class="breadcrumb" aria-label="Breadcrumb"><a href="../">Home</a> / Docker installation</nav>
+
+    <section class="hero">
+      <div>
+        <p class="eyebrow">Docker installation</p>
+        <h1>Run MTL Explorer on your own host.</h1>
+        <p class="lead">The standard Docker Compose setup starts the application, database, routing service, and location-search service with persistent local data directories.</p>
+        <div class="actions">
+          <a class="button" href="https://github.com/mindalyze-com/mtl-explorer/blob/main/documentation/home-install.md">Open the full install guide</a>
+          <a class="button-secondary" href="https://github.com/mindalyze-com/mtl-explorer">View the repository</a>
+        </div>
+      </div>
+      <div class="card">
+        <h2 class="card-heading">Prerequisite</h2>
+        <p>Install Docker Engine and the Docker Compose plugin on the host.</p>
+        <pre><code>mkdir mtl-explorer
+cd mtl-explorer
+curl -fsSL -o docker-compose.yml \
+  https://raw.githubusercontent.com/mindalyze-com/mtl-explorer/main/docker-compose.yml
+docker compose up -d</code></pre>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <h2>Complete the initial setup.</h2>
+        <p>The server normally takes 10–15 seconds to initialize the database on the first start.</p>
+      </div>
+      <div class="steps">
+        <article class="step">
+          <h3>Open the web interface</h3>
+          <p>Visit <code>http://localhost:18080/mtl/</code> from the host, or replace <code>localhost</code> with the server name when accessing it over the local network.</p>
+        </article>
+        <article class="step">
+          <h3>Sign in</h3>
+          <p>The initial username is <code>mtl</code> and the initial password is <code>change-me</code>.</p>
+        </article>
+        <article class="step">
+          <h3>Change the login</h3>
+          <p>Set a private username and password before making the service reachable outside the host.</p>
+        </article>
+        <article class="step">
+          <h3>Import tracks</h3>
+          <p>Place GPX and FIT files in the mounted <code>./data/gpx/</code> directory. The server processes new files in the background.</p>
+        </article>
+      </div>
+      <div class="callout">
+        <strong>Do not expose the default login.</strong>
+        The default credentials are intended only for the first local start. Review the reverse-proxy and login settings before external access is enabled.
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <h2>Data stays in mounted directories.</h2>
+        <p>The Compose file creates local directories for the database, imported tracks, photographs, and other service data. Back up these directories together.</p>
+      </div>
+      <div class="content-grid">
+        <article class="card"><h3>Track files</h3><p>Imported activity files remain available on the host alongside the processed database records.</p></article>
+        <article class="card"><h3>Database</h3><p>The PostgreSQL data directory contains the indexed archive, settings, filters, segments, and planned routes.</p></article>
+        <article class="card"><h3>Optional local maps</h3><p>A local vector-map sidecar can be enabled when map data should also stay on the host.</p></article>
+        <article class="card"><h3>Updates</h3><p>Review the release notes, pull the current images, and restart the Compose project when updating.</p></article>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <h2>Continue with the full documentation.</h2>
+        <p>The repository documentation covers custom logins, directories, maps, updates, logs, and reverse-proxy configuration.</p>
+      </div>
+      <div class="related">
+        <a class="button-secondary" href="https://github.com/mindalyze-com/mtl-explorer/blob/main/documentation/home-install.md">Home install guide</a>
+        <a class="button-secondary" href="../gpx-track-map/">GPS track map</a>
+        <a class="button-secondary" href="../route-planner/">Route planner</a>
+        <a class="button-secondary" href="../segment-analysis/">Segment analysis</a>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="site-footer-inner">
+      <span>MTL Explorer · Self-hosted GPS archive</span>
+      <nav aria-label="Footer navigation"><a href="../">Home</a><a href="https://github.com/mindalyze-com/mtl-explorer">GitHub</a></nav>
+    </div>
+  </footer>
+</body>
+</html>

@@ -1,28 +1,37 @@
 package com.x8ing.mtl.server.mtlserver.web.services.track.entity;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
+import com.x8ing.mtl.server.mtlserver.measurement.MeasurementSystem;
+import com.x8ing.mtl.server.mtlserver.measurement.MilestoneDimension;
 
 import java.util.Date;
 import java.util.List;
 
 @JsonPropertyOrder({
+        "measurementSystem",
         "summary",
         "activityBreakdown",
         "trackRankings",
         "recentActivities",
         "activePeriods",
         "periodDistributions",
+        "firstActivity",
+        "latestActivity",
         "milestones",
         "exclusionSummary"
 })
 public record StatisticsOverviewResponseDto(
+        MeasurementSystem measurementSystem,
         Summary summary,
         List<ActivityBreakdown> activityBreakdown,
         List<TrackRanking> trackRankings,
         List<TrackRef> recentActivities,
         List<PeriodRow> activePeriods,
         List<PeriodDistribution> periodDistributions,
-        List<TrackRef> milestones,
+        TrackRef firstActivity,
+        TrackRef latestActivity,
+        List<Milestone> milestones,
         ExclusionSummary exclusionSummary
 ) {
 
@@ -83,6 +92,27 @@ public record StatisticsOverviewResponseDto(
             String rowKey,
             Long trackId,
             double value
+    ) {
+    }
+
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    @JsonPropertyOrder({
+            "sortOrder",
+            "dimension",
+            "trackId",
+            "thresholdM",
+            "achievedM",
+            "thresholdWh",
+            "achievedWh"
+    })
+    public record Milestone(
+            Integer sortOrder,
+            MilestoneDimension dimension,
+            Long trackId,
+            Double thresholdM,
+            Double achievedM,
+            Double thresholdWh,
+            Double achievedWh
     ) {
     }
 

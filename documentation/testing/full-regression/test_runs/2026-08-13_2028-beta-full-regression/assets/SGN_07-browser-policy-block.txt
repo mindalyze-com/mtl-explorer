@@ -1,0 +1,11 @@
+SGN_07 startup-failure attempt
+
+- Stopped only the disposable Compose `app` service; database and helper services remained running.
+- Attempted an in-app browser reload to inspect the cached startup shell and retry control.
+- Browser Use rejected the navigation under its URL safety policy and explicitly prohibited workarounds, raw browser commands, and alternate browser surfaces.
+- Restarted the exact disposable `app` service immediately.
+- Compose now reports `app` running on port 18080, `db` healthy, and `location-search` healthy.
+- `GET /mtl/api/map/status` again returns HTTP 200 with `ready:true`.
+- A safer second attempt stopped only the disposable database while leaving the web server reachable. The reload remained pending until the browser execution deadline instead of rendering a retry state. The database was restored healthy; the tab then showed login, and a valid sign-in restored all 12 tracks.
+
+The startup-failure UI and retry action could not be observed without violating the browser safety control. This blocks SGN_07 evidence but does not indicate an application failure.

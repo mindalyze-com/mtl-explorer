@@ -1,0 +1,8 @@
+Coverage-detail audit at ACC_03
+
+Completed packet count: 3
+ACC_01.md: Actions And Results present; required action/expected/actual/status/evidence columns present.
+ACC_02.md: Actions And Results present; required action/expected/actual/status/evidence columns present.
+RUN_SETUP.md: Actions And Results present; required action/expected/actual/status/evidence columns present.
+
+Final report assembly remains gated. When all coverage packets are terminal, report.md must assemble one coverage-matrix row per packet rather than summarize by prefix.

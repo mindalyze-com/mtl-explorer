@@ -1,0 +1,17 @@
+Filter-aware heatmap transition
+
+Baseline from HMO_01:
+- Smart Base Filter, 12 tracks.
+- Heatmap 40% with density from all visible Lannion track geometry.
+
+Applied transition:
+- Filter view changed to Tracks by quarter.
+- Cleared all categories and selected Q1 only.
+- Current result and map changed to 8 / 12 with only Q1 in the legend.
+
+Filtered result:
+- Heatmap remained enabled at the same 40% opacity.
+- Density recalculated to the Q1 geometry: hotspots/coverage from the removed
+  Q3 tracks disappeared while the eight teal Q1 tracks and their density
+  remained aligned.
+- No stale all-track density remained in the excluded branches.

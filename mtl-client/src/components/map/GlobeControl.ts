@@ -1,3 +1,5 @@
+import { MapToggleControl } from '@/components/map/MapToggleControl';
+
 /**
  * MapLibre custom control: a small button to toggle globe mode.
  * Visually matches the built-in NavigationControl buttons; stacks below them.
@@ -8,46 +10,18 @@
  *   ctrl.setVisible(true);
  *   ctrl.setActive(true);
  */
-export class GlobeControl implements maplibregl.IControl {
-  private readonly onToggle: () => void;
-  private container: HTMLDivElement | null = null;
-  private button: HTMLButtonElement | null = null;
-
+export class GlobeControl extends MapToggleControl {
   constructor(onToggle: () => void) {
-    this.onToggle = onToggle;
-  }
-
-  onAdd(): HTMLElement {
-    this.container = document.createElement('div');
-    this.container.className = 'maplibregl-ctrl maplibregl-ctrl-group mtl-globe-ctrl';
-
-    this.button = document.createElement('button');
-    this.button.type = 'button';
-    this.button.className = 'mtl-globe-btn';
-    this.button.setAttribute('title', 'Globe mode');
-    this.button.setAttribute('aria-label', 'Toggle globe mode');
-    this.button.innerHTML = '<i class="bi bi-globe2"></i>';
-    this.button.addEventListener('click', () => this.onToggle());
-
-    this.container.appendChild(this.button);
-    this.container.style.display = 'none';
-    return this.container;
-  }
-
-  onRemove(): void {
-    this.container?.parentNode?.removeChild(this.container);
-    this.container = null;
-    this.button = null;
-  }
-
-  /** Show or hide the control (only visible at low zoom levels). */
-  setVisible(visible: boolean): void {
-    if (this.container) this.container.style.display = visible ? '' : 'none';
-  }
-
-  /** Highlight the button when globe projection is active. */
-  setActive(active: boolean): void {
-    if (this.button) this.button.classList.toggle('mtl-globe-active', active);
+    super(onToggle, {
+      containerClass: 'mtl-globe-ctrl',
+      buttonClass: 'mtl-globe-btn',
+      activeClass: 'mtl-globe-active',
+      iconClass: 'bi bi-globe2',
+      inactiveTitle: 'Globe mode',
+      inactiveAriaLabel: 'Toggle globe mode',
+      activeAriaLabel: 'Toggle globe mode',
+      initiallyVisible: false,
+    });
   }
 }
 
@@ -66,4 +40,3 @@ export function computeGlobeMinZoom(container: HTMLElement): number {
   if (minDim <= 0) return 2.0;
   return Math.log2((minDim * FILL_FACTOR * Math.PI) / 512);
 }
-import type maplibregl from 'maplibre-gl';

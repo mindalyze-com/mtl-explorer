@@ -1,11 +1,14 @@
 <template>
   <div class="freshness-tab">
-    <div v-if="!currentFreshness && !isFreshnessPollingHealthy" class="freshness-empty freshness-empty--error">
+    <div
+      v-if="!currentFreshness && !isFreshnessPollingHealthy"
+      class="freshness-empty inline-empty-state freshness-empty--error"
+    >
       <i class="pi pi-exclamation-triangle" />
       <span>Freshness status unavailable</span>
     </div>
 
-    <div v-else-if="!currentFreshness" class="freshness-empty">
+    <div v-else-if="!currentFreshness" class="freshness-empty inline-empty-state">
       <i class="pi pi-spin pi-spinner" />
       <span>Loading…</span>
     </div>
@@ -33,32 +36,6 @@
       </section>
 
       <section class="freshness-details">
-        <div class="freshness-token-diff">
-          <div class="freshness-token-diff__row">
-            <span class="freshness-token-diff__label">Server</span>
-            <code class="freshness-token__value" :aria-label="displayToken(serverToken)">
-              <span
-                v-for="part in serverTokenDiff"
-                :key="part.key"
-                :class="{ 'freshness-token__char--changed': part.changed }"
-                >{{ part.char }}</span
-              >
-            </code>
-          </div>
-
-          <div class="freshness-token-diff__row">
-            <span class="freshness-token-diff__label">Client</span>
-            <code class="freshness-token__value" :aria-label="displayToken(clientLastToken)">
-              <span
-                v-for="part in clientTokenDiff"
-                :key="part.key"
-                :class="{ 'freshness-token__char--changed': part.changed }"
-                >{{ part.char }}</span
-              >
-            </code>
-          </div>
-        </div>
-
         <div class="freshness-overview">
           <div class="freshness-metric">
             <span class="freshness-metric__label">Latest change</span>
@@ -69,58 +46,84 @@
             <span class="freshness-metric__value">{{ items.length }}</span>
           </div>
           <div class="freshness-metric">
-            <span class="freshness-metric__label">
-              Revision sum
-              <button
-                type="button"
-                class="pi pi-info-circle freshness-metric__help"
-                aria-label="About revision sum"
-                @click.stop="showRevisionInfo"
-              ></button>
-            </span>
-            <span class="freshness-metric__value">{{ totalRevisions }}</span>
-            <span class="freshness-metric__hint"
-              >Tracked writes across all domains; compare tokens, not this number.</span
+            <span class="freshness-metric__label">Polling</span>
+            <span
+              :class="[
+                'freshness-health',
+                isFreshnessPollingHealthy ? 'freshness-health--ok' : 'freshness-health--error',
+              ]"
             >
+              <i :class="isFreshnessPollingHealthy ? 'pi pi-check-circle' : 'pi pi-exclamation-triangle'" />
+              {{ isFreshnessPollingHealthy ? 'Healthy' : 'Failed' }}
+            </span>
           </div>
         </div>
 
-        <div class="freshness-grid">
-          <div
-            v-for="item in items"
-            :key="item.key"
-            :class="['freshness-card', { 'freshness-card--outdated': isDomainOutdated(item) }]"
-          >
-            <div class="freshness-card__top">
-              <span class="freshness-card__icon">
-                <i :class="domainIcon(item.key)" />
+        <details class="freshness-technical">
+          <summary>Technical details</summary>
+          <div class="freshness-technical__body">
+            <div class="freshness-token-diff">
+              <div class="freshness-token-diff__row">
+                <span class="freshness-token-diff__label">Server</span>
+                <code class="freshness-token__value" :aria-label="displayToken(serverToken)">
+                  <span
+                    v-for="part in serverTokenDiff"
+                    :key="part.key"
+                    :class="{ 'freshness-token__char--changed': part.changed }"
+                    >{{ part.char }}</span
+                  >
+                </code>
+              </div>
+              <div class="freshness-token-diff__row">
+                <span class="freshness-token-diff__label">Client</span>
+                <code class="freshness-token__value" :aria-label="displayToken(clientLastToken)">
+                  <span
+                    v-for="part in clientTokenDiff"
+                    :key="part.key"
+                    :class="{ 'freshness-token__char--changed': part.changed }"
+                    >{{ part.char }}</span
+                  >
+                </code>
+              </div>
+            </div>
+
+            <div class="freshness-revision-summary">
+              <span>
+                Revision sum
+                <button
+                  type="button"
+                  class="pi pi-info-circle freshness-metric__help"
+                  aria-label="About revision sum"
+                  @click.stop="showRevisionInfo"
+                ></button>
               </span>
-              <span class="freshness-card__title">{{ domainLabel(item.key) }}</span>
-              <span v-if="isDomainOutdated(item)" class="freshness-card__badge">Outdated</span>
-              <span class="freshness-card__revision">r{{ item.revision ?? 0 }}</span>
+              <strong>{{ totalRevisions }}</strong>
             </div>
-            <div class="freshness-card__bar">
-              <span class="freshness-card__bar-fill" :style="{ width: revisionWidth(item.revision) }"></span>
-            </div>
-            <div class="freshness-card__meta">
-              <span>{{ item.key }}</span>
-              <span v-if="isDomainOutdated(item)">client r{{ clientRevision(item) ?? '?' }}</span>
-              <span v-else>{{ formatChangedAt(item.changedAt) }}</span>
+
+            <div class="freshness-grid">
+              <div
+                v-for="item in items"
+                :key="item.key"
+                :class="['freshness-card', { 'freshness-card--outdated': isDomainOutdated(item) }]"
+              >
+                <div class="freshness-card__top">
+                  <span class="freshness-card__icon"><i :class="domainIcon(item.key)" /></span>
+                  <span class="freshness-card__title">{{ domainLabel(item.key) }}</span>
+                  <span v-if="isDomainOutdated(item)" class="freshness-card__badge">Outdated</span>
+                  <span class="freshness-card__revision">r{{ item.revision ?? 0 }}</span>
+                </div>
+                <div class="freshness-card__bar">
+                  <span class="freshness-card__bar-fill" :style="{ width: revisionWidth(item.revision) }"></span>
+                </div>
+                <div class="freshness-card__meta">
+                  <span>{{ item.key }}</span>
+                  <span v-if="isDomainOutdated(item)">client r{{ clientRevision(item) ?? '?' }}</span>
+                  <span v-else>{{ formatChangedAt(item.changedAt) }}</span>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
-
-        <div class="freshness-actions">
-          <span
-            :class="[
-              'freshness-health',
-              isFreshnessPollingHealthy ? 'freshness-health--ok' : 'freshness-health--error',
-            ]"
-          >
-            <i :class="isFreshnessPollingHealthy ? 'pi pi-check-circle' : 'pi pi-exclamation-triangle'" />
-            {{ isFreshnessPollingHealthy ? 'Polling healthy' : 'Polling failed' }}
-          </span>
-        </div>
+        </details>
       </section>
 
       <Popover ref="revisionInfoPopover" append-to="body">
@@ -395,15 +398,6 @@ function refreshMapData(): Promise<boolean> {
   gap: 0.85rem;
 }
 
-.freshness-empty {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  color: var(--text-faint);
-  font-size: var(--text-sm-size);
-  padding: 1rem 0;
-}
-
 .freshness-empty--error {
   color: var(--error);
 }
@@ -522,30 +516,12 @@ function refreshMapData(): Promise<boolean> {
 }
 
 .freshness-metric__help {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-  border: none;
-  background: transparent;
-  cursor: pointer;
   font-size: var(--text-xs-size);
   color: var(--text-muted);
 }
 
-.freshness-metric__help:hover,
-.freshness-metric__help:focus-visible {
-  color: var(--accent-muted);
-  outline: none;
-}
-
 .freshness-info-text {
   max-width: min(260px, calc(100vw - 2rem));
-  font-size: var(--text-xs-size);
-  line-height: var(--text-xs-lh);
-  color: var(--text-secondary);
-  margin: 0;
-  padding: 0.1rem 0;
 }
 
 .freshness-metric__value {
@@ -714,6 +690,43 @@ function refreshMapData(): Promise<boolean> {
 
 .freshness-health--error {
   color: var(--error);
+}
+
+.freshness-technical {
+  border: 1px solid var(--border-default);
+  border-radius: 0.6rem;
+  background: var(--surface-glass-light);
+  overflow: hidden;
+}
+
+.freshness-technical > summary {
+  min-height: 2.8rem;
+  padding: 0.7rem 0.85rem;
+  color: var(--text-primary);
+  cursor: pointer;
+  font-size: var(--text-sm-size);
+  font-weight: 650;
+}
+
+.freshness-technical__body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0 0.85rem 0.85rem;
+}
+
+.freshness-revision-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  color: var(--text-muted);
+  font-size: var(--text-xs-size);
+}
+
+.freshness-revision-summary strong {
+  color: var(--text-primary);
+  font-size: var(--text-sm-size);
 }
 
 @media (max-width: 640px) {

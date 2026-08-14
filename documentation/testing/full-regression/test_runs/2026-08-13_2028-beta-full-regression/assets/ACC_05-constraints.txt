@@ -1,0 +1,10 @@
+Constraint-handling audit
+
+Known run constraints recorded before product coverage:
+- Remote app origin is plain HTTP. Secure-origin-only geolocation may be NOT APPLICABLE only with direct UI/browser evidence.
+- Installed-PWA-only offline behavior may be NOT APPLICABLE when the run uses only a normal browser tab, with direct display-mode evidence.
+- Any missing data, sidecar, permission, safe simulation control, or browser capability must become BLOCKED with an exact unblock path; it cannot become PASS.
+- PARTIAL and NOT COVERED remain resumable and cannot satisfy finalization.
+- The SSH password rotation and temporary test-key access are cleanup obligations, not reasons to skip cleanup.
+
+No executable coverage item is pre-classified terminal by this audit.

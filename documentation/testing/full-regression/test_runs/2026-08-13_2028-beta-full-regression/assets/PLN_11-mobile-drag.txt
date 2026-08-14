@@ -1,0 +1,19 @@
+PLN_11 mobile waypoint dragging
+
+Viewport: 390 x 844
+- Planner used full-width mobile sheet.
+- Route and map remained exposed above the 70vh detent.
+- All live stats and elevation profile remained usable.
+
+Pointer validation at mobile width:
+- Selected a route point, increasing legs 4 -> 5 and distance 7.69 -> 9.58 km.
+- Dragged the selected waypoint on the exposed map.
+- Route recalculated to 9.91 km, 70 m ascent, 5 legs.
+- Undo twice restored 7.69 km and 4 legs.
+
+Touch limitation:
+- Available browser capabilities are visibility and viewport only; no touch-event/emulation capability is exposed.
+- Coordinate drag produces a mouse pointer sequence, not touchstart/touchmove/touchend.
+- Therefore actual touch dragging cannot be attributed from this browser surface.
+
+Desktop viewport was restored.

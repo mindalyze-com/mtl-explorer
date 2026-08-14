@@ -1,0 +1,22 @@
+Coverage ID: FLT_04
+View: Activities by keyword
+
+Saved parameters before reload
+- From date: 2013-03-08.
+- To date: 2013-03-11.
+- Keyword: Lannion.
+- Area count: 1.
+- Shape: Rectangle (18.597…45.232, -20.768…22.629).
+- Overview summary: 4 criteria active.
+- Result: 0 / 12 tracks because the saved rectangle is south of the date/text matches.
+
+After normal browser reload
+- Map chip reapplied as 0 / 12 Tracks before reopening criteria.
+- Overview still showed 4 criteria active.
+- From date restored as 2013-03-08.
+- To date restored as 2013-03-11.
+- Keyword restored as Lannion.
+- Area restored as 1 area.
+- Edit areas restored the same rectangle coordinates.
+- Result remained the same intentional zero result.
+

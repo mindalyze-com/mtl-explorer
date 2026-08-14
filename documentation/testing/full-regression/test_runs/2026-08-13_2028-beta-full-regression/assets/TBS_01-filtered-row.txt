@@ -1,0 +1,17 @@
+TBS_01 filtered Track Browser row
+
+Active filter: WALKING only
+Browser summary: 1 track, 3.60 km, 59m 57s
+
+Displayed row:
+- Start: 20/07/2021, 23:11
+- Name: Track 100005
+- Activity: Walking
+- Distance: 3.60 km
+- Duration: 59m 57s
+- Average speed: 3.6 km/h
+- Energy: 347 Wh
+- Exploration: 100.0%
+- Imported: 13/08/2026, 21:15
+
+Desktop used a column table. Narrow mobile used a card with the same core fields.

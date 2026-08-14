@@ -1,5 +1,15 @@
 import type Highcharts from 'highcharts';
 import { formatDurationSmart } from '@/utils/Utils';
+import { getMeasurementSystem } from '@/composables/useMeasurementSystem';
+import {
+  elevationDisplayValue,
+  longDistanceDisplayValue,
+  MEASUREMENT_DISPLAY_PROFILES,
+  speedDisplayValue,
+  verticalRateDisplayValue,
+} from '@/utils/units';
+
+export type ChartMeasurementDimension = 'longDistance' | 'elevation' | 'speed' | 'verticalRate';
 
 /**
  * Shared Highcharts theme builder.
@@ -15,6 +25,8 @@ export interface ChartThemeConfig {
   seriesColor: string;
   /** Unit appended to y-axis labels and tooltip, e.g. 'm', 'km/h' */
   unit?: string;
+  /** Canonical measurement represented by y-values. */
+  measurementDimension?: ChartMeasurementDimension;
   /** Tooltip decimal places (default 1) */
   decimals?: number;
   /** Hard y-axis minimum (use 0 for speed, power etc.) */
@@ -25,17 +37,33 @@ export interface ChartThemeConfig {
   rangeTooltipLabel?: string;
   /** X-axis mode: 'time' (default) or 'distance' */
   xMode?: 'time' | 'distance';
+  /** CSS token used for axis labels. */
+  textColorToken?: string;
+  /** Axis-label font size (default 12px). */
+  axisLabelFontSize?: string;
+  /** Chart type (default area). */
+  chartType?: Highcharts.ChartOptions['type'];
+  /** Fixed chart height. */
+  height?: number;
+  /** Chart spacing override. */
+  spacing?: [number, number, number, number];
+  /** Highcharts animation setting. */
+  animation?: boolean;
+  /** Apply the default small-screen spacing rule (default true). */
+  responsive?: boolean;
 }
 
 export function hexToRgba(hex: string, alpha: number): string {
-  const r = parseInt(hex.slice(1, 3), 16);
-  const g = parseInt(hex.slice(3, 5), 16);
-  const b = parseInt(hex.slice(5, 7), 16);
+  const normalized = hex.replace('#', '');
+  if (!/^[0-9a-f]{6}$/i.test(normalized)) return hex;
+  const r = parseInt(normalized.slice(0, 2), 16);
+  const g = parseInt(normalized.slice(2, 4), 16);
+  const b = parseInt(normalized.slice(4, 6), 16);
   return `rgba(${r},${g},${b},${alpha})`;
 }
 
 /** Compact tick label — no trailing .0, k-suffix above 1000 */
-function compactNum(v: number): string {
+export function compactNum(v: number): string {
   if (v === 0) return '0';
   if (Math.abs(v) >= 1000) return (v / 1000).toFixed(v % 1000 === 0 ? 0 : 1) + 'k';
   if (Math.abs(v) >= 10) return Math.round(v).toString();
@@ -45,31 +73,41 @@ function compactNum(v: number): string {
 export function buildChartOptions(config: ChartThemeConfig): Highcharts.Options {
   const styles = getComputedStyle(document.documentElement);
   const token = (name: string) => styles.getPropertyValue(name).trim();
-  const textColor = token('--chart-text');
+  const textColor = token(config.textColorToken ?? '--chart-text');
   const gridColor = token('--chart-grid');
   const tooltipBg = token('--chart-tooltip-bg');
   const tooltipText = token('--chart-tooltip-text');
   const borderColor = token('--border-default');
   const c = config.seriesColor;
   const isDistance = config.xMode === 'distance';
+  const measurementSystem = getMeasurementSystem();
+  const displayUnit = config.measurementDimension
+    ? chartMeasurementUnit(config.measurementDimension, measurementSystem)
+    : config.unit;
 
   return {
     chart: {
-      type: 'area',
+      type: config.chartType ?? 'area',
+      ...(config.height !== undefined ? { height: config.height } : {}),
+      ...(config.animation !== undefined ? { animation: config.animation } : {}),
       backgroundColor: 'transparent',
-      spacing: [4, 4, 10, 4],
+      spacing: config.spacing ?? [4, 4, 10, 4],
       style: {
         fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
       },
     },
-    responsive: {
-      rules: [
-        {
-          condition: { maxWidth: 500 },
-          chartOptions: { chart: { spacing: [2, 0, 6, 0] } },
-        },
-      ],
-    },
+    ...(config.responsive === false
+      ? {}
+      : {
+          responsive: {
+            rules: [
+              {
+                condition: { maxWidth: 500 },
+                chartOptions: { chart: { spacing: [2, 0, 6, 0] } },
+              },
+            ],
+          },
+        }),
     title: { text: undefined },
     credits: { enabled: false },
     legend: { enabled: false },
@@ -81,10 +119,13 @@ export function buildChartOptions(config: ChartThemeConfig): Highcharts.Options 
         dashStyle: 'Dash',
       },
       labels: {
-        style: { color: textColor, fontSize: '12px' },
+        style: { color: textColor, fontSize: config.axisLabelFontSize ?? '12px' },
         formatter(this: Highcharts.AxisLabelsFormatterContextObject) {
           if (isDistance) {
-            return parseFloat((this.value as number).toFixed(1)) + '\u202fkm';
+            const distance = longDistanceDisplayValue((this.value as number) * 1000, measurementSystem);
+            return (
+              parseFloat(distance.toFixed(1)) + '\u202f' + MEASUREMENT_DISPLAY_PROFILES[measurementSystem].longDistance
+            );
           }
           return formatDurationSmart(this.value as number, this.axis?.max as number);
         },
@@ -97,10 +138,15 @@ export function buildChartOptions(config: ChartThemeConfig): Highcharts.Options 
       gridLineColor: gridColor,
       title: { text: undefined },
       labels: {
-        style: { color: textColor, fontSize: '12px' },
+        style: { color: textColor, fontSize: config.axisLabelFontSize ?? '12px' },
         formatter(this: Highcharts.AxisLabelsFormatterContextObject) {
-          const n = compactNum(this.value as number);
-          return this.isLast && config.unit ? n + '\u202f' + config.unit : n;
+          const value = chartMeasurementDisplayValue(
+            this.value as number,
+            config.measurementDimension,
+            measurementSystem
+          );
+          const n = compactNum(value);
+          return this.isLast && displayUnit ? n + '\u202f' + displayUnit : n;
         },
       },
       ...(config.yMin !== undefined ? { min: config.yMin } : {}),
@@ -125,17 +171,23 @@ export function buildChartOptions(config: ChartThemeConfig): Highcharts.Options 
         const rangeHigh = typeof point?.rangeHigh === 'number' ? point.rangeHigh : null;
         const timeOfDay = ts != null ? new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
         const decimals = config.decimals !== undefined ? config.decimals : 1;
-        const val = (this.y as number).toFixed(decimals);
-        const unit = config.unit ? `\u202f${config.unit}` : '';
+        const displayValue = chartMeasurementDisplayValue(
+          this.y as number,
+          config.measurementDimension,
+          measurementSystem
+        );
+        const val = displayValue.toFixed(decimals);
+        const unit = displayUnit ? `\u202f${displayUnit}` : '';
         const rangeLabel = config.rangeTooltipLabel ? `${config.rangeTooltipLabel}: ` : '';
         const rangeText =
           rangeLow != null && rangeHigh != null
-            ? `<br/><span style="font-size:10px">${rangeLabel}min ${rangeLow.toFixed(decimals)}${unit} · max ${rangeHigh.toFixed(decimals)}${unit} · spread ${(rangeHigh - rangeLow).toFixed(decimals)}${unit}</span>`
+            ? `<br/><span style="font-size:10px">${rangeLabel}min ${chartMeasurementDisplayValue(rangeLow, config.measurementDimension, measurementSystem).toFixed(decimals)}${unit} · max ${chartMeasurementDisplayValue(rangeHigh, config.measurementDimension, measurementSystem).toFixed(decimals)}${unit} · spread ${chartMeasurementDisplayValue(rangeHigh - rangeLow, config.measurementDimension, measurementSystem).toFixed(decimals)}${unit}</span>`
             : '';
         if (isDistance) {
-          const km = (this.x as number).toFixed(1);
+          const distance = longDistanceDisplayValue((this.x as number) * 1000, measurementSystem).toFixed(1);
+          const distanceUnit = MEASUREMENT_DISPLAY_PROFILES[measurementSystem].longDistance;
           const timeStr = timeOfDay ? ` · ${timeOfDay}` : '';
-          return `<span style="font-size:10px">${km}\u202fkm${timeStr}</span><br/><b>${val}${unit}</b>${rangeText}`;
+          return `<span style="font-size:10px">${distance}\u202f${distanceUnit}${timeStr}</span><br/><b>${val}${unit}</b>${rangeText}`;
         } else {
           const maxX = (this.series.xAxis?.max as number | undefined) ?? (this.x as number);
           const elapsed = formatDurationSmart(this.x as number, maxX);
@@ -171,4 +223,25 @@ export function buildChartOptions(config: ChartThemeConfig): Highcharts.Options 
       },
     ],
   };
+}
+
+export function chartMeasurementDisplayValue(
+  value: number,
+  dimension: ChartMeasurementDimension | undefined,
+  system: ReturnType<typeof getMeasurementSystem>
+): number {
+  if (dimension === 'longDistance') return longDistanceDisplayValue(value, system);
+  if (dimension === 'elevation') return elevationDisplayValue(value, system);
+  if (dimension === 'speed') return speedDisplayValue(value, system);
+  if (dimension === 'verticalRate') return verticalRateDisplayValue(value, system);
+  return value;
+}
+
+export function chartMeasurementUnit(
+  dimension: ChartMeasurementDimension,
+  system: ReturnType<typeof getMeasurementSystem>
+): string {
+  const profile = MEASUREMENT_DISPLAY_PROFILES[system];
+  if (dimension === 'longDistance') return profile.longDistance;
+  return profile[dimension];
 }

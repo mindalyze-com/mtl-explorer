@@ -1,0 +1,21 @@
+A-to-B sub-track extraction, 2026-08-14
+
+Segment table before Compare:
+- Source GPX and GDB/TCX variants showed A-B distance delta -655.
+- Source GPX and GDB/TCX variants showed A-B time 00:09:09.
+
+Compare A-B cards:
+- Source GPX: 00:09:09, 0.0 km/h, 0.00 m.
+- GDB variant: 00:09:09, 0.0 km/h, 0.00 m.
+
+Accessible chart summary:
+- Distance x-axis ranged from -0.655063 km to +0.006551 km.
+- Speed and Altitude charts both reported two lines, but their y ranges were 0.
+
+Map behavior:
+- The local A and B markers were present.
+- The extracted map geometry was a direct endpoint-to-endpoint line rather
+  than the expected populated track slice.
+
+Control comparison:
+- A-A on the same selection returned 00:04:09 and 109.89 m.

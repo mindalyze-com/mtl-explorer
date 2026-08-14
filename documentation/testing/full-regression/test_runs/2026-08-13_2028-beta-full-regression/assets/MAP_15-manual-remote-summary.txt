@@ -1,0 +1,14 @@
+Coverage ID: MAP_15
+Deployment tile mode: local
+Initial map source: Automatic
+Manual selection: Remote tiles
+Selected theme: OSM Dark
+Visible remote themes: OSM Topo Light, OSM Light, OSM Gray, OSM Dark
+Visible Swiss themes in Remote mode: 0
+Rendered attribution: OpenStreetMap contributors; CARTO
+Visible track count after source change: 12
+Reload persistence: Remote tiles remained aria-checked=true; four OSM themes remained available; Swiss themes remained absent.
+Server request evidence: local-vector PMTiles proxy requests ended at 2026-08-13T20:17:32.890Z before the manual Remote interval. Subsequent application requests during the Remote interval were map/config only, with no /mtl/api/map-proxy request.
+Reset result: Reset map settings restored Automatic, OSM Topo Contrast, seven available themes, Swiss Topo Color, and Swiss Topo Light.
+Reset persistence: after a browser reload, Automatic remained aria-checked=true and Remote tiles aria-checked=false.
+

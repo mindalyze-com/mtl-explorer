@@ -1,0 +1,22 @@
+TBS_07 Statistics cardinalities
+
+Many tracks (all categories):
+- Map: 12 tracks
+- Statistics: 12 TRACKS, 993 km, 21h 43m, 4,906 Wh, 14,438 m ascent.
+- Bicycle 11; Walking 1.
+
+Single track (WALKING exact category):
+- Map: 1 of 12 tracks
+- Statistics: Showing 1 of 12 tracks.
+- 1 TRACK, 3.60 km, 59m 57s, 347 Wh, 1,667 m ascent.
+- Breakdown: Walking 1.
+- Highlight rankings consistently named Track 100005.
+
+Empty result (Clear selection):
+- Map: 0 of 12 tracks.
+- Filter: No tracks match.
+- Statistics: Showing 0 of 12 tracks; No tracks match the current filters.
+- No stale totals or rankings remained.
+
+Restoration:
+- Show all categories returned Filter and map to 12 tracks.

@@ -1,6 +1,9 @@
 package com.x8ing.mtl.server.mtlserver.logic.grouping.sql;
 
 import com.x8ing.mtl.server.mtlserver.web.services.track.entity.*;
+import com.x8ing.mtl.server.mtlserver.web.services.track.entity.filter.FilterParamsRequest;
+import com.x8ing.mtl.server.mtlserver.web.services.track.entity.filter.ParamDefinition;
+import com.x8ing.mtl.server.mtlserver.web.services.track.entity.filter.ParamType;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 

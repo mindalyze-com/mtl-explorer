@@ -1,0 +1,26 @@
+Coverage ID: TRD_02
+Track: #100000 Jura Route 7 / 2011 on GPSies.com
+
+Overview
+- Summary loaded: distance 273 km, duration 16h 55m, ascent 6,324 m, average speed 16.2 km/h.
+- Timing, speed, elevation, energy, fitness, and exploration groups contained values.
+- Three MapLibre canvases were visible in the detail context, covering the main map, shape/selection map content, and detail mini-map surfaces.
+
+Graphs
+- Interactive charts loaded with 350 data points.
+- Visible groups included cumulative mechanical energy and estimated power.
+- X and Y axes and readable tick values were exposed.
+
+Quality
+- Status SUCCESS / UNIQUE.
+- Point quality: 1,409 total points; average, median, and maximum point distances populated.
+- Activity classification, source details, center, bounding box, UTM zone, GPX Metadata, and File & Indexer sections loaded.
+
+Related
+- Current track was present.
+- Previous tracks correctly showed none.
+- Next tracks loaded ten records with names and dates.
+
+Events
+- One break loaded with timestamp range, duration 1m 03s, and position 235.89 km.
+

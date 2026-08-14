@@ -1,0 +1,16 @@
+HEIC end-user conversion check
+
+Indexed source: media 400003, mtl-synthetic-c.heic, 948 bytes, HEIC/HEVC,
+640x480 with EXIF GPS.
+
+Photo preview:
+- Navigation reached item 4 / 4 named mtl-synthetic-c.heic.
+- The expected teal-to-sand gradient rendered at normal aspect ratio.
+- No broken-image indicator or error message appeared.
+
+Content endpoint with browser image Accept header and maxSize=1600:
+- HTTP 200
+- Content-Type: image/jpeg
+- ETag: media-400003-948-1786662256540-jpeg92-s1600
+- Output: valid 640x480 JPEG, 12,508 bytes.
+- Cache-Control: max-age=3600, must-revalidate, private.

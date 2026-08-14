@@ -1,10 +1,7 @@
 package com.x8ing.mtl.server.mtlserver.energy.impl;
 
 import com.x8ing.mtl.server.mtlserver.db.entity.gps.GpsTrack;
-import com.x8ing.mtl.server.mtlserver.db.entity.gps.GpsTrackDataPoint;
-import com.x8ing.mtl.server.mtlserver.energy.EnergyCalculator;
-import com.x8ing.mtl.server.mtlserver.energy.EnergyComponents;
-import com.x8ing.mtl.server.mtlserver.energy.EnergyParameters;
+import com.x8ing.mtl.server.mtlserver.energy.GravityAndKineticEnergyCalculator;
 import org.springframework.stereotype.Component;
 
 import java.util.Set;
@@ -23,7 +20,7 @@ import java.util.Set;
  * Equipment default: 0 kg
  */
 @Component
-public class WalkingEnergyCalculator extends EnergyCalculator {
+public class WalkingEnergyCalculator extends GravityAndKineticEnergyCalculator {
 
     @Override
     public Set<GpsTrack.ACTIVITY_TYPE> getActivityTypes() {
@@ -33,28 +30,5 @@ public class WalkingEnergyCalculator extends EnergyCalculator {
     @Override
     public double getDefaultEquipmentWeightKg() {
         return 0.0;
-    }
-
-    @Override
-    public EnergyComponents calculateBetweenPoints(GpsTrackDataPoint current, GpsTrackDataPoint prev, EnergyParameters params) {
-        if (prev == null) return EnergyComponents.ZERO;
-
-        double distance = segmentDistance(current);
-        if (distance <= 0) return EnergyComponents.ZERO;
-
-        double totalMass = params.getTotalMassKg(getDefaultEquipmentWeightKg());
-
-        // Gravity
-        double gravity = gravitationalEnergy(totalMass, current.getPointAltitude(), prev.getPointAltitude());
-
-        // Kinetic energy change — use smoothed speed to avoid GPS jitter amplification on v²
-        double currentSpeed = smoothedSpeedMps(current, params);
-        double prevSpeed = smoothedSpeedMps(prev, params);
-        double kinetic = kineticEnergyChange(totalMass, currentSpeed, prevSpeed);
-
-        return EnergyComponents.builder()
-                .gravitationalJoules(gravity)
-                .kineticJoules(kinetic)
-                .build();
     }
 }

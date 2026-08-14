@@ -7,7 +7,7 @@
  * focused on the core tracks/filters/config surface.
  *
  * Public endpoints (no auth required) use bare axios; everything else
- * goes through the shared `apiClient` (auth + 401/403 redirect baked in).
+ * goes through the shared `apiClient` (auth + 401 redirect baked in).
  */
 import axios from 'axios';
 import {
@@ -28,6 +28,7 @@ import {
 } from 'x8ing-mtl-api-typescript-fetch';
 
 import { apiClient } from '@/utils/apiClient';
+import { isAuthenticationFailureStatus } from '@/utils/auth';
 import { getApiConfiguration } from '@/utils/openApiClient';
 import { describeError, startStartupTimer } from '@/utils/startupDiagnostics';
 import { apiUrl } from '@/utils/apiBase';
@@ -248,7 +249,7 @@ export type AuthCheckResult = 'ok' | 'auth-error' | 'network-error';
 
 /**
  * Lightweight auth probe: hits the build-info endpoint to verify the JWT is still valid.
- * Returns 'ok' if the server responds successfully, 'auth-error' for 401/403, or
+ * Returns 'ok' if the server responds successfully, 'auth-error' for 401, or
  * 'network-error' when the server is unreachable.
  */
 export async function checkServerAuth(): Promise<AuthCheckResult> {
@@ -263,7 +264,7 @@ export async function checkServerAuth(): Promise<AuthCheckResult> {
   } catch (error: unknown) {
     if (axios.isAxiosError(error) && error.response) {
       const status = error.response.status;
-      if (status === 401 || status === 403) {
+      if (isAuthenticationFailureStatus(status)) {
         timer.warn('Auth probe reported expired credentials', { status });
         return 'auth-error';
       }

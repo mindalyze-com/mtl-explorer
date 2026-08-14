@@ -77,7 +77,7 @@ export function buildTrackOverviewFeatures(
 
 /** Haversine distance in meters between two [lat, lng] points. */
 export function haversineDistance(lat1: number, lng1: number, lat2: number, lng2: number): number {
-  const earthRadiusMeters = 6371000;
+  const earthRadiusMeters = 6_371_000;
   const dLat = ((lat2 - lat1) * Math.PI) / 180;
   const dLng = ((lng2 - lng1) * Math.PI) / 180;
   const a =

@@ -1,0 +1,34 @@
+Coverage ID: FIT_03
+FIT-backed record: #100005, Activity.fit, Walking
+
+Overview:
+- Populated mini-map line.
+- 3.60 km, 59m 59s, 1,667 m ascent, 3.6 km/h average.
+- Original and GPX download actions visible.
+
+Point popup:
+- Point 1,805
+- Time 20/07/2021, 23:41:25
+- Distance 1.81 km
+- Elevation 96.9 m
+- Speed 3.6 km/h
+- Elapsed 29m 59s
+
+Graphs:
+- Time/Distance axis controls and 350-point detail control render.
+- Populated Speed, Elevation, Elevation Gain Rate, Distance over Time, Cumulative Mechanical Energy, and Estimated Power charts.
+
+Quality:
+- SUCCESS, UNIQUE
+- 3,600 total points; avg/median 1.00 m; max 1.02 m
+- Walking via AUTO_GUESS; geo coverage and file/indexer sections render.
+
+Related:
+- Three previous records: Jura, Mosel, Lannion.
+- Current Track #100005; no next tracks.
+
+Events:
+- Tab renders valid empty state: No track events.
+- Mini-map event toggle is disabled, consistent with the empty event state.
+
+All required FIT-backed tabs and map interactions completed without a blank sheet or console-visible failure.

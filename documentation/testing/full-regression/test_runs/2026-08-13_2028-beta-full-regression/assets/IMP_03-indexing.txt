@@ -1,0 +1,20 @@
+IMP_03 live-watcher and indexing evidence
+
+2026-08-13T18:46:18.326Z watcher detected CREATE JuraRoute72011.gpx
+2026-08-13T18:46:18.333Z watcher detected CREATE MoselradwegAusWiki.gpx
+2026-08-13T18:46:18.333Z watcher detected CREATE Vitry-le-Francois_Langres.gpx
+2026-08-13T18:46:18.333Z watcher detected CREATE VoieVerteHauteVosges.gpx
+2026-08-13T18:46:18.333Z watcher detected CREATE Lannion_Plestin_parcours24.4RE.gpx
+
+Successful ingest completion:
+- Track 100003 VoieVerteHauteVosges.gpx at 18:46:35.072Z
+- Track 100001 Vitry-le-Francois_Langres.gpx at 18:46:35.497Z
+- Track 100000 JuraRoute72011.gpx at 18:46:35.670Z
+- Track 100004 Lannion_Plestin_parcours24.4RE.gpx at 18:46:35.958Z
+- Track 100002 MoselradwegAusWiki.gpx at 18:46:36.497Z
+
+Watcher detection to final successful ingest: 18.171 seconds.
+Admin Processing after refresh: GPS done, 100%, 5 completed, 5 total.
+Manual Rescan GPS used: no.
+Data status badge: Stale; New data available banner visible with Reload and Dismiss.
+Background Activity Classifier and Exploration Score were still running; their final state belongs to IMP_04.

@@ -1,6 +1,7 @@
 import maplibregl from 'maplibre-gl';
 import { getMediaInBounds } from '@/repositories/mediaRepository';
 import type { MediaBoundsPoint } from '@/repositories/mediaRepository';
+import { isAbortLikeError } from '@/utils/errors';
 
 export type MediaState = 'idle' | 'visible' | 'error';
 
@@ -265,8 +266,7 @@ export class MediaOverlay {
       this.updateSource(points);
       this.error = null;
     } catch (e: unknown) {
-      const error = e as { name?: string; code?: string };
-      if (error.name === 'CanceledError' || error.code === 'ERR_CANCELED') return;
+      if (isAbortLikeError(e, this.abortController?.signal)) return;
       this.error = e;
       console.error('MediaOverlay: failed to load media in bounds', e);
     } finally {

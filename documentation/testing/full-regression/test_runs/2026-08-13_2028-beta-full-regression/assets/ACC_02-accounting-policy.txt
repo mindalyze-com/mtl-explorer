@@ -1,0 +1,7 @@
+Coverage accounting policy check
+
+- The frozen queue contains 193 individual coverage-ID rows.
+- No chapter, heading, or ID prefix is represented as a substitute PASS row.
+- Packet files are named for one exact coverage ID.
+- Run state advances only after the current coverage ID receives a terminal packet result.
+- PARTIAL and NOT COVERED remain resumable and cannot satisfy the finalization gate.

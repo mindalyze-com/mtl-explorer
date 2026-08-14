@@ -1,0 +1,19 @@
+Indexer status refresh sequence
+
+Before synthetic invalid file:
+- MEDIA DONE 100%, 4 completed, 4 total
+- GPS DONE 88%, 15 completed, 2 removed, 17 total
+- Updated 01:38:27
+
+After mtl-adm03-failed.gpx finished with database load_status FAILED:
+- MEDIA DONE 100%, 4 completed, 4 total
+- GPS DONE 88%, 16 completed, 2 removed, 18 total
+- Updated 01:39:05, then 01:39:10 by automatic polling
+
+Database facts:
+- #100019 mtl-adm02-valid.gpx: SUCCESS
+- #100020 mtl-adm03-failed.gpx: FAILED
+- Failure: Invalid GPX ParseError at row 1, column 1; content is not allowed in prolog.
+
+The Admin UI counted the failed input as completed and exposed no failed count or state.
+

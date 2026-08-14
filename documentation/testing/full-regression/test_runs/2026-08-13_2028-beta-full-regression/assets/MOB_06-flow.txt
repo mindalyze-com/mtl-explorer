@@ -1,0 +1,22 @@
+Mobile Filter opening/settings flow
+
+First opening:
+- Opened the Filter overview, not a stale nested catalog/detail sheet.
+- CURRENT RESULT, Apply filter switch, and Configuration were directly visible.
+
+Catalog selection:
+- Opened Filter view catalog.
+- Selected Tracks by year and applied it.
+- Returned directly to the Filter overview/settings surface with Tracks by year and all four categories.
+- Apply filter switch was directly present before another catalog selection.
+- Toggled Apply filter true -> false -> true successfully.
+
+Reopening:
+- Closed the Filter sheet.
+- Reopened with the mobile Filter navigation button.
+- It again showed CURRENT RESULT/Configuration overview, not the catalog.
+- Apply filter switch was directly present.
+
+Cleanup:
+- Restored Tracks by quarter with only Q1 selected: 8 matching tracks, 1 of 2 categories.
+

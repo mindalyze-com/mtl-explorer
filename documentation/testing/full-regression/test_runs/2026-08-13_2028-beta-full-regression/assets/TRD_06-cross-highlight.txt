@@ -1,0 +1,19 @@
+Coverage ID: TRD_06
+Track: #100000
+
+Chart to mini-map
+- Hovered the visible speed chart surface.
+- The mini-map rendered an orange position marker on the purple track line near Lausanne.
+- Moving the pointer outside both surfaces removed the marker.
+
+Mini-map to chart
+- Hovered an actual purple route point on the mini-map.
+- The mini-map rendered a red hover point.
+- The speed graph rendered one visible Highcharts crosshair and an opacity-1 tooltip state.
+- Tooltip value: 4h 41m / 05:42; 16.2 km/h; bucket range 14.8-17.3 km/h; spread 2.5 km/h.
+
+Leave behavior
+- Moving outside both surfaces changed the tooltip to opacity 0 with empty text.
+- The retained SVG crosshair node became isVisible=false.
+- No map cursor remained in the cleared screenshot.
+

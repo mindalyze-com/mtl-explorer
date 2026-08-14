@@ -1,0 +1,21 @@
+Garmin export helper status and install actions
+
+Initial status:
+- Advanced tools: 2/2 ready
+- gcexport: READY
+- fit-export: READY
+
+gcexport Install:
+- Done
+- Version v4.6.2
+- Existing venv detected; no install needed
+- Active version updated to v4.6.2 in the database
+
+fit-export Install:
+- Done
+- Profile default, packages garth fitparse gpxpy
+- Existing venv detected; no install needed
+- Active profile/packages updated in the database
+
+Final status remained 2/2 ready.
+

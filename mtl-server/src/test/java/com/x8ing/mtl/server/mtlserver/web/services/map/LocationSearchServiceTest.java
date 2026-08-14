@@ -1,22 +1,19 @@
 package com.x8ing.mtl.server.mtlserver.web.services.map;
 
-import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
 import com.x8ing.mtl.server.mtlserver.web.services.config.ServerIdentityService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
-import java.io.OutputStream;
 import java.net.InetSocketAddress;
-import java.net.URLDecoder;
-import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import static com.x8ing.mtl.server.mtlserver.web.services.map.LocationSearchTestSupport.parseQuery;
+import static com.x8ing.mtl.server.mtlserver.web.services.map.LocationSearchTestSupport.writeJson;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -244,33 +241,9 @@ class LocationSearchServiceTest {
                 """;
     }
 
-    private static Map<String, String> parseQuery(String rawQuery) {
-        Map<String, String> params = new HashMap<>();
-        if (rawQuery == null || rawQuery.isBlank()) {
-            return params;
-        }
-        for (String pair : rawQuery.split("&")) {
-            String[] parts = pair.split("=", 2);
-            params.put(decode(parts[0]), parts.length == 2 ? decode(parts[1]) : "");
-        }
-        return params;
-    }
-
-    private static String decode(String value) {
-        return URLDecoder.decode(value, StandardCharsets.UTF_8);
-    }
-
     private static void assertAuthParams(Map<String, String> params) {
         assertThat(params.get(MapProxyConstants.UPSTREAM_AUTH_VERSION_PARAM)).isEqualTo("unknown");
         assertThat(params.get(MapProxyConstants.UPSTREAM_AUTH_SERVER_ID_PARAM)).isEqualTo(TEST_SERVER_ID);
     }
 
-    private static void writeJson(HttpExchange exchange, int status, String body) throws IOException {
-        byte[] bytes = body.getBytes(StandardCharsets.UTF_8);
-        exchange.getResponseHeaders().set("Content-Type", "application/json");
-        exchange.sendResponseHeaders(status, bytes.length);
-        try (OutputStream output = exchange.getResponseBody()) {
-            output.write(bytes);
-        }
-    }
 }

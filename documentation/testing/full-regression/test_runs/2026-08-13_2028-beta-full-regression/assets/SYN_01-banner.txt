@@ -1,0 +1,13 @@
+Freshness banner after a server-side deletion
+
+- Before server change: browser map showed 8 / 13 Tracks under Q1.
+- Exact disposable source removed: GPX-UPLOAD/mtl-adm02-valid.gpx.
+- Live watcher detected DELETE at 23:55:09 UTC.
+- Server deleted track #100019 at 23:55:17 UTC.
+- Next freshness poll displayed:
+  - New data available
+  - Tracks, media, or settings changed since this view loaded.
+  - Reload
+  - Dismiss
+- The stale browser count remained 8 / 13 until user action, confirming this was a notification rather than a hidden auto-refresh.
+

@@ -8,6 +8,7 @@ These instructions apply to all agents working in this repository.
 
 ## Version Control
 
+- Use `publish-to-github.py` to prepare and publish GitHub mirror releases.
 - GitHub is a public mirror and may be behind; never merge or rebase GitHub
   branches/PRs into this workspace.
 - Treat GitHub PRs only as patch ideas; apply manually only when appropriate.

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="MTL Explorer synthetic regression" xmlns="http://www.topografix.com/GPX/1/1">
+  <metadata><name>DAT_07 synthetic shared corridor A</name></metadata>
+  <trk><name>DAT_07 Synthetic A</name><type>hiking</type><trkseg>
+    <trkpt lat="46.950000" lon="7.400000"><ele>540</ele><time>2026-01-15T10:00:00Z</time></trkpt>
+    <trkpt lat="46.959000" lon="7.409000"><ele>550</ele><time>2026-01-15T10:01:00Z</time></trkpt>
+    <trkpt lat="46.968000" lon="7.418000"><ele>560</ele><time>2026-01-15T10:02:00Z</time></trkpt>
+    <trkpt lat="46.977000" lon="7.427000"><ele>570</ele><time>2026-01-15T10:03:00Z</time></trkpt>
+    <trkpt lat="46.986000" lon="7.436000"><ele>580</ele><time>2026-01-15T10:04:00Z</time></trkpt>
+    <trkpt lat="46.995000" lon="7.445000"><ele>590</ele><time>2026-01-15T10:05:00Z</time></trkpt>
+    <trkpt lat="47.004000" lon="7.454000"><ele>600</ele><time>2026-01-15T10:06:00Z</time></trkpt>
+    <trkpt lat="47.013000" lon="7.463000"><ele>610</ele><time>2026-01-15T10:07:00Z</time></trkpt>
+    <trkpt lat="47.022000" lon="7.472000"><ele>620</ele><time>2026-01-15T10:08:00Z</time></trkpt>
+    <trkpt lat="47.031000" lon="7.481000"><ele>630</ele><time>2026-01-15T10:09:00Z</time></trkpt>
+    <trkpt lat="47.040000" lon="7.490000"><ele>640</ele><time>2026-01-15T10:10:00Z</time></trkpt>
+    <trkpt lat="47.050000" lon="7.500000"><ele>650</ele><time>2026-01-15T10:11:00Z</time></trkpt>
+  </trkseg></trk>
+</gpx>

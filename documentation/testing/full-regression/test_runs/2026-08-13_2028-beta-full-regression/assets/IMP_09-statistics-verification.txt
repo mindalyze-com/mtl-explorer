@@ -1,0 +1,35 @@
+Coverage ID: IMP_09
+Baseline: 0 tracks and zero totals (IMP_01)
+
+Post-import Statistics Overview:
+- Tracks: 5
+- Distance: 1,043 km
+- Duration: 23h 31m
+- Energy: 4,527 Wh
+- Ascent: 12,936 m
+- Descent direction: imported Track Details expose positive descent values (for example, Lannion 335 m), rather than an empty or zero fallback.
+- Activity Breakdown: Bicycle, 5 tracks
+
+Highlights and rankings:
+- Longest track: Moselradweg, 518 km
+- Longest duration: Jura Route 7, 7h 46m
+- Biggest ascent: Jura Route 7, 6,324 m
+- Quickest ascent: Moselradweg, 3,848 m/h
+- Most energy: Jura Route 7, 1,808 Wh
+- Fastest 30 s speed: Lannion, 72.5 km/h
+- Peak 30 s power: Lannion, 2,188 W
+- Most common activity: Bicycle, 5 tracks
+
+Period views:
+- Two populated quarter periods: 2010-Q1 (4 tracks) and 2013-Q1 (1 track).
+- Period table totals: 5 tracks, 1,043 km, 23h 31m, 4,527 Wh.
+- Distance, Activity, and Energy charts render populated bars for both periods.
+
+Heatmap:
+- Heatmap changed from hidden/empty baseline to a visible density layer following all five imported route geometries.
+- Higher-density color was visible along the imported paths and at overlapping/clustered locations.
+- Heatmap layer was restored to its prior off state after evidence capture.
+
+Track Browser summary:
+- 5 tracks · 1,043 km · 23h 31m
+- Five matching rows remain visible.

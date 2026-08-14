@@ -1,0 +1,25 @@
+IMP_01 pre-import baseline captured through the signed-in UI
+
+Watched import folder files: 0
+Map count: 0 Tracks
+Statistics Overview: No tracks match the current filters.
+Statistics > Tracks: 0 tracks; 0.00 m; 0m 00s; no track rows.
+
+Admin > Data status:
+- State: In sync; browser shows latest server data
+- Server token: 1QdsKX__|server_id:EsZnoj3ZRgJsCaXxRjr9wq|config:9|filters:85|index:0|media:0|track_geometry:0|tracks:0
+- Client token: 1QdsKX__|server_id:EsZnoj3ZRgJsCaXxRjr9wq|config:9|filters:85|index:0|media:0|track_geometry:0|tracks:0
+- Revision sum: 94
+- Index r0; Tracks r0; Geometry r0; Media r0; Filters r85; Config r9
+
+Admin > Processing:
+- GPS indexer: done, 100%, 0 completed, 0 total
+- Media indexer: done, 100%, 0 completed, 0 total
+- Duplicate Finder: done, 100%, 0/0
+- Activity Classifier: done, 100%, 0/0
+- Exploration Score: done, 100%, 0/0
+- Vector Map Tiles: hosted service done
+- Location Search: done
+- Routing Segments: ready
+
+This snapshot was taken before any public or synthetic file entered data/gpx.

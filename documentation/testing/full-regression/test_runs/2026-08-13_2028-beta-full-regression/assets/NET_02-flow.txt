@@ -1,0 +1,11 @@
+Context: signed-in Admin Overview over the existing SPA; no browser reload.
+Outage action: stopped only the disposable Compose app service.
+Outage refresh result (2.789 s observation):
+- Processing: Unavailable — Indexer and job status could not be refreshed.
+- Data: Unavailable — The server revision check failed.
+- Services: Unavailable — Map, routing, and search status could not be refreshed.
+- Helper tools: Unavailable — Network Error.
+- Admin shell, map, navigation, common tasks, and Refresh remained visible and interactive.
+Recovery action: restarted the same app service and used the same Refresh button.
+Recovery result (2.793 s observation): Idle, Reload needed, 3/3 services available, 2/2 helpers ready.
+Container state after recovery: running.

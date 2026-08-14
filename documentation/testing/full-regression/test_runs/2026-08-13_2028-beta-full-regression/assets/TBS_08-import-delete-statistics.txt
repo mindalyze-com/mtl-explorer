@@ -1,0 +1,20 @@
+TBS_08 Statistics import/delete timeline
+
+Initial required five-GPX import on the requested beta image:
+- All five jobs settled successfully.
+- Supported New data available -> Reload changed map and Track Browser to 5.
+- Statistics Tracks listed 5 tracks, 1,043 km, 23h 31m.
+- Statistics Overview incorrectly showed Showing 0 of 5 tracks and No tracks match the current filters.
+- A normal browser reload recovered Overview to 5 tracks, 1,043 km, 23h 31m, 4,527 Wh, 12,936 m ascent.
+
+Required deletion of two imported tracks on the requested beta image:
+- Deleted #100001 Vitry and #100003 VoieVerte.
+- Supported freshness Reload changed Statistics to 3 tracks, 817 km, 15h 50m, 3,621 Wh.
+- Statistics Tracks listed only the three remaining records.
+- Searches for both deleted names returned 0 of 3 and No tracks match.
+- No stale deleted-track totals remained in Statistics.
+
+Result:
+- The delete update passed.
+- The initial import update failed because Overview remained empty until a normal browser reload.
+- Existing issue: IMP-05-P1.

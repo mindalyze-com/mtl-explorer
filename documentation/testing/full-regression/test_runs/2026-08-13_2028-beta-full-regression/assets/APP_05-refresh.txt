@@ -1,0 +1,11 @@
+Dark hard-refresh paint check
+
+- Persisted theme before refresh: dark.
+- Triggered a browser hard refresh with Meta+R.
+- Captured an in-flight frame 5 ms after starting the refresh request.
+- In-flight frame showed the dark map shell and dark navigation; no light UI frame was visible.
+- Captured the settled frame 161 ms after the action started.
+- Settled frame remained dark with the same dark shell.
+- Final document data-theme: dark; body background rgb(10, 10, 15).
+- First-party track requests after the refresh completed successfully (21 ms and 71 ms).
+

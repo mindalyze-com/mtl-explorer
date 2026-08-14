@@ -1,0 +1,8 @@
+PLN_02 computed route
+
+- Centered map on Zürich using the app location search.
+- Map scale after selection: 100 m; no large-viewport warning.
+- Added four waypoints by clicking the map.
+- Road Bike route computed and drew three legs.
+- Live result: 4.86 km, 48 m ascent, 19 m descent, 16 minutes.
+- Elevation chart rendered 297 points across 0-4.863 km and 406.5-452.75 m.

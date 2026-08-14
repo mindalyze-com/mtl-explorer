@@ -13,6 +13,10 @@
 import { computed, ref, watch } from 'vue';
 import type Highcharts from 'highcharts';
 import { ROUTE_LINE_COLOR } from '@/planner/constants/PlannerConstants';
+import { buildChartOptions } from '@/utils/chartTheme';
+import { useMeasurementSystem } from '@/composables/useMeasurementSystem';
+import { elevationDisplayValue, longDistanceDisplayValue, MEASUREMENT_DISPLAY_PROFILES } from '@/utils/units';
+import { haversineDistance } from '@/components/map/mapGeometry';
 
 const props = defineProps<{
   /** Route polyline as [lng, lat, elevationM] triples. */
@@ -27,6 +31,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   (e: 'hover', point: { lng: number; lat: number; elevationM: number; distanceM: number } | null): void;
 }>();
+const { measurementSystem } = useMeasurementSystem();
 
 // ── Data model ────────────────────────────────────────────────────
 
@@ -44,7 +49,7 @@ const samples = computed<Sample[]>(() => {
   let cum = 0;
   out.push({ distanceM: 0, elevationM: coords[0][2] || 0, lng: coords[0][0], lat: coords[0][1] });
   for (let i = 1; i < coords.length; i++) {
-    cum += haversine(coords[i - 1][1], coords[i - 1][0], coords[i][1], coords[i][0]);
+    cum += haversineDistance(coords[i - 1][1], coords[i - 1][0], coords[i][1], coords[i][0]);
     out.push({ distanceM: cum, elevationM: coords[i][2] || 0, lng: coords[i][0], lat: coords[i][1] });
   }
   const authTotal = props.totalDistanceM;
@@ -83,99 +88,53 @@ function buildOptions(): Highcharts.Options {
   const styles = getComputedStyle(document.documentElement);
   const token = (name: string) => styles.getPropertyValue(name).trim();
   const textColor = token('--text-muted');
-  const gridColor = token('--chart-grid');
-  const tooltipBg = token('--chart-tooltip-bg');
-  const tooltipText = token('--chart-tooltip-text');
-  const borderColor = token('--border-default');
   const ascentColor = token('--warning-text');
   const descentColor = token('--accent');
   const c = ROUTE_LINE_COLOR;
-  const hexToRgba = (hex: string, a: number) => {
-    const r = parseInt(hex.slice(1, 3), 16);
-    const g = parseInt(hex.slice(3, 5), 16);
-    const b = parseInt(hex.slice(5, 7), 16);
-    return `rgba(${r},${g},${b},${a})`;
-  };
-
+  const baseOptions = buildChartOptions({
+    seriesName: 'Elevation',
+    seriesColor: c,
+    measurementDimension: 'elevation',
+    xMode: 'distance',
+    textColorToken: '--text-muted',
+    axisLabelFontSize: '11px',
+    animation: false,
+    spacing: [4, 2, 8, 2],
+    responsive: false,
+  });
   return {
-    chart: {
-      type: 'area',
-      backgroundColor: 'transparent',
-      spacing: [4, 2, 8, 2],
-      animation: false,
-      style: {
-        fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
-      },
-    },
-    title: { text: undefined },
-    credits: { enabled: false },
-    legend: { enabled: false },
-    xAxis: {
-      type: 'linear',
-      crosshair: {
-        width: 1,
-        color: borderColor,
-        dashStyle: 'Dash',
-      },
-      labels: {
-        style: { color: textColor, fontSize: '11px' },
-        formatter(this: Highcharts.AxisLabelsFormatterContextObject) {
-          return parseFloat((this.value as number).toFixed(1)) + '\u202fkm';
-        },
-      },
-      lineColor: gridColor,
-      tickColor: 'transparent',
-      title: { text: undefined },
-    },
+    ...baseOptions,
     yAxis: {
-      gridLineColor: gridColor,
-      title: { text: undefined },
+      ...(baseOptions.yAxis as Highcharts.YAxisOptions),
       labels: {
-        style: { color: textColor, fontSize: '11px' },
+        ...((baseOptions.yAxis as Highcharts.YAxisOptions).labels ?? {}),
         formatter(this: Highcharts.AxisLabelsFormatterContextObject) {
-          return Math.round(this.value as number) + (this.isLast ? '\u202fm' : '');
+          const elevation = elevationDisplayValue(this.value as number, measurementSystem.value);
+          const unit = MEASUREMENT_DISPLAY_PROFILES[measurementSystem.value].elevation;
+          return Math.round(elevation) + (this.isLast ? `\u202f${unit}` : '');
         },
       },
     },
     tooltip: {
-      backgroundColor: tooltipBg,
-      borderColor: borderColor,
-      borderRadius: 8,
-      borderWidth: 1,
-      shadow: false,
-      style: { color: tooltipText, fontSize: '12px' },
-      useHTML: true,
+      ...(baseOptions.tooltip as Highcharts.TooltipOptions),
       formatter(this: Highcharts.Point) {
         const pt = this as Highcharts.Point & { grade?: number };
-        const km = (this.x as number).toFixed(2);
-        const ele = Math.round(this.y as number);
+        const distance = longDistanceDisplayValue((this.x as number) * 1000, measurementSystem.value).toFixed(2);
+        const distanceUnit = MEASUREMENT_DISPLAY_PROFILES[measurementSystem.value].longDistance;
+        const elevation = Math.round(elevationDisplayValue(this.y as number, measurementSystem.value));
+        const elevationUnit = MEASUREMENT_DISPLAY_PROFILES[measurementSystem.value].elevation;
         const grade = pt.grade ?? 0;
         const gradeColor = grade > 0 ? ascentColor : grade < 0 ? descentColor : textColor;
         const gradeStr = (grade > 0 ? '+' : '') + grade.toFixed(1) + '%';
         return (
-          `<span style="font-size:10px;color:${textColor}">${km}\u202fkm</span><br/>` +
-          `<b>${ele}\u202fm</b>&nbsp;<span style="color:${gradeColor}">${gradeStr}</span>`
+          `<span style="font-size:10px;color:${textColor}">${distance}\u202f${distanceUnit}</span><br/>` +
+          `<b>${elevation}\u202f${elevationUnit}</b>&nbsp;<span style="color:${gradeColor}">${gradeStr}</span>`
         );
       },
     },
     plotOptions: {
       area: {
-        lineWidth: 2,
-        color: c,
-        fillColor: {
-          linearGradient: { x1: 0, y1: 0, x2: 0, y2: 1 },
-          stops: [
-            [0, hexToRgba(c, 0.28)],
-            [1, hexToRgba(c, 0.0)],
-          ],
-        },
-        threshold: null,
-        marker: {
-          enabled: false,
-          states: { hover: { enabled: true, radius: 3, lineWidth: 0 } },
-        },
-        states: { hover: { lineWidthPlus: 0 } },
-        connectNulls: false,
+        ...(baseOptions.plotOptions?.area as Highcharts.PlotAreaOptions),
         point: {
           events: {
             mouseOver(this: Highcharts.Point) {
@@ -208,6 +167,12 @@ function buildOptions(): Highcharts.Options {
 
 const chartOptions = ref<Highcharts.Options>(buildOptions());
 
+watch(measurementSystem, () => {
+  const nextOptions = buildOptions();
+  (nextOptions as { series: Array<{ data?: unknown }> }).series[0].data = seriesData.value;
+  chartOptions.value = nextOptions;
+});
+
 // Feed data into the chart whenever the route changes.
 watch(
   seriesData,
@@ -222,18 +187,6 @@ watch(
   },
   { immediate: true }
 );
-
-// ── Helpers ───────────────────────────────────────────────────────
-
-function haversine(lat1: number, lng1: number, lat2: number, lng2: number): number {
-  const R = 6_371_000;
-  const dLat = ((lat2 - lat1) * Math.PI) / 180;
-  const dLng = ((lng2 - lng1) * Math.PI) / 180;
-  const a =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLng / 2) ** 2;
-  return 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-}
 </script>
 
 <style scoped>

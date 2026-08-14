@@ -1,0 +1,12 @@
+Background job sequence after the synthetic GPX import
+
+Progress observation at 01:38:27:
+- Duplicate Finder: DONE, 100%, 16 / 16
+- Exploration Score: RUNNING, 93%, 15 done, 1 running, 16 total
+
+Settled observation at 01:44:38:
+- Duplicate Finder: DONE, 100%, 17 / 17
+- Exploration Score: DONE, 100%, 16 / 16
+
+The imported synthetic track was visible in the main count (13 tracks) after application recovery.
+

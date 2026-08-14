@@ -1,0 +1,9 @@
+Segment tool stop verification, 2026-08-14
+
+1. Toggled Segments on: compact tool showed "Place zone A".
+2. Toggled Segments off: compact tool and zone guidance disappeared.
+3. Clicked the same Lannion map area after stop.
+4. No A marker, zone count, guidance, or other measurement state appeared.
+
+The prior read-only result sheet remained open. It contains no active placement
+markers and did not capture the post-stop map click.

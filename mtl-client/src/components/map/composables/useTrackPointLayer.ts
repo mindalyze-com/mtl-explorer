@@ -1,8 +1,18 @@
 import { markRaw } from 'vue';
-import maplibregl from 'maplibre-gl';
 import { fetchTrackPointsForRenderedShape, fetchTrackCanonicalPoints } from '@/utils/ServiceHelper';
-import { formatDateAndTimeWithSeconds } from '@/utils/Utils';
+import {
+  formatDateAndTimeWithSeconds,
+  formatDistance,
+  formatElevation,
+  formatSpeed,
+  formatVerticalRate,
+} from '@/utils/Utils';
 import { bearing } from '@/components/map/mapGeometry';
+import {
+  createTrackPointPopup,
+  updateTrackPointPopupContent,
+  type TrackPointPopupRow,
+} from '@/components/map/trackPointPopup';
 import {
   nearestByNumericValue,
   numericRangeForItems,
@@ -19,14 +29,87 @@ import type {
   TrackPointLayerMethods,
 } from './mapControllerRuntime';
 import type { GpsTrackDataPoint } from 'x8ing-mtl-api-typescript-fetch/dist/esm/models/index';
+import { VIZ_BLUE_COLOR, VIZ_LIGHT_COLOR } from '@/utils/visualizationColors';
 
 const TRACK_POINTS_MIN_ZOOM = 16;
 const TRACK_POINT_ARROW_ICON_SIZE = 24;
-const TRACK_POINT_ARROW_COLOR = '#2563eb';
-const TRACK_POINT_ARROW_BACKGROUND_COLOR = '#ffffff';
+const TRACK_POINT_ARROW_COLOR = VIZ_BLUE_COLOR;
+const TRACK_POINT_ARROW_BACKGROUND_COLOR = VIZ_LIGHT_COLOR;
 const DEFAULT_DEVICE_PIXEL_RATIO = 1;
 const TRACK_LINE_CLICK_TOLERANCE_PX = 12;
 const TRACK_LINE_CLICK_TOLERANCE_METERS = 120;
+
+export function buildArchiveTrackPointPopupRows(
+  lngLat: MapCenter | Coordinates,
+  point: GpsTrackDataPoint,
+  canonical?: GpsTrackDataPoint | null
+): TrackPointPopupRow[] {
+  const fmt = (v: unknown, decimals = 1) => {
+    const number = finiteNumber(v);
+    return number == null ? '—' : number.toFixed(decimals);
+  };
+  const fmtWithUnit = (v: unknown, unit: string, decimals = 1) => {
+    const value = fmt(v, decimals);
+    return value === '—' ? value : `${value} ${unit}`;
+  };
+  const fmtMeasurement = (v: unknown, formatter: (value: number) => string | undefined) => {
+    const number = finiteNumber(v);
+    return number == null ? '—' : (formatter(number) ?? '—');
+  };
+  const fmtTime = (v: unknown) => {
+    if (!v) return '—';
+    const d = new Date(v as string | number | Date);
+    return formatDateAndTimeWithSeconds(d);
+  };
+  const fmtDuration = (secs: number | null | undefined) => {
+    if (secs == null) return '—';
+    const h = Math.floor(secs / 3600);
+    const m = Math.floor((secs % 3600) / 60);
+    const s = Math.round(secs % 60);
+    return h > 0 ? `${h}h ${m}m ${s}s` : m > 0 ? `${m}m ${s}s` : `${s}s`;
+  };
+
+  const fallbackLngLat = toLngLatParts(lngLat);
+  const lat = point.pointLongLat?.coordinates?.[1] ?? fallbackLngLat.lat;
+  const lng = point.pointLongLat?.coordinates?.[0] ?? fallbackLngLat.lng;
+  const metrics = (canonical ?? {}) as Partial<GpsTrackDataPoint> & Record<string, number | string | null | undefined>;
+  const rows: TrackPointPopupRow[] = [
+    { label: 'Point', value: `${(point.pointIndex ?? 0) + 1} / ${(point.pointIndexMax ?? 0) + 1}` },
+    { label: 'Time', value: fmtTime(point.pointTimestamp) },
+    { label: 'Lat / Lng', value: `${fmt(lat, 6)} / ${fmt(lng, 6)}` },
+    { label: 'Altitude', value: fmtMeasurement(point.pointAltitude, (value) => formatElevation(value, 1)) },
+    { label: 'Speed', value: fmtMeasurement(metrics.speedInKmhMovingWindow, (value) => formatSpeed(value, 1)) },
+    {
+      label: 'Dist from start',
+      value: fmtMeasurement(metrics.distanceInMeterSinceStart, (value) => formatDistance(value, 2)),
+    },
+    {
+      label: 'Dist prev point',
+      value: fmtMeasurement(metrics.distanceInMeterBetweenPoints, (value) => formatDistance(value, 1)),
+    },
+    { label: 'Time prev point', value: fmtWithUnit(metrics.durationBetweenPointsInSec, 's', 1) },
+    { label: 'Duration', value: fmtDuration(metrics.durationSinceStart as number | null | undefined) },
+    { label: 'Ascent', value: fmtMeasurement(metrics.ascentInMeterSinceStart, (value) => formatElevation(value, 0)) },
+    { label: 'Descent', value: fmtMeasurement(metrics.descentInMeterSinceStart, (value) => formatElevation(value, 0)) },
+    { label: 'Slope', value: fmtWithUnit(metrics.slopePercentageInMovingWindow, '%', 1) },
+    {
+      label: 'Elev gain/h',
+      value: fmtMeasurement(metrics.elevationGainPerHourMovingWindow, (value) => formatVerticalRate(value, 0)),
+    },
+    {
+      label: 'Elev loss/h',
+      value: fmtMeasurement(metrics.elevationLossPerHourMovingWindow, (value) => formatVerticalRate(value, 0)),
+    },
+  ];
+
+  if (metrics.energyTotalWh != null) {
+    rows.push({ label: 'Est. energy (seg)', value: `${fmt(metrics.energyTotalWh, 2)} Wh` });
+    rows.push({ label: 'Est. energy (cum)', value: `${fmt(metrics.energyCumulativeWh, 1)} Wh` });
+    rows.push({ label: 'Est. power', value: `${fmt(metrics.powerWatts, 0)} W` });
+  }
+
+  return rows;
+}
 
 export function createArrowImage(
   size = TRACK_POINT_ARROW_ICON_SIZE,
@@ -78,6 +161,12 @@ export function useTrackPointLayer(
   _deps: Record<string, never> = {}
 ): MapControllerMethodDefinitions<TrackPointLayerMethods> {
   const methods: MapControllerMethodDefinitions<TrackPointLayerMethods> = {
+    closeTrackPointPopup() {
+      this.trackPointsPopup?.remove();
+      this.trackPointsPopup = null;
+      this.trackPointsPopupContext = null;
+    },
+
     detachTrackPointLayerHandlers() {
       if (!this.overlayMap || !this.trackPointLayerHandlers) return;
       const handlers = this.trackPointLayerHandlers;
@@ -213,10 +302,7 @@ export function useTrackPointLayer(
     /** Show a popup with full data for a specific track point. */
     async showTrackPointPopup(lngLat, trackId, pointIndex) {
       // Close any existing popup
-      if (this.trackPointsPopup) {
-        this.trackPointsPopup.remove();
-        this.trackPointsPopup = null;
-      }
+      this.closeTrackPointPopup();
 
       // The track-points layer is emitted by updateTrackPointsSource() from
       // the SIMPLIFIED_SHAPE LineString currently loaded for this track, and
@@ -267,10 +353,7 @@ export function useTrackPointLayer(
       });
       if (!projection) return false;
 
-      if (this.trackPointsPopup) {
-        this.trackPointsPopup.remove();
-        this.trackPointsPopup = null;
-      }
+      this.closeTrackPointPopup();
 
       const precision = this.trackPrecisions.get(trackId) ?? OVERVIEW_PRECISION;
       const popupData = await loadTrackPointPopupData(this, trackId, precision);
@@ -295,70 +378,34 @@ export function useTrackPointLayer(
 
     renderTrackPointPopup(lngLat, trackId, point, canonical) {
       if (!this.overlayMap) return;
-      // Build popup HTML
-      const fmt = (v: unknown, decimals = 1) => (v != null ? Number(v).toFixed(decimals) : '—');
-      const fmtTime = (v: unknown) => {
-        if (!v) return '—';
-        const d = new Date(v as string | number | Date);
-        return formatDateAndTimeWithSeconds(d);
-      };
-      const fmtDuration = (secs: number | null | undefined) => {
-        if (secs == null) return '—';
-        const h = Math.floor(secs / 3600);
-        const m = Math.floor((secs % 3600) / 60);
-        const s = Math.round(secs % 60);
-        return h > 0 ? `${h}h ${m}m ${s}s` : m > 0 ? `${m}m ${s}s` : `${s}s`;
-      };
-
-      // Geometry from the SIMPLIFIED_SHAPE vertex (truth for the clicked
-      // map position); metrics from the canonical row.
-      const fallbackLngLat = toLngLatParts(lngLat);
-      const lat = point.pointLongLat?.coordinates?.[1] ?? fallbackLngLat.lat;
-      const lng = point.pointLongLat?.coordinates?.[0] ?? fallbackLngLat.lng;
-      const m = (canonical ?? {}) as Partial<GpsTrackDataPoint> & Record<string, number | string | null | undefined>;
-      const rows = [
-        ['Point', `${(point.pointIndex ?? 0) + 1} / ${(point.pointIndexMax ?? 0) + 1}`],
-        ['Time', fmtTime(point.pointTimestamp)],
-        ['Lat / Lng', `${fmt(lat, 6)} / ${fmt(lng, 6)}`],
-        ['Altitude', `${fmt(point.pointAltitude, 1)} m`],
-        ['Speed', `${fmt(m.speedInKmhMovingWindow, 1)} km/h`],
-        ['Dist from start', `${fmt((m.distanceInMeterSinceStart ?? 0) / 1000, 2)} km`],
-        ['Dist prev point', `${fmt(m.distanceInMeterBetweenPoints, 1)} m`],
-        ['Time prev point', `${fmt(m.durationBetweenPointsInSec, 1)} s`],
-        ['Duration', fmtDuration(m.durationSinceStart)],
-        ['Ascent', `${fmt(m.ascentInMeterSinceStart, 0)} m`],
-        ['Descent', `${fmt(m.descentInMeterSinceStart, 0)} m`],
-        ['Slope', `${fmt(m.slopePercentageInMovingWindow, 1)} %`],
-        ['Elev gain/h', `${fmt(m.elevationGainPerHourMovingWindow, 0)} m/h`],
-        ['Elev loss/h', `${fmt(m.elevationLossPerHourMovingWindow, 0)} m/h`],
-      ];
-
-      // Add energy fields if available
-      if (m.energyTotalWh != null) {
-        rows.push(['Est. energy (seg)', `${fmt(m.energyTotalWh, 2)} Wh`]);
-        rows.push(['Est. energy (cum)', `${fmt(m.energyCumulativeWh, 1)} Wh`]);
-        rows.push(['Est. power', `${fmt(m.powerWatts, 0)} W`]);
-      }
-      const html = `
-    <div class="mtl-point-popup">
-      <div class="mtl-point-popup-header">Track #${trackId}</div>
-      <table class="mtl-point-popup-table">
-        ${rows.map(([label, val]) => `<tr><td class="mtl-pp-label">${label}</td><td class="mtl-pp-value">${val}</td></tr>`).join('')}
-      </table>
-    </div>`;
+      this.trackPointsPopupContext = markRaw({ lngLat, trackId, point, canonical });
       this.trackPointsPopup = markRaw(
-        new maplibregl.Popup({
-          closeButton: true,
-          maxWidth: '280px',
-          className: 'mtl-point-popup-container',
+        createTrackPointPopup({
+          map: this.overlayMap,
+          lngLat,
+          title: `Track #${trackId}`,
+          rows: buildArchiveTrackPointPopupRows(lngLat, point, canonical),
         })
-          .setLngLat(lngLat)
-          .setHTML(html)
-          .addTo(this.overlayMap)
+      );
+    },
+
+    refreshTrackPointPopupMeasurementLabels() {
+      const context = this.trackPointsPopupContext;
+      if (!this.trackPointsPopup || !context) return;
+      updateTrackPointPopupContent(
+        this.trackPointsPopup,
+        `Track #${context.trackId}`,
+        buildArchiveTrackPointPopupRows(context.lngLat, context.point, context.canonical)
       );
     },
   };
   return methods;
+}
+
+function finiteNumber(value: unknown): number | null {
+  if (value == null || value === '') return null;
+  const number = Number(value);
+  return Number.isFinite(number) ? number : null;
 }
 
 async function loadTrackPointPopupData(

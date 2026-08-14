@@ -18,7 +18,7 @@ analyzing, replaying, and planning routes from personal track data.
 
 - Full archive MapLibre map with cache-first track loading, background sync, stale-data detection, and offline fallback.
 - Base themes for OSM Topo Contrast, OSM Topo Light, OSM Light/Gray/Dark, and Swiss Topo Color/Light maps, backed by local PMTiles or remote raster tiles depending on deployment.
-- Maps and data panel with thumbnail theme selection, layer visibility/opacity sliders, and reset defaults.
+- Responsive Map settings workspace with a current-map overview and focused screens for themes, terrain, personal data, and route overlays.
 - Opt-in 3D terrain view using Mapterhorn elevation tiles, with synchronized base/overlay maps and a compact map control.
 - Layer controls for basemap, tracks, photo/media, GPS points, heatmap, Waymarked Trails, and Swiss route/trail overlays.
 - Waymarked worldwide hiking/cycling/MTB overlays and Swiss hiking, bike, MTB, and signposted trail overlays.
@@ -29,14 +29,18 @@ analyzing, replaying, and planning routes from personal track data.
 
 ## Filters
 
-- Filter workspace with Filter, Colors, and SQL tabs, searchable catalog groups, live preview counts, auto-apply, and SQL inspection.
-- Palette previews, legend ordering, grouped-result drill-down, and map legend controls for hiding categories or gradient bands.
+- Filter workspace with the current view, a searchable view picker, live result status, pause/resume, reset with undo, and secondary SQL inspection.
+- Quick category controls and a staged category manager can narrow grouped filters, including activities, years, weekdays, custom groups, and numeric buckets.
+- Selected categories apply to the map, browser, heatmap, statistics, related tracks, and segment analysis.
+- Collapsible map-color controls, stable category colors, track review, and map-only visibility controls with Show all.
 - Built-in filters for date/time, activity, quality, duplicate/error status, motorized/non-motorized tracks, and performance gradients.
+- Activity filters expose both broad main groups and exact types such as Walking, Hiking, and Bicycle.
 - Time filters for year, day, quarter, day of week, and time of day.
 - Gradient filters for average speed, distance, elevation gain, and energy.
 - Custom SQL filters with typed parameters, including strings, date/time, circles, rectangles, and polygons.
 - SQL template filters inherit grouped parameter metadata, optional flags, widgets, and track-picker sources from their included base filters.
 - Map drawing tools for geo filter areas, with undo, finish, and cancel controls.
+- Phone and desktop layouts use the same filter flow, with full-width inner screens on phones.
 
 ## Track details
 
@@ -54,7 +58,7 @@ analyzing, replaying, and planning routes from personal track data.
 ## Statistics and discovery
 
 - Filter-aware Statistics workspace with Overview, Trends, and Tracks tabs.
-- Server-calculated Overview dashboard with totals, activity breakdown, highlights, recent activity, active-period drill-downs, and milestones.
+- Server-calculated Overview dashboard with totals, activity breakdown, highlights, recent activity, active-period drill-downs, and metric or US customary milestones.
 - Highlight drill-down actions, browser badges, and searchable curation reasons for reviewing unreliable tracks.
 - Trends by total, year, quarter, month, week, or day, with optional sub-unit filtering, summary tiles, sortable tables, and aligned charts.
 - Trend metrics for active days, track count, total/average duration, total/average distance, energy, estimated power, Normalized Power, intensity, training load, and exploration.
@@ -74,7 +78,7 @@ analyzing, replaying, and planning routes from personal track data.
 - Results table with consolidated or per-visit rows, speed/time/distance modes, stop status, and trend charts.
 - Segment comparison with speed, altitude, power, energy, slope, pacing, and time-gap charts.
 - Virtual Race replay for selected segment attempts with moving markers, trails, rankings, and playback speed.
-- Archive animation that replays visible tracks over time with date range and speed controls.
+- Responsive archive animation workspace with date-range preview, human-readable speed controls, and a compact map-first playback bar.
 - Single-track 3D replay for inspecting one activity as a cinematic fly-through.
 
 ## Planner
@@ -95,7 +99,8 @@ analyzing, replaying, and planning routes from personal track data.
 
 ## Admin and operations
 
-- Admin tile workspace for drag-and-drop GPX upload, jobs, freshness tokens, Garmin sync, helper installs, server logs, build/runtime info, settings, session cleanup, and attribution.
+- Responsive Admin center with route-backed sections for imports and Garmin sync, processing, data status, maintenance, server logs, system information, preferences, and session cleanup.
+- Desktop Admin navigation stays beside the selected section; mobile uses an overview and drill-in flow. Libraries and data-source credits are listed on the public About page.
 - Data freshness domains compare server/client revision tokens and refresh stale local caches.
-- Local light/dark theme, locale formatting, PWA/browser mode display, and credentials-only or full local-data logout.
+- Local light/dark theme, locale formatting, metric or US customary measurements, PWA/browser mode display, and credentials-only or full local-data logout.
 - Docker/self-hosted deployment with configured GPS/media volumes, PostGIS, local map assets, and optional BRouter/map-server services.

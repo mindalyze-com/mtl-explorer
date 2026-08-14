@@ -9,12 +9,15 @@ import com.x8ing.mtl.server.mtlserver.db.repository.config.ConfigRepository;
 import com.x8ing.mtl.server.mtlserver.db.repository.gps.GpsTrackDataPointRepository;
 import com.x8ing.mtl.server.mtlserver.db.repository.gps.GpsTrackDataRepository;
 import com.x8ing.mtl.server.mtlserver.db.repository.gps.GpsTrackRepository;
+import com.x8ing.mtl.server.mtlserver.metrics.window.PointWindowedPowerCalculator;
+import com.x8ing.mtl.server.mtlserver.metrics.window.PowerWindowStats;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 /**
@@ -59,10 +62,8 @@ public class EnergyService {
      */
     private static final double MIN_SEGMENT_DURATION_SEC = 1.0;
 
-    /**
-     * Rolling window used for robust estimated-power display metrics.
-     */
-    private static final double POWER_ROLLING_WINDOW_SEC = 30.0;
+    private static final PointWindowedPowerCalculator POWER_WINDOW_CALCULATOR =
+            new PointWindowedPowerCalculator();
 
     /**
      * A gap at or above this duration marks a stop/gap boundary for power reliability checks.
@@ -73,103 +74,6 @@ public class EnergyService {
      * Conversion factor: 1 Wh = 3600 J.
      */
     private static final double JOULES_PER_WH = 3600.0;
-
-    /**
-     * Compute Normalized Power (NP) from a series of per-segment power values (W) and
-     * matching segment durations (s). NP is the 4th root of the time-weighted mean of
-     * the 30-second trailing rolling-average power raised to the 4th power. Because
-     * hard bursts contribute disproportionately (p^4), NP is always ≥ simple average
-     * power on variable-effort rides, and reflects physiological cost better.
-     * <p>
-     * The algorithm walks a trailing 30-second window along the point stream, tracking
-     * a time-weighted mean of power within the window, and accumulates
-     * {@code rollingAvg^4 * segmentDuration} into the NP integral. Points before the
-     * window is fully warmed up (first 30 s of data) are skipped to match Coggan's
-     * definition.
-     * <p>
-     * Industry aliases: Weighted Average Power (Strava), Normalized Power / NP
-     * (Garmin, TrainingPeaks), xPower / IsoPower (GoldenCheetah).
-     *
-     * @param powersWatts  instantaneous power per point (W); same length as durationsSec
-     * @param durationsSec duration of the segment ending at each point (s)
-     * @return NP in watts, or 0 if the track is shorter than the warm-up window
-     */
-    static double computeNormalizedPower(double[] powersWatts, double[] durationsSec) {
-        if (powersWatts == null || durationsSec == null
-            || powersWatts.length == 0 || powersWatts.length != durationsSec.length) {
-            return 0;
-        }
-        return computeThirtySecondPowerStats(powersWatts, durationsSec).normalizedPowerWatts;
-    }
-
-    static PowerWindowStats computeThirtySecondPowerStats(double[] powersWatts, double[] durationsSec) {
-        if (powersWatts == null || durationsSec == null
-            || powersWatts.length == 0 || powersWatts.length != durationsSec.length) {
-            return new PowerWindowStats(0, 0);
-        }
-
-        final int n = powersWatts.length;
-
-        double winPowerDuration = 0; // Σ power_k × duration_k over the window
-        double winDuration = 0;      // Σ duration_k over the window
-        int windowStart = 0;
-
-        double weightedFourthPowerSum = 0;
-        double totalDuration = 0;
-        double maxRollingPower = 0;
-
-        for (int i = 0; i < n; i++) {
-            double d = durationsSec[i] > 0 ? durationsSec[i] : 0;
-            double p = powersWatts[i] > 0 ? powersWatts[i] : 0;
-            winPowerDuration += p * d;
-            winDuration += d;
-
-            // Shrink the window from the front so it spans ~30 s of trailing data.
-            while (windowStart < i) {
-                double headD = durationsSec[windowStart] > 0 ? durationsSec[windowStart] : 0;
-                if (winDuration - headD >= POWER_ROLLING_WINDOW_SEC) {
-                    double headP = powersWatts[windowStart] > 0 ? powersWatts[windowStart] : 0;
-                    winPowerDuration -= headP * headD;
-                    winDuration -= headD;
-                    windowStart++;
-                } else {
-                    break;
-                }
-            }
-
-            // Skip warm-up: require the trailing window to be fully populated before
-            // contributing to the display series or NP integral.
-            if (winDuration >= POWER_ROLLING_WINDOW_SEC && d > 0) {
-                double rollingAvg = winPowerDuration / winDuration;
-                if (rollingAvg > maxRollingPower) maxRollingPower = rollingAvg;
-
-                double avg4 = rollingAvg * rollingAvg * rollingAvg * rollingAvg;
-                weightedFourthPowerSum += avg4 * d;
-                totalDuration += d;
-            }
-        }
-
-        double normalizedPower = 0;
-        if (totalDuration > 0) {
-            double mean4 = weightedFourthPowerSum / totalDuration;
-            normalizedPower = Math.pow(mean4, 0.25);
-        }
-        return new PowerWindowStats(maxRollingPower, normalizedPower);
-    }
-
-    @JsonPropertyOrder({
-            "maxRollingPowerWatts",
-            "normalizedPowerWatts"
-    })
-    static class PowerWindowStats {
-        private final double maxRollingPowerWatts;
-        private final double normalizedPowerWatts;
-
-        PowerWindowStats(double maxRollingPowerWatts, double normalizedPowerWatts) {
-            this.maxRollingPowerWatts = maxRollingPowerWatts;
-            this.normalizedPowerWatts = normalizedPowerWatts;
-        }
-    }
 
     private final EnergyCalculatorFactory calculatorFactory;
     private final ConfigRepository configRepository;
@@ -275,21 +179,7 @@ public class EnergyService {
         double cumulativeKineticPosJoules = 0;
         double cumulativeKineticNegJoules = 0;
 
-        double powerMax = 0;
-        double powerSum = 0;
-        int powerCount = 0;
-
-        // Per-point series captured for Normalized Power computation after the loop.
-        double[] npPowers = new double[points.size()];
-        double[] npDurations = new double[points.size()];
-        int npIdx = 0;
-
-        // Moving-time accumulation for "Avg Moving Power" (net energy / moving time).
-        // Uses chunk-based wall-clock approach (same as GPXStoreService) to avoid
-        // floating-point drift from summing thousands of small durations.
-        java.util.Date movingSectionStart = null;
-        java.util.Date movingSectionEnd = null;
-        double movingTimeSec = 0;
+        PowerSummaryAccumulator powerAccumulator = new PowerSummaryAccumulator(points.size());
 
         for (int i = 0; i < points.size(); i++) {
             GpsTrackDataPoint current = points.get(i);
@@ -334,69 +224,25 @@ public class EnergyService {
                 pointPowerW = clampedPower;
                 pointDurationS = duration;
 
-                if (clampedPower > 0) {
-                    powerSum += clampedPower;
-                    powerCount++;
-                    if (clampedPower > powerMax) powerMax = clampedPower;
-                }
             } else {
                 current.setPowerWatts(0.0);
                 if (duration != null && duration > 0) pointDurationS = duration;
             }
-            npPowers[npIdx] = pointPowerW;
-            npDurations[npIdx] = pointDurationS;
-            npIdx++;
-
-            // Track moving sections for Avg Moving Power
-            boolean isMoving = current.getSpeedInKmhMovingWindow() != null
-                               && current.getSpeedInKmhMovingWindow() >= MOVING_SPEED_THRESHOLD_KMH
-                               && current.getPointTimestamp() != null;
-            if (isMoving) {
-                if (movingSectionStart == null) {
-                    movingSectionStart = current.getPointTimestamp();
-                }
-                movingSectionEnd = current.getPointTimestamp();
-            } else {
-                if (movingSectionStart != null && movingSectionEnd != null) {
-                    movingTimeSec += (movingSectionEnd.getTime() - movingSectionStart.getTime()) / 1000.0;
-                }
-                movingSectionStart = null;
-                movingSectionEnd = null;
-            }
+            powerAccumulator.add(current, pointPowerW, pointDurationS);
         }
 
-        PowerWindowStats powerWindowStats = computeThirtySecondPowerStats(npPowers, npDurations);
-
-        // Flush last open moving section
-        if (movingSectionStart != null && movingSectionEnd != null) {
-            movingTimeSec += (movingSectionEnd.getTime() - movingSectionStart.getTime()) / 1000.0;
-        }
-
-        // Avg Moving Power = total net energy / moving time
-        double movingPowerAvg = 0;
-        if (movingTimeSec > 0 && cumulativeTotalJoules > 0) {
-            movingPowerAvg = Math.min(cumulativeTotalJoules / movingTimeSec, maxPowerWatts);
-        }
-
-        double normalizedPower = Math.min(powerWindowStats.normalizedPowerWatts, maxPowerWatts);
-        double power30sMax = Math.min(powerWindowStats.maxRollingPowerWatts, maxPowerWatts);
+        PowerMetrics powerMetrics = powerAccumulator.summarize(cumulativeTotalJoules, maxPowerWatts);
         double totalMassKgUsed = effectiveParams.getTotalMassKg(calculator.getDefaultEquipmentWeightKg());
 
-        return TrackEnergySummary.builder()
-                .gravitationalAscentTotalWh(cumulativeGravAscentJoules / JOULES_PER_WH)
-                .gravitationalDescentTotalWh(cumulativeGravDescentJoules / JOULES_PER_WH)
-                .aeroDragTotalWh(cumulativeAeroDragJoules / JOULES_PER_WH)
-                .rollingResistanceTotalWh(cumulativeRollingResistanceJoules / JOULES_PER_WH)
-                .kineticPositiveTotalWh(cumulativeKineticPosJoules / JOULES_PER_WH)
-                .kineticNegativeTotalWh(cumulativeKineticNegJoules / JOULES_PER_WH)
-                .netEnergyTotalWh(cumulativeTotalJoules / JOULES_PER_WH)
-                .powerWattsAvg(powerCount > 0 ? powerSum / powerCount : 0)
-                .powerWattsMovingAvg(movingPowerAvg)
-                .powerWattsMax(powerMax)
-                .powerWatts30sMax(power30sMax)
-                .normalizedPowerWatts(normalizedPower)
-                .weightKgUsed(totalMassKgUsed)
-                .build();
+        EnergyTotals totals = new EnergyTotals(
+                cumulativeGravAscentJoules / JOULES_PER_WH,
+                cumulativeGravDescentJoules / JOULES_PER_WH,
+                cumulativeAeroDragJoules / JOULES_PER_WH,
+                cumulativeRollingResistanceJoules / JOULES_PER_WH,
+                cumulativeKineticPosJoules / JOULES_PER_WH,
+                cumulativeKineticNegJoules / JOULES_PER_WH,
+                cumulativeTotalJoules / JOULES_PER_WH);
+        return buildSummary(totals, powerMetrics, totalMassKgUsed);
     }
 
     /**
@@ -540,17 +386,7 @@ public class EnergyService {
         double aeroDrag = 0, rolling = 0;
         double kineticPos = 0, kineticNeg = 0;
         double netTotal = 0;
-        double powerMax = 0;
-        double powerSum = 0;
-        int powerCount = 0;
-
-        double[] npPowers = new double[points.size()];
-        double[] npDurations = new double[points.size()];
-        int npIdx = 0;
-
-        java.util.Date movingSectionStart = null;
-        java.util.Date movingSectionEnd = null;
-        double movingTimeSec = 0;
+        PowerSummaryAccumulator powerAccumulator = new PowerSummaryAccumulator(points.size());
 
         for (GpsTrackDataPoint p : points) {
             Double grav = p.getEnergyGravitationalWh();
@@ -575,64 +411,124 @@ public class EnergyService {
             if (total != null) netTotal += total;
 
             Double power = p.getPowerWatts();
-            if (power != null && power > 0) {
-                powerSum += power;
-                powerCount++;
-                if (power > powerMax) powerMax = power;
-            }
-            npPowers[npIdx] = power != null && power > 0 ? power : 0;
             Double dpDur = p.getDurationBetweenPointsInSec();
-            npDurations[npIdx] = dpDur != null && dpDur > 0 ? dpDur : 0;
-            npIdx++;
-
-            // Track moving sections for Avg Moving Power
-            boolean isMoving = p.getSpeedInKmhMovingWindow() != null
-                               && p.getSpeedInKmhMovingWindow() >= MOVING_SPEED_THRESHOLD_KMH
-                               && p.getPointTimestamp() != null;
-            if (isMoving) {
-                if (movingSectionStart == null) {
-                    movingSectionStart = p.getPointTimestamp();
-                }
-                movingSectionEnd = p.getPointTimestamp();
-            } else {
-                if (movingSectionStart != null && movingSectionEnd != null) {
-                    movingTimeSec += (movingSectionEnd.getTime() - movingSectionStart.getTime()) / 1000.0;
-                }
-                movingSectionStart = null;
-                movingSectionEnd = null;
-            }
+            powerAccumulator.add(
+                    p,
+                    power != null && power > 0 ? power : 0,
+                    dpDur != null && dpDur > 0 ? dpDur : 0);
         }
 
-        // Flush last open moving section
-        if (movingSectionStart != null && movingSectionEnd != null) {
-            movingTimeSec += (movingSectionEnd.getTime() - movingSectionStart.getTime()) / 1000.0;
-        }
+        PowerMetrics powerMetrics = powerAccumulator.summarize(netTotal * JOULES_PER_WH, maxPowerWatts);
+        EnergyTotals totals = new EnergyTotals(
+                gravAscent, gravDescent, aeroDrag, rolling, kineticPos, kineticNeg, netTotal);
+        return buildSummary(totals, powerMetrics, totalMassKgUsed);
+    }
 
-        double netTotalWh = netTotal;
-        double movingPowerAvg = 0;
-        if (movingTimeSec > 0 && netTotalWh > 0) {
-            movingPowerAvg = Math.min(netTotalWh * JOULES_PER_WH / movingTimeSec, maxPowerWatts);
-        }
-
-        PowerWindowStats powerWindowStats = computeThirtySecondPowerStats(npPowers, npDurations);
-        double normalizedPower = Math.min(powerWindowStats.normalizedPowerWatts, maxPowerWatts);
-        double power30sMax = Math.min(powerWindowStats.maxRollingPowerWatts, maxPowerWatts);
-
+    private static TrackEnergySummary buildSummary(
+            EnergyTotals totals,
+            PowerMetrics powerMetrics,
+            double totalMassKgUsed
+    ) {
         return TrackEnergySummary.builder()
-                .gravitationalAscentTotalWh(gravAscent)
-                .gravitationalDescentTotalWh(gravDescent)
-                .aeroDragTotalWh(aeroDrag)
-                .rollingResistanceTotalWh(rolling)
-                .kineticPositiveTotalWh(kineticPos)
-                .kineticNegativeTotalWh(kineticNeg)
-                .netEnergyTotalWh(netTotal)
-                .powerWattsAvg(powerCount > 0 ? powerSum / powerCount : 0)
-                .powerWattsMovingAvg(movingPowerAvg)
-                .powerWattsMax(powerMax)
-                .powerWatts30sMax(power30sMax)
-                .normalizedPowerWatts(normalizedPower)
+                .gravitationalAscentTotalWh(totals.gravitationalAscentWh())
+                .gravitationalDescentTotalWh(totals.gravitationalDescentWh())
+                .aeroDragTotalWh(totals.aeroDragWh())
+                .rollingResistanceTotalWh(totals.rollingResistanceWh())
+                .kineticPositiveTotalWh(totals.kineticPositiveWh())
+                .kineticNegativeTotalWh(totals.kineticNegativeWh())
+                .netEnergyTotalWh(totals.netEnergyWh())
+                .powerWattsAvg(powerMetrics.averageWatts())
+                .powerWattsMovingAvg(powerMetrics.movingAverageWatts())
+                .powerWattsMax(powerMetrics.maxWatts())
+                .powerWatts30sMax(powerMetrics.maxRollingWatts())
+                .normalizedPowerWatts(powerMetrics.normalizedWatts())
                 .weightKgUsed(totalMassKgUsed)
                 .build();
+    }
+
+    private record EnergyTotals(
+            double gravitationalAscentWh,
+            double gravitationalDescentWh,
+            double aeroDragWh,
+            double rollingResistanceWh,
+            double kineticPositiveWh,
+            double kineticNegativeWh,
+            double netEnergyWh
+    ) {
+    }
+
+    private record PowerMetrics(
+            double averageWatts,
+            double movingAverageWatts,
+            double maxWatts,
+            double maxRollingWatts,
+            double normalizedWatts
+    ) {
+    }
+
+    private static final class PowerSummaryAccumulator {
+        private final double[] powersWatts;
+        private final double[] durationsSec;
+        private int sampleIndex;
+        private double powerSum;
+        private int powerCount;
+        private double maxPower;
+        private Date movingSectionStart;
+        private Date movingSectionEnd;
+        private double movingTimeSec;
+
+        private PowerSummaryAccumulator(int sampleCount) {
+            powersWatts = new double[sampleCount];
+            durationsSec = new double[sampleCount];
+        }
+
+        private void add(GpsTrackDataPoint point, double powerWatts, double durationSec) {
+            if (powerWatts > 0) {
+                powerSum += powerWatts;
+                powerCount++;
+                maxPower = Math.max(maxPower, powerWatts);
+            }
+            powersWatts[sampleIndex] = powerWatts > 0 ? powerWatts : 0;
+            durationsSec[sampleIndex] = durationSec > 0 ? durationSec : 0;
+            sampleIndex++;
+            recordMovingSection(point);
+        }
+
+        private void recordMovingSection(GpsTrackDataPoint point) {
+            boolean isMoving = point.getSpeedInKmhMovingWindow() != null
+                               && point.getSpeedInKmhMovingWindow() >= MOVING_SPEED_THRESHOLD_KMH
+                               && point.getPointTimestamp() != null;
+            if (isMoving) {
+                if (movingSectionStart == null) {
+                    movingSectionStart = point.getPointTimestamp();
+                }
+                movingSectionEnd = point.getPointTimestamp();
+                return;
+            }
+            closeMovingSection();
+        }
+
+        private void closeMovingSection() {
+            if (movingSectionStart != null && movingSectionEnd != null) {
+                movingTimeSec += (movingSectionEnd.getTime() - movingSectionStart.getTime()) / 1000.0;
+            }
+            movingSectionStart = null;
+            movingSectionEnd = null;
+        }
+
+        private PowerMetrics summarize(double totalEnergyJoules, double maxPowerWatts) {
+            closeMovingSection();
+            PowerWindowStats windowStats = POWER_WINDOW_CALCULATOR.compute(powersWatts, durationsSec);
+            double movingAverage = movingTimeSec > 0 && totalEnergyJoules > 0
+                    ? Math.min(totalEnergyJoules / movingTimeSec, maxPowerWatts)
+                    : 0;
+            return new PowerMetrics(
+                    powerCount > 0 ? powerSum / powerCount : 0,
+                    movingAverage,
+                    maxPower,
+                    Math.min(windowStats.maxRollingPowerWatts(), maxPowerWatts),
+                    Math.min(windowStats.normalizedPowerWatts(), maxPowerWatts));
+        }
     }
 
     /**

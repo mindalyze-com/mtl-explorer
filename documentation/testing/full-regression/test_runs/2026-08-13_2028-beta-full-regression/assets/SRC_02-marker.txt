@@ -1,0 +1,7 @@
+Selected result: Zürich, Zurich, Switzerland.
+
+After selection:
+- Search sheet closed.
+- Map animated to the result at 100 m scale.
+- A centered purple location pin appeared with a visible close/remove X.
+- Existing navigation and the active Q1 result remained usable.

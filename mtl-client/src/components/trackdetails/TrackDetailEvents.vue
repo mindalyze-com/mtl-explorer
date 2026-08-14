@@ -78,14 +78,20 @@ import {
   GpsTrackEventSourceEnum,
   type GpsTrackEvent,
 } from 'x8ing-mtl-api-typescript-fetch/dist/esm/models/index';
+import { formatCompactDistance, formatCompactDurationSeconds } from '@/utils/Utils';
+import {
+  formatTrackEventClockTime as formatClockTime,
+  formatTrackEventDateTime as formatTime,
+  trackEventKey as eventKey,
+  trackEventKeysEqual as eventKeysEqual,
+  trackEventTimeMs as toMillis,
+  trackEventTypeLabel as formatType,
+} from '@/utils/trackEvents';
 
 defineOptions({
   name: 'TrackDetailEvents',
 });
 
-const METERS_PER_KILOMETER = 1000;
-const SECONDS_PER_MINUTE = 60;
-const SECONDS_PER_HOUR = 60 * SECONDS_PER_MINUTE;
 const MILLISECONDS_PER_SECOND = 1000;
 const DISTANCE_RANGE_MIN_DELTA_M = 10;
 const MIN_BREAK_BAR_PERCENT = 8;
@@ -157,7 +163,7 @@ const eventRows = computed<TrackEventRow[]>(() => {
 
     const durationSec = normalizedDuration(event.durationInSec);
     const durationBarPercent = breakDurationPercent(durationSec, maxBreakDurationSec.value);
-    const durationLabel = durationSec > 0 ? formatDuration(durationSec) : '';
+    const durationLabel = durationSec > 0 ? formatCompactDurationSeconds(durationSec) : '';
     const title = eventTitle(event, breakNumber);
 
     return {
@@ -182,7 +188,7 @@ const eventRows = computed<TrackEventRow[]>(() => {
 const breakCount = computed(() => eventRows.value.filter((row) => row.isBreakEvent).length);
 
 const longestBreakLabel = computed(() => {
-  return maxBreakDurationSec.value > 0 ? formatDuration(maxBreakDurationSec.value) : '';
+  return maxBreakDurationSec.value > 0 ? formatCompactDurationSeconds(maxBreakDurationSec.value) : '';
 });
 
 watch(
@@ -195,12 +201,6 @@ watch(
     selectedRow?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
   }
 );
-
-function toMillis(value: GpsTrackEvent['startTimestamp']): number {
-  if (!value) return 0;
-  if (typeof value === 'string') return new Date(value).getTime();
-  return value.getTime();
-}
 
 function isBreakEvent(event: GpsTrackEvent): boolean {
   return event.eventType ? BREAK_EVENT_TYPES.has(event.eventType) : false;
@@ -234,14 +234,6 @@ function eventBadgeLabel(event: GpsTrackEvent, durationSec: number, totalBreakCo
   if (isRecordingGapBreak(event)) labels.push(GPS_GAP_BREAK_BADGE_LABEL);
   if (isBreakEvent(event) && totalBreakCount > 1 && isLongestBreak(durationSec)) labels.push('Longest');
   return labels.join(' · ');
-}
-
-function eventKey(event: GpsTrackEvent): string | number {
-  return event.id ?? `${event.startPointIndex ?? 'x'}-${toMillis(event.startTimestamp)}`;
-}
-
-function eventKeysEqual(a: string | number | null | undefined, b: string | number | null | undefined): boolean {
-  return a != null && b != null && String(a) === String(b);
 }
 
 function selectRow(row: TrackEventRow): void {
@@ -285,31 +277,6 @@ function eventIconClass(event: GpsTrackEvent): string {
   return 'bi bi-record-fill';
 }
 
-function formatType(value: string | undefined): string {
-  if (!value) return 'Event';
-  return value
-    .toLowerCase()
-    .replaceAll('_', ' ')
-    .replace(/\b\w/g, (c) => c.toUpperCase());
-}
-
-function formatTime(value: GpsTrackEvent['startTimestamp']): string {
-  const ms = toMillis(value);
-  if (!Number.isFinite(ms) || ms <= 0) return '';
-  return new Intl.DateTimeFormat(undefined, {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-  }).format(new Date(ms));
-}
-
-function formatClockTime(value: GpsTrackEvent['startTimestamp']): string {
-  const ms = toMillis(value);
-  if (!Number.isFinite(ms) || ms <= 0) return '';
-  return new Intl.DateTimeFormat(undefined, {
-    timeStyle: 'short',
-  }).format(new Date(ms));
-}
-
 function formatBreakTimeRange(event: GpsTrackEvent): string {
   const startMs = toMillis(event.startTimestamp);
   if (!Number.isFinite(startMs) || startMs <= 0) return '';
@@ -337,22 +304,6 @@ function isSameLocalDate(aMs: number, bMs: number): boolean {
   return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
 }
 
-function formatDuration(seconds: number): string {
-  if (!Number.isFinite(seconds)) return '';
-
-  const rounded = Math.round(seconds);
-  const hours = Math.floor(rounded / SECONDS_PER_HOUR);
-  const mins = Math.floor((rounded % SECONDS_PER_HOUR) / SECONDS_PER_MINUTE);
-  const secs = rounded % SECONDS_PER_MINUTE;
-
-  if (hours > 0) {
-    return `${hours}h ${mins.toString().padStart(2, '0')}m`;
-  }
-
-  if (mins <= 0) return `${secs}s`;
-  return `${mins}m ${secs.toString().padStart(2, '0')}s`;
-}
-
 function formatEventPosition(event: GpsTrackEvent): string {
   const start = event.startDistanceInMeter;
   const end = event.endDistanceInMeter;
@@ -360,25 +311,19 @@ function formatEventPosition(event: GpsTrackEvent): string {
   const hasEnd = end != null && Number.isFinite(end);
 
   if (hasStart && hasEnd && Math.abs(end - start) >= DISTANCE_RANGE_MIN_DELTA_M) {
-    return `${formatDistance(start)} - ${formatDistance(end)}`;
+    return `${formatCompactDistance(start)} - ${formatCompactDistance(end)}`;
   }
 
-  if (hasStart) return formatDistance(start);
-  if (hasEnd) return formatDistance(end);
+  if (hasStart) return formatCompactDistance(start);
+  if (hasEnd) return formatCompactDistance(end);
   return '';
-}
-
-function formatDistance(meters: number): string {
-  if (!Number.isFinite(meters)) return '';
-  if (meters < METERS_PER_KILOMETER) return `${Math.round(meters)} m`;
-  return `${(meters / METERS_PER_KILOMETER).toFixed(2)} km`;
 }
 </script>
 
 <style scoped>
 .events-panel {
-  --break-accent: #f97316;
-  --break-accent-strong: #ea580c;
+  --break-accent: var(--viz-orange);
+  --break-accent-strong: var(--viz-orange-strong);
   --break-accent-soft: rgba(249, 115, 22, 0.13);
   --break-accent-line: rgba(249, 115, 22, 0.36);
   --break-scale-track: rgba(15, 23, 42, 0.08);
@@ -464,7 +409,7 @@ function formatDistance(meters: number): string {
 }
 
 .event-row--break .event-marker {
-  color: #fff;
+  color: var(--accent-contrast);
   background: linear-gradient(135deg, var(--break-accent), var(--break-accent-strong));
   box-shadow: 0 6px 16px rgba(249, 115, 22, 0.24);
 }

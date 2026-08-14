@@ -1,0 +1,22 @@
+Boundary-value formatting
+
+Synthetic zero/null-elevation track #100023:
+- Database ingest SUCCESS.
+- Input omitted every elevation value and had identical coordinates.
+- Server normalized length, ascent, min altitude, and max altitude to 0.00 / 0.00 / 0.00 / 0.00.
+- UI: 0.00 m distance, 1m 00s duration, 0 m ascent/descent/min/max/range, 0.0 km/h, 0.0% slopes.
+- Energy used the actionable intermediate copy: Energy stats are being calculated…
+- No NaN, undefined, literal null, or blank metric appeared.
+
+Very large Mosel track #100002:
+- 518 km, 1d 07h, 4,380 m ascent, 4,917 m descent, 1,615.7 Wh.
+- Negative boundary: -12.4% Max Desc. Slope.
+- No NaN, undefined, or literal null.
+
+Negative-elevation Lannion track #100004:
+- -4 m Min Alt.
+- -7.1% Max Desc. Slope.
+- No NaN, undefined, or literal null.
+
+The exact synthetic source was removed after evidence.
+

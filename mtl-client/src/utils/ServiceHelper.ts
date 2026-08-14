@@ -1,4 +1,3 @@
-import axios from 'axios';
 import {
   TracksControllerApi,
   FilterControllerApi,
@@ -26,14 +25,16 @@ import {
   StatisticsOverviewResponseDtoFromJSONTyped,
   type QueryResultEntry,
   type TriggerPoint,
+  RelatedTracksFromJSONTyped,
 } from 'x8ing-mtl-api-typescript-fetch/dist/esm/models/index';
 
-import { type FilterParamsRequest, FilterService } from '@/components/filter/FilterService';
-import type { FilterResult } from '@/types/filter';
-import { useFilterStore, type ActiveFilterRequest } from '@/stores/filterStore';
+import type { FilterParamsRequest } from '@/components/filter/FilterService';
+import { loadActiveFilterRequest, type ActiveFilterRequest } from '@/stores/filterStore';
 import { apiClient } from '@/utils/apiClient';
+import { isAbortLikeError } from '@/utils/errors';
 import { getApiConfiguration } from '@/utils/openApiClient';
 import { logSanitizedError } from '@/utils/safeLogging';
+import type { MeasurementSystem } from '@/utils/units';
 import {
   chartSeriesToTrackChartSeries,
   fetchChartSeries,
@@ -45,6 +46,7 @@ import {
   TRACK_DETAILS_CHART_POINTS_DEFAULT,
 } from '@/utils/trackDetailsChartPointSettings';
 export type { ChartPoint, TrackChartSeries } from '@/utils/chartSeriesAdapter';
+export { fetchResolveFilter, type ResolveFilterResult } from '@/utils/filterApi';
 
 // ─── Back-compat re-exports ─────────────────────────────────────────────────
 // Admin / diagnostic API surface lives in serverAdminApi.ts. Re-exported here
@@ -86,34 +88,6 @@ const TRACKS_SIMPLIFIED_MODE_IDS = 'ids';
 const INVALID_FILENAME_CHARS = /[\\/:*?"<>|]+/g;
 const WHITESPACE_CHARS = /\s+/g;
 
-function isAbortLikeError(error: unknown, signal?: AbortSignal): boolean {
-  if (signal?.aborted) return true;
-  if (error == null || typeof error !== 'object') return false;
-
-  const candidate = error as { name?: unknown; code?: unknown; cause?: unknown };
-  if (
-    candidate.name === 'AbortError' ||
-    candidate.name === 'CanceledError' ||
-    candidate.code === 'ERR_CANCELED'
-  ) {
-    return true;
-  }
-
-  return candidate.cause !== error && isAbortLikeError(candidate.cause);
-}
-
-/**
- * Flatten a FilterParamsRequest into a simple {key: value} map.
- * Used for server endpoints that still accept Map<String, String>.
- */
-function flattenFilterParams(params: FilterParamsRequest | undefined): Record<string, string> {
-  if (!params) return {};
-  const flat: Record<string, string> = {};
-  if (params.stringParams) Object.assign(flat, params.stringParams);
-  if (params.dateTimeParams) Object.assign(flat, params.dateTimeParams);
-  return flat;
-}
-
 function queryString(params: Record<string, string | number | undefined>): string {
   const searchParams = new URLSearchParams();
   for (const [key, value] of Object.entries(params)) {
@@ -124,10 +98,7 @@ function queryString(params: Record<string, string | number | undefined>): strin
   return value ? `?${value}` : '';
 }
 
-async function resolveStatisticsTrackIds(
-  filterRequest: ActiveFilterRequest,
-  signal?: AbortSignal
-): Promise<number[]> {
+async function resolveStatisticsTrackIds(filterRequest: ActiveFilterRequest, signal?: AbortSignal): Promise<number[]> {
   if (filterRequest.resolvedTrackIds) {
     return [...filterRequest.resolvedTrackIds];
   }
@@ -144,19 +115,6 @@ async function resolveStatisticsTrackIds(
   return Object.keys(result.trackVersions ?? {})
     .map(Number)
     .filter((trackId) => Number.isSafeInteger(trackId) && trackId > 0);
-}
-
-async function loadActiveFilterRequest(): Promise<ActiveFilterRequest> {
-  try {
-    const filterStore = useFilterStore();
-    return await filterStore.getActiveFilterRequest();
-  } catch {
-    const clientFilterConfig = await FilterService.loadClientFilterConfig();
-    return {
-      filterName: clientFilterConfig.filterInfo?.filterConfig?.filterName ?? '',
-      filterParams: clientFilterConfig.filterParams,
-    };
-  }
 }
 
 async function resolveActiveFilterRequest(filterRequest?: ActiveFilterRequest): Promise<ActiveFilterRequest> {
@@ -279,15 +237,12 @@ function makeGpxFileName(fileName: string | null | undefined): string {
 
 export async function getRelatedTracks(gpsTrackId: number | string): Promise<RelatedTracks> {
   try {
-    const { filterName } = await loadActiveFilterRequest();
-
-    const api = getTracksApi();
-    const result = await api.getRelatedTracks({
-      gpsTrackId: Number(gpsTrackId),
-      filterName: filterName,
-    });
-
-    return result;
+    const { filterName, filterParams } = await loadActiveFilterRequest();
+    const response = await apiClient.post(
+      `api/tracks/related/${Number(gpsTrackId)}${queryString({ filterName })}`,
+      filterParams ?? {}
+    );
+    return RelatedTracksFromJSONTyped(response.data, false);
   } catch (error: unknown) {
     logSanitizedError('Error getting related tracks:', error);
     throw new Error(String(error));
@@ -319,7 +274,7 @@ export async function fetchTrackDetailsForCrossingPoints(
       radius: radius,
       filter: {
         filterName: filterName,
-        params: flattenFilterParams(filterParams),
+        params: filterParams ?? {},
       },
     };
 
@@ -331,7 +286,7 @@ export async function fetchTrackDetailsForCrossingPoints(
 
     return CrossingPointsResponseDtoFromJSONTyped(response.data, false);
   } catch (error: unknown) {
-    if (axios.isCancel(error)) throw error;
+    if (isAbortLikeError(error, signal)) throw error;
     logSanitizedError('Error getting track details for crossing points:', error);
     throw new Error(String(error));
   }
@@ -353,13 +308,13 @@ export async function fetchTrackIdsWithinDistanceOfPoint(
 
     const response = await apiClient.post(
       `api/tracks/get-track-ids-within-distance-of-point?filterName=${filterName}&longitude=${longitude}&latitude=${latitude}&distanceInMeter=${distanceInMeter}`,
-      flattenFilterParams(filterParams),
+      filterParams ?? {},
       { signal }
     );
 
     return response.data as number[];
   } catch (error: unknown) {
-    if (axios.isCancel(error)) throw error;
+    if (isAbortLikeError(error, signal)) throw error;
     logSanitizedError('Error getting track IDs within distance:', error);
     throw new Error(String(error));
   }
@@ -388,6 +343,7 @@ export async function fetchStatistics(
 }
 
 export async function fetchStatisticsOverview(
+  measurementSystem: MeasurementSystem,
   signal?: AbortSignal,
   filterRequest?: ActiveFilterRequest
 ): Promise<StatisticsOverviewResponseDto> {
@@ -396,7 +352,7 @@ export async function fetchStatisticsOverview(
     const trackIds = await resolveStatisticsTrackIds(activeFilterRequest, signal);
 
     const response = await apiClient.post(
-      `api/tracks/get-track-overview`,
+      `api/tracks/get-track-overview${queryString({ measurementSystem })}`,
       trackIds,
       { signal }
     );
@@ -561,56 +517,6 @@ export async function fetchFilterInfo(filterDomain: string, filterName: string):
     return filterInfo;
   } catch (error: unknown) {
     logSanitizedError('Error fetching filter info:', error);
-    throw new Error(String(error));
-  }
-}
-
-/**
- * Extended result from filter/resolve that extends FilterResult with the full
- * QueryResult for UI display. This means it satisfies FilterResult directly and
- * can be passed to the track collection loader without conversion.
- */
-export interface ResolveFilterResult extends FilterResult {
-  /** Parsed QueryResult for UI display (entries, groups) */
-  queryResult: QueryResult;
-}
-
-export async function fetchResolveFilter(
-  filterConfigId: number,
-  filterParams: FilterParamsRequest,
-  includeGPSTrack: boolean = false
-): Promise<ResolveFilterResult> {
-  try {
-    console.log('fetch resolveFilter for filterConfigId', filterConfigId, filterParams);
-
-    // The getResolveById API doesn't accept a body with filter params,
-    // so we POST manually with body.
-    const response = await apiClient.post(
-      `api/filter/resolve/${filterConfigId}?includeGPSTrack=${includeGPSTrack}`,
-      filterParams
-    );
-
-    const queryResult = QueryResultFromJSONTyped(response.data, false);
-
-    // Read VersionAware fields directly from raw JSON —
-    // these are extra fields not in the generated TypeScript types.
-    const rawVersions: Record<string, number> = response.data.trackVersions ?? {};
-    const trackVersions = new Map<number, number>(Object.entries(rawVersions).map(([k, v]) => [Number(k), Number(v)]));
-    const rawGroups: Record<string, string> = response.data.filterGroups ?? {};
-    const filterGroups = new Map<number, string>(Object.entries(rawGroups).map(([k, v]) => [Number(k), v]));
-    const legendGroupOrder: string[] = [];
-    const seenLegendGroups = new Set<string>();
-    for (const entry of queryResult.resultEntries ?? []) {
-      const group = entry.group;
-      if (!group || seenLegendGroups.has(group)) continue;
-      seenLegendGroups.add(group);
-      legendGroupOrder.push(group);
-    }
-    const standardFilterCount = Number(response.data.standardFilterCount ?? 0);
-
-    return { queryResult, trackVersions, filterGroups, legendGroupOrder, standardFilterCount };
-  } catch (error: unknown) {
-    logSanitizedError('Error fetching filter resolve:', error);
     throw new Error(String(error));
   }
 }

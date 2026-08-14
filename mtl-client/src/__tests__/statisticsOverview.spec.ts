@@ -1,6 +1,10 @@
-import { mount } from '@vue/test-utils';
+import { enableAutoUnmount, mount } from '@vue/test-utils';
 import { defineComponent, nextTick } from 'vue';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { useMeasurementSystem } from '@/composables/useMeasurementSystem';
+
+const measurementPreference = useMeasurementSystem();
+enableAutoUnmount(afterEach);
 import StatisticsOverview from '@/components/statistics/StatisticsOverview.vue';
 import { fetchStatisticsOverview, updateTrackStatisticsExclusion } from '@/utils/ServiceHelper';
 import {
@@ -92,6 +96,7 @@ const flush = async () => {
 
 function overview(overrides: Partial<StatisticsOverviewResponseDto> = {}): StatisticsOverviewResponseDto {
   return {
+    measurementSystem: 'METRIC',
     summary: {
       trackCount: 2,
       distanceM: 125_000,
@@ -155,9 +160,16 @@ function overview(overrides: Partial<StatisticsOverviewResponseDto> = {}): Stati
         ],
       },
     ],
+    firstActivity: { sortOrder: 10, rowKey: 'first-activity', trackId: 11, value: 0 },
+    latestActivity: { sortOrder: 20, rowKey: 'latest-activity', trackId: 12, value: 0 },
     milestones: [
-      { sortOrder: 10, rowKey: 'first-activity', trackId: 11, value: 0 },
-      { sortOrder: 60, rowKey: 'distance-100000', trackId: 11, value: 100_000 },
+      {
+        sortOrder: 4,
+        dimension: 'DISTANCE',
+        trackId: 11,
+        thresholdM: 100_000,
+        achievedM: 100_000,
+      },
     ],
     exclusionSummary: {
       highlightExcludedTrackCount: 0,
@@ -215,6 +227,7 @@ function mountOverview(toggle = vi.fn()) {
 
 describe('StatisticsOverview', () => {
   beforeEach(() => {
+    measurementPreference.setMeasurementSystem('METRIC');
     fetchStatisticsOverviewMock.mockReset();
     updateTrackStatisticsExclusionMock.mockReset();
   });
@@ -228,7 +241,12 @@ describe('StatisticsOverview', () => {
     expect(fetchStatisticsOverviewMock).toHaveBeenCalledOnce();
     expect(wrapper.find('[data-test="summary-tracks"]').text()).toContain('2');
     expect(wrapper.find('[data-test="summary-ascent"]').text()).toContain('1,500 m');
-    expect(wrapper.find('[data-test="filter-banner"]').text()).toContain('Showing 2 of 4 tracks');
+    const filterBanner = wrapper.get('[data-test="filter-banner"]');
+    expect(filterBanner.element.tagName).toBe('BUTTON');
+    expect(filterBanner.text()).toContain('Showing 2 of 4 tracks');
+    expect(filterBanner.attributes('aria-label')).toBe('Open Filter. Showing 2 of 4 tracks');
+    await filterBanner.trigger('click');
+    expect(wrapper.emitted('open-filter')).toEqual([[]]);
     expect(wrapper.text()).toContain('Filtered century');
     expect(wrapper.text()).not.toContain('99');
   });
@@ -258,6 +276,39 @@ describe('StatisticsOverview', () => {
 
     expect(fetchStatisticsOverviewMock).toHaveBeenCalledTimes(2);
     expect(wrapper.find('[data-test="summary-tracks"]').text()).toContain('1');
+  });
+
+  it('refetches semantic milestones when the measurement system changes', async () => {
+    fetchStatisticsOverviewMock.mockResolvedValueOnce(overview()).mockResolvedValueOnce(
+      overview({
+        measurementSystem: 'US_CUSTOMARY',
+        milestones: [
+          {
+            sortOrder: 5,
+            dimension: 'DISTANCE',
+            trackId: 12,
+            thresholdM: 160_934.4,
+            achievedM: 170_000,
+          },
+        ],
+      })
+    );
+
+    const wrapper = mountOverview();
+    await flush();
+
+    expect(fetchStatisticsOverviewMock).toHaveBeenLastCalledWith('METRIC', expect.any(AbortSignal), undefined);
+    expect(wrapper.text()).toContain('First 100 km track');
+
+    measurementPreference.setMeasurementSystem('US_CUSTOMARY');
+    await flush();
+
+    expect(fetchStatisticsOverviewMock).toHaveBeenLastCalledWith('US_CUSTOMARY', expect.any(AbortSignal), undefined);
+    expect(wrapper.text()).toContain('First 100 mi track');
+    expect(wrapper.text()).toContain('Filtered latest');
+
+    wrapper.unmount();
+    measurementPreference.setMeasurementSystem('METRIC');
   });
 
   it('toggles activity breakdown metrics and hides energy when the server summary has no energy', async () => {
@@ -357,6 +408,14 @@ describe('StatisticsOverview', () => {
     });
     expect(fetchStatisticsOverviewMock).toHaveBeenCalledTimes(2);
     expect(wrapper.find('[data-test="highlight-exclusion-note"]').text()).toBe('1 track excluded');
+    expect(wrapper.emitted('track-updated')).toEqual([
+      [
+        expect.objectContaining({
+          id: 11,
+          highlightExclusionReason: ExclusionReasonEnum.GpsNoise,
+        }),
+      ],
+    ]);
 
     await wrapper.find('[data-test="highlight-longest-distance-main"]').trigger('click');
     await nextTick();

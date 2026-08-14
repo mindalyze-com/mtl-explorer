@@ -1,5 +1,6 @@
 import { ref, watch } from 'vue';
 import { readStorage, STORAGE_KEYS, writeStorage } from '@/utils/appStorage';
+import { countryForTimezone } from '@/utils/timezones';
 
 const STORAGE_KEY = STORAGE_KEYS.locale;
 
@@ -18,28 +19,6 @@ export const LOCALE_PRESETS = [
   { label: 'fr-FR  (31/12/2025, 1 234,56)', value: 'fr-FR' },
   { label: "it-CH  (31.12.2025, 1'234.56)", value: 'it-CH' },
 ] as const;
-
-/** Maps IANA timezone identifiers to ISO 3166-1 alpha-2 country codes. */
-const TZ_COUNTRY_MAP: Record<string, string> = {
-  'Europe/Zurich': 'CH',
-  'Europe/Berlin': 'DE',
-  'Europe/Busingen': 'DE',
-  'Europe/Paris': 'FR',
-  'Europe/London': 'GB',
-  'Europe/Dublin': 'IE',
-  'America/New_York': 'US',
-  'America/Chicago': 'US',
-  'America/Denver': 'US',
-  'America/Los_Angeles': 'US',
-  'America/Phoenix': 'US',
-  'America/Anchorage': 'US',
-  'Pacific/Honolulu': 'US',
-  'America/Toronto': 'CA',
-  'America/Vancouver': 'CA',
-  'Australia/Sydney': 'AU',
-  'Australia/Melbourne': 'AU',
-  'Pacific/Auckland': 'NZ',
-};
 
 export interface LocaleDetection {
   /** Matched preset value, or '' if nothing matched. */
@@ -60,7 +39,7 @@ export function detectBestLocale(): LocaleDetection {
   const parts = browserLang.split('-');
   const baseLang = parts[0].toLowerCase();
   const browserRegion = parts[1]?.toUpperCase();
-  const tzCountry = TZ_COUNTRY_MAP[tz];
+  const tzCountry = countryForTimezone(tz);
 
   const presetValues = LOCALE_PRESETS.filter((p) => p.value).map((p) => p.value as string);
   // Candidates in priority order: TZ-inferred country first, then browser region

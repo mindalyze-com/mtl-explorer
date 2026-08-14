@@ -1,0 +1,18 @@
+FLT_14 view-change selection behavior
+
+Starting view: Tracks by year
+Starting criteria: 2010-2010
+Starting exact category selection: 2010
+Starting result: 2 of 12 tracks
+
+Same-view check:
+- Selected Tracks by year again and applied.
+- Exact selection remained: master unchecked, 2010 checked.
+- Result remained 2 tracks.
+
+Different-view check:
+- Switched to Tracks by quarter and applied.
+- View-specific criteria cleared.
+- Result returned to 12 matching tracks.
+- Included categories showed All 2 categories.
+- Checkbox state: master checked, Q1 checked, Q3 checked.

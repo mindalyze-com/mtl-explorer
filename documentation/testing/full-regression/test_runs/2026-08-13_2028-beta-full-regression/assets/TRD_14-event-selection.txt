@@ -1,0 +1,17 @@
+Coverage ID: TRD_14
+Track: #100000 Jura Route 7
+
+Detected event
+- Events summary: 1 BREAK; longest 1m 03s.
+- Break 1: 1 Jan 2010, 15:35-15:36.
+- Duration: 1m 03s.
+- Position: 235.89 km.
+
+Selection
+- Clicking Break 1 rendered a large orange target on the mini-map track near Lausanne.
+- The selected card used the matching orange emphasized state.
+
+Deselection
+- Clicking Break 1 again removed the orange target from the mini-map.
+- Track line, mini-map, event list, and tab remained intact and usable.
+

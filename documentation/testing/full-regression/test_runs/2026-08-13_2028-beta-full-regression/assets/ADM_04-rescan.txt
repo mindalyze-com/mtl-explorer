@@ -1,0 +1,19 @@
+Manual rescan checks
+
+UI GPS response:
+- status STARTED
+- Manual GPS rescan has been queued.
+
+UI MEDIA response:
+- status STARTED
+- Manual MEDIA rescan has been queued.
+
+Concurrent authenticated GPS rescan responses:
+- STARTED: Manual GPS rescan has been queued.
+- ALREADY_RUNNING: GPS scan is already running.
+
+Healthy quick-install condition:
+- GPS and MEDIA indexers were ready for the entire reachable signed-in lifecycle.
+- A controlled application restart did not expose an authenticated interval before indexer readiness, so the NOT_RUNNING response branch was not applicable.
+- After all scans and the restart, the signed-in map and Admin route rendered normally; map zoom changed 2,000 km to 1,000 km.
+

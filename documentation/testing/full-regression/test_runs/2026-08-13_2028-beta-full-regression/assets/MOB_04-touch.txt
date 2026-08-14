@@ -1,0 +1,9 @@
+Mobile Planner touch requirement
+
+- Prior direct mobile Planner execution: PLN_11.
+- At mobile width, pointer drag of a route waypoint rerouted successfully.
+- Current browser tab capabilities again contain no touch-event/emulation capability.
+- The harness cannot emit `touchstart`, `touchmove`, `touchend`, or a native tap/drag sequence.
+- Pointer success cannot be used as evidence for the explicit touch requirement.
+- Unblock path: rerun Planner waypoint tap/drag/insert on a physical touch device or browser emulator that advertises native touch input.
+

@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.10.xsd">
+
+    <changeSet id="20260814_1_exact_activity_type_filter" author="codex">
+        <comment>
+            Keep the existing broad activity groups and add a separate Activity
+            view whose result categories are the exact track activity types.
+        </comment>
+
+        <update tableName="filter_config">
+            <column name="display_name" value="Activities by main group"/>
+            <column name="description" value="Groups tracks into broad activity categories such as On foot, Cycling, On water, and Motorized."/>
+            <where>filter_domain = 'GPS_TRACK' AND filter_name = 'ActivitiesByMainTypes'</where>
+        </update>
+
+        <insert tableName="filter_config">
+            <column name="filter_name" value="ActivitiesByExactType"/>
+            <column name="filter_type" value="SQL"/>
+            <column name="filter_domain" value="GPS_TRACK"/>
+            <column name="filter_category" value="USER"/>
+            <column name="description" value="Groups tracks by their exact activity type, such as Walking, Hiking, or Bicycle."/>
+            <column name="expression">
+                <![CDATA[
+                SELECT gt.id, gt.activity_type::text AS grp
+                FROM gps_track gt
+                WHERE gt.activity_type IS NOT NULL
+                  AND gt.id = ANY(
+                    SELECT id FROM (
+                        [[~{/GPS_TRACK/SmartBaseFilter}]]
+                    ) base_filter
+                  )
+                ORDER BY gt.activity_type, gt.id
+                ]]>
+            </column>
+            <column name="display_name" value="Activities by exact type"/>
+            <column name="display_order" valueNumeric="2005"/>
+            <column name="filter_group" value="Activity"/>
+            <column name="group_semantics" value="CATEGORICAL"/>
+            <column name="coloring_strategy" value="CATEGORICAL"/>
+            <column name="legend_sort_strategy" value="LABEL_ASC"/>
+            <column name="preferred_palette" value="008_COLORS"/>
+        </insert>
+    </changeSet>
+
+</databaseChangeLog>

@@ -1,5 +1,5 @@
 <template>
-  <div class="login-wrapper" :class="{ 'is-departing': isDeparting }">
+  <div class="login-wrapper splash-viewport" :class="{ 'is-departing': isDeparting }">
     <div class="photo-backdrop" :style="{ backgroundImage: `url(${bgImage})` }"></div>
     <div class="photo-vignette"></div>
     <Transition name="notice-fade">
@@ -8,24 +8,9 @@
       </div>
     </Transition>
     <span class="photo-credit">© Patrick Heusser</span>
-    <button class="legal-trigger" aria-label="About & license" @click="showLegal = !showLegal">AGPL-3.0</button>
-    <Transition name="legal-fade">
-      <div v-if="showLegal" class="legal-backdrop" @click="showLegal = false">
-        <div class="legal-panel" @click.stop>
-          <button class="legal-close" aria-label="Close" @click="showLegal = false">✕</button>
-          <p class="legal-line">Photo &amp; app © <strong>Patrick Heusser</strong></p>
-          <button
-            class="legal-about-link"
-            @click="
-              showLegal = false;
-              showAbout = true;
-            "
-          >
-            AGPL-3.0 · About &amp; Source
-          </button>
-        </div>
-      </div>
-    </Transition>
+    <button class="legal-trigger" aria-label="About MTL Explorer and license" @click="showAbout = true">
+      About &amp; source
+    </button>
     <AboutSourceOverlay v-model:visible="showAbout" />
     <div class="login-container" :class="{ 'is-departing': isDeparting }">
       <div class="mac-login-panel">
@@ -105,7 +90,6 @@ const bgImage = getRandomBackground();
 const demoMode = ref(false);
 const demoUsername = ref('');
 const demoPassword = ref('');
-const showLegal = ref(false);
 const showAbout = ref(false);
 const isAuthenticating = computed(() => loading.value || isDeparting.value);
 const loginStageMessage = computed(() => (isDeparting.value ? 'Loading your trails' : 'Signing in'));
@@ -224,12 +208,6 @@ async function handleLogin() {
   position: relative;
   min-height: 100vh;
   min-height: var(--splash-viewport-height);
-  box-sizing: border-box;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
 }
 
 .login-notice {
@@ -426,7 +404,7 @@ async function handleLogin() {
   border-radius: 20px !important;
   background-color: rgba(255, 255, 255, 0.16) !important;
   border: 1px solid rgba(255, 255, 255, 0.24) !important;
-  color: #ffffff !important;
+  color: var(--on-photo-text) !important;
   font-weight: 650 !important;
   padding: 0.75rem 1rem !important;
   margin-top: 0.5rem;
@@ -449,7 +427,7 @@ async function handleLogin() {
 }
 
 :deep(.mac-button .p-button-label) {
-  color: #ffffff !important;
+  color: var(--on-photo-text) !important;
   letter-spacing: 0.01em;
 }
 
@@ -502,7 +480,7 @@ async function handleLogin() {
   flex-shrink: 0;
 }
 
-/* AGPL-3.0 trigger — bottom-left, minimal */
+/* Public About and source access — available before sign-in. */
 .legal-trigger {
   position: absolute;
   bottom: calc(env(safe-area-inset-bottom) + 0.5rem);
@@ -521,121 +499,5 @@ async function handleLogin() {
 
 .legal-trigger:hover {
   color: rgba(255, 255, 255, 0.58);
-}
-
-/* Full-screen transparent backdrop to catch outside clicks */
-.legal-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 20;
-}
-
-.legal-panel {
-  position: absolute;
-  bottom: calc(env(safe-area-inset-bottom) + 2.4rem);
-  left: 0.75rem;
-  max-width: min(240px, calc(100vw - 1.5rem));
-  padding: 0.5rem 0.75rem;
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.9);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(0, 0, 0, 0.06);
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-  display: flex;
-  flex-direction: column;
-  gap: 0.28rem;
-}
-
-:global([data-theme='dark']) .legal-panel {
-  background: rgba(14, 18, 26, 0.88);
-  border-color: rgba(255, 255, 255, 0.07);
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.38);
-}
-
-.legal-close {
-  position: absolute;
-  top: 0.3rem;
-  right: 0.4rem;
-  background: none;
-  border: none;
-  cursor: pointer;
-  color: rgba(0, 0, 0, 0.25);
-  font-size: 0.6rem;
-  padding: 0.15rem 0.3rem;
-  line-height: 1;
-  transition: color 0.15s ease;
-}
-
-.legal-close:hover {
-  color: rgba(0, 0, 0, 0.55);
-}
-
-:global([data-theme='dark']) .legal-close {
-  color: rgba(255, 255, 255, 0.25);
-}
-
-:global([data-theme='dark']) .legal-close:hover {
-  color: rgba(255, 255, 255, 0.58);
-}
-
-.legal-line {
-  margin: 0;
-  font-size: var(--text-xs-size);
-  color: rgba(0, 0, 0, 0.45);
-  padding-right: 1rem;
-}
-
-.legal-line strong {
-  color: rgba(0, 0, 0, 0.62);
-  font-weight: 600;
-}
-
-:global([data-theme='dark']) .legal-line {
-  color: rgba(255, 255, 255, 0.42);
-  text-shadow: none;
-}
-
-:global([data-theme='dark']) .legal-line strong {
-  color: rgba(255, 255, 255, 0.62);
-}
-
-.legal-about-link {
-  font-size: var(--text-xs-size);
-  color: rgba(0, 0, 0, 0.35);
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 0;
-  text-align: left;
-  text-decoration: none;
-  transition: color 0.15s ease;
-}
-
-.legal-about-link:hover {
-  color: rgba(0, 0, 0, 0.6);
-  text-decoration: underline;
-}
-
-:global([data-theme='dark']) .legal-about-link {
-  color: rgba(255, 255, 255, 0.32);
-  text-shadow: none;
-}
-
-:global([data-theme='dark']) .legal-about-link:hover {
-  color: rgba(255, 255, 255, 0.58);
-}
-
-.legal-fade-enter-active,
-.legal-fade-leave-active {
-  transition:
-    opacity 0.18s ease,
-    transform 0.18s ease;
-}
-
-.legal-fade-enter-from,
-.legal-fade-leave-to {
-  opacity: 0;
-  transform: translateY(4px);
 }
 </style>

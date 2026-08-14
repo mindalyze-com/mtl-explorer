@@ -2,7 +2,7 @@
   <section class="filter-sql-preview" aria-label="SQL template preview">
     <header class="filter-sql-preview__header">
       <div class="filter-sql-preview__heading">
-        <h3 class="filter-sql-preview__title">SQL template preview</h3>
+        <h3 class="filter-sql-preview__title filter-panel-title">SQL template preview</h3>
         <p class="filter-sql-preview__subtitle">{{ subtitle }}</p>
       </div>
       <button type="button" class="filter-sql-preview__copy" :disabled="!visibleSQL" @click="copyCurrentSql">
@@ -44,7 +44,7 @@
 
       <aside class="filter-sql-preview__params" aria-label="SQL parameters">
         <div class="filter-sql-preview__params-head">
-          <h4 class="filter-sql-preview__params-title">Parameters</h4>
+          <h4 class="filter-sql-preview__params-title filter-panel-title">Parameters</h4>
           <span class="filter-sql-preview__params-count">{{ paramReferences.length }}</span>
         </div>
 
@@ -171,15 +171,6 @@ onBeforeUnmount(() => {
   gap: 0.18rem;
 }
 
-.filter-sql-preview__title,
-.filter-sql-preview__params-title {
-  margin: 0;
-  color: var(--text-primary);
-  font-size: var(--text-base-size, 1rem);
-  font-weight: 800;
-  line-height: var(--text-base-lh, 1.4);
-}
-
 .filter-sql-preview__subtitle,
 .filter-sql-preview__hint {
   margin: 0;
@@ -210,7 +201,7 @@ onBeforeUnmount(() => {
 .filter-sql-preview__copy:hover:not(:disabled),
 .filter-sql-preview__copy:focus-visible:not(:disabled) {
   color: var(--accent-text);
-  border-color: color-mix(in srgb, var(--accent, #6366f1) 45%, var(--border-default));
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--border-default));
   background: var(--accent-subtle);
 }
 

@@ -12,11 +12,23 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Repository
 public interface GpsTrackRepository extends JpaRepository<GpsTrack, Long> {
 
+    String TRACK_OVERVIEW_CTE_COLUMNS = """
+            WITH q AS (
+                SELECT
+                    id,
+                    start_date,
+                    GREATEST(0, COALESCE(track_length_in_meter, 0))::double precision AS distance_m,
+                    (GREATEST(0, COALESCE(track_duration_in_motion_secs, EXTRACT(EPOCH FROM (end_date - start_date)), 0)) * 1000.0)::double precision AS duration_ms,
+                    GREATEST(0, COALESCE(ascent_in_meter, 0))::double precision AS ascent_m,
+                    GREATEST(0, COALESCE(energy_net_total_wh, 0))::double precision AS energy_wh
+            """;
 
     @Query(nativeQuery = true, value = """
             select
@@ -387,15 +399,8 @@ public interface GpsTrackRepository extends JpaRepository<GpsTrack, Long> {
             """)
     GpsTrackOverviewExclusions getTrackOverviewExclusions(@Param("filterIds") Long[] filterIds);
 
-    @Query(nativeQuery = true, value = """
-            WITH q AS (
-                SELECT
-                    id,
-                    start_date,
-                    GREATEST(0, COALESCE(track_length_in_meter, 0))::double precision AS distance_m,
-                    (GREATEST(0, COALESCE(track_duration_in_motion_secs, EXTRACT(EPOCH FROM (end_date - start_date)), 0)) * 1000.0)::double precision AS duration_ms,
-                    GREATEST(0, COALESCE(ascent_in_meter, 0))::double precision AS ascent_m,
-                    GREATEST(0, COALESCE(energy_net_total_wh, 0))::double precision AS energy_wh,
+    @Query(nativeQuery = true, value = TRACK_OVERVIEW_CTE_COLUMNS + """
+                    ,
                     GREATEST(0, COALESCE(speed_in_kmh_30s_max, 0))::double precision AS speed_30_kmh,
                     GREATEST(0, COALESCE(elevation_gain_per_hour_30s_max, 0))::double precision AS ascent_rate_mh,
                     GREATEST(0, COALESCE(power_watts_30s_max, 0))::double precision AS power_30_w
@@ -534,15 +539,7 @@ public interface GpsTrackRepository extends JpaRepository<GpsTrack, Long> {
             """)
     List<GpsTrackOverviewPeriod> getTrackOverviewPeriodDistributions(@Param("filterIds") Long[] filterIds, @Param("limit") int limit);
 
-    @Query(nativeQuery = true, value = """
-            WITH q AS (
-                SELECT
-                    id,
-                    start_date,
-                    GREATEST(0, COALESCE(track_length_in_meter, 0))::double precision AS distance_m,
-                    (GREATEST(0, COALESCE(track_duration_in_motion_secs, EXTRACT(EPOCH FROM (end_date - start_date)), 0)) * 1000.0)::double precision AS duration_ms,
-                    GREATEST(0, COALESCE(ascent_in_meter, 0))::double precision AS ascent_m,
-                    GREATEST(0, COALESCE(energy_net_total_wh, 0))::double precision AS energy_wh
+    @Query(nativeQuery = true, value = TRACK_OVERVIEW_CTE_COLUMNS + """
                 FROM gps_track
                 WHERE id = ANY(:filterIds)
                   AND start_date IS NOT NULL
@@ -555,34 +552,10 @@ public interface GpsTrackRepository extends JpaRepository<GpsTrack, Long> {
                 UNION ALL
                 (SELECT 20 AS sortOrder, 'latest-activity' AS rowKey, id AS trackId, 0::double precision AS value
                  FROM q ORDER BY start_date DESC, id DESC LIMIT 1)
-                UNION ALL
-                (SELECT 30 AS sortOrder, 'distance-10000' AS rowKey, id AS trackId, distance_m AS value
-                 FROM q WHERE distance_m >= 10000 ORDER BY start_date ASC, id ASC LIMIT 1)
-                UNION ALL
-                (SELECT 40 AS sortOrder, 'distance-25000' AS rowKey, id AS trackId, distance_m AS value
-                 FROM q WHERE distance_m >= 25000 ORDER BY start_date ASC, id ASC LIMIT 1)
-                UNION ALL
-                (SELECT 50 AS sortOrder, 'distance-50000' AS rowKey, id AS trackId, distance_m AS value
-                 FROM q WHERE distance_m >= 50000 ORDER BY start_date ASC, id ASC LIMIT 1)
-                UNION ALL
-                (SELECT 60 AS sortOrder, 'distance-100000' AS rowKey, id AS trackId, distance_m AS value
-                 FROM q WHERE distance_m >= 100000 ORDER BY start_date ASC, id ASC LIMIT 1)
-                UNION ALL
-                (SELECT 70 AS sortOrder, 'ascent-500' AS rowKey, id AS trackId, ascent_m AS value
-                 FROM q WHERE ascent_m >= 500 ORDER BY start_date ASC, id ASC LIMIT 1)
-                UNION ALL
-                (SELECT 80 AS sortOrder, 'ascent-1000' AS rowKey, id AS trackId, ascent_m AS value
-                 FROM q WHERE ascent_m >= 1000 ORDER BY start_date ASC, id ASC LIMIT 1)
-                UNION ALL
-                (SELECT 90 AS sortOrder, 'ascent-2000' AS rowKey, id AS trackId, ascent_m AS value
-                 FROM q WHERE ascent_m >= 2000 ORDER BY start_date ASC, id ASC LIMIT 1)
-                UNION ALL
-                (SELECT 100 AS sortOrder, 'energy-1000' AS rowKey, id AS trackId, energy_wh AS value
-                 FROM q WHERE energy_wh >= 1000 ORDER BY start_date ASC, id ASC LIMIT 1)
             )
             SELECT sortOrder, rowKey, trackId, value FROM rows ORDER BY sortOrder ASC
             """)
-    List<GpsTrackOverviewTrackRow> getTrackOverviewMilestones(@Param("filterIds") Long[] filterIds);
+    List<GpsTrackOverviewTrackRow> getTrackOverviewActivityBounds(@Param("filterIds") Long[] filterIds);
 
     @Query(nativeQuery = true, value = """
                 select * from gps_track gt where duplicate_of = :gps_track_id or (id=:gps_track_id and duplicate_status!='UNIQUE' )
@@ -764,5 +737,16 @@ public interface GpsTrackRepository extends JpaRepository<GpsTrack, Long> {
      */
     @Query(value = "SELECT id, version FROM gps_track WHERE id = ANY(:ids)", nativeQuery = true)
     List<Object[]> findVersionsByIds(@Param("ids") Long[] ids);
+
+    default Map<Long, Long> findVersionMapByIds(List<Long> ids) {
+        Map<Long, Long> versions = new HashMap<>();
+        if (ids == null || ids.isEmpty()) {
+            return versions;
+        }
+        for (Object[] row : findVersionsByIds(ids.toArray(Long[]::new))) {
+            versions.put((Long) row[0], (Long) row[1]);
+        }
+        return versions;
+    }
 
 }

@@ -227,7 +227,13 @@
           </template>
         </Column>
 
-        <Column field="avgSpeedKmh" header="Avg km/h" sortable class="number-column" style="min-width: 7rem">
+        <Column
+          field="avgSpeedKmh"
+          :header="`Avg ${currentMeasurementUnit('speed')}`"
+          sortable
+          class="number-column"
+          style="min-width: 7rem"
+        >
           <template #body="slotProps">
             {{ formatSpeed(slotProps.data.avgSpeedKmh) }}
           </template>
@@ -255,7 +261,7 @@
             <span
               v-if="slotProps.data.explorationScore != null"
               v-tooltip.top="{
-                value: 'Share of this track covering new ground (not within 25m of any prior track)',
+                value: `Share of this track covering new ground (not within ${formatDistance(EXPLORATION_CORRIDOR_WIDTH_M, 0)} of any prior track)`,
                 showDelay: 300,
               }"
             >
@@ -293,15 +299,22 @@ import { computed, ref, watch } from 'vue';
 import {
   formatDateAndTime,
   formatNumber,
+  formatDistance,
   formatDistanceSmart,
   formatDurationSmart,
   formatDistanceTooltip,
   formatDurationTooltip,
+  currentMeasurementUnit,
 } from '@/utils/Utils';
+import { getMeasurementSystem } from '@/composables/useMeasurementSystem';
+import { speedDisplayValue } from '@/utils/units';
 import { curationBadges } from '@/utils/statisticsCuration';
 import type { TrackRowViewModel } from './trackBrowser.types';
 import TrackShapePreview from '@/components/ui/TrackShapePreview.vue';
 import ActivityTypeBadge from '@/components/ui/ActivityTypeBadge.vue';
+import type { TrackSelectionEvents } from '@/components/filter/filterEvents';
+
+const EXPLORATION_CORRIDOR_WIDTH_M = 25;
 
 const props = defineProps<{
   rows: TrackRowViewModel[];
@@ -311,10 +324,7 @@ const props = defineProps<{
   sortResetKey?: number;
 }>();
 
-const emit = defineEmits<{
-  (event: 'select-track', value: number | string): void;
-  (event: 'open-details', value: number | string): void;
-}>();
+const emit = defineEmits<TrackSelectionEvents>();
 
 const mobilePageSize = 20;
 const mobilePage = ref(0);
@@ -449,7 +459,7 @@ function formatDateAndTimeValue(value: Date | null | undefined) {
 }
 
 function formatSpeed(value: number | null) {
-  return value == null ? '' : formatNumber(value, 1);
+  return value == null ? '' : formatNumber(speedDisplayValue(value, getMeasurementSystem()), 1);
 }
 
 function formatEnergy(value: number | null) {
@@ -760,37 +770,12 @@ function showEnergyInfo(event: Event) {
   gap: 0.25rem;
 }
 
-.track-browser-table__info-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-  border: none;
-  background: transparent;
-  color: var(--text-faint);
-  cursor: pointer;
-  font-size: var(--text-2xs-size);
-  line-height: var(--text-2xs-lh);
-  transition: color 0.15s;
-}
-
-.track-browser-table__info-btn:hover,
-.track-browser-table__info-btn:focus-visible {
-  color: var(--accent-muted);
-  outline: none;
-}
-
 .track-browser-table__header-info {
   margin-left: 0.2rem;
 }
 
 .track-browser-table__info-text {
   max-width: min(240px, calc(100vw - 2rem));
-  font-size: var(--text-xs-size);
-  line-height: var(--text-xs-lh);
-  color: var(--text-secondary);
-  margin: 0;
-  padding: 0.1rem 0;
 }
 
 .track-browser-card__desc {

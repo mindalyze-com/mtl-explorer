@@ -1,0 +1,15 @@
+Coverage ID: DEL_02
+Deletion completed: 2026-08-13T19:09:02.300Z
+
+Automatic watcher log:
+- 2026-08-13T19:09:10.608Z: deleted GPS track and track data for id=100001, file=/Vitry-le-Francois_Langres.gpx
+- 2026-08-13T19:09:10.609Z: deleted GPS track and track data for id=100003, file=/VoieVerteHauteVosges.gpx
+
+First completed delete: 8.308 s after file deletion
+Second completed delete: 8.309 s after file deletion
+Manual Rescan GPS: not used
+
+Browser state after server processing:
+- Existing map still showed its prior five-track snapshot.
+- Freshness notice appeared: "New data available — Tracks, media, or settings changed since this view loaded."
+- Reload action was offered for the user-visible refresh covered by DEL_03.

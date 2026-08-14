@@ -1,0 +1,11 @@
+Frozen coverage queue accounting
+
+Plan snapshot: coverage-plan.md
+Plan coverage ID count: 193
+Run-state coverage ID count: 193
+Missing from run state: none
+Extra in run state: none
+Duplicate plan IDs: none
+Duplicate run-state IDs: none
+
+RUN_SETUP and RUN_CLEANUP are separate run packets and are not included in the 193 coverage-ID count.

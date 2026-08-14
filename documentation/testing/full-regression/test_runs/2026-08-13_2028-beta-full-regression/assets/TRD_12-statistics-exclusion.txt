@@ -1,0 +1,25 @@
+Coverage ID: TRD_12
+Track: #100005 Activity.fit
+
+Baseline Statistics Overview
+- 12 tracks
+- 993 km
+- 21h 43m
+- 4,906 Wh
+- 14,438 m ascent
+- Activity breakdown: Bicycle 11, Walking 1
+
+Exclude
+- Quality > Statistics changed Included to Other.
+- PATCH /mtl/api/tracks/100005/statistics-exclusion returned HTTP 200 in 13 ms.
+- Statistics Overview immediately showed Showing 11 of 12 tracks.
+- 11 tracks, 990 km, 20h 43m, 4,559 Wh, 12,771 m ascent.
+- Activity breakdown contained only Bicycle 11.
+- Highlights said 1 track excluded.
+
+Reinclude
+- Quality > Statistics changed Other to Included.
+- Second PATCH returned HTTP 200 in 5 ms.
+- Statistics Overview returned to all baseline totals and Walking 1.
+- Track #100005 is left Included.
+

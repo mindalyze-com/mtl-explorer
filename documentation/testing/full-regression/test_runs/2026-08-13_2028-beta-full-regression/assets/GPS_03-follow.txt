@@ -1,0 +1,9 @@
+Follow-mode applicability
+
+The GPS enable attempt created no geolocation watch or marker because the
+configured remote origin is plain HTTP. Without an accepted live location,
+Follow me, re-centering, pan-away drift, and re-follow behavior cannot enter
+their executable state.
+
+Unblock path: repeat on localhost or HTTPS with an accepted/simulated changing
+position, enter Follow me, pan away, verify drift, and re-enable follow.

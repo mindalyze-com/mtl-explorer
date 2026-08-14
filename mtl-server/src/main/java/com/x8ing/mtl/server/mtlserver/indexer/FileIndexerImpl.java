@@ -5,6 +5,7 @@ import com.x8ing.mtl.server.mtlserver.db.entity.indexer.IndexedFile;
 import com.x8ing.mtl.server.mtlserver.db.repository.indexer.IndexerRepository;
 import com.x8ing.mtl.server.mtlserver.indexer.event.FileIndexerObserver;
 import com.x8ing.mtl.server.mtlserver.indexer.event.OnCompletion;
+import com.x8ing.mtl.server.mtlserver.utils.ThreadFactories;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
@@ -22,6 +23,7 @@ import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
 
 @Slf4j
 @JsonPropertyOrder({
@@ -53,6 +55,10 @@ import java.util.concurrent.atomic.AtomicInteger;
 })
 public class FileIndexerImpl {
 
+    private static final int WALK_PROGRESS_LOG_INTERVAL = 1_000;
+    private static final int COMPLETION_MAX_RETRIES = 3;
+    private static final long COMPLETION_RETRY_BASE_DELAY_MS = 25L;
+
     // ---- ctor args / collaborators
     private final String index;
     private final Path watchDirectory;
@@ -67,10 +73,10 @@ public class FileIndexerImpl {
 
     // per-path debounce task (silence-based)
     private final ScheduledExecutorService scheduler =
-            Executors.newScheduledThreadPool(2, namedFactory("idx-deb"));
+            Executors.newScheduledThreadPool(2, ThreadFactories.namedDaemon("idx-deb"));
     private final ExecutorService workerPool =
             Executors.newFixedThreadPool(Math.max(4, Runtime.getRuntime().availableProcessors()),
-                    namedFactory("idx"));
+                    ThreadFactories.namedDaemon("idx"));
 
     // debounce state
     private final Map<Path, ScheduledFuture<?>> debounceTasks = new ConcurrentHashMap<>();
@@ -182,25 +188,20 @@ public class FileIndexerImpl {
     }
 
     private boolean isIncluded(Path p) {
-        if (inclusionMatchers.isEmpty()) return true;
-        Path abs = p.toAbsolutePath().normalize();
-        Path name = abs.getFileName();
-        for (PathMatcher m : inclusionMatchers) {
-            try {
-                if (m.matches(abs) || (name != null && m.matches(name))) return true;
-            } catch (Exception ignore) {
-            }
-        }
-        return false;
+        return inclusionMatchers.isEmpty() || matchesAny(p, inclusionMatchers);
     }
 
     private boolean isExcluded(Path p) {
-        if (exclusionMatchers.isEmpty()) return false;
-        Path abs = p.toAbsolutePath().normalize();
+        return matchesAny(p, exclusionMatchers);
+    }
+
+    private boolean matchesAny(Path path, List<PathMatcher> matchers) {
+        if (matchers.isEmpty()) return false;
+        Path abs = path.toAbsolutePath().normalize();
         Path name = abs.getFileName();
-        for (PathMatcher m : exclusionMatchers) {
+        for (PathMatcher matcher : matchers) {
             try {
-                if (m.matches(abs) || (name != null && m.matches(name))) return true;
+                if (matcher.matches(abs) || (name != null && matcher.matches(name))) return true;
             } catch (Exception ignore) {
             }
         }
@@ -349,9 +350,7 @@ public class FileIndexerImpl {
                                 // REMOVED files are always re-queued regardless of size/mtime match:
                                 // a false REMOVED (transient FS hiccup) must be corrected on rescan.
                                 if (isFileUnchanged(prior, a)) {
-                                    int n = examined.incrementAndGet();
-                                    if (n % 1000 == 0)
-                                        log.info("Walk progress index={}: {} files examined, {} queued for processing", index, n, changed.size());
+                                    recordWalkProgress(examined, changed.size());
                                     return;
                                 }
                             }
@@ -359,8 +358,7 @@ public class FileIndexerImpl {
                             // processCreateOrChange(changed=true) will delete stale data before re-importing.
                             EventType eventType = (prior == null) ? EventType.CREATE : EventType.MODIFY;
                             changed.add(new FileToProcess(np, a, eventType));
-                            int n = examined.incrementAndGet();
-                            if (n % 1000 == 0) log.info("Walk progress index={}: {} files examined, {} queued for processing", index, n, changed.size());
+                            recordWalkProgress(examined, changed.size());
                         } catch (IOException e) {
                             log.warn("Attrs read failed: {}", p, e);
                         }
@@ -372,6 +370,13 @@ public class FileIndexerImpl {
                 index, examined.get(), changed.size(), dbSnapshot.size());
 
         return new DirScanResult(changed, new ArrayList<>(dbSnapshot.values()));
+    }
+
+    private void recordWalkProgress(AtomicInteger examined, int queued) {
+        int count = examined.incrementAndGet();
+        if (count % WALK_PROGRESS_LOG_INTERVAL == 0) {
+            log.info("Walk progress index={}: {} files examined, {} queued for processing", index, count, queued);
+        }
     }
 
     // ---------- initial batch (two-phase + latch + recovery)
@@ -878,16 +883,11 @@ public class FileIndexerImpl {
     }
 
     private void markProcessing(long fileId, String msg) {
-        executeRequiresNew(() -> {
-            IndexedFile f = repo.findById(fileId)
-                    .orElseThrow(() -> new IllegalStateException("IndexedFile not found: " + fileId));
-            if (f.getIndexerStatus() != IndexedFile.IndexerStatus.REMOVED
-                && f.getIndexerStatus() != IndexedFile.IndexerStatus.EXCLUDED) {
-                f.setIndexerStatus(IndexedFile.IndexerStatus.PROCESSING);
+        updateFile(fileId, file -> {
+            if (canUpdateProcessingStatus(file)) {
+                file.setIndexerStatus(IndexedFile.IndexerStatus.PROCESSING);
             }
-            f.setLastMessage(msg);
-            f.setIndexUpdateDate(new Date());
-            repo.save(f);
+            file.setLastMessage(msg);
         });
     }
 
@@ -1015,6 +1015,16 @@ public class FileIndexerImpl {
         else r.run();
     }
 
+    private void updateFile(long fileId, Consumer<IndexedFile> update) {
+        executeRequiresNew(() -> {
+            IndexedFile file = repo.findById(fileId)
+                    .orElseThrow(() -> new IllegalStateException("IndexedFile not found: " + fileId));
+            update.accept(file);
+            file.setIndexUpdateDate(new Date());
+            repo.save(file);
+        });
+    }
+
     private void markFailed(IndexedFile f, String msg) {
         executeRequiresNew(() -> {
             f.setIndexerStatus(IndexedFile.IndexerStatus.FAILED);
@@ -1054,16 +1064,6 @@ public class FileIndexerImpl {
         }
     }
 
-    private static ThreadFactory namedFactory(String prefix) {
-        AtomicInteger counter = new AtomicInteger(0);
-        return r -> {
-            Thread t = new Thread(r);
-            t.setName(prefix + "-" + counter.incrementAndGet());
-            t.setDaemon(true);
-            return t;
-        };
-    }
-
     private void registerAfterCommit(Runnable callback) {
         if (TransactionSynchronizationManager.isSynchronizationActive()) {
             TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
@@ -1089,42 +1089,40 @@ public class FileIndexerImpl {
     }
 
     private void markCompletion(long fileId, boolean success, String reason) {
-        final int MAX_RETRIES = 3;
         int attempt = 0;
         while (true) {
             try {
-                executeRequiresNew(() -> {
-                    IndexedFile f = repo.findById(fileId).orElseThrow(() -> new IllegalStateException("IndexedFile not found: " + fileId));
-                    if (success) {
-                        if (f.getIndexerStatus() != IndexedFile.IndexerStatus.REMOVED && f.getIndexerStatus() != IndexedFile.IndexerStatus.EXCLUDED) {
-                            f.setIndexerStatus(IndexedFile.IndexerStatus.COMPLETED_WITH_SUCCESS);
-                            f.setLastMessage("Completed successfully");
-                        }
-                    } else {
-                        if (f.getIndexerStatus() != IndexedFile.IndexerStatus.REMOVED && f.getIndexerStatus() != IndexedFile.IndexerStatus.EXCLUDED) {
-                            f.setIndexerStatus(IndexedFile.IndexerStatus.FAILED);
-                            f.setLastMessage(reason != null ? reason : "Processing failed");
-                        }
+                updateFile(fileId, file -> {
+                    if (canUpdateProcessingStatus(file)) {
+                        file.setIndexerStatus(success
+                                ? IndexedFile.IndexerStatus.COMPLETED_WITH_SUCCESS
+                                : IndexedFile.IndexerStatus.FAILED);
+                        file.setLastMessage(success
+                                ? "Completed successfully"
+                                : reason != null ? reason : "Processing failed");
                     }
-                    f.setIndexerInvocations(f.getIndexerInvocations() + 1);
-                    f.setIndexUpdateDate(new Date());
-                    repo.save(f);
+                    file.setIndexerInvocations(file.getIndexerInvocations() + 1);
                 });
                 return; // success
             } catch (Exception e) {
                 attempt++;
-                if (!isOptimisticLockingException(e) || attempt >= MAX_RETRIES) {
-                    log.warn("Completion update failed (attempt {}/{}) for fileId={} success={} reason={} e={}", attempt, MAX_RETRIES, fileId, success, reason, e.toString());
+                if (!isOptimisticLockingException(e) || attempt >= COMPLETION_MAX_RETRIES) {
+                    log.warn("Completion update failed (attempt {}/{}) for fileId={} success={} reason={} e={}", attempt, COMPLETION_MAX_RETRIES, fileId, success, reason, e.toString());
                     return;
                 }
                 try {
-                    Thread.sleep(25L * attempt);
+                    Thread.sleep(COMPLETION_RETRY_BASE_DELAY_MS * attempt);
                 } catch (InterruptedException ie) {
                     Thread.currentThread().interrupt();
                     return;
                 }
             }
         }
+    }
+
+    private static boolean canUpdateProcessingStatus(IndexedFile file) {
+        return file.getIndexerStatus() != IndexedFile.IndexerStatus.REMOVED
+               && file.getIndexerStatus() != IndexedFile.IndexerStatus.EXCLUDED;
     }
 
     private boolean isOptimisticLockingException(Throwable t) {

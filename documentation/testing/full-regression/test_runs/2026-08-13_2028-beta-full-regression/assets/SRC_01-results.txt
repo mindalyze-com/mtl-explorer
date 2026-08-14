@@ -1,0 +1,9 @@
+Location search query: Zurich
+
+The result sheet appeared after typing and contained multiple typed place
+results, including Zürich and district/neighborhood entries such as Kreis 12,
+Kreis 8, Kreis 4 / Aussersihl, Kreis 5, Kreis 1 / City, Altstetten,
+Unterstrass, Oerlikon, Seebach, and Affoltern.
+
+Each result showed Zurich, Switzerland, a feature type, and a supported zoom
+range. No page reload was needed.

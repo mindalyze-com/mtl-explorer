@@ -1,0 +1,41 @@
+MTL Explorer beta issue verification
+Tested: 2026-08-14
+Target: http://91.99.12.14:18080/mtl/
+Browser: Codex In-app Browser, 1280 x 720
+
+Beta image
+- image: wauwau0977/mytraillog:beta
+- version: 1.332
+- build: 2026-08-13T19:56:35Z
+- digest: sha256:516f0cabd548e41e7bf59e228c80baf70c247b2200a41995611d3f15494e0bad
+
+GitHub issue 4
+- public track: 100000, Lannion
+- selected point: 19 / 355
+- popup rows: 17
+- popup inline max width: min(360px, -16px + 100vw)
+- popup rendered width: 265.2890625 px
+- content client width: 263 px
+- content scroll width: 263 px
+- table client width: 263 px
+- table scroll width: 263 px
+- value white-space: normal
+- value overflow-wrap: anywhere
+- overflowing value cells: 0 / 17
+- result: no horizontal clipping in the tested beta browser
+
+GitHub issue 5
+- control path: Admin > Preferences > Region & units
+- options: Metric, Imperial (US), Use default
+- imperial preview: 15.5 mi, 1,640 ft, 176 lb
+- Statistics distance: 648 mi
+- Statistics ascent: 42,441 ft
+- longest track: 322 mi
+- fastest 30 s speed: 45.0 mph
+- full /mtl/stats reload retained imperial values
+- result: selection, cross-view application, and persistence passed
+
+Cleanup
+- measurement preference restored to browser default metric
+- track-point layer restored to disabled
+- no server data changed

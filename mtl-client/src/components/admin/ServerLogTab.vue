@@ -1,13 +1,13 @@
 <template>
   <div class="tab-content log-tab">
     <!-- Disabled / demo mode -->
-    <div v-if="disabled" class="log-notice log-notice--warn">
+    <div v-if="disabled" class="log-notice inline-notice log-notice--warn">
       <i class="pi pi-lock" />
       <span>Server log viewer is disabled for this instance.</span>
     </div>
 
     <!-- Error loading -->
-    <div v-else-if="error" class="log-notice log-notice--error">
+    <div v-else-if="error" class="log-notice inline-notice log-notice--error">
       <i class="pi pi-times-circle" />
       <span>{{ error }}</span>
     </div>
@@ -64,6 +64,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { getServerLog } from '@/utils/ServiceHelper';
+import { useAsyncState } from '@/composables/useAsyncState';
 
 const LINE_OPTIONS = [
   { label: '50 lines', value: 50 },
@@ -77,8 +78,7 @@ const LINE_OPTIONS = [
 defineOptions({ name: 'ServerLogTab' });
 
 const logLines = ref<string[]>([]);
-const loading = ref(false);
-const error = ref('');
+const { loading, error } = useAsyncState('');
 const disabled = ref(false);
 const requestedLines = ref(200);
 const lastUpdated = ref<number | null>(null);
@@ -143,13 +143,6 @@ defineExpose({
 }
 
 .log-notice {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.6rem;
-  padding: 0.7rem 0.9rem;
-  border-radius: 6px;
-  font-size: var(--text-sm-size);
-  line-height: var(--text-sm-lh);
   margin-top: 0.4rem;
 }
 

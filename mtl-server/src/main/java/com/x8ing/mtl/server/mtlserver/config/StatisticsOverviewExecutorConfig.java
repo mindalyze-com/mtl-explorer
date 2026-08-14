@@ -1,12 +1,11 @@
 package com.x8ing.mtl.server.mtlserver.config;
 
+import com.x8ing.mtl.server.mtlserver.utils.ThreadFactories;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.atomic.AtomicInteger;
 
 @Configuration
 public class StatisticsOverviewExecutorConfig {
@@ -18,17 +17,7 @@ public class StatisticsOverviewExecutorConfig {
     public ExecutorService statisticsOverviewExecutor() {
         return Executors.newFixedThreadPool(
                 STATISTICS_OVERVIEW_QUERY_PARALLELISM,
-                namedFactory(STATISTICS_OVERVIEW_THREAD_PREFIX)
+                ThreadFactories.namedDaemon(STATISTICS_OVERVIEW_THREAD_PREFIX)
         );
-    }
-
-    private static ThreadFactory namedFactory(String prefix) {
-        AtomicInteger counter = new AtomicInteger(0);
-        return runnable -> {
-            Thread thread = new Thread(runnable);
-            thread.setName(prefix + "-" + counter.incrementAndGet());
-            thread.setDaemon(true);
-            return thread;
-        };
     }
 }

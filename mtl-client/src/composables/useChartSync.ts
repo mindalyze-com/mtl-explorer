@@ -39,6 +39,7 @@ import {
   type TrackPoint,
 } from '@/composables/trackCursorSync';
 import type Highcharts from 'highcharts';
+import { nearestSortedIndex } from '@/utils/sortedSearch';
 
 type ChartSyncMoveEvent = MouseEvent | PointerEvent | TouchEvent;
 type PrimaryChartInputEvent = MouseEvent | PointerEvent | Touch;
@@ -252,18 +253,7 @@ export function useChartSync() {
       return;
     }
 
-    // Binary search for closest point by x-value
-    let lo = 0;
-    let hi = points.length - 1;
-    while (lo < hi) {
-      const mid = (lo + hi) >> 1;
-      if (points[mid].x < xVal) lo = mid + 1;
-      else hi = mid;
-    }
-    if (lo > 0 && Math.abs(points[lo - 1].x - xVal) < Math.abs(points[lo].x - xVal)) {
-      lo = lo - 1;
-    }
-    const point = points[lo];
+    const point = points[nearestSortedIndex(points, xVal, (candidate) => candidate.x)];
     if (!point) {
       clearShownPointForChart(chart);
       return;

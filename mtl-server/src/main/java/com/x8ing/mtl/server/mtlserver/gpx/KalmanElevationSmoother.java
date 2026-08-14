@@ -1,6 +1,7 @@
 package com.x8ing.mtl.server.mtlserver.gpx;
 
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
+import com.x8ing.mtl.server.mtlserver.utils.GeoCoordinateUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.math3.filter.KalmanFilter;
 import org.apache.commons.math3.filter.MeasurementModel;
@@ -89,11 +90,6 @@ import org.springframework.stereotype.Component;
 public class KalmanElevationSmoother implements GpsSmoothingAlgorithm {
 
     /**
-     * Metres per degree of latitude (WGS-84 mean sphere).
-     */
-    private static final double METERS_PER_DEG_LAT = 111_320.0;
-
-    /**
      * Upper cap on dt; prevents matrix blow-up during long pauses or stops.
      */
     private static final double MAX_DT_SEC = 60.0;
@@ -130,7 +126,7 @@ public class KalmanElevationSmoother implements GpsSmoothingAlgorithm {
         // Reference point for ENU conversion
         double refLat = coords[0].getY();
         double refLon = coords[0].getX();
-        double mpdLon = METERS_PER_DEG_LAT * Math.cos(Math.toRadians(refLat));
+        double mpdLon = GeoCoordinateUtils.APPROX_METERS_PER_DEGREE_LATITUDE * Math.cos(Math.toRadians(refLat));
 
         // ── Convert to approximate ENU metres ────────────────────────────────
         double[] northM = new double[n];
@@ -141,7 +137,7 @@ public class KalmanElevationSmoother implements GpsSmoothingAlgorithm {
         boolean seedAltFound = false;
 
         for (int i = 0; i < n; i++) {
-            northM[i] = (coords[i].getY() - refLat) * METERS_PER_DEG_LAT;
+            northM[i] = (coords[i].getY() - refLat) * GeoCoordinateUtils.APPROX_METERS_PER_DEGREE_LATITUDE;
             eastM[i] = (coords[i].getX() - refLon) * mpdLon;
             hasAlt[i] = !Double.isNaN(coords[i].getZ());
             if (hasAlt[i]) {
@@ -251,7 +247,7 @@ public class KalmanElevationSmoother implements GpsSmoothingAlgorithm {
         // ── Convert smoothed ENU metres back to WGS-84 ───────────────────────
         Coordinate[] out = new Coordinate[n];
         for (int k = 0; k < n; k++) {
-            double lat = refLat + xSmooth[k][0] / METERS_PER_DEG_LAT;
+            double lat = refLat + xSmooth[k][0] / GeoCoordinateUtils.APPROX_METERS_PER_DEGREE_LATITUDE;
             double lon = refLon + xSmooth[k][2] / mpdLon;
             double z = hasAlt[k] ? xSmooth[k][4] : Double.NaN;
             out[k] = new CoordinateXYZM(lon, lat, z, coords[k].getM());
@@ -426,4 +422,3 @@ public class KalmanElevationSmoother implements GpsSmoothingAlgorithm {
         }
     }
 }
-

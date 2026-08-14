@@ -1,8 +1,5 @@
 package com.x8ing.mtl.server.mtlserver.metrics.bucket;
 
-import java.math.BigDecimal;
-import java.math.RoundingMode;
-
 /**
  * X-axis selector for chart bucket aggregation.
  * <ul>
@@ -27,9 +24,6 @@ public enum XMode {
     }
 
     public double roundForResponse(double value) {
-        if (!Double.isFinite(value)) return value;
-        return BigDecimal.valueOf(value)
-                .setScale(responseFractionDigits, RoundingMode.HALF_UP)
-                .doubleValue();
+        return MetricResponseRounding.round(value, responseFractionDigits);
     }
 }

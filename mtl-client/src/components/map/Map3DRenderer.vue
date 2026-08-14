@@ -26,7 +26,7 @@
       :auto-follow="replay.autoFollow"
       :camera-preset="replay.cameraPreset"
       :camera-smoothness="replay.cameraSmoothness"
-      :distance-label="replay.distanceLabel"
+      :distance-label="replayDistanceLabel"
       :duration-seconds="replay.durationSeconds"
       :elapsed-label="replay.elapsedLabel"
       :loading="replay.loading"
@@ -77,6 +77,10 @@ import {
 import {
   computeReplayViewportPadding,
   observeReplayViewportOcclusion,
+  replayCameraViewportKey,
+  replayMapPadding as toReplayMapPadding,
+  resolveReplayCameraViewport,
+  type ReplayMapPadding,
   type ReplayViewportPadding,
 } from '@/components/replay/replayViewportOcclusion';
 import { ReplayCameraScreenGuard } from '@/components/replay/replayCameraScreenGuard';
@@ -97,7 +101,7 @@ import {
 } from '@/components/replay/trackReplayTelemetry';
 import { DETAIL_TRACK_PRECISION } from '@/utils/tracks/trackConstants';
 import { fetchDetailTrackAtPrecision, loadCachedTrackCollection } from '@/utils/tracks/trackCollectionLoader';
-import { formatDistanceSmart, formatDurationSmart } from '@/utils/Utils';
+import { formatDistanceSmart, formatDurationSmart, formatElevation } from '@/utils/Utils';
 import { TRACK_COLOR } from '@/utils/trackColors';
 import {
   chartSeriesToPoints,
@@ -109,8 +113,9 @@ import {
 import type { GpsTrack } from 'x8ing-mtl-api-typescript-fetch/dist/esm/models/index';
 import { unwrapLngLatCoordinates } from '@/components/map/mapGeometry';
 import { configureExternalAttributionLinks } from '@/utils/externalAttributionLinks';
+import type { BottomSheetLayoutState } from '@/components/ui/BottomSheet.vue';
+import type { ToastService } from '@/types/ui';
 
-type ToastLike = { add: (options: { severity: string; summary: string; detail?: string; life?: number }) => void };
 type InteractionHandlers = {
   canvas: HTMLCanvasElement;
   clearUserPointerActive: () => void;
@@ -118,25 +123,6 @@ type InteractionHandlers = {
   disableAutoFollowFromWheel: (event: WheelEvent) => void;
   markUserPointerActive: () => void;
 };
-type ReplayControlsSheetLayout = {
-  open: boolean;
-  detentId: string;
-  fullscreen: boolean;
-  dragging: boolean;
-  heightPx: number;
-  widthPx: number;
-  topPx: number;
-  rightPx: number;
-  bottomPx: number;
-  leftPx: number;
-};
-type ReplayMapPadding = {
-  top: number;
-  right: number;
-  bottom: number;
-  left: number;
-};
-
 const CONTEXT_SOURCE_ID = 'map3d-context-tracks';
 const CONTEXT_LINE_LAYER_ID = 'map3d-context-tracks-line';
 const CONTEXT_DOT_LAYER_ID = 'map3d-context-tracks-dots';
@@ -151,7 +137,6 @@ const REPLAY_CAMERA_MAP_MARGIN_PX = 32;
 const REPLAY_CAMERA_INITIAL_FIT_MARGIN_PX = 72;
 const REPLAY_CAMERA_MIN_VISIBLE_WIDTH_PX = 180;
 const REPLAY_CAMERA_MIN_VISIBLE_HEIGHT_PX = 160;
-const REPLAY_CAMERA_VIEWPORT_KEY_STEP_PX = 8;
 const REPLAY_TELEMETRY_METRICS: ChartMetricKey[] = [
   MetricKey.DistanceM,
   MetricKey.DurationS,
@@ -175,14 +160,14 @@ const emit = defineEmits<{
   'load-failed': [];
 }>();
 
-const toast = inject<ToastLike>('toast', { add: () => undefined });
+const toast = inject<ToastService>('toast', { add: () => undefined });
 const mapStateStore = useMapStateStore();
 const mapSettingsStore = useMapSettingsStore();
 const { replay, replaySource, selectedTrackId } = storeToRefs(mapStateStore);
 const mapContainer = ref<HTMLElement | null>(null);
 const startupMessage = ref('Preparing 3D replay');
 const replayTelemetry = ref<ReplayTelemetry | null>(null);
-const replayControlsLayout = ref<ReplayControlsSheetLayout | null>(null);
+const replayControlsLayout = ref<BottomSheetLayoutState | null>(null);
 
 const telemetrySample = computed(() => {
   const telemetry = replayTelemetry.value;
@@ -203,8 +188,8 @@ const telemetryDistanceTotalLabel = computed(() => {
   const total = replayTelemetry.value?.totalDistanceMeters ?? 0;
   return formatDistanceSmart(total, total);
 });
-const telemetryElevationGainCurrentLabel = computed(() => formatMeters(telemetrySample.value?.ascentMeters));
-const telemetryElevationMaxLabel = computed(() => formatMeters(replayTelemetry.value?.maxElevationMeters));
+const telemetryElevationGainCurrentLabel = computed(() => formatOptionalElevation(telemetrySample.value?.ascentMeters));
+const telemetryElevationMaxLabel = computed(() => formatOptionalElevation(replayTelemetry.value?.maxElevationMeters));
 
 let map: maplibregl.Map | null = null;
 let replayLayer: TrackReplayLayer | null = null;
@@ -222,6 +207,16 @@ let lastReplayCameraViewportKey = '';
 let replayCameraViewportFrame: number | null = null;
 let replayViewportOcclusionObserver: ReturnType<typeof observeReplayViewportOcclusion> | null = null;
 let attributionLinkCleanup: (() => void) | null = null;
+
+const replayDistanceLabel = computed(() => {
+  const path = replayPath;
+  if (!path) return replay.value.distanceLabel;
+  const activityDurationSeconds = replayActivityDurationSeconds(path);
+  const sample = sampleReplayPathAtElapsedSeconds(path, replay.value.activityElapsedSeconds, activityDurationSeconds);
+  return sample
+    ? `${formatDistanceSmart(sample.distanceMeters, path.totalDistanceMeters)} / ${formatDistanceSmart(path.totalDistanceMeters, path.totalDistanceMeters)}`
+    : replay.value.distanceLabel;
+});
 
 const replayTrackId = computed(() => {
   const trackId = Number(replay.value.currentTrackId ?? selectedTrackId.value);
@@ -304,7 +299,7 @@ async function initialize3DReplay() {
       activityDurationSeconds,
       cameraPreset: replayCameraPreset(replay.value.cameraPreset).id,
       speedFactorLabel: formatReplaySpeedFactor(path.originalDurationSeconds, replay.value.durationSeconds),
-      distanceLabel: `0 m / ${formatDistanceSmart(path.totalDistanceMeters, path.totalDistanceMeters)}`,
+      distanceLabel: `${formatDistanceSmart(0, path.totalDistanceMeters)} / ${formatDistanceSmart(path.totalDistanceMeters, path.totalDistanceMeters)}`,
       elapsedLabel: '0m 00s',
       remainingLabel: formatDurationSmart(activityDurationSeconds * 1000, activityDurationSeconds * 1000),
       totalLabel: formatDurationSmart(activityDurationSeconds * 1000, activityDurationSeconds * 1000),
@@ -634,15 +629,7 @@ function rebuildCameraRail() {
 
 function replayCameraViewport(): ReplayCameraViewport | undefined {
   const canvas = map?.getCanvas?.();
-  if (!canvas) return undefined;
-  const width = canvas.clientWidth || canvas.width;
-  const height = canvas.clientHeight || canvas.height;
-  if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) return undefined;
-  return {
-    width,
-    height,
-    ...replayCameraViewportPadding(REPLAY_CAMERA_MAP_MARGIN_PX),
-  };
+  return resolveReplayCameraViewport(canvas, replayCameraViewportPadding(REPLAY_CAMERA_MAP_MARGIN_PX));
 }
 
 function replayCameraViewportPadding(baseMarginPx = REPLAY_CAMERA_MAP_MARGIN_PX): ReplayViewportPadding {
@@ -657,30 +644,10 @@ function replayCameraViewportPadding(baseMarginPx = REPLAY_CAMERA_MAP_MARGIN_PX)
 }
 
 function replayMapPadding(baseMarginPx = REPLAY_CAMERA_MAP_MARGIN_PX): ReplayMapPadding {
-  const padding = replayCameraViewportPadding(baseMarginPx);
-  return {
-    top: padding.paddingTop,
-    right: padding.paddingRight,
-    bottom: padding.paddingBottom,
-    left: padding.paddingLeft,
-  };
+  return toReplayMapPadding(replayCameraViewportPadding(baseMarginPx));
 }
 
-function replayCameraViewportKey(viewport: ReplayCameraViewport | undefined): string {
-  if (!viewport) return 'none';
-  return [
-    viewport.width,
-    viewport.height,
-    viewport.paddingTop ?? 0,
-    viewport.paddingRight ?? 0,
-    viewport.paddingBottom ?? 0,
-    viewport.paddingLeft ?? 0,
-  ]
-    .map((value) => Math.round(Number(value) / REPLAY_CAMERA_VIEWPORT_KEY_STEP_PX))
-    .join(':');
-}
-
-function onReplayControlsLayoutChange(layout: ReplayControlsSheetLayout) {
+function onReplayControlsLayoutChange(layout: BottomSheetLayoutState) {
   replayControlsLayout.value = layout;
   scheduleReplayCameraViewportRebuild();
 }
@@ -896,9 +863,9 @@ function cleanup3DResources() {
   }
 }
 
-function formatMeters(value: number | null | undefined): string {
+function formatOptionalElevation(value: number | null | undefined): string {
   if (!Number.isFinite(value)) return '--';
-  return `${Math.round(Number(value))} m`;
+  return formatElevation(Number(value));
 }
 </script>
 

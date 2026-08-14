@@ -4,8 +4,10 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.x8ing.mtl.server.mtlserver.db.repository.indexer.IndexerRepository;
 import com.x8ing.mtl.server.mtlserver.indexer.FileIndexer;
 import com.x8ing.mtl.server.mtlserver.indexer.FileIndexerImpl;
+import com.x8ing.mtl.server.mtlserver.indexer.IndexerPathMatchers;
+import com.x8ing.mtl.server.mtlserver.indexer.IndexerRescanSupport;
 import com.x8ing.mtl.server.mtlserver.indexer.event.FileIndexerObserver;
-import com.x8ing.mtl.server.mtlserver.indexer.event.OnCompletion;
+import com.x8ing.mtl.server.mtlserver.indexer.event.ProcessingFileIndexerObserver;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
@@ -73,96 +75,23 @@ public class GPXDirectoryWatcherService {
         // Inclusion: all supported track formats (case-insensitive).
         PathMatcher includeTrackFiles = FileSystems.getDefault().getPathMatcher("regex:" + SupportedTrackFormat.inclusionRegex());
 
-        // Exclusions: .DS_Store files, @eaDir folders, and hidden files starting with dot
-        PathMatcher dsStore = FileSystems.getDefault().getPathMatcher("regex:.*\\.DS_Store$");
-        PathMatcher eaDir = FileSystems.getDefault().getPathMatcher("regex:.*@eaDir(/.*)?");
-        PathMatcher hiddenFiles = FileSystems.getDefault().getPathMatcher("regex:.*/\\.[^/]+$");
-
-        FileIndexerObserver observer = new FileIndexerObserver() {
-            // Synchronous observer — processing runs on the indexer's workerPool thread,
-            // providing natural backpressure. Files stay SCHEDULED until started() is called.
-            @Override
-            public void onNewFile(String index, long fileId, OnCompletion completion) {
-                completion.started(fileId);
-                try {
-                    processingWorker.processCreateOrChange(index, fileId, false);
-                    completion.success(fileId);
-                } catch (Throwable t) {
-                    log.error("GPS processing failed for new fileId={}: {}", fileId, t.toString(), t);
-                    completion.failed(fileId, safeMsg(t));
-                    if (t instanceof Error) throw (Error) t;
-                }
-            }
-
-            @Override
-            public void onDeletedFile(String index, long fileId, OnCompletion completion) {
-                completion.started(fileId);
-                try {
-                    processingWorker.processDelete(index, fileId);
-                    completion.success(fileId);
-                } catch (Throwable t) {
-                    log.error("GPS delete failed for fileId={}: {}", fileId, t.toString(), t);
-                    completion.failed(fileId, safeMsg(t));
-                    if (t instanceof Error) throw (Error) t;
-                }
-            }
-
-            @Override
-            public void onChangedFile(String index, long fileId, OnCompletion completion) {
-                completion.started(fileId);
-                try {
-                    processingWorker.processCreateOrChange(index, fileId, true);
-                    completion.success(fileId);
-                } catch (Throwable t) {
-                    log.error("GPS processing failed for changed fileId={}: {}", fileId, t.toString(), t);
-                    completion.failed(fileId, safeMsg(t));
-                    if (t instanceof Error) throw (Error) t;
-                }
-            }
-
-            // Legacy overloads not used by the indexer now
-            @Override
-            public void onNewFile(String index, long fileId) {
-            }
-
-            @Override
-            public void onDeletedFile(String index, long fileId) {
-            }
-
-            @Override
-            public void onChangedFile(String index, long fileId) {
-            }
-
-            private String safeMsg(Throwable t) {
-                String s = t.getMessage();
-                return (s == null || s.isBlank()) ? t.getClass().getSimpleName() : s;
-            }
-        };
+        // Synchronous processing on the indexer worker provides natural backpressure.
+        FileIndexerObserver observer = new ProcessingFileIndexerObserver(
+                log, INDEX_GPS, processingWorker::processCreateOrChange, processingWorker::processDelete);
 
         FileIndexerImpl.ChangeDetectionStrategy strategy =
                 FileIndexerImpl.ChangeDetectionStrategy.valueOf(changeDetectionStrategy);
 
-        this.fileIndexerImpl = fileIndexer.findAndIndex(INDEX_GPS, absoluteWatchPath, indexerRepository, observer, false, List.of(dsStore, eaDir, hiddenFiles), List.of(includeTrackFiles), strategy, liveWatchEnabled);
+        this.fileIndexerImpl = fileIndexer.findAndIndex(INDEX_GPS, absoluteWatchPath, indexerRepository, observer, false, IndexerPathMatchers.standardExclusions(), List.of(includeTrackFiles), strategy, liveWatchEnabled);
     }
 
     @Scheduled(fixedDelayString = "${mtl.indexer.gps.rescan-interval:PT12H}")
     public void scheduledRescan() {
-        if (fileIndexerImpl == null) {
-            log.debug("Scheduled rescan skipped — indexer not yet started for GPS");
-            return;
-        }
-        log.info("Scheduled rescan triggered for GPS index");
-        fileIndexerImpl.rescan();
+        IndexerRescanSupport.scheduledRescan(fileIndexerImpl, log, INDEX_GPS);
     }
 
     public FileIndexerImpl.RescanRequestStatus requestRescan() {
-        FileIndexerImpl indexer = fileIndexerImpl;
-        if (indexer == null) {
-            log.warn("Manual rescan requested before GPS indexer startup completed");
-            return FileIndexerImpl.RescanRequestStatus.NOT_RUNNING;
-        }
-        log.info("Manual rescan requested for GPS index");
-        return indexer.rescan();
+        return IndexerRescanSupport.requestRescan(fileIndexerImpl, log, INDEX_GPS);
     }
 
 }

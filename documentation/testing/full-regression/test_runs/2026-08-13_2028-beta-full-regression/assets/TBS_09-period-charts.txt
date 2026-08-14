@@ -1,0 +1,23 @@
+TBS_09 Statistics period charts
+
+Shared totals across groupings:
+- 12 tracks
+- 993 km
+- 21h 43m
+- 4,906 Wh
+
+Monthly: YYYY-MM
+- 4 periods: 2010-01, 2013-03, 2021-07, 2026-08.
+- Duration, Distance, Activity, Energy, Intensity Index, Training Load, and Exploration chart sections rendered.
+
+Weekly: YYYY-WW
+- 4 periods: 2010-01, 2013-10, 2021-29, 2026-33.
+- All seven chart sections rendered with weekly axes.
+
+Daily: YYYY-MM-DD
+- 7 periods: 2010-01-01, 2013-03-08, 2013-03-09, 2013-03-10, 2013-03-11, 2021-07-20, 2026-08-13.
+- All seven chart sections rendered with daily axes.
+
+View toggle:
+- Table showed the daily period rows.
+- Charts returned to the chart panels and daily axes.

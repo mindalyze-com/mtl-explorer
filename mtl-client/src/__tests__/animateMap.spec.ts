@@ -7,6 +7,8 @@ const BottomSheetStub = defineComponent({
   name: 'BottomSheet',
   props: {
     modelValue: Boolean,
+    selectedDetent: [String, Number],
+    sheetClass: [String, Array, Object],
   },
   template: '<div v-if="modelValue"><slot /></div>',
 });
@@ -49,11 +51,17 @@ describe('AnimateMap track source', () => {
     await (wrapper.vm as unknown as { toggle: () => Promise<void> }).toggle();
     await nextTick();
 
-    expect(wrapper.text()).toContain('2 / 2');
+    expect(wrapper.text()).toContain('2 tracks ready');
+    expect(wrapper.text()).toContain('2 tracks');
   });
 
   it('keeps fast on the right by inverting the playback delay mapping', async () => {
     const wrapper = mount(AnimateMap, {
+      props: {
+        geojson: {
+          features: [feature(2, '2026-05-02T08:00:00Z'), feature(1, '2026-05-01T08:00:00Z')],
+        },
+      },
       global: {
         stubs: {
           BottomSheet: BottomSheetStub,
@@ -72,12 +80,12 @@ describe('AnimateMap track source', () => {
     vm.speedSliderPos = 0;
     await nextTick();
     expect(vm.animationSpeed).toBe(1000);
-    expect(wrapper.find('.am-speed-ms').text()).toBe('1000ms');
+    expect(wrapper.find('.am-speed-ms').text()).toBe('1000 ms per track');
 
     vm.speedSliderPos = 100;
     await nextTick();
     expect(vm.animationSpeed).toBe(1);
-    expect(wrapper.find('.am-speed-ms').text()).toBe('1ms');
+    expect(wrapper.find('.am-speed-ms').text()).toBe('1 ms per track');
   });
 
   it('does not reset track opacity when closed while inactive', () => {
@@ -104,6 +112,26 @@ describe('AnimateMap track source', () => {
     (wrapper.vm as unknown as { close: () => void }).close();
 
     expect(map.setPaintProperty).not.toHaveBeenCalled();
+  });
+
+  it('does not fail inactive cleanup after the map has been removed', () => {
+    const map = {
+      getLayer: vi.fn(() => {
+        throw new Error('Map is already removed');
+      }),
+    };
+    const wrapper = mount(AnimateMap, {
+      props: { map },
+      global: {
+        stubs: {
+          BottomSheet: BottomSheetStub,
+          MtlSlider: MtlSliderStub,
+        },
+      },
+    });
+
+    expect(() => (wrapper.vm as unknown as { close: () => void }).close()).not.toThrow();
+    expect(() => wrapper.unmount()).not.toThrow();
   });
 
   it('restores the previous track opacity after animation cleanup', async () => {
@@ -141,9 +169,15 @@ describe('AnimateMap track source', () => {
       },
     });
 
-    await (wrapper.vm as unknown as { toggle: () => Promise<void>; close: () => void }).toggle();
+    const vm = wrapper.vm as unknown as { toggle: () => Promise<void>; close: () => void; animationSpeed: number };
+    vm.animationSpeed = 1000;
+    await vm.toggle();
     await nextTick();
-    await wrapper.find('.am-play-hero').trigger('click');
+    await wrapper.find('.am-play-button').trigger('click');
+    expect(wrapper.find('.am-eyebrow').text()).toBe('Playing');
+    expect(wrapper.find('.am-play-button').text()).toContain('Pause');
+    expect(wrapper.findComponent(BottomSheetStub).props('selectedDetent')).toBe('playback');
+    expect(wrapper.find('.am-compact').exists()).toBe(true);
     (wrapper.vm as unknown as { close: () => void }).close();
 
     expect(map.setPaintProperty).toHaveBeenCalledWith('tracks-layer', 'line-opacity', 0);
@@ -206,8 +240,22 @@ describe('AnimateMap track source', () => {
       },
     });
 
-    await (wrapper.vm as unknown as { toggle: () => Promise<void>; close: () => void }).toggle();
+    const vm = wrapper.vm as unknown as { toggle: () => Promise<void>; close: () => void; animationSpeed: number };
+    vm.animationSpeed = 1000;
+    await vm.toggle();
     await nextTick();
+
+    for (const [layerId, property, value] of trackPaintProperties) {
+      expect(map.setLayoutProperty).not.toHaveBeenCalled();
+      expect(map.setPaintProperty).not.toHaveBeenCalled();
+      expect(layoutValues.get(layerId)).toBe('visible');
+      expect(paintValues.get(`${layerId}:${property}`)).toBe(value);
+    }
+
+    await wrapper.find('.am-play-button').trigger('click');
+
+    expect(wrapper.findComponent(BottomSheetStub).props('selectedDetent')).toBe('playback');
+    expect(wrapper.find('.am-compact').exists()).toBe(true);
 
     for (const [layerId, property] of trackPaintProperties) {
       expect(map.setLayoutProperty).toHaveBeenCalledWith(layerId, 'visibility', 'none');
@@ -216,8 +264,23 @@ describe('AnimateMap track source', () => {
       expect(paintValues.get(`${layerId}:${property}`)).toBe(0);
     }
 
-    await wrapper.find('.am-play-hero').trigger('click');
-    await wrapper.find('.am-stop-btn').trigger('click');
+    await wrapper.find('.am-play-button').trigger('click');
+    expect(wrapper.find('.am-eyebrow').text()).toBe('Paused');
+    expect(wrapper.findComponent(BottomSheetStub).props('selectedDetent')).toBe('playback');
+
+    await wrapper.find('.am-compact__expand').trigger('click');
+    expect(wrapper.findComponent(BottomSheetStub).props('selectedDetent')).toBe('open');
+    expect(wrapper.find('.am-settings').exists()).toBe(true);
+
+    await wrapper.find('.am-play-button').trigger('click');
+    expect(wrapper.find('.am-eyebrow').text()).toBe('Playing');
+    expect(wrapper.findComponent(BottomSheetStub).props('selectedDetent')).toBe('playback');
+
+    await wrapper.find('.am-stop-button').trigger('click');
+    expect(wrapper.find('.am-eyebrow').text()).toBe('Playback ready');
+    expect(wrapper.find('.am-play-button').text()).toContain('Play');
+    expect(wrapper.findComponent(BottomSheetStub).props('selectedDetent')).toBe('open');
+    expect(wrapper.find('.am-settings').exists()).toBe(true);
 
     expect(map.addLayer).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -225,8 +288,7 @@ describe('AnimateMap track source', () => {
         layout: expect.objectContaining({ 'line-cap': 'butt' }),
       })
     );
-
-    (wrapper.vm as unknown as { close: () => void }).close();
+    expect(map.addLayer).toHaveBeenCalledTimes(1);
 
     for (const [layerId, property, value] of trackPaintProperties) {
       expect(map.setPaintProperty).toHaveBeenCalledWith(layerId, property, value);
@@ -235,5 +297,7 @@ describe('AnimateMap track source', () => {
       expect(paintValues.get(`${layerId}:${property}`)).toBe(value);
     }
     expect(animationLayerVisible).toBe(false);
+
+    (wrapper.vm as unknown as { close: () => void }).close();
   });
 });

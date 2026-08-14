@@ -1,0 +1,8 @@
+Location marker cleanup
+
+- Starting state: centered purple Zürich result marker with attached X.
+- Clicked the marker's X removal control.
+- Marker and X disappeared immediately.
+- The map remained at the selected Zürich view with normal labels, zoom
+  controls, navigation, and active filter legend.
+- No orphan marker, popup, sheet, or captured click handler remained.

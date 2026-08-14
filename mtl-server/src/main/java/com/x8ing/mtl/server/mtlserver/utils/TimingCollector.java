@@ -52,12 +52,10 @@ public final class TimingCollector {
     }
 
     public void time(String label, TimedRunnable runnable) throws Exception {
-        long started = System.nanoTime();
-        try {
+        time(label, () -> {
             runnable.run();
-        } finally {
-            record(label, elapsedMs(started));
-        }
+            return null;
+        });
     }
 
     public <T> T timeUnchecked(String label, Supplier<T> supplier) {
@@ -70,12 +68,10 @@ public final class TimingCollector {
     }
 
     public void timeUnchecked(String label, Runnable runnable) {
-        long started = System.nanoTime();
-        try {
+        timeUnchecked(label, () -> {
             runnable.run();
-        } finally {
-            record(label, elapsedMs(started));
-        }
+            return null;
+        });
     }
 
     public void record(String label, long elapsedMs) {

@@ -1,0 +1,18 @@
+FLT_15 exact category reload restoration
+
+Persisted setup:
+- View: Tracks by quarter
+- Exact category selection: Q1 only
+- Result before reload: 8 matching tracks
+
+Reload observations:
+- Navigation completed in 261 ms.
+- First sampled resolution state, about 100 ms later: Updating, 0 tracks, Tracks by quarter already restored, categories still being discovered.
+- No intermediate unfiltered 12-track result was shown.
+- First settled result: 8 matching tracks, 1 of 2 categories.
+
+Cross-view settled checks:
+- Map: 8 of 12 tracks; visible legend group Q1 with 8 tracks.
+- Filter: 8 matching tracks; 1 of 2 categories.
+- Statistics Overview: Showing 8 of 12 tracks; TRACKS 8.
+- Review tracks: Matching tracks 8; table contains 8 rows across the single page.

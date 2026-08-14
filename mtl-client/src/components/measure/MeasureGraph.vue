@@ -7,7 +7,9 @@
 <script setup lang="ts">
 import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import type Highcharts from 'highcharts';
-import { formatNumber } from '@/utils/Utils';
+import { formatNumber, formatSpeed } from '@/utils/Utils';
+import { useMeasurementSystem } from '@/composables/useMeasurementSystem';
+import { MEASUREMENT_DISPLAY_PROFILES, speedDisplayValue } from '@/utils/units';
 
 defineOptions({ name: 'MeasureGraph' });
 
@@ -18,6 +20,7 @@ const props = defineProps<{
 const chartContainer = ref<HTMLElement | null>(null);
 const highchartsComponent = ref<{ chart?: Highcharts.Chart } | null>(null);
 let resizeObserver: ResizeObserver | null = null;
+const { measurementSystem } = useMeasurementSystem();
 
 const chartOptions = ref<Highcharts.Options>({
   chart: {
@@ -53,7 +56,7 @@ const chartOptions = ref<Highcharts.Options>({
   },
   yAxis: {
     title: {
-      text: 'Speed (km/h)',
+      text: `Speed (${MEASUREMENT_DISPLAY_PROFILES[measurementSystem.value].speed})`,
       style: {
         color: 'var(--text-secondary)',
         fontWeight: '600',
@@ -66,7 +69,7 @@ const chartOptions = ref<Highcharts.Options>({
         fontSize: '12px',
       },
       formatter: function () {
-        return String(this.value);
+        return formatNumber(speedDisplayValue(Number(this.value), measurementSystem.value), 1);
       },
     },
   },
@@ -79,7 +82,7 @@ const chartOptions = ref<Highcharts.Options>({
       color: 'var(--chart-tooltip-text)',
     },
     formatter: function () {
-      return 'Track segment speed was in average <b>' + formatNumber(this.y, 3) + ' km/h</b>';
+      return 'Track segment speed was on average <b>' + formatSpeed(Number(this.y), 3) + '</b>';
     },
   },
   plotOptions: {
@@ -164,6 +167,20 @@ watch(
     reflowChart();
   }
 );
+
+watch(measurementSystem, () => {
+  const yAxis = chartOptions.value.yAxis as Highcharts.YAxisOptions;
+  chartOptions.value = {
+    ...chartOptions.value,
+    yAxis: {
+      ...yAxis,
+      title: {
+        ...yAxis.title,
+        text: `Speed (${MEASUREMENT_DISPLAY_PROFILES[measurementSystem.value].speed})`,
+      },
+    },
+  };
+});
 
 onBeforeUnmount(() => {
   if (resizeObserver) {

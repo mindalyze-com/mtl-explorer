@@ -11,6 +11,8 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 import java.util.Date;
 
+import static org.apache.commons.lang3.StringUtils.truncate;
+
 @Service
 @JsonPropertyOrder({
         "webUserSessionRepository",
@@ -98,8 +100,4 @@ public class WebUserSessionService {
         return webUserSessionRepository.saveAndFlush(session);
     }
 
-    private static String truncate(String value, int maxLength) {
-        if (value == null) return null;
-        return value.length() <= maxLength ? value : value.substring(0, maxLength);
-    }
 }

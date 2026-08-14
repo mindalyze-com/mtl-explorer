@@ -1,0 +1,7 @@
+Context: Codex in-app browser, http://91.99.12.14:18080/mtl/filter
+Viewport: 390 x 844
+display-mode: browser = true
+display-mode: standalone = false
+display-mode: minimal-ui = false
+display-mode: fullscreen = false
+Classification: normal browser tab; the installed-PWA-only offline criterion does not apply.

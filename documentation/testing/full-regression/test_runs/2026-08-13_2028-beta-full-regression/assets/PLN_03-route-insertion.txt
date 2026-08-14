@@ -1,0 +1,21 @@
+PLN_03 route-leg insertion by dragging
+
+Before route-leg drag:
+- 4 legs
+- 7.69 km
+- 50 m ascent
+- 38 m descent
+- 22 minutes
+
+Action:
+- Dragged a visible orange route leg away from its computed line.
+
+After:
+- 5 legs
+- 8.05 km
+- 50 m ascent
+- 38 m descent
+- 23 minutes
+- Elevation chart recalculated to 443 points and 0-8.05 km.
+
+The increased leg count confirms a waypoint was inserted into the existing route, not appended from an empty map click.

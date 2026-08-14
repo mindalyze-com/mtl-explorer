@@ -1,0 +1,19 @@
+TBS_04 Statistics Tracks quick views
+
+Starting browser state:
+- Search: Walking
+- Sort: Exploration
+- All view summary: 1 of 12 tracks, 3.60 km, 59m 57s.
+
+Preset results:
+- Excluded: active, 0 of 0 tracks.
+- Stats excluded: active, 0 of 0 tracks.
+- No activity: active, 0 of 0 tracks.
+- All: active, 1 of 12 tracks, 3.60 km, 59m 57s.
+
+Across every switch:
+- Search remained Walking.
+- Sort remained Exploration.
+- The selected preset alone had aria-pressed=true.
+
+The empty subsets match the restored test state: no track remains excluded and all twelve have activities.

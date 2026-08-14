@@ -1,0 +1,16 @@
+PLN_09 missing routing data state
+
+Disposable BRouter preparation:
+- Confirmed the Zürich route used E5_N45.rd5.
+- Location search for Reykjavík had downloaded W25_N60.rd5.
+- Removed only the disposable W25_N60.rd5 file to recreate a missing-segment condition.
+
+User flow:
+- Kept the loaded 7.69 km Zürich plan.
+- Centered the map on Reykjavík and added a point to request routing there.
+- UI message: Routing data for this area is being downloaded. Please retry in about 30 seconds. (auto-retry 1/6)
+- No unhandled error or blank Planner appeared.
+- The sidecar automatically restored W25_N60.rd5 (2.6 MB).
+- On auto-retry, the cross-region request resolved to the clear message: Route unavailable for these points. Move waypoints onto routable roads or trails, or try again later.
+
+The exact disposable segment was restored by the normal download flow.

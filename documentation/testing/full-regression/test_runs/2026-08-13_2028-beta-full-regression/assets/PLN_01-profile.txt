@@ -1,0 +1,7 @@
+PLN_01 Planner profile selection
+
+- Opened Planner at the Drawing tab.
+- Profile menu exposed Hiking, Road Bike, Mountain Hiking, and Car.
+- Selected Road Bike.
+- Toolbar updated from Hiking to Road Bike.
+- Empty planner showed zero distance/ascent/descent/legs and the instruction to zoom below the 300 km span before planning.

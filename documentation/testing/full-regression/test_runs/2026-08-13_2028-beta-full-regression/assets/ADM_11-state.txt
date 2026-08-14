@@ -1,0 +1,11 @@
+Admin close/reopen mid-action
+
+- Opened Import & sync.
+- Selected synthetic mtl-adm02-valid.gpx, 513 B.
+- Upload action was visible but was not selected.
+- Closed Admin to /mtl/.
+- Reopened Admin at /mtl/admin; overview opened.
+- Returned to Import & sync at /mtl/admin/imports.
+- The selected filename, 513 B size, and Upload action were still present.
+- No second upload was performed.
+

@@ -1,0 +1,14 @@
+FMT_02 end-user format matrix
+The signed-in Track Browser was searched by exact source filename. Each result was opened, its mini-map and Graphs tab were inspected, and both user download actions were exercised. Chromium kept completed downloads under temporary .crdownload names; sizes, magic, hashes, and XML parsing were checked directly.
+
+Format | record(s) | statistics/details/charts | original download | GPX download
+FIT | 100005 | 1 row; mini-map and populated charts | Unconfirmed 728262, 94096 bytes, sha256 949a238e1bb75c3684479785f76fa9a16888bb394518844248f488171d591387, source-identical FIT | Unconfirmed 879718, valid GPX, 3601 trkpt
+KML | 100006 | 1 row; mini-map; distance-axis elevation/energy charts each 312 points | Unconfirmed 591144, 329996 bytes, sha256 37c89f7ff621428a300991740c6f2cc2fdd25adb79efccd3e9a05d7d81f63f15, source-identical KML | Unconfirmed 327519, valid GPX, 381 trkpt, 382 time
+KMZ | 100008 | 1 row; mini-map; distance-axis charts populated | Unconfirmed 613264, 24018 bytes, sha256 2db25b3745f3680bacaccc0fdb9062da9601b4aeffb4cadad22ae109af7e4e24, source-identical ZIP/KMZ | Unconfirmed 416847, valid GPX, 381 trkpt, 382 time
+GeoJSON | 100011 | 1 row; mini-map; distance-axis charts populated | Unconfirmed 904578, 61838 bytes, sha256 1a9c4b2db009403c0e748e04162124e33abec1631a7d1c52369b3e1048ec1833, source-identical JSON | Unconfirmed 562693, valid GPX, 381 trkpt, 1 metadata time (source has no point times)
+TCX | 100015 | 1 row; mini-map; six timed chart groups populated | Unconfirmed 3123, 182141 bytes, sha256 1500147b4aebe1acb2afb120dd237465185b66826ed47e70485f7ec81c586301, source-identical TCX | Unconfirmed 760599, valid GPX, 381 trkpt, 382 time
+GDB | 100014 | 1 row; mini-map; six timed chart groups populated | Unconfirmed 703718, 9299 bytes, sha256 dac45fe4c7b2addffa1e86440dc26c4cd46d3a1711678eb40c569aebd8412c84, source-identical Garmin GDB | Unconfirmed 966169, valid GPX, 381 trkpt, 382 time
+NMEA | 100016 | 1 row; mini-map; six timed chart groups populated | Unconfirmed 396310, 51376 bytes, sha256 f8e14ed1acc06ab33ff1332d863eae38c0540195f5eef678f126113cb8438d44, source-identical NMEA | Unconfirmed 52922, valid GPX, 380 trkpt, 381 time
+IGC | 100009, 100010 | 2 rows; both mini-maps and timed charts populated (222/4 point detail series) | Unconfirmed 355175, 13389 bytes, sha256 9b7c59a0876c837571239a537c8bebede4668b17eb3ff3bc9bddbd4551543d77, source-identical IGC | Unconfirmed 495399 and 26307, both valid GPX, each 358 trkpt and 359 time
+
+Conversion evidence is in FMT_01-format-acceptance.txt. All originals match the exact watched source bytes. Every downloaded GPX parses as XML and contains trackpoints. An extra valid KMZ GPX artifact, Unconfirmed 781497.crdownload, was created while correcting the IGC second-row selection and is included in cleanup obligations.

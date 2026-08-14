@@ -15,6 +15,7 @@ import type {
   MetricBucketStats,
 } from 'x8ing-mtl-api-typescript-fetch/dist/esm/models/index';
 import { ChartSeriesResponseXModeEnum } from 'x8ing-mtl-api-typescript-fetch/dist/esm/models/ChartSeriesResponse';
+import { toValidDateMs as dateMs } from '@/utils/Utils';
 import type {
   ChartSeriesResponseAvailableMetricsEnum as GeneratedMetricKey,
   ChartSeriesResponseRecommendedSpeedMetricEnum as GeneratedRecommendedSpeedMetric,
@@ -160,10 +161,7 @@ export function chartSeriesToPoints(response: ChartSeriesResponse): ChartPoint[]
 
 export function chartSeriesToTrackChartSeries(response: ChartSeriesResponse): TrackChartSeries {
   const availableMetrics = (response.availableMetrics ?? []) as MetricKey[];
-  const recommendedSpeedMetric = normalizeRecommendedSpeedMetric(
-    response.recommendedSpeedMetric,
-    availableMetrics
-  );
+  const recommendedSpeedMetric = normalizeRecommendedSpeedMetric(response.recommendedSpeedMetric, availableMetrics);
   return {
     points: chartSeriesToPoints(response),
     recommendedSpeedMetric,
@@ -180,7 +178,11 @@ function normalizeRecommendedSpeedMetric(
   return availableMetrics.includes(metric) ? metric : null;
 }
 
-function bucketRepresentativeTimestamp(bucket: ChartBucket, xMode: XMode, responseStartTimestampMs: number | null): Date {
+function bucketRepresentativeTimestamp(
+  bucket: ChartBucket,
+  xMode: XMode,
+  responseStartTimestampMs: number | null
+): Date {
   const parsedMs = dateMs(bucket.representativeTimestamp);
   if (parsedMs != null) return new Date(parsedMs);
 
@@ -193,11 +195,4 @@ function bucketRepresentativeTimestamp(bucket: ChartBucket, xMode: XMode, respon
   }
 
   return new Date(xStart);
-}
-
-function dateMs(value: Date | string | number | null | undefined): number | null {
-  if (value == null) return null;
-  const date = value instanceof Date ? value : new Date(value);
-  const ms = date.getTime();
-  return Number.isFinite(ms) ? ms : null;
 }

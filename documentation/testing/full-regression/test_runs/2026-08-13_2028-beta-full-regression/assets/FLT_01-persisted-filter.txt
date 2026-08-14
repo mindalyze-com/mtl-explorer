@@ -1,0 +1,9 @@
+Coverage ID: FLT_01
+
+- Starting state: all-tracks Smart Base Filter was active and persisted from prior filter use.
+- Closed Filter and performed a normal browser reload.
+- The map immediately showed the `12 Tracks` count chip (`mtl-card__count`).
+- Reopening Filter showed Current result: 12 matching tracks.
+- Configuration still showed Filter view: Smart Base Filter.
+- Apply filter remained active; the paused copy was absent.
+

@@ -1,240 +1,93 @@
 <template>
-  <div>
-    <BottomSheet
-      v-model="isOpen"
-      title="Maps and data"
-      icon="bi bi-map"
-      :detents="[{ height: '55vh' }, { height: '92vh' }]"
-      @closed="$emit('tool-closed')"
-    >
-      <template #header-actions>
-        <button class="msp-header-reset-btn" title="Reset all layers to defaults" @click="$emit('reset-settings')">
-          <i class="bi bi-arrow-counterclockwise"></i>
-          Reset
-        </button>
-      </template>
-      <div class="msp-content">
-        <!-- Base Map Theme -->
-        <div class="msp-section-label">Base Map</div>
-        <div class="msp-theme-grid">
-          <div
-            v-for="theme in themes"
-            :key="theme.code"
-            class="msp-theme-tile"
-            :class="{ 'msp-theme-active': modelValue === theme.code }"
-            @click="$emit('update:modelValue', theme.code)"
-          >
-            <div class="msp-theme-swatch" :style="{ backgroundImage: `url(${theme.thumbnail})` }">
-              <span
-                v-if="theme.badgeLabel"
-                class="msp-theme-badge"
-                :class="theme.badgeTone ? `msp-theme-badge--${theme.badgeTone}` : undefined"
-              >
-                <i :class="theme.badgeTone === 'swiss' ? 'bi bi-geo-alt-fill' : 'bi bi-stars'"></i>
-                {{ theme.badgeLabel }}
-              </span>
-              <span v-if="modelValue === theme.code" class="msp-theme-selected" aria-label="Selected map theme">
-                <i class="bi bi-check-lg"></i>
-              </span>
-            </div>
-            <span class="msp-theme-label">{{ theme.name }}</span>
-          </div>
-        </div>
-
-        <!-- Map source -->
-        <div class="msp-section-label">Map Source</div>
-        <div class="msp-source-segmented" role="group" aria-label="Map source">
-          <button
-            type="button"
-            class="msp-source-option"
-            :class="{ 'msp-source-option-active': mapSourceMode === 'auto' }"
-            :aria-pressed="mapSourceMode === 'auto'"
-            title="Automatic map source"
-            @click="$emit('update:map-source-mode', 'auto')"
-          >
-            <i class="bi bi-signpost-split"></i>
-            <span>Auto</span>
-          </button>
-          <button
-            type="button"
-            class="msp-source-option"
-            :class="{ 'msp-source-option-active': mapSourceMode === 'remote' }"
-            :aria-pressed="mapSourceMode === 'remote'"
-            title="Remote raster tiles"
-            @click="$emit('update:map-source-mode', 'remote')"
-          >
-            <i class="bi bi-grid-3x3-gap"></i>
-            <span>Remote</span>
-          </button>
-        </div>
-
-        <!-- View mode -->
-        <div class="msp-section-label">View Mode</div>
-        <LayerControl
-          label="3D Terrain"
-          info="Perspective terrain view using Mapterhorn elevation mesh"
-          :enabled="layerStates.terrain.enabled"
-          :opacity="layerStates.terrain.opacity"
-          :show-opacity="false"
-          color="#2563eb"
-          @update:enabled="$emit('set-terrain-mode-enabled', $event)"
-        />
-        <div v-if="layerStates.terrain.enabled" class="msp-terrain-relief">
-          <div class="msp-terrain-relief-header">
-            <span class="msp-terrain-relief-label">3D relief</span>
-            <span class="msp-terrain-relief-value">{{ terrainExaggeration.toFixed(1) }}x</span>
-          </div>
-          <MtlSlider
-            class="msp-terrain-relief-slider"
-            :model-value="terrainExaggeration"
-            :min="TERRAIN_EXAGGERATION_MIN"
-            :max="TERRAIN_EXAGGERATION_MAX"
-            :step="TERRAIN_EXAGGERATION_STEP"
-            aria-label="3D terrain relief"
-            @update:model-value="onTerrainExaggerationChange"
-          />
-        </div>
-
-        <!-- Background layer -->
-        <div class="msp-section-label">Background</div>
-        <LayerControl
-          label="Base Map"
-          info="The background map tiles — street map, topo, or satellite imagery"
-          :enabled="layerStates.basemap.enabled"
-          :opacity="layerStates.basemap.opacity"
-          @update:enabled="$emit('toggle-layer', 'basemap')"
-          @update:opacity="$emit('change-layer-opacity', 'basemap', $event)"
-        />
-
-        <!-- Data Layers -->
-        <div class="msp-section-label">Data Layers</div>
-        <LayerControl
-          label="GPS Tracks"
-          info="All your recorded activities drawn as colored lines on the map"
-          :enabled="layerStates.tracks.enabled"
-          :opacity="layerStates.tracks.opacity"
-          @update:enabled="$emit('toggle-layer', 'tracks')"
-          @update:opacity="$emit('change-layer-opacity', 'tracks', $event)"
-        />
-        <LayerControl
-          label="Photos &amp; Media"
-          info="Geotagged photos and media clustered by location"
-          :enabled="layerStates.media.enabled"
-          :opacity="layerStates.media.opacity"
-          @update:enabled="$emit('toggle-layer', 'media')"
-          @update:opacity="$emit('change-layer-opacity', 'media', $event)"
-        />
-        <LayerControl
-          label="Track Points &amp; Direction"
-          info="Individual GPS points with direction arrows — only visible when zoomed in close"
-          :enabled="layerStates.trackpoints.enabled"
-          :opacity="layerStates.trackpoints.opacity"
-          @update:enabled="$emit('toggle-layer', 'trackpoints')"
-          @update:opacity="$emit('change-layer-opacity', 'trackpoints', $event)"
-        />
-        <LayerControl
-          label="Heatmap"
-          info="Density overlay showing where you've been most frequently"
-          :enabled="layerStates.heatmap.enabled"
-          :opacity="layerStates.heatmap.opacity"
-          @update:enabled="$emit('toggle-layer', 'heatmap')"
-          @update:opacity="$emit('change-layer-opacity', 'heatmap', $event)"
-        />
-
-        <!-- Waymarked Trails (worldwide) -->
-        <div class="msp-section-label">Waymarked Trails</div>
-        <div class="msp-section-hint">Worldwide routes from OpenStreetMap · styled by importance level</div>
-        <LayerControl
-          label="Hiking (worldwide)"
-          info="International, national, regional &amp; local hiking routes"
-          :enabled="layerStates['wmt-hiking'].enabled"
-          :opacity="layerStates['wmt-hiking'].opacity"
-          @update:enabled="$emit('toggle-layer', 'wmt-hiking')"
-          @update:opacity="$emit('change-layer-opacity', 'wmt-hiking', $event)"
-        />
-        <LayerControl
-          label="Cycling (worldwide)"
-          info="Cycling route networks — EuroVelo, national &amp; regional"
-          :enabled="layerStates['wmt-cycling'].enabled"
-          :opacity="layerStates['wmt-cycling'].opacity"
-          @update:enabled="$emit('toggle-layer', 'wmt-cycling')"
-          @update:opacity="$emit('change-layer-opacity', 'wmt-cycling', $event)"
-        />
-        <LayerControl
-          label="MTB (worldwide)"
-          info="Mountain bike trails and routes"
-          :enabled="layerStates['wmt-mtb'].enabled"
-          :opacity="layerStates['wmt-mtb'].opacity"
-          @update:enabled="$emit('toggle-layer', 'wmt-mtb')"
-          @update:opacity="$emit('change-layer-opacity', 'wmt-mtb', $event)"
-        />
-
-        <!-- Swiss Overlays -->
-        <div class="msp-section-label">Swiss Overlays</div>
-        <div class="msp-section-hint">Switzerland only — not available worldwide</div>
-        <LayerControl
-          label="Hiking Routes"
-          :enabled="layerStates.wanderland.enabled"
-          :opacity="layerStates.wanderland.opacity"
-          @update:enabled="$emit('toggle-layer', 'wanderland')"
-          @update:opacity="$emit('change-layer-opacity', 'wanderland', $event)"
-        />
-        <LayerControl
-          label="Bike Routes"
-          :enabled="layerStates.veloland.enabled"
-          :opacity="layerStates.veloland.opacity"
-          @update:enabled="$emit('toggle-layer', 'veloland')"
-          @update:opacity="$emit('change-layer-opacity', 'veloland', $event)"
-        />
-        <LayerControl
-          label="MTB Routes"
-          :enabled="layerStates.mountainbikeland.enabled"
-          :opacity="layerStates.mountainbikeland.opacity"
-          @update:enabled="$emit('toggle-layer', 'mountainbikeland')"
-          @update:opacity="$emit('change-layer-opacity', 'mountainbikeland', $event)"
-        />
-        <LayerControl
-          label="Hiking Trails"
-          info="All signposted hiking trails (yellow, red-white, blue-white)"
-          :enabled="layerStates.wanderwege.enabled"
-          :opacity="layerStates.wanderwege.opacity"
-          @update:enabled="$emit('toggle-layer', 'wanderwege')"
-          @update:opacity="$emit('change-layer-opacity', 'wanderwege', $event)"
-        />
+  <BottomSheet
+    :model-value="isOpen"
+    :detents="[{ height: 'min(86vh, 44rem)' }, { height: '95vh' }]"
+    :no-backdrop="true"
+    sheet-class="sheet--solid-over-map sheet--map-settings-overview"
+    @update:model-value="onMainVisibilityChange"
+    @closed="onMainClosed"
+  >
+    <template #title>
+      <div class="map-settings-header">
+        <i class="bi bi-map map-settings-header__icon" aria-hidden="true"></i>
+        <h2>Map</h2>
       </div>
-    </BottomSheet>
-  </div>
+    </template>
+
+    <div class="map-settings-root" :inert="innerSheetOpen ? true : undefined">
+      <MapSettingsOverview
+        :basemap-enabled="layerStates.basemap.enabled"
+        :data-summary="dataSummary"
+        :routes-summary="routesSummary"
+        :source-summary="sourceSummary"
+        :style-summary="styleSummary"
+        :terrain-summary="terrainSummary"
+        :theme-name="selectedTheme.name"
+        :theme-thumbnail="selectedTheme.thumbnail"
+        @open-style="showStyle = true"
+        @open-terrain="showTerrain = true"
+        @open-data="showDataLayers = true"
+        @open-routes="showRouteLayers = true"
+        @reset="emit('reset-settings')"
+      />
+    </div>
+
+    <MapStyleSheet
+      v-model="showStyle"
+      :basemap="layerStates.basemap"
+      :map-source-mode="mapSourceMode"
+      :selected-theme="modelValue"
+      :themes="themes"
+      @update:map-source-mode="emit('update:map-source-mode', $event)"
+      @update:selected-theme="emit('update:modelValue', $event)"
+      @toggle-basemap="emit('toggle-layer', 'basemap')"
+      @change-basemap-opacity="emit('change-layer-opacity', 'basemap', $event)"
+    />
+
+    <MapTerrainSheet
+      v-model="showTerrain"
+      :terrain="layerStates.terrain"
+      :terrain-exaggeration="terrainExaggeration"
+      @set-enabled="emit('set-terrain-mode-enabled', $event)"
+      @change-exaggeration="emit('change-terrain-exaggeration', $event)"
+    />
+
+    <MapDataLayersSheet
+      v-model="showDataLayers"
+      :layer-states="layerStates"
+      @toggle-layer="emit('toggle-layer', $event)"
+      @change-layer-opacity="onLayerOpacityChange"
+    />
+
+    <MapRouteLayersSheet
+      v-model="showRouteLayers"
+      :layer-states="layerStates"
+      @toggle-layer="emit('toggle-layer', $event)"
+      @change-layer-opacity="onLayerOpacityChange"
+    />
+  </BottomSheet>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import BottomSheet from '@/components/ui/BottomSheet.vue';
-import LayerControl from '@/components/map/LayerControl.vue';
-import MtlSlider from '@/components/ui/MtlSlider.vue';
+import MapSettingsOverview from '@/components/map/MapSettingsOverview.vue';
+import MapStyleSheet from '@/components/map/MapStyleSheet.vue';
+import MapTerrainSheet from '@/components/map/MapTerrainSheet.vue';
+import MapDataLayersSheet from '@/components/map/MapDataLayersSheet.vue';
+import MapRouteLayersSheet from '@/components/map/MapRouteLayersSheet.vue';
 import {
-  TERRAIN_EXAGGERATION_MAX,
-  TERRAIN_EXAGGERATION_MIN,
-  TERRAIN_EXAGGERATION_STEP,
-  sanitizeTerrainExaggeration,
-} from '@/components/map/terrainMode';
+  DATA_LAYER_IDS,
+  ROUTE_LAYER_IDS,
+  type MapSettingsLayerStates,
+  type MapSourceMode,
+  type MapThemeOption,
+} from '@/components/map/mapSettingsPanelTypes';
 
-type MapThemeOption = {
-  code: string;
-  badgeLabel?: string;
-  badgeTone?: 'preferred' | 'swiss';
-  name: string;
-  thumbnail: string;
-};
+defineOptions({ name: 'MapSettingsPanel' });
 
-type MapSourceMode = 'auto' | 'remote';
-
-type LayerState = {
-  enabled: boolean;
-  opacity: number;
-};
-
-defineProps<{
-  layerStates: Record<string, LayerState>;
+const props = defineProps<{
+  layerStates: MapSettingsLayerStates;
   mapSourceMode: MapSourceMode;
   modelValue: string;
   terrainExaggeration: number;
@@ -254,258 +107,112 @@ const emit = defineEmits<{
 }>();
 
 const isOpen = ref(false);
+const showStyle = ref(false);
+const showTerrain = ref(false);
+const showDataLayers = ref(false);
+const showRouteLayers = ref(false);
 
-function onTerrainExaggerationChange(value: number | number[]) {
-  const nextValue = Array.isArray(value) ? value[0] : value;
-  emit('change-terrain-exaggeration', sanitizeTerrainExaggeration(nextValue));
+const innerSheetOpen = computed(
+  (): boolean => showStyle.value || showTerrain.value || showDataLayers.value || showRouteLayers.value
+);
+const selectedTheme = computed<MapThemeOption>(
+  () =>
+    props.themes.find((theme) => theme.code === props.modelValue) ??
+    props.themes[0] ?? { code: props.modelValue, name: 'Map', thumbnail: '' }
+);
+const sourceSummary = computed((): string => (props.mapSourceMode === 'remote' ? 'Remote tiles' : 'Automatic source'));
+const styleSummary = computed(
+  (): string => `${selectedTheme.value.name}${props.layerStates.basemap.enabled ? '' : ' · hidden'}`
+);
+const terrainSummary = computed((): string =>
+  props.layerStates.terrain.enabled ? `3D · ${props.terrainExaggeration.toFixed(1)}× relief` : '2D map'
+);
+const enabledDataLayerCount = computed(
+  (): number => DATA_LAYER_IDS.filter((layerId) => props.layerStates[layerId].enabled).length
+);
+const enabledRouteLayerCount = computed(
+  (): number => ROUTE_LAYER_IDS.filter((layerId) => props.layerStates[layerId].enabled).length
+);
+const dataSummary = computed((): string => `${enabledDataLayerCount.value} of ${DATA_LAYER_IDS.length} shown`);
+const routesSummary = computed((): string =>
+  enabledRouteLayerCount.value === 0
+    ? 'None shown'
+    : `${enabledRouteLayerCount.value} of ${ROUTE_LAYER_IDS.length} shown`
+);
+
+watch(isOpen, (open) => {
+  if (!open) closeInnerSheets();
+});
+
+function closeInnerSheets(): void {
+  showStyle.value = false;
+  showTerrain.value = false;
+  showDataLayers.value = false;
+  showRouteLayers.value = false;
 }
 
-function toggle() {
+function onMainVisibilityChange(open: boolean): void {
+  isOpen.value = open;
+}
+
+function onMainClosed(): void {
+  closeInnerSheets();
+  emit('tool-closed');
+}
+
+function onLayerOpacityChange(layer: string, opacity: number): void {
+  emit('change-layer-opacity', layer, opacity);
+}
+
+function toggle(): void {
   isOpen.value = !isOpen.value;
   if (isOpen.value) emit('tool-opened');
 }
 
-function open() {
+function open(): void {
   if (isOpen.value) return;
   isOpen.value = true;
   emit('tool-opened');
 }
 
-function close() {
+function close(): void {
   isOpen.value = false;
+  closeInnerSheets();
 }
 
-// Map.vue calls `mapSettingsTool.toggle()` / `.close()` via $refs
-// (see closeAllToolsExcept). With <script setup>, members are private
-// unless explicitly exposed.
 defineExpose({ open, toggle, close });
 </script>
 
 <style scoped>
-.msp-content {
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-  overscroll-behavior-y: contain;
+.map-settings-header {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.map-settings-header__icon {
+  flex: 0 0 auto;
+  color: var(--accent-text);
+  font-size: var(--text-base-size);
+}
+
+.map-settings-header h2 {
+  margin: 0;
+  overflow: hidden;
+  color: var(--text-primary);
+  font-size: var(--text-base-size);
+  font-weight: var(--font-semibold);
+  line-height: var(--text-base-lh);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.map-settings-root {
   flex: 1 1 auto;
   min-height: 0;
-  padding: 0 1rem 1.5rem;
-}
-
-.msp-section-label {
-  font-size: var(--text-xs-size);
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--text-faint);
-  margin: 0.6rem 0 0.35rem;
-}
-.msp-section-label:first-child {
-  margin-top: 0;
-}
-.msp-section-hint {
-  font-size: var(--text-2xs-size);
-  color: var(--text-faint);
-  opacity: 0.75;
-  margin: -0.2rem 0 0.3rem;
-  font-style: italic;
-}
-
-.msp-terrain-relief {
-  padding: 0 0.75rem 0.55rem 2.1rem;
-}
-
-.msp-terrain-relief-header {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 0.75rem;
-  margin: -0.1rem 0 0.1rem;
-}
-
-.msp-terrain-relief-label {
-  font-size: var(--text-xs-size);
-  color: var(--text-faint);
-}
-
-.msp-terrain-relief-value {
-  font-variant-numeric: tabular-nums;
-  font-size: var(--text-xs-size);
-  color: var(--text-secondary);
-}
-
-.msp-terrain-relief-slider {
-  --mtl-slider-hit-padding-x: 11px;
-  --mtl-slider-hit-padding-y: 10px;
-  --mtl-slider-handle-size-default: 22px;
-  --mtl-slider-handle-size-coarse: 28px;
-  --mtl-slider-track-height-default: 10px;
-  --mtl-slider-track-height-coarse: 12px;
-  margin: 0 -11px;
-}
-
-.msp-source-segmented {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.25rem;
-  padding: 0.25rem;
-  border: 1px solid var(--border-medium);
-  border-radius: 8px;
-  background: var(--surface-elevated);
-}
-
-.msp-source-option {
-  min-height: 2.25rem;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.4rem;
-  border: 0;
-  border-radius: 6px;
-  background: transparent;
-  color: var(--text-muted);
-  font-size: var(--text-sm-size);
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.msp-source-option-active {
-  background: var(--surface-glass-heavy);
-  color: var(--text-primary);
-  box-shadow: var(--shadow-sm);
-}
-
-.msp-header-reset-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-  font-size: var(--text-xs-size);
-  font-weight: 500;
-  padding: 0.2rem 0.65rem;
-  border-radius: 999px;
-  border: 1px solid var(--border-medium);
-  background: transparent;
-  color: var(--text-faint);
-  cursor: pointer;
-  transition:
-    background 0.15s,
-    color 0.15s,
-    border-color 0.15s;
-  white-space: nowrap;
-}
-.msp-header-reset-btn:hover {
-  background: var(--error-bg);
-  color: var(--error);
-  border-color: var(--error);
-}
-
-/* ── Theme thumbnail grid ── */
-.msp-theme-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 0.5rem;
-}
-@media (min-width: 640px) {
-  .msp-theme-grid {
-    grid-template-columns: repeat(auto-fit, minmax(8.75rem, 1fr));
-    gap: 0.65rem;
-  }
-}
-.msp-theme-tile {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  cursor: pointer;
-  border: 2px solid transparent;
-  border-radius: 8px;
-  padding: clamp(0.3rem, 0.45vw, 0.42rem);
-  transition: border-color 0.15s;
-  overflow: hidden;
-}
-.msp-theme-tile:hover {
-  border-color: var(--border-hover);
-}
-.msp-theme-active {
-  border-color: var(--primary-color);
-}
-.msp-theme-swatch {
-  width: 100%;
-  aspect-ratio: 16 / 10;
-  border-radius: 4px;
-  border: 1px solid var(--border-medium);
-  background-size: 155% auto;
-  background-position: center 60%;
-  position: relative;
-}
-@media (min-width: 640px) {
-  .msp-theme-swatch {
-    aspect-ratio: 16 / 9;
-  }
-}
-.msp-theme-badge {
-  position: absolute;
-  top: 3px;
-  right: 4px;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.12rem;
-  max-width: calc(100% - 0.5rem);
-  font-size: 0.44rem;
-  line-height: 0.56rem;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-  background: rgba(12, 19, 32, 0.82);
-  color: #ffffff;
-  border: 1px solid rgba(255, 255, 255, 0.55);
-  border-radius: 999px;
-  padding: 0.04rem 0.22rem;
-  box-shadow: 0 0.25rem 0.7rem rgba(12, 19, 32, 0.22);
-  pointer-events: none;
-  white-space: nowrap;
-}
-.msp-theme-badge--preferred {
-  background: color-mix(in srgb, var(--primary-color) 86%, #162033);
-}
-.msp-theme-badge--swiss {
-  background: color-mix(in srgb, var(--error) 82%, #721818);
-}
-.msp-theme-badge i {
-  font-size: 0.42rem;
-  line-height: 1;
-}
-.msp-theme-selected {
-  position: absolute;
-  top: 3px;
-  left: 4px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 1.15rem;
-  height: 1.15rem;
-  font-size: var(--text-2xs-size);
-  line-height: 1;
-  background: var(--primary-color);
-  color: var(--text-primary);
-  border: 1px solid rgba(255, 255, 255, 0.55);
-  border-radius: 999px;
-  box-shadow: 0 0.25rem 0.7rem rgba(12, 19, 32, 0.2);
-  pointer-events: none;
-}
-.msp-theme-label {
-  font-size: var(--text-xs-size);
-  line-height: var(--text-xs-lh);
-  min-height: calc(var(--text-xs-lh) * 2);
-  margin-top: 0.25rem;
-  text-align: center;
-  white-space: normal;
-  overflow-wrap: anywhere;
-  color: var(--text-muted);
-}
-
-@media (pointer: coarse) {
-  .msp-terrain-relief-slider {
-    --mtl-slider-hit-padding-x: 14px;
-    margin: 0 -14px;
-  }
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
 }
 </style>

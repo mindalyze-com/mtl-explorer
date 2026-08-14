@@ -1,0 +1,73 @@
+UXP_01 interaction timing capture
+Method: start input and poll visible DOM or screenshot state concurrently; feedback is the first visible state change.
+Main-thread stall proxy: maximum interval between consecutive DOM/screenshot probes while the action was pending.
+Controller post-action settlement is recorded separately and is not part of visible-feedback latency.
+Window: 2026-08-14T01:04:21.967Z to 2026-08-14T01:10:44.641Z
+Measured inputs: 60; maximum feedback: 150 ms; maximum poll gap: 150 ms; failures: 0
+J | Action | feedback-ms | max-poll-gap-ms | result
+1 | Map pan | 32 | 32 | PASS
+1 | Map zoom visible feedback | 34 | 34 | PASS
+1 | Open Filter | 59 | 32 | PASS
+1 | Reset applied Filter | 86 | 30 | PASS
+1 | Apply Filter | 84 | 33 | PASS
+1 | Close Statistics visible feedback | 53 | 53 | PASS
+1 | Open Statistics visible feedback | 150 | 150 | PASS
+1 | Statistics Tracks tab | 132 | 66 | PASS
+1 | Track search | 131 | 66 | PASS
+1 | Close Track Details visible feedback | 26 | 26 | PASS
+1 | Track search after detail | 101 | 61 | PASS
+1 | Open Track Details visible feedback | 32 | 32 | PASS
+1 | Detail tab Overview visible feedback | 47 | 47 | PASS
+1 | Detail tab Graphs visible feedback | 34 | 34 | PASS
+1 | Detail tab Quality visible feedback | 34 | 34 | PASS
+1 | Detail tab Related visible feedback | 68 | 68 | PASS
+1 | Detail tab Events visible feedback | 34 | 34 | PASS
+1 | Open Planner visible feedback | 123 | 123 | PASS
+1 | Close Planner visible feedback | 42 | 42 | PASS
+2 | Map pan | 48 | 48 | PASS
+2 | Map zoom visible feedback | 22 | 22 | PASS
+2 | Open Filter | 61 | 35 | PASS
+2 | Reset applied Filter | 77 | 39 | PASS
+2 | Apply Filter | 95 | 34 | PASS
+2 | Close Filter visible feedback | 32 | 32 | PASS
+2 | Open Statistics visible feedback | 141 | 141 | PASS
+2 | Statistics Tracks tab | 69 | 69 | PASS
+2 | Track search | 119 | 66 | PASS
+2 | Open Track Details visible feedback | 34 | 34 | PASS
+2 | Detail tab Graphs visible feedback | 34 | 34 | PASS
+2 | Detail tab Quality visible feedback | 39 | 39 | PASS
+2 | Detail tab Events visible feedback | 57 | 57 | PASS
+2 | Open Planner visible feedback | 138 | 138 | PASS
+2 | Close Planner visible feedback | 67 | 67 | PASS
+2 | Reopen Statistics for Overview | 119 | 119 | PASS
+2 | Statistics Overview tab | 67 | 67 | PASS
+2 | Statistics Tracks tab after Overview | 137 | 69 | PASS
+2 | Close Statistics after explicit cycle | 33 | 33 | PASS
+3 | Map pan | 47 | 47 | PASS
+3 | Map zoom visible feedback | 35 | 35 | PASS
+3 | Open Filter | 54 | 30 | PASS
+3 | Reset applied Filter | 77 | 40 | PASS
+3 | Apply Filter | 99 | 37 | PASS
+3 | Close Filter visible feedback | 42 | 42 | PASS
+3 | Open Statistics visible feedback | 128 | 128 | PASS
+3 | Statistics Overview tab | 38 | 38 | PASS
+3 | Statistics Tracks tab | 135 | 68 | PASS
+3 | Track search | 117 | 65 | PASS
+3 | Open Track Details visible feedback | 32 | 32 | PASS
+3 | Detail tab Graphs visible feedback | 33 | 33 | PASS
+3 | Detail tab Related visible feedback | 41 | 41 | PASS
+3 | Detail tab Events visible feedback | 69 | 69 | PASS
+3 | Open Planner visible feedback | 127 | 127 | PASS
+3 | Close Planner visible feedback | 35 | 35 | PASS
+3 | Post-third map pan | 33 | 33 | PASS
+3 | Post-third map zoom visible feedback | 35 | 35 | PASS
+3 | Post-third main navigation | 59 | 35 | PASS
+3 | Post-third navigation close | 58 | 58 | PASS
+3 | Final main-navigation response | 120 | 120 | PASS
+3 | Final navigation return to map | 67 | 67 | PASS
+Journey checkpoints: all three ended on the populated map; Statistics Overview/Tracks, Jura search, #100000 detail tabs, and Planner state were verified.
+Post-third checks: map pan, map zoom, main navigation, and return to map all passed.
+Final state: /mtl/, Q1 active, 8/12 tracks, no visible busy state.
+Console warn/error entries during window: 0.
+Pending check: browser networkidle is unsupported by this controller; expected UI states settled, no spinner/busy state remained, and all expected server-side application requests completed.
+Diagnostic note: DOM predicates that measured full removal/populated settlement or used an incorrect selected-tab token were retained outside this input table; direct screenshot/DOM first-feedback measurements replaced them.

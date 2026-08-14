@@ -171,5 +171,4 @@ describe('Track Detail original and GPX export', () => {
       })
     );
   });
-
 });

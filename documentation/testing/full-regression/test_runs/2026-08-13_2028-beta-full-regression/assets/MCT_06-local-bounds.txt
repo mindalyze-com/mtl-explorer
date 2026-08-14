@@ -1,0 +1,11 @@
+Selected A-B comparison geometry stayed in Lannion.
+
+Visible local landmarks: Lannion, La Poste Quai d'Aiguillon, Le Léguer,
+Sanitaires Parking de Günzburg, Esprit Tous en marinière.
+Visible map scale: 50 m.
+Both A and B markers and the complete selected line were inside the local map.
+No [0,0] point, ocean/continent jump, South Africa extent, or global straight
+line was visible.
+
+The separate zero-distance/endpoint-only extraction defect is recorded under
+MCT-05-P1; it did not move the geometry outside the selected local bounds.

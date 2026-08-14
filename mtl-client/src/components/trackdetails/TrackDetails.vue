@@ -32,16 +32,16 @@
             type="button"
             class="track-detail-load-error__button"
             data-test="track-detail-back"
-            @click="emit('back-to-map')"
+            @click="emit('back')"
           >
-            <i class="bi bi-map"></i>
-            <span>Back to map</span>
+            <i class="bi bi-arrow-left"></i>
+            <span>Back</span>
           </button>
         </div>
       </div>
     </div>
 
-    <Tabs v-else :value="activeTab" @update:value="onTabChange">
+    <Tabs v-else :value="activeTab" class="sheet-scroll-tabs" @update:value="onTabChange">
       <TabList>
         <Tab value="0">Overview</Tab>
         <Tab value="1">Graphs</Tab>
@@ -71,15 +71,15 @@
             <div v-else :class="['graphs-toolbar', { 'graphs-toolbar--tuning-open': graphTuningOpen }]">
               <div class="graphs-toolbar-section graphs-axis-section">
                 <span class="graphs-toolbar-label">X Axis</span>
-                <div class="graphs-toggle">
+                <div class="graphs-toggle view-toggle">
                   <button
-                    :class="['toggle-btn', { 'toggle-btn--active': xMode === 'time' }]"
+                    :class="['toggle-btn view-toggle-button', { 'view-toggle-button--active': xMode === 'time' }]"
                     @click="setXModeValue('time')"
                   >
                     <i class="bi bi-clock"></i> Time
                   </button>
                   <button
-                    :class="['toggle-btn', { 'toggle-btn--active': xMode === 'distance' }]"
+                    :class="['toggle-btn view-toggle-button', { 'view-toggle-button--active': xMode === 'distance' }]"
                     @click="setXModeValue('distance')"
                   >
                     <i class="bi bi-signpost-split"></i> Distance
@@ -89,11 +89,11 @@
 
               <div class="graphs-toolbar-section graphs-range-band-section">
                 <span class="graphs-toolbar-label">Detail</span>
-                <div class="graphs-toggle graphs-toggle--single">
+                <div class="graphs-toggle view-toggle graphs-toggle--single">
                   <button
                     type="button"
                     data-test="range-toggle"
-                    :class="['toggle-btn', { 'toggle-btn--active': showRangeBand }]"
+                    :class="['toggle-btn view-toggle-button', { 'view-toggle-button--active': showRangeBand }]"
                     :aria-pressed="showRangeBand"
                     title="Show min/max range"
                     @click="toggleRangeBand"
@@ -325,6 +325,8 @@ import {
 import { DETAIL_TRACK_PRECISION } from '@/utils/tracks/trackConstants';
 import { fetchDetailTrackAtPrecision } from '@/utils/tracks/trackCollectionLoader';
 import type { TrackPrecisionResult } from '@/utils/tracks/trackTypes';
+import { useAsyncState } from '@/composables/useAsyncState';
+import { nearestSortedIndex } from '@/utils/sortedSearch';
 
 const GRAPH_HEIGHT_MIN = TRACK_DETAIL_GRAPH_HEIGHT_MIN;
 const GRAPH_HEIGHT_MAX = TRACK_DETAIL_GRAPH_HEIGHT_MAX;
@@ -432,7 +434,7 @@ const emit = defineEmits<{
   'track-loaded': [payload: TrackLoadedPayload];
   'navigate-track': [trackId: number];
   'start-3d-replay': [payload: TrackReplayStartPayload];
-  'back-to-map': [];
+  back: [];
 }>();
 
 const trackDetailsPreferencesStore = useTrackDetailsPreferencesStore();
@@ -452,8 +454,7 @@ const activeTab = ref<TrackDetailTab>(TRACK_DETAIL_TAB_OVERVIEW);
 const xMode = ref<'time' | 'distance'>('time');
 const chartPointSliderValue = ref(trackDetailsChartPointCountToSliderValue(initialChartPointCount));
 const graphTuningOpen = ref(false);
-const isLoading = ref(false);
-const loadError = ref<string | null>(null);
+const { loading: isLoading, error: loadError } = useAsyncState<string | null>(null);
 const chartLoadError = ref<string | null>(null);
 const relatedLoadError = ref<string | null>(null);
 let graphHeightReflowFrame: number | null = null;
@@ -699,20 +700,7 @@ function buildTrackPoints(details: ChartPoint[], simplifiedPoints: GpsTrackDataP
   indexed.sort((a, b) => a.canonical - b.canonical);
 
   const findNearest = (target: number): IndexedSimplified => {
-    let lo = 0;
-    let hi = indexed.length - 1;
-    while (lo < hi) {
-      const mid = (lo + hi) >>> 1;
-      if (indexed[mid].canonical < target) {
-        lo = mid + 1;
-      } else {
-        hi = mid;
-      }
-    }
-    if (lo > 0 && Math.abs(indexed[lo - 1].canonical - target) <= Math.abs(indexed[lo].canonical - target)) {
-      return indexed[lo - 1];
-    }
-    return indexed[lo];
+    return indexed[nearestSortedIndex(indexed, target, (point) => point.canonical, true)];
   };
 
   const points: TrackPoint[] = [];
@@ -1009,31 +997,12 @@ function onTrackUpdated(track: GpsTrack) {
 
 /* Tabs fill the remaining space below the mini-map.
    TabList stays pinned; only TabPanels scroll. */
-:deep(.p-tabs) {
-  display: flex;
-  flex-direction: column;
-  flex: 1 1 auto;
-  min-height: 0;
-}
-
 :deep(.p-tablist) {
   flex: 0 0 auto;
   z-index: 2;
   background: var(--surface-glass);
   backdrop-filter: var(--blur-standard);
   -webkit-backdrop-filter: var(--blur-standard);
-}
-
-:deep(.p-tabpanels) {
-  flex: 1 1 auto;
-  min-height: 0;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-  overscroll-behavior-y: contain;
-}
-
-:deep(.p-tabpanel) {
-  min-height: 0;
 }
 
 .graphs-toolbar {
@@ -1101,14 +1070,8 @@ function onTrackUpdated(track: GpsTrack) {
 }
 
 .graphs-toggle {
-  display: flex;
   width: 100%;
   min-width: 0;
-  background: var(--surface-elevated);
-  border: 1px solid var(--border-default);
-  border-radius: 8px;
-  padding: 3px;
-  gap: 2px;
 }
 
 .graphs-toggle--single .toggle-btn {
@@ -1116,33 +1079,9 @@ function onTrackUpdated(track: GpsTrack) {
 }
 
 .toggle-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
   flex: 1 1 0;
   min-width: 0;
-  gap: 0.3rem;
-  padding: 0.28rem 0.65rem;
-  border: none;
-  background: none;
-  border-radius: 5px;
-  font-size: var(--text-xs-size);
-  font-weight: 600;
   color: var(--text-secondary);
-  cursor: pointer;
-  transition:
-    background 0.15s,
-    color 0.15s;
-}
-
-.toggle-btn:hover {
-  background: var(--surface-glass);
-}
-
-.toggle-btn--active {
-  background: var(--surface-glass-heavy);
-  color: var(--accent-text);
-  box-shadow: var(--shadow-sm);
 }
 
 .graphs-slider-shell {

@@ -502,31 +502,14 @@ public class GPXStoreService {
 
             // Layer 1: skip points with invalid coordinates entirely — they cannot contribute
             // position, distance, or any derived metric, and would crash GeodeticCalculator.
-            if (Double.isNaN(currentPoint.x) || Double.isNaN(currentPoint.y)) {
+            if (hasInvalidHorizontalPosition(currentPoint)) {
                 log.warn("Skipping point index={} in gpsTrackDataId={}: invalid coordinate (NaN lon/lat)", i, gpsTrackData.getId());
                 continue;
             }
 
-            GpsTrackDataPoint currentTrackPoint = new GpsTrackDataPoint();
-            currentTrackPoint.setGpsTrackDataId(gpsTrackData.getId());
-            currentTrackPoint.setMovingWindowInSec(movingWindowInSeconds);
-            currentTrackPoint.setPointIndex(i);
-            currentTrackPoint.setPointIndexMax(lineString.getNumPoints() - 1);
-            Point mercator = gpxReader.convertLongLatWgs84ToPlanarWebMercator(currentPoint.x, currentPoint.y);
-            if (mercator != null) {
-                // make sure x/y has only two dimensions
-                Coordinate mercatorXY = new CoordinateXY(mercator.getX(), mercator.getY());
-                currentTrackPoint.setPointXY(geometryFactory.createPoint(mercatorXY));
-            }
-
-            // make sure long/lat has only two dimensions
-            Coordinate currentPointLongLat = new CoordinateXY(currentPoint.getX(), currentPoint.getY());
-            currentTrackPoint.setPointLongLat(geometryFactory.createPoint(currentPointLongLat));
-            double z = currentPoint.getZ();
-            currentTrackPoint.setPointAltitude(Double.isNaN(z) ? null : z);
-            if (currentPoint.getM() > 0) {
-                currentTrackPoint.setPointTimestamp(Timestamp.from(Instant.ofEpochSecond((long) (currentPoint.getM()))));
-            }
+            GpsTrackDataPoint currentTrackPoint = createGpsTrackDataPoint(
+                    gpsTrackData.getId(), movingWindowInSeconds, i, lineString.getNumPoints() - 1,
+                    currentPoint, geometryFactory, gpxReader);
 
             gpsTrackDataPoints.add(currentTrackPoint);
 
@@ -746,30 +729,15 @@ public class GPXStoreService {
 
         for (int i = 0; i < lineString.getNumPoints(); i++) {
             Coordinate currentPoint = lineString.getCoordinateN(i);
-            if (Double.isNaN(currentPoint.x) || Double.isNaN(currentPoint.y)) {
+            if (hasInvalidHorizontalPosition(currentPoint)) {
                 log.warn("Skipping simplified point index={} in gpsTrackDataId={}: invalid coordinate (NaN lon/lat)", i, simplified.getId());
                 continue;
             }
 
-            GpsTrackDataPoint p = new GpsTrackDataPoint();
-            p.setGpsTrackDataId(simplified.getId());
-            p.setMovingWindowInSec(movingWindowInSecs);
-            p.setPointIndex(i);
-            p.setPointIndexMax(pointIndexMax);
-
-            Point mercator = gpxReader.convertLongLatWgs84ToPlanarWebMercator(currentPoint.x, currentPoint.y);
-            if (mercator != null) {
-                p.setPointXY(geometryFactory.createPoint(new CoordinateXY(mercator.getX(), mercator.getY())));
-            }
-            p.setPointLongLat(geometryFactory.createPoint(new CoordinateXY(currentPoint.getX(), currentPoint.getY())));
-
-            double z = currentPoint.getZ();
-            p.setPointAltitude(Double.isNaN(z) ? null : z);
-
-            double m = currentPoint.getM();
-            if (!Double.isNaN(m) && m > 0) {
-                long epochSec = (long) m;
-                p.setPointTimestamp(Timestamp.from(Instant.ofEpochSecond(epochSec)));
+            GpsTrackDataPoint p = createGpsTrackDataPoint(
+                    simplified.getId(), movingWindowInSecs, i, pointIndexMax,
+                    currentPoint, geometryFactory, gpxReader);
+            if (p.getPointTimestamp() != null) {
                 Integer canonicalIndex = canonicalOrder.indexOfOrNull(currentPoint);
                 if (canonicalIndex != null) {
                     p.setCanonicalPointIndex(canonicalIndex);
@@ -785,6 +753,38 @@ public class GPXStoreService {
             entityManager.flush();
             entityManager.clear();
         }
+    }
+
+    private static GpsTrackDataPoint createGpsTrackDataPoint(Long gpsTrackDataId,
+                                                             int movingWindowInSeconds,
+                                                             int pointIndex,
+                                                             int pointIndexMax,
+                                                             Coordinate coordinate,
+                                                             GeometryFactory geometryFactory,
+                                                             GPXReader gpxReader) {
+        GpsTrackDataPoint point = new GpsTrackDataPoint();
+        point.setGpsTrackDataId(gpsTrackDataId);
+        point.setMovingWindowInSec(movingWindowInSeconds);
+        point.setPointIndex(pointIndex);
+        point.setPointIndexMax(pointIndexMax);
+
+        Point mercator = gpxReader.convertLongLatWgs84ToPlanarWebMercator(coordinate.x, coordinate.y);
+        if (mercator != null) {
+            point.setPointXY(geometryFactory.createPoint(new CoordinateXY(mercator.getX(), mercator.getY())));
+        }
+        point.setPointLongLat(geometryFactory.createPoint(new CoordinateXY(coordinate.getX(), coordinate.getY())));
+
+        double altitude = coordinate.getZ();
+        point.setPointAltitude(Double.isNaN(altitude) ? null : altitude);
+        double epochSeconds = coordinate.getM();
+        if (epochSeconds > 0) {
+            point.setPointTimestamp(Timestamp.from(Instant.ofEpochSecond((long) epochSeconds)));
+        }
+        return point;
+    }
+
+    private static boolean hasInvalidHorizontalPosition(Coordinate coordinate) {
+        return Double.isNaN(coordinate.getX()) || Double.isNaN(coordinate.getY());
     }
 
     static LineString preserveStopAnchors(LineString simplified, LineString source) {

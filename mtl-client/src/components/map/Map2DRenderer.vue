@@ -95,6 +95,7 @@
       :selected-track-id="selectedFeature?.properties?.id ?? null"
       @select-track="onTrackBrowserSelect"
       @open-details="onTrackBrowserOpenDetails"
+      @open-filter="onNavigationToolSelect('filter')"
       @tool-opened="onToolOpened('statistics')"
       @tool-closed="onToolClosed"
     />
@@ -112,6 +113,8 @@
       :visible-track-count="visibleTrackCount"
       @filter-applied-event="onFilterApplied"
       @filter-style-changed="onFilterStyleChanged"
+      @select-track="onTrackBrowserSelect"
+      @open-details="onTrackBrowserOpenDetails"
       @tool-opened="onToolOpened('filterTool')"
       @tool-closed="onToolClosed"
       @start-geo-drawing="onStartGeoDrawing"
@@ -154,6 +157,13 @@
     <transition name="fade">
       <div v-if="isOffline" class="mtl-offline"><i class="bi bi-wifi-off"></i> Offline — displaying cached tracks</div>
     </transition>
+
+    <MapConfigFallbackNotice
+      v-if="showMapConfigFallbackNotice"
+      :retrying="mapConfigRetrying"
+      @retry="retryMapConfig"
+      @dismiss="mapConfigFallbackDismissed = true"
+    />
 
     <!-- ─── Map download banner ─── -->
     <transition name="fade">
@@ -244,7 +254,7 @@
       <TrackDetails
         v-if="trackDetailsId != null"
         :gps-track-id="trackDetailsId"
-        @back-to-map="closeTrackDetailsFromPanel"
+        @back="closeTrackDetailsFromPanel"
         @track-loaded="onTrackDetailsLoaded"
         @navigate-track="syncTrackDetailRoute"
         @start-3d-replay="start3dTrackReplay"
@@ -417,7 +427,7 @@
 </template>
 
 <script setup lang="ts">
-import { inject, nextTick, ref, watch } from 'vue';
+import { computed, inject, nextTick, ref, watch } from 'vue';
 import { useRoute, useRouter, type RouteRecordNameGeneric } from 'vue-router';
 import AdminDialog from '@/components/admin/AdminDialog.vue';
 import GpsLocate from '@/components/gps/GpsLocate.vue';
@@ -431,26 +441,25 @@ import TrackReplayControls from '@/components/replay/TrackReplayControls.vue';
 import NavigationSheet from '@/components/ui/NavigationSheet.vue';
 import MapSettingsPanel from '@/components/map/MapSettingsPanel.vue';
 import MapLegend from '@/components/map/MapLegend.vue';
+import MapConfigFallbackNotice from '@/components/map/MapConfigFallbackNotice.vue';
 import LocationSearchSheet from '@/components/map/LocationSearchSheet.vue';
 import BottomSheet from '@/components/ui/BottomSheet.vue';
 import TrackShapePreview from '@/components/ui/TrackShapePreview.vue';
 import ActivityTypeBadge from '@/components/ui/ActivityTypeBadge.vue';
 import MediaPreview from '@/components/map/MediaPreview.vue';
 import { useMainMapController } from '@/components/map/useMainMapController';
+import type { MapControllerEmit, MapControllerProps } from '@/components/map/composables/mapControllerRuntime';
+import type { ToastService } from '@/types/ui';
+import { clearMapConfigCache, type MapConfig } from '@/utils/mapConfigService';
 
 defineOptions({
   name: 'Map2DRenderer',
 });
 
-const props = withDefaults(defineProps<{ fromLogin?: boolean }>(), { fromLogin: false });
-const emit = defineEmits<{
-  'tracks-loaded': [];
-  'load-failed': [];
-  syncing: [value: boolean];
-}>();
+const props = withDefaults(defineProps<MapControllerProps>(), { fromLogin: false });
+const emit = defineEmits<MapControllerEmit>();
 
-type ToastLike = { add: (options: { severity: string; summary: string; detail?: string; life?: number }) => void };
-const toast = inject<ToastLike>('toast', { add: () => undefined });
+const toast = inject<ToastService>('toast', { add: () => undefined });
 const route = useRoute();
 const router = useRouter();
 
@@ -465,10 +474,13 @@ const statistics = ref(null);
 const gpsLocate = ref(null);
 const filterTool = ref(null);
 const adminTool = ref(null);
+const mapConfigFallbackDismissed = ref(false);
+const mapConfigRetrying = ref(false);
 
 const {
   overlayMap,
   geojson,
+  mapConfig,
   mapServerStatus,
   showLoader,
   loadingTrackBatches,
@@ -597,6 +609,7 @@ const {
   onClearGeoShape,
   onFilterApplied,
   onFilterStyleChanged,
+  reloadMap,
 } = useMainMapController(props, emit, toast, {
   mapBaseContainer,
   mapOverlayContainer,
@@ -610,6 +623,22 @@ const {
   filterTool,
   adminTool,
 });
+
+const showMapConfigFallbackNotice = computed(
+  () => Boolean((mapConfig.value as MapConfig | null)?.configLoadFailed) && !mapConfigFallbackDismissed.value
+);
+
+async function retryMapConfig() {
+  if (mapConfigRetrying.value) return;
+  mapConfigRetrying.value = true;
+  mapConfigFallbackDismissed.value = false;
+  clearMapConfigCache();
+  try {
+    await reloadMap(false);
+  } finally {
+    mapConfigRetrying.value = false;
+  }
+}
 
 let tracksReadyEmitted = false;
 
@@ -646,12 +675,18 @@ const ROUTE_TOOL_IDS: Record<string, string> = Object.entries(TOOL_ROUTE_NAMES).
   },
   {} as Record<string, string>
 );
+const TRACK_DETAILS_ROUTE_NAME = 'track-detail';
+const TRACK_DETAILS_RETURN_ROUTE_NAMES = new Set([
+  'home',
+  TRACK_DETAILS_ROUTE_NAME,
+  ...Object.values(TOOL_ROUTE_NAMES),
+]);
 
 let syncingFromRoute = false;
+let trackDetailsRouteExitPending = false;
 
 function closeTrackDetailsFromPanel() {
   trackDetailsVisible.value = false;
-  onTrackDetailsSheetClosed();
 }
 
 function toolIdForRoute(name: RouteRecordNameGeneric | null | undefined): string | null {
@@ -678,12 +713,32 @@ function onNavigationToolSelect(toolId: string) {
   updateRouteForTool(activeToolId.value);
 }
 
+function canReturnFromTrackDetails(previousRoute: unknown): previousRoute is string {
+  if (typeof previousRoute !== 'string' || previousRoute.length === 0) return false;
+  const resolvedRouteName = router.resolve(previousRoute).name;
+  return typeof resolvedRouteName === 'string' && TRACK_DETAILS_RETURN_ROUTE_NAMES.has(resolvedRouteName);
+}
+
+function leaveTrackDetailsRoute() {
+  if (trackDetailsRouteExitPending || route.name !== TRACK_DETAILS_ROUTE_NAME) return;
+  trackDetailsRouteExitPending = true;
+  const previousRoute = (window.history.state as { back?: unknown } | null)?.back;
+  if (canReturnFromTrackDetails(previousRoute)) {
+    router.back();
+    return;
+  }
+  router.replace({ name: 'home' }).catch(() => {
+    trackDetailsRouteExitPending = false;
+  });
+}
+
 watch(
   () => [route.name, route.params.id],
   async () => {
+    trackDetailsRouteExitPending = false;
     syncingFromRoute = true;
     await nextTick();
-    if (route.name === 'track-detail') {
+    if (route.name === TRACK_DETAILS_ROUTE_NAME) {
       const trackId = Number(route.params.id);
       if (Number.isFinite(trackId)) {
         syncTrackDetailRoute(trackId);
@@ -704,11 +759,11 @@ watch(activeToolId, (toolId) => {
 watch([trackDetailsVisible, trackDetailsId], ([visible, id]) => {
   if (syncingFromRoute) return;
   if (visible && id != null) {
-    if (route.name !== 'track-detail' || Number(route.params.id) !== Number(id)) {
-      router.push({ name: 'track-detail', params: { id } }).catch(() => undefined);
+    if (route.name !== TRACK_DETAILS_ROUTE_NAME || Number(route.params.id) !== Number(id)) {
+      router.push({ name: TRACK_DETAILS_ROUTE_NAME, params: { id } }).catch(() => undefined);
     }
-  } else if (route.name === 'track-detail') {
-    router.push({ name: 'home' }).catch(() => undefined);
+  } else if (route.name === TRACK_DETAILS_ROUTE_NAME) {
+    leaveTrackDetailsRoute();
   }
 });
 </script>
@@ -829,22 +884,22 @@ watch([trackDetailsVisible, trackDetailsId], ([visible, id]) => {
 }
 .map-overlay :deep(.mtl-globe-btn.mtl-globe-active),
 .map-overlay :deep(.mtl-terrain-btn.mtl-terrain-active) {
-  color: #3b82f6;
+  color: var(--info);
 }
 .map-overlay :deep(.mtl-terrain-btn.mtl-terrain-active) {
   background: var(--accent) !important;
-  color: #fff !important;
+  color: var(--accent-contrast) !important;
   box-shadow:
-    inset 0 0 0 1px color-mix(in srgb, #fff 18%, transparent),
+    inset 0 0 0 1px color-mix(in srgb, var(--accent-contrast) 18%, transparent),
     0 0 0 2px var(--accent-subtle);
 }
 .map-overlay :deep(.mtl-globe-btn.mtl-globe-active:hover),
 .map-overlay :deep(.mtl-terrain-btn.mtl-terrain-active:hover) {
-  color: #2563eb;
+  color: var(--viz-blue);
 }
 .map-overlay :deep(.mtl-terrain-btn.mtl-terrain-active:hover) {
   background: var(--accent-hover) !important;
-  color: #fff !important;
+  color: var(--accent-contrast) !important;
 }
 
 /* ─── Top progress bar ─── */
@@ -884,15 +939,6 @@ watch([trackDetailsVisible, trackDetailsId], ([visible, id]) => {
     left: 120%;
   }
 }
-.bar-fade-enter-active,
-.bar-fade-leave-active {
-  transition: opacity 0.3s ease;
-}
-.bar-fade-enter-from,
-.bar-fade-leave-to {
-  opacity: 0;
-}
-
 /* ─── Transitions ─── */
 .fade-enter-active,
 .fade-leave-active {
@@ -1170,7 +1216,7 @@ watch([trackDetailsVisible, trackDetailsId], ([visible, id]) => {
 .mtl-data-freshness__btn--primary {
   background: #0f766e;
   border-color: #0f766e;
-  color: #ffffff;
+  color: var(--accent-contrast);
 }
 .mtl-data-freshness__btn--primary:hover:not(:disabled) {
   background: #115e59;
@@ -1466,7 +1512,7 @@ watch([trackDetailsVisible, trackDetailsId], ([visible, id]) => {
 }
 </style>
 
-<!-- Track point popup styles (unscoped — MapLibre popups live outside component root) -->
+<!-- Unscoped map overlay styles -->
 <style>
 .mtl-location-search-marker {
   position: relative;
@@ -1475,10 +1521,10 @@ watch([trackDetailsVisible, trackDetailsId], ([visible, id]) => {
   justify-content: center;
   width: 2.1rem;
   height: 2.1rem;
-  border: 2px solid #ffffff;
+  border: 2px solid var(--accent-contrast);
   border-radius: 50%;
   background: var(--accent);
-  color: #ffffff;
+  color: var(--accent-contrast);
   box-shadow: 0 8px 20px rgba(15, 23, 42, 0.35);
   font-size: 1.1rem;
 }
@@ -1494,8 +1540,8 @@ watch([trackDetailsVisible, trackDetailsId], ([visible, id]) => {
   height: 1.1rem;
   border: 1px solid rgba(15, 23, 42, 0.18);
   border-radius: 50%;
-  background: #ffffff;
-  color: #334155;
+  background: var(--accent-contrast);
+  color: var(--text-secondary);
   box-shadow: 0 2px 8px rgba(15, 23, 42, 0.2);
   cursor: pointer;
   font-size: 0.85rem;
@@ -1516,77 +1562,9 @@ watch([trackDetailsVisible, trackDetailsId], ([visible, id]) => {
   width: 0.65rem;
   height: 0.65rem;
   background: var(--accent);
-  border-right: 2px solid #ffffff;
-  border-bottom: 2px solid #ffffff;
+  border-right: 2px solid var(--accent-contrast);
+  border-bottom: 2px solid var(--accent-contrast);
   transform: translateX(-50%) rotate(45deg);
-}
-
-.mtl-point-popup-container .maplibregl-popup-content {
-  padding: 0;
-  border-radius: 0.6rem;
-  background: var(--surface-glass-heavy);
-  backdrop-filter: var(--blur-standard);
-  -webkit-backdrop-filter: var(--blur-standard);
-  border: 1px solid var(--border-medium);
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
-  overflow: hidden;
-}
-.mtl-point-popup-container .maplibregl-popup-close-button {
-  font-size: var(--text-base-size);
-  color: var(--text-muted);
-  padding: 4px 8px;
-  line-height: var(--text-base-lh);
-}
-.mtl-point-popup-container .maplibregl-popup-close-button:hover {
-  color: var(--text-primary);
-  background: transparent;
-}
-.mtl-point-popup-container .maplibregl-popup-tip {
-  border-top-color: var(--surface-glass-heavy);
-}
-.mtl-point-popup {
-  padding: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  font-size: var(--text-xs-size);
-  line-height: var(--text-xs-lh);
-  color: var(--text-secondary);
-  -webkit-user-select: text;
-  user-select: text;
-}
-.mtl-point-popup-header {
-  padding: 0.35rem 0.6rem;
-  font-weight: 700;
-  font-size: var(--text-xs-size);
-  color: var(--text-primary);
-  background: var(--surface-elevated);
-  border-bottom: 1px solid var(--border-subtle);
-  cursor: text;
-  -webkit-user-select: text;
-  user-select: text;
-}
-.mtl-point-popup-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-.mtl-point-popup-table tr:not(:last-child) {
-  border-bottom: 1px solid var(--border-subtle);
-}
-.mtl-point-popup-table td {
-  padding: 0.2rem 0.6rem;
-  vertical-align: top;
-}
-.mtl-pp-label {
-  color: var(--text-muted);
-  white-space: nowrap;
-  padding-right: 0.8rem;
-  font-size: var(--text-2xs-size);
-}
-.mtl-pp-value {
-  color: var(--text-primary);
-  font-variant-numeric: tabular-nums;
-  text-align: right;
-  white-space: nowrap;
-  font-weight: 500;
 }
 
 /* ── Geo drawing toolbar ── */

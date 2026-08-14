@@ -9,8 +9,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.List;
@@ -256,16 +254,7 @@ public class GarminToolInstallService {
     }
 
     private void runScript(List<String> command, StringBuilder programOutput) throws Exception {
-        ProcessBuilder pb = new ProcessBuilder(command);
-        pb.redirectErrorStream(true);
-        Process process = pb.start();
-        try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
-            String line;
-            while ((line = reader.readLine()) != null) {
-                logInfo(line, programOutput);
-            }
-        }
-        int exitCode = process.waitFor();
+        int exitCode = GarminProcessRunner.run(command, line -> logInfo(line, programOutput));
         if (exitCode != 0) {
             throw new RuntimeException("Install script exited with code %d: %s".formatted(exitCode, command));
         }

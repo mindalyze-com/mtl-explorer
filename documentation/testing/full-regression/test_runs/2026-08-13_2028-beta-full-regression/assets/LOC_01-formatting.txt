@@ -1,0 +1,18 @@
+Expected locale formatting
+
+Preference:
+- Locale: en-GB
+- Browser/time zone detection: en-GB and Europe/Zurich
+- Example label: 31/12/2025, 1,234.56
+- Live preview: 14/08/2026 02:21:57 — 12,345.67
+- Units default preview: 25.0 km · 500 m · 80 kg
+
+Statistics:
+- Date/time: 11/03/2013, 10:32
+- Distance: 919 km
+- Duration: 20h 43m
+- Energy: 4,410 Wh
+- Ascent: 12,392 m
+
+Dates use day/month/year, decimal dot and comma thousands separators match en-GB, and metric/duration units are concise and consistent.
+

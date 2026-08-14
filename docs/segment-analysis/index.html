@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GPS Segment Analysis and Replay | MTL Explorer</title>
+  <meta name="description" content="Create map checkpoints in MTL Explorer, find every matching GPS track, compare segment times, inspect charts, and replay repeated attempts.">
+  <meta name="robots" content="index, follow, max-image-preview:large">
+  <link rel="canonical" href="https://mindalyze-com.github.io/mtl-explorer/segment-analysis/">
+  <meta property="og:site_name" content="MTL Explorer">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://mindalyze-com.github.io/mtl-explorer/segment-analysis/">
+  <meta property="og:title" content="GPS Segment Analysis and Replay | MTL Explorer">
+  <meta property="og:description" content="Compare repeated GPS tracks between checkpoints on a self-hosted map.">
+  <meta property="og:image" content="https://mindalyze-com.github.io/mtl-explorer/assets/feature-showcase/large/segment-zones.webp">
+  <meta property="og:image:type" content="image/webp">
+  <meta property="og:image:width" content="2199">
+  <meta property="og:image:height" content="1561">
+  <meta property="og:image:alt" content="MTL Explorer map with segment checkpoints">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:image" content="https://mindalyze-com.github.io/mtl-explorer/assets/feature-showcase/large/segment-zones.webp">
+  <link rel="icon" href="../favicon.ico" sizes="any">
+  <link rel="stylesheet" href="../site-page.css">
+  <link rel="preload" as="image" type="image/webp" href="../assets/feature-showcase/preview/segment-zones.webp">
+  <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebPage",
+      "name": "GPS Segment Analysis and Replay",
+      "url": "https://mindalyze-com.github.io/mtl-explorer/segment-analysis/",
+      "description": "A guide to creating and comparing GPS segments in MTL Explorer.",
+      "isPartOf": {"@type": "WebSite", "name": "MTL Explorer", "url": "https://mindalyze-com.github.io/mtl-explorer/"}
+    }
+  </script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="site-header-inner">
+      <a class="brand" href="../">
+        <img src="../mtl_logo_3_only_vector.svg" width="43" height="51" alt="">
+        <span><strong>MTL Explorer</strong><span>Self-hosted GPS archive</span></span>
+      </a>
+      <nav class="site-nav" aria-label="Primary navigation">
+        <a href="../#features">Features</a>
+        <a href="../docker-install/">Install</a>
+        <a class="button-small" href="https://mtl-demo.mindalyze.com/mtl/">Live demo</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="page">
+    <nav class="breadcrumb" aria-label="Breadcrumb"><a href="../">Home</a> / Segment analysis</nav>
+
+    <section class="hero">
+      <div>
+        <p class="eyebrow">Segment analysis</p>
+        <h1>Compare repeated routes between map checkpoints.</h1>
+        <p class="lead">Define a segment by placing checkpoints on the map. MTL Explorer searches the archive for tracks that crossed them, then compares the matching attempts.</p>
+        <div class="actions">
+          <a class="button" href="https://mtl-demo.mindalyze.com/mtl/">Try segments in the demo</a>
+          <a class="button-secondary" href="../gpx-track-map/">View the track map</a>
+        </div>
+      </div>
+      <figure class="hero-media">
+        <img src="../assets/feature-showcase/preview/segment-zones.webp" srcset="../assets/feature-showcase/thumb/segment-zones.webp 360w, ../assets/feature-showcase/medium/segment-zones.webp 720w, ../assets/feature-showcase/preview/segment-zones.webp 1099w, ../assets/feature-showcase/large/segment-zones.webp 2199w" sizes="(max-width: 900px) calc(100vw - 40px), 570px" width="1099" height="780" alt="Map with segment checkpoint gates across a trail" fetchpriority="high">
+        <figcaption>Checkpoints define the part of the route to compare.</figcaption>
+      </figure>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <h2>How a segment comparison works.</h2>
+        <p>A segment is based on geographic gates rather than a track name. This allows the same section to be found across activities recorded on different days.</p>
+      </div>
+      <div class="steps">
+        <article class="step"><h3>Place checkpoints</h3><p>Draw the start, end, and any intermediate gates directly on the map.</p></article>
+        <article class="step"><h3>Search the archive</h3><p>MTL Explorer finds imported tracks that crossed the gates in the required order.</p></article>
+        <article class="step"><h3>Compare the results</h3><p>Review elapsed time, distance, pacing, and the available activity measurements.</p></article>
+        <article class="step"><h3>Replay attempts</h3><p>Display matching tracks together and replay their progress on the map.</p></article>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="split">
+        <div class="copy">
+          <p class="eyebrow">Results</p>
+          <h2>Inspect every matching attempt.</h2>
+          <p>The results table provides a consistent view across all tracks that match the checkpoints. Open an attempt to inspect its graphs and map position.</p>
+          <ul class="plain-list">
+            <li>Compare repeated climbs, descents, trail sections, or commutes.</li>
+            <li>Keep the source activities in the private archive.</li>
+            <li>Use the same segment again as new tracks are imported.</li>
+          </ul>
+        </div>
+        <figure class="media">
+          <img src="../assets/feature-showcase/thumb/segment-results.webp" srcset="../assets/feature-showcase/thumb/segment-results.webp 360w, ../assets/feature-showcase/medium/segment-results.webp 720w, ../assets/feature-showcase/preview/segment-results.webp 1099w" sizes="(max-width: 900px) calc(100vw - 40px), 530px" width="1099" height="780" alt="Segment results table with matching GPS activities" loading="lazy" decoding="async">
+          <figcaption>Matching activities in the segment results table.</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="split">
+        <figure class="media">
+          <img src="../assets/feature-showcase/thumb/segment-compare.webp" srcset="../assets/feature-showcase/thumb/segment-compare.webp 360w, ../assets/feature-showcase/medium/segment-compare.webp 720w, ../assets/feature-showcase/preview/segment-compare.webp 1099w" sizes="(max-width: 900px) calc(100vw - 40px), 530px" width="1099" height="780" alt="Side-by-side charts comparing GPS segment attempts" loading="lazy" decoding="async">
+          <figcaption>Charts for selected attempts.</figcaption>
+        </figure>
+        <div class="copy">
+          <p class="eyebrow">Comparison</p>
+          <h2>Review timing and effort together.</h2>
+          <p>Side-by-side charts make it easier to see where attempts differed. The available series depend on what the original activity files recorded.</p>
+          <p>Replay mode provides a map-based comparison when chart values alone do not explain the difference.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head"><h2>Related MTL Explorer tools.</h2></div>
+      <div class="related">
+        <a class="button-secondary" href="../gpx-track-map/">GPS track archive</a>
+        <a class="button-secondary" href="../route-planner/">Route planner</a>
+        <a class="button-secondary" href="../docker-install/">Docker installation</a>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="site-footer-inner">
+      <span>MTL Explorer · Self-hosted GPS archive</span>
+      <nav aria-label="Footer navigation"><a href="../">Home</a><a href="https://github.com/mindalyze-com/mtl-explorer">GitHub</a></nav>
+    </div>
+  </footer>
+</body>
+</html>

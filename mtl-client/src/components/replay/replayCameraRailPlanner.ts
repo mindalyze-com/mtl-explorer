@@ -12,6 +12,8 @@ import {
   type ReplayCameraPreset,
 } from '@/components/replay/trackReplayCamera';
 import { shortestLongitudeDelta, unwrapLongitudeToReference } from '@/components/map/mapGeometry';
+import { upperBoundClampedIndex } from '@/utils/sortedSearch';
+import { screenContentShift } from '@/components/replay/replayCameraScreenGuard';
 
 export type { ReplayCameraFrame } from '@/components/replay/trackReplayCamera';
 
@@ -1711,17 +1713,7 @@ function localKeyframeToCameraFrame(
 }
 
 function firstKeyframeAfter(keyframes: LocalCameraKeyframe[], elapsedSeconds: number): number {
-  let low = 0;
-  let high = keyframes.length - 1;
-  while (low < high) {
-    const middle = Math.floor((low + high) / 2);
-    if (keyframes[middle].timeSeconds <= elapsedSeconds) {
-      low = middle + 1;
-    } else {
-      high = middle;
-    }
-  }
-  return low;
+  return upperBoundClampedIndex(keyframes, elapsedSeconds, (keyframe) => keyframe.timeSeconds);
 }
 
 function medianKeyframeStepSeconds(keyframes: LocalCameraKeyframe[]): number {
@@ -1977,12 +1969,6 @@ function screenPointFitScale(point: LocalPoint, visibleRect: PlannerVisibleScree
     Math.abs(point.y - visibleRect.centerY) / Math.max(1, visibleRect.height / 2),
     1
   );
-}
-
-function screenContentShift(boundsMin: number, boundsMax: number, visibleMin: number, visibleMax: number): number {
-  if (boundsMin < visibleMin) return visibleMin - boundsMin;
-  if (boundsMax > visibleMax) return visibleMax - boundsMax;
-  return 0;
 }
 
 function screenPointShift(value: number, visibleMin: number, visibleMax: number): number {

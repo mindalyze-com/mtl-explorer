@@ -6,9 +6,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayDeque;
-import java.util.ArrayList;
 import java.util.Deque;
-import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -41,16 +39,10 @@ public class TemplateProcessingService {
 
     private String processTemplate(String templatePath, Deque<String> stack) {
         String currentPath = StringUtils.trimToEmpty(templatePath);
-        if (stack.contains(currentPath)) {
-            List<String> cycle = new ArrayList<>(stack);
-            cycle.add(currentPath);
-            throw new IllegalStateException("Detected a cycle in filter template includes: " + String.join(" -> ", cycle));
-        }
-
+        FilterTemplateTraversal.enter(stack, currentPath);
         FilterConfigEntity filter = referenceResolver.resolve(currentPath);
-        stack.addLast(currentPath);
         String resolved = expandIncludes(filter.getExpression(), stack);
-        stack.removeLast();
+        FilterTemplateTraversal.leave(stack);
         return resolved;
     }
 

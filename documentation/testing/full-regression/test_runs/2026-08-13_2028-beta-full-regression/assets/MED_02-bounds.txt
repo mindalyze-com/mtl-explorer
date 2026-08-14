@@ -1,0 +1,13 @@
+Viewport-scoped media observations
+
+1. At 100 m scale around central Lannion, no media pin rendered because all
+   four synthetic media coordinates were outside the viewport.
+2. Moved to Ploubezre and zoomed out; the synthetic media area entered the
+   visible bounds.
+3. At 2 km scale, one cluster labeled 4 appeared southwest of the current
+   center.
+4. Clicking/zooming the cluster produced a 100 m view with a cluster labeled 3
+   and one separate individual pin.
+
+This changed with map bounds while the media layer stayed enabled. The layer
+did not display the full-world set in the unrelated Lannion viewport.

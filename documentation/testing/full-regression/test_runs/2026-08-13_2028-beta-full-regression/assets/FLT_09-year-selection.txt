@@ -1,0 +1,39 @@
+Coverage ID: FLT_09
+View: Tracks by year
+
+Available categories
+- 2010: 2
+- 2013: 6
+- 2021: 1
+- 2026: 3
+
+Exact selection
+- Cleared selection, selected 2010 and 2013, then applied.
+- Selection summary: 2 of 4 selected / 2 of 4 categories.
+- Current result: 8 matching tracks.
+- Map and legend: 8 / 12 Tracks; 2010 2; 2013 6; no 2021 or 2026 category row.
+
+Track Browser / Filter Review
+- Summary: 8 tracks, 919 km, 20h 43m.
+- Visible rows: 9 including header.
+
+Statistics Overview
+- Showing 8 of 12 tracks.
+- 8 tracks, 919 km, 20h 43m, 4,410 Wh, 12,392 m ascent.
+- Activity breakdown: Bicycle 8.
+- Recent activity and milestones stayed within 1 Jan 2010 through 11 Mar 2013.
+
+Statistics Trends
+- 2 periods: 2010-Q1 and 2013-Q1.
+- 8 tracks, 919 km, 20h 43m, 4,410 Wh.
+
+Statistics Tracks
+- Summary: 8 tracks, 919 km, 20h 43m.
+- Visible rows: 9 including header.
+
+Heatmap
+- Enabled Your data > Heatmap while the exact year selection was active.
+- Heatmap aria-pressed=true and layer summary changed to 3 of 4 layers shown.
+- Map count remained 8 / 12 Tracks and only the 2010/2013 legend groups remained.
+- Restored Heatmap off after the check.
+

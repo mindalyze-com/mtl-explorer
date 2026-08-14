@@ -203,10 +203,33 @@ class TrackTimeBetweenTwoPointsClosestToCenterTest {
 
         assertEquals(1, crossings.size(),
                 "A tangent pass (both endpoints outside, segment dips in) must still emit exactly one crossing");
-        double distM = distanceFromCrossingToTriggerMeters(crossings.get(0), a);
+        Crossing crossing = crossings.get(0);
+        double distM = distanceFromCrossingToTriggerMeters(crossing, a);
         // Closest approach is 8 m from the centre (the perpendicular foot).
         assertTrue(distM <= 8.0 + CLOSEST_TOL_M,
                 "Tangent crossing must be at the perpendicular foot (~8 m from centre), was " + distM + " m");
+        assertEquals(distM, crossing.distanceToTriggerPointInMeter, 1.0,
+                "Tangent crossing must expose the closest-approach distance");
+    }
+
+    @Test
+    @DisplayName("Off-centre zone visit exposes the closest distance")
+    void offCenterVisitReportsClosestDistance() {
+        double[][] pathMeters = new double[][]{
+                {0, 0}, {50, 0}, {100, 0}
+        };
+        TriggerPoint a = trigger("A", 50.0, 8.0);
+        double radius = 10.0;
+
+        List<Crossing> crossings = runSingleTrigger(pathMeters, a, radius);
+
+        assertEquals(1, crossings.size(), "One off-centre zone visit must produce exactly one crossing");
+        Crossing crossing = crossings.get(0);
+        double distM = distanceFromCrossingToTriggerMeters(crossing, a);
+        assertEquals(8.0, crossing.distanceToTriggerPointInMeter, CLOSEST_TOL_M,
+                "Crossing must report the closest distance to the trigger centre");
+        assertEquals(distM, crossing.distanceToTriggerPointInMeter, 1.0,
+                "Reported distance must match the emitted crossing point");
     }
 
     /**
@@ -327,6 +350,26 @@ class TrackTimeBetweenTwoPointsClosestToCenterTest {
         assertEquals(200.0, crossings.get(1).distanceInMeterSinceLastTriggerPoint, 2.0);
     }
 
+    @Test
+    @DisplayName("Chronological section order uses geometry instead of a negative cumulative delta")
+    void outOfOrderTimedSectionsProducePositiveSegmentDistance() {
+        GpsTrackDataPoint crossingA = timedPoint(3, 0, 10, 500);
+        GpsTrackDataPoint middle = timedPoint(2, 50, 15, 550);
+        GpsTrackDataPoint crossingB = timedPoint(0, 100, 20, 100);
+        Crossing a = crossing("A", crossingA);
+        Crossing b = crossing("B", crossingB);
+        List<Crossing> crossings = new ArrayList<>(List.of(a, b));
+
+        TrackTimeBetweenTwoPoints.recomputeCrossingDeltas(
+                crossings,
+                List.of(crossingB, middle, crossingA));
+
+        assertEquals(10.0, b.timeInSecSinceLastTriggerPoint, 0.01);
+        assertEquals(100.0, b.distanceInMeterSinceLastTriggerPoint, 2.0,
+                "A timed slice must follow chronological geometry even when its database point indexes run backwards");
+        assertEquals(36.0, b.avgSpeedSinceLastTriggerPoint, 1.0);
+    }
+
     // ---------------------------------------------------------------------
     // Helpers
     // ---------------------------------------------------------------------
@@ -395,6 +438,20 @@ class TrackTimeBetweenTwoPointsClosestToCenterTest {
             points.add(p);
         }
         return points;
+    }
+
+    private GpsTrackDataPoint timedPoint(int pointIndex, double xMeters, long seconds, double cumulativeDistance) {
+        GpsTrackDataPoint point = new GpsTrackDataPoint();
+        point.setPointIndex(pointIndex);
+        point.setPointTimestamp(new Date(START_TIME + seconds * 1000));
+        point.setDistanceInMeterSinceStart(cumulativeDistance);
+        point.setPointLongLat(factory.createPoint(new Coordinate(xMeters / METERS_PER_DEG_LON, 0)));
+        return point;
+    }
+
+    private Crossing crossing(String name, GpsTrackDataPoint point) {
+        return new Crossing(trigger(name, point.getPointLongLat().getX() * METERS_PER_DEG_LON, 0),
+                point, TRACK_ID, 0, 0, 0, 0, null);
     }
 
     private TriggerPoint trigger(String name, double xMeters, double yMeters) {

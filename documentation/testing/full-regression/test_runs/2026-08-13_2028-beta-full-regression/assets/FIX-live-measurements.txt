@@ -1,0 +1,50 @@
+MTL Explorer regression-fix live measurements
+Tested 2026-08-14 on the original host 91.99.12.14:18080.
+
+Deployed candidate
+- Image: mtl-explorer:regression-fix-20260814
+- Application: 0.0.1-SNAPSHOT
+- Liquibase 061 exact-activity filter: applied successfully
+- Public test data only; no private local GPX files were used
+
+Fresh import and delete
+- Browser started with 0 tracks and opened Filter and Statistics before import.
+- Five public GPX files indexed with load_status SUCCESS.
+- Existing browser showed New data available; Reload changed Statistics to 5 tracks,
+  1,043 km and Filter to 5 matching tracks without a page reload.
+- Vitry-le-Francois_Langres.gpx and VoieVerteHauteVosges.gpx were moved out of
+  the watched directory.
+- Existing browser showed New data available; Reload changed Filter from 5 to
+  3 matching tracks without a page reload.
+- Both public files were restored after the check.
+
+Lannion A-B measurement
+- Public source: Lannion_Plestin_parcours24.4RE.gpx
+- Track: 100000, Lannion_Plestin_parcours Lannion_Plestin_parcours1
+- Zone A: lon -3.462019, lat 48.731741
+- Zone B: lon -3.458224, lat 48.731770
+- Radius: 75 m
+- Crossing time: 549.975 s
+- Crossing distance: 1,202.5602377369576 m
+- Average speed: 7.871661177059043 km/h
+- Stored crossing point indexes: 26 -> 17
+- Sub-track endpoint IDs: 600908 -> 600900
+- Returned sub-track: 33 points
+- Returned timestamps: sorted ascending
+- Rebased distance: 1,286.01 -> 2,488.622623315718 m
+- Distance span: 1,202.612623315718 m
+
+Invalid import
+- Fixture: the public Markdown regression report copied with a .gpx suffix
+- gps_track load_status: FAILED
+- indexed_file indexer_status: FAILED
+- indexed_file last_message: GPS import finished with status FAILED
+- Admin Processing: GPS 5 completed, 1 failed, 1 excluded
+- The invalid file was removed from the watched directory after verification.
+
+Map-config outage
+- A temporary reverse proxy returned HTTP 503 only for /mtl/api/map/config.
+- The signed-in browser rendered the basic online map.
+- A persistent opaque alert said Map settings could not be loaded and exposed
+  Retry and Dismiss actions.
+- The temporary proxy was stopped after verification.

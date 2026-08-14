@@ -1,0 +1,12 @@
+Track upload checks
+
+- Accepted formats shown and input accept value: .gpx, .fit, .tcx, .kml, .kmz, .igc, .nmea, .geojson, .gdb
+- Drop/picker target shown: Click or drag ... here
+- Supported file: mtl-adm02-valid.gpx, 513 B, fully synthetic
+- Success: 'mtl-adm02-valid.gpx' uploaded successfully. Indexing will begin shortly.
+- Unsupported file: mtl-adm02-unsupported.txt
+- Error: Unsupported file format. Accepted: .gpx, .fit, .tcx, .kml, .kmz, .igc, .nmea, .geojson, .gdb.
+- Empty file: mtl-adm02-empty.gpx, 0 B
+- Error: Selected file is empty. Choose a non-empty GPS track file.
+- The Upload action was disabled for the empty file.
+

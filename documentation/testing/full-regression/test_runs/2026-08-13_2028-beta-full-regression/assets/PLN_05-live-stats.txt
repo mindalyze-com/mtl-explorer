@@ -1,0 +1,11 @@
+PLN_05 live Planner statistics
+
+- Initial empty route: 0.00 m, 0 m ascent, 0 m descent, duration –, 0 legs.
+- Four-waypoint route: 4.86 km, 48 m ascent, 19 m descent, 16m, 3 legs.
+- After route insertion: 8.05 km, 50 m ascent, 38 m descent, 23m, 5 legs.
+- After moving selected waypoint: 7.78 km, 50 m ascent, 38 m descent, 22m, 5 legs.
+- After deleting selected waypoint: 7.69 km, 50 m ascent, 38 m descent, 22m, 4 legs.
+- Clear: 0.00 m, 0 m ascent, 0 m descent, duration –, 0 legs.
+- Undo clear restored the exact 4-leg metrics; redo returned to zero.
+
+Each update appeared after its route computation without reloading.

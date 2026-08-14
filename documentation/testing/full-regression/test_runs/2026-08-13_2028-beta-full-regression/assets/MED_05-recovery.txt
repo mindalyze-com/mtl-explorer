@@ -1,0 +1,17 @@
+Missing media recovery sequence
+
+1. Removed only the disposable source file for indexed media 400001,
+   mtl-synthetic-broken.jpg. A local synthetic backup remained available.
+2. Opened the app through the uncached IP origin and clicked that individual
+   media pin.
+3. The Photo sheet remained fully rendered and showed:
+   - Preview unavailable
+   - The media file could not be decoded by the browser.
+   - Retry
+   - Download
+   - mtl-synthetic-broken.jpg
+4. Restored the exact 11,721-byte synthetic source file.
+5. Clicked Retry. The sheet recovered to 1 / 4 and rendered the expected
+   orange/purple gradient.
+
+The missing-file mutation was recovered before advancing.

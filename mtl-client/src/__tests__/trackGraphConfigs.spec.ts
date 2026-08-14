@@ -15,19 +15,21 @@ describe('speedGraphConfigFor', () => {
 
     expect(config.title).toBe('Speed (bucket avg)');
     expect(config.rangeMetricKey).toBe(MetricKey.SpeedBucketAvgKmh);
-    expect(config.extractY({
-      pointIndex: 0,
-      pointTimestamp: new Date(0),
-      distanceInMeterSinceStart: 0,
-      metricStats: {},
-      pointAltitude: null,
-      speedInKmhWindow: null,
-      speedBucketAvgKmh: 12.5,
-      elevationGainPerHourWindow: null,
-      elevationLossPerHourWindow: null,
-      powerWattsWindow: null,
-      energyCumulativeWh: null,
-    })).toBe(12.5);
+    expect(
+      config.extractY({
+        pointIndex: 0,
+        pointTimestamp: new Date(0),
+        distanceInMeterSinceStart: 0,
+        metricStats: {},
+        pointAltitude: null,
+        speedInKmhWindow: null,
+        speedBucketAvgKmh: 12.5,
+        elevationGainPerHourWindow: null,
+        elevationLossPerHourWindow: null,
+        powerWattsWindow: null,
+        energyCumulativeWh: null,
+      })
+    ).toBe(12.5);
   });
 
   it('falls back to window-speed config without a recommendation', () => {

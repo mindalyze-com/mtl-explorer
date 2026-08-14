@@ -18,6 +18,13 @@ export type ReplayViewportPadding = {
   paddingLeft: number;
 };
 
+export type ReplayMapPadding = {
+  top: number;
+  right: number;
+  bottom: number;
+  left: number;
+};
+
 type RectLike = {
   top: number;
   right: number;
@@ -38,6 +45,41 @@ type ReplayViewportOcclusionOptions = {
 
 const BOTTOM_SHEET_SELECTOR = '.sheet';
 const BOTTOM_EDGE_TOLERANCE_PX = 6;
+const REPLAY_CAMERA_VIEWPORT_KEY_STEP_PX = 8;
+
+export function resolveReplayCameraViewport(
+  canvas: HTMLCanvasElement | undefined,
+  padding: ReplayViewportPadding
+): ReplayCameraViewport | undefined {
+  if (!canvas) return undefined;
+  const width = canvas.clientWidth || canvas.width;
+  const height = canvas.clientHeight || canvas.height;
+  if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) return undefined;
+  return { width, height, ...padding };
+}
+
+export function replayMapPadding(padding: ReplayViewportPadding): ReplayMapPadding {
+  return {
+    top: padding.paddingTop,
+    right: padding.paddingRight,
+    bottom: padding.paddingBottom,
+    left: padding.paddingLeft,
+  };
+}
+
+export function replayCameraViewportKey(viewport: ReplayCameraViewport | undefined): string {
+  if (!viewport) return 'none';
+  return [
+    viewport.width,
+    viewport.height,
+    viewport.paddingTop ?? 0,
+    viewport.paddingRight ?? 0,
+    viewport.paddingBottom ?? 0,
+    viewport.paddingLeft ?? 0,
+  ]
+    .map((value) => Math.round(Number(value) / REPLAY_CAMERA_VIEWPORT_KEY_STEP_PX))
+    .join(':');
+}
 
 export function computeReplayViewportPadding({
   canvas,
@@ -251,3 +293,4 @@ function constrainReplayViewportPadding(
   }
   return next;
 }
+import type { ReplayCameraViewport } from '@/components/replay/replayCameraRailPlanner';

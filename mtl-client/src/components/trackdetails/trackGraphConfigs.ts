@@ -1,5 +1,6 @@
 import { MetricKey, type ChartPoint } from '@/utils/chartSeriesAdapter';
 import type { ChartThemeConfig } from '@/utils/chartTheme';
+import { VIZ_ACCENT_COLOR, VIZ_ORANGE_COLOR } from '@/utils/visualizationColors';
 
 /**
  * Configuration for a single track-detail graph.
@@ -29,8 +30,8 @@ const elevationConfig: TrackGraphConfig = {
   icon: 'bi-graph-up-arrow',
   title: 'Elevation',
   seriesName: 'Elevation',
-  seriesColor: '#6366f1',
-  unit: 'm',
+  seriesColor: VIZ_ACCENT_COLOR,
+  measurementDimension: 'elevation',
   decimals: 0,
   rangeMetricKey: MetricKey.AltitudeM,
   extractY: (p) => p.pointAltitude,
@@ -41,7 +42,7 @@ const elevationGainConfig: TrackGraphConfig = {
   title: 'Elevation Gain Rate',
   seriesName: 'Elevation Gain',
   seriesColor: '#16a34a',
-  unit: 'm/h',
+  measurementDimension: 'verticalRate',
   decimals: 0,
   filterNullY: true,
   rangeMetricKey: MetricKey.ElevationGainPerHourWindow,
@@ -52,8 +53,8 @@ const speedConfig: TrackGraphConfig = {
   icon: 'bi-speedometer2',
   title: 'Speed',
   seriesName: 'Speed',
-  seriesColor: '#f97316',
-  unit: 'km/h',
+  seriesColor: VIZ_ORANGE_COLOR,
+  measurementDimension: 'speed',
   decimals: 1,
   yMin: 0,
   connectNulls: true,
@@ -75,10 +76,10 @@ const distanceConfig: TrackGraphConfig = {
   title: 'Distance over Time',
   seriesName: 'Distance',
   seriesColor: '#7c3aed',
-  unit: 'km',
+  measurementDimension: 'longDistance',
   decimals: 2,
   yMin: 0,
-  extractY: (p) => (p.distanceInMeterSinceStart ?? 0) / 1000,
+  extractY: (p) => p.distanceInMeterSinceStart ?? 0,
 };
 
 const energyConfig: TrackGraphConfig = {

@@ -46,16 +46,16 @@ DOCKER_HUB_TOKEN_URLS = (
 
 # Version tags. These are the most important values to check before every run.
 APP_IMAGE_NAME = "mytraillog"
-APP_VERSION_TAG = "1.320"  # version tag, (v. 1.1 -> 2025-10 release)
+APP_VERSION_TAG = "1.340"  # version tag, (v. 1.1 -> 2025-10 release)
 
 MAP_IMAGE_NAME = "mytraillog-maps"
-MAP_VERSION_TAG = "1.80"
+MAP_VERSION_TAG = "1.81"
 
 LOCATION_SEARCH_IMAGE_NAME = "mytraillog-location-search"
-LOCATION_SEARCH_VERSION_TAG = "1.9"
+LOCATION_SEARCH_VERSION_TAG = "1.10"
 
 BROUTER_IMAGE_NAME = "mytraillog-brouter"
-BROUTER_VERSION_TAG = "1.20"
+BROUTER_VERSION_TAG = "1.21"
 
 # Channel tags. Version + alpha are published by default; beta/latest are opt-in.
 ALPHA_TAG = "alpha"

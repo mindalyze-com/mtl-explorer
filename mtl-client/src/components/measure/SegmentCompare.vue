@@ -18,8 +18,8 @@
           <button
             v-for="seg in availableSegments"
             :key="segmentChipKey(seg)"
-            class="sc-chip"
-            :class="{ 'sc-chip--active': selectedSegmentKey === segmentChipKey(seg) }"
+            class="sc-chip selection-chip"
+            :class="{ 'selection-chip--active': selectedSegmentKey === segmentChipKey(seg) }"
             @click="localSegment = seg.code"
           >
             {{ seg.name }}
@@ -27,7 +27,7 @@
         </div>
       </div>
 
-      <div v-if="!localSegment" class="sc-placeholder sc-placeholder--inline">
+      <div v-if="!localSegment" class="sc-placeholder empty-placeholder sc-placeholder--inline">
         <i class="bi bi-signpost-split"></i>
         <p>Pick a <strong>Segment</strong> above to start comparing.</p>
       </div>
@@ -35,10 +35,20 @@
       <div class="sc-control-row">
         <label class="sc-label">X-axis</label>
         <div class="sc-chip-row">
-          <button class="sc-chip" :class="{ 'sc-chip--active': xMode === 'distance' }" @click="xMode = 'distance'">
+          <button
+            class="sc-chip selection-chip"
+            :class="{ 'selection-chip--active': xMode === 'distance' }"
+            @click="xMode = 'distance'"
+          >
             Distance
           </button>
-          <button class="sc-chip" :class="{ 'sc-chip--active': xMode === 'time' }" @click="xMode = 'time'">Time</button>
+          <button
+            class="sc-chip selection-chip"
+            :class="{ 'selection-chip--active': xMode === 'time' }"
+            @click="xMode = 'time'"
+          >
+            Time
+          </button>
         </div>
       </div>
 
@@ -48,8 +58,8 @@
           <button
             v-for="m in availableMetrics"
             :key="m.key"
-            class="sc-chip sc-chip--metric"
-            :class="{ 'sc-chip--active': selectedMetrics.has(m.key) }"
+            class="sc-chip selection-chip sc-chip--metric"
+            :class="{ 'selection-chip--active': selectedMetrics.has(m.key) }"
             @click="toggleMetric(m.key)"
           >
             <i class="bi" :class="m.icon"></i> {{ m.label }}
@@ -59,7 +69,10 @@
     </div>
 
     <!-- Loading / nothing loaded yet -->
-    <div v-if="!loading && !hasData && selectedTrackIds.size > 0 && localSegment" class="sc-placeholder">
+    <div
+      v-if="!loading && !hasData && selectedTrackIds.size > 0 && localSegment"
+      class="sc-placeholder empty-placeholder"
+    >
       <i class="bi bi-graph-up"></i>
       <p v-if="matchingCandidates.length === 0">
         None of the selected tracks cross this segment. Try a different segment or add tracks.
@@ -68,7 +81,7 @@
       <p v-else>Preparing comparison…</p>
     </div>
 
-    <div v-if="loading" class="sc-placeholder">
+    <div v-if="loading" class="sc-placeholder empty-placeholder">
       <i class="bi bi-hourglass-split"></i>
       <p>Loading sub-tracks for {{ tracksToFetchCount }} track{{ tracksToFetchCount === 1 ? '' : 's' }}…</p>
     </div>
@@ -128,6 +141,7 @@
           :series="seriesByMetric[m.key] || []"
           :x-mode="xMode"
           :unit="m.unit"
+          :measurement-dimension="m.measurementDimension"
           :decimals="m.decimals"
           :y-min="m.yMin"
           :y-zero-line="m.key === 'timeGap'"
@@ -141,19 +155,37 @@
 
 <script setup lang="ts">
 import { computed, inject, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
-import type { CrossingPointsResponseDto, GpsTrackDataPointDto } from 'x8ing-mtl-api-typescript-fetch/dist/esm/models/index';
+import type {
+  CrossingPointsResponseDto,
+  GpsTrackDataPointDto,
+} from 'x8ing-mtl-api-typescript-fetch/dist/esm/models/index';
 import ComparisonChart from '@/components/measure/ComparisonChart.vue';
 import MiniMap from '@/components/map/MiniMap.vue';
 import type { MiniMapBounds, MiniMapGeoJson } from '@/components/map/useMiniMap';
 import RacerCard from '@/components/ui/RacerCard.vue';
 import { fetchTrackSubTrackDetails } from '@/utils/ServiceHelper';
-import { generateColors, formatDuration, formatNumber, formatDateAndTime } from '@/utils/Utils';
-import { normalizeSegmentSlice } from '@/components/measure/segmentSlice';
+import {
+  generateColors,
+  formatDuration,
+  formatNumber,
+  formatDateAndTime,
+  metersPerSecondToKilometersPerHour,
+  formatDistanceSmart,
+  formatElevation,
+  formatSpeed,
+} from '@/utils/Utils';
+import type { ChartMeasurementDimension } from '@/utils/chartTheme';
+import {
+  normalizeSegmentSlice,
+  segmentSelectionKey,
+  validTrackPointCoordinates,
+  type SegmentSelectionCode,
+} from '@/components/measure/segmentSlice';
+import type { ToastService } from '@/types/ui';
 
 defineOptions({ name: 'SegmentCompare' });
 
-type ToastService = { add: (message: Record<string, unknown>) => void };
-type SegmentCode = { point1?: string; point2?: string; consolidated?: boolean; p1Visit?: number; p2Visit?: number };
+type SegmentCode = SegmentSelectionCode;
 type AvailableSegment = { name?: string; count?: number; code: SegmentCode };
 type TrackPoint = Omit<GpsTrackDataPointDto, 'pointLongLat'> & { pointLongLat?: { coordinates?: number[] } };
 type LngLat = [number, number];
@@ -211,7 +243,8 @@ type MetricDef = {
   key: string;
   label: string;
   icon: string;
-  unit: string;
+  unit?: string;
+  measurementDimension?: ChartMeasurementDimension;
   decimals: number;
   yMin?: number;
   subtitle?: string;
@@ -225,7 +258,7 @@ const METRIC_DEFS: MetricDef[] = [
     key: 'speed',
     label: 'Speed',
     icon: 'bi-speedometer2',
-    unit: 'km/h',
+    measurementDimension: 'speed',
     decimals: 1,
     yMin: 0,
     extractY: (p) => p.speedInKmhMovingWindow,
@@ -234,7 +267,7 @@ const METRIC_DEFS: MetricDef[] = [
     key: 'altitude',
     label: 'Altitude',
     icon: 'bi-graph-up-arrow',
-    unit: 'm',
+    measurementDimension: 'elevation',
     decimals: 0,
     extractY: (p) => p.pointAltitude,
   },
@@ -398,7 +431,7 @@ const racers = computed<RacerSummary[]>(() => {
     const last = d.points[d.points.length - 1];
     const durationSec = d.durationSec;
     const distanceM = d.distanceM;
-    const avgSpeedKmh = durationSec > 0 ? (distanceM / durationSec) * 3.6 : 0;
+    const avgSpeedKmh = durationSec > 0 ? metersPerSecondToKilometersPerHour(distanceM / durationSec) : 0;
     let ascentM = null;
     if (last.ascentInMeterSinceStart != null && first.ascentInMeterSinceStart != null) {
       ascentM = last.ascentInMeterSinceStart - first.ascentInMeterSinceStart;
@@ -529,14 +562,7 @@ const mapBounds = computed<MiniMapBounds | null>(() => {
   ];
 });
 
-function segmentChipKey(seg: AvailableSegment) {
-  const code = seg.code;
-  if (!code) return '';
-  if (code.consolidated === false) {
-    return String(code.point1) + String(code.p1Visit) + '-' + String(code.point2) + String(code.p2Visit);
-  }
-  return String(code.point1) + '||' + String(code.point2);
-}
+const segmentChipKey = segmentSelectionKey;
 
 function scheduleAutoLoad(delayMs = 300) {
   if (autoLoadTimer) clearTimeout(autoLoadTimer);
@@ -597,10 +623,10 @@ function openTrackDetails(id: number | string) {
 function racerStats(r: RacerSummary) {
   const stats = [
     { icon: 'bi-stopwatch', text: formatDuration(r.durationSec * 1000), title: 'Segment duration' },
-    { icon: 'bi-speedometer', text: formatNumber(r.avgSpeedKmh, 1) + ' km/h', title: 'Average speed' },
-    { icon: 'bi-signpost-split', text: formatNumber(r.distanceM / 1000, 2) + ' km', title: 'Segment distance' },
+    { icon: 'bi-speedometer', text: formatSpeed(r.avgSpeedKmh, 1), title: 'Average speed' },
+    { icon: 'bi-signpost-split', text: formatDistanceSmart(r.distanceM), title: 'Segment distance' },
   ];
-  if (r.ascentM != null) stats.push({ icon: 'bi-arrow-up', text: formatNumber(r.ascentM, 0) + ' m', title: 'Ascent' });
+  if (r.ascentM != null) stats.push({ icon: 'bi-arrow-up', text: formatElevation(r.ascentM), title: 'Ascent' });
   if (r.energyWh != null)
     stats.push({
       icon: 'bi-battery-charging',
@@ -640,15 +666,7 @@ function findPointForHoverX(d: LoadedData, currentHoverX: number) {
   return d.points[d.points.length - 1];
 }
 
-function pointCoordinates(point: TrackPoint | null | undefined): LngLat | null {
-  const coords = point?.pointLongLat?.coordinates;
-  if (!Array.isArray(coords) || coords.length < 2) return null;
-  const lng = Number(coords[0]);
-  const lat = Number(coords[1]);
-  if (!Number.isFinite(lng) || !Number.isFinite(lat)) return null;
-  if (Math.abs(lng) > 180 || Math.abs(lat) > 90) return null;
-  return [lng, lat];
-}
+const pointCoordinates = validTrackPointCoordinates;
 
 async function onLoad() {
   const candidates = matchingCandidates.value;
@@ -989,47 +1007,7 @@ onBeforeUnmount(() => {
   gap: 0.3rem;
   flex-wrap: wrap;
 }
-.sc-chip {
-  padding: 0.3rem 0.65rem;
-  border-radius: 999px;
-  border: 1px solid var(--border-default);
-  background: var(--surface-glass);
-  color: var(--text-muted);
-  font-size: var(--text-xs-size);
-  font-weight: 600;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-  font-family: inherit;
-  white-space: nowrap;
-}
-.sc-chip:hover {
-  color: var(--text-secondary);
-  background: var(--surface-hover);
-}
-.sc-chip--active {
-  background: var(--accent-text);
-  color: var(--text-inverse);
-  border-color: var(--accent-text);
-}
-
 /* ── Placeholder ── */
-.sc-placeholder {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.4rem;
-  padding: 1.75rem 1rem;
-  text-align: center;
-  color: var(--text-muted);
-  font-size: var(--text-sm-size);
-}
-.sc-placeholder i {
-  font-size: var(--text-3xl-size);
-  opacity: 0.7;
-}
-
 .sc-placeholder--inline {
   padding: 0.9rem 1rem;
   border: 1px dashed var(--border-default);
@@ -1073,19 +1051,6 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   gap: 0.35rem;
-}
-.sc-legend-count {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 1.15rem;
-  height: 1.15rem;
-  padding: 0 0.3rem;
-  border-radius: 999px;
-  background: var(--accent-text);
-  color: var(--text-inverse);
-  font-size: var(--text-2xs-size);
-  font-weight: 700;
 }
 .sc-legend-grid {
   display: grid;

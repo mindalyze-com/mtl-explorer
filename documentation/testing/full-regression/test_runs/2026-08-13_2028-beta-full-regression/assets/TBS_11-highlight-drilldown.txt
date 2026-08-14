@@ -1,0 +1,22 @@
+TBS_11 highlight drilldowns and exclusions
+
+Drilldown:
+- Opened Longest track.
+- Ranked list contained all 12 tracks.
+- Rank 1: Moselradweg aus Wiki on GPSies.com, Bicycle, 518 km, 6h 50m.
+- Rank 2: Jura Route 7 / 2011..., 273 km, 7h 46m.
+- Activating rank 1 opened Track Details #100002 for Moselradweg.
+
+Excluded-count check:
+- Reopened Longest track and excluded rank 1 from highlights with reason GPS noise.
+- Overview reloaded winners and displayed "1 track excluded".
+- Clicking that note switched to Statistics Tracks -> Excluded.
+- Actual immediate result was 0 tracks / No tracks match the current view.
+- After a normal browser reload, the same note opened Excluded with 1 track, 518 km, 6h 50m and Moselradweg labeled "Highlights: GPS noise".
+
+Cleanup:
+- Opened #100002 Quality.
+- Changed Highlights from GPS noise to Included; auto-save completed.
+- Reloaded and verified the excluded count disappeared and Moselradweg returned as Longest track.
+
+Issue: TBS-11-P2

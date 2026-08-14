@@ -1,0 +1,18 @@
+Mobile layout audit at 390 x 844
+
+Statistics Overview:
+- Eight charts rendered.
+- First chart bounds: x=97.5, width=180, right=277.5; fully inside 390 px viewport.
+- Document scroll width exactly 390 px.
+- Long labels use deliberate CSS ellipsis (overflow hidden, nowrap, text-overflow ellipsis).
+- No accidental body horizontal overflow.
+
+Statistics Tracks:
+- Mobile track cards replaced the desktop table.
+- Eight rows were readable with name, activity, date, distance, duration, and energy.
+- Document scroll width 390; zero visible elements crossed viewport bounds.
+
+Map:
+- Zoom, rotation, globe, and terrain controls all stayed inside x=11..40 at 29 x 29 px.
+- Map, controls, and mobile navigation remained usable after closing Statistics.
+

@@ -1,0 +1,13 @@
+Five-minute freshness snooze
+
+- Initial change: created synthetic mtl-syn05.gpx; banner appeared after ingest #100021.
+- Dismissed banner at 2026-08-13T23:59:27.609Z.
+- Banner disappeared immediately; cached map remained 8 / 12 under Q1.
+- Second token change: removed mtl-syn05.gpx; server deleted #100021 at 23:59:43 UTC.
+- Freshness poll completed at 00:00:05 UTC.
+- Check at 00:00:20 UTC: banner remained hidden despite the second token change and completed polling cycle.
+- No reload, navigation, or cache refresh occurred during the snooze.
+- Five-minute boundary: 00:04:27.609 UTC.
+- Later poll completed after the boundary.
+- Check at 00:04:48.604 UTC: banner had reappeared because the client was still out of sync.
+

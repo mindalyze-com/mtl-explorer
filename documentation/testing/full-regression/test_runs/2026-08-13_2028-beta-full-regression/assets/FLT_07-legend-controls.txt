@@ -1,0 +1,20 @@
+Coverage ID: FLT_07
+Active view: Activities by keyword
+Active categories: CYCLING 11, ON_FOOT 1
+
+Collapse
+- Map visibility legend initially showed both category rows.
+- Selecting the legend toggle hid both rows.
+- Selecting it again restored both rows.
+
+Hide group
+- CYCLING initially had aria-pressed=true and action Hide CYCLING on map.
+- Selecting it changed aria-pressed=false and action Show CYCLING on map.
+- Legend reported 1 hidden and exposed Show all.
+- Map visible count changed immediately from 12 / 12 Tracks to 1 / 12 Tracks, leaving ON_FOOT 1 visible.
+
+Restore
+- Selecting CYCLING again restored aria-pressed=true.
+- Both category rows were pressed and map count returned immediately to 12 / 12 Tracks.
+- The 1 hidden indicator disappeared.
+

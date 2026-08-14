@@ -8,12 +8,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 class GpsTrackRepositoryStatisticsExclusionQueryTest {
 
     @Test
-    void highlightRankingsAndMilestonesOmitHighlightAndStatisticsExclusions() throws NoSuchMethodException {
+    void highlightRankingsAndActivityBoundsOmitHighlightAndStatisticsExclusions() throws NoSuchMethodException {
         assertThat(query("getTrackOverviewTrackRankings", Long[].class, int.class))
                 .contains("highlight_exclusion_reason IS NULL")
                 .contains("statistics_exclusion_reason IS NULL");
 
-        assertThat(query("getTrackOverviewMilestones", Long[].class))
+        assertThat(query("getTrackOverviewActivityBounds", Long[].class))
                 .contains("highlight_exclusion_reason IS NULL")
                 .contains("statistics_exclusion_reason IS NULL");
     }

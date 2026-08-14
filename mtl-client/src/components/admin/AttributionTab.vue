@@ -1,11 +1,9 @@
 <template>
-  <section class="panel-section">
-    <div class="panel-section__header">
-      <div>
-        <span class="panel-section__title">Libraries and data sources</span>
-        <span class="panel-section__hint">Credits for rendering, basemaps, charts, and demo data.</span>
-      </div>
-    </div>
+  <div class="attribution-content">
+    <header class="attribution-header">
+      <h2>Libraries and data sources</h2>
+      <p>Credits for rendering, basemaps, charts, routing, search, and demo data.</p>
+    </header>
     <div class="attrib-list">
       <a href="https://maplibre.org" target="_blank" rel="noopener noreferrer" class="attrib-entry">
         <span class="attrib-entry-name">MapLibre GL JS</span>
@@ -75,7 +73,7 @@
         </a>
       </template>
     </div>
-  </section>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -92,6 +90,22 @@ withDefaults(
 </script>
 
 <style scoped>
+.attribution-header {
+  margin-bottom: 0.75rem;
+}
+
+.attribution-header h2 {
+  margin: 0 0 0.25rem;
+  color: var(--text-primary);
+  font-size: var(--text-lg-size);
+}
+
+.attribution-header p {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: var(--text-sm-size);
+}
+
 .attrib-list {
   display: flex;
   flex-direction: column;
@@ -134,5 +148,17 @@ withDefaults(
   font-size: var(--text-2xs-size);
   color: var(--text-faint);
   flex-shrink: 0;
+}
+
+@media (max-width: 600px) {
+  .attrib-entry {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .attrib-entry-name,
+  .attrib-entry-desc {
+    flex-basis: calc(100% - 1.5rem);
+  }
 }
 </style>

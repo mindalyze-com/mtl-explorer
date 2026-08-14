@@ -6,7 +6,7 @@
         <div class="rto__metric rto__metric--speed">
           <strong class="rto__speed-readout">
             <span class="rto__speed-number">{{ speedNumberLabel }}</span>
-            <span class="rto__speed-unit">km/h</span>
+            <span class="rto__speed-unit">{{ speedUnit }}</span>
           </strong>
           <span>Speed</span>
         </div>
@@ -50,6 +50,8 @@
 
 <script setup lang="ts">
 import { computed } from 'vue';
+import { useMeasurementSystem } from '@/composables/useMeasurementSystem';
+import { MEASUREMENT_DISPLAY_PROFILES, speedDisplayValue } from '@/utils/units';
 
 defineOptions({ name: 'ReplayTelemetryOverlay' });
 
@@ -64,9 +66,14 @@ const props = defineProps<{
   elevationMaxLabel: string;
 }>();
 
+const { measurementSystem } = useMeasurementSystem();
+
 const speedNumberLabel = computed(() =>
-  Number.isFinite(props.currentSpeedKmh) ? Number(props.currentSpeedKmh).toFixed(1) : '--'
+  Number.isFinite(props.currentSpeedKmh)
+    ? speedDisplayValue(Number(props.currentSpeedKmh), measurementSystem.value).toFixed(1)
+    : '--'
 );
+const speedUnit = computed(() => MEASUREMENT_DISPLAY_PROFILES[measurementSystem.value].speed);
 </script>
 
 <style scoped>
@@ -75,7 +82,7 @@ const speedNumberLabel = computed(() =>
   inset: 0;
   z-index: 3;
   pointer-events: none;
-  color: #fff;
+  color: var(--accent-contrast);
   --rto-map-control-inset: 0.6rem;
 }
 

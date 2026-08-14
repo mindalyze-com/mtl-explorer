@@ -74,6 +74,14 @@ async function idbClear(): Promise<void> {
 /** True when the Cache Storage API is available (requires secure context). */
 const hasCacheStorage = 'caches' in window;
 
+async function downloadLowZoomTiles(fileUrl: string, logSuffix = ''): Promise<Response | null> {
+  console.log(`Downloading low-zoom PMTiles from ${fileUrl} …${logSuffix}`);
+  const response = await fetch(fileUrl, { credentials: 'same-origin' });
+  if (response.ok) return response;
+  console.warn(`Failed to download low-zoom tiles: ${response.status} ${response.statusText}`);
+  return null;
+}
+
 /**
  * Ensure the low-zoom PMTiles file is available in the browser cache.
  * Downloads it from the tile server if not already cached.
@@ -96,13 +104,8 @@ export async function ensureLowZoomCached(tileUrlOrBaseUrl: string, lowzoomTiles
         return fileUrl;
       }
 
-      console.log(`Downloading low-zoom PMTiles from ${fileUrl} …`);
-      const response = await fetch(fileUrl, { credentials: 'same-origin' });
-
-      if (!response.ok) {
-        console.warn(`Failed to download low-zoom tiles: ${response.status} ${response.statusText}`);
-        return fileUrl;
-      }
+      const response = await downloadLowZoomTiles(fileUrl);
+      if (!response) return fileUrl;
 
       await cache.put(fileUrl, response);
       console.log('Low-zoom PMTiles cached successfully (CacheStorage)');
@@ -121,13 +124,8 @@ export async function ensureLowZoomCached(tileUrlOrBaseUrl: string, lowzoomTiles
       return fileUrl;
     }
 
-    console.log(`Downloading low-zoom PMTiles from ${fileUrl} … (IndexedDB fallback)`);
-    const response = await fetch(fileUrl, { credentials: 'same-origin' });
-
-    if (!response.ok) {
-      console.warn(`Failed to download low-zoom tiles: ${response.status} ${response.statusText}`);
-      return fileUrl;
-    }
+    const response = await downloadLowZoomTiles(fileUrl, ' (IndexedDB fallback)');
+    if (!response) return fileUrl;
 
     const buffer = await response.arrayBuffer();
     await idbPut(fileUrl, buffer);

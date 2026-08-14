@@ -63,15 +63,7 @@ class DuplicateDetectorAtomicWorkerTest {
                 100,
                 "2026-05-31T10:05:00Z",
                 "2026-05-31T10:25:00Z");
-        GpsTrackRepository repository = repositoryForSimilarTracks(betterTrack, duplicateTrack);
-        DuplicateDetectorAtomicWorker worker = new DuplicateDetectorAtomicWorker(repository);
-
-        worker.processOne(betterTrack.getId(), TIME_TOLERANCE, DISTANCE_TOLERANCE);
-
-        assertEquals(GpsTrack.DUPLICATE_CHECK_STATUS.UNIQUE, betterTrack.getDuplicateStatus());
-        assertNull(betterTrack.getDuplicateOf());
-        assertEquals(GpsTrack.DUPLICATE_CHECK_STATUS.DUPLICATE, duplicateTrack.getDuplicateStatus());
-        assertEquals(betterTrack.getId(), duplicateTrack.getDuplicateOf());
+        assertMarkedDuplicate(betterTrack, duplicateTrack);
     }
 
     @Test
@@ -88,6 +80,10 @@ class DuplicateDetectorAtomicWorkerTest {
                 100,
                 "2026-05-31T10:13:01Z",
                 "2026-05-31T10:23:01Z");
+        assertMarkedDuplicate(betterTrack, duplicateTrack);
+    }
+
+    private static void assertMarkedDuplicate(GpsTrack betterTrack, GpsTrack duplicateTrack) {
         GpsTrackRepository repository = repositoryForSimilarTracks(betterTrack, duplicateTrack);
         DuplicateDetectorAtomicWorker worker = new DuplicateDetectorAtomicWorker(repository);
 

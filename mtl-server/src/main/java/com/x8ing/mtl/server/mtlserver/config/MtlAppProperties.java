@@ -1,6 +1,7 @@
 package com.x8ing.mtl.server.mtlserver.config;
 
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
+import com.x8ing.mtl.server.mtlserver.measurement.MeasurementSystem;
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
@@ -12,7 +13,8 @@ import org.springframework.stereotype.Component;
         "demoMode",
         "demoTargetTrackCount",
         "logViewerEnabled",
-        "defaultLocale"
+        "defaultLocale",
+        "defaultMeasurementSystem"
 })
 public class MtlAppProperties {
 
@@ -39,4 +41,10 @@ public class MtlAppProperties {
      * When not set the client falls back to its own browser-based detection.
      */
     private String defaultLocale;
+
+    /**
+     * Optional measurement system suggested to clients without an explicit
+     * browser preference. When absent the client performs browser-based detection.
+     */
+    private MeasurementSystem defaultMeasurementSystem;
 }

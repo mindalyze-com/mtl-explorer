@@ -1,4 +1,5 @@
 import { ref, type Ref } from 'vue';
+import { nearestSortedIndex } from '@/utils/sortedSearch';
 
 export interface TrackPoint {
   lat: number;
@@ -124,19 +125,7 @@ function cancelPendingHover(): void {
 function nearestBySortedValue(entries: SortedTrackPointEntry[], value: number): TrackPoint | null {
   if (entries.length === 0 || !Number.isFinite(value)) return null;
 
-  let lo = 0;
-  let hi = entries.length - 1;
-  while (lo < hi) {
-    const mid = (lo + hi) >> 1;
-    if (entries[mid].value < value) lo = mid + 1;
-    else hi = mid;
-  }
-
-  if (lo > 0 && Math.abs(entries[lo - 1].value - value) < Math.abs(entries[lo].value - value)) {
-    lo -= 1;
-  }
-
-  return entries[lo].point;
+  return entries[nearestSortedIndex(entries, value, (entry) => entry.value)].point;
 }
 
 function metersPerLngDegree(lat: number): number {

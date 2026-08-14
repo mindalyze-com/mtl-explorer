@@ -18,15 +18,13 @@
           <i class="bi bi-chevron-up"></i> Show less
         </button>
 
-        <div v-for="track in prevTracksShown" :key="track.id" class="track-card" @click="navigateTrack(track.id)">
-          <TrackShapePreview :track-id="track.id!" :width="56" :height="40" class="track-card__shape" />
-          <div class="track-dot prev-dot"></div>
-          <div class="track-card-body">
-            <div class="track-name">{{ track.name }}</div>
-            <div v-if="track.startDate" class="track-date">{{ formatDate(track.startDate) }}</div>
-            <div v-if="track.description" class="track-desc">{{ track.description }}</div>
-          </div>
-        </div>
+        <RelatedTrackCard
+          v-for="track in prevTracksShown"
+          :key="track.id"
+          :track="track"
+          variant="previous"
+          @navigate="navigateTrack"
+        />
       </div>
 
       <div class="section-header prev-header">
@@ -59,15 +57,13 @@
       </div>
 
       <div v-if="nextTracksInTime.length" class="track-list next-list">
-        <div v-for="track in nextTracksShown" :key="track.id" class="track-card" @click="navigateTrack(track.id)">
-          <TrackShapePreview :track-id="track.id!" :width="56" :height="40" class="track-card__shape" />
-          <div class="track-dot next-dot"></div>
-          <div class="track-card-body">
-            <div class="track-name">{{ track.name }}</div>
-            <div v-if="track.startDate" class="track-date">{{ formatDate(track.startDate) }}</div>
-            <div v-if="track.description" class="track-desc">{{ track.description }}</div>
-          </div>
-        </div>
+        <RelatedTrackCard
+          v-for="track in nextTracksShown"
+          :key="track.id"
+          :track="track"
+          variant="next"
+          @navigate="navigateTrack"
+        />
 
         <button v-if="nextRemaining > 0" class="expand-btn" @click="showMoreNext()">
           <i class="bi bi-chevron-down"></i> Show {{ Math.min(PAGE_SIZE, nextRemaining) }} more ({{ nextRemaining }}
@@ -88,15 +84,13 @@
         <span class="section-count">{{ duplicates.length }}</span>
       </div>
       <div class="track-list">
-        <div v-for="track in duplicates" :key="track.id" class="track-card dup-card" @click="navigateTrack(track.id)">
-          <TrackShapePreview :track-id="track.id!" :width="56" :height="40" class="track-card__shape" />
-          <div class="track-dot dup-dot"></div>
-          <div class="track-card-body">
-            <div class="track-name">{{ track.name }}</div>
-            <div v-if="track.startDate" class="track-date">{{ formatDate(track.startDate) }}</div>
-            <div v-if="track.description" class="track-desc">{{ track.description }}</div>
-          </div>
-        </div>
+        <RelatedTrackCard
+          v-for="track in duplicates"
+          :key="track.id"
+          :track="track"
+          variant="duplicate"
+          @navigate="navigateTrack"
+        />
       </div>
     </section>
 
@@ -108,23 +102,13 @@
         <span class="section-count">{{ segmentSiblings.length }}</span>
       </div>
       <div class="track-list">
-        <div
+        <RelatedTrackCard
           v-for="track in segmentSiblings"
           :key="track.id"
-          class="track-card seg-card"
-          @click="navigateTrack(track.id)"
-        >
-          <TrackShapePreview :track-id="track.id!" :width="56" :height="40" class="track-card__shape" />
-          <div class="track-dot seg-dot"></div>
-          <div class="track-card-body">
-            <div class="track-name">
-              <span v-if="track.sourceSegmentIndex" class="seg-badge">Seg {{ track.sourceSegmentIndex }}</span>
-              {{ track.name }}
-            </div>
-            <div v-if="track.startDate" class="track-date">{{ formatDate(track.startDate) }}</div>
-            <div v-if="track.description" class="track-desc">{{ track.description }}</div>
-          </div>
-        </div>
+          :track="track"
+          variant="segment"
+          @navigate="navigateTrack"
+        />
       </div>
     </section>
   </div>
@@ -134,7 +118,7 @@
 import { computed, ref, watch, onBeforeUnmount } from 'vue';
 import type { GpsTrack, RelatedTracks, RelatedTrackInfo } from 'x8ing-mtl-api-typescript-fetch/dist/esm/models/index';
 import { formatDateShort } from '@/utils/Utils';
-import TrackShapePreview from '@/components/ui/TrackShapePreview.vue';
+import RelatedTrackCard from '@/components/trackdetails/RelatedTrackCard.vue';
 
 defineOptions({
   name: 'TrackDetailRelated',
@@ -337,108 +321,9 @@ function formatDate(dateVal: string | number | Date): string {
   border-color: var(--border-subtle);
 }
 
-/* ── Track Card ────────────────────────────────────────── */
-.track-card {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.625rem;
-  padding: 0.5rem 0.625rem;
-  cursor: pointer;
-  border: 1px solid transparent;
-  border-radius: 8px;
-  transition:
-    background 0.15s ease,
-    border-color 0.15s ease,
-    transform 0.12s ease;
-  position: relative;
-}
-
-.track-card:hover {
-  background: var(--surface-hover);
-  border-color: var(--border-default);
-  transform: translateX(2px);
-}
-
-.track-card:active {
-  transform: translateX(2px) scale(0.995);
-}
-
-.track-card__shape {
-  flex-shrink: 0;
-  border-radius: 6px;
-  opacity: 0.7;
-  transition: opacity 0.15s ease;
-}
-
-.track-card:hover .track-card__shape {
-  opacity: 1;
-}
-
-/* ── Dot ───────────────────────────────────────────────── */
-.track-dot {
-  flex-shrink: 0;
-  width: 0.5rem;
-  height: 0.5rem;
-  border-radius: 50%;
-  margin-top: 0.4rem;
-  margin-left: -1.3125rem;
-  border: 2px solid var(--accent-text);
-  background: var(--surface-glass-heavy);
-  z-index: 1;
-  transition:
-    transform 0.15s ease,
-    box-shadow 0.15s ease;
-}
-
-.track-card:hover .track-dot {
-  transform: scale(1.25);
-  box-shadow: 0 0 0 3px var(--accent-bg);
-}
-
-.prev-dot {
-  border-color: var(--accent-text);
-}
-.next-dot {
-  border-color: var(--accent-text);
-}
-.dup-dot {
-  border-color: var(--text-muted);
-}
-
-/* ── Card Body ─────────────────────────────────────────── */
-.track-card-body {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  flex: 1;
-}
-
-.track-name {
-  font-size: var(--text-sm-size);
-  font-weight: 600;
-  color: var(--text-primary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 100%;
-  transition: color 0.15s ease;
-}
-
-.track-card:hover .track-name {
-  color: var(--accent-text);
-}
-
-.track-date {
+.current-desc {
   font-size: var(--text-xs-size);
   color: var(--text-muted);
-  margin-top: 0.125rem;
-  font-variant-numeric: tabular-nums;
-}
-
-.track-desc {
-  font-size: var(--text-xs-size);
-  color: var(--text-muted);
-  margin-top: 0.1875rem;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
@@ -537,14 +422,7 @@ function formatDate(dateVal: string | number | Date): string {
 }
 
 .current-desc {
-  font-size: var(--text-xs-size);
-  color: var(--text-muted);
   margin-top: 5px;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  line-height: var(--text-xs-lh);
 }
 
 /* ── Duplicates special spacing ────────────────────────── */
@@ -554,31 +432,11 @@ function formatDate(dateVal: string | number | Date): string {
   border-top: 1px solid var(--border-subtle);
 }
 
-.dup-card .track-name {
-  color: var(--text-muted);
-}
-
 /* ── Derived Segments ──────────────────────────────────── */
 .segments-section {
   margin-top: 1.125rem;
   padding-top: 0.75rem;
   border-top: 1px solid var(--border-subtle);
-}
-
-.seg-dot {
-  border-color: var(--accent-text-light) !important;
-}
-
-.seg-badge {
-  display: inline-block;
-  background: var(--accent-text-light);
-  color: var(--text-inverse);
-  font-size: var(--text-2xs-size);
-  font-weight: 700;
-  border-radius: 4px;
-  padding: 0.0625rem 0.3125rem;
-  margin-right: 0.3125rem;
-  vertical-align: middle;
 }
 
 /* ── Loading indicator ──────────────────────────────────

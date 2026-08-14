@@ -1,6 +1,6 @@
 <template>
   <div class="chart-card">
-    <div class="chart-header">
+    <div class="chart-header chart-section-header">
       <i class="bi" :class="config.icon"></i>
       {{ config.title }}
     </div>
@@ -15,6 +15,7 @@ import { buildChartOptions, hexToRgba } from '@/utils/chartTheme';
 import type { ChartPoint } from '@/utils/chartSeriesAdapter';
 import type Highcharts from 'highcharts';
 import type { TrackGraphConfig } from './trackGraphConfigs';
+import { useMeasurementSystem } from '@/composables/useMeasurementSystem';
 
 const RANGE_BAND_ALPHA = 0.16;
 const RANGE_BAND_LINE_WIDTH = 0;
@@ -70,6 +71,7 @@ const config = computed(() => props.config);
 const highchartsEl = ref<HighchartsEl | null>(null);
 const chartOptions = shallowRef<Highcharts.Options>(buildTrackGraphOptions(props.config, props.xMode, props.showRange));
 const { bindChart, setChartXMode, syncPointHover } = useChartSync();
+const { measurementSystem } = useMeasurementSystem();
 let cleanupChartSync: (() => void) | undefined;
 
 /**
@@ -118,6 +120,11 @@ watch(
   },
   { deep: true }
 );
+
+watch(measurementSystem, () => {
+  rebuildChartOptions();
+  updateChart();
+});
 
 watch(
   () => props.syncEnabled,
@@ -302,19 +309,7 @@ function toMillis(ts: ChartPoint['pointTimestamp']): number {
 }
 
 .chart-header {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: var(--text-xs-size);
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--text-secondary);
   padding: 1.25rem 1rem 0.1rem;
-}
-
-.chart-header i {
-  font-size: var(--text-sm-size);
 }
 
 .chart {

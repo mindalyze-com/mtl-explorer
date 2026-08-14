@@ -1,4 +1,5 @@
 import { sanitizeReplayTargetDuration } from '@/components/replay/trackReplayPath';
+import { clamp01 as clampProgress } from '@/utils/numbers';
 
 export type ReplayPlaybackStatus = 'idle' | 'playing' | 'paused' | 'finished';
 
@@ -36,7 +37,10 @@ export class TrackReplayController {
   constructor(options: TrackReplayControllerOptions) {
     this.onFrame = options.onFrame;
     this.targetDurationSeconds = sanitizeReplayTargetDuration(options.targetDurationSeconds);
-    this.activityDurationSeconds = sanitizeActivityDuration(options.activityDurationSeconds, this.targetDurationSeconds);
+    this.activityDurationSeconds = sanitizeActivityDuration(
+      options.activityDurationSeconds,
+      this.targetDurationSeconds
+    );
     this.now = options.now ?? (() => performance.now());
     this.requestFrame = options.requestFrame ?? ((callback) => window.requestAnimationFrame(callback));
     this.cancelFrame = options.cancelFrame ?? ((handle) => window.cancelAnimationFrame(handle));
@@ -155,11 +159,6 @@ export class TrackReplayController {
     this.cancelFrame(this.animationFrameId);
     this.animationFrameId = null;
   }
-}
-
-function clampProgress(progress: number): number {
-  if (!Number.isFinite(progress)) return 0;
-  return Math.max(0, Math.min(1, progress));
 }
 
 function sanitizeActivityDuration(seconds: unknown, fallbackSeconds: number): number {

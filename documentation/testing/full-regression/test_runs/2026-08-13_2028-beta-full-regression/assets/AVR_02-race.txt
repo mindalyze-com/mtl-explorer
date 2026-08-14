@@ -1,0 +1,15 @@
+Virtual race A-A, two distinct timed racers
+
+Racers:
+- Lannion_Plestin_parcours24.4RE.gpx: 00:04:09, 109.89 m.
+- Lannion-format-unique.nmea: 00:04:15, 120.35 m.
+
+21x race progression:
+- Ready: both 0%; ranking GPX 1, NMEA 2.
+- Early: both 4%; live distances 79.74 m and 66.00 m.
+- Later: GPX 19%/92.35 m; NMEA 18%/71.43 m.
+- Captured: GPX 75%/104.46 m; NMEA 73%/92.05 m.
+
+Both map racers moved together. Racer cards continuously updated progress and
+live distance while retaining their distinct duration, speed, distance, and
+ranking context.

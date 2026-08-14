@@ -1,15 +1,8 @@
 <template>
-  <aside
-    class="filter-catalog"
-    :class="{
-      'filter-catalog--can-scroll': listCanScroll,
-      'filter-catalog--at-end': listAtEnd,
-    }"
-    aria-label="Filters"
-  >
+  <aside class="filter-catalog" aria-label="Views">
     <div class="filter-catalog__heading">
-      <h2 class="filter-catalog__title">Choose a filter</h2>
-      <span class="filter-catalog__total">{{ totalCount }} filters</span>
+      <h2 class="filter-catalog__title filter-panel-title">Choose a view</h2>
+      <span class="filter-catalog__total filter-meta-label">{{ totalCount }} views</span>
     </div>
 
     <div class="filter-catalog__search">
@@ -18,35 +11,12 @@
         v-model="query"
         class="filter-catalog__search-input"
         type="search"
-        placeholder="Search filters, groups, or keywords"
+        placeholder="Search views"
         autocomplete="off"
       />
     </div>
 
-    <div class="filter-catalog__chips" aria-label="Filter groups">
-      <button
-        type="button"
-        class="filter-catalog__chip"
-        :class="{ 'filter-catalog__chip--active': activeGroupLabel === null }"
-        @click="activeGroupLabel = null"
-      >
-        All
-        <span class="filter-catalog__chip-count">{{ totalCount }}</span>
-      </button>
-      <button
-        v-for="group in groups"
-        :key="group.label"
-        type="button"
-        class="filter-catalog__chip"
-        :class="{ 'filter-catalog__chip--active': activeGroupLabel === group.label }"
-        @click="activeGroupLabel = group.label"
-      >
-        {{ group.label }}
-        <span class="filter-catalog__chip-count">{{ group.items.length }}</span>
-      </button>
-    </div>
-
-    <div ref="listScrollEl" class="filter-catalog__scroll" @scroll="updateScrollState">
+    <div class="filter-catalog__scroll">
       <section v-for="group in visibleGroups" :key="group.label" class="filter-catalog__group">
         <h3 class="filter-catalog__group-title">{{ group.label }}</h3>
         <button
@@ -58,7 +28,7 @@
           @click="emit('select-filter', filterInfo)"
         >
           <span class="filter-catalog-row__icon" :class="groupIconClass(group.label)">
-            <i :class="groupIcon(group.label)"></i>
+            <i :class="filterGroupIcon(group.label)"></i>
           </span>
           <span class="filter-catalog-row__body">
             <span class="filter-catalog-row__title">{{ filterInfo.filterConfig?.displayName }}</span>
@@ -75,33 +45,22 @@
 
       <div v-if="visibleGroups.length === 0" class="filter-catalog__empty">
         <i class="bi bi-search"></i>
-        <span>No filters found</span>
+        <span>No views found</span>
       </div>
     </div>
-    <button
-      type="button"
-      class="filter-catalog__scroll-cue"
-      :disabled="!listCanScroll || listAtEnd"
-      aria-label="Scroll filter list down"
-      @pointerdown.stop
-      @click.stop="scrollListDown"
-    >
-      <i class="bi bi-chevron-down"></i>
-    </button>
   </aside>
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, onUpdated, ref, watch } from 'vue';
+import { computed, ref } from 'vue';
 import type { FilterInfo } from 'x8ing-mtl-api-typescript-fetch/dist/esm/models/FilterInfo';
 import {
   filterOptionGroupItemCount,
   filterOptionGroupsByCatalogSearch,
+  filterGroupIcon,
   isSameFilterInfo,
   type FilterOptionGroup,
 } from '@/utils/filterMetadata';
-
-const CATALOG_SCROLL_PAGE_FRACTION = 0.82;
 
 defineOptions({ name: 'FilterCatalog' });
 
@@ -115,73 +74,11 @@ const emit = defineEmits<{
 }>();
 
 const query = ref('');
-const activeGroupLabel = ref<string | null>(null);
-const listCanScroll = ref(false);
-const listAtEnd = ref(true);
-const listScrollEl = ref<HTMLElement | null>(null);
-
-let resizeHandler: (() => void) | null = null;
-let resizeObserver: ResizeObserver | null = null;
 
 const totalCount = computed((): number => filterOptionGroupItemCount(props.groups));
 const visibleGroups = computed((): FilterOptionGroup[] =>
-  filterOptionGroupsByCatalogSearch(props.groups, query.value, activeGroupLabel.value)
+  filterOptionGroupsByCatalogSearch(props.groups, query.value, null)
 );
-
-watch([query, activeGroupLabel], () => {
-  updateScrollStateSoon();
-});
-
-watch(
-  () => props.groups,
-  () => {
-    if (activeGroupLabel.value && !props.groups.some((group) => group.label === activeGroupLabel.value)) {
-      activeGroupLabel.value = null;
-    }
-    updateScrollStateSoon();
-  }
-);
-
-onMounted(() => {
-  updateScrollStateSoon();
-  resizeHandler = () => updateScrollStateSoon();
-  window.addEventListener('resize', resizeHandler);
-  const el = listScrollEl.value;
-  if (el && typeof ResizeObserver !== 'undefined') {
-    resizeObserver = new ResizeObserver(() => updateScrollStateSoon());
-    resizeObserver.observe(el);
-  }
-});
-
-onUpdated(() => {
-  updateScrollStateSoon();
-});
-
-onBeforeUnmount(() => {
-  if (resizeHandler) window.removeEventListener('resize', resizeHandler);
-  resizeObserver?.disconnect();
-});
-
-function updateScrollStateSoon(): void {
-  void nextTick(() => updateScrollState());
-}
-
-function updateScrollState(): void {
-  const el = listScrollEl.value;
-  if (!el) return;
-  const threshold = 3;
-  listCanScroll.value = el.scrollHeight > el.clientHeight + threshold;
-  listAtEnd.value = el.scrollTop + el.clientHeight >= el.scrollHeight - threshold;
-}
-
-function scrollListDown(): void {
-  const el = listScrollEl.value;
-  if (!el) return;
-  el.scrollBy({
-    top: Math.max(el.clientHeight * CATALOG_SCROLL_PAGE_FRACTION, 1),
-    behavior: 'smooth',
-  });
-}
 
 function filterKey(filterInfo: FilterInfo): string {
   const filterConfig = filterInfo.filterConfig;
@@ -195,18 +92,6 @@ function isSelected(filterInfo: FilterInfo): boolean {
   return isSameFilterInfo(props.selectedFilterInfo, filterInfo);
 }
 
-function groupIcon(groupLabel: string): string {
-  const normalized = groupLabel.toLowerCase();
-  if (normalized.includes('activity')) return 'bi bi-bicycle';
-  if (normalized.includes('date') || normalized.includes('time')) return 'bi bi-calendar3';
-  if (normalized.includes('quality')) return 'bi bi-shield-exclamation';
-  if (normalized.includes('performance')) return 'bi bi-speedometer2';
-  if (normalized.includes('people')) return 'bi bi-people';
-  if (normalized.includes('core')) return 'bi bi-funnel';
-  if (normalized.includes('user')) return 'bi bi-person';
-  return 'bi bi-sliders';
-}
-
 function groupIconClass(groupLabel: string): string {
   const normalized = groupLabel
     .toLowerCase()
@@ -218,7 +103,6 @@ function groupIconClass(groupLabel: string): string {
 
 <style scoped>
 .filter-catalog {
-  position: relative;
   display: flex;
   flex-direction: column;
   min-height: 0;
@@ -232,21 +116,6 @@ function groupIconClass(groupLabel: string): string {
   justify-content: space-between;
   gap: 0.75rem;
   padding-bottom: 0.75rem;
-}
-
-.filter-catalog__title {
-  margin: 0;
-  color: var(--text-primary);
-  font-size: var(--text-base-size, 1rem);
-  font-weight: 800;
-  line-height: var(--text-base-lh, 1.4);
-}
-
-.filter-catalog__total {
-  color: var(--text-muted);
-  font-size: var(--text-xs-size);
-  font-weight: 700;
-  line-height: var(--text-xs-lh);
 }
 
 .filter-catalog__search {
@@ -346,65 +215,10 @@ function groupIconClass(groupLabel: string): string {
   padding-right: 0;
   padding-bottom: 1.2rem;
   scrollbar-width: none;
-  -webkit-overflow-scrolling: touch;
-  overscroll-behavior-y: contain;
 }
 
 .filter-catalog__scroll::-webkit-scrollbar {
   display: none;
-}
-
-.filter-catalog__scroll-cue {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  display: none;
-  align-items: end;
-  justify-content: center;
-  height: 3rem;
-  padding: 0 0 0.15rem;
-  border: 0;
-  appearance: none;
-  box-sizing: border-box;
-  font: inherit;
-  pointer-events: auto;
-  cursor: pointer;
-  color: var(--text-muted);
-  background: linear-gradient(
-    to bottom,
-    transparent,
-    color-mix(in srgb, var(--surface-sheet-solid) 82%, transparent) 54%,
-    var(--surface-sheet-solid)
-  );
-}
-
-.filter-catalog__scroll-cue:disabled {
-  cursor: default;
-}
-
-.filter-catalog__scroll-cue i {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 1.7rem;
-  height: 1.7rem;
-  border: 1px solid var(--border-default);
-  border-radius: 9999px;
-  background: var(--surface-glass-heavy);
-  color: var(--accent-text);
-  font-size: var(--text-xs-size);
-  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.08);
-}
-
-.filter-catalog__scroll-cue:hover i,
-.filter-catalog__scroll-cue:focus-visible i {
-  border-color: var(--accent);
-  background: var(--accent-subtle);
-}
-
-.filter-catalog--can-scroll:not(.filter-catalog--at-end) .filter-catalog__scroll-cue {
-  display: flex;
 }
 
 .filter-catalog__group + .filter-catalog__group {

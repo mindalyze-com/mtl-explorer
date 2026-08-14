@@ -1,0 +1,21 @@
+PLN_04 waypoint editing and history
+
+Move:
+- Started with 5 legs, 8.05 km, 23m.
+- Dragged the selected waypoint.
+- Route recalculated to 5 legs, 7.78 km, 22m; delete marker moved with it.
+
+Delete:
+- Used Delete selected waypoint.
+- Route recalculated to 4 legs, 7.69 km, 22m.
+
+Undo/redo deletion:
+- Undo restored 5 legs.
+- Redo restored 4 legs.
+
+Clear/history:
+- Clear route changed to 0 legs and zero stats.
+- Undo restored the 4-leg route.
+- Redo cleared it again to 0 legs.
+
+All route changes updated the elevation chart when a route existed.

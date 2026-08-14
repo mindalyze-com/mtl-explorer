@@ -1,0 +1,8 @@
+PLN_06 elevation profile and map hover
+
+- Restored the four-leg route: 7.69 km, 50 m ascent, 38 m descent, 22m.
+- Elevation chart rendered 426 data points across 0-7.69 km and 406-454.5 m.
+- Hovered the chart at 3.62 km.
+- Tooltip: 3.62 km, 425 m, +2.4%.
+- A planner-hover-marker appeared on the matching routed coordinate.
+- After zooming out to show the whole route, marker bounds were x=678.8, y=252.0, 14×14 px, visibly inside the map viewport.

@@ -1,0 +1,31 @@
+About and credits checks
+
+Signed in:
+- Opened from Admin / Server log.
+- Route: /mtl/about
+- Expanded Credits and data sources.
+- Browser Back returned to /mtl/admin/logs with the Server log section restored.
+
+Signed out:
+- Credentials-only sign-out returned to /mtl/login.
+- Public About & source opened the installation summary.
+- Full details opened the complete About surface without authentication.
+- Expanded Credits and data sources.
+- Close returned to the login fallback.
+
+Sources present before and after login:
+- MapLibre GL JS
+- OpenStreetMap
+- Protomaps Basemaps
+- PMTiles
+- Mapterhorn terrain
+- swisstopo
+- SchweizMobil
+- Waymarked Trails
+- Highcharts
+- GeoNames
+- GPSBabel
+- BRouter
+
+- Valid sign-in restored the 13-track map.
+

@@ -1,0 +1,10 @@
+Manual globe override
+
+1. Re-entered automatic globe at low zoom.
+2. Clicked Toggle globe mode to disable it.
+3. At 2,000 km the projection became a flat full-world map; control class was
+   `mtl-globe-btn` without the active class.
+4. Zoomed in once and back out within the low-zoom zone. It stayed flat and
+   the globe control remained inactive.
+5. Clicked Toggle globe mode again. The control gained
+   `mtl-globe-active` and the map returned to a fitted globe (1,000 km scale).

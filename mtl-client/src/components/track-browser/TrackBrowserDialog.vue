@@ -10,18 +10,9 @@
     :class="{ 'track-browser-dialog-shell--mobile': isMobile }"
   >
     <div class="track-browser-dialog" :class="isMobile ? 'track-browser-dialog--mobile' : 'dialog-flex-root'">
-      <TrackBrowserControls
-        :query="query"
-        :summary="summary"
-        :total-count="totalCount"
-        @update:query="query = $event"
-      />
-
-      <TrackBrowserTable
-        :rows="rows"
+      <TrackBrowserView
+        :tracks="tracks"
         :selected-track-id="selectedTrackId ?? null"
-        :query="query"
-        :compact="isMobile"
         @select-track="onTrackSelect($event)"
         @open-details="onTrackDetails($event)"
       />
@@ -30,11 +21,11 @@
 </template>
 
 <script setup lang="ts">
-import { computed, toRef, ref, onMounted, onUnmounted } from 'vue';
-import TrackBrowserControls from './TrackBrowserControls.vue';
-import TrackBrowserTable from './TrackBrowserTable.vue';
-import { useTrackBrowser } from './useTrackBrowser';
+import { computed } from 'vue';
+import TrackBrowserView from './TrackBrowserView.vue';
 import type { GpsTrack } from 'x8ing-mtl-api-typescript-fetch/dist/esm/models/index';
+import { useMediaQuery } from '@/composables/useMediaQuery';
+import type { TrackSelectionEvents } from '@/components/filter/filterEvents';
 
 const MOBILE_BREAKPOINT = 768;
 
@@ -44,27 +35,14 @@ const props = defineProps<{
   selectedTrackId?: number | string | null;
 }>();
 
-const emit = defineEmits<{
-  (event: 'update:visible', value: boolean): void;
-  (event: 'select-track', value: number | string): void;
-  (event: 'open-details', value: number | string): void;
-}>();
+const emit = defineEmits<TrackSelectionEvents & { 'update:visible': [value: boolean] }>();
 
-const windowWidth = ref(typeof window !== 'undefined' ? window.innerWidth : 1024);
-function onResize() {
-  windowWidth.value = window.innerWidth;
-}
-onMounted(() => window.addEventListener('resize', onResize));
-onUnmounted(() => window.removeEventListener('resize', onResize));
-
-const isMobile = computed(() => windowWidth.value < MOBILE_BREAKPOINT);
+const isMobile = useMediaQuery(`(max-width: ${MOBILE_BREAKPOINT - 1}px)`);
 
 const dialogVisible = computed({
   get: () => props.visible,
   set: (value: boolean) => emit('update:visible', value),
 });
-
-const { query, rows, summary, totalCount } = useTrackBrowser(toRef(props, 'tracks'));
 
 function onTrackSelect(id: number | string) {
   emit('select-track', id);

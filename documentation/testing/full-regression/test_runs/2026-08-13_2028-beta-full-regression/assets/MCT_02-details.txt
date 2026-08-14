@@ -1,0 +1,5 @@
+Clicked the measured result named Lannion_Plestin_parcours24.4RE.gpx.
+Result URL: http://91.99.12.14.nip.io:18080/mtl/track/100004
+Visible identity: #100004, Bicycle, 08/03/2013 10:32, 25.9 km, 3h 42m.
+Overview metrics and mini-map loaded while the Segment Analyzer result sheet
+remained available below the detail surface.

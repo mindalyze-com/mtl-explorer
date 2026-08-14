@@ -2,6 +2,7 @@ import { defineStore } from 'pinia';
 import { computed, markRaw, ref, shallowRef } from 'vue';
 import { ClientFilterConfig, FilterService, type FilterParamsRequest } from '@/components/filter/FilterService';
 import type { FilterResult } from '@/types/filter';
+import { fetchResolveFilter, type ResolveFilterResult } from '@/utils/filterApi';
 
 export type ActiveFilterRequest = {
   filterName: string;
@@ -33,9 +34,10 @@ export const useFilterStore = defineStore('filter', () => {
   // shallowRef: the config object is large + nested but treated as immutable
   // (whole object swapped on each load/save), so deep reactivity is wasted.
   const config = shallowRef<ClientFilterConfig | null>(null);
-  const activeResult = shallowRef<FilterResult | null>(null);
+  const activeResult = shallowRef<FilterResult | ResolveFilterResult | null>(null);
   const loading = ref<Promise<ClientFilterConfig> | null>(null);
   const trackSetRevision = ref(0);
+  const dataFreshnessRevision = ref(0);
 
   /**
    * Resolve the current config. First call hits FilterService (localStorage +
@@ -60,8 +62,8 @@ export const useFilterStore = defineStore('filter', () => {
   function save(cfg: ClientFilterConfig | null, options: FilterStoreSaveOptions = {}): void {
     FilterService.saveClientFilterConfig(cfg);
     config.value = cfg;
-    activeResult.value = null;
     if (options.trackSetChanged ?? true) {
+      activeResult.value = null;
       markTrackSetChanged();
     }
   }
@@ -85,6 +87,23 @@ export const useFilterStore = defineStore('filter', () => {
    */
   async function refresh(): Promise<ClientFilterConfig> {
     return ensureLoaded(true);
+  }
+
+  /** Re-resolve the active filter after the server-side track dataset changes. */
+  async function refreshResolvedFilter(): Promise<ResolveFilterResult> {
+    const cfg = await ensureLoaded();
+    const filterId = cfg.filterInfo?.filterConfig?.id;
+    if (filterId == null) {
+      throw new Error('Cannot refresh the active filter without a filter configuration ID.');
+    }
+
+    // Remove stale IDs and UI rows while the replacement result is in flight.
+    activeResult.value = null;
+    const result = await fetchResolveFilter(filterId, cfg.filterParams ?? {}, false);
+    activeResult.value = markRaw(result);
+    dataFreshnessRevision.value += 1;
+    markTrackSetChanged();
+    return result;
   }
 
   function markTrackSetChanged(): void {
@@ -120,17 +139,32 @@ export const useFilterStore = defineStore('filter', () => {
     config,
     activeResult,
     trackSetRevision,
+    dataFreshnessRevision,
     isStandard,
     isActive,
     filterParams,
     activeFilterRequest,
     ensureLoaded,
     refresh,
+    refreshResolvedFilter,
     save,
     applyResolvedFilter,
     getActiveFilterRequest,
   };
 });
+
+/**
+ * Resolve the active filter outside Vue component setup. The fallback keeps
+ * bootstrap code and isolated tests working before Pinia is active.
+ */
+export async function loadActiveFilterRequest(): Promise<ActiveFilterRequest> {
+  try {
+    return await useFilterStore().getActiveFilterRequest();
+  } catch {
+    const clientFilterConfig = await FilterService.loadClientFilterConfig();
+    return activeFilterRequestFromConfig(clientFilterConfig);
+  }
+}
 
 function activeFilterRequestFromConfig(
   clientFilterConfig: ClientFilterConfig,

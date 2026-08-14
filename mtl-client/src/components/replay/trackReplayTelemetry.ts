@@ -1,5 +1,13 @@
 import type { GpsTrack } from 'x8ing-mtl-api-typescript-fetch/dist/esm/models/index';
 import { MetricKey, type ChartPoint } from '@/utils/chartSeriesAdapter';
+import { lowerBoundClampedIndex } from '@/utils/sortedSearch';
+import {
+  clamp01 as clampProgress,
+  finiteNumberOrNull as finiteNumber,
+  interpolationProgress,
+  interpolateNullableNumber as interpolateNullable,
+  maxFiniteOrNull as maxFinite,
+} from '@/utils/numbers';
 
 const REPLAY_TELEMETRY_MAX_SERIES_POINTS = 260;
 const DEFAULT_REPLAY_SPEED_MAX_KMH = 40;
@@ -89,16 +97,12 @@ export function sampleReplayTelemetry(telemetry: ReplayTelemetry, progress: numb
 
   const prev = telemetry.points[hi - 1];
   const next = telemetry.points[hi];
-  const span = Math.max(next.distanceMeters - prev.distanceMeters, Number.EPSILON);
-  const t = Math.max(0, Math.min(1, (targetDistance - prev.distanceMeters) / span));
+  const t = interpolationProgress(prev.distanceMeters, next.distanceMeters, targetDistance);
 
   return {
     distanceMeters: targetDistance,
     elapsedSeconds: interpolateNullable(prev.elapsedSeconds, next.elapsedSeconds, t),
-    speedKmh: interpolateNullable(prev.speedKmh, next.speedKmh, t),
-    elevationMeters: interpolateNullable(prev.elevationMeters, next.elevationMeters, t),
-    ascentMeters: interpolateNullable(prev.ascentMeters, next.ascentMeters, t),
-    slopePercent: interpolateNullable(prev.slopePercent, next.slopePercent, t),
+    ...interpolateTelemetryMeasurements(prev, next, t),
     progress: safeProgress,
   };
 }
@@ -110,7 +114,7 @@ export function sampleReplayTelemetryAtElapsedSeconds(
   const durationSeconds = maxFinite(telemetry.points.map((point) => point.elapsedSeconds));
   const safeElapsedSeconds = Math.max(0, finiteNumber(elapsedSeconds) ?? 0);
   const progress =
-    durationSeconds != null && durationSeconds > 0 ? Math.max(0, Math.min(1, safeElapsedSeconds / durationSeconds)) : 0;
+    durationSeconds != null && durationSeconds > 0 ? clampProgress(safeElapsedSeconds / durationSeconds) : 0;
   const fallback: ReplayTelemetrySample = {
     distanceMeters: progress * telemetry.totalDistanceMeters,
     elapsedSeconds: safeElapsedSeconds,
@@ -133,17 +137,26 @@ export function sampleReplayTelemetryAtElapsedSeconds(
   const next = timedPoints[hi];
   const prevElapsed = prev.elapsedSeconds ?? 0;
   const nextElapsed = next.elapsedSeconds ?? prevElapsed;
-  const span = Math.max(nextElapsed - prevElapsed, Number.EPSILON);
-  const t = Math.max(0, Math.min(1, (safeElapsedSeconds - prevElapsed) / span));
+  const t = interpolationProgress(prevElapsed, nextElapsed, safeElapsedSeconds);
 
   return {
     distanceMeters: interpolateNullable(prev.distanceMeters, next.distanceMeters, t) ?? fallback.distanceMeters,
     elapsedSeconds: safeElapsedSeconds,
-    speedKmh: interpolateNullable(prev.speedKmh, next.speedKmh, t),
-    elevationMeters: interpolateNullable(prev.elevationMeters, next.elevationMeters, t),
-    ascentMeters: interpolateNullable(prev.ascentMeters, next.ascentMeters, t),
-    slopePercent: interpolateNullable(prev.slopePercent, next.slopePercent, t),
+    ...interpolateTelemetryMeasurements(prev, next, t),
     progress,
+  };
+}
+
+function interpolateTelemetryMeasurements(
+  previous: ReplayTelemetryPoint,
+  next: ReplayTelemetryPoint,
+  progress: number
+): Pick<ReplayTelemetryPoint, 'speedKmh' | 'elevationMeters' | 'ascentMeters' | 'slopePercent'> {
+  return {
+    speedKmh: interpolateNullable(previous.speedKmh, next.speedKmh, progress),
+    elevationMeters: interpolateNullable(previous.elevationMeters, next.elevationMeters, progress),
+    ascentMeters: interpolateNullable(previous.ascentMeters, next.ascentMeters, progress),
+    slopePercent: interpolateNullable(previous.slopePercent, next.slopePercent, progress),
   };
 }
 
@@ -205,47 +218,11 @@ function downsample<T>(items: T[], maxItems: number): T[] {
 }
 
 function firstPointAtOrAfterDistance(points: ReplayTelemetryPoint[], distanceMeters: number): number {
-  let low = 0;
-  let high = points.length - 1;
-  while (low < high) {
-    const mid = Math.floor((low + high) / 2);
-    if (points[mid].distanceMeters < distanceMeters) low = mid + 1;
-    else high = mid;
-  }
-  return low;
+  return lowerBoundClampedIndex(points, distanceMeters, (point) => point.distanceMeters);
 }
 
 function firstPointAtOrAfterElapsed(points: ReplayTelemetryPoint[], elapsedSeconds: number): number {
-  let low = 0;
-  let high = points.length - 1;
-  while (low < high) {
-    const mid = Math.floor((low + high) / 2);
-    if ((points[mid].elapsedSeconds ?? 0) < elapsedSeconds) low = mid + 1;
-    else high = mid;
-  }
-  return low;
-}
-
-function interpolateNullable(a: number | null, b: number | null, t: number): number | null {
-  if (a == null && b == null) return null;
-  if (a == null) return b;
-  if (b == null) return a;
-  return a + (b - a) * t;
-}
-
-function finiteNumber(value: unknown): number | null {
-  const numeric = Number(value);
-  return Number.isFinite(numeric) ? numeric : null;
-}
-
-function maxFinite(values: Array<number | null | undefined>): number | null {
-  let max: number | null = null;
-  for (const value of values) {
-    const numeric = finiteNumber(value);
-    if (numeric == null) continue;
-    max = max == null ? numeric : Math.max(max, numeric);
-  }
-  return max;
+  return lowerBoundClampedIndex(points, elapsedSeconds, (point) => point.elapsedSeconds ?? 0);
 }
 
 function firstValidTimestampMs(points: ChartPoint[]): number | null {
@@ -254,9 +231,4 @@ function firstValidTimestampMs(points: ChartPoint[]): number | null {
     if (ms != null && Number.isFinite(ms)) return ms;
   }
   return null;
-}
-
-function clampProgress(progress: number): number {
-  if (!Number.isFinite(progress)) return 0;
-  return Math.max(0, Math.min(1, progress));
 }

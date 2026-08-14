@@ -23,6 +23,7 @@
         :aria-valuemin="handle.ariaMin"
         :aria-valuenow="handle.value"
         :aria-valuemax="handle.ariaMax"
+        :aria-valuetext="handle.ariaValueText"
         :aria-label="handle.ariaLabel"
         :aria-labelledby="ariaLabelledby || undefined"
         :aria-disabled="disabled ? 'true' : undefined"
@@ -50,6 +51,7 @@ const props = withDefaults(
     disabled?: boolean;
     ariaLabel?: string;
     ariaLabelledby?: string;
+    ariaValueText?: string | string[];
     variant?: SliderVariant;
   }>(),
   {
@@ -60,6 +62,7 @@ const props = withDefaults(
     disabled: false,
     ariaLabel: undefined,
     ariaLabelledby: undefined,
+    ariaValueText: undefined,
     variant: 'default',
   }
 );
@@ -122,6 +125,7 @@ const handles = computed(() => {
         ariaMin: minValue.value,
         ariaMax: end,
         ariaLabel: rangeHandleLabel('minimum'),
+        ariaValueText: valueTextForHandle(0),
       },
       {
         index: 1 as HandleIndex,
@@ -130,6 +134,7 @@ const handles = computed(() => {
         ariaMin: start,
         ariaMax: maxValue.value,
         ariaLabel: rangeHandleLabel('maximum'),
+        ariaValueText: valueTextForHandle(1),
       },
     ];
   }
@@ -142,6 +147,7 @@ const handles = computed(() => {
       ariaMin: minValue.value,
       ariaMax: maxValue.value,
       ariaLabel: props.ariaLabel,
+      ariaValueText: valueTextForHandle(0),
     },
   ];
 });
@@ -178,6 +184,10 @@ function valueFromPointer(event: PointerEvent): number {
 function rangeHandleLabel(kind: 'minimum' | 'maximum'): string | undefined {
   if (!props.ariaLabel) return undefined;
   return `${props.ariaLabel} ${kind}`;
+}
+
+function valueTextForHandle(index: HandleIndex): string | undefined {
+  return Array.isArray(props.ariaValueText) ? props.ariaValueText[index] : props.ariaValueText;
 }
 
 function nearestHandleIndex(value: number): HandleIndex {
@@ -333,7 +343,7 @@ onBeforeUnmount(() => {
   --mtl-slider-hit-padding-x: 0;
   --mtl-slider-track-background: var(--slider-track);
   --mtl-slider-range-background: var(--slider-gradient);
-  --mtl-slider-handle-background: var(--slider-handle, #fff);
+  --mtl-slider-handle-background: var(--slider-handle);
   --mtl-slider-handle-border-color: var(--slider-handle-border, var(--accent));
   --mtl-slider-handle-border-width: 2px;
   --mtl-slider-handle-halo: 0 0 0 0 transparent;

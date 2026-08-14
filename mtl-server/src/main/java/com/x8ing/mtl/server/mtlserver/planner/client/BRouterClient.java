@@ -3,6 +3,7 @@ package com.x8ing.mtl.server.mtlserver.planner.client;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.x8ing.mtl.server.mtlserver.planner.PlannerGeometryMetrics;
 import com.x8ing.mtl.server.mtlserver.planner.config.PlannerProperties;
 import com.x8ing.mtl.server.mtlserver.planner.constants.PlannerConstants;
 import com.x8ing.mtl.server.mtlserver.planner.dto.LegResultDto;
@@ -147,27 +148,13 @@ public class BRouterClient {
             }
             leg.setCoordinates(out);
             // BRouter doesn't expose a "filtered descent" property, so derive it from 3D geometry.
-            leg.setDescentM(computeDescentFromGeometry(out));
+            leg.setDescentM(PlannerGeometryMetrics.elevationTotals(out).descentM());
             return leg;
         } catch (BRouterException e) {
             throw e;
         } catch (Exception e) {
             throw new BRouterException("Failed to parse BRouter GeoJSON", e);
         }
-    }
-
-    /**
-     * Fallback descent calculation directly from 3D geometry when BRouter props are ambiguous.
-     */
-    private double computeDescentFromGeometry(List<double[]> coords) {
-        double descent = 0;
-        for (int i = 1; i < coords.size(); i++) {
-            double dz = coords.get(i)[2] - coords.get(i - 1)[2];
-            if (dz < -PlannerConstants.MIN_ELEVATION_DELTA_M) {
-                descent += -dz;
-            }
-        }
-        return descent;
     }
 
     static String summarizeErrorBody(String body) {

@@ -1,0 +1,21 @@
+Animation control sequence, desktop and 390x844 mobile
+
+Desktop ready:
+- Map badge stayed 12 Tracks before Play.
+- Full range 01/01/2010 through 13/08/2026 showed 12 tracks ready.
+- Date-range endpoint change produced 7 tracks and 01/01/2010–10/03/2013.
+- Speed changed from Balanced/20 ms per track to Very slow/759 ms per track.
+
+Transport:
+- Play collapsed to map-first PLAYING, 1/12, Stop, Pause.
+- Pause changed to PAUSED, 1/12, Stop, Resume.
+- Open playback settings expanded the paused view and retained 1 of 12.
+- Resume returned to PLAYING.
+- Stop returned to PLAYBACK READY, 12 tracks.
+- A second play/pause/expand followed by Reset returned to PLAYBACK READY.
+- Full fast playback reached FINISHED, 12/12, Replay.
+
+Mobile 390x844:
+- Ready settings remained accessible for all 12 tracks.
+- Play collapsed to PLAYING, 1/12; Pause produced PAUSED with Resume.
+- Stop returned to ready. Desktop viewport was restored.

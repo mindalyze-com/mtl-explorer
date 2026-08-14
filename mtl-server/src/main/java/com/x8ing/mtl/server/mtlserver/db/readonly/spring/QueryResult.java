@@ -3,6 +3,7 @@ package com.x8ing.mtl.server.mtlserver.db.readonly.spring;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.x8ing.mtl.server.mtlserver.db.entity.gps.GpsTrack;
+import com.x8ing.mtl.server.mtlserver.web.services.track.entity.filter.FilterResultGroupSummary;
 import com.x8ing.mtl.server.mtlserver.web.services.track.entity.VersionAware;
 import lombok.Data;
 
@@ -13,6 +14,9 @@ import java.util.Map;
 @Data
 @JsonPropertyOrder({
         "resultEntries",
+        "groupingAvailable",
+        "availableGroups",
+        "preGroupSelectionCount",
         "trackVersions",
         "standardFilterCount",
         "filterGroups"
@@ -38,6 +42,15 @@ public class QueryResult implements VersionAware {
     }
 
     private List<QueryResultEntry> resultEntries = new ArrayList<>();
+
+    /** True when the dynamic SQL result includes a grp column, even if every value is null. */
+    private boolean groupingAvailable;
+
+    /** Group counts before applying the optional exact result-group selection. */
+    private List<FilterResultGroupSummary> availableGroups = new ArrayList<>();
+
+    /** Number of rows returned by the dynamic SQL before result-group selection. */
+    private long preGroupSelectionCount;
 
     /**
      * Track entity versions (id → version). Populated by filter/resolve for map cache invalidation.

@@ -1,7 +1,23 @@
 <template>
   <div>
-    <div v-if="active && overlayZoneNodes.length" class="measure-map-overlay">
-      <div class="measure-flow-rail">
+    <div
+      v-if="active"
+      class="measure-map-overlay"
+      :class="{ 'measure-map-overlay--empty': !overlayZoneNodes.length }"
+      role="status"
+      aria-live="polite"
+    >
+      <div class="measure-map-guidance">
+        <span class="measure-map-guidance-icon" :class="overlayGuidance.toneClass" aria-hidden="true">
+          <i :class="overlayGuidance.icon"></i>
+        </span>
+        <span class="measure-map-guidance-copy">
+          <strong>{{ overlayGuidance.title }}</strong>
+          <span>{{ overlayGuidance.detail }}</span>
+        </span>
+      </div>
+
+      <div v-if="overlayZoneNodes.length" class="measure-flow-rail">
         <template v-for="(node, idx) in overlayZoneNodes" :key="node.key">
           <div class="measure-flow-node" :class="node.toneClass">
             <div class="measure-flow-node-circle">{{ node.label }}</div>
@@ -62,6 +78,7 @@
               class="measure-toolbar-btn measure-toolbar-btn--analyze"
               :class="{ 'measure-toolbar-btn--ready': !isAnalyzeDisabled }"
               :disabled="isAnalyzeDisabled"
+              :title="analyzeButtonTitle"
               @click="onFinishSelection"
             >
               <i v-if="isLoading" class="bi bi-arrow-clockwise measure-spin"></i>
@@ -70,16 +87,23 @@
             </button>
           </div>
 
-          <!-- Row 2: Bare radius slider -->
-          <div class="measure-radius-bare">
+          <!-- Row 2: Detection radius -->
+          <div class="measure-radius-control">
+            <div class="measure-radius-header">
+              <div class="measure-radius-copy">
+                <span id="measure-radius-label" class="measure-radius-label">Detection radius</span>
+                <span class="measure-radius-description">How close a track must pass to each zone</span>
+              </div>
+              <output class="measure-radius-value">{{ radiusDisplay }}</output>
+            </div>
             <MtlSlider
               v-model="radiusSelector"
               class="measure-bar-slider"
               :min="1"
               :max="100"
-              aria-label="Detection radius"
+              aria-labelledby="measure-radius-label"
+              :aria-value-text="radiusDisplay"
             />
-            <span class="measure-radius-hint">{{ radiusDisplay }} m</span>
           </div>
 
           <!-- Row 3: Tap-map hint + explanation -->
@@ -122,15 +146,27 @@ import { fetchTrackDetailsForCrossingPoints, fetchTrackIdsWithinDistanceOfPoint 
 import DisplayMeasureResults from '@/components/measure/DisplayMeasureResults.vue';
 import BottomSheet from '@/components/ui/BottomSheet.vue';
 import MtlSlider from '@/components/ui/MtlSlider.vue';
-import { EVENT_MEASURE_BETWEEN_POINTS_DIALOG_MAXIMIZED_EVENT } from '@/utils/Utils';
+import { EVENT_MEASURE_BETWEEN_POINTS_DIALOG_MAXIMIZED_EVENT, formatRadius } from '@/utils/Utils';
+import { isAbortLikeError } from '@/utils/errors';
+import { createGeoJsonCircle } from '@/utils/geoJson';
+import { VIZ_BLUE_COLOR, VIZ_ERROR_COLOR, VIZ_ORANGE_STRONG_COLOR, VIZ_SLATE_COLOR } from '@/utils/visualizationColors';
+import type { ToastService } from '@/types/ui';
 
 defineOptions({ name: 'MeasureBetweenPoints' });
 
 type MapLike = maplibregl.Map;
-type ToastService = { add: (message: Record<string, unknown>) => void };
 type MeasureTriggerPoint = TriggerPoint & { name: string; coordinate: { x: number; y: number } };
 type ZoneVisualState = 'loading' | 'error' | 'warning' | 'ok';
 type MapClickEvent = { lngLat: { lng: number; lat: number } };
+
+const MINIMUM_SEGMENT_ZONE_COUNT = 2;
+const DESKTOP_COMPACT_SHEET_HEIGHT_PX = 310;
+const MOBILE_COMPACT_SHEET_HEIGHT_PX = 350;
+const SHORT_VIEWPORT_MAX_HEIGHT_PX = 500;
+const SHORT_VIEWPORT_COMPACT_SHEET_HEIGHT_PX = 230;
+const DESKTOP_EXPANDED_SHEET_HEIGHT_VH = 82;
+const MOBILE_EXPANDED_SHEET_HEIGHT_VH = 88;
+const SHORT_VIEWPORT_EXPANDED_SHEET_HEIGHT_VH = 92;
 
 const props = defineProps<{
   map: MapLike;
@@ -153,7 +189,6 @@ const radiusSelector = ref(40);
 const triggerPoints = ref<MeasureTriggerPoint[]>([]);
 const zoneTrackCounts = ref<Array<number | undefined>>([]);
 const zoneTrackIds = ref<Array<number[] | null | undefined>>([]);
-const zoneHasVisibleTracks = ref<boolean[]>([]);
 const zoneCountAbortControllers = ref<Array<AbortController | undefined>>([]);
 const zoneCountRequestTokens = ref<Array<number | undefined>>([]);
 let radiusCountDebounceTimer: ReturnType<typeof setTimeout> | null = null;
@@ -163,6 +198,7 @@ const numberOfCrossings = ref(0);
 const measureSourceIds = ref<string[]>([]);
 const measureLayerIds = ref<string[]>([]);
 let clickHandler: ((e: MapClickEvent) => void) | null = null;
+let clickHandlerMap: MapLike | null = null;
 const isLoading = ref(false);
 const viewportWidth = ref(typeof window !== 'undefined' ? window.innerWidth : 1024);
 const viewportHeight = ref(typeof window !== 'undefined' ? window.innerHeight : 900);
@@ -183,8 +219,7 @@ function radius() {
   }
 }
 
-const radiusDisplay = computed(() => radius());
-const isAnalyzeDisabled = computed(() => isLoading.value || triggerPoints.value.length === 0);
+const radiusDisplay = computed(() => formatRadius(radius()));
 
 const candidateTrackIdsIntersection = computed(() => {
   if (!triggerPoints.value.length) {
@@ -206,6 +241,25 @@ const candidateTrackIdsIntersection = computed(() => {
     intersection = new Set([...intersection].filter((id) => zoneIds.has(id)));
   }
   return [...intersection];
+});
+
+const hasNoMatchingCandidates = computed(
+  () =>
+    triggerPoints.value.length >= MINIMUM_SEGMENT_ZONE_COUNT &&
+    Array.isArray(candidateTrackIdsIntersection.value) &&
+    candidateTrackIdsIntersection.value.length === 0
+);
+
+const isAnalyzeDisabled = computed(
+  () => isLoading.value || triggerPoints.value.length < MINIMUM_SEGMENT_ZONE_COUNT || hasNoMatchingCandidates.value
+);
+
+const analyzeButtonTitle = computed(() => {
+  if (isLoading.value) return 'Analysis in progress';
+  if (!triggerPoints.value.length) return 'Place zones A and B first';
+  if (triggerPoints.value.length < MINIMUM_SEGMENT_ZONE_COUNT) return 'Place zone B to complete the segment';
+  if (hasNoMatchingCandidates.value) return 'No tracks cross every zone';
+  return 'Compare tracks crossing every zone';
 });
 
 const overlayZoneNodes = computed(() => {
@@ -238,27 +292,11 @@ const overlayZoneNodes = computed(() => {
 });
 
 const sharedFlowNode = computed(() => {
-  if (!triggerPoints.value.length) {
+  if (triggerPoints.value.length < MINIMUM_SEGMENT_ZONE_COUNT) {
     return null;
   }
 
   const relevantCounts = zoneTrackCounts.value.slice(0, triggerPoints.value.length);
-  if (triggerPoints.value.length === 1) {
-    const count = relevantCounts[0];
-    if (count === undefined) {
-      return { value: '...', title: 'shared', detail: 'waiting', toneClass: 'measure-flow-node--loading' };
-    }
-    if (count === -1) {
-      return { value: '?', title: 'shared', detail: 'check', toneClass: 'measure-flow-node--error' };
-    }
-    return {
-      value: String(count),
-      title: 'shared',
-      detail: count === 1 ? 'track' : 'tracks',
-      toneClass: count === 0 ? 'measure-flow-node--warning' : 'measure-flow-node--ok',
-    };
-  }
-
   if (relevantCounts.some((count) => count === -1)) {
     return { value: '?', title: 'shared', detail: 'check', toneClass: 'measure-flow-node--error' };
   }
@@ -281,10 +319,99 @@ const sharedFlowNode = computed(() => {
   };
 });
 
+const overlayGuidance = computed(() => {
+  const zoneCount = triggerPoints.value.length;
+  if (zoneCount === 0) {
+    return {
+      title: 'Tap a track to place zone A',
+      detail: 'Start where the segment should begin.',
+      icon: 'bi bi-crosshair',
+      toneClass: 'measure-map-guidance-icon--active',
+    };
+  }
+
+  if (zoneCount < MINIMUM_SEGMENT_ZONE_COUNT) {
+    const zoneCountResult = zoneTrackCounts.value[0];
+    if (zoneCountResult === undefined) {
+      return {
+        title: 'Checking zone A',
+        detail: 'You can place zone B while this finishes.',
+        icon: 'bi bi-arrow-clockwise measure-spin',
+        toneClass: 'measure-map-guidance-icon--loading',
+      };
+    }
+    if (zoneCountResult === -1) {
+      return {
+        title: 'Zone A could not be checked',
+        detail: 'Adjust the zone or try placing zone B.',
+        icon: 'bi bi-exclamation-circle',
+        toneClass: 'measure-map-guidance-icon--error',
+      };
+    }
+    if (zoneCountResult === 0) {
+      return {
+        title: 'No tracks cross zone A',
+        detail: 'Undo the zone or increase the detection radius.',
+        icon: 'bi bi-exclamation-circle',
+        toneClass: 'measure-map-guidance-icon--warning',
+      };
+    }
+    return {
+      title: 'Tap a track to place zone B',
+      detail: 'This sets the end of the segment.',
+      icon: 'bi bi-crosshair',
+      toneClass: 'measure-map-guidance-icon--active',
+    };
+  }
+
+  const relevantCounts = zoneTrackCounts.value.slice(0, zoneCount);
+  if (relevantCounts.some((count) => count === -1)) {
+    return {
+      title: 'Some matches could not be checked',
+      detail: 'Adjust a zone or try Analyze.',
+      icon: 'bi bi-exclamation-circle',
+      toneClass: 'measure-map-guidance-icon--error',
+    };
+  }
+  if (relevantCounts.some((count) => count === undefined)) {
+    return {
+      title: 'Checking matching tracks',
+      detail: 'You can add another zone while this finishes.',
+      icon: 'bi bi-arrow-clockwise measure-spin',
+      toneClass: 'measure-map-guidance-icon--loading',
+    };
+  }
+  if (hasNoMatchingCandidates.value) {
+    return {
+      title: 'No tracks cross every zone',
+      detail: 'Undo a zone or increase the detection radius.',
+      icon: 'bi bi-exclamation-circle',
+      toneClass: 'measure-map-guidance-icon--warning',
+    };
+  }
+
+  const matchCount = (candidateTrackIdsIntersection.value as number[]).length;
+  return {
+    title: 'Ready to analyze',
+    detail: `${matchCount} matching ${matchCount === 1 ? 'track' : 'tracks'} · add another zone or choose Analyze.`,
+    icon: 'bi bi-check2-circle',
+    toneClass: 'measure-map-guidance-icon--ready',
+  };
+});
+
 const measureSheetDetents = computed(() => {
   const isMobile = viewportWidth.value <= 768;
-  const compactPx = isMobile ? 350 : 280;
-  const expandedVh = isMobile ? 88 : 82;
+  const isShortViewport = viewportHeight.value <= SHORT_VIEWPORT_MAX_HEIGHT_PX;
+  const compactPx = isShortViewport
+    ? SHORT_VIEWPORT_COMPACT_SHEET_HEIGHT_PX
+    : isMobile
+      ? MOBILE_COMPACT_SHEET_HEIGHT_PX
+      : DESKTOP_COMPACT_SHEET_HEIGHT_PX;
+  const expandedVh = isShortViewport
+    ? SHORT_VIEWPORT_EXPANDED_SHEET_HEIGHT_VH
+    : isMobile
+      ? MOBILE_EXPANDED_SHEET_HEIGHT_VH
+      : DESKTOP_EXPANDED_SHEET_HEIGHT_VH;
   return [
     { id: 'compact', height: `${compactPx}px` },
     { id: 'expanded', height: `${expandedVh}vh` },
@@ -293,10 +420,17 @@ const measureSheetDetents = computed(() => {
 
 const dockHintText = computed(() => {
   if (!triggerPoints.value.length) {
-    return 'Place zone A';
+    return 'Zone A is next';
+  }
+  if (triggerPoints.value.length === 1) {
+    const zoneCount = zoneTrackCounts.value[0];
+    if (zoneCount === undefined) return 'Checking zone A';
+    if (zoneCount === -1) return 'Zone A check unavailable';
+    if (zoneCount === 0) return 'Adjust zone A or the radius';
+    return 'Zone A ready · zone B is next';
   }
   const nextLabel = String.fromCharCode(65 + triggerPoints.value.length);
-  return `${triggerPoints.value.length} zone${triggerPoints.value.length === 1 ? '' : 's'} ready • next: ${nextLabel}`;
+  return `${triggerPoints.value.length} zones ready · add ${nextLabel} or analyze`;
 });
 
 function onMaximizeSender() {
@@ -320,8 +454,8 @@ function onViewportResize() {
  *   extent 5km   → 200m
  *   extent 50km  → 2000m (ceiling)
  */
-function radiusSelectorForExtent() {
-  const bounds = props.map.getBounds();
+function radiusSelectorForExtent(map: MapLike) {
+  const bounds = map.getBounds();
   const centerLat = (bounds.getNorth() + bounds.getSouth()) / 2;
   const metersPerDegLat = 111320;
   const metersPerDegLng = 111320 * Math.cos((centerLat * Math.PI) / 180);
@@ -338,20 +472,11 @@ async function toggle() {
   if (active.value) emit('tool-opened');
 
   if (active.value) {
-    // Set radius based on current visible map extent
-    if (props.map) {
-      radiusSelector.value = radiusSelectorForExtent();
-      clickHandler = (e) => onMapClick(e);
-      props.map.on('click', clickHandler);
-    }
+    attachMapClickHandler();
   } else {
     cancelCrossingFetch();
-    if (clickHandler && props.map) {
-      props.map.off('click', clickHandler);
-      clickHandler = null;
-    }
-    cleanupMapLayers();
-    triggerPoints.value = [];
+    detachMapClickHandler();
+    resetZoneSelection();
   }
 }
 
@@ -360,11 +485,7 @@ async function open() {
   active.value = true;
   emit('active-changed', true);
   emit('tool-opened');
-  if (props.map) {
-    radiusSelector.value = radiusSelectorForExtent();
-    clickHandler = (e) => onMapClick(e);
-    props.map.on('click', clickHandler);
-  }
+  attachMapClickHandler();
 }
 
 function close() {
@@ -372,23 +493,13 @@ function close() {
   cancelCrossingFetch();
   active.value = false;
   emit('active-changed', false);
-  if (clickHandler && props.map) {
-    props.map.off('click', clickHandler);
-    clickHandler = null;
-  }
-  cleanupMapLayers();
-  triggerPoints.value = [];
+  detachMapClickHandler();
+  resetZoneSelection();
 }
 
 async function onCancelSelection() {
   cancelCrossingFetch();
-  cancelAllZoneCountRequests();
-  cleanupMapLayers();
-  triggerPoints.value = [];
-  zoneTrackCounts.value = [];
-  zoneTrackIds.value = [];
-  zoneHasVisibleTracks.value = [];
-  zoneCountRequestTokens.value = [];
+  resetZoneSelection();
 }
 
 function onUndoLastPoint() {
@@ -404,7 +515,6 @@ function onUndoLastPoint() {
   zoneCountRequestTokens.value.splice(idx, 1);
   zoneTrackCounts.value.splice(idx, 1);
   zoneTrackIds.value.splice(idx, 1);
-  zoneHasVisibleTracks.value.splice(idx, 1);
 
   // Remove map layers for this zone (3 layers + 2 sources per zone)
   const layersToRemove = [
@@ -438,6 +548,33 @@ function cleanupMapLayers() {
   cancelAllZoneCountRequests();
 }
 
+function detachMapClickHandler() {
+  if (!clickHandler || !clickHandlerMap) return;
+  clickHandlerMap.off('click', clickHandler);
+  clickHandler = null;
+  clickHandlerMap = null;
+}
+
+function attachMapClickHandler() {
+  const map = props.map;
+  if (!active.value || !map) return;
+  if (clickHandler && clickHandlerMap === map) return;
+
+  detachMapClickHandler();
+  radiusSelector.value = radiusSelectorForExtent(map);
+  clickHandler = (event) => onMapClick(event);
+  clickHandlerMap = map;
+  map.on('click', clickHandler);
+}
+
+function resetZoneSelection() {
+  cleanupMapLayers();
+  triggerPoints.value = [];
+  zoneTrackCounts.value = [];
+  zoneTrackIds.value = [];
+  zoneCountRequestTokens.value = [];
+}
+
 function cancelAllZoneCountRequests() {
   for (const ac of zoneCountAbortControllers.value) {
     if (ac) ac.abort();
@@ -456,17 +593,6 @@ function cancelCrossingFetch() {
   crossingFetchAbortController?.abort();
   crossingFetchAbortController = null;
   isLoading.value = false;
-}
-
-function isAbortError(error: unknown): boolean {
-  if (!(error instanceof Error)) return false;
-  const message = error.message.toLowerCase();
-  return (
-    error.name === 'AbortError' ||
-    error.name === 'CanceledError' ||
-    message.includes('abort') ||
-    message.includes('cancel')
-  );
 }
 
 async function onFinishSelection() {
@@ -491,22 +617,14 @@ async function onFinishSelection() {
       measureServiceResult.value.crossings != null ? Object.keys(measureServiceResult.value.crossings).length : 0;
     active.value = false;
     emit('active-changed', false);
-    if (clickHandler && props.map) {
-      props.map.off('click', clickHandler);
-      clickHandler = null;
-    }
-    cleanupMapLayers();
-    triggerPoints.value = [];
-    zoneTrackCounts.value = [];
-    zoneTrackIds.value = [];
-    zoneHasVisibleTracks.value = [];
-    zoneCountRequestTokens.value = [];
+    detachMapClickHandler();
+    resetZoneSelection();
     nextTick(() => {
       showResults.value = true;
     });
   } catch (error) {
     if (requestToken !== crossingFetchToken) return;
-    if (isAbortError(error)) return;
+    if (isAbortLikeError(error)) return;
     console.error('Measure fetch failed:', error);
     toast?.add({
       severity: 'warning',
@@ -526,16 +644,8 @@ function onMeasureClosed() {
   cancelCrossingFetch();
   emit('active-changed', false);
   emit('tool-closed');
-  if (clickHandler && props.map) {
-    props.map.off('click', clickHandler);
-    clickHandler = null;
-  }
-  cleanupMapLayers();
-  triggerPoints.value = [];
-  zoneTrackCounts.value = [];
-  zoneTrackIds.value = [];
-  zoneHasVisibleTracks.value = [];
-  zoneCountRequestTokens.value = [];
+  detachMapClickHandler();
+  resetZoneSelection();
 }
 
 function onResultsClosed() {
@@ -562,9 +672,6 @@ function onMapClick(e: MapClickEvent) {
   };
   triggerPoints.value.push(triggerPoint);
 
-  // Client-side hit-test: check if visible tracks are under this zone
-  const hasVisible = checkVisibleTracksNearPoint(lngLat, radius());
-  zoneHasVisibleTracks.value.push(hasVisible);
   zoneTrackCounts.value.push(undefined); // undefined = loading
   zoneTrackIds.value.push(undefined);
   zoneCountRequestTokens.value.push(undefined);
@@ -642,16 +749,6 @@ function onMapClick(e: MapClickEvent) {
   measureSourceIds.value.push(labelSourceId);
   measureLayerIds.value.push(labelLayerId);
 
-  // Show toast if no visible tracks under this click
-  if (!hasVisible) {
-    toast?.add({
-      severity: 'warn',
-      summary: 'No tracks nearby',
-      detail: 'Tap closer to a recorded route for better results.',
-      life: 3000,
-    });
-  }
-
   // Fire async server count for this zone
   fetchZoneTrackCount(idx);
 }
@@ -663,44 +760,6 @@ function updateAllCircles() {
     if (source) {
       source.setData(createGeoJsonCircle(point.coordinate.x, point.coordinate.y, radius()));
     }
-  });
-  // Re-run client-side hit-test for all zones with new radius
-  refreshAllZoneVisualHitTest();
-}
-
-/**
- * Client-side hit-test: checks if any rendered track features exist within a bounding box
- * around the given point + radius. Uses MapLibre's queryRenderedFeatures against the
- * already-rendered tracks-layer. Instant (0ms), but only sees visible/rendered tracks.
- */
-function checkVisibleTracksNearPoint(lngLat: { lng: number; lat: number }, radiusMeters: number) {
-  if (!props.map) return false;
-  const trackLayerIds = ['tracks-layer', 'tracks-dot-layer', 'tracks-overview-dots'];
-  const existingLayers = trackLayerIds.filter((id) => props.map.getLayer(id));
-  if (!existingLayers.length) return false;
-
-  // Convert radius to approximate pixel bbox
-  const center = props.map.project([lngLat.lng, lngLat.lat]);
-  const edgePoint = props.map.project([
-    lngLat.lng + radiusMeters / (111320 * Math.cos((lngLat.lat * Math.PI) / 180)),
-    lngLat.lat,
-  ]);
-  const radiusPx = Math.max(Math.abs(edgePoint.x - center.x), 8);
-
-  const bbox: [maplibregl.PointLike, maplibregl.PointLike] = [
-    [center.x - radiusPx, center.y - radiusPx],
-    [center.x + radiusPx, center.y + radiusPx],
-  ];
-
-  const features = props.map.queryRenderedFeatures(bbox, { layers: existingLayers });
-  return features.length > 0;
-}
-
-function refreshAllZoneVisualHitTest() {
-  triggerPoints.value.forEach((point, idx) => {
-    const hasVisible = checkVisibleTracksNearPoint({ lng: point.coordinate.x, lat: point.coordinate.y }, radius());
-    zoneHasVisibleTracks.value[idx] = hasVisible;
-    updateZoneColor(idx);
   });
 }
 
@@ -721,15 +780,15 @@ function getZoneVisualState(idx: number): ZoneVisualState {
 function getZoneColor(idx: number) {
   const state = getZoneVisualState(idx);
   if (state === 'loading') {
-    return '#64748b';
+    return VIZ_SLATE_COLOR;
   }
   if (state === 'error') {
-    return '#dc2626';
+    return VIZ_ERROR_COLOR;
   }
   if (state === 'warning') {
-    return '#ea580c';
+    return VIZ_ORANGE_STRONG_COLOR;
   }
-  return '#2563eb';
+  return VIZ_BLUE_COLOR;
 }
 
 function updateZoneColor(idx: number) {
@@ -787,18 +846,13 @@ async function fetchZoneTrackCount(idx: number) {
     if (isCurrentZoneRequest()) {
       zoneTrackIds.value[idx] = trackIds;
       zoneTrackCounts.value[idx] = trackIds.length;
-      // Also update color based on server result (overrides client-side hint)
-      const hasServerTracks = trackIds.length > 0;
-      zoneHasVisibleTracks.value[idx] = hasServerTracks;
       updateZoneColor(idx);
       // Force Vue reactivity for the array
       zoneTrackCounts.value = [...zoneTrackCounts.value];
     }
   } catch (e) {
     if (!isCurrentZoneRequest()) return;
-    const error = e as { name?: string; message?: string } | undefined;
-    if (error?.name === 'CanceledError') return;
-    if (error?.message?.includes('canceled')) return;
+    if (isAbortLikeError(e, ac.signal)) return;
     // On error, mark as unknown
     if (isCurrentZoneRequest()) {
       zoneTrackIds.value[idx] = null;
@@ -825,38 +879,17 @@ function debouncedRefreshAllZoneCounts() {
   }, 500);
 }
 
-function createGeoJsonCircle(
-  lng: number,
-  lat: number,
-  radiusMeters: number,
-  points = 64
-): GeoJSON.FeatureCollection<GeoJSON.Polygon> {
-  const coords: Array<[number, number]> = [];
-  const earthRadius = 6371000;
-  const latRad = (lat * Math.PI) / 180;
-  const lngRad = (lng * Math.PI) / 180;
-  for (let i = 0; i <= points; i++) {
-    const angle = (i / points) * 2 * Math.PI;
-    const dLat = (radiusMeters / earthRadius) * Math.cos(angle);
-    const dLng = (radiusMeters / (earthRadius * Math.cos(latRad))) * Math.sin(angle);
-    coords.push([((lngRad + dLng) * 180) / Math.PI, ((latRad + dLat) * 180) / Math.PI]);
-  }
-  return {
-    type: 'FeatureCollection' as const,
-    features: [
-      {
-        type: 'Feature' as const,
-        geometry: { type: 'Polygon' as const, coordinates: [coords] },
-        properties: {},
-      },
-    ],
-  };
-}
-
 watch(radiusSelector, () => {
   updateAllCircles();
   debouncedRefreshAllZoneCounts();
 });
+
+watch(
+  () => props.map,
+  () => {
+    attachMapClickHandler();
+  }
+);
 
 onMounted(() => {
   if (typeof window !== 'undefined') {
@@ -867,9 +900,7 @@ onMounted(() => {
 onBeforeUnmount(() => {
   cancelCrossingFetch();
   cleanupMapLayers();
-  if (clickHandler && props.map) {
-    props.map.off('click', clickHandler);
-  }
+  detachMapClickHandler();
   if (typeof window !== 'undefined') {
     window.removeEventListener('resize', onViewportResize);
   }
@@ -891,7 +922,8 @@ defineExpose({
   transform: translateX(-50%);
   z-index: 1100;
   display: inline-flex;
-  align-items: center;
+  flex-direction: column;
+  align-items: stretch;
   min-width: min(34rem, calc(100vw - 1.25rem));
   max-width: calc(100vw - 1.25rem);
   padding: 0.65rem 0.8rem;
@@ -904,11 +936,74 @@ defineExpose({
   pointer-events: none;
 }
 
+.measure-map-overlay--empty {
+  min-width: min(27rem, calc(100vw - 1.25rem));
+}
+
+.measure-map-guidance {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  min-width: 0;
+}
+
+.measure-map-guidance-icon {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 2.1rem;
+  height: 2.1rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, currentColor 12%, transparent);
+  font-size: var(--text-base-size);
+}
+
+.measure-map-guidance-icon--active,
+.measure-map-guidance-icon--ready {
+  color: var(--viz-blue);
+}
+
+.measure-map-guidance-icon--loading {
+  color: var(--viz-slate);
+}
+
+.measure-map-guidance-icon--warning {
+  color: var(--viz-orange-strong);
+}
+
+.measure-map-guidance-icon--error {
+  color: var(--viz-red);
+}
+
+.measure-map-guidance-copy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0.08rem;
+}
+
+.measure-map-guidance-copy strong {
+  color: var(--text-primary);
+  font-size: var(--text-sm-size);
+  font-weight: 750;
+  line-height: var(--text-sm-lh);
+}
+
+.measure-map-guidance-copy span {
+  color: var(--text-muted);
+  font-size: var(--text-xs-size);
+  line-height: var(--text-xs-lh);
+}
+
 .measure-flow-rail {
   display: flex;
   align-items: center;
   width: 100%;
   min-width: 0;
+  margin-top: 0.55rem;
+  padding-top: 0.55rem;
+  border-top: 1px solid var(--border-default);
 }
 
 .measure-flow-node {
@@ -989,35 +1084,51 @@ defineExpose({
 }
 
 .measure-flow-node--ok {
-  color: #2563eb;
+  color: var(--viz-blue);
 }
 
 .measure-flow-node--loading {
-  color: #64748b;
+  color: var(--viz-slate);
 }
 
 .measure-flow-node--warning {
-  color: #ea580c;
+  color: var(--viz-orange-strong);
 }
 
 .measure-flow-node--error {
-  color: #dc2626;
+  color: var(--viz-red);
 }
 
 .measure-flow-connector--ok {
-  background: linear-gradient(90deg, rgba(37, 99, 235, 0.55), rgba(37, 99, 235, 0.18));
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--viz-blue) 55%, transparent),
+    color-mix(in srgb, var(--viz-blue) 18%, transparent)
+  );
 }
 
 .measure-flow-connector--loading {
-  background: linear-gradient(90deg, rgba(100, 116, 139, 0.46), rgba(100, 116, 139, 0.16));
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--viz-slate) 46%, transparent),
+    color-mix(in srgb, var(--viz-slate) 16%, transparent)
+  );
 }
 
 .measure-flow-connector--warning {
-  background: linear-gradient(90deg, rgba(234, 88, 12, 0.48), rgba(234, 88, 12, 0.16));
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--viz-orange-strong) 48%, transparent),
+    color-mix(in srgb, var(--viz-orange-strong) 16%, transparent)
+  );
 }
 
 .measure-flow-connector--error {
-  background: linear-gradient(90deg, rgba(220, 38, 38, 0.48), rgba(220, 38, 38, 0.16));
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--viz-red) 48%, transparent),
+    color-mix(in srgb, var(--viz-red) 16%, transparent)
+  );
 }
 </style>
 
@@ -1128,20 +1239,54 @@ defineExpose({
   box-shadow: 0 2px 12px rgba(37, 99, 235, 0.35);
 }
 
-/* ── Bare radius slider ── */
-.measure-radius-bare {
+/* ── Detection radius ── */
+.measure-radius-control {
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
+  gap: 0.65rem;
+  width: min(100%, 30rem);
+  margin-inline: auto;
 }
 
-.measure-radius-hint {
+.measure-radius-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.measure-radius-copy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0.08rem;
+}
+
+.measure-radius-label {
+  color: var(--text-primary);
+  font-size: var(--text-sm-size);
+  font-weight: 700;
+  line-height: var(--text-sm-lh);
+}
+
+.measure-radius-description {
   color: var(--text-muted);
-  font-size: var(--text-2xs-size);
-  font-weight: 500;
-  letter-spacing: 0.02em;
-  text-align: right;
-  opacity: 0.72;
+  font-size: var(--text-xs-size);
+  line-height: var(--text-xs-lh);
+}
+
+.measure-radius-value {
+  flex: 0 0 auto;
+  min-width: 4rem;
+  padding: 0.28rem 0.55rem;
+  border: 1px solid var(--border-default);
+  border-radius: 999px;
+  background: var(--surface-glass-subtle);
+  color: var(--text-primary);
+  font-size: var(--text-sm-size);
+  font-weight: 750;
+  line-height: var(--text-sm-lh);
+  text-align: center;
 }
 
 .measure-controls-header {
@@ -1279,6 +1424,29 @@ defineExpose({
     padding: 0.55rem 0.6rem;
   }
 
+  .measure-map-guidance {
+    gap: 0.5rem;
+  }
+
+  .measure-map-guidance-icon {
+    width: 1.85rem;
+    height: 1.85rem;
+    font-size: var(--text-sm-size);
+  }
+
+  .measure-map-guidance-copy strong {
+    font-size: var(--text-xs-size);
+  }
+
+  .measure-map-guidance-copy span {
+    font-size: var(--text-2xs-size);
+  }
+
+  .measure-flow-rail {
+    margin-top: 0.45rem;
+    padding-top: 0.45rem;
+  }
+
   .measure-flow-node {
     min-width: 2.3rem;
   }
@@ -1329,17 +1497,18 @@ defineExpose({
   }
 
   .measure-toolbar-btn {
-    height: 2.4rem;
+    height: 2.75rem;
     padding: 0 0.65rem;
     font-size: var(--text-xs-size);
     border-radius: 0.75rem;
   }
 
-  .measure-radius-bare {
-    gap: 0.25rem;
+  .measure-radius-control {
+    gap: 0.55rem;
+    width: 100%;
   }
 
-  .measure-radius-hint {
+  .measure-radius-description {
     font-size: var(--text-2xs-size);
   }
 
@@ -1358,6 +1527,52 @@ defineExpose({
   .measure-bar-slider {
     --mtl-slider-handle-halo: 0 0 0 8px var(--accent-subtle);
     --mtl-slider-handle-halo-active: 0 0 0 8px var(--accent-subtle);
+  }
+}
+
+@media screen and (max-height: 500px) and (min-width: 769px) {
+  .measure-map-overlay {
+    flex-direction: row;
+    align-items: center;
+    gap: 0.8rem;
+    padding: 0.55rem 0.75rem;
+  }
+
+  .measure-map-guidance {
+    flex: 1 1 18rem;
+  }
+
+  .measure-flow-rail {
+    flex: 1 1 12rem;
+    margin-top: 0;
+    padding-top: 0;
+    padding-left: 0.8rem;
+    border-top: 0;
+    border-left: 1px solid var(--border-default);
+  }
+
+  .measure-sheet {
+    padding-top: 0.1rem;
+  }
+
+  .measure-controls-card--dock {
+    display: grid;
+    grid-template-columns: auto minmax(18rem, 1fr);
+    column-gap: 1rem;
+    row-gap: 0.55rem;
+    padding-top: 0.1rem;
+  }
+
+  .measure-toolbar {
+    align-self: center;
+  }
+
+  .measure-radius-control {
+    width: 100%;
+  }
+
+  .measure-placement-section {
+    grid-column: 1 / -1;
   }
 }
 </style>

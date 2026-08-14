@@ -1,0 +1,19 @@
+PLN_07 saved plan lifecycle
+
+Saved:
+- Name: Regression Plan PLN07
+- Description: Resumable full regression planner lifecycle
+- Route: Road Bike, 7.69 km, 50 m ascent, 38 m descent, 22m, 4 legs, 5 waypoints
+
+List:
+- Load tab showed Regression Plan PLN07, 7.69 km, description, 14 Aug 2026, GPX action, and delete action.
+
+Load:
+- Opening the saved plan returned to Drawing.
+- Exact stats and 426-point elevation profile were restored.
+- Notice: Loaded plan shown as saved. The first edit will re-route all legs.
+
+Delete:
+- Confirmation named Regression Plan PLN07 and its date/distance.
+- Delete route removed it.
+- Load tab then showed No saved routes yet.

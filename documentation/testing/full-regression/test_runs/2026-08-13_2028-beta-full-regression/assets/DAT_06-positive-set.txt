@@ -1,0 +1,13 @@
+Positive import evidence set
+
+GPX positives:
+- JuraRoute72011.gpx: 1,414 real trkpt, all timestamped
+- MoselradwegAusWiki.gpx: 2,954 real trkpt, all timestamped
+- Vitry-le-Francois_Langres.gpx: 1,688 real trkpt, all timestamped
+- VoieVerteHauteVosges.gpx: 1,298 real trkpt, all timestamped
+- Lannion_Plestin_parcours24.4RE.gpx: 381 real trkpt, all timestamped
+
+FIT positive:
+- Activity.fit: official SDK integrity true; 3,601 GPS-bearing timestamped records
+
+No waypoint-only GPX or non-GPS FIT file is counted as positive evidence. Any later negative fixture remains separate from positive import/count/stat expectations.

@@ -1,0 +1,27 @@
+Coverage ID: TRD_05
+Track: #100000
+
+X-axis toggle
+- Initial Time button active.
+- Selecting Distance made Distance active and Time inactive.
+- Graph X ranges changed from elapsed-time values to 0.9506-273.26 km with readable 25 km ticks.
+- Selecting Time restored the original time axis.
+
+Range-band toggle
+- Initial Range aria-pressed=true and graphs exposed combination-chart range bands.
+- Switching Range off set aria-pressed=false and converted affected charts to line charts while leaving all chart panels populated.
+- Switching it on restored the range series.
+
+Point-count slider
+- Initial label 350; aria-valuenow 174.
+- Clicking an earlier track position changed label to 35 and the rendered series to 35 points.
+- All five distance-axis chart panels remained present and Track Details remained usable.
+
+Graph-height slider
+- Initial aria-valuenow 240.
+- Moving it changed aria-valuenow to 480 while the five chart panels and Track Details navigation remained intact.
+
+Restored state
+- Time active; Range pressed; 350 points; height 240.
+- Six time-axis interactive charts rendered after restoration.
+

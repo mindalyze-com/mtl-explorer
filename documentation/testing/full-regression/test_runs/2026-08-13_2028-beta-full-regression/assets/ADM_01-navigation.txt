@@ -1,0 +1,9 @@
+Admin center navigation
+
+- Desktop overview route: /mtl/admin
+- Groups shown: DATA, SYSTEM, APPLICATION
+- Sections reachable: Import & sync, Processing, Data status, Maintenance, Server log, System information, Preferences, Session, About & credits
+- Mobile viewport: 390 x 844
+- Mobile Data status navigation changed the route to /mtl/admin/data-status and rendered the section.
+- Back to overview returned to /mtl/admin.
+

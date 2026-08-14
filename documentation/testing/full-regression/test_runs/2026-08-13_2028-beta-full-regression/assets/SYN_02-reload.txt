@@ -1,0 +1,18 @@
+Freshness Reload cache update
+
+Before Reload:
+- Map: 8 / 13 Tracks with Q1 selected
+- New data available banner visible
+
+After Reload:
+- Map updated / Fresh data loaded.
+- Map: 8 / 12 Tracks
+- Freshness banner hidden
+- Q1 filter remained selected
+
+Statistics Overview after Reload:
+- Showing 8 of 12 tracks
+- 8 TRACKS
+- 919 km, 20h 43m, 4,410 Wh, 12,392 m ascent
+- Breakdown and recent activity were populated
+

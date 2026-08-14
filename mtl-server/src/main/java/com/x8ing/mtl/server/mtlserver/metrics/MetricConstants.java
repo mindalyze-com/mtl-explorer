@@ -11,6 +11,7 @@ public final class MetricConstants {
     }
 
     public static final double SECONDS_PER_HOUR = 3600.0;
+    public static final double METERS_PER_KILOMETER = 1000.0;
     public static final double MPS_TO_KMH = 3.6;
 
     /**

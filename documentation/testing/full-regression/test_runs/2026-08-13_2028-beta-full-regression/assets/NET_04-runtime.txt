@@ -1,0 +1,11 @@
+Configured target origin: http://91.99.12.14.nip.io:18080/mtl/
+Evaluated protocol in active browser context: http:
+Admin > System information > Client > Running as: Browser
+CSS display mode: browser=true; standalone=false; minimal-ui=false; fullscreen=false
+Static worker asset: GET /mtl/sw.js -> HTTP 200, Cache-Control: no-cache
+
+Eligibility result:
+Service workers require a secure context (HTTPS or a trusted loopback exception).
+This remote non-loopback HTTP origin cannot register/activate a service worker, so no
+waiting worker, update prompt, acceptance action, or controller reload can occur in
+the configured target context. The service-worker update criterion is not applicable.

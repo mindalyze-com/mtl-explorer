@@ -1,0 +1,21 @@
+Data freshness sequence
+
+Initial:
+- In sync
+- Checked 01:46:25
+- Latest change 14/08/2026, 01:43:28
+- Polling Healthy
+
+After removing the exact disposable failed GPX:
+- Out of sync
+- Checked 01:47:18
+- Latest change 14/08/2026, 01:47:07
+- New data available banner with Reload and Dismiss
+
+After Reload:
+- Map updated / Fresh data loaded.
+- In sync
+- Checked 01:47:28
+- Latest change remained 14/08/2026, 01:47:07
+- Polling Healthy
+

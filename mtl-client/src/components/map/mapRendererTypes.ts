@@ -13,6 +13,32 @@ export type MapCameraState = {
   elevation?: number;
 };
 
+type CameraStateMap = {
+  getCenter: () => { lng: number; lat: number };
+  getZoom: () => number;
+  getBearing: () => number;
+  getPitch: () => number;
+  getRoll?: () => number | null | undefined;
+  getCenterElevation?: () => number | null | undefined;
+};
+
+export function readMapCameraState(map: CameraStateMap, includeElevation = false): MapCameraState {
+  const center = map.getCenter();
+  const camera: MapCameraState = {
+    center: [center.lng, center.lat],
+    zoom: map.getZoom(),
+    bearing: map.getBearing(),
+    pitch: map.getPitch(),
+  };
+  const roll = map.getRoll?.();
+  if (Number.isFinite(roll)) camera.roll = roll as number;
+  if (includeElevation) {
+    const elevation = map.getCenterElevation?.();
+    if (Number.isFinite(elevation)) camera.elevation = elevation as number;
+  }
+  return camera;
+}
+
 export type SelectedTrackMetadata = {
   id: number | null;
   name: string;

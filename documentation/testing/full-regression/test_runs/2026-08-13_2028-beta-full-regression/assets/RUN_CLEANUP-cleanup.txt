@@ -1,0 +1,42 @@
+RUN_CLEANUP scoped cleanup verification
+
+Run timing envelopes from saved packet completions:
+- Full run: 6h 53m from initializer start (20:28) to cleanup packet (03:21).
+- Desktop/data: 5h 56m from RUN_SETUP completion (20:34) through LOC_04 (02:30).
+- Mobile MOB_01-MOB_06 packet span: 13m 03s (02:31-02:44).
+- Network/offline NET_01-NET_04 packet span: 6m 34s (02:46-02:52).
+- Error/final UX verification from NET_04 through UXP_01: 21m 02s (02:52-03:13).
+- These are wall-clock packet envelopes; exact action timings remain in each packet.
+
+Gate and evidence before cleanup:
+- Finalization gate: PASS (193 coverage IDs terminal).
+- Packet audit before RUN_CLEANUP: 194 packets, 351 assets.
+- Corrected three stale FIT-validation filenames to the existing DAT_05-public-fit.txt asset.
+- Corrected MOB_04 to reference existing PLN_11-mobile-drag.txt evidence instead of a nonexistent screenshot.
+- Re-audit: no missing relative link, required packet section, oversized WebP, oversized TXT, ignored .log asset, or non-WebP screenshot.
+
+Remote disposable project:
+- Exact project: mtl-full-regression-2026-08-13_2028-beta-full-regression.
+- Pre-cleanup: app, db, brouter, and location-search containers running; one Compose-managed db volume.
+- Command scope: MTL_APP_IMAGE=wauwau0977/mytraillog:beta docker compose down --volumes --remove-orphans.
+- Compose down: 11 s.
+- Verified project containers=0, networks=0, volumes=0; anonymous db volume absent.
+- Removed only /root/mtl-full-regression-2026-08-13_2028-beta-full-regression after exact path/parent/name assertions.
+- Verified exact directory absent.
+- Verified app port 18080 and location-search port 18083 unreachable.
+- No Docker image removal and no global prune were run.
+
+SSH access restoration:
+- Restored the supplied root password and verified password-only SSH before key removal.
+- Matched the sole authorized key to the operator public key, then removed that exact key.
+- Verified operator key authentication fails.
+- Verified supplied password-only SSH still succeeds after key removal.
+- Verified authorized_keys contains zero non-empty lines and the temporary public-key file is absent.
+- Password values are intentionally omitted from evidence.
+
+Local artifacts:
+- Removed 125 validated run PNG intermediates from /tmp.
+- Removed 11 exact temporary input/parser/cookie/readiness files.
+- Removed the exact DAT_05 FIT validation directory and synthetic-media directory.
+- Removed all 19 exact browser .crdownload artifacts registered by this run.
+- Verified no selected run PNG, special file, media pointer/directory, or registered download remains.

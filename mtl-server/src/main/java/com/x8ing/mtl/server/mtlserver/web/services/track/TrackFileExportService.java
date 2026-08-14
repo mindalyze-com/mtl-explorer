@@ -59,14 +59,7 @@ public class TrackFileExportService {
     public TrackFileDownload gpx(Long gpsTrackId) {
         SourceFile source = requireSourceFile(gpsTrackId);
         if (source.format() == SupportedTrackFormat.GPX) {
-            return new TrackFileDownload(
-                    toGpxFileName(source.fileName()),
-                    GPX_MEDIA_TYPE,
-                    source.size(),
-                    source.lastModifiedMillis(),
-                    buildEtag("gpx", source.indexedFileId(), source.size(), source.lastModifiedMillis()),
-                    new FileSystemResource(source.path())
-            );
+            return fileDownload(source, toGpxFileName(source.fileName()), GPX_MEDIA_TYPE, "gpx");
         }
 
         String gpxXml;
@@ -90,12 +83,19 @@ public class TrackFileExportService {
     }
 
     private TrackFileDownload sourceDownload(SourceFile source) {
+        return fileDownload(source, source.fileName(), MediaType.APPLICATION_OCTET_STREAM, "source");
+    }
+
+    private TrackFileDownload fileDownload(SourceFile source,
+                                           String fileName,
+                                           MediaType mediaType,
+                                           String eTagKind) {
         return new TrackFileDownload(
-                source.fileName(),
-                MediaType.APPLICATION_OCTET_STREAM,
+                fileName,
+                mediaType,
                 source.size(),
                 source.lastModifiedMillis(),
-                buildEtag("source", source.indexedFileId(), source.size(), source.lastModifiedMillis()),
+                buildEtag(eTagKind, source.indexedFileId(), source.size(), source.lastModifiedMillis()),
                 new FileSystemResource(source.path())
         );
     }

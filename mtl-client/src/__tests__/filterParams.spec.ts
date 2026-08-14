@@ -27,6 +27,7 @@ describe('filter params', () => {
       geoRectangles: { KEEP_RECTANGLE: { minLat: 46, minLng: 7, maxLat: 47, maxLng: 8 } },
       geoPolygons: { DROP_POLYGON: { coordinates: [[47, 8]] } },
       trackIds: [1, 2, 3],
+      resultGroupSelection: { includedGroups: [{ value: '2026' }] },
     };
     const paramDefinitions: ParamDefinition[] = [
       { name: 'KEEP_TEXT', type: 'STRING', label: 'Text' },
@@ -42,6 +43,7 @@ describe('filter params', () => {
     expect(pruned.geoRectangles).toEqual({ KEEP_RECTANGLE: { minLat: 46, minLng: 7, maxLat: 47, maxLng: 8 } });
     expect(pruned.geoPolygons).toEqual({});
     expect(pruned.trackIds).toEqual([1, 2, 3]);
+    expect(pruned.resultGroupSelection).toEqual({ includedGroups: [{ value: '2026' }] });
   });
 
   it('drops empty editable param values before sending them to the server', () => {
@@ -134,10 +136,9 @@ describe('filter params', () => {
 
   it('requires track picker params unless metadata marks them optional', () => {
     expect(
-      hasCompleteStringParamsForDefinitions(
-        { stringParams: { TRACK_IDS: '' } },
-        [{ name: 'TRACK_IDS', type: 'STRING', label: 'Selected tracks' }]
-      )
+      hasCompleteStringParamsForDefinitions({ stringParams: { TRACK_IDS: '' } }, [
+        { name: 'TRACK_IDS', type: 'STRING', label: 'Selected tracks' },
+      ])
     ).toBe(false);
 
     const paramDefinitions: ParamDefinition[] = [

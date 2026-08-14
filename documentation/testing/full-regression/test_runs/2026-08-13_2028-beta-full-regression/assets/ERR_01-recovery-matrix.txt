@@ -1,0 +1,25 @@
+Failed track load (fresh direct /mtl/track/999999):
+- Visible alert: Track details could not be loaded.
+- Guidance: Check the server connection, then retry loading this track or go back to the map.
+- Actions: Retry and Back.
+- Retry completed in 0.906 s and retained the actionable error for the absent ID.
+- Back restored the populated 12-track map.
+
+Failed map config (fresh fault-injection origin on the same target):
+- Exact injected fault: GET /mtl/api/map/config -> 503, five requests recorded.
+- Browser warnings at 00:56:11.166Z, .644Z, and .795Z: Failed to fetch map config, falling back to offline / remote raster mode.
+- App reached a rendered 12-track OSM fallback map with navigation in 3.781 s.
+- DOM contained no Retry, Dismiss, Reload, Try again, or Sign In action and no failure message.
+- Fault proxy was stopped, all four remote temporary files were removed, and port 18081 was verified closed.
+- Browser returned to the required port-18080 origin and its populated map.
+
+Failed media:
+- Reused direct same-run MED_05 evidence: Preview unavailable exposed Retry and Download; Retry recovered after exact source restoration.
+
+Failed planner route:
+- Reused direct same-run PLN_09 evidence: missing routing segment showed downloading with auto-retry, then a clear unavailable message; segment recovered.
+
+Expired/unauthorized session:
+- Reused direct same-run NET_03 evidence: protected APIs returned 401, direct protected route showed login, and valid sign-in restored the populated map.
+
+Aggregate result: FAIL because the injected map-config failure was silent in the UI and exposed no actionable message, although the fallback prevented a blank or frozen app.

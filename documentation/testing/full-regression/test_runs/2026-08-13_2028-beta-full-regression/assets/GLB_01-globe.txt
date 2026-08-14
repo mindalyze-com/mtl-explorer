@@ -1,0 +1,8 @@
+Automatic globe transition
+
+- Starting flat map: Zürich at 100 m scale.
+- Repeated Zoom out crossed the low-zoom threshold.
+- At 2,000 km scale the projection changed automatically to a fitted globe.
+- Globe showed Europe/Africa/Atlantic curvature, surrounding white space, and
+  the visible globe toggle control.
+- No manual globe action preceded the transition.

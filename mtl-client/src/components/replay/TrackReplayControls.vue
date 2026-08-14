@@ -6,7 +6,6 @@
     :detents="sheetDetents"
     initial-detent="open"
     no-backdrop
-    no-scroll-hint
     :z-index="5450"
     sheet-class="track-replay-sheet"
     fit-content-initial
@@ -54,18 +53,7 @@
           <div class="trc__group-head">
             <span>Camera View</span>
           </div>
-          <div class="trc__segments trc__segments--camera">
-            <button
-              v-for="preset in cameraPresets"
-              :key="preset.id"
-              type="button"
-              :class="['trc__seg', { 'trc__seg--active': cameraPreset === preset.id }]"
-              @click="emit('update-camera-preset', preset.id)"
-            >
-              <i :class="preset.icon"></i>
-              <span>{{ preset.label }}</span>
-            </button>
-          </div>
+          <ReplayCameraPresetSelector :model-value="cameraPreset" @select="emit('update-camera-preset', $event)" />
         </div>
       </section>
 
@@ -80,7 +68,7 @@
               v-for="duration in durationOptions"
               :key="duration"
               type="button"
-              :class="['trc__seg', { 'trc__seg--active': durationSeconds === duration }]"
+              :class="['trc__seg replay-choice', { 'trc__seg--active': durationSeconds === duration }]"
               @click="emit('update-duration', duration)"
             >
               {{ duration }}s
@@ -92,18 +80,7 @@
           <div class="trc__group-head">
             <span>Camera Mode</span>
           </div>
-          <div class="trc__segments trc__segments--camera">
-            <button
-              v-for="preset in cameraPresets"
-              :key="preset.id"
-              type="button"
-              :class="['trc__seg', { 'trc__seg--active': cameraPreset === preset.id }]"
-              @click="emit('update-camera-preset', preset.id)"
-            >
-              <i :class="preset.icon"></i>
-              <span>{{ preset.label }}</span>
-            </button>
-          </div>
+          <ReplayCameraPresetSelector :model-value="cameraPreset" @select="emit('update-camera-preset', $event)" />
         </div>
 
         <div class="trc__group trc__group--adjust">
@@ -171,10 +148,11 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref } from 'vue';
 import BottomSheet from '@/components/ui/BottomSheet.vue';
+import type { BottomSheetLayoutState } from '@/components/ui/BottomSheet.vue';
 import MtlSlider from '@/components/ui/MtlSlider.vue';
+import ReplayCameraPresetSelector from '@/components/replay/ReplayCameraPresetSelector.vue';
 import { REPLAY_TARGET_DURATION_PRESETS_SECONDS, type ReplayCameraPresetId } from '@/components/replay/trackReplayPath';
 import {
-  REPLAY_CAMERA_PRESETS,
   REPLAY_CAMERA_SMOOTHNESS_MAX,
   REPLAY_CAMERA_SMOOTHNESS_MIN,
   REPLAY_CAMERA_SMOOTHNESS_STEP,
@@ -213,22 +191,9 @@ const emit = defineEmits<{
   'update-duration': [seconds: number];
   'update-camera-preset': [preset: ReplayCameraPresetId];
   'update-camera-smoothness': [smoothness: number];
-  'sheet-layout-change': [layout: ReplayControlsSheetLayout];
+  'sheet-layout-change': [layout: BottomSheetLayoutState];
   recenter: [];
 }>();
-
-type ReplayControlsSheetLayout = {
-  open: boolean;
-  detentId: string;
-  fullscreen: boolean;
-  dragging: boolean;
-  heightPx: number;
-  widthPx: number;
-  topPx: number;
-  rightPx: number;
-  bottomPx: number;
-  leftPx: number;
-};
 
 const isMobileViewport = ref(false);
 const desktopSheetDetents = [
@@ -243,7 +208,6 @@ const mobileSheetDetents = [
 ];
 const sheetDetents = computed(() => (isMobileViewport.value ? mobileSheetDetents : desktopSheetDetents));
 const durationOptions = REPLAY_TARGET_DURATION_PRESETS_SECONDS;
-const cameraPresets = REPLAY_CAMERA_PRESETS;
 
 onMounted(() => {
   syncViewportMode();
@@ -293,7 +257,7 @@ function onShowTelemetryChange(event: Event) {
   emit('update-show-telemetry', (event.target as HTMLInputElement | null)?.checked === true);
 }
 
-function onSheetLayoutChange(layout: ReplayControlsSheetLayout) {
+function onSheetLayoutChange(layout: BottomSheetLayoutState) {
   emit('sheet-layout-change', layout);
 }
 
@@ -350,8 +314,8 @@ function syncViewportMode() {
   height: 3.3rem;
   border-radius: 50%;
   border: none;
-  background: linear-gradient(135deg, #7467ff, #5548dd);
-  color: #fff;
+  background: var(--replay-accent-gradient);
+  color: var(--accent-contrast);
   font-size: var(--text-2xl-size);
   box-shadow: 0 14px 32px rgba(85, 72, 221, 0.28);
 }
@@ -400,7 +364,7 @@ function syncViewportMode() {
 }
 
 .trc__timeline-head strong {
-  color: #6257ee;
+  color: var(--replay-accent);
   font-size: var(--text-xs-size);
   font-weight: 780;
 }
@@ -470,7 +434,7 @@ function syncViewportMode() {
 }
 
 .trc__group-head strong {
-  color: #6257ee;
+  color: var(--replay-accent);
   font-size: var(--text-xs-size);
   font-weight: 780;
   line-height: var(--text-xs-lh);
@@ -484,12 +448,6 @@ function syncViewportMode() {
   min-width: 0;
 }
 
-.trc__segments--camera {
-  border: 1px solid var(--border-medium);
-  border-radius: 0.95rem;
-  overflow: hidden;
-}
-
 .trc__segments--duration {
   align-items: center;
   gap: 0.45rem;
@@ -498,37 +456,9 @@ function syncViewportMode() {
 }
 
 .trc__seg {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 0;
-  min-height: 2.45rem;
-  gap: 0.35rem;
   border: 1px solid var(--border-medium);
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.72);
-  color: var(--text-secondary);
-  cursor: pointer;
-  font-size: var(--text-sm-size);
-  font-weight: 620;
-  line-height: var(--text-xs-lh);
-  padding: 0.35rem 0.85rem;
-  white-space: nowrap;
-  transition:
-    background 0.16s ease,
-    border-color 0.16s ease,
-    color 0.16s ease;
-}
-
-.trc__segments--camera .trc__seg {
-  flex: 1 1 0;
-  border-width: 0 1px 0 0;
-  border-radius: 0;
-  background: rgba(255, 255, 255, 0.54);
-}
-
-.trc__segments--camera .trc__seg:last-child {
-  border-right: 0;
 }
 
 .trc__smooth-slider {
@@ -537,16 +467,10 @@ function syncViewportMode() {
 }
 
 .trc__seg--active {
-  border-color: #7568ff;
-  background: rgba(117, 104, 255, 0.12);
-  color: #5147d9;
-  box-shadow: inset 0 0 0 1px rgba(117, 104, 255, 0.18);
-}
-
-.trc__segments--camera .trc__seg--active {
-  background: linear-gradient(135deg, #7568ff, #5548dd);
-  color: #fff;
-  box-shadow: none;
+  border-color: var(--replay-accent-bright);
+  background: color-mix(in srgb, var(--replay-accent-bright) 12%, transparent);
+  color: var(--replay-accent-text);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--replay-accent-bright) 18%, transparent);
 }
 
 .trc__group--adjust {
@@ -570,7 +494,7 @@ function syncViewportMode() {
 }
 
 .trc__adjust-row > strong {
-  color: #6257ee;
+  color: var(--replay-accent);
   font-size: var(--text-sm-size);
   font-weight: 760;
   text-align: right;
@@ -614,13 +538,13 @@ function syncViewportMode() {
   width: 1.24rem;
   height: 1.24rem;
   border-radius: 50%;
-  background: #fff;
+  background: var(--accent-contrast);
   box-shadow: 0 3px 10px rgba(15, 23, 42, 0.18);
   transition: transform 0.16s ease;
 }
 
 .trc__toggle-input:checked + .trc__toggle-track {
-  background: #6257ee;
+  background: var(--replay-accent);
 }
 
 .trc__toggle-input:checked + .trc__toggle-track::after {

@@ -1,0 +1,16 @@
+TBS_05 Statistics Tracks row selection
+
+Browser state:
+- All quick view
+- Search: Walking
+- Visible row: Track 100005
+
+Action:
+- Clicked the visible Track 100005 table row.
+
+Result:
+- Track Details opened.
+- Track ID: #100005
+- Activity: Walking
+- Overview, Graphs, Quality, Related, and Events tabs were available.
+- The overview showed the FIT source and recorded distance, duration, ascent, speed, energy, and exploration values.

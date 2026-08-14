@@ -87,25 +87,22 @@ describe('admin operational task normalization', () => {
     });
   });
 
-  it.each(['queued', 'optimizing'])(
-    'maps location search %s status to indeterminate GeoNames preparation',
-    (phase) => {
-      const task = normalizeLocationSearchTask({
-        phase,
-        ready: false,
-        message: 'Preparing GeoNames search database',
-      } satisfies LocationSearchStatusDto);
+  it.each(['queued', 'optimizing'])('maps location search %s status to indeterminate GeoNames preparation', (phase) => {
+    const task = normalizeLocationSearchTask({
+      phase,
+      ready: false,
+      message: 'Preparing GeoNames search database',
+    } satisfies LocationSearchStatusDto);
 
-      expect(task).toMatchObject({
-        label: 'Location Search',
-        state: 'running',
-        active: true,
-        indeterminate: true,
-        progressPercent: null,
-        metric: '',
-      });
-    }
-  );
+    expect(task).toMatchObject({
+      label: 'Location Search',
+      state: 'running',
+      active: true,
+      indeterminate: true,
+      progressPercent: null,
+      metric: '',
+    });
+  });
 
   it('summarizes ready GeoNames location search row counts', () => {
     const task = normalizeLocationSearchTask({

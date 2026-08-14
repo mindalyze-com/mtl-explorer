@@ -18,6 +18,7 @@
 import { ref, onMounted, onBeforeUnmount, watch } from 'vue';
 import { geoMercator, geoPath } from 'd3-geo';
 import { readBestCachedTrackShape } from '@/utils/tracks/trackCollectionLoader';
+import { isAbortLikeError } from '@/utils/errors';
 
 const props = withDefaults(
   defineProps<{
@@ -101,7 +102,7 @@ async function loadAndRender() {
 
     buildSvgPath(result.coordinates);
   } catch (e: unknown) {
-    if (e instanceof DOMException && e.name === 'AbortError') return;
+    if (isAbortLikeError(e, abortController?.signal)) return;
     // Silently fail — preview is non-critical
   }
 }

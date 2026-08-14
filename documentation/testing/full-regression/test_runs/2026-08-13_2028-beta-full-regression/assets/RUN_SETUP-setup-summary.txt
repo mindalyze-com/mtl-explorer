@@ -1,0 +1,37 @@
+RUN_SETUP evidence captured 2026-08-13 Europe/Zurich
+
+README source: https://raw.githubusercontent.com/mindalyze-com/mtl-explorer/main/README.md
+Compose source: https://raw.githubusercontent.com/mindalyze-com/mtl-explorer/main/docker-compose.yml
+Target: 91.99.12.14 (Debian GNU/Linux 13 trixie, amd64)
+Disposable install: /root/mtl-full-regression-2026-08-13_2028-beta-full-regression
+README prerequisite: Docker Engine and Docker Compose plugin with `docker compose`
+README local URL: http://localhost:18080/mtl/
+Remote URL used: http://91.99.12.14:18080/mtl/
+README login source: username mtl; password change-me
+README watched import folder: ./data/gpx/
+
+Initial target state: Docker missing; disposable path available; 35 GB free.
+SSH first login required a password rotation. The temporary password is not recorded. The operator's existing Ed25519 public key was installed for resumable test access and must be removed during cleanup after restoring the supplied temporary credential.
+Docker prerequisite setup: 11 seconds
+Docker version: 29.7.2 (build a7dcaa6)
+Docker Compose version: v5.4.0
+
+Before the first Compose start, `.env` was created with:
+MTL_APP_IMAGE=wauwau0977/mytraillog:beta
+Pre-start `docker compose config --images` included wauwau0977/mytraillog:beta.
+Quick-install pull/create/start: 41 seconds
+HTTP readiness after Compose start: 41 seconds
+Local HTTP status: 200
+Remote HTTP status: 200
+
+Effective Compose app image: wauwau0977/mytraillog:beta
+Running container image reference: wauwau0977/mytraillog:beta
+Running container image ID: sha256:e3ccb3a856d377a9931ed0d395c01eacbc24c066f37c496c4d2fe4a093daa1a8
+Repository digest: wauwau0977/mytraillog@sha256:e3ccb3a856d377a9931ed0d395c01eacbc24c066f37c496c4d2fe4a093daa1a8
+Reported application version: 0.0.1-SNAPSHOT
+Reported image version: 1.331
+Reported application build: 2026-08-13T18:08:25.595Z
+Reported image build: 2026-08-13T18:08:12Z
+
+Running services: app, db (healthy), brouter, location-search (healthy).
+Browser result: remote URL redirected to /mtl/login, title was MTL Explorer, and username, password, Sign In, and About controls rendered.

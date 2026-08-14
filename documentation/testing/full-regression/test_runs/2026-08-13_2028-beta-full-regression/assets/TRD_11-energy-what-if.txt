@@ -1,0 +1,22 @@
+Coverage ID: TRD_11
+Track: #100005 Activity.fit
+
+Baseline
+- Current rider: 75.0 kg.
+- Model mass: 75.0 kg.
+- Net total: 346.7 Wh.
+- Average power: 702 W.
+
+Temporary scenario
+- Opened Adjust rider weight.
+- Set the range control to 100.0 kg without selecting Save.
+- Scenario total updated to 462.2 Wh.
+- Delta updated to +115.6 Wh.
+- Scenario average power updated to 936 W.
+- Main overview retained its saved 346.7 Wh while the what-if panel displayed the scenario values.
+
+Persistence check
+- Closed the panel without Save and reloaded `/mtl/track/100005`.
+- Reopening Adjust rider weight showed current rider 75.0 kg, model mass 75.0 kg, rider weight 75.0 kg, total 346.7 Wh, delta -0.0 Wh, and average power 702 W.
+- The 100 kg scenario did not persist.
+

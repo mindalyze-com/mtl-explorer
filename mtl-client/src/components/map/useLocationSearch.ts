@@ -7,6 +7,9 @@ import type {
 } from 'x8ing-mtl-api-typescript-fetch/dist/esm/models/index';
 import { getApiConfiguration } from '@/utils/openApiClient';
 import { getToken, isAuthError, redirectToLoginAfterAuthFailure } from '@/utils/auth';
+import { useAsyncState } from '@/composables/useAsyncState';
+import { isAbortLikeError } from '@/utils/errors';
+import { formatDistanceSmart } from '@/utils/Utils';
 
 export type LocationSearchSort = 'importance' | 'distance';
 
@@ -43,9 +46,8 @@ export function useLocationSearch(options: UseLocationSearchOptions) {
   const inputEl = ref<HTMLInputElement | null>(null);
   const query = ref('');
   const selectedSort = ref<LocationSearchSort>(SORT_IMPORTANCE);
-  const loading = ref(false);
+  const { loading, error: errorMessage } = useAsyncState('');
   const status = ref<LocationSearchStatusDto | null>(null);
-  const errorMessage = ref('');
   const results = ref<LocationSearchResultDto[]>([]);
 
   let debounceTimer: ReturnType<typeof window.setTimeout> | null = null;
@@ -101,7 +103,7 @@ export function useLocationSearch(options: UseLocationSearchOptions) {
     try {
       status.value = await getLocationSearchApi().getStatus({ signal: statusController.signal });
     } catch (error: unknown) {
-      if (isAbortError(error, statusController.signal)) return;
+      if (isAbortLikeError(error, statusController.signal)) return;
       if (isAuthError(error)) {
         redirectToLoginAfterAuthFailure(!!getToken());
         return;
@@ -163,7 +165,7 @@ export function useLocationSearch(options: UseLocationSearchOptions) {
         response.ready === false ? { ready: false, phase: response.phase, message: response.message } : status.value;
       results.value = response.ready === false ? [] : (response.results ?? []);
     } catch (error: unknown) {
-      if (isAbortError(error, searchController.signal)) return;
+      if (isAbortLikeError(error, searchController.signal)) return;
       if (isAuthError(error)) {
         redirectToLoginAfterAuthFailure(!!getToken());
         return;
@@ -225,14 +227,6 @@ function validMapCenter(center: MapCenter | null): center is MapCenter {
   return Boolean(center) && Number.isFinite(center?.lat) && Number.isFinite(center?.lon);
 }
 
-function isAbortError(error: unknown, signal?: AbortSignal): boolean {
-  return (
-    signal?.aborted === true ||
-    (error instanceof DOMException && error.name === 'AbortError') ||
-    (error instanceof Error && error.name === 'AbortError')
-  );
-}
-
 export function resultKey(result: LocationSearchResultDto): string {
   return [
     result.displayName,
@@ -286,10 +280,7 @@ export function zoomLabel(result: LocationSearchResultDto): string {
 export function distanceLabel(result: LocationSearchResultDto): string {
   const meters = result.distanceMeters;
   if (meters == null || !Number.isFinite(meters)) return '';
-  if (meters < 1000) return `${Math.round(meters)} m`;
-  const km = meters / 1000;
-  if (km < 100) return `${km.toFixed(1)} km`;
-  return `${Math.round(km)} km`;
+  return formatDistanceSmart(meters);
 }
 
 function normalizeText(value: string): string {

@@ -13,16 +13,16 @@
         <i class="bi bi-signpost-split planner-sheet-icon"></i>
         <div class="planner-header-tabs">
           <button
-            class="planner-header-tab"
-            :class="{ 'planner-header-tab--active': activeTab === 'draw' }"
+            class="planner-header-tab sheet-header-tab"
+            :class="{ 'sheet-header-tab--active': activeTab === 'draw' }"
             @pointerdown.stop
             @click="activeTab = 'draw'"
           >
             Drawing
           </button>
           <button
-            class="planner-header-tab"
-            :class="{ 'planner-header-tab--active': activeTab === 'load' }"
+            class="planner-header-tab sheet-header-tab"
+            :class="{ 'sheet-header-tab--active': activeTab === 'load' }"
             @pointerdown.stop
             @click="switchToLoad"
           >
@@ -163,7 +163,7 @@
         >
           <div v-if="planner.viewportTooLarge.value" class="planner-notice planner-notice--warn">
             <i class="bi bi-zoom-in"></i>
-            <span>Zoom in to start planning. Visible span must be under ~300 km.</span>
+            <span>Zoom in to start planning. Visible span must be under ~{{ formatDistanceSmart(300_000) }}.</span>
           </div>
 
           <div v-if="planner.pristineLoaded.value" class="planner-notice planner-notice--info">
@@ -213,7 +213,7 @@
                 <span class="planner-plan-body">
                   <span class="planner-plan-name">{{ plan.name }}</span>
                   <span class="planner-plan-meta">
-                    <i class="bi bi-rulers"></i> {{ (plan.distanceM / 1000).toFixed(1) }} km
+                    <i class="bi bi-rulers"></i> {{ formatDistanceSmart(plan.distanceM) }}
                     <span v-if="plan.description" class="planner-plan-desc">· {{ plan.description }}</span>
                   </span>
                 </span>
@@ -275,9 +275,9 @@
           <PrimeTextarea v-model="saveDescription" rows="2" auto-resize placeholder="Notes for future you…" />
         </label>
         <div class="planner-dialog-meta">
-          <span><i class="bi bi-rulers"></i> {{ (planner.stats.value.distanceM / 1000).toFixed(2) }} km</span>
-          <span><i class="bi bi-arrow-up-right"></i> {{ Math.round(planner.stats.value.ascentM) }} m</span>
-          <span><i class="bi bi-arrow-down-right"></i> {{ Math.round(planner.stats.value.descentM) }} m</span>
+          <span><i class="bi bi-rulers"></i> {{ formatDistanceSmart(planner.stats.value.distanceM) }}</span>
+          <span><i class="bi bi-arrow-up-right"></i> {{ formatElevation(planner.stats.value.ascentM) }}</span>
+          <span><i class="bi bi-arrow-down-right"></i> {{ formatElevation(planner.stats.value.descentM) }}</span>
           <span
             ><i class="bi bi-pin-map"></i> {{ planner.waypoints.value.length }} /
             {{ planner.maxWaypoints.value }} waypoints</span
@@ -317,7 +317,7 @@
           Delete <strong>{{ planPendingDelete?.name || 'this saved route' }}</strong> from saved routes?
         </p>
         <div v-if="planPendingDelete" class="planner-dialog-meta">
-          <span><i class="bi bi-rulers"></i> {{ (planPendingDelete.distanceM / 1000).toFixed(2) }} km</span>
+          <span><i class="bi bi-rulers"></i> {{ formatDistanceSmart(planPendingDelete.distanceM) }}</span>
           <span><i class="bi bi-calendar3"></i> {{ formatDate(planPendingDelete.createDate) }}</span>
         </div>
         <div v-if="planDeleteError" class="planner-load-error" role="alert">
@@ -367,6 +367,7 @@ import {
   loadPlannedTrack,
 } from '@/planner/repositories/plannerRepository';
 import type { PlannedTrackSummary, Waypoint } from '@/planner/types';
+import { formatDistanceSmart, formatElevation } from '@/utils/Utils';
 import {
   distanceToRouteLegSquared,
   nearestRouteLegIndexFromCandidates,
@@ -636,9 +637,8 @@ function openSaveDialog() {
 }
 
 function suggestedPlanName(): string {
-  const km = (planner.stats.value.distanceM / 1000).toFixed(1);
   const date = new Date().toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-  return `Plan — ${km} km (${date})`;
+  return `Plan — ${date}`;
 }
 
 async function confirmSave() {
@@ -1164,13 +1164,7 @@ function handleMapPointerUp(ev: PlannerMapPointerEvent) {
   preventPlannerEvent(ev);
   suppressNextMapClick(clickSuppressionFor(interaction.pointerKind), pointFromEvent(ev));
 
-  if (interaction.mode === 'waypointDragging') {
-    const lngLat = ev.lngLat ? lngLatFromEvent(ev) : interaction.lastLngLat;
-    finishPlannerInteraction(true, lngLat);
-    return;
-  }
-
-  if (interaction.mode === 'routePointerDown') {
+  if (interaction.mode === 'waypointDragging' || interaction.mode === 'routePointerDown') {
     const lngLat = ev.lngLat ? lngLatFromEvent(ev) : interaction.lastLngLat;
     finishPlannerInteraction(true, lngLat);
     return;
@@ -1560,7 +1554,7 @@ defineExpose({
 .planner-hdr-btn--danger:hover:not(:disabled) {
   color: var(--warning-text);
   background: var(--warning-bg);
-  border-color: color-mix(in srgb, #f97316 30%, var(--border-medium));
+  border-color: color-mix(in srgb, var(--viz-orange) 30%, var(--border-medium));
 }
 .planner-root {
   display: flex;
@@ -1585,30 +1579,6 @@ defineExpose({
   display: flex;
   gap: 0.15rem;
   min-width: 0;
-}
-.planner-header-tab {
-  padding: 0.25rem 0.7rem;
-  border-radius: 1rem;
-  border: none;
-  background: transparent;
-  color: var(--text-secondary);
-  font-size: var(--text-sm-size);
-  font-weight: 600;
-  cursor: pointer;
-  transition:
-    background 0.15s,
-    color 0.15s;
-  white-space: nowrap;
-  line-height: var(--text-sm-lh);
-}
-.planner-header-tab:not(.planner-header-tab--active):hover {
-  background: var(--surface-hover);
-  color: var(--text-primary);
-}
-.planner-header-tab--active {
-  background: var(--accent-subtle);
-  color: var(--accent-text);
-  font-weight: 600;
 }
 /* ── Panels ────────────────────────────────────────────────────── */
 .planner-panel {
@@ -1689,13 +1659,13 @@ defineExpose({
   cursor: not-allowed;
 }
 .planner-action-btn--danger {
-  border-color: color-mix(in srgb, #f97316 50%, var(--accent));
+  border-color: color-mix(in srgb, var(--viz-orange) 50%, var(--accent));
   color: color-mix(in srgb, #c2410c 60%, var(--accent-text));
 }
 .planner-action-btn--danger:hover:not(:disabled) {
   color: var(--warning-text);
   background: var(--warning-bg);
-  border-color: #f97316;
+  border-color: var(--viz-orange);
 }
 /* ── Load tab ──────────────────────────────────────────────────── */
 .planner-load-spinner {
@@ -1893,7 +1863,7 @@ defineExpose({
   font-size: var(--text-base-size);
 }
 .planner-notice--warn {
-  border-color: color-mix(in srgb, #f97316 30%, var(--border-default));
+  border-color: color-mix(in srgb, var(--viz-orange) 30%, var(--border-default));
   color: var(--warning-text);
   background: var(--warning-bg);
 }
@@ -2248,10 +2218,10 @@ defineExpose({
   justify-content: center;
   width: 1.7rem;
   height: 1.7rem;
-  border: 1px solid color-mix(in srgb, #dc2626 42%, var(--border-default));
+  border: 1px solid color-mix(in srgb, var(--error) 42%, var(--border-default));
   border-radius: 999px;
   background: color-mix(in srgb, #ffffff 92%, #fee2e2);
-  color: #dc2626;
+  color: var(--error);
   box-shadow: 0 0.25rem 0.8rem rgba(15, 23, 42, 0.2);
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
@@ -2264,7 +2234,7 @@ defineExpose({
 }
 .planner-waypoint-delete-marker:hover {
   background: #fee2e2;
-  border-color: #dc2626;
+  border-color: var(--error);
 }
 .planner-waypoint-delete-marker i {
   font-size: 0.72rem;

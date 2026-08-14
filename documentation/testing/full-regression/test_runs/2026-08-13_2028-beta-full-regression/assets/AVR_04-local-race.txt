@@ -1,0 +1,10 @@
+A-A race geometry locality check
+
+Visible race map scale: 30 m.
+Visible local landmarks: Lannion center, La Poste Quai d'Aiguillon,
+Sanitaires Parking de Günzburg, Menhir "la Poupée Celte", and Le Léguer.
+Both racer markers were visible on their colored local segment trails at
+75% and 73% progress. Both trails stayed inside the same local neighborhood.
+
+No world-scale zoom, long line away from the route, [0,0] point, ocean jump,
+or South Africa geometry appeared during sampled progress or at finish.

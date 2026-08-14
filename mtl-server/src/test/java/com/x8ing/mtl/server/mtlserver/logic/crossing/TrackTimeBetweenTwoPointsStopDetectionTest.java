@@ -64,15 +64,7 @@ class TrackTimeBetweenTwoPointsStopDetectionTest {
     @DisplayName("First crossing has no segment notes (no preceding segment)")
     void firstCrossingHasNoSegmentNotes() {
         // A straight eastbound track, moving steadily through A then B.
-        List<GpsTrackDataPoint> points = track(
-                sample(0, 0, 0),
-                sample(100, 100, 0),
-                sample(200, 200, 0),
-                sample(300, 300, 0),
-                sample(400, 400, 0),
-                sample(500, 500, 0),
-                sample(600, 600, 0)
-        );
+        List<GpsTrackDataPoint> points = steadyTrack();
         List<Crossing> crossings = run(points, List.of(),
                 trigger("A", 100, 0),
                 trigger("B", 500, 0),
@@ -87,15 +79,7 @@ class TrackTimeBetweenTwoPointsStopDetectionTest {
     @Test
     @DisplayName("Steady movement A→B produces zero stops")
     void steadyMovementHasNoStops() {
-        List<GpsTrackDataPoint> points = track(
-                sample(0, 0, 0),
-                sample(100, 100, 0),
-                sample(200, 200, 0),
-                sample(300, 300, 0),
-                sample(400, 400, 0),
-                sample(500, 500, 0),
-                sample(600, 600, 0)
-        );
+        List<GpsTrackDataPoint> points = steadyTrack();
         List<Crossing> crossings = run(points, List.of(),
                 trigger("A", 100, 0),
                 trigger("B", 500, 0),
@@ -237,6 +221,17 @@ class TrackTimeBetweenTwoPointsStopDetectionTest {
     // ------------------------------------------------------------------
     // Helpers
     // ------------------------------------------------------------------
+
+    private List<GpsTrackDataPoint> steadyTrack() {
+        return track(
+                sample(0, 0, 0),
+                sample(100, 100, 0),
+                sample(200, 200, 0),
+                sample(300, 300, 0),
+                sample(400, 400, 0),
+                sample(500, 500, 0),
+                sample(600, 600, 0));
+    }
 
     private List<Crossing> run(List<GpsTrackDataPoint> points,
                                List<GpsTrackEvent> stopEvents,

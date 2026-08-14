@@ -1,0 +1,16 @@
+TBS_03 Track Browser sorts
+
+Base summary for every full-result sort: 12 tracks, 993 km, 21h 43m.
+
+- Date active -> first row Jura Route 7 / 2011..., 01/01/2010.
+- Imported active -> first row Track 100016, imported 13/08/2026 21:30.
+- Distance active -> first row Moselradweg..., 518 km.
+- Duration active -> first row Jura Route 7 / 2011..., 7h 46m.
+- Name active -> first row Track 100016.
+- Exploration active -> first row Track 100005, 100.0%.
+
+Each selected chip received sort-chip--active and changed the first row according to that field.
+
+Visible-result summary check:
+- Search: Walking
+- Summary: 1 of 12 tracks, 3.60 km, 59m 57s.

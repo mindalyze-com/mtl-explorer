@@ -1,0 +1,21 @@
+MAP_13 intentional remote-mode deployment
+
+Temporary Compose override:
+services.app.pull_policy: never
+services.app.environment.MTL_MAP_SERVER_TILE_MODE: remote
+
+The override recreated only the disposable app service. Database, BRouter, and location-search were not restarted. An upstream beta-tag move was detected during the first recreation (build 1.332). The original run image remained cached, so the local beta tag was restored to the frozen run image and pull_policy=never was added before evidence collection.
+
+Effective/running evidence:
+- Image reference: wauwau0977/mytraillog:beta
+- Running image ID: sha256:e3ccb3a856d377a9931ed0d395c01eacbc24c066f37c496c4d2fe4a093daa1a8
+- MTL_MAP_SERVER_TILE_MODE: remote
+- Application build: 0.0.1-SNAPSHOT / 2026-08-13T18:08:25.595Z
+- Image build: 1.331 / 2026-08-13T18:08:12Z
+
+Authenticated /api/map/config:
+- tileMode: remote
+- remoteRasterStyles.light.url: https://tile.openstreetmap.org/{z}/{x}/{y}.png
+- remoteRasterStyles.light-topo.url: https://tile.opentopomap.org/{z}/{x}/{y}.png
+- remoteRasterStyles.dark.url: https://basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png
+- legacy remoteTileUrl property present: false

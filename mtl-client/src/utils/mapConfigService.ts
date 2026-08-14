@@ -43,6 +43,8 @@ export type MapConfig = MapConfigDto & {
   plannerProfiles?: string[];
   /** True when config was restored from localStorage because the server was unreachable. */
   offline?: boolean;
+  /** True when the server config request failed and this is a recoverable fallback. */
+  configLoadFailed?: boolean;
 };
 
 const DEFAULT_CONFIG: MapConfig = {
@@ -130,7 +132,7 @@ export async function fetchMapConfig(): Promise<MapConfig> {
       // Try to restore last-known-good config from localStorage
       const stored = readJsonStorage<MapConfig | null>(STORAGE_KEY, null);
       if (stored) {
-        const fallback: MapConfig = { ...stored, offline: true };
+        const fallback: MapConfig = { ...stored, offline: true, configLoadFailed: true };
         startupLog('mapconfig', 'Restored map config from localStorage', {
           tileMode: fallback.tileMode,
           tileBaseUrl: fallback.tileBaseUrl,
@@ -140,7 +142,12 @@ export async function fetchMapConfig(): Promise<MapConfig> {
         // caller (or background retry) can still fetch the real config.
         return fallback;
       }
-      const fallback: MapConfig = { ...DEFAULT_CONFIG, tileMode: 'remote', offline: true };
+      const fallback: MapConfig = {
+        ...DEFAULT_CONFIG,
+        tileMode: MapConfigDtoTileModeEnum.Remote,
+        offline: true,
+        configLoadFailed: true,
+      };
       startupLog('mapconfig', 'Using built-in remote fallback config', {
         tileMode: fallback.tileMode,
         remoteRasterStyles: Object.keys(fallback.remoteRasterStyles),

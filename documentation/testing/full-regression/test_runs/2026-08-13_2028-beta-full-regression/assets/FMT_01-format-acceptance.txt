@@ -1,0 +1,17 @@
+FMT_01 format acceptance evidence
+Tested 2026-08-13T19:25Z-19:31Z on the disposable quick installation.
+
+Previously verified formats:
+- GPX: five public timestamped GPX files accepted as track IDs 100000-100004.
+- FIT: official Garmin Activity.fit accepted and converted as track ID 100005.
+
+Additional public-derived GPS-bearing samples:
+- KML: Lannion-format-test.kml, sha256 37c89..., converted by GPSBabel; track ID 100006 SUCCESS.
+- TCX: Lannion-format-unique.tcx, sha256 1500147b4aebe1acb2afb120dd237465185b66826ed47e70485f7ec81c586301; track ID 100015 SUCCESS.
+- KMZ: Lannion-format-test.kmz, sha256 2db25..., valid doc.kml archive; track ID 100008 SUCCESS.
+- IGC: Lannion-format-test.igc, sha256 9b7c...; converter found a real temporal gap and produced track IDs 100009 and 100010, both SUCCESS.
+- NMEA: Lannion-format-unique.nmea, sha256 f8e14ed1acc06ab33ff1332d863eae38c0540195f5eef678f126113cb8438d44; valid RMC/GGA fixes, track ID 100016 SUCCESS.
+- GeoJSON: Lannion-format-test.geojson, sha256 1a9c..., GPSBabel route-to-track conversion; track ID 100011 SUCCESS.
+- GDB: Lannion-format-unique.gdb, sha256 dac45fe4c7b2addffa1e86440dc26c4cd46d3a1711678eb40c569aebd8412c84; track ID 100014 SUCCESS.
+
+Every additional source was prevalidated with GPSBabel 1.10.0. Logs show CREATE detection, the declared input format, GPX conversion, and SUCCESS ingest. The three unique timestamp variants avoid smart duplicate suppression. After the in-app freshness Reload, the map and Track Browser All view both showed 12 tracks. This is the expected four-track baseline plus eight accepted records from the seven added source files because the IGC source legitimately split into two records.

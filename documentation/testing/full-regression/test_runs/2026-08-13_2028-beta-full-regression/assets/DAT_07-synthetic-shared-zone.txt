@@ -1,0 +1,22 @@
+DAT_07 synthetic shared-zone staging
+
+Generated fully synthetic anonymized GPX tracks. No private/local GPX source was used.
+Remote staging folder: /root/mtl-full-regression-2026-08-13_2028-beta-full-regression/test-data/synthetic
+
+Repeatable start zone: center lat 46.950200, lon 7.399800; radius 100 m
+Repeatable end zone: center lat 47.050200, lon 7.499800; radius 100 m
+Both tracks begin and end within the matching zones and traverse the same local Bern-area corridor.
+
+DAT_07-synthetic-shared-a.gpx
+Bytes: 1483
+SHA-256: ed05cb134674a3b528e89f1e04f317fb195c1edb11bf0bbf3a2880a39f2e2ef3
+Trackpoints/timestamps: 12/12
+Endpoints: 46.950000,7.400000 -> 47.050000,7.500000
+
+DAT_07-synthetic-shared-b.gpx
+Bytes: 1484
+SHA-256: fe8eb72429d1bbca8fa2f709ab45db69cb28f3e0387fbbd508de43758a6edfe8
+Trackpoints/timestamps: 12/12
+Endpoints: 46.950400,7.399600 -> 47.050400,7.499600
+
+The files remain outside the watched import folder until measuring/comparison/virtual-race prerequisites need them.

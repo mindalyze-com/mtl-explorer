@@ -307,10 +307,8 @@ import {
   type StatisticsExclusionUpdateRequestHighlightExclusionReasonEnum,
   type StatisticsExclusionUpdateRequestStatisticsExclusionReasonEnum,
 } from 'x8ing-mtl-api-typescript-fetch/dist/esm/models/index';
+import type { ToastService } from '@/types/ui';
 
-type ToastService = {
-  add: (message: { severity: string; summary: string; detail?: string; life?: number }) => void;
-};
 type ExclusionReason = StatisticsExclusionUpdateRequestHighlightExclusionReasonEnum;
 type ExclusionReasonOption = {
   label: string;
@@ -642,23 +640,6 @@ function formatOptionalBytes(v: number | null | undefined): string {
   border-color: var(--border-default);
 }
 
-/* ── Section Label ── */
-.section-label {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  font-size: var(--text-2xs-size);
-  font-weight: 600;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
-  color: var(--text-faint);
-  padding: 0.75rem 1rem 0.35rem;
-}
-.section-label i {
-  font-size: var(--text-xs-size);
-  opacity: 0.7;
-}
-
 /* ── Metrics Grid ── */
 .metrics-grid {
   display: grid;
@@ -797,13 +778,6 @@ function formatOptionalBytes(v: number | null | undefined): string {
   color: var(--error);
 }
 
-/* ── Info List ── */
-.info-list {
-  display: flex;
-  flex-direction: column;
-  padding: 0.25rem 0;
-}
-
 .info-list--inline {
   padding: 0 0.5rem 0.25rem;
 }
@@ -814,86 +788,18 @@ function formatOptionalBytes(v: number | null | undefined): string {
   border-top: 1px solid var(--border-subtle);
 }
 
-.info-row {
-  display: flex;
-  align-items: baseline;
-  gap: 0.75rem;
-  padding: 0.35rem 0.9rem;
-  font-size: var(--text-sm-size);
-  border-top: 1px solid var(--border-subtle);
-}
-
-.info-key {
-  flex: 0 0 7rem;
-  color: var(--text-muted);
-  font-size: var(--text-xs-size);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-.info-val {
-  color: var(--text-secondary);
-  word-break: break-word;
-  min-width: 0;
-}
-
-.info-val--mono {
-  font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, monospace;
-  font-size: var(--text-xs-size);
-  opacity: 0.8;
-}
-
 .info-val--muted {
   color: var(--text-muted);
   font-style: italic;
   font-size: var(--text-xs-size);
 }
 
-/* ── Info Drawer ── */
-.info-drawer {
-  margin: 0.35rem 0.5rem 0;
-  border-radius: 8px;
-  border: 1px solid var(--border-default);
-  overflow: hidden;
-}
-
-.info-drawer[open] .info-drawer__chevron {
-  transform: rotate(180deg);
-}
-
-.info-drawer__chevron {
-  transition: transform 0.2s ease;
-}
-
 .info-drawer__summary {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  padding: 0.6rem 0.9rem;
-  font-size: var(--text-xs-size);
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  color: var(--text-muted);
-  cursor: pointer;
-  user-select: none;
-  list-style: none;
-  background: var(--surface-elevated);
   transition: color 0.15s ease;
 }
 
 .info-drawer__summary:hover {
   color: var(--text-secondary);
-}
-
-.info-drawer__summary::-webkit-details-marker {
-  display: none;
-}
-.info-drawer__summary i:first-child {
-  font-size: var(--text-sm-size);
-}
-.info-drawer__summary .info-drawer__chevron {
-  margin-left: auto;
-  font-size: var(--text-xs-size);
 }
 
 /* ── Load Messages ── */

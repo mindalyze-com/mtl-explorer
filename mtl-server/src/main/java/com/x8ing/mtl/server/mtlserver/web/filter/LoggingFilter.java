@@ -2,6 +2,7 @@ package com.x8ing.mtl.server.mtlserver.web.filter;
 
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.x8ing.mtl.server.mtlserver.db.repository.logs.WebRequestLogService;
+import com.x8ing.mtl.server.mtlserver.web.ClientAddressResolver;
 import com.x8ing.mtl.server.mtlserver.web.security.JwtUtil;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -76,25 +77,12 @@ public class LoggingFilter extends OncePerRequestFilter {
                         durationMs,
                         userInfo,
                         userSessionId,
-                        resolveClientIp(request)
+                        ClientAddressResolver.resolveForwarded(request)
                 );
             } catch (Exception e) {
                 LOGGER.warn("Failed to persist web request log: {}", e.getMessage());
             }
         }
-    }
-
-    private String resolveClientIp(HttpServletRequest request) {
-        String xff = request.getHeader("X-Forwarded-For");
-        if (xff != null && !xff.isBlank()) {
-            // take the first IP (original client) from the comma-separated list
-            return xff.split(",")[0].trim();
-        }
-        String realIp = request.getHeader("X-Real-IP");
-        if (realIp != null && !realIp.isBlank()) {
-            return realIp.trim();
-        }
-        return request.getRemoteAddr();
     }
 
     private String sanitizeQueryString(String queryString) {

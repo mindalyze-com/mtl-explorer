@@ -1,0 +1,14 @@
+Coverage ID: FLT_02
+
+Catalog baseline
+- Heading: Choose a view.
+- Total visible view rows: 18.
+- Group headings: Core, Activity, Date & Time, Performance, Quality.
+
+Search
+- Search control placeholder: Search views.
+- Query: year.
+- Results: Tracks by year and Tracks by quarter.
+- Both results came from the date/time grouping and included their descriptions.
+- Clearing/canceling the catalog left Smart Base Filter unchanged.
+

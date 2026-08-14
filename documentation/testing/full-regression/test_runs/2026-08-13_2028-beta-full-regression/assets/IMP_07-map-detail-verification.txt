@@ -1,0 +1,23 @@
+Coverage ID: IMP_07
+State: five imported public GPX tracks, no filter restrictions
+
+Main-map selection/detail verification:
+- #100000 Jura Route 7 / 2011 on GPSies.com: geometry clicked; matching Track Details opened.
+- #100001 Vitry le françois - langres on GPSies.com: geometry clicked; matching Track Details opened.
+- #100002 Moselradweg aus Wiki on GPSies.com: geometry clicked; matching Track Details opened.
+- #100003 voie verte haute vosges on GPSies.com: overlap selection resolved; matching Track Details opened.
+- #100004 Lannion_Plestin_parcours Lannion_Plestin_parcours1: geometry clicked; matching Track Details opened.
+
+Track-detail map and point-popup verification:
+- #100000: continuous fitted line visible; point 702 popup showed time, distance, elevation, speed, and elapsed values.
+- #100001: continuous fitted line visible; point 653 popup showed time, distance, elevation, speed, and elapsed values.
+- #100002: continuous fitted line visible; point 831 popup showed time, distance, elevation, speed, and elapsed values.
+- #100003: continuous fitted line visible; point 1,183 popup showed time, distance, elevation, speed, and elapsed values.
+- #100004: continuous fitted line visible; point 95 popup showed time, distance, elevation, speed, and elapsed values.
+
+Geometry review:
+- The fitted main map showed five imported tracks at their expected public-data locations.
+- Each detail map showed one continuous route matching its selected record.
+- No stale line remained after changing records.
+- No duplicate line was visible within a selected record.
+- The intentional geographic overlap between the Mosel and Vosges routes produced a two-track chooser, not a duplicate record.

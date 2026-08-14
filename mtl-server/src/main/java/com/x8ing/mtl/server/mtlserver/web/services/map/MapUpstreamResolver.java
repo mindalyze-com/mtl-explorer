@@ -2,7 +2,6 @@ package com.x8ing.mtl.server.mtlserver.web.services.map;
 
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
@@ -131,12 +130,6 @@ public class MapUpstreamResolver {
     }
 
     private static RestClient buildProbeClient(MapServerProperties properties) {
-        SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
-        Duration timeout = Duration.ofMillis(properties.getLocalProbeTimeoutMs());
-        requestFactory.setConnectTimeout(timeout);
-        requestFactory.setReadTimeout(timeout);
-        return RestClient.builder()
-                .requestFactory(requestFactory)
-                .build();
+        return MapRestClientFactory.builder(properties).build();
     }
 }

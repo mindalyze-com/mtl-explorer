@@ -1,20 +1,20 @@
 <template>
   <div class="tab-content">
     <!-- Status row: loading / unavailable / available -->
-    <div v-if="statusLoading" class="upload-notice upload-notice--info">
+    <div v-if="statusLoading" class="upload-notice inline-notice upload-notice--info">
       <i class="pi pi-spin pi-spinner" /> Checking upload directory…
     </div>
 
-    <div v-else-if="statusError" class="upload-notice upload-notice--error">
+    <div v-else-if="statusError" class="upload-notice inline-notice upload-notice--error">
       <i class="pi pi-times-circle" /> {{ statusError }}
     </div>
 
-    <div v-else-if="!status?.available" class="upload-notice upload-notice--warn">
+    <div v-else-if="!status?.available" class="upload-notice inline-notice upload-notice--warn">
       <i class="pi pi-exclamation-triangle" />
       <div>
         <strong>Upload unavailable</strong><br />
         {{ status?.message }}<br />
-        <span class="action-hint" style="margin-top: 0.35rem; display: block">
+        <span class="admin-action-hint upload-guidance">
           Make sure the directory <code>{{ gpxUploadSubdir }}</code> inside your GPX folder exists and is writable by
           the server process. If the GPX volume is mounted read-only, remount it with write access.
         </span>
@@ -45,12 +45,12 @@
       </div>
 
       <!-- Selected file + upload button -->
-      <div v-if="selectedFile" class="action-row" style="margin-top: 0.8rem">
-        <div class="action-info">
-          <span class="action-label">{{ selectedFile.name }}</span>
-          <span class="action-hint">{{ formatSize(selectedFile.size) }}</span>
+      <div v-if="selectedFile" class="admin-action-row selected-file-row">
+        <div class="admin-action-copy">
+          <span class="admin-action-label">{{ selectedFile.name }}</span>
+          <span class="admin-action-hint">{{ formatSize(selectedFile.size) }}</span>
         </div>
-        <div class="action-controls">
+        <div class="admin-action-controls">
           <Button
             label="Upload"
             icon="pi pi-upload"
@@ -65,7 +65,7 @@
       <!-- Result feedback -->
       <div
         v-if="uploadResult"
-        class="upload-notice"
+        class="upload-notice inline-notice"
         :class="uploadResult.success ? 'upload-notice--success' : 'upload-notice--error'"
         style="margin-top: 0.6rem"
       >
@@ -73,7 +73,7 @@
         {{ uploadResult.message }}
       </div>
 
-      <span class="action-hint" style="margin-top: 0.8rem">
+      <span class="admin-action-hint upload-save-hint">
         Files are saved to <code>{{ gpxUploadSubdir }}</code> inside the GPX folder and automatically indexed.
       </span>
     </template>
@@ -83,6 +83,7 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { getGpxUploadStatus, uploadGpxFile, type GpxUploadResult, type GpxUploadStatus } from '@/utils/ServiceHelper';
+import { useAsyncState } from '@/composables/useAsyncState';
 
 const GPX_UPLOAD_SUBDIR = 'GPX-UPLOAD';
 const ACCEPTED_TRACK_EXTENSIONS = ['gpx', 'fit', 'tcx', 'kml', 'kmz', 'igc', 'nmea', 'geojson', 'gdb'];
@@ -92,8 +93,7 @@ defineOptions({ name: 'GpxUploadTab' });
 
 type UploadResult = GpxUploadResult | { success: boolean; message: string };
 
-const statusLoading = ref(false);
-const statusError = ref('');
+const { loading: statusLoading, error: statusError } = useAsyncState('');
 const status = ref<GpxUploadStatus | null>(null);
 const selectedFile = ref<File | null>(null);
 const isDragging = ref(false);
@@ -217,13 +217,6 @@ defineExpose({
 }
 
 .upload-notice {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.6rem;
-  padding: 0.7rem 0.9rem;
-  border-radius: 6px;
-  font-size: var(--text-sm-size);
-  line-height: var(--text-sm-lh);
   margin-top: 0.6rem;
 }
 
@@ -241,5 +234,19 @@ defineExpose({
 .upload-notice--success {
   background: var(--success-bg);
   color: var(--success);
+}
+
+.upload-guidance,
+.upload-save-hint {
+  display: block;
+  margin-top: 0.8rem;
+}
+
+.upload-guidance {
+  margin-top: 0.35rem;
+}
+
+.selected-file-row {
+  margin-top: 0.8rem;
 }
 </style>

@@ -1,0 +1,20 @@
+Coverage ID: TRD_07
+
+Track Browser / Statistics Tracks
+- Visible `.track-shape-preview` elements: 12.
+- One preview rendered for every visible row in the 12-track table.
+
+Filter > Review tracks
+- Visible `.track-shape-preview` elements: 12.
+- Shared review browser retained one preview per visible row.
+
+Statistics Overview
+- Visible `.track-shape-preview` elements: 5 in the rendered overview activity/ranking cards.
+
+Track Details > Related
+- Visible `track-shape-preview track-card__shape` containers: 5 in the loaded related-card page.
+- SVG preview elements were present inside rendered cards.
+
+Selection list
+- Existing direct evidence `MAP_09-overlap-chooser.webp` shows both Jura and Mosel rows with distinct line-shape thumbnails in the two-track chooser.
+

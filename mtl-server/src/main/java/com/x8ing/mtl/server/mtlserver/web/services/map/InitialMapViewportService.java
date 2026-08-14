@@ -3,6 +3,7 @@ package com.x8ing.mtl.server.mtlserver.web.services.map;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.x8ing.mtl.server.mtlserver.db.entity.gps.projection.GpsTrackBounds;
 import com.x8ing.mtl.server.mtlserver.db.repository.gps.GpsTrackRepository;
+import com.x8ing.mtl.server.mtlserver.utils.GeoCoordinateUtils;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -11,10 +12,6 @@ import org.springframework.stereotype.Service;
 })
 public class InitialMapViewportService {
 
-    private static final double MIN_LATITUDE = -90.0;
-    private static final double MAX_LATITUDE = 90.0;
-    private static final double MIN_LONGITUDE = -180.0;
-    private static final double MAX_LONGITUDE = 180.0;
     // Luzern/Lucerne city center.
     private static final double DEFAULT_CENTER_LNG = 8.30635;
     private static final double DEFAULT_CENTER_LAT = 47.05048;
@@ -34,10 +31,10 @@ public class InitialMapViewportService {
         }
 
         GpsTrackBounds trackBounds = gpsTrackRepository.findImportedTrackBounds(
-                MIN_LATITUDE,
-                MAX_LATITUDE,
-                MIN_LONGITUDE,
-                MAX_LONGITUDE);
+                GeoCoordinateUtils.MIN_LATITUDE,
+                GeoCoordinateUtils.MAX_LATITUDE,
+                GeoCoordinateUtils.MIN_LONGITUDE,
+                GeoCoordinateUtils.MAX_LONGITUDE);
         if (hasBounds(trackBounds)) {
             return expandTinyBounds(trackBounds);
         }
@@ -61,10 +58,10 @@ public class InitialMapViewportService {
                && Double.isFinite(bounds.getMaxLat())
                && bounds.getMinLng() < bounds.getMaxLng()
                && bounds.getMinLat() < bounds.getMaxLat()
-               && bounds.getMinLng() >= MIN_LONGITUDE
-               && bounds.getMaxLng() <= MAX_LONGITUDE
-               && bounds.getMinLat() >= MIN_LATITUDE
-               && bounds.getMaxLat() <= MAX_LATITUDE;
+               && GeoCoordinateUtils.isValidLongitude(bounds.getMinLng())
+               && GeoCoordinateUtils.isValidLongitude(bounds.getMaxLng())
+               && GeoCoordinateUtils.isValidLatitude(bounds.getMinLat())
+               && GeoCoordinateUtils.isValidLatitude(bounds.getMaxLat());
     }
 
     private static MapBoundsDto expandTinyBounds(GpsTrackBounds bounds) {
@@ -76,8 +73,10 @@ public class InitialMapViewportService {
     }
 
     private static MapBoundsDto expandTinyBounds(double minLng, double minLat, double maxLng, double maxLat) {
-        double[] lngBounds = expandAxis(minLng, maxLng, MIN_LONGITUDE, MAX_LONGITUDE);
-        double[] latBounds = expandAxis(minLat, maxLat, MIN_LATITUDE, MAX_LATITUDE);
+        double[] lngBounds = expandAxis(
+                minLng, maxLng, GeoCoordinateUtils.MIN_LONGITUDE, GeoCoordinateUtils.MAX_LONGITUDE);
+        double[] latBounds = expandAxis(
+                minLat, maxLat, GeoCoordinateUtils.MIN_LATITUDE, GeoCoordinateUtils.MAX_LATITUDE);
         return new MapBoundsDto(lngBounds[0], latBounds[0], lngBounds[1], latBounds[1]);
     }
 

@@ -1,0 +1,29 @@
+DEL-03-P1 local fix verification
+Date: 2026-08-13
+Build: local source image mytraillog:del03-fix
+Environment: disposable Docker Compose stack at http://localhost:18080/mtl/
+Data: five public regression GPX fixtures from mtl-server/src/test/resources/gpx/public-regression/viewmygpx/
+
+Precondition:
+- Loaded five tracks and opened Filter plus Review tracks.
+- Filter showed 5 matching tracks and Review tracks showed 5 rows.
+- Deleted sailing-route.gpx and mountain-hike.gpx from the disposable watched directory.
+- Ran the supported manual GPS rescan without reloading the browser.
+- The New data available banner appeared while the map still showed 5 Tracks.
+
+Freshness Reload result:
+- Clicked the banner Reload action once.
+- The map changed from 5 Tracks to 3 Tracks and showed the Map updated success message.
+- Filter changed to 3 matching tracks without a browser reload.
+- Review tracks changed to 3 rows, 93.9 km, and 4h 11m.
+- Deleted tracks Santorini → Folegandros and Day 3 — Col du Tricot were absent.
+- Remaining rows were Jordan Pond Loop, Sunday road ride, and Sunday spin with HR/cad/temp.
+- Statistics Overview showed the same 3 tracks, 93.9 km, 4h 11m, and 695 Wh.
+
+Automated verification:
+- npm run type-check: PASS
+- npm run lint: PASS with two pre-existing unused-variable warnings
+- npm test -- --run: PASS, 102 files and 512 tests
+- Docker production build: PASS
+
+Result: FIXED locally. The supported freshness Reload synchronized map, Filter, Review tracks, and Statistics after the 5→3 deletion without a normal browser reload.

@@ -1,0 +1,22 @@
+Coverage ID: TRD_03
+Track URL: http://91.99.12.14:18080/mtl/track/100000
+
+Two complete tab cycles were run in this order:
+Overview -> Graphs -> Quality -> Related -> Events
+
+Pass 1
+- Overview: populated BREAKDOWN marker; URL unchanged.
+- Graphs: populated CUMULATIVE MECHANICAL ENERGY marker; URL unchanged.
+- Quality: populated POINT QUALITY marker; URL unchanged.
+- Related: populated CURRENT TRACK marker; URL unchanged.
+- Events: populated 1 BREAK marker; URL unchanged.
+
+Pass 2
+- All five tabs exposed the same populated markers again.
+- The direct track URL remained unchanged for every tab.
+
+Network audit
+- Initial detail loads finished by 2026-08-13T20:23:20.316Z.
+- From 2026-08-13T20:23:21Z through the end of both cycles, server logs contained zero matching requests for get/100000, related/100000, or 100000/chart-series.
+- This rules out a background detail/chart/related refetch loop during the exercised cycles.
+

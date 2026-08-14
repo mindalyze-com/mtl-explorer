@@ -1,5 +1,10 @@
 import axios, { type AxiosInstance, type AxiosRequestConfig } from 'axios';
-import { getAuthHeaderValue, redirectToLoginAfterAuthFailure } from '@/utils/auth';
+import {
+  getAuthHeaderValue,
+  isAuthenticationFailureStatus,
+  redirectToLoginAfterAuthFailure,
+  requestHadAuthHeader,
+} from '@/utils/auth';
 import { backendBaseUrl } from '@/utils/apiBase';
 import { logSanitizedError } from '@/utils/safeLogging';
 
@@ -17,8 +22,8 @@ import { logSanitizedError } from '@/utils/safeLogging';
  *   - The request interceptor stamps a fresh Authorization header on every
  *     call. Per-call headers were being captured at module import time in
  *     a few places, which would silently break after token refresh.
- *   - The response interceptor handles 401/403 the same way the global
- *     one does (clear token + redirect to /login). Shared behavior, one
+ *   - The response interceptor handles 401 the same way the global one
+ *     does (clear token + redirect to /login). Shared behavior, one
  *     place to change.
  *
  * The global axios instance still has its own interceptor (in `utils/auth.ts`)
@@ -30,17 +35,6 @@ export const apiClient: AxiosInstance = axios.create({
   baseURL: backendBaseUrl,
   withCredentials: true,
 });
-
-function requestHadAuthHeader(config: AxiosRequestConfig | undefined): boolean {
-  const headers = config?.headers;
-  if (!headers) return false;
-  const getHeader = (headers as { get?: (name: string) => unknown }).get;
-  if (typeof getHeader === 'function') {
-    return !!(getHeader.call(headers, 'Authorization') || getHeader.call(headers, 'authorization'));
-  }
-  const record = headers as Record<string, unknown>;
-  return !!(record.Authorization || record.authorization);
-}
 
 apiClient.interceptors.request.use((config) => {
   // Stamp on every request so token rotation is picked up automatically.
@@ -58,7 +52,7 @@ apiClient.interceptors.response.use(
     if (!error.response && !axios.isCancel(error)) {
       logSanitizedError('🚨 [Network Drop] apiClient request failed without a server response', error);
     }
-    if (error.response && (error.response.status === 401 || error.response.status === 403)) {
+    if (error.response && isAuthenticationFailureStatus(error.response.status)) {
       const url: string = error.config?.url ?? '';
       // Don't redirect if the failed request was the login call itself
       if (!url.includes('/api/auth/login')) {

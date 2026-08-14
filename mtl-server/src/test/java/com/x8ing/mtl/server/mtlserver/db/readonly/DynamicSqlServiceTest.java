@@ -2,13 +2,48 @@ package com.x8ing.mtl.server.mtlserver.db.readonly;
 
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
+import org.springframework.jdbc.core.ResultSetExtractor;
+import org.springframework.jdbc.core.namedparam.SqlParameterSource;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 @Slf4j
 class DynamicSqlServiceTest {
+
+    @Test
+    void recordsGrpColumnPresenceEvenWhenItsValueIsNull() throws Exception {
+        NamedParameterJdbcTemplate jdbcTemplate = mock(NamedParameterJdbcTemplate.class);
+        ResultSet resultSet = mock(ResultSet.class);
+        ResultSetMetaData metadata = mock(ResultSetMetaData.class);
+        when(resultSet.getMetaData()).thenReturn(metadata);
+        when(metadata.getColumnCount()).thenReturn(2);
+        when(metadata.getColumnName(1)).thenReturn("id");
+        when(metadata.getColumnName(2)).thenReturn("grp");
+        when(resultSet.next()).thenReturn(true, false);
+        when(resultSet.getLong("id")).thenReturn(7L);
+        when(resultSet.getString("grp")).thenReturn(null);
+        when(jdbcTemplate.query(anyString(), any(SqlParameterSource.class), any(ResultSetExtractor.class)))
+                .thenAnswer(invocation -> {
+                    ResultSetExtractor<?> extractor = invocation.getArgument(2);
+                    return extractor.extractData(resultSet);
+                });
+
+        var result = new DynamicSqlService(jdbcTemplate, mock(com.x8ing.mtl.server.mtlserver.db.repository.gps.GpsTrackRepository.class))
+                .executeDynamicSqlReadOnly("select id, null as grp from gps_track");
+
+        assertTrue(result.isGroupingAvailable());
+        assertEquals(1, result.getResultEntries().size());
+        assertNull(result.getResultEntries().getFirst().getGroup());
+    }
 
     @Test
     void getNamedParamsForSQL1() {

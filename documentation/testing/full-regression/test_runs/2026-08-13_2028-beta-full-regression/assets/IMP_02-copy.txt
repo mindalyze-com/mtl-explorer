@@ -1,0 +1,15 @@
+IMP_02 watched-folder copy
+
+Source: /root/mtl-full-regression-2026-08-13_2028-beta-full-regression/test-data/public
+Destination: /root/mtl-full-regression-2026-08-13_2028-beta-full-regression/data/gpx
+Before count: 0 files
+After count: 5 files
+Copy duration: 6 ms
+
+fcff577bd3c1a6dc2bb9e53abba8051d510d282f4fb0049d38be5300f92e354e  JuraRoute72011.gpx
+0f5263dee95a345a42585bde148ec741af4ed4eeb7451702f59c9c7f9bf761c3  MoselradwegAusWiki.gpx
+401218e3c1d1f366ee27ea8bc138d8422eff3bf6348a77183be83fef3e8d7d67  Vitry-le-Francois_Langres.gpx
+0f417d6e76cfa581d3ada969e728694933fbffd062f61a8352ccc87637135f78  VoieVerteHauteVosges.gpx
+e76c692cbb5580f20013ce19995a9383361a8a0babec2db3e36f7064f316e85f  Lannion_Plestin_parcours24.4RE.gpx
+
+All destination checksums match the staged public-source checksums.

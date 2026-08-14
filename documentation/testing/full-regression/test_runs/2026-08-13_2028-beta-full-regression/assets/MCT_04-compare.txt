@@ -1,0 +1,13 @@
+Segment comparison, A-A segment, Distance x-axis
+
+Selected tracks: 5 of 7.
+Visible handling: "3 of 5 selected tracks don't cross this segment and were skipped."
+Comparable tracks: source GPX #100004 and GDB variant.
+Both cards reported 00:04:09, 1.6 km/h, 109.89 m, and 2,421 W.
+Local map displayed the measured segment at Lannion around zone A.
+Accessible chart summary:
+- Speed: line chart with 2 lines.
+- Altitude: line chart with 2 lines; local range 7.73 to 7.90 m.
+
+Missing-segment tracks were skipped explicitly and did not prevent the map,
+cards, or charts from rendering.

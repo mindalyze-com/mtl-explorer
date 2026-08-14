@@ -1,0 +1,24 @@
+Coverage ID: FLT_10
+
+Main activity groups
+- Selected view: Activities by type.
+- Available groups: CYCLING 11 and ON_FOOT 1.
+- Cleared selection, selected ON_FOOT, and applied.
+- Current result and map: 1 matching track / 1 of 12.
+- Legend: ON_FOOT 1.
+- Included categories summary: 1 of 2 categories.
+
+Exact activity types
+- Catalog audit found 18 GPS-track views. The only activity grouping views are Activities by type and Activities by keyword.
+- Activities by type groups Bicycle/Mountain biking as CYCLING and Walking/Hiking/Running as ON_FOOT.
+- Activities by keyword resolves through ActivitiesByMainTypes and also exposes only CYCLING and ON_FOOT.
+- Its Included categories rows were CYCLING 11 and ON_FOOT 1, not Bicycle 11 and Walking 1.
+- No result-category view offers Walking, Hiking, or the other exact activity types.
+- This was confirmed by read-only filter_config inspection of the disposable database; no exact-activity result filter exists.
+
+Issue
+- FLT-10-P2: filter result categories cannot select exact activity types. Walking and Hiking are merged into ON_FOOT, so their labels/counts cannot be independently selected or checked.
+
+Restored state
+- Activities by keyword with all two main categories and all 12 tracks.
+
