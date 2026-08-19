@@ -3,12 +3,12 @@ import { createPinia, setActivePinia } from 'pinia';
 import type { DataFreshnessResponseDto } from '@/utils/serverAdminApi';
 import { getDataFreshness } from '@/utils/serverAdminApi';
 import {
+  getDataFreshnessSnoozedUntil,
   getAppliedDataFreshnessToken,
-  getDismissedDataFreshness,
+  setDataFreshnessSnooze,
   setAppliedDataFreshnessToken,
-  setDismissedDataFreshness,
 } from '@/utils/dataFreshnessStorage';
-import { DATA_FRESHNESS_DISMISS_MS, useDataFreshnessStore } from '@/stores/dataFreshnessStore';
+import { DATA_FRESHNESS_SNOOZE_MS, useDataFreshnessStore } from '@/stores/dataFreshnessStore';
 
 vi.mock('@/utils/serverAdminApi', () => ({
   getDataFreshness: vi.fn(),
@@ -35,30 +35,29 @@ describe('useDataFreshnessStore', () => {
     vi.useRealTimers();
   });
 
-  it('hydrates applied and dismissed tokens from localStorage', () => {
+  it('hydrates the applied token and snooze timestamp from localStorage', () => {
     setAppliedDataFreshnessToken('client-token');
-    setDismissedDataFreshness('server-token', 30_000, Date.now());
+    const snoozedUntil = setDataFreshnessSnooze(30_000, Date.now());
 
     const store = useDataFreshnessStore();
 
     expect(store.appliedToken).toBe('client-token');
-    expect(store.dismissedToken).toBe('server-token');
-    expect(store.dismissedExpiresAt).toBeGreaterThan(Date.now());
+    expect(store.snoozedUntil).toBe(snoozedUntil);
   });
 
-  it('marks a token as applied and clears any stale dismissal', () => {
-    setDismissedDataFreshness('old-server-token', 30_000, Date.now());
+  it('marks a token as applied without cancelling an active snooze', () => {
+    const snoozedUntil = setDataFreshnessSnooze(30_000, Date.now());
     const store = useDataFreshnessStore();
 
     store.markAppliedToken('server-token');
 
     expect(store.appliedToken).toBe('server-token');
     expect(getAppliedDataFreshnessToken()).toBe('server-token');
-    expect(store.dismissedToken).toBeNull();
-    expect(getDismissedDataFreshness()).toBeNull();
+    expect(store.snoozedUntil).toBe(snoozedUntil);
+    expect(getDataFreshnessSnoozedUntil()).toBe(snoozedUntil);
   });
 
-  it('keeps banner visibility tied to server, applied, dismissed, and reload state', () => {
+  it('shows the banner only when data is stale and the snooze has expired', () => {
     vi.useFakeTimers();
     vi.setSystemTime(1_000);
     const store = useDataFreshnessStore();
@@ -68,7 +67,7 @@ describe('useDataFreshnessStore', () => {
     expect(store.shouldShowBanner(false)).toBe(false);
     expect(store.shouldShowBanner(true)).toBe(true);
 
-    store.dismissToken('server-token', 1_000, 1_000);
+    store.snooze(1_000, 1_000);
     expect(store.shouldShowBanner(true)).toBe(false);
 
     store.setReloading(true);
@@ -76,28 +75,32 @@ describe('useDataFreshnessStore', () => {
     store.setReloading(false);
 
     vi.advanceTimersByTime(1_000);
-    expect(store.dismissedToken).toBeNull();
+    expect(store.snoozedUntil).toBe(0);
     expect(store.shouldShowBanner(true)).toBe(true);
   });
 
-  it('snoozes freshness banners even when the server token advances before expiry', () => {
+  it('keeps one fixed snooze deadline while the server token changes repeatedly', () => {
     vi.useFakeTimers();
     vi.setSystemTime(1_000);
     const store = useDataFreshnessStore();
     store.currentFreshness = freshness('server-token-1');
     store.markAppliedToken('client-token');
 
-    store.dismissToken('server-token-1', 1_000, 1_000);
+    store.snooze(1_000, 1_000);
+    const snoozedUntil = store.snoozedUntil;
     store.currentFreshness = freshness('server-token-2');
+    store.currentFreshness = freshness('server-token-3');
+    store.currentFreshness = freshness('server-token-4');
 
     expect(store.shouldShowBanner(true)).toBe(false);
+    expect(store.snoozedUntil).toBe(snoozedUntil);
 
     vi.advanceTimersByTime(1_000);
     expect(store.shouldShowBanner(true)).toBe(true);
   });
 
   it('uses a five-minute freshness banner snooze by default', () => {
-    expect(DATA_FRESHNESS_DISMISS_MS).toBe(5 * 60 * 1000);
+    expect(DATA_FRESHNESS_SNOOZE_MS).toBe(5 * 60 * 1000);
   });
 
   it('clears the applied token through the store', () => {
@@ -120,5 +123,23 @@ describe('useDataFreshnessStore', () => {
     expect(store.serverFreshnessToken).toBe('server-token');
     expect(store.lastChecked).not.toBe('');
     expect(store.isFreshnessPollingHealthy).toBe(true);
+  });
+
+  it('coalesces concurrent freshness refreshes into one server request', async () => {
+    let resolveFreshness!: (value: DataFreshnessResponseDto) => void;
+    getDataFreshnessMock.mockReturnValueOnce(
+      new Promise<DataFreshnessResponseDto>((resolve) => {
+        resolveFreshness = resolve;
+      })
+    );
+    const store = useDataFreshnessStore();
+
+    const firstRefresh = store.refresh();
+    const secondRefresh = store.refresh();
+    resolveFreshness(freshness('server-token'));
+
+    await expect(firstRefresh).resolves.toMatchObject({ freshnessToken: 'server-token' });
+    await expect(secondRefresh).resolves.toMatchObject({ freshnessToken: 'server-token' });
+    expect(getDataFreshnessMock).toHaveBeenCalledTimes(1);
   });
 });

@@ -1,15 +1,16 @@
 import {
-  LocationSearchControllerApi,
   MapConfigDtoTileModeEnum,
   MapServerStatusControllerApi,
-  PlannerControllerApi,
   type LocationSearchStatusDto,
   type MapConfigDto,
   type MapServerStatusDto,
   type VersionInfoDto,
 } from 'x8ing-mtl-api-typescript-fetch';
 import type { SidecarStatus } from '@/planner/types';
+import { fetchSidecarStatus } from '@/planner/repositories/plannerRepository';
 import { getApiConfiguration } from '@/utils/openApiClient';
+import { fetchLocationSearchStatus } from '@/utils/locationSearchStatusService';
+import { fetchMapStatus } from '@/utils/mapStatusService';
 
 export type AdminOperationalTaskState = 'running' | 'done' | 'warning' | 'disabled';
 
@@ -44,14 +45,15 @@ const STATUS_ERROR = 'error';
 const MAP_PHASE_DOWNLOADING = 'downloading';
 const BYTE_UNITS = ['B', 'KB', 'MB', 'GB', 'TB'];
 
-export async function getAdminOperationalTasks(): Promise<AdminOperationalTask[]> {
+export async function getAdminOperationalTasks(
+  options: { forceMapStatus?: boolean } = {}
+): Promise<AdminOperationalTask[]> {
   const mapApi = new MapServerStatusControllerApi(getApiConfiguration());
-  const locationSearchApi = new LocationSearchControllerApi(getApiConfiguration());
 
   const [mapConfigResult, mapStatusResult, locationSearchResult] = await Promise.allSettled([
     mapApi.getMapConfig(),
-    mapApi.getMapServerStatus(),
-    locationSearchApi.getStatus(),
+    fetchMapStatus({ force: options.forceMapStatus }),
+    fetchLocationSearchStatus(),
   ]);
 
   const mapConfig = fulfilledValue(mapConfigResult);
@@ -213,7 +215,7 @@ export function normalizeBRouterTask(status: SidecarStatus | null | undefined): 
 
 async function fetchPlannerStatus(): Promise<SidecarStatus> {
   try {
-    return await new PlannerControllerApi(getApiConfiguration()).status();
+    return await fetchSidecarStatus();
   } catch (error: unknown) {
     return {
       available: false,

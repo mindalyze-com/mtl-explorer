@@ -3,7 +3,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any -- Renderer setup still crosses broad MapLibre/runtime config shapes. */
 import { markRaw } from 'vue';
 import maplibregl from 'maplibre-gl';
-import { apiClient } from '@/utils/apiClient';
 import { fetchTrackIdsWithinDistanceOfPoint } from '@/utils/ServiceHelper';
 import { getToken, redirectToLoginAfterAuthFailure } from '@/utils/auth';
 import { MediaOverlay } from '@/layers/MediaOverlay';
@@ -14,8 +13,13 @@ import {
   mainTileArchiveUrl,
   lowzoomTileArchiveUrl,
   MapConfigDtoTileModeEnum,
-  MapConfigDtoTileSourceEnum,
 } from '@/utils/mapConfigService';
+import {
+  fetchMapStatus,
+  invalidateMapStatus,
+  MAP_STATUS_POLL_INTERVAL_MS,
+  shouldPollMapStatus,
+} from '@/utils/mapStatusService';
 import { buildLocalVectorStyleFromArchiveUrl, buildFallbackRasterStyle, TERRAIN_DEM_SOURCE_ID } from '@/utils/mapStyle';
 import { GlobeControl, computeGlobeMinZoom } from '@/components/map/GlobeControl';
 import { TerrainViewControl } from '@/components/map/TerrainViewControl';
@@ -41,8 +45,6 @@ const DEFAULT_MAP_ZOOM = 10;
 const INITIAL_TRACK_BOUNDS_PADDING = 48;
 const INITIAL_TRACK_BOUNDS_MAX_ZOOM = 13;
 const TRACK_DETAILS_MAP_DETENT = 'compact';
-const MAP_STATUS_POLL_INTERVAL_MS = 5000;
-const MAP_STATUS_POLL_TIMEOUT_MS = 8000;
 const LOCAL_VECTOR_STYLE_MODE = 'local-vector';
 const LOCAL_VECTOR_SOURCE_ID = 'protomaps';
 const MAPTERHORN_ATTRIBUTION_PATTERN = /mapterhorn/i;
@@ -86,28 +88,35 @@ export function useMapRendererLifecycle(deps: {
   const { mapSettingsStore } = deps;
   let mapStatusPollingActive = false;
   let mapStatusPollGeneration = 0;
+  let mapStatusPollNow: ((force?: boolean) => void) | null = null;
+  let mapStatusVisibilityHandler: (() => void) | null = null;
   const methods: MapControllerMethodDefinitions<MapRendererLifecycleMethods> = {
     startMapStatusPolling() {
       this.stopMapStatusPolling();
       mapStatusPollingActive = true;
-      const pollGeneration = ++mapStatusPollGeneration;
-      const poll = async () => {
+      const poll = async (pollGeneration, force = false) => {
         if (!mapStatusPollingActive || pollGeneration !== mapStatusPollGeneration) return;
         try {
-          const resp = await apiClient.get(`api/map/status`, {
-            timeout: MAP_STATUS_POLL_TIMEOUT_MS,
-          });
+          const status = await fetchMapStatus({ force });
+          if (!mapStatusPollingActive || pollGeneration !== mapStatusPollGeneration) return;
           const previousStatus = this.mapServerStatus;
           const wasReady = previousStatus?.ready;
           const previousSource = previousStatus?.tileSource;
-          const previousArchive = previousStatus?.archive_id;
-          this.mapServerStatus = resp.data;
+          const previousArchive = previousStatus?.archiveId;
+          this.mapServerStatus = status;
           const currentSource = this.mapServerStatus?.tileSource;
-          const currentArchive = this.mapServerStatus?.archive_id;
+          const currentArchive = this.mapServerStatus?.archiveId;
           const archiveChanged =
             Boolean(previousStatus) && (previousSource !== currentSource || previousArchive !== currentArchive);
           if (this.mapServerStatus?.ready) {
-            if (currentSource !== MapConfigDtoTileSourceEnum.Public) {
+            if (
+              !shouldPollMapStatus({
+                tileMode: this.mapConfig?.tileMode,
+                offline: this.mapConfig?.offline,
+                remoteRasterOverride: this.mapSourceMode === 'remote',
+                status: this.mapServerStatus,
+              })
+            ) {
               this.stopMapStatusPolling();
             }
             // Tiles just became ready, or the byte layout/source changed — rebuild
@@ -121,20 +130,51 @@ export function useMapRendererLifecycle(deps: {
           // ignore polling errors silently
         } finally {
           if (mapStatusPollingActive && pollGeneration === mapStatusPollGeneration) {
-            this.mapStatusPollTimer = setTimeout(poll, MAP_STATUS_POLL_INTERVAL_MS);
+            this.mapStatusPollTimer = setTimeout(() => mapStatusPollNow?.(), MAP_STATUS_POLL_INTERVAL_MS);
           }
         }
       };
-      poll();
+
+      mapStatusPollNow = (force = false) => {
+        if (!mapStatusPollingActive || document.visibilityState === 'hidden') return;
+        if (this.mapStatusPollTimer !== null) {
+          clearTimeout(this.mapStatusPollTimer);
+          this.mapStatusPollTimer = null;
+        }
+        const pollGeneration = ++mapStatusPollGeneration;
+        void poll(pollGeneration, force);
+      };
+      mapStatusVisibilityHandler = () => {
+        if (document.visibilityState === 'hidden') {
+          mapStatusPollGeneration += 1;
+          if (this.mapStatusPollTimer !== null) {
+            clearTimeout(this.mapStatusPollTimer);
+            this.mapStatusPollTimer = null;
+          }
+          return;
+        }
+        mapStatusPollNow?.();
+      };
+      document.addEventListener('visibilitychange', mapStatusVisibilityHandler);
+      mapStatusPollNow();
+    },
+
+    refreshMapStatusPolling(force = false) {
+      mapStatusPollNow?.(force);
     },
 
     stopMapStatusPolling() {
       mapStatusPollingActive = false;
       mapStatusPollGeneration += 1;
-      if (this.mapStatusPollTimer) {
+      if (this.mapStatusPollTimer !== null) {
         clearTimeout(this.mapStatusPollTimer);
         this.mapStatusPollTimer = null;
       }
+      if (mapStatusVisibilityHandler) {
+        document.removeEventListener('visibilitychange', mapStatusVisibilityHandler);
+        mapStatusVisibilityHandler = null;
+      }
+      mapStatusPollNow = null;
     },
 
     disposeRendererMaps() {
@@ -235,6 +275,7 @@ export function useMapRendererLifecycle(deps: {
         startupWarn('mapcache', 'PMTiles archive/source changed; reloading map config', event?.detail ?? {});
         this.stopMapStatusPolling();
         this.mapServerStatus = null;
+        invalidateMapStatus();
         clearMapConfigCache();
         await this.reloadMap();
       } catch (error) {
@@ -371,7 +412,11 @@ export function useMapRendererLifecycle(deps: {
       }
       startupLog('mapinit', 'PMTiles protocol ready');
       const remoteRasterOverride = this.mapSourceMode === 'remote';
-      if (remoteRasterOverride) {
+      if (
+        this.mapConfig.offline ||
+        remoteRasterOverride ||
+        this.mapConfig.tileMode !== MapConfigDtoTileModeEnum.Local
+      ) {
         this.stopMapStatusPolling();
         this.mapServerStatus = null;
       }
@@ -386,15 +431,13 @@ export function useMapRendererLifecycle(deps: {
       ) {
         const statusTimer = startStartupTimer('mapstatus', 'Probing map server status');
         try {
-          const resp = await apiClient.get(`api/map/status`, {
-            timeout: 5000,
-          });
-          this.mapServerStatus = resp.data;
+          const status = await fetchMapStatus();
+          this.mapServerStatus = status;
           statusTimer.success('Map server status received', {
-            phase: resp.data?.phase,
-            ready: resp.data?.ready,
-            tileSource: resp.data?.tileSource,
-            archiveId: resp.data?.archive_id,
+            phase: status.phase,
+            ready: status.ready,
+            tileSource: status.tileSource,
+            archiveId: status.archiveId,
           });
         } catch (error) {
           statusTimer.warn('Map server status probe failed', describeError(error));
@@ -449,7 +492,7 @@ export function useMapRendererLifecycle(deps: {
         offline: this.mapConfig.offline ?? false,
         mapServerReady: this.mapServerStatus?.ready ?? null,
         tileSource: this.mapServerStatus?.tileSource ?? this.mapConfig.tileSource ?? null,
-        archiveId: this.mapServerStatus?.archive_id ?? this.mapConfig.archiveId ?? null,
+        archiveId: this.mapServerStatus?.archiveId ?? this.mapConfig.archiveId ?? null,
       });
       this.baseMapStyleMode = styleMode;
       this.baseMapRuntimeFallbackApplied = false;
@@ -754,19 +797,29 @@ export function useMapRendererLifecycle(deps: {
       if (!this.mapConfig.offline && this.mapConfig.tileMode === MapConfigDtoTileModeEnum.Local) {
         if (remoteRasterOverride) {
           startupLog('mapstatus', 'Skipping local map status polling because remote raster source is selected');
-        } else if (this.mapServerStatus?.ready) {
-          ensureLowZoomCached(lowzoomTileArchiveUrl(this.mapConfig)).catch((e) => {
-            startupWarn('mapcache', 'Low-zoom cache warmup failed', describeError(e));
-            console.warn('Low-zoom cache failed:', e);
-          });
-          if (this.mapServerStatus?.tileSource === MapConfigDtoTileSourceEnum.Public) {
-            startupLog('mapstatus', 'Hosted map service active; polling for local sidecar availability');
+        } else {
+          if (this.mapServerStatus?.ready) {
+            ensureLowZoomCached(lowzoomTileArchiveUrl(this.mapConfig)).catch((e) => {
+              startupWarn('mapcache', 'Low-zoom cache warmup failed', describeError(e));
+              console.warn('Low-zoom cache failed:', e);
+            });
+          }
+          if (
+            shouldPollMapStatus({
+              tileMode: this.mapConfig.tileMode,
+              offline: this.mapConfig.offline,
+              remoteRasterOverride,
+              status: this.mapServerStatus,
+            })
+          ) {
+            startupLog(
+              'mapstatus',
+              this.mapServerStatus?.ready
+                ? 'Hosted map service active; polling for local sidecar availability'
+                : 'Starting map-status polling until local tiles are ready'
+            );
             this.startMapStatusPolling();
           }
-        } else {
-          startupLog('mapstatus', 'Starting map-status polling until local tiles are ready');
-          // Planet file not yet ready — poll and auto-switch to vector when complete
-          this.startMapStatusPolling();
         }
       }
     },

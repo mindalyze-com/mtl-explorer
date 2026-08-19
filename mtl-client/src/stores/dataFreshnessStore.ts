@@ -3,41 +3,49 @@ import { computed, ref, shallowRef } from 'vue';
 import { getDataFreshness, type DataFreshnessResponseDto } from '@/utils/serverAdminApi';
 import {
   clearAppliedDataFreshnessToken,
-  clearDismissedDataFreshness,
+  clearDataFreshnessSnooze,
   getAppliedDataFreshnessToken,
-  getDismissedDataFreshness,
+  getDataFreshnessSnoozedUntil,
   setAppliedDataFreshnessToken,
-  setDismissedDataFreshness,
+  setDataFreshnessSnooze,
 } from '@/utils/dataFreshnessStorage';
 
 const MILLISECONDS_PER_MINUTE = 60 * 1000;
-const DATA_FRESHNESS_DISMISS_MINUTES = 5;
-export const DATA_FRESHNESS_DISMISS_MS = DATA_FRESHNESS_DISMISS_MINUTES * MILLISECONDS_PER_MINUTE;
+const DATA_FRESHNESS_SNOOZE_MINUTES = 5;
+export const DATA_FRESHNESS_SNOOZE_MS = DATA_FRESHNESS_SNOOZE_MINUTES * MILLISECONDS_PER_MINUTE;
 
 export const useDataFreshnessStore = defineStore('dataFreshness', () => {
   const currentFreshness = shallowRef<DataFreshnessResponseDto | null>(null);
   const lastChecked = ref('');
   const isFreshnessPollingHealthy = ref(true);
   const appliedToken = ref(getAppliedDataFreshnessToken() ?? '');
-  const dismissedToken = ref<string | null>(null);
-  const dismissedExpiresAt = ref(0);
+  const snoozedUntil = ref(0);
   const reloading = ref(false);
 
-  let dismissTimer: ReturnType<typeof setTimeout> | null = null;
+  let snoozeTimer: ReturnType<typeof setTimeout> | null = null;
   let pollWarnShown = false;
+  let refreshInFlight: Promise<DataFreshnessResponseDto | null> | null = null;
 
   const serverFreshnessToken = computed(() => currentFreshness.value?.freshnessToken ?? '');
   const isOutOfSync = computed(() =>
     Boolean(serverFreshnessToken.value && appliedToken.value && serverFreshnessToken.value !== appliedToken.value)
   );
-  const activeDismissedToken = computed(() => (dismissedExpiresAt.value > Date.now() ? dismissedToken.value : null));
 
   function hydrateFromStorage(): void {
     appliedToken.value = getAppliedDataFreshnessToken() ?? '';
-    hydrateDismissal();
+    hydrateSnooze();
   }
 
-  async function refresh(): Promise<DataFreshnessResponseDto | null> {
+  function refresh(): Promise<DataFreshnessResponseDto | null> {
+    if (refreshInFlight) return refreshInFlight;
+
+    refreshInFlight = performRefresh().finally(() => {
+      refreshInFlight = null;
+    });
+    return refreshInFlight;
+  }
+
+  async function performRefresh(): Promise<DataFreshnessResponseDto | null> {
     try {
       const data = await getDataFreshness();
       currentFreshness.value = data;
@@ -58,11 +66,12 @@ export const useDataFreshnessStore = defineStore('dataFreshness', () => {
     }
   }
 
+  // Applying data and snoozing the warning are independent. Background syncs must not
+  // cancel the user's time-based snooze.
   function markAppliedToken(token: string): void {
     if (!token) return;
     setAppliedDataFreshnessToken(token);
     appliedToken.value = token;
-    clearDismissal();
   }
 
   function clearAppliedToken(): void {
@@ -70,32 +79,20 @@ export const useDataFreshnessStore = defineStore('dataFreshness', () => {
     appliedToken.value = '';
   }
 
-  function dismissToken(token: string, durationMs = DATA_FRESHNESS_DISMISS_MS, nowMs = Date.now()): void {
-    const dismissed = setDismissedDataFreshness(token, durationMs, nowMs);
-    if (!dismissed) {
-      dismissedToken.value = null;
-      dismissedExpiresAt.value = 0;
-      clearDismissTimer();
-      return;
-    }
-
-    dismissedToken.value = dismissed.token;
-    dismissedExpiresAt.value = dismissed.expiresAt;
-    scheduleDismissTimer();
+  function snooze(durationMs = DATA_FRESHNESS_SNOOZE_MS, nowMs = Date.now()): void {
+    snoozedUntil.value = setDataFreshnessSnooze(durationMs, nowMs);
+    scheduleSnoozeTimer();
   }
 
-  function hydrateDismissal(nowMs = Date.now()): void {
-    const dismissed = getDismissedDataFreshness(nowMs);
-    dismissedToken.value = dismissed?.token ?? null;
-    dismissedExpiresAt.value = dismissed?.expiresAt ?? 0;
-    scheduleDismissTimer();
+  function hydrateSnooze(nowMs = Date.now()): void {
+    snoozedUntil.value = getDataFreshnessSnoozedUntil(nowMs);
+    scheduleSnoozeTimer();
   }
 
-  function clearDismissal(): void {
-    clearDismissedDataFreshness();
-    dismissedToken.value = null;
-    dismissedExpiresAt.value = 0;
-    clearDismissTimer();
+  function clearSnooze(): void {
+    clearDataFreshnessSnooze();
+    snoozedUntil.value = 0;
+    clearSnoozeTimer();
   }
 
   function setReloading(value: boolean): void {
@@ -105,32 +102,31 @@ export const useDataFreshnessStore = defineStore('dataFreshness', () => {
   function shouldShowBanner(initialLoadDone: boolean, suppressForAutoFreshen = false): boolean {
     if (!initialLoadDone || reloading.value || suppressForAutoFreshen) return false;
     if (!isOutOfSync.value) return false;
-    return activeDismissedToken.value === null;
+    return snoozedUntil.value <= Date.now();
   }
 
-  function scheduleDismissTimer(): void {
-    clearDismissTimer();
-    const token = dismissedToken.value;
-    const expiresAt = dismissedExpiresAt.value;
-    if (!token || !Number.isFinite(expiresAt)) return;
+  function scheduleSnoozeTimer(): void {
+    clearSnoozeTimer();
+    const expiresAt = snoozedUntil.value;
+    if (!Number.isFinite(expiresAt) || expiresAt <= 0) return;
 
     const delayMs = expiresAt - Date.now();
     if (delayMs <= 0) {
-      clearDismissal();
+      clearSnooze();
       return;
     }
 
-    dismissTimer = setTimeout(() => {
-      if (dismissedToken.value === token && dismissedExpiresAt.value === expiresAt) {
-        clearDismissal();
+    snoozeTimer = setTimeout(() => {
+      if (snoozedUntil.value === expiresAt) {
+        clearSnooze();
       }
     }, delayMs);
   }
 
-  function clearDismissTimer(): void {
-    if (dismissTimer === null) return;
-    clearTimeout(dismissTimer);
-    dismissTimer = null;
+  function clearSnoozeTimer(): void {
+    if (snoozeTimer === null) return;
+    clearTimeout(snoozeTimer);
+    snoozeTimer = null;
   }
 
   hydrateFromStorage();
@@ -141,18 +137,16 @@ export const useDataFreshnessStore = defineStore('dataFreshness', () => {
     lastChecked,
     isFreshnessPollingHealthy,
     appliedToken,
-    dismissedToken,
-    dismissedExpiresAt,
+    snoozedUntil,
     reloading,
     isOutOfSync,
-    activeDismissedToken,
     hydrateFromStorage,
     refresh,
     markAppliedToken,
     clearAppliedToken,
-    dismissToken,
-    hydrateDismissal,
-    clearDismissal,
+    snooze,
+    hydrateSnooze,
+    clearSnooze,
     setReloading,
     shouldShowBanner,
   };

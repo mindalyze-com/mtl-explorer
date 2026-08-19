@@ -1,3 +1,5 @@
+import { STATUS_POLL_INTERVAL_MS } from '@/utils/statusPolling';
+
 /**
  * Central constants for the planner feature. No magic numbers may appear anywhere
  * else in `src/planner/` — if you need a new threshold, add it here with a
@@ -50,7 +52,7 @@ export const TOUCH_SYNTHETIC_CLICK_SUPPRESSION_MS = 1_200;
 export const SYNTHETIC_CLICK_SUPPRESSION_RADIUS_PX = 24;
 
 /** Status-poll interval for the BRouter sidecar status endpoint. */
-export const SIDECAR_STATUS_POLL_MS = 5_000;
+export const SIDECAR_STATUS_POLL_MS = STATUS_POLL_INTERVAL_MS;
 
 /** Minimum elevation delta to count as ascent/descent when deriving stats from saved planner geometry. */
 export const MIN_ELEVATION_DELTA_M = 2.0;

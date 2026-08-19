@@ -655,7 +655,10 @@ export function useMainMapController(
       startupError('map', 'Initial map reload failed', describeError(error));
       throw error;
     }
-    this._onOnline = markRaw(() => this.onBrowserOnline());
+    this._onOnline = markRaw(() => {
+      this.onBrowserOnline();
+      this.refreshMapStatusPolling(true);
+    });
     window.addEventListener('online', this._onOnline);
   }
 

@@ -182,13 +182,13 @@
           }}</span>
         </div>
         <div
-          v-if="mapServerStatus.phase === 'downloading' && mapServerStatus.download_total > 0"
+          v-if="mapServerStatus.phase === 'downloading' && (mapServerStatus.downloadTotal ?? 0) > 0"
           class="mtl-map-downloading-progress"
         >
           <div class="mtl-map-downloading-bar-track">
-            <div class="mtl-map-downloading-bar-fill" :style="{ width: mapServerStatus.download_pct + '%' }"></div>
+            <div class="mtl-map-downloading-bar-fill" :style="{ width: mapServerStatus.downloadPct + '%' }"></div>
           </div>
-          <span class="mtl-map-downloading-pct">{{ mapServerStatus.download_pct }}%</span>
+          <span class="mtl-map-downloading-pct">{{ mapServerStatus.downloadPct }}%</span>
         </div>
         <div v-if="mapServerStatus.message" class="mtl-map-downloading-msg">{{ mapServerStatus.message }}</div>
       </div>
@@ -218,7 +218,7 @@
               type="button"
               class="mtl-data-freshness__btn"
               :disabled="freshnessReloading"
-              @click="onDataFreshnessDismiss(serverFreshnessToken)"
+              @click="onDataFreshnessDismiss"
             >
               Dismiss
             </button>
@@ -615,7 +615,6 @@ const {
   mediaNavLoading,
   mediaNavScope,
   isOffline,
-  serverFreshnessToken,
   freshnessReloading,
   geoDrawingParamDef,
   selectionPopupTracks,

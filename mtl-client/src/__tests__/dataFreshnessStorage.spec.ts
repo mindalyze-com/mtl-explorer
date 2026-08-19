@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import {
-  clearDismissedDataFreshness,
-  getDismissedDataFreshness,
-  setDismissedDataFreshness,
+  clearDataFreshnessSnooze,
+  getDataFreshnessSnoozedUntil,
+  setDataFreshnessSnooze,
 } from '@/utils/dataFreshnessStorage';
 
 describe('dataFreshnessStorage', () => {
@@ -10,26 +10,26 @@ describe('dataFreshnessStorage', () => {
     localStorage.clear();
   });
 
-  it('keeps a dismissed freshness token until its expiry', () => {
-    const dismissed = setDismissedDataFreshness('server-token-1', 30_000, 1_000);
+  it('keeps one snooze timestamp until its expiry', () => {
+    const snoozedUntil = setDataFreshnessSnooze(30_000, 1_000);
 
-    expect(dismissed).toEqual({ token: 'server-token-1', expiresAt: 31_000 });
-    expect(getDismissedDataFreshness(30_999)).toEqual(dismissed);
-    expect(getDismissedDataFreshness(31_000)).toBeNull();
+    expect(snoozedUntil).toBe(31_000);
+    expect(getDataFreshnessSnoozedUntil(30_999)).toBe(snoozedUntil);
+    expect(getDataFreshnessSnoozedUntil(31_000)).toBe(0);
   });
 
-  it('clears dismissed freshness state on invalid input', () => {
-    setDismissedDataFreshness('server-token-1', 30_000, 1_000);
+  it('clears the snooze timestamp on invalid input', () => {
+    setDataFreshnessSnooze(30_000, 1_000);
 
-    expect(setDismissedDataFreshness('', 30_000, 2_000)).toBeNull();
-    expect(getDismissedDataFreshness(2_000)).toBeNull();
+    expect(setDataFreshnessSnooze(0, 2_000)).toBe(0);
+    expect(getDataFreshnessSnoozedUntil(2_000)).toBe(0);
   });
 
-  it('clears dismissed freshness state explicitly', () => {
-    setDismissedDataFreshness('server-token-1', 30_000, 1_000);
+  it('clears the snooze timestamp explicitly', () => {
+    setDataFreshnessSnooze(30_000, 1_000);
 
-    clearDismissedDataFreshness();
+    clearDataFreshnessSnooze();
 
-    expect(getDismissedDataFreshness(2_000)).toBeNull();
+    expect(getDataFreshnessSnoozedUntil(2_000)).toBe(0);
   });
 });

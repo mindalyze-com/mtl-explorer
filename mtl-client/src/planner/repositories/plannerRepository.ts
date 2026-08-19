@@ -12,6 +12,7 @@
  */
 import { apiClient } from '@/utils/apiClient';
 import { getApiConfiguration } from '@/utils/openApiClient';
+import { createStatusRequestService } from '@/utils/statusPolling';
 import { PlannerControllerApi } from 'x8ing-mtl-api-typescript-fetch';
 import type {
   PlannedTrackDetailDto,
@@ -38,6 +39,10 @@ const WHITESPACE_CHARS = /\s+/g;
 function getPlannerApi(): PlannerControllerApi {
   return new PlannerControllerApi(getApiConfiguration());
 }
+
+const plannerStatusRequests = createStatusRequestService<SidecarStatus>({
+  request: (signal) => getPlannerApi().status({ signal }),
+});
 
 export async function fetchPlannerConfig(): Promise<{
   profiles: string[];
@@ -71,7 +76,7 @@ export async function computeRoute(
 }
 
 export async function fetchSidecarStatus(): Promise<SidecarStatus> {
-  return getPlannerApi().status();
+  return plannerStatusRequests.fetch();
 }
 
 export interface SaveArgs {

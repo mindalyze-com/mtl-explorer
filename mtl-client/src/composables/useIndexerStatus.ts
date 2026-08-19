@@ -1,22 +1,21 @@
 import { storeToRefs } from 'pinia';
 import { onMounted, onUnmounted } from 'vue';
 import { useIndexerStatusStore } from '@/stores/indexerStatusStore';
+import { STATUS_POLL_INTERVAL_MS } from '@/utils/statusPolling';
 
 let consumerCount = 0;
-let fastPollingConsumerCount = 0;
+let visibleStatusConsumerCount = 0;
 let timerId: ReturnType<typeof setTimeout> | null = null;
 
-const POLL_INTERVAL_ACTIVE_MS = 5_000; // 5 s while indexing / jobs / operational tasks are active
-const POLL_INTERVAL_IDLE_MS = 60_000; // 60 s when nothing is happening
-const POLL_INTERVAL_VISIBLE_STATUS_MS = 1_000; // 1 s while a status surface is visible
+const POLL_INTERVAL_IDLE_MS = 60_000;
 
 function currentInterval() {
   const store = useIndexerStatusStore();
-  if (fastPollingConsumerCount > 0) {
-    return POLL_INTERVAL_VISIBLE_STATUS_MS;
+  if (visibleStatusConsumerCount > 0) {
+    return STATUS_POLL_INTERVAL_MS;
   }
   return store.isIndexing || store.isJobPending || store.isOperationalTaskActive
-    ? POLL_INTERVAL_ACTIVE_MS
+    ? STATUS_POLL_INTERVAL_MS
     : POLL_INTERVAL_IDLE_MS;
 }
 
@@ -74,8 +73,8 @@ export function useIndexerStatus() {
   function setFastPolling(enabled: boolean) {
     if (fastPollingEnabled === enabled) return;
     fastPollingEnabled = enabled;
-    fastPollingConsumerCount += enabled ? 1 : -1;
-    fastPollingConsumerCount = Math.max(0, fastPollingConsumerCount);
+    visibleStatusConsumerCount += enabled ? 1 : -1;
+    visibleStatusConsumerCount = Math.max(0, visibleStatusConsumerCount);
     rescheduleNext();
   }
 

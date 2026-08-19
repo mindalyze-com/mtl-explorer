@@ -127,6 +127,11 @@ public interface GpsTrackRepository extends JpaRepository<GpsTrack, Long> {
 
     List<GpsTrack> findByDuplicateStatus(GpsTrack.DUPLICATE_CHECK_STATUS duplicateCheckStatus);
 
+    /**
+     * Includes successful imports that are still waiting for duplicate detection so the
+     * initial map can follow a large import without running that memory-intensive job early.
+     * Confirmed duplicates and excluded tracks remain outside the visible bounds.
+     */
     @Query("""
             SELECT
                 MIN(t.bboxMinLng) AS minLng,
@@ -135,7 +140,10 @@ public interface GpsTrackRepository extends JpaRepository<GpsTrack, Long> {
                 MAX(t.bboxMaxLat) AS maxLat
             FROM GpsTrack t
             WHERE t.loadStatus = com.x8ing.mtl.server.mtlserver.db.entity.gps.GpsTrack.LOAD_STATUS.SUCCESS
-              AND t.duplicateStatus = com.x8ing.mtl.server.mtlserver.db.entity.gps.GpsTrack.DUPLICATE_CHECK_STATUS.UNIQUE
+              AND t.duplicateStatus IN (
+                  com.x8ing.mtl.server.mtlserver.db.entity.gps.GpsTrack.DUPLICATE_CHECK_STATUS.UNIQUE,
+                  com.x8ing.mtl.server.mtlserver.db.entity.gps.GpsTrack.DUPLICATE_CHECK_STATUS.NOT_CHECKED_YET
+              )
               AND t.trackSource = com.x8ing.mtl.server.mtlserver.db.entity.gps.GpsTrack.TRACK_SOURCE.IMPORTED
               AND t.bboxMinLat IS NOT NULL
               AND t.bboxMaxLat IS NOT NULL
@@ -390,7 +398,8 @@ public interface GpsTrackRepository extends JpaRepository<GpsTrack, Long> {
                     split_part(to_char(start_date, cast(:group_by_date_format AS text)), '-', 2) AS sub_group_col,
                     :group_by_date_format AS group_by_date_format
                 FROM gps_track_v gt
-                WHERE duplicate_status = 'UNIQUE'
+                -- Keep UI statistics aligned with SmartBaseFilter while duplicate detection waits for indexing.
+                WHERE duplicate_status IN ('UNIQUE', 'NOT_CHECKED_YET')
                     AND load_status = 'SUCCESS'
                     AND track_source = 'IMPORTED'
                     AND (cast(:filterIds AS bigint[]) IS NULL OR id = ANY(:filterIds))
@@ -664,24 +673,26 @@ public interface GpsTrackRepository extends JpaRepository<GpsTrack, Long> {
 
     @Query(nativeQuery = true, value = """
             select gt1.id from gps_track gt1 where 1=1
-               	and gt1.start_date is not null\s
-               	and gt1.duplicate_status='UNIQUE' and gt1.load_status='SUCCESS'
-               	and gt1.track_source='IMPORTED'
+                and gt1.start_date is not null
+                -- Keep time navigation aligned with the visible SmartBaseFilter result.
+                and gt1.duplicate_status IN ('UNIQUE', 'NOT_CHECKED_YET') and gt1.load_status='SUCCESS'
+                and gt1.track_source='IMPORTED'
                 and gt1.id = ANY(:filterIds)
-            	and gt1.start_date > (select gt2.start_date from gps_track gt2 where gt2.id = :id )\s
-            order by gt1.start_date asc\s
+                and gt1.start_date > (select gt2.start_date from gps_track gt2 where gt2.id = :id )
+            order by gt1.start_date asc
             limit 50
             """)
     List<Long> getRelatedTrackIdsNext(@Param("id") Long gpsTrackId, @Param("filterIds") Long[] filterIds);
 
     @Query(nativeQuery = true, value = """
             select gt1.id from gps_track gt1 where 1=1
-               	and gt1.start_date is not null\s
-               	and gt1.duplicate_status='UNIQUE' and gt1.load_status='SUCCESS'
-               	and gt1.track_source='IMPORTED'
+                and gt1.start_date is not null
+                -- Keep time navigation aligned with the visible SmartBaseFilter result.
+                and gt1.duplicate_status IN ('UNIQUE', 'NOT_CHECKED_YET') and gt1.load_status='SUCCESS'
+                and gt1.track_source='IMPORTED'
                 and gt1.id = ANY(:filterIds)
-            	and gt1.start_date < (select gt2.start_date from gps_track gt2 where gt2.id = :id )\s
-            order by gt1.start_date desc\s
+                and gt1.start_date < (select gt2.start_date from gps_track gt2 where gt2.id = :id )
+            order by gt1.start_date desc
             limit 50
             """)
     List<Long> getRelatedTrackIdsPrevious(@Param("id") Long gpsTrackId, @Param("filterIds") Long[] filterIds);

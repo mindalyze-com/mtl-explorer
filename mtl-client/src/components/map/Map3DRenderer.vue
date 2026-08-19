@@ -61,8 +61,8 @@ import TrackReplayControls from '@/components/replay/TrackReplayControls.vue';
 import ReplayTelemetryOverlay from '@/components/replay/ReplayTelemetryOverlay.vue';
 import { useMapStateStore } from '@/stores/mapStateStore';
 import { useMapSettingsStore } from '@/stores/mapSettingsStore';
-import { apiClient } from '@/utils/apiClient';
 import { fetchMapConfig, mainTileArchiveUrl, MapConfigDtoTileModeEnum, type MapConfig } from '@/utils/mapConfigService';
+import { fetchMapStatus } from '@/utils/mapStatusService';
 import { resolveConfiguredMapStyle } from '@/components/map/mapStyleResolver';
 import { registerCachingPMTilesArchive } from '@/utils/maplibrePmtilesProtocol';
 import { enableTerrainView, TERRAIN_TARGET_PITCH } from '@/components/map/terrainMode';
@@ -129,7 +129,6 @@ const CONTEXT_SOURCE_ID = 'map3d-context-tracks';
 const CONTEXT_LINE_LAYER_ID = 'map3d-context-tracks-line';
 const CONTEXT_DOT_LAYER_ID = 'map3d-context-tracks-dots';
 const MAP_LOAD_WATCHDOG_MS = 7000;
-const MAP_STATUS_TIMEOUT_MS = 5000;
 const DEFAULT_3D_ZOOM = 14;
 const CONTEXT_TRACK_OPACITY = 0.18;
 const MAP_NAVIGATION_CONTROL_OPTIONS = Object.freeze({ showCompass: true, showZoom: true, visualizePitch: true });
@@ -451,8 +450,8 @@ async function resolveLocalTilesReady(mapConfig: MapConfig): Promise<boolean> {
   if (mapConfig.tileMode !== MapConfigDtoTileModeEnum.Local) return true;
   if (mapConfig.offline) return false;
   try {
-    const resp = await apiClient.get('api/map/status', { timeout: MAP_STATUS_TIMEOUT_MS });
-    return resp.data?.ready === true;
+    const status = await fetchMapStatus();
+    return status.ready === true;
   } catch {
     return false;
   }

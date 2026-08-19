@@ -71,7 +71,7 @@
               :badges="sectionBadges"
               :refreshing="overviewRefreshing"
               @navigate="navigateTo"
-              @refresh="refreshOverview"
+              @refresh="refreshOverview(true)"
               @show-about="showAbout = true"
             />
             <AdminImportSyncSection
@@ -364,10 +364,15 @@ function resetContentScroll() {
   });
 }
 
-async function refreshOverview() {
+async function refreshOverview(forceMapStatus = false) {
   if (overviewRefreshing.value) return;
   overviewRefreshing.value = true;
-  await Promise.allSettled([refreshIndexerStatus(), dataFreshnessStore.refresh(), loadToolStatus(), loadServerBuild()]);
+  await Promise.allSettled([
+    refreshIndexerStatus({ forceMapStatus }),
+    dataFreshnessStore.refresh(),
+    loadToolStatus(),
+    loadServerBuild(),
+  ]);
   overviewRefreshing.value = false;
 }
 

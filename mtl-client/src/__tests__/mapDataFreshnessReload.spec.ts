@@ -57,8 +57,9 @@ function makeMethods(filterStore: Record<string, unknown> = {}) {
   return useMapDataLoading({
     filterStore,
     freshnessStore: {
-      dismissToken: vi.fn(),
+      snooze: vi.fn(),
       markAppliedToken: vi.fn(),
+      clearSnooze: vi.fn(),
       setReloading: vi.fn(),
     },
   });
@@ -71,6 +72,24 @@ type BannerReloadMethod = (this: FreshnessReloadContext) => Promise<boolean>;
 type AdminRefreshMethod = (this: FreshnessReloadContext, done: (success?: boolean) => void) => Promise<void>;
 
 describe('map data freshness reload actions', () => {
+  it('dismisses the warning by setting one token-independent snooze', () => {
+    const snooze = vi.fn();
+    const methods = useMapDataLoading({
+      filterStore: {},
+      freshnessStore: {
+        snooze,
+        markAppliedToken: vi.fn(),
+        clearSnooze: vi.fn(),
+        setReloading: vi.fn(),
+      },
+    });
+
+    methods.onDataFreshnessDismiss.call({} as never);
+
+    expect(snooze).toHaveBeenCalledOnce();
+    expect(snooze).toHaveBeenCalledWith();
+  });
+
   it('refreshes the shared filter result before loading the fresh map collection', async () => {
     const refreshResolvedFilter = vi.fn().mockResolvedValue(undefined);
     const methods = makeMethods({ refreshResolvedFilter });

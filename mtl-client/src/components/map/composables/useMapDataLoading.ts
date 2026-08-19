@@ -140,6 +140,7 @@ export function useMapDataLoading(deps: {
         this.cachedTracksLoaded = true;
         this.initialLoadDone = true;
         if (!silent) {
+          freshnessStore.clearSnooze();
           this.$toast.add({
             severity: 'success',
             summary: 'Map updated',
@@ -166,10 +167,8 @@ export function useMapDataLoading(deps: {
       }
     },
 
-    onDataFreshnessDismiss(tokenOverride) {
-      const token = tokenOverride || this.serverFreshnessToken;
-      if (!token) return;
-      freshnessStore.dismissToken(token);
+    onDataFreshnessDismiss() {
+      freshnessStore.snooze();
     },
 
     currentCollectionPrecision() {

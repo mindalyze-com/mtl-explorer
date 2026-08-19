@@ -22,8 +22,8 @@ function jobSummary(pending: number) {
   };
 }
 
-async function mountStatusConsumer() {
-  const getIndexerStatus = vi.fn().mockResolvedValue([indexSummary(0)]);
+async function mountStatusConsumer(indexPending = 0) {
+  const getIndexerStatus = vi.fn().mockResolvedValue([indexSummary(indexPending)]);
   const getJobStatus = vi.fn().mockResolvedValue([jobSummary(0)]);
   const getAdminOperationalTasks = vi.fn().mockResolvedValue([]);
 
@@ -84,7 +84,7 @@ describe('useIndexerStatus polling', () => {
     vi.doUnmock('@/utils/serverAdminApi');
   });
 
-  it('keeps the low-frequency idle cadence when no status surface is visible', async () => {
+  it('keeps the 60-second idle cadence when no status surface is visible', async () => {
     const setup = await mountStatusConsumer();
     wrapper = setup.wrapper;
 
@@ -98,7 +98,7 @@ describe('useIndexerStatus polling', () => {
     expect(setup.getIndexerStatus).toHaveBeenCalledTimes(2);
   });
 
-  it('uses fast polling while a visible status surface requests it', async () => {
+  it('keeps the eight-second cadence while a status surface is visible', async () => {
     const setup = await mountStatusConsumer();
     wrapper = setup.wrapper;
 
@@ -106,7 +106,7 @@ describe('useIndexerStatus polling', () => {
 
     setup.statusApi.setFastPolling(true);
 
-    await vi.advanceTimersByTimeAsync(999);
+    await vi.advanceTimersByTimeAsync(7_999);
     expect(setup.getIndexerStatus).toHaveBeenCalledTimes(1);
 
     await vi.advanceTimersByTimeAsync(1);
@@ -121,5 +121,19 @@ describe('useIndexerStatus polling', () => {
     await vi.advanceTimersByTimeAsync(1);
     await flushPromises();
     expect(setup.getIndexerStatus).toHaveBeenCalledTimes(3);
+  });
+
+  it('polls every eight seconds while operational work is active', async () => {
+    const setup = await mountStatusConsumer(1);
+    wrapper = setup.wrapper;
+
+    expect(setup.getIndexerStatus).toHaveBeenCalledTimes(1);
+
+    await vi.advanceTimersByTimeAsync(7_999);
+    expect(setup.getIndexerStatus).toHaveBeenCalledTimes(1);
+
+    await vi.advanceTimersByTimeAsync(1);
+    await flushPromises();
+    expect(setup.getIndexerStatus).toHaveBeenCalledTimes(2);
   });
 });

@@ -22,12 +22,12 @@ export const useIndexerStatusStore = defineStore('indexerStatus', () => {
   const isJobPending = computed(() => jobSummaries.value.some((summary) => summary.pending > 0));
   const isOperationalTaskActive = computed(() => operationalTasks.value.some((task) => task.active));
 
-  async function refresh(): Promise<void> {
+  async function refresh(options: { forceMapStatus?: boolean } = {}): Promise<void> {
     try {
       const [indexData, jobData, operationalData] = await Promise.all([
         getIndexerStatus(),
         getJobStatus(),
-        getAdminOperationalTasks(),
+        getAdminOperationalTasks(options),
       ]);
       summaries.value = indexData;
       jobSummaries.value = jobData;

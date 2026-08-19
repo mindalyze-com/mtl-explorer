@@ -6,6 +6,7 @@ import type {
   LocationSearchStatusDto,
 } from 'x8ing-mtl-api-typescript-fetch/dist/esm/models/index';
 import { getApiConfiguration } from '@/utils/openApiClient';
+import { fetchLocationSearchStatus } from '@/utils/locationSearchStatusService';
 import { getToken, isAuthError, redirectToLoginAfterAuthFailure } from '@/utils/auth';
 import { useAsyncState } from '@/composables/useAsyncState';
 import { isAbortLikeError } from '@/utils/errors';
@@ -104,10 +105,13 @@ export function useLocationSearch(options: UseLocationSearchOptions) {
   async function refreshStatus() {
     statusController?.abort();
     statusController = new AbortController();
+    const currentStatusController = statusController;
     try {
-      status.value = await getLocationSearchApi().getStatus({ signal: statusController.signal });
+      const nextStatus = await fetchLocationSearchStatus();
+      if (currentStatusController.signal.aborted) return;
+      status.value = nextStatus;
     } catch (error: unknown) {
-      if (isAbortLikeError(error, statusController.signal)) return;
+      if (isAbortLikeError(error, currentStatusController.signal)) return;
       if (isAuthError(error)) {
         redirectToLoginAfterAuthFailure(!!getToken());
         return;

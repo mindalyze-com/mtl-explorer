@@ -38,16 +38,8 @@ function stopPolling() {
 
 export function useDataFreshness() {
   const store = useDataFreshnessStore();
-  const {
-    currentFreshness,
-    serverFreshnessToken,
-    lastChecked,
-    isFreshnessPollingHealthy,
-    appliedToken,
-    dismissedToken,
-    dismissedExpiresAt,
-    reloading,
-  } = storeToRefs(store);
+  const { currentFreshness, serverFreshnessToken, lastChecked, isFreshnessPollingHealthy, appliedToken, reloading } =
+    storeToRefs(store);
 
   onMounted(() => {
     consumerCount++;
@@ -66,14 +58,10 @@ export function useDataFreshness() {
     refresh: store.refresh,
     isFreshnessPollingHealthy,
     appliedFreshnessToken: appliedToken,
-    dismissedFreshnessToken: dismissedToken,
-    dismissedFreshnessExpiresAt: dismissedExpiresAt,
     freshnessReloading: reloading,
     syncFreshnessStorage: store.hydrateFromStorage,
     markAppliedFreshnessToken: store.markAppliedToken,
     clearAppliedFreshnessToken: store.clearAppliedToken,
-    dismissFreshnessToken: store.dismissToken,
-    clearFreshnessDismissal: store.clearDismissal,
     setFreshnessReloading: store.setReloading,
     freshnessStore: store,
   };

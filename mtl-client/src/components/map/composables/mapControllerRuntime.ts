@@ -16,6 +16,7 @@ import type {
   GpsTrack,
   GpsTrackDataPoint,
   LocationSearchResultDto,
+  MapServerStatusDto,
   NearbyTrackMediaDto,
   ParamDefinition,
 } from 'x8ing-mtl-api-typescript-fetch/dist/esm/models/index';
@@ -78,15 +79,7 @@ export type LegendEntry = {
   label?: string;
 };
 
-export type MapServerStatus = {
-  ready?: boolean;
-  phase?: string;
-  message?: string;
-  tileSource?: string;
-  archive_id?: string;
-  download_total: number;
-  download_pct: number;
-};
+export type MapServerStatus = MapServerStatusDto;
 
 export type TrackFeatureProperties = Record<string, unknown> & {
   id?: number | string;
@@ -687,7 +680,7 @@ export type MapDataLoadingMethods = {
   captureAppliedFreshnessToken(): Promise<void>;
   clearTrackCacheWhenServerFreshnessChanged(): Promise<boolean>;
   onDataFreshnessReload(options?: { silent?: boolean }): Promise<boolean>;
-  onDataFreshnessDismiss(tokenOverride?: string | null | undefined): void;
+  onDataFreshnessDismiss(): void;
   currentCollectionPrecision(): number;
   maybeLoadBackgroundTracks(filterResult?: unknown): boolean;
   loadMapData(fetchResult: unknown): Promise<void>;
@@ -719,6 +712,7 @@ export type MapDataLoadingMethods = {
 
 export type MapRendererLifecycleMethods = {
   startMapStatusPolling(): void;
+  refreshMapStatusPolling(force?: boolean): void;
   stopMapStatusPolling(): void;
   disposeRendererMaps(): void;
   applyRuntimeRasterBasemapFallback(errorEvent?: unknown, message?: string, tileId?: string): void;
