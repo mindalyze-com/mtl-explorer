@@ -7,6 +7,7 @@ import com.x8ing.mtl.server.mtlserver.db.repository.gps.GpsTrackDataPointReposit
 import com.x8ing.mtl.server.mtlserver.db.repository.gps.GpsTrackDataRepository;
 import com.x8ing.mtl.server.mtlserver.db.repository.gps.GpsTrackEventRepository;
 import com.x8ing.mtl.server.mtlserver.db.repository.gps.GpsTrackRepository;
+import com.x8ing.mtl.server.mtlserver.db.repository.media.TrackMediaQueryRepository;
 import com.x8ing.mtl.server.mtlserver.energy.EnergyService;
 import com.x8ing.mtl.server.mtlserver.logic.crossing.TrackTimeBetweenTwoPoints;
 import com.x8ing.mtl.server.mtlserver.logic.crossing.beans.CrossingPointsRequest;
@@ -172,6 +173,7 @@ class TracksControllerCrossingContractTest {
                 mock(GpsTrackDataRepository.class),
                 pointRepository,
                 mock(GpsTrackEventRepository.class),
+                mock(TrackMediaQueryRepository.class),
                 filter,
                 mock(EnergyService.class),
                 mock(TrackFileExportService.class),

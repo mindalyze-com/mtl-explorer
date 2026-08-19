@@ -178,6 +178,9 @@
   --sheet-desktop-max-width: 920px;
   --sheet-desktop-wide-max-width: 1180px;
   --sheet-desktop-wide-width: 72vw;
+  --sheet-compact-desktop-max-width: 680px;
+  --sheet-compact-desktop-wide-max-width: 720px;
+  --sheet-compact-desktop-wide-width: 54vw;
 
   /* ── Primary alias (PrimeVue fallback) ── */
   --primary-color: #6366f1;

@@ -1,0 +1,12 @@
+Reloaded the signed-in app and sampled the startup UI before data completion.
+Early visible state:
+- Full-viewport splash container: 637 x 942 CSS pixels.
+- Background element: `photo-backdrop`, 648 x 959, visible opacity 1, WebP background `/mtl/backgrounds/background_004.webp`.
+- Vignette gradient layer visible.
+- Logo image alt `MTL Explorer`, rendered 210 x 103.
+- Message `Loading your trails` plus progress track/bar visible.
+
+Settled state:
+- `/mtl/` map region and `14 Tracks` control visible.
+- `Loading your trails` and `Preparing map layers` elements absent after settling.
+- No browser restart was used.

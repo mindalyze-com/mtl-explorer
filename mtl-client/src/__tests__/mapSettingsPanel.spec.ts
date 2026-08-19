@@ -29,6 +29,10 @@ describe('Map settings UI', () => {
     expect(wrapper.get('#map-settings-current-title').text()).toBe('OSM Topo Contrast');
     expect(wrapper.text()).toContain('Automatic source · 2D map');
 
+    const preview = wrapper.get('button.map-settings-overview__preview');
+    expect(preview.attributes('aria-label')).toBe('Open map style settings');
+    await preview.trigger('click');
+
     const rows = wrapper.findAll('.map-settings-row');
     expect(rows.map((row) => row.text())).toEqual([
       expect.stringContaining('Map style'),
@@ -40,7 +44,7 @@ describe('Map settings UI', () => {
     for (const row of rows) await row.trigger('click');
     await wrapper.get('.map-settings-overview__reset').trigger('click');
 
-    expect(wrapper.emitted('open-style')).toHaveLength(1);
+    expect(wrapper.emitted('open-style')).toHaveLength(2);
     expect(wrapper.emitted('open-terrain')).toHaveLength(1);
     expect(wrapper.emitted('open-data')).toHaveLength(1);
     expect(wrapper.emitted('open-routes')).toHaveLength(1);

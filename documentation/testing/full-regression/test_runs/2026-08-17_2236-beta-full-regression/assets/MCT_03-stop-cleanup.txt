@@ -1,0 +1,16 @@
+MCT_03 segment-tool cleanup evidence
+
+Before stop
+- Segment results and measure sheet were visible.
+- Temporary A/B interaction, result table, and map guidance belonged to the
+  active Segments tool.
+
+After Close
+- Segments toolbar button was not active.
+- "Tap a track to place zone" map guidance was absent.
+- The retained transition sheet was below the viewport at y=753.6 in a 720 px
+  viewport, with no visible overlay/guidance.
+- A subsequent map click did not place a zone, show guidance, or reactivate the
+  tool.
+
+Result: PASS.

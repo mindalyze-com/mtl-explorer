@@ -1,0 +1,19 @@
+HMO_03 filter-driven heatmap evidence
+Observed 2026-08-18 04:36-04:41 Europe/Zurich
+
+- Baseline: 13 tracks, all three activity categories, heatmap enabled at 52%.
+  The Bern density plume was visible with multiple local track lines.
+- Opened Filter > Included categories, cleared the selection, selected only
+  WALKING, and applied it.
+- Filter result changed immediately to 2 / 13 Tracks and 1 of 3 categories.
+- In the same map viewport the rendered track set reduced to the two walking
+  activities and the former multi-track heatmap plume reduced/cleared to the
+  density contributed by that filtered set. The saved filtered screenshot
+  preserves this state.
+- Reset filter through the end-user Reset filter action.
+- Result returned to 13 Tracks and All 3 categories; the broader Bern density
+  plume repainted in the same viewport. The restored screenshot preserves the
+  comparison.
+
+Result: PASS. Heatmap and track rendering both update from the same filter
+result, and resetting restores the prior density without a reload.

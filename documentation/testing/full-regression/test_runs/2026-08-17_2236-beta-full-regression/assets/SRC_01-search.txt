@@ -1,0 +1,13 @@
+SRC_01 location-search results
+Observed 2026-08-18 04:45 Europe/Zurich
+
+- Opened the main-map Search tool.
+- Search input label/placeholder: `City, peak, area`.
+- Typed `Bern`.
+- Results appeared in under one second in Importance order:
+  - Bern, Bern, Switzerland, Capital, z4-15.
+  - Berngjæret, Møre og Romsdal, Norway, Hill, z12-15.
+  - Bernartice, South Bohemian Region, Czechia, Village, z11-15.
+- The alternate Near map sorting control and Clear search action were visible.
+
+Result: PASS. A normal place-name query returns clear structured results.

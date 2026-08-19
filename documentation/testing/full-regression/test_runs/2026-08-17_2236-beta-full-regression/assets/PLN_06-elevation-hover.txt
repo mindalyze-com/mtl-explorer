@@ -1,0 +1,11 @@
+PLN_06 elevation/profile highlight evidence
+
+- The restored 710 m route rendered an interactive Highcharts area profile
+  with five route/elevation data points.
+- Hovered the rendered tracker line at a mid-route point.
+- Tooltip: 0.06 km, 643 m, +0.1%.
+- A map marker with classes planner-hover-marker and maplibregl-marker appeared
+  at the matching map position while hovered.
+- Moving the pointer away removed the planner-hover-marker (count 1 -> 0).
+
+Result: PASS.

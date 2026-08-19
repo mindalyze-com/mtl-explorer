@@ -1,0 +1,40 @@
+FLT_05 geographic drawing lifecycle
+
+Initial state
+- No area.
+- 15 matching tracks.
+
+Circle undo and cancel
+- Started Draw Circle; instruction was Click to place center and Undo was disabled.
+- Placed center; instruction changed to Click to set radius and Undo enabled.
+- Selected Undo; instruction returned to Click to place center and Undo disabled.
+- Selected Cancel; drawing mode closed and filtered toolbar remained 15 / 15 Tracks.
+
+Rectangle finish
+- Started Draw Rectangle; instruction was Click to place first corner.
+- Placed first corner; instruction changed to Click to place opposite corner and Undo enabled.
+- Placed opposite corner; drawing finished automatically.
+- Filter reported one active area criterion and an empty result for the deliberately broad/global test location.
+
+Circle finish
+- Reopened Edit areas and added a Circle.
+- Placed center and radius; drawing finished automatically.
+- Editor then showed 2 areas:
+  - Circle at 28.0210, 0.2425, radius 644.7 km.
+  - Rectangle (21.146…32.593, -8.939…10.225).
+
+Polygon finish
+- Started Draw Polygon; initial Finish was disabled.
+- After two accepted points, UI said 2 points — need at least 3.
+- Added a third point; instruction changed to Double-click or press Finish and Finish enabled.
+- Selected Finish.
+
+Saved-shape reopen
+- Reloaded /mtl/filter.
+- Configuration reported 3 criteria active.
+- Reopened Criteria; Area reported 3 areas.
+- Expanded Edit areas; Circle, Rectangle, and Polygon with 3 points all reappeared with delete and Redraw controls.
+
+Clear all
+- Selected Reset criteria.
+- Area returned to No area, summary returned to No criteria, and result/toolbar returned to 15 matching and 15 / 15 Tracks.

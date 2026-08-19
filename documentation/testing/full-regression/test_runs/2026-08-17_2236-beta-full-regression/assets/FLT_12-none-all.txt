@@ -1,0 +1,30 @@
+FLT_12 select-none and select-all category semantics
+
+Starting state
+- View: Activities by exact type.
+- Available: BICYCLE (12), HIKING (1), WALKING (2).
+- Previous selection: HIKING and WALKING.
+
+Select none
+- Selected Clear selection.
+- Selector reported 0 of 3 selected; All categories was unchecked.
+- Applied result became No tracks match.
+- Toolbar became 0 / 15 Tracks.
+- Configuration reported 0 of 3 categories.
+
+Empty stability
+- Reloaded /mtl/filter.
+- No tracks match remained.
+- Toolbar remained 0 / 15 Tracks.
+- Configuration remained 0 of 3 categories.
+- Reopened selector; all three exact activity checkboxes remained unchecked.
+
+Select every available category
+- Selected Select current.
+- All categories became checked.
+- Selector reported All 3 selected.
+- BICYCLE, HIKING, and WALKING were all checked.
+- Applied configuration normalized to All 3 categories rather than keeping an exact list.
+- Result returned to 15 matching tracks and toolbar 15 / 15 Tracks.
+
+There were no unavailable saved categories during the select-all normalization.

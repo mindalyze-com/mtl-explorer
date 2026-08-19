@@ -1,0 +1,5 @@
+Frozen plan coverage IDs: 228
+run-state coverage rows excluding RUN_SETUP/RUN_CLEANUP: 228
+Duplicate coverage IDs in frozen plan: 0
+
+Every frozen checklist coverage ID has a dedicated queue row and packet path.

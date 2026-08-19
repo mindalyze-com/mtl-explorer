@@ -1,0 +1,33 @@
+SYN_03 five-GPX import/delete-two source-of-truth audit
+
+Preserved required import flow (IMP_02 through IMP_08):
+- Exactly five public GPX sources entered the watched folder.
+- Live watcher reached 5 completed with no GPS failure; follow-on duplicate,
+  classifier, and exploration jobs reached 5/5.
+- Freshness changed from r0 to index r16/tracks r30/geometry r30.
+- Banner Reload changed the same browser from stale 2 to 5 Tracks.
+- Map, browser, Statistics, Filter, details, and exact source-to-track IDs
+  100000-100004 showed all five sources.
+- Statistics changed 0 -> 5 with no source split.
+
+Preserved delete-two flow (TBS_08):
+- Exactly Vitry-le-Francois_Langres.gpx and VoieVerteHauteVosges.gpx moved to
+  the recoverable run quarantine; three original GPX sources stayed watched.
+- Automatic processing completed; freshness reported Reload needed.
+- Reload changed map/Overview 15 -> 13, 1,048 -> 823 km,
+  1d 00h -> 16h 51m, 4,896 -> 3,989 Wh, and 14,963 -> 13,073 m ascent.
+- Deleted names returned 0 of 13; each retained original returned 1 of 13.
+
+Direct current audit after later additive fixtures (15 current tracks):
+- DB: indexed files 300003/300004 are REMOVED and have no gps_track row.
+- DB: retained 300001/300002/300005 remain COMPLETED_WITH_SUCCESS and map to
+  tracks 100002/100000/100004.
+- Statistics Tracks: both deleted names return 0 of 15 and 0.00 m.
+- Statistics Tracks: Jura returns 1 of 15, 273 km, 7h 46m.
+- Opening Jura from the visible result loads /mtl/track/100000 with full details.
+- Filter: All 3 categories / 15 matching; Review tracks returns 0 of 15 for Vitry.
+- Heatmap remains enabled at 52% over the current result. The preserved HMO_03
+  post-delete test changed 13 -> 2/13 and back to 13 in place, proving the
+  density layer follows the post-delete filtered source of truth.
+
+Result: PASS

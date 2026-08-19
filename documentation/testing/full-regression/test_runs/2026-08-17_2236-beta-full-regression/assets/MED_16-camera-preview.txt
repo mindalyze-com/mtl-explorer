@@ -1,0 +1,29 @@
+MED_16 camera clock preview
+
+Baseline activity 100016:
+- 6 photos: four Photo GPS and two Estimated camera-clock items.
+- media_time_correction row count: 0
+- selected correlation count: 6
+- sum of selected applied_camera_offset_seconds: 0
+
+Input validation:
+- 0.01 h was rejected by the browser because the input step is 0.25 h.
+- The nearest valid values were 0 and 0.25.
+
+Valid preview:
+- Entered +0.25 h and selected Preview.
+- Photo tools changed to Active and displayed
+  "Unsaved preview. 0 photos use the camera clock".
+- The activity changed from 6 photos to 0 photos.
+- This incorrectly removed all four embedded-GPS items even though the UI states
+  "Photo GPS times are never changed."
+- Save correction was disabled because the preview contained no eligible item.
+
+Reset:
+- Selected Reset.
+- The exact six baseline rows, four Photo GPS labels, two Estimated labels, and
+  six mini-map markers returned.
+- Read-only persistence remained 0 time-correction rows, 6 selected
+  correlations, and 0 applied offset seconds.
+
+Result: FAIL, FR-010.

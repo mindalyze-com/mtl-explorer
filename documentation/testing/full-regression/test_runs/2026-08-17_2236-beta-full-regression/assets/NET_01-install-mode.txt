@@ -1,0 +1,9 @@
+NET_01 installed-app applicability check
+Browser context: Codex in-app normal browser tab
+display-mode standalone: false
+display-mode fullscreen: false
+display-mode minimal-ui: false
+Manifest link: manifest.webmanifest
+Registered service workers visible to this page: 0
+Installed PWA/web-app context: not present
+Coverage-plan instruction: normal browser tab is not expected to pass offline reload; mark NOT APPLICABLE or NOT COVERED unless installed as a web app.

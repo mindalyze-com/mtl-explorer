@@ -190,4 +190,64 @@ describe('segment analyzer guidance', () => {
 
     wrapper.unmount();
   });
+
+  it('closes analyzed results before reopening a fresh selector', async () => {
+    fetchZoneTrackIdsMock.mockResolvedValue([1]);
+    fetchTrackDetailsMock.mockResolvedValue({
+      crossings: { 1: {} },
+      segmentsStats: [],
+      tracksPerZone: { A: 1, B: 1 },
+    } as never);
+    const { map, wrapper } = mountMeasure();
+    await wrapper.vm.open();
+
+    clickMap(map, 8.5, 47.5);
+    clickMap(map, 8.51, 47.51);
+    await flushPromises();
+    await wrapper.get('.measure-toolbar-btn--analyze').trigger('click');
+    await flushPromises();
+
+    expect(wrapper.find('.measure-sheet').exists()).toBe(false);
+    expect(wrapper.find('display-measure-results-stub').exists()).toBe(true);
+    expect(wrapper.emitted('active-changed')).toEqual([[true]]);
+
+    await wrapper.vm.toggle();
+    expect(wrapper.findAll('[data-test="bottom-sheet"]')).toHaveLength(0);
+    expect(wrapper.emitted('active-changed')).toEqual([[true], [false]]);
+
+    await wrapper.vm.toggle();
+    expect(wrapper.findAll('[data-test="bottom-sheet"]')).toHaveLength(1);
+    expect(wrapper.find('.measure-sheet').exists()).toBe(true);
+    expect(wrapper.find('display-measure-results-stub').exists()).toBe(false);
+
+    wrapper.unmount();
+  });
+
+  it('restores analyzed results after temporary track-detail navigation', async () => {
+    fetchZoneTrackIdsMock.mockResolvedValue([1]);
+    fetchTrackDetailsMock.mockResolvedValue({
+      crossings: { 1: {} },
+      segmentsStats: [],
+      tracksPerZone: { A: 1, B: 1 },
+    } as never);
+    const { map, wrapper } = mountMeasure();
+    await wrapper.vm.open();
+    clickMap(map, 8.5, 47.5);
+    clickMap(map, 8.51, 47.51);
+    await flushPromises();
+    await wrapper.get('.measure-toolbar-btn--analyze').trigger('click');
+    await flushPromises();
+    const navigationState = wrapper.vm.getNavigationState();
+
+    wrapper.vm.close();
+    await wrapper.vm.open();
+    wrapper.vm.restoreNavigationState(navigationState);
+    await flushPromises();
+
+    expect(wrapper.findAll('[data-test="bottom-sheet"]')).toHaveLength(1);
+    expect(wrapper.find('.measure-sheet').exists()).toBe(false);
+    expect(wrapper.find('display-measure-results-stub').exists()).toBe(true);
+
+    wrapper.unmount();
+  });
 });

@@ -1,0 +1,13 @@
+MED_01 media-layer default and persistence
+
+- Reset map settings from the GUI to remove saved map-layer choices.
+- Your data then showed 3 of 4 layers and "Hide Photos and media" pressed, proving media is enabled by default.
+- Live Bern bounds request returned HTTP 200 with six resolved synthetic media points (IDs 400000..400005).
+- Disabled Photos and media; Your data changed to 2 of 4 layers.
+- Reloaded the application; Your data still showed "Show Photos and media" (disabled state persisted).
+- Enabled Photos and media; Your data changed to 3 of 4 layers.
+- Reloaded the application; Your data still showed "Hide Photos and media" pressed (enabled state persisted).
+- The final bounds response remained six local photo points and Cache-Control: no-store.
+
+Result: PASS.
+

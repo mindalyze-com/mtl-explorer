@@ -1,0 +1,8 @@
+MOB_01 responsive/mobile capability check
+Viewport override requested: 390 x 844 CSS pixels
+Captured screenshot dimensions: 390 x 844 pixels
+Rendered state: authenticated 15-track map with compact bottom navigation and usable map controls
+Available browser-wide capabilities: visibility, viewport
+Available tab capability: pageAssets
+Native touch input/device emulation capability: unavailable
+Result: narrow-width branch passed; touch-enabled branch blocked by the browser test channel

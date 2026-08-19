@@ -66,6 +66,7 @@ type RouteToolSyncTestContext = {
   swissMobilityPopup: SwissMobilityPopupTestState;
   geoDrawingParamDef: null;
   geoDrawingOverlay: null;
+  closeMediaSelection: ReturnType<typeof vi.fn>;
   closeMediaSheet: ReturnType<typeof vi.fn>;
 };
 
@@ -179,6 +180,7 @@ describe('map route tool sync', () => {
       swissMobilityPopup: { visible: false, pos: { x: 0, y: 0 }, routes: [] },
       geoDrawingParamDef: null,
       geoDrawingOverlay: null,
+      closeMediaSelection: vi.fn(),
       closeMediaSheet: vi.fn(),
     });
 
@@ -219,6 +221,7 @@ describe('map route tool sync', () => {
       swissMobilityPopup: { visible: false, pos: { x: 0, y: 0 }, routes: [] },
       geoDrawingParamDef: null,
       geoDrawingOverlay: null,
+      closeMediaSelection: vi.fn(),
       closeMediaSheet: vi.fn(),
     });
 
@@ -255,6 +258,7 @@ describe('map route tool sync', () => {
       locationSearchMarker: null,
       selectionPopupTrackIds: [],
       swissMobilityPopup: { visible: false, pos: { x: 0, y: 0 }, routes: [] },
+      closeMediaSelection: vi.fn(),
       closeMediaSheet: vi.fn(),
       selectTrackById: vi.fn(),
     });

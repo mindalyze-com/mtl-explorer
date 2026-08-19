@@ -1,0 +1,20 @@
+GLB_04 zoom-limit escape evidence
+Observed 2026-08-18 05:02-05:05 Europe/Zurich
+
+Minimum zoom
+- Started at low-zoom globe. Zoom out exposed aria-disabled=true at the actual
+  minimum; Zoom in remained enabled.
+- Trusted horizontal drag rotated/repositioned the globe while at the minimum.
+- One Zoom in left the boundary immediately: Zoom out became enabled and the
+  globe remained interactive.
+
+Maximum zoom
+- Repeated Zoom in until the exact maximum: Zoom in aria-disabled=true, scale
+  approximately 1 m, Zoom out enabled.
+- The then-current Atlantic center painted ocean rather than an error/blank UI;
+  all controls remained present.
+- Trusted pan remained accepted. One Zoom out left the boundary immediately:
+  Zoom in returned enabled, Zoom out stayed enabled, and the map canvas remained.
+
+Result: PASS. Both zoom boundaries disable only the impossible direction and
+retain pan plus the escape direction; neither boundary traps the map.

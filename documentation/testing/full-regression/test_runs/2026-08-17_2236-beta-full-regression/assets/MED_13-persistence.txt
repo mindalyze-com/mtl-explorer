@@ -1,0 +1,24 @@
+MED_13 persisted activity photo timeline
+
+Activity: 100016, MTL Regression Media Track
+
+Baseline, normal reload, and app-container restart + reload all returned the same
+six timeline rows in this order:
+
+1. 400005 mtl-regression-photo-a.jpg       Photo GPS 10:00  38.50 m
+2. 400002 mtl-regression-photo-b.jpg       Photo GPS 10:01  63.81 m
+3. 400000 mtl-regression-estimated-a.jpg   Estimated 10:01  81.80 m
+4. 400003 mtl-regression-delete-a.jpg      Photo GPS 10:02  99.78 m
+5. 400004 mtl-regression-estimated-b.jpg   Estimated 10:02 121.13 m
+6. 400001 mtl-regression-delete-b.jpg      Photo GPS 10:03 142.47 m
+
+The activity mini-map returned the same six accessible marker buttons and origin
+labels after reload and restart. The app was unavailable for about 24 seconds
+during its controlled restart and then returned HTTP 200.
+
+Read-only persistence inspection after restart showed all six selected
+correlations still attached to track 100016, with selected=true,
+ambiguous=false, alternative_count=1. EXIF items retained EXIF_EMBEDDED resolved
+origins; camera-time-only items retained TRACK_INTERPOLATED resolved origins.
+
+Result: PASS.

@@ -1,0 +1,5 @@
+2026-08-18 fixed-build retest
+Desktop 1280x720 and mobile 390x844: broad 30-100 mi initial views issued 0 global media requests.
+Bern desktop: minLat=46.9217228 minLng=7.3828524 maxLat=46.9744567 maxLng=7.5120276.
+New York desktop: minLat=40.6849940 minLng=-74.0705576 maxLat=40.7435455 maxLng=-73.9413824.
+Mobile independently issued distinct Bern and New York bounds requests. Deferred out-of-order and broad-clear unit tests passed.

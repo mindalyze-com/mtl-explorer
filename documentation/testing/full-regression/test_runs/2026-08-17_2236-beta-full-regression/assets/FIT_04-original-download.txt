@@ -1,0 +1,21 @@
+User-facing action:
+- Opened track 100005 Overview.
+- Clicked Download original.
+- Native download event wait timed out after 15 s.
+- Documented locator.downloadMedia fallback also failed for the button.
+- The UI remained responsive and showed no error, but no browser artifact path
+  was exposed for end-user checksum inspection.
+
+Read-only server/API corroboration using a separate documented login token:
+- GET /mtl/api/tracks/100005/source-file -> HTTP 200
+- Content-Disposition filename: Activity.fit
+- Content-Type: application/octet-stream
+- Content-Length: 94096
+- downloaded bytes: 94096
+- SHA-256: 949a238e1bb75c3684479785f76fa9a16888bb394518844248f488171d591387
+- FIT header bytes include ASCII .FIT at offsets 8-11
+- uploaded source SHA-256: 949a238e1bb75c3684479785f76fa9a16888bb394518844248f488171d591387
+
+Server output is correct, but the end-user browser artifact could not be
+captured. This is a browser test-tool constraint, not a demonstrated product
+download failure.

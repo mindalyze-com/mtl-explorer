@@ -1,0 +1,18 @@
+Automated verification
+
+Build:
+- mvn --batch-mode package -DskipTests
+- BUILD SUCCESS in 18.666 s
+
+Server targeted tests:
+- Command: mvn --batch-mode -pl mtl-server -am -Dtest=FileIndexerImplTest,GpxProcessingWorkerTest -Dsurefire.failIfNoSpecifiedTests=false test
+- Result: BUILD SUCCESS
+- Tests run: 8; failures: 0; errors: 0; skipped: 0
+- GpxProcessingWorkerTest: 5 passed
+- FileIndexerImplTest: 3 passed
+- Non-failing warning: Mockito dynamic agent loading deprecation notice.
+
+Client targeted tests:
+- Command: npm test -- src/__tests__/mapDataFreshnessReload.spec.ts
+- Result: 1 file passed; 6 tests passed
+- Duration: 976 ms

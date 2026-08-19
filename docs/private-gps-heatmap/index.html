@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Private Self-Hosted GPS Heatmap | MTL Explorer</title>
+  <meta name="description" content="Build a private GPS heatmap from your self-hosted track archive, adjust its opacity, and use activity, year, or custom filters to change the displayed density.">
+  <meta name="robots" content="index, follow, max-image-preview:large">
+  <link rel="canonical" href="https://mindalyze-com.github.io/mtl-explorer/private-gps-heatmap/">
+  <meta property="og:site_name" content="MTL Explorer">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://mindalyze-com.github.io/mtl-explorer/private-gps-heatmap/">
+  <meta property="og:title" content="Private Self-Hosted GPS Heatmap | MTL Explorer">
+  <meta property="og:description" content="Show where you travel most often without publishing your GPS archive to a fitness service.">
+  <meta property="og:image" content="https://mindalyze-com.github.io/mtl-explorer/assets/feature-showcase/large/map-layers.webp">
+  <meta property="og:image:type" content="image/webp">
+  <meta property="og:image:width" content="2199">
+  <meta property="og:image:height" content="1561">
+  <meta property="og:image:alt" content="MTL Explorer map layer controls with the GPS heatmap option">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:image" content="https://mindalyze-com.github.io/mtl-explorer/assets/feature-showcase/large/map-layers.webp">
+  <link rel="icon" href="../favicon.ico" sizes="any">
+  <link rel="stylesheet" href="../site-page.css">
+  <link rel="preload" as="image" type="image/webp" href="../assets/feature-showcase/preview/map-layers.webp">
+  <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebPage",
+      "name": "Private Self-Hosted GPS Heatmap",
+      "url": "https://mindalyze-com.github.io/mtl-explorer/private-gps-heatmap/",
+      "description": "A guide to the private, filter-aware GPS heatmap in MTL Explorer.",
+      "dateModified": "2026-08-18",
+      "isPartOf": {"@type": "WebSite", "name": "MTL Explorer", "url": "https://mindalyze-com.github.io/mtl-explorer/"}
+    }
+  </script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="site-header-inner">
+      <a class="brand" href="../">
+        <img src="../mtl_logo_3_only_vector.svg" width="43" height="51" alt="">
+        <span><strong>MTL Explorer</strong><span>Self-hosted GPS archive</span></span>
+      </a>
+      <nav class="site-nav" aria-label="Primary navigation">
+        <a href="../#guides">Guides</a>
+        <a href="../docker-install/">Install</a>
+        <a class="button-small" href="https://mtl-demo.mindalyze.com/mtl/">Live demo</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="page">
+    <nav class="breadcrumb" aria-label="Breadcrumb"><a href="../">Home</a> / Private GPS heatmap</nav>
+
+    <section class="hero">
+      <div>
+        <p class="eyebrow">Private GPS heatmap</p>
+        <h1>See where your archive is most concentrated.</h1>
+        <p class="lead">Turn imported activities into a density layer on your own map. The heatmap follows the active track filter, so you can compare selected activities, years, areas, or custom groups.</p>
+        <div class="actions">
+          <a class="button" href="https://mtl-demo.mindalyze.com/mtl/">Open the demo</a>
+          <a class="button-secondary" href="../gpx-track-map/">View the track archive</a>
+        </div>
+      </div>
+      <figure class="hero-media">
+        <img src="../assets/feature-showcase/preview/map-layers.webp" srcset="../assets/feature-showcase/thumb/map-layers.webp 360w, ../assets/feature-showcase/medium/map-layers.webp 720w, ../assets/feature-showcase/preview/map-layers.webp 1099w, ../assets/feature-showcase/large/map-layers.webp 2199w" sizes="(max-width: 900px) calc(100vw - 40px), 570px" width="1099" height="780" alt="MTL Explorer map settings with a Heatmap layer and opacity control" fetchpriority="high">
+        <figcaption>The Heatmap data layer in the map settings.</figcaption>
+      </figure>
+    </section>
+
+    <section class="section" id="enable">
+      <div class="section-head">
+        <h2>Enable the layer from the map.</h2>
+        <p>The heatmap can be shown with the normal GPS track lines or used on its own.</p>
+      </div>
+      <div class="steps">
+        <article class="step"><h3>Open map settings</h3><p>Open <strong>Map</strong>, then review the personal data layers.</p></article>
+        <article class="step"><h3>Turn on Heatmap</h3><p>Enable the density overlay. It uses the tracks in the current active selection.</p></article>
+        <article class="step"><h3>Adjust opacity</h3><p>Change the heatmap strength so the background map and track lines remain readable.</p></article>
+        <article class="step"><h3>Change the filter</h3><p>Select a different activity, year, or saved filter and the density view updates to the same subset.</p></article>
+      </div>
+    </section>
+
+    <section class="section" id="filters">
+      <div class="split">
+        <div class="copy">
+          <p class="eyebrow">Filter-aware density</p>
+          <h2>Ask focused questions of the same archive.</h2>
+          <p>Heatmap selection is shared with the normal map, track browser, statistics, related tracks, and segment analysis.</p>
+          <ul class="plain-list">
+            <li>Compare cycling, hiking, running, or other activity groups.</li>
+            <li>Limit the view to one year or a selected time period.</li>
+            <li>Use geographic or SQL-backed custom filters.</li>
+            <li>Review the new density after importing or removing tracks.</li>
+          </ul>
+        </div>
+        <figure class="media">
+          <img src="../assets/feature-showcase/thumb/map-filter-by-year.webp" srcset="../assets/feature-showcase/thumb/map-filter-by-year.webp 360w, ../assets/feature-showcase/medium/map-filter-by-year.webp 720w, ../assets/feature-showcase/preview/map-filter-by-year.webp 1099w" sizes="(max-width: 900px) calc(100vw - 40px), 530px" width="1099" height="607" alt="MTL Explorer map with GPS tracks grouped by year" loading="lazy" decoding="async">
+          <figcaption>A year grouping that can also define the heatmap selection.</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section class="section" id="privacy">
+      <div class="section-head">
+        <h2>Keep the activity archive on your host.</h2>
+        <p>The heatmap is derived from tracks indexed by your MTL Explorer instance. It does not require publishing the activity history to a social fitness service.</p>
+      </div>
+      <div class="content-grid">
+        <article class="card"><h3>Private track source</h3><p>Your activity files and processed archive remain in the directories and database controlled by your installation.</p></article>
+        <article class="card"><h3>Optional local maps</h3><p>The standard setup can use hosted background map tiles. Enable the local map sidecar when the basemap should also stay on the host.</p></article>
+        <article class="card"><h3>No public profile</h3><p>The core heatmap workflow does not require an external account, public activity page, or shared GPS history.</p></article>
+        <article class="card"><h3>Same access control</h3><p>The heatmap is part of the authenticated MTL Explorer interface and follows the instance login configuration.</p></article>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head"><h2>Continue with related guides.</h2></div>
+      <div class="related">
+        <a class="button-secondary" href="../gpx-track-map/">GPS track archive</a>
+        <a class="button-secondary" href="../supported-gps-formats/">Supported GPS formats</a>
+        <a class="button-secondary" href="../garmin-connect-import/">Garmin Connect import</a>
+        <a class="button-secondary" href="../docker-install/">Docker installation</a>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="site-footer-inner">
+      <span>MTL Explorer · Self-hosted GPS archive</span>
+      <nav aria-label="Footer navigation"><a href="../">Home</a><a href="../why-i-built-mtl-explorer/">About</a><a href="https://github.com/mindalyze-com/mtl-explorer">GitHub</a></nav>
+    </div>
+  </footer>
+</body>
+</html>

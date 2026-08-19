@@ -9,6 +9,29 @@ const ActivityTypeBadgeStub = defineComponent({
 });
 
 describe('TrackBrowserTable', () => {
+  it('renders an explicit placeholder for an unavailable average speed', () => {
+    const wrapper = mount(TrackBrowserTable, {
+      props: {
+        compact: true,
+        query: '',
+        selectedTrackId: null,
+        rows: [],
+      },
+      global: {
+        directives: { tooltip: {} },
+        stubs: {
+          ActivityTypeBadge: ActivityTypeBadgeStub,
+          Button: true,
+          Popover: defineComponent({ template: '<div><slot /></div>' }),
+          TrackShapePreview: defineComponent({ template: '<span data-test="shape" />' }),
+        },
+      },
+    });
+
+    const component = wrapper.vm as unknown as { formatSpeed: (value: number | null) => string };
+    expect(component.formatSpeed(null)).toBe('—');
+  });
+
   it('renders compact curation badges for excluded tracks', () => {
     const wrapper = mount(TrackBrowserTable, {
       props: {

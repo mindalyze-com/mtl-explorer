@@ -1,0 +1,41 @@
+FLT_09 grouped-year exact result selection across filter-aware views
+
+Selection
+- Filter view: Tracks by year.
+- Available categories: 2010 (4), 2013 (1), 2021 (1), 2026 (9).
+- Cleared selection, then selected exactly 2013 and 2021.
+- Selector reported 2 of 4 selected.
+- Applied result reported 2 matching tracks and 2 of 4 categories.
+
+Map and visible count
+- Toolbar: 2 / 15 Tracks.
+- Legend contained only 2013 (1) and 2021 (1).
+
+Filter Review tracks
+- Summary: 2 tracks, 29.5 km, 2h 13m.
+- Rows:
+  - 2021: Track 100005, Walking, 3.60 km.
+  - 2013: Lannion_Plestin_parcours..., Bicycle, 25.9 km.
+
+Heatmap
+- Map > Your data > Show Heatmap changed to Hide Heatmap / aria-pressed=true.
+- Layer summary changed to 4 of 4 layers shown.
+- Filter toolbar remained 2 / 15 and year legend remained 2013/2021.
+- Heatmap was turned off after the assertion.
+
+Statistics Overview
+- Tracks: 2.
+- Distance: 29.5 km.
+
+Statistics Trends
+- Periods: 2.
+- Tracks: 2.
+- Total Dist.: 29.5 km.
+- Total Time: 2h 13m.
+- Total Energy: 544 Wh.
+
+Statistics Tracks
+- Summary: 2 tracks, 29.5 km, 2h 13m.
+- Same two 2021 and 2013 rows as Filter Review.
+
+No view introduced an extra or missing track.

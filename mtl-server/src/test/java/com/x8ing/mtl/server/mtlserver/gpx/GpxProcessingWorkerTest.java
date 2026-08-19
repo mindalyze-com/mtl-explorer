@@ -17,6 +17,7 @@ import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -71,6 +72,18 @@ class GpxProcessingWorkerTest {
 
         assertThatCode(() -> worker.processCreateOrChange("GPS", FILE_ID, false))
                 .doesNotThrowAnyException();
+    }
+
+    @Test
+    void changedPathDeletesExistingTracksBeforeReimport() {
+        when(gpsStoreService.readAndSave(any(), eq(null), any(TimingCollector.class)))
+                .thenReturn(List.of(loadResult(GpsTrack.LOAD_STATUS.SUCCESS)));
+
+        worker.processCreateOrChange("GPS", FILE_ID, true);
+
+        var inOrder = inOrder(gpsStoreService);
+        inOrder.verify(gpsStoreService).deleteTracksForFile(any(IndexedFile.class));
+        inOrder.verify(gpsStoreService).readAndSave(any(), eq(null), any(TimingCollector.class));
     }
 
     @Test

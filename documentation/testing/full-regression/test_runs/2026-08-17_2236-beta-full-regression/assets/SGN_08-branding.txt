@@ -1,0 +1,17 @@
+SGN_08 branding evidence
+
+Surface: signed-out login page and its About dialog
+
+Login page:
+- Image accessible name: MTL Explorer
+- About button: About MTL Explorer and license
+
+About dialog:
+- Dialog heading: MTL Explorer
+- Description: Self-hosted GPS track and trail log.
+- Version: dev
+- License: AGPL-3.0-or-later
+- Source link: https://github.com/mindalyze-com/mtl-explorer
+- Open-source and dual-license notice present
+
+Result: current product name and identity are used consistently on the inspected signed-out surfaces.

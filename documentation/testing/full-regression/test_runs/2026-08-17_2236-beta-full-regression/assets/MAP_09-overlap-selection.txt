@@ -1,0 +1,29 @@
+MAP_09 overlap selection evidence
+
+Controlled fixture pair:
+- MTL Synthetic Segment A, cycling
+- MTL Synthetic Segment B, running
+- Both four-point tracks cross the same small zones near Bern.
+- Watched copies retained frozen hashes:
+  - A: 0c5d31294ebe6f5fd3a87da837269c971bc0914ae64f176667bce19309064e86
+  - B: a819dc0bfc77f4f83b751858e42c31e54d64fa9845935431f44dec6e277baf07
+
+Preparation:
+- Copied both frozen fixtures from the run staging folder to the run-specific watched folder.
+- GPS indexer settled at 22 total, 17 completed, 5 excluded at the first processing check.
+- Accepted the in-app New data available > Reload action.
+- Map result became 15 visible tracks.
+- Review Tracks search for MTL Synthetic Segment returned exactly two rows:
+  - MTL Synthetic Segment B, Running, 247.23 m, imported 18/08/2026 00:00
+  - MTL Synthetic Segment A, Bicycle, 204.66 m
+
+Map interaction:
+- Used visible location search to center Bern, Switzerland at 100 m scale.
+- The Bern city center is inside the frozen pair's shared small crossing zone.
+- Clicked the exact center of the nonzero main map canvas.
+- A selection list opened: 6 tracks — select for details.
+- List included both MTL Synthetic Segment A and MTL Synthetic Segment B.
+- Picked MTL Synthetic Segment B.
+- Details opened at /mtl/track/100017 with #100017, Running, 247.23 m, and expected metrics.
+
+Result: a controlled overlapping map click opened the selection list, and choosing one entry opened the correct details.

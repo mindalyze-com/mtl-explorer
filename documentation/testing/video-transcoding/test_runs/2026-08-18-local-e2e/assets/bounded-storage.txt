@@ -1,0 +1,21 @@
+Production defaults verified in configuration:
+- 1 active FFmpeg session
+- 1 completed reconnect result
+- 4 session records including failed/cancelled records
+- 3 GiB per-session hard limit
+- 4 GiB global hard limit
+- 5 minute disconnect grace
+- 30 minute completed expiry
+- 6 hour runtime limit
+
+Live browser evidence:
+- P480 completed output: 446775 bytes
+- A later P720 request completed at 478693 bytes
+- max-completed-sessions=1 evicted the older P480 output directory
+- temporary root then contained only the P720 result: 476 KiB on disk
+- no FFmpeg process remained after completion
+- graceful server shutdown left the transcode root empty
+
+Automated tests also cover active byte/runtime termination, disconnect and
+completed expiry, oldest-completed eviction, global quota enforcement, active
+session protection, cancel deletion, and startup orphan cleanup.

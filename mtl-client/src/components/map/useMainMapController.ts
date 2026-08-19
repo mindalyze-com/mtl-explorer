@@ -48,6 +48,7 @@ import { isRemoteRasterMapTheme } from '@/components/map/mapStyleResolver';
 import { TOPO_CONTRAST_THEME } from '@/utils/mapStyle';
 import { readMapCameraState } from '@/components/map/mapRendererTypes';
 import { useMeasurementSystem } from '@/composables/useMeasurementSystem';
+import { syncMapScaleControlUnit } from '@/components/map/mapScaleControl';
 
 type ControllerMethod = (this: MapControllerRuntime, ...args: unknown[]) => unknown;
 type BoundControllerMethod = (...args: unknown[]) => unknown;
@@ -82,6 +83,7 @@ export function useMainMapController(
   } = dataFreshness;
   const isAnyPending = computed(() => isIndexing.value || isJobPending.value);
   const filterStore = useFilterStore();
+  const filterStoreRefs = storeToRefs(filterStore);
   const mapSettingsStore = useMapSettingsStore();
   const mapStateStore = useMapStateStore();
   const mapStateRefs = storeToRefs(mapStateStore);
@@ -159,12 +161,15 @@ export function useMainMapController(
     selectedFeature: null,
     trackSelectionSheetVisible: false,
     selectionPopupTrackIds: [],
+    selectionPopupMediaOptions: [],
+    trackSelectionPurpose: 'details',
     swissMobilityPopup: { visible: false, pos: { x: 0, y: 0 }, routes: [] },
     proximityAbortController: null,
     trackDetailsVisible: false,
     trackDetailsBackgroundDetent: TRACK_DETAILS_REPLAY_BACKGROUND_DETENT,
     trackDetailsDetents: TRACK_DETAILS_DETENTS,
     trackDetailsInitialDetent: TRACK_DETAILS_DEFAULT_DETENT,
+    trackDetailsInitialTab: 'overview',
     trackDetailsSelectedDetent: undefined,
     trackDetailsId: null,
     trackDetailsInfo: { id: null, name: '', description: '', activityType: '' },
@@ -223,10 +228,24 @@ export function useMainMapController(
     mediaOverlay: null,
     mediaVisible: mapSettingsStore.mediaVisible,
     mediaBusy: false,
+    focusedMediaMarker: null,
+    mediaSelectionSheetVisible: false,
+    mediaPendingSelection: null,
+    mediaSelectionTrackOptions: [],
+    mediaSelectionTracksLoading: false,
+    mediaSelectionAbortController: null,
+    mediaSelectionRequestToken: 0,
     mediaSheetVisible: false,
     mediaSheetMediaId: null,
     mediaLoadedPoints: [],
     mediaNavList: [],
+    mediaNavTotal: 0,
+    mediaNavOffset: 0,
+    mediaNavClusterId: null,
+    mediaNavPageSize: 0,
+    mediaNavLoading: false,
+    mediaNavRequestToken: 0,
+    mediaNavScope: 'photo',
     heatmapOverlay: null,
     heatmapVisible: mapSettingsStore.heatmapVisible,
     isOffline: false,
@@ -241,6 +260,7 @@ export function useMainMapController(
     detailAbortController: null,
     detailDebounceTimer: null,
     activeOverlays: [...mapSettingsStore.activeOverlays],
+    _scaleControl: null,
     _terrainControl: null,
     _attributionLinkCleanup: null,
     _terrainTrackLayer: null,
@@ -269,6 +289,7 @@ export function useMainMapController(
 
   const setupBindings: MapControllerSetupBindings = {
     isIndexing: isAnyPending,
+    activeFilterIdentity: filterStoreRefs.activeIdentity,
     serverFreshnessToken,
     dataFreshnessLastChecked,
     refreshDataFreshness,
@@ -287,7 +308,11 @@ export function useMainMapController(
 
   const computedDefinitions: MapControllerComputedDefinitions = {
     selectionPopupTracks() {
-      return this.selectionPopupTrackIds.map((id) => this.getTrackPopupMeta(id));
+      const mediaOptions = new Map(this.selectionPopupMediaOptions.map((option) => [option.trackId, option]));
+      return this.selectionPopupTrackIds.map((id) => ({
+        ...this.getTrackPopupMeta(id),
+        ...mediaOptions.get(id),
+      }));
     },
     baseMapStyle() {
       // Basemap slider: combines desaturation, brightening, and opacity fade.
@@ -341,6 +366,16 @@ export function useMainMapController(
       if (!this.mediaSheetMediaId || !this.mediaNavList.length) return -1;
       return this.mediaNavList.findIndex((p) => p.id === this.mediaSheetMediaId);
     },
+    mediaCanGoPrev() {
+      if (this.mediaNavLoading) return false;
+      const i = this.mediaCurrentIndex;
+      return i >= 0 && this.mediaNavOffset + i > 0;
+    },
+    mediaCanGoNext() {
+      if (this.mediaNavLoading) return false;
+      const i = this.mediaCurrentIndex;
+      return i >= 0 && this.mediaNavOffset + i + 1 < this.mediaNavTotal;
+    },
     mediaPrevId() {
       const i = this.mediaCurrentIndex;
       if (i <= 0) return null;
@@ -351,6 +386,11 @@ export function useMainMapController(
       if (i < 0 || i >= this.mediaNavList.length - 1) return null;
       return this.mediaNavList[i + 1].id ?? null;
     },
+    mediaNavigationIds() {
+      return this.mediaNavList
+        .map((point) => point.id)
+        .filter((id): id is number => typeof id === 'number' && Number.isSafeInteger(id) && id > 0);
+    },
     showLocationSearchFab() {
       return (
         !this.locationSearchVisible &&
@@ -360,6 +400,7 @@ export function useMainMapController(
         !this.geoDrawingParamDef &&
         !this.trackDetailsVisible &&
         !this.trackSelectionSheetVisible &&
+        !this.mediaSelectionSheetVisible &&
         !this.mediaSheetVisible
       );
     },
@@ -438,7 +479,7 @@ export function useMainMapController(
     ...useGeoDrawing(),
     ...useMediaAndHeatmap({ mapSettingsStore }),
     ...useMapDataLoading({ filterStore, freshnessStore }),
-    ...useMapRendererLifecycle(),
+    ...useMapRendererLifecycle({ mapSettingsStore }),
   };
 
   const computedRefs = {} as Partial<MapControllerComputedRefs>;
@@ -523,14 +564,15 @@ export function useMainMapController(
       state.locationSearchVisible,
       state.trackSelectionSheetVisible,
       state.trackDetailsVisible,
+      state.mediaSelectionSheetVisible,
       state.mediaSheetVisible,
     ],
-    ([locationSearchVisible, trackSelectionVisible, trackDetailsVisible, mediaVisible]) => {
+    ([locationSearchVisible, trackSelectionVisible, trackDetailsVisible, mediaSelectionVisible, mediaVisible]) => {
       mapStateStore.setSheetState({
         locationSearchVisible,
         trackSelectionVisible,
         trackDetailsVisible,
-        mediaVisible,
+        mediaVisible: mediaSelectionVisible || mediaVisible,
       });
     },
     { immediate: true }
@@ -602,7 +644,7 @@ export function useMainMapController(
     this.syncMapSettingsFromStore();
     window.addEventListener(MAP_ARCHIVE_STALE_EVENT, this.handleMapArchiveStale);
     try {
-      await this.reloadMap(true);
+      await this.reloadMap();
       const selectedTrackId = mapStateStore.selectedTrackId;
       if (selectedTrackId != null && this.gpsTrackIdToFeature?.has?.(selectedTrackId)) {
         this.selectedTrackId = null;
@@ -630,7 +672,9 @@ export function useMainMapController(
     if (this.detailDebounceTimer) clearTimeout(this.detailDebounceTimer);
     if (this.detailAbortController) this.detailAbortController.abort();
     if (this.bulk10mController) this.bulk10mController.abort();
+    if (this.mediaSelectionAbortController) this.mediaSelectionAbortController.abort();
     this.closeTrackPointPopup();
+    this.clearFocusedMediaMarker();
     this.clearLocationSearchMarker();
     if (this._resizeObserver) this._resizeObserver.disconnect();
     if (this.heatmapOverlay) {
@@ -649,6 +693,7 @@ export function useMainMapController(
 
   watch(serverFreshnessToken, () => ctx.maybeAutoFreshenAfterLogin());
   watch(measurementSystem, () => {
+    syncMapScaleControlUnit(ctx._scaleControl, measurementSystem.value);
     ctx.geoDrawingOverlay?.refreshMeasurementLabels();
     ctx.refreshTrackPointPopupMeasurementLabels();
     ctx.refreshTrackReplayMeasurementLabels();

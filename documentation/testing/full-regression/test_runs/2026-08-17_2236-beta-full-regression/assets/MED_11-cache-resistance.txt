@@ -1,0 +1,37 @@
+MED_11 cache-resistance evidence
+Observed 2026-08-18 03:57-04:06 Europe/Zurich
+
+Activity viewport interactions
+- Panned the activity mini-map laterally away from the recorded Bern center and
+  back with trusted pointer drags.
+- Zoomed in and out repeatedly with trusted wheel input across several map
+  levels. The four retained markers repositioned correctly and remained four
+  unique accessible targets at every checked level.
+- No delete-a/delete-b marker or timeline name appeared during any move.
+
+Hard reload and immediate revisit
+- Hard-reloaded the exact `/mtl/track/100016` route.
+- The first post-load Photos inspection exposed exactly four unique markers
+  before base-map tiles had finished painting; no deleted name was present.
+- After tiles settled, the same four unique retained markers remained and the
+  saved MED_11 screenshot was captured.
+
+Main-map cluster levels
+- Opened retained media 400005 and used `Open on main map`.
+- The main map centered the same Bern photo viewport at approximately 100 m.
+- Repeated Zoom in changed the media overlay through approximately 50 m, 20 m,
+  and 10 m levels; the selected retained photo and other retained positions
+  remained current, with no deleted marker returning.
+
+Live bounds response checks
+- Queried the live Bern bounds twice after the hard reload:
+  minLat 46.94, minLng 7.43, maxLat 46.96, maxLng 7.46.
+- Both responses returned HTTP 200 and `Cache-Control: no-store`.
+- Both payloads contained exactly four unique IDs:
+  400000, 400002, 400004, 400005.
+- Neither deleted ID 400001 nor 400003 appeared, and no retained ID was
+  duplicated.
+
+Result: PASS. Pan/return, multi-level zoom, hard reload, immediate revisit, and
+two no-store bounds responses all preserved the four-current-photo state with
+no stale or duplicate markers.

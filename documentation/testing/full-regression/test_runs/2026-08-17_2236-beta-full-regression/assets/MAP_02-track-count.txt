@@ -1,0 +1,13 @@
+MAP_02 visible track inventory evidence
+
+Main-map track control: 14 Tracks
+Default filter result: 14 matching tracks
+Review Tracks summary: 14 tracks, 1,048 km, 1d 00h
+Review table rows: 15 including header, therefore 14 track rows
+Pagination: Page 1 only; next and last disabled
+Rows per page: 25
+Browser console errors captured for tab: 0
+
+The table included all current distinct positive fixtures, including the five original public tracks, FIT track, distinct TCX/GDB/NMEA tracks, IGC, media track, and synthetic segment records. Inputs that indexed as duplicate sources are intentionally absent from the visible result.
+
+Result: the map count, filter count, review summary, and complete single-page row inventory agree at 14 visible tracks.

@@ -8,6 +8,7 @@ const mocks = vi.hoisted(() => {
   };
   const tracksApi = {
     getTracksSimplified1: vi.fn(),
+    getTrackMediaOptionsWithinDistanceOfPoint: vi.fn(),
   };
   const getActiveFilterRequest = vi.fn();
   const useFilterStore = vi.fn(() => ({ getActiveFilterRequest }));
@@ -78,6 +79,7 @@ import {
   fetchStatisticsOverview,
   fetchTrackDetailsForCrossingPoints,
   fetchTrackIdsWithinDistanceOfPoint,
+  fetchTrackMediaOptionsWithinDistanceOfPoint,
   getRelatedTracks,
 } from '@/utils/ServiceHelper';
 
@@ -121,7 +123,8 @@ describe('ServiceHelper active filter resolution', () => {
     expect(mocks.tracksApi.getTracksSimplified1).not.toHaveBeenCalled();
     expect(mocks.apiClient.post).toHaveBeenCalledWith(
       'api/tracks/get-track-statistics?groupByDateFormat=yyyy-MM',
-      [101, 102]
+      [101, 102],
+      { signal: undefined }
     );
   });
 
@@ -149,6 +152,30 @@ describe('ServiceHelper active filter resolution', () => {
         stringParams: { ACTIVITY: 'bike' },
         dateTimeParams: { DATE_TIME_FROM: '2026-01-01T00:00:00' },
         resultGroupSelection: { includedGroups: [{ value: 'WALKING' }] },
+      },
+      { signal: undefined }
+    );
+  });
+
+  it('uses the generated client for nearby track media counts and distances', async () => {
+    mocks.tracksApi.getTrackMediaOptionsWithinDistanceOfPoint.mockResolvedValueOnce([
+      { trackId: 42, distanceMeters: 18, matchedMediaCount: 3 },
+    ]);
+
+    await expect(fetchTrackMediaOptionsWithinDistanceOfPoint(7.4, 46.9, 250)).resolves.toEqual([
+      { trackId: 42, distanceMeters: 18, matchedMediaCount: 3 },
+    ]);
+    expect(mocks.tracksApi.getTrackMediaOptionsWithinDistanceOfPoint).toHaveBeenCalledWith(
+      {
+        longitude: 7.4,
+        latitude: 46.9,
+        distanceInMeter: 250,
+        filterName: 'StoreFilter',
+        filterParamsRequest: {
+          stringParams: { ACTIVITY: 'bike' },
+          dateTimeParams: { DATE_TIME_FROM: '2026-01-01T00:00:00' },
+          resultGroupSelection: { includedGroups: [{ value: 'WALKING' }] },
+        },
       },
       { signal: undefined }
     );
@@ -187,7 +214,8 @@ describe('ServiceHelper active filter resolution', () => {
     );
     expect(mocks.apiClient.post).toHaveBeenCalledWith(
       'api/tracks/get-track-statistics?groupByDateFormat=yyyy',
-      [21, 22]
+      [21, 22],
+      { signal: undefined }
     );
   });
 

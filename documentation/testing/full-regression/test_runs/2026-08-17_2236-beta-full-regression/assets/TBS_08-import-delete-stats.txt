@@ -1,0 +1,55 @@
+TBS_08 import/delete statistics evidence
+
+Required five-GPX import evidence is preserved in IMP_02 through IMP_08:
+- Five watched public GPX sources mapped one-to-one to tracks 100000-100004.
+- Statistics rose from the empty baseline to five imported tracks and exposed
+  all five names; later additions brought the pre-delete resolved set to 15.
+
+Pre-delete 15-track Overview:
+- 15 tracks
+- 1,048 km
+- 1d 00h
+- 4,896 Wh
+- 14,963 m ascent
+- Activity split: Bicycle 12, Walking 2, Running 1
+
+Exactly two watched sources removed:
+- Vitry-le-Francois_Langres.gpx
+  sha256 401218e3c1d1f366ee27ea8bc138d8422eff3bf6348a77183be83fef3e8d7d67
+- VoieVerteHauteVosges.gpx
+  sha256 0f417d6e76cfa581d3ada969e728694933fbffd062f61a8352ccc87637135f78
+
+They were moved from the five-GPX watched folder to the recoverable run
+quarantine:
+/root/mtl-explorer-2026-08-17_2236-beta-full-regression/data/logs/
+2026-08-17_2236-beta-full-regression-deleted-two/
+
+Post-mutation filesystem:
+- Watched five-GPX folder: 3 files (Jura, Lannion, Mosel)
+- Quarantine: 2 files (Vitry, Voie Verte)
+- The original preserved public-fixture copies also remain outside watched data.
+
+Processing/reload:
+- Automatic server processing completed without Rescan GPS.
+- Admin reported Server data changed / Reload needed.
+- Reload changed the map to 13 Tracks and Data status to Current.
+
+Post-delete 13-track Overview:
+- 13 tracks
+- 823 km
+- 16h 51m
+- 3,989 Wh
+- 13,073 m ascent
+- Activity split: Bicycle 10, Walking 2, Running 1
+- Active 2010 day/week/month changed from 4 tracks / 1,017 km / 22h 17m
+  to 2 tracks / 791 km / 14h 37m.
+
+Track-browser absence/retention:
+- Vitry le françois - langres on GPSies.com: 0 of 13
+- voie verte haute vosges on GPSies.com: 0 of 13
+- Jura Route 7 / 2011 on GPSies.com: 1 of 13, 273 km, 7h 46m
+- Moselradweg aus Wiki on GPSies.com: 1 of 13, 518 km, 6h 50m
+- Lannion_Plestin_parcours: 1 of 13, 25.9 km, 1h 13m
+
+Search was cleared after verification. The current resolved data state is 13
+tracks with exactly three of the original five GPX sources retained.

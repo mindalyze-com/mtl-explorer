@@ -253,6 +253,12 @@ h2 {
   line-height: 1.2;
 }
 
+.step .card-heading {
+  margin: 0;
+  font-size: 1.2rem;
+  line-height: 1.2;
+}
+
 .card p,
 .step p {
   margin: 0.65rem 0 0;
@@ -280,6 +286,10 @@ h2 {
   display: grid;
   gap: 0.9rem;
   counter-reset: steps;
+}
+
+.section-steps {
+  margin-top: 1.2rem;
 }
 
 .step {
@@ -331,6 +341,69 @@ code {
   display: flex;
   flex-wrap: wrap;
   gap: 0.75rem;
+}
+
+.related-lead {
+  margin-bottom: 1.2rem;
+}
+
+.table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background: var(--surface);
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 680px;
+}
+
+th,
+td {
+  padding: 0.9rem 1rem;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  vertical-align: top;
+  line-height: 1.5;
+}
+
+th {
+  color: var(--text);
+  background: rgba(36, 111, 173, 0.07);
+  font-size: 0.86rem;
+}
+
+td {
+  color: var(--text-soft);
+}
+
+tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.article-copy {
+  max-width: 780px;
+}
+
+.article-copy h2 {
+  margin-top: 2.4rem;
+  font-size: clamp(1.65rem, 3vw, 2.3rem);
+}
+
+.article-copy h2:first-child {
+  margin-top: 0;
+}
+
+.article-copy p {
+  color: var(--text-soft);
+  line-height: 1.72;
+}
+
+.article-copy a {
+  color: var(--blue-strong);
+  text-underline-offset: 0.2rem;
 }
 
 .site-footer {

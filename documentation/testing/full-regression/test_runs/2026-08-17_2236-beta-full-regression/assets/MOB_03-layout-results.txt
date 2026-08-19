@@ -1,0 +1,9 @@
+MOB_03 mobile usability audit at 390 x 844
+Document client width: 390 px
+Document body scroll width: 390 px
+Uncontained body-level horizontal overflow: false
+Visible leaf text nodes with scrollWidth greater than clientWidth: 0
+Statistics Trends chart rendered with period and sub-unit selectors, Table/Charts switch, summary chips, axes, labels, and bars.
+Statistics Table exposed all 14 headers and period rows inside a 354 px horizontally scrollable table container; the 1,519 px table did not expand the page.
+Map Zoom in changed scale from 500 km to 300 km; Zoom out restored 500 km.
+Zoom, rotation/north, globe, 3D, location search, track count, and eight navigation buttons remained semantic and visible.

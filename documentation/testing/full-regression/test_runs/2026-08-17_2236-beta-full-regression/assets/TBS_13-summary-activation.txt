@@ -1,0 +1,29 @@
+TBS_13 filtered-summary activation evidence
+
+Setup
+- Active user-drawn rectangle selected 1 of 13 tracks.
+- Statistics Overview rendered a native-looking button with accessible name:
+  "Open Filter. Showing 1 of 13 tracks".
+
+Desktop pointer
+- Clicking the summary opened Filter directly.
+- Filter showed 1 matching track and 1 criterion active.
+
+Desktop keyboard
+- Focused the summary and pressed Enter.
+- Repeated with Space and with a native browser keypress while focused.
+- Statistics remained open and Filter did not open.
+
+Mobile 390 x 844
+- The same summary and 1-of-13 state were visible.
+- Pointer activation opened Filter directly.
+- After reopening Statistics, focusing the summary and pressing Enter left
+  Statistics open and did not open Filter.
+
+Cleanup
+- Closed the mobile tab, reset the temporary viewport override, and reset the
+  geo filter. The desktop map and Filter returned to 13 matching tracks.
+
+Result
+- FAIL. Pointer activation passes on desktop and mobile; required keyboard
+  activation fails on both layouts.

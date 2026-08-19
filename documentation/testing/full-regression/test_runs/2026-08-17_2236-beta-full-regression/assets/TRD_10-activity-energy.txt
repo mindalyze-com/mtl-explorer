@@ -1,0 +1,34 @@
+TRD_10 activity-type save and recalculation
+
+Track: 100017, MTL Synthetic Segment B
+
+Initial state
+- Activity: Running
+- Net Total: 3.1 Wh
+- Avg Power: 93 W
+- Avg Moving Power: 250 W
+- Max 30s Power: 102 W
+
+Changed through Quality > Track Curation
+- Selected Bicycle from the Activity Type combobox.
+- Header, combobox, and Activity Classification changed to Bicycle.
+- Classification source changed to USER_SET.
+
+Recalculated Bicycle values
+- Net Total: 3.8 Wh
+- Avg Power: 112 W
+- Avg Moving Power: 305 W
+- Max 30s Power: 124 W
+- Breakdown changed, including 3.5 Wh gravitational ascent and 0.3 Wh rolling resistance.
+
+Persistence
+- Directly reloaded /mtl/track/100017.
+- Bicycle remained selected.
+- Net Total remained 3.8 Wh and Avg Power remained 112 W.
+
+Cleanup/restoration
+- Changed activity back to Running through the same UI.
+- Header returned to Running.
+- Net Total returned to 3.1 Wh and Avg Power returned to 93 W.
+
+All values were read from the rendered end-user UI.

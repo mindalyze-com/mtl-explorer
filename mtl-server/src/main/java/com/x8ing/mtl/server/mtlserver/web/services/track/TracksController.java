@@ -7,6 +7,7 @@ import com.x8ing.mtl.server.mtlserver.db.entity.gps.GpsTrackDataPoint;
 import com.x8ing.mtl.server.mtlserver.db.entity.gps.projection.*;
 import com.x8ing.mtl.server.mtlserver.db.readonly.spring.QueryResult;
 import com.x8ing.mtl.server.mtlserver.db.repository.gps.*;
+import com.x8ing.mtl.server.mtlserver.db.repository.media.TrackMediaQueryRepository;
 import com.x8ing.mtl.server.mtlserver.energy.EnergyService;
 import com.x8ing.mtl.server.mtlserver.gpx.GPXReader;
 import com.x8ing.mtl.server.mtlserver.logic.crossing.TrackTimeBetweenTwoPoints;
@@ -50,6 +51,7 @@ import java.util.stream.Collectors;
         "gpsTrackDataRepository",
         "gpsTrackDataPointRepository",
         "gpsTrackEventRepository",
+        "trackMediaQueryRepository",
         "filterExecutionService",
         "energyService",
         "trackFileExportService",
@@ -84,6 +86,8 @@ public class TracksController {
 
     private final GpsTrackEventRepository gpsTrackEventRepository;
 
+    private final TrackMediaQueryRepository trackMediaQueryRepository;
+
     private final FilterExecutionService filterExecutionService;
 
     private final EnergyService energyService;
@@ -101,6 +105,7 @@ public class TracksController {
             GpsTrackDataRepository gpsTrackDataRepository,
             GpsTrackDataPointRepository gpsTrackDataPointRepository,
             GpsTrackEventRepository gpsTrackEventRepository,
+            TrackMediaQueryRepository trackMediaQueryRepository,
             FilterExecutionService filterExecutionService,
             EnergyService energyService,
             TrackFileExportService trackFileExportService,
@@ -113,6 +118,7 @@ public class TracksController {
         this.gpsTrackDataRepository = gpsTrackDataRepository;
         this.gpsTrackDataPointRepository = gpsTrackDataPointRepository;
         this.gpsTrackEventRepository = gpsTrackEventRepository;
+        this.trackMediaQueryRepository = trackMediaQueryRepository;
         this.filterExecutionService = filterExecutionService;
         this.energyService = energyService;
         this.trackFileExportService = trackFileExportService;
@@ -388,6 +394,37 @@ public class TracksController {
     ) {
         QueryResult filterIds = filterExecutionService.executeOptionalFilterName(filterName, params);
         return gpsTrackRepository.getTracksWithinDistanceToPoint(longitude, latitude, distanceInMeter, filterIds.asIdArray());
+    }
+
+    @Operation(
+            operationId = "getTrackMediaOptionsWithinDistanceOfPoint",
+            summary = "Get nearby activities and their matched media counts",
+            description = "Returns every filtered activity passing near the point. Activities without selected media correlations are retained with a zero count.")
+    @PostMapping(
+            value = "/get-track-media-options-within-distance-of-point",
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE)
+    public List<NearbyTrackMediaDto> getTrackMediaOptionsWithinDistanceOfPoint(
+            @RequestParam(name = "filterName", required = false) String filterName,
+            @RequestBody(required = false) FilterParamsRequest params,
+            @RequestParam(name = "longitude") Double longitude,
+            @RequestParam(name = "latitude") Double latitude,
+            @RequestParam(name = "distanceInMeter") Double distanceInMeter
+    ) {
+        QueryResult filterIds = filterExecutionService.executeOptionalFilterName(filterName, params);
+        List<NearbyTrackDistance> nearbyTracks = gpsTrackRepository.getTracksWithDistanceToPoint(
+                longitude,
+                latitude,
+                distanceInMeter,
+                filterIds.asIdArray());
+        List<Long> nearbyTrackIds = nearbyTracks.stream().map(NearbyTrackDistance::getTrackId).toList();
+        Map<Long, Long> mediaCounts = trackMediaQueryRepository.findSelectedMediaCountsByTrackIds(nearbyTrackIds);
+        return nearbyTracks.stream()
+                .map(track -> new NearbyTrackMediaDto(
+                        track.getTrackId(),
+                        track.getDistanceMeters(),
+                        mediaCounts.getOrDefault(track.getTrackId(), 0L)))
+                .toList();
     }
 
     @RequestMapping(value = "/get-tracks-within-distance-of-point")

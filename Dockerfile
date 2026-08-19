@@ -105,13 +105,14 @@ RUN apt-get update && \
 
 
 # Install python3-pip and python3-venv (needed for garmin export setup)
-# Install imagemagick + libheif-dev for HEIC-to-JPEG conversion in MediaController
+# Install ImageMagick/libheif for HEIC conversion and ffmpeg for video posters.
 # Install python3-pillow + fonts for demo-photo generation
 RUN apt-get update && apt-get install -y --no-install-recommends \
       python3-pip \
       python3-venv \
       imagemagick \
       libheif-dev \
+      ffmpeg \
       python3-pillow \
       fonts-dejavu-core \
       libqt6core6 \
@@ -155,9 +156,11 @@ RUN chmod +x /app/garmin_fit_export/install_fit_export.sh /app/garmin_fit_export
     && /bin/bash /app/garmin_fit_export/install_fit_export.sh "${FIT_EXPORT_DEFAULT_PROFILE}" "${FIT_EXPORT_DEFAULT_PACKAGES}" \
     && rm -rf /root/.cache/pip
 
-# Copy demo-mode assets (GPX zip + photo generator script) — always packaged, only used at runtime when DEMO_MODE is set
+# Copy demo-mode assets and the shared demo/regression photo generators
 COPY docker/gpx_porto_taxi_dataset/porto_taxi_service_gpx_extract.zip /app/demo/porto_taxi_service_gpx_extract.zip
 COPY docker/gpx_porto_taxi_dataset/generate_demo_photos.py /app/demo/generate_demo_photos.py
+COPY docker/gpx_porto_taxi_dataset/generate_regression_photos.py /app/demo/generate_regression_photos.py
+COPY docker/gpx_porto_taxi_dataset/photo_placeholder.py /app/demo/photo_placeholder.py
 COPY docker/gpx_porto_taxi_dataset/DATASOURCE.md /app/demo/DATASOURCE.md
 
 # Copy the Spring Boot application JAR
@@ -192,5 +195,7 @@ RUN chmod +x /my-entrypoint.sh
 ENTRYPOINT ["/my-entrypoint.sh"]
 
 # settings to motivate java to release memory if it can..
-# MaxRAMPercentage: percentage for HEAP... leave room for others, still allow to control from container
-CMD ["java", "-XX:MaxRAMPercentage=60.0", "-XX:InitialRAMPercentage=25.0", "-XX:+UseZGC", "-XX:ZUncommitDelay=10", "-Dfile.encoding=UTF-8", "-Dsun.jnu.encoding=UTF-8", "-jar", "mtl-server-0.0.1-SNAPSHOT.jar"]
+# Keep half of the container available for JVM native memory and bundled helper processes.
+# Do not set a large initial heap: ZGC cannot uncommit below that floor. Java 21 needs
+# ZGenerational explicitly; later JDKs select generational ZGC by default.
+CMD ["java", "-XX:MaxRAMPercentage=50.0", "-XX:+UseZGC", "-XX:+ZGenerational", "-XX:ZUncommitDelay=30", "-XX:+ExitOnOutOfMemoryError", "-Dfile.encoding=UTF-8", "-Dsun.jnu.encoding=UTF-8", "-jar", "mtl-server-0.0.1-SNAPSHOT.jar"]

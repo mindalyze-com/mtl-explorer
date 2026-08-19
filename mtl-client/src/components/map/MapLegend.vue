@@ -1,12 +1,19 @@
 <template>
-  <div class="mtl-card">
+  <div class="mtl-card" :class="{ 'mtl-card--identified-filter': filterActive && activeFilterIdentity }">
     <!-- ── Single header row: [count zone] [| map visibility ▾] ── -->
     <div class="mtl-card__header">
       <!-- Left: track count — click opens filter panel -->
-      <button type="button" class="mtl-card__count" @click="$emit('chip-click')">
+      <button type="button" class="mtl-card__count" :aria-label="filterButtonAriaLabel" @click="$emit('chip-click')">
         <i v-if="filterActive" class="bi bi-funnel-fill mtl-card__funnel"></i>
-        <span v-if="filterActive">{{ visibleTrackCount }} / {{ totalTrackCount }} Tracks</span>
-        <span v-else>{{ visibleTrackCount }} Tracks</span>
+        <span class="mtl-card__filter-summary">
+          <span
+            v-if="filterActive && activeFilterIdentity"
+            class="mtl-card__filter-identity"
+            :title="activeFilterIdentity"
+            >{{ activeFilterIdentity }}</span
+          >
+          <span class="mtl-card__track-count">{{ trackCountLabel }}</span>
+        </span>
       </button>
       <!-- Right: legend toggle — only when entries exist -->
       <button
@@ -96,6 +103,7 @@ const props = defineProps<{
   visibleTrackCount: number;
   totalTrackCount: number;
   filterActive: boolean;
+  activeFilterIdentity?: string;
   hiddenGroups: Set<string>;
 }>();
 
@@ -119,6 +127,15 @@ type GradientBand = {
 };
 
 const isGradientLegend = computed(() => props.legendMode === 'gradient' && hasOnlyNumericBuckets(props.entries));
+const trackCountLabel = computed(() =>
+  props.filterActive
+    ? `${props.visibleTrackCount} / ${props.totalTrackCount} Tracks`
+    : `${props.visibleTrackCount} Tracks`
+);
+const filterButtonAriaLabel = computed(() => {
+  const identity = props.filterActive ? props.activeFilterIdentity?.trim() : '';
+  return identity ? `Open Filter. ${identity}. ${trackCountLabel.value}` : `Open Filter. ${trackCountLabel.value}`;
+});
 
 const gradientBands = computed<GradientBand[]>(() => {
   const bucketCount = Math.max(1, props.gradientBucketCount ?? 100);
@@ -188,6 +205,10 @@ function showAllGroups() {
   letter-spacing: 0.01em;
 }
 
+.mtl-card--identified-filter {
+  max-width: min(360px, calc(100vw - 1.2rem - var(--safe-left, 0px) - var(--safe-right, 0px)));
+}
+
 /* ── Header: single row with two tap zones ── */
 .mtl-card__header {
   display: flex;
@@ -212,6 +233,33 @@ function showAllGroups() {
   color: inherit;
   font: inherit;
   text-align: left;
+}
+
+.mtl-card__filter-summary {
+  display: flex;
+  flex: 1 1 auto;
+  min-width: 0;
+  flex-direction: column;
+  align-items: flex-start;
+  line-height: 1.2;
+}
+
+.mtl-card__filter-identity {
+  display: block;
+  width: 100%;
+  overflow: hidden;
+  color: var(--chip-text);
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mtl-card__track-count {
+  display: block;
+  opacity: 0.78;
+  font-size: var(--text-2xs-size);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 .mtl-card__count:hover {

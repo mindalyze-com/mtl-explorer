@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Supported GPS Track Formats | MTL Explorer</title>
+  <meta name="description" content="Review the GPX, FIT, TCX, KML, KMZ, IGC, NMEA, GeoJSON, and GDB track formats supported by the self-hosted MTL Explorer GPS archive.">
+  <meta name="robots" content="index, follow, max-image-preview:large">
+  <link rel="canonical" href="https://mindalyze-com.github.io/mtl-explorer/supported-gps-formats/">
+  <meta property="og:site_name" content="MTL Explorer">
+  <meta property="og:type" content="article">
+  <meta property="og:url" content="https://mindalyze-com.github.io/mtl-explorer/supported-gps-formats/">
+  <meta property="og:title" content="Supported GPS Track Formats | MTL Explorer">
+  <meta property="og:description" content="Import common GPS and activity file formats into one self-hosted archive.">
+  <meta property="og:image" content="https://mindalyze-com.github.io/mtl-explorer/assets/feature-showcase/large/filters.webp">
+  <meta property="og:image:type" content="image/webp">
+  <meta property="og:image:width" content="2199">
+  <meta property="og:image:height" content="1561">
+  <meta property="og:image:alt" content="MTL Explorer showing imported activity tracks on a map">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:image" content="https://mindalyze-com.github.io/mtl-explorer/assets/feature-showcase/large/filters.webp">
+  <link rel="icon" href="../favicon.ico" sizes="any">
+  <link rel="stylesheet" href="../site-page.css">
+  <link rel="preload" as="image" type="image/webp" href="../assets/feature-showcase/preview/filters.webp">
+  <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "TechArticle",
+      "headline": "GPS Track Formats Supported by MTL Explorer",
+      "url": "https://mindalyze-com.github.io/mtl-explorer/supported-gps-formats/",
+      "description": "A reference for GPS and activity file formats supported by the self-hosted MTL Explorer archive.",
+      "dateModified": "2026-08-18",
+      "about": {"@type": "SoftwareApplication", "name": "MTL Explorer"}
+    }
+  </script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="site-header-inner">
+      <a class="brand" href="../">
+        <img src="../mtl_logo_3_only_vector.svg" width="43" height="51" alt="">
+        <span><strong>MTL Explorer</strong><span>Self-hosted GPS archive</span></span>
+      </a>
+      <nav class="site-nav" aria-label="Primary navigation">
+        <a href="../#guides">Guides</a>
+        <a href="../docker-install/">Install</a>
+        <a class="button-small" href="https://mtl-demo.mindalyze.com/mtl/">Live demo</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="page">
+    <nav class="breadcrumb" aria-label="Breadcrumb"><a href="../">Home</a> / Supported GPS formats</nav>
+
+    <section class="hero">
+      <div>
+        <p class="eyebrow">Supported GPS formats</p>
+        <h1>Keep different track files in one archive.</h1>
+        <p class="lead">MTL Explorer accepts nine common GPS and activity formats. GPX is read directly; the other formats are converted to GPX in memory before the normal track parser processes them.</p>
+        <div class="actions">
+          <a class="button" href="../docker-install/">Install with Docker</a>
+          <a class="button-secondary" href="../gpx-track-map/">View the track map</a>
+        </div>
+      </div>
+      <figure class="hero-media">
+        <img src="../assets/feature-showcase/preview/filters.webp" srcset="../assets/feature-showcase/thumb/filters.webp 360w, ../assets/feature-showcase/medium/filters.webp 720w, ../assets/feature-showcase/preview/filters.webp 1099w, ../assets/feature-showcase/large/filters.webp 2199w" sizes="(max-width: 900px) calc(100vw - 40px), 570px" width="1099" height="780" alt="MTL Explorer map showing imported GPS tracks from one archive" fetchpriority="high">
+        <figcaption>Imported activities share the same map, filters, and statistics views.</figcaption>
+      </figure>
+    </section>
+
+    <section class="section" id="format-table">
+      <div class="section-head">
+        <h2>File format reference.</h2>
+        <p>Support means that MTL Explorer recognizes the extension and can pass a valid track file through the documented import path.</p>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th scope="col">Format</th><th scope="col">Extension</th><th scope="col">Processing</th><th scope="col">Common source</th></tr></thead>
+          <tbody>
+            <tr><td><strong>GPX</strong></td><td><code>.gpx</code></td><td>Read directly</td><td>GPS devices, route planners, and activity exports</td></tr>
+            <tr><td><strong>FIT</strong></td><td><code>.fit</code></td><td>Converted with GPSBabel</td><td>Garmin and other fitness devices</td></tr>
+            <tr><td><strong>TCX</strong></td><td><code>.tcx</code></td><td>Converted with GPSBabel</td><td>Training Center activity exports</td></tr>
+            <tr><td><strong>KML</strong></td><td><code>.kml</code></td><td>Converted with GPSBabel</td><td>Google Earth and mapping tools</td></tr>
+            <tr><td><strong>KMZ</strong></td><td><code>.kmz</code></td><td>Extracted and converted with GPSBabel</td><td>Compressed Google Earth files</td></tr>
+            <tr><td><strong>IGC</strong></td><td><code>.igc</code></td><td>Converted with GPSBabel</td><td>Gliding and flight loggers</td></tr>
+            <tr><td><strong>NMEA</strong></td><td><code>.nmea</code></td><td>Converted with GPSBabel</td><td>Recorded NMEA 0183 GPS sentences</td></tr>
+            <tr><td><strong>GeoJSON</strong></td><td><code>.geojson</code></td><td>Converted with GPSBabel</td><td>GIS and web mapping tools</td></tr>
+            <tr><td><strong>GDB</strong></td><td><code>.gdb</code></td><td>Converted with GPSBabel</td><td>Garmin MapSource databases</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="callout">
+        <strong>The extension is only the first check.</strong>
+        A file must contain usable track geometry and valid data for its format. Invalid, empty, or unsupported variants can be reported as failed imports.
+      </div>
+    </section>
+
+    <section class="section" id="import-methods">
+      <div class="section-head">
+        <h2>Use the import method that fits the host.</h2>
+        <p>All accepted files enter the same background processing flow.</p>
+      </div>
+      <div class="content-grid">
+        <article class="card"><h3>Watch folder</h3><p>Place files in the mounted <code>./data/gpx/</code> directory. The server watches the folder and indexes new files.</p></article>
+        <article class="card"><h3>Admin upload</h3><p>Upload supported track files from the protected Admin workspace when direct access to the host folder is inconvenient.</p></article>
+        <article class="card"><h3>Garmin sync</h3><p>Optional Garmin Connect export can download new activities into the import directory before indexing.</p></article>
+        <article class="card"><h3>Manual rescan</h3><p>Queue a GPS rescan from Admin if a mounted filesystem does not deliver a file-change event.</p></article>
+      </div>
+    </section>
+
+    <section class="section" id="after-import">
+      <div class="split">
+        <div class="copy">
+          <p class="eyebrow">After import</p>
+          <h2>Review one normalized archive.</h2>
+          <p>The source file remains in the import directory. MTL Explorer reads GPX directly or converts another accepted format to GPX in memory for parsing.</p>
+          <ul class="plain-list">
+            <li>Detect duplicate and failed imports.</li>
+            <li>Classify activity types while preserving user changes.</li>
+            <li>Build precise and simplified track geometry.</li>
+            <li>Expose the original source download and GPX export from Track Details.</li>
+          </ul>
+        </div>
+        <figure class="media">
+          <img src="../assets/feature-showcase/thumb/overview-track-details-graphs.webp" srcset="../assets/feature-showcase/thumb/overview-track-details-graphs.webp 360w, ../assets/feature-showcase/medium/overview-track-details-graphs.webp 720w, ../assets/feature-showcase/preview/overview-track-details-graphs.webp 1099w" sizes="(max-width: 900px) calc(100vw - 40px), 530px" width="1099" height="607" alt="MTL Explorer track details and graphs for an imported activity" loading="lazy" decoding="async">
+          <figcaption>Track Details after a file has been processed.</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head"><h2>Continue with related guides.</h2></div>
+      <div class="related">
+        <a class="button-secondary" href="../garmin-connect-import/">Garmin Connect import</a>
+        <a class="button-secondary" href="../gpx-track-map/">GPS track archive</a>
+        <a class="button-secondary" href="../private-gps-heatmap/">Private GPS heatmap</a>
+        <a class="button-secondary" href="../docker-install/">Docker installation</a>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="site-footer-inner">
+      <span>MTL Explorer · Self-hosted GPS archive</span>
+      <nav aria-label="Footer navigation"><a href="../">Home</a><a href="../why-i-built-mtl-explorer/">About</a><a href="https://github.com/mindalyze-com/mtl-explorer">GitHub</a></nav>
+    </div>
+  </footer>
+</body>
+</html>

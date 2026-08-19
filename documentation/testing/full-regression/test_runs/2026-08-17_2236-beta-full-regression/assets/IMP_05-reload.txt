@@ -1,0 +1,18 @@
+Freshness action:
+- Main-map banner: New data available
+- Action used: Reload
+- No browser restart performed
+
+After reload:
+- Main map: 5 Tracks
+- Statistics Tracks: 5 tracks; 1,043 km; 23h 31m
+- Statistics Overview: 5 tracks; 1,043 km; 23h 31m; 4,527 Wh;
+  12,936 m ascent; Bicycle 5
+- Filter Current result: 5 matching tracks; Apply filter checked; All 1 categories
+
+Imported names visible in the shared track browser and Statistics Overview:
+- Lannion_Plestin_parcours Lannion_Plestin_parcours1
+- voie verte haute vosges on GPSies.com
+- Vitry le françois - langres on GPSies.com
+- Jura Route 7 / 2011 on GPSies.com
+- Moselradweg aus Wiki on GPSies.com

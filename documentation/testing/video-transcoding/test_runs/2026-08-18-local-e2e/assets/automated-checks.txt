@@ -1,0 +1,32 @@
+Backend focused regression
+Working directory: mtl-server
+Command: ./mvnw -Dtest=VideoTranscodeSessionServiceTest,VideoTranscodeControllerTest,MediaControllerContentTest test
+Result: PASS, 23 tests
+
+Frontend type check
+Working directory: mtl-client
+Command: npm run type-check
+Result: PASS
+
+Frontend media regression
+Command: npm run test:media-regression
+Result: PASS, 19 files and 187 tests
+
+Frontend production build
+Command: npm run build-only
+Result: PASS
+
+Generated TypeScript API package
+Command: npm install && npm run build
+Result: PASS
+
+Focused player check after the blocking-panel control fix
+Command: npx vitest run src/__tests__/compatibleVideoPlayer.spec.ts
+Result: PASS, 14 tests
+
+Targeted frontend lint
+Command: npx eslint <changed TypeScript and Vue files>
+Result: PASS, no warnings or errors
+
+OpenAPI audit
+Result: PASS, four paths and two schemas added; no paths or schemas removed

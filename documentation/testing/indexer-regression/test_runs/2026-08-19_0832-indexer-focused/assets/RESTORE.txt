@@ -1,0 +1,23 @@
+Phase: restore the deleted paths and add one new path in each category
+Same-path restore: add-delete-gpx.gpx; add-delete-media.jpg
+New paths: restore-new-gpx.gpx; restore-new-media.jpg
+Same-path files entered the watch roots through atomic rename.
+Mutation: 2026-08-19T06:37:01.089816Z
+Server completion: 2026-08-19T06:37:12.934524Z
+Elapsed to 6 tracks, 6 media, and 12 successful index rows: 11.845 s
+
+Database evidence:
+- Restored GPS indexed_file: COMPLETED_WITH_SUCCESS, invocation 3
+- Restored MEDIA indexed_file: COMPLETED_WITH_SUCCESS, invocation 3
+- New GPS and MEDIA indexed_file rows: COMPLETED_WITH_SUCCESS, invocation 1
+- Active gps_track rows: 6
+- Active media_file rows: 6
+- Restored track: Indexer Delete Restore
+- New track: Indexer Restore New
+
+GUI evidence:
+- Browser automatically showed New data available; no rescan was used.
+- In-app Reload completed successfully.
+- Map counter and Statistics Overview showed 6 Tracks.
+- Statistics Overview showed 6 Media.
+- Recent Activity showed both restored and new track names.

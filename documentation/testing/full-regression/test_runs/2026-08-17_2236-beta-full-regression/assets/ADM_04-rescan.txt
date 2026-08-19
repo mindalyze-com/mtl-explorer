@@ -1,0 +1,54 @@
+ADM_04 manual rescan evidence
+
+Browser: signed-in desktop, Admin > Maintenance.
+
+Queued states
+- Rescan GPS returned visible status: Manual GPS rescan has been queued.
+- Rescan Media returned visible status: Manual MEDIA rescan has been queued.
+- Buttons re-enabled after each request and the sheet remained responsive.
+
+Already-running state
+- A direct authenticated concurrency probe issued eight simultaneous GPS rescan
+  requests against the same product endpoint used by the UI.
+- Responses included both exact terminal forms:
+  - STARTED: Manual GPS rescan has been queued.
+  - ALREADY_RUNNING: GPS scan is already running.
+- Repeated immediate browser clicks returned queued because the 30-file scan
+  completed before the UI's response/status refresh finished.
+- A 40-request and then 200-request controlled concurrent probe confirmed the
+  server guard remained stable, but the browser click again landed on STARTED.
+- The UI component displays the server message verbatim; nevertheless, no
+  browser-visible already-running frame was captured, so that end-user branch
+  is not credited as passed.
+
+Not-ready state
+- This healthy quick install initializes GPS and MEDIA indexers asynchronously
+  on ApplicationReadyEvent.
+- One controlled app restart waited for the first successful authenticated
+  login; both immediate rescan requests returned STARTED, not NOT_RUNNING.
+- A second controlled restart probed the startup boundary with a pre-restart
+  token. The port-down window was observed, but no authenticated NOT_RUNNING
+  response was retained before the app returned fully ready.
+- Forcing an indexer into NOT_RUNNING would require changing the disposable
+  installation or injecting server state beyond the end-user workflow, so it
+  was not fabricated.
+
+Map interaction and recovery
+- While the visible status said Manual MEDIA rescan has been queued, the map
+  Zoom in action worked and the route remained `/mtl/admin/maintenance` with
+  13 Tracks visible.
+- After each controlled app restart, HTTP returned 200 with the required beta
+  image container up; the retained browser map accepted Zoom out/Zoom in and
+  still showed 13 Tracks.
+
+Fixture cleanup
+- Moved only ADM_03-malformed.gpx and ADM_03-broken.gpx from GPX-UPLOAD to
+  recoverable `data/logs/ADM_04-disposable-gpx-quarantine/`.
+- indexed_file 300034 and 300035 both transitioned to REMOVED, invocation 2.
+- Disposable track 100024 was deleted by the watcher; no direct DB write.
+
+Result: BLOCKED. Both queued paths and map continuity passed. The server's
+ALREADY_RUNNING guard was proven with exact responses, but a browser-visible
+already-running message was too brief to capture. NOT_RUNNING could not be
+reached after authentication in the healthy installation without unsupported
+state injection.

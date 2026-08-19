@@ -1,0 +1,18 @@
+MED_22 manual location under camera-offset preview
+
+Item 400000 baseline: Estimated at route-projected position.
+
+1. Saved manual location 46.9484,7.4479 with note MED_22 regression.
+2. UI changed to Set by you; read-only persistence showed USER_ASSIGNED at the
+   exact manual point while the track-derived position remained separate.
+3. Entered the minimum valid non-zero camera offset, +0.25 h, and selected
+   Preview.
+4. Instead of keeping the Set by you card/marker/clear action, the activity
+   changed from six photos to zero. The preview reported 0 photos and Save was
+   disabled. The manually assigned card and clear action were absent.
+5. Persistence still retained USER_ASSIGNED 46.9484,7.4479, proving the data was
+   not lost; only the preview response/UI incorrectly excluded it.
+6. Reset restored the six-photo timeline and Set by you card. Clear assignment
+   then restored Estimated and removed the manual row.
+
+Result: FAIL. This is a direct additional impact of FR-010.

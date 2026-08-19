@@ -79,6 +79,41 @@ describe('Track Detail original and GPX export', () => {
     expect(input.element.value).toBe('1');
   });
 
+  it('renders settled fallback metrics when chart points and timestamps are unavailable', () => {
+    const wrapper = mount(TrackDetailOverview, {
+      props: {
+        gpsTrack: {
+          id: 2,
+          trackName: 'Untimed GeoJSON',
+          indexedFile: {
+            id: 8,
+            index: 'GPS',
+            name: 'untimed.geojson',
+            path: 'untimed.geojson',
+            indexerStatus: 'COMPLETED_WITH_SUCCESS',
+          },
+          trackLengthInMeter: 1_440,
+        },
+        trackDetails: [],
+      },
+      global: {
+        directives: { tooltip: {} },
+        stubs: {
+          ActivityTypeBadge: ActivityTypeBadgeStub,
+          Popover: PopoverStub,
+        },
+      },
+    });
+
+    expect(wrapper.find('.skeleton-grid').exists()).toBe(false);
+    const primaryValues = wrapper.findAll('.metrics-primary .metric-tile__value').map((value) => value.text());
+    expect(primaryValues).toHaveLength(4);
+    expect(primaryValues.every(Boolean)).toBe(true);
+    expect(primaryValues[1]).toBe('0m 00s');
+    expect(primaryValues[2]).toMatch(/^0 (m|ft)$/);
+    expect(primaryValues[3]).toMatch(/^0\.0 (km\/h|mph)$/);
+  });
+
   it('copies TrackID through the browser clipboard API', async () => {
     vi.useFakeTimers();
     const writeText = vi.fn().mockResolvedValue(undefined);

@@ -17,6 +17,22 @@ const defaultProps = {
 };
 
 describe('FilterOverview', () => {
+  it('shows the active saved view and criterion as one concise chip', async () => {
+    const wrapper = mount(FilterOverview, {
+      props: { ...defaultProps, activeIdentity: 'Tracks by year' },
+    });
+
+    const chip = wrapper.get('[data-test="active-filter-chip"]');
+    expect(chip.text()).toBe('Tracks by year');
+    expect(chip.attributes('title')).toBe('Tracks by year');
+
+    await wrapper.setProps({ activeIdentity: 'Activities by keyword · Synthetic' });
+    expect(wrapper.get('[data-test="active-filter-chip"]').text()).toBe('Activities by keyword · Synthetic');
+
+    await wrapper.setProps({ activeIdentity: '' });
+    expect(wrapper.find('[data-test="active-filter-chip"]').exists()).toBe(false);
+  });
+
   it('keeps Review tracks as a quiet footer action beside Reset filter', async () => {
     const wrapper = mount(FilterOverview, { props: defaultProps });
 

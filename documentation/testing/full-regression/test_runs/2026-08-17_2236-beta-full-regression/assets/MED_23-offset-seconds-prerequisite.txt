@@ -1,0 +1,19 @@
+MED_23 saved non-zero-seconds prerequisite
+
+Required saved example: 3603 seconds (+1 h 3 s).
+
+Live end-user control:
+- type=number
+- step=0.25 hours (900 seconds)
+- min=-24, max=24
+
+The end-user control cannot enter a step-valid value with non-zero seconds.
+MED_17 also cannot create any saved correction because the minimum valid preview
+returns zero eligible items and disables Save correction (FR-010).
+
+All six prescribed media items have resolved provenance (four EXIF_EMBEDDED and
+two TRACK_INTERPOLATED), so no deterministic Position unknown item exists for
+the conditional label check.
+
+Result: BLOCKED. No direct database/API mutation was substituted for the
+required end-user saved-correction flow.

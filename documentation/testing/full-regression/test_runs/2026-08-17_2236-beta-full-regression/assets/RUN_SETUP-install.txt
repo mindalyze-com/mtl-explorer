@@ -1,0 +1,39 @@
+Target: 62.238.106.141 (Ubuntu 26.04 LTS, amd64)
+Disposable directory: /root/mtl-explorer-2026-08-17_2236-beta-full-regression
+Compose source: https://raw.githubusercontent.com/mindalyze-com/mtl-explorer/main/docker-compose.yml
+Compose override file: .env with MTL_APP_IMAGE=wauwau0977/mytraillog:beta
+
+Docker prerequisite installed from Docker's official stable convenience script:
+- Docker Engine 29.7.2
+- Docker Compose v5.5.0
+- Docker service active
+- Setup time: 18 s
+
+Effective Compose images before first start:
+- postgis/postgis:18-3.6
+- wauwau0977/mytraillog:beta
+- wauwau0977/mytraillog-location-search:latest
+- wauwau0977/mytraillog-brouter:latest
+
+Quick install:
+- docker compose up -d: 31 s
+- additional application readiness wait: 12 s
+- local URL: http://localhost:18080/mtl/ -> HTTP content, 1,890 bytes
+- remote URL: http://62.238.106.141:18080/mtl/ -> HTTP 200
+
+Running app verification:
+- configured reference: wauwau0977/mytraillog:beta
+- running container configured image: wauwau0977/mytraillog:beta
+- container/image ID: sha256:eb68ce2b4de68fdbad0357ae11b9446c6dbd2e2a784048e5c29351fdc67b5546
+- repository digest: wauwau0977/mytraillog@sha256:eb68ce2b4de68fdbad0357ae11b9446c6dbd2e2a784048e5c29351fdc67b5546
+- image created: 2026-08-17T20:28:21.91691501Z
+- running status: running
+
+Reported application build/version:
+- About UI version: dev
+- server version: 0.0.1-SNAPSHOT
+- server build: 2026-08-17T20:26:42.615Z
+- image release: 1.351
+- image build: 2026-08-17T20:26:28Z
+- Spring Framework: 6.2.18
+- Spring Boot: 3.5.14

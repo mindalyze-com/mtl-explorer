@@ -1,0 +1,10 @@
+Packet evidence requirements applied for all 228 frozen coverage IDs:
+- one packet per ID;
+- action;
+- expected result;
+- actual result;
+- explicit terminal or resumable status;
+- direct clickable evidence;
+- issue and handoff sections.
+
+Final report coverage rows will be assembled from packet results only.

@@ -1,0 +1,3 @@
+2026-08-18 fixed-build retest
+Desktop 1280x720 and mobile 390x844: opening Search with an empty query showed Search for a city, peak, or area beneath the sort controls.
+Clear search returns to the same prompt; empty input does not issue a query. locationSearchSheet.spec.ts passed.

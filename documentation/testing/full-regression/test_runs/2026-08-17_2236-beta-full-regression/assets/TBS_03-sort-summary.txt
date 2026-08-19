@@ -1,0 +1,26 @@
+TBS_03 sort and summary evidence
+
+Each sortable desktop table column was clicked twice. Every pair switched
+between ascending and descending order:
+
+- Start: 2010 dates -> 2026 dates; reverse starts at 18/08/2026.
+- Track: FMT Unique GDB... -> voie verte...; reverse swaps endpoints.
+- Activity: Bicycle -> Running/Walking; reverse Walking -> Running/Bicycle.
+- Distance: 189.62 m -> 518 km; reverse 518 km -> 189.62 m.
+- Duration: 0m 00s -> 7h 46m; reverse 7h 46m -> 0m 00s.
+- Avg km/h: 3.6/19.8/21.1 ascending (empty values grouped at the end);
+  75.7/35.1/33.0 descending (empty values grouped at the end).
+- Energy: 0/1/2 Wh -> 471/1,616/1,808 Wh; reverse swaps endpoints.
+- Exploration: 0.0% -> 100.0%; reverse swaps endpoints.
+- Imported: 17/08/2026 22:56 -> 18/08/2026 00:00; reverse swaps endpoints.
+
+The sortable headers exposed ascending/descending aria-sort state for all
+text-header columns. The Energy header contains a nested help button; its row
+values still reversed correctly across the two header activations.
+
+Visible-summary check:
+- Query: Walking
+- Visible rows: MTL Regression Media Track (189.62 m, 0m 00s) and
+  Track 100005 (3.60 km, 59m 57s)
+- Summary before and after Distance sort: 2 of 15 tracks, 3.79 km, 59m 57s
+- Search cleared afterward; all 15 rows restored.

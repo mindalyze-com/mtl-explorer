@@ -23,10 +23,23 @@ describe('FilterResultGroupSelector', () => {
     });
 
     expect(wrapper.text()).toContain('4 of 6 matching tracks');
-    expect(wrapper.text()).toContain('1 of 2 selected');
+    expect(wrapper.text()).toContain('1 of 2 current selected · 1 unavailable');
     expect(wrapper.text()).toContain('Ungrouped');
     expect(wrapper.text()).toContain('2023');
     expect(wrapper.text()).toContain('No matches with current parameters');
+  });
+
+  it('summarizes a selected category when every current category is unavailable', () => {
+    const wrapper = mount(FilterResultGroupSelector, {
+      props: {
+        availableGroups: [],
+        selection: { includedGroups: [{ value: 'WALKING' }] },
+        effectiveCount: 0,
+        preSelectionCount: 0,
+      },
+    });
+
+    expect(wrapper.text()).toContain('0 of 0 current selected · 1 unavailable');
   });
 
   it('supports exact row changes and all/none actions', async () => {

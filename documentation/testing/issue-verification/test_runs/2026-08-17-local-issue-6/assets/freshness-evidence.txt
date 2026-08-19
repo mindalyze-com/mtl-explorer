@@ -1,0 +1,33 @@
+Issue 6 media freshness follow-up
+Verified: 2026-08-17
+
+Synthetic file and derived row
+------------------------------
+indexed_file id:       300008
+name:                  issue6-photo-h.jpg
+status:                COMPLETED_WITH_SUCCESS
+index update:          2026-08-17 09:11:53.497
+message:               Completed successfully
+media_file id:         400010
+longitude:             -68.25910000
+latitude:              44.32840000
+image taken:           2026-08-17 08:52:00
+media audit:           INSERT at 2026-08-17 09:11:53.488829
+
+Freshness revisions after scan
+------------------------------
+index:                 revision 54 at 2026-08-17 09:11:53.496812
+media:                 revision 15 at 2026-08-17 09:11:53.488829
+
+Requests made by the in-app Reload action
+-----------------------------------------
+09:12:51.421  GET   /mtl/api/data-freshness             200   2 ms
+09:12:51.459  POST  /mtl/api/filter/resolve/800000      200  15 ms
+09:12:51.480  POST  /mtl/api/tracks/get-simplified      200  10 ms
+09:12:51.505  POST  /mtl/api/tracks/get-simplified      200  15 ms
+09:12:51.583  GET   /mtl/api/media/get-media-in-bounds  200  66 ms
+09:12:51.592  GET   /mtl/api/data-freshness             200   1 ms
+
+No browser page reload was used between the scan and the displayed seven-photo
+map state. Admin then reported: Data Current — Browser data matches the applied
+revision.

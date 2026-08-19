@@ -6,6 +6,8 @@ import com.x8ing.mtl.server.mtlserver.db.repository.gps.GpsTrackRepository;
 import com.x8ing.mtl.server.mtlserver.db.repository.gps.GpsTrackVariantSelector;
 import com.x8ing.mtl.server.mtlserver.db.repository.logs.SystemLogService;
 import com.x8ing.mtl.server.mtlserver.energy.EnergyService;
+import com.x8ing.mtl.server.mtlserver.gpx.GPXDirectoryWatcherService;
+import com.x8ing.mtl.server.mtlserver.indexer.IndexerStatusService;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -27,12 +29,14 @@ class ActivityTypeClassifierJobTest {
         ActivityTypeAutoClassifier activityTypeAutoClassifier = mock(ActivityTypeAutoClassifier.class);
         EnergyService energyService = mock(EnergyService.class);
         SystemLogService systemLogService = mock(SystemLogService.class);
+        IndexerStatusService indexerStatusService = mock(IndexerStatusService.class);
         ActivityTypeClassifierJob job = new ActivityTypeClassifierJob(
                 gpsTrackRepository,
                 gpsTrackVariantSelector,
                 activityTypeAutoClassifier,
                 energyService,
-                systemLogService);
+                systemLogService,
+                indexerStatusService);
 
         when(gpsTrackRepository.findIdsPendingActivityClassification()).thenReturn(List.of());
 
@@ -50,12 +54,14 @@ class ActivityTypeClassifierJobTest {
         ActivityTypeAutoClassifier activityTypeAutoClassifier = mock(ActivityTypeAutoClassifier.class);
         EnergyService energyService = mock(EnergyService.class);
         SystemLogService systemLogService = mock(SystemLogService.class);
+        IndexerStatusService indexerStatusService = mock(IndexerStatusService.class);
         ActivityTypeClassifierJob job = new ActivityTypeClassifierJob(
                 gpsTrackRepository,
                 gpsTrackVariantSelector,
                 activityTypeAutoClassifier,
                 energyService,
-                systemLogService);
+                systemLogService,
+                indexerStatusService);
         List<GpsTrackDataPoint> trackPoints = List.of(new GpsTrackDataPoint());
 
         when(gpsTrackRepository.findIdsPendingActivityClassification()).thenReturn(List.of(42L));
@@ -73,5 +79,24 @@ class ActivityTypeClassifierJobTest {
         verify(energyService).getDefaultParameters();
         verify(energyService).recalculateEnergyForTrack(eq(42L), isNull());
         verifyNoInteractions(systemLogService);
+    }
+
+    @Test
+    void runWaitsForGpsIndexingToSettle() {
+        GpsTrackRepository gpsTrackRepository = mock(GpsTrackRepository.class);
+        IndexerStatusService indexerStatusService = mock(IndexerStatusService.class);
+        ActivityTypeClassifierJob job = new ActivityTypeClassifierJob(
+                gpsTrackRepository,
+                mock(GpsTrackVariantSelector.class),
+                mock(ActivityTypeAutoClassifier.class),
+                mock(EnergyService.class),
+                mock(SystemLogService.class),
+                indexerStatusService);
+        when(indexerStatusService.hasIndexPendingWork(GPXDirectoryWatcherService.INDEX_GPS))
+                .thenReturn(true);
+
+        job.run();
+
+        verifyNoInteractions(gpsTrackRepository);
     }
 }

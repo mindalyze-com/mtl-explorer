@@ -1,0 +1,46 @@
+TBS_15 media timeline, zero-slot, and filter-scope evidence
+
+Quarter baseline
+- Grouping: YYYY-Q; 13 tracks; 4 periods.
+- Every chart used the same x-axis labels: 2010-Q1, 2013-Q1, 2021-Q3,
+  2026-Q3.
+- Media rendered four photo points and four video points.
+- Photo points had three zero-height slots and one populated slot; video had
+  four zero-height slots. Missing categories remained present.
+
+Monthly grouping
+- Switched to YYYY-MM.
+- Every one of the eight charts used the same labels: 2010-01, 2013-03,
+  2021-07, 2026-08.
+- Each activity series had four points. Media had four photo plus four video
+  points, including three zero-height photo slots and four zero-height video
+  slots.
+
+Optional sub-unit
+- Selected month 08.
+- Header changed to 1 period, 9 tracks.
+- Every chart used the single 2026-08 slot; Media retained one point in each
+  photo/video series.
+- Media tooltip reported Photos: 6, Videos: 0.
+
+Track-related versus all indexed
+- Applied 2013-01-01 through 2013-12-31: map and Trends resolved one track.
+- Matched only showed the 2013 slot with zero-height photo and video points and
+  visible help that only media linked to current track filters is shown.
+- Media history restored the indexed-media range (2013 and 2026 slots), the
+  populated 2026 photo column, and visible help that activity filters do not
+  apply.
+
+Undated precondition
+- No Undated label, compact control, or drill-down exists in this run.
+- The required six-file generator manifest shows a capture timestamp for every
+  JPEG; therefore the prescribed fixture set contains zero undated items.
+
+Cleanup
+- Reset the date filter to 13 tracks.
+- Trends Charts remains open with YYYY grouping and Media history selected.
+
+Result
+- BLOCKED. Timeline alignment, zero slots, sub-unit behavior, and media scope
+  filtering pass. The undated-media child check has no test item in the frozen
+  run fixture set.

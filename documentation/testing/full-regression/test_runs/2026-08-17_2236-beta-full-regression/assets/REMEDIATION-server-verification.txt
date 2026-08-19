@@ -1,0 +1,6 @@
+2026-08-18 disposable fixed-server verification
+Original beta digest: sha256:eb68ce2b4de68fdbad0357ae11b9446c6dbd2e2a784048e5c29351fdc67b5546.
+Corrected fixture DB state: 4 EXIF_GPS and 2 EXIF_DATE_TAKEN; preview retained 6 and enabled Save.
+Same-path GPX replacement: 1080 -> 1080 bytes; watcher MODIFY; old 100005 removed; new 100006 ingested SUCCESS; 6 media correlated.
+Outage retest: cached Statistics showed error + Retry on desktop/mobile; restart and Retry cleared it.
+Final cleanup: 4 project containers, network, volume, derived image e16a3..., and exact disposable directory removed; port 18080 closed.

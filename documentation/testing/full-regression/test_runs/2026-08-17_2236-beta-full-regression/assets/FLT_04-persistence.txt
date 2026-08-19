@@ -1,0 +1,29 @@
+FLT_04 date, text, and geographic parameter persistence
+
+View: Activities by keyword
+
+Saved criteria
+- From date: 2026-08-17
+- Keyword: Synthetic
+- Area: one circle created through Draw area > Circle > Draw on map.
+- Current-result summary reported 3 criteria active.
+- The deliberately broad/global map placement excluded all current tracks, producing the stable empty-result state.
+
+Reload
+- Navigated directly back to /mtl/filter and waited for app initialization.
+- View remained Activities by keyword.
+- Current result remained No tracks match.
+- Criteria summary remained 3 criteria active.
+- Reopened Criteria.
+
+Reapplied values after reload
+- From date input: 2026-08-17.
+- Keyword input: Synthetic.
+- Area: 1 area.
+- Area action changed from Draw area to Edit areas.
+
+Cleanup
+- Selected Reset criteria after persistence proof.
+- From date and Keyword returned to empty.
+- Area returned to No area.
+- Result returned to 15 matching tracks.

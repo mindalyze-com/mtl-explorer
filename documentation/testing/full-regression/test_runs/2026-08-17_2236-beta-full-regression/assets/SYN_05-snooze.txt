@@ -1,0 +1,24 @@
+SYN_05 five-minute freshness snooze evidence
+
+Initial stale event:
+- Byte-preserving GPS rescan produced New data available with Reload/Dismiss.
+- Dismiss clicked at 2026-08-18T03:03:08.121Z; banner disappeared.
+
+Real server token change during snooze:
+- Replaced the watched synthetic source with byte-distinct SYN_05-new-track-v2.gpx.
+- Geometry/name/times intentionally remained unchanged.
+- Manual GPS rescan queued from Admin Maintenance.
+- Indexed file 300036 completed invocation 2 at 03:04:27.650Z, size 981 B.
+- Server track changed from 100026 to 100027, confirming a real re-index/token change.
+
+Observed browser state without reload:
+- 31 seconds after Dismiss: banner hidden.
+- 92 seconds: banner hidden after the byte-distinct re-index.
+- 152 seconds: banner hidden.
+- 208 seconds: banner hidden.
+- 259 seconds: banner hidden.
+- Cached map remained usable at 15 Tracks throughout.
+- 320 seconds: New data available reappeared with Reload/Dismiss because the
+  client was still out of sync.
+
+Result: PASS

@@ -1,0 +1,18 @@
+User-facing action:
+- Clicked Download GPX on FIT-backed track 100005.
+- Native browser download event did not surface within 10 s.
+- No browser artifact path was available for end-user file inspection.
+
+Read-only server/API corroboration:
+- GET /mtl/api/tracks/100005/gpx -> HTTP 200
+- Content-Disposition filename: Activity.gpx
+- Content-Type: application/gpx+xml
+- Content-Length/downloaded bytes: 479844
+- XML root: GPX 1.1, GPSBabel creator
+- trkpt count: 3601
+- wpt count: 0
+- time element count: 3602
+- SHA-256: 44c72af0ada9eddc84b160461df7f206dfbd1589d6bbe7f83473e63eb01b73fd
+
+Server conversion output is a real trackpoint GPX, but the end-user browser
+artifact could not be captured. This is a browser test-tool constraint.

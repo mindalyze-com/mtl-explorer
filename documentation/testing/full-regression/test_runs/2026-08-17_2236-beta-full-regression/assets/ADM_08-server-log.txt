@@ -1,0 +1,23 @@
+ADM_08 Server log evidence
+
+Route: http://62.238.106.141:18080/mtl/admin/logs
+Browser: Codex in-app browser, 1280 x 720 desktop viewport
+
+Initial state:
+- Server log loaded with the default 200-line request.
+- Visible log content length: 44,298 characters.
+- Last-updated indicator: just now.
+
+Refresh:
+- Refresh completed without an error or disabled state.
+- Visible content changed to 44,278 characters.
+- Newest displayed entry: 2026-08-18 02:42:02.696, HTTP 200 planner/status request.
+- Oldest displayed entry: 2026-08-18 02:41:27.649, HTTP 200 map/status request.
+- 199 non-empty displayed log lines were observed after trimming the response.
+- Last-updated indicator returned to just now.
+
+Controls:
+- Selecting 50 lines refreshed the log and displayed 49 non-empty lines after response trimming.
+- No wrap toggled to Wrap and applied class log-pre--wrap.
+
+Result: PASS

@@ -1,0 +1,17 @@
+Current filter result: all 5 imported tracks included.
+Statistics Overview: all five names visible in Recent Activity or Highlights.
+
+Per-source browser search and user-navigation mapping:
+- JuraRoute72011.gpx -> track 100000 -> Jura Route 7 / 2011 on GPSies.com
+- Vitry-le-Francois_Langres.gpx -> track 100001 -> Vitry le françois - langres on GPSies.com
+- MoselradwegAusWiki.gpx -> track 100002 -> Moselradweg aus Wiki on GPSies.com
+- VoieVerteHauteVosges.gpx -> track 100003 -> voie verte haute vosges on GPSies.com
+- Lannion_Plestin_parcours24.4RE.gpx -> track 100004 -> Lannion_Plestin_parcours Lannion_Plestin_parcours1
+
+For each imported track name:
+- exact name search returned 1 of 5 tracks;
+- clicking the result opened /mtl/track/<id>;
+- Track Details rendered a selected-track mini-map in addition to the main map;
+- source remained included in the 5-track current filter and statistics result.
+
+The main map count remained 5 Tracks throughout these selections.

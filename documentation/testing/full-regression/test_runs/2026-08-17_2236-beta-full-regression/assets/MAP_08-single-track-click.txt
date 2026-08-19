@@ -1,0 +1,15 @@
+MAP_08 single-track click evidence
+
+Prepared surface:
+- High-zoom main map centered on Lannion at 100 m scale.
+- Real track 100004 is loaded and its details route works when selected through Review Tracks.
+- Details route: /mtl/track/100004
+- Detail identity: #100004, Lannion_Plestin_parcours Lannion_Plestin_parcours1
+
+Constraint:
+- Main-map track lines are canvas-rendered.
+- They expose no DOM/ARIA target for an individual line.
+- ACC_04 blocks screenshots, so a line cannot be located visually.
+- Clicking unverified canvas coordinates would be guessing and is not valid end-user evidence.
+
+Result: detail opening through the semantic track table works, but the required direct single-line map click/highlight path is blocked.

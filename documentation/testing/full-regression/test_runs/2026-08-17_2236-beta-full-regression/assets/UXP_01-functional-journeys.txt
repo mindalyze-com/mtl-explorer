@@ -1,0 +1,27 @@
+UXP_01 functional journey evidence
+Warmed signed-in desktop session; 15 controlled tracks; background work settled.
+
+Journey 1: 22 steps completed. Map double-click, drag, and zoom restore; Filter
+disable/apply/reset/close; Statistics Overview and Tracks; search for
+"MTL Synthetic Segment B"; open track 100017; Graphs, Quality, and Overview;
+Planner open/ready/close; returned to responsive map.
+
+Journey 2: 20 steps completed. Repeated map interactions; Filter
+disable/apply/reset; Track Browser search; track 100017 details tabs;
+Statistics Overview and Tracks; Planner open/ready/close; returned to map.
+
+Journey 3: 20 steps completed. Repeated the same optimized journey; Planner was
+ready; map controls remained available after closing it.
+
+Controller diagnostics (not app performance measurements):
+Journey | Steps | Whole controller elapsed | Min call | Max call
+1       | 22    | 109314 ms                | 22 ms    | 3162 ms
+2       | 20    | 45864 ms                 | 15 ms    | 3190 ms
+3       | 20    | 104567 ms                | 14 ms    | 3194 ms
+
+The whole-journey and controller-call values include remote automation/tool wait
+overhead. They are retained only to show the action sequence completed and must
+not be compared with the 200 ms, 500 ms, or 2 s product budgets.
+
+Console errors at/after journey start: 0.
+Final interaction state: authenticated root map, 15 tracks, map controls present.

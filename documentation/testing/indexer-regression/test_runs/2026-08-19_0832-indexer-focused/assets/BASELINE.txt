@@ -1,0 +1,18 @@
+Phase: initial scan baseline
+Baseline files placed before startup: 2 GPX, 2 GPS-tagged JPEGs
+Filesystem mutation: 2026-08-19T06:30:24Z
+
+Database state observed at 2026-08-19T06:32:52.879697Z:
+- GPS baseline-gpx-a.gpx: COMPLETED_WITH_SUCCESS, invocation 1
+- GPS baseline-gpx-b.gpx: COMPLETED_WITH_SUCCESS, invocation 1
+- MEDIA baseline-media-a.jpg: COMPLETED_WITH_SUCCESS, invocation 1
+- MEDIA baseline-media-b.jpg: COMPLETED_WITH_SUCCESS, invocation 1
+- Active gps_track rows: 2
+- Active media_file rows: 2
+- Track names: Indexer Baseline A; Indexer Baseline B
+- Media coordinates: 46.94100,7.43100 and 46.94600,7.43600
+
+GUI evidence:
+- Map counter: 2 Tracks
+- Statistics Overview: 2 Tracks and 2 Media
+- Recent Activity showed both synthetic track names.

@@ -1,0 +1,28 @@
+FLT_07 active-filter legend and map visibility
+
+Active filter
+- Activities by keyword with Keyword Synthetic.
+- Result/toolbar: 2 / 15 Tracks.
+- Palette: 5 Colors.
+
+Legend contents
+- CYCLING: 1, rgb(0,139,139).
+- ON_FOOT: 1, rgb(255,165,0).
+- Both categories initially had Hide ... on map controls with aria-pressed=true.
+
+Collapse/reopen
+- Collapsed Map visibility.
+- Toggle changed from expanded to collapsed and category controls were removed from the visible DOM.
+- Reopened it; both categories and counts returned.
+
+Hide/show CYCLING
+- Activated Hide CYCLING on map.
+- Control changed immediately to Show CYCLING on map.
+- ON_FOOT remained pressed/visible.
+- Visible toolbar count changed immediately from 2 / 15 to 1 / 15.
+- No loading screen or new console error appeared.
+- Activated Show CYCLING on map.
+- Control returned to Hide CYCLING on map with aria-pressed=true.
+- Visible toolbar count returned to 2 / 15.
+
+All temporary legend visibility was restored.

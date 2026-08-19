@@ -1,5 +1,5 @@
 <template>
-  <div class="track-browser-table" :class="compact ? '' : 'panel-scroll'">
+  <div class="track-browser-table">
     <!-- Mobile: card list -->
     <div v-if="compact" class="track-browser-cards">
       <!-- Sort bar -->
@@ -133,7 +133,7 @@
         scroll-height="flex"
         class="p-datatable-sm track-browser-table__datatable"
         paginator
-        :rows="25"
+        :rows="pageSize"
         :rows-per-page-options="[10, 25, 50, 100, 250, 1000]"
         removable-sort
         :sort-field="desktopSortField ?? undefined"
@@ -160,7 +160,14 @@
           />
         </template>
 
-        <Column header="" style="width: 3.5rem; min-width: 3.5rem; max-width: 3.5rem">
+        <Column
+          header=""
+          style="
+            width: var(--track-table-shape-column-width);
+            min-width: var(--track-table-shape-column-width);
+            max-width: var(--track-table-shape-column-width);
+          "
+        >
           <template #body="slotProps">
             <TrackShapePreview
               v-tooltip.top="{ value: 'Center on map', showDelay: 600 }"
@@ -174,13 +181,13 @@
           </template>
         </Column>
 
-        <Column field="startDate" header="Start" sortable style="min-width: 10rem">
+        <Column field="startDate" header="Start" sortable style="min-width: var(--track-table-date-column-width)">
           <template #body="slotProps">
             {{ formatDateAndTimeValue(slotProps.data.startDate) }}
           </template>
         </Column>
 
-        <Column field="displayName" header="Track" sortable style="min-width: 16rem">
+        <Column field="displayName" header="Track" sortable style="min-width: var(--track-table-name-column-width)">
           <template #body="slotProps">
             <div class="track-browser-table__name-cell">
               <span>{{ slotProps.data.displayName }}</span>
@@ -203,13 +210,24 @@
           </template>
         </Column>
 
-        <Column field="activityType" header="Activity" sortable style="min-width: 8rem">
+        <Column
+          field="activityType"
+          header="Activity"
+          sortable
+          style="min-width: var(--track-table-activity-column-width)"
+        >
           <template #body="slotProps">
             <ActivityTypeBadge v-if="slotProps.data.activityType" :type="slotProps.data.activityType" size="xs" />
           </template>
         </Column>
 
-        <Column field="trackLengthInMeter" header="Distance" sortable class="number-column" style="min-width: 8rem">
+        <Column
+          field="trackLengthInMeter"
+          header="Distance"
+          sortable
+          class="number-column"
+          style="min-width: var(--track-table-number-column-width)"
+        >
           <template #body="slotProps">
             <span
               v-tooltip.top="{ value: formatDistanceTooltip(slotProps.data.trackLengthInMeter || 0), showDelay: 400 }"
@@ -219,7 +237,13 @@
           </template>
         </Column>
 
-        <Column field="durationMillis" header="Duration" sortable class="number-column" style="min-width: 8rem">
+        <Column
+          field="durationMillis"
+          header="Duration"
+          sortable
+          class="number-column"
+          style="min-width: var(--track-table-duration-column-width)"
+        >
           <template #body="slotProps">
             <span v-tooltip.top="{ value: formatDurationTooltip(slotProps.data.durationMillis || 0), showDelay: 400 }">
               {{ formatDurationSmart(slotProps.data.durationMillis || 0) }}
@@ -232,14 +256,19 @@
           :header="`Avg ${currentMeasurementUnit('speed')}`"
           sortable
           class="number-column"
-          style="min-width: 7rem"
+          style="min-width: var(--track-table-compact-number-column-width)"
         >
           <template #body="slotProps">
             {{ formatSpeed(slotProps.data.avgSpeedKmh) }}
           </template>
         </Column>
 
-        <Column field="energyNetTotalWh" sortable class="number-column" style="min-width: 7rem">
+        <Column
+          field="energyNetTotalWh"
+          sortable
+          class="number-column"
+          style="min-width: var(--track-table-compact-number-column-width)"
+        >
           <template #header>
             <span>Energy</span>
             <button
@@ -256,7 +285,13 @@
           </template>
         </Column>
 
-        <Column field="explorationScore" header="Exploration" sortable class="number-column" style="min-width: 7rem">
+        <Column
+          field="explorationScore"
+          header="Exploration"
+          sortable
+          class="number-column"
+          style="min-width: var(--track-table-exploration-column-width)"
+        >
           <template #body="slotProps">
             <span
               v-if="slotProps.data.explorationScore != null"
@@ -278,7 +313,7 @@
           </template>
         </Column>
 
-        <Column field="createDate" header="Imported" sortable style="min-width: 10rem">
+        <Column field="createDate" header="Imported" sortable style="min-width: var(--track-table-date-column-width)">
           <template #body="slotProps">
             <span :title="slotProps.data.indexedFile?.name || undefined">
               {{ formatDateAndTimeValue(slotProps.data.createDate) }}
@@ -459,7 +494,7 @@ function formatDateAndTimeValue(value: Date | null | undefined) {
 }
 
 function formatSpeed(value: number | null) {
-  return value == null ? '' : formatNumber(speedDisplayValue(value, getMeasurementSystem()), 1);
+  return value == null ? '—' : formatNumber(speedDisplayValue(value, getMeasurementSystem()), 1);
 }
 
 function formatEnergy(value: number | null) {
@@ -477,38 +512,61 @@ function showEnergyInfo(event: Event) {
 
 <style scoped>
 .track-browser-table {
+  --track-table-shape-column-width: 3rem;
+  --track-table-date-column-width: 8rem;
+  --track-table-name-column-width: 10.5rem;
+  --track-table-activity-column-width: 6rem;
+  --track-table-number-column-width: 5.5rem;
+  --track-table-duration-column-width: 6rem;
+  --track-table-compact-number-column-width: 5rem;
+  --track-table-exploration-column-width: 6rem;
+
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
   min-height: 0;
+  min-width: 0;
+  overflow: hidden;
   padding: 0 var(--dlg-padding) 1rem;
 }
 
-/* ---- Always-visible horizontal scrollbar ---- */
-.track-browser-table__datatable :deep(.p-datatable-wrapper) {
-  overflow-x: auto !important;
-  overflow-y: auto;
-  scrollbar-gutter: stable;
+.track-browser-table__datatable {
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
 }
 
-/* Force scrollbar to always show (WebKit / Blink) */
-.track-browser-table__datatable :deep(.p-datatable-wrapper)::-webkit-scrollbar {
-  height: 10px;
+/* PrimeVue 4 uses .p-datatable-table-container; keep the older class for compatibility. */
+.track-browser-table__datatable :deep(:is(.p-datatable-table-container, .p-datatable-wrapper)) {
+  min-height: 0;
+  overflow: auto !important;
+  scrollbar-color: var(--text-muted) var(--surface-glass-heavy);
+  scrollbar-width: thin;
 }
-.track-browser-table__datatable :deep(.p-datatable-wrapper)::-webkit-scrollbar-track {
+
+.track-browser-table__datatable :deep(:is(.p-datatable-table-container, .p-datatable-wrapper))::-webkit-scrollbar {
+  height: 10px;
+  width: 10px;
+}
+.track-browser-table__datatable
+  :deep(:is(.p-datatable-table-container, .p-datatable-wrapper))::-webkit-scrollbar-track {
   background: var(--surface-glass-heavy);
   border-radius: 5px;
 }
-.track-browser-table__datatable :deep(.p-datatable-wrapper)::-webkit-scrollbar-thumb {
+.track-browser-table__datatable
+  :deep(:is(.p-datatable-table-container, .p-datatable-wrapper))::-webkit-scrollbar-thumb {
   background: var(--text-muted);
   border-radius: 5px;
   min-height: 30px;
 }
-.track-browser-table__datatable :deep(.p-datatable-wrapper)::-webkit-scrollbar-thumb:hover {
+.track-browser-table__datatable
+  :deep(:is(.p-datatable-table-container, .p-datatable-wrapper))::-webkit-scrollbar-thumb:hover {
   background: var(--text-secondary);
 }
 
-/* Firefox: force always-visible scrollbar */
-.track-browser-table__datatable :deep(.p-datatable-wrapper) {
-  scrollbar-width: auto;
-  scrollbar-color: var(--text-muted) var(--surface-glass-heavy);
+.track-browser-table__datatable :deep(.p-paginator) {
+  flex: 0 0 auto;
+  min-width: 0;
 }
 
 .track-browser-table__datatable :deep(.p-datatable-thead) {

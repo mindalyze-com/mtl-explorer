@@ -1,0 +1,24 @@
+MTL Explorer focused indexer regression setup
+
+Repository commit: 64e7751302dd24f125d2418d0d0d0acb6b1bac9c
+Branch: codex/issue-6-media-cleanup
+Build: mvn --batch-mode package -DskipTests
+Build result: SUCCESS; 18.666 s
+Server artifact: mtl-server/target/mtl-server-0.0.1-SNAPSHOT.jar
+App URL: http://127.0.0.1:18084/mtl/
+Database: disposable postgis/postgis:18-3.6 container on 127.0.0.1:55437
+GPX watch root: /tmp/mtl-indexer-regression-20260819-a0VXaM/gpx
+MEDIA watch root: /tmp/mtl-indexer-regression-20260819-a0VXaM/media
+GPS live watch: enabled
+MEDIA live watch: enabled for this focused regression
+Private files used: none
+
+Startup evidence:
+2026-08-19T08:30:33.977+02:00 GPS live watch enabled=true
+2026-08-19T08:30:33.979+02:00 MEDIA live watch enabled=true
+2026-08-19T08:30:34.048+02:00 GPS initial scan fully completed: 2 files in 70 ms
+2026-08-19T08:30:34.050+02:00 GPS live watcher started
+2026-08-19T08:30:34.074+02:00 MEDIA initial scan fully completed: 2 files in 95 ms
+2026-08-19T08:30:34.074+02:00 MEDIA live watcher started
+
+Server ERROR/Exception audit after all phases: no matches.

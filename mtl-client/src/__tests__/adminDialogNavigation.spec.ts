@@ -102,6 +102,30 @@ describe('AdminDialog navigation', () => {
     expect(content.element.scrollTop).toBe(0);
   });
 
+  it('returns a directly opened Admin section to the map when the sheet closes', async () => {
+    const router = createTestRouter();
+    await router.push('/admin/data-status');
+    await router.isReady();
+    const wrapper = shallowMount(AdminDialog, {
+      global: {
+        plugins: [createPinia(), router],
+        stubs: {
+          BottomSheet: {
+            name: 'BottomSheetStub',
+            emits: ['closed'],
+            template: '<div><button data-test="close-sheet" @click="$emit(\'closed\')">Close</button><slot /></div>',
+          },
+        },
+      },
+    });
+
+    await wrapper.get('[data-test="close-sheet"]').trigger('click');
+    await flushPromises();
+
+    expect(router.currentRoute.value.fullPath).toBe('/');
+    expect(wrapper.emitted('tool-closed')).toHaveLength(1);
+  });
+
   it('opens About over Admin without changing the route', async () => {
     const router = createTestRouter();
     await router.push('/admin');

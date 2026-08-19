@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.10.xsd">
+
+    <changeSet id="20260817_5_queue_changed_canonical_track_points" author="codex">
+        <comment>
+            Queue each affected activity once per statement when canonical
+            points are inserted, updated or deleted. Transition tables avoid
+            per-point queue writes during bulk track ingest.
+        </comment>
+
+        <sql splitStatements="false"><![CDATA[
+CREATE OR REPLACE FUNCTION queue_media_correlation_for_inserted_track_points()
+RETURNS TRIGGER AS $$
+BEGIN
+    INSERT INTO media_correlation_track_work(track_id, reason, requested_at)
+    SELECT DISTINCT data.gps_track_id, 'canonical_points_insert', CURRENT_TIMESTAMP
+    FROM inserted_points point
+    JOIN gps_track_data data ON data.id = point.gps_track_data_id
+    WHERE data.track_type = 'RAW_OUTLIER_CLEANED'
+    ON CONFLICT (track_id) DO UPDATE SET
+        reason = EXCLUDED.reason,
+        requested_at = EXCLUDED.requested_at;
+    RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION queue_media_correlation_for_updated_track_points()
+RETURNS TRIGGER AS $$
+BEGIN
+    INSERT INTO media_correlation_track_work(track_id, reason, requested_at)
+    SELECT DISTINCT data.gps_track_id, 'canonical_points_update', CURRENT_TIMESTAMP
+    FROM (
+        SELECT gps_track_data_id FROM old_points
+        UNION
+        SELECT gps_track_data_id FROM new_points
+    ) point
+    JOIN gps_track_data data ON data.id = point.gps_track_data_id
+    WHERE data.track_type = 'RAW_OUTLIER_CLEANED'
+    ON CONFLICT (track_id) DO UPDATE SET
+        reason = EXCLUDED.reason,
+        requested_at = EXCLUDED.requested_at;
+    RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION queue_media_correlation_for_deleted_track_points()
+RETURNS TRIGGER AS $$
+BEGIN
+    INSERT INTO media_correlation_track_work(track_id, reason, requested_at)
+    SELECT DISTINCT data.gps_track_id, 'canonical_points_delete', CURRENT_TIMESTAMP
+    FROM deleted_points point
+    JOIN gps_track_data data ON data.id = point.gps_track_data_id
+    WHERE data.track_type = 'RAW_OUTLIER_CLEANED'
+    ON CONFLICT (track_id) DO UPDATE SET
+        reason = EXCLUDED.reason,
+        requested_at = EXCLUDED.requested_at;
+    RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER gps_track_points_correlation_insert_work
+AFTER INSERT ON gps_track_data_points
+REFERENCING NEW TABLE AS inserted_points
+FOR EACH STATEMENT EXECUTE FUNCTION queue_media_correlation_for_inserted_track_points();
+
+CREATE TRIGGER gps_track_points_correlation_update_work
+AFTER UPDATE ON gps_track_data_points
+REFERENCING OLD TABLE AS old_points NEW TABLE AS new_points
+FOR EACH STATEMENT EXECUTE FUNCTION queue_media_correlation_for_updated_track_points();
+
+CREATE TRIGGER gps_track_points_correlation_delete_work
+AFTER DELETE ON gps_track_data_points
+REFERENCING OLD TABLE AS deleted_points
+FOR EACH STATEMENT EXECUTE FUNCTION queue_media_correlation_for_deleted_track_points();
+        ]]></sql>
+
+        <rollback>
+            <sql splitStatements="false"><![CDATA[
+DROP TRIGGER IF EXISTS gps_track_points_correlation_delete_work ON gps_track_data_points;
+DROP TRIGGER IF EXISTS gps_track_points_correlation_update_work ON gps_track_data_points;
+DROP TRIGGER IF EXISTS gps_track_points_correlation_insert_work ON gps_track_data_points;
+DROP FUNCTION IF EXISTS queue_media_correlation_for_deleted_track_points();
+DROP FUNCTION IF EXISTS queue_media_correlation_for_updated_track_points();
+DROP FUNCTION IF EXISTS queue_media_correlation_for_inserted_track_points();
+            ]]></sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

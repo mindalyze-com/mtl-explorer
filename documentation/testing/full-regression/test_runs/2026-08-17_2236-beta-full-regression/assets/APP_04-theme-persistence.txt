@@ -1,0 +1,18 @@
+APP_04 theme persistence evidence
+
+Precondition: Dark selected in Admin Preferences.
+
+Browser reload:
+- Reloaded /mtl/stats.
+- First resolved computed color-scheme checked after load: dark.
+- Body background: rgb(10,10,15).
+- Direct Preferences check after reload: Dark toggle remained checked.
+
+Session cycle:
+- Signed out from Admin Session.
+- /mtl/login retained color-scheme dark and rgb(10,10,15) background.
+- Signed in normally.
+- /mtl/ retained color-scheme dark and rgb(10,10,15) background.
+- Map settled at 15 Tracks with no freshness banner.
+
+Result: PASS

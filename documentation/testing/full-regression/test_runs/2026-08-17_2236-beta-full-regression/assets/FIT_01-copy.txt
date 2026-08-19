@@ -1,0 +1,5 @@
+Source: preserved public Garmin Activity.fit fixture
+Destination: data/gpx/2026-08-17_2236-beta-full-regression-fit/Activity.fit
+Watched-file count: 5 -> 6
+Destination SHA-256: 949a238e1bb75c3684479785f76fa9a16888bb394518844248f488171d591387
+Source SHA-256: 949a238e1bb75c3684479785f76fa9a16888bb394518844248f488171d591387

@@ -1,0 +1,19 @@
+SGN_09 browser history evidence
+
+Navigation sequence:
+1. Signed in and opened Admin.
+   URL: /mtl/admin
+   Visible heading: Overview
+2. Opened Admin > Processing.
+   URL: /mtl/admin/processing
+   Visible heading: Processing
+3. Browser Back.
+   URL: /mtl/admin
+   Visible heading: Overview
+   Error text matches: 0
+4. Browser Forward.
+   URL: /mtl/admin/processing
+   Visible heading: Processing
+   Error text matches: 0
+
+Result: browser Back and Forward restored the expected routed views without visible errors.

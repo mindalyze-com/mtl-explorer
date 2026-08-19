@@ -1,0 +1,30 @@
+ADM_05 background job progress and settlement
+
+Observed active state after ADM_02/ADM_03 imports
+- Duplicate Finder: running, 95%, 19 done, 1 pending, 20 total.
+- Exploration Score: running, 94%, 18 done, 1 pending, 19 total.
+- The Processing navigation badge showed Live.
+- Progress bars, percentage, done, pending, and total values were visible.
+
+Intermediate refresh
+- Duplicate Finder advanced to done, 100%, 20 done / 20 total.
+- Exploration Score remained running at 94% while the disposable one-point
+  source still existed, accurately reflecting one unresolved item.
+
+Fixture removal and terminal refresh at 04:32:09
+- The disposable one-point source was removed through its watched file.
+- Duplicate Finder: done, 100%, 18 done / 18 total.
+- Activity Classifier: done, 100%, 18 done / 18 total.
+- Exploration Score: done, 100%, 18 done / 18 total.
+- Photo Position Correlation: done, 100%, 4 done / 4 total.
+- The Processing navigation badge no longer showed Live.
+
+Database reconciliation
+- 18 active successful tracks.
+- 14 UNIQUE + 4 DUPLICATE.
+- All 18 have exploration_status CALCULATED.
+- No direct database writes were used.
+
+Result: PASS. Duplicate Finder and Exploration Score exposed meaningful active
+progress after imports and converged to exact 100% terminal totals once the
+disposable source was removed.

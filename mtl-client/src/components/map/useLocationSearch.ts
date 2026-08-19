@@ -22,6 +22,7 @@ export const SEARCH_QUERY_MIN_LENGTH = 2;
 export const SEARCH_LIMIT = 20;
 export const SEARCH_DEBOUNCE_MS = 300;
 export const LOCATION_SEARCH_Z_INDEX = 5250;
+export const EMPTY_SEARCH_PROMPT = 'Search for a city, peak, or area';
 export const SEARCH_DETENTS = [
   { id: 'compact', height: '44vh' },
   { id: 'medium', height: '66vh' },
@@ -60,6 +61,9 @@ export function useLocationSearch(options: UseLocationSearchOptions) {
     if (errorMessage.value) return errorMessage.value;
     if (status.value && status.value.ready === false) {
       return status.value.message || status.value.phase || 'Search is not ready';
+    }
+    if (trimmedQuery.value.length === 0) {
+      return EMPTY_SEARCH_PROMPT;
     }
     if (trimmedQuery.value.length > 0 && trimmedQuery.value.length < SEARCH_QUERY_MIN_LENGTH) {
       return 'Keep typing';

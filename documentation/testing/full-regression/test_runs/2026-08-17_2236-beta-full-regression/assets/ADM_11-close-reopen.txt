@@ -1,0 +1,18 @@
+ADM_11 close/reopen evidence
+
+Initial state:
+- /mtl/admin/maintenance
+- Advanced tools open with fit-export Done output from ADM_10.
+
+Detail disclosure:
+- Closed Advanced tools, then reopened it without reloading.
+- The complete fit-export command output remained byte-for-byte identical.
+
+Full Admin sheet:
+- Closed Admin; route synchronized to /mtl/ and the map remained usable.
+- Reopened Admin; route became /mtl/admin.
+- Returned to Maintenance; route became /mtl/admin/maintenance.
+- Advanced tools was still open, Done remained visible, and command output was
+  byte-for-byte identical to the pre-close value.
+
+Result: PASS

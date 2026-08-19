@@ -3,6 +3,7 @@ import { flushPromises, shallowMount } from '@vue/test-utils';
 import type { VueWrapper } from '@vue/test-utils';
 import type { FilterInfo } from 'x8ing-mtl-api-typescript-fetch/dist/esm/models/FilterInfo';
 import { STORAGE_KEYS } from '@/utils/appStorage';
+import { reactive } from 'vue';
 
 const yearsFilter: FilterInfo = {
   filterConfig: {
@@ -36,21 +37,32 @@ const smartBaseFilter: FilterInfo = {
   },
   paramDefinitions: [],
 };
+const geoFilter: FilterInfo = {
+  filterConfig: {
+    id: 4,
+    filterName: 'GeoFilter',
+    filterDomain: 'GPS_TRACK',
+    displayName: 'Geo Filter',
+  },
+  paramDefinitions: [
+    { name: 'GEO_CIRCLE_1', type: 'GEO_CIRCLE' },
+    { name: 'GEO_RECTANGLE_1', type: 'GEO_RECTANGLE' },
+    { name: 'GEO_POLYGON_1', type: 'GEO_POLYGON' },
+  ],
+};
 
 const mocks = vi.hoisted(() => ({
+  activeIdentity: 'Tracks by year',
   ensureLoaded: vi.fn(),
   save: vi.fn(),
   applyResolvedFilter: vi.fn(),
   fetchFilters: vi.fn(),
   fetchResolveFilter: vi.fn(),
+  store: null as null | Record<string, unknown>,
 }));
 
 vi.mock('@/stores/filterStore', () => ({
-  useFilterStore: () => ({
-    ensureLoaded: mocks.ensureLoaded,
-    save: mocks.save,
-    applyResolvedFilter: mocks.applyResolvedFilter,
-  }),
+  useFilterStore: () => mocks.store,
 }));
 
 vi.mock('@/utils/ServiceHelper', () => ({
@@ -111,6 +123,7 @@ const FilterOverviewStub = {
     'showSecondaryResultAction',
     'showReviewAction',
     'resetUndoAvailable',
+    'activeIdentity',
     'viewSummary',
     'criteriaSummary',
     'categoriesSummary',
@@ -165,8 +178,8 @@ const FilterColoringSheetStub = {
 };
 const FilterTrackReviewSheetStub = {
   name: 'FilterTrackReviewSheet',
-  props: ['modelValue', 'entries'],
-  emits: ['update:modelValue', 'select-track', 'open-details'],
+  props: ['modelValue', 'loading', 'error', 'entries'],
+  emits: ['update:modelValue', 'select-track', 'open-details', 'retry'],
   template: '<div data-test="filter-track-review-sheet"></div>',
 };
 
@@ -187,6 +200,17 @@ describe('CustomFilter overview navigation', () => {
   beforeEach(() => {
     vi.useFakeTimers();
     vi.clearAllMocks();
+    mocks.activeIdentity = 'Tracks by year';
+    mocks.store = reactive({
+      get activeIdentity() {
+        return mocks.activeIdentity;
+      },
+      activeResult: null,
+      dataFreshnessRevision: 0,
+      ensureLoaded: mocks.ensureLoaded,
+      save: mocks.save,
+      applyResolvedFilter: mocks.applyResolvedFilter,
+    });
     localStorage.clear();
     localStorage.setItem(STORAGE_KEYS.filterScopeHelpSeen, 'true');
     mocks.fetchFilters.mockResolvedValue([smartBaseFilter, yearsFilter, activitiesFilter]);
@@ -236,6 +260,44 @@ describe('CustomFilter overview navigation', () => {
       resultGroupSelection?: unknown;
     };
     expect(criteriaParams.resultGroupSelection).toBeUndefined();
+  });
+
+  it('keeps category management available when only a saved unavailable category remains', async () => {
+    const wrapper = mountFilter();
+    await flushPromises();
+
+    const store = mocks.store as { activeResult: unknown };
+    store.activeResult = {
+      queryResult: {
+        resultEntries: [],
+        groupingAvailable: true,
+        availableGroups: [],
+      },
+      trackVersions: new Map(),
+      filterGroups: new Map(),
+      standardFilterCount: 0,
+    };
+    await wrapper.vm.$nextTick();
+
+    const overview = wrapper.findComponent(FilterOverviewStub);
+    expect(overview.props('categoriesAvailable')).toBe(true);
+    expect(overview.props('categoriesSummary')).toBe('0 of 0 categories · 1 unavailable');
+    overview.vm.$emit('open-categories');
+    await wrapper.vm.$nextTick();
+    expect(wrapper.findComponent(FilterCategoriesSheetStub).props('modelValue')).toBe(true);
+  });
+
+  it('restores the active filter chip identity when the Filter sheet reopens', async () => {
+    const wrapper = mountFilter(false);
+    await flushPromises();
+
+    expect(wrapper.findComponent(FilterOverviewStub).props('activeIdentity')).toBe('Tracks by year');
+
+    await wrapper.setProps({ show: true });
+    await wrapper.setProps({ show: false });
+    await wrapper.setProps({ show: true });
+
+    expect(wrapper.findComponent(FilterOverviewStub).props('activeIdentity')).toBe('Tracks by year');
   });
 
   it('controls pause and resume from the Current result action', async () => {
@@ -332,6 +394,56 @@ describe('CustomFilter overview navigation', () => {
     expect(mocks.applyResolvedFilter).toHaveBeenCalledOnce();
   });
 
+  it('persists completed geo shapes before the debounced preview resolves', async () => {
+    mocks.fetchFilters.mockResolvedValue([smartBaseFilter, geoFilter]);
+    mocks.ensureLoaded.mockResolvedValue({
+      filterInfo: geoFilter,
+      filterParams: {},
+      palette: {},
+    });
+    const wrapper = mountFilter();
+    await flushPromises();
+
+    const exposed = wrapper.vm as unknown as {
+      onGeoDrawingComplete: (paramDef: FilterInfo['paramDefinitions'][number], shape: unknown) => void;
+    };
+    exposed.onGeoDrawingComplete(geoFilter.paramDefinitions![0], { lat: 47, lng: 8, radiusM: 1000 });
+    exposed.onGeoDrawingComplete(geoFilter.paramDefinitions![1], {
+      minLat: 46,
+      minLng: 7,
+      maxLat: 47,
+      maxLng: 8,
+    });
+    exposed.onGeoDrawingComplete(geoFilter.paramDefinitions![2], {
+      coordinates: [
+        [7, 46],
+        [8, 46],
+        [8, 47],
+      ],
+    });
+
+    expect(mocks.applyResolvedFilter).not.toHaveBeenCalled();
+    expect(mocks.save).toHaveBeenCalledTimes(3);
+    expect(mocks.save).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        filterParams: expect.objectContaining({
+          geoCircles: { GEO_CIRCLE_1: { lat: 47, lng: 8, radiusM: 1000 } },
+          geoRectangles: { GEO_RECTANGLE_1: { minLat: 46, minLng: 7, maxLat: 47, maxLng: 8 } },
+          geoPolygons: {
+            GEO_POLYGON_1: {
+              coordinates: [
+                [7, 46],
+                [8, 46],
+                [8, 47],
+              ],
+            },
+          },
+        }),
+      }),
+      { trackSetChanged: false }
+    );
+  });
+
   it('closes open detail sheets when the main filter sheet closes', async () => {
     const wrapper = mountFilter();
     await flushPromises();
@@ -367,6 +479,61 @@ describe('CustomFilter overview navigation', () => {
     (wrapper.vm as unknown as { restoreNavigationState: (state: unknown) => void }).restoreNavigationState(navigation);
     await wrapper.vm.$nextTick();
     expect(reviewSheet.props('modelValue')).toBe(true);
+  });
+
+  it('refreshes an open Review without dropping its last good rows', async () => {
+    const initialPreview = {
+      queryResult: { resultEntries: [{ id: 11 }] },
+      trackVersions: new Map([[11, 1]]),
+      filterGroups: new Map(),
+      standardFilterCount: 1,
+    };
+    const initialDetails = {
+      ...initialPreview,
+      queryResult: { resultEntries: [{ id: 11, gpsTrack: { id: 11, trackName: 'Morning walk' } }] },
+    };
+    const refreshedDetails = {
+      queryResult: { resultEntries: [{ id: 12, gpsTrack: { id: 12, trackName: 'Evening ride' } }] },
+      trackVersions: new Map([[12, 1]]),
+      filterGroups: new Map(),
+      standardFilterCount: 1,
+    };
+    let resolveRefresh!: (result: typeof refreshedDetails) => void;
+    mocks.fetchResolveFilter
+      .mockResolvedValueOnce(initialPreview)
+      .mockResolvedValueOnce(initialDetails)
+      .mockReturnValueOnce(
+        new Promise<typeof refreshedDetails>((resolve) => {
+          resolveRefresh = resolve;
+        })
+      );
+    const wrapper = mountFilter();
+    await flushPromises();
+    await vi.advanceTimersByTimeAsync(400);
+    await flushPromises();
+
+    wrapper.findComponent(FilterOverviewStub).vm.$emit('review');
+    await flushPromises();
+    const reviewSheet = wrapper.findComponent(FilterTrackReviewSheetStub);
+    expect(reviewSheet.props('entries')).toEqual(initialDetails.queryResult.resultEntries);
+
+    const store = mocks.store as { activeResult: unknown };
+    store.activeResult = {
+      queryResult: { resultEntries: [{ id: 12 }] },
+      trackVersions: new Map([[12, 1]]),
+      filterGroups: new Map(),
+      standardFilterCount: 1,
+    };
+    await wrapper.vm.$nextTick();
+
+    expect(reviewSheet.props('loading')).toBe(true);
+    expect(reviewSheet.props('entries')).toEqual(initialDetails.queryResult.resultEntries);
+
+    resolveRefresh(refreshedDetails);
+    await flushPromises();
+
+    expect(reviewSheet.props('loading')).toBe(false);
+    expect(reviewSheet.props('entries')).toEqual(refreshedDetails.queryResult.resultEntries);
   });
 
   it('refreshes paused result metadata without applying the draft to the map', async () => {

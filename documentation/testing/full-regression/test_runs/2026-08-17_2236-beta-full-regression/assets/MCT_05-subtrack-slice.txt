@@ -1,0 +1,22 @@
+MCT_05 live sub-track extraction
+
+Track: 100017 (mtl-segment-b.gpx)
+Canonical point count: 4
+Requested inclusive endpoints: 637010 -> 637012
+Expected canonical IDs: 637010, 637011, 637012
+Returned IDs: 637010, 637011, 637012
+Returned point indexes: 1, 2, 3
+Exact inclusive match: true
+
+Returned timestamps:
+- 2026-08-18T10:00:45.000+0000
+- 2026-08-18T10:01:30.000+0000
+- 2026-08-18T10:02:15.000+0000
+
+durationSinceStart: 45.0, 90.0, 135.0 seconds
+Longitude bounds: 7.4473499949871815 .. 7.448979994140125
+Latitude bounds: 46.94794999727766 .. 46.9491799957806
+Timestamps monotonic: true
+No zero coordinate: true
+HTTP result: 200
+

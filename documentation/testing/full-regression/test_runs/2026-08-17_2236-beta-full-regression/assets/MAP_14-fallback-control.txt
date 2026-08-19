@@ -1,0 +1,26 @@
+MAP_14 local-vector fallback control audit
+
+Original deployment restored:
+- Recreated app with only docker-compose.yml (temporary remote override not applied).
+- Authenticated /api/map/config: tileMode local.
+- tileArchiveUrl points to /mtl/api/map-proxy/prod/planet.pmtiles with the hosted public archive query.
+- remoteRasterStyles remain available for fallback.
+- Running app image ID remains the RUN_SETUP image:
+  sha256:eb68ce2b4de68fdbad0357ae11b9446c6dbd2e2a784048e5c29351fdc67b5546
+- Effective image reference remains wauwau0977/mytraillog:beta.
+
+Map status:
+- phase: public-fallback
+- ready: true
+- message: Using hosted map service
+- tileSource: public
+- archive_id: public-default
+
+Safe-control audit:
+- Running Compose services: app, brouter, db, location-search.
+- No local map-server sidecar is running.
+- The optional local-maps profile was not part of this quick install.
+- The selected in-app browser advertises only the read-only pageAssets capability; it has no request interception/blocking capability.
+- Therefore there is no isolated control to stop a local sidecar or block only PMTiles requests while preserving the rest of the app.
+
+Result: the deployment is restored and healthy, but local-vector runtime failure cannot be simulated safely on this quick-install topology. MAP_14 is terminal BLOCKED as required by the test instructions.

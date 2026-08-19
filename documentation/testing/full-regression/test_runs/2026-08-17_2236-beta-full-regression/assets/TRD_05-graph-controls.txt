@@ -1,0 +1,30 @@
+TRD_05 graph control evidence
+
+Track: 100004
+Baseline: Time x-axis, Range on, 350 displayed points, height 240, six charts.
+
+X axis:
+- Selected Distance.
+- Charts changed to kilometre axes from 0 km through 26 km.
+- Distance-over-time chart was appropriately omitted, leaving five charts.
+- Returned to Time; six charts and time labels returned.
+
+Range band:
+- Range off: aria-pressed false; all five distance-mode charts had one rendered series; zero two-series combination descriptions.
+- Range on: aria-pressed true; speed/elevation/gain/power restored to two series; four combination descriptions.
+
+Point count:
+- Clicked Load fewer chart points.
+- Slider aria value changed 174 -> 169; displayed point target changed 350 -> 325; cumulative chart reported 262 data points.
+- Clicked Load more; slider returned to 174 and displayed target returned to 350.
+
+Graph height:
+- Clicked Make graphs smaller.
+- Slider/each chart height changed 240 -> 230.
+- Clicked Make graphs bigger; all returned to 240.
+
+Final restored state:
+- Time, Range on, 350 points, 240 height, six charts.
+- Browser error count remained 6 before and after; all six predate this packet and came from planned service restarts.
+
+Result: every required control updated the chart state without loss or layout break and was restored.

@@ -1,0 +1,38 @@
+MED_07 pre-delete evidence
+Observed 2026-08-18 03:19-03:25 Europe/Zurich
+
+Watched sources
+- data/media/2026-08-17_2236-beta-full-regression-media/mtl-regression-delete-a.jpg
+  - 32,006 bytes
+  - SHA-256 ca094927a1002de8e032845cf04df37b0d87100fa06278a041036e00a41e6e21
+  - exact backup exists outside the watched tree under the run data/logs fixture directory
+- data/media/2026-08-17_2236-beta-full-regression-media/mtl-regression-delete-b.jpg
+  - 29,839 bytes
+  - SHA-256 3ba10c57444fb7cfc6280e2f95722d12409bf6a52e2bd1342fd21920b105d25d
+  - exact backup exists outside the watched tree under the run data/logs fixture directory
+
+Read-only database identity and position
+- delete-a: media_file 400003, indexed_file 300022, status
+  COMPLETED_WITH_SUCCESS, EXIF 46.94836000/7.44796000, resolved
+  46.948359999999994/7.44796, origin EXIF_EMBEDDED.
+- delete-b: media_file 400001, indexed_file 300024, status
+  COMPLETED_WITH_SUCCESS, EXIF 46.94885000/7.44855000, resolved
+  46.94885/7.44855, origin EXIF_EMBEDDED.
+- The indexed_file hash field is empty for both; the exact watched-source
+  SHA-256 values above are the recorded content checksums.
+
+End-user UI and API baseline
+- Track 100016 > Photos reports six photos.
+- The activity mini-map exposes six accessible photo marker buttons, including
+  `mtl-regression-delete-a.jpg. Photo GPS` and
+  `mtl-regression-delete-b.jpg. Photo GPS`.
+- The compact saved screenshot shows the six disposable photo pins along the
+  Bern activity, with four blue Photo GPS and two brown Estimated markers.
+- Admin-backed index status endpoint: MEDIA total 6, pending 0, completed 6,
+  failed 0, removed 0, excluded 0, progress 100%.
+- Freshness token:
+  3KFPyb__|server_id:5CE2j7uEhS6YBXPnnguHpo|config:9|filters:88|index:117|media:30|track_geometry:126|tracks:180
+- Latest change 2026-08-18T01:19:02.719+0000; media revision r30.
+
+Result: PASS. Both deletion targets are uniquely identified before mutation,
+the index is settled, and the durable pre-delete map screenshot is saved.

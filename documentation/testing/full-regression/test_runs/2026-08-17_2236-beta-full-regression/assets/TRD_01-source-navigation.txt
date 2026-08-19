@@ -1,0 +1,19 @@
+TRD_01 GPX/FIT user-navigation evidence
+
+GPX-backed track:
+- User-facing origin: Filter > Review Tracks exact-name search
+- Source filename: Lannion_Plestin_parcours24.4RE.gpx
+- User-visible name: Lannion_Plestin_parcours Lannion_Plestin_parcours1
+- Track ID: 100004
+- Detail URL: /mtl/track/100004
+- Source checksum: e76c692cbb5580f20013ce19995a9383361a8a0babec2db3e36f7064f316e85f
+- Trackpoints/timestamps: 381/381
+
+FIT-backed track:
+- User-facing origin: Statistics > Tracks search for Activity
+- Source filename/label: Activity.fit
+- Track ID: 100005
+- Detail URL: /mtl/track/100005
+- Detail mini-map rendered and Overview exposed Download original plus Download GPX.
+
+Result: both required source types were opened through user-facing navigation with IDs and filenames recorded.

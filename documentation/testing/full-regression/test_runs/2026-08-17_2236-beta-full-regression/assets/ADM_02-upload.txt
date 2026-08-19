@@ -1,0 +1,50 @@
+ADM_02 track upload evidence
+
+Browser viewport: 1280 x 720, signed in, Admin > Import & sync.
+
+Availability and accepted formats
+- Track files region was visible.
+- Picker/drop zone text: Click or drag .gpx, .fit, .tcx, .kml, .kmz, .igc,
+  .nmea, .geojson, .gdb here.
+- Native file input accepted exactly those nine extensions and did not allow
+  multiple selection.
+- Destination help named GPX-UPLOAD and stated files are automatically indexed.
+
+Valid upload
+- Synthetic file: MED_19-overlap-activity-b.gpx
+- Local size: 1,088 bytes
+- Local SHA-256: 4e620006a6efdb3fc370853fd5e8db8a7080894f6c006319257bed4ad9f0bbdf
+- Picker showed the exact filename and 1.1 KB before the Upload action.
+- Success message: 'MED_19-overlap-activity-b.gpx' uploaded successfully.
+  Indexing will begin shortly.
+- The Processing section immediately showed Live and a New data available
+  banner appeared when freshness changed.
+- Remote watched path:
+  data/gpx/GPX-UPLOAD/MED_19-overlap-activity-b.gpx
+- Remote size: 1,088 bytes.
+- Database indexed_file 300033: COMPLETED_WITH_SUCCESS, invocation 1,
+  Completed successfully.
+- Database gps_track 100023: SUCCESS, UNIQUE,
+  MTL Regression Media Alternate.
+
+Unsupported file
+- Synthetic file: ADM_02-unsupported.txt, 77 bytes.
+- SHA-256: badf34495112b0a33b3abbd03c34b852fdaef2c66cec5cb8f90b1203d6ec3e57
+- Selection was rejected before upload with:
+  Unsupported file format. Accepted: .gpx, .fit, .tcx, .kml, .kmz, .igc,
+  .nmea, .geojson, .gdb.
+- No Upload action was offered for the rejected file.
+
+Empty file
+- Synthetic file: ADM_02-empty.gpx, 0 bytes.
+- SHA-256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+- Selection was rejected before upload with:
+  Selected file is empty. Choose a non-empty GPS track file.
+- No Upload action was offered for the rejected file.
+
+Result: PASS. Availability, accepted formats, selection metadata, upload
+action, success, indexing activity, unsupported-format error, and empty-file
+error were all clear. The 1.1 KB transfer completed too quickly to preserve a
+numeric progress frame; the selected-file pre-upload state, Upload action,
+immediate Processing Live state, and terminal database result cover the full
+observable transition without fabricating timing.

@@ -1,0 +1,12 @@
+Source page for GPX fixtures: https://github.com/gps-touring/sample-gpx
+Source-page note: public repository described as "GPX files for testing"; no
+license file or explicit license was present on the source page, so reuse terms
+are undocumented.
+
+JuraRoute72011.gpx | 199962 bytes | sha256 fcff577bd3c1a6dc2bb9e53abba8051d510d282f4fb0049d38be5300f92e354e | trkpt 1414 | timestamps 1414 | imported ID 100000 | Jura Route 7 / 2011 on GPSies.com
+MoselradwegAusWiki.gpx | 415326 bytes | sha256 0f5263dee95a345a42585bde148ec741af4ed4eeb7451702f59c9c7f9bf761c3 | trkpt 2954 | timestamps 2954 | imported ID 100002 | Moselradweg aus Wiki on GPSies.com
+Vitry-le-Francois_Langres.gpx | 238349 bytes | sha256 401218e3c1d1f366ee27ea8bc138d8422eff3bf6348a77183be83fef3e8d7d67 | trkpt 1688 | timestamps 1688 | imported ID 100001 | Vitry le françois - langres on GPSies.com
+VoieVerteHauteVosges.gpx | 183733 bytes | sha256 0f417d6e76cfa581d3ada969e728694933fbffd062f61a8352ccc87637135f78 | trkpt 1298 | timestamps 1298 | imported ID 100003 | voie verte haute vosges on GPSies.com
+Lannion_Plestin_parcours24.4RE.gpx | 60917 bytes | sha256 e76c692cbb5580f20013ce19995a9383361a8a0babec2db3e36f7064f316e85f | trkpt 381 | timestamps 381 | imported ID 100004 | Lannion_Plestin_parcours Lannion_Plestin_parcours1
+
+Source URLs for each file are recorded in DAT_01-public-source-preflight.txt.

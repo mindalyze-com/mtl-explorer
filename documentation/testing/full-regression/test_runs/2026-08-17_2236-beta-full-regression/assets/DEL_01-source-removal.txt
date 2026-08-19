@@ -1,0 +1,21 @@
+DEL_01 source-removal evidence
+
+Watched folder:
+/root/mtl-explorer-2026-08-17_2236-beta-full-regression/data/gpx/2026-08-17_2236-beta-full-regression-five-gpx/
+
+Before removal (IMP_02): five public GPX sources.
+After removal: exactly these three retained sources:
+- JuraRoute72011.gpx | 199962 bytes | track 100000
+- Lannion_Plestin_parcours24.4RE.gpx | 60917 bytes | track 100004
+- MoselradwegAusWiki.gpx | 415326 bytes | track 100002
+
+Exactly these two sources were moved out of the watched tree into the
+run-specific recoverable deletion quarantine:
+- Vitry-le-Francois_Langres.gpx | 238349 bytes | former track 100001
+- VoieVerteHauteVosges.gpx | 183733 bytes | former track 100003
+
+Quarantine:
+/root/mtl-explorer-2026-08-17_2236-beta-full-regression/data/logs/2026-08-17_2236-beta-full-regression-deleted-two/
+
+No unrelated watched source was removed. Preserved public-fixture copies remain
+outside the watched tree.

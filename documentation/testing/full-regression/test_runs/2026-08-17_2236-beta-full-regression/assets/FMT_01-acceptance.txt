@@ -1,0 +1,24 @@
+FMT_01 acceptance evidence
+Observed 2026-08-17 23:16-23:20 Europe/Zurich
+
+Positive source samples:
+- GPX: five public GPX tracks already accepted as 100000-100004.
+- FIT: public Activity.fit already accepted as 100005.
+- TCX: sample.tcx, 2,689 bytes, SHA-256 849d6b839ee9f01e1e800a2902bb5284b4d2fca35ec7173ff4dbac4216333ded -> track 100006.
+- KML: sample.kml, 6,528 bytes, SHA-256 2b8ff28ee6687cee29576e25ccb2a7d043e27301e34c13095f38d84e47cfe625 -> track 100007.
+- KMZ: sample.kmz, 1,418 bytes, SHA-256 d73740d9c0eb81a490e38221716b84a43e3334524c0460eb3aab41650baf3b6f -> track 100009. ZIP signature 504b0304; archive contains doc.kml.
+- IGC: sample.igc, 291 bytes, SHA-256 650646454a8b9b2f5ece0f6dafc14c4135313bf5c28cc28c4997b549fb5eb90c -> track 100008.
+- NMEA: sample.nmea, 544 bytes, SHA-256 c233403173dce90631bbb6f04ee023fd01c50389718ffcbe61a68021e1e10df1 -> track 100012.
+- GeoJSON: sample.geojson, 883 bytes, SHA-256 0bcb593353fc174115a932a785db6326bbce9b3267f4682c87fd39e253127ca3 -> track 100011.
+- GDB: sample.gdb, 209 bytes, SHA-256 a57fc564e2c4af0d58040215005651c3bb64d0179f9161eed4cd32bba5097e2c -> track 100010.
+
+Structural preflight converted each staged non-GPX sample back to GPS-bearing GPX. TCX/KML/KMZ/IGC/NMEA/GDB each produced four trkpt. GeoJSON produced four rtept; the application conversion explicitly transforms rte to trk.
+
+Live watcher result:
+- All seven staged files were detected.
+- Each server conversion log reported GPSBabel output and SUCCESS.
+- Admin > Processing settled at GPS done, 13 completed, 3 duplicate-excluded, 16 total; Duplicate Finder, Activity Classifier, and Exploration Score each settled at 13/13 done.
+- Freshness Reload changed the map from 6 to 10 visible tracks. Tracks 100006, 100010, and 100012 were automatically marked duplicates of 100008, so they are omitted from the 10-track default map count but remain valid detail routes.
+- Direct signed-in detail routes 100006-100012 all loaded Track Details with Overview, Graphs, Quality, Related, Photos, and Events tabs plus both download controls.
+
+Result: every format named by FMT_01 had a positive GPS-bearing sample and was accepted; no format is left NOT COVERED.

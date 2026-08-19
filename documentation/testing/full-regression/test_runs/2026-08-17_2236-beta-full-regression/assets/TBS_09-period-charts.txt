@@ -1,0 +1,26 @@
+TBS_09 period-chart evidence
+
+Statistics -> Trends -> Charts, current 13-track set.
+
+Daily (YYYY-MM-DD):
+- Summary: 8 periods, 13 tracks, 823 km, 16h 51m, 3,989 Wh
+- X-axis: 2010-01-01, 2013-03-08, 2021-07-20, 2026-08-10,
+  2026-08-11, 2026-08-12, 2026-08-17, 2026-08-18
+- Each of the seven activity charts rendered one Highcharts series with
+  8 points; Media rendered two series against the same timeline.
+
+Weekly (YYYY-WW):
+- Summary: 5 periods, with the same 13-track totals
+- X-axis: 2009-W53, 2013-W10, 2021-W29, 2026-W33, 2026-W34
+- Each activity chart rendered 5 points; Media used the same five labels.
+
+Monthly (YYYY-MM):
+- Summary: 4 periods, with the same 13-track totals
+- X-axis: 2010-01, 2013-03, 2021-07, 2026-08
+- Each activity chart rendered 4 points; Media used the same four labels.
+
+All three modes rendered eight chart cards:
+Duration, Distance, Activity, Energy, Intensity Index, Training Load,
+Exploration, and Media. Each card identified Highcharts 12.6.0 and exposed
+the expected x-axis labels and non-empty series/points. Totals stayed stable
+while only the grouping changed.

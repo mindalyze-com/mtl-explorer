@@ -1,0 +1,17 @@
+DEL_02 automatic delete-processing evidence
+
+The live indexer processed both missing watched sources without a manual rescan:
+- Vitry-le-Francois_Langres.gpx | REMOVED | 2026-08-18 04:22:31.421 UTC
+- VoieVerteHauteVosges.gpx | REMOVED | 2026-08-18 04:22:31.465 UTC
+
+Post-processing joins contain no gps_track row for either indexed file. The
+three retained source joins remain COMPLETED_WITH_SUCCESS with IDs 100000,
+100002, and 100004.
+
+Settled indexer status counts:
+- COMPLETED_WITH_SUCCESS: 23
+- EXCLUDED: 6
+- REMOVED: 39
+
+No pending, queued, or in-progress status remained. Manual Rescan GPS was not
+needed.

@@ -3,6 +3,8 @@ package com.x8ing.mtl.server.mtlserver.jobs.status;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.x8ing.mtl.server.mtlserver.db.entity.gps.GpsTrack;
 import com.x8ing.mtl.server.mtlserver.db.repository.gps.GpsTrackRepository;
+import com.x8ing.mtl.server.mtlserver.db.repository.media.MediaCorrelationRepository;
+import com.x8ing.mtl.server.mtlserver.jobs.media.correlation.MediaCorrelationJob;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -17,9 +19,13 @@ import java.util.Map;
 public class JobStatusService {
 
     private final GpsTrackRepository gpsTrackRepository;
+    private final MediaCorrelationRepository mediaCorrelationRepository;
 
-    public JobStatusService(GpsTrackRepository gpsTrackRepository) {
+    public JobStatusService(
+            GpsTrackRepository gpsTrackRepository,
+            MediaCorrelationRepository mediaCorrelationRepository) {
         this.gpsTrackRepository = gpsTrackRepository;
+        this.mediaCorrelationRepository = mediaCorrelationRepository;
     }
 
     @JsonPropertyOrder({
@@ -45,6 +51,7 @@ public class JobStatusService {
         result.add(buildDuplicateSummary());
         result.add(buildActivityTypeSummary());
         result.add(buildExplorationSummary());
+        result.add(buildMediaCorrelationSummary());
         return result;
     }
 
@@ -81,6 +88,12 @@ public class JobStatusService {
         long done = counts.getOrDefault(GpsTrack.EXPLORATION_STATUS.CALCULATED, 0L)
                     + gpsTrackRepository.countExplorationExplicitlySkipped();
         return summary("exploration", "Exploration Score", pending, done);
+    }
+
+    private JobSummaryDto buildMediaCorrelationSummary() {
+        long pending = mediaCorrelationRepository.countPendingWork();
+        long done = mediaCorrelationRepository.countCompletedMedia(MediaCorrelationJob.ALGORITHM_VERSION);
+        return summary("mediaCorrelation", "Photo Position Correlation", pending, done);
     }
 
     private static JobSummaryDto summary(String job, String label, long pending, long done) {

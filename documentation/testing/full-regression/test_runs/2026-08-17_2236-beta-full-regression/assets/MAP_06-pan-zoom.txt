@@ -1,0 +1,22 @@
+MAP_06 rapid map interaction evidence
+
+Actions:
+- Performed three rapid map drag paths in different directions.
+- Performed five alternating Zoom in / Zoom out clicks.
+- Allowed 1.2 s to settle.
+
+Settled state:
+- Map regions: 2
+- Main rendering canvases: 2, each 1204 x 720 CSS / 2408 x 1440 backing pixels
+- Visible progress indicators: 0
+- Loading text: absent
+- OpenStreetMap attribution: present
+- Track overlay control: 14 Tracks
+- Browser console errors captured for tab: 0
+
+Constraint:
+- ACC_04 blocks screenshots.
+- Tiles and tracks are canvas-rendered.
+- Stale lines or missing visual tiles cannot be directly assessed without the visual channel.
+
+Result: rapid controls remained responsive and settled without spinners or console errors, but the required canvas visual-integrity assertions are blocked.

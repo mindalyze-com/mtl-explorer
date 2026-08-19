@@ -13,6 +13,15 @@
         <div class="filter-overview__result-head">
           <div class="filter-overview__result-copy">
             <span class="settings-eyebrow filter-overview__eyebrow">Current result</span>
+            <span
+              v-if="activeIdentity"
+              class="filter-overview__active-chip"
+              data-test="active-filter-chip"
+              :title="activeIdentity"
+            >
+              <i class="bi bi-funnel-fill" aria-hidden="true"></i>
+              <span>{{ activeIdentity }}</span>
+            </span>
             <h3 id="filter-result-title" class="filter-overview__result-value">
               <i v-if="loading" class="pi pi-spin pi-spinner" aria-hidden="true"></i>
               {{ resultText }}
@@ -203,6 +212,7 @@ withDefaults(
     secondaryResultActionLabel?: string;
     showReviewAction?: boolean;
     resetUndoAvailable?: boolean;
+    activeIdentity?: string;
     viewSummary: string;
     criteriaSummary: string;
     categoriesSummary: string;
@@ -222,6 +232,7 @@ withDefaults(
     secondaryResultActionLabel: '',
     showReviewAction: false,
     resetUndoAvailable: false,
+    activeIdentity: '',
     paletteColors: () => [],
   }
 );
@@ -292,7 +303,40 @@ const emit = defineEmits<{
 }
 
 .filter-overview__result-copy {
+  display: flex;
   min-width: 0;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.filter-overview__active-chip {
+  display: inline-flex;
+  max-width: 100%;
+  min-height: 1.75rem;
+  box-sizing: border-box;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0.25rem 0 0.4rem;
+  padding: 0.22rem 0.55rem;
+  border: 1px solid var(--chip-border);
+  border-radius: 999px;
+  background: var(--chip-bg);
+  color: var(--chip-text);
+  font-size: var(--text-xs-size);
+  font-weight: var(--font-semibold);
+  line-height: var(--text-xs-lh);
+}
+
+.filter-overview__active-chip > i {
+  flex: 0 0 auto;
+  color: var(--warning);
+}
+
+.filter-overview__active-chip > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .filter-overview__result-value {

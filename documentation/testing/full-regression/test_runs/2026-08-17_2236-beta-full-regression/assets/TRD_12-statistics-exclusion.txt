@@ -1,0 +1,22 @@
+TRD_12 statistics exclusion and restoration
+
+Controlled track: 100017, MTL Synthetic Segment B
+
+Baseline Statistics Overview
+- Tracks: 15
+- Recent Activity included MTL Synthetic Segment B.
+- Date range ended 18/08/2026.
+
+Exclusion
+- Quality > Track Curation > Statistics changed from Included to reason Other.
+- The UI displayed: "Excluded from statistics and highlights."
+- Statistics Overview then showed Tracks: 14.
+- The date range ended 17/08/2026 because the controlled track was the latest activity.
+
+Restoration
+- Statistics changed from Other back to Included.
+- Statistics Overview returned to Tracks: 15.
+- MTL Synthetic Segment B returned to Recent Activity.
+- The date range again ended 18/08/2026.
+
+The controlled record was left Included.

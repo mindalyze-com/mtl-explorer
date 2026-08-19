@@ -66,4 +66,11 @@
     <include file="/db/changelog/changes/059.xml"/>
     <include file="/db/changelog/changes/060.xml"/>
     <include file="/db/changelog/changes/061.xml"/>
+    <include file="/db/changelog/changes/062.xml"/>
+    <include file="/db/changelog/changes/063.xml"/>
+    <include file="/db/changelog/changes/064.xml"/>
+    <include file="/db/changelog/changes/065.xml"/>
+    <include file="/db/changelog/changes/066.xml"/>
+    <include file="/db/changelog/changes/067.xml"/>
+    <include file="/db/changelog/changes/068.xml"/>
 </databaseChangeLog>

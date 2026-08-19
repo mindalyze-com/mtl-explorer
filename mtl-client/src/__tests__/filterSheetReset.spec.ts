@@ -107,6 +107,30 @@ describe('filter detail reset actions', () => {
     expect(wrapper.emitted('apply')?.[0]?.[0]).toBeUndefined();
   });
 
+  it('keeps the last unavailable selected category removable', async () => {
+    const wrapper = mount(FilterCategoriesSheet, {
+      props: {
+        modelValue: true,
+        availableGroups: [],
+        selection: { includedGroups: [{ value: 'WALKING' }] },
+      },
+      global: { stubs: { BottomSheet: BottomSheetStub } },
+    });
+
+    const unavailableRow = wrapper.get('.result-group-selector__row--missing');
+    expect(unavailableRow.text()).toContain('WALKING');
+    expect(unavailableRow.text()).toContain('No matches with current parameters');
+    expect((unavailableRow.get('input').element as HTMLInputElement).checked).toBe(true);
+
+    await unavailableRow.get('input').setValue(false);
+    expect(wrapper.find('.result-group-selector__row--missing').exists()).toBe(false);
+
+    const apply = wrapper.get('.filter-sheet-actions__apply');
+    expect((apply.element as HTMLButtonElement).disabled).toBe(false);
+    await apply.trigger('click');
+    expect(wrapper.emitted('apply')?.[0]?.[0]).toEqual({ includedGroups: [] });
+  });
+
   it('resets map colors to the view default', async () => {
     const defaultPalette = new ColorPalette();
     defaultPalette.id = 1;

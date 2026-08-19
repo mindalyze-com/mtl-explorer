@@ -21,7 +21,8 @@ import java.util.Date;
  * detection or other background jobs mark tracks as suspicious.
  * <ol>
  *   <li>Exclude suspicious tracks (bulk SQL)</li>
- *   <li>If good-track count &gt; target → trim excess</li>
+ *   <li>Restore tracks that match GPS-timed demo photos for duplicate validation</li>
+ *   <li>If good-track count &gt; target → trim excess while retaining photo-matched tracks</li>
  *   <li>If good-track count &lt; target → re-enable non-suspicious tracks that were previously trimmed</li>
  * </ol>
  *
@@ -38,6 +39,7 @@ public class DemoTrackExclusionService {
 
     private static final Date SUSPICIOUS_DATE_CUTOFF =
             Date.from(LocalDate.of(1971, 1, 1).atStartOfDay().toInstant(ZoneOffset.UTC));
+    private static final double DEMO_PHOTO_TRACK_DISTANCE_METERS = 50.0;
 
     private final MtlAppProperties appProperties;
     private final GpsTrackRepository gpsTrackRepository;
@@ -55,16 +57,26 @@ public class DemoTrackExclusionService {
             log.info("[DEMO] Marked {} suspicious track(s) as EXCLUDED.", suspiciousExcluded);
         }
 
-        // ── Step 2: Adjust to target count ──
+        // ── Step 2: Restore photo tracks and adjust to target count ──
         int targetCount = appProperties.getDemoTargetTrackCount();
         if (targetCount <= 0) {
             return;  // no target set — keep all good tracks
         }
 
+        int photoTracksRestored = gpsTrackRepository.reEnablePhotoMatchedExcludedTracks(
+                SUSPICIOUS_DATE_CUTOFF,
+                DEMO_PHOTO_TRACK_DISTANCE_METERS);
+        if (photoTracksRestored > 0) {
+            log.info("[DEMO] Restored {} track(s) matched by demo photos for duplicate validation.",
+                    photoTracksRestored);
+        }
+
         long goodCount = gpsTrackRepository.countGoodTracks();
 
         if (goodCount > targetCount) {
-            int trimmed = gpsTrackRepository.excludeGoodTracksExceedingOffset(targetCount);
+            int trimmed = gpsTrackRepository.excludeGoodTracksExceedingOffset(
+                    targetCount,
+                    DEMO_PHOTO_TRACK_DISTANCE_METERS);
             log.info("[DEMO] Trimmed: {} good → target {} (excluded {} excess).",
                     goodCount, targetCount, trimmed);
         } else if (goodCount < targetCount) {

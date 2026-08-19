@@ -2,13 +2,13 @@
 
 ## About Me
 
-I am Patrick Heusser, the main contributor to MTL Explorer and currently its
-only contributor. I am a professional IT developer and architect based in
+I am Patrick Heusser, the main contributor and maintainer of MTL Explorer. I am
+a professional software developer and architect based in
 Zurich, Switzerland, with more than 20 years of experience.
 
 ## The Starting Point
 
-I started this project about four years ago with a simple need: I had recorded
+I started this project in 2020 with a simple need: I had recorded
 many Garmin tracks from mountain biking, hiking, cycling, and city visits, and
 I wanted to see all of them together on one map. I looked for existing tools,
 but many of them struggled once the number of tracks became large. In my case

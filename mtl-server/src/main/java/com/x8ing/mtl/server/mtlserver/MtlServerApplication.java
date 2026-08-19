@@ -2,7 +2,9 @@ package com.x8ing.mtl.server.mtlserver;
 
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.x8ing.mtl.server.mtlserver.gpx.GPXReader;
+import com.x8ing.mtl.server.mtlserver.jobs.ResourceIntensiveJobGuard;
 import com.x8ing.mtl.server.mtlserver.jobs.classifier.activitytype.ActivityTypeClassifierJob;
+import com.x8ing.mtl.server.mtlserver.jobs.demo.DemoPhotoGenerationStatusService;
 import com.x8ing.mtl.server.mtlserver.jobs.duplicate.DuplicateDetectorJob;
 import com.x8ing.mtl.server.mtlserver.jobs.exploration.ExplorationScoreJob;
 import com.x8ing.mtl.server.mtlserver.jobs.garminexport.GarminExporter;
@@ -27,6 +29,8 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
 @JsonPropertyOrder({
         "duplicateDetectorJob",
         "activityTypeClassifierJob",
+        "resourceIntensiveJobGuard",
+        "demoPhotoGenerationStatusService",
         "liquibaseIndentFixerJob",
         "garminExporter",
         "explorationScoreJob"
@@ -37,6 +41,10 @@ public class MtlServerApplication {
 
     private final ActivityTypeClassifierJob activityTypeClassifierJob;
 
+    private final ResourceIntensiveJobGuard resourceIntensiveJobGuard;
+
+    private final DemoPhotoGenerationStatusService demoPhotoGenerationStatusService;
+
     private final LiquibaseIndentFixerJob liquibaseIndentFixerJob;
 
     private final GarminExporter garminExporter;
@@ -44,9 +52,17 @@ public class MtlServerApplication {
     private final ExplorationScoreJob explorationScoreJob;
 
 
-    public MtlServerApplication(DuplicateDetectorJob duplicateDetectorJob, ActivityTypeClassifierJob activityTypeClassifierJob, LiquibaseIndentFixerJob liquibaseIndentFixerJob, GarminExporter garminExporter, ExplorationScoreJob explorationScoreJob) {
+    public MtlServerApplication(DuplicateDetectorJob duplicateDetectorJob,
+                                ActivityTypeClassifierJob activityTypeClassifierJob,
+                                ResourceIntensiveJobGuard resourceIntensiveJobGuard,
+                                DemoPhotoGenerationStatusService demoPhotoGenerationStatusService,
+                                LiquibaseIndentFixerJob liquibaseIndentFixerJob,
+                                GarminExporter garminExporter,
+                                ExplorationScoreJob explorationScoreJob) {
         this.duplicateDetectorJob = duplicateDetectorJob;
         this.activityTypeClassifierJob = activityTypeClassifierJob;
+        this.resourceIntensiveJobGuard = resourceIntensiveJobGuard;
+        this.demoPhotoGenerationStatusService = demoPhotoGenerationStatusService;
         this.liquibaseIndentFixerJob = liquibaseIndentFixerJob;
         this.garminExporter = garminExporter;
         this.explorationScoreJob = explorationScoreJob;
@@ -58,7 +74,7 @@ public class MtlServerApplication {
 
     @Scheduled(fixedDelayString = "PT20S", initialDelayString = "PT5S")
     public void findDuplicates() {
-        duplicateDetectorJob.run();
+        runResourceIntensiveJob(DuplicateDetectorJob.class, duplicateDetectorJob::run);
     }
 
     @Scheduled(fixedDelayString = "PT600S", initialDelayString = "PT3S")
@@ -68,7 +84,9 @@ public class MtlServerApplication {
 
     @Scheduled(fixedDelayString = "PT20S", initialDelayString = "PT5S")
     public void scheduleJobClassifyActivityType() {
-        activityTypeClassifierJob.run();
+        runResourceIntensiveJob(
+                ActivityTypeClassifierJob.class,
+                activityTypeClassifierJob::run);
     }
 
     /**
@@ -87,10 +105,20 @@ public class MtlServerApplication {
      */
     @Scheduled(fixedDelayString = "${mtl.exploration.run-schedule:PT120S}", initialDelayString = "PT30S")
     public void scheduleExplorationScoreJob() {
-        boolean moreWork = true;
-        while (moreWork) {
-            moreWork = explorationScoreJob.run();
+        runResourceIntensiveJob(ExplorationScoreJob.class, () -> {
+            boolean moreWork = true;
+            while (moreWork) {
+                moreWork = explorationScoreJob.run();
+            }
+        });
+    }
+
+    private void runResourceIntensiveJob(Class<?> jobType, Runnable action) {
+        if (demoPhotoGenerationStatusService.isGenerationInProgress()) {
+            log.debug("Skipping {} while demo photo generation is running", jobType.getSimpleName());
+            return;
         }
+        resourceIntensiveJobGuard.runIfAvailable(jobType, action);
     }
 
     @PostConstruct

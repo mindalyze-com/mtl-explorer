@@ -1,0 +1,34 @@
+Coverage: APP_08
+
+Baseline after Reset map settings:
+- Map style: OSM Topo Contrast
+- Base map opacity: 100%
+- GPS tracks opacity: 100%
+- Photos and media opacity: 100%
+- Track points and direction opacity: 100%
+- Heatmap: hidden, stored default opacity 40%
+
+Visible-control mutation:
+- Base map opacity: 61%
+- GPS tracks opacity: 73%
+- Photos and media opacity: 64%
+- Track points and direction opacity: 55%
+- Heatmap: shown at 42%
+- Layer summary: 4 of 4 layers shown
+
+After full reload:
+- Base map opacity: 61%
+- GPS tracks opacity: 73%
+- Photos and media opacity: 64%
+- Track points and direction opacity: 55%
+- Heatmap: shown, 42%
+- Layer summary: 4 of 4 layers shown
+
+After Reset map settings and a second full reload:
+- Map style: OSM Topo Contrast
+- Base/GPS/media/points opacities: 100%
+- Heatmap: hidden, default opacity 40%
+- Layer summary: 3 of 4 layers shown
+
+Result: sliders update live, base-map dimming is visible, all custom values
+persist, and Reset restores defaults that also persist.

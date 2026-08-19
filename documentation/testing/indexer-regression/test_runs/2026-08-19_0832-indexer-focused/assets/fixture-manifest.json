@@ -1,0 +1,77 @@
+{
+  "kind": "fully synthetic",
+  "files": [
+    {
+      "name": "add-delete-gpx.gpx",
+      "bytes": 1093,
+      "sha256": "c5a199968f0ac9aa35cbba4bbe044b349c5ee67cac8371c255d458530e08b291",
+      "category": "gpx"
+    },
+    {
+      "name": "add-delete-media.jpg",
+      "bytes": 29131,
+      "sha256": "17bc97b6bf26e5d7c26ccaa9ab0139649049a4488cc28322287b6129031453cc",
+      "category": "media"
+    },
+    {
+      "name": "add-gpx-a.gpx",
+      "bytes": 1075,
+      "sha256": "c0fcbb9cc4702fdff9891c18674eaa777b9062ed5c1a486f5a18b0d1cd09b46d",
+      "category": "gpx"
+    },
+    {
+      "name": "add-gpx-b.gpx",
+      "bytes": 1075,
+      "sha256": "15dbf3b5b23a7dabfdeaac661c2ff6aa1ac718c0f7310c671dd0001a83a29c85",
+      "category": "gpx"
+    },
+    {
+      "name": "add-media-a.jpg",
+      "bytes": 26060,
+      "sha256": "2e3f5f4f03c8339ce657294baaa699208ec56b06fb9a8985535692108766d465",
+      "category": "media"
+    },
+    {
+      "name": "add-media-b.jpg",
+      "bytes": 26269,
+      "sha256": "e557d562f22c24f1bfe361ddcc72dd5d3377db71517370468564b55ee5b6ae09",
+      "category": "media"
+    },
+    {
+      "name": "baseline-gpx-a.gpx",
+      "bytes": 1085,
+      "sha256": "51fb358ff303bb50efdf231808657d37408ec126dc63ee052efde9b618929a3e",
+      "category": "gpx"
+    },
+    {
+      "name": "baseline-gpx-b.gpx",
+      "bytes": 1085,
+      "sha256": "cc0bc31cecc1ba7834e663c7b5c7a3fe9759f6c4703e576a1c63b628dc926c24",
+      "category": "gpx"
+    },
+    {
+      "name": "baseline-media-a.jpg",
+      "bytes": 28213,
+      "sha256": "892e3ffe558f33e02cce3f91303cc6be6bd21c574862a80dcd8e0f30ba3eb404",
+      "category": "media"
+    },
+    {
+      "name": "baseline-media-b.jpg",
+      "bytes": 24532,
+      "sha256": "cb177af67fe41a7e364adbb446c1519f543c7453311632adc063296cc0807e7d",
+      "category": "media"
+    },
+    {
+      "name": "restore-new-gpx.gpx",
+      "bytes": 1087,
+      "sha256": "3745a903d87e28533b5585f476b8242d887887b5c4ea82d4b96a28b92d992d97",
+      "category": "gpx"
+    },
+    {
+      "name": "restore-new-media.jpg",
+      "bytes": 27134,
+      "sha256": "527010b764b4abc91c0758eb2600ae93bba54e241ea298356d65595471fb74a2",
+      "category": "media"
+    }
+  ]
+}

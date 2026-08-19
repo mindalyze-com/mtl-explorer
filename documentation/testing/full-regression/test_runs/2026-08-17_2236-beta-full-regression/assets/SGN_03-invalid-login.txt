@@ -1,0 +1,4 @@
+Signed out, entered the valid username with a deliberately wrong password, and selected Sign In.
+Final URL: http://62.238.106.141:18080/mtl/login
+Visible alert: `Invalid username or password.`
+Username, Password, and Sign In controls remained available.

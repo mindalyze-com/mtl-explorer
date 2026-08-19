@@ -7,6 +7,7 @@
       data-test="filter-banner"
       :aria-label="`Open Filter. Showing ${filteredCount} of ${totalCount} tracks`"
       @click="emit('open-filter')"
+      @keydown="openFilterFromKeyboard"
     >
       <i class="bi bi-funnel-fill filter-banner__icon" aria-hidden="true"></i>
       <span
@@ -67,6 +68,20 @@
         </div>
         <div class="hero-tile__label">Ascent</div>
       </div>
+      <button
+        v-tooltip.top="{ value: mediaTooltip, showDelay: 400 }"
+        type="button"
+        class="hero-tile hero-tile--action"
+        data-test="summary-media"
+        :aria-label="mediaAriaLabel"
+        @click="emit('open-media')"
+      >
+        <div class="hero-tile__icon-wrap" style="--tile-accent: var(--accent)">
+          <i class="bi bi-images"></i>
+        </div>
+        <div class="hero-tile__value">{{ mediaCountFormatted }}</div>
+        <div class="hero-tile__label">Media</div>
+      </button>
     </div>
 
     <div v-if="hasTracks" class="dashboard-grid">
@@ -488,6 +503,7 @@ const INFO_ACTIVE_PERIODS =
   'Most active periods are selected by total moving time using server-side filtered statistics. Ties use track count first, then distance.';
 const INFO_MILESTONES =
   'Milestones use the selected measurement system and are calculated server-side only from tracks included by the active filter.';
+const INFO_MEDIA_FALLBACK = 'Every indexed photo and video. Activity filters do not apply.';
 
 type InfoPopover = {
   toggle: (event: Event) => void;
@@ -569,6 +585,9 @@ const props = defineProps<{
   unfilteredTotal?: number;
   filterRevision?: number;
   filterRequest?: ActiveFilterRequest | null;
+  indexedMediaCount?: number | null;
+  indexedPhotoCount?: number | null;
+  indexedVideoCount?: number | null;
 }>();
 
 const emit = defineEmits<{
@@ -577,6 +596,7 @@ const emit = defineEmits<{
   (event: 'track-updated', track: GpsTrack): void;
   (event: 'view-all-tracks'): void;
   (event: 'view-highlight-exclusions'): void;
+  (event: 'open-media'): void;
 }>();
 
 const infoPopover = ref<InfoPopover | null>(null);
@@ -595,10 +615,39 @@ const savingHighlightExclusion = ref(false);
 const toast = inject<ToastService>('toast', { add: () => undefined });
 let requestSerial = 0;
 
+function openFilterFromKeyboard(event: KeyboardEvent): void {
+  if (event.key !== 'Enter' && event.key !== ' ') return;
+  event.preventDefault();
+  emit('open-filter');
+}
+
 const totalCount = computed(() => props.unfilteredTotal ?? filteredCount.value);
 const filteredCount = computed(() => Math.round(numberValue(overviewData.value?.summary?.trackCount)));
 const hasTracks = computed(() => filteredCount.value > 0);
 const hasEnergy = computed(() => numberValue(overviewData.value?.summary?.energyWh) > 0);
+const mediaCount = computed(() =>
+  props.indexedMediaCount == null ? null : Math.max(0, Math.round(numberValue(props.indexedMediaCount)))
+);
+const photoCount = computed(() =>
+  props.indexedPhotoCount == null ? null : Math.max(0, Math.round(numberValue(props.indexedPhotoCount)))
+);
+const videoCount = computed(() =>
+  props.indexedVideoCount == null ? null : Math.max(0, Math.round(numberValue(props.indexedVideoCount)))
+);
+const mediaCountFormatted = computed(() =>
+  mediaCount.value == null ? '\u2014' : formatLocaleNumber(mediaCount.value)
+);
+const mediaTooltip = computed(() => {
+  if (photoCount.value == null || videoCount.value == null) return INFO_MEDIA_FALLBACK;
+  const photoLabel = photoCount.value === 1 ? 'photo' : 'photos';
+  const videoLabel = videoCount.value === 1 ? 'video' : 'videos';
+  return `${formatLocaleNumber(photoCount.value)} ${photoLabel} and ${formatLocaleNumber(videoCount.value)} ${videoLabel} are indexed. Activity filters do not apply.`;
+});
+const mediaAriaLabel = computed(() => {
+  if (mediaCount.value == null) return 'Indexed media count unavailable. Open media trends.';
+  const itemLabel = mediaCount.value === 1 ? 'item' : 'items';
+  return `${mediaCountFormatted.value} indexed media ${itemLabel}. Open media trends.`;
+});
 const highlightExcludedCount = computed(() =>
   Math.round(numberValue(overviewData.value?.exclusionSummary?.highlightExcludedTrackCount))
 );
@@ -1316,7 +1365,7 @@ function numberValue(value: unknown): number {
 
 .hero-stats {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.75rem;
 }
 
@@ -1338,6 +1387,20 @@ function numberValue(value: unknown): number {
 .hero-tile:hover {
   background: var(--surface-hover);
   border-color: var(--border-medium);
+}
+
+.hero-tile--action {
+  width: 100%;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  text-align: center;
+}
+
+.hero-tile--action:focus-visible {
+  border-color: var(--accent);
+  outline: 2px solid var(--focus-ring, var(--accent));
+  outline-offset: 2px;
 }
 
 .hero-tile__icon-wrap {

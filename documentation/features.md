@@ -53,6 +53,9 @@ analyzing, replaying, and planning routes from personal track data.
 - Overview/Quality curation controls and Quality filters for correcting activity type, excluding unreliable tracks, and refinding noisy or misclassified tracks.
 - Header actions for downloading the original indexed source file or exporting the track as GPX.
 - Related tab for previous/next activities, duplicates, and derived split segments.
+- Photos tab with a server-paged chronological timeline, explicit Photo GPS / Estimated / Set by you origins, and color-coded circular mini-map markers. Rare camera-clock and manual-location corrections stay in a collapsed Photo tools panel.
+- Responsive photo viewer defaulting to dark, with a viewer-only persisted light/dark toggle, desktop photo/details layout, phone-first media and native-scrolling details, progressive file and capture metadata, bounded Nearby thumbnails, track-aware location map, keyboard/swipe navigation, and zoom/pan.
+- Separate panel-maximize and browser-fullscreen window modes; selecting one replaces the other, while Details and Nearby remain independently controllable.
 - Events tab for detected breaks, photo stops, GPS gaps, durations, positions, and longest-break highlighting.
 
 ## Statistics and discovery
@@ -61,6 +64,7 @@ analyzing, replaying, and planning routes from personal track data.
 - Server-calculated Overview dashboard with totals, activity breakdown, highlights, recent activity, active-period drill-downs, and metric or US customary milestones.
 - Highlight drill-down actions, browser badges, and searchable curation reasons for reviewing unreliable tracks.
 - Trends by total, year, quarter, month, week, or day, with optional sub-unit filtering, summary tiles, sortable tables, and aligned charts.
+- Final Media trend chart defaulting to all indexed media, with an optional explained Track related scope, stacked photo/video counts, zero-filled periods aligned with the other charts, separate undated media, and a paged/filterable period mosaic.
 - Trend metrics for active days, track count, total/average duration, total/average distance, energy, estimated power, Normalized Power, intensity, training load, and exploration.
 - Track browser with search, sort, pagination, shape previews, map centering, detail navigation, and energy/exploration columns.
 
@@ -91,11 +95,15 @@ analyzing, replaying, and planning routes from personal track data.
 
 ## Media
 
-- Media watcher for common image and video formats with EXIF/GPS metadata.
+- Media watcher for common image and video formats with embedded GPS and capture metadata.
 - Full indexing for large geotagged media libraries, including hundreds of thousands of GPS-tagged photos for the map photo/media layer.
-- Clustered map media layer with bounds-based loading.
-- Image and video preview with metadata, previous/next navigation, prefetching, and original download.
-- HEIC/HEIF conversion, resized image responses, cache headers, and byte-range video streaming.
+- Clustered map media layer with bounds-based loading, enabled by default with a persisted visibility preference. Every marker opens a chooser for the clicked photo/location or cluster, the current map view, and GPS activities at the clicked location when available. The viewer keeps the chosen scope visible and loads further bounded cluster pages as needed without changing map zoom.
+- Activity media timelines and mini-maps use bounded server pages, keeping list, marker, and viewer work stable for activities with 100,000 photos.
+- Image and video viewer with capture date and source, file type and size, photo dimensions and exposure, video duration and stream details, coordinates and embedded altitude, modified time and folder. Technical fields use a mobile-friendly disclosure; the viewer also includes a collapsible 200-thumbnail sliding filmstrip with bidirectional page loading, keyboard/swipe navigation, prefetching, exclusive maximize/fullscreen window modes, independent panel controls, zoom, bounded pan, a track-aware location map, main-map return, and original download.
+- Server-side activity matching uses authoritative GPS time or offset-adjusted camera time, keeps EXIF and track-interpolated position provenance separate, and does not rewrite source metadata.
+- Demo mode generates deterministic 1920×1440 JPEG photos with complete GPS EXIF; roughly half match a nearby activity and half remain standalone.
+- HEIC/HEIF conversion, resized image responses, generated JPEG video posters, cache headers, and byte-range video streaming. If native video decoding fails, the viewer can request a temporary H.264/AAC HLS stream, select a bounded quality profile, show conversion progress, reconnect to prepared work, cancel it, and preserve the original download.
+- Media reindex and removal cleanup with retained source-file status and database audit snapshots for derived media rows.
 
 ## Admin and operations
 

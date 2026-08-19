@@ -1,0 +1,22 @@
+Fully synthetic, anonymized segment fixtures staged outside the watched folder:
+
+mtl-segment-a.gpx
+- track name: MTL Synthetic Segment A
+- activity: cycling
+- bytes: 626
+- SHA-256: 0c5d31294ebe6f5fd3a87da837269c971bc0914ae64f176667bce19309064e86
+- trackpoints/timestamps: 4/4
+
+mtl-segment-b.gpx
+- track name: MTL Synthetic Segment B
+- activity: running
+- bytes: 626
+- SHA-256: a819dc0bfc77f4f83b751858e42c31e54d64fa9845935431f44dec6e277baf07
+- trackpoints/timestamps: 4/4
+
+Both routes start and end in the same two small zones near Bern and follow
+slightly different intermediate points. This gives measuring, comparison, and
+virtual-race checks two repeatable crossings without using private data.
+
+Remote staging path:
+data/logs/2026-08-17_2236-beta-full-regression-public-fixtures/

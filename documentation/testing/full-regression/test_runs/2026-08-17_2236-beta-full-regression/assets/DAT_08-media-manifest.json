@@ -1,0 +1,81 @@
+{
+  "generated_at": "2026-08-17T20:54:17.507720+00:00",
+  "generator": "generate_regression_photos.py",
+  "renderer": "photo_placeholder.py",
+  "fixtures": [
+    {
+      "name": "mtl-regression-photo-a.jpg",
+      "label": "MTL Regression A",
+      "latitude": 46.948,
+      "longitude": 7.4474,
+      "captured_at": "2026:08:17 08:00:00",
+      "has_gps": true,
+      "expected_origin": "EXIF_EMBEDDED",
+      "bytes": 32201,
+      "sha256": "d821ae0b891d99f622c683d5ba0aa33444a6eb241a5c77c602ba884f8bcd43c8"
+    },
+    {
+      "name": "mtl-regression-photo-b.jpg",
+      "label": "MTL Regression B",
+      "latitude": 46.94818,
+      "longitude": 7.44768,
+      "captured_at": "2026:08:17 08:01:00",
+      "has_gps": true,
+      "expected_origin": "EXIF_EMBEDDED",
+      "bytes": 27119,
+      "sha256": "f4048dbe0fe1e0885ccd752e7bb78768994b07b884fb207cd1f8cebb49cbbd8e"
+    },
+    {
+      "name": "mtl-regression-estimated-a.jpg",
+      "label": "MTL Estimated A",
+      "latitude": 46.94833,
+      "longitude": 7.44785,
+      "captured_at": "2026:08:17 08:01:30",
+      "has_gps": false,
+      "expected_origin": "TRACK_INTERPOLATED",
+      "bytes": 30219,
+      "sha256": "b0e1cb05f01bdb333e820ba47093f85ceb24011559e4508fe8ff82ca4f20ff6b"
+    },
+    {
+      "name": "mtl-regression-estimated-b.jpg",
+      "label": "MTL Estimated B",
+      "latitude": 46.9486,
+      "longitude": 7.44818,
+      "captured_at": "2026:08:17 08:02:30",
+      "has_gps": false,
+      "expected_origin": "TRACK_INTERPOLATED",
+      "bytes": 28327,
+      "sha256": "11635d927e2b562564292621cddb4240a87e4a7c894655b9256ca30418ed4c91"
+    },
+    {
+      "name": "mtl-regression-delete-a.jpg",
+      "label": "MTL Delete A",
+      "latitude": 46.94836,
+      "longitude": 7.44796,
+      "captured_at": "2026:08:17 08:02:00",
+      "has_gps": true,
+      "expected_origin": "EXIF_EMBEDDED",
+      "bytes": 32006,
+      "sha256": "ca094927a1002de8e032845cf04df37b0d87100fa06278a041036e00a41e6e21"
+    },
+    {
+      "name": "mtl-regression-delete-b.jpg",
+      "label": "MTL Delete B",
+      "latitude": 46.94885,
+      "longitude": 7.44855,
+      "captured_at": "2026:08:17 08:03:00",
+      "has_gps": true,
+      "expected_origin": "EXIF_EMBEDDED",
+      "bytes": 29839,
+      "sha256": "3ba10c57444fb7cfc6280e2f95722d12409bf6a52e2bd1342fd21920b105d25d"
+    }
+  ],
+  "activity": {
+    "name": "MTL Regression Media Track",
+    "file": "mtl-regression-media-track.gpx",
+    "bytes": 1080,
+    "sha256": "1aa59d49938900d7576f9c2c4e35c913a9bf654ce306af990ce7c7b2783d1659",
+    "trackpoint_count": 6,
+    "timestamp_count": 6
+  }
+}

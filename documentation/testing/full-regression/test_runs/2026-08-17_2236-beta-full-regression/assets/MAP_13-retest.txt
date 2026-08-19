@@ -1,0 +1,13 @@
+MAP_13 targeted validity retest — exact beta image
+
+Deployment: MTL_MAP_SERVER_TILE_MODE=remote.
+Viewports: desktop 1280x720 and mobile 390x844.
+
+- Selected OSM Dark and zoomed once.
+- OSM Dark remained selected and attribution changed to OpenStreetMap + CARTO.
+- Browser page-asset inventory recorded 20 Carto dark_all tiles at desktop and
+  35 after the mobile zoom, including:
+  https://basemaps.cartocdn.com/dark_all/7/64/44.png
+
+Conclusion: REJECTED. The configured provider, runtime requests, attribution,
+and rendered dark map all worked in the exact beta.

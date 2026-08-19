@@ -1,0 +1,23 @@
+Phase: add three GPX and three media files
+Mutation: 2026-08-19T06:33:21.375064Z
+Server completion: 2026-08-19T06:33:33.329257Z
+Elapsed to 5 tracks, 5 media, and 10 successful index rows: 11.954 s
+
+Watcher evidence:
+- GPS CREATE: add-gpx-a.gpx, add-gpx-b.gpx, add-delete-gpx.gpx
+- MEDIA CREATE: add-media-a.jpg, add-media-b.jpg, add-delete-media.jpg
+- All three GPX files completed with status SUCCESS.
+- All three media files were indexed with embedded GPS locations.
+
+Database evidence:
+- Active gps_track rows: 5
+- Active media_file rows: 5
+- All 10 indexed_file rows: COMPLETED_WITH_SUCCESS
+- New track names: Indexer Add A; Indexer Add B; Indexer Delete Restore
+
+GUI evidence:
+- Browser automatically showed New data available.
+- In-app Reload showed Map updated / Fresh data loaded.
+- Map counter and Statistics Overview showed 5 Tracks.
+- Statistics Overview showed 5 Media.
+- Recent Activity showed all three new track names.

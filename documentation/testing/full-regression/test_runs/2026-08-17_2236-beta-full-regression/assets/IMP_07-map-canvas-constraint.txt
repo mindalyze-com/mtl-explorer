@@ -1,0 +1,18 @@
+Directly verified before the map-canvas interaction constraint:
+- Main map reports 5 Tracks after reload.
+- Each imported name opens its own Track Details URL (100000-100004).
+- Each details view contains the selected-track mini-map plus the main map.
+- Five source-to-track mappings are stable and one-to-one.
+
+Direct map-canvas attempt:
+- Returned to the unobstructed main map.
+- Browser CSS viewport reported 637 x 942 with devicePixelRatio 2.
+- A coordinate click at 320,470 reached and focused the Map region but did not
+  select a track or open a chooser/details.
+- The browser screenshot operation is unavailable as recorded in ACC_04, and
+  rendered track lines/point markers have no semantic DOM target.
+
+The tester therefore could not visually target all five canvas lines or their
+point markers without guessing. No claim is made about line/popup correctness.
+Unblock path: functioning browser screenshots/visual targeting, or semantic
+accessibility targets for rendered track lines and points.

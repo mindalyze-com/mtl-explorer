@@ -1,0 +1,23 @@
+TRD_07 track-shape preview observations
+
+Related tracks (track 100017)
+- Visible preview container: 56 x 40 CSS px.
+- Example rendered SVG path: M16.237,34L39.763,6.
+- Four visible related-track cards had non-empty SVG paths.
+
+Filter > Review Tracks
+- 15 track-shape-preview containers were present.
+- The first seven visible lazy-loaded previews rendered 48 x 32 SVGs.
+- Example rendered SVG path: M12.452,29L35.548,3.
+
+Statistics > View all tracks
+- 13 previews were visible in the current table viewport.
+- Visible rows rendered non-empty 48 x 32 SVG paths, including complex public-track paths.
+
+Overlapping-track selection list (Bern, 100 m)
+- Clicking the controlled overlap opened "6 tracks — select for details".
+- Visible rows rendered 48 x 32 SVG shape previews.
+- Example rendered SVG path: M12.553,29L35.447,3.
+- Lower off-viewport rows remained lazy until scrolled; this is expected lazy-loading behavior.
+
+All measurements were taken from the rendered browser DOM. Screenshot capture is unavailable under ACC_04.

@@ -1,0 +1,35 @@
+MED_18 manual location precedence and fallback
+
+Item: 400000, mtl-regression-estimated-a.jpg
+Baseline:
+- UI label: Estimated
+- original EXIF coordinates: NULL, NULL
+- selected track route: 46.948325000073936, 7.447850000002013
+- resolved origin: TRACK_INTERPOLATED at the same route coordinate
+
+End-user mutation:
+- Photo tools -> Adjust locations -> item 400000 -> Set location
+- latitude: 46.9484
+- longitude: 7.4479
+- optional note: MED_18 regression
+- Save location
+
+Saved state:
+- UI label changed to Set by you and the action changed to Edit location.
+- media_manual_location stored 46.9484,7.4479 and the optional note.
+- media_resolved_location changed to USER_ASSIGNED at 46.9484,7.4479.
+- Original EXIF coordinates stayed NULL and the selected TRACK_INTERPOLATED route
+  coordinate stayed 46.948325000073936,7.447850000002013.
+
+Clear:
+- Edit location -> Clear assignment.
+- UI immediately returned to Estimated and Set location.
+- media_manual_location row count returned to 0.
+- resolved origin returned to TRACK_INTERPOLATED at the exact preserved route
+  coordinate; original EXIF coordinates stayed NULL.
+
+This directly verifies USER_ASSIGNED precedence over TRACK_INTERPOLATED and
+fallback to the preserved track projection. MED_14 separately verifies the
+EXIF_EMBEDDED layer.
+
+Result: PASS.

@@ -1,0 +1,10 @@
+MCT_02 segment-result navigation evidence
+
+- Activated result row mtl-segment-b.gpx.
+- Route changed to /mtl/track/100017.
+- Track Details opened #100017, name MTL Synthetic Segment B.
+- Overview matched the result row: 18 Aug 2026 12:00, 247.23 m,
+  2m15s, Running.
+- Segment Analyzer results remained beneath the details sheet for return.
+
+Result: PASS.

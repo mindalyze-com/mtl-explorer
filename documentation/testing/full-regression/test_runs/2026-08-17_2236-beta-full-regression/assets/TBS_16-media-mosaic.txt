@@ -1,0 +1,36 @@
+TBS_16 media period mosaic and viewer evidence
+
+All-indexed period
+- Grouping: YYYY-MM; mode: Media history.
+- Selected the populated 2026-08 photo stack.
+- Mosaic title: 2026-08 · 6 items.
+- All: 6 items; Photos: 6 items; Videos: 0 items with "No media in this
+  selection"; returning to All restored the same six cards.
+- Cards were newest-first and stable across the filter cycle:
+  delete-b 10:03, estimated-b 10:02, delete-a 10:02,
+  estimated-a 10:01, photo-b 10:01, photo-a 10:00.
+- No Open activity action was present in all-indexed mode.
+
+Shared viewer
+- Opened the first card in the shared viewer at photo 1 of 6.
+- Filmstrip contained all six items; Previous was disabled and Next enabled.
+- Next moved to estimated-b at photo 2 of 6 and enabled Previous.
+- Closing the viewer returned to the intact six-card mosaic.
+
+Track-related return
+- Closed the mosaic, selected Matched only, and reopened the populated 2026-08
+  stack.
+- All six cards exposed "Open activity 100016 at Photos".
+- The first action opened /mtl/track/100016 with Photos selected and six
+  activity photos rendered.
+
+Unexercised preconditions
+- No Undated media exists; all six prescribed files have capture timestamps.
+- Six items cannot exercise the 60-item Load more boundary.
+- The end-user surface has no safe deterministic way to force and recover from
+  a mosaic loading error without a larger/fault fixture.
+
+Result
+- BLOCKED. Populated period total, filters, stable ordering, shared viewer,
+  all-indexed action absence, and Matched-only activity return pass. Undated,
+  60-item paging, and recoverable error children lack their required fixtures.

@@ -5,7 +5,7 @@
       <div
         v-if="isOpen && !noBackdrop"
         class="sheet-backdrop"
-        :style="zIndex != null ? { zIndex: zIndex - 1 } : undefined"
+        :style="{ zIndex: stackedZIndex - 1 }"
         @click="close"
       ></div>
     </transition>
@@ -14,7 +14,7 @@
       v-if="showDragHalo"
       ref="haloEl"
       class="sheet-drag-halo"
-      :style="[sheetHaloStyle, zIndex != null ? { zIndex } : undefined]"
+      :style="[sheetHaloStyle, { zIndex: stackedZIndex }]"
       aria-hidden="true"
       @click="onDragZoneClick"
     ></div>
@@ -23,7 +23,7 @@
     <div
       ref="sheetEl"
       class="sheet"
-      :style="[sheetStyle, zIndex != null ? { zIndex } : {}]"
+      :style="[sheetStyle, { zIndex: stackedZIndex }]"
       :class="[
         sheetClass,
         {
@@ -32,8 +32,10 @@
           'sheet--hidden': !isOpen && !isAnimatingOut,
           'sheet--backgrounded': isBackgrounded,
           'sheet--fullscreen': isFullscreen,
+          'sheet--native-fullscreen': isNativeFullscreen,
           'sheet--header-compact': headerMode === 'compact',
           'sheet--viewport-centered': viewportCentered,
+          'sheet--desktop-compact': desktopWidth === 'compact',
         },
       ]"
       @transitionend="onSheetTransitionEnd"
@@ -64,10 +66,20 @@
             <slot v-if="hasHeader" name="header-actions"></slot>
             <button
               class="sheet-fullscreen-btn"
-              :aria-label="isFullscreen ? 'Exit fullscreen' : 'Fullscreen'"
+              :aria-label="isFullscreen ? 'Restore panel size' : 'Maximize panel'"
+              :title="isFullscreen ? 'Restore panel size' : 'Maximize panel'"
               @click.stop="toggleFullscreen"
             >
-              <i :class="isFullscreen ? 'bi bi-fullscreen-exit' : 'bi bi-arrows-fullscreen'"></i>
+              <i :class="isFullscreen ? 'bi bi-arrows-angle-contract' : 'bi bi-arrows-angle-expand'"></i>
+            </button>
+            <button
+              v-if="nativeFullscreen"
+              class="sheet-native-fullscreen-btn"
+              :aria-label="isNativeFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'"
+              :title="isNativeFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'"
+              @click.stop="toggleNativeFullscreen"
+            >
+              <i :class="isNativeFullscreen ? 'bi bi-fullscreen-exit' : 'bi bi-fullscreen'"></i>
             </button>
             <button class="sheet-close-btn" aria-label="Close" @click.stop="close">
               <i class="bi bi-x-lg"></i>
@@ -88,9 +100,10 @@
           <slot></slot>
         </div>
 
-        <!-- Scroll fade hint: confined to content so it never covers a footer. -->
+        <!-- Scroll hint overlays the content region without changing its viewport height. -->
         <div
-          v-if="showScrollHint && !noScrollHint"
+          v-if="hasScrollableOverflow && !noScrollHint"
+          v-show="showScrollHint"
           class="sheet-scroll-hint"
           :inert="isBackgrounded ? true : undefined"
           :aria-hidden="isBackgrounded ? 'true' : undefined"
@@ -249,6 +262,10 @@ const props = withDefaults(
     sheetClass?: string | string[] | Record<string, boolean>;
     /** Center against the full viewport instead of the desktop navigation-aware content area. */
     viewportCentered?: boolean;
+    /** Use the shared compact width on desktop while keeping the mobile sheet full width. */
+    desktopWidth?: 'standard' | 'compact';
+    /** Show a browser-fullscreen control independently from the panel maximize control. */
+    nativeFullscreen?: boolean;
     /** Override the CSS z-index for stacking sheets on top of each other. */
     zIndex?: number;
   }>(),
@@ -266,6 +283,8 @@ const props = withDefaults(
     scrollHintLabel: 'More content',
     sheetClass: '',
     viewportCentered: false,
+    desktopWidth: 'standard',
+    nativeFullscreen: false,
     zIndex: undefined,
   }
 );
@@ -283,19 +302,23 @@ const bodyEl = ref<HTMLElement | null>(null);
 const footerEl = ref<HTMLElement | null>(null);
 const isDragging = ref(false);
 const isAnimatingOut = ref(false);
+const hasScrollableOverflow = ref(false);
 const showScrollHint = ref(false);
 const isFullscreen = ref(false);
+const isNativeFullscreen = ref(false);
 const activeDetentId = ref('');
 
-// Desktop detection for fullscreen button
+// Desktop detection for the mobile drag affordance.
 const DESKTOP_BP = 769;
 const SHEET_DRAG_HALO_PX = 10;
+const SHEET_DRAG_ACTIVATION_THRESHOLD_PX = 6;
+const SCROLL_OVERFLOW_TOLERANCE_PX = 4;
 const isDesktopWidth = ref(typeof window !== 'undefined' ? window.innerWidth >= DESKTOP_BP : false);
 let viewportResizeFrame: number | null = null;
 
 function onWindowResize() {
   isDesktopWidth.value = window.innerWidth >= DESKTOP_BP;
-  if (!isOpen.value || isDragging.value || isFullscreen.value) return;
+  if (!isOpen.value || isDragging.value || isFullscreen.value || isNativeFullscreen.value) return;
   if (viewportResizeFrame !== null) window.cancelAnimationFrame(viewportResizeFrame);
   viewportResizeFrame = window.requestAnimationFrame(() => {
     viewportResizeFrame = null;
@@ -328,19 +351,72 @@ function onWindowResize() {
 onMounted(() => {
   window.addEventListener('resize', onWindowResize);
   window.visualViewport?.addEventListener('resize', onWindowResize);
+  document.addEventListener('fullscreenchange', onDocumentFullscreenChange);
 });
 onUnmounted(() => {
   window.removeEventListener('resize', onWindowResize);
   window.visualViewport?.removeEventListener('resize', onWindowResize);
+  document.removeEventListener('fullscreenchange', onDocumentFullscreenChange);
+  if (document.fullscreenElement === sheetEl.value) void document.exitFullscreen().catch(() => undefined);
   if (viewportResizeFrame !== null) window.cancelAnimationFrame(viewportResizeFrame);
 });
 
+function leaveFullscreenState() {
+  if (!isFullscreen.value) return;
+  isFullscreen.value = false;
+  sheetHeight.value = computeInitialHeight();
+  emit('detent-change', activeDetentId.value);
+}
+
 function toggleFullscreen() {
-  isFullscreen.value = !isFullscreen.value;
-  if (!isFullscreen.value) {
-    sheetHeight.value = computeInitialHeight();
-    emit('detent-change', activeDetentId.value);
+  if (isFullscreen.value) {
+    leaveFullscreenState();
+    return;
   }
+
+  if (isNativeFullscreen.value) leaveNativeFullscreen();
+  isFullscreen.value = true;
+}
+
+function leaveNativeFullscreenState() {
+  isNativeFullscreen.value = false;
+}
+
+function leaveNativeFullscreen() {
+  const ownsBrowserFullscreen = document.fullscreenElement === sheetEl.value;
+  leaveNativeFullscreenState();
+  if (ownsBrowserFullscreen) void document.exitFullscreen().catch(() => undefined);
+}
+
+function toggleNativeFullscreen() {
+  if (isNativeFullscreen.value) {
+    leaveNativeFullscreen();
+    return;
+  }
+
+  if (isFullscreen.value) leaveFullscreenState();
+  isNativeFullscreen.value = true;
+  if (sheetEl.value?.requestFullscreen) {
+    void sheetEl.value.requestFullscreen().catch(() => {
+      // Keep the complete-viewport fallback when native fullscreen is unavailable.
+    });
+  }
+}
+
+function onDocumentFullscreenChange() {
+  if (isNativeFullscreen.value && document.fullscreenElement !== sheetEl.value) leaveNativeFullscreenState();
+}
+
+function handleEscape() {
+  if (isNativeFullscreen.value) {
+    toggleNativeFullscreen();
+    return;
+  }
+  if (isFullscreen.value) {
+    toggleFullscreen();
+    return;
+  }
+  close();
 }
 
 // Free-form height in px — the sheet stays exactly where you drag it
@@ -355,6 +431,18 @@ const isOpen = computed(() => props.modelValue);
 const headerMode = computed(() => props.headerMode);
 const hasHeader = computed(() => Boolean(props.title || slots.title));
 const effectiveZIndex = computed(() => props.zIndex ?? DEFAULT_SHEET_Z_INDEX);
+const stackedZIndex = computed(() => {
+  const current = _openSheets.find((record) => record.id === sheetId);
+  if (!current) return effectiveZIndex.value;
+
+  const equalLayerSheets = _openSheets
+    .filter((record) => record.zIndex === current.zIndex)
+    .sort((a, b) => a.openOrder - b.openOrder);
+  const layerIndex = equalLayerSheets.findIndex((record) => record.id === sheetId);
+
+  // Reserve one layer between sheets for each foreground sheet's backdrop.
+  return effectiveZIndex.value + Math.max(layerIndex, 0) * 2;
+});
 const isBackgrounded = computed(() => {
   if (!isOpen.value) return false;
   const current = _openSheets.find((record) => record.id === sheetId);
@@ -366,7 +454,8 @@ const isBackgrounded = computed(() => {
   );
 });
 const showDragHalo = computed(
-  () => isOpen.value && !isBackgrounded.value && !isFullscreen.value && !isDesktopWidth.value
+  () =>
+    isOpen.value && !isBackgrounded.value && !isFullscreen.value && !isNativeFullscreen.value && !isDesktopWidth.value
 );
 const sheetHaloStyle = computed<Record<string, string>>(() => ({
   '--sheet-current-height': `${sheetHeight.value}px`,
@@ -522,7 +611,7 @@ const sheetStyle = computed(() => {
   if (!isOpen.value && !isAnimatingOut.value) {
     return { height: '0px' };
   }
-  if (isFullscreen.value) {
+  if (isFullscreen.value || isNativeFullscreen.value) {
     return { height: '100dvh' }; // to work correct on iphone
   }
   if (isDragging.value) {
@@ -546,7 +635,7 @@ function findScrollableChild(root: HTMLElement): HTMLElement | null {
   const rootStyle = window.getComputedStyle(root);
   if (
     (rootStyle.overflowY === 'auto' || rootStyle.overflowY === 'scroll') &&
-    root.scrollHeight > root.clientHeight + 4
+    root.scrollHeight > root.clientHeight + SCROLL_OVERFLOW_TOLERANCE_PX
   ) {
     return root;
   }
@@ -556,7 +645,7 @@ function findScrollableChild(root: HTMLElement): HTMLElement | null {
     const style = window.getComputedStyle(child);
     if (style.overflowY === 'auto' || style.overflowY === 'scroll') {
       const el = child as HTMLElement;
-      if (el.scrollHeight > el.clientHeight + 4) return el;
+      if (el.scrollHeight > el.clientHeight + SCROLL_OVERFLOW_TOLERANCE_PX) return el;
     }
   }
   return null;
@@ -572,12 +661,15 @@ function resolveScrollTarget() {
 
 function updateScrollHint() {
   const el = scrollTarget.value;
-  if (!el) {
+  if (!el || props.noScrollHint) {
+    hasScrollableOverflow.value = false;
     showScrollHint.value = false;
     return;
   }
   const { scrollTop, scrollHeight, clientHeight } = el;
-  showScrollHint.value = scrollHeight > clientHeight + 4 && scrollTop < scrollHeight - clientHeight - 4;
+  const overflows = scrollHeight > clientHeight + SCROLL_OVERFLOW_TOLERANCE_PX;
+  hasScrollableOverflow.value = overflows;
+  showScrollHint.value = overflows && scrollTop < scrollHeight - clientHeight - SCROLL_OVERFLOW_TOLERANCE_PX;
 }
 
 function scheduleLayoutEmit() {
@@ -593,7 +685,7 @@ function emitLayoutChange() {
   const vw = window.innerWidth;
   const rect = sheetEl.value?.getBoundingClientRect();
   const visible = isOpen.value || isAnimatingOut.value;
-  const fallbackHeight = visible ? (isFullscreen.value ? vh : sheetHeight.value) : 0;
+  const fallbackHeight = visible ? (isFullscreen.value || isNativeFullscreen.value ? vh : sheetHeight.value) : 0;
   const heightPx = Math.max(0, rect?.height ?? fallbackHeight);
   const widthPx = Math.max(0, rect?.width ?? vw);
   const topPx = visible ? (rect?.top ?? vh - heightPx) : vh;
@@ -604,7 +696,7 @@ function emitLayoutChange() {
   emit('layout-change', {
     open: isOpen.value,
     detentId: activeDetentId.value,
-    fullscreen: isFullscreen.value,
+    fullscreen: isFullscreen.value || isNativeFullscreen.value,
     dragging: isDragging.value,
     heightPx,
     widthPx,
@@ -689,11 +781,12 @@ watch(
       startContentObserver();
       updateScrollHint();
       scheduleLayoutEmit();
-      _pushEscape(close);
+      _pushEscape(handleEscape);
     } else {
-      _popEscape(close);
+      _popEscape(handleEscape);
       _popOpenSheet(sheetId);
       backgroundRestoreState = null;
+      hasScrollableOverflow.value = false;
       showScrollHint.value = false;
       scrollTarget.value = null;
       stopContentObserver();
@@ -703,7 +796,9 @@ watch(
   { immediate: true }
 );
 
-watch([sheetHeight, isOpen, isFullscreen, isDragging, activeDetentId], scheduleLayoutEmit, { flush: 'post' });
+watch([sheetHeight, isOpen, isFullscreen, isNativeFullscreen, isDragging, activeDetentId], scheduleLayoutEmit, {
+  flush: 'post',
+});
 
 watch(
   sheetEl,
@@ -741,8 +836,12 @@ watch(
 );
 
 function close() {
+  if (document.fullscreenElement === sheetEl.value) {
+    void document.exitFullscreen().catch(() => undefined);
+  }
   isAnimatingOut.value = true;
   isFullscreen.value = false;
+  isNativeFullscreen.value = false;
   sheetHeight.value = 0;
   setTimeout(() => {
     isAnimatingOut.value = false;
@@ -852,8 +951,16 @@ function onSheetDrag({ movement: [, my], velocity: vel, direction: [, dy], dragg
 }
 
 // ── Drag via native pointer events ──
-usePointerDrag(handleEl, onSheetDrag);
-usePointerDrag(haloEl, onSheetDrag);
+// This is also the reference path for the mini-map resize gesture. Keep mouse
+// and touch in the shared pointer composable so capture and activation remain
+// consistent; do not add a separate touch-only drag implementation here.
+const sheetDragOptions = {
+  activationThresholdPx: SHEET_DRAG_ACTIVATION_THRESHOLD_PX,
+  axis: 'y' as const,
+  preventDefaultOnDrag: true,
+};
+usePointerDrag(handleEl, onSheetDrag, sheetDragOptions);
+usePointerDrag(haloEl, onSheetDrag, sheetDragOptions);
 
 // ── Programmatic detent jump ──
 watch(
@@ -870,7 +977,7 @@ watch(
 );
 
 onUnmounted(() => {
-  _popEscape(close);
+  _popEscape(handleEscape);
   _popOpenSheet(sheetId);
   if (layoutFrame !== null) {
     window.cancelAnimationFrame(layoutFrame);
@@ -1036,6 +1143,10 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
   padding: var(--bs-header-pt) var(--bs-header-px) var(--bs-header-pb);
   gap: var(--bs-header-gap);
   min-height: 0;
@@ -1080,6 +1191,7 @@ onUnmounted(() => {
 }
 
 .sheet-fullscreen-btn,
+.sheet-native-fullscreen-btn,
 .sheet-close-btn {
   position: relative;
   background: var(--surface-hover);
@@ -1095,19 +1207,22 @@ onUnmounted(() => {
   transition: all 0.15s;
   flex-shrink: 0;
 }
-.sheet-fullscreen-btn {
+.sheet-fullscreen-btn,
+.sheet-native-fullscreen-btn {
   font-size: var(--bs-btn-fs-icon);
 }
 .sheet-close-btn {
   font-size: var(--bs-btn-close-icon);
 }
 .sheet-fullscreen-btn::after,
+.sheet-native-fullscreen-btn::after,
 .sheet-close-btn::after {
   content: '';
   position: absolute;
   inset: -0.55rem;
 }
 .sheet-fullscreen-btn:hover,
+.sheet-native-fullscreen-btn:hover,
 .sheet-close-btn:hover {
   color: var(--text-primary);
   background: var(--surface-active);
@@ -1207,12 +1322,10 @@ onUnmounted(() => {
   }
 }
 
-/* ─── Scroll fade hint ─── */
+/* ─── Scroll hint ─── */
 .sheet-scroll-hint {
   position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
+  inset: auto 0 0;
   height: 4.5rem;
   background: linear-gradient(to bottom, transparent 0%, var(--surface-glass-heavy) 60%);
   pointer-events: none;
@@ -1311,6 +1424,11 @@ onUnmounted(() => {
     border-top-left-radius: 1.25rem;
     border-top-right-radius: 1.25rem;
   }
+
+  .sheet.sheet--desktop-compact {
+    width: min(var(--sheet-compact-desktop-max-width), calc(100vw - (2 * var(--sheet-inline-gap))));
+    margin-left: calc(-0.5 * min(var(--sheet-compact-desktop-max-width), calc(100vw - (2 * var(--sheet-inline-gap)))));
+  }
 }
 
 /* ─── Large desktop: scale with screen width ─── */
@@ -1319,10 +1437,16 @@ onUnmounted(() => {
     width: min(var(--sheet-desktop-wide-max-width), var(--sheet-desktop-wide-width));
     margin-left: calc(-0.5 * min(var(--sheet-desktop-wide-max-width), var(--sheet-desktop-wide-width)));
   }
+
+  .sheet.sheet--desktop-compact {
+    width: min(var(--sheet-compact-desktop-wide-max-width), var(--sheet-compact-desktop-wide-width));
+    margin-left: calc(-0.5 * min(var(--sheet-compact-desktop-wide-max-width), var(--sheet-compact-desktop-wide-width)));
+  }
 }
 
-/* ─── Fullscreen mode (desktop only) ─── */
-.sheet--fullscreen {
+/* ─── Panel maximize and browser fullscreen ─── */
+.sheet--fullscreen,
+.sheet--native-fullscreen {
   border-radius: 0;
   left: 0 !important;
   right: 0 !important;
@@ -1331,7 +1455,8 @@ onUnmounted(() => {
   margin-right: 0 !important;
   padding-top: env(safe-area-inset-top, 0px);
 }
-.sheet--fullscreen .sheet-handle-zone {
+.sheet--fullscreen .sheet-handle-zone,
+.sheet--native-fullscreen .sheet-handle-zone {
   display: none;
 }
 
@@ -1352,6 +1477,14 @@ onUnmounted(() => {
     margin-left: auto;
     margin-right: auto;
   }
+  .sheet.sheet--desktop-compact {
+    width: min(
+      var(--sheet-compact-desktop-max-width),
+      calc(100vw - var(--nav-panel-w, 64px) - (2 * var(--sheet-inline-gap)))
+    );
+    margin-left: auto;
+    margin-right: auto;
+  }
   .sheet--fullscreen {
     left: var(--nav-panel-w, 64px) !important;
     right: 0 !important;
@@ -1367,6 +1500,14 @@ onUnmounted(() => {
     left: var(--nav-panel-w, 64px);
     right: 0;
     width: min(var(--sheet-desktop-wide-max-width), calc(var(--sheet-desktop-wide-width) - var(--nav-panel-w, 64px)));
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .sheet.sheet--desktop-compact {
+    width: min(
+      var(--sheet-compact-desktop-wide-max-width),
+      calc(var(--sheet-compact-desktop-wide-width) - var(--nav-panel-w, 64px))
+    );
     margin-left: auto;
     margin-right: auto;
   }

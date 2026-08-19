@@ -1,0 +1,31 @@
+HMO_02 route-overlay evidence
+Observed 2026-08-18 04:23-04:34 Europe/Zurich
+
+Tested all seven independent route overlays, one at a time:
+
+- Worldwide / OpenStreetMap Waymarked Trails
+  - Hiking: Show→Hide, attribution added/removed, opacity 100→64.
+  - Cycling: Show→Hide, attribution added/removed, opacity 100→57.
+  - Mountain biking: Show→Hide, attribution added/removed, opacity 100→59.
+- Swiss
+  - Hiking routes: Show→Hide, SchweizMobil attribution, opacity 100→59.
+  - Cycling routes: Show→Hide, SchweizMobil attribution, opacity 100→62.
+  - Mountain bike routes: Show→Hide, SchweizMobil attribution, opacity 100→63.
+  - Hiking trails: Show→Hide, swisstopo attribution, opacity 100→64.
+
+For every layer the summary changed independently between None shown and 1 of
+7 shown, an accessible per-layer 0-100 opacity slider appeared only while that
+layer was enabled, and trusted pointer dragging changed aria-valuenow.
+
+Ordering
+- With Swiss Hiking trails at 64%, the yellow trail network drew over the base
+map while the selected purple GPS track, media marker, and heatmap remained
+clearly visible above it in the same viewport.
+- The durable screenshot records this ordered composition.
+
+Cleanup
+- Hiking trails was disabled after the ordering screenshot. Route overlay
+summary returned to None shown. Heatmap remains enabled for HMO_03.
+
+Result: PASS. All seven OSM/Swiss route overlays toggle independently, each
+opacity control works, and overlay ordering preserves user data above routes.

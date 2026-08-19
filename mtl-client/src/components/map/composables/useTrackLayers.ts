@@ -475,6 +475,13 @@ export function useTrackLayers(_deps: Record<string, never> = {}): MapController
       this.selectTrackById(normalizedTrackId);
       this.openTrackDetails(normalizedTrackId, TRACK_DETAILS_EXPANDED_DETENT);
     },
+
+    onTrackBrowserOpenPhotos(trackId) {
+      const normalizedTrackId = Number(trackId);
+      if (!Number.isFinite(normalizedTrackId)) return;
+      this.selectTrackById(normalizedTrackId);
+      this.openTrackDetails(normalizedTrackId, TRACK_DETAILS_EXPANDED_DETENT, 'photos');
+    },
   };
   return methods;
 }

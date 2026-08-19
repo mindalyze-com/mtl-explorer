@@ -1,0 +1,13 @@
+GLB_03 manual globe preference
+Observed 2026-08-18 04:58-05:00 Europe/Zurich
+
+- Returned to the automatically engaged low-zoom globe.
+- Activated the Globe mode toggle once. The circular sphere changed immediately
+  to a rectangular flat world map at the same low zoom.
+- Zoomed in two levels and back out two levels across the automatic threshold.
+  The map remained rectangular/flat; globe did not auto-re-enable.
+- Activated the Globe mode toggle again. The same low-zoom map immediately
+  returned to a circular sphere.
+
+Result: PASS. Manual disable is sticky across zoom transitions until the user
+explicitly re-enables globe mode.

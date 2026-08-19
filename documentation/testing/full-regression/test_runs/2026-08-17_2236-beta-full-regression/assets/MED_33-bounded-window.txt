@@ -1,0 +1,13 @@
+MED_33 bounded viewer baseline
+Captured: 2026-08-18 Europe/Zurich
+
+- Live activity viewer reported photo 2 of 6.
+- Expanded Nearby DOM contained exactly six filmstrip buttons, six thumbnail
+  images, and one active viewer image.
+- Direct selection, previous/next, and the six-item activity/map viewer paths
+  already passed in MED_27 and MED_30.
+- Frozen data has 6 media rows, not a 100,000-ID selection, and no cluster or
+  activity can cross a 200-item boundary.
+- Therefore centered-window bounds, bidirectional window shifts, adjacent page
+  requests, and large-selection interaction timings are unreachable without
+  the missing MED_21 scale fixture.

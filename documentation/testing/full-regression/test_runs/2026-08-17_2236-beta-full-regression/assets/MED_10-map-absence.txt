@@ -1,0 +1,31 @@
+MED_10 recorded-viewport absence evidence
+Observed 2026-08-18 03:51-03:54 Europe/Zurich
+
+Recorded viewport
+- Returned in the same signed-in browser to track 100016, Photos, and its
+  compact Bern activity map used by MED_07.
+- Timeline header changed from 6 photos to 4 photos.
+
+Accessible map and timeline inventory
+- 400005 mtl-regression-photo-a.jpg, Photo GPS
+- 400002 mtl-regression-photo-b.jpg, Photo GPS
+- 400000 mtl-regression-estimated-a.jpg, Estimated
+- 400004 mtl-regression-estimated-b.jpg, Estimated
+- The mini-map exposes exactly these four accessible marker buttons.
+- No marker, timeline row, nearby item, or open target exists for media 400003
+  delete-a or 400001 delete-b, so neither can be opened through map navigation.
+
+Remaining-photo behavior
+- Opened photo-a from its map marker. Viewer reported 1 of 4 and rendered its
+  original plus location details.
+- Used Next through 2/4, 3/4, and 4/4. The content endpoints mapped exactly to
+  media 400002, 400000, and 400004.
+- Viewer Nearby contained exactly four items and correctly disabled Next on
+  4/4. No deleted ID appeared.
+
+Screenshot
+- MED_10-post-delete-map.jpg preserves the same compact activity viewport with
+  only the four retained marker targets.
+
+Result: PASS. Both removed photos are absent and unopenable from map/timeline
+navigation; all four retained photos still render and navigate correctly.

@@ -26,6 +26,8 @@ Read these workflow files from the current workspace before acting:
 - `documentation/testing/full-regression/workflow/resumable-workflow.md`
 - `documentation/testing/full-regression/workflow/packet-template.md`
 - `documentation/testing/full-regression/workflow/init-run.py`
+- `docker/gpx_porto_taxi_dataset/generate_regression_photos.py`
+- `docker/gpx_porto_taxi_dataset/photo_placeholder.py`
 
 Derive all quick-install commands, app URLs, credentials, prerequisites, and
 import-folder paths from the README. Derive regression coverage and packet order
@@ -57,9 +59,10 @@ Execution guidance:
   per packet, with explicit prerequisites and handoff notes. The lead remains
   responsible for the final coverage matrix, statuses, and conclusion.
 - Shared-state mutations must be serialized: `RUN_SETUP` first, import IDs
-  before UI checks, delete IDs after all checks that need the full imported
-  dataset, and `RUN_CLEANUP` last. Read-only UI packets may run in separate
-  browser contexts after import is complete.
+  before UI checks, each delete flow after the checks that need its full
+  dataset, and `RUN_CLEANUP` last. In particular, run media setup `MED_06`
+  before `MED_01`, and media deletion `MED_07-MED_12` after `MED_40`. Read-only
+  UI packets may run in separate browser contexts after import is complete.
 - If the run pauses or an agent stops, resume from `run-state.md`, its sibling
   `coverage-plan.md`, and the packet files. Do not rely on conversation memory
   or replace the snapshot with the current workspace plan.
@@ -150,6 +153,35 @@ Required data-change coverage:
 - Delete two imported source files from the documented watched/import folder,
   wait for processing or trigger the documented rescan action, then verify the
   map, browser, filters, heatmap, stats, and details reflect removal.
+- Generate the standard disposable media/activity set with the renderer already
+  packaged in the app image:
+
+  ```bash
+  docker compose exec -T app python3 \
+    /app/demo/generate_regression_photos.py \
+    /app/logs/<run-id>-media-fixtures
+  mkdir -p data/gpx/<run-id> data/media/<run-id>
+  cp data/logs/<run-id>-media-fixtures/mtl-regression-media-track.gpx data/gpx/<run-id>/
+  cp data/logs/<run-id>-media-fixtures/*.jpg data/media/<run-id>/
+  cp data/logs/<run-id>-media-fixtures/*.mp4 data/media/<run-id>/
+  cp data/logs/<run-id>-media-fixtures/*.mov data/media/<run-id>/
+  ```
+
+  Preserve `data/logs/<run-id>-media-fixtures/manifest.json` outside the watched
+  tree. The generator uses the shared photo renderer and ffmpeg. It creates four
+  GPS JPEGs, two camera-time-only JPEGs, an embedded-GPS MP4, a
+  camera-time-only MOV, and their matching six-point GPX activity. Index the
+  GPX first, then use Admin **Rescan Media** to index all eight media files. Use
+  the complete set for `MED_01-MED_03`, `MED_05`, `MED_06`, `MED_27-MED_32`,
+  and `MED_36-MED_40` before permanent deletion. Exercise `MED_04` separately
+  with a safe HEIC fixture; use the dedicated 100,000-row setup for `MED_21`,
+  `MED_28`, and `MED_33`.
+- Delete the two synthetic files named for deletion, use Admin **Rescan Media**,
+  and complete `MED_07-MED_12`. Verify the pins remain absent after freshness
+  reload, viewport changes, a hard reload, and the three-minute media cache
+  expiry. Confirm the active rows are gone while `indexed_file` removal state
+  and `media_file_audit` delete snapshots remain. Never use private media for
+  this flow.
 
 Strict result handling:
 
@@ -167,9 +199,9 @@ Strict result handling:
 - Assign findings IDs and severities: `P0`, `P1`, `P2`, or `P3`.
 - For each issue, include reproduction steps, expected/actual result,
   environment, evidence, and release impact.
-- Record timings for Docker setup, quick install, container startup, import
-  sync, deletion sync, desktop regression, mobile regression, offline/cache,
-  final verification, and cleanup.
+- Record timings for Docker setup, quick install, container startup, track and
+  media import sync, track and media deletion sync, desktop regression, mobile
+  regression, offline/cache, final verification, and cleanup.
 
 Report and evidence:
 
@@ -204,6 +236,9 @@ Report and evidence:
 - Save screenshots/log snippets under the matching `assets/` folder. Prefer WebP
   screenshots, keep logs short, and avoid bulky traces unless needed for a
   failure.
+- Save the synthetic media manifest as `assets/DAT_08-media-manifest.json` and
+  link it from the media packets. Do not copy the generated media fixtures into
+  the repository or report artifacts.
 - Keep each WebP screenshot asset at 85 KB (85,000 bytes) or less. Crop or
   recompress screenshots that exceed the limit before finalizing the report.
 - In packet Markdown files, make every evidence asset reference clickable. Since
@@ -215,7 +250,7 @@ Report and evidence:
 - Keep compact screenshots for working functions as well as failures, so the
   report gives a useful visual overview of validated areas such as login, map,
   imports, browser, stats, filters, details, admin, planner, mobile, and
-  deletion sync.
+  track/media deletion sync.
 - Embed relevant passing and failing screenshots inline in the Markdown report
   with image syntax, not only as asset links, so the report is readable on its
   own.

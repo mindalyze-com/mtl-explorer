@@ -1,0 +1,37 @@
+MED_19 overlapping activity ambiguity
+
+Fixture:
+- Added fully synthetic mtl-regression-media-alternate.gpx with the same
+  07:59-08:04 UTC time window as activity 100016 and a distinct Bern route.
+- Watcher indexed it successfully as track 100022.
+- A first near-identical attempt became duplicate track 100021 and was correctly
+  excluded from correlation alternatives.
+
+Correlation result for camera-time-only items after two scheduled passes:
+
+media 400000:
+- 100016 selected=true,  ambiguous=true, alternative_count=2,
+  route 46.9483250001,7.4478500000
+- 100022 selected=false, ambiguous=true, alternative_count=2,
+  route 46.9583250001,7.4578500000
+
+media 400004:
+- 100016 selected=true,  ambiguous=true, alternative_count=2,
+  route 46.9486000000,7.4481750001
+- 100022 selected=false, ambiguous=true, alternative_count=2,
+  route 46.9586000000,7.4581750001
+
+UI:
+- Hard reload showed Ambiguous (2) on all six timeline rows.
+- All six activity mini-map markers included "Multiple activities matched" in
+  their accessible names.
+
+Restart:
+- Restarted the app container and waited for HTTP 200.
+- Both alternatives remained stored and 100016 remained selected for both
+  camera-time-only items.
+- Reloaded UI again showed six Ambiguous (2) badges and the same selected-row
+  distances.
+
+Result: PASS. All eligible correlations are stored and the winner is stable
+across repeated correlation passes and restart.

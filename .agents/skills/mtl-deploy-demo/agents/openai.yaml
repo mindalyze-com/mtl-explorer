@@ -1,0 +1,4 @@
+interface:
+  display_name: "Deploy MTL Demo"
+  short_description: "Build and deploy MTL Explorer demo channels"
+  default_prompt: "Use $mtl-deploy-demo to build selected MTL Explorer Docker channels and deploy them safely to the Hetzner demo server."

@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.10.xsd">
+
+    <changeSet id="20260817_2_track_media_timeline_indexes" author="codex">
+        <comment>
+            Speed up activity time-window matching and the two canonical point
+            lookups used to interpolate a media position along a track.
+        </comment>
+
+        <createIndex indexName="GPS_TRACK_IX_MEDIA_TIME_MATCH" tableName="gps_track" unique="false">
+            <column name="track_source"/>
+            <column name="load_status"/>
+            <column name="duplicate_status"/>
+            <column name="start_date"/>
+            <column name="end_date"/>
+            <column name="id"/>
+        </createIndex>
+
+        <sql>
+            CREATE INDEX media_file_ix_track_match_gps_time
+                ON media_file (exif_gps_date)
+                WHERE exif_gps_date IS NOT NULL;
+        </sql>
+
+        <sql>
+            CREATE INDEX media_file_ix_track_match_local_time
+                ON media_file (exif_date_image_taken)
+                WHERE exif_gps_date IS NULL AND exif_date_image_taken IS NOT NULL;
+        </sql>
+
+        <sql>
+            CREATE INDEX gps_track_data_points_ix_media_time_match
+                ON gps_track_data_points (gps_track_data_id, point_timestamp, point_index)
+                WHERE point_timestamp IS NOT NULL;
+        </sql>
+
+        <rollback>
+            <dropIndex indexName="GPS_TRACK_IX_MEDIA_TIME_MATCH" tableName="gps_track"/>
+            <sql>DROP INDEX IF EXISTS media_file_ix_track_match_gps_time;</sql>
+            <sql>DROP INDEX IF EXISTS media_file_ix_track_match_local_time;</sql>
+            <sql>DROP INDEX IF EXISTS gps_track_data_points_ix_media_time_match;</sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

@@ -1,0 +1,4 @@
+2026-08-18 fixed-build retest
+Warm desktop 1280x720 and mobile 390x844 SPAs remained open while only the app container was stopped.
+Statistics > Tracks retained MTL Regression Media Track and showed Statistics could not be loaded plus Retry on every tab.
+After app restart, Retry removed the warning and refreshed the table. Cached nonempty and empty-result tests passed.

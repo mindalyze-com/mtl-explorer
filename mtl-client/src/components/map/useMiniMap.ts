@@ -4,6 +4,8 @@ import { fetchMapConfig } from '@/utils/mapConfigService';
 import { TRACK_COLOR } from '@/utils/trackColors';
 import { resolveConfiguredMapStyle } from '@/components/map/mapStyleResolver';
 import { useMapSettingsStore } from '@/stores/mapSettingsStore';
+import { useMeasurementSystem } from '@/composables/useMeasurementSystem';
+import { mapScaleUnitForMeasurementSystem, syncMapScaleControlUnit } from '@/components/map/mapScaleControl';
 
 export type MiniMapBounds = [[number, number], [number, number]];
 export type MiniMapGeoJson = GeoJSON.FeatureCollection<GeoJSON.Geometry, Record<string, unknown>>;
@@ -28,7 +30,9 @@ interface UseMiniMapOptions {
 
 export function useMiniMap(options: UseMiniMapOptions) {
   const mapSettingsStore = useMapSettingsStore();
+  const { measurementSystem } = useMeasurementSystem();
   let map: maplibregl.Map | null = null;
+  let scaleControl: maplibregl.ScaleControl | null = null;
   let popup: maplibregl.Popup | null = null;
   let resizeObserver: ResizeObserver | null = null;
   let initStarted = false;
@@ -58,7 +62,10 @@ export function useMiniMap(options: UseMiniMapOptions) {
       attributionControl: false,
     });
 
-    map.addControl(new maplibregl.ScaleControl(), 'bottom-left');
+    scaleControl = new maplibregl.ScaleControl({
+      unit: mapScaleUnitForMeasurementSystem(measurementSystem.value),
+    });
+    map.addControl(scaleControl, 'bottom-left');
     installMissingImageFallback(map);
 
     await waitForMapLoad(map);
@@ -264,6 +271,8 @@ export function useMiniMap(options: UseMiniMapOptions) {
 
   watch(options.highlightedTrackIndex, updateHighlight);
 
+  watch(measurementSystem, (system) => syncMapScaleControlUnit(scaleControl, system));
+
   onBeforeUnmount(() => {
     destroyed = true;
     popup?.remove();
@@ -272,6 +281,7 @@ export function useMiniMap(options: UseMiniMapOptions) {
     resizeObserver = null;
     map?.remove();
     map = null;
+    scaleControl = null;
     initStarted = false;
   });
 

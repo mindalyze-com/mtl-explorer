@@ -701,7 +701,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, inject, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { computed, inject, onBeforeUnmount, ref, watch } from 'vue';
 import {
   formatDateAndTime,
   formatNumber,
@@ -775,7 +775,7 @@ const emit = defineEmits<{
 
 const gpsTrack = computed(() => props.gpsTrack);
 const infoPopover = ref<TrackDetailInfoPopover | null>(null);
-const summaryReady = ref(false);
+const summaryReady = computed(() => gpsTrack.value != null);
 const activeTooltip = ref<string | null>(null);
 const currentInfoContent = ref<InfoContent>([]);
 const showExplorationInfo = ref(false);
@@ -949,12 +949,6 @@ const longestStopMs = computed(() => {
   return secs != null ? secs * 1000 : 0;
 });
 
-onMounted(() => {
-  if (props.trackDetails.length > 0) {
-    computeSummary(props.trackDetails);
-  }
-});
-
 onBeforeUnmount(() => {
   energyWhatIfSerial++;
   clearEnergyPreviewDebounce();
@@ -962,15 +956,6 @@ onBeforeUnmount(() => {
     window.clearTimeout(trackIdCopyResetTimer);
   }
 });
-
-watch(
-  () => props.trackDetails,
-  (details) => {
-    if (details.length > 0) {
-      computeSummary(details);
-    }
-  }
-);
 
 watch(
   () => [props.gpsTrack?.id, props.gpsTrack?.activityType],
@@ -1185,11 +1170,6 @@ function toggleTooltip(id: string) {
 function showInfo(event: Event, content: InfoContent) {
   currentInfoContent.value = content;
   infoPopover.value?.toggle(event);
-}
-
-function computeSummary(details: ChartPoint[]) {
-  if (!details || details.length === 0) return;
-  summaryReady.value = true;
 }
 </script>
 

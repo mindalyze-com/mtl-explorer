@@ -1,0 +1,12 @@
+TRD_13 targeted validity retest — exact beta image
+
+Desktop 1280x720:
+- Opened /mtl/track/100005 > Related.
+- Activated the visible Lannion previous-track card.
+- Route and header changed to /mtl/track/100004 and #100004.
+
+Mobile 390x844:
+- Activated the visible MTL Regression Media Track next-track card.
+- Route and header changed to /mtl/track/100005 and #100005.
+
+Conclusion: REJECTED. Related-card navigation worked in both viewports.

@@ -1,0 +1,18 @@
+TRD_06 chart/mini-map hover link evidence
+
+Chart -> mini-map on GPX track 100004:
+- Hovered a visible point in the Speed chart.
+- Highcharts crosshair became visible: M 412.5 4 L 412.5 201.
+- Tooltip became visible: 1h 33m · 12:06, 24.3 km/h, min 11.2, max 50.4, spread 39.1 km/h.
+- Mini-map added one visible 14 x 14 red/white MapLibre marker at x=820, y=116.8.
+- Moved outside both surfaces: marker count returned to 0, crosshair visibility hidden, tooltip visibility hidden/opacity 0.
+
+Mini-map -> chart on synthetic track 100017:
+- Used frozen four-point Segment B so the exact rendered vertex could be derived without guessing.
+- Mini-map canvas: x=218..1138, y=100.8..320.8.
+- Hovered the derived second vertex near x=637, y=253.
+- Highcharts crosshair became visible: M 69.5 4 L 69.5 201.
+- Tooltip became visible: 0m 45s · 12:00, 5.0 km/h, range min/max 5.0 km/h.
+- Moved outside both surfaces: marker count returned to 0, crosshair hidden, tooltip hidden/opacity 0.
+
+Result: both hover directions synchronized and both cleared without stale cursors.

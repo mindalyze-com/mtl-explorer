@@ -1,0 +1,34 @@
+FIT-backed track: 100005 / Activity.fit
+
+Overview rendered:
+- distance 3.60 km; duration 59m 59s; ascent 1,667 m; descent 1,695 m
+- speed, timing, elevation, energy, fitness, exploration sections
+- Download original and Download GPX controls
+
+Graphs rendered:
+- Time/Distance and Range controls
+- Speed interactive chart
+- Elevation interactive chart
+- Elevation gain rate chart
+- Distance over time chart
+- Cumulative mechanical energy chart
+- Estimated power chart
+- chart descriptions reported 350 data points where applicable
+
+Quality rendered:
+- SUCCESS / UNIQUE
+- 3,600 total points
+- activity classification Walking / AUTO_GUESS
+- GPX metadata and File & Indexer sections
+
+Related rendered:
+- five GPX-backed previous tracks
+- current Track #100005
+- no next tracks
+
+Events rendered a clear empty state: No track events.
+Mini-map region rendered for the selected track.
+
+Blocked child:
+The track-point popup is a canvas-only target. Screenshot/visual targeting is
+unavailable under ACC_04/IMP_07, so no point popup claim is made.

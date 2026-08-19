@@ -1,0 +1,27 @@
+Phase: atomically replace already-active GPX and media paths
+Watched targets: add-gpx-a.gpx; add-media-a.jpg
+Replacement source GPX: 1093 bytes
+Replacement source GPX SHA-256: c8bdc48c2ca0478003179ca45d6e392900313dc973747c82f84f496032bc50ed
+Replacement source media: 29944 bytes
+Replacement source media SHA-256: 060aafe28b5ac6314a44119c3af09943e9a3ce4ee482173d0f2c077e01eef417
+Mutation: 2026-08-19T06:38:53.715386Z
+Server completion: 2026-08-19T06:39:04.279335Z
+Elapsed to stable replacement state: 10.564 s
+
+Server evidence:
+- Existing GPX domain row was deleted before the replacement was imported.
+- Replacement GPX completed with status SUCCESS.
+- Existing media row was refreshed in place with coordinates 47.001,7.501.
+
+Database evidence:
+- add-gpx-a.gpx indexed_file: COMPLETED_WITH_SUCCESS, invocation 2
+- add-media-a.jpg indexed_file: COMPLETED_WITH_SUCCESS, invocation 2
+- Active counts stayed stable at 6 gps_track and 6 media_file rows.
+- Old track Indexer Add A was absent.
+- New track Indexer Atomic Replace was present exactly once.
+
+GUI evidence:
+- Browser automatically showed New data available.
+- In-app Reload completed successfully.
+- Statistics stayed at 6 Tracks and 6 Media.
+- Indexer Atomic Replace appeared in Recent Activity and Highlights.

@@ -4,6 +4,11 @@ For the simplest setup, start with the [README quick start](../README.md#quick-s
 This page covers home install details: settings, data folders, maps, updates,
 and logs.
 
+MTL Explorer also runs well on a NAS with Docker Compose support. Create a
+Compose project or stack, place `docker-compose.yml` in its project directory,
+and keep that directory persistent. The default `./data/` folders are created
+beside the Compose file.
+
 ## Requirements
 
 MTL Explorer needs more resources than a small web app because the stack runs

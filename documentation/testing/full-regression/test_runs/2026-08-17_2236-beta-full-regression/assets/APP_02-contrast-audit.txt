@@ -1,0 +1,24 @@
+APP_02 readability/contrast audit
+
+Method:
+- Audited every visible leaf text node on Statistics Trends while the live
+  aggregation dropdown was open.
+- Composited foreground against the nearest effective ancestor background and
+  computed WCAG-style luminance contrast.
+- Supplemented with paired visual inspection of Preferences and dark About.
+
+Dark theme:
+- 111 visible text nodes audited.
+- 0 nodes below 3.0:1; 0 effectively unreadable nodes below 1.3:1.
+- Lowest measured ratio: 3.79:1 for muted navigation/axis labels on the dark sheet.
+- Dropdown options were rgb(226,232,240) on dark overlay styling.
+
+Light theme:
+- 111 visible text nodes audited.
+- 0 nodes below 3.0:1; 0 effectively unreadable nodes below 1.3:1.
+- Lowest measured ratio: 3.40:1 for overlaid map attribution; active chart tab
+  was 3.68:1 and normal navigation/axis labels were at least 4.73:1.
+
+Paired screenshots showed no white-on-white, black-on-black, missing labels,
+or illegible controls in Preferences, Statistics charts, dropdown, or About.
+Result: PASS

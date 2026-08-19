@@ -1,0 +1,23 @@
+MED_24 immediate same-bounds refresh
+
+Bounds used for all reads:
+minLat=46.94, minLng=7.44, maxLat=46.96, maxLng=7.46
+
+Baseline item 400000:
+- HTTP 200
+- Cache-Control: no-store (present on response)
+- 46.94833,7.44785 (TRACK_INTERPOLATED projection)
+
+Immediately after end-user Save location 46.9484,7.4479:
+- UI changed to Set by you.
+- Same exact bounds request returned HTTP 200 and Cache-Control: no-store.
+- Item 400000 returned 46.9484,7.4479 without a wait or changed URL.
+
+Immediately after end-user Clear assignment:
+- UI returned to Estimated.
+- Same exact bounds request returned HTTP 200 and Cache-Control: no-store.
+- Item 400000 returned 46.94833,7.44785 without a wait or changed URL.
+
+The manual assignment was cleared after verification.
+
+Result: PASS.

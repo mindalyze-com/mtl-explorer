@@ -60,6 +60,7 @@ const maplibreMock = vi.hoisted(() => {
   }
 
   const instances: MockMap[] = [];
+  const scaleControls: Array<{ options: unknown; setUnit: ReturnType<typeof vi.fn> }> = [];
 
   const Map = vi.fn(function () {
     const map = new MockMap();
@@ -67,8 +68,15 @@ const maplibreMock = vi.hoisted(() => {
     return map;
   });
 
+  const ScaleControl = vi.fn(function (options: unknown) {
+    const control = { options, setUnit: vi.fn() };
+    scaleControls.push(control);
+    return control;
+  });
+
   return {
     instances,
+    scaleControls,
     Map,
     MockMap,
     LngLatBounds: MockLngLatBounds,
@@ -80,7 +88,7 @@ const maplibreMock = vi.hoisted(() => {
       })),
     },
     NavigationControl: vi.fn(),
-    ScaleControl: vi.fn(),
+    ScaleControl,
     AttributionControl: vi.fn(),
   };
 });
@@ -235,6 +243,8 @@ describe('Map3DRenderer', () => {
     setActivePinia(createPinia());
     maplibreMock.instances.length = 0;
     maplibreMock.Map.mockClear();
+    maplibreMock.ScaleControl.mockClear();
+    maplibreMock.scaleControls.length = 0;
     vi.mocked(resolveConfiguredMapStyle).mockClear();
     replayControllerMock.instances.length = 0;
     measurementPreference.setMeasurementSystem('METRIC');
@@ -336,6 +346,24 @@ describe('Map3DRenderer', () => {
     expect(wrapper.get('[aria-label="3D replay telemetry"]').text()).toContain('5,280 ft');
     expect(wrapper.get('[data-test="track-replay-controls"]').attributes('distance-label')).toContain('ft');
 
+    wrapper.unmount();
+  });
+
+  it('uses the effective scale unit and updates it after a preference change', async () => {
+    const store = useMapStateStore();
+    store.enter3DReplay({ trackId: 7, trackLabel: 'Synthetic replay track' });
+
+    const wrapper = mount(Map3DRenderer, { attachTo: document.body });
+    await flushPromises();
+    await flushPromises();
+
+    expect(maplibreMock.ScaleControl).toHaveBeenCalledWith({ maxWidth: 100, unit: 'metric' });
+    expect(maplibreMock.scaleControls).toHaveLength(1);
+
+    measurementPreference.setMeasurementSystem('US_CUSTOMARY');
+    await nextTick();
+
+    expect(maplibreMock.scaleControls[0]?.setUnit).toHaveBeenCalledWith('imperial');
     wrapper.unmount();
   });
 });

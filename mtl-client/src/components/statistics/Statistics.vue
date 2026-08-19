@@ -33,6 +33,10 @@
         </div>
       </template>
       <div v-if="active" class="statistics-root">
+        <div v-if="statisticsError" class="statistics-refresh-state" role="alert" data-test="statistics-refresh-error">
+          <span>{{ statisticsErrorMessage }}</span>
+          <button type="button" @click="fetchStatistics">Retry</button>
+        </div>
         <Tabs v-model:value="activeTab" class="sheet-scroll-tabs">
           <TabPanels>
             <!-- ── Tab 1: Overview ── -->
@@ -43,8 +47,12 @@
                 :unfiltered-total="unfilteredTotal"
                 :filter-revision="filterStore.trackSetRevision"
                 :filter-request="filterStore.activeFilterRequest"
+                :indexed-media-count="indexedMediaCount"
+                :indexed-photo-count="indexedPhotoCount"
+                :indexed-video-count="indexedVideoCount"
                 @open-details="emit('open-details', $event)"
                 @open-filter="emit('open-filter')"
+                @open-media="showMediaTrends"
                 @track-updated="onOverviewTrackUpdated"
                 @view-all-tracks="showNewestTracks"
                 @view-highlight-exclusions="showHighlightExclusions"
@@ -193,7 +201,7 @@
                 <div v-if="statsView === 'table'" class="table-section">
                   <div class="table-scroll-x">
                     <DataTable
-                      :value="filteredStatisticData"
+                      :value="trendTableRows"
                       column-resize-mode="fit"
                       responsive-layout="scroll"
                       table-style="min-width: 10rem"
@@ -216,6 +224,30 @@
                         class="number-column"
                         style="min-width: 5rem"
                       />
+                      <Column
+                        field="imageCount"
+                        header="Photos"
+                        :sortable="true"
+                        header-class="number-column"
+                        class="number-column"
+                        style="min-width: 5rem"
+                      >
+                        <template #body="slotProps">
+                          {{ formatMediaCount(slotProps.data.imageCount) }}
+                        </template>
+                      </Column>
+                      <Column
+                        field="videoCount"
+                        header="Videos"
+                        :sortable="true"
+                        header-class="number-column"
+                        class="number-column"
+                        style="min-width: 5rem"
+                      >
+                        <template #body="slotProps">
+                          {{ formatMediaCount(slotProps.data.videoCount) }}
+                        </template>
+                      </Column>
                       <Column
                         v-for="column in smartValueColumns"
                         :key="column.field"
@@ -355,20 +387,20 @@
                 </div>
 
                 <!-- ── Charts (inline) ── -->
-                <div v-if="statsView === 'charts' && filteredStatisticData.length > 0" class="charts-scroll">
-                  <div class="chart-card">
+                <div v-if="statsView === 'charts'" class="charts-scroll">
+                  <div v-if="filteredStatisticData.length > 0" class="chart-card">
                     <div class="chart-header chart-section-header" style="--chart-header-accent: var(--chart-series-1)">
                       <i class="bi bi-clock" style="color: var(--chart-series-1)"></i> Duration
                     </div>
                     <highcharts ref="chartDuration" :options="chartOptionsDuration" class="stat-chart" />
                   </div>
-                  <div class="chart-card">
+                  <div v-if="filteredStatisticData.length > 0" class="chart-card">
                     <div class="chart-header chart-section-header" style="--chart-header-accent: var(--chart-series-2)">
                       <i class="bi bi-signpost-split" style="color: var(--chart-series-2)"></i> Distance
                     </div>
                     <highcharts ref="chartDistance" :options="chartOptionsDistance" class="stat-chart" />
                   </div>
-                  <div class="chart-card">
+                  <div v-if="filteredStatisticData.length > 0" class="chart-card">
                     <div class="chart-header chart-section-header" style="--chart-header-accent: var(--info)">
                       <i class="bi bi-bar-chart-line" style="color: var(--info)"></i> Activity
                     </div>
@@ -416,7 +448,7 @@
                     </div>
                     <highcharts ref="chartTrainingLoad" :options="chartOptionsTrainingLoad" class="stat-chart" />
                   </div>
-                  <div class="chart-card">
+                  <div v-if="filteredStatisticData.length > 0" class="chart-card">
                     <div class="chart-header chart-section-header" style="--chart-header-accent: var(--success)">
                       <i class="bi bi-compass" style="color: var(--success)"></i> Exploration
                       <button
@@ -438,6 +470,156 @@
                       <span>Exploration data is being calculated in the background.</span>
                     </div>
                   </div>
+                  <div ref="mediaTrendCard" class="chart-card media-trend-card">
+                    <div
+                      class="chart-header chart-section-header media-trend-header"
+                      style="--chart-header-accent: var(--chart-series-3)"
+                    >
+                      <div class="media-trend-header__title">
+                        <i class="bi bi-images" style="color: var(--chart-series-3)"></i>
+                        <span>Media</span>
+                      </div>
+                      <div class="media-trend-mode" aria-label="Media timeline">
+                        <button
+                          v-tooltip.top="{
+                            value: MEDIA_TIMELINE_ACTIVITY_ERA_TOOLTIP,
+                            showDelay: MEDIA_TIMELINE_TOOLTIP_DELAY_MS,
+                          }"
+                          type="button"
+                          :class="{ 'media-trend-mode__button--active': mediaTimelineMode === MEDIA_MODE_ACTIVITY_ERA }"
+                          :aria-pressed="mediaTimelineMode === MEDIA_MODE_ACTIVITY_ERA"
+                          :aria-describedby="
+                            focusedMediaTimelineMode === MEDIA_MODE_ACTIVITY_ERA
+                              ? MEDIA_TIMELINE_FOCUS_TOOLTIP_ID
+                              : undefined
+                          "
+                          @focus="focusedMediaTimelineMode = MEDIA_MODE_ACTIVITY_ERA"
+                          @blur="clearFocusedMediaTimelineMode(MEDIA_MODE_ACTIVITY_ERA)"
+                          @click="setMediaTimelineMode(MEDIA_MODE_ACTIVITY_ERA)"
+                        >
+                          Activity era
+                        </button>
+                        <button
+                          v-tooltip.top="{
+                            value: MEDIA_TIMELINE_MEDIA_HISTORY_TOOLTIP,
+                            showDelay: MEDIA_TIMELINE_TOOLTIP_DELAY_MS,
+                          }"
+                          type="button"
+                          :class="{
+                            'media-trend-mode__button--active': mediaTimelineMode === MEDIA_MODE_MEDIA_HISTORY,
+                          }"
+                          :aria-pressed="mediaTimelineMode === MEDIA_MODE_MEDIA_HISTORY"
+                          :aria-describedby="
+                            focusedMediaTimelineMode === MEDIA_MODE_MEDIA_HISTORY
+                              ? MEDIA_TIMELINE_FOCUS_TOOLTIP_ID
+                              : undefined
+                          "
+                          @focus="focusedMediaTimelineMode = MEDIA_MODE_MEDIA_HISTORY"
+                          @blur="clearFocusedMediaTimelineMode(MEDIA_MODE_MEDIA_HISTORY)"
+                          @click="setMediaTimelineMode(MEDIA_MODE_MEDIA_HISTORY)"
+                        >
+                          Media history
+                        </button>
+                        <button
+                          v-tooltip.top="{
+                            value: MEDIA_TIMELINE_MATCHED_ONLY_TOOLTIP,
+                            showDelay: MEDIA_TIMELINE_TOOLTIP_DELAY_MS,
+                          }"
+                          type="button"
+                          :class="{ 'media-trend-mode__button--active': mediaTimelineMode === MEDIA_MODE_MATCHED_ONLY }"
+                          :aria-pressed="mediaTimelineMode === MEDIA_MODE_MATCHED_ONLY"
+                          :aria-describedby="
+                            focusedMediaTimelineMode === MEDIA_MODE_MATCHED_ONLY
+                              ? MEDIA_TIMELINE_FOCUS_TOOLTIP_ID
+                              : undefined
+                          "
+                          @focus="focusedMediaTimelineMode = MEDIA_MODE_MATCHED_ONLY"
+                          @blur="clearFocusedMediaTimelineMode(MEDIA_MODE_MATCHED_ONLY)"
+                          @click="setMediaTimelineMode(MEDIA_MODE_MATCHED_ONLY)"
+                        >
+                          Matched only
+                        </button>
+                      </div>
+                      <div
+                        v-if="focusedMediaTimelineTooltip"
+                        :id="MEDIA_TIMELINE_FOCUS_TOOLTIP_ID"
+                        class="media-trend-focus-tooltip"
+                        role="tooltip"
+                      >
+                        {{ focusedMediaTimelineTooltip }}
+                      </div>
+                    </div>
+                    <p class="media-trend-notice">{{ mediaTimelineHelp }}</p>
+                    <div
+                      v-if="mediaTrendLoading && mediaTrendBuckets.length === 0"
+                      class="media-trend-state"
+                      role="status"
+                    >
+                      <i class="pi pi-spin pi-spinner" aria-hidden="true"></i>
+                      <span>Loading media trends…</span>
+                    </div>
+                    <div
+                      v-else-if="mediaTrendError && mediaTrendBuckets.length === 0"
+                      class="media-trend-state"
+                      role="alert"
+                    >
+                      <span>Media trends could not be loaded.</span>
+                      <button type="button" @click="fetchStatistics">Retry</button>
+                    </div>
+                    <div v-else-if="trendChartPeriods.length === 0" class="media-trend-state">
+                      <i class="bi bi-images" aria-hidden="true"></i>
+                      <span>No media or activity periods available.</span>
+                    </div>
+                    <highcharts
+                      v-else
+                      ref="chartMedia"
+                      :options="chartOptionsMedia"
+                      class="stat-chart"
+                      data-test="media-trend-chart"
+                    />
+                    <div
+                      v-if="activityEraEarlierMediaCount > 0 || activityEraFutureMediaCount > 0 || undatedMediaBucket"
+                      class="media-trend-badges"
+                    >
+                      <button
+                        v-if="activityEraEarlierMediaCount > 0"
+                        v-tooltip.top="{
+                          value: MEDIA_TIMELINE_EARLIER_HELP,
+                          showDelay: MEDIA_TIMELINE_TOOLTIP_DELAY_MS,
+                        }"
+                        type="button"
+                        class="media-trend-badge media-trend-earlier"
+                        :aria-label="`Show ${activityEraEarlierMediaCount.toLocaleString()} earlier media in Media history`"
+                        @click="setMediaTimelineMode(MEDIA_MODE_MEDIA_HISTORY)"
+                      >
+                        <span>Earlier media</span>
+                        <strong>{{ activityEraEarlierMediaCount.toLocaleString() }}</strong>
+                      </button>
+                      <button
+                        v-if="activityEraFutureMediaCount > 0"
+                        v-tooltip.top="{
+                          value: MEDIA_TIMELINE_FUTURE_HELP,
+                          showDelay: MEDIA_TIMELINE_TOOLTIP_DELAY_MS,
+                        }"
+                        type="button"
+                        class="media-trend-badge media-trend-future"
+                        :aria-label="`Show ${activityEraFutureMediaCount.toLocaleString()} future-dated media in Media history`"
+                        @click="setMediaTimelineMode(MEDIA_MODE_MEDIA_HISTORY)"
+                      >
+                        <span>Future-dated media</span>
+                        <strong>{{ activityEraFutureMediaCount.toLocaleString() }}</strong>
+                      </button>
+                      <button
+                        v-if="undatedMediaBucket"
+                        type="button"
+                        class="media-trend-badge media-trend-undated"
+                        @click="openMediaBucket(undatedMediaBucket)"
+                      >
+                        <span>Undated media</span>
+                        <strong>{{ mediaBucketCount(undatedMediaBucket).toLocaleString() }}</strong>
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </div>
             </TabPanel>
@@ -450,6 +632,16 @@
         <p class="stat-info-text">{{ currentInfoText }}</p>
       </Popover>
     </BottomSheet>
+
+    <MediaTrendMosaic
+      v-model="mediaMosaicVisible"
+      :bucket="selectedMediaBucket"
+      :grouping="mediaGrouping"
+      :scope="mediaTrendScope"
+      :track-ids="resolvedTrendTrackIds"
+      @open-activity="emit('open-track-photos', $event)"
+      @open-media-on-map="emit('open-media-on-map', $event)"
+    />
   </div>
 </template>
 
@@ -463,18 +655,30 @@ import {
   formatDistanceTooltip as formatDistanceTooltipUtil,
   formatLocaleNumber,
 } from '@/utils/Utils';
-import { fetchStatistics as fetchStatisticsData } from '@/utils/ServiceHelper';
+import { fetchStatisticsForTrackIds, resolveStatisticsTrackIds } from '@/utils/ServiceHelper';
 import BottomSheet from '@/components/ui/BottomSheet.vue';
+import MediaTrendMosaic from '@/components/statistics/MediaTrendMosaic.vue';
 import StatisticsOverview from '@/components/statistics/StatisticsOverview.vue';
 import TrackBrowserQuickViews from '@/components/track-browser/TrackBrowserQuickViews.vue';
 import TrackBrowserView from '@/components/track-browser/TrackBrowserView.vue';
 import { useFilterStore, type ActiveFilterRequest } from '@/stores/filterStore';
 import type { TrackBrowserOption, TrackBrowserPreset } from '@/components/track-browser/trackBrowser.types';
-import type { GpsTrack, GpsTrackStatistics } from 'x8ing-mtl-api-typescript-fetch/dist/esm/models/index';
+import {
+  MediaTrendRequestGroupingEnum,
+  MediaTrendRequestScopeEnum,
+  type GpsTrack,
+  type GpsTrackStatistics,
+  type MediaTrendBucketDto,
+  type MediaTrendRequestGroupingEnum as MediaGrouping,
+  type MediaTrendRequestScopeEnum as MediaScope,
+} from 'x8ing-mtl-api-typescript-fetch';
 import type Highcharts from 'highcharts';
+import { format as formatDate } from 'date-fns';
 import { compactNum, hexToRgba } from '@/utils/chartTheme';
 import { useMeasurementSystem } from '@/composables/useMeasurementSystem';
 import { useMediaQuery } from '@/composables/useMediaQuery';
+import { getMediaTrends } from '@/repositories/mediaRepository';
+import { isAbortLikeError } from '@/utils/errors';
 
 const MOBILE_STATS_BP = 768;
 const CHART_REFLOW_DELAY_MS = 80;
@@ -497,6 +701,17 @@ type ExtendedGpsTrackStatistics = GpsTrackStatistics & {
   normalizedPowerMed?: number;
   trainingLoadPerRideAvg?: number;
 };
+type TrendChartPeriod = {
+  key: string;
+  label: string;
+  statistics: ExtendedGpsTrackStatistics | null;
+  media: MediaTrendBucketDto | null;
+};
+type TrendTableRow = ExtendedGpsTrackStatistics & {
+  imageCount: number;
+  videoCount: number;
+  undatedMedia?: boolean;
+};
 type SmartValueColumn = {
   field: 'totalTrackDurationSecs' | 'trackDurationSecsMed' | 'trackLengthInMeterSum' | 'trackLengthInMeterMed';
   header: string;
@@ -506,12 +721,20 @@ type MutableChartOptions = Highcharts.Options & {
   xAxis: Highcharts.XAxisOptions & { categories?: string[] };
   series: Array<{ data?: number[] }>;
 };
+type MutableMediaChartOptions = Highcharts.Options & {
+  xAxis: Highcharts.XAxisOptions & { categories?: string[] };
+  series: Array<{ data?: number[] }>;
+};
 type StatisticsTooltipContext = Highcharts.Point & { category?: string };
+type MediaTooltipContext = Highcharts.Point & { points?: Highcharts.Point[] };
+type MediaTimelineMode = 'ACTIVITY_ERA' | 'MEDIA_HISTORY' | 'MATCHED_ONLY';
 type Emits = {
   (event: 'tool-opened'): void;
   (event: 'tool-closed'): void;
   (event: 'select-track', trackId: number | string): void;
   (event: 'open-details', trackId: number | string): void;
+  (event: 'open-track-photos', trackId: number): void;
+  (event: 'open-media-on-map', target: { id: number; lat: number; lng: number }): void;
   (event: 'open-filter'): void;
 };
 
@@ -572,7 +795,7 @@ function buildStatChart(
     },
     yAxis: {
       gridLineColor: gridColor,
-      title: { text: null },
+      title: { text: undefined },
       labels: {
         style: { color: textColor, fontSize: '12px' },
         formatter(this: Highcharts.AxisLabelsFormatterContextObject) {
@@ -617,6 +840,93 @@ function buildStatChart(
   }) as unknown as Highcharts.Options;
 }
 
+function buildMediaTrendChart(): Highcharts.Options {
+  const textColor = cssToken('--chart-text');
+  const gridColor = cssToken('--chart-grid');
+  const tooltipBg = cssToken('--chart-tooltip-bg');
+  const tooltipText = cssToken('--chart-tooltip-text');
+  const borderColor = cssToken('--border-default');
+  const imageColor = cssToken('--chart-series-3');
+  const videoColor = cssToken('--accent');
+
+  return markRaw({
+    chart: {
+      type: 'column',
+      backgroundColor: 'transparent',
+      spacing: [4, 10, 10, 10],
+      style: { fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" },
+    },
+    title: { text: undefined },
+    credits: { enabled: false },
+    legend: {
+      enabled: true,
+      itemStyle: { color: textColor, fontSize: '12px', fontWeight: '500' },
+      itemHoverStyle: { color: textColor },
+    },
+    xAxis: {
+      categories: [] as string[],
+      labels: { style: { color: textColor, fontSize: '12px' } },
+      lineColor: gridColor,
+      tickColor: 'transparent',
+    },
+    yAxis: {
+      allowDecimals: false,
+      gridLineColor: gridColor,
+      min: 0,
+      title: { text: undefined },
+      labels: {
+        style: { color: textColor, fontSize: '12px' },
+        formatter(this: Highcharts.AxisLabelsFormatterContextObject) {
+          return compactNum(this.value as number);
+        },
+      },
+      stackLabels: { enabled: false },
+    },
+    tooltip: {
+      shared: true,
+      backgroundColor: tooltipBg,
+      borderColor,
+      borderRadius: 8,
+      borderWidth: 1,
+      shadow: false,
+      style: { color: tooltipText, fontSize: '12px' },
+      formatter(this: MediaTooltipContext) {
+        const rows = (this.points ?? [])
+          .map((point) => `${point.series.name}: <b>${Number(point.y ?? 0).toLocaleString()}</b>`)
+          .join('<br/>');
+        return `<b>${this.x ?? ''}</b><br/>${rows}`;
+      },
+    },
+    plotOptions: {
+      column: {
+        stacking: 'normal',
+        borderRadius: 2,
+        borderWidth: 0,
+        cursor: 'pointer',
+        dataLabels: { enabled: false },
+        states: { hover: { brightness: 0.1 } },
+      },
+      series: {
+        point: {
+          events: {
+            click(this: Highcharts.Point) {
+              openMediaBucketByIndex(this.index);
+            },
+          },
+        },
+      },
+    },
+    series: [
+      { type: 'column', name: 'Photos', color: imageColor, data: [] as number[] },
+      { type: 'column', name: 'Videos', color: videoColor, data: [] as number[] },
+    ],
+    accessibility: { enabled: false },
+    responsive: {
+      rules: [{ condition: { maxWidth: 500 }, chartOptions: { chart: { spacing: [4, 2, 6, 2] } } }],
+    },
+  });
+}
+
 const pad = (n: number) => n.toString().padStart(2, '0');
 function fmtHours(hours: number): string {
   const h = Math.floor(hours);
@@ -639,6 +949,7 @@ const INFO_INTENSITY_INDEX =
   'Intensity Index = estimated NP ÷ your threshold power. 1.0 ≈ all-out 1 h effort if estimated power matches your real power.';
 const INFO_TRAINING_LOAD =
   'Training Load per ride = (estimated NP ÷ threshold)² × moving hours × 100. It scales duration and intensity, but inherits the limits of the estimated mechanical-power model.';
+const STATISTICS_ISO_WEEK_GROUPING = 'IYYY-"W"IW';
 const EXPLORATION_CORRIDOR_WIDTH_M = 25;
 const INFO_EXPLORATION = computed(
   () =>
@@ -652,14 +963,62 @@ const statsView = ref<StatsView>('charts');
 const trackBrowserResetKey = ref(0);
 const trackQuickView = ref<TrackBrowserPreset>('all');
 const statisticData = ref<ExtendedGpsTrackStatistics[]>([]);
+const hasLoadedStatistics = ref(false);
+const statisticsError = ref('');
+const statisticsErrorMessage = computed(() =>
+  hasLoadedStatistics.value
+    ? 'Statistics could not be refreshed. Showing saved data.'
+    : 'Statistics could not be loaded.'
+);
 const currentInfoText = ref('');
 const selectedGrouping = ref('YYYY-"Q"Q');
 const selectedSubUnit = ref<string | null>(null);
+const MEDIA_SCOPE_MATCHED = MediaTrendRequestScopeEnum.MatchedActivities;
+const MEDIA_SCOPE_ALL = MediaTrendRequestScopeEnum.AllIndexed;
+const MEDIA_MODE_ACTIVITY_ERA: MediaTimelineMode = 'ACTIVITY_ERA';
+const MEDIA_MODE_MEDIA_HISTORY: MediaTimelineMode = 'MEDIA_HISTORY';
+const MEDIA_MODE_MATCHED_ONLY: MediaTimelineMode = 'MATCHED_ONLY';
+const MEDIA_TIMELINE_TOOLTIP_DELAY_MS = 350;
+const MEDIA_TIMELINE_FOCUS_TOOLTIP_ID = 'media-timeline-focus-tooltip';
+const MEDIA_TIMELINE_ACTIVITY_ERA_TOOLTIP =
+  'GPS activity defines the chart range, from the first visible activity through the current period. Unmatched media inside that range is included. Earlier and future-dated media stays outside the chart.';
+const MEDIA_TIMELINE_MEDIA_HISTORY_TOOLTIP =
+  'Every dated indexed photo and video can define the chart range. Activity filters do not apply.';
+const MEDIA_TIMELINE_MATCHED_ONLY_TOOLTIP = 'Only media linked to activities in the current track filters is shown.';
+const MEDIA_TIMELINE_EARLIER_HELP =
+  'This media is included in totals but is older than the first visible GPS activity. Select it to show Media history.';
+const MEDIA_TIMELINE_FUTURE_HELP =
+  'This media is included in totals but is dated after the current period. Select it to show Media history.';
+const mediaTimelineMode = ref<MediaTimelineMode>(MEDIA_MODE_ACTIVITY_ERA);
+const focusedMediaTimelineMode = ref<MediaTimelineMode | null>(null);
+const focusedMediaTimelineTooltip = computed((): string => {
+  if (focusedMediaTimelineMode.value === MEDIA_MODE_ACTIVITY_ERA) return MEDIA_TIMELINE_ACTIVITY_ERA_TOOLTIP;
+  if (focusedMediaTimelineMode.value === MEDIA_MODE_MEDIA_HISTORY) return MEDIA_TIMELINE_MEDIA_HISTORY_TOOLTIP;
+  if (focusedMediaTimelineMode.value === MEDIA_MODE_MATCHED_ONLY) return MEDIA_TIMELINE_MATCHED_ONLY_TOOLTIP;
+  return '';
+});
+const mediaTrendScope = computed<MediaScope>(() =>
+  mediaTimelineMode.value === MEDIA_MODE_MATCHED_ONLY ? MEDIA_SCOPE_MATCHED : MEDIA_SCOPE_ALL
+);
+const mediaTrendBuckets = ref<MediaTrendBucketDto[]>([]);
+const mediaTrendLoading = ref(false);
+const mediaTrendError = ref('');
+const indexedPhotoCount = ref<number | null>(null);
+const indexedVideoCount = ref<number | null>(null);
+const indexedMediaCount = computed(() => {
+  if (indexedPhotoCount.value == null || indexedVideoCount.value == null) return null;
+  return indexedPhotoCount.value + indexedVideoCount.value;
+});
+const resolvedTrendTrackIds = ref<number[]>([]);
+const selectedMediaBucket = ref<MediaTrendBucketDto | null>(null);
+const mediaMosaicVisible = ref(false);
+let statisticsRequestGeneration = 0;
+let statisticsAbortController: AbortController | null = null;
 const statisticGroupings = [
   { name: 'YYYY (by year)', code: 'YYYY' },
   { name: 'YYYY-Q (by year and quarter)', code: 'YYYY-"Q"Q' },
   { name: 'YYYY-MM (by year and month)', code: 'YYYY-MM' },
-  { name: 'YYYY-WW (by year and week)', code: 'YYYY-WW' },
+  { name: 'YYYY-WW (by year and week)', code: STATISTICS_ISO_WEEK_GROUPING },
   { name: 'YYYY-MM-DD (by year, week and day)', code: 'YYYY-MM-DD' },
   { name: 'Total', code: 'TOTAL' },
 ];
@@ -674,6 +1033,7 @@ const chartOptionsDistance = shallowRef(
   buildStatChart('Distance', '--chart-series-2', '', formatDistanceSmartUtil, formatDistanceSmartUtil)
 );
 const chartOptionsActivity = shallowRef(buildStatChart('Tracks', '--info', '', (v) => Math.round(v).toString()));
+const chartOptionsMedia = shallowRef(buildMediaTrendChart());
 const chartOptionsEnergy = shallowRef(
   buildStatChart('Mechanical Energy', '--chart-series-3', 'Wh', (v) => formatLocaleNumber(Math.round(v)) + ' Wh')
 );
@@ -686,6 +1046,8 @@ const chartOptionsExploration = shallowRef(buildStatChart('Exploration', '--succ
 const chartDuration = ref<ChartComponent | null>(null);
 const chartDistance = ref<ChartComponent | null>(null);
 const chartActivity = ref<ChartComponent | null>(null);
+const chartMedia = ref<ChartComponent | null>(null);
+const mediaTrendCard = ref<HTMLElement | null>(null);
 const chartEnergy = ref<ChartComponent | null>(null);
 const chartIntensityIndex = ref<ChartComponent | null>(null);
 const chartTrainingLoad = ref<ChartComponent | null>(null);
@@ -706,17 +1068,11 @@ const statisticsTracks = computed(() => {
   if (trackOverrides.value.size === 0) return props.tracks ?? [];
 
   const sourceTracks = props.tracks ?? [];
-  const sourceIds = new Set<number>();
-  const mergedTracks = sourceTracks.map((track) => {
+  return sourceTracks.map((track) => {
     const trackId = Number(track.id);
     if (!Number.isFinite(trackId)) return track;
-    sourceIds.add(trackId);
     return trackOverrides.value.get(trackId) ?? track;
   });
-  for (const [trackId, track] of trackOverrides.value) {
-    if (!sourceIds.has(trackId)) mergedTracks.push(track);
-  }
-  return mergedTracks;
 });
 const trackBrowserSourceTracks = computed(() => {
   const tracks = statisticsTracks.value;
@@ -753,11 +1109,62 @@ function showHighlightExclusions() {
   trackBrowserResetKey.value += 1;
 }
 
+async function showMediaTrends(): Promise<void> {
+  activeTab.value = 'stats';
+  statsView.value = 'charts';
+  selectedSubUnit.value = null;
+  const requiresAllMedia = mediaTrendScope.value !== MEDIA_SCOPE_ALL;
+  mediaTimelineMode.value = MEDIA_MODE_ACTIVITY_ERA;
+  if (requiresAllMedia) {
+    await fetchStatistics();
+  }
+  await nextTick();
+  mediaTrendCard.value?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
+}
+
+const mediaGrouping = computed<MediaGrouping>(() => {
+  switch (selectedGrouping.value) {
+    case 'YYYY':
+      return MediaTrendRequestGroupingEnum.Year;
+    case 'YYYY-"Q"Q':
+      return MediaTrendRequestGroupingEnum.Quarter;
+    case 'YYYY-MM':
+      return MediaTrendRequestGroupingEnum.Month;
+    case STATISTICS_ISO_WEEK_GROUPING:
+      return MediaTrendRequestGroupingEnum.Week;
+    case 'YYYY-MM-DD':
+      return MediaTrendRequestGroupingEnum.Day;
+    case 'TOTAL':
+    default:
+      return MediaTrendRequestGroupingEnum.Total;
+  }
+});
+
+function currentPeriodKey(grouping: string, date = new Date()): string | null {
+  switch (grouping) {
+    case 'YYYY':
+      return formatDate(date, 'yyyy');
+    case 'YYYY-"Q"Q':
+      return formatDate(date, "yyyy-'Q'Q");
+    case 'YYYY-MM':
+      return formatDate(date, 'yyyy-MM');
+    case STATISTICS_ISO_WEEK_GROUPING:
+      return formatDate(date, "RRRR-'W'II");
+    case 'YYYY-MM-DD':
+      return formatDate(date, 'yyyy-MM-dd');
+    case 'TOTAL':
+    default:
+      return null;
+  }
+}
+
 const availableSubUnits = computed((): string[] => {
-  if (!statisticData.value) return [];
   const subunits = new Set<string>();
   for (const d of statisticData.value) {
     if (d.subGroup) subunits.add(d.subGroup);
+  }
+  for (const bucket of mediaTrendBuckets.value) {
+    if (bucket.subGroup) subunits.add(bucket.subGroup);
   }
   return Array.from(subunits).sort();
 });
@@ -771,6 +1178,135 @@ const filteredStatisticData = computed((): ExtendedGpsTrackStatistics[] => {
   }
   return statisticData.value;
 });
+const filteredMediaTrendBuckets = computed((): MediaTrendBucketDto[] => {
+  if (!selectedSubUnit.value) return mediaTrendBuckets.value;
+  return mediaTrendBuckets.value.filter((bucket) => bucket.undated || bucket.subGroup === selectedSubUnit.value);
+});
+const undatedMediaBucket = computed(
+  (): MediaTrendBucketDto | null => filteredMediaTrendBuckets.value.find((bucket) => bucket.undated) ?? null
+);
+const datedMediaTrendBuckets = computed((): MediaTrendBucketDto[] =>
+  filteredMediaTrendBuckets.value.filter((bucket) => !bucket.undated && Boolean(bucket.bucketKey))
+);
+const activityEraStartKey = computed((): string | null => {
+  if (selectedGrouping.value === 'TOTAL') return null;
+  const keys = filteredStatisticData.value
+    .map((statistics) => statistics.groupBy ?? '')
+    .filter((key) => Boolean(key))
+    .sort();
+  return keys[0] ?? null;
+});
+const activityEraEndKey = computed((): string | null => {
+  const startKey = activityEraStartKey.value;
+  if (!startKey) return null;
+  const latestActivityKey = filteredStatisticData.value.reduce(
+    (latest, statistics) => (statistics.groupBy && statistics.groupBy > latest ? statistics.groupBy : latest),
+    startKey
+  );
+  const currentKey = currentPeriodKey(selectedGrouping.value);
+  return currentKey && currentKey > latestActivityKey ? currentKey : latestActivityKey;
+});
+const chartMediaTrendBuckets = computed((): MediaTrendBucketDto[] => {
+  if (mediaTimelineMode.value !== MEDIA_MODE_ACTIVITY_ERA) return datedMediaTrendBuckets.value;
+  const startKey = activityEraStartKey.value;
+  const endKey = activityEraEndKey.value;
+  if (!startKey || !endKey) return datedMediaTrendBuckets.value;
+  return datedMediaTrendBuckets.value.filter((bucket) => {
+    const key = bucket.bucketKey ?? '';
+    return key >= startKey && key <= endKey;
+  });
+});
+const activityEraEarlierMediaCount = computed((): number => {
+  const startKey = activityEraStartKey.value;
+  if (mediaTimelineMode.value !== MEDIA_MODE_ACTIVITY_ERA || !startKey) return 0;
+  return datedMediaTrendBuckets.value.reduce(
+    (total, bucket) => ((bucket.bucketKey ?? '') < startKey ? total + mediaBucketCount(bucket) : total),
+    0
+  );
+});
+const activityEraFutureMediaCount = computed((): number => {
+  const endKey = activityEraEndKey.value;
+  if (mediaTimelineMode.value !== MEDIA_MODE_ACTIVITY_ERA || !endKey) return 0;
+  return datedMediaTrendBuckets.value.reduce(
+    (total, bucket) => ((bucket.bucketKey ?? '') > endKey ? total + mediaBucketCount(bucket) : total),
+    0
+  );
+});
+const mediaTimelineHelp = computed((): string => {
+  if (mediaTimelineMode.value === MEDIA_MODE_MEDIA_HISTORY) {
+    return 'Every dated indexed photo and video can define the chart range. Activity filters do not apply.';
+  }
+  if (mediaTimelineMode.value === MEDIA_MODE_MATCHED_ONLY) {
+    return 'Only media linked to activities in the current track filters is shown.';
+  }
+  if (selectedGrouping.value === 'TOTAL') {
+    return 'Total has no dated axis, so it counts all indexed media.';
+  }
+  if (!activityEraStartKey.value || !activityEraEndKey.value) {
+    return 'No dated GPS activity is available, so indexed media defines the chart range.';
+  }
+  return `All indexed media from ${activityEraStartKey.value} through ${activityEraEndKey.value}. Media does not need to be linked to an activity.`;
+});
+const trendTableRows = computed((): TrendTableRow[] => {
+  const rows = new Map<string, TrendTableRow>();
+  for (const statistics of filteredStatisticData.value) {
+    const key = statistics.groupBy ?? '';
+    if (!key) continue;
+    rows.set(key, { ...statistics, imageCount: 0, videoCount: 0 });
+  }
+  for (const media of filteredMediaTrendBuckets.value) {
+    const key = media.bucketKey ?? '';
+    if (!key) continue;
+    const existing = rows.get(key);
+    rows.set(key, {
+      ...existing,
+      groupBy: existing?.groupBy ?? media.label ?? key,
+      subGroup: existing?.subGroup ?? media.subGroup,
+      imageCount: media.imageCount ?? 0,
+      videoCount: media.videoCount ?? 0,
+      undatedMedia: media.undated ?? false,
+    });
+  }
+  return Array.from(rows.values()).sort((left, right) => {
+    const leftUndated = left.undatedMedia === true;
+    const rightUndated = right.undatedMedia === true;
+    if (leftUndated !== rightUndated) return leftUndated ? 1 : -1;
+    return (left.groupBy ?? '').localeCompare(right.groupBy ?? '');
+  });
+});
+const trendChartPeriods = computed((): TrendChartPeriod[] => {
+  const periods = new Map<string, TrendChartPeriod>();
+  for (const statistics of filteredStatisticData.value) {
+    const key = statistics.groupBy ?? '';
+    if (!key) continue;
+    periods.set(key, { key, label: key, statistics, media: null });
+  }
+  for (const media of chartMediaTrendBuckets.value) {
+    const key = media.bucketKey ?? '';
+    if (!key) continue;
+    const existing = periods.get(key);
+    periods.set(key, {
+      key,
+      label: existing?.label || media.label || key,
+      statistics: existing?.statistics ?? null,
+      media,
+    });
+  }
+  return Array.from(periods.values()).sort((left, right) => left.key.localeCompare(right.key));
+});
+const displayedMediaTrendBuckets = computed((): MediaTrendBucketDto[] =>
+  trendChartPeriods.value.map(
+    (period): MediaTrendBucketDto =>
+      period.media ?? {
+        bucketKey: period.key,
+        label: period.label,
+        subGroup: period.statistics?.subGroup,
+        undated: false,
+        imageCount: 0,
+        videoCount: 0,
+      }
+  )
+);
 const distColMaxM = computed((): number => {
   const data = filteredStatisticData.value;
   return Math.max(
@@ -845,12 +1381,14 @@ const summaryStats = computed(
   }
 );
 
-watch(filteredStatisticData, (newData) => {
-  updateCharts(newData);
+watch(trendChartPeriods, (periods) => {
+  updateCharts(periods);
+  updateMediaChart(displayedMediaTrendBuckets.value);
 });
-watch(measurementSystem, () => updateCharts(filteredStatisticData.value));
+watch(measurementSystem, () => updateCharts(trendChartPeriods.value));
 watch(selectedGrouping, () => {
   selectedSubUnit.value = null;
+  closeMediaMosaic();
 });
 watch(
   () => filterStore.trackSetRevision,
@@ -862,7 +1400,8 @@ watch(statsView, (newVal) => {
   if (newVal === 'charts') {
     void nextTick(() => {
       setTimeout(() => {
-        updateCharts(filteredStatisticData.value);
+        updateCharts(trendChartPeriods.value);
+        updateMediaChart(displayedMediaTrendBuckets.value);
         for (const chartRef of chartRefs()) {
           chartRef.value?.chart?.reflow();
         }
@@ -878,6 +1417,9 @@ async function toggle() {
   if (active.value) {
     emit('tool-opened');
     await fetchStatistics();
+  } else {
+    cancelStatisticsRequest();
+    closeMediaMosaic();
   }
 }
 
@@ -893,6 +1435,8 @@ async function open() {
 function close() {
   showMenu.value = false;
   active.value = false;
+  cancelStatisticsRequest();
+  closeMediaMosaic();
 }
 
 function getNavigationState(): StatisticsNavigationState {
@@ -923,12 +1467,98 @@ function restoreNavigationState(state: unknown) {
 
 function onSheetClosed() {
   active.value = false;
+  cancelStatisticsRequest();
+  closeMediaMosaic();
   emit('tool-closed');
 }
 
+function cancelStatisticsRequest(): void {
+  statisticsRequestGeneration++;
+  statisticsAbortController?.abort();
+  statisticsAbortController = null;
+  mediaTrendLoading.value = false;
+}
+
 async function fetchStatistics() {
-  const data = await fetchStatisticsData(selectedGrouping.value, await currentFilterRequest());
-  statisticData.value = data ?? [];
+  const generation = ++statisticsRequestGeneration;
+  const requestedMediaScope = mediaTrendScope.value;
+  statisticsAbortController?.abort();
+  const controller = new AbortController();
+  statisticsAbortController = controller;
+  mediaTrendLoading.value = true;
+  statisticsError.value = '';
+  mediaTrendError.value = '';
+  mediaTrendBuckets.value = [];
+  closeMediaMosaic();
+
+  try {
+    const filterRequest = await currentFilterRequest();
+    const trackIds = await resolveStatisticsTrackIds(filterRequest, controller.signal);
+    if (generation !== statisticsRequestGeneration || controller.signal.aborted) return;
+    resolvedTrendTrackIds.value = trackIds;
+
+    const [statisticsResult, mediaResult] = await Promise.allSettled([
+      fetchStatisticsForTrackIds(selectedGrouping.value, trackIds, controller.signal),
+      getMediaTrends(
+        {
+          grouping: mediaGrouping.value,
+          scope: requestedMediaScope,
+          trackIds: requestedMediaScope === MEDIA_SCOPE_MATCHED ? trackIds : undefined,
+        },
+        controller.signal
+      ),
+    ]);
+    if (generation !== statisticsRequestGeneration || controller.signal.aborted) return;
+
+    if (statisticsResult.status === 'fulfilled') {
+      statisticData.value = statisticsResult.value ?? [];
+      hasLoadedStatistics.value = true;
+    } else if (!isAbortLikeError(statisticsResult.reason, controller.signal)) {
+      statisticsError.value =
+        statisticsResult.reason instanceof Error ? statisticsResult.reason.message : String(statisticsResult.reason);
+    }
+    if (mediaResult.status === 'fulfilled') {
+      mediaTrendBuckets.value = mediaResult.value.buckets ?? [];
+      if (requestedMediaScope === MEDIA_SCOPE_ALL) {
+        indexedPhotoCount.value = mediaTrendBuckets.value.reduce(
+          (total, bucket) => total + (bucket.imageCount ?? 0),
+          0
+        );
+        indexedVideoCount.value = mediaTrendBuckets.value.reduce(
+          (total, bucket) => total + (bucket.videoCount ?? 0),
+          0
+        );
+      }
+    } else if (!isAbortLikeError(mediaResult.reason, controller.signal)) {
+      mediaTrendBuckets.value = [];
+      mediaTrendError.value =
+        mediaResult.reason instanceof Error ? mediaResult.reason.message : String(mediaResult.reason);
+    }
+  } catch (error) {
+    if (generation !== statisticsRequestGeneration || isAbortLikeError(error, controller.signal)) return;
+    statisticsError.value = error instanceof Error ? error.message : String(error);
+    mediaTrendBuckets.value = [];
+    mediaTrendError.value = error instanceof Error ? error.message : String(error);
+  } finally {
+    if (generation === statisticsRequestGeneration) mediaTrendLoading.value = false;
+  }
+}
+
+function setMediaTimelineMode(mode: MediaTimelineMode): void {
+  if (mediaTimelineMode.value === mode) return;
+  const previousScope = mediaTrendScope.value;
+  mediaTimelineMode.value = mode;
+  closeMediaMosaic();
+  if (previousScope !== mediaTrendScope.value) void fetchStatistics();
+}
+
+function clearFocusedMediaTimelineMode(mode: MediaTimelineMode): void {
+  if (focusedMediaTimelineMode.value === mode) focusedMediaTimelineMode.value = null;
+}
+
+function closeMediaMosaic(): void {
+  mediaMosaicVisible.value = false;
+  selectedMediaBucket.value = null;
 }
 
 async function currentFilterRequest(): Promise<ActiveFilterRequest> {
@@ -944,7 +1574,32 @@ function chartRefs(): Array<Ref<ChartComponent | null>> {
     chartIntensityIndex,
     chartTrainingLoad,
     chartExploration,
+    chartMedia,
   ];
+}
+
+function updateMediaChart(buckets: MediaTrendBucketDto[]): void {
+  const options = chartOptionsMedia.value as MutableMediaChartOptions;
+  options.xAxis.categories = buckets.map((bucket) => bucket.label ?? '');
+  options.series[0].data = buckets.map((bucket) => bucket.imageCount ?? 0);
+  options.series[1].data = buckets.map((bucket) => bucket.videoCount ?? 0);
+  if (chartMedia.value?.chart) chartMedia.value.chart.update(options, true, true);
+  void nextTick(() => requestAnimationFrame(() => syncChartMargins()));
+}
+
+function openMediaBucketByIndex(index: number): void {
+  const bucket = displayedMediaTrendBuckets.value[index];
+  if (!bucket?.bucketKey || mediaBucketCount(bucket) === 0) return;
+  openMediaBucket(bucket);
+}
+
+function openMediaBucket(bucket: MediaTrendBucketDto): void {
+  selectedMediaBucket.value = bucket;
+  mediaMosaicVisible.value = true;
+}
+
+function mediaBucketCount(bucket: MediaTrendBucketDto): number {
+  return (bucket.imageCount ?? 0) + (bucket.videoCount ?? 0);
 }
 
 function setChart(
@@ -960,50 +1615,51 @@ function setChart(
   if (cmp?.chart) cmp.chart.update(opts, true, true);
 }
 
-function updateCharts(data: ExtendedGpsTrackStatistics[]) {
-  const categories = (data ?? []).map((o: ExtendedGpsTrackStatistics) => o.groupBy ?? '');
+function updateCharts(periods: TrendChartPeriod[]) {
+  const categories = periods.map((period) => period.label);
+  const data = periods.map((period) => period.statistics);
 
   setChart(
     chartDuration,
     chartOptionsDuration,
     categories,
-    data.map((o: GpsTrackStatistics) => parseFloat(((o.totalTrackDurationSecs ?? 0) / 3600).toFixed(2)))
+    data.map((o) => parseFloat(((o?.totalTrackDurationSecs ?? 0) / 3600).toFixed(2)))
   );
   setChart(
     chartDistance,
     chartOptionsDistance,
     categories,
-    data.map((o: GpsTrackStatistics) => o.trackLengthInMeterSum ?? 0)
+    data.map((o) => o?.trackLengthInMeterSum ?? 0)
   );
   setChart(
     chartActivity,
     chartOptionsActivity,
     categories,
-    data.map((o: GpsTrackStatistics) => o.numberOfTracks ?? 0)
+    data.map((o) => o?.numberOfTracks ?? 0)
   );
   setChart(
     chartEnergy,
     chartOptionsEnergy,
     categories,
-    data.map((o: GpsTrackStatistics) => o.energyNetTotalWhSum ?? 0)
+    data.map((o) => o?.energyNetTotalWhSum ?? 0)
   );
   setChart(
     chartIntensityIndex,
     chartOptionsIntensityIndex,
     categories,
-    data.map((o: ExtendedGpsTrackStatistics) => parseFloat((o.intensityIndexAvg ?? 0).toFixed(3)))
+    data.map((o) => parseFloat((o?.intensityIndexAvg ?? 0).toFixed(3)))
   );
   setChart(
     chartTrainingLoad,
     chartOptionsTrainingLoad,
     categories,
-    data.map((o: ExtendedGpsTrackStatistics) => parseFloat((o.trainingLoadPerRideAvg ?? 0).toFixed(1)))
+    data.map((o) => parseFloat((o?.trainingLoadPerRideAvg ?? 0).toFixed(1)))
   );
   setChart(
     chartExploration,
     chartOptionsExploration,
     categories,
-    data.map((o: ExtendedGpsTrackStatistics) => parseFloat(((o.explorationScoreAvg ?? 0) * 100).toFixed(1)))
+    data.map((o) => parseFloat(((o?.explorationScoreAvg ?? 0) * 100).toFixed(1)))
   );
 
   // After Highcharts has re-rendered, read each chart's plotLeft and
@@ -1043,6 +1699,9 @@ function formatEnergy(value: number | null | undefined) {
 function formatPower(value: number | null | undefined) {
   if (value == null || value === 0) return '';
   return Math.round(value) + ' W';
+}
+function formatMediaCount(value: number | null | undefined): string {
+  return Math.max(0, Math.round(value ?? 0)).toLocaleString();
 }
 function showInfo(event: Event, text: string) {
   currentInfoText.value = text;
@@ -1118,6 +1777,31 @@ defineExpose({
   min-height: 0;
   gap: 0.5rem;
   padding: 0;
+}
+
+.statistics-refresh-state {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin: 0 1rem;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--warning-border, var(--border-default));
+  border-radius: 0.5rem;
+  background: var(--warning-soft, var(--surface-elevated));
+  color: var(--text-primary);
+  font-size: var(--text-sm-size);
+}
+
+.statistics-refresh-state button {
+  flex: 0 0 auto;
+  border: 1px solid var(--border-default);
+  border-radius: 999px;
+  background: var(--surface-elevated);
+  color: var(--accent);
+  cursor: pointer;
+  font: inherit;
+  padding: 0.35rem 0.65rem;
 }
 
 /* ── Controls bar ── */
@@ -1263,6 +1947,128 @@ defineExpose({
   height: 190px;
 }
 
+.media-trend-header {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem 1rem;
+}
+
+.media-trend-focus-tooltip {
+  position: absolute;
+  z-index: 10;
+  top: calc(100% - 0.2rem);
+  right: 1rem;
+  max-width: min(30rem, calc(100% - 2rem));
+  padding: 0.45rem 0.6rem;
+  border: 1px solid var(--border-default);
+  border-radius: 0.4rem;
+  background: var(--surface-sheet-solid);
+  box-shadow: 0 0.25rem 0.75rem color-mix(in srgb, var(--text-primary) 18%, transparent);
+  color: var(--text-primary);
+  font-size: var(--text-xs-size);
+  line-height: 1.35;
+}
+
+.media-trend-header__title {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.media-trend-mode {
+  display: inline-flex;
+  padding: 2px;
+  border: 1px solid var(--border-default);
+  border-radius: 999px;
+  background: var(--surface-ground);
+}
+
+.media-trend-mode button {
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: var(--text-xs-size);
+  padding: 0.35rem 0.65rem;
+}
+
+.media-trend-mode .media-trend-mode__button--active {
+  background: var(--surface-elevated);
+  color: var(--text-primary);
+  box-shadow: 0 1px 3px color-mix(in srgb, var(--text-primary) 14%, transparent);
+  font-weight: 650;
+}
+
+.media-trend-notice {
+  margin: 0;
+  padding: 0 1rem 0.35rem;
+  color: var(--text-muted);
+  font-size: var(--text-xs-size);
+}
+
+.media-trend-state {
+  display: flex;
+  min-height: 8rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  color: var(--text-muted);
+  font-size: var(--text-sm-size);
+}
+
+.media-trend-state button {
+  border: 1px solid var(--border-default);
+  border-radius: 999px;
+  background: var(--surface-elevated);
+  color: var(--accent);
+  cursor: pointer;
+  font: inherit;
+  padding: 0.35rem 0.65rem;
+}
+
+.media-trend-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin: 0 1rem 0.75rem;
+}
+
+.media-trend-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.35rem 0.65rem;
+  color: var(--text-muted);
+  background: var(--surface-ground);
+  border: 1px solid var(--border-default);
+  border-radius: 999px;
+  font: inherit;
+  font-size: var(--text-xs-size);
+  cursor: pointer;
+}
+
+.media-trend-badge:hover,
+.media-trend-badge:focus-visible {
+  color: var(--text-primary);
+  background: var(--surface-elevated);
+  border-color: var(--border-hover);
+}
+
+.media-trend-badge:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.media-trend-badge strong {
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
 /* ── Mobile tweaks ── */
 @media (max-width: 600px) {
   /* Controls: less padding */
@@ -1328,6 +2134,24 @@ defineExpose({
   }
   .chart-header {
     padding: 0.7rem 0.75rem 0.4rem;
+  }
+  .media-trend-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .media-trend-mode {
+    width: 100%;
+  }
+  .media-trend-mode button {
+    flex: 1 1 0;
+    padding-inline: 0.55rem;
+    white-space: nowrap;
+  }
+  .media-trend-notice {
+    padding-inline: 0.75rem;
+  }
+  .media-trend-badges {
+    margin-inline: 0.75rem;
   }
   .charts-scroll {
     padding-bottom: 0.25rem;

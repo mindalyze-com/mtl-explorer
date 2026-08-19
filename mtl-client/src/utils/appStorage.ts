@@ -3,6 +3,7 @@ const STORAGE_KEY_PREFIX = 'mtl.';
 export const STORAGE_KEYS = {
   jwt: 'mtl.jwt',
   colorScheme: 'mtl.color-scheme',
+  mediaViewerTheme: 'mtl.media-viewer.theme',
   locale: 'mtl.locale',
   measurementSystem: 'mtl.measurement-system',
   mapSettings: 'mtl.map.settings',

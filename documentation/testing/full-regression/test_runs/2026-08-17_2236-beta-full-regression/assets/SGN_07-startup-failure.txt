@@ -1,0 +1,9 @@
+Controlled failure probe:
+- Stopped only the disposable Compose `app` service at 2026-08-17T21:46:27Z.
+- Database and other services were left intact.
+- Requested a reload of the existing signed-in client to observe startup failure UI.
+- The selected browser security policy rejected navigation to the unavailable origin before the page could be inspected. Per browser policy, no alternate browser or indirect UI workaround was attempted.
+- Restarted the disposable `app` service immediately.
+- Verified container `wauwau0977/mytraillog:beta` running and remote `/mtl/` HTTP 200.
+
+No product retry-state result was observed. The coverage is blocked by the selected browser's unavailable-origin navigation policy, not by a demonstrated product failure.

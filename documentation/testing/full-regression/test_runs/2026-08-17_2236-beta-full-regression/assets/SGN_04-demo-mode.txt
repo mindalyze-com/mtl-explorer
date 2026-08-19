@@ -1,0 +1,9 @@
+Login page direct observation:
+- Username, Password, and Sign In controls present.
+- No demo-credentials banner present.
+
+Public runtime status:
+- GET /mtl/api/auth/demo-status -> HTTP 200
+- Response: {"demoMode":false,"password":"","username":""}
+
+The conditional demo-mode banner requirement does not apply to this installation.

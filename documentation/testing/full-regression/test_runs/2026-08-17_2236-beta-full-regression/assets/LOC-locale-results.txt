@@ -1,0 +1,35 @@
+Locale and boundary validation summary
+Browser detected locale/timezone: en-GB / Europe/Zurich
+Controlled browser data: 15 current tracks
+
+LOC_01 en-GB baseline:
+- Preferences: en-GB (31/12/2025, 1,234.56)
+- Preview: 18/08/2026 ... 12,345.67
+- Units preview: 25.0 km · 500 m · 80 kg
+- Statistics: 824 km; 16h 51m; 3,993 Wh; 13,090 m
+- Recent examples: 18/08/2026, 12:00; 247.23 m; 0m 45s
+
+LOC_02 de-DE immediate switch:
+- Preferences updated immediately to de-DE (31.12.2025, 1.234,56)
+- Preview updated to 18.08.2026 ... 12.345,67
+- Same Statistics view updated without page reload to 3.993 Wh; 13.090 m;
+  72,5 km/h; 18.08.2026, 12:00; 247,23 m
+- No interim blank/loading/error state appeared.
+
+LOC_03 de-DE persistence:
+- After a full reload, Statistics retained 3.993 Wh, 72,5 km/h, and
+  18.08.2026, 12:00.
+- Preferences still selected de-DE and previewed 12.345,67.
+
+LOC_04 boundaries:
+- Large values rendered normally: 518 km; 6.324 m; 2.188 W; 1.808 Wh.
+- Zero values rendered explicitly in Track Details: 0m 00s, 0 stops,
+  0,0 Wh, and 0,00 m.
+- Negative slope rendered as -100,7% on track 100005.
+- Authenticated track scan found 19 raw records, multiple zero-duration,
+  zero-descent, and zero-power records, and negative slope minima including
+  track 100005 at -100.73.
+- Current raw top-level track fields and data-point altitude scan contained no
+  null elevation fixture; no UI was blank on account of an elevation value.
+- Statistics Tracks and Track Details scans found none of: NaN, undefined,
+  null, Infinity.

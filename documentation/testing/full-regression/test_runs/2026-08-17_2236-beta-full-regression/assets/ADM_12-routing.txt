@@ -1,0 +1,17 @@
+ADM_12 Admin route synchronization evidence
+
+Desktop direct routes/history:
+- Direct /mtl/admin/system rendered System information.
+- Direct /mtl/admin/preferences rendered Preferences.
+- Browser Back restored /mtl/admin/system and System information.
+- Browser Forward restored /mtl/admin/preferences and Preferences.
+
+Mobile 390 x 844:
+- Direct /mtl/admin/logs rendered Server log and a visible Back to overview action.
+- Mobile Back changed the route to /mtl/admin, rendered Overview, and removed the
+  section-level Back action.
+- Closing Admin changed the route to /mtl/, removed the Admin sheet, and left a
+  usable map with 14 Tracks.
+- The temporary viewport override was reset to the desktop default.
+
+Result: PASS

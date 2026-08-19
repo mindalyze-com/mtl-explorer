@@ -1,0 +1,10 @@
+MOB_06 mobile filter-sheet flow at 390 x 844
+Opening 1: Current result + Smart Base Filter overview; catalog absent
+Opening 2: Current result + Smart Base Filter overview; catalog absent
+Opening 3: Current result + Smart Base Filter overview; catalog absent
+First branch result: PASS; each opening starts on the Filters overview.
+Catalog action: selected Tracks by year.
+Observed after selection: Tracks by year active, Choose a view catalog still open, Cancel and Apply still present.
+Observed after selection: no Settings label, view, or directly usable Settings switch.
+Second/third branch result: FAIL; selection does not open Settings and the required Settings switch is absent.
+Cleanup: Cancel restored Smart Base Filter; filter sheet closed; 15 tracks remain.

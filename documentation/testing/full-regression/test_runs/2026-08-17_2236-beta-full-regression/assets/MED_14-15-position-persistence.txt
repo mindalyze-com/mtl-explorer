@@ -1,0 +1,33 @@
+MED_14/MED_15 read-only position inspection
+
+Fields:
+media_id | filename | original EXIF lat/lng | selected route lat/lng |
+resolved origin | resolved lat/lng | track | time source
+
+400005 | mtl-regression-photo-a.jpg |
+46.94800000,7.44740000 | 46.9480499974,7.4474499980 |
+EXIF_EMBEDDED | 46.9480000000,7.4474000000 | 100016 | EXIF_DATE_TAKEN
+
+400002 | mtl-regression-photo-b.jpg |
+46.94818000,7.44768000 | 46.9482000020,7.4477000016 |
+EXIF_EMBEDDED | 46.9481800000,7.4476800000 | 100016 | EXIF_DATE_TAKEN
+
+400000 | mtl-regression-estimated-a.jpg |
+NULL,NULL | 46.9483250001,7.4478500000 |
+TRACK_INTERPOLATED | 46.9483250001,7.4478500000 | 100016 | EXIF_DATE_TAKEN
+
+400004 | mtl-regression-estimated-b.jpg |
+NULL,NULL | 46.9486000000,7.4481750001 |
+TRACK_INTERPOLATED | 46.9486000000,7.4481750001 | 100016 | EXIF_DATE_TAKEN
+
+The remaining embedded-GPS rows 400003 and 400001 also retain their original
+EXIF coordinates as EXIF_EMBEDDED resolved locations. All six selected rows have
+selected=true, ambiguous=false, and alternative_count=1.
+
+UI cross-check after app restart:
+- embedded-GPS rows are labeled Photo GPS;
+- camera-time-only rows are labeled Estimated;
+- all six activity mini-map markers are rendered with matching accessible origin
+  descriptions.
+
+Result: MED_14 PASS and MED_15 PASS.

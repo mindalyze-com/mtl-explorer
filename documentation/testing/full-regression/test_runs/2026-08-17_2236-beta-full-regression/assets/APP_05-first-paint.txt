@@ -1,0 +1,19 @@
+APP_05 dark hard-refresh first-paint evidence
+
+Precondition: Dark persisted and computed body background was rgb(10,10,15).
+
+Reload sampling:
+- Started a page-level reload and sampled the document every ~20 ms without
+  changing theme or adding page instrumentation.
+- Initial 0 ms sample was an empty interactive document with transparent body,
+  no text, and color-scheme normal; it contained no light-theme UI.
+- First meaningful content sample at 20 ms already had:
+  - color-scheme dark
+  - body background rgb(10,10,15)
+  - dark Loading your trails content
+- All remaining 29 meaningful samples stayed dark; no light-scheme or
+  light-theme body background was observed.
+- First available screenshot frame was the darkened startup image with white
+  MTL Explorer / Loading your trails treatment, not a light application frame.
+
+Result: PASS

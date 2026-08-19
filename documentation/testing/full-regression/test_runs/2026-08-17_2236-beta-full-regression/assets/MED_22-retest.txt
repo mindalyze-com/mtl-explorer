@@ -1,0 +1,4 @@
+2026-08-18 rejected finding after valid-input retest
+Manual location is position provenance, not activity membership. The failed packet shifted its camera-clock row outside the 5-minute activity, so omission was correct.
+With a viable 25-minute activity, assigned media 400000 to 46.9484,7.4479 and previewed +0.25h.
+Desktop 1280x720 and mobile 390x844 retained Set by you, the edit/clear path, and the adjusted 10:17 route/time preview. Assignment was cleared after capture.

@@ -10,18 +10,25 @@ import java.nio.file.PathMatcher;
 import java.util.List;
 
 @JsonPropertyOrder({
-        "txManager"
+        "txManager",
+        "workerThreads"
 })
 public class FileIndexer {
 
     private final PlatformTransactionManager txManager; // optional
+    private final int workerThreads;
 
     public FileIndexer() {
-        this.txManager = null;
+        this(null, FileIndexerImpl.DEFAULT_WORKER_THREADS);
     }
 
     public FileIndexer(PlatformTransactionManager txManager) {
+        this(txManager, FileIndexerImpl.DEFAULT_WORKER_THREADS);
+    }
+
+    public FileIndexer(PlatformTransactionManager txManager, int workerThreads) {
         this.txManager = txManager;
+        this.workerThreads = workerThreads;
     }
 
 
@@ -71,7 +78,13 @@ public class FileIndexer {
                                                  List<PathMatcher> inclusionPatterns,
                                                  FileIndexerImpl.ChangeDetectionStrategy strategy,
                                                  boolean liveWatchEnabled) {
-        FileIndexerImpl impl = new FileIndexerImpl(index, watchDirectory, indexerRepository, observer, txManager);
+        FileIndexerImpl impl = new FileIndexerImpl(
+                index,
+                watchDirectory,
+                indexerRepository,
+                observer,
+                txManager,
+                workerThreads);
         if (exclusionPatterns != null) impl.setExclusionPatterns(exclusionPatterns);
         if (inclusionPatterns != null) impl.setInclusionPatterns(inclusionPatterns);
         if (strategy != null) impl.setChangeDetectionStrategy(strategy);
@@ -81,4 +94,3 @@ public class FileIndexer {
     }
 
 }
-

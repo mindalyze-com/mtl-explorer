@@ -16,7 +16,7 @@
 /// <reference types="vite-plugin-pwa/client" />
 import Toast from 'primevue/toast';
 import { useToast } from 'primevue/usetoast';
-import { onMounted, provide, watch } from 'vue';
+import { onBeforeUnmount, onMounted, provide, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { useRegisterSW } from 'virtual:pwa-register/vue';
 import { getServerBuildInfo } from '@/utils/ServiceHelper';
@@ -24,6 +24,7 @@ import { applyServerDefaultLocale } from '@/composables/useLocale';
 import { applyServerDefaultMeasurementSystem } from '@/composables/useMeasurementSystem';
 import { runConnectivityProbe } from '@/composables/useConnectivityProbe';
 import { isAuthenticated } from '@/utils/auth';
+import { startServiceWorkerUpdateChecks } from '@/utils/serviceWorkerUpdateChecks';
 
 const PWA_UPDATED_KEY = 'mtl.pwa.just-updated';
 const DEV_SERVICE_WORKER_RELOAD_KEY = 'mtl.dev-sw-cleanup-reloaded';
@@ -102,22 +103,23 @@ async function cleanupDevServiceWorkers() {
   }
 }
 
+let stopServiceWorkerUpdateChecks: (() => void) | undefined;
+
 const { needRefresh, updateServiceWorker } = useRegisterSW({
   onRegistered(r: ServiceWorkerRegistration | undefined) {
     console.log('✅ [PWA] Service Worker successfully registered with scope:', r?.scope);
+    stopServiceWorkerUpdateChecks?.();
+    stopServiceWorkerUpdateChecks = undefined;
     if (r) {
-      setInterval(
-        () => {
-          r.update();
-        },
-        60 * 60 * 1000
-      ); // Check for updates hourly
+      stopServiceWorkerUpdateChecks = startServiceWorkerUpdateChecks(r);
     }
   },
   onRegisterError(error: unknown) {
     console.error('🚨 [PWA Error] Service Worker failed to register:', error);
   },
 });
+
+onBeforeUnmount(() => stopServiceWorkerUpdateChecks?.());
 
 watch(needRefresh, (isNeeded) => {
   if (isNeeded) {

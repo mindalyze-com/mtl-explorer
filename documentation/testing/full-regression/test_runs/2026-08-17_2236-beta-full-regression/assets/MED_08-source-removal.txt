@@ -1,0 +1,26 @@
+MED_08 watched-source removal evidence
+Observed 2026-08-18 03:28 Europe/Zurich
+
+Mutation
+- Resolved and checked the two exact watched targets before acting.
+- Moved only `mtl-regression-delete-a.jpg` and
+  `mtl-regression-delete-b.jpg` from the run-specific watched media folder to
+  `data/logs/MED_08-deleted-media-backup/`.
+- This is a recoverable move inside the disposable run tree, outside every
+  watched import directory.
+
+Verification
+- Neither target remains in the watched media folder.
+- Exactly these four synthetic sources remain watched:
+  - mtl-regression-estimated-a.jpg
+  - mtl-regression-estimated-b.jpg
+  - mtl-regression-photo-a.jpg
+  - mtl-regression-photo-b.jpg
+- Recovery copy delete-a SHA-256:
+  ca094927a1002de8e032845cf04df37b0d87100fa06278a041036e00a41e6e21
+- Recovery copy delete-b SHA-256:
+  3ba10c57444fb7cfc6280e2f95722d12409bf6a52e2bd1342fd21920b105d25d
+- Both hashes match the frozen DAT_08 manifest and the MED_07 watched baseline.
+
+Result: PASS. Exactly the two designated sources were removed recoverably;
+the other four media fixtures are unchanged and remain watched.

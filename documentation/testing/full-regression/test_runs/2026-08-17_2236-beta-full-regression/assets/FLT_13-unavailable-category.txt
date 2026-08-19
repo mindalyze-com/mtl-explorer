@@ -1,0 +1,30 @@
+FLT_13 unavailable selected category and removal
+
+Setup
+- View: Activities by exact type.
+- Cleared the All categories state and selected only HIKING (1).
+- Applied result: 1 matching track / 1 of 3 categories / 1 of 15 Tracks.
+
+Make selected category unavailable
+- Set To date to 2025-12-31.
+- HIKING has no track on or before that date.
+- Applied result became No tracks match / 0 of 15 Tracks.
+- Configuration reported one criterion active and 0 of 2 available categories.
+
+Unavailable category representation
+- Selector showed current available categories BICYCLE (5) and WALKING (1), both unchecked.
+- Selected HIKING remained visible after the parameter change as:
+  - HIKING
+  - No matches with current parameters
+  - 0
+  - checkbox still checked
+
+Removal
+- Unchecked the unavailable HIKING item.
+- Its checked state cleared and draft summary became 0 of 2 selected.
+- Applied summary remained 0 of 2 categories and the intentional empty result remained.
+
+Cleanup/baseline for FLT_14
+- Cleared To date.
+- Re-selected HIKING and WALKING.
+- Restored No criteria, 2 of 3 categories, and 3 / 15 Tracks.

@@ -12,6 +12,106 @@
     }
   ],
   "paths": {
+    "/api/media/{mediaId}/manual-location": {
+      "put": {
+        "tags": [
+          "media-controller"
+        ],
+        "summary": "Set a user-assigned media location",
+        "description": "Stores a user-assigned position without changing original EXIF coordinates.",
+        "operationId": "setManualMediaLocation",
+        "parameters": [
+          {
+            "name": "mediaId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManualMediaLocationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Manual position saved"
+          },
+          "400": {
+            "description": "Coordinate is invalid"
+          },
+          "404": {
+            "description": "Media not found"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "media-controller"
+        ],
+        "summary": "Clear a user-assigned media location",
+        "description": "Removes only the user assignment, then resolves the position from EXIF or track correlation.",
+        "operationId": "clearManualMediaLocation",
+        "parameters": [
+          {
+            "name": "mediaId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Manual position cleared"
+          },
+          "404": {
+            "description": "Media not found"
+          }
+        }
+      }
+    },
+    "/api/media/time-corrections": {
+      "put": {
+        "tags": [
+          "media-controller"
+        ],
+        "summary": "Save camera-clock corrections",
+        "description": "Stores a reversible offset for camera-clock media and immediately rebuilds their track correlations. An offset of zero clears saved corrections. EXIF GPS timestamps are never changed.",
+        "operationId": "saveMediaTimeCorrections",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MediaTimeCorrectionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Eligible camera-time corrections saved or cleared"
+          },
+          "400": {
+            "description": "Request or offset is invalid"
+          },
+          "404": {
+            "description": "One or more media items were not found"
+          }
+        }
+      }
+    },
     "/api/tracks/save-track": {
       "post": {
         "tags": [
@@ -141,6 +241,77 @@
         }
       }
     },
+    "/api/tracks/get-track-media-options-within-distance-of-point": {
+      "post": {
+        "tags": [
+          "tracks-controller"
+        ],
+        "summary": "Get nearby activities and their matched media counts",
+        "description": "Returns every filtered activity passing near the point. Activities without selected media correlations are retained with a zero count.",
+        "operationId": "getTrackMediaOptionsWithinDistanceOfPoint",
+        "parameters": [
+          {
+            "name": "filterName",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "longitude",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "number",
+              "format": "double"
+            }
+          },
+          {
+            "name": "latitude",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "number",
+              "format": "double"
+            }
+          },
+          {
+            "name": "distanceInMeter",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "number",
+              "format": "double"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FilterParamsRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/NearbyTrackMediaDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/planner/save": {
       "post": {
         "tags": [
@@ -231,6 +402,143 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/api/media/{mediaId}/transcode-sessions": {
+      "post": {
+        "tags": [
+          "video-transcode-controller"
+        ],
+        "summary": "Create or reconnect to a temporary compatible video stream",
+        "description": "Starts a bounded speed-first HLS conversion. The same media revision and quality reuses an active or recent completed session. AUTO remuxes compatible H.264/AAC streams at their original size, and otherwise uses the server's 720p fallback cap. The playlist URL is relative to the configured backend base URL.",
+        "operationId": "createVideoTranscodeSession",
+        "parameters": [
+          {
+            "name": "mediaId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VideoTranscodeSessionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Existing compatible playback session reused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VideoTranscodeSessionDto"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Compatible playback session created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VideoTranscodeSessionDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Media not found"
+          },
+          "422": {
+            "description": "Media cannot be converted within the selected profile or size limit"
+          },
+          "429": {
+            "description": "The configured transcode concurrency limit is active"
+          },
+          "507": {
+            "description": "Temporary video storage cannot fit the requested session"
+          },
+          "503": {
+            "description": "Video transcoding is disabled or unavailable"
+          }
+        }
+      }
+    },
+    "/api/media/trends": {
+      "post": {
+        "tags": [
+          "media-controller"
+        ],
+        "summary": "Get media counts grouped by capture time",
+        "description": "Returns filter-aware matched activity media or all indexed media as separate image and video counts. Effective capture time uses EXIF GPS time first, then offset-adjusted EXIF capture time.",
+        "operationId": "getMediaTrends",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MediaTrendRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Media trend buckets",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MediaTrendResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The trend request is invalid"
+          }
+        }
+      }
+    },
+    "/api/media/trends/items": {
+      "post": {
+        "tags": [
+          "media-controller"
+        ],
+        "summary": "Get one page of media for a trend bucket",
+        "description": "Returns media in stable newest-first order for the selected scope, period and media kind.",
+        "operationId": "getMediaTrendItems",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MediaTrendItemsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Paged media trend items",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MediaTrendItemPageDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The trend item request is invalid"
           }
         }
       }
@@ -901,6 +1209,320 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/api/media/transcode-sessions/{sessionId}": {
+      "get": {
+        "tags": [
+          "video-transcode-controller"
+        ],
+        "summary": "Get compatible video conversion status",
+        "operationId": "getVideoTranscodeSession",
+        "parameters": [
+          {
+            "name": "sessionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Current conversion status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VideoTranscodeSessionDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Session not found or expired"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "video-transcode-controller"
+        ],
+        "summary": "Cancel compatible video playback and remove its temporary output",
+        "operationId": "cancelVideoTranscodeSession",
+        "parameters": [
+          {
+            "name": "sessionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Session cancelled and temporary output removed"
+          },
+          "404": {
+            "description": "Session not found or expired"
+          }
+        }
+      }
+    },
+    "/api/media/transcode-sessions/{sessionId}/{fileName}": {
+      "get": {
+        "tags": [
+          "video-transcode-controller"
+        ],
+        "summary": "Read one temporary HLS initialization or media segment",
+        "operationId": "getVideoTranscodeOutput",
+        "parameters": [
+          {
+            "name": "sessionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "fileName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "HLS initialization or media segment",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Session or segment not found"
+          },
+          "410": {
+            "description": "Session failed or was cancelled"
+          }
+        }
+      }
+    },
+    "/api/media/transcode-sessions/{sessionId}/playlist.m3u8": {
+      "get": {
+        "tags": [
+          "video-transcode-controller"
+        ],
+        "summary": "Read the temporary HLS playlist",
+        "operationId": "getVideoTranscodePlaylist",
+        "parameters": [
+          {
+            "name": "sessionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "HLS event playlist",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The first complete segment is not ready"
+          },
+          "404": {
+            "description": "Session not found or expired"
+          },
+          "410": {
+            "description": "Session failed or was cancelled"
+          }
+        }
+      }
+    },
+    "/api/media/get/{id}": {
+      "get": {
+        "tags": [
+          "media-controller"
+        ],
+        "summary": "Get media details",
+        "description": "Returns user-facing file, capture, photo, and video metadata without server filesystem internals.",
+        "operationId": "getMediaDetails",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Media details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MediaDetailsDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Media not found"
+          }
+        }
+      }
+    },
+    "/api/media/get/{id}/content": {
+      "get": {
+        "tags": [
+          "media-controller"
+        ],
+        "operationId": "getContent",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "maxSize",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "Range",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Accept",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/media/by-track/{trackId}": {
+      "get": {
+        "tags": [
+          "media-controller"
+        ],
+        "summary": "Get the media timeline for an activity",
+        "description": "Returns one bounded page of persisted activity correlations, original EXIF evidence, route positions, and resolved display positions. A non-zero camera offset produces an unsaved preview; authoritative EXIF GPS time is never shifted.",
+        "operationId": "getMediaByTrack",
+        "parameters": [
+          {
+            "name": "trackId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "cameraOffsetSeconds",
+            "in": "query",
+            "description": "Optional unsaved preview offset added to EXIF DateTimeOriginal; zero reads persisted correlations",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 0
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Zero-based page number",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 0
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "description": "Items per page, from 1 to 200",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Media matched to the activity in adjusted capture-time order",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrackMediaPageDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Camera offset is outside the supported plus or minus 24-hour range"
+          },
+          "404": {
+            "description": "Activity not found"
           }
         }
       }
@@ -4987,591 +5609,6 @@
         }
       }
     },
-    "/api/media/get/{id}": {
-      "get": {
-        "tags": [
-          "media-controller"
-        ],
-        "operationId": "getById",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int64"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/MediaFile"
-                }
-              }
-            }
-          }
-        }
-      },
-      "put": {
-        "tags": [
-          "media-controller"
-        ],
-        "operationId": "getById_2",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int64"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/MediaFile"
-                }
-              }
-            }
-          }
-        }
-      },
-      "post": {
-        "tags": [
-          "media-controller"
-        ],
-        "operationId": "getById_1",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int64"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/MediaFile"
-                }
-              }
-            }
-          }
-        }
-      },
-      "delete": {
-        "tags": [
-          "media-controller"
-        ],
-        "operationId": "getById_3",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int64"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/MediaFile"
-                }
-              }
-            }
-          }
-        }
-      },
-      "options": {
-        "tags": [
-          "media-controller"
-        ],
-        "operationId": "getById_6",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int64"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/MediaFile"
-                }
-              }
-            }
-          }
-        }
-      },
-      "head": {
-        "tags": [
-          "media-controller"
-        ],
-        "operationId": "getById_5",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int64"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/MediaFile"
-                }
-              }
-            }
-          }
-        }
-      },
-      "patch": {
-        "tags": [
-          "media-controller"
-        ],
-        "operationId": "getById_4",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int64"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "$ref": "#/components/schemas/MediaFile"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/media/get/{id}/content": {
-      "get": {
-        "tags": [
-          "media-controller"
-        ],
-        "operationId": "getContent",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int64"
-            }
-          },
-          {
-            "name": "maxSize",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "format": "int32"
-            }
-          },
-          {
-            "name": "Range",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "Accept",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          }
-        }
-      },
-      "put": {
-        "tags": [
-          "media-controller"
-        ],
-        "operationId": "getContent_2",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int64"
-            }
-          },
-          {
-            "name": "maxSize",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "format": "int32"
-            }
-          },
-          {
-            "name": "Range",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "Accept",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          }
-        }
-      },
-      "post": {
-        "tags": [
-          "media-controller"
-        ],
-        "operationId": "getContent_1",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int64"
-            }
-          },
-          {
-            "name": "maxSize",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "format": "int32"
-            }
-          },
-          {
-            "name": "Range",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "Accept",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          }
-        }
-      },
-      "delete": {
-        "tags": [
-          "media-controller"
-        ],
-        "operationId": "getContent_3",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int64"
-            }
-          },
-          {
-            "name": "maxSize",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "format": "int32"
-            }
-          },
-          {
-            "name": "Range",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "Accept",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          }
-        }
-      },
-      "options": {
-        "tags": [
-          "media-controller"
-        ],
-        "operationId": "getContent_6",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int64"
-            }
-          },
-          {
-            "name": "maxSize",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "format": "int32"
-            }
-          },
-          {
-            "name": "Range",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "Accept",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          }
-        }
-      },
-      "head": {
-        "tags": [
-          "media-controller"
-        ],
-        "operationId": "getContent_5",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int64"
-            }
-          },
-          {
-            "name": "maxSize",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "format": "int32"
-            }
-          },
-          {
-            "name": "Range",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "Accept",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          }
-        }
-      },
-      "patch": {
-        "tags": [
-          "media-controller"
-        ],
-        "operationId": "getContent_4",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int64"
-            }
-          },
-          {
-            "name": "maxSize",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "format": "int32"
-            }
-          },
-          {
-            "name": "Range",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "Accept",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "*/*": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/api/media/get-media-with-location-info": {
       "get": {
         "tags": [
@@ -8106,6 +8143,46 @@
   },
   "components": {
     "schemas": {
+      "ManualMediaLocationRequest": {
+        "type": "object",
+        "properties": {
+          "latitude": {
+            "type": "number",
+            "format": "double"
+          },
+          "longitude": {
+            "type": "number",
+            "format": "double"
+          },
+          "note": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "latitude",
+          "longitude"
+        ]
+      },
+      "MediaTimeCorrectionRequest": {
+        "type": "object",
+        "properties": {
+          "mediaIds": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          "offsetSeconds": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "required": [
+          "mediaIds",
+          "offsetSeconds"
+        ]
+      },
       "Coordinate": {
         "type": "object",
         "properties": {
@@ -9372,6 +9449,154 @@
           }
         }
       },
+      "FilterParamsRequest": {
+        "type": "object",
+        "properties": {
+          "stringParams": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "dateTimeParams": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "geoCircles": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/GeoCircle"
+            }
+          },
+          "geoRectangles": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/GeoRectangle"
+            }
+          },
+          "geoPolygons": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/GeoPolygon"
+            }
+          },
+          "resultGroupSelection": {
+            "$ref": "#/components/schemas/FilterResultGroupSelection"
+          },
+          "trackIds": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        }
+      },
+      "FilterResultGroupKey": {
+        "type": "object",
+        "properties": {
+          "value": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Exact raw grp value. Null represents an ungrouped SQL result."
+          }
+        },
+        "required": [
+          "value"
+        ]
+      },
+      "FilterResultGroupSelection": {
+        "type": "object",
+        "properties": {
+          "includedGroups": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FilterResultGroupKey"
+            }
+          }
+        }
+      },
+      "GeoCircle": {
+        "type": "object",
+        "properties": {
+          "lat": {
+            "type": "number",
+            "format": "double"
+          },
+          "lng": {
+            "type": "number",
+            "format": "double"
+          },
+          "radiusM": {
+            "type": "number",
+            "format": "double"
+          }
+        }
+      },
+      "GeoPolygon": {
+        "type": "object",
+        "properties": {
+          "coordinates": {
+            "type": "array",
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "number",
+                "format": "double"
+              }
+            }
+          }
+        }
+      },
+      "GeoRectangle": {
+        "type": "object",
+        "properties": {
+          "minLat": {
+            "type": "number",
+            "format": "double"
+          },
+          "maxLat": {
+            "type": "number",
+            "format": "double"
+          },
+          "minLng": {
+            "type": "number",
+            "format": "double"
+          },
+          "maxLng": {
+            "type": "number",
+            "format": "double"
+          }
+        }
+      },
+      "NearbyTrackMediaDto": {
+        "type": "object",
+        "properties": {
+          "trackId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "distanceMeters": {
+            "type": "number",
+            "format": "double",
+            "description": "Shortest distance from the activity route to the selected map point, in meters."
+          },
+          "matchedMediaCount": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Number of selected media correlations for the activity."
+          }
+        },
+        "required": [
+          "distanceMeters",
+          "matchedMediaCount",
+          "trackId"
+        ]
+      },
       "LegResultDto": {
         "type": "object",
         "properties": {
@@ -9513,6 +9738,293 @@
           },
           "profile": {
             "type": "string"
+          }
+        }
+      },
+      "VideoTranscodeSessionRequest": {
+        "type": "object",
+        "properties": {
+          "quality": {
+            "type": "string",
+            "enum": [
+              "AUTO",
+              "P480",
+              "P720",
+              "P1080"
+            ]
+          }
+        }
+      },
+      "VideoTranscodeSessionDto": {
+        "type": "object",
+        "properties": {
+          "sessionId": {
+            "type": "string"
+          },
+          "mediaId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "quality": {
+            "type": "string",
+            "enum": [
+              "AUTO",
+              "P480",
+              "P720",
+              "P1080"
+            ]
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "STARTING",
+              "RUNNING",
+              "COMPLETED",
+              "FAILED",
+              "CANCELLED"
+            ]
+          },
+          "playlistUrl": {
+            "type": "string"
+          },
+          "playlistReady": {
+            "type": "boolean"
+          },
+          "encodedSeconds": {
+            "type": "number",
+            "format": "double"
+          },
+          "sourceDurationSeconds": {
+            "type": "number",
+            "format": "double"
+          },
+          "transcodeSpeed": {
+            "type": "number",
+            "format": "double"
+          },
+          "bytesWritten": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "message": {
+            "type": "string"
+          },
+          "reused": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "bytesWritten",
+          "encodedSeconds",
+          "mediaId",
+          "playlistReady",
+          "playlistUrl",
+          "quality",
+          "reused",
+          "sessionId",
+          "sourceDurationSeconds",
+          "state"
+        ]
+      },
+      "MediaTrendRequest": {
+        "type": "object",
+        "properties": {
+          "grouping": {
+            "type": "string",
+            "enum": [
+              "YEAR",
+              "QUARTER",
+              "MONTH",
+              "WEEK",
+              "DAY",
+              "TOTAL"
+            ]
+          },
+          "scope": {
+            "type": "string",
+            "enum": [
+              "MATCHED_ACTIVITIES",
+              "ALL_INDEXED"
+            ]
+          },
+          "trackIds": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        }
+      },
+      "MediaTrendBucketDto": {
+        "type": "object",
+        "properties": {
+          "bucketKey": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "subGroup": {
+            "type": "string"
+          },
+          "undated": {
+            "type": "boolean"
+          },
+          "imageCount": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "videoCount": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "MediaTrendResponseDto": {
+        "type": "object",
+        "properties": {
+          "scope": {
+            "type": "string",
+            "enum": [
+              "MATCHED_ACTIVITIES",
+              "ALL_INDEXED"
+            ]
+          },
+          "buckets": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MediaTrendBucketDto"
+            }
+          }
+        }
+      },
+      "MediaTrendItemsRequest": {
+        "type": "object",
+        "properties": {
+          "grouping": {
+            "type": "string",
+            "enum": [
+              "YEAR",
+              "QUARTER",
+              "MONTH",
+              "WEEK",
+              "DAY",
+              "TOTAL"
+            ]
+          },
+          "scope": {
+            "type": "string",
+            "enum": [
+              "MATCHED_ACTIVITIES",
+              "ALL_INDEXED"
+            ]
+          },
+          "bucketKey": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "ALL",
+              "IMAGE",
+              "VIDEO"
+            ]
+          },
+          "trackIds": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "MediaTrendItemDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "mediaKind": {
+            "type": "string",
+            "enum": [
+              "IMAGE",
+              "VIDEO"
+            ]
+          },
+          "fileName": {
+            "type": "string"
+          },
+          "effectiveCapturedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "trackId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "resolvedLat": {
+            "type": "number",
+            "format": "double"
+          },
+          "resolvedLng": {
+            "type": "number",
+            "format": "double"
+          },
+          "positionOrigin": {
+            "type": "string",
+            "enum": [
+              "EXIF_EMBEDDED",
+              "TRACK_INTERPOLATED",
+              "USER_ASSIGNED"
+            ]
+          },
+          "estimatedPosition": {
+            "type": "boolean"
+          },
+          "ambiguousMatch": {
+            "type": "boolean"
+          },
+          "trackPointTimeDeltaSeconds": {
+            "type": "number",
+            "format": "double"
+          }
+        }
+      },
+      "MediaTrendItemPageDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MediaTrendItemDto"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalItems": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "totalPages": {
+            "type": "integer",
+            "format": "int32"
           }
         }
       },
@@ -10103,6 +10615,272 @@
           }
         }
       },
+      "MediaDetailsDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "mediaKind": {
+            "type": "string",
+            "enum": [
+              "IMAGE",
+              "VIDEO"
+            ]
+          },
+          "fileName": {
+            "type": "string"
+          },
+          "folderPath": {
+            "type": "string"
+          },
+          "fileExtension": {
+            "type": "string"
+          },
+          "fileSizeBytes": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "lastModifiedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "exifGpsDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "exifDateImageTaken": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "cameraMake": {
+            "type": "string"
+          },
+          "cameraModel": {
+            "type": "string"
+          },
+          "lensModel": {
+            "type": "string"
+          },
+          "widthPixels": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "heightPixels": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "apertureFNumber": {
+            "type": "number",
+            "format": "double"
+          },
+          "exposureTimeSeconds": {
+            "type": "number",
+            "format": "double"
+          },
+          "isoSpeed": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "focalLengthMm": {
+            "type": "number",
+            "format": "double"
+          },
+          "focalLength35Mm": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "durationSeconds": {
+            "type": "number",
+            "format": "double"
+          },
+          "frameRate": {
+            "type": "number",
+            "format": "double"
+          },
+          "videoCodec": {
+            "type": "string"
+          },
+          "audioCodec": {
+            "type": "string"
+          },
+          "gpsAltitudeMeters": {
+            "type": "number",
+            "format": "double"
+          }
+        }
+      },
+      "TrackMediaDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "fileName": {
+            "type": "string"
+          },
+          "mediaKind": {
+            "type": "string",
+            "enum": [
+              "IMAGE",
+              "VIDEO"
+            ]
+          },
+          "capturedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Unadjusted authoritative capture time: EXIF GPS time when available, otherwise DateTimeOriginal."
+          },
+          "adjustedCapturedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Capture time used for activity matching after applying the camera offset when applicable."
+          },
+          "appliedCameraOffsetSeconds": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Offset added to DateTimeOriginal in seconds. Zero when EXIF GPS time is authoritative."
+          },
+          "timeSource": {
+            "type": "string",
+            "description": "Metadata field used as the authoritative capture time.",
+            "enum": [
+              "EXIF_GPS",
+              "EXIF_DATE_TAKEN"
+            ]
+          },
+          "cameraMake": {
+            "type": "string"
+          },
+          "cameraModel": {
+            "type": "string"
+          },
+          "originalLat": {
+            "type": "number",
+            "format": "double",
+            "description": "Original EXIF GPS latitude. Null when the media has no embedded GPS position."
+          },
+          "originalLng": {
+            "type": "number",
+            "format": "double",
+            "description": "Original EXIF GPS longitude. Null when the media has no embedded GPS position."
+          },
+          "routeLat": {
+            "type": "number",
+            "format": "double",
+            "description": "Latitude on the matched activity route at the adjusted capture time."
+          },
+          "routeLng": {
+            "type": "number",
+            "format": "double",
+            "description": "Longitude on the matched activity route at the adjusted capture time."
+          },
+          "resolvedLat": {
+            "type": "number",
+            "format": "double",
+            "description": "Latitude selected for display after applying user, EXIF, and track precedence."
+          },
+          "resolvedLng": {
+            "type": "number",
+            "format": "double",
+            "description": "Longitude selected for display after applying user, EXIF, and track precedence."
+          },
+          "manualLat": {
+            "type": "number",
+            "format": "double",
+            "description": "User-assigned latitude. Null when no manual position exists."
+          },
+          "manualLng": {
+            "type": "number",
+            "format": "double",
+            "description": "User-assigned longitude. Null when no manual position exists."
+          },
+          "manualNote": {
+            "type": "string"
+          },
+          "distanceInMeterSinceStart": {
+            "type": "number",
+            "format": "double"
+          },
+          "durationSinceStartSeconds": {
+            "type": "number",
+            "format": "double"
+          },
+          "trackPointIndex": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "trackPointTimeDeltaSeconds": {
+            "type": "number",
+            "format": "double"
+          },
+          "positionOrigin": {
+            "type": "string",
+            "description": "Origin of the resolved display position.",
+            "enum": [
+              "EXIF_EMBEDDED",
+              "TRACK_INTERPOLATED",
+              "USER_ASSIGNED"
+            ]
+          },
+          "estimatedPosition": {
+            "type": "boolean",
+            "description": "True only when the media position is inferred from the activity route."
+          },
+          "ambiguousMatch": {
+            "type": "boolean",
+            "description": "True when more than one eligible activity overlapped the adjusted capture time."
+          },
+          "alternativeMatchCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "preview": {
+            "type": "boolean",
+            "description": "True when this row is an unsaved camera-offset preview."
+          }
+        },
+        "required": [
+          "id"
+        ]
+      },
+      "TrackMediaPageDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TrackMediaDto"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Zero-based page number."
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalItems": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "totalPages": {
+            "type": "integer",
+            "format": "int64"
+          }
+        },
+        "required": [
+          "items",
+          "page",
+          "pageSize",
+          "totalItems",
+          "totalPages"
+        ]
+      },
       "MapServerStatusDto": {
         "type": "object",
         "properties": {
@@ -10600,130 +11378,6 @@
             "items": {
               "$ref": "#/components/schemas/DataFreshnessItemDto"
             }
-          }
-        }
-      },
-      "FilterParamsRequest": {
-        "type": "object",
-        "properties": {
-          "stringParams": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "string"
-            }
-          },
-          "dateTimeParams": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "string"
-            }
-          },
-          "geoCircles": {
-            "type": "object",
-            "additionalProperties": {
-              "$ref": "#/components/schemas/GeoCircle"
-            }
-          },
-          "geoRectangles": {
-            "type": "object",
-            "additionalProperties": {
-              "$ref": "#/components/schemas/GeoRectangle"
-            }
-          },
-          "geoPolygons": {
-            "type": "object",
-            "additionalProperties": {
-              "$ref": "#/components/schemas/GeoPolygon"
-            }
-          },
-          "resultGroupSelection": {
-            "$ref": "#/components/schemas/FilterResultGroupSelection"
-          },
-          "trackIds": {
-            "type": "array",
-            "items": {
-              "type": "integer",
-              "format": "int64"
-            }
-          }
-        }
-      },
-      "FilterResultGroupKey": {
-        "type": "object",
-        "properties": {
-          "value": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "description": "Exact raw grp value. Null represents an ungrouped SQL result."
-          }
-        },
-        "required": [
-          "value"
-        ]
-      },
-      "FilterResultGroupSelection": {
-        "type": "object",
-        "properties": {
-          "includedGroups": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/FilterResultGroupKey"
-            }
-          }
-        }
-      },
-      "GeoCircle": {
-        "type": "object",
-        "properties": {
-          "lat": {
-            "type": "number",
-            "format": "double"
-          },
-          "lng": {
-            "type": "number",
-            "format": "double"
-          },
-          "radiusM": {
-            "type": "number",
-            "format": "double"
-          }
-        }
-      },
-      "GeoPolygon": {
-        "type": "object",
-        "properties": {
-          "coordinates": {
-            "type": "array",
-            "items": {
-              "type": "array",
-              "items": {
-                "type": "number",
-                "format": "double"
-              }
-            }
-          }
-        }
-      },
-      "GeoRectangle": {
-        "type": "object",
-        "properties": {
-          "minLat": {
-            "type": "number",
-            "format": "double"
-          },
-          "maxLat": {
-            "type": "number",
-            "format": "double"
-          },
-          "minLng": {
-            "type": "number",
-            "format": "double"
-          },
-          "maxLng": {
-            "type": "number",
-            "format": "double"
           }
         }
       },
@@ -11298,6 +11952,10 @@
           "exifGpsLocation": {
             "$ref": "#/components/schemas/Geometry"
           },
+          "gpsAltitudeMeters": {
+            "type": "number",
+            "format": "double"
+          },
           "exifGpsDate": {
             "type": "string",
             "format": "date-time"
@@ -11310,6 +11968,51 @@
             "type": "string"
           },
           "cameraModel": {
+            "type": "string"
+          },
+          "lensModel": {
+            "type": "string"
+          },
+          "widthPixels": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "heightPixels": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "apertureFNumber": {
+            "type": "number",
+            "format": "double"
+          },
+          "exposureTimeSeconds": {
+            "type": "number",
+            "format": "double"
+          },
+          "isoSpeed": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "focalLengthMm": {
+            "type": "number",
+            "format": "double"
+          },
+          "focalLength35Mm": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "durationSeconds": {
+            "type": "number",
+            "format": "double"
+          },
+          "frameRate": {
+            "type": "number",
+            "format": "double"
+          },
+          "videoCodec": {
+            "type": "string"
+          },
+          "audioCodec": {
             "type": "string"
           }
         }

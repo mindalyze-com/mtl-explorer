@@ -1,0 +1,10 @@
+NET_03 authorization redirect results
+Protected endpoint: GET /mtl/api/config
+No Authorization header: HTTP 401
+Deliberately invalid bearer token: HTTP 401
+Browser action: signed out through Admin -> Session -> Sign out.
+Immediate browser URL: /mtl/login
+Unauthenticated navigation to /mtl/: redirected back to /mtl/login
+Login screen controls: Username, Password, Sign In
+Recovery: signed in again with the run credentials; final URL /mtl/; authenticated 15-track map restored.
+No credential value or token is stored in this evidence.

@@ -1,0 +1,14 @@
+Browser: Codex in-app browser selected for the target URL
+Requested evidence: compact screenshots of representative working functions
+
+Direct attempts:
+1. Login page, default viewport, fullPage=false -> Page.captureScreenshot timed out.
+2. Login page, explicit 1280 x 720 clip -> Page.captureScreenshot timed out.
+3. Fresh target tab, default viewport -> Page.captureScreenshot timed out.
+4. Fresh target tab, explicit 1280 x 720 viewport -> Page.captureScreenshot timed out.
+
+DOM inspection and interaction remained functional. The screenshot failure is a
+test-tool capability constraint, not an observed MTL Explorer product failure.
+
+Unblock path: a functioning screenshot implementation for the selected browser
+or a user-approved alternate browser surface capable of capturing the tested UI.

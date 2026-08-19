@@ -242,6 +242,7 @@ export function useMapTools(_deps: Record<string, never> = {}): MapControllerMet
         activityType: '',
       };
       if (hadTrackDetails) this.deselectTrack();
+      this.closeMediaSelection();
       this.mediaSheetVisible = false;
       this.closeMediaSheet();
       this.trackSelectionSheetVisible = false;
@@ -500,21 +501,31 @@ export function useMapTools(_deps: Record<string, never> = {}): MapControllerMet
     showTrackSelectionPopup(point, trackIds) {
       this.closeSelectionPopup();
       this.selectionPopupTrackIds = trackIds;
+      this.selectionPopupMediaOptions = [];
+      this.trackSelectionPurpose = 'details';
       this.trackSelectionSheetVisible = true;
     },
 
     closeSelectionPopup() {
       this.trackSelectionSheetVisible = false;
       this.selectionPopupTrackIds = [];
+      this.selectionPopupMediaOptions = [];
+      this.trackSelectionPurpose = 'details';
     },
 
     onPopupTrackSelect(id) {
+      const purpose = this.trackSelectionPurpose;
+      const mediaOption = this.selectionPopupMediaOptions.find((option) => option.trackId === id);
       this.closeSelectionPopup();
+      if (purpose === 'photos' && (mediaOption?.matchedMediaCount ?? 0) > 0) {
+        this.onTrackBrowserOpenPhotos(id);
+        return;
+      }
       this.selectTrackById(id);
       this.openTrackDetails(id, TRACK_DETAILS_MAP_DETENT);
     },
 
-    openTrackDetails(trackId, initialDetent = TRACK_DETAILS_DEFAULT_DETENT) {
+    openTrackDetails(trackId, initialDetent = TRACK_DETAILS_DEFAULT_DETENT, initialTab = 'overview') {
       const normalizedTrackId = Number(trackId ?? this.selectedTrackId);
       if (!Number.isFinite(normalizedTrackId)) return;
       if (!this.trackDetailsVisible && !this.trackDetailsReturnTarget) {
@@ -530,6 +541,7 @@ export function useMapTools(_deps: Record<string, never> = {}): MapControllerMet
         activityType: p?.activityType || '',
       };
       this.trackDetailsInitialDetent = initialDetent;
+      this.trackDetailsInitialTab = initialTab;
       this.trackDetailsVisible = true;
     },
 
@@ -545,6 +557,7 @@ export function useMapTools(_deps: Record<string, never> = {}): MapControllerMet
         activityType: '',
       };
       this.trackDetailsSelectedDetent = undefined;
+      this.trackDetailsInitialTab = 'overview';
       this.deselectTrack();
     },
 

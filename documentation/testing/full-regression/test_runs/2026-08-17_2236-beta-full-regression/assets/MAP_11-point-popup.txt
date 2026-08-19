@@ -1,0 +1,22 @@
+MAP_11 rendered point popup evidence
+
+Prepared track:
+- Track 100017, MTL Synthetic Segment B
+- Four timestamped points with speed/elevation-capable overview metrics
+- Detail mini-map loaded at 920 x 220 CSS / nonzero rendering canvas
+- Main map remained centered at 100 m scale
+- Map > Your data previously confirmed Track points and direction enabled at 100%
+
+Expected exact point targets from the frozen fixture:
+- 46.94752, 7.44682, elevation 541, 10:00:00Z
+- 46.94795, 7.44735, elevation 546, 10:00:45Z
+- 46.94865, 7.44825, elevation 552, 10:01:30Z
+- 46.94918, 7.44898, elevation 556, 10:02:15Z
+
+Constraint:
+- Rendered point/arrow markers are inside a MapLibre canvas.
+- No DOM or ARIA marker target is exposed.
+- ACC_04 blocks screenshots, so the exact rendered marker position cannot be identified.
+- Clicking a calculated-but-unverified canvas coordinate could hit only the connecting line and would violate this coverage's explicit rule.
+
+Result: valid point data, enabled point layer, and a selected high-zoom track were prepared, but the actual marker click and popup assertion are blocked.

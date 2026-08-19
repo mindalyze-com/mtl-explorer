@@ -1,0 +1,8 @@
+NET_04 service-worker update applicability
+Browser context: normal in-app browser tab
+display-mode standalone: false
+Manifest link: manifest.webmanifest
+Registered service workers: 0
+Waiting service workers: 0
+Update candidate available to trigger prompt: no
+Frozen plan Suggested Regression Passes assigns NET_01-NET_04 offline/cache coverage to installed PWA/web-app mode.

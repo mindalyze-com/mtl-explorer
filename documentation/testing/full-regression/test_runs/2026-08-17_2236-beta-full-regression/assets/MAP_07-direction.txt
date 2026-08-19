@@ -1,0 +1,21 @@
+MAP_07 direction-arrow evidence
+
+Configuration:
+- Map > Your data reported Track points and direction as enabled.
+- Button accessible state: Hide Track points and direction [pressed]
+- Opacity: 100%
+
+Valid track/viewport preparation:
+- Selected real track 100004, Lannion_Plestin_parcours Lannion_Plestin_parcours1.
+- This is a multi-point public GPS track, not a sparse two-point synthetic line.
+- Used the visible location search result Lannion, Brittany, France.
+- Search centered the map at 100 m scale.
+- Track details opened while that 100 m scale remained active.
+- Rendering surfaces remained present and no loading failure appeared.
+
+Constraint:
+- Track point vertices and direction arrows are canvas-rendered without semantic targets.
+- ACC_04 blocks screenshots.
+- Therefore their visual presence cannot be observed without guessing at canvas pixels.
+
+Result: required layer, dense real track, and high-zoom viewport were prepared, but the direction-arrow visual assertion is blocked.

@@ -1,0 +1,32 @@
+FLT_10 main activity groups and exact activity types
+
+Controlled temporary data state
+- Changed track 100017 from Running to Hiking through Track Details Quality.
+- Header/combobox/classification changed to Hiking / USER_SET.
+- This creates one controlled Hiking record for FLT_10-FLT_15; Running must be restored after FLT_15.
+
+Main activity groups
+- View: Activities by main group.
+- Available categories: CYCLING (12), ON_FOOT (3).
+- Selected only ON_FOOT.
+- Applied summary: 1 of 2 categories.
+- Result/toolbar: 3 matching / 3 of 15 Tracks.
+- Legend: ON_FOOT only.
+
+Exact activity types
+- Switched to Activities by exact type.
+- Available categories: BICYCLE (12), HIKING (1), WALKING (2).
+- The prior main-group exact selection did not carry across the view change; all three exact categories initially appeared.
+- Selected exactly HIKING and WALKING.
+- Applied summary: 2 of 3 categories.
+- Result/toolbar: 3 matching / 3 of 15 Tracks.
+- Legend: HIKING and WALKING only.
+
+Review tracks
+- Summary: 3 tracks, 4.04 km, 1h 00m.
+- Rows:
+  - MTL Synthetic Segment B — Hiking.
+  - MTL Regression Media Track — Walking.
+  - Track 100005 — Walking.
+
+Labels and counts matched the controlled records at each level.

@@ -1,0 +1,21 @@
+APP_03 chart theme recolor evidence
+
+Same authenticated SPA session; no browser reload between theme changes.
+Statistics Trends rendered 9 Highcharts containers in both themes.
+
+Light chart styling:
+- Series fill: #6366f1
+- Series edge/background stroke: rgba(255,255,255,0.95)
+- Grid stroke: rgba(0,0,0,0.06)
+- Axis text: rgb(100,116,139)
+
+Dark chart styling after selecting Dark:
+- Series fill: #6366f1
+- Series edge/background stroke: rgba(15,23,42,0.92)
+- Grid stroke: rgba(255,255,255,0.06)
+- Axis text: rgb(100,116,139)
+- CSS color-scheme: dark
+
+The light edge and dark edge/grid values inverted without a browser reload;
+all nine charts retained their data and readable axes.
+Result: PASS

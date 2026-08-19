@@ -1,0 +1,35 @@
+TBS_14 media-chart mode and help evidence
+
+Chart position and default
+- Statistics > Trends > Charts was selected explicitly.
+- Chart order ended with Exploration, then Media.
+- Media timeline buttons were Activity era, Media history, and Matched only.
+- Activity era was pressed by default.
+- Visible default help: "All indexed media from 2010-Q1 through 2026-Q3.
+  Media does not need to be linked to an activity."
+
+All-indexed behavior/help
+- Media history visible help: "Every dated indexed photo and video can define
+  the chart range. Activity filters do not apply."
+- Activity era hover tooltip explained that GPS activity defines the range,
+  unmatched media inside it is included, and earlier/future media remains
+  outside the chart.
+- Focusing Media history with a keyboard event exposed no tooltip.
+
+Track-related behavior/help
+- Matched only visible help: "Only media linked to activities in the current
+  track filters is shown."
+- Its hover tooltip showed the same sentence.
+- Focusing the Matched only button with a keyboard event exposed no tooltip.
+
+Keyboard-control validation
+- The same locator keyboard path activated the Trends Table button with Enter,
+  confirming keyboard events were reaching ordinary controls.
+
+Cleanup
+- Charts and the default Activity era mode were restored.
+
+Result
+- FAIL. Media is final and all modes have concise visible help; hover tooltips
+  work. Focus does not expose the required explanations for either all-indexed
+  or track-related behavior.

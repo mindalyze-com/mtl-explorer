@@ -1,0 +1,32 @@
+Incidental direct search result retained for later TBS_02:
+
+Exact source filename queries in Filter -> Review tracks:
+- JuraRoute72011.gpx -> 0 of 5
+- MoselradwegAusWiki.gpx -> 0 of 5
+- Vitry-le-Francois_Langres.gpx -> 0 of 5
+- VoieVerteHauteVosges.gpx -> 0 of 5
+- Lannion_Plestin_parcours24.4RE.gpx -> 0 of 5
+
+Exact imported track-name queries for the same records each returned 1 of 5.
+The later TBS_02 packet must assess this against its explicit file-path search
+requirement. This evidence is not used to fail IMP_06, which requires by-name
+verification and passed.
+
+TBS_02 final Statistics -> Tracks search matrix (15-track resolved set):
+- Name: Track 100005 -> 1 of 15; Track 100005
+- Description: IGCHDRS -> 1 of 15; GNSSALTTRK / IGCHDRS~HFPLTPILOT:Unknown~
+- Date: 20/07/2021 -> 1 of 15; Track 100005
+- Distance: 3.60 km -> 1 of 15; Track 100005
+- Duration: 59m 57s -> 1 of 15; Track 100005
+- Activity: Walking -> 2 of 15; Track 100005 and MTL Regression Media Track
+- Source filename: Activity.fit -> 1 of 15; Track 100005
+- Source filename: JuraRoute72011.gpx -> 1 of 15; Jura Route 7 / 2011
+
+Summary totals also followed each search. Examples:
+- Track 100005 searches: 3.60 km, 59m 57s
+- Walking: 3.79 km, 59m 57s
+- JuraRoute72011.gpx: 273 km, 7h 46m
+
+The earlier five-track Filter-review observation above was rechecked against
+the complete resolved set and did not reproduce. Search was cleared after the
+matrix; the field value is empty and all 15 rows are restored.

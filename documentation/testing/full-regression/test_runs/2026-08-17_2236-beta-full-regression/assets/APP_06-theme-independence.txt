@@ -1,0 +1,20 @@
+Coverage: APP_06
+Application themes exercised: Dark, Light
+Map styles exercised under each application theme:
+- OSM Topo Contrast
+- OSM Topo Light
+- Swiss Topo Color
+- Swiss Topo Light
+- OSM Light
+- OSM Gray
+- OSM Dark
+
+For all 14 combinations, the requested style became the selected style,
+the corresponding radio exposed aria-checked=true, and the application
+color-scheme stayed on the requested application theme. The opposing-theme
+screenshot shows Light application chrome with the OSM Dark map selected and
+rendered in Automatic/local mode.
+
+Known FR-002 is limited to the separately tested Remote raster OSM Dark source
+mode in MAP_13. It does not affect application-theme/map-style independence in
+the Automatic/local source mode used here.

@@ -1,0 +1,10 @@
+PLN_01 planner/profile evidence
+
+- Opened Planner from the map after closing the prior Statistics panel.
+- Planner rendered Drawing/Load tabs, BRouter status ready, profile selector,
+  edit history, zeroed live statistics, and empty elevation guidance.
+- Default profile: Hiking.
+- Profile choices: Hiking, Road Bike, Mountain Hiking, Car.
+- Selected Road Bike; the selector updated to Road Bike.
+
+Result: PASS.

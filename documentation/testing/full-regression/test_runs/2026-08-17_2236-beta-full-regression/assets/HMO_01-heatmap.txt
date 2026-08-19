@@ -1,0 +1,16 @@
+HMO_01 heatmap evidence
+Observed 2026-08-18 04:14-04:20 Europe/Zurich
+
+- Opened Map > Your data at the retained-photo Bern viewport.
+- Heatmap changed from Show to Hide and Your data changed 3/4 to 4/4 shown.
+- At approximately 100 m scale the heatmap rendered a visible blue/red/yellow
+  density plume over the central Bern activity.
+- GPS track lines remained visible through and around the heatmap, including
+  the selected purple route and its directional points.
+- Heatmap opacity exposed an accessible 0-100 slider. Trusted pointer dragging
+  changed its exact aria-valuenow from 100 to 52.
+- The second saved screenshot shows the same route and a visibly reduced
+  heatmap at 52%, confirming the live opacity effect.
+
+Result: PASS. Heatmap toggles, renders without hiding tracks, and responds to
+its opacity control.

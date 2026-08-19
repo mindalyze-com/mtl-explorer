@@ -248,12 +248,19 @@ function trackEventWithoutGeometry(id: number, startPointIndex: number, endPoint
   };
 }
 
-async function mountMiniMap(trackEvents: Record<string, unknown>[] = [], trackCoordinates: number[][] = []) {
+async function mountMiniMap(
+  trackEvents: Record<string, unknown>[] = [],
+  trackCoordinates: number[][] = [],
+  trackMedia: Record<string, unknown>[] = [],
+  mediaInteractionEnabled = false
+) {
   const wrapper = mount(TrackDetailMiniMap, {
     props: {
       gpsTrackId: 1,
       trackEvents,
       trackCoordinates,
+      trackMedia,
+      mediaInteractionEnabled,
     },
     attachTo: document.body,
   });
@@ -262,6 +269,24 @@ async function mountMiniMap(trackEvents: Record<string, unknown>[] = [], trackCo
   await flushPromises();
   await nextTick();
   return wrapper;
+}
+
+function dispatchPointer(
+  target: EventTarget,
+  type: string,
+  init: { pointerId?: number; pointerType?: string; clientX: number; clientY: number }
+): PointerEvent {
+  const event = new MouseEvent(type, {
+    bubbles: true,
+    cancelable: true,
+    button: 0,
+    clientX: init.clientX,
+    clientY: init.clientY,
+  }) as PointerEvent;
+  Object.defineProperty(event, 'pointerId', { value: init.pointerId ?? 1 });
+  Object.defineProperty(event, 'pointerType', { value: init.pointerType ?? 'touch' });
+  target.dispatchEvent(event);
+  return event;
 }
 
 function detailEventSource() {
@@ -375,6 +400,29 @@ describe('TrackDetailMiniMap event layer', () => {
     expect(map.fitBounds.mock.calls[0]?.[1]).toMatchObject({ padding: 20, duration: 0 });
   });
 
+  it('clears the active map selection when empty map space is clicked', async () => {
+    const wrapper = await mountMiniMap();
+    const map = maplibreMock.MockMap.instances[0];
+
+    map.emit('click', { lngLat: { lat: 47.4, lng: 8.5 }, point: { x: 20, y: 20 } });
+    await nextTick();
+
+    expect(wrapper.emitted('select-event')).toEqual([[null]]);
+    expect(wrapper.emitted('clear-selection')).toEqual([[]]);
+  });
+
+  it('does not clear the active selection while the map is panned', async () => {
+    const wrapper = await mountMiniMap();
+    const map = maplibreMock.MockMap.instances[0];
+
+    map.emit('dragstart');
+    map.emit('move');
+    map.emit('dragend');
+    await nextTick();
+
+    expect(wrapper.emitted('clear-selection')).toBeUndefined();
+  });
+
   it('draws track coordinates after initial map load even while tiles are still loading', async () => {
     maplibreMock.MockMap.nextStyleLoaded = false;
 
@@ -397,6 +445,249 @@ describe('TrackDetailMiniMap event layer', () => {
     });
     expect(map.fitBounds).toHaveBeenCalledTimes(1);
     expect(map.fitBounds.mock.calls[0]?.[1]).toMatchObject({ padding: 20, duration: 0 });
+  });
+
+  it('uses only the matched route position for estimated photo markers', async () => {
+    const wrapper = await mountMiniMap(
+      [],
+      [],
+      [
+        {
+          id: 41,
+          fileName: 'estimated.jpg',
+          mediaKind: 'IMAGE',
+          positionOrigin: 'TRACK_INTERPOLATED',
+          estimatedPosition: true,
+          originalLat: 1,
+          originalLng: 2,
+          routeLat: 47.4,
+          routeLng: 8.5,
+          resolvedLat: 47.4,
+          resolvedLng: 8.5,
+        },
+      ],
+      true
+    );
+
+    const marker = maplibreMock.MockMarker.instances[0];
+    expect(marker.setLngLat).toHaveBeenCalledWith([8.5, 47.4]);
+    expect(marker.element?.classList.contains('mini-map-photo-marker--estimated')).toBe(true);
+    expect(marker.element?.getAttribute('aria-label')).toContain('Estimated from photo time and activity track');
+
+    marker.element?.click();
+    await nextTick();
+    expect(wrapper.emitted('select-media')).toEqual([[41]]);
+  });
+
+  it('enables media markers only while media interaction is active', async () => {
+    const wrapper = await mountMiniMap(
+      [],
+      [],
+      [
+        {
+          id: 45,
+          fileName: 'activity.mp4',
+          mediaKind: 'VIDEO',
+          positionOrigin: 'TRACK_INTERPOLATED',
+          estimatedPosition: true,
+          resolvedLat: 47.4,
+          resolvedLng: 8.5,
+        },
+      ]
+    );
+    const marker = maplibreMock.MockMarker.instances[0];
+    const button = marker.element as HTMLButtonElement;
+
+    expect(button.disabled).toBe(true);
+    expect(button.classList.contains('mini-map-photo-marker--interactive')).toBe(false);
+    button.click();
+    expect(wrapper.emitted('select-media')).toBeUndefined();
+
+    await wrapper.setProps({ mediaInteractionEnabled: true });
+    expect(button.disabled).toBe(false);
+    expect(button.classList.contains('mini-map-photo-marker--interactive')).toBe(true);
+    button.click();
+    expect(wrapper.emitted('select-media')).toEqual([[45]]);
+
+    await wrapper.setProps({ mediaInteractionEnabled: false });
+    button.click();
+    expect(wrapper.emitted('select-media')).toEqual([[45]]);
+  });
+
+  it('hides the track-point marker in media mode and restores it after leaving', async () => {
+    const wrapper = await mountMiniMap();
+    useTrackMapSync().setPinnedPoint({
+      lat: 47.4,
+      lng: 8.5,
+      altitude: null,
+      timestamp: 0,
+      distanceKm: 0,
+      pointIndex: 0,
+    });
+    await nextTick();
+
+    const trackPointMarker = maplibreMock.MockMarker.instances[0];
+    expect(trackPointMarker.addTo).toHaveBeenCalledTimes(1);
+
+    await wrapper.setProps({ mediaInteractionEnabled: true });
+    expect(trackPointMarker.remove).toHaveBeenCalledTimes(1);
+
+    await wrapper.setProps({ mediaInteractionEnabled: false });
+    expect(trackPointMarker.addTo).toHaveBeenCalledTimes(2);
+  });
+
+  it('highlights a photo marker without rebuilding the marker collection', async () => {
+    const wrapper = await mountMiniMap(
+      [],
+      [],
+      [
+        {
+          id: 41,
+          fileName: 'estimated.jpg',
+          mediaKind: 'IMAGE',
+          positionOrigin: 'TRACK_INTERPOLATED',
+          estimatedPosition: true,
+          resolvedLat: 47.4,
+          resolvedLng: 8.5,
+        },
+      ]
+    );
+    const marker = maplibreMock.MockMarker.instances[0];
+
+    await wrapper.setProps({ highlightedMediaId: 41 });
+    expect(marker.element?.classList.contains('mini-map-photo-marker--highlighted')).toBe(true);
+    expect(maplibreMock.MockMarker.instances).toHaveLength(1);
+
+    await wrapper.setProps({ highlightedMediaId: null, selectedMediaId: 41 });
+    expect(marker.element?.classList.contains('mini-map-photo-marker--highlighted')).toBe(false);
+    expect(marker.element?.classList.contains('mini-map-photo-marker--selected')).toBe(true);
+    expect(maplibreMock.MockMarker.instances).toHaveLength(1);
+  });
+
+  it('uses only original EXIF coordinates for GPS photo markers', async () => {
+    await mountMiniMap(
+      [],
+      [],
+      [
+        {
+          id: 42,
+          fileName: 'gps.jpg',
+          mediaKind: 'IMAGE',
+          positionOrigin: 'EXIF_EMBEDDED',
+          estimatedPosition: false,
+          originalLat: 47.41,
+          originalLng: 8.51,
+          routeLat: 47.4,
+          routeLng: 8.5,
+          resolvedLat: 47.41,
+          resolvedLng: 8.51,
+        },
+      ]
+    );
+
+    const marker = maplibreMock.MockMarker.instances[0];
+    expect(marker.setLngLat).toHaveBeenCalledWith([8.51, 47.41]);
+    expect(marker.element?.classList.contains('mini-map-photo-marker--gps')).toBe(true);
+    expect(marker.element?.getAttribute('title')).toContain('Photo GPS');
+  });
+
+  it('uses the resolved user position while retaining a distinct manual marker', async () => {
+    await mountMiniMap(
+      [],
+      [],
+      [
+        {
+          id: 43,
+          fileName: 'manual.jpg',
+          mediaKind: 'IMAGE',
+          positionOrigin: 'USER_ASSIGNED',
+          estimatedPosition: false,
+          originalLat: 47.41,
+          originalLng: 8.51,
+          routeLat: 47.4,
+          routeLng: 8.5,
+          resolvedLat: 47.5,
+          resolvedLng: 8.6,
+        },
+      ]
+    );
+
+    const marker = maplibreMock.MockMarker.instances[0];
+    expect(marker.setLngLat).toHaveBeenCalledWith([8.6, 47.5]);
+    expect(marker.element?.classList.contains('mini-map-photo-marker--manual')).toBe(true);
+    expect(marker.element?.getAttribute('title')).toContain('Location set by you');
+  });
+
+  it('does not claim GPS provenance when the origin is missing', async () => {
+    await mountMiniMap(
+      [],
+      [],
+      [
+        {
+          id: 44,
+          fileName: 'unknown.jpg',
+          mediaKind: 'IMAGE',
+          positionOrigin: undefined,
+          estimatedPosition: false,
+          routeLat: 47.4,
+          routeLng: 8.5,
+        },
+      ]
+    );
+
+    const marker = maplibreMock.MockMarker.instances[0];
+    expect(marker.setLngLat).toHaveBeenCalledWith([8.5, 47.4]);
+    expect(marker.element?.classList.contains('mini-map-photo-marker--unknown')).toBe(true);
+    expect(marker.element?.getAttribute('title')).toContain('Position source unknown');
+  });
+
+  it('uses one circular photo symbol and changes only provenance colors', async () => {
+    await mountMiniMap(
+      [],
+      [],
+      [
+        {
+          id: 51,
+          mediaKind: 'IMAGE',
+          positionOrigin: 'EXIF_EMBEDDED',
+          originalLat: 47.41,
+          originalLng: 8.51,
+        },
+        {
+          id: 52,
+          mediaKind: 'IMAGE',
+          positionOrigin: 'TRACK_INTERPOLATED',
+          estimatedPosition: true,
+          routeLat: 47.42,
+          routeLng: 8.52,
+        },
+        {
+          id: 53,
+          mediaKind: 'IMAGE',
+          positionOrigin: 'USER_ASSIGNED',
+          resolvedLat: 47.43,
+          resolvedLng: 8.53,
+        },
+        {
+          id: 54,
+          mediaKind: 'IMAGE',
+          routeLat: 47.44,
+          routeLng: 8.54,
+        },
+      ]
+    );
+
+    const markerElements = maplibreMock.MockMarker.instances.map((marker) => marker.element!);
+    expect(markerElements).toHaveLength(4);
+    expect(new Set(markerElements.map((element) => element.querySelector('i')?.className))).toEqual(
+      new Set(['bi bi-camera-fill'])
+    );
+    expect(
+      new Set(markerElements.map((element) => element.style.getPropertyValue('--media-marker-border-radius')))
+    ).toEqual(new Set(['999px']));
+    expect(new Set(markerElements.map((element) => element.style.getPropertyValue('--media-marker-fill'))).size).toBe(
+      4
+    );
   });
 
   it('opens a point popup from a projected line segment when simplified points are sparse', async () => {
@@ -554,5 +845,46 @@ describe('TrackDetailMiniMap event layer', () => {
     document.dispatchEvent(new MouseEvent('mousemove', { bubbles: true }));
 
     expect(chartSyncMocks.clearChartCrosshairs).toHaveBeenCalledTimes(3);
+  });
+
+  it('exposes an accessible resize separator with tap and keyboard alternatives', async () => {
+    const wrapper = await mountMiniMap();
+    const handle = wrapper.get('.resize-handle');
+    const mapBody = wrapper.get('.mini-map-body');
+
+    expect(handle.attributes('role')).toBe('separator');
+    expect(handle.attributes('tabindex')).toBe('0');
+    expect(handle.attributes('aria-orientation')).toBe('horizontal');
+    expect(handle.attributes('aria-controls')).toBe(mapBody.attributes('id'));
+    expect(handle.attributes('aria-valuenow')).toBe('220');
+
+    await handle.trigger('keydown', { key: 'ArrowDown' });
+    expect(handle.attributes('aria-valuenow')).toBe('240');
+
+    await handle.trigger('keydown', { key: 'Home' });
+    expect(handle.attributes('aria-valuenow')).toBe('80');
+
+    await handle.trigger('click');
+    expect(handle.attributes('aria-valuenow')).toBe('220');
+  });
+
+  it('keeps the MapLibre canvas synchronized throughout a touch resize gesture', async () => {
+    const wrapper = await mountMiniMap();
+    const handle = wrapper.get('.resize-handle');
+    const map = maplibreMock.MockMap.instances[0];
+    map.resize.mockClear();
+
+    dispatchPointer(handle.element, 'pointerdown', { clientX: 100, clientY: 100 });
+    dispatchPointer(window, 'pointermove', { clientX: 101, clientY: 130 });
+    dispatchPointer(window, 'pointermove', { clientX: 102, clientY: 160 });
+    await nextTick();
+
+    expect(handle.attributes('aria-valuenow')).toBe('280');
+    expect(map.resize).toHaveBeenCalledTimes(2);
+
+    dispatchPointer(window, 'pointerup', { clientX: 102, clientY: 160 });
+    await nextTick();
+
+    expect(map.resize).toHaveBeenCalledTimes(3);
   });
 });

@@ -1,0 +1,26 @@
+FLT_11 exact category selection across parameter changes
+
+Starting exact selection
+- View: Activities by exact type.
+- Selected: HIKING and WALKING.
+- Unselected: BICYCLE.
+- Result: 3 of 15 tracks; 2 of 3 categories.
+
+Restrictive date parameter
+- Set From date to 2026-08-18 while the exact selection was active.
+- Toolbar immediately changed to 1 / 15 Tracks.
+- Included categories then showed:
+  - HIKING (1), checked.
+  - WALKING, checked, No matches with current parameters, 0.
+- The mixed All categories state remained; the exact saved selection was not replaced by the currently available category.
+
+Clear date / newly available categories
+- Cleared From date.
+- Toolbar returned to 3 / 15 Tracks.
+- Configuration returned to No criteria / 2 of 3 categories.
+- Category selector showed:
+  - BICYCLE (12), unchecked.
+  - HIKING (1), checked.
+  - WALKING (2), checked.
+
+The selected Walking category survived temporary unavailability, and the newly available Bicycle category did not become implicitly selected.

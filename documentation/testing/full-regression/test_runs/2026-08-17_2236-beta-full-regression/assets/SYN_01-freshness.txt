@@ -1,0 +1,20 @@
+SYN_01 freshness-banner evidence
+
+Baseline client:
+- Authenticated desktop browser, 1280 x 720.
+- Map/browser toolbar: 14 Tracks.
+- No New data available banner.
+
+Server-side data change through the end-user import UI:
+- Selected SYN_01-new-track.gpx (901 B).
+- UI: 'SYN_01-new-track.gpx' uploaded successfully. Indexing will begin shortly.
+- Indexed file 300036: COMPLETED_WITH_SUCCESS, invocation 1.
+- Track 100026: MTL Sync Banner Track, SUCCESS, UNIQUE, 673.67 m.
+
+Freshness result:
+- New data available appeared after about 7 seconds.
+- Banner text: Tracks, media, or settings changed since this view loaded.
+- Actions: Reload and Dismiss.
+- Cached browser/map count remained 14 Tracks before Reload.
+
+Result: PASS

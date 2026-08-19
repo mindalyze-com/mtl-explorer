@@ -4,14 +4,14 @@ mtl:
     time-tolerance: PT20M # PT1H (1 hour), PT15M (15 minutes), PT15S (15 seconds)
     distance-tolerance: 1000
   indexer:
-    change-detection-strategy: SIZE_ONLY  # SIZE_ONLY | SIZE_AND_MTIME
-    worker-threads: 2                     # parallel GPX import workers; set to 1 on low-power NAS to avoid GC overload
+    change-detection-strategy: SIZE_AND_MTIME  # SIZE_ONLY | SIZE_AND_MTIME
+    worker-threads: 2                     # workers per file index; set to 1 on low-memory systems to reduce peak allocation
     gps:
       live-watch-enabled: true            # watch directory with inotify for instant GPX detection
       rescan-interval: PT12H              # ISO-8601 duration; periodic full rescan interval for GPS
     media:
       live-watch-enabled: false           # disabled: media tree is huge; rely on periodic rescans instead
-      rescan-interval: P7D               # ISO-8601 duration; periodic full rescan interval for MEDIA
+      rescan-interval: P7D                # ISO-8601 duration; periodic full rescan interval for MEDIA
   denoise:
     algorithm: kalman           # median | kalman  (default: kalman)
     kalman:
@@ -42,6 +42,22 @@ mtl:
   demo-mode: false                        # overridden to true by application-demo.yml
   log-viewer-enabled: true               # set to false to disable /api/admin/server-log (always off in demo mode)
   media-watch-directory: /app/media
+  image-magick:
+    max-concurrent-processes: 2   # global cap for simultaneous image resize and HEIC conversion processes
+  video-transcode:
+    enabled: true
+    temp-directory: ${java.io.tmpdir}/mtl-explorer-video-transcodes
+    max-active-sessions: 1       # each active session owns one FFmpeg process
+    max-completed-sessions: 1    # bounded reconnect cache; oldest completed output is evicted
+    max-sessions: 4              # includes short-lived failed and cancelled status records
+    max-session-bytes: 3221225472 # 3 GiB hard per-session output limit
+    max-total-bytes: 4294967296   # 4 GiB hard global output limit
+    disconnect-grace: PT5M       # active jobs survive brief player disconnects
+    completed-expiry: PT30M
+    max-runtime: PT6H
+    probe-timeout: PT20S
+    monitor-interval: PT1S
+    segment-seconds: 4
   garmin-sync:
     enabled: false # needs to be enabled in custom application.yml
     wrapper-program: /app/garmin_export/run_export.sh

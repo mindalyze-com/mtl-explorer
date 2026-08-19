@@ -1,0 +1,21 @@
+MAP_05 high-zoom track evidence
+
+Selected track:
+- Route: /mtl/track/100004
+- Name: Lannion_Plestin_parcours Lannion_Plestin_parcours1
+- Detail mini-map and full overview data loaded
+
+Zoom exercise:
+- Clicked main-map Zoom in four times
+- Scale changed from 500 km to 50 km
+- Main rendering canvases remained 1204 x 720 CSS / 2408 x 1440 backing pixels
+- Detail rendering canvas remained 920 x 220 CSS / 1840 x 440 backing pixels
+- Loading text absent after settling
+- Browser console errors captured for tab: 0
+
+Constraint:
+- ACC_04 blocks screenshots.
+- Track lines are canvas-rendered and have no semantic line target.
+- Therefore detail/precision change and duplicate/broken-line absence could not be observed directly.
+
+Result: zoom and rendering surfaces remained functional, but the required visual line-quality assertion is blocked.

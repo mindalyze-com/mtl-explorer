@@ -1,0 +1,29 @@
+TBS_11 highlight drill-down and exclusion-count evidence
+
+Longest track drill-down:
+- Opened from Overview; Longest track row became active.
+- 13 ranked rows rendered with rank, name, activity/date, ranking value,
+  distance/duration, open action, and exclude action.
+- Top entries: Moselradweg 518 km; Jura 273 km; Lannion 25.9 km;
+  Track 100005 3.60 km.
+- Opened rank 1. Route changed to /mtl/track/100002 and Track Details showed
+  #100002, Moselradweg, Bicycle, 518 km, mini map, and matching metrics.
+- Close returned to Statistics Overview.
+
+Conditional excluded-highlight count:
+- Temporarily excluded Moselradweg with reason GPS noise using the ranked-row
+  action. The UI confirmed Track excluded from highlights.
+- Overview retained all 13 statistics tracks/totals but showed
+  "1 track excluded" in the Highlights header.
+- Longest track recomputed to Jura Route 7 (273 km).
+- Activating the count opened Statistics Tracks with Excluded pressed and one
+  row: Moselradweg, badge "Highlights: GPS noise", 518 km, 6h 50m.
+
+Restoration:
+- Opened the excluded row, Quality, and changed Highlights from GPS noise to
+  Included. Statistics remained Included throughout.
+- Quality showed both Statistics and Highlights as Included; exclusion note
+  disappeared.
+- Returned to Overview, where the excluded count was absent and Moselradweg
+  was again Longest track at 518 km.
+- Applied the freshness Reload; map remained 13 Tracks.

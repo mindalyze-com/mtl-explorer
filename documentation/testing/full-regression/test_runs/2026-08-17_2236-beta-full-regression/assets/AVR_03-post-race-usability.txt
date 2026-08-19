@@ -1,0 +1,14 @@
+AVR_03 post-race cleanup and usability
+
+- Started from a paused two-racer virtual race.
+- Reset returned both racer cards to 0% and restored the play icon.
+- Closed Race, then closed Segment Analyzer results.
+- Final map state had no visible Race, result table, analyzer sheet, or placement guidance.
+- Main map retained all 13 tracks.
+- Zoom In remained usable and changed the scale from 100 m to 50 m.
+- Map tool opened normally after race cleanup.
+- Map settings showed current map OSM Topo Contrast, configuration sections, and Reset map settings.
+- No stuck transport, temporary race UI, or blocked map/tool interaction remained.
+
+Result: PASS.
+

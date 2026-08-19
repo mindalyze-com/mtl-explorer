@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.10.xsd">
+
+    <changeSet id="20260817_6_requeue_undated_videos" author="codex">
+        <comment>
+            Requeue previously indexed videos without an embedded capture date so the
+            video metadata extractor can refresh them once after this upgrade.
+        </comment>
+
+        <sql><![CDATA[
+UPDATE indexed_file AS indexed
+SET indexer_status = 'SCHEDULED',
+    index_update_date = CURRENT_TIMESTAMP,
+    last_message = 'Upgrade: video capture date metadata refresh scheduled',
+    version = COALESCE(indexed.version, 0) + 1
+WHERE indexed.index = 'MEDIA'
+  AND indexed.indexer_status = 'COMPLETED_WITH_SUCCESS'
+  AND LOWER(indexed.name) ~ '[.](3gp|avi|m4v|mov|mp4)$'
+  AND EXISTS (
+      SELECT 1
+      FROM media_file AS media
+      WHERE media.file_id = indexed.id
+        AND media.exif_gps_date IS NULL
+        AND media.exif_date_image_taken IS NULL
+  );
+        ]]></sql>
+    </changeSet>
+
+</databaseChangeLog>

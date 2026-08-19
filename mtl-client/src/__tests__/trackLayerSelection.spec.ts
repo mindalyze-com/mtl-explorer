@@ -94,6 +94,19 @@ describe('track layer selection', () => {
     });
     expect(overlayMap.setFilter).not.toHaveBeenCalled();
   });
+
+  it('opens a matched media activity directly on Photos', () => {
+    const selectTrackById = vi.fn();
+    const openTrackDetails = vi.fn();
+    const context = bindTrackLayerMethods({});
+    context.selectTrackById = selectTrackById;
+    context.openTrackDetails = openTrackDetails;
+
+    context.onTrackBrowserOpenPhotos(42);
+
+    expect(selectTrackById).toHaveBeenCalledWith(42);
+    expect(openTrackDetails).toHaveBeenCalledWith(42, 'expanded', 'photos');
+  });
 });
 
 describe('track source draping', () => {

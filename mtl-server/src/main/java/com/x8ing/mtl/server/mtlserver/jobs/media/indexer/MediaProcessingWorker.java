@@ -43,8 +43,12 @@ public class MediaProcessingWorker {
         if (f == null) {
             return;
         }
-        // Domain-only: let exceptions bubble so observer completion can mark success/failure
-        mediaIndexer.indexFile(f);
+        // Domain-only: let exceptions bubble so observer completion can mark success/failure.
+        if (changed) {
+            mediaIndexer.refreshFile(f);
+        } else {
+            mediaIndexer.indexFile(f);
+        }
     }
 
     /**
@@ -60,6 +64,6 @@ public class MediaProcessingWorker {
             return;
         }
         // Domain-only: no indexer state writes here; throw to signal failure to observer
-        // TODO: Implement media deletion logic when needed (e.g., remove derived entities)
+        mediaIndexer.deleteFilesForIndexedFile(f);
     }
 }

@@ -26,6 +26,7 @@ const REMOTE_RASTER_MAP_THEMES = new Set<MapTheme>(['light', 'light-topo', 'dark
 export const DEFAULT_MAP_THEME = TOPO_CONTRAST_THEME;
 export const DEFAULT_REMOTE_RASTER_MAP_THEME: MapTheme = 'light-topo';
 export const DEFAULT_MAP_SOURCE_MODE: MapSourceMode = 'auto';
+export const DEFAULT_MEDIA_VISIBLE = true;
 
 export const DEFAULT_LAYER_OPACITIES: Record<string, number> = {
   basemap: 100,
@@ -57,6 +58,7 @@ type PersistedMapSettings = {
   terrainEnabled?: unknown;
   terrainExaggeration?: unknown;
   tracksEnabled?: unknown;
+  mediaVisible?: unknown;
   trackPointsVisible?: unknown;
   heatmapVisible?: unknown;
   activeOverlays?: unknown;
@@ -73,7 +75,7 @@ export const useMapSettingsStore = defineStore('mapSettings', () => {
   const terrainEnabled = ref(false);
   const terrainExaggeration = ref(TERRAIN_EXAGGERATION_DEFAULT);
   const tracksEnabled = ref(true);
-  const mediaVisible = ref(false);
+  const mediaVisible = ref(DEFAULT_MEDIA_VISIBLE);
   const trackPointsVisible = ref(true);
   const heatmapVisible = ref(false);
   const activeOverlays = ref<string[]>([]);
@@ -114,9 +116,9 @@ export const useMapSettingsStore = defineStore('mapSettings', () => {
     terrainEnabled.value = sanitizeBoolean(stored.terrainEnabled, false);
     terrainExaggeration.value = sanitizeTerrainExaggeration(stored.terrainExaggeration);
     tracksEnabled.value = sanitizeBoolean(stored.tracksEnabled, true);
+    mediaVisible.value = sanitizeBoolean(stored.mediaVisible, DEFAULT_MEDIA_VISIBLE);
     trackPointsVisible.value = sanitizeBoolean(stored.trackPointsVisible, true);
     heatmapVisible.value = sanitizeBoolean(stored.heatmapVisible, false);
-    mediaVisible.value = false;
 
     hydrated.value = true;
   }
@@ -166,6 +168,7 @@ export const useMapSettingsStore = defineStore('mapSettings', () => {
         break;
       case 'media':
         mediaVisible.value = enabled;
+        persistPreferences();
         break;
       case 'trackpoints':
         trackPointsVisible.value = enabled;
@@ -223,7 +226,7 @@ export const useMapSettingsStore = defineStore('mapSettings', () => {
     terrainEnabled.value = false;
     terrainExaggeration.value = TERRAIN_EXAGGERATION_DEFAULT;
     tracksEnabled.value = true;
-    mediaVisible.value = false;
+    mediaVisible.value = DEFAULT_MEDIA_VISIBLE;
     trackPointsVisible.value = true;
     heatmapVisible.value = false;
     activeOverlays.value = [];
@@ -252,6 +255,7 @@ export const useMapSettingsStore = defineStore('mapSettings', () => {
       terrainEnabled: terrainEnabled.value,
       terrainExaggeration: terrainExaggeration.value,
       tracksEnabled: tracksEnabled.value,
+      mediaVisible: mediaVisible.value,
       trackPointsVisible: trackPointsVisible.value,
       heatmapVisible: heatmapVisible.value,
       activeOverlays: activeOverlays.value,

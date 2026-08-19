@@ -1,0 +1,50 @@
+ADM_06 operational task status evidence
+
+Healthy quick-install state
+- Vector Map Tiles: done, 100%; `Using hosted map service`;
+  `Protomaps archive public-default`; metric `Hosted map service`.
+- Location Search: done, 100%; `GeoNames location search ready.`;
+  Image 1.10 built 14/08/2026 08:49:43; Python 3.14.5;
+  SQLite 3.53.1; APSW 3.53.1.0; GeoNames CC-BY 4.0;
+  1,332,531 places (233,251 populated, 1,099,280 terrain).
+- Routing Segments: ready, 100%; routing segments ready for planned routes;
+  Image 1.21 built 14/08/2026 08:49:43; BRouter 1.7.9; 3 on disk.
+
+Healthy endpoint reconciliation
+- map config: tileMode local, tileSource public, archiveId public-default,
+  plannerEnabled true.
+- map status: ready true, phase public-fallback,
+  message `Using hosted map service`, Protomaps archive public-default.
+- location status: ready true, phase ready, exact GeoNames/version data above.
+- planner status: available true, brouterRunning true, 3 segments on disk,
+  0 queued, empty in-progress list.
+
+Unavailable state and recovery
+- Temporarily stopped only the disposable stack's `location-search` and
+  `brouter` services.
+- Direct Admin Processing load showed:
+  - Location Search: unavailable; `Location search sidecar is not reachable.`
+  - Routing Segments: unavailable; useful BRouter GET connection detail.
+- Vector Map Tiles and the map remained available.
+- Restarted both services. Location Search returned healthy; Processing Refresh
+  restored exact done/ready cards and details.
+
+Disabled state and recovery
+- Reused the existing same-run MAP_13 compose override setting only
+  `MTL_MAP_SERVER_TILE_MODE=remote` and recreated the app service.
+- Processing showed Vector Map Tiles: disabled;
+  `Remote raster map mode is active.`; metric `Local tiles off`.
+- The map loaded OpenTopoMap remote raster tiles and retained 14 Tracks.
+- Recreated the app from the normal compose file with required beta image.
+- Processing returned Vector Map Tiles to done/100% hosted public fallback;
+  app, brouter, and location-search were all running, and HTTP returned 200.
+
+Downloading applicability
+- The quick-install topology has no active local-maps profile/container and the
+  normal local tile mode uses the hosted public PMTiles fallback. There is no
+  safe in-scope local archive download to start, so a live downloading phase
+  did not apply to this healthy quick-install run.
+
+Result: PASS. Ready, unavailable, disabled, and recovery paths rendered clear
+state labels and useful details. Downloading was not applicable to the hosted
+fallback topology and was not fabricated.

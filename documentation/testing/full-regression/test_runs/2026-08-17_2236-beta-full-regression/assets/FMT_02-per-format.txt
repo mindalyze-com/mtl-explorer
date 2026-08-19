@@ -1,0 +1,39 @@
+FMT_02 per-format evidence
+Observed 2026-08-17 23:18-23:33 Europe/Zurich
+
+Format -> track used for complete child checks:
+- FIT -> 100005 Activity.fit
+- TCX -> 100013 unique.tcx / FMT Unique TCX
+- KML -> 100007 sample.kml / Path
+- KMZ -> 100009 sample.kmz / Path
+- IGC -> 100008 sample.igc / GNSSALTTRK
+- NMEA -> 100015 unique.nmea / Track 100015
+- GeoJSON -> 100011 sample.geojson / MTL Synthetic Segment A
+- GDB -> 100014 unique.gdb / FMT Unique GDB St Gallen
+
+Upload/conversion:
+- Live watcher accepted every source. Server logs show the expected per-format GPSBabel input, converted GPX size, SUCCESS, and track ID.
+- TCX, GDB, and NMEA were re-run with spatially distinct positive fixtures because the first versions (100006, 100010, 100012) were correctly marked duplicates of IGC 100008 and omitted from default map/stat aggregates.
+
+Map/details/charts/statistics:
+- Direct signed-in Track Details routes for every listed track loaded a mini-map, Overview, Graphs, Quality, Related, Photos, and Events tabs.
+- Clicking Graphs on every listed non-GPX format exposed an accessible Highcharts combination chart with two data series.
+- The map and Statistics Overview show 13 default tracks after the distinct replacements.
+- Statistics Tracks contains KML, KMZ, IGC, GeoJSON, FIT, and the distinct TCX/GDB/NMEA replacements. Search `FMT Unique` returned the TCX and GDB rows; search `Track 100015` returned the NMEA row. Statistics Overview reports 13 tracks.
+
+Read-only authenticated download corroboration:
+- Original-source endpoint returned HTTP 200 and byte-exact source hashes for all tracks.
+- FIT original: 94,096 bytes; SHA-256 949a238e1bb75c3684479785f76fa9a16888bb394518844248f488171d591387.
+- TCX original: 2,689 bytes; SHA-256 e7255047782c893393031b3b789bf1a0d65598f0cf0163adf485f37d17da884a. GPX: 1,064 bytes, 4 trkpt, 5 time.
+- KML original: 6,528 bytes; SHA-256 2b8ff28ee6687cee29576e25ccb2a7d043e27301e34c13095f38d84e47cfe625. GPX: 4,487 bytes, 4 trkpt, 5 time.
+- KMZ original: 1,418 bytes; SHA-256 d73740d9c0eb81a490e38221716b84a43e3334524c0460eb3aab41650baf3b6f. GPX: 4,487 bytes, 4 trkpt, 5 time.
+- IGC original: 291 bytes; SHA-256 650646454a8b9b2f5ece0f6dafc14c4135313bf5c28cc28c4997b549fb5eb90c. GPX: 980 bytes, 4 trkpt, 5 time.
+- NMEA original: 544 bytes; SHA-256 15d6a58545c561f6652e939a8f4f50191b2d68664ef4049a3ac4ea3e2b67fbf0. GPX: 1,216 bytes, 4 trkpt, 5 time.
+- GeoJSON original: 883 bytes; SHA-256 0bcb593353fc174115a932a785db6326bbce9b3267f4682c87fd39e253127ca3. GPX: 834 bytes, 4 trkpt.
+- GDB original: 210 bytes; SHA-256 b74eb86c95f94202cfacc4b95464e0e5a031a28f256ddc4ed15ef143cf1aed25. GPX: 949 bytes, 4 trkpt, 5 time.
+- FIT GPX: 479,844 bytes, 3,601 trkpt, 3,602 time.
+
+Browser-artifact constraint:
+- Each detail Overview exposed Download original and Download GPX controls.
+- FIT actions were exercised in FIT_04/FIT_05. On distinct TCX 100013, both actions were exercised again; neither produced a download event or artifact path within 5 seconds, while the UI remained responsive.
+- The selected browser cannot expose downloaded artifact bytes. Server output is correct, but the end-user downloaded artifacts cannot be inspected, so FMT_02 is terminally BLOCKED rather than PASS.

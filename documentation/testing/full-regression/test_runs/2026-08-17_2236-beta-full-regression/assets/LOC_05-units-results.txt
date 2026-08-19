@@ -1,0 +1,68 @@
+LOC_05 metric / imperial paired results
+Locale during paired conversion: de-DE
+Underlying tracks, track point, segment zones, and saved Planner route were unchanged.
+
+Preferences:
+- Metric preview: 25,0 km · 500 m · 80 kg
+- Imperial preview: 15,5 mi · 1.640 ft · 176 lb
+- Imperial was aria-pressed=true after a full reload.
+
+Statistics Overview:
+- Metric: 824 km; 13.090 m ascent; 72,5 km/h
+- Imperial: 512 mi; 42.945 ft ascent; 45,0 mph
+- Unchanged: 16h 51m; 3.993 Wh; 18.08.2026, 12:00
+
+Statistics Tracks / track 100005:
+- Metric: 3,60 km; 59m 57s; 3,6 under AVG KM/H; 347 Wh
+- Imperial: 2,24 mi; 59m 57s; 2,2 under AVG MPH; 347 Wh
+
+Track Details and graphs / track 100005:
+- Metric: 3,60 km; 1.667 m; 3,6 km/h; 3.919 m/h
+- Imperial: 2,24 mi; 5.468 ft; 2,2 mph; 12.857 ft/h
+- Graph axes changed km/h/m/m/h/km to mph/ft/ft/h/mi.
+- Unchanged: 59m 59s; 346,7 Wh; 702 W; 20.07.2021, 23:11.
+- Rider weight sheet used lb only in Imperial and displayed the stored 75 kg
+  baseline as 165,3 lb; Preferences also paired 80 kg with 176 lb.
+
+Same map point / track 100017 point 3:
+- Metric: 166,20 m; 552,0 m; 7,4 km/h
+- Imperial: 545,28 ft; 1.811,0 ft; 4,6 mph
+- Unchanged: 18.08.2026, 12:01:30; 1m 30s
+
+Filter numeric parameters:
+- Distance inputs labeled km in Metric and mi in Imperial; Imperial 2-373 mi
+  produced four matching tracks.
+- Elevation inputs labeled m in Metric and ft in Imperial; Imperial
+  328-22.966 ft persisted through reload with five matching tracks.
+- Switching that same elevation criterion back to Metric converted it to
+  99,9744-7.000,0368 m.
+
+Same segment zones/results:
+- SYN_01-new-track.gpx: 8,08 km/h -> 5,02 mph.
+- MED_19-overlap-activity-b.gpx: 1,99 km/h -> 1,23 mph.
+- Dates and durations stayed unchanged.
+
+Same saved Planner route (LOC05 unit route):
+- Metric: 1,78 km; 28 m ascent; 0 m descent; 8m; 1 leg.
+- Imperial: 1,11 mi; 92 ft ascent; 0 ft descent; 8m; 1 leg.
+- The unchanged 90-point elevation profile relabeled its axes mi and ft.
+- Temporary saved plan was deleted after verification.
+
+Replay / track 100005:
+- Metric: 3,60 km total; 126 m elevation max; km/h.
+- Imperial: 2,24 mi total; 413 ft elevation max; mph.
+- Elapsed/remaining durations stayed unchanged.
+
+Persistence and restore:
+- Imperial preference, 328-22.966 ft filter bounds, and converted views
+  persisted after a full reload.
+- Metric was then selected; a second full reload restored 824 km, 13.090 m,
+  and 72,5 km/h while duration, energy, and date stayed unchanged.
+- Browser-default locale/units, clean filter, default map settings, 15 tracks,
+  and no saved LOC05 route were restored.
+
+FR-014:
+- Under Imperial, the global map scale still displayed metric values such as
+  500 m on Statistics, Tracks, Track Details, segment comparison, point popup,
+  and Planner, and 1 km in Replay, while adjacent content used mi/ft/mph.
+- This is a mixed-unit view and violates the frozen no-mixing requirement.

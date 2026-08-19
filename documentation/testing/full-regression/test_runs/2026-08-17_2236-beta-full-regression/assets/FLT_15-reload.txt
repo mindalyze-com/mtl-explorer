@@ -1,0 +1,32 @@
+FLT_15 exact result-category reload restoration
+
+Saved state before reload
+- View: Tracks by year.
+- Exact selection: 2013 and 2021.
+- Summary: 2 of 4 categories.
+- Result/toolbar: 2 matching / 2 of 15 Tracks.
+
+First reload states
+- Navigated directly to /mtl/filter.
+- First immediate DOM state was the app Loading your trails state.
+- It contained neither a transient 15 matching tracks result nor a transient 2 matching tracks result.
+- First resolved Filter state was already:
+  - Tracks by year.
+  - 2 matching tracks.
+  - 2 of 4 categories.
+  - 2 / 15 Tracks.
+  - Legend 2013 and 2021 only.
+
+Filter-aware views after reload
+- Review tracks: 2 tracks, 29.5 km, 2h 13m; same 2021 track 100005 and 2013 Lannion track.
+- Statistics Overview: 2 tracks, 29.5 km.
+- Statistics Trends: 2 tracks, 29.5 km total distance.
+- Statistics Tracks: 2 tracks, 29.5 km; same filtered table.
+- Heatmap consistency was already proven for this exact 2013/2021 selection in FLT_09 and was restored off afterward.
+
+Controlled data restoration
+- Navigated to track 100017.
+- Changed temporary Hiking back to Running through Quality.
+- Header and combobox returned to Running.
+- Overview Net Total returned to 3.1 Wh.
+- The controlled FLT_10-FLT_15 mutation is fully restored.

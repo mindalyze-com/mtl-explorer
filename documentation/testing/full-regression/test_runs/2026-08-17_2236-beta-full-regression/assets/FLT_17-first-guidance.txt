@@ -1,0 +1,28 @@
+FLT_17 first-use Filter guidance in a clean browser origin
+
+Clean context
+- Used the same target app through the distinct clean origin 62.238.106.141.nip.io.
+- This provides separate browser localStorage while resolving to the authorized target server.
+- Opened a new in-app browser tab and signed in with the documented application login.
+- No credentials are stored in this artifact.
+
+First Filter open
+- First Filter navigation automatically opened How filters work rather than the overview.
+- Important badge was visible.
+- Content stated Your filter shapes everything and explained:
+  - app-wide result behavior;
+  - Map, Track lists, Statistics, Trends, Milestones, Heatmap;
+  - walking-only example;
+  - map coloring without changing which tracks count.
+- Header Back to Filter and Close were both available.
+- Footer action was Got it.
+
+Got it and repeat prevention
+- Selected Got it.
+- Returned to Filter overview with 15 matching tracks.
+- Important/help sheet was gone.
+- Closed Filter, then opened it again.
+- Filter overview opened directly.
+- How filters work did not auto-open and Important was absent.
+
+The clean-origin tab was retained only through FLT_18 and then closed.

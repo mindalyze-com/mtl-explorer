@@ -1,6 +1,6 @@
 # MTL Explorer
 
-> Self-hosted GPS track and trail log for your own PC, home lab, or server.
+> Self-hosted GPS track and trail log for your own PC, NAS, home lab, or server.
 
 ## Start here
 
@@ -78,6 +78,8 @@ see the [home install guide](documentation/home-install.md).
 
 ## Documentation
 
+- [Feature catalog](documentation/features.md) - current user-facing capabilities.
+- [Photo and media handling](documentation/photo-handling-improvement.md) - activity matching, map and timeline navigation, viewer, corrections, and media trends.
 - [Home install](documentation/home-install.md) - data folders, maps, updates,
   and logs.
 - [Container build](documentation/container-build.md) - build local Docker

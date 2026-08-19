@@ -1,0 +1,18 @@
+SRC_04 empty and no-result states
+Observed 2026-08-18 04:51 Europe/Zurich
+
+No-result query
+- Entered `zzzz-no-such-place-84721`.
+- After the request settled, the sheet showed a centered search icon and clear
+  `No matches` message.
+- Clear search remained available.
+
+Empty query
+- Activated Clear search.
+- Input returned to its `City, peak, area` placeholder.
+- The results region became blank: no prompt, empty-state explanation, search
+  hint, or other message was rendered.
+- Importance and Near map controls remained visible.
+
+Result: FAIL. No-result feedback passes, but the explicit empty-query branch
+does not show the required clear message.

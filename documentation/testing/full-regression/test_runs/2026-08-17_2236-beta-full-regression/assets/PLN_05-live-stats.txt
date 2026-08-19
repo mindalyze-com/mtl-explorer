@@ -1,0 +1,13 @@
+PLN_05 live statistics evidence
+
+Observed edit transitions without reloading:
+- Initial computed route: 2.93 km, 5 m ascent, 0 m descent, 8m, 1 leg.
+- Moving an endpoint: 710.00 m, 0 m ascent, 0 m descent, 2m, 1 leg.
+- Deleting an endpoint: 0.00 m, 0 m, 0 m, duration unavailable, 0 legs.
+- Undo: restored 710.00 m, 0 m, 0 m, 2m, 1 leg.
+- Clear: returned immediately to the zero state.
+- Undo clear: restored the same 710.00 m metrics.
+- Changing Road Bike to Hiking recomputed the route and retained a coherent
+  710.00 m / 2m one-leg bar.
+
+Result: PASS.

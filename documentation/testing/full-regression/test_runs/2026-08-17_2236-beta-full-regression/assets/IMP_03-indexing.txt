@@ -1,0 +1,12 @@
+Live-watcher result after copying five GPX files:
+- Manual Rescan GPS used: no
+- GPS indexer state: done
+- GPS completed: 5
+- GPS excluded: 1 (the run subdirectory entry)
+- GPS total filesystem entries: 6
+- Unexpected GPS failures: none shown
+- Main-map client count changed from 0 Tracks to 2 Tracks before accepting the
+  later freshness reload, confirming live processing was visible without a
+  browser restart.
+
+The watcher reacted automatically; no Admin rescan action was necessary.

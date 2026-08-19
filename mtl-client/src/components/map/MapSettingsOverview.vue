@@ -6,12 +6,19 @@
         <h3 id="map-settings-current-title">{{ themeName }}</h3>
         <p>{{ sourceSummary }} · {{ terrainSummary }}</p>
       </div>
-      <div class="map-settings-overview__preview" :style="{ backgroundImage: `url(${themeThumbnail})` }">
+      <button
+        type="button"
+        class="map-settings-overview__preview"
+        :style="{ backgroundImage: `url(${themeThumbnail})` }"
+        aria-label="Open map style settings"
+        title="Open map style settings"
+        @click="emit('open-style')"
+      >
         <span v-if="!basemapEnabled" class="map-settings-overview__preview-state">
           <i class="bi bi-eye-slash" aria-hidden="true"></i>
           Hidden
         </span>
-      </div>
+      </button>
     </section>
 
     <section class="map-settings-overview__configuration" aria-labelledby="map-settings-configuration-title">
@@ -99,6 +106,8 @@ const emit = defineEmits<{
 
 <style scoped>
 .map-settings-overview {
+  --map-settings-preview-max-width: 22rem;
+
   display: flex;
   width: 100%;
   box-sizing: border-box;
@@ -143,14 +152,32 @@ const emit = defineEmits<{
 .map-settings-overview__preview {
   position: relative;
   width: 100%;
+  max-width: var(--map-settings-preview-max-width);
   aspect-ratio: 16 / 9;
+  justify-self: end;
   overflow: hidden;
+  padding: 0;
   border: 1px solid var(--border-medium);
   border-radius: 0.7rem;
   background-color: var(--surface-elevated);
   background-position: center 60%;
   background-size: 155% auto;
   box-shadow: var(--shadow-sm);
+  color: inherit;
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.map-settings-overview__preview:hover {
+  border-color: var(--accent);
+}
+
+.map-settings-overview__preview:focus-visible {
+  border-color: var(--accent);
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 .map-settings-overview__preview-state {

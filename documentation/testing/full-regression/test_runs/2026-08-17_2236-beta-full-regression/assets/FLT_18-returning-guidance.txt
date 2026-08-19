@@ -1,0 +1,32 @@
+FLT_18 returning-user guidance on desktop and narrow mobile
+
+Returning context
+- Reused the clean alternate origin after FLT_17 Got it marked guidance seen.
+- Filter opened directly to Current result rather than auto-opening help.
+
+Desktop 1280 x 720
+- How this result works guidance remained inside Current result.
+- Control included compact summary text and Read more.
+- Guidance control scrollWidth/clientWidth: 362/362; no horizontal overflow.
+- Filter overview card scrollWidth/clientWidth: 905/905; no horizontal overflow.
+- Read more opened How filters work.
+- Important was absent and Got it was absent.
+- Two Back to Filter actions were available (header and footer).
+- Footer Back to Filter returned to Filter overview.
+- Close then closed the sheet to the map.
+
+Narrow mobile 390 x 844
+- Applied the documented temporary viewport override to the returning-user tab and reloaded Filter.
+- Measured window: 390 x 844.
+- Compact guidance rect: x31.4, y361.5, width316.2, height44.
+- Guidance horizontal overflow: 0.
+- Filter overview horizontal overflow: 0.
+- Read more opened How filters work without Important or Got it.
+- Header/footer Back to Filter were available.
+- Footer Back returned to Filter.
+- Close returned to the map and removed the Filter sheet.
+
+Cleanup
+- Mobile tab closed.
+- Temporary viewport override reset.
+- All alternate-origin test tabs closed.

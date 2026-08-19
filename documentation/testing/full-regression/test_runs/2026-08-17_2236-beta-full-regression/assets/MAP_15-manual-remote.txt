@@ -1,0 +1,38 @@
+MAP_15 manual Remote source evidence
+
+Server/deployment baseline:
+- Authenticated config remained tileMode local.
+- Map status remained healthy hosted public fallback.
+- Initial Map Source: Automatic checked; Remote unchecked.
+- Initial themes: OSM Topo Contrast, OSM Topo Light, Swiss Topo Color, Swiss Topo Light, OSM Light, OSM Gray, OSM Dark.
+- Initial observed local asset included /mtl/api/map-proxy/prod/planet.pmtiles.
+
+After selecting Remote tiles:
+- Automatic unchecked; Remote checked.
+- Available themes narrowed to exactly:
+  - OSM Topo Light
+  - OSM Light
+  - OSM Gray
+  - OSM Dark
+- Swiss Topo Color/Light were absent.
+- 24 new tile.opentopomap.org raster assets appeared.
+- New /api/map-proxy assets during the switch: 0.
+- OpenTopoMap and OpenStreetMap attribution present.
+- 15 Tracks remained visible and the map retained two rendering canvases.
+
+Persistence after normal reload:
+- Current map described Remote tiles · 2D map.
+- Remote checked; Automatic unchecked.
+- Same four OSM themes only; Swiss themes absent.
+- 68 OpenTopoMap tile assets observed in the clean reloaded page state.
+- /api/map-proxy assets observed in the clean reloaded page state: 0.
+- OpenTopoMap attribution and 15 Tracks remained visible.
+
+Reset:
+- Used Reset map settings.
+- Automatic checked; Remote unchecked.
+- Full seven-theme list returned, including both Swiss Topo themes.
+- Current map returned to OSM Topo Contrast, Automatic source · 2D map.
+- Local /api/map-proxy/planet.pmtiles asset returned.
+
+Result: manual Remote source used configured raster provider without new proxy assets, filtered themes correctly, persisted through reload, and Reset restored Automatic/local behavior.

@@ -32,23 +32,59 @@ public interface GpsTrackRepository extends JpaRepository<GpsTrack, Long> {
 
     @Query(nativeQuery = true, value = """
             select
-            	gps_track_id
+                gps_track_id
             from
-            	gps_track_data gtd
+                gps_track_data gtd
             inner join gps_track gt on gt.id = gtd.gps_track_id
             where 1=1
-            	and gtd.track && ST_Expand(
-            	    ST_SetSRID(ST_Point(:longitude, :latitude), 4326),
-            	    (:distanceInMeter + 10.0) / (111320.0 * GREATEST(ABS(COS(RADIANS(:latitude))), 0.01))
-            	)
-            	and ST_DWithin(gtd.track::geography, ST_SetSRID(ST_Point(:longitude, :latitude), 4326)::geography, :distanceInMeter + 10.0)
-            	and gtd.track_type = 'SIMPLIFIED_SHAPE'
-            	and gt.duplicate_status != 'DUPLICATE'
-            	and gt.track_source = 'IMPORTED'
-            	and precision_in_meter = 10
+                and gtd.track && ST_Expand(
+                    ST_SetSRID(ST_Point(:longitude, :latitude), 4326),
+                    (:distanceInMeter + 10.0) / (111320.0 * GREATEST(ABS(COS(RADIANS(:latitude))), 0.01))
+                )
+                and ST_DWithin(gtd.track::geography, ST_SetSRID(ST_Point(:longitude, :latitude), 4326)::geography, :distanceInMeter + 10.0)
+                and gtd.track_type = 'SIMPLIFIED_SHAPE'
+                and gt.duplicate_status != 'DUPLICATE'
+                and gt.track_source = 'IMPORTED'
+                and precision_in_meter = 10
                 and gt.id = ANY(:filterIds)
+            order by ST_Distance(
+                gtd.track::geography,
+                ST_SetSRID(ST_Point(:longitude, :latitude), 4326)::geography
+            ), gps_track_id
             """)
     List<Long> getTracksWithinDistanceToPoint(
+            @Param("longitude") double longitude,
+            @Param("latitude") double latitude,
+            @Param("distanceInMeter") double distanceInMeter,
+            @Param("filterIds") Long[] filterIds);
+
+    @Query(nativeQuery = true, value = """
+            WITH target_point AS (
+                SELECT ST_SetSRID(ST_Point(:longitude, :latitude), 4326) AS point
+            ), nearby_tracks AS (
+                SELECT
+                    gtd.gps_track_id AS "trackId",
+                    MIN(ST_Distance(gtd.track::geography, target.point::geography)) AS "distanceMeters"
+                FROM gps_track_data gtd
+                INNER JOIN gps_track gt ON gt.id = gtd.gps_track_id
+                CROSS JOIN target_point target
+                WHERE gtd.track && ST_Expand(
+                        target.point,
+                        (:distanceInMeter + 10.0) / (111320.0 * GREATEST(ABS(COS(RADIANS(:latitude))), 0.01))
+                    )
+                  AND ST_DWithin(gtd.track::geography, target.point::geography, :distanceInMeter + 10.0)
+                  AND gtd.track_type = 'SIMPLIFIED_SHAPE'
+                  AND gt.duplicate_status != 'DUPLICATE'
+                  AND gt.track_source = 'IMPORTED'
+                  AND gtd.precision_in_meter = 10
+                  AND gt.id = ANY(:filterIds)
+                GROUP BY gtd.gps_track_id
+            )
+            SELECT "trackId", "distanceMeters"
+            FROM nearby_tracks
+            ORDER BY "distanceMeters", "trackId"
+            """)
+    List<NearbyTrackDistance> getTracksWithDistanceToPoint(
             @Param("longitude") double longitude,
             @Param("latitude") double latitude,
             @Param("distanceInMeter") double distanceInMeter,
@@ -148,22 +184,45 @@ public interface GpsTrackRepository extends JpaRepository<GpsTrack, Long> {
     long countGoodTracks();
 
     /**
-     * Bulk-excludes all good tracks beyond {@code targetCount} (ordered by id).
-     * The sub-select uses OFFSET so no entities are loaded into memory.
+     * Bulk-excludes good tracks beyond {@code targetCount}, while retaining tracks
+     * that spatially and temporally match GPS-timed demo photos.
      */
     @Modifying
     @Query(nativeQuery = true, value = """
             UPDATE gps_track
                SET duplicate_status = 'EXCLUDED'
              WHERE id IN (
-                   SELECT id FROM gps_track
-                    WHERE load_status = 'SUCCESS'
-                      AND duplicate_status = 'UNIQUE'
-                    ORDER BY id
+                   SELECT track.id
+                     FROM gps_track track
+                    WHERE track.load_status = 'SUCCESS'
+                      AND track.duplicate_status = 'UNIQUE'
+                    ORDER BY
+                      CASE WHEN EXISTS (
+                          SELECT 1
+                            FROM media_file media
+                            JOIN LATERAL (
+                                SELECT data.track
+                                  FROM gps_track_data data
+                                 WHERE data.gps_track_id = track.id
+                                   AND data.track_type = 'RAW_OUTLIER_CLEANED'
+                                 ORDER BY data.id DESC
+                                 LIMIT 1
+                            ) route ON TRUE
+                           WHERE media.exif_gps_date BETWEEN track.start_date AND track.end_date
+                             AND media.exif_gps_location IS NOT NULL
+                             AND ST_DWithin(
+                                 media.exif_gps_location::geography,
+                                 route.track::geography,
+                                 :maxPhotoDistanceMeters
+                             )
+                      ) THEN 0 ELSE 1 END,
+                      track.id
                     OFFSET :targetCount
                    )
             """)
-    int excludeGoodTracksExceedingOffset(@Param("targetCount") int targetCount);
+    int excludeGoodTracksExceedingOffset(
+            @Param("targetCount") int targetCount,
+            @Param("maxPhotoDistanceMeters") double maxPhotoDistanceMeters);
 
     /**
      * Bulk-excludes suspicious tracks that aren't already EXCLUDED.
@@ -182,6 +241,47 @@ public interface GpsTrackRepository extends JpaRepository<GpsTrack, Long> {
                )
             """)
     int excludeSuspiciousTracks(@Param("cutoff") Date cutoff);
+
+    /**
+     * Re-enables count-trimmed tracks needed by GPS-timed demo photos. The
+     * duplicate detector validates them again before they become visible.
+     */
+    @Modifying
+    @Query(nativeQuery = true, value = """
+            UPDATE gps_track track
+               SET duplicate_status = 'NOT_CHECKED_YET',
+                   duplicate_of = NULL
+             WHERE track.load_status = 'SUCCESS'
+               AND track.duplicate_status = 'EXCLUDED'
+               AND track.track_source = 'IMPORTED'
+               AND (track.start_date IS NULL OR track.start_date >= :cutoff)
+               AND (track.meta_time IS NULL OR track.meta_time >= :cutoff)
+               AND (track.activity_type IS NULL OR track.activity_type <> 'SUPER_SONIC')
+               AND (track.max_distance_between_points IS NULL
+                    OR track.max_distance_between_points <= 1000.0)
+               AND EXISTS (
+                   SELECT 1
+                     FROM media_file media
+                     JOIN LATERAL (
+                         SELECT data.track
+                           FROM gps_track_data data
+                          WHERE data.gps_track_id = track.id
+                            AND data.track_type = 'RAW_OUTLIER_CLEANED'
+                          ORDER BY data.id DESC
+                          LIMIT 1
+                     ) route ON TRUE
+                    WHERE media.exif_gps_date BETWEEN track.start_date AND track.end_date
+                      AND media.exif_gps_location IS NOT NULL
+                      AND ST_DWithin(
+                          media.exif_gps_location::geography,
+                          route.track::geography,
+                          :maxPhotoDistanceMeters
+                      )
+               )
+            """)
+    int reEnablePhotoMatchedExcludedTracks(
+            @Param("cutoff") Date cutoff,
+            @Param("maxPhotoDistanceMeters") double maxPhotoDistanceMeters);
 
     /**
      * Re-enables up to {@code limit} EXCLUDED tracks that are NOT suspicious

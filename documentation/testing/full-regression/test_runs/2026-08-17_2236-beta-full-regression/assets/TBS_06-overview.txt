@@ -1,0 +1,40 @@
+TBS_06 Statistics Overview evidence
+
+Top totals:
+- Tracks: 15
+- Distance: 1,048 km
+- Duration: 1d 00h
+- Energy: 4,896 Wh
+- Ascent: 14,963 m
+- Media: 6
+
+Activity Breakdown (Tracks metric):
+- Bicycle: 12
+- Walking: 2
+- Running: 1
+- Metric selectors: Tracks, Distance, Duration, Energy
+
+Highlights/rankings:
+- Longest track: Moselradweg aus Wiki on GPSies.com, 518 km
+- Longest duration: Jura Route 7 / 2011 on GPSies.com, 7h 46m
+- Biggest ascent: Jura Route 7 / 2011 on GPSies.com, 6,324 m
+- Quickest ascent: Track 100005, 3,919 m/h
+- Most energy: Jura Route 7 / 2011 on GPSies.com, 1,808 Wh
+- Fastest 30 s speed: Lannion_Plestin_parcours..., 72.5 km/h
+- Peak 30 s power: Lannion_Plestin_parcours..., 2,188 W
+- Most common activity: Bicycle, 12 tracks
+
+Period displays:
+- Most active day: 2010-01-01, 22h 17m, 4 tracks, 1,017 km
+- Most active week: 2009-W53, 22h 17m, 4 tracks, 1,017 km
+- Most active month: 2010-01, 22h 17m, 4 tracks, 1,017 km
+- Most active weekday: Friday, 23h 31m, 5 tracks, 1,043 km
+
+Milestones:
+- First activity: Jura Route 7 / 2011..., 01/01/2010 01:00
+- Latest activity: MTL Synthetic Segment B, 18/08/2026 12:00
+- First 50 km / 100 km, first 1,000 m / 2,000 m ascent, and first
+  1,000 Wh milestone cards all rendered with the expected source track.
+- Covered range: 01/01/2010 - 18/08/2026
+
+Recent Activity rendered the five newest records and View all tracks.

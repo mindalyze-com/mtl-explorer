@@ -1,0 +1,22 @@
+UXP_01 required timing evidence gap
+
+The selected in-app browser exposes semantic page actions, DOM snapshots,
+screenshots, console logs, and a static page-asset inventory. It does not expose
+the page performance timeline, PerformanceObserver entries, request interception,
+or completed fetch/XHR route, status, duration, and pending-state events.
+
+Page-side attempts to read window.performance/performance were sanitized and
+returned unavailable. The browser development surface exposed console logs but
+no first-party request timing/status stream. Static page assets cannot substitute
+for application API timing.
+
+Required table fields and result:
+Action visible-feedback duration: UNAVAILABLE
+Maximum main-thread stall: UNAVAILABLE
+API route/status/duration: UNAVAILABLE
+Unexpected pending/failed request list: UNAVAILABLE
+Console errors during the three journeys: 0
+
+All three functional journeys completed and the map remained responsive, but the
+required 200 ms feedback, 500 ms stall, and 2 s first-party API budgets cannot be
+measured with this browser channel. UXP_01 is therefore BLOCKED, not PASS or FAIL.

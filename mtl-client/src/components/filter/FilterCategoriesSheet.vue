@@ -16,7 +16,7 @@
         Updating categories…
       </div>
       <FilterResultGroupSelector
-        v-else-if="availableGroups.length"
+        v-else-if="hasCategoryRows"
         :available-groups="availableGroups"
         :selection="draftSelection"
         :filter-info="filterInfo"
@@ -36,7 +36,7 @@
       <FilterSheetActions
         :reset-visible="draftSelection != null"
         reset-aria-label="Reset categories"
-        :apply-disabled="loading || availableGroups.length === 0"
+        :apply-disabled="loading"
         @reset="resetCategories"
         @cancel="cancel"
         @apply="apply"
@@ -46,7 +46,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
 import type { FilterInfo } from 'x8ing-mtl-api-typescript-fetch/dist/esm/models/FilterInfo';
 import type { FilterResultGroupSelection } from 'x8ing-mtl-api-typescript-fetch/dist/esm/models/FilterResultGroupSelection';
 import type { FilterResultGroupSummary } from 'x8ing-mtl-api-typescript-fetch/dist/esm/models/FilterResultGroupSummary';
@@ -85,6 +85,9 @@ const emit = defineEmits<{
 }>();
 
 const draftSelection = ref<FilterResultGroupSelection | undefined>(undefined);
+const hasCategoryRows = computed(
+  (): boolean => props.availableGroups.length > 0 || (draftSelection.value?.includedGroups?.length ?? 0) > 0
+);
 
 watch(
   () => props.modelValue,

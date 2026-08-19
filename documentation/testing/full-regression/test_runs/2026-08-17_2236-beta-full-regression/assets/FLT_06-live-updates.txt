@@ -1,0 +1,28 @@
+FLT_06 applied-filter live updates
+
+Starting state
+- Activities by keyword, no criteria, 15 tracks.
+- Map colors: 8 Colors / Default order.
+
+Live keyword update
+- Entered Keyword: Synthetic from the criteria sheet.
+- Current result changed to 2 matching tracks.
+- Toolbar changed to 2 / 15 Tracks.
+- Legend changed to two categories, CYCLING (1) and ON_FOOT (1).
+- Initial 8 Colors swatches were rgb(0,100,0) and rgb(255,0,0).
+- No new loading screen or full-page reload appeared.
+
+Live palette update
+- Opened Map colors and changed 8 Colors to 5 Colors.
+- Result count remained 2 and toolbar remained 2 / 15.
+- Configuration updated to 5 Colors / Default order.
+- Legend swatches updated to rgb(0,139,139) and rgb(255,165,0).
+- Labels/counts remained CYCLING (1) and ON_FOOT (1).
+
+Statistics
+- Opened Statistics Overview after the live updates.
+- Tracks: 2.
+- Distance: 451.89 m.
+- No loading screen appeared.
+
+The changed filter and palette propagated without a full application reload.

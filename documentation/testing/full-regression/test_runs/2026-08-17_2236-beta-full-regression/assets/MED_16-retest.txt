@@ -1,0 +1,4 @@
+2026-08-18 rejected finding after corrected-fixture retest
+The beta fixture wrote GPS coordinates without GPSDateStamp/GPSTimeStamp, so all 6 rows were correctly EXIF_DATE_TAKEN and +0.25h moved them outside its 5-minute activity.
+Corrected fixture/server: 4 EXIF_GPS + 2 EXIF_DATE_TAKEN on a 25-minute same-size synthetic GPX.
+Desktop 1280x720 and mobile 390x844: +0.25h preview kept 6 photos, left 4 Photo GPS times unchanged, shifted only 2 camera-clock rows to 10:16/10:17, and enabled Save correction.

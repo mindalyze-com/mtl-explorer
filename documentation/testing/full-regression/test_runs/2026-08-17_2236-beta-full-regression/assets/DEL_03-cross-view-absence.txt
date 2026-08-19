@@ -1,0 +1,39 @@
+DEL_03 post-deletion cross-view evidence
+
+Deleted targets:
+- former 100001, Vitry le françois - langres on GPSies.com
+- former 100003, voie verte haute vosges on GPSies.com
+
+Track browser / filter result:
+- Exact search for each deleted name showed 0 of 15 tracks and a no-match row.
+- Filter Current result and map toolbar both showed the same 15-track data set.
+
+Selection list:
+- Filter > Criteria > Choose tracks exact searches returned no data row for
+  either deleted name/ID.
+- The same list returned one data row for each retained target 100000, 100002,
+  and 100004.
+
+Map / popup:
+- Location search opened the former Vitry route start at 100 m scale. After the
+  search marker was cleared, no stale selection list, track details, deleted
+  name, or popup appeared.
+- The same direct check at Le Thillot in the former VoieVerte area produced no
+  stale selection, details, deleted name, or popup.
+- Map toolbar remained 15 Tracks.
+
+Heatmap:
+- Map > Your data enabled Heatmap and reported 4 of 4 layers shown using the
+  current 15-track result. HMO_03 previously established that this heatmap uses
+  the same live filtered track data.
+
+Related tracks:
+- Related for retained track 100004 contained retained 100000 and 100002.
+- Neither deleted name appeared in the related tab.
+
+Statistics:
+- Overview: 15 tracks, 824 km, 16h 51m, 3,993 Wh, 13,090 m ascent.
+- Tracks: 15 rows/total; neither deleted track appeared.
+- Trends: 15 tracks with the same 824 km, 16h 51m, and 3,993 Wh totals.
+
+Result: both deleted tracks are absent from every required user-visible surface.

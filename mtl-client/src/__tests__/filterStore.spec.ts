@@ -90,6 +90,40 @@ describe('useFilterStore', () => {
     expect(FilterService.loadClientFilterConfig).toHaveBeenCalledTimes(1);
   });
 
+  it('reacts to hydrated and updated active filter identities', async () => {
+    __stored = {
+      filterInfo: {
+        filterConfig: {
+          displayName: 'Tracks by year',
+          filterName: 'TracksByYear',
+          filterDomain: 'GPS_TRACK',
+        },
+      },
+      filterParams: {},
+      palette: {},
+    } as ClientFilterConfig;
+    const store = useFilterStore();
+
+    expect(store.activeIdentity).toBe('');
+    await store.ensureLoaded();
+    expect(store.activeIdentity).toBe('Tracks by year');
+
+    store.save({
+      filterInfo: {
+        filterConfig: {
+          displayName: 'Activities by keyword',
+          filterName: 'KeywordSearch',
+          filterDomain: 'GPS_TRACK',
+        },
+        paramDefinitions: [{ name: 'SEARCH_WORD' }],
+      },
+      filterParams: { stringParams: { SEARCH_WORD: 'Synthetic' } },
+      palette: {},
+    } as ClientFilterConfig);
+
+    expect(store.activeIdentity).toBe('Activities by keyword · Synthetic');
+  });
+
   it('ensureLoaded(true) forces a re-fetch', async () => {
     const store = useFilterStore();
     await store.ensureLoaded();
@@ -208,6 +242,73 @@ describe('useFilterStore', () => {
     expect(store.activeFilterRequest?.resolvedTrackIds).toEqual(afterIds);
     expect(store.trackSetRevision).toBe(revisionBeforeRefresh + 1);
     expect(store.dataFreshnessRevision).toBe(1);
+  });
+
+  it('keeps the last good result visible while a freshness refresh is in flight', async () => {
+    const store = useFilterStore();
+    const cfg = {
+      filterInfo: { filterConfig: { id: 7, filterName: 'SmartBaseFilter', filterDomain: 'GPS_TRACK' } },
+      filterParams: {},
+      palette: {},
+    } as ClientFilterConfig;
+    const previousResult = {
+      trackVersions: new Map([[1, 1]]),
+      filterGroups: new Map(),
+      standardFilterCount: 1,
+    };
+    const refreshedResult = {
+      queryResult: { resultEntries: [{ id: 1 }, { id: 2 }], standardFilterCount: 2 },
+      filterConfigId: 7,
+      trackVersions: new Map([
+        [1, 2],
+        [2, 1],
+      ]),
+      filterGroups: new Map(),
+      standardFilterCount: 2,
+    };
+    let resolveRefresh!: (result: typeof refreshedResult) => void;
+    fetchResolveFilterMock.mockReturnValueOnce(
+      new Promise<typeof refreshedResult>((resolve) => {
+        resolveRefresh = resolve;
+      })
+    );
+    store.applyResolvedFilter(cfg, previousResult);
+
+    const refresh = store.refreshResolvedFilter();
+    await Promise.resolve();
+
+    expect(store.refreshingResolvedFilter).toBe(true);
+    expect(store.activeResult).toBe(previousResult);
+
+    resolveRefresh(refreshedResult);
+    await expect(refresh).resolves.toBe(refreshedResult);
+
+    expect(store.refreshingResolvedFilter).toBe(false);
+    expect(store.activeResult).toBe(refreshedResult);
+  });
+
+  it('retains the last good result when a freshness refresh fails', async () => {
+    const store = useFilterStore();
+    const cfg = {
+      filterInfo: { filterConfig: { id: 7, filterName: 'SmartBaseFilter', filterDomain: 'GPS_TRACK' } },
+      filterParams: {},
+      palette: {},
+    } as ClientFilterConfig;
+    const previousResult = {
+      trackVersions: new Map([[1, 1]]),
+      filterGroups: new Map(),
+      standardFilterCount: 1,
+    };
+    store.applyResolvedFilter(cfg, previousResult);
+    const revisionBeforeRefresh = store.trackSetRevision;
+    fetchResolveFilterMock.mockRejectedValueOnce(new Error('offline'));
+
+    await expect(store.refreshResolvedFilter()).rejects.toThrow('offline');
+
+    expect(store.refreshingResolvedFilter).toBe(false);
+    expect(store.activeResult).toBe(previousResult);
+    expect(store.trackSetRevision).toBe(revisionBeforeRefresh);
+    expect(store.dataFreshnessRevision).toBe(0);
   });
 
   it('treats a default filter with a palette as active', () => {

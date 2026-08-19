@@ -1,12 +1,19 @@
 <template>
   <div class="tool-container">
     <TrackDetailMiniMap
+      ref="miniMapRef"
       :gps-track-id="gpsTrackId"
       :replay-enabled="canStart3dReplay"
       :track-events="trackEvents"
+      :track-media="trackMedia"
       :track-coordinates="miniMapCoordinates"
+      :media-interaction-enabled="isMediaTabActive"
       :selected-event-key="selectedTrackEventKey"
+      :selected-media-id="selectedTrackMediaId"
+      :highlighted-media-id="highlightedTrackMediaId"
       @select-event="onTrackEventSelected"
+      @select-media="onTrackMediaSelected"
+      @clear-selection="onMiniMapSelectionCleared"
       @start-3d-replay="onStart3dReplay"
     />
 
@@ -42,13 +49,21 @@
     </div>
 
     <Tabs v-else :value="activeTab" class="sheet-scroll-tabs" @update:value="onTabChange">
-      <TabList>
-        <Tab value="0">Overview</Tab>
-        <Tab value="1">Graphs</Tab>
-        <Tab value="2">Quality</Tab>
-        <Tab value="3">Related</Tab>
-        <Tab value="4">Events</Tab>
-      </TabList>
+      <div
+        ref="tabResizeZoneEl"
+        class="track-detail-tab-resize-zone"
+        data-test="track-detail-tab-resize-zone"
+        @click.capture="onTabResizeZoneClickCapture"
+      >
+        <TabList>
+          <Tab value="0">Overview</Tab>
+          <Tab value="1">Graphs</Tab>
+          <Tab value="2">Quality</Tab>
+          <Tab value="3">Related</Tab>
+          <Tab value="4">Media</Tab>
+          <Tab value="5">Events</Tab>
+        </TabList>
+      </div>
       <TabPanels>
         <TabPanel value="0">
           <TrackDetailOverview
@@ -267,6 +282,33 @@
         </TabPanel>
 
         <TabPanel value="4">
+          <TrackDetailPhotos
+            :media="trackMedia"
+            :page="trackMediaPage"
+            :page-size="trackMediaPageSize"
+            :total-items="trackMediaTotalItems"
+            :total-pages="trackMediaTotalPages"
+            :selected-media-id="selectedTrackMediaId"
+            :highlighted-media-id="highlightedTrackMediaId"
+            :loading="trackMediaLoading"
+            :error="trackMediaError"
+            :offset-seconds="photoOffsetSeconds"
+            :saving="trackMediaMutationLoading"
+            :mutation-error="trackMediaMutationError"
+            :thumbnails-enabled="!mediaPreviewVisible"
+            @select-media="onTrackMediaSelected"
+            @highlight-media="onTrackMediaHighlighted"
+            @apply-offset="onPhotoOffsetApplied"
+            @save-time-correction="onSaveTimeCorrection"
+            @save-manual-location="onSaveManualLocation"
+            @clear-manual-location="onClearManualLocation"
+            @change-page="onTrackMediaPageChanged"
+            @change-page-size="onTrackMediaPageSizeChanged"
+            @retry="reloadTrackMedia"
+          />
+        </TabPanel>
+
+        <TabPanel value="5">
           <TrackDetailEvents
             :events="trackEvents"
             :selected-event-key="selectedTrackEventKey"
@@ -275,6 +317,79 @@
         </TabPanel>
       </TabPanels>
     </Tabs>
+
+    <BottomSheet
+      v-model="mediaPreviewVisible"
+      :detents="[
+        { id: 'small', height: '40vh' },
+        { id: 'medium', height: '70vh' },
+        { id: 'large', height: '92vh' },
+      ]"
+      initial-detent="large"
+      :z-index="5400"
+      :title="selectedTrackMediaIsVideo ? 'Activity video' : 'Activity photo'"
+      :icon="selectedTrackMediaIsVideo ? 'bi bi-camera-video' : 'bi bi-image'"
+      header-mode="compact"
+      :no-backdrop="false"
+      no-scroll-hint
+      native-fullscreen
+      viewport-centered
+      :sheet-class="['media-viewer-sheet', mediaViewerThemeClass]"
+      @closed="onMediaPreviewClosed"
+    >
+      <template #title>
+        <span class="media-preview-sheet-title">
+          <i :class="selectedTrackMediaIsVideo ? 'bi bi-camera-video' : 'bi bi-image'" aria-hidden="true"></i>
+          <span>{{ selectedTrackMediaIsVideo ? 'Activity video' : 'Activity photo' }}</span>
+          <span class="media-preview-sheet-title__counter">
+            {{ selectedTrackMediaGlobalIndex >= 0 ? selectedTrackMediaGlobalIndex + 1 : 0 }} of
+            {{ trackMediaTotalItems }}
+          </span>
+        </span>
+      </template>
+      <template #header-actions>
+        <button
+          type="button"
+          class="media-preview-details-toggle"
+          :aria-pressed="mediaPreviewDetailsVisible"
+          @click.stop="mediaPreviewDetailsVisible = !mediaPreviewDetailsVisible"
+        >
+          <i class="bi bi-info-circle" aria-hidden="true"></i>
+          <span>Details</span>
+        </button>
+        <MediaViewerThemeToggle />
+      </template>
+      <MediaPreview
+        :media-id="mediaPreviewVisible ? selectedTrackMediaId : null"
+        collection-label="Activity media"
+        :can-go-prev="canGoPreviousTrackMedia"
+        :can-go-next="canGoNextTrackMedia"
+        :nav-index="selectedTrackMediaGlobalIndex >= 0 ? selectedTrackMediaGlobalIndex + 1 : 0"
+        :nav-total="trackMediaTotalItems"
+        :prefetch-ids="[nextTrackMediaId, previousTrackMediaId]"
+        :media-ids="trackMediaIds"
+        :video-media-ids="trackVideoMediaIds"
+        :media-offset="trackMediaOffset"
+        :page-loading="trackMediaLoading"
+        :position-source="selectedTrackMedia?.positionOrigin"
+        :position-estimated="selectedTrackMedia?.estimatedPosition ?? false"
+        :position-ambiguous="selectedTrackMedia?.ambiguousMatch ?? false"
+        :position-time-delta-seconds="selectedTrackMedia?.trackPointTimeDeltaSeconds"
+        :position-lat="selectedTrackMedia?.resolvedLat"
+        :position-lng="selectedTrackMedia?.resolvedLng"
+        :track-coordinates="miniMapCoordinates"
+        :details-visible="mediaPreviewDetailsVisible"
+        :taken-at="selectedTrackMedia?.adjustedCapturedAt ?? selectedTrackMedia?.capturedAt"
+        :time-source="selectedTrackMedia?.timeSource"
+        :applied-camera-offset-seconds="selectedTrackMedia?.appliedCameraOffsetSeconds"
+        @prev="navigateTrackMediaRelative(-1)"
+        @next="navigateTrackMediaRelative(1)"
+        @select="navigateTrackMedia"
+        @request-page="navigateTrackMediaPage"
+        @update:details-visible="mediaPreviewDetailsVisible = $event"
+        @open-on-map="openSelectedTrackMediaOnMap"
+      />
+    </BottomSheet>
   </div>
 </template>
 
@@ -300,6 +415,7 @@ import {
 } from '@/utils/trackDetailsChartPointSettings';
 import { MetricKey, XMode } from '@/utils/chartSeriesAdapter';
 import { useTrackMapSync, type TrackPoint } from '@/composables/useTrackMapSync';
+import { useVerticalResizeDrag } from '@/composables/useVerticalResizeDrag';
 import type { GpsTrackDataPoint } from 'x8ing-mtl-api-typescript-fetch/dist/esm/models/index';
 import { useChartSync } from '@/composables/useChartSync';
 import type {
@@ -327,6 +443,22 @@ import { fetchDetailTrackAtPrecision } from '@/utils/tracks/trackCollectionLoade
 import type { TrackPrecisionResult } from '@/utils/tracks/trackTypes';
 import { useAsyncState } from '@/composables/useAsyncState';
 import { nearestSortedIndex } from '@/utils/sortedSearch';
+import { isVideoMedia } from '@/utils/mediaKind';
+import TrackDetailPhotos from '@/components/trackdetails/TrackDetailPhotos.vue';
+import BottomSheet from '@/components/ui/BottomSheet.vue';
+import MediaPreview from '@/components/map/MediaPreview.vue';
+import MediaViewerThemeToggle from '@/components/map/MediaViewerThemeToggle.vue';
+import { mergeAdjacentMediaPage } from '@/components/map/mediaPageBuffer';
+import { useMediaViewerTheme } from '@/composables/useMediaViewerTheme';
+import {
+  clearManualMediaLocation,
+  getMediaByTrack,
+  saveMediaTimeCorrections,
+  setManualMediaLocation,
+  type TrackMediaDto,
+} from '@/repositories/mediaRepository';
+
+const { mediaViewerThemeClass } = useMediaViewerTheme();
 
 const GRAPH_HEIGHT_MIN = TRACK_DETAIL_GRAPH_HEIGHT_MIN;
 const GRAPH_HEIGHT_MAX = TRACK_DETAIL_GRAPH_HEIGHT_MAX;
@@ -340,14 +472,27 @@ const CHART_POINT_SLIDER_NUDGE_STEP = 1;
 const REPLAY_SOURCE_CHART_POINT_COUNT = 1000;
 const TRACK_DETAIL_TAB_OVERVIEW = '0';
 const TRACK_DETAIL_TAB_GRAPHS = '1';
-const TRACK_DETAIL_TAB_EVENTS = '4';
-const TRACK_DETAIL_TABS = new Set(['0', '1', '2', '3', '4']);
+const TRACK_DETAIL_TAB_PHOTOS = '4';
+const TRACK_DETAIL_TAB_EVENTS = '5';
+const TRACK_DETAIL_TABS = new Set(['0', '1', '2', '3', '4', '5']);
 const TRACK_DETAIL_LOAD_ERROR_TITLE = 'Track details could not be loaded';
 const TRACK_DETAIL_LOAD_ERROR_MESSAGE =
   'Check the server connection, then retry loading this track or go back to the map.';
 const TRACK_DETAIL_CHART_ERROR_MESSAGE = 'Track graphs could not be loaded.';
 const TRACK_DETAIL_RELATED_ERROR_MESSAGE = 'Related tracks could not be loaded.';
-type TrackDetailTab = '0' | '1' | '2' | '3' | '4';
+const TRACK_DETAIL_MEDIA_ERROR_MESSAGE = 'Activity media could not be loaded.';
+const TRACK_DETAIL_MEDIA_MUTATION_ERROR_MESSAGE = 'The media position change could not be saved.';
+const TAB_RESIZE_ACTIVATION_THRESHOLD_PX = 6;
+
+interface MiniMapResizeController {
+  beginMiniMapResize: () => void;
+  updateMiniMapResize: (deltaY: number) => void;
+  commitMiniMapResize: () => void;
+}
+const TRACK_MEDIA_DEFAULT_PAGE_SIZE = 25;
+const MEDIA_PREVIEW_DESKTOP_MIN_WIDTH = 769;
+type TrackDetailTab = '0' | '1' | '2' | '3' | '4' | '5';
+type TrackDetailInitialTab = 'overview' | 'photos';
 type SliderValue = number | number[];
 type SliderSlideEndEvent = { value: SliderValue };
 
@@ -369,6 +514,10 @@ type TrackReplayStartPayload = {
 function normalizeTrackDetailTab(value: string | number): TrackDetailTab {
   const tab = String(value);
   return TRACK_DETAIL_TABS.has(tab) ? (tab as TrackDetailTab) : TRACK_DETAIL_TAB_OVERVIEW;
+}
+
+function initialTrackDetailTab(value: TrackDetailInitialTab): TrackDetailTab {
+  return value === 'photos' ? TRACK_DETAIL_TAB_PHOTOS : TRACK_DETAIL_TAB_OVERVIEW;
 }
 
 function sliderValueToNumber(value: SliderValue | SliderSlideEndEvent): number {
@@ -426,14 +575,19 @@ defineOptions({
   name: 'TrackDetails',
 });
 
-const props = defineProps<{
-  gpsTrackId: number;
-}>();
+const props = withDefaults(
+  defineProps<{
+    gpsTrackId: number;
+    initialTab?: TrackDetailInitialTab;
+  }>(),
+  { initialTab: 'overview' }
+);
 
 const emit = defineEmits<{
   'track-loaded': [payload: TrackLoadedPayload];
   'navigate-track': [trackId: number];
   'start-3d-replay': [payload: TrackReplayStartPayload];
+  'open-media-on-map': [target: { id: number; lat: number; lng: number }];
   back: [];
 }>();
 
@@ -450,10 +604,29 @@ const trackEvents = ref<GpsTrackEvent[]>([]);
 const miniMapCoordinates = ref<number[][]>([]);
 const renderedShapePoints = ref<GpsTrackDataPoint[]>([]);
 const selectedTrackEventKey = ref<string | number | null>(null);
-const activeTab = ref<TrackDetailTab>(TRACK_DETAIL_TAB_OVERVIEW);
+const trackMedia = ref<TrackMediaDto[]>([]);
+const baselineTrackMedia = ref<TrackMediaDto[]>([]);
+const trackMediaPage = ref(0);
+const trackMediaPageSize = ref(TRACK_MEDIA_DEFAULT_PAGE_SIZE);
+const trackMediaOffset = ref(0);
+const trackMediaTotalItems = ref(0);
+const trackMediaTotalPages = ref(0);
+const selectedTrackMediaId = ref<number | null>(null);
+const highlightedTrackMediaId = ref<number | null>(null);
+const trackMediaLoading = ref(false);
+const trackMediaError = ref<string | null>(null);
+const trackMediaMutationError = ref<string | null>(null);
+const trackMediaMutationLoading = ref(false);
+const trackMediaLoaded = ref(false);
+const photoOffsetSeconds = ref(0);
+const mediaPreviewVisible = ref(false);
+const mediaPreviewDetailsVisible = ref(window.innerWidth >= MEDIA_PREVIEW_DESKTOP_MIN_WIDTH);
+const activeTab = ref<TrackDetailTab>(initialTrackDetailTab(props.initialTab));
 const xMode = ref<'time' | 'distance'>('time');
 const chartPointSliderValue = ref(trackDetailsChartPointCountToSliderValue(initialChartPointCount));
 const graphTuningOpen = ref(false);
+const miniMapRef = ref<MiniMapResizeController | null>(null);
+const tabResizeZoneEl = ref<HTMLElement | null>(null);
 const { loading: isLoading, error: loadError } = useAsyncState<string | null>(null);
 const chartLoadError = ref<string | null>(null);
 const relatedLoadError = ref<string | null>(null);
@@ -461,8 +634,30 @@ let graphHeightReflowFrame: number | null = null;
 let chartPointReloadTimer: number | null = null;
 let loadGeneration = 0;
 let chartReloadGeneration = 0;
+let trackMediaLoadGeneration = 0;
+let trackMediaAbortController: AbortController | null = null;
+const { consumeClickAfterDrag: consumeTabResizeClickAfterDrag } = useVerticalResizeDrag(
+  tabResizeZoneEl,
+  {
+    onStart: () => miniMapRef.value?.beginMiniMapResize(),
+    onResize: (deltaY) => miniMapRef.value?.updateMiniMapResize(deltaY),
+    onEnd: () => miniMapRef.value?.commitMiniMapResize(),
+  },
+  {
+    activationThresholdPx: TAB_RESIZE_ACTIVATION_THRESHOLD_PX,
+    allowFromInteractive: true,
+  }
+);
 
-const { setTrackPoints, clearAll } = useTrackMapSync();
+const {
+  setTrackPoints,
+  clearAll,
+  findPointByCanonicalIndex,
+  findPointByTimestamp,
+  findPointByDistance,
+  findPointByLatLng,
+  setPinnedPoint,
+} = useTrackMapSync();
 const { setXMode, clearChartInteraction } = useChartSync();
 
 const graphHeightStyle = computed<Record<string, string>>(() => ({
@@ -476,16 +671,50 @@ const effectiveRecommendedSpeedMetric = computed(() =>
 );
 const speedGraphConfig = computed(() => speedGraphConfigFor(effectiveRecommendedSpeedMetric.value));
 const isGraphsTabActive = computed(() => activeTab.value === TRACK_DETAIL_TAB_GRAPHS);
+const isMediaTabActive = computed(() => activeTab.value === TRACK_DETAIL_TAB_PHOTOS);
 const canStart3dReplay = computed(
   () => !isLoading.value && gpsTrack.value?.id != null && miniMapCoordinates.value.length >= 2
 );
-
+const trackMediaIds = computed(() => trackMedia.value.map((item) => item.id));
+const trackVideoMediaIds = computed(() =>
+  trackMedia.value.filter((item) => isVideoMedia(item.fileName, item.mediaKind)).map((item) => item.id)
+);
+const selectedTrackMediaIndex = computed(() =>
+  selectedTrackMediaId.value == null ? -1 : trackMedia.value.findIndex((item) => item.id === selectedTrackMediaId.value)
+);
+const selectedTrackMedia = computed(() =>
+  selectedTrackMediaIndex.value < 0 ? null : trackMedia.value[selectedTrackMediaIndex.value]
+);
+const selectedTrackMediaIsVideo = computed(() =>
+  isVideoMedia(selectedTrackMedia.value?.fileName, selectedTrackMedia.value?.mediaKind)
+);
+const selectedTrackMediaGlobalIndex = computed(() =>
+  selectedTrackMediaIndex.value < 0 ? -1 : trackMediaOffset.value + selectedTrackMediaIndex.value
+);
+const canGoPreviousTrackMedia = computed(() => selectedTrackMediaGlobalIndex.value > 0);
+const canGoNextTrackMedia = computed(
+  () => selectedTrackMediaGlobalIndex.value >= 0 && selectedTrackMediaGlobalIndex.value + 1 < trackMediaTotalItems.value
+);
+const previousTrackMediaId = computed(() =>
+  selectedTrackMediaIndex.value > 0 ? (trackMedia.value[selectedTrackMediaIndex.value - 1]?.id ?? null) : null
+);
+const nextTrackMediaId = computed(() =>
+  selectedTrackMediaIndex.value >= 0 && selectedTrackMediaIndex.value < trackMedia.value.length - 1
+    ? (trackMedia.value[selectedTrackMediaIndex.value + 1]?.id ?? null)
+    : null
+);
 watch(
   () => props.gpsTrackId,
   (newId) => {
     gpsTrackId.value = newId;
+    if (props.initialTab === 'photos') activeTab.value = TRACK_DETAIL_TAB_PHOTOS;
     void load(newId);
   }
+);
+
+watch(
+  () => props.initialTab,
+  (initialTab) => onTabChange(initialTrackDetailTab(initialTab))
 );
 
 onMounted(() => {
@@ -500,14 +729,262 @@ onBeforeUnmount(() => {
     graphHeightReflowFrame = null;
   }
   clearScheduledChartPointReload();
+  cancelTrackMediaLoad();
   clearAll();
 });
+
+function onTabResizeZoneClickCapture(event: MouseEvent): void {
+  consumeTabResizeClickAfterDrag(event);
+}
 
 function onTrackEventSelected(key: string | number | null) {
   if (key != null && activeTab.value !== TRACK_DETAIL_TAB_EVENTS) {
     onTabChange(TRACK_DETAIL_TAB_EVENTS);
   }
   selectedTrackEventKey.value = key;
+}
+
+function onTrackMediaSelected(mediaId: number) {
+  if (!isMediaTabActive.value) return;
+  navigateTrackMedia(mediaId);
+  mediaPreviewDetailsVisible.value = window.innerWidth >= MEDIA_PREVIEW_DESKTOP_MIN_WIDTH;
+  mediaPreviewVisible.value = true;
+}
+
+function onTrackMediaHighlighted(mediaId: number | null) {
+  highlightedTrackMediaId.value = mediaId;
+}
+
+function onMiniMapSelectionCleared() {
+  selectedTrackEventKey.value = null;
+  selectedTrackMediaId.value = null;
+  highlightedTrackMediaId.value = null;
+}
+
+function openSelectedTrackMediaOnMap() {
+  const item = selectedTrackMedia.value;
+  if (item?.resolvedLat != null && item.resolvedLng != null) {
+    emit('open-media-on-map', { id: item.id, lat: item.resolvedLat, lng: item.resolvedLng });
+  }
+  mediaPreviewVisible.value = false;
+}
+
+function navigateTrackMedia(mediaId: number | null) {
+  if (mediaId == null) return;
+  const item = trackMedia.value.find((candidate) => candidate.id === mediaId);
+  if (!item) return;
+  selectedTrackMediaId.value = mediaId;
+  pinTrackMediaPosition(item);
+}
+
+async function navigateTrackMediaRelative(direction: -1 | 1) {
+  const targetIndex = selectedTrackMediaIndex.value + direction;
+  const target = trackMedia.value[targetIndex];
+  if (target) {
+    navigateTrackMedia(target.id);
+    return;
+  }
+  await navigateTrackMediaPage(direction);
+}
+
+async function navigateTrackMediaPage(direction: -1 | 1) {
+  if (trackMediaLoading.value) return;
+  const targetGlobalIndex =
+    direction < 0 ? trackMediaOffset.value - 1 : trackMediaOffset.value + trackMedia.value.length;
+  if (targetGlobalIndex < 0 || targetGlobalIndex >= trackMediaTotalItems.value) return;
+  const targetPage = Math.floor(targetGlobalIndex / trackMediaPageSize.value);
+  if (targetPage < 0 || targetPage >= trackMediaTotalPages.value) return;
+  trackMediaPage.value = targetPage;
+  await reloadTrackMedia(direction);
+  const target = trackMedia.value[targetGlobalIndex - trackMediaOffset.value];
+  if (target) navigateTrackMedia(target.id);
+}
+
+function onMediaPreviewClosed() {
+  mediaPreviewVisible.value = false;
+  if (trackMedia.value.length <= trackMediaPageSize.value) return;
+  const selectedGlobalIndex = selectedTrackMediaGlobalIndex.value;
+  if (selectedGlobalIndex >= 0) trackMediaPage.value = Math.floor(selectedGlobalIndex / trackMediaPageSize.value);
+  void reloadTrackMedia();
+}
+
+function pinTrackMediaPosition(item: TrackMediaDto) {
+  const adjustedTimeMs = mediaTimestampMs(item.adjustedCapturedAt ?? item.capturedAt);
+  const point =
+    (item.trackPointIndex != null ? findPointByCanonicalIndex(item.trackPointIndex) : null) ??
+    (adjustedTimeMs != null ? findPointByTimestamp(adjustedTimeMs) : null) ??
+    (item.distanceInMeterSinceStart != null ? findPointByDistance(item.distanceInMeterSinceStart / 1000) : null) ??
+    (item.routeLat != null && item.routeLng != null ? findPointByLatLng(item.routeLat, item.routeLng) : null);
+  setPinnedPoint(point);
+}
+
+function mediaTimestampMs(value: Date | string | null | undefined): number | null {
+  if (value == null) return null;
+  const millis = value instanceof Date ? value.getTime() : new Date(value).getTime();
+  return Number.isFinite(millis) ? millis : null;
+}
+
+async function onPhotoOffsetApplied(offsetSeconds: number) {
+  trackMediaMutationError.value = null;
+  photoOffsetSeconds.value = offsetSeconds;
+  trackMediaPage.value = 0;
+  selectedTrackMediaId.value = null;
+  mediaPreviewVisible.value = false;
+  setPinnedPoint(null);
+  await reloadTrackMedia();
+}
+
+async function onTrackMediaPageChanged(page: number) {
+  if (page === trackMediaPage.value || page < 0 || page >= trackMediaTotalPages.value) return;
+  trackMediaPage.value = page;
+  selectedTrackMediaId.value = null;
+  mediaPreviewVisible.value = false;
+  setPinnedPoint(null);
+  await reloadTrackMedia();
+}
+
+async function onTrackMediaPageSizeChanged(pageSize: number) {
+  if (pageSize === trackMediaPageSize.value) return;
+  trackMediaPageSize.value = pageSize;
+  trackMediaPage.value = 0;
+  selectedTrackMediaId.value = null;
+  mediaPreviewVisible.value = false;
+  setPinnedPoint(null);
+  await reloadTrackMedia();
+}
+
+async function onSaveTimeCorrection(mediaIds: number[], offsetSeconds: number) {
+  if (mediaIds.length === 0) return;
+  const affectedMediaIds =
+    offsetSeconds === 0
+      ? mediaIds
+      : [
+          ...new Set([
+            ...mediaIds,
+            ...baselineTrackMedia.value.filter((item) => item.timeSource === 'EXIF_DATE_TAKEN').map((item) => item.id),
+          ]),
+        ];
+  trackMediaMutationLoading.value = true;
+  trackMediaMutationError.value = null;
+  try {
+    await saveMediaTimeCorrections({ mediaIds: affectedMediaIds, offsetSeconds });
+    photoOffsetSeconds.value = 0;
+    await reloadTrackMedia();
+  } catch (error) {
+    console.warn('[track-details] camera correction failed to save', {
+      mediaIds: affectedMediaIds,
+      offsetSeconds,
+      error,
+    });
+    trackMediaMutationError.value = TRACK_DETAIL_MEDIA_MUTATION_ERROR_MESSAGE;
+  } finally {
+    trackMediaMutationLoading.value = false;
+  }
+}
+
+async function onSaveManualLocation(mediaId: number, latitude: number, longitude: number, note?: string) {
+  await runMediaPositionMutation(() => setManualMediaLocation(mediaId, { latitude, longitude, note }));
+}
+
+async function onClearManualLocation(mediaId: number) {
+  await runMediaPositionMutation(() => clearManualMediaLocation(mediaId));
+}
+
+async function runMediaPositionMutation(operation: () => Promise<void>) {
+  trackMediaMutationLoading.value = true;
+  trackMediaMutationError.value = null;
+  try {
+    await operation();
+    photoOffsetSeconds.value = 0;
+    await reloadTrackMedia();
+  } catch (error) {
+    console.warn('[track-details] media position failed to save', error);
+    trackMediaMutationError.value = TRACK_DETAIL_MEDIA_MUTATION_ERROR_MESSAGE;
+  } finally {
+    trackMediaMutationLoading.value = false;
+  }
+}
+
+async function reloadTrackMedia(bufferDirection: -1 | 1 | null = null) {
+  const trackId = gpsTrackId.value;
+  const previousItems = trackMedia.value;
+  const previousOffset = trackMediaOffset.value;
+  const generation = ++trackMediaLoadGeneration;
+  trackMediaAbortController?.abort();
+  const controller = new AbortController();
+  trackMediaAbortController = controller;
+  trackMediaLoading.value = true;
+  highlightedTrackMediaId.value = null;
+  trackMediaError.value = null;
+  trackMediaMutationError.value = null;
+  trackMediaMutationLoading.value = false;
+  try {
+    const result = await getMediaByTrack(
+      trackId,
+      photoOffsetSeconds.value,
+      trackMediaPage.value,
+      trackMediaPageSize.value,
+      controller.signal
+    );
+    if (generation !== trackMediaLoadGeneration || controller.signal.aborted) return;
+    if (result.items.length === 0 && result.totalPages > 0 && trackMediaPage.value >= result.totalPages) {
+      trackMediaPage.value = result.totalPages - 1;
+      await reloadTrackMedia(bufferDirection);
+      return;
+    }
+    const resultOffset = result.page * result.pageSize;
+    if (bufferDirection == null) {
+      trackMedia.value = result.items;
+      trackMediaOffset.value = resultOffset;
+    } else {
+      const buffer = mergeAdjacentMediaPage(
+        previousItems,
+        previousOffset,
+        result.items,
+        resultOffset,
+        trackMediaPageSize.value,
+        bufferDirection
+      );
+      trackMedia.value = buffer.items;
+      trackMediaOffset.value = buffer.offset;
+    }
+    trackMediaTotalItems.value = result.totalItems;
+    trackMediaTotalPages.value = result.totalPages;
+    if (photoOffsetSeconds.value === 0) {
+      baselineTrackMedia.value = result.items;
+    }
+    trackMediaLoaded.value = true;
+    if (!result.items.some((item) => item.id === selectedTrackMediaId.value)) {
+      selectedTrackMediaId.value = null;
+    }
+  } catch (error) {
+    if (generation !== trackMediaLoadGeneration || controller.signal.aborted) return;
+    console.warn('[track-details] activity media failed to load', { trackId, error });
+    if (bufferDirection == null) {
+      trackMedia.value = [];
+      trackMediaOffset.value = 0;
+      trackMediaTotalItems.value = 0;
+      trackMediaTotalPages.value = 0;
+    } else {
+      trackMedia.value = previousItems;
+      trackMediaOffset.value = previousOffset;
+    }
+    trackMediaLoaded.value = true;
+    trackMediaError.value = TRACK_DETAIL_MEDIA_ERROR_MESSAGE;
+  } finally {
+    if (generation === trackMediaLoadGeneration) {
+      trackMediaLoading.value = false;
+      if (trackMediaAbortController === controller) trackMediaAbortController = null;
+    }
+  }
+}
+
+function cancelTrackMediaLoad() {
+  if (!trackMediaAbortController && !trackMediaLoading.value) return;
+  trackMediaAbortController?.abort();
+  trackMediaAbortController = null;
+  trackMediaLoadGeneration++;
+  trackMediaLoading.value = false;
 }
 
 function triggerChartReflow() {
@@ -534,12 +1011,19 @@ function onTabChange(value: string | number) {
     if (previousTab === TRACK_DETAIL_TAB_GRAPHS) {
       clearChartInteraction();
     }
+    if (previousTab === TRACK_DETAIL_TAB_PHOTOS) {
+      highlightedTrackMediaId.value = null;
+      cancelTrackMediaLoad();
+    }
     activeTab.value = nextTab;
   }
 
   // Trigger chart reflow after the Graphs tab becomes visible (value "1")
   if (nextTab === TRACK_DETAIL_TAB_GRAPHS) {
     triggerChartReflow();
+  }
+  if (nextTab === TRACK_DETAIL_TAB_PHOTOS && !trackMediaLoaded.value && !trackMediaLoading.value) {
+    void reloadTrackMedia();
   }
 }
 
@@ -777,6 +1261,19 @@ async function load(trackId: number) {
   recommendedSpeedMetric.value = null;
   availableChartMetrics.value = [];
   trackEvents.value = [];
+  cancelTrackMediaLoad();
+  trackMediaLoaded.value = false;
+  trackMedia.value = [];
+  baselineTrackMedia.value = [];
+  trackMediaPage.value = 0;
+  trackMediaPageSize.value = TRACK_MEDIA_DEFAULT_PAGE_SIZE;
+  trackMediaOffset.value = 0;
+  trackMediaTotalItems.value = 0;
+  trackMediaTotalPages.value = 0;
+  selectedTrackMediaId.value = null;
+  highlightedTrackMediaId.value = null;
+  mediaPreviewVisible.value = false;
+  trackMediaError.value = null;
   miniMapCoordinates.value = [];
   renderedShapePoints.value = [];
   selectedTrackEventKey.value = null;
@@ -784,6 +1281,9 @@ async function load(trackId: number) {
   loadError.value = null;
   chartLoadError.value = null;
   relatedLoadError.value = null;
+  if (activeTab.value === TRACK_DETAIL_TAB_PHOTOS) {
+    void reloadTrackMedia();
+  }
   try {
     const trackPromise = loadTrackShape(trackId);
     const relatedTracksPromise = settle(getRelatedTracks(trackId));
@@ -997,12 +1497,43 @@ function onTrackUpdated(track: GpsTrack) {
 
 /* Tabs fill the remaining space below the mini-map.
    TabList stays pinned; only TabPanels scroll. */
+.track-detail-tab-resize-zone {
+  flex: 0 0 auto;
+  min-width: 0;
+  cursor: ns-resize;
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
 :deep(.p-tablist) {
   flex: 0 0 auto;
   z-index: 2;
   background: var(--surface-glass);
   backdrop-filter: var(--blur-standard);
   -webkit-backdrop-filter: var(--blur-standard);
+}
+
+:deep(.p-tablist-content) {
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: thin;
+  /* This element is the mobile browser's horizontal scroll container. The
+     resize zone above it cannot reserve vertical touch gestures on its own,
+     because touch-action is resolved only up to the nearest scroller. */
+  touch-action: pan-x;
+}
+
+:deep(.p-tablist-tab-list) {
+  min-width: max-content;
+}
+
+@media (max-width: 640px) {
+  :deep(.p-tab) {
+    flex: 0 0 auto;
+    padding-inline: 0.4rem;
+  }
 }
 
 .graphs-toolbar {

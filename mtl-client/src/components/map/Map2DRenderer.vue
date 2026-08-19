@@ -95,6 +95,8 @@
       :selected-track-id="selectedFeature?.properties?.id ?? null"
       @select-track="onTrackBrowserSelect"
       @open-details="onTrackBrowserOpenDetails"
+      @open-track-photos="onTrackBrowserOpenPhotos"
+      @open-media-on-map="openMediaFromStatisticsOnMainMap"
       @open-filter="onNavigationToolSelect('filter')"
       @tool-opened="onToolOpened('statistics')"
       @tool-closed="onToolClosed"
@@ -132,6 +134,7 @@
         :visible-track-count="visibleTrackCount"
         :total-track-count="totalTrackCount"
         :filter-active="filterActive"
+        :active-filter-identity="activeFilterIdentity"
         :hidden-groups="hiddenGroups"
         @update:collapsed="onLegendCollapsed"
         @update:hidden-groups="onHiddenGroupsChanged"
@@ -232,14 +235,14 @@
       :selected-detent="trackDetailsSelectedDetent"
       :background-detent="trackDetailsBackgroundDetent"
       :z-index="5300"
-      @closed="onTrackDetailsSheetClosed"
+      @closed="onTrackDetailsSheetClosedAfterTransition"
     >
       <template #title>
         <div class="td-sheet-header">
           <span class="td-title-label"
             ><i class="bi bi-info-circle"></i><span class="td-title-text">Track Details</span></span
           >
-          <span v-if="trackDetailsInfo.id" class="td-sheet-id" @pointerdown.stop @mousedown.stop @touchstart.stop
+          <span v-if="trackDetailsInfo.id" class="td-sheet-id" title="Select TrackID to copy" @click.stop
             >#{{ trackDetailsInfo.id }}</span
           >
           <ActivityTypeBadge
@@ -254,10 +257,12 @@
       <TrackDetails
         v-if="trackDetailsId != null"
         :gps-track-id="trackDetailsId"
+        :initial-tab="trackDetailsInitialTab"
         @back="closeTrackDetailsFromPanel"
         @track-loaded="onTrackDetailsLoaded"
         @navigate-track="syncTrackDetailRoute"
         @start-3d-replay="start3dTrackReplay"
+        @open-media-on-map="openTrackMediaOnMainMap"
       />
     </BottomSheet>
 
@@ -289,6 +294,35 @@
       @recenter="recenter3dTrackReplayCamera"
     />
 
+    <!-- ─── Media collection chooser ─── -->
+    <BottomSheet
+      v-model="mediaSelectionSheetVisible"
+      :detents="[
+        { id: 'compact', height: '300px' },
+        { id: 'large', height: '82vh' },
+      ]"
+      initial-detent="compact"
+      fit-content-initial
+      :z-index="5100"
+      title="Open photos"
+      icon="bi bi-images"
+      header-mode="compact"
+      :no-backdrop="false"
+      desktop-width="compact"
+      sheet-class="media-collection-sheet"
+      @closed="closeMediaSelection"
+    >
+      <MediaCollectionChooser
+        v-if="mediaPendingSelection"
+        :selection="mediaPendingSelection"
+        :track-count="mediaSelectionTrackOptions.length"
+        :tracks-loading="mediaSelectionTracksLoading"
+        @choose-primary="chooseMediaCollection('primary')"
+        @choose-viewport="chooseMediaCollection('viewport')"
+        @open-activities="openMediaSelectionActivities"
+      />
+    </BottomSheet>
+
     <!-- ─── Media photo bottom sheet ─── -->
     <BottomSheet
       v-model="mediaSheetVisible"
@@ -299,21 +333,58 @@
       ]"
       initial-detent="large"
       :z-index="5050"
-      title="Photo"
+      :title="mediaViewerScopeLabel"
       icon="bi bi-image"
       header-mode="compact"
       :no-backdrop="false"
-      @closed="closeMediaSheet"
+      no-scroll-hint
+      native-fullscreen
+      viewport-centered
+      :sheet-class="['media-viewer-sheet', mediaViewerThemeClass]"
+      @closed="onMediaSheetClosed"
     >
+      <template #title>
+        <span class="media-preview-sheet-title">
+          <i class="bi bi-image" aria-hidden="true"></i>
+          <span>{{ mediaViewerScopeLabel }}</span>
+          <span class="media-preview-sheet-title__counter">
+            {{ mediaCurrentIndex >= 0 ? mediaNavOffset + mediaCurrentIndex + 1 : 0 }} of {{ mediaNavTotal }}
+          </span>
+        </span>
+      </template>
+      <template #header-actions>
+        <button
+          type="button"
+          class="media-preview-details-toggle"
+          :aria-pressed="mediaPreviewDetailsVisible"
+          @click.stop="mediaPreviewDetailsVisible = !mediaPreviewDetailsVisible"
+        >
+          <i class="bi bi-info-circle" aria-hidden="true"></i>
+          <span>Details</span>
+        </button>
+        <MediaViewerThemeToggle />
+      </template>
       <MediaPreview
         :media-id="mediaSheetMediaId"
-        :can-go-prev="mediaPrevId != null"
-        :can-go-next="mediaNextId != null"
-        :nav-index="mediaCurrentIndex >= 0 ? mediaCurrentIndex + 1 : 0"
-        :nav-total="mediaNavList.length"
-        :prefetch-ids="[mediaPrevId, mediaNextId]"
-        @prev="navigateMediaTo(mediaPrevId)"
-        @next="navigateMediaTo(mediaNextId)"
+        :collection-label="mediaViewerFilmstripLabel"
+        :can-go-prev="mediaCanGoPrev"
+        :can-go-next="mediaCanGoNext"
+        :nav-index="mediaCurrentIndex >= 0 ? mediaNavOffset + mediaCurrentIndex + 1 : 0"
+        :nav-total="mediaNavTotal"
+        :prefetch-ids="[mediaNextId, mediaPrevId]"
+        :media-ids="mediaNavigationIds"
+        :media-offset="mediaNavOffset"
+        :page-loading="mediaNavLoading"
+        :position-lat="selectedMapMediaPoint?.lat"
+        :position-lng="selectedMapMediaPoint?.lng"
+        :overview-bounds="mediaViewerOverviewBounds"
+        :details-visible="mediaPreviewDetailsVisible"
+        @prev="navigateMediaRelative(-1)"
+        @next="navigateMediaRelative(1)"
+        @select="navigateMediaTo"
+        @request-page="navigateMediaPage"
+        @update:details-visible="mediaPreviewDetailsVisible = $event"
+        @open-on-map="openSelectedMapMediaOnMainMap"
       />
     </BottomSheet>
 
@@ -327,7 +398,7 @@
       ]"
       initial-detent="compact"
       :z-index="4900"
-      :title="selectionPopupTracks.length + ' tracks — select for details'"
+      :title="trackSelectionSheetTitle"
       icon="bi bi-card-list"
       header-mode="compact"
       :no-backdrop="false"
@@ -335,31 +406,27 @@
     >
       <div class="track-selection-sheet">
         <div class="track-selection-sheet__scroll">
-          <ul class="track-selection-list">
-            <li
-              v-for="track in selectionPopupTracks"
-              :key="track.id"
-              class="mtl-track-pick"
-              @click="onPopupTrackSelect(track.id)"
-            >
-              <TrackShapePreview
-                :track-id="track.id"
-                :width="48"
-                :height="32"
-                :padding="3"
-                class="mtl-track-pick__shape"
+          <template v-if="trackSelectionPurpose === 'photos'">
+            <section v-if="selectionPopupTracksWithMedia.length > 0" class="track-selection-group">
+              <h3 class="track-selection-group__title">
+                <span><i class="bi bi-camera-fill" aria-hidden="true"></i> Activities with photos</span>
+                <span>{{ selectionPopupTracksWithMedia.length }}</span>
+              </h3>
+              <NearbyTrackList :tracks="selectionPopupTracksWithMedia" show-media-status @select="onPopupTrackSelect" />
+            </section>
+            <section v-if="selectionPopupTracksWithoutMedia.length > 0" class="track-selection-group">
+              <h3 class="track-selection-group__title">
+                <span>Other nearby activities</span>
+                <span>{{ selectionPopupTracksWithoutMedia.length }}</span>
+              </h3>
+              <NearbyTrackList
+                :tracks="selectionPopupTracksWithoutMedia"
+                show-media-status
+                @select="onPopupTrackSelect"
               />
-              <div class="mtl-track-pick__content">
-                <div class="mtl-track-pick__primary">{{ track.displayName }}</div>
-                <div class="mtl-track-pick__secondary">
-                  <ActivityTypeBadge v-if="track.activityType" :type="track.activityType" size="xs" />
-                  <span class="mtl-track-pick__date">{{ track.date }}</span>
-                  <span v-if="track.description" class="mtl-track-pick__description">{{ track.description }}</span>
-                </div>
-              </div>
-              <i class="bi bi-chevron-right mtl-track-pick__chevron"></i>
-            </li>
-          </ul>
+            </section>
+          </template>
+          <NearbyTrackList v-else :tracks="selectionPopupTracks" @select="onPopupTrackSelect" />
         </div>
       </div>
     </BottomSheet>
@@ -444,10 +511,14 @@ import MapLegend from '@/components/map/MapLegend.vue';
 import MapConfigFallbackNotice from '@/components/map/MapConfigFallbackNotice.vue';
 import LocationSearchSheet from '@/components/map/LocationSearchSheet.vue';
 import BottomSheet from '@/components/ui/BottomSheet.vue';
-import TrackShapePreview from '@/components/ui/TrackShapePreview.vue';
 import ActivityTypeBadge from '@/components/ui/ActivityTypeBadge.vue';
+import NearbyTrackList from '@/components/map/NearbyTrackList.vue';
+import MediaCollectionChooser from '@/components/map/MediaCollectionChooser.vue';
 import MediaPreview from '@/components/map/MediaPreview.vue';
+import MediaViewerThemeToggle from '@/components/map/MediaViewerThemeToggle.vue';
+import { useMediaViewerTheme } from '@/composables/useMediaViewerTheme';
 import { useMainMapController } from '@/components/map/useMainMapController';
+import { findMediaPointById } from '@/components/map/composables/useMediaAndHeatmap';
 import type { MapControllerEmit, MapControllerProps } from '@/components/map/composables/mapControllerRuntime';
 import type { ToastService } from '@/types/ui';
 import { clearMapConfigCache, type MapConfig } from '@/utils/mapConfigService';
@@ -462,6 +533,7 @@ const emit = defineEmits<MapControllerEmit>();
 const toast = inject<ToastService>('toast', { add: () => undefined });
 const route = useRoute();
 const router = useRouter();
+const { mediaViewerThemeClass } = useMediaViewerTheme();
 
 const mapBaseContainer = ref(null);
 const mapOverlayContainer = ref(null);
@@ -470,12 +542,13 @@ const mapSettingsTool = ref(null);
 const animateTool = ref(null);
 const measureTool = ref(null);
 const plannerTool = ref(null);
-const statistics = ref(null);
+const statistics = ref<{ close?: () => void } | null>(null);
 const gpsLocate = ref(null);
 const filterTool = ref(null);
 const adminTool = ref(null);
 const mapConfigFallbackDismissed = ref(false);
 const mapConfigRetrying = ref(false);
+const MEDIA_PREVIEW_DESKTOP_MIN_WIDTH = 769;
 
 const {
   overlayMap,
@@ -493,6 +566,7 @@ const {
   visibleTrackCount,
   totalTrackCount,
   filterActive,
+  activeFilterIdentity,
   colorPalette,
   legendEntries,
   legendMode,
@@ -502,11 +576,13 @@ const {
   hiddenGroups,
   selectedFeature,
   trackSelectionSheetVisible,
+  trackSelectionPurpose,
   swissMobilityPopup,
   trackDetailsVisible,
   trackDetailsBackgroundDetent,
   trackDetailsDetents,
   trackDetailsInitialDetent,
+  trackDetailsInitialTab,
   trackDetailsSelectedDetent,
   trackDetailsId,
   trackDetailsInfo,
@@ -527,9 +603,17 @@ const {
   locationSearchVisible,
   activeToolId,
   toolDefs,
+  mediaSelectionSheetVisible,
+  mediaPendingSelection,
+  mediaSelectionTrackOptions,
+  mediaSelectionTracksLoading,
   mediaSheetVisible,
   mediaSheetMediaId,
   mediaNavList,
+  mediaNavTotal,
+  mediaNavOffset,
+  mediaNavLoading,
+  mediaNavScope,
   isOffline,
   serverFreshnessToken,
   freshnessReloading,
@@ -538,8 +622,11 @@ const {
   baseMapStyle,
   layerStatesForPanel,
   mediaCurrentIndex,
+  mediaCanGoPrev,
+  mediaCanGoNext,
   mediaPrevId,
   mediaNextId,
+  mediaNavigationIds,
   showLocationSearchFab,
   locationSearchMapCenter,
   trackBrowserTracks,
@@ -581,10 +668,16 @@ const {
   onToolClosed,
   closeSwissMobilityPopup,
   closeSelectionPopup,
+  chooseMediaCollection,
+  openMediaSelectionActivities,
+  closeMediaSelection,
   navigateMediaTo,
-  closeMediaSheet,
+  navigateMediaRelative,
+  navigateMediaPage,
+  closeMediaSheet: closeControllerMediaSheet,
+  focusMediaOnMainMap,
   onPopupTrackSelect,
-  onTrackDetailsSheetClosed,
+  onTrackDetailsSheetClosed: closeControllerTrackDetailsSheet,
   onTrackDetailsLoaded,
   start3dTrackReplay,
   toggle3dTrackReplayPlayback,
@@ -600,6 +693,7 @@ const {
   recenter3dTrackReplayCamera,
   onTrackBrowserSelect,
   onTrackBrowserOpenDetails,
+  onTrackBrowserOpenPhotos,
   onLegendCollapsed,
   onHiddenGroupsChanged,
   onStartGeoDrawing,
@@ -624,6 +718,101 @@ const {
   adminTool,
 });
 
+const mediaPreviewDetailsVisible = ref(window.innerWidth >= MEDIA_PREVIEW_DESKTOP_MIN_WIDTH);
+const mediaViewerOverviewBounds = ref<[[number, number], [number, number]] | null>(null);
+const selectedMapMediaPoint = computed(() => findMediaPointById(mediaNavList.value, mediaSheetMediaId.value));
+const trackSelectionSheetTitle = computed(() =>
+  trackSelectionPurpose.value === 'photos'
+    ? `${selectionPopupTracks.value.length} nearby activities`
+    : `${selectionPopupTracks.value.length} tracks — select for details`
+);
+const selectionPopupTracksWithMedia = computed(() =>
+  selectionPopupTracks.value.filter((track) => (track.matchedMediaCount ?? 0) > 0)
+);
+const selectionPopupTracksWithoutMedia = computed(() =>
+  selectionPopupTracks.value.filter((track) => (track.matchedMediaCount ?? 0) === 0)
+);
+const mediaViewerScopeLabel = computed(() => {
+  if (mediaNavScope.value === 'cluster') return 'This cluster';
+  if (mediaNavScope.value === 'location') return 'This location';
+  if (mediaNavScope.value === 'viewport') return 'Current map view';
+  return 'This photo';
+});
+const mediaViewerFilmstripLabel = computed(() => {
+  if (mediaNavScope.value === 'cluster') return 'In this cluster';
+  if (mediaNavScope.value === 'location') return 'At this location';
+  if (mediaNavScope.value === 'viewport') return 'On this map';
+  return 'This photo';
+});
+type MainMapMediaTarget = { id?: number | null; lat: number; lng: number };
+const pendingMainMapMediaTarget = ref<MainMapMediaTarget | null>(null);
+
+function validMainMapMediaTarget(target: MainMapMediaTarget | null | undefined): target is MainMapMediaTarget {
+  return Boolean(
+    target &&
+    Number.isFinite(target.lat) &&
+    Number.isFinite(target.lng) &&
+    Math.abs(target.lat) <= 90 &&
+    Math.abs(target.lng) <= 180
+  );
+}
+
+function setPendingMainMapMediaTarget(target: MainMapMediaTarget | null | undefined): boolean {
+  if (!validMainMapMediaTarget(target)) return false;
+  pendingMainMapMediaTarget.value = { id: target.id, lat: target.lat, lng: target.lng };
+  return true;
+}
+
+function focusPendingMainMapMediaTarget(): void {
+  const target = pendingMainMapMediaTarget.value;
+  pendingMainMapMediaTarget.value = null;
+  if (target) focusMediaOnMainMap(target);
+}
+
+function openSelectedMapMediaOnMainMap(): void {
+  if (!setPendingMainMapMediaTarget(selectedMapMediaPoint.value)) return;
+  mediaSheetVisible.value = false;
+}
+
+function onMediaSheetClosed(): void {
+  closeControllerMediaSheet();
+  mediaViewerOverviewBounds.value = null;
+  focusPendingMainMapMediaTarget();
+}
+
+function openTrackMediaOnMainMap(target: MainMapMediaTarget): void {
+  if (!setPendingMainMapMediaTarget(target)) return;
+  trackDetailsMainMapExitPending = true;
+  trackDetailsVisible.value = false;
+  closeControllerTrackDetailsSheet();
+  focusPendingMainMapMediaTarget();
+}
+
+function onTrackDetailsSheetClosedAfterTransition(): void {
+  closeControllerTrackDetailsSheet();
+  focusPendingMainMapMediaTarget();
+}
+
+async function openMediaFromStatisticsOnMainMap(target: MainMapMediaTarget): Promise<void> {
+  if (!setPendingMainMapMediaTarget(target)) return;
+  statistics.value?.close?.();
+  await nextTick();
+  window.requestAnimationFrame(focusPendingMainMapMediaTarget);
+}
+
+watch(mediaSheetVisible, (visible) => {
+  if (!visible) return;
+  mediaPreviewDetailsVisible.value = window.innerWidth >= MEDIA_PREVIEW_DESKTOP_MIN_WIDTH;
+  const bounds = overlayMap.value?.getBounds?.();
+  if (!bounds) return;
+  const southWest = bounds.getSouthWest();
+  const northEast = bounds.getNorthEast();
+  mediaViewerOverviewBounds.value = [
+    [southWest.lng, southWest.lat],
+    [northEast.lng, northEast.lat],
+  ];
+});
+
 const showMapConfigFallbackNotice = computed(
   () => Boolean((mapConfig.value as MapConfig | null)?.configLoadFailed) && !mapConfigFallbackDismissed.value
 );
@@ -634,7 +823,7 @@ async function retryMapConfig() {
   mapConfigFallbackDismissed.value = false;
   clearMapConfigCache();
   try {
-    await reloadMap(false);
+    await reloadMap();
   } finally {
     mapConfigRetrying.value = false;
   }
@@ -684,6 +873,7 @@ const TRACK_DETAILS_RETURN_ROUTE_NAMES = new Set([
 
 let syncingFromRoute = false;
 let trackDetailsRouteExitPending = false;
+let trackDetailsMainMapExitPending = false;
 
 function closeTrackDetailsFromPanel() {
   trackDetailsVisible.value = false;
@@ -722,6 +912,13 @@ function canReturnFromTrackDetails(previousRoute: unknown): previousRoute is str
 function leaveTrackDetailsRoute() {
   if (trackDetailsRouteExitPending || route.name !== TRACK_DETAILS_ROUTE_NAME) return;
   trackDetailsRouteExitPending = true;
+  if (trackDetailsMainMapExitPending) {
+    trackDetailsMainMapExitPending = false;
+    router.replace({ name: 'home' }).catch(() => {
+      trackDetailsRouteExitPending = false;
+    });
+    return;
+  }
   const previousRoute = (window.history.state as { back?: unknown } | null)?.back;
   if (canReturnFromTrackDetails(previousRoute)) {
     router.back();
@@ -1320,91 +1517,33 @@ watch([trackDetailsVisible, trackDetailsId], ([visible, id]) => {
   padding: 0 0.9rem 0.85rem;
 }
 
-.track-selection-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
+.track-selection-group {
   display: flex;
   flex-direction: column;
-  gap: 0.55rem;
+  gap: 0.65rem;
 }
 
-.mtl-track-pick {
+.track-selection-group + .track-selection-group {
+  margin-top: 1.1rem;
+}
+
+.track-selection-group__title {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 0.75rem;
-  padding: 0.55rem 0.75rem;
-  cursor: pointer;
-  border: 1px solid var(--border-subtle);
-  border-radius: 0.95rem;
-  background: linear-gradient(135deg, var(--surface-glass-heavy), var(--surface-glass-subtle));
+  padding: 0 0.2rem;
+  margin: 0;
   color: var(--text-secondary);
-  transition:
-    transform 0.15s,
-    background 0.12s,
-    border-color 0.12s,
-    color 0.12s;
-}
-.mtl-track-pick:hover {
-  transform: translateY(-1px);
-  background: color-mix(in srgb, var(--accent-bg) 65%, var(--surface-glass-heavy));
-  border-color: color-mix(in srgb, var(--accent-muted) 55%, var(--border-default));
-  color: var(--text-primary);
-}
-
-.mtl-track-pick__content {
-  display: flex;
-  flex: 1 1 auto;
-  flex-direction: column;
-  gap: 0.18rem;
-  min-width: 0;
-}
-.mtl-track-pick__shape {
-  flex-shrink: 0;
-  opacity: 0.7;
-}
-.mtl-track-pick:hover .mtl-track-pick__shape {
-  opacity: 1;
-}
-.mtl-track-pick__primary {
-  min-width: 0;
-  font-size: var(--text-sm-size);
-  font-weight: 600;
-  color: var(--text-primary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.mtl-track-pick__secondary {
-  display: flex;
-  align-items: center;
-  gap: 0.45rem;
-  min-width: 0;
   font-size: var(--text-xs-size);
-  color: var(--text-muted);
-}
-.mtl-track-pick__date {
-  flex: 0 0 auto;
-  font-weight: 600;
-  white-space: nowrap;
-  color: inherit;
-}
-.mtl-track-pick__description {
-  flex: 1 1 auto;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.mtl-track-pick__description::before {
-  content: '•';
-  margin-right: 0.35rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
 }
 
-.mtl-track-pick__chevron {
-  flex: 0 0 auto;
-  color: var(--text-muted);
-  font-size: var(--text-base-size);
+.track-selection-group__title > span:first-child {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
 }
 
 /* ─── Swiss Mobility route info popup ─── */
@@ -1514,6 +1653,51 @@ watch([trackDetailsVisible, trackDetailsId], ([visible, id]) => {
 
 <!-- Unscoped map overlay styles -->
 <style>
+.mtl-focused-media-marker {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  width: 2.125rem;
+  height: 2.125rem;
+  border: 3px solid #ffffff;
+  border-radius: 50%;
+  outline: 4px solid color-mix(in srgb, var(--accent) 62%, transparent);
+  outline-offset: 3px;
+  background: #ff0033;
+  color: #ffffff;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.45);
+  font-size: 0.9rem;
+  pointer-events: none;
+}
+
+.mtl-focused-media-marker::after {
+  content: '';
+  position: absolute;
+  inset: -0.45rem;
+  border: 3px solid var(--accent);
+  border-radius: 50%;
+  animation: mtl-focused-media-marker-pulse 760ms ease-out 3;
+  pointer-events: none;
+}
+
+@keyframes mtl-focused-media-marker-pulse {
+  from {
+    opacity: 0.85;
+    transform: scale(0.72);
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.85);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mtl-focused-media-marker::after {
+    animation: none;
+    opacity: 0.7;
+  }
+}
+
 .mtl-location-search-marker {
   position: relative;
   display: inline-flex;

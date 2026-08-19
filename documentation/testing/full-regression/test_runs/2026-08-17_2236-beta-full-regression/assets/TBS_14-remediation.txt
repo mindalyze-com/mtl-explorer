@@ -1,0 +1,4 @@
+2026-08-18 fixed-build retest
+Desktop 1280x720 and mobile 390x844: keyboard focus on Media history rendered role=tooltip and aria-describedby.
+Tooltip: Every dated indexed photo and video can define the chart range. Activity filters do not apply.
+statisticsMediaTrends.spec.ts passed.

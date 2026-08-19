@@ -1,0 +1,26 @@
+PLN_08 planned-route GPX export evidence
+
+Saved/exported plan
+- Plan ID: 100020
+- Name: Beta regression GPX export
+- UI list: 710.00 m, Planned route, 18 Aug 2026.
+- Activated "Export Beta regression GPX export as GPX".
+- Server request: GET /mtl/api/planner/plans/100020/gpx, HTTP 200.
+
+Credential-safe endpoint validation
+- Response bytes: 573
+- SHA-256: e7e85ab642b1bb563ab95ef11230349250a6aef10d389987fe0167c48718b8d4
+- GPX name: Beta regression GPX export
+- trkpt count: 5
+- First point: lat 28.43919, lon 2.493953
+- Last point: lat 28.434506, lon 2.49866
+- Saved-plan server evidence: points=5, lengthM=710.
+
+Cleanup
+- Deleted plan 100020 through the UI; saved-plan list returned empty.
+
+Limitation/result
+- The in-app browser cannot expose its download filesystem, so final browser
+  file delivery cannot be inspected even though UI activation, HTTP 200, and
+  the exact valid GPX response all pass.
+- Result: BLOCKED on download transport only.

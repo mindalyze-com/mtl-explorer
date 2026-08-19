@@ -1,0 +1,37 @@
+MED_34 shared photo-viewer theme evidence
+Captured: 2026-08-18 Europe/Zurich
+
+Default and light application
+- Application html data-theme was light.
+- With no viewer change made in this run, the activity viewer opened dark:
+  3 media-viewer-sheet--dark instances, 0 light, and Use light photo viewer.
+- Header shortcut changed all viewer sheets to light immediately, changed the
+  action to Use dark photo viewer, and left application data-theme=light.
+- Header, stage, side navigation, focused controls, Details, metadata dividers,
+  lower-right map, Nearby dock/thumbnails, and Download were readable in the
+  live light screenshots.
+- Reload kept application data-theme=light. Reopening activity 100016 showed
+  the persisted light viewer and Use dark photo viewer.
+- A map cluster viewer (This cluster, six photos) and the Statistics 2026-08
+  six-item mosaic viewer also opened light with Use dark photo viewer.
+
+Dark application and viewer independence
+- Admin Preferences changed the application to dark while the photo-viewer
+  preference stayed light.
+- Reopened activity viewer rendered light over the dark application, proving
+  the preferences are independent.
+- Viewer shortcut switched back to dark without changing application dark.
+- In dark viewer mode: maximize filled the app viewport; Details hide/show,
+  Nearby collapse/expand, Next 1/6 to 2/6, zoom to scale(1.89648), and reset
+  worked.
+
+Fullscreen blocker
+- Retried Enter fullscreen from maximized dark mode. It cleared panel maximize
+  and retained Details/Nearby/photo state, but the in-app browser still exposed
+  no Fullscreen API and fullscreenElement stayed null, as in MED_32.
+
+Cleanup
+- Viewer preference left dark.
+- Application theme restored to light.
+- GPS tracks, Photos and media, and Track points and direction restored enabled
+  (3 of 4); heatmap remains disabled.

@@ -1,0 +1,24 @@
+AVR_01 standalone animation evidence
+
+Desktop 1280x720
+- Animate opened with the map and 13 Tracks still present.
+- Initial status: Playback ready, 13 tracks, date range 01/01/2010..18/08/2026.
+- Default 20 ms/track reported "Plays in under 1 second" and completed all 13 tracks.
+- Opening settings and moving speed to Slow selected 1000 ms/track and reported about 13 seconds.
+- Play collapsed the sheet to the map-first transport bar.
+- After about 2.2 seconds, Pause showed 3/13 at 08/03/2013.
+- Resume advanced to 4/13 at 20/07/2021; pause preserved progress.
+- Open playback settings expanded the paused transport back to the full sheet.
+- Moving the minimum date to the end selected one 18/08/2026 track, reset playback ready state, and changed duration to about 1 second; the map still reported 13 Tracks before playback.
+- Stop returned to the full ready/settings view. Restoring the minimum date returned 13 tracks.
+- Reset after completion returned to the beginning with Play available.
+
+Mobile 390x844
+- Animate reopened with the same 13-track ready state and complete controls.
+- Play collapsed to the map-first transport bar.
+- Pause showed 2/13 at 01/01/2010.
+- Resume advanced playback; Stop returned to 13-track ready state with settings.
+- Sheet closed and viewport returned to 1280x720.
+
+Result: PASS.
+

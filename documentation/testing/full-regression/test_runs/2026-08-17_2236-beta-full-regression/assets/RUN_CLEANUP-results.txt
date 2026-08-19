@@ -1,0 +1,59 @@
+RUN_CLEANUP evidence
+
+Pre-cleanup finalization and artifact audit:
+- Finalization gate: PASS (228 coverage IDs terminal)
+- Packet files before RUN_CLEANUP: 229 (RUN_SETUP + 228 coverage packets)
+- Evidence assets before RUN_CLEANUP: 296
+- Local packet evidence links checked: 995
+- Broken local packet links: 0
+- WebP assets over 85,000 bytes: 0
+- Text evidence assets over 5 KiB: 0
+- Report and evidence already resided in the local run folder outside the
+  disposable server installation; no only-copy existed beneath the remote tree.
+
+Validated target:
+/root/mtl-explorer-2026-08-17_2236-beta-full-regression
+
+Pre-cleanup project containers:
+- app-1: Up
+- db-1: Up (healthy)
+- location-search-1: Up (healthy)
+- brouter-1: Up
+
+Action:
+- From the validated Compose directory, ran `docker compose down --volumes
+  --remove-orphans`.
+- Compose stopped and removed the four project containers and removed the
+  project network.
+- Compose-down time: 11 seconds.
+- Removed only the validated disposable directory.
+- No global prune and no unrelated container, image, volume, network, or
+  directory removal was run.
+
+Post-cleanup verification:
+- Running containers with this Compose project label: 0
+- All containers with this Compose project label: 0
+- Volumes with this Compose project label: 0
+- Networks with this Compose project label: 0
+- Disposable directory exists: no
+- Public app endpoint: connection refused, HTTP 000, curl exit 7
+- Independent SSH verification exit: 0
+
+Cleanup result: PASS.
+
+Final report assembly audit:
+- report.md size: 44,255 bytes
+- Coverage matrix rows: 228 unique IDs
+- Matrix statuses match packet Actions And Results rows: yes
+- Finding detail sections: 16
+- Local report links checked: 364
+- Broken report links: 0
+- Supplied SSH password occurrences in Markdown artifacts: 0
+- Finalization gate rerun: PASS (228 coverage IDs terminal)
+
+Run timing envelopes from packet timestamps:
+- Run start to cleanup verification: about 8h 17m
+- Desktop/data packet envelope (SGN_01 through LOC_05): about 6h 16m
+- Mobile MOB_01-MOB_06 packet span: about 12m 13s
+- Network NET_01-NET_04 packet span: about 5m 17s
+- Error/UX/deferred final verification span (ERR_01 through FLT_21): about 26m 44s

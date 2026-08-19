@@ -1,0 +1,33 @@
+TRD_02 complete detail load evidence
+
+Track:
+- ID 100004
+- Source: Lannion_Plestin_parcours24.4RE.gpx
+- Name: Lannion_Plestin_parcours Lannion_Plestin_parcours1
+
+Overview:
+- Detail identity #100004 and Bicycle.
+- Source name, timestamp, distance 25.9 km, duration 3h 42m, ascent 341 m, speed/elevation/energy/fitness/exploration values.
+- Download original control.
+- Selected-track mini-map region and nonzero map canvas.
+
+Graphs:
+- Six Highcharts containers and six Highcharts SVG roots rendered.
+- Accessible chart point values were populated, including Estimated Power samples and axes.
+
+Quality:
+- SUCCESS and UNIQUE.
+- Track Curation controls for Activity Type, Statistics, and Highlights.
+- Point Quality: 381 total points, 68.11 m average, 58.32 m median, 296.48 m max.
+- Activity Classification, Geo Coverage, GPX Metadata, and File & Indexer sections.
+
+Related:
+- Four previous tracks, current track, ten next tracks.
+- Named previous/next entries visible and Show 5 more control available.
+
+Events:
+- One break.
+- GPS gap from 12:15 to 12:27, duration 12m 25s, position 1.84-1.86 km.
+- Event is an interactive button.
+
+Result: overview, charts, quality, related list, event list, and mini-map all loaded with nonblank data.

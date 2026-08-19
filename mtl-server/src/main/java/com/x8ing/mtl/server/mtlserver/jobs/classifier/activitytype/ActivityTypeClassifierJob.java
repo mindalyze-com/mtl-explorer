@@ -6,6 +6,8 @@ import com.x8ing.mtl.server.mtlserver.db.repository.gps.GpsTrackRepository;
 import com.x8ing.mtl.server.mtlserver.db.repository.gps.GpsTrackVariantSelector;
 import com.x8ing.mtl.server.mtlserver.db.repository.logs.SystemLogService;
 import com.x8ing.mtl.server.mtlserver.energy.EnergyService;
+import com.x8ing.mtl.server.mtlserver.gpx.GPXDirectoryWatcherService;
+import com.x8ing.mtl.server.mtlserver.indexer.IndexerStatusService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
@@ -18,7 +20,8 @@ import java.util.List;
         "gpsTrackVariantSelector",
         "activityTypeAutoClassifier",
         "energyService",
-        "systemLogService"
+        "systemLogService",
+        "indexerStatusService"
 })
 public class ActivityTypeClassifierJob {
 
@@ -27,16 +30,27 @@ public class ActivityTypeClassifierJob {
     private final ActivityTypeAutoClassifier activityTypeAutoClassifier;
     private final EnergyService energyService;
     private final SystemLogService systemLogService;
+    private final IndexerStatusService indexerStatusService;
 
-    public ActivityTypeClassifierJob(GpsTrackRepository gpsTrackRepository, GpsTrackVariantSelector gpsTrackVariantSelector, ActivityTypeAutoClassifier activityTypeAutoClassifier, EnergyService energyService, SystemLogService systemLogService) {
+    public ActivityTypeClassifierJob(GpsTrackRepository gpsTrackRepository,
+                                     GpsTrackVariantSelector gpsTrackVariantSelector,
+                                     ActivityTypeAutoClassifier activityTypeAutoClassifier,
+                                     EnergyService energyService,
+                                     SystemLogService systemLogService,
+                                     IndexerStatusService indexerStatusService) {
         this.gpsTrackRepository = gpsTrackRepository;
         this.gpsTrackVariantSelector = gpsTrackVariantSelector;
         this.activityTypeAutoClassifier = activityTypeAutoClassifier;
         this.energyService = energyService;
         this.systemLogService = systemLogService;
+        this.indexerStatusService = indexerStatusService;
     }
 
     public void run() {
+        if (indexerStatusService.hasIndexPendingWork(GPXDirectoryWatcherService.INDEX_GPS)) {
+            log.debug("Activity type classifier is waiting for GPS indexing to settle");
+            return;
+        }
         long t0 = System.currentTimeMillis();
         log.debug("Start find activity classifier job");
 

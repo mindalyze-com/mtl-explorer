@@ -1,0 +1,23 @@
+MED_31 mobile viewer evidence
+Captured: 2026-08-18 Europe/Zurich
+Live viewports: 375 x 667 and 390 x 760, DPR 2
+
+Passed at both sizes
+- A fresh activity viewer opened photo-first with Details closed.
+- The dark viewer filled the phone width and bottom edge.
+- Details opened as a native vertically scrollable dark sheet.
+- Scrolling reached Taken/source, Location, Folder, location map, Open on main
+  map, and Download original.
+- Expanded Details reached the bottom with dark content below the download.
+- Collapsed Nearby retained mtl-regression-photo-a.jpg and 1/6 in a compact
+  dark bottom row; there was no white bottom safe-area/padding strip.
+- Expanded Nearby reached the bottom edge and exposed the horizontal thumbnail
+  strip without a white bottom strip.
+
+Failure at both sizes
+- The visible compact/expanded dock label remained "Nearby photos".
+- The coverage contract requires the phone label to shorten to exactly
+  "Nearby".
+
+Viewport override was reset to the default 1280 x 720 and the temporary phone
+tab was closed after the repeat.

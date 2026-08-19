@@ -1,0 +1,4 @@
+2026-08-18 fixed-build retest
+Desktop 1280x720 viewer label: Nearby photos.
+Mobile 390x844, 390x760 DPR2-equivalent viewport, and 375x667 DPR2-equivalent viewport label: Nearby.
+The accessible control name remained Collapse nearby photos, photo 2 of 6. mediaFilmstrip.spec.ts passed.

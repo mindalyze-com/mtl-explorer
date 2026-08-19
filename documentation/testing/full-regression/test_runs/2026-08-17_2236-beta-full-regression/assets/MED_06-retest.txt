@@ -1,0 +1,13 @@
+MED_06 targeted validity retest — exact beta image
+
+Desktop 1280x720:
+- Opened Admin > Maintenance and clicked Rescan Media once.
+- UI showed: "Manual MEDIA rescan has been queued."
+- Server recorded POST /mtl/api/indexer/MEDIA/rescan -> 200.
+- The scan examined and indexed all 6 pending synthetic photos.
+
+Mobile 390x844:
+- The same control was visible and retained the successful queued state.
+
+Conclusion: REJECTED. The reported pointer no-op does not reproduce in the exact
+beta. The endpoint, UI activation, feedback, and indexing path all worked.

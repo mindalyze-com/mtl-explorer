@@ -1,0 +1,20 @@
+MAP_04 deleted-track map-source evidence
+
+Deleted map sources:
+- former 100001, Vitry le françois - langres on GPSies.com
+- former 100003, voie verte haute vosges on GPSies.com
+
+After automatic deletion processing and the already-current browser data set:
+- Toolbar and Filter agreed at 15 Tracks.
+- Choose tracks exact-name searches returned no row for either deleted target.
+- Exact deleted-name Track Browser searches returned 0 of 15 tracks.
+- Location search centered the former Vitry start area and the former
+  VoieVerte/Le Thillot area at 100 m scale.
+- With search markers cleared, direct map clicks produced no stale selection
+  list, Track Details, deleted name, or popup.
+- Heatmap was re-enabled from Map > Your data and reported 4 of 4 layers shown
+  from the current 15-track data set.
+- Retained track 100004 still opened normally; the selected-track map rendered.
+
+Result: deleted tracks are absent from map sources, selectors, and popup/detail
+flows while retained sources remain usable.

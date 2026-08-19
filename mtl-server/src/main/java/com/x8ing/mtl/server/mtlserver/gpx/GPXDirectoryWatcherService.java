@@ -31,6 +31,7 @@ import java.util.List;
         "watchDirectory",
         "changeDetectionStrategy",
         "liveWatchEnabled",
+        "workerThreads",
         "fileIndexerImpl",
         "txManager"
 })
@@ -45,11 +46,14 @@ public class GPXDirectoryWatcherService {
     @Value("${mtl.gpx-watch-directory}")
     private String watchDirectory;
 
-    @Value("${mtl.indexer.change-detection-strategy:SIZE_ONLY}")
+    @Value("${mtl.indexer.change-detection-strategy:SIZE_AND_MTIME}")
     private String changeDetectionStrategy;
 
     @Value("${mtl.indexer.gps.live-watch-enabled:true}")
     private boolean liveWatchEnabled;
+
+    @Value("${mtl.indexer.worker-threads:2}")
+    private int workerThreads;
 
     private volatile FileIndexerImpl fileIndexerImpl;
 
@@ -69,7 +73,7 @@ public class GPXDirectoryWatcherService {
 
         log.info("GPX Directory watcher service starting on directory " + watchDirectory);
 
-        FileIndexer fileIndexer = new FileIndexer(txManager);
+        FileIndexer fileIndexer = new FileIndexer(txManager, workerThreads);
         final Path absoluteWatchPath = Paths.get(watchDirectory);
 
         // Inclusion: all supported track formats (case-insensitive).

@@ -1,0 +1,26 @@
+TRD_13 related-track navigation
+
+Source track: 100006, MTL Synthetic S
+Route: /mtl/track/100006
+
+Rendered Related panel
+- Previous Tracks: 10 total; five latest cards rendered.
+- Current Track: MTL Synthetic S, 17 Aug 2026.
+- Next Tracks: 4 cards.
+- Duplicates: 1 card.
+- Visible previous example: MTL Regression Media Track, 17 Aug 2026.
+- Visible next example: Path, 17 Aug 2026.
+- Duplicate card: MTL Synthetic S, 17 Aug 2026.
+
+Navigation checks
+- Activated the visible previous card "MTL Regression Media Track".
+  - Before: /mtl/track/100006, #100006.
+  - After: /mtl/track/100006, #100006.
+- Activated the first visible next card "Path".
+  - Before: /mtl/track/100006, #100006.
+  - After: /mtl/track/100006, #100006.
+- Activated the one duplicate card.
+  - Before: /mtl/track/100006, #100006.
+  - After: /mtl/track/100006, #100006.
+
+The cards have pointer cursors and each browser activation completed without an exception, but no route or selected track changed. No new console error was recorded. This fails the required navigation behavior.

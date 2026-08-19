@@ -19,6 +19,11 @@ There is no separate packet catalog. For each new run, `init-run.py` copies
   packet result format.
 - `documentation/testing/full-regression/workflow/init-run.py`: run-folder,
   plan-snapshot, and queue initializer.
+- `docker/gpx_porto_taxi_dataset/photo_placeholder.py`: shared demo and
+  regression photo renderer, packaged at `/app/demo/photo_placeholder.py`.
+- `docker/gpx_porto_taxi_dataset/generate_regression_photos.py`: packaged entry
+  point for the disposable JPEG and video set plus matching synthetic GPX
+  activity.
 
 ## How To Start
 
@@ -90,7 +95,10 @@ user explicitly approves closing the run with remaining coverage gaps.
 - Do not skip ahead unless the current ID is terminal or explicitly needs later
   app state.
 - Import/data IDs naturally prepare the shared dataset for later UI IDs.
-- Delete IDs run after all IDs that need the full imported dataset.
+- Track delete IDs run after all IDs that need the full imported track dataset.
+- `MED_06` creates and indexes the disposable media dataset before `MED_01`.
+  Run `MED_07-MED_12` only after `MED_40`; keep deletion backups and the fixture
+  manifest outside the watched media tree.
 - Run `RUN_CLEANUP` last: final report, evidence audit, stack shutdown, and
   disposable-directory removal.
 

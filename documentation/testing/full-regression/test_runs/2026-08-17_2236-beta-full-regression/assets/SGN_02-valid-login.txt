@@ -1,0 +1,4 @@
+Submitted the documented valid login through the visible Username, Password, and Sign In controls.
+Credentials are intentionally not stored in this artifact.
+Final URL: http://62.238.106.141:18080/mtl/
+Visible result: map region and `14 Tracks` button; Sign In control absent.

@@ -1,0 +1,18 @@
+SYN_06 logout/login freshness evidence
+
+Precondition:
+- Applied the pending freshness Reload once.
+- Client/server in sync at 15 Tracks; banner cleared.
+
+Session cycle:
+- Opened /mtl/admin/session and used the single Sign out action.
+- Reached /mtl/login.
+- Signed in through the normal end-user form at 2026-08-18T03:09:42.000Z.
+
+After sign-in:
+- Initial resolved route: /mtl/.
+- Initial count: 15 Tracks; no New data available; no Fresh data loaded alert.
+- After 20 seconds (multiple freshness polls): route still /mtl/, 15 Tracks,
+  no banner, no Fresh data loaded alert, and no loading overlay.
+
+Result: PASS

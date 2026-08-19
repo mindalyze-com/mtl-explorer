@@ -1,0 +1,11 @@
+Coverage: APP_07
+Application theme: Dark
+Selected map style before reload: OSM Gray
+Route before reload: /mtl/map-settings
+Route after reload: /mtl/map-settings
+Current map after reload: OSM Gray
+Map-style radio count after reopening detail: 9
+OSM Gray aria-checked after reload: true
+Track count after reload: 15
+Attribution after reload: © OpenStreetMap
+Result: the selected map style persisted across a full page reload.

@@ -1,0 +1,12 @@
+SRC_02 selected location evidence
+Observed 2026-08-18 04:47 Europe/Zurich
+
+- Activated the first result: Bern, Bern, Switzerland, Capital.
+- Search sheet closed.
+- Map animated/reframed to central Bern and settled.
+- A distinct purple search pin appeared and was exposed semantically as
+  `Map marker` with a separate `Clear search marker` action.
+- Existing heatmap, media marker, and GPS data remained visible independently.
+
+Result: PASS. Selecting a result flies the map to it and places a removable
+search marker.

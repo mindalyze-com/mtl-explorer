@@ -1,0 +1,20 @@
+SYN_02 freshness reload evidence
+
+Before Reload:
+- Server-side track 100026 existed.
+- Client toolbar/map remained at 14 Tracks.
+- New data available banner was visible.
+
+Reload result:
+- Clicked the visible freshness-banner Reload action.
+- UI reported Fresh data loaded.
+- Banner disappeared.
+- Toolbar/map count changed 14 -> 15 Tracks without browser restart.
+
+Statistics result after closing Admin and opening Stats:
+- Route: /mtl/stats.
+- Overview: 15 Tracks, 824 km, 16h 51m, 3,993 Wh, 13,090 m ascent.
+- Activity breakdown: Bicycle 10, Walking 3, Running 2.
+- Recent Activity included MTL Sync Banner Track, Running, 673.67 m, 5m 00s.
+
+Result: PASS

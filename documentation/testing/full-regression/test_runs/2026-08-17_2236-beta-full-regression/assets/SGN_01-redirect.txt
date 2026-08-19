@@ -1,0 +1,4 @@
+Signed out through Admin > Session, then opened http://62.238.106.141:18080/mtl/ directly.
+Observed final URL: http://62.238.106.141:18080/mtl/login
+Visible controls: Username, Password, Sign In.
+No signed-in map controls were exposed on the final page.

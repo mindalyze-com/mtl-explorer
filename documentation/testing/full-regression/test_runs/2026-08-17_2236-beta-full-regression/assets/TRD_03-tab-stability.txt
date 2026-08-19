@@ -1,0 +1,25 @@
+TRD_03 tab switching evidence
+
+Track: 100004
+URL remained: /mtl/track/100004
+
+Switch sequence and visible panel content length:
+- Overview: selected, visible, 765 characters
+- Graphs: selected, visible, 1,885 characters, 6 charts
+- Quality: selected, visible, 656 characters
+- Related: selected, visible, 482 characters
+- Events: selected, visible, 185 characters
+- Overview again: selected, visible, 765 characters
+- Graphs again: selected, visible, 1,885 characters, 6 charts
+
+Additional Events -> Graphs repeat:
+- Browser error log count before: 6
+- Browser error log count after: 6
+- New errors: 0
+- Graph charts after return: 6
+- Graph content length after return: 1,885 characters
+
+The six prior errors all came from the intentional app restart during MAP_13/MAP_14 and predate this detail pass.
+No loading/preparing text appeared during the tab cycle.
+
+Result: all five required tabs stayed populated and stable across repeat switching with no new errors or chart loss.

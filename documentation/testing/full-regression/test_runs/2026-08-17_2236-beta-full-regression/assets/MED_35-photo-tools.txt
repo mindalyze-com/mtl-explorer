@@ -1,0 +1,30 @@
+MED_35 Photo tools disclosure evidence
+Captured: 2026-08-18 Europe/Zurich
+Activity: 100016, six photos
+
+Desktop 1280 x 720 and phone 390 x 760
+- Fresh Photos tab immediately showed six timeline rows, provenance labels,
+  selection, and the single Photo tools disclosure.
+- Camera clock controls, Adjust locations, and Set/Edit location actions were
+  not visible while Photo tools was closed.
+- Opening Photo tools showed the numeric camera offset, Preview/Reset, and one
+  Adjust locations action.
+- Entering valid +0.25 h enabled Preview. Preview completed but changed Activity
+  photos from 6 to 0 on both desktop and phone. Reset restored all six. This is
+  the already-recorded FR-010 and makes the required preview unusable.
+- Enabling Adjust locations exposed exactly six Set location actions.
+- Opening the first editor exposed latitude, longitude, optional note, Save,
+  and Cancel without saving anything.
+- Closing Photo tools while the editor was open removed all number inputs,
+  Save/Cancel, and all Set location actions; the six-row timeline remained
+  clean and unchanged.
+
+Paging blocker
+- Six photos render one page and omit paging controls.
+- The frozen run has no 100,000-photo fixture, so first/next/last page behavior
+  and per-page DOM limits cannot be repeated at scale.
+
+Cleanup
+- Both previews were Reset.
+- No editor was saved.
+- Phone tab closed and viewport reset to 1280 x 720.

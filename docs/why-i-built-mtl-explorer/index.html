@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Why I Built MTL Explorer</title>
+  <meta name="description" content="Patrick Heusser explains why he built MTL Explorer to map thousands of Garmin activities, compare personal segments, review statistics, and plan new routes.">
+  <meta name="author" content="Patrick Heusser">
+  <meta name="robots" content="index, follow, max-image-preview:large">
+  <link rel="canonical" href="https://mindalyze-com.github.io/mtl-explorer/why-i-built-mtl-explorer/">
+  <meta property="og:site_name" content="MTL Explorer">
+  <meta property="og:type" content="article">
+  <meta property="og:url" content="https://mindalyze-com.github.io/mtl-explorer/why-i-built-mtl-explorer/">
+  <meta property="og:title" content="Why I Built MTL Explorer">
+  <meta property="og:description" content="The personal need behind a self-hosted archive for thousands of GPS activities.">
+  <meta property="og:image" content="https://mindalyze-com.github.io/mtl-explorer/assets/feature-showcase/large/map-filter-by-year.webp">
+  <meta property="og:image:type" content="image/webp">
+  <meta property="og:image:width" content="2199">
+  <meta property="og:image:height" content="1215">
+  <meta property="og:image:alt" content="MTL Explorer showing years of GPS tracks together on one map">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:image" content="https://mindalyze-com.github.io/mtl-explorer/assets/feature-showcase/large/map-filter-by-year.webp">
+  <link rel="icon" href="../favicon.ico" sizes="any">
+  <link rel="stylesheet" href="../site-page.css">
+  <link rel="preload" as="image" type="image/webp" href="../assets/feature-showcase/preview/map-filter-by-year.webp">
+  <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Article",
+      "headline": "Why I Built MTL Explorer",
+      "url": "https://mindalyze-com.github.io/mtl-explorer/why-i-built-mtl-explorer/",
+      "description": "The personal need behind the self-hosted MTL Explorer GPS track archive.",
+      "dateModified": "2026-08-18",
+      "author": {"@type": "Person", "name": "Patrick Heusser"},
+      "about": {"@type": "SoftwareApplication", "name": "MTL Explorer"}
+    }
+  </script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="site-header-inner">
+      <a class="brand" href="../">
+        <img src="../mtl_logo_3_only_vector.svg" width="43" height="51" alt="">
+        <span><strong>MTL Explorer</strong><span>Self-hosted GPS archive</span></span>
+      </a>
+      <nav class="site-nav" aria-label="Primary navigation">
+        <a href="../#guides">Guides</a>
+        <a href="../docker-install/">Install</a>
+        <a class="button-small" href="https://mtl-demo.mindalyze.com/mtl/">Live demo</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="page">
+    <nav class="breadcrumb" aria-label="Breadcrumb"><a href="../">Home</a> / Why I built MTL Explorer</nav>
+
+    <section class="hero">
+      <div>
+        <p class="eyebrow">Project story</p>
+        <h1>Why I built MTL Explorer.</h1>
+        <p class="lead">I wanted to see thousands of personal GPS activities together, understand where I had already been, compare repeated routes, and plan what to explore next.</p>
+        <p class="lead"><strong>Patrick Heusser</strong><br>Maintainer of MTL Explorer · Zurich, Switzerland</p>
+        <div class="actions">
+          <a class="button" href="../gpx-track-map/">View the track archive</a>
+          <a class="button-secondary" href="https://github.com/mindalyze-com/mtl-explorer">View the source</a>
+        </div>
+      </div>
+      <figure class="hero-media">
+        <img src="../assets/feature-showcase/preview/map-filter-by-year.webp" srcset="../assets/feature-showcase/thumb/map-filter-by-year.webp 360w, ../assets/feature-showcase/medium/map-filter-by-year.webp 720w, ../assets/feature-showcase/preview/map-filter-by-year.webp 1099w, ../assets/feature-showcase/large/map-filter-by-year.webp 2199w" sizes="(max-width: 900px) calc(100vw - 40px), 570px" width="1099" height="607" alt="MTL Explorer map showing a GPS activity archive grouped by year" fetchpriority="high">
+        <figcaption>Years of personal GPS activities shown together.</figcaption>
+      </figure>
+    </section>
+
+    <section class="section">
+      <article class="article-copy">
+        <h2>About me.</h2>
+        <p>I am Patrick Heusser, the main contributor and maintainer of MTL Explorer. I am a professional software developer and architect with more than 20 years of experience.</p>
+
+        <h2>The starting point.</h2>
+        <p>I started MTL Explorer in 2020 after recording many Garmin activities from mountain biking, hiking, cycling, and city visits. I wanted to see the complete history on one map. The available tools I tried did not fit that workflow well once the archive contained thousands of activities.</p>
+        <p>The first version used a PostgreSQL backend and a simple interface. It solved the basic problem, then became the base for a broader personal exploration tool.</p>
+
+        <h2>Exploration and repeated routes.</h2>
+        <p>The archive map helps me see where I have already travelled and where gaps remain. Segments provide a personal stopwatch for repeated parts of a route. They make it possible to compare the same climb, road, or trail across different years.</p>
+        <p>The private <a href="../private-gps-heatmap/">GPS heatmap</a> adds another view of the same history by showing where the archive is most concentrated.</p>
+
+        <h2>Planning in the context of my own history.</h2>
+        <p>There are many route planners, but I wanted planning beside my existing activities. Previous tracks show familiar areas, while route overlays and the planner help identify places I have not visited yet.</p>
+
+        <h2>Statistics with flexible filters.</h2>
+        <p>I wanted more control over long-term statistics than a fixed dashboard provided. MTL Explorer therefore uses the same active selection across the map, statistics, heatmap, related tracks, and segment analysis. SQL-backed filters support more specific groupings when the built-in choices are not enough.</p>
+
+        <h2>Importing the archive.</h2>
+        <p>The application accepts <a href="../supported-gps-formats/">GPX, FIT, and other GPS formats</a>. Optional <a href="../garmin-connect-import/">Garmin Connect import</a> can bring new activities into the same local processing flow.</p>
+
+        <h2>How the project is developed.</h2>
+        <p>Large parts of the original application were written by hand. More recent AI tools have assisted with parts of the frontend and user experience. I still supervise, review, test, and shape the work. The project remains driven by practical use of my own archive.</p>
+
+        <h2>Why it is public.</h2>
+        <p>MTL Explorer grew from a personal need: keeping a large activity history, seeing it on a map, learning from it, and planning future routes. I made the source available because the same workflow may be useful to other people with long-running GPS archives.</p>
+      </article>
+    </section>
+
+    <section class="section">
+      <div class="section-head"><h2>Continue with MTL Explorer.</h2></div>
+      <div class="related">
+        <a class="button-secondary" href="../gpx-track-map/">GPS track archive</a>
+        <a class="button-secondary" href="../garmin-connect-import/">Garmin Connect import</a>
+        <a class="button-secondary" href="../private-gps-heatmap/">Private GPS heatmap</a>
+        <a class="button-secondary" href="../docker-install/">Docker installation</a>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="site-footer-inner">
+      <span>MTL Explorer · Self-hosted GPS archive</span>
+      <nav aria-label="Footer navigation"><a href="../">Home</a><a href="https://github.com/mindalyze-com/mtl-explorer">GitHub</a></nav>
+    </div>
+  </footer>
+</body>
+</html>

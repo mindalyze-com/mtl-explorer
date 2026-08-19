@@ -1,0 +1,21 @@
+PLN_04 waypoint editing/history evidence
+
+Move
+- Dragged the first waypoint to a new local map position.
+- Route recomputed from 2.93 km / 5 m ascent / 8m / 4 profile points to
+  710.00 m / 0 m / 2m / 5 profile points.
+
+Delete
+- Clicking the moved waypoint exposed an accessible
+  "Delete selected waypoint" marker.
+- Activating it removed the selected endpoint: route became 0.00 m / 0 legs,
+  Save disabled, while one waypoint remained clearable.
+
+Undo/redo/clear
+- Undo delete restored 710.00 m / 1 leg.
+- Redo delete returned to 0.00 m / 0 legs.
+- Undo restored 710.00 m / 1 leg again.
+- Clear route returned to 0.00 m / 0 legs.
+- Undo clear restored 710.00 m / 1 leg.
+
+Result: PASS. Final state retains the moved two-waypoint route for later save.

@@ -1,0 +1,26 @@
+FLT_08 clear/reset active filter
+
+Before reset
+- Filter view: Activities by keyword.
+- Keyword: Synthetic.
+- Map colors: 5 Colors.
+- Current result: 2 matching tracks.
+- Toolbar: 2 / 15 Tracks.
+- Legend: CYCLING and ON_FOOT.
+
+Reset
+- Selected Reset filter.
+- UI displayed Filter reset with an Undo action.
+- View returned to Smart Base Filter.
+- Criteria returned to No criteria.
+- Included categories returned to All 3 categories.
+- Map colors returned to No coloring / Default order.
+- Current result returned to 15 matching tracks.
+
+Map and Statistics
+- Closed Filter without a page loading screen.
+- Toolbar returned to 15 Tracks.
+- Filter category legend disappeared.
+- Statistics Overview returned to 15 Tracks and 1,048 km.
+
+All tracks and the unfiltered baseline were restored.

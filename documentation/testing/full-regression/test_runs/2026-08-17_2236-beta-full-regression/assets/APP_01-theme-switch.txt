@@ -1,0 +1,24 @@
+APP_01 immediate application theme evidence
+
+Light state (Admin Preferences):
+- Light toggle checked; Dark unchecked.
+- CSS color-scheme: light.
+- Body: rgb(0,0,0) on rgb(240,240,240).
+- Admin sheet: rgb(51,65,85) on rgba(255,255,255,0.95).
+
+Immediate Dark selection without reload:
+- Dark toggle became checked; Light unchecked.
+- CSS color-scheme changed to dark within 250 ms.
+- Body: rgb(254,215,170) on rgb(10,10,15).
+- Admin sheet: rgb(226,232,240) on rgba(15,23,42,0.92).
+- Preferences text, toggles, fields, and sheet all repainted.
+
+Representative dark surfaces:
+- Statistics Trends rendered nine Highcharts containers with dark-theme axes
+  and series styling.
+- Aggregation dropdown opened with white/slate text and dark list styling.
+- About MTL Explorer source sheet opened over Statistics with dark panel/text,
+  links, and disclosure rows.
+- Map/navigation controls remained available and consistently themed.
+
+Result: PASS

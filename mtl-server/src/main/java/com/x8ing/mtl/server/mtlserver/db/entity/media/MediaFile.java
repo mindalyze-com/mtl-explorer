@@ -20,10 +20,23 @@ import java.util.Date;
         "exifGpsLocationLong",
         "exifGpsLocationLat",
         "exifGpsLocation",
+        "gpsAltitudeMeters",
         "exifGpsDate",
         "exifDateImageTaken",
         "cameraMake",
-        "cameraModel"
+        "cameraModel",
+        "lensModel",
+        "widthPixels",
+        "heightPixels",
+        "apertureFNumber",
+        "exposureTimeSeconds",
+        "isoSpeed",
+        "focalLengthMm",
+        "focalLength35Mm",
+        "durationSeconds",
+        "frameRate",
+        "videoCodec",
+        "audioCodec"
 })
 public class MediaFile {
 
@@ -47,10 +60,14 @@ public class MediaFile {
     @Column(name = "exif_gps_location")
     private Geometry exifGpsLocation;
 
+    @Column(name = "gps_altitude_meters")
+    private Double gpsAltitudeMeters;
+
     @Column(name = "exif_gps_date")
     private Date exifGpsDate;
 
     @Column(name = "exif_date_image_taken")
+    // Stores the best embedded capture time. The legacy column name also covers video-container metadata.
     private Date exifDateImageTaken;
 
     @Column(name = "camera_make")
@@ -58,4 +75,40 @@ public class MediaFile {
 
     @Column(name = "camera_model")
     private String cameraModel;
+
+    @Column(name = "lens_model")
+    private String lensModel;
+
+    @Column(name = "width_pixels")
+    private Integer widthPixels;
+
+    @Column(name = "height_pixels")
+    private Integer heightPixels;
+
+    @Column(name = "aperture_f_number")
+    private Double apertureFNumber;
+
+    @Column(name = "exposure_time_seconds")
+    private Double exposureTimeSeconds;
+
+    @Column(name = "iso_speed")
+    private Integer isoSpeed;
+
+    @Column(name = "focal_length_mm")
+    private Double focalLengthMm;
+
+    @Column(name = "focal_length_35mm")
+    private Integer focalLength35Mm;
+
+    @Column(name = "duration_seconds")
+    private Double durationSeconds;
+
+    @Column(name = "frame_rate")
+    private Double frameRate;
+
+    @Column(name = "video_codec")
+    private String videoCodec;
+
+    @Column(name = "audio_codec")
+    private String audioCodec;
 }

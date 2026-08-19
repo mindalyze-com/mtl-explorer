@@ -1,0 +1,15 @@
+MAP_03 freshness/reload flow evidence
+
+This coverage reuses the required import mutation already performed and preserved in IMP_02 through IMP_05.
+
+Observed sequence:
+- Existing signed-in browser showed a New data available banner after server-side import completed.
+- Used the banner's Reload action.
+- Did not restart the browser.
+- Main map changed from stale 2 Tracks to 5 Tracks.
+- Review Tracks showed all five imported public names.
+- Filter and Statistics also changed to five tracks.
+
+Primary evidence: IMP_05-reload.txt
+
+Result: newly imported tracks appeared on the map after accepting the freshness reload prompt, without a full browser restart.

@@ -1,0 +1,15 @@
+AVR_02 virtual race evidence
+
+- Recreated A/B Segment Analyzer result: six crossing tracks, five selected.
+- Race opened on segment A-B at 18x / about 12 seconds.
+- Three zero-duration/missing-data racers were skipped with a clear warning.
+- Two valid racers remained: sample.igc and mtl-regression-media-track.gpx.
+- Race mini-map rendered at a local 100 m scale.
+- Initial cards: ranks 1/2 and 0%/0%.
+- After about 2.2 seconds: sample.igc 32% / 115.45 m; media GPX 14% / 38.50 m.
+- After another about 2.2 seconds: sample.igc 100% / 252.59 m; media GPX 51% / 84.13 m.
+- The faster IGC card remained rank 1 and the slower Walking track remained rank 2.
+- Pause changed the transport back to the play icon and preserved both progress values.
+
+Result: PASS.
+

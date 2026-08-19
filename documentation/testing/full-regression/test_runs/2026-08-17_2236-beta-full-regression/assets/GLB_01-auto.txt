@@ -1,0 +1,12 @@
+GLB_01 automatic globe evidence
+Observed 2026-08-18 04:54 Europe/Zurich
+
+- Started at central Bern in a flat close-zoom view.
+- Repeatedly activated Zoom out with the end-user map control.
+- Regional/continental flat view appeared first.
+- At the next low-zoom threshold the map automatically changed to a fully
+  circular globe with whitespace around the sphere, curved horizon/landmass,
+  global labels, current data markers, controls, and attribution still visible.
+- No manual globe button was activated for this transition.
+
+Result: PASS. Low zoom automatically engages globe projection.

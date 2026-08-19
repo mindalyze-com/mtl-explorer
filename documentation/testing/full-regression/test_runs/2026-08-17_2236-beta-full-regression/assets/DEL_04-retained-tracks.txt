@@ -1,0 +1,18 @@
+DEL_04 retained-source evidence
+
+Selection list exact searches:
+- 100000 Jura Route 7 / 2011 on GPSies.com: one row
+- 100002 Moselradweg aus Wiki on GPSies.com: one row
+- 100004 Lannion_Plestin_parcours Lannion_Plestin_parcours1: one row
+
+Track browser:
+- Exact search for retained 100004 returned 1 of 15 tracks.
+- Activating the row opened /mtl/track/100004.
+- Track Details showed #100004, the correct name, Overview, and a selected-track
+  mini-map.
+- Related opened successfully and listed retained 100000 and 100002 as Previous
+  Tracks. Neither deleted source appeared.
+
+Statistics Tracks and Overview also contained all three retained names.
+
+Result: all three remaining imports display and open correctly after deletion.

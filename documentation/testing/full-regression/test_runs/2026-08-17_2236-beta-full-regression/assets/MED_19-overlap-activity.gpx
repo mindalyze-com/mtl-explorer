@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="MTL Explorer regression fixture"
+     xmlns="http://www.topografix.com/GPX/1/1"
+     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+     xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd">
+  <metadata><name>MTL Regression Media Overlap</name></metadata>
+  <trk>
+    <name>MTL Regression Media Overlap</name>
+    <type>walking</type>
+    <trkseg>
+      <trkpt lat="46.94782" lon="7.44712"><ele>550</ele><time>2026-08-17T07:59:00Z</time></trkpt>
+      <trkpt lat="46.94807" lon="7.44747"><ele>551</ele><time>2026-08-17T08:00:00Z</time></trkpt>
+      <trkpt lat="46.94822" lon="7.44772"><ele>552</ele><time>2026-08-17T08:01:00Z</time></trkpt>
+      <trkpt lat="46.94847" lon="7.44802"><ele>553</ele><time>2026-08-17T08:02:00Z</time></trkpt>
+      <trkpt lat="46.94877" lon="7.44837"><ele>554</ele><time>2026-08-17T08:03:00Z</time></trkpt>
+      <trkpt lat="46.94912" lon="7.44872"><ele>555</ele><time>2026-08-17T08:04:00Z</time></trkpt>
+    </trkseg>
+  </trk>
+</gpx>

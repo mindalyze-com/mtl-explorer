@@ -22,6 +22,18 @@ async function flushSheetUpdates() {
   await nextTick();
 }
 
+function pointerEvent(type: string, clientX: number, clientY: number, pointerId = 1): PointerEvent {
+  const event = new MouseEvent(type, {
+    bubbles: true,
+    cancelable: true,
+    button: 0,
+    clientX,
+    clientY,
+  }) as PointerEvent;
+  Object.defineProperty(event, 'pointerId', { value: pointerId });
+  return event;
+}
+
 function mountStackHarness(
   options: {
     lowerOpen?: boolean;
@@ -31,6 +43,7 @@ function mountStackHarness(
     lowerBackgroundDetent?: unknown;
     lowerNoBackdrop?: boolean;
     upperNoBackdrop?: boolean;
+    useDefaultZIndex?: boolean;
   } = {}
 ) {
   const wrapper = mount(
@@ -41,8 +54,8 @@ function mountStackHarness(
           lowerOpen: options.lowerOpen ?? true,
           upperOpen: options.upperOpen ?? false,
           lowerBackgroundDetent: options.lowerBackgroundDetent,
-          lowerZIndex: options.lowerZIndex ?? 5000,
-          upperZIndex: options.upperZIndex ?? 5100,
+          lowerZIndex: options.useDefaultZIndex ? undefined : (options.lowerZIndex ?? 5000),
+          upperZIndex: options.useDefaultZIndex ? undefined : (options.upperZIndex ?? 5100),
           lowerNoBackdrop: options.lowerNoBackdrop ?? true,
           upperNoBackdrop: options.upperNoBackdrop ?? true,
         };
@@ -75,7 +88,7 @@ function mountStackHarness(
   return wrapper;
 }
 
-function mountInteractionHarness() {
+function mountInteractionHarness(nativeFullscreen = false) {
   const wrapper = mount(
     defineComponent({
       components: { BottomSheet },
@@ -83,6 +96,7 @@ function mountInteractionHarness() {
         return {
           open: true,
           actionClicks: 0,
+          nativeFullscreen,
         };
       },
       template: `
@@ -94,7 +108,12 @@ function mountInteractionHarness() {
             { id: 'high', height: '400px' },
           ]"
           initial-detent="low"
+          :native-fullscreen="nativeFullscreen"
         >
+          <template #title>
+            <span>Interactive Sheet</span>
+            <span class="selectable-track-id" title="Select TrackID to copy" @click.stop>#100018</span>
+          </template>
           <template #header-actions>
             <button class="header-action" type="button" @click="actionClicks++">Action</button>
           </template>
@@ -240,6 +259,20 @@ describe('BottomSheet stacking', () => {
     expect(findSheet('Upper Sheet').classList.contains('sheet--backgrounded')).toBe(false);
   });
 
+  it('places a newly opened default-layer sheet above the existing sheet', async () => {
+    const wrapper = mountStackHarness({ useDefaultZIndex: true });
+    await flushSheetUpdates();
+
+    (wrapper.vm as unknown as { upperOpen: boolean }).upperOpen = true;
+    await flushSheetUpdates();
+
+    const lowerSheet = findSheet('Lower Sheet');
+    const upperSheet = findSheet('Upper Sheet');
+
+    expect(lowerSheet.style.zIndex).toBe('5001');
+    expect(upperSheet.style.zIndex).toBe('5003');
+  });
+
   it('does not render an extra viewport backdrop for an explicit stacked child noBackdrop sheet', async () => {
     mountStackHarness({
       lowerNoBackdrop: false,
@@ -305,6 +338,117 @@ describe('BottomSheet stacking', () => {
     expect((wrapper.vm as unknown as { actionClicks: number }).actionClicks).toBe(1);
   });
 
+  it('leaves horizontal movement to selectable header text while accepting vertical sheet drags', async () => {
+    mountInteractionHarness();
+    await flushSheetUpdates();
+
+    const sheet = findSheet('Interactive Sheet');
+    const trackId = sheet.querySelector<HTMLElement>('.selectable-track-id');
+    if (!trackId) throw new Error('Selectable TrackID not found');
+
+    trackId.dispatchEvent(pointerEvent('pointerdown', 100, 100));
+    trackId.dispatchEvent(pointerEvent('pointermove', 130, 102));
+    trackId.dispatchEvent(pointerEvent('pointerup', 130, 102));
+    trackId.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    await flushSheetUpdates();
+
+    expect(sheet.style.height).toBe('200px');
+
+    trackId.dispatchEvent(pointerEvent('pointerdown', 100, 100, 2));
+    trackId.dispatchEvent(pointerEvent('pointermove', 102, 40, 2));
+    await nextTick();
+
+    expect(sheet.style.height).toBe('260px');
+
+    trackId.dispatchEvent(pointerEvent('pointerup', 102, 40, 2));
+  });
+
+  it('restores a maximized panel on the first Escape press and closes on the second', async () => {
+    const wrapper = mountInteractionHarness();
+    await flushSheetUpdates();
+
+    const sheet = findSheet('Interactive Sheet');
+    const fullscreenButton = sheet.querySelector<HTMLButtonElement>('.sheet-fullscreen-btn');
+    if (!fullscreenButton) throw new Error('Fullscreen button not found');
+    expect(fullscreenButton.getAttribute('aria-label')).toBe('Maximize panel');
+
+    fullscreenButton.click();
+    await flushSheetUpdates();
+    expect(sheet.classList.contains('sheet--fullscreen')).toBe(true);
+    expect(fullscreenButton.getAttribute('aria-label')).toBe('Restore panel size');
+
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    await flushSheetUpdates();
+    expect(sheet.classList.contains('sheet--fullscreen')).toBe(false);
+    expect((wrapper.vm as unknown as { open: boolean }).open).toBe(true);
+
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    await flushSheetUpdates();
+    expect((wrapper.vm as unknown as { open: boolean }).open).toBe(false);
+  });
+
+  it('keeps maximize and browser fullscreen as exclusive window modes', async () => {
+    mountInteractionHarness(true);
+    await flushSheetUpdates();
+
+    const sheet = findSheet('Interactive Sheet');
+    const requestFullscreen = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(sheet, 'requestFullscreen', { configurable: true, value: requestFullscreen });
+    Object.defineProperty(document, 'fullscreenElement', { configurable: true, value: null });
+
+    const maximizeButton = sheet.querySelector<HTMLButtonElement>('.sheet-fullscreen-btn');
+    const nativeFullscreenButton = sheet.querySelector<HTMLButtonElement>('.sheet-native-fullscreen-btn');
+    if (!maximizeButton || !nativeFullscreenButton) throw new Error('Fullscreen controls not found');
+
+    maximizeButton.click();
+    await flushSheetUpdates();
+    expect(sheet.classList.contains('sheet--fullscreen')).toBe(true);
+
+    nativeFullscreenButton.click();
+    await flushSheetUpdates();
+
+    expect(requestFullscreen).toHaveBeenCalledOnce();
+    expect(sheet.classList.contains('sheet--fullscreen')).toBe(false);
+    expect(sheet.classList.contains('sheet--native-fullscreen')).toBe(true);
+    expect(nativeFullscreenButton.getAttribute('aria-label')).toBe('Exit fullscreen');
+
+    document.dispatchEvent(new Event('fullscreenchange'));
+    await flushSheetUpdates();
+    expect(sheet.classList.contains('sheet--native-fullscreen')).toBe(false);
+    expect(sheet.classList.contains('sheet--fullscreen')).toBe(false);
+    expect(nativeFullscreenButton.getAttribute('aria-label')).toBe('Enter fullscreen');
+
+    delete (document as Document & { fullscreenElement?: Element | null }).fullscreenElement;
+  });
+
+  it('returns from browser fullscreen to the normal panel before Escape closes it', async () => {
+    const wrapper = mountInteractionHarness(true);
+    await flushSheetUpdates();
+
+    const sheet = findSheet('Interactive Sheet');
+    Object.defineProperty(sheet, 'requestFullscreen', {
+      configurable: true,
+      value: vi.fn().mockResolvedValue(undefined),
+    });
+    Object.defineProperty(document, 'fullscreenElement', { configurable: true, value: null });
+
+    sheet.querySelector<HTMLButtonElement>('.sheet-fullscreen-btn')?.click();
+    sheet.querySelector<HTMLButtonElement>('.sheet-native-fullscreen-btn')?.click();
+    await flushSheetUpdates();
+
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    await flushSheetUpdates();
+    expect(sheet.classList.contains('sheet--native-fullscreen')).toBe(false);
+    expect(sheet.classList.contains('sheet--fullscreen')).toBe(false);
+    expect((wrapper.vm as unknown as { open: boolean }).open).toBe(true);
+
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    await flushSheetUpdates();
+    expect((wrapper.vm as unknown as { open: boolean }).open).toBe(false);
+
+    delete (document as Document & { fullscreenElement?: Element | null }).fullscreenElement;
+  });
+
   it('keeps footer actions outside the scrollable and faded content region', async () => {
     mountFooterHarness();
     await flushSheetUpdates();
@@ -352,6 +496,61 @@ describe('BottomSheet stacking', () => {
     (wrapper.vm as unknown as { open: boolean }).open = false;
     await flushSheetUpdates();
     expect(scrollTarget.classList.contains('sheet-scroll-target')).toBe(false);
+  });
+
+  it('does not render a scroll hint when the content fits the viewport', async () => {
+    mountScrollHarness();
+    await flushSheetUpdates();
+
+    const sheet = findSheet('Scroll Sheet');
+    const scrollTarget = sheet.querySelector<HTMLElement>('.test-scroll-target');
+    if (!scrollTarget) throw new Error('Scroll target not found');
+
+    Object.defineProperties(scrollTarget, {
+      clientHeight: { configurable: true, value: 300 },
+      scrollHeight: { configurable: true, value: 300 },
+      scrollTop: { configurable: true, value: 0, writable: true },
+    });
+    scrollTarget.append(document.createElement('span'));
+    await new Promise<void>((resolve) => window.setTimeout(resolve, 0));
+    await flushSheetUpdates();
+
+    expect(sheet.querySelector('.sheet-scroll-hint')).toBeNull();
+  });
+
+  it('keeps the scroll-hint overlay mounted when it hides at the bottom', async () => {
+    mountScrollHarness();
+    await flushSheetUpdates();
+
+    const sheet = findSheet('Scroll Sheet');
+    const scrollTarget = sheet.querySelector<HTMLElement>('.test-scroll-target');
+    if (!scrollTarget) throw new Error('Scroll target not found');
+
+    Object.defineProperties(scrollTarget, {
+      clientHeight: { configurable: true, value: 100 },
+      scrollHeight: { configurable: true, value: 300 },
+      scrollTop: { configurable: true, value: 0, writable: true },
+    });
+    scrollTarget.append(document.createElement('span'));
+    await new Promise<void>((resolve) => window.setTimeout(resolve, 0));
+    await flushSheetUpdates();
+
+    const scrollHint = sheet.querySelector<HTMLElement>('.sheet-scroll-hint');
+    if (!scrollHint) throw new Error('Scroll hint not found');
+
+    scrollTarget.scrollTop = 200;
+    scrollTarget.dispatchEvent(new Event('scroll'));
+    await flushSheetUpdates();
+
+    expect(sheet.querySelector('.sheet-scroll-hint')).toBe(scrollHint);
+    expect(scrollHint.style.display).toBe('none');
+
+    scrollTarget.scrollTop = 50;
+    scrollTarget.dispatchEvent(new Event('scroll'));
+    await flushSheetUpdates();
+
+    expect(sheet.querySelector('.sheet-scroll-hint')).toBe(scrollHint);
+    expect(scrollHint.style.display).not.toBe('none');
   });
 
   it('uses the sheet body as a fallback scroll target for unconstrained content', async () => {

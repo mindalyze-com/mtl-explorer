@@ -2,22 +2,38 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://mindalyze-com.github.io/mtl-explorer/</loc>
-    <lastmod>2026-08-05</lastmod>
+    <lastmod>2026-08-18</lastmod>
   </url>
   <url>
     <loc>https://mindalyze-com.github.io/mtl-explorer/gpx-track-map/</loc>
-    <lastmod>2026-08-05</lastmod>
+    <lastmod>2026-08-18</lastmod>
   </url>
   <url>
     <loc>https://mindalyze-com.github.io/mtl-explorer/segment-analysis/</loc>
-    <lastmod>2026-08-05</lastmod>
+    <lastmod>2026-08-14</lastmod>
   </url>
   <url>
     <loc>https://mindalyze-com.github.io/mtl-explorer/route-planner/</loc>
-    <lastmod>2026-08-05</lastmod>
+    <lastmod>2026-08-14</lastmod>
   </url>
   <url>
     <loc>https://mindalyze-com.github.io/mtl-explorer/docker-install/</loc>
-    <lastmod>2026-08-05</lastmod>
+    <lastmod>2026-08-18</lastmod>
+  </url>
+  <url>
+    <loc>https://mindalyze-com.github.io/mtl-explorer/garmin-connect-import/</loc>
+    <lastmod>2026-08-18</lastmod>
+  </url>
+  <url>
+    <loc>https://mindalyze-com.github.io/mtl-explorer/private-gps-heatmap/</loc>
+    <lastmod>2026-08-18</lastmod>
+  </url>
+  <url>
+    <loc>https://mindalyze-com.github.io/mtl-explorer/supported-gps-formats/</loc>
+    <lastmod>2026-08-18</lastmod>
+  </url>
+  <url>
+    <loc>https://mindalyze-com.github.io/mtl-explorer/why-i-built-mtl-explorer/</loc>
+    <lastmod>2026-08-18</lastmod>
   </url>
 </urlset>

@@ -1,0 +1,17 @@
+Documented watched import folder:
+/root/mtl-explorer-2026-08-17_2236-beta-full-regression/data/gpx/
+
+Run subfolder:
+data/gpx/2026-08-17_2236-beta-full-regression-five-gpx/
+
+Before copy: 0 watched files
+After copy: 5 watched files
+
+Files copied from the preserved staging area:
+- JuraRoute72011.gpx: 199962 bytes
+- Lannion_Plestin_parcours24.4RE.gpx: 60917 bytes
+- MoselradwegAusWiki.gpx: 415326 bytes
+- Vitry-le-Francois_Langres.gpx: 238349 bytes
+- VoieVerteHauteVosges.gpx: 183733 bytes
+
+No FIT, synthetic segment, or media fixture entered a watched folder in this step.

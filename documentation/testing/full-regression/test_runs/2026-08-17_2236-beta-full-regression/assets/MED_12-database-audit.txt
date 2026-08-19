@@ -1,0 +1,32 @@
+MED_12 read-only database audit
+Observed 2026-08-18 04:09 Europe/Zurich
+
+indexed_file retained rows
+- 300022 mtl-regression-delete-a.jpg
+  - indexer_status REMOVED
+  - indexer_invocations 2
+  - last_message `Processing started (DELETE)`
+- 300024 mtl-regression-delete-b.jpg
+  - indexer_status REMOVED
+  - indexer_invocations 2
+  - last_message `Processing started (DELETE)`
+
+media_file_audit history
+- delete-a former media 400003 / file 300022
+  - audit v1 INSERT at 2026-08-17 21:38:43.665235 UTC
+  - audit v2 DELETE at 2026-08-18 01:47:40.644759 UTC
+  - synthetic GPS snapshot 46.94836000 / 7.44796000
+- delete-b former media 400001 / file 300024
+  - audit v1 INSERT at 2026-08-17 21:38:43.666269 UTC
+  - audit v2 DELETE at 2026-08-18 01:47:40.645659 UTC
+  - synthetic GPS snapshot 46.94885000 / 7.44855000
+
+Active-row absence
+- delete-a active media_file rows: 0
+- delete-b active media_file rows: 0
+
+The inspection used SELECT statements only and records only synthetic fixture
+data.
+
+Result: PASS. Each removed source retains a REMOVED indexed_file row and a
+DELETE audit snapshot, with no active media_file row.

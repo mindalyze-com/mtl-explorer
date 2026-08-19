@@ -1,0 +1,34 @@
+MED_20 add/replace/delete relevant activity data
+
+Add:
+- Added distinct synthetic activity 100022 covering the six photo times.
+- Watcher ingest succeeded and MediaCorrelationJob reported
+  tracks=1 media=6 remaining=0.
+- Six media items changed from one to two stored alternatives; UI showed
+  Ambiguous (2). No media directory rescan was run.
+
+Replace:
+- Preserved the exact original mtl-regression-media-track.gpx in data/logs.
+- Replaced the watched source at its same exact path with the same times/name
+  but a shifted synthetic route.
+- The live watcher logged MODIFY for mtl-regression-media-track.gpx.
+- More than 90 seconds later, no GPS ingest or MediaCorrelationJob followed.
+- Admin -> Maintenance -> Rescan GPS reported queued and completed, but
+  new/changed=0 and did not ingest the changed bytes.
+- Correlation 400000/100016 remained calculated at 00:53:51.789669 with the old
+  route 46.9483250001,7.4478500000 instead of the replacement route near
+  46.953325,7.452850.
+
+Delete:
+- Restored the original source bytes; original and backup SHA-256 both
+  1aa59d49938900d7576f9c2c4e35c913a9bf654ce306af990ce7c7b2783d1659.
+- Moved the two disposable added sources recoverably to data/logs.
+- Watcher detected both DELETE events and production deletion removed tracks
+  100022 and 100021.
+- MediaCorrelationJob reported tracks=0 media=6 remaining=0.
+- Each camera-clock item returned to one non-ambiguous correlation on 100016;
+  resolved TRACK_INTERPOLATED locations equal the preserved original route.
+- Browser Reload returned the map from 14 to 13 tracks.
+
+Result: FAIL, FR-011. Add and delete target only the six relevant media items,
+but replacement is detected and then silently ignored even after manual rescan.

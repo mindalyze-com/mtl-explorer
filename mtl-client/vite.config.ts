@@ -19,6 +19,7 @@ const VENDOR_CHUNK_RULES: Array<[string, string[]]> = [
   ['vendor-primevue', ['@primeuix/', '@primevue/', 'primeicons', 'primevue']],
   ['vendor-charts', ['highcharts', 'highcharts-vue']],
   ['vendor-highlight', ['@highlightjs/', 'highlight.js']],
+  ['vendor-video', ['hls.js']],
   ['vendor-data', ['axios', 'colormap', 'date-fns', 'dexie', 'fflate', 'lerp', 'lodash', 'p-limit', 'yocto-queue']],
 ];
 

@@ -16,6 +16,7 @@ import {
   type GpsTrack,
   type GpsTrackDataPoint,
   type GpsTrackDataPointDto,
+  type NearbyTrackMediaDto,
   type RelatedTracks,
   type EnergyWhatIfResponse,
   type GpsTrackStatistics,
@@ -98,7 +99,10 @@ function queryString(params: Record<string, string | number | undefined>): strin
   return value ? `?${value}` : '';
 }
 
-async function resolveStatisticsTrackIds(filterRequest: ActiveFilterRequest, signal?: AbortSignal): Promise<number[]> {
+export async function resolveStatisticsTrackIds(
+  filterRequest: ActiveFilterRequest,
+  signal?: AbortSignal
+): Promise<number[]> {
   if (filterRequest.resolvedTrackIds) {
     return [...filterRequest.resolvedTrackIds];
   }
@@ -320,23 +324,66 @@ export async function fetchTrackIdsWithinDistanceOfPoint(
   }
 }
 
+export async function fetchTrackMediaOptionsWithinDistanceOfPoint(
+  longitude: number,
+  latitude: number,
+  distanceInMeter: number,
+  signal?: AbortSignal
+): Promise<NearbyTrackMediaDto[]> {
+  try {
+    const { filterName, filterParams } = await loadActiveFilterRequest();
+
+    return await new TracksControllerApi(getApiConfiguration()).getTrackMediaOptionsWithinDistanceOfPoint(
+      {
+        longitude,
+        latitude,
+        distanceInMeter,
+        filterName,
+        filterParamsRequest: filterParams,
+      },
+      { signal }
+    );
+  } catch (error: unknown) {
+    if (isAbortLikeError(error, signal)) throw error;
+    logSanitizedError('Error getting nearby track media options:', error);
+    throw new Error(String(error));
+  }
+}
+
 export async function fetchStatistics(
   grouping: string,
-  filterRequest?: ActiveFilterRequest
+  filterRequest?: ActiveFilterRequest,
+  signal?: AbortSignal
 ): Promise<GpsTrackStatistics[]> {
   try {
     const activeFilterRequest = await resolveActiveFilterRequest(filterRequest);
-    const trackIds = await resolveStatisticsTrackIds(activeFilterRequest);
+    const trackIds = await resolveStatisticsTrackIds(activeFilterRequest, signal);
 
+    return await fetchStatisticsForTrackIds(grouping, trackIds, signal);
+  } catch (error: unknown) {
+    if (isAbortLikeError(error, signal)) throw error;
+    logSanitizedError('Error fetching statistics:', error);
+    throw new Error(String(error));
+  }
+}
+
+export async function fetchStatisticsForTrackIds(
+  grouping: string,
+  trackIds: number[],
+  signal?: AbortSignal
+): Promise<GpsTrackStatistics[]> {
+  try {
     const response = await apiClient.post(
       `api/tracks/get-track-statistics${queryString({
         groupByDateFormat: grouping,
       })}`,
-      trackIds
+      trackIds,
+      { signal }
     );
 
     return response.data;
   } catch (error: unknown) {
+    if (isAbortLikeError(error, signal)) throw error;
     logSanitizedError('Error fetching statistics:', error);
     throw new Error(String(error));
   }

@@ -1,0 +1,14 @@
+ERR_02 rapid tool switching
+Sequence A: Segments -> GPS -> Admin -> Map -> Planner
+Final visible tool: Planner
+Stale content found from Segments/GPS/Admin/Map: none
+Sequence B: Stats -> Filter -> Map -> Animate -> Segments -> GPS -> Planner -> Admin -> Stats
+Each next tool was selected immediately after the previous click completed, with only the controller's built-in interaction settling.
+Final visible tool: Statistics
+Stale visible Filter/Map/Animate/Segments/GPS/Planner/Admin content: none
+After final close: map canvas cursor before interaction = grab; after drag = grab
+Double-click zoom: 1000 km -> 500 km
+Pointer drag completed; controls and OpenStreetMap attribution remained present
+Zoom out restored 1000 km
+New console messages after audit start: 3
+New console errors after audit start: 0

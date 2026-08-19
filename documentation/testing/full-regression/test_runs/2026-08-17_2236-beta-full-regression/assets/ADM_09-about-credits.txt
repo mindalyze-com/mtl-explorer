@@ -1,0 +1,17 @@
+ADM_09 About and credits evidence
+
+Signed-out route:
+- Started at /mtl/login with no authenticated session.
+- Direct navigation to /mtl/about remained public and rendered MTL Explorer.
+- Reported build fields: Version dev; Build local build.
+- Credits disclosed 12 entries: MapLibre GL JS, OpenStreetMap, Protomaps Basemaps,
+  PMTiles, Mapterhorn terrain, swisstopo, SchweizMobil, Waymarked Trails,
+  Highcharts, GeoNames, GPSBabel, and BRouter.
+- Closing the direct public sheet returned to /mtl/login.
+
+Authenticated embedded route:
+- Signed in, opened /mtl/admin/logs, then opened About & credits from Admin.
+- The same MTL Explorer heading and 12 credit entries rendered.
+- Closing About returned to /mtl/admin/logs with Server log still open.
+
+Result: PASS

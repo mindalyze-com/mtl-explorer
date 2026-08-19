@@ -1,0 +1,36 @@
+ADM_07 data freshness timestamp and reload
+
+In-sync baseline after normal-mode restoration
+- Data status: In sync.
+- Copy: The client is showing the latest server data.
+- Checked 04:38:25.
+- Latest change: 18/08/2026, 04:37:47.
+- Domains: 6.
+- Polling: Healthy.
+- Browser/map: 14 Tracks.
+
+Controlled server change
+- Touched only the synthetic ADM_02 GPX in GPX-UPLOAD, preserving its bytes.
+- Manual GPS rescan queued after the mounted filesystem did not emit a live
+  watcher event for the metadata-only change.
+- The source reprocessed and server freshness advanced.
+
+Out-of-sync view
+- Explicit Data status Refresh changed to Out of sync.
+- Copy: The server has changes that this client has not applied yet.
+- Checked 04:39:47.
+- Latest change advanced to 18/08/2026, 04:39:37.
+- Polling remained Healthy and Domains remained 6.
+- Data status navigation showed Stale.
+- Global freshness banner offered Reload and Dismiss.
+
+Reload
+- Used the banner Reload action.
+- Alert: Map updated / Fresh data loaded.
+- Data status returned to In sync, checked 04:40:03.
+- Latest change remained 18/08/2026, 04:39:37.
+- The Stale badge/banner cleared and map remained 14 Tracks.
+
+Result: PASS. The section showed explicit checked/latest-change timestamps,
+healthy polling, stale status after a real server revision, and a working
+Reload action that synchronized the browser without restarting it.

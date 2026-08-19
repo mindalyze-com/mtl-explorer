@@ -99,6 +99,7 @@ describe('map data freshness reload actions', () => {
       mergeTrackResult: vi.fn().mockResolvedValue(undefined),
       maybeLoadBackgroundTracks: vi.fn(),
       scheduleDetailCheck: vi.fn(),
+      clearFocusedMediaMarker: vi.fn(),
       captureAppliedFreshnessToken: vi.fn().mockResolvedValue(undefined),
       $toast: { add: vi.fn() },
     };
@@ -111,6 +112,117 @@ describe('map data freshness reload actions', () => {
     expect(refreshResolvedFilter.mock.invocationCallOrder[0]).toBeLessThan(
       trackCollectionMocks.loadTrackCollectionPaged.mock.invocationCallOrder[0]
     );
+  });
+
+  it('refreshes visible media before marking the freshness token as applied', async () => {
+    const methods = makeMethods({ refreshResolvedFilter: vi.fn().mockResolvedValue(undefined) });
+    trackCollectionMocks.loadTrackCollectionPaged.mockResolvedValueOnce({
+      standardFilterCount: 1,
+      filterResult: { trackVersions: new Map(), filterGroups: new Map(), standardFilterCount: 1 },
+      geojson: { features: [] },
+    });
+    const refreshMedia = vi.fn().mockResolvedValue(undefined);
+    const clearFocusedMediaMarker = vi.fn();
+    const captureAppliedFreshnessToken = vi.fn().mockResolvedValue(undefined);
+    const context = {
+      freshnessReloading: false,
+      showLoader: false,
+      loadingTrackBatches: false,
+      cachedTracksLoaded: true,
+      initialLoadDone: true,
+      geojson: { features: [] },
+      mediaOverlay: { isVisible: vi.fn(() => true), refresh: refreshMedia },
+      clearFocusedMediaMarker,
+      clearTrackCacheWhenServerFreshnessChanged: vi.fn().mockResolvedValue(true),
+      currentCollectionPrecision: vi.fn(() => 1000),
+      mergeTrackResult: vi.fn().mockResolvedValue(undefined),
+      maybeLoadBackgroundTracks: vi.fn(),
+      scheduleDetailCheck: vi.fn(),
+      captureAppliedFreshnessToken,
+      $toast: { add: vi.fn() },
+    };
+
+    const result = await methods.onDataFreshnessReload.call(context as never);
+
+    expect(result).toBe(true);
+    expect(refreshMedia).toHaveBeenCalledTimes(1);
+    expect(clearFocusedMediaMarker).toHaveBeenCalledTimes(1);
+    expect(refreshMedia.mock.invocationCallOrder[0]).toBeLessThan(clearFocusedMediaMarker.mock.invocationCallOrder[0]);
+    expect(clearFocusedMediaMarker.mock.invocationCallOrder[0]).toBeLessThan(
+      captureAppliedFreshnessToken.mock.invocationCallOrder[0]
+    );
+  });
+
+  it('keeps freshness unapplied when visible media cannot be refreshed', async () => {
+    const methods = makeMethods({ refreshResolvedFilter: vi.fn().mockResolvedValue(undefined) });
+    trackCollectionMocks.loadTrackCollectionPaged.mockResolvedValueOnce({
+      standardFilterCount: 1,
+      filterResult: { trackVersions: new Map(), filterGroups: new Map(), standardFilterCount: 1 },
+      geojson: { features: [] },
+    });
+    const captureAppliedFreshnessToken = vi.fn().mockResolvedValue(undefined);
+    const clearFocusedMediaMarker = vi.fn();
+    const context = {
+      freshnessReloading: false,
+      showLoader: false,
+      loadingTrackBatches: false,
+      cachedTracksLoaded: true,
+      initialLoadDone: true,
+      geojson: { features: [] },
+      mediaOverlay: {
+        isVisible: vi.fn(() => true),
+        refresh: vi.fn().mockRejectedValue(new Error('media unavailable')),
+      },
+      clearFocusedMediaMarker,
+      clearTrackCacheWhenServerFreshnessChanged: vi.fn().mockResolvedValue(true),
+      currentCollectionPrecision: vi.fn(() => 1000),
+      mergeTrackResult: vi.fn().mockResolvedValue(undefined),
+      maybeLoadBackgroundTracks: vi.fn(),
+      scheduleDetailCheck: vi.fn(),
+      captureAppliedFreshnessToken,
+      $toast: { add: vi.fn() },
+    };
+
+    const result = await methods.onDataFreshnessReload.call(context as never);
+
+    expect(result).toBe(false);
+    expect(clearFocusedMediaMarker).not.toHaveBeenCalled();
+    expect(captureAppliedFreshnessToken).not.toHaveBeenCalled();
+    expect(context.$toast.add).toHaveBeenCalledWith(expect.objectContaining({ summary: 'Reload failed' }));
+  });
+
+  it('does not fetch media when the media layer is hidden', async () => {
+    const methods = makeMethods({ refreshResolvedFilter: vi.fn().mockResolvedValue(undefined) });
+    trackCollectionMocks.loadTrackCollectionPaged.mockResolvedValueOnce({
+      standardFilterCount: 1,
+      filterResult: { trackVersions: new Map(), filterGroups: new Map(), standardFilterCount: 1 },
+      geojson: { features: [] },
+    });
+    const refreshMedia = vi.fn().mockResolvedValue(undefined);
+    const clearFocusedMediaMarker = vi.fn();
+    const context = {
+      freshnessReloading: false,
+      showLoader: false,
+      loadingTrackBatches: false,
+      cachedTracksLoaded: true,
+      initialLoadDone: true,
+      geojson: { features: [] },
+      mediaOverlay: { isVisible: vi.fn(() => false), refresh: refreshMedia },
+      clearFocusedMediaMarker,
+      clearTrackCacheWhenServerFreshnessChanged: vi.fn().mockResolvedValue(true),
+      currentCollectionPrecision: vi.fn(() => 1000),
+      mergeTrackResult: vi.fn().mockResolvedValue(undefined),
+      maybeLoadBackgroundTracks: vi.fn(),
+      scheduleDetailCheck: vi.fn(),
+      captureAppliedFreshnessToken: vi.fn().mockResolvedValue(undefined),
+      $toast: { add: vi.fn() },
+    };
+
+    const result = await methods.onDataFreshnessReload.call(context as never);
+
+    expect(result).toBe(true);
+    expect(refreshMedia).not.toHaveBeenCalled();
+    expect(clearFocusedMediaMarker).toHaveBeenCalledTimes(1);
   });
 
   it('routes the banner Reload button through the in-app freshness reload', async () => {

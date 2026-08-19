@@ -1,0 +1,17 @@
+Synthetic indexed media: 500184
+Quality: P480
+
+First POST: 201 Created
+Session: 0788b3de-96b0-4e77-9331-4f64824d15eb
+Output: COMPLETED, 446775 bytes
+Duration: 8.0 seconds source, 7.866667 seconds reported encoded
+Observed final speed: 61.3x
+
+The player reached the end of the 8-second stream. After reload, the same
+media revision and P480 quality returned 200 OK, reused=true, and the same
+session and playlist URL. Server logs contained one FFmpeg start for both
+requests.
+
+Playlist: application/vnd.apple.mpegurl, no-store, nosniff
+Segments: video/iso.segment, no-store, nosniff
+The original synthetic source matched its pre-copy SHA-256 after playback.

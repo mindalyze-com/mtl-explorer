@@ -1,0 +1,16 @@
+PLN_03 route insertion evidence
+
+Baseline
+- Existing route: 2.93 km, 1 leg, four elevation points.
+- Expected route region derived from the two prior canvas clicks.
+
+Attempts
+- Dragged the expected leg midpoint away from the leg.
+- Retried after accounting for the map pan caused by the first miss.
+- Both gestures left the route at 2.93 km, 1 leg, four elevation points.
+- No route/waypoint DOM target is exposed; the line is WebGL canvas-only.
+- Screenshot/pixel targeting is unavailable under ACC_04.
+
+Result
+- BLOCKED. A reliable route-line target cannot be identified with the available
+  browser surfaces. The existing route remains computed and intact.

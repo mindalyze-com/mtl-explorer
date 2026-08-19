@@ -1,0 +1,23 @@
+MED_05 missing/broken photo recovery
+
+Controlled item: media 400005, mtl-regression-photo-a.jpg
+Original SHA-256: d821ae0b891d99f622c683d5ba0aa33444a6eb241a5c77c602ba884f8bcd43c8
+
+1. The source file was moved recoverably from the watched media folder to the
+   run-specific data/logs directory. No rescan was run.
+2. Track 100016 -> Photos still showed its persisted row and activity mini-map
+   marker. Opening that marker opened the viewer at item 1 of 6.
+3. The viewer showed an alert instead of a blank sheet:
+     Preview unavailable
+     The media file could not be decoded by the browser.
+   Retry and Download actions remained available. Metadata, Nearby 1/6, the
+   six-item filmstrip, and the location map remained rendered.
+4. The exact source file was restored to the watched folder. The restored hash
+   matched the original SHA-256 and the temporary quarantine path no longer
+   existed.
+5. Selecting Retry replaced the alert with the decoded image
+   mtl-regression-photo-a.jpg. Previous remained correctly disabled at 1 of 6;
+   Next, Nearby, Details, location map, and Download original remained usable.
+
+Result: PASS. The missing source produced a recoverable error state and recovered
+in place after restoration without a library rescan.

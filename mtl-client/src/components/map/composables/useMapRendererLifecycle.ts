@@ -1,6 +1,6 @@
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-nocheck
-/* eslint-disable @typescript-eslint/no-unused-vars, @typescript-eslint/no-explicit-any -- Renderer setup still crosses broad MapLibre/runtime config shapes. */
+/* eslint-disable @typescript-eslint/no-explicit-any -- Renderer setup still crosses broad MapLibre/runtime config shapes. */
 import { markRaw } from 'vue';
 import maplibregl from 'maplibre-gl';
 import { apiClient } from '@/utils/apiClient';
@@ -25,8 +25,11 @@ import { ensureLowZoomCached, loadLowZoomFromCache } from '@/utils/lowZoomCacheS
 import { describeError, startStartupTimer, startupLog, startupWarn } from '@/utils/startupDiagnostics';
 import { ensurePMTilesProtocol, registerCachingPMTilesArchive } from '@/utils/maplibrePmtilesProtocol';
 import { configureExternalAttributionLinks } from '@/utils/externalAttributionLinks';
+import { mapScaleUnitForMeasurementSystem } from '@/components/map/mapScaleControl';
+import { getMeasurementSystem } from '@/composables/useMeasurementSystem';
 import type { MapControllerMethodDefinitions, MapRendererLifecycleMethods } from './mapControllerRuntime';
 import { useMapStateStore } from '@/stores/mapStateStore';
+import type { useMapSettingsStore } from '@/stores/mapSettingsStore';
 import { isAbortLikeError } from '@/utils/errors';
 
 const GLOBE_ENTER_ZOOM = 3;
@@ -77,9 +80,10 @@ function centerFromBounds(bounds: any) {
   return [(bounds[0][0] + bounds[1][0]) / 2, (bounds[0][1] + bounds[1][1]) / 2];
 }
 
-export function useMapRendererLifecycle(
-  deps: Record<string, never> = {}
-): MapControllerMethodDefinitions<MapRendererLifecycleMethods> {
+export function useMapRendererLifecycle(deps: {
+  mapSettingsStore: ReturnType<typeof useMapSettingsStore>;
+}): MapControllerMethodDefinitions<MapRendererLifecycleMethods> {
+  const { mapSettingsStore } = deps;
   let mapStatusPollingActive = false;
   let mapStatusPollGeneration = 0;
   const methods: MapControllerMethodDefinitions<MapRendererLifecycleMethods> = {
@@ -110,7 +114,7 @@ export function useMapRendererLifecycle(
             // with a fresh server-provided PMTiles URL so browser range caches stay isolated.
             if (!wasReady || archiveChanged) {
               clearMapConfigCache();
-              this.reloadMap(false);
+              this.reloadMap();
             }
           }
         } catch {
@@ -146,6 +150,7 @@ export function useMapRendererLifecycle(
         this.map = undefined;
       }
       this._terrainControl = null;
+      this._scaleControl = null;
       this._terrainTrackLayer = null;
       this._attributionControl = null;
     },
@@ -231,7 +236,7 @@ export function useMapRendererLifecycle(
         this.stopMapStatusPolling();
         this.mapServerStatus = null;
         clearMapConfigCache();
-        await this.reloadMap(false);
+        await this.reloadMap();
       } catch (error) {
         startupWarn('mapcache', 'Map reload after archive/source change failed', describeError(error));
       } finally {
@@ -239,10 +244,8 @@ export function useMapRendererLifecycle(
       }
     },
 
-    async reloadMap(loadMedia) {
-      const reloadTimer = startStartupTimer('reload', 'Reloading map state', {
-        loadMedia,
-      });
+    async reloadMap() {
+      const reloadTimer = startStartupTimer('reload', 'Reloading map state');
       this.showLoader = true;
 
       // Reset state
@@ -287,6 +290,7 @@ export function useMapRendererLifecycle(
         this.gpsMarker.remove();
         this.gpsMarker = null;
       }
+      this.clearFocusedMediaMarker();
       this.clearLocationSearchMarker();
       try {
         // Phase 3: Start track fetch in parallel with map tile loading.
@@ -546,26 +550,26 @@ export function useMapRendererLifecycle(
       this._terrainControl = markRaw(new TerrainViewControl(() => this.onToggleTerrainMode()));
       this.overlayMap.addControl(this._terrainControl, 'top-left');
       this._terrainControl.setActive(this.terrainEnabled);
-      this.overlayMap.addControl(
+      this._scaleControl = markRaw(
         new maplibregl.ScaleControl({
           maxWidth: 100,
-        }),
-        'bottom-left'
+          unit: mapScaleUnitForMeasurementSystem(getMeasurementSystem()),
+        })
       );
+      this.overlayMap.addControl(this._scaleControl, 'bottom-left');
       this.setOverlayAttributionControl(styleAttributions);
 
       // Initialize media overlay on the colourful overlay map
       this.mediaOverlay = markRaw(
         new MediaOverlay(
           this.overlayMap,
-          (mediaId) => {
-            this.mediaSheetMediaId = mediaId;
-            this.mediaSheetVisible = true;
-            this._buildMediaNavList(mediaId);
+          (selection) => {
+            void this.openMediaSelection(selection);
           },
           (points) => {
             this.mediaLoadedPoints = points;
-          }
+          },
+          () => !this.measureToolActive && !this.plannerToolActive && !this.geoDrawingParamDef
         )
       );
 
@@ -637,6 +641,7 @@ export function useMapRendererLifecycle(
           maxLat: initialBounds[1][1],
         });
       }
+      await this.restoreMediaLayerPreference(mapSettingsStore.mediaVisible);
       initTimer.success('Map initialization completed', {
         styleMode,
       });
@@ -674,6 +679,7 @@ export function useMapRendererLifecycle(
 
       // Click handler for track selection (on overlay map — it receives all interaction)
       this.overlayMap.on('click', (e) => {
+        this.clearFocusedMediaMarker();
         if (this.measureToolActive || this.plannerToolActive || this.geoDrawingParamDef) return;
 
         // Dismiss any open popups on every map click

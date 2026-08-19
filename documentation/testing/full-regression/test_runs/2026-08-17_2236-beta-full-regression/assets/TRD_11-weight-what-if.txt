@@ -1,0 +1,25 @@
+TRD_11 rider-weight what-if recalculation
+
+Track: 100017, Running
+
+Initial displayed model
+- Current rider: 75.0 kg
+- Model mass: 75.0 kg
+- Total: 3.1 Wh
+- Avg power: 93 W
+
+What-if input
+- Changed Rider weight spinbutton from 75 to 100 kg.
+- Matching slider and displayed Rider weight both changed to 100.0 kg.
+
+Immediate dialog result
+- Total: 4.1 Wh
+- Delta: +1.0 Wh
+- Avg power: 123 W
+
+Non-persistence check
+- Closed the dialog without selecting Save.
+- Overview remained at 3.1 Wh.
+- Direct route reload remained at 3.1 Wh and 93 W.
+
+No permanent rider-weight mutation was left behind.

@@ -1,0 +1,9 @@
+NET_02 flaky-connection result
+Fault injection: stopped only the disposable Compose app service while the authenticated frontend remained loaded; database, BRouter, and location-search stayed up.
+User action during outage: opened Statistics and waited 2.5 seconds.
+Console: four apiClient "Network Drop" errors plus "Error fetching statistics" and "Error fetching statistics overview".
+Visible page during outage: non-blank 1280 x 720 app, 30 body children, responsive map/navigation, and previously cached 15-track Statistics table.
+Visible recovery/error UI during outage: none. No offline, reconnect, unable, retry, dismiss, or stale-data message appeared.
+Risk: failed refresh is indistinguishable from current data; stale totals remain presented as live.
+Recovery: restarted app service; remote /mtl/ returned HTTP 200; browser reload stayed authenticated with 15 tracks; Statistics reopened with current overview/highlights.
+Disposable service state after test: running.

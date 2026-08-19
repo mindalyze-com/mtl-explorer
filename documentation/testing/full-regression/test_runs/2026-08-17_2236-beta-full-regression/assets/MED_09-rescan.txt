@@ -1,0 +1,29 @@
+MED_09 Admin rescan and freshness evidence
+Observed 2026-08-18 03:46-03:49 Europe/Zurich
+
+End-user action
+- Opened Admin > Maintenance in the signed-in browser.
+- Activated the visible, enabled `Rescan Media` control once.
+- This activation worked without an API fallback. The subsequent Admin
+  Processing view and live status both reflected the removal.
+
+Settled result
+- MEDIA status: DONE.
+- total 6, pending 0, completed 4, failed 0, removed 2, excluded 0.
+- The UI shows 66% because its bar counts successful active files over total;
+  the same card explicitly shows 4 completed and 2 removed and is terminal.
+- Removed increased from MED_07 baseline 0 to 2.
+- No new MEDIA failure appeared.
+
+Freshness
+- Pre-rescan media/index revisions: media r30, index r117.
+- Post-rescan revisions: media r32, index r123.
+- Post-rescan token:
+  3yn2pL__|server_id:5CE2j7uEhS6YBXPnnguHpo|config:9|filters:88|index:123|media:32|track_geometry:126|tracks:180
+- Latest change: 2026-08-18T01:47:40.668+0000.
+- The UI displayed `New data available`; activating its Reload action removed
+  the stale badge/banner and left Admin Processing settled.
+
+Result: PASS. The GUI rescan removed exactly two indexed media sources, no
+failure was added, the media freshness revision advanced by two, and the
+freshness Reload completed.

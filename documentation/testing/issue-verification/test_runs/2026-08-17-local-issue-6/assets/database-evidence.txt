@@ -1,0 +1,34 @@
+Issue 6 local database evidence
+Verified: 2026-08-17
+Database: disposable PostgreSQL/PostGIS container mtl-issue6-db-20260817
+
+Final indexed_file state
+
+id      index  name                 status                   invocations  size
+300001  MEDIA  issue6-photo-a.jpg   REMOVED                  6            30594
+300002  MEDIA  issue6-photo-b.jpg   COMPLETED_WITH_SUCCESS   3            32356
+
+Final active media_file state
+
+id      file_id  image_taken          latitude     longitude
+400004  300002   2026-08-17 08:45:00  44.33120000  -68.26040000
+
+media_file_audit history
+
+time                         operation  media_id  file_id  image_taken
+2026-08-17 08:30:15.516347   INSERT     400000    300001   2026-08-17 08:30:00
+2026-08-17 08:36:06.324336   INSERT     400001    300001   2026-08-17 08:35:00
+2026-08-17 08:36:06.324336   DELETE     400000    300001   2026-08-17 08:30:00
+2026-08-17 08:37:14.456917   DELETE     400001    300001   2026-08-17 08:35:00
+2026-08-17 08:38:09.533211   INSERT     400002    300002   2026-08-17 08:40:00
+2026-08-17 08:40:12.108739   INSERT     400003    300002   2026-08-17 08:35:00
+2026-08-17 08:40:12.108739   DELETE     400002    300002   2026-08-17 08:40:00
+2026-08-17 08:44:36.764444   INSERT     400004    300002   2026-08-17 08:45:00
+2026-08-17 08:44:36.764444   DELETE     400003    300002   2026-08-17 08:35:00
+
+Interpretation
+
+- Deleted sources retain indexed_file history with status REMOVED.
+- Deleted or superseded derived media_file rows are not active.
+- Each derived row keeps an INSERT snapshot and, when replaced or removed, a DELETE snapshot.
+- The shared file_id joins the complete lifecycle across replacement media IDs.

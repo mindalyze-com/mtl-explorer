@@ -56,11 +56,26 @@ describe('FilterTrackReviewSheet', () => {
 
   it('shows a single loading state before the shared browser is ready', () => {
     const wrapper = mount(FilterTrackReviewSheet, {
-      props: { modelValue: true, loading: true, entries: reviewEntries() },
+      props: { modelValue: true, loading: true, entries: [] },
       global: { stubs: { BottomSheet: BottomSheetStub, TrackBrowserView: TrackBrowserViewStub } },
     });
 
     expect(wrapper.get('.filter-review__loading').text()).toContain('Loading track details');
     expect(wrapper.findComponent(TrackBrowserViewStub).exists()).toBe(false);
+  });
+
+  it('keeps saved rows visible while refreshing and offers retry after an error', async () => {
+    const wrapper = mount(FilterTrackReviewSheet, {
+      props: { modelValue: true, loading: true, entries: reviewEntries() },
+      global: { stubs: { BottomSheet: BottomSheetStub, TrackBrowserView: TrackBrowserViewStub } },
+    });
+
+    expect(wrapper.get('.filter-review__loading').text()).toContain('Refreshing track details');
+    expect(wrapper.get('[data-test="track-browser-view"]').text()).toBe('2 tracks');
+
+    await wrapper.setProps({ loading: false, error: 'Tracks could not be refreshed. Showing saved results.' });
+    expect(wrapper.get('.filter-review__error').text()).toContain('Showing saved results');
+    await wrapper.get('.filter-review__error button').trigger('click');
+    expect(wrapper.emitted('retry')).toEqual([[]]);
   });
 });

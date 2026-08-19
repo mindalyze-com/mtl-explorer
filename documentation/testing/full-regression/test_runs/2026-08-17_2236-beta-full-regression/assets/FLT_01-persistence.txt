@@ -1,0 +1,20 @@
+FLT_01 saved-filter persistence and active-chip check
+
+Setup within the fresh disposable install
+- Selected Filter view: Tracks by year.
+- Applied it with no criteria and all four result categories.
+- Map immediately showed a 15 / 15 filtered count and year legend entries 2010 (4), 2013 (1), 2021 (1), and 2026 (9).
+
+Persistence
+- Navigated to the map and waited for the app to finish loading.
+- The filtered toolbar state and year legend were still active.
+- Reopened Filter.
+- Filter view remained Tracks by year.
+- Apply filter remained checked.
+- Current result remained 15 matching tracks.
+
+Active-chip check
+- Inspected all visible elements whose class contains chip.
+- The only visible chips were unrelated Media filters and Track Browser sort chips.
+- No active filter chip identifying Tracks by year was rendered in Filter or on the map.
+- The filter is identifiable through the Configuration card and modified Filter toolbar icon, but not through the chip required by this coverage item.

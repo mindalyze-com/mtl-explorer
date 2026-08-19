@@ -1,283 +1,403 @@
 #!/usr/bin/env python3
 """
-generate_demo_photos.py — Create geo-tagged placeholder JPEG photos from GPX tracks.
+generate_demo_photos.py — Create geotagged placeholder JPEG photos for demo mode.
 
 Usage:
-    python3 generate_demo_photos.py <gpx_dir> <media_output_dir> <num_photos>
+    python3 generate_demo_photos.py \
+        <gpx_dir> <media_output_dir> <num_photos> [eligible_track_count]
 
 - Scans <gpx_dir> for *.gpx files.
-- Picks random track points, applies a small random offset (0–25 m).
-- Generates simple placeholder JPEGs with embedded EXIF GPS + DateTimeOriginal.
-- Writes to <media_output_dir>/demo-photos/
-- **Resumable**: If the output folder already contains N photos, only generates
-  (num_photos - N) more.  Safe across Docker restarts.
+- Generates a deterministic split of track-linked and standalone Porto photos.
+- Track-linked photos have capture times inside an eligible GPX track and are
+  positioned no more than 25 m from its interpolated route position.
+- Standalone photos use route-derived land positions and capture times that do
+  not overlap any GPX track.
+- Writes 1920x1440 JPEGs with GPS coordinates, DateTimeOriginal, and GPS time to
+  <media_output_dir>/demo-photos/.
+- A versioned progress marker limits restart work and upgrades legacy photos.
 
 Dependencies (available in the Docker image):
     pip install Pillow piexif
 """
 
+from __future__ import annotations
+
 import glob
 import math
 import os
 import random
-import struct
 import sys
 import xml.etree.ElementTree as ET
+from dataclasses import dataclass
 from datetime import datetime, timedelta
 from pathlib import Path
 
-# ---------------------------------------------------------------------------
-# Try importing optional libraries; give a clear error if missing
-# ---------------------------------------------------------------------------
-try:
-    from PIL import Image, ImageDraw, ImageFont
-except ImportError:
-    sys.exit("ERROR: Pillow is required.  pip install Pillow")
-
-try:
-    import piexif
-except ImportError:
-    sys.exit("ERROR: piexif is required.  pip install piexif")
+from photo_placeholder import generate_placeholder_jpeg
 
 
-# ---------------------------------------------------------------------------
-# Constants
-# ---------------------------------------------------------------------------
-PHOTO_WIDTH = 1024
-PHOTO_HEIGHT = 768
-MAX_OFFSET_METERS = 25  # random position jitter around the track point
+MAX_OFFSET_METERS = 25
 EARTH_RADIUS_M = 6_371_000
+DEMO_PHOTO_WIDTH = 1920
+DEMO_PHOTO_HEIGHT = 1440
+DEMO_PHOTO_JPEG_QUALITY = 82
+DEMO_PHOTO_FORMAT_VERSION = 6
+PROGRESS_FILE_NAME = f".demo-photo-format-v{DEMO_PHOTO_FORMAT_VERSION}.progress"
+LINKED_PHOTO_REMAINDER = 1
+LINKED_PHOTO_MODULUS = 2
+MIN_SEGMENT_RATIO = 0.1
+MAX_SEGMENT_RATIO = 0.9
+ONE_SECOND = timedelta(seconds=1)
+STANDALONE_FALLBACK_OFFSET = timedelta(days=1)
+PHOTO_GENERATION_BATCH_SIZE = 50
 
-# Porto-area colour palette — gentle watercolour-style backgrounds
-PALETTES = [
-    ((45, 80, 120), (180, 210, 235)),   # blue dusk
-    ((60, 100, 60), (180, 220, 170)),    # green park
-    ((130, 80, 50), (240, 210, 180)),    # warm terracotta
-    ((80, 60, 100), (200, 180, 220)),    # lavender twilight
-    ((30, 70, 90), (160, 200, 210)),     # teal harbour
-    ((100, 50, 30), (230, 190, 150)),    # sandstone
-]
+
+@dataclass(frozen=True)
+class TrackPoint:
+    latitude: float
+    longitude: float
+    captured_at: datetime
 
 
-# ---------------------------------------------------------------------------
-# GPX parsing helpers
-# ---------------------------------------------------------------------------
-def parse_gpx_trackpoints(gpx_path):
-    """Return list of (lat, lon, datetime) from a GPX file."""
-    points = []
+@dataclass(frozen=True)
+class DemoTrack:
+    timed_segments: tuple[tuple[TrackPoint, TrackPoint], ...]
+    start: datetime
+    end: datetime
+
+
+@dataclass(frozen=True)
+class CaptureGap:
+    start: datetime
+    seconds: int
+
+
+@dataclass(frozen=True)
+class DemoPhotoRenderTask:
+    photo_index: int
+    latitude: float
+    longitude: float
+    captured_at: datetime
+    output_path: Path
+    rng: random.Random
+
+
+def render_demo_photo(task: DemoPhotoRenderTask) -> int:
+    temporary_path = task.output_path.with_suffix(
+        f"{task.output_path.suffix}.part-{os.getpid()}"
+    )
+    temporary_path.unlink(missing_ok=True)
     try:
-        tree = ET.parse(gpx_path)
-    except ET.ParseError:
-        return points
+        generate_placeholder_jpeg(
+            task.latitude,
+            task.longitude,
+            task.captured_at,
+            temporary_path,
+            title=f"Demo photo {task.photo_index:05d}",
+            rng=task.rng,
+            include_gps_timestamp=True,
+            width=DEMO_PHOTO_WIDTH,
+            height=DEMO_PHOTO_HEIGHT,
+            jpeg_quality=DEMO_PHOTO_JPEG_QUALITY,
+        )
+        temporary_path.replace(task.output_path)
+    finally:
+        temporary_path.unlink(missing_ok=True)
+    return task.photo_index
+
+
+def parse_gpx_track(gpx_path: str | Path) -> DemoTrack | None:
+    """Read ordered timed points and usable interpolation segments from a GPX file."""
+    path = Path(gpx_path)
+    try:
+        tree = ET.parse(path)
+    except (ET.ParseError, OSError):
+        return None
 
     root = tree.getroot()
-    # Handle GPX namespace
-    ns = ''
-    if root.tag.startswith('{'):
-        ns = root.tag.split('}')[0] + '}'
+    namespace = ""
+    if root.tag.startswith("{"):
+        namespace = root.tag.split("}")[0] + "}"
 
-    for trkpt in root.iter(f'{ns}trkpt'):
-        lat = trkpt.get('lat')
-        lon = trkpt.get('lon')
-        time_el = trkpt.find(f'{ns}time')
-        if lat and lon and time_el is not None and time_el.text:
-            try:
-                t = datetime.strptime(time_el.text.rstrip('Z'), '%Y-%m-%dT%H:%M:%S')
-            except ValueError:
-                continue
-            points.append((float(lat), float(lon), t))
-    return points
-
-
-def collect_all_trackpoints(gpx_dir):
-    """Scan all .gpx files and return a flat list of (lat, lon, datetime)."""
-    all_points = []
-    gpx_files = sorted(glob.glob(os.path.join(gpx_dir, '**', '*.gpx'), recursive=True))
-    for f in gpx_files:
-        all_points.extend(parse_gpx_trackpoints(f))
-    return all_points
-
-
-# ---------------------------------------------------------------------------
-# Geo helpers
-# ---------------------------------------------------------------------------
-def offset_point(lat, lon, max_meters):
-    """Apply a random offset of 0–max_meters in a random bearing."""
-    distance = random.uniform(0, max_meters)
-    bearing = random.uniform(0, 2 * math.pi)
-
-    d_lat = (distance * math.cos(bearing)) / EARTH_RADIUS_M
-    d_lon = (distance * math.sin(bearing)) / (EARTH_RADIUS_M * math.cos(math.radians(lat)))
-
-    return lat + math.degrees(d_lat), lon + math.degrees(d_lon)
-
-
-# ---------------------------------------------------------------------------
-# EXIF helpers
-# ---------------------------------------------------------------------------
-def _to_deg_min_sec(decimal_deg):
-    """Convert decimal degrees to (degrees, minutes, seconds) as rationals for EXIF."""
-    d = int(abs(decimal_deg))
-    m_float = (abs(decimal_deg) - d) * 60
-    m = int(m_float)
-    s = round((m_float - m) * 60 * 10000)  # store with 4-decimal precision
-    return ((d, 1), (m, 1), (s, 10000))
-
-
-def build_exif_bytes(lat, lon, dt):
-    """Build EXIF bytes with GPS coordinates and DateTimeOriginal."""
-    exif_dict = {"0th": {}, "Exif": {}, "GPS": {}, "1st": {}}
-
-    # DateTimeOriginal
-    dt_str = dt.strftime('%Y:%m:%d %H:%M:%S')
-    exif_dict["Exif"][piexif.ExifIFD.DateTimeOriginal] = dt_str.encode()
-    exif_dict["0th"][piexif.ImageIFD.DateTime] = dt_str.encode()
-
-    # GPS
-    exif_dict["GPS"][piexif.GPSIFD.GPSLatitudeRef] = b'N' if lat >= 0 else b'S'
-    exif_dict["GPS"][piexif.GPSIFD.GPSLatitude] = _to_deg_min_sec(lat)
-    exif_dict["GPS"][piexif.GPSIFD.GPSLongitudeRef] = b'E' if lon >= 0 else b'W'
-    exif_dict["GPS"][piexif.GPSIFD.GPSLongitude] = _to_deg_min_sec(lon)
-
-    return piexif.dump(exif_dict)
-
-
-# ---------------------------------------------------------------------------
-# Image generation
-# ---------------------------------------------------------------------------
-def generate_placeholder_jpeg(lat, lon, dt, output_path):
-    """Create a simple placeholder JPEG with gradient background and text overlay."""
-    dark, light = random.choice(PALETTES)
-
-    img = Image.new('RGB', (PHOTO_WIDTH, PHOTO_HEIGHT))
-    draw = ImageDraw.Draw(img)
-
-    # Gradient fill
-    for y in range(PHOTO_HEIGHT):
-        ratio = y / PHOTO_HEIGHT
-        r = int(dark[0] + (light[0] - dark[0]) * ratio)
-        g = int(dark[1] + (light[1] - dark[1]) * ratio)
-        b = int(dark[2] + (light[2] - dark[2]) * ratio)
-        draw.line([(0, y), (PHOTO_WIDTH, y)], fill=(r, g, b))
-
-    # Add some subtle "bokeh" circles for visual interest
-    for _ in range(random.randint(8, 20)):
-        cx = random.randint(0, PHOTO_WIDTH)
-        cy = random.randint(0, PHOTO_HEIGHT)
-        radius = random.randint(20, 80)
-        alpha_circle = random.randint(15, 50)
-        overlay = Image.new('RGBA', (PHOTO_WIDTH, PHOTO_HEIGHT), (0, 0, 0, 0))
-        overlay_draw = ImageDraw.Draw(overlay)
-        overlay_draw.ellipse(
-            [cx - radius, cy - radius, cx + radius, cy + radius],
-            fill=(255, 255, 255, alpha_circle)
-        )
-        img = Image.alpha_composite(img.convert('RGBA'), overlay).convert('RGB')
-
-    # Text label
-    draw = ImageDraw.Draw(img)
-    try:
-        font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 18)
-        font_small = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 14)
-    except (IOError, OSError):
-        font = ImageFont.load_default()
-        font_small = font
-
-    text_lines = [
-        f"MTL Explorer Demo",
-        f"{dt.strftime('%Y-%m-%d %H:%M')}",
-        f"{lat:.5f}°, {lon:.5f}°",
-    ]
-
-    y_offset = PHOTO_HEIGHT - 90
-    for i, line in enumerate(text_lines):
-        f = font if i == 0 else font_small
-        # Shadow
-        draw.text((22, y_offset + 2), line, font=f, fill=(0, 0, 0, 180))
-        # Main text
-        draw.text((20, y_offset), line, font=f, fill=(255, 255, 255))
-        y_offset += 24
-
-    # Save with EXIF
-    exif_bytes = build_exif_bytes(lat, lon, dt)
-    img.save(output_path, 'JPEG', quality=82, exif=exif_bytes)
-
-
-# ---------------------------------------------------------------------------
-# Main
-# ---------------------------------------------------------------------------
-def main():
-    if len(sys.argv) != 4:
-        print(f"Usage: {sys.argv[0]} <gpx_dir> <media_output_dir> <num_photos>")
-        sys.exit(1)
-
-    gpx_dir = sys.argv[1]
-    media_output_dir = sys.argv[2]
-    num_photos = int(sys.argv[3])
-
-    output_dir = os.path.join(media_output_dir, 'demo-photos')
-    os.makedirs(output_dir, exist_ok=True)
-
-    # --- Resumability: count existing photos ---
-    existing = set(glob.glob(os.path.join(output_dir, 'demo_photo_*.jpg')))
-    existing_count = len(existing)
-
-    if existing_count >= num_photos:
-        print(f"✅ Demo photos: {existing_count}/{num_photos} already exist — nothing to do.")
-        return
-
-    remaining = num_photos - existing_count
-    print(f"📷 Demo photos: {existing_count} already exist, generating {remaining} more (target: {num_photos})…")
-
-    # --- Collect track points ---
-    all_points = collect_all_trackpoints(gpx_dir)
-    if not all_points:
-        print("⚠️  No track points found in GPX files — cannot generate photos.")
-        sys.exit(1)
-
-    print(f"   Found {len(all_points)} track points across GPX files.")
-
-    # --- Determine which indices are already taken ---
-    existing_indices = set()
-    for path in existing:
-        basename = os.path.basename(path)
+    points: list[TrackPoint] = []
+    for track_point in root.iter(f"{namespace}trkpt"):
+        latitude = track_point.get("lat")
+        longitude = track_point.get("lon")
+        time_element = track_point.find(f"{namespace}time")
+        if not latitude or not longitude or time_element is None or not time_element.text:
+            continue
         try:
-            idx = int(basename.replace('demo_photo_', '').replace('.jpg', ''))
-            existing_indices.add(idx)
+            captured_at = datetime.strptime(time_element.text.rstrip("Z"), "%Y-%m-%dT%H:%M:%S")
+            points.append(TrackPoint(float(latitude), float(longitude), captured_at))
+        except ValueError:
+            continue
+
+    if not points:
+        return None
+
+    timed_segments = tuple(
+        (before, after)
+        for before, after in zip(points, points[1:])
+        if after.captured_at > before.captured_at
+    )
+    capture_times = [point.captured_at for point in points]
+    return DemoTrack(
+        timed_segments=timed_segments,
+        start=min(capture_times),
+        end=max(capture_times),
+    )
+
+
+def collect_tracks(gpx_dir: str | Path) -> list[DemoTrack]:
+    """Return valid tracks in deterministic filename order."""
+    paths = sorted(glob.glob(os.path.join(str(gpx_dir), "**", "*.gpx"), recursive=True))
+    return [track for path in paths if (track := parse_gpx_track(path)) is not None]
+
+
+def offset_point(
+    latitude: float,
+    longitude: float,
+    max_meters: float,
+    rng: random.Random,
+) -> tuple[float, float]:
+    """Apply a random offset of 0–max_meters in a random bearing."""
+    distance = rng.uniform(0, max_meters)
+    bearing = rng.uniform(0, 2 * math.pi)
+    latitude_delta = (distance * math.cos(bearing)) / EARTH_RADIUS_M
+    longitude_delta = (
+        (distance * math.sin(bearing))
+        / (EARTH_RADIUS_M * math.cos(math.radians(latitude)))
+    )
+    return latitude + math.degrees(latitude_delta), longitude + math.degrees(longitude_delta)
+
+
+def interpolate_segment(
+    before: TrackPoint,
+    after: TrackPoint,
+    ratio: float,
+) -> tuple[float, float, datetime]:
+    latitude = before.latitude + ratio * (after.latitude - before.latitude)
+    longitude = before.longitude + ratio * (after.longitude - before.longitude)
+    captured_at = before.captured_at + ratio * (after.captured_at - before.captured_at)
+    return latitude, longitude, captured_at
+
+
+def choose_track_position(
+    tracks: list[DemoTrack],
+    rng: random.Random,
+) -> tuple[float, float, datetime]:
+    track = rng.choice(tracks)
+    before, after = rng.choice(track.timed_segments)
+    ratio = rng.uniform(MIN_SEGMENT_RATIO, MAX_SEGMENT_RATIO)
+    return interpolate_segment(before, after, ratio)
+
+
+def standalone_capture_gaps(tracks: list[DemoTrack]) -> tuple[CaptureGap, ...]:
+    """Build second-resolution gaps that cannot match any track time window."""
+    windows = sorted((track.start, track.end) for track in tracks)
+    if not windows:
+        return ()
+
+    merged_windows: list[tuple[datetime, datetime]] = []
+    for start, end in windows:
+        if merged_windows and start <= merged_windows[-1][1]:
+            previous_start, previous_end = merged_windows[-1]
+            merged_windows[-1] = previous_start, max(previous_end, end)
+        else:
+            merged_windows.append((start, end))
+
+    gaps: list[CaptureGap] = []
+    for (_, previous_end), (next_start, _) in zip(merged_windows, merged_windows[1:]):
+        gap_start = previous_end + ONE_SECOND
+        gap_end = next_start - ONE_SECOND
+        if gap_start <= gap_end:
+            seconds = int((gap_end - gap_start).total_seconds()) + 1
+            gaps.append(CaptureGap(gap_start, seconds))
+    return tuple(gaps)
+
+
+def choose_standalone_capture_time(
+    gaps: tuple[CaptureGap, ...],
+    latest_track_time: datetime,
+    rng: random.Random,
+) -> datetime:
+    if not gaps:
+        return latest_track_time + STANDALONE_FALLBACK_OFFSET
+
+    selected_second = rng.randrange(sum(gap.seconds for gap in gaps))
+    for gap in gaps:
+        if selected_second < gap.seconds:
+            return gap.start + timedelta(seconds=selected_second)
+        selected_second -= gap.seconds
+    raise AssertionError("Standalone capture gap selection exceeded its weighted range")
+
+
+def is_track_linked_photo(photo_index: int) -> bool:
+    return photo_index % LINKED_PHOTO_MODULUS == LINKED_PHOTO_REMAINDER
+
+
+def read_completed_index(progress_path: Path) -> int:
+    try:
+        return max(0, int(progress_path.read_text(encoding="utf-8").strip()))
+    except (OSError, ValueError):
+        return 0
+
+
+def write_completed_index(progress_path: Path, completed_index: int) -> None:
+    temporary_path = progress_path.with_suffix(".tmp")
+    temporary_path.write_text(f"{completed_index}\n", encoding="utf-8")
+    temporary_path.replace(progress_path)
+
+
+def prepare_render_task(
+    photo_index: int,
+    output_dir: Path,
+    eligible_tracks: list[DemoTrack],
+    position_tracks: list[DemoTrack],
+    standalone_gaps: tuple[CaptureGap, ...],
+    latest_track_time: datetime,
+) -> tuple[DemoPhotoRenderTask, bool]:
+    rng = random.Random(f"mtl-demo-photo-{photo_index}")
+    linked = is_track_linked_photo(photo_index)
+    if linked:
+        latitude, longitude, captured_at = choose_track_position(eligible_tracks, rng)
+        latitude, longitude = offset_point(latitude, longitude, MAX_OFFSET_METERS, rng)
+    else:
+        latitude, longitude, _ = choose_track_position(position_tracks, rng)
+        captured_at = choose_standalone_capture_time(standalone_gaps, latest_track_time, rng)
+
+    return (
+        DemoPhotoRenderTask(
+            photo_index=photo_index,
+            latitude=latitude,
+            longitude=longitude,
+            captured_at=captured_at,
+            output_path=output_dir / f"demo_photo_{photo_index:05d}.jpg",
+            rng=rng,
+        ),
+        linked,
+    )
+
+
+def generate_demo_photos(
+    gpx_dir: str | Path,
+    media_output_dir: str | Path,
+    num_photos: int,
+    eligible_track_count: int = 0,
+) -> tuple[int, int]:
+    output_dir = Path(media_output_dir) / "demo-photos"
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    existing = set(output_dir.glob("demo_photo_*.jpg"))
+    progress_path = output_dir / PROGRESS_FILE_NAME
+    completed_index = read_completed_index(progress_path)
+
+    existing_indices: set[int] = set()
+    for path in existing:
+        try:
+            existing_indices.add(int(path.stem.replace("demo_photo_", "")))
         except ValueError:
             pass
 
-    # --- Generate photos ---
-    generated = 0
-    next_index = 1
-    while generated < remaining:
-        # Find next free index
-        while next_index in existing_indices:
-            next_index += 1
+    missing_completed_indices = [
+        index
+        for index in range(1, min(completed_index, num_photos) + 1)
+        if index not in existing_indices
+    ]
+    pending_indices = missing_completed_indices + list(
+        range(completed_index + 1, num_photos + 1)
+    )
+    if not pending_indices:
+        print(
+            f"✅ Demo photos: format v{DEMO_PHOTO_FORMAT_VERSION}, "
+            f"{num_photos}/{num_photos} already exist."
+        )
+        return 0, 0
 
-        # Pick a random track point
-        lat, lon, dt = random.choice(all_points)
+    tracks = collect_tracks(gpx_dir)
+    if not tracks:
+        raise RuntimeError("No timed track points found in GPX files")
 
-        # Apply small random offset (0–25 m)
-        lat_offset, lon_offset = offset_point(lat, lon, MAX_OFFSET_METERS)
+    eligible_count = (
+        len(tracks)
+        if eligible_track_count <= 0
+        else min(eligible_track_count, len(tracks))
+    )
+    position_tracks = [track for track in tracks if track.timed_segments]
+    eligible_tracks = [track for track in tracks[:eligible_count] if track.timed_segments]
+    if not eligible_tracks:
+        raise RuntimeError("No eligible GPX tracks contain an increasing timed segment")
 
-        # Add small random time shift (±0–30 minutes) so photos aren't at exact track-point second
-        time_jitter = timedelta(minutes=random.uniform(-30, 30))
-        dt_photo = dt + time_jitter
+    standalone_gaps = standalone_capture_gaps(tracks)
+    latest_track_time = max(track.end for track in tracks)
+    print(
+        f"📷 Demo photos: generating {len(pending_indices)} labelled JPEG files "
+        f"(format v{DEMO_PHOTO_FORMAT_VERSION}, target: {num_photos}, "
+        f"eligible tracks: {len(eligible_tracks)}/{len(tracks)})…"
+    )
 
-        filename = f"demo_photo_{next_index:05d}.jpg"
-        filepath = os.path.join(output_dir, filename)
+    linked_generated = 0
+    standalone_generated = 0
+    highest_completed_index = completed_index
 
-        generate_placeholder_jpeg(lat_offset, lon_offset, dt_photo, filepath)
+    # Keep rendering single-process. The Java server and this generator share one
+    # container memory limit, and each Python worker would duplicate the parsed GPX
+    # graph, Pillow render buffers, and image caches. Four workers previously pushed
+    # the large demo over its 4 GiB limit. Photo generation is a one-time bootstrap,
+    # so lower peak memory is more important than completing it quickly.
+    for batch_start in range(0, len(pending_indices), PHOTO_GENERATION_BATCH_SIZE):
+        batch_indices = pending_indices[
+            batch_start : batch_start + PHOTO_GENERATION_BATCH_SIZE
+        ]
+        tasks: list[DemoPhotoRenderTask] = []
+        for photo_index in batch_indices:
+            task, linked = prepare_render_task(
+                photo_index,
+                output_dir,
+                eligible_tracks,
+                position_tracks,
+                standalone_gaps,
+                latest_track_time,
+            )
+            tasks.append(task)
+            if linked:
+                linked_generated += 1
+            else:
+                standalone_generated += 1
 
-        generated += 1
-        next_index += 1
+        completed_indices = [render_demo_photo(task) for task in tasks]
+        highest_completed_index = max(highest_completed_index, *completed_indices)
+        generated_count = batch_start + len(batch_indices)
+        write_completed_index(progress_path, highest_completed_index)
+        print(f"   … generated {generated_count}/{len(pending_indices)}")
 
-        if generated % 50 == 0 or generated == remaining:
-            print(f"   … generated {generated}/{remaining}")
+    write_completed_index(progress_path, max(highest_completed_index, num_photos))
+    print(
+        f"✅ Done. Demo photos use format v{DEMO_PHOTO_FORMAT_VERSION} at "
+        f"{DEMO_PHOTO_WIDTH}×{DEMO_PHOTO_HEIGHT}; generated "
+        f"linked={linked_generated}, standalone={standalone_generated}."
+    )
+    return linked_generated, standalone_generated
 
-    print(f"✅ Done. Total demo photos now: {existing_count + generated}")
+
+def main() -> None:
+    if len(sys.argv) not in (4, 5):
+        print(
+            f"Usage: {sys.argv[0]} "
+            "<gpx_dir> <media_output_dir> <num_photos> [eligible_track_count]"
+        )
+        sys.exit(1)
+
+    try:
+        generate_demo_photos(
+            sys.argv[1],
+            sys.argv[2],
+            int(sys.argv[3]),
+            int(sys.argv[4]) if len(sys.argv) == 5 else 0,
+        )
+    except (RuntimeError, ValueError) as exception:
+        print(f"⚠️  Demo photos: {exception}.")
+        sys.exit(1)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

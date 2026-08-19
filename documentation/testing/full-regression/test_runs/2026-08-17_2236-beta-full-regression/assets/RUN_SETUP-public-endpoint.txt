@@ -1,0 +1,11 @@
+Target: http://62.238.106.141:18080/mtl/
+Checked from: local command-line HTTP client and the configured end-user browser
+
+Command-line result:
+curl: (7) Failed to connect to 62.238.106.141 port 18080 after 48 ms: Couldn't connect to server
+
+Browser result:
+net::ERR_CONNECTION_REFUSED
+
+Conclusion: no pre-existing app was reachable on the documented public port.
+This is baseline evidence only and is not treated as quick-install evidence.

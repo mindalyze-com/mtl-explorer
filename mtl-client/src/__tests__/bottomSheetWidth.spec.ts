@@ -21,6 +21,9 @@ describe('bottom sheet width contract', () => {
     expect(baseCss).toContain('--sheet-desktop-max-width: 920px;');
     expect(baseCss).toContain('--sheet-desktop-wide-max-width: 1180px;');
     expect(baseCss).toContain('--sheet-desktop-wide-width: 72vw;');
+    expect(baseCss).toContain('--sheet-compact-desktop-max-width: 680px;');
+    expect(baseCss).toContain('--sheet-compact-desktop-wide-max-width: 720px;');
+    expect(baseCss).toContain('--sheet-compact-desktop-wide-width: 54vw;');
   });
 
   it('keeps every feature sheet on the shared width', () => {

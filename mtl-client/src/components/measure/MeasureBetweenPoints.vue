@@ -158,6 +158,7 @@ type MapLike = maplibregl.Map;
 type MeasureTriggerPoint = TriggerPoint & { name: string; coordinate: { x: number; y: number } };
 type ZoneVisualState = 'loading' | 'error' | 'warning' | 'ok';
 type MapClickEvent = { lngLat: { lng: number; lat: number } };
+type MeasureNavigationState = { view: 'results'; result: CrossingPointsResponseDto };
 
 const MINIMUM_SEGMENT_ZONE_COUNT = 2;
 const DESKTOP_COMPACT_SHEET_HEIGHT_PX = 310;
@@ -194,6 +195,7 @@ const zoneCountRequestTokens = ref<Array<number | undefined>>([]);
 let radiusCountDebounceTimer: ReturnType<typeof setTimeout> | null = null;
 const measureServiceResult = ref<CrossingPointsResponseDto | null>(null);
 const showResults = ref(false);
+const isToolOpen = computed(() => active.value || showResults.value);
 const numberOfCrossings = ref(0);
 const measureSourceIds = ref<string[]>([]);
 const measureLayerIds = ref<string[]>([]);
@@ -467,21 +469,16 @@ function radiusSelectorForExtent(map: MapLike) {
 }
 
 async function toggle() {
-  active.value = !active.value;
-  emit('active-changed', active.value);
-  if (active.value) emit('tool-opened');
-
-  if (active.value) {
-    attachMapClickHandler();
-  } else {
-    cancelCrossingFetch();
-    detachMapClickHandler();
-    resetZoneSelection();
+  if (isToolOpen.value) {
+    close();
+    return;
   }
+  await open();
 }
 
 async function open() {
-  if (active.value) return;
+  if (isToolOpen.value) return;
+  measureServiceResult.value = null;
   active.value = true;
   emit('active-changed', true);
   emit('tool-opened');
@@ -489,12 +486,38 @@ async function open() {
 }
 
 function close() {
-  if (!active.value) return;
+  if (!isToolOpen.value) return;
   cancelCrossingFetch();
   active.value = false;
+  showResults.value = false;
+  measureServiceResult.value = null;
+  numberOfCrossings.value = 0;
   emit('active-changed', false);
   detachMapClickHandler();
   resetZoneSelection();
+}
+
+function getNavigationState(): MeasureNavigationState | null {
+  if (!showResults.value || !measureServiceResult.value) return null;
+  return { view: 'results', result: measureServiceResult.value };
+}
+
+function restoreNavigationState(state: unknown) {
+  const navigationState = state as MeasureNavigationState | null;
+  if (navigationState?.view !== 'results' || !navigationState.result) return;
+  const wasOpen = isToolOpen.value;
+  cancelCrossingFetch();
+  active.value = false;
+  detachMapClickHandler();
+  resetZoneSelection();
+  measureServiceResult.value = navigationState.result;
+  numberOfCrossings.value =
+    navigationState.result.crossings != null ? Object.keys(navigationState.result.crossings).length : 0;
+  showResults.value = true;
+  if (!wasOpen) {
+    emit('active-changed', true);
+    emit('tool-opened');
+  }
 }
 
 async function onCancelSelection() {
@@ -616,7 +639,6 @@ async function onFinishSelection() {
     numberOfCrossings.value =
       measureServiceResult.value.crossings != null ? Object.keys(measureServiceResult.value.crossings).length : 0;
     active.value = false;
-    emit('active-changed', false);
     detachMapClickHandler();
     resetZoneSelection();
     nextTick(() => {
@@ -642,6 +664,10 @@ async function onFinishSelection() {
 
 function onMeasureClosed() {
   cancelCrossingFetch();
+  active.value = false;
+  showResults.value = false;
+  measureServiceResult.value = null;
+  numberOfCrossings.value = 0;
   emit('active-changed', false);
   emit('tool-closed');
   detachMapClickHandler();
@@ -649,6 +675,10 @@ function onMeasureClosed() {
 }
 
 function onResultsClosed() {
+  showResults.value = false;
+  measureServiceResult.value = null;
+  numberOfCrossings.value = 0;
+  emit('active-changed', false);
   emit('tool-closed');
 }
 
@@ -910,6 +940,8 @@ defineExpose({
   open,
   toggle,
   close,
+  getNavigationState,
+  restoreNavigationState,
   onMaximize,
 });
 </script>

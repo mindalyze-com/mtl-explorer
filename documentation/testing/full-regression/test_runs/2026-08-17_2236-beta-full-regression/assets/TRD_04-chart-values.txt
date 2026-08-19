@@ -1,0 +1,18 @@
+TRD_04 chart rendering/value evidence
+
+Track: 100004
+Rendered charts: 6 Highcharts containers / 6 SVG roots
+
+Required charts:
+- SPEED (BUCKET AVG): two series, 0.05-117.73 data range, readable km/h axis to 150.
+- ELEVATION: two series, -4.4-113.7 data range, readable metre axis.
+- ELEVATION GAIN RATE: two series, 0-1,686 data range, readable m/h axis to 2k.
+- DISTANCE OVER TIME: 158 data points, 70.5-25,882.4 data range, readable km axis to 30.
+
+Additional charts:
+- CUMULATIVE MECHANICAL ENERGY: 158 points, Wh axis.
+- ESTIMATED POWER: two series, W axis.
+
+All charts exposed readable time labels from 0h 00m through 3h 20m and accessible descriptions of data ranges/series.
+
+Result: elevation, speed, distance, and gain charts rendered with nonempty readable values and units.

@@ -1,0 +1,25 @@
+MED_25 production deletion / MED_26 failure-fixture audit
+
+MED_25 observed production deletion sequence (UTC):
+- 00:59:08.646 watcher detected DELETE for correlated alternate activity.
+- 00:59:16.701 GPXStoreService deleted gpsTrack 100022 and its track data.
+- 00:59:16.857 MediaCorrelationJob processed tracks=0 media=6 remaining=0.
+- Post-job persistence contains only selected track 100016 for media 400000 and
+  400004, ambiguous=false, alternative_count=1.
+- Resolved locations fell back to their preserved TRACK_INTERPOLATED positions
+  on 100016. The browser returned from Ambiguous (2) to the normal six-row
+  timeline after reload.
+
+The job occurring after the production track deletion and processing six media
+items demonstrates that the queued media work survived deletion long enough to
+complete fallback.
+
+MED_26 live queue schema:
+- media_correlation_media_work has media_id, reason, requested_at,
+  attempt_count, last_error, retry_after.
+- media_correlation_track_work has track_id, reason, requested_at.
+- Both work queues are currently empty after healthy completion.
+
+No packaged deterministically failing correlation item exists in the frozen
+fixture. Directly corrupting/seeding production queue rows was not substituted
+for the required product-triggered failure followed by a healthy item.

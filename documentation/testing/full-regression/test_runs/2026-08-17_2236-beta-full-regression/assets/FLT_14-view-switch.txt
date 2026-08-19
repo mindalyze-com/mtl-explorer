@@ -1,0 +1,27 @@
+FLT_14 result-category selection across view switching
+
+Starting state
+- Current view: Activities by exact type.
+- Exact selection: HIKING and WALKING.
+- Result: 3 / 15 Tracks; 2 of 3 categories.
+
+Switch to a different filter
+- Changed view to Tracks by year.
+- Prior HIKING/WALKING result-category selection did not carry across.
+- New view initialized to All 4 categories.
+- Result returned to 15 matching tracks.
+- Legend showed 2010, 2013, 2021, 2026.
+
+Create current-view selection
+- Selected exactly 2013 and 2021.
+- Result became 2 matching tracks / 2 of 4 categories.
+- Legend showed only 2013 and 2021.
+
+Select current filter again
+- Reopened Filter view selector.
+- Selected Tracks by year again and applied it.
+- Exact current-view selection remained 2013 and 2021.
+- Result remained 2 matching tracks / 2 of 4 categories.
+- Legend remained 2013 and 2021.
+
+Different-view selection cleared; same-current-view selection was preserved.

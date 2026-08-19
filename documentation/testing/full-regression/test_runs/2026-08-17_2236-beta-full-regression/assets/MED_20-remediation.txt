@@ -1,0 +1,5 @@
+2026-08-18 fixed-build retest
+Replaced mtl-regression-media-track.gpx at the same path with different content: old/new bytes=1080/1080; SHA-256 1aa59d4... -> 618b9df....
+Watcher logged MODIFY, deleted old track 100005, ingested track 100006 SUCCESS, and correlated 6 media items.
+DB: indexed_file size=1080, status=COMPLETED_WITH_SUCCESS, activity 07:59-08:24. Desktop/mobile showed #100006 and 25m 00s.
+FileIndexerImplTest directly covers same-path/same-size/new-mtime rescan.

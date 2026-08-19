@@ -1,0 +1,25 @@
+AVR_04 virtual-race geometry regression
+
+Race state
+- Measured segment: A-B.
+- Five tracks selected; three invalid zero-duration tracks explicitly skipped.
+- Valid racers: 100008 sample.igc and 100016 mtl-regression-media-track.gpx.
+- Race mini-map rendered at 500 m before start and fit to 50 m while racers ran.
+- Playback: 18x / about 12 seconds.
+- Running sample: IGC 31% / 112.76 m; media GPX 14% / 38.50 m.
+- Total segment cards: IGC 197.66 m; media GPX 189.62 m.
+
+Live canonical geometry used by these race tracks
+- sample.igc: 4 points; lng 7.4468000014..7.4489999979; lat 46.9475000012..46.9491999984; max coordinate step 0.000800008 degrees.
+- media GPX: 6 points; lng 7.4471000011..7.4486999991; lat 46.9478000014..46.9490999991; max coordinate step 0.000350003 degrees.
+
+Assertions
+- Both geometries are inside the local Bern corridor.
+- No longitude or latitude is zero.
+- No point or step is off-continent/South-Africa-like.
+- The running mini-map used a 50 m scale, excluding world-scale bounds.
+- Both racer progress distances stayed within their local segment totals.
+- No straight global line, off-route fit, or geometry error state appeared.
+
+Result: PASS.
+

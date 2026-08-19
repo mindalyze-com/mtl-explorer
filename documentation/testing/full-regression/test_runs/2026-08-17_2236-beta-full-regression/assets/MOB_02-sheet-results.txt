@@ -1,0 +1,9 @@
+MOB_02 mobile sheet results at 390 x 844
+Statistics sheet opened at its normal partial height.
+Maximize panel snapped the sheet to full height; control changed to Restore panel size.
+Restore returned the sheet to partial height.
+Pointer drag on the sheet handle moved the top edge from about y=346 to about y=100 and settled cleanly.
+Close removed the Statistics sheet and exposed the persistent eight-button mobile navigation.
+Map navigation opened its own partial sheet with Map style, Terrain, Your data, Route overlays, and Reset map settings controls.
+Close removed the Map sheet and restored the map/navigation surface.
+No orphaned overlay or disabled navigation control remained.

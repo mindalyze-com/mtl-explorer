@@ -1,0 +1,26 @@
+End-user browser: Codex in-app browser, desktop viewport 1280 x 720
+Remote URL: http://62.238.106.141:18080/mtl/
+
+Signed-out result:
+- Redirected to /mtl/login
+- Page title: MTL Explorer
+- Visible controls: Username, Password, Sign In, About & source
+
+Documented README login used:
+- Username source: public GitHub main README
+- Password source: public GitHub main README
+
+Valid-login result:
+- Redirected to /mtl/
+- Main map loaded
+- Track count showed 0 Tracks on the fresh database
+- Main navigation showed Stats, Filter, Map, Animate, Segments, GPS, Planner, Admin
+
+About result:
+- Branding: MTL Explorer
+- UI version: dev
+- License: AGPL-3.0-or-later
+
+The Browser screenshot API timed out repeatedly on the login page. DOM and HTTP
+evidence were retained. Screenshot capture will be retried before ACC_04 and is
+not being presented as a product failure.

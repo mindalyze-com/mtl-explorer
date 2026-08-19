@@ -1,0 +1,9 @@
+Constraint accounting verified:
+- Server credential blocker was recorded in RUN_SETUP while active and removed
+  only after explicit user authorization resolved it.
+- Missing Docker was recorded as prerequisite setup and timed separately.
+- Remote plain-HTTP geolocation is recorded as an environment limitation.
+- Browser screenshot timeouts are recorded in ACC_04 with direct attempts and
+  an unblock path; they are not hidden inside a parent PASS.
+- Future dependency, permission, data, service, or browser constraints must be
+  recorded in their exact packet as BLOCKED or NOT APPLICABLE when appropriate.

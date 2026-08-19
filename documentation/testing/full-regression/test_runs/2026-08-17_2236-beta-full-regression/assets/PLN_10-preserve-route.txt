@@ -1,0 +1,12 @@
+PLN_10 existing-route preservation evidence
+
+- Baseline loaded plan: 710.00 m, one leg, five elevation points.
+- A cross-segment Honolulu waypoint produced a clear unavailable notice.
+- While that notice was active, switched profile Hiking -> Car to retry every
+  leg.
+- During "BRouter status: updating route": the 710.00 m / one-leg statistics
+  and five-point profile remained rendered.
+- After the retry settled unavailable: the same statistics/profile remained
+  rendered with the route-unavailable notice.
+
+Result: PASS.

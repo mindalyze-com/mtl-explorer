@@ -1,0 +1,16 @@
+Admin Processing after FIT import:
+- GPS done; 6 completed; 2 excluded directories; 8 total entries; no failure shown
+- Duplicate Finder 6/6 done
+- Activity Classifier 6/6 done
+- Exploration Score 6/6 done
+
+Freshness/UI result:
+- New data banner appeared and Reload was used
+- Main map count: 5 -> 6 Tracks
+- Statistics Tracks search query "Activity": 1 of 6 tracks
+- Search result: Track 100005; Walking; 20/07/2021 23:11; 3.60 km;
+  59m 57s; 347 Wh
+- Opening result URL: /mtl/track/100005
+- Track Details source label: Activity.fit
+- Selected-track mini-map rendered
+- Overview exposed both Download original and Download GPX controls

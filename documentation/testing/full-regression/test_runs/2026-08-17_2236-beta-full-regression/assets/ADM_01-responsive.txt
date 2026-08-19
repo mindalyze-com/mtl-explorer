@@ -1,0 +1,25 @@
+ADM_01 responsive Admin center
+Observed 2026-08-18 05:07-05:11 Europe/Zurich
+
+Desktop 1280 x 720
+- Opened Admin from the main navigation.
+- Overview rendered grouped navigation for Data, System, and Application.
+- Ten reachable section controls were present: Overview, Import & sync,
+  Processing, Data status, Maintenance, Server log, System information,
+  Preferences, Session, and About & credits.
+- Status cards reported Processing Idle, Data Current, Services 3/3 available,
+  and Helper tools 2/2 ready; common tasks were reachable.
+
+Mobile 390 x 760
+- Opened direct `/mtl/admin` in a fresh tab using the same authenticated browser
+  context and a real 390 x 760 viewport.
+- Admin rendered as a safe-width bottom sheet with readable Overview, status
+  cards, Refresh, close/maximize, scroll affordance, and no horizontal overflow.
+- Activated the Processing status card. Route changed to
+  `/mtl/admin/processing`, section content remained within the mobile sheet,
+  and a visible `Back to overview` action appeared.
+- Back to overview returned to `/mtl/admin` and restored the status cards.
+- Viewport was reset and the mobile tab closed after capture.
+
+Result: PASS. Overview and grouped section navigation are reachable and usable
+on desktop and mobile.

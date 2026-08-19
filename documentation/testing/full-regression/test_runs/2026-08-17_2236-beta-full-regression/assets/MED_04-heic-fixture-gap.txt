@@ -1,0 +1,9 @@
+MED_04 HEIC fixture audit
+
+- Prescribed DAT_08 media manifest contains exactly six media files.
+- All six filenames end in .jpg.
+- No .heic/.heif fixture exists in the watched folder or frozen run assets.
+- Creating a new format fixture here would change the prescribed controlled set and affect later exact-count/delete packets.
+
+Result: BLOCKED. Server-side HEIC conversion/display cannot be exercised in this frozen run without an HEIC fixture.
+

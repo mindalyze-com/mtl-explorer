@@ -1,0 +1,26 @@
+MED_28 activity media paging evidence
+Captured: 2026-08-18 Europe/Zurich
+Target activity: 100016, MTL Regression Media Track
+
+End-user browser
+- Photos tab reported 6 photos.
+- Exactly six timeline buttons and six mini-map media buttons rendered.
+- Timeline order by displayed local capture time:
+  photo-a 10:00, photo-b 10:01, estimated-a 10:01,
+  delete-a 10:02, estimated-b 10:02, delete-b 10:03.
+- With six items there was only one page, so pagination controls were correctly
+  omitted and the DOM stayed bounded to the current six items.
+
+Authenticated live API probes (token omitted)
+query=<default> http=200 time=0.090417s bytes=3847
+  page=0 pageSize=100 totalItems=6 totalPages=1 itemCount=6
+  ids=400005,400002,400000,400003,400004,400001
+query=?page=0&pageSize=100 http=200 time=0.092885s bytes=3847
+  page=0 pageSize=100 totalItems=6 totalPages=1 itemCount=6
+query=?page=0&pageSize=200 http=200 time=0.088695s bytes=3847
+  page=0 pageSize=200 totalItems=6 totalPages=1 itemCount=6
+query=?page=0&pageSize=201 http=400 time=0.139844s bytes=119
+
+The default response is 100 and the maximum accepted request is 200. The
+frozen run contains only six media rows and no MED_21 100,000-row fixture, so
+first/middle/last large-library page navigation and timings cannot be run.

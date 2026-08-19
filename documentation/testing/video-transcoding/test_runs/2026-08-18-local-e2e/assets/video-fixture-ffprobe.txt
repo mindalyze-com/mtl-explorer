@@ -1,0 +1,20 @@
+Synthetic source generated outside the repository and removed after the run.
+
+ffprobe summary:
+index=0
+codec_name=ffv1
+codec_type=video
+width=480
+height=270
+pix_fmt=yuv420p
+index=1
+codec_name=pcm_s16le
+codec_type=audio
+sample_rate=48000
+channels=1
+duration=8.000000
+size=2171293
+bit_rate=2171293
+
+Source and watched-copy SHA-256 before cleanup:
+559d5f65e75d38f56457786a87d7907ae32ca83e0773084df5e2a012a7790cd5

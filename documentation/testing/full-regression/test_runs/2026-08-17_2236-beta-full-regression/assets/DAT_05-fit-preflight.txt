@@ -1,0 +1,16 @@
+Source page: https://github.com/garmin/fit-javascript-sdk
+Source file: https://raw.githubusercontent.com/garmin/fit-javascript-sdk/main/test/data/Activity.fit
+Source/license note: official Garmin FIT JavaScript SDK public repository; a
+LICENSE.txt file is published in the repository.
+Destination filename: Activity.fit
+Bytes: 94096
+SHA-256: 949a238e1bb75c3684479785f76fa9a16888bb394518844248f488171d591387
+
+GPS-bearing preflight performed with GPSBabel 1.10.0 packaged in the app image.
+Converted GPX bytes: 595045
+Converted GPX trackpoints: 3601
+Converted GPX time elements: 3602 (one metadata time plus 3,601 trackpoint times)
+Converted GPX SHA-256: 19ce4cfa8096fead78a4b07e000eeb9aabf51af20abe0227542dcb545b419e62
+
+The conversion output remains outside the watched import folder. Product FIT
+import behavior is tested later under FIT_01-FIT_06.

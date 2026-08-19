@@ -1,0 +1,13 @@
+TRD_15 targeted validity retest — exact beta image
+
+Desktop 1280x720 and mobile 390x844:
+- Opened /mtl/track/100005 in a fresh tab.
+- Waited for the startup overlay to clear.
+- Clicked the Track Details Close button.
+- The sheet closed and the route changed to /mtl/ in each viewport.
+
+The first premature mobile attempt occurred while the startup overlay still
+covered the app; it was repeated after readiness and passed.
+
+Conclusion: REJECTED. Direct-route Close worked in both viewports after the app
+was ready.

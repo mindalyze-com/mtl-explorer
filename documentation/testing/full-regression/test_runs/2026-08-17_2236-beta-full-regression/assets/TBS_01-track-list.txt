@@ -1,0 +1,19 @@
+TBS_01 track-list evidence
+
+Statistics -> Tracks -> All
+- Summary: 15 tracks, 1,048 km, 1d 00h
+- Visible rows: 15
+- Columns: Start, Track, Activity, Distance, Duration, Avg km/h, Energy,
+  Exploration, Imported; each row also starts with a track-shape preview.
+
+Representative rows:
+- Track 100005 | 20/07/2021, 23:11 | Walking | 3.60 km |
+  59m 57s | 3.6 km/h | 347 Wh | 100.0% | imported 17/08/2026, 23:07
+- Moselradweg aus Wiki on GPSies.com | 01/01/2010, 01:00 |
+  Bicycle | 518 km | 6h 50m | 75.7 km/h | 1,616 Wh | 100.0% |
+  imported 17/08/2026, 22:56
+- FMT Unique GDB St Gallen | 11/08/2026, 11:00 | Bicycle |
+  325.24 m | 0m 00s | 4 Wh | 100.0% | imported 17/08/2026, 23:31
+
+The list includes Bicycle, Walking, and Running records, short synthetic
+tracks, and long imported routes. All 15 resolved tracks are represented.

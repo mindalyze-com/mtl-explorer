@@ -1,0 +1,13 @@
+MOB_06 targeted validity retest — exact beta image
+
+Mobile 390x844 and desktop 1280x720:
+- Opened Filter > Filter view.
+- Selected another catalog row.
+- The catalog intentionally stayed open with Cancel and Apply, preserving a
+  reversible draft.
+- Activated Apply.
+- The Filter configuration overview opened with the chosen view and the
+  directly usable Apply filter switch.
+
+Conclusion: REJECTED. The failed packet omitted the required Apply confirmation.
+The documented confirmation flow works in both viewports.

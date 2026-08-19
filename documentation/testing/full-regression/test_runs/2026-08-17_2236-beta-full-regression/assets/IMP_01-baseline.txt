@@ -1,0 +1,31 @@
+Fresh-database browser baseline before any watched-folder import:
+
+Main map:
+- visible/total track button: 0 Tracks
+
+Statistics Overview:
+- No tracks match the current filters.
+
+Statistics Tracks / shared track browser:
+- 0 tracks
+- summary distance: 0.00 m
+- summary duration: 0m 00s
+- No tracks match the current view.
+
+Admin Processing:
+- GPS indexer: done, 100%, 0 completed / 0 total
+- MEDIA indexer: done, 100%, 0 completed / 0 total
+- Duplicate Finder: done, 0/0
+- Activity Classifier: done, 0/0
+- Exploration Score: done, 0/0
+- Photo Position Correlation: done, 0/0
+
+Admin Data status:
+- State: In sync
+- Latest change: 17/08/2026 22:43:35 Europe/Zurich
+- Server/client freshness token:
+  5R57gM__|server_id:5CE2j7uEhS6YBXPnnguHpo|config:9|filters:88|index:0|media:0|track_geometry:0|tracks:0
+- Revision sum: 97
+- Index r0; Tracks r0; Geometry r0; Media r0; Filters r88; Config r9
+
+Server filesystem check before baseline: 0 files under data/gpx/.

@@ -1,0 +1,27 @@
+TBS_07 Statistics cardinality evidence
+
+Many-track baseline (reset filter):
+- Map: 15 Tracks
+- Overview: 15 tracks, 1,048 km, 1d 00h, 4,896 Wh, 14,963 m ascent
+- Activity breakdown: Bicycle 12, Walking 2, Running 1
+
+Single-track set:
+- Filter: Tracks by year, only 2013 selected
+- Map: 1 / 15 Tracks; 2013 legend count 1
+- Overview summary: Showing 1 of 15 tracks
+- Totals: 1 track, 25.9 km, 1h 13m, 198 Wh, 341 m ascent
+- Activity breakdown: Bicycle 1
+- All highlights, active day/week/month/weekday, recent activity, first/latest,
+  and date range resolved to Lannion_Plestin_parcours and 08/03/2013.
+
+Empty set:
+- Cleared all four year categories
+- Filter: No tracks match; 0 of 4 categories
+- Map: 0 / 15 Tracks
+- Overview summary: Showing 0 of 15 tracks
+- Empty message: No tracks match the current filters.
+- No stale total/highlight cards remained.
+
+Cleanup/recheck:
+- Reset filter restored Smart Base Filter, all 3 categories, and 15 tracks.
+- Reopened Overview restored the exact many-track totals above.

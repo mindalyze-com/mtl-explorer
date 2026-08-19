@@ -1,0 +1,13 @@
+PLN_09 unavailable-routing evidence
+
+- Existing loaded plan: 710.00 m, one leg, five profile points.
+- Recentered from its Algerian segment to a fresh Honolulu segment.
+- Added a waypoint in Honolulu, forcing all legs to re-route across the
+  incomplete/unsupported path.
+- Immediate UI status: "BRouter status: updating route".
+- Settled UI status: ready plus visible notice:
+  "Route unavailable for these points. Move waypoints onto routable roads or
+  trails, or try again later."
+- No blank panel, unhandled exception, or lost controls appeared.
+
+Result: PASS.

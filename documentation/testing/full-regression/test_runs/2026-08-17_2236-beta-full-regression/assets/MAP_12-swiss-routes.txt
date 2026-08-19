@@ -1,0 +1,30 @@
+MAP_12 Swiss route overlay evidence
+
+Applicable controls were present:
+- Swiss routes region
+- Hiking routes
+- Cycling routes
+- Mountain bike routes
+- Hiking trails
+
+Actions/state:
+- Enabled all four Swiss route layers.
+- Map configuration reported 4 of 7 route layers shown.
+- Each enabled Swiss layer reported 100% opacity.
+- Live map attribution added SchweizMobil and swisstopo links alongside OpenStreetMap.
+- Temporarily hid all four user-data layers to reduce track/media hit-target interference.
+- Map remained interactive at 100 m Bern scale.
+- A known track-overlap click still opened the semantic track list even while GPS tracks were configured hidden; a second nearby map click produced no route popup.
+
+Constraint:
+- Swiss route paths are canvas-rendered with no semantic target.
+- ACC_04 blocks screenshots, so a route line cannot be positively located for a non-guessed click.
+- The Swiss Mobility popup and close path therefore could not be exercised reliably.
+
+Restoration:
+- Used Reset map settings.
+- Your data returned to 3 of 4 shown.
+- Route overlays returned to None shown.
+- Extra SchweizMobil/swisstopo attribution cleared.
+
+Result: Swiss overlay availability, activation, live attribution, interaction, and restoration passed; route-line popup targeting is blocked.

@@ -1,0 +1,26 @@
+TBS_10 Statistics entry activation evidence
+
+Period drill-down:
+- Activated Most active month (2010-01, 14h 37m, 2 tracks, 791 km).
+- The row became active and opened Most active month drill-down.
+- Ranked period results:
+  1. 2010-01, 2 tracks, 14h 37m, 791 km
+  2. 2013-03, 1 track, 1h 13m, 25.9 km
+  3. 2021-07, 1 track, 59m 57s, 3.60 km
+  4. 2026-08, 9 tracks, 0m 45s, 2.14 km
+- Close period drilldown removed the selected state.
+
+Navigation:
+- Activated the Recent Activity entry MTL Synthetic Segment B.
+- Route changed from /mtl/stats to /mtl/track/100017.
+- Track Details showed #100017, Running, MTL Synthetic Segment B,
+  18/08/2026 12:00, map, 247.23 m, and 2m 15s.
+- Close returned to Statistics Overview.
+
+Map highlight:
+- Opened Statistics Tracks and searched Lannion_Plestin_parcours.
+- Activated its shape preview (Center on map action).
+- Route stayed /mtl/stats; the map scale changed to 1 km.
+- Exactly one visible row gained the active selection class, and it was the
+  Lannion 2013 row (25.9 km, 1h 13m).
+- Search was cleared afterward.

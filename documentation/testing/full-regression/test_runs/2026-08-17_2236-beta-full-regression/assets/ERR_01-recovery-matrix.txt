@@ -1,0 +1,14 @@
+ERR_01 recovery matrix
+failed track load: PASS
+  Method: open track 100017 from a warmed one-row Track Browser while disposable app service is stopped.
+  UI: "Track details could not be loaded"; "Check the server connection, then retry loading this track or go back to the map."; Retry; Close.
+  Recovery: restart app, select Retry; error disappears; MTL Synthetic Segment B and 247.23 m return.
+failed map config: BLOCKED
+  Existing MAP_14 audit: quick install uses hosted public-fallback, no local map-server sidecar, and browser has no request interception; no safe isolated map-config failure control.
+failed media: PASS via MED_05
+  Missing media retained viewer metadata and showed Preview unavailable with Retry/Download; exact source restoration plus Retry recovered in place.
+failed planner route: PASS via PLN_09
+  Unrouteable waypoint showed updating route, then explicit route-unavailable guidance; controls stayed usable.
+expired/invalid session: PASS via NET_03
+  Protected endpoint returned 401 and unauthenticated app-root navigation redirected to /mtl/login; sign-in restored the 15-track map.
+Final service state: disposable app running; all other services remained running; track details closed.

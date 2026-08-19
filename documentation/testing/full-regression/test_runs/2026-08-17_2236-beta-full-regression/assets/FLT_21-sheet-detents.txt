@@ -1,0 +1,33 @@
+FLT_21 Filter / Review tracks sheet measurements
+
+Desktop viewport: 1280 x 720
+- Standard Filter overview shell: x=218, y=86, width=920, height=634,
+  bottom=720, class sheet--filter-overview.
+- Nested Review tracks shell: x=218, y=107.07, width=920, height=612.93,
+  bottom=720, class sheet--filter-detail sheet--filter-review.
+- Standard Filter Criteria detail for comparison: x=218, y=158.41,
+  width=920, height=561.59, bottom=720, class sheet--filter-detail.
+- Review kept the standard 920 px Filter width and viewport bottom. It did not
+  open a page-wide or oversized desktop surface.
+
+Mobile viewport: exact 390 x 844
+- Document client/scroll width: 390 / 390; no horizontal page overflow.
+- Standard Filter partial shell after settle: x=0, y=108, width=390,
+  height=736, bottom=844.
+- Nested Review partial shell after settle: x=0, y=108, width=390,
+  height=736, bottom=844.
+- Review full detent after pointer drag: x=0, y=42.20, width=390,
+  height=801.80, bottom=844.
+- Downward drag reached the dismiss state; reopening Review restored the exact
+  partial detent.
+
+Usability at partial detent:
+- Search "Jura Route 7" returned 1 of 15 and the correct retained card.
+- Search, sort controls, summary, and card stayed visible; no horizontal overflow.
+
+Usability at full detent:
+- Search "Moselradweg" returned 1 of 15 and the correct retained card.
+- Search, sort controls, summary, and card stayed visible; no horizontal overflow.
+
+Viewport override was reset to 1280 x 720 after the check.
+Console errors during/after the check: 0.

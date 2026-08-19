@@ -1,0 +1,21 @@
+MED_02 media viewport loading
+
+Observed end-user flow
+- Reloaded the main map with the media layer enabled; initial map scale was 500 km.
+- The application issued get-media-in-bounds requests during initial world-view loading.
+- Searched to Bern; local map scale became 100 m.
+- Panned twice beyond the visible Bern cluster and exercised Zoom Out/Zoom In back to 100 m.
+- Searched to New York City; local map scale again became 100 m.
+- No additional get-media-in-bounds request appeared for the Bern pan/zoom or New York viewport; the last logged request remained the initial/global load.
+
+Live endpoint controls
+- Bern bbox (lat 46.94..46.96, lng 7.44..7.46): HTTP 200, six media points.
+- The same endpoint emits Cache-Control: no-store.
+- A distant local bbox returns no synthetic Bern points.
+
+Finding
+- FR-009: the enabled media overlay retains an initial world-scale fetched bound, so later local pan/zoom/search viewports do not trigger viewport-specific media requests.
+- This contradicts the requirement to load media for the current viewport rather than the whole world at once and would expose the full-library path on large datasets.
+
+Result: FAIL.
+

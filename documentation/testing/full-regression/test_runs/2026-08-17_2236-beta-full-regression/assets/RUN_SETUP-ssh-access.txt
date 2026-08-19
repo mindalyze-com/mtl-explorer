@@ -1,0 +1,13 @@
+Command: SSH read-only prerequisite check against root@62.238.106.141
+Result: SSH accepted the supplied password but rejected the command because the
+root password is expired and must be changed in an interactive session.
+
+Observed output:
+You are required to change your password immediately (administrator enforced).
+WARNING: Your password has expired.
+Password change required but no TTY available.
+
+No server command ran and no server state was changed.
+
+Recheck on the third consecutive goal turn returned the same forced
+password-change response. The blocker is still active.

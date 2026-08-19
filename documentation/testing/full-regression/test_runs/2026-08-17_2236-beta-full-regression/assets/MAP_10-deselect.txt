@@ -1,0 +1,20 @@
+MAP_10 close/deselect evidence
+
+Starting state:
+- Track 100017 details open after choosing Segment B from the six-track overlap list.
+
+Action:
+- Used the visible Track Details Close button.
+- Accepted the subsequent in-app freshness Reload so the base map could settle.
+
+Settled state:
+- URL: /mtl/
+- Track Details visible: false
+- Overlap selection list visible: false
+- New data available banner: absent
+- Main map track control: 15 Tracks
+- Main canvases: 2, each 1204 x 720 CSS pixels
+- Visible progress indicators: 0
+- Browser console errors captured for tab: 0
+
+Result: closing the chosen selection cleared both details and selection list and returned to the normal settled map route.

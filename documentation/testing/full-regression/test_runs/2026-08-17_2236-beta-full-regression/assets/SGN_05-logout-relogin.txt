@@ -1,0 +1,4 @@
+Started signed in on the populated map.
+Admin > Session > Sign out ended at `/mtl/login` with the Sign In control.
+Submitted the documented valid login again; credentials are not stored here.
+Final URL: `/mtl/`; map region and `14 Tracks` loaded.

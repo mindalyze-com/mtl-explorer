@@ -1,0 +1,4 @@
+2026-08-18 fixed-build retest
+Desktop 1280x720 and mobile 390x844: Activities by keyword with Keyword=MTL/Synthetic auto-applied.
+Filter and map identities included the parameter, for example Activities by keyword · Synthetic, with the matching count.
+Automated: activeFilterIdentity/filterOverview/mapLegend tests passed.

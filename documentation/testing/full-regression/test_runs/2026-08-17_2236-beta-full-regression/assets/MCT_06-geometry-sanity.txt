@@ -1,0 +1,25 @@
+MCT_06 Segment Compare geometry sanity
+
+Visible Compare state:
+- Selected segment: A-B
+- Selected tracks: 5
+- Comparison mini-map: rendered Map region
+- Comparison mini-map scale: 100 m
+
+Live canonical geometry feeding the selected tracks:
+- 100011 sample.geojson: 4 points; lng 7.4469752432..7.4487615013; lat 46.9476504875..46.9490262560; max coordinate step 0.000633623 degrees.
+- 100009 sample.kmz: 4 points; same local bounds; max step 0.000633623 degrees.
+- 100007 sample.kml: 4 points; same local bounds; max step 0.000633623 degrees.
+- 100008 sample.igc: 4 points; lng 7.4468000014..7.4489999979; lat 46.9475000012..46.9491999984; max step 0.000800008 degrees.
+- 100016 mtl-regression-media-track.gpx: 6 points; lng 7.4471000011..7.4486999991; lat 46.9478000014..46.9490999991; max step 0.000350003 degrees.
+
+Combined bounds:
+- longitude 7.4468000014..7.4489999979
+- latitude 46.9475000012..46.9491999984
+
+Assertions:
+- All points are within the local Bern corridor: true.
+- All longitude/latitude values are nonzero: true.
+- No South-Africa-like/off-continent latitude: true.
+- No global-scale jump: true; the rendered comparison map retained a 100 m scale for the local combined bounds.
+

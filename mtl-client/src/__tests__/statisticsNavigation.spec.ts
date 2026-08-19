@@ -13,7 +13,7 @@ const PassthroughStub = defineComponent({
 
 const StatisticsOverviewStub = defineComponent({
   name: 'StatisticsOverview',
-  emits: ['track-updated', 'view-highlight-exclusions'],
+  emits: ['open-media', 'track-updated', 'view-highlight-exclusions'],
   template: '<div data-test="statistics-overview" />',
 });
 
@@ -43,9 +43,9 @@ const tracks: GpsTrack[] = [
   { id: 12, trackName: 'Morning ride' },
 ];
 
-function mountStatistics() {
+function mountStatistics(initialTracks = tracks) {
   const wrapper = shallowMount(Statistics, {
-    props: { tracks },
+    props: { tracks: initialTracks },
     global: {
       stubs: {
         BottomSheet: PassthroughStub,
@@ -117,5 +117,32 @@ describe('Statistics navigation state', () => {
         highlightExclusionReason: 'GPS_NOISE',
       }),
     ]);
+  });
+
+  it('does not restore a curated track after filters remove it', async () => {
+    const wrapper = mountStatistics();
+    await nextTick();
+
+    wrapper
+      .findComponent(StatisticsOverviewStub)
+      .vm.$emit('track-updated', { id: 11, trackName: 'Activity.fit', highlightExclusionReason: 'GPS_NOISE' });
+    await nextTick();
+    expect(wrapper.findComponent(TrackBrowserViewStub).props('tracks')).toHaveLength(2);
+
+    await wrapper.setProps({ tracks: [tracks[1]] });
+
+    expect(wrapper.findComponent(TrackBrowserViewStub).props('tracks')).toEqual([tracks[1]]);
+  });
+
+  it('opens the Media trend from the overview tile', async () => {
+    const wrapper = mountStatistics();
+    await nextTick();
+
+    wrapper.findComponent(StatisticsOverviewStub).vm.$emit('open-media');
+    await nextTick();
+
+    expect((wrapper.vm as unknown as { getNavigationState: () => { tab: string } }).getNavigationState().tab).toBe(
+      'stats'
+    );
   });
 });

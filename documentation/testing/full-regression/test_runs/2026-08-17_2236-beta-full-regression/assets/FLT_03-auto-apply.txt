@@ -1,0 +1,28 @@
+FLT_03 filter selection, parameter auto-apply, clear, and synchronized views
+
+Selected view
+- Changed Filter view from Tracks by year to Activities by keyword.
+- The Keyword textbox appeared under Filter criteria > View options.
+- Changes apply automatically was shown; there was no separate pending Apply action in the criteria sheet.
+
+Keyword = Synthetic
+- Input value: Synthetic.
+- Current result: 2 matching tracks.
+- Toolbar: 2 / 15 Tracks.
+- Legend: CYCLING and ON_FOOT, matching Segment A (Bicycle) and Segment B (Running).
+- Statistics Overview: 2 Tracks, 451.89 m, Bicycle and Running.
+- No new console errors.
+- Criteria summary: 1 criterion active.
+
+Active-chip check
+- No rendered chip showed Keyword: Synthetic or otherwise identified the active parameter.
+- This repeats FR-005; the configuration summary and filtered count work, but the frozen requirement explicitly includes active chips.
+
+Clear parameter
+- Removed all characters from Keyword.
+- Current result returned to 15 matching tracks without a page reload.
+- Toolbar returned to 15 / 15 Tracks.
+- Statistics Overview returned to 15 Tracks and 1,048 km.
+- Legend remained coherent for the view's main activity groups.
+
+No stale pending state or console error was observed.

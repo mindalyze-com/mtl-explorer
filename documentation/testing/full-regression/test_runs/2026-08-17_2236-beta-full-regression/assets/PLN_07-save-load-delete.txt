@@ -1,0 +1,13 @@
+PLN_07 saved-plan lifecycle evidence
+
+- Saved name: Beta regression plan 2026-08-18.
+- Description: Resumable full-regression planner packet.
+- Save dialog showed 710.00 m, 0 m ascent/descent, 2/150 waypoints.
+- Load list showed the exact name, 710.00 m, description, date 18 Aug 2026,
+  GPX export, and delete controls.
+- Opening the list item restored Drawing with 710.00 m / one leg / five
+  elevation points and notice "Loaded plan shown as saved."
+- Delete confirmation repeated the correct name, distance, and date.
+- Confirming deletion left "No saved routes yet. Draw a route and save it."
+
+Result: PASS.

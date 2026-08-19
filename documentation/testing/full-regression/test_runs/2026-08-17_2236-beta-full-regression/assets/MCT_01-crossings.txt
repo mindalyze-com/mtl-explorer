@@ -1,0 +1,15 @@
+MCT_01 segment crossing evidence
+
+- Centered the map on the Bern synthetic/public track cluster.
+- Started Segment Analyzer and placed zones A and B.
+- Expanded detection radius to 14.0 km for the controlled mixed-format set.
+- Analyze reported 6 crossing tracks; 5 were preselected for comparison.
+- Table exposed Name, Start, Duration, and A-B speed, with metric switches for
+  speed, time, and distance.
+- Representative rows:
+  - mtl-segment-b.gpx: 2m15s, 7.14 km/h
+  - sample.igc: 3m00s, 5.30 km/h
+  - mtl-regression-media-track.gpx: 5m00s, 2.28 km/h
+- Every row exposed comparison selection and stop-state information.
+
+Result: PASS.

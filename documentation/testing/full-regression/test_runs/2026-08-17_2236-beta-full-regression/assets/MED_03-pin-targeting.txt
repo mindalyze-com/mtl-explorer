@@ -1,0 +1,14 @@
+MED_03 pin-targeting constraint
+
+- Media layer was enabled and the live Bern bounds endpoint returned six points.
+- Centered exactly on Bern, cleared the search marker, and tried the clustered centroid at 100 m scale.
+- Zoomed five levels to 10 m to separate the six known media coordinates and tried projected individual locations.
+- With tracks present, clicks at the known area consistently opened the six-track chooser.
+- Hid the GPS track layer and repeated targeting.
+- Applied an exact 0-of-3 category filter so no tracks rendered, then repeated individual marker-coordinate clicks.
+- No media chooser/viewer became accessible through the canvas.
+- The browser screenshot capability is unavailable under ACC_04, so the rendered WebGL marker pixels cannot be visually located and confirmed for precise CUA targeting.
+- Restored all categories and the GPS track layer after the attempts.
+
+Result: BLOCKED. The pin-click entry point could not be targeted reliably; next/previous cannot be credited in this packet. Viewer navigation is exercised later through activity/statistics entry points.
+

@@ -1,0 +1,22 @@
+Phase: delete one GPX and one media file
+Deleted paths: add-delete-gpx.gpx; add-delete-media.jpg
+Mutation: 2026-08-19T06:35:02.147749Z
+Server completion: 2026-08-19T06:35:13.898450Z
+Elapsed to domain removal and REMOVED index state: 11.751 s
+
+Server evidence:
+- Deleted gpsTrack and track data for add-delete-gpx.gpx.
+- Deleted 1 media row for add-delete-media.jpg.
+
+Database evidence:
+- Both indexed_file rows: REMOVED, invocation 2
+- Active gps_track rows: 4
+- Active media_file rows: 4
+- Indexer Delete Restore absent from gps_track.
+- add-delete-media.jpg absent from media_file.
+
+GUI evidence:
+- Browser automatically showed New data available; no rescan was used.
+- In-app Reload changed the map counter from 5 to 4.
+- Statistics Overview showed 4 Tracks and 4 Media.
+- Recent Activity no longer showed Indexer Delete Restore.

@@ -1,0 +1,15 @@
+Browser console audit
+
+Non-blocking entries before or just after sign-in at 2026-08-19T06:31:24Z:
+- Initial unauthenticated map-config, indexer/job status, data freshness, filter,
+  and analytics requests logged warnings/errors while the login screen was active.
+
+Non-blocking entries while opening map settings:
+- 2026-08-19T06:32:10.612Z ResizeObserver loop completed with undelivered notifications.
+- 2026-08-19T06:32:18.812Z ResizeObserver loop completed with undelivered notifications.
+
+No browser console error was recorded during the add, delete, same-path restore,
+or active-path atomic replacement phases.
+
+Assessment: informational for this focused run. These entries did not prevent
+indexing, freshness detection, in-app Reload, map rendering, or GUI count updates.

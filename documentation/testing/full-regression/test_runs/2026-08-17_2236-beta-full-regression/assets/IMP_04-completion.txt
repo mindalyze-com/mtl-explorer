@@ -1,0 +1,20 @@
+Admin Processing after settling:
+- GPS: done; 5 completed; 1 excluded directory; 6 total; no failure shown
+- Duplicate Finder: done; 5/5
+- Activity Classifier: done; 5/5
+- Exploration Score: done; 5/5
+- Photo Position Correlation: done; 0/0
+
+Admin Data status before applying reload:
+- Out of sync: server has changes not applied by client
+- Latest change: 17/08/2026 22:57:36 Europe/Zurich
+- Server token:
+  4h25wF__|server_id:5CE2j7uEhS6YBXPnnguHpo|config:9|filters:88|index:16|media:0|track_geometry:30|tracks:30
+- Client token:
+  6QUBUY__|server_id:5CE2j7uEhS6YBXPnnguHpo|config:9|filters:88|index:15|media:0|track_geometry:24|tracks:10
+- Server revision sum: 173
+- Outdated domains: index client r15/server r16; tracks client r10/server r30;
+  geometry client r24/server r30
+
+Baseline token had index/tracks/geometry/media r0 and revision sum 97, so the
+freshness token changed directly after the five-file import.

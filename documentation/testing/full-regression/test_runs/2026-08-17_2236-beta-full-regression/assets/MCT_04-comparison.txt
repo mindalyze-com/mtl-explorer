@@ -1,0 +1,12 @@
+MCT_04 segment comparison evidence
+
+- Starting result: six A-B crossing tracks; five selected for Compare.
+- Selected tracks: sample.geojson, sample.kmz, sample.kml, sample.igc, and mtl-regression-media-track.gpx.
+- Compare opened on segment A-B with Distance and Time x-axis controls.
+- Comparison map rendered as an accessible Map region with a 100 m scale.
+- Speed chart rendered five named lines. Missing samples were exposed as "No value" rather than breaking the chart.
+- Altitude chart rendered five named lines, including valid elevations for IGC/KML/KMZ/media data and zero/missing values for the GeoJSON fixture.
+- Segment cards remained aligned with the compared slice: 183.11 m (KML/KMZ/GeoJSON), 197.66 m (IGC), and 189.62 m (media GPX).
+- Segment durations included three zero-duration format fixtures, 00:02:14 for IGC, and 00:05:00 for the media GPX.
+- No page error, empty comparison, or missing-data crash appeared.
+

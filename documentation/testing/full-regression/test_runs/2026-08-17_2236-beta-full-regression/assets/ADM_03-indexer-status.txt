@@ -1,0 +1,47 @@
+ADM_03 indexer status and refresh evidence
+
+Browser: signed-in desktop, Admin > Processing.
+
+Initial cached view, Updated 04:23:21
+- MEDIA: done, 66%, 4 completed, 2 removed, 6 total.
+- GPS: done, 64%, 18 completed, 4 removed, 6 excluded, 28 total.
+- No failed item existed in this baseline.
+
+Valid upload transition
+- ADM_02 valid upload caused the Admin Processing navigation badge to show
+  Live while processing was active.
+- First explicit Refresh at 04:23:27 changed GPS from 18/28/64% to
+  19 completed / 29 total / 65%.
+- Duplicate Finder and Activity Classifier changed to 19 done / 19 total.
+- Exploration Score showed running, 94%, 18 done, 1 pending, 19 total.
+- Photo Position Correlation showed running, 80%, 4 done, 1 pending, 5 total.
+
+Failure fixture
+- `ADM_03-broken.gpx` is intentionally truncated synthetic XML, 238 bytes.
+- The normal Admin uploader accepted its `.gpx` extension and wrote it to
+  `GPX-UPLOAD`; the indexer then produced indexed_file 300035, FAILED,
+  invocation 1, `GPS import finished with status FAILED`.
+- Refresh at 04:24:33 changed GPS to done, 63%, 19 completed, 1 failed,
+  4 removed, 6 excluded, 30 total.
+- The counts reconcile exactly: 19 + 1 + 4 + 6 = 30.
+
+Refresh-over-time behavior
+- Updated timestamp advanced on every explicit Refresh.
+- A live job snapshot showed Duplicate Finder running at 95%, 19 done,
+  1 pending, 20 total.
+- Later refresh at 04:25:00 showed Duplicate Finder done at 100%,
+  20 done / 20 total.
+- MEDIA remained stable and reconciled exactly: 4 completed + 2 removed = 6.
+- GPS indexer was already terminal between manual refreshes for both tiny files;
+  the Processing Live badge preserved active-state visibility, and no stale
+  pending count remained after terminal refresh.
+
+Additional controlled source
+- `ADM_03-malformed.gpx` contained one invalid-coordinate point but was
+  well-formed XML. The importer skipped that point, created one-point track
+  100024, and correctly reported indexed_file 300034 as completed. This source
+  is disposable and will be removed after the rescan checks.
+
+Result: PASS. MEDIA/GPS completion, failure, removal, exclusion, total, and
+percentage counters were exact; active/pending work was visibly distinguished;
+manual Refresh advanced timestamps and transitioned jobs toward terminal state.

@@ -1,0 +1,29 @@
+FLT_16 temporary legend hiding versus global category selection
+
+Starting global result selection
+- View: Tracks by year.
+- Selected categories: 2013 and 2021.
+- Map/toolbar: 2 / 15 Tracks.
+- Statistics Overview: 2 tracks, 29.5 km.
+
+Temporary legend hide
+- Selected Hide 2013 on map.
+- Control changed to Show 2013 on map.
+- 2021 remained Hide / pressed.
+- Map-visible toolbar changed immediately from 2 / 15 to 1 / 15.
+
+Statistics independence
+- Opened Statistics Overview while 2013 was map-hidden.
+- Statistics remained 2 tracks and 29.5 km.
+- Therefore legend visibility changed map visibility only, not the global result set.
+
+Global Result categories change
+- Opened Filter Included categories.
+- Changed exact global selection from 2013+2021 to 2013 only.
+- Applied configuration became 1 of 4 categories and 1 matching track.
+- Map reload/reset restored the previously hidden 2013 category:
+  - Control was Hide 2013 on map / aria-pressed=true.
+  - Show 2013 on map was absent.
+  - Toolbar was 1 / 15 Tracks rather than 0 / 15.
+
+Changing the global category selection reset the temporary legend hiding as required.

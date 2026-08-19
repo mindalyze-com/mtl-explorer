@@ -195,7 +195,10 @@ const matchingTrackSummary = computed((): string => {
 const categorySelectionSummary = computed((): string => {
   const total = availableRows.value.length;
   if (allCategories.value) return `All ${total} selected`;
-  return `${selectedAvailableCount.value} of ${total} selected`;
+  const currentSummary = `${selectedAvailableCount.value} of ${total} current selected`;
+  const unavailableCount = missingRows.value.length;
+  if (unavailableCount === 0) return currentSummary;
+  return `${currentSummary} · ${unavailableCount} unavailable`;
 });
 const masterIndeterminate = computed((): boolean => !allCategories.value && selectedAvailableCount.value > 0);
 const numericRows = computed(() => availableRows.value.filter((row): row is NumericGroupRow => row.group != null));

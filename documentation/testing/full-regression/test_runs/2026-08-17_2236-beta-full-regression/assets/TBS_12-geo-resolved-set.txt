@@ -1,0 +1,25 @@
+TBS_12 geo-filtered statistics set evidence
+
+Active filter
+- User-drawn rectangle around the Lannion track.
+- Map count: 1 / 13 Tracks.
+- Filter result: 1 matching track.
+
+Before page reload
+- Overview: Showing 1 of 13 tracks; 25.9 km; 1h 13m; 198 Wh; 341 m.
+- Trends (Monthly): 1 period; 1 track; 25.9 km; 1h 13m; 198 Wh.
+- Tracks > All: 2 tracks; 544 km; 8h 03m.
+- Tracks rows: Lannion_Plestin_parcours and Moselradweg aus Wiki on GPSies.com.
+- The Mosel row retained a stale "Highlights: GPS noise" badge from the prior
+  temporary curation workflow even though its highlight inclusion had been
+  restored and it was outside the active rectangle.
+
+After page reload and complete data load
+- Map count: 1 / 13 Tracks.
+- Overview: Showing 1 of 13 tracks; Lannion only.
+- Tracks > All: 1 track; 25.9 km; 1h 13m; Lannion only.
+- The stale Mosel row and curation badge were absent.
+
+Result
+- FAIL. Map, Overview, and Trends resolved the active filter correctly, but
+  Tracks did not use the same set before reload. Reload repaired the mismatch.

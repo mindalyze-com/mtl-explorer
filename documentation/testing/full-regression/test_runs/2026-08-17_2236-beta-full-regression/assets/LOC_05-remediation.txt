@@ -1,0 +1,4 @@
+2026-08-18 fixed-build retest
+Desktop 1280x720: switching Preferences to Imperial (US) changed the live main-map scale to 30 mi and preview to 15.5 mi · 1,640 ft · 176 lb.
+Mobile 390x844 reload retained Imperial and showed a 100 mi main-map scale.
+Shared scale-control tests cover metric/imperial mapping; 3D and mini-map controls use the same live unit update.

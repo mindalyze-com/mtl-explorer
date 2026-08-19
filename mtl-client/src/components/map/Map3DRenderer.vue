@@ -53,7 +53,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, inject, markRaw, nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
+import { computed, inject, markRaw, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { storeToRefs } from 'pinia';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
@@ -115,6 +115,8 @@ import { unwrapLngLatCoordinates } from '@/components/map/mapGeometry';
 import { configureExternalAttributionLinks } from '@/utils/externalAttributionLinks';
 import type { BottomSheetLayoutState } from '@/components/ui/BottomSheet.vue';
 import type { ToastService } from '@/types/ui';
+import { useMeasurementSystem } from '@/composables/useMeasurementSystem';
+import { mapScaleUnitForMeasurementSystem, syncMapScaleControlUnit } from '@/components/map/mapScaleControl';
 
 type InteractionHandlers = {
   canvas: HTMLCanvasElement;
@@ -163,6 +165,7 @@ const emit = defineEmits<{
 const toast = inject<ToastService>('toast', { add: () => undefined });
 const mapStateStore = useMapStateStore();
 const mapSettingsStore = useMapSettingsStore();
+const { measurementSystem } = useMeasurementSystem();
 const { replay, replaySource, selectedTrackId } = storeToRefs(mapStateStore);
 const mapContainer = ref<HTMLElement | null>(null);
 const startupMessage = ref('Preparing 3D replay');
@@ -192,6 +195,7 @@ const telemetryElevationGainCurrentLabel = computed(() => formatOptionalElevatio
 const telemetryElevationMaxLabel = computed(() => formatOptionalElevation(replayTelemetry.value?.maxElevationMeters));
 
 let map: maplibregl.Map | null = null;
+let scaleControl: maplibregl.ScaleControl | null = null;
 let replayLayer: TrackReplayLayer | null = null;
 let replayPath: ReplayPath | null = null;
 let replayCameraRail: ReturnType<typeof ReplayCameraRailPlanner.build> | null = null;
@@ -230,6 +234,8 @@ onMounted(() => {
 onBeforeUnmount(() => {
   cleanup3DResources();
 });
+
+watch(measurementSystem, (system) => syncMapScaleControlUnit(scaleControl, system));
 
 async function initialize3DReplay() {
   const generation = ++loadGeneration;
@@ -406,7 +412,13 @@ async function createMap(mapConfig: MapConfig, path: ReplayPath) {
     })
   );
   map.addControl(new maplibregl.NavigationControl(MAP_NAVIGATION_CONTROL_OPTIONS), 'top-left');
-  map.addControl(new maplibregl.ScaleControl({ maxWidth: 100 }), 'bottom-left');
+  scaleControl = markRaw(
+    new maplibregl.ScaleControl({
+      maxWidth: 100,
+      unit: mapScaleUnitForMeasurementSystem(measurementSystem.value),
+    })
+  );
+  map.addControl(scaleControl, 'bottom-left');
   map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-right');
   attributionLinkCleanup?.();
   attributionLinkCleanup = configureExternalAttributionLinks(
@@ -861,6 +873,7 @@ function cleanup3DResources() {
     map.remove();
     map = null;
   }
+  scaleControl = null;
 }
 
 function formatOptionalElevation(value: number | null | undefined): string {

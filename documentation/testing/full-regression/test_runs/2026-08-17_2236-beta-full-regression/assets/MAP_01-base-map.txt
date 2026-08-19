@@ -1,0 +1,18 @@
+MAP_01 base map evidence
+
+Route: /mtl/
+Settled state:
+- Loading text absent
+- ARIA Map regions: 2
+- Rendering canvases: 2
+- Each canvas CSS size: 1204 x 720
+- Each canvas backing size: 2408 x 1440
+- Zoom in/out controls present
+- Compass/reset-north control present
+- Globe and 3D terrain controls present
+- Search location control present
+- OpenStreetMap attribution link present
+- Track overlay control reports 14 Tracks
+- Browser console errors captured for tab: 0
+
+Result: base map and populated track overlay settled on first signed-in map open.

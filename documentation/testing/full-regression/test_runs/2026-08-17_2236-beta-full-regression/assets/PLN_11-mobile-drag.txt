@@ -1,0 +1,21 @@
+PLN_11 mobile placement/drag evidence
+
+- Opened a fresh map/Planner tab at 390 x 844.
+- Mobile Planner panel: 390 x 519; map remained exposed above it.
+- Zoomed until the under-300-km guard cleared.
+- Two pointer gestures placed waypoints and computed a 73.00 m Hiking route,
+  one leg, two elevation points.
+- Dragging the first waypoint changed route state/geometry and triggered a
+  fresh routing result (the moved location itself was unroutable).
+
+Constraint
+- The in-app browser CUA emits pointer/mouse gestures and does not expose a
+  touch-pointer injection API. A 390 x 844 viewport does not prove touch event
+  semantics.
+
+Cleanup
+- Cleared the mobile route, closed the tab, and reset the viewport override.
+
+Result
+- BLOCKED on true touch verification. Responsive placement and drag paths were
+  directly exercised.

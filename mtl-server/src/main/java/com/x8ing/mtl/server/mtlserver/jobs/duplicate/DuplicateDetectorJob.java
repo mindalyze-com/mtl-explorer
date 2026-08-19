@@ -3,6 +3,8 @@ package com.x8ing.mtl.server.mtlserver.jobs.duplicate;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.x8ing.mtl.server.mtlserver.db.entity.gps.GpsTrack;
 import com.x8ing.mtl.server.mtlserver.db.repository.gps.GpsTrackRepository;
+import com.x8ing.mtl.server.mtlserver.gpx.GPXDirectoryWatcherService;
+import com.x8ing.mtl.server.mtlserver.indexer.IndexerStatusService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -15,6 +17,7 @@ import java.util.List;
 @JsonPropertyOrder({
         "gpsTrackRepository",
         "duplicateDetectorAtomicWorker",
+        "indexerStatusService",
         "timeTolerance",
         "distanceTolerance"
 })
@@ -23,6 +26,7 @@ public class DuplicateDetectorJob {
     private final GpsTrackRepository gpsTrackRepository;
 
     private final DuplicateDetectorAtomicWorker duplicateDetectorAtomicWorker;
+    private final IndexerStatusService indexerStatusService;
 
     @Value("${mtl.duplicate.time-tolerance}")
     private Duration timeTolerance;
@@ -30,12 +34,19 @@ public class DuplicateDetectorJob {
     @Value("${mtl.duplicate.distance-tolerance}")
     private Double distanceTolerance;
 
-    public DuplicateDetectorJob(GpsTrackRepository gpsTrackRepository, DuplicateDetectorAtomicWorker duplicateDetectorAtomicWorker) {
+    public DuplicateDetectorJob(GpsTrackRepository gpsTrackRepository,
+                                DuplicateDetectorAtomicWorker duplicateDetectorAtomicWorker,
+                                IndexerStatusService indexerStatusService) {
         this.gpsTrackRepository = gpsTrackRepository;
         this.duplicateDetectorAtomicWorker = duplicateDetectorAtomicWorker;
+        this.indexerStatusService = indexerStatusService;
     }
 
     public void run() {
+        if (indexerStatusService.hasIndexPendingWork(GPXDirectoryWatcherService.INDEX_GPS)) {
+            log.debug("Duplicate detection is waiting for GPS indexing to settle");
+            return;
+        }
         long t0 = System.currentTimeMillis();
         log.debug("Start find duplicate job");
 

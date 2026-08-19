@@ -1,0 +1,11 @@
+PLN_02 waypoint/route evidence
+
+- Zoomed from a world span to a 10 km scale; the under-300-km warning cleared.
+- First map click enabled Undo and Clear route while statistics remained zero.
+- Second map click computed one Road Bike leg.
+- Result: 2.93 km, 5 m ascent, 0 m descent, 8m duration, 1 leg.
+- Save route became enabled.
+- Elevation chart rendered four data points over 0-2.93 km and 673.5-678.5 m,
+  corroborating computed route geometry.
+
+Result: PASS.

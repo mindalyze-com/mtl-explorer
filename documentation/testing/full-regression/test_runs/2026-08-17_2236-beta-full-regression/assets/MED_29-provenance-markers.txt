@@ -1,0 +1,33 @@
+MED_29 provenance marker evidence
+Captured: 2026-08-18 Europe/Zurich
+Activity: 100016
+
+Photo GPS
+- Mini-map accessible text: "mtl-regression-photo-a.jpg. Photo GPS".
+- Viewer Details location: "Photo GPS".
+- Mini-map and viewer used the same circular camera glyph with a blue ring.
+
+Estimated
+- Mini-map accessible text: "mtl-regression-estimated-a.jpg. Estimated from
+  photo time and activity track".
+- Viewer showed the route position and a brown-ring circular camera glyph.
+- Timeline and viewer location read "Estimated" / nearest track point.
+
+Set by you
+- Assigned media 400000 to 46.9484, 7.4479 through Photo tools.
+- Timeline changed to "Set by you".
+- Mini-map accessible text changed to "mtl-regression-estimated-a.jpg.
+  Location set by you".
+- Viewer Details location changed to "Set by you".
+- Mini-map and viewer retained the same circular camera glyph, with a purple
+  ring instead of the brown Estimated ring.
+
+Clear restoration
+- Cleared the assignment through the end-user editor.
+- Timeline returned to Estimated.
+- Mini-map accessible text returned to "Estimated from photo time and activity
+  track" and the ring returned from purple to brown.
+
+Blocked child
+- The frozen six-file fixture has no unresolved/unknown-position media item, so
+  the unknown color/accessibility state cannot be rendered in this run.

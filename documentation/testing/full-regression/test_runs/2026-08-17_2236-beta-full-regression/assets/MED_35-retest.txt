@@ -1,0 +1,4 @@
+2026-08-18 rejected finding after corrected-fixture retest
+Corrected server fixture produced 4 EXIF_GPS and 2 EXIF_DATE_TAKEN correlations on a 25-minute activity.
+Desktop 1280x720 and phone 390x760: Photo tools +0.25h showed Unsaved preview, 2 photos use the camera clock, 6 photos, four unchanged Photo GPS rows, two shifted Estimated rows, Reset, and enabled Save correction.
+The original zero-result/disabled-Save state came from the invalid 5-minute/all-camera-time fixture.

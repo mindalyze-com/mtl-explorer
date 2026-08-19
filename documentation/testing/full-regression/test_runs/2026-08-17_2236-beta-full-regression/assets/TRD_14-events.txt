@@ -1,0 +1,29 @@
+TRD_14 event list and selection state
+
+Track: 100004
+Tab: Events
+
+Detected event
+- Summary: 1 break
+- Longest: 12m 25s
+- Event: Break 1
+- Timestamp: 8 Mar 2013, 12:15 - 12:27
+- Badge: GPS gap
+- Position: 1.84 km - 1.86 km
+- Description: Low-displacement GPS recording gap, distance 14.5 m, implied speed 0.07 km/h.
+
+Selection
+- Initial event row aria-pressed=false.
+- Keyboard activation changed aria-pressed=true.
+- Class changed to include event-row--selected.
+- The mini-map event overlay button remained active.
+
+Deselect
+- Second keyboard activation changed aria-pressed back to false.
+- event-row--selected was removed.
+- No DOM MapLibre marker was left behind.
+
+Constraint
+- The event marker/highlight is rendered inside the MapLibre WebGL canvas rather than as a DOM marker.
+- The selected browser screenshot channel is unavailable under ACC_04, and WebGL canvas export returned only an empty data URL.
+- Therefore the exact on-map position and visual cleanup cannot be directly verified in this environment, although list selection and deselection states work.

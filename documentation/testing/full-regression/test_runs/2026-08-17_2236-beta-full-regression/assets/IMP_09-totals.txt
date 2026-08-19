@@ -1,0 +1,22 @@
+Pre-import -> post-import changes:
+- Tracks: 0 -> 5
+- Distance: 0.00 m -> 1,043 km
+- Duration: 0m 00s -> 23h 31m
+- Ascent: empty -> 12,936 m
+- Energy: empty -> 4,527 Wh
+- Activity breakdown: empty -> Bicycle, 5
+- Period data: empty -> dated day/week/month/weekday rankings
+- Longest track: Moselradweg aus Wiki on GPSies.com, 518 km
+- Longest duration: Jura Route 7 / 2011 on GPSies.com, 7h 46m
+- Biggest ascent: Jura Route 7 / 2011 on GPSies.com, 6,324 m
+- Track browser summary: 0 tracks/0.00 m/0m 00s -> 5 tracks/1,043 km/23h 31m
+
+Each opened detail showed non-zero descent where present (for example track
+100004 showed 335 m descent), but the Overview aggregate exposed ascent rather
+than an aggregate descent value.
+
+Blocked child requirement:
+The expected heatmap-density change is rendered only on the map canvas. The
+selected browser cannot capture screenshots and the heatmap canvas has no
+semantic density target, so density correctness cannot be directly verified
+without visual guessing. See ACC_04 and IMP_07.

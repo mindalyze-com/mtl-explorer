@@ -414,8 +414,11 @@ function close() {
   isOpen.value = false;
 }
 
-function onSheetClosed() {
+async function onSheetClosed() {
   isOpen.value = false;
+  if (route.name === 'admin') {
+    await router.replace({ name: 'home' }).catch(() => undefined);
+  }
   emit('tool-closed');
 }
 

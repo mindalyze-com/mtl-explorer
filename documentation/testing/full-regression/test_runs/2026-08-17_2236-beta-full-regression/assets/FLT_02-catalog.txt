@@ -1,0 +1,21 @@
+FLT_02 filter catalog browsing, grouping, and search
+
+Baseline catalog
+- Catalog reported 19 views.
+- Visible groups: Core, Activity, Date & Time, Performance, Quality.
+- Cards included view name, description, icon, and navigation affordance.
+
+Search: duplicate
+- Only the Quality group remained visible.
+- One visible view card remained: Duplicate tracks.
+- Its description remained readable: Tracks which have been identified to be duplicates.
+
+Search: distance
+- Performance group and Tracks by distance (gradient) were visible.
+
+Clear search
+- Cleared the input to an empty value.
+- All five groups returned.
+- All 19 view cards returned.
+
+Cancelled the selector so the persisted Tracks by year baseline remained unchanged.

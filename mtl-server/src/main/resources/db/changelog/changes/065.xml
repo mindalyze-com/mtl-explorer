@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.10.xsd">
+
+    <changeSet id="20260817_4_queue_changed_canonical_track_data" author="codex">
+        <comment>
+            Re-evaluate persisted photo correlations when the authoritative
+            RAW_OUTLIER_CLEANED track geometry is inserted, replaced or removed.
+        </comment>
+
+        <sql splitStatements="false"><![CDATA[
+CREATE OR REPLACE FUNCTION queue_media_correlation_for_track_data()
+RETURNS TRIGGER AS $$
+DECLARE
+    target_track_id BIGINT;
+    target_track_type VARCHAR;
+BEGIN
+    target_track_id := CASE WHEN TG_OP = 'DELETE' THEN OLD.gps_track_id ELSE NEW.gps_track_id END;
+    target_track_type := CASE WHEN TG_OP = 'DELETE' THEN OLD.track_type ELSE NEW.track_type END;
+
+    IF target_track_type = 'RAW_OUTLIER_CLEANED' THEN
+        INSERT INTO media_correlation_track_work(track_id, reason, requested_at)
+        VALUES (target_track_id, 'canonical_track_data_' || LOWER(TG_OP), CURRENT_TIMESTAMP)
+        ON CONFLICT (track_id) DO UPDATE SET
+            reason = EXCLUDED.reason,
+            requested_at = EXCLUDED.requested_at;
+    END IF;
+
+    IF TG_OP = 'DELETE' THEN RETURN OLD; END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER gps_track_data_correlation_work
+AFTER INSERT OR UPDATE OF gps_track_id, track_type, track OR DELETE ON gps_track_data
+FOR EACH ROW EXECUTE FUNCTION queue_media_correlation_for_track_data();
+        ]]></sql>
+
+        <rollback>
+            <sql splitStatements="false"><![CDATA[
+DROP TRIGGER IF EXISTS gps_track_data_correlation_work ON gps_track_data;
+DROP FUNCTION IF EXISTS queue_media_correlation_for_track_data();
+            ]]></sql>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

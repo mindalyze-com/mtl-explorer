@@ -1,0 +1,10 @@
+2026-08-18 remediation checks
+Frontend Vitest: PASS, 123 files / 657 tests.
+Frontend type check: PASS.
+Frontend lint: PASS, 0 errors; 7 unrelated existing warnings.
+Targeted server tests (FileIndexerImplTest, MediaIndexerTest, TrackMediaServiceTest): PASS, 20 tests.
+Synthetic photo generator unittest: PASS, 1 test.
+Root Maven install with tests skipped: BUILD SUCCESS.
+Full server test attempt: 423 tests, 0 failures, 4 context errors because local PostgreSQL was unavailable.
+Finalization gate: PASS, 228 terminal coverage IDs.
+Evidence audit: 0 broken local links; 0 WebP over 85,000 bytes; 0 text evidence over 5 KiB.

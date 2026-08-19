@@ -1,0 +1,26 @@
+MED_21 scale prerequisite audit
+
+Frozen-run live row counts after controlled cleanup:
+- gps_track: 17 stored rows (13 visible after duplicate/exclusion rules)
+- media_file: 6
+- media_track_correlation: 6
+- media_resolved_location: 6
+
+Required by MED_21:
+- at least 300 activity rows
+- at least 100,000 synthetic media rows
+
+The frozen initializer supplied the six-photo end-user fixture only. No packaged
+100,000-row/300-activity seed or isolated scale database is present. Creating
+94,000+ direct production-table rows during the end-user run would bypass the
+product ingestion path and materially pollute all remaining browser/statistics
+coverage, so it was not inferred as an allowed mutation.
+
+Read-only schema inspection confirms the intended indexes exist:
+- media_resolved_location_ix_location: GiST(location)
+- media_track_correlation_ix_track_timeline:
+  btree(track_id, adjusted_capture_time, media_id) WHERE selected
+- media_track_correlation_ix_selected_media: unique btree(media_id) WHERE selected
+
+Result: BLOCKED at the required scale fixture. No EXPLAIN ANALYZE timing on six
+rows is presented as 100,000-row evidence.

@@ -18,8 +18,11 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
 
+import java.nio.file.FileSystems;
 import java.nio.file.Path;
+import java.nio.file.PathMatcher;
 import java.nio.file.Paths;
+import java.util.List;
 
 @Service
 @Slf4j
@@ -27,6 +30,7 @@ import java.nio.file.Paths;
         "mediaWatchDirectory",
         "changeDetectionStrategy",
         "liveWatchEnabled",
+        "workerThreads",
         "fileIndexerImpl",
         "indexerRepository",
         "processingWorker",
@@ -40,11 +44,14 @@ public class MediaIndexerService {
     @Value("${mtl.media-watch-directory}")
     private String mediaWatchDirectory;
 
-    @Value("${mtl.indexer.change-detection-strategy:SIZE_ONLY}")
+    @Value("${mtl.indexer.change-detection-strategy:SIZE_AND_MTIME}")
     private String changeDetectionStrategy;
 
     @Value("${mtl.indexer.media.live-watch-enabled:false}")
     private boolean liveWatchEnabled;
+
+    @Value("${mtl.indexer.worker-threads:2}")
+    private int workerThreads;
 
     private volatile FileIndexerImpl fileIndexerImpl;
 
@@ -67,7 +74,7 @@ public class MediaIndexerService {
     public void findMedia() {
         log.info("Start media indexing");
 
-        FileIndexer fileIndexer = new FileIndexer(txManager);
+        FileIndexer fileIndexer = new FileIndexer(txManager, workerThreads);
         Path mediaWatchDirectoryPath = Paths.get(mediaWatchDirectory);
 
         FileIndexerObserver observer = new ProcessingFileIndexerObserver(
@@ -75,9 +82,20 @@ public class MediaIndexerService {
 
         FileIndexerImpl.ChangeDetectionStrategy strategy =
                 FileIndexerImpl.ChangeDetectionStrategy.valueOf(changeDetectionStrategy);
+        PathMatcher includeMediaFiles = FileSystems.getDefault()
+                .getPathMatcher("regex:" + SupportedMediaFormat.inclusionRegex());
 
         // Start indexing (non-blocking). This constructs a new FileIndexerImpl internally.
-        this.fileIndexerImpl = fileIndexer.findAndIndex(INDEX_MEDIA, mediaWatchDirectoryPath, indexerRepository, observer, false, IndexerPathMatchers.mediaExclusions(), null, strategy, liveWatchEnabled);
+        this.fileIndexerImpl = fileIndexer.findAndIndex(
+                INDEX_MEDIA,
+                mediaWatchDirectoryPath,
+                indexerRepository,
+                observer,
+                false,
+                IndexerPathMatchers.mediaExclusions(),
+                List.of(includeMediaFiles),
+                strategy,
+                liveWatchEnabled);
     }
 
     @Scheduled(fixedDelayString = "${mtl.indexer.media.rescan-interval:P7D}")

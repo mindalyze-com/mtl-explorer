@@ -75,6 +75,7 @@
           secondary-result-action-label="Revert"
           :show-review-action="reviewAvailable"
           :reset-undo-available="resetUndoAvailable"
+          :active-identity="activeFilterIdentity"
           :view-summary="currentViewName"
           :criteria-summary="criteriaSummary"
           :categories-summary="categoriesSummary"
@@ -158,7 +159,9 @@
       v-model="showDrillDown"
       :title="drillDownTitle"
       :loading="isDrillDownLoading"
+      :error="drillDownError"
       :entries="drillDownEntries"
+      @retry="refreshOpenDrillDown"
       @select-track="emit('select-track', $event)"
       @open-details="emit('open-details', $event)"
     />
@@ -301,6 +304,7 @@ const showDrillDown = ref(false);
 const drillDownGroup = ref<string | null>(null);
 const drillDownFullResult = ref<QueryResult | null>(null);
 const isDrillDownLoading = ref(false);
+const drillDownError = ref('');
 const trackIdCandidateTracks = shallowRef<GpsTrack[]>([]);
 const isTrackIdCandidatesLoading = ref(false);
 const showViewPicker = ref(false);
@@ -324,6 +328,7 @@ let trackIdCandidateDebounceTimer: ReturnType<typeof setTimeout> | null = null;
 let trackIdCandidateLoadSeq = 0;
 let lastTrackIdCandidateLoadKey = '';
 let resetUndoTimer: ReturnType<typeof setTimeout> | null = null;
+let drillDownRequestSeq = 0;
 
 function normalizeSelectableLegendSortStrategy(value: unknown): LegendSortStrategy | null {
   const strategy = normalizeLegendSortStrategy(value);
@@ -332,6 +337,7 @@ function normalizeSelectableLegendSortStrategy(value: unknown): LegendSortStrate
 
 const filterOptionGroups = computed((): FilterOptionGroup[] => buildFilterOptionGroups(filters.value));
 const filtersLoaded = computed((): boolean => filters.value.length > 0 && Boolean(selectedFilter.value?.filterInfo));
+const activeFilterIdentity = computed((): string => (filterEnabled.value ? filterStore.activeIdentity : ''));
 const currentViewName = computed(
   (): string => selectedFilter.value?.filterInfo?.filterConfig?.displayName?.trim() || 'Filter'
 );
@@ -351,8 +357,13 @@ const hasNoMatches = computed(
   (): boolean => previewResult.value != null && (previewResult.value.resultEntries?.length ?? 0) === 0
 );
 const availableCategoryCount = computed((): number => previewResult.value?.availableGroups?.length ?? 0);
+const selectedCategoryCount = computed(
+  (): number => selectedFilter.value?.filterParams?.resultGroupSelection?.includedGroups?.length ?? 0
+);
 const categoriesAvailable = computed(
-  (): boolean => previewResult.value?.groupingAvailable === true && availableCategoryCount.value > 0
+  (): boolean =>
+    previewResult.value?.groupingAvailable === true &&
+    (availableCategoryCount.value > 0 || selectedCategoryCount.value > 0)
 );
 const categoryStatusText = computed((): string => {
   if (categoriesAvailable.value) return '';
@@ -370,7 +381,9 @@ const categoriesSummary = computed((): string => {
   const selectedCount = availableGroups.filter(
     (summary) => summary.key && isResultGroupSelected(summary.key, selection)
   ).length;
-  return `${selectedCount} of ${availableGroups.length} categories`;
+  const unavailableCount = Math.max(0, selectedCategoryCount.value - selectedCount);
+  const currentSummary = `${selectedCount} of ${availableGroups.length} categories`;
+  return unavailableCount > 0 ? `${currentSummary} · ${unavailableCount} unavailable` : currentSummary;
 });
 const mapColorsAvailable = computed((): boolean => categoriesAvailable.value);
 const activeCriteriaCount = computed((): number => {
@@ -533,8 +546,8 @@ watch(
   () => filterStore.activeResult,
   (result) => {
     if (!filterEnabled.value) return;
-    drillDownFullResult.value = null;
     if (!result || !('queryResult' in result)) {
+      invalidateDrillDownResult();
       previewFilterResult.value = null;
       previewResult.value = null;
       return;
@@ -543,6 +556,11 @@ watch(
     previewResult.value = result.queryResult;
     previewError.value = null;
     rebuildPreviewPalette();
+    if (showDrillDown.value) {
+      void loadDrillDownFullResult({ preserveCurrent: true });
+    } else {
+      invalidateDrillDownResult();
+    }
   }
 );
 
@@ -550,7 +568,7 @@ watch(
   () => filterStore.dataFreshnessRevision,
   () => {
     if (!filterEnabled.value) {
-      drillDownFullResult.value = null;
+      invalidateDrillDownResult();
       void loadPausedPreview();
     }
   }
@@ -649,6 +667,7 @@ onBeforeUnmount(() => {
   if (previewDebounceTimer) clearTimeout(previewDebounceTimer);
   if (trackIdCandidateDebounceTimer) clearTimeout(trackIdCandidateDebounceTimer);
   if (resetUndoTimer) clearTimeout(resetUndoTimer);
+  drillDownRequestSeq += 1;
   document.removeEventListener('pointerdown', onDocumentPointerDown, true);
   document.removeEventListener('keydown', onDocumentKeyDown, true);
 });
@@ -753,7 +772,7 @@ function pauseFilter(): void {
 
 // ── Filter changes → schedule preview ──
 function onFilterInfoChanged() {
-  drillDownFullResult.value = null;
+  invalidateDrillDownResult();
   selectedFilter.value.legendSortStrategy = null;
   selectedFilter.value.filterParams = pruneFilterParamsForDefinitions(
     selectedFilter.value.filterParams,
@@ -815,7 +834,19 @@ function applyColoring(value: {
 }
 
 function persistCurrentFilterDraft(): void {
-  if (!filterEnabled.value) persistPausedDraft();
+  if (!filterEnabled.value) {
+    persistPausedDraft();
+    return;
+  }
+  filterStore.save(
+    ClientFilterConfig.of(
+      selectedFilter.value.filterInfo,
+      getProcessedParams(),
+      selectedFilter.value.palette,
+      selectedFilter.value.legendSortStrategy
+    ),
+    { trackSetChanged: false }
+  );
 }
 
 function persistPausedDraft(): void {
@@ -990,7 +1021,7 @@ async function executeLivePreview(requestSeq: number): Promise<ResolveFilterResu
     previewFilterResult.value = result;
     previewResult.value = result.queryResult;
     rebuildPreviewPalette();
-    drillDownFullResult.value = null;
+    invalidateDrillDownResult();
     applyResolvedPreview(result);
     return result;
   } catch (error: unknown) {
@@ -1066,24 +1097,46 @@ function rebuildPreviewPalette() {
 }
 
 // ── Drill-down ──
+function invalidateDrillDownResult(): void {
+  drillDownRequestSeq += 1;
+  drillDownFullResult.value = null;
+  isDrillDownLoading.value = false;
+  drillDownError.value = '';
+}
+
+async function loadDrillDownFullResult(options: { preserveCurrent?: boolean } = {}): Promise<void> {
+  const filterId = selectedFilter.value?.filterInfo?.filterConfig?.id;
+  if (filterId === undefined) return;
+
+  const preserveCurrent = options.preserveCurrent === true;
+  const requestSeq = ++drillDownRequestSeq;
+  if (!preserveCurrent) drillDownFullResult.value = null;
+  drillDownError.value = '';
+  isDrillDownLoading.value = true;
+  try {
+    const drillResult = await fetchResolveFilter(filterId, getProcessedParams(), true);
+    if (requestSeq !== drillDownRequestSeq) return;
+    drillDownFullResult.value = drillResult.queryResult;
+  } catch (error) {
+    if (requestSeq !== drillDownRequestSeq) return;
+    drillDownError.value = drillDownFullResult.value
+      ? 'Tracks could not be refreshed. Showing saved results.'
+      : 'Tracks could not be loaded.';
+    console.error('Drill-down fetch error:', error);
+  } finally {
+    if (requestSeq === drillDownRequestSeq) isDrillDownLoading.value = false;
+  }
+}
+
+function refreshOpenDrillDown(): void {
+  if (!showDrillDown.value) return;
+  void loadDrillDownFullResult({ preserveCurrent: true });
+}
+
 async function openGroupDrillDown(group: string | null) {
   drillDownGroup.value = group;
   showDrillDown.value = true;
-
-  // Fetch full details (with GPS tracks) if not already loaded
-  if (!drillDownFullResult.value) {
-    isDrillDownLoading.value = true;
-    try {
-      const filterId = selectedFilter.value?.filterInfo?.filterConfig?.id;
-      if (filterId === undefined) return;
-      const drillResult = await fetchResolveFilter(filterId, getProcessedParams(), true);
-      drillDownFullResult.value = drillResult.queryResult;
-    } catch (error) {
-      console.error('Drill-down fetch error:', error);
-    } finally {
-      isDrillDownLoading.value = false;
-    }
-  }
+  if (!drillDownFullResult.value) await loadDrillDownFullResult();
 }
 
 function openTrackReview(): void {
@@ -1101,6 +1154,7 @@ function restoreNavigationState(state: unknown): void {
   if (!state || typeof state !== 'object' || !('screen' in state) || state.screen !== 'review') return;
   drillDownGroup.value = 'reviewGroup' in state && typeof state.reviewGroup === 'string' ? state.reviewGroup : null;
   showDrillDown.value = true;
+  if (!drillDownFullResult.value) void loadDrillDownFullResult();
 }
 
 function defaultFilterConfig(): ClientFilterConfig | null {
@@ -1174,7 +1228,7 @@ function revertDraft(): void {
   invalidatePendingPreview();
   selectedFilter.value = cloneClientFilterConfig(lastSuccessfulConfig.value);
   previewError.value = null;
-  drillDownFullResult.value = null;
+  invalidateDrillDownResult();
 }
 
 function recoverFromNoMatches(): void {
@@ -1210,7 +1264,7 @@ function resetFilter(): void {
   previewResult.value = null;
   previewFilterResult.value = null;
   previewError.value = null;
-  drillDownFullResult.value = null;
+  invalidateDrillDownResult();
   filterStore.save(cfg);
   emit(EVENTS.filterChangedEvent);
   scheduleLivePreview();

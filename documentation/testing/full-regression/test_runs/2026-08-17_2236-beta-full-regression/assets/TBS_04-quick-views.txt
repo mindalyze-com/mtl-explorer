@@ -1,0 +1,23 @@
+TBS_04 quick-view evidence
+
+Subset results with clear search:
+- All: pressed; 15 tracks, 1,048 km, 1d 00h; 15 rows.
+- Excluded: pressed; 0 tracks, 0.00 m, 0m 00s; current-view empty state.
+- Stats excluded: pressed; 0 tracks, 0.00 m, 0m 00s; current-view empty state.
+- No activity: pressed; 0 tracks, 0.00 m, 0m 00s; current-view empty state.
+
+These empty subsets are correct for the restored run state: temporary
+statistics exclusion was reverted, all current tracks have activity types,
+and the resolved 15-track set contains no remaining highlight exclusions.
+
+Search/sort continuity:
+- In All, query Path returned 2 of 15 tracks, 409.32 m, 0m 00s.
+- Name sort was descending.
+- Switching through Excluded, Stats excluded, and No activity preserved query
+  Path and descending Name sort. Each empty subset showed
+  No tracks match “Path” with 0 of 0 totals.
+- Switching back to All preserved both query and sort and restored the two
+  Path rows with the same summary.
+- Clearing the query restored 15 rows and 15-track totals.
+
+Final state: All pressed, clear search, all 15 tracks.

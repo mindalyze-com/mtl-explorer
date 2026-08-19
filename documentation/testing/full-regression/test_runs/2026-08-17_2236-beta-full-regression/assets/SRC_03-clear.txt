@@ -1,0 +1,18 @@
+SRC_03 search-marker cleanup
+Observed 2026-08-18 04:49 Europe/Zurich
+
+Clear action branch
+- Started with semantic `Map marker` and `Clear search marker` controls.
+- Activated Clear search marker.
+- Both semantic marker and clear action disappeared within 350 ms.
+- Existing map data remained visible and interactive.
+
+Different-tool branch
+- Reopened Search, repeated Bern, and selected the result again.
+- Semantic Map marker returned.
+- Activated the Map tool.
+- Search UI closed and both Map marker/Clear search marker were absent; Map
+  settings opened normally.
+
+Result: PASS. Explicit clear and switching to another tool both remove the
+search marker cleanly without disturbing existing map data.

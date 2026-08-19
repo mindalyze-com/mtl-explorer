@@ -1,0 +1,22 @@
+ADM_10 Garmin export tools evidence
+
+Status before actions:
+- Advanced tools: 2/2 ready.
+- gcexport: Ready; configured version v4.6.2.
+- fit-export: Ready; configured profile default; packages garth fitparse gpxpy.
+
+gcexport Install with the current configured version:
+- Admin install: gcexport version=v4.6.2.
+- Existing venv_gcexport_v4.6.2 was present; install was skipped safely.
+- Active version was updated to v4.6.2 in the database.
+- UI reported Done and retained Advanced tools: 2/2 ready.
+
+fit-export Install with the current configured profile/packages:
+- Admin install: fit-export profile=default packages=[garth fitparse gpxpy].
+- Existing venv_fit_default was present; install was skipped safely.
+- Installed packages were reported as garth fitparse gpxpy.
+- Active profile/packages were updated in the database.
+- UI reported Done and retained Advanced tools: 2/2 ready.
+
+The real Garmin remote-export Run action was not triggered.
+Result: PASS

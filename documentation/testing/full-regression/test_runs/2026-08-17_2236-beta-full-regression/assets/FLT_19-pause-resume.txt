@@ -1,0 +1,37 @@
+FLT_19 pause/resume evidence
+
+Saved setup: Tracks by year, 2013 selected, no criteria.
+
+Desktop resumed:
+- Apply filter switches: 1
+- Switch: checked
+- Current result: 1 matching track
+- Map toolbar: 1 / 15 Tracks
+- Legend: 2013 (1)
+- Statistics: 1 track, 25.9 km
+
+Desktop paused:
+- Apply filter switches: 1
+- Switch: unchecked
+- Current result: Filter paused
+- Guidance: All tracks are shown. Your filter setup is kept.
+- Map toolbar: 15 Tracks
+- Year legend: absent
+- Statistics: 15 tracks, 1,048 km
+
+Desktop reload while paused retained the unchecked switch, Filter paused state,
+15-track map, and the saved Tracks by year / 1 of 4 setup. Resuming restored
+the checked switch, 1 / 15 Tracks, 2013 legend, and filtered statistics.
+
+Mobile 390x844:
+- Document width: 390; no horizontal overflow (scroll width 390)
+- Apply filter switches: 1
+- Initial resumed state: checked, 1 matching track, 1 / 15 Tracks, 2013 legend
+- Paused state: unchecked, Filter paused, 15 Tracks, no year legend
+- Resumed state: checked, 1 matching track, 1 / 15 Tracks, 2013 legend
+- Reload after resume: checked, 1 matching track, 1 / 15 Tracks, 2013 legend
+
+Cleanup:
+- Temporary mobile tab closed.
+- Viewport override reset to 1280x720.
+- Primary filter remains resumed with the saved 2013-only setup.

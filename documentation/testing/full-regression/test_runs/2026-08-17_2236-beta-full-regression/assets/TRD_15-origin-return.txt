@@ -1,0 +1,42 @@
+TRD_15 Track Details origin and history return
+
+Desktop viewport: 1280 x 720
+
+Statistics > Tracks
+- Opened Tracks and entered search text: MTL Synthetic.
+- List showed 2 of 15 tracks: Segment A and Segment B.
+- Opened Segment B at /mtl/track/100017.
+- Close returned to /mtl/stats with search text MTL Synthetic and both filtered rows preserved.
+- Reopened Segment B.
+- Browser Back returned to /mtl/stats with search text and 2-of-15 result preserved.
+- Browser Forward returned to /mtl/track/100017 with #100017.
+
+Filter > Review tracks
+- Opened Review tracks and entered search text: MTL Synthetic.
+- List showed 2 of 15 tracks: Segment A and Segment B.
+- Opened Segment B at /mtl/track/100017.
+- Close returned to /mtl/filter with search text MTL Synthetic and both rows preserved.
+- Reopened Segment B.
+- Browser Back returned to /mtl/filter with search text and 2-of-15 result preserved.
+- Browser Forward returned to /mtl/track/100017 with #100017.
+
+Narrow-mobile constraint
+- Loaded the documented browser viewport capability and set 390 x 844.
+- Existing tab remained window.innerWidth=1280 and window.innerHeight=720 after reload.
+- Repeated in a newly created browser tab; it also remained 1280 x 720.
+- The temporary override was reset and the retry tab closed.
+- A responsive narrow-mobile repeat cannot be obtained from the selected browser in this run.
+
+Fresh direct track-detail link
+- Created a new browser tab without an originating app sheet.
+- Navigated directly to /mtl/track/100017; #100017 loaded.
+- Activated header Close by pointer-compatible click.
+- Route remained /mtl/track/100017 and Track Details remained open.
+- Activated the same Close button by keyboard Enter.
+- Route and detail sheet again remained unchanged.
+- The temporary direct-link tab was closed.
+
+Result
+- Desktop origin-aware Close and browser Back/Forward behavior pass.
+- Narrow-mobile repeat is blocked by the viewport capability no-op.
+- Direct-link Close fails and is tracked as FR-004.

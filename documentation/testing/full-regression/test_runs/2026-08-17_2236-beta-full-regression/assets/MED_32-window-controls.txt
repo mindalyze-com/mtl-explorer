@@ -1,0 +1,24 @@
+MED_32 viewer window-control evidence
+Captured: 2026-08-18 Europe/Zurich
+Viewport: 1280 x 720
+
+Panel maximize
+- Started with Details hidden and Nearby collapsed.
+- Maximize panel filled the full MTL Explorer viewport and changed its action
+  to Restore panel size.
+- Details remained hidden and Nearby remained collapsed.
+- In maximized mode, Details opened, Nearby expanded, Next moved 1/6 to 2/6,
+  and wheel zoom reached scale(2.05443) with Reset zoom.
+- A second maximized cycle hid Details and collapsed Nearby. Restore panel size
+  returned to the normal viewer with both states still hidden/collapsed.
+
+Browser fullscreen blocker
+- The adjacent Enter fullscreen action was activated once through the semantic
+  browser control and once by direct trusted pointer input.
+- Both attempts cleared panel maximize as required but did not enter browser
+  fullscreen: document.fullscreenElement stayed null, no Exit fullscreen action
+  appeared, and document.fullscreenEnabled was unavailable in this in-app
+  browser context.
+- The still-open viewer retained Details/Nearby and photo 2/6 after each
+  attempt. Because the browser Fullscreen API is unavailable, changing states
+  inside true fullscreen and exiting by action/Escape cannot be exercised.

@@ -18,11 +18,13 @@ import java.io.IOException;
 import java.nio.channels.SeekableByteChannel;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.nio.file.attribute.FileTime;
 import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
 @Slf4j
@@ -36,6 +38,7 @@ import java.util.function.Consumer;
         "watchService",
         "watcherThread",
         "scheduler",
+        "scanExecutor",
         "runtime",
         "debounceTasks",
         "debounceSeq",
@@ -55,6 +58,9 @@ import java.util.function.Consumer;
 })
 public class FileIndexerImpl {
 
+    public static final int DEFAULT_WORKER_THREADS = 2;
+
+    private static final int MIN_WORKER_THREADS = 1;
     private static final int WALK_PROGRESS_LOG_INTERVAL = 1_000;
     private static final int COMPLETION_MAX_RETRIES = 3;
     private static final long COMPLETION_RETRY_BASE_DELAY_MS = 25L;
@@ -74,9 +80,10 @@ public class FileIndexerImpl {
     // per-path debounce task (silence-based)
     private final ScheduledExecutorService scheduler =
             Executors.newScheduledThreadPool(2, ThreadFactories.namedDaemon("idx-deb"));
-    private final ExecutorService workerPool =
-            Executors.newFixedThreadPool(Math.max(4, Runtime.getRuntime().availableProcessors()),
-                    ThreadFactories.namedDaemon("idx"));
+    private final ExecutorService scanExecutor =
+            Executors.newSingleThreadExecutor(ThreadFactories.namedDaemon("idx-scan"));
+    private final int workerThreads;
+    private final ExecutorService workerPool;
 
     // debounce state
     private final Map<Path, ScheduledFuture<?>> debounceTasks = new ConcurrentHashMap<>();
@@ -101,7 +108,7 @@ public class FileIndexerImpl {
 
     public enum RescanRequestStatus {STARTED, ALREADY_RUNNING, NOT_RUNNING}
 
-    private ChangeDetectionStrategy changeDetectionStrategy = ChangeDetectionStrategy.SIZE_ONLY;
+    private ChangeDetectionStrategy changeDetectionStrategy = ChangeDetectionStrategy.SIZE_AND_MTIME;
 
     // when false: initial scan + periodic rescans run, but no inotify WatchService is registered
     private boolean liveWatchEnabled = true;
@@ -118,10 +125,23 @@ public class FileIndexerImpl {
                            IndexerRepository repo,
                            FileIndexerObserver observer,
                            PlatformTransactionManager txManager) {
+        this(index, watchDirectory, repo, observer, txManager, DEFAULT_WORKER_THREADS);
+    }
+
+    public FileIndexerImpl(String index,
+                           Path watchDirectory,
+                           IndexerRepository repo,
+                           FileIndexerObserver observer,
+                           PlatformTransactionManager txManager,
+                           int workerThreads) {
         this.index = index;
         this.watchDirectory = watchDirectory.toAbsolutePath().normalize();
         this.repo = repo;
         this.observer = observer;
+        this.workerThreads = Math.max(MIN_WORKER_THREADS, workerThreads);
+        this.workerPool = Executors.newFixedThreadPool(
+                this.workerThreads,
+                ThreadFactories.namedDaemon("idx"));
 
         TransactionTemplate t = null;
         if (txManager != null) {
@@ -130,6 +150,7 @@ public class FileIndexerImpl {
             t = new TransactionTemplate(txManager, def);
         }
         this.txRequiresNew = t;
+        log.info("Configured {} worker thread(s) for index={}", this.workerThreads, index);
     }
 
     // ---------- public config
@@ -173,7 +194,7 @@ public class FileIndexerImpl {
             log.info("Rescan skipped — scan already in progress for index={}", index);
             return RescanRequestStatus.ALREADY_RUNNING;
         }
-        workerPool.submit(() -> {
+        scanExecutor.submit(() -> {
             try {
                 log.info("Rescan starting for index={}", index);
                 performInitialScanAndRecovery(false);
@@ -287,17 +308,22 @@ public class FileIndexerImpl {
         }
 
         scheduler.shutdown();
+        scanExecutor.shutdown();
         workerPool.shutdown();
 
         try {
             if (!scheduler.awaitTermination(10, TimeUnit.SECONDS)) {
                 scheduler.shutdownNow();
             }
+            if (!scanExecutor.awaitTermination(10, TimeUnit.SECONDS)) {
+                scanExecutor.shutdownNow();
+            }
             if (!workerPool.awaitTermination(30, TimeUnit.SECONDS)) {
                 workerPool.shutdownNow();
             }
         } catch (InterruptedException e) {
             scheduler.shutdownNow();
+            scanExecutor.shutdownNow();
             workerPool.shutdownNow();
             Thread.currentThread().interrupt();
         }
@@ -322,7 +348,7 @@ public class FileIndexerImpl {
     private record DirScanResult(List<FileToProcess> changed, List<IndexedFile> missing) {
     }
 
-    private enum EventType {CREATE, MODIFY, DELETE}
+    enum EventType {CREATE, MODIFY, DELETE}
 
     /**
      * Walk the watch directory and compare every file against the DB snapshot (size + mtime).
@@ -355,7 +381,7 @@ public class FileIndexerImpl {
                                 }
                             }
                             // If prior was REMOVED (found on disk → false removal) treat as MODIFY so
-                            // processCreateOrChange(changed=true) will delete stale data before re-importing.
+                            // processCreateOrChange(changed=true) will refresh stale data before re-importing.
                             EventType eventType = (prior == null) ? EventType.CREATE : EventType.MODIFY;
                             changed.add(new FileToProcess(np, a, eventType));
                             recordWalkProgress(examined, changed.size());
@@ -552,6 +578,10 @@ public class FileIndexerImpl {
 
     private void onFsEvent(Path path, EventType type) {
         Path k = normalize(path);
+        if (!isIncluded(k) || isExcluded(k)) {
+            log.debug("Live watcher ignored non-indexable path: {}", k.getFileName());
+            return;
+        }
 
         // Last-write-wins for event type; filesystem truth is checked at processing time
         pendingEventType.put(k, type);
@@ -566,15 +596,22 @@ public class FileIndexerImpl {
 
         long token = debounceSeq.merge(k, 1L, Long::sum);
 
+        AtomicReference<ScheduledFuture<?>> scheduledTask = new AtomicReference<>();
         Runnable trigger = () -> {
+            ScheduledFuture<?> ownTask = scheduledTask.get();
+            if (ownTask != null) {
+                debounceTasks.remove(k, ownTask);
+            }
+
             // stale-task guard: skip if a newer event already superseded this timer
             Long current = debounceSeq.get(k);
             if (current == null || current != token) return;
 
-            workerPool.submit(() -> processDebounced(k));
+            workerPool.submit(() -> processDebounced(k, token));
         };
 
         ScheduledFuture<?> fut = scheduler.schedule(trigger, DEBOUNCE_SILENCE.toMillis(), TimeUnit.MILLISECONDS);
+        scheduledTask.set(fut);
         debounceTasks.put(k, fut);
     }
 
@@ -584,7 +621,7 @@ public class FileIndexerImpl {
      * waitUntilStable). This prevents events from being silently dropped
      * when a file is modified while already being processed.
      */
-    private void processDebounced(Path k) {
+    private void processDebounced(Path k, long triggerToken) {
         if (!processingLocks.add(k)) {
             // Another worker is already processing this path.
             // That worker's loop will pick up our pending event before releasing the lock.
@@ -653,6 +690,9 @@ public class FileIndexerImpl {
             processingLocks.remove(k);
             // Check for events that arrived between our last remove() and lock release
             reschedulePendingEventIfNeeded(k);
+            if (!pendingEventType.containsKey(k)) {
+                debounceSeq.remove(k, triggerToken);
+            }
         }
     }
 
@@ -698,6 +738,15 @@ public class FileIndexerImpl {
         BasicFileAttributes a1 = Files.readAttributes(p, BasicFileAttributes.class, LinkOption.NOFOLLOW_LINKS);
         if (!a1.isRegularFile()) return a1;
 
+        // The per-path debounce already observed eight quiet seconds. Avoid making each
+        // settled file occupy a worker for two more seconds, but retain the probe loop for
+        // recent/future timestamps and files whose readable size does not match.
+        Duration observationWindow = PROBE_INTERVAL.multipliedBy(REQUIRED_STABLE_PROBES);
+        if (stableObservationWindowElapsed(a1.lastModifiedTime(), System.currentTimeMillis(), observationWindow)
+                && hasExpectedReadableSize(p, a1.size())) {
+            return a1;
+        }
+
         int attempts = 0;
         while (attempts <= STABILITY_RETRY_ATTEMPTS) {
             boolean stable = true;
@@ -737,6 +786,22 @@ public class FileIndexerImpl {
         throw new IllegalStateException("Failed stability check after " + STABILITY_RETRY_ATTEMPTS + " attempts for " + p.getFileName());
     }
 
+    static boolean stableObservationWindowElapsed(FileTime lastModifiedTime,
+                                                   long currentTimeMillis,
+                                                   Duration observationWindow) {
+        long lastModifiedMillis = lastModifiedTime.toMillis();
+        return lastModifiedMillis <= currentTimeMillis
+                && currentTimeMillis - lastModifiedMillis >= observationWindow.toMillis();
+    }
+
+    private static boolean hasExpectedReadableSize(Path path, long expectedSize) {
+        try (SeekableByteChannel channel = Files.newByteChannel(path, StandardOpenOption.READ)) {
+            return channel.size() == expectedSize;
+        } catch (IOException e) {
+            return false;
+        }
+    }
+
     // ---------- core processing (single place)
 
     private void processFileOnce(Path file, BasicFileAttributes attrs, EventType type,
@@ -760,7 +825,8 @@ public class FileIndexerImpl {
 
     private void reschedulePendingEventIfNeeded(Path k) {
         if (pendingEventType.containsKey(k)) {
-            workerPool.submit(() -> processDebounced(k));
+            long token = debounceSeq.getOrDefault(k, 0L);
+            workerPool.submit(() -> processDebounced(k, token));
         }
     }
 
@@ -777,6 +843,7 @@ public class FileIndexerImpl {
         Runnable scheduleWork = () -> {
             Optional<IndexedFile> opt = repo.findByIndexAndNameAndPath(index, fileName, relativePath);
             IndexedFile entity = opt.orElseGet(() -> createNewIndexedFile(file, fileName, relativePath));
+            EventType observerEventType = effectiveObserverEventType(type, opt.orElse(null));
 
             entity.setIndexUpdateDate(new Date());
             if (attrs != null) {
@@ -809,27 +876,52 @@ public class FileIndexerImpl {
                         fileName, isIncluded(file), isExcluded(file));
             } else {
                 entity.setIndexerStatus(IndexedFile.IndexerStatus.SCHEDULED);
-                entity.setLastMessage(type == EventType.CREATE ? "New file scheduled" : "Changed file scheduled");
+                entity.setLastMessage(observerEventType == EventType.CREATE ? "New file scheduled" : "Changed file scheduled");
             }
             repo.saveAndFlush(entity);
 
             boolean shouldNotify = (entity.getIndexerStatus() == IndexedFile.IndexerStatus.SCHEDULED ||
                                     entity.getIndexerStatus() == IndexedFile.IndexerStatus.REMOVED);
-            if (latchOrNull != null) {
-                latchOrNull.countDown();
-                if (pendingOrNull != null) pendingOrNull.decrementAndGet();
-            }
             if (shouldNotify && entity.getId() != null) {
                 // Schedule notification AFTER transaction commits
-                registerAfterCommit(() -> notifyObserver(entity, type));
+                registerAfterCommit(() -> notifyObserver(
+                        entity,
+                        observerEventType,
+                        latchOrNull,
+                        pendingOrNull));
+            } else {
+                completeInitialWork(latchOrNull, pendingOrNull);
             }
         };
 
         executeRequiresNew(scheduleWork);
     }
 
-    private void notifyObserver(IndexedFile entity, EventType type) {
-        if (observer == null || entity.getId() == null) return;
+    static EventType effectiveObserverEventType(EventType eventType, IndexedFile existingFile) {
+        if (eventType == EventType.CREATE && existingFile != null) {
+            // Atomic-save tools replace a path with a new inode. WatchService reports that as
+            // CREATE even though the indexed path already owns domain rows. Treat it as a
+            // change so the consumer removes any remaining rows before importing the replacement.
+            // This is also safe for a successfully removed file, where cleanup is a no-op.
+            return EventType.MODIFY;
+        }
+        return eventType;
+    }
+
+    private void notifyObserver(IndexedFile entity,
+                                EventType type,
+                                CountDownLatch latchOrNull,
+                                AtomicInteger pendingOrNull) {
+        AtomicBoolean completionRecorded = new AtomicBoolean(false);
+        Runnable recordCompletion = () -> {
+            if (completionRecorded.compareAndSet(false, true)) {
+                completeInitialWork(latchOrNull, pendingOrNull);
+            }
+        };
+        if (observer == null || entity.getId() == null) {
+            recordCompletion.run();
+            return;
+        }
         final long fileId = entity.getId();
 
         // Completion routes back into the indexer
@@ -850,6 +942,8 @@ public class FileIndexerImpl {
                     markSuccess(fid);
                 } catch (Exception e) {
                     log.error("Completion success failed for fileId={}: {}", fid, e.toString(), e);
+                } finally {
+                    recordCompletion.run();
                 }
             }
 
@@ -861,6 +955,8 @@ public class FileIndexerImpl {
                             : reason);
                 } catch (Exception e) {
                     log.error("Completion failed() failed for fileId={}: {}", fid, e.toString(), e);
+                } finally {
+                    recordCompletion.run();
                 }
             }
         };
@@ -898,10 +994,16 @@ public class FileIndexerImpl {
             missing.setIndexUpdateDate(new Date());
             repo.save(missing);
         });
-        notifyObserver(missing, EventType.DELETE);
-        if (latch != null) {
-            latch.countDown();
-            if (pending != null) pending.decrementAndGet();
+        notifyObserver(missing, EventType.DELETE, latch, pending);
+    }
+
+    private static void completeInitialWork(CountDownLatch latchOrNull, AtomicInteger pendingOrNull) {
+        if (latchOrNull == null) {
+            return;
+        }
+        latchOrNull.countDown();
+        if (pendingOrNull != null) {
+            pendingOrNull.decrementAndGet();
         }
     }
 

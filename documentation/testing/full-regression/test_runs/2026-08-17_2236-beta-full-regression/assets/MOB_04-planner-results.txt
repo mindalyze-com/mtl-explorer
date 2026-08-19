@@ -1,0 +1,9 @@
+MOB_04 Planner mobile interaction results at 390 x 844
+BRouter status: ready
+Map scale after enabling drawing: 20 km
+Pointer placement of two waypoints: route computed, 30.1 km, 8 m ascent, 80 m descent, 1h 21m, 1 leg
+Pointer drag of endpoint: route recomputed to 14.7 km, 8 m ascent, 39 m descent, 40m, 1 leg
+Pointer click on routed line: intermediate waypoint inserted, route recomputed to 30.5 km, 12 m ascent, 80 m descent, 1h 22m, 2 legs
+Clear route cleanup: 0.00 m, 0 m ascent/descent, no duration, 0 legs
+Native touch input/device emulation capability: unavailable
+Result: pointer-equivalent tap, drag, and insert branches passed; required native-touch branch blocked by the browser test channel

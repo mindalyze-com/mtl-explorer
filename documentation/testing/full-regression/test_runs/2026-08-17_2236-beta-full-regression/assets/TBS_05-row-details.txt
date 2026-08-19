@@ -1,0 +1,13 @@
+TBS_05 row-to-details evidence
+
+- Statistics -> Tracks -> All
+- Search: Track 100005
+- Result: one track row; 3.60 km; 59m 57s; Walking
+- Activated the data row (not the shape preview).
+- Route changed to /mtl/track/100005.
+- Track Details opened with ID #100005, Walking, source Activity.fit,
+  20/07/2021 23:11, mini map, Overview tab, 3.60 km, 59m 59s total
+  duration, and 59m 57s moving duration.
+- Close returned to Statistics -> Tracks.
+- The Track 100005 query and one-row summary were preserved on return.
+- Search was then cleared to restore all 15 tracks.

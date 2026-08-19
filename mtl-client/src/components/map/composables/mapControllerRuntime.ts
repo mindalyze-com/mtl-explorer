@@ -16,9 +16,11 @@ import type {
   GpsTrack,
   GpsTrackDataPoint,
   LocationSearchResultDto,
+  NearbyTrackMediaDto,
   ParamDefinition,
 } from 'x8ing-mtl-api-typescript-fetch/dist/esm/models/index';
 import type { ToastService } from '@/types/ui';
+import type { MediaOverlaySelection } from '@/layers/MediaOverlay';
 
 export type TrackId = number;
 export type Coordinates = [number, number];
@@ -106,6 +108,8 @@ export type TrackPopupMeta = {
   description: string;
   activityType: string;
   date: string;
+  distanceMeters?: number;
+  matchedMediaCount?: number;
 };
 
 export type SwissMobilityRoute = {
@@ -133,6 +137,9 @@ export type TrackDetailsDetent = {
   height: string;
 };
 
+export type TrackDetailsInitialTab = 'overview' | 'photos';
+export type TrackSelectionPurpose = 'details' | 'photos';
+
 export type MapToolNavigationTarget = {
   toolId: string;
   state?: unknown;
@@ -143,6 +150,8 @@ export type MediaPoint = Record<string, unknown> & {
   lat: number;
   lng: number;
 };
+
+export type MediaNavigationScope = 'photo' | 'location' | 'cluster' | 'viewport';
 
 export type GeoDrawingParamDef = ParamDefinition & {
   type?: string;
@@ -249,7 +258,20 @@ export type ToggleableOverlay = {
   hide: () => void;
   show: (data?: unknown) => Promise<void> | void;
   isVisible: () => boolean;
+  refresh?: () => Promise<void>;
   updateData?: (data: TrackFeatureCollection) => void;
+  prepareForFocus?: (point: MediaPoint) => void;
+  getClusterPage?: (
+    clusterId: number,
+    offset: number,
+    limit: number,
+    totalMediaCount: number
+  ) => Promise<{
+    clusterId: number;
+    offset: number;
+    totalMediaCount: number;
+    mediaPoints: MediaPoint[];
+  }>;
 };
 
 export type TerrainControl = maplibregl.IControl & {
@@ -306,12 +328,15 @@ export type MapControllerState = {
   selectedFeature: TrackFeature | null;
   trackSelectionSheetVisible: boolean;
   selectionPopupTrackIds: number[];
+  selectionPopupMediaOptions: NearbyTrackMediaDto[];
+  trackSelectionPurpose: TrackSelectionPurpose;
   swissMobilityPopup: SwissMobilityPopupState;
   proximityAbortController: AbortController | null;
   trackDetailsVisible: boolean;
   trackDetailsBackgroundDetent: TrackDetailsDetent;
   trackDetailsDetents: TrackDetailsDetent[];
   trackDetailsInitialDetent: string;
+  trackDetailsInitialTab: TrackDetailsInitialTab;
   trackDetailsSelectedDetent: string | number | undefined;
   trackDetailsId: number | null;
   trackDetailsInfo: TrackDetailsInfo;
@@ -354,10 +379,24 @@ export type MapControllerState = {
   mediaOverlay: ToggleableOverlay | null;
   mediaVisible: boolean;
   mediaBusy: boolean;
+  focusedMediaMarker: maplibregl.Marker | null;
+  mediaSelectionSheetVisible: boolean;
+  mediaPendingSelection: MediaOverlaySelection | null;
+  mediaSelectionTrackOptions: NearbyTrackMediaDto[];
+  mediaSelectionTracksLoading: boolean;
+  mediaSelectionAbortController: AbortController | null;
+  mediaSelectionRequestToken: number;
   mediaSheetVisible: boolean;
   mediaSheetMediaId: number | null;
   mediaLoadedPoints: MediaPoint[];
   mediaNavList: MediaPoint[];
+  mediaNavTotal: number;
+  mediaNavOffset: number;
+  mediaNavClusterId: number | null;
+  mediaNavPageSize: number;
+  mediaNavLoading: boolean;
+  mediaNavRequestToken: number;
+  mediaNavScope: MediaNavigationScope;
   heatmapOverlay: ToggleableOverlay | null;
   heatmapVisible: boolean;
   isOffline: boolean;
@@ -372,6 +411,7 @@ export type MapControllerState = {
   detailAbortController: AbortController | null;
   detailDebounceTimer: ReturnType<typeof setTimeout> | null;
   activeOverlays: string[];
+  _scaleControl: maplibregl.ScaleControl | null;
   _terrainControl: TerrainControl | null;
   _terrainTrackLayer: maplibregl.CustomLayerInterface | null;
   _syncingView: boolean;
@@ -395,6 +435,7 @@ export type MapControllerState = {
 
 export type MapControllerSetupBindings = {
   isIndexing: ComputedRef<boolean>;
+  activeFilterIdentity: ComputedRef<string>;
   serverFreshnessToken: Ref<string | null | undefined>;
   dataFreshnessLastChecked: Ref<unknown>;
   refreshDataFreshness: () => Promise<unknown> | unknown;
@@ -406,6 +447,7 @@ export type MapControllerSetupBindings = {
 
 export type MapControllerSetupValues = {
   isIndexing: boolean;
+  activeFilterIdentity: string;
   serverFreshnessToken: string | null | undefined;
   dataFreshnessLastChecked: unknown;
   refreshDataFreshness: () => Promise<unknown> | unknown;
@@ -429,8 +471,11 @@ export type MapControllerComputedValues = {
   mapThemesForPanel: MapTheme[];
   isMediaVisible: boolean;
   mediaCurrentIndex: number;
+  mediaCanGoPrev: boolean;
+  mediaCanGoNext: boolean;
   mediaPrevId: number | null;
   mediaNextId: number | null;
+  mediaNavigationIds: number[];
   showLocationSearchFab: boolean;
   locationSearchMapCenter: { lon: number; lat: number };
   trackBrowserTracks: GpsTrack[];
@@ -484,7 +529,7 @@ export type MapToolsMethods = {
   showTrackSelectionPopup(point: MapPoint, trackIds: number[]): void;
   closeSelectionPopup(): void;
   onPopupTrackSelect(id: number): void;
-  openTrackDetails(trackId?: number | string | null, initialDetent?: string): void;
+  openTrackDetails(trackId?: number | string | null, initialDetent?: string, initialTab?: TrackDetailsInitialTab): void;
   onTrackDetailsSheetClosed(): void;
   onTrackDetailsLoaded(metadata: TrackDetailsInfo): void;
 };
@@ -559,6 +604,7 @@ export type TrackLayersMethods = {
   getTrackPopupMeta(id: number): TrackPopupMeta;
   onTrackBrowserSelect(trackId: number | string): void;
   onTrackBrowserOpenDetails(trackId: number | string): void;
+  onTrackBrowserOpenPhotos(trackId: number | string): void;
 };
 
 export type TrackPointLayerMethods = {
@@ -619,11 +665,20 @@ export type GeoDrawingMethods = {
 };
 
 export type MediaAndHeatmapMethods = {
+  restoreMediaLayerPreference(enabled: boolean): Promise<void>;
   onToggleMediaLayer(): Promise<void>;
   onToggleHeatmapLayer(): void;
+  openMediaSelection(selection: MediaOverlaySelection): Promise<void>;
+  chooseMediaCollection(scope: 'primary' | 'viewport'): void;
+  openMediaSelectionActivities(): void;
+  closeMediaSelection(): void;
   navigateMediaTo(id: number | null): void;
+  navigateMediaRelative(delta: -1 | 1): Promise<void>;
+  navigateMediaPage(direction: -1 | 1): Promise<void>;
   closeMediaSheet(): void;
-  _buildMediaNavList(originId?: number | null): void;
+  clearFocusedMediaMarker(): void;
+  focusMediaOnMainMap(point: MediaPoint): void;
+  _buildMediaNavList(originId?: number | null, selectedIds?: number[]): void;
 };
 
 export type MapDataLoadingMethods = {
@@ -669,7 +724,7 @@ export type MapRendererLifecycleMethods = {
   applyRuntimeRasterBasemapFallback(errorEvent?: unknown, message?: string, tileId?: string): void;
   setOverlayAttributionControl(attributions?: string[]): void;
   handleMapArchiveStale(event?: Event): Promise<void>;
-  reloadMap(loadMedia?: boolean): Promise<void>;
+  reloadMap(): Promise<void>;
   initMap(): Promise<void>;
   updateGlobeState(): void;
   applyGlobeProjection(): void;

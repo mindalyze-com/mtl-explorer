@@ -57,6 +57,15 @@ async function applyFreshTrackCollection(runtime: MapControllerRuntime, serverDa
   runtime.isOffline = false;
   runtime.maybeLoadBackgroundTracks(serverData.filterResult);
   runtime.scheduleDetailCheck();
+  if (runtime.mediaOverlay?.isVisible()) {
+    if (!runtime.mediaOverlay.refresh) {
+      throw new Error('Visible media overlay cannot be refreshed');
+    }
+    await runtime.mediaOverlay.refresh();
+  }
+  // A focused marker is rendered outside the refreshed GeoJSON source and may remain
+  // present while the media layer is hidden. Discard it after the fresh collection loads.
+  runtime.clearFocusedMediaMarker();
   await runtime.captureAppliedFreshnessToken();
 }
 
@@ -828,7 +837,7 @@ export function useMapDataLoading(deps: {
       } catch (e) {
         // Fallback to full reload if IDs-only path fails (e.g. cache miss)
         console.warn('IDs-only filter failed, falling back to full reload:', e);
-        await this.reloadMap(false);
+        await this.reloadMap();
       } finally {
         this.showLoader = false;
       }

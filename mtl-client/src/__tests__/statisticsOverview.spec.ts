@@ -179,7 +179,12 @@ function overview(overrides: Partial<StatisticsOverviewResponseDto> = {}): Stati
   };
 }
 
-function mountOverview(toggle = vi.fn()) {
+function mountOverview(
+  toggle = vi.fn(),
+  indexedMediaCount: number | null = null,
+  indexedPhotoCount: number | null = null,
+  indexedVideoCount: number | null = null
+) {
   return mount(StatisticsOverview, {
     props: {
       tracks: [
@@ -211,9 +216,18 @@ function mountOverview(toggle = vi.fn()) {
       tracksCount: 99,
       unfilteredTotal: 4,
       filterRevision: 0,
+      indexedMediaCount,
+      indexedPhotoCount,
+      indexedVideoCount,
     },
     global: {
-      directives: { tooltip: {} },
+      directives: {
+        tooltip: {
+          mounted(element, binding) {
+            element.setAttribute('data-tooltip', binding.value.value);
+          },
+        },
+      },
       stubs: {
         ActivityTypeBadge: ActivityTypeBadgeStub,
         Popover: popoverStub(toggle),
@@ -247,8 +261,32 @@ describe('StatisticsOverview', () => {
     expect(filterBanner.attributes('aria-label')).toBe('Open Filter. Showing 2 of 4 tracks');
     await filterBanner.trigger('click');
     expect(wrapper.emitted('open-filter')).toEqual([[]]);
+    await filterBanner.trigger('keydown', { key: 'Enter' });
+    await filterBanner.trigger('keydown', { key: ' ' });
+    expect(wrapper.emitted('open-filter')).toEqual([[], [], []]);
     expect(wrapper.text()).toContain('Filtered century');
     expect(wrapper.text()).not.toContain('99');
+  });
+
+  it('shows one combined indexed-media count and opens Media trends', async () => {
+    fetchStatisticsOverviewMock.mockResolvedValueOnce(overview());
+
+    const wrapper = mountOverview(vi.fn(), 1_284, 1_200, 84);
+    await flush();
+
+    const mediaTile = wrapper.get('[data-test="summary-media"]');
+    expect(mediaTile.text()).toContain('1,284');
+    expect(mediaTile.text()).toContain('Media');
+    expect(mediaTile.text()).not.toContain('Photos');
+    expect(mediaTile.text()).not.toContain('Videos');
+    expect(mediaTile.attributes('aria-label')).toContain('1,284 indexed media items');
+    expect(mediaTile.attributes('data-tooltip')).toBe(
+      '1,200 photos and 84 videos are indexed. Activity filters do not apply.'
+    );
+
+    await mediaTile.trigger('click');
+
+    expect(wrapper.emitted('open-media')).toEqual([[]]);
   });
 
   it('does not refetch when map track metadata batches change', async () => {

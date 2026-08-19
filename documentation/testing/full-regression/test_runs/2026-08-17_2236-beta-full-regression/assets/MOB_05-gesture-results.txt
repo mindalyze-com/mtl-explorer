@@ -1,0 +1,16 @@
+MOB_05 gesture results at 390 x 844
+Each row: tool | tool sheet opened | scale before -> after double-click -> pointer drag -> restored scale
+Stats | panel opened | 20 km -> 10 km -> drag -> 20 km
+Filter | panel opened | 20 km -> 10 km -> drag -> 20 km
+Planner | panel opened | 20 km -> 10 km -> drag -> 20 km
+Map | panel opened | 20 km -> 10 km -> drag -> 20 km
+Animate | panel opened | 20 km -> 10 km -> drag -> 20 km
+Segments | panel opened | 20 km -> 10 km -> drag -> 20 km
+GPS | panel opened | 20 km -> 10 km -> drag -> 20 km
+Admin | panel opened | 20 km -> 10 km -> drag -> 20 km
+All eight tool sheets closed before the gesture.
+All eight double-clicks zoomed 20 km to 10 km.
+All eight pointer drags completed and the map remained responsive.
+All eight Zoom out actions restored 20 km.
+Native touch input/device emulation capability: unavailable
+Pinch gesture: blocked by browser test channel

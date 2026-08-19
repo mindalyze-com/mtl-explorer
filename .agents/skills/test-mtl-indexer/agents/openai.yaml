@@ -1,0 +1,4 @@
+interface:
+  display_name: "Test MTL Indexer"
+  short_description: "Run live and offline MTL indexer regressions"
+  default_prompt: "Use $test-mtl-indexer to run a focused local regression of the MTL Explorer GPX and media indexers."

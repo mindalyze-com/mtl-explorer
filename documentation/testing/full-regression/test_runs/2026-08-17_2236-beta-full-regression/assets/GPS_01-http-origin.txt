@@ -1,0 +1,12 @@
+GPS secure-origin applicability evidence
+Observed 2026-08-18 04:43 Europe/Zurich
+
+- End-user URL: http://62.238.106.141:18080/mtl/
+- Scheme: remote plain HTTP.
+- This is neither localhost nor HTTPS.
+- Frozen GPS_01 explicitly requires live GPS permission/marker checks on this
+  type of quick-install target to be recorded as:
+  `NOT APPLICABLE - expected browser limitation`.
+- Required retest surface for live geolocation: localhost or HTTPS.
+
+No browser permission was fabricated and no server-side location was injected.

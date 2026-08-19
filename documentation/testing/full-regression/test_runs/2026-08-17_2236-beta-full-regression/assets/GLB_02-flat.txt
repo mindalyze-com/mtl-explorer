@@ -1,0 +1,11 @@
+GLB_02 zoom-in flat return
+Observed 2026-08-18 04:56 Europe/Zurich
+
+- Started from the GLB_01 automatically engaged circular globe.
+- Activated Zoom in five times.
+- Sphere expanded through regional scale and returned to a full rectangular
+  flat map centered on Switzerland/northeast France/northern Italy.
+- Track lines, markers, controls, scale, tiles, and attribution remained
+  rendered; no blank projection transition occurred.
+
+Result: PASS. Zoom in automatically returns globe projection to flat view.

@@ -1,0 +1,39 @@
+FLT_20 shared track-browser evidence
+
+Filter footer:
+- Review tracks is rendered as a quiet button immediately before Reset filter.
+- Filter reset produced Smart Base Filter, no criteria, all 3 categories, and
+  15 matching tracks before the review.
+
+Review tracks, desktop 1280x720:
+- Heading: Matching tracks
+- Summary: 15 tracks, 1,048 km, 1d 00h
+- Columns: shape, Start, Track, Activity, Distance, Duration, Avg km/h,
+  Energy, Exploration, Imported
+- Search "MTL Regression Media Track": 1 of 15 tracks, 189.62 m,
+  0m 00s; one table row
+- Name sort reversed the first/last order across two clicks.
+- Rows per page 10 produced page 1 with 10 rows and page 2 with 5 rows;
+  Next and Previous controls worked.
+- Clicking a row opened Track Details #100016 with its map and Overview data;
+  Close returned to Matching tracks with the search preserved.
+
+Review tracks, mobile 390x844:
+- Viewport width and document scroll width: 390px (no horizontal overflow)
+- No table rendered; the same 15 tracks rendered as responsive cards.
+- Cards exposed name, activity, start, distance, duration where available,
+  energy, shape preview, and the same sort controls.
+
+Statistics -> Tracks recheck:
+- All quick view was pressed.
+- Same search field, 15-track/1,048-km/1d-00h summary, sort controls,
+  columns, rows-per-page control, and track rows were present.
+- Search "Track 100015": 1 of 15 tracks, 206.26 m, 0m 00s.
+- Name sorting reversed first/last order across two clicks.
+- Clicking the first shape preview centered/selected MTL Synthetic Segment B;
+  exactly one row received the active selection class and the map scale
+  changed from 500 km to 100 m.
+
+Cleanup/state:
+- Mobile tab closed and viewport reset to 1280x720.
+- Search cleared; Statistics -> Tracks remains open with all 15 tracks.

@@ -1,0 +1,24 @@
+SYN_07 live indexer badge/map interaction evidence
+
+Controlled load:
+- Copied 30 recoverable copies of the public Activity.fit into
+  data/gpx/SYN_07-badge-batch while Admin Processing was open.
+
+Live state:
+- Processing navigation badge showed Live after about 2 seconds.
+- GPS showed SCANNING, 19 completed, 4 pending, 6 removed, 7 excluded,
+  36 total at the captured instant.
+- While Live remained visible, end-user Zoom in changed the map scale
+  500 km -> 300 km; toolbar remained 15 Tracks.
+- Screenshot captured badge, live GPS state, and usable map controls.
+
+Terminal/cleanup:
+- GPS reached 49 completed; Duplicate Finder, Activity Classifier, and
+  Exploration Score each reached DONE 49/49.
+- Batch directory moved recoverably to
+  data/logs/SYN_07-badge-batch-quarantine (30 files).
+- Manual GPS cleanup rescan queued.
+- All 30 indexed rows became REMOVED and zero gps_track rows remain for SYN07-*.
+- Freshness Reload cleared the banner and retained the intended 15 Tracks.
+
+Result: PASS

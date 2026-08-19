@@ -4,9 +4,31 @@ import type { MediaBoundsPoint } from '@/repositories/mediaRepository';
 import { isAbortLikeError } from '@/utils/errors';
 
 export type MediaState = 'idle' | 'visible' | 'error';
+export type MediaOverlaySelection = {
+  selectedMediaId: number;
+  mediaIds: number[];
+  mediaPoints: MediaBoundsPoint[];
+  totalMediaCount: number;
+  clusterId: number | null;
+  offset: number;
+  kind: 'cluster' | 'location';
+  viewportMediaPoints: MediaBoundsPoint[];
+  clickPoint: { x: number; y: number };
+  clickLngLat: { lng: number; lat: number };
+};
+
+export type MediaClusterPage = {
+  clusterId: number;
+  offset: number;
+  totalMediaCount: number;
+  mediaPoints: MediaBoundsPoint[];
+};
 
 const DEBOUNCE_MS = 300;
 const BOUNDS_PADDING = 2;
+const MAX_CACHEABLE_MEDIA_FETCH_LATITUDE_SPAN_DEGREES = 45;
+const MAX_CACHEABLE_MEDIA_FETCH_LONGITUDE_SPAN_DEGREES = 60;
+export const MEDIA_CLUSTER_PAGE_SIZE = 200;
 const MIN_LATITUDE = -90;
 const MAX_LATITUDE = 90;
 
@@ -17,8 +39,10 @@ const UNCLUSTERED_LAYER = 'media-unclustered';
 
 export class MediaOverlay {
   private map: maplibregl.Map;
-  private readonly onMediaSelect: (mediaId: number) => void;
+  private readonly onMediaSelect: (selection: MediaOverlaySelection) => void;
   private readonly onPointsUpdated?: (points: MediaBoundsPoint[]) => void;
+  private readonly isInteractionEnabled: () => boolean;
+  private loadGeneration = 0;
   private abortController: AbortController | null = null;
   private debounceTimer: ReturnType<typeof setTimeout> | null = null;
   private boundHandler: (() => void) | null = null;
@@ -36,12 +60,14 @@ export class MediaOverlay {
 
   constructor(
     map: maplibregl.Map,
-    onMediaSelect: (mediaId: number) => void,
-    onPointsUpdated?: (points: MediaBoundsPoint[]) => void
+    onMediaSelect: (selection: MediaOverlaySelection) => void,
+    onPointsUpdated?: (points: MediaBoundsPoint[]) => void,
+    isInteractionEnabled: () => boolean = () => true
   ) {
     this.map = map;
     this.onMediaSelect = onMediaSelect;
     this.onPointsUpdated = onPointsUpdated;
+    this.isInteractionEnabled = isInteractionEnabled;
   }
 
   getLoadedPoints(): MediaBoundsPoint[] {
@@ -106,37 +132,46 @@ export class MediaOverlay {
 
     this.state = 'visible';
 
-    // Click on cluster → zoom in
+    // Prepare the cluster and visible-map collections. The user chooses which
+    // collection to open before the viewer is shown.
     this.clusterClickHandler = (e) => {
-      const features = this.map.queryRenderedFeatures(e.point, { layers: [CLUSTER_LAYER] });
-      if (!features.length) return;
-      const clusterId = features[0].properties!.cluster_id;
-      (this.map.getSource(SOURCE_ID) as maplibregl.GeoJSONSource).getClusterExpansionZoom(clusterId).then((zoom) => {
-        this.map.easeTo({
-          center: (features[0].geometry as GeoJSON.Point).coordinates as [number, number],
-          zoom,
-        });
-      });
+      if (!this.isInteractionEnabled()) return;
+      void this.selectCluster(e);
     };
     this.map.on('click', CLUSTER_LAYER, this.clusterClickHandler);
 
-    // Click on single media point → notify via callback
+    // Prepare both the clicked location and the visible-map collection.
     this.mediaClickHandler = (e) => {
+      if (!this.isInteractionEnabled()) return;
       if (!e.features?.length) return;
-      const mediaId = e.features[0].properties!.mediaId as number;
-      this.onMediaSelect(mediaId);
+      const mediaPoints = uniqueMediaPoints(e.features, this.loadedPoints);
+      const mediaIds = mediaPoints.map((point) => point.id);
+      const selectedMediaId = mediaIds[0];
+      if (selectedMediaId == null) return;
+      this.onMediaSelect({
+        selectedMediaId,
+        mediaIds,
+        mediaPoints,
+        totalMediaCount: mediaIds.length,
+        clusterId: null,
+        offset: 0,
+        kind: 'location',
+        viewportMediaPoints: this.getViewportMediaPoints(selectedMediaId, mediaPoints),
+        clickPoint: { x: e.point.x, y: e.point.y },
+        clickLngLat: { lng: e.lngLat.lng, lat: e.lngLat.lat },
+      });
     };
     this.map.on('click', UNCLUSTERED_LAYER, this.mediaClickHandler);
 
     // Cursor style
     this.clusterMouseEnterHandler = () => {
-      this.map.getCanvas().style.cursor = 'pointer';
+      this.map.getCanvas().style.cursor = this.isInteractionEnabled() ? 'pointer' : '';
     };
     this.clusterMouseLeaveHandler = () => {
       this.map.getCanvas().style.cursor = '';
     };
     this.mediaMouseEnterHandler = () => {
-      this.map.getCanvas().style.cursor = 'pointer';
+      this.map.getCanvas().style.cursor = this.isInteractionEnabled() ? 'pointer' : '';
     };
     this.mediaMouseLeaveHandler = () => {
       this.map.getCanvas().style.cursor = '';
@@ -152,6 +187,35 @@ export class MediaOverlay {
 
     // Initial load for the current viewport
     await this.loadForCurrentBounds();
+  }
+
+  private getViewportMediaPoints(selectedMediaId: number, clickedPoints: MediaBoundsPoint[]): MediaBoundsPoint[] {
+    const viewport = this.map.getBounds();
+    const southWest = viewport.getSouthWest();
+    const northEast = viewport.getNorthEast();
+    const pointsById = new Map(
+      this.loadedPoints
+        .filter(
+          (point) =>
+            point.lat >= southWest.lat &&
+            point.lat <= northEast.lat &&
+            longitudeIsInBounds(point.lng, southWest.lng, northEast.lng)
+        )
+        .map((point) => [point.id, point])
+    );
+
+    const selectedPoint = clickedPoints.find((point) => point.id === selectedMediaId);
+    if (selectedPoint) pointsById.set(selectedPoint.id, selectedPoint);
+
+    const points = [...pointsById.values()];
+    const origin = pointsById.get(selectedMediaId);
+    if (!origin) return points;
+
+    return points.sort((left, right) => {
+      const leftDistance = squaredCoordinateDistance(left, origin);
+      const rightDistance = squaredCoordinateDistance(right, origin);
+      return leftDistance - rightDistance || left.id - right.id;
+    });
   }
 
   hide(): void {
@@ -178,8 +242,72 @@ export class MediaOverlay {
     return this.state === 'visible';
   }
 
+  async refresh(): Promise<void> {
+    if (this.state !== 'visible') return;
+    await this.loadForCurrentBounds(true);
+  }
+
   destroy(): void {
     this.hide();
+  }
+
+  /**
+   * Replace a potentially large viewport source before moving to one photo.
+   * The normal move-end request restores the points for the focused viewport.
+   */
+  prepareForFocus(point: MediaBoundsPoint): void {
+    if (this.state !== 'visible') return;
+    this.cancelPendingLoad();
+    this.lastFetchedBounds = null;
+    this.updateSource([point]);
+  }
+
+  async getClusterPage(
+    clusterId: number,
+    offset: number,
+    limit = MEDIA_CLUSTER_PAGE_SIZE,
+    totalMediaCount = 0
+  ): Promise<MediaClusterPage> {
+    const source = this.map.getSource(SOURCE_ID) as maplibregl.GeoJSONSource | undefined;
+    if (!source) {
+      return { clusterId, offset, totalMediaCount, mediaPoints: [] };
+    }
+    const leaves = await source.getClusterLeaves(clusterId, limit, offset);
+    return {
+      clusterId,
+      offset,
+      totalMediaCount,
+      mediaPoints: uniqueMediaPoints(leaves),
+    };
+  }
+
+  private async selectCluster(event: maplibregl.MapLayerMouseEvent): Promise<void> {
+    const feature = this.map.queryRenderedFeatures(event.point, { layers: [CLUSTER_LAYER] })[0];
+    const clusterId = positiveInteger(feature?.properties?.cluster_id);
+    const pointCount = positiveInteger(feature?.properties?.point_count);
+    if (clusterId == null || pointCount == null) return;
+
+    try {
+      const page = await this.getClusterPage(clusterId, 0, MEDIA_CLUSTER_PAGE_SIZE, pointCount);
+      if (this.state !== 'visible' || !this.isInteractionEnabled()) return;
+      const mediaIds = page.mediaPoints.map((point) => point.id);
+      const selectedMediaId = mediaIds[0];
+      if (selectedMediaId == null) return;
+      this.onMediaSelect({
+        selectedMediaId,
+        mediaIds,
+        mediaPoints: page.mediaPoints,
+        totalMediaCount: pointCount,
+        clusterId,
+        offset: 0,
+        kind: 'cluster',
+        viewportMediaPoints: this.getViewportMediaPoints(selectedMediaId, page.mediaPoints),
+        clickPoint: { x: event.point.x, y: event.point.y },
+        clickLngLat: { lng: event.lngLat.lng, lat: event.lngLat.lat },
+      });
+    } catch (error) {
+      console.error('MediaOverlay: failed to resolve media cluster', error);
+    }
   }
 
   private removeLayerHandlers(): void {
@@ -211,6 +339,7 @@ export class MediaOverlay {
 
   private debouncedLoad(): void {
     if (this.debounceTimer) clearTimeout(this.debounceTimer);
+    this.invalidatePendingRequest();
     this.debounceTimer = setTimeout(() => this.loadForCurrentBounds(), DEBOUNCE_MS);
   }
 
@@ -219,27 +348,26 @@ export class MediaOverlay {
       clearTimeout(this.debounceTimer);
       this.debounceTimer = null;
     }
+    this.invalidatePendingRequest();
+  }
+
+  private invalidatePendingRequest(): void {
+    this.loadGeneration++;
     if (this.abortController) {
       this.abortController.abort();
       this.abortController = null;
     }
+    this.loading = false;
   }
 
-  private async loadForCurrentBounds(): Promise<void> {
+  private async loadForCurrentBounds(force = false): Promise<void> {
     if (this.state !== 'visible') return;
+    this.invalidatePendingRequest();
+    const generation = this.loadGeneration;
 
     const viewport = this.map.getBounds();
 
-    // Skip fetch if the current viewport is already covered
-    if (
-      this.lastFetchedBounds &&
-      this.lastFetchedBounds.contains(viewport.getSouthWest()) &&
-      this.lastFetchedBounds.contains(viewport.getNorthEast())
-    )
-      return;
-
-    if (this.abortController) this.abortController.abort();
-    this.abortController = new AbortController();
+    if (force) this.lastFetchedBounds = null;
 
     const sw = viewport.getSouthWest();
     const ne = viewport.getNorthEast();
@@ -249,6 +377,18 @@ export class MediaOverlay {
       [sw.lng - lngPad, clampLatitude(sw.lat - latPad)],
       [ne.lng + lngPad, clampLatitude(ne.lat + latPad)]
     );
+    if (!isCacheableMediaFetchBounds(fetchBounds)) {
+      this.lastFetchedBounds = null;
+      this.error = null;
+      if (this.loadedPoints.length > 0) this.updateSource([]);
+      return;
+    }
+
+    // Skip a bounded fetch if the current viewport is already covered.
+    if (this.lastFetchedBounds && this.lastFetchedBounds.contains(sw) && this.lastFetchedBounds.contains(ne)) return;
+
+    const controller = new AbortController();
+    this.abortController = controller;
 
     this.loading = true;
     try {
@@ -257,20 +397,24 @@ export class MediaOverlay {
         fetchBounds.getSouthWest().lng,
         fetchBounds.getNorthEast().lat,
         fetchBounds.getNorthEast().lng,
-        this.abortController.signal
+        controller.signal
       );
 
-      if (this.state !== 'visible') return;
+      if (generation !== this.loadGeneration || controller.signal.aborted || this.state !== 'visible') return;
 
       this.lastFetchedBounds = fetchBounds;
       this.updateSource(points);
       this.error = null;
     } catch (e: unknown) {
-      if (isAbortLikeError(e, this.abortController?.signal)) return;
+      if (generation !== this.loadGeneration || isAbortLikeError(e, controller.signal)) return;
       this.error = e;
       console.error('MediaOverlay: failed to load media in bounds', e);
+      if (force) throw e;
     } finally {
-      this.loading = false;
+      if (generation === this.loadGeneration) {
+        this.loading = false;
+        if (this.abortController === controller) this.abortController = null;
+      }
     }
   }
 
@@ -293,6 +437,45 @@ export class MediaOverlay {
   }
 }
 
+function isCacheableMediaFetchBounds(bounds: maplibregl.LngLatBounds): boolean {
+  const southWest = bounds.getSouthWest();
+  const northEast = bounds.getNorthEast();
+  return (
+    northEast.lat - southWest.lat <= MAX_CACHEABLE_MEDIA_FETCH_LATITUDE_SPAN_DEGREES &&
+    northEast.lng - southWest.lng <= MAX_CACHEABLE_MEDIA_FETCH_LONGITUDE_SPAN_DEGREES
+  );
+}
+
 function clampLatitude(latitude: number): number {
   return Math.max(MIN_LATITUDE, Math.min(MAX_LATITUDE, latitude));
+}
+
+function positiveInteger(value: unknown): number | null {
+  const number = typeof value === 'number' ? value : Number(value);
+  return Number.isSafeInteger(number) && number > 0 ? number : null;
+}
+
+function squaredCoordinateDistance(left: MediaBoundsPoint, right: MediaBoundsPoint): number {
+  const latitudeDelta = left.lat - right.lat;
+  const longitudeDelta = left.lng - right.lng;
+  return latitudeDelta * latitudeDelta + longitudeDelta * longitudeDelta;
+}
+
+function longitudeIsInBounds(longitude: number, west: number, east: number): boolean {
+  return west <= east ? longitude >= west && longitude <= east : longitude >= west || longitude <= east;
+}
+
+function uniqueMediaPoints(features: GeoJSON.Feature[], fallbackPoints: MediaBoundsPoint[] = []): MediaBoundsPoint[] {
+  const points = new Map<number, MediaBoundsPoint>();
+  const fallbackById = new Map(fallbackPoints.map((point) => [point.id, point]));
+  for (const feature of features) {
+    const id = positiveInteger(feature.properties?.mediaId);
+    const coordinates = feature.geometry?.type === 'Point' ? feature.geometry.coordinates : null;
+    const lng = Number(coordinates?.[0]);
+    const lat = Number(coordinates?.[1]);
+    if (id == null || points.has(id)) continue;
+    if (Number.isFinite(lat) && Number.isFinite(lng)) points.set(id, { id, lat, lng });
+    else if (fallbackById.has(id)) points.set(id, fallbackById.get(id)!);
+  }
+  return [...points.values()];
 }

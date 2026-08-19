@@ -1,0 +1,45 @@
+MAP_13 intentional remote raster evidence
+
+Disposable Compose override:
+- MTL_MAP_SERVER_TILE_MODE=remote
+- Effective app image remained wauwau0977/mytraillog:beta
+- Recreated only the app service; root HTTP returned 200 after 23 s.
+
+Authenticated /api/map/config after restart:
+- tileMode: remote
+- remoteRasterStyles.light.url: https://tile.openstreetmap.org/{z}/{x}/{y}.png
+- remoteRasterStyles.light-topo.url: https://tile.opentopomap.org/{z}/{x}/{y}.png
+- remoteRasterStyles.dark.url: https://basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png
+- All three configured attributions present.
+- Legacy remoteTileUrl field absent.
+
+Selected-browser checks using its observed-page asset inventory:
+
+OSM Topo Light
+- Radio checked.
+- OpenTopoMap and OpenStreetMap attribution links present.
+- 68 tile.openstreetmap.org/open topo resources observed for the topo provider state.
+- Two nonzero map canvases; map remained interactive.
+- /api/map-proxy observed assets: 0.
+
+OSM Light
+- Radio checked.
+- OpenStreetMap attribution present.
+- 24 new tile.openstreetmap.org raster tiles appeared (25 total observed).
+- Two nonzero map canvases; map remained interactive.
+- /api/map-proxy observed assets: 0.
+
+OSM Dark
+- Radio checked.
+- CARTO and OpenStreetMap attribution links appeared.
+- Zoom in performed to force a new tile set.
+- basemaps.cartocdn.com assets observed: 0.
+- New observed assets after the prior theme: 0.
+- /api/map-proxy observed assets: 0.
+- Direct read-only availability probe for a configured Carto tile returned HTTP 200 image/png, 6,674 bytes.
+- No new browser console error was emitted for the style change.
+
+Restoration inside remote mode:
+- Reset map settings returned to OSM Topo Contrast and OpenTopoMap attribution.
+
+Result: remote config schema, OSM Light, OSM Topo Light, attribution, interaction, and no-proxy assertions pass. OSM Dark changes selection/attribution but never requests its configured provider, so the packet fails as FR-002.

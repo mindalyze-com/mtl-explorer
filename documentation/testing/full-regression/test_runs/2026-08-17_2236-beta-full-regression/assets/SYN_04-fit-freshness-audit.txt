@@ -1,0 +1,18 @@
+SYN_04 FIT freshness/cache audit
+
+Original FIT import (FIT_01/FIT_02 durable evidence):
+- Public GPS-bearing Activity.fit entered watched data unchanged; source and
+  destination SHA-256 matched.
+- GPS and follow-on jobs reached 6/6 without failure.
+- New data available appeared and in-app Reload was used.
+- Main map changed 5 -> 6 Tracks without a browser restart.
+- Statistics search found one FIT-backed 3.60 km / 59m 57s row.
+- Opening the row loaded /mtl/track/100005 and labeled the source Activity.fit.
+
+Direct current audit after later additive fixtures:
+- Statistics Tracks query Activity.fit returns 1 of 15, 3.60 km, 59m 57s.
+- Visible row remains track 100005, Walking, 347 Wh.
+- Opening it loads /mtl/track/100005 with Activity.fit source identity,
+  non-zero metrics, and Track Details/mini-map surfaces.
+
+Result: PASS

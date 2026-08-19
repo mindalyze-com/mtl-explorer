@@ -1,0 +1,9 @@
+Cleanup completed at 2026-08-19T06:44:01Z.
+
+- Local MTL Explorer process stopped with graceful Spring shutdown.
+- Disposable database container mtl-indexer-regression-db-20260819 stopped and removed.
+- Ports 18084 and 55437 verified free.
+- Synthetic temporary directory moved to the user's Trash:
+  /Users/pheusser/.Trash/mtl-indexer-regression-20260819-a0VXaM
+- The temporary directory is recoverable from Trash until it is emptied.
+- Repository evidence under documentation/testing/indexer-regression was kept.

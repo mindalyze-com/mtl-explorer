@@ -1,0 +1,6 @@
+Coverage accounting rule applied for this run:
+- Each of the 228 frozen coverage IDs has an independent run-state row.
+- Each coverage ID uses its own packets/<coverage-id>.md file.
+- Parent-area or prefix summaries cannot replace child packet results.
+- PASS requires direct evidence for that exact ID.
+- PARTIAL and NOT COVERED remain resumable and cannot pass the finalization gate.

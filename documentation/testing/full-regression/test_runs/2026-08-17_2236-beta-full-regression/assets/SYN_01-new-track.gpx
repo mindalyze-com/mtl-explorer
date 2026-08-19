@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="MTL Explorer full regression" xmlns="http://www.topografix.com/GPX/1/1">
+  <metadata><name>MTL Sync Banner Track</name></metadata>
+  <trk>
+    <name>MTL Sync Banner Track</name>
+    <type>running</type>
+    <trkseg>
+      <trkpt lat="46.95000" lon="7.45000"><ele>545</ele><time>2026-08-18T03:00:00Z</time></trkpt>
+      <trkpt lat="46.95100" lon="7.45100"><ele>548</ele><time>2026-08-18T03:01:00Z</time></trkpt>
+      <trkpt lat="46.95200" lon="7.45200"><ele>552</ele><time>2026-08-18T03:02:00Z</time></trkpt>
+      <trkpt lat="46.95300" lon="7.45300"><ele>557</ele><time>2026-08-18T03:03:00Z</time></trkpt>
+      <trkpt lat="46.95400" lon="7.45400"><ele>554</ele><time>2026-08-18T03:04:00Z</time></trkpt>
+      <trkpt lat="46.95500" lon="7.45500"><ele>550</ele><time>2026-08-18T03:05:00Z</time></trkpt>
+    </trkseg>
+  </trk>
+</gpx>
