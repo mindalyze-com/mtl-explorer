@@ -1,0 +1,9 @@
+Coverage: MAP_03
+Required data-change source: IMP_02-IMP_05
+Before change: browser/map baseline 0 tracks
+Server change: five public GPX files detected and indexed by the live watcher
+Client action: accepted the visible freshness Reload prompt in the same browser session
+After action: server/client freshness in sync; Map 5 tracks; Filter 5 tracks; Review Tracks 5 rows; Statistics 5 tracks
+Full browser restart used: no
+Primary detailed evidence: ../assets/IMP_05-reload.txt
+Result: new imports appeared on the map after the in-app freshness reload.

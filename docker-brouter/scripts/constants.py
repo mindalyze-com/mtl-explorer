@@ -31,8 +31,14 @@ HTTP_USER_AGENT = "mytraillog-brouter-sidecar/1.0"
 DOWNLOAD_TIMEOUT_SEC = 300
 DOWNLOAD_RETRIES = 3
 
-# Java startup — tuned for RPi/NAS (256 MB default is BRouter's recommendation).
-JAVA_XMX = os.environ.get("BROUTER_JAVA_XMX", "512m")
+# Java startup for the single-threaded route server. BRouter's upstream
+# standalone script uses a fixed 128 MiB heap, an 8 MiB young generation, and
+# a five-minute request timeout so long routes can complete.
+JAVA_XMX = os.environ.get("BROUTER_JAVA_XMX", "128m")
+JAVA_XMS = os.environ.get("BROUTER_JAVA_XMS", JAVA_XMX)
+JAVA_YOUNG_GENERATION = os.environ.get("BROUTER_JAVA_YOUNG_GENERATION", "8m")
+JAVA_ACTIVE_PROCESSORS = int(os.environ.get("BROUTER_JAVA_ACTIVE_PROCESSORS", "2"))
+JAVA_MAX_RUNNING_TIME_SEC = int(os.environ.get("BROUTER_JAVA_MAX_RUNNING_TIME_SEC", "300"))
 BROUTER_VERSION = os.environ.get("BROUTER_VERSION", "")
 
 # Graceful shutdown

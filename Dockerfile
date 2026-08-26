@@ -10,8 +10,10 @@ ARG FIT_EXPORT_DEFAULT_PROFILE=default
 ARG FIT_EXPORT_DEFAULT_PACKAGES="garth fitparse gpxpy"
 ARG GPSBABEL_VERSION=1.10.0
 ARG GPSBABEL_GIT_REF=gpsbabel_1_10_0
+ARG MTL_IMAGE_VERSION=""
+ARG MTL_IMAGE_BUILD_TIME=""
 
-FROM node:20-bookworm-slim AS node-toolchain
+FROM node:24-bookworm-slim AS node-toolchain
 
 FROM eclipse-temurin:21-jre-jammy AS gpsbabel-builder
 
@@ -55,7 +57,12 @@ chmod +x /opt/gpsbabel/bin/gpsbabel
 rm -rf "${work_dir}" /var/lib/apt/lists/* /root/.cache
 EOF
 
-FROM maven:3.9-eclipse-temurin-21 AS app-builder
+FROM maven:3.9.16-eclipse-temurin-25 AS app-builder
+
+ARG MTL_IMAGE_VERSION
+ARG MTL_IMAGE_BUILD_TIME
+ENV VITE_APP_VERSION=${MTL_IMAGE_VERSION}
+ENV VITE_APP_BUILD=${MTL_IMAGE_BUILD_TIME}
 
 COPY --from=node-toolchain /usr/local/ /usr/local/
 
@@ -71,7 +78,7 @@ mvn --batch-mode clean install -DskipTests=true
 echo "==> Finished Maven reactor build"
 EOF
 
-FROM eclipse-temurin:21-jre-jammy AS runtime
+FROM eclipse-temurin:25-jre-jammy AS runtime
 
 # Promote build ARGs to runtime ENVs (Spring Boot reads these via ${GCEXPORT_DEFAULT_VERSION:v4.6.2})
 ARG GCEXPORT_DEFAULT_VERSION
@@ -87,9 +94,13 @@ ENV FIT_EXPORT_DEFAULT_PACKAGES=${FIT_EXPORT_DEFAULT_PACKAGES}
 ENV LANG=C.UTF-8
 ENV LC_ALL=C.UTF-8
 ENV PATH="/usr/local/bin:${PATH}"
+ENV MALLOC_ARENA_MAX=2
+ENV MAGICK_THREAD_LIMIT=1
+ENV MAGICK_MEMORY_LIMIT=64MiB
+ENV MAGICK_MAP_LIMIT=128MiB
 
 # Install required runtime packages.
-# eclipse-temurin:21-jre-jammy includes the jdk.jfr module. jattach keeps
+# eclipse-temurin:25-jre-jammy includes the jdk.jfr module. jattach keeps
 # runtime JFR attach/start/dump/stop available without shipping a full JDK.
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
@@ -164,7 +175,7 @@ COPY docker/gpx_porto_taxi_dataset/photo_placeholder.py /app/demo/photo_placehol
 COPY docker/gpx_porto_taxi_dataset/DATASOURCE.md /app/demo/DATASOURCE.md
 
 # Copy the Spring Boot application JAR
-COPY --from=app-builder /workspace/mtl-server/target/mtl-server-0.0.1-SNAPSHOT.jar /app/mtl-server-0.0.1-SNAPSHOT.jar
+COPY --from=app-builder /workspace/mtl-server/target/mtl-server-1.0.0-SNAPSHOT.jar /app/mtl-server-1.0.0-SNAPSHOT.jar
 
 WORKDIR /app
 
@@ -174,8 +185,8 @@ RUN mkdir -p /app/gpx /app/media /app/config \
     && rm -rf /var/lib/apt/lists /var/cache/apt/archives /var/log/apt \
     && mkdir -p /var/lib/apt/lists/partial
 
-ARG MTL_IMAGE_VERSION=""
-ARG MTL_IMAGE_BUILD_TIME=""
+ARG MTL_IMAGE_VERSION
+ARG MTL_IMAGE_BUILD_TIME
 RUN set -eux; \
     mkdir -p /opt/mtl; \
     build_time="${MTL_IMAGE_BUILD_TIME:-$(date -u +%Y-%m-%dT%H:%M:%SZ)}"; \
@@ -194,8 +205,6 @@ RUN chmod +x /my-entrypoint.sh
 # Set the entrypoint; CMD is used to start the Java application
 ENTRYPOINT ["/my-entrypoint.sh"]
 
-# settings to motivate java to release memory if it can..
-# Keep half of the container available for JVM native memory and bundled helper processes.
-# Do not set a large initial heap: ZGC cannot uncommit below that floor. Java 21 needs
-# ZGenerational explicitly; later JDKs select generational ZGC by default.
-CMD ["java", "-XX:MaxRAMPercentage=50.0", "-XX:+UseZGC", "-XX:+ZGenerational", "-XX:ZUncommitDelay=30", "-XX:+ExitOnOutOfMemoryError", "-Dfile.encoding=UTF-8", "-Dsun.jnu.encoding=UTF-8", "-jar", "mtl-server-0.0.1-SNAPSHOT.jar"]
+# Keep most of the container available for JVM native memory and bundled media
+# helpers. G1 has substantially lower small-heap RSS than ZGC for this workload.
+CMD ["java", "-XX:InitialRAMPercentage=6.25", "-XX:MaxRAMPercentage=31.25", "-XX:+UseG1GC", "-XX:ActiveProcessorCount=2", "-Xss512k", "-XX:+ExitOnOutOfMemoryError", "-Dfile.encoding=UTF-8", "-Dsun.jnu.encoding=UTF-8", "-jar", "mtl-server-1.0.0-SNAPSHOT.jar"]

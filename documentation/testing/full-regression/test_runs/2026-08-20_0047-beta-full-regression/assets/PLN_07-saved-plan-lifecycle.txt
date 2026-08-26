@@ -1,0 +1,20 @@
+PLN_07 saved-plan lifecycle evidence
+
+Save
+- Name: Regression Plan 0047.
+- Description: Temporary PLN_07 saved-plan lifecycle.
+- Save summary: 5.13 km, ascent 0 m, descent 3 m, 2/150 waypoints.
+
+List
+- Load tab listed Regression Plan 0047, 5.13 km, description, date 20 Aug 2026.
+- Export GPX and Delete actions were present.
+
+Load
+- Current drawing was cleared to zero first.
+- Opening the saved-plan row restored 5.13 km, ascent 0 m, descent 3 m, duration 14m, legs 1, and the 19-point chart.
+- Planner stated: Loaded plan shown as saved. The first edit will re-route all legs.
+
+Delete
+- Delete confirmation named Regression Plan 0047 and showed 5.13 km / 20 Aug 2026.
+- Confirming Delete route removed the row.
+- Final Load state: No saved routes yet. Draw a route and save it.

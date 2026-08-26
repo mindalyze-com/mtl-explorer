@@ -1,0 +1,18 @@
+TBS_07 Statistics across dataset sizes
+
+Empty dataset (same-run IMP_01 baseline):
+- 0 tracks and zero/empty Statistics, map, and heatmap state.
+- No stale pre-import totals.
+
+Single-track resolved set:
+- Filter: Activities by keyword; Keyword Media.
+- Showing 1 of 9 tracks; 1 Tracks.
+- Distance 189.62 m; Energy 1 Wh; Walking breakdown.
+- Values match MTL Regression Media Track.
+
+Many-track resolved set:
+- Reset to Smart Base Filter.
+- 9 Tracks; Distance 1,047 km.
+- Full populated overview returned.
+
+Each state changed to the expected count and totals without stale values from the previous state.

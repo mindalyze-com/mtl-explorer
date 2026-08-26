@@ -1,0 +1,22 @@
+MED_31 phone-viewport constraint
+
+Required end-user viewports
+- 390 x 760
+- 375 x 667
+
+Available connected in-app browser viewport
+- innerWidth: 1049
+- innerHeight: 942
+- matchMedia('(max-width: 768px)').matches: false
+
+The connected browser capability exposes navigation, DOM interaction, screenshots,
+and coordinate input, but no viewport-size or device-emulation control. A second
+connected browser/device is not available. The two required phone layouts cannot
+be exercised end to end without substituting source/unit evidence for the required
+rendered end-user result.
+
+Relevant implementation observations (not used as pass evidence)
+- MediaFilmstrip shortens Nearby media to Nearby and has a max-width: 768px rule.
+- MediaPreview has a max-width: 768px phone layout and safe-area padding rules.
+- These static paths do not prove either required rendered size, sheet scrolling,
+  bottom-edge continuity, or photo-first initial state.

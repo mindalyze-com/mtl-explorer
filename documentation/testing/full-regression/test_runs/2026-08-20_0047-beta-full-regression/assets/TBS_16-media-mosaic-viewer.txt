@@ -1,0 +1,21 @@
+TBS_16 media mosaic and viewer
+
+Non-empty period stack:
+- Selected the rendered 2026-Q3 media stack.
+- Mosaic title: 2026-Q3 · 8 items.
+- All: 8 cards.
+- Photos: 6 JPEG cards, no video cards.
+- Videos: 2 MP4/MOV cards, no JPEG cards.
+- All order was newest-first: 10:15, 10:09, 10:03, 10:02, 10:02, 10:01, 10:01, 10:00.
+
+Viewer:
+- Opened mtl-regression-video-gps.mp4 in the shared viewer.
+- Previous was disabled at the first item; Next was enabled.
+- Next navigated to mtl-regression-video-estimated.mov and enabled Previous.
+- Viewer exposed media information, filmstrip, playback, and GPS location.
+
+Frozen-scope failures/limits:
+- Track related / All indexed controls are absent (MTL-FR-009).
+- Media history (the available all-media mode) correctly omitted Open activity.
+- No Undated action was present, so the required Undated drilldown and Track-related Open activity return path could not be exercised.
+- With only 8 items, the 60-item Load more boundary and recoverable loading/error states are not reachable in this run dataset; Load more was correctly absent for one short page.

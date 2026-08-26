@@ -50,7 +50,7 @@ type RouteToolSyncTestContext = {
   >;
   $nextTick: (callback: () => void) => void;
   activeToolId: string | null;
-  _syncingView: boolean;
+  _syncingToolRoute: boolean;
   trackReplayActive: boolean;
   trackDetailsVisible: boolean;
   trackDetailsId: number | null;
@@ -165,7 +165,7 @@ describe('map route tool sync', () => {
       },
       $nextTick: (callback) => callback(),
       activeToolId: 'stats',
-      _syncingView: false,
+      _syncingToolRoute: false,
       trackReplayActive: false,
       trackDetailsVisible: false,
       trackDetailsId: null,
@@ -189,7 +189,7 @@ describe('map route tool sync', () => {
     expect(statsOpen).toHaveBeenCalledOnce();
     expect(filterClose).toHaveBeenCalledOnce();
     expect(context.activeToolId).toBe('stats');
-    expect(context._syncingView).toBe(false);
+    expect(context._syncingToolRoute).toBe(false);
   });
 
   it('restores the originating tool subview after Track Details closes', () => {
@@ -206,7 +206,7 @@ describe('map route tool sync', () => {
       },
       $nextTick: (callback) => callback(),
       activeToolId: 'filter',
-      _syncingView: false,
+      _syncingToolRoute: false,
       trackReplayActive: false,
       trackDetailsVisible: false,
       trackDetailsId: null,

@@ -1,0 +1,20 @@
+PLN_10 existing-route preservation evidence
+
+Before outage reroute
+- Distance: 11.00 m.
+- Ascent/descent: 0 m / 0 m.
+- Duration: 0m.
+- Legs: 1.
+- Elevation chart: 2 data points, 4.25-4.5 m.
+
+During failed reroute
+- Endpoint drag triggered unavailable -> updating route -> unavailable.
+- Route-unavailable recovery message appeared.
+- Existing values stayed 11.00 m / 0 m / 0 m / 0m / one leg.
+- Existing two-point elevation chart remained.
+- Undo, Clear route, and Save route remained available.
+
+After recovery
+- BRouter service restarted and remote state was running.
+- Browser status returned to ready.
+- Existing 11 m route, stats, and chart still remained.

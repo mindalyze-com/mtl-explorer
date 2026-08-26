@@ -1,0 +1,7 @@
+SRC_04 empty and no-result search states
+
+- Entered synthetic no-result query `zzzz-no-such-place-0047`.
+- The settled result state displayed the clear message `No matches`.
+- The searchbox retained the query and exposed a labelled `Clear search` button.
+- Activated `Clear search`; the searchbox emptied and the guidance `Search for a city, peak, or area` appeared.
+- Importance/Near map sort controls and the normal map remained available in both states.

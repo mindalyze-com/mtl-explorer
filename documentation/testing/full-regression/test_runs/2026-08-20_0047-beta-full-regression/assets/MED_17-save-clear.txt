@@ -1,0 +1,39 @@
+MED_17 saved correction, persistence, clear failure, and cleanup evidence
+
+Original capture metadata before save
+400000|video-estimated.mov|gps_time null|camera_time 2026-08-17 08:09:00
+400001|video-gps.mp4|gps_time null|camera_time 2026-08-17 08:15:00
+400002|estimated-a.jpg|gps_time null|camera_time 2026-08-17 08:01:30
+400003|photo-a.jpg|gps_time 08:00:00|camera_time 08:00:00
+400004|delete-a.jpg|gps_time 08:02:00|camera_time 08:02:00
+400005|photo-b.jpg|gps_time 08:01:00|camera_time 08:01:00
+400006|estimated-b.jpg|gps_time null|camera_time 08:02:30
+400007|delete-b.jpg|gps_time 08:03:00|camera_time 08:03:00
+
+Save and persistence
+- Previewed +0.25h (+900 s): 7 items; 3 in-window camera-clock items; four Photo GPS values unchanged.
+- Saved correction UI: three in-window camera items showed Saved clock correction +0.25h.
+- Database correctly stored +900 s for all four baseline camera-clock items: 400000, 400001, 400002, 400006.
+- The fourth item, video-gps.mp4, moved outside the activity window to 10:30 and left the timeline.
+- Page reload preserved the same seven core row values and saved labels.
+- App restart completed in 11.322 s; browser reload preserved the same seven core row values and saved labels.
+- Database after restart retained all four +900 s correction rows.
+
+Clear flow
+- Media tools exposed one Clear clock correction control per visible corrected item.
+- Clearing estimated-a restored its baseline 10:01 / 44.83 m correlation.
+- Clearing estimated-b and video-estimated likewise restored their baseline rows.
+- video-gps.mp4 remained outside the activity window, so its per-card Clear control was unreachable.
+- Stats 2026-Q3 mosaic still opened video-gps.mp4 at corrected time 10:30, but the general viewer exposed no Clear clock correction action.
+- Database at this point retained one correction row: 400001|900.
+
+Finding MTL-FR-012
+- Saving an activity-wide correction can move an affected item outside the activity timeline.
+- Clear is implemented only per visible activity card, and the general viewer has no equivalent action.
+- The user cannot clear the stranded correction or restore the complete baseline through the UI.
+
+Disposable cleanup
+- Used the production time-corrections API only for the unreachable media ID, with offset 0; login 200, clear 204.
+- Final database: 0 correction rows; 8 correlations; offset sum 0; 8 selected.
+- All eight original capture metadata rows exactly matched the pre-save values above.
+- Final browser timeline matched the MED_13 eight-row baseline byte-for-byte.

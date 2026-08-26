@@ -1,4 +1,4 @@
-import maplibregl from 'maplibre-gl';
+import * as maplibregl from 'maplibre-gl';
 import { formatRadius } from '@/utils/Utils';
 import { createGeoJsonCircle } from '@/utils/geoJson';
 import { VIZ_ACCENT_COLOR } from '@/utils/visualizationColors';

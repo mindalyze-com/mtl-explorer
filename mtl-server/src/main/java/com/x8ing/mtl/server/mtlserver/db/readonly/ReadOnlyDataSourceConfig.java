@@ -4,7 +4,6 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.jdbc.DataSourceBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.DependsOn;
@@ -27,7 +26,10 @@ import javax.sql.DataSource;
         "primaryUsername",
         "readonlyPassword",
         "primaryPassword",
-        "maximumPoolSize"
+        "maximumPoolSize",
+        "minimumIdle",
+        "readOnlyMaximumPoolSize",
+        "readOnlyMinimumIdle"
 })
 public class ReadOnlyDataSourceConfig {
 
@@ -49,6 +51,15 @@ public class ReadOnlyDataSourceConfig {
     @Value("${spring.datasource.hikari.maximum-pool-size}")
     private int maximumPoolSize;
 
+    @Value("${spring.datasource.hikari.minimum-idle:1}")
+    private int minimumIdle;
+
+    @Value("${mtl.db-readonly.maximum-pool-size:2}")
+    private int readOnlyMaximumPoolSize;
+
+    @Value("${mtl.db-readonly.minimum-idle:0}")
+    private int readOnlyMinimumIdle;
+
     @Primary
     @Bean(name = "primaryDataSource")
     public DataSource primaryDataSource() {
@@ -58,6 +69,7 @@ public class ReadOnlyDataSourceConfig {
         hikariConfig.setUsername(primaryUsername);
         hikariConfig.setPassword(primaryPassword);
         hikariConfig.setMaximumPoolSize(maximumPoolSize);
+        hikariConfig.setMinimumIdle(minimumIdle);
 
         return new HikariDataSource(hikariConfig);
     }
@@ -66,11 +78,14 @@ public class ReadOnlyDataSourceConfig {
     @Bean(name = "readOnlyDataSource")
     @DependsOn("liquibase") // this needs to initialized, after liquibase did run, as liquibase just creates the user
     public DataSource readOnlyDataSource() {
-        return DataSourceBuilder.create()
-                .url(dbURL)
-                .username(readonlyUsername)
-                .password(readonlyPassword)
-                .build();
+        HikariConfig hikariConfig = new HikariConfig();
+        hikariConfig.setJdbcUrl(dbURL);
+        hikariConfig.setUsername(readonlyUsername);
+        hikariConfig.setPassword(readonlyPassword);
+        hikariConfig.setMaximumPoolSize(readOnlyMaximumPoolSize);
+        hikariConfig.setMinimumIdle(readOnlyMinimumIdle);
+        hikariConfig.setReadOnly(true);
+        return new HikariDataSource(hikariConfig);
     }
 
     @Bean(name = "readOnlyJdbcTemplate")

@@ -13,12 +13,13 @@
         <span class="photo-credit">© Patrick Heusser</span>
         <div class="curtain-content">
           <img :src="logoSvg" class="photo-logo" alt="MTL Explorer" />
-          <div v-if="!loadFailed" class="photo-loader">
+          <div v-if="!startupError" class="photo-loader">
             <p class="photo-status">{{ currentSplashMessage }}<span class="photo-dots"></span></p>
             <div class="photo-progress-track"><div class="photo-progress-bar"></div></div>
           </div>
           <div v-else class="curtain-error">
-            <p>Unable to load tracks — no server connection and no cached data available.</p>
+            <p v-if="loadFailed">Unable to load tracks — no server connection and no cached data available.</p>
+            <p v-else>Track loading is taking longer than expected. Check the server connection and retry.</p>
             <Button label="Retry" icon="bi bi-arrow-clockwise" class="p-button-danger mt-3" @click="retryLoad" />
           </div>
         </div>
@@ -70,12 +71,14 @@ const SPLASH_MESSAGES = [
 
 const showCurtain = ref(true);
 const loadFailed = ref(false);
+const loadTimedOut = ref(false);
 const syncing = ref(false);
 const bgImage = getRandomBackground();
 const fromLogin = ref(sessionStorage.getItem(FROM_LOGIN_KEY) === '1');
 const capturedLogoTop = ref(fromLogin.value ? consumeSplashLogoTop() : null);
 const currentSplashMessageIndex = ref(0);
 const currentSplashMessage = computed(() => SPLASH_MESSAGES[currentSplashMessageIndex.value]);
+const startupError = computed(() => loadFailed.value || loadTimedOut.value);
 const curtainStyle = computed<CSSProperties | undefined>(() => {
   if (capturedLogoTop.value === null) return undefined;
   return { '--splash-content-top': `${capturedLogoTop.value}px` } as CSSProperties;
@@ -90,7 +93,7 @@ onMounted(() => {
   sessionStorage.removeItem(FROM_LOGIN_KEY);
   if (!fromLogin.value) clearSplashLogoTop();
   startSplashMessages();
-  splashFallbackTimer = setTimeout(forceHideCurtainAfterTimeout, MAXIMUM_SPLASH_MS);
+  splashFallbackTimer = setTimeout(showStartupTimeout, MAXIMUM_SPLASH_MS);
   startupLog('curtain', 'Home view mounted; curtain visible', { fromLogin: fromLogin.value });
 });
 
@@ -129,11 +132,12 @@ function hideCurtain() {
   stopSplashFallbackTimer();
 }
 
-function forceHideCurtainAfterTimeout() {
+function showStartupTimeout() {
   splashFallbackTimer = null;
   if (!showCurtain.value || loadFailed.value) return;
-  startupWarn('curtain', 'Startup curtain timed out; revealing map shell');
-  hideCurtain();
+  startupWarn('curtain', 'Startup curtain timed out; showing retry state');
+  loadTimedOut.value = true;
+  stopSplashMessages();
 }
 
 function onTracksLoaded() {
@@ -141,6 +145,7 @@ function onTracksLoaded() {
     startupWarn('curtain', 'tracks-loaded received after load-failed; keeping startup error visible');
     return;
   }
+  loadTimedOut.value = false;
   const elapsed = performance.now() - curtainShownAt;
   const remaining = Math.max(0, MINIMUM_SPLASH_MS - elapsed);
   startupLog('curtain', 'tracks-loaded received', { elapsedMs: Math.round(elapsed), delayMs: Math.round(remaining) });
@@ -156,6 +161,7 @@ function onTracksLoaded() {
 function onLoadFailed() {
   startupWarn('curtain', 'load-failed received; showing startup error state');
   loadFailed.value = true;
+  showCurtain.value = true;
   stopSplashMessages();
 }
 

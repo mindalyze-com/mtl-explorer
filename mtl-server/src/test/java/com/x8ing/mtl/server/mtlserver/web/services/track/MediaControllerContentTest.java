@@ -13,6 +13,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.Optional;
 
 import static org.mockito.Mockito.mock;
@@ -34,6 +35,7 @@ class MediaControllerContentTest {
 
     private MediaRepository mediaRepository;
     private VideoThumbnailService videoThumbnailService;
+    private MediaProcessLimiter mediaProcessLimiter;
     private MockMvc mockMvc;
     private Path videoPath;
 
@@ -44,6 +46,7 @@ class MediaControllerContentTest {
 
         mediaRepository = mock(MediaRepository.class);
         videoThumbnailService = mock(VideoThumbnailService.class);
+        mediaProcessLimiter = mediaProcessLimiter();
         when(mediaRepository.findById(MEDIA_ID)).thenReturn(Optional.of(mediaFile(videoPath)));
 
         mockMvc = MockMvcBuilders.standaloneSetup(new MediaController(
@@ -52,7 +55,7 @@ class MediaControllerContentTest {
                 mock(MediaPositionService.class),
                 mock(MediaTrendService.class),
                 videoThumbnailService,
-                imageMagickProcessLimiter())).build();
+                mediaProcessLimiter)).build();
     }
 
     @Test
@@ -99,6 +102,22 @@ class MediaControllerContentTest {
         verify(videoThumbnailService).createThumbnail(videoPath, 192);
     }
 
+    @Test
+    void returnsServiceUnavailableInsteadOfWaitingForImageProcessing() throws Exception {
+        Path imagePath = tempDirectory.resolve("synthetic.jpg");
+        Files.write(imagePath, "synthetic-image-payload".getBytes());
+        when(mediaRepository.findById(MEDIA_ID)).thenReturn(Optional.of(mediaFile(imagePath)));
+
+        try (MediaProcessLimiter.Permit ignored = mediaProcessLimiter.acquire()) {
+            mockMvc.perform(get("/api/media/get/{id}/content", MEDIA_ID)
+                            .queryParam("maxSize", "192"))
+                    .andExpect(status().isServiceUnavailable())
+                    .andExpect(header().string(HttpHeaders.CACHE_CONTROL, "no-store"))
+                    .andExpect(header().doesNotExist(HttpHeaders.ETAG))
+                    .andExpect(header().doesNotExist(HttpHeaders.LAST_MODIFIED));
+        }
+    }
+
     private static MediaFile mediaFile(Path path) {
         IndexedFile indexedFile = new IndexedFile();
         indexedFile.setName(path.getFileName().toString());
@@ -110,7 +129,9 @@ class MediaControllerContentTest {
         return mediaFile;
     }
 
-    private static ImageMagickProcessLimiter imageMagickProcessLimiter() {
-        return new ImageMagickProcessLimiter(new ImageMagickProperties());
+    private static MediaProcessLimiter mediaProcessLimiter() {
+        MediaProcessProperties properties = new MediaProcessProperties();
+        properties.setAcquireTimeout(Duration.ZERO);
+        return new MediaProcessLimiter(properties);
     }
 }

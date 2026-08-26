@@ -1,7 +1,7 @@
 package com.x8ing.mtl.server.mtlserver.db.entity.gps;
 
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import tools.jackson.databind.annotation.JsonSerialize;
 import com.x8ing.mtl.server.mtlserver.web.global.LineStringSerializer;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Schema;

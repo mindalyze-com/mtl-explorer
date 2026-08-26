@@ -1,0 +1,16 @@
+ADM_12 Admin route synchronization
+
+Desktop routes/history
+- Started at /mtl/admin/processing.
+- Direct navigation to /mtl/admin/logs rendered the Server log heading and populated content.
+- Browser Back restored /mtl/admin/processing.
+- Browser Forward restored /mtl/admin/logs.
+
+Close failure
+- Activated the sole labelled Admin `Close` button and waited more than one second: route stayed /mtl/admin/logs and Admin remained open.
+- Repeated from a fresh direct /mtl/admin/logs navigation: the first Close again stayed on the Admin route after 1.1 s.
+- In both cases, a second Close activation returned to /mtl/ with the 8 Tracks map.
+- MTL-FR-021 (P2, OPEN): direct Admin section routes require two Close activations.
+
+Constraint
+- Mobile Back could not be executed because the connected browser exposes no viewport resize or touch-emulation control.

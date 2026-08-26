@@ -20,9 +20,7 @@ const maplibreMock = vi.hoisted(() => {
 });
 
 vi.mock('maplibre-gl', () => ({
-  default: {
-    Popup: maplibreMock.MockPopup,
-  },
+  Popup: maplibreMock.MockPopup,
 }));
 
 import { createTrackPointPopup, TRACK_POINT_POPUP_MAX_WIDTH } from '@/components/map/trackPointPopup';

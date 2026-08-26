@@ -1,0 +1,10 @@
+TBS_06 Statistics Overview content
+
+Active eight-track result:
+- Tracks 8; Distance 1,043 km; Duration 23h 31m; Energy 4,530 Wh; Ascent 12,946 m.
+- Activity Breakdown: Bicycle 7, Walking 1; Tracks/Distance/Duration/Energy metric controls.
+- Highlights include longest track, longest duration, biggest/quickest ascent, most energy, fastest 30 s speed, peak 30 s power, and most common activity.
+- Rhythm & Milestones contains most active day/week/month/weekday with populated counts/totals.
+- Milestones contains first/latest activity and populated distance/ascent thresholds.
+- Recent Activity contains matching current-result rows.
+- No blank total, empty ranking, or missing milestone section appeared.

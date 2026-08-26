@@ -1,0 +1,9 @@
+Pass: offline
+Phase: restore A2 while stopped
+Shutdown proof: container not running and port 18092 closed
+Pre-mutation/persisted-before-restart: 5/5; 5/5
+Mutation/restart/settled UTC: 20:24:12 / 20:24:12 / 20:24:34
+Expected/actual active GPX/media: 6/6; 6/6
+Evidence: startup scans reprocessed the exact backups; existing index rows reused with invocation 4; no duplicate paths; GUI showed 6 Tracks.
+Manual rescan used: no
+Status: PASS

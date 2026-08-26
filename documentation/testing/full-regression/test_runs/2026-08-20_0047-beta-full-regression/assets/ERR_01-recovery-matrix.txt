@@ -1,0 +1,30 @@
+Coverage: ERR_01
+
+Failed track load (direct current check)
+- Opened /mtl/track/999999999.
+- Track Details showed `Track details could not be loaded` and explained to check the server connection, retry, or return to the map.
+- Enabled Retry and Back actions were present; 3D Replay was disabled.
+- Back returned to the healthy eight-track map.
+
+Failed startup track collection (same target/run)
+- SGN_07 paused the disposable database during clean startup.
+- This deployed target removed the splash but exposed a misleading 0 Tracks map without an error or Retry until the dependency returned.
+- Existing MTL-FR-003 is FIXED and directly retested in the shared local worktree, but this target image predates that fix.
+
+Failed map config
+- The client caches map config in memory/local storage and has a built-in remote fallback.
+- The connected browser has no request interception and the disposable server exposes map config in the same app process as authentication/UI APIs.
+- A first-party map-config-only failure cannot be isolated without changing deployment/security configuration, so this child path remains blocked.
+
+Failed media
+- MED_05 produced a real image 500 with `Preview unavailable`, Retry, Download, details, and no blank/stuck sheet; Retry retained the same actionable state.
+- MED_42 also showed bounded compatible-video failure with visible Retry/Cancel and successful cleanup.
+
+Failed Planner route
+- PLN_09 stopped only BRouter. Planner showed BRouter unavailable and `Route unavailable for these points. Move waypoints onto routable roads or trails, or try again later.`
+- No crash/control loss occurred; BRouter was restarted and returned ready.
+
+Expired session
+- NET_03 invalidated the exact active server session. The next protected action redirected to /mtl/login?reason=expired with a complete login form; re-login restored the map.
+
+Result: most actionable paths pass, but the deployed target's clean-start track failure is not actionable (existing MTL-FR-003); map-config-only injection is blocked.

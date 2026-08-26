@@ -1,0 +1,21 @@
+Signed-out remote URL:
+http://62.238.106.141:18080/mtl/login?reason=expired
+Visible state: MTL Explorer logo, Username, Password, Sign In, About & source, and a clear Session expired message.
+
+README credential check:
+Login source: GitHub main README (credential values intentionally omitted from this artifact).
+Result: successful; redirected to http://62.238.106.141:18080/mtl/.
+Visible post-login state: map region, OSM attribution, zero tracks, Search, Stats, Filter, Map, Animate, Segments, GPS, Planner, Admin, and About MTL Explorer.
+
+About check:
+Brand: MTL Explorer
+Description: Self-hosted GPS track and trail log.
+Displayed Version: dev
+Displayed License: AGPL-3.0-or-later
+Source link: https://github.com/mindalyze-com/mtl-explorer
+
+Build identity recorded from startup metadata:
+Server version: 0.0.1-SNAPSHOT
+Build timestamp: 2026-08-19T22:39:23.274Z
+Image version: 1.404
+Image build timestamp: 2026-08-19T22:39:08Z

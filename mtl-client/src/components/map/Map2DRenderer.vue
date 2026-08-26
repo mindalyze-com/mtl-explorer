@@ -1,12 +1,6 @@
 <template>
   <div class="container">
-    <!-- Base map: base tiles only. CSS filter (grayscale + brightness) applied here to dim
-         the base independently of overlays, which live on the overlay map above. -->
-    <div ref="mapBaseContainer" class="map-base" :style="baseMapStyle"></div>
-
-    <!-- Overlay map: Swiss Mobility overlays, tracks, highlights, heatmap, media —
-         always full color, transparent background. -->
-    <div ref="mapOverlayContainer" class="map-overlay"></div>
+    <div ref="mapContainer" class="map"></div>
 
     <!-- ─── Navigation sheet (bottom bar mobile / left panel desktop) ─── -->
     <NavigationSheet
@@ -535,8 +529,7 @@ const route = useRoute();
 const router = useRouter();
 const { mediaViewerThemeClass } = useMediaViewerTheme();
 
-const mapBaseContainer = ref(null);
-const mapOverlayContainer = ref(null);
+const mapContainer = ref(null);
 const navSheet = ref(null);
 const mapSettingsTool = ref(null);
 const animateTool = ref(null);
@@ -618,7 +611,6 @@ const {
   freshnessReloading,
   geoDrawingParamDef,
   selectionPopupTracks,
-  baseMapStyle,
   layerStatesForPanel,
   mediaCurrentIndex,
   mediaCanGoPrev,
@@ -704,8 +696,7 @@ const {
   onFilterStyleChanged,
   reloadMap,
 } = useMainMapController(props, emit, toast, {
-  mapBaseContainer,
-  mapOverlayContainer,
+  mapContainer,
   navSheet,
   mapSettingsTool,
   animateTool,
@@ -997,8 +988,7 @@ watch([trackDetailsVisible, trackDetailsId], ([visible, id]) => {
   }
 }
 
-.map-base,
-.map-overlay {
+.map {
   position: absolute;
   top: 0;
   left: 0;
@@ -1006,30 +996,16 @@ watch([trackDetailsVisible, trackDetailsId], ([visible, id]) => {
   height: 100%;
 }
 
-/* Desktop: position overlays relative to map area */
-
-.map-base {
-  pointer-events: none;
-}
-
-.map-overlay :deep(.maplibregl-canvas) {
-  background: transparent !important;
-}
-
-.map-base :deep(.maplibregl-control-container) {
-  display: none;
-}
-
-.map-overlay :deep(.maplibregl-ctrl-bottom-right) {
+.map :deep(.maplibregl-ctrl-bottom-right) {
   right: 0;
   bottom: calc(var(--nav-sheet-h, 0px) + var(--safe-bottom, 0px));
 }
 
-.map-overlay :deep(.maplibregl-ctrl-bottom-right .maplibregl-ctrl) {
+.map :deep(.maplibregl-ctrl-bottom-right .maplibregl-ctrl) {
   margin: 0 var(--mtl-map-attribution-bottom-gap) var(--mtl-map-attribution-bottom-gap) 0;
 }
 
-.map-overlay :deep(.maplibregl-ctrl-attrib) {
+.map :deep(.maplibregl-ctrl-attrib) {
   max-width: min(80vw, 34rem);
   min-height: 0;
   overflow: hidden;
@@ -1045,19 +1021,19 @@ watch([trackDetailsVisible, trackDetailsId], ([visible, id]) => {
   white-space: nowrap;
 }
 
-.map-overlay :deep(.maplibregl-ctrl-attrib a) {
+.map :deep(.maplibregl-ctrl-attrib a) {
   color: inherit;
   text-decoration: none;
 }
 
-.map-overlay :deep(.maplibregl-ctrl-attrib a:hover) {
+.map :deep(.maplibregl-ctrl-attrib a:hover) {
   color: rgba(248, 250, 252, 0.88);
   text-decoration: underline;
 }
 
 /* ─── Custom map control buttons ─── */
-.map-overlay :deep(.mtl-globe-btn),
-.map-overlay :deep(.mtl-terrain-btn) {
+.map :deep(.mtl-globe-btn),
+.map :deep(.mtl-terrain-btn) {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1073,27 +1049,27 @@ watch([trackDetailsVisible, trackDetailsId], ([visible, id]) => {
     color 0.15s,
     background 0.15s;
 }
-.map-overlay :deep(.mtl-globe-btn:hover),
-.map-overlay :deep(.mtl-terrain-btn:hover) {
+.map :deep(.mtl-globe-btn:hover),
+.map :deep(.mtl-terrain-btn:hover) {
   background: var(--surface-hover);
   color: var(--text-primary);
 }
-.map-overlay :deep(.mtl-globe-btn.mtl-globe-active),
-.map-overlay :deep(.mtl-terrain-btn.mtl-terrain-active) {
+.map :deep(.mtl-globe-btn.mtl-globe-active),
+.map :deep(.mtl-terrain-btn.mtl-terrain-active) {
   color: var(--info);
 }
-.map-overlay :deep(.mtl-terrain-btn.mtl-terrain-active) {
+.map :deep(.mtl-terrain-btn.mtl-terrain-active) {
   background: var(--accent) !important;
   color: var(--accent-contrast) !important;
   box-shadow:
     inset 0 0 0 1px color-mix(in srgb, var(--accent-contrast) 18%, transparent),
     0 0 0 2px var(--accent-subtle);
 }
-.map-overlay :deep(.mtl-globe-btn.mtl-globe-active:hover),
-.map-overlay :deep(.mtl-terrain-btn.mtl-terrain-active:hover) {
+.map :deep(.mtl-globe-btn.mtl-globe-active:hover),
+.map :deep(.mtl-terrain-btn.mtl-terrain-active:hover) {
   color: var(--viz-blue);
 }
-.map-overlay :deep(.mtl-terrain-btn.mtl-terrain-active:hover) {
+.map :deep(.mtl-terrain-btn.mtl-terrain-active:hover) {
   background: var(--accent-hover) !important;
   color: var(--accent-contrast) !important;
 }

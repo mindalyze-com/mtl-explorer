@@ -1,0 +1,21 @@
+MED_24 immediate resolved-marker bounds evidence
+
+Request
+- Identical authenticated URL for all three reads:
+  GET /api/media/get-media-in-bounds?minLat=46.947&minLng=7.446&maxLat=46.950&maxLng=7.450
+- Target: estimated-a, media 400002.
+
+Sequence with no wait or reload between each mutation and following GET
+1. Baseline GET: HTTP 200, 4.102 ms, Cache-Control: no-store.
+   {"id":400002,"lat":46.94809,"lng":7.44751}
+2. Production PUT manual location 46.94920,7.44920: HTTP 204.
+3. Immediate identical GET: HTTP 200, 8.792 ms, Cache-Control: no-store.
+   {"id":400002,"lat":46.9492,"lng":7.4492}
+4. Production DELETE manual location: HTTP 204.
+5. Immediate identical GET: HTTP 200, 4.596 ms, Cache-Control: no-store.
+   {"id":400002,"lat":46.94809,"lng":7.44751}
+
+Final database state
+- Manual locations: 0; time corrections: 0.
+- media 400002 resolved origin TRACK_INTERPOLATED at 46.94809,7.44751.
+- Correlation work queues: 0 media, 0 track.

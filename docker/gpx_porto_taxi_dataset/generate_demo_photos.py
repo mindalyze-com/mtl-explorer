@@ -48,30 +48,31 @@ MIN_SEGMENT_RATIO = 0.1
 MAX_SEGMENT_RATIO = 0.9
 ONE_SECOND = timedelta(seconds=1)
 STANDALONE_FALLBACK_OFFSET = timedelta(days=1)
-PHOTO_GENERATION_BATCH_SIZE = 50
+PHOTO_GENERATION_PROGRESS_INTERVAL = 50
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class TrackPoint:
     latitude: float
     longitude: float
     captured_at: datetime
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class DemoTrack:
-    timed_segments: tuple[tuple[TrackPoint, TrackPoint], ...]
+    path: Path
+    timed_segment_count: int
     start: datetime
     end: datetime
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class CaptureGap:
     start: datetime
     seconds: int
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class DemoPhotoRenderTask:
     photo_index: int
     latitude: float
@@ -105,52 +106,94 @@ def render_demo_photo(task: DemoPhotoRenderTask) -> int:
     return task.photo_index
 
 
+def gpx_namespace(root: ET.Element) -> str:
+    if root.tag.startswith("{"):
+        return root.tag.split("}")[0] + "}"
+    return ""
+
+
+def parse_track_point(track_point: ET.Element, namespace: str) -> TrackPoint | None:
+    latitude = track_point.get("lat")
+    longitude = track_point.get("lon")
+    time_element = track_point.find(f"{namespace}time")
+    if not latitude or not longitude or time_element is None or not time_element.text:
+        return None
+    try:
+        captured_at = datetime.strptime(time_element.text.rstrip("Z"), "%Y-%m-%dT%H:%M:%S")
+        return TrackPoint(float(latitude), float(longitude), captured_at)
+    except ValueError:
+        return None
+
+
 def parse_gpx_track(gpx_path: str | Path) -> DemoTrack | None:
-    """Read ordered timed points and usable interpolation segments from a GPX file."""
+    """Read only the metadata needed to select timed segments from one GPX file."""
     path = Path(gpx_path)
     try:
         tree = ET.parse(path)
     except (ET.ParseError, OSError):
         return None
-
     root = tree.getroot()
-    namespace = ""
-    if root.tag.startswith("{"):
-        namespace = root.tag.split("}")[0] + "}"
-
-    points: list[TrackPoint] = []
+    namespace = gpx_namespace(root)
+    previous: TrackPoint | None = None
+    start: datetime | None = None
+    end: datetime | None = None
+    timed_segment_count = 0
     for track_point in root.iter(f"{namespace}trkpt"):
-        latitude = track_point.get("lat")
-        longitude = track_point.get("lon")
-        time_element = track_point.find(f"{namespace}time")
-        if not latitude or not longitude or time_element is None or not time_element.text:
+        current = parse_track_point(track_point, namespace)
+        if current is None:
             continue
-        try:
-            captured_at = datetime.strptime(time_element.text.rstrip("Z"), "%Y-%m-%dT%H:%M:%S")
-            points.append(TrackPoint(float(latitude), float(longitude), captured_at))
-        except ValueError:
-            continue
+        start = current.captured_at if start is None else min(start, current.captured_at)
+        end = current.captured_at if end is None else max(end, current.captured_at)
+        if previous is not None and current.captured_at > previous.captured_at:
+            timed_segment_count += 1
+        previous = current
 
-    if not points:
+    if start is None or end is None:
         return None
-
-    timed_segments = tuple(
-        (before, after)
-        for before, after in zip(points, points[1:])
-        if after.captured_at > before.captured_at
-    )
-    capture_times = [point.captured_at for point in points]
     return DemoTrack(
-        timed_segments=timed_segments,
-        start=min(capture_times),
-        end=max(capture_times),
+        path=path,
+        timed_segment_count=timed_segment_count,
+        start=start,
+        end=end,
     )
 
 
 def collect_tracks(gpx_dir: str | Path) -> list[DemoTrack]:
-    """Return valid tracks in deterministic filename order."""
+    """Return compact track metadata in deterministic filename order."""
     paths = sorted(glob.glob(os.path.join(str(gpx_dir), "**", "*.gpx"), recursive=True))
     return [track for path in paths if (track := parse_gpx_track(path)) is not None]
+
+
+def load_timed_segment(
+    track: DemoTrack,
+    segment_index: int,
+) -> tuple[TrackPoint, TrackPoint]:
+    """Load one selected segment without retaining another track's points."""
+    if segment_index < 0 or segment_index >= track.timed_segment_count:
+        raise IndexError(f"Timed segment index {segment_index} is outside {track.path}")
+
+    try:
+        tree = ET.parse(track.path)
+    except (ET.ParseError, OSError) as exception:
+        raise RuntimeError(f"Could not reload GPX track {track.path}") from exception
+
+    root = tree.getroot()
+    namespace = gpx_namespace(root)
+    previous: TrackPoint | None = None
+    current_segment_index = 0
+    for track_point in root.iter(f"{namespace}trkpt"):
+        current = parse_track_point(track_point, namespace)
+        if current is None:
+            continue
+        if previous is not None and current.captured_at > previous.captured_at:
+            if current_segment_index == segment_index:
+                return previous, current
+            current_segment_index += 1
+        previous = current
+
+    raise RuntimeError(
+        f"Timed segment {segment_index} is no longer available in GPX track {track.path}"
+    )
 
 
 def offset_point(
@@ -186,7 +229,10 @@ def choose_track_position(
     rng: random.Random,
 ) -> tuple[float, float, datetime]:
     track = rng.choice(tracks)
-    before, after = rng.choice(track.timed_segments)
+    before, after = load_timed_segment(
+        track,
+        rng.randrange(track.timed_segment_count),
+    )
     ratio = rng.uniform(MIN_SEGMENT_RATIO, MAX_SEGMENT_RATIO)
     return interpolate_segment(before, after, ratio)
 
@@ -322,8 +368,10 @@ def generate_demo_photos(
         if eligible_track_count <= 0
         else min(eligible_track_count, len(tracks))
     )
-    position_tracks = [track for track in tracks if track.timed_segments]
-    eligible_tracks = [track for track in tracks[:eligible_count] if track.timed_segments]
+    position_tracks = [track for track in tracks if track.timed_segment_count > 0]
+    eligible_tracks = [
+        track for track in tracks[:eligible_count] if track.timed_segment_count > 0
+    ]
     if not eligible_tracks:
         raise RuntimeError("No eligible GPX tracks contain an increasing timed segment")
 
@@ -339,36 +387,33 @@ def generate_demo_photos(
     standalone_generated = 0
     highest_completed_index = completed_index
 
-    # Keep rendering single-process. The Java server and this generator share one
-    # container memory limit, and each Python worker would duplicate the parsed GPX
-    # graph, Pillow render buffers, and image caches. Four workers previously pushed
-    # the large demo over its 4 GiB limit. Photo generation is a one-time bootstrap,
-    # so lower peak memory is more important than completing it quickly.
-    for batch_start in range(0, len(pending_indices), PHOTO_GENERATION_BATCH_SIZE):
-        batch_indices = pending_indices[
-            batch_start : batch_start + PHOTO_GENERATION_BATCH_SIZE
-        ]
-        tasks: list[DemoPhotoRenderTask] = []
-        for photo_index in batch_indices:
-            task, linked = prepare_render_task(
-                photo_index,
-                output_dir,
-                eligible_tracks,
-                position_tracks,
-                standalone_gaps,
-                latest_track_time,
-            )
-            tasks.append(task)
-            if linked:
-                linked_generated += 1
-            else:
-                standalone_generated += 1
+    # Keep the catalog compact and render one photo at a time. The selected GPX
+    # segment is loaded on demand, so the Java server does not share its cgroup with
+    # hundreds of thousands of retained Python track-point and segment objects.
+    for generated_count, photo_index in enumerate(pending_indices, start=1):
+        task, linked = prepare_render_task(
+            photo_index,
+            output_dir,
+            eligible_tracks,
+            position_tracks,
+            standalone_gaps,
+            latest_track_time,
+        )
+        if linked:
+            linked_generated += 1
+        else:
+            standalone_generated += 1
 
-        completed_indices = [render_demo_photo(task) for task in tasks]
-        highest_completed_index = max(highest_completed_index, *completed_indices)
-        generated_count = batch_start + len(batch_indices)
+        completed_index = render_demo_photo(task)
+        highest_completed_index = max(highest_completed_index, completed_index)
+        # Persist every atomically published photo. A restart can repeat at most
+        # the photo that completed immediately before this progress write.
         write_completed_index(progress_path, highest_completed_index)
-        print(f"   … generated {generated_count}/{len(pending_indices)}")
+        if (
+            generated_count % PHOTO_GENERATION_PROGRESS_INTERVAL == 0
+            or generated_count == len(pending_indices)
+        ):
+            print(f"   … generated {generated_count}/{len(pending_indices)}")
 
     write_completed_index(progress_path, max(highest_completed_index, num_photos))
     print(

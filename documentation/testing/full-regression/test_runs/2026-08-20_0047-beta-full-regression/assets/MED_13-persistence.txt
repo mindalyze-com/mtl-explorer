@@ -1,0 +1,34 @@
+MED_13 persisted activity timeline evidence
+
+Track
+- ID: 100013
+- Name: MTL Regression Media Track
+- Activity timeline UI: Track Details > Media
+
+Baseline capture-time order
+1. mtl-regression-photo-a.jpg | Photo GPS | 17/08/2026 10:00 | 38.50 m
+2. mtl-regression-photo-b.jpg | Photo GPS | 17/08/2026 10:01 | 42.72 m
+3. mtl-regression-estimated-a.jpg | Estimated | 17/08/2026 10:01 | 44.83 m
+4. mtl-regression-delete-a.jpg | Photo GPS | 17/08/2026 10:02 | 46.94 m
+5. mtl-regression-estimated-b.jpg | Estimated | 17/08/2026 10:02 | 49.05 m
+6. mtl-regression-delete-b.jpg | Photo GPS | 17/08/2026 10:03 | 51.16 m
+7. mtl-regression-video-estimated.mov | Estimated | 17/08/2026 10:09 | 81.80 m
+8. mtl-regression-video-gps.mp4 | Video GPS | 17/08/2026 10:15 | 121.13 m
+
+Persistence checks
+- Page reload: all eight row strings matched byte-for-byte in the same order.
+- Page reload: all eight marker accessible names, provenance classes, and rendered positions matched exactly.
+- Disposable app restart: Tomcat and MTL Explorer restarted successfully; application startup took 11.342 seconds.
+- After restart and browser reload: all eight row strings matched byte-for-byte in the same order.
+- After restart: all eight marker accessible names, provenance classes, and rendered positions matched exactly.
+
+Read-only database evidence after restart
+id|file|captured_at UTC|time_source|selected|ambiguous|origin|lat|lon|distance_m
+400003|mtl-regression-photo-a.jpg|2026-08-17 08:00:00|EXIF_GPS|t|f|EXIF_EMBEDDED|46.9480000000|7.4474000000|38.5
+400005|mtl-regression-photo-b.jpg|2026-08-17 08:01:00|EXIF_GPS|t|f|EXIF_EMBEDDED|46.9481800000|7.4476800000|42.7183333333
+400002|mtl-regression-estimated-a.jpg|2026-08-17 08:01:30|EXIF_DATE_TAKEN|t|f|TRACK_INTERPOLATED|46.9480874986|7.4475124989|44.8275
+400004|mtl-regression-delete-a.jpg|2026-08-17 08:02:00|EXIF_GPS|t|f|EXIF_EMBEDDED|46.9483600000|7.4479600000|46.9366666667
+400006|mtl-regression-estimated-b.jpg|2026-08-17 08:02:30|EXIF_DATE_TAKEN|t|f|TRACK_INTERPOLATED|46.9481124993|7.4475541662|49.0458333333
+400007|mtl-regression-delete-b.jpg|2026-08-17 08:03:00|EXIF_GPS|t|f|EXIF_EMBEDDED|46.9488500000|7.4485500000|51.155
+400000|mtl-regression-video-estimated.mov|2026-08-17 08:09:00|EXIF_DATE_TAKEN|t|f|TRACK_INTERPOLATED|46.9483250001|7.4478500000|81.795
+400001|mtl-regression-video-gps.mp4|2026-08-17 08:15:00|EXIF_DATE_TAKEN|t|f|EXIF_EMBEDDED|46.9486000000|7.4481500000|121.125

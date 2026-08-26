@@ -1,0 +1,10 @@
+PLN_06 elevation-profile hover evidence
+
+- Route: 5.13 km, one leg.
+- Profile rendered as a Highcharts interactive chart with 19 data points.
+- Hover at the series midpoint produced:
+  - crosshair: visible, opacity 1, height 449 px;
+  - tooltip: visible, opacity 1, text 2.40 km / 639 m / +0.2%;
+  - linked map element: planner-hover-marker maplibregl-marker;
+  - map marker: visible, opacity 1, 14x14 px at screen position x=500, y=159.
+- Moving the pointer used the end-user pointer surface.

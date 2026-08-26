@@ -1,0 +1,7 @@
+TBS_05 row navigation
+
+- Source: Statistics > Tracks, All preset.
+- Activated row: Moselradweg aus Wiki on GPSies.com.
+- Destination: /mtl/track/100001.
+- Track Details opened with the matching name.
+- Overview was selected and three Map regions (main/detail contexts) were present.

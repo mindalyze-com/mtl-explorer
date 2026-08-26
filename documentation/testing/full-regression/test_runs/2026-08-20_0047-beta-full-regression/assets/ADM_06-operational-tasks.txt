@@ -1,0 +1,9 @@
+ADM_06 operational-task status
+
+- Vector Map Tiles: done, 100%; `Using hosted map service`; Protomaps archive `public-default`; Hosted map service.
+- Location Search: done, 100%; `GeoNames location search ready.`
+- Location detail exposed image 1.10, build timestamp, Python/SQLite/APSW versions, GeoNames attribution/license/source URL, schema version, and 1,332,531 row count (233,251 populated places; 1,099,280 terrain).
+- Routing Segments: ready, 100%; `Routing segments are ready for planned routes.`
+- Routing detail exposed image 1.21, build timestamp, BRouter 1.7.9, and 6 segments on disk.
+- All three cards used explicit state labels, progress, summaries, and technical detail rather than blank placeholders.
+- Downloading/unavailable/disabled variants were not applicable because all configured services were ready on this target.

@@ -1,0 +1,8 @@
+Verified source used: https://github.com/gps-touring/sample-gpx (master)
+All five URLs suggested by the frozen plan were downloaded successfully with HTTP success and retained filenames:
+- BrittanyJura/JuraRoute72011.gpx
+- BrittanyJura/MoselradwegAusWiki.gpx
+- BrittanyJura/Vitry-le-Francois_Langres.gpx
+- BrittanyJura/VoieVerteHauteVosges.gpx
+- RoscoffCoastal/Lannion_Plestin_parcours24.4RE.gpx
+Checksums and validation counts: DAT_01-public-gpx.txt.

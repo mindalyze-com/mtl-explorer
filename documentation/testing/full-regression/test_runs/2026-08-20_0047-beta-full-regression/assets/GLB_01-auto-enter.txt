@@ -1,0 +1,7 @@
+GLB_01 automatic globe entry
+
+- Started from the Zürich map at 100 m scale with the globe control outside its visible zone.
+- Used the normal Zoom out control 15 times, allowing each transition to settle.
+- At 500 km the globe control was visible but reported `aria-pressed=false`.
+- Continued zooming out; at 1000 km the same control reported `aria-pressed=true` and gained the `mtl-globe-active` class.
+- Zoom, rotation, terrain, location search, filter, and navigation controls remained available.

@@ -1,0 +1,7 @@
+SYN_04 FIT conversion freshness/cache parity
+
+- FIT_01 copied the official GPS-bearing Garmin Activity.fit into the watched folder byte-identically.
+- FIT_02 recorded live GPSBabel conversion and index SUCCESS for track 100005; server freshness changed and the banner appeared.
+- Applying the freshness reload synchronized client/server revisions and changed the application dataset from five to six tracks exactly as native GPX import did.
+- Map, exact-name search, detail tabs, charts, quality, related tracks, events, statistics, original download, and GPX conversion download all used the imported FIT-backed track.
+- Original stayed 94,096-byte FIT; converted download was valid GPX with all 3,601 trackpoints.

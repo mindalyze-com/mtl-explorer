@@ -5,8 +5,9 @@ const MAX_SCALE = 6;
 const WHEEL_SCALE_RATE = 0.002;
 const SWIPE_THRESHOLD_PX = 56;
 const SWIPE_HORIZONTAL_DOMINANCE = 1.25;
+const VIDEO_CONTROLS_EXCLUSION_HEIGHT_PX = 56;
 const INTERACTIVE_TARGET_SELECTOR =
-  'button, a, input, textarea, select, video, [contenteditable="true"], [data-media-control]';
+  'button, a, input, textarea, select, [contenteditable="true"], [data-media-control]';
 
 type Point = { x: number; y: number };
 
@@ -102,10 +103,12 @@ export function useMediaViewport(options: {
   }
 
   function onPointerDown(event: PointerEvent): void {
-    if (event.button !== 0 || !options.imageEl.value || isInteractiveTarget(event.target)) return;
+    if (event.button !== 0 || isInteractiveTarget(event.target) || isVideoControlsPointer(event)) return;
     const viewport = options.viewportEl.value;
     if (!viewport) return;
-    viewport.setPointerCapture?.(event.pointerId);
+    const eventTarget = event.target;
+    const captureTarget = eventTarget instanceof Element ? eventTarget : viewport;
+    captureTarget.setPointerCapture?.(event.pointerId);
     points.set(event.pointerId, { x: event.clientX, y: event.clientY });
 
     if (points.size === 1) {
@@ -203,4 +206,12 @@ function midpoint(a: Point, b: Point): Point {
 
 function isInteractiveTarget(target: EventTarget | null): boolean {
   return target instanceof Element && target.closest(INTERACTIVE_TARGET_SELECTOR) != null;
+}
+
+function isVideoControlsPointer(event: PointerEvent): boolean {
+  if (!(event.target instanceof Element)) return false;
+  const video = event.target.closest('video');
+  if (!video) return false;
+  const bounds = video.getBoundingClientRect();
+  return bounds.height > 0 && event.clientY >= bounds.bottom - VIDEO_CONTROLS_EXCLUSION_HEIGHT_PX;
 }

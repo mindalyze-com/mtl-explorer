@@ -1,9 +1,9 @@
 package com.x8ing.mtl.server.mtlserver.logic.grouping.sql.metadata;
 
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.node.ObjectNode;
 import com.x8ing.mtl.server.mtlserver.db.entity.config.FilterConfigEntity;
 import com.x8ing.mtl.server.mtlserver.logic.grouping.sql.template.FilterTemplateGraphResolver;
 import com.x8ing.mtl.server.mtlserver.web.services.track.entity.metadata.FilterEffectiveUiMetadata;
@@ -130,7 +130,7 @@ public class FilterMetadataResolver {
             Consumer<Map.Entry<String, JsonNode>> consumer
     ) {
         if (isObjectMetadata(source, filter, fieldName)) {
-            source.fields().forEachRemaining(consumer);
+            source.properties().forEach(consumer);
         }
     }
 
@@ -156,7 +156,7 @@ public class FilterMetadataResolver {
     }
 
     private void decorateParams(ObjectNode params, Map<String, String> paramOrigins, String selectedFilterRef) {
-        params.fields().forEachRemaining(entry -> {
+        params.properties().forEach(entry -> {
             String paramName = entry.getKey();
             if (!entry.getValue().isObject()) {
                 return;
@@ -189,7 +189,7 @@ public class FilterMetadataResolver {
             Collection<String> effectiveParamNames
     ) {
         Set<String> effectiveNames = new LinkedHashSet<>(effectiveParamNames == null ? Set.of() : effectiveParamNames);
-        params.fieldNames().forEachRemaining(paramName -> {
+        params.propertyNames().forEach(paramName -> {
             if (!effectiveNames.contains(paramName)) {
                 log.warn(
                         "UI metadata param '{}' from filter {} does not exist in effective SQL params for selected filter {}",

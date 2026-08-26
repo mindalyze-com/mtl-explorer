@@ -22,13 +22,25 @@ public class VideoThumbnailService {
     static final String FFMPEG_COMMAND = "ffmpeg";
     static final int THUMBNAIL_TIMEOUT_SECONDS = 30;
     static final String JPEG_QUALITY = "3";
+    static final String FFMPEG_THREAD_COUNT = "1";
+
+    private final MediaProcessLimiter mediaProcessLimiter;
+
+    public VideoThumbnailService(MediaProcessLimiter mediaProcessLimiter) {
+        this.mediaProcessLimiter = mediaProcessLimiter;
+    }
 
     public byte[] createThumbnail(Path mediaPath, int maxSize) {
         Process process;
         try {
             ProcessBuilder processBuilder = new ProcessBuilder(buildCommand(mediaPath, maxSize));
             processBuilder.redirectError(ProcessBuilder.Redirect.DISCARD);
-            process = processBuilder.start();
+            process = mediaProcessLimiter.start(processBuilder);
+        } catch (MediaProcessLimiter.MediaProcessBusyException e) {
+            throw new ResponseStatusException(
+                    HttpStatus.SERVICE_UNAVAILABLE,
+                    "Media processing is busy. Try again shortly.",
+                    e);
         } catch (IOException e) {
             log.error("Could not start ffmpeg for video thumbnail {}", mediaPath.getFileName(), e);
             throw new ResponseStatusException(
@@ -86,13 +98,17 @@ public class VideoThumbnailService {
                 FFMPEG_COMMAND,
                 "-hide_banner",
                 "-loglevel", "error",
+                "-nostdin",
+                "-threads", FFMPEG_THREAD_COUNT,
                 "-i", mediaPath.toAbsolutePath().toString(),
                 "-map", "0:v:0",
                 "-frames:v", "1",
+                "-filter_threads", FFMPEG_THREAD_COUNT,
                 "-vf", scaleFilter,
                 "-an",
                 "-q:v", JPEG_QUALITY,
                 "-f", "image2pipe",
+                "-threads", FFMPEG_THREAD_COUNT,
                 "-vcodec", "mjpeg",
                 "pipe:1");
     }

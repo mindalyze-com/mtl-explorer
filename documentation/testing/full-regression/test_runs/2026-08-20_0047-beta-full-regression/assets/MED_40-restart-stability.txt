@@ -1,0 +1,43 @@
+MED_40 reload and restart stability evidence
+Captured: 2026-08-20 CEST
+
+Browser reload
+- Reloaded /mtl/track/100028; authenticated route restored directly with 8 Tracks and populated Overview.
+- Reload logs contained normal startup/cache activity and no warn/error/uncaught entry.
+- Activity Media reopened with both generated video cards and correct Estimated / Video GPS labels.
+- MOV and MP4 each retained original-source and poster URLs; both exposed Play, location Details, Nearby navigation, and Download original.
+- Activating Play on each removed the poster Play overlay and showed native playback.
+
+App-container restart
+- Restarted exactly Compose service app.
+- Container ID remained 4f57601e85effc29fc952011782a1e9caa66254b451b63689e833de7a607e399.
+- Image remained wauwau0977/mytraillog with image ID sha256:1cd50ffb86f830ce3e9241a73577d60a619e19dc29ef9fe299d2d059a69a8e2a.
+- StartedAt changed from 2026-08-20T06:42:29.923252939Z to 2026-08-20T08:09:31.953000888Z.
+- App returned HTTP 200 on readiness attempt 11 (about 10 seconds); container running true.
+- App-log ERROR/Exception/FAILED scan since restart was empty.
+
+Post-restart activity entry
+- Browser reload restored /mtl/track/100028 and the active session.
+- MOV activity viewer: poster /400000/content?maxSize=1280; original /400000/content; Estimated location at 46.94833,7.44785; Download original present; native Play started.
+- MP4 activity viewer: poster /400001/content?maxSize=1280; original /400001/content; Photo GPS at 46.94860,7.44815; Download original present; native Play started.
+- Filmstrip/Next navigation moved between the two videos without blank viewer.
+
+Post-restart main-map entry
+- Open on main map focused the Bern video location and restored the red eight-item cluster.
+- This cluster opened MOV as item 1/8 with poster, native Play, location 46.94833,7.44785, and download.
+- Filmstrip navigation opened MP4 400001 with poster, native Play, location 46.94860,7.44815, and download.
+- The known MED_36 MP4 map-filmstrip photo label/video-badge defect remained stable; navigation itself worked.
+
+Post-restart database state
+- 400000: MEDIA COMPLETED_WITH_SUCCESS; TRACK_INTERPOLATED at 46.948325000073936,7.447850000002013.
+- 400001: MEDIA COMPLETED_WITH_SUCCESS; EXIF_EMBEDDED at 46.9486,7.44815.
+- Failed MEDIA rows: 0.
+- Manual video rows: 0.
+- Media work queue: 0; track work queue: 0.
+
+Post-restart serving/downloads
+- MOV: full 200 video/quicktime 164588 bytes; range 0-63 returned 206/64 bytes and Content-Range bytes 0-63/164588; unsatisfiable returned 416 and bytes */164588; SHA-256 042f0a6911b124316295eb79ca0d30f704016bf1228c80b7690dad160a30b48c.
+- MP4: full 200 video/mp4 164756 bytes; range 0-63 returned 206/64 bytes and Content-Range bytes 0-63/164756; unsatisfiable returned 416 and bytes */164756; SHA-256 d0c4bcc558b54b26d507318400cd9ec29425422a4ae086cc13559a7d17b3170d.
+- Both checksums match the frozen manifest.
+- Browser logs after restart and all re-entry interactions: 23 entries; warn/error 0; uncaught/exception/failed 0.
+- /tmp/mtl-med40.* download/response directory and auth token removed.

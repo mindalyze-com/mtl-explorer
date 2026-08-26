@@ -1,0 +1,11 @@
+Required action: capture compact screenshots for representative working functions and failures.
+
+Attempts:
+1. In-app browser tab screenshot, viewport mode: Unable to capture screenshot.
+2. In-app browser tab screenshot, full-page mode: Unable to capture screenshot.
+3. Retry after making browser visible: Unable to capture screenshot.
+4. Retry on a fresh tab: Unable to capture screenshot.
+5. Browser discovery: only the Codex in-app browser is connected; no alternate Chrome/Edge surface is available.
+6. macOS window capture fallback: screencapture reported "could not create image from window".
+
+DOM snapshots, console logs, network/API evidence, downloads, and command evidence remain available. Screenshot capture would be unblocked by a working in-app screenshot command, a connected browser extension, or screen-capture permission.

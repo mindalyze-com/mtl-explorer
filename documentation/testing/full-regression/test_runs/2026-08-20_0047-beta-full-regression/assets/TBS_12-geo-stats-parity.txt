@@ -1,0 +1,21 @@
+TBS_12 geo-filter Statistics parity
+
+Geo setup:
+- Main map centered on Lannion at 5 km scale.
+- Drew a circle by placing its center and radius.
+- Smart Base result changed from 7 to 1 track.
+
+Before reload:
+- Map/filter: 1 / 7 Tracks.
+- Statistics Overview: Showing 1 of 7 tracks; 1 Track; 25.9 km.
+- Statistics Trends: 1 period; 1 track; 25.9 km.
+- Statistics Tracks: one row, Lannion_Plestin_parcours.
+
+After reload/fallback resolution:
+- Initial asynchronous state briefly exposed the selected count before the base track set finished loading.
+- After the normal data-resolution wait, map/filter returned to 1 / 7 Tracks.
+- Overview returned to Showing 1 of 7 tracks and 25.9 km.
+- Trends remained 1 period / 1 track / 25.9 km.
+- Stats Tracks returned one Lannion row.
+
+All authoritative settled views matched the same one-track geo result before and after reload.

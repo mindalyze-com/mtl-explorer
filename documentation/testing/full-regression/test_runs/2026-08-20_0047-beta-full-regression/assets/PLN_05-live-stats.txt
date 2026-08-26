@@ -1,0 +1,14 @@
+PLN_05 live-stat evidence
+
+State sequence (distance / ascent / duration / legs)
+- Empty: 0.00 m / 0 m / unavailable / 0.
+- Short route: 5.13 km / 0 m / 14m / 1.
+- Insert waypoint: 9.43 km / 11 m / 26m / 2.
+- Move waypoint: 8.69 km / 4 m / 24m / 2.
+- Delete waypoint: 5.13 km / 0 m / 14m / 1.
+- Clear: 0.00 m / 0 m / unavailable / 0.
+- Undo: 5.13 km / 0 m / 14m / 1.
+- Redo: 0.00 m / 0 m / unavailable / 0.
+- Final Undo: 5.13 km / 0 m / 14m / 1.
+
+Descent and elevation-chart point counts also changed consistently.

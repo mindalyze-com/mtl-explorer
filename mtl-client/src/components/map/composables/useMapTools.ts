@@ -1,5 +1,5 @@
 import { markRaw } from 'vue';
-import maplibregl from 'maplibre-gl';
+import * as maplibregl from 'maplibre-gl';
 import { GeoDrawingOverlay } from '@/layers/GeoDrawingOverlay';
 import { locationSearchTargetZoom as resolveLocationSearchTargetZoom } from '@/components/map/mapGeometry';
 import type { MapControllerMethodDefinitions, MapPoint, MapToolsMethods } from './mapControllerRuntime';
@@ -100,7 +100,7 @@ export function useMapTools(_deps: Record<string, never> = {}): MapControllerMet
       this.locationSearchVisible = false;
       this.mapCenter = [lon, lat];
       this.setLocationSearchMarker(lon, lat);
-      const targetMap = this.overlayMap || this.map;
+      const targetMap = this.overlayMap;
       targetMap?.flyTo({
         center: [lon, lat],
         zoom: this.locationSearchTargetZoom(result),
@@ -334,7 +334,7 @@ export function useMapTools(_deps: Record<string, never> = {}): MapControllerMet
       }
       const refName = TOOL_REF_BY_ID[toolId];
       if (!refName) return;
-      this._syncingView = true;
+      this._syncingToolRoute = true;
       this.closeTransientOverlaysForToolSwitch();
       this.closeAllToolsExcept(refName);
       const ref = this.$refs[refName];
@@ -347,7 +347,7 @@ export function useMapTools(_deps: Record<string, never> = {}): MapControllerMet
       this.restoreToolNavigation(toolId);
       this.$nextTick(() => {
         this.activeToolId = toolId === 'gps' ? null : toolId;
-        this._syncingView = false;
+        this._syncingToolRoute = false;
       });
     },
 
@@ -403,7 +403,7 @@ export function useMapTools(_deps: Record<string, never> = {}): MapControllerMet
     },
 
     onToolClosed() {
-      if (this._syncingView) return;
+      if (this._syncingToolRoute) return;
       this.activeToolId = null;
       // Clear geo shape overlays when filter sheet is closed (unless actively drawing)
       if (!this.geoDrawingParamDef && this.geoDrawingOverlay) {

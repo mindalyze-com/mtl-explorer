@@ -7,6 +7,7 @@ import {
 import { MapConfigDtoTileModeEnum, type MapConfig } from '@/utils/mapConfigService';
 import {
   DEFAULT_RASTER_ATTRIBUTION,
+  HILLSHADE_DEM_SOURCE_ID,
   TERRAIN_DEM_SOURCE_ID,
   TERRAIN_HILLSHADE_LAYER_ID,
   TOPO_CONTRAST_THEME,
@@ -18,6 +19,7 @@ import type { StyleSpecification } from 'maplibre-gl';
 type TestRasterStyle = StyleSpecification & {
   sources: {
     'raster-tiles': { tiles: string[]; attribution?: string };
+    [HILLSHADE_DEM_SOURCE_ID]?: unknown;
     [TERRAIN_DEM_SOURCE_ID]?: unknown;
   };
   layers: Array<{ id: string; paint?: Record<string, number> }>;
@@ -228,6 +230,7 @@ describe('resolveConfiguredMapStyle', () => {
     expect(resolved.attributions).toContain('Elevation: <a href="https://mapterhorn.com/attribution/">Mapterhorn</a>');
     expect(style.sources['raster-tiles'].tiles).toEqual([remoteTileUrl]);
     expect(style.sources['raster-tiles'].attribution).toBe(attribution);
+    expect(style.sources[HILLSHADE_DEM_SOURCE_ID]).toBeTruthy();
     expect(style.sources[TERRAIN_DEM_SOURCE_ID]).toBeTruthy();
     expect(style.layers.some((layer: { id: string }) => layer.id === TERRAIN_HILLSHADE_LAYER_ID)).toBe(true);
   });

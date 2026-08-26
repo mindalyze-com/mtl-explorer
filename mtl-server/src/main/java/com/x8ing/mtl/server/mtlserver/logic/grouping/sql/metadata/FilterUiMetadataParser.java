@@ -1,11 +1,11 @@
 package com.x8ing.mtl.server.mtlserver.logic.grouping.sql.metadata;
 
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.ObjectReader;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.DeserializationFeature;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectReader;
 import com.x8ing.mtl.server.mtlserver.db.entity.config.FilterConfigEntity;
 import com.x8ing.mtl.server.mtlserver.logic.grouping.sql.template.FilterTemplateGraphResolver;
 import com.x8ing.mtl.server.mtlserver.web.services.track.entity.metadata.*;
@@ -13,7 +13,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
 
-import java.io.IOException;
 import java.util.Map;
 import java.util.Optional;
 
@@ -34,8 +33,9 @@ public class FilterUiMetadataParser {
 
     public FilterUiMetadataParser(ObjectMapper objectMapper) {
         this.objectMapper = objectMapper;
-        this.strictMetadataReader = objectMapper.copy()
+        this.strictMetadataReader = objectMapper.rebuild()
                 .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, true)
+                .build()
                 .readerFor(FilterEffectiveUiMetadata.class);
     }
 
@@ -74,7 +74,7 @@ public class FilterUiMetadataParser {
     private JsonNode readMetadataRoot(String rawMetadata, FilterConfigEntity filter) {
         try {
             return objectMapper.readTree(rawMetadata);
-        } catch (JsonProcessingException ex) {
+        } catch (JacksonException ex) {
             throw invalidMetadata(filter, "UI metadata must be valid JSON", ex);
         }
     }
@@ -82,7 +82,7 @@ public class FilterUiMetadataParser {
     private FilterEffectiveUiMetadata readTypedMetadata(String rawMetadata, FilterConfigEntity filter) {
         try {
             return strictMetadataReader.readValue(rawMetadata);
-        } catch (IOException ex) {
+        } catch (JacksonException ex) {
             throw invalidMetadata(filter, "UI metadata does not match the v2 metadata contract", ex);
         }
     }

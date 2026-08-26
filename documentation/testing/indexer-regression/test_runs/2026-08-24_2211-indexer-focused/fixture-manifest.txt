@@ -1,0 +1,14 @@
+All files were synthetic and generated with the repository photo renderer.
+No private GPX or media data was read or used for this regression.
+
+role            GPX SHA-256                                                       JPEG SHA-256
+B1              b0753bee8019ede520ea9fc09b4450f7c6c26b497b6687b247414888cd21606a  034c4d282d663dd4f974a9cc4a8cd5bbd168576d7aec58df0f14dd6cb84e5b0f
+B2              31d8bd0a3a861b02e0e577617b1884840cd81335be441d55eeef5cdeb43fb165  81df12f7e93f1de6f90e737d8dbfc0e212023acfa7118830e5d39594ae549e78
+A1              a84bef4df9f3f3e1a1e9ab890cf6aff0c084b651c9f3d8deef888db1bf32cc35  2e40d8905670ed104aad6d887ea93d64eed90410c53af54ed4212aaa9bacbb8e
+A2              c5e481379a650c72c03e7a2325325868599da59ed00adb1b424f104bfd337574  53039d9166642367cff30e685905d80d5a72ff1b16b1441dee00cde406df9a27
+A3              ed2a464ecb868303bf9787935e22a0850d007aa1e199a226c4c775e06a5d5b14  dbf9d6824e3206c2b3fcd6f5bb3ab3959c7a1c6bb6e8aa3bb886a19a51afd9cc
+N1              3ee353a0e4b76a1da72da91509ac81cf96b186936bf668dc9f358174ad89cbcc  52ad975ba891316362017fb17e4a625a20124b8692360690831b5da37025fff1
+B1 replacement  f194065d9258ea3a27b77ffede9c23299a9948e748248fd49a13987695c041cd  017598d5ba7de76f8b53d6602d6042596ad9dc9ec8a1a72417ce6d8e939113c9
+
+Each GPX has six distinct timed points. Each JPEG has embedded GPS and capture-time EXIF.
+The A2 backups matched the source checksums before deletion and restoration.

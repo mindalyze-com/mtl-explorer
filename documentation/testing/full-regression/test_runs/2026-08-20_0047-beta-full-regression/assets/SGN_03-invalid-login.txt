@@ -1,0 +1,11 @@
+Coverage: SGN_03
+Browser: Codex in-app browser, desktop
+Action: Submit the normal username with an intentionally invalid password.
+Credential values: intentionally omitted
+Submit-to-response: 1.081 s
+Response URL: http://62.238.106.141:18080/mtl/login
+Visible alert: Invalid username or password.
+Protected app navigation visible: no
+Settled URL after a further 1.5 s: http://62.238.106.141:18080/mtl/login
+Settled controls: MTL Explorer logo; Username; Password; Sign In
+Result: clear error appeared and the browser remained on login.

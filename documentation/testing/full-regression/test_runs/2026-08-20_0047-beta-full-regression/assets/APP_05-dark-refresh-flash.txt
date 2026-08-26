@@ -1,0 +1,7 @@
+APP_05 hard-refresh flash constraint
+
+- Precondition passed: dark preference was persisted and a normal reload returned /mtl/admin/preferences with root data-theme=dark and Dark pressed.
+- Post-load state therefore remains correct.
+- The frozen check is specifically a transient first-paint condition: whether a light frame flashes before dark is applied during hard refresh.
+- The connected browser exposes post-load DOM state but no filmstrip, trace screenshots, early paint capture, or working screenshot command (ACC_04).
+- A transient light flash cannot be proved or disproved from the settled dark DOM, so this row is BLOCKED.

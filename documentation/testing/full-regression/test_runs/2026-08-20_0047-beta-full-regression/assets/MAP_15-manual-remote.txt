@@ -1,0 +1,26 @@
+Coverage: MAP_15
+Deployment config: tileMode local
+Baseline visible setting: Map Source Automatic (Local when available); OSM Dark selected before override; local-vector attribution OpenStreetMap without CARTO
+
+Manual override:
+- selected Remote tiles / Always use the network
+- current map summary: OSM Dark; Remote tiles; 2D map
+- visible attribution: OpenStreetMap + CARTO
+- available remote themes: OSM Topo Light, OSM Light, OSM Gray, OSM Dark (4)
+- Swiss Topo Color and Swiss Topo Light: absent in Remote source mode
+- 2 map canvases; 9-track overlay; no loading state
+- pan and Zoom in worked
+- browser diagnostics containing map-proxy or PMTiles after the persisted remote-mode reload: 0
+
+Persistence:
+- reloaded /mtl/map-settings
+- current summary remained Remote tiles
+- reopening Map style showed Remote checked, OSM Dark checked, 4 themes, no Swiss themes, CARTO attribution, 9 tracks
+
+Reset:
+- activated Reset map settings
+- summary changed to OSM Topo Contrast; Automatic source; 2D map
+- Map style showed Automatic checked and Remote unchecked
+- preferred OSM Topo Contrast checked
+- 7 themes available, including Swiss Topo Color and Swiss Topo Light
+- CARTO attribution absent; OpenStreetMap present; 9 tracks retained

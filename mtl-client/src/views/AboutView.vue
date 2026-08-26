@@ -281,10 +281,17 @@ const emit = defineEmits<{
   (event: 'closed'): void;
 }>();
 
-// Values are injected at build time via Vite env (see vite.config.ts).
-// Fallbacks keep the view working in dev.
-const version = computed<string>(() => (import.meta.env.VITE_APP_VERSION as string) || 'dev');
-const buildInfo = computed<string>(() => (import.meta.env.VITE_APP_BUILD as string) || 'local build');
+// Release images inject their immutable image identity. Local builds use Vite's
+// package version and build timestamp so the values remain precise in dev.
+const version = computed<string>(
+  () =>
+    (import.meta.env.VITE_APP_VERSION as string) ||
+    (typeof __APP_PKG_VERSION__ !== 'undefined' ? __APP_PKG_VERSION__ : 'unknown')
+);
+const buildInfo = computed<string>(
+  () =>
+    (import.meta.env.VITE_APP_BUILD as string) || (typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : 'unknown')
+);
 const sourceUrl = APP_SOURCE_URL;
 const contactEmail = APP_CONTACT_EMAIL;
 const isDemoMode = ref(false);

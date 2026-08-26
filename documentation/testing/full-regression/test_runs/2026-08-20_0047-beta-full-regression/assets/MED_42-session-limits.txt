@@ -1,0 +1,37 @@
+MED_42 bounded transcode-session evidence
+Observed 2026-08-20 Europe/Zurich on disposable Compose installation
+
+Setup and source
+- Temporary 80 s FFV1/PCM MOV media 400012 was made by stream-copy looping the MED_41 archival source; source/watched SHA-256 matched at 9c653763c2c37b8184fa9f6e9b5eaac4c07e173aa289c66e181c06f8049c9d9a (109,613,029 bytes).
+- All bounded phases used the requested image wauwau0977/mytraillog, image ID sha256:1cd50ffb86f830ce3e9241a73577d60a619e19dc29ef9fe299d2d059a69a8e2a, with a test-only temp directory under the disposable /app/logs volume.
+- A seeded orphan directory/file existed before the first bounded start and was absent after startup.
+
+One active, retained output, completed cap, expiry
+- Limits: active 1, completed 1, sessions 2, session 134,217,728 bytes, total 167,772,160 bytes, disconnect 30 s, completed expiry 4 s, runtime 120 s, monitor 0.1 s.
+- Long P720 create returned 201 RUNNING with one directory and one exact ffmpeg process. A concurrent different-media P480 create returned 429.
+- Polling kept the long session connected; it completed with playlistReady=true, encoded 79.978667/80 s, 5.68x, 24,702,719 bytes. State settled at one directory and zero ffmpeg processes.
+- A subsequent short P480 completed with 781,734 bytes. The older completed session returned 404, the newer returned 200 COMPLETED, and exactly one directory remained.
+- After 6 s idle under the 4 s TTL, the retained session returned 404 and the root held zero directories/zero file bytes.
+
+Disconnect grace and runtime
+- With disconnect grace 1 s and runtime 60 s, an unpolled long P720 returned FAILED after 2 s: "Compatible video conversion expired after the player disconnected". Its directory and ffmpeg process were gone.
+- With disconnect grace 60 s and runtime 1 s, a long P720 returned FAILED after 2 s: "Compatible video conversion exceeded its runtime limit". Its directory and ffmpeg process were gone.
+
+Per-session hard byte cap and user recovery
+- Limits: session 50,000,000 bytes, total 80,000,000 bytes, runtime/disconnect 60/30 s, monitor 0.1 s.
+- In the production CompatibleVideoPlayer harness, the naturally unsupported AVI started long-media P720 and showed Preparing, 0%, quality, and Cancel.
+- Before crossing: one active directory, 13,591,285 file bytes, one exact ffmpeg process. A temporary filler raised it to 65,591,285 bytes.
+- Monitor stopped ffmpeg, removed the whole session directory, and logged "The temporary video size limit was reached". The UI showed the same message under Compatible playback failed with a visible Retry.
+- Retry started a fresh Preparing session; visible Cancel changed the UI to Compatible video cancelled / The temporary stream was removed. Final directories/processes were 0/0.
+
+Global cap and active-output protection
+- Limits: session 109,500,000 bytes, global 110,000,000 bytes, completed 1, active 1.
+- A retained short P720 occupied 2,468,283 bytes. A different long P720 then ran while a temporary filler raised active actual bytes to 108,500,000 and total actual bytes to 110,968,283.
+- The monitor evicted the completed directory first (old session GET 404). The active session remained HTTP 200 RUNNING with one directory and one live ffmpeg process; active output was not evicted.
+- After removing only the filler, that same active session completed normally with 24,702,719 bytes and zero ffmpeg processes.
+
+Cleanup and restoration
+- The test-only container was stopped and auto-removed. The original Compose app container restarted on the requested image/image ID with normal properties.
+- All three watched temporary sources, three generated originals, both host temp directories, the local Vite harness files, and the Vite process are absent/stopped.
+- Temporary database media 400010/400011/400012 are absent. Baseline media/resolved/selected counts are 8/8/8 and media/track correlation work queues are 0/0.
+- Normal app transcode root: zero session directories, zero file bytes (directory itself 4096 bytes), zero ffmpeg processes. HTTP returned 200.

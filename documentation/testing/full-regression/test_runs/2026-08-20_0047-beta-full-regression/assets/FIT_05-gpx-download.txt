@@ -1,0 +1,15 @@
+FIT_05 converted GPX download
+
+Visible action: Track 100005 > Overview > Download GPX.
+Browser output path: <browser-downloads>/Unconfirmed 18604.crdownload
+Browser note: The in-app browser retained its temporary .crdownload name after the complete payload arrived.
+Bytes: 479844
+SHA-256: 722d0eec2e4b62ddcc54a5dc2ac8e8183f6d88248ed6d299558d02ca02c7921c
+File identification: XML 1.0 document.
+XML validation: PASS (xmllint --noout).
+Root: GPX 1.1; creator GPSBabel.
+trkpt elements: 3601
+wpt elements: 0
+Bounds begin at latitude 0.000000000 and include real longitude extent.
+
+Result: Visible converted download produced a valid GPX with 3,601 trackpoints and no waypoint-only substitution.

@@ -1,0 +1,27 @@
+FLT_09 grouped year-filter subset
+
+Filter setup:
+- Result view: Tracks by year.
+- Available categories: 2010 (4), 2013 (1), 2021 (1), 2026 (3).
+- Selected categories: 2010 and 2026.
+- Filter summary: 2 of 4 categories; 7 of 9 tracks.
+
+Cross-view result:
+- Main map filter control: 7 / 9 Tracks.
+- Map legend: 2010 (4) and 2026 (3), both shown.
+- Filter Review: 7 tracks.
+- Statistics Overview: Showing 7 of 9 tracks; 7 Tracks; 1,017 km; 22h 17m; 4,332 Wh.
+- Statistics Trends: 2 periods; 7 Tracks; 1,017 km; 22h 17m; 4,332 Wh.
+- Stats Tracks summary: 7 tracks; 1,017 km; 22h 17m.
+- Map > Your data kept the filtered map state and exposed the shared heatmap/data-layer section.
+
+The seven Stats Tracks rows were:
+1. MTL Synthetic Segment Alpha (2026)
+2. GNSSALTTRK (2026)
+3. MTL Regression Media Track (2026)
+4. Jura Route 7 / 2011 on GPSies.com (2010)
+5. Moselradweg aus Wiki on GPSies.com (2010)
+6. Vitry le françois - langres on GPSies.com (2010)
+7. voie verte haute vosges on GPSies.com (2010)
+
+The 2013 Lannion track and 2021 FIT track were absent from Filter Review and Stats Tracks. No count or totals divergence was observed among the map, heatmap/data-layer context, Review, Overview, Trends, and Stats Tracks.

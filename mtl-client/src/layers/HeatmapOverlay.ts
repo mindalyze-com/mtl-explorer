@@ -1,4 +1,4 @@
-import maplibregl from 'maplibre-gl';
+import * as maplibregl from 'maplibre-gl';
 
 const SOURCE_ID = 'heatmap-points';
 const LAYER_ID = 'heatmap-layer';

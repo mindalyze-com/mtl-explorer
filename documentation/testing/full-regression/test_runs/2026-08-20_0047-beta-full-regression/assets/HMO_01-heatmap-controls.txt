@@ -1,0 +1,10 @@
+HMO_01 heatmap control evidence
+Observed 2026-08-20 Europe/Zurich
+
+- Map > Your data baseline: 3 of 4 layers shown; GPS tracks, Photos and media, and Track points and direction each exposed Hide (pressed) at 100%; Heatmap exposed Show.
+- Activated Show Heatmap. Summary changed to 4 of 4; Heatmap changed to Hide (pressed) and exposed a 100% opacity slider.
+- GPS tracks remained independently enabled as Hide GPS tracks (pressed), and main map/filter continued to report 8 tracks.
+- Keyboard Home changed Heatmap opacity 100% -> 0%.
+- Keyboard End followed by two PageDown actions changed it to the exact intermediate 80% state.
+- Restored End/100%, activated Hide Heatmap, and confirmed the 3-of-4 baseline with other data layers still at 100%.
+- The controls and state transitions are direct. Whether heat pixels draw over rather than obscure the track pixels is a rendered-canvas judgment unavailable under ACC_04.

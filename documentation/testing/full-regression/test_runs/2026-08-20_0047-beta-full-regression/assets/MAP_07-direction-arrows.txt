@@ -1,0 +1,9 @@
+Coverage: MAP_07
+Map setting: Track points and direction enabled (`Hide Track points and direction` pressed state)
+Setting description: GPS points and arrows shown when zoomed in
+Opacity: 100%
+High-zoom location: Bern, Switzerland selected through visible location search
+High-zoom scale: 100 m
+Suitable tracks in the area: six-point synthetic Bern segments, including MTL Regression Media Track and MTL Synthetic Segment Alpha; not a two-point/off-viewport fixture
+Rendered map: two 981x998 CSS-pixel canvases; 9-track overlay active
+Blocked visual assertion: direction arrows are canvas-rendered and screenshot/canvas visual capture is unavailable under ACC_04, so arrow presence cannot be confirmed reliably.

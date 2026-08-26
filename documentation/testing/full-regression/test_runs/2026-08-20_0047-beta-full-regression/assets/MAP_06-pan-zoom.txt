@@ -1,0 +1,11 @@
+Coverage: MAP_06
+Interaction: three rapid multi-point pointer drags, three Zoom in activations, two Zoom out activations
+Interaction-to-settled observation: 3.792 s
+Settled scale: 30 km
+Rendered state after 2.2 s settle:
+- 2 Map regions
+- 2 visible MapLibre canvases, each 981 x 998 CSS pixels
+- OpenStreetMap attribution present
+- 9-track overlay count present
+- Loading/spinner/Please wait accessible text absent
+Blocked visual assertions: screenshot/canvas visual capture is unavailable under ACC_04, so stale line fragments or missing raster/vector tile areas cannot be inspected reliably.

@@ -1,0 +1,8 @@
+SYN_01 freshness banner after server-side change
+
+- Started on the signed-in map with 8 Tracks and no freshness banner.
+- Triggered one authenticated GPS manual rescan; server returned STARTED and `Manual GPS rescan has been queued.`
+- Without navigating or reloading, the normal freshness poll displayed the banner after about 1.0 s.
+- Banner text: `New data available` and `Tracks, media, or settings changed since this view loaded.`
+- Banner exposed labelled Reload and Dismiss actions.
+- Map, 8 Tracks, and all navigation controls remained usable below the banner.

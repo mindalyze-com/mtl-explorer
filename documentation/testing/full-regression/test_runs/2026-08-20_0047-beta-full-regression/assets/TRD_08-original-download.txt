@@ -1,0 +1,11 @@
+TRD_08 reuses the direct same-run FIT_04 action.
+
+Track: 100005 / Activity.fit
+Visible control: Overview -> Download original
+Downloaded bytes: 94,096
+Downloaded SHA-256: 949a238e1bb75c3684479785f76fa9a16888bb394518844248f488171d591387
+Uploaded SHA-256:   949a238e1bb75c3684479785f76fa9a16888bb394518844248f488171d591387
+Header signature: .FIT
+
+The payload is byte-identical to the uploaded source. Full validation details
+are in FIT_04-original-download.txt.

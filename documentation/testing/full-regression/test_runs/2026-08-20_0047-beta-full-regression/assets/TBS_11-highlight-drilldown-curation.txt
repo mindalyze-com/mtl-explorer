@@ -1,0 +1,16 @@
+TBS_11 highlight drilldown and excluded count
+
+Drilldown:
+- Longest track opened one Mosel row.
+- Selecting the row opened matching track 100001 details.
+
+Excluded-highlight count:
+- Exclude action required an explicit reason; GPS noise was used.
+- After confirmation, Overview showed Track excluded from highlights and a 1 track excluded action.
+- Longest track recalculated to Jura Route (273 km).
+- Activating 1 track excluded opened Stats Tracks with the Mosel row marked Highlights: GPS noise.
+
+Restoration:
+- Mosel Quality showed Statistics Included, Highlights GPS noise, and Excluded from highlights only.
+- Setting Highlights to Included saved successfully.
+- Overview removed the excluded count and restored Mosel as Longest track.

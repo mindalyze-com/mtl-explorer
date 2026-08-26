@@ -23,6 +23,7 @@ export const NEXT_PREVIEW_PREFETCH_IDLE_DELAY_MS = 1500;
 export const NEXT_FULL_RESOLUTION_PREFETCH_IDLE_DELAY_MS = 1500;
 export const MAX_DECODED_PREVIEW_CACHE_ENTRIES = 3;
 export const CROSSFADE_MS = 190;
+const SECONDS_PER_HOUR = 3_600;
 
 export interface MediaPreviewProps {
   mediaId: number | null;
@@ -608,9 +609,9 @@ function formatCameraOffset(offsetSeconds: number | null | undefined): string {
   if (offsetSeconds == null || !Number.isFinite(offsetSeconds) || offsetSeconds === 0) return '';
   const sign = offsetSeconds > 0 ? '+' : '−';
   const absoluteSeconds = Math.abs(Math.round(offsetSeconds));
-  if (absoluteSeconds % 3600 === 0) return `${sign}${absoluteSeconds / 3600} h`;
-  if (absoluteSeconds % 60 === 0) return `${sign}${absoluteSeconds / 60} min`;
-  return `${sign}${absoluteSeconds} s`;
+  const hours = absoluteSeconds / SECONDS_PER_HOUR;
+  const value = Number.isInteger(hours) ? hours.toFixed(0) : hours.toFixed(2).replace(/\.?0+$/, '');
+  return `${sign}${value}h`;
 }
 
 function previewErrorMessage(error: unknown): string {

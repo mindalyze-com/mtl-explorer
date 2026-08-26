@@ -1,0 +1,21 @@
+MCT_01 segment-measure evidence
+
+Fixture activation
+- Copied frozen synthetic segment-alpha.gpx and segment-bravo.gpx into watched data/gpx/mct.
+- SHA-256 values matched DAT_07 exactly.
+- Live watcher detected both files.
+- Imports succeeded as track IDs 100016 and 100017.
+- Smart Base changed from 7 to 8 active tracks because duplicate consolidation excludes one equivalent copy.
+
+Zones
+- Zone A: 4 tracks.
+- Zone B: 4 tracks.
+- Shared: 4 tracks.
+- Detection radius: 66 m.
+
+Rows (speed / time / distance)
+- sample.geojson: 0.00 km/h / 00:00:00 / 123.17 m.
+- segment-bravo.gpx: 0.65 km/h / 00:12:09 / 132.12 m.
+- sample.igc: 0.64 km/h / 00:12:10 / 130.63 m.
+- mtl-regression-media-track.gpx: 0.41 km/h / 00:24:21 / 165.13 m.
+- All four result checkboxes were selected for Compare.

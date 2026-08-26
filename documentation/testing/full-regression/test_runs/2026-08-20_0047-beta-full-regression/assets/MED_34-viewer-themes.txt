@@ -1,0 +1,60 @@
+MED_34 viewer-theme evidence
+
+No-preference default, light application theme
+- Disposable browser local state initially had no viewer-theme preference.
+- Application document theme: light.
+- Activity viewer: media-viewer-sheet--dark; shortcut Use light photo viewer.
+- Main-map cluster viewer: media-viewer-sheet--dark; shortcut Use light photo viewer.
+- Statistics media viewer: media-viewer-sheet--dark; shortcut Use light photo viewer.
+
+Light viewer selection and independent persistence
+- Used the Statistics viewer header shortcut to select light.
+- Viewer changed to media-viewer-sheet--light while application data-theme
+  remained light.
+- Reloaded, then reopened activity, map-cluster, and Statistics viewers.
+  Every entry point retained media-viewer-sheet--light and exposed
+  Use dark photo viewer; the application theme did not change.
+- Light computed surfaces:
+  - Details and stage background rgb(255,255,255)
+  - header/details text rgb(66,81,106)
+  - navigation background rgba(255,255,255,0.78), text rgb(23,32,51)
+  - metadata divider rgba(15,23,42,0.12)
+  - mini-map background rgba(0,0,0,0.03), border rgba(0,0,0,0.1)
+  - Nearby dock rgb(255,255,255); thumbnail rgb(217,224,232)
+  - keyboard-visible header shortcut outline rgb(99,102,241)
+
+No-preference default, dark application theme
+- Used the visible Admin Session Wipe & logout flow, signed back in, and set
+  the application Color scheme to Dark before opening any photo viewer.
+- Activity, map-cluster, and Statistics viewers each independently opened as
+  media-viewer-sheet--dark with Use light photo viewer.
+- This confirms viewer default dark does not follow either application theme.
+
+Dark viewer selection, surfaces, and interactions
+- Under application data-theme dark, selecting light changed only the viewer;
+  selecting dark restored media-viewer-sheet--dark while the app stayed dark.
+- Dark computed surfaces:
+  - Details/Nearby background rgb(11,17,27); stage rgb(7,11,18)
+  - primary text rgba(255,255,255,0.94); details text rgba(255,255,255,0.76)
+  - navigation background rgba(9,14,24,0.64), text rgb(255,255,255)
+  - metadata/mini-map borders rgba(255,255,255,0.1)
+  - mini-map background rgba(255,255,255,0.06)
+  - thumbnail background rgb(24,33,51)
+  - keyboard-visible shortcut outline rgb(99,102,241)
+- Details and Nearby both hid, stayed hidden through panel maximize, and
+  independently reopened while maximized.
+- Panel maximize filled exactly left/top 0/0 to right/bottom 1049/942.
+- Previous moved 8 -> 7 and Next returned 7 -> 8.
+- Double-click zoom reached scale(2); Reset zoom restored base state.
+
+Unavailable branches
+- Native browser fullscreen remains unavailable in the connected in-app
+  browser: fullscreenElement stayed null and the control returned to Enter
+  fullscreen after clearing panel maximize.
+- The connected viewport remains fixed at 1049 x 942, so the frozen mobile
+  Details-sheet theme path cannot be rendered.
+
+Cleanup
+- Used Wipe & logout again after testing, then signed back in.
+- Root restored with 8 Tracks, light application default, and no stored
+  viewer-theme preference.

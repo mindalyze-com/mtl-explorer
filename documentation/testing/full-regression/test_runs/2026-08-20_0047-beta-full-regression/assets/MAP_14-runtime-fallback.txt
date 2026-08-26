@@ -1,0 +1,36 @@
+Coverage: MAP_14
+Baseline:
+- authenticated config tileMode: local
+- Map source: Automatic, local when available
+- selected theme: OSM Dark
+- healthy local-vector attribution: OpenStreetMap; CARTO absent
+- verified app image ID: sha256:1cd50ffb86f830ce3e9241a73577d60a619e19dc29ef9fe299d2d059a69a8e2a
+
+Controlled failure:
+- Loaded New York City location result while app was healthy.
+- Stopped only disposable Compose app container; database and helpers stayed running.
+- Selected the uncached location so local PMTiles range requests failed.
+
+Fallback result after 5.315 s:
+- console warning: Local vector map tiles failed; switched base map to raster fallback for this session.
+- configured dark fallback attribution: OpenStreetMap + CARTO
+- 2 Map regions
+- 9-track overlay retained
+- no loading state
+
+Interaction during outage:
+- pointer pan completed
+- Zoom in completed
+- fallback stayed CARTO
+- two canvases and nine-track overlay remained
+- no loading state
+
+Recovery and selection:
+- original app container restarted to HTTP 200 with the same verified image ID.
+- fallback remained active for the current session.
+- visible Bern search recentered the fallback map.
+- rendered track click showed exactly MTL Regression Media Track, GNSSALTTRK, and MTL Synthetic Segment Alpha.
+
+Restoration:
+- browser root reload returned to healthy local-vector mode.
+- CARTO attribution absent; OpenStreetMap attribution, 2 Map regions, and 9 tracks present.

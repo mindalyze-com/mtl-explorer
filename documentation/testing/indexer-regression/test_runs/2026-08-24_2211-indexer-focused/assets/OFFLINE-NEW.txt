@@ -1,0 +1,9 @@
+Pass: offline
+Phase: add N1 while stopped
+Shutdown proof: container not running and port 18092 closed
+Pre-mutation/persisted-before-restart: 4/4; 4/4
+Mutation/restart/settled UTC: 20:23:23 / 20:23:23 / 20:23:45
+Expected/actual active GPX/media: 5/5; 5/5
+Evidence: startup scans found N1; one successful row per index; A2 remained removed; GUI showed 5 Tracks.
+Manual rescan used: no
+Status: PASS

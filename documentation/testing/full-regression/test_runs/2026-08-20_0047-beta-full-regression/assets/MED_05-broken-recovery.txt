@@ -1,0 +1,30 @@
+MED_05 missing-source recovery evidence
+
+Disposable fixture
+- File: mtl-regression-broken.jpg
+- Derived from the repository favicon; no private media used.
+- Dimensions: 96 x 96
+- Size: 4,883 bytes
+- SHA-256: c6906e17d86a69dba75d746805535bf0ada3786bc6623f8e3ea843c2f0b721bf
+
+Controlled missing-source path
+- Visible Admin > Maintenance > Rescan Media queued the fixture.
+- Server scan: 9 files examined, 1 queued, 1 missing.
+- Server indexed mtl-regression-broken.jpg and removed the earlier disposable HEIC row.
+- After indexing, the JPEG was moved from the watched folder to a disposable backup outside /app/media before the browser displayed it.
+- Stats > Trends > Undated media showed exactly 1 item: mtl-regression-broken.jpg.
+
+Viewer result
+- Heading: Photo
+- State: Preview unavailable
+- Error: Failed to fetch image: 500
+- Recovery controls: Retry and Download
+- Details remained usable: JPG, 4.8 KB, 96 x 96, filename, modified time, and folder.
+- Selecting Retry repeated the same explicit error and retained both recovery controls; the sheet did not become blank or stuck.
+
+Cleanup verification
+- A second visible Admin media rescan ran after the disposable source was outside the watched folder.
+- Server scan: 8 files examined, 0 queued, 2 missing.
+- Server deleted the mtl-regression-broken.jpg media row.
+- Admin Processing reported MEDIA DONE with 8 active files, 2 removed, 10 total.
+- The original eight-media watched-folder baseline was restored.

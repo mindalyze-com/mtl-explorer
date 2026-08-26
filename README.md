@@ -86,15 +86,14 @@ see the [home install guide](documentation/home-install.md).
   images from a source checkout.
 - [Legal documents](documentation/legal/README.md)
 - [Contributing](.github/CONTRIBUTING.md)
-- [Security policy](.github/SECURITY.md)
 
 ## License
 
 <details>
 <summary>License summary</summary>
 
-MTL Explorer is dual-licensed: AGPL for free personal/home use, with a
-commercial license available for proprietary or hosted use.
+MTL Explorer is available under AGPL-3.0-or-later, with a separate commercial
+license for users who do not want to comply with the AGPL terms.
 
 - [AGPL license](LICENSE)
 - [Commercial license](documentation/legal/COMMERCIAL-LICENSE.md)

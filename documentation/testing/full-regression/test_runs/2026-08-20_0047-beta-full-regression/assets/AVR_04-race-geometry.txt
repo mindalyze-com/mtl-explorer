@@ -1,0 +1,17 @@
+AVR_04 virtual-race geometry evidence
+
+Known source geometry
+- All selected segment fixtures lie near Bern within roughly 46.9478-46.94882 latitude / 7.4471-7.44852 longitude.
+- Full racer route extents: 154.29 m, 154.43 m, and 189.62 m.
+
+Race geometry
+- Setup map scale: 300 m.
+- Live race map scale observed at 30 m during the full race and 50 m during the focused rerun.
+- Focused live embedded map: 896 x 616.7 px at x=110.5, y=196.2.
+- Three racer cards advanced independently and finished 100%.
+- Race reset returned all cards to 0% and closed without changing main map from local 100 m scale.
+
+Sanity result
+- No viewport transition to world scale occurred.
+- No [0,0], South Africa, long global line, or off-continent error state appeared.
+- A global geometry outlier would require a multi-thousand-kilometre scale, which was not observed.

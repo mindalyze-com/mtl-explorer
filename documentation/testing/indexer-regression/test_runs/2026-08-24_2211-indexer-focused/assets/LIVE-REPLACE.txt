@@ -1,0 +1,8 @@
+Pass: online
+Phase: replace active B1 content at the same paths
+Detection mode: live watch
+Mutation/settled UTC: 20:19:03 / 20:19:13
+Expected/actual active GPX/media: 6/6; 6/6
+Evidence: B1 index rows reused with invocation 2; old track absent; one Synthetic B1 replacement; media coordinates changed to 46.97,7.46; no duplicate paths; GUI showed the replacement.
+Manual rescan used: no
+Status: PASS

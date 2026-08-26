@@ -1,0 +1,14 @@
+TBS_03 sorting and visible-summary checks
+
+All six exposed sort actions activated and retained all eight rows:
+- Date: first MTL Synthetic Segment Alpha (20/08/2026).
+- Imported: first MTL Regression Media Track (imported 20/08/2026 02:26).
+- Distance: first Moselradweg (518 km).
+- Duration: first Jura Route (7h 46m).
+- Name: first voie verte haute vosges on GPSies.com.
+- Exploration: first MTL Regression Media Track (100.0%).
+
+Visible summary:
+- Empty search: 8 tracks and eight rows.
+- Search Walking: 1 track, 189.62 m, 0m 00s, and one matching row.
+- Clearing search restored eight rows.

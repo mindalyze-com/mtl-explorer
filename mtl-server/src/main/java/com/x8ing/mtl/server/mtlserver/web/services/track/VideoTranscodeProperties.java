@@ -30,6 +30,7 @@ public class VideoTranscodeProperties {
     private Duration probeTimeout = Duration.ofSeconds(20);
     private Duration monitorInterval = Duration.ofSeconds(1);
     private int segmentSeconds = 4;
+    private int maxThreads = 1;
 
     void validate() {
         if (tempDirectory == null) throw new IllegalStateException("Video transcode temp directory is required");
@@ -47,6 +48,7 @@ public class VideoTranscodeProperties {
         requirePositive(probeTimeout, "probe-timeout");
         requirePositive(monitorInterval, "monitor-interval");
         if (segmentSeconds < 1) throw new IllegalStateException("segment-seconds must be positive");
+        if (maxThreads < 1) throw new IllegalStateException("max-threads must be positive");
     }
 
     private static void requirePositive(Duration value, String name) {

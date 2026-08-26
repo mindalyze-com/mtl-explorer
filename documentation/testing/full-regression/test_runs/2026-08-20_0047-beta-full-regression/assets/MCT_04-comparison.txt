@@ -1,0 +1,18 @@
+MCT_04 segment comparison evidence
+
+Selected cards
+- sample.igc: 00:12:10, 0.6 km/h, 130.63 m.
+- sample.geojson: 00:00:00, 0.0 km/h, 123.17 m.
+- mtl-regression-media-track.gpx: 00:24:21, 0.4 km/h, 165.13 m.
+- segment-bravo.gpx: 00:12:09, 0.7 km/h, 132.12 m.
+- Reference: sample.geojson.
+
+Map
+- Comparison map remained at local 100 m scale.
+- All four cards stayed present beside the map.
+
+Charts
+- Speed chart: four named lines, six data points each; missing speed samples reported as No value without dropping a track.
+- Altitude chart: four named lines, with 0-value sample.geojson and 551-554 m samples on timed fixtures.
+- Shared distance axis extended to 0.18962 km.
+- No error or empty comparison state appeared.

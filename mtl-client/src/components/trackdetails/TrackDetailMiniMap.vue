@@ -81,12 +81,13 @@
 <script setup lang="ts">
 import { watch, ref, computed, nextTick, onBeforeUnmount, onMounted, markRaw } from 'vue';
 import { useVerticalResizeDrag } from '@/composables/useVerticalResizeDrag';
-import maplibregl from 'maplibre-gl';
+import * as maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { useTrackMapSync, type TrackPoint } from '@/composables/useTrackMapSync';
 import { useChartSync } from '@/composables/useChartSync';
 import { fetchMapConfig } from '@/utils/mapConfigService';
 import { resolveConfiguredMapStyle } from '@/components/map/mapStyleResolver';
+import { installMissingStyleImageResolver } from '@/utils/maplibreStyleImages';
 import { TRACK_COLOR } from '@/utils/trackColors';
 import {
   TRACK_DETAIL_MINI_MAP_HEIGHT_DEFAULT,
@@ -361,16 +362,11 @@ async function initMap() {
     })
   );
 
-  // Silently replace any missing sprite icons with a transparent 1×1 placeholder
-  map.on('styleimagemissing', (e: { id: string }) => {
-    if (!map!.hasImage(e.id)) {
-      map!.addImage(e.id, { width: 1, height: 1, data: new Uint8ClampedArray(4) });
-    }
-  });
+  installMissingStyleImageResolver(map);
 
   await new Promise<void>((resolve) => {
     if (map!.loaded()) resolve();
-    else map!.on('load', resolve);
+    else map!.on('load', () => resolve());
   });
   mapReady = true;
 

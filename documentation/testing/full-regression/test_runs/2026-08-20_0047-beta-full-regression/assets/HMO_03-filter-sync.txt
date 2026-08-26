@@ -1,0 +1,11 @@
+HMO_03 filter/heatmap synchronization
+Observed 2026-08-20 Europe/Zurich
+
+- Began with Smart Base Filter at 8 matching tracks and Heatmap enabled at 100% (Your data 4 of 4).
+- Opened Criteria > Selected tracks and used the visible row action for track 100028, MTL Regression Media Track.
+- The applied filter changed globally to Smart Base Filter · 100028 and 1 / 8 Tracks; Filter showed 1 matching track, one selected criterion, and one category.
+- Reopened Map > Your data: Heatmap remained enabled/pressed at 100% and the data-layer summary remained 4 of 4 while the global result stayed 1/8.
+- Reset filter visibly. Filter returned to 8 matching tracks, No criteria, All 2 categories, with the `Filter reset` status.
+- Reopened Map: Heatmap remained enabled at 100% / 4 of 4 after the 1->8 transition.
+- Restored Heatmap off; Your data returned to 3 of 4 with GPS tracks/media/points still on at 100%.
+- Filter-driven result and heatmap lifecycle state synchronize directly. Pixel-level density-shape change is canvas-rendered and cannot be proven under ACC_04.

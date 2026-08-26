@@ -1,0 +1,30 @@
+Track Details origin and return flows for track 100005
+
+Statistics -> Tracks (fresh tab): PASS
+- Opened Stats from the main map, selected Tracks, searched Track 100005.
+- Matching row opened /mtl/track/100005 with visible #100005.
+- Close returned to /mtl/stats.
+- Tracks view, query Track 100005, and the matching row were retained.
+
+Filter -> Review tracks (fresh tab): FAIL
+- Opened Filter from the main map, selected Review tracks, searched Track 100005.
+- Matching row opened /mtl/track/100005 with visible #100005.
+- The visible enabled Track Details Close control did not close by semantic
+  pointer activation, active-sheet control activation, or a direct end-user
+  pointer click at the header control.
+- URL remained /mtl/track/100005 and Review tracks was not restored.
+
+Browser history from Filter origin: PASS
+- Back returned to /mtl/filter with Review tracks and query Track 100005.
+- Forward returned to /mtl/track/100005 with visible #100005.
+
+Direct detail link (fresh tab): PASS
+- Opened /mtl/track/100005 directly.
+- Close returned to /mtl/ and the normal map; Track Details disappeared.
+
+Narrow mobile: BLOCKED
+- The connected browser exposes no viewport override capability. Its smallest
+  available viewport in this run was not a narrow mobile breakpoint.
+- The run does not claim mobile coverage for this child check.
+
+Final browser state was restored to the main map.

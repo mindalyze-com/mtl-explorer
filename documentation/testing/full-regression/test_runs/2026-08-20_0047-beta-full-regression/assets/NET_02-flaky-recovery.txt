@@ -1,0 +1,16 @@
+Coverage: NET_02
+Controlled interruption
+- Stopped only disposable container mtl-explorer-app-1 with a bounded stop.
+- With the already-loaded shell visible, activated Statistics.
+- After about 6.2 s, /mtl/stats showed `Statistics could not be loaded.`, a `Retry` button, and `Statistics overview could not be loaded.`
+- The map, eight-track indicator, and all primary navigation remained rendered; the page was not blank or frozen.
+
+Return and recovery
+- Restarted the exact app container; local probe returned HTTP 200 on attempt 8 (about 14 s).
+- Activated the visible Retry and observed for more than 7 s.
+- Retry disappeared, but `Statistics overview could not be loaded.` remained and no Stats content returned.
+- A separate `New data available` banner appeared with Reload.
+- Activating Reload recovered the full Statistics Overview in about 2.8 s with 821 km, 12.727 m ascent, eight tracks, cards, and navigation.
+- Disposable app container remains running normally.
+
+Result: shell/error state and eventual Reload recovery pass, but the direct Retry control does not recover after connectivity returns (MTL-FR-023).

@@ -1,0 +1,27 @@
+MED_16 unsaved camera correction evidence
+
+Persisted baseline
+- media_time_correction rows: 0
+- track 100013 correlations: 8 selected, all applied_camera_offset_seconds=0
+- Timeline: 8 items in the MED_13 order.
+
+Preview action
+- Opened Media tools, entered +1 hour, and selected Preview.
+- UI state: ACTIVE; Unsaved preview; Save correction available.
+- The +1 hour shift moved all four camera-clock items outside the activity window.
+- Preview therefore showed 4 items and reported 0 items use the camera clock.
+
+Embedded GPS rows during preview
+1. mtl-regression-photo-a.jpg | Photo GPS | 17/08/2026 10:00 | 38.50 m
+2. mtl-regression-photo-b.jpg | Photo GPS | 17/08/2026 10:01 | 42.72 m
+3. mtl-regression-delete-a.jpg | Photo GPS | 17/08/2026 10:02 | 46.94 m
+4. mtl-regression-delete-b.jpg | Photo GPS | 17/08/2026 10:03 | 51.16 m
+
+- These four names, times, distances, and Photo GPS origins exactly match the persisted baseline.
+- Camera-clock photos/videos were the only items whose membership changed.
+- Read-only SQL during the preview still showed 0 correction rows and the same eight selected correlations, each with offset 0.
+
+Reset
+- Selected Reset without saving.
+- All eight timeline row strings returned exactly to the MED_13 baseline and order.
+- Read-only SQL after reset: 0 correction rows; 8 correlations; offset sum 0; 8 selected.

@@ -1,0 +1,9 @@
+Pass: offline
+Phase: delete A2 while stopped
+Shutdown proof: container not running and port 18092 closed
+Pre-mutation/persisted-before-restart: 5/5; 5/5
+Mutation/restart/settled UTC: 20:22:27 / 20:22:27 / 20:22:49
+Expected/actual active GPX/media: 4/4; 4/4
+Evidence: startup scans found one missing file per index; A2 rows became REMOVED; both domain rows deleted; GUI showed 4 Tracks.
+Manual rescan used: no
+Status: PASS

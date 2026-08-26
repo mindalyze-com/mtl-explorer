@@ -1,0 +1,17 @@
+Source: Garmin official FIT JavaScript SDK
+Source page: https://github.com/garmin/fit-javascript-sdk
+URL: https://raw.githubusercontent.com/garmin/fit-javascript-sdk/main/test/data/Activity.fit
+License note: Garmin FIT Protocol License Agreement in repository LICENSE.txt.
+Destination filename: Activity.fit
+SHA-256: 949a238e1bb75c3684479785f76fa9a16888bb394518844248f488171d591387
+Bytes: 94096
+Validation: GPSBabel in the required app image converted the staged FIT to GPX outside the watched folder.
+Converted GPX bytes: 595045
+trkpt: 3601
+timestamped trkpt: 3601
+distinct positions: 3601
+latitude range: 0.0 to 0.0
+longitude range: 0.0 to 0.032339310
+zero/zero points: 1
+Conclusion: GPS position fields are present and vary across the activity; this is a GPS-bearing positive FIT fixture.
+Staging path: data/logs/fixtures/public-fit/Activity.fit (not watched by the GPS indexer)

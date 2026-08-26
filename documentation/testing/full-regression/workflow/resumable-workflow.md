@@ -133,6 +133,24 @@ coverage into a terminal result just to produce a report.
   the recorded reproduction path and could not reproduce the issue. Prefer
   `NOT REPRODUCIBLE` for new entries; the gate accepts both spellings.
 
+### Finding Status Semantics
+
+Finding statuses are separate from coverage statuses:
+
+- `OPEN`: the finding is confirmed and no fix task is actively working on it.
+- `FIX_IN_WORK`: an owner has started implementing, reviewing, or directly
+  verifying a fix. Do not use it for regression investigation or triage alone.
+- `FIXED`: direct retest evidence proves the expected behavior works.
+- `REJECTED`: the finding was closed as expected behavior, invalid, or outside
+  the coverage requirement, with the reason recorded.
+- `NOT REPRODUCIBLE`: the recorded reproduction path was attempted and did not
+  reproduce the issue. `NOT REPRODUCEABLE` remains accepted for legacy runs.
+
+Change `OPEN` to `FIX_IN_WORK` when the fix task actually starts. Change it to a
+terminal finding state only when the required evidence exists. If work stops
+without a terminal outcome, return the finding to `OPEN`. `FIX_IN_WORK` is not a
+coverage status and does not by itself block regression report assembly.
+
 ### Resume Selection
 
 When resuming, pick the first row in queue order whose status is one of:
@@ -242,6 +260,9 @@ files are the durable record.
 
 ## Issues
 
+Finding statuses: `OPEN`, `FIX_IN_WORK`, `FIXED`, `REJECTED`,
+`NOT REPRODUCIBLE` (`NOT REPRODUCEABLE` is accepted for legacy runs).
+
 | ID | Severity | Coverage ID | Summary | Status |
 |---|---|---|---|---|
 
@@ -254,7 +275,7 @@ files are the durable record.
 - Early closure approval:
 ```
 
-Use statuses consistently: `NOT STARTED`, `IN PROGRESS`, `PASS`, `PARTIAL`,
+Use coverage statuses consistently: `NOT STARTED`, `IN PROGRESS`, `PASS`, `PARTIAL`,
 `FAIL`, `BLOCKED`, `NOT COVERED`, `NOT APPLICABLE`, `FIXED`, `REJECTED`,
 `NOT REPRODUCEABLE`, or `NOT REPRODUCIBLE`. For queue advancement, `PASS`,
 `FAIL`, `BLOCKED`, `NOT APPLICABLE`, `FIXED`, `REJECTED`,

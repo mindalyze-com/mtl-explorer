@@ -1,0 +1,16 @@
+FLT_18 returning-user guidance
+
+Desktop returning-user flow:
+- Context had already dismissed first-visit guidance with Got it.
+- Filter reopened directly to the overview.
+- How this result works / Read more opened How filters work manually.
+- Manual guidance did not contain Important or Got it.
+- It contained Filter behavior, Your filter shapes everything, Every view adapts, and Map colors reveal patterns.
+- Header and footer controls were both labeled Back to Filter.
+- Header Back returned to the Filter overview.
+- Reopening Read more and using Close returned to the map route.
+- Reopening Filter still showed the overview without automatic guidance.
+
+Narrow viewport:
+- BLOCKED by ACC_04/browser capability constraint. The connected in-app browser exposes no viewport resize/emulation capability, and the same constraint already blocked the narrow pass in TRD_15.
+- No end-user narrow-layout claim is made.

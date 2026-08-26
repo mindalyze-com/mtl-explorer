@@ -1,0 +1,16 @@
+MED_11 pan/zoom/reload/cache stability
+Observed 2026-08-20 Europe/Zurich
+
+- Started at the post-delete 100 m Bern viewport with six active media.
+- Closed the chooser, focused the interactive map canvas, and keyboard-panned 15 steps away. The Bern cluster/chooser was absent at the away viewport.
+- Exercised two visible Zoom out actions (scale 100 m -> 500 m) and two Zoom in actions (500 m -> 100 m); no stale/deleted media UI appeared.
+- Used visible Search location -> Bern, Switzerland to pan back. Clicking the returned cluster showed exactly 6 photos for This cluster and 6 for Current map view, with no duplication.
+- Closed the chooser and activated a browser hard reload (Meta+Shift+R). The root app restored immediately at the same 100 m Bern viewport with the search marker.
+- Clicking the cluster immediately after reload again showed exactly 6/6 photos; deleted IDs did not reappear.
+
+Identical recorded-bounds requests after reload
+- Request 1: HTTP 200, Cache-Control: no-store.
+- Request 2: HTTP 200, Cache-Control: no-store.
+- Both live bodies SHA-256: c28a2ebcd5d59faaeac6f5c2f19b0d718914e9d62bfb0729c468d17e94b98f35.
+- Both contain exactly IDs 400000,400006,400002,400001,400003,400005; neither contains deleted 400004/400007.
+- No Age, ETag, or Last-Modified cache validator was returned.

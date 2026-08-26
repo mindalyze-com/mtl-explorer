@@ -1,0 +1,15 @@
+FLT_06 reuses the direct same-run FLT_03 action.
+
+Without a page reload or Apply action:
+- Activities by keyword + Media changed visible count 9 / 9 -> 1 / 9.
+- Current-result label changed to Activities by keyword · Media.
+- Map legend changed from CYCLING 7 + ON_FOOT 2 to ON_FOOT 1.
+- Statistics changed from 9 tracks to Showing 1 of 9 tracks.
+- Statistics totals changed to 189.62 m, 0m 00s, 1 Wh, 5 m ascent.
+
+Clearing the keyword, again without reload:
+- Map count returned to 9 / 9.
+- Legend returned to CYCLING 7 + ON_FOOT 2.
+- Statistics returned to 9 tracks.
+
+Map color configuration remained available as 8 Colors · Default order.

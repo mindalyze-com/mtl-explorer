@@ -1,0 +1,7 @@
+Pass: offline
+Phase: final settled state
+Expected/actual active GPX/media: 6/6; 6/6
+Evidence: 12 completed index rows, 6 tracks, 6 media, 36 track-data rows, zero pending correlation work, zero duplicate paths, zero server errors. App peak 656834560 bytes; PostgreSQL peak 353406976 bytes; no swap or OOM.
+Browser audit: only expected polling warnings during the four planned shutdowns; no browser errors.
+GUI: Statistics showed 6 Tracks, 6 Media, and Synthetic B1 replacement.
+Status: PASS

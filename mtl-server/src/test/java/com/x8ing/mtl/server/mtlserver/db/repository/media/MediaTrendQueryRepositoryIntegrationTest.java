@@ -5,10 +5,11 @@ import com.x8ing.mtl.server.mtlserver.jobs.media.indexer.MediaIndexerService;
 import com.x8ing.mtl.server.mtlserver.web.services.track.entity.MediaTrendGrouping;
 import com.x8ing.mtl.server.mtlserver.web.services.track.entity.MediaTrendKindFilter;
 import com.x8ing.mtl.server.mtlserver.web.services.track.entity.MediaTrendScope;
+import com.x8ing.mtl.server.mtlserver.web.services.track.entity.TrackMediaDto;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.annotation.Rollback;
 import org.springframework.transaction.annotation.Transactional;
@@ -36,10 +37,10 @@ class MediaTrendQueryRepositoryIntegrationTest {
     @Autowired
     private MediaTrendQueryRepository repository;
 
-    @MockBean
+    @MockitoBean
     private GPXDirectoryWatcherService gpxDirectoryWatcherService;
 
-    @MockBean
+    @MockitoBean
     private MediaIndexerService mediaIndexerService;
 
     @Test
@@ -120,6 +121,29 @@ class MediaTrendQueryRepositoryIntegrationTest {
         assertThat(sameTimeItems.items())
                 .extracting(item -> item.id())
                 .startsWith(excludedMedia, gpsMedia);
+
+        var correctedItems = repository.findItems(
+                MediaTrendGrouping.DAY,
+                MediaTrendScope.ALL_INDEXED,
+                "2199-08-18",
+                MediaTrendKindFilter.VIDEO,
+                List.of(),
+                60,
+                0);
+        assertThat(correctedItems.items())
+                .filteredOn(item -> item.id() == correctedVideo)
+                .singleElement()
+                .satisfies(item -> {
+                    assertThat(item.appliedCameraOffsetSeconds()).isEqualTo(CAMERA_OFFSET_SECONDS);
+                    assertThat(item.timeSource()).isEqualTo(TrackMediaDto.TIME_SOURCE.EXIF_DATE_TAKEN);
+                });
+        assertThat(sameTimeItems.items())
+                .filteredOn(item -> item.id() == gpsMedia)
+                .singleElement()
+                .satisfies(item -> {
+                    assertThat(item.appliedCameraOffsetSeconds()).isZero();
+                    assertThat(item.timeSource()).isEqualTo(TrackMediaDto.TIME_SOURCE.EXIF_GPS);
+                });
 
         var undated = repository.findItems(
                 MediaTrendGrouping.TOTAL,

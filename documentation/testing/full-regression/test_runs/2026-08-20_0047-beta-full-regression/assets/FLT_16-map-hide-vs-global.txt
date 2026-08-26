@@ -1,0 +1,16 @@
+FLT_16 temporary map hide versus global category selection
+
+Initial global selection:
+- Tracks by year; 2010 and 2026 selected.
+- Global result: 7 of 9 tracks.
+
+Temporary legend hide:
+- Hiding 2010 changed the map-visible count from 7 to 3.
+- The legend showed 1 hidden and changed the control to Show 2010 on map.
+- Statistics still showed Showing 7 of 9 tracks and the 7 Tracks card.
+
+Global selection change:
+- Added 2013 to the selected result categories.
+- Global result changed to 8 of 9 tracks; summary 3 of 4 categories.
+- Temporary legend hiding reset: 2010, 2013, and 2026 all showed pressed Hide controls and there was no hidden marker.
+- Statistics changed to Showing 8 of 9 tracks and the 8 Tracks card.

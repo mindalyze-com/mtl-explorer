@@ -1,8 +1,9 @@
-import { mount } from '@vue/test-utils';
+import { flushPromises, mount } from '@vue/test-utils';
 import { computed, defineComponent, nextTick, ref } from 'vue';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import MediaFilmstrip from '@/components/map/MediaFilmstrip.vue';
 import MediaPreview from '@/components/map/MediaPreview.vue';
+import { saveMediaTimeCorrections } from '@/repositories/mediaRepository';
 
 const previewMockState = vi.hoisted(() => ({
   fileName: 'photo.jpg',
@@ -55,6 +56,7 @@ vi.mock('@/components/map/useMediaPreview', () => ({
 
 vi.mock('@/repositories/mediaRepository', () => ({
   mediaContentUrl: (id: number, maxSize?: number) => `/media/${id}?maxSize=${maxSize}`,
+  saveMediaTimeCorrections: vi.fn(),
 }));
 
 const wrappers: Array<ReturnType<typeof mount>> = [];
@@ -105,6 +107,10 @@ function dispatchPointer(
   });
   element.dispatchEvent(event);
 }
+
+beforeEach(() => {
+  vi.mocked(saveMediaTimeCorrections).mockReset().mockResolvedValue(undefined);
+});
 
 afterEach(() => {
   for (const wrapper of wrappers.splice(0)) wrapper.unmount();
@@ -262,6 +268,28 @@ describe('MediaPreview interactions', () => {
     expect(wrapper.get('[data-test="media-position-source"]').text()).toContain('Multiple activities matched');
   });
 
+  it('shows explicit unknown position metadata and clears a saved camera correction', async () => {
+    const wrapper = mountPreview({
+      positionUnknown: true,
+      positionLat: 46.94811,
+      positionLng: 7.44755,
+      timeSource: 'EXIF_DATE_TAKEN',
+      appliedCameraOffsetSeconds: 3_603,
+    });
+
+    expect(wrapper.get('[data-test="media-position-source"]').text()).toContain('Position unknown');
+    expect(wrapper.getComponent(MediaLocationMiniMapStub).props()).toMatchObject({
+      latitude: 46.94811,
+      longitude: 7.44755,
+    });
+    await wrapper.get('.mp__clear-correction').trigger('click');
+    await flushPromises();
+
+    expect(saveMediaTimeCorrections).toHaveBeenCalledWith({ mediaIds: [2], offsetSeconds: 0 });
+    expect(wrapper.emitted('time-correction-cleared')).toEqual([[2]]);
+    expect(wrapper.find('.mp__clear-correction').exists()).toBe(false);
+  });
+
   it('shows a toggleable mini map only for valid photo coordinates', async () => {
     const wrapper = mountPreview({
       positionLat: 47.5605,
@@ -377,5 +405,35 @@ describe('MediaPreview interactions', () => {
     dispatchPointer(viewport.element, 'pointerup', { pointerId: 2, clientX: 200, clientY: 105 });
     await nextTick();
     expect(wrapper.emitted('prev')).toHaveLength(1);
+  });
+
+  it('uses a horizontal swipe over video while preserving its native control area', async () => {
+    previewMockState.fileName = 'clip.mp4';
+    previewMockState.isVideo = true;
+    previewMockState.mediaUrl = '/video.mp4';
+    previewMockState.posterUrl = '/video-poster.jpg';
+    const wrapper = mountPreview();
+    const video = wrapper.get('video.mp__media--video');
+    vi.spyOn(video.element, 'getBoundingClientRect').mockReturnValue({
+      x: 0,
+      y: 0,
+      top: 0,
+      right: 640,
+      bottom: 400,
+      left: 0,
+      width: 640,
+      height: 400,
+      toJSON: () => undefined,
+    });
+
+    dispatchPointer(video.element, 'pointerdown', { pointerId: 3, clientX: 200, clientY: 100 });
+    dispatchPointer(video.element, 'pointerup', { pointerId: 3, clientX: 100, clientY: 105 });
+    await nextTick();
+    expect(wrapper.emitted('next')).toHaveLength(1);
+
+    dispatchPointer(video.element, 'pointerdown', { pointerId: 4, clientX: 200, clientY: 380 });
+    dispatchPointer(video.element, 'pointerup', { pointerId: 4, clientX: 100, clientY: 380 });
+    await nextTick();
+    expect(wrapper.emitted('next')).toHaveLength(1);
   });
 });

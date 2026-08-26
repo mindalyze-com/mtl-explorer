@@ -1,0 +1,18 @@
+Coverage: TRD_01
+GPX-backed user-facing open:
+- Source: JuraRoute72011.gpx
+- Track ID: 100000
+- UI name: Jura Route 7 / 2011 on GPSies.com
+- User-facing paths exercised in IMP_06/IMP_07 and MAP_08: Filter/Review Tracks and rendered map line -> /mtl/track/100000
+
+FIT-backed user-facing open:
+- Source: Activity.fit
+- Track ID: 100005
+- UI name: Track 100005
+- User-facing path exercised in FIT_02: Statistics > Tracks search/row -> /mtl/track/100005
+
+Primary evidence:
+- ../assets/DAT_03-source-manifest.txt
+- ../assets/IMP_07-map-interaction.txt
+- ../assets/FIT_02-index-ui.txt
+Result: both GPX and FIT identities and source filenames are recorded from user-facing navigation in this run.

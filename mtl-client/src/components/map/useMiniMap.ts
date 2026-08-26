@@ -1,8 +1,9 @@
 import { onBeforeUnmount, onMounted, watch, type Ref } from 'vue';
-import maplibregl from 'maplibre-gl';
+import * as maplibregl from 'maplibre-gl';
 import { fetchMapConfig } from '@/utils/mapConfigService';
 import { TRACK_COLOR } from '@/utils/trackColors';
 import { resolveConfiguredMapStyle } from '@/components/map/mapStyleResolver';
+import { installMissingStyleImageResolver } from '@/utils/maplibreStyleImages';
 import { useMapSettingsStore } from '@/stores/mapSettingsStore';
 import { useMeasurementSystem } from '@/composables/useMeasurementSystem';
 import { mapScaleUnitForMeasurementSystem, syncMapScaleControlUnit } from '@/components/map/mapScaleControl';
@@ -296,11 +297,7 @@ function waitForMapLoad(map: maplibregl.Map): Promise<void> {
 }
 
 function installMissingImageFallback(map: maplibregl.Map): void {
-  map.on('styleimagemissing', (event: { id: string }) => {
-    if (!map.hasImage(event.id)) {
-      map.addImage(event.id, { width: 1, height: 1, data: new Uint8ClampedArray(4) });
-    }
-  });
+  installMissingStyleImageResolver(map);
 }
 
 function escapeHtml(value: string): string {

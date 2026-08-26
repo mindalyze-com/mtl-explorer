@@ -1,0 +1,20 @@
+FLT_20 shared Review/Statistics track browser
+
+Filter Review on desktop:
+- Summary: 8 tracks for the active year filter.
+- Desktop table columns: Start, Track, Activity, Distance, Duration, Avg km/h, Energy, Exploration, Imported.
+- Search control and Date/Imported/Distance/Duration/Name/Exploration sort controls were present.
+- Pagination exposed First, Previous, Page 1, Next, Last, and Rows per page.
+- Rows per page offered 10, 25, 50, 100, 250, and 1000; at eight rows, page navigation was correctly disabled.
+- Date order initially started with the 2026 MTL Synthetic Segment Alpha row.
+- Name sorting changed the first row to voie verte haute vosges on GPSies.com.
+- Searching Lannion left exactly one row, Lannion_Plestin_parcours.
+- Activating that row opened Track Details with Overview and the selected Lannion track/map context.
+
+Statistics > Tracks recheck:
+- Summary: 8 tracks.
+- The same search control, six sort actions, table columns, pagination controls, rows-per-page control, and eight rows were present.
+
+Responsive table/cards:
+- Desktop table passed.
+- Narrow cards are BLOCKED by the connected browser's missing viewport resize/emulation capability (ACC_04).

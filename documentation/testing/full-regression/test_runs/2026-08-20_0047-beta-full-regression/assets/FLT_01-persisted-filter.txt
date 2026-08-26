@@ -1,0 +1,12 @@
+Persisted filter state after a fresh main-map navigation
+
+- Current result: 9 matching tracks
+- Apply filter: checked
+- Filter view summary: Smart Base Filter
+- Criteria: No criteria
+- Included categories: All 2 categories
+- Catalog: 19 views; Smart Base Filter is the selected row.
+
+Expected by FLT_01: the previously saved active filter is shown as a chip.
+Observed: no active-filter chip appears in the Filter overview or catalog.
+The saved filter is represented by a summary card and selected catalog row.

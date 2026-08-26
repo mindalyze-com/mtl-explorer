@@ -37,6 +37,28 @@ const smartBaseFilter: FilterInfo = {
   },
   paramDefinitions: [],
 };
+const trackPickerFilter: FilterInfo = {
+  filterConfig: {
+    id: 5,
+    filterName: 'TracksBySelection',
+    filterDomain: 'GPS_TRACK',
+    displayName: 'Tracks by selection',
+  },
+  paramDefinitions: [{ name: 'TRACK_IDS', type: 'STRING' }],
+  effectiveUiMetadata: {
+    metadataVersion: 2,
+    params: {
+      TRACK_IDS: {
+        optional: true,
+        widget: 'trackPicker',
+        optionsSource: {
+          type: 'originFilterResult',
+          resolvedFilterRef: '/GPS_TRACK/SmartBaseFilter',
+        },
+      },
+    },
+  },
+};
 const geoFilter: FilterInfo = {
   filterConfig: {
     id: 4,
@@ -160,7 +182,7 @@ const FilterViewSheetStub = {
 };
 const FilterCriteriaSheetStub = {
   name: 'FilterCriteriaSheet',
-  props: ['modelValue', 'filterInfo', 'filterParams'],
+  props: ['modelValue', 'filterInfo', 'filterParams', 'trackIdCandidateTracks', 'trackIdCandidatesLoading'],
   emits: ['update:modelValue', 'change', 'apply-and-draw'],
   template: '<div data-test="filter-criteria-sheet"></div>',
 };
@@ -287,17 +309,31 @@ describe('CustomFilter overview navigation', () => {
     expect(wrapper.findComponent(FilterCategoriesSheetStub).props('modelValue')).toBe(true);
   });
 
-  it('restores the active filter chip identity when the Filter sheet reopens', async () => {
+  it('restores the selected filter chip identity when the Filter sheet reopens', async () => {
     const wrapper = mountFilter(false);
     await flushPromises();
 
-    expect(wrapper.findComponent(FilterOverviewStub).props('activeIdentity')).toBe('Tracks by year');
+    expect(wrapper.findComponent(FilterOverviewStub).props('activeIdentity')).toBe('Years');
 
     await wrapper.setProps({ show: true });
     await wrapper.setProps({ show: false });
     await wrapper.setProps({ show: true });
 
-    expect(wrapper.findComponent(FilterOverviewStub).props('activeIdentity')).toBe('Tracks by year');
+    expect(wrapper.findComponent(FilterOverviewStub).props('activeIdentity')).toBe('Years');
+  });
+
+  it('shows the enabled persisted Smart Base Filter as the active filter chip', async () => {
+    mocks.ensureLoaded.mockResolvedValue({
+      filterInfo: smartBaseFilter,
+      filterParams: {},
+      palette: {},
+    });
+    mocks.activeIdentity = '';
+
+    const wrapper = mountFilter(false);
+    await flushPromises();
+
+    expect(wrapper.findComponent(FilterOverviewStub).props('activeIdentity')).toBe('Smart Base Filter');
   });
 
   it('controls pause and resume from the Current result action', async () => {
@@ -534,6 +570,67 @@ describe('CustomFilter overview navigation', () => {
 
     expect(reviewSheet.props('loading')).toBe(false);
     expect(reviewSheet.props('entries')).toEqual(refreshedDetails.queryResult.resultEntries);
+  });
+
+  it('refreshes track picker candidates when server data freshness changes', async () => {
+    mocks.fetchFilters.mockResolvedValue([smartBaseFilter, trackPickerFilter]);
+    mocks.ensureLoaded.mockResolvedValue({
+      filterInfo: trackPickerFilter,
+      filterParams: {},
+      palette: {},
+    });
+    const initialCandidates = {
+      queryResult: {
+        resultEntries: [
+          { id: 11, gpsTrack: { id: 11, trackName: 'Morning walk' } },
+          { id: 12, gpsTrack: { id: 12, trackName: 'Deleted ride' } },
+        ],
+      },
+      trackVersions: new Map(),
+      filterGroups: new Map(),
+      standardFilterCount: 2,
+    };
+    const refreshedCandidates = {
+      ...initialCandidates,
+      queryResult: {
+        resultEntries: [{ id: 11, gpsTrack: { id: 11, trackName: 'Morning walk' } }],
+      },
+      standardFilterCount: 1,
+    };
+    let candidateLoadCount = 0;
+    mocks.fetchResolveFilter.mockImplementation((_filterId, _params, loadGpsDetails) => {
+      if (!loadGpsDetails) {
+        return Promise.resolve({
+          queryResult: { resultEntries: [] },
+          trackVersions: new Map(),
+          filterGroups: new Map(),
+          standardFilterCount: 0,
+        });
+      }
+      candidateLoadCount += 1;
+      return Promise.resolve(candidateLoadCount === 1 ? initialCandidates : refreshedCandidates);
+    });
+
+    const wrapper = mountFilter();
+    await flushPromises();
+    await vi.advanceTimersByTimeAsync(350);
+    await flushPromises();
+
+    const criteriaSheet = wrapper.findComponent(FilterCriteriaSheetStub);
+    expect(criteriaSheet.props('trackIdCandidateTracks')).toEqual([
+      expect.objectContaining({ id: 11 }),
+      expect.objectContaining({ id: 12 }),
+    ]);
+
+    const store = mocks.store as { dataFreshnessRevision: number };
+    store.dataFreshnessRevision += 1;
+    await wrapper.vm.$nextTick();
+    await vi.advanceTimersByTimeAsync(350);
+    await flushPromises();
+
+    expect(criteriaSheet.props('trackIdCandidateTracks')).toEqual([expect.objectContaining({ id: 11 })]);
+    expect(mocks.fetchResolveFilter).toHaveBeenCalledWith(3, {}, true);
+    expect(mocks.fetchResolveFilter.mock.calls.filter((call) => call[2] === true)).toHaveLength(2);
   });
 
   it('refreshes paused result metadata without applying the draft to the map', async () => {

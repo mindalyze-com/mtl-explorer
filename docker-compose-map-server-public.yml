@@ -44,11 +44,12 @@ services:
       MAP_DOWNLOAD_URL: ${MAP_DOWNLOAD_URL:-latest}
       PROTOMAPS_BUILDS_BASE_URL: ${PROTOMAPS_BUILDS_BASE_URL:-https://build.protomaps.com}
     restart: unless-stopped
+    memswap_limit: 128m
     volumes:
       - ${MAP_SERVER_DATA_DIR:-/volume1/raspberry/MyTrailLogMapsPublic/maps}:/data
     deploy:
       resources:
         limits:
-          memory: 1024m
+          memory: 128m # 96 MiB validated floor; 20% is 115.2 MiB, rounded to 128 MiB.
         reservations:
-          memory: 256m
+          memory: 64m

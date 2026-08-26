@@ -1,0 +1,19 @@
+Track: FIT #100005 (Activity.fit)
+
+Passing controls:
+- X axis: Time -> Distance activated; chart X-axis changed to kilometre values.
+- Range: on -> off removed the Speed range series; charts stayed populated.
+- Graph height slider: aria value and first chart SVG height changed 240 -> 250.
+
+Failing control:
+- Point-count value 325 rendered Speed/Elevation series with 320/325 points.
+- Slider Home changed the visible value to 3 and logged:
+  fetch chart series (DISTANCE, maxBuckets=3) for 100005
+- After the request settled, Speed/Elevation still rendered 320/325 points.
+- Slider End changed the visible value to 3000 and logged:
+  fetch chart series (DISTANCE, maxBuckets=3000) for 100005
+- After five seconds, Speed/Elevation still rendered 320/325 points.
+- No browser error or exception was logged.
+
+Result: the slider value and fetch argument change, but the displayed chart
+series do not refresh to the requested point count.

@@ -1,13 +1,25 @@
-import { mount } from '@vue/test-utils';
+import { flushPromises, mount } from '@vue/test-utils';
 import { nextTick } from 'vue';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import MediaFilmstrip from '@/components/map/MediaFilmstrip.vue';
+import { getMediaInfo } from '@/repositories/mediaRepository';
 
 vi.mock('@/repositories/mediaRepository', () => ({
+  getMediaInfo: vi.fn(),
   mediaContentUrl: (id: number, maxSize?: number) => `/media/${id}?maxSize=${maxSize}`,
 }));
 
 const wrappers: Array<ReturnType<typeof mount>> = [];
+
+beforeEach(() => {
+  vi.mocked(getMediaInfo)
+    .mockReset()
+    .mockImplementation(async (id: number) => ({
+      id,
+      fileName: `photo-${id}.jpg`,
+      mediaKind: 'IMAGE',
+    }));
+});
 
 function mountFilmstrip(props: Record<string, unknown> = {}) {
   const wrapper = mount(MediaFilmstrip, {
@@ -178,5 +190,19 @@ describe('MediaFilmstrip', () => {
     expect(wrapper.get('[data-media-id="2"]').attributes('aria-label')).toBe('Current video');
     expect(wrapper.get('[data-media-id="3"]').attributes('aria-label')).toBe('Open video 3');
     expect(wrapper.get('[data-media-id="2"] img').attributes('src')).toBe('/media/2?maxSize=192');
+  });
+
+  it('resolves video kinds for visible map items when the parent only knows identifiers', async () => {
+    vi.mocked(getMediaInfo).mockImplementation(async (id: number) => ({
+      id,
+      fileName: id === 3 ? 'clip.mp4' : `photo-${id}.jpg`,
+      mediaKind: id === 3 ? 'VIDEO' : 'IMAGE',
+    }));
+
+    const wrapper = mountFilmstrip({ mediaId: 1, currentMediaIsVideo: false, videoMediaIds: [] });
+    await flushPromises();
+
+    expect(wrapper.get('[data-media-id="3"] .mp__filmstrip-video').exists()).toBe(true);
+    expect(wrapper.get('[data-media-id="3"]').attributes('aria-label')).toBe('Open video 3');
   });
 });

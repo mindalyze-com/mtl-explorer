@@ -1,0 +1,10 @@
+Coverage: SGN_08
+Visible global control: About MTL Explorer
+Panel title: About MTL Explorer
+About region name: MTL Explorer
+About heading: MTL Explorer
+Public description: Self-hosted GPS track and trail log.
+Open-source copy: MTL Explorer is dual-licensed under the GNU AGPL, version 3 or later, and a separate commercial license.
+Source link: https://github.com/mindalyze-com/mtl-explorer
+Result: MTL Explorer branding is consistent in the About/public-facing copy.
+Related existing issue: MTL-FR-001 covers the separate `Version dev` build-identity problem.

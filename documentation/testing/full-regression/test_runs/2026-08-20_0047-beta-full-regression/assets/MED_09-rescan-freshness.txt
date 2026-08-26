@@ -1,0 +1,22 @@
+MED_09 GUI rescan and freshness evidence
+Observed 2026-08-20 Europe/Zurich
+
+Before GUI action
+- MEDIA: total 13, pending 0, completed 8, failed 0, removed 5, excluded 0.
+- Freshness: index 100403, media 311; full token recorded in MED_07.
+
+Visible action and settlement
+- Admin > Maintenance > Rescan Media was activated.
+- UI status: "Manual MEDIA rescan has been queued."
+- Server recorded POST /mtl/api/indexer/MEDIA/rescan 200.
+- Directory walk examined six watched files and queued the missing entries.
+- MediaIndexer deleted exactly one active row for delete-b and one for delete-a.
+- Rescan completed in 82 ms.
+- Settled MEDIA: total 13, pending 0, completed 6, failed 0, removed 7, excluded 0. Removed increased by exactly two; failed stayed zero.
+- Active media/resolved/selected counts settled 8/8/8 -> 6/6/6; work queues 0/0.
+
+Freshness and visible apply
+- New token: 7Jvzhb__|server_id:6qVg4AYMpEx8YgnXidocUW|config:9|filters:90|index:100424|media:313|track_geometry:228|tracks:598
+- Index revision changed 100403 -> 100424; media changed 311 -> 313.
+- The UI changed Data status to Stale and displayed "New data available".
+- Activating that banner's Reload produced "Map updated — Fresh data loaded" and removed stale status.

@@ -2,7 +2,7 @@
 // @ts-nocheck
 /* eslint-disable @typescript-eslint/no-explicit-any -- Renderer setup still crosses broad MapLibre/runtime config shapes. */
 import { markRaw } from 'vue';
-import maplibregl from 'maplibre-gl';
+import * as maplibregl from 'maplibre-gl';
 import { fetchTrackIdsWithinDistanceOfPoint } from '@/utils/ServiceHelper';
 import { getToken, redirectToLoginAfterAuthFailure } from '@/utils/auth';
 import { MediaOverlay } from '@/layers/MediaOverlay';
@@ -20,7 +20,7 @@ import {
   MAP_STATUS_POLL_INTERVAL_MS,
   shouldPollMapStatus,
 } from '@/utils/mapStatusService';
-import { buildLocalVectorStyleFromArchiveUrl, buildFallbackRasterStyle, TERRAIN_DEM_SOURCE_ID } from '@/utils/mapStyle';
+import { buildLocalVectorStyleFromArchiveUrl, buildFallbackRasterStyle } from '@/utils/mapStyle';
 import { GlobeControl, computeGlobeMinZoom } from '@/components/map/GlobeControl';
 import { TerrainViewControl } from '@/components/map/TerrainViewControl';
 import { haversineDistance } from '@/components/map/mapGeometry';
@@ -35,10 +35,12 @@ import type { MapControllerMethodDefinitions, MapRendererLifecycleMethods } from
 import { useMapStateStore } from '@/stores/mapStateStore';
 import type { useMapSettingsStore } from '@/stores/mapSettingsStore';
 import { isAbortLikeError } from '@/utils/errors';
+import { installMissingStyleImageResolver } from '@/utils/maplibreStyleImages';
 
 const GLOBE_ENTER_ZOOM = 3;
 const GLOBE_EXIT_ZOOM = 3.8;
 const MERCATOR_MIN_ZOOM = 1.0;
+const MAP_PAN_DECELERATION = 1700;
 const MAP_NAVIGATION_CONTROL_OPTIONS = Object.freeze({ showCompass: true, showZoom: true, visualizePitch: true });
 const MAP_LOAD_WATCHDOG_MS = 7000;
 const DEFAULT_MAP_ZOOM = 10;
@@ -122,6 +124,7 @@ export function useMapRendererLifecycle(deps: {
             // Tiles just became ready, or the byte layout/source changed — rebuild
             // with a fresh server-provided PMTiles URL so browser range caches stay isolated.
             if (!wasReady || archiveChanged) {
+              this.baseMapRuntimeFallbackApplied = false;
               clearMapConfigCache();
               this.reloadMap();
             }
@@ -185,10 +188,6 @@ export function useMapRendererLifecycle(deps: {
         this.overlayMap.remove();
         this.overlayMap = undefined;
       }
-      if (this.map) {
-        this.map.remove();
-        this.map = undefined;
-      }
       this._terrainControl = null;
       this._scaleControl = null;
       this._terrainTrackLayer = null;
@@ -196,7 +195,7 @@ export function useMapRendererLifecycle(deps: {
     },
 
     applyRuntimeRasterBasemapFallback(errorEvent, message, tileId) {
-      if (this.baseMapRuntimeFallbackApplied || this.baseMapStyleMode !== LOCAL_VECTOR_STYLE_MODE || !this.map) {
+      if (this.baseMapRuntimeFallbackApplied || this.baseMapStyleMode !== LOCAL_VECTOR_STYLE_MODE || !this.overlayMap) {
         return false;
       }
       if (errorEvent?.sourceId !== LOCAL_VECTOR_SOURCE_ID) {
@@ -209,8 +208,18 @@ export function useMapRendererLifecycle(deps: {
       });
       this.baseMapRuntimeFallbackApplied = true;
       this.baseMapStyleMode = resolved.styleMode;
-      this.map.setStyle(resolved.style);
-      this.setOverlayAttributionControl(resolved.attributions);
+      const hadTrackLayers = Boolean(this.overlayMap.getSource('tracks'));
+      if (hadTrackLayers) {
+        void this.reloadMap();
+      } else {
+        this.overlayMap.once('style.load', () => {
+          this.captureBasemapLayers();
+          this.applyBasemapAppearance();
+          this.applyTerrainPreference({ animate: false });
+        });
+        this.overlayMap.setStyle(resolved.style);
+        this.setOverlayAttributionControl(resolved.attributions);
+      }
       startupWarn('mapload', 'Local vector basemap failed; switched to raster fallback', {
         message,
         sourceId: errorEvent?.sourceId ?? null,
@@ -237,7 +246,7 @@ export function useMapRendererLifecycle(deps: {
         try {
           this.overlayMap.removeControl(this._attributionControl);
         } catch {
-          // The overlay map may already be tearing down during a reload.
+          // The map may already be tearing down during a reload.
         }
       }
       const visibleAttributions = Array.isArray(attributions)
@@ -252,9 +261,7 @@ export function useMapRendererLifecycle(deps: {
       );
       this.overlayMap.addControl(this._attributionControl, 'bottom-right');
       const attributionLinkContainer =
-        typeof this.overlayMap.getContainer === 'function'
-          ? this.overlayMap.getContainer()
-          : this.$refs.mapOverlayContainer;
+        typeof this.overlayMap.getContainer === 'function' ? this.overlayMap.getContainer() : this.$refs.mapContainer;
       this._attributionLinkCleanup = markRaw(
         configureExternalAttributionLinks(attributionLinkContainer, {
           onBlocked: (url) => warnExternalAttributionBlocked(this.$toast, url),
@@ -273,6 +280,7 @@ export function useMapRendererLifecycle(deps: {
       this.mapArchiveStaleReloading = true;
       try {
         startupWarn('mapcache', 'PMTiles archive/source changed; reloading map config', event?.detail ?? {});
+        this.baseMapRuntimeFallbackApplied = false;
         this.stopMapStatusPolling();
         this.mapServerStatus = null;
         invalidateMapStatus();
@@ -326,7 +334,7 @@ export function useMapRendererLifecycle(deps: {
       }
       this.geoDrawingOverlay = null;
 
-      // Clean up GPS marker (lives on overlay map which will be destroyed)
+      // Clean up the GPS marker before destroying the map.
       if (this.gpsMarker) {
         this.gpsMarker.remove();
         this.gpsMarker = null;
@@ -479,7 +487,9 @@ export function useMapRendererLifecycle(deps: {
           theme: this.mapThemeSelected,
           mapSourceMode: this.mapSourceMode,
           localTilesReady:
-            this.mapConfig.tileMode === MapConfigDtoTileModeEnum.Local ? this.mapServerStatus?.ready === true : true,
+            this.mapConfig.tileMode === MapConfigDtoTileModeEnum.Local
+              ? this.mapServerStatus?.ready === true && !this.baseMapRuntimeFallbackApplied
+              : true,
         });
         style = resolved.style;
         styleMode = resolved.styleMode;
@@ -495,15 +505,14 @@ export function useMapRendererLifecycle(deps: {
         archiveId: this.mapServerStatus?.archiveId ?? this.mapConfig.archiveId ?? null,
       });
       this.baseMapStyleMode = styleMode;
-      this.baseMapRuntimeFallbackApplied = false;
 
-      // ── Base map: tiles, Swiss Mobility overlays, dim layer — passive ──
-      startupLog('mapload', 'Creating base map instance', {
+      // Basemap, tracks, media, and interactions share one MapLibre render cycle.
+      startupLog('mapload', 'Creating map instance', {
         styleMode,
       });
-      this.map = markRaw(
+      this.overlayMap = markRaw(
         new maplibregl.Map({
-          container: this.$refs.mapBaseContainer,
+          container: this.$refs.mapContainer,
           style,
           center: initialCenter,
           zoom: initialZoom,
@@ -511,20 +520,15 @@ export function useMapRendererLifecycle(deps: {
           pitch: initialPitch,
           minZoom: MERCATOR_MIN_ZOOM,
           attributionControl: false,
-          interactive: false, // base map just renders — overlay drives interaction
+          dragPan: { deceleration: MAP_PAN_DECELERATION },
+          dragRotate: true,
+          pitchWithRotate: true,
+          touchPitch: true,
         })
       );
-      this.map.on('styleimagemissing', (e) => {
-        if (!this.map.hasImage(e.id)) {
-          this.map.addImage(e.id, {
-            width: 1,
-            height: 1,
-            data: new Uint8ClampedArray(4),
-          });
-        }
-      });
-      this.map.once('load', () => {
-        startupLog('mapload', 'Base map load event received', {
+      installMissingStyleImageResolver(this.overlayMap);
+      this.overlayMap.once('load', () => {
+        startupLog('mapload', 'Map load event received', {
           styleMode,
         });
       });
@@ -532,7 +536,7 @@ export function useMapRendererLifecycle(deps: {
       // Detect authentication failures from PMTiles / tile fetches and redirect to login.
       // PMTiles 401 errors bypass the axios interceptor, so this is the only recovery path.
       // All other map errors (blocked CDNs, CORS, DNS failures) are also logged for diagnostics.
-      this.map.on('error', (e) => {
+      this.overlayMap.on('error', (e) => {
         const msg = e.error?.message || '';
         const tileId = e?.tile?.tileID ?? null;
         if (msg.includes('401')) {
@@ -561,32 +565,7 @@ export function useMapRendererLifecycle(deps: {
         }
       });
 
-      // ── Overlay map: tracks, highlights, media — handles ALL user interaction ──
-      startupLog('mapload', 'Creating overlay map instance');
-      this.overlayMap = markRaw(
-        new maplibregl.Map({
-          container: this.$refs.mapOverlayContainer,
-          style: {
-            version: 8,
-            sources: {},
-            layers: [],
-          },
-          center: initialCenter,
-          zoom: initialZoom,
-          bearing: initialBearing,
-          pitch: initialPitch,
-          minZoom: MERCATOR_MIN_ZOOM,
-          attributionControl: false,
-          dragRotate: true,
-          pitchWithRotate: true,
-          touchPitch: true,
-        })
-      );
-      this.overlayMap.once('load', () => {
-        startupLog('mapload', 'Overlay map load event received');
-      });
-
-      // Controls live on overlay map (HTML elements — always clickable on top)
+      // Controls and all application layers live on the same map.
       this.overlayMap.addControl(new maplibregl.NavigationControl(MAP_NAVIGATION_CONTROL_OPTIONS), 'top-left');
       this._globeControl = markRaw(new GlobeControl(() => this.toggleGlobeMode()));
       this.overlayMap.addControl(this._globeControl, 'top-left');
@@ -602,7 +581,7 @@ export function useMapRendererLifecycle(deps: {
       this.overlayMap.addControl(this._scaleControl, 'bottom-left');
       this.setOverlayAttributionControl(styleAttributions);
 
-      // Initialize media overlay on the colourful overlay map
+      // Initialize media overlay.
       this.mediaOverlay = markRaw(
         new MediaOverlay(
           this.overlayMap,
@@ -619,30 +598,27 @@ export function useMapRendererLifecycle(deps: {
       // Initialize heatmap overlay
       this.heatmapOverlay = markRaw(new HeatmapOverlay(this.overlayMap));
 
-      // Resize maps when container size changes (e.g. nav panel expand/collapse)
+      // Resize the map when its container changes (e.g. nav panel expand/collapse).
       if (this._resizeObserver) {
         this._resizeObserver.disconnect();
         this._resizeObserver = null;
       }
       this._resizeObserver = markRaw(
         new ResizeObserver(() => {
-          this.map?.resize();
           this.overlayMap?.resize();
           // Recompute globe minZoom whenever the viewport size changes (phone vs desktop)
           if (this.globeMode) {
-            const minZoom = computeGlobeMinZoom(this.$refs.mapOverlayContainer);
-            this.map?.setMinZoom(minZoom);
+            const minZoom = computeGlobeMinZoom(this.$refs.mapContainer);
             this.overlayMap?.setMinZoom(minZoom);
           }
         })
       );
-      this._resizeObserver.observe(this.$refs.mapOverlayContainer);
+      this._resizeObserver.observe(this.$refs.mapContainer);
 
-      // Wait for both maps to be ready
-      const waitForMapLoad = (mapInstance, label) =>
+      const waitForMapLoad = (mapInstance) =>
         new Promise((resolve) => {
           if (mapInstance.loaded()) {
-            startupLog('mapload', `${label} already loaded`);
+            startupLog('mapload', 'Map already loaded');
             resolve(true);
             return;
           }
@@ -651,21 +627,22 @@ export function useMapRendererLifecycle(deps: {
       const mapLoadWatchdog = window.setTimeout(() => {
         startupWarn('mapload', 'Map load watchdog exceeded', {
           styleMode,
-          baseLoaded: this.map?.loaded() ?? false,
-          overlayLoaded: this.overlayMap?.loaded() ?? false,
+          mapLoaded: this.overlayMap?.loaded() ?? false,
           tileMode: this.mapConfig?.tileMode,
           offline: this.mapConfig?.offline ?? false,
           mapServerReady: this.mapServerStatus?.ready ?? null,
         });
       }, MAP_LOAD_WATCHDOG_MS);
       try {
-        await Promise.all([waitForMapLoad(this.map, 'Base map'), waitForMapLoad(this.overlayMap, 'Overlay map')]);
+        await waitForMapLoad(this.overlayMap);
       } finally {
         clearTimeout(mapLoadWatchdog);
       }
-      startupLog('mapload', 'Both map instances finished loading', {
+      startupLog('mapload', 'Map finished loading', {
         styleMode,
       });
+      this.captureBasemapLayers();
+      this.applyBasemapAppearance();
       this.applyTerrainPreference({
         animate: false,
       });
@@ -676,7 +653,6 @@ export function useMapRendererLifecycle(deps: {
           duration: 0,
         };
         this.overlayMap.fitBounds(initialBounds, fitOptions);
-        this.map.fitBounds(initialBounds, fitOptions);
         startupLog('mapinit', 'Fitted initial viewport to stored track bounds', {
           minLng: initialBounds[0][0],
           minLat: initialBounds[0][1],
@@ -689,38 +665,19 @@ export function useMapRendererLifecycle(deps: {
         styleMode,
       });
 
-      // ── View sync: overlay map drives the base map ──
-      const syncBase = () => this.syncBaseMapToOverlay();
-      let terrainSyncFrame = null;
-      const scheduleTerrainSync = () => {
-        if (terrainSyncFrame != null) return;
-        terrainSyncFrame = window.requestAnimationFrame(() => {
-          terrainSyncFrame = null;
-          syncBase();
-        });
-      };
-      const syncBaseTerrain = (event) => {
-        if (!this.terrainEnabled) return;
-        if (!event?.sourceId || event.sourceId === TERRAIN_DEM_SOURCE_ID) scheduleTerrainSync();
-      };
-      this.overlayMap.on('move', syncBase);
-      this.overlayMap.on('sourcedata', syncBaseTerrain);
-      this.overlayMap.on('terrain', scheduleTerrainSync);
-      syncBase();
-
       // Break GPS follow mode when the user manually pans the map
       this.overlayMap.on('dragstart', () => {
         if (this.gpsFollowing) this.gpsFollowing = false;
       });
 
-      // Apply any active Swiss Mobility overlays on the overlay map
+      // Apply any active Swiss Mobility overlays.
       this.applyActiveOverlays();
 
       // Apply initial globe projection based on current zoom
       this.zoom = this.overlayMap.getZoom();
       this.updateGlobeState();
 
-      // Click handler for track selection (on overlay map — it receives all interaction)
+      // Click handler for track selection.
       this.overlayMap.on('click', (e) => {
         this.clearFocusedMediaMarker();
         if (this.measureToolActive || this.plannerToolActive || this.geoDrawingParamDef) return;
@@ -842,7 +799,7 @@ export function useMapRendererLifecycle(deps: {
       this._globeControl?.setActive(this.globeMode);
     },
 
-    /** Set MapLibre projection on both maps and let MapLibre handle the morph. */
+    /** Set the MapLibre projection and let MapLibre handle the morph. */
     applyGlobeProjection() {
       const proj = this.globeMode
         ? {
@@ -853,12 +810,9 @@ export function useMapRendererLifecycle(deps: {
           };
 
       // Clamp minZoom: dynamically fitted to viewport for globe, fixed floor for mercator
-      const minZoom = this.globeMode ? computeGlobeMinZoom(this.$refs.mapOverlayContainer) : MERCATOR_MIN_ZOOM;
-      this.map?.setMinZoom(minZoom);
+      const minZoom = this.globeMode ? computeGlobeMinZoom(this.$refs.mapContainer) : MERCATOR_MIN_ZOOM;
       this.overlayMap?.setMinZoom(minZoom);
 
-      // Apply in the same frame so both maps morph together without exposing the black background.
-      this.map?.setProjection(proj);
       this.overlayMap?.setProjection(proj);
     },
 

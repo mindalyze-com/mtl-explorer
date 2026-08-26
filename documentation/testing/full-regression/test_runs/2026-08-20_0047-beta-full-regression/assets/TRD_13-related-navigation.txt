@@ -1,0 +1,17 @@
+Related-track navigation
+
+Canonical duplicate source #100009 / GNSSALTTRK:
+- Previous Tracks: 7
+- Next Tracks: 1
+- Duplicates: 5
+- Duplicate rows include the five format fixtures mapped to duplicate_of 100009.
+
+Navigation checks:
+- First duplicate card from #100009 -> /mtl/track/100006; console logged
+  load gpsTrack details for id=100006.
+- Next card from #100006 -> /mtl/track/100010; console logged
+  load gpsTrack details for id=100010.
+- Previous card from #100006 -> /mtl/track/100013; console logged
+  load gpsTrack details for id=100013.
+
+Each navigation updated both the URL and the visible TrackID.

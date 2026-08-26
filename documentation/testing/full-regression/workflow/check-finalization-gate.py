@@ -20,6 +20,14 @@ TERMINAL_STATUSES = {
     "NOT REPRODUCIBLE",
 }
 ALL_STATUSES = OPEN_STATUSES | TERMINAL_STATUSES
+FINDING_STATUSES = {
+    "OPEN",
+    "FIX_IN_WORK",
+    "FIXED",
+    "REJECTED",
+    "NOT REPRODUCEABLE",
+    "NOT REPRODUCIBLE",
+}
 
 PLAN_ID_RE = re.compile(r"\*\*([A-Z]{3}_[0-9]{2})\*\*")
 PLAN_SNAPSHOT_NAME = "coverage-plan.md"
@@ -104,6 +112,28 @@ def load_packet_status(packet_path: Path, coverage_id: str) -> str | None:
     return None
 
 
+def load_finding_statuses(run_state_path: Path) -> list[tuple[str, str]]:
+    findings: list[tuple[str, str]] = []
+    in_issues = False
+
+    for line in run_state_path.read_text(encoding="utf-8").splitlines():
+        stripped = line.strip()
+        if stripped == "## Issues":
+            in_issues = True
+            continue
+        if in_issues and stripped.startswith("## "):
+            break
+        if not in_issues or not stripped.startswith("|"):
+            continue
+
+        cells = [cell.strip() for cell in stripped.strip("|").split("|")]
+        if len(cells) < 5 or cells[0] == "ID" or set(cells[0]) == {"-"}:
+            continue
+        findings.append((cells[0], normalize_status(cells[-1])))
+
+    return findings
+
+
 def main(argv: list[str]) -> int:
     if len(argv) != 2:
         return usage()
@@ -162,6 +192,13 @@ def main(argv: list[str]) -> int:
         if coverage_id not in plan_ids and run_status in OPEN_STATUSES:
             extra_open.append(f"{coverage_id}: extra open run-state row ({run_status})")
     errors.extend(extra_open)
+
+    for finding_id, finding_status in load_finding_statuses(run_state_path):
+        if finding_status not in FINDING_STATUSES:
+            errors.append(
+                f"{finding_id}: unknown finding status {finding_status!r}; "
+                f"expected one of {', '.join(sorted(FINDING_STATUSES))}"
+            )
 
     if warnings:
         print("Warnings:")

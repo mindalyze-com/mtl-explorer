@@ -83,6 +83,7 @@ const maplibreMock = vi.hoisted(() => {
     getZoom = vi.fn(() => MOCK_MAP_ZOOM);
     project = vi.fn((coordinate: [number, number]) => ({ x: coordinate[0] * 10_000, y: coordinate[1] * 10_000 }));
     queryRenderedFeatures = vi.fn(() => []);
+    setMissingStyleImageResolver = vi.fn();
 
     constructor() {
       this.styleLoadedValue = MockMap.nextStyleLoaded;
@@ -182,12 +183,10 @@ const chartSyncMocks = vi.hoisted(() => ({
 }));
 
 vi.mock('maplibre-gl', () => ({
-  default: {
-    Map: maplibreMock.MockMap,
-    LngLatBounds: maplibreMock.MockLngLatBounds,
-    Marker: maplibreMock.MockMarker,
-    Popup: maplibreMock.MockPopup,
-  },
+  Map: maplibreMock.MockMap,
+  LngLatBounds: maplibreMock.MockLngLatBounds,
+  Marker: maplibreMock.MockMarker,
+  Popup: maplibreMock.MockPopup,
 }));
 
 vi.mock('@/utils/mapConfigService', () => ({

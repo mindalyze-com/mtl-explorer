@@ -1,0 +1,7 @@
+PLN_03 route-drag insertion evidence
+
+- Short-route baseline: 5.13 km, ascent 0 m, descent 3 m, duration 14m, legs 1, chart points 19.
+- End-user drag began on the midpoint of the displayed route leg and moved it upward.
+- Post-drag route: 9.43 km, ascent 11 m, descent 12 m, duration 26m, legs 2, chart points 34.
+- The increase from one leg to two is the observable insertion result.
+- No error was shown.

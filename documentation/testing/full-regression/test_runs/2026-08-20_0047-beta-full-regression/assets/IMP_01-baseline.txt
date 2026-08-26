@@ -1,0 +1,19 @@
+Browser baseline before watched-folder import:
+- Map count: 0 / 0 tracks
+- Statistics Overview: No tracks match the current filters.
+- Statistics Tracks: 0 tracks; 0.00 m; 0m 00s; empty table; paging disabled.
+- Admin Overview: Processing Idle; Data Current; Services 3/3 available; Helper tools 2/2 ready.
+- Data status: In sync; latest change 20/08/2026 00:54:38; 6 domains; polling Healthy.
+- Server/client freshness token: 4avRQ2__|server_id:6qVg4AYMpEx8YgnXidocUW|config:9|filters:90|index:0|media:0|track_geometry:0|tracks:0
+- Revision sum: 99
+- GPS indexer: done, 100%, 0 completed, 0 total
+- MEDIA indexer: done, 100%, 0 completed, 0 total
+- Duplicate Finder: done, 0/0
+- Activity Classifier: done, 0/0
+- Exploration Score: done, 0/0
+- Photo Position Correlation: done, 0/0
+- Vector map tiles: hosted map service, done
+- Location search: ready
+- Routing segments: ready
+
+Observed through user-facing Map, Statistics, and Admin surfaces before any file was copied into data/gpx.

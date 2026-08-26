@@ -1,0 +1,7 @@
+Pass: online
+Phase: baseline
+Detection mode: startup scan, then live watchers
+Expected/actual active GPX/media: 2/2; 2/2
+Evidence: both scans completed and both live watchers started; all four index rows completed successfully; two domain rows per type; GUI showed 2 Tracks.
+Manual rescan used: no
+Status: PASS

@@ -1,0 +1,30 @@
+MED_07 delete-two-photo baseline
+Observed 2026-08-20 Europe/Zurich
+
+mtl-regression-delete-a.jpg
+- Media ID: 400004
+- Watched path: /app/media/2026-08-20_0047-beta-full-regression/mtl-regression-delete-a.jpg
+- Size: 32,065 bytes
+- SHA-256: 2eaa821faccbe871779f39bbd66fe59afc79d162a8e84e839fa0e314343625fc
+- Resolved coordinate: 46.948359999999994, 7.44796
+- Origin: EXIF_EMBEDDED; UI: Photo GPS
+- MEDIA indexer: COMPLETED_WITH_SUCCESS
+- Activity UI: item 4/8 at 10:02, 46.94 m; activity mini-map exposed its named photo-marker button.
+- Open on main map produced a selected photo marker at the exact location in a 100 m view.
+
+mtl-regression-delete-b.jpg
+- Media ID: 400007
+- Watched path: /app/media/2026-08-20_0047-beta-full-regression/mtl-regression-delete-b.jpg
+- Size: 29,898 bytes
+- SHA-256: 72a72b8edf766d06690dccfff80dafd97fbed8454a4a81f2d24419f17c57da38
+- Resolved coordinate: 46.94885, 7.44855
+- Origin: EXIF_EMBEDDED; UI: Photo GPS
+- MEDIA indexer: COMPLETED_WITH_SUCCESS
+- Activity UI: item 6/8 at 10:03, 51.16 m; activity mini-map exposed its named photo-marker button.
+- Open on main map produced a selected photo marker at the exact location in a 100 m view.
+
+Shared baseline
+- Activity 100028 showed all eight named media marker buttons and eight ordered items; both deletion targets and the remaining photo/video items were present.
+- Baseline media/resolved/selected database counts: 8/8/8; work queues 0/0.
+- Freshness token before deletion: 4UWUz8__|server_id:6qVg4AYMpEx8YgnXidocUW|config:9|filters:90|index:100403|media:311|track_geometry:228|tracks:598
+- Durable screenshot capture is unavailable under ACC_04. Live desktop inspection confirmed both named activity pins and each exact main-map selected-pin view.

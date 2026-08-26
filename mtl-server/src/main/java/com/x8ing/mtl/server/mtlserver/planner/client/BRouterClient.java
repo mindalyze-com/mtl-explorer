@@ -1,8 +1,8 @@
 package com.x8ing.mtl.server.mtlserver.planner.client;
 
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 import com.x8ing.mtl.server.mtlserver.planner.PlannerGeometryMetrics;
 import com.x8ing.mtl.server.mtlserver.planner.config.PlannerProperties;
 import com.x8ing.mtl.server.mtlserver.planner.constants.PlannerConstants;
@@ -137,7 +137,7 @@ public class BRouterClient {
             leg.setDurationSec(asDouble(props.path("total-time")));
 
             List<double[]> out = new ArrayList<>(coords.size());
-            for (Iterator<JsonNode> it = coords.elements(); it.hasNext(); ) {
+            for (Iterator<JsonNode> it = coords.iterator(); it.hasNext(); ) {
                 JsonNode c = it.next();
                 if (c.isArray() && c.size() >= 2) {
                     double lng = c.get(0).asDouble();

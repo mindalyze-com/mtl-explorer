@@ -1,0 +1,7 @@
+ADM_11 close/reopen during action
+
+- From Maintenance, queued a Manual MEDIA rescan and immediately closed Admin without waiting for its completion.
+- The map route became /mtl/ and remained interactive.
+- Reopened Admin at /mtl/admin. Overview loaded normally and the new data-freshness banner proved the server-side rescan revision survived component closure.
+- Opened /mtl/admin/processing. MEDIA showed done with 6 completed, 7 removed, 13 total; every track-processing job was done/100%.
+- Helper/service state also remained ready and no duplicate action or error appeared.

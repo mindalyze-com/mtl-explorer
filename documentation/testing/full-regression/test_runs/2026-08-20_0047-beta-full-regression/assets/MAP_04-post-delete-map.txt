@@ -1,0 +1,8 @@
+MAP_04 post-delete map sources, lists, and popups
+
+- Global map result after freshness Reload: 7 Tracks.
+- Filter Review selection list: seven rows; Vitry/100002 and Voie Verte/100003 absent.
+- Statistics Tracks list: seven rows; both deleted names absent.
+- Bussang at 2 km: activating the former Voie Verte/Mosel overlap point opened Mosel track 100001 directly. No multi-track chooser and no Voie Verte option appeared.
+- Joinville at 5 km: activating the former Vitry line point opened no Track Details and no chooser; Vitry was absent.
+- Remaining Mosel selection opened the matching detail correctly.

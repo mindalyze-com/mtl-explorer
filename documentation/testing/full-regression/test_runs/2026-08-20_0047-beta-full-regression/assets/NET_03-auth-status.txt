@@ -1,0 +1,15 @@
+Coverage: NET_03
+Live 401
+- Opened Admin > Session and matched its Created time (20.08.2026, 11:52:05 local / 09:52:05 UTC) to disposable DB session row 10000603.
+- Changed only that current disposable session from ACTIVE to INVALIDATED with revoked/update timestamps.
+- Activated Statistics from the protected UI.
+- In about 4.7 s the real server rejection redirected to /mtl/login?reason=expired.
+- Login form rendered with Username, Password, Sign In, and About & source; no protected shell remained.
+- Signed in again successfully and restored the map with eight tracks.
+
+Live 403 applicability blocker
+- The installed server exposes one configured USER identity and authorizes every /api/** request for any authenticated identity.
+- No forbidden role/endpoint or alternate lower-privilege account exists in this disposable configuration, and application source contains no live 403 response path.
+- Therefore a real first-party application 403 cannot be produced without changing the application/security configuration.
+
+Result: direct server 401 redirect passes; 403 child check is BLOCKED by the configured single-role server.

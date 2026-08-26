@@ -1,0 +1,168 @@
+{
+  "generated_at": "2026-08-19T23:09:37.013068+00:00",
+  "generator": "generate_regression_photos.py",
+  "renderer": "photo_placeholder.py",
+  "fixtures": [
+    {
+      "name": "mtl-regression-photo-a.jpg",
+      "label": "MTL Regression A",
+      "latitude": 46.948,
+      "longitude": 7.4474,
+      "captured_at": "2026:08:17 08:00:00",
+      "has_gps": true,
+      "expected_origin": "EXIF_EMBEDDED",
+      "expected_time_source": "EXIF_GPS",
+      "bytes": 32260,
+      "sha256": "eff34388f5b4fd5a301d89fccc92612dc09e32e609aec13f07ad1d3d8c21bbda"
+    },
+    {
+      "name": "mtl-regression-photo-b.jpg",
+      "label": "MTL Regression B",
+      "latitude": 46.94818,
+      "longitude": 7.44768,
+      "captured_at": "2026:08:17 08:01:00",
+      "has_gps": true,
+      "expected_origin": "EXIF_EMBEDDED",
+      "expected_time_source": "EXIF_GPS",
+      "bytes": 27178,
+      "sha256": "858e440001fd330be18ed89faa7731a6e676ad1d96e2796cfc3182bfaf1add9d"
+    },
+    {
+      "name": "mtl-regression-estimated-a.jpg",
+      "label": "MTL Estimated A",
+      "latitude": 46.94833,
+      "longitude": 7.44785,
+      "captured_at": "2026:08:17 08:01:30",
+      "has_gps": false,
+      "expected_origin": "TRACK_INTERPOLATED",
+      "expected_time_source": "EXIF_DATE_TAKEN",
+      "bytes": 30219,
+      "sha256": "b0e1cb05f01bdb333e820ba47093f85ceb24011559e4508fe8ff82ca4f20ff6b"
+    },
+    {
+      "name": "mtl-regression-estimated-b.jpg",
+      "label": "MTL Estimated B",
+      "latitude": 46.9486,
+      "longitude": 7.44818,
+      "captured_at": "2026:08:17 08:02:30",
+      "has_gps": false,
+      "expected_origin": "TRACK_INTERPOLATED",
+      "expected_time_source": "EXIF_DATE_TAKEN",
+      "bytes": 28327,
+      "sha256": "11635d927e2b562564292621cddb4240a87e4a7c894655b9256ca30418ed4c91"
+    },
+    {
+      "name": "mtl-regression-delete-a.jpg",
+      "label": "MTL Delete A",
+      "latitude": 46.94836,
+      "longitude": 7.44796,
+      "captured_at": "2026:08:17 08:02:00",
+      "has_gps": true,
+      "expected_origin": "EXIF_EMBEDDED",
+      "expected_time_source": "EXIF_GPS",
+      "bytes": 32065,
+      "sha256": "2eaa821faccbe871779f39bbd66fe59afc79d162a8e84e839fa0e314343625fc"
+    },
+    {
+      "name": "mtl-regression-delete-b.jpg",
+      "label": "MTL Delete B",
+      "latitude": 46.94885,
+      "longitude": 7.44855,
+      "captured_at": "2026:08:17 08:03:00",
+      "has_gps": true,
+      "expected_origin": "EXIF_EMBEDDED",
+      "expected_time_source": "EXIF_GPS",
+      "bytes": 29898,
+      "sha256": "72a72b8edf766d06690dccfff80dafd97fbed8454a4a81f2d24419f17c57da38"
+    }
+  ],
+  "videos": [
+    {
+      "name": "mtl-regression-video-gps.mp4",
+      "label": "MTL Regression MP4 GPS",
+      "container": "mp4",
+      "captured_at": "2026-08-17T08:15:00Z",
+      "expected_latitude": 46.9486,
+      "expected_longitude": 7.44815,
+      "has_embedded_gps": true,
+      "expected_origin": "EXIF_EMBEDDED",
+      "expected_time_source": "EXIF_DATE_TAKEN",
+      "playback_expectation": "REQUIRED_NATIVE_PLAYBACK",
+      "expected_video_codec": "h264",
+      "expected_audio_codec": "aac",
+      "expected_duration_seconds": 2,
+      "bytes": 164756,
+      "sha256": "d0c4bcc558b54b26d507318400cd9ec29425422a4ae086cc13559a7d17b3170d",
+      "ffprobe": {
+        "programs": [],
+        "streams": [
+          {
+            "codec_name": "h264",
+            "codec_type": "video",
+            "width": 320,
+            "height": 180
+          },
+          {
+            "codec_name": "aac",
+            "codec_type": "audio"
+          }
+        ],
+        "format": {
+          "format_name": "mov,mp4,m4a,3gp,3g2,mj2",
+          "duration": "2.000000",
+          "tags": {
+            "creation_time": "2026-08-17T08:15:00.000000Z",
+            "location": "+46.94860+007.44815/"
+          }
+        }
+      }
+    },
+    {
+      "name": "mtl-regression-video-estimated.mov",
+      "label": "MTL Regression MOV Estimated",
+      "container": "mov",
+      "captured_at": "2026-08-17T08:09:00Z",
+      "expected_latitude": 46.948325,
+      "expected_longitude": 7.44785,
+      "has_embedded_gps": false,
+      "expected_origin": "TRACK_INTERPOLATED",
+      "expected_time_source": "EXIF_DATE_TAKEN",
+      "playback_expectation": "BROWSER_CAPABILITY_DEPENDENT",
+      "expected_video_codec": "h264",
+      "expected_audio_codec": "aac",
+      "expected_duration_seconds": 2,
+      "bytes": 164588,
+      "sha256": "042f0a6911b124316295eb79ca0d30f704016bf1228c80b7690dad160a30b48c",
+      "ffprobe": {
+        "programs": [],
+        "streams": [
+          {
+            "codec_name": "h264",
+            "codec_type": "video",
+            "width": 320,
+            "height": 180
+          },
+          {
+            "codec_name": "aac",
+            "codec_type": "audio"
+          }
+        ],
+        "format": {
+          "format_name": "mov,mp4,m4a,3gp,3g2,mj2",
+          "duration": "2.000000",
+          "tags": {
+            "creation_time": "2026-08-17T08:09:00.000000Z"
+          }
+        }
+      }
+    }
+  ],
+  "activity": {
+    "name": "MTL Regression Media Track",
+    "file": "mtl-regression-media-track.gpx",
+    "bytes": 1080,
+    "sha256": "618b9df01a06ef3ec5a31553999dd73d11562d782e95fda05f4a8fdef075d104",
+    "trackpoint_count": 6,
+    "timestamp_count": 6
+  }
+}

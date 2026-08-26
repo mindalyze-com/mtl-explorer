@@ -1,0 +1,15 @@
+TBS_13 Statistics filtered-summary navigation
+
+Desktop pointer:
+- Starting summary: Showing 1 of 7 tracks.
+- Pointer activation navigated directly to /mtl/filter.
+- Filter opened with 1 matching track, one active circle criterion, and Apply filter checked.
+
+Desktop keyboard:
+- Returned to Statistics Overview.
+- Enter on the same summary navigated directly to /mtl/filter.
+- The same one-track Filter state opened.
+
+Mobile:
+- BLOCKED by the connected browser's lack of viewport resize/emulation capability (ACC_04).
+- No mobile activation claim is made.

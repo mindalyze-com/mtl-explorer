@@ -1,0 +1,8 @@
+ADM_10 Garmin helper tools
+
+- Maintenance summary showed Advanced tools · 2/2 ready.
+- gcexport region: Ready; version v4.6.2; Releases link; Install action.
+- fit-export region: Ready; profile default; packages garth fitparse gpxpy; Install action.
+- Ran gcexport Install with v4.6.2. Result was `Done`; the existing venv was safely skipped and the active version was updated in the database.
+- Ran fit-export Install with the default profile/packages. Result was `Done`; the existing venv was safely skipped, installed packages were listed, and active profile/packages were updated in the database.
+- Applied the resulting freshness reload. Admin Overview then reported Helper tools 2/2 ready and Both export helpers are ready, with Data Current and Processing Idle.

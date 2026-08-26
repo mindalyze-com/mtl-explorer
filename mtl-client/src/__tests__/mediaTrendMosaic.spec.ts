@@ -30,8 +30,16 @@ const BottomSheetStub = defineComponent({
 
 const MediaPreviewStub = defineComponent({
   name: 'MediaPreview',
-  props: ['mediaId', 'navIndex', 'navTotal', 'mediaIds'],
-  emits: ['open-on-map'],
+  props: {
+    mediaId: Number,
+    navIndex: Number,
+    navTotal: Number,
+    mediaIds: Array,
+    timeSource: String,
+    appliedCameraOffsetSeconds: Number,
+    positionUnknown: Boolean,
+  },
+  emits: ['open-on-map', 'time-correction-cleared'],
   template:
     '<div data-test="media-preview-stub">{{ mediaId }} · {{ navIndex }}/{{ navTotal }}<button data-test="open-on-map" @click="$emit(\'open-on-map\')">Map</button></div>',
 });
@@ -165,6 +173,38 @@ describe('MediaTrendMosaic', () => {
 
     expect(wrapper.emitted('open-media-on-map')).toEqual([[{ id: 21, lat: 47.56, lng: 8.5 }]]);
     expect(wrapper.emitted('update:modelValue')?.at(-1)).toEqual([false]);
+  });
+
+  it('passes saved correction and unknown-position metadata to the viewer and refreshes after clear', async () => {
+    const corrected = {
+      id: 21,
+      mediaKind: 'IMAGE',
+      fileName: 'clock.jpg',
+      effectiveCapturedAt: new Date('2026-08-17T11:01:03Z'),
+      timeSource: 'EXIF_DATE_TAKEN',
+      appliedCameraOffsetSeconds: 3_603,
+    };
+    getMediaTrendItemsMock
+      .mockResolvedValueOnce(page([corrected]))
+      .mockResolvedValueOnce(
+        page([{ ...corrected, effectiveCapturedAt: new Date('2026-08-17T10:01:00Z'), appliedCameraOffsetSeconds: 0 }])
+      );
+    const wrapper = mountMosaic();
+    await flushPromises();
+    await wrapper.get('.media-mosaic-card__preview').trigger('click');
+
+    const preview = wrapper.getComponent(MediaPreviewStub);
+    expect(preview.props()).toMatchObject({
+      timeSource: 'EXIF_DATE_TAKEN',
+      appliedCameraOffsetSeconds: 3_603,
+      positionUnknown: true,
+    });
+
+    preview.vm.$emit('time-correction-cleared', 21);
+    await flushPromises();
+
+    expect(getMediaTrendItemsMock).toHaveBeenCalledTimes(2);
+    expect(wrapper.getComponent(MediaPreviewStub).props('appliedCameraOffsetSeconds')).toBe(0);
   });
 
   it('does not send activity IDs for all indexed undated media', async () => {

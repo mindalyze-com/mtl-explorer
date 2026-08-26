@@ -1,0 +1,118 @@
+MTL Explorer memory optimization post-review verification
+Date: 2026-08-25 (Europe/Zurich)
+Source: current uncommitted working tree after review corrections
+
+The host JDK was older than the project's Java 25 release target. Java and Maven
+checks therefore ran in maven:3.9.16-eclipse-temurin-25 on linux/amd64. The
+commands below use MTL_PROJECT_ROOT for the repository root and
+MTL_MAVEN_CACHE_ROOT for the local Maven cache directory.
+
+1. Generated-image and video regression
+
+Command:
+  docker run --rm --platform linux/amd64 --user 501:20 \
+    -e MAVEN_CONFIG=/tmp/maven-config \
+    -e MAVEN_OPTS=-Duser.home=/tmp/maven-config \
+    -v "${MTL_MAVEN_CACHE_ROOT}:/tmp/maven-config" \
+    -v "${MTL_PROJECT_ROOT}:/workspace" \
+    -w /workspace maven:3.9.16-eclipse-temurin-25 \
+    mvn -pl mtl-server \
+    -Dtest=MediaControllerContentTest,MediaProcessLimiterTest,VideoThumbnailServiceTest,VideoTranscodeSessionServiceTest \
+    test
+
+Result:
+  Tests run: 26, Failures: 0, Errors: 0, Skipped: 1
+  BUILD SUCCESS
+
+MediaControllerContentTest includes a saturated-limiter request and verifies:
+  HTTP 503
+  Cache-Control: no-store
+  no ETag
+  no Last-Modified
+
+2. GPX and stop-detection regression
+
+Command:
+  docker run --rm --platform linux/amd64 --user 501:20 \
+    -e MAVEN_CONFIG=/tmp/maven-config \
+    -e MAVEN_OPTS=-Duser.home=/tmp/maven-config \
+    -v "${MTL_MAVEN_CACHE_ROOT}:/tmp/maven-config" \
+    -v "${MTL_PROJECT_ROOT}:/workspace" \
+    -w /workspace maven:3.9.16-eclipse-temurin-25 \
+    mvn -pl mtl-server \
+    -Dtest=GPXReaderGeoToolsCompatibilityTest,GPXReaderDistanceTest,GPXReaderSimpleTest,GPXReaderFileParsingTest,GPXReaderFallbackTimeTest,GPXReaderOutlierTest,TrackStopDetectorTest \
+    test
+
+Result:
+  Tests run: 598, Failures: 0, Errors: 0, Skipped: 0
+  BUILD SUCCESS
+
+3. Focused GPX store, indexer, media, and controller regression
+
+The linux/amd64 container's default spawn helper failed intermittently while
+starting temporary test scripts. The same video class had already passed in the
+isolated run above. The exact broader suite was rerun with the JDK's FORK launch
+mechanism to avoid that emulation-specific helper.
+
+Command:
+  docker run --rm --platform linux/amd64 --user 501:20 \
+    -e MAVEN_CONFIG=/tmp/maven-config \
+    -e MAVEN_OPTS=-Duser.home=/tmp/maven-config \
+    -e JAVA_TOOL_OPTIONS=-Djdk.lang.Process.launchMechanism=FORK \
+    -v "${MTL_MAVEN_CACHE_ROOT}:/tmp/maven-config" \
+    -v "${MTL_PROJECT_ROOT}:/workspace" \
+    -w /workspace maven:3.9.16-eclipse-temurin-25 \
+    mvn -pl mtl-server \
+    -Dtest=GPXStoreServiceDenoiseTest,GPXStoreServiceMovingWindowTest,ProcessingFileIndexerObserverTest,IndexerStatusServiceTest,FileIndexerImplTest,MediaIndexerTest,MediaProcessingWorkerTest,MediaControllerContentTest,MediaControllerPositionTest,MediaControllerTrendTest,MediaProcessLimiterTest,VideoThumbnailServiceTest,VideoTranscodeSessionServiceTest,VideoTranscodeControllerTest \
+    test
+
+Result:
+  Tests run: 94, Failures: 0, Errors: 0, Skipped: 1
+  BUILD SUCCESS
+
+This 94-test set contains the 26-test generated-image and video set from step 1.
+The unique current-tree total across steps 2 and 3 is therefore 692 tests run,
+691 passed, and one skipped.
+
+4. Production reactor build
+
+Command:
+  docker build --platform linux/amd64 --target app-builder --progress=plain .
+
+Result:
+  mtl-parent: SUCCESS
+  mtl-api: SUCCESS
+  mtl-api-java-typescript-fetch: SUCCESS
+  mtl-client: SUCCESS
+  mtl-server: SUCCESS
+  BUILD SUCCESS
+
+The build regenerated the OpenAPI TypeScript client, completed the client
+production build, compiled all server and test sources, and packaged the server.
+
+5. Dependency audit
+
+Command:
+  docker run --rm --platform linux/amd64 --user 501:20 \
+    -e MAVEN_CONFIG=/tmp/maven-config \
+    -e MAVEN_OPTS=-Duser.home=/tmp/maven-config \
+    -v "${MTL_MAVEN_CACHE_ROOT}:/tmp/maven-config" \
+    -v "${MTL_PROJECT_ROOT}:/workspace" \
+    -w /workspace maven:3.9.16-eclipse-temurin-25 \
+    mvn -pl mtl-server dependency:tree \
+    '-Dincludes=net.sf.geographiclib:GeographicLib-Java,org.geotools:*'
+
+Result:
+  net.sf.geographiclib:GeographicLib-Java:jar:2.1:compile
+  No org.geotools dependency was listed.
+  BUILD SUCCESS
+
+6. Configuration and diff checks
+
+Commands:
+  docker compose -f docker-compose.yml config --quiet
+  docker compose -f docker-compose-demo.yml config --quiet
+  git diff --check
+
+Result:
+  All commands passed.

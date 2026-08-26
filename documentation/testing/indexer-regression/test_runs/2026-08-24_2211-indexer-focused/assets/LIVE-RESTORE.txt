@@ -1,0 +1,8 @@
+Pass: online
+Phase: restore A2 at the same paths
+Detection mode: live watch
+Mutation/settled UTC: 20:18:26 / 20:18:35
+Expected/actual active GPX/media: 6/6; 6/6
+Evidence: exact checksum-matched backups restored; existing A2 index rows reused with invocation 3; no duplicate paths; GUI showed 6 Tracks.
+Manual rescan used: no
+Status: PASS

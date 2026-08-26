@@ -585,6 +585,7 @@ const props = defineProps<{
   unfilteredTotal?: number;
   filterRevision?: number;
   filterRequest?: ActiveFilterRequest | null;
+  retryRevision?: number;
   indexedMediaCount?: number | null;
   indexedPhotoCount?: number | null;
   indexedVideoCount?: number | null;
@@ -901,6 +902,12 @@ watch(
     void loadOverview();
   },
   { deep: false }
+);
+watch(
+  () => props.retryRevision,
+  () => {
+    void loadOverview();
+  }
 );
 watch(measurementSystem, () => {
   void loadOverview();

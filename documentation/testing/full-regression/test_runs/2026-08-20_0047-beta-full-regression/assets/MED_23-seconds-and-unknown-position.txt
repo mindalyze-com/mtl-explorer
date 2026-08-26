@@ -1,0 +1,35 @@
+MED_23 saved non-zero-seconds correction and unknown-position evidence
+
+Setup and mutation
+- Baseline media 400002 was Estimated at 17/08/2026 10:01 and 44.83 m.
+- The visible hours input has step=0.25, so the production authenticated
+  PUT /api/media/time-corrections endpoint was used to save exactly 3,603 s.
+- Response: HTTP 204.
+- Database after save: media_time_correction offset_seconds=3603;
+  selected correlations=0; resolved locations=0; work queues=0/0.
+
+Direct UI result
+- Track 100013 timeline correctly no longer contained the out-of-window item.
+- Statistics > Trends > Media history > 2026-Q3 still showed all 8 indexed
+  media items.
+- The corrected mosaic card showed mtl-regression-estimated-a.jpg at
+  17/08/2026 11:01, proving the saved 3,603-second adjustment was applied.
+- Opening that card showed Taken 17/08/2026 11:01 and only "Camera clock".
+- The compact saved-correction label was absent. It did not say +1h and did
+  not expose a malformed +1.h label either.
+- The viewer omitted the Location row and location mini-map entirely. It did
+  not say "Position unknown" and did not falsely say "Photo GPS".
+- Expanding More details added only Name, Dimensions, Modified, and Folder;
+  it did not add the correction or position provenance.
+
+Expected
+- A 3,603-second saved correction has a valid compact +1h label.
+- With no resolved position, the UI explicitly says Position unknown and never
+  claims Photo GPS.
+
+Cleanup
+- Production PUT /api/media/time-corrections with offsetSeconds=0 returned 204.
+- Final database: corrections=0; selected correlation=1; resolved location=1
+  with TRACK_INTERPOLATED; work queues=0/0.
+- Final Track 100013 Media UI restored exact 8-item baseline; target returned
+  to Estimated, 10:01, 44.83 m.

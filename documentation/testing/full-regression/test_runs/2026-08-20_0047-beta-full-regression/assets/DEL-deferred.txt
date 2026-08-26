@@ -1,0 +1,6 @@
+Track deletion dependency
+
+resumable-workflow.md line 98: Track delete IDs run after all IDs that need the full imported track dataset.
+retest-instructions.md lines 61-64: Each delete flow runs after the checks that need its full dataset.
+
+No source file was deleted at this queue position. DEL_01-DEL_05 remain resumable and must be executed before the finalization gate, after all full-track-dataset coverage is terminal.

@@ -1,0 +1,26 @@
+Freshness action:
+- Clicked Reload from the New data available banner.
+- Data status changed from Out of sync to In sync.
+- Server/client tokens now match exactly:
+  2YxpF2__|server_id:6qVg4AYMpEx8YgnXidocUW|config:9|filters:90|index:15|media:0|track_geometry:30|tracks:30
+
+Saved-filter handling:
+- A persisted keyword filter initially showed 0/5 tracks.
+- Opened Filter and used the visible Reset filter action.
+- Current result changed to 5 matching tracks; Map count changed to 5 Tracks.
+
+Track browser / Review tracks:
+- 5 tracks
+- 1,043 km
+- 23h 31m
+- Five named rows visible with dates, Bicycle activity, distance, duration, energy, exploration, and imported time.
+
+Statistics Overview:
+- Tracks: 5
+- Distance: 1,043 km
+- Duration: 23h 31m
+- Energy: 4,527 Wh
+- Ascent: 12,936 m
+- Activity breakdown: Bicycle 5
+- Media: 0
+- Highlights, recent activity, most-active periods, and milestones populated.

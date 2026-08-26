@@ -14,10 +14,11 @@
 
 <script setup lang="ts">
 import { computed, markRaw, onBeforeUnmount, onMounted, ref, watch } from 'vue';
-import maplibregl from 'maplibre-gl';
+import * as maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { fetchMapConfig } from '@/utils/mapConfigService';
 import { resolveConfiguredMapStyle } from '@/components/map/mapStyleResolver';
+import { installMissingStyleImageResolver } from '@/utils/maplibreStyleImages';
 import { useMapSettingsStore } from '@/stores/mapSettingsStore';
 import { resolveMediaPositionMarkerStyle } from '@/components/map/mediaPositionMarkerStyle';
 import { TRACK_COLOR } from '@/utils/trackColors';
@@ -101,11 +102,7 @@ async function initMap(): Promise<void> {
       doubleClickZoom: false,
     })
   );
-  map.on('styleimagemissing', (event: { id: string }) => {
-    if (map && !map.hasImage(event.id)) {
-      map.addImage(event.id, { width: 1, height: 1, data: new Uint8ClampedArray(4) });
-    }
-  });
+  installMissingStyleImageResolver(map);
   map.on('load', onMapLoad);
 
   resizeObserver = new ResizeObserver(() => map?.resize());

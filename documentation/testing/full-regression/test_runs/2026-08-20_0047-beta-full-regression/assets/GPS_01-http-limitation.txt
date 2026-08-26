@@ -1,0 +1,11 @@
+GPS secure-origin classification
+Observed 2026-08-20 Europe/Zurich
+
+- Active end-user URL: http://62.238.106.141:18080/mtl/ (remote IP, plain HTTP; neither localhost nor HTTPS).
+- Compose app configuration uses SERVER_SSL_ENABLED=false.
+- Activating the visible GPS tool did not ask for permission or create a marker.
+- The app immediately showed a clear alert:
+  - GPS unavailable
+  - GPS needs HTTPS or localhost. Open MTL Explorer from a secure address to use live location.
+- Map remained usable, Filter stayed at 8 Tracks, and the GPS tool did not enter an enabled/following state.
+- Per frozen GPS_01, live permission/marker/follow/disable checks are NOT APPLICABLE on this configured origin. The disabled-state message itself is directly testable and is covered by GPS_04.

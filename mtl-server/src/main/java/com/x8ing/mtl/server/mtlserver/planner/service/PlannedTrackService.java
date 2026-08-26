@@ -1,10 +1,10 @@
 package com.x8ing.mtl.server.mtlserver.planner.service;
 
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.node.ObjectNode;
 import com.x8ing.mtl.server.mtlserver.db.entity.gps.GpsTrack;
 import com.x8ing.mtl.server.mtlserver.db.entity.gps.GpsTrackData;
 import com.x8ing.mtl.server.mtlserver.db.repository.gps.GpsTrackDataRepository;
@@ -57,15 +57,17 @@ public class PlannedTrackService {
     private static final String PLANNER_ROUTE_LEGS_FIELD = "legs";
     private static final String PLANNER_ROUTE_STATS_FIELD = "stats";
     private final GeometryFactory geometryFactory = new GeometryFactory(new PrecisionModel(), SRID_WGS84);
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper;
 
     private final GpsTrackRepository gpsTrackRepository;
     private final GpsTrackDataRepository gpsTrackDataRepository;
     private final GpsTrackEventRepository gpsTrackEventRepository;
 
-    public PlannedTrackService(GpsTrackRepository gpsTrackRepository,
+    public PlannedTrackService(ObjectMapper objectMapper,
+                               GpsTrackRepository gpsTrackRepository,
                                GpsTrackDataRepository gpsTrackDataRepository,
                                GpsTrackEventRepository gpsTrackEventRepository) {
+        this.objectMapper = objectMapper;
         this.gpsTrackRepository = gpsTrackRepository;
         this.gpsTrackDataRepository = gpsTrackDataRepository;
         this.gpsTrackEventRepository = gpsTrackEventRepository;
@@ -373,7 +375,7 @@ public class PlannedTrackService {
         try {
             JsonNode root = objectMapper.readTree(json);
             List<LegResultDto> legs = root.has(PLANNER_ROUTE_LEGS_FIELD)
-                    ? objectMapper.readValue(root.get(PLANNER_ROUTE_LEGS_FIELD).traverse(),
+                    ? objectMapper.treeToValue(root.get(PLANNER_ROUTE_LEGS_FIELD),
                     new TypeReference<List<LegResultDto>>() {
                     })
                     : List.of();

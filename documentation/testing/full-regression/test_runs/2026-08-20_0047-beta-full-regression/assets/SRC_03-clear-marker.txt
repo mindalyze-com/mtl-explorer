@@ -1,0 +1,7 @@
+SRC_03 clear location-search marker
+
+- Started with the selected Zürich marker present at a 100 m scale.
+- Activated the labelled `Clear search marker` button.
+- After about 0.5 s, neither `Map marker` nor `Clear search marker` remained in the accessible map state.
+- Zoom, rotation, terrain, location search, filter, and navigation controls remained available.
+- The filter remained at 8 Tracks.

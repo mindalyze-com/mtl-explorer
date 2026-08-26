@@ -1,0 +1,19 @@
+FLT_13 selected category with no matches
+
+Setup:
+- View: Activities by exact type.
+- Selected category: WALKING only.
+- Criteria: 2010-01-01 through 2010-12-31.
+
+Unavailable state:
+- Global result: 0 / 9 Tracks.
+- Current available category: BICYCLE 4, unchecked.
+- Saved selected category: WALKING, checked, count 0.
+- WALKING label: No matches with current parameters.
+- Summary: 0 of 1 current selected · 1 unavailable.
+- Main summary: 0 of 1 categories · 1 unavailable.
+
+Removal:
+- Unchecking WALKING removed it from the unavailable list before Apply.
+- After Apply, the main summary changed to 0 of 1 categories with no unavailable suffix.
+- Clearing the date range and selecting all current categories restored 9 / 9 Tracks and All 2 categories.

@@ -1,0 +1,23 @@
+Track: FIT #100005 (Activity.fit)
+
+Baseline Statistics Overview:
+- 9 tracks
+- 1,047 km
+- 1d 00h
+- 4,877 Wh
+- 14,613 m ascent
+
+Excluded through Quality -> Statistics -> Wrong activity:
+- Quality showed Wrong activity and Excluded from statistics and highlights.
+- Statistics showed Showing 8 of 9 tracks and 1 track excluded.
+- Aggregates changed to 8 tracks, 1,043 km, 23h 31m, 4,530 Wh,
+  and 12,946 m ascent.
+
+Re-included through Quality -> Statistics -> Included:
+- Exclusion banner cleared.
+- Statistics returned to 9 tracks, 1,047 km, 1d 00h, 4,877 Wh,
+  and 14,613 m ascent.
+- The excluded-track indicator disappeared.
+- No browser error or exception was logged.
+
+Final shared state matches the baseline.

@@ -1,0 +1,52 @@
+MTL-FR-005 through MTL-FR-021 local remediation evidence
+
+Scope
+- Base before this uncommitted remediation set: 6f09becb0db77167e0f3a9bf4e453c3f5b27688d.
+- Current local Vite client and Maven server; isolated PostgreSQL and public/synthetic data.
+- Desktop 1280x720 and mobile 390x760/844. The remote beta image was unchanged.
+
+Disposition
+- FIXED: MTL-FR-005 and MTL-FR-007 through MTL-FR-020.
+- REJECTED: MTL-FR-006 and MTL-FR-021 after exact-path direct retests.
+
+Direct results
+- MTL-FR-005: chart leave now clears hover and chart-source pinned state. Desktop/mobile each went from one marker after chart click to zero after leave.
+- MTL-FR-006: one foreground Track Details Close restored Filter Review and its sample.igc result at both sizes. Hidden stacked-sheet controls caused the original result; no product change.
+- MTL-FR-007: enabled persisted Smart Base configuration now supplies the overview chip; visible at both sizes after reopen.
+- MTL-FR-008: full resolution now includes indexed-file fields; exact sample.igc search returned its row at both sizes.
+- MTL-FR-009: Trends Media now defaults to All indexed and switches to Track related at both sizes.
+- MTL-FR-010: media-only 2026-Q4 retained eight activity/media cards; the seven activity cards showed zero values at both sizes.
+- MTL-FR-011: saved-plan GPX uses immediate native download. Both visible controls produced valid 2,845-byte planned-route-100010.gpx files with 38 trackpoints.
+- MTL-FR-012/013: the shared viewer now carries correction data, shows its compact label and Position unknown, and provides Clear clock correction. Desktop/mobile showed +3,603 s; clearing removed the action.
+- MTL-FR-014/016: activity Photos defaults to 100 with 100/200 options and consistently says Photo tools. A 211-item desktop activity showed 1-100 then 1-200; mobile restored 100.
+- MTL-FR-015: unresolved projection uses route coordinates plus explicit unknown-position state. The viewer showed Position unknown, location map, and Open on main map at both sizes.
+- MTL-FR-017/018: filmstrip items resolve video kind and show play identity; video upper-area swipe shares viewer navigation while native controls remain available. Desktop swiped item 6 to 5; mobile 5 to 6.
+- MTL-FR-019: hls.js now owns attached playback errors and gets two bounded recoveries. Generated P720 advanced 0.68-3.24 s on desktop and to 1.97 s on mobile, duration 8.083 s, 1280x720, no MediaError.
+- MTL-FR-020: native GPX is parsed before watched-folder copy. Waypoint-only upload returned HTTP 400 with a clear no-trackpoints message and created no file at both sizes.
+- MTL-FR-021: one direct Admin Close after the startup curtain cleared returned home with zero open sheets at both sizes. The original first click occurred during the 1,500 ms curtain; no product change.
+
+Screenshots
+- MTL-FR-005-fix-local-{desktop,mobile}.webp
+- MTL-FR-006-008-fix-local-{desktop,mobile}.webp
+- MTL-FR-007-fix-local-{desktop,mobile}.webp
+- MTL-FR-009-fix-local-{desktop,mobile}.webp
+- MTL-FR-010-fix-local-{desktop,mobile}.webp
+- MTL-FR-011-fix-local-{desktop,mobile}.webp
+- MTL-FR-012-013-fix-local-{desktop,mobile}.webp
+- MTL-FR-014-016-fix-local-{desktop,mobile}.webp
+- MTL-FR-015-fix-local-{desktop,mobile}.webp
+- MTL-FR-017-018-fix-local-{desktop,mobile}.webp
+- MTL-FR-019-fix-local-{desktop,mobile}.webp
+- MTL-FR-020-fix-local-{desktop,mobile}.webp
+- MTL-FR-021-retest-{desktop,mobile}.webp
+
+Integrated checks
+- Client: 131 files and 762 tests passed; production build and vue-tsc passed; Vite built 1,409 modules.
+- ESLint: zero errors; eight warnings in unchanged files. Changed/new client files passed Prettier.
+- Server: 516 tests against fresh isolated PostGIS, zero failures/errors.
+- TypeScript OpenAPI regeneration passed. Live schema matched except the intentionally normal local server URL.
+- git diff --check passed before report updates.
+
+Boundary
+- Results prove the current local worktree, not the active remote image.
+- Synthetic sparse-period, paging, and position rows were removed/restored. The waypoint GPX never entered the watched directory.

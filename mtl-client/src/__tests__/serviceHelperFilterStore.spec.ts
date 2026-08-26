@@ -39,20 +39,24 @@ vi.mock('@/utils/apiClient', () => ({
   apiClient: mocks.apiClient,
 }));
 
-vi.mock('x8ing-mtl-api-typescript-fetch', () => ({
-  TracksControllerApi: vi.fn(function () {
-    return mocks.tracksApi;
-  }),
-  FilterControllerApi: vi.fn(function () {
-    return {};
-  }),
-  ConfigControllerApi: vi.fn(function () {
-    return {};
-  }),
-  EnergyControllerApi: vi.fn(function () {
-    return {};
-  }),
-}));
+vi.mock('x8ing-mtl-api-typescript-fetch', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('x8ing-mtl-api-typescript-fetch')>();
+  return {
+    ...actual,
+    TracksControllerApi: vi.fn(function () {
+      return mocks.tracksApi;
+    }),
+    FilterControllerApi: vi.fn(function () {
+      return {};
+    }),
+    ConfigControllerApi: vi.fn(function () {
+      return {};
+    }),
+    EnergyControllerApi: vi.fn(function () {
+      return {};
+    }),
+  };
+});
 
 vi.mock('@/utils/openApiClient', () => ({
   getApiConfiguration: vi.fn(() => ({})),

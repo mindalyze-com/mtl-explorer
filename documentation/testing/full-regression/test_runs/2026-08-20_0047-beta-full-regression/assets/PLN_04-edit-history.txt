@@ -1,0 +1,15 @@
+PLN_04 Planner edit-history evidence
+
+Move waypoint
+- Before: 9.43 km, ascent 11 m, descent 12 m, duration 26m, legs 2.
+- After: 8.69 km, ascent 4 m, descent 12 m, duration 24m, legs 2.
+
+Delete waypoint
+- Clicking the moved waypoint exposed the accessible Delete selected waypoint button.
+- Delete result: 5.13 km, ascent 0 m, descent 3 m, duration 14m, legs 1.
+
+Clear / undo / redo
+- Clear result: 0.00 m, ascent/descent 0 m, duration unavailable, legs 0; profile placeholder returned.
+- Undo result: 5.13 km, ascent 0 m, descent 3 m, duration 14m, legs 1; chart returned.
+- Redo result: 0.00 m, ascent/descent 0 m, duration unavailable, legs 0; profile placeholder returned.
+- A final Undo restored the one-leg route for subsequent checks.

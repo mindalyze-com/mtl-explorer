@@ -3,6 +3,7 @@ import {
   chartXForTrackPoint,
   createTrackPointIndex,
   resolveChartPointTrackPoint,
+  useTrackCursorSync,
   type TrackPoint,
 } from '@/composables/trackCursorSync';
 import { getPrimaryChartInputEvent, useChartSync } from '@/composables/useChartSync';
@@ -168,6 +169,96 @@ describe('getPrimaryChartInputEvent', () => {
 });
 
 describe('useChartSync marker behavior', () => {
+  function touchEvent(type: string, clientX: number, clientY: number): TouchEvent {
+    const event = new Event(type) as TouchEvent;
+    Object.defineProperties(event, {
+      touches: { value: type === 'touchend' ? [] : [{ clientX, clientY }] },
+      changedTouches: { value: [{ clientX, clientY }] },
+    });
+    return event;
+  }
+
+  function touchChart() {
+    const container = document.createElement('div');
+    container.getBoundingClientRect = () =>
+      ({
+        top: 0,
+        right: 320,
+        bottom: 220,
+        left: 0,
+        width: 320,
+        height: 220,
+        x: 0,
+        y: 0,
+        toJSON: () => ({}),
+      }) as DOMRect;
+    const point = {
+      x: 10,
+      plotY: 80,
+      setState: vi.fn(),
+    } as unknown as Highcharts.Point;
+    const chart = {
+      container,
+      plotLeft: 40,
+      plotTop: 20,
+      plotWidth: 260,
+      plotHeight: 180,
+      pointer: {
+        normalize: vi.fn((event: Touch) => ({ chartX: event.clientX, chartY: event.clientY })),
+      },
+      series: [
+        {
+          points: [point],
+          searchPoint: vi.fn(() => point),
+        },
+      ],
+      tooltip: {
+        hide: vi.fn(),
+        refresh: vi.fn(),
+      },
+      xAxis: [
+        {
+          drawCrosshair: vi.fn(),
+          hideCrosshair: vi.fn(),
+        },
+      ],
+    } as unknown as Highcharts.Chart;
+    return { chart, container, point };
+  }
+
+  it('tracks a touch gesture that starts close to the plotted line', () => {
+    const { chart, container, point } = touchChart();
+    const chartSync = useChartSync();
+    const cleanup = chartSync.bindChart(chart);
+
+    try {
+      container.dispatchEvent(touchEvent('touchstart', 120, 108));
+
+      expect(point.setState).toHaveBeenCalledWith('hover');
+      expect(chart.tooltip.refresh).toHaveBeenCalledWith(point);
+    } finally {
+      cleanup();
+      chartSync.clearChartCrosshairs();
+    }
+  });
+
+  it('leaves a touch gesture for scrolling when it starts away from the plotted line', () => {
+    const { chart, container, point } = touchChart();
+    const chartSync = useChartSync();
+    const cleanup = chartSync.bindChart(chart);
+
+    try {
+      container.dispatchEvent(touchEvent('touchstart', 120, 40));
+      container.dispatchEvent(touchEvent('touchmove', 120, 100));
+
+      expect(point.setState).not.toHaveBeenCalledWith('hover');
+      expect(chart.tooltip.refresh).not.toHaveBeenCalled();
+    } finally {
+      cleanup();
+      chartSync.clearChartCrosshairs();
+    }
+  });
+
   it('keeps one active hover marker and skips duplicate point refreshes', () => {
     const firstSetState = vi.fn();
     const secondSetState = vi.fn();
@@ -226,6 +317,41 @@ describe('useChartSync marker behavior', () => {
     } finally {
       chartSync.clearChartCrosshairs();
       chartSync.unregisterChart(chart);
+    }
+  });
+
+  it('clears a chart-created pinned mini-map marker when the pointer leaves the chart', () => {
+    const trackPoint = point({ pointIndex: 1, timestamp: 1_000, distanceKm: 1 });
+    const highchartsPoint = {
+      x: 0,
+      ts: trackPoint.timestamp,
+      canonicalPointIndex: trackPoint.pointIndex,
+      setState: vi.fn(),
+    } as unknown as Highcharts.Point;
+    const chart = {
+      container: document.createElement('div'),
+      pointer: { normalize: vi.fn(() => ({ chartX: 10, chartY: 10 })) },
+      series: [{ points: [highchartsPoint], searchPoint: vi.fn(() => highchartsPoint) }],
+      tooltip: { hide: vi.fn(), refresh: vi.fn() },
+      xAxis: [{ drawCrosshair: vi.fn(), hideCrosshair: vi.fn() }],
+    } as unknown as Highcharts.Chart;
+    const cursor = useTrackCursorSync();
+    const chartSync = useChartSync();
+
+    cursor.setTrackPoints([trackPoint]);
+    chartSync.registerChart(chart);
+    try {
+      chartSync.syncClick(new MouseEvent('click'), chart);
+      expect(cursor.pinnedPoint.value?.pointIndex).toBe(trackPoint.pointIndex);
+
+      chartSync.syncMouseLeave();
+
+      expect(cursor.pinnedPoint.value).toBeNull();
+      expect(chart.tooltip.hide).toHaveBeenCalledWith(0);
+      expect(chart.xAxis[0].hideCrosshair).toHaveBeenCalledOnce();
+    } finally {
+      chartSync.unregisterChart(chart);
+      cursor.clearAll();
     }
   });
 });

@@ -9969,6 +9969,17 @@
             "type": "string",
             "format": "date-time"
           },
+          "appliedCameraOffsetSeconds": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "timeSource": {
+            "type": "string",
+            "enum": [
+              "EXIF_GPS",
+              "EXIF_DATE_TAKEN"
+            ]
+          },
           "trackId": {
             "type": "integer",
             "format": "int64"

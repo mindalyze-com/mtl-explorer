@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="MTL Explorer regression fixture" xmlns="http://www.topografix.com/GPX/1/1">
+  <metadata><name>MTL Regression Window Track</name></metadata>
+  <trk>
+    <name>MTL Regression Window Track</name>
+    <desc>MED_20 replacement window</desc>
+    <type>walking</type>
+    <trkseg>
+      <trkpt lat="46.97000" lon="7.47000"><ele>550</ele><time>2026-08-17T08:08:00Z</time></trkpt>
+      <trkpt lat="46.97100" lon="7.47100"><ele>551</ele><time>2026-08-17T08:09:00Z</time></trkpt>
+      <trkpt lat="46.97300" lon="7.47300"><ele>552</ele><time>2026-08-17T08:15:00Z</time></trkpt>
+      <trkpt lat="46.97400" lon="7.47400"><ele>553</ele><time>2026-08-17T08:16:00Z</time></trkpt>
+    </trkseg>
+  </trk>
+</gpx>

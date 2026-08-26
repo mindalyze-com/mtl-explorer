@@ -1,0 +1,19 @@
+AVR_02 virtual-race evidence
+
+Setup
+- Segment: A-B.
+- Speed: 80x, estimated 12 seconds.
+- Three racers active.
+- One selected racer lacked enough segment data and was explicitly skipped.
+
+Live samples (rank / progress / travelled distance)
+- 0.4 s: Bravo 1 / 7% / 29.66 m; IGC 2 / 7% / 30.92 m; media 3 / 3% / 40.53 m.
+- 2.0 s: Bravo 1 / 25% / 49.77 m; IGC 2 / 25% / 49.51 m; media 3 / 13% / 49.82 m.
+- 4.0 s: Bravo 1 / 47% / 76.83 m; IGC 2 / 47% / 77.73 m; media 3 / 24% / 61.15 m.
+- 6.0 s: Bravo 1 / 70% / 108.90 m; IGC 2 / 70% / 110.00 m; media 3 / 35% / 76.46 m.
+
+Finish
+- segment-bravo.gpx: rank 1, 100%, 154.29 m.
+- sample.igc: rank 2, 100%, 154.43 m.
+- mtl-regression-media-track.gpx: rank 3, 100%, 189.62 m.
+- Start and reset controls were available again.

@@ -1,0 +1,20 @@
+Track: #100000 / Jura Route 7 / 2011 on GPSies.com
+
+Detected events:
+- Events summary: 1 break
+- Longest: 1m 03s
+- Break 1: 1 Jan 2010, 15:35 - 15:36
+- Position: 235.89 km
+
+Selection behavior:
+- Before selection, the mini-map event toggle was disabled and there were no
+  DOM map markers.
+- Selecting Break 1 set its control to active + pressed.
+- The mini-map event toggle became enabled and exposed event count 1.
+- Selecting Break 1 again removed active + pressed.
+- Events tab stayed selected; no transient DOM map marker remained.
+
+Constraint:
+- The event-position highlight is drawn on the map canvas. ACC_04 blocks
+  screenshot capture and direct visual confirmation of that canvas highlight.
+- Event detection and clean selection/deselection are directly verified.

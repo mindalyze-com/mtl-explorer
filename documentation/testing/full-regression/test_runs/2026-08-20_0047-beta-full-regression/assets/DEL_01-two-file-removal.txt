@@ -1,0 +1,10 @@
+DEL_01 watched-source removal
+
+Removed from disposable watched folder:
+- data/gpx/2026-08-20_0047-beta-full-regression/Vitry-le-Francois_Langres.gpx (track 100002)
+- data/gpx/2026-08-20_0047-beta-full-regression/VoieVerteHauteVosges.gpx (track 100003)
+
+Recovery location inside the disposable installation:
+- data/logs/2026-08-20_0047-beta-full-regression-deleted-gpx/
+
+The watched folder retained Activity.fit, JuraRoute72011.gpx, Lannion_Plestin_parcours24.4RE.gpx, MoselradwegAusWiki.gpx, and mtl-regression-media-track.gpx. No other file was moved.

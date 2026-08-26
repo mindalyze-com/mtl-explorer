@@ -1,0 +1,14 @@
+Import start: 2026-08-19T23:13:14Z
+Observed Admin state: GPS done, 100%, 5 completed, 5 total.
+Manual Rescan GPS needed: no.
+Elapsed when completion was recorded: 55 seconds (includes browser inspection time; file ingest logs completed within about 13 seconds).
+
+Live watcher detected CREATE for all five filenames at 23:13:14Z.
+SUCCESS mappings from app logs:
+- trackId=100000 | JuraRoute72011.gpx | ingest 3.24s
+- trackId=100001 | MoselradwegAusWiki.gpx | ingest 3.86s
+- trackId=100002 | Vitry-le-Francois_Langres.gpx | ingest 1.02s
+- trackId=100003 | VoieVerteHauteVosges.gpx | ingest 744ms
+- trackId=100004 | Lannion_Plestin_parcours24.4RE.gpx | ingest 239ms
+
+Admin also showed map count 0/5 because a previously saved text filter was active in this browser; this is addressed by accepting freshness and clearing/resetting the filter in later UI packets, not treated as an index failure.

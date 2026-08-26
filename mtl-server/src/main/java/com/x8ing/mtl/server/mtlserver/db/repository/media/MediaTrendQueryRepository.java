@@ -125,6 +125,8 @@ public class MediaTrendQueryRepository {
                             indexed.create_date AS indexed_create_time,
                             %s AS media_kind,
                             correlation.adjusted_capture_time AS effective_capture_time,
+                            correlation.applied_camera_offset_seconds,
+                            correlation.time_source,
                             correlation.track_id,
                             ST_Y(resolved.location) AS resolved_lat,
                             ST_X(resolved.location) AS resolved_lng,
@@ -154,6 +156,15 @@ public class MediaTrendQueryRepository {
                             media.exif_date_image_taken
                                 + make_interval(secs => COALESCE(correction.offset_seconds, 0))
                         ) AS effective_capture_time,
+                        CASE
+                            WHEN media.exif_gps_date IS NULL THEN COALESCE(correction.offset_seconds, 0)
+                            ELSE 0
+                        END AS applied_camera_offset_seconds,
+                        CASE
+                            WHEN media.exif_gps_date IS NOT NULL THEN 'EXIF_GPS'
+                            WHEN media.exif_date_image_taken IS NOT NULL THEN 'EXIF_DATE_TAKEN'
+                            ELSE NULL
+                        END AS time_source,
                         correlation.track_id,
                         ST_Y(resolved.location) AS resolved_lat,
                         ST_X(resolved.location) AS resolved_lng,
@@ -213,11 +224,17 @@ public class MediaTrendQueryRepository {
         TrackMediaDto.POSITION_ORIGIN origin = originValue == null
                 ? null
                 : TrackMediaDto.POSITION_ORIGIN.valueOf(originValue);
+        String timeSourceValue = rs.getString("time_source");
+        TrackMediaDto.TIME_SOURCE timeSource = timeSourceValue == null
+                ? null
+                : TrackMediaDto.TIME_SOURCE.valueOf(timeSourceValue);
         return new MediaTrendItemDto(
                 rs.getLong("id"),
                 TrackMediaDto.MEDIA_KIND.valueOf(rs.getString("media_kind")),
                 rs.getString("file_name"),
                 date(rs, "effective_capture_time"),
+                nullableInteger(rs, "applied_camera_offset_seconds"),
+                timeSource,
                 nullableLong(rs, "track_id"),
                 nullableDouble(rs, "resolved_lat"),
                 nullableDouble(rs, "resolved_lng"),
@@ -234,6 +251,11 @@ public class MediaTrendQueryRepository {
 
     private static Long nullableLong(ResultSet rs, String column) throws SQLException {
         long value = rs.getLong(column);
+        return rs.wasNull() ? null : value;
+    }
+
+    private static Integer nullableInteger(ResultSet rs, String column) throws SQLException {
+        int value = rs.getInt(column);
         return rs.wasNull() ? null : value;
     }
 

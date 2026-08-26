@@ -1,6 +1,6 @@
 package com.x8ing.mtl.server.mtlserver.web.services.track;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import com.x8ing.mtl.server.mtlserver.web.services.track.entity.VideoTranscodeQuality;
 import com.x8ing.mtl.server.mtlserver.web.services.track.entity.VideoTranscodeSessionDto;
 import com.x8ing.mtl.server.mtlserver.web.services.track.entity.VideoTranscodeSessionState;
@@ -28,6 +28,7 @@ import java.util.regex.Pattern;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 
 class VideoTranscodeSessionServiceTest {
 
@@ -52,13 +53,16 @@ class VideoTranscodeSessionServiceTest {
         Path secondSource = source("second.mov");
 
         VideoTranscodeSessionService.CreateResult first = service.create(1L, firstSource, VideoTranscodeQuality.P480);
-        VideoTranscodeSessionService.CreateResult reused = service.create(1L, firstSource, VideoTranscodeQuality.P480);
+        VideoTranscodeSessionService.CreateResult reused = assertTimeoutPreemptively(
+                Duration.ofSeconds(1),
+                () -> service.create(1L, firstSource, VideoTranscodeQuality.P480));
 
         assertThat(reused.reused()).isTrue();
         assertThat(reused.session().sessionId()).isEqualTo(first.session().sessionId());
-        assertThatThrownBy(() -> service.create(2L, secondSource, VideoTranscodeQuality.P480))
-                .isInstanceOfSatisfying(ResponseStatusException.class,
-                        error -> assertThat(error.getStatusCode()).isEqualTo(HttpStatus.TOO_MANY_REQUESTS));
+        assertTimeoutPreemptively(Duration.ofSeconds(1), () ->
+                assertThatThrownBy(() -> service.create(2L, secondSource, VideoTranscodeQuality.P480))
+                        .isInstanceOfSatisfying(ResponseStatusException.class,
+                                error -> assertThat(error.getStatusCode()).isEqualTo(HttpStatus.TOO_MANY_REQUESTS)));
 
         UUID firstSessionId = UUID.fromString(first.session().sessionId());
         awaitStatus(firstSessionId, status -> status.playlistReady(), Duration.ofSeconds(5));
@@ -71,6 +75,30 @@ class VideoTranscodeSessionServiceTest {
 
         VideoTranscodeSessionService.CreateResult second = service.create(2L, secondSource, VideoTranscodeQuality.P480);
         assertThat(second.session().sessionId()).isNotEqualTo(first.session().sessionId());
+    }
+
+    @Test
+    void returnsTooManyRequestsWhenTheSharedProcessSlotIsBusy() throws Exception {
+        TestCommands commands = testCommands(false);
+        MediaProcessProperties mediaProcessProperties = new MediaProcessProperties();
+        mediaProcessProperties.setAcquireTimeout(Duration.ZERO);
+        MediaProcessLimiter limiter = new MediaProcessLimiter(mediaProcessProperties);
+        service = new VideoTranscodeSessionService(
+                properties(commands),
+                new ObjectMapper(),
+                limiter,
+                Clock.systemUTC());
+        service.initialize();
+
+        try (MediaProcessLimiter.Permit ignored = limiter.acquire()) {
+            assertTimeoutPreemptively(Duration.ofSeconds(1), () ->
+                    assertThatThrownBy(() -> service.create(
+                            1L, source("busy.mov"), VideoTranscodeQuality.P480))
+                            .isInstanceOfSatisfying(ResponseStatusException.class, error -> {
+                                assertThat(error.getStatusCode()).isEqualTo(HttpStatus.TOO_MANY_REQUESTS);
+                                assertThat(error.getReason()).contains("busy");
+                            }));
+        }
     }
 
     @Test
@@ -248,8 +276,12 @@ class VideoTranscodeSessionServiceTest {
                 VideoTranscodeQuality.P720,
                 source,
                 plan,
+                1,
                 4);
 
+        assertThat(command).containsSubsequence("-threads", "1", "-i");
+        assertThat(command).containsSubsequence("-filter_threads", "1");
+        assertThat(command).containsSubsequence("-filter_complex_threads", "1");
         assertThat(command).containsSubsequence("-c:v", "libx264", "-preset", "veryfast");
         assertThat(command).containsSubsequence("-maxrate", "2500000", "-bufsize", "5000000");
         assertThat(command).containsSubsequence("-vf", "scale=w=-2:h='min(720,ih)'", "-pix_fmt", "yuv420p");
@@ -337,7 +369,11 @@ class VideoTranscodeSessionServiceTest {
     }
 
     private VideoTranscodeSessionService initializedService(VideoTranscodeProperties properties, Clock clock) {
-        VideoTranscodeSessionService result = new VideoTranscodeSessionService(properties, new ObjectMapper(), clock);
+        VideoTranscodeSessionService result = new VideoTranscodeSessionService(
+                properties,
+                new ObjectMapper(),
+                new MediaProcessLimiter(new MediaProcessProperties()),
+                clock);
         result.initialize();
         return result;
     }

@@ -28,6 +28,33 @@ class GPXReaderDistanceTest {
     }
 
     @Test
+    void wgs84EquatorialDegree_matchesEllipsoidDistance() {
+        Coordinate start = new Coordinate(0.0, 0.0);
+        Coordinate end = new Coordinate(1.0, 0.0);
+
+        assertEquals(111_319.490_793, GPXReader.getDistanceBetweenTwoWGS84(start, end), 0.001);
+    }
+
+    @Test
+    void wgs84MeridianDegree_matchesEllipsoidDistance() {
+        Coordinate start = new Coordinate(0.0, 0.0);
+        Coordinate end = new Coordinate(0.0, 1.0);
+
+        assertEquals(110_574.388_558, GPXReader.getDistanceBetweenTwoWGS84(start, end), 0.001);
+    }
+
+    @Test
+    void antipodalPoints_fallBackToFiniteDistance() {
+        Coordinate start = new Coordinate(0.0, 0.0);
+        Coordinate end = new Coordinate(180.0, 0.0);
+
+        double distance = GPXReader.getDistanceBetweenTwoWGS84(start, end);
+
+        assertTrue(Double.isFinite(distance));
+        assertTrue(distance > 20_000_000 && distance < 20_100_000);
+    }
+
+    @Test
     void veryClosePoints_noException() {
         // Two points ~1m apart
         Coordinate c1 = new Coordinate(8.50784, 47.55841);

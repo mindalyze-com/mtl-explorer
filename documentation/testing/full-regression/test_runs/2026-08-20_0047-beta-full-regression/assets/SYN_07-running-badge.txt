@@ -1,0 +1,7 @@
+SYN_07 indexer-running badge and map interaction
+
+- During ADM_02 controlled import, Admin navigation changed Processing to `Processing Live` while GPS/index-related jobs were active.
+- Processing showed running progress and pending counts rather than blocking the shell.
+- During ADM_04 manual rescans, the Admin action reported queued and the data-freshness banner later appeared.
+- Closing Admin during the running work exposed the normal map; Zoom out changed scale from 2 m to 5 m, 8 Tracks remained available, and all navigation tools were usable.
+- Reopening Admin/Processing showed the settled result; no modal blocker, frozen overlay, or lost map interaction occurred.

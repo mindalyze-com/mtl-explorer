@@ -1,0 +1,15 @@
+FMT_01 supported-format acceptance
+
+Fixture origin: six-point fully synthetic DAT_07 segment-alpha.gpx near Bern. No private GPX data was used. GPSBabel in the requested app image produced the non-GPX fixtures. Each raw format was validated as GPS-bearing before import; KMZ contains doc.kml. Files were copied into the watched formats/ subfolder at 2026-08-20T00:05:36Z.
+
+GPX | prior five-public-GPX flow | PASS (IMP_02-IMP_09)
+FIT | official Garmin Activity.fit | PASS, track 100005 (FIT_01-FIT_05)
+KML | sample-track.kml | 3,947 bytes | SHA-256 ff19a96412c5fc0f75acc67fe323e34dc7977dd77064bc4c60bbb34ecdcd1040 | 6 round-trip trkpt | track 100006 | SUCCESS
+TCX | sample.tcx | 3,643 bytes | SHA-256 e2a9b6da8fdd57d3420ec38dcee8210a11a7de9d1708ab8c9d2118eb476ddf56 | 6 round-trip trkpt | track 100007 | SUCCESS
+KMZ | sample-track.kmz | 952 bytes | SHA-256 6716ab6f1356a5e5524e0ecd00bc5b30fc48dc90aae3622459ae7d398d59eccf | zipped validated KML | track 100008 | SUCCESS
+IGC | sample.igc | 365 bytes | SHA-256 5db271985beada6895f42d731a9e6791af71721f9e385a3df4405ea1543bba12 | 6 round-trip trkpt | track 100009 | SUCCESS
+GeoJSON | sample.geojson | 1,168 bytes | SHA-256 63472adf30f532683032743cdb8e006c951bf2efde9801d4713110bafbf5b30a | 6-point LineString; product transform trk=rte | track 100010 | SUCCESS
+NMEA | sample-valid.nmea | 822 bytes | SHA-256 6ca9513fc894a9239970b1aaf3d1dc468143dcf68d3b22104a795e514b6aa8dc | valid A/fix-1 RMC+GGA; 6 round-trip trkpt | track 100011 | SUCCESS
+GDB | sample.gdb | 261 bytes | SHA-256 fd0ac75dcdcefdc1c64dfd4cb68bc38fdd3702f4db01cb13844c9cec12781cbf | 6 round-trip trkpt | track 100012 | SUCCESS
+
+All seven live watcher CREATE events were observed. GPSBabel conversion output ranged from 1,024 to 1,710 characters of GPX XML. All seven product ingest results were SUCCESS; no manual rescan was used.

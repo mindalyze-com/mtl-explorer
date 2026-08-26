@@ -1,0 +1,11 @@
+Track: FIT #100005 (Activity.fit)
+Graph mode: Time, Range on, 350 points
+
+Required chart evidence:
+- Speed: interactive Highcharts chart; 345-point speed/range series; km/h axis.
+- Elevation: interactive Highcharts chart; 350-point elevation/range series; m axis.
+- Elevation Gain Rate: interactive Highcharts chart; 345-point gain/range series; m/h axis.
+- Distance over Time: interactive Highcharts chart; 350-point distance series; km axis.
+
+All four charts expose numeric X/Y ranges and tick values through their
+accessible chart descriptions. None is blank.

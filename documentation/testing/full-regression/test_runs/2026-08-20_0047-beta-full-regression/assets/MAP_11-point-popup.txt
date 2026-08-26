@@ -1,0 +1,28 @@
+Coverage: MAP_11
+Preparation:
+- Track points and direction enabled at 100%.
+- Map centered on Bern and zoomed to 30 m.
+- Media overlay temporarily hidden to remove cluster overlap.
+- Walking-only category result temporarily selected, isolating #100013 at this location.
+
+Visible click result:
+- Popup identity: Track #100013
+- Point: 3 / 6
+- Time: 17/08/2026, 10:06:00
+- Lat / Lng: 46.948331 / 7.447753
+- Altitude: 552.0 m
+- Speed: — (metric row present; no moving-window value for this slow fixture point)
+- Dist from start: 63.81 m
+- Dist prev point: 25.3 m
+- Time prev point: 360.0 s
+- Duration: 7m 0s
+- Ascent: 2 m
+- Descent: 0 m
+- Estimated energy segment/cumulative/power rows present
+- Close popup action present
+
+Restoration:
+- All activity categories restored (9 matching tracks).
+- Photos and media overlay restored.
+- GPS tracks and Track points and direction remain enabled.
+Result: clicking the high-zoom rendered point/line marker opened the expected point metrics popup.

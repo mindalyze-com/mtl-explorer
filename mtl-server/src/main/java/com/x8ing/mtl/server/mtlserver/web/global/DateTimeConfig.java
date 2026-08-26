@@ -1,8 +1,9 @@
 package com.x8ing.mtl.server.mtlserver.web.global;
 
-import com.fasterxml.jackson.datatype.jsr310.ser.LocalDateSerializer;
-import com.fasterxml.jackson.datatype.jsr310.ser.LocalDateTimeSerializer;
-import org.springframework.boot.autoconfigure.jackson.Jackson2ObjectMapperBuilderCustomizer;
+import tools.jackson.databind.ext.javatime.ser.LocalDateSerializer;
+import tools.jackson.databind.ext.javatime.ser.LocalDateTimeSerializer;
+import tools.jackson.databind.module.SimpleModule;
+import org.springframework.boot.jackson.autoconfigure.JsonMapperBuilderCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.format.Formatter;
@@ -52,12 +53,13 @@ public class DateTimeConfig {
 
 
     @Bean
-    public Jackson2ObjectMapperBuilderCustomizer jsonCustomizer() {
+    public JsonMapperBuilderCustomizer jsonCustomizer() {
         return builder -> {
-            builder.simpleDateFormat(DATE_TIME_SIMPLE_DATE_FORMAT);
-            builder.serializers(new LocalDateSerializer(dateFormat));
-            builder.serializers(new LocalDateTimeSerializer(dateTimeFormat));
-            //builder.serializers(new DateSerializer());
+            SimpleModule dateTimeModule = new SimpleModule("MTL date and time");
+            dateTimeModule.addSerializer(LocalDate.class, new LocalDateSerializer(dateFormat));
+            dateTimeModule.addSerializer(LocalDateTime.class, new LocalDateTimeSerializer(dateTimeFormat));
+            builder.defaultDateFormat(new SimpleDateFormat(DATE_TIME_SIMPLE_DATE_FORMAT));
+            builder.addModule(dateTimeModule);
         };
     }
 

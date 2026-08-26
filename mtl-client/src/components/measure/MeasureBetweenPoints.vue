@@ -140,7 +140,7 @@
 
 <script setup lang="ts">
 import { computed, inject, nextTick, onBeforeUnmount, onMounted, provide, ref, watch } from 'vue';
-import type maplibregl from 'maplibre-gl';
+import type * as maplibregl from 'maplibre-gl';
 import type { CrossingPointsResponseDto, TriggerPoint } from 'x8ing-mtl-api-typescript-fetch/dist/esm/models/index';
 import { fetchTrackDetailsForCrossingPoints, fetchTrackIdsWithinDistanceOfPoint } from '@/utils/ServiceHelper';
 import DisplayMeasureResults from '@/components/measure/DisplayMeasureResults.vue';

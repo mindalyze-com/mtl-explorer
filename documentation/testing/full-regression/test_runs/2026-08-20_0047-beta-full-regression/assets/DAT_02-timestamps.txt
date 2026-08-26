@@ -1,0 +1,6 @@
+JuraRoute72011.gpx: 1414 trkpt; 1414 timestamped trkpt
+Lannion_Plestin_parcours24.4RE.gpx: 381 trkpt; 381 timestamped trkpt
+MoselradwegAusWiki.gpx: 2954 trkpt; 2954 timestamped trkpt
+Vitry-le-Francois_Langres.gpx: 1688 trkpt; 1688 timestamped trkpt
+VoieVerteHauteVosges.gpx: 1298 trkpt; 1298 timestamped trkpt
+Total: 7735 trkpt; 7735 timestamped trkpt (100%)

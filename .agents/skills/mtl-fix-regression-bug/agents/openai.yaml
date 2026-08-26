@@ -1,0 +1,4 @@
+interface:
+  display_name: "MTL Fix Regression Bug"
+  short_description: "Fix the earliest open MTL regression bug"
+  default_prompt: "Use $mtl-fix-regression-bug to claim and fix the earliest open MTL Explorer full-regression finding."

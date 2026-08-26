@@ -1,0 +1,12 @@
+MED_03 pin/viewer navigation evidence
+
+- Source: This cluster from the clicked Bern media pin.
+- Viewer scope: This cluster, 1 of 8 initially.
+- Selected photo: mtl-regression-delete-a.jpg, item 2 of 8.
+- Rendered element: img with matching alt text.
+- Details: 17/08/2026 10:02, Embedded GPS time, JPG 31.3 KB.
+- Location: 46.94836, 7.44796 with location map and Open on main map.
+- Previous and Next controls were both enabled.
+- Next opened mtl-regression-photo-b.jpg.
+- Previous returned to mtl-regression-delete-a.jpg.
+- Filmstrip retained all eight item controls.

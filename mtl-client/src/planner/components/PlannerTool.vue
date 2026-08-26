@@ -88,7 +88,7 @@
           <div v-else class="brouter-detail-body">
             <span class="brouter-val--warn">Unavailable: {{ status.reason ?? 'unknown' }}</span>
           </div>
-          <button type="button" class="brouter-detail-refresh" @click.stop="refresh">
+          <button type="button" class="brouter-detail-refresh" @click.stop="refresh(true)">
             <i class="bi bi-arrow-clockwise"></i>
             <span>Refresh</span>
           </button>
@@ -347,7 +347,7 @@
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, shallowRef, watch } from 'vue';
-import maplibregl from 'maplibre-gl';
+import * as maplibregl from 'maplibre-gl';
 import BottomSheet from '@/components/ui/BottomSheet.vue';
 import PlannerToolbar from '@/planner/components/PlannerToolbar.vue';
 import LiveStatsBar from '@/planner/components/LiveStatsBar.vue';

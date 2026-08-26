@@ -1,0 +1,9 @@
+Pass: offline
+Phase: replace active B1 content while stopped
+Shutdown proof: container not running and port 18092 closed
+Pre-mutation/persisted-before-restart: 6/6 with old B1; 6/6 with old B1
+Mutation/restart/settled UTC: 20:25:07 / 20:25:07 / 20:25:29
+Expected/actual active GPX/media: 6/6; 6/6
+Evidence: startup scans found one changed path per index; old track absent; one replacement track; media coordinates changed; no duplicates; GUI showed replacement content.
+Manual rescan used: no
+Status: PASS

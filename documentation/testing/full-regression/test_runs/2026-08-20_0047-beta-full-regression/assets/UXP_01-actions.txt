@@ -1,0 +1,37 @@
+Coverage: UXP_01
+Window: 2026-08-20T10:23:33.920Z through 2026-08-20T10:27:49.762Z
+Start state: signed-in warmed desktop; eight tracks; Smart Base Filter; background processing settled.
+
+Three consecutive journeys
+Each journey completed: location search/map recenter, zoom in/out, Filter catalog apply/reset, Statistics Overview/Tracks, Activity.fit search, track #100039 details, Graphs, Quality, close, Planner open/close, return to map.
+- Journey 1 final: /mtl/, 8 Tracks, map usable.
+- Journey 2 final: /mtl/, 8 Tracks, map usable.
+- Journey 3 final: /mtl/, 8 Tracks, map usable.
+
+Visible feedback and command-to-snapshot upper bounds
+All named feedback states rendered. Values include browser-control round trips, explicit 80-500 ms observation waits, DOM snapshot time, and navigation settlement; they are not UI-only latency measurements.
+
+| Action | J1 ms | J2 ms | J3 ms | Visible result |
+|---|---:|---:|---:|---|
+| Search open | 402 | 415 | 421 | Search sheet/input |
+| Search/recenter Bern | 655 + 390 | 563 | 578 | map marker/recenter |
+| Zoom in | 398 | 432 | 446 | scale/control updated |
+| Zoom out | 398 | 425 | 426 | scale/control updated |
+| Filter open | 3156 | 3208 | 3213 | Configuration |
+| Catalog open/select | 446/450 | 445/508 | 446/511 | catalog/selected view |
+| Filter apply/reset | 714/704 | 663/667 | 658/666 | result/reset notice |
+| Statistics Overview | 3732 | 3663 | 3670 | overview cards |
+| Statistics Tracks | 808 | 710 | 713 | track table/search |
+| Track search | 425 | 359 | 409 | one matching row |
+| Track Details | 3829 | 3720 | 3673 | #100039/details |
+| Graphs/Quality | 712/714 | 710/713 | 707/708 | selected tab content |
+| Detail close | 3465 | 3465 | 3462 | Statistics restored |
+| Planner open/close | 3588/3357 | 3497/3316 | 3494/3331 | ready/root map |
+
+Diagnostics
+- Browser console entries during the window: 100; warning/error entries: 0.
+- Browser control exposes no PerformanceObserver/long-task data and no UI-thread timing primitive.
+- Semantic action duration includes about 0.3 s baseline bridge work and about 3 s navigation settlement, so it cannot prove or disprove the frozen 200 ms visible-feedback threshold.
+- The browser diagnostic surface exposes console logs only, not in-flight/pending network inventory.
+
+Result: functional journeys pass; UI-only feedback, maximum main-thread stall, and pending-request checks are BLOCKED by instrumentation.

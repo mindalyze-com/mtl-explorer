@@ -1,0 +1,21 @@
+Track: FIT #100005 (Activity.fit)
+
+Chart -> mini-map:
+- Before chart pointer interaction: 0 MapLibre markers.
+- Pointer/click at the center of the Speed chart: 1 marker.
+- Marker style: 14x14 red circle, white border, opacity 1.
+
+Mini-map -> chart:
+- Pointer/click at the center of the detail mini-map opened Track point 1,799.
+- Map popup: 20/07/2021 23:41:19, 1.80 km, 125.9 m, 2.4 km/h,
+  elapsed 29m 58s.
+- Graphs exposed a synchronized tooltip at 0h 29m / 23:41 with speed and
+  elevation values.
+
+Leave/clear behavior:
+- Closing the map popup removed both the Track point popup and chart tooltip.
+- Moving the pointer to page coordinate 20,20 left both chart and mini-map.
+- The red marker remained present at opacity 1.
+
+Result: both synchronization directions work, but the chart-created mini-map
+cursor is stale after leaving the surfaces.

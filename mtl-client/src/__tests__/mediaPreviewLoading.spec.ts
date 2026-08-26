@@ -26,12 +26,14 @@ const PreviewHarness = defineComponent({
   props: {
     mediaId: { type: Number as PropType<number | null>, default: null },
     prefetchIds: { type: Array as PropType<(number | null)[]>, default: () => [] },
+    timeSource: { type: String as PropType<string | null>, default: null },
+    appliedCameraOffsetSeconds: { type: Number as PropType<number | null>, default: null },
   },
   setup(props) {
     return useMediaPreview(props);
   },
   template:
-    '<div data-test="preview-state" :data-src="displayUrl" :data-media-url="mediaUrl" :data-poster-url="posterUrl" :data-video="String(isVideo)" :data-full-resolution="String(isHighResolutionPending)" :data-cross-fading="String(isCrossFading)" :data-swap-pending="String(isSwapPending)" />',
+    '<div data-test="preview-state" :data-src="displayUrl" :data-media-url="mediaUrl" :data-poster-url="posterUrl" :data-capture-source="captureTimeSource" :data-video="String(isVideo)" :data-full-resolution="String(isHighResolutionPending)" :data-cross-fading="String(isCrossFading)" :data-swap-pending="String(isSwapPending)" />',
 });
 
 function mediaInfo(id: number) {
@@ -86,6 +88,17 @@ describe('useMediaPreview loading', () => {
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
     vi.useRealTimers();
+  });
+
+  it('formats a saved camera correction with non-zero seconds as a valid compact hour label', () => {
+    const wrapper = mount(PreviewHarness, {
+      props: { timeSource: 'EXIF_DATE_TAKEN', appliedCameraOffsetSeconds: 3_603 },
+    });
+
+    expect(wrapper.get('[data-test="preview-state"]').attributes('data-capture-source')).toBe(
+      'Camera clock · +1h correction'
+    );
+    wrapper.unmount();
   });
 
   it('shows the full-resolution status only while the full image is actually loading', async () => {

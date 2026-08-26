@@ -1,0 +1,57 @@
+MED_29 media provenance symbol evidence
+Activity: MTL Regression Media Track, live track ID 100028
+Media page: 8 items
+
+Activity mini-map
+- All 8 items rendered as current-page markers.
+- Photo GPS image markers:
+  - icon class: bi bi-camera-fill
+  - border radius: 999px
+  - fill: #2563eb
+  - accessible suffix: Photo GPS
+- Estimated image marker (mtl-regression-estimated-b.jpg):
+  - icon class: bi bi-camera-fill
+  - border radius: 999px
+  - fill: #fdba74
+  - accessible suffix: Estimated from photo time and activity track
+- Set by you image marker after the live manual-location flow:
+  - icon class: bi bi-camera-fill
+  - border radius: 999px
+  - fill: #7c3aed
+  - accessible suffix: Location set by you
+- Unknown image marker after removing only media 400002's resolved projection:
+  - icon class: bi bi-camera-fill
+  - border radius: 999px
+  - fill: #d1d5db
+  - accessible suffix: Position source unknown
+- Thus image provenance changed only fill/border/text; geometry and camera icon
+  stayed identical. Video media intentionally retained the video-camera glyph.
+
+Viewer location map
+- Photo GPS (media 400003): bi bi-camera-fill, fill #2563eb,
+  "Photo GPS location at 46.94800, 7.44740".
+- Estimated (media 400006): bi bi-camera-fill, fill #fdba74,
+  "Estimated location at 46.94811, 7.44755".
+- Set by you (media 400006 after assignment): bi bi-camera-fill, fill #7c3aed,
+  "Location set by you at 46.94910, 7.44910".
+- Unknown (media 400002): the activity viewer selected item 3 of 8 and showed
+  "Position source unknown", but rendered no Location region and no
+  media-location-map-marker. The activity mini-map simultaneously retained its
+  gray circular unknown marker from the correlation route coordinate.
+
+Manual clear
+- Used Media tools > Adjust locations > Edit location > Clear assignment.
+- The card changed from Set by you back to Estimated.
+- Manual marker count changed from 1 to 0.
+- The same item returned to bi bi-camera-fill, 999px radius, fill #fdba74, and
+  the Estimated from photo time and activity track accessible label.
+
+Cleanup
+- Reinserted media 400002's resolved TRACK_INTERPOLATED projection from its
+  selected correlation and route location.
+- Reloaded the activity: unknown markers 0, manual markers 0, estimated markers
+  3; both estimated image cards showed Estimated.
+- media/resolved/selected counts: 8/8/8.
+- manual locations/time corrections: 0/0.
+- media/track correlation work queues: 0/0.
+- Closed Track Details; root map reported 8 Tracks.

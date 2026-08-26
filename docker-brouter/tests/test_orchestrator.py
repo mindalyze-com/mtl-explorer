@@ -31,6 +31,31 @@ class OrchestratorStartupOrderTest(unittest.TestCase):
             events,
         )
 
+    def test_brouter_starts_with_memory_and_long_route_tuning(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            brouter_home = Path(tmp)
+            with patch.object(orchestrator, "BROUTER_HOME", brouter_home):
+                with patch.object(orchestrator.subprocess, "Popen") as popen:
+                    supervisor = orchestrator.Supervisor()
+                    supervisor.start_brouter()
+
+        command = popen.call_args.args[0]
+        self.assertIn(f"-Xms{orchestrator.JAVA_XMS}", command)
+        self.assertIn(f"-Xmx{orchestrator.JAVA_XMX}", command)
+        self.assertIn(f"-Xmn{orchestrator.JAVA_YOUNG_GENERATION}", command)
+        self.assertIn("-XX:+UseG1GC", command)
+        self.assertIn(
+            f"-XX:ActiveProcessorCount={orchestrator.JAVA_ACTIVE_PROCESSORS}",
+            command,
+        )
+        self.assertIn("-XX:+ExitOnOutOfMemoryError", command)
+        self.assertIn(
+            f"-DmaxRunningTime={orchestrator.JAVA_MAX_RUNNING_TIME_SEC}",
+            command,
+        )
+        self.assertEqual("1", command[-1])
+        popen.assert_called_once_with(command, cwd=str(brouter_home))
+
 
 class FakeDownloader:
     def __init__(self, events):

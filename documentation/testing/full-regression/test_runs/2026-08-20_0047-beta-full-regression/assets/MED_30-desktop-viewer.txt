@@ -1,0 +1,43 @@
+MED_30 desktop viewer evidence
+
+Context
+- Activity: #100028, MTL Regression Media Track
+- Activity collection: 8 items total; first 6 are photos, last 2 are videos
+- Desktop screenshot viewport: 1049 x 942 CSS pixels
+
+Navigation
+- Initial: 1 of 8, mtl-regression-photo-a.jpg, scale(1)
+- Large side Next: 2 of 8, mtl-regression-photo-b.jpg, scale(1)
+- ArrowRight: 3 of 8, mtl-regression-estimated-a.jpg, scale(1)
+- ArrowLeft: 2 of 8, mtl-regression-photo-b.jpg, scale(1)
+- Large side Previous: 1 of 8, mtl-regression-photo-a.jpg, scale(1)
+- Leftward pointer swipe at base zoom: 2 of 8
+- Rightward pointer swipe at base zoom: 1 of 8
+- Navigation controls did not change the image zoom.
+
+Activity media strip
+- Direct Open photo 400006 selected item 5 of 8, mtl-regression-estimated-b.jpg.
+- Collapse activity media removed the Media filmstrip region and exposed Expand activity media.
+- Expand activity media restored the Media filmstrip and expanded state.
+
+Image viewport
+- Double-click zoom: translate3d(-28.5px, 0.0859375px, 0px) scale(2), cursor grab.
+- Drag pan: translate3d(71.5px, 60.0859px, 0px) scale(2), cursor grab.
+- Reset zoom: translate3d(0px, 0px, 0px) scale(1), cursor zoom-in.
+- Reset control appeared only while zoomed.
+
+Details and time source
+- Details button hid the Details complementary region and restored it on the second click.
+- GPS item: 17/08/2026, 10:00; Embedded GPS time.
+- Estimated item: 17/08/2026, 10:02; Camera clock.
+
+Location map
+- Desktop Details bounds: left 644.5, top 125.96, right 984.5, bottom 942.
+- Location map bounds: left 663.09, top 618.70, right 966.91, bottom 828.70.
+- The rendered lower-right map showed the full selected activity line and photo camera marker.
+- The only location-map buttons were Zoom in location map and Zoom out location map.
+- Open on main map closed the viewer and details, selected a main-map marker labelled Selected photo location, and focused the map at a 100 m scale while retaining 8 Tracks.
+
+Screenshot handling
+- A live screenshot was inspected for the desktop viewer and the focused main map.
+- ACC_04 prevents saving the in-app screenshot as a durable local image; this text capture is the durable evidence.

@@ -9,7 +9,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.mock.web.MockFilterChain;
@@ -26,7 +26,10 @@ import org.springframework.web.servlet.handler.HandlerMappingIntrospector;
 import java.io.IOException;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -51,13 +54,13 @@ class WebSecurityConfigTest {
     @Autowired
     private FilterChainProxy springSecurityFilterChain;
 
-    @MockBean
+    @MockitoBean
     private JwtUtil jwtUtil;
 
-    @MockBean
+    @MockitoBean
     private WebUserSessionService webUserSessionService;
 
-    @MockBean
+    @MockitoBean
     private SystemLogService systemLogService;
 
     @BeforeEach
@@ -88,6 +91,20 @@ class WebSecurityConfigTest {
         assertNull(SecurityContextHolder.getContext().getAuthentication());
         verify(jwtUtil).validateToken(TOKEN);
         verify(webUserSessionService).isSessionActive(USER_SESSION_ID);
+    }
+
+    @Test
+    void publicSpaShellAllowsSameOriginWorkersWithoutBlobWorkers() throws ServletException, IOException {
+        MockHttpServletRequest request = contextRequest("GET", "/mtl/", "/");
+        request.addHeader("Accept", "text/html");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        springSecurityFilterChain.doFilter(request, response, new MockFilterChain());
+
+        String contentSecurityPolicy = response.getHeader("Content-Security-Policy");
+        assertNotNull(contentSecurityPolicy);
+        assertTrue(contentSecurityPolicy.contains("worker-src 'self'"));
+        assertFalse(contentSecurityPolicy.contains("worker-src 'self' blob:"));
     }
 
     @Test

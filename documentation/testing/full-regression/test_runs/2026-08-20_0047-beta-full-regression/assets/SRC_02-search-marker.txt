@@ -1,0 +1,7 @@
+SRC_02 location-result selection
+
+- Selected the first result for `Zurich`: Zürich, Zurich, Switzerland; City; z7-15.
+- The results panel closed after selection.
+- The map settled at a visible 100 m scale.
+- A map-marker control appeared with a nested, labelled `Clear search marker` button.
+- Normal map controls and the 8 Tracks filter control remained available.

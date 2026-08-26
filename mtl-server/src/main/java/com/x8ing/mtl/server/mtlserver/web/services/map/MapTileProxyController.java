@@ -7,11 +7,12 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.ConnectionPool;
 import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.Response;
+import okhttp3.ResponseBody;
 import org.springframework.boot.info.BuildProperties;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.client.OkHttp3ClientHttpRequestFactory;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.client.RestClient;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.io.IOException;
@@ -45,7 +46,6 @@ import java.util.concurrent.TimeUnit;
 @RestController
 @RequestMapping("/api/map-proxy")
 @JsonPropertyOrder({
-        "restClient",
         "okHttpClient",
         "properties",
         "upstreamResolver",
@@ -65,7 +65,6 @@ public class MapTileProxyController {
     private static final String CACHE_CONTROL_NO_STORE = "no-store";
     private static final String CLIENT_ABORT_EXCEPTION_NAME = "ClientAbortException";
 
-    private final RestClient restClient;
     private final OkHttpClient okHttpClient;
     private final MapServerProperties properties;
     private final MapUpstreamResolver upstreamResolver;
@@ -84,7 +83,6 @@ public class MapTileProxyController {
         this.serverIdentityService = serverIdentityService;
         this.buildProperties = buildProperties;
         this.okHttpClient = buildOkHttpClient(properties);
-        this.restClient = buildRestClient(okHttpClient);
     }
 
     static OkHttpClient buildOkHttpClient(MapServerProperties properties) {
@@ -97,12 +95,6 @@ public class MapTileProxyController {
                 .callTimeout(Duration.ofMillis(properties.getProxyCallTimeoutMs()))
                 .connectTimeout(Duration.ofMillis(properties.getProxyConnectTimeoutMs()))
                 .readTimeout(Duration.ofMillis(properties.getProxyReadTimeoutMs()))
-                .build();
-    }
-
-    private static RestClient buildRestClient(OkHttpClient okHttpClient) {
-        return RestClient.builder()
-                .requestFactory(new OkHttp3ClientHttpRequestFactory(okHttpClient))
                 .build();
     }
 
@@ -181,40 +173,32 @@ public class MapTileProxyController {
         log.debug("Proxying tile request: source={}, archive={}, file={}, Range={}",
                 upstream.source().cacheValue(), requestedArchive, filename, rangeHeader);
 
-        try {
-            restClient.get()
-                    .uri(upstreamUrl)
-                    .headers(h -> {
-                        if (!isBlank(rangeHeader)) {
-                            h.set(HttpHeaders.RANGE, rangeHeader);
-                        }
-                    })
-                    .<Void>exchange((req, clientResponse) -> {
-                        int upstreamStatus = clientResponse.getStatusCode().value();
-                        try (InputStream body = clientResponse.getBody()) {
-                            if (isUnsafeFullBodyResponse(rangeHeader, upstreamStatus, clientResponse.getHeaders())) {
-                                log.warn("Rejected oversized upstream 200 response for ranged tile request: file={}, Range={}, Content-Length={}",
-                                        filename, rangeHeader, clientResponse.getHeaders().getFirst(HttpHeaders.CONTENT_LENGTH));
-                                sendNoStoreError(servletResponse, HttpServletResponse.SC_BAD_GATEWAY,
-                                        "Map tile upstream ignored byte range");
-                                return null;
-                            }
+        Request.Builder requestBuilder = new Request.Builder().url(upstreamUrl);
+        if (!isBlank(rangeHeader)) {
+            requestBuilder.header(HttpHeaders.RANGE, rangeHeader);
+        }
+        try (Response clientResponse = okHttpClient.newCall(requestBuilder.build()).execute();
+             ResponseBody responseBody = clientResponse.body();
+             InputStream body = responseBody.byteStream()) {
+            int upstreamStatus = clientResponse.code();
+            HttpHeaders upstreamHeaders = toSpringHeaders(clientResponse);
+            if (isUnsafeFullBodyResponse(rangeHeader, upstreamStatus, upstreamHeaders)) {
+                log.warn("Rejected oversized upstream 200 response for ranged tile request: file={}, Range={}, Content-Length={}",
+                        filename, rangeHeader, upstreamHeaders.getFirst(HttpHeaders.CONTENT_LENGTH));
+                sendNoStoreError(servletResponse, HttpServletResponse.SC_BAD_GATEWAY,
+                        "Map tile upstream ignored byte range");
+                return;
+            }
 
-                            servletResponse.setStatus(upstreamStatus);
-
-                            forwardHeader(clientResponse.getHeaders(), HttpHeaders.CONTENT_TYPE, servletResponse);
-                            forwardHeader(clientResponse.getHeaders(), HttpHeaders.CONTENT_RANGE, servletResponse);
-                            forwardHeader(clientResponse.getHeaders(), HttpHeaders.CONTENT_LENGTH, servletResponse);
-                            forwardHeader(clientResponse.getHeaders(), HttpHeaders.ETAG, servletResponse);
-                            forwardHeader(clientResponse.getHeaders(), HttpHeaders.LAST_MODIFIED, servletResponse);
-
-                            applyProxyCacheHeaders(upstreamStatus, servletResponse);
-
-                            body.transferTo(servletResponse.getOutputStream());
-                        }
-                        servletResponse.flushBuffer();
-                        return null;
-                    });
+            servletResponse.setStatus(upstreamStatus);
+            forwardHeader(upstreamHeaders, HttpHeaders.CONTENT_TYPE, servletResponse);
+            forwardHeader(upstreamHeaders, HttpHeaders.CONTENT_RANGE, servletResponse);
+            forwardHeader(upstreamHeaders, HttpHeaders.CONTENT_LENGTH, servletResponse);
+            forwardHeader(upstreamHeaders, HttpHeaders.ETAG, servletResponse);
+            forwardHeader(upstreamHeaders, HttpHeaders.LAST_MODIFIED, servletResponse);
+            applyProxyCacheHeaders(upstreamStatus, servletResponse);
+            body.transferTo(servletResponse.getOutputStream());
+            servletResponse.flushBuffer();
         } catch (Exception e) {
             if (isClientAbort(e)) {
                 log.debug("Tile proxy client disconnected while streaming {}: {}", filename, e.getMessage());
@@ -226,6 +210,12 @@ public class MapTileProxyController {
                         "Map tile server unavailable");
             }
         }
+    }
+
+    private static HttpHeaders toSpringHeaders(Response response) {
+        HttpHeaders headers = new HttpHeaders();
+        response.headers().toMultimap().forEach(headers::put);
+        return headers;
     }
 
     /**

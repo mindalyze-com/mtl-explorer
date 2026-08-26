@@ -1,0 +1,37 @@
+MED_37 MP4 playback and serving evidence
+Captured: 2026-08-20 CEST
+
+Viewer metadata and poster
+- Selected media: 400001, mtl-regression-video-gps.mp4.
+- Native video controls: enabled.
+- readyState: 4.
+- duration: 2 seconds.
+- dimensions: 320x180.
+- current source: /mtl/api/media/get/400001/content.
+- poster: /mtl/api/media/get/400001/content?maxSize=1280.
+- Poster loaded and remained visible before playback.
+
+Playback
+- Play started native playback: currentTime 0.000 -> 0.855 seconds in 700 ms; paused false.
+- A repeat run used native keyboard controls after focusing the video: at 0.462 seconds Space paused playback and a later Space resumed playback with currentTime advancing.
+- The controlled browser does not expose the native media control's shadow-DOM seek slider. Pointer attempts on the visible timeline did not change currentTime, while ArrowRight was captured by the app's media-navigation handler and changed the selected item. Native seek was therefore not independently verified.
+- Metadata, positive duration, dimensions, play progression, pause, and resume passed; seek remained a browser-control constraint.
+
+Viewer controls
+- Details showed MP4, 160.9 KB, Video GPS, taken time, location map, and Download original.
+- Nearby media collapsed and expanded, restoring the 1/8 filmstrip.
+- ArrowRight navigated from MP4 item 1/8 to MOV item 2/8; ArrowLeft returned to MP4.
+- Multiple visible left/right pointer-swipe gestures across the base-zoom viewer canvas did not change MP4 item 1/8, although the same pointer-swipe path passed on photo items in MED_30. This is MTL-FR-018.
+- Download original link resolved to /mtl/api/media/get/400001/content; activating it kept the viewer open.
+
+Original HTTP contract
+- Full: HTTP 200, video/mp4, Accept-Ranges: bytes, Content-Length 164756; downloaded 164756 bytes.
+- Range bytes=0-99: HTTP 206, video/mp4, Content-Range bytes 0-99/164756, Content-Length 100; downloaded 100 bytes.
+- Unsatisfiable Range bytes=164756-: HTTP 416, Content-Range bytes */164756, Content-Length 0.
+- Full original SHA-256: d0c4bcc558b54b26d507318400cd9ec29425422a4ae086cc13559a7d17b3170d.
+- Frozen manifest SHA-256: d0c4bcc558b54b26d507318400cd9ec29425422a4ae086cc13559a7d17b3170d.
+- Exact checksum match: yes.
+- Auth token, response files, cookie scratch space, and /tmp/mtl-med37.* directory removed after verification.
+
+Finding
+- MTL-FR-018 (P2, OPEN): Pointer-swipe navigation works on photo items (MED_30) but does not navigate while the MP4 video is the current viewer item; keyboard and side navigation still work.

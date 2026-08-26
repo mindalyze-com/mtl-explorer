@@ -1,0 +1,40 @@
+IMP_09 post-import totals and derived views
+
+Baseline before import: 0 tracks and zero/empty statistics, map, and heatmap state (IMP_01).
+
+Statistics Overview after import:
+- Tracks: 5
+- Distance: 1,043 km
+- Duration: 23h 31m
+- Energy: 4,527 Wh
+- Ascent: 12,936 m
+- Activity Breakdown: Bicycle, 5 of 5
+- Descent is populated and positive in imported Track Details (for example, Lannion 335 m); no zeroed or blank elevation section was observed.
+
+Rankings/highlights:
+- Longest track: Moselradweg, 518 km
+- Longest duration: Jura Route, 7h 46m
+- Biggest ascent: Jura Route, 6,324 m
+- Quickest ascent: Moselradweg, 3,848 m/h
+- Most energy: Jura Route, 1,808 Wh
+- Fastest 30 s speed: Lannion, 72.5 km/h
+- Peak 30 s power: Lannion, 2,188 W
+- Most common activity: Bicycle, 5 tracks
+
+Periods and charts:
+- Most active day: 2010-01-01, 22h 17m, 4 tracks, 1,017 km
+- Most active week: 2009-W53, 22h 17m, 4 tracks, 1,017 km
+- Most active month: 2010-01, 22h 17m, 4 tracks, 1,017 km
+- Most active weekday: Friday, 23h 31m, 5 tracks, 1,043 km
+- Trends reports 2 periods, 5 tracks, 1,043 km, 23h 31m, and 4,527 Wh.
+- Charts view is active and contains rendered Highcharts pie and column series for the populated statistics.
+
+Map density:
+- Map > Your data reports 4 of 4 layers shown.
+- Heatmap control reads Hide Heatmap (pressed), described as Density view of the places you visit most.
+- Heatmap opacity is 100%; GPS tracks and track points/direction are also shown at 100%.
+
+Track-browser summary row:
+- 5 tracks, 1,043 km, 23h 31m.
+
+All populated values moved from the empty baseline in the expected positive direction. No blank chart, zeroed imported total, stale count, or duplicate ranking entry was observed.

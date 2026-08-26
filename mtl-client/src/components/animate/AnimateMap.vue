@@ -186,7 +186,7 @@
 
 <script setup lang="ts">
 import { computed, getCurrentInstance, markRaw, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
-import type maplibregl from 'maplibre-gl';
+import type * as maplibregl from 'maplibre-gl';
 import BottomSheet from '@/components/ui/BottomSheet.vue';
 import MtlSlider from '@/components/ui/MtlSlider.vue';
 import { formatDate } from '@/utils/Utils';
@@ -262,6 +262,8 @@ type TrackFeature = {
 
 type PlaybackPhase = 'ready' | 'playing' | 'paused' | 'finished';
 type SheetDetentId = 'playback' | 'open' | 'max';
+type TrackLayerOpacity = number | maplibregl.ExpressionSpecification;
+type TrackLayerVisibility = maplibregl.VisibilitySpecification;
 
 type Emits = {
   (event: 'animate', payload: { animateIndexCurrent: number; animateIndexMax: number; currentDate: Date }): void;
@@ -296,8 +298,8 @@ const viewportWidth = ref(typeof window !== 'undefined' ? window.innerWidth : MO
 const color1 = [255, 0, 0] as const;
 const color2 = [0, 0, 255] as const;
 let timerId: ReturnType<typeof setInterval> | null = null;
-let trackLayerPaintBeforeAnimation = new Map<string, unknown>();
-let trackLayerVisibilityBeforeAnimation = new Map<string, unknown>();
+let trackLayerPaintBeforeAnimation = new Map<string, TrackLayerOpacity>();
+let trackLayerVisibilityBeforeAnimation = new Map<string, TrackLayerVisibility>();
 
 const hasFeatures = computed(() => sortedFeatures.value.length > 0);
 const sheetDetents = computed(() => [
@@ -628,7 +630,8 @@ function hideTrackLayersForAnimation() {
   for (const layerId of TRACK_LAYER_VISIBILITY_IDS) {
     if (!map.getLayer(layerId)) continue;
     if (!trackLayerVisibilityBeforeAnimation.has(layerId)) {
-      trackLayerVisibilityBeforeAnimation.set(layerId, map.getLayoutProperty?.(layerId, 'visibility') ?? 'visible');
+      const visibility = map.getLayoutProperty?.(layerId, 'visibility') as TrackLayerVisibility | undefined;
+      trackLayerVisibilityBeforeAnimation.set(layerId, visibility ?? 'visible');
     }
     map.setLayoutProperty?.(layerId, 'visibility', HIDDEN_TRACK_LAYER_VISIBILITY);
   }
@@ -636,7 +639,8 @@ function hideTrackLayersForAnimation() {
     if (!map.getLayer(layerId)) continue;
     const snapshotKey = trackLayerPaintSnapshotKey(layerId, property);
     if (!trackLayerPaintBeforeAnimation.has(snapshotKey)) {
-      trackLayerPaintBeforeAnimation.set(snapshotKey, map.getPaintProperty?.(layerId, property) ?? fallbackValue);
+      const opacity = map.getPaintProperty?.(layerId, property) as TrackLayerOpacity | undefined;
+      trackLayerPaintBeforeAnimation.set(snapshotKey, opacity ?? fallbackValue);
     }
     map.setPaintProperty(layerId, property, HIDDEN_TRACK_LAYER_OPACITY);
   }
@@ -661,8 +665,8 @@ function restoreTrackLayers() {
   } catch {
     // The map can be disposed before this tool unmounts.
   } finally {
-    trackLayerPaintBeforeAnimation = new Map<string, unknown>();
-    trackLayerVisibilityBeforeAnimation = new Map<string, unknown>();
+    trackLayerPaintBeforeAnimation = new Map<string, TrackLayerOpacity>();
+    trackLayerVisibilityBeforeAnimation = new Map<string, TrackLayerVisibility>();
   }
 }
 

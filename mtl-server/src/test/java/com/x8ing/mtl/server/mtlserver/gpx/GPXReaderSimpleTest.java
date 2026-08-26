@@ -26,6 +26,7 @@ class GPXReaderSimpleTest {
 
         Assertions.assertTrue(mercator.getX() > 947088.415 && mercator.getX() < 947088.418);
         Assertions.assertTrue(mercator.getY() > 6033701.90 && mercator.getY() < 6033701.93);
+        Assertions.assertEquals(3857, mercator.getSRID());
 
 
     }

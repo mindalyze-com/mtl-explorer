@@ -17,7 +17,7 @@
         @click="togglePhotoTools"
       >
         <i class="bi bi-sliders" aria-hidden="true"></i>
-        <span>Media tools</span>
+        <span>Photo tools</span>
         <span v-if="hasActiveCorrection" class="photo-tools-toggle__status">Active</span>
         <i :class="photoToolsOpen ? 'bi bi-chevron-up' : 'bi bi-chevron-down'" aria-hidden="true"></i>
       </button>
@@ -28,7 +28,7 @@
       id="track-photo-tools"
       class="photo-tools"
       data-test="photo-tools"
-      aria-label="Media tools"
+      aria-label="Photo tools"
     >
       <div class="photo-tools__section">
         <div class="photo-tools__heading">
@@ -118,7 +118,7 @@
       <i class="bi bi-images" aria-hidden="true"></i>
       <strong>No media matched this activity</strong>
       <span>If the camera clock was wrong, you can preview a time difference.</span>
-      <button type="button" data-test="empty-photo-tools" @click="openPhotoTools">Open Media tools</button>
+      <button type="button" data-test="empty-photo-tools" @click="openPhotoTools">Open Photo tools</button>
     </div>
 
     <nav
@@ -169,7 +169,7 @@
       <label>
         Per page
         <select :value="pageSize" data-test="photo-page-size" :disabled="loading" @change="changePageSize">
-          <option v-for="size in PAGE_SIZE_OPTIONS" :key="size" :value="size">{{ size }}</option>
+          <option v-for="size in TRACK_MEDIA_PAGE_SIZE_OPTIONS" :key="size" :value="size">{{ size }}</option>
         </select>
       </label>
     </nav>
@@ -302,12 +302,12 @@ import { computed, ref, watch } from 'vue';
 import { mediaContentUrl, type TrackMediaDto } from '@/repositories/mediaRepository';
 import { formatDateAndTime, formatDistanceSmart } from '@/utils/Utils';
 import { isVideoMedia } from '@/utils/mediaKind';
+import { TRACK_MEDIA_DEFAULT_PAGE_SIZE, TRACK_MEDIA_PAGE_SIZE_OPTIONS } from './trackMediaPaging';
 
 defineOptions({ name: 'TrackDetailPhotos' });
 
 const THUMBNAIL_MAX_SIZE = 480;
 const SECONDS_PER_HOUR = 3600;
-const PAGE_SIZE_OPTIONS = [25, 50] as const;
 
 const props = withDefaults(
   defineProps<{
@@ -328,7 +328,7 @@ const props = withDefaults(
   {
     media: () => [],
     page: 0,
-    pageSize: 25,
+    pageSize: TRACK_MEDIA_DEFAULT_PAGE_SIZE,
     totalItems: null,
     totalPages: null,
     selectedMediaId: null,
@@ -382,7 +382,7 @@ const effectiveTotalPages = computed(
 const formattedTotalItems = computed(() => effectiveTotalItems.value.toLocaleString());
 const formattedTotalPages = computed(() => effectiveTotalPages.value.toLocaleString());
 const showPaginationControls = computed(
-  () => effectiveTotalPages.value > 1 || effectiveTotalItems.value > PAGE_SIZE_OPTIONS[0]
+  () => effectiveTotalPages.value > 1 || effectiveTotalItems.value > TRACK_MEDIA_PAGE_SIZE_OPTIONS[0]
 );
 const pageRangeLabel = computed(() => {
   const first = props.page * props.pageSize + 1;
@@ -469,7 +469,10 @@ function changePage(page: number): void {
 
 function changePageSize(event: Event): void {
   const pageSize = Number((event.target as HTMLSelectElement).value);
-  if (!PAGE_SIZE_OPTIONS.includes(pageSize as (typeof PAGE_SIZE_OPTIONS)[number]) || pageSize === props.pageSize)
+  if (
+    !TRACK_MEDIA_PAGE_SIZE_OPTIONS.includes(pageSize as (typeof TRACK_MEDIA_PAGE_SIZE_OPTIONS)[number]) ||
+    pageSize === props.pageSize
+  )
     return;
   emit('change-page-size', pageSize);
 }

@@ -90,8 +90,7 @@ export function useMainMapController(
   const { measurementSystem } = useMeasurementSystem();
 
   const state = reactive<MapControllerState>({
-    map: undefined, // base map (tiles + mobility overlays)
-    overlayMap: undefined, // overlay map (tracks, highlights, media)
+    overlayMap: undefined,
     mapConfig: null,
     mapServerStatus: null,
     mapStatusPollTimer: null,
@@ -264,7 +263,7 @@ export function useMainMapController(
     _terrainControl: null,
     _attributionLinkCleanup: null,
     _terrainTrackLayer: null,
-    _syncingView: false, // guard to prevent recursive view-sync loops
+    _syncingToolRoute: false,
     trackPointsVisible: mapSettingsStore.trackPointsVisible, // toggle for direction-arrow point markers
     // Key: `${trackId}|${precision}` — cache must invalidate when the
     // underlying SHAPE variant changes (precision upgrades from 10m → 1m),
@@ -313,21 +312,6 @@ export function useMainMapController(
         ...this.getTrackPopupMeta(id),
         ...mediaOptions.get(id),
       }));
-    },
-    baseMapStyle() {
-      // Basemap slider: combines desaturation, brightening, and opacity fade.
-      //   slider 100 → normal map
-      //   slider   0 → fully invisible
-      if (!this.basemapEnabled) return { opacity: 0.08 };
-      const pct = this.layerOpacities.basemap; // 0‒100
-      if (pct >= 100) return {};
-      const dim = (100 - pct) / 100; // 0‒1  (0 = normal, 1 = max dim)
-      const brightness = 1 + 0.4 * dim;
-      const opacity = pct / 100; // 1 at 100%, 0 at 0%
-      return {
-        filter: `grayscale(${dim}) brightness(${brightness})`,
-        opacity,
-      };
     },
     layerStatesForPanel() {
       return {

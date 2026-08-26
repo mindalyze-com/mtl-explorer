@@ -1,0 +1,7 @@
+Pass: offline
+Phase: baseline
+Detection mode: startup scan
+Expected/actual active GPX/media: 2/2; 2/2
+Evidence: fresh database; both scans completed and both watchers started; all four index rows completed successfully; GUI showed 2 Tracks.
+Manual rescan used: no
+Status: PASS

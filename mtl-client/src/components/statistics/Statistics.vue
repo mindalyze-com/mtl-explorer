@@ -35,7 +35,7 @@
       <div v-if="active" class="statistics-root">
         <div v-if="statisticsError" class="statistics-refresh-state" role="alert" data-test="statistics-refresh-error">
           <span>{{ statisticsErrorMessage }}</span>
-          <button type="button" @click="fetchStatistics">Retry</button>
+          <button type="button" @click="retryStatistics">Retry</button>
         </div>
         <Tabs v-model:value="activeTab" class="sheet-scroll-tabs">
           <TabPanels>
@@ -47,6 +47,7 @@
                 :unfiltered-total="unfilteredTotal"
                 :filter-revision="filterStore.trackSetRevision"
                 :filter-request="filterStore.activeFilterRequest"
+                :retry-revision="overviewRetryRevision"
                 :indexed-media-count="indexedMediaCount"
                 :indexed-photo-count="indexedPhotoCount"
                 :indexed-video-count="indexedVideoCount"
@@ -388,25 +389,25 @@
 
                 <!-- ── Charts (inline) ── -->
                 <div v-if="statsView === 'charts'" class="charts-scroll">
-                  <div v-if="filteredStatisticData.length > 0" class="chart-card">
+                  <div v-if="trendChartPeriods.length > 0" class="chart-card">
                     <div class="chart-header chart-section-header" style="--chart-header-accent: var(--chart-series-1)">
                       <i class="bi bi-clock" style="color: var(--chart-series-1)"></i> Duration
                     </div>
                     <highcharts ref="chartDuration" :options="chartOptionsDuration" class="stat-chart" />
                   </div>
-                  <div v-if="filteredStatisticData.length > 0" class="chart-card">
+                  <div v-if="trendChartPeriods.length > 0" class="chart-card">
                     <div class="chart-header chart-section-header" style="--chart-header-accent: var(--chart-series-2)">
                       <i class="bi bi-signpost-split" style="color: var(--chart-series-2)"></i> Distance
                     </div>
                     <highcharts ref="chartDistance" :options="chartOptionsDistance" class="stat-chart" />
                   </div>
-                  <div v-if="filteredStatisticData.length > 0" class="chart-card">
+                  <div v-if="trendChartPeriods.length > 0" class="chart-card">
                     <div class="chart-header chart-section-header" style="--chart-header-accent: var(--info)">
                       <i class="bi bi-bar-chart-line" style="color: var(--info)"></i> Activity
                     </div>
                     <highcharts ref="chartActivity" :options="chartOptionsActivity" class="stat-chart" />
                   </div>
-                  <div v-if="summaryStats.hasEnergy" class="chart-card">
+                  <div v-if="chartMetricAvailability.hasEnergy" class="chart-card">
                     <div class="chart-header chart-section-header" style="--chart-header-accent: var(--chart-series-3)">
                       <i class="bi bi-lightning-charge" style="color: var(--chart-series-3)"></i> Energy
                       <button
@@ -419,7 +420,7 @@
                     </div>
                     <highcharts ref="chartEnergy" :options="chartOptionsEnergy" class="stat-chart" />
                   </div>
-                  <div v-if="summaryStats.hasFitness" class="chart-card">
+                  <div v-if="chartMetricAvailability.hasFitness" class="chart-card">
                     <div class="chart-header chart-section-header" style="--chart-header-accent: var(--error)">
                       <i class="bi bi-speedometer2" style="color: var(--error)"></i> Intensity Index
                       <button
@@ -432,7 +433,7 @@
                     </div>
                     <highcharts ref="chartIntensityIndex" :options="chartOptionsIntensityIndex" class="stat-chart" />
                   </div>
-                  <div v-if="summaryStats.hasFitness" class="chart-card">
+                  <div v-if="chartMetricAvailability.hasFitness" class="chart-card">
                     <div
                       class="chart-header chart-section-header"
                       style="--chart-header-accent: var(--accent-text-light)"
@@ -448,7 +449,7 @@
                     </div>
                     <highcharts ref="chartTrainingLoad" :options="chartOptionsTrainingLoad" class="stat-chart" />
                   </div>
-                  <div v-if="filteredStatisticData.length > 0" class="chart-card">
+                  <div v-if="trendChartPeriods.length > 0" class="chart-card">
                     <div class="chart-header chart-section-header" style="--chart-header-accent: var(--success)">
                       <i class="bi bi-compass" style="color: var(--success)"></i> Exploration
                       <button
@@ -460,7 +461,7 @@
                       </button>
                     </div>
                     <highcharts
-                      v-if="summaryStats.hasExploration"
+                      v-if="chartMetricAvailability.hasExploration"
                       ref="chartExploration"
                       :options="chartOptionsExploration"
                       class="stat-chart"
@@ -479,77 +480,52 @@
                         <i class="bi bi-images" style="color: var(--chart-series-3)"></i>
                         <span>Media</span>
                       </div>
-                      <div class="media-trend-mode" aria-label="Media timeline">
+                      <div class="media-trend-mode" aria-label="Media scope">
                         <button
                           v-tooltip.top="{
-                            value: MEDIA_TIMELINE_ACTIVITY_ERA_TOOLTIP,
-                            showDelay: MEDIA_TIMELINE_TOOLTIP_DELAY_MS,
+                            value: MEDIA_SCOPE_ALL_TOOLTIP,
+                            showDelay: MEDIA_SCOPE_TOOLTIP_DELAY_MS,
                           }"
                           type="button"
-                          :class="{ 'media-trend-mode__button--active': mediaTimelineMode === MEDIA_MODE_ACTIVITY_ERA }"
-                          :aria-pressed="mediaTimelineMode === MEDIA_MODE_ACTIVITY_ERA"
+                          :class="{ 'media-trend-mode__button--active': mediaTrendScope === MEDIA_SCOPE_ALL }"
+                          :aria-pressed="mediaTrendScope === MEDIA_SCOPE_ALL"
                           :aria-describedby="
-                            focusedMediaTimelineMode === MEDIA_MODE_ACTIVITY_ERA
-                              ? MEDIA_TIMELINE_FOCUS_TOOLTIP_ID
-                              : undefined
+                            focusedMediaTrendScope === MEDIA_SCOPE_ALL ? MEDIA_SCOPE_FOCUS_TOOLTIP_ID : undefined
                           "
-                          @focus="focusedMediaTimelineMode = MEDIA_MODE_ACTIVITY_ERA"
-                          @blur="clearFocusedMediaTimelineMode(MEDIA_MODE_ACTIVITY_ERA)"
-                          @click="setMediaTimelineMode(MEDIA_MODE_ACTIVITY_ERA)"
+                          @focus="focusedMediaTrendScope = MEDIA_SCOPE_ALL"
+                          @blur="clearFocusedMediaTrendScope(MEDIA_SCOPE_ALL)"
+                          @click="setMediaTrendScope(MEDIA_SCOPE_ALL)"
                         >
-                          Activity era
+                          All indexed
                         </button>
                         <button
                           v-tooltip.top="{
-                            value: MEDIA_TIMELINE_MEDIA_HISTORY_TOOLTIP,
-                            showDelay: MEDIA_TIMELINE_TOOLTIP_DELAY_MS,
+                            value: MEDIA_SCOPE_MATCHED_TOOLTIP,
+                            showDelay: MEDIA_SCOPE_TOOLTIP_DELAY_MS,
                           }"
                           type="button"
-                          :class="{
-                            'media-trend-mode__button--active': mediaTimelineMode === MEDIA_MODE_MEDIA_HISTORY,
-                          }"
-                          :aria-pressed="mediaTimelineMode === MEDIA_MODE_MEDIA_HISTORY"
+                          :class="{ 'media-trend-mode__button--active': mediaTrendScope === MEDIA_SCOPE_MATCHED }"
+                          :aria-pressed="mediaTrendScope === MEDIA_SCOPE_MATCHED"
                           :aria-describedby="
-                            focusedMediaTimelineMode === MEDIA_MODE_MEDIA_HISTORY
-                              ? MEDIA_TIMELINE_FOCUS_TOOLTIP_ID
-                              : undefined
+                            focusedMediaTrendScope === MEDIA_SCOPE_MATCHED ? MEDIA_SCOPE_FOCUS_TOOLTIP_ID : undefined
                           "
-                          @focus="focusedMediaTimelineMode = MEDIA_MODE_MEDIA_HISTORY"
-                          @blur="clearFocusedMediaTimelineMode(MEDIA_MODE_MEDIA_HISTORY)"
-                          @click="setMediaTimelineMode(MEDIA_MODE_MEDIA_HISTORY)"
+                          @focus="focusedMediaTrendScope = MEDIA_SCOPE_MATCHED"
+                          @blur="clearFocusedMediaTrendScope(MEDIA_SCOPE_MATCHED)"
+                          @click="setMediaTrendScope(MEDIA_SCOPE_MATCHED)"
                         >
-                          Media history
-                        </button>
-                        <button
-                          v-tooltip.top="{
-                            value: MEDIA_TIMELINE_MATCHED_ONLY_TOOLTIP,
-                            showDelay: MEDIA_TIMELINE_TOOLTIP_DELAY_MS,
-                          }"
-                          type="button"
-                          :class="{ 'media-trend-mode__button--active': mediaTimelineMode === MEDIA_MODE_MATCHED_ONLY }"
-                          :aria-pressed="mediaTimelineMode === MEDIA_MODE_MATCHED_ONLY"
-                          :aria-describedby="
-                            focusedMediaTimelineMode === MEDIA_MODE_MATCHED_ONLY
-                              ? MEDIA_TIMELINE_FOCUS_TOOLTIP_ID
-                              : undefined
-                          "
-                          @focus="focusedMediaTimelineMode = MEDIA_MODE_MATCHED_ONLY"
-                          @blur="clearFocusedMediaTimelineMode(MEDIA_MODE_MATCHED_ONLY)"
-                          @click="setMediaTimelineMode(MEDIA_MODE_MATCHED_ONLY)"
-                        >
-                          Matched only
+                          Track related
                         </button>
                       </div>
                       <div
-                        v-if="focusedMediaTimelineTooltip"
-                        :id="MEDIA_TIMELINE_FOCUS_TOOLTIP_ID"
+                        v-if="focusedMediaScopeTooltip"
+                        :id="MEDIA_SCOPE_FOCUS_TOOLTIP_ID"
                         class="media-trend-focus-tooltip"
                         role="tooltip"
                       >
-                        {{ focusedMediaTimelineTooltip }}
+                        {{ focusedMediaScopeTooltip }}
                       </div>
                     </div>
-                    <p class="media-trend-notice">{{ mediaTimelineHelp }}</p>
+                    <p class="media-trend-notice">{{ mediaScopeHelp }}</p>
                     <div
                       v-if="mediaTrendLoading && mediaTrendBuckets.length === 0"
                       class="media-trend-state"
@@ -577,38 +553,7 @@
                       class="stat-chart"
                       data-test="media-trend-chart"
                     />
-                    <div
-                      v-if="activityEraEarlierMediaCount > 0 || activityEraFutureMediaCount > 0 || undatedMediaBucket"
-                      class="media-trend-badges"
-                    >
-                      <button
-                        v-if="activityEraEarlierMediaCount > 0"
-                        v-tooltip.top="{
-                          value: MEDIA_TIMELINE_EARLIER_HELP,
-                          showDelay: MEDIA_TIMELINE_TOOLTIP_DELAY_MS,
-                        }"
-                        type="button"
-                        class="media-trend-badge media-trend-earlier"
-                        :aria-label="`Show ${activityEraEarlierMediaCount.toLocaleString()} earlier media in Media history`"
-                        @click="setMediaTimelineMode(MEDIA_MODE_MEDIA_HISTORY)"
-                      >
-                        <span>Earlier media</span>
-                        <strong>{{ activityEraEarlierMediaCount.toLocaleString() }}</strong>
-                      </button>
-                      <button
-                        v-if="activityEraFutureMediaCount > 0"
-                        v-tooltip.top="{
-                          value: MEDIA_TIMELINE_FUTURE_HELP,
-                          showDelay: MEDIA_TIMELINE_TOOLTIP_DELAY_MS,
-                        }"
-                        type="button"
-                        class="media-trend-badge media-trend-future"
-                        :aria-label="`Show ${activityEraFutureMediaCount.toLocaleString()} future-dated media in Media history`"
-                        @click="setMediaTimelineMode(MEDIA_MODE_MEDIA_HISTORY)"
-                      >
-                        <span>Future-dated media</span>
-                        <strong>{{ activityEraFutureMediaCount.toLocaleString() }}</strong>
-                      </button>
+                    <div v-if="undatedMediaBucket" class="media-trend-badges">
                       <button
                         v-if="undatedMediaBucket"
                         type="button"
@@ -673,7 +618,6 @@ import {
   type MediaTrendRequestScopeEnum as MediaScope,
 } from 'x8ing-mtl-api-typescript-fetch';
 import type Highcharts from 'highcharts';
-import { format as formatDate } from 'date-fns';
 import { compactNum, hexToRgba } from '@/utils/chartTheme';
 import { useMeasurementSystem } from '@/composables/useMeasurementSystem';
 import { useMediaQuery } from '@/composables/useMediaQuery';
@@ -727,7 +671,6 @@ type MutableMediaChartOptions = Highcharts.Options & {
 };
 type StatisticsTooltipContext = Highcharts.Point & { category?: string };
 type MediaTooltipContext = Highcharts.Point & { points?: Highcharts.Point[] };
-type MediaTimelineMode = 'ACTIVITY_ERA' | 'MEDIA_HISTORY' | 'MATCHED_ONLY';
 type Emits = {
   (event: 'tool-opened'): void;
   (event: 'tool-closed'): void;
@@ -965,6 +908,7 @@ const trackQuickView = ref<TrackBrowserPreset>('all');
 const statisticData = ref<ExtendedGpsTrackStatistics[]>([]);
 const hasLoadedStatistics = ref(false);
 const statisticsError = ref('');
+const overviewRetryRevision = ref(0);
 const statisticsErrorMessage = computed(() =>
   hasLoadedStatistics.value
     ? 'Statistics could not be refreshed. Showing saved data.'
@@ -975,31 +919,18 @@ const selectedGrouping = ref('YYYY-"Q"Q');
 const selectedSubUnit = ref<string | null>(null);
 const MEDIA_SCOPE_MATCHED = MediaTrendRequestScopeEnum.MatchedActivities;
 const MEDIA_SCOPE_ALL = MediaTrendRequestScopeEnum.AllIndexed;
-const MEDIA_MODE_ACTIVITY_ERA: MediaTimelineMode = 'ACTIVITY_ERA';
-const MEDIA_MODE_MEDIA_HISTORY: MediaTimelineMode = 'MEDIA_HISTORY';
-const MEDIA_MODE_MATCHED_ONLY: MediaTimelineMode = 'MATCHED_ONLY';
-const MEDIA_TIMELINE_TOOLTIP_DELAY_MS = 350;
-const MEDIA_TIMELINE_FOCUS_TOOLTIP_ID = 'media-timeline-focus-tooltip';
-const MEDIA_TIMELINE_ACTIVITY_ERA_TOOLTIP =
-  'GPS activity defines the chart range, from the first visible activity through the current period. Unmatched media inside that range is included. Earlier and future-dated media stays outside the chart.';
-const MEDIA_TIMELINE_MEDIA_HISTORY_TOOLTIP =
-  'Every dated indexed photo and video can define the chart range. Activity filters do not apply.';
-const MEDIA_TIMELINE_MATCHED_ONLY_TOOLTIP = 'Only media linked to activities in the current track filters is shown.';
-const MEDIA_TIMELINE_EARLIER_HELP =
-  'This media is included in totals but is older than the first visible GPS activity. Select it to show Media history.';
-const MEDIA_TIMELINE_FUTURE_HELP =
-  'This media is included in totals but is dated after the current period. Select it to show Media history.';
-const mediaTimelineMode = ref<MediaTimelineMode>(MEDIA_MODE_ACTIVITY_ERA);
-const focusedMediaTimelineMode = ref<MediaTimelineMode | null>(null);
-const focusedMediaTimelineTooltip = computed((): string => {
-  if (focusedMediaTimelineMode.value === MEDIA_MODE_ACTIVITY_ERA) return MEDIA_TIMELINE_ACTIVITY_ERA_TOOLTIP;
-  if (focusedMediaTimelineMode.value === MEDIA_MODE_MEDIA_HISTORY) return MEDIA_TIMELINE_MEDIA_HISTORY_TOOLTIP;
-  if (focusedMediaTimelineMode.value === MEDIA_MODE_MATCHED_ONLY) return MEDIA_TIMELINE_MATCHED_ONLY_TOOLTIP;
+const MEDIA_SCOPE_TOOLTIP_DELAY_MS = 350;
+const MEDIA_SCOPE_FOCUS_TOOLTIP_ID = 'media-scope-focus-tooltip';
+const MEDIA_SCOPE_ALL_TOOLTIP =
+  'Every indexed photo and video is shown. Activity filters do not reduce the media totals.';
+const MEDIA_SCOPE_MATCHED_TOOLTIP = 'Only media linked to activities in the current track filters is shown.';
+const mediaTrendScope = ref<MediaScope>(MEDIA_SCOPE_ALL);
+const focusedMediaTrendScope = ref<MediaScope | null>(null);
+const focusedMediaScopeTooltip = computed((): string => {
+  if (focusedMediaTrendScope.value === MEDIA_SCOPE_ALL) return MEDIA_SCOPE_ALL_TOOLTIP;
+  if (focusedMediaTrendScope.value === MEDIA_SCOPE_MATCHED) return MEDIA_SCOPE_MATCHED_TOOLTIP;
   return '';
 });
-const mediaTrendScope = computed<MediaScope>(() =>
-  mediaTimelineMode.value === MEDIA_MODE_MATCHED_ONLY ? MEDIA_SCOPE_MATCHED : MEDIA_SCOPE_ALL
-);
 const mediaTrendBuckets = ref<MediaTrendBucketDto[]>([]);
 const mediaTrendLoading = ref(false);
 const mediaTrendError = ref('');
@@ -1114,7 +1045,7 @@ async function showMediaTrends(): Promise<void> {
   statsView.value = 'charts';
   selectedSubUnit.value = null;
   const requiresAllMedia = mediaTrendScope.value !== MEDIA_SCOPE_ALL;
-  mediaTimelineMode.value = MEDIA_MODE_ACTIVITY_ERA;
+  mediaTrendScope.value = MEDIA_SCOPE_ALL;
   if (requiresAllMedia) {
     await fetchStatistics();
   }
@@ -1139,24 +1070,6 @@ const mediaGrouping = computed<MediaGrouping>(() => {
       return MediaTrendRequestGroupingEnum.Total;
   }
 });
-
-function currentPeriodKey(grouping: string, date = new Date()): string | null {
-  switch (grouping) {
-    case 'YYYY':
-      return formatDate(date, 'yyyy');
-    case 'YYYY-"Q"Q':
-      return formatDate(date, "yyyy-'Q'Q");
-    case 'YYYY-MM':
-      return formatDate(date, 'yyyy-MM');
-    case STATISTICS_ISO_WEEK_GROUPING:
-      return formatDate(date, "RRRR-'W'II");
-    case 'YYYY-MM-DD':
-      return formatDate(date, 'yyyy-MM-dd');
-    case 'TOTAL':
-    default:
-      return null;
-  }
-}
 
 const availableSubUnits = computed((): string[] => {
   const subunits = new Set<string>();
@@ -1188,65 +1101,10 @@ const undatedMediaBucket = computed(
 const datedMediaTrendBuckets = computed((): MediaTrendBucketDto[] =>
   filteredMediaTrendBuckets.value.filter((bucket) => !bucket.undated && Boolean(bucket.bucketKey))
 );
-const activityEraStartKey = computed((): string | null => {
-  if (selectedGrouping.value === 'TOTAL') return null;
-  const keys = filteredStatisticData.value
-    .map((statistics) => statistics.groupBy ?? '')
-    .filter((key) => Boolean(key))
-    .sort();
-  return keys[0] ?? null;
-});
-const activityEraEndKey = computed((): string | null => {
-  const startKey = activityEraStartKey.value;
-  if (!startKey) return null;
-  const latestActivityKey = filteredStatisticData.value.reduce(
-    (latest, statistics) => (statistics.groupBy && statistics.groupBy > latest ? statistics.groupBy : latest),
-    startKey
-  );
-  const currentKey = currentPeriodKey(selectedGrouping.value);
-  return currentKey && currentKey > latestActivityKey ? currentKey : latestActivityKey;
-});
-const chartMediaTrendBuckets = computed((): MediaTrendBucketDto[] => {
-  if (mediaTimelineMode.value !== MEDIA_MODE_ACTIVITY_ERA) return datedMediaTrendBuckets.value;
-  const startKey = activityEraStartKey.value;
-  const endKey = activityEraEndKey.value;
-  if (!startKey || !endKey) return datedMediaTrendBuckets.value;
-  return datedMediaTrendBuckets.value.filter((bucket) => {
-    const key = bucket.bucketKey ?? '';
-    return key >= startKey && key <= endKey;
-  });
-});
-const activityEraEarlierMediaCount = computed((): number => {
-  const startKey = activityEraStartKey.value;
-  if (mediaTimelineMode.value !== MEDIA_MODE_ACTIVITY_ERA || !startKey) return 0;
-  return datedMediaTrendBuckets.value.reduce(
-    (total, bucket) => ((bucket.bucketKey ?? '') < startKey ? total + mediaBucketCount(bucket) : total),
-    0
-  );
-});
-const activityEraFutureMediaCount = computed((): number => {
-  const endKey = activityEraEndKey.value;
-  if (mediaTimelineMode.value !== MEDIA_MODE_ACTIVITY_ERA || !endKey) return 0;
-  return datedMediaTrendBuckets.value.reduce(
-    (total, bucket) => ((bucket.bucketKey ?? '') > endKey ? total + mediaBucketCount(bucket) : total),
-    0
-  );
-});
-const mediaTimelineHelp = computed((): string => {
-  if (mediaTimelineMode.value === MEDIA_MODE_MEDIA_HISTORY) {
-    return 'Every dated indexed photo and video can define the chart range. Activity filters do not apply.';
-  }
-  if (mediaTimelineMode.value === MEDIA_MODE_MATCHED_ONLY) {
-    return 'Only media linked to activities in the current track filters is shown.';
-  }
-  if (selectedGrouping.value === 'TOTAL') {
-    return 'Total has no dated axis, so it counts all indexed media.';
-  }
-  if (!activityEraStartKey.value || !activityEraEndKey.value) {
-    return 'No dated GPS activity is available, so indexed media defines the chart range.';
-  }
-  return `All indexed media from ${activityEraStartKey.value} through ${activityEraEndKey.value}. Media does not need to be linked to an activity.`;
-});
+const chartMediaTrendBuckets = datedMediaTrendBuckets;
+const mediaScopeHelp = computed((): string =>
+  mediaTrendScope.value === MEDIA_SCOPE_MATCHED ? MEDIA_SCOPE_MATCHED_TOOLTIP : MEDIA_SCOPE_ALL_TOOLTIP
+);
 const trendTableRows = computed((): TrendTableRow[] => {
   const rows = new Map<string, TrendTableRow>();
   for (const statistics of filteredStatisticData.value) {
@@ -1380,6 +1238,18 @@ const summaryStats = computed(
     };
   }
 );
+const chartMetricAvailability = computed(() => ({
+  hasEnergy: statisticData.value.some((statistics) => (statistics.energyNetTotalWhSum ?? 0) > 0),
+  hasFitness: statisticData.value.some(
+    (statistics) =>
+      (statistics.normalizedPowerMed ?? 0) > 0 ||
+      (statistics.intensityIndexAvg ?? 0) > 0 ||
+      (statistics.trainingLoadPerRideAvg ?? 0) > 0
+  ),
+  hasExploration: statisticData.value.some(
+    (statistics) => statistics.explorationScoreAvg != null && statistics.explorationScoreAvg > 0
+  ),
+}));
 
 watch(trendChartPeriods, (periods) => {
   updateCharts(periods);
@@ -1544,16 +1414,20 @@ async function fetchStatistics() {
   }
 }
 
-function setMediaTimelineMode(mode: MediaTimelineMode): void {
-  if (mediaTimelineMode.value === mode) return;
-  const previousScope = mediaTrendScope.value;
-  mediaTimelineMode.value = mode;
-  closeMediaMosaic();
-  if (previousScope !== mediaTrendScope.value) void fetchStatistics();
+async function retryStatistics(): Promise<void> {
+  overviewRetryRevision.value++;
+  await fetchStatistics();
 }
 
-function clearFocusedMediaTimelineMode(mode: MediaTimelineMode): void {
-  if (focusedMediaTimelineMode.value === mode) focusedMediaTimelineMode.value = null;
+function setMediaTrendScope(scope: MediaScope): void {
+  if (mediaTrendScope.value === scope) return;
+  mediaTrendScope.value = scope;
+  closeMediaMosaic();
+  void fetchStatistics();
+}
+
+function clearFocusedMediaTrendScope(scope: MediaScope): void {
+  if (focusedMediaTrendScope.value === scope) focusedMediaTrendScope.value = null;
 }
 
 function closeMediaMosaic(): void {

@@ -11,6 +11,7 @@ services:
     environment:
       <<: *db-environment
     restart: unless-stopped
+    memswap_limit: 512m
     volumes:
       - ./data/postgis:/var/lib/postgresql/18/docker
     healthcheck:
@@ -21,18 +22,19 @@ services:
     deploy:
       resources:
         limits:
-          memory: 1g
+          memory: 512m # 384 MiB validated floor; 20% is 460.8 MiB, rounded to 512 MiB.
         reservations:
           memory: 256m
     command: >
       postgres
-      -c shared_buffers=128MB
-      -c effective_cache_size=512MB
-      -c work_mem=8MB
-      -c maintenance_work_mem=64MB
-      -c max_wal_size=256MB
+      -c shared_buffers=32MB
+      -c effective_cache_size=160MB
+      -c work_mem=1MB
+      -c maintenance_work_mem=16MB
+      -c max_connections=20
+      -c max_wal_size=1GB
       -c checkpoint_completion_target=0.9
-      -c wal_buffers=8MB
+      -c wal_buffers=2MB
       -c synchronous_commit=off
 
   app:
@@ -58,6 +60,7 @@ services:
       MTL_USER_PASSWORD: ${MTL_USER_PASSWORD:-change-me}
       MTL_PLANNER_ENABLED: "true"
       MTL_PLANNER_BROUTER_BASE_URL: http://brouter:17777
+      MTL_PLANNER_BROUTER_TIMEOUT_MS: "310000"
       MTL_PLANNER_STATUS_URL: http://brouter:17778/status
       MTL_LOCATION_SEARCH_STATUS_URL: http://location-search:8083/status
       MTL_LOCATION_SEARCH_QUERY_URL: http://location-search:8083/search
@@ -65,6 +68,8 @@ services:
     ports:
       - "18080:8080"
     restart: unless-stopped
+    stop_grace_period: 150s
+    memswap_limit: 1024m
     volumes:
       - ./data/gpx:/app/gpx
       - ./data/media:/app/media:ro
@@ -74,7 +79,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 1536m
+          memory: 1024m # Provides a 320 MiB Java heap with the image's 31.25% heap limit.
         reservations:
           memory: 512m
 
@@ -93,14 +98,15 @@ services:
       LOWZOOM_MAXZOOM: "6"
       MAP_DOWNLOAD_URL: latest
     restart: unless-stopped
+    memswap_limit: 128m
     volumes:
       - ./data/maps:/data
     deploy:
       resources:
         limits:
-          memory: 1024m
+          memory: 128m # 96 MiB validated floor; 20% is 115.2 MiB, rounded to 128 MiB.
         reservations:
-          memory: 256m
+          memory: 64m
 
   location-search:
     image: ${MTL_LOCATION_SEARCH_IMAGE:-wauwau0977/mytraillog-location-search:latest}
@@ -112,14 +118,16 @@ services:
     environment:
       PORT: "8083"
       MTL_LOCATION_SEARCH_DB: /data/geonames-search.sqlite
+      MTL_LOCATION_SEARCH_MMAP_SIZE: "33554432"
     restart: unless-stopped
+    memswap_limit: 128m
     # Optional local override when building the GeoNames DB yourself:
     # volumes:
     #   - ./data/location-search/geonames-search.sqlite:/data/geonames-search.sqlite:ro
     deploy:
       resources:
         limits:
-          memory: 256m
+          memory: 128m # 96 MiB validated floor; 20% is 115.2 MiB, rounded to 128 MiB.
         reservations:
           memory: 64m
 
@@ -131,13 +139,14 @@ services:
       - 17777
       - 17778
     environment:
-      BROUTER_JAVA_XMX: "512m"
+      BROUTER_JAVA_XMX: "128m"
     restart: unless-stopped
+    memswap_limit: 512m
     volumes:
       - ./data/brouter-segments:/segments4
     deploy:
       resources:
         limits:
-          memory: 1g
+          memory: 512m # 384 MiB validated floor; 20% is 460.8 MiB, rounded to 512 MiB.
         reservations:
-          memory: 256m
+          memory: 192m

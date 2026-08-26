@@ -67,6 +67,7 @@ const StatisticsOverviewStub = defineComponent({
     indexedMediaCount: { type: Number, default: null },
     indexedPhotoCount: { type: Number, default: null },
     indexedVideoCount: { type: Number, default: null },
+    retryRevision: { type: Number, default: 0 },
   },
   template:
     '<div data-test="statistics-overview-stub">{{ indexedMediaCount }}:{{ indexedPhotoCount }}:{{ indexedVideoCount }}</div>',
@@ -118,7 +119,7 @@ describe('Statistics media trends', () => {
     });
   });
 
-  it('defaults to the activity era with all indexed media and zero-fills the common chart timeline', async () => {
+  it('defaults to All indexed with visible scope help and zero-fills the common chart timeline', async () => {
     const wrapper = mountStatistics();
     await (wrapper.vm as unknown as { fetchStatistics: () => Promise<void> }).fetchStatistics();
     await flushPromises();
@@ -132,7 +133,7 @@ describe('Statistics media trends', () => {
     expect(
       wrapper
         .findAll('.media-trend-mode button')
-        .find((button) => button.text() === 'Activity era')
+        .find((button) => button.text() === 'All indexed')
         ?.attributes()
     ).toMatchObject({ 'aria-pressed': 'true' });
 
@@ -150,13 +151,62 @@ describe('Statistics media trends', () => {
       [0, 4],
       [0, 2],
     ]);
-    expect(wrapper.text()).toContain('All indexed media from 2026-Q2 through');
-    expect(wrapper.text()).toContain('Media does not need to be linked to an activity.');
+    expect(wrapper.findAll('.media-trend-mode button').map((button) => button.text())).toEqual([
+      'All indexed',
+      'Track related',
+    ]);
+    expect(wrapper.text()).toContain('Activity filters do not reduce the media totals.');
     expect(wrapper.get('.media-trend-undated').text()).toContain('Undated media1');
     expect(wrapper.get('[data-test="statistics-overview-stub"]').text()).toBe('7:5:2');
   });
 
-  it('keeps remote media outside the activity-era chart and preserves it in Media history and totals', async () => {
+  it('retains every activity chart with zero values for a media-only sub-unit', async () => {
+    fetchStatisticsForTrackIdsMock.mockResolvedValueOnce([
+      {
+        groupBy: '2026-Q1',
+        subGroup: 'Q1',
+        numberOfTracks: 1,
+        totalTrackDurationSecs: 1800,
+        trackLengthInMeterSum: 10_000,
+        energyNetTotalWhSum: 400,
+        normalizedPowerMed: 180,
+        intensityIndexAvg: 0.8,
+        trainingLoadPerRideAvg: 45,
+        explorationScoreAvg: 0.5,
+      },
+    ]);
+    getMediaTrendsMock.mockResolvedValueOnce({
+      scope: 'ALL_INDEXED',
+      buckets: [{ bucketKey: '2026-Q3', label: '2026-Q3', subGroup: 'Q3', imageCount: 4, videoCount: 2 }],
+    });
+    const wrapper = mountStatistics();
+    await (wrapper.vm as unknown as { fetchStatistics: () => Promise<void> }).fetchStatistics();
+    await flushPromises();
+
+    (wrapper.vm as unknown as { selectedSubUnit: string | null }).selectedSubUnit = 'Q3';
+    await flushPromises();
+
+    expect(wrapper.findAll('.chart-card').map((card) => card.text())).toEqual([
+      'Duration',
+      'Distance',
+      'Activity',
+      'Energy',
+      'Intensity Index',
+      'Training Load',
+      'Exploration',
+      expect.stringContaining('Media'),
+    ]);
+    const charts = wrapper.findAllComponents(HighchartsStub);
+    expect(charts).toHaveLength(8);
+    for (const chart of charts) {
+      expect(chart.props('options').xAxis.categories).toEqual(['2026-Q3']);
+    }
+    for (const chart of charts.filter((candidate) => candidate.props('options').series[0].name !== 'Photos')) {
+      expect(chart.props('options').series[0].data).toEqual([0]);
+    }
+  });
+
+  it('keeps the full indexed-media history on the shared timeline and in totals', async () => {
     getMediaTrendsMock.mockResolvedValueOnce({
       scope: 'ALL_INDEXED',
       buckets: [
@@ -176,10 +226,9 @@ describe('Statistics media trends', () => {
     const durationChart = wrapper.findAllComponents(HighchartsStub).find((chart) => {
       return chart.props('options')?.series?.[0]?.name === 'Duration';
     });
-    expect(mediaChart!.props('options').xAxis.categories).toEqual(['2026-Q2', '2026-Q3']);
-    expect(durationChart!.props('options').xAxis.categories).toEqual(['2026-Q2', '2026-Q3']);
-    expect(wrapper.get('.media-trend-earlier').text()).toContain('Earlier media3');
-    expect(wrapper.get('.media-trend-future').text()).toContain('Future-dated media5');
+    expect(mediaChart!.props('options').xAxis.categories).toEqual(['1920-Q1', '2026-Q2', '2026-Q3', '9999-Q4']);
+    expect(durationChart!.props('options').xAxis.categories).toEqual(mediaChart!.props('options').xAxis.categories);
+    expect(durationChart!.props('options').series[0].data).toEqual([0, 0.5, 1, 0]);
     expect(wrapper.get('[data-test="statistics-overview-stub"]').text()).toBe('15:9:6');
 
     (wrapper.vm as unknown as { statsView: 'table' | 'charts' }).statsView = 'table';
@@ -200,20 +249,6 @@ describe('Statistics media trends', () => {
       expect.arrayContaining(['imageCount', 'videoCount'])
     );
 
-    (wrapper.vm as unknown as { statsView: 'table' | 'charts' }).statsView = 'charts';
-    await flushPromises();
-
-    await wrapper.get('.media-trend-earlier').trigger('click');
-    await flushPromises();
-
-    expect(mediaChart!.props('options').xAxis.categories).toEqual(['1920-Q1', '2026-Q2', '2026-Q3', '9999-Q4']);
-    expect(wrapper.find('.media-trend-earlier').exists()).toBe(false);
-    expect(
-      wrapper
-        .findAll('.media-trend-mode button')
-        .find((button) => button.text() === 'Media history')
-        ?.attributes()
-    ).toMatchObject({ 'aria-pressed': 'true' });
     expect(getMediaTrendsMock).toHaveBeenCalledTimes(1);
   });
 
@@ -243,17 +278,17 @@ describe('Statistics media trends', () => {
     expect(mediaChart!.props('options').series.map((series: { data: number[] }) => series.data)).toEqual([[2], [1]]);
   });
 
-  it('switches to matched-only media, explains the mode, and sends track IDs', async () => {
+  it('switches to Track related media, explains the scope, and sends track IDs', async () => {
     const wrapper = mountStatistics();
     await (wrapper.vm as unknown as { fetchStatistics: () => Promise<void> }).fetchStatistics();
     await flushPromises();
     getMediaTrendsMock.mockResolvedValueOnce({ scope: 'MATCHED_ACTIVITIES', buckets: [] });
 
-    const matchedOnlyButton = wrapper
+    const trackRelatedButton = wrapper
       .findAll('.media-trend-mode button')
-      .find((button) => button.text() === 'Matched only');
-    expect(matchedOnlyButton).toBeDefined();
-    await matchedOnlyButton!.trigger('click');
+      .find((button) => button.text() === 'Track related');
+    expect(trackRelatedButton).toBeDefined();
+    await trackRelatedButton!.trigger('click');
     await flushPromises();
 
     expect(getMediaTrendsMock).toHaveBeenLastCalledWith(
@@ -261,7 +296,22 @@ describe('Statistics media trends', () => {
       expect.any(AbortSignal)
     );
     expect(wrapper.text()).toContain('Only media linked to activities in the current track filters is shown.');
+    expect(wrapper.findComponent(MediaTrendMosaicStub).props('scope')).toBe('MATCHED_ACTIVITIES');
     expect(wrapper.get('[data-test="statistics-overview-stub"]').text()).toBe('7:5:2');
+
+    getMediaTrendsMock.mockResolvedValueOnce({ scope: 'ALL_INDEXED', buckets: [] });
+    const allIndexedButton = wrapper
+      .findAll('.media-trend-mode button')
+      .find((button) => button.text() === 'All indexed');
+    await allIndexedButton!.trigger('click');
+    await flushPromises();
+
+    expect(getMediaTrendsMock).toHaveBeenLastCalledWith(
+      { grouping: 'QUARTER', scope: 'ALL_INDEXED', trackIds: undefined },
+      expect.any(AbortSignal)
+    );
+    expect(wrapper.findComponent(MediaTrendMosaicStub).props('scope')).toBe('ALL_INDEXED');
+    expect(wrapper.text()).toContain('Activity filters do not reduce the media totals.');
   });
 
   it('shows the media timeline explanation on keyboard focus', async () => {
@@ -269,24 +319,24 @@ describe('Statistics media trends', () => {
     await (wrapper.vm as unknown as { fetchStatistics: () => Promise<void> }).fetchStatistics();
     await flushPromises();
 
-    const mediaHistoryButton = wrapper
+    const allIndexedButton = wrapper
       .findAll('.media-trend-mode button')
-      .find((button) => button.text() === 'Media history');
-    await mediaHistoryButton!.trigger('focus');
+      .find((button) => button.text() === 'All indexed');
+    await allIndexedButton!.trigger('focus');
 
-    const mediaHistoryTooltip = wrapper.get('[role="tooltip"]');
-    expect(mediaHistoryButton!.attributes('aria-describedby')).toBe(mediaHistoryTooltip.attributes('id'));
-    expect(mediaHistoryTooltip.text()).toBe(
-      'Every dated indexed photo and video can define the chart range. Activity filters do not apply.'
+    const allIndexedTooltip = wrapper.get('[role="tooltip"]');
+    expect(allIndexedButton!.attributes('aria-describedby')).toBe(allIndexedTooltip.attributes('id'));
+    expect(allIndexedTooltip.text()).toBe(
+      'Every indexed photo and video is shown. Activity filters do not reduce the media totals.'
     );
 
-    await mediaHistoryButton!.trigger('blur');
+    await allIndexedButton!.trigger('blur');
     expect(wrapper.find('[role="tooltip"]').exists()).toBe(false);
 
-    const matchedOnlyButton = wrapper
+    const trackRelatedButton = wrapper
       .findAll('.media-trend-mode button')
-      .find((button) => button.text() === 'Matched only');
-    await matchedOnlyButton!.trigger('focus');
+      .find((button) => button.text() === 'Track related');
+    await trackRelatedButton!.trigger('focus');
 
     expect(wrapper.get('[role="tooltip"]').text()).toBe(
       'Only media linked to activities in the current track filters is shown.'
@@ -339,10 +389,10 @@ describe('Statistics media trends', () => {
     const firstFetch = (wrapper.vm as unknown as { fetchStatistics: () => Promise<void> }).fetchStatistics();
     await flushPromises();
 
-    const matchedOnlyButton = wrapper
+    const trackRelatedButton = wrapper
       .findAll('.media-trend-mode button')
-      .find((button) => button.text() === 'Matched only');
-    await matchedOnlyButton!.trigger('click');
+      .find((button) => button.text() === 'Track related');
+    await trackRelatedButton!.trigger('click');
     await flushPromises();
 
     resolveFirstRequest?.({
@@ -390,6 +440,25 @@ describe('Statistics media trends', () => {
 
     expect(wrapper.find('[data-test="statistics-refresh-error"]').exists()).toBe(false);
     expect(statistics.statisticData).toEqual([expect.objectContaining({ groupBy: '2026-Q4', numberOfTracks: 3 })]);
+  });
+
+  it('signals the overview when Retry reloads after an initial connectivity failure', async () => {
+    fetchStatisticsForTrackIdsMock.mockRejectedValueOnce(new Error('offline'));
+    const wrapper = mountStatistics();
+
+    await (wrapper.vm as unknown as { fetchStatistics: () => Promise<void> }).fetchStatistics();
+    await flushPromises();
+
+    const warning = wrapper.get('.statistics-root > [data-test="statistics-refresh-error"]');
+    expect(warning.text()).toContain('Statistics could not be loaded.');
+    expect(wrapper.findComponent(StatisticsOverviewStub).props('retryRevision')).toBe(0);
+
+    fetchStatisticsForTrackIdsMock.mockResolvedValueOnce([]);
+    await warning.get('button').trigger('click');
+    await flushPromises();
+
+    expect(wrapper.find('[data-test="statistics-refresh-error"]').exists()).toBe(false);
+    expect(wrapper.findComponent(StatisticsOverviewStub).props('retryRevision')).toBe(1);
   });
 
   it('recognizes an empty successful result as saved data after a later refresh fails', async () => {

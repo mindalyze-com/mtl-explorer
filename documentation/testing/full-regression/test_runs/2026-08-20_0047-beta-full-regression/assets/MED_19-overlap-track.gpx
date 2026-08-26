@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="MTL Explorer regression fixture"
+     xmlns="http://www.topografix.com/GPX/1/1"
+     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+     xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd">
+  <metadata><name>MTL Regression Ambiguity Track</name></metadata>
+  <trk>
+    <name>MTL Regression Ambiguity Track</name>
+    <desc>MED_19 deterministic recalculation pass</desc>
+    <type>walking</type>
+    <trkseg>
+      <trkpt lat="46.95000" lon="7.45000"><ele>550</ele><time>2026-08-17T07:59:00Z</time></trkpt>
+      <trkpt lat="46.95050" lon="7.45080"><ele>551</ele><time>2026-08-17T08:00:00Z</time></trkpt>
+      <trkpt lat="46.95150" lon="7.45200"><ele>552</ele><time>2026-08-17T08:06:00Z</time></trkpt>
+      <trkpt lat="46.95250" lon="7.45350"><ele>553</ele><time>2026-08-17T08:12:00Z</time></trkpt>
+      <trkpt lat="46.95350" lon="7.45500"><ele>554</ele><time>2026-08-17T08:18:00Z</time></trkpt>
+      <trkpt lat="46.95500" lon="7.45700"><ele>555</ele><time>2026-08-17T08:24:00Z</time></trkpt>
+    </trkseg>
+  </trk>
+</gpx>

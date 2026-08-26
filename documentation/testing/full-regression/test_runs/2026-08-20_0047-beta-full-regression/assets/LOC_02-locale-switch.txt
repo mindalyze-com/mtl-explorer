@@ -1,0 +1,10 @@
+LOC_02 live locale change
+
+- Opened locale selector and chose de-DE from Browser default, de-CH, de-DE, en-US, en-GB, fr-CH, fr-FR, and it-CH choices.
+- No page reload occurred.
+- Preferences changed immediately to `de-DE (31.12.2025, 1.234,56)`.
+- Preview changed from `20/08/2026 ... 12,345.67` to `20.08.2026 11:57:41 — 12.345,67`.
+- Unit preview changed decimal separator to `25,0 km`.
+- Statistics immediately used `3.971 Wh` and `12.727 m` rather than comma grouping.
+- Live dates changed to German dotted format, including 20.08.2026 08:39 and 19.08.2026 10:01; no `20/08/2026` date remained in the Statistics tree.
+- Interface language stayed unchanged, as intended.

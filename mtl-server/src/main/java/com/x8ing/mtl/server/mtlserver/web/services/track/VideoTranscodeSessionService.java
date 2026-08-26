@@ -1,7 +1,7 @@
 package com.x8ing.mtl.server.mtlserver.web.services.track;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 import com.x8ing.mtl.server.mtlserver.web.services.track.entity.VideoTranscodeQuality;
 import com.x8ing.mtl.server.mtlserver.web.services.track.entity.VideoTranscodeSessionDto;
 import com.x8ing.mtl.server.mtlserver.web.services.track.entity.VideoTranscodeSessionState;
@@ -62,6 +62,7 @@ public class VideoTranscodeSessionService {
 
     private final VideoTranscodeProperties properties;
     private final ObjectMapper objectMapper;
+    private final MediaProcessLimiter mediaProcessLimiter;
     private final Clock clock;
     private final Map<UUID, Session> sessions = new HashMap<>();
     private final Map<SessionKey, UUID> reusableSessions = new HashMap<>();
@@ -72,13 +73,19 @@ public class VideoTranscodeSessionService {
     });
 
     @Autowired
-    public VideoTranscodeSessionService(VideoTranscodeProperties properties, ObjectMapper objectMapper) {
-        this(properties, objectMapper, Clock.systemUTC());
+    public VideoTranscodeSessionService(VideoTranscodeProperties properties,
+                                        ObjectMapper objectMapper,
+                                        MediaProcessLimiter mediaProcessLimiter) {
+        this(properties, objectMapper, mediaProcessLimiter, Clock.systemUTC());
     }
 
-    VideoTranscodeSessionService(VideoTranscodeProperties properties, ObjectMapper objectMapper, Clock clock) {
+    VideoTranscodeSessionService(VideoTranscodeProperties properties,
+                                 ObjectMapper objectMapper,
+                                 MediaProcessLimiter mediaProcessLimiter,
+                                 Clock clock) {
         this.properties = properties;
         this.objectMapper = objectMapper;
+        this.mediaProcessLimiter = mediaProcessLimiter;
         this.clock = clock;
     }
 
@@ -127,28 +134,24 @@ public class VideoTranscodeSessionService {
             throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "Video transcoding is disabled");
         }
         Path source = validateSource(sourcePath);
-        SourceInfo sourceInfo = probe(source);
         VideoTranscodeQuality selectedQuality = quality == null ? VideoTranscodeQuality.AUTO : quality;
         long sourceSize = fileSize(source);
         long sourceLastModified = lastModified(source);
         SessionKey key = new SessionKey(mediaId, source, sourceSize, sourceLastModified, selectedQuality);
 
         synchronized (this) {
+            CreateResult existing = reuseOrRejectAtCapacity(key);
+            if (existing != null) return existing;
+        }
+
+        SourceInfo sourceInfo = probe(source);
+
+        synchronized (this) {
+            CreateResult existing = reuseOrRejectAtCapacity(key);
+            if (existing != null) return existing;
+
             Instant now = clock.instant();
-            enforceLimits(now);
-            Session reusable = findReusable(key);
-            if (reusable != null) {
-                reusable.lastAccess = now;
-                return new CreateResult(toDto(reusable, true), true);
-            }
-
             makeRoomForSessionRecord();
-            if (activeSessionCount() >= properties.getMaxActiveSessions()) {
-                throw new ResponseStatusException(
-                        HttpStatus.TOO_MANY_REQUESTS,
-                        "The video transcoder is busy. Try again when the active conversion finishes.");
-            }
-
             EncodingPlan encodingPlan = EncodingPlan.forSource(sourceInfo, selectedQuality);
             long estimatedBytes = estimateOutputBytes(sourceSize, sourceInfo, encodingPlan, selectedQuality);
             if (estimatedBytes > properties.getMaxSessionBytes()) {
@@ -189,6 +192,11 @@ public class VideoTranscodeSessionService {
             reusableSessions.put(key, sessionId);
             try {
                 start(session);
+            } catch (MediaProcessLimiter.MediaProcessBusyException e) {
+                sessions.remove(sessionId);
+                reusableSessions.remove(key);
+                deleteDirectoryQuietly(outputDirectory);
+                throw videoTranscoderBusy(e);
             } catch (IOException e) {
                 sessions.remove(sessionId);
                 reusableSessions.remove(key);
@@ -200,6 +208,27 @@ public class VideoTranscodeSessionService {
             }
             return new CreateResult(toDto(session, false), false);
         }
+    }
+
+    private CreateResult reuseOrRejectAtCapacity(SessionKey key) {
+        Instant now = clock.instant();
+        enforceLimits(now);
+        Session reusable = findReusable(key);
+        if (reusable != null) {
+            reusable.lastAccess = now;
+            return new CreateResult(toDto(reusable, true), true);
+        }
+        if (activeSessionCount() >= properties.getMaxActiveSessions()) {
+            throw videoTranscoderBusy(null);
+        }
+        return null;
+    }
+
+    private static ResponseStatusException videoTranscoderBusy(Throwable cause) {
+        return new ResponseStatusException(
+                HttpStatus.TOO_MANY_REQUESTS,
+                "The video transcoder is busy. Try again when the active conversion finishes.",
+                cause);
     }
 
     public synchronized VideoTranscodeSessionDto get(UUID sessionId) {
@@ -253,10 +282,11 @@ public class VideoTranscodeSessionService {
                 session.quality,
                 session.sourceInfo,
                 session.encodingPlan,
+                properties.getMaxThreads(),
                 properties.getSegmentSeconds());
         ProcessBuilder processBuilder = new ProcessBuilder(command)
                 .directory(session.outputDirectory.toFile());
-        Process process = processBuilder.start();
+        Process process = mediaProcessLimiter.start(processBuilder);
         session.process = process;
         session.state = VideoTranscodeSessionState.RUNNING;
         session.message = session.encodingPlan.description();
@@ -527,7 +557,10 @@ public class VideoTranscodeSessionService {
                 source.toString());
         Process process;
         try {
-            process = new ProcessBuilder(command).redirectError(ProcessBuilder.Redirect.DISCARD).start();
+            process = mediaProcessLimiter.start(
+                    new ProcessBuilder(command).redirectError(ProcessBuilder.Redirect.DISCARD));
+        } catch (MediaProcessLimiter.MediaProcessBusyException e) {
+            throw videoTranscoderBusy(e);
         } catch (IOException e) {
             throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "The video inspector is unavailable", e);
         }
@@ -600,16 +633,21 @@ public class VideoTranscodeSessionService {
                                            VideoTranscodeQuality quality,
                                            SourceInfo sourceInfo,
                                            EncodingPlan plan,
+                                           int maxThreads,
                                            int segmentSeconds) {
+        if (maxThreads < 1) throw new IllegalArgumentException("maxThreads must be positive");
         List<String> command = new ArrayList<>(List.of(
                 ffmpegCommand,
                 "-hide_banner",
                 "-loglevel", "error",
                 "-nostdin",
                 "-y",
+                "-threads", String.valueOf(maxThreads),
                 "-i", source.toAbsolutePath().toString(),
                 "-map", "0:v:0",
-                "-map", "0:a:0?"));
+                "-map", "0:a:0?",
+                "-filter_threads", String.valueOf(maxThreads),
+                "-filter_complex_threads", String.valueOf(maxThreads)));
 
         if (plan.copyVideo()) {
             command.addAll(List.of("-c:v", "copy"));
@@ -638,6 +676,7 @@ public class VideoTranscodeSessionService {
         }
 
         command.addAll(List.of(
+                "-threads", String.valueOf(maxThreads),
                 "-progress", "pipe:1",
                 "-nostats",
                 "-f", "hls",

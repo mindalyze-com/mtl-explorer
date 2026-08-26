@@ -1,0 +1,15 @@
+Track-shape preview checks
+
+- Filter criteria -> Choose tracks: 9 visible result rows and 9 rendered
+  track-shape-preview SVGs.
+- Statistics Overview -> Recent Activity: 5 visible track rows and 5 rendered
+  track-shape-preview SVGs after scrolling the section into view.
+- Statistics -> Tracks browser: 9 table rows and 9 additional rendered
+  track-shape-preview SVGs.
+- Track 100005 -> Related: 7 related-track cards and 7 rendered
+  track-shape-preview SVGs.
+- Main map -> Bussang at 2 km scale -> overlapping line: a two-track chooser
+  for voie verte and Mosel with 2 rendered track-shape-preview SVGs.
+
+The inspected graphics use class track-shape-preview__svg and are rendered
+SVG paths, not placeholder text.

@@ -1,0 +1,13 @@
+Coverage: MAP_01
+Route after visible Map open: /mtl/map-settings
+Rendered map regions: 2
+Rendered MapLibre canvases: 2
+Canvas dimensions: 981 x 998 CSS pixels each; both visible
+Attribution: OpenStreetMap link present
+Scale: present
+Controls: Zoom in; Zoom out; rotation/north; globe; 3D terrain
+Selected style: OSM Topo Contrast
+Map source state: Automatic source; 2D map
+Your-data overlays: 3 of 4 shown
+Track overlay: Open Filter. 9 Tracks
+Result: base map and configured overlays rendered on open.

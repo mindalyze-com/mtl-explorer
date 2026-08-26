@@ -60,6 +60,7 @@ const maplibreMock = vi.hoisted(() => {
     remove = vi.fn();
     hasImage = vi.fn(() => false);
     addImage = vi.fn();
+    setMissingStyleImageResolver = vi.fn();
 
     constructor(options: Record<string, unknown>) {
       this.options = options;
@@ -92,11 +93,9 @@ const maplibreMock = vi.hoisted(() => {
 });
 
 vi.mock('maplibre-gl', () => ({
-  default: {
-    Map: maplibreMock.MockMap,
-    Marker: maplibreMock.MockMarker,
-    LngLatBounds: maplibreMock.MockLngLatBounds,
-  },
+  Map: maplibreMock.MockMap,
+  Marker: maplibreMock.MockMarker,
+  LngLatBounds: maplibreMock.MockLngLatBounds,
 }));
 
 vi.mock('@/utils/mapConfigService', () => ({

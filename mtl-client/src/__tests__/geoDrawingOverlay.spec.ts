@@ -2,13 +2,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useMeasurementSystem } from '@/composables/useMeasurementSystem';
 
 vi.mock('maplibre-gl', () => ({
-  default: {
-    LngLat: class {
-      constructor(
-        public lng: number,
-        public lat: number
-      ) {}
-    },
+  LngLat: class {
+    constructor(
+      public lng: number,
+      public lat: number
+    ) {}
   },
 }));
 

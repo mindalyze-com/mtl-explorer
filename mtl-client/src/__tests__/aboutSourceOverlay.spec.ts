@@ -1,6 +1,6 @@
 import { flushPromises, shallowMount } from '@vue/test-utils';
 import { defineComponent } from 'vue';
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import AboutSourceOverlay from '@/components/info/AboutSourceOverlay.vue';
 
 const BottomSheetStub = defineComponent({
@@ -30,6 +30,12 @@ function mountOverlay(visible = true) {
 }
 
 describe('AboutSourceOverlay', () => {
+  beforeEach(() => vi.stubGlobal('__APP_PKG_VERSION__', '1.0.0'));
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
+  });
+
   it('uses the standard responsive sheet and keeps source information public', () => {
     const wrapper = mountOverlay();
     const sheet = wrapper.getComponent(BottomSheetStub);
@@ -39,6 +45,8 @@ describe('AboutSourceOverlay', () => {
     expect(sheet.props('initialDetent')).toBe('comfortable');
     expect(sheet.props('sheetClass')).toContain('sheet--about-source');
     expect(wrapper.get('#about-source-title').text()).toBe('MTL Explorer');
+    expect(wrapper.get('.about-source__build').text()).toContain('1.0.0');
+    expect(wrapper.get('.about-source__build').text()).not.toContain('dev');
     expect(wrapper.get('.about-source__build').text()).toContain('AGPL-3.0-or-later');
     expect(wrapper.get('.about-source__primary').attributes('href')).toBe(
       'https://github.com/mindalyze-com/mtl-explorer'
@@ -54,6 +62,15 @@ describe('AboutSourceOverlay', () => {
     await wrapper.get('.close-stub').trigger('click');
 
     expect(wrapper.emitted('update:visible')).toEqual([[false]]);
+  });
+
+  it('shows the release image version when the build provides one', () => {
+    vi.stubEnv('VITE_APP_VERSION', '1.405');
+
+    const wrapper = mountOverlay();
+
+    expect(wrapper.get('.about-source__build').text()).toContain('1.405');
+    expect(wrapper.get('.about-source__build').text()).not.toContain('1.0.0');
   });
 
   it('opens full details over the current page and closes the full flow without route navigation', async () => {

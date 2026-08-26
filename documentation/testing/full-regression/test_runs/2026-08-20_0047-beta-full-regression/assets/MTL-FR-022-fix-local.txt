@@ -1,0 +1,33 @@
+Finding: MTL-FR-022
+Disposition: FIXED on the current-worktree local stack
+
+Root cause
+- Active filter identity formatting appended the first string parameter verbatim.
+- It did not use effective numeric widget metadata, canonical unit metadata, the saved measurement system, or the format locale.
+
+Implementation
+- Numeric criteria now resolve effective parameter metadata and use the shared canonical-to-display conversion.
+- Summary numbers are localized with at most two fractional digits and include the display unit.
+- The filter store identity remains reactive to measurement and locale preferences.
+
+Focused checks
+- Five focused client files: 41 tests passed.
+- Scoped ESLint, type-check, Prettier, and git diff check passed.
+- Unit coverage proves de-DE `16.09344 km` becomes `10 mi` in US customary and `16,09 km` in Metric.
+
+Local UI reproduction
+- Stack: Vite client at http://127.0.0.1:5175/mtl and current-worktree server at http://127.0.0.1:18085/mtl.
+- Set format locale to de-DE and units to Imperial (US).
+- Selected Tracks by distance (gradient), entered a 10 mi maximum, and closed the criteria sheet.
+- Desktop and 390x760 layouts showed `Tracks by distance (gradient) · 10 mi` in the global map chip and Filter overview.
+- Switched the saved preference to Metric with the filter still active.
+- Desktop and 390x760 layouts immediately showed `Tracks by distance (gradient) · 16,09 km`.
+- Restored de-DE, Metric, and Smart Base Filter after the proof.
+
+Screenshots
+- MTL-FR-022-fix-local-desktop.webp
+- MTL-FR-022-fix-local-mobile.webp
+
+Evidence boundary
+- Screenshots show the Imperial state at desktop and mobile sizes.
+- The de-DE Metric transition is recorded in the accessible browser snapshot and covered by focused reactive store tests.

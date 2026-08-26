@@ -1,0 +1,16 @@
+Target: 62.238.106.141 (Debian 13.2, amd64)
+Disposable install: /root/mtl-regression-2026-08-20_0047/mtl-explorer
+GitHub main compose SHA-256: 18d05ba498992bf230a32c41df3154fc93a7a2e93ef6b8e8a8d3d77071d3f0bc
+Prerequisite setup: Docker Engine 29.7.2; Docker Compose 5.5.0; docker service active; hello-world passed.
+Requested/effective app image: wauwau0977/mytraillog
+Running container: mtl-explorer-app-1
+Running image ID: sha256:1cd50ffb86f830ce3e9241a73577d60a619e19dc29ef9fe299d2d059a69a8e2a
+Repo digest: wauwau0977/mytraillog@sha256:1cd50ffb86f830ce3e9241a73577d60a619e19dc29ef9fe299d2d059a69a8e2a
+Image created: 2026-08-19T22:41:07.396499117Z
+Compose up elapsed: 48 seconds
+App startup: 13.187 seconds
+Reported build: version 0.0.1-SNAPSHOT; build 2026-08-19T22:39:23.274Z; image 1.404; image build 2026-08-19T22:39:08Z
+Local URL status: http://localhost:18080/mtl/ -> 200
+Remote URL: http://62.238.106.141:18080/mtl/
+Initial GPS index: 0 files; live watcher enabled.
+Initial MEDIA index: 0 files; live watcher disabled, periodic/manual rescan expected.

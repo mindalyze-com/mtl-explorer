@@ -1,0 +1,5 @@
+Accounting policy verified:
+- Every frozen ID has its own run-state row and packet path.
+- Prefixes and chapters are not result rows.
+- A later failure, block, or not-applicable outcome remains attached to its exact ID.
+- The finalization checker rejects missing packets and resumable statuses.

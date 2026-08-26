@@ -1,0 +1,37 @@
+MTL-FR-004 local verification
+Verified: 2026-08-20T10:31:58+02:00
+Finding result: NOT REPRODUCIBLE
+Repository commit: f3ba01a92bc045633b71af670e1afb3a775bdd2a
+
+Worktree and build
+- The active full-regression run was already changing concurrently. This task changed only the TRD_05 records, its two fix-evidence assets, and the focused Track Details test.
+- Current-worktree frontend: http://127.0.0.1:5174/mtl/
+- Current-worktree backend: http://127.0.0.1:18084/mtl/
+- Backend build: 0.0.1-SNAPSHOT, 2026-08-20T08:25:08.742Z
+- Isolated state: disposable PostGIS on 127.0.0.1:55438 with synthetic empty media state.
+- Fixture: public road-cycling-50km.gpx from the repository's public-regression resources; no private track or media data was used.
+
+Confirmed cause of the recorded observation
+- The original evidence recorded the first Highcharts accessibility-series count after each refresh, but did not include a screenshot, response payload, or current-series count.
+- Highcharts retains stale accessibility proxy nodes after an options update. The old count therefore remains in the DOM beside the new current-series node even though the visible chart refreshes.
+- Direct API responses, new current-series accessibility nodes, and the visible chart all changed correctly. The recorded rendering defect did not reproduce, so no product-code fix was required.
+
+Automated checks
+- npm test -- --run src/__tests__/trackDetailsTabs.spec.ts src/__tests__/trackGraphSync.spec.ts: exit 0; 2 files and 42 tests passed.
+- npx eslint src/__tests__/trackDetailsTabs.spec.ts: exit 0.
+- npx prettier --check src/__tests__/trackDetailsTabs.spec.ts: exit 0.
+- npm run type-check: exit 0.
+- The Track Details point-count test now proves that a committed slider reload replaces the chart child data, not only that it sends the requested count.
+
+Direct local dev-server retest
+1. Signed in to the isolated local app and opened public synthetic track 100000 Graphs.
+2. Selected Distance, set Points to 3000, waited for settlement, then set Points to 3 and waited again.
+3. The local API returned 2,329 buckets from 2,400 canonical points for maxBuckets=3000 and 3 buckets for maxBuckets=3.
+4. The current rendered Speed/Elevation series changed to 2,312/2,329 points at the maximum and 3/3 points at the minimum.
+5. The final visible chart showed the three-point aggregate. The clean verification tab logged no browser warnings or errors.
+
+Evidence
+- MTL-FR-004-fix-local.webp: Distance axis, visible Points 3 value, and visibly aggregated Speed chart; 1280x720, 58,670 bytes.
+
+Boundary
+- No product implementation or deployment is needed for this finding. The added automated assertion accompanies this finding record.

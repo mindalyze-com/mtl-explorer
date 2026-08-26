@@ -1,0 +1,17 @@
+Coverage: MAP_12
+Available route overlay groups: Worldwide routes and Swiss routes
+Enabled for test: Swiss Hiking routes, Cycling routes, Mountain bike routes, Hiking trails (4 of 7 total layers shown)
+Visible attribution while enabled: SchweizMobil and swisstopo
+Map location: Bern official-route junction near Bärenpark, reached by measured pan from the Bern search result
+Visible popup:
+- Heading: Nearby Routes
+- Hiking: ViaBerna (Frauenkappelen - Bern, Bärenpark), #38
+- Trail: 3782104
+- Action: Close nearby routes popup
+After Close:
+- Nearby Routes absent
+- Close action absent
+- two Map regions and zoom control remain available
+- route attribution remains while overlays are active
+Restoration: all four Swiss overlays disabled; 0 of 7 shown; SchweizMobil/swisstopo attribution removed; nine-track baseline retained.
+Result: nearby official routes appeared and the popup closed cleanly.

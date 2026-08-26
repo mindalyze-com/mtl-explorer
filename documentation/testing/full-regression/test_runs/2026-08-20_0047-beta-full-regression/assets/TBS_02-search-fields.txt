@@ -1,0 +1,17 @@
+TBS_02 track-browser search matrix
+
+PASS cases:
+- Name: Lannion -> one Lannion_Plestin_parcours row.
+- Description: Generated from route -> one MTL Synthetic Segment Alpha row.
+- Date: 01/01/2010 -> four 2010 rows.
+- Distance: 25.9 km -> one Lannion row.
+- Duration: 1h 13m -> one Lannion row.
+- Activity: Walking -> one MTL Regression Media Track row.
+
+FAIL case — indexed file name/path:
+- JuraRoute72011.gpx -> No tracks match.
+- sample.igc -> No tracks match.
+- /app/gpx/sample.igc -> No tracks match.
+- Lannion_Plestin_parcours24.4RE.gpx -> No tracks match.
+
+These file names are known same-run indexed sources for active tracks. The search placeholder explicitly advertises file search, but exact source file names and a full watched-folder path return no rows.

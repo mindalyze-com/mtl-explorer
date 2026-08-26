@@ -19,7 +19,7 @@ export async function fetchResolveFilter(
 
     // The generated getResolveById method cannot send filter parameters in the request body.
     const response = await apiClient.post(
-      `api/filter/resolve/${filterConfigId}?includeGPSTrack=${includeGPSTrack}`,
+      `api/filter/resolve/${filterConfigId}?includeGPSTrack=${includeGPSTrack}&includeGPSTrackFile=${includeGPSTrack}`,
       filterParams
     );
     const queryResult = QueryResultFromJSONTyped(response.data, false);

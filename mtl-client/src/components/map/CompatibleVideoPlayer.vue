@@ -117,6 +117,7 @@ const REAL_TIME_TRANSCODE_SPEED = 1;
 const MEDIA_ERROR_ABORTED = 1;
 const MEDIA_ERROR_DECODE = 3;
 const MEDIA_ERROR_SOURCE_NOT_SUPPORTED = 4;
+const MAX_HLS_MEDIA_RECOVERY_ATTEMPTS = 2;
 const DEFAULT_VIDEO_TRANSCODE_QUALITY: VideoTranscodeQuality = 'AUTO';
 
 const props = withDefaults(
@@ -152,6 +153,7 @@ let hls: Hls | null = null;
 let pollTimer: ReturnType<typeof setTimeout> | null = null;
 let requestController: AbortController | null = null;
 let operationId = 0;
+let hlsMediaRecoveryAttempts = 0;
 
 const isActiveSession = computed(() => mode.value === 'starting' || mode.value === 'transcoding');
 const canCancel = computed(() => isActiveSession.value);
@@ -226,6 +228,7 @@ function abortRequest(): void {
 function destroyHls(): void {
   hls?.destroy();
   hls = null;
+  hlsMediaRecoveryAttempts = 0;
 }
 
 function resetPlayer(): void {
@@ -312,7 +315,12 @@ function onHlsError(data: ErrorData, errorTypes: typeof import('hls.js').ErrorTy
     return;
   }
   if (data.type === errorTypes.MEDIA_ERROR) {
-    hls.recoverMediaError();
+    if (hlsMediaRecoveryAttempts < MAX_HLS_MEDIA_RECOVERY_ATTEMPTS) {
+      hlsMediaRecoveryAttempts++;
+      hls.recoverMediaError();
+      return;
+    }
+    failCompatiblePlayback('The compatible stream could not be decoded by the browser.');
     return;
   }
   failCompatiblePlayback('The compatible stream stopped unexpectedly.');
@@ -438,6 +446,7 @@ function onVideoError(event: Event): void {
     return;
   }
   if (mode.value === 'compatible' || mode.value === 'transcoding') {
+    if (hls) return;
     failCompatiblePlayback('The compatible stream could not be decoded by the browser.');
   }
 }
@@ -457,6 +466,7 @@ function onVideoClick(): void {
 function onVideoPlay(): void {
   videoHasStarted.value = true;
   videoEnded.value = false;
+  hlsMediaRecoveryAttempts = 0;
 }
 
 function onVideoEnded(): void {

@@ -1,0 +1,17 @@
+TBS_04 track-browser quick views
+
+Setup:
+- Statistics Tracks, All preset, active eight-track year result.
+- Search query 2010 narrowed All to four rows.
+
+Preset transitions:
+- Excluded: pressed, zero rows for this dataset/search.
+- Stats excluded: pressed, zero rows.
+- No activity: pressed, zero rows.
+- All: pressed again, restored the four searched 2010 rows.
+
+Search/sort usability:
+- The 2010 query remained in the search field through every preset switch.
+- After returning to All, Distance sorting remained interactive and put Moselradweg (518 km) first among the four rows.
+- Clearing search restored the full current preset.
+- Empty preset states were intentional and stable; no broken table or lost controls appeared.

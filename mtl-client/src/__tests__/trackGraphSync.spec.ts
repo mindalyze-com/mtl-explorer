@@ -133,6 +133,13 @@ describe('TrackGraph chart sync binding', () => {
     expect(chartSyncMocks.bindChart).not.toHaveBeenCalled();
   });
 
+  it('lets one-finger touch gestures scroll instead of enabling native tooltip tracking', async () => {
+    const wrapper = await mountGraph(true);
+    const options = (wrapper.vm as unknown as { chartOptions: Highcharts.Options }).chartOptions;
+
+    expect(options.tooltip?.followTouchMove).toBe(false);
+  });
+
   it('unbinds chart sync when disabled and rebinds when enabled again', async () => {
     const wrapper = await mountGraph(true);
 

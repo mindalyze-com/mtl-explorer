@@ -1,0 +1,8 @@
+Pass: online
+Phase: add A1, A2, A3
+Detection mode: live watch
+Mutation/settled UTC: 20:16:23 / 20:16:32
+Expected/actual active GPX/media: 5/5; 5/5
+Evidence: six CREATE events, six successful domain callbacks, zero pending rows, GUI showed 5 Tracks.
+Manual rescan used: no
+Status: PASS

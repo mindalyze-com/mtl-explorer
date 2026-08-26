@@ -1,5 +1,10 @@
 import type { FilterInfo } from 'x8ing-mtl-api-typescript-fetch/dist/esm/models/FilterInfo';
 import type { FilterParamsRequest } from 'x8ing-mtl-api-typescript-fetch/dist/esm/models/FilterParamsRequest';
+import { getMeasurementSystem } from '@/composables/useMeasurementSystem';
+import { getFormatLocale } from '@/composables/useLocale';
+import { effectiveParamMetadata } from '@/utils/filterMetadata';
+import { formatFilterParamSummaryValue } from '@/utils/filterParamUnits';
+import type { MeasurementSystem } from '@/utils/units';
 
 const ACTIVE_FILTER_IDENTITY_SEPARATOR = ' · ';
 
@@ -28,7 +33,9 @@ function orderedStringParamNames(filterInfo?: FilterInfo | null, filterParams?: 
 
 export function formatActiveFilterIdentity(
   filterInfo?: FilterInfo | null,
-  filterParams?: FilterParamsRequest | null
+  filterParams?: FilterParamsRequest | null,
+  measurementSystem: MeasurementSystem = getMeasurementSystem(),
+  locale: string | undefined = getFormatLocale()
 ): string {
   const filterConfig = filterInfo?.filterConfig;
   const viewName = compactText(filterConfig?.displayName) || compactText(filterConfig?.filterName);
@@ -37,7 +44,13 @@ export function formatActiveFilterIdentity(
   const stringParams = filterParams?.stringParams ?? {};
   for (const name of orderedStringParamNames(filterInfo, filterParams)) {
     const criterion = compactText(stringParams[name]);
-    if (criterion) return `${viewName}${ACTIVE_FILTER_IDENTITY_SEPARATOR}${criterion}`;
+    if (!criterion) continue;
+    const metadata = effectiveParamMetadata(filterInfo, name);
+    const summary =
+      metadata?.widget === 'number'
+        ? formatFilterParamSummaryValue(criterion, metadata.unit, measurementSystem, locale)
+        : criterion;
+    return `${viewName}${ACTIVE_FILTER_IDENTITY_SEPARATOR}${summary}`;
   }
   return viewName;
 }

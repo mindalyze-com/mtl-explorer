@@ -1,0 +1,33 @@
+MED_19 overlapping-activity ambiguity evidence
+
+Disposable fixture
+- File: MED_19-overlap-track.gpx / mtl-regression-ambiguity-track.gpx
+- SHA-256: 0b2c2c6e1801778cf68f1911995ef44503dccc909100b37a1d0c5394779c0b70
+- Fully synthetic, six timestamped points from 07:59 through 08:24 UTC.
+- Unique 770.87 m route with the same activity time window as track 100013.
+- An initial shorter parallel candidate was correctly classified as a duplicate and was replaced before ambiguity measurement.
+
+Initial overlap
+- Live watcher indexed the final route successfully as track 100019.
+- For every media ID 400000-400007, the database stored two eligible correlations:
+  selected track 100013=true; alternate track 100019=false;
+  ambiguous=true; alternative_count=2 on both rows.
+- UI showed Ambiguous (2) on all eight timeline items.
+- The displayed winner retained track 100013's exact baseline origin, time, distance, and order.
+
+Explicit recalculation
+- Added only a synthetic GPX description and replaced the watched fixture.
+- Live watcher deleted/reimported the alternate as track 100020 and the production job recalculated all eight media.
+- Database again stored both candidates for every item with track 100013 selected and track 100020 alternate.
+- All eight Ambiguous (2) UI row strings matched the pre-recalculation strings exactly.
+
+Restart
+- Disposable app restart completed in 12.006 seconds.
+- After browser reload, all eight Ambiguous (2) row strings still matched exactly.
+- Database still held 16 rows: one selected 100013 and one alternate 100020 per media, all ambiguous with count 2.
+
+Cleanup
+- Moved the overlap GPX to recoverable disposable storage outside the watched folder.
+- Live watcher deleted track 100020; correlation job recalculated eight media.
+- Final database: 8 correlation rows, 0 ambiguous, 8 selected; track 100020 absent.
+- Final browser timeline matched the MED_13 unambiguous eight-row baseline byte-for-byte.

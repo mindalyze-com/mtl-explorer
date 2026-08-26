@@ -62,4 +62,30 @@ describe('GpxUploadTab', () => {
     expect(wrapper.find('button').exists()).toBe(false);
     expect(uploadGpxFile).not.toHaveBeenCalled();
   });
+
+  it('shows the per-file server rejection when a GPX has no track points', async () => {
+    vi.mocked(uploadGpxFile).mockResolvedValue({
+      success: false,
+      message: 'Uploaded GPX does not contain any track points. No track was imported.',
+    });
+    const wrapper = await mountAvailableUploadTab();
+    const waypointOnly = new File(
+      [
+        '<gpx version="1.1" xmlns="http://www.topografix.com/GPX/1/1">',
+        '<wpt lat="46.9480" lon="7.4470"><name>Not a track</name></wpt>',
+        '</gpx>',
+      ],
+      'waypoint-only.gpx'
+    );
+
+    await dropFile(wrapper, waypointOnly);
+    await wrapper.get('button').trigger('click');
+    await flushPromises();
+
+    expect(uploadGpxFile).toHaveBeenCalledWith(waypointOnly);
+    expect(wrapper.get('.upload-notice--error').text()).toContain(
+      'Uploaded GPX does not contain any track points. No track was imported.'
+    );
+    expect(wrapper.text()).toContain('waypoint-only.gpx');
+  });
 });

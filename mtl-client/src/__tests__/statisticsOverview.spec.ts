@@ -316,6 +316,22 @@ describe('StatisticsOverview', () => {
     expect(wrapper.find('[data-test="summary-tracks"]').text()).toContain('1');
   });
 
+  it('recovers from a load failure when the parent retries statistics', async () => {
+    fetchStatisticsOverviewMock.mockRejectedValueOnce(new Error('offline')).mockResolvedValueOnce(overview());
+
+    const wrapper = mountOverview();
+    await flush();
+
+    expect(wrapper.find('[data-test="overview-error"]').exists()).toBe(true);
+
+    await wrapper.setProps({ retryRevision: 1 });
+    await flush();
+
+    expect(fetchStatisticsOverviewMock).toHaveBeenCalledTimes(2);
+    expect(wrapper.find('[data-test="overview-error"]').exists()).toBe(false);
+    expect(wrapper.find('[data-test="summary-tracks"]').text()).toContain('2');
+  });
+
   it('refetches semantic milestones when the measurement system changes', async () => {
     fetchStatisticsOverviewMock.mockResolvedValueOnce(overview()).mockResolvedValueOnce(
       overview({

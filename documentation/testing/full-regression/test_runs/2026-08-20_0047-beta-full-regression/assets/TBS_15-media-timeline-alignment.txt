@@ -1,0 +1,20 @@
+TBS_15 media timeline, sub-unit, and scope behavior
+
+All sub-units, Activity era:
+- Common axes for every chart: 2013-Q1 and 2026-Q3.
+- Duration/Distance/Activity/Energy/Intensity/Training Load/Exploration each rendered two points.
+- Media rendered two Photo and two Video points, preserving zero-value slots.
+
+Q3 sub-unit failure:
+- Selected Q3 successfully.
+- There is media in 2026-Q3 but the filtered Lannion activity is in Q1.
+- Actual rendered cards: only Media, axis 2026-Q3.
+- All seven activity chart cards disappeared instead of retaining a zero-value 2026-Q3 slot.
+
+Available scope-equivalent modes:
+- Matched only produced the one-track activity timeline 2013-Q1 and zero media slots; help says only media linked to current filtered activities is shown.
+- Media history restored the 2013-Q1/2026-Q3 common timeline; help says every dated indexed photo/video can define the range and activity filters do not apply.
+- These semantics work, but frozen Track related / All indexed controls remain absent (MTL-FR-009).
+
+Undated:
+- No Undated media action was present in this dataset/state, so no compact undated drilldown could be selected here.

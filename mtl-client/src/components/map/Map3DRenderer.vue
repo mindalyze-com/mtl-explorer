@@ -55,7 +55,7 @@
 <script setup lang="ts">
 import { computed, inject, markRaw, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { storeToRefs } from 'pinia';
-import maplibregl from 'maplibre-gl';
+import * as maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import TrackReplayControls from '@/components/replay/TrackReplayControls.vue';
 import ReplayTelemetryOverlay from '@/components/replay/ReplayTelemetryOverlay.vue';

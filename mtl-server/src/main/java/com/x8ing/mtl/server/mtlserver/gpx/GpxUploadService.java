@@ -1,6 +1,7 @@
 package com.x8ing.mtl.server.mtlserver.gpx;
 
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
+import io.jenetics.jpx.GPX;
 import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -23,6 +24,9 @@ import java.nio.file.StandardCopyOption;
 public class GpxUploadService {
 
     static final String UPLOAD_SUBDIR = "GPX-UPLOAD";
+    static final String GPX_WITHOUT_TRACK_POINTS_MESSAGE =
+            "Uploaded GPX does not contain any track points. No track was imported.";
+    static final String INVALID_GPX_MESSAGE = "Uploaded GPX could not be read as a valid GPX track.";
 
     @JsonPropertyOrder({
             "available",
@@ -80,13 +84,14 @@ public class GpxUploadService {
     }
 
     /**
-     * Saves the uploaded GPX file to the upload directory.
+     * Saves the uploaded track file to the upload directory.
      * The filename is sanitised to prevent path traversal.
      * If a file with the same name already exists, a numeric suffix is appended.
+     * Native GPX files are parsed before saving so a non-track file never enters the watched directory.
      *
      * @param file the uploaded file
      * @return the actual filename used on disk
-     * @throws IllegalArgumentException if the file is not a .gpx file
+     * @throws IllegalArgumentException if the file is unsupported or empty, or a native GPX has no track points
      * @throws IllegalStateException    if the upload directory is not available
      * @throws IOException              on disk write failure
      */
@@ -104,6 +109,9 @@ public class GpxUploadService {
         }
         if (file.isEmpty()) {
             throw new IllegalArgumentException("Uploaded file is empty.");
+        }
+        if (format == SupportedTrackFormat.GPX) {
+            validateGpxTrackPoints(file);
         }
 
         // Strip any path components the client may have smuggled in
@@ -126,5 +134,23 @@ public class GpxUploadService {
         Files.copy(file.getInputStream(), target, StandardCopyOption.REPLACE_EXISTING);
         log.info("Track file uploaded to: {}", target);
         return target.getFileName().toString();
+    }
+
+    private void validateGpxTrackPoints(MultipartFile file) {
+        try (var inputStream = file.getInputStream()) {
+            GPX gpx = GPX.Reader.of(GPX.Reader.Mode.LENIENT).read(inputStream);
+            boolean hasTrackPoint = gpx.tracks()
+                    .flatMap(track -> track.segments())
+                    .flatMap(segment -> segment.points())
+                    .findAny()
+                    .isPresent();
+            if (!hasTrackPoint) {
+                throw new IllegalArgumentException(GPX_WITHOUT_TRACK_POINTS_MESSAGE);
+            }
+        } catch (IllegalArgumentException e) {
+            throw e;
+        } catch (IOException | RuntimeException e) {
+            throw new IllegalArgumentException(INVALID_GPX_MESSAGE, e);
+        }
     }
 }

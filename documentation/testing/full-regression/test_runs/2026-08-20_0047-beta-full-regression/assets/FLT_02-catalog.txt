@@ -1,0 +1,9 @@
+Filter catalog browsing
+
+- Full catalog count: 19 views.
+- Group headings observed: Core, Activity, Date & Time, Performance, Quality.
+- Search "gradient": 4 gradient view buttons remained.
+- Search "activity": Activities by main group, Activities by exact type, and
+  Activities by keyword remained as matching results.
+- Clearing search restored the full 19-view catalog.
+- Catalog remained scrollable and Cancel/Apply actions stayed available.

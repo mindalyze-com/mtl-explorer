@@ -1,0 +1,27 @@
+MED_32 separate viewer window controls
+
+Panel maximize
+- Normal test state: Details hidden, Activity media collapsed, item 1 of 8.
+- Maximize panel changed the active sheet to sheet--fullscreen.
+- Maximized bounds were exactly the MTL Explorer viewport: left/top 0/0,
+  right/bottom 1049/942, width/height 1049/942.
+- Maximize changed to Restore panel size; Enter fullscreen remained adjacent.
+- Details and Activity media retained hidden/collapsed state on entry.
+- Both were changed to visible/expanded while maximized.
+- Next moved 1 -> 2, Previous moved 2 -> 1, double-click zoom reached
+  scale(2), and Reset zoom worked while maximized.
+- Details and Activity media were then changed back to hidden/collapsed.
+- Escape restored the normal still-open viewer and retained item 1,
+  Details hidden, and Activity media collapsed.
+- A second maximize followed by Restore panel size also retained those states.
+
+Native browser fullscreen
+- Enter fullscreen cleared panel maximize, as designed.
+- The connected in-app browser exposes no usable Fullscreen API:
+  document.fullscreenEnabled is undefined and document.fullscreenElement stayed null.
+- The control returned to Enter fullscreen and the sheet returned to its normal
+  920 x 866.63 layout at left 64.5/top 75.37.
+- Because browser fullscreen never existed, its interaction/state-retention and
+  Exit fullscreen/Escape return paths could not be exercised end to end.
+- No console error was exposed; the component intentionally catches the rejected
+  request. This is treated as an environment block, not a product finding.

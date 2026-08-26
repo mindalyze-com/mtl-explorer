@@ -1,0 +1,43 @@
+MED_22 manual-location precedence during clock preview
+
+Baseline
+- Track 100013 Media had 8 items.
+- mtl-regression-estimated-a.jpg (media 400002): Estimated, 17/08/2026
+  10:01, 44.83 m; activity marker said Estimated from photo time and activity
+  track.
+- No manual locations, time corrections, or correlation work rows.
+
+Manual assignment
+- Used visible Media tools > Adjust locations > Set location.
+- Assigned 46.94855, 7.44825 with note "MED_22 offset precedence".
+- Card changed to Set by you; activity marker accessible name changed to
+  "mtl-regression-estimated-a.jpg. Location set by you".
+
+Valid non-zero preview
+- The control's step is 0.25 hours. Previewed +0.25 h (+15 min) without save.
+- UI said "Unsaved preview. 3 items use the camera clock."
+- The target card remained Set by you and Preview, while its underlying values
+  changed to 17/08/2026 10:16 and 131.80 m.
+- Activity marker remained "Location set by you".
+- Viewer Taken changed to 17/08/2026 10:16 with
+  "Camera clock · +15 min correction".
+- Viewer Location remained Set by you.
+- Viewer location mini-map remained
+  "Location set by you at 46.94855, 7.44825".
+- Edit location remained visible. Expanding it during the active preview kept
+  latitude 46.94855, longitude 7.44825, the note, and Clear assignment.
+
+Read-only database evidence during preview
+- media_manual_location: media 400002 at 46.94855,7.44825 with exact note.
+- media_resolved_location: USER_ASSIGNED at 46.94855,7.44825.
+- Persisted selected correlation remained at 44.83 m and route
+  46.94809,7.44751; the 131.80 m value was preview-only.
+- media_time_correction count: 0.
+
+Cleanup
+- Used the visible Clear assignment while the +15 min preview was active.
+- The UI returned to the exact 8-item baseline: target Estimated at 10:01 and
+  44.83 m; its marker returned to Estimated from photo time and activity track.
+- Final counts: manual locations 0, time corrections 0, media work 0,
+  track work 0.
+- Final media 400002 resolution: TRACK_INTERPOLATED; persisted distance 44.83 m.

@@ -1,0 +1,11 @@
+Coverage: MAP_08
+Same-run interaction source: IMP_07
+Direct single-line clicks:
+- Lannion at 3 km -> Track Details /mtl/track/100004
+- Vitry-Langres at 5 km -> Track Details /mtl/track/100002
+- Jura Route at 300 m -> Track Details /mtl/track/100000
+Each click used a known source GPX point after visible location search and zoom.
+Details contained the matching track identity and embedded track map.
+No multi-track chooser appeared for these isolated clicks.
+Primary detailed evidence: ../assets/IMP_07-map-interaction.txt
+Result: isolated rendered track clicks selected the matching track and opened details.

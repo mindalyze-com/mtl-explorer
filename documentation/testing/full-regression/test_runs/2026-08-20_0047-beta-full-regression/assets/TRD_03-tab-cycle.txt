@@ -1,0 +1,13 @@
+Track: FIT #100005 (Activity.fit)
+Mounted at: 2026-08-20T01:26:37Z
+
+Second tab cycle:
+- Quality: selected, populated, SUCCESS visible
+- Related: selected, populated, related-track content visible
+- Events: selected, populated, explicit "No track events" state
+- Overview: selected, populated, distance summary visible
+- Graphs: selected, populated, Speed/Elevation charts and 350-point setting visible
+
+No tab panel was blank. Returning to Graphs retained Time, Range, and 350
+points. Console entries after mount contained one details load and one chart
+series fetch; repeated tab switching did not create a reload loop.

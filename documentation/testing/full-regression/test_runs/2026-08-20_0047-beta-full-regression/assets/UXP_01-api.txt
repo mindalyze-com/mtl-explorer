@@ -1,0 +1,34 @@
+Coverage: UXP_01 first-party API capture
+Source: server LoggingFilter, exact active browser session, journey window. Static assets and map-proxy tile ranges excluded.
+Completed first-party API requests: 123. Unexpected status: 0. Slowest completion: 353 ms. All are below 2,000 ms.
+
+Format: method route status | count | min-max ms | every captured duration ms
+
+GET config/get 200 | 1 | 19-19 | 19
+GET data-freshness 200 | 11 | 1-6 | 1,1,5,3,2,2,2,6,2,5,2
+GET filter/get 200 | 1 | 61-61 | 61
+GET indexer/status 200 | 4 | 2-8 | 8,2,3,2
+GET info/build 200 | 3 | 0-1 | 1,1,0
+GET jobs/status 200 | 4 | 10-31 | 31,10,11,11
+GET location-search 200 | 3 | 19-57 | 57,26,19
+GET location-search/status 200 | 6 | 1-5 | 1,5,1,2,1,5
+GET map/config 200 | 5 | 1-8 | 8,5,4,1,3
+GET map/status 200 | 32 | 0-2 | 1,0,1,1,1,1,2,0,1,1,2,1,1,2,2,1,1,1,2,1,0,2,1,1,0,2,1,1,1,1,1,0
+GET media/get-media-in-bounds 200 | 1 | 11-11 | 11
+GET planner/config 200 | 1 | 2-2 | 2
+GET planner/status 200 | 6 | 5-9 | 9,5,6,6,5,6
+GET tracks/100039/chart-series 200 | 3 | 157-353 | 353,236,157
+GET tracks/get/100039 200 | 3 | 13-51 | 46,51,13
+GET tracks/get/100039/details 200 | 3 | 8-53 | 17,53,8
+HEAD info/build 200 | 1 | 2-2 | 2
+POST analytics/client-environment 204 | 1 | 7-7 | 7
+POST filter/resolve/800000 200 | 4 | 7-20 | 13,20,16,7
+POST filter/resolve/800018 200 | 3 | 19-23 | 23,21,19
+POST media/trends 200 | 6 | 5-19 | 14,13,5,8,19,8
+POST planner/prewarm 202 | 1 | 37-37 | 37
+POST tracks/get-simplified 200 | 5 | 10-198 | 12,198,11,10,11
+POST tracks/get-track-overview 200 | 6 | 20-36 | 35,36,24,29,24,20
+POST tracks/get-track-statistics 200 | 6 | 9-37 | 37,31,25,24,21,9
+POST tracks/related/100039 200 | 3 | 24-62 | 62,41,24
+
+All captured server requests completed. The browser surface has no pending-request inventory, so it cannot prove that no client request remained unexpectedly pending after the window.

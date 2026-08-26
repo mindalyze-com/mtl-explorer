@@ -1,0 +1,6 @@
+Explicit constraints at accounting close:
+- Docker was initially absent; installed separately from Docker's stable Debian repository and recorded in RUN_SETUP.
+- The remote app origin is plain HTTP; secure-origin geolocation coverage will be NOT APPLICABLE where required by the frozen plan.
+- Browser screenshot capture is BLOCKED with exact attempts and unblock paths in ACC_04.
+- The app begins with an empty GPS/MEDIA dataset; required public and synthetic fixtures will be created in DAT/IMP/FIT/MED packets.
+- No private local GPX or media will be used.

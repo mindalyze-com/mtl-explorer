@@ -20,3 +20,8 @@ map sidecar, and log them for operational visibility. The image writes
 `/status` returns those values in `versionInfo`.
 
 The runtime uses APSW `3.53.1.0`, which bundles SQLite `3.53.1`.
+
+The default Compose uses a 32 MiB SQLite mmap window, a 128 MiB container limit,
+a 64 MiB reservation, and no swap. The validated floor is 96 MiB; adding 20
+percent gives 115.2 MiB, which is rounded up to a conventional allocation. Set
+`MTL_LOCATION_SEARCH_MMAP_SIZE` in bytes when a different window is needed.

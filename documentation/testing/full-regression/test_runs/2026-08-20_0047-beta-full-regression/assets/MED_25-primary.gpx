@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="MTL Explorer regression"
+     xmlns="http://www.topografix.com/GPX/1/1">
+  <trk>
+    <name>MED_25 Primary</name>
+    <type>walking</type>
+    <trkseg>
+      <trkpt lat="47.000000" lon="8.000000"><ele>500</ele><time>2031-01-01T10:00:00Z</time></trkpt>
+      <trkpt lat="47.001000" lon="8.001000"><ele>501</ele><time>2031-01-01T10:05:00Z</time></trkpt>
+      <trkpt lat="47.002000" lon="8.002000"><ele>502</ele><time>2031-01-01T10:10:00Z</time></trkpt>
+    </trkseg>
+  </trk>
+</gpx>

@@ -31,6 +31,7 @@ user's known area are fetched in the background before the first route request.
 ```bash
 docker build -t mytraillog-brouter:local docker-brouter
 docker run --rm -p 17777:17777 -p 17778:17778 \
+  --memory 512m --memory-swap 512m \
   -v brouter-segments:/segments4 \
   mytraillog-brouter:local
 
@@ -40,6 +41,19 @@ curl "http://localhost:17777/brouter?lonlats=8.5402,47.3784|8.5517,47.4515&profi
 # Segment status:
 curl http://localhost:17778/status
 ```
+
+The image defaults to a fixed 128 MiB Java heap, an 8 MiB young generation,
+two active processors, and a 300-second route timeout. The Compose container
+limit is 512 MiB. The validated floor is 384 MiB; adding 20 percent gives
+460.8 MiB, which is rounded up to a conventional allocation. The JVM, Python
+supervisor, and rd5 file cache are not part of the Java heap.
+The app-side Compose timeout is 310 seconds so BRouter can return its own result
+or timeout for long routes instead of being cut off after the server default of
+8 seconds.
+Override `BROUTER_JAVA_XMX`, `BROUTER_JAVA_XMS`,
+`BROUTER_JAVA_YOUNG_GENERATION`, `BROUTER_JAVA_ACTIVE_PROCESSORS`, or
+`BROUTER_JAVA_MAX_RUNNING_TIME_SEC` only after testing representative long
+routes.
 
 ## Run as a MTL Explorer sidecar
 

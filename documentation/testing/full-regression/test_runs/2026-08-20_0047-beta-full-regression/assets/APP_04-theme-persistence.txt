@@ -1,0 +1,7 @@
+APP_04 selected-theme persistence
+
+- Selected Dark in Admin Preferences: root data-theme=dark.
+- Reloaded the live /mtl/admin/preferences route. It returned with root dark, Dark aria-pressed=true, Light false, and 8 Tracks available.
+- Signed out through Admin Session. The /mtl/login screen retained root data-theme=dark.
+- Signed back in with documented credentials. /mtl/ returned with root dark and 8 Tracks.
+- Reopened Preferences: root remained dark; Dark was pressed and Light unpressed.

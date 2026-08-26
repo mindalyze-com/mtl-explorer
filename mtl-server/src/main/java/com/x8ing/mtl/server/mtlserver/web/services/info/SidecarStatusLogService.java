@@ -1,8 +1,8 @@
 package com.x8ing.mtl.server.mtlserver.web.services.info;
 
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
 import com.x8ing.mtl.server.mtlserver.db.entity.logs.SystemLog;
 import com.x8ing.mtl.server.mtlserver.db.repository.logs.SystemLogService;
 import com.x8ing.mtl.server.mtlserver.planner.dto.BRouterStatusDto;
@@ -73,7 +73,7 @@ public class SidecarStatusLogService {
             log.info("{}: {}", LOG_MESSAGE, compactJson);
             logReadableVersionInfo(snapshot);
             systemLogService.saveLog(SystemLog.TOPIC1.SERVER, SYSLOG_TOPIC2, null, LOG_MESSAGE, detail);
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             log.warn("Could not serialize sidecar status snapshot: {}", e.getMessage());
         } catch (Exception e) {
             log.warn("Could not persist sidecar status snapshot: {}", e.getMessage());

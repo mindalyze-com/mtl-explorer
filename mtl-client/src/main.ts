@@ -9,6 +9,8 @@ import { installGlobalErrorHandlers } from '@/bootstrap/globalErrorHandlers';
 import { startEarlyPrefetch } from '@/bootstrap/earlyPrefetch';
 import { installHighchartsTheme } from '@/composables/useHighchartsTheme';
 import { warmBackgroundCache } from '@/utils/backgroundCacheWarmer';
+import { setWorkerUrl } from 'maplibre-gl';
+import mapLibreWorkerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url';
 
 // ── Side-effect-only style imports (must come before component CSS) ──
 import 'primeicons/primeicons.css';
@@ -17,10 +19,11 @@ import 'highlight.js/styles/stackoverflow-light.min.css';
 import './assets/main.css';
 
 // ── Side-effect plugins ──
+import Highcharts from 'highcharts';
 import HighchartsVue from 'highcharts-vue';
-import 'highcharts/highcharts-more';
-import 'highcharts/modules/solid-gauge';
-import 'highcharts/modules/accessibility';
+import 'highcharts/esm/highcharts-more';
+import 'highcharts/esm/modules/solid-gauge';
+import 'highcharts/esm/modules/accessibility';
 import hljs from 'highlight.js/lib/core';
 import sql from 'highlight.js/lib/languages/sql';
 import pgsql from 'highlight.js/lib/languages/pgsql';
@@ -57,6 +60,7 @@ document.addEventListener(
 );
 
 // ── Boot ──
+setWorkerUrl(mapLibreWorkerUrl);
 initializeStartupDiagnostics();
 startupLog('boot', 'Vue bootstrap starting', { baseUrl: import.meta.env.BASE_URL });
 
@@ -73,7 +77,7 @@ app.use(createPinia());
 installGlobalErrorHandlers(app);
 app.use(router);
 installPrimeVue(app);
-app.use(HighchartsVue);
+app.use(HighchartsVue, { highcharts: Highcharts });
 app.use(hljsVuePlugin);
 
 app.mount('#app');

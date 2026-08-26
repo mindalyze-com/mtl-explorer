@@ -1,0 +1,11 @@
+PLN_01 profile evidence
+
+- Temporary Lannion geo filter reset: global result returned from 1/7 to 7 Tracks.
+- Planner opened from the main navigation.
+- BRouter status: ready.
+- Initial routing profile: Hiking.
+- Profile list: Hiking, Road Bike, Mountain Hiking, Car.
+- Selected profile: Road Bike.
+- Active accessible control after selection: Road Bike.
+- Initial route state: distance 0.00 m, ascent 0 m, descent 0 m, duration unavailable, legs 0.
+- No error was shown.

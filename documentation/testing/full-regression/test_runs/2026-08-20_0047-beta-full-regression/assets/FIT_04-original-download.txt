@@ -1,0 +1,12 @@
+FIT_04 original-source download
+
+Visible action: Track 100005 > Overview > Download original.
+Browser output path: <browser-downloads>/Unconfirmed 329159.crdownload
+Browser note: The in-app browser retained its temporary .crdownload name after the complete payload arrived.
+Bytes: 94096
+Downloaded SHA-256: 949a238e1bb75c3684479785f76fa9a16888bb394518844248f488171d591387
+Uploaded source SHA-256: 949a238e1bb75c3684479785f76fa9a16888bb394518844248f488171d591387
+File identification: FIT Map data; header contains .FIT signature.
+First 16 bytes: 0e206308806f01002e4649549e434000
+
+Result: Downloaded payload remains FIT, is 94,096 bytes, and is byte-identical to the uploaded official sample. The temporary filename is an in-app browser download-manager limitation, not a payload mismatch.

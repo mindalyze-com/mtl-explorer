@@ -3,6 +3,7 @@ package com.x8ing.mtl.server.mtlserver.web.global;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import lombok.SneakyThrows;
 import org.springframework.stereotype.Component;
+import tools.jackson.databind.ObjectMapper;
 
 @Component
 @JsonPropertyOrder({
@@ -10,10 +11,10 @@ import org.springframework.stereotype.Component;
 })
 public class Utils {
 
-    private final MyObjectMapper objectMapper;
+    private final ObjectMapper objectMapper;
 
 
-    public Utils(MyObjectMapper objectMapper) {
+    public Utils(ObjectMapper objectMapper) {
         this.objectMapper = objectMapper;
     }
 
@@ -27,7 +28,7 @@ public class Utils {
 
     @SneakyThrows
     public String toJSON(Object o) {
-        return objectMapper.objectMapper().writeValueAsString(o);
+        return objectMapper.writeValueAsString(o);
     }
 
     public static String bytesToHex(byte[] bytes) {

@@ -1,0 +1,34 @@
+Finding: MTL-FR-023
+Disposition: FIXED on the current-worktree local stack
+
+Root cause
+- Statistics owns the parent trend request while Statistics Overview owns a separate overview request and error state.
+- The top Retry reran only the parent request. A failed overview therefore stayed latched after connectivity returned.
+
+Implementation
+- The top Retry now increments an overview retry revision and reruns the parent statistics request.
+- Statistics Overview watches that revision and reruns its own overview request.
+
+Automated checks
+- Focused Statistics tests: 2 files, 25 tests passed.
+- The overview test reproduces an initial offline failure and proves the retry revision replaces the error with loaded data.
+- Full client suite after all combined fixes: 131 files, 762 tests passed.
+- Production build and type-check passed.
+- Full ESLint passed with zero errors and eight warnings in unchanged pre-existing files.
+- Scoped Prettier and git diff check passed.
+
+Controlled local UI reproduction
+- Used a dedicated local Vite client with a separately stoppable TCP proxy to the current-worktree backend. The loaded browser page and main backend stayed running throughout each outage/recovery proof.
+- Warmed and signed in to the shell, stopped only the proxy, and opened Statistics.
+- Desktop and 390x760 layouts both showed `Statistics could not be loaded.`, Retry, and `Statistics overview could not be loaded.`
+- Restored only the proxy and activated Retry once without reloading the page.
+- Both layouts removed both errors and rendered the overview cards, including 4 Tracks and 58.6 km.
+- Stopped the isolated proxy and client after the proof. Restored the main local browser at its normal desktop viewport.
+
+Screenshots
+- MTL-FR-023-fix-local-desktop.webp
+- MTL-FR-023-fix-local-mobile.webp
+
+Evidence boundary
+- The screenshots show the recovered overview after the single Retry.
+- The paired error state and one-click transition were asserted from the accessible browser snapshot in each layout.

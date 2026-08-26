@@ -1,0 +1,17 @@
+FIT_02 acceptance, indexing, and UI evidence
+
+Watcher/conversion:
+- 23:52:53.178Z live watcher detected CREATE for Activity.fit.
+- GPSBabel command: garmin_fit input to GPX 1.1 output.
+- Conversion produced 479,844 characters of GPX XML.
+- Track 100005 stored with status SUCCESS in 1.66 seconds.
+- No outliers were reported by the GPX reader.
+
+Freshness/UI:
+- New data available banner appeared; visible Reload was applied.
+- Main map/filter count changed from 5 to 6 tracks.
+- Statistics > Tracks search for Activity.fit returned 1 of 6 tracks.
+- Result: Track 100005, Walking, 3.60 km, 59m 57s, 3.6 km/h, 347 Wh.
+- Opening the row navigated to /mtl/track/100005, showed ID #100005, embedded track map, and Download original.
+
+Result: FIT accepted, converted, indexed, mapped, searchable, and included in statistics.

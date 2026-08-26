@@ -92,20 +92,13 @@ collection.
 
 The final chart in **Statistics → Trends** shows stacked photo and video counts.
 It follows the selected total, year, quarter, month, week, or day grouping and
-defaults to **Activity era**. This mode uses the first visible GPS activity and
-the current period as the chart range, but includes all indexed media inside
-that range whether or not it is linked to an activity. Earlier or future-dated
-media stays in the indexed totals and is shown below the chart without extending
-the timeline. Selecting one of those counts switches to **Media history**.
-
-**Media history** lets every dated indexed item define the chart range.
-**Matched only** limits the chart to media linked to activities in the current
-track filters. Each mode includes a short visible explanation and a hover/focus
-tooltip.
+defaults to **All indexed**, where every dated indexed item can define the chart
+range. **Track related** limits the chart to media linked to activities in the
+current track filters. Each scope includes a short visible explanation and a
+hover/focus tooltip.
 
 The Trends table keeps its full period list and shows separate photo and video
-counts. Activity era only limits chart axes; it does not remove table rows or
-change indexed totals.
+counts. Changing the media scope does not remove activity rows.
 
 Media and activity charts share one dated timeline. A period missing from one
 source is kept with a zero value, so every chart stays aligned. Undated indexed
@@ -114,7 +107,7 @@ period to the axes.
 
 Selecting a non-empty media stack opens a paged mosaic for that period. The
 mosaic can show all media, photos only, or videos only; loads 60 items at a
-time; opens the shared viewer; and, in Matched only mode, can return directly
+time; opens the shared viewer; and, in Track related scope, can return directly
 to the linked activity's Photos tab.
 
 ## Track Details and viewer

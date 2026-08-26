@@ -1,0 +1,14 @@
+IMP_08 statistics count
+
+Baseline before import: 0 tracks (IMP_01).
+After five public GPX source files settled: Statistics > Tracks shows 5 tracks.
+Observed delta: +5.
+Source split behavior: none; one imported track per source file.
+Track-browser summary: 5 tracks, 1,043 km, 23h 31m.
+
+Source-to-track mapping:
+JuraRoute72011.gpx -> 100000
+MoselradwegAusWiki.gpx -> 100001
+Vitry-le-Francois_Langres.gpx -> 100002
+VoieVerteHauteVosges.gpx -> 100003
+Lannion_Plestin_parcours24.4RE.gpx -> 100004

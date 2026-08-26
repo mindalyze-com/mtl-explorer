@@ -1,0 +1,19 @@
+TBS_14 media chart and scope controls
+
+PASS:
+- Trends Charts rendered eight chart cards.
+- Order: Duration, Distance, Activity, Energy, Intensity Index, Training Load, Exploration, Media.
+- Media is the final chart and contains a rendered Highcharts media series.
+
+FAIL against frozen coverage:
+- All indexed button count: 0.
+- Track related button count: 0.
+- The required All indexed default selection and the two required help targets cannot be exercised.
+
+Actual controls in this image:
+- Activity era (pressed by default).
+- Media history.
+- Matched only.
+- Notice: All indexed media from the activity-era range; media does not need to be linked to an activity.
+
+These labels/modes do not satisfy the frozen All indexed / Track related scope-control contract.

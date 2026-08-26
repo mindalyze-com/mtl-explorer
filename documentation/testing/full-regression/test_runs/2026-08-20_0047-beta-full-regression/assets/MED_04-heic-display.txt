@@ -1,0 +1,21 @@
+MED_04 HEIC display evidence
+
+Fixture
+- Source: public repository docs/favicon-96x96.png (no private media).
+- Output: mtl-regression-heic.heic, HEIC 96x96, 3,262 bytes.
+- SHA-256: 62793747cfa6c4eae48549ed17eab43dd1e1d358fe0a17449318cd4494eb21d8.
+- Remote watched path: data/media/2026-08-20_0047-beta-full-regression/mtl-regression-heic.heic.
+
+Indexing
+- Visible Admin Rescan Media queued successfully.
+- Directory walk: 9 files, 1 queued, 0 missing.
+- MediaIndexer indexed mtl-regression-heic.heic.
+- Correlation job processed media=1 and remaining=0.
+- Assigned media ID: 400008.
+
+End-user display
+- Trends exposed Undated media: 1.
+- Undated mosaic showed an image thumbnail and filename mtl-regression-heic.heic.
+- Viewer Details identified HEIC / 3.2 KB and offered Download original.
+- Full image used a server-returned blob URL, complete=true, naturalWidth=96, naturalHeight=96.
+- Loading full resolution status cleared after load.

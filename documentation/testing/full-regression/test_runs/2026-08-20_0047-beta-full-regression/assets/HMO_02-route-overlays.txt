@@ -1,0 +1,17 @@
+HMO_02 independent route-overlay controls
+Observed 2026-08-20 Europe/Zurich
+
+Baseline
+- Route overlays: 0 of 7 shown / None shown.
+- GPS tracks stayed independently enabled and the map/filter reported 8 tracks.
+
+Each layer was enabled alone, exposed Hide/pressed plus its opacity slider, changed Home 100->0 and End 0->100, then was disabled before the next layer:
+- Worldwide Hiking: 0/100; Waymarked Trails attribution appeared.
+- Worldwide Cycling: 0/100; Waymarked Trails attribution appeared.
+- Worldwide Mountain biking: 0/100; Waymarked Trails attribution appeared.
+- Swiss Hiking routes: 0/100; SchweizMobil attribution appeared.
+- Swiss Cycling routes: 0/100; SchweizMobil attribution appeared.
+- Swiss Mountain bike routes: 0/100; SchweizMobil attribution appeared.
+- Swiss Hiking trails: 0/100; swisstopo attribution appeared.
+
+After the seventh layer, the summary returned to 0 of 7 / None shown and every control returned to Show. Independence, exact opacity state, and attribution were directly verified. Pixel-level layer ordering above/below GPS tracks is canvas-rendered and cannot be proven under ACC_04.

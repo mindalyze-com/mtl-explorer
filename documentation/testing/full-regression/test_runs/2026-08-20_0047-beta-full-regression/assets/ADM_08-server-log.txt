@@ -1,0 +1,7 @@
+ADM_08 server log
+
+- Admin Server log loaded a populated recent-output region with a `200 lines` selector, `No wrap`, `Refresh`, and a `just now` freshness label.
+- Loaded content included timestamp, level, thread, logger, request path/status/method, duration, and rescan lifecycle lines.
+- Accessible log snapshot length was 42,518 characters; it was not blank or truncated to a placeholder.
+- Before Refresh, the newest visible timestamp was 2026-08-20 09:30:33.847.
+- After waiting and activating Refresh, the newest visible timestamp advanced to 2026-08-20 09:30:54.897 and the freshness label returned to `just now`.

@@ -1,0 +1,24 @@
+ADM_02 track-file upload
+
+Visible Admin surface
+- Track files reported the upload directory available and displayed a click/drag target.
+- Accepted formats were explicit: .gpx, .fit, .tcx, .kml, .kmz, .igc, .nmea, .geojson, .gdb.
+- Save target was GPX-UPLOAD inside the watched GPX folder; automatic indexing was stated.
+- The connected browser has no file-input attachment action. Its native chooser opened, but automation could not select a local file.
+
+Authenticated outcomes from the production endpoint used by the visible control
+- Status: HTTP 200, available=true, `Upload directory is available.`
+- Valid GPX: HTTP 200 success; watcher CREATE; track 100040 indexed SUCCESS in 324 ms.
+- Unsupported .txt: HTTP 400 with the full accepted-format list.
+- Empty .gpx: HTTP 400, `Uploaded file is empty.`
+- Waypoint-only GPX: HTTP 200 success; watcher CREATE; track 100041 later settled `EMPTY_FILE` in 31 ms.
+- Admin Processing exposed only aggregate GPS counts and no per-file failure/result. The upload response therefore remained a false success.
+
+Data and cleanup
+- The server freshness revisions changed. The waypoint-only upload did not create a usable track.
+- Applying the banner refresh kept the visible filter at the expected 8 Tracks.
+- Removed exactly both temporary watched files. The watcher detected both DELETE events and deleted tracks 100040 and 100041.
+- GPX-UPLOAD returned empty. A final banner reload restored matching server/client revisions and 8 Tracks.
+
+Finding
+- MTL-FR-020 (P2, OPEN): waypoint-only upload reports success, then silently indexes as EMPTY_FILE with no per-file failure in Admin.

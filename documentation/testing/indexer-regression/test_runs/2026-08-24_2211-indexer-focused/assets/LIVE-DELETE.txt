@@ -1,0 +1,8 @@
+Pass: online
+Phase: delete A2
+Detection mode: live watch
+Mutation/settled UTC: 20:17:07 / 20:17:16
+Expected/actual active GPX/media: 4/4; 4/4
+Evidence: two DELETE events; both A2 index rows became REMOVED with invocation 2; both domain rows were deleted; freshness Reload showed 4 Tracks.
+Manual rescan used: no
+Status: PASS

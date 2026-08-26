@@ -1,0 +1,11 @@
+FLT_21 Filter and Review sheet structure
+
+Desktop structural checks:
+- Filter opened as a sheet with one Maximize panel action.
+- Maximize changed the action to Restore panel size; restore returned normally.
+- Review tracks opened as a nested sheet with one Maximize panel action, one Close action, and the shared search/table content.
+- No duplicate sheet controls or lost nested content were observed.
+
+Visual dimensions and detents:
+- BLOCKED by ACC_04. The connected browser supplies accessible DOM and pointer actions but no screenshot, element geometry, viewport resize, or mobile detent control.
+- Exact standard desktop dimensions, absence of a visual jump, and usability at both mobile detents cannot be claimed from the available interface.

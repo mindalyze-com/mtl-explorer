@@ -1,0 +1,40 @@
+MTL-FR-001 local fix verification
+Verified: 2026-08-20T08:15:56+02:00
+Repository commit: bc00dcce578052035d2b618603f5b6458bd43b4a
+Worktree note at verification time: the active 2026-08-20 regression run was already untracked; the fix, tests, packet updates, and evidence were uncommitted.
+
+Root cause
+- Both About views read VITE_APP_VERSION/VITE_APP_BUILD, but the release image build did not pass its existing MTL_IMAGE_VERSION/MTL_IMAGE_BUILD_TIME arguments into the Vite build. The views therefore used the literal dev/local-build fallbacks.
+
+Implementation
+- Docker app-builder now exposes the existing image version and image build-time arguments as VITE_APP_VERSION and VITE_APP_BUILD.
+- Compact and full About views use those release values, with Vite's injected client package version/build timestamp as local-development fallbacks.
+- Focused tests cover both the release identity and local fallback paths.
+
+Automated checks
+- npm test -- --run src/__tests__/aboutSourceOverlay.spec.ts src/__tests__/aboutView.spec.ts: PASS, 2 files and 12 tests.
+- npm run type-check: PASS.
+- npx eslint on the two About components and their two tests: PASS.
+- npx prettier --check on the two About components and their two tests: PASS.
+- git diff --check: PASS.
+
+Production build and local stack
+- docker build --target app-builder --build-arg MTL_IMAGE_VERSION=local-fr001 --build-arg MTL_IMAGE_BUILD_TIME=2026-08-20T06:20:00Z -t mtl-fr001-app-builder:local .: PASS; Maven reactor BUILD SUCCESS.
+- Served the rebuilt Spring Boot JAR at http://127.0.0.1:18105/mtl/ with an isolated PostGIS container and empty synthetic GPS/media watch directories. GET /mtl/ returned HTTP 200.
+- Server startup: 0.0.1-SNAPSHOT, build 2026-08-20T06:14:24.902Z; startup completed in 7.092 s.
+- Production bundle contains local-fr001 and 2026-08-20T06:20:00Z.
+
+UI retest
+1. Open the local MTL Explorer root and follow the signed-out redirect.
+2. Open About & source.
+3. Confirm compact About shows Version local-fr001 instead of Version dev.
+4. Open About and credits.
+5. Confirm full About shows Version local-fr001 and Build 2026-08-20T06:20:00Z.
+
+Observed result
+- Expected build identity is visible in both About surfaces.
+- A fresh browser tab recorded zero console warnings or errors through the repaired path.
+- Screenshot: MTL-FR-001-fix-local.webp (80,102 bytes).
+
+Release boundary
+- This is local proof only. The original regression target remains on image 1.404 until a later image build and deployment includes this uncommitted fix.

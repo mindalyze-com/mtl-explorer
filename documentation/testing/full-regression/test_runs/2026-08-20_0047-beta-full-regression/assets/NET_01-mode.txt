@@ -1,0 +1,5 @@
+Coverage: NET_01
+- Active client is a normal in-app browser tab at http://62.238.106.141:18080/mtl/.
+- It is not an installed PWA or installed web-app window.
+- Frozen NET_01 explicitly limits offline cached-track/tile reload to installed PWA/web-app mode and directs normal browser-tab runs to mark it NOT APPLICABLE or NOT COVERED.
+Result: NOT APPLICABLE for this configured client mode; no offline-reload claim is made.

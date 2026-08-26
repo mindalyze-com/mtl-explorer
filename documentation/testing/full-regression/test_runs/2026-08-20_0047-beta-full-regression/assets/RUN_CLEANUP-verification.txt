@@ -1,0 +1,29 @@
+RUN_CLEANUP verification
+Completed: 2026-08-20T12:33:00+02:00
+
+Pre-cleanup finalization gate:
+Finalization gate: PASS (235 coverage IDs terminal)
+
+Disposable target:
+/root/mtl-regression-2026-08-20_0047
+
+Cleanup action:
+docker compose down --volumes --remove-orphans
+
+Verified results:
+- app, db, brouter, and location-search containers removed
+- disposable Compose network removed
+- no matching project containers, volumes, or networks remain
+- exact disposable target directory is absent
+- http://localhost:18080/mtl/ from the server refuses the connection (curl exit 7)
+- http://62.238.106.141:18080/mtl/ refuses the connection (curl exit 7)
+- temporary /tmp/uxp-api.txt removed
+- all run browser tabs closed; one neutral about:blank tab remains
+- SSH session closed normally
+
+No global Docker prune ran. No image or unrelated server resource was removed.
+The local regression run folder and its evidence are outside the disposable server installation.
+
+Timing:
+- docker compose down: about 10 seconds
+- shutdown, exact-directory removal, endpoint/resource verification, and browser/SSH closure: about 35 seconds total

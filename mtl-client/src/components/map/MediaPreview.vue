@@ -158,6 +158,22 @@
             <dd>
               {{ date }}
               <small v-if="captureTimeSource">{{ captureTimeSource }}</small>
+              <button
+                v-if="hasSavedCameraCorrection"
+                type="button"
+                class="mp__clear-correction"
+                :disabled="clearingTimeCorrection"
+                @pointerdown.stop
+                @pointerup.stop
+                @click.stop="clearTimeCorrection"
+              >
+                <i
+                  :class="clearingTimeCorrection ? 'bi bi-arrow-repeat mp__spin' : 'bi bi-arrow-counterclockwise'"
+                  aria-hidden="true"
+                ></i>
+                {{ clearingTimeCorrection ? 'Clearing…' : 'Clear clock correction' }}
+              </button>
+              <small v-if="timeCorrectionError" class="mp__details-error" role="alert">{{ timeCorrectionError }}</small>
             </dd>
           </div>
           <div v-if="camera" class="mp__details-row">
@@ -268,12 +284,13 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import MediaFilmstrip from '@/components/map/MediaFilmstrip.vue';
 import CompatibleVideoPlayer from '@/components/map/CompatibleVideoPlayer.vue';
 import { useMediaPreview } from '@/components/map/useMediaPreview';
 import { useMediaViewport } from '@/components/map/useMediaViewport';
 import MediaLocationMiniMap from '@/components/map/MediaLocationMiniMap.vue';
+import { saveMediaTimeCorrections } from '@/repositories/mediaRepository';
 
 const props = withDefaults(
   defineProps<{
@@ -291,6 +308,7 @@ const props = withDefaults(
     positionSource?: string | null;
     positionEstimated?: boolean;
     positionAmbiguous?: boolean;
+    positionUnknown?: boolean;
     positionTimeDeltaSeconds?: number | null;
     positionLat?: number | null;
     positionLng?: number | null;
@@ -315,6 +333,7 @@ const props = withDefaults(
     positionSource: null,
     positionEstimated: false,
     positionAmbiguous: false,
+    positionUnknown: false,
     positionTimeDeltaSeconds: null,
     positionLat: null,
     positionLng: null,
@@ -334,11 +353,15 @@ const emit = defineEmits<{
   'request-page': [direction: -1 | 1];
   'update:detailsVisible': [visible: boolean];
   'open-on-map': [];
+  'time-correction-cleared': [mediaId: number];
 }>();
 
 const viewportEl = ref<HTMLElement | null>(null);
 const imageEl = ref<HTMLImageElement | null>(null);
 const moreDetailsOpen = ref(false);
+const clearingTimeCorrection = ref(false);
+const timeCorrectionCleared = ref(false);
+const timeCorrectionError = ref('');
 const videoMediaId = computed(() => props.mediaId ?? 0);
 const positionCoordinates = computed(() => {
   const latitude = props.positionLat;
@@ -365,7 +388,7 @@ const positionSourceLabel = computed(() => {
     return `Estimated from ${isVideo.value ? 'video' : 'photo'} time and activity track`;
   }
   if (props.positionSource === 'EXIF_EMBEDDED') return isVideo.value ? 'Video GPS' : 'Photo GPS';
-  if (props.positionTimeDeltaSeconds != null) return 'Position source unknown';
+  if (props.positionUnknown || props.positionTimeDeltaSeconds != null) return 'Position unknown';
   return '';
 });
 const positionSourceIcon = computed(() => {
@@ -385,7 +408,11 @@ const positionDetailLabel = computed(() => {
   if (props.positionSource === 'TRACK_INTERPOLATED' || props.positionEstimated) {
     return positionDeltaLabel.value || 'Matched to activity track';
   }
-  return positionSourceLabel.value || 'Position source unknown';
+  return positionSourceLabel.value || 'Position unknown';
+});
+const hasSavedCameraCorrection = computed(() => {
+  const seconds = props.appliedCameraOffsetSeconds;
+  return !timeCorrectionCleared.value && seconds != null && Number.isFinite(seconds) && seconds !== 0;
 });
 
 const {
@@ -421,6 +448,31 @@ const {
   retryLoad,
   onMediaError,
 } = useMediaPreview(props);
+
+async function clearTimeCorrection(): Promise<void> {
+  const mediaId = props.mediaId;
+  if (mediaId == null || clearingTimeCorrection.value || !hasSavedCameraCorrection.value) return;
+  clearingTimeCorrection.value = true;
+  timeCorrectionError.value = '';
+  try {
+    await saveMediaTimeCorrections({ mediaIds: [mediaId], offsetSeconds: 0 });
+    timeCorrectionCleared.value = true;
+    emit('time-correction-cleared', mediaId);
+  } catch (error) {
+    console.warn('[media-preview] clock correction could not be cleared', { mediaId, error });
+    timeCorrectionError.value = 'Clock correction could not be cleared. Try again.';
+  } finally {
+    clearingTimeCorrection.value = false;
+  }
+}
+
+watch(
+  () => [props.mediaId, props.appliedCameraOffsetSeconds] as const,
+  () => {
+    timeCorrectionCleared.value = false;
+    timeCorrectionError.value = '';
+  }
+);
 
 const hasMoreDetails = computed(() =>
   Boolean(
@@ -945,6 +997,38 @@ onBeforeUnmount(() => {
   display: block;
   margin-top: 0.2rem;
   color: var(--mp-text-muted);
+}
+
+.mp__clear-correction {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: 2rem;
+  margin-top: 0.55rem;
+  padding: 0.3rem 0.55rem;
+  color: var(--mp-text-strong);
+  background: var(--mp-control-bg);
+  border: 1px solid var(--mp-border-strong);
+  border-radius: 6px;
+  font: inherit;
+  cursor: pointer;
+}
+
+.mp__clear-correction:hover:not(:disabled) {
+  background: var(--mp-control-hover);
+}
+
+.mp__clear-correction:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.mp__details-row dd .mp__details-error {
+  color: var(--error);
+}
+
+.mp__spin {
+  animation: mp-resolution-spin 0.9s linear infinite;
 }
 
 .mp__path {

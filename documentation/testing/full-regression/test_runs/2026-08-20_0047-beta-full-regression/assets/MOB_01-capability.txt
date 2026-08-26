@@ -1,0 +1,7 @@
+Coverage: MOB_01
+- Required context: narrow mobile viewport with touch input.
+- Connected end-user browser remains fixed at 1049 x 942 (desktop breakpoint).
+- Its exposed controls provide navigation, semantic pointer/keyboard actions, DOM inspection, and reload, but no viewport/device override and no touch injection.
+- No second connected browser/device is available in this run.
+- The existing MED_31 and PLN_11 capability checks reached the same constraint.
+Result: the required narrow/touch execution cannot be established; desktop input is not accepted as touch evidence.

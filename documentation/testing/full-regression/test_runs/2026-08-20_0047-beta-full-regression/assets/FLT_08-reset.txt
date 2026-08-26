@@ -1,0 +1,13 @@
+Before Reset filter:
+- Activities by keyword · Media
+- From date 2026-08-17
+- Keyword Media
+- 1 / 9 visible tracks
+
+After Reset filter:
+- Active view returned to Smart Base Filter.
+- Criteria returned to No criteria.
+- Keyword identity disappeared.
+- Main map count returned to 9 Tracks.
+- Statistics returned to 9 tracks and 1,047 km.
+- No subset Showing n of 9 state remained.

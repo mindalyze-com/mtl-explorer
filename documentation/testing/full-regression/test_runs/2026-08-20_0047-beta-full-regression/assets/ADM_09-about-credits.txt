@@ -1,0 +1,15 @@
+ADM_09 About and credits
+
+Before login
+- Opened /mtl/about on a fresh hostname/origin with no authentication state.
+- Public content included MTL Explorer identity, description, Version dev, Build local build, source/contact links, licensing, credits, contribution, trademark, safety disclaimer, copyright, and AGPL notice.
+- Closing the public direct route returned to /mtl/login with Username, Password, Sign In, and About & source.
+
+Credits
+- Expanded Credits and data sources.
+- Visible linked sources included MapLibre GL JS, OpenStreetMap, Protomaps Basemaps, PMTiles, Mapterhorn terrain, swisstopo, SchweizMobil, Waymarked Trails, Highcharts, GeoNames, GPSBabel, and BRouter, each with purpose/license or attribution.
+
+After login and navigation
+- Signed-in Admin About & credits opened the same full project-detail content as an overlay; closing it restored the preceding Preferences section.
+- Opened the authenticated direct /mtl/about route from Admin Server log. Closing used the valid signed-in map fallback at /mtl/ with 8 Tracks and all main navigation controls.
+- All temporary About overlays/tabs were closed cleanly.

@@ -1,0 +1,7 @@
+DEL_02 automatic deletion processing
+
+- Live watcher detected DELETE for Vitry-le-Francois_Langres.gpx.
+- Live watcher detected DELETE for VoieVerteHauteVosges.gpx.
+- Index worker deleted gpsTrack and track data for id 100002 (Vitry).
+- Index worker deleted gpsTrack and track data for id 100003 (Voie Verte).
+- Automatic processing completed; Rescan GPS was not required.

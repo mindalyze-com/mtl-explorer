@@ -1,0 +1,14 @@
+APP_06 map-style/UI-theme independence
+
+- Automatic map source exposed exactly 7 themes:
+  - OSM Topo Contrast (topo-contrast)
+  - OSM Topo Light (light-topo)
+  - Swiss Topo Color (swisstopo-color)
+  - Swiss Topo Light (swisstopo)
+  - OSM Light (light)
+  - OSM Gray (grayscale)
+  - OSM Dark (dark)
+- With root UI data-theme=dark, selected all seven sequentially; each radio became aria-checked=true while UI root stayed dark.
+- Left OSM Dark selected, changed only UI theme to light, and reopened Map. Current map still reported OSM Dark, proving independence.
+- With root UI data-theme=light, selected all seven sequentially again; each radio became aria-checked=true while UI root stayed light.
+- Source stayed Automatic and map controls/8 Tracks remained available.

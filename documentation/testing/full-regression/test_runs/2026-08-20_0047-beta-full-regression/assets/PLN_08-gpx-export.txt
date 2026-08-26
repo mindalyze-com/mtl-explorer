@@ -1,0 +1,18 @@
+PLN_08 saved-plan GPX export evidence
+
+Fixture
+- Saved plan: Regression Export 0047.
+- Description: Temporary PLN_08 export validation.
+- Route summary: 5.13 km, ascent 0 m, descent 3 m, 2 waypoints.
+- Load list exposed enabled button: Export Regression Export 0047 as GPX.
+- Button geometry: 76.8 x 52.3 px at x=871.1, y=358; disabled=false.
+
+Attempts
+1. Semantic end-user click while browser download observer waited 10 seconds: timed out; no download.
+2. Visible pointer click at the control center while browser download observer waited 12 seconds: timed out; no download.
+- A direct follow-up click produced no dialog, error, or console error.
+- Targeted check of the local Downloads directory found no recent GPX file.
+
+Cleanup
+- Regression Export 0047 was deleted through its confirmation dialog.
+- Final Load state: No saved routes yet. Draw a route and save it.

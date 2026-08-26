@@ -1,0 +1,12 @@
+MCT_02 measured-result navigation evidence
+
+- Source row: sample.geojson in the four-track Segment Analyzer table.
+- Name cell used a visible link-style result control.
+- Opened view: Track Details.
+- Track ID: 100010.
+- Name: MTL Synthetic Segment Alpha.
+- Activity: Bicycle.
+- Date: 20/08/2026, 02:05.
+- Distance: 144.59 m.
+- Overview, Graphs, Quality, Related, Media, and Events tabs were present.
+- Track map and original/GPX download controls were present.

@@ -1,0 +1,13 @@
+Coverage: MAP_05
+Selected public track: #100000, Jura Route 7 / 2011 on GPSies.com
+Selection source: visible Review Tracks row
+Detail route: /mtl/track/100000
+Zoom sequence through visible Zoom in control:
+- 1000 km baseline
+- 500 km
+- 300 km
+- 200 km
+- 100 km
+- 50 km
+After zoom: selected track details remained open; two full map canvases and one 920x220 detail-map canvas remained rendered; no Loading text/spinner appeared.
+Blocked visual assertion: screenshot/canvas visual capture is unavailable under ACC_04, so duplicate or broken line segments cannot be inspected reliably.

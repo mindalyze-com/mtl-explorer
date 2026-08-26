@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { filterParamCanonicalValue, filterParamDisplayUnit, filterParamDisplayValue } from '@/utils/filterParamUnits';
+import {
+  filterParamCanonicalValue,
+  filterParamDisplayUnit,
+  filterParamDisplayValue,
+  formatFilterParamSummaryValue,
+} from '@/utils/filterParamUnits';
 
 describe('filter parameter measurement units', () => {
   it('keeps metric request values and units unchanged', () => {
@@ -32,5 +37,10 @@ describe('filter parameter measurement units', () => {
     expect(filterParamDisplayValue('not-a-number', 'km', 'US_CUSTOMARY')).toBe('not-a-number');
     expect(filterParamDisplayUnit('kWh', 'US_CUSTOMARY')).toBe('kWh');
     expect(filterParamDisplayValue('12.5', 'kWh', 'US_CUSTOMARY')).toBe('12.5');
+  });
+
+  it('formats canonical filter values as localized measurement-aware summaries', () => {
+    expect(formatFilterParamSummaryValue('16.09344', 'km', 'US_CUSTOMARY', 'de-DE')).toBe('10 mi');
+    expect(formatFilterParamSummaryValue('16.09344', 'km', 'METRIC', 'de-DE')).toBe('16,09 km');
   });
 });

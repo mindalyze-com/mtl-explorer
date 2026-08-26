@@ -6,6 +6,7 @@ import tempfile
 import unittest
 from datetime import datetime, timedelta
 from pathlib import Path
+from unittest.mock import patch
 
 import piexif
 from PIL import Image
@@ -17,6 +18,7 @@ from generate_demo_photos import (
     EARTH_RADIUS_M,
     MAX_OFFSET_METERS,
     PROGRESS_FILE_NAME,
+    collect_tracks,
     generate_demo_photos,
     is_track_linked_photo,
 )
@@ -121,6 +123,72 @@ class GenerateDemoPhotosTest(unittest.TestCase):
             first_hashes = self._photo_hashes(first_media / "demo-photos")
             second_hashes = self._photo_hashes(second_media / "demo-photos")
             self.assertEqual(first_hashes, second_hashes)
+
+    def test_track_catalog_retains_metadata_instead_of_timed_segments(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            root = Path(temporary_directory)
+            tracks_directory = self._write_tracks(root)
+
+            tracks = collect_tracks(tracks_directory)
+
+            self.assertEqual(2, len(tracks))
+            self.assertEqual([1, 1], [track.timed_segment_count for track in tracks])
+            self.assertEqual(
+                ["001-first.gpx", "002-second.gpx"],
+                [track.path.name for track in tracks],
+            )
+            self.assertTrue(all(not hasattr(track, "timed_segments") for track in tracks))
+
+    def test_progress_resumes_after_the_last_atomically_published_photo(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            root = Path(temporary_directory)
+            tracks_directory = self._write_tracks(root)
+            media_directory = root / "media"
+            attempted: list[int] = []
+
+            def fail_on_third_photo(task) -> int:
+                attempted.append(task.photo_index)
+                if task.photo_index == 3:
+                    raise RuntimeError("synthetic interruption")
+                task.output_path.write_bytes(f"photo-{task.photo_index}".encode())
+                return task.photo_index
+
+            with patch(
+                "generate_demo_photos.render_demo_photo",
+                side_effect=fail_on_third_photo,
+            ):
+                with self.assertRaisesRegex(RuntimeError, "synthetic interruption"):
+                    generate_demo_photos(
+                        tracks_directory,
+                        media_directory,
+                        4,
+                        eligible_track_count=1,
+                    )
+
+            progress_path = media_directory / "demo-photos" / PROGRESS_FILE_NAME
+            self.assertEqual([1, 2, 3], attempted)
+            self.assertEqual("2", progress_path.read_text(encoding="utf-8").strip())
+
+            resumed: list[int] = []
+
+            def record_resumed_photo(task) -> int:
+                resumed.append(task.photo_index)
+                task.output_path.write_bytes(f"photo-{task.photo_index}".encode())
+                return task.photo_index
+
+            with patch(
+                "generate_demo_photos.render_demo_photo",
+                side_effect=record_resumed_photo,
+            ):
+                generate_demo_photos(
+                    tracks_directory,
+                    media_directory,
+                    4,
+                    eligible_track_count=1,
+                )
+
+            self.assertEqual([3, 4], resumed)
+            self.assertEqual("4", progress_path.read_text(encoding="utf-8").strip())
 
     def test_gradient_cache_keeps_only_compact_vertical_strips(self) -> None:
         _gradient_strip.cache_clear()

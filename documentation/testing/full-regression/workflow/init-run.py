@@ -174,6 +174,11 @@ def run_state_text(
             "",
             "## Issues",
             "",
+            (
+                "Finding statuses: `OPEN`, `FIX_IN_WORK`, `FIXED`, `REJECTED`, "
+                "`NOT REPRODUCIBLE` (`NOT REPRODUCEABLE` is accepted for legacy runs)."
+            ),
+            "",
             "| ID | Severity | Coverage ID | Summary | Status |",
             "|---|---|---|---|---|",
             "",

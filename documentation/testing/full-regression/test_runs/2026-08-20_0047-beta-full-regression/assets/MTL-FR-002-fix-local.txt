@@ -1,0 +1,42 @@
+MTL-FR-002 local fix evidence
+
+Workspace and build
+- Commit before uncommitted fix: bfdd950b6441bb21d341977d325f8abc9a8c141b
+- Dirty-worktree scope: active regression run artifacts plus the two intended client files for this fix.
+- GUI: http://127.0.0.1:5174/mtl/ from the current Vite worktree.
+- Backend: http://127.0.0.1:18084/mtl/ from current Maven classes, dev profile.
+- Backend build identity: 0.0.1-SNAPSHOT, build time 2026-08-20T07:24:14.973Z.
+- State: isolated disposable PostgreSQL database and watched folders.
+- Fixture: existing fully synthetic fmt-synthetic.igc copied as sample.igc; no private track or media data used.
+
+Confirmed root cause
+- TrackDetailOverview persists while navigation changes the selected track.
+- Its pending-download flag did not include the track ID.
+- An unresolved download from the previous track therefore disabled both controls on the next track. The click guard returned before creating a request.
+- The focused navigation test failed before the fix because the IGC controls remained disabled.
+
+Implementation
+- Pending-download state now includes track ID, kind, and request serial.
+- Only the current track's request disables its controls.
+- A late completion from an older request cannot clear a newer track's active state.
+
+Automated checks
+- npm test -- --run src/__tests__/trackDetailExport.spec.ts: exit 0; 1 file, 9 tests passed.
+- npm run type-check: exit 0.
+- npx eslint src/components/trackdetails/TrackDetailOverview.vue src/__tests__/trackDetailExport.spec.ts: exit 0.
+- npm run build-only: exit 0; 1,408 modules transformed. Existing mixed static/dynamic openApiClient chunk warning only.
+- git diff --check: exit 0.
+
+Direct local GUI retest
+1. Signed in to the isolated local MTL Explorer dev app.
+2. Opened synthetic IGC track 100000 at /mtl/track/100000.
+3. Confirmed Download original and Download GPX were visible and enabled.
+4. Activated Download original through the UI: GET /mtl/api/tracks/100000/source-file returned 200 in 9 ms.
+5. Activated Download GPX through the UI: GPSBabel produced 3,704 GPX characters and GET /mtl/api/tracks/100000/gpx returned 200 in 53 ms.
+6. Both controls returned to enabled state; browser console warnings/errors: none.
+
+Evidence
+- MTL-FR-002-fix-local.webp: final IGC Overview with both download controls available; 1,024x576, 38,004 bytes.
+
+Boundary
+- This proves the uncommitted local worktree. The active remote regression image does not contain the fix until a later build/deployment.

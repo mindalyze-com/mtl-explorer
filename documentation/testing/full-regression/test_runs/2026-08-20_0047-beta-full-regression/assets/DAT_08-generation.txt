@@ -1,0 +1,11 @@
+Generator: /app/demo/generate_regression_photos.py from required app image
+Output: /app/logs/2026-08-20_0047-beta-full-regression-media-fixtures
+Generation timing: 35 seconds
+Manifest: DAT_08-media-manifest.json
+Manifest SHA-256: 3119cf1bd20193e46dadbd2f2c4ae94073f4aa7e5675724babc9f694360da53c
+Manifest bytes: 5305
+Generated activity: mtl-regression-media-track.gpx, 1080 bytes, 6 points/timestamps
+Generated photos: 6 JPEG files (4 embedded GPS; 2 camera-time-only by manifest)
+Generated videos: mtl-regression-video-gps.mp4 and mtl-regression-video-estimated.mov, H.264/AAC with ffprobe data in manifest
+Generated file count excluding manifest: 9 (1 GPX + 6 JPEG + 2 videos)
+Watched-folder copy/index: intentionally deferred to MED_06 so IMP_01 can record the clean empty baseline first.

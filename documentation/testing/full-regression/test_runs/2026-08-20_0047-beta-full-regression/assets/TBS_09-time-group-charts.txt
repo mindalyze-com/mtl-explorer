@@ -1,0 +1,8 @@
+TBS_09 Statistics Trends time-period charts
+
+Charts mode, seven-track post-delete result:
+- YYYY-MM (month): 4 periods, 7 tracks, 9 Highcharts roots, 10 rendered series.
+- YYYY-WW (week): 4 periods, 7 tracks, 9 Highcharts roots, 10 rendered series.
+- YYYY-MM-DD (day): 6 periods, 7 tracks, 9 Highcharts roots, 10 rendered series.
+
+Each grouping became the selected combobox value, retained the common 821 km / 16h 50m / 3,970 Wh totals, and rendered charts without empty/error state.

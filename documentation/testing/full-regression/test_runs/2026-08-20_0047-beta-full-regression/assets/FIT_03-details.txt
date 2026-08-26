@@ -1,0 +1,29 @@
+FIT_03 detail parity for track 100005
+
+Overview and mini-map:
+- #100005, Walking, 3.60 km, 59m 57s.
+- Three map regions in the page: main map plus the FIT detail mini-map context.
+- Overview contains populated ascent/descent, timing, speed, energy, and exploration sections.
+- Clicking the FIT line on the detail mini-map completed without blanking or error. Like the GPX detail mini-map check, it did not create a separate DOM popup; the main-map/track-browser selection opens the full detail sheet.
+
+Graphs:
+- Time and Distance x-axis controls.
+- Range control pressed; point-count slider at 350; graph-height slider.
+- Interactive Highcharts render Speed, Elevation, Elevation Gain Rate, Distance over Time, Cumulative Mechanical Energy, and Estimated Power.
+- Speed/Elevation ranges contain 345-350 data points; no blank series.
+
+Quality:
+- Status SUCCESS; uniqueness UNIQUE.
+- 3,600 total points; 1.00 m average and median spacing; 1.02 m maximum.
+- Walking classification from AUTO_GUESS.
+- Geo coverage center 0.000000, 0.016175; longitude bbox 0.000011 to 0.032339; EPSG:32631.
+
+Related:
+- Five previous GPX tracks listed.
+- Current track: Track #100005, 20 Jul 2021.
+- No next tracks, consistent with chronology.
+
+Events:
+- Events tab renders the explicit empty state: No track events.
+
+Result: FIT-backed overview, graphs, quality, related, events, mini-map, and selection/detail behavior render with the same component flow as GPX-backed tracks.

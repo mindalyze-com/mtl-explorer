@@ -1,0 +1,15 @@
+SYN_03 five-import/delete-two source-of-truth matrix
+
+Import five public GPX files
+- IMP_02-04: all five byte-identical sources were detected by live watch and settled 5/5 without failures; freshness revisions changed.
+- IMP_05-09: Reload synchronized revisions; map/filter/browser/stats/details each showed five tracks, one per source, with populated totals and heatmap controls.
+
+Delete exactly two source files
+- DEL_01: exactly Vitry and Voie Verte watched copies moved to recoverable quarantine.
+- DEL_02: live watcher detected both deletes and removed tracks 100002/100003 without rescan.
+- DEL_03-05: accessible map/list/Statistics/Related/filter/detail surfaces removed both and retained Jura/Mosel/Lannion.
+- Direct heatmap control/data state updated with the source-of-truth dataset, but durable proof of rendered density/polyline pixel absence is blocked by ACC_04.
+
+Result
+- Indexer, freshness, track counts, browser rows, stats, filters, and details passed the frozen flow.
+- The only unresolved component is canvas-rendered heatmap/polyline absence, so this aggregate row is BLOCKED rather than PASS.

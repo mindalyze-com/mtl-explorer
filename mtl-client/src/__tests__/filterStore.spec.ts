@@ -66,6 +66,8 @@ vi.mock('@/utils/filterApi', () => ({
 import { useFilterStore } from '@/stores/filterStore';
 import { FilterService } from '@/components/filter/FilterService';
 import type { FilterResult } from '@/types/filter';
+import { useLocale } from '@/composables/useLocale';
+import { useMeasurementSystem } from '@/composables/useMeasurementSystem';
 
 describe('useFilterStore', () => {
   beforeEach(async () => {
@@ -122,6 +124,44 @@ describe('useFilterStore', () => {
     } as ClientFilterConfig);
 
     expect(store.activeIdentity).toBe('Activities by keyword · Synthetic');
+  });
+
+  it('reacts to measurement changes in a numeric active filter identity', () => {
+    const measurementPreference = useMeasurementSystem();
+    const localePreference = useLocale();
+    const previousMeasurementSystem = measurementPreference.measurementSystem.value;
+    const previousLocale = localePreference.formatLocale.value;
+    const store = useFilterStore();
+
+    try {
+      localePreference.setLocale('de-DE');
+      measurementPreference.setMeasurementSystem('US_CUSTOMARY');
+      store.save({
+        filterInfo: {
+          filterConfig: {
+            displayName: 'Tracks by distance (gradient)',
+            filterName: 'TracksByDistanceGradient',
+            filterDomain: 'GPS_TRACK',
+          },
+          paramDefinitions: [{ name: 'DISTANCE_MAX_KM' }],
+          effectiveUiMetadata: {
+            params: {
+              DISTANCE_MAX_KM: { widget: 'number', unit: 'km' },
+            },
+          },
+        },
+        filterParams: { stringParams: { DISTANCE_MAX_KM: '16.09344' } },
+        palette: {},
+      } as ClientFilterConfig);
+
+      expect(store.activeIdentity).toBe('Tracks by distance (gradient) · 10 mi');
+
+      measurementPreference.setMeasurementSystem('METRIC');
+      expect(store.activeIdentity).toBe('Tracks by distance (gradient) · 16,09 km');
+    } finally {
+      measurementPreference.setMeasurementSystem(previousMeasurementSystem);
+      localePreference.setLocale(previousLocale);
+    }
   });
 
   it('ensureLoaded(true) forces a re-fetch', async () => {

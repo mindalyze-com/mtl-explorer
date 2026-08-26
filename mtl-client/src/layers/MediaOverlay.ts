@@ -1,4 +1,4 @@
-import maplibregl from 'maplibre-gl';
+import * as maplibregl from 'maplibre-gl';
 import { getMediaInBounds } from '@/repositories/mediaRepository';
 import type { MediaBoundsPoint } from '@/repositories/mediaRepository';
 import { isAbortLikeError } from '@/utils/errors';

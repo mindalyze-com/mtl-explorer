@@ -501,7 +501,7 @@ public class GPXStoreService {
             Coordinate currentPoint = lineString.getCoordinateN(i);
 
             // Layer 1: skip points with invalid coordinates entirely — they cannot contribute
-            // position, distance, or any derived metric, and would crash GeodeticCalculator.
+            // position, distance, or any derived metric, and would fail geodesic calculation.
             if (hasInvalidHorizontalPosition(currentPoint)) {
                 log.warn("Skipping point index={} in gpsTrackDataId={}: invalid coordinate (NaN lon/lat)", i, gpsTrackData.getId());
                 continue;

@@ -124,16 +124,20 @@
       :position-source="selectedItem?.positionOrigin"
       :position-estimated="selectedItem?.estimatedPosition ?? false"
       :position-ambiguous="selectedItem?.ambiguousMatch ?? false"
+      :position-unknown="selectedItem != null && selectedItem.positionOrigin == null"
       :position-time-delta-seconds="selectedItem?.trackPointTimeDeltaSeconds"
       :position-lat="selectedItem?.resolvedLat"
       :position-lng="selectedItem?.resolvedLng"
       :details-visible="viewerDetailsVisible"
       :taken-at="selectedItem?.effectiveCapturedAt"
+      :time-source="selectedItem?.timeSource"
+      :applied-camera-offset-seconds="selectedItem?.appliedCameraOffsetSeconds"
       @prev="navigateViewer(previousMediaId)"
       @next="navigateViewer(nextMediaId)"
       @select="navigateViewer"
       @update:details-visible="viewerDetailsVisible = $event"
       @open-on-map="openSelectedMediaOnMap"
+      @time-correction-cleared="onViewerTimeCorrectionCleared"
     />
   </BottomSheet>
 </template>
@@ -286,6 +290,14 @@ function openViewer(mediaId: number | undefined): void {
 
 function navigateViewer(mediaId: number | null): void {
   if (mediaId != null) selectedMediaId.value = mediaId;
+}
+
+async function onViewerTimeCorrectionCleared(mediaId: number): Promise<void> {
+  await loadPage(0);
+  if (!items.value.some((item) => item.id === mediaId)) {
+    viewerVisible.value = false;
+    selectedMediaId.value = null;
+  }
 }
 
 function openSelectedMediaOnMap(): void {

@@ -1,16 +1,13 @@
 package com.x8ing.mtl.server.mtlserver.web.global;
 
-import com.bedatadriven.jackson.datatype.jts.JtsModule;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import lombok.extern.slf4j.Slf4j;
+import org.locationtech.jts.geom.Geometry;
+import org.springframework.boot.jackson.autoconfigure.JsonMapperBuilderCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Primary;
-import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder;
+import tools.jackson.databind.module.SimpleModule;
 
 @Configuration
 @Slf4j
@@ -19,26 +16,16 @@ import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder;
 })
 public class MyObjectMapper {
 
-
-    private final Jackson2ObjectMapperBuilder builder;
-
-    public MyObjectMapper(Jackson2ObjectMapperBuilder builder) {
-        this.builder = builder;
-    }
-
     @Bean
-    @Primary
-    public ObjectMapper objectMapper() {
-        log.info("Prepare custom object mapper.");
-
-        // important: use builder to keep springs useful defaults and hooks
-
-        // do not serialize null values
-        builder.serializationInclusion(JsonInclude.Include.NON_NULL)
-                .modules(new JtsModule(), new JavaTimeModule())
-                .featuresToDisable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
-
-        return builder.createXmlMapper(false).build();
-
+    public JsonMapperBuilderCustomizer mtlJsonMapperCustomizer() {
+        return builder -> {
+            log.info("Prepare custom JSON mapper.");
+            SimpleModule geometryModule = new SimpleModule("MTL JTS geometry");
+            geometryModule.addSerializer(Geometry.class, new JtsGeometrySerializer());
+            builder.changeDefaultPropertyInclusion(ignored -> JsonInclude.Value.construct(
+                    JsonInclude.Include.NON_NULL,
+                    JsonInclude.Include.NON_NULL));
+            builder.addModule(geometryModule);
+        };
     }
 }

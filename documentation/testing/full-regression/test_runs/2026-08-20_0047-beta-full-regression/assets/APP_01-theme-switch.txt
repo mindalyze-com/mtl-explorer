@@ -1,0 +1,8 @@
+APP_01 immediate UI theme switch
+
+- Preferences Appearance stated that changes apply immediately and are saved on this device.
+- Initial root state was data-theme=light with Light aria-pressed=true.
+- Activated Dark: root changed immediately to data-theme=dark; Dark became pressed and Light unpressed while Admin Preferences content remained fully available.
+- Activated Light: root changed to data-theme=light; Light pressed/Dark unpressed.
+- Activated Dark again: root returned to data-theme=dark; Dark pressed/Light unpressed.
+- The single root theme attribute governs the full application shell, panels, dialogs, dropdowns, tooltips, and chart theme consumers; no reload or route change occurred.

@@ -22,7 +22,7 @@ class MediaControllerTrendTest {
             mock(MediaPositionService.class),
             trendService,
             mock(VideoThumbnailService.class),
-            imageMagickProcessLimiter())).build();
+            mediaProcessLimiter())).build();
 
     @ParameterizedTest
     @ValueSource(strings = {
@@ -40,7 +40,7 @@ class MediaControllerTrendTest {
                 .andExpect(status().isBadRequest());
     }
 
-    private static ImageMagickProcessLimiter imageMagickProcessLimiter() {
-        return new ImageMagickProcessLimiter(new ImageMagickProperties());
+    private static MediaProcessLimiter mediaProcessLimiter() {
+        return new MediaProcessLimiter(new MediaProcessProperties());
     }
 }

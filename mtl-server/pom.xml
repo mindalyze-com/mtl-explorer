@@ -10,12 +10,16 @@
     </parent>
 
     <artifactId>mtl-server</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
+    <version>1.0.0-SNAPSHOT</version>
     <name>mtl-server</name>
     <description>mtl-server</description>
 
     <properties>
-        <java.version>21</java.version>
+        <java.version>25</java.version>
+        <spring-boot.version>4.1.1</spring-boot.version>
+        <geographiclib.version>2.1</geographiclib.version>
+        <hibernate.version>7.4.6.Final</hibernate.version>
+        <jjwt.version>0.13.0</jjwt.version>
         <maven.build.timestamp.format>yyyy-MM-dd'T'HH:mm:ss'Z'</maven.build.timestamp.format>
     </properties>
 
@@ -24,9 +28,19 @@
             <dependency>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-dependencies</artifactId>
-                <version>3.5.14</version>
+                <version>${spring-boot.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.hibernate.orm</groupId>
+                <artifactId>hibernate-core</artifactId>
+                <version>${hibernate.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.hibernate.orm</groupId>
+                <artifactId>hibernate-spatial</artifactId>
+                <version>${hibernate.version}</version>
             </dependency>
             <!-- Add other dependencies with their versions here -->
         </dependencies>
@@ -35,7 +49,7 @@
     <dependencies>
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-web</artifactId>
+            <artifactId>spring-boot-starter-webmvc</artifactId>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -44,16 +58,17 @@
         <dependency>
             <groupId>com.github.ben-manes.caffeine</groupId>
             <artifactId>caffeine</artifactId>
+            <version>3.2.4</version>
         </dependency>
         <dependency>
             <groupId>org.springdoc</groupId>
             <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
-            <version>2.8.17</version>
+            <version>3.1.0</version>
         </dependency>
         <dependency>
             <groupId>org.hibernate.validator</groupId>
             <artifactId>hibernate-validator</artifactId>
-            <version>8.0.3.Final</version>
+            <version>9.1.3.Final</version>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -67,11 +82,12 @@
         <dependency>
             <groupId>ognl</groupId>
             <artifactId>ognl</artifactId>
-            <version>3.4.11</version>
+            <version>3.4.12</version>
         </dependency>
         <dependency>
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
+            <version>42.7.13</version>
             <scope>runtime</scope>
         </dependency>
         <dependency>
@@ -85,55 +101,25 @@
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
+            <version>1.18.46</version>
             <optional>true</optional>
         </dependency>
         <dependency>
             <groupId>io.jenetics</groupId>
             <artifactId>jpx</artifactId>
-            <version>3.2.1</version>
+            <version>4.0.0</version>
         </dependency>
 
         <dependency>
-            <groupId>org.geotools</groupId>
-            <artifactId>gt-referencing</artifactId>
-            <version>33.5</version>
-        </dependency>
-
-        <dependency>
-            <groupId>org.geotools</groupId>
-            <artifactId>gt-main</artifactId>
-            <version>33.5</version>
-        </dependency>
-
-        <!-- GeoTools public API (org.geotools.api.*) used by CRS/MathTransform in GeoTools 33.x -->
-        <dependency>
-            <groupId>org.geotools</groupId>
-            <artifactId>gt-api</artifactId>
-            <version>33.5</version>
-        </dependency>
-
-        <dependency>
-            <groupId>org.geotools</groupId>
-            <artifactId>gt-epsg-hsql</artifactId>
-            <version>33.5</version>
-        </dependency>
-
-        <dependency>
-            <groupId>com.graphhopper.external</groupId>
-            <artifactId>jackson-datatype-jts</artifactId>
-            <version>2.21.0</version>
-        </dependency>
-
-        <dependency>
-            <groupId>org.jsoup</groupId>
-            <artifactId>jsoup</artifactId>
-            <version>1.22.2</version>
+            <groupId>net.sf.geographiclib</groupId>
+            <artifactId>GeographicLib-Java</artifactId>
+            <version>${geographiclib.version}</version>
         </dependency>
 
         <dependency>
             <groupId>commons-codec</groupId>
             <artifactId>commons-codec</artifactId>
-            <version>1.22.0</version>
+            <version>1.22.1</version>
         </dependency>
 
         <dependency>
@@ -150,7 +136,7 @@
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-collections4</artifactId>
-            <version>4.5.0</version>
+            <version>4.6.0</version>
         </dependency>
 
         <dependency>
@@ -160,14 +146,19 @@
         </dependency>
 
         <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-liquibase</artifactId>
+        </dependency>
+        <dependency>
             <groupId>org.liquibase</groupId>
             <artifactId>liquibase-core</artifactId>
+            <version>5.0.4</version>
         </dependency>
 
         <dependency>
             <groupId>com.drewnoakes</groupId>
             <artifactId>metadata-extractor</artifactId>
-            <version>2.20.0</version>
+            <version>2.21.0</version>
         </dependency>
 
         <dependency>
@@ -175,35 +166,40 @@
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-webmvc-test</artifactId>
+            <scope>test</scope>
+        </dependency>
 
         <dependency>
             <groupId>io.projectreactor</groupId>
             <artifactId>reactor-core</artifactId>
+            <version>3.8.7</version>
         </dependency>
 
         <dependency>
             <groupId>io.jsonwebtoken</groupId>
             <artifactId>jjwt-api</artifactId>
-            <version>0.12.7</version>
+            <version>${jjwt.version}</version>
         </dependency>
         <dependency>
             <groupId>io.jsonwebtoken</groupId>
             <artifactId>jjwt-impl</artifactId>
-            <version>0.12.7</version>
+            <version>${jjwt.version}</version>
             <scope>runtime</scope>
         </dependency>
         <dependency>
             <groupId>io.jsonwebtoken</groupId>
             <artifactId>jjwt-jackson</artifactId>
-            <version>0.12.7</version>
+            <version>${jjwt.version}</version>
             <scope>runtime</scope>
         </dependency>
 
-        <!-- OkHttp — enables connection pooling and timeouts on RestClient -->
         <dependency>
             <groupId>com.squareup.okhttp3</groupId>
-            <artifactId>okhttp</artifactId>
-            <version>4.12.0</version>
+            <artifactId>okhttp-jvm</artifactId>
+            <version>5.5.0</version>
         </dependency>
 
     </dependencies>
@@ -213,7 +209,7 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
-                <version>3.5.14</version>
+                <version>${spring-boot.version}</version>
                 <configuration>
                     <excludes>
                         <exclude>
@@ -221,14 +217,6 @@
                             <artifactId>lombok</artifactId>
                         </exclude>
                     </excludes>
-                    <requiresUnpack>
-                        <!-- pack the geotools CRS libs along -->
-                        <!-- otherwise fails with org.opengis.referencing.NoSuchAuthorityCodeException: No code "EPSG:4326" from authority "EPSG" found for object of type "EngineeringCRS". -->
-                        <dependency>
-                            <groupId>org.geotools</groupId>
-                            <artifactId>gt-epsg-hsql</artifactId>
-                        </dependency>
-                    </requiresUnpack>
                 </configuration>
                 <executions>
                     <execution>
@@ -252,21 +240,21 @@
                 <version>3.15.0</version>
                 <configuration>
                     <parameters>true</parameters>
-                    <source>21</source>
-                    <target>21</target>
+                    <release>${java.version}</release>
+                    <proc>full</proc>
                 </configuration>
             </plugin>
 
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
-                <version>3.5.5</version>
+                <version>3.5.6</version>
             </plugin>
 
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>keytool-maven-plugin</artifactId>
-                <version>1.7</version>
+                <version>2.0.2</version>
                 <executions>
                     <execution>
                         <id>clean-keystore</id>
@@ -299,18 +287,33 @@
                 </executions>
             </plugin>
 
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-clean-plugin</artifactId>
+                <version>3.5.0</version>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-resources-plugin</artifactId>
+                <version>3.5.0</version>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <version>3.5.1</version>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-install-plugin</artifactId>
+                <version>3.1.4</version>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-deploy-plugin</artifactId>
+                <version>3.1.4</version>
+            </plugin>
+
         </plugins>
     </build>
-
-    <repositories>
-        <repository>
-            <id>GeoSolutions</id>
-            <name>GeoSolutions Repository</name>
-            <url>https://repo.osgeo.org/repository/release/</url> <!-- for geotools gt-referencing -->
-            <snapshots>
-                <enabled>false</enabled>
-            </snapshots>
-        </repository>
-    </repositories>
 
 </project>

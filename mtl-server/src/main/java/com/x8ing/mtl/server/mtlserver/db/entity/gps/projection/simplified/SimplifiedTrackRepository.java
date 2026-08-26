@@ -11,7 +11,7 @@ import java.math.BigDecimal;
 public interface SimplifiedTrackRepository extends JpaRepository<SimplifiedTrack, Long> {
 
     //                 'fake_' || EXTRACT(epoch FROM NOW() ) || '_' || random()*1000000::integer AS fake_id ,
-    @QueryHints(@QueryHint(name = org.hibernate.annotations.QueryHints.CACHEABLE, value = "false"))
+    @QueryHints(@QueryHint(name = org.hibernate.jpa.HibernateHints.HINT_CACHEABLE, value = "false"))
     @Query(nativeQuery = true, value = """
             select
                 EXTRACT(epoch FROM CURRENT_TIMESTAMP ) || '_' || random()*1000000 AS fake_id,

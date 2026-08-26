@@ -1,0 +1,23 @@
+View: Activities by keyword
+
+Initial state:
+- Keyword blank
+- 9 / 9 tracks
+- Legend: CYCLING 7, ON_FOOT 2
+- Statistics: 9 tracks
+
+Edit:
+- Entered Keyword = Media.
+- No Apply action was used after editing.
+- Current-result label became Activities by keyword · Media.
+- Map result changed to 1 / 9 tracks.
+- Legend changed immediately to ON_FOOT 1.
+- Statistics Overview changed to Showing 1 of 9 tracks, 189.62 m,
+  0m 00s, 1 Wh, and 5 m ascent.
+- No console error or exception appeared.
+
+Clear:
+- Cleared Keyword with keyboard selection/backspace.
+- Map returned to 9 / 9 tracks.
+- Legend returned to CYCLING 7 and ON_FOOT 2.
+- Statistics returned to 9 tracks with no stale Showing 1 state.

@@ -374,9 +374,10 @@
         :position-source="selectedTrackMedia?.positionOrigin"
         :position-estimated="selectedTrackMedia?.estimatedPosition ?? false"
         :position-ambiguous="selectedTrackMedia?.ambiguousMatch ?? false"
+        :position-unknown="selectedTrackMedia != null && selectedTrackMedia.positionOrigin == null"
         :position-time-delta-seconds="selectedTrackMedia?.trackPointTimeDeltaSeconds"
-        :position-lat="selectedTrackMedia?.resolvedLat"
-        :position-lng="selectedTrackMedia?.resolvedLng"
+        :position-lat="selectedTrackMedia?.resolvedLat ?? selectedTrackMedia?.routeLat"
+        :position-lng="selectedTrackMedia?.resolvedLng ?? selectedTrackMedia?.routeLng"
         :track-coordinates="miniMapCoordinates"
         :details-visible="mediaPreviewDetailsVisible"
         :taken-at="selectedTrackMedia?.adjustedCapturedAt ?? selectedTrackMedia?.capturedAt"
@@ -388,6 +389,7 @@
         @request-page="navigateTrackMediaPage"
         @update:details-visible="mediaPreviewDetailsVisible = $event"
         @open-on-map="openSelectedTrackMediaOnMap"
+        @time-correction-cleared="onViewerTimeCorrectionCleared"
       />
     </BottomSheet>
   </div>
@@ -449,6 +451,7 @@ import BottomSheet from '@/components/ui/BottomSheet.vue';
 import MediaPreview from '@/components/map/MediaPreview.vue';
 import MediaViewerThemeToggle from '@/components/map/MediaViewerThemeToggle.vue';
 import { mergeAdjacentMediaPage } from '@/components/map/mediaPageBuffer';
+import { TRACK_MEDIA_DEFAULT_PAGE_SIZE } from '@/components/trackdetails/trackMediaPaging';
 import { useMediaViewerTheme } from '@/composables/useMediaViewerTheme';
 import {
   clearManualMediaLocation,
@@ -489,7 +492,6 @@ interface MiniMapResizeController {
   updateMiniMapResize: (deltaY: number) => void;
   commitMiniMapResize: () => void;
 }
-const TRACK_MEDIA_DEFAULT_PAGE_SIZE = 25;
 const MEDIA_PREVIEW_DESKTOP_MIN_WIDTH = 769;
 type TrackDetailTab = '0' | '1' | '2' | '3' | '4' | '5';
 type TrackDetailInitialTab = 'overview' | 'photos';
@@ -607,7 +609,7 @@ const selectedTrackEventKey = ref<string | number | null>(null);
 const trackMedia = ref<TrackMediaDto[]>([]);
 const baselineTrackMedia = ref<TrackMediaDto[]>([]);
 const trackMediaPage = ref(0);
-const trackMediaPageSize = ref(TRACK_MEDIA_DEFAULT_PAGE_SIZE);
+const trackMediaPageSize = ref<number>(TRACK_MEDIA_DEFAULT_PAGE_SIZE);
 const trackMediaOffset = ref(0);
 const trackMediaTotalItems = ref(0);
 const trackMediaTotalPages = ref(0);
@@ -763,8 +765,10 @@ function onMiniMapSelectionCleared() {
 
 function openSelectedTrackMediaOnMap() {
   const item = selectedTrackMedia.value;
-  if (item?.resolvedLat != null && item.resolvedLng != null) {
-    emit('open-media-on-map', { id: item.id, lat: item.resolvedLat, lng: item.resolvedLng });
+  const latitude = item?.resolvedLat ?? item?.routeLat;
+  const longitude = item?.resolvedLng ?? item?.routeLng;
+  if (item && latitude != null && longitude != null) {
+    emit('open-media-on-map', { id: item.id, lat: latitude, lng: longitude });
   }
   mediaPreviewVisible.value = false;
 }
@@ -880,6 +884,12 @@ async function onSaveTimeCorrection(mediaIds: number[], offsetSeconds: number) {
   } finally {
     trackMediaMutationLoading.value = false;
   }
+}
+
+async function onViewerTimeCorrectionCleared(): Promise<void> {
+  photoOffsetSeconds.value = 0;
+  await reloadTrackMedia();
+  if (selectedTrackMediaId.value == null) mediaPreviewVisible.value = false;
 }
 
 async function onSaveManualLocation(mediaId: number, latitude: number, longitude: number, note?: string) {

@@ -1,0 +1,17 @@
+FLT_10 activity category checks
+
+Main activity groups:
+- Available labels and counts: CYCLING 7; ON_FOOT 2.
+- Selecting only ON_FOOT changed the global result to 2 / 9 tracks.
+- Included-categories summary changed from All 2 categories to 1 of 2 categories.
+- The map legend contained ON_FOOT with count 2.
+
+Exact activity types:
+- Switching to Activities by exact type reset the category selection and returned 9 / 9 tracks.
+- Available exact labels and counts: BICYCLE 7; WALKING 2.
+- HIKING was not present because no current track has that exact activity type.
+- Selecting only WALKING changed the global result to 2 / 9 tracks.
+- Included-categories summary changed to 1 of 2 categories.
+- The map legend contained WALKING with count 2.
+
+The broad ON_FOOT label was not reused in the exact-type view, and the exact WALKING label was not used in the broad-group view.

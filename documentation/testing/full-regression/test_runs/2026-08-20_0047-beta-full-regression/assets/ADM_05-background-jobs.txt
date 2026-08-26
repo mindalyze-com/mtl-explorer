@@ -1,0 +1,11 @@
+ADM_05 background-job progress
+
+- During the controlled ADM_02 valid import, Processing navigation showed Live.
+- Duplicate Finder showed running, 93%, 14 done, 1 pending, 15 total.
+- Exploration Score showed running, 93%, 14 done, 1 pending, 15 total.
+- Activity Classifier showed the same running/pending progression.
+- After the temporary upload was removed and processing settled, Refresh showed:
+  - Duplicate Finder: done, 100%, 14 done/14 total.
+  - Exploration Score: done, 100%, 14 done/14 total.
+  - Activity Classifier: done, 100%, 14 done/14 total.
+- Normal navigation and map controls remained available throughout.

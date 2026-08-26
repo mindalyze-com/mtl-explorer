@@ -198,7 +198,10 @@ Strict result handling:
   evidence, do not run cleanup or call the queue complete.
 - Assign findings IDs and severities: `P0`, `P1`, `P2`, or `P3`.
 - For each issue, include reproduction steps, expected/actual result,
-  environment, evidence, and release impact.
+  environment, evidence, finding status, and release impact. New findings start
+  as `OPEN`. Use `FIX_IN_WORK` only when an owner has started implementing,
+  reviewing, or directly verifying a fix; regression investigation or triage
+  alone does not qualify.
 - Record timings for Docker setup, quick install, container startup, track and
   media import sync, track and media deletion sync, desktop regression, mobile
   regression, offline/cache, final verification, and cleanup.

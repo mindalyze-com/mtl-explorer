@@ -1,0 +1,12 @@
+SRC location-search sequence
+Observed 2026-08-20 Europe/Zurich
+
+SRC_01 search
+- Activated visible Search location from the map.
+- Search panel exposed the City, peak, area searchbox plus Importance/Near map sort choices.
+- Entered `Zurich`.
+- Results appeared after about 0.8 s. First result: Zürich; Zurich, Switzerland; City; z7-15.
+- Additional visible results included Zurich neighbourhoods with location/type/zoom metadata.
+- Map/filter stayed usable at 8 Tracks.
+
+Later SRC packets append their own result/marker/clear/no-result details in separate evidence or packet text.

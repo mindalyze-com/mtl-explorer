@@ -1,0 +1,7 @@
+ADM_07 data freshness
+
+- After the manual rescans, Admin Data status showed `Out of sync` and `The server has changes that this client has not applied yet.`
+- It displayed Checked 11:30:03, Latest change 20/08/2026 11:28:46, 6 domains, and Polling Healthy.
+- The technical view identified only Index as outdated: server r100511 versus client r100436.
+- A global `New data available` banner explained that tracks, media, or settings changed and offered Reload and Dismiss.
+- Activating Reload synchronized the exact server/client token to index r100511, retained Healthy polling and timestamp detail, and removed the stale state/banner.

@@ -1,0 +1,8 @@
+TBS_10 Statistics entry navigation
+
+- From Statistics Overview, activated Longest track: Moselradweg, 518 km.
+- A Longest track highlight drilldown opened with exactly one matching Mosel card and its highlight-exclusion action.
+- Activating the card opened /mtl/track/100001.
+- Track Details matched Moselradweg and opened with Overview selected.
+
+The entry first revealed its relevant filtered/highlight context, then navigated to the matching track.

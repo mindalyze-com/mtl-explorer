@@ -1,0 +1,9 @@
+APP_07 map-style persistence
+
+- Pre-reload route: /mtl/map-settings.
+- Pre-reload selection: OSM Dark aria-checked=true; Automatic source; root UI theme light.
+- Reloaded the route and allowed the app/map to settle.
+- Post-reload route remained /mtl/map-settings.
+- Map overview reported Current map / OSM Dark / Automatic source / 2D map.
+- Configuration summary also reported OSM Dark; 8 Tracks and normal map controls remained available.
+- UI root independently remained light.

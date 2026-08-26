@@ -6,7 +6,6 @@ import {
   TERRAIN_CAMERA_EASE_MS,
   TERRAIN_TARGET_PITCH,
 } from '@/components/map/terrainMode';
-import { readMapCameraState } from '@/components/map/mapRendererTypes';
 import type { MapControllerMethodDefinitions, TerrainModeMethods } from './mapControllerRuntime';
 
 export function useTerrainMode(deps: {
@@ -34,13 +33,13 @@ export function useTerrainMode(deps: {
      * Base exaggeration is 0.55 at slider 100 %.
      */
     _applyHillshade() {
-      if (!this.map || !this.map.getLayer(TERRAIN_HILLSHADE_LAYER_ID)) return;
+      if (!this.overlayMap || !this.overlayMap.getLayer(TERRAIN_HILLSHADE_LAYER_ID)) return;
       const basemapNorm = this.basemapEnabled ? Math.max(0, Math.min(1, this.layerOpacities.basemap / 100)) : 0;
       const tracksNorm = Math.max(0, Math.min(1, this.layerOpacities.tracks / 100));
       const tracksFactor = 0.6 + 0.4 * tracksNorm; // 0.6 … 1.0
 
       const exaggeration = 0.55 * basemapNorm * tracksFactor;
-      this.map.setPaintProperty(TERRAIN_HILLSHADE_LAYER_ID, 'hillshade-exaggeration', exaggeration);
+      this.overlayMap.setPaintProperty(TERRAIN_HILLSHADE_LAYER_ID, 'hillshade-exaggeration', exaggeration);
     },
 
     setTerrainModeEnabled(enabled, { animate = false } = {}) {
@@ -83,63 +82,10 @@ export function useTerrainMode(deps: {
       });
     },
 
-    overlayCameraView() {
-      if (!this.overlayMap) return null;
-      return readMapCameraState(this.overlayMap);
-    },
-
-    resolveOverlayCenterElevation(center) {
-      if (!this.overlayMap || !this.terrainEnabled) return null;
-      // Mirror the overlay map's ACTUAL rendered camera centre elevation so the
-      // base map projects the ground identically and draped tracks stay glued to
-      // the basemap surface.
-      //
-      // The overlay map (which renders the tracks) freezes / clamps its centre
-      // elevation while panning and while DEM tiles stream in, so getCenterElevation
-      // reflects the height the overlay is rendering with *this frame*. Querying a
-      // fresh terrain height instead (queryTerrainElevation) returns the settled
-      // summit height even while the overlay is still frozen near 0 - that gap
-      // placed the base camera tens-to-hundreds of metres above the overlay
-      // camera, so tracks appeared to sink "underground" until the meshes
-      // resettled. Mirroring the rendered value keeps both cameras in lockstep.
-      const currentElevation = this.overlayMap.getCenterElevation?.();
-      if (Number.isFinite(currentElevation)) return currentElevation;
-      // Fallback for runtimes without getCenterElevation: best-effort terrain query.
-      const queriedElevation = this.overlayMap.queryTerrainElevation?.(center ?? this.overlayMap.getCenter());
-      return Number.isFinite(queriedElevation) ? queriedElevation : null;
-    },
-
-    syncBaseMapToCamera(view) {
-      if (!this.map || !view || this._syncingView) return;
-      const nextView = {
-        ...view,
-      };
-      const elevation = this.resolveOverlayCenterElevation(nextView.center);
-      if (elevation != null && Number.isFinite(elevation)) nextView.elevation = elevation;
-      this._syncingView = true;
-      try {
-        this.map.jumpTo(nextView);
-      } finally {
-        this._syncingView = false;
-      }
-    },
-
-    syncBaseMapToOverlay() {
-      if (!this.map || !this.overlayMap || this._syncingView) return;
-      this.syncBaseMapToCamera(this.overlayCameraView());
-    },
-
-    jumpOverlayCameraAndSyncBase(view) {
+    jumpMapCamera(view) {
       if (!this.overlayMap || !view) return;
       this.overlayMap.jumpTo(view);
-      this.syncBaseMapToCamera(view);
-      this.map?.triggerRepaint?.();
-      this.overlayMap?.triggerRepaint?.();
-    },
-
-    setBaseMapTerrainSync(enabled) {
-      this.map?.setCenterClampedToGround?.(!enabled);
-      if (!enabled) this.map?.setCenterElevation?.(0);
+      this.overlayMap.triggerRepaint();
     },
 
     handleTerrainUnavailable(detail, notify) {
@@ -158,16 +104,13 @@ export function useTerrainMode(deps: {
     },
 
     applyTerrainPreference({ animate = false } = {}) {
-      if (!this.map || !this.overlayMap) return;
+      if (!this.overlayMap) return;
       if (!this.terrainEnabled) {
-        this.setBaseMapTerrainSync(false);
-        disableTerrainView(this.map);
         disableTerrainView(this.overlayMap, {
           animatePitch: animate,
         });
         this._terrainControl?.setActive(false);
         this.applyTracksVisibility();
-        this.syncBaseMapToOverlay();
         return;
       }
       if (this.globeMode) {
@@ -176,35 +119,26 @@ export function useTerrainMode(deps: {
         this.applyGlobeProjection();
       }
       const allowAddSource = this.mapConfig?.offline !== true;
-      const hasOfflineSources =
-        allowAddSource || (terrainSourceAvailable(this.map) && terrainSourceAvailable(this.overlayMap));
+      const hasOfflineSources = allowAddSource || terrainSourceAvailable(this.overlayMap);
       if (!hasOfflineSources) {
         this.handleTerrainUnavailable('Remote elevation tiles are not available while offline.', animate);
         return;
       }
-      let baseEnabled = false;
-      let overlayEnabled = false;
+      let enabled = false;
       try {
-        baseEnabled = enableTerrainView(this.map, {
-          allowAddSource,
-          exaggeration: this.terrainExaggeration,
-        });
-        overlayEnabled = enableTerrainView(this.overlayMap, {
+        enabled = enableTerrainView(this.overlayMap, {
           allowAddSource,
           exaggeration: this.terrainExaggeration,
         });
       } catch (e) {
         console.warn('3D terrain could not be enabled:', e);
       }
-      if (!baseEnabled || !overlayEnabled) {
-        disableTerrainView(this.map);
+      if (!enabled) {
         disableTerrainView(this.overlayMap);
         this.handleTerrainUnavailable('Elevation tiles could not be loaded for this map style.', animate);
         return;
       }
       this._terrainControl?.setActive(true);
-      this.setBaseMapTerrainSync(true);
-      this.syncBaseMapToOverlay();
       this.applyTracksVisibility();
       if (animate) {
         this.overlayMap.easeTo({

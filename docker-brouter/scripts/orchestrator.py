@@ -25,7 +25,9 @@ from pathlib import Path
 sys.path.insert(0, os.path.dirname(__file__))
 from constants import (
     ADMIN_PORT, BROUTER_HOME, BROUTER_PORT, BROUTER_VERSION, IMAGE_BUILD_TIME_FILE,
-    IMAGE_VERSION_FILE, JAVA_XMX, SEGMENTS_DIR, SIGTERM_WAIT_SEC, STATUS_FILE,
+    IMAGE_VERSION_FILE, JAVA_ACTIVE_PROCESSORS, JAVA_MAX_RUNNING_TIME_SEC,
+    JAVA_XMS, JAVA_XMX, JAVA_YOUNG_GENERATION, SEGMENTS_DIR, SIGTERM_WAIT_SEC,
+    STATUS_FILE,
 )
 from segment_downloader import SegmentDownloader
 
@@ -89,7 +91,13 @@ class Supervisor:
 
         cmd = [
             java,
+            f"-Xms{JAVA_XMS}",
             f"-Xmx{JAVA_XMX}",
+            f"-Xmn{JAVA_YOUNG_GENERATION}",
+            "-XX:+UseG1GC",
+            f"-XX:ActiveProcessorCount={JAVA_ACTIVE_PROCESSORS}",
+            "-XX:+ExitOnOutOfMemoryError",
+            f"-DmaxRunningTime={JAVA_MAX_RUNNING_TIME_SEC}",
             "-cp", cp_jar,
             "btools.server.RouteServer",
             str(SEGMENTS_DIR),

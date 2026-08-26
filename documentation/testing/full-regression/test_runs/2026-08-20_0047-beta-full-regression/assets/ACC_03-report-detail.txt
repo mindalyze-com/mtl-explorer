@@ -1,0 +1,5 @@
+Coverage-detail contract:
+- One packet per frozen coverage ID.
+- Every packet records action, expected result, actual result, status, and evidence.
+- report.md may be assembled only from terminal packet files after the gate passes.
+- The final coverage matrix will use exact coverage IDs, not broad chapter summaries.

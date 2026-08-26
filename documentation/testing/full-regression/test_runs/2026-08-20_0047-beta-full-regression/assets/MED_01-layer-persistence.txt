@@ -1,0 +1,17 @@
+MED_01 media-layer persistence evidence
+
+No saved preference/default
+- Reset map settings was invoked.
+- Your data default: 3 of 4 layers shown.
+- Photos and media control: aria-pressed=true / Hide Photos and media.
+- Clicking the synthetic Bern media cluster exposed This cluster (8 photos), Current map view (8 photos), and Photos along a GPS track (4 activities).
+
+Disabled persistence
+- Toggle changed to aria-pressed=false / Show Photos and media.
+- Reloaded Map summary: 2 of 4 shown.
+- Reloaded control still aria-pressed=false.
+
+Enabled persistence
+- Toggle changed to aria-pressed=true / Hide Photos and media.
+- Reloaded Map summary: 3 of 4 shown.
+- Reloaded control still aria-pressed=true.

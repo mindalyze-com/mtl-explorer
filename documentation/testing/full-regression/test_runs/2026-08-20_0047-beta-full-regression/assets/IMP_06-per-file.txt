@@ -1,0 +1,11 @@
+IMP_06 direct UI verification
+
+Common result: Each exact imported name returned 1 of 5 tracks in Statistics > Tracks. Opening the result showed Track Details, the expected ID/name, and an embedded track map in addition to the main map.
+
+100000 | Jura Route 7 / 2011 on GPSies.com | detail URL /mtl/track/100000 | name PASS | ID PASS | maps PASS
+100001 | Moselradweg aus Wiki on GPSies.com | detail URL /mtl/track/100001 | name PASS | ID PASS | maps PASS
+100002 | Vitry le françois - langres on GPSies.com | detail URL /mtl/track/100002 | name PASS | ID PASS | maps PASS
+100003 | voie verte haute vosges on GPSies.com | detail URL /mtl/track/100003 | name PASS | ID PASS | maps PASS
+100004 | Lannion_Plestin_parcours Lannion_Plestin_parcours1 | detail URL /mtl/track/100004 | name PASS | ID PASS | maps PASS
+
+The unfiltered track browser and Statistics Overview already listed all five imports in IMP_05. No stale or missing per-file identity was observed.

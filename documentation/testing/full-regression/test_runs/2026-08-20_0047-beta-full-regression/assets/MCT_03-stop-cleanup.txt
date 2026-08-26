@@ -1,0 +1,18 @@
+MCT_03 measure-tool cleanup evidence
+
+Before stop
+- Analyzer had zones A/B, four shared result rows, and selected Compare entries.
+
+Stop
+- Clicking active Segments removed active styling.
+- Segment Analyzer sheet and ready/analyze status left the accessible viewport.
+- A map click after stopping did not advance any measurement placement state.
+
+Fresh restart
+- Segments became active again.
+- Status: Tap a track to place zone A / Start where the segment should begin.
+- Placement: Zone A is next.
+- Undo last point: disabled.
+- Clear all: disabled.
+- Analyze: disabled.
+- No previous result table or selected zones returned.

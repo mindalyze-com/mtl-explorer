@@ -1,0 +1,45 @@
+MED_35 Photos-tab disclosure and paging evidence
+
+Desktop collapsed state
+- Activity #100028, 8-item baseline.
+- Exactly one disclosure exists: data-test=photo-tools-toggle.
+- Visible label is Media tools, not the frozen Photo tools label.
+- Timeline immediately showed all 8 ordered items and their GPS/Estimated
+  position origins.
+- Camera clock, Adjust locations, per-item edit actions, and editors were absent.
+
+Disclosure behavior
+- Opening Media tools exposed Camera clock and Media locations in one region.
+- Time difference 0.25 hours enabled Preview.
+- Preview completed in under 1 s, showed Unsaved preview, enabled Save
+  correction and Reset, and marked 7 affected items Preview.
+- Reset removed the notice and all 7 preview badges; no correction was saved.
+- Adjust locations changed to Finish adjusting locations and exposed 8
+  Set location actions, one per timeline item.
+- Opening the first action created exactly one inline editor.
+- Closing Media tools removed the editor, all 8 edit actions, Camera clock,
+  and Adjust locations while retaining exactly 8 uncluttered timeline rows.
+
+Exact 100,000-item paging repeat
+- Reused the bounded MED_33 fixture: 99,992 synthetic items plus 8 originals.
+- Selected limit 25:
+  - first: 1-25, Page 1/4,000, 25 rows, 25 map markers
+  - next: 26-50, Page 2/4,000, 25 rows, 25 markers, 799 ms
+  - last: 99,976-100,000, Page 4,000/4,000, 25 rows, 25 markers, 902 ms
+  - first return: 25 rows/markers, 798 ms
+- Selected limit 50:
+  - first: 1-50, Page 1/2,000, 50 rows, 50 map markers, 682 ms
+  - next: 51-100, Page 2/2,000, 50 rows, 50 markers, 791 ms
+  - last: 99,951-100,000, Page 2,000/2,000, 50 rows, 50 markers, 902 ms
+- No page rendered more timeline rows or map markers than its selected limit.
+
+Phone constraint
+- Required 390 x 760 repeat cannot be rendered in the only connected browser,
+  which is fixed at 1049 x 942 with no viewport/device-emulation control.
+
+Cleanup
+- Removed 99,992 synthetic resolved/correlation/media/index rows.
+- Synthetic remaining: 0/0/0/0.
+- Original media/resolved/selected: 8/8/8.
+- Media/track work queues: 0/0.
+- Reloaded root: 8 Tracks and no synthetic text.

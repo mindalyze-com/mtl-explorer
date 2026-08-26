@@ -1,0 +1,19 @@
+Admin Processing after settlement:
+- GPS: done, 100%, 5 completed / 5 total
+- MEDIA: done, 0 / 0
+- Duplicate Finder: done, 5 / 5
+- Activity Classifier: done, 5 / 5
+- Exploration Score: done, 5 / 5
+- Photo Position Correlation: done, 0 / 0
+- No failed GPS row or error state was visible.
+
+Freshness UI:
+- Banner: New data available — Tracks, media, or settings changed since this view loaded.
+- Data status: Out of sync; server changes not yet applied; polling Healthy.
+- Baseline token: 4avRQ2__|server_id:6qVg4AYMpEx8YgnXidocUW|config:9|filters:90|index:0|media:0|track_geometry:0|tracks:0
+- Server token after import/jobs: 2YxpF2__|server_id:6qVg4AYMpEx8YgnXidocUW|config:9|filters:90|index:15|media:0|track_geometry:30|tracks:30
+- Client token before reload: 1NdxN6__|server_id:6qVg4AYMpEx8YgnXidocUW|config:9|filters:90|index:15|media:0|track_geometry:30|tracks:10
+- Revision sum: 174 (baseline 99)
+- Latest server change: 20/08/2026 01:14:39
+
+Per-file SUCCESS and track IDs: IMP_03-indexing.txt.

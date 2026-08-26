@@ -1,0 +1,5 @@
+Coverage plan: coverage-plan.md
+Frozen coverage ID count: 235
+Coverage plan SHA-256: 122bd1ecf4a8cccf6285630a9801dd91bac35cb21cd0fdc3ae17907b7221c5b1
+Queue shape: RUN_SETUP + 235 distinct coverage IDs + RUN_CLEANUP
+Rule enforced: every frozen coverage ID is a required queue row unless its own packet proves NOT APPLICABLE.

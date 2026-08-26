@@ -1,0 +1,17 @@
+AVR_03 post-playback usability evidence
+
+Animation
+- Stop returned from Playing to expanded Playback ready.
+- Finish returned to Replay complete.
+- Main Segments tool opened normally after animation reset/finish.
+
+Virtual race
+- Reset returned all three racer cards to 0%.
+- Race sheet closed normally.
+
+Map/tools after race
+- Map scale before zoom: 100 m.
+- Zoom in result: 50 m.
+- Zoom out result: 100 m.
+- Filter navigation opened a normal configuration sheet with eight matching tracks, Criteria, Included categories, Map colors, Review tracks, and Reset filter.
+- No replay/race overlay, stuck pointer state, or blocked navigation remained.

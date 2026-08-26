@@ -1,0 +1,21 @@
+View: Activities by keyword
+
+Saved parameters:
+- From date: 2026-08-17
+- Keyword: Media
+- Geo area: Circle at 31.9193, -3.1135, radius 672.9 km
+
+Before reload:
+- Criteria summary: 3 criteria active
+- Keyword/date values were present.
+- Area editor showed 1 area and the exact circle summary.
+
+After reload of /mtl/filter:
+- Active result/view restored before opening Criteria.
+- Criteria summary remained 3 criteria active.
+- From date remained 2026-08-17.
+- Keyword remained Media.
+- Area summary remained 1 area; expanding Edit areas restored the exact circle
+  center and radius.
+
+Result: date, text, and geo parameters persisted and re-applied.

@@ -1,0 +1,6 @@
+APP_02 text readability constraint
+
+- In both root data-theme=light and data-theme=dark states, Admin Preferences retained its complete accessible text/control tree.
+- Labels, descriptions, pressed states, locale/unit previews, group names, and navigation text were not removed or blank in either theme.
+- Verifying white-on-white/black-on-black failures requires rendered color/contrast inspection.
+- ACC_04 blocks screenshots, and the connected browser provides no pixel/color inspection path. Text contrast therefore cannot be proven in this run.

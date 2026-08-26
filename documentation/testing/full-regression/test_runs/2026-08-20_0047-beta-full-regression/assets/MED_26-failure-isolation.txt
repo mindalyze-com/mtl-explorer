@@ -1,0 +1,36 @@
+MED_26 deterministic correlation failure isolation
+
+Fixture and queue order
+- Seeded media 2600000 (failing) and 2600001 (healthy) with identical
+  requested_at/retry_after; media_id ordering placed failing first.
+- A disposable 2032 track had valid 4326 timed points but an intentionally
+  invalid 3857 canonical route geometry.
+- Failing media had EXIF GPS, forcing ST_DistanceSphere against the bad route.
+- Healthy media had camera time only, so it could interpolate from the valid
+  timed points.
+
+Worker behavior
+- Log: "Media correlation batch failed; retrying 2 items separately."
+- Failing media 2600000 was deferred with:
+  attempt_count=1;
+  last_error="ERROR: Only lon/lat coordinate systems are supported in geography.";
+  retry_after=2026-08-20 06:05:48.447699 UTC;
+  configured retryDelaySeconds=300.
+- Healthy media 2600001 completed in the same scheduler run:
+  media_correlation_state algorithm_version=1;
+  selected correlation to track 2601000;
+  EXIF_DATE_TAKEN at route point 47.00100,8.00100;
+  resolved origin TRACK_INTERPOLATED at the same point.
+- Summary log: tracks=0 media=1 remaining=1 durationMs=90.
+
+No tight retry
+- At 06:02:29 UTC, after about 101 seconds and many 5-second scheduler runs,
+  failing attempt_count remained 1 and retry_after remained in the future.
+- The app log contained exactly one defer entry for media 2600000.
+- The deferred item therefore did not keep retrying the blocked batch, while
+  the healthy follower completed.
+
+Cleanup
+- Fixture media/files/track/track-data/points/work rows: all 0.
+- Original media/resolved/selected counts: 8/8/8.
+- Global correlation work queues: 0 media / 0 track.

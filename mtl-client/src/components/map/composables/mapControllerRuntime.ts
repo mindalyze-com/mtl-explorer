@@ -1,5 +1,5 @@
-import type { CSSProperties, ComputedRef, Ref, ToRefs } from 'vue';
-import type maplibregl from 'maplibre-gl';
+import type { ComputedRef, Ref, ToRefs } from 'vue';
+import type * as maplibregl from 'maplibre-gl';
 import type { ColorPalette } from '@/components/filter/ColorPalette';
 import type { DrawnCircle, DrawnPolygon, DrawnRectangle, DrawnShape, GeoShapeType } from '@/layers/GeoDrawingOverlay';
 import type { MAP_OVERLAYS } from '@/utils/mapStyle';
@@ -211,8 +211,7 @@ export type MapControllerRefs = Record<
   | null
   | undefined
 > & {
-  mapBaseContainer?: HTMLElement;
-  mapOverlayContainer?: HTMLElement;
+  mapContainer?: HTMLElement;
 };
 
 export type MapPadding = { top: number; right: number; bottom: number; left: number };
@@ -272,7 +271,6 @@ export type TerrainControl = maplibregl.IControl & {
 };
 
 export type MapControllerState = {
-  map: MapControllerMap | undefined;
   overlayMap: MapControllerMap | undefined;
   mapConfig: Record<string, unknown> | null;
   mapServerStatus: MapServerStatus | null;
@@ -407,7 +405,7 @@ export type MapControllerState = {
   _scaleControl: maplibregl.ScaleControl | null;
   _terrainControl: TerrainControl | null;
   _terrainTrackLayer: maplibregl.CustomLayerInterface | null;
-  _syncingView: boolean;
+  _syncingToolRoute: boolean;
   trackPointsVisible: boolean;
   trackPointsDetailsCache: Map<string, GpsTrackDataPoint[]>;
   trackPointsCanonicalCache: Map<number, GpsTrackDataPoint[]>;
@@ -459,7 +457,6 @@ export type MapControllerMagic = {
 
 export type MapControllerComputedValues = {
   selectionPopupTracks: TrackPopupMeta[];
-  baseMapStyle: CSSProperties;
   layerStatesForPanel: LayerPanelStates;
   mapThemesForPanel: MapTheme[];
   isMediaVisible: boolean;
@@ -528,15 +525,24 @@ export type MapToolsMethods = {
 };
 
 export type MapOverlay = (typeof MAP_OVERLAYS)[number];
+export type TrackLineColor = string | maplibregl.ExpressionSpecification;
+export type MapOverlayPaint = {
+  'raster-opacity': number;
+  'raster-saturation': number;
+  'raster-brightness-max': number;
+  'raster-hue-rotate'?: number;
+};
 
 export type MapLayerSettingsMethods = {
-  resolveTrackLineColor(): Promise<unknown>;
+  captureBasemapLayers(): void;
+  applyBasemapAppearance(): void;
+  resolveTrackLineColor(): Promise<TrackLineColor>;
   updateTrackStyle(): Promise<void>;
   orderLegendEntriesByFilterResult<TEntry extends { group: string }>(
     entries: TEntry[],
     groupOrder?: string[]
   ): TEntry[];
-  _overlayPaintForSlider(slider: number, hueRotate?: number): Record<string, unknown>;
+  _overlayPaintForSlider(slider: number, hueRotate?: number): MapOverlayPaint;
   _overlayBeforeId(): string | undefined;
   _addOverlay(overlay: MapOverlay, opacity: number, beforeId?: string): void;
   applyActiveOverlays(): void;
@@ -563,12 +569,7 @@ export type TerrainModeMethods = {
   onToggleTerrainMode(): void;
   onSetTerrainModeEnabled(enabled: boolean): void;
   onTerrainExaggerationChange(exaggeration: number): void;
-  overlayCameraView(): MapCameraState | null;
-  resolveOverlayCenterElevation(center: MapCenter | Coordinates): number | null;
-  syncBaseMapToCamera(view: MapCameraStateWithPadding | null): void;
-  syncBaseMapToOverlay(): void;
-  jumpOverlayCameraAndSyncBase(view: MapCameraStateWithPadding): void;
-  setBaseMapTerrainSync(enabled: boolean): void;
+  jumpMapCamera(view: MapCameraStateWithPadding): void;
   handleTerrainUnavailable(detail: string, notify: boolean): void;
   applyTerrainPreference(options?: { animate?: boolean }): void;
 };
@@ -750,8 +751,7 @@ export type MapControllerBoundMethods = {
   [Key in keyof MapControllerMethods]: MapControllerMethods[Key];
 };
 
-export type MapControllerStateRefs = Omit<ToRefs<MapControllerState>, 'map' | 'overlayMap'> & {
-  map: Ref<MapControllerMap>;
+export type MapControllerStateRefs = Omit<ToRefs<MapControllerState>, 'overlayMap'> & {
   overlayMap: Ref<MapControllerMap>;
 };
 

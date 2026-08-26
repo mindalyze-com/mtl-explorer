@@ -1,0 +1,11 @@
+Import method: documented watched folder (`./data/gpx/`), not upload UI.
+Destination: data/gpx/2026-08-20_0047-beta-full-regression/
+Copy timestamp: 2026-08-19T23:13:14Z
+
+JuraRoute72011.gpx | 199962 bytes | fcff577bd3c1a6dc2bb9e53abba8051d510d282f4fb0049d38be5300f92e354e
+Lannion_Plestin_parcours24.4RE.gpx | 60917 bytes | e76c692cbb5580f20013ce19995a9383361a8a0babec2db3e36f7064f316e85f
+MoselradwegAusWiki.gpx | 415326 bytes | 0f5263dee95a345a42585bde148ec741af4ed4eeb7451702f59c9c7f9bf761c3
+Vitry-le-Francois_Langres.gpx | 238349 bytes | 401218e3c1d1f366ee27ea8bc138d8422eff3bf6348a77183be83fef3e8d7d67
+VoieVerteHauteVosges.gpx | 183733 bytes | 0f417d6e76cfa581d3ada969e728694933fbffd062f61a8352ccc87637135f78
+
+All watched copies match the staged source checksums.

@@ -34,8 +34,8 @@ for each coverage packet. Use the same shape for `RUN_SETUP.md` and
 
 ## Issues
 
-| ID | Severity | Summary | Reproduction | Expected | Actual | Evidence | Release impact |
-|---|---|---|---|---|---|---|---|
+| ID | Severity | Summary | Reproduction | Expected | Actual | Evidence | Finding status | Release impact |
+|---|---|---|---|---|---|---|---|---|
 
 ## Evidence Files
 
@@ -65,6 +65,9 @@ for each coverage packet. Use the same shape for `RUN_SETUP.md` and
 
 - Each packet covers one coverage ID and must have an explicit status.
 - `PASS` requires direct action and evidence, not a broad prefix summary.
+- New findings start as `OPEN`. Use `FIX_IN_WORK` only after an owner starts
+  implementing, reviewing, or directly verifying a fix; regression investigation
+  or triage alone is not fix work.
 - `FIXED` requires direct retest evidence that a previously recorded issue now
   behaves as expected.
 - `REJECTED` requires a concrete reason that the candidate issue is expected

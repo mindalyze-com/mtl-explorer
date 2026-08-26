@@ -1,0 +1,10 @@
+PLN_02 route-computation evidence
+
+- At 30 km map scale, Planner still showed: Zoom in to start planning. Visible span must be under ~300 km.
+- After two further zoom-in actions, map scale was 10 km and the warning disappeared.
+- Two end-user map clicks added waypoints.
+- BRouter status remained ready.
+- Computed route: 26.4 km, ascent 26 m, descent 60 m, duration 1h 13m, legs 1.
+- Elevation chart: 144 data points, distance extent 26.398 km, elevation extent 634.25-688.75 m.
+- Undo, Clear route, and Save route became enabled.
+- ACC_04 prevents durable pixel evidence for the canvas-only route line.

@@ -1,0 +1,10 @@
+FIT_01 import copy
+
+Source: Garmin official fit-javascript-sdk test/data/Activity.fit (validated in DAT_05)
+Source path: data/logs/fixtures/public-fit/Activity.fit
+Destination watched path: data/gpx/2026-08-20_0047-beta-full-regression/Activity.fit
+Copied: 2026-08-19T23:52:53Z
+Bytes: 94096
+Source SHA-256: 949a238e1bb75c3684479785f76fa9a16888bb394518844248f488171d591387
+Destination SHA-256: 949a238e1bb75c3684479785f76fa9a16888bb394518844248f488171d591387
+Result: byte-identical GPS-bearing FIT file placed in the active watched import folder.

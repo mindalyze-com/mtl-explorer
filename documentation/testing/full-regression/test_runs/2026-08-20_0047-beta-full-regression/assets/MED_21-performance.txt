@@ -1,0 +1,44 @@
+MED_21 indexed large-library performance evidence
+Target: disposable MTL Explorer database and app at 62.238.106.141:18080
+
+Synthetic data
+- Insert time: 6.211 s.
+- media_file: 100,000 rows (IDs 10000000-10099999).
+- gps_track: 300 rows (IDs 2000000-2000299).
+- selected media_track_correlation: 100,000 rows.
+- media_resolved_location: 100,000 rows.
+- Correlation work queues before measurement: 0 media, 0 track.
+
+Production map-bounds SQL
+- Exact repository UNION shape is in MED_21-explain.sql.
+- Envelope: lng 20.2-20.25, lat 10.0-10.1; 5,100 rows returned.
+- Resolved projection: Bitmap Index Scan on media_resolved_location_ix_location,
+  then Bitmap Heap Scan; index rows=5,100, index searches=1.
+- EXIF fallback: Index Scan on media_file_ix_location; no fallback rows existed.
+- Planning time 11.811 ms; execution time 6.226 ms.
+
+Production zero-offset Track Details timeline SQL
+- Exact persisted repository SELECT is in MED_21-explain.sql.
+- Track 2000000 had 334 selected correlations; page size 100.
+- Candidate lookup: Bitmap Index Scan on
+  media_track_correlation_ix_track_timeline with track_id=2000000;
+  index rows=334, index searches=1.
+- Remaining media, indexed-file, and resolved joins used their primary-key indexes.
+- Planning time 1.362 ms; execution time 8.068 ms.
+- This is the persisted selected-correlation path, not runtime interpolation of
+  the 100,000-row media library.
+
+Authenticated HTTP timings after one warm-up request per endpoint
+- Login: HTTP 200.
+- GET /api/media/get-media-in-bounds: five HTTP 200 responses, 212,940 bytes
+  each; 18.903, 23.765, 40.983, 31.849, 15.231 ms (mean 26.146 ms).
+- GET /api/media/by-track/2000000?cameraOffsetSeconds=0&page=0&pageSize=100:
+  five HTTP 200 responses, 54,699 bytes each; 27.099, 24.948, 26.336,
+  21.914, 34.082 ms (mean 26.876 ms).
+- Both responses included Cache-Control: no-store.
+
+Cleanup verification
+- Synthetic media, tracks, correlations, resolved rows, and indexed files: 0.
+- Original media/resolved/selected correlations: 8/8/8.
+- Manual locations and time corrections: 0/0.
+- Correlation work queues: 0 media, 0 track.

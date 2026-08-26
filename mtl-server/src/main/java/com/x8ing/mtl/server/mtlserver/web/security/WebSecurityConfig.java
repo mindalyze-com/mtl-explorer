@@ -82,7 +82,7 @@ public class WebSecurityConfig {
                                 "img-src 'self' data: blob: https:; " +
                                 "font-src 'self' data: https:; " +
                                 "connect-src 'self' https: http://localhost:* http://127.0.0.1:*; " +
-                                "worker-src 'self' blob:; " +
+                                "worker-src 'self'; " +
                                 "base-uri 'self'; " +
                                 "object-src 'none'; " +
                                 "frame-ancestors 'none'"))

@@ -1,0 +1,11 @@
+IMP_07 main-map interaction evidence
+
+The map was operated through visible location search, zoom controls, and line clicks. Every click used a known source GPX trackpoint near the selected location. A successful click was accepted only when the UI opened the matching detail or an explicit multi-track selection popup.
+
+100004 | Lannion | search Lannion, zoom to 3 km scale, click known line point | direct Track Details /mtl/track/100004 | PASS
+100003 | Voie Verte | search Bussang, zoom to 2 km scale, click known line point | popup: exactly 2 tracks, Voie Verte and Mosel; selecting Voie opened /mtl/track/100003 | PASS
+100001 | Mosel | same known overlapping line point near Bussang | popup: exactly 2 expected tracks; selecting Mosel opened /mtl/track/100001 | PASS
+100002 | Vitry-Langres | search Joinville, zoom to 5 km scale, click source line beside the location marker | direct Track Details /mtl/track/100002 | PASS
+100000 | Jura Route | search Saignelégier, zoom to 300 m scale, click source segment near trackpoint 460 | direct Track Details /mtl/track/100000 | PASS
+
+The direct detail and multi-track selection sheets are the visible click popups for these track-line points. The overlapping click listed the two legitimate source tracks once each. No stale, unexpected, or duplicated line choice was present. Embedded detail maps were present after every selection.

@@ -1,0 +1,7 @@
+GLB_04 zoom-limit interaction
+
+- At active-globe minimum zoom, the map showed 1000 km and the Zoom out control was visibly disabled.
+- Zoom in remained available; one activation left the minimum cleanly and changed the scale to 500 km.
+- Continued with bounded Zoom in actions until the control became disabled at the 1 m maximum.
+- Zoom out remained available; one activation left the maximum cleanly, changed the scale to 2 m, and both zoom controls were enabled again.
+- No boundary trapped the map or hid the surrounding map/navigation controls.

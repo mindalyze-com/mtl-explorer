@@ -1,0 +1,32 @@
+MED_38 MOV playback and serving evidence
+Captured: 2026-08-20 CEST
+
+Capability branch
+- Required probe expression: canPlayType('video/quicktime; codecs="avc1.42E01E, mp4a.40.2"').
+- The controlled browser's DOM inspection surface returns a restricted VIDEO snapshot and does not expose canPlayType; its visible data-URL probe was rejected by browser security policy. No workaround was attempted.
+- Actual browser result was broader than expected: the original MOV loaded and decoded natively without media error, so the native branch was exercised.
+
+Native original playback
+- Selected media: 400000, mtl-regression-video-estimated.mov.
+- currentSrc: /mtl/api/media/get/400000/content.
+- poster: /mtl/api/media/get/400000/content?maxSize=1280.
+- readyState 4; duration 2 seconds; dimensions 320x180; native controls enabled.
+- Play advanced currentTime 0.000 -> 0.658 seconds in 500 ms.
+- Playback continued through currentTime 2.000, ended true, paused true, with no media error.
+- A repeat run paused at 0.631 seconds and resumed to 0.863 seconds.
+- The controlled browser does not expose the native media control's shadow-DOM seek slider. Pointer attempts on the visible slider did not change currentTime; app-level ArrowRight navigated to the next media item. Native seek was not independently verified.
+- Because native original decoding succeeded, no Auto/480p/720p/1080p fallback selector or HLS conversion flow was required; quality control count was zero.
+- Poster stayed available and Download original resolved to /mtl/api/media/get/400000/content.
+
+Original HTTP contract
+- Full: HTTP 200, video/quicktime, Accept-Ranges: bytes, Content-Length 164588; downloaded 164588 bytes.
+- Range bytes=100-355: HTTP 206, video/quicktime, Content-Range bytes 100-355/164588, Content-Length 256; downloaded 256 bytes.
+- Unsatisfiable Range bytes=164588-: HTTP 416, Content-Range bytes */164588, Content-Length 0.
+- Full original SHA-256: 042f0a6911b124316295eb79ca0d30f704016bf1228c80b7690dad160a30b48c.
+- Frozen manifest SHA-256: 042f0a6911b124316295eb79ca0d30f704016bf1228c80b7690dad160a30b48c.
+- Exact checksum match: yes.
+- Auth token and /tmp/mtl-med38.* responses were removed after verification.
+
+Constraint result
+- Product playback, poster, download, range, and checksum behavior passed.
+- Exact canPlayType return-value capture and native shadow-DOM seek interaction remain blocked by the controlled browser.

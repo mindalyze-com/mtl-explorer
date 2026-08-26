@@ -248,6 +248,33 @@ describe('BottomSheet stacking', () => {
     expect(lowerSheet.querySelector('.sheet-stack-scrim')).toBeNull();
   });
 
+  it('closes only the scoped foreground sheet when stacked sheets expose multiple Close buttons', async () => {
+    const wrapper = mountStackHarness({ upperOpen: true });
+    await flushSheetUpdates();
+
+    const lowerSheet = findSheet('Lower Sheet');
+    const upperSheet = findSheet('Upper Sheet');
+    const closeButtons = document.body.querySelectorAll<HTMLButtonElement>('.sheet-close-btn[aria-label="Close"]');
+    const foregroundSheets = document.body.querySelectorAll<HTMLElement>(
+      '.sheet.sheet--open:not(.sheet--backgrounded)'
+    );
+
+    expect(closeButtons).toHaveLength(2);
+    expect(lowerSheet.classList.contains('sheet--backgrounded')).toBe(true);
+    expect(foregroundSheets).toHaveLength(1);
+    expect(foregroundSheets[0]).toBe(upperSheet);
+
+    const foregroundClose = foregroundSheets[0]?.querySelector<HTMLButtonElement>('.sheet-close-btn');
+    expect(foregroundClose).not.toBeNull();
+    foregroundClose?.click();
+    await flushSheetUpdates();
+
+    expect((wrapper.vm as unknown as { lowerOpen: boolean; upperOpen: boolean }).upperOpen).toBe(false);
+    expect((wrapper.vm as unknown as { lowerOpen: boolean; upperOpen: boolean }).lowerOpen).toBe(true);
+    expect(lowerSheet.classList.contains('sheet--backgrounded')).toBe(false);
+    expect(lowerSheet.querySelector('.sheet-stack-scrim')).toBeNull();
+  });
+
   it('uses open order as the tie-breaker for equal z-index sheets', async () => {
     const wrapper = mountStackHarness({ lowerZIndex: 5200, upperZIndex: 5200 });
     await flushSheetUpdates();

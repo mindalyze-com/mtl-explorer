@@ -1,0 +1,8 @@
+APP_03 chart recoloring without reload
+
+- In dark root theme, Statistics Overview rendered 9 Highcharts SVG roots and 148 paths.
+- First activity point strokes used rgba(15, 23, 42, .92); initial grid lines used rgba(255, 255, 255, .06).
+- Closed Statistics, changed Preferences to Light, and reopened Statistics without a page reload.
+- Root reported data-theme=light and the same Overview rendered 9 Highcharts roots.
+- Point strokes changed to rgba(255, 255, 255, .95); corresponding grid lines changed to rgba(0, 0, 0, .06).
+- Series fills stayed semantically stable (#6366f1 and #3b82f6) while contrast strokes/grid adapted to the UI theme.

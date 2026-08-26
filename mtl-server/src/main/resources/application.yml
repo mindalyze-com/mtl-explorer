@@ -5,7 +5,7 @@ mtl:
     distance-tolerance: 1000
   indexer:
     change-detection-strategy: SIZE_AND_MTIME  # SIZE_ONLY | SIZE_AND_MTIME
-    worker-threads: 2                     # workers per file index; set to 1 on low-memory systems to reduce peak allocation
+    worker-threads: 1                     # one file per index at a time keeps large GPX and media imports bounded
     gps:
       live-watch-enabled: true            # watch directory with inotify for instant GPX detection
       rescan-interval: PT12H              # ISO-8601 duration; periodic full rescan interval for GPS
@@ -27,7 +27,7 @@ mtl:
     corridor-width-m: 25.0                # Buffer radius around each prior path (meters). Known territory.
     use-track-precision: 10               # Simplified track variant to use (10m precision). Which version of the track to take.
     max-tracks-per-run: 20                # Safety cap per scheduler invocation
-    worker-threads: 3                     # Parallel exploration score workers; set to 1 for sequential processing
+    worker-threads: 1                     # sequential processing avoids overlapping large track geometries
     run-schedule: PT120S                  # How often the job fires (ISO-8601 duration)
   planner:
     enabled: true                         # Master switch for the route-planner feature. Override via MTL_PLANNER_ENABLED.
@@ -42,8 +42,9 @@ mtl:
   demo-mode: false                        # overridden to true by application-demo.yml
   log-viewer-enabled: true               # set to false to disable /api/admin/server-log (always off in demo mode)
   media-watch-directory: /app/media
-  image-magick:
-    max-concurrent-processes: 2   # global cap for simultaneous image resize and HEIC conversion processes
+  media-process:
+    max-concurrent-processes: 1   # shared cap for ImageMagick, FFprobe, and FFmpeg child processes
+    acquire-timeout: PT0.25S      # fail quickly instead of occupying an HTTP worker behind a long conversion
   video-transcode:
     enabled: true
     temp-directory: ${java.io.tmpdir}/mtl-explorer-video-transcodes
@@ -58,6 +59,7 @@ mtl:
     probe-timeout: PT20S
     monitor-interval: PT1S
     segment-seconds: 4
+    max-threads: 1               # bounds decoder, filter, and encoder worker memory
   garmin-sync:
     enabled: false # needs to be enabled in custom application.yml
     wrapper-program: /app/garmin_export/run_export.sh
@@ -74,8 +76,10 @@ mtl:
     fit-export-default-profile: ${FIT_EXPORT_DEFAULT_PROFILE:default}
     fit-export-default-packages: ${FIT_EXPORT_DEFAULT_PACKAGES:garth fitparse gpxpy}
   db-readonly:
-    username: mtluserReadonly
+    username: mtluserreadonly
     password: MtlSuper123
+    maximum-pool-size: 2
+    minimum-idle: 0
   map-server:
     status-url: http://map-server:8081/status
     tile-mode: local                            # "local" = vector tiles from docker-maps, "remote" = raster from internet
@@ -117,6 +121,10 @@ mtl:
 
 server:
   forward-headers-strategy: framework
+  tomcat:
+    threads:
+      max: 30
+      min-spare: 2
   servlet:
     context-path: "/mtl/"
     # Session config disabled — auth is purely JWT-based (STATELESS session policy).
@@ -143,7 +151,8 @@ spring:
     username: mtluser
     password: MtlSuper123
     hikari:
-      maximum-pool-size: 15
+      maximum-pool-size: 5
+      minimum-idle: 1
   jpa:
     properties:
       hibernate:
@@ -169,7 +178,9 @@ spring:
     scheduling:
       thread-name-prefix: sched-
       pool:
-        size: 4
+        size: 2
+  lifecycle:
+    timeout-per-shutdown-phase: 2m
 
 
 logging:

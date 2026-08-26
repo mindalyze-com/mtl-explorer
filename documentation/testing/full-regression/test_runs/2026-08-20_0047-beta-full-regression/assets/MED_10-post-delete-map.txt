@@ -1,0 +1,12 @@
+MED_10 post-delete viewport and navigation
+Observed 2026-08-20 Europe/Zurich after freshness Reload
+
+- Activity 100028 Media changed from 8 items/eight named mini-map buttons to 6 items/six named buttons.
+- Neither mtl-regression-delete-a.jpg nor mtl-regression-delete-b.jpg appears as an activity marker, card, viewer item, or filmstrip target.
+- Viewer filmstrip IDs are exactly 400003, 400005, 400002, 400006, 400000, 400001; deleted IDs 400004/400007 are absent and have no map-navigation entry.
+- The recorded Bern bounds response contains exactly those same six IDs/points and omits 400004/400007:
+  400000,400006,400002,400001,400003,400005.
+- Opened mtl-regression-photo-a.jpg as item 1/6 at 46.94800,7.44740; image/details/location/download were present.
+- Visible Next moved to mtl-regression-photo-b.jpg as item 2/6 at 46.94818,7.44768; image/details/location/download were present.
+- Open on main map from photo-b returned to the recorded 100 m viewport with a selected photo marker.
+- Active media/resolved/selected state is 6/6/6 with queues 0/0.

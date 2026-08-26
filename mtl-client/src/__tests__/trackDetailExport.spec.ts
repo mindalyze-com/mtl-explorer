@@ -189,6 +189,46 @@ describe('Track Detail original and GPX export', () => {
     expect(wrapper.find('button[aria-label="Download original"]').attributes('disabled')).toBeUndefined();
   });
 
+  it('does not carry a pending download into the next track', async () => {
+    let resolveFirstDownload: () => void = () => undefined;
+    let resolveSecondDownload: () => void = () => undefined;
+    mocks.downloadTrackSourceFile
+      .mockReturnValueOnce(new Promise<void>((resolve) => (resolveFirstDownload = resolve)))
+      .mockReturnValueOnce(new Promise<void>((resolve) => (resolveSecondDownload = resolve)));
+    const wrapper = mountOverview('ride.fit');
+
+    await wrapper.find('button[aria-label="Download original"]').trigger('click');
+    await wrapper.setProps({
+      gpsTrack: {
+        ...wrapper.props('gpsTrack'),
+        id: 2,
+        indexedFile: {
+          ...wrapper.props('gpsTrack')?.indexedFile,
+          name: 'sample.igc',
+          path: 'sample.igc',
+        },
+      },
+    });
+
+    expect(wrapper.find('button[aria-label="Download original"]').attributes('disabled')).toBeUndefined();
+    expect(wrapper.find('button[aria-label="Download GPX"]').attributes('disabled')).toBeUndefined();
+
+    await wrapper.find('button[aria-label="Download original"]').trigger('click');
+    await nextTick();
+
+    expect(mocks.downloadTrackSourceFile).toHaveBeenNthCalledWith(2, 2, 'sample.igc');
+
+    resolveFirstDownload();
+    await flushPromises();
+
+    expect(wrapper.find('button[aria-label="Download original"]').attributes('disabled')).toBeDefined();
+
+    resolveSecondDownload();
+    await flushPromises();
+
+    expect(wrapper.find('button[aria-label="Download original"]').attributes('disabled')).toBeUndefined();
+  });
+
   it('shows a toast when GPX export fails', async () => {
     const toastAdd = vi.fn();
     mocks.downloadTrackGpx.mockRejectedValueOnce(new Error('failed'));

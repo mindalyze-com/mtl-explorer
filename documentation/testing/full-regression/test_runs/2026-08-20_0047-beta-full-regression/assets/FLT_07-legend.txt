@@ -1,0 +1,21 @@
+Active filter: Activities by keyword · Media
+
+Baseline:
+- Map result: 1 / 9 tracks
+- Legend expanded
+- ON_FOOT 1 visible; action label Hide ON_FOOT on map
+
+Hide:
+- Direct pointer click changed action to Show ON_FOOT on map.
+- Legend showed 1 hidden and Show all.
+- Map-visible result changed immediately from 1 / 9 to 0 / 9.
+- No filter parameter or page reload was used.
+
+Collapse:
+- Map visibility changed from expanded chevron-up to collapsed chevron-down.
+- Legend rows disappeared while the filter result remained active.
+
+Restore:
+- Expanding and showing ON_FOOT restored action Hide ON_FOOT on map.
+- Map-visible result returned to 1 / 9.
+- Legend was left expanded with the group shown.

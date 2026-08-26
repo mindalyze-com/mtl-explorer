@@ -1,0 +1,9 @@
+LOC_01 expected locale formatting
+
+- Preferences detected en-GB from en-GB and Europe/Zurich.
+- Locale selector example: `en-GB (31/12/2025, 1,234.56)`.
+- Live preview: `20/08/2026 11:56:05 — 12,345.67`.
+- Measurement preview: `25.0 km · 500 m · 80 kg`; Metric pressed.
+- Statistics Overview used `8`, `821 km`, `16h 50m`, `3,971 Wh`, and `12,727 m`.
+- Activity dates used day/month/year, for example 19/08/2026 10:01; older milestones used 01/01/2010 01:00.
+- Distances scaled sensibly between metres and kilometres; durations used hour/minute notation; thousands used comma grouping as shown by the selected en-GB profile.

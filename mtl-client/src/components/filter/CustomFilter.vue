@@ -234,6 +234,7 @@ import {
   writeStorage,
 } from '@/utils/appStorage';
 import { isResultGroupSelected } from '@/utils/resultGroupSelection';
+import { formatActiveFilterIdentity } from '@/utils/activeFilterIdentity';
 
 const EVENTS = {
   filterChangedEvent: 'filterChangedEvent',
@@ -337,7 +338,11 @@ function normalizeSelectableLegendSortStrategy(value: unknown): LegendSortStrate
 
 const filterOptionGroups = computed((): FilterOptionGroup[] => buildFilterOptionGroups(filters.value));
 const filtersLoaded = computed((): boolean => filters.value.length > 0 && Boolean(selectedFilter.value?.filterInfo));
-const activeFilterIdentity = computed((): string => (filterEnabled.value ? filterStore.activeIdentity : ''));
+const activeFilterIdentity = computed((): string =>
+  filterEnabled.value
+    ? formatActiveFilterIdentity(selectedFilter.value?.filterInfo, selectedFilter.value?.filterParams)
+    : ''
+);
 const currentViewName = computed(
   (): string => selectedFilter.value?.filterInfo?.filterConfig?.displayName?.trim() || 'Filter'
 );
@@ -567,6 +572,7 @@ watch(
 watch(
   () => filterStore.dataFreshnessRevision,
   () => {
+    refreshTrackIdCandidates();
     if (!filterEnabled.value) {
       invalidateDrillDownResult();
       void loadPausedPreview();
@@ -921,6 +927,12 @@ function scheduleTrackIdCandidateLoad() {
   trackIdCandidateDebounceTimer = setTimeout(() => {
     void loadTrackIdCandidates();
   }, 350);
+}
+
+function refreshTrackIdCandidates(): void {
+  lastTrackIdCandidateLoadKey = '';
+  trackIdCandidateLoadSeq += 1;
+  scheduleTrackIdCandidateLoad();
 }
 
 function parseCandidateTrack(rawTrack: GpsTrack): GpsTrack {

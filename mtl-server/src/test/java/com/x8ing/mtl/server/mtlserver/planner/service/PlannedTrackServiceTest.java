@@ -15,6 +15,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.util.List;
 import java.util.Optional;
@@ -38,6 +39,7 @@ class PlannedTrackServiceTest {
     @Test
     void saveAndLoadPreservesPlannerLegsAndStats() {
         PlannedTrackService service = new PlannedTrackService(
+                JsonMapper.builder().build(),
                 gpsTrackRepository,
                 gpsTrackDataRepository,
                 gpsTrackEventRepository

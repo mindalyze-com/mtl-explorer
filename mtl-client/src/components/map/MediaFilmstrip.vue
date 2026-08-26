@@ -64,7 +64,8 @@
 
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
-import { mediaContentUrl } from '@/repositories/mediaRepository';
+import { getMediaInfo, mediaContentUrl } from '@/repositories/mediaRepository';
+import { isVideoMedia } from '@/utils/mediaKind';
 
 defineOptions({ name: 'MediaFilmstrip' });
 
@@ -111,6 +112,9 @@ const collapsed = ref(false);
 const dragging = ref(false);
 const renderStart = ref(0);
 const renderEnd = ref(FILMSTRIP_FALLBACK_VISIBLE_ITEMS);
+const discoveredVideoMediaIds = ref(new Set<number>());
+const resolvedMediaKinds = new Set<number>();
+const mediaKindControllers = new Map<number, AbortController>();
 let requestedPageDirection: -1 | 1 | null = null;
 let dragStartX = 0;
 let dragStartScrollLeft = 0;
@@ -196,7 +200,29 @@ function thumbnailUrl(id: number): string {
 }
 
 function isVideoItem(id: number): boolean {
-  return videoMediaIds.value.has(id) || (id === props.mediaId && props.currentMediaIsVideo);
+  return (
+    videoMediaIds.value.has(id) ||
+    discoveredVideoMediaIds.value.has(id) ||
+    (id === props.mediaId && props.currentMediaIsVideo)
+  );
+}
+
+async function resolveMediaKind(id: number): Promise<void> {
+  if (isVideoItem(id) || resolvedMediaKinds.has(id) || mediaKindControllers.has(id)) return;
+  const controller = new AbortController();
+  mediaKindControllers.set(id, controller);
+  try {
+    const info = await getMediaInfo(id, controller.signal);
+    if (controller.signal.aborted) return;
+    resolvedMediaKinds.add(id);
+    if (isVideoMedia(info.fileName, info.mediaKind)) {
+      discoveredVideoMediaIds.value = new Set([...discoveredVideoMediaIds.value, id]);
+    }
+  } catch {
+    if (!controller.signal.aborted) resolvedMediaKinds.add(id);
+  } finally {
+    if (mediaKindControllers.get(id) === controller) mediaKindControllers.delete(id);
+  }
 }
 
 function itemAriaLabel(id: number): string {
@@ -255,6 +281,12 @@ watch(
 );
 
 watch(
+  () => visibleMediaItems.value.map((item) => item.id),
+  (ids) => ids.forEach((id) => void resolveMediaKind(id)),
+  { immediate: true }
+);
+
+watch(
   () => props.pageLoading,
   (loading) => {
     if (!loading) requestedPageDirection = null;
@@ -272,6 +304,8 @@ onBeforeUnmount(() => {
   filmstripResizeObserver?.disconnect();
   window.removeEventListener('mousemove', onMouseMove);
   window.removeEventListener('mouseup', onMouseUp);
+  for (const controller of mediaKindControllers.values()) controller.abort();
+  mediaKindControllers.clear();
 });
 </script>
 

@@ -1,0 +1,7 @@
+SYN_02 banner reload and cache refresh
+
+- Activated the pending freshness banner's Reload action.
+- Reload settled in about 0.85 s; banner disappeared and map remained at 8 Tracks.
+- Statistics Overview then loaded 8 Tracks, 821 km, 16h 50m, 3,971 Wh, 12,727 m ascent, 6 media, activity breakdown, highlights, active periods, and milestones.
+- Statistics Tracks loaded an explicit 8 tracks, 821 km, 16h 50m summary with the populated sortable table.
+- No stale/empty state, unexpected extra upload fixture, or pending request remained visible.

@@ -1,0 +1,7 @@
+SGN_01 signed-out redirect
+
+Setup: Used Admin > Session > Sign out (credentials only), which returned to /mtl/login.
+Action: Opened http://62.238.106.141:18080/mtl/ while signed out.
+Result URL: http://62.238.106.141:18080/mtl/login
+Visible result: MTL Explorer image, Username textbox, Password textbox, Sign In button.
+Result: PASS. No protected map/admin content was exposed while signed out.

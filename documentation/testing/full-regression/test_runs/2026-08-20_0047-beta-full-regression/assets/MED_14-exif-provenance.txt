@@ -1,0 +1,23 @@
+MED_14 embedded-GPS provenance evidence
+
+Fixture manifest baseline
+- File: mtl-regression-photo-a.jpg
+- Media ID: 400003
+- Expected original EXIF point: 46.94800000, 7.44740000
+- Expected origin: EXIF_EMBEDDED
+
+Visible UI
+- Track 100013 > Media timeline label: Photo GPS
+- Viewer Taken: 17/08/2026, 10:00, Embedded GPS time
+- Viewer Location: Photo GPS
+- Viewer Coordinates: 46.94800, 7.44740
+- Viewer retained Open on main map and Download original actions.
+
+Read-only database row
+id|file|exif_lat|exif_lon|exif_geometry_lat|exif_geometry_lon|exif_gps_date_utc|exif_taken_utc|resolved_origin|resolved_lat|resolved_lon|correlation_id
+400003|mtl-regression-photo-a.jpg|46.94800000|7.44740000|46.94800000|7.44740000|2026-08-17 08:00:00|2026-08-17 08:00:00|EXIF_EMBEDDED|46.94800000|7.44740000|null
+
+Result
+- The original EXIF scalar and geometry columns exactly match the frozen fixture manifest.
+- The resolved projection uses the same point and origin EXIF_EMBEDDED.
+- The resolved row does not use a track-correlation ID.

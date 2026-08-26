@@ -1,0 +1,19 @@
+Purpose: repeatable two-point segment, comparison, and virtual-race coverage without private tracks.
+
+segment-alpha.gpx
+Name: MTL Synthetic Segment Alpha
+SHA-256: efe079b74fbd2b97e50bb1a4067010f6564320550a851ae0e4d21cc6894dc36a
+Bytes: 898
+Trackpoints/timestamps: 6/6
+Start: 46.94780, 7.44710
+End: 46.94880, 7.44850
+
+segment-bravo.gpx
+Name: MTL Synthetic Segment Bravo
+SHA-256: f3bc9818939fd52e8cb1a6eaf707eff771809c835dfed869f5baf49ad008686c
+Bytes: 898
+Trackpoints/timestamps: 6/6
+Start: 46.94782, 7.44712
+End: 46.94882, 7.44852
+
+The starts and ends fall within the same small zones while intermediate geometry and timestamps differ. Fixtures are disposable, fully synthetic, and remain outside the watched folder until needed.

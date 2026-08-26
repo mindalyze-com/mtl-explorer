@@ -1,0 +1,7 @@
+GLB_03 manual globe override
+
+- Returned to the 1000 km globe zone; the control automatically reported `aria-pressed=true`.
+- Activated `Toggle globe mode`; it changed to `aria-pressed=false`.
+- Zoomed in one level and back out one level while staying in the globe-control zone.
+- At 1000 km after that zoom cycle, the control remained `aria-pressed=false`; automatic globe entry did not override the user's disable choice.
+- Activated the control again; it returned to `aria-pressed=true` with class `mtl-globe-active`.

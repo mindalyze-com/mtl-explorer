@@ -1,0 +1,26 @@
+Track: FIT #100005 (Activity.fit)
+
+Before:
+- Activity type: Walking
+- Net Total energy: 346.7 Wh
+- Avg Power: 702 W
+- Avg Moving Power: 347 W
+
+Mutation:
+- Quality -> Activity Type -> Bicycle
+- Success message: Activity type saved
+- No console error or exception
+- Overview changed to Bicycle
+- Net Total energy changed to 395.1 Wh
+- Avg Power changed to 794 W
+- Avg Moving Power changed to 395 W
+- Reload retained Bicycle and 395.1 Wh
+
+Restoration:
+- Quality -> Activity Type -> Walking
+- Success message: Activity type saved
+- Overview returned to Walking
+- Net Total energy returned to 346.7 Wh
+- No console error or exception
+
+Final shared state matches the baseline.

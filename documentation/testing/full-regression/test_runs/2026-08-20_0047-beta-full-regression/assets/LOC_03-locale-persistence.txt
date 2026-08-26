@@ -1,0 +1,8 @@
+LOC_03 locale persistence
+
+- Reloaded `/mtl/stats` with de-DE selected.
+- Post-reload Statistics retained German grouping (`3.971 Wh`) and dotted date formatting (`20.08.2026`); 8 Tracks remained available.
+- Reopened Admin Preferences after the reload.
+- Selector still reported `de-DE (31.12.2025, 1.234,56)`.
+- Preview remained `20.08.2026 11:58:20 — 12.345,67`; measurement preview remained `25,0 km · 500 m · 80 kg`.
+- Metric preference remained pressed independently.

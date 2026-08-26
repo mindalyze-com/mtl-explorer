@@ -74,8 +74,12 @@ describe('TrackDetailPhotos', () => {
     const wrapper = mount(TrackDetailPhotos, { props: { media } });
     const toolsToggle = wrapper.get('[data-test="photo-tools-toggle"]');
 
+    expect(toolsToggle.text()).toContain('Photo tools');
     expect(toolsToggle.attributes('aria-expanded')).toBe('false');
-    expect(wrapper.get('[data-test="photo-tools"]').attributes('style')).toContain('display: none');
+    expect(wrapper.get('[data-test="photo-tools"]').attributes()).toMatchObject({
+      'aria-label': 'Photo tools',
+      style: expect.stringContaining('display: none'),
+    });
     expect(wrapper.find('.photo-card__actions').exists()).toBe(false);
     expect(wrapper.text()).not.toContain('Example One');
 
@@ -123,15 +127,15 @@ describe('TrackDetailPhotos', () => {
     expect(wrapper.get('.photos-toolbar__count').text()).toBe('7 items');
     expect(wrapper.get('[data-test="photo-page-range"]').text()).toBe('3–4 of 7');
     expect(wrapper.findAll('[data-test="photo-page-size"] option').map((option) => option.attributes('value'))).toEqual(
-      ['25', '50']
+      ['100', '200']
     );
     await wrapper.get('[data-test="photo-page-previous"]').trigger('click');
     await wrapper.get('[data-test="photo-page-next"]').trigger('click');
     await wrapper.get('[data-test="photo-page-last"]').trigger('click');
-    await wrapper.get('[data-test="photo-page-size"]').setValue('50');
+    await wrapper.get('[data-test="photo-page-size"]').setValue('200');
 
     expect(wrapper.emitted('change-page')).toEqual([[0], [2], [3]]);
-    expect(wrapper.emitted('change-page-size')).toEqual([[50]]);
+    expect(wrapper.emitted('change-page-size')).toEqual([[200]]);
   });
 
   it('applies and resets a signed camera-clock offset in seconds', async () => {
@@ -239,6 +243,7 @@ describe('TrackDetailPhotos', () => {
   it('explains the empty state and offers retry after a load failure', async () => {
     const empty = mount(TrackDetailPhotos);
     expect(empty.get('[data-test="track-photos-empty"]').text()).toContain('camera clock was wrong');
+    expect(empty.get('[data-test="empty-photo-tools"]').text()).toBe('Open Photo tools');
     await empty.get('[data-test="empty-photo-tools"]').trigger('click');
     expect(empty.get('[data-test="photo-tools-toggle"]').attributes('aria-expanded')).toBe('true');
 

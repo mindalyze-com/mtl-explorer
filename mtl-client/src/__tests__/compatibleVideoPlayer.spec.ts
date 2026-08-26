@@ -350,6 +350,35 @@ describe('CompatibleVideoPlayer', () => {
     expect(instance?.recoverMediaError).toHaveBeenCalledTimes(1);
   });
 
+  it('lets hls.js recover a compatible-stream media element error before failing playback', async () => {
+    vi.mocked(HTMLMediaElement.prototype.canPlayType).mockReturnValue('');
+    repositoryMock.create.mockResolvedValue(
+      transcodeSession({ state: 'COMPLETED', playlistReady: true, encodedSeconds: 120 })
+    );
+    const wrapper = mountPlayer();
+    await reportUnsupported(wrapper);
+    await buttonWithText(wrapper, 'Create compatible stream').trigger('click');
+    await flushPromises();
+
+    const instance = hlsMock.instances[0];
+    instance?.handlers.get('manifestParsed')?.();
+    setMediaError(wrapper, 3);
+    await wrapper.get('video').trigger('error');
+
+    expect(wrapper.find('[data-test="video-transcode-panel"]').exists()).toBe(false);
+    expect(instance?.destroy).not.toHaveBeenCalled();
+
+    instance?.handlers.get('error')?.(null, { fatal: true, type: 'mediaError' });
+    instance?.handlers.get('error')?.(null, { fatal: true, type: 'mediaError' });
+    expect(instance?.recoverMediaError).toHaveBeenCalledTimes(2);
+
+    instance?.handlers.get('error')?.(null, { fatal: true, type: 'mediaError' });
+    await flushPromises();
+    expect(wrapper.get('[data-test="video-transcode-panel"]').text()).toContain(
+      'The compatible stream could not be decoded by the browser.'
+    );
+  });
+
   it('ignores a stale status response after navigation', async () => {
     vi.useFakeTimers();
     let resolveStatus!: (value: VideoTranscodeSession) => void;

@@ -1,0 +1,19 @@
+FLT_15 exact category restore on reload
+
+Persisted selection before reload:
+- View: Tracks by year.
+- Selected categories: 2010 and 2026.
+- Result: 7 / 9 Tracks.
+- Summary: 2 of 4 categories.
+- Legend groups: 2010 and 2026.
+
+Reload observation:
+- Browser reload returned in 312 ms while the immediate accessible snapshot was still the loading state.
+- The first resolved application snapshot was Tracks by year, 7 / 9 Tracks, 2 of 4 categories.
+- No resolved 9 / 9 state was observed before the selected result.
+- Legend immediately contained 2010 and 2026.
+
+Cross-view result after reload:
+- Filter Review: seven rows, matching the selected years.
+- Statistics Overview: Showing 7 of 9 tracks; 7 Tracks; 1,017 km.
+- This matches the pre-reload result and FLT_09's exact seven-track set.

@@ -1,0 +1,7 @@
+DEL_05 frontend-only deletion conclusion
+
+- No deleted-track API request was used as a pass/fail criterion.
+- No direct stale URL probe was used as a pass/fail criterion.
+- User-visible counts, Filter Review, Statistics Tracks/Overview, and Related lists no longer contain Vitry/100002 or Voie Verte/100003.
+- Remaining original imports display and open correctly.
+- Rendered heatmap/polyline absence remains visually BLOCKED by ACC_04, so the full frontend-only deletion conclusion is terminal BLOCKED rather than inferred.

@@ -1,0 +1,8 @@
+SYN_05 five-minute freshness snooze
+
+- Started synchronized with no banner, then triggered a GPS rescan; banner appeared after 0.5 s.
+- Activated Dismiss at 2026-08-20T09:41:16.621Z; banner disappeared.
+- Triggered a second GPS rescan so the server token changed again during the snooze.
+- At 20.820 s, 78.645 s, 133.124 s, 187.957 s, and 242.958 s after dismissal, the banner remained absent and the 8-track map remained usable.
+- At 300.520 s after dismissal, the pending out-of-sync state reappeared as `New data available` with Reload/Dismiss.
+- This is the exact required five-minute snooze behavior across multiple freshness polls and an additional token change.

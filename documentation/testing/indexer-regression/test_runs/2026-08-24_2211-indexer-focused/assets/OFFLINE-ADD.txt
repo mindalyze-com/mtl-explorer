@@ -1,0 +1,9 @@
+Pass: offline
+Phase: add A1, A2, A3 while stopped
+Shutdown proof: container not running and port 18092 closed
+Pre-mutation/persisted-before-restart: 2/2; 2/2
+Mutation/restart/settled UTC: 20:21:20 / 20:21:20 / 20:21:42
+Expected/actual active GPX/media: 5/5; 5/5
+Evidence: startup scans found three changed files per index; GUI reconnect showed 5 Tracks.
+Manual rescan used: no
+Status: PASS

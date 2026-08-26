@@ -1,0 +1,36 @@
+MED_18 manual-location precedence evidence
+
+Embedded-GPS fixture 400003
+- Set manual point 46.94850, 7.44820 with note: MED_18 EXIF override.
+- Timeline: Set by you.
+- Activity marker accessible name: mtl-regression-photo-a.jpg. Location set by you.
+- Viewer Location: Set by you.
+- Viewer map: Location set by you at 46.94850, 7.44820.
+- Database while assigned:
+  EXIF point 46.94800,7.44740;
+  persisted route point 46.9480499974,7.4474499980;
+  manual point 46.94850,7.44820 and note preserved separately;
+  resolved origin USER_ASSIGNED at the manual point.
+- Clear assignment restored Timeline/marker Photo GPS.
+- Database after clear: no manual row; EXIF and route evidence unchanged; resolved origin EXIF_EMBEDDED at 46.94800,7.44740.
+
+Camera-time-only fixture 400002
+- Set manual point 46.94855, 7.44825 with note: MED_18 track override.
+- Timeline: Set by you.
+- Activity marker accessible name: mtl-regression-estimated-a.jpg. Location set by you.
+- Viewer Location: Set by you.
+- Viewer map: Location set by you at 46.94855, 7.44825.
+- Database while assigned:
+  original EXIF point null;
+  persisted route point 46.9480874986,7.4475124989;
+  manual point 46.94855,7.44825 and note preserved separately;
+  resolved origin USER_ASSIGNED at the manual point;
+  track correlation remained present.
+- Clear assignment restored Timeline/marker Estimated.
+- Database after clear: no manual row; resolved origin TRACK_INTERPOLATED at the unchanged route point with matching correlation ID.
+
+Final state
+- media_manual_location rows for 400002/400003: 0
+- 400002 resolution: TRACK_INTERPOLATED > route correlation
+- 400003 resolution: EXIF_EMBEDDED > original EXIF point
+- The two flows directly confirm USER_ASSIGNED > EXIF_EMBEDDED > TRACK_INTERPOLATED without overwriting lower-priority evidence.

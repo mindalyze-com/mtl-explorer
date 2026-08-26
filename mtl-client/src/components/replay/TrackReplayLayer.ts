@@ -1,4 +1,4 @@
-import maplibregl from 'maplibre-gl';
+import * as maplibregl from 'maplibre-gl';
 import { TERRAIN_DEM_SOURCE_ID } from '@/utils/mapStyle';
 import { TRACK_COLOR, TRACK_SELECTED_COLOR } from '@/utils/trackColors';
 import { sampleReplayPath, type ReplayPath, type ReplayPathPoint } from '@/components/replay/trackReplayPath';
@@ -122,10 +122,14 @@ export class TrackReplayLayer implements maplibregl.CustomLayerInterface {
   private readonly playheadBorderColor: NormalizedColor = [1, 1, 1, 0.95];
   private readonly playheadOutlineColor: NormalizedColor = [0.96, 0.62, 0.04, 0.95];
 
-  private readonly onTerrainData = (event?: { sourceId?: string }) => {
-    if (!event?.sourceId || event.sourceId === TERRAIN_DEM_SOURCE_ID) {
+  private readonly onTerrainSourceData = (event: maplibregl.MapSourceDataEvent) => {
+    if (event.sourceId === TERRAIN_DEM_SOURCE_ID) {
       this.scheduleElevationRefresh();
     }
+  };
+
+  private readonly onTerrainChange = (_event: maplibregl.MapTerrainEvent) => {
+    this.scheduleElevationRefresh();
   };
 
   private readonly onMoveEnd = () => {
@@ -149,8 +153,8 @@ export class TrackReplayLayer implements maplibregl.CustomLayerInterface {
     this.playheadBuffer = gl.createBuffer();
     this.uploadBuffers();
 
-    map.on('sourcedata', this.onTerrainData);
-    map.on('terrain', this.onTerrainData);
+    map.on('sourcedata', this.onTerrainSourceData);
+    map.on('terrain', this.onTerrainChange);
     map.on('move', this.onMove);
     map.on('moveend', this.onMoveEnd);
     this.scheduleElevationRefresh(0);
@@ -159,8 +163,8 @@ export class TrackReplayLayer implements maplibregl.CustomLayerInterface {
   onRemove(map: maplibregl.Map, gl: WebGLRenderingContext | WebGL2RenderingContext): void {
     this.elevationRefreshGeneration += 1;
     this.clearElevationRefreshTimer();
-    map.off('sourcedata', this.onTerrainData);
-    map.off('terrain', this.onTerrainData);
+    map.off('sourcedata', this.onTerrainSourceData);
+    map.off('terrain', this.onTerrainChange);
     map.off('move', this.onMove);
     map.off('moveend', this.onMoveEnd);
     if (this.fullBuffer) gl.deleteBuffer(this.fullBuffer);

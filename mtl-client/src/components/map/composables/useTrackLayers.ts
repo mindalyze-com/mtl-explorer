@@ -1,4 +1,4 @@
-import maplibregl from 'maplibre-gl';
+import * as maplibregl from 'maplibre-gl';
 import { formatDate } from '@/utils/Utils';
 import { buildTrackOverviewFeatures } from '@/components/map/mapGeometry';
 import { TRACK_COLOR, TRACK_SELECTED_COLOR } from '@/utils/trackColors';
@@ -117,7 +117,7 @@ export function useTrackLayers(_deps: Record<string, never> = {}): MapController
       this.applyTrackLayerFilters();
     },
 
-    /** Show / hide all track-related layers on the overlay map. */
+    /** Show or hide all track-related layers. */
     applyTracksVisibility() {
       if (!this.overlayMap) return;
       const visibility = this.tracksEnabled ? 'visible' : 'none';
@@ -162,7 +162,7 @@ export function useTrackLayers(_deps: Record<string, never> = {}): MapController
       }
     },
 
-    /** Fit the overlay map viewport to the bounds of the given GeoJSON FeatureCollection. */
+    /** Fit the map viewport to the bounds of the given GeoJSON FeatureCollection. */
     fitToTrackBounds(geojson) {
       if (!this.overlayMap || !geojson?.features?.length) return;
       const bounds = new maplibregl.LngLatBounds();
@@ -223,7 +223,7 @@ export function useTrackLayers(_deps: Record<string, never> = {}): MapController
       this.visibleTrackCount = this.geojson.features.length;
       this.detachTrackPointLayerHandlers();
 
-      // Remove old layers and source on the overlay map
+      // Remove old track layers and sources.
       for (const layerId of [
         TRACK_POINTS_LAYER_ID,
         TRACKS_HIGHLIGHT_CIRCLE_LAYER_ID,
@@ -244,7 +244,7 @@ export function useTrackLayers(_deps: Record<string, never> = {}): MapController
         if (this.overlayMap.getSource(sourceId)) this.overlayMap.removeSource(sourceId);
       }
 
-      // Add GeoJSON source on overlay map
+      // Add the track GeoJSON sources.
       this.overlayMap.addSource(TRACKS_SOURCE_ID, {
         type: 'geojson',
         data: this.flatTrackSourceGeojson(),

@@ -1,0 +1,8 @@
+ADM_03 indexer status and refresh
+
+- Processing exposed separate GPS and MEDIA cards with state labels, progress bars, completed/removed counts, totals, and a labelled Refresh button.
+- During ADM_02 ingestion, navigation showed `Processing Live`; GPS showed done, 15 completed, 4 removed, 19 total while track-processing jobs moved through running/pending states.
+- MEDIA independently showed done, 6 completed, 7 removed, 13 total.
+- After exact upload cleanup and Refresh, GPS updated to done, 14 completed, 6 removed, 20 total; MEDIA stayed at its unchanged 6 completed/7 removed/13 total.
+- All background job cards settled done/100%; Refresh updated the displayed timestamp to 11:27:04.
+- Zero-valued failed/pending/running counters are omitted rather than shown as zero; their active states were observed when present during prior controlled work.

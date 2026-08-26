@@ -1,0 +1,8 @@
+TBS_01 filtered track-browser listing
+
+- Active global result: 8 tracks.
+- Review tracks summary: 8 tracks.
+- Rendered rows: 8.
+- Columns: Start, Track, Activity, Distance, Duration, Avg km/h, Energy, Exploration, Imported.
+- Rows contained concrete values for name/description, date/time, activity, distance, duration, speed, energy, exploration, and import time.
+- Example: Lannion_Plestin_parcours, Bicycle, 25.9 km, 1h 13m, 21.1 km/h, 198 Wh, 100.0%.

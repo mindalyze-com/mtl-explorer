@@ -1,0 +1,17 @@
+MCT_06 segment geometry sanity evidence
+
+Known real bounds
+- All selected fixtures are local near Bern, approximately 46.9478-46.94882 latitude and 7.4471-7.44852 longitude.
+- Full source extents are 144.59-189.62 m.
+- Extracted A-B extents are 123.17-165.13 m.
+
+Comparison map
+- Embedded comparison map class: map maplibregl-map.
+- Geometry: 879 x 258 px at x=111.5, y=546.18.
+- Scale control: 100 m.
+- Four matching cards and four named chart series remained present.
+
+Sanity result
+- A [0,0] or South Africa/global outlier would require a world-scale viewport; the comparison stayed at 100 m.
+- The map did not jump, refit globally, or lose the four local comparison tracks.
+- No off-continent error/status appeared.

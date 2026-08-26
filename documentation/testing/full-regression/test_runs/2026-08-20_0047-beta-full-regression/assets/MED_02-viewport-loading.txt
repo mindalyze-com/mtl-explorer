@@ -1,0 +1,16 @@
+MED_02 viewport media-loading evidence
+
+Bern baseline
+- Map scale: 100 m.
+- Clicked media cluster exposed This cluster: 8 photos and Current map view: 8 photos.
+
+Far viewport
+- Panned beyond the initial media bounds while retaining 100 m scale.
+- Probe at the former cluster screen location opened no photo chooser.
+- Two new GET /mtl/api/media/get-media-in-bounds requests completed 200 in 2-3 ms after crossing the buffered viewport boundary.
+
+Return
+- Searched Bern and restored the same 100 m location.
+- Bounds media became interactive again.
+- Chooser returned This cluster: 8 photos, Current map view: 8 photos, Photos along a GPS track: 4 activities.
+- The current-view count remained bounded to the synthetic local media set.

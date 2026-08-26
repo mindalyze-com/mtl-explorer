@@ -49,10 +49,16 @@ function mountAbout(embedded = false, viewportCentered = true) {
 describe('AboutView navigation', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.stubGlobal('__APP_PKG_VERSION__', '1.0.0');
+    vi.stubGlobal('__APP_VERSION__', '2026-08-20T06:00:00.000Z');
     window.history.replaceState(null, '');
   });
 
-  afterEach(() => window.history.replaceState(null, ''));
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
+    window.history.replaceState(null, '');
+  });
 
   it('keeps the About content inside the standard bottom sheet', () => {
     const wrapper = mountAbout();
@@ -64,6 +70,9 @@ describe('AboutView navigation', () => {
     expect(wrapper.get('h1').text()).toBe('MTL Explorer');
     expect(wrapper.get('.about-build').text()).toContain('Version');
     expect(wrapper.get('.about-build').text()).toContain('Build');
+    expect(wrapper.get('.about-build').text()).toContain('1.0.0');
+    expect(wrapper.get('.about-build').text()).not.toContain('Versiondev');
+    expect(wrapper.get('.about-build').text()).not.toContain('Buildlocal build');
     expect(wrapper.get('.about-overview__source').attributes('href')).toBe(
       'https://github.com/mindalyze-com/mtl-explorer'
     );
@@ -76,6 +85,16 @@ describe('AboutView navigation', () => {
     const wrapper = mountAbout(true, false);
 
     expect(wrapper.getComponent(BottomSheetStub).props('viewportCentered')).toBe(false);
+  });
+
+  it('shows the release image identity when the build provides one', () => {
+    vi.stubEnv('VITE_APP_VERSION', '1.405');
+    vi.stubEnv('VITE_APP_BUILD', '2026-08-20T06:15:00Z');
+
+    const wrapper = mountAbout();
+
+    expect(wrapper.get('.about-build').text()).toContain('Version1.405');
+    expect(wrapper.get('.about-build').text()).toContain('Build2026-08-20T06:15:00Z');
   });
 
   it('keeps reference material in closed disclosures by default', () => {

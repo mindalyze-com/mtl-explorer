@@ -10,23 +10,25 @@ services:
     expose:
       - 5432
     restart: unless-stopped
+    memswap_limit: 512m
     volumes:
       - /volume1/raspberry/MyTrailLogDemo/PostGIS:/var/lib/postgresql/18/docker
     deploy:
       resources:
         limits:
-          memory: 1g
+          memory: 512m # 384 MiB validated floor; 20% is 460.8 MiB, rounded to 512 MiB.
         reservations:
           memory: 256m
     command: >
       postgres
-      -c shared_buffers=128MB
-      -c effective_cache_size=512MB
-      -c work_mem=8MB
-      -c maintenance_work_mem=64MB
-      -c max_wal_size=256MB
+      -c shared_buffers=32MB
+      -c effective_cache_size=160MB
+      -c work_mem=1MB
+      -c maintenance_work_mem=16MB
+      -c max_connections=20
+      -c max_wal_size=1GB
       -c checkpoint_completion_target=0.9
-      -c wal_buffers=8MB
+      -c wal_buffers=2MB
       -c synchronous_commit=off
 
   app:
@@ -45,6 +47,7 @@ services:
       DEMO_PHOTO_COUNT: "2000"
       # Deep media trees need many directory watches; demo media uses one subfolder.
       MTL_INDEXER_MEDIA_LIVE_WATCH_ENABLED: "true"
+      MTL_PLANNER_BROUTER_TIMEOUT_MS: "310000"
       MTL_LOCATION_SEARCH_STATUS_URL: http://location-search:8083/status
       MTL_LOCATION_SEARCH_QUERY_URL: http://location-search:8083/search
       SERVER_SSL_ENABLED: "false"
@@ -53,10 +56,12 @@ services:
     expose:
       - 8080
     restart: unless-stopped
+    stop_grace_period: 150s
+    memswap_limit: 1024m
     deploy:
       resources:
         limits:
-          memory: 1736m # image scaler and video conversion can take memory
+          memory: 1024m # Current demo target after the bounded photo-generation change.
         reservations:
           memory: 512m
     volumes:
@@ -83,6 +88,13 @@ services:
     volumes:
       - /volume1/raspberry/MyTrailLogDemo/maps:/data
     restart: unless-stopped
+    memswap_limit: 128m
+    deploy:
+      resources:
+        limits:
+          memory: 128m # 96 MiB validated floor; 20% is 115.2 MiB, rounded to 128 MiB.
+        reservations:
+          memory: 64m
 
   location-search:
     image: wauwau0977/mytraillog-location-search:beta
@@ -92,7 +104,15 @@ services:
     environment:
       PORT: "8083"
       MTL_LOCATION_SEARCH_DB: /data/geonames-search.sqlite
+      MTL_LOCATION_SEARCH_MMAP_SIZE: "33554432"
     restart: unless-stopped
+    memswap_limit: 128m
+    deploy:
+      resources:
+        limits:
+          memory: 128m
+        reservations:
+          memory: 64m
 
   brouter:
     image: wauwau0977/mytraillog-brouter:beta
@@ -101,13 +121,14 @@ services:
       - 17777
       - 17778
     environment:
-      BROUTER_JAVA_XMX: "256m"
+      BROUTER_JAVA_XMX: "128m"
     volumes:
       - /volume1/raspberry/MyTrailLogDemo/brouter-segments:/segments4
     deploy:
       resources:
         limits:
-          memory: 1g
+          memory: 512m
         reservations:
-          memory: 256m
+          memory: 192m
+    memswap_limit: 512m
     restart: unless-stopped

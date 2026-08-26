@@ -37,4 +37,24 @@ describe('active filter identity', () => {
       })
     ).toBe('CustomTracks · Visible');
   });
+
+  it('formats numeric filter criteria in the selected measurement system', () => {
+    const filterInfo = {
+      filterConfig: { displayName: 'Tracks by distance (gradient)', filterName: 'TracksByDistanceGradient' },
+      paramDefinitions: [{ name: 'DISTANCE_MAX_KM' }],
+      effectiveUiMetadata: {
+        params: {
+          DISTANCE_MAX_KM: { widget: 'number', unit: 'km' },
+        },
+      },
+    } as FilterInfo;
+    const filterParams = { stringParams: { DISTANCE_MAX_KM: '16.09344' } };
+
+    expect(formatActiveFilterIdentity(filterInfo, filterParams, 'US_CUSTOMARY', 'de-DE')).toBe(
+      'Tracks by distance (gradient) · 10 mi'
+    );
+    expect(formatActiveFilterIdentity(filterInfo, filterParams, 'METRIC', 'de-DE')).toBe(
+      'Tracks by distance (gradient) · 16,09 km'
+    );
+  });
 });

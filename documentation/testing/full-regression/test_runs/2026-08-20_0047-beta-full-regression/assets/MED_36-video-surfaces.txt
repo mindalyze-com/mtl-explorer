@@ -1,0 +1,31 @@
+MED_36 generated-video end-user surface evidence
+Captured: 2026-08-20 CEST
+
+Indexer/database state
+- 400000 mtl-regression-video-estimated.mov: MEDIA COMPLETED_WITH_SUCCESS; duration 2 s; 320x180; H.264; MPEG-4/AAC; TRACK_INTERPOLATED at 46.948325000073936,7.447850000002013.
+- 400001 mtl-regression-video-gps.mp4: MEDIA COMPLETED_WITH_SUCCESS; duration 2 s; 320x180; H.264; MPEG-4/AAC; EXIF_EMBEDDED at 46.9486,7.44815.
+
+Poster endpoint
+- 400000 content?maxSize poster: HTTP 200 image/jpeg, 4,499 bytes, JPEG 192x108, 69.309 ms.
+- 400001 content?maxSize poster: HTTP 200 image/jpeg, 4,499 bytes, JPEG 192x108, 55.796 ms.
+
+Matching activity timeline and viewer
+- Both generated videos appeared in MTL Regression Media Track (track 100028).
+- Both timeline cards had complete 320x180 images, visible Video indicators, and matching mini-map video markers.
+- Activity media navigation opened both generated videos. The active video element loaded with readyState 4, and the filmstrip posters were complete 192x108 JPEG-derived images.
+
+Main map and map viewer
+- The red eight-media map cluster opened This cluster with all eight matching items.
+- The generated MOV opened as item 1 of 8 and exposed Play, Details, location, and Download original.
+- MOV filmstrip poster: complete 192x108 and parent button aria-label Current video with mp__filmstrip-video / bi-play-fill indicator.
+- MP4 filmstrip poster: complete 192x108, but parent button aria-label was Open photo 400001 and contained no mp__filmstrip-video indicator. This is MTL-FR-017.
+- No poster was broken.
+
+Statistics
+- Overview media tile: 8 indexed media items.
+- 2026-Q3 table row: Photos 6; Videos 2.
+- 2026-Q3 mosaic: 8 items total; Videos filter: 2 items.
+- Both video mosaic cards had visible Video indicators and complete 320x180 posters.
+
+Finding
+- MTL-FR-017 (P2, OPEN): the MP4 is classified/counts/plays as video, but the main-map viewer filmstrip presents its thumbnail as a photo and omits the video/play badge.

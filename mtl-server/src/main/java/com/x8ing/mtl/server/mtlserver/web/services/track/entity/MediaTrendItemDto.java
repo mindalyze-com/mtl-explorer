@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.x8ing.mtl.server.mtlserver.web.services.track.entity.TrackMediaDto.MEDIA_KIND;
 import com.x8ing.mtl.server.mtlserver.web.services.track.entity.TrackMediaDto.POSITION_ORIGIN;
+import com.x8ing.mtl.server.mtlserver.web.services.track.entity.TrackMediaDto.TIME_SOURCE;
 
 import java.util.Date;
 
@@ -13,6 +14,8 @@ import java.util.Date;
         "mediaKind",
         "fileName",
         "effectiveCapturedAt",
+        "appliedCameraOffsetSeconds",
+        "timeSource",
         "trackId",
         "resolvedLat",
         "resolvedLng",
@@ -26,6 +29,8 @@ public record MediaTrendItemDto(
         MEDIA_KIND mediaKind,
         String fileName,
         Date effectiveCapturedAt,
+        Integer appliedCameraOffsetSeconds,
+        TIME_SOURCE timeSource,
         Long trackId,
         Double resolvedLat,
         Double resolvedLng,

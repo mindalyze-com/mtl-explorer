@@ -45,9 +45,7 @@ const maplibreMock = vi.hoisted(() => {
   return { LngLatBounds: MockLngLatBounds };
 });
 
-vi.mock('maplibre-gl', () => ({
-  default: maplibreMock,
-}));
+vi.mock('maplibre-gl', () => maplibreMock);
 
 vi.mock('@/repositories/mediaRepository', () => mediaRepositoryMock);
 

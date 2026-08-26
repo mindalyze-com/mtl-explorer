@@ -1,0 +1,34 @@
+GeoTools oracle compatibility evidence
+Date: 2026-08-24
+
+Oracle generation
+- Implementation: original GeoTools 35.1 GPXReader method bodies
+- Synthetic distance cases: 336
+- Synthetic EPSG:3857 projection cases: 200
+- Stored oracle: mtl-server/src/test/resources/gpx/geotools-35.1-oracle.psv
+- No private GPX or media data was used.
+
+Original implementation run
+- Test class: GPXReaderGeoToolsCompatibilityTest
+- Implementation: GeoTools 35.1 temporarily restored
+- Result: 538 tests, 0 failures, 0 errors, 0 skipped
+- Class time: 2.920 s
+- Maven result: BUILD SUCCESS
+
+Replacement implementation run
+- Test class: the same GPXReaderGeoToolsCompatibilityTest
+- Implementation: allocation-free Vincenty common path, GeographicLib 2.1 fallback, direct EPSG:3857 formula
+- Result: 538 tests, 0 failures, 0 errors, 0 skipped
+- Class time: 1.016 s
+- Maven result: BUILD SUCCESS
+
+Broader final run
+- Classes: compatibility, distance, projection, file parsing, fallback-time, outlier, and stop detector tests
+- Result: 598 tests, 0 failures, 0 errors, 0 skipped
+- Maven result: BUILD SUCCESS
+
+Final dependency and package audit
+- Maven package: BUILD SUCCESS
+- Included geodesy dependency: net.sf.geographiclib:GeographicLib-Java:2.1
+- GeoTools dependencies: none
+- GeographicLib JAR size: 37,692 bytes

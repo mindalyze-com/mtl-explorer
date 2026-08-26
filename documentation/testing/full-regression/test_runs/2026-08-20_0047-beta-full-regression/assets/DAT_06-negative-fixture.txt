@@ -1,0 +1,12 @@
+Positive evidence:
+- Five GPX positives: 7,735 trkpt; none are waypoint-only.
+- FIT positive: 3,601 distinct GPS positions after validation conversion.
+
+Synthetic negative fixture:
+File: waypoint-only.gpx
+Path: /root/mtl-regression-2026-08-20_0047/fixtures/negative/waypoint-only.gpx (unwatched)
+SHA-256: 13fa6fa8ff8562ae6531f00789a473ab0ac037dda27ac9a5e7503667510a81df
+Bytes: 323
+wpt: 1
+trkpt: 0
+Product upload/index behavior: pending ADM_02 so the empty IMP_01 baseline remains clean.

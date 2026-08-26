@@ -1,0 +1,19 @@
+FLT_14 filter-view switching and category selection
+
+Starting partial selection:
+- View: Activities by exact type.
+- Selected: WALKING only.
+- Result: 2 / 9 tracks.
+- Summary: 1 of 2 categories.
+
+Selecting the same current view:
+- Reopened Filter view, selected Activities by exact type again, and applied.
+- Result remained 2 / 9 tracks.
+- Summary remained 1 of 2 categories.
+- The WALKING-only selection was retained.
+
+Selecting a different view:
+- Switched to Tracks by year and applied.
+- Result returned to 9 / 9 tracks.
+- Summary became All 4 categories.
+- The WALKING-only activity selection did not transfer into the year categories.

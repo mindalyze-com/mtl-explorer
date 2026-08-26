@@ -92,6 +92,11 @@ are terminal (`PASS`, `FAIL`, `BLOCKED`, `NOT APPLICABLE`, `FIXED`, `REJECTED`,
 `NOT REPRODUCEABLE`, or `NOT REPRODUCIBLE`), final report.md is assembled from
 packet files, and cleanup is verified.
 
+Track findings separately with `OPEN`, `FIX_IN_WORK`, `FIXED`, `REJECTED`, or
+`NOT REPRODUCIBLE` (`NOT REPRODUCEABLE` is accepted for legacy runs). Use
+`FIX_IN_WORK` only when an owner has started implementing, reviewing, or
+directly verifying a fix, not for regression investigation or triage alone.
+
 Before report.md, Current coverage ID: COMPLETE, or RUN_CLEANUP, enforce the
 endless coverage gate from resumable-workflow.md: no coverage ID may remain NOT
 STARTED, IN PROGRESS, PARTIAL, or NOT COVERED unless the user explicitly

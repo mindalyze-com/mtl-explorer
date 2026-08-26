@@ -1,0 +1,17 @@
+Coverage: ERR_02
+Execution
+- From the healthy eight-track root map, ran three consecutive cycles through Stats -> Filter -> Map -> Animate -> Segments -> GPS -> Planner.
+- Used 80 ms between completed activations; 21 navigation activations completed.
+- Final Planner state was coherent: /mtl/plan, BRouter ready, zero-waypoint controls, and no prior tool panel in the accessible tree.
+- Closed Planner. Final route was /mtl/ with 8 Tracks and normal navigation.
+
+Accessible stale-state audit
+- Absent after final close: Statistics overview, Filter criteria, Map settings, Animate tracks, Segment comparison, GPS unavailable, Planner elevation profile, Track Details, and Close popup.
+- Browser console contained normal startup/cache/filter logs and no error-level entry.
+- Earlier direct MCT_03 and AVR_01 lifecycle checks verify representative measurement/animation cleanup.
+
+Constraint
+- Previous-tool markers/cursors are rendered on map canvases, and event listeners are not exposed by the connected browser's DOM API.
+- Screenshot/pixel capture remains blocked by ACC_04, so the required combined rapid-switch canvas/listener/cursor absence cannot be directly observed.
+
+Result: route/panel/error cleanup passes; canvas marker/listener/cursor verification is BLOCKED.

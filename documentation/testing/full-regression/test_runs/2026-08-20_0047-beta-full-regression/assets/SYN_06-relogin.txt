@@ -1,0 +1,8 @@
+SYN_06 logout/relogin freshness stability
+
+- Applied the post-snooze Reload first so client/server were synchronized.
+- Admin Session showed current user/session data and a credentials-only Sign out action.
+- Sign out returned to /mtl/login with Username, Password, and Sign In.
+- Re-authenticated with the documented quick-install credentials; /mtl/ returned with 8 Tracks and no freshness banner.
+- Sampled the signed-in map across four later intervals through 25.345 s: every sample stayed /mtl/, 8 Tracks, banner absent.
+- Admin Data status afterward showed In sync, `The client is showing the latest server data`, Polling Healthy, Checked 11:48:07, Latest change 20/08/2026 11:41:20.

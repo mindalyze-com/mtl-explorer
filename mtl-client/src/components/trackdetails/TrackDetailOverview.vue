@@ -14,23 +14,23 @@
           <button
             type="button"
             class="track-header__action-btn"
-            :disabled="activeDownload !== null"
+            :disabled="currentTrackDownloadKind !== null"
             aria-label="Download original"
             title="Download original indexed file"
             @click="downloadOriginal"
           >
-            <i :class="activeDownload === 'original' ? 'pi pi-spin pi-spinner' : 'bi bi-download'"></i>
+            <i :class="currentTrackDownloadKind === 'original' ? 'pi pi-spin pi-spinner' : 'bi bi-download'"></i>
           </button>
           <button
             v-if="canDownloadGpx"
             type="button"
             class="track-header__action-btn"
-            :disabled="activeDownload !== null"
+            :disabled="currentTrackDownloadKind !== null"
             aria-label="Download GPX"
             title="Download as GPX"
             @click="downloadGpx"
           >
-            <i :class="activeDownload === 'gpx' ? 'pi pi-spin pi-spinner' : 'bi bi-file-earmark-code'"></i>
+            <i :class="currentTrackDownloadKind === 'gpx' ? 'pi pi-spin pi-spinner' : 'bi bi-file-earmark-code'"></i>
           </button>
         </div>
       </div>
@@ -741,6 +741,11 @@ type InfoSegment = {
 };
 type InfoContent = InfoSegment[][];
 type TrackDownloadKind = 'original' | 'gpx';
+type ActiveTrackDownload = {
+  kind: TrackDownloadKind;
+  serial: number;
+  trackId: number;
+};
 
 const GPS_INDEX_NAME = 'GPS';
 const GPX_FILE_EXTENSION = '.gpx';
@@ -779,7 +784,7 @@ const summaryReady = computed(() => gpsTrack.value != null);
 const activeTooltip = ref<string | null>(null);
 const currentInfoContent = ref<InfoContent>([]);
 const showExplorationInfo = ref(false);
-const activeDownload = ref<TrackDownloadKind | null>(null);
+const activeDownload = ref<ActiveTrackDownload | null>(null);
 const trackIdCopied = ref(false);
 const trackIdCopyError = ref('');
 const energyAdjustVisible = ref(false);
@@ -803,6 +808,7 @@ const energyWhatIfResult = ref<EnergyWhatIfResponse | null>(null);
 const energySaveLoading = ref(false);
 const toast = inject<ToastService>('toast', { add: () => undefined });
 let trackIdCopyResetTimer: number | null = null;
+let trackDownloadSerial = 0;
 let energyWhatIfSerial = 0;
 let energyPreviewDebounceTimer: ReturnType<typeof window.setTimeout> | null = null;
 
@@ -926,6 +932,12 @@ const canDownloadTrackSource = computed(() => {
 });
 
 const canDownloadGpx = computed(() => canDownloadTrackSource.value && !sourceFileIsGpx.value);
+
+const currentTrackDownloadKind = computed(() => {
+  const download = activeDownload.value;
+  if (download == null || download.trackId !== props.gpsTrack?.id) return null;
+  return download.kind;
+});
 
 const explorationIsCalculated = computed(
   () => props.gpsTrack?.explorationStatus === 'CALCULATED' && props.gpsTrack?.explorationScore != null
@@ -1142,8 +1154,9 @@ async function copyTrackId(): Promise<void> {
 
 async function runTrackDownload(kind: TrackDownloadKind): Promise<void> {
   const trackId = props.gpsTrack?.id;
-  if (trackId == null || activeDownload.value !== null) return;
-  activeDownload.value = kind;
+  if (trackId == null || currentTrackDownloadKind.value !== null) return;
+  const serial = ++trackDownloadSerial;
+  activeDownload.value = { kind, serial, trackId };
   try {
     if (kind === 'original') {
       await downloadTrackSourceFile(trackId, sourceFileName.value);
@@ -1159,7 +1172,9 @@ async function runTrackDownload(kind: TrackDownloadKind): Promise<void> {
       life: 4000,
     });
   } finally {
-    activeDownload.value = null;
+    if (activeDownload.value?.serial === serial) {
+      activeDownload.value = null;
+    }
   }
 }
 

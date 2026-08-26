@@ -5,28 +5,26 @@ import com.x8ing.mtl.server.mtlserver.db.entity.gps.GpsTrack;
 import com.x8ing.mtl.server.mtlserver.db.entity.indexer.IndexedFile;
 import com.x8ing.mtl.server.mtlserver.logic.motion.TrackStopDetector;
 import com.x8ing.mtl.server.mtlserver.utils.TimingCollector;
-import com.x8ing.mtl.server.mtlserver.web.global.LatentThreadLocal;
 import io.jenetics.jpx.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import net.sf.geographiclib.Geodesic;
+import net.sf.geographiclib.GeodesicMask;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.math3.stat.StatUtils;
 import org.apache.commons.math3.stat.descriptive.rank.Percentile;
-import org.geotools.api.referencing.crs.CoordinateReferenceSystem;
-import org.geotools.api.referencing.operation.MathTransform;
-import org.geotools.geometry.jts.JTS;
-import org.geotools.referencing.CRS;
-import org.geotools.referencing.GeodeticCalculator;
-import org.geotools.referencing.crs.DefaultGeographicCRS;
 import org.locationtech.jts.geom.*;
 import org.locationtech.jts.geom.Point;
 import org.locationtech.jts.geom.impl.CoordinateArraySequence;
 import org.springframework.stereotype.Service;
 
+import javax.xml.transform.stream.StreamSource;
 import java.io.IOException;
+import java.io.PushbackReader;
+import java.io.Reader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -44,9 +42,17 @@ import static java.util.stream.Collectors.joining;
 @Slf4j
 public class GPXReader {
 
-    private static final LatentThreadLocal<GeodeticCalculator> geodeticCalculatorThreadLocal = new LatentThreadLocal<>(() -> new GeodeticCalculator(DefaultGeographicCRS.WGS84));
-
-    private static final MathTransform WGS84_TO_WEB_MERCATOR = initWgs84ToWebMercator();
+    private static final double WGS84_SEMI_MAJOR_AXIS_M = 6_378_137.0;
+    private static final double WGS84_FLATTENING = 1.0 / 298.257_223_563;
+    private static final double WGS84_SEMI_MINOR_AXIS_M =
+            WGS84_SEMI_MAJOR_AXIS_M * (1.0 - WGS84_FLATTENING);
+    private static final double VINCENTY_CONVERGENCE_RADIANS = 1e-12;
+    private static final int VINCENTY_MAX_ITERATIONS = 100;
+    private static final double WEB_MERCATOR_MAX_LATITUDE = 85.051_128_779_806_6;
+    private static final int WEB_MERCATOR_SRID = 3857;
+    private static final GeometryFactory WEB_MERCATOR_GEOMETRY_FACTORY =
+            new GeometryFactory(new PrecisionModel(), WEB_MERCATOR_SRID);
+    private static final String XML_STYLESHEET_PREFIX = "?xml-stylesheet";
 
     static final double MAX_PLAUSIBLE_SPEED_MS = 416.0;
     static final double PROBATION_TRUST_TIME_S = 15.0;
@@ -136,8 +142,9 @@ public class GPXReader {
     @SneakyThrows
     List<LoadResult> importGpxFile(IndexedFile indexedFile, TimingCollector timing) {
         TimingCollector activeTiming = timing != null ? timing : new TimingCollector();
-        String xml = activeTiming.time("read file", () -> readFileContentAndClean(Paths.get(indexedFile.getFullPath())));
-        return importGpxXml(indexedFile, xml, activeTiming);
+        Path path = Paths.get(indexedFile.getFullPath());
+        return importGpx(indexedFile, activeTiming,
+                () -> readGpxFile(path));
     }
 
     /**
@@ -152,6 +159,13 @@ public class GPXReader {
     @SneakyThrows
     List<LoadResult> importGpxXml(IndexedFile indexedFile, String gpxXml, TimingCollector timing) {
         TimingCollector activeTiming = timing != null ? timing : new TimingCollector();
+        return importGpx(indexedFile, activeTiming,
+                () -> GPX.Reader.of(GPX.Reader.Mode.LENIENT).fromString(gpxXml));
+    }
+
+    private List<LoadResult> importGpx(IndexedFile indexedFile,
+                                       TimingCollector activeTiming,
+                                       TimingCollector.TimedSupplier<GPX> parser) {
         long startTimeMs = System.currentTimeMillis();
         log.debug("About to read GPX file {}", indexedFile);
 
@@ -162,14 +176,9 @@ public class GPXReader {
             gpsTrack.setDuplicateStatus(GpsTrack.DUPLICATE_CHECK_STATUS.NOT_CHECKED_YET);
             gpsTrack.addLoadMessage("Starting import of GPX file.");
 
-            GPX gpx = activeTiming.time("parse XML", () -> GPX.Reader.of(GPX.Reader.Mode.LENIENT).fromString(gpxXml));
-
-            activeTiming.time("metadata", () -> parseGpxMetadata(gpx, gpsTrack, indexedFile));
-
-            List<WayPoint> allWayPoints = activeTiming.time("collect points",
-                    () -> gpx.tracks().flatMap(Track::segments).flatMap(TrackSegment::points).toList());
-
-            if (allWayPoints.isEmpty()) {
+            OutlierFilterResult filterResult = parseAndFilterGpx(
+                    indexedFile, gpsTrack, activeTiming, parser);
+            if (filterResult == null) {
                 log.info("No waypoints for file={}", indexedFile);
                 gpsTrack.setLoadStatus(GpsTrack.LOAD_STATUS.EMPTY_FILE);
                 gpsTrack.addLoadMessage("GPS did not contain any track data (was empty).");
@@ -178,11 +187,6 @@ public class GPXReader {
                 emptyResult.processingTime = System.currentTimeMillis() - startTimeMs;
                 return List.of(emptyResult);
             }
-
-            gpsTrack.setUtmZone(getUTMCode(allWayPoints.get(0).getLongitude().doubleValue(), allWayPoints.get(0).getLatitude().doubleValue()));
-
-            OutlierFilterResult filterResult = activeTiming.time("outlier filter",
-                    () -> filterOutliers(gpx, gpsTrack, indexedFile));
 
             // Second-pass cleaner: remove A-B-C isolated spikes and collapse
             // stationary GPS-drift clusters (e.g. restaurant scribble) into two
@@ -288,6 +292,136 @@ public class GPXReader {
             failResult.gpsTrack = gpsTrack;
             failResult.processingTime = System.currentTimeMillis() - startTimeMs;
             return List.of(failResult);
+        }
+    }
+
+    private OutlierFilterResult parseAndFilterGpx(IndexedFile indexedFile,
+                                                   GpsTrack gpsTrack,
+                                                   TimingCollector activeTiming,
+                                                   TimingCollector.TimedSupplier<GPX> parser) throws Exception {
+        GPX gpx = activeTiming.time("parse XML", parser);
+        activeTiming.time("metadata", () -> parseGpxMetadata(gpx, gpsTrack, indexedFile));
+
+        WayPoint firstWayPoint = activeTiming.time("first point", () -> findFirstTrackPoint(gpx));
+        if (firstWayPoint == null) {
+            return null;
+        }
+
+        gpsTrack.setUtmZone(getUTMCode(
+                firstWayPoint.getLongitude().doubleValue(),
+                firstWayPoint.getLatitude().doubleValue()));
+        return activeTiming.time("outlier filter", () -> filterOutliers(gpx, gpsTrack, indexedFile));
+    }
+
+    private static WayPoint findFirstTrackPoint(GPX gpx) {
+        for (Track track : gpx.getTracks()) {
+            for (TrackSegment segment : track.getSegments()) {
+                if (!segment.getPoints().isEmpty()) {
+                    return segment.getPoints().getFirst();
+                }
+            }
+        }
+        return null;
+    }
+
+    private static GPX readGpxFile(Path path) throws IOException {
+        try (Reader fileReader = Files.newBufferedReader(path, StandardCharsets.UTF_8);
+             Reader sanitizedReader = new GpxSanitizingReader(fileReader)) {
+            return GPX.Reader.of(GPX.Reader.Mode.LENIENT).read(new StreamSource(sanitizedReader));
+        }
+    }
+
+    /**
+     * Removes the optional UTF-8 BOM and xml-stylesheet processing instruction
+     * while the file is read. JPX expects the GPX root immediately after the
+     * XML declaration and otherwise rejects this common GPX prolog.
+     */
+    private static final class GpxSanitizingReader extends Reader {
+
+        private final PushbackReader source;
+        private final char[] lookAhead = new char[XML_STYLESHEET_PREFIX.length()];
+        private boolean firstCharacter = true;
+
+        private GpxSanitizingReader(Reader source) {
+            this.source = new PushbackReader(source, XML_STYLESHEET_PREFIX.length());
+        }
+
+        @Override
+        public int read() throws IOException {
+            while (true) {
+                int character = source.read();
+                if (firstCharacter) {
+                    firstCharacter = false;
+                    if (character == '\uFEFF') {
+                        continue;
+                    }
+                }
+                if (character != '<') {
+                    return character;
+                }
+
+                int count = readLookAhead();
+                if (count == lookAhead.length && matchesStylesheetPrefix()) {
+                    skipProcessingInstruction();
+                    continue;
+                }
+                source.unread(lookAhead, 0, count);
+                return character;
+            }
+        }
+
+        @Override
+        public int read(char[] buffer, int offset, int length) throws IOException {
+            if (length == 0) {
+                return 0;
+            }
+            int count = 0;
+            while (count < length) {
+                int character = read();
+                if (character < 0) {
+                    break;
+                }
+                buffer[offset + count] = (char) character;
+                count++;
+            }
+            return count == 0 ? -1 : count;
+        }
+
+        private int readLookAhead() throws IOException {
+            int count = 0;
+            while (count < lookAhead.length) {
+                int character = source.read();
+                if (character < 0) {
+                    break;
+                }
+                lookAhead[count++] = (char) character;
+            }
+            return count;
+        }
+
+        private boolean matchesStylesheetPrefix() {
+            for (int i = 0; i < lookAhead.length; i++) {
+                if (lookAhead[i] != XML_STYLESHEET_PREFIX.charAt(i)) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        private void skipProcessingInstruction() throws IOException {
+            int previous = -1;
+            int character;
+            while ((character = source.read()) >= 0) {
+                if (previous == '?' && character == '>') {
+                    return;
+                }
+                previous = character;
+            }
+        }
+
+        @Override
+        public void close() throws IOException {
+            source.close();
         }
     }
 
@@ -474,11 +608,11 @@ public class GPXReader {
         gpsTrack.setMaxDistanceBetweenPoints(0d);
         gpsTrack.setDidFilterOutlierByDistance(false);
 
-        for (Track track : gpx.tracks().toList()) {
+        for (Track track : gpx.getTracks()) {
             // State is carried across segments within the same track.
             // Segment breaks (trkseg) represent brief GPS signal loss, not separate journeys.
             SegmentFilterState state = new SegmentFilterState();
-            for (TrackSegment segment : track.segments().toList()) {
+            for (TrackSegment segment : track.getSegments()) {
                 processSegment(segment, state, gpsTrack, indexedFile, result);
             }
             // Flush any remaining probation at end of track
@@ -594,7 +728,7 @@ public class GPXReader {
     private void processSegment(TrackSegment segment, SegmentFilterState state, GpsTrack gpsTrack,
                                 IndexedFile indexedFile, OutlierFilterResult result) {
 
-        for (WayPoint wayPoint : segment.points().toList()) {
+        for (WayPoint wayPoint : segment.getPoints()) {
             if (wayPoint.getLatitude().doubleValue() == 0.0 && wayPoint.getLongitude().doubleValue() == 0.0) {
                 log.debug("Ignoring exact 0.0, 0.0 coordinates (likely missing GPS fix)");
                 continue;
@@ -817,18 +951,6 @@ public class GPXReader {
         return String.format("EPSG:%d%02d", epsgBase, utmZone);
     }
 
-    /**
-     * Review Fix #6: Faster, memory-safe regex without JSoup DOM loading.
-     */
-    private static String readFileContentAndClean(Path filePath) throws IOException {
-        String xml = Files.readString(filePath, StandardCharsets.UTF_8);
-        // Strip UTF-8 BOM (U+FEFF) if present — causes "Content is not allowed in prolog" in XML parsers
-        if (xml.startsWith("\uFEFF")) {
-            xml = xml.substring(1);
-        }
-        return xml.replaceAll("(?s)<\\?xml-stylesheet.*?\\?>", "");
-    }
-
     public static double getDistanceOfWGS84(LineString lineString) {
         double length = 0.0;
 
@@ -839,14 +961,117 @@ public class GPXReader {
         return length;
     }
 
+    /**
+     * Calculates the WGS84 ellipsoidal distance with Vincenty's inverse formula.
+     * The allocation-free common path is checked against the former GeoTools 35.1
+     * implementation by {@code GPXReaderGeoToolsCompatibilityTest}. GeographicLib
+     * handles the rare non-converging cases.
+     */
     public static double getDistanceBetweenTwoWGS84(Coordinate c1, Coordinate c2) {
         if (c1.x == c2.x && c1.y == c2.y) {
             return 0.0;
         }
-        GeodeticCalculator geodeticCalculator = geodeticCalculatorThreadLocal.get();
-        geodeticCalculator.setStartingGeographicPoint(c1.x, c1.y);
-        geodeticCalculator.setDestinationGeographicPoint(c2.x, c2.y);
-        return geodeticCalculator.getOrthodromicDistance();
+        validateWgs84Coordinate(c1);
+        validateWgs84Coordinate(c2);
+
+        double phi1 = Math.toRadians(c1.y);
+        double phi2 = Math.toRadians(c2.y);
+        double reducedLatitude1 = Math.atan((1.0 - WGS84_FLATTENING) * Math.tan(phi1));
+        double reducedLatitude2 = Math.atan((1.0 - WGS84_FLATTENING) * Math.tan(phi2));
+        double sinReducedLatitude1 = Math.sin(reducedLatitude1);
+        double cosReducedLatitude1 = Math.cos(reducedLatitude1);
+        double sinReducedLatitude2 = Math.sin(reducedLatitude2);
+        double cosReducedLatitude2 = Math.cos(reducedLatitude2);
+
+        double longitudeDifference = Math.toRadians(normalizedLongitudeDifference(c1.x, c2.x));
+        double lambda = longitudeDifference;
+        double sinSigma = 0.0;
+        double cosSigma = 0.0;
+        double sigma = 0.0;
+        double sinAlpha = 0.0;
+        double cosSquaredAlpha = 0.0;
+        double cosTwoSigmaMidpoint = 0.0;
+        boolean converged = false;
+
+        for (int iteration = 0; iteration < VINCENTY_MAX_ITERATIONS; iteration++) {
+            double sinLambda = Math.sin(lambda);
+            double cosLambda = Math.cos(lambda);
+            double firstTerm = cosReducedLatitude2 * sinLambda;
+            double secondTerm = cosReducedLatitude1 * sinReducedLatitude2
+                                - sinReducedLatitude1 * cosReducedLatitude2 * cosLambda;
+            sinSigma = Math.hypot(firstTerm, secondTerm);
+            if (sinSigma == 0.0) {
+                return 0.0;
+            }
+
+            cosSigma = sinReducedLatitude1 * sinReducedLatitude2
+                       + cosReducedLatitude1 * cosReducedLatitude2 * cosLambda;
+            sigma = Math.atan2(sinSigma, cosSigma);
+            sinAlpha = cosReducedLatitude1 * cosReducedLatitude2 * sinLambda / sinSigma;
+            cosSquaredAlpha = 1.0 - sinAlpha * sinAlpha;
+            cosTwoSigmaMidpoint = cosSquaredAlpha == 0.0
+                    ? 0.0
+                    : cosSigma - 2.0 * sinReducedLatitude1 * sinReducedLatitude2 / cosSquaredAlpha;
+
+            double correction = WGS84_FLATTENING / 16.0 * cosSquaredAlpha
+                                * (4.0 + WGS84_FLATTENING * (4.0 - 3.0 * cosSquaredAlpha));
+            double nextLambda = longitudeDifference
+                                + (1.0 - correction) * WGS84_FLATTENING * sinAlpha
+                                  * (sigma + correction * sinSigma
+                                     * (cosTwoSigmaMidpoint + correction * cosSigma
+                                        * (-1.0 + 2.0 * cosTwoSigmaMidpoint * cosTwoSigmaMidpoint)));
+            if (Math.abs(nextLambda - lambda) <= VINCENTY_CONVERGENCE_RADIANS) {
+                converged = true;
+                break;
+            }
+            lambda = nextLambda;
+        }
+
+        if (!converged) {
+            return GeographicLibFallback.distanceMeters(c1, c2);
+        }
+
+        double squaredAxisRatio = cosSquaredAlpha
+                                  * (WGS84_SEMI_MAJOR_AXIS_M * WGS84_SEMI_MAJOR_AXIS_M
+                                     - WGS84_SEMI_MINOR_AXIS_M * WGS84_SEMI_MINOR_AXIS_M)
+                                  / (WGS84_SEMI_MINOR_AXIS_M * WGS84_SEMI_MINOR_AXIS_M);
+        double coefficientA = 1.0 + squaredAxisRatio / 16_384.0
+                              * (4_096.0 + squaredAxisRatio
+                                 * (-768.0 + squaredAxisRatio * (320.0 - 175.0 * squaredAxisRatio)));
+        double coefficientB = squaredAxisRatio / 1_024.0
+                              * (256.0 + squaredAxisRatio
+                                 * (-128.0 + squaredAxisRatio * (74.0 - 47.0 * squaredAxisRatio)));
+        double deltaSigma = coefficientB * sinSigma
+                            * (cosTwoSigmaMidpoint + coefficientB / 4.0
+                               * (cosSigma * (-1.0 + 2.0 * cosTwoSigmaMidpoint * cosTwoSigmaMidpoint)
+                                  - coefficientB / 6.0 * cosTwoSigmaMidpoint
+                                    * (-3.0 + 4.0 * sinSigma * sinSigma)
+                                    * (-3.0 + 4.0 * cosTwoSigmaMidpoint * cosTwoSigmaMidpoint)));
+        return WGS84_SEMI_MINOR_AXIS_M * coefficientA * (sigma - deltaSigma);
+    }
+
+    private static void validateWgs84Coordinate(Coordinate coordinate) {
+        if (!Double.isFinite(coordinate.x)) {
+            throw new IllegalArgumentException("Longitude must be finite");
+        }
+        if (!Double.isFinite(coordinate.y) || coordinate.y < -90.0 || coordinate.y > 90.0) {
+            throw new IllegalArgumentException("Latitude must be finite and between -90 and 90 degrees");
+        }
+    }
+
+    private static double normalizedLongitudeDifference(double longitude1, double longitude2) {
+        double normalizedLongitude1 = Math.IEEEremainder(longitude1, 360.0);
+        double normalizedLongitude2 = Math.IEEEremainder(longitude2, 360.0);
+        return Math.IEEEremainder(normalizedLongitude2 - normalizedLongitude1, 360.0);
+    }
+
+    /** Keeps the exact ellipsoidal solution for the rare cases where Vincenty cannot converge. */
+    private static final class GeographicLibFallback {
+
+        private static double distanceMeters(Coordinate c1, Coordinate c2) {
+            return Geodesic.WGS84.Inverse(
+                    c1.y, c1.x, c2.y, c2.x, GeodesicMask.DISTANCE).s12;
+        }
     }
 
     public static Double getEuclideanDistanceBetweenMercatorPoints(Coordinate c1, Coordinate c2) {
@@ -857,21 +1082,16 @@ public class GPXReader {
     }
 
 
-    @SneakyThrows
+    /** Standard EPSG:3857 projection, checked against GeoTools across its supported area. */
     public Point convertLongLatWgs84ToPlanarWebMercator(double longitude, double latitude) {
-        GeometryFactory geometryFactory = new GeometryFactory(new PrecisionModel(), 4326);
-        Point point = geometryFactory.createPoint(new Coordinate(longitude, latitude));
-        point.setSRID(4326);
-        Point transformed = (Point) JTS.transform(point, WGS84_TO_WEB_MERCATOR);
-        transformed.setSRID(3857);
-        return transformed;
-    }
-
-    @SneakyThrows
-    private static MathTransform initWgs84ToWebMercator() {
-        CoordinateReferenceSystem wgs84 = CRS.decode("EPSG:4326", true);
-        CoordinateReferenceSystem webMercator = CRS.decode("EPSG:3857", true);
-        return CRS.findMathTransform(wgs84, webMercator, true);
+        double boundedLatitude = Math.max(
+                -WEB_MERCATOR_MAX_LATITUDE,
+                Math.min(WEB_MERCATOR_MAX_LATITUDE, latitude));
+        double x = WGS84_SEMI_MAJOR_AXIS_M * Math.toRadians(longitude);
+        double latitudeRadians = Math.toRadians(boundedLatitude);
+        double y = WGS84_SEMI_MAJOR_AXIS_M
+                   * Math.log(Math.tan(Math.PI / 4.0 + latitudeRadians / 2.0));
+        return WEB_MERCATOR_GEOMETRY_FACTORY.createPoint(new Coordinate(x, y));
     }
 
 }

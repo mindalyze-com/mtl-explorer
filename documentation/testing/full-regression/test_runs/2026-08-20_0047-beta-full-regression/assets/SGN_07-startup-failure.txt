@@ -1,0 +1,28 @@
+Coverage: SGN_07
+Fault scope: disposable Compose database service only
+Client preparation: visible Admin > Session > Wipe & logout, then valid authentication with an empty browser cache
+Fault injection: database paused after authentication, while the root startup flow was beginning
+
+Observed at 6.338 s after Sign In:
+- URL: /mtl/
+- Splash branding visible
+- Startup message: Preparing activity stats
+- Map shell present
+- Filter count: 0 Tracks
+- Retry action: absent
+- Startup error text: absent
+
+Observed at 29.474 s after Sign In:
+- Splash and startup message: absent
+- Map shell present
+- Filter count: 0 Tracks
+- Retry action: absent
+- Startup error text: absent
+
+Recovery:
+- Database unpaused immediately after the observation.
+- Database health returned to healthy.
+- /mtl/v3/api-docs returned HTTP 200.
+- Existing page recovered to the normal map with 9 Tracks.
+
+Result: the failure path did not freeze the splash, but it also did not offer the required error and Retry action. It exposed an empty map shell until the dependency recovered.

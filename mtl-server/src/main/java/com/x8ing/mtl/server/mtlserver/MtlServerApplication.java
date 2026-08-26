@@ -1,7 +1,6 @@
 package com.x8ing.mtl.server.mtlserver;
 
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
-import com.x8ing.mtl.server.mtlserver.gpx.GPXReader;
 import com.x8ing.mtl.server.mtlserver.jobs.ResourceIntensiveJobGuard;
 import com.x8ing.mtl.server.mtlserver.jobs.classifier.activitytype.ActivityTypeClassifierJob;
 import com.x8ing.mtl.server.mtlserver.jobs.demo.DemoPhotoGenerationStatusService;
@@ -9,9 +8,7 @@ import com.x8ing.mtl.server.mtlserver.jobs.duplicate.DuplicateDetectorJob;
 import com.x8ing.mtl.server.mtlserver.jobs.exploration.ExplorationScoreJob;
 import com.x8ing.mtl.server.mtlserver.jobs.garminexport.GarminExporter;
 import com.x8ing.mtl.server.mtlserver.jobs.sqlformat.LiquibaseIndentFixerJob;
-import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
-import org.locationtech.jts.geom.CoordinateXY;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -119,16 +116,6 @@ public class MtlServerApplication {
             return;
         }
         resourceIntensiveJobGuard.runIfAvailable(jobType, action);
-    }
-
-    @PostConstruct
-    public void warmUp() {
-        // really weired error. not sure if it helps, only happens on NAS
-        // : Servlet.service() for servlet [dispatcherServlet] in context with path [/mtl] threw exception [Handler dispatch failed: java.lang.NoClassDefFoundError: Could not initialize class org.geotools.referencing.crs.DefaultGeographicCRS] with root cause
-        //java.lang.ExceptionInInitializerError: Exception java.lang.ExceptionInInitializerError [in thread "ForkJoinPool.commonPool-worker-2"]
-
-        double sillyCalc = GPXReader.getDistanceBetweenTwoWGS84(new CoordinateXY(1, 2), new CoordinateXY(2, 3));
-        log.info("Completed warmup for Geotools caching. sillyCalc=%f".formatted(sillyCalc));
     }
 
 }

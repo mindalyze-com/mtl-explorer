@@ -1,0 +1,28 @@
+Coverage: MAP_13
+Temporary mode scope: same disposable data/services and same verified app image; only MTL_MAP_SERVER_TILE_MODE=remote changed
+Temporary container image: wauwau0977/mytraillog
+Temporary container image ID: sha256:1cd50ffb86f830ce3e9241a73577d60a619e19dc29ef9fe299d2d059a69a8e2a
+Temporary service health: public demo-status HTTP 200
+
+Authenticated /api/map/config:
+- tileMode: remote
+- remoteRasterStyles.light URL: https://tile.openstreetmap.org/{z}/{x}/{y}.png
+- remoteRasterStyles.light-topo URL: https://tile.opentopomap.org/{z}/{x}/{y}.png
+- remoteRasterStyles.dark URL: https://basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png
+- legacy remoteTileUrl: absent
+
+Visible theme checks:
+- OSM Light checked; OpenStreetMap attribution; no OpenTopoMap or CARTO attribution; pan worked; 2 map canvases; 9 tracks; no loading state.
+- OSM Topo Light checked; OpenStreetMap + OpenTopoMap + CC-BY-SA attribution; zoom worked; 2 map canvases; 9 tracks; no loading state.
+- OSM Dark checked; OpenStreetMap + CARTO attribution; pan worked; 2 map canvases; 9 tracks; no loading state.
+
+Local proxy checks during temporary remote-mode process:
+- temporary app log occurrences of /api/map-proxy: 0
+- browser diagnostics after remote-mode load containing map-proxy or PMTiles: 0
+
+Restoration:
+- temporary container stopped and auto-removed
+- original Compose app restarted
+- restored tileMode: local
+- restored running image ID: sha256:1cd50ffb86f830ce3e9241a73577d60a619e19dc29ef9fe299d2d059a69a8e2a
+- restored HTTP 200 and browser map with 9 tracks

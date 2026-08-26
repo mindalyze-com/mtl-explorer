@@ -1,0 +1,16 @@
+LOC_04 boundary formatting
+
+Existing same-run boundaries
+- Empty Statistics baseline rendered 0 tracks, 0.00 m, and 0m 00s rather than blank/NaN.
+- Planner empty/clear states rendered 0.00 m, 0 m ascent/descent, 0 legs, and explicit duration unavailable.
+- Large-library flows rendered 100,000 media and Page 2,000/2,000 without exponent/NaN formatting.
+- Current totals rendered 821 km, 3.971 Wh, and 12.727 m under de-DE.
+- Missing altitude/speed in the comparison flow stayed explicit without dropping rows or crashing.
+
+Controlled direct boundary fixture
+- Backed up track 100039: ascent 1666.68, min altitude 3.15, max altitude 125.85, row version 5.
+- Temporarily set ascent=-5 and min/max altitude=NULL, then opened its real Track Details route.
+- Overview rendered `-5 m` Ascent; elevation section rendered `-5 m` ascent, 1.695 m descent, 0 m Min Alt., 0 m Max Alt., 0 m Range, and negative max descent slope `-100,7%`.
+- No `NaN`, blank metric label/value, exception, or empty panel appeared.
+- Restored ascent 1666.68, min 3.15, max 125.85, incremented row version normally, and reloaded.
+- Restored UI showed 1.667 m ascent and rounded 3 m/126 m altitude boundaries; after cache settlement the map returned to 8 Tracks; no NaN.

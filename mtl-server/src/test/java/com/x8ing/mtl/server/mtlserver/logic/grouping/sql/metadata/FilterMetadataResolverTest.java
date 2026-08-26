@@ -1,6 +1,6 @@
 package com.x8ing.mtl.server.mtlserver.logic.grouping.sql.metadata;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import com.x8ing.mtl.server.mtlserver.db.entity.config.FilterConfigEntity;
 import com.x8ing.mtl.server.mtlserver.logic.grouping.sql.template.FilterTemplateGraphResolver;
 import com.x8ing.mtl.server.mtlserver.web.services.track.entity.metadata.FilterEffectiveUiMetadata;

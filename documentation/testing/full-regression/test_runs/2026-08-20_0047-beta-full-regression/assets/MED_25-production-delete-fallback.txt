@@ -1,0 +1,45 @@
+MED_25 production activity deletion and fallback evidence
+
+Disposable PostGIS fixture
+- Synthetic camera-time media 2500000 at 2031-01-01 10:05 UTC.
+- MED_25-primary.gpx imported first as track 100024.
+- MED_25-fallback.gpx imported second as track 100025.
+- Before deletion, both were candidates. Track 100024 was selected and resolved
+  at 47.00100,8.00100; track 100025 was the alternative at 47.10100,8.10100.
+- Both candidates reported alternative_count=2 and ambiguous=true.
+
+Bounded audit
+- A disposable AFTER DELETE audit trigger was installed only for track 100024
+  and media 2500000. It inspected committed-domain state inside the production
+  deletion transaction after the gps_track row and cascaded correlation were
+  deleted.
+
+Production deletion
+- Moved the primary GPX out of the watched GPS folder.
+- App log: live watcher detected DELETE for MED_25-primary.gpx.
+- App log: GPXStoreService deleted track 100024 and its track data for
+  /MED_25-primary.gpx.
+- Indexed file status became REMOVED; track 100024 was absent.
+
+Queue survival audit after the track row deletion
+- deleted_track_id=100024; media_id=2500000.
+- queue_exists_after_delete=true.
+- queue_reason_after_delete=track_delete.
+- track_exists_after_delete=false.
+- correlation_exists_after_delete=false.
+
+Recalculation result
+- The worker drained normally.
+- Track 100025 became selected with alternative_count=1, ambiguous=false.
+- Resolved position remained TRACK_INTERPOLATED and moved immediately to the
+  fallback route point 47.10100,8.10100.
+- Work queues returned to 0 media / 0 track.
+
+Cleanup
+- Removed the fallback GPX through the same live watcher path.
+- Removed synthetic media/indexed rows and the bounded audit objects.
+- Fixture media/files/tracks/correlations/resolved rows: all 0.
+- No MED_25 files remain in the watched GPS directory.
+- Original media/resolved/selected counts: 8/8/8; work queues: 0/0.
+- UI filter returned to 8 tracks and Track 100013 returned to exact 8-item
+  media baseline.

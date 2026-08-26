@@ -1,0 +1,8 @@
+SGN_02 valid sign-in
+
+Credential source: documented GitHub main README; values intentionally omitted from artifacts.
+Action: Entered valid username/password in visible login fields and activated Sign In.
+Result URL: http://62.238.106.141:18080/mtl/
+Initial map shell: two Map regions; no login fields.
+Settled map: navigation available and current filter shows 9 active tracks after media activity import.
+Result: PASS.

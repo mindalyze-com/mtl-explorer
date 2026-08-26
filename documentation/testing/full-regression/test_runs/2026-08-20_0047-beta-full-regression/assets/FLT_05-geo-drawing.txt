@@ -1,0 +1,29 @@
+Geo drawing interaction matrix
+
+Circle:
+- Click center -> instruction changed to Click to set radius.
+- Second click finished the circle.
+- Saved as Circle at 31.9193, -3.1135, radius 672.9 km.
+- Reload restored the exact circle summary.
+
+Rectangle:
+- First corner enabled Undo and changed the instruction to opposite corner.
+- Undo returned to first-corner state and disabled Undo.
+- A second first-corner attempt followed by Cancel returned to the map with no
+  rectangle saved.
+- Restarted, clicked two corners, and finished successfully.
+
+Polygon:
+- Three points enabled Finish.
+- Finish saved Polygon with 3 points.
+
+Persistence:
+- With all drawings complete, Criteria reported 5 active values.
+- Reload restored 3 areas: Circle, Rectangle, and Polygon.
+- Exact summaries included the circle center/radius, rectangle bounds, and
+  polygon point count.
+
+Clear:
+- Removed the three area entries one by one.
+- Area returned to No area with Draw area available.
+- Criteria returned to 2 active values (date and keyword only).

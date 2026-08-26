@@ -1,0 +1,7 @@
+Coverage: SGN_09
+History sequence:
+1. Visible Stats navigation -> /mtl/stats; populated Most Active Periods and Milestones content.
+2. Visible Planner navigation -> /mtl/plan; BRouter ready and route-planning instructions.
+3. Browser Back -> /mtl/stats; populated statistics restored; Planner content absent; no error state. 10.888 s including browser wait.
+4. Browser Forward -> /mtl/plan; BRouter ready and planning content restored; Stats content absent; no error state. 10.859 s including browser wait.
+Result: Back and Forward restored the expected distinct views without visible errors.

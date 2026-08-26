@@ -1,0 +1,55 @@
+MED_28 activity-media paging evidence
+Target: live disposable MTL Explorer quick-install
+Activity: synthetic MED_28 Track 0, track ID 2000000
+
+Dataset and fixture control
+- Corrected MED_21-scale seed: 100,000 media, 100,000 selected correlations,
+  100,000 resolved positions, and 300 activities.
+- The original MED_21 query-only seed used fixture enum literals that this app
+  cannot hydrate. MED_28-seed.sql uses live enum values
+  COMPLETED_WITH_SUCCESS and AUTO_GUESS.
+- The stable corrected seed was inserted only after the normal application
+  startup/index pass completed, so no-file performance rows were not mistaken
+  for missing watched files.
+- Target track 2000000 had 334 selected media in capture-time order.
+
+End-user Photos tab
+- Visible default: 25 items, with only 25 and 50 in the Per page selector.
+- First page: 1-25 of 334, Page 1 of 14, 25 timeline rows and 25 mini-map
+  markers. Filenames ran from med28-0.jpg through med28-7200.jpg in ascending
+  300-second capture-time steps.
+- Middle page: Page 7 of 14, 151-175 of 334, 25 rows and 25 markers.
+  Filenames ran from med28-45000.jpg through med28-52200.jpg. First-page items
+  were absent from the DOM.
+- Last page: Page 14 of 14, 326-334 of 334, 9 rows and 9 markers.
+  Filenames ran from med28-97500.jpg through med28-99900.jpg. Next and Last
+  were disabled.
+- Changing Per page to 50 reset to Page 1 of 7 and rendered exactly 50 rows
+  and 50 markers, med28-0.jpg through med28-14700.jpg.
+- The visible selector had no 100 or 200 option. This conflicts with the frozen
+  end-user requirement for 100 items by default and up to 200 when requested.
+
+Backend page contract
+- GET by-track with no page/pageSize: HTTP 200, 54,699 bytes, 50.082 ms;
+  page=0, pageSize=100, totalItems=334, totalPages=4, exactly 100 items,
+  med28-0.jpg through med28-29700.jpg.
+- Explicit pageSize=200: HTTP 200, 109,459 bytes, 53.647 ms; pageSize=200,
+  totalPages=2, exactly 200 items, med28-0.jpg through med28-59700.jpg.
+- Explicit pageSize=201: HTTP 400, 120 bytes, 12.568 ms.
+- This confirms the server default and hard maximum; the visible UI exposes a
+  smaller, inconsistent contract.
+
+Responsiveness
+- Initial Photos transition: 1,283 ms including fixed settle.
+- Six sequential page transitions to Page 7: 699-715 ms each including a
+  fixed 420 ms settle.
+- Last-page transition: 777 ms including a fixed 500 ms settle.
+- Page-size 50 transition: 665 ms including a fixed 650 ms settle.
+- No request or DOM expanded to the 100,000-row library.
+
+Cleanup verification
+- Synthetic media/tracks/correlations/resolved/indexed rows: 0/0/0/0/0.
+- Original media/resolved/selected correlations: 8/8/8.
+- Media and track correlation work queues: 0/0.
+- Temporary HTTP cookie and response files removed.
+- Root map reloaded and reported 8 Tracks.

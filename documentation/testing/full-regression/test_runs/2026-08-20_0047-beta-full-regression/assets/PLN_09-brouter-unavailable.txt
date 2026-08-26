@@ -1,0 +1,19 @@
+PLN_09 BRouter unavailable evidence
+
+Natural uncached-area attempts
+- Honolulu: BRouter ready; route computed at 360 m / one leg.
+- Cape Town: BRouter ready after opening Planner.
+- Longyearbyen, Svalbard: status transitioned updating route -> ready; route computed.
+- None retained a missing-segment state, so the disposable BRouter service was stopped for the explicit unavailable branch.
+
+Unavailable-engine branch
+- Remote Compose state confirmed brouter stopped.
+- Status exposed: BRouter status: unavailable.
+- During reroute, status briefly changed to updating route, then returned unavailable.
+- Clear Planner message: Route unavailable for these points. Move waypoints onto routable roads or trails, or try again later.
+- No unhandled exception page, empty application shell, or control loss occurred.
+
+Recovery
+- Disposable brouter service restarted successfully.
+- Remote Compose state: running.
+- Browser status returned to BRouter status: ready.

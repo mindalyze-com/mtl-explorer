@@ -1,0 +1,6 @@
+Coverage: MAP_04
+Dependency: required deletion data-change flow DEL_01-DEL_05
+Current dependency status: PARTIAL / deferred
+Reason: coordinator rule requires keeping the full shared track dataset until later map, detail, filter, stats, planner, and media coverage no longer needs it.
+Current browser/map state: Smart Base Filter result still contains 9 tracks.
+Required revisit: after all coverage that needs the full track dataset, execute DEL_01-DEL_05, then verify removal from map sources, Review Tracks/selection lists, and overlap popups before upgrading MAP_04 to terminal.

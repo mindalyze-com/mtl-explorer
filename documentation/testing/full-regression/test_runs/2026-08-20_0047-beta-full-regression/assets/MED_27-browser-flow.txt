@@ -1,0 +1,52 @@
+MED_27 browser evidence
+Captured: 2026-08-20T08:29:42+0200
+Browser: Codex in-app browser, live disposable MTL Explorer quick-install
+
+Desktop cluster and map-view flow
+- Isolated Photos and media while GPS tracks and Track points and direction were hidden.
+- Loaded the bounded Bern map and activated the rendered cluster containing all 8 indexed media items.
+- The chooser showed:
+  - This cluster — 8 photos
+  - Current map view — 8 photos
+  - Photos along a GPS track when matching activities were in the active filter
+- This cluster opened a viewer labelled "This cluster", "1 of 8", and
+  "In this cluster 1/8". Previous was disabled at item 1, Next advanced to
+  item 2, and the filmstrip contained exactly 8 buttons.
+- Current map view opened a viewer labelled "Current map view", "1 of 8",
+  and "On this map 1/8" with exactly 8 filmstrip buttons.
+- The map scale stayed 100 m through both chooser/viewer transitions; neither
+  destination changed the underlying map camera.
+
+Activity destinations
+- With only WALKING included, 2 of 8 tracks remained globally but the clicked
+  cluster location reported exactly 1 matching activity.
+- Choosing Photos along a GPS track opened the only activity directly at
+  /mtl/track/100013 with the Media tab selected and all 8 items rendered.
+- After Reset filter restored all 8 tracks, the same cluster reported 4 nearby
+  activities. The established activity chooser grouped 1 activity with photos
+  and 3 other nearby activities.
+- Choosing MTL Regression Media Track opened /mtl/track/100013 with the Media
+  tab selected and 8 items.
+
+Separated single-marker flow
+- Manually zoomed three times until all 8 red media markers were separated;
+  the visible map scale changed from 100 m to 20 m.
+- Clicking the isolated northeast marker opened a chooser with:
+  - This photo — 1 photo
+  - Current map view — 8 photos
+  - Photos along a GPS track — 3 activities
+- This photo opened a viewer labelled "This photo" and "1 of 1" for
+  mtl-regression-delete-b.jpg. The underlying map remained at 20 m.
+
+Blocked portions
+- The active browser viewport was fixed at 1049 x 942 CSS pixels (map canvas
+  981 x 942). It did not expose a supported 390 x 760 resize/touch context, so
+  the complete required phone repeat could not be executed.
+- The frozen live fixture contains 8 media members. The viewer stayed below the
+  200-member bound, but it cannot cross into an adjacent cluster page, so the
+  prescribed adjacent bounded-page lazy-load branch was unreachable.
+
+Cleanup
+- Reset the temporary category filter; the map again reported 8 Tracks.
+- Restored GPS tracks, Photos and media, and Track points and direction.
+- Left Heatmap hidden. Map settings confirmed 3 of 4 data layers shown.

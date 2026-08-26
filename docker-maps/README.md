@@ -21,6 +21,12 @@ On kickoff, the orchestrator reuses an existing complete `planet.pmtiles` when p
 
 The normal map server never needs to delete `/data` during an update. Do not use `docker compose down -v` or delete the map volume unless the map archive should be intentionally removed.
 
+Replacing the container image is safe when the same `/data` volume or bind mount is retained. A complete existing archive and its sentinel are reused, so an image update does not download the map again.
+
+## Memory Settings
+
+The supplied Compose files use a 128 MiB hard limit, disable swap by setting the swap limit to the same value, and reserve 64 MiB. The validated floor is 96 MiB; adding 20 percent gives 115.2 MiB, which is rounded up to a conventional allocation. The low-zoom overview is limited to zoom 6; higher extraction levels create much larger temporary output and need more memory.
+
 ## Access Boundary
 
 Only PMTiles vector map files require the `mtl-version` and `mtl-server-id` query parameters.

@@ -1,0 +1,36 @@
+MED_39 video location provenance evidence
+Captured: 2026-08-20 CEST
+
+Frozen manifest comparison
+- MP4 400001 expected embedded point: 46.94860,7.44815; has_embedded_gps true; expected EXIF_EMBEDDED.
+- MOV 400000 expected original coordinates: none; expected interpolated point: 46.948325,7.44785; expected TRACK_INTERPOLATED.
+
+Read-only baseline database rows
+- MOV 400000: original EXIF point null; resolved TRACK_INTERPOLATED at 46.948325000073936,7.447850000002013; selected track 100028 correlation route point matched exactly; distance 81.795 m; track time delta 180 s; no manual row.
+- MP4 400001: original EXIF point 46.9486,7.44815; resolved EXIF_EMBEDDED at the same point; no resolved track correlation and no manual row.
+
+Baseline UI
+- Activity card and map marker: MOV Estimated / Estimated from video time and activity track.
+- MOV viewer: Nearest track point 180s away; coordinates 46.94833,7.44785; location map Estimated location at that point.
+- Activity card and map marker: MP4 Video GPS.
+- MP4 viewer: Video GPS; coordinates 46.94860,7.44815; location map Photo GPS location at that point.
+
+Manual MOV assignment
+- Entered latitude 46.94870, longitude 7.44840, note MED_39 MOV override, and saved through the visible location editor.
+- Activity card changed to Set by you; activity map marker accessible name changed to Location set by you.
+- Viewer Details changed to Set by you; location map announced Location set by you at 46.94870,7.44840.
+- Reopening Edit location showed the exact coordinates and note.
+- Read-only database while assigned: media_manual_location contained 46.9487,7.4484 with note MED_39 MOV override; resolved origin USER_ASSIGNED at the manual point.
+- The selected 100028 correlation remained present separately with its unchanged route point 46.948325000073936,7.447850000002013, distance 81.795 m, and time delta 180 s.
+
+Clear and restoration
+- Clear assignment immediately restored MOV card Estimated and map marker Estimated from video time and activity track.
+- media_manual_location count for 400000 returned to 0.
+- Resolved MOV origin returned to TRACK_INTERPOLATED at 46.948325000073936,7.447850000002013.
+- The selected 100028 correlation retained the identical route point, distance, and time delta.
+- MOV viewer again showed Nearest track point 180s away, Estimated location, and coordinates 46.94833,7.44785.
+- MP4 remained EXIF_EMBEDDED / Video GPS at 46.94860,7.44815 throughout.
+
+Cleanup
+- No manual location row remains for either generated video.
+- Original embedded and track-derived evidence is unchanged.

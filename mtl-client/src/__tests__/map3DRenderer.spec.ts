@@ -102,9 +102,7 @@ const replayControllerMock = vi.hoisted(() => ({
   instances: [] as Array<{ play: ReturnType<typeof vi.fn>; destroy: ReturnType<typeof vi.fn> }>,
 }));
 
-vi.mock('maplibre-gl', () => ({
-  default: maplibreMock,
-}));
+vi.mock('maplibre-gl', () => maplibreMock);
 
 vi.mock('@/components/replay/TrackReplayControls.vue', () => ({
   default: {

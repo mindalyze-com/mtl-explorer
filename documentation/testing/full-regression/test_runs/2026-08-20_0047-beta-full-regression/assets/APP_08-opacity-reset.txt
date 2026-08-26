@@ -1,0 +1,15 @@
+APP_08 opacity, dimming, persistence, and reset
+
+Basemap
+- Base map opacity responded to Home/Arrow/End: 100% -> 0% -> 7% -> 100%.
+- Set basemap to 35%; it persisted across reload and reopened Map style.
+
+Data layer
+- GPS tracks opacity changed from 100% to 42% while Photos/media and Track points/direction stayed 100%.
+- After reload and reopening Your data, values remained 42%/100%/100%.
+- Prior HMO packets independently exercised Heatmap 0/80/100 and all seven route-overlay opacity/toggle paths.
+
+Reset
+- Reset map settings immediately restored Current map OSM Topo Contrast, Automatic source, 2D map.
+- Basemap returned to 100%; three visible data layers returned to 100%; Heatmap returned off; route overlays returned None shown.
+- Reload preserved those defaults. The independent UI root remained light.

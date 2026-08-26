@@ -1,0 +1,13 @@
+DEL_03 cross-view removal after tracks 100002/100003 deletion
+
+Verified accessible surfaces:
+- Map/global count: 7 Tracks; deleted names absent.
+- Filter Review: summary 7, seven rows; deleted names absent.
+- Statistics Tracks: summary 7, seven rows; deleted names absent.
+- Statistics Overview: 7 tracks and reduced totals; deleted names absent.
+- Canonical track 100009 Related view: deleted names absent.
+- The refreshed filter result is the source for map/data layers, including heatmap requests.
+
+Visual limitation:
+- ACC_04 prevents screenshots/canvas inspection, so the absence of deleted route density from the rendered heatmap and the absence of deleted polylines cannot be visually proven.
+- No visual heatmap/polyline claim is made; those subchecks are terminal BLOCKED.

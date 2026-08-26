@@ -47,7 +47,7 @@ import java.util.stream.Collectors;
         "mediaPositionService",
         "mediaTrendService",
         "videoThumbnailService",
-        "imageMagickProcessLimiter"
+        "mediaProcessLimiter"
 })
 public class MediaController {
 
@@ -63,7 +63,7 @@ public class MediaController {
     private final MediaPositionService mediaPositionService;
     private final MediaTrendService mediaTrendService;
     private final VideoThumbnailService videoThumbnailService;
-    private final ImageMagickProcessLimiter imageMagickProcessLimiter;
+    private final MediaProcessLimiter mediaProcessLimiter;
 
     public MediaController(
             MediaRepository mediaRepository,
@@ -71,13 +71,13 @@ public class MediaController {
             MediaPositionService mediaPositionService,
             MediaTrendService mediaTrendService,
             VideoThumbnailService videoThumbnailService,
-            ImageMagickProcessLimiter imageMagickProcessLimiter) {
+            MediaProcessLimiter mediaProcessLimiter) {
         this.mediaRepository = mediaRepository;
         this.trackMediaService = trackMediaService;
         this.mediaPositionService = mediaPositionService;
         this.mediaTrendService = mediaTrendService;
         this.videoThumbnailService = videoThumbnailService;
-        this.imageMagickProcessLimiter = imageMagickProcessLimiter;
+        this.mediaProcessLimiter = mediaProcessLimiter;
     }
 
     @RequestMapping("/get-media-with-location-info")
@@ -304,9 +304,12 @@ public class MediaController {
         log.info("HEIC conversion: starting ImageMagick convert for {} (maxSize={})", fileName, maxSize);
         long t0 = System.currentTimeMillis();
 
-        prepareGeneratedImageResponse(response, MediaType.IMAGE_JPEG_VALUE, eTag, lastModifiedMillis);
-
-        streamProcessOutput(imageMagickProcess(mediaPath, maxSize, "jpeg"), response);
+        streamGeneratedImageProcessOutput(
+                imageMagickProcess(mediaPath, maxSize, "jpeg"),
+                response,
+                MediaType.IMAGE_JPEG_VALUE,
+                eTag,
+                lastModifiedMillis);
         log.info("HEIC conversion: finished {} in {}ms", fileName, System.currentTimeMillis() - t0);
     }
 
@@ -323,9 +326,12 @@ public class MediaController {
         String outputFormat = contentType.contains("png") ? "png" : "jpeg";
         String outputMediaType = outputFormat.equals("png") ? MediaType.IMAGE_PNG_VALUE : MediaType.IMAGE_JPEG_VALUE;
 
-        prepareGeneratedImageResponse(response, outputMediaType, eTag, lastModifiedMillis);
-
-        streamProcessOutput(imageMagickProcess(mediaPath, maxSize, outputFormat), response);
+        streamGeneratedImageProcessOutput(
+                imageMagickProcess(mediaPath, maxSize, outputFormat),
+                response,
+                outputMediaType,
+                eTag,
+                lastModifiedMillis);
         log.info("Image resize: finished {} in {}ms", fileName, System.currentTimeMillis() - t0);
     }
 
@@ -369,18 +375,38 @@ public class MediaController {
         response.setHeader(HttpHeaders.CACHE_CONTROL, mediaContentCacheControl().getHeaderValue());
     }
 
-    private void streamProcessOutput(ProcessBuilder processBuilder, HttpServletResponse response) throws IOException {
-        imageMagickProcessLimiter.execute(() -> {
-            processBuilder.redirectError(ProcessBuilder.Redirect.DISCARD);
-            Process proc = processBuilder.start();
-            try (var in = proc.getInputStream();
-                 var out = response.getOutputStream()) {
-                in.transferTo(out);
-                out.flush();
-            } finally {
-                proc.destroyForcibly();
-            }
-        });
+    private void streamGeneratedImageProcessOutput(ProcessBuilder processBuilder,
+                                                   HttpServletResponse response,
+                                                   String contentType,
+                                                   String eTag,
+                                                   long lastModifiedMillis) throws IOException {
+        processBuilder.redirectError(ProcessBuilder.Redirect.DISCARD);
+        Process proc;
+        try {
+            proc = mediaProcessLimiter.start(processBuilder);
+        } catch (MediaProcessLimiter.MediaProcessBusyException e) {
+            prepareGeneratedImageErrorResponse(response);
+            throw new ResponseStatusException(
+                    HttpStatus.SERVICE_UNAVAILABLE,
+                    "Media processing is busy. Try again shortly.",
+                    e);
+        } catch (IOException | RuntimeException e) {
+            prepareGeneratedImageErrorResponse(response);
+            throw e;
+        }
+        prepareGeneratedImageResponse(response, contentType, eTag, lastModifiedMillis);
+        try (var in = proc.getInputStream();
+             var out = response.getOutputStream()) {
+            in.transferTo(out);
+            out.flush();
+        } finally {
+            proc.destroyForcibly();
+        }
+    }
+
+    private static void prepareGeneratedImageErrorResponse(HttpServletResponse response) {
+        response.reset();
+        response.setHeader(HttpHeaders.CACHE_CONTROL, CacheControl.noStore().getHeaderValue());
     }
 
     private static boolean browserAcceptsHeic(String acceptHeader) {

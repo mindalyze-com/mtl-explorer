@@ -1,0 +1,13 @@
+FLT_12 empty and all-category selections
+
+Explicit empty selection:
+- Clear selection produced 0 of 2 current selected.
+- All categories, BICYCLE 7, and WALKING 2 were all unchecked.
+- Apply produced 0 / 9 Tracks and the summary 0 of 2 categories.
+- Browser reload preserved 0 / 9 Tracks and 0 of 2 categories.
+
+Select every available category:
+- Select current produced All 2 selected.
+- All categories, BICYCLE 7, and WALKING 2 were checked.
+- Apply produced 9 / 9 Tracks.
+- The summary normalized to All 2 categories because there were no unavailable saved categories.

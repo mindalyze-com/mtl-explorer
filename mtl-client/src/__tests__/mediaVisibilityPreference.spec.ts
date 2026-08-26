@@ -24,7 +24,7 @@ const maplibreMock = vi.hoisted(() => {
 });
 
 vi.mock('maplibre-gl', () => ({
-  default: { Marker: maplibreMock.MockMarker },
+  Marker: maplibreMock.MockMarker,
 }));
 
 function preferenceMethod() {

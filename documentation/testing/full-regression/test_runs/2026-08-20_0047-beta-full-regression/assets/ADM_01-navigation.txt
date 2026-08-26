@@ -1,0 +1,20 @@
+ADM_01 Admin center navigation
+
+Desktop live browser
+- Opened Admin from the main navigation; Overview rendered System health, Status, and Common tasks.
+- Group labels were Data, System, and Application.
+- Traversed each section and confirmed matching level-2 heading and route:
+  - Overview -> /mtl/admin
+  - Import & sync -> /mtl/admin/imports
+  - Processing -> /mtl/admin/processing
+  - Data status -> /mtl/admin/data-status
+  - Maintenance -> /mtl/admin/maintenance
+  - Server log -> /mtl/admin/logs
+  - System information -> /mtl/admin/system
+  - Preferences -> /mtl/admin/preferences
+  - Session -> /mtl/admin/session
+- About & credits opened as a usable overlay from the Admin navigation.
+
+Constraint
+- The connected in-app browser exposes no viewport resize or touch-emulation control.
+- Therefore the required mobile half of ADM_01 could not be executed in this run.

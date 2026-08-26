@@ -1,0 +1,6 @@
+Coverage: SGN_04
+Conditional precondition: demo mode is active
+Public demo-status response: {"username":"","password":"","demoMode":false}
+Login page controls: MTL Explorer logo; Username; Password; Sign In; About & source
+Demo credentials banner visible: no
+Conclusion: the quick-install instance is not in demo mode, so the conditional banner check does not apply.

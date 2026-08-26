@@ -22,6 +22,18 @@ the app, PostGIS, and BRouter routing together. Local vector maps are optional.
 - Stable internet for hosted maps. A fully local map setup needs about
   200 GB free disk for the initial full-world map download.
 
+The default Compose limits the MTL Explorer app to 1024 MiB, PostgreSQL to
+512 MiB, BRouter to 512 MiB, and location search to 128 MiB, with swap disabled.
+The optional local map server is limited to 128 MiB. The limits are at least 20
+percent above the validated floors and rounded up to conventional allocations.
+BRouter was checked with routes up to about 1,500 km. The map limit was checked
+while extracting its zoom 0-6 overview and serving concurrent range requests.
+Compose allows a routing request to run for up to 310 seconds, just above
+BRouter's 300-second route ceiling.
+Large image or video conversions use the app headroom one at a time. Complex
+tracks or large media libraries may require a higher app limit. Docker and the
+operating system need additional memory.
+
 Both Compose v2 (`docker compose`) and classic Compose (`docker-compose`) work;
 the examples use Compose v2.
 
@@ -74,7 +86,9 @@ volumes:
 
 Keep `./data/postgis`, `./data/brouter-segments`, optional
 `./data/location-search`, and, when local maps are enabled, `./data/maps`
-across upgrades.
+across upgrades. The map image does not contain the downloaded maps. Replacing
+the image keeps and reuses the map archive mounted at `/data`; do not remove or
+rename that mount.
 
 On Linux, if Docker created `./data/` as root:
 

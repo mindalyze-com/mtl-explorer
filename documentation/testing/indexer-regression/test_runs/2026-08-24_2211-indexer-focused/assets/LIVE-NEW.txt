@@ -1,0 +1,8 @@
+Pass: online
+Phase: add N1
+Detection mode: live watch
+Mutation/settled UTC: 20:17:49 / 20:17:58
+Expected/actual active GPX/media: 5/5; 5/5
+Evidence: two CREATE events, one successful N1 row per index, A2 remained removed, GUI showed 5 Tracks.
+Manual rescan used: no
+Status: PASS

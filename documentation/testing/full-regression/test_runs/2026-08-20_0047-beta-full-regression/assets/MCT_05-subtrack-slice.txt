@@ -1,0 +1,18 @@
+MCT_05 sub-track extraction evidence
+
+- Active sector chip: A-B.
+- Zone A and B each matched four tracks; four were shared.
+
+Returned slice / full distance
+- sample.geojson: 123.17 m / 144.59 m.
+- segment-bravo.gpx: 132.12 m / 154.29 m.
+- sample.igc: 130.63 m / 154.43 m.
+- mtl-regression-media-track.gpx: 165.13 m / 189.62 m.
+
+Returned slice / full duration
+- segment-bravo.gpx: 00:12:09 / 15m 00s.
+- sample.igc: 00:12:10 / 15m 00s.
+- mtl-regression-media-track.gpx: 00:24:21 / 25m 00s.
+- sample.geojson has no timed duration; its non-empty bounded distance still extracted.
+
+Every slice is greater than zero and shorter than its source extent, consistent with extraction between the two user zones rather than returning the whole route.

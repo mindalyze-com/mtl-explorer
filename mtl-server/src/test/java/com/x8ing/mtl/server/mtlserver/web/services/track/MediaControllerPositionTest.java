@@ -25,7 +25,7 @@ class MediaControllerPositionTest {
             mediaPositionService,
             mediaTrendService,
             mock(VideoThumbnailService.class),
-            imageMagickProcessLimiter());
+            mediaProcessLimiter());
 
     @Test
     void mutableBoundsResponseIsNotStoredByBrowserCaches() {
@@ -46,7 +46,7 @@ class MediaControllerPositionTest {
         verify(mediaPositionService).saveTimeCorrection(request);
     }
 
-    private static ImageMagickProcessLimiter imageMagickProcessLimiter() {
-        return new ImageMagickProcessLimiter(new ImageMagickProperties());
+    private static MediaProcessLimiter mediaProcessLimiter() {
+        return new MediaProcessLimiter(new MediaProcessProperties());
     }
 }

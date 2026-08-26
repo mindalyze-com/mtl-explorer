@@ -1,0 +1,14 @@
+TRD_09 reuses the direct same-run FIT_05 action.
+
+Track: 100005 / Activity.fit
+Visible control: Overview -> Download GPX
+Downloaded bytes: 479,844
+SHA-256: 722d0eec2e4b62ddcc54a5dc2ac8e8183f6d88248ed6d299558d02ca02c7921c
+XML validation: PASS
+Root: GPX 1.1
+Creator: GPSBabel
+Trackpoints: 3,601
+Waypoints: 0
+
+The non-GPX source produced a valid GPX track. Full validation details are in
+FIT_05-gpx-download.txt.

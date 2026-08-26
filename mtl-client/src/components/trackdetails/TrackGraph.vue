@@ -222,7 +222,14 @@ function buildTrackGraphOptions(
   xMode: 'time' | 'distance',
   showRange: boolean
 ): Highcharts.Options {
-  const options = buildChartOptions({ ...config, xMode });
+  const baseOptions = buildChartOptions({ ...config, xMode });
+  const options: Highcharts.Options = {
+    ...baseOptions,
+    tooltip: {
+      ...baseOptions.tooltip,
+      followTouchMove: false,
+    },
+  };
   if (!shouldRenderRangeBand(config, showRange)) {
     const series = (options.series ?? []) as Highcharts.SeriesOptionsType[];
     return {

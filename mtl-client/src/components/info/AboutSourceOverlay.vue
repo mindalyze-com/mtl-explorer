@@ -126,7 +126,11 @@ const emit = defineEmits<{
 }>();
 
 const AboutView = defineAsyncComponent(() => import('@/views/AboutView.vue'));
-const version = computed<string>(() => (import.meta.env.VITE_APP_VERSION as string) || 'dev');
+const version = computed<string>(
+  () =>
+    (import.meta.env.VITE_APP_VERSION as string) ||
+    (typeof __APP_PKG_VERSION__ !== 'undefined' ? __APP_PKG_VERSION__ : 'unknown')
+);
 const showFullAbout = ref(false);
 
 function closeFullAbout() {

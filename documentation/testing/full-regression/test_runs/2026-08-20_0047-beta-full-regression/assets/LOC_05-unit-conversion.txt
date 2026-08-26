@@ -1,0 +1,35 @@
+Coverage: LOC_05
+
+Locale and data state
+- Locale remained de-DE throughout.
+- Track #100039 and all route/segment/filter source values were not edited.
+
+Metric baseline
+- Preferences preview: 25,0 km · 500 m · 80 kg.
+- Statistics: 821 km, 16h 50m, 3.971 Wh, 12.727 m ascent.
+- Track #100039: 3,60 km; 1.667 m ascent; 3,6 km/h; 346,7 Wh; 702 W.
+- Graph axes used m, m/h, km, and Wh.
+- Prior same-run point-popup evidence: altitude 552.0 m, distance 63.81 m, ascent 2 m.
+- Prior same-run segment/planner evidence: 144.59 m segment; 5.13 km route, 0 m ascent, 14m duration.
+
+Imperial live switch
+- Preferences preview: 15,5 mi · 1.640 ft · 176 lb.
+- Statistics: 510 mi, 16h 50m, 3.971 Wh, 41.756 ft ascent.
+- Track #100039: 2,24 mi; 5.468 ft ascent; 2,2 mph; 346,7 Wh; 702 W.
+- Graph axes changed to ft, ft/h, mi, and Wh.
+- Replay telemetry: 0.0 mph; 0,02 mi / 2,24 mi; 0 ft gain; 413 ft max; duration unchanged.
+- Planner empty state: 0.00 ft, 0 ft ascent/descent; segment radius 1,2 mi.
+- Point popup #100028: 1.807,7 ft altitude, 126,31 ft from start, 126,3 ft previous point; duration 1m 0s and energy/power remained Wh/W.
+- A reload on /mtl/track/100039 retained Imperial (US), 2,24 mi, 5.468 ft, and 2,2 mph.
+
+Distance-filter parameter conversion and defect
+- Entered 1 mi minimum and 10 mi maximum. Fields showed mi and the result changed to 1 matching track.
+- Switching to Metric converted the same parameters to 1.609344 km and 16.09344 km.
+- The persistent filter/map summary displayed `Tracks by distance (gradient) · 16.09344` in both unit modes, leaking the raw internal kilometre value with no unit instead of a localized/unit-aware summary.
+- Reset criteria and Reset filter restored Smart Base Filter with 8 tracks.
+
+Metric restoration
+- Selected Metric, reloaded #100039, and confirmed 3,60 km, 1.667 m, 3,6 km/h, unchanged date/duration/Wh/W.
+- Final state: de-DE, Metric, Smart Base Filter, 8 tracks.
+
+Result: conversion behavior is consistent, but the filter summary fails the no-mixing/unit-aware requirement (MTL-FR-022).

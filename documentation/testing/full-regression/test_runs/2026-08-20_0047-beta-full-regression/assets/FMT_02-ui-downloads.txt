@@ -1,0 +1,28 @@
+FMT_02 per-format UI and download evidence
+
+Shared expectations and observations:
+- Every source is indexed SUCCESS and searchable by exact filename.
+- Main Statistics result contains eight active tracks; the Duplicate tracks filter exposes the five legitimate same-geometry duplicate fixtures.
+- Each opened detail has the expected ID and three map regions including its embedded track map.
+- Downloaded originals below are byte-identical to their fixture checksums.
+- Each successful Download GPX payload validates as XML/GPX and contains 6 trkpt.
+- The in-app browser retained temporary .crdownload filenames; payload validation was direct.
+
+FIT | track 100005 | PASS via FIT_02-FIT_05 | map/detail/stats/charts/original/GPX all passed
+KML | track 100006 | search 1/5 Duplicate tracks | 3 maps | 6 chart regions | original SHA ff19a96412c5fc0f75acc67fe323e34dc7977dd77064bc4c60bbb34ecdcd1040 | GPX 6 trkpt | PASS
+TCX | track 100007 | search 1/5 Duplicate tracks | 3 maps | 6 chart regions | original SHA e2a9b6da8fdd57d3420ec38dcee8210a11a7de9d1708ab8c9d2118eb476ddf56 | GPX 6 trkpt | PASS
+KMZ | track 100008 | search 1/5 Duplicate tracks | 3 maps | 6 chart regions | original SHA 6716ab6f1356a5e5524e0ecd00bc5b30fc48dc90aae3622459ae7d398d59eccf | GPX 6 trkpt | PASS
+IGC | track 100009 | search 1/8 active tracks | 3 maps | 6 chart regions with 5-6 points | download buttons visible but inert | FAIL
+GeoJSON | track 100010 | search 1/8 active tracks | 3 maps | distance-axis view has 5 chart regions and 5-point series | original SHA 63472adf30f532683032743cdb8e006c951bf2efde9801d4713110bafbf5b30a | GPX 6 trkpt | PASS
+NMEA | track 100011 | search 1/5 Duplicate tracks | 3 maps | 6 chart regions | original SHA 6ca9513fc894a9239970b1aaf3d1dc468143dcf68d3b22104a795e514b6aa8dc | GPX 6 trkpt | PASS
+GDB | track 100012 | search 1/5 Duplicate tracks | 3 maps | 6 chart regions | original SHA fd0ac75dcdcefdc1c64dfd4cb68bc38fdd3702f4db01cb13844c9cec12781cbf | GPX 6 trkpt | PASS
+
+IGC failure reproduction:
+1. Use Statistics > Tracks in the active Smart Base result.
+2. Search sample.igc and open track 100009.
+3. Confirm Overview and Graphs render; six charts contain 5-6 data points.
+4. Activate Download original, then Download GPX.
+5. Repeat with keyboard activation.
+
+Expected: source-file and GPX requests start and complete downloads.
+Actual: no browser download is created and server logs show no /mtl/api/tracks/100009/source-file or /mtl/api/tracks/100009/gpx request. Other tested formats call these endpoints and download successfully in the same browser context.

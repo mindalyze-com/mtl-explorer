@@ -1,0 +1,8 @@
+PLN_11 mobile touch evidence
+
+- Connected browser viewport: fixed desktop canvas 981 x 998 px at x=68, y=0.
+- Runtime capabilities do not expose viewport override or touch-device emulation.
+- Available pointer gestures are mouse-style click, move, and drag.
+- Desktop route placement, route-leg drag insertion, and waypoint move all passed in PLN_02-PLN_04.
+- Those results are not claimed as touch evidence.
+- Mobile touch placement/dragging remains untestable in this run environment.

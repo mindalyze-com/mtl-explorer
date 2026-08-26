@@ -140,7 +140,7 @@ Revalidate these behaviors by reading the current scripts before each deployment
 | Helper | Current effect |
 |---|---|
 | `/root/docker-delete-reset.sh [--dry-run] [--app-memory-limit LIMIT] <keys...>` | Optionally persists and verifies an existing app Compose memory override, then stops and wipes only the selected keys, refreshes shared services, pulls every selected stack, starts them, and prunes unused images. It keeps a timestamped override backup. At least one key is required. |
-| `/root/docker-stop-start.sh [--dry-run] [--app-memory-limit LIMIT] <keys...>` | Optionally persists and verifies an existing app Compose memory override, refreshes shared services, then pulls and restarts only the selected keys and prunes unused images. It keeps a timestamped override backup. At least one key is required. It does not wipe demo data. |
+| `/root/docker-stop-start.sh [--dry-run] [--app-memory-limit LIMIT \| --standard-memory-profile] <keys...>` | Optionally persists and verifies an existing app Compose memory override or the validated standard app/database memory profile, refreshes shared services, then pulls and restarts only the selected keys and prunes unused images. It keeps a timestamped override backup. At least one key is required. It does not wipe demo data. |
 | `/root/docker-delete-reset-beta.sh` | Compatibility wrapper that invokes `docker-delete-reset.sh beta`. Do not use it for new automation. |
 | `/root/deploy-hetzner.sh` | Creates or updates a domain and performs broader host setup. It is not a routine reset substitute. |
 

@@ -1,0 +1,36 @@
+Source repository: https://github.com/gps-touring/sample-gpx
+Source note: Public GitHub repository described as "GPX files for testing"; no license file is visible in the repository root, so this is recorded as a source/license documentation gap. Files are used only as disposable test inputs and are not copied into repository artifacts.
+
+JuraRoute72011.gpx
+URL: https://raw.githubusercontent.com/gps-touring/sample-gpx/master/BrittanyJura/JuraRoute72011.gpx
+SHA-256: fcff577bd3c1a6dc2bb9e53abba8051d510d282f4fb0049d38be5300f92e354e
+Bytes: 199962
+trkpt: 1414
+
+Lannion_Plestin_parcours24.4RE.gpx
+URL: https://raw.githubusercontent.com/gps-touring/sample-gpx/master/RoscoffCoastal/Lannion_Plestin_parcours24.4RE.gpx
+SHA-256: e76c692cbb5580f20013ce19995a9383361a8a0babec2db3e36f7064f316e85f
+Bytes: 60917
+trkpt: 381
+
+MoselradwegAusWiki.gpx
+URL: https://raw.githubusercontent.com/gps-touring/sample-gpx/master/BrittanyJura/MoselradwegAusWiki.gpx
+SHA-256: 0f5263dee95a345a42585bde148ec741af4ed4eeb7451702f59c9c7f9bf761c3
+Bytes: 415326
+trkpt: 2954
+
+Vitry-le-Francois_Langres.gpx
+URL: https://raw.githubusercontent.com/gps-touring/sample-gpx/master/BrittanyJura/Vitry-le-Francois_Langres.gpx
+SHA-256: 401218e3c1d1f366ee27ea8bc138d8422eff3bf6348a77183be83fef3e8d7d67
+Bytes: 238349
+trkpt: 1688
+
+VoieVerteHauteVosges.gpx
+URL: https://raw.githubusercontent.com/gps-touring/sample-gpx/master/BrittanyJura/VoieVerteHauteVosges.gpx
+SHA-256: 0f417d6e76cfa581d3ada969e728694933fbffd062f61a8352ccc87637135f78
+Bytes: 183733
+trkpt: 1298
+
+Total bytes: 1098287
+Total trkpt: 7735
+Staging folder: /root/mtl-regression-2026-08-20_0047/fixtures/public-gpx (outside watched data/gpx)

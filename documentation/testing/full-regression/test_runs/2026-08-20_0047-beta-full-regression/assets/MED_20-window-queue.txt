@@ -1,0 +1,39 @@
+MED_20 add/replace/delete activity-window evidence
+
+Baseline
+- 8 media rows; 8 selected unambiguous correlations.
+- Resolved TRACK_INTERPOLATED positions:
+  400000 video-estimated: 46.9483250001,7.4478500000
+  400002 estimated-a: 46.9480874986,7.4475124989
+  400006 estimated-b: 46.9481124993,7.4475541662
+
+Add old-window activity
+- Final synthetic old-window GPX SHA-256: 339e2a85729bf277ad31aa60bf05dfbf9c5279f7832bddae9b91a5e01280c60d
+- Live watcher indexed unique track 100022, 269.46 m, window 08:00:30-08:02:30 UTC.
+- Correlation job: tracks=1 media=4 remaining=0.
+- Exactly media 400002, 400004, 400005, and 400006 received alternate correlations.
+- Media 400000, 400001, 400003, and 400007 stayed single-candidate and outside the window.
+- Exact-time track 100022 became selected for camera-only 400002 and 400006.
+- Their resolved positions changed to 46.9610000053,7.4610000053 and 46.9619999973,7.4619999973.
+- A first closer-route setup candidate was marked duplicate and replaced before the measured unique add result.
+
+Replace with new-window activity
+- New-window GPX SHA-256: c8bab50ae7da69cf397acb1cd9d59281ad8c9f49e3bc7a27ac53b1b33427f026
+- Live watcher removed 100022 and indexed unique track 100023, 538.88 m, window 08:08:00-08:16:00 UTC.
+- Replacement correlation pass: tracks=1 media=6 remaining=0, exactly the union of 4 old-window and 2 new-window media.
+- After duplicate classification settled, the current new window processed exactly 2 media.
+- Old-window alternate rows were removed; 400002/400006 fell back to their original 100013 correlations and baseline resolved positions.
+- Only new-window videos 400000/400001 held two eligible correlations; deterministic selection retained 100013.
+- Media 400003 and 400007 were outside both windows and were not included in the six-item union.
+
+Delete new-window activity
+- Watched GPX was moved to recoverable disposable storage.
+- Live watcher deleted track 100023.
+- Correlation job: tracks=0 media=2 remaining=0.
+- Final database: track absent; 8 correlations; 8 selected; 0 ambiguous; 8 media rows; both work queues empty.
+- Final browser timeline matched the MED_13 eight-row baseline byte-for-byte.
+
+No full media-library scan
+- No MEDIA rescan was invoked or logged during add, replace, or delete.
+- media_file count stayed 8 throughout.
+- Only GPS watcher and bounded correlation jobs ran.

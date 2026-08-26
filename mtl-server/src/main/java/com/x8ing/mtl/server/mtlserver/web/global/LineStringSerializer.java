@@ -1,13 +1,13 @@
 package com.x8ing.mtl.server.mtlserver.web.global;
 
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.databind.JsonSerializer;
-import com.fasterxml.jackson.databind.SerializerProvider;
+import tools.jackson.core.JsonGenerator;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.SerializationContext;
+import tools.jackson.databind.ValueSerializer;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.CoordinateXYZM;
 import org.locationtech.jts.geom.LineString;
 
-import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 
@@ -15,7 +15,7 @@ import java.math.RoundingMode;
  * On the DB ST_SnapToGrid and ST_Simplify together do a nice job, yet it might produce rounding errors due to binary system.
  * Clean that out on serialization.
  */
-public class LineStringSerializer extends JsonSerializer<LineString> {
+public class LineStringSerializer extends ValueSerializer<LineString> {
 
     // https://en.wikipedia.org/wiki/Decimal_degrees
     // decimal
@@ -34,7 +34,7 @@ public class LineStringSerializer extends JsonSerializer<LineString> {
     public static final int DECIMAL_PLACES_Z = 1;    // 1 digit  ~0.1 m,  elevation is never that precise
 
     @Override
-    public void serialize(LineString lineString, JsonGenerator jsonGenerator, SerializerProvider serializerProvider) throws IOException {
+    public void serialize(LineString lineString, JsonGenerator jsonGenerator, SerializationContext context) throws JacksonException {
         jsonGenerator.writeStartArray();
         for (Coordinate coordinate : lineString.getCoordinates()) {
             if (Double.isNaN(coordinate.getX()) || Double.isNaN(coordinate.getY()) ||

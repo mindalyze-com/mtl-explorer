@@ -47,6 +47,7 @@ type StyleLayer = Omit<StyleSpecification['layers'][number], 'layout' | 'paint'>
 };
 
 export const TERRAIN_DEM_SOURCE_ID = 'terrain-dem';
+export const HILLSHADE_DEM_SOURCE_ID = 'hillshade-dem';
 export const MAPTERHORN_TERRAIN_TILEJSON_URL = 'https://tiles.mapterhorn.com/tilejson.json';
 export const TERRAIN_HILLSHADE_LAYER_ID = 'terrain-hillshade';
 export const TOPO_CONTRAST_URBAN_AREA_LAYER_ID = 'topo-contrast-urban-area';
@@ -238,13 +239,14 @@ function addHillshade(style: StyleSpecification): StyleSpecification {
     sources: {
       ...style.sources,
       [TERRAIN_DEM_SOURCE_ID]: createTerrainDemSource(),
+      [HILLSHADE_DEM_SOURCE_ID]: createTerrainDemSource(),
     },
     layers: [
       ...existingLayers.slice(0, insertAt),
       {
         id: TERRAIN_HILLSHADE_LAYER_ID,
         type: 'hillshade',
-        source: TERRAIN_DEM_SOURCE_ID,
+        source: HILLSHADE_DEM_SOURCE_ID,
         paint: {
           'hillshade-shadow-color': '#535344',
           'hillshade-highlight-color': '#FFFFFF',

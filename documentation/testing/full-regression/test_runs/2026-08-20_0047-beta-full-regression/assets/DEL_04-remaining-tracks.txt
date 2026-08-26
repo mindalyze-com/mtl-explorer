@@ -1,0 +1,8 @@
+DEL_04 remaining imported tracks after deletion
+
+Each remaining member of the original five-GPX set was found in Filter Review and opened from its row:
+- Search Jura -> one row -> /mtl/track/100000 -> matching Jura name and selected Overview.
+- Search Mosel -> one row -> /mtl/track/100001 -> matching Mosel name and selected Overview.
+- Search Lannion -> one row -> /mtl/track/100004 -> matching Lannion name and selected Overview.
+
+All three remaining imported tracks display and open correctly after tracks 100002/100003 were removed.

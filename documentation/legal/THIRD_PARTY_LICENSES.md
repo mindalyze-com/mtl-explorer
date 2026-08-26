@@ -38,7 +38,8 @@ respective `README.md` for upstream licenses (OSM, BRouter, gcexport, etc.).
 | Spring Boot, Spring Framework | Backend framework | Apache-2.0 |
 | Hibernate ORM | Persistence | LGPL-2.1 / Apache-2.0 |
 | PostgreSQL JDBC driver | DB driver | BSD-2-Clause |
-| Liquibase | DB migrations | Apache-2.0 |
+| GeographicLib-Java | Rare-case WGS84 geodesic fallback | MIT/X11 |
+| Liquibase 5 | DB migrations | FSL-1.1-ALv2 (Apache-2.0 future license) |
 | Vue.js, Vue Router, Pinia | Frontend framework | MIT |
 | PrimeVue | UI components | MIT |
 | MapLibre GL | Maps | BSD-3-Clause |
@@ -57,9 +58,9 @@ respective `README.md` for upstream licenses (OSM, BRouter, gcexport, etc.).
 
 ## AGPL compatibility
 
-All direct runtime dependencies of `mtl-server` and `mtl-client` are under
-licenses compatible with AGPL-3.0-or-later (Apache-2.0, MIT, BSD, LGPL,
-MPL-2.0). Before adding a new dependency, check compatibility - see
+Direct runtime dependencies of `mtl-server` and `mtl-client` include both
+open-source licenses and Liquibase 5's source-available FSL-1.1-ALv2 license.
+Before adding or upgrading a dependency, check compatibility and usage terms - see
 [CONTRIBUTING.md §4](../../.github/CONTRIBUTING.md).
 
 ## Data & assets

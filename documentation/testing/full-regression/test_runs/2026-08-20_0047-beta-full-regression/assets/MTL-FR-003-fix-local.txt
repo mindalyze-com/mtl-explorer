@@ -1,0 +1,42 @@
+Finding: MTL-FR-003
+Coverage: SGN_07
+Verified: 2026-08-20T09:58:10+02:00
+Commit: 0c02e06c96ffbd011be3c3ed8f0a5254c7b769b4
+
+Worktree and build
+- The worktree already contained the active full-regression run and staged MTL-FR-002 fix changes.
+- Current-worktree frontend: http://127.0.0.1:5174/mtl/
+- Current-worktree backend: http://localhost:18084/mtl/
+- Backend build: 0.0.1-SNAPSHOT, 2026-08-20T07:47:04.373Z
+- Isolated state: fresh disposable PostGIS on 127.0.0.1:55437 with empty synthetic GPX and media directories under /tmp.
+
+Confirmed root cause
+- HomeView started a 12-second splash fallback while track loading could remain pending longer during a dependency outage.
+- The fallback hid the curtain and exposed the empty map shell even though startup had neither succeeded nor produced load-failed.
+- A later load-failed event also did not restore a curtain that the fallback had already hidden.
+
+Implementation
+- The startup deadline now keeps the curtain visible and replaces the loader with a clear timeout message and Retry action.
+- A confirmed load-failed event restores the curtain and shows the explicit no-server/no-cache message.
+- If tracks arrive after only the timeout warning, the curtain clears automatically and normal recovery continues.
+- Added homeViewStartupFailure.spec.ts for timeout, late explicit failure, and late successful recovery.
+
+Automated checks
+- npm test -- --run src/__tests__/homeViewStartupFailure.spec.ts -> exit 0; 1 file, 3 tests passed.
+- npx prettier --check src/views/HomeView.vue src/__tests__/homeViewStartupFailure.spec.ts -> exit 0.
+- npx eslint src/views/HomeView.vue src/__tests__/homeViewStartupFailure.spec.ts -> exit 0.
+- npm test -> exit 0; 130 files, 740 tests passed.
+- npm run build -> exit 0; vue-tsc and Vite production build passed. Vite repeated the existing mixed static/dynamic import chunk warning for openApiClient.ts.
+
+Direct local browser retest
+1. Started the current backend and frontend against the isolated empty database and signed in with the development credentials from application-dev.yml.
+2. Confirmed the healthy zero-track map, then paused only the disposable PostGIS container and reloaded the authenticated root view.
+3. After the 12-second startup deadline, the full curtain remained visible with: "Track loading is taking longer than expected. Check the server connection and retry."
+4. The Retry button was visible and enabled. The empty 0-track map was not exposed to the user.
+5. The outage produced the expected failed-request console diagnostics. After the database was restored, a fresh sign-in returned to the normal zero-track map with no new warning/error entries.
+
+Visual evidence
+- MTL-FR-003-fix-local.webp: 1280x720 repaired timeout curtain with Retry, 77,718 bytes.
+
+Boundary
+- This proves the local current worktree only. The regression target image has not been rebuilt or deployed with the fix.

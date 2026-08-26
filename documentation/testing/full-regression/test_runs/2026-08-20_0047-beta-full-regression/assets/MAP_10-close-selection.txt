@@ -1,0 +1,14 @@
+Coverage: MAP_10
+Selected track: #100013 MTL Regression Media Track
+Selected state: /mtl/track/100013; Track Details present; selected ID present; 3 Map regions including the detail map
+Visible action: Close
+After action:
+- URL: /mtl/filter
+- Track Details: absent
+- selected #100013 identity: absent
+- main Map regions: 2
+- Open Filter. 9 Tracks: present
+- Zoom controls: present
+- OpenStreetMap attribution: present
+- Matching Tracks list remains available behind the closed selection
+Result: closing the selection removed selected details and restored the normal main map state.

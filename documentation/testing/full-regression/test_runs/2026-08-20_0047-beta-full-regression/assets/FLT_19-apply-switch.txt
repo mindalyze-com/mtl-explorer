@@ -1,0 +1,28 @@
+FLT_19 Apply filter pause/resume
+
+Desktop setup:
+- Active view: Tracks by year.
+- Selected categories: 2010, 2013, and 2026.
+- Applied result: 8 of 9 tracks.
+- Exactly one Apply filter switch was present in Current result; no header switch or duplicate action was present.
+
+Pause:
+- Activating the switch off showed Filter paused.
+- Switch aria-checked became false.
+- Map returned to 9 Tracks.
+- Statistics returned to the 9 Tracks baseline.
+
+Persistence:
+- Reload reopened Filter paused.
+- Switch remained aria-checked=false.
+- Map remained at 9 Tracks.
+
+Resume:
+- Activating the same switch on removed Filter paused.
+- Switch aria-checked became true.
+- Map/result returned to 8 of 9 tracks.
+- Statistics showed Showing 8 of 9 tracks and the 8 Tracks card.
+
+Mobile:
+- BLOCKED by the connected browser's lack of viewport resize/emulation capability (ACC_04).
+- No mobile switch-position claim is made.

@@ -1,8 +1,8 @@
 package com.x8ing.mtl.server.mtlserver.planner.service;
 
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
 import com.x8ing.mtl.server.mtlserver.planner.config.PlannerProperties;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -58,7 +58,7 @@ public class AutoPrewarmService {
     }
 
     private void postPrewarm(String url, double minLng, double minLat, double maxLng, double maxLat)
-            throws JsonProcessingException {
+            throws JacksonException {
         String json = objectMapper.writeValueAsString(Map.of(
                 "minLng", minLng, "minLat", minLat,
                 "maxLng", maxLng, "maxLat", maxLat

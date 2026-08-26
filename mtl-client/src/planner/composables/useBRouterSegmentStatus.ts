@@ -16,10 +16,10 @@ export function useBRouterSegmentStatus(enabled: boolean | Ref<boolean> = true) 
   const loading = ref(false);
   let timer: number | null = null;
 
-  async function refresh() {
+  async function refresh(force = false) {
     loading.value = true;
     try {
-      status.value = await fetchSidecarStatus();
+      status.value = await fetchSidecarStatus({ force });
     } finally {
       loading.value = false;
     }

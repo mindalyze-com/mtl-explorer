@@ -1,0 +1,13 @@
+Coverage: MAP_09
+Same-run interaction source: IMP_07
+Location: Bussang, visible search; 2 km scale
+Click target: known overlapping source GPX line point
+Chooser result: exactly 2 tracks
+- voie verte haute vosges on GPSies.com (100003)
+- Moselradweg aus Wiki on GPSies.com (100001)
+Duplicate or stale options: none; each expected track appeared once
+Selection results:
+- choose Voie Verte -> /mtl/track/100003
+- repeat overlap click and choose Mosel -> /mtl/track/100001
+Primary detailed evidence: ../assets/IMP_07-map-interaction.txt
+Result: overlap chooser appeared and both choices opened their correct details.

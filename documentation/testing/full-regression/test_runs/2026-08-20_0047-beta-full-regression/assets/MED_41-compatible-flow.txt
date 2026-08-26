@@ -1,0 +1,27 @@
+MED_41 compatible-video flow evidence
+Observed 2026-08-20 Europe/Zurich against requested image wauwau0977/mytraillog
+
+Temporary disposable sources (not committed)
+- Indexed archival MOV media 400010: FFV1 1280x720/24 fps + PCM s16le 48 kHz, 8.0 s, 10,962,463 bytes.
+- Source and watched-copy SHA-256: 22acd7cb9c722b11fd33b3571f0f1bc20161f12559da9dd7b72e3cef675de8d4.
+- Indexed metadata: COMPLETED_WITH_SUCCESS, 1280x720, 8 s, TRACK_INTERPOLATED at 46.948866667630256,7.448466667508946 on track 100028.
+- The controlled Chromium browser played the archival MOV natively through 8.0 s. Per video-transcoding/README.md, a temporary local harness then rendered the production CompatibleVideoPlayer with a naturally unsupported AVI source while its transcode requests referenced media 400010. No media error was simulated.
+- Unsupported auxiliary AVI media 400011: MPEG-2 video + MP2 audio, 8.064 s, 2,274,802 bytes; source/watched SHA-256 04d298cc298a2b24ce88c0296b057ba262c06108c6960f37d9591884a1405e82.
+
+480p path
+- The original AVI naturally reached "This browser cannot play the original video" with Auto/480p/720p/1080p and Create compatible stream controls.
+- Selecting 480p started one P480 session (POST 201 at 08:27:24.577Z); it completed at 08:27:25.713Z with 781,734 bytes.
+- The UI attached the HLS playlist, served playlist/init/two segments with HTTP 206, rendered 854x480 at duration 8.083332 s, and played to ended=true.
+- Reopening/retrying 480p returned POST 200 for the same retained session; no second P480 ffmpeg start was logged.
+
+720p reuse and failure
+- Switching to 720p started exactly one new P720 session (POST 201 at 08:29:18.469Z). A second browser view requested it while active and returned POST 200 with "Reusing prepared work · 0%"; only one P720 ffmpeg start was logged.
+- P720 completed at 08:29:20.002Z with 2,468,283 bytes. The retained playlist is HLS v7 with init.mp4 and two 4 s segments; ffprobe reports H.264 High 1280x720 yuv420p plus AAC-LC.
+- After retry/reopen, POST 200 reused the same retained P720 session, metadata reached readyState 4 with 1280x720 and duration 8.083332 s, and no new ffmpeg start occurred.
+- Pressing the visible Play control in either browser view immediately changed the production player to "Compatible playback failed — The compatible stream could not be decoded by the browser." P480 remains a working user workaround.
+
+Bounded state after the flow
+- The completed-session cap retained one directory only (P720) and evicted P480 after P720 completed.
+- Retained root size: 2,476,475 bytes. Retained files: playlist 243 bytes, init 1,353 bytes, two media segments 1,237,263 and 1,229,424 bytes.
+- Exact-process check found no running ffmpeg process after completion.
+- Both original watched files remained byte-identical to their generated temporary sources.

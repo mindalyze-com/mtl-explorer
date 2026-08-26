@@ -1,4 +1,5 @@
 import type { MeasurementSystem } from '@/utils/units';
+import { getFormatLocale } from '@/composables/useLocale';
 import {
   elevationCanonicalValue,
   elevationDisplayValue,
@@ -15,6 +16,7 @@ import {
 type CanonicalFilterUnit = 'km' | 'm' | 'km/h' | 'm/h' | 'kg';
 
 const FILTER_INPUT_SIGNIFICANT_DIGITS = 12;
+const FILTER_SUMMARY_MAXIMUM_FRACTION_DIGITS = 2;
 
 export function filterParamDisplayUnit(unit: string | undefined, system: MeasurementSystem): string | undefined {
   const canonicalUnit = supportedCanonicalUnit(unit);
@@ -80,6 +82,23 @@ export function filterParamCanonicalValue(
     case 'kg':
       return serializeInputNumber(poundsToKilograms(value));
   }
+}
+
+export function formatFilterParamSummaryValue(
+  canonicalValue: string,
+  unit: string | undefined,
+  system: MeasurementSystem,
+  locale: string | undefined = getFormatLocale()
+): string {
+  const displayValue = filterParamDisplayValue(canonicalValue, unit, system);
+  const value = finiteInputNumber(displayValue);
+  if (value == null) return canonicalValue;
+
+  const formatted = new Intl.NumberFormat(locale, {
+    maximumFractionDigits: FILTER_SUMMARY_MAXIMUM_FRACTION_DIGITS,
+  }).format(value);
+  const displayUnit = filterParamDisplayUnit(unit, system)?.trim();
+  return displayUnit ? `${formatted} ${displayUnit}` : formatted;
 }
 
 function supportedCanonicalUnit(unit: string | undefined): CanonicalFilterUnit | null {

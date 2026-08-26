@@ -1,0 +1,7 @@
+Coverage: SGN_05
+Credential values: intentionally omitted
+Initial valid sign-in: /mtl/; map loaded with 9 tracks; 1.914 s
+Visible action: Admin > Session > Sign out (credentials only)
+After sign out: /mtl/login; Username, Password, and Sign In controls visible; 0.802 s
+Second valid sign-in: /mtl/; map loaded with 9 tracks and normal navigation; 2.061 s
+Result: sign out returned to login and signing in again worked.

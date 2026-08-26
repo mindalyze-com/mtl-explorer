@@ -1,4 +1,4 @@
-import maplibregl from 'maplibre-gl';
+import * as maplibregl from 'maplibre-gl';
 import './trackPointPopup.css';
 
 export const TRACK_POINT_POPUP_MAX_WIDTH = 'min(360px, calc(100vw - 16px))';

@@ -1,0 +1,17 @@
+Coverage: MAP_02
+Active filter: Smart Base Filter; no criteria; all 2 activity categories
+Filter summary: 9 matching tracks
+Category breakdown: BICYCLE 7; WALKING 2; sum 9
+Map control: Open Filter. 9 Tracks
+Review Tracks summary: 9 tracks; 1,047 km; 1d 00h; one page; 9 body rows
+Reviewed names:
+- MTL Synthetic Segment Alpha
+- GNSSALTTRK
+- MTL Regression Media Track
+- Track 100005
+- Lannion_Plestin_parcours Lannion_Plestin_parcours1
+- Jura Route 7 / 2011 on GPSies.com
+- Moselradweg aus Wiki on GPSies.com
+- voie verte haute vosges on GPSies.com
+- Vitry le françois - langres on GPSies.com
+Result: visible map count, filter result, activity breakdown, and reviewed row count agree at 9.

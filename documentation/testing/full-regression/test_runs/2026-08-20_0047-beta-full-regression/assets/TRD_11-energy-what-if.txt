@@ -1,0 +1,20 @@
+Track: FIT #100005 (Activity.fit)
+
+Baseline:
+- Current rider: 75.0 kg
+- Model mass: 75.0 kg
+- Net Total: 346.7 Wh
+- Avg power: 702 W
+
+Unsaved what-if:
+- Changed Rider weight to 90.0 kg.
+- Dialog Total updated to 416.0 Wh.
+- Delta updated to +69.3 Wh.
+- Avg power updated to 842 W.
+- Save remained available but was not selected.
+
+Close/reopen verification:
+- Closing removed the 90 kg values; Overview remained 346.7 Wh.
+- Reopening showed Current rider 75.0 kg, input 75 kg, Total 346.7 Wh.
+
+Result: displayed what-if values update and are not permanently saved.

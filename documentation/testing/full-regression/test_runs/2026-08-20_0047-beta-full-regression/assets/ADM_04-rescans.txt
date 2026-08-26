@@ -1,0 +1,13 @@
+ADM_04 manual rescans
+
+Visible Maintenance flow
+- Manual rescan explained when rescans are needed and exposed labelled Rescan GPS and Rescan Media controls.
+- Rescan GPS displayed `Manual GPS rescan has been queued.`
+- Rescan Media displayed `Manual MEDIA rescan has been queued.`
+- Returned to the map while the work ran; Zoom out changed the scale from 2 m to 5 m and the 8 Tracks control remained usable.
+- Reopened Maintenance successfully; a data-freshness banner appeared without blocking the controls.
+
+Concurrent request state
+- Eight bounded concurrent GPS rescan requests returned one STARTED response and seven ALREADY_RUNNING responses.
+- Exact user-facing messages were `Manual GPS rescan has been queued.` and `GPS scan is already running.`
+- NOT_RUNNING/not-ready is conditional and was not applicable because both indexers were healthy and ready throughout this run.

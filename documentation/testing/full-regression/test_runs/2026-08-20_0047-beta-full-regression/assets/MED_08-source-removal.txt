@@ -1,0 +1,13 @@
+MED_08 exact watched-source removal
+Observed 2026-08-20 Europe/Zurich
+
+- Moved only these disposable DAT_08 fixtures out of the watched media tree:
+  - mtl-regression-delete-a.jpg
+  - mtl-regression-delete-b.jpg
+- Recoverable backup directory outside the watched tree: data/logs/med08-delete-backup/
+- Backup SHA-256 values remained exact:
+  - delete-a: 2eaa821faccbe871779f39bbd66fe59afc79d162a8e84e839fa0e314343625fc
+  - delete-b: 72a72b8edf766d06690dccfff80dafd97fbed8454a4a81f2d24419f17c57da38
+- Both exact watched paths are absent.
+- Watched fixture directory still contains exactly the six untouched items: estimated-a.jpg, estimated-b.jpg, photo-a.jpg, photo-b.jpg, video-estimated.mov, video-gps.mp4.
+- No rescan was triggered in this packet; both database rows remain available for the MED_09 before/after indexer observation.

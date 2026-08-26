@@ -1,0 +1,64 @@
+MED_33 large viewer evidence
+
+Fixture
+- Inserted 99,992 disposable synthetic media/index/correlation/resolved rows.
+- The existing activity's 8 items plus the fixture produced exactly 100,000
+  selected activity items.
+- Synthetic content reused the run's valid synthetic photo-a file so missing
+  files did not mask viewer navigation behavior.
+- All synthetic locations were at 46.94800, 7.44740 in Bern.
+
+Activity paging and centered selection
+- Initial visible UI: 100,000 items; 1-25 of 100,000; Page 1 of 4,000;
+  25 rows; page-size options remained 25/50.
+- Largest exposed size 50: Last reached 99,951-100,000, Page 2000 of 2,000,
+  with exactly 50 DOM rows in 1,000 ms.
+- 1,000 visible Previous-page actions moved to the true midpoint:
+  - pages 2000 -> 1800: 83,640 ms
+  - pages 1800 -> 1600: 81,630 ms
+  - pages 1600 -> 1400: 80,290 ms
+  - pages 1400 -> 1200: 79,949 ms
+  - pages 1200 -> 1000: 80,712 ms
+  - total 406,221 ms, average 406 ms per end-user page transition
+- Center page: 49,951-50,000 of 100,000, exactly 50 rows.
+- Opening media 33049966 produced item 50,000 of 100,000 in 890 ms.
+- Filmstrip DOM: 14 buttons; supplied list style --filmstrip-item-count: 50.
+- Direct filmstrip selection succeeded in 516 ms with 14 buttons retained.
+- Forward strip boundary selected item 50,001 in 1,008 ms, expanded the
+  buffered list to 100 IDs, and retained 14 rendered buttons.
+- Backward strip boundary selected item 49,950 in 1,052 ms, expanded the
+  three-page buffer to 150 IDs, and retained 14 rendered buttons.
+- The centered item/count stayed correct in both directions.
+
+Activity result versus frozen contract
+- DOM virtualization itself remained bounded at 14 buttons.
+- The end-user activity page/window was 50 IDs, and the three-page buffer
+  reached 150 IDs. It never supplied the required 200-ID activity window.
+- This is additional reproduction evidence for existing OPEN MTL-FR-014.
+
+Paged main-map cluster
+- Bounded Bern API response: HTTP 200, 4,200,005 bytes, 330.810 ms.
+- Rendered map showed a 100k media marker. The chooser reported This cluster
+  99,999 photos and Current map view 100,000 photos.
+- Cluster chooser opened in 1,487 ms; This cluster viewer opened in 1,022 ms.
+- Initial cluster page: supplied 200 IDs, 10 rendered buttons, item 1/99,999.
+- Normal scrolling/dragging rendered at most 14 filmstrip buttons.
+- Direct edge selection at supplied index 199 automatically requested the
+  adjacent 200-ID cluster page and selected item 201/99,999; supplied list
+  grew from 200 to 400 while the DOM remained 14 buttons.
+- Forward page requests advanced the selected item to 401 and then 601;
+  supplied list grew to the bounded three-page maximum of 600 IDs.
+- Once the buffer offset had shifted forward, reaching the left boundary
+  requested the previous 200-ID page and selected item 200/99,999.
+- Forward drag batches completed in 1,631 ms and 1,582 ms; the backward
+  boundary batch completed in 2,517 ms. DOM count stayed 14.
+- Cluster-page requests were client-side MapLibre leaf requests for offsets
+  0, 200, 400, 600 and back to 0, each with limit 200; no enormous thumbnail
+  DOM or 100,000-ID filmstrip array was created.
+
+Cleanup
+- Deleted synthetic resolved/correlation/media/index rows: 99,992 each.
+- Remaining synthetic rows: 0/0/0/0.
+- Original media/resolved/selected correlations: 8/8/8.
+- Media/track correlation work queues: 0/0.
+- Reloaded root: 8 Tracks, no med33 text, no viewer, normal 500 km map.

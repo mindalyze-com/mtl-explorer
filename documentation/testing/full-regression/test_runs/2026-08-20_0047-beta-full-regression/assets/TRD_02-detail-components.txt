@@ -1,0 +1,10 @@
+Coverage: TRD_02
+Track: FIT-backed #100005, source Activity.fit
+Overview: ID, Walking, 3.60 km, 59m 57s, ascent/descent, timing, speed, energy, exploration
+Graphs: six populated chart families with 345-350 points
+Related: five previous GPX tracks plus current track chronology
+Events: explicit No track events state
+Mini-map: embedded Map region; line interaction completed without blank/error
+Quality: SUCCESS, UNIQUE, 3,600 points, spacing/coverage/classification data
+Primary evidence: ../assets/FIT_03-details.txt
+Result: all required detail components loaded in one track-details flow.

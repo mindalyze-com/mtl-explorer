@@ -1,0 +1,18 @@
+FLT_17 first Filter visit in a clean browser origin
+
+Clean context:
+- Unique origin: flt17-0047.62.238.106.141.nip.io (same disposable app, isolated local storage).
+- Signed in with the documented quick-install credentials.
+- Loaded result: 9 Tracks.
+
+First Filter open:
+- Opened How filters work automatically.
+- Displayed Important and Filter behavior.
+- Displayed Your filter shapes everything.
+- Displayed Every view adapts and Map colors reveal patterns sections.
+- Displayed Got it.
+
+Dismissal:
+- Got it returned to the normal Filter overview.
+- Closing and reopening Filter showed the normal Filter overview directly.
+- Important and Got it did not repeat.

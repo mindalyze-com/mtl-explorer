@@ -1,0 +1,21 @@
+FLT_11 exact category selection across criteria changes
+
+Starting state:
+- View: Activities by exact type.
+- Selected category: WALKING only.
+- Result: 2 of 9 tracks.
+
+Date criteria change:
+- From: 2021-01-01.
+- To: 2021-12-31.
+- The current category set narrowed to WALKING 1.
+- Selection summary: 1 of 1 current selected.
+- WALKING remained checked and the result was 1 of 9 tracks.
+
+Date criteria cleared:
+- WALKING returned with count 2 and remained checked.
+- BICYCLE reappeared with count 7 and remained unchecked.
+- Selection summary: 1 of 2 current selected.
+- Result returned to exactly the two Walking tracks.
+
+The newly visible BICYCLE category did not join the exact WALKING selection.

@@ -1,0 +1,25 @@
+MED_15 camera-time-only provenance evidence
+
+Fixture
+- File: mtl-regression-estimated-a.jpg
+- Media ID: 400002
+- Track: 100013 MTL Regression Media Track
+
+Visible UI
+- Activity timeline label: Estimated
+- Activity mini-map marker accessible name: mtl-regression-estimated-a.jpg. Estimated from photo time and activity track
+- Selected marker class includes mini-map-photo-marker--estimated and mini-map-photo-marker--selected.
+- Viewer Taken source: Camera clock
+- Viewer Location: Nearest track point 90s away
+- Viewer location map accessible name: Estimated location at 46.94809, 7.44751
+
+Read-only database row
+media_id|file|exif_lat|exif_lon|exif_geometry|correlation_id|time_source|track_point_index|time_delta_s|route_lat|route_lon|resolved_origin|resolved_correlation_id|resolved_lat|resolved_lon|route_to_resolved_degrees|route_to_raw_track_m
+400002|mtl-regression-estimated-a.jpg|null|null|null|3|EXIF_DATE_TAKEN|1|90|46.9480874986|7.4475124989|TRACK_INTERPOLATED|3|46.9480874986|7.4475124989|0|0.00007617
+
+Result
+- No original EXIF latitude, longitude, or EXIF geometry was created.
+- Persisted correlation 3 owns the route interpolation and time evidence.
+- The separate resolved projection points to correlation 3 with origin TRACK_INTERPOLATED.
+- Route and resolved geometries are identical.
+- The interpolated route point is less than 0.0001 m from the activity's six-point RAW LineString, confirming the displayed marker is on the route.

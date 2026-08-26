@@ -1,0 +1,6 @@
+GLB_02 automatic globe exit
+
+- Started with globe mode pressed/active at the 1000 km scale.
+- Activated the normal Zoom in control five times.
+- At the settled 50 km scale, `Toggle globe mode` was no longer present in the accessible map state, matching exit from the globe zone.
+- Normal zoom, rotation, terrain, location search, filter, and navigation controls remained available.

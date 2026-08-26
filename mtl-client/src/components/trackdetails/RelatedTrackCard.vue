@@ -1,5 +1,12 @@
 <template>
-  <div class="track-card" :class="`track-card--${variant}`" @click="emit('navigate', track.id)">
+  <button
+    type="button"
+    class="track-card"
+    :class="`track-card--${variant}`"
+    :aria-label="`Open track ${track.name || `#${track.id}`}`"
+    :data-track-id="track.id"
+    @click="emit('navigate', track.id)"
+  >
     <TrackShapePreview :track-id="track.id!" :width="56" :height="40" class="track-card__shape" />
     <div class="track-dot"></div>
     <div class="track-card-body">
@@ -12,7 +19,7 @@
       <div v-if="track.startDate" class="track-date">{{ formatDateShort(track.startDate) }}</div>
       <div v-if="track.description" class="track-desc">{{ track.description }}</div>
     </div>
-  </div>
+  </button>
 </template>
 
 <script setup lang="ts">
@@ -32,6 +39,7 @@ const emit = defineEmits<{
 
 <style scoped>
 .track-card {
+  width: 100%;
   position: relative;
   display: flex;
   align-items: flex-start;
@@ -39,6 +47,11 @@ const emit = defineEmits<{
   padding: 0.5rem 0.625rem;
   border: 1px solid transparent;
   border-radius: 8px;
+  color: inherit;
+  background: transparent;
+  font: inherit;
+  text-align: left;
+  appearance: none;
   cursor: pointer;
   transition:
     background 0.15s ease,

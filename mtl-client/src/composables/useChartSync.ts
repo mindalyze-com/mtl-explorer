@@ -69,6 +69,7 @@ const lastHoveredPoints = new Set<Highcharts.Point>();
 const lastShownPointByChart = new WeakMap<Highcharts.Chart, Highcharts.Point>();
 
 const PASSIVE_TOUCH_LISTENER: AddEventListenerOptions = { passive: true };
+const TOUCH_LINE_PROXIMITY_PX = 24;
 
 const cursor = useTrackCursorSync();
 
@@ -100,27 +101,43 @@ export function useChartSync() {
 
   function bindChart(chart: Highcharts.Chart, xMode: TrackCursorXMode = cursor.getXMode()): () => void {
     const container = chart.container;
-    const onMove = (e: MouseEvent | TouchEvent) => syncMouseMove(e, chart);
+    let tracksTouchGesture = false;
+    const onMouseMove = (e: MouseEvent) => syncMouseMove(e, chart);
+    const onTouchStart = (e: TouchEvent) => {
+      tracksTouchGesture = e.touches.length === 1 && isTouchCloseToSeries(e, chart);
+      if (tracksTouchGesture) {
+        syncMouseMove(e, chart);
+      } else {
+        syncMouseLeave();
+      }
+    };
+    const onTouchMove = (e: TouchEvent) => {
+      if (tracksTouchGesture) syncMouseMove(e, chart);
+    };
     const onLeave = () => syncMouseLeave();
+    const onTouchEnd = () => {
+      tracksTouchGesture = false;
+      syncMouseLeave();
+    };
     const onClick = (e: MouseEvent) => syncClick(e, chart);
 
     setChartXMode(chart, xMode);
     registerChart(chart);
-    container.addEventListener('mousemove', onMove);
+    container.addEventListener('mousemove', onMouseMove);
     container.addEventListener('mouseleave', onLeave);
-    container.addEventListener('touchstart', onMove, PASSIVE_TOUCH_LISTENER);
-    container.addEventListener('touchmove', onMove, PASSIVE_TOUCH_LISTENER);
-    container.addEventListener('touchend', onLeave, PASSIVE_TOUCH_LISTENER);
-    container.addEventListener('touchcancel', onLeave, PASSIVE_TOUCH_LISTENER);
+    container.addEventListener('touchstart', onTouchStart, PASSIVE_TOUCH_LISTENER);
+    container.addEventListener('touchmove', onTouchMove, PASSIVE_TOUCH_LISTENER);
+    container.addEventListener('touchend', onTouchEnd, PASSIVE_TOUCH_LISTENER);
+    container.addEventListener('touchcancel', onTouchEnd, PASSIVE_TOUCH_LISTENER);
     container.addEventListener('click', onClick);
 
     return () => {
-      container.removeEventListener('mousemove', onMove);
+      container.removeEventListener('mousemove', onMouseMove);
       container.removeEventListener('mouseleave', onLeave);
-      container.removeEventListener('touchstart', onMove);
-      container.removeEventListener('touchmove', onMove);
-      container.removeEventListener('touchend', onLeave);
-      container.removeEventListener('touchcancel', onLeave);
+      container.removeEventListener('touchstart', onTouchStart);
+      container.removeEventListener('touchmove', onTouchMove);
+      container.removeEventListener('touchend', onTouchEnd);
+      container.removeEventListener('touchcancel', onTouchEnd);
       container.removeEventListener('click', onClick);
       unregisterChart(chart);
     };
@@ -130,6 +147,28 @@ export function useChartSync() {
     const sourceEvent = getPrimaryChartInputEvent(e);
     if (!sourceEvent) return null;
     return (chart.pointer as ChartPointer).normalize(sourceEvent);
+  }
+
+  function isTouchCloseToSeries(e: TouchEvent, chart: Highcharts.Chart): boolean {
+    if (!chart.series?.length) return false;
+
+    const event = normalizeChartEvent(e, chart);
+    if (!event || !isInsidePlot(event, chart)) return false;
+
+    const point = chart.series[0].searchPoint(event, true);
+    const plotY = point?.plotY;
+    if (typeof plotY !== 'number' || !Number.isFinite(plotY)) return false;
+
+    return Math.abs(event.chartY - (chart.plotTop + plotY)) <= TOUCH_LINE_PROXIMITY_PX;
+  }
+
+  function isInsidePlot(event: Highcharts.PointerEventObject, chart: Highcharts.Chart): boolean {
+    return (
+      event.chartX >= chart.plotLeft &&
+      event.chartX <= chart.plotLeft + chart.plotWidth &&
+      event.chartY >= chart.plotTop &&
+      event.chartY <= chart.plotTop + chart.plotHeight
+    );
   }
 
   /**
@@ -158,7 +197,7 @@ export function useChartSync() {
 
   /**
    * Called on mouseleave of any chart. Clears all tooltips and crosshairs
-   * and removes the hover marker (pinned stays).
+   * and removes chart-created map markers.
    */
   function syncMouseLeave(): void {
     clearAllHoveredPoints();
@@ -167,6 +206,7 @@ export function useChartSync() {
       chart.xAxis[0].hideCrosshair();
     });
     cursor.clearHover();
+    cursor.clearPinnedBySource('chart');
   }
 
   /**

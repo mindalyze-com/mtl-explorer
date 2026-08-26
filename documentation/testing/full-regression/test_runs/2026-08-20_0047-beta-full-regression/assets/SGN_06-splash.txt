@@ -1,0 +1,20 @@
+Coverage: SGN_06
+Action: Reload the signed-in root and capture rendered state immediately, then after settling.
+
+Immediate startup state:
+- URL: http://62.238.106.141:18080/mtl/
+- Wrapper class: curtain-wrapper splash-viewport
+- Rendered background style: background-image: url("/mtl/backgrounds/background_010.webp")
+- Image alternative text: MTL Explorer
+- Visible message: Loading your trails
+- Track count at capture: 0 Tracks
+
+Settled state after 1.9 s:
+- Map regions present: yes
+- Filter count: 9 Tracks
+- .curtain-wrapper count: 0
+- .photo-backdrop count: 0
+- MTL Explorer splash image present: no
+- Loading your trails present: no
+
+Result: logo, photo background, and startup message displayed before data; the splash disappeared after map and tracks loaded.

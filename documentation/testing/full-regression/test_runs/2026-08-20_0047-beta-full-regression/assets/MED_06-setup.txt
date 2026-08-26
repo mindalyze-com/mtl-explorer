@@ -1,0 +1,32 @@
+MED_06 media baseline, import, and indexing
+
+Pre-media baseline:
+- Admin Processing: MEDIA done, 0 completed, 0 total.
+- Data status: In sync.
+- Server/client token: 52BqNQ__|server_id:6qVg4AYMpEx8YgnXidocUW|config:9|filters:90|index:39|media:0|track_geometry:78|tracks:78
+
+Matching GPX first:
+- Source/destination SHA-256: 618b9df01a06ef3ec5a31553999dd73d11562d782e95fda05f4a8fdef075d104
+- Watched copy time: 2026-08-20T00:26:16Z.
+- Live watcher detected CREATE.
+- Indexed as track 100013 with status SUCCESS in 73 ms.
+
+Media watched copy:
+- Destination: data/media/2026-08-20_0047-beta-full-regression/
+- Copy time: 2026-08-20T00:26:37Z.
+- Files: six JPEGs, one MP4, one MOV; exact names/sizes/checksums match DAT_08 manifest.
+
+Visible Admin action:
+- Maintenance > Rescan Media.
+- UI confirmation: Manual MEDIA rescan has been queued.
+- Directory walk: 8 files examined, 8 queued, 0 missing.
+- Rescan fully completed in 228 ms at 35.1 files/sec.
+- GPS extracted: photo-a, photo-b, delete-a, delete-b, video-gps.
+- No embedded GPS: estimated-a, estimated-b, video-estimated (intended camera-time correlation inputs).
+- Media correlation processed media=8, remaining=0 in 28 ms.
+
+Post-media state:
+- Admin Processing: MEDIA done, 8 completed, 8 total.
+- Before reload: server media:9, client media:0, Out of sync.
+- Visible freshness Reload applied.
+- After reload: In sync; server/client token 4UvXTU__|server_id:6qVg4AYMpEx8YgnXidocUW|config:9|filters:90|index:66|media:9|track_geometry:84|tracks:98

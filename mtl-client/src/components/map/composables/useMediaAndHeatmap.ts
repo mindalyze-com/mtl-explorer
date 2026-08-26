@@ -1,5 +1,5 @@
 import { markRaw } from 'vue';
-import maplibregl from 'maplibre-gl';
+import * as maplibregl from 'maplibre-gl';
 import type { MapControllerMethodDefinitions, MediaAndHeatmapMethods, MediaPoint } from './mapControllerRuntime';
 import { mergeAdjacentMediaPage } from '@/components/map/mediaPageBuffer';
 import { fetchTrackMediaOptionsWithinDistanceOfPoint } from '@/utils/ServiceHelper';

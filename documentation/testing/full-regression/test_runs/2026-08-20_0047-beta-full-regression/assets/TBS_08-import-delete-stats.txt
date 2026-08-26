@@ -1,0 +1,18 @@
+TBS_08 import/delete Statistics transition
+
+Required five-GPX import (same-run IMP_09):
+- 5 tracks; 1,043 km; 23h 31m; 4,527 Wh; 12,936 m ascent.
+- Populated breakdown, highlights, periods, and browser summary.
+
+Deletion mutation:
+- Moved Vitry-le-Francois_Langres.gpx and VoieVerteHauteVosges.gpx out of the disposable watched folder into a recoverable data/logs quarantine.
+- Live watcher detected DELETE for both.
+- Indexer deleted track 100002 and track 100003 with their track data.
+- Frontend displayed the data-changed Reload action.
+
+Post-delete synchronized state:
+- Global Smart Base result: 7 Tracks.
+- Statistics: 7 Tracks; 821 km; 16h 50m; 3,970 Wh; 12,722 m ascent.
+- Activity Breakdown: Bicycle 5, Walking 2.
+- Deleted Vitry and voie verte names were absent from the refreshed Overview.
+- Totals decreased from the nine-track pre-delete state (1,047 km) and contain no stale deleted-track distance/duration.
