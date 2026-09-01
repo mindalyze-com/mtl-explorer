@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Google Health Connection | MTL Explorer</title>
+  <meta name="description" content="Learn how the optional MTL Explorer Google Health connection requests read-only access and stores imported health data on a self-hosted installation.">
+  <meta name="robots" content="index, follow, max-image-preview:large">
+  <link rel="canonical" href="https://mindalyze-com.github.io/mtl-explorer/google-health/">
+  <meta property="og:site_name" content="MTL Explorer">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://mindalyze-com.github.io/mtl-explorer/google-health/">
+  <meta property="og:title" content="Google Health Connection | MTL Explorer">
+  <meta property="og:description" content="The optional connection imports read-only Google Health data directly into a self-hosted MTL Explorer installation.">
+  <link rel="icon" href="../favicon.ico" sizes="any">
+  <link rel="stylesheet" href="../site-page.css">
+  <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebPage",
+      "name": "MTL Explorer Google Health connection",
+      "url": "https://mindalyze-com.github.io/mtl-explorer/google-health/",
+      "description": "Information about the optional Google Health connection in MTL Explorer.",
+      "about": {"@type": "SoftwareApplication", "name": "MTL Explorer"}
+    }
+  </script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="site-header-inner">
+      <a class="brand" href="../">
+        <img src="../mtl_logo_3_only_vector.svg" width="43" height="51" alt="">
+        <span><strong>MTL Explorer</strong><span>Self-hosted GPS archive</span></span>
+      </a>
+      <nav class="site-nav" aria-label="Google Health navigation">
+        <a href="privacy/">Privacy</a>
+        <a href="terms/">Terms</a>
+        <a class="button-small" href="https://github.com/mindalyze-com/mtl-explorer">GitHub</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="page">
+    <nav class="breadcrumb" aria-label="Breadcrumb"><a href="../">Home</a> / Google Health</nav>
+
+    <section class="hero">
+      <div>
+        <p class="eyebrow">Optional Google Health connection</p>
+        <h1>Bring your health records into your own archive.</h1>
+        <p class="lead">MTL Explorer can request read-only Google Health access and copy selected records into the MTL Explorer installation you operate.</p>
+        <div class="actions">
+          <a class="button" href="privacy/">Read the privacy notice</a>
+          <a class="button-secondary" href="https://github.com/mindalyze-com/mtl-explorer/blob/main/documentation/home-install.md#google-health">Open the setup guide</a>
+        </div>
+      </div>
+      <aside class="card" aria-labelledby="oauth-details-heading">
+        <h2 id="oauth-details-heading" class="card-heading">OAuth branding details</h2>
+        <p>Administrators of personal MTL Explorer installations may use these pages for their Google OAuth configuration.</p>
+        <dl>
+          <dt><strong>Home page</strong></dt>
+          <dd><code>https://mindalyze-com.github.io/mtl-explorer/google-health/</code></dd>
+          <dt><strong>Privacy policy</strong></dt>
+          <dd><code>https://mindalyze-com.github.io/mtl-explorer/google-health/privacy/</code></dd>
+          <dt><strong>Terms</strong></dt>
+          <dd><code>https://mindalyze-com.github.io/mtl-explorer/google-health/terms/</code></dd>
+        </dl>
+      </aside>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <h2>The connection stays installation-specific.</h2>
+        <p>MTL Explorer does not operate a central Google Health account or data service.</p>
+      </div>
+      <div class="content-grid">
+        <article class="card">
+          <h3>Separate OAuth client</h3>
+          <p>Each administrator creates a Google Cloud project and Desktop OAuth client for their own installation.</p>
+        </article>
+        <article class="card">
+          <h3>Read-only access</h3>
+          <p>The connector requests read-only scopes. It does not add, edit, or delete records in Google Health.</p>
+        </article>
+        <article class="card">
+          <h3>Direct connection</h3>
+          <p>The self-hosted server exchanges tokens and reads records directly from Google. The MTL Explorer project does not receive them.</p>
+        </article>
+        <article class="card">
+          <h3>Local controls</h3>
+          <p>The administrator can disconnect Google, remove the local mirror, and revoke access from the Google Account.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <h2>Data requested by MTL Explorer.</h2>
+        <p>The connector requests four Google Health read-only categories. The user reviews these permissions during Google consent.</p>
+      </div>
+      <div class="content-grid">
+        <article class="card"><h3>Activity and fitness</h3><p>Exercise, activity, steps, distance, energy, and related summaries supported by the API.</p></article>
+        <article class="card"><h3>Health measurements</h3><p>Available body measurements, observations, vital signs, and exact heart-rate samples.</p></article>
+        <article class="card"><h3>Sleep</h3><p>Sleep sessions and their available stages or measurements.</p></article>
+        <article class="card"><h3>Location</h3><p>Route points attached to exercise records. Valid routes can be imported as locally managed tracks.</p></article>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <h2>Use of these shared pages.</h2>
+        <p>These URLs may be referenced by personal, self-hosted MTL Explorer OAuth clients when this information accurately describes the installation.</p>
+      </div>
+      <div class="callout">
+        <strong>This permission does not grant domain ownership or Google verification.</strong>
+        Public services, materially changed integrations, and rebranded products should publish their own information on a domain controlled by their operator.
+      </div>
+      <div class="related section-steps">
+        <a class="button-secondary" href="privacy/">Privacy notice</a>
+        <a class="button-secondary" href="terms/">Terms of use</a>
+        <a class="button-secondary" href="https://github.com/mindalyze-com/mtl-explorer">Source code</a>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="site-footer-inner">
+      <span>MTL Explorer · Google Health connection</span>
+      <nav aria-label="Footer navigation"><a href="../">Home</a><a href="privacy/">Privacy</a><a href="terms/">Terms</a></nav>
+    </div>
+  </footer>
+</body>
+</html>
