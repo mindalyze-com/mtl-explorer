@@ -485,9 +485,13 @@
     }
 
     .fallback-preview {
-      display: grid;
+      display: none;
       place-items: center;
       background: var(--brand-tint);
+    }
+
+    .video-frame.has-preview-error:not(.is-loaded) .fallback-preview {
+      display: grid;
     }
 
     .fallback-preview svg {
@@ -1809,19 +1813,16 @@
       "planner-load-route": { title: "Saved route export", alt: "MTL Explorer route planner load panel with saved planned routes and GPX export buttons" }
     };
 
-   function setupVideos() {
+    function setupVideos() {
       document.querySelectorAll(".js-video").forEach((frame) => {
         const id = frame.dataset.videoId;
         const img = frame.querySelector("img");
-        const fallback = frame.querySelector(".fallback-preview");
-        img.addEventListener("error", () => {
-          fallback.style.display = "grid";
-        }, { once: true });
-        img.addEventListener("load", () => {
-          if (img.naturalWidth > 120) {
-            fallback.style.display = "none";
-          }
-        });
+        const syncPreview = () => {
+          frame.classList.toggle("has-preview-error", img.complete && img.naturalWidth === 0);
+        };
+        img.addEventListener("load", syncPreview);
+        img.addEventListener("error", syncPreview);
+        syncPreview();
         const playVideo = () => {
           if (frame.classList.contains("is-loaded")) {
             return;
