@@ -1,9 +1,11 @@
 <template>
-  <!-- placeholder for standard toasts -->
-  <Toast position="top-center"></Toast>
-
-  <!-- PWA update toast (post-reload notification only) -->
-  <Toast position="top-center" group="pwa"></Toast>
+  <AppNotifications />
+  <ReleaseUpdateNotifications
+    :browser-update-available="needRefresh && !browserUpdateDeferred"
+    :browser-just-updated="browserJustUpdated"
+    @reload="reloadBrowser"
+    @later="browserUpdateDeferred = true"
+  />
 
   <router-view v-slot="{ Component }">
     <Transition name="route-fade">
@@ -14,9 +16,12 @@
 
 <script setup lang="ts">
 /// <reference types="vite-plugin-pwa/client" />
-import Toast from 'primevue/toast';
+import { logSanitizedError, warnSanitized, warnRequestFailure } from '@/utils/safeLogging';
+import AppNotifications from '@/components/ui/AppNotifications.vue';
 import { useToast } from 'primevue/usetoast';
-import { onBeforeUnmount, onMounted, provide, watch } from 'vue';
+import { onBeforeUnmount, onMounted, provide, ref, watch } from 'vue';
+import ReleaseUpdateNotifications from '@/components/info/ReleaseUpdateNotifications.vue';
+import { useReleaseUpdatesStore } from '@/stores/releaseUpdatesStore';
 import { useRoute } from 'vue-router';
 import { useRegisterSW } from 'virtual:pwa-register/vue';
 import { getServerBuildInfo } from '@/utils/ServiceHelper';
@@ -31,6 +36,9 @@ const DEV_SERVICE_WORKER_RELOAD_KEY = 'mtl.dev-sw-cleanup-reloaded';
 
 const toast = useToast();
 const route = useRoute();
+const browserUpdateDeferred = ref(false);
+const browserJustUpdated = Boolean(sessionStorage.getItem(PWA_UPDATED_KEY));
+const releaseUpdates = useReleaseUpdatesStore();
 provide('toast', toast);
 
 onMounted(() => {
@@ -38,17 +46,7 @@ onMounted(() => {
     void cleanupDevServiceWorkers();
   }
 
-  // Show post-reload "updated" toast if we just auto-updated
-  if (sessionStorage.getItem(PWA_UPDATED_KEY)) {
-    sessionStorage.removeItem(PWA_UPDATED_KEY);
-    toast.add({
-      severity: 'success',
-      summary: 'App Updated',
-      detail: 'MTL Explorer was updated to the latest version.',
-      life: 5000,
-      group: 'pwa',
-    });
-  }
+  sessionStorage.removeItem(PWA_UPDATED_KEY);
 
   void applyAuthenticatedServerDefaults();
 
@@ -65,7 +63,14 @@ let serverDefaultsApplied = false;
 
 async function applyAuthenticatedServerDefaults() {
   if (serverDefaultsApplied || !isAuthenticated()) return;
-  const buildInfo = await getServerBuildInfo().catch(() => null);
+  const buildInfo = await getServerBuildInfo().catch((error) => {
+    warnRequestFailure('Application build information could not be loaded', error, {
+      topic1: 'application',
+      topic2: 'App',
+      topic3: 'build-info',
+    });
+    return null;
+  });
   if (!buildInfo) return;
   applyServerDefaultLocale(buildInfo.defaultLocale);
   applyServerDefaultMeasurementSystem(buildInfo.defaultMeasurementSystem);
@@ -99,7 +104,11 @@ async function cleanupDevServiceWorkers() {
 
     sessionStorage.removeItem(DEV_SERVICE_WORKER_RELOAD_KEY);
   } catch (error) {
-    console.warn('[PWA] Dev service worker cleanup failed', error);
+    warnSanitized('[PWA] Dev service worker cleanup failed', error, {
+      topic1: 'application',
+      topic2: 'App',
+      topic3: 'cleanupDevServiceWorkers',
+    });
   }
 }
 
@@ -115,30 +124,35 @@ const { needRefresh, updateServiceWorker } = useRegisterSW({
     }
   },
   onRegisterError(error: unknown) {
-    console.error('🚨 [PWA Error] Service Worker failed to register:', error);
+    logSanitizedError('🚨 [PWA Error] Service Worker failed to register:', error, {
+      topic1: 'application',
+      topic2: 'App',
+      topic3: 'onRegisterError',
+    });
   },
 });
 
 onBeforeUnmount(() => stopServiceWorkerUpdateChecks?.());
 
-watch(needRefresh, (isNeeded) => {
-  if (isNeeded) {
-    console.log('[PWA] New version detected — auto-updating…');
-    sessionStorage.setItem(PWA_UPDATED_KEY, '1');
-
-    // Listen for the new SW taking control, then reload.
-    let reloading = false;
-    const doReload = () => {
-      if (reloading) return;
-      reloading = true;
-      window.location.reload();
-    };
-    navigator.serviceWorker?.addEventListener('controllerchange', doReload);
-    // Safety-net: reload after 2 s even if controllerchange doesn't fire
-    setTimeout(doReload, 2000);
-    updateServiceWorker(true);
-  }
+watch(needRefresh, (available) => {
+  browserUpdateDeferred.value = false;
+  releaseUpdates.setBrowserUpdate(available, reloadBrowser);
 });
+function reloadBrowser() {
+  sessionStorage.setItem(PWA_UPDATED_KEY, '1');
+
+  // Listen for the new SW taking control, then reload.
+  let reloading = false;
+  const doReload = () => {
+    if (reloading) return;
+    reloading = true;
+    window.location.reload();
+  };
+  navigator.serviceWorker?.addEventListener('controllerchange', doReload);
+  // Reload only after the user's explicit action.
+  setTimeout(doReload, 2000);
+  updateServiceWorker(true);
+}
 </script>
 
 <style>

@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "channels": {
+    "stable": "0.9.0"
+  },
+  "releases": {
+    "0.9.0": {
+      "buildId": "1.501",
+      "image": "wauwau0977/mytraillog:1.501",
+      "digest": "sha256:f630606d7fd5b15e91132fbabc0d1534853933ec70e785faa99d9fdb1f7708ab",
+      "components": {
+        "app": {
+          "buildId": "1.501",
+          "image": "wauwau0977/mytraillog:1.501",
+          "digest": "sha256:f630606d7fd5b15e91132fbabc0d1534853933ec70e785faa99d9fdb1f7708ab"
+        },
+        "location-search": {
+          "buildId": "1.501",
+          "image": "wauwau0977/mytraillog-location-search:1.501",
+          "digest": "sha256:d65f96c78d674be17fba2aa9e89962019c1867e23d832accdd0aeab5d237c5cf"
+        },
+        "map-server": {
+          "buildId": "1.501",
+          "image": "wauwau0977/mytraillog-maps:1.501",
+          "digest": "sha256:e94907e190554b9d440ebfc10e62dc1d2775d5d244ced57b706d0d0aca0433c5"
+        },
+        "brouter": {
+          "buildId": "1.501",
+          "image": "wauwau0977/mytraillog-brouter:1.501",
+          "digest": "sha256:21963b7ec5c7399b0bd1062f2a2f05a9b13626f7204d6eec2d91512f44176e6b"
+        }
+      }
+    }
+  }
+}

@@ -1,3 +1,4 @@
+import { warnSanitized } from '@/utils/safeLogging';
 import type { GpsTrackData } from 'x8ing-mtl-api-typescript-fetch/dist/esm/models/index';
 
 /**
@@ -62,8 +63,10 @@ export function extractCoordinates(trackDataList: GpsTrackData[] | undefined | n
       continue;
     }
 
-    console.warn(
-      `Track data: unexpected track format (type=${typeof track}, isArray=${Array.isArray(track)}), skipping`
+    warnSanitized(
+      `Track data: unexpected track format (type=${typeof track}, isArray=${Array.isArray(track)}), skipping`,
+      undefined,
+      { topic1: 'application', topic2: 'lineStringDeserializer', topic3: 'extractCoordinates' }
     );
   }
   return out;

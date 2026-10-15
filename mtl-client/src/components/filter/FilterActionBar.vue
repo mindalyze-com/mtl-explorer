@@ -342,7 +342,7 @@ function openColors(): void {
   border: 1px solid var(--accent);
   border-radius: 0.6rem;
   background: var(--accent);
-  color: var(--text-inverse);
+  color: var(--accent-contrast);
   font: inherit;
   font-size: var(--text-sm-size);
   font-weight: 700;
@@ -360,7 +360,7 @@ function openColors(): void {
 .filter-action-bar__button:hover {
   border-color: var(--accent-hover);
   background: var(--accent-hover);
-  color: var(--text-inverse);
+  color: var(--accent-contrast);
 }
 
 .filter-action-bar__button--secondary {
@@ -379,7 +379,7 @@ function openColors(): void {
 .filter-action-bar__button--primary {
   border-color: var(--accent);
   background: var(--accent);
-  color: var(--text-inverse);
+  color: var(--accent-contrast);
 }
 
 .filter-action-bar__button:disabled {

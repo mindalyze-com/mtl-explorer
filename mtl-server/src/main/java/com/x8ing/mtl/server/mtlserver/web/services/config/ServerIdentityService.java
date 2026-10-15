@@ -66,7 +66,8 @@ public class ServerIdentityService {
         created.setDomain1(DOMAIN_SECURITY);
         created.setDomain2(DOMAIN_SERVER_ID);
         created.setDomain3(DOMAIN_DEFAULT);
-        created.setValue(UUIDUtils.generateShortTextUUID());
+        // Installations created before 10-character ids keep their stored 22-character id.
+        created.setValue(UUIDUtils.generateShortTextUUID(UUIDUtils.EXPECTED_SHORT_SIZE));
         created.setDescription(DESCRIPTION);
         cachedServerId = configRepository.save(created).getValue();
         log.info("Generated stable server id for hosted map traffic");

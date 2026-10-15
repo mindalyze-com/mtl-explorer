@@ -13,7 +13,7 @@ import java.util.Set;
  * <p>
  * Components:
  * <ul>
- *   <li>Gravitational PE: m·g·Δh (rivers with elevation change)</li>
+ *   <li>Altitude changes are excluded: gravity-driven river descent is not paddling work.</li>
  *   <li>Water drag: ½·Cd·A_submerged·ρ_water·v²·d</li>
  *   <li>Kinetic energy change: ½·m·(v₂²−v₁²)</li>
  * </ul>
@@ -36,6 +36,11 @@ public abstract class WaterSportEnergyCalculator extends FluidDragEnergyCalculat
     public abstract Set<GpsTrack.ACTIVITY_TYPE> getActivityTypes();
 
     protected abstract double getDefaultCdTimesArea();
+
+    @Override
+    protected double gravitationalEnergy(double totalMassKg, GpsTrackDataPoint current, GpsTrackDataPoint previous) {
+        return 0;
+    }
 
     @Override
     protected double calculateDragJoules(

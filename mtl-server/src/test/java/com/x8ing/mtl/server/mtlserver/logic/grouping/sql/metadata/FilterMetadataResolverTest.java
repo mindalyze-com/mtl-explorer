@@ -1,15 +1,10 @@
 package com.x8ing.mtl.server.mtlserver.logic.grouping.sql.metadata;
 
-import tools.jackson.databind.ObjectMapper;
 import com.x8ing.mtl.server.mtlserver.db.entity.config.FilterConfigEntity;
 import com.x8ing.mtl.server.mtlserver.logic.grouping.sql.template.FilterTemplateGraphResolver;
-import com.x8ing.mtl.server.mtlserver.web.services.track.entity.metadata.FilterEffectiveUiMetadata;
-import com.x8ing.mtl.server.mtlserver.web.services.track.entity.metadata.FilterGradientDirection;
-import com.x8ing.mtl.server.mtlserver.web.services.track.entity.metadata.FilterOptionsSourceMetadata;
-import com.x8ing.mtl.server.mtlserver.web.services.track.entity.metadata.FilterOptionsSourceType;
-import com.x8ing.mtl.server.mtlserver.web.services.track.entity.metadata.FilterParamMetadata;
-import com.x8ing.mtl.server.mtlserver.web.services.track.entity.metadata.FilterParamRelation;
+import com.x8ing.mtl.server.mtlserver.web.services.track.entity.metadata.*;
 import org.junit.jupiter.api.Test;
+import tools.jackson.databind.ObjectMapper;
 
 import java.util.List;
 import java.util.Set;
@@ -26,57 +21,57 @@ class FilterMetadataResolverTest {
         FilterConfigEntity base = filter(
                 "SmartBaseFilter",
                 """
-                {
-                  "metadataVersion": 2,
-                  "paramGroups": {
-                    "scope": { "label": "Scope", "order": 10 },
-                    "tracks": { "label": "Tracks", "order": 20 }
-                  },
-                  "params": {
-                    "DATE_TIME_FROM": {
-                      "label": "From",
-                      "group": "scope",
-                      "widget": "dateTime",
-                      "optional": true
-                    },
-                    "TRACK_IDS": {
-                      "label": "Selected tracks",
-                      "group": "tracks",
-                      "widget": "trackPicker",
-                      "optional": true,
-                      "optionsSource": { "type": "originFilterResult" }
-                    }
-                  }
-                }
-                """);
+                        {
+                          "metadataVersion": 2,
+                          "paramGroups": {
+                            "scope": { "label": "Scope", "order": 10 },
+                            "tracks": { "label": "Tracks", "order": 20 }
+                          },
+                          "params": {
+                            "DATE_TIME_FROM": {
+                              "label": "From",
+                              "group": "scope",
+                              "widget": "dateTime",
+                              "optional": true
+                            },
+                            "TRACK_IDS": {
+                              "label": "Selected tracks",
+                              "group": "tracks",
+                              "widget": "trackPicker",
+                              "optional": true,
+                              "optionsSource": { "type": "originFilterResult" }
+                            }
+                          }
+                        }
+                        """);
         FilterConfigEntity child = filter(
                 "TracksByDistanceGradient",
                 """
-                {
-                  "metadataVersion": 2,
-                  "paramGroups": {
-                    "filter": { "label": "Filter", "order": 30, "defaultOpen": true }
-                  },
-                  "params": {
-                    "DISTANCE_MIN_KM": {
-                      "label": "Minimum distance",
-                      "group": "filter",
-                      "widget": "number",
-                      "optional": true,
-                      "unit": "km"
-                    }
-                  },
-                  "result": {
-                    "gradient": {
-                      "bucketCount": 100,
-                      "metricLabel": "Distance",
-                      "metricUnit": "km",
-                      "bucketLabel": "percentile",
-                      "direction": "low-to-high"
-                    }
-                  }
-                }
-                """);
+                        {
+                          "metadataVersion": 2,
+                          "paramGroups": {
+                            "filter": { "label": "Filter", "order": 30, "defaultOpen": true }
+                          },
+                          "params": {
+                            "DISTANCE_MIN_KM": {
+                              "label": "Minimum distance",
+                              "group": "filter",
+                              "widget": "number",
+                              "optional": true,
+                              "unit": "km"
+                            }
+                          },
+                          "result": {
+                            "gradient": {
+                              "bucketCount": 100,
+                              "metricLabel": "Distance",
+                              "metricUnit": "km",
+                              "bucketLabel": "percentile",
+                              "direction": "low-to-high"
+                            }
+                          }
+                        }
+                        """);
         FilterMetadataResolver resolver = resolverReturning(List.of(base, child));
 
         FilterEffectiveUiMetadata metadata = resolver.resolve(
@@ -105,21 +100,21 @@ class FilterMetadataResolverTest {
         FilterConfigEntity base = filter(
                 "SmartBaseFilter",
                 """
-                {
-                  "paramGroups": {
-                    "tracks": { "label": "Tracks", "order": 20 }
-                  },
-                  "metadataVersion": 2,
-                  "params": {
-                    "TRACK_IDS": {
-                      "label": "Selected tracks",
-                      "group": "tracks",
-                      "widget": "trackPicker",
-                      "optionsSource": { "type": "originFilterResult" }
-                    }
-                  }
-                }
-                """);
+                        {
+                          "paramGroups": {
+                            "tracks": { "label": "Tracks", "order": 20 }
+                          },
+                          "metadataVersion": 2,
+                          "params": {
+                            "TRACK_IDS": {
+                              "label": "Selected tracks",
+                              "group": "tracks",
+                              "widget": "trackPicker",
+                              "optionsSource": { "type": "originFilterResult" }
+                            }
+                          }
+                        }
+                        """);
         FilterMetadataResolver resolver = resolverReturning(List.of(base));
 
         FilterEffectiveUiMetadata metadata = resolver.resolve(base, Set.of("TRACK_IDS"));
@@ -136,16 +131,16 @@ class FilterMetadataResolverTest {
         FilterConfigEntity legacy = filter(
                 "ActivitiesByKeyword",
                 """
-                {
-                  "optionalParams": ["SEARCH_WORD"],
-                  "params": {
-                    "SEARCH_WORD": {
-                      "label": "Keyword",
-                      "optional": true
-                    }
-                  }
-                }
-                """);
+                        {
+                          "optionalParams": ["SEARCH_WORD"],
+                          "params": {
+                            "SEARCH_WORD": {
+                              "label": "Keyword",
+                              "optional": true
+                            }
+                          }
+                        }
+                        """);
         FilterMetadataResolver resolver = resolverReturning(List.of(legacy));
 
         FilterEffectiveUiMetadata metadata = resolver.resolve(legacy, Set.of("SEARCH_WORD"));
@@ -158,18 +153,18 @@ class FilterMetadataResolverTest {
         FilterConfigEntity bad = filter(
                 "ActivitiesByKeyword",
                 """
-                {
-                  "metadataVersion": 2,
-                  "optionalParams": ["SEARCH_WORD"],
-                  "params": {
-                    "SEARCH_WORD": {
-                      "label": "Keyword",
-                      "group": "filter",
-                      "widget": "text"
-                    }
-                  }
-                }
-                """);
+                        {
+                          "metadataVersion": 2,
+                          "optionalParams": ["SEARCH_WORD"],
+                          "params": {
+                            "SEARCH_WORD": {
+                              "label": "Keyword",
+                              "group": "filter",
+                              "widget": "text"
+                            }
+                          }
+                        }
+                        """);
         FilterMetadataResolver resolver = resolverReturning(List.of(bad));
 
         assertThatThrownBy(() -> resolver.resolve(bad, Set.of("SEARCH_WORD")))
@@ -182,21 +177,21 @@ class FilterMetadataResolverTest {
         FilterConfigEntity bad = filter(
                 "SmartBaseFilter",
                 """
-                {
-                  "metadataVersion": 2,
-                  "paramGroups": {
-                    "tracks": { "label": "Tracks", "order": 20 }
-                  },
-                  "params": {
-                    "TRACK_IDS": {
-                      "originFilterRef": "/GPS_TRACK/SmartBaseFilter",
-                      "label": "Selected tracks",
-                      "group": "tracks",
-                      "widget": "trackPicker"
-                    }
-                  }
-                }
-                """);
+                        {
+                          "metadataVersion": 2,
+                          "paramGroups": {
+                            "tracks": { "label": "Tracks", "order": 20 }
+                          },
+                          "params": {
+                            "TRACK_IDS": {
+                              "originFilterRef": "/GPS_TRACK/SmartBaseFilter",
+                              "label": "Selected tracks",
+                              "group": "tracks",
+                              "widget": "trackPicker"
+                            }
+                          }
+                        }
+                        """);
         FilterMetadataResolver resolver = resolverReturning(List.of(bad));
 
         assertThatThrownBy(() -> resolver.resolve(bad, Set.of("TRACK_IDS")))

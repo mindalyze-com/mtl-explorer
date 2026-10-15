@@ -1,9 +1,13 @@
 package com.x8ing.mtl.server.mtlserver.db.entity.gps;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
+import com.x8ing.mtl.server.mtlserver.logic.motion.TrackMotionAnalyzer;
+import com.x8ing.mtl.server.mtlserver.web.global.RecordedMetricSerializer;
 import jakarta.persistence.*;
 import lombok.Data;
 import org.locationtech.jts.geom.Point;
+import tools.jackson.databind.annotation.JsonSerialize;
 
 import java.util.Date;
 
@@ -22,6 +26,9 @@ import java.util.Date;
         "pointLongLat",
         "pointXY",
         "pointAltitude",
+        "intervalStatus",
+        "motionState",
+        "motionReason",
         "distanceInMeterBetweenPoints",
         "distanceInMeterSinceStart",
         "durationBetweenPointsInSec",
@@ -39,9 +46,17 @@ import java.util.Date;
         "energyKineticWh",
         "energyTotalWh",
         "energyCumulativeWh",
-        "powerWatts"
+        "powerWatts",
+        "energyLimited"
 })
 public class GpsTrackDataPoint {
+
+    /**
+     * Response policy only; original observations and persisted measurements remain intact.
+     */
+    @Transient
+    @JsonIgnore
+    private boolean timingUnsupportedForResponse;
 
     // SEQUENCE (not IDENTITY): Hibernate silently disables JDBC batch inserts for IDENTITY generation
     // because it must fire each INSERT immediately to retrieve the DB-generated ID.
@@ -103,6 +118,28 @@ public class GpsTrackDataPoint {
     @Column(name = "point_altitude")
     private Double pointAltitude;
 
+    /**
+     * Qualification of the interval ending at this point. UNKNOWN contributes no inferred path.
+     */
+    public enum IntervalStatus {START, OBSERVED, GEOMETRY_ONLY, UNKNOWN}
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "interval_status")
+    private IntervalStatus intervalStatus;
+
+    /**
+     * Physical state of [previous timestamp, this timestamp); independent of geometry support.
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "motion_state")
+    @JsonSerialize(using = RecordedMetricSerializer.class)
+    private TrackMotionAnalyzer.State motionState;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "motion_reason")
+    @JsonSerialize(using = RecordedMetricSerializer.class)
+    private TrackMotionAnalyzer.Reason motionReason;
+
     @Column(name = "distance_in_meter_between_points")
     private Double distanceInMeterBetweenPoints;
 
@@ -110,9 +147,11 @@ public class GpsTrackDataPoint {
     private Double distanceInMeterSinceStart;
 
     @Column(name = "duration_between_points_in_sec")
+    @JsonSerialize(using = RecordedMetricSerializer.class)
     private Double durationBetweenPointsInSec;
 
     @Column(name = "duration_since_start")
+    @JsonSerialize(using = RecordedMetricSerializer.class)
     private Double durationSinceStart;
 
     @Column(name = "ascent_in_meter_between_points")
@@ -125,15 +164,19 @@ public class GpsTrackDataPoint {
     private Double descentInMeterSinceStart;
 
     @Column(name = "elevation_gain_per_hour_moving_window")
+    @JsonSerialize(using = RecordedMetricSerializer.class)
     private Double elevationGainPerHourMovingWindow;
 
     @Column(name = "elevation_loss_per_hour_moving_window")
+    @JsonSerialize(using = RecordedMetricSerializer.class)
     private Double elevationLossPerHourMovingWindow;
 
     @Column(name = "speed_in_kmh_moving_window")
+    @JsonSerialize(using = RecordedMetricSerializer.class)
     private Double speedInKmhMovingWindow;
 
     @Column(name = "slope_percentage_in_moving_window")
+    @JsonSerialize(using = RecordedMetricSerializer.class)
     private Double slopePercentageInMovingWindow;
 
     // ── Energy fields (populated by EnergyService, all energy values in Wh, power in W) ──
@@ -142,43 +185,53 @@ public class GpsTrackDataPoint {
      * Per-segment gravitational work in Wh. Positive=ascent, negative=descent.
      */
     @Column(name = "energy_gravitational_wh")
+    @JsonSerialize(using = RecordedMetricSerializer.class)
     private Double energyGravitationalWh;
 
     /**
      * Per-segment aerodynamic/fluid drag work in Wh. Always ≥ 0.
      */
     @Column(name = "energy_aero_drag_wh")
+    @JsonSerialize(using = RecordedMetricSerializer.class)
     private Double energyAeroDragWh;
 
     /**
      * Per-segment rolling/surface friction work in Wh. Always ≥ 0.
      */
     @Column(name = "energy_rolling_resistance_wh")
+    @JsonSerialize(using = RecordedMetricSerializer.class)
     private Double energyRollingResistanceWh;
 
     /**
      * Per-segment kinetic energy change in Wh. Positive=acceleration, negative=braking.
      */
     @Column(name = "energy_kinetic_wh")
+    @JsonSerialize(using = RecordedMetricSerializer.class)
     private Double energyKineticWh;
 
     /**
      * Total positive work for this segment in Wh (sum of positive components).
      */
     @Column(name = "energy_total_wh")
+    @JsonSerialize(using = RecordedMetricSerializer.class)
     private Double energyTotalWh;
 
     /**
      * Cumulative energy since track start in Wh.
      */
     @Column(name = "energy_cumulative_wh")
+    @JsonSerialize(using = RecordedMetricSerializer.class)
     private Double energyCumulativeWh;
 
     /**
      * Instantaneous power output in Watts.
      */
     @Column(name = "power_watts")
+    @JsonSerialize(using = RecordedMetricSerializer.class)
     private Double powerWatts;
+
+    @JsonSerialize(using = RecordedMetricSerializer.class)
+    private Boolean energyLimited;
 
     /**
      * Round all numeric(12,2) rate/slope fields to 2 decimal places before persisting.

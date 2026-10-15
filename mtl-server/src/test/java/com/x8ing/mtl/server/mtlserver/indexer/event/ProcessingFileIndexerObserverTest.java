@@ -7,11 +7,44 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 class ProcessingFileIndexerObserverTest {
+
+    @Test
+    void changingSourcesRequestReplayInsteadOfReportingAnImportFailure() {
+        OnCompletion completion = org.mockito.Mockito.mock(OnCompletion.class);
+        var observer = new ProcessingFileIndexerObserver(NOPLogger.NOP_LOGGER, "Media", (index, id, changed) -> {
+            throw new com.x8ing.mtl.server.mtlserver.indexer.SourceFileChangedException("synthetic source changed");
+        }, (index, id) -> {
+        });
+        observer.onChangedFile("MEDIA", 1L, completion);
+        org.mockito.Mockito.verify(completion).sourceChanged(1L, "synthetic source changed");
+        org.mockito.Mockito.verify(completion, org.mockito.Mockito.never()).failed(org.mockito.ArgumentMatchers.anyLong(), org.mockito.ArgumentMatchers.anyString());
+    }
+
+    @Test
+    void sourceProblemsWarnOnceButUnexpectedFailuresStillLogErrors() {
+        var logger = org.mockito.Mockito.mock(org.slf4j.Logger.class);
+        var expected = new com.x8ing.mtl.server.mtlserver.indexer.SourceFileProblemException("Empty media", null);
+        var completion = new RecordingCompletion();
+        var observer = new ProcessingFileIndexerObserver(logger, "Media", (index, id, changed) -> {
+            throw expected;
+        },
+                (index, id) -> {
+                    throw new IllegalStateException("Database unavailable");
+                });
+        observer.onNewFile("MEDIA", 1L, completion);
+        observer.onDeletedFile("MEDIA", 2L, completion);
+        org.mockito.Mockito.verify(logger).warn(org.mockito.ArgumentMatchers.contains("file skipped"),
+                org.mockito.ArgumentMatchers.eq("Media"), org.mockito.ArgumentMatchers.eq(1L),
+                org.mockito.ArgumentMatchers.eq("SourceFileProblemException"), org.mockito.ArgumentMatchers.eq("Empty media"));
+        org.mockito.Mockito.verify(logger).error(org.mockito.ArgumentMatchers.contains("fileId="),
+                org.mockito.ArgumentMatchers.eq("Media"), org.mockito.ArgumentMatchers.eq("delete failed for"),
+                org.mockito.ArgumentMatchers.eq(2L), org.mockito.ArgumentMatchers.anyString(),
+                org.mockito.ArgumentMatchers.isA(IllegalStateException.class));
+        assertEquals(List.of(1L, 2L), completion.failedIds);
+    }
 
     @Test
     void reportsLifecycleForCreateChangeAndDelete() {

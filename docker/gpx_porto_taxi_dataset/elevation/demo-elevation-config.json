@@ -1,0 +1,9 @@
+{
+  "source": "https://download.mapterhorn.com/planet.pmtiles",
+  "source_etag": "\"fa356a37f6efbb757fe00d1767bddf01-2650\"",
+  "zoom": 9,
+  "tile_size": 512,
+  "track_bounds": [-9.238086, 38.707992, -6.997248, 41.844753],
+  "coverage_factor": 4,
+  "attribution": "Elevation derived from Mapterhorn terrain tiles; https://mapterhorn.com/attribution/"
+}

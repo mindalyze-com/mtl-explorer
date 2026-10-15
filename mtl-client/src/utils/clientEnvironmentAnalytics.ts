@@ -1,3 +1,4 @@
+import { warnSanitized } from '@/utils/safeLogging';
 import { AnalyticsControllerApi, type ClientEnvironmentRequest } from 'x8ing-mtl-api-typescript-fetch';
 import { getApiConfiguration } from '@/utils/openApiClient';
 import { startupLog } from '@/utils/startupDiagnostics';
@@ -36,7 +37,11 @@ export function submitClientEnvironmentOnce(): void {
     .then(() => startupLog('analytics', 'Client environment submitted'))
     .catch((error: unknown) => {
       submittedForCurrentBoot = false;
-      console.warn('Client environment analytics submission failed', error);
+      warnSanitized('Client environment analytics submission failed', error, {
+        topic1: 'application',
+        topic2: 'clientEnvironmentAnalytics',
+        topic3: 'submitClientEnvironmentOnce',
+      });
     });
 }
 

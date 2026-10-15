@@ -13,6 +13,7 @@ public final class MetricConstants {
     public static final double SECONDS_PER_HOUR = 3600.0;
     public static final double METERS_PER_KILOMETER = 1000.0;
     public static final double MPS_TO_KMH = 3.6;
+    public static final double MOVING_SPEED_THRESHOLD_KMH = 0.5;
 
     /**
      * Default trailing display window for activity-rate charts (seconds).

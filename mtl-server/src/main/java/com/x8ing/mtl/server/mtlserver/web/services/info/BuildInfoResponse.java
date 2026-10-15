@@ -11,7 +11,8 @@ import com.x8ing.mtl.server.mtlserver.measurement.MeasurementSystem;
         "defaultMeasurementSystem",
         "defaultGpsTrackFilterName",
         "serverId",
-        "image"
+        "image",
+        "runtime"
 })
 public record BuildInfoResponse(String version,
                                 String buildTime,
@@ -19,5 +20,6 @@ public record BuildInfoResponse(String version,
                                 MeasurementSystem defaultMeasurementSystem,
                                 String defaultGpsTrackFilterName,
                                 String serverId,
-                                ImageVersionInfoDto image) {
+                                ImageVersionInfoDto image,
+                                RuntimeVersionInfoDto runtime) {
 }

@@ -6,17 +6,21 @@ import lombok.Data;
 @Data
 @JsonPropertyOrder({
         "version",
+        "revision",
         "buildTime"
 })
 public class ImageVersionInfoDto {
 
     private String version;
 
+    private String revision;
+
     private String buildTime;
 
-    public static ImageVersionInfoDto of(String version, String buildTime) {
+    public static ImageVersionInfoDto of(String version, String revision, String buildTime) {
         ImageVersionInfoDto dto = new ImageVersionInfoDto();
         dto.setVersion(version);
+        dto.setRevision(revision);
         dto.setBuildTime(buildTime);
         return dto;
     }

@@ -1,11 +1,13 @@
 package com.x8ing.mtl.server.mtlserver.web.global;
 
+import io.swagger.v3.oas.models.media.ArraySchema;
 import io.swagger.v3.oas.models.media.Schema;
 import org.springdoc.core.customizers.OpenApiCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 
@@ -14,6 +16,27 @@ import java.util.Map;
  */
 @Configuration
 public class OpenApiSchemaConfig {
+
+    @Bean
+    OpenApiCustomizer gpsCoordinateNullability() {
+        return openApi -> {
+            if (openApi.getComponents() == null || openApi.getComponents().getSchemas() == null) return;
+            Map<String, List<String>> coordinateFields = Map.of(
+                    "GpsTrackData", List.of("track"),
+                    "TrackQualityReport", List.of("rawCoordinates", "canonicalCoordinates"));
+            coordinateFields.forEach((name, fields) -> {
+                Schema<?> schema = openApi.getComponents().getSchemas().get(name);
+                if (schema == null || schema.getProperties() == null) return;
+                for (String field : fields) {
+                    Schema<Number> ordinate = new Schema<>();
+                    ordinate.setTypes(new LinkedHashSet<>(List.of("number", "null")));
+                    ordinate.setFormat("double");
+                    schema.addProperty(field, new ArraySchema().items(new ArraySchema().items(ordinate))
+                            .description("Coordinates [longitude, latitude, altitude, epoch seconds]; missing altitude/time are null."));
+                }
+            });
+        };
+    }
 
     private static final Map<String, List<String>> JTS_SCHEMA_PROPERTY_ORDER = Map.of(
             "CoordinateSequence", List.of("dimension", "measures"),

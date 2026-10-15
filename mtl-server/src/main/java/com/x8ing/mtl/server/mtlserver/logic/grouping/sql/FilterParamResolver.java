@@ -1,12 +1,19 @@
 package com.x8ing.mtl.server.mtlserver.logic.grouping.sql;
 
-import com.x8ing.mtl.server.mtlserver.web.services.track.entity.*;
+import com.x8ing.mtl.server.mtlserver.web.services.track.entity.GeoCircle;
+import com.x8ing.mtl.server.mtlserver.web.services.track.entity.GeoPolygon;
+import com.x8ing.mtl.server.mtlserver.web.services.track.entity.GeoRectangle;
 import com.x8ing.mtl.server.mtlserver.web.services.track.entity.filter.FilterParamsRequest;
 import com.x8ing.mtl.server.mtlserver.web.services.track.entity.filter.ParamDefinition;
 import com.x8ing.mtl.server.mtlserver.web.services.track.entity.filter.ParamType;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
+import org.springframework.web.server.ResponseStatusException;
 
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeParseException;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -22,6 +29,15 @@ import java.util.stream.Collectors;
 @Slf4j
 @Component
 public class FilterParamResolver {
+
+    public static final String SQL_TIME_ZONE_PARAM = "FILTER_TIME_ZONE";
+    private static final String DEFAULT_TIME_ZONE = "UTC";
+    private static final Set<String> TIME_ZONE_IDS = ZoneId.getAvailableZoneIds();
+    private static final String YEAR_FROM = "YEAR_FROM";
+    private static final String YEAR_TO = "YEAR_TO";
+    private static final int MIN_YEAR = 1;
+    private static final int MAX_YEAR = 9999;
+    private static final Pattern YEAR_PATTERN = Pattern.compile("[0-9]+");
 
     private static final String PREFIX_DATE_TIME = "DATE_TIME";
     private static final String PREFIX_GEO_CIRCLE = "GEO_CIRCLE";
@@ -53,6 +69,8 @@ public class FilterParamResolver {
         Collections.sort(sortedParams);
 
         for (String param : sortedParams) {
+            // Request context, supplied separately from editable filter criteria.
+            if (SQL_TIME_ZONE_PARAM.equals(param) || "sourceIssueAccount".equals(param)) continue;
             if (processed.contains(param)) {
                 continue;
             }
@@ -128,12 +146,13 @@ public class FilterParamResolver {
      * Expand typed client params into a flat {@code Map<String, String>} suitable for SQL binding.
      *
      * @param request the typed params from the client (may be null)
-     * @return flat map with WKT values for geo shapes, pass-through for strings/dates
+     * @return flat map with WKT values for geo shapes and UTC instants for dates
      */
     public Map<String, String> expand(FilterParamsRequest request) {
         Map<String, String> sqlParams = new HashMap<>();
 
         if (request == null) {
+            sqlParams.put(SQL_TIME_ZONE_PARAM, DEFAULT_TIME_ZONE);
             return sqlParams;
         }
 
@@ -141,10 +160,12 @@ public class FilterParamResolver {
         if (request.getStringParams() != null) {
             sqlParams.putAll(request.getStringParams());
         }
+        validateYearBounds(sqlParams);
 
-        // Pass-through: date-time params
+        // Require an explicit offset; never interpret browser dates in the server timezone.
         if (request.getDateTimeParams() != null) {
-            sqlParams.putAll(request.getDateTimeParams());
+            request.getDateTimeParams().forEach((name, value) ->
+                    sqlParams.put(name, normalizeDateTimeParam(name, value)));
         }
 
         // Convert circles to WKT POINT + radius string
@@ -185,7 +206,59 @@ public class FilterParamResolver {
             }
         }
 
+        sqlParams.put(SQL_TIME_ZONE_PARAM, normalizeTimeZone(request.getTimeZone()));
         return sqlParams;
+    }
+
+    private String normalizeTimeZone(String value) {
+        if (value == null || value.isBlank()) return DEFAULT_TIME_ZONE;
+        String timeZone = value.trim();
+        if (!TIME_ZONE_IDS.contains(timeZone)) {
+            log.warn("Invalid calendar filter timezone: expected an IANA timezone identifier");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "timeZone must be an IANA timezone identifier.");
+        }
+        return timeZone;
+    }
+
+    private void validateYearBounds(Map<String, String> params) {
+        Integer from = normalizeYear(params, YEAR_FROM);
+        Integer to = normalizeYear(params, YEAR_TO);
+        if (from != null && to != null && from > to) {
+            log.warn("Invalid year filter range: from year exceeds to year");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "The to year must be on or after the from year.");
+        }
+    }
+
+    private Integer normalizeYear(Map<String, String> params, String name) {
+        String value = params.get(name);
+        if (value == null || value.isBlank()) return null;
+        String trimmed = value.trim();
+        // Check length before parsing so oversized input cannot overflow.
+        if (trimmed.length() > Integer.toString(MAX_YEAR).length() || !YEAR_PATTERN.matcher(trimmed).matches()) {
+            throw invalidYear(name);
+        }
+        int year = Integer.parseInt(trimmed);
+        if (year < MIN_YEAR || year > MAX_YEAR) throw invalidYear(name);
+        params.put(name, Integer.toString(year));
+        return year;
+    }
+
+    private ResponseStatusException invalidYear(String name) {
+        log.warn("Invalid year filter parameter: name={} expected a whole year between {} and {}", name, MIN_YEAR, MAX_YEAR);
+        return new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                name + " must be a whole year between " + MIN_YEAR + " and " + MAX_YEAR + ".");
+    }
+
+    private String normalizeDateTimeParam(String name, String value) {
+        if (value == null || value.isBlank()) return null;
+        try {
+            return OffsetDateTime.parse(value).toInstant().toString();
+        } catch (DateTimeParseException exception) {
+            log.warn("Invalid date-time filter parameter: name={} type={} expected ISO 8601 with an explicit offset",
+                    name, exception.getClass().getSimpleName());
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    name + " must be an ISO 8601 timestamp with an explicit offset.", exception);
+        }
     }
 
     /**

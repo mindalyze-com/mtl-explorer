@@ -1,0 +1,11 @@
+.mtl-poi-popup .maplibregl-popup-content {
+  padding: 12px 38px 12px 14px;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.mtl-poi-popup .maplibregl-popup-close-button {
+  width: 36px;
+  height: 36px;
+  font-size: 20px;
+}

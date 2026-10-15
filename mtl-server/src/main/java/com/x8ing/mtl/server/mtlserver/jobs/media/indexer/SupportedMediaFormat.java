@@ -78,12 +78,16 @@ public final class SupportedMediaFormat {
         return METADATA_EXTRACTOR_EXTENSIONS.contains(extensionOf(fileName));
     }
 
-    /** Returns a case-insensitive Java NIO PathMatcher regex. */
+    /**
+     * Returns a case-insensitive Java NIO PathMatcher regex.
+     */
     public static String inclusionRegex() {
         return ".*(?i)\\.(" + SUPPORTED_EXTENSION_ALTERNATION + ")$";
     }
 
-    /** Returns the sorted extension alternation used by native SQL media-kind classification. */
+    /**
+     * Returns the sorted extension alternation used by native SQL media-kind classification.
+     */
     public static String videoExtensionSqlAlternation() {
         return VIDEO_EXTENSION_ALTERNATION;
     }

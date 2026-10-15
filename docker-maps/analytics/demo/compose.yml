@@ -1,0 +1,25 @@
+services:
+  map-report-demo:
+    image: mtl-map-reports:demo
+    build:
+      context: ../..
+    restart: "no"
+    ports:
+      - "127.0.0.1:${MAP_REPORTS_DEMO_PORT:-18494}:8081"
+    mem_limit: 128m
+    memswap_limit: 128m
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        set -eu
+        python3 /app/analytics/demo/seed_logs.py
+        exec /app/entrypoint.sh
+    environment:
+      MAP_DOWNLOAD_URL: ""
+      MAP_REPORTS_ENABLED: "true"
+      MAP_REPORTS_USER: ${MAP_REPORTS_USER:-admin}
+      MAP_REPORTS_PASSWORD: ${MAP_REPORTS_PASSWORD:-change-me}
+      MAP_REPORTS_TIMEZONE: ${MAP_REPORTS_TIMEZONE:-Europe/Zurich}
+    volumes:
+      - "${MAP_REPORTS_DEMO_DATA_DIR:?Use run-demo.sh or specify a dedicated demo folder}/maps:/data"

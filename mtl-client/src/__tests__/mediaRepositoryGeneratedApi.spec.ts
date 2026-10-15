@@ -1,10 +1,16 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { createPinia, setActivePinia } from 'pinia';
+import { useMediaFilterStore } from '@/stores/mediaFilterStore';
+import { useDataFreshnessStore } from '@/stores/dataFreshnessStore';
 import {
   clearManualMediaLocation,
   cancelVideoTranscodeSession,
   createVideoTranscodeSession,
   getMediaByTrack,
+  getMediaInBounds,
   getMediaInfo,
+  mediaContentUrl,
+  mediaOriginalUrl,
   getMediaTrendItems,
   getMediaTrends,
   getVideoTranscodeSession,
@@ -16,6 +22,7 @@ const generatedApiMock = vi.hoisted(() => ({
   configuration: { test: 'configuration' },
   constructor: vi.fn(),
   getMediaByTrack: vi.fn(),
+  getFilteredMediaInBounds: vi.fn(),
   getMediaTrends: vi.fn(),
   getMediaTrendItems: vi.fn(),
   getMediaDetails: vi.fn(),
@@ -26,6 +33,9 @@ const generatedApiMock = vi.hoisted(() => ({
   getVideoTranscodeSession: vi.fn(),
   cancelVideoTranscodeSession: vi.fn(),
 }));
+
+vi.mock('@/stores/filterStore', () => ({ loadActiveFilterRequest: vi.fn(async () => ({ resolvedTrackIds: [42] })) }));
+vi.mock('@/utils/ServiceHelper', () => ({ resolveStatisticsTrackIds: vi.fn(async () => [42]) }));
 
 vi.mock('@/utils/openApiClient', () => ({
   getApiConfiguration: () => generatedApiMock.configuration,
@@ -41,6 +51,7 @@ vi.mock('x8ing-mtl-api-typescript-fetch', async (importOriginal) => {
       }
 
       getMediaByTrack = generatedApiMock.getMediaByTrack;
+      getFilteredMediaInBounds = generatedApiMock.getFilteredMediaInBounds;
       getMediaTrends = generatedApiMock.getMediaTrends;
       getMediaTrendItems = generatedApiMock.getMediaTrendItems;
       getMediaDetails = generatedApiMock.getMediaDetails;
@@ -62,6 +73,8 @@ vi.mock('x8ing-mtl-api-typescript-fetch', async (importOriginal) => {
 
 describe('mediaRepository activity timeline', () => {
   beforeEach(() => {
+    setActivePinia(createPinia());
+    generatedApiMock.getFilteredMediaInBounds.mockReset();
     generatedApiMock.constructor.mockClear();
     generatedApiMock.getMediaByTrack.mockReset();
     generatedApiMock.getMediaTrends.mockReset();
@@ -73,6 +86,32 @@ describe('mediaRepository activity timeline', () => {
     generatedApiMock.createVideoTranscodeSession.mockReset();
     generatedApiMock.getVideoTranscodeSession.mockReset();
     generatedApiMock.cancelVideoTranscodeSession.mockReset();
+  });
+
+  it.each(['ALL_INDEXED', 'MATCHED_ACTIVITIES'] as const)('sends matching tracks for map scope %s', async (scope) => {
+    useMediaFilterStore().scope = scope;
+    generatedApiMock.getFilteredMediaInBounds.mockResolvedValue([{ id: 1, lat: 47, lng: 8 }]);
+    const signal = new AbortController().signal;
+    await expect(getMediaInBounds(46, 7, 48, 9, signal)).resolves.toEqual([{ id: 1, lat: 47, lng: 8 }]);
+    expect(generatedApiMock.getFilteredMediaInBounds).toHaveBeenCalledWith(
+      {
+        mediaBoundsRequest: { minLat: 46, minLng: 7, maxLat: 48, maxLng: 9, scope, trackIds: [42] },
+      },
+      { signal }
+    );
+  });
+
+  it('uses separate original-download URLs and preserves the applied content revision', () => {
+    useDataFreshnessStore().appliedToken = 'source replacement';
+    const original = new URL(mediaOriginalUrl(43), 'http://localhost');
+    const preview = new URL(mediaContentUrl(43, 512), 'http://localhost');
+    expect(original.pathname).toBe(preview.pathname);
+    expect(original.searchParams.get('original')).toBe('true');
+    expect(original.searchParams.has('maxSize')).toBe(false);
+    expect(original.searchParams.get('revision')).toBe('source replacement');
+    expect(preview.searchParams.has('original')).toBe(false);
+    expect(preview.searchParams.get('maxSize')).toBe('512');
+    expect(preview.searchParams.get('revision')).toBe('source replacement');
   });
 
   it('uses generated media-trend methods and forwards cancellation', async () => {

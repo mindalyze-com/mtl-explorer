@@ -15,7 +15,7 @@
         </rollingPolicy>
 
         <encoder>
-            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %5p [%t] [user=%X{user:-}] [sid=%X{sid:-}] --- %-28logger{0} : %m%n%wex</pattern>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %5p [%t] [user=%X{user_name:-}] [client_login_ref=%X{client_login_ref:-}] --- %-28logger{0} : %m%n%wex</pattern>
         </encoder>
     </appender>
 

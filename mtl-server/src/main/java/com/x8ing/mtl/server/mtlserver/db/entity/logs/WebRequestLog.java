@@ -18,7 +18,7 @@ import java.util.Date;
         "status",
         "durationMs",
         "userName",
-        "userSessionId",
+        "clientLoginRef",
         "ipAddress"
 })
 public class WebRequestLog {
@@ -49,8 +49,8 @@ public class WebRequestLog {
     @Column(name = "user_name", length = 255)
     private String userName;
 
-    @Column(name = "user_session_id", length = 32)
-    private String userSessionId;
+    @Column(name = "client_login_ref", length = 32)
+    private String clientLoginRef;
 
     @Column(name = "ip_address", length = 64)
     private String ipAddress;

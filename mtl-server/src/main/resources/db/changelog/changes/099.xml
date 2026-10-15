@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.10.xsd">
+    <changeSet id="20261008_google_health_last_empty_check_index" author="codex">
+        <sql>CREATE INDEX idx_google_health_latest_final_check ON google_health.history_audit
+            (account_id,data_type,representation,calendar_policy,key_policy,completed_at DESC,id DESC)
+            WHERE outcome IN ('DATA','EMPTY');
+        </sql>
+        <rollback>DROP INDEX google_health.idx_google_health_latest_final_check;</rollback>
+    </changeSet>
+</databaseChangeLog>

@@ -67,6 +67,12 @@ public final class PointWindowedPowerCalculator {
         double maxRollingPower = 0;
 
         for (int i = 0; i < n; i++) {
+            if (!Double.isFinite(durationsSec[i]) || !Double.isFinite(powersWatts[i])) {
+                winPowerDuration = 0;
+                winDuration = 0;
+                windowStart = i + 1;
+                continue;
+            }
             double d = durationsSec[i] > 0 ? durationsSec[i] : 0;
             double p = powersWatts[i] > 0 ? powersWatts[i] : 0;
             winPowerDuration += p * d;

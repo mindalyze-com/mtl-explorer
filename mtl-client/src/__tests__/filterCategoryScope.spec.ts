@@ -1,4 +1,4 @@
-import { mount } from '@vue/test-utils';
+import { mount, RouterLinkStub } from '@vue/test-utils';
 import { describe, expect, it } from 'vitest';
 
 import FilterCategoryQuickSelect from '@/components/filter/FilterCategoryQuickSelect.vue';
@@ -18,17 +18,12 @@ const overviewProps = {
 };
 
 describe('filter scope guidance', () => {
-  it('keeps the explanation with the current result and collapses it for mobile', async () => {
-    const wrapper = mount(FilterOverview, { props: overviewProps });
+  it('keeps scope guidance concise with a contextual help action', async () => {
+    const wrapper = mount(FilterOverview, { global: { stubs: { RouterLink: RouterLinkStub } }, props: overviewProps });
     const result = wrapper.get('.filter-overview__result');
-    const link = wrapper.get('.filter-overview__scope-link');
-
-    expect(result.find('.filter-overview__scope-link').exists()).toBe(true);
-    expect(link.get('.filter-overview__scope-title').text()).toBe('How this result works');
-    expect(link.get('.filter-overview__scope-title-mobile').text()).toBe('Filters apply everywhere.');
-    expect(link.get('small').text()).toBe('The current result is used throughout MTL Explorer.');
-    expect(link.get('.filter-overview__scope-read').text()).toContain('Read more');
-
+    expect(result.text()).toContain('Applies across MTL Explorer.');
+    const link = result.get('[aria-label="How filters work"]');
+    expect(link.text()).toBe('More info');
     await link.trigger('click');
     expect(wrapper.emitted('open-scope-help')).toHaveLength(1);
   });
@@ -37,9 +32,12 @@ describe('filter scope guidance', () => {
     const wrapper = mount(FilterScopeHelp, { props: { firstVisit: true } });
     const guidance = wrapper.get('[data-test="filter-scope-help"]');
 
-    expect(guidance.text()).toContain('Your filter shapes everything');
-    expect(guidance.text()).toContain('Every view adapts');
-    expect(guidance.text()).toContain('statistics, milestones, and trends become walking-only');
+    expect(guidance.text()).toContain('Your filter selects tracks');
+    expect(guidance.text()).toContain('Track views share the selection');
+    expect(guidance.text()).toContain('count walking, hiking, and running');
+    expect(guidance.text()).toContain('Photos and videos follow the time span of your filtered tracks');
+    expect(guidance.text()).toContain('including media without a track link. Media without a date is not shown');
+    expect(guidance.text()).toContain('no dated tracks means no media. Health has its own dates.');
     expect(guidance.text()).toContain('Map colors reveal patterns');
     expect(guidance.text()).toContain('custom SQL filter');
     expect(guidance.findAll('.filter-scope-help__section')).toHaveLength(3);

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.10.xsd">
+    <changeSet id="20260905_track_energy_handoff" author="codex">
+        <comment>Retain pending energy calculations for newly classified and replaced tracks.</comment>
+        <sql><![CDATA[
+            CREATE TABLE public.track_energy_recalculation (
+                track_id bigint PRIMARY KEY REFERENCES public.gps_track(id) ON DELETE CASCADE,
+                generation bigint NOT NULL,
+                requested_at timestamp with time zone NOT NULL,
+                next_attempt_at timestamp with time zone NOT NULL,
+                last_error varchar(100)
+            );
+            CREATE INDEX idx_track_energy_recalculation_due
+                ON public.track_energy_recalculation (next_attempt_at, track_id);
+        ]]></sql>
+        <rollback>DROP TABLE public.track_energy_recalculation;</rollback>
+    </changeSet>
+</databaseChangeLog>

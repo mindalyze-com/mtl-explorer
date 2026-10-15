@@ -13,6 +13,7 @@ import com.x8ing.mtl.server.mtlserver.db.repository.gps.GpsTrackEventRepository;
 import com.x8ing.mtl.server.mtlserver.db.repository.gps.GpsTrackRepository;
 import com.x8ing.mtl.server.mtlserver.logic.crossing.beans.SegmentNotes;
 import com.x8ing.mtl.server.mtlserver.logic.motion.GpsTrackEventService;
+import com.x8ing.mtl.server.mtlserver.logic.motion.TrackMotionAnalyzer;
 import com.x8ing.mtl.server.mtlserver.logic.motion.TrackStopDetector;
 import com.x8ing.mtl.server.mtlserver.metrics.MetricConstants;
 import com.x8ing.mtl.server.mtlserver.metrics.window.GpsTrackDataPointWindowAdapter;
@@ -64,7 +65,9 @@ public class GPXStoreService {
 
     private final int movingWindowInSecs = 90;
 
+    private static final double MILLIS_PER_SECOND = 1000.0;
     private static final int MIN_LINESTRING_POINTS = 2;
+    private static final double MAX_ABSOLUTE_LATITUDE_DEGREES = 90.0;
     private static final List<BigDecimal> SIMPLIFIED_PRECISIONS = List.of(
             GpsTrackData.PRECISION_1M,
             GpsTrackData.PRECISION_10M,
@@ -75,12 +78,10 @@ public class GPXStoreService {
     private static final double SECONDS_PER_HOUR = MetricConstants.SECONDS_PER_HOUR;
     private static final double MPS_TO_KMH = MetricConstants.MPS_TO_KMH;
     private static final double ALTITUDE_NOISE_THRESHOLD_M = 2.0;
-    private static final double MOVING_SPEED_THRESHOLD_KMH = 0.5;
     private static final double MIN_WINDOW_SECONDS = 1.0;
     private static final double MAX_ELEVATION_RATE_PER_HOUR = MetricConstants.MAX_ELEVATION_RATE_PER_HOUR;
     private static final double MAX_SPEED_KMH = MetricConstants.MAX_SPEED_KMH;
     private static final double MAX_SLOPE_PERCENTAGE = 500.0;
-    private static final double STOP_ANCHOR_TIME_TOLERANCE_S = 0.001;
     private static final int UNKNOWN_SOURCE_COORDINATE_INDEX = Integer.MAX_VALUE;
 
     public GPXStoreService(
@@ -91,7 +92,7 @@ public class GPXStoreService {
             GpsTrackEventRepository gpsTrackEventRepository,
             GpsTrackEventService gpsTrackEventService,
             Map<String, GpsSmoothingAlgorithm> smoothers,
-            @Value("${mtl.denoise.algorithm:median}") String smoothingAlgorithm) {
+            @Value("${mtl.denoise.algorithm:kalman}") String smoothingAlgorithm) {
         this.gpsRepository = gpsRepository;
         this.gpsDataRepository = gpsDataRepository;
         this.simplifiedTrackRepository = simplifiedTrackRepository;
@@ -100,8 +101,8 @@ public class GPXStoreService {
         this.gpsTrackEventService = gpsTrackEventService;
         GpsSmoothingAlgorithm chosen = smoothers.get(smoothingAlgorithm);
         if (chosen == null) {
-            log.warn("Unknown smoothing algorithm '{}', falling back to 'median'", smoothingAlgorithm);
-            chosen = smoothers.get("median");
+            log.warn("Unknown smoothing algorithm '{}', falling back to 'kalman'", smoothingAlgorithm);
+            chosen = smoothers.get("kalman");
         }
         this.gpsSmoother = Objects.requireNonNull(chosen, "No GPS smoother bean found");
         log.info("Elevation smoothing algorithm: {}", smoothingAlgorithm);
@@ -134,38 +135,44 @@ public class GPXStoreService {
             List<GPXReader.LoadResult> loadResults = (preConvertedXml != null)
                     ? reader.importGpxXml(indexedFile, preConvertedXml, fileTiming)
                     : reader.importGpxFile(indexedFile, fileTiming);
-            if (loadResults == null || loadResults.isEmpty()) {
-                return List.of();
-            }
-
-            List<GPXReader.LoadResult> savedResults = new ArrayList<>();
-            Long masterTrackId = null;
-            TimingCollector fileLoadTiming = fileTiming.snapshot();
-
-            for (int segIdx = 0; segIdx < loadResults.size(); segIdx++) {
-                GPXReader.LoadResult gpsTrackLoadResult = loadResults.get(segIdx);
-
-                // For segments 2..N, set the parent FK to the master (segment 1)
-                if (segIdx > 0 && masterTrackId != null) {
-                    gpsTrackLoadResult.gpsTrack.setSourceParentTrackId(masterTrackId);
-                }
-
-                GPXReader.LoadResult saved = saveOneLoadResult(gpsTrackLoadResult, fileLoadTiming, indexedFile);
-                savedResults.add(saved);
-
-                // After saving segment 1, capture its ID as the master
-                if (segIdx == 0 && saved.gpsTrack.getId() != null) {
-                    masterTrackId = saved.gpsTrack.getId();
-                }
-            }
-
-            return savedResults;
+            return saveLoadResults(indexedFile, loadResults, fileTiming);
 
         } catch (Exception e) {
             log.error("Failed read for " + indexedFile + ". e=" + e, e);
         }
 
         return List.of();
+    }
+
+    @Transactional(propagation = Propagation.MANDATORY)
+    public List<GPXReader.LoadResult> saveLoadResults(IndexedFile indexedFile, List<GPXReader.LoadResult> loadResults, TimingCollector fileTiming) {
+        if (loadResults == null || loadResults.isEmpty()) {
+            return List.of();
+        }
+
+        List<GPXReader.LoadResult> savedResults = new ArrayList<>();
+        Long masterTrackId = null;
+        TimingCollector fileLoadTiming = fileTiming.snapshot();
+
+        for (int segIdx = 0; segIdx < loadResults.size(); segIdx++) {
+            GPXReader.LoadResult gpsTrackLoadResult = loadResults.get(segIdx);
+
+            // For segments 2..N, set the parent FK to the master (segment 1)
+            if (segIdx > 0 && masterTrackId != null) {
+                gpsTrackLoadResult.gpsTrack.setSourceParentTrackId(masterTrackId);
+            }
+
+            GPXReader.LoadResult saved = saveOneLoadResult(gpsTrackLoadResult, fileLoadTiming, indexedFile);
+            savedResults.add(saved);
+
+            // After saving segment 1, capture its ID as the master
+            if (segIdx == 0 && saved.gpsTrack.getId() != null) {
+                masterTrackId = saved.gpsTrack.getId();
+            }
+        }
+
+        return savedResults;
+
     }
 
     private GPXReader.LoadResult saveOneLoadResult(GPXReader.LoadResult gpsTrackLoadResult, TimingCollector fileTiming, IndexedFile indexedFile) {
@@ -175,23 +182,18 @@ public class GPXStoreService {
             // Denoise elevation on the outlier-cleaned track before any further processing.
             // RAW track is never modified.
             if (gpsTrackLoadResult.trackCleaned != null && !gpsTrackLoadResult.trackCleaned.isEmpty()) {
-                StartupElevationStabilizer.Result stabilization =
-                        StartupElevationStabilizer.stabilize(gpsTrackLoadResult.trackCleaned);
-                if (stabilization.corrected()) {
-                    gpsTrackLoadResult.trackCleaned = stabilization.lineString();
-                    gpsTrackLoadResult.gpsTrack.addLoadMessage(String.format(Locale.ROOT,
-                            "Outlier corrector %s: corrected %d leading elevation point(s) to %.1f m baseline.",
-                            StartupElevationStabilizer.CORRECTOR_NAME,
-                            stabilization.correctedPointCount(),
-                            stabilization.baselineElevation()));
-                }
-                LineString denoised = gpsSmoother.denoise(gpsTrackLoadResult.trackCleaned);
-                gpsTrackLoadResult.trackCleaned = restoreStopAnchorsAfterSmoothing(
-                        denoised,
-                        gpsTrackLoadResult.stopRanges);
+                LineString denoised = smoothRecordingSpans(gpsTrackLoadResult.trackCleaned,
+                        gpsTrackLoadResult.recordingBreakBeforePointIndexes, gpsSmoother, gpsTrackLoadResult.observationEvidence);
+                gpsTrackLoadResult.trackCleaned = denoised;
                 gpsTrackLoadResult.gpsTrack.addLoadMessage("Elevation denoised via smoothing algorithm.");
             }
         });
+
+        gpsTrackLoadResult.processingIssues = timing.timeUnchecked("processing evidence", () -> GpsProcessingAssessment.record(gpsTrackLoadResult));
+        log.info("GPS processing evidence recorded: sourceId={} observations={} issues={} version={}",
+                indexedFile.getId(), gpsTrackLoadResult.observationEvidence.size(), gpsTrackLoadResult.processingIssues.size(), GpsProcessingAssessment.VERSION);
+
+        Map<String, String> processingSettings = GpsProcessingAssessment.processingSettings(gpsSmoother.processingSettings());
 
         GpsTrack savedTrack = timing.timeUnchecked("track row", () -> {
             // Compute bounding box and centroid from the outlier-cleaned geometry (SRID 4326: x=lng, y=lat)
@@ -211,7 +213,7 @@ public class GPXStoreService {
 
         if (!GpsTrack.LOAD_STATUS.EMPTY_FILE.equals(savedTrack.getLoadStatus())) {
 
-            GpsTrackData raw = GpsTrackData.builder().track(gpsTrackLoadResult.trackRAW).gpsTrackId(savedTrack.getId()).trackType(GpsTrackData.TRACK_TYPE.RAW).precisionInMeter(GpsTrackData.PRECISION_RAW).createDate(new Date()).build();
+            GpsTrackData raw = GpsTrackData.builder().track(gpsTrackLoadResult.trackRAW).recordingBreakBeforePointIndexes(gpsTrackLoadResult.rawRecordingBreakBeforePointIndexes).observationEvidence(gpsTrackLoadResult.observationEvidence).processingIssues(gpsTrackLoadResult.processingIssues).processingSettings(processingSettings).gpsTrackId(savedTrack.getId()).trackType(GpsTrackData.TRACK_TYPE.RAW).precisionInMeter(GpsTrackData.PRECISION_RAW).createDate(new Date()).build();
             timing.timeUnchecked("raw points", () -> {
                 gpsDataRepository.save(raw);
                 populatePointData(raw, movingWindowInSecs);
@@ -220,12 +222,13 @@ public class GPXStoreService {
             // save outlier cleaned version — used as the canonical variant for
             // downstream metric calculations (motion duration, energy once
             // activity type is known, etc.)
-            GpsTrackData outlierCleaned = GpsTrackData.builder().track(gpsTrackLoadResult.trackCleaned).gpsTrackId(savedTrack.getId()).trackType(GpsTrackData.TRACK_TYPE.RAW_OUTLIER_CLEANED).precisionInMeter(GpsTrackData.PRECISION_RAW).createDate(new Date()).build();
-            List<GpsTrackDataPoint> cleanedPoints = timing.timeUnchecked("cleaned points", () -> {
+            GpsTrackData outlierCleaned = GpsTrackData.builder().track(gpsTrackLoadResult.trackCleaned).processingSettings(processingSettings).recordingBreakBeforePointIndexes(gpsTrackLoadResult.recordingBreakBeforePointIndexes).gpsTrackId(savedTrack.getId()).trackType(GpsTrackData.TRACK_TYPE.RAW_OUTLIER_CLEANED).precisionInMeter(GpsTrackData.PRECISION_RAW).createDate(new Date()).build();
+            PopulatedPoints populated = timing.timeUnchecked("cleaned points", () -> {
                 gpsDataRepository.save(outlierCleaned);
                 return populatePointData(outlierCleaned, movingWindowInSecs);
             });
 
+            List<GpsTrackDataPoint> cleanedPoints = populated.points();
             timing.timeUnchecked("motion/stops/events", () -> {
                 if (gpsTrackLoadResult.trackCleaned != null) {
                     applyCanonicalTrackStats(savedTrack, cleanedPoints);
@@ -233,53 +236,18 @@ public class GPXStoreService {
                     savedTrack.setTrackLengthInMeter(0d);
                 }
 
-                // Compute motion duration using chunk-based approach:
-                // detect moving/stopped transitions and measure wall-clock time per moving section
-                // to avoid floating-point drift from summing thousands of small durations.
-                double motionSecs = 0;
-                Date movingSectionStart = null;
-                Date movingSectionEnd = null;
-                for (GpsTrackDataPoint pt : cleanedPoints) {
-                    boolean isMoving = pt.getSpeedInKmhMovingWindow() != null
-                                       && pt.getSpeedInKmhMovingWindow() >= MOVING_SPEED_THRESHOLD_KMH
-                                       && pt.getPointTimestamp() != null;
-                    if (isMoving) {
-                        if (movingSectionStart == null) {
-                            movingSectionStart = pt.getPointTimestamp();
-                        }
-                        movingSectionEnd = pt.getPointTimestamp();
-                    } else {
-                        if (movingSectionStart != null && movingSectionEnd != null) {
-                            motionSecs += (movingSectionEnd.getTime() - movingSectionStart.getTime()) / 1000.0;
-                        }
-                        movingSectionStart = null;
-                        movingSectionEnd = null;
-                    }
-                }
-                // flush last open moving section
-                if (movingSectionStart != null && movingSectionEnd != null) {
-                    motionSecs += (movingSectionEnd.getTime() - movingSectionStart.getTime()) / 1000.0;
-                }
-                savedTrack.setTrackDurationInMotionSecs(motionSecs);
-
-                // Detected-stop totals/events come from the dense-cluster detector
-                // that also produced the synthetic stop anchors during GPX import.
-                // There is intentionally no legacy migration path; the database is
-                // expected to be recreated after derived-stat changes.
-                List<TrackStopDetector.PointStopRange> denseStopRanges = TrackStopDetector.mapStopRangesToTrackPoints(
-                        cleanedPoints,
-                        gpsTrackLoadResult.stopRanges);
-                List<TrackStopDetector.PointStopRange> recordingGapBreaks = TrackStopDetector.detectNearbyRecordingGapBreaks(
-                        cleanedPoints,
-                        denseStopRanges);
-                List<TrackStopDetector.PointStopRange> stopRanges = TrackStopDetector.mergePointStopRanges(
-                        denseStopRanges,
-                        recordingGapBreaks);
+                TrackMotionAnalyzer.Analysis analysis = populated.analysis();
+                gpsTrackLoadResult.stopRanges = TrackStopDetector.eventRanges(analysis);
+                List<TrackStopDetector.PointStopRange> stopRanges = TrackStopDetector.mapStopRangesToTrackPoints(
+                        cleanedPoints, gpsTrackLoadResult.stopRanges);
+                applyMotionStats(savedTrack, analysis);
                 SegmentNotes stopNotes = TrackStopDetector.summarizeStopRanges(stopRanges);
-                savedTrack.setTrackDurationStoppedSecs(stopNotes.totalStoppedSec);
+
                 savedTrack.setTrackStopCount(stopNotes.stopCount);
                 savedTrack.setTrackLongestStopSecs(stopNotes.longestStopSec);
                 gpsTrackEventService.replaceDetectedStopEvents(savedTrack.getId(), outlierCleaned.getId(), stopRanges);
+                gpsTrackEventService.replaceImportedRecordingGaps(savedTrack.getId(), outlierCleaned.getId(),
+                        cleanedPoints, gpsTrackLoadResult.recordingBreakBeforePointIndexes);
 
                 // Energy is intentionally NOT computed here. At ingest time the activity type
                 // is still null, which would force the DefaultEnergyCalculator (gravity + kinetic
@@ -363,11 +331,24 @@ public class GPXStoreService {
     private record SimplifiedTiming(BigDecimal precision, long elapsedMs, int pointCount, boolean created) {
     }
 
-    private List<GpsTrackDataPoint> populatePointData(final GpsTrackData gpsTrackData, final int movingWindowInSeconds) {
+    private record PopulatedPoints(List<GpsTrackDataPoint> points, TrackMotionAnalyzer.Analysis analysis) {
+    }
+
+    static void applyMotionStats(GpsTrack track, TrackMotionAnalyzer.Analysis analysis) {
+        boolean complete = analysis.status() == TrackMotionAnalyzer.Status.COMPLETE;
+        track.setMotionAnalysisVersion(TrackMotionAnalyzer.VERSION);
+        track.setMotionAnalysisStatus(analysis.status());
+        track.setTrackDurationInMotionSecs(complete ? analysis.movingSeconds() : null);
+        track.setTrackDurationStoppedSecs(complete ? analysis.stoppedSeconds() : null);
+        track.setTrackDurationUnknownSecs(complete ? analysis.unknownSeconds() : null);
+        track.setTrackDurationShortStoppedSecs(complete ? analysis.shortStoppedSeconds() : null);
+    }
+
+    private PopulatedPoints populatePointData(final GpsTrackData gpsTrackData, final int movingWindowInSeconds) {
 
         if (gpsTrackData == null || gpsTrackData.getTrack() == null) {
             log.info("No work to do for gps track data points data for gpsTrackData");
-            return List.of();
+            return new PopulatedPoints(List.of(), TrackMotionAnalyzer.analyze(List.of(), List.of()));
         }
 
         log.debug("Create data-points for gpsTrackId=%s, gpsTrackDataId=%s".formatted(gpsTrackData.getGpsTrackId(), gpsTrackData.getId()));
@@ -375,6 +356,16 @@ public class GPXStoreService {
         List<GpsTrackDataPoint> gpsTrackDataPoints = new ArrayList<>();
         calculateBetweenPointsMetrics(gpsTrackData, gpsTrackDataPoints, movingWindowInSeconds);
         calculateMovingWindowStats(movingWindowInSeconds, gpsTrackDataPoints);
+        TrackMotionAnalyzer.Analysis analysis = null;
+        if (gpsTrackData.getTrackType() == GpsTrackData.TRACK_TYPE.RAW_OUTLIER_CLEANED) {
+            analysis = TrackMotionAnalyzer.analyze(Arrays.asList(gpsTrackData.getTrack().getCoordinates()),
+                    gpsTrackData.getRecordingBreakBeforePointIndexes());
+            for (GpsTrackDataPoint point : gpsTrackDataPoints) {
+                TrackMotionAnalyzer.Interval interval = analysis.intervals().get(point.getPointIndex());
+                point.setMotionState(interval.state());
+                point.setMotionReason(interval.reason());
+            }
+        }
 
         // Energy fields are left null here on purpose. See readAndSave() — energy is
         // calculated only after the ActivityTypeClassifierJob has set a real activity type.
@@ -385,7 +376,7 @@ public class GPXStoreService {
             entityManager.flush();
             entityManager.clear();
         }
-        return gpsTrackDataPoints;
+        return new PopulatedPoints(gpsTrackDataPoints, analysis);
     }
 
     static void applyCanonicalTrackStats(GpsTrack gpsTrack, List<GpsTrackDataPoint> canonicalPoints) {
@@ -429,9 +420,9 @@ public class GPXStoreService {
             gpsTrack.setDescentInMeter(0d);
             gpsTrack.setMinAltitude(null);
             gpsTrack.setMaxAltitude(null);
-            gpsTrack.setSpeedInKmh30sMax(0d);
-            gpsTrack.setElevationGainPerHour30sMax(0d);
-            gpsTrack.setElevationLossPerHour30sMax(0d);
+            gpsTrack.setSpeedInKmh30sMax(null);
+            gpsTrack.setElevationGainPerHour30sMax(null);
+            gpsTrack.setElevationLossPerHour30sMax(null);
             gpsTrack.setSlopePercentageMax(null);
             gpsTrack.setSlopePercentageMin(null);
             return;
@@ -486,100 +477,57 @@ public class GPXStoreService {
      */
     private static List<GpsTrackDataPoint> calculateBetweenPointsMetrics(GpsTrackData gpsTrackData, List<GpsTrackDataPoint> gpsTrackDataPoints, int movingWindowInSeconds) {
 
-        GeometryFactory geometryFactory = new GeometryFactory();
-        Coordinate prevPoint = null;
-        GpsTrackDataPoint prevTrackPoint = null;
-        LineString lineString = gpsTrackData.getTrack();
-        double distanceSinceStart = 0;
-        double ascentInMeterSinceStart = 0;
-        double descentInMeterSinceStart = 0;
-        Double lastValidElevation = null;
-        GPXReader gpxReader = new GPXReader();
-
-        // calculate base data
-        for (int i = 0; i < lineString.getNumPoints(); i++) {
-            Coordinate currentPoint = lineString.getCoordinateN(i);
-
-            // Layer 1: skip points with invalid coordinates entirely — they cannot contribute
-            // position, distance, or any derived metric, and would fail geodesic calculation.
-            if (hasInvalidHorizontalPosition(currentPoint)) {
-                log.warn("Skipping point index={} in gpsTrackDataId={}: invalid coordinate (NaN lon/lat)", i, gpsTrackData.getId());
-                continue;
-            }
-
-            GpsTrackDataPoint currentTrackPoint = createGpsTrackDataPoint(
-                    gpsTrackData.getId(), movingWindowInSeconds, i, lineString.getNumPoints() - 1,
-                    currentPoint, geometryFactory, gpxReader);
-
-            gpsTrackDataPoints.add(currentTrackPoint);
-
-            // Seed the elevation baseline from the very first point with valid altitude
-            if (lastValidElevation == null && currentTrackPoint.getPointAltitude() != null) {
-                lastValidElevation = currentTrackPoint.getPointAltitude();
-            }
-
-            GpsTrackDataPoint startPoint = gpsTrackDataPoints.get(0);
-            if (startPoint.getPointTimestamp() != null && currentTrackPoint.getPointTimestamp() != null) {
-                Duration durationSinceStart = Duration.between(startPoint.getPointTimestamp().toInstant(), currentTrackPoint.getPointTimestamp().toInstant());
-                currentTrackPoint.setDurationSinceStart(durationSinceStart.toMillis() / 1000.0);
-            }
-
-            if (prevTrackPoint != null) {
-                // Layer 2: guard the between-points metric block — a bad-coordinate pair that
-                // slipped through (e.g. infinite values) must not abort the whole track.
-                try {
-                    Double distanceInMeterBetweenLastPoint = GPXReader.getDistanceBetweenTwoWGS84(currentPoint, prevPoint);
-                    currentTrackPoint.setDistanceInMeterBetweenPoints(distanceInMeterBetweenLastPoint);
-
-                    distanceSinceStart += distanceInMeterBetweenLastPoint;
-                    currentTrackPoint.setDistanceInMeterSinceStart(distanceSinceStart);
-
-                    if (currentTrackPoint.getPointAltitude() != null && prevTrackPoint.getPointAltitude() != null) {
-                        double ascentInMeterBetweenPoints = currentTrackPoint.getPointAltitude() - prevTrackPoint.getPointAltitude();
-                        currentTrackPoint.setAscentInMeterBetweenPoints(ascentInMeterBetweenPoints);
-                    } else {
-                        currentTrackPoint.setAscentInMeterBetweenPoints(null);
-                    }
-
-                    // Accumulated-delta threshold: only register ascent/descent once
-                    // the cumulative change from the last committed elevation exceeds
-                    // the noise floor. This correctly handles gradual climbs where
-                    // each individual sample delta is small but the aggregate is real.
-                    if (currentTrackPoint.getPointAltitude() != null && lastValidElevation != null) {
-                        double altDiff = currentTrackPoint.getPointAltitude() - lastValidElevation;
-                        if (altDiff > ALTITUDE_NOISE_THRESHOLD_M) {
-                            ascentInMeterSinceStart += altDiff;
-                            lastValidElevation = currentTrackPoint.getPointAltitude();
-                        } else if (altDiff < -ALTITUDE_NOISE_THRESHOLD_M) {
-                            descentInMeterSinceStart += Math.abs(altDiff);
-                            lastValidElevation = currentTrackPoint.getPointAltitude();
-                        }
-                    }
-
-                    currentTrackPoint.setAscentInMeterSinceStart(ascentInMeterSinceStart);
-                    currentTrackPoint.setDescentInMeterSinceStart(descentInMeterSinceStart);
-
-                    if (prevTrackPoint.getPointTimestamp() != null && currentTrackPoint.getPointTimestamp() != null) {
-                        Duration durationBetweenPoints = Duration.between(prevTrackPoint.getPointTimestamp().toInstant(), currentTrackPoint.getPointTimestamp().toInstant());
-                        currentTrackPoint.setDurationBetweenPointsInSec(durationBetweenPoints.toMillis() / 1000.0);
-                    } else {
-                        currentTrackPoint.setDurationBetweenPointsInSec(null);
-                    }
-                } catch (Exception e) {
-                    log.warn("Could not calculate between-points metrics for point index={} in gpsTrackDataId={}: {}", i, gpsTrackData.getId(), e.getMessage());
+        GeometryFactory factory = new GeometryFactory();
+        GPXReader reader = new GPXReader();
+        LineString line = gpsTrackData.getTrack();
+        Set<Integer> breaks = new HashSet<>(gpsTrackData.getRecordingBreakBeforePointIndexes() == null
+                ? List.of() : gpsTrackData.getRecordingBreakBeforePointIndexes());
+        breaks.addAll(RecordingContinuity.timeBreakIndexes(Arrays.asList(line.getCoordinates()), breaks));
+        double distance = 0, ascent = 0, descent = 0, elapsed = 0;
+        Double elevationBaseline = null;
+        Coordinate previous = null;
+        for (int i = 0; i < line.getNumPoints(); i++) {
+            Coordinate coordinate = line.getCoordinateN(i);
+            if (hasInvalidHorizontalPosition(coordinate)) continue;
+            GpsTrackDataPoint point = createGpsTrackDataPoint(gpsTrackData.getId(), movingWindowInSeconds,
+                    i, line.getNumPoints() - 1, coordinate, factory, reader);
+            point.setIntervalStatus(GpsTrackDataPoint.IntervalStatus.START);
+            Double altitude = point.getPointAltitude();
+            if (previous != null) {
+                double dt = Double.isFinite(coordinate.getM()) && Double.isFinite(previous.getM())
+                        ? (Math.round(coordinate.getM() * MILLIS_PER_SECOND) - Math.round(previous.getM() * MILLIS_PER_SECOND)) / MILLIS_PER_SECOND : Double.NaN;
+                if (Double.isFinite(dt) && dt > 0) {
+                    point.setDurationBetweenPointsInSec(dt);
+                    elapsed += dt;
                 }
-            }
-
-            prevTrackPoint = currentTrackPoint;
-            prevPoint = currentPoint;
-
+                point.setIntervalStatus(breaks.contains(i) ? GpsTrackDataPoint.IntervalStatus.UNKNOWN
+                        : RecordingContinuity.intervalStatus(previous, coordinate));
+                boolean continuous = point.getIntervalStatus() != GpsTrackDataPoint.IntervalStatus.UNKNOWN;
+                if (continuous) {
+                    double d = GPXReader.getDistanceBetweenTwoWGS84(previous, coordinate);
+                    point.setDistanceInMeterBetweenPoints(d);
+                    distance += d;
+                    if (altitude != null && elevationBaseline != null && Double.isFinite(previous.getZ())) {
+                        double change = altitude - elevationBaseline;
+                        double acceptedChange = 0;
+                        if (Math.abs(change) > ALTITUDE_NOISE_THRESHOLD_M) {
+                            if (change > 0) ascent += change;
+                            else descent -= change;
+                            elevationBaseline = altitude;
+                            acceptedChange = change;
+                        }
+                        point.setAscentInMeterBetweenPoints(acceptedChange);
+                    } else elevationBaseline = altitude;
+                } else elevationBaseline = altitude;
+            } else elevationBaseline = altitude;
+            if (altitude == null) elevationBaseline = null;
+            point.setDistanceInMeterSinceStart(distance);
+            point.setDurationSinceStart(elapsed);
+            point.setAscentInMeterSinceStart(ascent);
+            point.setDescentInMeterSinceStart(descent);
+            gpsTrackDataPoints.add(point);
+            previous = coordinate;
         }
-
-        // Layer 3: surface the edge case where the whole track produced no usable points
-        if (gpsTrackDataPoints.isEmpty() && lineString.getNumPoints() > 0) {
-            log.warn("All {} points were skipped for gpsTrackDataId={} — track has no usable coordinates", lineString.getNumPoints(), gpsTrackData.getId());
-        }
-
         return gpsTrackDataPoints;
     }
 
@@ -598,16 +546,16 @@ public class GPXStoreService {
 
         for (int i = 0; i < n; i++) {
             GpsTrackDataPoint center = gpsTrackDataPoints.get(i);
-            if (center.getPointTimestamp() == null) continue;
+            if (center.getPointTimestamp() == null || isUnknownInterval(center)) continue;
             Instant centerTime = center.getPointTimestamp().toInstant();
 
             // find left boundary: earliest point within half-window before center
             int left = i;
             while (left > 0) {
                 GpsTrackDataPoint candidate = gpsTrackDataPoints.get(left - 1);
-                if (candidate.getPointTimestamp() == null) break;
+                if (candidate.getPointTimestamp() == null || isUnknownInterval(gpsTrackDataPoints.get(left))) break;
                 long diffMs = Duration.between(candidate.getPointTimestamp().toInstant(), centerTime).toMillis();
-                if (diffMs > halfWindowMs) break;
+                if (diffMs < 0 || (diffMs > halfWindowMs && left != i)) break;
                 left--;
             }
 
@@ -615,14 +563,14 @@ public class GPXStoreService {
             int right = i;
             while (right < n - 1) {
                 GpsTrackDataPoint candidate = gpsTrackDataPoints.get(right + 1);
-                if (candidate.getPointTimestamp() == null) break;
+                if (candidate.getPointTimestamp() == null || isUnknownInterval(candidate)) break;
                 long diffMs = Duration.between(centerTime, candidate.getPointTimestamp().toInstant()).toMillis();
-                if (diffMs > halfWindowMs) break;
+                if (diffMs < 0 || (diffMs > halfWindowMs && right != i)) break;
                 right++;
             }
 
             // need at least one point on each side for a meaningful window
-            if (left == i || right == i) continue;
+            if (left == right) continue;
 
             GpsTrackDataPoint windowStart = gpsTrackDataPoints.get(left);
             GpsTrackDataPoint windowEnd = gpsTrackDataPoints.get(right);
@@ -636,6 +584,7 @@ public class GPXStoreService {
             double ascent = 0;
             double descent = 0;
             double distance = 0;
+            boolean altitudeSupported = true;
 
             // each point's "between" metric belongs to the segment ending at that point,
             // so start from left+1 to avoid including a segment that crosses outside the window
@@ -645,14 +594,16 @@ public class GPXStoreService {
                     distance += p.getDistanceInMeterBetweenPoints();
                 }
                 Double a = p.getAscentInMeterBetweenPoints();
+                if (a == null) altitudeSupported = false;
                 if (a != null) {
                     if (a > 0) ascent += a;
                     else if (a < 0) descent += -a;
                 }
             }
 
-            center.setElevationGainPerHourMovingWindow(ascent > 0 ? Math.min(ascent / diffSeconds * SECONDS_PER_HOUR, MAX_ELEVATION_RATE_PER_HOUR) : 0.0);
-            if (descent > 0) {
+            if (altitudeSupported)
+                center.setElevationGainPerHourMovingWindow(ascent > 0 ? Math.min(ascent / diffSeconds * SECONDS_PER_HOUR, MAX_ELEVATION_RATE_PER_HOUR) : 0.0);
+            if (altitudeSupported && descent > 0) {
                 center.setElevationLossPerHourMovingWindow(Math.min(descent / diffSeconds * SECONDS_PER_HOUR, MAX_ELEVATION_RATE_PER_HOUR));
             }
             center.setSpeedInKmhMovingWindow(distance > 0 ? Math.min(distance / diffSeconds * MPS_TO_KMH, MAX_SPEED_KMH) : 0.0);
@@ -660,13 +611,47 @@ public class GPXStoreService {
                 // Require at least 1 m total window distance before computing slope:
                 // the Kalman smoother can collapse adjacent XY positions to near-zero
                 // distances, making heightDiff / distance blow up to beyond numeric(12,2).
-                if (distance >= 1.0 && windowStart.getPointAltitude() != null && windowEnd.getPointAltitude() != null) {
+                if (altitudeSupported && distance >= 1.0 && windowStart.getPointAltitude() != null && windowEnd.getPointAltitude() != null) {
                     double heightDiff = windowEnd.getPointAltitude() - windowStart.getPointAltitude();
                     double slope = heightDiff / distance * 100;
                     center.setSlopePercentageInMovingWindow(Math.max(-MAX_SLOPE_PERCENTAGE, Math.min(slope, MAX_SLOPE_PERCENTAGE)));
                 }
             }
         }
+    }
+
+    private static boolean isUnknownInterval(GpsTrackDataPoint point) {
+        return point.getIntervalStatus() == GpsTrackDataPoint.IntervalStatus.UNKNOWN
+               || point.getIntervalStatus() == GpsTrackDataPoint.IntervalStatus.GEOMETRY_ONLY;
+    }
+
+    static LineString smoothRecordingSpans(LineString line, List<Integer> breakIndexes, GpsSmoothingAlgorithm smoother) {
+        return smoothRecordingSpans(line, breakIndexes, smoother, List.of());
+    }
+
+    static LineString smoothRecordingSpans(LineString line, List<Integer> breakIndexes, GpsSmoothingAlgorithm smoother,
+                                           List<GpsObservationEvidence> evidence) {
+        Set<Integer> breaks = new HashSet<>(breakIndexes == null ? List.of() : breakIndexes);
+        List<GpsObservationEvidence> aligned = new ArrayList<>(Collections.nCopies(line.getNumPoints(), null));
+        for (GpsObservationEvidence observation : evidence) {
+            Integer index = observation.canonicalPointIndex();
+            if (index != null && index >= 0 && index < aligned.size()) aligned.set(index, observation);
+        }
+        List<Coordinate> output = new ArrayList<>(line.getNumPoints());
+        for (int from = 0; from < line.getNumPoints(); ) {
+            int to = from + 1;
+            while (to < line.getNumPoints() && !breaks.contains(to)
+                   && !RecordingContinuity.hasTimeBreak(line.getCoordinateN(to - 1).getM(), line.getCoordinateN(to).getM())) to++;
+            if (to - from < 2) output.add(copyCoordinate(line.getCoordinateN(from)));
+            else {
+                Coordinate[] span = Arrays.copyOfRange(line.getCoordinates(), from, to);
+                LineString section = line.getFactory().createLineString(span);
+                section = StartupElevationStabilizer.stabilize(section).lineString();
+                output.addAll(Arrays.asList(smoother.denoise(section, aligned.subList(from, to)).getCoordinates()));
+            }
+            from = to;
+        }
+        return line.getFactory().createLineString(output.toArray(Coordinate[]::new));
     }
 
     private SimplifiedTiming calculateSimplified(Long trackId, BigDecimal tolerance) {
@@ -680,11 +665,51 @@ public class GPXStoreService {
             GpsTrackData cleaned = gpsDataRepository.findFirstByGpsTrackIdAndTrackType(
                     trackId,
                     GpsTrackData.TRACK_TYPE.RAW_OUTLIER_CLEANED.name());
+            int invalidVertices = countInvalidWgs84Positions(simplifiedLine);
+            if (invalidVertices > 0) {
+                LineString canonical = cleaned != null ? cleaned.getTrack() : null;
+                if (canonical == null || canonical.getNumPoints() < MIN_LINESTRING_POINTS
+                    || countInvalidWgs84Positions(canonical) > 0) {
+                    log.warn("Skipping simplified shape: trackId={} tolerance={} invalidVertices={} no valid canonical geometry",
+                            trackId, tolerance, invalidVertices);
+                    return new SimplifiedTiming(tolerance, elapsedMs(started), 0, false);
+                }
+                // A display projection must not roll back an otherwise valid import.
+                // Keep all canonical vertices so timestamps and recording gaps remain intact.
+                log.warn("Using canonical geometry for simplified shape: trackId={} tolerance={} invalidVertices={} canonicalPoints={}",
+                        trackId, tolerance, invalidVertices, canonical.getNumPoints());
+                simplifiedLine = (LineString) canonical.copy();
+            }
             if (cleaned != null && cleaned.getTrack() != null) {
+                // The display query projects XYM so missing elevations cannot
+                // contaminate horizontal coordinates. Restore Z from its source.
+                simplifiedLine = restoreCanonicalElevations(simplifiedLine, cleaned.getTrack());
                 simplifiedLine = preserveStopAnchors(simplifiedLine, cleaned.getTrack());
             }
 
-            GpsTrackData simplified = GpsTrackData.builder().track(simplifiedLine).gpsTrackId(trackId).trackType(GpsTrackData.TRACK_TYPE.SIMPLIFIED_SHAPE).precisionInMeter(tolerance).createDate(new Date()).build();
+            List<Integer> simplifiedBreaks = new ArrayList<>();
+            if (cleaned != null && cleaned.getRecordingBreakBeforePointIndexes() != null
+                && !cleaned.getRecordingBreakBeforePointIndexes().isEmpty()) {
+                // Restore both sides of every source break before mapping it to the LOD.
+                List<Coordinate> vertices = new ArrayList<>(Arrays.asList(simplifiedLine.getCoordinates()));
+                for (int index : cleaned.getRecordingBreakBeforePointIndexes()) {
+                    for (int endpoint : new int[]{index - 1, index}) {
+                        if (endpoint >= 0 && endpoint < cleaned.getTrack().getNumPoints()) {
+                            Coordinate anchor = cleaned.getTrack().getCoordinateN(endpoint);
+                            if (!containsCoordinateAtTime(vertices, anchor)) vertices.add(copyCoordinate(anchor));
+                        }
+                    }
+                }
+                SourceCoordinateOrder order = SourceCoordinateOrder.from(cleaned.getTrack());
+                vertices.sort(Comparator.comparingInt(order::indexOf));
+                simplifiedLine = simplifiedLine.getFactory().createLineString(vertices.toArray(Coordinate[]::new));
+                for (int i = 1; i < vertices.size(); i++) {
+                    int current = order.indexOf(vertices.get(i));
+                    int previous = order.indexOf(vertices.get(i - 1));
+                    if (cleaned.getRecordingBreakBeforePointIndexes().stream().anyMatch(b -> b > previous && b <= current)) simplifiedBreaks.add(i);
+                }
+            }
+            GpsTrackData simplified = GpsTrackData.builder().recordingBreakBeforePointIndexes(simplifiedBreaks).track(simplifiedLine).gpsTrackId(trackId).trackType(GpsTrackData.TRACK_TYPE.SIMPLIFIED_SHAPE).precisionInMeter(tolerance).createDate(new Date()).build();
             gpsDataRepository.save(simplified);
             pointCount = simplifiedLine.getNumPoints();
             // SIMPLIFIED_SHAPE is a display-only LOD: geometry + canonical back-pointer
@@ -775,16 +800,43 @@ public class GPXStoreService {
         point.setPointLongLat(geometryFactory.createPoint(new CoordinateXY(coordinate.getX(), coordinate.getY())));
 
         double altitude = coordinate.getZ();
-        point.setPointAltitude(Double.isNaN(altitude) ? null : altitude);
+        point.setPointAltitude(Double.isFinite(altitude) ? altitude : null);
         double epochSeconds = coordinate.getM();
-        if (epochSeconds > 0) {
-            point.setPointTimestamp(Timestamp.from(Instant.ofEpochSecond((long) epochSeconds)));
+        if (Double.isFinite(epochSeconds)) {
+            point.setPointTimestamp(Timestamp.from(Instant.ofEpochMilli(Math.round(epochSeconds * MILLIS_PER_SECOND))));
         }
         return point;
     }
 
     private static boolean hasInvalidHorizontalPosition(Coordinate coordinate) {
-        return Double.isNaN(coordinate.getX()) || Double.isNaN(coordinate.getY());
+        return !Double.isFinite(coordinate.getX()) || !Double.isFinite(coordinate.getY());
+    }
+
+    private static int countInvalidWgs84Positions(LineString line) {
+        int invalid = 0;
+        for (Coordinate coordinate : line.getCoordinates()) {
+            if (hasInvalidHorizontalPosition(coordinate)
+                || Math.abs(coordinate.getY()) > MAX_ABSOLUTE_LATITUDE_DEGREES) {
+                invalid++;
+            }
+        }
+        return invalid;
+    }
+
+    private static LineString restoreCanonicalElevations(LineString simplified, LineString canonical) {
+        SourceCoordinateOrder order = SourceCoordinateOrder.from(canonical);
+        Coordinate[] coordinates = Arrays.copyOf(simplified.getCoordinates(), simplified.getNumPoints());
+        for (int i = 0; i < coordinates.length; i++) {
+            Coordinate coordinate = coordinates[i];
+            Integer sourceIndex = order.indexOfOrNull(coordinate);
+            double elevation = sourceIndex == null ? coordinate.getZ() : canonical.getCoordinateN(sourceIndex).getZ();
+            coordinates[i] = new CoordinateXYZM(
+                    coordinate.getX(), coordinate.getY(), elevation, coordinate.getM());
+        }
+        // Database coordinate factories can infer dimensions from the first
+        // vertex and drop every elevation when that vertex has an unknown Z.
+        GeometryFactory factory = new GeometryFactory(simplified.getPrecisionModel(), simplified.getSRID());
+        return factory.createLineString(coordinates);
     }
 
     static LineString preserveStopAnchors(LineString simplified, LineString source) {
@@ -841,7 +893,7 @@ public class GPXStoreService {
         if (Double.isNaN(m)) {
             return Long.MIN_VALUE;
         }
-        return (long) m;
+        return Math.round(m * MILLIS_PER_SECOND);
     }
 
     static Integer canonicalPointIndexFor(LineString canonicalTrack, Coordinate coordinate) {
@@ -862,11 +914,8 @@ public class GPXStoreService {
             for (int i = 0; i < source.getNumPoints(); i++) {
                 Coordinate coordinate = source.getCoordinateN(i);
                 long epochSec = epochSecond(coordinate);
-                if (epochSec != Long.MIN_VALUE) {
-                    orderByEpochSec
-                            .computeIfAbsent(epochSec, ignored -> new ArrayList<>())
-                            .add(new SourceCoordinate(i, coordinate.getX(), coordinate.getY()));
-                }
+                orderByEpochSec.computeIfAbsent(epochSec, ignored -> new ArrayList<>())
+                        .add(new SourceCoordinate(i, coordinate.getX(), coordinate.getY()));
             }
             return new SourceCoordinateOrder(orderByEpochSec);
         }
@@ -903,108 +952,6 @@ public class GPXStoreService {
         }
     }
 
-    static LineString restoreStopAnchorsAfterSmoothing(LineString lineString,
-                                                       List<TrackStopDetector.StopRange> stopRanges) {
-        if (lineString == null || lineString.isEmpty() || stopRanges == null || stopRanges.isEmpty()) {
-            return lineString;
-        }
-
-        Coordinate[] coordinates = new Coordinate[lineString.getNumPoints()];
-        for (int i = 0; i < lineString.getNumPoints(); i++) {
-            coordinates[i] = copyCoordinate(lineString.getCoordinateN(i));
-        }
-
-        boolean changed = false;
-        for (TrackStopDetector.StopRange stop : stopRanges) {
-            StopAnchorIndexes indexes = findStopAnchorIndexes(coordinates, stop.startTimeS(), stop.endTimeS());
-            if (indexes == null) {
-                continue;
-            }
-
-            double anchorElevation = stopAnchorElevation(
-                    stop,
-                    coordinates[indexes.startIndex()],
-                    coordinates[indexes.endIndex()]);
-            coordinates[indexes.startIndex()] = new CoordinateXYZM(
-                    stop.centerLng(),
-                    stop.centerLat(),
-                    anchorElevation,
-                    stop.startTimeS());
-            coordinates[indexes.endIndex()] = new CoordinateXYZM(
-                    stop.centerLng(),
-                    stop.centerLat(),
-                    anchorElevation,
-                    stop.endTimeS());
-            changed = true;
-        }
-
-        if (!changed) {
-            return lineString;
-        }
-
-        LineString restored = lineString.getFactory().createLineString(coordinates);
-        restored.setSRID(lineString.getSRID());
-        return restored;
-    }
-
-    @JsonPropertyOrder({
-            "startIndex",
-            "endIndex"
-    })
-    private record StopAnchorIndexes(int startIndex, int endIndex) {
-    }
-
-    private static StopAnchorIndexes findStopAnchorIndexes(Coordinate[] coordinates,
-                                                           double startTimeS,
-                                                           double endTimeS) {
-        if (Double.isNaN(startTimeS) || Double.isNaN(endTimeS)) {
-            return null;
-        }
-
-        StopAnchorIndexes best = null;
-        int bestGap = Integer.MAX_VALUE;
-        for (int startIndex = 0; startIndex < coordinates.length - 1; startIndex++) {
-            if (!timeMatches(coordinates[startIndex], startTimeS)) {
-                continue;
-            }
-            for (int endIndex = startIndex + 1; endIndex < coordinates.length; endIndex++) {
-                if (!timeMatches(coordinates[endIndex], endTimeS)) {
-                    continue;
-                }
-                int gap = endIndex - startIndex;
-                if (gap < bestGap) {
-                    bestGap = gap;
-                    best = new StopAnchorIndexes(startIndex, endIndex);
-                }
-                break;
-            }
-        }
-        return best;
-    }
-
-    private static boolean timeMatches(Coordinate coordinate, double timeS) {
-        double coordinateTimeS = coordinate.getM();
-        return !Double.isNaN(coordinateTimeS)
-               && Math.abs(coordinateTimeS - timeS) <= STOP_ANCHOR_TIME_TOLERANCE_S;
-    }
-
-    private static double stopAnchorElevation(TrackStopDetector.StopRange stop,
-                                              Coordinate startAnchor,
-                                              Coordinate endAnchor) {
-        if (!Double.isNaN(stop.centerElevation())) {
-            return stop.centerElevation();
-        }
-
-        double startZ = startAnchor.getZ();
-        double endZ = endAnchor.getZ();
-        if (!Double.isNaN(startZ) && !Double.isNaN(endZ)) {
-            return (startZ + endZ) / 2.0;
-        }
-        if (!Double.isNaN(startZ)) {
-            return startZ;
-        }
-        return endZ;
-    }
 
     private static Coordinate copyCoordinate(Coordinate coordinate) {
         return new CoordinateXYZM(
@@ -1037,6 +984,7 @@ public class GPXStoreService {
      * Delete all GPS tracks (and their dependencies) associated with the given file,
      * without changing the IndexedFile's status. Use this when re-importing a changed file.
      */
+    @Transactional
     public void deleteTracksForFile(IndexedFile indexedFile) {
         if (indexedFile == null) {
             log.info("Nothing to delete, as null was given as indexedFile.");
@@ -1051,6 +999,7 @@ public class GPXStoreService {
      * Delete all GPS tracks for the given file and mark it as REMOVED.
      * Use this when the file has actually been deleted from disk.
      */
+    @Transactional
     public void deleteWithAllDependencies(IndexedFile indexedFile) {
         if (indexedFile == null) {
             log.info("Nothing to delete, as null was given as indexedFile.");
@@ -1061,6 +1010,7 @@ public class GPXStoreService {
         indexedFile.setIndexerStatus(IndexedFile.IndexerStatus.REMOVED);
     }
 
+    @Transactional
     public void deleteWithAllDependencies(GpsTrack gpsTrack) {
 
         if (gpsTrack == null) {
@@ -1068,29 +1018,18 @@ public class GPXStoreService {
             return;
         }
 
-        // check if we have duplicates, if so, we need to remove that reference
-        gpsRepository.getDuplicatesForGpsTrackId(gpsTrack.getId()).forEach(duplicateId -> {
+        // Background updates lock the track before its points and correlation queue.
+        // Dependency deletion fires queue triggers too, so take the same lock first.
+        if (gpsRepository.findByIdForUpdate(gpsTrack.getId()).isEmpty()) {
+            log.info("GPS track deletion skipped: trackId={} was already removed", gpsTrack.getId());
+            return;
+        }
 
-            if (!Objects.equals(duplicateId, gpsTrack.getId())) {
-                log.info("To delete gpsTrack %s, need to remove duplicate references for id %s".formatted(gpsTrack.getId(), duplicateId));
-                Optional<GpsTrack> duplicate = gpsRepository.findById(duplicateId);
-                duplicate.ifPresent(d -> {
-                    d.setDuplicateOf(null);
-                    d.setDuplicateStatus(GpsTrack.DUPLICATE_CHECK_STATUS.NOT_CHECKED_YET);
-                    gpsRepository.save(d);
-                });
-            }
-        });
-
-        // Clear source_parent_track_id FK on any child segments referencing this track
-        gpsRepository.findSegmentSiblingIds(gpsTrack.getId()).forEach(siblingId -> {
-            gpsRepository.findById(siblingId).ifPresent(sibling -> {
-                if (Objects.equals(sibling.getSourceParentTrackId(), gpsTrack.getId())) {
-                    sibling.setSourceParentTrackId(null);
-                    gpsRepository.save(sibling);
-                }
-            });
-        });
+        // Source deletion owns reference cleanup, not the surviving tracks' metadata or results.
+        int duplicatesReleased = gpsRepository.releaseDuplicateReferences(gpsTrack.getId());
+        int segmentParentsCleared = gpsRepository.clearSegmentParentReferences(gpsTrack.getId());
+        log.info("GPS track deletion references cleared: trackId={} duplicatesReleased={} segmentParentsCleared={}",
+                gpsTrack.getId(), duplicatesReleased, segmentParentsCleared);
 
         log.debug("About to delete gpsTrackDataPoints for gpsTrack with id=%s".formatted(gpsTrack.getId()));
         gpsTrackEventRepository.deleteByGpsTrackId(gpsTrack.getId());

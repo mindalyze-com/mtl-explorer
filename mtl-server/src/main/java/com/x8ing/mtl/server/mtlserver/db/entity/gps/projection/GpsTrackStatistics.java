@@ -41,7 +41,7 @@ public interface GpsTrackStatistics {
 
     Integer getTrackDurationSecsAvg();
 
-    Integer getTrackLengthInMeterSum();
+    Double getTrackLengthInMeterSum();
 
     Integer getTrackLengthInMeterMed();
 

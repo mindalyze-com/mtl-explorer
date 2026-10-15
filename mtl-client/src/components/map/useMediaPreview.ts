@@ -1,10 +1,17 @@
+import { warnRequestFailure } from '@/utils/safeLogging';
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue';
-import { getMediaInfo, mediaContentUrl } from '@/repositories/mediaRepository';
+import {
+  getMediaContentRevision,
+  getMediaInfo,
+  mediaContentUrl,
+  mediaOriginalUrl,
+} from '@/repositories/mediaRepository';
 import { formatDateAndTime } from '@/utils/Utils';
 import type { MediaInfo } from '@/repositories/mediaRepository';
 import { useAsyncState } from '@/composables/useAsyncState';
 import { isAbortLikeError } from '@/utils/errors';
 import { isVideoMedia } from '@/utils/mediaKind';
+import { fetchMediaImage } from '@/utils/fetchMediaImage';
 import {
   formatMediaAltitude,
   formatMediaCodecs,
@@ -76,7 +83,7 @@ export function useMediaPreview(props: MediaPreviewProps) {
   const info = ref<MediaInfo | null>(null);
 
   const mediaUrl = computed(() => (activeMediaId.value != null ? mediaContentUrl(activeMediaId.value) : ''));
-  const downloadUrl = computed(() => (activeMediaId.value != null ? mediaContentUrl(activeMediaId.value) : ''));
+  const downloadUrl = computed(() => (activeMediaId.value != null ? mediaOriginalUrl(activeMediaId.value) : ''));
   const fileName = computed(() => info.value?.fileName ?? '');
   const filePath = computed(() => info.value?.folderPath ?? '');
   const date = computed(() => {
@@ -115,10 +122,7 @@ export function useMediaPreview(props: MediaPreviewProps) {
   const hasLoadError = computed(() => loadError.value.length > 0);
 
   async function fetchDecodedImageBlobUrl(url: string, signal: AbortSignal): Promise<string> {
-    const response = await fetch(url, { signal });
-    if (!response.ok) throw new Error(`Failed to fetch image: ${response.status}`);
-    const blob = await response.blob();
-    if (blob.size === 0) throw new Error('Image response was empty');
+    const blob = await fetchMediaImage(url, signal);
     const objectUrl = URL.createObjectURL(blob);
 
     try {
@@ -244,6 +248,11 @@ export function useMediaPreview(props: MediaPreviewProps) {
     const controller = entry.controller;
     const request = getMediaInfo(entry.id, controller.signal).catch((error) => {
       if (isAbortLikeError(error, controller.signal)) throw error;
+      warnRequestFailure('Media metadata could not be loaded', error, {
+        topic1: 'media',
+        topic2: 'useMediaPreview',
+        topic3: 'metadata',
+      });
       return null;
     });
     entry.infoPromise = request;
@@ -376,6 +385,11 @@ export function useMediaPreview(props: MediaPreviewProps) {
     } catch (error) {
       if (isAbortLikeError(error, entry.controller.signal)) return;
       // Keep the usable initial preview when the optional full-resolution request fails.
+      warnRequestFailure('Full resolution media preview failed', error, {
+        topic1: 'media',
+        topic2: 'useMediaPreview',
+        topic3: 'full-preview',
+      });
     } finally {
       if (token === loadToken) {
         isHighResolutionPending.value = false;
@@ -514,6 +528,7 @@ export function useMediaPreview(props: MediaPreviewProps) {
       activeMediaId.value = id;
       displayUrl.value = '';
       loadError.value = previewErrorMessage(error);
+      warnRequestFailure('Media preview failed', error, { topic1: 'media', topic2: 'useMediaPreview', topic3: 'load' });
     } finally {
       if (activeLoadTokens.get(id) === token) activeLoadTokens.delete(id);
       trimPreviewCache();
@@ -544,19 +559,26 @@ export function useMediaPreview(props: MediaPreviewProps) {
     void load(id);
   }
 
-  function onMediaError() {
+  function onMediaError(event?: Event) {
     if (activeMediaId.value == null || loadError.value) return;
     loadError.value = 'The media file could not be decoded by the browser.';
+    warnRequestFailure('Media could not be decoded by the browser', undefined, {
+      topic1: 'media',
+      topic2: 'useMediaPreview',
+      topic3: 'decode',
+      context: { code: (event?.target as HTMLMediaElement | null)?.error?.code },
+    });
   }
 
   watch(
-    () => props.mediaId,
-    (id) => {
+    [() => props.mediaId, getMediaContentRevision],
+    ([id, revision], [, previousRevision]) => {
+      if (revision !== previousRevision) reset();
       if (id == null) {
         reset();
         return;
       }
-      if (id === activeMediaId.value) return;
+      // Returning to the displayed item must also supersede pending navigation.
       void load(id);
     },
     { immediate: true }

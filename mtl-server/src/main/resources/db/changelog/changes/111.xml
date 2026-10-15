@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.10.xsd">
+
+    <changeSet id="20261014_track_geometry_entity_revision" author="codex">
+        <comment>Track entity revisions also cover their stored geometry variants. No data backfill.</comment>
+        <sql splitStatements="false"><![CDATA[
+CREATE FUNCTION revise_tracks_after_geometry_change()
+RETURNS trigger AS $$
+BEGIN
+  -- Each stored variant is one row; individual GPS points do not invoke this.
+  -- The existing parent trigger owns the actual version increment.
+  IF TG_OP = 'INSERT' THEN
+    UPDATE gps_track SET version = version
+     WHERE id IN (SELECT DISTINCT gps_track_id FROM new_geometry);
+  ELSIF TG_OP = 'DELETE' THEN
+    UPDATE gps_track SET version = version
+     WHERE id IN (SELECT DISTINCT gps_track_id FROM old_geometry);
+  ELSE
+    UPDATE gps_track SET version = version
+     WHERE id IN (
+       SELECT gps_track_id FROM old_geometry
+       UNION
+       SELECT gps_track_id FROM new_geometry
+     );
+  END IF;
+  RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
+        ]]></sql>
+        <sql>
+            CREATE TRIGGER gps_track_geometry_insert_revision
+            AFTER INSERT ON gps_track_data
+            REFERENCING NEW TABLE AS new_geometry
+            FOR EACH STATEMENT EXECUTE FUNCTION revise_tracks_after_geometry_change();
+        </sql>
+        <sql>
+            CREATE TRIGGER gps_track_geometry_update_revision
+            AFTER UPDATE ON gps_track_data
+            REFERENCING OLD TABLE AS old_geometry NEW TABLE AS new_geometry
+            FOR EACH STATEMENT EXECUTE FUNCTION revise_tracks_after_geometry_change();
+        </sql>
+        <sql>
+            CREATE TRIGGER gps_track_geometry_delete_revision
+            AFTER DELETE ON gps_track_data
+            REFERENCING OLD TABLE AS old_geometry
+            FOR EACH STATEMENT EXECUTE FUNCTION revise_tracks_after_geometry_change();
+        </sql>
+        <rollback>
+            DROP TRIGGER gps_track_geometry_insert_revision ON gps_track_data;
+            DROP TRIGGER gps_track_geometry_update_revision ON gps_track_data;
+            DROP TRIGGER gps_track_geometry_delete_revision ON gps_track_data;
+            DROP FUNCTION revise_tracks_after_geometry_change();
+        </rollback>
+    </changeSet>
+</databaseChangeLog>

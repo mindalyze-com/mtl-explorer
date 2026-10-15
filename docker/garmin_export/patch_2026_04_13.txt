@@ -1,5 +1,5 @@
 diff --git a/gcexport.py b/gcexport.py
-index d2ad74b..0dd7460 100644
+index d2ad74b..04f3688 100644
 --- a/gcexport.py
 +++ b/gcexport.py
 @@ -22,7 +22,6 @@ Activity & event types:
@@ -24,7 +24,8 @@ index d2ad74b..0dd7460 100644
  from timeit import default_timer as timer
 -from urllib.error import HTTPError, URLError
 +from urllib.error import HTTPError
- from urllib.parse import urlencode
+-from urllib.parse import urlencode
++from urllib.parse import parse_qsl, urlencode, urlsplit
 -from urllib.request import Request
  
  # PyPI imports
@@ -61,12 +62,12 @@ index d2ad74b..0dd7460 100644
  URL_GC_GPX_ACTIVITY = f'{GARMIN_BASE_URL}/download-service/export/gpx/activity/'
  URL_GC_TCX_ACTIVITY = f'{GARMIN_BASE_URL}/download-service/export/tcx/activity/'
  URL_GC_ORIGINAL_ACTIVITY = f'{GARMIN_BASE_URL}/download-service/files/activity/'
-@@ -184,56 +188,54 @@ def write_to_file(filename, content, mode='w', file_time=None):
+@@ -184,56 +188,57 @@ def write_to_file(filename, content, mode='w', file_time=None):
          os.utime(filename, (file_time, file_time))
  
  
 +def _path_from_url(url: str) -> str:
-+    """Strip the Garmin Connect base URL, returning just the path for the client."""
++    """Strip the Garmin Connect base URL before splitting path and query."""
 +    for prefix in ('https://connect.garmin.com/', 'https://connectapi.garmin.com/'):
 +        if url.startswith(prefix):
 +            return url[len(prefix):]
@@ -103,7 +104,10 @@ index d2ad74b..0dd7460 100644
 +    if _garmin_client is None:
 +        raise GarminException('Not authenticated')
 +
-+    path = _path_from_url(url)
++    # garminconnect requires query parameters separately from the API path.
++    request_url = urlsplit(_path_from_url(url))
++    path = request_url.path
++    params = parse_qsl(request_url.query, keep_blank_values=True)
 +    extra_headers = headers or {}
 +
      try:
@@ -132,13 +136,13 @@ index d2ad74b..0dd7460 100644
 -
 -    return response.read()
 +        if post is None and path.startswith('download-service/'):
-+            return _garmin_client.download(path, headers=extra_headers)
++            return _garmin_client.download(path, headers=extra_headers, params=params)
 +
 +        if post is not None:
 +            post_data = urlencode(post).encode('utf-8') if isinstance(post, dict) else post
-+            resp = _garmin_client.request('POST', 'connectapi', path, headers=extra_headers, data=post_data)
++            resp = _garmin_client.request('POST', 'connectapi', path, headers=extra_headers, params=params, data=post_data)
 +        else:
-+            resp = _garmin_client.request('GET', 'connectapi', path, headers=extra_headers)
++            resp = _garmin_client.request('GET', 'connectapi', path, headers=extra_headers, params=params)
 +
 +    except GarminConnectConnectionError as ex:
 +        msg = str(ex)
@@ -157,7 +161,7 @@ index d2ad74b..0dd7460 100644
  
  
  def http_req_as_string(url, post=None, headers=None):
-@@ -253,6 +255,22 @@ def load_properties(multiline, separator='=', comment_char='#', keys=None):
+@@ -253,6 +258,22 @@ def load_properties(multiline, separator='=', comment_char='#', keys=None):
      :return:
      """
      props = {}
@@ -180,7 +184,7 @@ index d2ad74b..0dd7460 100644
      for line in multiline.splitlines():
          stripped_line = line.strip()
          if stripped_line and not stripped_line.startswith(comment_char):
-@@ -468,45 +486,40 @@ def login_to_garmin_connect(args):
+@@ -468,45 +489,40 @@ def login_to_garmin_connect(args):
      """
      Perform all HTTP requests to login to Garmin Connect.
      """
@@ -241,7 +245,7 @@ index d2ad74b..0dd7460 100644
  
      except Exception as ex:
          raise GarminException(f'Authentication failure ({ex}). Did you enter correct credentials?') from ex
-@@ -1289,14 +1302,29 @@ def main(argv):
+@@ -1289,14 +1305,29 @@ def main(argv):
          total_to_download = int(args.count)
  
      # Load some dictionaries with lookup data from REST services

@@ -1,3 +1,4 @@
+import { warnSanitized } from '@/utils/safeLogging';
 /**
  * lowZoomCacheService.ts — Downloads and caches the low-zoom PMTiles extract
  * in the browser for offline map display at zoom levels 0–8.
@@ -15,6 +16,7 @@
 import { PMTiles, type Source } from 'pmtiles';
 
 const CACHE_NAME = 'mtl-lowzoom-tiles';
+const pendingDownloads = new Map<string, Promise<string>>();
 
 // ---------------------------------------------------------------------------
 // IndexedDB fallback (works in non-secure / plain HTTP contexts)
@@ -78,7 +80,11 @@ async function downloadLowZoomTiles(fileUrl: string, logSuffix = ''): Promise<Re
   console.log(`Downloading low-zoom PMTiles from ${fileUrl} …${logSuffix}`);
   const response = await fetch(fileUrl, { credentials: 'same-origin' });
   if (response.ok) return response;
-  console.warn(`Failed to download low-zoom tiles: ${response.status} ${response.statusText}`);
+  warnSanitized(`Failed to download low-zoom tiles: ${response.status} ${response.statusText}`, undefined, {
+    topic1: 'application',
+    topic2: 'lowZoomCacheService',
+    topic3: 'downloadLowZoomTiles',
+  });
   return null;
 }
 
@@ -90,9 +96,16 @@ async function downloadLowZoomTiles(fileUrl: string, logSuffix = ''): Promise<Re
  * @param lowzoomTileset   Tileset name without .pmtiles (e.g. "world-lowzoom")
  * @returns The URL from which the file can be loaded (either original or cache)
  */
-export async function ensureLowZoomCached(tileUrlOrBaseUrl: string, lowzoomTileset?: string): Promise<string> {
+export function ensureLowZoomCached(tileUrlOrBaseUrl: string, lowzoomTileset?: string): Promise<string> {
   const fileUrl = resolvePmtilesUrl(tileUrlOrBaseUrl, lowzoomTileset);
+  const pending = pendingDownloads.get(fileUrl);
+  if (pending) return pending;
+  const download = cacheLowZoomArchive(fileUrl).finally(() => pendingDownloads.delete(fileUrl));
+  pendingDownloads.set(fileUrl, download);
+  return download;
+}
 
+async function cacheLowZoomArchive(fileUrl: string): Promise<string> {
   // ---- Preferred: Cache Storage (secure contexts) ----
   if (hasCacheStorage) {
     try {
@@ -111,7 +124,11 @@ export async function ensureLowZoomCached(tileUrlOrBaseUrl: string, lowzoomTiles
       console.log('Low-zoom PMTiles cached successfully (CacheStorage)');
       return fileUrl;
     } catch (e) {
-      console.warn('Failed to cache low-zoom tiles (CacheStorage):', e);
+      warnSanitized('Failed to cache low-zoom tiles (CacheStorage):', e, {
+        topic1: 'application',
+        topic2: 'lowZoomCacheService',
+        topic3: 'cacheLowZoomArchive',
+      });
       return fileUrl;
     }
   }
@@ -132,7 +149,11 @@ export async function ensureLowZoomCached(tileUrlOrBaseUrl: string, lowzoomTiles
     console.log(`Low-zoom PMTiles cached successfully (IndexedDB, ${(buffer.byteLength / 1024 / 1024).toFixed(1)} MB)`);
     return fileUrl;
   } catch (e) {
-    console.warn('Failed to cache low-zoom tiles (IndexedDB):', e);
+    warnSanitized('Failed to cache low-zoom tiles (IndexedDB):', e, {
+      topic1: 'application',
+      topic2: 'lowZoomCacheService',
+      topic3: 'cacheLowZoomArchive',
+    });
     return fileUrl;
   }
 }
@@ -174,7 +195,11 @@ export async function loadLowZoomFromCache(tileUrlOrBaseUrl: string, lowzoomTile
         backend = 'CacheStorage';
       }
     } catch (e) {
-      console.warn('Failed to read low-zoom tiles from CacheStorage:', e);
+      warnSanitized('Failed to read low-zoom tiles from CacheStorage:', e, {
+        topic1: 'application',
+        topic2: 'lowZoomCacheService',
+        topic3: 'loadLowZoomFromCache',
+      });
     }
   }
 
@@ -184,7 +209,11 @@ export async function loadLowZoomFromCache(tileUrlOrBaseUrl: string, lowzoomTile
       buffer = await idbGet(fileUrl);
       if (buffer) backend = 'IndexedDB';
     } catch (e) {
-      console.warn('Failed to read low-zoom tiles from IndexedDB:', e);
+      warnSanitized('Failed to read low-zoom tiles from IndexedDB:', e, {
+        topic1: 'application',
+        topic2: 'lowZoomCacheService',
+        topic3: 'loadLowZoomFromCache',
+      });
     }
   }
 

@@ -7,10 +7,14 @@ const BottomSheetStub = defineComponent({
   name: 'BottomSheet',
   props: {
     modelValue: Boolean,
+    selectedDetent: String,
+    coverPreviousSheet: Boolean,
+    dragToClose: Boolean,
   },
   emits: ['update:modelValue', 'layout-change'],
   template: `
     <div v-if="modelValue">
+      <slot name="header-actions" />
       <button type="button" data-test="sheet-close" @click="$emit('update:modelValue', false)">Close</button>
       <button
         type="button"
@@ -68,6 +72,41 @@ function mountControls(props = {}) {
 }
 
 describe('TrackReplayControls', () => {
+  it('opens compactly and reveals settings without interrupting playback', async () => {
+    const wrapper = mountControls();
+    const sheet = wrapper.getComponent(BottomSheetStub);
+    expect(sheet.props()).toMatchObject({
+      selectedDetent: 'collapsed',
+      coverPreviousSheet: false,
+      dragToClose: false,
+    });
+    expect(wrapper.find('[aria-label="Replay settings"]').exists()).toBe(false);
+    expect(wrapper.find('[aria-label="Pause 3D replay"]').exists()).toBe(true);
+
+    await wrapper.get('.trc__settings-toggle').trigger('click');
+    expect(sheet.props('selectedDetent')).toBe('open');
+    expect(wrapper.get('.trc__settings-toggle').attributes('aria-expanded')).toBe('true');
+    expect(wrapper.find('[aria-label="Replay settings"]').exists()).toBe(true);
+    await wrapper.get('.trc__seg').trigger('click');
+    expect(wrapper.emitted('update-duration')).toHaveLength(1);
+    expect(wrapper.emitted('toggle-play')).toBeUndefined();
+    expect(wrapper.emitted('stop')).toBeUndefined();
+
+    await wrapper.get('.trc__settings-toggle').trigger('click');
+    expect(sheet.props('selectedDetent')).toBe('collapsed');
+    expect(wrapper.find('[aria-label="Replay settings"]').exists()).toBe(false);
+    expect(wrapper.find('[data-test="replay-timeline-meta"]').exists()).toBe(true);
+  });
+
+  it('starts with compact controls again when another replay opens', async () => {
+    const wrapper = mountControls();
+    await wrapper.get('.trc__settings-toggle').trigger('click');
+    await wrapper.setProps({ active: false });
+    await wrapper.setProps({ active: true });
+    expect(wrapper.find('[aria-label="Replay settings"]').exists()).toBe(false);
+    expect(wrapper.getComponent(BottomSheetStub).props('selectedDetent')).toBe('collapsed');
+  });
+
   it('keeps sheet close separate from the stop button', async () => {
     const wrapper = mountControls();
 
@@ -81,6 +120,7 @@ describe('TrackReplayControls', () => {
 
   it('emits context track visibility changes', async () => {
     const wrapper = mountControls();
+    await wrapper.get('.trc__settings-toggle').trigger('click');
 
     await wrapper.get('input[aria-label="Show context tracks"]').setValue(false);
 
@@ -89,6 +129,7 @@ describe('TrackReplayControls', () => {
 
   it('emits telemetry visibility changes', async () => {
     const wrapper = mountControls();
+    await wrapper.get('.trc__settings-toggle').trigger('click');
 
     await wrapper.get('input[aria-label="Show replay telemetry"]').setValue(false);
 
@@ -107,8 +148,9 @@ describe('TrackReplayControls', () => {
     });
   });
 
-  it('labels camera smoothness without percent semantics', () => {
+  it('labels camera smoothness without percent semantics', async () => {
     const wrapper = mountControls({ cameraSmoothness: 100 });
+    await wrapper.get('.trc__settings-toggle').trigger('click');
 
     expect(wrapper.text()).toContain('Cinema');
     expect(wrapper.text()).not.toContain('100%');

@@ -33,11 +33,18 @@ function feature(id: number, startDate: string) {
 }
 
 describe('AnimateMap track source', () => {
-  it('uses the explicit map geojson prop for its track timeline', async () => {
+  it('uses visible map tracks for its timeline and omits map-excluded recordings', async () => {
     const wrapper = mount(AnimateMap, {
       props: {
         geojson: {
-          features: [feature(2, '2026-05-02T08:00:00Z'), feature(1, '2026-05-01T08:00:00Z')],
+          features: [
+            feature(2, '2026-05-02T08:00:00Z'),
+            feature(1, '2026-05-01T08:00:00Z'),
+            {
+              ...feature(3, '2026-05-03T08:00:00Z'),
+              properties: { id: 3, startDate: '2026-05-03T08:00:00Z', reviewMapExcluded: true },
+            },
+          ],
         },
       },
       global: {
@@ -188,7 +195,6 @@ describe('AnimateMap track source', () => {
     const trackPaintProperties = [
       ['tracks-layer', 'line-opacity', 0.33],
       ['tracks-highlight-layer', 'line-opacity', 0.44],
-      ['tracks-highlight-dash-layer', 'line-opacity', 0.55],
       ['tracks-dot-layer', 'circle-opacity', 0.66],
       ['tracks-dot-layer', 'circle-stroke-opacity', 0.77],
       ['tracks-overview-dots', 'circle-opacity', 0.85],

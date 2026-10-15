@@ -11,12 +11,15 @@ import java.math.BigDecimal;
 public interface SimplifiedTrackRepository extends JpaRepository<SimplifiedTrack, Long> {
 
     //                 'fake_' || EXTRACT(epoch FROM NOW() ) || '_' || random()*1000000::integer AS fake_id ,
+    // Project XYM so unknown elevations cannot affect XY; the store restores canonical Z.
     @QueryHints(@QueryHint(name = org.hibernate.jpa.HibernateHints.HINT_CACHEABLE, value = "false"))
     @Query(nativeQuery = true, value = """
             select
                 EXTRACT(epoch FROM CURRENT_TIMESTAMP ) || '_' || random()*1000000 AS fake_id,
             	gt.id gps_track_id, gtd.id gps_track_data_id, gtd.track_type track_type,
-            	ST_SnapToGrid((st_transform(ST_Simplify(st_transform(track,	3857),	:tolerance),	4326)),	0.00001) as line_string
+                ST_Force4D(ST_SnapToGrid(ST_Transform(
+                    ST_Simplify(ST_Transform(ST_Force3DM(track), 3857), :tolerance), 4326),
+                    0.00001), 'NaN'::double precision) as line_string
             from
             	gps_track gt
             	left join gps_track_data gtd  on gt.id = gtd.gps_track_id

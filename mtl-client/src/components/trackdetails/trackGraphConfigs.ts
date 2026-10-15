@@ -21,10 +21,14 @@ export interface TrackGraphConfig extends ChartThemeConfig {
   extractY: (point: ChartPoint) => number | null | undefined;
   /** Metric bucket stats used for optional min/max range rendering. */
   rangeMetricKey?: MetricKey;
+  /** Optional min/max extractor for series that do not use canonical GPS metric keys. */
+  extractRange?: (point: ChartPoint) => { low: number; high: number } | null;
   /** When true, points where extractY returns null/undefined are filtered out
    *  rather than emitted as null. Matches the legacy Energy/Power behavior. */
   filterNullY?: boolean;
 }
+
+const HEART_RATE_SERIES_COLOR = '#e11d48';
 
 const elevationConfig: TrackGraphConfig = {
   icon: 'bi-graph-up-arrow',
@@ -107,6 +111,24 @@ const powerConfig: TrackGraphConfig = {
   extractY: (p) => (p.powerWattsWindow != null ? Math.round(p.powerWattsWindow) : null),
 };
 
+const heartRateConfig: TrackGraphConfig = {
+  icon: 'bi-heart-pulse',
+  title: 'Heart Rate',
+  seriesName: 'Heart Rate',
+  seriesColor: HEART_RATE_SERIES_COLOR,
+  unit: 'bpm',
+  decimals: 0,
+  connectNulls: false,
+  filterNullY: true,
+  rangeTooltipLabel: 'samples',
+  extractY: (p) => p.heartRateBpm,
+  extractRange: (p) => {
+    const low = p.heartRateMinimumBpm;
+    const high = p.heartRateMaximumBpm;
+    return low == null || high == null ? null : { low, high };
+  },
+};
+
 export const trackGraphConfigs = {
   elevation: elevationConfig,
   elevationGain: elevationGainConfig,
@@ -114,6 +136,7 @@ export const trackGraphConfigs = {
   distance: distanceConfig,
   energy: energyConfig,
   power: powerConfig,
+  heartRate: heartRateConfig,
 } as const;
 
 export type TrackGraphConfigKey = keyof typeof trackGraphConfigs;

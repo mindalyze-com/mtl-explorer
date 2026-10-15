@@ -2,20 +2,7 @@ package com.x8ing.mtl.server.mtlserver.energy;
 
 import com.x8ing.mtl.server.mtlserver.db.entity.gps.GpsTrack;
 import com.x8ing.mtl.server.mtlserver.db.entity.gps.GpsTrackDataPoint;
-import com.x8ing.mtl.server.mtlserver.energy.impl.AirplaneEnergyCalculator;
-import com.x8ing.mtl.server.mtlserver.energy.impl.BicycleEnergyCalculator;
-import com.x8ing.mtl.server.mtlserver.energy.impl.CarEnergyCalculator;
-import com.x8ing.mtl.server.mtlserver.energy.impl.DefaultEnergyCalculator;
-import com.x8ing.mtl.server.mtlserver.energy.impl.HikingEnergyCalculator;
-import com.x8ing.mtl.server.mtlserver.energy.impl.KayakingEnergyCalculator;
-import com.x8ing.mtl.server.mtlserver.energy.impl.MotorbikeEnergyCalculator;
-import com.x8ing.mtl.server.mtlserver.energy.impl.MountainBikeEnergyCalculator;
-import com.x8ing.mtl.server.mtlserver.energy.impl.RowingEnergyCalculator;
-import com.x8ing.mtl.server.mtlserver.energy.impl.RunningEnergyCalculator;
-import com.x8ing.mtl.server.mtlserver.energy.impl.SkiingEnergyCalculator;
-import com.x8ing.mtl.server.mtlserver.energy.impl.StandUpPaddleEnergyCalculator;
-import com.x8ing.mtl.server.mtlserver.energy.impl.SupersonicEnergyCalculator;
-import com.x8ing.mtl.server.mtlserver.energy.impl.WalkingEnergyCalculator;
+import com.x8ing.mtl.server.mtlserver.energy.impl.*;
 import org.junit.jupiter.api.Test;
 
 import java.sql.Timestamp;
@@ -23,9 +10,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * Unit tests for the energy calculation framework.
@@ -143,6 +128,8 @@ class EnergyCalculationTest {
         service.calculateAndPopulatePoints(points, GpsTrack.ACTIVITY_TYPE.BICYCLE, defaultParams);
 
         assertTrue(p2.getPowerWatts() <= 2500.0, "Power should be capped at 2500 W");
+        assertTrue(p2.getEnergyTotalWh() * 3600 <= 2500.000001, "The same guard must limit accumulated energy");
+        assertTrue(p2.getEnergyLimited(), "The quality view must expose the limited interval");
     }
 
     // ─── Fix 3: Speed capping in aero drag ───────────────────────────────
@@ -493,7 +480,83 @@ class EnergyCalculationTest {
         assertEquals(10.0, delta.getWeightKgUsed(), 0.001);
     }
 
+    @Test
+    void movingPowerUsesStoredStatesAndMatchingEnergyEvenWhenWindowSpeedDisagrees() {
+        var first = makePoint(0, 0, 100, 0, 0);
+        var moving = makePoint(10000, 1, 110, 100, 10);
+        var stopped = makePoint(20000, 2, 120, 100, 10);
+        var unknown = makePoint(30000, 3, 130, 100, 10);
+        moving.setSpeedInKmhMovingWindow(0.0);
+        stopped.setSpeedInKmhMovingWindow(36.0);
+        unknown.setSpeedInKmhMovingWindow(36.0);
+        stopped.setMotionState(com.x8ing.mtl.server.mtlserver.logic.motion.TrackMotionAnalyzer.State.STOPPED);
+        unknown.setMotionState(com.x8ing.mtl.server.mtlserver.logic.motion.TrackMotionAnalyzer.State.UNKNOWN);
+        var service = new EnergyService(buildFactory(), null, null, null, null);
+        var summary = service.calculateAndPopulatePoints(List.of(first, moving, stopped, unknown),
+                GpsTrack.ACTIVITY_TYPE.BICYCLE, defaultParams);
+        assertEquals(moving.getEnergyTotalWh() * 3600 / 10, summary.getPowerWattsMovingAvg(), 1e-6);
+        var preview = service.calculateSummaryWithoutPersisting(List.of(first, moving, stopped, unknown),
+                GpsTrack.ACTIVITY_TYPE.BICYCLE, defaultParams);
+        assertEquals(summary.getPowerWattsMovingAvg(), preview.getPowerWattsMovingAvg(), 1e-6);
+    }
+
     // ─── Helpers ─────────────────────────────────────────────────────────
+
+    @Test
+    void zeroSpeedDoesNotFallBackToTrackAverage() {
+        var params = defaultParams.toBuilder().trackAverageSpeedMpsFallback(10.0).build();
+        var point = makePoint(1000, 1, 100, 20, 1);
+        point.setSpeedInKmhMovingWindow(0.0);
+        assertEquals(0, bicycleCalculator.smoothedSpeedMps(point, params));
+        point.setSpeedInKmhMovingWindow(null);
+        point.setDistanceInMeterBetweenPoints(0.0);
+        assertEquals(0, bicycleCalculator.smoothedSpeedMps(point, params));
+        point.setDurationBetweenPointsInSec(null);
+        assertEquals(10, bicycleCalculator.smoothedSpeedMps(point, params));
+        point.setSpeedInKmhMovingWindow(Double.NaN);
+        assertEquals(10, bicycleCalculator.smoothedSpeedMps(point, params));
+    }
+
+    @Test
+    void waterAltitudeCannotAddOrOffsetPaddlingWorkButAirplaneKeepsGravity() {
+        var first = makePoint(0, 0, 100, 0, 0);
+        first.setSpeedInKmhMovingWindow(6.0);
+        var end = makePoint(10000, 1, 100, 20, 10);
+        end.setSpeedInKmhMovingWindow(6.0);
+        var factory = buildFullFactory();
+        for (var activity : List.of(GpsTrack.ACTIVITY_TYPE.KAYAKING, GpsTrack.ACTIVITY_TYPE.ROWING, GpsTrack.ACTIVITY_TYPE.STAND_UP_PADDLE)) {
+            var calculator = factory.getCalculator(activity);
+            double flat = calculator.calculateBetweenPoints(end, first, defaultParams).totalPositiveJoules();
+            for (double altitude : List.of(50.0, 150.0)) {
+                end.setPointAltitude(altitude);
+                var changed = calculator.calculateBetweenPoints(end, first, defaultParams);
+                assertEquals(0, changed.getGravitationalJoules());
+                assertEquals(flat, changed.totalPositiveJoules(), 1e-9);
+            }
+            end.setPointAltitude(100.0);
+        }
+        end.setPointAltitude(150.0);
+        assertTrue(factory.getCalculator(GpsTrack.ACTIVITY_TYPE.AIRPLANE)
+                           .calculateBetweenPoints(end, first, defaultParams).getGravitationalJoules() > 0);
+    }
+
+    @Test
+    void sameWeightPreviewMatchesPersistedSummaryAndDoesNotMutatePoints() {
+        var first = makePoint(0, 0, 100, 0, 0);
+        var end = makePoint(30000, 1, 105, 100, 30);
+        end.setIntervalStatus(GpsTrackDataPoint.IntervalStatus.OBSERVED);
+        end.setSlopePercentageInMovingWindow(5.0);
+        end.setAscentInMeterBetweenPoints(5.0);
+        var points = List.of(first, end);
+        var service = new EnergyService(buildFullFactory(), null, null, null, null);
+        var stored = service.calculateAndPopulatePoints(points, GpsTrack.ACTIVITY_TYPE.BICYCLE, defaultParams);
+        var track = new GpsTrack();
+        service.applyEnergyToTrack(track, stored);
+        var preview = service.calculateSummaryWithoutPersisting(points, GpsTrack.ACTIVITY_TYPE.BICYCLE, defaultParams);
+        assertEquals(0, service.subtractSummaries(preview, service.summaryFromTrack(track)).getNetEnergyTotalWh(), 1e-9);
+        assertEquals(stored.getMetabolicEnergy().getActiveKcal(), preview.getMetabolicEnergy().getActiveKcal(), 1e-9);
+        assertEquals(stored.getNetEnergyTotalWh(), end.getEnergyTotalWh(), 1e-9);
+    }
 
     private GpsTrackDataPoint makePoint(long timestampOffsetMs, int index, double altitude,
                                         double distanceBetween, double durationBetween) {
@@ -503,6 +566,7 @@ class EnergyCalculationTest {
         p.setPointAltitude(altitude);
         p.setDistanceInMeterBetweenPoints(distanceBetween);
         p.setDurationBetweenPointsInSec(durationBetween);
+        p.setMotionState(com.x8ing.mtl.server.mtlserver.logic.motion.TrackMotionAnalyzer.State.MOVING);
         return p;
     }
 

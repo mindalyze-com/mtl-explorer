@@ -1,8 +1,10 @@
 import { readFileSync } from 'node:fs';
-import { mount } from '@vue/test-utils';
-import { describe, expect, it } from 'vitest';
+import { enableAutoUnmount, flushPromises, mount } from '@vue/test-utils';
+import { afterEach, describe, expect, it } from 'vitest';
 import MediaCollectionChooser from '@/components/map/MediaCollectionChooser.vue';
 import type { MediaOverlaySelection } from '@/layers/MediaOverlay';
+
+enableAutoUnmount(afterEach);
 
 function selection(overrides: Partial<MediaOverlaySelection> = {}): MediaOverlaySelection {
   return {
@@ -37,6 +39,7 @@ describe('MediaCollectionChooser', () => {
     expect(chooserSection).toContain('desktop-width="compact"');
     expect(chooserSection).not.toContain("height: '62vh'");
     expect(chooserSource).toContain('--media-collection-bottom-buffer: 0.75rem;');
+    expect(chooserSource).not.toContain('min-height: min(26rem');
   });
 
   it('offers the clicked photo and the current map view for a single marker', async () => {
@@ -44,7 +47,7 @@ describe('MediaCollectionChooser', () => {
 
     expect(wrapper.get('[data-test="media-collection-primary"]').text()).toContain('This photo');
     expect(wrapper.get('[data-test="media-collection-primary"]').text()).toContain('1 photo');
-    expect(wrapper.get('[data-test="media-collection-viewport"]').text()).toContain('Current map view');
+    expect(wrapper.get('[data-test="media-collection-viewport"]').text()).toContain('Map view at tap');
     expect(wrapper.get('[data-test="media-collection-viewport"]').text()).toContain('2 photos');
 
     await wrapper.get('[data-test="media-collection-viewport"]').trigger('click');
@@ -80,8 +83,8 @@ describe('MediaCollectionChooser', () => {
     });
 
     const activities = wrapper.get('[data-test="media-collection-activities"]');
-    expect(activities.text()).toContain('Photos along a GPS track');
-    expect(activities.text()).toContain('Open photos linked to a GPS activity that passes this location.');
+    expect(activities.text()).toContain('Nearby GPS tracks');
+    expect(activities.text()).toContain('Open linked photos, or track details when no photos are matched.');
 
     await activities.trigger('click');
     expect(wrapper.emitted('open-activities')).toHaveLength(1);
@@ -95,5 +98,66 @@ describe('MediaCollectionChooser', () => {
     });
 
     expect(wrapper.find('[data-test="media-collection-viewport"]').exists()).toBe(false);
+  });
+
+  it.each(['location', 'cluster'] as const)(
+    'deduplicates an entirely known %s by photo IDs instead of their order',
+    (kind) => {
+      const points = [
+        { id: 10, lat: 47.45, lng: 7.55 },
+        { id: 11, lat: 47.46, lng: 7.56 },
+      ];
+      const wrapper = mount(MediaCollectionChooser, {
+        props: {
+          selection: selection({
+            kind,
+            mediaIds: [10, 11],
+            mediaPoints: points,
+            totalMediaCount: 2,
+            viewportMediaPoints: [...points].reverse(),
+          }),
+        },
+      });
+      expect(wrapper.find('[data-test="media-collection-viewport"]').exists()).toBe(false);
+      expect(wrapper.get('[data-test="media-collection-primary"]').text()).toContain('2 photos');
+    }
+  );
+
+  it('keeps the viewport choice when a cluster is only partly loaded, even when its loaded IDs match', () => {
+    const points = [
+      { id: 10, lat: 47.45, lng: 7.55 },
+      { id: 11, lat: 47.46, lng: 7.56 },
+    ];
+    const wrapper = mount(MediaCollectionChooser, {
+      props: {
+        selection: selection({
+          kind: 'cluster',
+          mediaIds: [10, 11],
+          mediaPoints: points,
+          totalMediaCount: 28,
+          viewportMediaPoints: points,
+        }),
+      },
+    });
+    expect(wrapper.get('[data-test="media-collection-primary"]').text()).toContain('28 photos');
+    expect(wrapper.get('[data-test="media-collection-viewport"]').text()).toContain('2 photos');
+  });
+
+  it('keeps usable photo choices beside a failed lookup and offers an accessible retry', async () => {
+    const wrapper = mount(MediaCollectionChooser, {
+      props: { selection: selection(), tracksError: 'Nearby GPS tracks are unavailable.' },
+      attachTo: document.body,
+    });
+    expect(wrapper.get('[data-test="media-collection-error"]').attributes('role')).toBe('status');
+    expect(wrapper.get('[data-test="media-collection-primary"]').attributes('disabled')).toBeUndefined();
+    expect(wrapper.get('[data-test="media-collection-viewport"]').attributes('disabled')).toBeUndefined();
+    await wrapper.get('[data-test="media-collection-retry"]').trigger('click');
+    await flushPromises();
+    expect(wrapper.emitted('retry-activities')).toEqual([[]]);
+    expect(document.activeElement).toBe(wrapper.get('[data-test="media-collection-primary"]').element);
+    await wrapper.setProps({ tracksError: null, tracksLoading: true });
+    expect(wrapper.find('[data-test="media-collection-error"]').exists()).toBe(false);
+    expect(wrapper.get('[data-test="media-collection-activities"]').attributes('disabled')).toBeDefined();
+    expect(wrapper.get('[data-test="media-collection-activities"]').text()).toContain('Loading…');
   });
 });

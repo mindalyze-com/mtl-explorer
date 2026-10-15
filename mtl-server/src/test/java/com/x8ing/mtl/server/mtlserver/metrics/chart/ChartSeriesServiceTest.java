@@ -12,18 +12,65 @@ import com.x8ing.mtl.server.mtlserver.metrics.bucket.XMode;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 class ChartSeriesServiceTest {
+
+    @Test
+    void pendingActivityCalculationHidesOldEnergyButPreservesOtherChartsAndStoredPoints() {
+        var tracks = mock(GpsTrackRepository.class);
+        var repository = mock(GpsTrackDataPointRepository.class);
+        var track = new GpsTrack();
+        track.setMetabolicEnergy(new com.x8ing.mtl.server.mtlserver.energy.MetabolicEnergy());
+        when(tracks.findById(42L)).thenReturn(Optional.of(track));
+        var points = densePoints();
+        for (var point : points) {
+            point.setPowerWatts(100.0);
+            point.setEnergyCumulativeWh(10.0);
+            point.setPointAltitude(100.0);
+        }
+        when(repository.getTrackDetailsByGpsTrackIdAndType(42L, GpsTrackData.TRACK_TYPE.RAW_OUTLIER_CLEANED.name())).thenReturn(points);
+        var service = new ChartSeriesService(tracks, repository);
+        var response = service.build(42L, new ChartSeriesRequest(XMode.TIME, 20, null, null, null, null));
+        assertThat(response.availableMetrics()).contains(MetricKey.ALTITUDE_M).doesNotContain(MetricKey.POWER_WATTS, MetricKey.POWER_WINDOW_WATTS, MetricKey.ENERGY_CUMULATIVE_WH);
+        assertThat(points.getLast().getPowerWatts()).isEqualTo(100);
+        track.setEnergyNetTotalWh(10.0);
+        assertThat(service.build(42L, new ChartSeriesRequest(XMode.TIME, 20, null, null, null, null)).availableMetrics()).contains(MetricKey.ENERGY_CUMULATIVE_WH);
+    }
+
+    @Test
+    void explicitlyAssessedBadTimingKeepsGeometryAndSuppressesTimeMetricsWithoutChangingStoredPoints() {
+        var tracks = mock(GpsTrackRepository.class);
+        var repository = mock(GpsTrackDataPointRepository.class);
+        var track = new GpsTrack();
+        track.setTimingUnreliable(true);
+        when(tracks.findById(42L)).thenReturn(Optional.of(track));
+        var first = point(0.0, "2032-02-18T08:00:00Z");
+        first.setDistanceInMeterSinceStart(0.0);
+        first.setPointAltitude(100.0);
+        var last = point(30 * 86400.0, "2032-03-19T08:00:00Z");
+        last.setDistanceInMeterSinceStart(100.0);
+        last.setPointAltitude(120.0);
+        last.setPowerWatts(500.0);
+        last.setEnergyCumulativeWh(1000.0);
+        last.setSpeedInKmhMovingWindow(300.0);
+        when(repository.getTrackDetailsByGpsTrackIdAndType(42L, GpsTrackData.TRACK_TYPE.RAW_OUTLIER_CLEANED.name()))
+                .thenReturn(List.of(first, last));
+        var response = new ChartSeriesService(tracks, repository).build(42L,
+                new ChartSeriesRequest(XMode.TIME, 10, null, null, null, null));
+        assertThat(response.xMode()).isEqualTo(XMode.DISTANCE);
+        assertThat(response.xEnd()).isEqualTo(100.0);
+        assertThat(response.availableMetrics()).contains(MetricKey.ALTITUDE_M, MetricKey.DISTANCE_M)
+                .doesNotContain(MetricKey.DURATION_S, MetricKey.SPEED_MOVING_WINDOW_KMH, MetricKey.SPEED_WINDOW_KMH,
+                        MetricKey.SPEED_BUCKET_AVG_KMH, MetricKey.POWER_WATTS, MetricKey.ENERGY_CUMULATIVE_WH);
+        assertThat(response.startTimestamp()).isNull();
+        assertThat(last.getDurationSinceStart()).isEqualTo(30 * 86400.0);
+        assertThat(last.getPowerWatts()).isEqualTo(500.0);
+    }
 
     @Test
     void includesTopLevelVisibleDomainTimestampsAtSecondPrecision() {
@@ -51,7 +98,7 @@ class ChartSeriesServiceTest {
 
     @Test
     void speedRecommendationKeepsWindowAtGoodCoverageBoundary() {
-        MetricKey recommendation = ChartSeriesService.recommendSpeedMetric(
+        MetricKey recommendation = ChartSeriesMetrics.recommendSpeedMetric(
                 buckets(10, 6, 10),
                 List.of(MetricKey.SPEED_WINDOW_KMH, MetricKey.SPEED_BUCKET_AVG_KMH));
 
@@ -60,7 +107,7 @@ class ChartSeriesServiceTest {
 
     @Test
     void speedRecommendationSwitchesWhenBucketAverageIsExactlyMarginBetter() {
-        MetricKey recommendation = ChartSeriesService.recommendSpeedMetric(
+        MetricKey recommendation = ChartSeriesMetrics.recommendSpeedMetric(
                 buckets(20, 4, 7),
                 List.of(MetricKey.SPEED_WINDOW_KMH, MetricKey.SPEED_BUCKET_AVG_KMH));
 
@@ -69,7 +116,7 @@ class ChartSeriesServiceTest {
 
     @Test
     void speedRecommendationKeepsWindowWhenBucketAverageIsUnderMargin() {
-        MetricKey recommendation = ChartSeriesService.recommendSpeedMetric(
+        MetricKey recommendation = ChartSeriesMetrics.recommendSpeedMetric(
                 buckets(20, 4, 6),
                 List.of(MetricKey.SPEED_WINDOW_KMH, MetricKey.SPEED_BUCKET_AVG_KMH));
 
@@ -78,7 +125,7 @@ class ChartSeriesServiceTest {
 
     @Test
     void speedRecommendationHonorsEmptyBucketWindowAvailability() {
-        MetricKey recommendation = ChartSeriesService.recommendSpeedMetric(
+        MetricKey recommendation = ChartSeriesMetrics.recommendSpeedMetric(
                 List.of(),
                 List.of(MetricKey.SPEED_WINDOW_KMH));
 

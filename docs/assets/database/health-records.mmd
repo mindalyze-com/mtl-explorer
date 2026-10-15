@@ -1,0 +1,64 @@
+erDiagram
+    direction LR
+    connection["google_health.connection"] {
+        smallint id PK
+        text google_user_id
+        text state
+    }
+    sync_state["google_health.sync_state"] {
+        bigint id PK
+        smallint connection_id FK, UK
+        text data_type UK
+        text representation UK
+    }
+    data_source["google_health.data_source"] {
+        bigint id PK
+        smallint connection_id FK, UK
+        char fingerprint UK
+        text application_name
+    }
+    data_point["google_health.data_point"] {
+        bigint id PK
+        smallint connection_id FK, UK
+        bigint data_source_id FK "nullable"
+        text data_type UK
+        text representation UK
+        char identity_key UK
+        bigint indexed_file_id FK "nullable"
+        bigint gps_track_id FK "nullable"
+    }
+    heart_rate_sample["google_health.heart_rate_sample"] {
+        bigint id PK
+        smallint connection_id FK
+        bigint data_source_id FK "nullable"
+        char identity_key "nullable"
+        timestamptz sample_time
+        integer beats_per_minute
+    }
+    route_ownership["google_health.route_ownership"] {
+        bigint id PK
+        smallint connection_id FK
+        text account_id UK
+        char identity_key UK
+        bigint indexed_file_id FK "nullable"
+        bigint gps_track_id FK "nullable"
+        text route_state
+    }
+    indexed_file {
+        bigint id PK
+    }
+    gps_track {
+        bigint id PK
+    }
+
+    connection ||..o{ sync_state : connection_id
+    connection ||..o{ data_source : connection_id
+    connection ||..o{ data_point : connection_id
+    data_source |o..o{ data_point : data_source_id
+    connection ||..o{ heart_rate_sample : connection_id
+    data_source |o..o{ heart_rate_sample : data_source_id
+    connection ||..o{ route_ownership : connection_id
+    indexed_file |o..o{ data_point : indexed_file_id
+    gps_track |o..o{ data_point : gps_track_id
+    indexed_file |o..o{ route_ownership : indexed_file_id
+    gps_track |o..o{ route_ownership : gps_track_id

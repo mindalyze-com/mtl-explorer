@@ -5,6 +5,7 @@ import {
   useMapLayerSettings,
 } from '@/components/map/composables/useMapLayerSettings';
 import { useTerrainMode } from '@/components/map/composables/useTerrainMode';
+import { useTrackLayers } from '@/components/map/composables/useTrackLayers';
 
 describe('single MapLibre renderer', () => {
   it('moves the application map camera directly', () => {
@@ -72,5 +73,44 @@ describe('single MapLibre renderer', () => {
     expect(setPaintProperty).toHaveBeenCalledWith('base-label', 'icon-opacity', 0.5);
     expect(setPaintProperty).toHaveBeenCalledWith('base-label', 'text-opacity', 0.5);
     expect(setPaintProperty).not.toHaveBeenCalledWith('tracks-layer', expect.anything(), expect.anything());
+  });
+
+  it.each([
+    { action: 'rebuild', operation: 'add' },
+    { action: 'unmount', operation: 'add' },
+    { action: 'rebuild', operation: 'update' },
+    { action: 'unmount', operation: 'update' },
+  ])('discards pending track-layer $operation after $action', async ({ action, operation }) => {
+    let finishColor!: (color: string) => void;
+    const context = {
+      overlayMap: {},
+      geojson: { type: 'FeatureCollection', features: [] },
+      _mapLoadGeneration: 1,
+      _mapUnmounted: false,
+      visibleTrackCount: 12,
+      resolveTrackLineColor: () =>
+        new Promise<string>((resolve) => {
+          finishColor = resolve;
+        }),
+      detachTrackPointLayerHandlers: vi.fn(),
+      flatTrackSourceGeojson: vi.fn(),
+    };
+    const method =
+      operation === 'add'
+        ? useTrackLayers().addTracksToMap
+        : useMapLayerSettings({ filterStore: {} as never, mapSettingsStore: {} as never }).updateTrackStyle;
+    const pending = method.call(context as never);
+    if (action === 'rebuild') {
+      context._mapLoadGeneration += 1;
+      context.overlayMap = {};
+    } else {
+      context._mapUnmounted = true;
+    }
+    context.visibleTrackCount = 23;
+    finishColor('#000000');
+    await pending;
+    expect(context.visibleTrackCount).toBe(23);
+    expect(context.detachTrackPointLayerHandlers).not.toHaveBeenCalled();
+    expect(context.flatTrackSourceGeojson).not.toHaveBeenCalled();
   });
 });

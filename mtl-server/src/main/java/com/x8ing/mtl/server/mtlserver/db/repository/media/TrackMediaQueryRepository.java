@@ -20,6 +20,7 @@ public class TrackMediaQueryRepository {
     static final String SELECTED_MEDIA_COUNTS_BY_TRACK_SQL = """
             SELECT correlation.track_id, COUNT(*) AS media_count
             FROM media_track_correlation correlation
+            JOIN gps_track track ON track.id = correlation.track_id AND NOT track.timing_unreliable
             WHERE correlation.selected
               AND correlation.track_id IN (:trackIds)
             GROUP BY correlation.track_id
@@ -34,6 +35,7 @@ public class TrackMediaQueryRepository {
                  AND gtd.track_type = 'RAW_OUTLIER_CLEANED'
                 WHERE gt.id = :trackId
                   AND gt.load_status = 'SUCCESS'
+                  AND NOT gt.timing_unreliable
                   AND gt.duplicate_status = 'UNIQUE'
                   AND gt.track_source = 'IMPORTED'
                   AND gt.start_date IS NOT NULL
@@ -59,9 +61,9 @@ public class TrackMediaQueryRepository {
                   ON m.exif_gps_date BETWEEN tt.start_date AND tt.end_date
                 JOIN indexed_file ixf ON ixf.id = m.file_id
                 WHERE m.exif_gps_date IS NOT NULL
-
+            
                 UNION ALL
-
+            
                 SELECT
                     m.id, ixf.name AS file_name, m.camera_make, m.camera_model,
                     m.exif_date_image_taken AS captured_at,
@@ -89,7 +91,7 @@ public class TrackMediaQueryRepository {
                             candidate_track.id,
                             candidate_track.start_date,
                             candidate_track.end_date,
-                            COALESCE(candidate_shape.track, candidate_canonical.track) AS route_shape,
+                            COALESCE(candidate_shape.observed_path, candidate_canonical.observed_path) AS route_shape,
                             COUNT(*) OVER () AS overlap_count
                         FROM gps_track candidate_track
                         LEFT JOIN gps_track_data candidate_shape
@@ -99,10 +101,31 @@ public class TrackMediaQueryRepository {
                         JOIN gps_track_data candidate_canonical
                           ON candidate_canonical.gps_track_id = candidate_track.id
                          AND candidate_canonical.track_type = 'RAW_OUTLIER_CLEANED'
+                        JOIN LATERAL (
+                            SELECT point_timestamp, point_index
+                            FROM gps_track_data_points
+                            WHERE gps_track_data_id = candidate_canonical.id
+                              AND point_timestamp <= tc.adjusted_captured_at
+                            ORDER BY point_timestamp DESC, point_index DESC
+                            LIMIT 1
+                        ) candidate_before ON TRUE
+                        JOIN LATERAL (
+                            SELECT point_timestamp, point_index, interval_status
+                            FROM gps_track_data_points
+                            WHERE gps_track_data_id = candidate_canonical.id
+                              AND point_timestamp >= tc.adjusted_captured_at
+                            ORDER BY point_timestamp ASC, point_index ASC
+                            LIMIT 1
+                        ) candidate_after ON TRUE
                         WHERE candidate_track.load_status = 'SUCCESS'
+                          AND NOT candidate_track.timing_unreliable
                           AND candidate_track.duplicate_status = 'UNIQUE'
                           AND candidate_track.track_source = 'IMPORTED'
                           AND tc.adjusted_captured_at BETWEEN candidate_track.start_date AND candidate_track.end_date
+                          AND (tc.adjusted_captured_at = candidate_before.point_timestamp
+                               OR tc.adjusted_captured_at = candidate_after.point_timestamp
+                               OR (candidate_after.point_index = candidate_before.point_index + 1
+                                   AND candidate_after.interval_status IN ('OBSERVED', 'STOPPED')))
                           AND EXISTS (
                               SELECT 1
                               FROM gps_track_data_points candidate_time_point
@@ -161,7 +184,7 @@ public class TrackMediaQueryRepository {
             FROM selected_media sm
             LEFT JOIN media_manual_location manual ON manual.media_id = sm.id
             LEFT JOIN LATERAL (
-                SELECT point_timestamp, point_index, point_long_lat, point_altitude,
+                SELECT point_timestamp, point_index, point_long_lat, point_altitude, interval_status,
                        distance_in_meter_since_start, duration_since_start
                 FROM gps_track_data_points
                 WHERE gps_track_data_id = sm.track_data_id
@@ -171,7 +194,7 @@ public class TrackMediaQueryRepository {
                 LIMIT 1
             ) before_point ON TRUE
             LEFT JOIN LATERAL (
-                SELECT point_timestamp, point_index, point_long_lat, point_altitude,
+                SELECT point_timestamp, point_index, point_long_lat, point_altitude, interval_status,
                        distance_in_meter_since_start, duration_since_start
                 FROM gps_track_data_points
                 WHERE gps_track_data_id = sm.track_data_id
@@ -180,12 +203,26 @@ public class TrackMediaQueryRepository {
                 ORDER BY point_timestamp ASC, point_index ASC
                 LIMIT 1
             ) after_point ON TRUE
+            WHERE sm.adjusted_captured_at = before_point.point_timestamp
+               OR sm.adjusted_captured_at = after_point.point_timestamp
+               OR (after_point.point_index = before_point.point_index + 1
+                   AND after_point.interval_status IN ('OBSERVED', 'STOPPED'))
             ORDER BY sm.adjusted_captured_at, sm.id
             LIMIT :pageSize
             OFFSET :offset
             """;
 
+    // Select the narrow indexed page before loading media details; count without the detail joins.
     static final String PERSISTED_TRACK_MEDIA_SQL = """
+            WITH page_media AS MATERIALIZED (
+                SELECT correlation.media_id, correlation.adjusted_capture_time
+                FROM media_track_correlation correlation
+                WHERE correlation.track_id = :trackId
+                  AND correlation.selected
+                ORDER BY correlation.adjusted_capture_time, correlation.media_id
+                LIMIT :pageSize
+                OFFSET :offset
+            )
             SELECT
                 correlation.media_id AS id,
                 indexed.name AS file_name,
@@ -211,17 +248,16 @@ public class TrackMediaQueryRepository {
                 correlation.track_point_time_delta_seconds,
                 correlation.ambiguous,
                 correlation.alternative_count,
-                COUNT(*) OVER () AS total_elements
-            FROM media_track_correlation correlation
+                (SELECT COUNT(*) FROM media_track_correlation selected_count
+                 WHERE selected_count.track_id = :trackId AND selected_count.selected) AS total_elements
+            FROM page_media page
+            JOIN media_track_correlation correlation
+              ON correlation.media_id = page.media_id AND correlation.track_id = :trackId
             JOIN media_file media ON media.id = correlation.media_id
             JOIN indexed_file indexed ON indexed.id = media.file_id
             LEFT JOIN media_resolved_location resolved ON resolved.media_id = media.id
             LEFT JOIN media_manual_location manual ON manual.media_id = media.id
-            WHERE correlation.track_id = :trackId
-              AND correlation.selected
-            ORDER BY correlation.adjusted_capture_time, correlation.media_id
-            LIMIT :pageSize
-            OFFSET :offset
+            ORDER BY page.adjusted_capture_time, page.media_id
             """;
 
     private final NamedParameterJdbcTemplate jdbcTemplate;

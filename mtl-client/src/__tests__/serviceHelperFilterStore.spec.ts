@@ -1,4 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { AxiosError } from 'axios';
+import { ResponseError } from 'x8ing-mtl-api-typescript-fetch';
 import type { ActiveFilterRequest } from '@/stores/filterStore';
 
 const mocks = vi.hoisted(() => {
@@ -8,9 +10,13 @@ const mocks = vi.hoisted(() => {
   };
   const tracksApi = {
     getTracksSimplified1: vi.fn(),
+    getCrossingPoints1: vi.fn(),
     getTrackMediaOptionsWithinDistanceOfPoint: vi.fn(),
+    getTrackIdsWithinDistanceOfPoint: vi.fn(),
   };
   const getActiveFilterRequest = vi.fn();
+  const filtersApi = { getFilters: vi.fn() };
+  const configsApi = { get: vi.fn() };
   const useFilterStore = vi.fn(() => ({ getActiveFilterRequest }));
   const loadClientFilterConfig = vi.fn();
   const loadActiveFilterRequest = vi.fn(async () => {
@@ -28,6 +34,8 @@ const mocks = vi.hoisted(() => {
   return {
     apiClient,
     tracksApi,
+    filtersApi,
+    configsApi,
     getActiveFilterRequest,
     useFilterStore,
     loadClientFilterConfig,
@@ -47,10 +55,10 @@ vi.mock('x8ing-mtl-api-typescript-fetch', async (importOriginal) => {
       return mocks.tracksApi;
     }),
     FilterControllerApi: vi.fn(function () {
-      return {};
+      return mocks.filtersApi;
     }),
     ConfigControllerApi: vi.fn(function () {
-      return {};
+      return mocks.configsApi;
     }),
     EnergyControllerApi: vi.fn(function () {
       return {};
@@ -78,6 +86,7 @@ vi.mock('@/utils/safeLogging', () => ({
 }));
 
 import { FilterService } from '@/components/filter/FilterService';
+import { logSanitizedError } from '@/utils/safeLogging';
 import {
   fetchStatistics,
   fetchStatisticsOverview,
@@ -85,6 +94,8 @@ import {
   fetchTrackIdsWithinDistanceOfPoint,
   fetchTrackMediaOptionsWithinDistanceOfPoint,
   getRelatedTracks,
+  fetchFilters,
+  getConfig,
 } from '@/utils/ServiceHelper';
 
 function filterRequest(filterName: string, resolvedTrackIds: number[] | undefined = [101, 102]): ActiveFilterRequest {
@@ -144,18 +155,71 @@ describe('ServiceHelper active filter resolution', () => {
     );
   });
 
+  it('identifies the failed overview step without recording filter values', async () => {
+    const failure = new Error('Response returned an error code');
+    mocks.tracksApi.getTracksSimplified1.mockRejectedValueOnce(failure);
+    await expect(
+      fetchStatisticsOverview('METRIC', undefined, { ...filterRequest('PrivateFilter'), resolvedTrackIds: undefined })
+    ).rejects.toBe(failure);
+    expect(logSanitizedError).toHaveBeenLastCalledWith('Error fetching statistics overview:', failure, {
+      topic1: 'application',
+      topic2: 'ServiceHelper',
+      topic3: 'fetchStatisticsOverview',
+      context: { operation: 'resolve-statistics-track-ids' },
+    });
+    expect(mocks.apiClient.post).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    { name: 'filters', method: mocks.filtersApi.getFilters, call: () => fetchFilters() },
+    { name: 'configuration', method: mocks.configsApi.get, call: () => getConfig() },
+  ])('preserves generated API errors when loading $name', async ({ method, call }) => {
+    const failure = new ResponseError(new Response('synthetic-body', { status: 503 }), 'Transport failed');
+    failure.stack = 'ResponseError: Transport failed\n at original (bundle.js:2:3)';
+    method.mockRejectedValueOnce(failure);
+    await expect(call()).rejects.toBe(failure);
+    expect(logSanitizedError).toHaveBeenLastCalledWith(expect.any(String), failure, expect.any(Object));
+    expect(failure.response.status).toBe(503);
+    expect(failure.response.bodyUsed).toBe(false);
+  });
+
+  it('preserves Axios cancellation metadata through track helpers', async () => {
+    const failure = new AxiosError('Synthetic cancellation', 'ERR_CANCELED');
+    failure.stack = 'AxiosError: Synthetic cancellation\n at original (bundle.js:3:4)';
+    mocks.apiClient.post.mockRejectedValueOnce(failure);
+    await expect(getRelatedTracks(42)).rejects.toBe(failure);
+    expect(failure.code).toBe('ERR_CANCELED');
+  });
+
+  it('preserves non-Error rejection values rather than replacing them with strings', async () => {
+    const failure = { code: 'SYNTHETIC_TRANSPORT', response: { status: 503 } };
+    mocks.configsApi.get.mockRejectedValueOnce(failure);
+    await expect(getConfig()).rejects.toBe(failure);
+  });
+
+  it('preserves structured non-Error failures from statistics overview loading', async () => {
+    const failure = { code: 'SYNTHETIC_TRANSPORT', response: { status: 503 } };
+    mocks.apiClient.post.mockRejectedValueOnce(failure);
+    await expect(fetchStatisticsOverview()).rejects.toBe(failure);
+  });
+
   it('uses the filter store for distance lookups before FilterService fallback', async () => {
     await fetchTrackIdsWithinDistanceOfPoint(7.4, 46.9, 250);
 
     expect(mocks.useFilterStore).toHaveBeenCalledOnce();
     expect(mocks.getActiveFilterRequest).toHaveBeenCalledOnce();
     expect(FilterService.loadClientFilterConfig).not.toHaveBeenCalled();
-    expect(mocks.apiClient.post).toHaveBeenCalledWith(
-      'api/tracks/get-track-ids-within-distance-of-point?filterName=StoreFilter&longitude=7.4&latitude=46.9&distanceInMeter=250',
+    expect(mocks.tracksApi.getTrackIdsWithinDistanceOfPoint).toHaveBeenCalledWith(
       {
-        stringParams: { ACTIVITY: 'bike' },
-        dateTimeParams: { DATE_TIME_FROM: '2026-01-01T00:00:00' },
-        resultGroupSelection: { includedGroups: [{ value: 'WALKING' }] },
+        longitude: 7.4,
+        latitude: 46.9,
+        distanceInMeter: 250,
+        filterName: 'StoreFilter',
+        filterParamsRequest: {
+          stringParams: { ACTIVITY: 'bike' },
+          dateTimeParams: { DATE_TIME_FROM: '2026-01-01T00:00:00' },
+          resultGroupSelection: { includedGroups: [{ value: 'WALKING' }] },
+        },
       },
       { signal: undefined }
     );
@@ -223,45 +287,43 @@ describe('ServiceHelper active filter resolution', () => {
     );
   });
 
-  it('keeps crossing point coordinates numeric after generated DTO conversion', async () => {
-    mocks.apiClient.post.mockResolvedValueOnce({
-      data: {
-        crossings: {
-          1: {
-            gpsTrack: {
-              id: 1,
-              indexedFile: { name: 'Track 1' },
-            },
-            crossings: [
-              {
-                triggerPoint: { name: 'A', coordinate: { x: 8.5, y: 47.5 } },
-                gpsTrackDataPoint: {
-                  id: 101,
-                  pointTimestamp: '2026-06-04T10:00:00.000Z',
-                  durationSinceStart: 10,
-                  distanceInMeterSinceStart: 100,
-                  pointLongLat: { coordinates: [8.5, 47.5, 430] },
-                },
-              },
-              {
-                triggerPoint: { name: 'B', coordinate: { x: 8.51, y: 47.51 } },
-                gpsTrackDataPoint: {
-                  id: 102,
-                  pointTimestamp: '2026-06-04T10:01:00.000Z',
-                  durationSinceStart: 70,
-                  distanceInMeterSinceStart: 600,
-                  pointLongLat: { coordinates: [8.51, 47.51, 440] },
-                },
-                timeInSecSinceLastTriggerPoint: 60,
-                distanceInMeterSinceLastTriggerPoint: 500,
-              },
-            ],
+  it('uses the generated crossing API and preserves numeric coordinates', async () => {
+    mocks.tracksApi.getCrossingPoints1.mockResolvedValueOnce({
+      crossings: {
+        1: {
+          gpsTrack: {
+            id: 1,
+            indexedFile: { name: 'Track 1' },
           },
+          crossings: [
+            {
+              triggerPoint: { name: 'A', coordinate: { x: 8.5, y: 47.5 } },
+              gpsTrackDataPoint: {
+                id: 101,
+                pointTimestamp: '2026-06-04T10:00:00.000Z',
+                durationSinceStart: 10,
+                distanceInMeterSinceStart: 100,
+                pointLongLat: { coordinates: [8.5, 47.5, 430] },
+              },
+            },
+            {
+              triggerPoint: { name: 'B', coordinate: { x: 8.51, y: 47.51 } },
+              gpsTrackDataPoint: {
+                id: 102,
+                pointTimestamp: '2026-06-04T10:01:00.000Z',
+                durationSinceStart: 70,
+                distanceInMeterSinceStart: 600,
+                pointLongLat: { coordinates: [8.51, 47.51, 440] },
+              },
+              timeInSecSinceLastTriggerPoint: 60,
+              distanceInMeterSinceLastTriggerPoint: 500,
+            },
+          ],
         },
-        segmentsStats: [{ point1: 'A', point2: 'B', label: 'A-B', count: 1, timeDelta: 60 }],
-        triggerPoints: [{ name: 'A', coordinate: { x: 8.5, y: 47.5 } }],
-        tracksPerZone: { A: 1, B: 1 },
       },
+      segmentsStats: [{ point1: 'A', point2: 'B', label: 'A-B', count: 1, timeDelta: 60 }],
+      triggerPoints: [{ name: 'A', coordinate: { x: 8.5, y: 47.5 } }],
+      tracksPerZone: { A: 1, B: 1 },
     });
 
     const result = await fetchTrackDetailsForCrossingPoints([{ name: 'A', coordinate: { x: 8.5, y: 47.5 } }], 30);
@@ -269,16 +331,16 @@ describe('ServiceHelper active filter resolution', () => {
     const point = result.crossings?.['1']?.crossings?.[0]?.gpsTrackDataPoint?.pointLongLat?.coordinates;
     expect(point).toEqual([8.5, 47.5, 430]);
     expect(typeof point?.[0]).toBe('number');
-    expect(mocks.apiClient.post).toHaveBeenCalledWith(
-      'api/tracks/get-track-details-for-tracks-crossing-points',
-      expect.objectContaining({
-        filter: {
-          filterName: 'StoreFilter',
-          params: expect.objectContaining({
-            resultGroupSelection: { includedGroups: [{ value: 'WALKING' }] },
-          }),
-        },
-      }),
+    expect(mocks.tracksApi.getCrossingPoints1).toHaveBeenCalledWith(
+      {
+        includeHealth: false,
+        crossingPointsRequest: expect.objectContaining({
+          filter: {
+            filterName: 'StoreFilter',
+            params: expect.objectContaining({ resultGroupSelection: { includedGroups: [{ value: 'WALKING' }] } }),
+          },
+        }),
+      },
       { signal: undefined }
     );
   });

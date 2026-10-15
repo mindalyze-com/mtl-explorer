@@ -3,6 +3,8 @@
 </template>
 
 <script setup lang="ts">
+import { logSanitizedError, warnSanitized } from '@/utils/safeLogging';
+
 import { inject, onBeforeUnmount } from 'vue';
 
 const GPS_TOAST_LIFE_MS = 4000;
@@ -114,10 +116,14 @@ function stopWatch(showStoppedToast: boolean) {
 function handleGeolocationError(token: number, err: GeolocationPositionError) {
   if (token !== activeWatchToken) return;
 
-  console.warn(`GPS unavailable (${err.code}): ${err.message}`);
+  warnSanitized(`GPS unavailable (${err.code}): ${err.message}`, undefined, {
+    topic1: 'application',
+    topic2: 'GpsLocate',
+    topic3: 'handleGeolocationError',
+  });
   const detail = describeGeolocationError(err);
   stopWatch(false);
-  showToast('warning', 'GPS unavailable', detail);
+  showToast('warn', 'GPS unavailable', detail);
 }
 
 function locate() {
@@ -135,13 +141,13 @@ function locate() {
     }
 
     if (!isSecureLocationContext()) {
-      showToast('warning', 'GPS unavailable', SECURE_CONTEXT_GPS_MESSAGE);
+      showToast('warn', 'GPS unavailable', SECURE_CONTEXT_GPS_MESSAGE);
       emit(EVENTS.deviceEnabledDisabled, false);
       return;
     }
 
     if (!navigator.geolocation) {
-      showToast('warning', 'GPS unavailable', 'GPS is not available in this browser.');
+      showToast('warn', 'GPS unavailable', 'GPS is not available in this browser.');
       emit(EVENTS.deviceEnabledDisabled, false);
       return;
     }
@@ -161,9 +167,13 @@ function locate() {
     console.log('start GPS');
     watcherId = navigator.geolocation.watchPosition(success, error, options);
   } catch (error) {
-    console.error('Error getting GPS location:', error);
+    logSanitizedError('Error getting GPS location:', error, {
+      topic1: 'application',
+      topic2: 'GpsLocate',
+      topic3: 'locate',
+    });
     stopWatch(false);
-    showToast('warning', 'GPS unavailable', 'Unable to get GPS location.');
+    showToast('warn', 'GPS unavailable', 'Unable to get GPS location.');
   }
 }
 

@@ -28,6 +28,8 @@ public class LoggingFilter extends OncePerRequestFilter {
     private static final Logger LOGGER = LoggerFactory.getLogger(LoggingFilter.class);
     private static final String ANONYMOUS_USER = "n/a";
     private static final String REDACTED_QUERY_STRING = "<redacted>";
+    private static final String ATTEMPT_PATH = "/api/segment-attempts/";
+    private static final String ATTEMPT_BATCH_PATH = "heart-rate-summaries";
 
     private final WebRequestLogService webRequestLogService;
 
@@ -55,17 +57,17 @@ public class LoggingFilter extends OncePerRequestFilter {
             userInfo = String.valueOf(request.getAttribute(JwtUtil.USER_NAME));
         }
 
-        String userSessionId = MDC.get(JwtUtil.USER_SESSION_ID);
-        if (userSessionId == null && request.getAttribute(JwtUtil.USER_SESSION_ID) != null) {
-            userSessionId = String.valueOf(request.getAttribute(JwtUtil.USER_SESSION_ID));
+        String clientLoginRef = MDC.get(JwtUtil.CLIENT_LOGIN_REF);
+        if (clientLoginRef == null && request.getAttribute(JwtUtil.CLIENT_LOGIN_REF) != null) {
+            clientLoginRef = String.valueOf(request.getAttribute(JwtUtil.CLIENT_LOGIN_REF));
         }
-        String userSessionIdInfo = userSessionId != null ? userSessionId : ANONYMOUS_USER;
+        String clientLoginRefInfo = clientLoginRef != null ? clientLoginRef : ANONYMOUS_USER;
 
         long endTime = System.currentTimeMillis();
         long durationMs = endTime - startTime;
-        String uri = request.getRequestURI();
+        String uri = sanitizeRequestPath(request.getRequestURI());
 
-        LOGGER.info("Request for url={} completed in dT={} for user={} user_session_id={} status={} method={}", uri, durationMs, userInfo, userSessionIdInfo, response.getStatus(), request.getMethod());
+        LOGGER.info("Request for url={} completed in dT={} for user={} client_login_ref={} status={} method={}", uri, durationMs, userInfo, clientLoginRefInfo, response.getStatus(), request.getMethod());
 
         if (!uri.contains("/api/map-proxy/")) {
             try {
@@ -76,7 +78,7 @@ public class LoggingFilter extends OncePerRequestFilter {
                         response.getStatus(),
                         durationMs,
                         userInfo,
-                        userSessionId,
+                        clientLoginRef,
                         ClientAddressResolver.resolveForwarded(request)
                 );
             } catch (Exception e) {
@@ -90,5 +92,19 @@ public class LoggingFilter extends OncePerRequestFilter {
             return queryString;
         }
         return REDACTED_QUERY_STRING;
+    }
+
+    /**
+     * Attempt references carry signed descriptors and must not appear in persisted or console request logs.
+     */
+    public static String sanitizeRequestPath(String path) {
+        if (path == null) return null;
+        int start = path.indexOf(ATTEMPT_PATH);
+        if (start < 0) return path;
+        start += ATTEMPT_PATH.length();
+        int end = path.indexOf('/', start);
+        if (end < 0) end = path.length();
+        if (ATTEMPT_BATCH_PATH.equals(path.substring(start, end))) return path;
+        return path.substring(0, start) + "<reference>" + path.substring(end);
     }
 }

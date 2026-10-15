@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.10.xsd">
+    <changeSet id="20261003_exploration_bounds_first_indexes" author="codex">
+        <comment>Filter eligible track bounds before retrieving geometry by ID.</comment>
+        <sql>
+            -- The partial spatial index can cause repeated area scans inside the per-ID lookup.
+            -- The existing general geometry index remains available to spatial queries.
+            DROP INDEX gps_track_data_ix_exploration_shape;
+            DROP INDEX gps_track_ix_exploration_prior;
+            CREATE INDEX gps_track_data_ix_exploration_track ON gps_track_data (gps_track_id)
+            WHERE track_type = 'SIMPLIFIED_SHAPE' AND precision_in_meter = 10;
+            -- Bounds are keys so rejected candidates need no heap visibility check.
+            CREATE INDEX gps_track_ix_exploration_prior_bbox
+            ON gps_track (start_date, bbox_min_lng, bbox_max_lng, bbox_min_lat, bbox_max_lat) INCLUDE (id)
+            WHERE duplicate_status = 'UNIQUE' AND load_status = 'SUCCESS'
+              AND NOT review_excluded AND NOT timing_unreliable;
+        </sql>
+        <rollback>
+            <sql>
+                DROP INDEX gps_track_data_ix_exploration_track;
+                DROP INDEX gps_track_ix_exploration_prior_bbox;
+                CREATE INDEX gps_track_data_ix_exploration_shape ON gps_track_data USING gist (track)
+                WHERE track_type = 'SIMPLIFIED_SHAPE' AND precision_in_meter = 10;
+                CREATE INDEX gps_track_ix_exploration_prior ON gps_track (start_date) INCLUDE (id)
+                WHERE duplicate_status = 'UNIQUE' AND load_status = 'SUCCESS'
+                  AND NOT review_excluded AND NOT timing_unreliable;
+            </sql>
+        </rollback>
+    </changeSet>
+</databaseChangeLog>

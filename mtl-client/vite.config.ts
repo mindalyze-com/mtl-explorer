@@ -55,9 +55,11 @@ function vendorChunkFor(id: string): string | undefined {
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
+  const isProfile = mode === 'profile';
   // Dev proxy target: override via VITE_DEV_PROXY_TARGET (e.g. http://localhost:8080)
   const devProxyTarget = env.VITE_DEV_PROXY_TARGET || 'http://localhost:8080';
   return {
+    cacheDir: env.MTL_VITE_CACHE_DIR,
     define: {
       __APP_VERSION__: JSON.stringify(new Date().toISOString()),
       __APP_PKG_VERSION__: JSON.stringify(APP_PKG_VERSION),
@@ -65,6 +67,7 @@ export default defineConfig(({ mode }) => {
     plugins: [
       vue(),
       VitePWA({
+        disable: isProfile,
         registerType: 'prompt',
         includeAssets: [
           'favicon.ico',
@@ -103,7 +106,7 @@ export default defineConfig(({ mode }) => {
           // clientsClaim removed — with registerType:'prompt', clients.claim() causes a race
           // where the old page briefly runs under the new SW, leading to missing-chunk errors.
           // Without it the new SW only takes control after the reload (navigation), which is safe.
-          globPatterns: ['**/*.{js,css,html,ico,png,svg,jpg,jpeg,gif,webp,woff,woff2,ttf,eot}'],
+          globPatterns: ['**/*.{js,css,html,ico,png,svg,jpg,jpeg,gif,webp,woff,woff2,ttf,eot}', 'guide/**/*.json'],
           globIgnores: ['backgrounds/**/*'],
           runtimeCaching: [
             {
@@ -118,7 +121,7 @@ export default defineConfig(({ mode }) => {
               },
             },
           ],
-          navigateFallbackDenylist: [/^\/mtl\/api/, /^\/mtl\/v3\//],
+          navigateFallbackDenylist: [/^\/mtl\/api/, /^\/mtl\/v3\//, /^\/mtl\/guide\//],
           maximumFileSizeToCacheInBytes: 10485760,
           ignoreURLParametersMatching: [/^.*$/],
         },
@@ -147,6 +150,14 @@ export default defineConfig(({ mode }) => {
     },
     base: '/mtl/',
     build: {
+      // WORKAROUND: Lightning CSS drops standard backdrop-filter when the Safari
+      // fallback follows it (reproduced with Vite 8.3.4 / Lightning CSS 1.33.0).
+      // Issue: https://github.com/parcel-bundler/lightningcss/issues/695
+      // Proposed fix: https://github.com/parcel-bundler/lightningcss/pull/1259
+      // Keep esbuild until the fix ships and cssBuildCompatibility.spec.ts passes
+      // with Vite's default CSS minifier; then remove the production override.
+      cssMinify: isProfile ? false : 'esbuild',
+      minify: isProfile ? false : undefined,
       chunkSizeWarningLimit: CHUNK_SIZE_WARNING_LIMIT_KB,
       sourcemap: mode !== 'production',
       rollupOptions: {

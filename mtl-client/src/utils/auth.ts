@@ -3,11 +3,13 @@ import router from '@/router';
 import { clearStorage, readStorage, removeStorage, STORAGE_KEYS, writeStorage } from '@/utils/appStorage';
 import { apiUrl } from '@/utils/apiBase';
 import { logSanitizedError } from '@/utils/safeLogging';
+import { DIAGNOSTIC_AUTH_CHANGED } from '@/utils/diagnosticApiConfiguration';
+import { forgetClientDiagnostics, startClientLogDelivery } from '@/utils/clientDiagnosticDelivery';
 
 const TOKEN_KEY = STORAGE_KEYS.jwt;
 const JWT_PART_COUNT = 3;
 const JWT_USERNAME_CLAIM = 'sub';
-const JWT_USER_SESSION_ID_CLAIM = 'user_session_id';
+const JWT_CLIENT_LOGIN_REF_CLAIM = 'client_login_ref';
 const JWT_ISSUED_AT_CLAIM = 'iat';
 const JWT_EXPIRATION_CLAIM = 'exp';
 const SECONDS_TO_MILLISECONDS = 1000;
@@ -19,8 +21,8 @@ export function getToken(): string | null {
   return readStorage(TOKEN_KEY);
 }
 
-export function getUserSessionId(): string | null {
-  return getJwtStringClaim(JWT_USER_SESSION_ID_CLAIM);
+export function getClientLoginRef(): string | null {
+  return getJwtStringClaim(JWT_CLIENT_LOGIN_REF_CLAIM);
 }
 
 export function getAuthenticatedUsername(): string | null {
@@ -37,6 +39,7 @@ export function getTokenIssuedAt(): Date | null {
 
 export function setToken(token: string) {
   writeStorage(TOKEN_KEY, token);
+  window.dispatchEvent(new Event(DIAGNOSTIC_AUTH_CHANGED));
 }
 
 /**
@@ -51,9 +54,12 @@ export function setToken(token: string) {
  */
 export function clearToken() {
   removeStorage(TOKEN_KEY);
+  window.dispatchEvent(new Event(DIAGNOSTIC_AUTH_CHANGED));
 }
 
-export function redirectToLoginAfterAuthFailure(hadCredential = !!getToken()) {
+export function redirectToLoginAfterAuthFailure(hadCredential = !!getToken(), requestToken?: string | null) {
+  // A response from a previous session must not revoke a newer sign-in.
+  if (requestToken !== undefined && requestToken !== getToken()) return;
   // Ignore late failures from the authenticated view after navigation to a
   // public route. In particular, opening About must not clear a valid session.
   if (!router.currentRoute.value.meta.requiresAuth) return;
@@ -72,6 +78,7 @@ export function redirectToLoginAfterAuthFailure(hadCredential = !!getToken()) {
  */
 export async function logoutCredentialsOnly(): Promise<void> {
   removeStorage(TOKEN_KEY);
+  window.dispatchEvent(new Event(DIAGNOSTIC_AUTH_CHANGED));
   try {
     await fetch(apiUrl('api/auth/logout'), { method: 'POST', credentials: 'include' });
   } catch {
@@ -84,6 +91,7 @@ export async function logoutCredentialsOnly(): Promise<void> {
  * removes every browser-side app store we can access.
  */
 export async function logoutAndForgetEverything(): Promise<void> {
+  await forgetClientDiagnostics();
   try {
     await fetch(apiUrl('api/auth/logout'), { method: 'POST', credentials: 'include' });
   } catch {
@@ -103,6 +111,7 @@ export async function logoutAndForgetEverything(): Promise<void> {
   clearReadableCookies();
 
   await Promise.all([wipeIndexedDB(), wipeCacheStorage(), unregisterServiceWorkers()]);
+  startClientLogDelivery();
 }
 
 async function wipeIndexedDB() {
@@ -237,14 +246,21 @@ export function isAuthenticationFailureStatus(status: unknown): boolean {
 }
 
 export function requestHadAuthHeader(config: unknown): boolean {
+  return requestAuthToken(config) !== null;
+}
+
+export function requestAuthToken(config: unknown): string | null {
   const headers = (config as { headers?: unknown } | undefined)?.headers;
-  if (!headers) return false;
+  if (!headers) return null;
   const getHeader = (headers as { get?: (name: string) => unknown }).get;
+  let header: unknown;
   if (typeof getHeader === 'function') {
-    return !!(getHeader.call(headers, 'Authorization') || getHeader.call(headers, 'authorization'));
+    header = getHeader.call(headers, 'Authorization') || getHeader.call(headers, 'authorization');
+  } else {
+    const record = headers as Record<string, unknown>;
+    header = record.Authorization || record.authorization;
   }
-  const record = headers as Record<string, unknown>;
-  return !!(record.Authorization || record.authorization);
+  return typeof header === 'string' ? (/^Bearer\s+(.+)$/i.exec(header)?.[1] ?? null) : null;
 }
 
 // Global axios response interceptor.
@@ -266,7 +282,8 @@ axios.interceptors.response.use(
         '🚨 [Network Drop] Request failed without a server response! ' +
           'This usually means the domain could not be resolved (DNS blocker), ' +
           'the request was blocked by an extension, or the client is entirely offline.',
-        error
+        error,
+        { topic1: 'application', topic2: 'auth', topic3: 'handleError' }
       );
     }
 
@@ -274,7 +291,7 @@ axios.interceptors.response.use(
       // Don't redirect if the failed request was the login call itself
       const url = error.config?.url || '';
       if (!url.includes('/api/auth/login')) {
-        redirectToLoginAfterAuthFailure(requestHadAuthHeader(error.config) || !!getToken());
+        redirectToLoginAfterAuthFailure(requestHadAuthHeader(error.config), requestAuthToken(error.config));
       }
     }
     return Promise.reject(error);

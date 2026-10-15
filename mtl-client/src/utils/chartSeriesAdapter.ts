@@ -79,6 +79,14 @@ export interface ChartPoint {
   /** Windowed estimated mechanical power (W), trailing window. */
   powerWattsWindow: number | null;
   energyCumulativeWh: number | null;
+  /** Google Health heart-rate average for a track-relative display bucket. */
+  heartRateBpm?: number | null;
+  /** Lowest raw heart-rate sample represented by the display bucket. */
+  heartRateMinimumBpm?: number | null;
+  /** Highest raw heart-rate sample represented by the display bucket. */
+  heartRateMaximumBpm?: number | null;
+  /** Number of raw heart-rate samples represented by the display bucket. */
+  heartRateSampleCount?: number;
 }
 
 export interface TrackChartSeries {
@@ -109,15 +117,18 @@ export async function fetchChartSeries(
   if (!Number.isFinite(trackId)) {
     throw new Error(`fetchChartSeries: invalid trackId ${gpsTrackId}`);
   }
-  return (await getChartSeriesApi()).getChartSeries({
-    trackId,
-    x: options.xMode,
-    maxBuckets: options.maxBuckets,
-    windowSec: options.windowSec,
-    from: options.from,
-    to: options.to,
-    metrics: options.metrics,
-  });
+  return (await getChartSeriesApi()).getChartSeries(
+    {
+      trackId,
+      x: options.xMode,
+      maxBuckets: options.maxBuckets,
+      windowSec: options.windowSec,
+      from: options.from,
+      to: options.to,
+      metrics: options.metrics,
+    },
+    { cache: 'no-cache' }
+  );
 }
 
 /**

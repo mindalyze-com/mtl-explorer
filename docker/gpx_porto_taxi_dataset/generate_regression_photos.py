@@ -11,7 +11,7 @@ import shutil
 import struct
 import subprocess
 from dataclasses import asdict, dataclass
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from photo_placeholder import PALETTES, generate_placeholder_jpeg
@@ -51,6 +51,7 @@ VIDEO_HEIGHT = 180
 VIDEO_FRAME_RATE = 24
 VIDEO_CODEC = "h264"
 AUDIO_CODEC = "aac"
+TRACK_SAMPLE_INTERVAL_SECONDS = 60
 TRACK_POINTS = (
     (46.94780, 7.44710, "2026-08-17T07:59:00Z"),
     (46.94805, 7.44745, "2026-08-17T08:00:00Z"),
@@ -158,11 +159,29 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
+def regression_track_samples():
+    """Sample the synthetic route continuously so media interpolation is supported."""
+    for index, (before, after) in enumerate(zip(TRACK_POINTS, TRACK_POINTS[1:])):
+        start = datetime.fromisoformat(before[2])
+        end = datetime.fromisoformat(after[2])
+        duration = (end - start).total_seconds()
+        for seconds in range(0, int(duration), TRACK_SAMPLE_INTERVAL_SECONDS):
+            fraction = seconds / duration
+            yield (
+                before[0] + fraction * (after[0] - before[0]),
+                before[1] + fraction * (after[1] - before[1]),
+                550 + index + fraction,
+                (start + timedelta(seconds=seconds)).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            )
+    latitude, longitude, captured_at = TRACK_POINTS[-1]
+    yield latitude, longitude, 550 + len(TRACK_POINTS) - 1, captured_at
+
+
 def regression_track_gpx() -> str:
     track_points = "\n".join(
-        f'      <trkpt lat="{latitude:.5f}" lon="{longitude:.5f}">'
-        f"<ele>{550 + index}</ele><time>{captured_at}</time></trkpt>"
-        for index, (latitude, longitude, captured_at) in enumerate(TRACK_POINTS)
+        f'      <trkpt lat="{latitude:.7f}" lon="{longitude:.7f}">'
+        f"<ele>{elevation:.3f}</ele><time>{captured_at}</time></trkpt>"
+        for latitude, longitude, elevation, captured_at in regression_track_samples()
     )
     return f'''<?xml version="1.0" encoding="UTF-8"?>
 <gpx version="1.1" creator="MTL Explorer regression fixture"
@@ -301,13 +320,14 @@ def generate_regression_fixtures(output_dir: Path) -> Path:
     track_path = output_dir / REGRESSION_TRACK_FILE
     track_path.write_text(regression_track_gpx(), encoding="utf-8")
     track_content = track_path.read_bytes()
+    trackpoint_count = sum(1 for _ in regression_track_samples())
     manifest["activity"] = {
         "name": REGRESSION_TRACK_NAME,
         "file": REGRESSION_TRACK_FILE,
         "bytes": len(track_content),
         "sha256": hashlib.sha256(track_content).hexdigest(),
-        "trackpoint_count": len(TRACK_POINTS),
-        "timestamp_count": len(TRACK_POINTS),
+        "trackpoint_count": trackpoint_count,
+        "timestamp_count": trackpoint_count,
     }
 
     for index, fixture in enumerate(FIXTURES):

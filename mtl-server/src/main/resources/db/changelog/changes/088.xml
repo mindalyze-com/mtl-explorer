@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.10.xsd">
+    <changeSet id="20260907_remove_track_repair_storage" author="codex">
+        <comment>Remove metadata storage for the deleted repair workflow. Source and backup files are untouched.</comment>
+        <dropTable tableName="track_repair_backup"/>
+    </changeSet>
+</databaseChangeLog>

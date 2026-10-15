@@ -3,22 +3,23 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script defer src="../site-analytics.js"></script>
   <title>Map GPX, FIT, and Garmin Tracks | MTL Explorer</title>
-  <meta name="description" content="Use MTL Explorer to keep GPX, FIT, and Garmin tracks in a self-hosted archive and review the complete history on one private map.">
+  <meta name="description" content="View multiple GPX and FIT tracks on one private map. Follow a first-import walkthrough, filter by year, and inspect track details in MTL Explorer.">
   <meta name="robots" content="index, follow, max-image-preview:large">
-  <link rel="canonical" href="https://mindalyze-com.github.io/mtl-explorer/gpx-track-map/">
+  <link rel="canonical" href="https://mtl-explorer.com/gpx-track-map/">
   <meta property="og:site_name" content="MTL Explorer">
   <meta property="og:type" content="website">
-  <meta property="og:url" content="https://mindalyze-com.github.io/mtl-explorer/gpx-track-map/">
+  <meta property="og:url" content="https://mtl-explorer.com/gpx-track-map/">
   <meta property="og:title" content="Map GPX, FIT, and Garmin Tracks | MTL Explorer">
   <meta property="og:description" content="Keep a self-hosted GPS archive and review all imported tracks on one map.">
-  <meta property="og:image" content="https://mindalyze-com.github.io/mtl-explorer/assets/feature-showcase/large/filters.webp">
+  <meta property="og:image" content="https://mtl-explorer.com/assets/feature-showcase/large/filters.webp">
   <meta property="og:image:type" content="image/webp">
   <meta property="og:image:width" content="2199">
   <meta property="og:image:height" content="1561">
   <meta property="og:image:alt" content="MTL Explorer showing a complete GPS track archive on a map">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:image" content="https://mindalyze-com.github.io/mtl-explorer/assets/feature-showcase/large/filters.webp">
+  <meta name="twitter:image" content="https://mtl-explorer.com/assets/feature-showcase/large/filters.webp">
   <link rel="icon" href="../favicon.ico" sizes="any">
   <link rel="stylesheet" href="../site-page.css">
   <link rel="preload" as="image" type="image/webp" href="../assets/feature-showcase/preview/filters.webp">
@@ -27,13 +28,33 @@
       "@context": "https://schema.org",
       "@type": "WebPage",
       "name": "Map GPX, FIT, and Garmin Tracks",
-      "url": "https://mindalyze-com.github.io/mtl-explorer/gpx-track-map/",
+      "url": "https://mtl-explorer.com/gpx-track-map/",
       "description": "A guide to the self-hosted GPS archive and track map in MTL Explorer.",
       "isPartOf": {
         "@type": "WebSite",
         "name": "MTL Explorer",
-        "url": "https://mindalyze-com.github.io/mtl-explorer/"
+        "url": "https://mtl-explorer.com/"
       }
+    }
+  </script>
+  <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Home",
+          "item": "https://mtl-explorer.com/"
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "GPS track map",
+          "item": "https://mtl-explorer.com/gpx-track-map/"
+        }
+      ]
     }
   </script>
 </head>
@@ -59,7 +80,7 @@
       <div>
         <p class="eyebrow">GPS track map</p>
         <h1>Map your complete GPS track archive.</h1>
-        <p class="lead">MTL Explorer imports activity files into a self-hosted archive. It can display thousands of tracks together, then narrow the map by activity, year, or a custom filter.</p>
+        <p class="lead">Put thousands of your tracks on one map, on your own computer. Then narrow it down by activity, year, or your own filter.</p>
         <div class="actions">
           <a class="button" href="https://mtl-demo.mindalyze.com/mtl/">Open the demo</a>
           <a class="button-secondary" href="../docker-install/">Install with Docker</a>
@@ -71,10 +92,28 @@
       </figure>
     </section>
 
+    <nav class="on-this-page" aria-label="On this page">
+      <a href="#first-import">First import</a><a href="#files">File types</a><a href="#filters">Filters</a><a href="#points-of-interest">Map places</a><a href="#energy">Calories</a><a href="#statistics">Statistics</a><a href="#troubleshooting">Troubleshooting</a>
+    </nav>
+
+    <section class="section" id="first-import">
+      <div class="section-head">
+        <h2>Put several GPX files on one map.</h2>
+        <p>Start with a few files and check the result before importing your whole history. Each activity keeps its own date and details.</p>
+      </div>
+      <div class="steps">
+        <article class="step"><h3>Start your installation</h3><p>Follow the <a href="../docker-install/">Docker guide</a> and open MTL Explorer in your browser. Use your own installation for this; the public demo is for browsing.</p></article>
+        <article class="step"><h3>Import the example files</h3><p><a href="../examples/synthetic-archive/synthetic-tracks.zip" download>Download twelve synthetic GPX tracks</a>, extract the ZIP, and copy the <code>.gpx</code> files into <code>./data/gpx/</code> beside your Compose file. Alternatively, open <strong>Settings → Import &amp; sync</strong> and upload the extracted files.</p></article>
+        <article class="step"><h3>Wait for processing</h3><p>Open <strong>Settings → Processing</strong> and wait until the import is done. Then go back to the map and choose a filter that includes all years.</p></article>
+        <article class="step"><h3>Inspect and narrow the selection</h3><p>Open the track browser, select a track named <strong>Synthetic loop</strong>, and look at its date, map, and graphs. Select 2025 in a year filter to focus on the four example activities from that year. See <a href="../private-gps-heatmap/#example">year filters in the public demo</a>.</p></article>
+      </div>
+      <div class="callout"><strong>Fictional data for exploring the interface.</strong>The example has eight activities from 2024 and four from 2025, with coordinates near latitude/longitude 0,0 in the ocean. Use the track browser to locate them. The loops are mathematical examples and must not be used for navigation. <a href="../examples/synthetic-archive/README.md">Example details</a>.</div>
+    </section>
+
     <section class="section" id="files">
       <div class="section-head">
         <h2>Keep different file types in one archive.</h2>
-        <p>MTL Explorer accepts common GPS and activity formats, including GPX, FIT, TCX, KML/KMZ, IGC, NMEA, GeoJSON, and GDB. Garmin imports can run alongside files placed in the import folder.</p>
+        <p>MTL Explorer accepts common GPS and activity formats, including GPX, FIT, TCX, KML/KMZ, IGC, NMEA, GeoJSON, and GDB. You can also download activities from Garmin Connect.</p>
       </div>
       <div class="related related-lead">
         <a class="button-secondary" href="../supported-gps-formats/">Review supported formats</a>
@@ -83,19 +122,19 @@
       <div class="content-grid">
         <article class="card">
           <h3>Local storage</h3>
-          <p>The files, processed tracks, photographs, database, and optional map tiles stay on the host you control.</p>
+          <p>Your files, tracks, photos, and database stay on your own computer.</p>
         </article>
         <article class="card">
           <h3>Background processing</h3>
-          <p>Imports are indexed in the background. Duplicate detection and outlier handling prepare the tracks for map and statistics views.</p>
+          <p>Files are imported in the background. Duplicates are detected and GPS errors cleaned up.</p>
         </article>
         <article class="card">
           <h3>Track details</h3>
-          <p>Select a track to inspect its date, distance, time, moving speed, elevation, energy, and other available measurements.</p>
+          <p>Select a track to inspect its date, distance, time, moving speed, elevation, estimated calories, mechanical work, and other available measurements.</p>
         </article>
         <article class="card">
           <h3>Photographs</h3>
-          <p>Photographs with location data can appear beside the matching tracks, without publishing the archive to an external service.</p>
+          <p>Photos appear on the map next to the matching tracks, without uploading them anywhere.</p>
         </article>
       </div>
     </section>
@@ -105,8 +144,8 @@
         <div class="copy">
           <p class="eyebrow">Filters</p>
           <h2>Change what the map and statistics include.</h2>
-          <p>Saved filters control the visible subset of the archive. Tracks can be grouped by activity or year, while SQL-based rules support more specific selections.</p>
-          <p>The same active selection also controls the <a href="../private-gps-heatmap/">private GPS heatmap</a>.</p>
+          <p>Filters decide which tracks you see. Group them by activity or year, or write your own rules in SQL.</p>
+          <p>Use <a href="../private-gps-heatmap/">year filters and map colors</a> to compare different periods.</p>
           <ul class="plain-list">
             <li>Color tracks by activity type or year.</li>
             <li>Use the same selected subset in map and statistics views.</li>
@@ -120,6 +159,22 @@
       </div>
     </section>
 
+    <section class="section" id="points-of-interest">
+      <div class="section-head">
+        <h2>Show useful places on the map.</h2>
+        <p>Open map settings and select <strong>Points of interest</strong>. Choose among 21 categories, including peaks, viewpoints, drinking water, huts, food, and transport. Your choices are remembered in this browser.</p>
+      </div>
+      <p class="copy">More places appear as you zoom in; tap a marker for details. This layer requires available vector map data. To save your own named places and notes, use <a href="../route-planner/#points-of-interest">points of interest in a plan</a>.</p>
+    </section>
+
+    <section class="section" id="energy">
+      <div class="section-head">
+        <h2>Check estimated calories for a track.</h2>
+        <p>Open <strong>Track details → Overview → Energy</strong> to see the estimated active calories and work. Expand <strong>Energy details</strong> for total calories, how much of the track is covered, and <strong>Adjust body weight</strong>.</p>
+      </div>
+      <p class="copy">A body weight you set applies only to that track. Calories are shown per track; the statistics charts show work instead. See <a href="/docs/user/analysis/energy/">energy estimates</a> for how to read them.</p>
+    </section>
+
     <section class="section" id="statistics">
       <div class="split">
         <figure class="media">
@@ -129,7 +184,7 @@
         <div class="copy">
           <p class="eyebrow">Statistics</p>
           <h2>Review totals and changes over time.</h2>
-          <p>Statistics use the active archive selection. Views can compare distance, moving time, energy, and activity counts across years, quarters, months, or weeks.</p>
+          <p>Statistics use the tracks in your current filter. Compare distance, moving time, estimated work, and number of activities by year, quarter, month, or week.</p>
           <p>The exploration score reports how much new territory an activity added to the existing archive.</p>
         </div>
       </div>
@@ -138,13 +193,22 @@
     <section class="section" id="mobile">
       <div class="section-head">
         <h2>Use the archive from a mobile browser.</h2>
-        <p>The responsive interface includes the track map, statistics, segment tools, and current GPS position. Cached tracks and map data provide basic support when the network is unavailable.</p>
+        <p>On your phone you get the map, statistics, segments, and your current position. Tracks and maps you have already opened stay available offline.</p>
       </div>
       <div class="related">
         <a class="button-secondary" href="../segment-analysis/">Segment analysis</a>
         <a class="button-secondary" href="../route-planner/">Route planning</a>
-        <a class="button-secondary" href="../private-gps-heatmap/">Private GPS heatmap</a>
+        <a class="button-secondary" href="../private-gps-heatmap/">Year filters and map colors</a>
         <a class="button-secondary" href="../docker-install/">Docker installation</a>
+      </div>
+    </section>
+    <section class="section" id="troubleshooting">
+      <div class="section-head"><h2>If an imported track is missing.</h2><p>Check the file, the import progress, and your filter before importing it again.</p></div>
+      <div class="content-grid">
+        <article class="card"><h3>Nothing is imported</h3><p>Check that the files are in the GPS folder MTL Explorer uses. On some network drives new files aren't noticed; use <strong>Settings → Maintenance → Rescan GPS</strong>.</p></article>
+        <article class="card"><h3>Processing reports a failure</h3><p>Open <strong>Settings → Processing → Review GPS findings</strong>. <strong>Review</strong> shows what's wrong with each file and lets you download it to fix it in another tool. See the <a href="../supported-gps-formats/#data-preservation">data and format limitations</a>.</p></article>
+        <article class="card"><h3>Import succeeds but the map is empty</h3><p>Check your filter: year, activity, and area. Find the activity in the track list and use it to jump to its location on the map.</p></article>
+        <article class="card"><h3>The browser shows an older selection</h3><p>When processing is done, use <strong>Settings → Maintenance → Reload tracks</strong> to load the latest data. A second copy of the same activity is marked as a duplicate and doesn't appear twice.</p></article>
       </div>
     </section>
   </main>
@@ -152,7 +216,7 @@
   <footer class="site-footer">
     <div class="site-footer-inner">
       <span>MTL Explorer · Self-hosted GPS archive</span>
-      <nav aria-label="Footer navigation"><a href="../">Home</a><a href="https://github.com/mindalyze-com/mtl-explorer">GitHub</a></nav>
+      <nav aria-label="Footer navigation"><a href="../#site-analytics">Site analytics</a><a href="../">Home</a><a href="https://github.com/mindalyze-com/mtl-explorer">GitHub</a></nav>
     </div>
   </footer>
 </body>

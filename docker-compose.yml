@@ -15,10 +15,11 @@ services:
     volumes:
       - ./data/postgis:/var/lib/postgresql/18/docker
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U mtluser -d mtl"]
-      interval: 10s
+      test: ["CMD", "pg_isready", "-h", "127.0.0.1", "-U", "mtluser", "-d", "mtl"]
+      interval: 1s
       timeout: 5s
-      retries: 10
+      start_period: 5s
+      retries: 60
     deploy:
       resources:
         limits:
@@ -27,9 +28,10 @@ services:
           memory: 256m
     command: >
       postgres
-      -c shared_buffers=32MB
+      -c shared_buffers=64MB
       -c effective_cache_size=160MB
       -c work_mem=1MB
+      -c jit=off
       -c maintenance_work_mem=16MB
       -c max_connections=20
       -c max_wal_size=1GB
@@ -38,8 +40,8 @@ services:
       -c synchronous_commit=off
 
   app:
-    # ${MTL_APP_IMAGE:-...} means: use MTL_APP_IMAGE when it is set,
-    # otherwise use the published image. Example local override:
+    # Uses the published image unless MTL_APP_IMAGE is set in .env.
+    # Developers testing a local build:
     # MTL_APP_IMAGE=mytraillog:local MTL_IMAGE_PULL_POLICY=never docker compose up -d
     image: ${MTL_APP_IMAGE:-wauwau0977/mytraillog:latest}
     pull_policy: *image-pull-policy
@@ -55,9 +57,23 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/mtl
       SPRING_DATASOURCE_USERNAME: mtluser
       SPRING_DATASOURCE_PASSWORD: ${MTL_POSTGRES_PASSWORD:-MtlSuper123}
-      MTL_DB_READONLY_PASSWORD: ${MTL_DB_READONLY_PASSWORD:-MtlSuper123}
+      MTL_DB_READONLY_PASSWORD: ${MTL_DB_READONLY_PASSWORD:-}
       MTL_USER_LOGIN: ${MTL_USER_LOGIN:-mtl}
       MTL_USER_PASSWORD: ${MTL_USER_PASSWORD:-change-me}
+      MTL_UPDATES_ENABLED: ${MTL_UPDATES_ENABLED:-true}
+      MTL_UPDATES_CHANNEL: ${MTL_UPDATES_CHANNEL:-stable}
+      MTL_UPDATES_FEEDURL: ${MTL_UPDATES_FEED_URL:-https://mtl-explorer.com/releases/releases.json}
+      MTL_UPDATES_COMPONENTS_BROUTER_MANAGEMENT: ${MTL_UPDATES_BROUTER_MANAGEMENT:-SELF_MANAGED}
+      MTL_UPDATES_COMPONENTS_LOCATIONSEARCH_MANAGEMENT: ${MTL_UPDATES_LOCATION_SEARCH_MANAGEMENT:-SELF_MANAGED}
+      # Set MTL_UPDATES_MAP_SERVER_MANAGEMENT=SELF_MANAGED in .env when you use offline maps (local-maps profile).
+      MTL_UPDATES_COMPONENTS_MAPSERVER_MANAGEMENT: ${MTL_UPDATES_MAP_SERVER_MANAGEMENT:-PROVIDER_MANAGED}
+      MTL_GPX_WATCH_DIRECTORY: /app/mtl-data/gpx
+      MTL_GARMIN_SYNC_FIT_EXPORT_SAVE_DIR: /app/mtl-data/gpx
+      MTL_GOOGLE_HEALTH_ENABLED: ${MTL_GOOGLE_HEALTH_ENABLED:-true}
+      MTL_GOOGLE_HEALTH_CLIENT_ID: ${MTL_GOOGLE_HEALTH_CLIENT_ID:-}
+      MTL_GOOGLE_HEALTH_CLIENT_SECRET: ${MTL_GOOGLE_HEALTH_CLIENT_SECRET:-}
+      MTL_GOOGLE_HEALTH_REDIRECT_URI: ${MTL_GOOGLE_HEALTH_REDIRECT_URI:-}
+      MTL_GOOGLE_HEALTH_STAGING_DIRECTORY: /app/mtl-data/google-health-staging
       MTL_PLANNER_ENABLED: "true"
       MTL_PLANNER_BROUTER_BASE_URL: http://brouter:17777
       MTL_PLANNER_BROUTER_TIMEOUT_MS: "310000"
@@ -69,24 +85,32 @@ services:
       - "18080:8080"
     restart: unless-stopped
     stop_grace_period: 150s
-    memswap_limit: 1024m
+    memswap_limit: 1248m
     volumes:
-      - ./data/gpx:/app/gpx
+      # All your data lives in ./data. Keep gpx/ and google-health-staging/
+      # together in this folder; Google Health imports need them in one place.
+      - ./data:/app/mtl-data
+      # The app may only read these folders.
+      - ./data/postgis:/app/mtl-data/postgis:ro
+      - ./data/media:/app/mtl-data/media:ro
+      - ./data/maps:/app/mtl-data/maps:ro
+      - ./data/brouter-segments:/app/mtl-data/brouter-segments:ro
+      - ./data/db-size-snapshots:/app/mtl-data/db-size-snapshots:ro
       - ./data/media:/app/media:ro
       - ./data/logs:/app/logs
-      # Optional Spring Boot overrides for this local checkout:
+      # Optional: your own server settings (for example Garmin sync):
       # - ./application.yml:/app/config/application.yml:ro
     deploy:
       resources:
         limits:
-          memory: 1024m # Provides a 320 MiB Java heap with the image's 31.25% heap limit.
+          memory: 1248m # Gives G1 a 500 MiB Java heap with the image's 40% heap limit.
         reservations:
           memory: 512m
 
   map-server:
-    # Optional local PMTiles sidecar. Disabled by default; enable with:
+    # Optional offline maps. Off by default; turn on with:
     # docker compose --profile local-maps up -d
-    # Without this profile, the app uses the hosted PMTiles service.
+    # Without it, maps load from the internet.
     profiles: ["local-maps"]
     # Override with MTL_MAP_IMAGE=mytraillog-maps:local and MTL_IMAGE_PULL_POLICY=never when testing a local build.
     image: ${MTL_MAP_IMAGE:-wauwau0977/mytraillog-maps:latest}
@@ -121,7 +145,7 @@ services:
       MTL_LOCATION_SEARCH_MMAP_SIZE: "33554432"
     restart: unless-stopped
     memswap_limit: 128m
-    # Optional local override when building the GeoNames DB yourself:
+    # Optional: use a place-search database you built yourself:
     # volumes:
     #   - ./data/location-search/geonames-search.sqlite:/data/geonames-search.sqlite:ro
     deploy:

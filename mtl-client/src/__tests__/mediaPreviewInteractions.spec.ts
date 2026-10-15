@@ -3,6 +3,9 @@ import { computed, defineComponent, nextTick, ref } from 'vue';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import MediaFilmstrip from '@/components/map/MediaFilmstrip.vue';
 import MediaPreview from '@/components/map/MediaPreview.vue';
+import MediaViewerViewToggle from '@/components/map/MediaViewerViewToggle.vue';
+import BottomSheet from '@/components/ui/BottomSheet.vue';
+import { IMMERSIVE_CONTROLS_IDLE_MS } from '@/components/ui/useImmersiveSheetControls';
 import { saveMediaTimeCorrections } from '@/repositories/mediaRepository';
 
 const previewMockState = vi.hoisted(() => ({
@@ -10,6 +13,8 @@ const previewMockState = vi.hoisted(() => ({
   isVideo: false,
   mediaUrl: '/preview.jpg',
   posterUrl: undefined as string | undefined,
+  hasLoadError: false,
+  retryLoad: vi.fn(),
 }));
 
 vi.mock('@/components/map/useMediaPreview', () => ({
@@ -20,6 +25,7 @@ vi.mock('@/components/map/useMediaPreview', () => ({
     navIndex?: number;
     navTotal?: number;
   }) => ({
+    activeMediaId: computed(() => props.mediaId),
     isSwapPending: ref(false),
     isCrossFading: ref(false),
     isHighResolutionPending: ref(true),
@@ -47,9 +53,9 @@ vi.mock('@/components/map/useMediaPreview', () => ({
     showNavigation: computed(() => (props.navTotal ?? 0) > 1),
     canGoPrev: computed(() => props.canGoPrev ?? false),
     canGoNext: computed(() => props.canGoNext ?? false),
-    hasLoadError: ref(false),
+    hasLoadError: computed(() => previewMockState.hasLoadError),
     loadError: ref(''),
-    retryLoad: vi.fn(),
+    retryLoad: previewMockState.retryLoad,
     onMediaError: vi.fn(),
   }),
 }));
@@ -110,6 +116,7 @@ function dispatchPointer(
 
 beforeEach(() => {
   vi.mocked(saveMediaTimeCorrections).mockReset().mockResolvedValue(undefined);
+  previewMockState.retryLoad.mockReset();
 });
 
 afterEach(() => {
@@ -120,9 +127,227 @@ afterEach(() => {
   previewMockState.isVideo = false;
   previewMockState.mediaUrl = '/preview.jpg';
   previewMockState.posterUrl = undefined;
+  previewMockState.hasLoadError = false;
+  vi.unstubAllGlobals();
+  vi.useRealTimers();
+});
+
+function mountViewer() {
+  vi.stubGlobal(
+    'ResizeObserver',
+    class {
+      observe() {}
+      disconnect() {}
+    }
+  );
+  const wrapper = mount(
+    defineComponent({
+      components: { BottomSheet, MediaPreview, MediaViewerViewToggle },
+      setup: () => ({ open: ref(true), details: ref(true), map: ref(true), photos: ref(true) }),
+      template: `
+        <BottomSheet v-model="open" title="Test photo viewer" native-fullscreen fullscreen-control-labels
+          immersive :detents="[{ id: 'normal', height: '400px' }]">
+          <template #header-actions><MediaViewerViewToggle v-model="details" v-model:map-visible="map" v-model:photos-visible="photos" /></template>
+          <MediaPreview :media-id="2" :nav-index="2" :nav-total="3" :media-ids="[1, 2, 3]"
+            :can-go-prev="true" :can-go-next="true" v-model:details-visible="details" v-model:map-visible="map" :photos-visible="photos" :position-lat="47" :position-lng="8" />
+        </BottomSheet>
+      `,
+    }),
+    { attachTo: document.body, global: { stubs: { MediaLocationMiniMap: MediaLocationMiniMapStub } } }
+  );
+  wrappers.push(wrapper);
+  return wrapper;
+}
+
+function installFullscreen(sheet: HTMLElement) {
+  Object.defineProperty(document, 'fullscreenElement', { configurable: true, value: null });
+  Object.defineProperty(document, 'exitFullscreen', {
+    configurable: true,
+    value: vi.fn(async () => {
+      Object.defineProperty(document, 'fullscreenElement', { configurable: true, value: null });
+      document.dispatchEvent(new Event('fullscreenchange'));
+    }),
+  });
+  Object.defineProperty(sheet, 'requestFullscreen', {
+    configurable: true,
+    value: vi.fn(async () => {
+      Object.defineProperty(document, 'fullscreenElement', { configurable: true, value: sheet });
+      document.dispatchEvent(new Event('fullscreenchange'));
+    }),
+  });
+}
+async function togglePhotoOnly(sheet: HTMLElement) {
+  sheet.querySelector<HTMLButtonElement>('.media-viewer-panel-options button')!.click();
+  await nextTick();
+}
+describe('photo viewer presentation', () => {
+  it('does not navigate photos while the View menu has keyboard focus', async () => {
+    const wrapper = mountViewer();
+    await flushPromises();
+    const menu = document.querySelector<HTMLDetailsElement>('.media-viewer-panel-menu')!;
+    const summary = menu.querySelector('summary')!;
+    menu.open = true;
+    summary.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true }));
+    expect(wrapper.getComponent(MediaPreview).emitted('prev')).toBeUndefined();
+    menu.open = false;
+    summary.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }));
+    expect(wrapper.getComponent(MediaPreview).emitted('next')).toHaveLength(1);
+  });
+  afterEach(() => {
+    delete (document as Document & { fullscreenElement?: Element | null }).fullscreenElement;
+    delete (document as Document & { exitFullscreen?: () => Promise<void> }).exitFullscreen;
+  });
+  it('preserves panel choices and restores Expand after real fullscreen', async () => {
+    mountViewer();
+    await flushPromises();
+    const sheet = document.querySelector<HTMLElement>('.sheet')!;
+    installFullscreen(sheet);
+    const normalHeight = sheet.style.height;
+    const expand = sheet.querySelector<HTMLButtonElement>('.sheet-fullscreen-btn')!;
+    const fullscreen = sheet.querySelector<HTMLButtonElement>('.sheet-native-fullscreen-btn')!;
+    expand.click();
+    await nextTick();
+    expect(sheet.classList.contains('sheet--fullscreen')).toBe(true);
+    await togglePhotoOnly(sheet);
+    expect(sheet.querySelector('[data-test="media-metadata"]')).toBeNull();
+    fullscreen.click();
+    await flushPromises();
+    expect(sheet.requestFullscreen).toHaveBeenCalledWith({ navigationUI: 'hide' });
+    expect(document.fullscreenElement).toBe(sheet);
+    expect(sheet.classList.contains('sheet--native-fullscreen')).toBe(true);
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    await flushPromises();
+    expect(sheet.classList.contains('sheet--native-fullscreen')).toBe(false);
+    expect(sheet.classList.contains('sheet--fullscreen')).toBe(true);
+    expect(sheet.querySelector('[data-test="media-metadata"]')).toBeNull();
+    expand.click();
+    await nextTick();
+    expect(sheet.style.height).toBe(normalHeight);
+    await togglePhotoOnly(sheet);
+    expect(sheet.querySelector('[data-test="media-metadata"]')).not.toBeNull();
+  });
+  it('controls Details, Map and Photos independently and restores a custom selection', async () => {
+    mountViewer();
+    await flushPromises();
+    const sheet = document.querySelector<HTMLElement>('.sheet')!;
+    const strip = sheet.querySelector<HTMLElement>('.mp__filmstrip-section')!;
+    const [details, map, photos] = sheet.querySelectorAll<HTMLInputElement>('.media-viewer-panel-options input');
+    details.click();
+    await nextTick();
+    expect(sheet.querySelector('.mp__more-details')).toBeNull();
+    expect(sheet.querySelector('[data-test="media-location-mini-map"]')).not.toBeNull();
+    expect(strip.style.display).not.toBe('none');
+    photos.click();
+    await nextTick();
+    expect(strip.style.display).toBe('none');
+    await togglePhotoOnly(sheet);
+    await togglePhotoOnly(sheet);
+    expect(map.checked).toBe(true);
+    expect(details.checked).toBe(false);
+    expect(photos.checked).toBe(false);
+    map.click();
+    details.click();
+    await nextTick();
+    expect(sheet.querySelector('.mp__more-details')).not.toBeNull();
+    expect(sheet.querySelector('[data-test="media-location-mini-map"]')).toBeNull();
+    expect(sheet.querySelector('.mp__filmstrip-section')).toBe(strip);
+  });
+  it('preserves More and the filmstrip instance when panels are hidden and restored', async () => {
+    mountViewer();
+    await flushPromises();
+    const sheet = document.querySelector<HTMLElement>('.sheet')!;
+    const strip = sheet.querySelector('.mp__filmstrip-section');
+    sheet.querySelector<HTMLElement>('.mp__more-details summary')!.click();
+    await nextTick();
+    await togglePhotoOnly(sheet);
+    await togglePhotoOnly(sheet);
+    expect(sheet.querySelector('.mp__filmstrip-section')).toBe(strip);
+    expect(sheet.querySelector('.mp__more-details')?.hasAttribute('open')).toBe(true);
+  });
+  it('reveals controls at the top edge and holds the toolbar for its menu or keyboard focus', async () => {
+    mountViewer();
+    await flushPromises();
+    const sheet = document.querySelector<HTMLElement>('.sheet')!;
+    installFullscreen(sheet);
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    sheet.querySelector<HTMLButtonElement>('.sheet-native-fullscreen-btn')!.click();
+    await flushPromises();
+    await vi.advanceTimersByTimeAsync(IMMERSIVE_CONTROLS_IDLE_MS);
+    expect(sheet.classList.contains('sheet--controls-hidden')).toBe(true);
+    expect(sheet.querySelector('[data-test="media-metadata"]')).not.toBeNull();
+    sheet.dispatchEvent(new MouseEvent('pointermove', { bubbles: true, clientY: 400 }));
+    await nextTick();
+    expect(sheet.classList.contains('sheet--controls-hidden')).toBe(true);
+    sheet.dispatchEvent(new MouseEvent('pointermove', { bubbles: true, clientY: 5 }));
+    await nextTick();
+    expect(sheet.classList.contains('sheet--controls-hidden')).toBe(false);
+    const menu = sheet.querySelector<HTMLDetailsElement>('.media-viewer-panel-menu')!;
+    menu.open = true;
+    sheet.dispatchEvent(new MouseEvent('pointermove', { bubbles: true, clientY: 400 }));
+    await vi.advanceTimersByTimeAsync(IMMERSIVE_CONTROLS_IDLE_MS);
+    expect(sheet.classList.contains('sheet--controls-hidden')).toBe(false);
+    menu.open = false;
+    await vi.advanceTimersByTimeAsync(IMMERSIVE_CONTROLS_IDLE_MS);
+    expect(sheet.classList.contains('sheet--controls-hidden')).toBe(true);
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true }));
+    await nextTick();
+    expect(sheet.classList.contains('sheet--controls-hidden')).toBe(false);
+    expect(sheet.querySelector('.sheet-drag-zone')?.contains(document.activeElement)).toBe(true);
+  });
+  it('keeps Expand and reports unsupported fullscreen when the browser rejects the request', async () => {
+    mountViewer();
+    await flushPromises();
+    const sheet = document.querySelector<HTMLElement>('.sheet')!;
+    Object.defineProperty(sheet, 'requestFullscreen', { value: vi.fn().mockRejectedValue(new Error('Unavailable')) });
+    sheet.querySelector<HTMLButtonElement>('.sheet-fullscreen-btn')!.click();
+    await nextTick();
+    sheet.querySelector<HTMLButtonElement>('.sheet-native-fullscreen-btn')!.click();
+    await flushPromises();
+    expect(sheet.classList.contains('sheet--native-fullscreen')).toBe(false);
+    expect(sheet.classList.contains('sheet--fullscreen')).toBe(true);
+    expect(sheet.querySelector('.sheet-fullscreen-status')?.textContent).toContain('Use Expand');
+    expect(sheet.querySelector('.sheet-native-fullscreen-btn')?.textContent?.trim()).toBe('Full screen');
+  });
 });
 
 describe('MediaPreview interactions', () => {
+  it('retries the current failed thumbnail without replacing its neighbors or collapsing the filmstrip', async () => {
+    previewMockState.hasLoadError = true;
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(new Response(null, { status: 500 }))
+      .mockResolvedValueOnce(new Response('recovered jpeg', { status: 200 }));
+    vi.stubGlobal('fetch', fetchMock);
+    vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:recovered-thumbnail');
+    vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => undefined);
+    const wrapper = mountPreview();
+    const thumbnail = wrapper.get('[data-media-id="2"] img');
+    const neighbor = wrapper.get('[data-media-id="1"] img').element;
+    const filmstrip = wrapper.get('.mp__filmstrip').element;
+    await thumbnail.trigger('error');
+    await flushPromises();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    await wrapper.get('.mp__error-btn--primary').trigger('click');
+    expect(previewMockState.retryLoad).toHaveBeenCalledTimes(1);
+    const retriedThumbnail = wrapper.get('[data-media-id="2"] img');
+    expect(retriedThumbnail.element).not.toBe(thumbnail.element);
+    expect(wrapper.get('[data-media-id="1"] img').element).toBe(neighbor);
+    expect(wrapper.get('.mp__filmstrip').element).toBe(filmstrip);
+    expect(wrapper.get('[aria-controls="nearby-photos-strip"]').attributes('aria-expanded')).toBe('true');
+    expect(retriedThumbnail.attributes('src')).toBe('/media/2?maxSize=192');
+
+    await retriedThumbnail.trigger('error');
+    await flushPromises();
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(retriedThumbnail.attributes('src')).toBe('blob:recovered-thumbnail');
+    await wrapper.setProps({ mediaId: 3, navIndex: 3 });
+    await wrapper.setProps({ mediaId: 2, navIndex: 2 });
+    expect(wrapper.get('[data-media-id="2"] img').attributes('src')).toBe('blob:recovered-thumbnail');
+    wrapper.unmount();
+    expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:recovered-thumbnail');
+  });
+
   it('signals that the displayed photo is still loading at full resolution', () => {
     const wrapper = mountPreview();
 

@@ -18,9 +18,11 @@
         <java.version>25</java.version>
         <spring-boot.version>4.1.1</spring-boot.version>
         <geographiclib.version>2.1</geographiclib.version>
-        <hibernate.version>7.4.6.Final</hibernate.version>
+        <hibernate.version>7.4.7.Final</hibernate.version>
         <jjwt.version>0.13.0</jjwt.version>
         <maven.build.timestamp.format>yyyy-MM-dd'T'HH:mm:ss'Z'</maven.build.timestamp.format>
+        <gpsquality.modules.directory>${project.build.directory}/gpsquality-classes</gpsquality.modules.directory>
+        <gpsquality.root.modules>com.x8ing.mtl.gpsquality.diagnostics</gpsquality.root.modules>
     </properties>
 
     <dependencyManagement>
@@ -101,7 +103,7 @@
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
-            <version>1.18.46</version>
+            <version>1.18.48</version>
             <optional>true</optional>
         </dependency>
         <dependency>
@@ -211,6 +213,7 @@
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <version>${spring-boot.version}</version>
                 <configuration>
+                    <jvmArguments>--module-path ${gpsquality.modules.directory} --add-modules ${gpsquality.root.modules}</jvmArguments>
                     <excludes>
                         <exclude>
                             <groupId>org.projectlombok</groupId>
@@ -237,18 +240,51 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.15.0</version>
+                <version>3.16.0</version>
                 <configuration>
                     <parameters>true</parameters>
                     <release>${java.version}</release>
                     <proc>full</proc>
+                    <implicit>none</implicit>
+                    <compilerArgs>
+                        <arg>--module-path</arg>
+                        <arg>${gpsquality.modules.directory}</arg>
+                        <arg>--add-modules</arg>
+                        <arg>${gpsquality.root.modules}</arg>
+                    </compilerArgs>
                 </configuration>
+                <executions>
+                    <!-- Separate named outputs in this Maven project. Core sources keep their Java packages. -->
+                    <execution>
+                        <id>compile-gpsquality-diagnostics</id>
+                        <phase>generate-sources</phase>
+                        <goals><goal>compile</goal></goals>
+                        <configuration>
+                            <compileSourceRoots>
+                                <compileSourceRoot>${project.basedir}/src/main/java/com/x8ing/mtl/server/gpsquality/diagnostics</compileSourceRoot>
+                                <compileSourceRoot>${project.basedir}/src/main/modules/diagnostics</compileSourceRoot>
+                            </compileSourceRoots>
+                            <outputDirectory>${gpsquality.modules.directory}/com.x8ing.mtl.gpsquality.diagnostics</outputDirectory>
+                            <proc>none</proc>
+                            <compilerArgs combine.self="override"/>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>default-compile</id>
+                        <configuration>
+                            <excludes><exclude>com/x8ing/mtl/server/gpsquality/**</exclude></excludes>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
 
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>3.5.6</version>
+                <configuration>
+                    <argLine>--module-path ${gpsquality.modules.directory} --add-modules ${gpsquality.root.modules}</argLine>
+                </configuration>
             </plugin>
 
             <plugin>
@@ -291,6 +327,35 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-clean-plugin</artifactId>
                 <version>3.5.0</version>
+                <executions>
+                    <execution>
+                        <id>recompile-module-consumers</id>
+                        <phase>initialize</phase>
+                        <goals><goal>clean</goal></goals>
+                        <configuration>
+                            <!-- Compiler 3.x does not track manually supplied module-path entries as dependencies.
+                                 Recompile consumers so a core API change cannot leave stale application/test bytecode. -->
+                            <excludeDefaultDirectories>true</excludeDefaultDirectories>
+                            <filesets>
+                                <fileset>
+                                    <directory>${project.build.outputDirectory}</directory>
+                                    <includes><include>**/*.class</include></includes>
+                                </fileset>
+                                <fileset>
+                                    <directory>${project.build.testOutputDirectory}</directory>
+                                    <includes><include>**/*.class</include></includes>
+                                </fileset>
+                                <!-- Removed modules must not survive in incremental builds or packaged images. -->
+                                <fileset>
+                                    <directory>${gpsquality.modules.directory}</directory>
+                                </fileset>
+                                <fileset>
+                                    <directory>${project.build.directory}/gpsquality</directory>
+                                </fileset>
+                            </filesets>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -301,6 +366,24 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-jar-plugin</artifactId>
                 <version>3.5.1</version>
+                <executions>
+                    <execution>
+                        <id>default-jar</id>
+                        <configuration>
+                            <excludes><exclude>com/x8ing/mtl/server/gpsquality/**</exclude></excludes>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>jar-gpsquality-diagnostics</id>
+                        <phase>package</phase>
+                        <goals><goal>jar</goal></goals>
+                        <configuration>
+                            <classesDirectory>${gpsquality.modules.directory}/com.x8ing.mtl.gpsquality.diagnostics</classesDirectory>
+                            <outputDirectory>${project.build.directory}/gpsquality</outputDirectory>
+                            <classifier>diagnostics</classifier>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>

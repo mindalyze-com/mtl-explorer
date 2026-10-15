@@ -4,7 +4,6 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.x8ing.mtl.server.mtlserver.config.MtlCacheConfig;
 import com.x8ing.mtl.server.mtlserver.web.services.config.ServerIdentityService;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.boot.info.BuildProperties;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
@@ -14,33 +13,31 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import java.time.Duration;
 import java.util.Locale;
-import java.util.Optional;
 
 @Slf4j
 @Service
 @JsonPropertyOrder({
         "properties",
         "serverIdentityService",
-        "buildProperties",
+        "buildVersionService",
         "restClient"
 })
 public class LocationSearchService {
 
     static final String SORT_IMPORTANCE = "importance";
     static final String SORT_DISTANCE = "distance";
-    private static final String UNKNOWN_BUILD_VERSION = "unknown";
 
     private final LocationSearchProperties properties;
     private final ServerIdentityService serverIdentityService;
-    private final Optional<BuildProperties> buildProperties;
+    private final UpstreamBuildVersionService buildVersionService;
     private final RestClient restClient;
 
     public LocationSearchService(LocationSearchProperties properties,
                                  ServerIdentityService serverIdentityService,
-                                 Optional<BuildProperties> buildProperties) {
+                                 UpstreamBuildVersionService buildVersionService) {
         this.properties = properties;
         this.serverIdentityService = serverIdentityService;
-        this.buildProperties = buildProperties;
+        this.buildVersionService = buildVersionService;
         this.restClient = buildClient(properties);
     }
 
@@ -157,14 +154,12 @@ public class LocationSearchService {
     }
 
     private UriComponentsBuilder sidecarUri(String url) {
-        return UriComponentsBuilder.fromUriString(url)
-                .queryParam(MapProxyConstants.UPSTREAM_AUTH_VERSION_PARAM, buildVersion())
-                .queryParam(MapProxyConstants.UPSTREAM_AUTH_SERVER_ID_PARAM, serverIdentityService.getServerId());
-    }
-
-    private String buildVersion() {
-        return buildProperties
-                .map(MapTileProxyController::buildVersionParam)
-                .orElse(UNKNOWN_BUILD_VERSION);
+        UriComponentsBuilder builder = UriComponentsBuilder.fromUriString(url)
+                .queryParam(MapProxyConstants.UPSTREAM_AUTH_VERSION_PARAM, buildVersionService.getVersion());
+        String build = buildVersionService.getBuild();
+        if (build != null && !build.isBlank()) {
+            builder.queryParam(MapProxyConstants.UPSTREAM_BUILD_PARAM, build);
+        }
+        return builder.queryParam(MapProxyConstants.UPSTREAM_AUTH_SERVER_ID_PARAM, serverIdentityService.getServerId());
     }
 }

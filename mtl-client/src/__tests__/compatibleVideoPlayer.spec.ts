@@ -13,7 +13,7 @@ const hlsMock = vi.hoisted(() => ({
   supported: true,
   instances: [] as Array<{
     handlers: Map<string, (...args: unknown[]) => void>;
-    config: { xhrSetup?: (xhr: XMLHttpRequest) => void };
+    config: { startPosition?: number; xhrSetup?: (xhr: XMLHttpRequest) => void };
     attachMedia: ReturnType<typeof vi.fn>;
     loadSource: ReturnType<typeof vi.fn>;
     destroy: ReturnType<typeof vi.fn>;
@@ -47,9 +47,9 @@ vi.mock('hls.js', () => {
     destroy = vi.fn();
     startLoad = vi.fn();
     recoverMediaError = vi.fn();
-    config: { xhrSetup?: (xhr: XMLHttpRequest) => void };
+    config: { startPosition?: number; xhrSetup?: (xhr: XMLHttpRequest) => void };
 
-    constructor(config: { xhrSetup?: (xhr: XMLHttpRequest) => void }) {
+    constructor(config: { startPosition?: number; xhrSetup?: (xhr: XMLHttpRequest) => void }) {
       this.config = config;
       hlsMock.instances.push(this);
     }
@@ -127,6 +127,7 @@ beforeEach(() => {
   vi.spyOn(HTMLMediaElement.prototype, 'canPlayType').mockReturnValue('probably');
   vi.spyOn(HTMLMediaElement.prototype, 'load').mockImplementation(() => undefined);
   vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue();
+  vi.spyOn(HTMLMediaElement.prototype, 'pause').mockImplementation(() => undefined);
 });
 
 afterEach(() => {
@@ -137,6 +138,74 @@ afterEach(() => {
 });
 
 describe('CompatibleVideoPlayer', () => {
+  it.each(['loadeddata', 'playing', 'timeupdate'])(
+    'offers conversion when %s exposes playable audio without video dimensions',
+    async (event) => {
+      const wrapper = mountPlayer();
+      const video = wrapper.get('video');
+      Object.defineProperty(video.element, 'readyState', { value: HTMLMediaElement.HAVE_ENOUGH_DATA });
+      Object.defineProperty(video.element, 'currentTime', { value: 2 });
+
+      await video.trigger(event);
+
+      expect(wrapper.get('[data-test="video-transcode-panel"]').text()).toContain(
+        'This browser cannot play the original video'
+      );
+      expect(video.attributes('src')).toBeUndefined();
+      expect(video.attributes('poster')).toContain('maxSize=1600');
+      expect(HTMLMediaElement.prototype.pause).toHaveBeenCalled();
+      expect(repositoryMock.create).not.toHaveBeenCalled();
+      expect(wrapper.emitted('media-error')).toBeUndefined();
+
+      repositoryMock.create.mockResolvedValue(transcodeSession({ quality: 'P480' }));
+      await wrapper.get('[aria-label="Compatible video quality"]').setValue('P480');
+      await buttonWithText(wrapper, 'Create compatible stream').trigger('click');
+      await flushPromises();
+      expect(repositoryMock.create).toHaveBeenCalledWith(17, 'P480', expect.any(AbortSignal));
+    }
+  );
+
+  it('waits for current data and keeps a decoded native video on the original source', async () => {
+    const wrapper = mountPlayer();
+    const video = wrapper.get('video');
+    Object.defineProperty(video.element, 'readyState', {
+      configurable: true,
+      value: HTMLMediaElement.HAVE_METADATA,
+    });
+    await video.trigger('timeupdate');
+    expect(wrapper.find('[data-test="video-transcode-panel"]').exists()).toBe(false);
+
+    Object.defineProperties(video.element, {
+      readyState: { value: HTMLMediaElement.HAVE_CURRENT_DATA },
+      videoWidth: { value: 320 },
+      videoHeight: { value: 180 },
+    });
+    await video.trigger('loadeddata');
+    await video.trigger('playing');
+    await video.trigger('timeupdate');
+    expect(video.attributes('src')).toBe('/mtl/api/media/get/17/content');
+    expect(wrapper.find('[data-test="video-transcode-panel"]').exists()).toBe(false);
+    expect(HTMLMediaElement.prototype.pause).not.toHaveBeenCalled();
+    expect(repositoryMock.create).not.toHaveBeenCalled();
+  });
+
+  it('does not apply original video detection while attaching a compatible playlist', async () => {
+    hlsMock.supported = false;
+    repositoryMock.create.mockResolvedValue(transcodeSession({ state: 'COMPLETED', playlistReady: true }));
+    const wrapper = mountPlayer();
+    await reportUnsupported(wrapper);
+    await buttonWithText(wrapper, 'Create compatible stream').trigger('click');
+    await flushPromises();
+    Object.defineProperty(wrapper.get('video').element, 'readyState', {
+      value: HTMLMediaElement.HAVE_ENOUGH_DATA,
+    });
+    await wrapper.get('video').trigger('loadedmetadata');
+    await wrapper.get('video').trigger('loadeddata');
+    await wrapper.get('video').trigger('playing');
+    expect(wrapper.get('video').attributes('src')).toContain('playlist.m3u8');
+    expect(wrapper.find('[data-test="video-transcode-panel"]').exists()).toBe(false);
+  });
+
   it.each([3, 4])('offers compatible playback for media error code %i', async (code) => {
     const wrapper = mountPlayer();
     setMediaError(wrapper, code);
@@ -176,6 +245,7 @@ describe('CompatibleVideoPlayer', () => {
   });
 
   it('polls until a native HLS playlist is ready and reports live progress', async () => {
+    hlsMock.supported = false;
     vi.useFakeTimers();
     repositoryMock.create.mockResolvedValue(transcodeSession());
     repositoryMock.get.mockResolvedValue(
@@ -253,6 +323,7 @@ describe('CompatibleVideoPlayer', () => {
   });
 
   it('attaches a completed session without continuing to poll', async () => {
+    hlsMock.supported = false;
     vi.useFakeTimers();
     repositoryMock.create.mockResolvedValue(
       transcodeSession({ state: 'COMPLETED', playlistReady: true, encodedSeconds: 120, transcodeSpeed: 2 })
@@ -309,6 +380,46 @@ describe('CompatibleVideoPlayer', () => {
 
     expect(repositoryMock.create).toHaveBeenCalledTimes(2);
     expect(second.get('[data-test="video-transcode-panel"]').text()).toContain('Reusing prepared work');
+  });
+
+  it.each(['RUNNING', 'COMPLETED'] as const)(
+    'prefers hls.js from the beginning for a %s stream even when native HLS is advertised',
+    async (state) => {
+      repositoryMock.create.mockResolvedValue(transcodeSession({ state, playlistReady: true, encodedSeconds: 5 }));
+      const wrapper = mountPlayer();
+      await reportUnsupported(wrapper);
+      await buttonWithText(wrapper, 'Create compatible stream').trigger('click');
+      await flushPromises();
+
+      const instance = hlsMock.instances[0];
+      expect(instance?.attachMedia).toHaveBeenCalledWith(wrapper.get('video').element);
+      expect(instance?.config.startPosition).toBe(0);
+      expect(wrapper.get('video').attributes('src')).toBeUndefined();
+      expect(HTMLMediaElement.prototype.load).not.toHaveBeenCalled();
+      instance?.handlers.get('mediaAttached')?.();
+      expect(instance?.loadSource).toHaveBeenCalledWith('/mtl/api/media/transcode-sessions/session-1/playlist.m3u8');
+      instance?.handlers.get('manifestParsed')?.();
+      await flushPromises();
+      expect(wrapper.find('.mp__video-play').exists()).toBe(true);
+      await wrapper.get('.mp__video-play').trigger('click');
+      expect(HTMLMediaElement.prototype.play).toHaveBeenCalledOnce();
+      expect(repositoryMock.create).toHaveBeenCalledOnce();
+    }
+  );
+
+  it('reports unavailable compatible playback when neither HLS path is supported', async () => {
+    hlsMock.supported = false;
+    vi.mocked(HTMLMediaElement.prototype.canPlayType).mockReturnValue('');
+    repositoryMock.create.mockResolvedValue(transcodeSession({ state: 'RUNNING', playlistReady: true }));
+    const wrapper = mountPlayer();
+    await reportUnsupported(wrapper);
+    await buttonWithText(wrapper, 'Create compatible stream').trigger('click');
+    await flushPromises();
+
+    expect(wrapper.get('[data-test="video-transcode-panel"]').text()).toContain(
+      'This browser cannot play the compatible HLS stream.'
+    );
+    expect(hlsMock.instances).toHaveLength(0);
   });
 
   it('uses hls.js outside browsers with native HLS and destroys it when detached', async () => {

@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.10.xsd">
+    <changeSet id="20261008_filter_view_descriptions" author="codex">
+        <update tableName="filter_config">
+            <column name="description" value="Group tracks by the calendar day they started."/>
+            <where>filter_domain = 'GPS_TRACK' AND filter_name = 'TracksByDay'</where>
+        </update>
+        <update tableName="filter_config">
+            <column name="description" value="Group tracks by the calendar quarter they started (Q1–Q4)."/>
+            <where>filter_domain = 'GPS_TRACK' AND filter_name = 'TracksByQuarter'</where>
+        </update>
+        <update tableName="filter_config">
+            <column name="description" value="Group tracks by their start weekday, Monday to Sunday."/>
+            <where>filter_domain = 'GPS_TRACK' AND filter_name = 'TracksByDayOfWeek'</where>
+        </update>
+        <update tableName="filter_config">
+            <column name="description" value="Group tracks by their start time, from night to late evening."/>
+            <where>filter_domain = 'GPS_TRACK' AND filter_name = 'TracksByTimeOfDay'</where>
+        </update>
+        <update tableName="filter_config">
+            <column name="description" value="Color tracks from slower to faster average moving speed within the selected results."/>
+            <where>filter_domain = 'GPS_TRACK' AND filter_name = 'TracksByAverageSpeedGradient'</where>
+        </update>
+        <update tableName="filter_config">
+            <column name="description" value="Color tracks from shorter to longer distance within the selected results."/>
+            <where>filter_domain = 'GPS_TRACK' AND filter_name = 'TracksByDistanceGradient'</where>
+        </update>
+        <update tableName="filter_config">
+            <column name="description" value="Color tracks from less to more climbing within the selected results."/>
+            <where>filter_domain = 'GPS_TRACK' AND filter_name = 'TracksByElevationGainGradient'</where>
+        </update>
+        <update tableName="filter_config">
+            <column name="description" value="Color tracks from lower to higher estimated mechanical energy within the selected results."/>
+            <where>filter_domain = 'GPS_TRACK' AND filter_name = 'TracksByEnergyGradient'</where>
+        </update>
+    </changeSet>
+</databaseChangeLog>

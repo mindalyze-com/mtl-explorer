@@ -1,20 +1,23 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createPinia, setActivePinia } from 'pinia';
-import type { DataFreshnessResponseDto } from '@/utils/serverAdminApi';
-import { getDataFreshness } from '@/utils/serverAdminApi';
-import {
-  getDataFreshnessSnoozedUntil,
-  getAppliedDataFreshnessToken,
-  setDataFreshnessSnooze,
-  setAppliedDataFreshnessToken,
-} from '@/utils/dataFreshnessStorage';
-import { DATA_FRESHNESS_SNOOZE_MS, useDataFreshnessStore } from '@/stores/dataFreshnessStore';
+import type { DataFreshnessResponseDto } from 'x8ing-mtl-api-typescript-fetch';
+import { getAppliedDataFreshnessToken, setAppliedDataFreshnessToken } from '@/utils/dataFreshnessStorage';
+import { useDataFreshnessStore } from '@/stores/dataFreshnessStore';
+import { APPLICATION_STATUS_SECTION, useApplicationStatusStore } from '@/stores/applicationStatusStore';
+import { STATUS_POLL_INTERVAL_MS } from '@/utils/statusPolling';
 
-vi.mock('@/utils/serverAdminApi', () => ({
-  getDataFreshness: vi.fn(),
-}));
-
-const getDataFreshnessMock = vi.mocked(getDataFreshness);
+const getApplicationStatusMock = vi.hoisted(() => vi.fn());
+vi.mock('x8ing-mtl-api-typescript-fetch', async () => {
+  const actual = await vi.importActual<typeof import('x8ing-mtl-api-typescript-fetch')>(
+    'x8ing-mtl-api-typescript-fetch'
+  );
+  return {
+    ...actual,
+    ApplicationStatusControllerApi: class {
+      getApplicationStatus = getApplicationStatusMock;
+    },
+  };
+});
 
 function freshness(token: string): DataFreshnessResponseDto {
   return {
@@ -28,79 +31,70 @@ describe('useDataFreshnessStore', () => {
   beforeEach(() => {
     localStorage.clear();
     setActivePinia(createPinia());
-    getDataFreshnessMock.mockReset();
+    getApplicationStatusMock.mockReset();
   });
 
   afterEach(() => {
+    useApplicationStatusStore().$dispose();
     vi.useRealTimers();
   });
 
-  it('hydrates the applied token and snooze timestamp from localStorage', () => {
+  it('hydrates the applied token from localStorage', () => {
     setAppliedDataFreshnessToken('client-token');
-    const snoozedUntil = setDataFreshnessSnooze(30_000, Date.now());
 
     const store = useDataFreshnessStore();
 
     expect(store.appliedToken).toBe('client-token');
-    expect(store.snoozedUntil).toBe(snoozedUntil);
   });
 
-  it('marks a token as applied without cancelling an active snooze', () => {
-    const snoozedUntil = setDataFreshnessSnooze(30_000, Date.now());
+  it('marks a token as applied', () => {
     const store = useDataFreshnessStore();
 
     store.markAppliedToken('server-token');
 
     expect(store.appliedToken).toBe('server-token');
     expect(getAppliedDataFreshnessToken()).toBe('server-token');
-    expect(store.snoozedUntil).toBe(snoozedUntil);
-    expect(getDataFreshnessSnoozedUntil()).toBe(snoozedUntil);
   });
 
-  it('shows the banner only when data is stale and the snooze has expired', () => {
+  it('keeps a warm tab stale when another tab applies the new shared-cache revision', () => {
+    setAppliedDataFreshnessToken('initial-data');
+    const firstTab = createPinia();
+    const secondTab = createPinia();
+    const firstStore = useDataFreshnessStore(firstTab);
+    const secondStore = useDataFreshnessStore(secondTab);
+    useApplicationStatusStore(firstTab).freshness = freshness('updated-data');
+    useApplicationStatusStore(secondTab).freshness = freshness('updated-data');
+
+    firstStore.markAppliedToken('updated-data');
+    secondStore.hydrateFromStorage();
+
+    expect(firstStore.isOutOfSync).toBe(false);
+    expect(getAppliedDataFreshnessToken()).toBe('updated-data');
+    expect(secondStore.appliedToken).toBe('initial-data');
+    expect(secondStore.isOutOfSync).toBe(true);
+    expect(secondStore.shouldShowBanner(true)).toBe(true);
+    secondStore.markAppliedToken('updated-data');
+    expect(secondStore.isOutOfSync).toBe(false);
+    useApplicationStatusStore(firstTab).$dispose();
+    useApplicationStatusStore(secondTab).$dispose();
+  });
+
+  it('shows the banner only after loading and while stale data is not reloading', () => {
     vi.useFakeTimers();
     vi.setSystemTime(1_000);
     const store = useDataFreshnessStore();
-    store.currentFreshness = freshness('server-token');
+    useApplicationStatusStore().freshness = freshness('server-token');
     store.markAppliedToken('client-token');
 
     expect(store.shouldShowBanner(false)).toBe(false);
     expect(store.shouldShowBanner(true)).toBe(true);
-
-    store.snooze(1_000, 1_000);
-    expect(store.shouldShowBanner(true)).toBe(false);
 
     store.setReloading(true);
     expect(store.shouldShowBanner(true)).toBe(false);
     store.setReloading(false);
 
     vi.advanceTimersByTime(1_000);
-    expect(store.snoozedUntil).toBe(0);
     expect(store.shouldShowBanner(true)).toBe(true);
-  });
-
-  it('keeps one fixed snooze deadline while the server token changes repeatedly', () => {
-    vi.useFakeTimers();
-    vi.setSystemTime(1_000);
-    const store = useDataFreshnessStore();
-    store.currentFreshness = freshness('server-token-1');
-    store.markAppliedToken('client-token');
-
-    store.snooze(1_000, 1_000);
-    const snoozedUntil = store.snoozedUntil;
-    store.currentFreshness = freshness('server-token-2');
-    store.currentFreshness = freshness('server-token-3');
-    store.currentFreshness = freshness('server-token-4');
-
-    expect(store.shouldShowBanner(true)).toBe(false);
-    expect(store.snoozedUntil).toBe(snoozedUntil);
-
-    vi.advanceTimersByTime(1_000);
-    expect(store.shouldShowBanner(true)).toBe(true);
-  });
-
-  it('uses a five-minute freshness banner snooze by default', () => {
-    expect(DATA_FRESHNESS_SNOOZE_MS).toBe(5 * 60 * 1000);
   });
 
   it('clears the applied token through the store', () => {
@@ -114,7 +108,11 @@ describe('useDataFreshnessStore', () => {
   });
 
   it('refreshes server freshness through the store', async () => {
-    getDataFreshnessMock.mockResolvedValueOnce(freshness('server-token'));
+    getApplicationStatusMock.mockResolvedValueOnce({
+      generatedAt: new Date(),
+      included: new Set([APPLICATION_STATUS_SECTION.FRESHNESS]),
+      freshness: freshness('server-token'),
+    });
     const store = useDataFreshnessStore();
 
     const result = await store.refresh();
@@ -126,9 +124,9 @@ describe('useDataFreshnessStore', () => {
   });
 
   it('coalesces concurrent freshness refreshes into one server request', async () => {
-    let resolveFreshness!: (value: DataFreshnessResponseDto) => void;
-    getDataFreshnessMock.mockReturnValueOnce(
-      new Promise<DataFreshnessResponseDto>((resolve) => {
+    let resolveFreshness!: (value: unknown) => void;
+    getApplicationStatusMock.mockReturnValueOnce(
+      new Promise((resolve) => {
         resolveFreshness = resolve;
       })
     );
@@ -136,10 +134,77 @@ describe('useDataFreshnessStore', () => {
 
     const firstRefresh = store.refresh();
     const secondRefresh = store.refresh();
-    resolveFreshness(freshness('server-token'));
+    resolveFreshness({
+      generatedAt: new Date(),
+      included: new Set([APPLICATION_STATUS_SECTION.FRESHNESS]),
+      freshness: freshness('server-token'),
+    });
 
     await expect(firstRefresh).resolves.toMatchObject({ freshnessToken: 'server-token' });
     await expect(secondRefresh).resolves.toMatchObject({ freshnessToken: 'server-token' });
-    expect(getDataFreshnessMock).toHaveBeenCalledTimes(1);
+    expect(getApplicationStatusMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('refreshes immediately between polls, shares in-flight work, and preserves the normal cadence', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(1_000);
+    const serverResponse = {
+      included: new Set([APPLICATION_STATUS_SECTION.FRESHNESS]),
+      freshness: freshness('server-token'),
+    };
+    getApplicationStatusMock.mockResolvedValue(serverResponse);
+    const store = useDataFreshnessStore();
+    const applicationStatusStore = useApplicationStatusStore();
+    applicationStatusStore.registerPollingConsumer({
+      [APPLICATION_STATUS_SECTION.FRESHNESS]: STATUS_POLL_INTERVAL_MS,
+    });
+    await vi.advanceTimersByTimeAsync(0);
+    await vi.advanceTimersByTimeAsync(1_000);
+
+    let resolveFreshness!: (value: typeof serverResponse) => void;
+    getApplicationStatusMock.mockReturnValueOnce(
+      new Promise((resolve) => {
+        resolveFreshness = resolve;
+      })
+    );
+    const startupRefresh = store.refresh({ immediate: true });
+    expect(applicationStatusStore.nextPollAt).toBe(Date.now());
+    await vi.advanceTimersByTimeAsync(0);
+    const sharedRefresh = store.refresh({ immediate: true });
+    expect(getApplicationStatusMock).toHaveBeenCalledTimes(2);
+    resolveFreshness(serverResponse);
+    await Promise.all([startupRefresh, sharedRefresh]);
+
+    const regularRefresh = store.refresh();
+    await vi.advanceTimersByTimeAsync(STATUS_POLL_INTERVAL_MS - 1);
+    expect(getApplicationStatusMock).toHaveBeenCalledTimes(2);
+    await vi.advanceTimersByTimeAsync(1);
+    await regularRefresh;
+    expect(getApplicationStatusMock).toHaveBeenCalledTimes(3);
+  });
+
+  it('keeps failure backoff when an immediate freshness check is requested', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(1_000);
+    getApplicationStatusMock.mockRejectedValueOnce(new Error('Network unavailable')).mockResolvedValueOnce({
+      included: new Set([APPLICATION_STATUS_SECTION.FRESHNESS]),
+      freshness: freshness('server-token'),
+    });
+    const store = useDataFreshnessStore();
+    const applicationStatusStore = useApplicationStatusStore();
+    applicationStatusStore.registerPollingConsumer({
+      [APPLICATION_STATUS_SECTION.FRESHNESS]: STATUS_POLL_INTERVAL_MS,
+    });
+    await vi.advanceTimersByTimeAsync(0);
+    const retryAt = applicationStatusStore.backoffUntil!;
+    const startupRefresh = store.refresh({ immediate: true });
+
+    expect(applicationStatusStore.nextPollAt).toBe(retryAt);
+    await vi.advanceTimersByTimeAsync(retryAt - Date.now() - 1);
+    expect(getApplicationStatusMock).toHaveBeenCalledTimes(1);
+    await vi.advanceTimersByTimeAsync(1);
+    await expect(startupRefresh).resolves.toMatchObject({ freshnessToken: 'server-token' });
+    expect(getApplicationStatusMock).toHaveBeenCalledTimes(2);
+    expect(store.isFreshnessPollingHealthy).toBe(true);
   });
 });

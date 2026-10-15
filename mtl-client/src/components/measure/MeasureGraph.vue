@@ -7,6 +7,7 @@
 <script setup lang="ts">
 import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import type Highcharts from 'highcharts';
+import { observeElementResize } from '@/utils/observeElementResize';
 import { formatNumber, formatSpeed } from '@/utils/Utils';
 import { useMeasurementSystem } from '@/composables/useMeasurementSystem';
 import { MEASUREMENT_DISPLAY_PROFILES, speedDisplayValue } from '@/utils/units';
@@ -19,7 +20,7 @@ const props = defineProps<{
 
 const chartContainer = ref<HTMLElement | null>(null);
 const highchartsComponent = ref<{ chart?: Highcharts.Chart } | null>(null);
-let resizeObserver: ResizeObserver | null = null;
+let stopObservingResize: (() => void) | undefined;
 const { measurementSystem } = useMeasurementSystem();
 
 const chartOptions = ref<Highcharts.Options>({
@@ -143,20 +144,19 @@ function reflowChart() {
 }
 
 onMounted(() => {
-  resizeObserver = new ResizeObserver((entries) => {
-    const rect = entries[0]?.contentRect;
-    if (!rect) return;
-    const chart = highchartsComponent.value?.chart;
-    if (chart && rect.width > 0 && rect.height > 0) {
-      chart.setSize(rect.width, rect.height, false);
-    } else {
-      reflowChart();
-    }
-  });
+  if (chartContainer.value)
+    stopObservingResize = observeElementResize(chartContainer.value, (entry) => {
+      const rect = entry.contentRect;
+      if (!rect) return;
+      const chart = highchartsComponent.value?.chart;
+      if (chart && rect.width > 0 && rect.height > 0) {
+        if (rect.width !== chart.chartWidth || rect.height !== chart.chartHeight)
+          chart.setSize(rect.width, rect.height, false);
+      } else {
+        reflowChart();
+      }
+    });
 
-  if (chartContainer.value) {
-    resizeObserver.observe(chartContainer.value);
-  }
   nextTick(() => reflowChart());
 });
 
@@ -183,9 +183,7 @@ watch(measurementSystem, () => {
 });
 
 onBeforeUnmount(() => {
-  if (resizeObserver) {
-    resizeObserver.disconnect();
-  }
+  stopObservingResize?.();
 });
 </script>
 

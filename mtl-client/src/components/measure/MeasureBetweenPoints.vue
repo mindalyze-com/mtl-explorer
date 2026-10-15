@@ -1,59 +1,48 @@
 <template>
   <div>
     <div
-      v-if="active"
+      v-if="active && !isMobileViewport"
       class="measure-map-overlay"
       :class="{ 'measure-map-overlay--empty': !overlayZoneNodes.length }"
-      role="status"
-      aria-live="polite"
     >
-      <div class="measure-map-guidance">
-        <span class="measure-map-guidance-icon" :class="overlayGuidance.toneClass" aria-hidden="true">
-          <i :class="overlayGuidance.icon"></i>
-        </span>
-        <span class="measure-map-guidance-copy">
-          <strong>{{ overlayGuidance.title }}</strong>
-          <span>{{ overlayGuidance.detail }}</span>
-        </span>
-      </div>
-
-      <div v-if="overlayZoneNodes.length" class="measure-flow-rail">
-        <template v-for="(node, idx) in overlayZoneNodes" :key="node.key">
-          <div class="measure-flow-node" :class="node.toneClass">
-            <div class="measure-flow-node-circle">{{ node.label }}</div>
-            <div class="measure-flow-node-value">{{ node.value }}</div>
-            <div class="measure-flow-node-detail">{{ node.detail }}</div>
-          </div>
-          <div
-            v-if="idx < overlayZoneNodes.length - 1 || sharedFlowNode"
-            class="measure-flow-connector"
-            :class="node.connectorClass"
-          ></div>
-        </template>
-
-        <div v-if="sharedFlowNode" class="measure-flow-node measure-flow-node--final" :class="sharedFlowNode.toneClass">
-          <div class="measure-flow-node-target">
-            <span>{{ sharedFlowNode.value }}</span>
-          </div>
-          <div class="measure-flow-node-value measure-flow-node-value--final">{{ sharedFlowNode.title }}</div>
-          <div class="measure-flow-node-detail">{{ sharedFlowNode.detail }}</div>
-        </div>
-      </div>
+      <MeasurePlacementGuidance
+        :guidance="overlayGuidance"
+        :zone-nodes="overlayZoneNodes"
+        :shared-flow-node="sharedFlowNode"
+      />
     </div>
 
     <BottomSheet
       v-model="active"
       :detents="measureSheetDetents"
-      title="Segment Analyzer"
-      icon="bi bi-stopwatch"
+      initial-detent="compact"
+      :cover-previous-sheet="false"
+      title="Segments"
+      :icon="NAVIGATION_TOOL_ICONS.segments"
       header-mode="compact"
       :no-backdrop="true"
       @closed="onMeasureClosed"
     >
-      <div class="measure-sheet">
+      <div class="measure-sheet" data-sheet-fit-target>
         <section class="measure-controls-card measure-controls-card--dock">
-          <!-- Row 1: Undo · Clear All · Analyze -->
+          <MeasurePlacementGuidance
+            v-if="isMobileViewport"
+            class="measure-sheet-guidance"
+            :guidance="overlayGuidance"
+            :zone-nodes="overlayZoneNodes"
+            :shared-flow-node="sharedFlowNode"
+          />
           <div class="measure-toolbar">
+            <button
+              v-if="measureServiceResult"
+              class="measure-toolbar-btn measure-return-control"
+              title="Back to results"
+              aria-label="Back to results"
+              @click="returnToResults"
+            >
+              <i class="bi bi-list-ul"></i>
+              <span>Results</span>
+            </button>
             <button
               class="measure-toolbar-btn"
               :disabled="triggerPoints.length < 1 || isLoading"
@@ -87,14 +76,10 @@
             </button>
           </div>
 
-          <!-- Row 2: Detection radius -->
           <div class="measure-radius-control">
-            <div class="measure-radius-header">
-              <div class="measure-radius-copy">
-                <span id="measure-radius-label" class="measure-radius-label">Detection radius</span>
-                <span class="measure-radius-description">How close a track must pass to each zone</span>
-              </div>
-              <output class="measure-radius-value">{{ radiusDisplay }}</output>
+            <div class="measure-radius-copy">
+              <span id="measure-radius-label" class="measure-radius-label">Detection radius</span>
+              <span class="measure-radius-description">How close a track must pass to each zone</span>
             </div>
             <MtlSlider
               v-model="radiusSelector"
@@ -104,19 +89,15 @@
               aria-labelledby="measure-radius-label"
               :aria-value-text="radiusDisplay"
             />
+            <output class="measure-radius-value">{{ radiusDisplay }}</output>
           </div>
 
-          <!-- Row 3: Tap-map hint + explanation -->
-          <div class="measure-placement-section">
-            <div class="measure-placement-status">
-              <span class="measure-placement-kicker">Tap map</span>
-              <span class="measure-placement-text">{{ dockHintText }}</span>
-            </div>
-            <p class="measure-explanation">
-              Place zones on the map where your routes pass through. The analyzer finds all tracks crossing every zone
-              and compares sector times between them.
-            </p>
-          </div>
+          <TrackProcessingNotice v-if="zoneProcessingNotice" :processing="zoneProcessingNotice" />
+
+          <p v-if="!triggerPoints.length" class="measure-explanation">
+            Place zones on the map where your routes pass. MTL Explorer finds every track that passes through all zones
+            and compares the times between them.
+          </p>
         </section>
       </div>
     </BottomSheet>
@@ -124,30 +105,50 @@
     <BottomSheet
       v-if="showResults && measureServiceResult"
       v-model="showResults"
-      title="Segment Analyzer"
-      icon="bi bi-stopwatch"
+      :no-scroll-hint="true"
+      :content-key="session.state.view"
+      title="Segments"
+      :icon="NAVIGATION_TOOL_ICONS.segments"
       header-mode="compact"
       :detents="[{ height: '88vh' }, { height: '98vh' }]"
       @closed="onResultsClosed"
     >
       <DisplayMeasureResults
+        :map="map"
         :measure-service-result="measureServiceResult"
+        :session="session"
+        :refreshing="isLoading"
+        @edit-zones="editZones"
         @show-track-details="emit('show-track-details', $event)"
+        @refresh-results="refreshResults"
       />
     </BottomSheet>
   </div>
 </template>
 
 <script setup lang="ts">
+import { logSanitizedError, warnSanitized, warnRequestFailure } from '@/utils/safeLogging';
+
 import { computed, inject, nextTick, onBeforeUnmount, onMounted, provide, ref, watch } from 'vue';
 import type * as maplibregl from 'maplibre-gl';
-import type { CrossingPointsResponseDto, TriggerPoint } from 'x8ing-mtl-api-typescript-fetch/dist/esm/models/index';
+import type {
+  CrossingPointsResponseDto,
+  TriggerPoint,
+  TrackProcessingStatusDto,
+} from 'x8ing-mtl-api-typescript-fetch/dist/esm/models/index';
 import { fetchTrackDetailsForCrossingPoints, fetchTrackIdsWithinDistanceOfPoint } from '@/utils/ServiceHelper';
+import TrackProcessingNotice from '@/components/map/TrackProcessingNotice.vue';
+import { needsTrackProcessingNotice } from '@/components/map/trackProximitySelection';
 import DisplayMeasureResults from '@/components/measure/DisplayMeasureResults.vue';
+import MeasurePlacementGuidance from './MeasurePlacementGuidance.vue';
+import { useAnalysisSession } from './useAnalysisSession';
+import { useFilterStore } from '@/stores/filterStore';
 import BottomSheet from '@/components/ui/BottomSheet.vue';
+import { NAVIGATION_TOOL_ICONS } from '@/components/ui/navigationToolIcons';
 import MtlSlider from '@/components/ui/MtlSlider.vue';
 import { EVENT_MEASURE_BETWEEN_POINTS_DIALOG_MAXIMIZED_EVENT, formatRadius } from '@/utils/Utils';
 import { isAbortLikeError } from '@/utils/errors';
+import { mapLabelFonts } from '@/utils/mapLabelFonts';
 import { createGeoJsonCircle } from '@/utils/geoJson';
 import { VIZ_BLUE_COLOR, VIZ_ERROR_COLOR, VIZ_ORANGE_STRONG_COLOR, VIZ_SLATE_COLOR } from '@/utils/visualizationColors';
 import type { ToastService } from '@/types/ui';
@@ -158,13 +159,18 @@ type MapLike = maplibregl.Map;
 type MeasureTriggerPoint = TriggerPoint & { name: string; coordinate: { x: number; y: number } };
 type ZoneVisualState = 'loading' | 'error' | 'warning' | 'ok';
 type MapClickEvent = { lngLat: { lng: number; lat: number } };
-type MeasureNavigationState = { view: 'results'; result: CrossingPointsResponseDto };
+type MeasureNavigationState = {
+  view: 'results';
+  result: CrossingPointsResponseDto;
+  sessionState?: ReturnType<typeof useAnalysisSession>['state'];
+};
 
 const MINIMUM_SEGMENT_ZONE_COUNT = 2;
-const DESKTOP_COMPACT_SHEET_HEIGHT_PX = 310;
-const MOBILE_COMPACT_SHEET_HEIGHT_PX = 350;
+const DESKTOP_COMPACT_SHEET_HEIGHT_PX = 215;
+const MOBILE_COMPACT_SHEET_HEIGHT_PX = 300;
+const MOBILE_VIEWPORT_MAX_WIDTH_PX = 768;
 const SHORT_VIEWPORT_MAX_HEIGHT_PX = 500;
-const SHORT_VIEWPORT_COMPACT_SHEET_HEIGHT_PX = 230;
+const SHORT_VIEWPORT_COMPACT_SHEET_HEIGHT_PX = 180;
 const DESKTOP_EXPANDED_SHEET_HEIGHT_VH = 82;
 const MOBILE_EXPANDED_SHEET_HEIGHT_VH = 88;
 const SHORT_VIEWPORT_EXPANDED_SHEET_HEIGHT_VH = 92;
@@ -185,15 +191,27 @@ provide(EVENT_MEASURE_BETWEEN_POINTS_DIALOG_MAXIMIZED_EVENT, fakeEvent);
 
 const toast = inject<ToastService>('toast');
 
+const session = useAnalysisSession();
+const filterStore = useFilterStore();
 const active = ref(false);
 const radiusSelector = ref(40);
 const triggerPoints = ref<MeasureTriggerPoint[]>([]);
 const zoneTrackCounts = ref<Array<number | undefined>>([]);
 const zoneTrackIds = ref<Array<number[] | null | undefined>>([]);
+const zoneProcessing = ref<Array<TrackProcessingStatusDto | null>>([]);
+const zoneProcessingNotice = computed(
+  () => zoneProcessing.value.find((status) => status && needsTrackProcessingNotice(status)) ?? null
+);
 const zoneCountAbortControllers = ref<Array<AbortController | undefined>>([]);
 const zoneCountRequestTokens = ref<Array<number | undefined>>([]);
 let radiusCountDebounceTimer: ReturnType<typeof setTimeout> | null = null;
-const measureServiceResult = ref<CrossingPointsResponseDto | null>(null);
+const measureServiceResult = computed({
+  get: () => session.state.result,
+  set: (value) => {
+    if (value) session.setResults(value);
+    else session.state.result = null;
+  },
+});
 const showResults = ref(false);
 const isToolOpen = computed(() => active.value || showResults.value);
 const numberOfCrossings = ref(0);
@@ -204,6 +222,7 @@ let clickHandlerMap: MapLike | null = null;
 const isLoading = ref(false);
 const viewportWidth = ref(typeof window !== 'undefined' ? window.innerWidth : 1024);
 const viewportHeight = ref(typeof window !== 'undefined' ? window.innerHeight : 900);
+const isMobileViewport = computed(() => viewportWidth.value <= MOBILE_VIEWPORT_MAX_WIDTH_PX);
 let crossingFetchAbortController: AbortController | null = null;
 let crossingFetchToken = 0;
 let zoneCountRequestToken = 0;
@@ -260,7 +279,7 @@ const analyzeButtonTitle = computed(() => {
   if (isLoading.value) return 'Analysis in progress';
   if (!triggerPoints.value.length) return 'Place zones A and B first';
   if (triggerPoints.value.length < MINIMUM_SEGMENT_ZONE_COUNT) return 'Place zone B to complete the segment';
-  if (hasNoMatchingCandidates.value) return 'No tracks cross every zone';
+  if (hasNoMatchingCandidates.value) return 'No candidate tracks touch every zone';
   return 'Compare tracks crossing every zone';
 });
 
@@ -268,7 +287,7 @@ const overlayZoneNodes = computed(() => {
   return triggerPoints.value.map((point, idx) => {
     const count = zoneTrackCounts.value[idx];
     let value = '...';
-    let detail = 'tracks';
+    let detail = 'candidates';
     const tone = getZoneVisualState(idx);
 
     if (count === -1) {
@@ -276,10 +295,10 @@ const overlayZoneNodes = computed(() => {
       detail = 'check';
     } else if (count === undefined) {
       value = '...';
-      detail = 'tracks';
+      detail = 'candidates';
     } else {
       value = String(count);
-      detail = count === 1 ? 'track' : 'tracks';
+      detail = count === 1 ? 'candidate' : 'candidates';
     }
 
     return {
@@ -385,7 +404,7 @@ const overlayGuidance = computed(() => {
   }
   if (hasNoMatchingCandidates.value) {
     return {
-      title: 'No tracks cross every zone',
+      title: 'No candidate tracks touch every zone',
       detail: 'Undo a zone or increase the detection radius.',
       icon: 'bi bi-exclamation-circle',
       toneClass: 'measure-map-guidance-icon--warning',
@@ -395,14 +414,14 @@ const overlayGuidance = computed(() => {
   const matchCount = (candidateTrackIdsIntersection.value as number[]).length;
   return {
     title: 'Ready to analyze',
-    detail: `${matchCount} matching ${matchCount === 1 ? 'track' : 'tracks'} · add another zone or choose Analyze.`,
+    detail: `${matchCount} candidate ${matchCount === 1 ? 'track' : 'tracks'} · add another zone or choose Analyze.`,
     icon: 'bi bi-check2-circle',
     toneClass: 'measure-map-guidance-icon--ready',
   };
 });
 
 const measureSheetDetents = computed(() => {
-  const isMobile = viewportWidth.value <= 768;
+  const isMobile = isMobileViewport.value;
   const isShortViewport = viewportHeight.value <= SHORT_VIEWPORT_MAX_HEIGHT_PX;
   const compactPx = isShortViewport
     ? SHORT_VIEWPORT_COMPACT_SHEET_HEIGHT_PX
@@ -418,21 +437,6 @@ const measureSheetDetents = computed(() => {
     { id: 'compact', height: `${compactPx}px` },
     { id: 'expanded', height: `${expandedVh}vh` },
   ];
-});
-
-const dockHintText = computed(() => {
-  if (!triggerPoints.value.length) {
-    return 'Zone A is next';
-  }
-  if (triggerPoints.value.length === 1) {
-    const zoneCount = zoneTrackCounts.value[0];
-    if (zoneCount === undefined) return 'Checking zone A';
-    if (zoneCount === -1) return 'Zone A check unavailable';
-    if (zoneCount === 0) return 'Adjust zone A or the radius';
-    return 'Zone A ready · zone B is next';
-  }
-  const nextLabel = String.fromCharCode(65 + triggerPoints.value.length);
-  return `${triggerPoints.value.length} zones ready · add ${nextLabel} or analyze`;
 });
 
 function onMaximizeSender() {
@@ -478,7 +482,6 @@ async function toggle() {
 
 async function open() {
   if (isToolOpen.value) return;
-  measureServiceResult.value = null;
   active.value = true;
   emit('active-changed', true);
   emit('tool-opened');
@@ -499,7 +502,7 @@ function close() {
 
 function getNavigationState(): MeasureNavigationState | null {
   if (!showResults.value || !measureServiceResult.value) return null;
-  return { view: 'results', result: measureServiceResult.value };
+  return { view: 'results', result: measureServiceResult.value, sessionState: { ...session.state } };
 }
 
 function restoreNavigationState(state: unknown) {
@@ -510,6 +513,7 @@ function restoreNavigationState(state: unknown) {
   active.value = false;
   detachMapClickHandler();
   resetZoneSelection();
+  if (navigationState.sessionState) Object.assign(session.state, navigationState.sessionState);
   measureServiceResult.value = navigationState.result;
   numberOfCrossings.value =
     navigationState.result.crossings != null ? Object.keys(navigationState.result.crossings).length : 0;
@@ -538,6 +542,7 @@ function onUndoLastPoint() {
   zoneCountRequestTokens.value.splice(idx, 1);
   zoneTrackCounts.value.splice(idx, 1);
   zoneTrackIds.value.splice(idx, 1);
+  zoneProcessing.value.splice(idx, 1);
 
   // Remove map layers for this zone (3 layers + 2 sources per zone)
   const layersToRemove = [
@@ -584,7 +589,7 @@ function attachMapClickHandler() {
   if (clickHandler && clickHandlerMap === map) return;
 
   detachMapClickHandler();
-  radiusSelector.value = radiusSelectorForExtent(map);
+  if (!session.state.zones.length) radiusSelector.value = radiusSelectorForExtent(map);
   clickHandler = (event) => onMapClick(event);
   clickHandlerMap = map;
   map.on('click', clickHandler);
@@ -595,6 +600,7 @@ function resetZoneSelection() {
   triggerPoints.value = [];
   zoneTrackCounts.value = [];
   zoneTrackIds.value = [];
+  zoneProcessing.value = [];
   zoneCountRequestTokens.value = [];
 }
 
@@ -618,6 +624,70 @@ function cancelCrossingFetch() {
   isLoading.value = false;
 }
 
+let lastCompletedAnalysis: { triggerPoints: TriggerPoint[]; radius: number } | null = null;
+watch(
+  [triggerPoints, radiusSelector],
+  () => {
+    if (!active.value || !lastCompletedAnalysis) return;
+    const unchanged =
+      radius() === lastCompletedAnalysis.radius &&
+      triggerPoints.value.length === lastCompletedAnalysis.triggerPoints.length &&
+      triggerPoints.value.every((point, index) => {
+        const previous = lastCompletedAnalysis!.triggerPoints[index];
+        return (
+          point.name === previous.name &&
+          point.coordinate.x === previous.coordinate?.x &&
+          point.coordinate.y === previous.coordinate?.y
+        );
+      });
+    if (unchanged) return;
+    cancelCrossingFetch();
+    measureServiceResult.value = null;
+    lastCompletedAnalysis = null;
+    numberOfCrossings.value = 0;
+    session.state.selections = {};
+    session.state.references = {};
+    session.state.staleSelections = [];
+  },
+  { deep: true }
+);
+
+async function refreshResults() {
+  if (!lastCompletedAnalysis) return;
+  cancelCrossingFetch();
+  const token = ++crossingFetchToken;
+  const controller = new AbortController();
+  crossingFetchAbortController = controller;
+  isLoading.value = true;
+  try {
+    const result = await fetchTrackDetailsForCrossingPoints(
+      lastCompletedAnalysis.triggerPoints,
+      lastCompletedAnalysis.radius,
+      controller.signal
+    );
+    if (token === crossingFetchToken && !controller.signal.aborted) measureServiceResult.value = result;
+  } catch (error) {
+    if (token !== crossingFetchToken || isAbortLikeError(error)) return;
+    warnSanitized('Segment results refresh failed', error, {
+      topic1: 'application',
+      topic2: 'MeasureBetweenPoints',
+      topic3: 'refreshResults',
+    });
+    session.state.discoveryError = 'Could not refresh results. The previous analysis is still shown.';
+    toast?.add({
+      severity: 'warn',
+      summary: 'Refresh failed',
+      detail: 'Could not refresh segment results. Try again.',
+      life: 4000,
+    });
+  } finally {
+    if (token === crossingFetchToken) {
+      crossingFetchAbortController = null;
+      isLoading.value = false;
+    }
+  }
+}
+
 async function onFinishSelection() {
   if (isAnalyzeDisabled.value) {
     return;
@@ -636,6 +706,10 @@ async function onFinishSelection() {
     const data = await fetchTrackDetailsForCrossingPoints(requestTriggerPoints, requestRadius, abortController.signal);
     if (requestToken !== crossingFetchToken || abortController.signal.aborted) return;
     measureServiceResult.value = data;
+    lastCompletedAnalysis = { triggerPoints: requestTriggerPoints, radius: requestRadius };
+    session.state.zones = requestTriggerPoints;
+    session.state.radius = requestRadius;
+    session.state.view = 'results';
     numberOfCrossings.value =
       measureServiceResult.value.crossings != null ? Object.keys(measureServiceResult.value.crossings).length : 0;
     active.value = false;
@@ -647,9 +721,13 @@ async function onFinishSelection() {
   } catch (error) {
     if (requestToken !== crossingFetchToken) return;
     if (isAbortLikeError(error)) return;
-    console.error('Measure fetch failed:', error);
+    logSanitizedError('Measure fetch failed:', error, {
+      topic1: 'application',
+      topic2: 'MeasureBetweenPoints',
+      topic3: 'onFinishSelection',
+    });
     toast?.add({
-      severity: 'warning',
+      severity: 'warn',
       summary: 'Info',
       detail: 'Failed to fetch from server',
       life: 2000,
@@ -662,7 +740,35 @@ async function onFinishSelection() {
   }
 }
 
+function editZones() {
+  const zones = session.state.zones.map((point) => ({ ...point, coordinate: { ...point.coordinate } }));
+  active.value = true;
+  showResults.value = false;
+  resetZoneSelection();
+  attachMapClickHandler();
+  radiusSelector.value = Math.round(Math.log(session.state.radius || 40) / Math.log(1.1));
+  for (const zone of zones)
+    if (zone.coordinate.x != null && zone.coordinate.y != null)
+      onMapClick({ lngLat: { lng: zone.coordinate.x, lat: zone.coordinate.y } });
+}
+function returnToResults() {
+  active.value = false;
+  detachMapClickHandler();
+  cleanupMapLayers();
+  showResults.value = true;
+}
+watch(
+  () => filterStore.trackSetRevision,
+  () => {
+    session.state.filtersChanged = true;
+    cancelCrossingFetch();
+    debouncedRefreshAllZoneCounts();
+    if (showResults.value) void refreshResults();
+  }
+);
+
 function onMeasureClosed() {
+  if (showResults.value || measureServiceResult.value) return;
   cancelCrossingFetch();
   active.value = false;
   showResults.value = false;
@@ -675,6 +781,7 @@ function onMeasureClosed() {
 }
 
 function onResultsClosed() {
+  if (active.value) return;
   showResults.value = false;
   measureServiceResult.value = null;
   numberOfCrossings.value = 0;
@@ -704,6 +811,7 @@ function onMapClick(e: MapClickEvent) {
 
   zoneTrackCounts.value.push(undefined); // undefined = loading
   zoneTrackIds.value.push(undefined);
+  zoneProcessing.value.push(null);
   zoneCountRequestTokens.value.push(undefined);
 
   const zoneColor = getZoneColor(idx);
@@ -765,7 +873,7 @@ function onMapClick(e: MapClickEvent) {
     layout: {
       'text-field': ['get', 'label'],
       'text-size': 18,
-      'text-font': ['Noto Sans Medium'],
+      'text-font': mapLabelFonts(props.map.getGlyphs(), 'medium'),
       'text-anchor': 'center',
       'text-allow-overlap': true,
     },
@@ -866,14 +974,15 @@ async function fetchZoneTrackCount(idx: number) {
     triggerPoints.value[idx]?.coordinate?.y === point.coordinate.y;
 
   try {
-    const trackIds = await fetchTrackIdsWithinDistanceOfPoint(
+    const { trackIds, processing } = await fetchTrackIdsWithinDistanceOfPoint(
       point.coordinate.x,
       point.coordinate.y,
       requestRadius,
       ac.signal
     );
     // Check zone still exists (user may have undone it)
-    if (isCurrentZoneRequest()) {
+    if (!ac.signal.aborted && isCurrentZoneRequest()) {
+      zoneProcessing.value[idx] = processing;
       zoneTrackIds.value[idx] = trackIds;
       zoneTrackCounts.value[idx] = trackIds.length;
       updateZoneColor(idx);
@@ -883,6 +992,11 @@ async function fetchZoneTrackCount(idx: number) {
   } catch (e) {
     if (!isCurrentZoneRequest()) return;
     if (isAbortLikeError(e, ac.signal)) return;
+    warnRequestFailure('Tracks for a measurement zone could not be loaded', e, {
+      topic1: 'measure',
+      topic2: 'MeasureBetweenPoints',
+      topic3: 'zone-tracks',
+    });
     // On error, mark as unknown
     if (isCurrentZoneRequest()) {
       zoneTrackIds.value[idx] = null;
@@ -971,200 +1085,12 @@ defineExpose({
 .measure-map-overlay--empty {
   min-width: min(27rem, calc(100vw - 1.25rem));
 }
-
-.measure-map-guidance {
-  display: flex;
-  align-items: center;
-  gap: 0.65rem;
-  min-width: 0;
-}
-
-.measure-map-guidance-icon {
-  display: inline-flex;
-  flex: 0 0 auto;
-  align-items: center;
-  justify-content: center;
-  width: 2.1rem;
-  height: 2.1rem;
-  border-radius: 999px;
-  background: color-mix(in srgb, currentColor 12%, transparent);
-  font-size: var(--text-base-size);
-}
-
-.measure-map-guidance-icon--active,
-.measure-map-guidance-icon--ready {
-  color: var(--viz-blue);
-}
-
-.measure-map-guidance-icon--loading {
-  color: var(--viz-slate);
-}
-
-.measure-map-guidance-icon--warning {
-  color: var(--viz-orange-strong);
-}
-
-.measure-map-guidance-icon--error {
-  color: var(--viz-red);
-}
-
-.measure-map-guidance-copy {
-  display: flex;
-  min-width: 0;
-  flex-direction: column;
-  gap: 0.08rem;
-}
-
-.measure-map-guidance-copy strong {
-  color: var(--text-primary);
-  font-size: var(--text-sm-size);
-  font-weight: 750;
-  line-height: var(--text-sm-lh);
-}
-
-.measure-map-guidance-copy span {
-  color: var(--text-muted);
-  font-size: var(--text-xs-size);
-  line-height: var(--text-xs-lh);
-}
-
-.measure-flow-rail {
-  display: flex;
-  align-items: center;
-  width: 100%;
-  min-width: 0;
-  margin-top: 0.55rem;
-  padding-top: 0.55rem;
-  border-top: 1px solid var(--border-default);
-}
-
-.measure-flow-node {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.14rem;
-  flex: 0 0 auto;
-  min-width: 2.8rem;
-}
-
-.measure-flow-node-circle {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 1.7rem;
-  height: 1.7rem;
-  border-radius: 999px;
-  border: 1px solid currentColor;
-  background: var(--surface-glass-heavy);
-  font-size: var(--text-sm-size);
-  font-weight: 800;
-  line-height: var(--text-sm-lh);
-}
-
-.measure-flow-node-value {
-  color: currentColor;
-  font-size: var(--text-sm-size);
-  font-weight: 800;
-  line-height: var(--text-sm-lh);
-}
-
-.measure-flow-node-value--final {
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  font-size: var(--text-2xs-size);
-}
-
-.measure-flow-node-detail {
-  color: rgba(15, 23, 42, 0.56);
-  font-size: var(--text-2xs-size);
-  font-weight: 700;
-  line-height: var(--text-2xs-lh);
-  text-transform: lowercase;
-}
-
-.measure-flow-node-target {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 1.95rem;
-  height: 1.95rem;
-  border-radius: 999px;
-  border: 2px solid currentColor;
-  background: var(--surface-glass-heavy);
-  font-size: var(--text-sm-size);
-  font-weight: 900;
-  line-height: var(--text-sm-lh);
-}
-
-.measure-flow-node-target::after {
-  content: '';
-  position: absolute;
-  inset: 0.22rem;
-  border-radius: 999px;
-  border: 1.5px solid currentColor;
-  opacity: 0.32;
-}
-
-.measure-flow-connector {
-  flex: 1 1 2rem;
-  min-width: 1rem;
-  height: 2px;
-  margin: 0 0.3rem 1.05rem;
-  border-radius: 999px;
-  background: rgba(148, 163, 184, 0.35);
-}
-
-.measure-flow-node--ok {
-  color: var(--viz-blue);
-}
-
-.measure-flow-node--loading {
-  color: var(--viz-slate);
-}
-
-.measure-flow-node--warning {
-  color: var(--viz-orange-strong);
-}
-
-.measure-flow-node--error {
-  color: var(--viz-red);
-}
-
-.measure-flow-connector--ok {
-  background: linear-gradient(
-    90deg,
-    color-mix(in srgb, var(--viz-blue) 55%, transparent),
-    color-mix(in srgb, var(--viz-blue) 18%, transparent)
-  );
-}
-
-.measure-flow-connector--loading {
-  background: linear-gradient(
-    90deg,
-    color-mix(in srgb, var(--viz-slate) 46%, transparent),
-    color-mix(in srgb, var(--viz-slate) 16%, transparent)
-  );
-}
-
-.measure-flow-connector--warning {
-  background: linear-gradient(
-    90deg,
-    color-mix(in srgb, var(--viz-orange-strong) 48%, transparent),
-    color-mix(in srgb, var(--viz-orange-strong) 16%, transparent)
-  );
-}
-
-.measure-flow-connector--error {
-  background: linear-gradient(
-    90deg,
-    color-mix(in srgb, var(--viz-red) 48%, transparent),
-    color-mix(in srgb, var(--viz-red) 16%, transparent)
-  );
-}
 </style>
 
 <style scoped>
+.measure-toolbar-btn.measure-return-control {
+  color: var(--accent-text);
+}
 .measure-sheet {
   display: flex;
   flex-direction: column;
@@ -1208,7 +1134,7 @@ defineExpose({
 .measure-controls-card--dock {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 0.85rem;
   padding: 0.35rem 0 0.15rem;
 }
 
@@ -1227,9 +1153,9 @@ defineExpose({
   height: 2.55rem;
   padding: 0 0.85rem;
   border-radius: 0.85rem;
-  border: none;
-  background: var(--accent);
-  color: var(--text-inverse);
+  border: 1px solid var(--border-default);
+  background: var(--surface-hover);
+  color: var(--text-secondary);
   font-size: var(--text-sm-size);
   font-weight: 700;
   cursor: pointer;
@@ -1242,7 +1168,8 @@ defineExpose({
 
 .measure-toolbar-btn:hover:not(:disabled) {
   transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.25);
+  background: var(--surface-active);
+  box-shadow: var(--shadow-sm);
 }
 
 .measure-toolbar-btn:disabled {
@@ -1256,35 +1183,27 @@ defineExpose({
 
 .measure-toolbar-btn--analyze {
   margin-left: auto;
-  background: var(--text-muted);
-  color: var(--surface-page);
-  opacity: 0.52;
 }
 
 .measure-toolbar-btn--analyze.measure-toolbar-btn--ready {
   background: var(--accent);
-  color: var(--text-inverse);
+  border-color: var(--accent);
+  color: var(--accent-contrast);
   opacity: 1;
 }
 
 .measure-toolbar-btn--analyze.measure-toolbar-btn--ready:hover:not(:disabled) {
+  background: var(--accent-hover);
   box-shadow: 0 2px 12px rgba(37, 99, 235, 0.35);
 }
 
-/* ── Detection radius ── */
+/* ── Detection radius: label · slider · value on one row ── */
 .measure-radius-control {
-  display: flex;
-  flex-direction: column;
-  gap: 0.65rem;
-  width: min(100%, 30rem);
-  margin-inline: auto;
-}
-
-.measure-radius-header {
-  display: flex;
+  display: grid;
+  grid-template-columns: auto minmax(8rem, 1fr) auto;
   align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
+  column-gap: 1rem;
+  row-gap: 0.55rem;
 }
 
 .measure-radius-copy {
@@ -1339,42 +1258,15 @@ defineExpose({
   font-size: var(--text-xs-size);
 }
 
-/* ── Placement section ── */
-.measure-placement-section {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  padding-top: 0.15rem;
-  border-top: 1px solid var(--border-default);
-}
-
-.measure-placement-status {
-  display: flex;
-  flex-direction: column;
-  gap: 0.12rem;
-}
-
-.measure-placement-kicker {
-  color: var(--text-muted);
-  font-size: var(--text-2xs-size);
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.measure-placement-text {
-  color: var(--text-primary);
-  font-size: var(--text-sm-size);
-  font-weight: 600;
-  line-height: var(--text-sm-lh);
-}
-
+/* ── First-use explanation ── */
 .measure-explanation {
   color: var(--text-muted);
   font-size: var(--text-xs-size);
   font-weight: 400;
   line-height: var(--text-xs-lh);
   margin: 0;
+  padding-top: 0.6rem;
+  border-top: 1px solid var(--border-default);
   opacity: 0.82;
 }
 
@@ -1449,66 +1341,9 @@ defineExpose({
 }
 
 @media screen and (max-width: 768px) {
-  .measure-map-overlay {
-    min-width: calc(100vw - 0.9rem);
-    max-width: calc(100vw - 0.9rem);
-    top: calc(env(safe-area-inset-top, 0px) + 0.5rem);
-    padding: 0.55rem 0.6rem;
-  }
-
-  .measure-map-guidance {
-    gap: 0.5rem;
-  }
-
-  .measure-map-guidance-icon {
-    width: 1.85rem;
-    height: 1.85rem;
-    font-size: var(--text-sm-size);
-  }
-
-  .measure-map-guidance-copy strong {
-    font-size: var(--text-xs-size);
-  }
-
-  .measure-map-guidance-copy span {
-    font-size: var(--text-2xs-size);
-  }
-
-  .measure-flow-rail {
-    margin-top: 0.45rem;
-    padding-top: 0.45rem;
-  }
-
-  .measure-flow-node {
-    min-width: 2.3rem;
-  }
-
-  .measure-flow-node-circle {
-    width: 1.45rem;
-    height: 1.45rem;
-    font-size: var(--text-xs-size);
-  }
-
-  .measure-flow-node-target {
-    width: 1.68rem;
-    height: 1.68rem;
-    font-size: var(--text-xs-size);
-  }
-
-  .measure-flow-node-value {
-    font-size: var(--text-xs-size);
-  }
-
-  .measure-flow-node-value--final {
-    font-size: var(--text-2xs-size);
-  }
-
-  .measure-flow-node-detail {
-    font-size: var(--text-2xs-size);
-  }
-
-  .measure-flow-connector {
-    margin: 0 0.18rem 0.94rem;
+  .measure-sheet-guidance {
+    padding-bottom: 0.55rem;
+    border-bottom: 1px solid var(--border-default);
   }
 
   .measure-sheet {
@@ -1516,12 +1351,8 @@ defineExpose({
     padding: 0.1rem 0.2rem calc(0.5rem + var(--safe-bottom));
   }
 
-  .measure-sheet-header {
-    min-height: 1.7rem;
-  }
-
-  .measure-sheet-header-copy {
-    padding-right: 2.1rem;
+  .measure-controls-card--dock {
+    gap: 0.75rem;
   }
 
   .measure-toolbar {
@@ -1536,20 +1367,16 @@ defineExpose({
   }
 
   .measure-radius-control {
-    gap: 0.55rem;
-    width: 100%;
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .measure-bar-slider {
+    grid-column: 1 / -1;
+    grid-row: 2;
   }
 
   .measure-radius-description {
     font-size: var(--text-2xs-size);
-  }
-
-  .measure-placement-section {
-    gap: 0.4rem;
-  }
-
-  .measure-placement-text {
-    font-size: var(--text-sm-size);
   }
 
   .measure-explanation {
@@ -1562,25 +1389,15 @@ defineExpose({
   }
 }
 
+@media screen and (max-width: 380px) {
+  .measure-toolbar-btn:not(.measure-toolbar-btn--analyze) span {
+    display: none;
+  }
+}
+
 @media screen and (max-height: 500px) and (min-width: 769px) {
   .measure-map-overlay {
-    flex-direction: row;
-    align-items: center;
-    gap: 0.8rem;
     padding: 0.55rem 0.75rem;
-  }
-
-  .measure-map-guidance {
-    flex: 1 1 18rem;
-  }
-
-  .measure-flow-rail {
-    flex: 1 1 12rem;
-    margin-top: 0;
-    padding-top: 0;
-    padding-left: 0.8rem;
-    border-top: 0;
-    border-left: 1px solid var(--border-default);
   }
 
   .measure-sheet {
@@ -1599,11 +1416,7 @@ defineExpose({
     align-self: center;
   }
 
-  .measure-radius-control {
-    width: 100%;
-  }
-
-  .measure-placement-section {
+  .measure-explanation {
     grid-column: 1 / -1;
   }
 }

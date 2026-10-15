@@ -1,0 +1,56 @@
+erDiagram
+    direction TB
+    indexed_file {
+        bigint id PK
+        varchar index UK
+        varchar name UK
+        varchar path UK
+        varchar indexer_status
+    }
+    gps_track {
+        bigint id PK
+        bigint file_id FK "nullable"
+        bigint duplicate_of FK "nullable"
+        bigint source_parent_track_id FK "nullable"
+        varchar track_source
+        varchar load_status
+    }
+    gps_track_data {
+        bigint id PK
+        bigint gps_track_id FK
+        varchar track_type
+        numeric precision_in_meter
+        geometry track
+    }
+    gps_track_data_points {
+        bigint id PK
+        bigint gps_track_data_id FK, UK
+        integer moving_window_in_sec UK
+        integer point_index UK
+        timestamp point_timestamp
+        geometry point_long_lat
+    }
+    gps_track_event {
+        bigint id PK
+        bigint gps_track_id FK
+        bigint gps_track_data_id FK "nullable"
+        bigint start_gps_track_data_point_id FK "nullable"
+        bigint end_gps_track_data_point_id FK "nullable"
+        varchar event_type
+    }
+    track_energy_recalculation {
+        bigint track_id PK, FK
+        bigint generation
+        timestamptz next_attempt_at
+    }
+
+    indexed_file |o..o{ gps_track : file_id
+    gps_track |o..o{ gps_track : duplicate_of
+    gps_track |o..o{ gps_track : source_parent_track_id
+    gps_track ||..o{ gps_track_data : gps_track_id
+    gps_track_data ||..o{ gps_track_data_points : gps_track_data_id
+    gps_track ||..o{ gps_track_event : gps_track_id
+    gps_track_data |o..o{ gps_track_event : gps_track_data_id
+    gps_track_data_points |o..o{ gps_track_event : start_gps_track_data_point_id
+    gps_track_data_points |o..o{ gps_track_event : end_gps_track_data_point_id
+    gps_track ||--o| track_energy_recalculation : track_id

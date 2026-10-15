@@ -1,6 +1,10 @@
 package com.x8ing.mtl.server.mtlserver.indexer.event;
 
+import com.x8ing.mtl.server.mtlserver.indexer.SourceFileChangedException;
+import com.x8ing.mtl.server.mtlserver.indexer.SourceFileProblemException;
+import com.x8ing.mtl.server.mtlserver.indexer.SourceFileSkippedException;
 import org.slf4j.Logger;
+import com.x8ing.mtl.server.mtlserver.indexer.SourceUnreadableException;
 
 /**
  * Completion-aware observer shared by indexers that process create, change,
@@ -18,6 +22,7 @@ public final class ProcessingFileIndexerObserver implements FileIndexerObserver 
         void process(String index, long fileId);
     }
 
+    private final java.util.function.BiConsumer<Long, String> unavailableProcessor;
     private final Logger logger;
     private final String sourceLabel;
     private final CreateOrChangeProcessor createOrChangeProcessor;
@@ -29,10 +34,21 @@ public final class ProcessingFileIndexerObserver implements FileIndexerObserver 
             CreateOrChangeProcessor createOrChangeProcessor,
             DeleteProcessor deleteProcessor
     ) {
+        this(logger, sourceLabel, createOrChangeProcessor, deleteProcessor, (id, message) -> {});
+    }
+
+    public ProcessingFileIndexerObserver(Logger logger, String sourceLabel, CreateOrChangeProcessor createOrChangeProcessor,
+                                         DeleteProcessor deleteProcessor, java.util.function.BiConsumer<Long, String> unavailableProcessor) {
+        this.unavailableProcessor = unavailableProcessor;
         this.logger = logger;
         this.sourceLabel = sourceLabel;
         this.createOrChangeProcessor = createOrChangeProcessor;
         this.deleteProcessor = deleteProcessor;
+    }
+
+    @Override
+    public void onSourceUnavailable(String index, long fileId, String message) {
+        unavailableProcessor.accept(fileId, message);
     }
 
     @Override
@@ -68,8 +84,27 @@ public final class ProcessingFileIndexerObserver implements FileIndexerObserver 
             action.run();
             completion.success(fileId);
         } catch (Throwable throwable) {
-            logger.error("{} {} fileId={}: {}", sourceLabel, failureDescription, fileId, throwable.toString(), throwable);
-            completion.failed(fileId, safeMessage(throwable));
+            if (throwable instanceof SourceFileSkippedException) {
+                logger.info("{} informational skip: fileId={}, reason={}", sourceLabel, fileId, safeMessage(throwable));
+                completion.skipped(fileId, safeMessage(throwable));
+                return;
+            }
+            if (throwable instanceof SourceFileChangedException) {
+                logger.warn("{} source changed: fileId={}, reason={}; re-queuing current revision", sourceLabel, fileId, safeMessage(throwable));
+                completion.sourceChanged(fileId, safeMessage(throwable));
+                return;
+            }
+            if (throwable instanceof SourceFileProblemException || throwable instanceof SourceUnreadableException) {
+                logger.warn("{} file skipped: fileId={}, type={}, reason={}", sourceLabel, fileId,
+                        throwable.getClass().getSimpleName(), safeMessage(throwable));
+                logger.debug("Source file diagnostic details: fileId={}", fileId, throwable);
+            } else {
+                logger.error("{} {} fileId={}: {}", sourceLabel, failureDescription, fileId, throwable.toString(), throwable);
+            }
+            if (throwable instanceof SourceUnreadableException) unavailableProcessor.accept(fileId, safeMessage(throwable));
+            if (throwable instanceof SourceFileProblemException || throwable instanceof SourceUnreadableException)
+                completion.sourceFailed(fileId, safeMessage(throwable));
+            else completion.failed(fileId, safeMessage(throwable));
             if (throwable instanceof Error error) {
                 throw error;
             }

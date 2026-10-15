@@ -1,10 +1,17 @@
 import { apiClient } from '@/utils/apiClient';
+import { loadActiveFilterRequest } from '@/stores/filterStore';
+import { resolveStatisticsTrackIds } from '@/utils/ServiceHelper';
+import { useMediaFilterStore } from '@/stores/mediaFilterStore';
 import { apiUrl } from '@/utils/apiBase';
 import { getApiConfiguration } from '@/utils/openApiClient';
+import { getActivePinia } from 'pinia';
+import { useDataFreshnessStore } from '@/stores/dataFreshnessStore';
+import { getAppliedDataFreshnessToken } from '@/utils/dataFreshnessStorage';
 import {
   MediaControllerApi,
   VideoTranscodeControllerApi,
   VideoTranscodeSessionRequestQualityEnum,
+  type GetContentRequest,
   type ManualMediaLocationRequest,
   type MediaDetailsDto,
   type MediaTrendItemPageDto,
@@ -68,18 +75,46 @@ export async function getMediaInBounds(
   maxLng: number,
   signal?: AbortSignal
 ): Promise<MediaBoundsPoint[]> {
-  const resp = await apiClient.get('api/media/get-media-in-bounds', {
-    params: { minLat, minLng, maxLat, maxLng },
-    signal,
-  });
-  return resp.data as MediaBoundsPoint[];
+  const scope = useMediaFilterStore().scope;
+  const trackIds = await resolveStatisticsTrackIds(await loadActiveFilterRequest(), signal);
+  if (signal?.aborted) return [];
+  const points = await new MediaControllerApi(getApiConfiguration()).getFilteredMediaInBounds(
+    { mediaBoundsRequest: { minLat, minLng, maxLat, maxLng, scope, trackIds } },
+    { signal }
+  );
+  return points.filter(
+    (point): point is MediaBoundsPoint => point.id != null && point.lat != null && point.lng != null
+  );
+}
+
+export function getMediaContentRevision(): string {
+  return getActivePinia() ? useDataFreshnessStore().appliedToken : (getAppliedDataFreshnessToken() ?? '');
 }
 
 export function mediaContentUrl(id: number, maxSize?: number): string {
+  return mediaContentRequestUrl({ id, maxSize });
+}
+
+/** Download the source bytes, independent of the browser's preview format support. */
+export function mediaOriginalUrl(id: number): string {
+  return mediaContentRequestUrl({ id, original: true });
+}
+
+function mediaContentRequestUrl({
+  id,
+  maxSize,
+  original,
+}: Pick<GetContentRequest, 'id' | 'maxSize' | 'original'>): string {
   // No auth token in the URL — the browser sends the mtl_jwt HttpOnly cookie automatically.
-  // A stable URL (no session-specific query params) is required for HTTP cache hits.
+  // Reuse cached bytes within the applied data revision; replacements get a new URL on reload.
   const base = apiUrl(`api/media/get/${id}/content`);
-  return maxSize ? `${base}?maxSize=${maxSize}` : base;
+  const params = new URLSearchParams();
+  if (maxSize) params.set('maxSize', String(maxSize));
+  if (original) params.set('original', 'true');
+  const revision = getMediaContentRevision();
+  if (revision) params.set('revision', revision);
+  const query = params.toString();
+  return query ? `${base}?${query}` : base;
 }
 
 export async function getMediaInfo(id: number, signal?: AbortSignal): Promise<MediaInfo> {

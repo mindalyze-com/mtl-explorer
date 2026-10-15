@@ -2,21 +2,38 @@
   <aside class="filter-catalog" aria-label="Views">
     <div class="filter-catalog__heading">
       <h2 class="filter-catalog__title filter-panel-title">Choose a view</h2>
-      <span class="filter-catalog__total filter-meta-label">{{ totalCount }} views</span>
+      <span class="filter-catalog__total filter-meta-label" role="status"
+        >{{ query ? `${visibleCount} of ${totalCount}` : totalCount }} views</span
+      >
     </div>
 
     <div class="filter-catalog__search">
       <i class="bi bi-search filter-catalog__search-icon"></i>
       <input
+        ref="searchInput"
         v-model="query"
+        aria-label="Search views"
         class="filter-catalog__search-input"
         type="search"
         placeholder="Search views"
         autocomplete="off"
       />
+      <Button
+        v-if="query"
+        class="filter-catalog__clear"
+        icon="bi bi-x-lg"
+        text
+        rounded
+        aria-label="Clear view search"
+        @click="clearSearch"
+      />
     </div>
 
-    <div class="filter-catalog__scroll">
+    <div v-if="selectedFilterInfo" class="filter-catalog__selection" role="status">
+      Selected: <strong>{{ selectedFilterInfo.filterConfig?.displayName }}</strong>
+    </div>
+
+    <div class="filter-catalog__scroll sheet-scroll-target" data-sheet-fit-target>
       <section v-for="group in visibleGroups" :key="group.label" class="filter-catalog__group">
         <h3 class="filter-catalog__group-title">{{ group.label }}</h3>
         <button
@@ -25,6 +42,7 @@
           type="button"
           class="filter-catalog-row"
           :class="{ 'filter-catalog-row--active': isSelected(filterInfo) }"
+          :aria-pressed="isSelected(filterInfo)"
           @click="emit('select-filter', filterInfo)"
         >
           <span class="filter-catalog-row__icon" :class="groupIconClass(group.label)">
@@ -38,14 +56,16 @@
           </span>
           <i
             class="filter-catalog-row__state bi"
-            :class="isSelected(filterInfo) ? 'bi-check-circle-fill' : 'bi-chevron-right'"
+            :class="isSelected(filterInfo) ? 'bi-check-circle-fill' : 'bi-circle'"
+            aria-hidden="true"
           ></i>
         </button>
       </section>
 
-      <div v-if="visibleGroups.length === 0" class="filter-catalog__empty">
+      <div v-if="visibleGroups.length === 0" class="empty-placeholder filter-catalog__empty">
         <i class="bi bi-search"></i>
-        <span>No views found</span>
+        <span>No views found for “{{ query }}”.</span>
+        <Button label="Clear search" text @click="clearSearch" />
       </div>
     </div>
   </aside>
@@ -53,6 +73,7 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue';
+import Button from 'primevue/button';
 import type { FilterInfo } from 'x8ing-mtl-api-typescript-fetch/dist/esm/models/FilterInfo';
 import {
   filterOptionGroupItemCount,
@@ -74,8 +95,14 @@ const emit = defineEmits<{
 }>();
 
 const query = ref('');
+const searchInput = ref<HTMLInputElement | null>(null);
+function clearSearch(): void {
+  query.value = '';
+  searchInput.value?.focus();
+}
 
 const totalCount = computed((): number => filterOptionGroupItemCount(props.groups));
+const visibleCount = computed(() => filterOptionGroupItemCount(visibleGroups.value));
 const visibleGroups = computed((): FilterOptionGroup[] =>
   filterOptionGroupsByCatalogSearch(props.groups, query.value, null)
 );
@@ -136,7 +163,7 @@ function groupIconClass(groupLabel: string): string {
 .filter-catalog__search-input {
   width: 100%;
   min-height: 2.65rem;
-  padding: 0.55rem 0.85rem 0.55rem 2.35rem;
+  padding: 0.55rem 3rem 0.55rem 2.35rem;
   border: 1px solid var(--border-default);
   border-radius: 0.6rem;
   background: var(--surface-glass-heavy);
@@ -159,66 +186,13 @@ function groupIconClass(groupLabel: string): string {
   color: var(--text-muted);
 }
 
-.filter-catalog__chips {
-  display: flex;
-  flex-wrap: wrap;
-  flex: 0 0 auto;
-  gap: 0.4rem;
-  padding: 0.75rem 0 0.65rem;
-  overflow: visible;
-}
-
-.filter-catalog__chips::-webkit-scrollbar {
-  display: none;
-}
-
-.filter-catalog__chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  min-height: 1.9rem;
-  padding: 0.3rem 0.7rem;
-  border: 1px solid var(--border-default);
-  border-radius: 9999px;
-  background: transparent;
-  color: var(--text-secondary);
-  font-size: var(--text-xs-size);
-  font-weight: 600;
-  line-height: var(--text-xs-lh);
-  white-space: nowrap;
-  cursor: pointer;
-  transition:
-    background 0.15s,
-    border-color 0.15s,
-    color 0.15s;
-}
-
-.filter-catalog__chip:hover {
-  background: var(--surface-hover);
-  color: var(--text-primary);
-}
-
-.filter-catalog__chip--active {
-  border-color: transparent;
-  background: var(--accent-subtle);
-  color: var(--accent-text);
-}
-
-.filter-catalog__chip-count {
-  opacity: 0.65;
-}
-
 .filter-catalog__scroll {
   flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
   padding-right: 0;
   padding-bottom: 1.2rem;
-  scrollbar-width: none;
-}
-
-.filter-catalog__scroll::-webkit-scrollbar {
-  display: none;
+  scrollbar-width: thin;
 }
 
 .filter-catalog__group + .filter-catalog__group {
@@ -304,9 +278,7 @@ function groupIconClass(groupLabel: string): string {
   font-size: var(--text-sm-size);
   font-weight: 600;
   line-height: var(--text-sm-lh);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  overflow-wrap: anywhere;
 }
 
 .filter-catalog-row__description {
@@ -329,21 +301,30 @@ function groupIconClass(groupLabel: string): string {
   color: var(--accent-text);
 }
 
-.filter-catalog__empty {
-  min-height: 8rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  color: var(--text-muted);
+.filter-catalog__selection {
+  padding: 0.7rem 0;
+  color: var(--text-secondary);
   font-size: var(--text-sm-size);
+  line-height: var(--text-sm-lh);
+  overflow-wrap: anywhere;
 }
 
-@media screen and (max-width: 768px) {
-  .filter-catalog__chips {
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    scrollbar-width: none;
+.filter-catalog__clear {
+  position: absolute;
+  right: 0.15rem;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.filter-catalog-row:focus-visible {
+  outline: 2px solid var(--focus-ring, var(--accent));
+  outline-offset: -2px;
+}
+
+@media (max-width: 600px) {
+  .filter-catalog__search-input {
+    min-height: 2.75rem;
+    font-size: max(1rem, var(--text-sm-size));
   }
 }
 </style>

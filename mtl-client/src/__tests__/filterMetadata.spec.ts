@@ -4,6 +4,7 @@ import {
   colorForFilterGroup,
   compareLegendEntries,
   filterGroupIcon,
+  formatFilterGroupLabel,
   filterOptionGroupsByCatalogSearch,
   isSameFilterInfo,
   optionalFilterParamNames,
@@ -220,5 +221,23 @@ describe('filter metadata', () => {
       uiMetadata: '{"bucketCount":100}',
     } as FilterConfigEntity;
     expect(colorForFilterGroup(palette(), '99', filterConfig)).toBe('#111111');
+  });
+});
+
+describe('activity category labels', () => {
+  it.each([
+    ['CYCLING', 'Cycling'],
+    ['ON_FOOT', 'On foot'],
+    ['ON_WATER', 'On water'],
+    ['MOTORIZED', 'Motorized'],
+  ])('formats the main group %s without changing custom categories', (group, label) => {
+    expect(formatFilterGroupLabel(group, { filterName: 'ActivitiesByMainTypes' })).toBe(label);
+    expect(formatFilterGroupLabel(group, { filterConfig: { filterName: 'ActivitiesByMainTypes' } })).toBe(label);
+    expect(formatFilterGroupLabel(group, { filterName: 'CustomFilter' })).toBe(group);
+  });
+
+  it('uses readable exact activity names while preserving custom labels', () => {
+    expect(formatFilterGroupLabel('MOUNTAIN_BIKING', { filterName: 'ActivitiesByExactType' })).toBe('Mountain biking');
+    expect(formatFilterGroupLabel('WALKING', { filterName: 'CustomFilter' })).toBe('WALKING');
   });
 });

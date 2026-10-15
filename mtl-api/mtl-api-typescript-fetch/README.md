@@ -13,16 +13,18 @@ Everything under `target/` is generated — do not edit it manually. It is exclu
 
 ## Regenerating
 
-From the `mtl-api` directory:
+From the `mtl-api` directory inside the existing development container:
 
 ```bash
-mvn -pl mtl-api-typescript-fetch package -q
-cd mtl-api-typescript-fetch/target/generated-sources/mtl-typescript && npm run build
+mvn -pl mtl-api-typescript-fetch install -q
 ```
 
-See the parent [readme.md](../readme.md) for the full workflow.
+The `install` phase installs the generated npm package's dependencies; its
+prepare script compiles `dist/`. A generation-only `package` does not install
+those dependencies on a fresh checkout. See [the API workflow](../README.md).
 
 ## Generator
 
-Uses [`openapi-generator-maven-plugin`](https://github.com/OpenAPITools/openapi-generator) v7.4.0 with generator `typescript-fetch`.
-Schema source: `../open-api-schema/schema.json`
+Uses `openapi-generator-maven-plugin` with generator `typescript-fetch`.
+The [POM](pom.xml) owns the generator and toolchain versions.
+Schema source: [schema.json](../open-api-schema/schema.json).

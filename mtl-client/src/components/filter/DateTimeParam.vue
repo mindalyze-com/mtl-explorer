@@ -1,19 +1,19 @@
 <template>
   <div class="date-time-param">
     <div class="date-time-param__control date-time-param__control--date">
-      <i class="bi bi-calendar3" aria-hidden="true"></i>
       <input
         :id="id"
         class="date-time-param__input"
         type="date"
         :value="dateValue"
         :aria-label="dateAriaLabel"
+        :aria-invalid="invalid"
+        :aria-describedby="describedBy"
         @change="onDateInput"
       />
     </div>
 
     <div class="date-time-param__control date-time-param__control--time" :class="{ 'is-disabled': !dateValue }">
-      <i class="bi bi-clock" aria-hidden="true"></i>
       <input
         class="date-time-param__input"
         type="time"
@@ -21,6 +21,8 @@
         :step="TIME_INPUT_STEP_SECONDS"
         :disabled="!dateValue"
         :aria-label="timeAriaLabel"
+        :aria-invalid="invalid"
+        :aria-describedby="describedBy"
         @change="onTimeInput"
       />
     </div>
@@ -43,6 +45,9 @@ import { computed } from 'vue';
 defineOptions({ name: 'DateTimeParam' });
 
 const DEFAULT_TIME_VALUE = '00:00';
+const END_OF_DAY_TIME_VALUE = '23:59';
+const END_OF_MINUTE_SECONDS = 59;
+const END_OF_MINUTE_MILLISECONDS = 999;
 const TIME_INPUT_STEP_SECONDS = 60;
 const DATE_SEGMENT_COUNT = 3;
 const DATE_YEAR_INDEX = 0;
@@ -56,6 +61,9 @@ const MIN_DATE_PART = 1;
 const props = defineProps<{
   id?: string;
   label: string;
+  endOfDay?: boolean;
+  invalid?: boolean;
+  describedBy?: string;
   modelValue?: Date | Date[] | (Date | null)[] | null;
 }>();
 
@@ -73,7 +81,11 @@ const selectedDate = computed((): Date | null => {
 const hasValue = computed((): boolean => selectedDate.value != null);
 const dateValue = computed((): string => (selectedDate.value ? formatDateInputValue(selectedDate.value) : ''));
 const timeValue = computed((): string =>
-  selectedDate.value ? formatTimeInputValue(selectedDate.value) : DEFAULT_TIME_VALUE
+  selectedDate.value
+    ? formatTimeInputValue(selectedDate.value)
+    : props.endOfDay
+      ? END_OF_DAY_TIME_VALUE
+      : DEFAULT_TIME_VALUE
 );
 const dateAriaLabel = computed((): string => `${props.label} date`);
 const timeAriaLabel = computed((): string => `${props.label} time`);
@@ -85,7 +97,12 @@ function onDateInput(event: Event): void {
     emit('update:modelValue', null);
     return;
   }
-  emitMergedValue(datePart, timeValue.value);
+  emitMergedValue(
+    datePart,
+    timeValue.value,
+    selectedDate.value?.getSeconds() ?? (props.endOfDay ? END_OF_MINUTE_SECONDS : 0),
+    selectedDate.value?.getMilliseconds() ?? (props.endOfDay ? END_OF_MINUTE_MILLISECONDS : 0)
+  );
 }
 
 function onTimeInput(event: Event): void {
@@ -93,9 +110,12 @@ function onTimeInput(event: Event): void {
   emitMergedValue(dateValue.value, inputValue(event) || DEFAULT_TIME_VALUE);
 }
 
-function emitMergedValue(datePart: string, timePart: string): void {
+function emitMergedValue(datePart: string, timePart: string, seconds = 0, milliseconds = 0): void {
   const merged = mergeDateAndTime(datePart, timePart);
-  if (merged) emit('update:modelValue', merged);
+  if (merged) {
+    merged.setSeconds(seconds, milliseconds);
+    emit('update:modelValue', merged);
+  }
 }
 
 function mergeDateAndTime(datePart: string, timePart: string): Date | null {
@@ -141,7 +161,7 @@ function pad2(value: number): string {
 <style scoped>
 .date-time-param {
   display: grid;
-  grid-template-columns: minmax(9rem, 1fr) minmax(6.6rem, 0.72fr) 2.35rem;
+  grid-template-columns: minmax(0, 1fr) minmax(5.9rem, 0.65fr) var(--control-field-height);
   gap: 0.45rem;
   align-items: center;
   width: 100%;
@@ -150,7 +170,7 @@ function pad2(value: number): string {
 
 .date-time-param__control {
   min-width: 0;
-  min-height: 2.35rem;
+  min-height: var(--control-field-height);
   display: flex;
   align-items: center;
   gap: 0.45rem;
@@ -178,11 +198,6 @@ function pad2(value: number): string {
   opacity: 0.58;
 }
 
-.date-time-param__control .bi {
-  flex: 0 0 auto;
-  font-size: var(--text-sm-size);
-}
-
 .date-time-param__input {
   width: 100%;
   min-width: 0;
@@ -197,7 +212,7 @@ function pad2(value: number): string {
   color-scheme: light;
 }
 
-:global([data-theme='dark']) .date-time-param__input {
+:global([data-theme='dark'] .date-time-param__input) {
   color-scheme: dark;
 }
 
@@ -207,8 +222,8 @@ function pad2(value: number): string {
 }
 
 .date-time-param__clear {
-  width: 2.35rem;
-  height: 2.35rem;
+  width: var(--control-field-height);
+  height: var(--control-field-height);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -242,16 +257,16 @@ function pad2(value: number): string {
 
 @media (max-width: 26rem) {
   .date-time-param {
-    grid-template-columns: minmax(0, 1fr) minmax(5.9rem, 0.72fr) 2.35rem;
+    grid-template-columns: minmax(0, 1fr) minmax(5.9rem, 0.72fr) var(--control-field-height);
     gap: 0.35rem;
   }
 
   .date-time-param__control {
     padding-inline: 0.5rem;
   }
+}
 
-  .date-time-param__control .bi {
-    display: none;
-  }
+.date-time-param__control:has([aria-invalid='true']) {
+  border-color: var(--error);
 }
 </style>

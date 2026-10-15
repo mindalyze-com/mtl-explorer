@@ -2,22 +2,27 @@ const STORAGE_KEY_PREFIX = 'mtl.';
 
 export const STORAGE_KEYS = {
   jwt: 'mtl.jwt',
+  releaseUpdates: 'mtl.release-updates',
   colorScheme: 'mtl.color-scheme',
   mediaViewerTheme: 'mtl.media-viewer.theme',
   locale: 'mtl.locale',
   measurementSystem: 'mtl.measurement-system',
   mapSettings: 'mtl.map.settings',
   trackDetailsPreferences: 'mtl.track-details.preferences',
+  trendChartPreferences: 'mtl.statistics.trend-charts',
+  healthGrouping: 'mtl.health.grouping',
+  healthChartModes: 'mtl.health.chartModes',
   mapConfigCache: 'mtl.map.config-cache',
   backgroundsDisplayed: 'mtl.backgrounds.displayed',
   backgroundCacheVersion: 'mtl.backgrounds.cache-version',
   startupCrashGuard: 'mtl.startup.crash-guard',
   dataFreshnessAppliedToken: 'mtl.data-freshness.applied-token',
-  dataFreshnessSnoozedUntil: 'mtl.data-freshness.snoozed-until',
   clientFilterConfig: 'mtl.filter.client-config',
   filterPaused: 'mtl.filter.paused',
   filterPausedDraft: 'mtl.filter.paused-draft',
   filterScopeHelpSeen: 'mtl.filter.scope-help-seen',
+  plannerPanelPreferences: 'mtl.planner.panel-preferences',
+  plannerPointDragHintDone: 'mtl.planner.point-drag-hint-done',
 } as const satisfies Record<string, `mtl.${string}`>;
 
 export type AppStorageKey = (typeof STORAGE_KEYS)[keyof typeof STORAGE_KEYS];

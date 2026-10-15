@@ -17,7 +17,6 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 
 /**
@@ -26,11 +25,11 @@ import java.util.List;
  * Energy is never computed at ingest time, because the activity type is not yet known then.
  * The triggers for (re-)calculation are:
  * <ol>
- *   <li><b>ActivityTypeClassifierJob</b> — runs shortly after ingest, determines the real
- *       activity type, then calls {@link #recalculateEnergyForTrack} once the classification
- *       transaction has committed.</li>
+ *   <li><b>Classification and replacement</b> — automatic and Google classification, and
+ *       preserved user choices, enqueue {@link EnergyRecalculationQueue} in their transaction.
+ *       The durable worker calls {@link #recalculateEnergyForTrack} after commit.</li>
  *   <li><b>User activity-type change</b> — {@code TracksController.saveTrack} detects a type
- *       change, saves the track, then calls {@link #recalculateEnergyForTrack}.</li>
+ *       change and queues a durable recalculation in the same transaction.</li>
  *   <li><b>What-if endpoint</b> — {@code EnergyController} calls {@link #calculateAndPopulatePoints}
  *       directly against an ad-hoc parameter set and returns the {@link TrackEnergySummary}
  *       without saving. Note: {@code calculateAndPopulatePoints} mutates the passed-in points
@@ -53,9 +52,9 @@ import java.util.List;
 public class EnergyService {
 
     /**
-     * Minimum speed (km/h) for a point to be considered "moving". Matches GPXStoreService.MOVING_SPEED_THRESHOLD_KMH.
+     * Shared minimum speed (km/h) for a point to be considered moving.
      */
-    private static final double MOVING_SPEED_THRESHOLD_KMH = 0.5;
+
 
     /**
      * Minimum segment duration (seconds) to compute power. Shorter segments are treated as 0 W to avoid GPS-glitch spikes.
@@ -184,7 +183,22 @@ public class EnergyService {
         for (int i = 0; i < points.size(); i++) {
             GpsTrackDataPoint current = points.get(i);
             GpsTrackDataPoint prev = i > 0 ? points.get(i - 1) : null;
-            EnergyComponents ec = calculator.calculateBetweenPoints(current, prev, effectiveParams);
+            boolean unknownInterval = current.getIntervalStatus() == GpsTrackDataPoint.IntervalStatus.UNKNOWN
+                                      || current.getIntervalStatus() == GpsTrackDataPoint.IntervalStatus.GEOMETRY_ONLY;
+            EnergyComponents ec = unknownInterval ? new EnergyComponents(0, 0, 0, 0)
+                    : calculator.calculateBetweenPoints(current, prev, effectiveParams);
+            Double supportedDuration = current.getDurationBetweenPointsInSec();
+            boolean limited = !unknownInterval && supportedDuration != null && supportedDuration > 0
+                              && ec.totalPositiveJoules() > maxPowerWatts * supportedDuration;
+            current.setEnergyLimited(limited);
+            if (limited) {
+                double factor = maxPowerWatts * supportedDuration / ec.totalPositiveJoules();
+                ec = EnergyComponents.builder()
+                        .gravitationalJoules(ec.getGravitationalJoules() * factor)
+                        .aeroDragJoules(ec.getAeroDragJoules() * factor)
+                        .rollingResistanceJoules(ec.getRollingResistanceJoules() * factor)
+                        .kineticJoules(ec.getKineticJoules() * factor).build();
+            }
             boolean unreliableStopBoundaryPower = isUnreliableStopBoundaryPower(points, i);
             if (unreliableStopBoundaryPower) {
                 suppressSpeedDerivedArtifacts(ec);
@@ -228,6 +242,16 @@ public class EnergyService {
                 current.setPowerWatts(0.0);
                 if (duration != null && duration > 0) pointDurationS = duration;
             }
+            if (unknownInterval) {
+                current.setEnergyGravitationalWh(null);
+                current.setEnergyAeroDragWh(null);
+                current.setEnergyRollingResistanceWh(null);
+                current.setEnergyKineticWh(null);
+                current.setEnergyTotalWh(null);
+                current.setPowerWatts(null);
+                pointPowerW = Double.NaN;
+                pointDurationS = Double.NaN;
+            }
             powerAccumulator.add(current, pointPowerW, pointDurationS);
         }
 
@@ -242,7 +266,9 @@ public class EnergyService {
                 cumulativeKineticPosJoules / JOULES_PER_WH,
                 cumulativeKineticNegJoules / JOULES_PER_WH,
                 cumulativeTotalJoules / JOULES_PER_WH);
-        return buildSummary(totals, powerMetrics, totalMassKgUsed);
+        TrackEnergySummary summary = buildSummary(totals, powerMetrics, totalMassKgUsed);
+        summary.setMetabolicEnergy(MetabolicEnergyCalculator.calculate(points, activityType, effectiveParams.getRiderWeightKg()));
+        return summary;
     }
 
     /**
@@ -289,6 +315,7 @@ public class EnergyService {
                 .rollingResistanceTotalWh(orZero(track.getEnergyRollingResistanceTotalWh()))
                 .kineticPositiveTotalWh(orZero(track.getEnergyKineticPositiveTotalWh()))
                 .netEnergyTotalWh(orZero(track.getEnergyNetTotalWh()))
+                .metabolicEnergy(track.getMetabolicEnergy())
                 .powerWattsAvg(orZero(track.getPowerWattsAvg()))
                 .powerWattsMovingAvg(orZero(track.getPowerWattsMovingAvg()))
                 .powerWattsMax(orZero(track.getPowerWattsMax()))
@@ -313,6 +340,9 @@ public class EnergyService {
             copy.setPointLongLat(source.getPointLongLat());
             copy.setPointXY(source.getPointXY());
             copy.setPointAltitude(source.getPointAltitude());
+            copy.setIntervalStatus(source.getIntervalStatus());
+            copy.setMotionState(source.getMotionState());
+            copy.setMotionReason(source.getMotionReason());
             copy.setDistanceInMeterBetweenPoints(source.getDistanceInMeterBetweenPoints());
             copy.setDistanceInMeterSinceStart(source.getDistanceInMeterSinceStart());
             copy.setDurationBetweenPointsInSec(source.getDurationBetweenPointsInSec());
@@ -473,9 +503,9 @@ public class EnergyService {
         private double powerSum;
         private int powerCount;
         private double maxPower;
-        private Date movingSectionStart;
-        private Date movingSectionEnd;
+
         private double movingTimeSec;
+        private double movingEnergyJoules;
 
         private PowerSummaryAccumulator(int sampleCount) {
             powersWatts = new double[sampleCount];
@@ -488,39 +518,25 @@ public class EnergyService {
                 powerCount++;
                 maxPower = Math.max(maxPower, powerWatts);
             }
-            powersWatts[sampleIndex] = powerWatts > 0 ? powerWatts : 0;
-            durationsSec[sampleIndex] = durationSec > 0 ? durationSec : 0;
+            powersWatts[sampleIndex] = Double.isFinite(powerWatts) ? Math.max(0, powerWatts) : Double.NaN;
+            durationsSec[sampleIndex] = Double.isFinite(durationSec) ? Math.max(0, durationSec) : Double.NaN;
             sampleIndex++;
             recordMovingSection(point);
         }
 
         private void recordMovingSection(GpsTrackDataPoint point) {
-            boolean isMoving = point.getSpeedInKmhMovingWindow() != null
-                               && point.getSpeedInKmhMovingWindow() >= MOVING_SPEED_THRESHOLD_KMH
-                               && point.getPointTimestamp() != null;
-            if (isMoving) {
-                if (movingSectionStart == null) {
-                    movingSectionStart = point.getPointTimestamp();
-                }
-                movingSectionEnd = point.getPointTimestamp();
-                return;
+            Double duration = point.getDurationBetweenPointsInSec();
+            if (point.getMotionState() == com.x8ing.mtl.server.mtlserver.logic.motion.TrackMotionAnalyzer.State.MOVING
+                && duration != null && duration > 0 && point.getEnergyTotalWh() != null) {
+                movingTimeSec += duration;
+                movingEnergyJoules += point.getEnergyTotalWh() * JOULES_PER_WH;
             }
-            closeMovingSection();
-        }
-
-        private void closeMovingSection() {
-            if (movingSectionStart != null && movingSectionEnd != null) {
-                movingTimeSec += (movingSectionEnd.getTime() - movingSectionStart.getTime()) / 1000.0;
-            }
-            movingSectionStart = null;
-            movingSectionEnd = null;
         }
 
         private PowerMetrics summarize(double totalEnergyJoules, double maxPowerWatts) {
-            closeMovingSection();
             PowerWindowStats windowStats = POWER_WINDOW_CALCULATOR.compute(powersWatts, durationsSec);
-            double movingAverage = movingTimeSec > 0 && totalEnergyJoules > 0
-                    ? Math.min(totalEnergyJoules / movingTimeSec, maxPowerWatts)
+            double movingAverage = movingTimeSec > 0 && movingEnergyJoules > 0
+                    ? Math.min(movingEnergyJoules / movingTimeSec, maxPowerWatts)
                     : 0;
             return new PowerMetrics(
                     powerCount > 0 ? powerSum / powerCount : 0,
@@ -542,11 +558,35 @@ public class EnergyService {
         track.setEnergyKineticPositiveTotalWh(summary.getKineticPositiveTotalWh());
         track.setEnergyNetTotalWh(summary.getNetEnergyTotalWh());
         track.setEnergyWeightKgUsed(summary.getWeightKgUsed());
+        track.setMetabolicEnergy(summary.getMetabolicEnergy());
         track.setPowerWattsAvg(summary.getPowerWattsAvg());
         track.setPowerWattsMovingAvg(summary.getPowerWattsMovingAvg());
         track.setPowerWattsMax(summary.getPowerWattsMax());
         track.setPowerWatts30sMax(summary.getPowerWatts30sMax());
         track.setNormalizedPowerWatts(summary.getNormalizedPowerWatts());
+    }
+
+    /**
+     * Retain the user input while hiding results until the queued calculation completes.
+     */
+    public static void invalidateCalculatedEnergy(GpsTrack track, double bodyWeightKg) {
+        track.setEnergyGravitationalTotalWh(null);
+        track.setEnergyGravitationalDescentWh(null);
+        track.setEnergyAeroDragTotalWh(null);
+        track.setEnergyRollingResistanceTotalWh(null);
+        track.setEnergyKineticPositiveTotalWh(null);
+        track.setEnergyNetTotalWh(null);
+        track.setEnergyWeightKgUsed(null);
+        track.setPowerWattsAvg(null);
+        track.setPowerWattsMovingAvg(null);
+        track.setPowerWattsMax(null);
+        track.setPowerWatts30sMax(null);
+        track.setNormalizedPowerWatts(null);
+        var pending = new MetabolicEnergy();
+        pending.setBodyWeightKg(bodyWeightKg);
+        pending.setMethod(MetabolicEnergyCalculator.methodFor(track.getActivityType()));
+        pending.setCoverage(MetabolicEnergy.Coverage.UNAVAILABLE);
+        track.setMetabolicEnergy(pending);
     }
 
     /**
@@ -567,9 +607,13 @@ public class EnergyService {
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public boolean recalculateEnergyForTrack(Long gpsTrackId, EnergyParameters params) {
         if (gpsTrackId == null) return false;
-        GpsTrack track = gpsTrackRepository.findById(gpsTrackId).orElse(null);
+        GpsTrack track = gpsTrackRepository.findByIdForUpdate(gpsTrackId).orElse(null);
         if (track == null) {
             log.warn("recalculateEnergyForTrack: track id={} not found", gpsTrackId);
+            return false;
+        }
+        if (track.isTimingUnreliable()) {
+            log.debug("Energy calculation skipped: trackId={} source timing is unsupported", gpsTrackId);
             return false;
         }
         if (track.getActivityType() == null) {
@@ -577,7 +621,7 @@ public class EnergyService {
             return false;
         }
 
-        EnergyParameters effectiveParams = params != null ? params : getDefaultParameters();
+        EnergyParameters effectiveParams = params != null ? params : parametersForTrack(track);
         GpsTrackData canonical = gpsTrackDataRepository.findFirstByGpsTrackIdAndTrackType(
                 gpsTrackId,
                 GpsTrackData.TRACK_TYPE.RAW_OUTLIER_CLEANED.name());
@@ -586,18 +630,26 @@ public class EnergyService {
             return false;
         }
 
-        List<GpsTrackDataPoint> points = gpsTrackDataPointRepository.findAllByGpsTrackDataIdOrderByPointIndexAsc(canonical.getId());
+        List<GpsTrackDataPoint> points = gpsTrackDataPointRepository.findEnergyInputPoints(canonical.getId());
         if (points.isEmpty()) return false;
 
         TrackEnergySummary summaryForTrack = calculateAndPopulatePoints(points, track.getActivityType(), effectiveParams);
-        gpsTrackDataPointRepository.saveAll(points);
+        gpsTrackDataPointRepository.saveEnergyPoints(canonical.getId(), points);
 
-        applyEnergyToTrack(track, summaryForTrack);
-        track.addLoadMessage("Energy recalculated for activityType=" + track.getActivityType()
-                             + " on canonical RAW_OUTLIER_CLEANED (Net Total: "
-                             + String.format("%.2f", summaryForTrack.getNetEnergyTotalWh()) + " Wh).");
-        gpsTrackRepository.save(track);
+        gpsTrackRepository.updateEnergyResults(gpsTrackId, summaryForTrack);
+        log.debug("Energy recalculated: trackId={} activityType={} points={} netEnergyWh={}",
+                gpsTrackId, track.getActivityType(), points.size(), summaryForTrack.getNetEnergyTotalWh());
         return true;
+    }
+
+    public EnergyParameters parametersForTrack(GpsTrack track) {
+        EnergyParameters defaults = getDefaultParameters();
+        Double bodyWeight = track.getMetabolicEnergy() != null ? track.getMetabolicEnergy().getBodyWeightKg() : null;
+        if (!EnergyParameters.isValidRiderWeight(bodyWeight) && track.getEnergyWeightKgUsed() != null) {
+            bodyWeight = track.getEnergyWeightKgUsed() - getDefaultEquipmentWeightKg(track.getActivityType());
+        }
+        return EnergyParameters.isValidRiderWeight(bodyWeight)
+                ? defaults.toBuilder().riderWeightKg(bodyWeight).build() : defaults;
     }
 
     /**
@@ -609,10 +661,16 @@ public class EnergyService {
         try {
             List<ConfigEntity> configs = configRepository.findConfigEntitiesByDomain1AndDomain2AndDomain3("energy", "user", "riderWeightKg");
             if (configs != null && !configs.isEmpty()) {
-                weight = Double.parseDouble(configs.getFirst().getValue());
+                double configured = Double.parseDouble(configs.getFirst().getValue());
+                if (EnergyParameters.isValidRiderWeight(configured)) {
+                    weight = configured;
+                } else {
+                    log.warn("Invalid energy rider weight configuration, using default {}kg: expected finite {}–{}kg",
+                            weight, EnergyParameters.MIN_RIDER_WEIGHT_KG, EnergyParameters.MAX_RIDER_WEIGHT_KG);
+                }
             }
         } catch (Exception e) {
-            log.warn("Could not read energy weight config, using default {}kg: {}", weight, e.getMessage());
+            log.warn("Could not read energy weight config, using default {}kg: type={}, error={}", weight, e.getClass().getSimpleName(), e.getMessage());
         }
         return EnergyParameters.builder().riderWeightKg(weight).build();
     }

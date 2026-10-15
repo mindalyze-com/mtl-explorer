@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.10.xsd">
+    <changeSet id="20260905_gps_interval_evidence" author="codex">
+        <comment>Preserve recording continuity and source quality on new imports.</comment>
+        <addColumn tableName="gps_track_data">
+            <column name="recording_break_before_point_indexes" type="jsonb"/>
+            <column name="observation_evidence" type="jsonb"/>
+            <column name="processing_settings" type="jsonb"/>
+            <column name="observed_path" type="geometry(Geometry,4326)"/>
+        </addColumn>
+        <addColumn tableName="gps_track_data_points"><column name="interval_status" type="varchar(16)"/><column name="energy_limited" type="boolean"/></addColumn>
+        <addColumn tableName="gps_track"><column name="track_duration_unknown_secs" type="double precision"/></addColumn>
+        <sql>CREATE INDEX gps_track_data_ix_observed_geography ON gps_track_data USING gist ((observed_path::geography)) WHERE track_type = 'SIMPLIFIED_SHAPE' AND precision_in_meter = 10;</sql>
+        <rollback>
+            <sql>DROP INDEX gps_track_data_ix_observed_geography;</sql>
+            <dropColumn tableName="gps_track_data" columnName="observed_path"/>
+            <dropColumn tableName="gps_track" columnName="track_duration_unknown_secs"/>
+            <dropColumn tableName="gps_track_data_points" columnName="interval_status"/>
+            <dropColumn tableName="gps_track_data_points" columnName="energy_limited"/>
+            <dropColumn tableName="gps_track_data" columnName="observation_evidence"/>
+            <dropColumn tableName="gps_track_data" columnName="processing_settings"/>
+            <dropColumn tableName="gps_track_data" columnName="recording_break_before_point_indexes"/>
+        </rollback>
+    </changeSet>
+</databaseChangeLog>

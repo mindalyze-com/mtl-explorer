@@ -1,24 +1,29 @@
 package com.x8ing.mtl.server.mtlserver.planner.client;
 
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.ObjectMapper;
+import com.x8ing.mtl.server.mtlserver.gpx.GPXReader;
 import com.x8ing.mtl.server.mtlserver.planner.PlannerGeometryMetrics;
 import com.x8ing.mtl.server.mtlserver.planner.config.PlannerProperties;
 import com.x8ing.mtl.server.mtlserver.planner.constants.PlannerConstants;
 import com.x8ing.mtl.server.mtlserver.planner.dto.LegResultDto;
 import com.x8ing.mtl.server.mtlserver.planner.dto.WaypointDto;
 import lombok.extern.slf4j.Slf4j;
+import org.locationtech.jts.geom.Coordinate;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientResponseException;
 import org.springframework.web.util.UriComponentsBuilder;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 
+import java.net.SocketTimeoutException;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.regex.Pattern;
@@ -49,7 +54,9 @@ public class BRouterClient {
      * Pattern matching BRouter's "datafile E5_N45.rd5 not found" error.
      */
     private static final Pattern SEGMENT_NOT_FOUND = Pattern.compile("datafile\\s+\\S+\\.rd5\\s+not found", Pattern.CASE_INSENSITIVE);
+    private static final Pattern SEGMENT_DIRECTORY_MISSING = Pattern.compile("segment directory .+ does not exist", Pattern.CASE_INSENSITIVE);
     private static final int ERROR_BODY_LOG_LIMIT = 2048;
+    private static final int ERROR_DETAIL_LIMIT = 500;
     private static final String EMPTY_ERROR_BODY = "<empty>";
     private static final String TRUNCATED_SUFFIX = "...";
 
@@ -91,9 +98,9 @@ public class BRouterClient {
                     .retrieve()
                     .body(String.class);
             if (body == null || body.isBlank()) {
-                throw new BRouterException("Empty response from BRouter");
+                throw new BRouterException("Routing service returned an empty response. Retry or check the BRouter server logs.");
             }
-            return parseGeoJson(body);
+            return parseGeoJson(body, from, to);
         } catch (BRouterException e) {
             throw e;
         } catch (RestClientResponseException e) {
@@ -107,10 +114,28 @@ public class BRouterClient {
                         from.getLat(), from.getLng(), to.getLat(), to.getLng());
             }
             log.warn("BRouter HTTP error status={} body={}", e.getStatusCode(), summarizedBody);
-            throw new BRouterException("BRouter call failed", e);
+            String detail = userErrorBody(responseBody);
+            if (SEGMENT_DIRECTORY_MISSING.matcher(responseBody).find()) {
+                throw new BRouterException(BRouterException.ROUTING_STORAGE_UNAVAILABLE,
+                        "Routing data storage is missing on the server. Restore the BRouter segment directory and restart the routing service."
+                        + detailSuffix(detail), e);
+            }
+            boolean rejectedRoute = e.getStatusCode().is4xxClientError();
+            throw new BRouterException(rejectedRoute ? BRouterException.ROUTING_FAILED : BRouterException.ROUTING_UNAVAILABLE,
+                    (rejectedRoute ? "BRouter could not calculate this route" : "Routing service failed")
+                    + " (HTTP " + e.getStatusCode().value() + ")." + detailSuffix(detail), e);
+        } catch (ResourceAccessException e) {
+            log.warn("BRouter connection failed: type={} message={}", e.getClass().getSimpleName(), e.getMessage());
+            log.debug("BRouter connection failure", e);
+            if (hasTimeoutCause(e)) {
+                throw new BRouterException(BRouterException.ROUTING_TIMEOUT,
+                        "Routing service timed out. Try a shorter route or retry when the server is less busy.", e);
+            }
+            throw new BRouterException("Cannot reach the routing service. Check that BRouter is running, then retry.", e);
         } catch (Exception e) {
-            log.warn("BRouter call failed: {}", e.getClass().getSimpleName());
-            throw new BRouterException("BRouter call failed", e);
+            log.warn("BRouter call failed: type={} message={}", e.getClass().getSimpleName(), e.getMessage());
+            log.debug("BRouter call failure", e);
+            throw new BRouterException("Routing service returned an invalid response. Retry or check the BRouter server logs.", e);
         }
     }
 
@@ -120,7 +145,7 @@ public class BRouterClient {
      * in {@code properties}: {@code track-length}, {@code filtered ascend},
      * {@code plain-ascend}, {@code total-time}.
      */
-    private LegResultDto parseGeoJson(String body) {
+    private LegResultDto parseGeoJson(String body, WaypointDto from, WaypointDto to) {
         try {
             JsonNode root = mapper.readTree(body);
             JsonNode feature = root.path("features").path(0);
@@ -133,7 +158,6 @@ public class BRouterClient {
 
             LegResultDto leg = new LegResultDto();
             leg.setDistanceM(asDouble(props.path("track-length")));
-            leg.setAscentM(asDouble(props.path("filtered ascend")));
             leg.setDurationSec(asDouble(props.path("total-time")));
 
             List<double[]> out = new ArrayList<>(coords.size());
@@ -142,19 +166,52 @@ public class BRouterClient {
                 if (c.isArray() && c.size() >= 2) {
                     double lng = c.get(0).asDouble();
                     double lat = c.get(1).asDouble();
-                    double ele = c.size() >= 3 ? c.get(2).asDouble(0.0) : 0.0;
-                    out.add(new double[]{lng, lat, ele});
+                    double ele = c.size() >= 3 && !c.get(2).isNull() ? c.get(2).asDouble(Double.NaN) : Double.NaN;
+                    out.add(Double.isFinite(ele) ? new double[]{lng, lat, ele} : new double[]{lng, lat});
                 }
             }
+            if (out.size() >= 2) {
+                double[] first = out.getFirst();
+                double[] last = out.getLast();
+                double forward = endpointDistance(from, first) + endpointDistance(to, last);
+                double reverse = endpointDistance(from, last) + endpointDistance(to, first);
+                if (reverse < forward) Collections.reverse(out);
+            }
             leg.setCoordinates(out);
-            // BRouter doesn't expose a "filtered descent" property, so derive it from 3D geometry.
-            leg.setDescentM(PlannerGeometryMetrics.elevationTotals(out).descentM());
+            var totals = PlannerGeometryMetrics.elevationTotals(out);
+            leg.setAscentM(totals.ascentM());
+            leg.setDescentM(totals.descentM());
             return leg;
         } catch (BRouterException e) {
             throw e;
         } catch (Exception e) {
-            throw new BRouterException("Failed to parse BRouter GeoJSON", e);
+            log.warn("BRouter response parsing failed: type={} message={}", e.getClass().getSimpleName(), e.getMessage());
+            log.debug("BRouter response parsing failure", e);
+            throw new BRouterException("Routing service returned an invalid response. Retry or check the BRouter server logs.", e);
         }
+    }
+
+    private static boolean hasTimeoutCause(Throwable error) {
+        for (Throwable cause = error; cause != null; cause = cause.getCause()) {
+            if (cause instanceof SocketTimeoutException) return true;
+        }
+        return false;
+    }
+
+    private static String userErrorBody(String body) {
+        String detail = body.strip().replaceAll("[\\p{Cntrl}\\s]+", " ").trim();
+        if (detail.startsWith("<")) return "";
+        return detail.length() <= ERROR_DETAIL_LIMIT ? detail : detail.substring(0, ERROR_DETAIL_LIMIT) + TRUNCATED_SUFFIX;
+    }
+
+    private static String detailSuffix(String detail) {
+        return detail.isBlank() ? "" : " BRouter: " + detail;
+    }
+
+    private static double endpointDistance(WaypointDto waypoint, double[] coordinate) {
+        return GPXReader.getDistanceBetweenTwoWGS84(
+                new Coordinate(waypoint.getLng(), waypoint.getLat()),
+                new Coordinate(coordinate[0], coordinate[1]));
     }
 
     static String summarizeErrorBody(String body) {

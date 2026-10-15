@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.10.xsd">
+
+    <changeSet id="20260905_requeue_gps_derived_data" author="codex">
+        <comment>
+            Reimport eligible GPS source files once after the GPS continuity, denoising,
+            and energy changes. Startup recovery processes SCHEDULED files even when
+            their size and modification time are unchanged. Retain existing tracks
+            for the normal transactional replacement and preserve removed/excluded files.
+        </comment>
+
+        <sql><![CDATA[
+UPDATE indexed_file AS indexed
+SET indexer_status = 'SCHEDULED',
+    index_update_date = CURRENT_TIMESTAMP,
+    last_message = 'Upgrade: GPS derived data rebuild scheduled',
+    version = COALESCE(indexed.version, 0) + 1
+WHERE indexed.index = 'GPS'
+  AND (indexed.indexer_status IS NULL
+       OR indexed.indexer_status NOT IN ('REMOVED', 'EXCLUDED'));
+        ]]></sql>
+    </changeSet>
+
+</databaseChangeLog>

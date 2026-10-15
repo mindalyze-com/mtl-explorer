@@ -16,22 +16,43 @@ import {
   redirectToLoginAfterAuthFailure,
 } from '@/utils/auth';
 import { backendBasePath } from '@/utils/apiBase';
-
-const authFailureMiddleware: Middleware = {
-  async post({ response }) {
-    if (isAuthenticationFailureStatus(response.status)) {
-      redirectToLoginAfterAuthFailure(!!getToken());
-    }
-    return response;
-  },
-};
+import { HTTP_MISDIRECTED_REQUEST, isRetryableReadRequest } from '@/utils/misdirectedRequests';
 
 export function getApiConfiguration(): Configuration {
+  const requestToken = getToken();
   const authHeader = getAuthHeaderValue();
+  const authFailureMiddleware: Middleware = {
+    async post({ response }) {
+      if (isAuthenticationFailureStatus(response.status)) {
+        redirectToLoginAfterAuthFailure(!!requestToken, requestToken);
+      }
+      return response;
+    },
+  };
   return new Configuration({
     basePath: backendBasePath,
     headers: authHeader ? { Authorization: authHeader } : {},
     credentials: 'include',
     middleware: [authFailureMiddleware],
+    fetchApi: async (url, init) => {
+      const response = await fetch(url, init);
+      // Generated calls use URL strings and replayable JSON bodies. Leave
+      // arbitrary Request objects (which can contain consumed streams) alone.
+      const requestUrl = typeof url === 'string' ? url : url instanceof URL ? url.href : null;
+      if (
+        response.status === HTTP_MISDIRECTED_REQUEST &&
+        requestUrl &&
+        isRetryableReadRequest(init?.method, requestUrl) &&
+        !init?.signal?.aborted &&
+        requestToken === getToken()
+      ) {
+        // One fresh read attempt. Connection selection belongs to the browser;
+        // a persistent proxy failure still propagates to the normal diagnostics.
+        return fetch(url, { ...init, cache: 'no-store' });
+      }
+      return response;
+    },
   });
 }
+
+export { getDiagnosticApiConfiguration } from '@/utils/diagnosticApiConfiguration';

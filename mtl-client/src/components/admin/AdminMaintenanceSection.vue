@@ -35,16 +35,16 @@
       <div class="admin-card__header">
         <div>
           <h3 id="admin-rescan-heading">Manual rescan</h3>
-          <p>Queue a new directory scan when file watching did not detect a change.</p>
+          <p>Scan the folder again when new or changed files were not picked up.</p>
         </div>
       </div>
-      <AdminManualRescan />
+      <AdminManualRescan :demo-mode="demoMode" />
       <details class="admin-disclosure admin-maintenance-help">
         <summary>When is a rescan needed?</summary>
         <div class="admin-disclosure__body">
           <p class="admin-card__hint">
-            Docker Desktop on Windows with WSL2 can expose copied files inside the container without sending Linux file
-            events. Run a rescan after copying files through a Windows-mounted folder when indexing does not start.
+            On Windows with Docker Desktop, files copied into a Windows folder are sometimes not noticed. If an import
+            does not start, run a rescan.
           </p>
         </div>
       </details>
@@ -53,6 +53,9 @@
     <details class="admin-disclosure" :open="Boolean(toolStatusError)">
       <summary>Advanced tools · {{ readyToolCount }}/2 ready</summary>
       <div class="admin-disclosure__body admin-advanced-tools">
+        <p v-if="demoMode === true" class="admin-action-hint" role="status">
+          Garmin helper installation is unavailable in this shared demo.
+        </p>
         <div v-if="toolStatusLoading" class="admin-message">
           <i class="pi pi-spin pi-spinner" /> Loading helper status…
         </div>
@@ -73,12 +76,15 @@
               </a>
             </div>
             <div class="admin-form-row">
-              <InputText v-model="gcexportVersion" class="admin-field" placeholder="Version, for example v4.6.2" />
+              <div class="settings-field admin-field">
+                <label for="admin-gcexport-version" class="settings-field__label">Version</label>
+                <InputText id="admin-gcexport-version" v-model="gcexportVersion" :disabled="demoMode !== false" />
+              </div>
               <Button
                 label="Install"
                 icon="pi pi-download"
                 size="small"
-                :disabled="helperLoading || !gcexportVersion.trim()"
+                :disabled="helperLoading || demoMode !== false || !gcexportVersion.trim()"
                 @click="installGcexportVersion"
               />
             </div>
@@ -94,13 +100,19 @@
               </div>
             </div>
             <div class="admin-form-row">
-              <InputText v-model="fitProfile" class="admin-field admin-field--small" placeholder="Profile" />
-              <InputText v-model="fitPackages" class="admin-field" placeholder="Packages" />
+              <div class="settings-field admin-field admin-field--small">
+                <label for="admin-fit-profile" class="settings-field__label">Profile</label>
+                <InputText id="admin-fit-profile" v-model="fitProfile" :disabled="demoMode !== false" />
+              </div>
+              <div class="settings-field admin-field">
+                <label for="admin-fit-packages" class="settings-field__label">Packages</label>
+                <InputText id="admin-fit-packages" v-model="fitPackages" :disabled="demoMode !== false" />
+              </div>
               <Button
                 label="Install"
                 icon="pi pi-download"
                 size="small"
-                :disabled="helperLoading || !fitProfile.trim() || !fitPackages.trim()"
+                :disabled="helperLoading || demoMode !== false || !fitProfile.trim() || !fitPackages.trim()"
                 @click="installFitExportProfile"
               />
             </div>
@@ -135,11 +147,15 @@ import { useAsyncState } from '@/composables/useAsyncState';
 
 defineOptions({ name: 'AdminMaintenanceSection' });
 
-const props = defineProps<{
-  toolStatus: GarminToolStatus;
-  toolStatusLoading: boolean;
-  toolStatusError: string;
-}>();
+const props = withDefaults(
+  defineProps<{
+    toolStatus: GarminToolStatus;
+    toolStatusLoading: boolean;
+    toolStatusError: string;
+    demoMode?: boolean | null;
+  }>(),
+  { demoMode: false }
+);
 
 const emit = defineEmits<{
   (event: 'reload-tracks', done: (success?: boolean, message?: string) => void): void;
@@ -198,6 +214,7 @@ async function installFitExportProfile() {
 }
 
 async function runHelperAction(action: () => Promise<string>) {
+  if (props.demoMode !== false) return;
   helperLoading.value = true;
   helperError.value = '';
   helperOutput.value = '';

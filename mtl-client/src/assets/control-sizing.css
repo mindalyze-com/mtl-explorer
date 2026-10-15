@@ -1,0 +1,88 @@
+/* Control density: touch first; a modest desktop size for precise pointers.
+   Values are in rem so text scaling remains usable. See the control-density audit. */
+:root {
+  --control-field-height: 2.75rem;
+  --control-field-padding-y: 0.5625rem;
+  --control-segment-height: 2.75rem;
+}
+
+@media (min-width: 769px) and (hover: hover) and (pointer: fine) {
+  :root {
+    --control-field-height: 2.5rem;
+    --control-field-padding-y: 0.4375rem;
+    --control-segment-height: 2rem;
+  }
+}
+
+/* Retain touch targets on hybrid laptops even when the primary pointer is a mouse. */
+@media (any-pointer: coarse) {
+  :root {
+    --control-field-height: 2.75rem;
+    --control-field-padding-y: 0.5625rem;
+    --control-segment-height: 2.75rem;
+  }
+}
+
+.p-inputtext:not(.p-inputtext-sm):not(.p-inputtext-lg),
+.p-select:not(.p-select-sm):not(.p-select-lg),
+.control-field {
+  min-height: var(--control-field-height);
+}
+
+/* Popup choices need the same touch target as the field that opens them. */
+.p-select-option {
+  min-height: var(--control-field-height);
+}
+
+.p-inputtext:not(.p-inputtext-sm):not(.p-inputtext-lg),
+.p-select:not(.p-select-sm):not(.p-select-lg) > .p-select-label {
+  padding-block: var(--control-field-padding-y);
+  line-height: var(--text-base-lh);
+}
+
+/* Shared geometry for native and PrimeVue segmented choices. The 3px frame
+   sits outside each button's target: 32px desktop / 44px touch. */
+.segmented-control.p-selectbutton {
+  display: flex;
+  padding: 3px;
+  gap: 2px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 0.65rem;
+  background: var(--surface-hover);
+}
+
+.segmented-control .p-togglebutton,
+.view-toggle-button {
+  min-width: var(--control-segment-height);
+  min-height: var(--control-segment-height);
+  line-height: var(--text-sm-lh);
+}
+
+.segmented-control .p-togglebutton {
+  flex: 1 1 auto;
+  padding: 0.25rem 0.7rem;
+  border: 0 !important;
+  border-radius: 0.45rem !important;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: var(--text-sm-size);
+  white-space: nowrap;
+}
+
+.segmented-control .p-togglebutton-content {
+  min-width: 0;
+  padding: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.segmented-control .p-togglebutton-checked {
+  background: var(--surface-sheet-solid);
+  color: var(--accent-text);
+  box-shadow: 0 1px 3px var(--border-default);
+}
+
+.segmented-control .p-togglebutton:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}

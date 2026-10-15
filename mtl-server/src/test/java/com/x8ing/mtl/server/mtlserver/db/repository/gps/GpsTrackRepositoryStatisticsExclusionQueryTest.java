@@ -32,7 +32,7 @@ class GpsTrackRepositoryStatisticsExclusionQueryTest {
 
     @Test
     void overviewExclusionSummaryCountsHighlightAndStatisticsScopes() throws NoSuchMethodException {
-        assertThat(query("getTrackOverviewExclusions", Long[].class))
+        assertThat(query("getTrackOverviewExclusions", Long[].class, String.class))
                 .contains("highlight_exclusion_reason IS NOT NULL")
                 .contains("statistics_exclusion_reason IS NOT NULL")
                 .contains("highlightExcludedTrackCount")

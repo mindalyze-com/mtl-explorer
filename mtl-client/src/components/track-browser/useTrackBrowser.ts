@@ -8,6 +8,7 @@ import {
   formatSpeed,
 } from '@/utils/Utils';
 import { curationSearchValues } from '@/utils/statisticsCuration';
+import { trackDisplayName } from '@/utils/tracks/trackDisplayName';
 import type { TrackBrowserSummary, TrackRowViewModel } from './trackBrowser.types';
 import type { GpsTrack } from 'x8ing-mtl-api-typescript-fetch/dist/esm/models/index';
 
@@ -31,6 +32,7 @@ function normalizeSearchText(values: unknown[]): string {
 }
 
 function toFiniteNumber(value: unknown): number | null {
+  if (value == null) return null;
   const numberValue = Number(value);
   return Number.isFinite(numberValue) ? numberValue : null;
 }
@@ -104,7 +106,7 @@ function buildTrackSearchText(row: Omit<TrackRowViewModel, 'searchText'>): strin
     ...dateSearchValues(startDate),
     ...dateSearchValues(createDate),
     ...distanceSearchValues(distanceMeters),
-    ...durationSearchValues(row.durationMillis),
+    ...(row.durationMillis == null ? [] : durationSearchValues(row.durationMillis)),
     ...formattedMetricSearchValues(row.avgSpeedKmh, SPEED_FRACTION_DIGITS),
     row.avgSpeedKmh == null ? '' : formatSpeed(row.avgSpeedKmh, SPEED_FRACTION_DIGITS),
     ...energyWh,
@@ -126,20 +128,22 @@ function toTrackRow(track: GpsTrack): TrackRowViewModel {
 
   const motionSecs = track.trackDurationInMotionSecs != null ? Number(track.trackDurationInMotionSecs) : null;
   const elapsedMillis = startDate && endDate ? Math.max(0, endDate.getTime() - startDate.getTime()) : 0;
-  const durationMillis = motionSecs != null ? motionSecs * 1000 : elapsedMillis;
+  const durationMillis =
+    track.timingUnreliable || track.timingEstimated
+      ? null
+      : motionSecs != null
+        ? motionSecs * MILLIS_PER_SECOND
+        : elapsedMillis;
 
   const distanceMeters = Number(track.trackLengthInMeter || 0);
   const avgSpeedKmh =
-    durationMillis > 0 ? distanceMeters / METERS_PER_KILOMETER / (durationMillis / MILLIS_PER_HOUR) : null;
-
-  const trackName = cleanText(track.trackName);
-  const metaName = cleanText(track.metaName);
-  const trackDescription = cleanText(track.trackDescription);
-  const metaDescription = cleanText(track.metaDescription);
+    durationMillis != null && durationMillis > 0
+      ? distanceMeters / METERS_PER_KILOMETER / (durationMillis / MILLIS_PER_HOUR)
+      : null;
 
   const row = {
     ...track,
-    displayName: trackName || metaName || trackDescription || metaDescription || `Track ${track.id}`,
+    displayName: trackDisplayName(track),
     durationMillis,
     avgSpeedKmh,
     startDateMs: startDate?.getTime() ?? -1,
@@ -171,7 +175,10 @@ export function useTrackBrowser(tracks: Ref<GpsTrack[]>) {
     const items = filteredTracks.value;
     const count = items.length;
     const totalDistanceMeters = items.reduce((sum, row) => sum + Number(row.trackLengthInMeter || 0), 0);
-    const totalDurationMillis = items.reduce((sum, row) => sum + row.durationMillis, 0);
+    const totalDurationMillis =
+      count > 0 && items.every((row) => row.durationMillis == null)
+        ? null
+        : items.reduce((sum, row) => sum + (row.durationMillis ?? 0), 0);
     const newest = [...items].sort((a, b) => b.startDateMs - a.startDateMs)[0];
     const datedItems = items.filter((row) => row.startDate);
     const minDate = [...datedItems].sort((a, b) => a.startDateMs - b.startDateMs)[0]?.startDate ?? null;

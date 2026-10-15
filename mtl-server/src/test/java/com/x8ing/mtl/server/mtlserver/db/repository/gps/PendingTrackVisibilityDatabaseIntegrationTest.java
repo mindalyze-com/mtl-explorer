@@ -2,16 +2,17 @@ package com.x8ing.mtl.server.mtlserver.db.repository.gps;
 
 import com.x8ing.mtl.server.mtlserver.db.entity.gps.projection.GpsTrackStatistics;
 import com.x8ing.mtl.server.mtlserver.gpx.GPXDirectoryWatcherService;
-import com.x8ing.mtl.server.mtlserver.jobs.duplicate.DuplicateDetectorJob;
 import com.x8ing.mtl.server.mtlserver.jobs.media.indexer.MediaIndexerService;
 import com.x8ing.mtl.server.mtlserver.logic.grouping.sql.FilterExecutionService;
+import com.x8ing.mtl.server.mtlserver.testsupport.NoScheduledJobs;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import java.util.List;
 
@@ -24,6 +25,7 @@ import static org.assertj.core.api.Assertions.assertThat;
         "mtl.indexer.gps.live-watch-enabled=false",
         "mtl.indexer.media.live-watch-enabled=false"
 })
+@Import(NoScheduledJobs.class)
 class PendingTrackVisibilityDatabaseIntegrationTest {
 
     private static final String TRACK_NAME_PREFIX = "Synthetic pending visibility ";
@@ -42,9 +44,6 @@ class PendingTrackVisibilityDatabaseIntegrationTest {
 
     @MockitoBean
     private MediaIndexerService mediaIndexerService;
-
-    @MockitoBean
-    private DuplicateDetectorJob duplicateDetectorJob;
 
     @BeforeEach
     @AfterEach
@@ -126,22 +125,22 @@ class PendingTrackVisibilityDatabaseIntegrationTest {
             double minLat
     ) {
         Long id = jdbcTemplate.queryForObject("""
-                INSERT INTO gps_track(
-                    track_name, start_date, end_date,
-                    track_duration_in_motion_secs, track_length_in_meter,
-                    load_status, duplicate_status, track_source, activity_type,
-                    bbox_min_lng, bbox_max_lng, bbox_min_lat, bbox_max_lat
-                )
-                VALUES (
-                    ?,
-                    TIMESTAMP '2198-01-01 10:00:00' + (? * INTERVAL '1 day'),
-                    TIMESTAMP '2198-01-01 11:00:00' + (? * INTERVAL '1 day'),
-                    3600, 1000,
-                    ?, ?, ?, 'WALKING',
-                    ?, ?, ?, ?
-                )
-                RETURNING id
-                """,
+                        INSERT INTO gps_track(
+                            track_name, start_date, end_date,
+                            track_duration_in_motion_secs, track_length_in_meter,
+                            load_status, duplicate_status, track_source, activity_type,
+                            bbox_min_lng, bbox_max_lng, bbox_min_lat, bbox_max_lat
+                        )
+                        VALUES (
+                            ?,
+                            TIMESTAMP '2198-01-01 10:00:00' + (? * INTERVAL '1 day'),
+                            TIMESTAMP '2198-01-01 11:00:00' + (? * INTERVAL '1 day'),
+                            3600, 1000,
+                            ?, ?, ?, 'WALKING',
+                            ?, ?, ?, ?
+                        )
+                        RETURNING id
+                        """,
                 Long.class,
                 TRACK_NAME_PREFIX + suffix,
                 day,

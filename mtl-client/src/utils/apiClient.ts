@@ -4,9 +4,12 @@ import {
   isAuthenticationFailureStatus,
   redirectToLoginAfterAuthFailure,
   requestHadAuthHeader,
+  requestAuthToken,
+  getToken,
 } from '@/utils/auth';
 import { backendBaseUrl } from '@/utils/apiBase';
 import { logSanitizedError } from '@/utils/safeLogging';
+import { HTTP_MISDIRECTED_REQUEST, isRetryableReadRequest } from '@/utils/misdirectedRequests';
 
 /**
  * Single shared axios instance for all backend calls.
@@ -49,14 +52,29 @@ apiClient.interceptors.request.use((config) => {
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
+    const config = error.config as (AxiosRequestConfig & { _mtl421Retried?: boolean }) | undefined;
+    if (
+      error.response?.status === HTTP_MISDIRECTED_REQUEST &&
+      config &&
+      !config._mtl421Retried &&
+      isRetryableReadRequest(config.method, config.url ?? '') &&
+      !config.signal?.aborted &&
+      requestAuthToken(config) === getToken()
+    ) {
+      return apiClient.request({ ...config, _mtl421Retried: true } as AxiosRequestConfig);
+    }
     if (!error.response && !axios.isCancel(error)) {
-      logSanitizedError('🚨 [Network Drop] apiClient request failed without a server response', error);
+      logSanitizedError('🚨 [Network Drop] apiClient request failed without a server response', error, {
+        topic1: 'application',
+        topic2: 'apiClient',
+        topic3: 'handleError',
+      });
     }
     if (error.response && isAuthenticationFailureStatus(error.response.status)) {
       const url: string = error.config?.url ?? '';
       // Don't redirect if the failed request was the login call itself
       if (!url.includes('/api/auth/login')) {
-        redirectToLoginAfterAuthFailure(requestHadAuthHeader(error.config));
+        redirectToLoginAfterAuthFailure(requestHadAuthHeader(error.config), requestAuthToken(error.config));
       }
     }
     return Promise.reject(error);

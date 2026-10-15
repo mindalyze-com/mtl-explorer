@@ -1,6 +1,7 @@
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-nocheck
 /* eslint-disable @typescript-eslint/no-unused-vars, @typescript-eslint/no-explicit-any -- Data loading still crosses broad API/cache shapes. */
+import { warnSanitized } from '@/utils/safeLogging';
 import { markRaw } from 'vue';
 import { GeoDrawingOverlay } from '@/layers/GeoDrawingOverlay';
 import { checkServerAuth, fetchTrackCanonicalPoints, fetchTrackPointsForRenderedShape } from '@/utils/ServiceHelper';
@@ -18,16 +19,18 @@ import {
   loadCachedTrackCollection,
   loadTrackCollectionPaged,
   clearTrackCache,
+  resetTrackLoadRequests,
 } from '@/utils/tracks/trackCollectionLoader';
 import { clearMapConfigCache } from '@/utils/mapConfigService';
+import { buildTrackGeometry } from '@/utils/tracks/trackFeatureAdapter';
 import {
   collectionPrecisionForZoom,
   haversineDistance,
   isSameOrBetterPrecision,
   precisionForZoom,
 } from '@/components/map/mapGeometry';
-import { describeError, startStartupTimer, startupLog, startupWarn } from '@/utils/startupDiagnostics';
-import { isAbortLikeError } from '@/utils/errors';
+import { startStartupTimer, startupLog, startupWarn } from '@/utils/startupDiagnostics';
+import { isAbortLikeError, TrackLoadSupersededError } from '@/utils/errors';
 import type {
   MapControllerMethodDefinitions,
   MapControllerRuntime,
@@ -40,20 +43,56 @@ const DETAIL_MAX_CONCURRENT = 5;
 const DETAIL_MAX_CONCURRENT_1M = 1;
 const TRACK_POINTS_MIN_ZOOM = 16;
 const DEFAULT_MAP_ZOOM = 10;
+const FRESHNESS_SERVER_ID_PREFIX = 'server_id:';
+
+function freshnessServerIdentity(token: string | null | undefined): string | undefined {
+  return token
+    ?.split('|')
+    .find((entry) => entry.startsWith(FRESHNESS_SERVER_ID_PREFIX))
+    ?.slice(FRESHNESS_SERVER_ID_PREFIX.length);
+}
+
+function freshnessRevisionWentBackwards(serverToken: string, appliedToken: string | null | undefined): boolean {
+  const revisions = (token: string | null | undefined) =>
+    new Map(
+      (token?.split('|') ?? []).flatMap((entry) => {
+        const match = /^([^:]+):(\d+)$/.exec(entry);
+        return match && match[1] !== 'server_id' ? [[match[1], BigInt(match[2])] as const] : [];
+      })
+    );
+  const current = revisions(serverToken);
+  return [...revisions(appliedToken)].some(([key, revision]) => {
+    const value = current.get(key);
+    return value != null && value < revision;
+  });
+}
 
 function loadAndMergeTrackCollection(runtime: MapControllerRuntime, precision: number) {
+  const generation = runtime._mapLoadGeneration;
   return loadTrackCollectionPaged(precision, {
-    onPage: (page) => runtime.mergeTrackPage(page),
+    onPage: (page) => {
+      if (runtime._mapUnmounted || runtime._mapLoadGeneration !== generation) return;
+      return runtime.mergeTrackPage(page);
+    },
     pageSize: TRACK_LOAD_BATCH_SIZE,
   });
 }
 
-async function applyFreshTrackCollection(runtime: MapControllerRuntime, serverData: any): Promise<void> {
+async function applyFreshTrackCollection(
+  runtime: MapControllerRuntime,
+  serverData: any,
+  loadedToken: string | null | undefined
+): Promise<boolean> {
+  const generation = runtime._mapLoadGeneration;
+  const isCurrent = () => !runtime._mapUnmounted && runtime._mapLoadGeneration === generation;
+  if (!isCurrent()) return false;
+  runtime.totalTrackCount = serverData.standardFilterCount;
   if (runtime.geojson) {
     await runtime.mergeTrackResult(serverData, { pruneMissing: true });
   } else {
     await runtime.loadMapData(serverData);
   }
+  if (!isCurrent() || !runtime.geojson) return false;
   runtime.isOffline = false;
   runtime.maybeLoadBackgroundTracks(serverData.filterResult);
   runtime.scheduleDetailCheck();
@@ -63,10 +102,12 @@ async function applyFreshTrackCollection(runtime: MapControllerRuntime, serverDa
     }
     await runtime.mediaOverlay.refresh();
   }
+  if (!isCurrent()) return false;
   // A focused marker is rendered outside the refreshed GeoJSON source and may remain
   // present while the media layer is hidden. Discard it after the fresh collection loads.
   runtime.clearFocusedMediaMarker();
-  await runtime.captureAppliedFreshnessToken();
+  await runtime.captureAppliedFreshnessToken(loadedToken);
+  return isCurrent();
 }
 
 export function useMapDataLoading(deps: {
@@ -74,6 +115,16 @@ export function useMapDataLoading(deps: {
   freshnessStore: any;
 }): MapControllerMethodDefinitions<MapDataLoadingMethods> {
   const { filterStore, freshnessStore } = deps;
+  let filterApplySequence = 0;
+  let pendingFilterApply = false;
+
+  async function completeInitialLoad(runtime: MapControllerRuntime): Promise<void> {
+    runtime.initialLoadDone = true;
+    if (!pendingFilterApply) return;
+    pendingFilterApply = false;
+    await runtime.onFilterApplied({ preserveSelection: true });
+  }
+
   const methods: MapControllerMethodDefinitions<MapDataLoadingMethods> = {
     shouldAutoFreshenAfterLogin() {
       if (!this.fromLogin || this.freshLoginAutoFreshenDone || this.freshnessReloading) return false;
@@ -92,20 +143,33 @@ export function useMapDataLoading(deps: {
       });
     },
 
-    async captureAppliedFreshnessToken() {
-      const freshness = await this.refreshDataFreshness();
-      const token = freshness?.freshnessToken ?? this.serverFreshnessToken;
-      if (!token) return;
-      freshnessStore.markAppliedToken(token);
+    async captureAppliedFreshnessToken(loadedToken) {
+      // Only acknowledge the revision observed before loading. A revision that
+      // appears during a paged load has not necessarily reached this map.
+      if (loadedToken) freshnessStore.markAppliedToken(loadedToken);
+      await this.refreshDataFreshness();
     },
 
-    async clearTrackCacheWhenServerFreshnessChanged() {
-      const freshness = await this.refreshDataFreshness();
+    async clearTrackCacheWhenServerFreshnessChanged(options) {
+      const generation = this._mapLoadGeneration;
+      const freshness = await this.refreshDataFreshness(options);
+      if (this._mapUnmounted || this._mapLoadGeneration !== generation) return false;
       const serverToken = freshness?.freshnessToken ?? this.serverFreshnessToken;
       if (!serverToken) return false;
       const appliedToken = this.appliedFreshnessToken;
       if (serverToken === appliedToken) return false;
-      startupLog('tracks', 'Server freshness token changed; clearing local track cache before load');
+      const serverIdentity = freshnessServerIdentity(serverToken);
+      const appliedServerIdentity = freshnessServerIdentity(appliedToken);
+      const retainCache =
+        serverIdentity &&
+        serverIdentity === appliedServerIdentity &&
+        !freshnessRevisionWentBackwards(serverToken, appliedToken);
+      startupLog(
+        'tracks',
+        retainCache
+          ? 'Server freshness changed; retaining versioned track cache for sync'
+          : 'Server identity changed, is unknown, or revisions went backwards; clearing local track cache before sync'
+      );
       this.trackPointsDetailsCache.clear();
       this.trackPointsCanonicalCache.clear();
       if (this.detailDebounceTimer) {
@@ -119,37 +183,52 @@ export function useMapDataLoading(deps: {
       if (this.bulk10mController) {
         this.bulk10mController.abort();
         this.bulk10mController = null;
+        this.loadingTracks10m = false;
       }
-      await clearTrackCache();
+      if (retainCache) resetTrackLoadRequests();
+      else {
+        // Another installation can reuse the same track IDs and entity versions.
+        // Its coarser fresh shapes must replace any finer shapes still on this map.
+        this.trackPrecisions?.clear();
+        await clearTrackCache();
+      }
       return true;
     },
 
     async onDataFreshnessReload(options = {}) {
       if (this.freshnessReloading) return false;
+      const generation = this._mapLoadGeneration;
+      const isCurrent = () => !this._mapUnmounted && this._mapLoadGeneration === generation;
+      if (!isCurrent()) return false;
       const silent = options?.silent === true;
       freshnessStore.setReloading(true);
       this.showLoader = true;
       this.loadingTrackBatches = true;
       try {
         await this.clearTrackCacheWhenServerFreshnessChanged();
+        if (!isCurrent()) return false;
+        const loadedToken = this.serverFreshnessToken;
         await filterStore.refreshResolvedFilter();
+        if (!isCurrent()) return false;
         const collectionPrecision = this.currentCollectionPrecision();
         const serverData = await loadAndMergeTrackCollection(this, collectionPrecision);
-        this.totalTrackCount = serverData.standardFilterCount;
-        await applyFreshTrackCollection(this, serverData);
+        if (!isCurrent() || !(await applyFreshTrackCollection(this, serverData, loadedToken))) return false;
         this.cachedTracksLoaded = true;
-        this.initialLoadDone = true;
+        await completeInitialLoad(this);
+        if (!isCurrent()) return false;
         if (!silent) {
-          freshnessStore.clearSnooze();
           this.$toast.add({
             severity: 'success',
-            summary: 'Map updated',
-            detail: 'Fresh data loaded.',
+            summary: 'Map refreshed',
+            detail: this.isIndexing
+              ? 'Latest available data loaded. Preparation is still running.'
+              : 'Latest available data loaded.',
             life: 2500,
           });
         }
         return true;
       } catch (error) {
+        if (!isCurrent() || isAbortLikeError(error)) return false;
         if (!silent) {
           this.$toast.add({
             severity: 'error',
@@ -158,17 +237,14 @@ export function useMapDataLoading(deps: {
             life: 4000,
           });
         }
-        startupWarn('tracks', 'Data freshness reload failed', describeError(error));
+        startupWarn('tracks', 'Data freshness reload failed', error);
         return false;
       } finally {
         this.loadingTrackBatches = false;
         this.showLoader = false;
         freshnessStore.setReloading(false);
+        if (isCurrent() && this.initialLoadDone && pendingFilterApply) await completeInitialLoad(this);
       }
-    },
-
-    onDataFreshnessDismiss() {
-      freshnessStore.snooze();
     },
 
     currentCollectionPrecision() {
@@ -194,7 +270,9 @@ export function useMapDataLoading(deps: {
 
     async loadMapData(fetchResult) {
       // Wait for map to be ready (needed when track fetch runs in parallel with initMap)
-      if (this._mapReadyPromise) await this._mapReadyPromise;
+      const readyPromise = this._mapReadyPromise;
+      if (readyPromise && (await readyPromise) === false) return;
+      if (this._mapUnmounted || readyPromise !== this._mapReadyPromise || !this.overlayMap) return;
       this.geojson = markRaw(fetchResult.geojson);
       this.gpsTracksById = markRaw(fetchResult.gpsTracksById);
       this.gpsTrackIdToFeature = markRaw(fetchResult.gpsTrackIdToFeature);
@@ -216,12 +294,15 @@ export function useMapDataLoading(deps: {
       for (const [trackId, feature] of fetchResult.gpsTrackIdToFeature) {
         const numId = Number(trackId);
         incomingIds.add(numId);
+        const gpsTrack = fetchResult.gpsTracksById.get(trackId) ?? fetchResult.gpsTracksById.get(numId);
+        const existingTrack = this.gpsTracksById.get(numId);
+        const versionChanged = existingTrack && gpsTrack && existingTrack.version !== gpsTrack.version;
         const existingFeature = this.gpsTrackIdToFeature.get(numId);
         const incomingPrecision = fetchResult.trackPrecisions?.get(numId) ?? OVERVIEW_PRECISION;
         const currentPrecision = this.trackPrecisions.get(numId) ?? OVERVIEW_PRECISION;
         if (existingFeature) {
           existingFeature.properties = feature.properties;
-          if (isSameOrBetterPrecision(incomingPrecision, currentPrecision)) {
+          if (versionChanged || isSameOrBetterPrecision(incomingPrecision, currentPrecision)) {
             existingFeature.geometry = feature.geometry;
             this.trackPrecisions.set(numId, incomingPrecision);
           }
@@ -233,7 +314,6 @@ export function useMapDataLoading(deps: {
         }
         changed = true;
 
-        const gpsTrack = fetchResult.gpsTracksById.get(trackId) ?? fetchResult.gpsTracksById.get(numId);
         if (gpsTrack) {
           this.gpsTracksById.set(numId, gpsTrack);
           trackDataChanged = true;
@@ -296,9 +376,11 @@ export function useMapDataLoading(deps: {
 
     async mergeTrackPage(fetchResult) {
       if (!fetchResult?.geojson?.features?.length) return;
+      const generation = this._mapLoadGeneration;
       if (!this.cachedTracksLoaded) {
         this.totalTrackCount = fetchResult.standardFilterCount;
         await this.loadMapData(fetchResult);
+        if (this._mapUnmounted || this._mapLoadGeneration !== generation) return;
         this.cachedTracksLoaded = true;
         this.showLoader = false;
         this.$emit('tracks-loaded');
@@ -320,6 +402,7 @@ export function useMapDataLoading(deps: {
         this.visibleTrackCount = this.geojson.features.length;
         this.activeTrackFilterResult = fetchResult.filterResult ?? this.activeTrackFilterResult;
         await this.updateTrackStyle();
+        if (this._mapUnmounted || this._mapLoadGeneration !== generation) return;
         this.updateTracksSource();
       }
     },
@@ -329,14 +412,8 @@ export function useMapDataLoading(deps: {
     },
 
     async onAdminReloadTracks(done) {
-      this.cachedTracksLoaded = false;
-      try {
-        await this.fetchTracksAndFallback();
-        done?.(true);
-      } catch (error) {
-        console.error('Admin track reload failed:', error);
-        done?.(false, error instanceof Error ? error.message : String(error));
-      }
+      const success = await this.onDataFreshnessReload();
+      done?.(success);
     },
 
     async onAdminRefreshFreshnessData(done) {
@@ -345,10 +422,12 @@ export function useMapDataLoading(deps: {
     },
 
     async showCachedTrackFallback(cached, loadMessage, emittedMessage) {
+      const generation = this._mapLoadGeneration;
       startupLog('tracks', loadMessage, {
         featureCount: cached.geojson?.features?.length ?? 0,
       });
       await this.loadMapData(cached);
+      if (this._mapUnmounted || this._mapLoadGeneration !== generation) return;
       this.isOffline = true;
       this.cachedTracksLoaded = true;
       this.showLoader = false;
@@ -358,28 +437,40 @@ export function useMapDataLoading(deps: {
     },
 
     async fetchTracksAndFallback() {
+      const generation = this._mapLoadGeneration;
+      const requestToken = getToken();
+      const isCurrent = () => !this._mapUnmounted && this._mapLoadGeneration === generation;
       const timer = startStartupTimer('tracks', 'Resolving startup tracks and fallbacks');
       this.cachedTracksLoaded = false;
       this.initialLoadDone = false;
+      this.loadingTrackBatches = false;
+      this.$emit('syncing', false);
       const authStatus = await checkServerAuth();
+      if (!isCurrent()) return;
       startupLog('tracks', 'Auth status checked before track load', {
         authStatus,
       });
       if (authStatus === 'auth-error') {
-        timer.warn('Auth check failed; redirecting to login');
+        timer.success('Sign-in required; redirecting to login');
         this.showLoader = false;
-        redirectToLoginAfterAuthFailure(!!getToken());
+        redirectToLoginAfterAuthFailure(!!requestToken, requestToken);
         return;
       }
-      await this.clearTrackCacheWhenServerFreshnessChanged();
+      // Startup needs freshness now rather than at the next background polling deadline.
+      await this.clearTrackCacheWhenServerFreshnessChanged({ immediate: true });
+      if (!isCurrent()) return;
+      const loadedToken = this.serverFreshnessToken;
 
-      // ── Phase 2: Cache-first — show cached tracks instantly, then sync ──
+      // ── Phase 2: Show cached tracks, then reconcile and sync in the background ──
       const cachePopulated = await isTrackCachePopulated();
+      if (!isCurrent()) return;
       if (cachePopulated) {
         startupLog('tracks', 'Cache populated — loading cached tracks immediately');
         const cached = await loadCachedTrackCollection();
+        if (!isCurrent()) return;
         if (cached && cached.geojson?.features?.length > 0) {
           await this.loadMapData(cached);
+          if (!isCurrent()) return;
           this.cachedTracksLoaded = true;
           this.showLoader = false;
           this.$emit('tracks-loaded');
@@ -401,11 +492,13 @@ export function useMapDataLoading(deps: {
       const CACHE_FALLBACK_TIMEOUT_MS = 3000;
       this.loadingTrackBatches = false;
       const fallbackTimer = setTimeout(async () => {
+        if (!isCurrent()) return;
         if (!this.cachedTracksLoaded) {
-          startupWarn('tracks', 'Server tracks still pending; attempting IndexedDB fallback', {
+          startupWarn('tracks', 'Server tracks still pending; attempting IndexedDB fallback', undefined, {
             fallbackAfterMs: CACHE_FALLBACK_TIMEOUT_MS,
           });
           const cached = await loadCachedTrackCollection();
+          if (!isCurrent()) return;
           if (cached && !this.cachedTracksLoaded) {
             await this.showCachedTrackFallback(
               cached,
@@ -419,6 +512,7 @@ export function useMapDataLoading(deps: {
         const collectionPrecision = this.currentCollectionPrecision();
         let receivedServerBatch = false;
         const onOverviewPage = async (page) => {
+          if (!isCurrent()) return;
           receivedServerBatch = true;
           await this.mergeTrackPage(page);
         };
@@ -430,8 +524,9 @@ export function useMapDataLoading(deps: {
           onPage: onOverviewPage,
           pageSize: TRACK_LOAD_BATCH_SIZE,
         });
-        this.loadingTrackBatches = false;
         clearTimeout(fallbackTimer);
+        if (!isCurrent()) return;
+        this.loadingTrackBatches = false;
         this.totalTrackCount = serverData.standardFilterCount;
         startupLog('tracks', 'Server tracks ready for startup render', {
           precision: collectionPrecision,
@@ -442,6 +537,7 @@ export function useMapDataLoading(deps: {
           await this.mergeTrackResult(serverData, {
             pruneMissing: true,
           });
+          if (!isCurrent()) return;
           timer.success('Server tracks arrived after cached fallback was already shown');
           this.isOffline = false;
           this.$toast.add({
@@ -461,6 +557,7 @@ export function useMapDataLoading(deps: {
           } else {
             await this.loadMapData(serverData);
           }
+          if (!isCurrent()) return;
           this.isOffline = false;
           this.showLoader = false;
           if (!wasAlreadyLoaded) {
@@ -471,25 +568,29 @@ export function useMapDataLoading(deps: {
           this.maybeLoadBackgroundTracks(serverData.filterResult);
         }
         this.scheduleDetailCheck();
-        await this.captureAppliedFreshnessToken();
-        this.initialLoadDone = true;
+        await this.captureAppliedFreshnessToken(loadedToken);
+        if (!isCurrent()) return;
+        await completeInitialLoad(this);
       } catch (e) {
-        this.loadingTrackBatches = false;
         clearTimeout(fallbackTimer);
-        timer.error('Startup track resolution failed', describeError(e));
+        if (!isCurrent()) return;
+        this.loadingTrackBatches = false;
+        timer.error('Startup track resolution failed', e);
         if (isAuthError(e)) {
           this.showLoader = false;
-          redirectToLoginAfterAuthFailure(!!getToken());
+          redirectToLoginAfterAuthFailure(!!requestToken, requestToken);
           return;
         }
         if (!this.cachedTracksLoaded) {
           const cached = await loadCachedTrackCollection();
+          if (!isCurrent()) return;
           if (cached) {
             await this.showCachedTrackFallback(
               cached,
               'Recovered from startup failure using cached tracks',
               'tracks-loaded emitted from cached recovery'
             );
+            if (!isCurrent()) return;
           } else {
             this.showLoader = false;
             startupWarn('tracks', 'No cached tracks available; emitting load-failed');
@@ -499,7 +600,7 @@ export function useMapDataLoading(deps: {
           this.isOffline = true;
         }
         this.scheduleRetry();
-        this.initialLoadDone = true;
+        await completeInitialLoad(this);
       }
     },
 
@@ -508,16 +609,24 @@ export function useMapDataLoading(deps: {
      * Fetches fresh data from server, updates the map seamlessly, then loads 10m.
      */
     async _backgroundSync(timer) {
+      const generation = this._mapLoadGeneration;
+      const requestToken = getToken();
+      const isCurrent = () => !this._mapUnmounted && this._mapLoadGeneration === generation;
       try {
+        const freshness = await this.refreshDataFreshness();
+        if (!isCurrent()) return;
+        const loadedToken = freshness?.freshnessToken ?? this.serverFreshnessToken;
         const collectionPrecision = this.currentCollectionPrecision();
         startupLog('sync', 'Background sync: fetching server data', {
           precision: collectionPrecision,
         });
         const serverData = await loadAndMergeTrackCollection(this, collectionPrecision);
+        if (!isCurrent()) return;
         this.totalTrackCount = serverData.standardFilterCount;
         await this.mergeTrackResult(serverData, {
           pruneMissing: true,
         });
+        if (!isCurrent()) return;
         this.isOffline = false;
         startupLog('sync', 'Background sync: map updated with server data', {
           precision: collectionPrecision,
@@ -527,18 +636,20 @@ export function useMapDataLoading(deps: {
         this.$emit('syncing', false);
         this.maybeLoadBackgroundTracks(serverData.filterResult);
         this.scheduleDetailCheck();
-        await this.captureAppliedFreshnessToken();
-        this.initialLoadDone = true;
+        await this.captureAppliedFreshnessToken(loadedToken);
+        if (!isCurrent()) return;
+        await completeInitialLoad(this);
       } catch (e) {
-        startupWarn('sync', 'Background sync failed — using cached data', describeError(e));
+        if (!isCurrent()) return;
+        startupWarn('sync', 'Background sync failed — using cached data', e);
         if (isAuthError(e)) {
-          redirectToLoginAfterAuthFailure(!!getToken());
+          redirectToLoginAfterAuthFailure(!!requestToken, requestToken);
           return;
         }
         this.isOffline = true;
         this.$emit('syncing', false);
         this.scheduleRetry();
-        this.initialLoadDone = true;
+        await completeInitialLoad(this);
       }
     },
 
@@ -550,16 +661,22 @@ export function useMapDataLoading(deps: {
         if (signal.aborted) return false;
         const numId = Number(trackId);
         const gpsTrack = pageData.gpsTracksById.get(trackId) ?? pageData.gpsTracksById.get(numId);
+        const existingTrack = this.gpsTracksById.get(numId);
+        const versionChanged = existingTrack && gpsTrack && existingTrack.version !== gpsTrack.version;
         if (gpsTrack) {
           this.gpsTracksById.set(numId, gpsTrack);
           trackDataChanged = true;
         }
+        const currentFeature = this.gpsTrackIdToFeature.get(numId);
+        if (currentFeature) {
+          currentFeature.properties = feature.properties;
+          changed = true;
+        }
         const currentPrecision = this.trackPrecisions.get(numId) ?? OVERVIEW_PRECISION;
-        if (currentPrecision <= BACKGROUND_TRACK_PRECISION) continue;
+        if (!versionChanged && currentPrecision <= BACKGROUND_TRACK_PRECISION) continue;
         const existingFeature = this.gpsTrackIdToFeature.get(numId);
         if (existingFeature?.geometry && feature?.geometry) {
-          existingFeature.geometry.coordinates = feature.geometry.coordinates;
-          existingFeature.geometry.type = feature.geometry.type;
+          existingFeature.geometry = feature.geometry;
           changed = true;
         }
         this.trackPrecisions.set(numId, BACKGROUND_TRACK_PRECISION);
@@ -572,7 +689,8 @@ export function useMapDataLoading(deps: {
     async loadAllTracksAt10m(filterResult) {
       if (this.bulk10mController) this.bulk10mController.abort();
       this.bulk10mController = markRaw(new AbortController());
-      const signal = this.bulk10mController.signal;
+      const controller = this.bulk10mController;
+      const signal = controller.signal;
       this.loadingTracks10m = true;
       try {
         console.log('Background: loading all tracks at 10m…');
@@ -588,12 +706,15 @@ export function useMapDataLoading(deps: {
         console.log('Background 10m load complete');
       } catch (e) {
         if (signal.aborted || isAbortLikeError(e)) {
-          this.loadingTracks10m = false;
           return;
         }
-        console.warn('Background 10m load failed:', e);
+        warnSanitized('Background 10m load failed:', e, {
+          topic1: 'map',
+          topic2: 'useMapDataLoading',
+          topic3: 'loadAllTracksAt10m',
+        });
       } finally {
-        this.loadingTracks10m = false;
+        if (this.bulk10mController === controller) this.loadingTracks10m = false;
       }
     },
 
@@ -614,11 +735,19 @@ export function useMapDataLoading(deps: {
     },
 
     async performBackgroundRetry() {
+      const generation = this._mapLoadGeneration;
+      const requestToken = getToken();
+      const isCurrent = () => !this._mapUnmounted && this._mapLoadGeneration === generation;
       this.retryCount++;
       try {
+        const freshness = await this.refreshDataFreshness();
+        if (!isCurrent()) return;
+        const loadedToken = freshness?.freshnessToken ?? this.serverFreshnessToken;
         const collectionPrecision = this.currentCollectionPrecision();
         const serverData = await loadTrackCollectionPaged(collectionPrecision);
-        await applyFreshTrackCollection(this, serverData);
+        if (!isCurrent()) return;
+        if (!(await applyFreshTrackCollection(this, serverData, loadedToken))) return;
+        if (!isCurrent()) return;
         this.retryCount = 0;
         // If the initial map style was the offline raster fallback (e.g. the
         // /api/map/config call timed out on first login), rebuild the style
@@ -627,10 +756,14 @@ export function useMapDataLoading(deps: {
           try {
             console.log('Recovered from offline fallback — rebuilding map style with real config');
             clearMapConfigCache();
-            await this.initMap();
+            if ((await this.initMap(true)) === false || !isCurrent()) return;
             await this.addTracksToMap();
           } catch (rebuildErr) {
-            console.warn('Failed to rebuild map style after recovery:', rebuildErr);
+            warnSanitized('Failed to rebuild map style after recovery:', rebuildErr, {
+              topic1: 'map',
+              topic2: 'useMapDataLoading',
+              topic3: 'performBackgroundRetry',
+            });
           }
         }
         this.$toast.add({
@@ -640,8 +773,9 @@ export function useMapDataLoading(deps: {
           life: 3000,
         });
       } catch (e) {
+        if (!isCurrent()) return;
         if (isAuthError(e)) {
-          redirectToLoginAfterAuthFailure(!!getToken());
+          redirectToLoginAfterAuthFailure(!!requestToken, requestToken);
           return;
         }
         this.scheduleRetry();
@@ -757,12 +891,9 @@ export function useMapDataLoading(deps: {
             // Update in-memory feature
             const feature = this.gpsTrackIdToFeature.get(trackId);
             if (feature?.geometry) {
-              feature.geometry.coordinates = coordinates;
-              // Restore geometry type: features may be Point (degenerate/empty at overview
-              // precision) but now have real LineString coords at higher precision.
-              if (feature.geometry.type === 'Point' && Array.isArray(coordinates) && coordinates.length > 1) {
-                feature.geometry.type = 'LineString';
-              }
+              // Detail indexes belong to this response's coordinates. Rebuild complete
+              // geometry so both overview dots and disconnected lines retain their gaps.
+              feature.geometry = buildTrackGeometry(gpsTrack, coordinates, { collapseShortTracks: false });
               changed = true;
               pendingFlush = true;
             }
@@ -772,7 +903,11 @@ export function useMapDataLoading(deps: {
             if (progressive) flush();
           } catch (e) {
             if (signal.aborted || isAbortLikeError(e)) return;
-            console.warn(`Detail fetch failed for track ${trackId}:`, e);
+            warnSanitized('Track detail fetch failed', e, {
+              topic1: 'map',
+              topic2: 'useMapDataLoading',
+              topic3: 'fetchNext',
+            });
           }
         }
       };
@@ -793,13 +928,14 @@ export function useMapDataLoading(deps: {
       }
     },
 
-    async onFilterApplied() {
+    async onFilterApplied(options) {
+      const requestSequence = ++filterApplySequence;
       if (!this.initialLoadDone) {
-        console.log(
-          '[Map] Suppressing filter event during initial load — track collection loader already applies the active filter'
-        );
+        pendingFilterApply = true;
+        console.log('[Map] Queuing the latest filter until startup loading completes');
         return;
       }
+      pendingFilterApply = false;
       console.log('map got filter applied — using IDs-only fast path');
       // Legend visibility is a temporary map-only refinement. A global filter
       // change starts a new result and must not inherit hidden categories.
@@ -811,6 +947,7 @@ export function useMapDataLoading(deps: {
         const result = await applyTrackFilter({
           filterResult,
         });
+        if (requestSequence !== filterApplySequence) return;
 
         // Update in-memory state
         this.geojson = markRaw(result.geojson);
@@ -824,22 +961,54 @@ export function useMapDataLoading(deps: {
         this.totalTrackCount = result.standardFilterCount;
         this.visibleTrackCount = result.gpsTracksById.size;
 
-        // Clear selection state
-        this.selectedTrackId = null;
-        this.selectedFeature = null;
-        this.closeSelectionPopup();
+        // A queued startup filter can finish after a user selects a visible route.
+        // Keep that choice when it still belongs to the resulting visible data.
+        const selectedId = this.selectedTrackId;
+        const selectedFeature = selectedId == null ? undefined : this.gpsTrackIdToFeature.get(selectedId);
+        const retainSelection =
+          options?.preserveSelection &&
+          selectedFeature?.geometry &&
+          !selectedFeature.properties?.reviewMapExcluded &&
+          !this.gpsTracksById.get(selectedId!)?.reviewMapExcluded;
+        if (retainSelection) {
+          this.selectedFeature = selectedFeature;
+        } else {
+          this.selectedTrackId = null;
+          this.selectedFeature = null;
+          this.closeSelectionPopup();
+          if (options?.preserveSelection && selectedId != null) {
+            this.endMapInteraction(true);
+            this.trackDetailsVisible = false;
+          }
+        }
 
         // Re-render tracks on the map without destroying/recreating the map
         await this.addTracksToMap();
         this.updateTracksSource();
         this.maybeLoadBackgroundTracks(result.filterResult);
       } catch (e) {
+        if (requestSequence !== filterApplySequence) return;
+        if (e instanceof TrackLoadSupersededError) {
+          pendingFilterApply = true;
+          // A fast reload may already have completed before the canceled
+          // request settled. In that case there is no completion hook to wait for.
+          if (this.initialLoadDone && !this.freshnessReloading) await completeInitialLoad(this);
+          return;
+        }
+        if (isAbortLikeError(e)) return;
         // Fallback to full reload if IDs-only path fails (e.g. cache miss)
-        console.warn('IDs-only filter failed, falling back to full reload:', e);
+        warnSanitized('IDs-only filter failed, falling back to full reload:', e, {
+          topic1: 'map',
+          topic2: 'useMapDataLoading',
+          topic3: 'onFilterApplied',
+        });
         await this.reloadMap();
       } finally {
-        this.showLoader = false;
+        if (requestSequence === filterApplySequence) {
+          this.showLoader = false;
+        }
       }
+      if (requestSequence !== filterApplySequence) return;
       // Re-render geo shapes after map reload only if filter panel is still open
       if (this.activeToolId === 'filter') {
         this.$nextTick(() => {

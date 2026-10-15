@@ -21,18 +21,18 @@ class TemplateProcessingServiceTest {
                 .thenReturn(filter(
                         "ActivitiesByMainTypes",
                         """
-                        select id, 'CYCLING' as grp
-                        from gps_track
-                        where id = any(select id from ( [[~{/GPS_TRACK/SmartBaseFilter}]] ) base_filter)
-                        """));
+                                select id, 'CYCLING' as grp
+                                from gps_track
+                                where id = any(select id from ( [[~{/GPS_TRACK/SmartBaseFilter}]] ) base_filter)
+                                """));
         when(repository.findByFilterDomainAndFilterName(FilterConfigEntity.FILTER_DOMAIN.GPS_TRACK, "ActivitiesByKeyword"))
                 .thenReturn(filter(
                         "ActivitiesByKeyword",
                         """
-                        select categorized.id, categorized.grp
-                        from ( [[~{/GPS_TRACK/ActivitiesByMainTypes}]] ) categorized
-                        where :SEARCH_WORD is null
-                        """));
+                                select categorized.id, categorized.grp
+                                from ( [[~{/GPS_TRACK/ActivitiesByMainTypes}]] ) categorized
+                                where :SEARCH_WORD is null
+                                """));
         TemplateProcessingService service = service(repository);
 
         String resolved = service.processTemplate("/GPS_TRACK/ActivitiesByKeyword");

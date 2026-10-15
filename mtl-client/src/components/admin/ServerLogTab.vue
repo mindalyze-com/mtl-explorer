@@ -7,9 +7,10 @@
     </div>
 
     <!-- Error loading -->
-    <div v-else-if="error" class="log-notice inline-notice log-notice--error">
+    <div v-else-if="error" class="log-notice inline-notice log-notice--error" role="alert">
       <i class="pi pi-times-circle" />
       <span>{{ error }}</span>
+      <Button label="Retry" size="small" :loading="loading" :disabled="loading" @click="fetchLog" />
     </div>
 
     <template v-else>
@@ -17,6 +18,7 @@
       <div class="log-toolbar">
         <Select
           v-model="requestedLines"
+          aria-label="Number of log lines"
           :options="lineOptions"
           option-label="label"
           option-value="value"
@@ -34,6 +36,7 @@
             size="small"
             severity="secondary"
             :outlined="!wrapLines"
+            :aria-pressed="wrapLines"
             @click="wrapLines = !wrapLines"
           />
           <Button
@@ -53,7 +56,7 @@
           <i class="pi pi-spin pi-spinner" /> Loading log…
         </div>
         <div v-else-if="!logLines.length" class="log-placeholder">No log output yet.</div>
-        <div v-else class="log-pre-wrapper">
+        <div v-else class="log-pre-wrapper" tabindex="0" role="region" aria-label="Server log output">
           <pre class="log-pre" :class="{ 'log-pre--wrap': wrapLines }">{{ displayContent }}</pre>
         </div>
       </div>
@@ -62,6 +65,7 @@
 </template>
 
 <script setup lang="ts">
+import { warnRequestFailure } from '@/utils/safeLogging';
 import { computed, ref } from 'vue';
 import { getServerLog } from '@/utils/ServiceHelper';
 import { useAsyncState } from '@/composables/useAsyncState';
@@ -74,6 +78,7 @@ const LINE_OPTIONS = [
   { label: '1 000 lines', value: 1000 },
   { label: '2 000 lines', value: 2000 },
 ];
+const DISABLED_LOG_RESPONSE = 'function disabled';
 
 defineOptions({ name: 'ServerLogTab' });
 
@@ -103,8 +108,9 @@ async function fetchLog() {
   error.value = '';
   try {
     const text = await getServerLog(requestedLines.value);
-    if (text === '' && !logLines.value.length) {
+    if (text.trim() === DISABLED_LOG_RESPONSE) {
       disabled.value = true;
+      logLines.value = [];
     } else {
       disabled.value = false;
       logLines.value = text ? text.trim().split('\n') : [];
@@ -112,6 +118,11 @@ async function fetchLog() {
     }
   } catch (e) {
     error.value = 'Failed to fetch log: ' + errorMessage(e);
+    warnRequestFailure('Server file log could not be loaded', e, {
+      topic1: 'admin',
+      topic2: 'ServerLogTab',
+      topic3: 'load',
+    });
   } finally {
     loading.value = false;
   }
@@ -139,11 +150,13 @@ defineExpose({
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
-  height: 100%;
+  min-width: 0;
 }
 
 .log-notice {
   margin-top: 0.4rem;
+  flex-wrap: wrap;
+  overflow-wrap: anywhere;
 }
 
 .log-notice--warn {
@@ -167,7 +180,7 @@ defineExpose({
 }
 
 .log-lines-select {
-  width: 7.5rem;
+  width: 9rem;
   font-size: var(--text-sm-size);
 }
 
@@ -180,6 +193,9 @@ defineExpose({
 }
 
 .log-toolbar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
   margin-left: auto;
 }
 
@@ -202,8 +218,10 @@ defineExpose({
 }
 
 .log-pre-wrapper {
-  height: 100%;
+  max-height: clamp(12rem, 48svh, 32rem);
   overflow: auto;
+  overscroll-behavior: contain;
+  touch-action: pan-x pan-y;
 }
 
 .log-pre {

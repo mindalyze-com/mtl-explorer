@@ -1,3 +1,4 @@
+import { warnSanitized } from '@/utils/safeLogging';
 import { TERRAIN_HILLSHADE_LAYER_ID } from '@/utils/mapStyle';
 import {
   disableTerrainView,
@@ -131,7 +132,11 @@ export function useTerrainMode(deps: {
           exaggeration: this.terrainExaggeration,
         });
       } catch (e) {
-        console.warn('3D terrain could not be enabled:', e);
+        warnSanitized('3D terrain could not be enabled:', e, {
+          topic1: 'map',
+          topic2: 'useTerrainMode',
+          topic3: 'applyTerrainPreference',
+        });
       }
       if (!enabled) {
         disableTerrainView(this.overlayMap);

@@ -50,28 +50,24 @@ public class ExplorationScoreAtomicWorker {
     }
 
     /**
-     * Process a single track in its own transaction. Sets IN_PROGRESS, runs the PostGIS query,
-     * stores the result. On failure, marks the track as NEEDS_RECALCULATION so it can be retried.
+     * Process a single track in its own transaction. Runs the PostGIS query and writes only
+     * exploration fields. On failure, marks the track as NEEDS_RECALCULATION so it can be retried.
      * Each track is independent — a failure here does not roll back other tracks in the batch.
      * <p>
-     * Takes a {@code trackId} (not a managed entity) so there is no shared Java object between
-     * the caller and this REQUIRES_NEW session. The track is loaded fresh inside this transaction,
-     * avoiding any risk of the outer Hibernate session seeing dirty state or a stale managed entity.
+     * The loaded track is an input only and is never mutated or saved. Defer the targeted write
+     * until the calculation finishes so unrelated jobs can commit while the query runs.
      */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void processOne(long trackId) {
+    public boolean processOne(long trackId) {
         long t0 = System.currentTimeMillis();
 
         GpsTrack track = gpsTrackRepository.findById(trackId).orElse(null);
         if (track == null) {
             log.warn("Exploration score: trackId={} not found, skipping.", trackId);
-            return;
+            return true;
         }
 
         try {
-            track.setExplorationStatus(GpsTrack.EXPLORATION_STATUS.IN_PROGRESS);
-            gpsTrackRepository.save(track);
-
             ExplorationScoreQueryRepository.ExplorationResult result =
                     queryRepository.calculateExplorationScore(
                             track.getId(),
@@ -81,22 +77,19 @@ public class ExplorationScoreAtomicWorker {
                     );
 
             if (result == null) {
-                track.setExplorationStatus(GpsTrack.EXPLORATION_STATUS.NOT_SCHEDULED);
-                track.setExplorationScore(null);
-                track.setExplorationCalcDate(new Date());
-                gpsTrackRepository.save(track);
-                log.warn("Exploration score: no geometry found for trackId={}. Marked NOT_SCHEDULED.", track.getId());
-                return;
+                gpsTrackRepository.updateExplorationResult(trackId, GpsTrack.EXPLORATION_STATUS.NOT_SCHEDULED,
+                        null, new Date());
+                log.debug("Exploration score unavailable: trackId={} source is ineligible or has no observed geometry; marked NOT_SCHEDULED.", track.getId());
+                return true;
             }
 
             // Round to 3 decimal places (e.g. 0.847 = 84.7% novel territory)
-            track.setExplorationScore(Math.round(result.getExplorationScore() * 1000.0) / 1000.0);
-            track.setExplorationStatus(GpsTrack.EXPLORATION_STATUS.CALCULATED);
-            track.setExplorationCalcDate(new Date());
-            gpsTrackRepository.save(track);
+            double score = Math.round(result.getExplorationScore() * 1000.0) / 1000.0;
+            gpsTrackRepository.updateExplorationResult(trackId, GpsTrack.EXPLORATION_STATUS.CALCULATED,
+                    score, new Date());
 
             long durationMs = System.currentTimeMillis() - t0;
-            log.info("Exploration score: trackId={} score={} totalM={} novelM={} corridorM={} precisionM={} durationMs={}",
+            log.debug("Exploration score: trackId={} score={} totalM={} novelM={} corridorM={} precisionM={} durationMs={}",
                     track.getId(),
                     String.format("%.1f%%", result.getExplorationScore() * 100),
                     String.format("%.0f", result.getTotalM()),
@@ -104,12 +97,12 @@ public class ExplorationScoreAtomicWorker {
                     corridorWidthM,
                     useTrackPrecision,
                     durationMs);
+            return true;
 
         } catch (Exception e) {
             log.error("Exploration score failed for trackId={}. e={}", track.getId(), e.toString(), e);
-            track.setExplorationStatus(GpsTrack.EXPLORATION_STATUS.NEEDS_RECALCULATION);
-            track.setExplorationCalcDate(new Date());
-            gpsTrackRepository.save(track);
+            gpsTrackRepository.markExplorationForRetry(trackId, new Date());
+            return false;
         }
     }
 

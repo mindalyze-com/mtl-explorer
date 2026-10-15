@@ -4,6 +4,7 @@ import hashlib
 import json
 import tempfile
 import unittest
+import xml.etree.ElementTree as ET
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -18,16 +19,39 @@ from generate_regression_photos import (
     VIDEO_FIXTURES,
     generate_regression_fixtures,
     iso6709,
+    regression_track_gpx,
 )
 
 
 class GenerateRegressionPhotosTest(unittest.TestCase):
+
+    def test_track_continuously_covers_all_media_captures(self) -> None:
+        root = ET.fromstring(regression_track_gpx())
+        points = root.findall(".//{*}trkpt")
+        times = [datetime.fromisoformat(point.find("{*}time").text) for point in points]
+        intervals = list(zip(times, times[1:]))
+        self.assertTrue(intervals)
+        for before, after in intervals:
+            self.assertGreater(after, before)
+            # One-minute fixture observations also satisfy server continuity (120 s).
+            self.assertLessEqual((after - before).total_seconds(), 60)
+
+        captures = [
+            datetime.strptime(fixture.captured_at, "%Y:%m:%d %H:%M:%S").replace(tzinfo=timezone.utc)
+            for fixture in FIXTURES
+        ] + [datetime.fromisoformat(fixture.captured_at) for fixture in VIDEO_FIXTURES]
+        for capture in captures:
+            self.assertTrue(any(before <= capture <= after for before, after in intervals))
 
     def test_generates_four_gps_timed_and_two_camera_timed_photos(self) -> None:
         with tempfile.TemporaryDirectory() as temporary_directory:
             output_directory = Path(temporary_directory)
             manifest_path = generate_regression_fixtures(output_directory)
             manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+
+            track = ET.parse(output_directory / manifest["activity"]["file"])
+            self.assertEqual(len(track.findall(".//{*}trkpt")), manifest["activity"]["trackpoint_count"])
+            self.assertEqual(len(track.findall(".//{*}trkpt/{*}time")), manifest["activity"]["timestamp_count"])
 
             expected_by_name = {fixture.name: fixture for fixture in FIXTURES}
             self.assertEqual(6, len(manifest["fixtures"]))
@@ -90,10 +114,17 @@ class GenerateRegressionPhotosTest(unittest.TestCase):
                 if fixture.expected_origin == "TRACK_INTERPOLATED"
             )
             capture_time = datetime.fromisoformat(estimated_video.captured_at.replace("Z", "+00:00"))
-            before = TRACK_POINTS[2]
-            after = TRACK_POINTS[3]
-            before_time = datetime.fromisoformat(before[2].replace("Z", "+00:00"))
-            after_time = datetime.fromisoformat(after[2].replace("Z", "+00:00"))
+            track = ET.parse(output_directory / manifest["activity"]["file"])
+            samples = [
+                (float(point.attrib["lat"]), float(point.attrib["lon"]),
+                 datetime.fromisoformat(point.find("{*}time").text))
+                for point in track.findall(".//{*}trkpt")
+            ]
+            before, after = next(
+                (before, after) for before, after in zip(samples, samples[1:])
+                if before[2] <= capture_time < after[2]
+            )
+            before_time, after_time = before[2], after[2]
             fraction = (capture_time - before_time) / (after_time - before_time)
             self.assertAlmostEqual(
                 before[0] + fraction * (after[0] - before[0]),

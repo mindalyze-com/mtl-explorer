@@ -2,6 +2,11 @@ package com.x8ing.mtl.server.mtlserver.web.services.map;
 
 import com.x8ing.mtl.server.mtlserver.planner.config.PlannerProperties;
 import org.junit.jupiter.api.Test;
+import org.springframework.boot.context.properties.bind.Bindable;
+import org.springframework.boot.context.properties.bind.Binder;
+import org.springframework.boot.env.YamlPropertySourceLoader;
+import org.springframework.core.env.StandardEnvironment;
+import org.springframework.core.io.ClassPathResource;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -23,8 +28,22 @@ class MapServerStatusControllerTest {
         assertThat(config.getRemoteRasterStyles().get("light-topo").getUrl())
                 .isEqualTo("https://tile.opentopomap.org/{z}/{x}/{y}.png");
         assertThat(config.getRemoteRasterStyles().get("dark").getUrl())
-                .isEqualTo("https://basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png");
-        assertThat(config.getRemoteRasterStyles().get("dark").getAttribution()).contains("CARTO");
+                .isEqualTo(config.getRemoteRasterStyles().get("light").getUrl());
+        assertThat(config.getRemoteRasterStyles().get("dark").getAttribution())
+                .isEqualTo(config.getRemoteRasterStyles().get("light").getAttribution());
+    }
+
+    @Test
+    void packagedConfigurationKeepsTheKeyFreeDarkRasterDefault() throws Exception {
+        StandardEnvironment environment = new StandardEnvironment();
+        for (var source : new YamlPropertySourceLoader().load("application", new ClassPathResource("application.yml"))) {
+            environment.getPropertySources().addFirst(source);
+        }
+        MapServerProperties properties = Binder.get(environment)
+                .bind("mtl.map-server", Bindable.of(MapServerProperties.class)).get();
+
+        assertThat(controller(properties).getMapConfig().getRemoteRasterStyles().get("dark").getUrl())
+                .isEqualTo("https://tile.openstreetmap.org/{z}/{x}/{y}.png");
     }
 
     @Test

@@ -16,7 +16,8 @@ import {
   terrainSourceAvailable,
   type TerrainCapableMap,
 } from '@/components/map/terrainMode';
-import { MAPTERHORN_TERRAIN_TILEJSON_URL, TERRAIN_DEM_SOURCE_ID } from '@/utils/mapStyle';
+import { TERRAIN_DEM_SOURCE_ID } from '@/utils/mapStyle';
+import { MAPTERHORN_TERRAIN_TILES_URL } from '@/utils/mapterhornProtocol';
 
 function createMapMock(hasSource = false): TerrainCapableMap & {
   addSource: ReturnType<typeof vi.fn>;
@@ -48,7 +49,7 @@ describe('terrainMode', () => {
       TERRAIN_DEM_SOURCE_ID,
       expect.objectContaining({
         type: 'raster-dem',
-        url: MAPTERHORN_TERRAIN_TILEJSON_URL,
+        tiles: [MAPTERHORN_TERRAIN_TILES_URL],
         encoding: 'terrarium',
         maxzoom: 15,
       })

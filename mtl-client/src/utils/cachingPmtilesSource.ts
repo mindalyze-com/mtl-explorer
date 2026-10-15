@@ -1,3 +1,4 @@
+import { warnSanitized } from '@/utils/safeLogging';
 import { PMTiles, type Source, type RangeResponse } from 'pmtiles';
 import { isAbortLikeError } from '@/utils/errors';
 
@@ -29,7 +30,10 @@ export class CachingFetchSource implements Source {
   private url: string;
   private mustReload = false;
 
-  constructor(url: string) {
+  constructor(
+    url: string,
+    private readonly defaultCacheMode: RequestCache = 'force-cache'
+  ) {
     this.url = url;
   }
 
@@ -47,10 +51,14 @@ export class CachingFetchSource implements Source {
       }
 
       FORCE_CACHE_DISABLED_URLS.add(this.url);
-      console.warn('PMTiles HTTP cache failed; retrying archive range requests without browser cache.', {
-        url: this.url,
-        message: describeError(error),
-      });
+      warnSanitized(
+        'PMTiles HTTP cache failed; retrying archive range requests without browser cache.',
+        {
+          url: this.url,
+          message: describeError(error),
+        },
+        { topic1: 'map', topic2: 'cachingPmtilesSource', topic3: 'getBytes' }
+      );
       return this.fetchRangeResponse(offset, length, 'no-store', signal, etag);
     }
   }
@@ -59,7 +67,7 @@ export class CachingFetchSource implements Source {
     if (FORCE_CACHE_DISABLED_URLS.has(this.url)) {
       return 'no-store';
     }
-    return this.mustReload ? 'reload' : 'force-cache';
+    return this.mustReload ? 'reload' : this.defaultCacheMode;
   }
 
   private async fetchRangeResponse(

@@ -92,6 +92,24 @@ describe('TrackDetailQuality statistics curation', () => {
     updateTrackStatisticsExclusionMock.mockReset();
   });
 
+  it('shows duplicate and activity failures with their error details', () => {
+    const wrapper = mountQuality(
+      track({
+        duplicateStatus: 'FAILED',
+        duplicateDetails: 'Duplicate detection failed. See server logs.',
+        activityTypeSource: 'FAILED',
+        activityTypeSourceDetails: 'Activity classification failed. See server logs.',
+      })
+    );
+
+    expect(wrapper.text()).toContain('Duplicate check failed');
+    expect(wrapper.text()).toContain('Detection failed');
+    expect(wrapper.text()).toContain('Duplicate detection failed. See server logs.');
+    expect(wrapper.text()).toContain('Activity classification failed. See server logs.');
+    expect(wrapper.find('.status-badge--error').exists()).toBe(true);
+    expect(wrapper.find('.source-badge--failed').exists()).toBe(true);
+  });
+
   it('edits activity type from the curation panel', async () => {
     const gpsTrack = track();
     updateTrackActivityTypeMock.mockResolvedValueOnce({

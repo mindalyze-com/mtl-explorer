@@ -25,9 +25,17 @@
         </div>
 
         <dl class="about-source__build" aria-label="Installation information">
+          <div v-if="releaseVersion">
+            <dt>Deployment release</dt>
+            <dd>{{ releaseVersion }}</dd>
+          </div>
           <div>
-            <dt>Version</dt>
+            <dt>Client image version</dt>
             <dd>{{ version }}</dd>
+          </div>
+          <div v-if="serverImageVersion">
+            <dt>Server image version</dt>
+            <dd>{{ serverImageVersion }}</dd>
           </div>
           <div>
             <dt>License</dt>
@@ -52,6 +60,16 @@
           <a href="https://www.gnu.org/licenses/agpl-3.0.html" target="_blank" rel="noopener noreferrer">
             GNU AGPL, version 3 or later</a
           >, and a separate commercial license.
+        </p>
+      </section>
+
+      <section v-if="umamiAnalyticsEnabled" class="about-source__section" aria-labelledby="about-source-analytics">
+        <div class="settings-section-heading about-source__section-heading">
+          <h3 id="about-source-analytics">Web analytics</h3>
+        </div>
+        <p class="about-source__license-copy">
+          This installation uses Umami for basic visit statistics. Page URLs are recorded without query parameters or
+          fragments. Visits are linked using your ClientLoginRef. Browser Do Not Track preferences are respected.
         </p>
       </section>
 
@@ -106,18 +124,22 @@
     </div>
   </BottomSheet>
 
-  <AboutView v-if="showFullAbout" embedded @closed="closeFullAbout" />
+  <AboutView v-if="showFullAbout" embedded @closed="closeFullAbout" @show-system-information="openSystemInformation" />
 </template>
 
 <script setup lang="ts">
-import { computed, defineAsyncComponent, ref } from 'vue';
+import { computed, defineAsyncComponent, ref, watch } from 'vue';
+import { useRouter } from 'vue-router';
 import logoMark from '@/assets/logo/logo3/mtl_logo_3_only_vector.svg';
 import BottomSheet from '@/components/ui/BottomSheet.vue';
 import { APP_CONTACT_EMAIL, APP_SOURCE_URL } from '@/utils/appBranding';
+import { umamiAnalyticsEnabled } from '@/bootstrap/umamiAnalytics';
+import { useReleaseUpdatesStore } from '@/stores/releaseUpdatesStore';
+import { formatClientImageVersion } from '@/utils/clientBuildInfo';
 
 defineOptions({ name: 'AboutSourceOverlay' });
 
-defineProps<{
+const props = defineProps<{
   visible: boolean;
 }>();
 
@@ -126,16 +148,27 @@ const emit = defineEmits<{
 }>();
 
 const AboutView = defineAsyncComponent(() => import('@/views/AboutView.vue'));
-const version = computed<string>(
-  () =>
-    (import.meta.env.VITE_APP_VERSION as string) ||
-    (typeof __APP_PKG_VERSION__ !== 'undefined' ? __APP_PKG_VERSION__ : 'unknown')
-);
+const router = useRouter();
+const updates = useReleaseUpdatesStore();
+const releaseVersion = computed(() => updates.status?.installedReleaseVersion);
+const serverImageVersion = computed(() => updates.status?.installedBuildId);
+const version = computed(formatClientImageVersion);
 const showFullAbout = ref(false);
+watch(
+  () => props.visible,
+  (visible) => {
+    if (!visible) showFullAbout.value = false;
+  }
+);
 
 function closeFullAbout() {
   showFullAbout.value = false;
   emit('update:visible', false);
+}
+
+function openSystemInformation() {
+  closeFullAbout();
+  void router.push({ name: 'admin', params: { section: 'system' } });
 }
 </script>
 

@@ -2,6 +2,7 @@ import { DEFAULT_LAYER_OPACITIES } from '@/stores/mapSettingsStore';
 import { MAP_OVERLAYS } from '@/utils/mapStyle';
 import { isRemoteRasterMapTheme } from '@/components/map/mapStyleResolver';
 import { TRACK_COLOR } from '@/utils/trackColors';
+import { POI_LAYER_PREFIX } from '@/components/map/poiLayers';
 import {
   colorForFilterGroup,
   compareLegendEntries,
@@ -22,7 +23,6 @@ import type { MapLayerId, useMapSettingsStore } from '@/stores/mapSettingsStore'
 const TRACK_OPACITY_PAINT_PROPERTIES = [
   ['tracks-layer', 'line-opacity'],
   ['tracks-highlight-layer', 'line-opacity'],
-  ['tracks-highlight-dash-layer', 'line-opacity'],
   ['tracks-dot-layer', 'circle-opacity'],
   ['tracks-dot-layer', 'circle-stroke-opacity'],
   ['tracks-overview-dots', 'circle-opacity'],
@@ -79,13 +79,37 @@ export function scaledOpacityValue(value: unknown, factor: number): unknown {
   return factor;
 }
 
-async function rebuildMapLayers(runtime: MapControllerRuntime): Promise<void> {
+export async function rebuildMapLayers(runtime: MapControllerRuntime): Promise<void> {
+  if (runtime._mapUnmounted) return;
+  const restartTrackLoad = !runtime.initialLoadDone;
+  const generation = (runtime._mapLoadGeneration ?? 0) + 1;
+  runtime._mapLoadGeneration = generation;
+  const isCurrent = () => !runtime._mapUnmounted && runtime._mapLoadGeneration === generation;
+  runtime._mapReadyResolve?.(false);
+  let resolveReady: (ready: boolean) => void = () => undefined;
+  const readyPromise = new Promise<boolean>((resolve) => {
+    resolveReady = resolve;
+  });
+  runtime._mapReadyPromise = readyPromise;
+  runtime._mapReadyResolve = resolveReady;
+  if (restartTrackLoad) {
+    runtime.loadingTrackBatches = false;
+    runtime.$emit('syncing', false);
+  }
   runtime.showLoader = true;
   try {
-    await runtime.initMap();
+    // This rebuild owns the replacement readiness gate and track-load generation.
+    if ((await runtime.initMap(true)) === false || !isCurrent()) return;
+    resolveReady(true);
     await runtime.addTracksToMap();
+    if (restartTrackLoad && isCurrent()) await runtime.fetchTracksAndFallback();
   } finally {
-    runtime.showLoader = false;
+    resolveReady(false);
+    if (runtime._mapReadyPromise === readyPromise) {
+      runtime._mapReadyPromise = null;
+      runtime._mapReadyResolve = null;
+    }
+    if (isCurrent()) runtime.showLoader = false;
   }
 }
 
@@ -103,6 +127,7 @@ export function useMapLayerSettings(deps: {
       }
       const paintMap = this.overlayMap as unknown as MapPaintApi;
       basemapPaintStates = (this.overlayMap.getStyle().layers ?? []).flatMap((layer) => {
+        if (layer.id.startsWith(POI_LAYER_PREFIX)) return [];
         const propertyNames = BASEMAP_OPACITY_PROPERTIES[layer.type as BasemapLayerType];
         if (!propertyNames) return [];
         return [
@@ -197,16 +222,11 @@ export function useMapLayerSettings(deps: {
 
     async updateTrackStyle() {
       if (!this.overlayMap || !this.geojson) return;
+      const map = this.overlayMap;
+      const generation = this._mapLoadGeneration;
       const lineColor = await this.resolveTrackLineColor();
-      if (this.overlayMap.getLayer('tracks-layer')) {
-        this.overlayMap.setPaintProperty('tracks-layer', 'line-color', lineColor);
-      }
-      if (this.overlayMap.getLayer('tracks-dot-layer')) {
-        this.overlayMap.setPaintProperty('tracks-dot-layer', 'circle-color', lineColor);
-      }
-      if (this.overlayMap.getLayer('tracks-overview-dots')) {
-        this.overlayMap.setPaintProperty('tracks-overview-dots', 'circle-color', lineColor);
-      }
+      if (this._mapUnmounted || this.overlayMap !== map || this._mapLoadGeneration !== generation) return;
+      this.applyTrackColors(lineColor);
     },
 
     orderLegendEntriesByFilterResult(entries, groupOrder) {
@@ -410,12 +430,14 @@ export function useMapLayerSettings(deps: {
           break;
         case 'media':
           if (this.overlayMap) {
-            if (this.overlayMap.getLayer('media-clusters'))
-              this.overlayMap.setPaintProperty('media-clusters', 'circle-opacity', opacity);
+            for (const layerName of ['media-clusters', 'media-unclustered']) {
+              if (this.overlayMap.getLayer(layerName)) {
+                this.overlayMap.setPaintProperty(layerName, 'circle-opacity', opacity);
+                this.overlayMap.setPaintProperty(layerName, 'circle-stroke-opacity', opacity);
+              }
+            }
             if (this.overlayMap.getLayer('media-cluster-count'))
               this.overlayMap.setPaintProperty('media-cluster-count', 'text-opacity', opacity);
-            if (this.overlayMap.getLayer('media-unclustered'))
-              this.overlayMap.setPaintProperty('media-unclustered', 'circle-opacity', opacity);
           }
           break;
         case 'trackpoints':
@@ -515,9 +537,9 @@ export function useMapLayerSettings(deps: {
       this.applyTrackRenderFilters();
       // Update visible track count to reflect hidden groups
       if (this.geojson) {
-        const total = this.geojson.features.length;
+        const total = this.flatTrackSourceGeojson().features.length;
         if (hidden.size > 0) {
-          this.visibleTrackCount = this.geojson.features.filter(
+          this.visibleTrackCount = this.flatTrackSourceGeojson().features.filter(
             (f) => !hidden.has(String(f.properties?.filterGroup))
           ).length;
         } else {

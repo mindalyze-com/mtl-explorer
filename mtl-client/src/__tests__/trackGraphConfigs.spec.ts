@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { speedGraphConfigFor } from '@/components/trackdetails/trackGraphConfigs';
+import { speedGraphConfigFor, trackGraphConfigs } from '@/components/trackdetails/trackGraphConfigs';
 import { MetricKey } from '@/utils/chartSeriesAdapter';
 
 describe('speedGraphConfigFor', () => {
@@ -37,5 +37,29 @@ describe('speedGraphConfigFor', () => {
 
     expect(config.title).toBe('Speed');
     expect(config.rangeMetricKey).toBe(MetricKey.SpeedWindowKmh);
+  });
+});
+
+describe('heart-rate graph config', () => {
+  it('uses the Google Health bucket average and sample range', () => {
+    const point = {
+      pointIndex: 0,
+      pointTimestamp: new Date(0),
+      distanceInMeterSinceStart: 0,
+      metricStats: {},
+      pointAltitude: null,
+      speedInKmhWindow: null,
+      speedBucketAvgKmh: null,
+      elevationGainPerHourWindow: null,
+      elevationLossPerHourWindow: null,
+      powerWattsWindow: null,
+      energyCumulativeWh: null,
+      heartRateBpm: 121,
+      heartRateMinimumBpm: 95,
+      heartRateMaximumBpm: 148,
+    };
+
+    expect(trackGraphConfigs.heartRate.extractY(point)).toBe(121);
+    expect(trackGraphConfigs.heartRate.extractRange?.(point)).toEqual({ low: 95, high: 148 });
   });
 });

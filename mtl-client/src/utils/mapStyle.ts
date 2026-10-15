@@ -6,16 +6,15 @@
  */
 
 import { layers, LIGHT, DARK, GRAYSCALE, type Flavor } from '@protomaps/basemaps';
+export const PROTOMAPS_GLYPHS_URL = 'https://protomaps.github.io/basemaps-assets/fonts/{fontstack}/{range}.pbf';
 import type { RasterDEMSourceSpecification, StyleSpecification } from 'maplibre-gl';
+import { DEFAULT_RASTER_ATTRIBUTION, DEFAULT_RASTER_TILE_URL } from '@/utils/rasterMapDefaults';
+import { MAPTERHORN_TERRAIN_TILES_URL } from '@/utils/mapterhornProtocol';
+
+export { DEFAULT_RASTER_ATTRIBUTION } from '@/utils/rasterMapDefaults';
 
 export type MapTheme =
-  | 'light'
-  | 'dark'
-  | 'grayscale'
-  | 'light-topo'
-  | 'topo-contrast'
-  | 'swisstopo'
-  | 'swisstopo-color';
+  'light' | 'dark' | 'grayscale' | 'light-topo' | 'topo-contrast' | 'swisstopo' | 'swisstopo-color';
 
 export const TOPO_CONTRAST_THEME: MapTheme = 'topo-contrast';
 
@@ -48,7 +47,6 @@ type StyleLayer = Omit<StyleSpecification['layers'][number], 'layout' | 'paint'>
 
 export const TERRAIN_DEM_SOURCE_ID = 'terrain-dem';
 export const HILLSHADE_DEM_SOURCE_ID = 'hillshade-dem';
-export const MAPTERHORN_TERRAIN_TILEJSON_URL = 'https://tiles.mapterhorn.com/tilejson.json';
 export const TERRAIN_HILLSHADE_LAYER_ID = 'terrain-hillshade';
 export const TOPO_CONTRAST_URBAN_AREA_LAYER_ID = 'topo-contrast-urban-area';
 export const TOPO_CONTRAST_URBAN_LANDUSE_LAYER_ID = 'topo-contrast-urban-landuse';
@@ -56,7 +54,7 @@ export const TOPO_CONTRAST_URBAN_LANDUSE_LAYER_ID = 'topo-contrast-urban-landuse
 export function createTerrainDemSource(): RasterDEMSourceSpecification {
   return {
     type: 'raster-dem',
-    url: MAPTERHORN_TERRAIN_TILEJSON_URL,
+    tiles: [MAPTERHORN_TERRAIN_TILES_URL],
     encoding: 'terrarium',
     tileSize: 512,
     maxzoom: 15,
@@ -209,6 +207,16 @@ const DARK_RASTER_PAINT = {
   'raster-saturation': -0.75,
 } as const;
 
+// Reverse the brightness endpoints for OSM Standard: dark labels become light
+// and the light background becomes dark. Hue rotation preserves familiar water
+// and land colors. Apply only to the base raster, never to track/route overlays.
+const OSM_DARK_RASTER_PAINT = {
+  'raster-brightness-min': 0.9,
+  'raster-brightness-max': 0.06,
+  'raster-hue-rotate': 180,
+  'raster-saturation': -0.45,
+} as const;
+
 const GRAYSCALE_RASTER_PAINT = {
   'raster-saturation': -1,
 } as const;
@@ -217,9 +225,6 @@ const RASTER_PAINT_BY_THEME: Partial<Record<MapTheme, typeof DARK_RASTER_PAINT |
   dark: DARK_RASTER_PAINT,
   grayscale: GRAYSCALE_RASTER_PAINT,
 };
-
-export const DEFAULT_RASTER_ATTRIBUTION =
-  '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
 
 /**
  * Enriches a StyleSpecification with a hillshade layer using free Terrarium DEM tiles.
@@ -381,7 +386,7 @@ export function buildLocalVectorStyleFromArchiveUrl(
 
   const style: StyleSpecification = {
     version: 8,
-    glyphs: glyphsUrl ?? 'https://protomaps.github.io/basemaps-assets/fonts/{fontstack}/{range}.pbf',
+    glyphs: glyphsUrl ?? PROTOMAPS_GLYPHS_URL,
     sprite: 'https://protomaps.github.io/basemaps-assets/sprites/v4/light',
     sources: {
       [sourceName]: {
@@ -409,7 +414,12 @@ export function buildRemoteRasterStyle(
   attribution = DEFAULT_RASTER_ATTRIBUTION
 ): StyleSpecification {
   const normalizedTheme = theme ? normalizeMapTheme(theme) : undefined;
-  const rasterPaint = normalizedTheme ? RASTER_PAINT_BY_THEME[normalizedTheme] : undefined;
+  const rasterPaint =
+    normalizedTheme === 'dark' && tileUrl === DEFAULT_RASTER_TILE_URL
+      ? OSM_DARK_RASTER_PAINT
+      : normalizedTheme
+        ? RASTER_PAINT_BY_THEME[normalizedTheme]
+        : undefined;
   const rasterLayer = {
     id: 'raster-layer',
     type: 'raster',
@@ -439,7 +449,7 @@ export function buildRemoteRasterStyle(
  * is not yet loaded or we want a guaranteed-working fallback.
  */
 export function buildFallbackRasterStyle(theme?: MapTheme): StyleSpecification {
-  return buildRemoteRasterStyle('https://tile.openstreetmap.org/{z}/{x}/{y}.png', theme, DEFAULT_RASTER_ATTRIBUTION);
+  return buildRemoteRasterStyle(DEFAULT_RASTER_TILE_URL, theme, DEFAULT_RASTER_ATTRIBUTION);
 }
 
 /**

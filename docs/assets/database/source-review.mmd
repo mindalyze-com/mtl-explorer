@@ -1,0 +1,35 @@
+erDiagram
+    direction LR
+    indexed_file {
+        bigint id PK
+    }
+    track_source_review {
+        bigint source_id PK, FK
+        varchar source_hash
+        varchar review_state
+    }
+    track_review_decision {
+        bigint id PK
+        bigint source_id FK
+        integer section_index
+        varchar decision
+        varchar decided_by
+    }
+    source_issue {
+        bigint id PK
+        bigint source_id FK, UK
+        varchar source_revision UK
+        varchar finding_hash UK
+        varchar severity
+        timestamptz resolved_at
+    }
+    source_issue_acknowledgement {
+        bigint issue_id PK, FK
+        varchar account_key PK
+        timestamptz acknowledged_at
+    }
+
+    indexed_file ||--o| track_source_review : source_id
+    indexed_file ||..o{ track_review_decision : source_id
+    indexed_file ||..o{ source_issue : source_id
+    source_issue ||--o{ source_issue_acknowledgement : issue_id

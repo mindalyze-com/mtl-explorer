@@ -1,9 +1,10 @@
 <template>
   <div class="track-browser-quick-views">
-    <span class="track-browser-quick-views__label">Views</span>
     <SelectButton
+      class="segmented-control"
       :model-value="modelValue"
       :options="options"
+      :allow-empty="false"
       option-label="label"
       option-value="value"
       aria-label="Track browser quick views"
@@ -30,28 +31,14 @@ function onUpdate(value: TrackBrowserPreset) {
 </script>
 
 <style scoped>
-.track-browser-quick-views {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.track-browser-quick-views__label {
-  font-size: var(--text-sm-size);
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--text-muted);
-}
-
 .track-browser-quick-views :deep(.p-selectbutton) {
   flex-wrap: wrap;
 }
 
-@media (max-width: 768px) {
-  .track-browser-quick-views {
-    align-items: stretch;
+@container track-browser (max-width: 360px) {
+  .track-browser-quick-views :deep(.p-selectbutton) {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 </style>

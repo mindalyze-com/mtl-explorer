@@ -1,4 +1,5 @@
 import pLimit from 'p-limit';
+import { TrackLoadSupersededError } from '@/utils/errors';
 import type { GpsTrack } from 'x8ing-mtl-api-typescript-fetch';
 import type { FilterResult } from '@/types/filter';
 import {
@@ -9,8 +10,12 @@ import {
   TRACK_LOAD_BATCH_CONCURRENCY,
   TRACK_LOAD_BATCH_SIZE,
 } from '@/utils/tracks/trackConstants';
-import { buildTrackLoadResult } from '@/utils/tracks/trackFeatureAdapter';
-import { describeError, startStartupTimer } from '@/utils/startupDiagnostics';
+import {
+  buildTrackGeometry,
+  buildTrackLoadResult,
+  trackRecordingBreakIndexes,
+} from '@/utils/tracks/trackFeatureAdapter';
+import { startStartupTimer, startupWarn } from '@/utils/startupDiagnostics';
 import { logTrackCache, trackCacheElapsedMs, trackCacheNow } from '@/utils/tracks/trackCacheLog';
 import type {
   CachedTrack,
@@ -20,6 +25,7 @@ import type {
   TrackFilterApplyOptions,
   TrackFilterResultWithRequest,
   TrackGeometryEntry,
+  TrackGeometry,
   TrackLoadResult,
   TrackCollectionPageCallback,
   TrackPrecisionResult,
@@ -27,7 +33,7 @@ import type {
 
 interface CacheComparisonResult {
   cachedTracks: Map<number, GpsTrack>;
-  cachedGeometry: Map<number, number[][]>;
+  cachedGeometry: Map<number, TrackGeometry>;
   staleOrMissingIds: number[];
   invalidGeometryTrackIds: number[];
 }
@@ -39,17 +45,20 @@ export interface TrackCacheGateway {
   saveGeometry(entries: TrackGeometryEntry[]): Promise<void>;
   saveTrackBatch(tracks: Map<number, GpsTrack>, geometryEntries: TrackGeometryEntry[]): Promise<void>;
   deleteGeometryForTracks(trackIds: number[]): Promise<void>;
+  deleteTracks(trackIds: number[], stillCurrent?: () => boolean): Promise<void>;
   loadTrackRecords(trackIds: number[]): Promise<Map<number, CachedTrack>>;
+  loadTrackIds(): Promise<number[]>;
   loadAllTracks(): Promise<Map<number, GpsTrack>>;
   loadTrack(trackId: number): Promise<GpsTrack | null>;
-  loadGeometry(trackId: number, precision: number): Promise<number[][] | null>;
-  loadGeometryForTracksAtPrecision(trackIds: number[], precision: number): Promise<Map<number, number[][]>>;
-  loadBestGeometry(): Promise<Map<number, { coordinates: number[][]; precision: number }>>;
+  loadGeometry(trackId: number, precision: number): Promise<TrackGeometry | null>;
+  loadGeometryForTracksAtPrecision(trackIds: number[], precision: number): Promise<Map<number, TrackGeometry>>;
+  loadBestGeometry(): Promise<Map<number, TrackGeometry & { precision: number }>>;
 }
 
 export interface TrackCollectionLoaderDeps {
   cache: TrackCacheGateway;
   fetchFilteredTrackIds(signal?: AbortSignal): Promise<FilterResult>;
+  fetchArchiveTrackIds(): Promise<Set<number>>;
   loadActiveFilterRequest?(): Promise<ActiveTrackFilterRequest>;
   fetchTrackBatch(args: {
     precision: number;
@@ -102,11 +111,33 @@ async function waitForPromiseOrAbort<T>(promise: Promise<T>, signal?: AbortSigna
 }
 
 export class TrackCollectionLoader {
+  private requestGeneration = 0;
+  private reconciliation: Promise<void> | null = null;
   private readonly bulkInFlight = new Map<string, BulkLoadRecord>();
   private readonly bulkWaitByPrecision = new Map<number, Set<Promise<void>>>();
   private readonly detailInFlight = new Map<string, Promise<TrackPrecisionResult>>();
 
   constructor(private readonly deps: TrackCollectionLoaderDeps) {}
+
+  reconcileCache(): Promise<void> {
+    if (this.reconciliation) return this.reconciliation;
+    const generation = this.requestGeneration;
+    const request = (async () => {
+      // Only prune records present before the snapshot request; concurrent new
+      // imports may already have written records absent from that snapshot.
+      const cachedIds = await this.deps.cache.loadTrackIds();
+      const archiveIds = await this.deps.fetchArchiveTrackIds();
+      this.throwIfLoadCanceled(generation);
+      const deletedIds = cachedIds.filter((id) => !archiveIds.has(id));
+      await this.deps.cache.deleteTracks(deletedIds, () => generation === this.requestGeneration);
+      this.throwIfLoadCanceled(generation);
+    })();
+    this.reconciliation = request;
+    void request.catch(() => {
+      if (this.reconciliation === request) this.reconciliation = null;
+    });
+    return request;
+  }
 
   private registerBulkLoad(key: string, record: BulkLoadRecord): void {
     this.bulkInFlight.set(key, record);
@@ -165,35 +196,25 @@ export class TrackCollectionLoader {
     });
   }
 
-  private async loadBestGeometryForTrackIds(
-    trackIds: number[],
+  private async loadCurrentBackgroundGeometry(
+    tracksById: Map<number, GpsTrack>,
     signal?: AbortSignal
-  ): Promise<{
-    tracksById: Map<number, GpsTrack>;
-    geometryByTrackId: Map<number, number[][]>;
-    precisionByTrackId: Map<number, number>;
-  }> {
+  ): Promise<Map<number, TrackGeometry>> {
     throwIfAborted(signal);
-    const [trackRecords, overviewGeometry, backgroundGeometry] = await Promise.all([
+    const trackIds = [...tracksById.keys()];
+    const [trackRecords, backgroundGeometry] = await Promise.all([
       this.deps.cache.loadTrackRecords(trackIds),
-      this.deps.cache.loadGeometryForTracksAtPrecision(trackIds, OVERVIEW_PRECISION),
       this.deps.cache.loadGeometryForTracksAtPrecision(trackIds, BACKGROUND_TRACK_PRECISION),
     ]);
     throwIfAborted(signal);
-    const tracksById = trackMapFromRecords(trackRecords);
-    const geometryByTrackId = new Map<number, number[][]>();
-    const precisionByTrackId = new Map<number, number>();
-
-    for (const [trackId, coordinates] of overviewGeometry) {
-      geometryByTrackId.set(trackId, coordinates);
-      precisionByTrackId.set(trackId, OVERVIEW_PRECISION);
+    const geometryByTrackId = new Map<number, TrackGeometry>();
+    for (const [trackId, geometry] of backgroundGeometry) {
+      const currentTrack = tracksById.get(trackId);
+      if (currentTrack && trackRecords.get(trackId)?.entityVersion === (currentTrack.version ?? 0)) {
+        geometryByTrackId.set(trackId, geometry);
+      }
     }
-    for (const [trackId, coordinates] of backgroundGeometry) {
-      geometryByTrackId.set(trackId, coordinates);
-      precisionByTrackId.set(trackId, BACKGROUND_TRACK_PRECISION);
-    }
-
-    return { tracksById, geometryByTrackId, precisionByTrackId };
+    return geometryByTrackId;
   }
 
   private makePageCallback(options: TrackCollectionLoadOptions): TrackCollectionPageCallback | null {
@@ -251,9 +272,17 @@ export class TrackCollectionLoader {
     precision: number,
     options: TrackCollectionLoadOptions
   ): Promise<TrackLoadResult> {
+    const generation = this.requestGeneration;
     throwIfAborted(options.signal);
+    // Archive pruning must not delay or fail normal filtered collection loads.
+    void this.reconcileCache().catch((error) => {
+      if (generation !== this.requestGeneration) return;
+      startupWarn('trackLoader', 'Archive membership could not be refreshed; keeping cached records', error);
+    });
+    this.throwIfLoadCanceled(generation, options.signal);
     const filterResult = options.filterResult ?? (await this.deps.fetchFilteredTrackIds(options.signal));
     const filterRequest = await this.resolveActiveFilterRequest(filterResult);
+    this.throwIfLoadCanceled(generation, options.signal);
     const loadKey = this.makeBulkLoadKey(precision, filterResult, filterRequest);
     const existingLoad = this.bulkInFlight.get(loadKey);
     const pageCallback = this.makePageCallback(options);
@@ -270,7 +299,8 @@ export class TrackCollectionLoader {
       precision,
       { ...options, filterResult, onPage: undefined },
       filterRequest,
-      pageCallbacks
+      pageCallbacks,
+      generation
     );
     this.registerBulkLoad(loadKey, { precision, promise: loadPromise, pageCallbacks });
     return loadPromise;
@@ -280,7 +310,8 @@ export class TrackCollectionLoader {
     precision: number,
     options: TrackCollectionLoadOptions,
     filterRequest: ActiveTrackFilterRequest | undefined,
-    pageCallbacks: Set<TrackCollectionPageCallback>
+    pageCallbacks: Set<TrackCollectionPageCallback>,
+    generation: number
   ): Promise<TrackLoadResult> {
     const effectivePageSize = Math.max(1, options.pageSize ?? TRACK_LOAD_BATCH_SIZE);
     const effectiveConcurrency = Math.max(1, options.requestConcurrency ?? TRACK_LOAD_BATCH_CONCURRENCY);
@@ -292,7 +323,7 @@ export class TrackCollectionLoader {
     const startedAt = trackCacheNow();
 
     try {
-      throwIfAborted(options.signal);
+      this.throwIfLoadCanceled(generation, options.signal);
       const filterResult: TrackFilterResultWithRequest = {
         ...(options.filterResult! as TrackFilterResultWithRequest),
         filterGroups: new Map(options.filterResult!.filterGroups),
@@ -304,7 +335,11 @@ export class TrackCollectionLoader {
       const filterGroups = filterResult.filterGroups;
       const trackIds = [...serverVersions.keys()];
       const comparison = await this.compareCacheWithServer(trackIds, serverVersions, precision);
+      this.throwIfLoadCanceled(generation, options.signal);
       const { cachedTracks, cachedGeometry, staleOrMissingIds, invalidGeometryTrackIds } = comparison;
+      // A track can disappear or leave the view between the ID snapshot and its
+      // batch response. Never fall back to its stale metadata in that response.
+      for (const trackId of staleOrMissingIds) cachedTracks.delete(trackId);
       const batches: number[][] = [];
 
       for (let start = 0; start < staleOrMissingIds.length; start += effectivePageSize) {
@@ -329,9 +364,10 @@ export class TrackCollectionLoader {
       let onPageChain = Promise.resolve();
       const emitPage = async (page: TrackLoadResult) => {
         if (pageCallbacks.size === 0) return;
-        onPageChain = onPageChain.then(() =>
-          Promise.all([...pageCallbacks].map((callback) => callback(page))).then(() => {})
-        );
+        onPageChain = onPageChain.then(() => {
+          this.throwIfLoadCanceled(generation, options.signal);
+          return Promise.all([...pageCallbacks].map((callback) => callback(page))).then(() => {});
+        });
         await onPageChain;
       };
 
@@ -347,28 +383,39 @@ export class TrackCollectionLoader {
         await Promise.all(
           batches.map((batchIds) =>
             limit(async () => {
-              throwIfAborted(options.signal);
+              this.throwIfLoadCanceled(generation, options.signal);
               const payload = await this.deps.fetchTrackBatch({
                 precision,
                 trackIds: batchIds,
                 filterRequest,
                 signal: options.signal,
               });
+              this.throwIfLoadCanceled(generation, options.signal);
 
+              const geometryByTrackId = new Map<number, TrackGeometry>();
+              for (const [trackId, coordinates] of payload.geometryByTrackId) {
+                const track = payload.tracksById.get(trackId);
+                if (!track) continue;
+                geometryByTrackId.set(trackId, {
+                  coordinates,
+                  recordingBreakBeforePointIndexes: trackRecordingBreakIndexes(track),
+                });
+              }
               await this.deps.cache.saveTrackBatch(
                 payload.tracksById,
-                [...payload.geometryByTrackId].map(([trackId, coordinates]) => ({
+                [...geometryByTrackId].map(([trackId, geometry]) => ({
                   trackId,
                   precision,
-                  coordinates,
+                  ...geometry,
                 }))
               );
+              this.throwIfLoadCanceled(generation, options.signal);
 
               for (const [trackId, track] of payload.tracksById) {
                 cachedTracks.set(trackId, track);
               }
-              for (const [trackId, coordinates] of payload.geometryByTrackId) {
-                cachedGeometry.set(trackId, coordinates);
+              for (const [trackId, geometry] of geometryByTrackId) {
+                cachedGeometry.set(trackId, geometry);
               }
               for (const [trackId, group] of payload.filterGroups) {
                 filterGroups.set(trackId, group);
@@ -378,7 +425,7 @@ export class TrackCollectionLoader {
               const pageResult = buildTrackLoadResult({
                 trackIds: pageTrackIds,
                 tracksById: payload.tracksById,
-                geometryByTrackId: payload.geometryByTrackId,
+                geometryByTrackId,
                 defaultPrecision: precision,
                 filterResult,
                 standardFilterCount: filterResult.standardFilterCount,
@@ -389,6 +436,7 @@ export class TrackCollectionLoader {
         );
         await onPageChain;
       }
+      this.throwIfLoadCanceled(generation, options.signal);
 
       timer.success('Paged track collection load completed', {
         precision,
@@ -415,7 +463,7 @@ export class TrackCollectionLoader {
         standardFilterCount: filterResult.standardFilterCount,
       });
     } catch (error) {
-      timer.error('Paged track collection load failed', describeError(error));
+      timer.error('Paged track collection load failed', error);
       throw error;
     }
   }
@@ -425,27 +473,24 @@ export class TrackCollectionLoader {
     const startedAt = trackCacheNow();
     try {
       const filterResult = options.filterResult ?? (await this.deps.fetchFilteredTrackIds(options.signal));
-      const overviewResult = await this.loadCollectionPaged(OVERVIEW_PRECISION, {
+      const result = await this.loadCollectionPaged(OVERVIEW_PRECISION, {
         signal: options.signal,
         filterResult,
       });
-      const effectiveFilterResult = overviewResult.filterResult ?? filterResult;
+      const effectiveFilterResult = result.filterResult ?? filterResult;
       const trackIds = [...effectiveFilterResult.trackVersions.keys()];
-
-      const { tracksById, geometryByTrackId, precisionByTrackId } = await this.loadBestGeometryForTrackIds(
-        trackIds,
-        options.signal
-      );
-
-      const result = buildTrackLoadResult({
-        trackIds,
-        tracksById,
-        geometryByTrackId,
-        precisionByTrackId,
-        defaultPrecision: OVERVIEW_PRECISION,
-        filterResult: effectiveFilterResult,
-        standardFilterCount: effectiveFilterResult.standardFilterCount,
-      });
+      const backgroundGeometry = await this.loadCurrentBackgroundGeometry(result.gpsTracksById, options.signal);
+      // Cache writes are best effort. Keep the successfully loaded response even
+      // when IndexedDB is unavailable, and upgrade only geometry at its current version.
+      for (const [trackId, geometry] of backgroundGeometry) {
+        const feature = result.gpsTrackIdToFeature.get(trackId);
+        const track = result.gpsTracksById.get(trackId);
+        if (!feature || !track) continue;
+        feature.geometry = buildTrackGeometry(track, geometry.coordinates, {
+          recordingBreakBeforePointIndexes: geometry.recordingBreakBeforePointIndexes,
+        });
+        result.trackPrecisions.set(trackId, BACKGROUND_TRACK_PRECISION);
+      }
       timer.success('Filter applied from cache', {
         matchedCount: result.gpsTracksById.size,
         requestedCount: trackIds.length,
@@ -458,7 +503,7 @@ export class TrackCollectionLoader {
       });
       return result;
     } catch (error) {
-      timer.error('Filter apply failed', describeError(error));
+      timer.error('Filter apply failed', error);
       throw error;
     }
   }
@@ -477,10 +522,10 @@ export class TrackCollectionLoader {
         return null;
       }
 
-      const geometryByTrackId = new Map<number, number[][]>();
+      const geometryByTrackId = new Map<number, TrackGeometry>();
       const precisionByTrackId = new Map<number, number>();
       for (const [trackId, geo] of bestGeometry) {
-        geometryByTrackId.set(trackId, geo.coordinates);
+        geometryByTrackId.set(trackId, geo);
         precisionByTrackId.set(trackId, geo.precision);
       }
 
@@ -502,7 +547,7 @@ export class TrackCollectionLoader {
       });
       return result;
     } catch (error) {
-      timer.error('Cache load failed', describeError(error));
+      timer.error('Cache load failed', error);
       return null;
     }
   }
@@ -522,13 +567,13 @@ export class TrackCollectionLoader {
     }
     throwIfAborted(options.signal);
 
-    const [coordinates, gpsTrack] = await Promise.all([
+    const [geometry, gpsTrack] = await Promise.all([
       this.deps.cache.loadGeometry(trackId, precision),
       this.deps.cache.loadTrack(trackId),
     ]);
 
-    if (!coordinates || !gpsTrack) return null;
-    return { coordinates, gpsTrack, fromCache: true };
+    if (!geometry || !gpsTrack) return null;
+    return { ...geometry, gpsTrack, fromCache: true };
   }
 
   async readBestCachedTrackShape(
@@ -567,9 +612,12 @@ export class TrackCollectionLoader {
 
     // The shared request intentionally has no caller AbortSignal; each caller can abort its own wait
     // without cancelling the network request for other callers sharing the same detail fetch.
-    const promise = this.deps
-      .fetchDetailTrack({ trackId, precision })
-      .then(({ coordinates, gpsTrack }) => ({ coordinates, gpsTrack, fromCache: false }));
+    const promise = this.deps.fetchDetailTrack({ trackId, precision }).then(({ coordinates, gpsTrack }) => ({
+      coordinates,
+      recordingBreakBeforePointIndexes: trackRecordingBreakIndexes(gpsTrack),
+      gpsTrack,
+      fromCache: false,
+    }));
     this.detailInFlight.set(detailKey, promise);
     void promise
       .finally(() => {
@@ -582,12 +630,23 @@ export class TrackCollectionLoader {
   }
 
   async clearCache(): Promise<void> {
-    // In-flight HTTP requests are not cancelled here; cache-generation guards in the DB layer
-    // keep any late writes from repopulating a manually cleared cache.
+    this.resetRequests();
+    await this.deps.cache.clear();
+  }
+
+  resetRequests(): void {
+    // Existing requests may finish on the network, but must not write or apply
+    // their responses after a refresh. Keep versioned cache records for reuse.
+    this.requestGeneration += 1;
+    this.reconciliation = null;
     this.bulkInFlight.clear();
     this.bulkWaitByPrecision.clear();
     this.detailInFlight.clear();
-    await this.deps.cache.clear();
+  }
+
+  private throwIfLoadCanceled(generation: number, signal?: AbortSignal): void {
+    throwIfAborted(signal);
+    if (generation !== this.requestGeneration) throw new TrackLoadSupersededError();
   }
 
   isCachePopulated(): Promise<boolean> {

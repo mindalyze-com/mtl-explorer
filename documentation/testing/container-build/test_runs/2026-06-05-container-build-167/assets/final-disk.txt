@@ -1,3 +1,0 @@
-Filesystem      Size  Used Avail Use% Mounted on
-/dev/sda1        75G  8.2G   64G  12% /
-/dev/sda1        75G  8.2G   64G  12% /

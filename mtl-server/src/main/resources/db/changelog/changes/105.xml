@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.10.xsd">
+    <changeSet id="20261010_google_health_time_local_identity" author="codex">
+        <comment>Nameless sample identities contain their time; keep their unique index local to imported time ranges.</comment>
+        <sql><![CDATA[
+DROP INDEX google_health.idx_google_health_heart_rate_fingerprint;
+DROP INDEX google_health.idx_google_health_data_point_fingerprint;
+DROP INDEX google_health.uq_google_health_heart_rate_identity;
+CREATE UNIQUE INDEX uq_google_health_heart_rate_identity
+    ON google_health.heart_rate_sample(connection_id,identity_key)
+    WHERE COALESCE(google_resource_name ~ '^users/[^/]+/dataTypes/heart-rate/dataPoints/[^/]+$',false);
+CREATE UNIQUE INDEX uq_google_health_heart_rate_time_identity
+    ON google_health.heart_rate_sample(connection_id,sample_time,identity_key)
+    WHERE NOT COALESCE(google_resource_name ~ '^users/[^/]+/dataTypes/heart-rate/dataPoints/[^/]+$',false);
+        ]]></sql>
+    </changeSet>
+</databaseChangeLog>

@@ -6,17 +6,10 @@ import com.x8ing.mtl.server.mtlserver.db.entity.gps.GpsTrackData;
 import com.x8ing.mtl.server.mtlserver.db.entity.gps.GpsTrackDataPoint;
 import com.x8ing.mtl.server.mtlserver.db.repository.gps.GpsTrackDataPointRepository;
 import com.x8ing.mtl.server.mtlserver.db.repository.gps.GpsTrackRepository;
-import com.x8ing.mtl.server.mtlserver.energy.EnergyParameters;
-import com.x8ing.mtl.server.mtlserver.energy.EnergyService;
-import com.x8ing.mtl.server.mtlserver.energy.TrackEnergySummary;
+import com.x8ing.mtl.server.mtlserver.energy.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
@@ -40,13 +33,21 @@ public class EnergyController {
     private final GpsTrackRepository gpsTrackRepository;
     private final GpsTrackDataPointRepository gpsTrackDataPointRepository;
     private final EnergyService energyService;
+    private final EnergyRecalculationQueue energyQueue;
 
     public EnergyController(GpsTrackRepository gpsTrackRepository,
                             GpsTrackDataPointRepository gpsTrackDataPointRepository,
-                            EnergyService energyService) {
+                            EnergyService energyService, EnergyRecalculationQueue energyQueue) {
         this.gpsTrackRepository = gpsTrackRepository;
         this.gpsTrackDataPointRepository = gpsTrackDataPointRepository;
         this.energyService = energyService;
+        this.energyQueue = energyQueue;
+    }
+
+    @GetMapping("/status/{gpsTrackId}")
+    public ResponseEntity<EnergyCalculationStatus> getEnergyCalculationStatus(@PathVariable Long gpsTrackId) {
+        var track = gpsTrackRepository.findById(gpsTrackId).orElseThrow();
+        return ResponseEntity.ok(energyQueue.statusForTrack(track));
     }
 
     /**
@@ -62,7 +63,7 @@ public class EnergyController {
             @RequestParam(name = "trackType", defaultValue = "RAW_OUTLIER_CLEANED") String trackType
     ) {
         GpsTrack track = gpsTrackRepository.findById(gpsTrackId).orElseThrow();
-
+        requireSupportedTiming(track);
         EnergyParameters params = buildAdHocParameters(weightKg, equipmentKg);
 
         List<GpsTrackDataPoint> points = gpsTrackDataPointRepository
@@ -86,8 +87,10 @@ public class EnergyController {
         validateOptionalRiderWeight(riderWeightKg);
 
         GpsTrack track = gpsTrackRepository.findById(gpsTrackId).orElseThrow();
+        requireSupportedTiming(track);
         TrackEnergySummary baselineSummary = energyService.summaryFromTrack(track);
-        double baselineRiderWeightKg = inferBaselineRiderWeightKg(track);
+        EnergyParameters trackParams = energyService.parametersForTrack(track);
+        double baselineRiderWeightKg = trackParams.getRiderWeightKg();
         double targetRiderWeightKg = riderWeightKg != null ? riderWeightKg : baselineRiderWeightKg;
 
         List<GpsTrackDataPoint> points = gpsTrackDataPointRepository.getTrackDetailsByGpsTrackIdAndPrecisionAndType(
@@ -96,7 +99,7 @@ public class EnergyController {
                 GpsTrackData.TRACK_TYPE.RAW_OUTLIER_CLEANED.name()
         );
 
-        EnergyParameters adjustedParams = energyService.getDefaultParameters().toBuilder()
+        EnergyParameters adjustedParams = trackParams.toBuilder()
                 .riderWeightKg(targetRiderWeightKg)
                 .build();
         TrackEnergySummary adjustedSummary = energyService.calculateSummaryWithoutPersisting(
@@ -114,7 +117,10 @@ public class EnergyController {
                 adjustedSummary.getWeightKgUsed(),
                 baselineSummary,
                 adjustedSummary,
-                deltaSummary
+                deltaSummary,
+                baselineSummary.getMetabolicEnergy() != null && baselineSummary.getMetabolicEnergy().getActiveKcal() != null
+                && adjustedSummary.getMetabolicEnergy() != null && adjustedSummary.getMetabolicEnergy().getActiveKcal() != null
+                        ? adjustedSummary.getMetabolicEnergy().getActiveKcal() - baselineSummary.getMetabolicEnergy().getActiveKcal() : null
         ));
     }
 
@@ -153,17 +159,9 @@ public class EnergyController {
                 .build();
     }
 
-    private double inferBaselineRiderWeightKg(GpsTrack track) {
-        double defaultRiderWeightKg = energyService.getDefaultParameters().getRiderWeightKg();
-        if (track.getEnergyWeightKgUsed() == null) return defaultRiderWeightKg;
-
-        double equipmentWeightKg = energyService.getDefaultEquipmentWeightKg(track.getActivityType());
-        double inferredRiderWeightKg = track.getEnergyWeightKgUsed() - equipmentWeightKg;
-        if (!Double.isFinite(inferredRiderWeightKg)) return defaultRiderWeightKg;
-        return Math.min(
-                EnergyParameters.MAX_RIDER_WEIGHT_KG,
-                Math.max(EnergyParameters.MIN_RIDER_WEIGHT_KG, inferredRiderWeightKg)
-        );
+    private static void requireSupportedTiming(GpsTrack track) {
+        if (track.isTimingUnreliable()) throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY,
+                "Energy calculation is unavailable because source timing is unreliable or estimated. See Track review.");
     }
 
     private void validateOptionalRiderWeight(Double riderWeightKg) {

@@ -3,7 +3,9 @@ package com.x8ing.mtl.server.mtlserver.web.services.track;
 import com.x8ing.mtl.server.mtlserver.jobs.media.indexer.SupportedMediaFormat;
 import com.x8ing.mtl.server.mtlserver.web.services.track.entity.TrackMediaDto;
 
-/** Keeps media-kind classification consistent across timelines and statistics. */
+/**
+ * Keeps media-kind classification consistent across timelines and statistics.
+ */
 public final class MediaKindResolver {
 
     private MediaKindResolver() {

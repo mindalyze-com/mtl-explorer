@@ -26,4 +26,5 @@ public class CrossingPointsRequest {
      * Optional
      */
     public FilterRequestBean filter;
+
 }

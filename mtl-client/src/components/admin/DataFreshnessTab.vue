@@ -35,7 +35,7 @@
         </div>
       </section>
 
-      <section class="freshness-details">
+      <section class="freshness-details admin-card">
         <div class="freshness-overview">
           <div class="freshness-metric">
             <span class="freshness-metric__label">Latest change</span>
@@ -59,7 +59,7 @@
           </div>
         </div>
 
-        <details class="freshness-technical">
+        <details class="freshness-technical admin-disclosure">
           <summary>Technical details</summary>
           <div class="freshness-technical__body">
             <div class="freshness-token-diff">
@@ -484,10 +484,6 @@ function refreshMapData(): Promise<boolean> {
   display: flex;
   flex-direction: column;
   gap: 0.85rem;
-  padding: 0.9rem;
-  border: 1px solid var(--border-default);
-  border-radius: 0.625rem;
-  background: var(--surface-glass-light);
 }
 
 .freshness-overview {
@@ -659,9 +655,11 @@ function refreshMapData(): Promise<boolean> {
 
 .freshness-card__meta {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
+  min-width: 0;
+  align-items: flex-start;
+  flex-direction: column;
+  gap: 0.2rem;
+  overflow-wrap: anywhere;
   color: var(--text-faint);
   font-size: var(--text-xs-size);
 }
@@ -692,22 +690,6 @@ function refreshMapData(): Promise<boolean> {
   color: var(--error);
 }
 
-.freshness-technical {
-  border: 1px solid var(--border-default);
-  border-radius: 0.6rem;
-  background: var(--surface-glass-light);
-  overflow: hidden;
-}
-
-.freshness-technical > summary {
-  min-height: 2.8rem;
-  padding: 0.7rem 0.85rem;
-  color: var(--text-primary);
-  cursor: pointer;
-  font-size: var(--text-sm-size);
-  font-weight: 650;
-}
-
 .freshness-technical__body {
   display: flex;
   flex-direction: column;
@@ -729,7 +711,7 @@ function refreshMapData(): Promise<boolean> {
   font-size: var(--text-sm-size);
 }
 
-@media (max-width: 640px) {
+@container admin-content (max-width: 40rem) {
   .freshness-hero {
     align-items: flex-start;
     flex-wrap: wrap;
@@ -743,12 +725,6 @@ function refreshMapData(): Promise<boolean> {
   .freshness-card {
     grid-template-columns: 1fr;
     gap: 0.45rem;
-  }
-
-  .freshness-card__meta {
-    align-items: flex-start;
-    flex-direction: column;
-    gap: 0.2rem;
   }
 }
 </style>

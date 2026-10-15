@@ -72,6 +72,27 @@ describe('track replay path helpers', () => {
     expect(formatReplaySpeedFactor(null, 45)).toBe('Distance based');
   });
 
+  it.each([{ timingUnreliable: true }, { timingEstimated: true }])(
+    'uses distance-based replay without an activity speed factor for %j',
+    (timing) => {
+      const path = buildReplayPath({
+        coordinates: [
+          [8, 47],
+          [8.01, 47],
+        ],
+        track: {
+          ...timing,
+          trackDurationInMotionSecs: 3600,
+          startDate: new Date('2026-01-01T10:00:00Z'),
+          endDate: new Date('2026-01-01T11:00:00Z'),
+        },
+      });
+      expect(path.originalDurationSeconds).toBeNull();
+      expect(formatReplaySpeedFactor(path.originalDurationSeconds, 45)).toBe('Distance based');
+      expect(sampleReplayPath(path, 0.5)?.lng).toBeCloseTo(8.005);
+    }
+  );
+
   it('builds a timestamp-based replay path that preserves breaks', () => {
     const path = buildTimedReplayPath({
       chartPoints: [

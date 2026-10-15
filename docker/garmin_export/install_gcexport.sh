@@ -43,9 +43,9 @@ fi
 
 echo "INFO: venv_gcexport_${VERSION} not found — proceeding with install."
 
-# --- Ensure python3-venv is available ---
+# --- Ensure Python and archive tools are available ---
 apt-get update -qq
-apt-get install -y -qq python3 python3-pip python3-venv
+apt-get install -y -qq python3 python3-pip python3-venv libarchive-tools
 apt-get clean
 rm -rf /var/lib/apt/lists/*
 
@@ -57,7 +57,11 @@ curl -fsSL "https://github.com/pe-st/garmin-connect-export/archive/refs/tags/${V
 
 echo "Extracting to ${SRC_DIR}..."
 mkdir -p "${SRC_DIR}"
-tar -xzf "${TARBALL}" -C "${SRC_DIR}" --strip-components=1
+# WORKAROUND(tar-rosetta): Ubuntu 26.04 GNU tar fails on nested paths with
+# "Function not implemented" under amd64/Rosetta. libarchive-tools provides bsdtar.
+# Upstream: https://github.com/orbstack/orbstack/issues/2588
+# Remove once GNU tar can extract these source archives under amd64/Rosetta.
+bsdtar -xzf "${TARBALL}" -C "${SRC_DIR}" --strip-components=1
 rm -f "${TARBALL}"
 
 # --- Create versioned virtual environment ---

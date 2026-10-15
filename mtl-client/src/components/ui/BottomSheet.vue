@@ -3,7 +3,7 @@
     <!-- Backdrop: hidden when noBackdrop is set (e.g. Measure tool needs map interaction) -->
     <transition name="sheet-fade">
       <div
-        v-if="isOpen && !noBackdrop"
+        v-if="isOpen && !isPreparing && !noBackdrop"
         class="sheet-backdrop"
         :style="{ zIndex: stackedZIndex - 1 }"
         @click="close"
@@ -23,29 +23,50 @@
     <div
       ref="sheetEl"
       class="sheet"
+      tabindex="-1"
+      :inert="isPreparing ? true : undefined"
+      :aria-hidden="isPreparing ? 'true' : undefined"
       :style="[sheetStyle, { zIndex: stackedZIndex }]"
       :class="[
         sheetClass,
         {
           'sheet--open': isOpen,
           'sheet--dragging': isDragging,
+          'sheet--preparing': isPreparing,
           'sheet--hidden': !isOpen && !isAnimatingOut,
           'sheet--backgrounded': isBackgrounded,
           'sheet--fullscreen': isFullscreen,
           'sheet--native-fullscreen': isNativeFullscreen,
+          'sheet--immersive': immersive && isNativeFullscreen,
+          'sheet--controls-hidden': immersiveControls.hidden.value,
           'sheet--header-compact': headerMode === 'compact',
-          'sheet--viewport-centered': viewportCentered,
-          'sheet--desktop-compact': desktopWidth === 'compact',
+          'sheet--viewport-centered': layoutViewportCentered,
+          'sheet--desktop-compact': layoutDesktopWidth === 'compact',
+          'sheet--shared-layout': shareLayout || inheritedLayout !== null,
         },
       ]"
       @transitionend="onSheetTransitionEnd"
+      @touchstart.capture.passive="onSheetTouchStart"
+      @touchmove.capture="onSheetTouchMove"
+      @touchend.capture.passive="clearSheetTouchGesture"
+      @touchcancel.capture.passive="clearSheetTouchGesture"
+      @pointermove="immersiveControls.onPointerMove"
+      @pointerdown.capture="immersiveControls.onPointerDown"
+      @focusin="immersiveControls.reveal"
+      @focusout="immersiveControls.reveal"
     >
+      <div
+        v-if="immersive && isNativeFullscreen"
+        class="sheet-toolbar-reveal"
+        aria-hidden="true"
+        @pointerenter="immersiveControls.reveal"
+      ></div>
       <!-- Drag zone: handle + header combined so the entire top area is draggable -->
       <div
         ref="handleEl"
         class="sheet-drag-zone"
-        :inert="isBackgrounded ? true : undefined"
-        :aria-hidden="isBackgrounded ? 'true' : undefined"
+        :inert="isBackgrounded || immersiveControls.hidden.value ? true : undefined"
+        :aria-hidden="isBackgrounded || immersiveControls.hidden.value ? 'true' : undefined"
         @click="onDragZoneClick"
       >
         <div class="sheet-handle-zone">
@@ -57,29 +78,65 @@
           v-if="hasHeader || headerMode === 'compact'"
           :class="hasHeader ? 'sheet-header' : 'sheet-floating-actions'"
         >
+          <button
+            v-if="backLabel"
+            type="button"
+            class="sheet-back-btn"
+            :aria-label="backLabel"
+            :title="backLabel"
+            data-sheet-drag-exclude
+            @click.stop="emit('back')"
+          >
+            <i class="bi bi-arrow-left" aria-hidden="true"></i>
+          </button>
           <div v-if="hasHeader" class="sheet-header-content">
             <slot name="title">
-              <span class="sheet-title"><i v-if="icon" :class="icon"></i>{{ title }}</span>
+              <span data-test="sheet-title" class="sheet-title"><i v-if="icon" :class="icon"></i>{{ title }}</span>
             </slot>
           </div>
           <div class="sheet-window-actions" data-sheet-drag-exclude>
             <slot v-if="hasHeader" name="header-actions"></slot>
-            <button
-              class="sheet-fullscreen-btn"
-              :aria-label="isFullscreen ? 'Restore panel size' : 'Maximize panel'"
-              :title="isFullscreen ? 'Restore panel size' : 'Maximize panel'"
-              @click.stop="toggleFullscreen"
-            >
-              <i :class="isFullscreen ? 'bi bi-arrows-angle-contract' : 'bi bi-arrows-angle-expand'"></i>
-            </button>
+            <slot name="size-action" :maximized="isFullscreen" :restore="leaveFullscreenState">
+              <button
+                type="button"
+                class="sheet-fullscreen-btn"
+                :class="{ 'sheet-labeled-size-btn': fullscreenControlLabels }"
+                :aria-label="
+                  fullscreenControlLabels ? panelSizeLabel : isFullscreen ? 'Restore panel size' : 'Maximize panel'
+                "
+                :title="
+                  fullscreenControlLabels ? panelSizeLabel : isFullscreen ? 'Restore panel size' : 'Maximize panel'
+                "
+                @click.stop="toggleFullscreen"
+              >
+                <i :class="isFullscreen ? 'bi bi-arrows-angle-contract' : 'bi bi-arrows-angle-expand'"></i>
+                <span v-if="fullscreenControlLabels">{{ panelSizeLabel }}</span>
+              </button>
+            </slot>
             <button
               v-if="nativeFullscreen"
+              type="button"
               class="sheet-native-fullscreen-btn"
-              :aria-label="isNativeFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'"
-              :title="isNativeFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'"
+              :disabled="nativeFullscreenPending"
+              :class="{ 'sheet-labeled-size-btn': fullscreenControlLabels }"
+              :aria-label="
+                fullscreenControlLabels
+                  ? browserFullscreenLabel
+                  : isNativeFullscreen
+                    ? 'Exit fullscreen'
+                    : 'Enter fullscreen'
+              "
+              :title="
+                fullscreenControlLabels
+                  ? browserFullscreenLabel
+                  : isNativeFullscreen
+                    ? 'Exit fullscreen'
+                    : 'Enter fullscreen'
+              "
               @click.stop="toggleNativeFullscreen"
             >
-              <i :class="isNativeFullscreen ? 'bi bi-fullscreen-exit' : 'bi bi-fullscreen'"></i>
+              <i :class="isNativeFullscreen ? 'bi bi-fullscreen-exit' : 'bi bi-fullscreen'" aria-hidden="true"></i>
+              <span v-if="fullscreenControlLabels">{{ browserFullscreenLabel }}</span>
             </button>
             <button class="sheet-close-btn" aria-label="Close" @click.stop="close">
               <i class="bi bi-x-lg"></i>
@@ -88,7 +145,20 @@
         </div>
       </div>
 
-      <div class="sheet-body-frame">
+      <p v-if="nativeFullscreenError" class="sheet-fullscreen-status" role="status">{{ nativeFullscreenError }}</p>
+
+      <!-- Pinned content stays visible above the scrolling body at every panel height. -->
+      <div
+        v-if="slots.pinned"
+        ref="pinnedEl"
+        class="sheet-pinned"
+        :inert="isBackgrounded ? true : undefined"
+        :aria-hidden="isBackgrounded ? 'true' : undefined"
+      >
+        <slot name="pinned"></slot>
+      </div>
+
+      <div ref="bodyFrameEl" class="sheet-body-frame">
         <!-- Scrollable content -->
         <div
           ref="bodyEl"
@@ -105,6 +175,7 @@
           v-if="hasScrollableOverflow && !noScrollHint"
           v-show="showScrollHint"
           class="sheet-scroll-hint"
+          :style="scrollHintStyle"
           :inert="isBackgrounded ? true : undefined"
           :aria-hidden="isBackgrounded ? 'true' : undefined"
         >
@@ -137,7 +208,7 @@
 </template>
 
 <script lang="ts">
-import { shallowReactive } from 'vue';
+import { shallowReactive, type ComputedRef, type InjectionKey } from 'vue';
 
 // ── Module-level Escape-key stack ──────────────────────────────────────────
 // Each open sheet instance pushes its close callback here.
@@ -147,11 +218,17 @@ const _escapeStack: Array<() => void> = [];
 
 const DEFAULT_SHEET_Z_INDEX = 5001;
 const SHEET_SCROLL_TARGET_CLASS = 'sheet-scroll-target';
+const STACK_HEIGHT_DETENT_ID = 'stack-height';
+const ESCAPE_OWNER_SELECTOR = [
+  '[data-pc-name="popover"][role="dialog"]',
+  '[data-pc-name="dialog"][role="dialog"][aria-modal="true"]',
+].join(',');
 
 interface OpenSheetRecord {
   id: number;
   zIndex: number;
   openOrder: number;
+  layout: ComputedRef<SharedSheetLayout | null>;
 }
 
 let _nextSheetId = 1;
@@ -159,7 +236,12 @@ let _nextSheetOpenOrder = 1;
 const _openSheets = shallowReactive<OpenSheetRecord[]>([]);
 
 function _onEscape(e: KeyboardEvent) {
-  if (e.key !== 'Escape') return;
+  if (e.key !== 'Escape' || e.defaultPrevented) return;
+  // PrimeVue registers its document listener after the sheet. Let a foreground overlay handle Escape.
+  const hasOpenOverlay = Array.from(document.querySelectorAll<HTMLElement>(ESCAPE_OWNER_SELECTOR)).some(
+    (element) => element.getAttribute('aria-hidden') !== 'true' && getComputedStyle(element).display !== 'none'
+  );
+  if (hasOpenOverlay) return;
   const topClose = _escapeStack[_escapeStack.length - 1];
   if (topClose) {
     e.preventDefault();
@@ -182,10 +264,10 @@ function _syncBodyOverflowLock() {
   document.body.style.overflow = _openSheets.length > 0 ? 'hidden' : '';
 }
 
-function _pushOpenSheet(id: number, zIndex: number) {
+function _pushOpenSheet(id: number, zIndex: number, layout: ComputedRef<SharedSheetLayout | null>) {
   const existingIdx = _openSheets.findIndex((record) => record.id === id);
   if (existingIdx !== -1) _openSheets.splice(existingIdx, 1);
-  _openSheets.push({ id, zIndex, openOrder: _nextSheetOpenOrder++ });
+  _openSheets.push({ id, zIndex, openOrder: _nextSheetOpenOrder++, layout });
   _syncBodyOverflowLock();
 }
 
@@ -208,6 +290,17 @@ export interface DetentDef {
 }
 export type Detent = DetentPreset | DetentDef;
 
+interface SharedSheetLayout {
+  heightPx: number;
+  detentId: string;
+  detents: Detent[];
+  fullscreen: boolean;
+  desktopWidth: 'standard' | 'compact';
+  viewportCentered: boolean;
+}
+
+const _sharedSheetLayoutKey: InjectionKey<ComputedRef<SharedSheetLayout | null>> = Symbol('shared-sheet-layout');
+
 export interface BottomSheetLayoutState {
   open: boolean;
   detentId: string;
@@ -223,8 +316,28 @@ export interface BottomSheetLayoutState {
 </script>
 
 <script setup lang="ts">
-import { ref, computed, watch, nextTick, onMounted, onUnmounted, useSlots } from 'vue';
+import {
+  ref,
+  computed,
+  watch,
+  nextTick,
+  onMounted,
+  onBeforeUnmount,
+  onUnmounted,
+  useSlots,
+  inject,
+  provide,
+} from 'vue';
 import { isPointerDragExcluded, usePointerDrag, type DragState } from '@/composables/usePointerDrag';
+import { observeElementResize } from '@/utils/observeElementResize';
+import { sheetControlsKey, useImmersiveSheetControls } from './useImmersiveSheetControls';
+import {
+  boundedSheetHeight,
+  sheetContentOverflow,
+  sheetFitTargets,
+  SHEET_OVERFLOW_TOLERANCE_PX,
+  SHEET_CONTENT_KEY_ATTRIBUTE,
+} from './bottomSheetSizing';
 
 const DETENT_PRESETS: Record<DetentPreset, string> = {
   small: 'clamp(180px, 30vh, 280px)',
@@ -239,6 +352,13 @@ const props = withDefaults(
     modelValue: boolean;
     title?: string;
     icon?: string;
+    /** Return from a section to its hub. Also handles Escape after fullscreen is exited. */
+    backLabel?: string;
+    /** Emit close-request and let the caller change modelValue after navigation succeeds. */
+    deferClose?: boolean;
+    /** Re-resolve scrolling and sizing for cached sections. Nested screens may
+     * instead set data-sheet-content-key on their content root. */
+    contentKey?: string | number;
     headerMode?: 'default' | 'compact';
     /** Detent positions the sheet can rest at, ordered low → high.
      *  Each entry is a named preset ('small'|'medium'|'large') or
@@ -248,6 +368,10 @@ const props = withDefaults(
     initialDetent?: string | number;
     /** When true, open at the content height even when detents are available. */
     fitContentInitial?: boolean;
+    /** Fit opening and later content changes, until the user manually resizes. */
+    fitContent?: boolean;
+    /** Remove small overflow within a bounded allowance; manual sizing takes priority until reopening. */
+    fitSmallOverflow?: boolean;
     /** Programmatically jump to a detent (by id or index). */
     selectedDetent?: string | number;
     /** Optional detent/height to use while this sheet is backgrounded by a higher sheet. */
@@ -264,18 +388,42 @@ const props = withDefaults(
     viewportCentered?: boolean;
     /** Use the shared compact width on desktop while keeping the mobile sheet full width. */
     desktopWidth?: 'standard' | 'compact';
+    /** Let related nested sheets inherit this panel's size, width and anchor. */
+    shareLayout?: boolean;
+    /** Start at a sharing parent's current layout; explicit user resizing takes priority. */
+    inheritParentLayout?: boolean;
+    /** Cover the previous sheet on entry; disable for compact map workspace tools. */
+    coverPreviousSheet?: boolean;
     /** Show a browser-fullscreen control independently from the panel maximize control. */
     nativeFullscreen?: boolean;
+    /** Label app expansion and browser fullscreen as separate size choices. */
+    fullscreenControlLabels?: boolean;
+    /** Hide idle controls over fullscreen content until pointer or keyboard input. */
+    immersive?: boolean;
+    /** Open a workspace that needs the full viewport with the panel maximized. */
+    initiallyMaximized?: boolean;
     /** Override the CSS z-index for stacking sheets on top of each other. */
     zIndex?: number;
+    /** When false, dragging or flicking down stops at the lowest detent instead of closing. */
+    dragToClose?: boolean;
+    /** Always come to rest on a detent after dragging, including slow releases. */
+    snapOnRelease?: boolean;
+    /** Keep the released height, including fast drags, instead of snapping or applying momentum. */
+    freeResize?: boolean;
   }>(),
   {
     title: '',
     icon: '',
+    backLabel: '',
+    deferClose: false,
+    contentKey: undefined,
     headerMode: 'default',
     detents: () => [],
     initialDetent: 0,
+    initiallyMaximized: false,
     fitContentInitial: false,
+    fitContent: false,
+    fitSmallOverflow: true,
     selectedDetent: undefined,
     backgroundDetent: undefined,
     noBackdrop: true,
@@ -284,44 +432,283 @@ const props = withDefaults(
     sheetClass: '',
     viewportCentered: false,
     desktopWidth: 'standard',
+    shareLayout: false,
+    inheritParentLayout: false,
+    coverPreviousSheet: true,
     nativeFullscreen: false,
+    fullscreenControlLabels: false,
+    immersive: false,
     zIndex: undefined,
+    dragToClose: true,
+    snapOnRelease: false,
+    freeResize: false,
   }
 );
 
 const emit = defineEmits<{
   (e: 'update:modelValue', value: boolean): void;
   (e: 'closed'): void;
+  (e: 'close-request'): void;
+  (e: 'back'): void;
   (e: 'detent-change', id: string): void;
   (e: 'layout-change', value: BottomSheetLayoutState): void;
+  (e: 'resize-end', heightPx: number): void;
 }>();
 
 const sheetId = _nextSheetId++;
 const sheetEl = ref<HTMLElement | null>(null);
+const bodyFrameEl = ref<HTMLElement | null>(null);
 const bodyEl = ref<HTMLElement | null>(null);
+const pinnedEl = ref<HTMLElement | null>(null);
 const footerEl = ref<HTMLElement | null>(null);
 const isDragging = ref(false);
 const isAnimatingOut = ref(false);
 const hasScrollableOverflow = ref(false);
 const showScrollHint = ref(false);
+const scrollHintStyle = ref<Record<string, string>>({});
 const isFullscreen = ref(false);
 const isNativeFullscreen = ref(false);
+const nativeFullscreenPending = ref(false);
+const nativeFullscreenError = ref('');
 const activeDetentId = ref('');
+const isPreparing = ref(props.modelValue);
+const isEntering = ref(false);
+const SHEET_OPEN_DURATION_MS = 450;
+const SHEET_MOTION_EASING = 'cubic-bezier(0.22, 1, 0.36, 1)';
+const SHEET_VIEWPORT_LIMIT = 0.98;
+const SHEET_DRAG_VIEWPORT_FRACTION = 0.92;
+let openRevision = 0;
+let openingAnimation: Animation | null = null;
+let manuallySized = false;
+let minimumOpeningHeight = 0;
+let fullscreenRestoreState: { heightPx: number; detentId: string } | null = null;
+let nativeFullscreenRestoreExpanded = false;
+let fitBaseline = 0;
+let fittedDetent: ResolvedDetent | null = null;
+let fitFrame: number | null = null;
+let fitResetPending = false;
+let fitObserver: ResizeObserver | null = null;
+let fitObservedTargets = new Set<Element>();
+let waitingForMotion: Animation | null = null;
+let lastSheetWidth = 0;
+let viewportHeight = window.innerHeight;
+let viewportWidth = window.innerWidth;
+let visibleViewportHeight = availableViewportHeight();
+const parentLayout = inject(_sharedSheetLayoutKey, null);
+const inheritedLayout = ref<SharedSheetLayout | null>(null);
+const layoutDesktopWidth = computed(() => inheritedLayout.value?.desktopWidth ?? props.desktopWidth);
+const layoutViewportCentered = computed(() => inheritedLayout.value?.viewportCentered ?? props.viewportCentered);
+
+function availableViewportHeight(): number {
+  return Math.min(window.innerHeight, window.visualViewport?.height ?? window.innerHeight);
+}
+
+/** A foreground sheet covers the previous sheet until the user chooses another size. */
+function openingHeight(heightPx: number): number {
+  return Math.min(
+    Math.max(heightPx, manuallySized ? 0 : minimumOpeningHeight),
+    availableViewportHeight() * SHEET_VIEWPORT_LIMIT
+  );
+}
+
+function canFitSmallOverflow(): boolean {
+  const viewportReduced = availableViewportHeight() < window.innerHeight - SHEET_OVERFLOW_TOLERANCE_PX;
+  return (
+    props.fitSmallOverflow &&
+    !inheritedLayout.value &&
+    !props.fitContentInitial &&
+    !props.fitContent &&
+    props.detents.length > 0 &&
+    !manuallySized &&
+    !viewportReduced
+  );
+}
+
+function canFitContent(): boolean {
+  return (
+    props.fitContent &&
+    !inheritedLayout.value &&
+    !manuallySized &&
+    availableViewportHeight() >= window.innerHeight - SHEET_OVERFLOW_TOLERANCE_PX
+  );
+}
+
+function canFitAutomatically(): boolean {
+  return canFitContent() || canFitSmallOverflow();
+}
+
+function cancelOpening() {
+  openRevision += 1;
+  openingAnimation?.cancel();
+  openingAnimation = null;
+  isEntering.value = false;
+}
+
+function suspendAutomaticFit() {
+  manuallySized = true;
+  fitResetPending = false;
+  cancelOpening();
+}
+
+/** Measure a new baseline in one synchronous layout transaction. Restoring with
+ * transitions disabled prevents a section/viewport change from exposing the probe height.
+ */
+function measureFittedHeight(height: number): number {
+  height = openingHeight(height);
+  const sheet = sheetEl.value;
+  const body = bodyEl.value;
+  if (!sheet || !body || !canFitSmallOverflow()) return height;
+  const previousHeight = sheet.style.height;
+  const previousTransition = sheet.style.transition;
+  sheet.style.transition = 'none';
+  sheet.style.height = `${height}px`;
+  const fitted = boundedSheetHeight(height, height, sheetContentOverflow(body), availableViewportHeight());
+  sheet.style.height = previousHeight;
+  // Commit the restored layout before enabling transitions again.
+  void sheet.offsetHeight;
+  sheet.style.transition = previousTransition;
+  return fitted;
+}
+
+function rememberFittedDetent() {
+  fittedDetent = sheetHeight.value > fitBaseline ? { id: activeDetentId.value, heightPx: sheetHeight.value } : null;
+}
+
+/** Probe natural content rather than retaining the previous scroll viewport height. */
+function measureContentHeight(): number {
+  const sheet = sheetEl.value;
+  if (!sheet) return sheetHeight.value;
+  const previousHeight = sheet.style.height;
+  const previousTransition = sheet.style.transition;
+  sheet.style.transition = 'none';
+  sheet.style.height = '0px';
+  const height = Math.min(computeInitialHeight(), availableViewportHeight() * SHEET_VIEWPORT_LIMIT);
+  sheet.style.height = previousHeight;
+  void sheet.offsetHeight;
+  sheet.style.transition = previousTransition;
+  return height;
+}
+
+function scheduleContentFit(reset = false) {
+  fitResetPending ||= reset;
+  if (!isOpen.value || isPreparing.value || isBackgrounded.value || !canFitAutomatically() || fitFrame !== null) return;
+  fitFrame = window.requestAnimationFrame(() => {
+    fitFrame = null;
+    if (
+      !isOpen.value ||
+      isPreparing.value ||
+      isBackgrounded.value ||
+      isDragging.value ||
+      isFullscreen.value ||
+      isNativeFullscreen.value ||
+      !canFitAutomatically()
+    )
+      return;
+    const motion =
+      openingAnimation ?? sheetEl.value?.getAnimations?.().find((animation) => animation.playState === 'running');
+    if (motion) {
+      if (waitingForMotion !== motion) {
+        waitingForMotion = motion;
+        const settled = () => {
+          if (waitingForMotion !== motion) return;
+          waitingForMotion = null;
+          scheduleContentFit();
+        };
+        void motion.finished.then(settled, settled);
+      }
+      return;
+    }
+    if (canFitContent()) {
+      fitResetPending = false;
+      sheetHeight.value = measureContentHeight();
+      fitBaseline = sheetHeight.value;
+    } else if (fitResetPending) {
+      fitResetPending = false;
+      fitBaseline = getResolvedDetents().find((detent) => detent.id === activeDetentId.value)?.heightPx ?? fitBaseline;
+      sheetHeight.value = measureFittedHeight(fitBaseline);
+    } else if (bodyEl.value) {
+      sheetHeight.value = boundedSheetHeight(
+        fitBaseline,
+        sheetHeight.value,
+        sheetContentOverflow(bodyEl.value),
+        availableViewportHeight()
+      );
+    }
+    rememberFittedDetent();
+    resolveScrollTarget();
+    updateScrollHint();
+  });
+}
+
+function observeFitContent() {
+  const targets = new Set<Element>();
+  // A scroll viewport can stay the same size while its natural content grows.
+  if (bodyEl.value && canFitAutomatically()) {
+    for (const target of sheetFitTargets(bodyEl.value)) {
+      targets.add(target);
+      for (const child of target.children) targets.add(child);
+    }
+    if (handleEl.value) targets.add(handleEl.value);
+    if (pinnedEl.value) targets.add(pinnedEl.value);
+    if (footerEl.value) targets.add(footerEl.value);
+  }
+  // Re-observing unchanged chart containers during a resize schedules another
+  // initial notification and can loop through their style mutations.
+  if (targets.size === fitObservedTargets.size && [...targets].every((target) => fitObservedTargets.has(target)))
+    return;
+  fitObserver?.disconnect();
+  fitObservedTargets = targets;
+  if (!targets.size) return;
+  fitObserver ??= new ResizeObserver(() => scheduleContentFit());
+  for (const target of targets) fitObserver.observe(target);
+}
 
 // Desktop detection for the mobile drag affordance.
 const DESKTOP_BP = 769;
 const SHEET_DRAG_HALO_PX = 10;
 const SHEET_DRAG_ACTIVATION_THRESHOLD_PX = 6;
-const SCROLL_OVERFLOW_TOLERANCE_PX = 4;
+const SCROLL_OVERFLOW_TOLERANCE_PX = SHEET_OVERFLOW_TOLERANCE_PX;
+const SHEET_TOUCH_EDGE_TOLERANCE_PX = 1;
+const SHEET_TOUCH_DIRECTION_THRESHOLD_PX = 4;
 const isDesktopWidth = ref(typeof window !== 'undefined' ? window.innerWidth >= DESKTOP_BP : false);
 let viewportResizeFrame: number | null = null;
 
 function onWindowResize() {
   isDesktopWidth.value = window.innerWidth >= DESKTOP_BP;
-  if (!isOpen.value || isDragging.value || isFullscreen.value || isNativeFullscreen.value) return;
+  const nextVisibleHeight = availableViewportHeight();
+  const visualOnlyReduction =
+    window.innerWidth === viewportWidth &&
+    window.innerHeight === viewportHeight &&
+    nextVisibleHeight < visibleViewportHeight;
+  viewportWidth = window.innerWidth;
+  viewportHeight = window.innerHeight;
+  visibleViewportHeight = nextVisibleHeight;
+  if (
+    !isOpen.value ||
+    isDragging.value ||
+    isFullscreen.value ||
+    isNativeFullscreen.value ||
+    nativeFullscreenPending.value
+  )
+    return;
   if (viewportResizeFrame !== null) window.cancelAnimationFrame(viewportResizeFrame);
   viewportResizeFrame = window.requestAnimationFrame(() => {
     viewportResizeFrame = null;
+    if (isPreparing.value || isEntering.value) {
+      fitResetPending = true;
+      scheduleContentFit();
+      return;
+    }
+    if (inheritedLayout.value && !manuallySized) {
+      followParentLayout(parentLayout?.value ?? inheritedLayout.value);
+      return;
+    }
+    if (visualOnlyReduction || (manuallySized && !props.snapOnRelease)) {
+      sheetHeight.value = Math.min(sheetHeight.value, availableViewportHeight() * SHEET_VIEWPORT_LIMIT);
+      fitResetPending = false;
+      scheduleLayoutEmit();
+      return;
+    }
     if (isBackgrounded.value && props.backgroundDetent != null) {
       const backgroundTarget = resolveDetentReference(props.backgroundDetent);
       if (backgroundTarget) {
@@ -340,9 +727,12 @@ function onWindowResize() {
         sheetHeight.value = computeInitialHeight();
       } else {
         const activeDetent = resolved.find((detent) => detent.id === activeDetentId.value);
-        sheetHeight.value = activeDetent?.heightPx ?? Math.min(sheetHeight.value, window.innerHeight * 0.98);
+        fitBaseline = activeDetent?.heightPx ?? Math.min(sheetHeight.value, window.innerHeight * SHEET_VIEWPORT_LIMIT);
+        sheetHeight.value = measureFittedHeight(fitBaseline);
+        rememberFittedDetent();
       }
     }
+    sheetHeight.value = Math.min(sheetHeight.value, availableViewportHeight() * SHEET_VIEWPORT_LIMIT);
     resolveScrollTarget();
     updateScrollHint();
     scheduleLayoutEmit();
@@ -353,47 +743,98 @@ onMounted(() => {
   window.visualViewport?.addEventListener('resize', onWindowResize);
   document.addEventListener('fullscreenchange', onDocumentFullscreenChange);
 });
+onBeforeUnmount(exitOwnedBrowserFullscreen);
 onUnmounted(() => {
   window.removeEventListener('resize', onWindowResize);
   window.visualViewport?.removeEventListener('resize', onWindowResize);
   document.removeEventListener('fullscreenchange', onDocumentFullscreenChange);
-  if (document.fullscreenElement === sheetEl.value) void document.exitFullscreen().catch(() => undefined);
   if (viewportResizeFrame !== null) window.cancelAnimationFrame(viewportResizeFrame);
 });
+
+function exitOwnedBrowserFullscreen() {
+  const element = sheetEl.value;
+  if (!element || document.fullscreenElement !== element || typeof document.exitFullscreen !== 'function') return;
+  try {
+    void document.exitFullscreen().catch(() => undefined);
+  } catch {
+    // Some browsers reject fullscreen synchronously during teardown.
+  }
+}
 
 function leaveFullscreenState() {
   if (!isFullscreen.value) return;
   isFullscreen.value = false;
-  sheetHeight.value = computeInitialHeight();
+  if (fullscreenRestoreState) {
+    sheetHeight.value = Math.min(fullscreenRestoreState.heightPx, availableViewportHeight() * SHEET_VIEWPORT_LIMIT);
+    activeDetentId.value = fullscreenRestoreState.detentId;
+    fullscreenRestoreState = null;
+  } else {
+    sheetHeight.value = computeInitialHeight();
+  }
   emit('detent-change', activeDetentId.value);
 }
 
 function toggleFullscreen() {
+  nativeFullscreenError.value = '';
+  suspendAutomaticFit();
   if (isFullscreen.value) {
     leaveFullscreenState();
     return;
   }
 
   if (isNativeFullscreen.value) leaveNativeFullscreen();
+  fullscreenRestoreState = { heightPx: sheetHeight.value, detentId: activeDetentId.value };
   isFullscreen.value = true;
 }
 
 function leaveNativeFullscreenState() {
   isNativeFullscreen.value = false;
+  if (nativeFullscreenRestoreExpanded) {
+    nativeFullscreenRestoreExpanded = false;
+    toggleFullscreen();
+  }
 }
 
 function leaveNativeFullscreen() {
-  const ownsBrowserFullscreen = document.fullscreenElement === sheetEl.value;
   leaveNativeFullscreenState();
-  if (ownsBrowserFullscreen) void document.exitFullscreen().catch(() => undefined);
+  exitOwnedBrowserFullscreen();
 }
 
-function toggleNativeFullscreen() {
+async function toggleNativeFullscreen() {
+  if (nativeFullscreenPending.value) return;
+  suspendAutomaticFit();
   if (isNativeFullscreen.value) {
     leaveNativeFullscreen();
     return;
   }
 
+  if (props.fullscreenControlLabels) {
+    const element = sheetEl.value;
+    nativeFullscreenError.value = '';
+    if (!element?.requestFullscreen || document.fullscreenEnabled === false) {
+      nativeFullscreenError.value = 'Full screen is unavailable in this browser. Use Expand.';
+      return;
+    }
+    nativeFullscreenPending.value = true;
+    try {
+      // Invoke directly from the click; browser fullscreen requires user activation.
+      await element.requestFullscreen({ navigationUI: 'hide' });
+      if (!isOpen.value) {
+        exitOwnedBrowserFullscreen();
+        return;
+      }
+      if (document.fullscreenElement !== element) throw new Error('The browser did not enter fullscreen');
+      nativeFullscreenRestoreExpanded = isFullscreen.value;
+      if (isFullscreen.value) leaveFullscreenState();
+      isNativeFullscreen.value = true;
+    } catch {
+      nativeFullscreenError.value = 'Full screen is unavailable in this browser. Use Expand.';
+    } finally {
+      nativeFullscreenPending.value = false;
+    }
+    return;
+  }
+  nativeFullscreenRestoreExpanded = false;
   if (isFullscreen.value) leaveFullscreenState();
   isNativeFullscreen.value = true;
   if (sheetEl.value?.requestFullscreen) {
@@ -402,6 +843,9 @@ function toggleNativeFullscreen() {
     });
   }
 }
+
+const panelSizeLabel = computed(() => (isFullscreen.value ? 'Restore' : 'Expand'));
+const browserFullscreenLabel = computed(() => (isNativeFullscreen.value ? 'Exit full screen' : 'Full screen'));
 
 function onDocumentFullscreenChange() {
   if (isNativeFullscreen.value && document.fullscreenElement !== sheetEl.value) leaveNativeFullscreenState();
@@ -416,6 +860,10 @@ function handleEscape() {
     toggleFullscreen();
     return;
   }
+  if (props.backLabel) {
+    emit('back');
+    return;
+  }
   close();
 }
 
@@ -428,8 +876,50 @@ let suppressNextDragZoneClick = false;
 let backgroundRestoreState: { activeDetentId: string; fullscreen: boolean; heightPx: number } | null = null;
 
 const isOpen = computed(() => props.modelValue);
+const currentSheetLayout = computed<SharedSheetLayout | null>(() =>
+  isOpen.value
+    ? {
+        heightPx: sheetHeight.value,
+        detentId: activeDetentId.value,
+        detents: inheritedLayout.value?.detents ?? props.detents,
+        fullscreen: isFullscreen.value || isNativeFullscreen.value,
+        desktopWidth: layoutDesktopWidth.value,
+        viewportCentered: layoutViewportCentered.value,
+      }
+    : null
+);
+provide(
+  _sharedSheetLayoutKey,
+  computed(() => (props.shareLayout ? currentSheetLayout.value : null))
+);
+
+function followParentLayout(layout: SharedSheetLayout) {
+  inheritedLayout.value = layout;
+  sheetHeight.value = Math.min(layout.heightPx, availableViewportHeight() * SHEET_VIEWPORT_LIMIT);
+  activeDetentId.value = layout.detentId;
+  isFullscreen.value = layout.fullscreen;
+  fullscreenRestoreState = layout.fullscreen ? { heightPx: sheetHeight.value, detentId: layout.detentId } : null;
+  fitBaseline = sheetHeight.value;
+  resolveScrollTarget();
+  updateScrollHint();
+  scheduleLayoutEmit();
+}
+
+if (parentLayout) {
+  watch(parentLayout, (layout) => {
+    if (
+      layout &&
+      inheritedLayout.value &&
+      isOpen.value &&
+      !isPreparing.value &&
+      !manuallySized &&
+      !isNativeFullscreen.value
+    )
+      followParentLayout(layout);
+  });
+}
 const headerMode = computed(() => props.headerMode);
-const hasHeader = computed(() => Boolean(props.title || slots.title));
+const hasHeader = computed(() => Boolean(props.title || slots.title || props.backLabel));
 const effectiveZIndex = computed(() => props.zIndex ?? DEFAULT_SHEET_Z_INDEX);
 const stackedZIndex = computed(() => {
   const current = _openSheets.find((record) => record.id === sheetId);
@@ -453,9 +943,20 @@ const isBackgrounded = computed(() => {
       (record.zIndex > current.zIndex || (record.zIndex === current.zIndex && record.openOrder > current.openOrder))
   );
 });
+const immersiveControls = useImmersiveSheetControls(
+  sheetEl,
+  computed(() => props.immersive && isOpen.value && !isBackgrounded.value && isNativeFullscreen.value)
+);
+provide(sheetControlsKey, { hidden: immersiveControls.hidden });
 const showDragHalo = computed(
   () =>
-    isOpen.value && !isBackgrounded.value && !isFullscreen.value && !isNativeFullscreen.value && !isDesktopWidth.value
+    isOpen.value &&
+    !isPreparing.value &&
+    !isEntering.value &&
+    !isBackgrounded.value &&
+    !isFullscreen.value &&
+    !isNativeFullscreen.value &&
+    !isDesktopWidth.value
 );
 const sheetHaloStyle = computed<Record<string, string>>(() => ({
   '--sheet-current-height': `${sheetHeight.value}px`,
@@ -506,7 +1007,25 @@ function findDetentIndex(resolved: ResolvedDetent[], ref: string | number | unde
 }
 
 function getResolvedDetents(): ResolvedDetent[] {
-  return resolveDetents(props.detents ?? [], window.innerHeight);
+  return resolveDetents(inheritedLayout.value?.detents ?? props.detents, window.innerHeight);
+}
+
+function getInteractionDetents(): ResolvedDetent[] {
+  const detents = getResolvedDetents()
+    .map((detent) => ({
+      ...detent,
+      heightPx: Math.min(
+        detent.id === fittedDetent?.id ? Math.max(detent.heightPx, fittedDetent.heightPx) : detent.heightPx,
+        availableViewportHeight() * SHEET_VIEWPORT_LIMIT
+      ),
+    }))
+    .sort((a, b) => a.heightPx - b.heightPx);
+  const stackHeight = Math.min(minimumOpeningHeight, availableViewportHeight() * SHEET_VIEWPORT_LIMIT);
+  // The raised opening height must also be reachable by dragging and resizeTo.
+  if (detents.length && stackHeight > detents[detents.length - 1].heightPx) {
+    detents.push({ id: STACK_HEIGHT_DETENT_ID, heightPx: stackHeight });
+  }
+  return detents;
 }
 
 function resolveDetentReference(ref: Detent | string | number | undefined): ResolvedDetent | null {
@@ -534,27 +1053,32 @@ function resolveDetentReference(ref: Detent | string | number | undefined): Reso
 
 /** Compute the height the sheet should open at */
 function computeInitialHeight(): number {
+  if (inheritedLayout.value) {
+    activeDetentId.value = inheritedLayout.value.detentId;
+    return openingHeight(inheritedLayout.value.heightPx);
+  }
   const vh = window.innerHeight;
   const defs = props.detents;
 
   if (!defs || defs.length === 0) {
-    return computeAutoFitHeight(vh);
+    return openingHeight(computeAutoFitHeight(vh));
   }
 
   const resolved = getResolvedDetents();
-  if (props.fitContentInitial) {
+  if (props.fitContentInitial || props.fitContent) {
     const maxDetentHeight = resolved[resolved.length - 1]?.heightPx ?? vh * 0.92;
     const minDetentHeight = resolved[0]?.heightPx ?? minHeight;
     const fallbackDetentHeight = resolved[findDetentIndex(resolved, props.initialDetent)]?.heightPx ?? minDetentHeight;
     const measuredHeight = computeContentIdealHeight(fallbackDetentHeight);
-    const idealHeight = measuredHeight <= minDetentHeight + 1 ? fallbackDetentHeight : measuredHeight;
+    const idealHeight =
+      !props.fitContent && measuredHeight <= minDetentHeight + 1 ? fallbackDetentHeight : measuredHeight;
     activeDetentId.value = FIT_CONTENT_DETENT_ID;
-    return Math.max(minDetentHeight, Math.min(idealHeight, maxDetentHeight));
+    return openingHeight(Math.max(minDetentHeight, Math.min(idealHeight, maxDetentHeight)));
   }
 
-  const idx = findDetentIndex(resolved, props.initialDetent);
+  const idx = findDetentIndex(resolved, props.selectedDetent ?? props.initialDetent);
   activeDetentId.value = resolved[idx].id;
-  return resolved[idx].heightPx;
+  return openingHeight(resolved[idx].heightPx);
 }
 
 function computeContentIdealHeight(fallbackHeight = 200): number {
@@ -564,10 +1088,17 @@ function computeContentIdealHeight(fallbackHeight = 200): number {
 
   const dragZone = sheetEl.value.querySelector('.sheet-drag-zone') as HTMLElement | null;
   const body = bodyEl.value;
-  const chromeH = (dragZone?.offsetHeight ?? 0) + 12;
+  const sheetStyles = window.getComputedStyle(sheetEl.value);
+  const verticalInsets =
+    (Number.parseFloat(sheetStyles.paddingTop) || 0) +
+    (Number.parseFloat(sheetStyles.paddingBottom) || 0) +
+    (Number.parseFloat(sheetStyles.borderTopWidth) || 0) +
+    (Number.parseFloat(sheetStyles.borderBottomWidth) || 0);
+  const chromeH = (dragZone?.offsetHeight ?? 0) + verticalInsets;
   const contentH = body ? body.scrollHeight : 200;
+  const pinnedH = pinnedEl.value?.offsetHeight ?? 0;
   const footerH = footerEl.value?.offsetHeight ?? 0;
-  return chromeH + contentH + footerH;
+  return chromeH + pinnedH + contentH + footerH;
 }
 
 /** Content-aware auto-fit when no detents are specified */
@@ -602,9 +1133,10 @@ function restoreFromBackgroundDetent() {
   const restoreState = backgroundRestoreState;
   backgroundRestoreState = null;
   isFullscreen.value = restoreState.fullscreen;
-  sheetHeight.value = restoreState.heightPx;
+  sheetHeight.value = Math.min(restoreState.heightPx, availableViewportHeight() * SHEET_VIEWPORT_LIMIT);
   activeDetentId.value = restoreState.activeDetentId;
   updateScrollHint();
+  scheduleContentFit(true);
 }
 
 const sheetStyle = computed(() => {
@@ -627,8 +1159,8 @@ const sheetStyle = computed(() => {
 const scrollTarget = ref<HTMLElement | null>(null);
 let scrollTargetListener: (() => void) | null = null;
 let contentObserver: MutationObserver | null = null;
-let sizeObserver: ResizeObserver | null = null;
-let sheetLayoutObserver: ResizeObserver | null = null;
+let stopObservingScrollResize: (() => void) | null = null;
+let stopObservingSheetLayout: (() => void) | null = null;
 let layoutFrame: number | null = null;
 
 function findScrollableChild(root: HTMLElement): HTMLElement | null {
@@ -656,7 +1188,107 @@ function resolveScrollTarget() {
     scrollTarget.value = null;
     return;
   }
-  scrollTarget.value = findScrollableChild(bodyEl.value);
+  const primary = sheetFitTargets(bodyEl.value).find((target) => target !== bodyEl.value);
+  scrollTarget.value = primary ?? findScrollableChild(bodyEl.value);
+}
+
+type SheetTouchScrollTarget = { element: HTMLElement; horizontal: boolean; vertical: boolean; rtl: boolean };
+let sheetTouchGesture: {
+  identifier: number;
+  startX: number;
+  startY: number;
+  lastX: number;
+  lastY: number;
+  axis: 'x' | 'y' | null;
+  targets: SheetTouchScrollTarget[];
+} | null = null;
+
+function clearSheetTouchGesture() {
+  sheetTouchGesture = null;
+}
+
+function isNativeRangeControl(target: EventTarget | null): boolean {
+  // Native ranges own thumb dragging; canceling touchmove can suppress updates.
+  return target instanceof HTMLInputElement && target.type === 'range' && !target.matches(':disabled');
+}
+
+function ownsSheetTouchGesture(target: EventTarget | null): boolean {
+  return (
+    isNativeRangeControl(target) ||
+    (target instanceof Element && Boolean(target.closest('[data-sheet-native-gesture]')))
+  );
+}
+
+function onSheetTouchStart(event: TouchEvent) {
+  clearSheetTouchGesture();
+  const root = bodyEl.value;
+  if (event.touches.length !== 1 || !(event.target instanceof Node) || !root?.contains(event.target)) return;
+  if (ownsSheetTouchGesture(event.target)) return;
+  const touch = event.touches[0];
+  const targets: SheetTouchScrollTarget[] = [];
+  for (
+    let element = event.target instanceof HTMLElement ? event.target : event.target.parentElement;
+    element;
+    element = element.parentElement
+  ) {
+    const style = getComputedStyle(element);
+    const horizontal =
+      /^(auto|scroll)$/.test(style.overflowX) &&
+      element.scrollWidth > element.clientWidth + SCROLL_OVERFLOW_TOLERANCE_PX;
+    const vertical =
+      /^(auto|scroll)$/.test(style.overflowY) &&
+      element.scrollHeight > element.clientHeight + SCROLL_OVERFLOW_TOLERANCE_PX;
+    if (horizontal || vertical) targets.push({ element, horizontal, vertical, rtl: style.direction === 'rtl' });
+    if (element === root) break;
+  }
+  sheetTouchGesture = {
+    identifier: touch.identifier,
+    startX: touch.clientX,
+    startY: touch.clientY,
+    lastX: touch.clientX,
+    lastY: touch.clientY,
+    axis: null,
+    targets,
+  };
+}
+
+function onSheetTouchMove(event: TouchEvent) {
+  if (!event.cancelable || event.touches.length !== 1 || !(event.target instanceof Node)) return;
+  if (!bodyEl.value?.contains(event.target)) return;
+  if (ownsSheetTouchGesture(event.target)) return;
+  const gesture = sheetTouchGesture;
+  const touch = event.touches[0];
+  if (!gesture || gesture.identifier !== touch.identifier) {
+    event.preventDefault();
+    return;
+  }
+  const dx = touch.clientX - gesture.lastX;
+  const dy = touch.clientY - gesture.lastY;
+  gesture.lastX = touch.clientX;
+  gesture.lastY = touch.clientY;
+  if (!gesture.axis) {
+    const totalX = Math.abs(touch.clientX - gesture.startX);
+    const totalY = Math.abs(touch.clientY - gesture.startY);
+    if (Math.max(totalX, totalY) < SHEET_TOUCH_DIRECTION_THRESHOLD_PX) {
+      if (!gesture.targets.length) event.preventDefault();
+      return;
+    }
+    gesture.axis = totalX > totalY ? 'x' : 'y';
+  }
+  const horizontal = gesture.axis === 'x';
+  const canScroll = gesture.targets.some(({ element, horizontal: scrollX, vertical: scrollY, rtl }) => {
+    if (!element.isConnected || !(horizontal ? scrollX : scrollY)) return false;
+    const maximum = horizontal
+      ? element.scrollWidth - element.clientWidth
+      : element.scrollHeight - element.clientHeight;
+    const offset = horizontal ? (rtl ? -element.scrollLeft : element.scrollLeft) : element.scrollTop;
+    const movement = horizontal ? (rtl ? -dx : dx) : dy;
+    if (movement > 0) return offset > SHEET_TOUCH_EDGE_TOLERANCE_PX;
+    if (movement < 0) return offset < maximum - SHEET_TOUCH_EDGE_TOLERANCE_PX;
+    return true;
+  });
+  // Contain gestures that cannot move content, including movement past its edges.
+  if (!canScroll) event.preventDefault();
 }
 
 function updateScrollHint() {
@@ -670,17 +1302,42 @@ function updateScrollHint() {
   const overflows = scrollHeight > clientHeight + SCROLL_OVERFLOW_TOLERANCE_PX;
   hasScrollableOverflow.value = overflows;
   showScrollHint.value = overflows && scrollTop < scrollHeight - clientHeight - SCROLL_OVERFLOW_TOLERANCE_PX;
+  if (overflows && bodyFrameEl.value) {
+    // A nested viewport may sit beside navigation or below persistent controls.
+    // Keep its fade within that viewport, including after resizing or changing sections.
+    const frame = bodyFrameEl.value.getBoundingClientRect();
+    const target = el.getBoundingClientRect();
+    scrollHintStyle.value = {
+      left: `${Math.max(0, target.left - frame.left)}px`,
+      right: `${Math.max(0, frame.right - target.right)}px`,
+      bottom: `${Math.max(0, frame.bottom - target.bottom)}px`,
+      maxHeight: `${Math.max(0, Math.min(frame.bottom, target.bottom) - Math.max(frame.top, target.top))}px`,
+    };
+  }
 }
+
+watch(
+  () => props.contentKey,
+  () => {
+    resolveScrollTarget();
+    updateScrollHint();
+    observeFitContent();
+    scheduleContentFit(true);
+  },
+  { flush: 'post' }
+);
 
 function scheduleLayoutEmit() {
   if (typeof window === 'undefined' || layoutFrame !== null) return;
   layoutFrame = window.requestAnimationFrame(() => {
     layoutFrame = null;
     emitLayoutChange();
+    if (isEntering.value) scheduleLayoutEmit();
   });
 }
 
 function emitLayoutChange() {
+  if (isPreparing.value) return;
   const vh = window.innerHeight;
   const vw = window.innerWidth;
   const rect = sheetEl.value?.getBoundingClientRect();
@@ -708,7 +1365,11 @@ function emitLayoutChange() {
 }
 
 function onSheetTransitionEnd(event: TransitionEvent) {
-  if (event.propertyName === 'height') scheduleLayoutEmit();
+  if (event.target !== sheetEl.value) return;
+  if (event.propertyName === 'height') {
+    scheduleLayoutEmit();
+    scheduleContentFit();
+  }
 }
 
 function scrollDown() {
@@ -728,16 +1389,13 @@ watch(scrollTarget, (newEl, oldEl) => {
   if (oldEl && scrollTargetListener) {
     oldEl.removeEventListener('scroll', scrollTargetListener);
   }
-  if (sizeObserver) {
-    sizeObserver.disconnect();
-    sizeObserver = null;
-  }
+  stopObservingScrollResize?.();
+  stopObservingScrollResize = null;
   if (newEl) {
     newEl.classList.add(SHEET_SCROLL_TARGET_CLASS);
     scrollTargetListener = updateScrollHint;
     newEl.addEventListener('scroll', scrollTargetListener, { passive: true });
-    sizeObserver = new ResizeObserver(() => updateScrollHint());
-    sizeObserver.observe(newEl);
+    stopObservingScrollResize = observeElementResize(newEl, updateScrollHint);
   }
 });
 
@@ -746,43 +1404,109 @@ watch(scrollTarget, (newEl, oldEl) => {
 function startContentObserver() {
   stopContentObserver();
   if (!bodyEl.value) return;
-  contentObserver = new MutationObserver(() => {
+  contentObserver = new MutationObserver((records) => {
     resolveScrollTarget();
     updateScrollHint();
+    observeFitContent();
+    scheduleContentFit(records.some((record) => record.attributeName === SHEET_CONTENT_KEY_ATTRIBUTE));
   });
-  contentObserver.observe(bodyEl.value, { childList: true, subtree: true });
+  contentObserver.observe(bodyEl.value, {
+    childList: true,
+    subtree: true,
+    characterData: true,
+    attributes: true,
+    attributeFilter: ['style', 'hidden', SHEET_CONTENT_KEY_ATTRIBUTE],
+  });
+  observeFitContent();
 }
 function stopContentObserver() {
   if (contentObserver) {
     contentObserver.disconnect();
     contentObserver = null;
   }
+  fitObserver?.disconnect();
+  fitObservedTargets.clear();
+  if (fitFrame !== null) window.cancelAnimationFrame(fitFrame);
+  fitFrame = null;
+  waitingForMotion = null;
+}
+
+async function prepareOpening() {
+  cancelOpening();
+  const revision = openRevision;
+  manuallySized = false;
+  const current = _openSheets.find((record) => record.id === sheetId);
+  const background = _openSheets
+    .filter(
+      (record) =>
+        record.id !== sheetId &&
+        current &&
+        (record.zIndex < current.zIndex || (record.zIndex === current.zIndex && record.openOrder < current.openOrder))
+    )
+    .sort((a, b) => b.zIndex - a.zIndex || b.openOrder - a.openOrder)[0]?.layout.value;
+  minimumOpeningHeight = props.coverPreviousSheet ? (background?.heightPx ?? 0) : 0;
+  inheritedLayout.value = props.inheritParentLayout ? (parentLayout?.value ?? null) : null;
+  isFullscreen.value =
+    inheritedLayout.value?.fullscreen ??
+    (props.initiallyMaximized || (props.coverPreviousSheet && Boolean(background?.fullscreen)));
+  fullscreenRestoreState = inheritedLayout.value?.fullscreen
+    ? { heightPx: inheritedLayout.value.heightPx, detentId: inheritedLayout.value.detentId }
+    : null;
+  fitResetPending = false;
+  fittedDetent = null;
+  isPreparing.value = true;
+  isAnimatingOut.value = false;
+  // Fit-content modes retain their existing measurement semantics at zero height.
+  sheetHeight.value = 0;
+  await nextTick();
+  if (!isOpen.value || revision !== openRevision) return;
+  fitBaseline = Math.min(computeInitialHeight(), availableViewportHeight() * SHEET_VIEWPORT_LIMIT);
+  sheetHeight.value = fitBaseline;
+  await nextTick();
+  if (!isOpen.value || revision !== openRevision) return;
+  sheetHeight.value = measureFittedHeight(fitBaseline);
+  rememberFittedDetent();
+  await nextTick();
+  if (!isOpen.value || revision !== openRevision) return;
+  const sheet = sheetEl.value;
+  // The real content is already laid out at its final size. Only its position
+  // animates, so wrapping and scroll viewports stay stable throughout entry.
+  if (sheet?.animate && !window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
+    isEntering.value = true;
+    const animation = sheet.animate([{ transform: 'translateY(100%)' }, { transform: 'translateY(0)' }], {
+      duration: SHEET_OPEN_DURATION_MS,
+      easing: SHEET_MOTION_EASING,
+    });
+    openingAnimation = animation;
+    const finish = () => {
+      if (revision !== openRevision) return;
+      openingAnimation = null;
+      isEntering.value = false;
+      scheduleLayoutEmit();
+      scheduleContentFit();
+    };
+    void animation.finished.then(finish, finish);
+  }
+  isPreparing.value = false;
+  if (activeDetentId.value) emit('detent-change', activeDetentId.value);
+  resolveScrollTarget();
+  startContentObserver();
+  updateScrollHint();
+  scheduleLayoutEmit();
+  if (isBackgrounded.value && props.backgroundDetent != null) collapseToBackgroundDetent();
 }
 
 watch(
   () => props.modelValue,
-  async (open) => {
+  (open) => {
     if (open) {
-      _pushOpenSheet(sheetId, effectiveZIndex.value);
-      isAnimatingOut.value = false;
-      sheetHeight.value = 0; // start hidden, will animate
-      await nextTick();
-      // Measure after render, then animate to ideal
-      await nextTick();
-      sheetHeight.value = computeInitialHeight();
-      if (activeDetentId.value) emit('detent-change', activeDetentId.value);
-      if (import.meta.env.DEV) {
-        const vh = window.innerHeight;
-        console.log(
-          `[BottomSheet] height=${sheetHeight.value.toFixed(0)}px  ${((sheetHeight.value / vh) * 100).toFixed(1)}% of vh (vh=${vh}px)  detent=${activeDetentId.value}`
-        );
-      }
-      resolveScrollTarget();
-      startContentObserver();
-      updateScrollHint();
-      scheduleLayoutEmit();
+      _pushOpenSheet(sheetId, effectiveZIndex.value, currentSheetLayout);
       _pushEscape(handleEscape);
+      void prepareOpening();
     } else {
+      clearSheetTouchGesture();
+      cancelOpening();
+      isPreparing.value = false;
       _popEscape(handleEscape);
       _popOpenSheet(sheetId);
       backgroundRestoreState = null;
@@ -803,15 +1527,20 @@ watch([sheetHeight, isOpen, isFullscreen, isNativeFullscreen, isDragging, active
 watch(
   sheetEl,
   (newEl) => {
-    sheetLayoutObserver?.disconnect();
-    sheetLayoutObserver = null;
+    stopObservingSheetLayout?.();
+    stopObservingSheetLayout = null;
     if (newEl) {
-      sheetLayoutObserver = new ResizeObserver(() => {
+      stopObservingSheetLayout = observeElementResize(newEl, () => {
         scheduleLayoutEmit();
         resolveScrollTarget();
         updateScrollHint();
+        const width = newEl.clientWidth;
+        if (width !== lastSheetWidth) {
+          const changed = lastSheetWidth > 0;
+          lastSheetWidth = width;
+          scheduleContentFit(changed);
+        }
       });
-      sheetLayoutObserver.observe(newEl);
       scheduleLayoutEmit();
     }
   },
@@ -825,24 +1554,31 @@ watch(effectiveZIndex, (zIndex) => {
 watch(
   [isBackgrounded, () => props.backgroundDetent],
   ([backgrounded]) => {
-    if (!isOpen.value) return;
+    if (!isOpen.value || isPreparing.value) return;
     if (backgrounded && props.backgroundDetent != null) {
       collapseToBackgroundDetent();
     } else {
       restoreFromBackgroundDetent();
+      if (!backgrounded) scheduleContentFit();
     }
   },
   { flush: 'post' }
 );
 
 function close() {
-  if (document.fullscreenElement === sheetEl.value) {
-    void document.exitFullscreen().catch(() => undefined);
+  if (props.deferClose) {
+    emit('close-request');
+    return;
   }
-  isAnimatingOut.value = true;
+  cancelOpening();
+  exitOwnedBrowserFullscreen();
+  isAnimatingOut.value = !isPreparing.value;
+  isPreparing.value = false;
   isFullscreen.value = false;
   isNativeFullscreen.value = false;
   sheetHeight.value = 0;
+  nativeFullscreenRestoreExpanded = false;
+  nativeFullscreenError.value = '';
   setTimeout(() => {
     isAnimatingOut.value = false;
   }, 350);
@@ -873,8 +1609,10 @@ function nearestDetentIndex(detents: ResolvedDetent[], heightPx: number): number
 }
 
 function snapToAdjacentDetent() {
-  if (isDragging.value || isBackgrounded.value || isFullscreen.value) return;
-  const resolved = getResolvedDetents();
+  if (isPreparing.value || isDragging.value || isBackgrounded.value || isFullscreen.value || isNativeFullscreen.value)
+    return;
+  suspendAutomaticFit();
+  const resolved = getInteractionDetents();
   if (resolved.length === 0) return;
 
   const currentIdx = nearestDetentIndex(resolved, sheetHeight.value);
@@ -893,16 +1631,22 @@ function onDragZoneClick(event: MouseEvent) {
 }
 
 function onSheetDrag({ movement: [, my], velocity: vel, direction: [, dy], dragging, first, last }: DragState) {
+  if (isPreparing.value || isBackgrounded.value || isFullscreen.value || isNativeFullscreen.value) return;
   if (first) {
+    suspendAutomaticFit();
     isDragging.value = true;
     dragStartHeight = sheetHeight.value;
   }
 
   if (dragging) {
-    const resolved = getResolvedDetents();
-    const maxPx = resolved.length > 0 ? resolved[resolved.length - 1].heightPx : window.innerHeight * 0.92;
+    const resolved = getInteractionDetents();
+    const maxPx = Math.min(
+      resolved.length > 0 ? resolved[resolved.length - 1].heightPx : window.innerHeight * SHEET_DRAG_VIEWPORT_FRACTION,
+      availableViewportHeight() * SHEET_VIEWPORT_LIMIT
+    );
+    const minPx = !props.dragToClose && resolved.length > 0 ? resolved[0].heightPx : minHeight * 0.5;
     // my < 0 when finger moves up → sheet grows
-    sheetHeight.value = Math.max(minHeight * 0.5, Math.min(dragStartHeight - my, maxPx));
+    sheetHeight.value = Math.max(minPx, Math.min(dragStartHeight - my, maxPx));
   }
 
   if (last) {
@@ -910,18 +1654,21 @@ function onSheetDrag({ movement: [, my], velocity: vel, direction: [, dy], dragg
     suppressDragZoneClickOnce();
     const velocity = -(vel * dy);
 
-    if (velocity < -0.5) {
-      close();
-      return;
-    }
-    if (sheetHeight.value < minHeight) {
+    if (props.dragToClose && (velocity < -0.5 || sheetHeight.value < minHeight)) {
+      if (props.deferClose) {
+        sheetHeight.value = dragStartHeight;
+        updateScrollHint();
+      }
       close();
       return;
     }
 
-    const resolved = getResolvedDetents();
-    if (resolved.length > 0) {
-      if (vel > 0.1) {
+    const resolved = getInteractionDetents();
+    if (props.freeResize) {
+      activeDetentId.value = '';
+      emit('resize-end', sheetHeight.value);
+    } else if (resolved.length > 0) {
+      if (vel > 0.1 || props.snapOnRelease) {
         let targetIdx: number;
         if (velocity > 0.3) {
           targetIdx = resolved.findIndex((d) => d.heightPx > sheetHeight.value + 8);
@@ -937,7 +1684,7 @@ function onSheetDrag({ movement: [, my], velocity: vel, direction: [, dy], dragg
         emit('detent-change', activeDetentId.value);
       }
     } else {
-      const maxPx = window.innerHeight * 0.92;
+      const maxPx = window.innerHeight * SHEET_DRAG_VIEWPORT_FRACTION;
       sheetHeight.value = Math.max(minHeight, Math.min(sheetHeight.value + velocity * 200, maxPx));
     }
     updateScrollHint();
@@ -963,20 +1710,98 @@ usePointerDrag(handleEl, onSheetDrag, sheetDragOptions);
 usePointerDrag(haloEl, onSheetDrag, sheetDragOptions);
 
 // ── Programmatic detent jump ──
+/** Move to a detent on every call, even when it was already requested before. */
+function snapTo(id: string): boolean {
+  if (
+    !isOpen.value ||
+    isPreparing.value ||
+    isDragging.value ||
+    isBackgrounded.value ||
+    isFullscreen.value ||
+    isNativeFullscreen.value
+  )
+    return false;
+  const target = getResolvedDetents().find((detent) => detent.id === id);
+  if (!target) return false;
+  minimumOpeningHeight = 0;
+  cancelOpening();
+  fitBaseline = target.heightPx;
+  snapToDetent({
+    id: target.id,
+    heightPx: Math.min(target.heightPx, availableViewportHeight() * SHEET_VIEWPORT_LIMIT),
+  });
+  return true;
+}
+
+/** Restore an arbitrary height within the same bounds used by dragging. */
+function resizeTo(heightPx: number): boolean {
+  if (
+    !Number.isFinite(heightPx) ||
+    !isOpen.value ||
+    isPreparing.value ||
+    isDragging.value ||
+    isBackgrounded.value ||
+    isFullscreen.value ||
+    isNativeFullscreen.value
+  )
+    return false;
+  const resolved = getInteractionDetents();
+  const lower = !props.dragToClose && resolved.length > 0 ? resolved[0].heightPx : minHeight;
+  const upper = Math.min(
+    resolved.at(-1)?.heightPx ?? window.innerHeight * SHEET_DRAG_VIEWPORT_FRACTION,
+    availableViewportHeight() * SHEET_VIEWPORT_LIMIT
+  );
+  suspendAutomaticFit();
+  sheetHeight.value = Math.min(upper, Math.max(lower, heightPx));
+  activeDetentId.value = '';
+  updateScrollHint();
+  return true;
+}
+
 watch(
   () => props.selectedDetent,
   (val) => {
-    if (val == null || !isOpen.value || isDragging.value || isFullscreen.value) return;
+    if (
+      val == null ||
+      !isOpen.value ||
+      isPreparing.value ||
+      isDragging.value ||
+      isFullscreen.value ||
+      isNativeFullscreen.value
+    )
+      return;
     const resolved = getResolvedDetents();
     if (resolved.length === 0) return;
     const idx = findDetentIndex(resolved, val);
-    sheetHeight.value = resolved[idx].heightPx;
     activeDetentId.value = resolved[idx].id;
+    fitBaseline = resolved[idx].heightPx;
+    if (canFitAutomatically()) scheduleContentFit(true);
+    else sheetHeight.value = Math.min(fitBaseline, availableViewportHeight() * SHEET_VIEWPORT_LIMIT);
     emit('detent-change', activeDetentId.value);
+  },
+  { flush: 'post' }
+);
+
+watch(
+  () => props.fitContent,
+  (fit) => {
+    if (fit && !inheritedLayout.value) manuallySized = false;
+    observeFitContent();
+    scheduleContentFit(true);
+  },
+  { flush: 'post' }
+);
+
+watch(
+  () => props.fitSmallOverflow,
+  () => {
+    observeFitContent();
+    scheduleContentFit(true);
   }
 );
 
 onUnmounted(() => {
+  cancelOpening();
   _popEscape(handleEscape);
   _popOpenSheet(sheetId);
   if (layoutFrame !== null) {
@@ -987,16 +1812,14 @@ onUnmounted(() => {
     scrollTarget.value.removeEventListener('scroll', scrollTargetListener);
   }
   scrollTarget.value?.classList.remove(SHEET_SCROLL_TARGET_CLASS);
-  if (sizeObserver) {
-    sizeObserver.disconnect();
-    sizeObserver = null;
-  }
-  if (sheetLayoutObserver) {
-    sheetLayoutObserver.disconnect();
-    sheetLayoutObserver = null;
-  }
+  stopObservingScrollResize?.();
+  stopObservingScrollResize = null;
+  stopObservingSheetLayout?.();
+  stopObservingSheetLayout = null;
   stopContentObserver();
 });
+
+defineExpose({ snapTo, resizeTo });
 </script>
 
 <style scoped>
@@ -1043,9 +1866,8 @@ onUnmounted(() => {
   bottom: 0;
   display: flex;
   flex-direction: column;
-  background: var(--surface-glass-heavy);
-  backdrop-filter: var(--blur-sheet);
-  -webkit-backdrop-filter: var(--blur-sheet);
+  box-sizing: border-box;
+  background: var(--surface-sheet-solid);
   border-top-left-radius: 1.25rem;
   border-top-right-radius: 1.25rem;
   box-shadow: var(--shadow-sheet);
@@ -1080,12 +1902,24 @@ onUnmounted(() => {
   visibility: hidden;
 }
 
+.sheet--preparing {
+  visibility: hidden;
+  pointer-events: none;
+  transition: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sheet {
+    transition: none;
+  }
+}
+
 .sheet-drag-halo {
   position: fixed;
   z-index: var(--z-bottom-sheet-content);
   left: 0;
   right: 0;
-  bottom: calc(var(--sheet-current-height, 0px) + max(env(safe-area-inset-bottom, 0px), 0.5rem));
+  bottom: var(--sheet-current-height, 0px);
   height: var(--sheet-drag-halo-height, 10px);
   cursor: grab;
   touch-action: none;
@@ -1156,6 +1990,31 @@ onUnmounted(() => {
   flex: 1 1 auto;
   min-width: 0;
   overflow: hidden;
+}
+
+.sheet-back-btn {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  padding: 0;
+  border: 0;
+  border-radius: 0.5rem;
+  background: transparent;
+  color: var(--text-primary);
+  font-size: var(--text-lg-size);
+  cursor: pointer;
+}
+
+.sheet-back-btn:hover {
+  background: var(--surface-hover);
+}
+
+.sheet-back-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 .sheet-title {
@@ -1252,7 +2111,7 @@ onUnmounted(() => {
    constraint. The required chain is:
 
      .sheet            → overflow: hidden, fixed px height
-     .sheet-body-frame → flex: 1 1 auto; min-height: 0; overflow: hidden
+     .sheet-body-frame → flex: 1 1 auto; min-height: 0; overflow: clip
      .sheet-body       → flex: 1 1 auto; min-height: 0; overflow-y: auto
      [slot root]       → MUST have: display:flex; flex-direction:column;
                                      flex:1 1 auto; min-height:0; overflow:hidden
@@ -1266,7 +2125,9 @@ onUnmounted(() => {
   flex: 1 1 auto;
   flex-direction: column;
   min-height: 0;
-  overflow: hidden;
+  /* This frame clips the scroll hint; only the body or its nested target should
+     scroll. Hidden would also allow focus/scrollIntoView to shift this frame. */
+  overflow: clip;
 }
 
 .sheet-body {
@@ -1274,10 +2135,19 @@ onUnmounted(() => {
   min-height: 0;
   overflow-x: hidden;
   overflow-y: auto;
+  overscroll-behavior-y: contain;
   display: flex;
   flex-direction: column;
   padding: 0 0 var(--bs-body-pb);
   touch-action: pan-y;
+}
+
+.sheet-pinned {
+  position: relative;
+  z-index: 2;
+  flex: 0 0 auto;
+  min-width: 0;
+  background: inherit;
 }
 
 .sheet-footer {
@@ -1445,6 +2315,56 @@ onUnmounted(() => {
 }
 
 /* ─── Panel maximize and browser fullscreen ─── */
+.sheet .sheet-labeled-size-btn {
+  width: auto;
+  height: auto;
+  min-height: 2rem;
+  padding: 0.25rem 0.65rem;
+  gap: 0.35rem;
+  font: inherit;
+  font-size: var(--text-xs-size);
+  white-space: nowrap;
+  border-radius: 8px;
+}
+
+.sheet--immersive .sheet-drag-zone {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 6;
+  transform: translateY(0);
+  transition:
+    transform 0.2s ease,
+    opacity 0.2s ease;
+}
+
+.sheet--controls-hidden .sheet-drag-zone {
+  opacity: 0;
+  transform: translateY(-100%);
+  pointer-events: none;
+}
+
+.sheet-toolbar-reveal {
+  position: absolute;
+  inset: 0 0 auto;
+  height: 48px;
+  z-index: 5;
+}
+.sheet-fullscreen-status {
+  margin: 0;
+  padding: 0.4rem 1rem;
+  color: var(--mp-text, var(--text-secondary));
+  background: var(--mp-surface, var(--surface-sheet-solid));
+  font-size: var(--text-sm-size);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sheet--immersive .sheet-drag-zone {
+    transition: none;
+  }
+}
+
 .sheet--fullscreen,
 .sheet--native-fullscreen {
   border-radius: 0;

@@ -19,7 +19,7 @@ import java.util.UUID;
 public class UUIDUtils {
 
     final static int EXPECTED_FIXED_SIZE = 22;
-
+    public final static int EXPECTED_SHORT_SIZE = 10;
 
     public static String toShortText(UUID uuid) {
 

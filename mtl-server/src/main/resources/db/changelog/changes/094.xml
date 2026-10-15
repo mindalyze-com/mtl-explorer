@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.10.xsd">
+
+    <changeSet id="20261005_1_filter_date_time_offsets" author="codex">
+        <comment>
+            Compare offset-aware filter bounds with track timestamps stored as UTC
+            without a timezone. Keep this independent of the database session timezone.
+        </comment>
+        <sql><![CDATA[
+            UPDATE filter_config
+            SET expression = REPLACE(
+                REPLACE(expression,
+                    'TO_TIMESTAMP(:DATE_TIME_FROM, ''YYYY-MM-DD HH24:MI:SS'')',
+                    '(CAST(:DATE_TIME_FROM AS timestamp with time zone) AT TIME ZONE ''UTC'')'),
+                'TO_TIMESTAMP(:DATE_TIME_TO, ''YYYY-MM-DD HH24:MI:SS'')',
+                '(CAST(:DATE_TIME_TO AS timestamp with time zone) AT TIME ZONE ''UTC'')')
+            WHERE filter_domain = 'GPS_TRACK' AND filter_name = 'SmartBaseFilter';
+        ]]></sql>
+    </changeSet>
+</databaseChangeLog>

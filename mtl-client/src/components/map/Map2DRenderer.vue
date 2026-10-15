@@ -7,7 +7,11 @@
       ref="navSheet"
       :tools="toolDefs"
       :active-tool="activeToolId"
-      :primary-ids="['stats', 'filter', 'planner', 'map']"
+      :primary-ids="MOBILE_PRIMARY_TOOL_IDS"
+      :utility-id="NAVIGATION_UTILITY_TOOL_ID"
+      :utility-badge="
+        releaseUpdates.hasUpdate ? 'Update' : releaseUpdates.browserUpdateAvailable ? 'Reload' : undefined
+      "
       :alert-tool-ids="alertToolIds"
       :drifted-tool-ids="driftedToolIds"
       @select="onNavigationToolSelect"
@@ -92,8 +96,17 @@
       @open-track-photos="onTrackBrowserOpenPhotos"
       @open-media-on-map="openMediaFromStatisticsOnMainMap"
       @open-filter="onNavigationToolSelect('filter')"
+      @track-updated="onTrackMetadataUpdated"
       @tool-opened="onToolOpened('statistics')"
       @tool-closed="onToolClosed"
+    />
+
+    <HealthTool ref="healthTool" @tool-opened="onToolOpened('healthTool')" @tool-closed="onToolClosed" />
+    <TrackReviewTool
+      ref="reviewTool"
+      @tool-opened="onToolOpened('reviewTool')"
+      @tool-closed="onToolClosed"
+      @data-changed="onMapFreshnessBrowserReload"
     />
 
     <GpsLocate
@@ -118,7 +131,7 @@
     />
 
     <!-- ─── Top-right anchor: unified chip + legend card ─── -->
-    <div class="mtl-top-right">
+    <div class="mtl-top-right" :class="{ 'mtl-top-right--drawing': geoDrawingParamDef }">
       <MapLegend
         :entries="legendEntries"
         :legend-mode="legendMode"
@@ -134,6 +147,37 @@
         @update:hidden-groups="onHiddenGroupsChanged"
         @chip-click="onNavigationToolSelect('filter')"
       />
+
+      <!-- ─── Geo drawing toolbar ─── -->
+      <transition name="fade">
+        <div v-if="geoDrawingParamDef" class="geo-draw-toolbar">
+          <div class="geo-draw-toolbar__header">
+            <i :class="geoDrawToolbarIcon"></i>
+            <span>{{ geoDrawToolbarLabel }}</span>
+          </div>
+          <div class="geo-draw-toolbar__hint">{{ geoDrawToolbarHint }}</div>
+          <div class="geo-draw-toolbar__actions">
+            <button
+              class="geo-draw-toolbar__btn geo-draw-toolbar__btn--undo"
+              :disabled="!geoDrawCanUndo"
+              @click="onGeoDrawUndo"
+            >
+              <i class="bi bi-arrow-counterclockwise"></i> Undo
+            </button>
+            <button
+              v-if="geoDrawIsPolygon"
+              class="geo-draw-toolbar__btn geo-draw-toolbar__btn--finish"
+              :disabled="!geoDrawCanFinish"
+              @click="onGeoDrawFinish"
+            >
+              <i class="bi bi-check-lg"></i> Finish
+            </button>
+            <button class="geo-draw-toolbar__btn geo-draw-toolbar__btn--cancel" @click="onGeoDrawCancel">
+              <i class="bi bi-x-lg"></i> Cancel
+            </button>
+          </div>
+        </div>
+      </transition>
     </div>
 
     <!-- ─── Top progress bar ─── -->
@@ -141,7 +185,7 @@
       <div v-if="showLoader || loadingTrackBatches || loadingTracks10m" class="mtl-progress-bar"></div>
     </transition>
 
-    <!-- ─── Admin (managed via NavigationSheet, same as all tools) ─── -->
+    <!-- ─── Settings and administration ─── -->
     <AdminDialog
       ref="adminTool"
       @tool-opened="onToolOpened('adminTool')"
@@ -149,11 +193,6 @@
       @reload-tracks="onAdminReloadTracks"
       @refresh-freshness-data="onAdminRefreshFreshnessData"
     />
-
-    <!-- ─── Offline banner ─── -->
-    <transition name="fade">
-      <div v-if="isOffline" class="mtl-offline"><i class="bi bi-wifi-off"></i> Offline — displaying cached tracks</div>
-    </transition>
 
     <MapConfigFallbackNotice
       v-if="showMapConfigFallbackNotice"
@@ -188,72 +227,211 @@
       </div>
     </transition>
 
-    <!-- ─── Data freshness banner ─── -->
-    <Teleport to="body">
-      <transition name="fade">
-        <div v-if="showDataFreshnessBanner" class="mtl-data-freshness">
-          <div class="mtl-data-freshness__content">
-            <i class="bi bi-arrow-repeat"></i>
-            <div class="mtl-data-freshness__text">
-              <div class="mtl-data-freshness__title">New data available</div>
-              <div class="mtl-data-freshness__detail">Tracks, media, or settings changed since this view loaded.</div>
-            </div>
-          </div>
-          <div class="mtl-data-freshness__actions">
-            <button
-              class="mtl-data-freshness__btn mtl-data-freshness__btn--primary"
-              :disabled="freshnessReloading"
-              @click="onMapFreshnessBrowserReload"
+    <MapDataStatusNotice
+      :status="mapDataStatus"
+      :reloading="freshnessReloading"
+      :map-element="mapContainer"
+      :placement-key="mapDataStatusPlacementKey"
+      @reload="onMapFreshnessBrowserReload"
+    />
+
+    <BottomSheet
+      v-if="mapInteraction"
+      :model-value="true"
+      :detents="MAP_INTERACTION_DETENTS"
+      :initial-detent="MAP_TARGET_CHOOSER_DETENT_ID"
+      :selected-detent="MAP_TARGET_CHOOSER_DETENT_ID"
+      :fit-small-overflow="false"
+      desktop-width="standard"
+      share-layout
+      :title="mapInteractionTitle"
+      :icon="mapInteractionIcon"
+      :back-label="
+        mapInteraction.presentation === 'target' && !mapInteractionShowsTrackDetails ? 'Back to results' : ''
+      "
+      header-mode="compact"
+      :z-index="5300"
+      no-scroll-hint
+      :native-fullscreen="mapInteractionShowsPhotoViewer"
+      :fullscreen-control-labels="mapInteractionShowsPhotoViewer"
+      :immersive="mapInteractionShowsPhotoViewer"
+      :sheet-class="[
+        'map-target-sheet',
+        mapInteractionShowsPhotoViewer ? 'media-viewer-sheet' : '',
+        mapInteractionShowsPhotoViewer ? dispatcherPhotoThemeClass : '',
+      ]"
+      @update:model-value="!$event && endMapInteraction(true)"
+      @back="backFromMapContent"
+      @layout-change="mapInteractionVisibility.onLayoutChange"
+    >
+      <template
+        v-if="mapInteraction.presentation === 'target' && mapInteractionDetailKind === 'photo' && mediaSheetVisible"
+        #title
+      >
+        <span class="media-preview-sheet-title">
+          <i class="bi bi-image" aria-hidden="true"></i>
+          <span>{{ mediaViewerScopeLabel }}</span>
+          <span class="media-preview-sheet-title__counter"
+            >{{ mediaCurrentIndex >= 0 ? mediaNavOffset + mediaCurrentIndex + 1 : 0 }} of {{ mediaNavTotal }}</span
+          >
+        </span>
+      </template>
+      <template #header-actions>
+        <template
+          v-if="mapInteraction.presentation === 'target' && mapInteractionDetailKind === 'photo' && mediaSheetVisible"
+        >
+          <MediaViewerViewToggle
+            v-model="mediaPreviewDetailsVisible"
+            v-model:map-visible="mediaPreviewMapVisible"
+            v-model:photos-visible="mediaPreviewPhotosVisible"
+          />
+          <MediaViewerThemeToggle v-model:theme="dispatcherPhotoTheme" />
+        </template>
+      </template>
+      <div
+        v-show="
+          mapInteraction.presentation === 'target' && !mapInteractionShowsTrackDetails && mapInteractionHasLookupStatus
+        "
+        class="map-interaction-context"
+      >
+        <MapInteractionStatus v-show="mapInteractionHasLookupStatus" :state="mapInteraction" />
+      </div>
+      <MapTargetChooser
+        v-show="mapInteraction.presentation === 'chooser' || mapInteractionShowsTrackDetails"
+        ref="mapInteractionChooser"
+        :inert="mapInteractionShowsTrackDetails"
+        :state="mapInteraction"
+        @select="selectMapTarget"
+        @preview-track="previewTrackById"
+      />
+      <div
+        v-show="mapInteraction.presentation === 'target' && !mapInteractionShowsTrackDetails"
+        ref="mapInteractionContent"
+        tabindex="-1"
+        class="map-interaction-content"
+        :class="{
+          'map-interaction-content--compact': mapInteractionHasCompactContent,
+          'map-interaction-content--workspace':
+            mapInteractionDetailKind === 'track' || mapInteractionDetailKind === 'photo',
+        }"
+      >
+        <TrackProcessingNotice
+          v-if="mapInteraction.processing"
+          :processing="mapInteraction.processing"
+          :empty="
+            !mapInteraction.candidates.some(
+              (candidate) => candidate.kind === 'track' || candidate.kind === 'track-point'
+            )
+          "
+        />
+        <p v-if="mapInteractionDetailLoading && !trackPointsPopupContext && !mediaPendingSelection" role="status">
+          Loading details…
+        </p>
+        <p v-if="mapInteractionDetailError" role="alert">{{ mapInteractionDetailError }}</p>
+        <template v-if="mapInteractionDetailKind === 'point' && trackPointsPopupContext">
+          <dl class="map-point-details">
+            <template v-for="row in mapInteractionPointRows" :key="row.label"
+              ><dt>{{ row.label }}</dt>
+              <dd>{{ row.value }}</dd></template
             >
-              <i class="bi bi-arrow-clockwise"></i>
-              <span>Reload</span>
-            </button>
-            <button
-              type="button"
-              class="mtl-data-freshness__btn"
-              :disabled="freshnessReloading"
-              @click="onDataFreshnessDismiss"
-            >
-              Dismiss
-            </button>
-          </div>
-        </div>
-      </transition>
-    </Teleport>
+          </dl>
+          <button type="button" class="map-alternatives-button" @click="openMapInteractionTrackDetails">
+            Open track details
+          </button>
+        </template>
+        <template v-if="mapInteractionDetailKind === 'simple' && mapInteraction.selected">
+          <MapPoiDetails v-if="mapInteraction.selected.kind === 'poi'" :candidate="mapInteraction.selected" />
+          <MapOverlayDetails
+            v-if="mapInteraction.selected.kind === 'overlay'"
+            :route="mapInteractionOverlayDetails || mapInteraction.selected.route"
+            :source-label="mapInteraction.selected.sourceLabel || 'Trail overlay'"
+          />
+        </template>
+        <MediaPreview
+          v-if="mapInteractionDetailKind === 'photo' && mediaSheetVisible"
+          :media-id="mediaSheetMediaId"
+          :collection-label="mediaViewerFilmstripLabel"
+          :can-go-prev="mediaCanGoPrev"
+          :can-go-next="mediaCanGoNext"
+          :nav-index="mediaCurrentIndex >= 0 ? mediaNavOffset + mediaCurrentIndex + 1 : 0"
+          :nav-total="mediaNavTotal"
+          :prefetch-ids="[mediaNextId, mediaPrevId]"
+          :media-ids="mediaNavigationIds"
+          :media-offset="mediaNavOffset"
+          :page-loading="mediaNavLoading"
+          :position-lat="selectedMapMediaPoint?.lat"
+          :position-lng="selectedMapMediaPoint?.lng"
+          :overview-bounds="mediaViewerOverviewBounds"
+          :details-visible="mediaPreviewDetailsVisible"
+          :map-visible="mediaPreviewMapVisible"
+          :photos-visible="mediaPreviewPhotosVisible"
+          @prev="navigateMediaRelative(-1)"
+          @next="navigateMediaRelative(1)"
+          @select="navigateMediaTo"
+          @request-page="navigateMediaPage"
+          @update:details-visible="mediaPreviewDetailsVisible = $event"
+          @update:map-visible="mediaPreviewMapVisible = $event"
+          @open-on-map="openSelectedMapMediaOnMainMap"
+        />
+      </div>
+    </BottomSheet>
 
     <!-- ─── Track details bottom sheet ─── -->
     <BottomSheet
-      v-model="trackDetailsVisible"
+      v-if="!mapInteraction || mapInteractionDetailKind === 'track'"
+      :model-value="trackDetailsSheetOpen"
       :detents="trackDetailsDetents"
       :initial-detent="trackDetailsInitialDetent"
+      :initially-maximized="trackDetailsFullTakeover"
       :selected-detent="trackDetailsSelectedDetent"
-      :background-detent="trackDetailsBackgroundDetent"
-      :z-index="5300"
-      @closed="onTrackDetailsSheetClosedAfterTransition"
+      :background-detent="trackReplayActive ? trackDetailsBackgroundDetent : undefined"
+      desktop-width="standard"
+      :z-index="mapInteraction ? 5350 : 5300"
+      :back-label="mapInteraction ? 'Back to results' : 'Back'"
+      defer-close
+      :share-layout="!!mapInteraction"
+      no-scroll-hint
+      @close-request="closeTrackDetailsFromPanel"
+      @back="closeTrackDetailsFromPanel"
     >
       <template #title>
         <div class="td-sheet-header">
-          <span class="td-title-label"
-            ><i class="bi bi-info-circle"></i><span class="td-title-text">Track Details</span></span
-          >
-          <span v-if="trackDetailsInfo.id" class="td-sheet-id" title="Select TrackID to copy" @click.stop
-            >#{{ trackDetailsInfo.id }}</span
-          >
-          <ActivityTypeBadge
-            v-if="trackDetailsInfo.activityType"
-            :type="trackDetailsInfo.activityType"
-            size="xs"
-            colored
-            class="td-sheet-activity"
-          />
+          <h2 data-test="track-details-title" class="td-sheet-name" :title="trackDetailsDisplayName">
+            {{ trackDetailsDisplayName }}
+          </h2>
+          <div class="td-sheet-meta">
+            <ActivityTypeBadge
+              v-if="trackDetailsInfo.activityType"
+              :type="trackDetailsInfo.activityType"
+              size="xs"
+              colored
+            />
+            <span v-if="trackDetailsPanel?.gpsTrack?.startDate" class="td-sheet-date">
+              {{ formatDateAndTime(new Date(trackDetailsPanel.gpsTrack.startDate)) }}
+            </span>
+          </div>
         </div>
       </template>
+      <template #header-actions>
+        <TrackDetailActions
+          v-if="trackDetailsSheetOpen"
+          :gps-track="trackDetailsPanel?.gpsTrack"
+          :replay-enabled="trackDetailsPanel?.canStart3dReplay"
+          @start-3d-replay="trackDetailsPanel?.start3dReplay()"
+        />
+      </template>
+      <div v-if="mapInteraction && mapInteractionHasLookupStatus" class="map-interaction-context">
+        <MapInteractionStatus :state="mapInteraction" />
+      </div>
       <TrackDetails
         v-if="trackDetailsId != null"
+        :key="trackDetailsId"
+        ref="trackDetailsPanel"
         :gps-track-id="trackDetailsId"
         :initial-tab="trackDetailsInitialTab"
         @back="closeTrackDetailsFromPanel"
         @track-loaded="onTrackDetailsLoaded"
+        @track-updated="onTrackMetadataUpdated"
         @navigate-track="syncTrackDetailRoute"
         @start-3d-replay="start3dTrackReplay"
         @open-media-on-map="openTrackMediaOnMainMap"
@@ -290,6 +468,7 @@
 
     <!-- ─── Media collection chooser ─── -->
     <BottomSheet
+      v-if="!mapInteraction"
       v-model="mediaSelectionSheetVisible"
       :detents="[
         { id: 'compact', height: '300px' },
@@ -311,14 +490,17 @@
         :selection="mediaPendingSelection"
         :track-count="mediaSelectionTrackOptions.length"
         :tracks-loading="mediaSelectionTracksLoading"
+        :tracks-error="mediaSelectionTracksError"
         @choose-primary="chooseMediaCollection('primary')"
         @choose-viewport="chooseMediaCollection('viewport')"
         @open-activities="openMediaSelectionActivities"
+        @retry-activities="retryMediaSelectionActivities"
       />
     </BottomSheet>
 
     <!-- ─── Media photo bottom sheet ─── -->
     <BottomSheet
+      v-if="!mapInteraction"
       v-model="mediaSheetVisible"
       :detents="[
         { id: 'small', height: '40vh' },
@@ -333,6 +515,8 @@
       :no-backdrop="false"
       no-scroll-hint
       native-fullscreen
+      fullscreen-control-labels
+      immersive
       viewport-centered
       :sheet-class="['media-viewer-sheet', mediaViewerThemeClass]"
       @closed="onMediaSheetClosed"
@@ -347,15 +531,11 @@
         </span>
       </template>
       <template #header-actions>
-        <button
-          type="button"
-          class="media-preview-details-toggle"
-          :aria-pressed="mediaPreviewDetailsVisible"
-          @click.stop="mediaPreviewDetailsVisible = !mediaPreviewDetailsVisible"
-        >
-          <i class="bi bi-info-circle" aria-hidden="true"></i>
-          <span>Details</span>
-        </button>
+        <MediaViewerViewToggle
+          v-model="mediaPreviewDetailsVisible"
+          v-model:map-visible="mediaPreviewMapVisible"
+          v-model:photos-visible="mediaPreviewPhotosVisible"
+        />
         <MediaViewerThemeToggle />
       </template>
       <MediaPreview
@@ -373,17 +553,21 @@
         :position-lng="selectedMapMediaPoint?.lng"
         :overview-bounds="mediaViewerOverviewBounds"
         :details-visible="mediaPreviewDetailsVisible"
+        :map-visible="mediaPreviewMapVisible"
+        :photos-visible="mediaPreviewPhotosVisible"
         @prev="navigateMediaRelative(-1)"
         @next="navigateMediaRelative(1)"
         @select="navigateMediaTo"
         @request-page="navigateMediaPage"
         @update:details-visible="mediaPreviewDetailsVisible = $event"
+        @update:map-visible="mediaPreviewMapVisible = $event"
         @open-on-map="openSelectedMapMediaOnMainMap"
       />
     </BottomSheet>
 
     <!-- ─── Track selection bottom sheet ─── -->
     <BottomSheet
+      v-if="!mapInteraction"
       v-model="trackSelectionSheetVisible"
       :detents="[
         { id: 'compact', height: '35vh' },
@@ -399,7 +583,7 @@
       @closed="closeSelectionPopup"
     >
       <div class="track-selection-sheet">
-        <div class="track-selection-sheet__scroll">
+        <div class="track-selection-sheet__scroll" data-sheet-fit-target>
           <template v-if="trackSelectionPurpose === 'photos'">
             <section v-if="selectionPopupTracksWithMedia.length > 0" class="track-selection-group">
               <h3 class="track-selection-group__title">
@@ -420,102 +604,73 @@
               />
             </section>
           </template>
-          <NearbyTrackList v-else :tracks="selectionPopupTracks" @select="onPopupTrackSelect" />
+          <TrackProximityResults
+            v-else
+            :tracks="selectionPopupTracks"
+            :processing="selectionPopupProcessing"
+            @select="onPopupTrackSelect"
+          />
         </div>
       </div>
     </BottomSheet>
-
-    <!-- ─── Swiss Mobility route info popup ─── -->
-    <div
-      v-if="swissMobilityPopup.visible"
-      class="swiss-mobility-popup"
-      :style="{ left: swissMobilityPopup.pos.x + 'px', top: swissMobilityPopup.pos.y + 'px' }"
-      @click.stop
-    >
-      <button
-        class="swiss-mobility-popup-close"
-        type="button"
-        aria-label="Close nearby routes popup"
-        title="Close"
-        @click.stop="closeSwissMobilityPopup"
-      >
-        <i class="bi bi-x-lg" aria-hidden="true"></i>
-      </button>
-      <div class="swiss-mobility-popup-header"><i class="bi bi-signpost-split"></i> Nearby Routes</div>
-      <ul class="swiss-mobility-route-list">
-        <li v-for="(mobilityRoute, i) in swissMobilityPopup.routes" :key="i" class="swiss-mobility-route-item">
-          <i :class="mobilityRoute.icon" class="swiss-mobility-route-icon"></i>
-          <div class="swiss-mobility-route-info">
-            <span class="swiss-mobility-route-type">{{ mobilityRoute.type }}</span>
-            <span class="swiss-mobility-route-name">{{ mobilityRoute.name }}</span>
-          </div>
-          <span v-if="mobilityRoute.number" class="swiss-mobility-route-number">#{{ mobilityRoute.number }}</span>
-        </li>
-      </ul>
-    </div>
-
-    <!-- ─── Geo drawing toolbar ─── -->
-    <transition name="fade">
-      <div v-if="geoDrawingParamDef" class="geo-draw-toolbar">
-        <div class="geo-draw-toolbar__header">
-          <i :class="geoDrawToolbarIcon"></i>
-          <span>{{ geoDrawToolbarLabel }}</span>
-        </div>
-        <div class="geo-draw-toolbar__hint">{{ geoDrawToolbarHint }}</div>
-        <div class="geo-draw-toolbar__actions">
-          <button
-            class="geo-draw-toolbar__btn geo-draw-toolbar__btn--undo"
-            :disabled="!geoDrawCanUndo"
-            @click="onGeoDrawUndo"
-          >
-            <i class="bi bi-arrow-counterclockwise"></i> Undo
-          </button>
-          <button
-            v-if="geoDrawIsPolygon"
-            class="geo-draw-toolbar__btn geo-draw-toolbar__btn--finish"
-            :disabled="!geoDrawCanFinish"
-            @click="onGeoDrawFinish"
-          >
-            <i class="bi bi-check-lg"></i> Finish
-          </button>
-          <button class="geo-draw-toolbar__btn geo-draw-toolbar__btn--cancel" @click="onGeoDrawCancel">
-            <i class="bi bi-x-lg"></i> Cancel
-          </button>
-        </div>
-      </div>
-    </transition>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, inject, nextTick, ref, watch } from 'vue';
+import { computed, inject, nextTick, onScopeDispose, ref, watch } from 'vue';
 import { useRoute, useRouter, type RouteRecordNameGeneric } from 'vue-router';
 import AdminDialog from '@/components/admin/AdminDialog.vue';
+import { useReleaseUpdatesStore } from '@/stores/releaseUpdatesStore';
 import GpsLocate from '@/components/gps/GpsLocate.vue';
 import MeasureBetweenPoints from '@/components/measure/MeasureBetweenPoints.vue';
 import PlannerTool from '@/planner/components/PlannerTool.vue';
 import AnimateMap from '@/components/animate/AnimateMap.vue';
 import Filter from '@/components/filter/Filter.vue';
 import Statistics from '@/components/statistics/Statistics.vue';
+import HealthTool from '@/features/health/HealthTool.vue';
+import TrackReviewTool from '@/features/track-review/TrackReviewTool.vue';
 import TrackDetails from '@/components/trackdetails/TrackDetails.vue';
+import TrackDetailActions from '@/components/trackdetails/TrackDetailActions.vue';
+import { formatDateAndTime } from '@/utils/Utils';
 import TrackReplayControls from '@/components/replay/TrackReplayControls.vue';
 import NavigationSheet from '@/components/ui/NavigationSheet.vue';
 import MapSettingsPanel from '@/components/map/MapSettingsPanel.vue';
 import MapLegend from '@/components/map/MapLegend.vue';
+import MapTargetChooser from '@/components/map/MapTargetChooser.vue';
+import MapInteractionStatus from '@/components/map/MapInteractionStatus.vue';
+import MapOverlayDetails from '@/components/map/MapOverlayDetails.vue';
+import MapPoiDetails from '@/components/map/MapPoiDetails.vue';
+import { mapPoiPresentation } from '@/components/map/mapPoiPresentation';
+import { buildArchiveTrackPointPopupRows } from '@/components/map/composables/useTrackPointLayer';
 import MapConfigFallbackNotice from '@/components/map/MapConfigFallbackNotice.vue';
+import MapDataStatusNotice from '@/components/map/MapDataStatusNotice.vue';
+import { resolveMapDataStatus } from '@/components/map/mapDataStatus';
+import { APPLICATION_STATUS_SECTION, useApplicationStatusStore } from '@/stores/applicationStatusStore';
+import { useDataFreshnessStore } from '@/stores/dataFreshnessStore';
 import LocationSearchSheet from '@/components/map/LocationSearchSheet.vue';
-import BottomSheet from '@/components/ui/BottomSheet.vue';
+import BottomSheet, { type Detent } from '@/components/ui/BottomSheet.vue';
 import ActivityTypeBadge from '@/components/ui/ActivityTypeBadge.vue';
 import NearbyTrackList from '@/components/map/NearbyTrackList.vue';
+import TrackProximityResults from '@/components/map/TrackProximityResults.vue';
+import TrackProcessingNotice from '@/components/map/TrackProcessingNotice.vue';
 import MediaCollectionChooser from '@/components/map/MediaCollectionChooser.vue';
 import MediaPreview from '@/components/map/MediaPreview.vue';
 import MediaViewerThemeToggle from '@/components/map/MediaViewerThemeToggle.vue';
-import { useMediaViewerTheme } from '@/composables/useMediaViewerTheme';
+import MediaViewerViewToggle from '@/components/map/MediaViewerViewToggle.vue';
+import { useMediaViewerTheme, type MediaViewerTheme } from '@/composables/useMediaViewerTheme';
 import { useMainMapController } from '@/components/map/useMainMapController';
+import { useMapInteractionTrackRoute } from '@/components/map/composables/useMapInteractionTrackRoute';
+import { useMediaQuery } from '@/composables/useMediaQuery';
+import {
+  MAP_TARGET_CHOOSER_DETENT_ID,
+  useMapInteractionVisibility,
+} from '@/components/map/composables/useMapInteractionVisibility';
+import { mapTargetKey } from '@/components/map/mapInteractionDecision';
 import { findMediaPointById } from '@/components/map/composables/useMediaAndHeatmap';
 import type { MapControllerEmit, MapControllerProps } from '@/components/map/composables/mapControllerRuntime';
 import type { ToastService } from '@/types/ui';
 import { clearMapConfigCache, type MapConfig } from '@/utils/mapConfigService';
+import { warnRequestFailure } from '@/utils/safeLogging';
 
 defineOptions({
   name: 'Map2DRenderer',
@@ -528,22 +683,46 @@ const toast = inject<ToastService>('toast', { add: () => undefined });
 const route = useRoute();
 const router = useRouter();
 const { mediaViewerThemeClass } = useMediaViewerTheme();
+const DEFAULT_DISPATCHER_PHOTO_THEME: MediaViewerTheme = 'light';
+const dispatcherPhotoTheme = ref<MediaViewerTheme>(DEFAULT_DISPATCHER_PHOTO_THEME);
+const dispatcherPhotoThemeClass = computed(() => `media-viewer-sheet--${dispatcherPhotoTheme.value}`);
 
-const mapContainer = ref(null);
+const trackDetailsPanel = ref<InstanceType<typeof TrackDetails> | null>(null);
+const trackDetailsDisplayName = computed(() => {
+  const track = trackDetailsPanel.value?.gpsTrack;
+  return track?.trackName || track?.metaName || track?.indexedFile?.name || `Track #${trackDetailsId.value}`;
+});
+const mapContainer = ref<HTMLElement | null>(null);
 const navSheet = ref(null);
 const mapSettingsTool = ref(null);
 const animateTool = ref(null);
 const measureTool = ref(null);
 const plannerTool = ref(null);
 const statistics = ref<{ close?: () => void } | null>(null);
+const healthTool = ref(null);
+const reviewTool = ref(null);
 const gpsLocate = ref(null);
 const filterTool = ref(null);
 const adminTool = ref(null);
+const releaseUpdates = useReleaseUpdatesStore();
 const mapConfigFallbackDismissed = ref(false);
 const mapConfigRetrying = ref(false);
 const MEDIA_PREVIEW_DESKTOP_MIN_WIDTH = 769;
+const MOBILE_PRIMARY_TOOL_IDS = ['gps', 'map', 'filter', 'planner'];
+const NAVIGATION_UTILITY_TOOL_ID = 'admin';
 
 const {
+  mapInteraction,
+  mapInteractionDetailKind,
+  mapInteractionDetailLoading,
+  mapInteractionDetailError,
+  mapInteractionOverlayDetails,
+  trackPointsPopupContext,
+  endMapInteraction,
+  selectMapTarget,
+  showMapTargetChooser,
+  backFromMapTargetChooser,
+  openMapInteractionTrackDetails,
   overlayMap,
   geojson,
   mapConfig,
@@ -570,7 +749,7 @@ const {
   selectedFeature,
   trackSelectionSheetVisible,
   trackSelectionPurpose,
-  swissMobilityPopup,
+  selectionPopupProcessing,
   trackDetailsVisible,
   trackDetailsBackgroundDetent,
   trackDetailsDetents,
@@ -600,6 +779,7 @@ const {
   mediaPendingSelection,
   mediaSelectionTrackOptions,
   mediaSelectionTracksLoading,
+  mediaSelectionTracksError,
   mediaSheetVisible,
   mediaSheetMediaId,
   mediaNavList,
@@ -629,10 +809,8 @@ const {
   geoDrawIsPolygon,
   geoDrawCanUndo,
   geoDrawCanFinish,
-  showDataFreshnessBanner,
   openLocationSearch,
   onLocationSearchSelect,
-  onDataFreshnessDismiss,
   onResetMapSettings,
   onSetTerrainModeEnabled,
   onTerrainExaggerationChange,
@@ -657,10 +835,10 @@ const {
   syncTrackDetailRoute,
   onToolOpened,
   onToolClosed,
-  closeSwissMobilityPopup,
   closeSelectionPopup,
   chooseMediaCollection,
   openMediaSelectionActivities,
+  retryMediaSelectionActivities,
   closeMediaSelection,
   navigateMediaTo,
   navigateMediaRelative,
@@ -670,6 +848,7 @@ const {
   onPopupTrackSelect,
   onTrackDetailsSheetClosed: closeControllerTrackDetailsSheet,
   onTrackDetailsLoaded,
+  onTrackMetadataUpdated,
   start3dTrackReplay,
   toggle3dTrackReplayPlayback,
   reset3dTrackReplayPlayback,
@@ -683,6 +862,7 @@ const {
   onTrackReplayControlsLayoutChange,
   recenter3dTrackReplayCamera,
   onTrackBrowserSelect,
+  previewTrackById,
   onTrackBrowserOpenDetails,
   onTrackBrowserOpenPhotos,
   onLegendCollapsed,
@@ -703,18 +883,114 @@ const {
   measureTool,
   plannerTool,
   statistics,
+  healthTool,
+  reviewTool,
   gpsLocate,
   filterTool,
   adminTool,
 });
 
+const mapInteractionChooser = ref<InstanceType<typeof MapTargetChooser> | null>(null);
+const trackDetailsFullTakeover = useMediaQuery(
+  '(max-width: 768px)',
+  window.innerWidth < MEDIA_PREVIEW_DESKTOP_MIN_WIDTH
+);
+const mapInteractionContent = ref<HTMLElement | null>(null);
+const mapInteractionShowsTrackDetails = computed(
+  () => mapInteraction.value?.presentation === 'target' && mapInteractionDetailKind.value === 'track'
+);
+const trackDetailsSheetOpen = computed(
+  () => trackDetailsVisible.value && (!mapInteraction.value || mapInteractionShowsTrackDetails.value)
+);
+const mapInteractionVisibility = useMapInteractionVisibility({
+  map: () => overlayMap.value,
+  interaction: () => mapInteraction.value,
+});
+const mapInteractionShowsPhotoViewer = computed(
+  () =>
+    mapInteraction.value?.presentation === 'target' &&
+    mapInteractionDetailKind.value === 'photo' &&
+    mediaSheetVisible.value
+);
+// Back and photo navigation retain the viewer choice within this map exploration.
+watch(
+  () => mapInteraction.value?.id,
+  () => {
+    dispatcherPhotoTheme.value = DEFAULT_DISPATCHER_PHOTO_THEME;
+  }
+);
+const mapInteractionHasLookupStatus = computed(
+  () => mapInteraction.value?.sources.some((source) => source.status !== 'complete') ?? false
+);
+const mapInteractionHasCompactContent = computed(
+  () =>
+    mapInteraction.value?.presentation === 'target' &&
+    (mapInteractionDetailKind.value === 'simple' ||
+      mapInteractionDetailKind.value === 'point' ||
+      (mapInteractionDetailKind.value === 'photo' && !mediaSheetVisible.value))
+);
+const mapInteractionTitle = computed(() =>
+  mapInteraction.value?.presentation === 'chooser' || mapInteractionShowsTrackDetails.value
+    ? 'Choose what to see here'
+    : mapInteractionDetailKind.value === 'track'
+      ? trackDetailsDisplayName.value
+      : mapInteractionDetailKind.value === 'photo' && mediaSheetVisible.value
+        ? mediaViewerScopeLabel.value
+        : mapInteraction.value?.selected?.kind === 'overlay'
+          ? 'Route details'
+          : mapInteraction.value?.selected?.label || 'At this location'
+);
+const mapInteractionIcon = computed(() => {
+  if (mapInteraction.value?.presentation === 'chooser' || mapInteractionShowsTrackDetails.value) return 'bi bi-layers';
+  const selected = mapInteraction.value?.selected;
+  if (selected?.kind === 'overlay') return 'bi bi-signpost-2';
+  if (selected?.kind === 'poi') return mapPoiPresentation(selected).icon;
+  return 'bi bi-geo-alt';
+});
+const MAP_TARGET_CHOOSER_HEIGHT = 'min(30rem, 60vh)';
+// GPS details use a separate foreground sheet; this dispatcher keeps its own size.
+const MAP_INTERACTION_DETENTS: Detent[] = [
+  { id: MAP_TARGET_CHOOSER_DETENT_ID, height: MAP_TARGET_CHOOSER_HEIGHT },
+  { id: 'medium', height: '70vh' },
+  { id: 'expanded', height: '92vh' },
+];
+const mapInteractionPointRows = computed(() => {
+  const context = trackPointsPopupContext.value;
+  return context ? buildArchiveTrackPointPopupRows(context.lngLat, context.point, context.canonical) : [];
+});
+watch(
+  () => [mapInteraction.value?.id, mapInteraction.value?.presentation, mapInteractionShowsTrackDetails.value],
+  async (value, previous) => {
+    if (value[0] !== previous?.[0] || (value[1] === previous?.[1] && value[2] === previous?.[2])) return;
+    await nextTick();
+    if (value[1] === 'chooser') {
+      mapInteractionChooser.value?.$el.querySelector('button')?.focus();
+    } else if (value[1] === 'target') {
+      if (mapInteractionShowsTrackDetails.value) {
+        await nextTick();
+        await nextTick();
+      }
+      const content = mapInteractionShowsTrackDetails.value
+        ? (trackDetailsPanel.value?.$el as HTMLElement | undefined)
+        : mapInteractionContent.value;
+      if (mapInteraction.value?.presentation !== 'target') return;
+      const control = content?.querySelector<HTMLElement>('button, a[href]') || content;
+      control?.focus();
+    }
+  }
+);
+
 const mediaPreviewDetailsVisible = ref(window.innerWidth >= MEDIA_PREVIEW_DESKTOP_MIN_WIDTH);
+const mediaPreviewMapVisible = ref(mediaPreviewDetailsVisible.value);
+const mediaPreviewPhotosVisible = ref(true);
 const mediaViewerOverviewBounds = ref<[[number, number], [number, number]] | null>(null);
 const selectedMapMediaPoint = computed(() => findMediaPointById(mediaNavList.value, mediaSheetMediaId.value));
 const trackSelectionSheetTitle = computed(() =>
   trackSelectionPurpose.value === 'photos'
-    ? `${selectionPopupTracks.value.length} nearby activities`
-    : `${selectionPopupTracks.value.length} tracks — select for details`
+    ? `${selectionPopupTracks.value.length} nearby GPS ${selectionPopupTracks.value.length === 1 ? 'track' : 'tracks'}`
+    : selectionPopupTracks.value.length === 0
+      ? 'Nearby tracks'
+      : `${selectionPopupTracks.value.length} ${selectionPopupTracks.value.length === 1 ? 'track' : 'tracks'} — select for details`
 );
 const selectionPopupTracksWithMedia = computed(() =>
   selectionPopupTracks.value.filter((track) => (track.matchedMediaCount ?? 0) > 0)
@@ -725,13 +1001,13 @@ const selectionPopupTracksWithoutMedia = computed(() =>
 const mediaViewerScopeLabel = computed(() => {
   if (mediaNavScope.value === 'cluster') return 'This cluster';
   if (mediaNavScope.value === 'location') return 'This location';
-  if (mediaNavScope.value === 'viewport') return 'Current map view';
+  if (mediaNavScope.value === 'viewport') return 'Map view at tap';
   return 'This photo';
 });
 const mediaViewerFilmstripLabel = computed(() => {
   if (mediaNavScope.value === 'cluster') return 'In this cluster';
   if (mediaNavScope.value === 'location') return 'At this location';
-  if (mediaNavScope.value === 'viewport') return 'On this map';
+  if (mediaNavScope.value === 'viewport') return 'Map view at tap';
   return 'This photo';
 });
 type MainMapMediaTarget = { id?: number | null; lat: number; lng: number };
@@ -762,9 +1038,12 @@ function focusPendingMainMapMediaTarget(): void {
 function openSelectedMapMediaOnMainMap(): void {
   if (!setPendingMainMapMediaTarget(selectedMapMediaPoint.value)) return;
   mediaSheetVisible.value = false;
+  // Hiding the sheet through its model does not emit BottomSheet's closed event.
+  onMediaSheetClosed();
 }
 
 function onMediaSheetClosed(): void {
+  endMapInteraction();
   closeControllerMediaSheet();
   mediaViewerOverviewBounds.value = null;
   focusPendingMainMapMediaTarget();
@@ -772,13 +1051,9 @@ function onMediaSheetClosed(): void {
 
 function openTrackMediaOnMainMap(target: MainMapMediaTarget): void {
   if (!setPendingMainMapMediaTarget(target)) return;
-  trackDetailsMainMapExitPending = true;
+  mapTrackRoute.exitToMap();
+  endMapInteraction();
   trackDetailsVisible.value = false;
-  closeControllerTrackDetailsSheet();
-  focusPendingMainMapMediaTarget();
-}
-
-function onTrackDetailsSheetClosedAfterTransition(): void {
   closeControllerTrackDetailsSheet();
   focusPendingMainMapMediaTarget();
 }
@@ -792,7 +1067,11 @@ async function openMediaFromStatisticsOnMainMap(target: MainMapMediaTarget): Pro
 
 watch(mediaSheetVisible, (visible) => {
   if (!visible) return;
-  mediaPreviewDetailsVisible.value = window.innerWidth >= MEDIA_PREVIEW_DESKTOP_MIN_WIDTH;
+  const selected = mapInteraction.value?.selected;
+  if (selected?.kind === 'photo' && selected.viewportBounds) {
+    mediaViewerOverviewBounds.value = selected.viewportBounds;
+    return;
+  }
   const bounds = overlayMap.value?.getBounds?.();
   if (!bounds) return;
   const southWest = bounds.getSouthWest();
@@ -805,6 +1084,29 @@ watch(mediaSheetVisible, (visible) => {
 
 const showMapConfigFallbackNotice = computed(
   () => Boolean((mapConfig.value as MapConfig | null)?.configLoadFailed) && !mapConfigFallbackDismissed.value
+);
+
+const applicationStatus = useApplicationStatusStore();
+const mapFreshness = useDataFreshnessStore();
+const mapDataStatus = computed(() =>
+  resolveMapDataStatus({
+    loaded: initialLoadDone.value,
+    offline: isOffline.value,
+    processing: applicationStatus.processing,
+    processingHealthy: applicationStatus.sectionStates[APPLICATION_STATUS_SECTION.PROCESSING].healthy,
+    freshnessHealthy: applicationStatus.sectionStates[APPLICATION_STATUS_SECTION.FRESHNESS].healthy,
+    outOfSync: mapFreshness.isOutOfSync || Boolean(mapFreshness.serverFreshnessToken && !mapFreshness.appliedToken),
+  })
+);
+const mapDataStatusPlacementKey = computed(() =>
+  JSON.stringify([
+    legendCollapsed.value,
+    legendEntries.value.length,
+    activeToolId.value,
+    geoDrawingParamDef.value,
+    mapServerStatus.value?.ready,
+    showMapConfigFallbackNotice.value,
+  ])
 );
 
 async function retryMapConfig() {
@@ -845,6 +1147,8 @@ const TOOL_ROUTE_NAMES: Record<string, string> = {
   animate: 'animate',
   measure: 'segments',
   admin: 'admin',
+  health: 'health',
+  review: 'review',
 };
 
 const ROUTE_TOOL_IDS: Record<string, string> = Object.entries(TOOL_ROUTE_NAMES).reduce(
@@ -863,10 +1167,46 @@ const TRACK_DETAILS_RETURN_ROUTE_NAMES = new Set([
 
 let syncingFromRoute = false;
 let trackDetailsRouteExitPending = false;
-let trackDetailsMainMapExitPending = false;
+let trackDetailsRouteExitOrigin: string | null = null;
+let trackDetailsRouteExitTarget: string | null = null;
+let standaloneTrackReturnPath: string | null = null;
+let routeSyncRevision = 0;
+
+const mapTrackRoute = useMapInteractionTrackRoute({
+  router,
+  state: () => ({
+    interactionId: mapInteraction.value?.id ?? null,
+    presentation: mapInteraction.value?.presentation ?? null,
+    selectedKey: mapInteraction.value?.selected ? mapTargetKey(mapInteraction.value.selected) : null,
+    detailKind: mapInteractionDetailKind.value,
+    trackId: trackDetailsId.value,
+    visible: trackDetailsVisible.value,
+    toolActive: activeToolId.value != null,
+  }),
+  showChooser: showMapTargetChooser,
+  restoreSelected: backFromMapTargetChooser,
+  fallbackReturnPath: () => standaloneTrackReturnPath ?? router.resolve({ name: 'home' }).fullPath,
+  rememberStandaloneReturn: (path) => {
+    standaloneTrackReturnPath = path;
+  },
+});
+
+function backFromMapContent() {
+  if (!mapTrackRoute.backToResults()) showMapTargetChooser();
+}
 
 function closeTrackDetailsFromPanel() {
+  if (mapInteraction.value) {
+    backFromMapContent();
+    return;
+  }
+  if (route.name === TRACK_DETAILS_ROUTE_NAME) {
+    leaveTrackDetailsRoute();
+    return;
+  }
+  endMapInteraction();
   trackDetailsVisible.value = false;
+  closeControllerTrackDetailsSheet();
 }
 
 function toolIdForRoute(name: RouteRecordNameGeneric | null | undefined): string | null {
@@ -875,6 +1215,7 @@ function toolIdForRoute(name: RouteRecordNameGeneric | null | undefined): string
 
 function updateRouteForTool(toolId: string | null | undefined) {
   if (syncingFromRoute) return;
+  if (!toolId && mapInteraction.value) return;
   const currentTool = toolIdForRoute(route.name);
   if (!toolId) {
     if (currentTool != null) {
@@ -902,39 +1243,81 @@ function canReturnFromTrackDetails(previousRoute: unknown): previousRoute is str
 function leaveTrackDetailsRoute() {
   if (trackDetailsRouteExitPending || route.name !== TRACK_DETAILS_ROUTE_NAME) return;
   trackDetailsRouteExitPending = true;
-  if (trackDetailsMainMapExitPending) {
-    trackDetailsMainMapExitPending = false;
-    router.replace({ name: 'home' }).catch(() => {
-      trackDetailsRouteExitPending = false;
-    });
-    return;
-  }
-  const previousRoute = (window.history.state as { back?: unknown } | null)?.back;
+  trackDetailsRouteExitOrigin = route.fullPath;
+  trackDetailsRouteExitTarget = null;
+  const previousRoute = standaloneTrackReturnPath ?? (window.history.state as { back?: unknown } | null)?.back;
   if (canReturnFromTrackDetails(previousRoute)) {
     router.back();
     return;
   }
+  trackDetailsRouteExitTarget = router.resolve({ name: 'home' }).fullPath;
   router.replace({ name: 'home' }).catch(() => {
     trackDetailsRouteExitPending = false;
   });
 }
 
+function isStandaloneExit(to: { fullPath: string }, from: { fullPath: string }): boolean {
+  return (
+    trackDetailsRouteExitPending &&
+    trackDetailsRouteExitOrigin === from.fullPath &&
+    (trackDetailsRouteExitTarget == null || trackDetailsRouteExitTarget === to.fullPath)
+  );
+}
+function clearStandaloneExit(): void {
+  trackDetailsRouteExitPending = false;
+  trackDetailsRouteExitOrigin = null;
+  trackDetailsRouteExitTarget = null;
+}
+const stopStandaloneExitAfter = router.afterEach((to, from) => {
+  if (isStandaloneExit(to, from)) clearStandaloneExit();
+});
+const stopStandaloneExitError = router.onError((error, to, from) => {
+  if (!isStandaloneExit(to, from)) return;
+  clearStandaloneExit();
+  warnRequestFailure('Could not return from GPS track details', error, {
+    topic1: 'navigation',
+    topic2: 'map',
+    topic3: 'trackRoute',
+  });
+});
+onScopeDispose(() => {
+  stopStandaloneExitAfter();
+  stopStandaloneExitError();
+});
+
 watch(
-  () => [route.name, route.params.id],
-  async () => {
-    trackDetailsRouteExitPending = false;
+  () => route.fullPath,
+  async (path, previousPath) => {
+    const revision = ++routeSyncRevision;
+    const to = router.resolve(path);
+    const from = previousPath ? router.resolve(previousPath) : undefined;
+    clearStandaloneExit();
     syncingFromRoute = true;
     await nextTick();
-    if (route.name === TRACK_DETAILS_ROUTE_NAME) {
-      const trackId = Number(route.params.id);
+    if (revision !== routeSyncRevision) return;
+    if (mapTrackRoute.handleRouteChange(to, from)) {
+      syncingFromRoute = false;
+      return;
+    }
+    if (to.name === TRACK_DETAILS_ROUTE_NAME) {
+      if (mapInteraction.value) endMapInteraction();
+      if (from && from.name !== TRACK_DETAILS_ROUTE_NAME && canReturnFromTrackDetails(from.fullPath)) {
+        standaloneTrackReturnPath = from.fullPath;
+      }
+      const trackId = Number(to.params.id);
       if (Number.isFinite(trackId)) {
         syncTrackDetailRoute(trackId);
       }
     } else {
-      syncToolToRoute(toolIdForRoute(route.name));
+      if (to.name !== 'home') endMapInteraction();
+      if (from?.name === TRACK_DETAILS_ROUTE_NAME && !mapInteraction.value) {
+        trackDetailsVisible.value = false;
+        if (trackDetailsId.value != null) closeControllerTrackDetailsSheet();
+      }
+      syncToolToRoute(toolIdForRoute(to.name));
     }
     await nextTick();
-    syncingFromRoute = false;
+    if (revision === routeSyncRevision) syncingFromRoute = false;
   },
   { immediate: true }
 );
@@ -944,18 +1327,80 @@ watch(activeToolId, (toolId) => {
 });
 
 watch([trackDetailsVisible, trackDetailsId], ([visible, id]) => {
-  if (syncingFromRoute) return;
+  if (syncingFromRoute || mapInteraction.value || mapTrackRoute.isManagingRoute()) return;
   if (visible && id != null) {
     if (route.name !== TRACK_DETAILS_ROUTE_NAME || Number(route.params.id) !== Number(id)) {
       router.push({ name: TRACK_DETAILS_ROUTE_NAME, params: { id } }).catch(() => undefined);
     }
-  } else if (route.name === TRACK_DETAILS_ROUTE_NAME) {
+  } else if (route.name === TRACK_DETAILS_ROUTE_NAME && !activeToolId.value) {
+    // A selected tool owns its route change. Only closing details without
+    // selecting another tool should return to the previous page.
     leaveTrackDetailsRoute();
   }
 });
 </script>
 
 <style scoped>
+.map-interaction-context {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  min-height: 2.75rem;
+  flex: 0 0 auto;
+  padding: 0 var(--dlg-padding);
+}
+.map-interaction-context :deep(.map-identification-status) {
+  flex: 1 1 auto;
+  max-height: 4rem;
+  min-width: 0;
+  overflow: auto;
+}
+.map-alternatives-button {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border-color);
+  border-radius: 0.5rem;
+  background: var(--surface-sheet-solid);
+  color: var(--text-primary);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.map-interaction-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+.map-interaction-content--workspace {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+}
+.map-interaction-content--compact {
+  padding: 0.25rem var(--dlg-padding) var(--dlg-padding);
+}
+.map-point-details {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.4rem;
+  padding: 0.5rem;
+  font-size: 0.85rem;
+}
+.map-point-details dt {
+  color: var(--text-secondary);
+}
+.map-point-details dd {
+  text-align: right;
+}
+:global(.mtl-map-interaction-marker) {
+  width: 14px;
+  height: 14px;
+  border: 2px solid white;
+  background: var(--info, #2563eb);
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px #0006;
+  pointer-events: none;
+}
+
 * {
   margin: 0;
   box-sizing: border-box;
@@ -997,8 +1442,8 @@ watch([trackDetailsVisible, trackDetailsId], ([visible, id]) => {
 }
 
 .map :deep(.maplibregl-ctrl-bottom-right) {
-  right: 0;
-  bottom: calc(var(--nav-sheet-h, 0px) + var(--safe-bottom, 0px));
+  right: var(--safe-right, 0px);
+  bottom: var(--nav-sheet-h, 0px);
 }
 
 .map :deep(.maplibregl-ctrl-bottom-right .maplibregl-ctrl) {
@@ -1153,13 +1598,32 @@ watch([trackDetailsVisible, trackDetailsId], ([visible, id]) => {
   pointer-events: none;
 }
 
+.mtl-top-right--drawing {
+  z-index: var(--z-tool-overlay);
+}
+
+@media (max-width: 1023px) {
+  .mtl-top-right--drawing {
+    left: calc(0.6rem + var(--safe-left, 0px));
+    gap: 0.5rem;
+  }
+
+  .mtl-top-right--drawing .geo-draw-toolbar {
+    position: static;
+    align-self: center;
+    transform: none;
+    min-width: min(200px, calc(100% - 4rem));
+    max-width: calc(100% - 4rem);
+  }
+}
+
 .mtl-location-search-fab {
   position: fixed;
   z-index: var(--z-map-overlay-raised);
   right: calc(0.85rem + var(--safe-right, 0px));
   bottom: calc(
-    var(--nav-sheet-h, 92px) + var(--safe-bottom, 0px) + var(--mtl-map-attribution-strip-h) +
-      var(--mtl-map-attribution-bottom-gap) + var(--mtl-location-search-bottom-gap)
+    var(--nav-sheet-h, 92px) + var(--mtl-map-attribution-strip-h) + var(--mtl-map-attribution-bottom-gap) +
+      var(--mtl-location-search-bottom-gap)
   );
   display: inline-flex;
   align-items: center;
@@ -1225,28 +1689,6 @@ watch([trackDetailsVisible, trackDetailsId], ([visible, id]) => {
   transform: scale(1.08);
 }
 
-/* ─── Offline banner ─── */
-.mtl-offline {
-  position: fixed;
-  z-index: var(--z-map-overlay);
-  left: 50%;
-  top: calc(4rem + var(--safe-top, 0px));
-  transform: translateX(-50%);
-  background: var(--error-heavy);
-  backdrop-filter: var(--blur-light);
-  -webkit-backdrop-filter: var(--blur-light);
-  color: var(--text-primary);
-  border-radius: 2rem;
-  padding: 0.4rem 1rem;
-  font-size: var(--text-xs-size);
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  box-shadow: 0 4px 16px rgba(239, 68, 68, 0.3);
-  white-space: nowrap;
-}
-
 /* ─── Map download progress banner ─── */
 .mtl-map-downloading {
   position: fixed;
@@ -1308,168 +1750,49 @@ watch([trackDetailsVisible, trackDetailsId], ([visible, id]) => {
   text-overflow: ellipsis;
 }
 
-/* ─── Data freshness banner ─── */
-.mtl-data-freshness {
-  position: fixed;
-  z-index: var(--z-freshness-banner);
-  left: 50%;
-  bottom: calc(var(--nav-sheet-h, 92px) + 0.8rem + var(--safe-bottom, 0px));
-  transform: translateX(-50%);
-  width: min(calc(100vw - 2rem), 760px);
-  background: rgba(255, 251, 235, 0.94);
-  backdrop-filter: var(--blur-standard);
-  -webkit-backdrop-filter: var(--blur-standard);
-  border: 1px solid rgba(245, 158, 11, 0.42);
-  border-radius: 0.75rem;
-  color: #3f2e08;
-  box-shadow: 0 8px 24px rgba(40, 30, 5, 0.2);
-  padding: 0.55rem;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.65rem;
-}
-.mtl-data-freshness__content {
-  display: flex;
-  align-items: center;
-  gap: 0.55rem;
-  min-width: 0;
-  flex: 1 1 auto;
-}
-.mtl-data-freshness__content > i {
-  color: #b45309;
-  font-size: 1rem;
-  flex: 0 0 auto;
-}
-.mtl-data-freshness__text {
-  min-width: 0;
-  flex: 1 1 auto;
-}
-.mtl-data-freshness__title {
-  font-size: var(--text-sm-size);
-  font-weight: 700;
-  line-height: 1.2;
-}
-.mtl-data-freshness__detail {
-  font-size: var(--text-xs-size);
-  color: #6f520b;
-  line-height: 1.25;
-  white-space: normal;
-}
-.mtl-data-freshness__actions {
-  display: flex;
-  align-items: center;
-  gap: 0.35rem;
-  flex: 0 0 auto;
-}
-.mtl-data-freshness__btn {
-  border: 1px solid rgba(180, 83, 9, 0.28);
-  background: rgba(255, 255, 255, 0.72);
-  color: #5b3a05;
-  border-radius: 0.45rem;
-  min-height: 2rem;
-  padding: 0 0.6rem;
-  font-size: var(--text-xs-size);
-  font-weight: 700;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.3rem;
-  cursor: pointer;
-  white-space: nowrap;
-}
-.mtl-data-freshness__btn:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.95);
-}
-.mtl-data-freshness__btn:disabled {
-  opacity: 0.55;
-  cursor: default;
-}
-.mtl-data-freshness__btn--primary {
-  background: #0f766e;
-  border-color: #0f766e;
-  color: var(--accent-contrast);
-}
-.mtl-data-freshness__btn--primary:hover:not(:disabled) {
-  background: #115e59;
-}
-
-@media (max-width: 640px) {
-  .mtl-data-freshness {
-    align-items: stretch;
-    flex-direction: column;
-    bottom: calc(var(--nav-sheet-h, 92px) + 0.65rem + var(--safe-bottom, 0px));
-    gap: 0.55rem;
-  }
-  .mtl-data-freshness__detail {
-    white-space: normal;
-  }
-  .mtl-data-freshness__actions {
-    justify-content: flex-end;
-  }
-}
-
-/* ─── Track details sheet header ─── */
+/* Track identity remains visible above every detail tab. */
 .td-sheet-header {
   display: flex;
-  align-items: center;
-  gap: 0.65rem;
-  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 4px;
   min-width: 0;
-  overflow: hidden;
+  padding-block: 4px;
 }
-
-/* Title label — same visual style as the BottomSheet .sheet-title */
-.td-title-label {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  font-size: var(--text-xs-size);
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: #5f6368;
-  white-space: nowrap;
-  flex-shrink: 0;
-}
-
-.td-sheet-id {
-  flex-shrink: 0;
-  font-size: var(--text-xs-size);
-  color: var(--text-muted);
-  background: var(--surface-elevated);
-  border: 1px solid var(--border-default);
-  border-radius: 4px;
-  padding: 1px 6px;
-  font-family: monospace;
-  white-space: nowrap;
-  cursor: text;
-  -webkit-user-select: text;
-  user-select: text;
-}
-
-.td-sheet-activity {
-  flex: 0 1 auto;
-  min-width: 0;
-  max-width: min(14rem, 36vw);
-}
-
-.td-sheet-activity :deep(.activity-badge__label) {
+.td-sheet-name {
+  margin: 0;
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
 }
-
+.td-sheet-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  color: var(--text-muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+.td-sheet-date {
+  white-space: nowrap;
+}
 @media (max-width: 640px) {
-  .td-sheet-header {
-    gap: 0.45rem;
+  .td-sheet-name {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    font-size: 20px;
   }
-
-  .td-sheet-activity {
-    max-width: 1.75rem;
-  }
-
-  .td-sheet-activity :deep(.activity-badge__label) {
-    display: none;
+  .td-sheet-meta {
+    gap: 4px 8px;
+    font-size: 12px;
   }
 }
 
@@ -1519,110 +1842,6 @@ watch([trackDetailsVisible, trackDetailsId], ([visible, id]) => {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-}
-
-/* ─── Swiss Mobility route info popup ─── */
-.swiss-mobility-popup {
-  position: absolute;
-  z-index: var(--z-loading);
-  background: var(--surface-glass-heavy);
-  backdrop-filter: var(--blur-heavy);
-  -webkit-backdrop-filter: var(--blur-heavy);
-  border: 1px solid var(--border-medium);
-  border-radius: 0.75rem;
-  box-shadow: var(--shadow-lg);
-  width: min(300px, calc(100% - 24px));
-  min-width: min(180px, calc(100% - 24px));
-  max-height: min(28rem, calc(100% - 24px));
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-.swiss-mobility-popup-close {
-  position: absolute;
-  top: 0.25rem;
-  right: 0.35rem;
-  width: 1.75rem;
-  height: 1.75rem;
-  padding: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: none;
-  border-radius: 999px;
-  background: transparent;
-  cursor: pointer;
-  font-size: var(--text-xs-size);
-  color: var(--text-muted);
-  z-index: 1;
-  transition:
-    background 0.15s,
-    color 0.15s;
-}
-.swiss-mobility-popup-close:hover,
-.swiss-mobility-popup-close:focus-visible {
-  background: var(--surface-hover);
-  color: var(--text-primary);
-}
-.swiss-mobility-popup-header {
-  font-size: var(--text-xs-size);
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--text-faint);
-  padding: 0.4rem 2.6rem 0.3rem 0.85rem;
-  border-bottom: 1px solid var(--border-subtle);
-}
-.swiss-mobility-route-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  min-height: 0;
-  overflow-y: auto;
-}
-.swiss-mobility-route-item {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.5rem;
-  padding: 0.45rem 0.85rem;
-  border-bottom: 1px solid var(--border-subtle);
-}
-.swiss-mobility-route-item:last-child {
-  border-bottom: none;
-}
-.swiss-mobility-route-icon {
-  flex-shrink: 0;
-  margin-top: 2px;
-  color: var(--text-secondary);
-}
-.swiss-mobility-route-info {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-}
-.swiss-mobility-route-type {
-  font-size: var(--text-2xs-size);
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-  color: var(--text-faint);
-}
-.swiss-mobility-route-name {
-  font-size: var(--text-sm-size);
-  color: var(--text-primary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.swiss-mobility-route-number {
-  flex-shrink: 0;
-  font-size: var(--text-xs-size);
-  font-weight: 600;
-  color: var(--text-faint);
-  margin-left: auto;
-  padding-left: 0.4rem;
 }
 </style>
 
@@ -1697,9 +1916,9 @@ watch([trackDetailsVisible, trackDetailsId], ([visible, id]) => {
   justify-content: center;
   width: 1.1rem;
   height: 1.1rem;
-  border: 1px solid rgba(15, 23, 42, 0.18);
+  border: 1px solid var(--border-default);
   border-radius: 50%;
-  background: var(--accent-contrast);
+  background: var(--surface-sheet-solid);
   color: var(--text-secondary);
   box-shadow: 0 2px 8px rgba(15, 23, 42, 0.2);
   cursor: pointer;
@@ -1709,8 +1928,9 @@ watch([trackDetailsVisible, trackDetailsId], ([visible, id]) => {
 }
 
 .mtl-location-search-marker__clear:hover {
-  background: #f8fafc;
-  color: #0f172a;
+  background: var(--surface-sheet-solid);
+  color: var(--text-primary);
+  border-color: var(--border-hover);
 }
 
 .mtl-location-search-marker::after {
@@ -1766,6 +1986,8 @@ watch([trackDetailsVisible, trackDetailsId], ([visible, id]) => {
 }
 .geo-draw-toolbar__actions {
   display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
   gap: 0.4rem;
   margin-top: 0.2rem;
 }
@@ -1794,7 +2016,7 @@ watch([trackDetailsVisible, trackDetailsId], ([visible, id]) => {
 .geo-draw-toolbar__btn--finish {
   background: var(--accent);
   border-color: var(--accent);
-  color: var(--text-inverse);
+  color: var(--accent-contrast);
 }
 .geo-draw-toolbar__btn--finish:hover:not(:disabled) {
   background: var(--accent-text-light);

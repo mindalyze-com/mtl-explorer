@@ -1,13 +1,13 @@
 package com.x8ing.mtl.server.mtlserver.db.repository.logs;
 
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
-import tools.jackson.core.JacksonException;
-import tools.jackson.databind.ObjectMapper;
 import com.x8ing.mtl.server.mtlserver.db.entity.logs.WebClientEnvironmentLog;
 import com.x8ing.mtl.server.mtlserver.web.services.analytics.ClientEnvironmentRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
 
 import java.util.Date;
 import java.util.List;
@@ -21,7 +21,7 @@ import static org.apache.commons.lang3.StringUtils.truncate;
 })
 public class WebClientEnvironmentLogService {
 
-    private static final int MAX_USER_SESSION_ID_LENGTH = 32;
+    private static final int MAX_CLIENT_LOGIN_REF_LENGTH = 32;
     private static final int MAX_IP_ADDRESS_LENGTH = 64;
     private static final int MAX_USER_AGENT_LENGTH = 1000;
     private static final int MAX_TIMEZONE_LENGTH = 100;
@@ -39,10 +39,10 @@ public class WebClientEnvironmentLogService {
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void saveClientEnvironment(ClientEnvironmentRequest request, String userSessionId, String ipAddress, String headerUserAgent) {
+    public void saveClientEnvironment(ClientEnvironmentRequest request, String clientLoginRef, String ipAddress, String headerUserAgent) {
         WebClientEnvironmentLog log = new WebClientEnvironmentLog();
         log.setCreateDate(new Date());
-        log.setUserSessionId(truncate(userSessionId, MAX_USER_SESSION_ID_LENGTH));
+        log.setClientLoginRef(truncate(clientLoginRef, MAX_CLIENT_LOGIN_REF_LENGTH));
         log.setIpAddress(truncate(ipAddress, MAX_IP_ADDRESS_LENGTH));
         log.setUserAgent(truncate(firstNonBlank(request.getUserAgent(), headerUserAgent), MAX_USER_AGENT_LENGTH));
         log.setTimezone(truncate(request.getTimezone(), MAX_TIMEZONE_LENGTH));

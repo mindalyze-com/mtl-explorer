@@ -54,7 +54,13 @@
               aria-describedby="track-photo-offset-help"
             />
             <span class="photo-offset__unit">hours</span>
-            <button type="submit" :disabled="loading || saving || !offsetChanged">Preview</button>
+            <Button
+              size="small"
+              type="submit"
+              :outlined="offsetSeconds !== 0"
+              :disabled="loading || saving || !offsetChanged"
+              >Preview</Button
+            >
             <button type="button" :disabled="loading || saving || offsetSeconds === 0" @click="resetOffset">
               Reset
             </button>
@@ -62,18 +68,19 @@
           <p id="track-photo-offset-help">Preview before saving. Embedded GPS times are never changed.</p>
           <div v-if="offsetSeconds !== 0" class="photo-offset__preview" data-test="photo-offset-preview">
             <span>
-              Unsaved preview. {{ correctablePreviewMedia.length }}
-              {{ correctablePreviewMedia.length === 1 ? 'item uses' : 'items use' }} the camera clock
-              {{ effectiveTotalItems > media.length ? 'on this page' : '' }}.
+              Unsaved preview. Save applies to {{ correctablePreviewMedia.length }}
+              {{ correctablePreviewMedia.length === 1 ? 'item' : 'items' }} with camera-clock times
+              {{ effectiveTotalItems > media.length ? 'on this page.' : 'shown below.' }}
             </span>
-            <button
+            <Button
+              size="small"
               type="button"
               data-test="save-time-correction"
               :disabled="saving || correctablePreviewMedia.length === 0"
               @click="saveTimeCorrection"
             >
               Save correction
-            </button>
+            </Button>
           </div>
         </form>
       </div>
@@ -109,16 +116,30 @@
     <div v-else-if="error" class="photos-state photos-state--error" data-test="track-photos-error" role="alert">
       <i class="bi bi-exclamation-triangle" aria-hidden="true"></i>
       <span>{{ error }}</span>
-      <button type="button" @click="emit('retry')">
+      <Button size="small" type="button" @click="emit('retry')">
         <i class="bi bi-arrow-clockwise" aria-hidden="true"></i> Retry
-      </button>
+      </Button>
+    </div>
+
+    <div
+      v-else-if="media.length === 0 && matchingState !== 'complete'"
+      class="photos-state"
+      data-test="track-photos-matching"
+      role="status"
+      aria-live="polite"
+    >
+      <i class="bi bi-images" aria-hidden="true"></i>
+      <strong>{{ matchingStateMessage }}</strong>
+      <span v-if="matchingState === 'pending'">Media results may change until processing finishes.</span>
     </div>
 
     <div v-else-if="media.length === 0" class="photos-state photos-state--empty" data-test="track-photos-empty">
       <i class="bi bi-images" aria-hidden="true"></i>
       <strong>No media matched this activity</strong>
       <span>If the camera clock was wrong, you can preview a time difference.</span>
-      <button type="button" data-test="empty-photo-tools" @click="openPhotoTools">Open Photo tools</button>
+      <Button size="small" outlined type="button" data-test="empty-photo-tools" @click="openPhotoTools"
+        >Open Photo tools</Button
+      >
     </div>
 
     <nav
@@ -183,8 +204,10 @@
         @focusin="emit('highlight-media', item.id)"
       >
         <div class="photo-card-row">
-          <button
-            type="button"
+          <MediaThumbnailButton
+            v-slot="{ imageProps }"
+            :src="mediaContentUrl(item.id, THUMBNAIL_MAX_SIZE)"
+            :enabled="thumbnailsEnabled"
             class="photo-card"
             :class="{
               'photo-card--selected': item.id === selectedMediaId,
@@ -202,7 +225,7 @@
             <span class="photo-card__thumb-wrap">
               <img
                 v-if="thumbnailsEnabled"
-                :src="mediaContentUrl(item.id, THUMBNAIL_MAX_SIZE)"
+                v-bind="imageProps"
                 :alt="item.fileName || 'Activity media'"
                 class="photo-card__thumb"
                 loading="lazy"
@@ -232,7 +255,7 @@
               </span>
             </span>
             <i class="bi bi-chevron-right photo-card__open" aria-hidden="true"></i>
-          </button>
+          </MediaThumbnailButton>
           <div v-if="showItemActions(item)" class="photo-card__actions">
             <button
               v-if="locationEditMode"
@@ -279,7 +302,7 @@
             <input v-model="manualNote" type="text" maxlength="1000" placeholder="Optional" />
           </label>
           <div class="photo-location-editor__actions">
-            <button type="submit" :disabled="saving || !manualLocationValid">Save location</button>
+            <Button size="small" type="submit" :disabled="saving || !manualLocationValid">Save location</Button>
             <button
               v-if="item.positionOrigin === 'USER_ASSIGNED'"
               type="button"
@@ -299,10 +322,13 @@
 
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
+import Button from 'primevue/button';
 import { mediaContentUrl, type TrackMediaDto } from '@/repositories/mediaRepository';
 import { formatDateAndTime, formatDistanceSmart } from '@/utils/Utils';
 import { isVideoMedia } from '@/utils/mediaKind';
+import MediaThumbnailButton from '@/components/media/MediaThumbnailButton.vue';
 import { TRACK_MEDIA_DEFAULT_PAGE_SIZE, TRACK_MEDIA_PAGE_SIZE_OPTIONS } from './trackMediaPaging';
+import type { TrackMediaMatchingState } from './trackMediaMatchingState';
 
 defineOptions({ name: 'TrackDetailPhotos' });
 
@@ -319,6 +345,7 @@ const props = withDefaults(
     selectedMediaId?: number | null;
     highlightedMediaId?: number | null;
     loading?: boolean;
+    matchingState?: TrackMediaMatchingState;
     error?: string | null;
     offsetSeconds?: number;
     saving?: boolean;
@@ -334,6 +361,7 @@ const props = withDefaults(
     selectedMediaId: null,
     highlightedMediaId: null,
     loading: false,
+    matchingState: 'complete',
     error: null,
     offsetSeconds: 0,
     saving: false,
@@ -341,6 +369,12 @@ const props = withDefaults(
     thumbnailsEnabled: true,
   }
 );
+
+const matchingStateMessage = computed(() => {
+  if (props.matchingState === 'pending') return 'Media matching is still in progress';
+  if (props.matchingState === 'unavailable') return 'Media matching status is unavailable';
+  return 'Checking media matching…';
+});
 
 const emit = defineEmits<{
   'select-media': [mediaId: number];
@@ -704,8 +738,7 @@ function isVideo(item: TrackMediaDto): boolean {
   font: inherit;
 }
 
-.photo-offset button,
-.photos-state button {
+.photo-offset button:where(:not(.p-button)) {
   min-height: 2.25rem;
   padding: 0.35rem 0.65rem;
   color: var(--text-secondary);
@@ -718,7 +751,7 @@ function isVideo(item: TrackMediaDto): boolean {
   cursor: pointer;
 }
 
-.photo-offset button:disabled {
+.photo-offset button:where(:not(.p-button)):disabled {
   opacity: 0.45;
   cursor: default;
 }
@@ -1032,7 +1065,7 @@ function isVideo(item: TrackMediaDto): boolean {
 }
 
 .photo-card__edit,
-.photo-location-editor button {
+.photo-location-editor button:where(:not(.p-button)) {
   min-height: 2.25rem;
   padding: 0.35rem 0.6rem;
   color: var(--text-secondary);
@@ -1052,7 +1085,7 @@ function isVideo(item: TrackMediaDto): boolean {
 }
 
 .photo-card__edit:focus-visible,
-.photo-location-editor button:focus-visible,
+.photo-location-editor button:where(:not(.p-button)):focus-visible,
 .photo-location-editor input:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
@@ -1105,7 +1138,7 @@ function isVideo(item: TrackMediaDto): boolean {
   gap: 0.4rem;
 }
 
-.photo-location-editor button:disabled {
+.photo-location-editor button:where(:not(.p-button)):disabled {
   opacity: 0.45;
   cursor: default;
 }
@@ -1116,7 +1149,7 @@ function isVideo(item: TrackMediaDto): boolean {
   }
 }
 
-@media (max-width: 640px) {
+@container track-details (max-width: 640px) {
   .photos-toolbar {
     align-items: stretch;
   }

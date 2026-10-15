@@ -34,6 +34,7 @@
           <i class="bi" :class="s.icon"></i> {{ s.text }}
         </span>
       </div>
+      <slot name="details"></slot>
     </div>
   </div>
 </template>

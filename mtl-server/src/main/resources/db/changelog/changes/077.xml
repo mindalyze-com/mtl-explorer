@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.10.xsd">
+    <changeSet id="20260905_google_health_route_publication_retry" author="codex">
+        <comment>Match imported routes to their published file and retain route retry state.</comment>
+        <sql><![CDATA[
+            ALTER TABLE google_health.data_point
+                ADD COLUMN route_file_modified_at timestamp with time zone,
+                ADD COLUMN route_file_size bigint,
+                ADD COLUMN route_next_retry_at timestamp with time zone;
+            CREATE INDEX idx_google_health_route_retry
+                ON google_health.data_point (connection_id, route_next_retry_at, id)
+                WHERE data_type = 'exercise' AND route_state IN ('PENDING', 'FAILED', 'NO_LOCATION_SCOPE', 'NOT_APPLICABLE');
+        ]]></sql>
+        <rollback>
+            ALTER TABLE google_health.data_point DROP COLUMN route_file_modified_at,
+                DROP COLUMN route_file_size, DROP COLUMN route_next_retry_at;
+        </rollback>
+    </changeSet>
+</databaseChangeLog>

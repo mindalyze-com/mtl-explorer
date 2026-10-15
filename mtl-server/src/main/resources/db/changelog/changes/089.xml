@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.10.xsd">
+    <changeSet id="20260927_metabolic_energy" author="codex">
+        <comment>Store human metabolic estimates separately from mechanical work, with method and coverage.</comment>
+        <addColumn tableName="gps_track">
+            <column name="metabolic_active_kcal" type="double precision"/>
+            <column name="metabolic_total_kcal" type="double precision"/>
+            <column name="metabolic_coverage" type="varchar(32)"/>
+            <column name="metabolic_covered_seconds" type="double precision"/>
+            <column name="metabolic_uncovered_seconds" type="double precision"/>
+            <column name="metabolic_method" type="varchar(80)"/>
+            <column name="metabolic_model_version" type="varchar(64)"/>
+            <column name="metabolic_body_weight_kg" type="double precision"/>
+        </addColumn>
+    </changeSet>
+    <changeSet id="20260927_queue_metabolic_energy" author="codex">
+        <comment>
+            Request the normal energy worker once for classified imported tracks with canonical points.
+            Changeset 082 already handles the full GPS rebuild for upgrades from the last release.
+            This request also covers development databases where 082 has already completed.
+            New imports and replacements continue to enqueue energy through normal classification.
+        </comment>
+        <sql><![CDATA[
+            INSERT INTO public.track_energy_recalculation (track_id, generation, requested_at, next_attempt_at)
+            SELECT t.id, 1, now(), now() FROM public.gps_track t
+            WHERE COALESCE(t.track_source, 'IMPORTED') = 'IMPORTED'
+              AND t.activity_type IS NOT NULL
+              AND NOT COALESCE(t.timing_unreliable, false)
+              AND EXISTS (SELECT 1 FROM gps_track_data d JOIN gps_track_data_points p ON p.gps_track_data_id = d.id
+                          WHERE d.gps_track_id = t.id AND d.track_type = 'RAW_OUTLIER_CLEANED')
+            ON CONFLICT (track_id) DO UPDATE SET
+                generation = track_energy_recalculation.generation + 1,
+                requested_at = now(), next_attempt_at = now(), last_error = NULL;
+        ]]></sql>
+    </changeSet>
+</databaseChangeLog>

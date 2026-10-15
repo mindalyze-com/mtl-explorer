@@ -7,6 +7,7 @@ import { useMapSettingsStore } from '@/stores/mapSettingsStore';
 import { resolveConfiguredMapStyle } from '@/components/map/mapStyleResolver';
 import Map3DRenderer from '@/components/map/Map3DRenderer.vue';
 import { useMeasurementSystem } from '@/composables/useMeasurementSystem';
+import type { ChartPoint } from '@/utils/chartSeriesAdapter';
 
 const maplibreMock = vi.hoisted(() => {
   class MockLngLatBounds {
@@ -44,6 +45,15 @@ const maplibreMock = vi.hoisted(() => {
     getCanvas = vi.fn(() => document.createElement('canvas'));
     getLayer = vi.fn((id: string) => (this.layers.has(id) ? { id } : undefined));
     getSource = vi.fn((id: string) => (this.sources.has(id) ? { id } : undefined));
+    hasImage = vi.fn((id: string) => this.images.has(id));
+    addImage = vi.fn((id: string) => {
+      this.images.add(id);
+    });
+    missingStyleImageResolver: ((id: string) => void) | null = null;
+    setMissingStyleImageResolver = vi.fn((resolver: (id: string) => void) => {
+      this.missingStyleImageResolver = resolver;
+      return this;
+    });
     jumpTo = vi.fn();
     loaded = vi.fn(() => true);
     off = vi.fn();
@@ -57,6 +67,7 @@ const maplibreMock = vi.hoisted(() => {
     triggerRepaint = vi.fn();
     private layers = new Set<string>();
     private sources = new Set<string>();
+    private images = new Set<string>();
   }
 
   const instances: MockMap[] = [];
@@ -308,6 +319,88 @@ describe('Map3DRenderer', () => {
     await flushPromises();
 
     expect(resolveConfiguredMapStyle).toHaveBeenCalledWith(expect.objectContaining({ theme: 'light-topo' }));
+
+    wrapper.unmount();
+  });
+
+  it.each([{ timingUnreliable: true }, { timingEstimated: true }, {}])(
+    'replays loaded geometry by distance when timing cannot be used: %j',
+    async (timing) => {
+      trackLoaderMock.fetchDetailTrackAtPrecision.mockClear();
+      const coordinates = [
+        [8.5, 47.5, 450],
+        [8.51, 47.51, 460],
+      ];
+      const store = useMapStateStore();
+      store.enter3DReplay({
+        trackId: 7,
+        replaySource: {
+          trackId: 7,
+          coordinates,
+          gpsTrack: { id: 7, trackDurationInMotionSecs: 120, ...timing },
+          chartPoints: Object.keys(timing).length
+            ? [0, 1].map((index): ChartPoint => ({
+                pointIndex: index,
+                pointTimestamp: new Date(Date.UTC(2026, 0, 1, 10, index)),
+                distanceInMeterSinceStart: index * 1000,
+                metricStats: {},
+                pointAltitude: 450 + index * 10,
+                speedInKmhWindow: null,
+                speedBucketAvgKmh: null,
+                elevationGainPerHourWindow: null,
+                elevationLossPerHourWindow: null,
+                powerWattsWindow: null,
+                energyCumulativeWh: null,
+              }))
+            : [],
+          renderedShapePoints: coordinates.map((point, index) => ({
+            pointIndex: index,
+            canonicalPointIndex: index,
+            pointLongLat: { type: 'Point', coordinates: point.slice(0, 2) },
+            pointAltitude: point[2],
+          })),
+        },
+      });
+      const wrapper = mount(Map3DRenderer, { attachTo: document.body });
+      await flushPromises();
+      await flushPromises();
+
+      expect(wrapper.emitted('ready')).toBeTruthy();
+      expect(wrapper.emitted('load-failed')).toBeUndefined();
+      expect(trackLoaderMock.fetchDetailTrackAtPrecision).not.toHaveBeenCalled();
+      if (Object.keys(timing).length) expect(store.replay.speedFactorLabel).toBe('Distance based');
+      expect(store.replay.playing).toBe(true);
+      wrapper.unmount();
+    }
+  );
+
+  it('reports unavailable replay when no usable route geometry exists', async () => {
+    trackLoaderMock.fetchDetailTrackAtPrecision.mockResolvedValueOnce({
+      coordinates: [[8.5, 47.5]],
+      gpsTrack: { id: 7 },
+    });
+    useMapStateStore().enter3DReplay({ trackId: 7 });
+    const wrapper = mount(Map3DRenderer, { attachTo: document.body });
+    await flushPromises();
+    await flushPromises();
+    expect(wrapper.emitted('load-failed')).toHaveLength(1);
+    expect(wrapper.emitted('ready')).toBeUndefined();
+    wrapper.unmount();
+  });
+
+  it('resolves an unavailable basemap sprite while keeping replay usable', async () => {
+    const store = useMapStateStore();
+    store.enter3DReplay({ trackId: 7, trackLabel: 'Synthetic replay track' });
+
+    const wrapper = mount(Map3DRenderer, { attachTo: document.body });
+    await flushPromises();
+    await flushPromises();
+
+    const map = maplibreMock.instances[0];
+    map.missingStyleImageResolver?.('townhall');
+
+    expect(map.hasImage('townhall')).toBe(true);
+    expect(wrapper.emitted('ready')).toBeTruthy();
 
     wrapper.unmount();
   });

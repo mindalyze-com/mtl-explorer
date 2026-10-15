@@ -10,7 +10,8 @@ import java.util.Locale;
  * Each entry maps a file extension to its GPSBabel input format name.
  * <p>
  * GPX is the native format and does not require conversion.
- * All other formats are converted to GPX via GPSBabel before parsing.
+ * Other formats are converted to GPX before parsing; GeoJSON is handled directly
+ * to preserve elevations, and the remaining formats use GPSBabel.
  */
 @Getter
 public enum SupportedTrackFormat {

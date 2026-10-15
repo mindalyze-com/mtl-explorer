@@ -1,0 +1,374 @@
+[
+  {
+    "title": "Administration",
+    "url": "/mtl/guide/administration/index.html",
+    "scope": "Guide included with this build",
+    "text": "# Administration Install and run your own MTL Explorer. To learn how to use the app, see the User guide . 1. Install and import a few test files. 2. Configure the login, data folders, and HTTPS. 3. Optional: connect Garmin or Google Health . 4. Check the map, routing, and search services . 5. Set up backups and updates . If something fails, see troubleshooting . Keep passwords, tracks, photos, health data, and backups private."
+  },
+  {
+    "title": "Configuration",
+    "url": "/mtl/guide/administration/configuration/index.html",
+    "scope": "Guide included with this build",
+    "text": "# Configuration - Login and credentials - Data folders - HTTPS and reverse proxies - Environment settings"
+  },
+  {
+    "title": "Login and credentials",
+    "url": "/mtl/guide/administration/configuration/authentication/index.html",
+    "scope": "Guide included with this build",
+    "text": "# Login and credentials The default login is user mtl with password change-me. Change it before other people or the internet can reach MTL Explorer. Your login is set in a file called .env, next to docker-compose.yml: Create it on the machine that runs Docker, not inside the container or data/. 1. Create the file and allow only your user to read it. On macOS or Linux: On Windows PowerShell: 2. Add your login: 3. Apply it: Do not share or commit .env. To keep it somewhere else, pass it on every start and update: MTL Explorer serves plain HTTP on port 18080. For HTTPS, put a reverse proxy in front of it. ## Login reference Settings → Session shows a login reference (ClientLoginRef). If you report a problem, include it so the matching log entries can be found. It is not a password and cannot be used to sign in."
+  },
+  {
+    "title": "Environment settings",
+    "url": "/mtl/guide/administration/configuration/environment/index.html",
+    "scope": "Guide included with this build",
+    "text": "# Environment settings MTL Explorer reads its settings from .env, next to docker-compose.yml. Keep this file private. If you keep it somewhere else, start and update with docker compose --env-file /path/to/mtl.env .... | Setting | Purpose | | --- | --- | | MTL_USER_LOGIN, MTL_USER_PASSWORD | Your login | | MTL_POSTGRES_PASSWORD | Database password | | MTL_APP_IMAGE | Use a different app image | | MTL_BROUTER_IMAGE, MTL_LOCATION_SEARCH_IMAGE, MTL_MAP_IMAGE | Use different service images | | MTL_IMAGE_PULL_POLICY | When Docker downloads new images | | MTL_UPDATES_ENABLED, MTL_UPDATES_FEED_URL | Optional check for new releases | | MTL_GOOGLE_HEALTH_CLIENT_ID, MTL_GOOGLE_HEALTH_CLIENT_SECRET | Google Health connection | After changing .env, run docker compose up -d to apply it. The Compose file lists all settings and their defaults. Advanced server settings are in the server configuration . Do not post your .env or full configuration publicly; it contains passwords."
+  },
+  {
+    "title": "HTTPS and reverse proxies",
+    "url": "/mtl/guide/administration/configuration/reverse-proxy/index.html",
+    "scope": "Guide included with this build",
+    "text": "# HTTPS and reverse proxies MTL Explorer serves plain HTTP on port 18080. To reach it securely from outside your home network, put a reverse proxy with HTTPS in front of it, such as Caddy, Traefik, or nginx. HTTP/1.1 is supported. HTTP/2 is optional. 1. Point your hostname to the app's port 18080. 2. Set up a valid certificate in the proxy. 3. Keep the /mtl/ path, and forward the original host and scheme (https). 4. Keep streaming and range requests working; photos, videos, and maps need them. 5. Allow long requests: planning a long route can take up to five minutes. 6. Open https://<your-host>/mtl/ and test the login, the map, a photo download, and route planning. If something does not load, check the browser console and the server logs for path or mixed-content errors. For Google Health, the connection uses a manual copy-and-paste step that works behind a proxy; see Google Health setup ."
+  },
+  {
+    "title": "Data folders",
+    "url": "/mtl/guide/administration/configuration/storage/index.html",
+    "scope": "Guide included with this build",
+    "text": "# Data folders MTL Explorer keeps all its data in data/, next to docker-compose.yml: Copy GPS files into ./data/gpx/; MTL Explorer finds them automatically. Unzip ZIP archives first. Put photos and videos into ./data/media/. Keep the whole data/ folder when you update. Re-downloading maps and routing data takes a long time. ## Use other folders To keep your data or media somewhere else, edit the app.volumes section in docker-compose.yml. Change only the left side of each line: Put your tracks in /your/mtl-data/gpx. Keep gpx and google-health-staging inside the same folder; Google Health imports need them together. ## Fix permissions on Linux If Docker created ./data/ as root and imports fail, give it back to your user:"
+  },
+  {
+    "title": "Garmin setup",
+    "url": "/mtl/guide/administration/garmin/index.html",
+    "scope": "Guide included with this build",
+    "text": "# Garmin setup Garmin sync is optional and off by default. It downloads your Garmin activities into the GPS folder, where MTL Explorer imports them. 1. Create application.yml next to docker-compose.yml with your Garmin login: This file contains your password. Allow only your user to read it. 2. Create or extend compose.override.yml next to it. If it already has an app section, add these lines to it: Keep the existing ./data:/app/mtl-data line in docker-compose.yml. 3. Apply the changes: 4. Open Settings → Import & sync → Garmin → Sync now . Check Garmin command output , then wait until Settings → Processing is done. Some downloads can fail. MTL Explorer retries failed downloads in a different format, but not every error can be fixed this way. See Garmin export for how it works."
+  },
+  {
+    "title": "Google Health setup",
+    "url": "/mtl/guide/administration/google-health/index.html",
+    "scope": "Guide included with this build",
+    "text": "# Google Health setup Google Health is an optional beta feature . It keeps a read-only copy of your Google Health data (exercise, sleep, activity, measurements, and heart rate) on your own server, and imports exercise routes as tracks. Errors and sync interruptions may occur. To use it, see the Health guide . This page covers setup. Before you start: - You need your own Google Cloud project with access to the Google Health API. Google decides who gets access, and its rules can change. Check Google's requirements first. - Your Google Account must be linked to an active Google Health profile. If needed, create one or move your Fitbit account in the Google Health mobile app; see Google's account requirements . - In Google's Testing mode, you must reconnect every seven days. Your stored data stays. - One Google account per MTL Explorer installation. Health data and route locations are sensitive. Protect the database, backups, login, and reverse proxy. Health data is stored in the database, and routes in ./data/gpx/google-health/. Back up ./data/postgis and ./data/gpx together. Without Google credentials, the feature simply stays unconfigured. To turn it off completely, set MTL_GOOGLE_HEALTH_ENABLED=false in .env. Each installation connects to Google directly, so your health data never passes through a third-party service. That is why every installation needs its own Google setup. ### One-time installation setup In MTL Explorer, open Settings → Import & sync → Google Health → Start setup . The setup assistant shows the scopes, an .env template, server checks, and links to each Google page: Cloud Console , API Library , Auth Platform , Audience , OAuth Clients , and Data Access . 1. Select a Google Cloud project and enable Google Health API . 2. Open Google Auth Platform . If Google shows Get started , fill in: - App name: enter MTL Explorer. - User support email: select your email, then select Next . - Audience: select External unless all users belong to the same Google Workspace organization, then select Next . - Contact Information: enter your email, then select Next . - Finish: accept the user-data policy, then select Continue and Create . 3. Open Audience . Check that the publishing status is Testing and the user type is External . Under Test users , select + Add users , enter the Google account that owns the health data, and select Save . Check that the account appears in the list. Google will warn that the app is unverified. This is expected. Keep the app in Testing : this is the supported setup. You don't need to publish the app or have it verified by Google. The only drawback is reconnecting once a week. 4. Open Clients and create an OAuth client: - Application type: select Desktop app . - Name: enter MTL Explorer. - Select Create , then Download JSON and save the file. - Before closing Google's dialog, copy the Client ID and Client secret. You need both in step 6. 5. Open Data Access , select Add or remove scopes , and add the four read-only scopes: Tip: Select Copy all four scopes in the assistant, paste them into Manually add scopes , then select Add to table , Update , and Save . The first three are required. Location is optional and only needed for exercise routes. 6. Add the client ID and secret to .env, next to docker-compose.yml. Create .env first if it is missing: Keep this secret. If you change it later, you must reconnect Google Health. Your stored health data stays. 7. Apply the change: Do not use docker compose restart; it does not load the new settings. Wait until MTL Explorer is back, sign in, return to the assistant, and select Check again . If you keep .env elsewhere, use docker compose --env-file \"/path/to/mtl.env\" up -d. On a NAS, add both settings to the stack environment and recreate the app container. Advanced: if MTL Explorer runs behind HTTPS and you prefer an automatic callback, set MTL_GOOGLE_HEALTH_REDIRECT_URI to its public HTTPS callback address and use a Web application OAuth client with exactly the same address. Leave it unset for the normal setup. See Google Health authorization for why the setup works this way. ### Connect the Google account 1. Open Settings → Import & sync → Google Health . 2. In the setup assistant, select Open Google consent . 3. On Google's Select what this app can access screen, select Select all and Continue . You can leave Location unchecked if you don't need exercise routes. 4. Google opens http://127.0.0.1:1/mtl-explorer-oauth and the browser shows an error. This is expected. Copy the complete address from the address bar. 5. Return to MTL Explorer, paste the address, and select Complete connection within ten minutes. 6. Select Open Health , or open Manage to review access. Follow the sync link to Processing to watch the first import. The last 24 hours appear first; the rest of the week and older history follow over time. Temporary errors are retried automatically. Settings → Processing shows what failed and when it is retried next. ### Reconnect When access is about to expire or has expired, Settings shows a message. Select Reauthorize , open Google consent, copy the new address, and paste it into MTL Explorer. Your Google setup and stored data stay unchanged. ### Diagnose Google Health To see recent Google Health activity in the server log: The log never contains tokens, health data, or locations. When reporting a problem, include the complete error and stack trace around the failing job. To stop syncing, select Disconnect Google ; your data stays. To delete the local copy, disconnect first, then select Delete local mirror and type DELETE. This removes only Google Health records and routes. ### Synchronization settings Most installations don't need to change these. Add them under mtl.google-health in the server configuration. | Setting | Default | Meaning | | --- | --- | --- | | history-start-date | 2010-01-01 | Oldest day to import | | recent-window | P7D | Days that are checked again for late changes | | recent-fast-window | PT24H | Range checked on every sync | | recent-full-interval | PT24H | How often the whole recent window is checked | | sync-interval | PT30M | Time between syncs | | cycle-deadline-margin | PT1M | Time kept free before the next sync | | history-budget-fraction | 0.5 | Share of sync time used for older history | | history-stream-quantum | PT1M | Time needed to start another page of history | | database-transaction-timeout | PT5M | Time limit for saving one batch | | work-failure-limit | 4 | Attempts before a failing range is skipped | | work-retry-max-delay | PT6H | Longest wait between retries | | max-chunk-rows / max-chunk-bytes | 100000 / 67108864 | Size limit per batch | See synchronization for how syncing works and which values are allowed."
+  },
+  {
+    "title": "Installation",
+    "url": "/mtl/guide/administration/installation/index.html",
+    "scope": "Guide included with this build",
+    "text": "# Installation - Host requirements - Install with Docker Compose - Install on a NAS"
+  },
+  {
+    "title": "Install on a NAS",
+    "url": "/mtl/guide/administration/installation/nas/index.html",
+    "scope": "Guide included with this build",
+    "text": "# Install on a NAS 1. Check the NAS against the host requirements : processor type, memory, free ports, and disk space. 2. Create a folder for MTL Explorer on a NAS share that is kept permanently, not a temporary or cache folder. Keep docker-compose.yml, .env, and data/ together in that folder. 3. Install with Docker Compose , using the NAS container manager or a terminal. 4. Open http://<nas-address>:18080/mtl/ from a browser on the same network. 5. Change the login . Set up HTTPS if you want to reach it from outside. 6. Test one import, one planned route, and a backup and restore . Make sure MTL Explorer can read your GPS folder and write to data/. If imports fail with \"permission denied\", check the folder permissions in your NAS settings. ## Updating Some NAS container managers keep their own copy of the Compose file. When you update , replace that copy with the new Compose file too; new images alone are not enough. Then recreate the containers in the container manager; a plain restart does not apply changed settings."
+  },
+  {
+    "title": "Install with Docker Compose",
+    "url": "/mtl/guide/administration/installation/quick-start/index.html",
+    "scope": "Guide included with this build",
+    "text": "# Install with Docker Compose You need Docker with Compose. Check the host requirements first. 1. Create a folder for MTL Explorer and start it. On macOS, Linux, WSL, or Git Bash: On Windows PowerShell: The first start downloads the images and sets up the database. This can take several minutes. 2. Open http://localhost:18080/mtl/ and sign in with user mtl and password change-me. 3. Before other people or the internet can reach it, change the password . 4. Upload one supported GPS file and check that it appears on the map. Get started walks you through it. Everything MTL Explorer stores goes into the data/ folder next to docker-compose.yml. Keep this folder: it holds your database, maps, and routing data. ## If it does not start Check that all services are running and read their latest log lines: See troubleshooting for common problems."
+  },
+  {
+    "title": "Host requirements",
+    "url": "/mtl/guide/administration/installation/requirements/index.html",
+    "scope": "Guide included with this build",
+    "text": "# Host requirements MTL Explorer runs several services together: the app, a database, and route planning. It needs more memory than a small web app. - Docker with Compose. On Windows and macOS, install Docker Desktop. - A 64-bit Intel/AMD (linux/amd64) or ARM (linux/arm64) host. - At least 4 GB of memory; 6–8 GB is more comfortable. - Free ports 18080 (app) and 18083 (location search). Port 18081 is only needed for optional offline maps. - A stable internet connection for the online maps. Offline maps for the whole world need about 200 GB of free disk space. By default the services use about 2.5 GB of memory together. If you have many photos and videos or very long tracks, give the app more memory. See memory tuning . Use docker compose (with a space). The older docker-compose command is not supported."
+  },
+  {
+    "title": "Maintenance",
+    "url": "/mtl/guide/administration/maintenance/index.html",
+    "scope": "Guide included with this build",
+    "text": "# Maintenance - Back up and restore - Updates - Indexing and background work - Logs and retention"
+  },
+  {
+    "title": "Back up and restore",
+    "url": "/mtl/guide/administration/maintenance/backup-and-restore/index.html",
+    "scope": "Guide included with this build",
+    "text": "# Back up and restore Your GPS files alone are not enough to recover everything. The database also holds your saved plans, corrections, review decisions, and health records. Back up: - the database and its user accounts (commands below) - your original GPS files, photos, and videos - docker-compose.yml, .env, and any override files - other folders you mounted yourself Store the backup privately on another disk or computer; it contains passwords and personal data. Note which image versions you were running. ## Create a consistent backup Run these commands in the folder with docker-compose.yml. Replace the example path with your backup location. MTL Explorer is stopped while the backup runs. Check that both commands succeeded and both files are not empty. roles.sql contains password hashes; keep it private. Without it, filters can stop working after a restore. Now copy docker-compose.yml, .env, override files, and your GPS, photo, and video folders. Copy the map and routing data too if you don't want to download it again. Don't add or change files while copying. Don't copy the data/postgis/ folder instead of making a dump; a copy of a running database may not restore. To check the dump, list its contents: Start MTL Explorer again when the backup is complete: ## Restore into a separate installation 1. Create a new installation directory. Restore configuration and source folders. Keep the same paths inside containers and use a fresh database directory. 2. Pin compatible images from the backup. Use separate host ports if the original instance is still running. 3. Bootstrap the new database with an administrator name absent from the role backup. For example, add this to compose.override.yml, merging any existing overrides: Keep the restored database username and password unchanged. The temporary administrator avoids conflicts when the original accounts are restored. Start only the database, leaving the app stopped: When the database is ready, restore the accounts first, then the data: Before starting the app, give the restored installation a new identity. This makes browsers discard cached tracks from before the restore, including when you restore to the same address: If you use Google Health, keep the same client secret in .env. With a new secret you must reconnect Google Health; your stored health data stays. Check the restored installation: login, number of tracks, a few tracks, saved plans, photo corrections, and review decisions. Download one original file. Wait for Settings → Processing to finish before you reload. Keep the old installation until you are sure the new one works. Going back to an older image does not undo data changes. To return to an older version, restore a backup made with that version."
+  },
+  {
+    "title": "Logs",
+    "url": "/mtl/guide/administration/maintenance/logs/index.html",
+    "scope": "Guide included with this build",
+    "text": "# Logs Open Settings → Logs to see what the server and browsers reported. - Stored events lists errors and warnings from the server and from browsers. Filter by source, severity, topic, and time, then click Refresh . Open a row to see the full error. - Server file shows the latest lines of the server log. Browser problems also appear in Server file as short Client problem entries. Open the stored event for the full details. To turn off both viewers, set mtl.log-viewer-enabled=false. ## Retention Stored events are deleted after 30 days by default: If events pile up faster than they are deleted, increase cleanup-batch-size or shorten cleanup-interval. Set retention-enabled: false to keep all events. See diagnostic logging for the API and technical details."
+  },
+  {
+    "title": "Indexing and background work",
+    "url": "/mtl/guide/administration/maintenance/processing/index.html",
+    "scope": "Guide included with this build",
+    "text": "# Indexing and background work Settings → Processing shows what MTL Explorer is working on: importing GPS files and photos, and calculations such as duplicates, activity types, energy, and exploration. Importing a file and finishing all its calculations can end at different times. ## Read the progress Complete · 100% means every file has a result. It does not mean every file was imported: some may have failed or been skipped. Open Technical details → Show failed files or Show skipped files to see which files and why. When files need attention, a card at the top shows N files need review . Click Review to check them. Fixing happens in Review , not in Processing; see Review . A Waiting task shows what it needs before it can continue. Select the linked task to inspect it. Automatic waits resume without your input. Open Details to see which tasks it depends on. In demos with synthetic health enabled, Google Health (beta) under Imports & sync shows Synthetic demo data and its progress in days. ## Rescan files MTL Explorer picks up new GPS files right away and rescans the GPS folder every 12 hours. Photos and videos are not watched: they are scanned when the server starts and every seven days. To pick up changes now, use Settings → Maintenance → Rescan GPS or Rescan Media . A rescan also retries files that failed before. It does not restore a database. Advanced settings: | Setting | Default | | --- | --- | | mtl.indexer.gps.live-watch-enabled | true | | mtl.indexer.gps.rescan-interval | PT12H | | mtl.indexer.media.live-watch-enabled | false | | mtl.indexer.media.rescan-interval | P7D | | mtl.indexer.gps.conversion-timeout | PT10M, time allowed to convert one non-GPX file | ## Keep your originals MTL Explorer never changes or deletes your original files. Keep them in place: they are needed to re-import tracks after an update. To reset the database, see Start with a fresh database . When the map shows a reload notice, open Settings → Data status or click Reload to see the latest results. See GPS processing for technical details."
+  },
+  {
+    "title": "Updates",
+    "url": "/mtl/guide/administration/maintenance/updates/index.html",
+    "scope": "Guide included with this build",
+    "text": "# Updates Settings → Updates shows new releases, their release notes, and how to update the app and the services you run yourself. ## Update 1. Read the release notes for the new version. Some releases need extra steps. 2. Back up your installation. 3. Run docker compose version (with a space). If it fails, update Docker; the older docker-compose command is not supported. 4. Get the new Compose file. Downloading new images does not update it. Save the new file as docker-compose.new.yml next to your current one, or run: 5. Copy your own changes from docker-compose.yml into docker-compose.new.yml: folders, ports, and any memory limits you raised; set memswap_limit to the same value. Take everything else from the new file; .env stays as it is. Then rename the old file to docker-compose.old.yml and the new one to docker-compose.yml. If your NAS container manager keeps its own copy, paste the new file there. 6. In the folder with docker-compose.yml, check the file, download the new images, and restart the services: The first command prints nothing if the file is fine. If you use offline maps , add --profile local-maps to the last two commands. 7. Check that everything is running: 8. Open Settings → Processing and wait until it finishes. Then click Reload when the map asks. Keep your original GPS files in place. An update may re-read them once. ## Start with a fresh database Some release notes recommend a fresh database. MTL Explorer then imports your GPS and media files again. A fresh database deletes saved plans, manual edits, imported Health data, and the Google Health connection. Back up first. 1. Back up your installation. 2. In the folder with docker-compose.yml, stop MTL Explorer: 3. Rename the database folder. Keep it until you are sure you don't need to go back: 4. Continue with Update from step 3. MTL Explorer starts with an empty database. 5. If you use Google Health, connect your Google account again. Your settings in .env stay. MTL Explorer then imports your Health history again. 6. When Settings → Processing is finished, your tracks look right, and your Health history is back, delete data/postgis-old. ## Update check The update check is optional. If the server cannot reach the internet, the app works normally. To turn it off, add MTL_UPDATES_ENABLED=false to .env. To use your own release feed, set MTL_UPDATES_FEED_URL in .env. Then run docker compose up -d. See release updates for details. ## Pin exact versions To run a tested combination of images, set MTL_APP_IMAGE, MTL_BROUTER_IMAGE, MTL_LOCATION_SEARCH_IMAGE, and optional MTL_MAP_IMAGE in .env to the image digests listed in the release manifest. See component bundles . To build the images yourself from the source code, see container build ."
+  },
+  {
+    "title": "Services",
+    "url": "/mtl/guide/administration/services/index.html",
+    "scope": "Guide included with this build",
+    "text": "# Services MTL Explorer runs a few helper services next to the app. - Maps : online by default, offline maps optional. - Route planning : included and always on. - Place search : included and always on."
+  },
+  {
+    "title": "Place search",
+    "url": "/mtl/guide/administration/services/location-search/index.html",
+    "scope": "Guide included with this build",
+    "text": "# Place search The map search finds towns, villages, and terrain features such as peaks, passes, ridges, and hills. It uses a GeoNames database that runs in its own location-search service. It does not find shops, addresses, or other points of interest."
+  },
+  {
+    "title": "Map services",
+    "url": "/mtl/guide/administration/services/maps/index.html",
+    "scope": "Guide included with this build",
+    "text": "# Map services By default, the base map loads from an online map service through your MTL Explorer server, so your browser doesn't contact that service for it. Other map parts, such as fonts, symbols, 3D terrain, some map styles, and trail overlays, load directly from their own services. ## Offline maps To host the base map yourself, enable the local-maps profile: 1. Add this line to .env: 2. Start with the profile: The first download is about 120–130 GB; keep about 200 GB free. It continues if interrupted and is saved in ./data/maps/. Keep this folder when you update; a new map image reuses the downloaded maps. Some map styles, 3D terrain, and trail overlays still load from the internet. Offline maps on the server are not the same as using the app offline on your phone; see mobile and offline use . For the simpler online setup, leave the local-maps profile off."
+  },
+  {
+    "title": "Route planning service",
+    "url": "/mtl/guide/administration/services/routing/index.html",
+    "scope": "Guide included with this build",
+    "text": "# Route planning service Route planning uses BRouter, which starts with MTL Explorer. Its routing data is saved in ./data/brouter-segments/. Keep this folder when you update. If route planning does not work, check the BRouter log:"
+  },
+  {
+    "title": "Diagnose an installation",
+    "url": "/mtl/guide/administration/troubleshooting/index.html",
+    "scope": "Guide included with this build",
+    "text": "# Diagnose an installation First check that all services are running, then read the latest log lines: | Problem | What to check | | --- | --- | | App does not start | Is the database ready? Do the image and Compose file belong to the same version? Can the app read its folders? | | Files are not imported | Is the GPS folder mounted where you expect? Can the app read it? Is the format supported? Open Review for errors. | | Offline maps missing | Is the local-maps profile on? Has the download finished? Is there enough disk space? | | Route planning fails | Is routing data downloaded? Check the BRouter log. | | Place search finds nothing | Is the location-search service running? | | Google Health cannot connect | See Google Health setup . | | Browser shows old data | Open Settings → Data status , or reload when the app asks. | Fix the cause before restarting again and again. Keep your original files and backups. To recover data, see backup and restore ."
+  },
+  {
+    "title": "User guide",
+    "url": "/mtl/guide/index.html",
+    "scope": "Guide included with this build",
+    "text": "# User guide Keep your GPS tracks, photos, and optional health data on your own installation. 1. Get started Import a few tracks and learn the main tools. 2. Import tracks Add GPS files or sync from Garmin. 3. Explore the map Choose tracks with filters and open track details . 4. Review statistics Follow your trends and compare efforts with analysis . 5. Plan routes and places Plan a route or replay an activity . 6. Browse photos and videos See your media on the map, and optional health data . Also see Settings , mobile and offline use , and troubleshooting . To install or configure the server, see Administration ."
+  },
+  {
+    "title": "Analysis",
+    "url": "/mtl/guide/analysis/index.html",
+    "scope": "Guide included with this build",
+    "text": "# Analysis - Read energy estimates - Moving time and breaks - Find repeated segments - Compare segment attempts"
+  },
+  {
+    "title": "Compare segment attempts",
+    "url": "/mtl/guide/analysis/comparison/index.html",
+    "scope": "Guide included with this build",
+    "text": "# Compare segment attempts Select attempts in Segments , then choose Compare . Pick a reference attempt; it is marked R . The first chart shows how far ahead or behind each attempt was at the same distance. The same distance doesn't always mean the same place on the ground, for example if one attempt took a detour. Point at a chart, tap it, or use the keyboard to see values for all attempts at that spot. Heart rate and effort columns appear when that data exists. Ghosts show where the other attempts were when the reference reached that point. Open Replay here starts a replay at that point. Graph settings changes the detail level and chart height."
+  },
+  {
+    "title": "Read energy estimates",
+    "url": "/mtl/guide/analysis/energy/index.html",
+    "scope": "Guide included with this build",
+    "text": "# Read energy estimates Open a track's Overview → Energy . You see the estimated active calories and the mechanical work. Expand Energy details for total calories, how much of the track is covered, and Adjust body weight . - Active calories are what you burned on top of resting. - Total calories include resting. - Mechanical work (in Wh) is the physical work of moving. ## Change the body weight Enter a weight for this track, check the preview, and click Save . Reset goes back to the saved value. This only changes this track, not your default. ## Power Energy details also shows estimated power: average moving power, Normalized Power, and Max 30 s Power. They are calculated from GPS, not measured, so they can differ from a power meter. ## Limits These are estimates. GPS accuracy, missing elevation, gaps, wind, e-bike assistance, and your personal efficiency all affect them. A partial estimate shows which part of the track it covers. A missing estimate is not zero. See energy models for how they are calculated."
+  },
+  {
+    "title": "Moving time and breaks",
+    "url": "/mtl/guide/analysis/motion/index.html",
+    "scope": "Guide included with this build",
+    "text": "# Moving time and breaks A track's Overview splits its time into moving, stopped, and unknown. Unknown means the GPS data can't tell whether you moved or paused. Short pauses count as stopped time. Pauses of one minute or more also appear as breaks in Events . Their start and end are approximate. Open Track details → Events and click a break or GPS gap to see it on the map. A GPS gap doesn't prove you stopped; positions are simply missing. Missing or wrong timestamps can make the total time unavailable, even if you include the track in Review . The normal average heart rate includes stops. The moving average heart rate only counts time in motion."
+  },
+  {
+    "title": "Find repeated segments",
+    "url": "/mtl/guide/analysis/segments/index.html",
+    "scope": "Guide included with this build",
+    "text": "# Find repeated segments Find every time you rode or walked the same stretch, and compare your attempts. 1. Open Segments . It uses the tracks in your current filter . 2. Place zones on the map in order (for example start and finish) and adjust their size. 3. Check how many tracks pass through, then start the analysis. 4. Choose the segment and what to show: time, speed, or distance. 5. Expand a row to see each attempt. 6. Select attempts, then choose Compare or Replay . A track must pass through every zone to count. Adding a zone means fewer matches. One activity can pass the same zones several times. Edit zones lets you change the zones; this starts a new analysis. Results goes back to the current results. After a file changes, Refresh results updates the attempts. ## Time and gaps Stops are included in the time. Breaks are pauses of at least one minute. Gaps or missing timestamps can make time, speed, or replay unavailable for an attempt. Attempts with gaps are left out of averages and trends but can still be opened. Stop values with partial data are marked Observed . See segment analysis for the exact matching rules."
+  },
+  {
+    "title": "Filters",
+    "url": "/mtl/guide/filters/index.html",
+    "scope": "Guide included with this build",
+    "text": "# Filters - Select tracks - Color the map - Custom SQL views"
+  },
+  {
+    "title": "Color the map",
+    "url": "/mtl/guide/filters/coloring/index.html",
+    "scope": "Guide included with this build",
+    "text": "# Color the map Open Filter and choose how to color the tracks: by activity type, year, weekday, or another grouping the view offers. The legend explains the colors. Colors only change how tracks look. They don't change which tracks count in your statistics. To compare years, first choose the dates to include, then color by year. For a single year, set the filter to that year instead. For your own groupings, use a custom SQL view ."
+  },
+  {
+    "title": "Custom SQL views",
+    "url": "/mtl/guide/filters/custom-sql/index.html",
+    "scope": "Guide included with this build",
+    "text": "# Custom SQL views If the standard views can't select the tracks you want, write your own view in SQL. Open the custom SQL editor from Filter and check the SQL preview before you apply it. - Start from an existing view. - Keep track selection and color grouping separate. - Use the unit shown next to each input. If the SQL is invalid, you'll see an error. Fix it before trusting the counts. For field names, grouping columns, parameters, and examples, see the filter reference ."
+  },
+  {
+    "title": "Select tracks",
+    "url": "/mtl/guide/filters/selection/index.html",
+    "scope": "Guide included with this build",
+    "text": "# Select tracks The filter decides which tracks you see. The map, track list, statistics, and segment analysis all use it. 1. Open Filter . 2. Choose a view from the view picker. 3. Set criteria such as dates or activity type. 4. Choose which categories to include, and check the number of matching tracks. Use pause and resume to turn the filter off for a moment. Reset clears it, with an undo option. For walking and hiking, include the On foot category. Choose the Walking type for walks only. Changing the filter never deletes anything. Health has its own dates. Photos follow the time span of your filtered tracks. Tracks excluded from statistics in Review stay excluded."
+  },
+  {
+    "title": "Get started",
+    "url": "/mtl/guide/getting-started/index.html",
+    "scope": "Guide included with this build",
+    "text": "# Get started You need a running MTL Explorer. Install it , or try the public demo . The public demo already contains tracks. Uploads, manual rescans, Garmin sync, issue acknowledgements, source review decisions, and re-assessment are unavailable there. Track, media, and planner edits remain available. Start at step 4. 1. Open your installation's /mtl/ address and sign in. 2. Open Settings → Import & sync and upload a few GPS files. You can also copy them into the server's GPS folder. 3. Open Settings → Processing and wait until the import is done. If the map asks you to reload, click Reload . 4. Open Filter and choose which tracks to show, for example a year or an activity type. 5. Click a track on the map. If several tracks overlap, choose one from the list. 6. Look at the track's tabs: - Overview and Graphs : distance, time, elevation, and speed. - Quality : why a value is missing or unreliable. - Media : photos and videos from that activity. - Events : breaks and GPS gaps. 7. Open Statistics to see your totals and trends. Want to try it without your own data? Use the example archive . Don't see a track? It may still be processing, be hidden by a filter, or need review. See troubleshooting ."
+  },
+  {
+    "title": "Health",
+    "url": "/mtl/guide/health/index.html",
+    "scope": "Guide included with this build",
+    "text": "# Health - Google Health (beta) - Health charts - Health records - Heart rate on tracks"
+  },
+  {
+    "title": "Health charts",
+    "url": "/mtl/guide/health/charts/index.html",
+    "scope": "Guide included with this build",
+    "text": "# Health charts Open Health from the navigation, or More → Health on a phone. Choose Overview for charts or Data & Records for the raw data. Back returns to this choice. ## Use the charts 1. Choose a date preset, or set your own range and click Apply . 2. Choose the grouping: Auto, Intraday, Day, Week, Month, or Year. Weeks start on Monday. 3. Point at a bar, or click or tap it, to see details for that period. - Activity charts show totals or daily variation. - Sleep is counted on the day it started, including naps. A night is not split at midnight. - Measurements show averages, and optionally the range of values. - Expand a chart for more room; Back or Escape returns. - Latest values shows your most recent values, which can be outside the selected dates. Chart preferences are saved in this browser. ## See readings within a day 1. Choose Intraday under Group by in Overview , or open a day's details on a daily chart and choose See day in detail . 2. Choose a day, or use the arrows to move between days. 3. Choose a time window above the charts, such as 1 h or 15 min , and use the arrows beside it to move earlier or later. You can also drag or pinch on any graph. All graphs show the same time window. 4. To enter exact times, choose the time range, set From and To , and choose Apply . For example, enter 12:00 and 12:15 . 5. Select a point to mark that time on every graph and see each reading. Full day shows the whole day again. Each point shows the average for one second. Average & range also shows the lowest and highest readings in that second. A break in the line shows a time without readings. Intraday detail is available for heart rate and timestamped weight, body fat, body temperature, and blood glucose measurements. The detail depends on what your device recorded and Google supplied. Choose Day or a coarser grouping for daily totals and other daily measurements. Health Overview showing sleep and heart-rate trends"
+  },
+  {
+    "title": "Google Health (beta)",
+    "url": "/mtl/guide/health/google-health/index.html",
+    "scope": "Guide included with this build",
+    "text": "# Google Health (beta) MTL Explorer can keep a read-only copy of your Google Health data on your own server: exercise, sleep, activity, measurements, and heart rate. Exercise routes are added to your tracks. This is optional; everything else works without it. This feature is still in development, so errors and sync interruptions may occur. Setup needs your own Google Cloud project with Google Health API access, and Google may limit new projects. Check the setup requirements first. Your Google Account must be linked to an active Google Health profile. ## Connect Open Settings → Import & sync → Google Health → Start setup and follow the setup guide . Manage opens the connection settings. ## Watch the first import Recent data arrives first. Older history follows over time, which can take a while. Until it is done, some dates or track heart rates may still be missing. Settings → Processing shows the progress, split into Recent , History , and Routes . Details shows each data type and anything that is waiting to be retried. Failed parts are retried automatically. ## Reconnect every seven days In Google's Testing mode, access expires after seven days . Health and Processing then show Reauthorize Google Health . Click it, approve access with the same Google account, and paste the new address. Your stored data stays. ## Reload, disconnect, or delete In Manage → Advanced : - Reload history fetches all your history again. - Reload a date range fetches only some days. The end day is not included. - Retry failed ranges retries parts that kept failing. Reloading keeps your data until new data replaces it. Disconnect Google stops syncing and keeps your data. To delete the local copy, disconnect first, then choose Delete local mirror and type DELETE. This removes Google Health data and its routes; your other tracks and plans stay. ## How syncing works By default, the last 24 hours are checked every 30 minutes, and the last seven days every 24 hours. Older days are imported once. If Google changes older data later, use Reload history or Reload a date range . Exercise routes stay even if Google no longer has them; they are marked not currently mirrored . See charts , records , and heart rate on tracks . For technical details, see synchronization ."
+  },
+  {
+    "title": "Health records",
+    "url": "/mtl/guide/health/records/index.html",
+    "scope": "Guide included with this build",
+    "text": "# Health records Data & Records shows which data you have and lets you browse every record. 1. Filter by data type, kind, source, or dates. 2. Click Apply . 3. Open Details to see one record. Reset clears the filters. Records that only have a date, without a time, are shown by date only."
+  },
+  {
+    "title": "Heart rate on tracks",
+    "url": "/mtl/guide/health/track-matching/index.html",
+    "scope": "Guide included with this build",
+    "text": "# Heart rate on tracks You can record a track on a Garmin while wearing a Fitbit, for example. After the track is imported and Google Health has synced, MTL Explorer adds your heart rate to the track by matching the times. The two devices don't need to be connected. This needs a track with real timestamps and heart-rate data for the same time. ## Where you see it - Overview: average, minimum, and maximum heart rate. The normal average includes stops; the moving average only counts time in motion. - Graphs: heart rate next to speed and elevation. Parts without heart-rate data stay empty. - Segments: average heart rate per attempt, and cardiac cost (heartbeats per unit of work). This compares heart rate with the estimated work; it is not a fitness score. Track speed and heart rate aligned by time Your health data stays on your own installation. See segment analysis and motion analysis for the calculations."
+  },
+  {
+    "title": "Import tracks",
+    "url": "/mtl/guide/importing-tracks/index.html",
+    "scope": "Guide included with this build",
+    "text": "# Import tracks - Import GPS files - Supported GPS formats - Try the example archive - Import from Garmin"
+  },
+  {
+    "title": "Try the example archive",
+    "url": "/mtl/guide/importing-tracks/example/index.html",
+    "scope": "Guide included with this build",
+    "text": "# Try the example archive Use the example archive to test MTL Explorer without your own tracks. It contains twelve made-up loops: eight from June 2024 and four from June 2025. They are drawn near the 0,0 coordinate and are not real routes. 1. Download and unzip the archive. 2. Upload its GPX files in Settings → Import & sync . 3. Wait for Settings → Processing to finish, then click Reload when asked. 4. In Filter , select each year and compare its tracks and statistics. All positions, times, and elevations are made up. The examples are provided under the repository's AGPL-3.0 license."
+  },
+  {
+    "title": "Import GPS files",
+    "url": "/mtl/guide/importing-tracks/files/index.html",
+    "scope": "Guide included with this build",
+    "text": "# Import GPS files There are two ways to add GPS files: - Upload them in Settings → Import & sync . - Copy them into the GPS folder on the server. In a standard installation, this is data/gpx/ next to docker-compose.yml. New and changed files are picked up automatically, even if the server was off when you copied them. Then: 1. Start with a few files. 2. Watch Settings → Processing for progress and errors. 3. If files need attention, open Review . 4. When the map asks you to reload, click Reload . Some calculations, like energy or exploration, can finish a bit later than the import itself. Keep your original files in the GPS folder. MTL Explorer needs them to re-import tracks and for downloads. To fix a broken file, see Review ."
+  },
+  {
+    "title": "Supported GPS formats",
+    "url": "/mtl/guide/importing-tracks/formats/index.html",
+    "scope": "Guide included with this build",
+    "text": "# Supported GPS formats MTL Explorer reads GPX, FIT, TCX, KML/KMZ, IGC, NMEA, GeoJSON, and GDB files. What you get depends on what the file contains: | The file contains | What you get | | --- | --- | | Positions with timestamps | The track on the map, plus time, speed, and other time-based results | | Planned routes (no timestamps) | The route on the map; no duration or speed | | No elevation | No elevation results | | Several recordings or gaps | Separate parts; gaps are not filled in | | Heart rate, cadence, or power | Not imported; keep the original file. Heart rate can come from Google Health . | MTL Explorer can't add data the file doesn't have. If something looks wrong, check the track's review findings . You can always download the original file, as long as it is still in the GPS folder."
+  },
+  {
+    "title": "Import from Garmin",
+    "url": "/mtl/guide/importing-tracks/garmin/index.html",
+    "scope": "Guide included with this build",
+    "text": "# Import from Garmin Garmin sync is optional and off by default. Your administrator must first set it up . 1. Open Settings → Import & sync → Garmin and select Sync now . 2. Check the command output for errors. 3. Watch Settings → Processing while the activities are imported. 4. Open Review if files need attention. Activities that were already downloaded are skipped next time. If a download fails, MTL Explorer tries once more in a different format. Some errors don't name the activity; check the command output and the administrator troubleshooting guide ."
+  },
+  {
+    "title": "Use the map",
+    "url": "/mtl/guide/map/index.html",
+    "scope": "Guide included with this build",
+    "text": "# Use the map The map shows all tracks that match your current filter . ## Find out what's at a spot Click anywhere on the map. Choose what to see here lists everything at that spot: your GPS tracks, photos, places, and public routes. Your GPS tracks are your own recordings; Waymarked routes and Swiss routes are public trail networks. - Click a category to see all its results. Use Previous and Next for long lists. - Point at one of your tracks in the list to highlight it on the map. - Click a result to open its details. Back to results returns to the list. If nothing is there, you'll see Nothing found here . ## Open a track Click a track, or choose it from the list. Its details open in a panel. The address bar changes to /track/…, so you can bookmark or share the track. On a phone, the details fill the screen. Tap Restore panel size before dragging the panel down. See track details for what each tab shows. ## Open photos Click a photo marker or a group of photos. Under Photos , choose the photo you clicked, This cluster , or Map view at tap (all photos visible when you clicked). To see the photos of one activity, use the track's Media tab. Turn photos and videos on in Map → Your data . See browse photos and videos . ## Change what the map shows Click Map to: - choose a base map, - turn your own data on or off: tracks, photos, and videos, - add Points of interest such as peaks, viewpoints, drinking water, huts, food, and transport, - turn on 3D Terrain , - add Route overlays such as Waymarked Trails. Public trails and points of interest are for reference only. They are not added to your tracks or your plans. Click a public route to see its name, activity, and a link to more information. Swiss routes also link to their stages. For unnamed Swiss trails, use Open in Swiss map . If routes can't be identified, zoom in. Use Filter to choose which tracks appear, and coloring to change how they look. A heatmap shows where you go most often. ## The status indicator The small indicator on the map shows when data is loading or processing, when the map is out of date, and when you are offline. Click it for details, and press Esc to close it. If it says N files need review , click Review to check them. Dismiss hides the notice for these files; use Undo if you change your mind. New problems will show up again. See Review and offline use ."
+  },
+  {
+    "title": "Photos and videos",
+    "url": "/mtl/guide/media/index.html",
+    "scope": "Guide included with this build",
+    "text": "# Photos and videos 1. Copy your photos and videos into the media folder, normally data/media/ next to docker-compose.yml. 2. Run Settings → Maintenance → Rescan Media . Otherwise new media is only found at the next scheduled scan, which can take up to seven days. 3. Wait for Settings → Processing to finish. Photos with GPS data appear at their location. Others are placed along a track recorded at the same time. Supported formats include JPEG, PNG, HEIC/HEIF, MP4, and MOV. Some files may lack a date or location, and some videos may need conversion to play in your browser. Keep your originals in the media folder; see data folders . - Browse photos and videos - Correct camera time - Set a photo location - Play video"
+  },
+  {
+    "title": "Browse photos and videos",
+    "url": "/mtl/guide/media/browsing/index.html",
+    "scope": "Guide included with this build",
+    "text": "# Browse photos and videos There are three ways to find your photos: - On the map: turn on photos in Map → Your data , then click a marker. Under Photos , choose the photo you clicked, This cluster , or Map view at tap (all photos visible when you clicked). - By activity: open a track's Media tab. - By period: in Statistics → Trends , click a media bar. ## The viewer If a thumbnail shows Retry , select it to load the image again. Once it loads, select the thumbnail to open the viewer. - Move between photos with the side buttons, arrow keys, or by swiping. - Zoom and pan the photo. - View shows or hides Details , Location map , and Photo strip . Photo only hides them all; Restore panels brings them back. - More shows technical information. - Expand makes the viewer bigger; Full screen fills the screen. Press Escape or Exit full screen to go back. - Download the original file. All media shows every photo in the time span of your filtered tracks; Track related shows only photos linked to a track. Photos without a date don't appear in date-based views."
+  },
+  {
+    "title": "Correct camera time",
+    "url": "/mtl/guide/media/capture-time/index.html",
+    "scope": "Guide included with this build",
+    "text": "# Correct camera time If your camera clock was wrong, photos are placed at the wrong spot on a track. You can correct the time offset. 1. Open the track's Media → Photo tools . 2. Enter the camera offset and choose Preview . 3. Check the photos on the current page. 4. Choose Save correction . It applies to the photos on this preview page only, not to every photo from that camera. Reset discards an unsaved preview. To remove a saved correction, open Photo tools and choose Clear clock correction next to it. If a photo has GPS time, that time is used instead. The photo file itself is never changed. Matching needs a track with real timestamps. It may take a moment until the photos move."
+  },
+  {
+    "title": "Set a photo location",
+    "url": "/mtl/guide/media/locations/index.html",
+    "scope": "Guide included with this build",
+    "text": "# Set a photo location The viewer shows where a photo's position comes from: - Photo GPS : saved in the photo by the camera. - Estimated : placed along a track recorded at the same time. - Set by you : placed by hand. - Position unknown : no location available. ## Set a location 1. Open Track details → Media → Photo tools → Adjust locations . 2. Select Set location . 3. Enter the coordinates and an optional note. 4. Click Save location . Your location takes priority. To undo it, choose Edit location → Clear assignment ; the photo goes back to its GPS or estimated position. The photo file itself is never changed. If an estimated position is wrong, the camera clock may be off; see correct camera time ."
+  },
+  {
+    "title": "Play video",
+    "url": "/mtl/guide/media/video/index.html",
+    "scope": "Guide included with this build",
+    "text": "# Play video Open a video in the viewer. It plays directly if your browser supports its format. If it doesn't, choose compatible playback when offered: 1. Choose a quality. 2. Wait while the server converts the video. 3. Play it. You can cancel the conversion, or come back later to a finished one. The original file is never changed and can always be downloaded. Converting video takes server resources. If it fails, try again, then check Settings → Processing and the server logs ."
+  },
+  {
+    "title": "Mobile and offline use",
+    "url": "/mtl/guide/mobile-and-offline/index.html",
+    "scope": "Guide included with this build",
+    "text": "# Mobile and offline use MTL Explorer works in your phone's browser. The bottom toolbar has GPS , Map , Filter , and Planner ; the other tools are under More . You can add it to your home screen with your browser's install option. ## Show your position Tap GPS and allow location access in your browser. This only works over HTTPS. MTL Explorer shows where you are but does not record your activity. ## Use it offline Offline, you only see what this browser has already loaded. Before a trip, open the map area and tracks you need while you are still online. Route planning, search, and photos that weren't loaded before won't work offline. Offline maps on the server are different: they still need a connection to your server. Some map layers, like 3D terrain and trail overlays, always need the internet. Clear & sign out in Settings → Session removes the saved data. This guide is also available offline once the app has been opened."
+  },
+  {
+    "title": "Plan routes and places",
+    "url": "/mtl/guide/planning/index.html",
+    "scope": "Guide included with this build",
+    "text": "# Plan routes and places Plan a new route, or save places you want to visit. More info on the Planner start screen shows examples. ## Plan a route 1. Open Planner → Start a new plan . 2. Choose Draw route , then a Travel mode : touring bike, road bike, mountain bike, hiking, or car. 3. Click the map to add points. The route follows paths between them. 4. Click Save . Distance, climb, time, and an elevation profile update as you edit. Your recorded tracks and public trails are shown for reference only; the route follows your points and the travel mode. ## Change the route - Move a point: drag it, or click it and choose Move to… , then click the new position. - More options: click a point to Remove point , Start route here , or End route here . - Tools: Reverse route or Clear route . Clearing the route keeps your saved places. - Undo and Redo work for all changes. Keyboard: with the map focused, Alt+Left/Right selects route points and Enter opens their options. Drag the panel down to see more of the map. More map shrinks it to the totals; Show tools brings the tools back. ## Save places Choose Points of interest to add named places with an icon and an optional note. A plan can contain a route, places, or both. ## Open a saved plan On the Planner start screen: - Continue your current plan returns to your unsaved draft. - Continue a saved plan opens a saved plan to edit it or export it as GPX. Save copy saves your changes as a new plan and keeps the original. GPX export contains only the route, not the places. Plans don't count in your activity statistics. If routes don't finish, see route planning service ."
+  },
+  {
+    "title": "Replay tracks",
+    "url": "/mtl/guide/replay/index.html",
+    "scope": "Guide included with this build",
+    "text": "# Replay tracks ## Replay one activity in 3D 1. Open a track's details and choose 3D Replay . 2. Use Play/Pause and the progress slider. 3. Open Settings to change the duration, camera, smoothing, shown data, or other tracks in view. Hide settings closes them again. 4. Stop goes back to the start; Close returns to the normal map. Tracks without usable timestamps replay by distance. ## Replay several attempts To race attempts of the same stretch against each other, select them in Segments and choose Replay . Each attempt keeps its color and label. In a comparison , Open Replay here starts at the point you are looking at. ## Animate your archive Animate shows your tracks appearing on the map over time, for the tracks in your current filter. 1. Set the Date range and Playback speed . 2. Press Play. Reset goes back to the beginning; Stop opens the settings again. On a phone, expand the playback panel to reach the settings. Replay does not fix gaps or change your statistics."
+  },
+  {
+    "title": "Settings",
+    "url": "/mtl/guide/settings/index.html",
+    "scope": "Guide included with this build",
+    "text": "# Settings Open Settings on a computer, or More → Settings on a phone. | Section | What you find there | | --- | --- | | Overview | Status and actions that need your attention | | Preferences | Theme, language format, and units | | Updates | New releases and how to install them | | Session | Sign out and clear local data | | Import & sync | Upload files, Garmin, and Google Health | | Processing | Import progress and errors | | Data status | Whether your browser shows the latest data | | Maintenance | Rescan files and advanced tools | | Logs | Server and browser errors | | System information | Versions of all components | ## Preferences Choose Metric or Imperial (US) units. The locale sets how dates and numbers look. Some preferences are saved only in this browser. Use default removes your unit choice. ## Processing Processing shows what MTL Explorer is working on: imports, syncs, and calculations. Click Details on a row to see progress and any errors. The info icon explains each task. ## Session Sign out only logs you out. Clear & sign out also removes the maps and tracks saved in this browser, so offline use stops working until you load them again. Session also shows your login reference. If you report a problem, click Copy and include it. It is not a password and cannot be used to sign in."
+  },
+  {
+    "title": "Statistics",
+    "url": "/mtl/guide/statistics/index.html",
+    "scope": "Guide included with this build",
+    "text": "# Statistics - Statistics overview - Compare trends - Milestones and exploration"
+  },
+  {
+    "title": "Milestones and exploration",
+    "url": "/mtl/guide/statistics/milestones/index.html",
+    "scope": "Guide included with this build",
+    "text": "# Milestones and exploration Overview shows milestones such as your first 100 km or 100 miles, depending on your units. The Exploration score shows how much of an activity was new to you, compared with your earlier tracks. It is shown as a percentage. The score only knows your imported tracks, not every place you have been. Duplicates, hidden tracks, and GPS gaps affect it. Importing older tracks can change the score of later ones once they are recalculated; check Settings → Processing . See the calculation for details."
+  },
+  {
+    "title": "Statistics overview",
+    "url": "/mtl/guide/statistics/overview/index.html",
+    "scope": "Guide included with this build",
+    "text": "# Statistics overview Open Statistics → Overview to see your totals, activity types, highlights, recent activity, and milestones. It uses the tracks in your current filter . Click a highlight or period to see the tracks behind it. Back returns to where you were. Some values may be missing for some tracks, for example when a file has no timestamps or elevation. Missing is not the same as zero, so totals for distance, time, and energy can cover different tracks. To compare periods, set your filter first, then open Trends ."
+  },
+  {
+    "title": "Compare trends",
+    "url": "/mtl/guide/statistics/trends/index.html",
+    "scope": "Guide included with this build",
+    "text": "# Compare trends Open Statistics → Trends to compare your activity over time. 1. Group by total, year, quarter, month, week, or day. 2. Use the period controls to focus on the time you want. 3. Read the charts, or sort the table below them. Chart settings let you change chart height and order. They are saved in this browser and can be reset. ## What the values mean - Duration is moving time. - Energy is estimated work in Wh. Power, Normalized Power, Intensity Index, and Training Load are based on the same estimate. - Intensity and load depend on your threshold power. If none is set, 150 W is used, so they may not match your fitness. - Calories from individual tracks are not added up here. See energy estimates . ## Photos and videos Photo and video counts cover the time span of your filtered tracks. All media counts every photo in that span; Track related counts only photos linked to a track. Click a media bar to see its photos. Health trends have their own dates in Health ; changing the track filter doesn't change them."
+  },
+  {
+    "title": "Tracks",
+    "url": "/mtl/guide/tracks/index.html",
+    "scope": "Guide included with this build",
+    "text": "# Tracks - Browse tracks - Track details - Review"
+  },
+  {
+    "title": "Browse tracks",
+    "url": "/mtl/guide/tracks/browsing/index.html",
+    "scope": "Guide included with this build",
+    "text": "# Browse tracks Open Statistics → Tracks to see all tracks in your current filter as a list. Search, sort, and page through them. Small route sketches help you recognize tracks. - Click a track name or description to open its details . - Use a row's map button to show the track on the map. - Click More to read a long description, Less to shorten it. Track missing? Change or reset your filter, check Settings → Processing , and open Review . Several recordings of the same activity may be marked as duplicates. See Review ."
+  },
+  {
+    "title": "Track details",
+    "url": "/mtl/guide/tracks/details/index.html",
+    "scope": "Guide included with this build",
+    "text": "# Track details Click a track on the map or in the track list to open its details. On a phone, tap Restore panel size before dragging the panel down to make it smaller. If you opened details from Statistics or Filter, Back returns to that list. | Tab | What it shows | | --- | --- | | Overview | Distance, time, energy , and heart rate | | Graphs | Speed, elevation, and other values over time or distance | | Quality | Why a value is missing or unreliable | | Related | Other tracks nearby or on the same route | | Media | Photos and videos from this activity | | Events | Breaks and GPS gaps | Values can be missing when the file has gaps or no timestamps. Missing is not the same as zero. ## Events Events lists breaks and GPS gaps with their start, end, and duration. Click one to show it on the map. A GPS gap means positions are missing; it doesn't prove you stopped. Use the map's Events switch to show or hide all event markers. ## Download and replay Download the original file or a GPX version. 3D Replay needs a track with timestamps and no big gaps; see replay ."
+  },
+  {
+    "title": "Review",
+    "url": "/mtl/guide/tracks/source-review/index.html",
+    "scope": "Guide included with this build",
+    "text": "# Review Some files import with problems, such as GPS jumps, missing timestamps, or gaps. Review lists them so you can decide what to do. Open Review , or click Review source findings and map use in a track's Quality tab. Review has two views: - Issues : files that need your attention, including files that failed to import. - GPS recordings : all recordings and their review status. ## Check a file 1. In Issues , click Open on a file to see what's wrong. 2. Look at the findings. A red ! marks findings you should check. Click the target beside Center on map or Center point to zoom in on the issue. For a jump or gap, you can center on either end or choose Show transition to see both. Use − to zoom out or Show whole track to return to the overview. Inspect point or Inspect transition shows the original GPS points around the problem. The original file is red and the processed track is blue. 3. If the file is fine, click Acknowledge . It won't be flagged again unless a new problem appears. Acknowledge & next acknowledges the file and opens the next one. Acknowledge all acknowledges every listed file after you confirm. Undo appears briefly if you change your mind. Review later keeps the issues open. Acknowledging only hides the notice. It does not fix the file or change how the track counts. Use the Acknowledged filter to see what you acknowledged, and Reopen to review a file again. Information findings need no action. Acknowledgements belong to your account and stay after you sign out. ## What Review reports - files that can't be read or converted - missing, repeated, or backward timestamps - invalid positions, GPS jumps, and weak GPS signal - recording gaps - missing elevation - large corrections made during import A recording gap may be a pause or missing data; the file can't tell which. Missing elevation is allowed, but elevation results stay empty. See review thresholds for the exact rules. ## Choose where a track counts You can decide whether a file appears on the map and in your statistics. Choose for the whole file or for each numbered section: | Choice | Map, heatmap, and animation | Statistics | | --- | --- | --- | | Map and statistics | Shown | Counted | | Statistics only | Hidden | Counted | | Map only | Shown | Not counted | | Hidden | Hidden | Not counted | Click Save use settings . This applies for everyone using this installation. Hidden tracks are still available in Review and the track list. Including a track does not make bad timestamps reliable: speed, duration, and energy stay unavailable when the timing is wrong. ## Fix a file MTL Explorer never changes your original files. To fix one, edit it yourself: 1. On the file page, open How to fix this file . 2. Click Download GPX , or Download original source to keep the original format. The page also shows where the file is stored on the server. 3. Fix the reported points, gaps, or timestamps in a GPS track editor. 4. Save the fixed file in the GPS folder: - For a GPX file, replace the original. - For other formats, move the original out of the GPS folder and save the fixed GPX there, so both versions aren't imported. 5. Wait for the import, then click Reassess current file and check the findings again. Very large files (over 64 MiB) can't be fully checked. You can still download the original. See source quality for technical details."
+  },
+  {
+    "title": "Troubleshooting",
+    "url": "/mtl/guide/troubleshooting/index.html",
+    "scope": "Guide included with this build",
+    "text": "# Troubleshooting | Problem | What to try | | --- | --- | | A track I imported is missing | Check Settings → Processing . Check your filter. Open Review for files that failed or were hidden. | | Statistics don't match the map | Check your filter. Some tracks may be hidden from statistics in Review , or lack time or elevation data. | | A photo or video is missing | Run Settings → Maintenance → Rescan Media . Check the photo's date and whether All media or Track related is selected. Zoom out on the map. | | A photo is in the wrong place | Check the camera time and correct it , or set the location . | | Heart rate is missing | Google Health history may still be loading. Heart rate needs a track with timestamps. | | Replay is greyed out | Replay needs a track with timestamps and no big gaps. | | Route planning doesn't finish | Routing data may still be downloading. Check Settings → Processing . | | The map shows old data | Click the data indicator and choose Reload . | ## Ask for help Note what you did, the error you saw, and the app version. Settings → System information → Copy all versions copies the version details. Don't share personal files or passwords. For server problems, see administrator troubleshooting ."
+  }
+]

@@ -13,12 +13,12 @@ public final class IndexerRescanSupport {
             return;
         }
         log.info("Scheduled rescan triggered for {} index", indexName);
-        indexer.rescan();
+        indexer.rescan(false);
     }
 
     public static FileIndexerImpl.RescanRequestStatus requestRescan(FileIndexerImpl indexer,
-                                                                   Logger log,
-                                                                   String indexName) {
+                                                                    Logger log,
+                                                                    String indexName) {
         if (indexer == null) {
             log.warn("Manual rescan requested before {} indexer startup completed", indexName);
             return FileIndexerImpl.RescanRequestStatus.NOT_RUNNING;

@@ -3,7 +3,7 @@ import type { GpsTrack } from 'x8ing-mtl-api-typescript-fetch';
 export interface TrackBrowserSummary {
   count: number;
   totalDistanceMeters: number;
-  totalDurationMillis: number;
+  totalDurationMillis: number | null;
   newestTrackLabel: string;
   newestTrackDateLabel: string;
   dateRangeLabel: string;
@@ -16,8 +16,8 @@ export interface TrackBrowserSummary {
 export interface TrackRowViewModel extends GpsTrack {
   /** trackName || metaName || trackDescription || metaDescription || 'Track N' */
   displayName: string;
-  /** Motion-based duration in ms (falls back to endDate − startDate) */
-  durationMillis: number;
+  /** Motion-based duration in ms; unsupported timing is null and has no date fallback. */
+  durationMillis: number | null;
   avgSpeedKmh: number | null;
   /** startDate.getTime() pre-computed for fast sorting; -1 when absent */
   startDateMs: number;

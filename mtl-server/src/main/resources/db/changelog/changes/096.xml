@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.10.xsd">
+
+    <changeSet id="20261006_1_client_login_ref" author="codex">
+        <comment>Rename the client login reference and its login record without changing stored values.</comment>
+
+        <renameTable oldTableName="web_user_session" newTableName="web_client_login"/>
+        <renameColumn tableName="web_client_login" oldColumnName="user_session_id"
+                      newColumnName="client_login_ref" columnDataType="varchar(32)"/>
+        <renameColumn tableName="web_client_login" oldColumnName="session_status"
+                      newColumnName="login_status" columnDataType="varchar(32)"/>
+        <renameColumn tableName="web_client_login" oldColumnName="session_payload_json"
+                      newColumnName="login_payload_json" columnDataType="text"/>
+        <renameColumn tableName="web_request_log" oldColumnName="user_session_id"
+                      newColumnName="client_login_ref" columnDataType="varchar(32)"/>
+        <renameColumn tableName="web_client_environment_log" oldColumnName="user_session_id"
+                      newColumnName="client_login_ref" columnDataType="varchar(32)"/>
+
+        <sql dbms="postgresql">
+            ALTER SEQUENCE web_user_session_id_seq RENAME TO web_client_login_id_seq;
+            ALTER TABLE web_client_login RENAME CONSTRAINT web_user_session_pkey TO web_client_login_pkey;
+            ALTER TABLE web_client_login RENAME CONSTRAINT WEB_USER_SESSION_UK_SESSION_ID TO WEB_CLIENT_LOGIN_UK_CLIENT_LOGIN_REF;
+            ALTER TABLE web_request_log RENAME CONSTRAINT FK_WEB_REQUEST_LOG_USER_SESSION TO FK_WEB_REQUEST_LOG_CLIENT_LOGIN;
+            ALTER TABLE web_client_environment_log RENAME CONSTRAINT FK_WEB_CLIENT_ENV_USER_SESSION TO FK_WEB_CLIENT_ENV_CLIENT_LOGIN;
+            ALTER INDEX WEB_USER_SESSION_IX_CREATE_DATE RENAME TO WEB_CLIENT_LOGIN_IX_CREATE_DATE;
+            ALTER INDEX WEB_USER_SESSION_IX_USER_SESSION_ID RENAME TO WEB_CLIENT_LOGIN_IX_CLIENT_LOGIN_REF;
+            ALTER INDEX WEB_USER_SESSION_IX_USER_NAME RENAME TO WEB_CLIENT_LOGIN_IX_USER_NAME;
+            ALTER INDEX WEB_USER_SESSION_IX_STATUS RENAME TO WEB_CLIENT_LOGIN_IX_STATUS;
+            ALTER INDEX WEB_USER_SESSION_IX_LAST_SEEN_DATE RENAME TO WEB_CLIENT_LOGIN_IX_LAST_SEEN_DATE;
+            ALTER INDEX WEB_REQUEST_LOG_IX_USER_SESSION_ID RENAME TO WEB_REQUEST_LOG_IX_CLIENT_LOGIN_REF;
+            ALTER INDEX WEB_CLIENT_ENV_LOG_IX_USER_SESSION_ID RENAME TO WEB_CLIENT_ENV_LOG_IX_CLIENT_LOGIN_REF;
+            ALTER INDEX WEB_CLIENT_ENV_LOG_IX_SESSION_CREATE_DATE RENAME TO WEB_CLIENT_ENV_LOG_IX_LOGIN_CREATE_DATE;
+        </sql>
+        <sql dbms="postgresql" splitStatements="false"><![CDATA[
+            DO $$
+            DECLARE
+                constraint_name text;
+            BEGIN
+                -- PostgreSQL 18 also names NOT NULL constraints; earlier versions have no such rows.
+                FOR constraint_name IN
+                    SELECT conname FROM pg_constraint
+                    WHERE conrelid = 'web_client_login'::regclass AND contype = 'n'
+                LOOP
+                    EXECUTE format('ALTER TABLE web_client_login RENAME CONSTRAINT %I TO %I',
+                        constraint_name,
+                        replace(replace(replace(constraint_name,
+                            'web_user_session', 'web_client_login'),
+                            'user_session_id', 'client_login_ref'),
+                            'session_status', 'login_status'));
+                END LOOP;
+            END $$;
+        ]]></sql>
+    </changeSet>
+</databaseChangeLog>

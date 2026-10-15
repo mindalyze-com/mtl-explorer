@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.10.xsd">
+
+    <changeSet id="20260904_1_google_health_unindexed_run_markers" author="codex">
+        <comment>Keep reconciliation markers without indexing every repeated observation. Window cleanup uses time/type indexes.</comment>
+        <sql>SET LOCAL lock_timeout = '5s'</sql>
+        <dropIndex schemaName="google_health" tableName="data_point" indexName="idx_google_health_data_point_seen_run"/>
+        <dropIndex schemaName="google_health" tableName="heart_rate_sample" indexName="idx_google_health_heart_rate_seen_run"/>
+        <rollback>
+            <createIndex schemaName="google_health" tableName="data_point" indexName="idx_google_health_data_point_seen_run">
+                <column name="last_seen_run"/>
+            </createIndex>
+            <createIndex schemaName="google_health" tableName="heart_rate_sample" indexName="idx_google_health_heart_rate_seen_run">
+                <column name="last_seen_run"/>
+            </createIndex>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

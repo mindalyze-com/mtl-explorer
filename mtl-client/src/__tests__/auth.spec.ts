@@ -2,11 +2,12 @@ import axios, { AxiosError, type AxiosAdapter } from 'axios';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import router from '@/router';
 import { apiClient } from '@/utils/apiClient';
+import { getApiConfiguration } from '@/utils/openApiClient';
 import {
   clearToken,
   getAuthenticatedUsername,
   getToken,
-  getUserSessionId,
+  getClientLoginRef,
   isAuthenticationFailureStatus,
   isAuthError,
   redirectToLoginAfterAuthFailure,
@@ -18,18 +19,18 @@ describe('auth token helpers', () => {
     localStorage.clear();
   });
 
-  it('reads the username and session id from the JWT payload', () => {
-    setToken(makeJwt({ sub: 'temp', user_session_id: 'session-123' }));
+  it('reads the username and client login reference from the JWT payload', () => {
+    setToken(makeJwt({ sub: 'temp', client_login_ref: 'login-123' }));
 
     expect(getAuthenticatedUsername()).toBe('temp');
-    expect(getUserSessionId()).toBe('session-123');
+    expect(getClientLoginRef()).toBe('login-123');
   });
 
   it('returns null when the readable JWT is absent', () => {
     clearToken();
 
     expect(getAuthenticatedUsername()).toBeNull();
-    expect(getUserSessionId()).toBeNull();
+    expect(getClientLoginRef()).toBeNull();
   });
 
   it('treats only 401 responses as authentication failures', () => {
@@ -85,6 +86,69 @@ describe('auth token helpers', () => {
     expect(push).toHaveBeenCalledWith({ path: '/login', query: { reason: 'expired' } });
     expect(getToken()).toBeNull();
     push.mockRestore();
+  });
+
+  it('ignores a late generated-client 401 after a newer sign-in on a protected route', async () => {
+    setToken(makeJwt({ exp: futureExpirationSeconds(), client_login_ref: 'old-session' }));
+    await router.push('/');
+    const configuration = getApiConfiguration();
+    setToken(makeJwt({ exp: futureExpirationSeconds(), client_login_ref: 'new-session' }));
+    const token = getToken();
+    const push = vi.spyOn(router, 'push').mockResolvedValue();
+    try {
+      await configuration.middleware[0]!.post!({
+        response: new Response(null, { status: 401 }),
+        url: '/api/test',
+        init: {},
+        fetch: vi.fn(),
+      });
+      expect(getToken()).toBe(token);
+      expect(push).not.toHaveBeenCalled();
+    } finally {
+      push.mockRestore();
+    }
+  });
+
+  it('ignores a late axios 401 after a newer sign-in on a protected route', async () => {
+    setToken(makeJwt({ exp: futureExpirationSeconds(), client_login_ref: 'old-session' }));
+    await router.push('/');
+    const failureAdapter = rejectWithStatus(401);
+    let rejectOld!: () => void;
+    const pending = apiClient.get('/api/test', {
+      adapter: (config) =>
+        new Promise((_resolve, reject) => {
+          rejectOld = () => {
+            failureAdapter(config).catch(reject);
+          };
+        }),
+    });
+    const rejected = expect(pending).rejects.toMatchObject({ response: { status: 401 } });
+    await Promise.resolve();
+    await Promise.resolve();
+    setToken(makeJwt({ exp: futureExpirationSeconds(), client_login_ref: 'new-session' }));
+    const token = getToken();
+    rejectOld();
+    await rejected;
+    expect(getToken()).toBe(token);
+  });
+
+  it('still redirects after a generated-client 401 for the current session', async () => {
+    setToken(makeJwt({ exp: futureExpirationSeconds() }));
+    await router.push('/');
+    const configuration = getApiConfiguration();
+    const push = vi.spyOn(router, 'push').mockResolvedValue();
+    try {
+      await configuration.middleware[0]!.post!({
+        response: new Response(null, { status: 401 }),
+        url: '/api/test',
+        init: {},
+        fetch: vi.fn(),
+      });
+      expect(getToken()).toBeNull();
+      expect(push).toHaveBeenCalledWith({ path: '/login', query: { reason: 'expired' } });
+    } finally {
+      push.mockRestore();
+    }
   });
 });
 

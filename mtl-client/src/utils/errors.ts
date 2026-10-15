@@ -2,6 +2,14 @@ const ABORT_ERROR_NAMES = new Set(['AbortError', 'CanceledError']);
 const ABORT_ERROR_CODES = new Set(['ABORT_ERR', 'ERR_CANCELED']);
 const ABORT_MESSAGE_PATTERN = /\b(?:abort(?:ed)?|cancel(?:ed|led)?)\b/i;
 
+/** A refreshed archive replaced this request; callers may queue the user's work again. */
+export class TrackLoadSupersededError extends Error {
+  constructor() {
+    super('Track load superseded by an archive refresh');
+    this.name = 'AbortError';
+  }
+}
+
 /**
  * Recognize cancellation errors from fetch, Axios, generated clients, and
  * wrappers that preserve the original error as `cause`.

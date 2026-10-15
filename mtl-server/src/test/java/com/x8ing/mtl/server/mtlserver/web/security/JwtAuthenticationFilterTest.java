@@ -1,6 +1,6 @@
 package com.x8ing.mtl.server.mtlserver.web.security;
 
-import com.x8ing.mtl.server.mtlserver.db.repository.logs.WebUserSessionService;
+import com.x8ing.mtl.server.mtlserver.db.repository.logs.WebClientLoginService;
 import jakarta.servlet.ServletException;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -14,19 +14,14 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 
 import java.io.IOException;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
 class JwtAuthenticationFilterTest {
 
     private static final String TOKEN = "jwt-token";
     private static final String USERNAME = "mtl";
-    private static final String USER_SESSION_ID = "session-1";
+    private static final String CLIENT_LOGIN_REF = "login-1";
     private static final String CONTEXT_PATH = "/mtl";
 
     @AfterEach
@@ -35,31 +30,31 @@ class JwtAuthenticationFilterTest {
     }
 
     @Test
-    void continuesWithoutSessionLookupWhenJwtIsMissing() throws ServletException, IOException {
+    void continuesWithoutLoginLookupWhenJwtIsMissing() throws ServletException, IOException {
         JwtUtil jwtUtil = mock(JwtUtil.class);
         UserDetailsService userDetailsService = mock(UserDetailsService.class);
-        WebUserSessionService webUserSessionService = mock(WebUserSessionService.class);
-        JwtAuthenticationFilter filter = new JwtAuthenticationFilter(jwtUtil, userDetailsService, webUserSessionService);
+        WebClientLoginService webClientLoginService = mock(WebClientLoginService.class);
+        JwtAuthenticationFilter filter = new JwtAuthenticationFilter(jwtUtil, userDetailsService, webClientLoginService);
 
         MockHttpServletResponse response = new MockHttpServletResponse();
         filter.doFilter(contextRequest("GET", "/mtl/api/tracks/get", "/api/tracks/get"), response, new MockFilterChain());
 
         verify(jwtUtil, never()).validateToken(TOKEN);
-        verify(webUserSessionService, never()).isSessionActive(USER_SESSION_ID);
+        verify(webClientLoginService, never()).isLoginActive(CLIENT_LOGIN_REF);
         assertEquals(200, response.getStatus());
     }
 
     @Test
-    void validatesSessionForApiRequestWithJwtCookie() throws ServletException, IOException {
+    void validatesLoginForApiRequestWithBearerJwt() throws ServletException, IOException {
         JwtUtil jwtUtil = mock(JwtUtil.class);
         UserDetailsService userDetailsService = mock(UserDetailsService.class);
-        WebUserSessionService webUserSessionService = mock(WebUserSessionService.class);
-        JwtAuthenticationFilter filter = new JwtAuthenticationFilter(jwtUtil, userDetailsService, webUserSessionService);
+        WebClientLoginService webClientLoginService = mock(WebClientLoginService.class);
+        JwtAuthenticationFilter filter = new JwtAuthenticationFilter(jwtUtil, userDetailsService, webClientLoginService);
 
         when(jwtUtil.validateToken(TOKEN)).thenReturn(true);
         when(jwtUtil.getUsernameFromToken(TOKEN)).thenReturn(USERNAME);
-        when(jwtUtil.getUserSessionIdFromToken(TOKEN)).thenReturn(USER_SESSION_ID);
-        when(webUserSessionService.isSessionActive(USER_SESSION_ID)).thenReturn(true);
+        when(jwtUtil.getClientLoginRefFromToken(TOKEN)).thenReturn(CLIENT_LOGIN_REF);
+        when(webClientLoginService.isLoginActive(CLIENT_LOGIN_REF)).thenReturn(true);
         when(userDetailsService.loadUserByUsername(USERNAME))
                 .thenReturn(User.withUsername(USERNAME).password("unused").roles("USER").build());
 
@@ -71,20 +66,20 @@ class JwtAuthenticationFilterTest {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         assertNotNull(authentication);
         assertEquals(USERNAME, authentication.getName());
-        verify(webUserSessionService).isSessionActive(USER_SESSION_ID);
+        verify(webClientLoginService).isLoginActive(CLIENT_LOGIN_REF);
     }
 
     @Test
-    void leavesRequestUnauthenticatedWhenSessionIsInactive() throws ServletException, IOException {
+    void leavesRequestUnauthenticatedWhenLoginIsInactive() throws ServletException, IOException {
         JwtUtil jwtUtil = mock(JwtUtil.class);
         UserDetailsService userDetailsService = mock(UserDetailsService.class);
-        WebUserSessionService webUserSessionService = mock(WebUserSessionService.class);
-        JwtAuthenticationFilter filter = new JwtAuthenticationFilter(jwtUtil, userDetailsService, webUserSessionService);
+        WebClientLoginService webClientLoginService = mock(WebClientLoginService.class);
+        JwtAuthenticationFilter filter = new JwtAuthenticationFilter(jwtUtil, userDetailsService, webClientLoginService);
 
         when(jwtUtil.validateToken(TOKEN)).thenReturn(true);
         when(jwtUtil.getUsernameFromToken(TOKEN)).thenReturn(USERNAME);
-        when(jwtUtil.getUserSessionIdFromToken(TOKEN)).thenReturn(USER_SESSION_ID);
-        when(webUserSessionService.isSessionActive(USER_SESSION_ID)).thenReturn(false);
+        when(jwtUtil.getClientLoginRefFromToken(TOKEN)).thenReturn(CLIENT_LOGIN_REF);
+        when(webClientLoginService.isLoginActive(CLIENT_LOGIN_REF)).thenReturn(false);
 
         MockHttpServletRequest request = contextRequest("GET", "/mtl/api/tracks/get", "/api/tracks/get");
         request.addHeader("Authorization", "Bearer " + TOKEN);
@@ -93,20 +88,20 @@ class JwtAuthenticationFilterTest {
 
         assertNull(SecurityContextHolder.getContext().getAuthentication());
         verify(userDetailsService, never()).loadUserByUsername(USERNAME);
-        verify(webUserSessionService).isSessionActive(USER_SESSION_ID);
+        verify(webClientLoginService).isLoginActive(CLIENT_LOGIN_REF);
     }
 
     @Test
-    void leavesRequestUnauthenticatedWhenSessionStoreFails() throws ServletException, IOException {
+    void leavesRequestUnauthenticatedWhenLoginStoreFails() throws ServletException, IOException {
         JwtUtil jwtUtil = mock(JwtUtil.class);
         UserDetailsService userDetailsService = mock(UserDetailsService.class);
-        WebUserSessionService webUserSessionService = mock(WebUserSessionService.class);
-        JwtAuthenticationFilter filter = new JwtAuthenticationFilter(jwtUtil, userDetailsService, webUserSessionService);
+        WebClientLoginService webClientLoginService = mock(WebClientLoginService.class);
+        JwtAuthenticationFilter filter = new JwtAuthenticationFilter(jwtUtil, userDetailsService, webClientLoginService);
 
         when(jwtUtil.validateToken(TOKEN)).thenReturn(true);
         when(jwtUtil.getUsernameFromToken(TOKEN)).thenReturn(USERNAME);
-        when(jwtUtil.getUserSessionIdFromToken(TOKEN)).thenReturn(USER_SESSION_ID);
-        when(webUserSessionService.isSessionActive(USER_SESSION_ID)).thenThrow(new IllegalStateException("db unavailable"));
+        when(jwtUtil.getClientLoginRefFromToken(TOKEN)).thenReturn(CLIENT_LOGIN_REF);
+        when(webClientLoginService.isLoginActive(CLIENT_LOGIN_REF)).thenThrow(new IllegalStateException("db unavailable"));
 
         MockHttpServletRequest request = contextRequest("GET", "/mtl/api/tracks/get", "/api/tracks/get");
         request.addHeader("Authorization", "Bearer " + TOKEN);
@@ -117,7 +112,7 @@ class JwtAuthenticationFilterTest {
         assertEquals(200, response.getStatus());
         assertNull(SecurityContextHolder.getContext().getAuthentication());
         verify(userDetailsService, never()).loadUserByUsername(USERNAME);
-        verify(webUserSessionService).isSessionActive(USER_SESSION_ID);
+        verify(webClientLoginService).isLoginActive(CLIENT_LOGIN_REF);
     }
 
     private MockHttpServletRequest contextRequest(String method, String requestUri, String servletPath) {

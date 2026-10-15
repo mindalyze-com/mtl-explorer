@@ -1,3 +1,4 @@
+import { warnRequestFailure } from '@/utils/safeLogging';
 import { computed, nextTick, onBeforeUnmount, ref, watch, type Ref } from 'vue';
 import { LocationSearchControllerApi } from 'x8ing-mtl-api-typescript-fetch';
 import type {
@@ -81,6 +82,8 @@ export function useLocationSearch(options: UseLocationSearchOptions) {
   watch(options.modelValue, (open) => {
     if (!open) {
       cancelPendingSearch();
+      loading.value = false;
+      results.value = [];
       return;
     }
     void nextTick(() => inputEl.value?.focus());
@@ -88,10 +91,14 @@ export function useLocationSearch(options: UseLocationSearchOptions) {
     scheduleSearch();
   });
 
-  watch([trimmedQuery, selectedSort, options.mapCenter], () => {
-    if (!options.modelValue.value) return;
-    scheduleSearch();
-  });
+  watch(
+    [trimmedQuery, selectedSort, options.mapCenter],
+    () => {
+      if (!options.modelValue.value) return;
+      scheduleSearch();
+    },
+    { flush: 'sync' }
+  );
 
   onBeforeUnmount(() => {
     cancelPendingSearch();
@@ -117,43 +124,43 @@ export function useLocationSearch(options: UseLocationSearchOptions) {
         return;
       }
       status.value = null;
+      warnRequestFailure('Location search status failed', error, {
+        topic1: 'map',
+        topic2: 'useLocationSearch',
+        topic3: 'status',
+      });
     }
   }
 
   function scheduleSearch() {
-    if (debounceTimer) window.clearTimeout(debounceTimer);
+    cancelPendingSearch();
+    results.value = [];
+    errorMessage.value = '';
+    loading.value = trimmedQuery.value.length >= SEARCH_QUERY_MIN_LENGTH;
+    if (!loading.value) return;
+
+    const sequence = requestSequence;
     debounceTimer = window.setTimeout(() => {
       debounceTimer = null;
-      void runSearch();
+      void runSearch(sequence);
     }, SEARCH_DEBOUNCE_MS);
   }
 
-  async function runSearch() {
+  async function runSearch(sequence: number) {
+    if (sequence !== requestSequence || !options.modelValue.value) return;
     const currentQuery = trimmedQuery.value;
-    if (currentQuery.length < SEARCH_QUERY_MIN_LENGTH) {
-      cancelActiveRequest();
-      loading.value = false;
-      errorMessage.value = '';
-      results.value = [];
-      return;
-    }
 
     if (status.value?.ready === false) {
       await refreshStatus();
+      if (sequence !== requestSequence || !options.modelValue.value) return;
       if (status.value?.ready === false) {
-        cancelActiveRequest();
         loading.value = false;
-        errorMessage.value = '';
-        results.value = [];
         return;
       }
     }
 
-    cancelActiveRequest();
-    const sequence = ++requestSequence;
-    searchController = new AbortController();
-    loading.value = true;
-    errorMessage.value = '';
+    const controller = new AbortController();
+    searchController = controller;
 
     try {
       const center = validMapCenter(options.mapCenter.value) ? options.mapCenter.value : null;
@@ -165,7 +172,7 @@ export function useLocationSearch(options: UseLocationSearchOptions) {
           lat: center?.lat,
           lon: center?.lon,
         },
-        { signal: searchController.signal }
+        { signal: controller.signal }
       );
 
       if (sequence !== requestSequence) return;
@@ -173,7 +180,7 @@ export function useLocationSearch(options: UseLocationSearchOptions) {
         response.ready === false ? { ready: false, phase: response.phase, message: response.message } : status.value;
       results.value = response.ready === false ? [] : (response.results ?? []);
     } catch (error: unknown) {
-      if (isAbortLikeError(error, searchController.signal)) return;
+      if (sequence !== requestSequence || isAbortLikeError(error, controller.signal)) return;
       if (isAuthError(error)) {
         redirectToLoginAfterAuthFailure(!!getToken());
         return;
@@ -181,10 +188,16 @@ export function useLocationSearch(options: UseLocationSearchOptions) {
       if (sequence === requestSequence) {
         errorMessage.value = 'Search unavailable';
         results.value = [];
+        warnRequestFailure('Location search failed', error, {
+          topic1: 'map',
+          topic2: 'useLocationSearch',
+          topic3: 'search',
+        });
       }
     } finally {
       if (sequence === requestSequence) {
         loading.value = false;
+        searchController = null;
       }
     }
   }
@@ -197,6 +210,7 @@ export function useLocationSearch(options: UseLocationSearchOptions) {
   }
 
   function selectFirstResult() {
+    if (loading.value || !options.modelValue.value || trimmedQuery.value.length < SEARCH_QUERY_MIN_LENGTH) return;
     const first = results.value[0];
     if (first) {
       options.onSelect(first);
@@ -275,14 +289,6 @@ export function contextForResult(result: LocationSearchResultDto): string {
       (part) => normalizeText(part) !== displayName || normalizeText(part) === normalizeText(result.admin1Name || '')
     );
   return parts.join(', ') || result.sourceLayer || '';
-}
-
-export function zoomLabel(result: LocationSearchResultDto): string {
-  if (result.minZoom == null && result.maxZoom == null) return '';
-  if (result.minZoom != null && result.maxZoom != null && result.minZoom !== result.maxZoom) {
-    return `z${result.minZoom}-${result.maxZoom}`;
-  }
-  return `z${result.minZoom ?? result.maxZoom}`;
 }
 
 export function distanceLabel(result: LocationSearchResultDto): string {

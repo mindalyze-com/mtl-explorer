@@ -9,6 +9,8 @@ npm package / Python wheel / Docker image).
 
 ### Backend (Java / Maven)
 
+Run inside the existing development container, from the repository root.
+
 ```bash
 cd mtl-server
 ./mvnw org.codehaus.mojo:license-maven-plugin:aggregate-add-third-party \
@@ -45,13 +47,14 @@ respective `README.md` for upstream licenses (OSM, BRouter, gcexport, etc.).
 | MapLibre GL | Maps | BSD-3-Clause |
 | Vite, Vitest | Build / test | MIT |
 | TypeScript | Compiler | Apache-2.0 |
-| BRouter | Routing engine (Docker) | MIT (see `../../docker-brouter/`) |
+| BRouter | Routing engine (Docker); adapted elevation buffer in the planner | [MIT](../../mtl-server/src/main/resources/META-INF/licenses/brouter-MIT.txt), source attribution in `BRouterElevationCalculator.java` |
 | SQLite | Location search database engine | Public Domain |
 | APSW | Python SQLite wrapper for location search | zlib/libpng |
 | OpenStreetMap data / tiles | Map data (Docker) | ODbL - see `../../docker-maps/` |
 | GeoNames | Location search gazetteer data | CC-BY-4.0 |
 | Porto Taxi Trajectory dataset | Demo data | see `../../docker/gpx_porto_taxi_dataset/DATASOURCE.md` |
-| Garmin Connect Export (gcexport) | Demo importer | see `../../docker/garmin_export/` |
+| Mapterhorn terrain data | Demo elevation raster | Source-dependent; see [attribution](https://mapterhorn.com/attribution/) and `../../docker/gpx_porto_taxi_dataset/DATASOURCE.md` |
+| Garmin Connect Export (gcexport) | Optional Garmin activity importer | see `../../docker/garmin_export/` |
 
 > **Note:** This table is illustrative. The authoritative list is whatever
 > the regenerated reports above produce for the current commit.
@@ -76,7 +79,7 @@ Before adding or upgrading a dependency, check compatibility and usage terms - s
   licensed under [CC-BY 4.0](https://creativecommons.org/licenses/by/4.0/).
   MTL Explorer attributes GeoNames in the About/Admin attribution views.
 - **Icons and images** under `mtl-client/public/` and
-  `docs-my/mtl-product-page/` are (C) Patrick Heusser unless otherwise noted,
+  `../mtl-explorer-private/docs-my/communications/website/product-page/` are (C) Patrick Heusser unless otherwise noted,
   and licensed under AGPL-3.0-or-later together with the source code - **except**
   for the "MTL Explorer" name and logo, which are trademarks (see
   [TRADEMARK.md](TRADEMARK.md)).

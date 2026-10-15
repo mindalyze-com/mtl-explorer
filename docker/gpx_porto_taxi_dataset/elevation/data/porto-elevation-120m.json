@@ -1,0 +1,12 @@
+{
+  "source_webp_bytes": 17190502,
+  "expanded_unique_bytes": 69730304,
+  "raster_bytes": 17072067,
+  "unique_tiles": 133,
+  "codecs": {
+    "webp": 133,
+    "xz": 0
+  },
+  "duration_seconds": 394.5033615829889,
+  "sha256": "4570e1203d962f3b8eeb9527710e18c1312b8fdd4141cf2762dc20bcce2bd7ec"
+}

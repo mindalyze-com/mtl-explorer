@@ -1,12 +1,14 @@
 import {
   clearTrackCacheDb,
   deleteGeometryForTracks,
+  deleteTrackRecords,
   isTrackCacheDbPopulated,
   loadAllTracks,
   loadBestGeometry,
   loadGeometry,
   loadGeometryForTracksAtPrecision,
   loadTrack,
+  loadTrackIds,
   loadTrackRecords,
   saveTrackBatchRecords,
   saveGeometryRecords,
@@ -16,6 +18,7 @@ import type { GpsTrack } from 'x8ing-mtl-api-typescript-fetch';
 import {
   fetchDetailTrack,
   fetchFilteredTrackIds,
+  fetchArchiveTrackIds,
   fetchTrackBatch,
   loadActiveFilterRequest,
 } from '@/utils/tracks/trackApi';
@@ -40,8 +43,10 @@ const cacheGateway: TrackCacheGateway = {
   saveGeometry: saveGeometryRecords,
   saveTrackBatch: saveTrackBatchRecords,
   deleteGeometryForTracks,
+  deleteTracks: deleteTrackRecords,
   loadTrackRecords,
   loadAllTracks,
+  loadTrackIds,
   loadTrack,
   loadGeometry,
   loadGeometryForTracksAtPrecision,
@@ -51,6 +56,7 @@ const cacheGateway: TrackCacheGateway = {
 export const trackCollectionLoader = createTrackCollectionLoader({
   cache: cacheGateway,
   fetchFilteredTrackIds,
+  fetchArchiveTrackIds,
   loadActiveFilterRequest,
   fetchTrackBatch,
   fetchDetailTrack,
@@ -92,6 +98,14 @@ export function fetchDetailTrackAtPrecision(
 
 export function clearTrackCache(): Promise<void> {
   return trackCollectionLoader.clearCache();
+}
+
+export function resetTrackLoadRequests(): void {
+  trackCollectionLoader.resetRequests();
+}
+
+export function reconcileTrackCache(): Promise<void> {
+  return trackCollectionLoader.reconcileCache();
 }
 
 export function isTrackCachePopulated(): Promise<boolean> {

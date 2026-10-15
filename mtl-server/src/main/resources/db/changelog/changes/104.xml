@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.10.xsd">
+    <changeSet id="20261010_google_health_import_once" author="codex">
+        <comment>Historical batch imports retain query validation in work state, without mirror stamps or sweeps.</comment>
+        <sql><![CDATA[
+ALTER TABLE google_health.history_work ADD COLUMN replace_missing boolean NOT NULL DEFAULT false;
+ALTER TABLE google_health.history_child ADD COLUMN query_fingerprints jsonb, ADD COLUMN validated bigint;
+CREATE INDEX idx_google_health_reload_request ON google_health.history_audit
+    (account_id,data_type,representation,calendar_policy,key_policy,native_day,end_bound)
+    WHERE outcome='RELOAD_REQUESTED';
+        ]]></sql>
+    </changeSet>
+</databaseChangeLog>

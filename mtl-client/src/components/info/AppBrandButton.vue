@@ -14,12 +14,20 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
+import { useRoute } from 'vue-router';
 import logoMark from '@/assets/logo/logo3/mtl_logo_3_only_vector.svg';
 import AboutSourceOverlay from '@/components/info/AboutSourceOverlay.vue';
 import { APP_DISPLAY_NAME } from '@/utils/appBranding';
 
 const showAbout = ref(false);
+const route = useRoute();
+watch(
+  () => route.fullPath,
+  () => {
+    showAbout.value = false;
+  }
+);
 const logoMaskStyle = computed(() => ({
   '--app-brand-logo': `url("${logoMark}")`,
 }));

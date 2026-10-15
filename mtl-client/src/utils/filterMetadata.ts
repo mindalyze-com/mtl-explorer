@@ -1,4 +1,5 @@
 import type { FilterInfo } from 'x8ing-mtl-api-typescript-fetch/dist/esm/models/FilterInfo';
+import { activityLabel } from '@/components/ui/ActivityTypeBadge.vue';
 import type { FilterEffectiveUiMetadata } from 'x8ing-mtl-api-typescript-fetch/dist/esm/models/FilterEffectiveUiMetadata';
 import type { FilterGradientMetadata } from 'x8ing-mtl-api-typescript-fetch/dist/esm/models/FilterGradientMetadata';
 import type { FilterParamGroupMetadata } from 'x8ing-mtl-api-typescript-fetch/dist/esm/models/FilterParamGroupMetadata';
@@ -16,6 +17,14 @@ const FILTER_GROUP_FALLBACK = 'Other';
 const USER_FILTER_GROUP = 'User';
 const DEFAULT_GRADIENT_BUCKET_COUNT = 100;
 const GRADIENT_PALETTE_PREFIX = 'GRADIENT_';
+const EXACT_ACTIVITY_FILTER_NAME = 'ActivitiesByExactType';
+const MAIN_ACTIVITY_FILTER_NAME = 'ActivitiesByMainTypes';
+const MAIN_ACTIVITY_LABELS: Readonly<Record<string, string>> = {
+  CYCLING: 'Cycling',
+  ON_FOOT: 'On foot',
+  ON_WATER: 'On water',
+  MOTORIZED: 'Motorized',
+};
 export type LegendSortStrategy = FilterConfigEntityLegendSortStrategyEnum;
 
 const FILTER_GROUP_FALLBACK_ORDER = [
@@ -322,6 +331,9 @@ export function formatFilterGroupLabel(group: unknown, source?: FilterMetadataSo
   const groupText = normalizedGroup(group);
   if (!groupText) return '';
   const filterConfig = sourceFilterConfig(source);
+
+  if (filterConfig?.filterName === EXACT_ACTIVITY_FILTER_NAME) return activityLabel(groupText);
+  if (filterConfig?.filterName === MAIN_ACTIVITY_FILTER_NAME) return MAIN_ACTIVITY_LABELS[groupText] ?? groupText;
 
   const bucket = parseNumericBucket(groupText);
   if (bucket == null || !filterConfig?.groupLabelTemplate) return groupText;

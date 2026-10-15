@@ -57,7 +57,7 @@
         <span>{{ stateMessage }}</span>
       </div>
 
-      <ul v-else class="location-search__results">
+      <ul v-else class="location-search__results" data-sheet-fit-target>
         <li v-for="result in results" :key="resultKey(result)" class="location-search__result-item">
           <button class="location-search__result" type="button" @click="emit('select', result)">
             <span class="location-search__result-icon">
@@ -68,7 +68,6 @@
               <span class="location-search__result-context">{{ contextForResult(result) }}</span>
               <span class="location-search__result-meta">
                 <span>{{ kindLabel(result) }}</span>
-                <span v-if="zoomLabel(result)">{{ zoomLabel(result) }}</span>
                 <span v-if="distanceLabel(result)">{{ distanceLabel(result) }}</span>
               </span>
             </span>
@@ -94,7 +93,6 @@ import {
   SEARCH_DETENTS,
   SORT_OPTIONS,
   useLocationSearch,
-  zoomLabel,
   type MapCenter,
 } from '@/components/map/useLocationSearch';
 
@@ -156,6 +154,10 @@ const { inputEl, query, selectedSort, loading, results, stateMessage, stateIcon,
 
 .location-search__input::placeholder {
   color: var(--text-muted);
+}
+
+.location-search__input::-webkit-search-cancel-button {
+  -webkit-appearance: none;
 }
 
 .location-search__clear {

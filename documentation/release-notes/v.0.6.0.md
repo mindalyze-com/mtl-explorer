@@ -1,3 +1,10 @@
+---
+released_on: 2026-06-21
+teaser: >-
+  Replay tracks in 3D, explore terrain, and import more GPS formats, with
+  expanded analysis and planning tools.
+---
+
 # MTL Explorer Release v.0.6.0
 
 ## Features

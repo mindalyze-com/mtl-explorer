@@ -74,10 +74,16 @@ and must not be relicensed.
 
 - Frontend: Vue 3 + TypeScript (`mtl-client`) - `npm run lint`,
   `npm run type-check`, `npm run test`.
-- Backend: Spring Boot + Maven (`mtl-server`) - `./mvnw verify`.
+- Backend: Spring Boot + Maven (`mtl-server`) - run `mvn verify` inside
+  the existing development container. Do not run Java/Maven on the host.
+- Generate the API package before frontend checks; see the
+  [frontend workflow](../mtl-client/README.md). For backend launch arguments,
+  see [GPS quality modules](../documentation/development/gps-quality-modules.md).
 - Keep PRs focused; split refactors from behavior changes.
-- Follow the existing architecture notes in `mtl-server/doc/` and repository
-  memory documents.
+- Follow [AGENTS.md](../AGENTS.md), [development guidance](../documentation/development/README.md),
+  and [current architecture](../documentation/architecture/README.md). Update the relevant user
+  guide with behavior changes. Use named pages for small topics; group several related articles
+  only when a topic needs them. Proposals and dated internal evidence stay outside public guides.
 
 ## 6. Reporting security issues
 

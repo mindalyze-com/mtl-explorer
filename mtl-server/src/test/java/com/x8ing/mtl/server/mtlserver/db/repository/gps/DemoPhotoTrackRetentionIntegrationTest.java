@@ -5,9 +5,9 @@ import com.x8ing.mtl.server.mtlserver.jobs.media.indexer.MediaIndexerService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.annotation.Rollback;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
@@ -92,24 +92,24 @@ class DemoPhotoTrackRetentionIntegrationTest {
                 RETURNING id
                 """, Long.class, indexedFileId, "Synthetic demo " + suffix, start, end));
         jdbcTemplate.update("""
-                INSERT INTO gps_track_data(gps_track_id, precision_in_meter, track_type, track)
-                VALUES (?, 0, 'RAW_OUTLIER_CLEANED', ST_GeomFromText(?, 4326))
-                """, trackId, lineString);
+                INSERT INTO gps_track_data(gps_track_id, precision_in_meter, track_type, track, observed_path)
+                VALUES (?, 0, 'RAW_OUTLIER_CLEANED', ST_GeomFromText(?, 4326), ST_GeomFromText(?, 4326))
+                """, trackId, lineString, lineString);
         return trackId;
     }
 
     private void insertMedia(String name, String capturedAt, double longitude, double latitude) {
         long indexedFileId = insertIndexedFile("MEDIA", name);
         jdbcTemplate.update("""
-                INSERT INTO media_file(
-                    file_id, exif_gps_location_long, exif_gps_location_lat,
-                    exif_gps_location, exif_gps_date, exif_date_image_taken
-                )
-                VALUES (
-                    ?, ?, ?, ST_SetSRID(ST_MakePoint(?, ?), 4326),
-                    ?::timestamp, ?::timestamp
-                )
-                """,
+                        INSERT INTO media_file(
+                            file_id, exif_gps_location_long, exif_gps_location_lat,
+                            exif_gps_location, exif_gps_date, exif_date_image_taken
+                        )
+                        VALUES (
+                            ?, ?, ?, ST_SetSRID(ST_MakePoint(?, ?), 4326),
+                            ?::timestamp, ?::timestamp
+                        )
+                        """,
                 indexedFileId,
                 longitude,
                 latitude,

@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+    <changeSet id="20261007_energy_point_correlation_inputs" author="codex">
+        <comment>Keep photo correlation unchanged for energy-only point updates; retain all interpolation-input changes.</comment>
+        <sql splitStatements="false"><![CDATA[
+CREATE OR REPLACE FUNCTION queue_media_correlation_for_updated_track_points()
+RETURNS TRIGGER AS $$
+BEGIN
+    INSERT INTO media_correlation_track_work(track_id, reason, requested_at)
+    WITH changed AS (
+        SELECT previous.gps_track_data_id AS previous_data_id,
+               updated.gps_track_data_id AS updated_data_id
+        FROM old_points previous FULL JOIN new_points updated USING (id)
+        WHERE previous.id IS NULL OR updated.id IS NULL
+           OR ROW(previous.gps_track_data_id, previous.point_timestamp, previous.point_index,
+                  previous.interval_status, previous.distance_in_meter_since_start,
+                  previous.duration_since_start, previous.point_altitude, ST_AsEWKB(previous.point_long_lat))
+              IS DISTINCT FROM
+              ROW(updated.gps_track_data_id, updated.point_timestamp, updated.point_index,
+                  updated.interval_status, updated.distance_in_meter_since_start,
+                  updated.duration_since_start, updated.point_altitude, ST_AsEWKB(updated.point_long_lat))
+    ), affected_data AS (
+        SELECT previous_data_id AS id FROM changed
+        UNION SELECT updated_data_id FROM changed
+    )
+    SELECT DISTINCT data.gps_track_id, 'canonical_points_update', CURRENT_TIMESTAMP
+    FROM affected_data point JOIN gps_track_data data ON data.id = point.id
+    WHERE data.track_type = 'RAW_OUTLIER_CLEANED'
+    ON CONFLICT (track_id) DO UPDATE SET
+        reason = EXCLUDED.reason,
+        requested_at = EXCLUDED.requested_at;
+    RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
+        ]]></sql>
+        <rollback><sql splitStatements="false"><![CDATA[
+CREATE OR REPLACE FUNCTION queue_media_correlation_for_updated_track_points()
+RETURNS TRIGGER AS $$
+BEGIN
+    INSERT INTO media_correlation_track_work(track_id, reason, requested_at)
+    SELECT DISTINCT data.gps_track_id, 'canonical_points_update', CURRENT_TIMESTAMP
+    FROM (
+        SELECT gps_track_data_id FROM old_points
+        UNION
+        SELECT gps_track_data_id FROM new_points
+    ) point
+    JOIN gps_track_data data ON data.id = point.gps_track_data_id
+    WHERE data.track_type = 'RAW_OUTLIER_CLEANED'
+    ON CONFLICT (track_id) DO UPDATE SET
+        reason = EXCLUDED.reason,
+        requested_at = EXCLUDED.requested_at;
+    RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
+        ]]></sql></rollback>
+    </changeSet>
+    <changeSet id="20261007_energy_track_correlation_inputs" author="codex">
+        <comment>Energy summary writes must not queue photos when track correlation inputs remain unchanged.</comment>
+        <sql splitStatements="false"><![CDATA[
+CREATE OR REPLACE FUNCTION queue_media_correlation_for_track()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF TG_OP = 'UPDATE' THEN
+        IF ROW(OLD.start_date, OLD.end_date, OLD.load_status, OLD.duplicate_status, OLD.track_source)
+           IS NOT DISTINCT FROM
+           ROW(NEW.start_date, NEW.end_date, NEW.load_status, NEW.duplicate_status, NEW.track_source) THEN
+            RETURN NEW;
+        END IF;
+    END IF;
+    INSERT INTO media_correlation_track_work(track_id, reason, requested_at)
+    VALUES (NEW.id, 'track_' || LOWER(TG_OP), CURRENT_TIMESTAMP)
+    ON CONFLICT (track_id) DO UPDATE SET
+        reason = EXCLUDED.reason,
+        requested_at = EXCLUDED.requested_at;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+        ]]></sql>
+        <rollback><sql splitStatements="false"><![CDATA[
+CREATE OR REPLACE FUNCTION queue_media_correlation_for_track()
+RETURNS TRIGGER AS $$
+BEGIN
+    INSERT INTO media_correlation_track_work(track_id, reason, requested_at)
+    VALUES (NEW.id, 'track_' || LOWER(TG_OP), CURRENT_TIMESTAMP)
+    ON CONFLICT (track_id) DO UPDATE SET
+        reason = EXCLUDED.reason,
+        requested_at = EXCLUDED.requested_at;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+        ]]></sql></rollback>
+    </changeSet>
+</databaseChangeLog>

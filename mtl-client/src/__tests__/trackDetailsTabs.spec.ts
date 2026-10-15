@@ -1,10 +1,14 @@
-import { flushPromises, mount } from '@vue/test-utils';
+import { flushPromises, mount, RouterLinkStub } from '@vue/test-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createPinia, setActivePinia } from 'pinia';
 import { defineComponent, nextTick } from 'vue';
 import TrackDetails from '@/components/trackdetails/TrackDetails.vue';
 import { MetricKey, XMode, type ChartPoint, type TrackChartSeries } from '@/utils/chartSeriesAdapter';
-import { GpsTrackActivityTypeEnum, type GpsTrack } from 'x8ing-mtl-api-typescript-fetch/dist/esm/models/index';
+import {
+  GpsTrackActivityTypeEnum,
+  type GpsTrack,
+  type TrackHealthResponse,
+} from 'x8ing-mtl-api-typescript-fetch/dist/esm/models/index';
 import {
   roundToNiceTrackDetailsChartPointCount,
   TRACK_DETAILS_CHART_POINTS_DEFAULT,
@@ -12,14 +16,19 @@ import {
   trackDetailsChartPointSliderValueToCount,
 } from '@/utils/trackDetailsChartPointSettings';
 import { STORAGE_KEYS } from '@/utils/appStorage';
+import { useFilterStore } from '@/stores/filterStore';
+import { useApplicationStatusStore } from '@/stores/applicationStatusStore';
 
 const mocks = vi.hoisted(() => ({
   calculateEnergyWhatIf: vi.fn(),
   clearChartInteraction: vi.fn(),
   fetchDetailTrackAtPrecision: vi.fn(),
   fetchTrackDetails: vi.fn(),
+  fetchTrackHealth: vi.fn(),
   fetchTrackPointsForRenderedShape: vi.fn(),
   getRelatedTracks: vi.fn(),
+  getEnergyCalculationStatus: vi.fn(),
+  refreshTrackEnergy: vi.fn(),
   getMediaByTrack: vi.fn(),
   saveMediaTimeCorrections: vi.fn(),
   setManualMediaLocation: vi.fn(),
@@ -34,6 +43,8 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock('@/utils/ServiceHelper', () => ({
   calculateEnergyWhatIf: mocks.calculateEnergyWhatIf,
+  getEnergyCalculationStatus: mocks.getEnergyCalculationStatus,
+  refreshTrackEnergy: mocks.refreshTrackEnergy,
   fetchTrackDetails: mocks.fetchTrackDetails,
   fetchTrackPointsForRenderedShape: mocks.fetchTrackPointsForRenderedShape,
   getRelatedTracks: mocks.getRelatedTracks,
@@ -43,6 +54,10 @@ vi.mock('@/utils/ServiceHelper', () => ({
 
 vi.mock('@/utils/tracks/trackCollectionLoader', () => ({
   fetchDetailTrackAtPrecision: mocks.fetchDetailTrackAtPrecision,
+}));
+
+vi.mock('@/features/health/api/trackHealthApi', () => ({
+  fetchTrackHealth: mocks.fetchTrackHealth,
 }));
 
 vi.mock('@/repositories/mediaRepository', () => ({
@@ -90,11 +105,16 @@ const TrackDetailMiniMapStub = defineComponent({
     trackCoordinates: Array,
     trackEvents: Array,
     trackMedia: Array,
+    mediaLoading: Boolean,
+    mediaError: String,
+    mediaTotalItems: Number,
     mediaInteractionEnabled: Boolean,
+    markerInteractionEnabled: Boolean,
+    pointDetailsEnabled: Boolean,
     selectedMediaId: Number,
     highlightedMediaId: Number,
   },
-  emits: ['select-event', 'select-media', 'clear-selection', 'start-3d-replay'],
+  emits: ['select-event', 'select-media', 'retry-media', 'clear-selection', 'start-3d-replay'],
   setup(_props, { expose }) {
     expose({
       beginMiniMapResize: mocks.beginMiniMapResize,
@@ -113,6 +133,7 @@ const TrackDetailMiniMapStub = defineComponent({
       <button data-test="mini-select-event" @click="$emit('select-event', 7)">Select event</button>
       <button data-test="mini-clear-event" @click="$emit('select-event', null)">Clear event</button>
       <button data-test="mini-select-media" @click="$emit('select-media', 42)">Select photo</button>
+      <button data-test="mini-retry-media" @click="$emit('retry-media')">Retry media</button>
       <button data-test="mini-clear-selection" @click="$emit('clear-selection')">Clear selection</button>
       <button data-test="mini-start-replay" @click="$emit('start-3d-replay')">3D Replay</button>
     </div>
@@ -145,6 +166,9 @@ const TrackGraphStub = defineComponent({
     syncEnabled: Boolean,
     trackDetails: Array,
     xMode: String,
+    xStartTimestamp: [Date, String, Number],
+    xMax: Number,
+    emptyMessage: String,
   },
   template:
     '<div data-test="track-graph" :data-config-title="config && config.title" :data-point-count="trackDetails.length" :data-sync-enabled="String(syncEnabled)" :data-show-range="String(showRange)" />',
@@ -156,6 +180,7 @@ const TrackDetailPhotosStub = defineComponent({
     highlightedMediaId: Number,
     pageSize: Number,
     thumbnailsEnabled: Boolean,
+    matchingState: String,
   },
   emits: [
     'select-media',
@@ -219,6 +244,15 @@ function mockTrackChartSeries(overrides: Partial<TrackChartSeries> = {}): TrackC
   };
 }
 
+function mockTrackHealth(overrides: Partial<TrackHealthResponse> = {}): TrackHealthResponse {
+  return {
+    trackId: 1,
+    available: false,
+    source: 'GOOGLE_HEALTH',
+    ...overrides,
+  } as TrackHealthResponse;
+}
+
 function mockChartPoint(pointIndex: number): ChartPoint {
   return {
     pointIndex,
@@ -237,10 +271,13 @@ function mockChartPoint(pointIndex: number): ChartPoint {
 
 async function mountTrackDetails(
   options: {
+    track?: Partial<GpsTrack>;
     chartSeries?: TrackChartSeries;
     detailTrackError?: unknown;
     chartDetailsError?: unknown;
     relatedTracksError?: unknown;
+    trackHealth?: TrackHealthResponse;
+    trackHealthError?: unknown;
     trackMedia?: Array<Record<string, unknown>>;
     trackMediaPage?: {
       items: Array<Record<string, unknown>>;
@@ -250,9 +287,13 @@ async function mountTrackDetails(
       totalPages: number;
     };
     initialTab?: 'overview' | 'photos';
+    realPhotos?: boolean;
   } = {}
 ) {
-  mocks.fetchDetailTrackAtPrecision.mockResolvedValue(mockDetailTrackResponse());
+  mocks.fetchDetailTrackAtPrecision.mockResolvedValue({
+    ...mockDetailTrackResponse(),
+    gpsTrack: mockTrack(options.track),
+  });
   if (options.detailTrackError) {
     mocks.fetchDetailTrackAtPrecision.mockRejectedValueOnce(options.detailTrackError);
   }
@@ -263,6 +304,11 @@ async function mountTrackDetails(
   }
 
   mocks.fetchTrackPointsForRenderedShape.mockResolvedValue([]);
+
+  mocks.fetchTrackHealth.mockResolvedValue(options.trackHealth ?? mockTrackHealth());
+  if (options.trackHealthError) {
+    mocks.fetchTrackHealth.mockRejectedValueOnce(options.trackHealthError);
+  }
 
   mocks.getRelatedTracks.mockResolvedValue({});
   if (options.relatedTracksError) {
@@ -285,6 +331,7 @@ async function mountTrackDetails(
     props: { gpsTrackId: 1, initialTab: options.initialTab },
     global: {
       stubs: {
+        RouterLink: RouterLinkStub,
         MtlSlider: true,
         BottomSheet: PassthroughStub,
         MediaPreview: true,
@@ -296,7 +343,7 @@ async function mountTrackDetails(
         TrackDetailEvents: true,
         TrackDetailMiniMap: TrackDetailMiniMapStub,
         TrackDetailOverview: true,
-        TrackDetailPhotos: TrackDetailPhotosStub,
+        TrackDetailPhotos: options.realPhotos ? false : TrackDetailPhotosStub,
         TrackDetailQuality: true,
         TrackDetailRelated: true,
         TrackGraph: TrackGraphStub,
@@ -312,14 +359,165 @@ async function mountTrackDetails(
 describe('TrackDetails tab-scoped interactions', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.getEnergyCalculationStatus.mockResolvedValue({ state: 'UNAVAILABLE' });
     localStorage.clear();
     setActivePinia(createPinia());
+  });
+
+  it('refreshes activity media when matching settles and passes the completed state to the panel', async () => {
+    const status = useApplicationStatusStore();
+    status.processing = { jobs: [{ job: 'mediaCorrelation', pending: 10, state: 'RUNNING' }] };
+    const wrapper = await mountTrackDetails();
+    expect(wrapper.getComponent(TrackDetailPhotosStub).props('matchingState')).toBe('pending');
+    expect(mocks.getMediaByTrack).toHaveBeenCalledTimes(1);
+    status.processing = { jobs: [{ job: 'mediaCorrelation', pending: 0, state: 'COMPLETE' }] };
+    await flushPromises();
+    expect(mocks.getMediaByTrack).toHaveBeenCalledTimes(2);
+    expect(wrapper.getComponent(TrackDetailPhotosStub).props('matchingState')).toBe('complete');
+    wrapper.unmount();
+  });
+
+  it('refreshes a media response started before matching finished even when it was still loading', async () => {
+    const status = useApplicationStatusStore();
+    status.processing = { jobs: [{ job: 'mediaCorrelation', pending: 10, state: 'RUNNING' }] };
+    const wrapper = await mountTrackDetails();
+    let finish!: (value: object) => void;
+    mocks.getMediaByTrack.mockReturnValueOnce(new Promise((resolve) => (finish = resolve)));
+    wrapper.getComponent(TrackDetailPhotosStub).vm.$emit('retry');
+    await nextTick();
+    expect(mocks.getMediaByTrack).toHaveBeenCalledTimes(2);
+    status.processing = { jobs: [{ job: 'mediaCorrelation', pending: 0, state: 'COMPLETE' }] };
+    await nextTick();
+    expect(mocks.getMediaByTrack).toHaveBeenCalledTimes(2);
+    finish({ items: [], page: 0, pageSize: 100, totalItems: 0, totalPages: 0 });
+    await flushPromises();
+    expect(mocks.getMediaByTrack).toHaveBeenCalledTimes(3);
+    wrapper.unmount();
+  });
+
+  it('starts a newly selected tab at the top instead of carrying over another tab scroll', async () => {
+    const wrapper = await mountTrackDetails();
+    const panels = wrapper.get('[data-test="track-detail-panels"]').element;
+    panels.scrollTop = 320;
+    await wrapper.get('[data-test="tab-graphs"]').trigger('click');
+    await nextTick();
+    expect(panels.scrollTop).toBe(0);
+    panels.scrollTop = 100;
+    await wrapper.get('[data-test="tab-graphs"]').trigger('click');
+    await nextTick();
+    expect(panels.scrollTop).toBe(100);
   });
 
   it('loads chart details with the default chart point count', async () => {
     await mountTrackDetails();
 
     expect(mocks.fetchTrackDetails).toHaveBeenCalledWith(1, XMode.Time, TRACK_DETAILS_CHART_POINTS_DEFAULT);
+    expect(mocks.fetchTrackHealth).toHaveBeenCalledWith(1, TRACK_DETAILS_CHART_POINTS_DEFAULT);
+  });
+
+  it('keeps distance-based replay available without timing graphs for unsupported timing', async () => {
+    const wrapper = await mountTrackDetails({
+      track: { indexedFile: { id: 99 }, timingUnreliable: true, timingEstimated: true },
+    });
+    expect(wrapper.get('[data-test="track-source-review-notice"]').findComponent(RouterLinkStub).props('to')).toEqual({
+      name: 'review',
+      params: { sourceId: 99 },
+    });
+    const graphs = wrapper.findAllComponents(TrackGraphStub);
+    expect(graphs).toHaveLength(1);
+    expect(graphs[0]!.props('config').title).toMatch(/elevation/i);
+    expect(graphs[0]!.props('xMode')).toBe('distance');
+    expect(wrapper.findComponent(TrackDetailMiniMapStub).props('replayEnabled')).toBe(true);
+    expect(wrapper.find('[data-test="unsupported-source-timing"]').exists()).toBe(true);
+    expect(wrapper.find('[data-test="track-detail-health-empty"]').exists()).toBe(false);
+    expect(
+      wrapper
+        .findAll('button')
+        .find((button) => button.text().trim() === 'Time')
+        ?.attributes('disabled')
+    ).toBeDefined();
+    mocks.fetchTrackDetails.mockClear();
+    wrapper.findComponent(TrackDetailMiniMapStub).vm.$emit('start-3d-replay');
+    await flushPromises();
+    expect(mocks.fetchTrackDetails).not.toHaveBeenCalled();
+    expect(wrapper.emitted('start-3d-replay')?.[0]?.[0]).toMatchObject({
+      trackId: 1,
+      gpsTrack: { timingUnreliable: true, timingEstimated: true },
+      coordinates: [
+        [8.4, 47.3],
+        [8.5, 47.4],
+      ],
+    });
+  });
+
+  it('adds a synchronized heart-rate graph when Google Health samples overlap the track', async () => {
+    const points = [mockChartPoint(0), mockChartPoint(10)];
+    const wrapper = await mountTrackDetails({
+      track: {
+        startDate: new Date('2026-01-01T09:59:00Z'),
+        endDate: new Date('2026-01-01T10:01:00Z'),
+        trackLengthInMeter: 200,
+      },
+      chartSeries: mockTrackChartSeries({ points }),
+      trackHealth: mockTrackHealth({
+        available: true,
+        heartRate: {
+          sampleCount: 2,
+          averageBpm: 118,
+          minimumBpm: 95,
+          maximumBpm: 141,
+          points: [
+            {
+              timestamp: new Date('2026-01-01T10:00:05Z'),
+              elapsedSeconds: 5,
+              averageBpm: 118,
+              minimumBpm: 95,
+              maximumBpm: 141,
+              sampleCount: 2,
+            },
+          ],
+        },
+      }),
+    });
+
+    const graphTitles = wrapper
+      .findAll('[data-test="track-graph"]')
+      .map((graph) => graph.attributes('data-config-title'));
+    expect(graphTitles).toContain('Heart Rate');
+    expect((wrapper.vm as unknown as { heartRateDetails: ChartPoint[] }).heartRateDetails[0]).toMatchObject({
+      distanceInMeterSinceStart: 50,
+      heartRateBpm: 118,
+      heartRateMinimumBpm: 95,
+      heartRateMaximumBpm: 141,
+    });
+    expect(wrapper.find('[data-test="track-detail-health-empty"]').exists()).toBe(false);
+    for (const graph of wrapper.findAllComponents(TrackGraphStub)) {
+      expect(graph.props('xStartTimestamp')).toEqual(new Date('2026-01-01T09:59:00Z'));
+      expect(graph.props('xMax')).toBe(120_000);
+    }
+
+    await (wrapper.vm as unknown as { setXModeValue: (mode: 'distance') => Promise<void> }).setXModeValue('distance');
+    await flushPromises();
+    for (const graph of wrapper.findAllComponents(TrackGraphStub)) {
+      expect(graph.props('xMode')).toBe('distance');
+      expect(graph.props('xMax')).toBe(0.2);
+    }
+  });
+
+  it('explains missing heart-rate samples and links to sync status', async () => {
+    const wrapper = await mountTrackDetails();
+    const notice = wrapper.get('[data-test="track-detail-health-empty"]');
+    expect(notice.text()).toContain('No Google Health heart-rate samples are stored for this track');
+    expect(notice.text()).toContain('Older history may still be syncing');
+    expect(notice.get('a').attributes('href')).toBe(
+      `${import.meta.env.BASE_URL}admin/processing#google-health-processing`
+    );
+  });
+
+  it('does not claim samples are absent when the health request fails', async () => {
+    const wrapper = await mountTrackDetails({ trackHealthError: new Error('unavailable') });
+    expect(wrapper.find('[data-test="track-detail-health-empty"]').exists()).toBe(false);
+    expect(wrapper.get('[data-test="track-detail-health-error"]').text()).toContain('Retry');
   });
 
   it('keeps tab-row taps intact while tracking resize drags outside the narrow zone', async () => {
@@ -400,6 +598,9 @@ describe('TrackDetails tab-scoped interactions', () => {
       description: '',
       activityType: GpsTrackActivityTypeEnum.Bicycle,
     });
+    expect(wrapper.emitted('track-updated')?.at(-1)?.[0]).toEqual(
+      mockTrack({ activityType: GpsTrackActivityTypeEnum.Bicycle })
+    );
   });
 
   it('shows actionable recovery when the required track load fails', async () => {
@@ -538,16 +739,89 @@ describe('TrackDetails tab-scoped interactions', () => {
     expect(mocks.fetchTrackDetails).toHaveBeenCalledWith(1, XMode.Time, expectedPointCount);
   });
 
-  it('lazy-loads activity photos only after the Photos tab is selected', async () => {
-    const wrapper = await mountTrackDetails();
+  it('loads one media page for the overview map and reuses it when opening Media', async () => {
+    const items = [{ id: 42, resolvedLat: 47.4, resolvedLng: 8.5 }];
+    const wrapper = await mountTrackDetails({ trackMedia: items });
 
-    expect(mocks.getMediaByTrack).not.toHaveBeenCalled();
+    expect(wrapper.getComponent(TrackDetailMiniMapStub).props('trackMedia')).toEqual(items);
+    expect(wrapper.getComponent(TrackDetailPhotosStub).props('thumbnailsEnabled')).toBe(false);
 
     await wrapper.find('[data-test="tab-photos"]').trigger('click');
     await flushPromises();
 
     expect(mocks.getMediaByTrack).toHaveBeenCalledWith(1, 0, 0, 100, expect.any(AbortSignal));
+    expect(mocks.getMediaByTrack).toHaveBeenCalledTimes(1);
     expect(wrapper.getComponent(TrackDetailPhotosStub).props('pageSize')).toBe(100);
+  });
+
+  it.each(['overview', 'photos'] as const)(
+    'refreshes media correlations without leaving the %s tab',
+    async (initialTab) => {
+      const original = {
+        id: 42,
+        fileName: 'photo.jpg',
+        ambiguousMatch: true,
+        alternativeMatchCount: 2,
+        resolvedLat: 47.4,
+        resolvedLng: 8.5,
+      };
+      const wrapper = await mountTrackDetails({ initialTab, trackMedia: [original], realPhotos: true });
+      const updated = { ...original, alternativeMatchCount: 3, resolvedLat: 47.41 };
+      mocks.getMediaByTrack.mockClear();
+      mocks.getMediaByTrack.mockResolvedValue({
+        items: [updated],
+        page: 0,
+        pageSize: 100,
+        totalItems: 1,
+        totalPages: 1,
+      });
+
+      useFilterStore().dataFreshnessRevision += 1;
+      await flushPromises();
+
+      expect(mocks.getMediaByTrack).toHaveBeenCalledWith(1, 0, 0, 100, expect.any(AbortSignal));
+      expect(wrapper.getComponent(TrackDetailMiniMapStub).props('trackMedia')).toEqual([updated]);
+      expect(wrapper.get('[data-test="tabs"]').attributes('data-value')).toBe(initialTab === 'photos' ? '4' : '0');
+      await wrapper.get('[data-test="tab-photos"]').trigger('click');
+      expect(wrapper.get('.photo-card__badge--ambiguous').text()).toBe('Ambiguous (3)');
+      expect(mocks.getMediaByTrack).toHaveBeenCalledTimes(1);
+      wrapper.unmount();
+    }
+  );
+
+  it('preserves the camera preview and selected media page when accepting a data refresh', async () => {
+    const wrapper = await mountTrackDetails({ initialTab: 'photos' });
+    const preview = { id: 142, fileName: 'photo.jpg', preview: true, timeSource: 'EXIF_DATE_TAKEN' };
+    mocks.getMediaByTrack.mockResolvedValue({
+      items: [preview],
+      page: 0,
+      pageSize: 100,
+      totalItems: 201,
+      totalPages: 3,
+    });
+    const actions = wrapper.vm as unknown as {
+      onPhotoOffsetApplied: (seconds: number) => Promise<void>;
+      onTrackMediaPageChanged: (page: number) => Promise<void>;
+    };
+    await actions.onPhotoOffsetApplied(900);
+    mocks.getMediaByTrack.mockResolvedValue({
+      items: [preview],
+      page: 1,
+      pageSize: 100,
+      totalItems: 201,
+      totalPages: 3,
+    });
+    await actions.onTrackMediaPageChanged(1);
+    mocks.getMediaByTrack.mockClear();
+
+    useFilterStore().dataFreshnessRevision += 1;
+    await flushPromises();
+
+    expect(mocks.getMediaByTrack).toHaveBeenCalledExactlyOnceWith(1, 900, 1, 100, expect.any(AbortSignal));
+    expect(wrapper.getComponent(TrackDetailMiniMapStub).props('trackMedia')).toEqual([preview]);
+    expect(wrapper.get('[data-test="tabs"]').attributes('data-value')).toBe('4');
+    expect(mocks.saveMediaTimeCorrections).not.toHaveBeenCalled();
+    wrapper.unmount();
   });
 
   it('loads a bounded 200-item page when the user selects the maximum activity-media page size', async () => {
@@ -570,8 +844,9 @@ describe('TrackDetails tab-scoped interactions', () => {
     expect((wrapper.vm as unknown as { trackMedia: Array<{ id: number }> }).trackMedia).toHaveLength(200);
   });
 
-  it('cancels the activity-photo page request when leaving Photos', async () => {
+  it('keeps loading map media when switching tabs and cancels when changing activity', async () => {
     const wrapper = await mountTrackDetails();
+    mocks.getMediaByTrack.mockClear();
     let requestSignal: AbortSignal | null = null;
     mocks.getMediaByTrack.mockImplementationOnce(
       (_trackId, _offsetSeconds, _page, _pageSize, signal: AbortSignal) =>
@@ -581,19 +856,23 @@ describe('TrackDetails tab-scoped interactions', () => {
         })
     );
 
-    await wrapper.find('[data-test="tab-photos"]').trigger('click');
+    await wrapper.setProps({ gpsTrackId: 2 });
     await nextTick();
     expect(requestSignal?.aborted).toBe(false);
 
+    await wrapper.find('[data-test="tab-photos"]').trigger('click');
     await wrapper.find('[data-test="tab-overview"]').trigger('click');
     await flushPromises();
 
-    expect(requestSignal?.aborted).toBe(true);
-    expect((wrapper.vm as unknown as { trackMediaLoading: boolean }).trackMediaLoading).toBe(false);
+    expect(requestSignal?.aborted).toBe(false);
+    expect((wrapper.vm as unknown as { trackMediaLoading: boolean }).trackMediaLoading).toBe(true);
 
-    await wrapper.find('[data-test="tab-photos"]').trigger('click');
+    await wrapper.setProps({ gpsTrackId: 3 });
     await flushPromises();
+    expect(requestSignal?.aborted).toBe(true);
     expect(mocks.getMediaByTrack).toHaveBeenCalledTimes(2);
+    expect(mocks.getMediaByTrack).toHaveBeenLastCalledWith(3, 0, 0, 100, expect.any(AbortSignal));
+    expect((wrapper.vm as unknown as { trackMediaLoading: boolean }).trackMediaLoading).toBe(false);
   });
 
   it('opens directly on Photos when requested by the parent flow', async () => {
@@ -603,7 +882,7 @@ describe('TrackDetails tab-scoped interactions', () => {
     expect(mocks.getMediaByTrack).toHaveBeenCalledWith(1, 0, 0, 100, expect.any(AbortSignal));
   });
 
-  it('opens mini-map media only from Media and keeps it inert on Graphs', async () => {
+  it('opens mini-map media outside Graphs and keeps markers passive in Graphs', async () => {
     const wrapper = await mountTrackDetails({
       initialTab: 'photos',
       trackMedia: [{ id: 42, fileName: 'activity.mp4', mediaKind: 'VIDEO', resolvedLat: 47.4, resolvedLng: 8.5 }],
@@ -617,10 +896,38 @@ describe('TrackDetails tab-scoped interactions', () => {
     (wrapper.vm as unknown as { mediaPreviewVisible: boolean }).mediaPreviewVisible = false;
     await wrapper.get('[data-test="tab-graphs"]').trigger('click');
     expect(miniMap.attributes('data-media-interaction-enabled')).toBe('false');
+    expect(wrapper.getComponent(TrackDetailMiniMapStub).props('markerInteractionEnabled')).toBe(false);
+    expect(wrapper.getComponent(TrackDetailMiniMapStub).props('pointDetailsEnabled')).toBe(false);
 
     await wrapper.get('[data-test="mini-select-media"]').trigger('click');
+    await wrapper.get('[data-test="mini-select-event"]').trigger('click');
     expect((wrapper.vm as unknown as { activeTab: string }).activeTab).toBe('1');
     expect((wrapper.vm as unknown as { mediaPreviewVisible: boolean }).mediaPreviewVisible).toBe(false);
+    expect((wrapper.vm as unknown as { selectedTrackEventKey: number | null }).selectedTrackEventKey).toBeNull();
+
+    await wrapper.get('[data-test="tab-overview"]').trigger('click');
+    expect(wrapper.getComponent(TrackDetailMiniMapStub).props('markerInteractionEnabled')).toBe(true);
+    expect(wrapper.getComponent(TrackDetailMiniMapStub).props('pointDetailsEnabled')).toBe(true);
+    await wrapper.get('[data-test="mini-select-media"]').trigger('click');
+    expect((wrapper.vm as unknown as { activeTab: string }).activeTab).toBe('4');
+    expect((wrapper.vm as unknown as { mediaPreviewVisible: boolean }).mediaPreviewVisible).toBe(true);
+  });
+
+  it('allows a failed media request to be retried from the overview map', async () => {
+    const wrapper = await mountTrackDetails();
+    mocks.getMediaByTrack.mockRejectedValueOnce(new Error('Media unavailable'));
+    await wrapper.setProps({ gpsTrackId: 2 });
+    await flushPromises();
+    expect(wrapper.getComponent(TrackDetailMiniMapStub).props('mediaError')).toBeTruthy();
+
+    const items = [{ id: 42, resolvedLat: 47.4, resolvedLng: 8.5 }];
+    mocks.getMediaByTrack.mockResolvedValueOnce({ items, page: 0, pageSize: 100, totalItems: 1, totalPages: 1 });
+    await wrapper.get('[data-test="mini-retry-media"]').trigger('click');
+    await flushPromises();
+    const miniMap = wrapper.getComponent(TrackDetailMiniMapStub);
+    expect(miniMap.props('mediaError')).toBeNull();
+    expect(miniMap.props('trackMedia')).toEqual(items);
+    expect((wrapper.vm as unknown as { activeTab: string }).activeTab).toBe('0');
   });
 
   it('sends the selected photo coordinates to the main map flow', async () => {
@@ -741,7 +1048,7 @@ describe('TrackDetails tab-scoped interactions', () => {
     expect(mocks.getMediaByTrack).toHaveBeenCalledWith(1, 3600, 0, 100, expect.any(AbortSignal));
   });
 
-  it('persists a previewed correction and returns to the baseline lookup', async () => {
+  it('persists only the requested preview items and returns to the baseline lookup', async () => {
     const wrapper = await mountTrackDetails({
       trackMedia: [{ id: 11, timeSource: 'EXIF_DATE_TAKEN' }],
     });
@@ -755,8 +1062,59 @@ describe('TrackDetails tab-scoped interactions', () => {
       }
     ).onSaveTimeCorrection([42], 3600);
 
-    expect(mocks.saveMediaTimeCorrections).toHaveBeenCalledWith({ mediaIds: [42, 11], offsetSeconds: 3600 });
+    expect(mocks.saveMediaTimeCorrections).toHaveBeenCalledWith({ mediaIds: [42], offsetSeconds: 3600 });
     expect(mocks.getMediaByTrack).toHaveBeenCalledWith(1, 0, 0, 100, expect.any(AbortSignal));
+  });
+
+  it('keeps a photo omitted by the preview unchanged and clears every saved correction from the activity', async () => {
+    const baseline = Array.from({ length: 6 }, (_, index) => ({
+      id: index + 1,
+      fileName: `photo-${index + 1}.jpg`,
+      timeSource: index % 2 === 0 ? 'EXIF_GPS' : 'EXIF_DATE_TAKEN',
+      capturedAt: new Date(`2026-08-29T10:0${index + 1}:00Z`),
+      preview: false,
+    }));
+    const wrapper = await mountTrackDetails({ trackMedia: baseline, initialTab: 'photos', realPhotos: true });
+    const corrections = new Map<number, number>();
+    mocks.saveMediaTimeCorrections.mockImplementation(({ mediaIds, offsetSeconds }) => {
+      for (const id of mediaIds) {
+        if (offsetSeconds === 0) corrections.delete(id);
+        else corrections.set(id, offsetSeconds);
+      }
+      return Promise.resolve();
+    });
+    mocks.getMediaByTrack.mockImplementation((_trackId, offsetSeconds) => {
+      const items = baseline
+        .filter((item) => item.id !== 6 || (offsetSeconds === 0 && !corrections.has(6)))
+        .map((item) => ({
+          ...item,
+          preview: offsetSeconds !== 0,
+          appliedCameraOffsetSeconds: corrections.get(item.id) ?? 0,
+        }));
+      return Promise.resolve({ items, page: 0, pageSize: 100, totalItems: items.length, totalPages: 1 });
+    });
+
+    await wrapper.get('[data-test="photo-tools-toggle"]').trigger('click');
+    await wrapper.get('[data-test="photo-offset-hours"]').setValue(0.25);
+    await wrapper.get('form.photo-offset').trigger('submit');
+    await flushPromises();
+    expect(wrapper.findAll('.photo-card')).toHaveLength(5);
+    expect(wrapper.get('[data-test="photo-offset-preview"]').text()).toContain('2 items');
+    await wrapper.get('[data-test="save-time-correction"]').trigger('click');
+    await flushPromises();
+
+    expect(mocks.saveMediaTimeCorrections).toHaveBeenLastCalledWith({ mediaIds: [2, 4], offsetSeconds: 900 });
+    expect(corrections.has(6)).toBe(false);
+    expect(wrapper.findAll('.photo-card')).toHaveLength(6);
+    expect(wrapper.findAll('[data-test="clear-time-correction"]')).toHaveLength(2);
+    for (let index = 0; index < 2; index++) {
+      await wrapper.get('[data-test="clear-time-correction"]').trigger('click');
+      await flushPromises();
+    }
+    expect(corrections.size).toBe(0);
+    expect(wrapper.findAll('.photo-card')).toHaveLength(6);
+    expect(wrapper.find('[data-test="clear-time-correction"]').exists()).toBe(false);
+    wrapper.unmount();
   });
 
   it('uses the correlated route point when resolved media coordinates are unavailable', async () => {
@@ -930,6 +1288,133 @@ describe('TrackDetails tab-scoped interactions', () => {
       ],
       gpsTrack: { id: 1, trackName: 'Test Track' },
     });
+  });
+  it('retains recording-break metadata after a saved summary update', async () => {
+    const detailData = [{ recordingBreakBeforePointIndexes: [1] }];
+    const wrapper = await mountTrackDetails({ track: { gpsTracksData: detailData } });
+    expect(wrapper.findComponent(TrackDetailMiniMapStub).props('replayEnabled')).toBe(true);
+    wrapper.findComponent({ name: 'TrackDetailOverview' }).vm.$emit('track-updated', {
+      id: 1,
+      energyNetTotalWh: 20,
+      gpsTracksData: [],
+    });
+    await nextTick();
+    expect(wrapper.findComponent(TrackDetailMiniMapStub).props('replayEnabled')).toBe(true);
+    expect(wrapper.emitted('track-updated')?.at(-1)?.[0]).toMatchObject({
+      id: 1,
+      energyNetTotalWh: 20,
+      gpsTracksData: detailData,
+    });
+    await wrapper.get('[data-test="mini-start-replay"]').trigger('click');
+    await flushPromises();
+    expect(wrapper.emitted('start-3d-replay')?.[0]?.[0]).toMatchObject({
+      trackId: 1,
+      gpsTrack: { gpsTracksData: detailData },
+    });
+    wrapper.unmount();
+  });
+
+  it('reloads charts after a saved weight and clears stale curves while loading', async () => {
+    const oldPoint = { ...mockChartPoint(0), powerWattsWindow: 100, energyCumulativeWh: 20 };
+    const wrapper = await mountTrackDetails({
+      track: { energyNetTotalWh: 20, energyWeightKgUsed: 85 },
+      chartSeries: mockTrackChartSeries({ points: [oldPoint] }),
+    });
+    mocks.fetchTrackDetails.mockClear();
+    let resolve!: (series: TrackChartSeries) => void;
+    mocks.fetchTrackDetails.mockReturnValueOnce(
+      new Promise<TrackChartSeries>((done) => {
+        resolve = done;
+      })
+    );
+    wrapper.findComponent({ name: 'TrackDetailOverview' }).vm.$emit(
+      'track-updated',
+      mockTrack({
+        energyNetTotalWh: 24,
+        energyWeightKgUsed: 92,
+        metabolicEnergy: { bodyWeightKg: 82 },
+      })
+    );
+    await nextTick();
+    expect(mocks.fetchTrackDetails).toHaveBeenCalledTimes(1);
+    expect(wrapper.findComponent({ name: 'TrackGraph' }).props('trackDetails')[0].energyCumulativeWh).toBeNull();
+    resolve(mockTrackChartSeries({ points: [{ ...oldPoint, powerWattsWindow: 120, energyCumulativeWh: 24 }] }));
+    await flushPromises();
+    expect(wrapper.findComponent({ name: 'TrackGraph' }).props('trackDetails')[0].energyCumulativeWh).toBe(24);
+    wrapper.unmount();
+  });
+
+  it('keeps energy curves hidden while an activity calculation is pending and refreshes on completion', async () => {
+    const point = {
+      ...mockChartPoint(0),
+      powerWattsWindow: 100,
+      energyCumulativeWh: 20,
+      metricStats: { [MetricKey.PowerWatts]: { average: 100 } },
+    };
+    const wrapper = await mountTrackDetails({
+      track: { energyNetTotalWh: 20 },
+      chartSeries: mockTrackChartSeries({ points: [point] }),
+    });
+    mocks.fetchTrackDetails.mockClear();
+    const changed = mockTrack({
+      activityType: 'BICYCLE',
+      energyNetTotalWh: undefined,
+      metabolicEnergy: { bodyWeightKg: 82 },
+    });
+    wrapper.findComponent({ name: 'TrackDetailOverview' }).vm.$emit('track-updated', changed);
+    await nextTick();
+    expect(mocks.fetchTrackDetails).not.toHaveBeenCalled();
+    const hidden = wrapper.findComponent({ name: 'TrackGraph' }).props('trackDetails')[0];
+    expect(hidden.energyCumulativeWh).toBeNull();
+    expect(hidden.powerWattsWindow).toBeNull();
+    expect(hidden.metricStats[MetricKey.PowerWatts]).toBeUndefined();
+    mocks.fetchTrackDetails.mockResolvedValueOnce(
+      mockTrackChartSeries({ points: [{ ...point, energyCumulativeWh: 30 }] })
+    );
+    wrapper
+      .findComponent({ name: 'TrackDetailOverview' })
+      .vm.$emit('track-updated', { ...changed, energyNetTotalWh: 30 });
+    await flushPromises();
+    expect(mocks.fetchTrackDetails).toHaveBeenCalledTimes(1);
+    expect(wrapper.findComponent({ name: 'TrackGraph' }).props('trackDetails')[0].energyCumulativeWh).toBe(30);
+    wrapper.unmount();
+  });
+
+  it('does not reload charts for a track-name edit', async () => {
+    const wrapper = await mountTrackDetails({ track: { energyNetTotalWh: 20 } });
+    mocks.fetchTrackDetails.mockClear();
+    wrapper
+      .findComponent({ name: 'TrackDetailOverview' })
+      .vm.$emit('track-updated', mockTrack({ trackName: 'New name', energyNetTotalWh: 20 }));
+    await flushPromises();
+    expect(mocks.fetchTrackDetails).not.toHaveBeenCalled();
+    wrapper.unmount();
+  });
+
+  it('ignores summary updates for another track', async () => {
+    const wrapper = await mountTrackDetails();
+    wrapper.findComponent({ name: 'TrackDetailOverview' }).vm.$emit('track-updated', { id: 2, energyNetTotalWh: 999 });
+    await nextTick();
+    expect(wrapper.emitted('track-updated')).toBeUndefined();
+    wrapper.unmount();
+  });
+  it('passes the shared queued energy status to both graphs without changing other empty states', async () => {
+    mocks.getEnergyCalculationStatus.mockResolvedValue({
+      state: 'PENDING',
+      message: 'Energy calculation is queued or running.',
+    });
+    const wrapper = await mountTrackDetails();
+    try {
+      await wrapper.get('[data-test="tab-graphs"]').trigger('click');
+      const graphs = wrapper.findAllComponents({ name: 'TrackGraph' });
+      for (const graph of graphs) {
+        const energy = ['Cumulative Mechanical Energy', 'Estimated Power'].includes(graph.props('config').title);
+        expect(graph.props('emptyMessage')).toBe(energy ? 'Energy calculation is queued or running.' : undefined);
+      }
+      expect(mocks.getEnergyCalculationStatus).toHaveBeenCalledTimes(1);
+    } finally {
+      wrapper.unmount();
+    }
   });
 });
 

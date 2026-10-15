@@ -1,7 +1,7 @@
 package com.x8ing.mtl.server.mtlserver.web.security;
 
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
-import com.x8ing.mtl.server.mtlserver.db.repository.logs.WebUserSessionService;
+import com.x8ing.mtl.server.mtlserver.db.repository.logs.WebClientLoginService;
 import com.x8ing.mtl.server.mtlserver.web.services.auth.AuthController;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -26,18 +26,18 @@ import java.util.Arrays;
 @JsonPropertyOrder({
         "jwtUtil",
         "userDetailsService",
-        "webUserSessionService"
+        "webClientLoginService"
 })
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtUtil jwtUtil;
     private final UserDetailsService userDetailsService;
-    private final WebUserSessionService webUserSessionService;
+    private final WebClientLoginService webClientLoginService;
 
-    public JwtAuthenticationFilter(JwtUtil jwtUtil, UserDetailsService userDetailsService, WebUserSessionService webUserSessionService) {
+    public JwtAuthenticationFilter(JwtUtil jwtUtil, UserDetailsService userDetailsService, WebClientLoginService webClientLoginService) {
         this.jwtUtil = jwtUtil;
         this.userDetailsService = userDetailsService;
-        this.webUserSessionService = webUserSessionService;
+        this.webClientLoginService = webClientLoginService;
     }
 
     @Override
@@ -59,23 +59,23 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         final String username = jwtUtil.getUsernameFromToken(jwt);
-        String userSessionId = jwtUtil.getUserSessionIdFromToken(jwt);
-        if (userSessionId == null || userSessionId.isBlank()) {
-            log.warn("JWT is valid but does not contain '{}' claim — ignoring token", JwtUtil.USER_SESSION_ID);
+        String clientLoginRef = jwtUtil.getClientLoginRefFromToken(jwt);
+        if (clientLoginRef == null || clientLoginRef.isBlank()) {
+            log.warn("JWT is valid but does not contain '{}' claim — ignoring token", JwtUtil.CLIENT_LOGIN_REF);
             filterChain.doFilter(request, response);
             return;
         }
-        boolean sessionActive;
+        boolean loginActive;
         try {
-            sessionActive = webUserSessionService.isSessionActive(userSessionId);
+            loginActive = webClientLoginService.isLoginActive(clientLoginRef);
         } catch (RuntimeException ex) {
-            log.warn("Unable to validate JWT session '{}' due to {} - treating request as unauthenticated", userSessionId, ex.getClass().getSimpleName());
-            log.debug("JWT session validation failed", ex);
+            log.warn("Unable to validate JWT login '{}' due to {} - treating request as unauthenticated", clientLoginRef, ex.getClass().getSimpleName());
+            log.debug("JWT login validation failed", ex);
             filterChain.doFilter(request, response);
             return;
         }
-        if (!sessionActive) {
-            log.warn("JWT contains inactive '{}' claim — ignoring token", JwtUtil.USER_SESSION_ID);
+        if (!loginActive) {
+            log.warn("JWT contains inactive '{}' claim — ignoring token", JwtUtil.CLIENT_LOGIN_REF);
             filterChain.doFilter(request, response);
             return;
         }
@@ -84,8 +84,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             MDC.put(JwtUtil.USER_NAME, username);
             request.setAttribute(JwtUtil.USER_NAME, username);
         }
-        MDC.put(JwtUtil.USER_SESSION_ID, userSessionId);
-        request.setAttribute(JwtUtil.USER_SESSION_ID, userSessionId);
+        MDC.put(JwtUtil.CLIENT_LOGIN_REF, clientLoginRef);
+        request.setAttribute(JwtUtil.CLIENT_LOGIN_REF, clientLoginRef);
 
         try {
             if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
@@ -108,7 +108,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             filterChain.doFilter(request, response);
         } finally {
             MDC.remove(JwtUtil.USER_NAME);
-            MDC.remove(JwtUtil.USER_SESSION_ID);
+            MDC.remove(JwtUtil.CLIENT_LOGIN_REF);
         }
     }
 

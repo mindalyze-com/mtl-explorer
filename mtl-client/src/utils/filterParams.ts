@@ -44,9 +44,7 @@ function isEmptyGeoCircle(value: unknown): boolean {
 
 function isEmptyGeoRectangle(value: unknown): boolean {
   const rectangle = value as
-    | { minLat?: unknown; minLng?: unknown; maxLat?: unknown; maxLng?: unknown }
-    | null
-    | undefined;
+    { minLat?: unknown; minLng?: unknown; maxLat?: unknown; maxLng?: unknown } | null | undefined;
   return (
     !rectangle ||
     !isFiniteNumber(rectangle.minLat) ||
@@ -64,6 +62,7 @@ function isEmptyGeoPolygon(value: unknown): boolean {
 }
 
 function isEmptyFilterParamValue(mapKey: FilterParamMapKey, value: unknown): boolean {
+  if (mapKey === 'dateTimeParams' && value instanceof Date) return !Number.isFinite(value.getTime());
   if (mapKey === 'stringParams' || mapKey === 'dateTimeParams') return isBlankString(value);
   if (mapKey === 'geoCircles') return isEmptyGeoCircle(value);
   if (mapKey === 'geoRectangles') return isEmptyGeoRectangle(value);

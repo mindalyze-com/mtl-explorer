@@ -15,6 +15,7 @@ import java.util.List;
         "profile",
         "coordinates",
         "waypoints",
+        "pointsOfInterest",
         "legs",
         "stats"
 })
@@ -37,6 +38,10 @@ public class SavePlannedTrackDto {
      * older clients that omit this field will save a non-editable plan.
      */
     private List<WaypointDto> waypoints;
+    /**
+     * Map-local points persisted in planner JSON; excluded from GPX export.
+     */
+    private List<PointOfInterestDto> pointsOfInterest;
     /**
      * Original BRouter legs from the last successful route computation. Persisted
      * so loading a saved plan preserves exact stats and route leg boundaries.

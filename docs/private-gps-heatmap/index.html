@@ -3,34 +3,55 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Private Self-Hosted GPS Heatmap | MTL Explorer</title>
-  <meta name="description" content="Build a private GPS heatmap from your self-hosted track archive, adjust its opacity, and use activity, year, or custom filters to change the displayed density.">
+  <script defer src="../site-analytics.js"></script>
+  <title>Year Filters, Map Colors and Heatmaps | MTL Explorer</title>
+  <meta name="description" content="Compare GPS tracks with year filters in MTL Explorer. View one year at a time, give different years different map colors, or turn on the optional heatmap layer.">
   <meta name="robots" content="index, follow, max-image-preview:large">
-  <link rel="canonical" href="https://mindalyze-com.github.io/mtl-explorer/private-gps-heatmap/">
+  <link rel="canonical" href="https://mtl-explorer.com/private-gps-heatmap/">
   <meta property="og:site_name" content="MTL Explorer">
   <meta property="og:type" content="website">
-  <meta property="og:url" content="https://mindalyze-com.github.io/mtl-explorer/private-gps-heatmap/">
-  <meta property="og:title" content="Private Self-Hosted GPS Heatmap | MTL Explorer">
-  <meta property="og:description" content="Show where you travel most often without publishing your GPS archive to a fitness service.">
-  <meta property="og:image" content="https://mindalyze-com.github.io/mtl-explorer/assets/feature-showcase/large/map-layers.webp">
+  <meta property="og:url" content="https://mtl-explorer.com/private-gps-heatmap/">
+  <meta property="og:title" content="Year Filters, Map Colors and Heatmaps | MTL Explorer">
+  <meta property="og:description" content="View one year at a time or compare years with different track colors. See examples from the public demo dataset.">
+  <meta property="og:image" content="https://mtl-explorer.com/assets/demo-year-filters/years-2024-2025.webp">
   <meta property="og:image:type" content="image/webp">
-  <meta property="og:image:width" content="2199">
-  <meta property="og:image:height" content="1561">
-  <meta property="og:image:alt" content="MTL Explorer map layer controls with the GPS heatmap option">
+  <meta property="og:image:width" content="1280">
+  <meta property="og:image:height" content="720">
+  <meta property="og:image:alt" content="MTL Explorer demo tracks from 2024 and 2025 shown in different colors">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:image" content="https://mindalyze-com.github.io/mtl-explorer/assets/feature-showcase/large/map-layers.webp">
+  <meta name="twitter:image" content="https://mtl-explorer.com/assets/demo-year-filters/years-2024-2025.webp">
   <link rel="icon" href="../favicon.ico" sizes="any">
   <link rel="stylesheet" href="../site-page.css">
-  <link rel="preload" as="image" type="image/webp" href="../assets/feature-showcase/preview/map-layers.webp">
+  <link rel="preload" as="image" type="image/webp" href="../assets/demo-year-filters/years-2024-2025.webp">
   <script type="application/ld+json">
     {
       "@context": "https://schema.org",
       "@type": "WebPage",
-      "name": "Private Self-Hosted GPS Heatmap",
-      "url": "https://mindalyze-com.github.io/mtl-explorer/private-gps-heatmap/",
-      "description": "A guide to the private, filter-aware GPS heatmap in MTL Explorer.",
-      "dateModified": "2026-08-18",
-      "isPartOf": {"@type": "WebSite", "name": "MTL Explorer", "url": "https://mindalyze-com.github.io/mtl-explorer/"}
+      "name": "Year Filters, Map Colors and Heatmaps",
+      "url": "https://mtl-explorer.com/private-gps-heatmap/",
+      "description": "Compare tracks using year filters and map colors, with an optional heatmap layer.",
+      "dateModified": "2026-09-06",
+      "isPartOf": {"@type": "WebSite", "name": "MTL Explorer", "url": "https://mtl-explorer.com/"}
+    }
+  </script>
+  <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Home",
+          "item": "https://mtl-explorer.com/"
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "Year filters and map colors",
+          "item": "https://mtl-explorer.com/private-gps-heatmap/"
+        }
+      ]
     }
   </script>
 </head>
@@ -42,7 +63,7 @@
         <span><strong>MTL Explorer</strong><span>Self-hosted GPS archive</span></span>
       </a>
       <nav class="site-nav" aria-label="Primary navigation">
-        <a href="../#guides">Guides</a>
+        <a href="../docs/">Documentation</a>
         <a href="../docker-install/">Install</a>
         <a class="button-small" href="https://mtl-demo.mindalyze.com/mtl/">Live demo</a>
       </nav>
@@ -50,72 +71,76 @@
   </header>
 
   <main class="page">
-    <nav class="breadcrumb" aria-label="Breadcrumb"><a href="../">Home</a> / Private GPS heatmap</nav>
+    <nav class="breadcrumb" aria-label="Breadcrumb"><a href="../">Home</a> / Year filters and map colors</nav>
 
     <section class="hero">
       <div>
-        <p class="eyebrow">Private GPS heatmap</p>
-        <h1>See where your archive is most concentrated.</h1>
-        <p class="lead">Turn imported activities into a density layer on your own map. The heatmap follows the active track filter, so you can compare selected activities, years, areas, or custom groups.</p>
+        <h1>Compare your tracks by year.</h1>
+        <p class="lead">Show one year, then switch to another. Or show both years on the same map, with a different color for each.</p>
         <div class="actions">
-          <a class="button" href="https://mtl-demo.mindalyze.com/mtl/">Open the demo</a>
+          <a class="button" href="https://mtl-demo.mindalyze.com/mtl/">Try the demo</a>
           <a class="button-secondary" href="../gpx-track-map/">View the track archive</a>
         </div>
       </div>
       <figure class="hero-media">
-        <img src="../assets/feature-showcase/preview/map-layers.webp" srcset="../assets/feature-showcase/thumb/map-layers.webp 360w, ../assets/feature-showcase/medium/map-layers.webp 720w, ../assets/feature-showcase/preview/map-layers.webp 1099w, ../assets/feature-showcase/large/map-layers.webp 2199w" sizes="(max-width: 900px) calc(100vw - 40px), 570px" width="1099" height="780" alt="MTL Explorer map settings with a Heatmap layer and opacity control" fetchpriority="high">
-        <figcaption>The Heatmap data layer in the map settings.</figcaption>
+        <a href="../assets/demo-year-filters/years-2024-2025.webp" aria-label="Enlarge the two-year demo map">
+          <img src="../assets/demo-year-filters/years-2024-2025-640.webp" srcset="../assets/demo-year-filters/years-2024-2025-640.webp 640w, ../assets/demo-year-filters/years-2024-2025.webp 1280w" sizes="(max-width: 900px) calc(100vw - 40px), 560px" width="1280" height="720" alt="MTL Explorer public demo map with 2024 tracks in green and 2025 tracks in red" fetchpriority="high">
+        </a>
+        <figcaption>Two years, two colors. Screenshot from the public demo.</figcaption>
       </figure>
     </section>
 
-    <section class="section" id="enable">
+    <nav class="on-this-page" aria-label="On this page"><a href="#example">One year at a time</a><a href="#filters">Two years in color</a><a href="#enable">Heatmap layer</a></nav>
+
+    <section class="section" id="example">
       <div class="section-head">
-        <h2>Enable the layer from the map.</h2>
-        <p>The heatmap can be shown with the normal GPS track lines or used on its own.</p>
+        <h2>View one year at a time.</h2>
+        <p>Use the same map area to look at where you went in each year.</p>
       </div>
-      <div class="steps">
-        <article class="step"><h3>Open map settings</h3><p>Open <strong>Map</strong>, then review the personal data layers.</p></article>
-        <article class="step"><h3>Turn on Heatmap</h3><p>Enable the density overlay. It uses the tracks in the current active selection.</p></article>
-        <article class="step"><h3>Adjust opacity</h3><p>Change the heatmap strength so the background map and track lines remain readable.</p></article>
-        <article class="step"><h3>Change the filter</h3><p>Select a different activity, year, or saved filter and the density view updates to the same subset.</p></article>
+      <ol class="plain-list">
+        <li>Open <strong>Filter → Filter view</strong>, choose <strong>Tracks by year</strong>, and Apply.</li>
+        <li>Open <strong>Criteria</strong>. Set <strong>From year</strong> and <strong>To year</strong> to 2024.</li>
+        <li>Change both values to 2025 to see that year's tracks. The result updates automatically.</li>
+      </ol>
+      <div class="example-grid section-steps">
+        <figure class="media">
+          <a href="../assets/demo-year-filters/year-2024.webp" aria-label="Enlarge the 2024 demo map"><img src="../assets/demo-year-filters/year-2024-640.webp" srcset="../assets/demo-year-filters/year-2024-640.webp 640w, ../assets/demo-year-filters/year-2024.webp 1280w" sizes="(max-width: 900px) calc(100vw - 40px), 560px" width="1280" height="720" alt="MTL Explorer demo map filtered to the 117 tracks dated 2024" loading="lazy" decoding="async"></a>
+          <figcaption>2024 filter: 117 matching tracks.</figcaption>
+        </figure>
+        <figure class="media">
+          <a href="../assets/demo-year-filters/year-2025.webp" aria-label="Enlarge the 2025 demo map"><img src="../assets/demo-year-filters/year-2025-640.webp" srcset="../assets/demo-year-filters/year-2025-640.webp 640w, ../assets/demo-year-filters/year-2025.webp 1280w" sizes="(max-width: 900px) calc(100vw - 40px), 560px" width="1280" height="720" alt="MTL Explorer demo map filtered to the 262 tracks dated 2025" loading="lazy" decoding="async"></a>
+          <figcaption>2025 filter: 262 matching tracks.</figcaption>
+        </figure>
       </div>
     </section>
 
     <section class="section" id="filters">
-      <div class="split">
-        <div class="copy">
-          <p class="eyebrow">Filter-aware density</p>
-          <h2>Ask focused questions of the same archive.</h2>
-          <p>Heatmap selection is shared with the normal map, track browser, statistics, related tracks, and segment analysis.</p>
-          <ul class="plain-list">
-            <li>Compare cycling, hiking, running, or other activity groups.</li>
-            <li>Limit the view to one year or a selected time period.</li>
-            <li>Use geographic or SQL-backed custom filters.</li>
-            <li>Review the new density after importing or removing tracks.</li>
-          </ul>
-        </div>
-        <figure class="media">
-          <img src="../assets/feature-showcase/thumb/map-filter-by-year.webp" srcset="../assets/feature-showcase/thumb/map-filter-by-year.webp 360w, ../assets/feature-showcase/medium/map-filter-by-year.webp 720w, ../assets/feature-showcase/preview/map-filter-by-year.webp 1099w" sizes="(max-width: 900px) calc(100vw - 40px), 530px" width="1099" height="607" alt="MTL Explorer map with GPS tracks grouped by year" loading="lazy" decoding="async">
-          <figcaption>A year grouping that can also define the heatmap selection.</figcaption>
-        </figure>
+      <div class="section-head">
+        <h2>Give each year its own color.</h2>
+        <p>In <strong>Tracks by year → Criteria</strong>, set <strong>From year</strong> to 2024 and <strong>To year</strong> to 2025. Both years appear together, with a separate color for each. Open <strong>Map colors</strong> to change the palette.</p>
+      </div>
+      <div class="content-grid">
+        <article class="card"><h3>Choose which years to include</h3><p>Use <strong>Included categories</strong> to select years within the result. This selection also applies to the track browser and statistics.</p></article>
+        <article class="card"><h3>Hide a year on the map</h3><p>Use <strong>Map visibility</strong> in the map legend to hide or show a year's lines while keeping the current filter.</p></article>
+      </div>
+    </section>
+
+    <section class="section" id="enable">
+      <div class="section-head">
+        <h2>Heatmaps are available too.</h2>
+        <p>Open <strong>Map → Your data → Heatmap</strong> to turn on the optional layer. Adjust its opacity alongside the track lines. The year comparisons above use filters and track colors.</p>
       </div>
     </section>
 
     <section class="section" id="privacy">
       <div class="section-head">
-        <h2>Keep the activity archive on your host.</h2>
-        <p>The heatmap is derived from tracks indexed by your MTL Explorer instance. It does not require publishing the activity history to a social fitness service.</p>
+        <h2>About these screenshots.</h2>
+        <p>These are real app screenshots using the public demo's Porto taxi tracks. Dates are assigned for the demo, so the years are examples. No private tracks were used.</p>
       </div>
-      <div class="content-grid">
-        <article class="card"><h3>Private track source</h3><p>Your activity files and processed archive remain in the directories and database controlled by your installation.</p></article>
-        <article class="card"><h3>Optional local maps</h3><p>The standard setup can use hosted background map tiles. Enable the local map sidecar when the basemap should also stay on the host.</p></article>
-        <article class="card"><h3>No public profile</h3><p>The core heatmap workflow does not require an external account, public activity page, or shared GPS history.</p></article>
-        <article class="card"><h3>Same access control</h3><p>The heatmap is part of the authenticated MTL Explorer interface and follows the instance login configuration.</p></article>
-      </div>
+      <p class="copy">Track source: <a href="https://doi.org/10.24432/C55W25">Porto Taxi Service Trajectory dataset</a> by L. Moreira-Matias and collaborators, UCI Machine Learning Repository, <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>. Map data © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>. See <a href="../assets/demo-year-filters/README.md">screenshot details</a>.</p>
     </section>
 
     <section class="section">
-      <div class="section-head"><h2>Continue with related guides.</h2></div>
       <div class="related">
         <a class="button-secondary" href="../gpx-track-map/">GPS track archive</a>
         <a class="button-secondary" href="../supported-gps-formats/">Supported GPS formats</a>
@@ -128,7 +153,7 @@
   <footer class="site-footer">
     <div class="site-footer-inner">
       <span>MTL Explorer · Self-hosted GPS archive</span>
-      <nav aria-label="Footer navigation"><a href="../">Home</a><a href="../why-i-built-mtl-explorer/">About</a><a href="https://github.com/mindalyze-com/mtl-explorer">GitHub</a></nav>
+      <nav aria-label="Footer navigation"><a href="../#site-analytics">Site analytics</a><a href="../">Home</a><a href="../why-i-built-mtl-explorer/">About</a><a href="https://github.com/mindalyze-com/mtl-explorer">GitHub</a></nav>
     </div>
   </footer>
 </body>

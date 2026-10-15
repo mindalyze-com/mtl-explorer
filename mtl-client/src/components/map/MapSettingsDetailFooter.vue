@@ -19,7 +19,8 @@ const emit = defineEmits<{
   min-width: 0;
   align-items: center;
   gap: 0.75rem;
-  padding: 0.75rem 1rem calc(0.15rem + env(safe-area-inset-bottom));
+  /* BottomSheet owns the screen safe-area padding. */
+  padding: 0.75rem 1rem 0.15rem;
   border-top: 1px solid var(--border-subtle, var(--border-default));
   background: var(--surface-ground);
 }
@@ -41,7 +42,7 @@ const emit = defineEmits<{
   border: 0;
   border-radius: 0.65rem;
   background: var(--accent);
-  color: var(--text-inverse);
+  color: var(--accent-contrast);
   font: inherit;
   font-size: var(--text-sm-size);
   font-weight: var(--font-semibold);

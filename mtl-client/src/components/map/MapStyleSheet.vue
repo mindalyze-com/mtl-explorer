@@ -9,7 +9,7 @@
     sheet-class="sheet--solid-over-map sheet--map-settings-detail"
     @update:model-value="emit('update:modelValue', $event)"
   >
-    <div class="map-style-sheet">
+    <div class="map-style-sheet" data-sheet-fit-target>
       <p class="map-style-sheet__intro">Choose where the map comes from and how its background looks.</p>
 
       <section class="map-style-sheet__section" aria-labelledby="map-source-title">

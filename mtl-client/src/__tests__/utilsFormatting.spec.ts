@@ -6,6 +6,7 @@ import {
   formatCompactDistance,
   formatCompactDurationSeconds,
   formatDistanceSmart,
+  formatDurationSmart,
   formatNumber,
   formatRadius,
   metersPerSecondToKilometersPerHour,
@@ -56,6 +57,13 @@ describe('locale-aware formatting', () => {
 
   it('converts metres per second to kilometres per hour', () => {
     expect(metersPerSecondToKilometersPerHour(10)).toBe(36);
+  });
+
+  it('keeps short positive durations visible beside multi-day totals', () => {
+    expect(formatDurationSmart(2_880_000, 100_800_000)).toBe('48m 00s');
+    expect(formatDurationSmart(660_000, 100_800_000)).toBe('11m 00s');
+    expect(formatDurationSmart(45_000, 3_600_000)).toBe('0m 45s');
+    expect(formatDurationSmart(100_800_000, 100_800_000)).toBe('1d 04h');
   });
 
   it('provides reusable loading and error state', () => {

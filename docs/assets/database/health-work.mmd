@@ -1,0 +1,52 @@
+erDiagram
+    direction LR
+    sync_control["google_health.sync_control"] {
+        text account_id PK
+        bigint generation
+        timestamptz cooldown_until
+    }
+    recent_pass["google_health.recent_pass"] {
+        text account_id PK
+        text data_type PK
+        text representation PK
+        text calendar_policy PK
+        text key_policy PK
+        uuid id
+        text state
+    }
+    recent_failure["google_health.recent_failure"] {
+        text account_id PK
+        text data_type PK
+        text representation PK
+        text calendar_policy PK
+        text key_policy PK
+        text purpose PK
+        timestamptz cell_start PK
+        timestamptz cell_end PK
+    }
+    history_work["google_health.history_work"] {
+        uuid id PK
+        text account_id UK
+        text data_type UK
+        text representation UK
+        text calendar_policy UK
+        text key_policy UK
+        date native_day UK
+        text lane UK
+        text state
+    }
+    history_child["google_health.history_child"] {
+        uuid id PK
+        uuid parent_id FK
+        uuid traversal_id
+        text state
+    }
+    history_audit["google_health.history_audit"] {
+        bigint id PK
+        text account_id
+        uuid work_id "logical link; no FK"
+        uuid[] traversal_ids
+        text outcome
+    }
+
+    history_work ||..o{ history_child : parent_id

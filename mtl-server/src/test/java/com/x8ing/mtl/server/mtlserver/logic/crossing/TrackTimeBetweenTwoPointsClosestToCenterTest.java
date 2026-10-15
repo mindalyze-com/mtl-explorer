@@ -8,6 +8,7 @@ import com.x8ing.mtl.server.mtlserver.db.repository.gps.GpsTrackRepository;
 import com.x8ing.mtl.server.mtlserver.db.repository.gps.GpsTrackVariantSelector;
 import com.x8ing.mtl.server.mtlserver.gpx.GPXReader;
 import com.x8ing.mtl.server.mtlserver.logic.crossing.beans.*;
+import net.sf.geographiclib.Geodesic;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -22,6 +23,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
+import static com.x8ing.mtl.server.mtlserver.testsupport.SegmentReadTestSupport.directReads;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -40,7 +42,7 @@ import static org.mockito.Mockito.when;
  * the old edge-based implementation and pass on the closest-to-center one.
  * <p>
  * Geometry is defined in a small metric frame (metres) anchored at the equator
- * and converted to WGS84 so the haversine-based distance used inside the
+ * and converted to WGS84 so the ellipsoidal distance used inside the
  * service (via {@link GPXReader}) behaves as expected.
  */
 class TrackTimeBetweenTwoPointsClosestToCenterTest {
@@ -70,7 +72,7 @@ class TrackTimeBetweenTwoPointsClosestToCenterTest {
     /**
      * Tolerance used when asserting "closest to center" in metres.
      */
-    private static final double CLOSEST_TOL_M = 2.0;
+    private static final double CLOSEST_TOL_M = 0.01;
 
     private static final Long TRACK_ID = 1L;
     private static final Long TRACK_DATA_ID = 10L;
@@ -88,7 +90,7 @@ class TrackTimeBetweenTwoPointsClosestToCenterTest {
                 gpsTrackDataPointRepository,
                 gpsTrackEventRepository,
                 gpsTrackVariantSelector
-        );
+                , directReads());
         when(gpsTrackEventRepository.findAllByGpsTrackIdOrderByStartPointIndexAsc(any()))
                 .thenReturn(List.of());
     }
@@ -126,7 +128,7 @@ class TrackTimeBetweenTwoPointsClosestToCenterTest {
         // The old bug would pick the entry at x=80m with t=80s. The correct
         // closest-to-center point is at x=100m with t=100s.
         long tSec = (c.gpsTrackDataPoint.getPointTimestamp().getTime() - START_TIME) / 1000L;
-        assertTrue(Math.abs(tSec - 100) <= 2,
+        assertTrue(Math.abs(tSec - 100) == 0,
                 "Crossing timestamp should correspond to the centre (~100 s) but was " + tSec + " s");
     }
 
@@ -165,19 +167,15 @@ class TrackTimeBetweenTwoPointsClosestToCenterTest {
 
         // Reported time A→B must be the centre-to-centre transit (300 s),
         // NOT edge-to-edge (260 s) that the old detector would emit.
-        double timeAtoBsec =
-                (cB.gpsTrackDataPoint.getPointTimestamp().getTime()
-                 - cA.gpsTrackDataPoint.getPointTimestamp().getTime()) / 1000.0;
-
         double expectedCenterToCenterSec = 300.0 / SPEED_MPS; // = 300 s
-        assertEquals(expectedCenterToCenterSec, timeAtoBsec, 2.0,
+        assertEquals(expectedCenterToCenterSec, cB.timeInSecSinceLastTriggerPoint, 0.002,
                 "A→B time must match centre-to-centre transit. Old edge-based detector would " +
                 "report ~" + (expectedCenterToCenterSec - 2 * radius / SPEED_MPS) + " s instead.");
 
-        // And the delta distance (as carried on the crossing points) must match too.
-        double distAtoBm = cB.gpsTrackDataPoint.getDistanceInMeterSinceStart()
-                           - cA.gpsTrackDataPoint.getDistanceInMeterSinceStart();
-        assertEquals(300.0, distAtoBm, 2.0,
+        // Check the segment output against an independent ellipsoidal calculation.
+        double distAtoBm = cB.distanceInMeterSinceLastTriggerPoint;
+        double expectedDistance = Geodesic.WGS84.Inverse(0, 200 / METERS_PER_DEG_LON, 0, 500 / METERS_PER_DEG_LON).s12;
+        assertEquals(expectedDistance, distAtoBm, 0.001,
                 "Distance A→B must be centre-to-centre (~300 m)");
     }
 
@@ -199,7 +197,7 @@ class TrackTimeBetweenTwoPointsClosestToCenterTest {
         TriggerPoint a = trigger("A", 200.0, 8.0);
         double radius = 20.0;
 
-        List<Crossing> crossings = runSingleTrigger(pathMeters, a, radius);
+        List<Crossing> crossings = runRequest(pathMeters, List.of(a), radius, 4.0);
 
         assertEquals(1, crossings.size(),
                 "A tangent pass (both endpoints outside, segment dips in) must still emit exactly one crossing");
@@ -338,21 +336,21 @@ class TrackTimeBetweenTwoPointsClosestToCenterTest {
         TriggerPoint b = trigger("B", 100.0, 0.0);
         double radius = 20.0;
 
-        List<Crossing> crossings = runRequest(pathMeters, List.of(a, b), radius);
+        List<Crossing> crossings = runRequest(pathMeters, List.of(a, b), radius, 4.0);
 
         assertEquals(2, crossings.size());
         assertEquals("B", crossings.get(0).triggerPoint.name,
                 "Crossings must be sorted by interpolated timestamp, not trigger-list order");
         assertEquals("A", crossings.get(1).triggerPoint.name);
-        assertEquals(0.0, crossings.get(0).timeInSecSinceLastTriggerPoint, 0.01);
-        assertEquals(200.0, crossings.get(1).timeInSecSinceLastTriggerPoint, 2.0,
+        assertNull(crossings.get(0).timeInSecSinceLastTriggerPoint);
+        assertEquals(50.0, crossings.get(1).timeInSecSinceLastTriggerPoint, 0.002,
                 "A delta must be measured from chronological predecessor B");
         assertEquals(200.0, crossings.get(1).distanceInMeterSinceLastTriggerPoint, 2.0);
     }
 
     @Test
-    @DisplayName("Chronological section order uses geometry instead of a negative cumulative delta")
-    void outOfOrderTimedSectionsProducePositiveSegmentDistance() {
+    @DisplayName("Reversed path positions have unavailable timing instead of fabricated chronological geometry")
+    void reversedPathPositionsAreNotInventedAsAChronologicalRoute() {
         GpsTrackDataPoint crossingA = timedPoint(3, 0, 10, 500);
         GpsTrackDataPoint middle = timedPoint(2, 50, 15, 550);
         GpsTrackDataPoint crossingB = timedPoint(0, 100, 20, 100);
@@ -364,10 +362,10 @@ class TrackTimeBetweenTwoPointsClosestToCenterTest {
                 crossings,
                 List.of(crossingB, middle, crossingA));
 
-        assertEquals(10.0, b.timeInSecSinceLastTriggerPoint, 0.01);
-        assertEquals(100.0, b.distanceInMeterSinceLastTriggerPoint, 2.0,
-                "A timed slice must follow chronological geometry even when its database point indexes run backwards");
-        assertEquals(36.0, b.avgSpeedSinceLastTriggerPoint, 1.0);
+        assertEquals(SegmentTimingStatus.INVALID_TIME, b.timingStatusSinceLastTriggerPoint);
+        assertNull(b.timeInSecSinceLastTriggerPoint);
+        assertNull(b.distanceInMeterSinceLastTriggerPoint);
+        assertNull(b.avgSpeedSinceLastTriggerPoint);
     }
 
     // ---------------------------------------------------------------------
@@ -383,14 +381,18 @@ class TrackTimeBetweenTwoPointsClosestToCenterTest {
     }
 
     private List<Crossing> runRequest(double[][] pathMeters, List<TriggerPoint> triggers, double radius) {
-        List<GpsTrackDataPoint> points = buildTrack(pathMeters);
+        return runRequest(pathMeters, triggers, radius, SPEED_MPS);
+    }
+
+    private List<Crossing> runRequest(double[][] pathMeters, List<TriggerPoint> triggers, double radius, double speedMps) {
+        List<GpsTrackDataPoint> points = buildTrack(pathMeters, speedMps);
 
         GpsTrack track = new GpsTrack();
         track.setId(TRACK_ID);
         track.setTrackName("test-track");
 
         for (TriggerPoint tp : triggers) {
-            when(gpsTrackRepository.getTracksWithinDistanceToPoint(
+            when(gpsTrackRepository.getSegmentCandidateTrackIds(
                     eq(tp.coordinate.x), eq(tp.coordinate.y), eq(radius), any()))
                     .thenReturn(List.of(TRACK_ID));
         }
@@ -403,7 +405,7 @@ class TrackTimeBetweenTwoPointsClosestToCenterTest {
         request.setTriggerPoints(triggers);
         request.setRadius(radius);
 
-        CrossingPointsResponse response = service.getTrackTimeBetweenPoints(request, null);
+        CrossingPointsResponse response = service.getTrackCrossingsWithoutSummaries(request, null);
         assertNotNull(response, "Response must not be null");
         assertNotNull(response.getCrossings(), "Crossings map must not be null");
 
@@ -414,7 +416,7 @@ class TrackTimeBetweenTwoPointsClosestToCenterTest {
         return crossings;
     }
 
-    private List<GpsTrackDataPoint> buildTrack(double[][] pathMeters) {
+    private List<GpsTrackDataPoint> buildTrack(double[][] pathMeters, double speedMps) {
         List<GpsTrackDataPoint> points = new ArrayList<>();
         double cumulative = 0.0;
         for (int i = 0; i < pathMeters.length; i++) {
@@ -432,8 +434,8 @@ class TrackTimeBetweenTwoPointsClosestToCenterTest {
                 cumulative += Math.sqrt(dx * dx + dy * dy);
             }
             p.setDistanceInMeterSinceStart(cumulative);
-            // time at 1 m/s => timestamp offset in ms = cumulative * 1000 / SPEED_MPS
-            long offsetMs = (long) (cumulative * 1000.0 / SPEED_MPS);
+            // Every fixture states its speed; the default is 1 m/s.
+            long offsetMs = (long) (cumulative * 1000.0 / speedMps);
             p.setPointTimestamp(new Date(START_TIME + offsetMs));
             points.add(p);
         }

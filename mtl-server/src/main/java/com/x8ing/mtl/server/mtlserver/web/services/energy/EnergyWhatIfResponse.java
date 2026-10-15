@@ -11,7 +11,8 @@ import com.x8ing.mtl.server.mtlserver.energy.TrackEnergySummary;
         "adjustedWeightKgUsed",
         "baselineSummary",
         "adjustedSummary",
-        "deltaSummary"
+        "deltaSummary",
+        "activeCaloriesDelta"
 })
 public record EnergyWhatIfResponse(
         Long gpsTrackId,
@@ -21,6 +22,7 @@ public record EnergyWhatIfResponse(
         double adjustedWeightKgUsed,
         TrackEnergySummary baselineSummary,
         TrackEnergySummary adjustedSummary,
-        TrackEnergySummary deltaSummary
+        TrackEnergySummary deltaSummary,
+        Double activeCaloriesDelta
 ) {
 }

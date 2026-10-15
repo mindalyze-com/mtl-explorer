@@ -2,8 +2,8 @@ package com.x8ing.mtl.server.mtlserver.web.services.auth;
 
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.x8ing.mtl.server.mtlserver.config.MtlAppProperties;
-import com.x8ing.mtl.server.mtlserver.db.entity.logs.WebUserSession;
-import com.x8ing.mtl.server.mtlserver.db.repository.logs.WebUserSessionService;
+import com.x8ing.mtl.server.mtlserver.db.entity.logs.WebClientLogin;
+import com.x8ing.mtl.server.mtlserver.db.repository.logs.WebClientLoginService;
 import com.x8ing.mtl.server.mtlserver.web.security.JwtUtil;
 import io.swagger.v3.oas.annotations.security.SecurityRequirements;
 import jakarta.servlet.http.HttpServletRequest;
@@ -28,7 +28,7 @@ import java.util.concurrent.atomic.AtomicLong;
 @JsonPropertyOrder({
         "jwtUtil",
         "mtlAppProperties",
-        "webUserSessionService",
+        "webClientLoginService",
         "failedLoginAttempts",
         "nextFailedLoginCleanupAtMillis",
         "configuredUserName",
@@ -44,9 +44,12 @@ public class AuthController {
 
     private final JwtUtil jwtUtil;
     private final MtlAppProperties mtlAppProperties;
-    private final WebUserSessionService webUserSessionService;
+    private final WebClientLoginService webClientLoginService;
     private final ConcurrentMap<String, FailedLoginWindow> failedLoginAttempts = new ConcurrentHashMap<>();
     private final AtomicLong nextFailedLoginCleanupAtMillis = new AtomicLong();
+
+    @Value("${mtl.demo-health.enabled:false}")
+    private boolean demoHealthEnabled;
 
     @Value("${mtl.user.login}")
     private String configuredUserName;
@@ -54,10 +57,10 @@ public class AuthController {
     @Value("${mtl.user.password}")
     private String configuredUserPwd;
 
-    public AuthController(JwtUtil jwtUtil, MtlAppProperties mtlAppProperties, WebUserSessionService webUserSessionService) {
+    public AuthController(JwtUtil jwtUtil, MtlAppProperties mtlAppProperties, WebClientLoginService webClientLoginService) {
         this.jwtUtil = jwtUtil;
         this.mtlAppProperties = mtlAppProperties;
-        this.webUserSessionService = webUserSessionService;
+        this.webClientLoginService = webClientLoginService;
     }
 
     @PostMapping("/login")
@@ -81,7 +84,7 @@ public class AuthController {
 
             Date issuedAt = new Date();
             Date expiresAt = new Date(issuedAt.getTime() + jwtUtil.getJwtExpiration().toMillis());
-            WebUserSession session = webUserSessionService.createSession(
+            WebClientLogin login = webClientLoginService.createLogin(
                     loginRequest.getUsername(),
                     clientIp,
                     request.getHeader(HttpHeaders.USER_AGENT),
@@ -89,9 +92,9 @@ public class AuthController {
                     expiresAt
             );
             request.setAttribute(JwtUtil.USER_NAME, loginRequest.getUsername());
-            request.setAttribute(JwtUtil.USER_SESSION_ID, session.getUserSessionId());
+            request.setAttribute(JwtUtil.CLIENT_LOGIN_REF, login.getClientLoginRef());
 
-            String token = jwtUtil.generateToken(loginRequest.getUsername(), session.getUserSessionId(), issuedAt, expiresAt);
+            String token = jwtUtil.generateToken(loginRequest.getUsername(), login.getClientLoginRef(), issuedAt, expiresAt);
             setJwtCookie(response, token, jwtUtil.getJwtExpiration(), request.isSecure());
             return ResponseEntity.ok(new LoginResponse(token));
         } else {
@@ -103,9 +106,9 @@ public class AuthController {
     @PostMapping("/logout")
     @SecurityRequirements
     public ResponseEntity<Void> logout(HttpServletRequest request, HttpServletResponse response) {
-        Object userSessionId = request.getAttribute(JwtUtil.USER_SESSION_ID);
-        if (userSessionId != null) {
-            webUserSessionService.markLoggedOut(String.valueOf(userSessionId));
+        Object clientLoginRef = request.getAttribute(JwtUtil.CLIENT_LOGIN_REF);
+        if (clientLoginRef != null) {
+            webClientLoginService.markLoggedOut(String.valueOf(clientLoginRef));
         }
         setJwtCookie(response, "", Duration.ZERO, request.isSecure());
         return ResponseEntity.ok().build();
@@ -117,6 +120,7 @@ public class AuthController {
         boolean demoMode = mtlAppProperties.isDemoMode();
         return Map.of(
                 "demoMode", demoMode,
+                "syntheticHealthData", demoMode && demoHealthEnabled,
                 "username", demoMode ? configuredUserName : "",
                 "password", demoMode ? configuredUserPwd : ""
         );

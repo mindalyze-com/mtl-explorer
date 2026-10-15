@@ -11,25 +11,27 @@ describe('admin section registry', () => {
   it('keeps the decision-complete section order and routes', () => {
     expect(ADMIN_SECTIONS.map((section) => section.id)).toEqual([
       'overview',
+      'preferences',
+      'updates',
+      'session',
       'imports',
       'processing',
       'data-status',
       'maintenance',
       'logs',
       'system',
-      'preferences',
-      'session',
     ]);
     expect(ADMIN_SECTIONS.map((section) => section.path)).toEqual([
       '/admin',
+      '/admin/preferences',
+      '/admin/updates',
+      '/admin/session',
       '/admin/imports',
       '/admin/processing',
       '/admin/data-status',
       '/admin/maintenance',
       '/admin/logs',
       '/admin/system',
-      '/admin/preferences',
-      '/admin/session',
     ]);
   });
 

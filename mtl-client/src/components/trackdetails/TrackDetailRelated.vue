@@ -8,6 +8,12 @@
 
     <!-- ── PREVIOUS TRACKS ───────────────────────────────── -->
     <section class="timeline-section">
+      <div class="section-header prev-header">
+        <i class="bi bi-arrow-up section-icon"></i>
+        <span class="section-label">Previous Tracks</span>
+        <span v-if="previousTracksInTime.length" class="section-count">{{ previousTracksInTime.length }}</span>
+        <span v-else class="empty-inline">none</span>
+      </div>
       <div v-if="previousTracksInTime.length" class="track-list prev-list">
         <!-- Tracks are stored desc (recent first from backend), we display oldest→newest (reversed) -->
         <button v-if="prevRemaining > 0" class="expand-btn expand-btn-top" @click="showMorePrev()">
@@ -25,13 +31,6 @@
           variant="previous"
           @navigate="navigateTrack"
         />
-      </div>
-
-      <div class="section-header prev-header">
-        <i class="bi bi-arrow-up section-icon"></i>
-        <span class="section-label">Previous Tracks</span>
-        <span v-if="previousTracksInTime.length" class="section-count">{{ previousTracksInTime.length }}</span>
-        <span v-else class="empty-inline">none</span>
       </div>
     </section>
 
@@ -252,7 +251,7 @@ function formatDate(dateVal: string | number | Date): string {
   display: flex;
   flex-direction: column;
   width: 100%;
-  padding: 0.5rem 0.25rem 1.25rem;
+  padding: 0.75rem;
   gap: 0;
   position: relative;
 }
@@ -269,11 +268,10 @@ function formatDate(dateVal: string | number | Date): string {
   align-items: center;
   gap: 0.4rem;
   padding: 0.75rem 1rem 0.35rem;
-  font-size: var(--text-2xs-size);
+  font-size: var(--text-sm-size);
   font-weight: 600;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
-  color: var(--text-faint);
+  letter-spacing: 0;
+  color: var(--text-secondary);
 }
 
 .section-icon {
@@ -350,7 +348,8 @@ function formatDate(dateVal: string | number | Date): string {
   font-size: var(--text-xs-size);
   font-weight: 600;
   cursor: pointer;
-  padding: 0.375rem 0.4rem;
+  padding: 0.5rem 0.4rem;
+  min-height: 2.75rem;
   border-radius: 6px;
   opacity: 0.85;
   transition:
@@ -410,9 +409,7 @@ function formatDate(dateVal: string | number | Date): string {
   font-size: var(--text-base-size);
   font-weight: 600;
   color: var(--text-primary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  overflow-wrap: anywhere;
 }
 
 .current-date {

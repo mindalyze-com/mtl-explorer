@@ -1,3 +1,4 @@
+import { warnSanitized } from '@/utils/safeLogging';
 export const SERVICE_WORKER_UPDATE_CHECK_INTERVAL_MS = 5 * 60 * 1000;
 export const SERVICE_WORKER_UPDATE_CHECK_COOLDOWN_MS = 30 * 1000;
 
@@ -43,7 +44,11 @@ export function startServiceWorkerUpdateChecks(
     try {
       await registration.update();
     } catch (error) {
-      console.warn('[PWA] Service worker update check failed', error);
+      warnSanitized('[PWA] Service worker update check failed', error, {
+        topic1: 'application',
+        topic2: 'serviceWorkerUpdateChecks',
+        topic3: 'checkForUpdate',
+      });
     } finally {
       updateInFlight = false;
     }

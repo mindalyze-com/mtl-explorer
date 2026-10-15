@@ -1,7 +1,11 @@
-# MTL Explorer Release v.0.8.0
+---
+released_on: 2026-08-19
+teaser: >-
+  Browse photos and videos along your tracks, explore media timelines, and
+  play more video formats.
+---
 
-This release expands media indexing, browsing, and video playback. It also
-fixes stale media records after files are removed and rescanned.
+# MTL Explorer Release v.0.8.0
 
 ## Media Browsing
 

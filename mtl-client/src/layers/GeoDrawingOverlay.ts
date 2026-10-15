@@ -2,6 +2,7 @@ import * as maplibregl from 'maplibre-gl';
 import { formatRadius } from '@/utils/Utils';
 import { createGeoJsonCircle } from '@/utils/geoJson';
 import { VIZ_ACCENT_COLOR } from '@/utils/visualizationColors';
+import { mapLabelFonts } from '@/utils/mapLabelFonts';
 
 export type GeoShapeType = 'circle' | 'rectangle' | 'polygon';
 
@@ -31,7 +32,7 @@ const SHAPE_LINE_OPACITY = 0.7;
 const CIRCLE_PREVIEW_RADIUS_M = 100;
 const CIRCLE_PREVIEW_LABEL_SOURCE_ID = 'geo-preview-circle-label';
 
-function measurementLabelLayer(sourceId: string): maplibregl.SymbolLayerSpecification {
+function measurementLabelLayer(sourceId: string, glyphsUrl?: string | null): maplibregl.SymbolLayerSpecification {
   return {
     id: sourceId,
     type: 'symbol',
@@ -39,7 +40,7 @@ function measurementLabelLayer(sourceId: string): maplibregl.SymbolLayerSpecific
     layout: {
       'text-field': ['get', 'label'],
       'text-size': 13,
-      'text-font': ['Noto Sans Medium'],
+      'text-font': mapLabelFonts(glyphsUrl, 'medium'),
       'text-anchor': 'center',
       'text-allow-overlap': true,
     },
@@ -389,7 +390,7 @@ export class GeoDrawingOverlay {
             ],
           },
         });
-        this.map.addLayer(measurementLabelLayer(labelId));
+        this.map.addLayer(measurementLabelLayer(labelId, this.map.getGlyphs()));
 
         // Listen for mouse move to update radius + label
         this.circleDragHandler = (moveEvent: maplibregl.MapMouseEvent) => {
@@ -686,7 +687,7 @@ export class GeoDrawingOverlay {
     });
     this.sourceIds.push(sourceId);
 
-    this.map.addLayer(measurementLabelLayer(sourceId));
+    this.map.addLayer(measurementLabelLayer(sourceId, this.map.getGlyphs()));
     this.layerIds.push(sourceId);
   }
 

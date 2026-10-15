@@ -7,4 +7,5 @@
 # (PUT /kickoff/prod for the application-managed local map service).
 # ─────────────────────────────────────────────────────────────────────
 
+python3 /app/analytics/runtime.py prepare
 exec python3 /app/scripts/orchestrator.py "$@"

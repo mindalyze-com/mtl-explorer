@@ -1,5 +1,5 @@
 import { watch } from 'vue';
-import Highcharts from 'highcharts';
+import Highcharts from '@/bootstrap/highcharts';
 import { useTheme } from '@/composables/useTheme';
 
 /**

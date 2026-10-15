@@ -1,8 +1,12 @@
 package com.x8ing.mtl.server.mtlserver.gpx;
 
+import com.x8ing.mtl.server.mtlserver.db.entity.gps.GpsTrackData;
+import com.x8ing.mtl.server.mtlserver.db.entity.gps.GpsTrackDataPoint;
 import com.x8ing.mtl.server.mtlserver.db.entity.indexer.IndexedFile;
 import com.x8ing.mtl.server.mtlserver.logic.motion.TrackStopDetector;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.CoordinateXYZM;
 import org.locationtech.jts.geom.LineString;
@@ -52,8 +56,9 @@ class GPXReaderOutlierTest {
     }
 
     @Test
-    void isPlausible_zeroTime_largeDrift_rejected() {
-        assertFalse(GPXReader.isPlausible(10.0, 0));
+    void isPlausible_zeroTimeUsesGeometrySupportWithoutInferringSpeed() {
+        assertTrue(GPXReader.isPlausible(10.0, 0));
+        assertFalse(GPXReader.isPlausible(201.0, 0));
     }
 
     @Test
@@ -225,7 +230,7 @@ class GPXReaderOutlierTest {
     }
 
     @Test
-    void anonymizedLongPauseFarTailAtEnd_pointsDiscarded() {
+    void longRecordingGapRetainsBothFragmentsWithoutConnectingDistance() {
         IndexedFile indexedFile = new IndexedFile();
         indexedFile.setName("anonymized-long-pause-far-tail.gpx");
         indexedFile.setFullPath(indexedFile.getName());
@@ -235,19 +240,19 @@ class GPXReaderOutlierTest {
                 indexedFile,
                 anonymizedLongPauseFarTailGpxXml());
 
-        assertEquals(1, results.size(), "The bad tail should be discarded before temporal splitting");
-        GPXReader.LoadResult result = results.getFirst();
-
-        assertEquals(38, result.trackRAW.getNumPoints(), "The anonymized source has the original point cadence");
-        assertEquals(32, result.trackCleaned.getNumPoints(), "The short far-away tail must stay out of cleaned geometry");
-        assertTrue(result.gpsTrack.getDidFilterOutlierByDistance());
-        assertTrue(result.gpsTrack.getLoadMessages().contains("Outliers Cleared By Corrector: 6 point(s)"));
-        assertTrue(GPXReader.getDistanceOfWGS84(result.trackRAW) > 10_000,
-                "RAW must still contain the far-away tail jump");
-        assertTrue(GPXReader.getDistanceOfWGS84(result.trackCleaned) < 5,
-                "Cleaned geometry should only contain the near-stationary first section");
-        assertTrue(maxAdjacentDistance(result.trackCleaned) < 1,
-                "Cleaned geometry must not retain an invented jump");
+        // A long recording gap does not establish that either observation is wrong.
+        // Keep both fragments, without adding the unobserved journey between them.
+        assertEquals(2, results.size());
+        assertEquals(List.of(32, 6), results.stream().map(r -> r.trackRAW.getNumPoints()).toList());
+        assertEquals(List.of(32, 6), results.stream().map(r -> r.trackCleaned.getNumPoints()).toList());
+        for (GPXReader.LoadResult result : results) {
+            assertEquals(0, result.gpsTrack.getSourceRecordingSection());
+            assertTrue(GPXReader.getDistanceOfWGS84(result.trackCleaned) < 5,
+                    "Each fragment should contain only its near-stationary observations");
+            assertTrue(maxAdjacentDistance(result.trackCleaned) < 1,
+                    "Neither fragment may retain an invented jump");
+        }
+        assertTrue(results.getFirst().gpsTrack.getEndDate().before(results.getLast().gpsTrack.getStartDate()));
     }
 
     @Test
@@ -304,27 +309,103 @@ class GPXReaderOutlierTest {
     }
 
     @Test
-    void identicalTimestamps_largeDrift_rejected() {
+    void identicalTimestampsWithOrdinaryMovementKeepGeometry() {
         List<Coordinate> input = new ArrayList<>();
         input.add(coord(8.5, 47.4, 500, 1000));
-        // Same timestamp but ~100 m away (> 5 m threshold)
+        // Clock precision can repeat while the recorded path continues moving.
         input.add(coord(8.501, 47.4, 500, 1000));
-        input.add(coord(8.50002, 47.4, 500, 1002));
+        input.add(coord(8.5011, 47.4, 500, 1002));
 
         FilterResult r = runFilter(input);
 
-        // The large-drift point goes to probation, then next point snaps back
-        assertEquals(2, r.accepted.size());
+        assertEquals(3, r.accepted.size());
     }
 
     // ═══════════════════════════════════════════════════════════════════
-    //  Cross-segment tests — state carried across <trkseg> boundaries
+    //  Probation re-entry through the production importer
     // ═══════════════════════════════════════════════════════════════════
 
     @Test
-    void crossSegment_badSegmentAfterGoodTrack_filtered() {
-        // Simulates the Uetli20100715.gpx problem: good Zürich track, then a segment break
-        // followed by garbage GPS data 50 km away.  The bad segment should be filtered out.
+    void millisecondFixPairRejoinsWithoutSplittingTrack() throws Exception {
+        // Some phone loggers write a stale and a fresh fix milliseconds apart. The fresh fix is
+        // 40 m further on and the walk continues from there at the normal 3 s cadence.
+        List<Coordinate> input = new ArrayList<>();
+        for (int i = 0; i <= 10; i++) input.add(GpsPipelineReliabilityTest.c(i * 4.5, 0, 500, i * 3));
+        for (int i = 0; i < 20; i++) input.add(GpsPipelineReliabilityTest.c(85 + i * 4.5, 0, 500, 30.005 + i * 3));
+
+        GPXReader.LoadResult result = GpsPipelineReliabilityTest.read(input);
+
+        // 40 m in 5 ms stays rejected, but the next point within 200 m rejoins the walk.
+        assertEquals(List.of(), result.recordingBreakBeforePointIndexes);
+        assertEquals(input.size() - 1, result.trackCleaned.getNumPoints());
+        assertTrue(result.observationEvidence.stream().noneMatch(e -> e.decisions().contains("POSITION_DISCONTINUITY")));
+        var points = GpsPipelineReliabilityTest.metrics(result.trackCleaned, result.recordingBreakBeforePointIndexes);
+        assertEquals(85 + 19 * 4.5, points.getLast().getDistanceInMeterSinceStart(), 1.0);
+    }
+
+    @Test
+    void tenHertzOneSampleJumpStillRejected() {
+        List<Coordinate> input = GpsPipelineReliabilityTest.straight(300, 0.5, 0.1);
+        // 60 m in 0.1 s; too short for the later isolated-spike cleanup (90 m).
+        input.set(150, GpsPipelineReliabilityTest.c(75, 60, 500, 15));
+
+        GPXReader.LoadResult result = GpsPipelineReliabilityTest.read(input);
+
+        assertEquals(List.of(), result.recordingBreakBeforePointIndexes);
+        assertEquals(input.size() - 1, result.trackCleaned.getNumPoints());
+        assertTrue(maxAdjacentDistance(result.trackCleaned) < 5, "The one-sample jump must not remain");
+    }
+
+    @ParameterizedTest
+    @CsvSource({"0.1, 60", "0.2, 100"})
+    void fastLoggerRejectsShortGlitchClusters(double interval, double sidewaysMetres) {
+        var input = GpsPipelineReliabilityTest.straight(300, 0.5, interval);
+        for (int i = 150; i < 154; i++)
+            input.set(i, GpsPipelineReliabilityTest.c(i * 0.5, sidewaysMetres, 500, i * interval));
+
+        var result = GpsPipelineReliabilityTest.read(input);
+
+        assertEquals(input.size() - 4, result.trackCleaned.getNumPoints());
+        assertEquals(List.of(), result.recordingBreakBeforePointIndexes);
+        for (Coordinate point : result.trackCleaned.getCoordinates())
+            assertEquals(47, point.getY(), 0.000001, "No shifted point may remain");
+    }
+
+    @Test
+    void observationGapDuringProbationAllowsSupportedRecovery() {
+        var input = GpsPipelineReliabilityTest.straight(100, 0.5, 0.1);
+        input.add(GpsPipelineReliabilityTest.c(350, 0, 500, 10));
+        for (int i = 0; i < 10; i++)
+            input.add(GpsPipelineReliabilityTest.c(500 + i * 4.5, 0, 500, 40 + i * 3));
+
+        var result = GpsPipelineReliabilityTest.read(input);
+
+        assertEquals(input.size() - 1, result.trackCleaned.getNumPoints());
+        assertEquals(List.of(), result.recordingBreakBeforePointIndexes);
+        assertEquals(GpsPipelineReliabilityTest.T + 40, result.trackCleaned.getCoordinateN(100).getM());
+    }
+
+    @Test
+    void tenHertzJumpBeyond200MetresStillSplits() {
+        List<Coordinate> input = new ArrayList<>();
+        for (int i = 0; i < 200; i++) input.add(GpsPipelineReliabilityTest.c(i * 0.5, 0, 500, i * 0.1));
+        // 300 m in 0.1 s, then a stable 20 s at the new location.
+        for (int i = 200; i < 400; i++) input.add(GpsPipelineReliabilityTest.c(300 + i * 0.5, 0, 500, i * 0.1));
+
+        GPXReader.LoadResult result = GpsPipelineReliabilityTest.read(input);
+
+        assertEquals(List.of(200), result.recordingBreakBeforePointIndexes);
+        assertEquals(input.size(), result.trackCleaned.getNumPoints());
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    //  Cross-segment tests through the production importer
+    // ═══════════════════════════════════════════════════════════════════
+
+    @Test
+    void crossSegment_distantInternallyConsistentSectionRetainedWithoutBridge() throws Exception {
+        // A source section boundary makes the connecting interval unknown.
+        // Distance from the previous section alone cannot reject its observations.
         List<List<Coordinate>> segments = new ArrayList<>();
 
         // Segment 1: 20 normal points near Zürich
@@ -336,8 +417,8 @@ class GPXReaderOutlierTest {
         }
         segments.add(seg1);
 
-        // Segment 2: 8 points 50 km NW (bad GPS lock), internally consistent but implausible
-        // jump from seg1.  Only 2 seconds after last good point → ~25000 m/s.
+        // Segment 2: 8 internally consistent points about 50 km away.
+        // The apparent jump across the section boundary is not observed travel.
         List<Coordinate> seg2 = new ArrayList<>();
         t += 2;
         for (int i = 0; i < 8; i++) {
@@ -355,21 +436,12 @@ class GPXReaderOutlierTest {
         }
         segments.add(seg3);
 
-        FilterResult r = runFilterMultiSegment(segments);
-
-        // Bad segment 2 should be filtered. All seg1 + seg3 points should be kept.
-        // seg2 (8 points) enters probation but its jump > 5 km → rejected by promotion guard.
-        // Then seg3 re-enters probation and gets promoted (15 points, >15 s).
-        assertTrue(r.outlierCount >= 8, "Bad segment points should be outliers, got " + r.outlierCount);
-        // All accepted points should be in Zürich area (lon > 8.4)
-        for (Coordinate c : r.accepted) {
-            assertTrue(c.getX() > 8.4, "Accepted point should be in Zürich, got lon=" + c.getX());
-        }
+        assertIndependentSections(segments, List.of(20, 28));
     }
 
     @Test
-    void crossSegment_multipleBadSegments_allFiltered() {
-        // Multiple bad segments in a row (like the Uetli file with ~7 bad segments)
+    void crossSegment_multipleIndependentSectionsRetainedWithoutBridges() throws Exception {
+        // Several short, distant sections must remain separate observations.
         List<List<Coordinate>> segments = new ArrayList<>();
 
         // Segment 1: good track
@@ -381,7 +453,7 @@ class GPXReaderOutlierTest {
         }
         segments.add(seg1);
 
-        // Segments 2-5: each a short bad segment far away
+        // Segments 2-5: each a short section far away
         for (int s = 0; s < 4; s++) {
             List<Coordinate> badSeg = new ArrayList<>();
             t += 2;
@@ -403,17 +475,11 @@ class GPXReaderOutlierTest {
         }
         segments.add(segGood);
 
-        FilterResult r = runFilterMultiSegment(segments);
-
-        // All bad segment points (4 × 4 = 16) should be outliers
-        assertTrue(r.outlierCount >= 16, "All bad segment points should be outliers, got " + r.outlierCount);
-        for (Coordinate c : r.accepted) {
-            assertTrue(c.getX() > 8.4, "Accepted point should be in Zürich area, got lon=" + c.getX());
-        }
+        assertIndependentSections(segments, List.of(20, 24, 28, 32, 36));
     }
 
     @Test
-    void crossSegment_legitimateBreakNearby_accepted() {
+    void crossSegment_nearbySectionsRetainedWithoutInventingGapDistance() throws Exception {
         // GPS briefly loses signal (trkseg break), then resumes nearby.
         // Both segments should be fully accepted.
         List<List<Coordinate>> segments = new ArrayList<>();
@@ -435,27 +501,30 @@ class GPXReaderOutlierTest {
         }
         segments.add(seg2);
 
-        FilterResult r = runFilterMultiSegment(segments);
-
-        assertEquals(20, r.accepted.size(), "Both segments should be fully accepted");
-        assertEquals(0, r.outlierCount);
+        assertIndependentSections(segments, List.of(10));
     }
 
     // ═══════════════════════════════════════════════════════════════════
-    //  Integration test with real GPX file
+    //  Production import with synthetic distant sections
     // ═══════════════════════════════════════════════════════════════════
 
     @Test
-    void uetliGpxFile_crossSegmentOutliers_filtered() {
-        // The Uetli20100715_Outlier.gpx file has ~7 bad <trkseg> elements between 17:03 and 17:08
-        // that jump 50 km NW from the real track near Zürich Uetliberg.
-        Path gpxPath = Paths.get("src/test/java/com/x8ing/mtl/server/mtlserver/gpx/resource/Uetli20100715_Outlier.gpx");
+    void syntheticSourceFiltersRealOutliersWithinSpansAndExcludesRecordingGaps() throws Exception {
+        var first = GpsPipelineReliabilityTest.straight(30, 100, 10);
+        first.set(10, GpsPipelineReliabilityTest.c(50000, 0, 500, 100));
+        var second = GpsPipelineReliabilityTest.straight(30, 100, 10);
+        for (var point : second) {
+            point.setX(point.getX() + 200000.0 / 76000);
+            point.setM(point.getM() + 3600);
+        }
         IndexedFile indexedFile = new IndexedFile();
-        indexedFile.setFullPath(gpxPath.toAbsolutePath().toString());
-        indexedFile.setName("Uetli20100715_Outlier.gpx");
+        indexedFile.setFullPath("/synthetic/distant-sections.gpx");
+        indexedFile.setName("distant-sections.gpx");
 
         GPXReader reader = new GPXReader();
-        List<GPXReader.LoadResult> results = reader.importGpxFile(indexedFile);
+        List<GPXReader.LoadResult> results = reader.importGpxXml(indexedFile,
+                "<gpx version='1.1' creator='synthetic'><trk>" + GpsPipelineReliabilityTest.segment(first)
+                + GpsPipelineReliabilityTest.segment(second) + "</trk></gpx>");
         assertFalse(results.isEmpty(), "Should return at least one LoadResult");
         GPXReader.LoadResult result = results.get(0);
 
@@ -471,28 +540,57 @@ class GPXReaderOutlierTest {
         assertTrue(loadMessages.contains("Outlier corrector BreakStopTreatment"),
                 "Break-stop cleanup count should be attributed to its corrector");
 
-        // Cleaned geometry length should be a reasonable hike (~5-15 km), not ~125 km.
-        // GPXReader no longer owns GpsTrack.trackLengthInMeter; GPXStoreService derives
-        // that field later from the final persisted RAW_OUTLIER_CLEANED point stream.
-        double cleanedLengthInMeter = GPXReader.getDistanceOfWGS84(result.trackCleaned);
-        assertTrue(cleanedLengthInMeter < 20_000,
-                "Cleaned geometry length should be < 20 km, got " + cleanedLengthInMeter);
+        LineString smoothed = GpsPipelineReliabilityTest.smooth(result);
+        var points = GpsPipelineReliabilityTest.metrics(smoothed, result.recordingBreakBeforePointIndexes);
+        double cleanedLengthInMeter = points.getLast().getDistanceInMeterSinceStart();
+        assertTrue(GPXReader.getDistanceOfWGS84(result.trackCleaned) - cleanedLengthInMeter > 100_000,
+                "Over 100 km of unobserved connections must be excluded from the distance");
         assertTrue(cleanedLengthInMeter > 3_000,
-                "Cleaned geometry length should be > 3 km, got " + cleanedLengthInMeter);
-
-        // All cleaned points should be in the Zürich/Uetliberg area
-        for (int i = 0; i < result.trackCleaned.getNumPoints(); i++) {
-            Coordinate c = result.trackCleaned.getCoordinateN(i);
-            assertTrue(c.getY() > 47.34 && c.getY() < 47.40,
-                    "Lat should be in Uetliberg range [47.34, 47.40], got " + c.getY() + " at point " + i);
-            assertTrue(c.getX() > 8.43 && c.getX() < 8.50,
-                    "Lon should be in Uetliberg range [8.43, 8.50], got " + c.getX() + " at point " + i);
+                "Observed distance should be > 3 km, got " + cleanedLengthInMeter);
+        assertFalse(result.recordingBreakBeforePointIndexes.isEmpty());
+        for (int index : result.recordingBreakBeforePointIndexes) {
+            assertEquals(GpsTrackDataPoint.IntervalStatus.UNKNOWN, points.get(index).getIntervalStatus());
+            assertNull(points.get(index).getDistanceInMeterBetweenPoints());
+            assertEquals(points.get(index - 1).getDistanceInMeterSinceStart(),
+                    points.get(index).getDistanceInMeterSinceStart(), "Recording gaps add no distance");
         }
+        var observed = GpsTrackData.buildObservedPath(smoothed, result.recordingBreakBeforePointIndexes);
+        assertTrue(observed.getNumGeometries() > 1, "The map must not draw bridges across recording gaps");
+        double observedLength = 0;
+        for (int i = 0; i < observed.getNumGeometries(); i++) {
+            if (observed.getGeometryN(i) instanceof LineString span) {
+                assertTrue(maxAdjacentDistance(span) < 5_000, "No distant jump may remain within an observed span");
+                observedLength += GPXReader.getDistanceOfWGS84(span);
+            }
+        }
+        assertEquals(cleanedLengthInMeter, observedLength, 1.0,
+                "The map geometry and canonical metrics should describe the same observed travel");
     }
 
     // ═══════════════════════════════════════════════════════════════════
     //  Test helpers
     // ═══════════════════════════════════════════════════════════════════
+
+    private static void assertIndependentSections(List<List<Coordinate>> sections, List<Integer> breaks) throws Exception {
+        StringBuilder xml = new StringBuilder("<trk>");
+        sections.forEach(section -> xml.append(GpsPipelineReliabilityTest.segment(section)));
+        var results = GpsPipelineReliabilityTest.read(xml.append("</trk>").toString());
+        assertEquals(1, results.size());
+        var result = results.getFirst();
+        assertEquals(sections.stream().mapToInt(List::size).sum(), result.trackCleaned.getNumPoints());
+        assertEquals(breaks, result.recordingBreakBeforePointIndexes);
+        var points = GpsPipelineReliabilityTest.metrics(
+                result.trackCleaned, result.recordingBreakBeforePointIndexes);
+        for (int index : breaks) {
+            assertEquals(GpsTrackDataPoint.IntervalStatus.UNKNOWN, points.get(index).getIntervalStatus());
+            assertNull(points.get(index).getDistanceInMeterBetweenPoints());
+        }
+        double expectedDistance = sections.stream()
+                .mapToDouble(section -> GPXReader.getDistanceOfWGS84(GpsPipelineReliabilityTest.line(section))).sum();
+        assertEquals(expectedDistance, points.getLast().getDistanceInMeterSinceStart(), 1.0);
+        assertEquals(sections.size(),
+                GpsTrackData.buildObservedPath(result.trackCleaned, breaks).getNumGeometries());
+    }
 
     private static Coordinate coord(double lon, double lat, double ele, double epochSec) {
         return new CoordinateXYZM(lon, lat, ele, epochSec);
@@ -705,42 +803,6 @@ class GPXReaderOutlierTest {
         assertEquals(2, segments.size());
         assertEquals(3, segments.get(0).size());
         assertEquals(2, segments.get(1).size());
-    }
-
-    @Test
-    void timeOrderTreatment_removesBackwardJumpBeforeTemporalSplit() {
-        double baseT = 1_600_000_000.0;
-        List<Coordinate> coords = List.of(
-                coord(8.0, 47.0, 500.0, baseT),
-                coord(8.001, 47.0, 500.0, baseT + 3600),
-                coord(8.002, 47.0, 500.0, baseT - 35 * 24 * 3600.0),
-                coord(8.003, 47.0, 500.0, baseT + 7200)
-        );
-
-        List<Coordinate> filtered = GPXReader.withoutStaleBackwardTimeJumpPoints(coords);
-        List<List<Coordinate>> segments = GPXReader.splitByTemporalGaps(filtered);
-
-        assertEquals(1, segments.size());
-        assertEquals(3, segments.getFirst().size());
-    }
-
-    @Test
-    void withoutStaleBackwardTimeJumpPoints_removesInterleavedOldPoints() {
-        double baseT = 1_600_000_000.0;
-        List<Coordinate> coords = List.of(
-                coord(8.0, 47.0, 500.0, baseT),
-                coord(8.001, 47.0, 500.0, baseT + 3600),
-                coord(8.002, 47.0, 500.0, baseT - 35 * 24 * 3600.0),
-                coord(8.003, 47.0, 500.0, baseT - 35 * 24 * 3600.0 + 60),
-                coord(8.004, 47.0, 500.0, baseT + 7200)
-        );
-
-        List<Coordinate> filtered = GPXReader.withoutStaleBackwardTimeJumpPoints(coords);
-
-        assertEquals(3, filtered.size());
-        assertEquals(baseT, filtered.get(0).getM(), 0.0);
-        assertEquals(baseT + 3600, filtered.get(1).getM(), 0.0);
-        assertEquals(baseT + 7200, filtered.get(2).getM(), 0.0);
     }
 
     @Test

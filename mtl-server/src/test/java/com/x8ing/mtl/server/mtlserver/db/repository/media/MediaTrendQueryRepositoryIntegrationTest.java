@@ -2,16 +2,13 @@ package com.x8ing.mtl.server.mtlserver.db.repository.media;
 
 import com.x8ing.mtl.server.mtlserver.gpx.GPXDirectoryWatcherService;
 import com.x8ing.mtl.server.mtlserver.jobs.media.indexer.MediaIndexerService;
-import com.x8ing.mtl.server.mtlserver.web.services.track.entity.MediaTrendGrouping;
-import com.x8ing.mtl.server.mtlserver.web.services.track.entity.MediaTrendKindFilter;
-import com.x8ing.mtl.server.mtlserver.web.services.track.entity.MediaTrendScope;
-import com.x8ing.mtl.server.mtlserver.web.services.track.entity.TrackMediaDto;
+import com.x8ing.mtl.server.mtlserver.web.services.track.entity.*;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.annotation.Rollback;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
@@ -44,7 +41,7 @@ class MediaTrendQueryRepositoryIntegrationTest {
     private MediaIndexerService mediaIndexerService;
 
     @Test
-    void groupsEffectiveCaptureTimesAndUsesOnlyEligibleSelectedCorrelations() {
+    void groupsOwnCaptureTimesWithinMatchingTracksAndUsesSelectedCorrelations() {
         long eligibleTrack = insertTrack("Synthetic media trend", null);
         long alternativeTrack = insertTrack("Synthetic media alternative", null);
         long excludedTrack = insertTrack("Synthetic media excluded", "OTHER");
@@ -67,13 +64,13 @@ class MediaTrendQueryRepositoryIntegrationTest {
         assertThat(matched)
                 .extracting(bucket -> List.of(bucket.bucketKey(), bucket.imageCount(), bucket.videoCount()))
                 .containsExactly(
-                        List.of("2199-08-17", 1L, 0L),
+                        List.of("2199-08-17", 2L, 0L),
                         List.of("2199-08-18", 0L, 1L));
 
         var allIndexed = repository.findTrendBuckets(
                 MediaTrendGrouping.DAY,
                 MediaTrendScope.ALL_INDEXED,
-                List.of());
+                List.of(eligibleTrack));
         assertThat(allIndexed)
                 .filteredOn(bucket -> bucket.bucketKey().startsWith("2199-") || bucket.undated())
                 .anySatisfy(bucket -> {
@@ -83,11 +80,8 @@ class MediaTrendQueryRepositoryIntegrationTest {
                 .anySatisfy(bucket -> {
                     assertThat(bucket.bucketKey()).isEqualTo("2199-08-18");
                     assertThat(bucket.videoCount()).isGreaterThanOrEqualTo(1);
-                })
-                .anySatisfy(bucket -> {
-                    assertThat(bucket.bucketKey()).isEqualTo(MediaTrendGrouping.UNDATED_BUCKET_KEY);
-                    assertThat(bucket.imageCount()).isGreaterThanOrEqualTo(1);
                 });
+        assertThat(allIndexed).noneMatch(bucket -> bucket.undated());
 
         for (MediaTrendGrouping grouping : MediaTrendGrouping.values()) {
             var buckets = repository.findTrendBuckets(grouping, MediaTrendScope.MATCHED_ACTIVITIES, List.of(eligibleTrack));
@@ -115,7 +109,7 @@ class MediaTrendQueryRepositoryIntegrationTest {
                 MediaTrendScope.ALL_INDEXED,
                 "2199-08-17",
                 MediaTrendKindFilter.IMAGE,
-                List.of(),
+                List.of(eligibleTrack),
                 60,
                 0);
         assertThat(sameTimeItems.items())
@@ -127,7 +121,7 @@ class MediaTrendQueryRepositoryIntegrationTest {
                 MediaTrendScope.ALL_INDEXED,
                 "2199-08-18",
                 MediaTrendKindFilter.VIDEO,
-                List.of(),
+                List.of(eligibleTrack),
                 60,
                 0);
         assertThat(correctedItems.items())
@@ -150,10 +144,50 @@ class MediaTrendQueryRepositoryIntegrationTest {
                 MediaTrendScope.ALL_INDEXED,
                 MediaTrendGrouping.UNDATED_BUCKET_KEY,
                 MediaTrendKindFilter.ALL,
-                List.of(),
+                List.of(eligibleTrack),
                 1,
                 0);
-        assertThat(undated.items()).extracting(item -> item.id()).contains(undatedMedia);
+        assertThat(undated.items()).isEmpty();
+    }
+
+    @Test
+    void mapTotalsAndBrowsingShareContinuousInclusiveRangeInBothScopes() {
+        long firstTrack = insertTrack("Synthetic first range", null);
+        long lastTrack = insertTrack("Synthetic last range", null);
+        jdbcTemplate.update("UPDATE gps_track SET end_date = '2199-08-17 01:00:00' WHERE id = ?", firstTrack);
+        jdbcTemplate.update("UPDATE gps_track SET start_date = '2199-08-18 23:00:00' WHERE id = ?", lastTrack);
+        List<Long> tracks = List.of(firstTrack, lastTrack);
+        long first = insertMedia("range-first.jpg", "2199-08-17 00:00:00", null, GPS_TIME);
+        long gap = insertMedia("range-gap.jpg", GPS_TIME, null, GPS_TIME);
+        long last = insertMedia("range-last.mp4", "2199-08-19 00:00:00", null, GPS_TIME);
+        long old = insertMedia("range-old.jpg", "2189-08-17 00:00:00", null, GPS_TIME);
+        long future = insertMedia("range-future.jpg", "2199-08-19 00:00:01", null, GPS_TIME);
+        long unknown = insertMedia("range-unknown.jpg", null, null, GPS_TIME);
+        for (long id : List.of(first, gap, last, old, future, unknown)) {
+            jdbcTemplate.update("UPDATE media_file SET exif_gps_location = ST_SetSRID(ST_MakePoint(8,47),4326) WHERE id = ?", id);
+        }
+        insertCorrelation(first, firstTrack, "2199-08-17 00:00:00", true, false, 1);
+        // Even a link to a selected track must not admit old or unknown media.
+        insertCorrelation(old, firstTrack, GPS_TIME, true, false, 1);
+        insertCorrelation(unknown, firstTrack, GPS_TIME, true, false, 1);
+        for (MediaTrendScope scope : MediaTrendScope.values()) {
+            List<Long> expected = scope == MediaTrendScope.ALL_INDEXED ? List.of(first, gap, last) : List.of(first);
+            var buckets = repository.findTrendBuckets(MediaTrendGrouping.TOTAL, scope, tracks);
+            assertThat(buckets).singleElement().satisfies(bucket ->
+                    assertThat(bucket.imageCount() + bucket.videoCount()).isEqualTo(expected.size()));
+            var items = repository.findItems(MediaTrendGrouping.TOTAL, scope, "TOTAL", MediaTrendKindFilter.ALL, tracks, 60, 0);
+            assertThat(items.items()).extracting(item -> item.id()).containsExactlyInAnyOrderElementsOf(expected);
+            var bounds = new MediaBoundsRequest(46, 7, 48, 9, scope, tracks);
+            assertThat(repository.findInBounds(bounds, tracks)).extracting(point -> point.getId())
+                    .containsExactlyInAnyOrderElementsOf(expected);
+            assertThat(repository.findTrendBuckets(MediaTrendGrouping.TOTAL, scope, List.of())).isEmpty();
+            assertThat(repository.findInBounds(bounds, List.of())).isEmpty();
+            assertThat(repository.findItems(MediaTrendGrouping.TOTAL, scope, "TOTAL", MediaTrendKindFilter.ALL, List.of(), 60, 0).items()).isEmpty();
+            jdbcTemplate.update("UPDATE gps_track SET end_date = NULL WHERE id IN (?, ?)", firstTrack, lastTrack);
+            assertThat(repository.findTrendBuckets(MediaTrendGrouping.TOTAL, scope, tracks)).isEmpty();
+            assertThat(repository.findInBounds(bounds, tracks)).isEmpty();
+            jdbcTemplate.update("UPDATE gps_track SET end_date = '2199-08-19 00:00:00' WHERE id IN (?, ?)", firstTrack, lastTrack);
+        }
     }
 
     private long insertTrack(String name, String exclusionReason) {

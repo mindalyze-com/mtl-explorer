@@ -25,7 +25,7 @@ const cards: AdminOverviewStatus[] = [
 ];
 
 describe('AdminOverview', () => {
-  it('renders live status, mobile section index, and dynamic badges', () => {
+  it('renders live status, section index, and dynamic badges', () => {
     const wrapper = mount(AdminOverview, {
       props: { cards, badges: { processing: 'Live', maintenance: '1' } },
       global: {
@@ -42,7 +42,7 @@ describe('AdminOverview', () => {
     expect(wrapper.findAll('.admin-nav-badge').map((badge) => badge.text())).toEqual(['Live', '1']);
   });
 
-  it('navigates from status cards, shortcuts, and section rows', async () => {
+  it('navigates from status and section rows', async () => {
     const wrapper = mount(AdminOverview, {
       props: { cards },
       global: {
@@ -52,12 +52,11 @@ describe('AdminOverview', () => {
       },
     });
 
-    await wrapper.find('.admin-overview-card').trigger('click');
-    await wrapper.find('.admin-shortcut').trigger('click');
-    await wrapper.find('.admin-mobile-section').trigger('click');
-    await wrapper.find('.admin-mobile-about').trigger('click');
+    await wrapper.find('.settings-row--stacked-value').trigger('click');
+    await wrapper.find('.admin-section-index .settings-row').trigger('click');
+    await wrapper.find('.admin-section-index > button').trigger('click');
 
-    expect(wrapper.emitted('navigate')).toEqual([['processing'], ['imports'], ['imports']]);
+    expect(wrapper.emitted('navigate')).toEqual([['processing'], ['preferences']]);
     expect(wrapper.emitted('show-about')).toEqual([[]]);
   });
 

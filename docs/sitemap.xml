@@ -2,46 +2,209 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://mtl-explorer.com/</loc>
-    <lastmod>2026-09-04T15:59:27.706814Z</lastmod>
+    <lastmod>2026-10-03</lastmod>
   </url>
   <url>
     <loc>https://mtl-explorer.com/gpx-track-map/</loc>
-    <lastmod>2026-09-04T15:59:27.706814Z</lastmod>
+    <lastmod>2026-09-07</lastmod>
   </url>
   <url>
     <loc>https://mtl-explorer.com/segment-analysis/</loc>
-    <lastmod>2026-09-04T15:59:27.706814Z</lastmod>
+    <lastmod>2026-09-07</lastmod>
   </url>
   <url>
     <loc>https://mtl-explorer.com/route-planner/</loc>
-    <lastmod>2026-09-04T15:59:27.706814Z</lastmod>
+    <lastmod>2026-09-07</lastmod>
   </url>
   <url>
     <loc>https://mtl-explorer.com/docker-install/</loc>
-    <lastmod>2026-09-04T15:59:27.706814Z</lastmod>
+    <lastmod>2026-09-07</lastmod>
   </url>
   <url>
     <loc>https://mtl-explorer.com/garmin-connect-import/</loc>
-    <lastmod>2026-09-04T15:59:27.706814Z</lastmod>
+    <lastmod>2026-09-07</lastmod>
   </url>
   <url>
     <loc>https://mtl-explorer.com/private-gps-heatmap/</loc>
-    <lastmod>2026-09-04T15:59:27.706814Z</lastmod>
+    <lastmod>2026-09-06</lastmod>
   </url>
   <url>
     <loc>https://mtl-explorer.com/supported-gps-formats/</loc>
-    <lastmod>2026-09-04T15:59:27.706814Z</lastmod>
+    <lastmod>2026-09-07</lastmod>
   </url>
   <url>
     <loc>https://mtl-explorer.com/why-i-built-mtl-explorer/</loc>
-    <lastmod>2026-09-04T15:59:27.706814Z</lastmod>
+    <lastmod>2026-09-06</lastmod>
   </url>
   <url>
     <loc>https://mtl-explorer.com/google-health/</loc>
-    <lastmod>2026-09-04T15:59:27.706814Z</lastmod>
+    <lastmod>2026-09-06</lastmod>
   </url>
   <url>
     <loc>https://mtl-explorer.com/google-health/terms/</loc>
-    <lastmod>2026-09-04T15:59:27.706814Z</lastmod>
+    <lastmod>2026-09-05</lastmod>
   </url>
+  <url>
+    <loc>https://mtl-explorer.com/intro-video/</loc>
+    <lastmod>2026-09-06</lastmod>
+  </url>
+  <!-- RELEASE URLS START -->
+  <url><loc>https://mtl-explorer.com/releases/</loc></url>
+  <url><loc>https://mtl-explorer.com/releases/0.9.0/</loc></url>
+  <url><loc>https://mtl-explorer.com/releases/0.8.1/</loc></url>
+  <url><loc>https://mtl-explorer.com/releases/0.8.0/</loc></url>
+  <url><loc>https://mtl-explorer.com/releases/0.7.0/</loc></url>
+  <url><loc>https://mtl-explorer.com/releases/0.6.1/</loc></url>
+  <url><loc>https://mtl-explorer.com/releases/0.6.0/</loc></url>
+<!-- RELEASE URLS END -->
+  <!-- DOCUMENTATION URLS START -->
+  <url><loc>https://mtl-explorer.com/docs/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/administration/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/administration/configuration/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/administration/configuration/authentication/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/administration/configuration/environment/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/administration/configuration/reverse-proxy/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/administration/configuration/storage/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/administration/garmin/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/administration/google-health/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/administration/installation/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/administration/installation/nas/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/administration/installation/quick-start/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/administration/installation/requirements/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/administration/maintenance/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/administration/maintenance/backup-and-restore/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/administration/maintenance/logs/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/administration/maintenance/processing/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/administration/maintenance/updates/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/administration/services/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/administration/services/location-search/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/administration/services/maps/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/administration/services/routing/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/administration/troubleshooting/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/architecture/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/architecture/analysis/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/architecture/analysis/energy/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/architecture/analysis/exploration/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/architecture/analysis/segments/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/architecture/caching-and-offline/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/architecture/database/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/architecture/decisions/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/architecture/diagnostic-logging/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/architecture/filters/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/architecture/garmin-export/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/architecture/gps/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/architecture/gps/ingestion/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/architecture/gps/motion/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/architecture/gps/processing/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/architecture/gps/quality/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/architecture/health/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/architecture/health/authorization/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/architecture/health/demo-data/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/architecture/health/synchronization/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/architecture/map-interactions/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/architecture/maps/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/architecture/media/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/architecture/media/correlation/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/architecture/media/delivery/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/architecture/media/filtering/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/architecture/media/indexing/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/architecture/planning/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/architecture/processing-status/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/architecture/replay/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/architecture/source-issues/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/architecture/system/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/architecture/units/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/development/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/development/api-generation/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/development/backend/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/development/containers/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/development/frontend/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/development/getting-started/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/development/google-health-synchronization-plan/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/development/gps-quality-modules/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/development/ingest-issue-acknowledgement-plan/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/development/profiling/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/development/releases/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/development/styling/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/development/testing/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/development/testing/container-build/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/development/testing/full-regression/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/development/testing/full-regression/coverage-plan/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/development/testing/full-regression/goal-prompt/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/development/testing/full-regression/packet-template/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/development/testing/full-regression/start/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/development/testing/full-regression/workflow/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/development/testing/google-health-simulation/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/development/testing/gps-regression/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/development/testing/indexer-regression/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/development/testing/media-regression/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/development/testing/quick-install/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/development/testing/regression/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/development/testing/security/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/development/testing/unit-and-integration/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/development/testing/video-regression/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/development/website/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/development/website/analytics/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/development/website/documentation/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/development/website/generation/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/development/website/screenshots/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/development/website/user-writing-style/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/features/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/legal/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/legal/cla/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/legal/commercial-license/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/legal/disclaimer/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/legal/third_party_licenses/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/legal/trademark/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/project/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/project/background/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/project/contributing/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/user/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/user/analysis/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/user/analysis/comparison/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/user/analysis/energy/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/user/analysis/motion/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/user/analysis/segments/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/user/filters/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/user/filters/coloring/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/user/filters/custom-sql/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/user/filters/selection/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/user/getting-started/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/user/health/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/user/health/charts/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/user/health/google-health/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/user/health/records/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/user/health/track-matching/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/user/importing-tracks/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/user/importing-tracks/example/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/user/importing-tracks/files/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/user/importing-tracks/formats/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/user/importing-tracks/garmin/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/user/map/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/user/media/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/user/media/browsing/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/user/media/capture-time/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/user/media/locations/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/user/media/video/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/user/mobile-and-offline/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/user/planning/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/user/replay/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/user/settings/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/user/statistics/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/user/statistics/milestones/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/user/statistics/overview/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/user/statistics/trends/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/user/tracks/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/user/tracks/browsing/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/user/tracks/details/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/user/tracks/source-review/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/user/troubleshooting/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/versions/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/versions/0.8.1/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/versions/0.8.1/container-build/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/versions/0.8.1/features/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/versions/0.8.1/home-install/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/versions/0.8.1/photo-handling-improvement/</loc></url>
+  <url><loc>https://mtl-explorer.com/docs/versions/0.8.1/why-i-built-mtl-explorer/</loc></url>
+<!-- DOCUMENTATION URLS END -->
 </urlset>

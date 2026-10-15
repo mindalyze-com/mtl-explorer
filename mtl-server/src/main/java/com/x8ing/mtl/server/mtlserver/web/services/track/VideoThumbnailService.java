@@ -13,7 +13,9 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-/** Extracts one bounded JPEG poster frame for browser video thumbnails. */
+/**
+ * Extracts one bounded JPEG poster frame for browser video thumbnails.
+ */
 @Service
 public class VideoThumbnailService {
 

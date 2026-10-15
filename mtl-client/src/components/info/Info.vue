@@ -3,7 +3,8 @@
     <div class="tool-container">
       <Button
         :icon="active ? 'bi bi-info-circle-fill' : 'bi bi-info-circle'"
-        :severity="active ? 'danger' : 'primary'"
+        :outlined="!active"
+        :aria-pressed="active"
         @click="onToggleTool"
       />
       <!-- using a badge could be an option to show the filtered tracks number -->
@@ -19,7 +20,7 @@
           <div class="map-attribution single-line">
             <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OSM</a> |
             <a href="https://www.swisstopo.admin.ch" target="_blank" rel="noopener">swisstopo</a> |
-            <a href="https://leafletjs.com" target="_blank" rel="noopener">Leaflet</a>
+            <a href="https://maplibre.org" target="_blank" rel="noopener">MapLibre</a>
           </div>
         </div>
       </Dialog>

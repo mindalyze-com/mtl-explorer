@@ -1,5 +1,5 @@
 <template>
-  <div v-if="hasData" class="elev-profile">
+  <div v-if="hasData" ref="rootRef" class="elev-profile">
     <highcharts ref="chartRef" :options="chartOptions" class="elev-profile__chart" />
   </div>
   <div v-else class="elev-profile elev-profile--empty">
@@ -10,11 +10,13 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import type Highcharts from 'highcharts';
 import { ROUTE_LINE_COLOR } from '@/planner/constants/PlannerConstants';
 import { buildChartOptions } from '@/utils/chartTheme';
+import { observeElementResize } from '@/utils/observeElementResize';
 import { useMeasurementSystem } from '@/composables/useMeasurementSystem';
+import { useTheme } from '@/composables/useTheme';
 import { elevationDisplayValue, longDistanceDisplayValue, MEASUREMENT_DISPLAY_PROFILES } from '@/utils/units';
 import { haversineDistance } from '@/components/map/mapGeometry';
 
@@ -32,6 +34,7 @@ const emit = defineEmits<{
   (e: 'hover', point: { lng: number; lat: number; elevationM: number; distanceM: number } | null): void;
 }>();
 const { measurementSystem } = useMeasurementSystem();
+const { colorScheme } = useTheme();
 
 // ── Data model ────────────────────────────────────────────────────
 
@@ -47,10 +50,10 @@ const samples = computed<Sample[]>(() => {
   if (!coords || coords.length < 2) return [];
   const out: Sample[] = [];
   let cum = 0;
-  out.push({ distanceM: 0, elevationM: coords[0][2] || 0, lng: coords[0][0], lat: coords[0][1] });
+  out.push({ distanceM: 0, elevationM: coords[0][2] ?? Number.NaN, lng: coords[0][0], lat: coords[0][1] });
   for (let i = 1; i < coords.length; i++) {
     cum += haversineDistance(coords[i - 1][1], coords[i - 1][0], coords[i][1], coords[i][0]);
-    out.push({ distanceM: cum, elevationM: coords[i][2] || 0, lng: coords[i][0], lat: coords[i][1] });
+    out.push({ distanceM: cum, elevationM: coords[i][2] ?? Number.NaN, lng: coords[i][0], lat: coords[i][1] });
   }
   const authTotal = props.totalDistanceM;
   if (authTotal && authTotal > 0 && cum > 0 && cum !== authTotal) {
@@ -60,7 +63,7 @@ const samples = computed<Sample[]>(() => {
   return out;
 });
 
-const hasData = computed(() => samples.value.length >= 2);
+const hasData = computed(() => samples.value.filter((sample) => Number.isFinite(sample.elevationM)).length >= 2);
 
 function gradeAt(arr: Sample[], idx: number): number {
   const prev = arr[Math.max(0, idx - 1)];
@@ -73,7 +76,7 @@ function gradeAt(arr: Sample[], idx: number): number {
 const seriesData = computed(() =>
   samples.value.map((s, i) => ({
     x: s.distanceM / 1000,
-    y: s.elevationM,
+    y: Number.isFinite(s.elevationM) ? s.elevationM : null,
     lng: s.lng,
     lat: s.lat,
     grade: gradeAt(samples.value, i),
@@ -83,6 +86,20 @@ const seriesData = computed(() =>
 // ── Chart ─────────────────────────────────────────────────────────
 
 const chartRef = ref<{ chart: Highcharts.Chart } | null>(null);
+const rootRef = ref<HTMLElement | null>(null);
+let stopObservingSize: (() => void) | null = null;
+
+// Panel resizing changes the container many times per drag; reflow at most once per frame and never while hidden.
+watch(rootRef, (root) => {
+  stopObservingSize?.();
+  stopObservingSize = null;
+  if (!root || typeof ResizeObserver === 'undefined') return;
+  stopObservingSize = observeElementResize(root, (entry) => {
+    if (entry.contentRect.width > 0 && entry.contentRect.height > 0) chartRef.value?.chart.reflow();
+  });
+});
+
+onBeforeUnmount(() => stopObservingSize?.());
 
 function buildOptions(): Highcharts.Options {
   const styles = getComputedStyle(document.documentElement);
@@ -104,6 +121,7 @@ function buildOptions(): Highcharts.Options {
   });
   return {
     ...baseOptions,
+    chart: { ...baseOptions.chart, reflow: false },
     yAxis: {
       ...(baseOptions.yAxis as Highcharts.YAxisOptions),
       labels: {
@@ -125,7 +143,7 @@ function buildOptions(): Highcharts.Options {
         const elevationUnit = MEASUREMENT_DISPLAY_PROFILES[measurementSystem.value].elevation;
         const grade = pt.grade ?? 0;
         const gradeColor = grade > 0 ? ascentColor : grade < 0 ? descentColor : textColor;
-        const gradeStr = (grade > 0 ? '+' : '') + grade.toFixed(1) + '%';
+        const gradeStr = Number.isFinite(grade) ? (grade > 0 ? '+' : '') + grade.toFixed(1) + '%' : '—';
         return (
           `<span style="font-size:10px;color:${textColor}">${distance}\u202f${distanceUnit}</span><br/>` +
           `<b>${elevation}\u202f${elevationUnit}</b>&nbsp;<span style="color:${gradeColor}">${gradeStr}</span>`
@@ -167,11 +185,15 @@ function buildOptions(): Highcharts.Options {
 
 const chartOptions = ref<Highcharts.Options>(buildOptions());
 
-watch(measurementSystem, () => {
-  const nextOptions = buildOptions();
-  (nextOptions as { series: Array<{ data?: unknown }> }).series[0].data = seriesData.value;
-  chartOptions.value = nextOptions;
-});
+watch(
+  [measurementSystem, colorScheme],
+  () => {
+    const nextOptions = buildOptions();
+    (nextOptions as { series: Array<{ data?: unknown }> }).series[0].data = seriesData.value;
+    chartOptions.value = nextOptions;
+  },
+  { flush: 'post' }
+);
 
 // Feed data into the chart whenever the route changes.
 watch(
@@ -191,14 +213,18 @@ watch(
 
 <style scoped>
 .elev-profile {
+  --elevation-min-height: 5rem;
+  position: relative;
   display: flex;
   flex-direction: column;
-  flex: 1 1 auto;
-  min-height: 0;
+  flex: 1 0 var(--elevation-min-height);
+  min-height: var(--elevation-min-height);
+  min-width: 0;
 }
 .elev-profile__chart {
-  flex: 1 1 auto;
-  min-height: 5rem;
+  /* Keep the SVG's previous size from determining the next container size. */
+  position: absolute;
+  inset: 0;
 }
 .elev-profile--empty {
   font-size: var(--text-sm-size);

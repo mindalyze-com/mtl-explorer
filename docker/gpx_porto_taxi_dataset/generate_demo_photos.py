@@ -6,7 +6,7 @@ Usage:
     python3 generate_demo_photos.py \
         <gpx_dir> <media_output_dir> <num_photos> [eligible_track_count]
 
-- Scans <gpx_dir> for *.gpx files.
+- Validates packaged track metadata against <gpx_dir>; parses GPX on drift.
 - Generates a deterministic split of track-linked and standalone Porto photos.
 - Track-linked photos have capture times inside an eligible GPX track and are
   positioned no more than 25 m from its interpolated route position.
@@ -15,6 +15,8 @@ Usage:
 - Writes 1920x1440 JPEGs with GPS coordinates, DateTimeOriginal, and GPS time to
   <media_output_dir>/demo-photos/.
 - A versioned progress marker limits restart work and upgrades legacy photos.
+- The startup CLI defaults to four render workers (maximum six) and a deadline
+  capped at ten minutes.
 
 Dependencies (available in the Docker image):
     pip install Pillow piexif
@@ -24,15 +26,24 @@ from __future__ import annotations
 
 import glob
 import math
+import multiprocessing
 import os
 import random
+import signal
 import sys
+import time
 import xml.etree.ElementTree as ET
+from collections import deque
+from concurrent.futures import ProcessPoolExecutor
+from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from pathlib import Path
 
 from photo_placeholder import generate_placeholder_jpeg
+from demo_logging import get_logger
+
+log = get_logger("DemoPhotos")
 
 
 MAX_OFFSET_METERS = 25
@@ -49,6 +60,62 @@ MAX_SEGMENT_RATIO = 0.9
 ONE_SECOND = timedelta(seconds=1)
 STANDALONE_FALLBACK_OFFSET = timedelta(days=1)
 PHOTO_GENERATION_PROGRESS_INTERVAL = 50
+DEFAULT_PHOTO_COUNT = 200
+DEFAULT_WORKERS = 4
+MAX_WORKERS = 6
+TASKS_PER_WORKER = 2
+TIMEOUT_BASE_SECONDS = 60
+TIMEOUT_SECONDS_PER_PHOTO = 0.25
+MAX_TIMEOUT_SECONDS = 600
+DEFAULT_DEMO_ZIP = Path("/app/demo/porto_taxi_service_gpx_extract.zip")
+DEFAULT_TRACK_CATALOG = Path("/app/demo/demo-track-catalog.json.gz")
+
+
+class GenerationInterrupted(BaseException):
+    def __init__(self, signum: int):
+        self.signum = signum
+
+
+def interrupt_generation(signum, _frame) -> None:
+    signal.signal(signal.SIGTERM, signal.SIG_IGN)
+    signal.signal(signal.SIGINT, signal.SIG_IGN)
+    raise GenerationInterrupted(signum)
+
+
+def initialize_render_worker() -> None:
+    # Workers must terminate directly; only the coordinator owns pool cleanup.
+    for signum in (signal.SIGTERM, signal.SIGINT, signal.SIGALRM):
+        signal.signal(signum, signal.SIG_DFL)
+
+
+def configured_integer(name: str, value: str, default: int | None, *, minimum: int = 1,
+                       maximum: int | None = None) -> int | None:
+    try:
+        result = int(value)
+        if result < minimum:
+            raise ValueError(f"must be at least {minimum}")
+    except ValueError as exception:
+        default_description = "the calculated default" if default is None else str(default)
+        log.warning("%s: %s: %s; using %s.", name, type(exception).__name__, exception, default_description)
+        return default
+    if maximum is not None and result > maximum:
+        log.warning("%s=%s exceeds %s; using %s.", name, result, maximum, maximum)
+        return maximum
+    return result
+
+
+@contextmanager
+def generation_deadline(seconds: int):
+    def expired(_signum, _frame):
+        raise TimeoutError(f"Demo photo generation exceeded {seconds}s; resume on next startup")
+
+    previous_handler = signal.signal(signal.SIGALRM, expired)
+    signal.alarm(seconds)
+    try:
+        yield
+    finally:
+        signal.alarm(0)
+        signal.signal(signal.SIGALRM, previous_handler)
 
 
 @dataclass(frozen=True, slots=True)
@@ -101,6 +168,11 @@ def render_demo_photo(task: DemoPhotoRenderTask) -> int:
             jpeg_quality=DEMO_PHOTO_JPEG_QUALITY,
         )
         temporary_path.replace(task.output_path)
+    except Exception as exception:
+        log.error("Demo photo render failed: index=%s, file=%s, error=%s: %s.",
+                  task.photo_index, task.output_path.name, type(exception).__name__, exception,
+                  exc_info=True)
+        raise
     finally:
         temporary_path.unlink(missing_ok=True)
     return task.photo_index
@@ -125,12 +197,13 @@ def parse_track_point(track_point: ET.Element, namespace: str) -> TrackPoint | N
         return None
 
 
-def parse_gpx_track(gpx_path: str | Path) -> DemoTrack | None:
+def parse_gpx_track(gpx_path: str | Path, source=None) -> DemoTrack | None:
     """Read only the metadata needed to select timed segments from one GPX file."""
     path = Path(gpx_path)
     try:
-        tree = ET.parse(path)
-    except (ET.ParseError, OSError):
+        tree = ET.parse(path if source is None else source)
+    except (ET.ParseError, OSError) as exception:
+        log.warning("Rejected GPX %s: %s: %s", path.name, type(exception).__name__, exception)
         return None
     root = tree.getroot()
     namespace = gpx_namespace(root)
@@ -282,9 +355,12 @@ def is_track_linked_photo(photo_index: int) -> bool:
 
 
 def read_completed_index(progress_path: Path) -> int:
+    if not progress_path.exists():
+        return 0
     try:
         return max(0, int(progress_path.read_text(encoding="utf-8").strip()))
-    except (OSError, ValueError):
+    except (OSError, ValueError) as exception:
+        log.warning("Could not read photo progress: %s: %s", type(exception).__name__, exception)
         return 0
 
 
@@ -329,9 +405,22 @@ def generate_demo_photos(
     media_output_dir: str | Path,
     num_photos: int,
     eligible_track_count: int = 0,
+    *,
+    workers: int = 1,
+    catalog_path: Path = DEFAULT_TRACK_CATALOG,
+    zip_path: Path = DEFAULT_DEMO_ZIP,
+    timeout_seconds: int | None = None,
 ) -> tuple[int, int]:
+    if num_photos <= 0:
+        log.info("Demo photo generation disabled (count=0).")
+        return 0, 0
     output_dir = Path(media_output_dir) / "demo-photos"
     output_dir.mkdir(parents=True, exist_ok=True)
+    leftovers = list(output_dir.glob("demo_photo_*.jpg.part-*"))
+    for leftover in leftovers:
+        leftover.unlink(missing_ok=True)
+    if leftovers:
+        log.info("Removed %s unfinished demo photo temporary files.", len(leftovers))
 
     existing = set(output_dir.glob("demo_photo_*.jpg"))
     progress_path = output_dir / PROGRESS_FILE_NAME
@@ -341,8 +430,8 @@ def generate_demo_photos(
     for path in existing:
         try:
             existing_indices.add(int(path.stem.replace("demo_photo_", "")))
-        except ValueError:
-            pass
+        except ValueError as exception:
+            log.warning("Ignoring invalid demo photo name %s: %s: %s", path.name, type(exception).__name__, exception)
 
     missing_completed_indices = [
         index
@@ -353,13 +442,42 @@ def generate_demo_photos(
         range(completed_index + 1, num_photos + 1)
     )
     if not pending_indices:
-        print(
-            f"✅ Demo photos: format v{DEMO_PHOTO_FORMAT_VERSION}, "
-            f"{num_photos}/{num_photos} already exist."
-        )
+        log.info("Demo photos: format v%s, %s/%s already exist; skipping catalog loading and rendering.",
+                 DEMO_PHOTO_FORMAT_VERSION, num_photos, num_photos)
         return 0, 0
 
-    tracks = collect_tracks(gpx_dir)
+    calculated_timeout = min(MAX_TIMEOUT_SECONDS, TIMEOUT_BASE_SECONDS + math.ceil(
+        TIMEOUT_SECONDS_PER_PHOTO * len(pending_indices)))
+    deadline = calculated_timeout if timeout_seconds is None else timeout_seconds
+    started = time.monotonic()
+    log.info("Demo photo generation starting: target=%s, missing=%s, workers=%s, deadline=%ss.",
+             num_photos, len(pending_indices), workers, deadline)
+    log.info("Demo photo preparation invoked; generation may take a few minutes. Progress will be logged below.")
+    with generation_deadline(deadline):
+        result = generate_pending_photos(gpx_dir, output_dir, num_photos,
+                                        eligible_track_count, pending_indices,
+                                        completed_index, existing_indices,
+                                        workers, catalog_path, zip_path)
+    log.info("Demo photo generation completed in %.2fs; generated linked=%s, standalone=%s.",
+             time.monotonic() - started, result[0], result[1])
+    return result
+
+
+def generate_pending_photos(
+    gpx_dir: str | Path,
+    output_dir: Path,
+    num_photos: int,
+    eligible_track_count: int,
+    pending_indices: list[int],
+    completed_index: int,
+    existing_indices: set[int],
+    workers: int,
+    catalog_path: Path,
+    zip_path: Path,
+) -> tuple[int, int]:
+    # A lazy import keeps the catalog builder and the parser shared without a cycle.
+    from demo_track_catalog import load_tracks
+    tracks = load_tracks(Path(gpx_dir), catalog_path, zip_path)
     if not tracks:
         raise RuntimeError("No timed track points found in GPX files")
 
@@ -377,70 +495,111 @@ def generate_demo_photos(
 
     standalone_gaps = standalone_capture_gaps(tracks)
     latest_track_time = max(track.end for track in tracks)
-    print(
-        f"📷 Demo photos: generating {len(pending_indices)} labelled JPEG files "
-        f"(format v{DEMO_PHOTO_FORMAT_VERSION}, target: {num_photos}, "
-        f"eligible tracks: {len(eligible_tracks)}/{len(tracks)})…"
-    )
+    log.info("Rendering %s demo JPEGs: format=v%s, size=%sx%s, eligible tracks=%s/%s, queue limit=%s.",
+             len(pending_indices), DEMO_PHOTO_FORMAT_VERSION, DEMO_PHOTO_WIDTH, DEMO_PHOTO_HEIGHT,
+             len(eligible_tracks), len(tracks), workers * TASKS_PER_WORKER)
 
     linked_generated = 0
     standalone_generated = 0
-    highest_completed_index = completed_index
+    progress_path = output_dir / PROGRESS_FILE_NAME
+    confirmed_indices = {index for index in existing_indices if index <= completed_index}
+    contiguous_index = 0
+    while contiguous_index + 1 in confirmed_indices:
+        contiguous_index += 1
+    write_completed_index(progress_path, contiguous_index)
 
-    # Keep the catalog compact and render one photo at a time. The selected GPX
-    # segment is loaded on demand, so the Java server does not share its cgroup with
-    # hundreds of thousands of retained Python track-point and segment objects.
-    for generated_count, photo_index in enumerate(pending_indices, start=1):
-        task, linked = prepare_render_task(
-            photo_index,
-            output_dir,
-            eligible_tracks,
-            position_tracks,
-            standalone_gaps,
-            latest_track_time,
-        )
-        if linked:
-            linked_generated += 1
-        else:
-            standalone_generated += 1
+    def tasks():
+        for photo_index in pending_indices:
+            yield prepare_render_task(
+                photo_index, output_dir, eligible_tracks, position_tracks,
+                standalone_gaps, latest_track_time)
 
-        completed_index = render_demo_photo(task)
-        highest_completed_index = max(highest_completed_index, completed_index)
-        # Persist every atomically published photo. A restart can repeat at most
-        # the photo that completed immediately before this progress write.
-        write_completed_index(progress_path, highest_completed_index)
-        if (
-            generated_count % PHOTO_GENERATION_PROGRESS_INTERVAL == 0
-            or generated_count == len(pending_indices)
-        ):
-            print(f"   … generated {generated_count}/{len(pending_indices)}")
+    def rendered_tasks():
+        if workers == 1:
+            for task, linked in tasks():
+                yield render_demo_photo(task), linked
+            return
+        # Linux forkserver workers never inherit or receive the full track catalog.
+        executor = ProcessPoolExecutor(max_workers=workers,
+                                       mp_context=multiprocessing.get_context("forkserver"),
+                                       initializer=initialize_render_worker)
+        pending = deque()
+        completed = False
+        previous_children = set(multiprocessing.active_children())
+        try:
+            for task, linked in tasks():
+                pending.append((executor.submit(render_demo_photo, task), linked))
+                if len(pending) >= workers * TASKS_PER_WORKER:
+                    future, linked = pending.popleft()
+                    yield future.result(), linked
+            while pending:
+                future, linked = pending.popleft()
+                yield future.result(), linked
+            completed = True
+        finally:
+            if completed:
+                executor.shutdown(wait=True)
+            else:
+                # Python 3.14's public API also covers a stuck native image codec.
+                children = set(multiprocessing.active_children()) - previous_children
+                executor.kill_workers()
+                for child in children:
+                    child.join()
 
-    write_completed_index(progress_path, max(highest_completed_index, num_photos))
-    print(
-        f"✅ Done. Demo photos use format v{DEMO_PHOTO_FORMAT_VERSION} at "
-        f"{DEMO_PHOTO_WIDTH}×{DEMO_PHOTO_HEIGHT}; generated "
-        f"linked={linked_generated}, standalone={standalone_generated}."
-    )
+    results = rendered_tasks()
+    try:
+        for generated_count, (photo_index, linked) in enumerate(results, start=1):
+            if linked:
+                linked_generated += 1
+            else:
+                standalone_generated += 1
+            confirmed_indices.add(photo_index)
+            while contiguous_index + 1 in confirmed_indices:
+                contiguous_index += 1
+            write_completed_index(progress_path, contiguous_index)
+            if (generated_count % PHOTO_GENERATION_PROGRESS_INTERVAL == 0
+                    or generated_count == len(pending_indices)):
+                log.info("Photo progress: generated=%s/%s, contiguous completed index=%s, target=%s.",
+                         generated_count, len(pending_indices), contiguous_index, num_photos)
+    finally:
+        results.close()
     return linked_generated, standalone_generated
 
 
 def main() -> None:
     if len(sys.argv) not in (4, 5):
-        print(
-            f"Usage: {sys.argv[0]} "
-            "<gpx_dir> <media_output_dir> <num_photos> [eligible_track_count]"
-        )
+        log.error("Usage: %s <gpx_dir> <media_output_dir> <num_photos> [eligible_track_count]", sys.argv[0])
         sys.exit(1)
 
+    signal.signal(signal.SIGTERM, interrupt_generation)
+    signal.signal(signal.SIGINT, interrupt_generation)
+    photo_count = configured_integer("DEMO_PHOTO_COUNT", sys.argv[3], DEFAULT_PHOTO_COUNT,
+                                     minimum=0)
+    workers = configured_integer("DEMO_PHOTO_WORKERS", os.environ.get("DEMO_PHOTO_WORKERS", str(DEFAULT_WORKERS)),
+                                 DEFAULT_WORKERS, maximum=MAX_WORKERS)
+    eligible_count = configured_integer("DEMO_TARGET_TRACK_COUNT", sys.argv[4] if len(sys.argv) == 5 else "0",
+                                        0, minimum=0)
+    # Resolve the calculated default after determining missing photos.
+    timeout_value = os.environ.get("DEMO_PHOTO_GENERATION_TIMEOUT_SECONDS", "")
+    timeout_seconds = None
+    if timeout_value:
+        timeout_seconds = configured_integer("DEMO_PHOTO_GENERATION_TIMEOUT_SECONDS", timeout_value,
+                                              None, maximum=MAX_TIMEOUT_SECONDS)
     try:
         generate_demo_photos(
             sys.argv[1],
             sys.argv[2],
-            int(sys.argv[3]),
-            int(sys.argv[4]) if len(sys.argv) == 5 else 0,
+            photo_count,
+            eligible_count,
+            workers=workers,
+            timeout_seconds=timeout_seconds,
         )
-    except (RuntimeError, ValueError) as exception:
-        print(f"⚠️  Demo photos: {exception}.")
+    except GenerationInterrupted as exception:
+        log.info("Demo photo generation stopped by signal %s; workers reaped; resume on next startup.", exception.signum)
+        sys.exit(128 + exception.signum)
+    except Exception as exception:
+        log.warning("Demo photo generation failed: %s: %s; workers reaped; resume on next startup.",
+                    type(exception).__name__, exception)
         sys.exit(1)
 
 

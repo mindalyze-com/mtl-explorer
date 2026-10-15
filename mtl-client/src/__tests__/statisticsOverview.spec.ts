@@ -1,11 +1,14 @@
-import { enableAutoUnmount, mount } from '@vue/test-utils';
+import { enableAutoUnmount, mount, RouterLinkStub } from '@vue/test-utils';
 import { defineComponent, nextTick } from 'vue';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useMeasurementSystem } from '@/composables/useMeasurementSystem';
+import { useTheme } from '@/composables/useTheme';
+import { useLocale } from '@/composables/useLocale';
 
 const measurementPreference = useMeasurementSystem();
 enableAutoUnmount(afterEach);
 import StatisticsOverview from '@/components/statistics/StatisticsOverview.vue';
+import LatestActivityPreview from '@/components/statistics/LatestActivityPreview.vue';
 import { fetchStatisticsOverview, updateTrackStatisticsExclusion } from '@/utils/ServiceHelper';
 import {
   StatisticsExclusionUpdateRequestHighlightExclusionReasonEnum as ExclusionReasonEnum,
@@ -229,6 +232,7 @@ function mountOverview(
         },
       },
       stubs: {
+        RouterLink: RouterLinkStub,
         ActivityTypeBadge: ActivityTypeBadgeStub,
         Popover: popoverStub(toggle),
         Select: SelectStub,
@@ -240,10 +244,161 @@ function mountOverview(
 }
 
 describe('StatisticsOverview', () => {
+  it('localizes calendar-day labels while preserving ISO week identifiers', async () => {
+    const locale = useLocale();
+    const previousLocale = locale.formatLocale.value;
+    const day = {
+      periodType: 'day',
+      periodKey: '2022-01-16',
+      label: '2022-01-16',
+      trackCount: 1,
+      distanceM: 1000,
+      durationMs: 60_000,
+    };
+    const week = { ...day, periodType: 'week', periodKey: '2025-W03', label: '2025-W03' };
+    fetchStatisticsOverviewMock.mockResolvedValueOnce(overview({ activePeriods: [day, week] }));
+    const wrapper = mountOverview();
+    try {
+      locale.setLocale('en-GB');
+      await flush();
+      expect(wrapper.get('[data-test="active-period-day"] .period-row__subtitle').text()).toBe('16/01/2022');
+      expect(wrapper.get('[data-test="active-period-week"] .period-row__subtitle').text()).toBe('2025-W03');
+      locale.setLocale('de-DE');
+      await nextTick();
+      expect(wrapper.get('[data-test="active-period-day"] .period-row__subtitle').text()).toBe('16.01.2022');
+    } finally {
+      locale.setLocale(previousLocale);
+    }
+  });
   beforeEach(() => {
     measurementPreference.setMeasurementSystem('METRIC');
     fetchStatisticsOverviewMock.mockReset();
     updateTrackStatisticsExclusionMock.mockReset();
+  });
+
+  it('recolors the loaded activity donut without refetching or changing its slices', async () => {
+    const theme = useTheme();
+    theme.setScheme('light');
+    await flush();
+    const style = document.createElement('style');
+    style.textContent = `
+      :root { --chart-tooltip-bg: #ffffff; --chart-tooltip-text: #334155; --surface-glass-heavy: #ffffff; }
+      :root[data-theme="dark"] { --chart-tooltip-bg: #0f172a; --chart-tooltip-text: #e2e8f0; --surface-glass-heavy: #0f172a; }
+    `;
+    document.head.append(style);
+    fetchStatisticsOverviewMock.mockResolvedValue(overview());
+    const wrapper = mountOverview();
+    try {
+      await flush();
+      const options = () => wrapper.getComponent(HighchartsStub).props('options');
+      const slices = structuredClone(options().series[0].data);
+      const requestCount = fetchStatisticsOverviewMock.mock.calls.length;
+      for (const scheme of ['dark', 'light'] as const) {
+        theme.setScheme(scheme);
+        await flush();
+        const tokens = getComputedStyle(document.documentElement);
+        expect(options().tooltip.backgroundColor).toBe(tokens.getPropertyValue('--chart-tooltip-bg').trim());
+        expect(options().tooltip.style.color).toBe(tokens.getPropertyValue('--chart-tooltip-text').trim());
+        expect(options().plotOptions.pie.borderColor).toBe(tokens.getPropertyValue('--surface-glass-heavy').trim());
+        expect(options().series[0].data).toEqual(slices);
+      }
+      expect(fetchStatisticsOverviewMock).toHaveBeenCalledTimes(requestCount);
+    } finally {
+      wrapper.unmount();
+      style.remove();
+      theme.setScheme('light');
+      await flush();
+    }
+  });
+
+  it('keeps source review discoverable when every selected track is withheld', async () => {
+    fetchStatisticsOverviewMock.mockResolvedValueOnce(
+      overview({
+        summary: { trackCount: 0, distanceM: 0, durationMs: 0 },
+        exclusionSummary: { reviewWithheldTrackCount: 2, reviewPendingSourceCount: 1 },
+      })
+    );
+    const wrapper = mountOverview();
+    await flush();
+    const notice = wrapper.get('[data-test="review-withheld-notice"]');
+    expect(notice.text()).toContain('2 tracks in this selection are excluded');
+    expect(notice.text()).toContain('1 source file linked to these tracks has unresolved issues');
+    expect(notice.findComponent(RouterLinkStub).props('to')).toEqual({
+      name: 'review',
+      query: { state: 'NEEDS_REVIEW' },
+    });
+    expect(notice.findComponent(RouterLinkStub).text()).toBe('Review source files across the archive');
+  });
+
+  it('does not reconstruct estimated duration from dates in recent rows or latest activity', async () => {
+    fetchStatisticsOverviewMock.mockResolvedValue(
+      overview({
+        latestActivity: { trackId: 12 },
+        recentActivities: [
+          { trackId: 12, sortOrder: 1 },
+          { trackId: 11, sortOrder: 2 },
+        ],
+      })
+    );
+    const wrapper = mountOverview();
+    await wrapper.setProps({
+      tracks: wrapper.props('tracks').map((track) =>
+        track.id === 12
+          ? {
+              ...track,
+              timingUnreliable: true,
+              timingEstimated: true,
+              trackDurationInMotionSecs: undefined,
+              endDate: new Date('2035-06-01T00:00:00Z'),
+            }
+          : track
+      ),
+    });
+    await flush();
+    expect(wrapper.get('[data-test="recent-row-12"]').text()).toContain('Time unavailable');
+    const state = wrapper.emitted('latest-activity-change')?.at(-1)?.[0] as {
+      track: { trackId: number; displayName: string; durationMs: number | null; distanceM: number };
+      loading: boolean;
+      error: boolean;
+    };
+    expect(state.track.durationMs).toBeNull();
+    expect(state.track.distanceM).toBe(25_000);
+    expect(mount(LatestActivityPreview, { props: { state } }).text()).toContain('Time unavailable');
+    expect(wrapper.get('[data-test="recent-row-11"]').text()).not.toContain('Time unavailable');
+  });
+
+  it('publishes the server-selected latest activity and clears it while the filter refreshes', async () => {
+    fetchStatisticsOverviewMock.mockResolvedValueOnce(overview({ latestActivity: { trackId: 11 } }));
+    const wrapper = mountOverview();
+    await flush();
+    expect(wrapper.emitted('latest-activity-change')?.at(-1)).toEqual([
+      {
+        track: expect.objectContaining({
+          trackId: 11,
+          displayName: 'Filtered century',
+          distanceM: 100_000,
+          durationMs: 18_000_000,
+        }),
+        loading: false,
+        error: false,
+      },
+    ]);
+
+    let finishRefresh!: (value: StatisticsOverviewResponseDto) => void;
+    fetchStatisticsOverviewMock.mockImplementationOnce(
+      () => new Promise<StatisticsOverviewResponseDto>((resolve) => (finishRefresh = resolve))
+    );
+    await wrapper.setProps({ filterRevision: 1 });
+    await flush();
+    expect(wrapper.emitted('latest-activity-change')?.at(-1)).toEqual([{ track: null, loading: true, error: false }]);
+    finishRefresh(overview({ latestActivity: undefined }));
+    await flush();
+    expect(wrapper.emitted('latest-activity-change')?.at(-1)).toEqual([{ track: null, loading: false, error: false }]);
+
+    fetchStatisticsOverviewMock.mockRejectedValueOnce(new Error('Statistics unavailable'));
+    await wrapper.setProps({ retryRevision: 1 });
+    await flush();
+    expect(wrapper.emitted('latest-activity-change')?.at(-1)).toEqual([{ track: null, loading: false, error: true }]);
   });
 
   it('renders server-filtered overview counts instead of client or unfiltered counts', async () => {
@@ -268,7 +423,7 @@ describe('StatisticsOverview', () => {
     expect(wrapper.text()).not.toContain('99');
   });
 
-  it('shows one combined indexed-media count and opens Media trends', async () => {
+  it('shows one combined filtered-media count and opens Media trends', async () => {
     fetchStatisticsOverviewMock.mockResolvedValueOnce(overview());
 
     const wrapper = mountOverview(vi.fn(), 1_284, 1_200, 84);
@@ -279,9 +434,9 @@ describe('StatisticsOverview', () => {
     expect(mediaTile.text()).toContain('Media');
     expect(mediaTile.text()).not.toContain('Photos');
     expect(mediaTile.text()).not.toContain('Videos');
-    expect(mediaTile.attributes('aria-label')).toContain('1,284 indexed media items');
+    expect(mediaTile.attributes('aria-label')).toContain('1,284 filtered media items');
     expect(mediaTile.attributes('data-tooltip')).toBe(
-      '1,200 photos and 84 videos are indexed. Activity filters do not apply.'
+      '1,200 photos and 84 videos in the current media selection. The matching tracks define the time range.'
     );
 
     await mediaTile.trigger('click');
@@ -534,10 +689,10 @@ describe('StatisticsOverview', () => {
 
     await wrapper.find('[data-test="active-periods-info"]').trigger('click');
     expect(toggle).toHaveBeenCalledOnce();
-    expect(wrapper.find('[data-test="overview-info-text"]').text()).toContain('total moving time');
+    expect(wrapper.find('[data-test="overview-info-text"]').text()).toContain('the most moving time');
 
     await wrapper.find('[data-test="milestones-info"]').trigger('click');
     expect(toggle).toHaveBeenCalledTimes(2);
-    expect(wrapper.find('[data-test="overview-info-text"]').text()).toContain('active filter');
+    expect(wrapper.find('[data-test="overview-info-text"]').text()).toContain('current filter');
   });
 });

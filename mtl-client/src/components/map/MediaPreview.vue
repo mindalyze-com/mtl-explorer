@@ -2,7 +2,10 @@
   <div
     class="mp"
     :class="{
-      'mp--details-open': detailsVisible,
+      'mp--details-open': sidebarVisible,
+      'mp--filmstrip-open': showFilmstrip,
+      'mp--map-only': !detailsVisible && showMap,
+      'mp--controls-hidden': controlsHidden,
     }"
   >
     <div v-if="showInitialLoading" class="mp__loading">
@@ -43,7 +46,7 @@
             <span class="mp__error-title">Preview unavailable</span>
             <span class="mp__error-detail">{{ loadError }}</span>
             <div class="mp__error-actions">
-              <button class="mp__error-btn" type="button" @click.stop="retryLoad">
+              <button class="mp__error-btn mp__error-btn--primary" type="button" @click.stop="retryCurrentMedia">
                 <i class="bi bi-arrow-clockwise"></i>
                 Retry
               </button>
@@ -54,7 +57,14 @@
             </div>
           </div>
           <template v-else>
-            <div v-if="isZoomed" class="mp__tools" data-media-control aria-label="Media viewer controls">
+            <div
+              v-if="isZoomed"
+              class="mp__tools"
+              :inert="controlsHidden ? true : undefined"
+              :aria-hidden="controlsHidden ? 'true' : undefined"
+              data-media-control
+              aria-label="Media viewer controls"
+            >
               <button
                 type="button"
                 class="mp__tool-btn"
@@ -66,7 +76,14 @@
               </button>
             </div>
 
-            <div v-if="showNavigation" class="mp__nav-dock" data-media-control aria-label="Media navigation">
+            <div
+              v-if="showNavigation"
+              class="mp__nav-dock"
+              :inert="controlsHidden ? true : undefined"
+              :aria-hidden="controlsHidden ? 'true' : undefined"
+              data-media-control
+              aria-label="Media navigation"
+            >
               <button
                 type="button"
                 class="mp__nav-btn mp__nav-btn--previous"
@@ -125,12 +142,14 @@
 
         <MediaFilmstrip
           v-if="fileName || navTotal > 1"
+          v-show="showFilmstrip"
+          ref="filmstrip"
           :collection-label="collectionLabel"
           :file-name="fileName"
           :media-id="mediaId"
           :media-ids="mediaIds"
           :video-media-ids="videoMediaIds"
-          :current-media-is-video="isVideo"
+          :current-media-is-video="activeMediaId === mediaId && isVideo"
           :media-offset="mediaOffset"
           :nav-index="navIndex"
           :nav-total="navTotal"
@@ -140,117 +159,123 @@
         />
       </main>
 
-      <aside v-if="detailsVisible" class="mp__details" data-test="media-metadata" aria-labelledby="media-details-title">
-        <div class="mp__details-handle" aria-hidden="true"></div>
-        <header class="mp__details-header">
-          <div>
-            <h2 id="media-details-title">Details</h2>
-            <span>{{ isVideo ? 'Video' : 'Photo' }} {{ navIndex }} of {{ navTotal }}</span>
-          </div>
-          <button type="button" aria-label="Hide media details" @click="emit('update:detailsVisible', false)">
-            <i class="bi bi-chevron-down" aria-hidden="true"></i>
-          </button>
-        </header>
+      <aside v-if="sidebarVisible" class="mp__details" data-test="media-metadata" aria-label="Photo information">
+        <template v-if="detailsVisible">
+          <header class="mp__details-header">
+            <div>
+              <h2 id="media-details-title">Details</h2>
+              <span>{{ isVideo ? 'Video' : 'Photo' }} {{ navIndex }} of {{ navTotal }}</span>
+            </div>
+            <button type="button" aria-label="Hide media details" @click="emit('update:detailsVisible', false)">
+              Hide
+            </button>
+          </header>
 
-        <dl class="mp__details-list">
-          <div v-if="date" class="mp__details-row">
-            <dt><i class="bi bi-calendar3" aria-hidden="true"></i><span>Taken</span></dt>
-            <dd>
-              {{ date }}
-              <small v-if="captureTimeSource">{{ captureTimeSource }}</small>
-              <button
-                v-if="hasSavedCameraCorrection"
-                type="button"
-                class="mp__clear-correction"
-                :disabled="clearingTimeCorrection"
-                @pointerdown.stop
-                @pointerup.stop
-                @click.stop="clearTimeCorrection"
-              >
-                <i
-                  :class="clearingTimeCorrection ? 'bi bi-arrow-repeat mp__spin' : 'bi bi-arrow-counterclockwise'"
-                  aria-hidden="true"
-                ></i>
-                {{ clearingTimeCorrection ? 'Clearing…' : 'Clear clock correction' }}
-              </button>
-              <small v-if="timeCorrectionError" class="mp__details-error" role="alert">{{ timeCorrectionError }}</small>
-            </dd>
-          </div>
-          <div v-if="camera" class="mp__details-row">
-            <dt><i class="bi bi-camera" aria-hidden="true"></i><span>Source</span></dt>
-            <dd>{{ camera }}</dd>
-          </div>
-          <div v-if="fileSummary" class="mp__details-row" data-test="media-file-summary">
-            <dt><i class="bi bi-file-earmark" aria-hidden="true"></i><span>File</span></dt>
-            <dd>{{ fileSummary }}</dd>
-          </div>
-          <div v-if="positionSourceLabel" class="mp__details-row" data-test="media-position-source">
-            <dt><i :class="positionSourceIcon" aria-hidden="true"></i><span>Location</span></dt>
-            <dd>
-              {{ positionDetailLabel }}
-              <small v-if="positionAmbiguous">Multiple activities matched</small>
-            </dd>
-          </div>
-        </dl>
-
-        <details
-          v-if="hasMoreDetails"
-          :key="mediaId ?? undefined"
-          :open="moreDetailsOpen"
-          class="mp__more-details"
-          data-test="media-more-details"
-        >
-          <summary @click.prevent="moreDetailsOpen = !moreDetailsOpen">
-            <span><i class="bi bi-info-circle" aria-hidden="true"></i>More details</span>
-            <i class="bi bi-chevron-down mp__more-chevron" aria-hidden="true"></i>
-          </summary>
-          <dl class="mp__details-list mp__details-list--secondary">
-            <div v-if="fileName" class="mp__details-row">
-              <dt><i class="bi bi-file-earmark-text" aria-hidden="true"></i><span>Name</span></dt>
-              <dd class="mp__path">{{ fileName }}</dd>
+          <dl class="mp__details-list">
+            <div v-if="date" class="mp__details-row">
+              <dt><i class="bi bi-calendar3" aria-hidden="true"></i><span>Taken</span></dt>
+              <dd>
+                {{ date }}
+                <small v-if="captureTimeSource">{{ captureTimeSource }}</small>
+                <button
+                  v-if="hasSavedCameraCorrection"
+                  type="button"
+                  class="mp__clear-correction"
+                  :disabled="clearingTimeCorrection"
+                  @pointerdown.stop
+                  @pointerup.stop
+                  @click.stop="clearTimeCorrection"
+                >
+                  <i
+                    :class="clearingTimeCorrection ? 'bi bi-arrow-repeat mp__spin' : 'bi bi-arrow-counterclockwise'"
+                    aria-hidden="true"
+                  ></i>
+                  {{ clearingTimeCorrection ? 'Clearing…' : 'Clear clock correction' }}
+                </button>
+                <small v-if="timeCorrectionError" class="mp__details-error" role="alert">{{
+                  timeCorrectionError
+                }}</small>
+              </dd>
             </div>
-            <div v-if="!isVideo && dimensions" class="mp__details-row">
-              <dt><i class="bi bi-aspect-ratio" aria-hidden="true"></i><span>Dimensions</span></dt>
-              <dd>{{ dimensions }}</dd>
+            <div v-if="camera" class="mp__details-row">
+              <dt><i class="bi bi-camera" aria-hidden="true"></i><span>Source</span></dt>
+              <dd>{{ camera }}</dd>
             </div>
-            <div v-if="!isVideo && exposure" class="mp__details-row" data-test="media-photo-exposure">
-              <dt><i class="bi bi-brightness-high" aria-hidden="true"></i><span>Exposure</span></dt>
-              <dd>{{ exposure }}</dd>
+            <div v-if="fileSummary" class="mp__details-row" data-test="media-file-summary">
+              <dt><i class="bi bi-file-earmark" aria-hidden="true"></i><span>File</span></dt>
+              <dd>{{ fileSummary }}</dd>
             </div>
-            <div v-if="!isVideo && lens" class="mp__details-row">
-              <dt><i class="bi bi-camera2" aria-hidden="true"></i><span>Lens</span></dt>
-              <dd>{{ lens }}</dd>
-            </div>
-            <div v-if="isVideo && videoDetails" class="mp__details-row" data-test="media-video-details">
-              <dt><i class="bi bi-film" aria-hidden="true"></i><span>Video</span></dt>
-              <dd>{{ videoDetails }}</dd>
-            </div>
-            <div v-if="isVideo && codecs" class="mp__details-row">
-              <dt><i class="bi bi-badge-hd" aria-hidden="true"></i><span>Format</span></dt>
-              <dd>{{ codecs }}</dd>
-            </div>
-            <div v-if="coordinatesLabel" class="mp__details-row" data-test="media-coordinates">
-              <dt><i class="bi bi-crosshair" aria-hidden="true"></i><span>Coordinates</span></dt>
-              <dd class="mp__coordinates">{{ coordinatesLabel }}</dd>
-            </div>
-            <div v-if="gpsAltitude" class="mp__details-row">
-              <dt><i class="bi bi-triangle" aria-hidden="true"></i><span>GPS altitude</span></dt>
-              <dd>{{ gpsAltitude }}</dd>
-            </div>
-            <div v-if="modified" class="mp__details-row">
-              <dt><i class="bi bi-clock-history" aria-hidden="true"></i><span>Modified</span></dt>
-              <dd>{{ modified }}</dd>
-            </div>
-            <div v-if="filePath" class="mp__details-row">
-              <dt><i class="bi bi-folder2" aria-hidden="true"></i><span>Folder</span></dt>
-              <dd class="mp__path">{{ filePath }}</dd>
+            <div v-if="positionSourceLabel" class="mp__details-row" data-test="media-position-source">
+              <dt><i :class="positionSourceIcon" aria-hidden="true"></i><span>Location</span></dt>
+              <dd>
+                {{ positionDetailLabel }}
+                <small v-if="positionAmbiguous">Multiple activities matched</small>
+              </dd>
             </div>
           </dl>
-        </details>
 
-        <section v-if="positionCoordinates" class="mp__location-section" aria-labelledby="media-location-title">
-          <h3 id="media-location-title">Location</h3>
+          <details
+            v-if="hasMoreDetails"
+            :key="mediaId ?? undefined"
+            :open="moreDetailsOpen"
+            class="mp__more-details"
+            data-test="media-more-details"
+          >
+            <summary @click.prevent="moreDetailsOpen = !moreDetailsOpen">
+              <span><i class="bi bi-info-circle" aria-hidden="true"></i>More</span>
+              <i class="bi bi-chevron-down mp__more-chevron" aria-hidden="true"></i>
+            </summary>
+            <dl class="mp__details-list mp__details-list--secondary">
+              <div v-if="fileName" class="mp__details-row">
+                <dt><i class="bi bi-file-earmark-text" aria-hidden="true"></i><span>Name</span></dt>
+                <dd class="mp__path">{{ fileName }}</dd>
+              </div>
+              <div v-if="!isVideo && dimensions" class="mp__details-row">
+                <dt><i class="bi bi-aspect-ratio" aria-hidden="true"></i><span>Dimensions</span></dt>
+                <dd>{{ dimensions }}</dd>
+              </div>
+              <div v-if="!isVideo && exposure" class="mp__details-row" data-test="media-photo-exposure">
+                <dt><i class="bi bi-brightness-high" aria-hidden="true"></i><span>Exposure</span></dt>
+                <dd>{{ exposure }}</dd>
+              </div>
+              <div v-if="!isVideo && lens" class="mp__details-row">
+                <dt><i class="bi bi-camera2" aria-hidden="true"></i><span>Lens</span></dt>
+                <dd>{{ lens }}</dd>
+              </div>
+              <div v-if="isVideo && videoDetails" class="mp__details-row" data-test="media-video-details">
+                <dt><i class="bi bi-film" aria-hidden="true"></i><span>Video</span></dt>
+                <dd>{{ videoDetails }}</dd>
+              </div>
+              <div v-if="isVideo && codecs" class="mp__details-row">
+                <dt><i class="bi bi-badge-hd" aria-hidden="true"></i><span>Format</span></dt>
+                <dd>{{ codecs }}</dd>
+              </div>
+              <div v-if="coordinatesLabel" class="mp__details-row" data-test="media-coordinates">
+                <dt><i class="bi bi-crosshair" aria-hidden="true"></i><span>Coordinates</span></dt>
+                <dd class="mp__coordinates">{{ coordinatesLabel }}</dd>
+              </div>
+              <div v-if="gpsAltitude" class="mp__details-row">
+                <dt><i class="bi bi-triangle" aria-hidden="true"></i><span>GPS altitude</span></dt>
+                <dd>{{ gpsAltitude }}</dd>
+              </div>
+              <div v-if="modified" class="mp__details-row">
+                <dt><i class="bi bi-clock-history" aria-hidden="true"></i><span>Modified</span></dt>
+                <dd>{{ modified }}</dd>
+              </div>
+              <div v-if="filePath" class="mp__details-row">
+                <dt><i class="bi bi-folder2" aria-hidden="true"></i><span>Folder</span></dt>
+                <dd class="mp__path">{{ filePath }}</dd>
+              </div>
+            </dl>
+          </details>
+        </template>
+        <section v-if="showMap" class="mp__location-section" aria-labelledby="media-location-title">
+          <header class="mp__details-header">
+            <h3 id="media-location-title">Location</h3>
+            <button type="button" aria-label="Hide location map" @click="emit('update:mapVisible', false)">Hide</button>
+          </header>
           <MediaLocationMiniMap
+            v-if="positionCoordinates"
             :latitude="positionCoordinates.latitude"
             :longitude="positionCoordinates.longitude"
             :position-source="positionSource"
@@ -259,6 +284,7 @@
             :overview-bounds="overviewBounds"
           />
           <button
+            v-if="positionCoordinates"
             type="button"
             class="mp__open-map-btn"
             @pointerdown.stop
@@ -267,9 +293,11 @@
           >
             Open on main map
           </button>
+          <p v-if="!positionCoordinates" class="mp__location-unavailable">This media has no location.</p>
         </section>
 
         <a
+          v-if="detailsVisible"
           :href="downloadUrl"
           :download="fileName || `media-${mediaId}`"
           class="mp__download-btn"
@@ -284,13 +312,16 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { warnSanitized } from '@/utils/safeLogging';
+
+import { computed, inject, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import MediaFilmstrip from '@/components/map/MediaFilmstrip.vue';
 import CompatibleVideoPlayer from '@/components/map/CompatibleVideoPlayer.vue';
 import { useMediaPreview } from '@/components/map/useMediaPreview';
 import { useMediaViewport } from '@/components/map/useMediaViewport';
 import MediaLocationMiniMap from '@/components/map/MediaLocationMiniMap.vue';
 import { saveMediaTimeCorrections } from '@/repositories/mediaRepository';
+import { sheetControlsKey } from '@/components/ui/useImmersiveSheetControls';
 
 const props = withDefaults(
   defineProps<{
@@ -315,6 +346,8 @@ const props = withDefaults(
     trackCoordinates?: number[][];
     overviewBounds?: [[number, number], [number, number]] | null;
     detailsVisible?: boolean;
+    mapVisible?: boolean;
+    photosVisible?: boolean;
     takenAt?: Date | string | null;
     timeSource?: string | null;
     appliedCameraOffsetSeconds?: number | null;
@@ -340,6 +373,8 @@ const props = withDefaults(
     trackCoordinates: () => [],
     overviewBounds: null,
     detailsVisible: true,
+    mapVisible: undefined,
+    photosVisible: undefined,
     takenAt: null,
     timeSource: null,
     appliedCameraOffsetSeconds: null,
@@ -352,17 +387,23 @@ const emit = defineEmits<{
   select: [mediaId: number];
   'request-page': [direction: -1 | 1];
   'update:detailsVisible': [visible: boolean];
+  'update:mapVisible': [visible: boolean];
   'open-on-map': [];
   'time-correction-cleared': [mediaId: number];
 }>();
 
 const viewportEl = ref<HTMLElement | null>(null);
+const showMap = computed(() => props.mapVisible ?? (props.detailsVisible && Boolean(positionCoordinates.value)));
+const showFilmstrip = computed(() => props.photosVisible ?? props.detailsVisible);
+const sidebarVisible = computed(() => props.detailsVisible || showMap.value);
+const sheetControls = inject(sheetControlsKey, null);
+const controlsHidden = computed(() => sheetControls?.hidden.value ?? false);
 const imageEl = ref<HTMLImageElement | null>(null);
+const filmstrip = ref<InstanceType<typeof MediaFilmstrip> | null>(null);
 const moreDetailsOpen = ref(false);
 const clearingTimeCorrection = ref(false);
 const timeCorrectionCleared = ref(false);
 const timeCorrectionError = ref('');
-const videoMediaId = computed(() => props.mediaId ?? 0);
 const positionCoordinates = computed(() => {
   const latitude = props.positionLat;
   const longitude = props.positionLng;
@@ -416,6 +457,7 @@ const hasSavedCameraCorrection = computed(() => {
 });
 
 const {
+  activeMediaId,
   isSwapPending,
   isCrossFading,
   isHighResolutionPending,
@@ -449,6 +491,13 @@ const {
   onMediaError,
 } = useMediaPreview(props);
 
+const videoMediaId = computed(() => activeMediaId.value ?? 0);
+
+function retryCurrentMedia(): void {
+  retryLoad();
+  filmstrip.value?.retryThumbnail(props.mediaId);
+}
+
 async function clearTimeCorrection(): Promise<void> {
   const mediaId = props.mediaId;
   if (mediaId == null || clearingTimeCorrection.value || !hasSavedCameraCorrection.value) return;
@@ -459,7 +508,11 @@ async function clearTimeCorrection(): Promise<void> {
     timeCorrectionCleared.value = true;
     emit('time-correction-cleared', mediaId);
   } catch (error) {
-    console.warn('[media-preview] clock correction could not be cleared', { mediaId, error });
+    warnSanitized(
+      '[media-preview] clock correction could not be cleared',
+      { mediaId, error },
+      { topic1: 'media', topic2: 'MediaPreview', topic3: 'clearTimeCorrection' }
+    );
     timeCorrectionError.value = 'Clock correction could not be cleared. Try again.';
   } finally {
     clearingTimeCorrection.value = false;
@@ -517,7 +570,10 @@ const {
 });
 
 function isEditableTarget(target: EventTarget | null): boolean {
-  return target instanceof Element && Boolean(target.closest('input, textarea, select, [contenteditable="true"]'));
+  return (
+    target instanceof Element &&
+    Boolean(target.closest('input, textarea, select, [contenteditable="true"], .media-viewer-panel-menu[open]'))
+  );
 }
 
 function onKeyDown(event: KeyboardEvent): void {
@@ -717,9 +773,19 @@ onBeforeUnmount(() => {
   cursor: pointer;
 }
 
-.mp__error-btn:hover {
+.mp__error-btn:not(.mp__error-btn--primary):hover {
   border-color: var(--accent);
   color: var(--accent);
+}
+
+.mp__error-btn--primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-contrast);
+}
+
+.mp__error-btn--primary:hover:not(:disabled) {
+  background: var(--accent-hover);
 }
 
 /* Back layer: old image dissolving out */
@@ -917,10 +983,6 @@ onBeforeUnmount(() => {
   -webkit-overflow-scrolling: touch;
 }
 
-.mp__details-handle {
-  display: none;
-}
-
 .mp__details-header {
   display: flex;
   align-items: center;
@@ -943,16 +1005,17 @@ onBeforeUnmount(() => {
 }
 
 .mp__details-header button {
-  display: none;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 42px;
-  height: 42px;
-  padding: 0;
+  min-height: 2rem;
+  padding: 0.25rem 0.65rem;
   color: var(--mp-text);
   background: var(--mp-control-bg);
   border: 1px solid var(--mp-border-strong);
-  border-radius: 999px;
+  border-radius: 8px;
+  font: inherit;
+  font-size: var(--text-xs-size);
   cursor: pointer;
 }
 
@@ -1155,6 +1218,9 @@ onBeforeUnmount(() => {
 }
 
 @media (min-width: 769px) {
+  :global(.sheet.media-viewer-sheet.sheet--immersive) .mp__details {
+    padding-top: calc(56px + 1rem);
+  }
   .mp__location-section {
     margin-top: auto;
   }
@@ -1176,7 +1242,6 @@ onBeforeUnmount(() => {
   font-weight: 500;
 }
 
-:global(.media-preview-details-toggle),
 :global(.media-viewer-theme-toggle) {
   display: inline-flex;
   align-items: center;
@@ -1199,23 +1264,19 @@ onBeforeUnmount(() => {
   padding-inline: 0;
 }
 
-:global(.media-preview-details-toggle:hover),
 :global(.media-viewer-theme-toggle:hover) {
   color: var(--mp-text-strong);
   background: var(--mp-control-hover);
   border-color: var(--mp-border-emphasis);
 }
 
-:global(.media-preview-details-toggle:focus-visible),
-:global(.media-viewer-theme-toggle:focus-visible) {
-  outline: 2px solid var(--accent);
+:global(.media-viewer-theme-toggle:focus-visible),
+:global(.sheet.media-viewer-sheet .sheet-back-btn:focus-visible),
+:global(.sheet.media-viewer-sheet .sheet-fullscreen-btn:focus-visible),
+:global(.sheet.media-viewer-sheet .sheet-native-fullscreen-btn:focus-visible),
+:global(.sheet.media-viewer-sheet .sheet-close-btn:focus-visible) {
+  outline: 2px solid var(--mp-link, var(--accent));
   outline-offset: 2px;
-}
-
-:global(.media-preview-details-toggle[aria-pressed='true']) {
-  color: var(--mp-text-strong);
-  background: var(--mp-control-active);
-  border-color: var(--mp-border-emphasis);
 }
 
 :global(.sheet.media-viewer-sheet) {
@@ -1273,15 +1334,29 @@ onBeforeUnmount(() => {
 }
 
 :global(.sheet.media-viewer-sheet .sheet-drag-zone) {
+  grid-template-rows: auto auto;
   color: var(--mp-text);
   background: var(--mp-surface);
   border-bottom: 1px solid var(--mp-border);
+}
+
+:global(.sheet.media-viewer-sheet .sheet-handle-zone) {
+  grid-row: 1;
+  padding: 0.45rem 0 0.3rem;
+}
+:global(.sheet.media-viewer-sheet .sheet-header) {
+  grid-row: 2;
 }
 
 :global(.sheet.media-viewer-sheet .sheet-handle) {
   background: var(--mp-text-muted);
 }
 
+:global(.sheet.media-viewer-sheet .sheet-title) {
+  color: var(--mp-text-strong);
+}
+
+:global(.sheet.media-viewer-sheet .sheet-back-btn),
 :global(.sheet.media-viewer-sheet .sheet-fullscreen-btn),
 :global(.sheet.media-viewer-sheet .sheet-native-fullscreen-btn),
 :global(.sheet.media-viewer-sheet .sheet-close-btn) {
@@ -1290,6 +1365,7 @@ onBeforeUnmount(() => {
   border-color: var(--mp-border-strong);
 }
 
+:global(.sheet.media-viewer-sheet .sheet-back-btn:hover),
 :global(.sheet.media-viewer-sheet .sheet-fullscreen-btn:hover),
 :global(.sheet.media-viewer-sheet .sheet-native-fullscreen-btn:hover),
 :global(.sheet.media-viewer-sheet .sheet-close-btn:hover) {
@@ -1298,7 +1374,7 @@ onBeforeUnmount(() => {
   border-color: var(--mp-border-emphasis);
 }
 
-:global(.sheet.media-viewer-sheet.sheet--fullscreen),
+:global(.sheet.media-viewer-sheet.sheet--fullscreen:not(.sheet--shared-layout)),
 :global(.sheet.media-viewer-sheet.sheet--native-fullscreen) {
   left: 0 !important;
   right: 0 !important;
@@ -1317,27 +1393,86 @@ onBeforeUnmount(() => {
   }
 
   :global(.sheet.media-viewer-sheet .sheet-header) {
-    flex-wrap: wrap;
-    row-gap: 0.35rem;
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 0.25rem;
   }
 
   :global(.sheet.media-viewer-sheet .sheet-header-content) {
-    flex: 1 0 100%;
+    grid-column: 2 / 5;
+    grid-row: 1;
+  }
+  :global(.sheet.media-viewer-sheet .sheet-header:not(:has(.sheet-back-btn)) .sheet-header-content) {
+    grid-column: 1 / 5;
+  }
+
+  :global(.sheet.media-viewer-sheet .sheet-back-btn) {
+    grid-column: 1;
+    grid-row: 1;
   }
 
   :global(.sheet.media-viewer-sheet .sheet-window-actions) {
-    width: 100%;
-    justify-content: flex-end;
+    display: contents;
+  }
+
+  :global(.sheet.media-viewer-sheet .media-viewer-view-toggle) {
+    grid-column: 1 / 3;
+    grid-row: 2;
+    justify-self: start;
+  }
+
+  :global(.sheet.media-viewer-sheet .media-viewer-theme-toggle) {
+    grid-column: 5;
+    grid-row: 1;
+  }
+
+  :global(.sheet.media-viewer-sheet .sheet-close-btn) {
+    grid-column: 6;
+    grid-row: 1;
+  }
+
+  :global(.sheet.media-viewer-sheet .sheet-fullscreen-btn) {
+    grid-column: 3 / 5;
+    grid-row: 2;
+    justify-self: start;
+  }
+
+  :global(.sheet.media-viewer-sheet .sheet-native-fullscreen-btn) {
+    grid-column: 5 / 7;
+    grid-row: 2;
+    justify-self: end;
+  }
+
+  :global(.sheet.media-viewer-sheet .sheet-labeled-size-btn) {
+    min-height: 44px;
+    padding-inline: 0.45rem;
+    max-width: 100%;
+    white-space: normal;
+  }
+
+  :global(.media-preview-sheet-title) {
+    flex-wrap: wrap;
+    white-space: normal;
   }
 
   .mp__layout {
-    position: relative;
-    display: block;
-    height: 100%;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(120px, 1fr) minmax(0, 1.2fr);
+  }
+
+  .mp.mp--filmstrip-open .mp__layout {
+    grid-template-rows: minmax(120px, 1fr) auto minmax(0, 1.2fr);
   }
 
   .mp__main {
-    height: 100%;
+    display: contents;
+  }
+
+  .mp:not(.mp--details-open) .mp__layout {
+    grid-template-rows: minmax(0, 1fr);
+  }
+  .mp.mp--filmstrip-open:not(.mp--details-open) .mp__layout {
+    grid-template-rows: minmax(0, 1fr) auto;
   }
 
   .mp__nav-dock {
@@ -1364,27 +1499,10 @@ onBeforeUnmount(() => {
   }
 
   .mp__details {
-    position: absolute;
-    z-index: 5;
-    top: clamp(7rem, 26%, 13rem);
-    right: 0;
-    bottom: 0;
-    left: 0;
     padding: 0.6rem 1rem max(1.25rem, env(safe-area-inset-bottom, 0px));
     background: var(--mp-surface);
     border-top: 1px solid var(--mp-border);
     border-left: 0;
-    border-radius: 1.25rem 1.25rem 0 0;
-    box-shadow: var(--mp-panel-shadow);
-  }
-
-  .mp__details-handle {
-    display: block;
-    width: 3rem;
-    height: 0.25rem;
-    margin: 0 auto 0.75rem;
-    background: var(--mp-text-muted);
-    border-radius: 999px;
   }
 
   .mp__details-header {
@@ -1398,6 +1516,9 @@ onBeforeUnmount(() => {
   .mp__details-header span,
   .mp__details-header button {
     display: flex;
+  }
+  .mp__details-header button {
+    min-height: 44px;
   }
 
   .mp__details-row {
@@ -1418,31 +1539,43 @@ onBeforeUnmount(() => {
     margin-bottom: 0.5rem;
   }
 
-  :global(.sheet.media-viewer-sheet .sheet-fullscreen-btn) {
-    display: none;
-  }
-
-  :global(.media-preview-details-toggle) {
-    width: 2.75rem;
-    min-height: 2.75rem;
-    padding: 0;
-  }
-
-  :global(.media-preview-details-toggle span) {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    padding: 0;
-    margin: -1px;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-    white-space: nowrap;
-    border: 0;
-  }
-
   :global(.media-viewer-theme-toggle) {
     width: 2.75rem;
     min-height: 2.75rem;
+  }
+}
+
+.mp__nav-dock,
+.mp__tools {
+  transition: opacity 0.2s ease;
+}
+
+.mp--map-only .mp__location-section {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  margin-top: 0;
+}
+.mp--map-only .mp__location-section :deep(.media-location-map) {
+  flex: 1;
+  min-height: 160px;
+  height: auto;
+}
+.mp__location-unavailable {
+  color: var(--mp-text-muted);
+  font-size: var(--text-sm-size);
+}
+
+.mp--controls-hidden .mp__nav-dock,
+.mp--controls-hidden .mp__tools {
+  opacity: 0;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mp__nav-dock,
+  .mp__tools {
+    transition: none;
   }
 }
 

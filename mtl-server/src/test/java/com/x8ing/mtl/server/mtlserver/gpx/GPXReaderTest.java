@@ -1,67 +1,90 @@
 package com.x8ing.mtl.server.mtlserver.gpx;
 
-import com.x8ing.mtl.server.mtlserver.MtlServerApplication;
 import com.x8ing.mtl.server.mtlserver.db.entity.gps.GpsTrack;
 import com.x8ing.mtl.server.mtlserver.db.entity.indexer.IndexedFile;
-import jakarta.transaction.Transactional;
-import lombok.extern.slf4j.Slf4j;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Disabled;
-import org.junit.jupiter.api.Test;
+import com.x8ing.mtl.server.mtlserver.db.repository.indexer.IndexerRepository;
+import com.x8ing.mtl.server.mtlserver.jobs.media.indexer.MediaIndexerService;
+import com.x8ing.mtl.server.mtlserver.testsupport.NoScheduledJobs;
+import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.annotation.Rollback;
+import org.springframework.context.annotation.Import;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.List;
+import java.time.Instant;
+import java.util.Date;
+import java.util.Locale;
 
-@SpringBootTest(classes = MtlServerApplication.class)
-@Slf4j
+import static org.assertj.core.api.Assertions.assertThat;
+
+/**
+ * Read a synthetic file through the real importer and persist each geometry variant.
+ */
+@SpringBootTest
+@Import(NoScheduledJobs.class)
+@Transactional
 class GPXReaderTest {
+    private static final int POINT_COUNT = 200;
+    private static final Instant START = Instant.parse("2020-01-01T10:00:00Z");
 
+    @TempDir
+    Path directory;
     @Autowired
-    private GPXStoreService GPXStoreService;
+    GPXStoreService store;
+    @Autowired
+    IndexerRepository files;
+    @Autowired
+    JdbcTemplate jdbc;
+    @MockitoBean
+    GPXDirectoryWatcherService watcher;
+    @MockitoBean
+    MediaIndexerService mediaIndexer;
 
-    @Test()
-    @Disabled // TODO some time ;-)
-    @Transactional
-    @Rollback(false)
-    void importGpxFile() {
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void importGpxFilePreservesRawAndPersistsObservedGeometry(boolean includeOutlier) throws Exception {
+        StringBuilder xml = new StringBuilder("""
+                <gpx version="1.1" creator="MTL Explorer synthetic test" xmlns="http://www.topografix.com/GPX/1/1">
+                <trk><name>Synthetic import</name><trkseg>
+                """);
+        for (int i = 0; i < POINT_COUNT; i++) {
+            double longitude = includeOutlier && i == POINT_COUNT / 2 ? 10 : 8 + i * 0.0001;
+            xml.append(String.format(Locale.ROOT,
+                    "<trkpt lat=\"47\" lon=\"%.6f\"><ele>500</ele><time>%s</time></trkpt>",
+                    longitude, START.plusSeconds(i * 5L)));
+        }
+        xml.append("</trkseg></trk></gpx>");
+        Path source = Files.writeString(directory.resolve("synthetic-import.gpx"), xml);
+        IndexedFile file = new IndexedFile();
+        file.setIndex("GPS");
+        file.setName(source.getFileName().toString());
+        file.setPath(directory.toString());
+        file.setFullPath(source.toString());
+        file.setSize(Files.size(source));
+        file.setLastModifiedDate(new Date());
+        files.saveAndFlush(file);
 
+        var results = store.readAndSave(file);
 
-        // test duplicate
-        GpsTrack gpsTrack1 = readAndSave("2011-09-24 1244.gpx");
-        Assertions.assertEquals(false, gpsTrack1.getDidFilterOutlierByDistance());
-        GpsTrack gpsTrack1Duplicate = readAndSave("2011-09-24 1244_simplified.gpx");
-
-
-        GpsTrack gpsTrack2 = readAndSave("2011-03-09 1933.gpx");
-        Assertions.assertEquals(false, gpsTrack2.getDidFilterOutlierByDistance());
-
-        GpsTrack gpsTrack3 = readAndSave("19_04_2012 19_43.gpx");
-        Assertions.assertEquals(false, gpsTrack3.getDidFilterOutlierByDistance());
-
-        GpsTrack gpsTrack4 = readAndSave("17_03_2012 12_02.gpx");
-        Assertions.assertEquals(false, gpsTrack4.getDidFilterOutlierByDistance());
-
-        GpsTrack gpsTrack5 = readAndSave("2018-12-13_12-40-56_Walking.tcx.gpx");
-        Assertions.assertEquals(false, gpsTrack5.getDidFilterOutlierByDistance());
-
-        // test outlier
-        GpsTrack outlier1 = readAndSave("Uetli20100715_Outlier.gpx");
-        Assertions.assertEquals(true, outlier1.getDidFilterOutlierByDistance());
-
-
+        assertThat(results).hasSize(1);
+        var result = results.getFirst();
+        assertThat(result.gpsTrack.getLoadStatus()).isEqualTo(GpsTrack.LOAD_STATUS.SUCCESS);
+        assertThat(result.gpsTrack.getDidFilterOutlierByDistance()).isEqualTo(includeOutlier);
+        assertThat(result.trackRAW.getNumPoints()).isEqualTo(POINT_COUNT);
+        assertThat(result.trackCleaned.getNumPoints()).isEqualTo(POINT_COUNT - (includeOutlier ? 1 : 0));
+        assertThat(result.gpsTrack.getTrackLengthInMeter()).isBetween(1_400d, 1_800d);
+        assertThat(jdbc.queryForObject("""
+                SELECT ST_NPoints(track) FROM gps_track_data WHERE gps_track_id=? AND track_type='RAW'
+                """, Integer.class, result.gpsTrack.getId())).isEqualTo(POINT_COUNT);
+        assertThat(jdbc.queryForObject("""
+                SELECT bool_and(observed_path IS NOT NULL AND NOT ST_IsEmpty(observed_path))
+                FROM gps_track_data WHERE gps_track_id=?
+                """, Boolean.class, result.gpsTrack.getId())).isTrue();
     }
-
-    private GpsTrack readAndSave(String file) {
-
-        Path directory = Paths.get("src/test/java/com/x8ing/mtl/server/mtlserver/gpx/resource");
-        IndexedFile f = new IndexedFile();
-        f.setFullPath(directory.toString());
-        List<GPXReader.LoadResult> results = GPXStoreService.readAndSave(f);
-        return results.isEmpty() ? null : results.get(0).gpsTrack;
-    }
-
 }

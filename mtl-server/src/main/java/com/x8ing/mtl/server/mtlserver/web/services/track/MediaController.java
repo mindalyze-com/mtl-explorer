@@ -4,14 +4,7 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.x8ing.mtl.server.mtlserver.db.entity.media.MediaFile;
 import com.x8ing.mtl.server.mtlserver.db.entity.media.MediaPointDTO;
 import com.x8ing.mtl.server.mtlserver.db.repository.media.MediaRepository;
-import com.x8ing.mtl.server.mtlserver.web.services.track.entity.ManualMediaLocationRequest;
-import com.x8ing.mtl.server.mtlserver.web.services.track.entity.MediaDetailsDto;
-import com.x8ing.mtl.server.mtlserver.web.services.track.entity.MediaTrendItemPageDto;
-import com.x8ing.mtl.server.mtlserver.web.services.track.entity.MediaTrendItemsRequest;
-import com.x8ing.mtl.server.mtlserver.web.services.track.entity.MediaTrendRequest;
-import com.x8ing.mtl.server.mtlserver.web.services.track.entity.MediaTrendResponseDto;
-import com.x8ing.mtl.server.mtlserver.web.services.track.entity.MediaTimeCorrectionRequest;
-import com.x8ing.mtl.server.mtlserver.web.services.track.entity.TrackMediaPageDto;
+import com.x8ing.mtl.server.mtlserver.web.services.track.entity.*;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -31,13 +24,12 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.io.IOException;
 import java.net.MalformedURLException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/media")
@@ -47,7 +39,7 @@ import java.util.stream.Collectors;
         "mediaPositionService",
         "mediaTrendService",
         "videoThumbnailService",
-        "mediaProcessLimiter"
+        "imagePreviewService"
 })
 public class MediaController {
 
@@ -55,15 +47,14 @@ public class MediaController {
 
     private static final int MEDIA_CONTENT_CACHE_HOURS = 1;
     private static final long EMPTY_MEDIA_FILE_SIZE_BYTES = 0L;
-    private static final String IMAGE_MAGICK_COMMAND = "convert";
-    private static final String IMAGE_MAGICK_QUALITY = "92";
+    private static final int MEDIA_BUSY_RETRY_AFTER_SECONDS = 1;
 
     private final MediaRepository mediaRepository;
     private final TrackMediaService trackMediaService;
     private final MediaPositionService mediaPositionService;
     private final MediaTrendService mediaTrendService;
     private final VideoThumbnailService videoThumbnailService;
-    private final MediaProcessLimiter mediaProcessLimiter;
+    private final ImagePreviewService imagePreviewService;
 
     public MediaController(
             MediaRepository mediaRepository,
@@ -71,13 +62,13 @@ public class MediaController {
             MediaPositionService mediaPositionService,
             MediaTrendService mediaTrendService,
             VideoThumbnailService videoThumbnailService,
-            MediaProcessLimiter mediaProcessLimiter) {
+            ImagePreviewService imagePreviewService) {
         this.mediaRepository = mediaRepository;
         this.trackMediaService = trackMediaService;
         this.mediaPositionService = mediaPositionService;
         this.mediaTrendService = mediaTrendService;
         this.videoThumbnailService = videoThumbnailService;
-        this.mediaProcessLimiter = mediaProcessLimiter;
+        this.imagePreviewService = imagePreviewService;
     }
 
     @RequestMapping("/get-media-with-location-info")
@@ -112,23 +103,15 @@ public class MediaController {
         return MediaDetailsDto.from(media);
     }
 
-    @RequestMapping("/get-media-in-bounds")
-    public ResponseEntity<List<MediaPointDTO>> getMediaInBounds(
-            @RequestParam("minLat") double minLat,
-            @RequestParam("minLng") double minLng,
-            @RequestParam("maxLat") double maxLat,
-            @RequestParam("maxLng") double maxLng) {
-        List<Object[]> raw = mediaRepository.findMediaInBoundsRaw(minLat, minLng, maxLat, maxLng);
-        List<MediaPointDTO> points = raw.stream()
-                .map(row -> new MediaPointDTO(
-                        ((Number) row[0]).longValue(),
-                        ((Number) row[1]).doubleValue(),
-                        ((Number) row[2]).doubleValue()))
-                .collect(Collectors.toList());
-
+    @Operation(operationId = "getFilteredMediaInBounds", summary = "Get media map points in the matching tracks' time range",
+            description = "Uses the earliest valid start and latest valid end of the supplied matching tracks. " +
+                          "Both scopes exclude undated media. Track related also requires a selected track link.")
+    @PostMapping(value = "/get-media-in-bounds", consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<List<MediaPointDTO>> getFilteredMediaInBounds(@RequestBody MediaBoundsRequest request) {
         return ResponseEntity.ok()
                 .cacheControl(CacheControl.noStore())
-                .body(points);
+                .body(mediaTrendService.getInBounds(request));
     }
 
     @Operation(
@@ -161,7 +144,7 @@ public class MediaController {
     @Operation(
             operationId = "getMediaTrends",
             summary = "Get media counts grouped by capture time",
-            description = "Returns filter-aware matched activity media or all indexed media as separate image and video counts. " +
+            description = "Returns image and video counts within the matching tracks' earliest valid start and latest valid end. Both scopes require track IDs and exclude undated media. " +
                           "Effective capture time uses EXIF GPS time first, then offset-adjusted EXIF capture time.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Media trend buckets"),
@@ -237,6 +220,8 @@ public class MediaController {
     public ResponseEntity<?> getContent(
             @PathVariable(value = "id") Long id,
             @RequestParam(name = "maxSize", required = false) Integer maxSize,
+            @Parameter(description = "Download the unchanged source file; ignores preview resizing and format negotiation")
+            @RequestParam(name = "original", defaultValue = "false") boolean original,
             @RequestHeader(value = HttpHeaders.RANGE, required = false) String rangeHeader,
             @RequestHeader(value = HttpHeaders.ACCEPT, required = false) String acceptHeader,
             WebRequest webRequest,
@@ -256,11 +241,13 @@ public class MediaController {
         String lowerName = fileName != null ? fileName.toLowerCase() : "";
         boolean isHeic = lowerName.endsWith(".heic") || lowerName.endsWith(".heif");
         boolean isVideo = lowerName.matches(".*\\.(mp4|mov|m4v|3gp|avi|mkv)$");
-        boolean needsHeicConversion = isHeic && !browserAcceptsHeic(acceptHeader);
+        if (original) maxSize = null;
+        boolean needsHeicConversion = !original && isHeic && !browserAcceptsHeic(acceptHeader);
         boolean needsVideoThumbnail = isVideo && maxSize != null && maxSize > 0;
         String responseVariant = needsHeicConversion
-                ? "converted-jpeg"
-                : needsVideoThumbnail ? "video-poster-jpeg" : "original";
+                ? "converted-jpeg-v3"
+                : needsVideoThumbnail ? "video-poster-jpeg"
+                : !isVideo && maxSize != null && maxSize > 0 ? "resized-image-v3" : "original";
         String eTag = buildMediaEtag(id, fileSize, lastModifiedMillis, responseVariant, maxSize);
 
         if ((rangeHeader == null || rangeHeader.isBlank()) && webRequest.checkNotModified(eTag, lastModifiedMillis)) {
@@ -269,6 +256,21 @@ public class MediaController {
                     .eTag(eTag)
                     .lastModified(lastModifiedMillis)
                     .build();
+        }
+
+        if (original) {
+            String contentType = resolveContentType(mediaPath, lowerName, isHeic);
+            ResponseEntity<?> source = isVideo
+                    ? serveVideo(mediaPath, fileSize, contentType, rangeHeader, eTag, lastModifiedMillis)
+                    : serveImage(mediaPath, contentType, eTag, lastModifiedMillis);
+            HttpHeaders headers = new HttpHeaders();
+            headers.putAll(source.getHeaders());
+            headers.setContentDisposition(ContentDisposition.attachment()
+                    .filename(mediaPath.getFileName().toString(), StandardCharsets.UTF_8).build());
+            if (!isVideo) headers.setContentLength(fileSize);
+            log.info("Original media download: serving {} ({} bytes, status={})",
+                    fileName, fileSize, source.getStatusCode().value());
+            return new ResponseEntity<>(source.getBody(), headers, source.getStatusCode());
         }
 
         if (needsHeicConversion) {
@@ -301,11 +303,11 @@ public class MediaController {
     private void serveHeicAsJpeg(Path mediaPath, String fileName, Integer maxSize,
                                  String eTag, long lastModifiedMillis,
                                  HttpServletResponse response) {
-        log.info("HEIC conversion: starting ImageMagick convert for {} (maxSize={})", fileName, maxSize);
+        log.info("HEIC conversion: starting preview for {} (maxSize={})", fileName, maxSize);
         long t0 = System.currentTimeMillis();
 
         streamGeneratedImageProcessOutput(
-                imageMagickProcess(mediaPath, maxSize, "jpeg"),
+                mediaPath, maxSize,
                 response,
                 MediaType.IMAGE_JPEG_VALUE,
                 eTag,
@@ -313,13 +315,13 @@ public class MediaController {
         log.info("HEIC conversion: finished {} in {}ms", fileName, System.currentTimeMillis() - t0);
     }
 
-    // ── Image resizing via ImageMagick ─────────────────────────────────────
+    // ── Image resizing ─────────────────────────────────────
 
     @SneakyThrows
     private void serveResizedImage(Path mediaPath, String fileName, String contentType, int maxSize,
                                    String eTag, long lastModifiedMillis,
                                    HttpServletResponse response) {
-        log.debug("Image resize: starting ImageMagick convert for {} (maxSize={})", fileName, maxSize);
+        log.info("Image resize: starting preview for {} (maxSize={})", fileName, maxSize);
         long t0 = System.currentTimeMillis();
 
         // Determine output format from content type
@@ -327,7 +329,7 @@ public class MediaController {
         String outputMediaType = outputFormat.equals("png") ? MediaType.IMAGE_PNG_VALUE : MediaType.IMAGE_JPEG_VALUE;
 
         streamGeneratedImageProcessOutput(
-                imageMagickProcess(mediaPath, maxSize, outputFormat),
+                mediaPath, maxSize,
                 response,
                 outputMediaType,
                 eTag,
@@ -352,18 +354,6 @@ public class MediaController {
         log.info("Video thumbnail: generated {} in {}ms", fileName, System.currentTimeMillis() - t0);
     }
 
-    private static ProcessBuilder imageMagickProcess(Path mediaPath, Integer maxSize, String outputFormat) {
-        List<String> command = new ArrayList<>(List.of(
-                IMAGE_MAGICK_COMMAND,
-                mediaPath.toAbsolutePath().toString()));
-        if (maxSize != null && maxSize > 0) {
-            // ">" suffix = only shrink, never enlarge
-            command.addAll(List.of("-resize", maxSize + "x" + maxSize + ">"));
-        }
-        command.addAll(List.of("-quality", IMAGE_MAGICK_QUALITY, outputFormat + ":-"));
-        return new ProcessBuilder(command);
-    }
-
     private static void prepareGeneratedImageResponse(HttpServletResponse response,
                                                       String contentType,
                                                       String eTag,
@@ -375,32 +365,36 @@ public class MediaController {
         response.setHeader(HttpHeaders.CACHE_CONTROL, mediaContentCacheControl().getHeaderValue());
     }
 
-    private void streamGeneratedImageProcessOutput(ProcessBuilder processBuilder,
+    private void streamGeneratedImageProcessOutput(Path mediaPath, Integer maxSize,
                                                    HttpServletResponse response,
                                                    String contentType,
                                                    String eTag,
                                                    long lastModifiedMillis) throws IOException {
-        processBuilder.redirectError(ProcessBuilder.Redirect.DISCARD);
-        Process proc;
-        try {
-            proc = mediaProcessLimiter.start(processBuilder);
+        // Finish and validate conversion before committing cacheable HTTP headers.
+        // Spool to disk so large previews do not occupy the Java heap.
+        try (ImagePreviewService.Preview preview = imagePreviewService.create(mediaPath, maxSize, contentType)) {
+            GeneratedImageOutput generated = preview.output();
+            prepareGeneratedImageResponse(response, contentType, eTag, lastModifiedMillis);
+            response.setHeader(ImagePreviewService.PROCESSOR_HEADER, preview.processor());
+            if (preview.fallbackReason() != null) {
+                response.setHeader(ImagePreviewService.FALLBACK_HEADER, preview.fallbackReason());
+            }
+            response.setContentLengthLong(Files.size(generated.path()));
+            Files.copy(generated.path(), response.getOutputStream());
+            response.getOutputStream().flush();
         } catch (MediaProcessLimiter.MediaProcessBusyException e) {
+            log.warn("Image conversion could not start: {}: {}", e.getClass().getSimpleName(), e.getMessage());
             prepareGeneratedImageErrorResponse(response);
+            response.setHeader(HttpHeaders.RETRY_AFTER, Integer.toString(MEDIA_BUSY_RETRY_AFTER_SECONDS));
             throw new ResponseStatusException(
                     HttpStatus.SERVICE_UNAVAILABLE,
                     "Media processing is busy. Try again shortly.",
                     e);
         } catch (IOException | RuntimeException e) {
-            prepareGeneratedImageErrorResponse(response);
+            log.warn("Image response failed: {}: {}", e.getClass().getSimpleName(), e.getMessage());
+            log.debug("Image response failure", e);
+            if (!response.isCommitted()) prepareGeneratedImageErrorResponse(response);
             throw e;
-        }
-        prepareGeneratedImageResponse(response, contentType, eTag, lastModifiedMillis);
-        try (var in = proc.getInputStream();
-             var out = response.getOutputStream()) {
-            in.transferTo(out);
-            out.flush();
-        } finally {
-            proc.destroyForcibly();
         }
     }
 

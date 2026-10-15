@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.10.xsd">
+
+    <changeSet id="20260904_3_google_health_summary_indexes" author="codex">
+        <comment>Compute exact Google Health record summaries from compact covering indexes.</comment>
+        <sql splitStatements="false"><![CDATA[
+            CREATE INDEX idx_google_health_heart_rate_summary
+                ON google_health.heart_rate_sample (connection_id);
+            CREATE INDEX idx_google_health_data_point_type_summary
+                ON google_health.data_point (connection_id, data_type, representation)
+                INCLUDE (physical_start_time, civil_date);
+        ]]></sql>
+        <rollback>
+            DROP INDEX google_health.idx_google_health_data_point_type_summary;
+            DROP INDEX google_health.idx_google_health_heart_rate_summary;
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

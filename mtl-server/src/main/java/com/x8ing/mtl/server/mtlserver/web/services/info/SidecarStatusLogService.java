@@ -1,8 +1,6 @@
 package com.x8ing.mtl.server.mtlserver.web.services.info;
 
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
-import tools.jackson.core.JacksonException;
-import tools.jackson.databind.ObjectMapper;
 import com.x8ing.mtl.server.mtlserver.db.entity.logs.SystemLog;
 import com.x8ing.mtl.server.mtlserver.db.repository.logs.SystemLogService;
 import com.x8ing.mtl.server.mtlserver.planner.dto.BRouterStatusDto;
@@ -14,6 +12,8 @@ import com.x8ing.mtl.server.mtlserver.web.services.map.MapServerStatusService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -62,17 +62,17 @@ public class SidecarStatusLogService {
     )
     public void logSidecarStatus() {
         Map<String, Object> snapshot = new LinkedHashMap<>();
-        snapshot.put("map", safeStatus(mapServerStatusService::getStatus));
-        snapshot.put("locationSearch", safeStatus(locationSearchService::getStatus));
+        snapshot.put("map", safeStatus("map", mapServerStatusService::getStatus));
+        snapshot.put("locationSearch", safeStatus("locationSearch", locationSearchService::getStatus));
         plannerStatusService.ifPresent(statusService ->
-                snapshot.put("brouter", safeStatus(statusService::fetchStatus)));
+                snapshot.put("brouter", safeStatus("brouter", statusService::fetchStatus)));
 
         try {
             String compactJson = objectMapper.writeValueAsString(snapshot);
             String detail = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(snapshot);
             log.info("{}: {}", LOG_MESSAGE, compactJson);
             logReadableVersionInfo(snapshot);
-            systemLogService.saveLog(SystemLog.TOPIC1.SERVER, SYSLOG_TOPIC2, null, LOG_MESSAGE, detail);
+            systemLogService.saveLog(SystemLog.Severity.INFO, "SERVER", SYSLOG_TOPIC2, null, LOG_MESSAGE, detail);
         } catch (JacksonException e) {
             log.warn("Could not serialize sidecar status snapshot: {}", e.getMessage());
         } catch (Exception e) {
@@ -80,10 +80,14 @@ public class SidecarStatusLogService {
         }
     }
 
-    private static Object safeStatus(Supplier<?> supplier) {
+    private Object safeStatus(String sidecar, Supplier<?> supplier) {
         try {
             return supplier.get();
         } catch (Exception e) {
+            log.warn("Sidecar status unavailable: sidecar={}, type={}, message={}", sidecar, e.getClass().getSimpleName(), e.getMessage());
+            log.debug("Sidecar status exception: sidecar={}", sidecar, e);
+            systemLogService.saveLog(SystemLog.Severity.WARN, "SERVER", SYSLOG_TOPIC2, sidecar,
+                    "Sidecar status unavailable", null, e);
             return Map.of(
                     "available", false,
                     "reason", e.getMessage() == null ? "unavailable" : e.getMessage()

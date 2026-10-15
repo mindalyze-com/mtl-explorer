@@ -67,8 +67,10 @@ class SegmentDownloader:
         self._validation_warnings: list[str] = []
         self._lock = threading.Lock()
 
-    def start(self) -> None:
-        threading.Thread(target=self._worker, name="segment-downloader", daemon=True).start()
+    def start(self) -> threading.Thread:
+        worker = threading.Thread(target=self._worker, name="segment-downloader", daemon=True)
+        worker.start()
+        return worker
 
     # ── Public API ───────────────────────────────────────────────────
 

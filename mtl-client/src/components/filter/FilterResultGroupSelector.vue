@@ -32,9 +32,9 @@
       </button>
     </div>
 
-    <label v-if="allRows.length > SEARCH_THRESHOLD" class="result-group-selector__search">
+    <label v-if="allRows.length > 0" class="result-group-selector__search">
       <i class="bi bi-search"></i>
-      <input v-model="search" type="search" placeholder="Search categories" />
+      <input v-model="search" type="search" aria-label="Search categories" placeholder="Search categories" />
     </label>
 
     <template v-if="numericBandsEnabled">
@@ -96,12 +96,16 @@
         </span>
         <span class="result-group-selector__count">{{ groupRow.count }}</span>
       </label>
-      <p v-if="filteredRows.length === 0" class="result-group-selector__empty">No categories match the search.</p>
+    </div>
+    <div v-if="filteredRows.length === 0 && search.trim()" class="empty-placeholder" role="status">
+      <span>No categories match “{{ search }}”.</span>
+      <Button label="Clear search" text @click="search = ''" />
     </div>
   </section>
 </template>
 
 <script setup lang="ts">
+import Button from 'primevue/button';
 import { computed, defineComponent, h, ref, type PropType } from 'vue';
 import type { FilterInfo } from 'x8ing-mtl-api-typescript-fetch/dist/esm/models/FilterInfo';
 import type { FilterResultGroupKey } from 'x8ing-mtl-api-typescript-fetch/dist/esm/models/FilterResultGroupKey';
@@ -129,8 +133,6 @@ import {
   unavailableSelectedResultGroups,
   updateResultGroupSelection,
 } from '@/utils/resultGroupSelection';
-
-const SEARCH_THRESHOLD = 12;
 
 type GroupRowData = {
   id: string;
@@ -408,7 +410,7 @@ const GroupRow = defineComponent({
 
 .result-group-selector__actions button {
   display: inline-flex;
-  min-height: 2.25rem;
+  min-height: 2.75rem;
   align-items: center;
   gap: 0.4rem;
   padding: 0.35rem 0.55rem;
@@ -445,7 +447,7 @@ const GroupRow = defineComponent({
 
 .result-group-selector__search input {
   width: 100%;
-  min-height: 2.25rem;
+  min-height: 2.75rem;
   border: 0;
   outline: 0;
   background: transparent;
@@ -453,8 +455,6 @@ const GroupRow = defineComponent({
 }
 
 .result-group-selector__list {
-  max-height: min(24rem, 46vh);
-  overflow-y: auto;
   border-top: 1px solid var(--border-subtle, var(--border-default));
 }
 
@@ -533,6 +533,16 @@ const GroupRow = defineComponent({
 @keyframes result-group-spin {
   to {
     transform: rotate(360deg);
+  }
+}
+.result-group-selector__search:focus-within {
+  outline: 2px solid var(--focus-ring, var(--accent));
+  outline-offset: 1px;
+}
+
+@media (max-width: 600px) {
+  .result-group-selector__search input {
+    font-size: max(1rem, var(--text-sm-size));
   }
 }
 </style>

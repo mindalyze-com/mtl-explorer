@@ -35,17 +35,33 @@
           </div>
 
           <dl class="about-build" aria-label="Build information">
-            <div>
-              <dt>Version</dt>
-              <dd>{{ version }}</dd>
+            <div v-if="releaseVersion" class="about-build__release">
+              <dt>Deployment release</dt>
+              <dd>{{ releaseVersion }}</dd>
             </div>
-            <div>
-              <dt>Build</dt>
+            <div class="about-build__identity">
+              <dt>Client image version</dt>
+              <dd><BuildVersionInfo :version="version" :revision="gitRevision" /></dd>
+            </div>
+            <div v-if="serverImageVersion">
+              <dt>Server image version</dt>
+              <dd>{{ serverImageVersion }}</dd>
+            </div>
+            <div class="about-build__client-built">
+              <dt>Client built</dt>
               <dd>{{ buildInfo }}</dd>
             </div>
           </dl>
 
           <div class="about-overview__actions">
+            <a class="about-action" :href="APP_GUIDE_URL" target="_blank" rel="opener">
+              <i class="bi bi-book" aria-hidden="true" />
+              User guide
+            </a>
+            <button v-if="isAuthenticated()" type="button" class="about-action" @click="openSystemInformation">
+              <i class="bi bi-info-circle" aria-hidden="true" />
+              All component versions
+            </button>
             <a
               class="about-action about-action--primary about-overview__source"
               :href="sourceUrl"
@@ -260,9 +276,13 @@ import { useRouter } from 'vue-router';
 import AttributionTab from '@/components/admin/AttributionTab.vue';
 import logoMark from '@/assets/logo/logo3/mtl_logo_3_only_vector.svg';
 import BottomSheet from '@/components/ui/BottomSheet.vue';
+import BuildVersionInfo from '@/components/ui/BuildVersionInfo.vue';
 import { getDemoStatus } from '@/utils/ServiceHelper';
 import { APP_CONTACT_EMAIL, APP_SOURCE_URL } from '@/utils/appBranding';
+import { APP_GUIDE_URL } from '@/utils/documentation';
 import { isAuthenticated } from '@/utils/auth';
+import { useReleaseUpdatesStore } from '@/stores/releaseUpdatesStore';
+import { formatClientBuildTime, formatClientImageVersion } from '@/utils/clientBuildInfo';
 
 defineOptions({ name: 'AboutView' });
 
@@ -279,19 +299,17 @@ const props = withDefaults(
 
 const emit = defineEmits<{
   (event: 'closed'): void;
+  (event: 'show-system-information'): void;
 }>();
 
-// Release images inject their immutable image identity. Local builds use Vite's
-// package version and build timestamp so the values remain precise in dev.
-const version = computed<string>(
-  () =>
-    (import.meta.env.VITE_APP_VERSION as string) ||
-    (typeof __APP_PKG_VERSION__ !== 'undefined' ? __APP_PKG_VERSION__ : 'unknown')
-);
-const buildInfo = computed<string>(
-  () =>
-    (import.meta.env.VITE_APP_BUILD as string) || (typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : 'unknown')
-);
+// Release images inject their immutable image identity; local builds report
+// "Development" and are told apart by their build timestamp.
+const updates = useReleaseUpdatesStore();
+const releaseVersion = computed(() => updates.status?.installedReleaseVersion);
+const serverImageVersion = computed(() => updates.status?.installedBuildId);
+const version = computed(formatClientImageVersion);
+const buildInfo = computed(formatClientBuildTime);
+const gitRevision = computed(() => import.meta.env.VITE_APP_REVISION as string | undefined);
 const sourceUrl = APP_SOURCE_URL;
 const contactEmail = APP_CONTACT_EMAIL;
 const isDemoMode = ref(false);
@@ -318,6 +336,14 @@ function leaveAbout() {
     return;
   }
   void router.push({ name: isAuthenticated() ? 'home' : 'login' });
+}
+
+function openSystemInformation() {
+  if (props.embedded) {
+    emit('show-system-information');
+  } else {
+    void router.push({ name: 'admin', params: { section: 'system' } });
+  }
 }
 </script>
 
@@ -418,15 +444,21 @@ function leaveAbout() {
   border-block: 1px solid var(--border-default);
 }
 
-.about-build div {
+.about-build > div {
   min-width: 0;
   padding: 0.35rem 0.75rem;
   border-left: 1px solid var(--border-default);
 }
 
-.about-build div:first-child {
+.about-build > .about-build__identity,
+.about-build > .about-build__client-built,
+.about-build > .about-build__release {
   padding-left: 0;
   border-left: 0;
+}
+
+.about-build > .about-build__release {
+  grid-column: 1 / -1;
 }
 
 .about-build dt {
@@ -747,8 +779,17 @@ function leaveAbout() {
   }
 
   .about-build {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: minmax(0, 1fr);
     margin-top: 0.7rem;
+  }
+
+  .about-build > div {
+    padding-inline: 0;
+    border-left: 0;
+  }
+
+  .about-build > div + div {
+    border-top: 1px solid var(--border-default);
   }
 
   .about-reference {

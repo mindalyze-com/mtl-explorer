@@ -1,101 +1,57 @@
-import axios from 'axios';
+import { clientLogger, type ClientLogMetadata } from '@/utils/clientLogger';
+import { isAbortLikeError } from '@/utils/errors';
 
-const REDACTED = '<redacted>';
-const MAX_DEPTH = 4;
-const JWT_PATTERN = /\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b/g;
-const BEARER_PATTERN = /\bBearer\s+[A-Za-z0-9._~+/=-]+/gi;
-const SENSITIVE_ASSIGNMENT_PATTERN =
-  /\b(authorization|cookie|password|passwd|token|secret|jwt|lat|lng|lon|longitude|latitude|coord|geometry|filename|fileName)=([^&\s]+)/gi;
-const SENSITIVE_KEY_PARTS = [
-  'authorization',
-  'cookie',
-  'password',
-  'passwd',
-  'token',
-  'secret',
-  'jwt',
-  'lat',
-  'lng',
-  'lon',
-  'coord',
-  'filename',
-  'fileName',
-  'trackName',
-  'trackDescription',
-  'filterName',
-  'search',
-];
+export { sanitizeForLog } from '@/utils/logSanitizer';
+export { clientLogger, type ClientLogMetadata } from '@/utils/clientLogger';
 
-export function sanitizeForLog(value: unknown, depth = 0, seen = new WeakSet<object>()): unknown {
-  if (typeof value === 'string') {
-    return sanitizeStringForLog(value);
+function metadata(context: unknown): ClientLogMetadata {
+  try {
+    if (context && typeof context === 'object') {
+      const value = context as ClientLogMetadata;
+      // Preserve existing helper context arguments as well as the standard event metadata.
+      return { ...value, context: value.context ?? context };
+    }
+    return { context };
+  } catch {
+    return {};
   }
-  if (value == null || typeof value !== 'object') {
-    return value;
-  }
-  if (seen.has(value)) {
-    return '[Circular]';
-  }
-  if (depth >= MAX_DEPTH) {
-    return '[Object]';
-  }
-  seen.add(value);
-
-  if (axios.isAxiosError(value)) {
-    return {
-      name: value.name,
-      message: value.message,
-      code: value.code,
-      status: value.response?.status,
-      statusText: value.response?.statusText,
-      method: value.config?.method,
-      url: sanitizeForLog(value.config?.url),
-    };
-  }
-
-  if (value instanceof Error) {
-    return {
-      name: value.name,
-      message: value.message,
-    };
-  }
-
-  if (Array.isArray(value)) {
-    return value.map((entry) => sanitizeForLog(entry, depth + 1, seen));
-  }
-
-  return Object.fromEntries(
-    Object.entries(value as Record<string, unknown>).map(([key, entry]) => [
-      key,
-      isSensitiveKey(key) ? REDACTED : sanitizeForLog(entry, depth + 1, seen),
-    ])
-  );
 }
 
-export function logSanitizedError(message: string, error: unknown, context?: unknown): void {
-  if (context === undefined) {
-    console.error(message, sanitizeForLog(error));
+export function logSanitizedError(message: string, error?: unknown, context?: unknown): void {
+  clientLogger.error(message, error, metadata(context));
+}
+
+export function warnSanitized(message: string, error?: unknown, context?: unknown): void {
+  clientLogger.warn(message, error, metadata(context));
+}
+
+export function warnRequestFailure(message: string, error?: unknown, context?: unknown): void {
+  try {
+    const status =
+      error && typeof error === 'object' ? (error as { response?: { status?: number } }).response?.status : undefined;
+    if (isAbortLikeError(error) || status === 401 || status === 403) return;
+  } catch {
+    // Unusual error shapes are handled by the central logger.
+  }
+  if (error instanceof SyntaxError) {
+    // JSON decoders can include response contents in the error's message and stack header.
+    const frames = error.stack
+      ?.split('\n')
+      .filter(
+        (line) => /^\s+at .*(?:\(.+\)|:\d+(?::\d+)?)\s*$/.test(line) || /^[^\s]*@[^\s]+:\d+(?::\d+)?\s*$/.test(line)
+      );
+    const fields = metadata(context);
+    warnSanitized(message, error, {
+      ...fields,
+      detail: 'The response could not be decoded',
+      stackTrace:
+        fields.stackTrace !== undefined
+          ? fields.stackTrace
+          : frames?.length
+            ? `SyntaxError: <redacted response detail>\n${frames.join('\n')}`
+            : null,
+    });
     return;
   }
-  console.error(message, sanitizeForLog(error), sanitizeForLog(context));
-}
-
-export function warnSanitized(message: string, error: unknown, context?: unknown): void {
-  if (context === undefined) {
-    console.warn(message, sanitizeForLog(error));
-    return;
-  }
-  console.warn(message, sanitizeForLog(error), sanitizeForLog(context));
-}
-
-function isSensitiveKey(key: string): boolean {
-  const normalized = key.toLowerCase();
-  return SENSITIVE_KEY_PARTS.some((part) => normalized.includes(part.toLowerCase()));
-}
-
-function sanitizeStringForLog(value: string): string {
-  return value
-    .replace(BEARER_PATTERN, `Bearer ${REDACTED}`)
-    .replace(JWT_PATTERN, REDACTED)
-    .replace(SENSITIVE_ASSIGNMENT_PATTERN, (_match, key: string) => `${key}=${REDACTED}`);
+  warnSanitized(message, error, context);
 }

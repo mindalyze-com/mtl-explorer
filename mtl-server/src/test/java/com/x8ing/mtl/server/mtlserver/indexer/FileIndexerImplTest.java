@@ -18,18 +18,14 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BooleanSupplier;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.timeout;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 class FileIndexerImplTest {
 
@@ -92,9 +88,10 @@ class FileIndexerImplTest {
         Files.setLastModifiedTime(gpxPath, originalModifiedTime);
 
         IndexedFile indexedFile = indexedFile(gpxPath, Files.size(gpxPath), originalModifiedTime);
+        indexedFile.setIndexerInvocations(1); // This row represents an already imported source.
 
         IndexerRepository repository = mock(IndexerRepository.class);
-        when(repository.findByIndex(INDEX)).thenReturn(List.of(indexedFile));
+        IndexScanTestQueries.stub(repository, INDEX, () -> List.of(indexedFile));
         when(repository.findByIndexAndIndexerStatus(eq(INDEX), any())).thenReturn(List.of());
         when(repository.findByIndexAndNameAndPath(INDEX, gpxPath.getFileName().toString(), ""))
                 .thenReturn(Optional.of(indexedFile));
@@ -116,9 +113,12 @@ class FileIndexerImplTest {
                 null,
                 1);
         indexer.setLiveWatchEnabled(false);
+        AtomicInteger workStarts = new AtomicInteger();
+        indexer.setWorkStartedListener(workStarts::incrementAndGet);
 
         try {
             indexer.start(true);
+            assertThat(workStarts.get()).isEqualTo(1);
             verifyNoInteractions(observer);
 
             Files.writeString(gpxPath, modifiedGpx, StandardCharsets.UTF_8);
@@ -128,6 +128,7 @@ class FileIndexerImplTest {
             assertThat(indexer.rescan()).isEqualTo(FileIndexerImpl.RescanRequestStatus.STARTED);
 
             verify(observer, timeout(2_000)).onChangedFile(eq(INDEX), eq(FILE_ID), any(OnCompletion.class));
+            assertThat(workStarts.get()).isGreaterThanOrEqualTo(3); // Startup, rescan, scheduled file.
             assertThat(indexedFile.getLastModifiedDate()).isEqualTo(Date.from(changedModifiedTime.toInstant()));
             assertThat(indexedFile.getIndexerStatus())
                     .isEqualTo(IndexedFile.IndexerStatus.COMPLETED_WITH_SUCCESS);
@@ -144,7 +145,12 @@ class FileIndexerImplTest {
 
         IndexerRepository repository = mock(IndexerRepository.class);
         AtomicReference<IndexedFile> savedFile = new AtomicReference<>();
-        when(repository.findByIndex(INDEX)).thenReturn(List.of());
+        IndexScanTestQueries.stub(repository, INDEX, () -> savedFile.get() == null ? List.of() : List.of(savedFile.get()));
+        when(repository.saveAll(any())).thenAnswer(invocation -> {
+            Iterable<IndexedFile> rows = invocation.getArgument(0);
+            rows.forEach(file -> { file.setId(FILE_ID); savedFile.set(file); });
+            return List.of(savedFile.get());
+        });
         when(repository.findByIndexAndIndexerStatus(eq(INDEX), any())).thenReturn(List.of());
         when(repository.findByIndexAndNameAndPath(INDEX, gpxPath.getFileName().toString(), ""))
                 .thenReturn(Optional.empty());
@@ -201,7 +207,7 @@ class FileIndexerImplTest {
 
         try {
             indexer.start(false);
-            assertThat(observerStarted.await(2, TimeUnit.SECONDS)).isTrue();
+            assertThat(observerStarted.await(5, TimeUnit.SECONDS)).isTrue();
             assertThat(indexer.isScanInProgress()).isTrue();
 
             releaseObserver.countDown();

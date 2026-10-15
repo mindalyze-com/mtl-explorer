@@ -42,15 +42,13 @@ public class MapServerProperties {
     public static final String REMOTE_RASTER_STYLE_LIGHT_TOPO = "light-topo";
     public static final String REMOTE_RASTER_STYLE_DARK = "dark";
 
+    private static final String OSM_STANDARD_TILE_URL = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
     private static final String OSM_ATTRIBUTION =
             "© <a href=\"https://www.openstreetmap.org/copyright\">OpenStreetMap</a> contributors";
     private static final String OPENTOPOMAP_ATTRIBUTION =
             "Map data: © <a href=\"https://www.openstreetmap.org/copyright\">OpenStreetMap</a> contributors, SRTM | " +
-                    "Map style: © <a href=\"https://opentopomap.org\">OpenTopoMap</a> " +
-                    "(<a href=\"https://creativecommons.org/licenses/by-sa/3.0/\">CC-BY-SA</a>)";
-    private static final String CARTO_ATTRIBUTION =
-            "© <a href=\"https://www.openstreetmap.org/copyright\">OpenStreetMap</a> contributors " +
-                    "© <a href=\"https://carto.com/attributions\">CARTO</a>";
+            "Map style: © <a href=\"https://opentopomap.org\">OpenTopoMap</a> " +
+            "(<a href=\"https://creativecommons.org/licenses/by-sa/3.0/\">CC-BY-SA</a>)";
 
     /**
      * Full URL to the map-server status endpoint, e.g. http://map-server:8081/status
@@ -141,7 +139,7 @@ public class MapServerProperties {
      * <ul>
      *   <li>{@code light}: regular remote raster map, defaulting to OSM Standard.</li>
      *   <li>{@code light-topo}: topographic remote raster map, defaulting to OpenTopoMap.</li>
-     *   <li>{@code dark}: dark remote raster map, defaulting to CARTO Dark Matter.</li>
+     *   <li>{@code dark}: OSM Standard with a client-side dark raster palette by default.</li>
      * </ul>
      *
      * <p>The {@code grayscale} UI theme intentionally derives from {@code light}
@@ -149,10 +147,10 @@ public class MapServerProperties {
      * fourth provider URL.
      *
      * <p>To use another provider, override both {@code url} and
-     * {@code attribution} for the relevant style. For example, Simon's remote
-     * raster setup can keep OSM Standard for {@code light}, use OpenTopoMap for
-     * {@code light-topo}, and use CARTO Dark Matter for {@code dark}; each entry
-     * must carry the attribution required by that provider. If a deployment
+     * {@code attribution} for the relevant style. Custom dark providers keep
+     * their native palette; the OSM dark conversion applies only to the default
+     * OSM Standard URL. Supply any API key required by a custom provider in its
+     * URL template. Each entry must carry that provider's attribution. If a deployment
      * points a style at a custom provider but leaves the attribution wrong or
      * blank, that deployment owns the incorrect attribution.
      *
@@ -228,13 +226,13 @@ public class MapServerProperties {
         Map<String, RemoteRasterStyleProperties> styles = new LinkedHashMap<>();
         styles.put(
                 REMOTE_RASTER_STYLE_LIGHT,
-                remoteRasterStyle("https://tile.openstreetmap.org/{z}/{x}/{y}.png", OSM_ATTRIBUTION));
+                remoteRasterStyle(OSM_STANDARD_TILE_URL, OSM_ATTRIBUTION));
         styles.put(
                 REMOTE_RASTER_STYLE_LIGHT_TOPO,
                 remoteRasterStyle("https://tile.opentopomap.org/{z}/{x}/{y}.png", OPENTOPOMAP_ATTRIBUTION));
         styles.put(
                 REMOTE_RASTER_STYLE_DARK,
-                remoteRasterStyle("https://basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png", CARTO_ATTRIBUTION));
+                remoteRasterStyle(OSM_STANDARD_TILE_URL, OSM_ATTRIBUTION));
         return styles;
     }
 

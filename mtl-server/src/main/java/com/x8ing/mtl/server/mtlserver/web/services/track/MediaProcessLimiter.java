@@ -8,7 +8,9 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-/** Keeps high-memory ImageMagick, FFprobe, and FFmpeg child processes from overlapping. */
+/**
+ * Keeps libvips, ImageMagick, FFprobe, and FFmpeg child processes from overlapping.
+ */
 @Component
 public class MediaProcessLimiter {
 

@@ -1,7 +1,5 @@
 package com.x8ing.mtl.server.mtlserver.web.services.track;
 
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.ObjectMapper;
 import com.x8ing.mtl.server.mtlserver.web.services.track.entity.VideoTranscodeQuality;
 import com.x8ing.mtl.server.mtlserver.web.services.track.entity.VideoTranscodeSessionDto;
 import com.x8ing.mtl.server.mtlserver.web.services.track.entity.VideoTranscodeSessionState;
@@ -13,6 +11,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -20,18 +20,10 @@ import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardOpenOption;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -703,8 +695,8 @@ public class VideoTranscodeSessionService {
         long audioBitrate = sourceInfo.audioCodec() == null
                 ? 0L
                 : plan.copyAudio()
-                    ? knownBitrate(sourceInfo.audioBitrate(), 0L, quality.audioBitrate())
-                    : quality.audioBitrate();
+                ? knownBitrate(sourceInfo.audioBitrate(), 0L, quality.audioBitrate())
+                : quality.audioBitrate();
         double rawBytes = sourceInfo.durationSeconds() * (videoBitrate + audioBitrate) / 8d;
         if (!Double.isFinite(rawBytes) || rawBytes >= Long.MAX_VALUE) return Long.MAX_VALUE;
         return addEstimateMargin((long) Math.ceil(rawBytes));

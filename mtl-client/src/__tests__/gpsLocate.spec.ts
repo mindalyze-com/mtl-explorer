@@ -118,7 +118,7 @@ describe('GpsLocate', () => {
     expect(toastAdd).toHaveBeenCalledWith(
       expect.objectContaining({
         detail: expect.stringContaining('HTTPS or localhost'),
-        severity: 'warning',
+        severity: 'warn',
         summary: 'GPS unavailable',
       })
     );
@@ -144,7 +144,7 @@ describe('GpsLocate', () => {
     expect(toastAdd).toHaveBeenCalledWith(
       expect.objectContaining({
         detail: expect.stringContaining('HTTPS or localhost'),
-        severity: 'warning',
+        severity: 'warn',
         summary: 'GPS unavailable',
       })
     );

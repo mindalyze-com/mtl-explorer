@@ -2,17 +2,21 @@
  * Planner reactive state + route recomputation logic. Deliberately framework-lite
  * (no Pinia) so the planner stays self-contained and easy to delete.
  */
+import { warnRequestFailure } from '@/utils/safeLogging';
 import { computed, ref } from 'vue';
-import type { LegResult, LiveStats, Waypoint } from '@/planner/types';
+import type { LegResult, LiveStats, PointOfInterest, Waypoint } from '@/planner/types';
 import type { PlannedTrackDetailDto } from 'x8ing-mtl-api-typescript-fetch/dist/esm/models/index';
-import { computeRoute, emptyStats, prewarmForBbox } from '@/planner/repositories/plannerRepository';
+import { computeRoute, computeRouteStats, emptyStats, prewarmForBbox } from '@/planner/repositories/plannerRepository';
 import { isAbortLikeError } from '@/utils/errors';
+import { createUuid } from '@/utils/random';
+import { DEFAULT_PLANNER_POI_ICON_TYPE } from '@/planner/utils/plannerPoiIconTypes';
 import {
   MAX_PLANNING_SPAN_KM,
   MAX_PREWARM_KM,
-  MIN_ELEVATION_DELTA_M,
   MAX_UNDO_STACK,
   MAX_WAYPOINTS_FALLBACK,
+  MAX_POINTS_OF_INTEREST_FALLBACK,
+  POINT_OF_INTEREST_DEFAULT_NAME,
   MIN_PREWARM_KM,
   PREWARM_MULTIPLIER,
   PROFILE_DEFAULT,
@@ -26,31 +30,45 @@ const SEGMENT_RETRY_DELAY_MS = 8_000;
 const SEGMENT_RETRY_MAX = 6;
 /** Tiny tolerance for comparing saved waypoint orientation against saved geometry. */
 const WAYPOINT_ORIENTATION_EPSILON = 1e-12;
-const ROUTING_UNAVAILABLE_MESSAGE =
-  'Route unavailable for these points. Move waypoints onto routable roads or trails, or try again later.';
+const ROUTING_UNAVAILABLE_MESSAGE = 'Routing service is unavailable. Check the BRouter status, then retry.';
 const ROUTING_FAILED_MESSAGE = 'Route calculation failed. Please adjust the route or try again later.';
 const MACHINE_ERROR_KEY = /^[a-z0-9]+(?:-[a-z0-9]+)+$/;
 
 let idCounter = 0;
 const nextId = () => `wp-${Date.now().toString(36)}-${(idCounter++).toString(36)}`;
 
-function routeErrorMessage(errorCode?: string, fallback?: string): string {
+function routeErrorMessage(errorCode?: string, detail?: string, fallback?: string): string {
+  if (detail?.trim() && detail !== 'BRouter call failed') return detail.trim();
   if (errorCode === 'routing-unavailable') return ROUTING_UNAVAILABLE_MESSAGE;
   if (errorCode === 'routing-failed') return ROUTING_FAILED_MESSAGE;
   if (errorCode && !MACHINE_ERROR_KEY.test(errorCode)) return errorCode;
   return fallback ?? ROUTING_FAILED_MESSAGE;
 }
 
-export function usePlannerState() {
+export function usePlannerState(options: { onPrewarmComplete?: () => void } = {}) {
   const waypoints = ref<Waypoint[]>([]);
+  const pointsOfInterest = ref<PointOfInterest[]>([]);
+  const maxPointsOfInterest = ref(MAX_POINTS_OF_INTEREST_FALLBACK);
   const legs = ref<LegResult[]>([]);
   const stats = ref<LiveStats>(emptyStats());
   const profile = ref<string>(PROFILE_DEFAULT);
   const maxWaypoints = ref(MAX_WAYPOINTS_FALLBACK);
   const computing = ref(false);
   const lastError = ref<string | null>(null);
-  const undoStack = ref<Waypoint[][]>([]);
-  const redoStack = ref<Waypoint[][]>([]);
+  type Snapshot = {
+    waypoints: Waypoint[];
+    pointsOfInterest: PointOfInterest[];
+    profile: string;
+    legs: LegResult[];
+    stats: LiveStats;
+    pristineLoaded: boolean;
+    routeReady: boolean;
+    geometryStatsPending: boolean;
+  };
+  const undoStack = ref<Snapshot[]>([]);
+  const redoStack = ref<Snapshot[]>([]);
+  const routeReady = ref(false);
+  const geometryStatsPending = ref(false);
   /**
    * True from the moment a saved plan is loaded until the user's first edit.
    * While pristine, the map shows the exact saved polyline with no recompute;
@@ -139,7 +157,9 @@ export function usePlannerState() {
     console.info(
       `[planner] Viewport prewarm: ${target.toFixed(0)}km side → bbox=[${expanded.minLng.toFixed(2)},${expanded.minLat.toFixed(2)},${expanded.maxLng.toFixed(2)},${expanded.maxLat.toFixed(2)}]`
     );
-    prewarmForBbox(expanded.minLng, expanded.minLat, expanded.maxLng, expanded.maxLat).catch(() => {});
+    prewarmForBbox(expanded.minLng, expanded.minLat, expanded.maxLng, expanded.maxLat)
+      .catch(() => {})
+      .finally(() => options.onPrewarmComplete?.());
   }
 
   const routeCoordinates = computed<[number, number, number][]>(() => {
@@ -150,28 +170,93 @@ export function usePlannerState() {
     return out;
   });
 
+  function snapshot(): Snapshot {
+    return JSON.parse(
+      JSON.stringify({
+        waypoints: waypoints.value,
+        pointsOfInterest: pointsOfInterest.value,
+        profile: profile.value,
+        legs: legs.value,
+        stats: stats.value,
+        pristineLoaded: pristineLoaded.value,
+        routeReady: routeReady.value,
+        geometryStatsPending: geometryStatsPending.value,
+      })
+    );
+  }
+
   function snapshotForUndo() {
-    undoStack.value.push(JSON.parse(JSON.stringify(waypoints.value)));
+    undoStack.value.push(snapshot());
     if (undoStack.value.length > MAX_UNDO_STACK) undoStack.value.shift();
     redoStack.value = [];
   }
 
+  function cancelRecompute() {
+    if (debounceTimer !== null) window.clearTimeout(debounceTimer);
+    if (segmentRetryTimer !== null) window.clearTimeout(segmentRetryTimer);
+    debounceTimer = null;
+    segmentRetryTimer = null;
+    abortCtrl?.abort();
+    abortCtrl = null;
+    routeRequestSeq++;
+    segmentRetryCount = 0;
+    computing.value = false;
+  }
+
+  function restore(previous: Snapshot) {
+    cancelRecompute();
+    waypoints.value = previous.waypoints;
+    pointsOfInterest.value = previous.pointsOfInterest;
+    profile.value = previous.profile;
+    legs.value = previous.legs;
+    stats.value = previous.stats;
+    pristineLoaded.value = previous.pristineLoaded;
+    routeReady.value = previous.routeReady;
+    geometryStatsPending.value = previous.geometryStatsPending;
+    lastError.value = null;
+    if (geometryStatsPending.value) void recomputeGeometryStats();
+    else if (!routeReady.value) scheduleRecompute();
+  }
+
   function undo() {
-    const prev = undoStack.value.pop();
-    if (!prev) return;
-    clearPristine();
-    redoStack.value.push(JSON.parse(JSON.stringify(waypoints.value)));
-    waypoints.value = prev;
-    scheduleRecompute();
+    const previous = undoStack.value.pop();
+    if (!previous) return;
+    redoStack.value.push(snapshot());
+    restore(previous);
   }
 
   function redo() {
     const next = redoStack.value.pop();
     if (!next) return;
+    undoStack.value.push(snapshot());
+    restore(next);
+  }
+
+  function reverseRoute() {
+    if (waypoints.value.length < 2) return;
+    snapshotForUndo();
     clearPristine();
-    undoStack.value.push(JSON.parse(JSON.stringify(waypoints.value)));
-    waypoints.value = next;
+    waypoints.value.reverse();
+    // Direction can affect routing restrictions and duration; ask the server.
     scheduleRecompute();
+  }
+
+  /** Keep the selected point as the new start or finish. */
+  function trimRoute(id: string, side: 'before' | 'after') {
+    const index = waypoints.value.findIndex((waypoint) => waypoint.id === id);
+    const lastIndex = waypoints.value.length - 1;
+    if (index <= 0 || index >= lastIndex) return;
+    snapshotForUndo();
+    clearPristine();
+    const canKeepLegs = routeReady.value && legs.value.length === lastIndex;
+    cancelRecompute();
+    waypoints.value = side === 'before' ? waypoints.value.slice(index) : waypoints.value.slice(0, index + 1);
+    if (canKeepLegs) {
+      legs.value = side === 'before' ? legs.value.slice(index) : legs.value.slice(0, index);
+      void recomputeGeometryStats();
+    } else {
+      scheduleRecompute();
+    }
   }
 
   function canAddWaypoint(): boolean {
@@ -183,8 +268,8 @@ export function usePlannerState() {
   function addWaypoint(lat: number, lng: number) {
     if (viewportTooLarge.value) return;
     if (!canAddWaypoint()) return;
-    clearPristine();
     snapshotForUndo();
+    clearPristine();
     waypoints.value.push({ id: nextId(), lat, lng });
     scheduleRecompute();
   }
@@ -194,8 +279,8 @@ export function usePlannerState() {
     if (viewportTooLarge.value) return null;
     if (!canAddWaypoint()) return null;
     if (!Number.isInteger(afterIndex) || afterIndex < 0 || afterIndex >= waypoints.value.length) return null;
-    clearPristine();
     snapshotForUndo();
+    clearPristine();
     const idx = afterIndex + 1;
     const waypoint = { id: nextId(), lat, lng };
     waypoints.value.splice(idx, 0, waypoint);
@@ -207,8 +292,8 @@ export function usePlannerState() {
     const wp = waypoints.value.find((w) => w.id === id);
     if (!wp) return;
     if (wp.lat === lat && wp.lng === lng) return;
-    clearPristine();
     snapshotForUndo();
+    clearPristine();
     wp.lat = lat;
     wp.lng = lng;
     scheduleRecompute();
@@ -216,33 +301,59 @@ export function usePlannerState() {
 
   function removeWaypoint(id: string) {
     if (!waypoints.value.some((w) => w.id === id)) return;
-    clearPristine();
     snapshotForUndo();
+    clearPristine();
     waypoints.value = waypoints.value.filter((w) => w.id !== id);
     scheduleRecompute();
   }
 
-  function clearAll() {
-    clearPristine();
+  /** POI edits share document history without recalculating the route. */
+  function addPointOfInterest(
+    lat: number,
+    lng: number,
+    details: Pick<PointOfInterest, 'name' | 'iconType' | 'notes'> = { name: POINT_OF_INTEREST_DEFAULT_NAME }
+  ): PointOfInterest | null {
+    if (pointsOfInterest.value.length >= maxPointsOfInterest.value) return null;
+    const point = {
+      id: createUuid(),
+      lat,
+      lng,
+      ...details,
+      iconType: details.iconType ?? DEFAULT_PLANNER_POI_ICON_TYPE,
+    };
     snapshotForUndo();
-    if (debounceTimer !== null) {
-      window.clearTimeout(debounceTimer);
-      debounceTimer = null;
-    }
-    if (segmentRetryTimer !== null) {
-      window.clearTimeout(segmentRetryTimer);
-      segmentRetryTimer = null;
-    }
-    if (abortCtrl) {
-      abortCtrl.abort();
-      abortCtrl = null;
-    }
-    routeRequestSeq++;
-    segmentRetryCount = 0;
+    pointsOfInterest.value.push(point);
+    return point;
+  }
+
+  function updatePointOfInterest(point: PointOfInterest) {
+    const index = pointsOfInterest.value.findIndex((existing) => existing.id === point.id);
+    if (index < 0 || JSON.stringify(pointsOfInterest.value[index]) === JSON.stringify(point)) return;
+    snapshotForUndo();
+    pointsOfInterest.value[index] = { ...point };
+  }
+
+  function movePointOfInterest(id: string, lat: number, lng: number) {
+    const point = pointsOfInterest.value.find((existing) => existing.id === id);
+    if (point) updatePointOfInterest({ ...point, lat, lng });
+  }
+
+  function removePointOfInterest(id: string) {
+    if (!pointsOfInterest.value.some((point) => point.id === id)) return;
+    snapshotForUndo();
+    pointsOfInterest.value = pointsOfInterest.value.filter((point) => point.id !== id);
+  }
+
+  function clearAll() {
+    if (!waypoints.value.length) return;
+    snapshotForUndo();
+    clearPristine();
+    cancelRecompute();
     waypoints.value = [];
     legs.value = [];
     stats.value = emptyStats();
-    computing.value = false;
+    routeReady.value = false;
+    geometryStatsPending.value = false;
     lastError.value = null;
   }
 
@@ -253,9 +364,13 @@ export function usePlannerState() {
    * trigger a recompute as usual.
    */
   function loadPlan(detail: PlannedTrackDetailDto) {
+    cancelRecompute();
+    routeReady.value = false;
+    geometryStatsPending.value = false;
     // Reset undo/redo so the loaded route becomes the new baseline.
     undoStack.value = [];
     redoStack.value = [];
+    pointsOfInterest.value = (detail.pointsOfInterest ?? []).map((point) => ({ ...point }));
     if (detail.profile) profile.value = detail.profile;
     const coordinates = toCoordinates(detail.coordinates);
     const restoredWaypoints = orientWaypointsToGeometry(toWaypoints(detail.waypoints), coordinates);
@@ -267,31 +382,24 @@ export function usePlannerState() {
     const savedLegs = toLegResults(detail.legs);
     if (savedLegs.length > 0) {
       legs.value = savedLegs;
-      stats.value = detail.stats ? toLiveStats(detail.stats) : aggregateLegStats(savedLegs);
+      stats.value = toLiveStats(detail.stats);
     } else if (coordinates.length >= 2) {
-      const { ascentM, descentM } = computeAscentDescent(coordinates);
+      stats.value = toLiveStats(detail.stats);
       legs.value = [
         {
           coordinates,
           distanceM: detail.distanceM ?? 0,
-          ascentM,
-          descentM,
+          ascentM: stats.value.ascentM,
+          descentM: stats.value.descentM,
           durationSec: 0,
           cached: true,
         },
       ];
-      stats.value = {
-        distanceM: detail.distanceM ?? 0,
-        ascentM,
-        descentM,
-        durationSec: 0,
-        legCount: 1,
-        anyLegCached: true,
-      };
     } else {
       legs.value = [];
       stats.value = emptyStats();
     }
+    routeReady.value = legs.value.length > 0 && waypoints.value.length >= 2;
     lastError.value = null;
     // If we restored waypoints but no geometry (legacy plan), trigger a recompute.
     if (waypoints.value.length >= 2 && legs.value.length === 0) {
@@ -300,6 +408,7 @@ export function usePlannerState() {
     } else {
       // Saved geometry is shown as-is; first edit will clear the flag and re-route.
       pristineLoaded.value = true;
+      if (legs.value.length > 0 && !detail.stats) void recomputeGeometryStats();
     }
   }
 
@@ -312,7 +421,7 @@ export function usePlannerState() {
   function toCoordinates(raw: PlannedTrackDetailDto['coordinates']): [number, number, number][] {
     return (raw ?? [])
       .filter((coord) => coord.length >= 2 && Number.isFinite(coord[0]) && Number.isFinite(coord[1]))
-      .map((coord) => [coord[0] ?? 0, coord[1] ?? 0, coord[2] ?? 0]);
+      .map((coord) => [coord[0] ?? 0, coord[1] ?? 0, coord[2] ?? Number.NaN]);
   }
 
   function toLegResults(raw: PlannedTrackDetailDto['legs']): LegResult[] {
@@ -339,28 +448,33 @@ export function usePlannerState() {
     };
   }
 
-  function aggregateLegStats(routeLegs: LegResult[]): LiveStats {
-    return routeLegs.reduce<LiveStats>((acc, leg) => {
-      acc.distanceM += leg.distanceM;
-      acc.ascentM += leg.ascentM;
-      acc.descentM += leg.descentM;
-      acc.durationSec += leg.durationSec;
-      acc.legCount += 1;
-      if (leg.cached) acc.anyLegCached = true;
-      return acc;
-    }, emptyStats());
-  }
-
-  /** Sum of positive / negative elevation deltas along a polyline, ignoring SRTM-sized noise. */
-  function computeAscentDescent(coords: [number, number, number][]): { ascentM: number; descentM: number } {
-    let ascent = 0;
-    let descent = 0;
-    for (let i = 1; i < coords.length; i++) {
-      const dz = coords[i][2] - coords[i - 1][2];
-      if (dz > MIN_ELEVATION_DELTA_M) ascent += dz;
-      else if (dz < -MIN_ELEVATION_DELTA_M) descent += -dz;
+  /** Recalculate retained geometry on the server without changing its route. */
+  async function recomputeGeometryStats() {
+    cancelRecompute();
+    geometryStatsPending.value = true;
+    routeReady.value = false;
+    computing.value = true;
+    lastError.value = null;
+    const requestAbortCtrl = new AbortController();
+    abortCtrl = requestAbortCtrl;
+    const requestSeq = ++routeRequestSeq;
+    try {
+      const result = await computeRouteStats(legs.value, requestAbortCtrl.signal);
+      if (requestSeq !== routeRequestSeq) return;
+      stats.value = result;
+      geometryStatsPending.value = false;
+      routeReady.value = legs.value.length > 0 && waypoints.value.length >= 2;
+    } catch (error: unknown) {
+      if (requestSeq !== routeRequestSeq || isAbortLikeError(error, requestAbortCtrl.signal)) return;
+      lastError.value = 'Route statistics could not be calculated. Please try again.';
+      warnRequestFailure('Route statistics failed', error, {
+        topic1: 'planner',
+        topic2: 'usePlannerState',
+        topic3: 'statistics',
+      });
+    } finally {
+      if (requestSeq === routeRequestSeq) computing.value = false;
     }
-    return { ascentM: ascent, descentM: descent };
   }
 
   function orientWaypointsToGeometry(
@@ -393,20 +507,35 @@ export function usePlannerState() {
   }
 
   function scheduleRecompute() {
-    if (debounceTimer !== null) window.clearTimeout(debounceTimer);
+    cancelRecompute();
+    geometryStatsPending.value = false;
+    routeReady.value = false;
+    lastError.value = null;
+    if (waypoints.value.length < 2) {
+      legs.value = [];
+      stats.value = emptyStats();
+      return;
+    }
+    computing.value = true;
     debounceTimer = window.setTimeout(() => {
       void recomputeNow();
     }, ROUTE_DEBOUNCE_MS);
   }
 
   async function recomputeNow() {
+    if (geometryStatsPending.value) return recomputeGeometryStats();
+    if (debounceTimer !== null) window.clearTimeout(debounceTimer);
+    debounceTimer = null;
+    routeReady.value = false;
     if (waypoints.value.length < 2) {
       legs.value = [];
       stats.value = emptyStats();
+      computing.value = false;
       return;
     }
     if (waypoints.value.length > maxWaypoints.value) {
       lastError.value = `Too many waypoints (max ${maxWaypoints.value}).`;
+      computing.value = false;
       return;
     }
     if (abortCtrl) abortCtrl.abort();
@@ -432,6 +561,15 @@ export function usePlannerState() {
       }
       legs.value = orientLegsToWaypoints(resp.legs, requestWaypoints);
       stats.value = resp.stats;
+      routeReady.value =
+        legs.value.length === requestWaypoints.length - 1 && legs.value.every((leg) => leg.coordinates.length >= 2);
+      if (!routeReady.value) lastError.value = ROUTING_FAILED_MESSAGE;
+      if (!routeReady.value)
+        warnRequestFailure('Routing response did not contain a usable route', undefined, {
+          topic1: 'planner',
+          topic2: 'usePlannerState',
+          topic3: 'calculate',
+        });
       segmentRetryCount = 0; // success — reset
     } catch (e: unknown) {
       if (requestSeq !== routeRequestSeq) return;
@@ -456,7 +594,13 @@ export function usePlannerState() {
         }, SEGMENT_RETRY_DELAY_MS);
       } else {
         segmentRetryCount = 0;
-        lastError.value = routeErrorMessage(errorCode, err?.message);
+        lastError.value = routeErrorMessage(errorCode, err?.response?.data?.detail, err?.message);
+        warnRequestFailure('Route calculation failed', e, {
+          topic1: 'planner',
+          topic2: 'usePlannerState',
+          topic3: 'calculate',
+          context: { code: typeof errorCode === 'string' && MACHINE_ERROR_KEY.test(errorCode) ? errorCode : undefined },
+        });
       }
     } finally {
       if (requestSeq === routeRequestSeq) computing.value = false;
@@ -493,6 +637,8 @@ export function usePlannerState() {
   }
 
   function setProfile(p: string) {
+    if (p === profile.value) return;
+    snapshotForUndo();
     clearPristine();
     profile.value = p;
     scheduleRecompute();
@@ -507,11 +653,21 @@ export function usePlannerState() {
 
   return {
     waypoints,
+    pointsOfInterest,
+    maxPointsOfInterest,
+    setMaxPointsOfInterest: (limit: number) => {
+      maxPointsOfInterest.value = limit;
+    },
+    addPointOfInterest,
+    updatePointOfInterest,
+    movePointOfInterest,
+    removePointOfInterest,
     legs,
     stats,
     profile,
     maxWaypoints,
     computing,
+    routeReady,
     lastError,
     pristineLoaded,
     routeCoordinates,
@@ -523,6 +679,12 @@ export function usePlannerState() {
     moveWaypoint,
     removeWaypoint,
     clearAll,
+    reverseRoute,
+    trimRoute,
+    dispose: () => {
+      cancelRecompute();
+      if (prewarmDebounceTimer !== null) window.clearTimeout(prewarmDebounceTimer);
+    },
     loadPlan,
     undo,
     redo,

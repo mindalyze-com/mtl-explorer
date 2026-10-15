@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.10.xsd">
+    <changeSet id="20261002_import_processing_evidence" author="codex">
+        <comment>Persist actual import findings with the geometry for shared review.</comment>
+        <addColumn tableName="gps_track_data"><column name="processing_issues" type="jsonb"/></addColumn>
+        <rollback><dropColumn tableName="gps_track_data" columnName="processing_issues"/></rollback>
+    </changeSet>
+</databaseChangeLog>

@@ -1,6 +1,8 @@
 package com.x8ing.mtl.server.mtlserver.web.services.gpxupload;
 
+import com.x8ing.mtl.server.mtlserver.config.MtlAppProperties;
 import com.x8ing.mtl.server.mtlserver.gpx.GpxUploadService;
+import com.x8ing.mtl.server.mtlserver.web.security.DemoWriteAccess;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.http.HttpStatus;
@@ -11,10 +13,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.*;
 
 class GpxUploadControllerTest {
 
@@ -23,7 +22,7 @@ class GpxUploadControllerTest {
         GpxUploadService service = new GpxUploadService();
         ReflectionTestUtils.setField(service, "gpxWatchDirectory", watchDirectory.toString());
         ReflectionTestUtils.invokeMethod(service, "init");
-        GpxUploadController controller = new GpxUploadController(service);
+        GpxUploadController controller = new GpxUploadController(service, new DemoWriteAccess(new MtlAppProperties()));
         MockMultipartFile upload = new MockMultipartFile(
                 "file",
                 "waypoint-only.gpx",

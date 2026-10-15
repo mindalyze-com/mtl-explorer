@@ -49,16 +49,23 @@ function dispatchMouse(element: EventTarget, type: string, init: { button?: numb
 afterEach(() => {
   for (const wrapper of wrappers.splice(0)) wrapper.unmount();
   document.body.innerHTML = '';
+  vi.restoreAllMocks();
+  vi.unstubAllGlobals();
+  vi.useRealTimers();
 });
 
 describe('MediaFilmstrip', () => {
-  it('uses compact Nearby copy on phones while preserving the desktop label', () => {
-    const wrapper = mountFilmstrip();
+  it.each(['Nearby media', 'Activity media'])('shortens %s on phones in both strip states', async (collectionLabel) => {
+    const wrapper = mountFilmstrip({ collectionLabel });
     const toggle = wrapper.get('[aria-controls="nearby-photos-strip"]');
 
-    expect(wrapper.get('.mp__filmstrip-label-full').text()).toBe('Nearby media');
+    expect(wrapper.get('.mp__filmstrip-label-full').text()).toBe(collectionLabel);
     expect(wrapper.get('.mp__filmstrip-label-compact').text()).toBe('Nearby');
-    expect(toggle.attributes('aria-label')).toBe('Collapse nearby media, item 2 of 3');
+    expect(toggle.attributes('aria-label')).toBe(`Collapse ${collectionLabel.toLowerCase()}, item 2 of 3`);
+    await toggle.trigger('click');
+    expect(wrapper.get('.mp__filmstrip-label-compact').text()).toBe('Nearby');
+    expect(toggle.attributes('aria-label')).toBe(`Expand ${collectionLabel.toLowerCase()}, item 2 of 3`);
+    expect(toggle.text()).toContain('2/3');
   });
 
   it('keeps a large collection bounded and emits direct selection', async () => {
@@ -124,6 +131,51 @@ describe('MediaFilmstrip', () => {
     expect(wrapper.emitted('request-page')).toEqual([[1], [-1]]);
   });
 
+  it.each([
+    { offset: 0, initialId: 100, selectedId: 198, scrollEnd: true },
+    { offset: 200, initialId: 300, selectedId: 202, scrollEnd: false },
+  ])(
+    'does not navigate a page when centering photo $selectedId',
+    async ({ offset, initialId, selectedId, scrollEnd }) => {
+      const wrapper = mountFilmstrip({
+        mediaId: initialId,
+        navIndex: initialId,
+        navTotal: 700,
+        mediaOffset: offset,
+        mediaIds: Array.from({ length: 200 }, (_, index) => offset + index + 1),
+      });
+      await nextTick();
+      const strip = wrapper.get('#nearby-photos-strip');
+      let scrollLeft = 9_600;
+      Object.defineProperties(strip.element, {
+        scrollWidth: { configurable: true, value: 19_200 },
+        clientWidth: { configurable: true, value: 600 },
+        scrollLeft: {
+          configurable: true,
+          get: () => scrollLeft,
+          set: (value: number) => {
+            scrollLeft = Math.max(0, Math.min(18_600, value));
+          },
+        },
+      });
+
+      await wrapper.setProps({ mediaId: selectedId, navIndex: selectedId });
+      await nextTick();
+      expect(scrollLeft).toBe(scrollEnd ? 18_600 : 0);
+      // Browsers dispatch scroll after the selected thumbnail has been centered.
+      await strip.trigger('scroll');
+      expect(wrapper.emitted('request-page')).toBeUndefined();
+      expect(wrapper.get('[aria-current="true"]').attributes('data-media-id')).toBe(String(selectedId));
+
+      // A subsequent user scroll away and back must still load the adjacent page.
+      scrollLeft = scrollEnd ? 18_000 : 600;
+      await strip.trigger('scroll');
+      scrollLeft = scrollEnd ? 18_600 : 0;
+      await strip.trigger('scroll');
+      expect(wrapper.emitted('request-page')).toEqual([[scrollEnd ? 1 : -1]]);
+    }
+  );
+
   it('changes the virtual window incrementally while scrolling', async () => {
     const wrapper = mountFilmstrip({
       mediaId: 100,
@@ -150,6 +202,41 @@ describe('MediaFilmstrip', () => {
     expect(after.filter((id) => before.includes(id))).toHaveLength(before.length - 1);
     expect(Number(after[0])).toBe(Number(before[0]) + 1);
   });
+
+  it.each([96.8, 89.2])(
+    'keeps fractional %s-pixel thumbnails visible in the middle of a large collection',
+    async (stride) => {
+      const nativeStyle = window.getComputedStyle;
+      vi.spyOn(window, 'getComputedStyle').mockImplementation((element) => {
+        if (element instanceof HTMLElement && element.matches('.mp__filmstrip-item')) {
+          return { left: `${Number(element.dataset.mediaIndex) * stride}px` } as CSSStyleDeclaration;
+        }
+        return nativeStyle(element);
+      });
+      vi.spyOn(HTMLElement.prototype, 'offsetLeft', 'get').mockImplementation(function (this: HTMLElement) {
+        return Math.round(Number(this.dataset.mediaIndex ?? 0) * stride);
+      });
+      const wrapper = mountFilmstrip({
+        mediaId: 1,
+        navIndex: 1,
+        navTotal: 100_000,
+        mediaIds: Array.from({ length: 100_000 }, (_, index) => index + 1),
+      });
+      await nextTick();
+      const strip = wrapper.get('#nearby-photos-strip');
+      Object.defineProperty(strip.element, 'clientWidth', { configurable: true, value: 548 });
+      Object.defineProperty(strip.element, 'scrollLeft', { configurable: true, value: 0, writable: true });
+      for (const index of [50_000, 49_950, 50_050]) {
+        (strip.element as HTMLElement).scrollLeft = index * stride;
+        await strip.trigger('scroll');
+        const visible = wrapper.findAll('.mp__filmstrip-item');
+        expect(visible.length).toBeLessThanOrEqual(15);
+        expect(visible.some((item) => Number(item.attributes('data-media-index')) === index)).toBe(true);
+        await wrapper.get(`[data-media-index="${index}"]`).trigger('click');
+        expect(wrapper.emitted('select')?.at(-1)).toEqual([index + 1]);
+      }
+    }
+  );
 
   it('drags horizontally with a mouse without selecting or dragging an image', async () => {
     const wrapper = mountFilmstrip();
@@ -182,6 +269,46 @@ describe('MediaFilmstrip', () => {
     expect(wrapper.get('[data-media-id="2"]').attributes('aria-current')).toBe('true');
   });
 
+  it('ignores a drag click on a failed thumbnail, then opens and retries on a normal click', async () => {
+    vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:filmstrip-photo');
+    vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => undefined);
+    const fetchMock = vi.fn().mockImplementation(async () => new Response(null, { status: 500 }));
+    vi.stubGlobal('fetch', fetchMock);
+    const wrapper = mountFilmstrip();
+    const item = wrapper.get('[data-media-id="2"]');
+    await item.get('img').trigger('error');
+    await flushPromises();
+    expect(item.attributes('aria-label')).toBe('Current photo');
+    expect(item.text()).toContain('No preview');
+    const strip = wrapper.get('#nearby-photos-strip');
+    dispatchMouse(strip.element, 'mousedown', { clientX: 500 });
+    dispatchMouse(window, 'mousemove', { clientX: 300 });
+    dispatchMouse(window, 'mouseup', { clientX: 300 });
+    await item.trigger('click');
+    await flushPromises();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(wrapper.emitted('select')).toBeUndefined();
+
+    fetchMock.mockImplementation(async () => new Response('jpeg'));
+    await item.trigger('click');
+    await flushPromises();
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(wrapper.emitted('select')).toEqual([[2]]);
+  });
+
+  it('cancels thumbnail recovery when the filmstrip is collapsed', async () => {
+    vi.useFakeTimers();
+    const fetchMock = vi.fn().mockImplementation(async () => new Response(null, { status: 503 }));
+    vi.stubGlobal('fetch', fetchMock);
+    const wrapper = mountFilmstrip();
+    await wrapper.get('[data-media-id="2"] img').trigger('error');
+    await flushPromises();
+    await wrapper.get('[aria-controls="nearby-photos-strip"]').trigger('click');
+    await vi.advanceTimersByTimeAsync(2_000);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(wrapper.find('.mp__filmstrip-item img').exists()).toBe(false);
+  });
+
   it('marks video thumbnails without replacing the generated poster', () => {
     const wrapper = mountFilmstrip({ videoMediaIds: [2, 3] });
 
@@ -204,5 +331,24 @@ describe('MediaFilmstrip', () => {
 
     expect(wrapper.get('[data-media-id="3"] .mp__filmstrip-video').exists()).toBe(true);
     expect(wrapper.get('[data-media-id="3"]').attributes('aria-label')).toBe('Open video 3');
+  });
+
+  it.each([false, true])('retains a known current video after selecting another video=%s', async (nextIsVideo) => {
+    vi.mocked(getMediaInfo).mockImplementation(async (id: number) => ({
+      id,
+      fileName: id === 1 ? 'clip.mov' : id === 2 && nextIsVideo ? 'clip.mp4' : `photo-${id}.jpg`,
+      mediaKind: id === 1 || (id === 2 && nextIsVideo) ? 'VIDEO' : 'IMAGE',
+    }));
+    const wrapper = mountFilmstrip({ mediaId: 1, currentMediaIsVideo: true, videoMediaIds: [] });
+    await flushPromises();
+    expect(wrapper.get('[data-media-id="1"]').attributes('aria-label')).toBe('Current video');
+
+    await wrapper.setProps({ mediaId: 2, currentMediaIsVideo: nextIsVideo });
+    await flushPromises();
+
+    expect(wrapper.get('[data-media-id="1"] .mp__filmstrip-video').exists()).toBe(true);
+    expect(wrapper.get('[data-media-id="1"]').attributes('aria-label')).toBe('Open video 1');
+    expect(wrapper.get('[data-media-id="1"] img').attributes('src')).toBe('/media/1?maxSize=192');
+    expect(wrapper.find('[data-media-id="3"] .mp__filmstrip-video').exists()).toBe(false);
   });
 });

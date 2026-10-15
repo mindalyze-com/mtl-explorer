@@ -2,19 +2,25 @@
   <div class="track-browser-summary" :class="{ 'track-browser-summary--compact': compact }">
     <template v-if="compact">
       <div class="track-browser-summary__compact-row">
-        <strong>{{ summary.count }} tracks</strong>
+        <span class="track-browser-summary__count">
+          <strong>{{ formatLocaleNumber(summary.count) }}</strong
+          ><template v-if="query?.trim()"> of {{ formatLocaleNumber(totalCount ?? 0) }}</template> tracks in view
+        </span>
         <span v-tooltip.top="{ value: formatDistanceTooltip(summary.totalDistanceMeters || 0), showDelay: 400 }">{{
           formatDistanceSmart(summary.totalDistanceMeters || 0)
         }}</span>
-        <span v-tooltip.top="{ value: formatDurationTooltip(summary.totalDurationMillis || 0), showDelay: 400 }">{{
-          formatDurationSmart(summary.totalDurationMillis || 0)
-        }}</span>
+        <span
+          v-if="summary.totalDurationMillis != null"
+          v-tooltip.top="{ value: formatDurationTooltip(summary.totalDurationMillis || 0), showDelay: 400 }"
+          >{{ formatDurationSmart(summary.totalDurationMillis || 0) }}</span
+        >
+        <span v-else>Time unavailable</span>
       </div>
     </template>
     <template v-else>
       <div class="track-browser-summary__intro">
         <div class="track-browser-summary__eyebrow">Tracks</div>
-        <div class="track-browser-summary__title">{{ summary.count }} tracks in view</div>
+        <div class="track-browser-summary__title">{{ formatLocaleNumber(summary.count) }} tracks in view</div>
         <div class="track-browser-summary__subtitle">
           {{ summary.dateRangeLabel }}
         </div>
@@ -28,10 +34,13 @@
           }}</strong>
         </div>
         <div class="track-browser-summary__card">
-          <span class="track-browser-summary__label">Total duration</span>
-          <strong v-tooltip.top="{ value: formatDurationTooltip(summary.totalDurationMillis || 0), showDelay: 400 }">{{
-            formatDurationSmart(summary.totalDurationMillis || 0)
-          }}</strong>
+          <span class="track-browser-summary__label">Moving time</span>
+          <strong
+            v-if="summary.totalDurationMillis != null"
+            v-tooltip.top="{ value: formatDurationTooltip(summary.totalDurationMillis || 0), showDelay: 400 }"
+            >{{ formatDurationSmart(summary.totalDurationMillis || 0) }}</strong
+          >
+          <strong v-else>Unavailable</strong>
         </div>
         <div class="track-browser-summary__card track-browser-summary__card--wide">
           <span class="track-browser-summary__label">Newest track</span>
@@ -40,20 +49,37 @@
         </div>
       </div>
     </template>
+    <p class="track-browser-summary__time-note">
+      Time and speed use moving time where available; otherwise elapsed time. Unreliable or estimated timing is omitted.
+    </p>
   </div>
 </template>
 
 <script setup lang="ts">
-import { formatDistanceSmart, formatDurationSmart, formatDistanceTooltip, formatDurationTooltip } from '@/utils/Utils';
+import {
+  formatDistanceSmart,
+  formatDurationSmart,
+  formatDistanceTooltip,
+  formatDurationTooltip,
+  formatLocaleNumber,
+} from '@/utils/Utils';
 import type { TrackBrowserSummary } from './trackBrowser.types';
 
 defineProps<{
   summary: TrackBrowserSummary;
   compact?: boolean;
+  query?: string;
+  totalCount?: number;
 }>();
 </script>
 
 <style scoped>
+.track-browser-summary__time-note {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: var(--text-muted);
+  font-size: var(--text-xs-size);
+}
 .track-browser-summary {
   display: grid;
   grid-template-columns: minmax(16rem, 1.1fr) minmax(0, 2fr);
@@ -136,16 +162,26 @@ defineProps<{
 
 .track-browser-summary--compact {
   display: flex;
-  padding: 0.6rem var(--dlg-padding);
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
 }
 
 .track-browser-summary__compact-row {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.35rem 1rem;
+  font-variant-numeric: tabular-nums;
   font-size: var(--text-sm-size);
   color: var(--text-secondary);
+}
+
+.track-browser-summary__compact-row > span {
+  white-space: nowrap;
 }
 
 .track-browser-summary__compact-row strong {

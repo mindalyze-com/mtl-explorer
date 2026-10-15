@@ -3,22 +3,23 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script defer src="../site-analytics.js"></script>
   <title>Import Garmin Connect Activities | MTL Explorer</title>
   <meta name="description" content="Import Garmin Connect activities into a private MTL Explorer archive, skip activities already stored, and retry selected GPX download failures through FIT export.">
   <meta name="robots" content="index, follow, max-image-preview:large">
-  <link rel="canonical" href="https://mindalyze-com.github.io/mtl-explorer/garmin-connect-import/">
+  <link rel="canonical" href="https://mtl-explorer.com/garmin-connect-import/">
   <meta property="og:site_name" content="MTL Explorer">
   <meta property="og:type" content="article">
-  <meta property="og:url" content="https://mindalyze-com.github.io/mtl-explorer/garmin-connect-import/">
+  <meta property="og:url" content="https://mtl-explorer.com/garmin-connect-import/">
   <meta property="og:title" content="Import Garmin Connect Activities | MTL Explorer">
   <meta property="og:description" content="Bring Garmin activities into a private, self-hosted GPS archive.">
-  <meta property="og:image" content="https://mindalyze-com.github.io/mtl-explorer/assets/feature-showcase/large/filters.webp">
+  <meta property="og:image" content="https://mtl-explorer.com/assets/feature-showcase/large/filters.webp">
   <meta property="og:image:type" content="image/webp">
   <meta property="og:image:width" content="2199">
   <meta property="og:image:height" content="1561">
   <meta property="og:image:alt" content="MTL Explorer showing imported GPS tracks on a private map">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:image" content="https://mindalyze-com.github.io/mtl-explorer/assets/feature-showcase/large/filters.webp">
+  <meta name="twitter:image" content="https://mtl-explorer.com/assets/feature-showcase/large/filters.webp">
   <link rel="icon" href="../favicon.ico" sizes="any">
   <link rel="stylesheet" href="../site-page.css">
   <script type="application/ld+json">
@@ -26,10 +27,30 @@
       "@context": "https://schema.org",
       "@type": "TechArticle",
       "headline": "Import Garmin Connect Activities into MTL Explorer",
-      "url": "https://mindalyze-com.github.io/mtl-explorer/garmin-connect-import/",
+      "url": "https://mtl-explorer.com/garmin-connect-import/",
       "description": "A guide to importing Garmin Connect activities into the self-hosted MTL Explorer GPS archive.",
-      "dateModified": "2026-08-18",
+      "dateModified": "2026-09-05",
       "about": {"@type": "SoftwareApplication", "name": "MTL Explorer"}
+    }
+  </script>
+  <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Home",
+          "item": "https://mtl-explorer.com/"
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "Garmin Connect import",
+          "item": "https://mtl-explorer.com/garmin-connect-import/"
+        }
+      ]
     }
   </script>
 </head>
@@ -41,7 +62,7 @@
         <span><strong>MTL Explorer</strong><span>Self-hosted GPS archive</span></span>
       </a>
       <nav class="site-nav" aria-label="Primary navigation">
-        <a href="../#guides">Guides</a>
+        <a href="../docs/">Documentation</a>
         <a href="../docker-install/">Install</a>
         <a class="button-small" href="https://mtl-demo.mindalyze.com/mtl/">Live demo</a>
       </nav>
@@ -55,60 +76,44 @@
       <div>
         <p class="eyebrow">Garmin Connect import</p>
         <h1>Bring Garmin activities into your private archive.</h1>
-        <p class="lead">MTL Explorer can download new Garmin Connect activities, keep the exported files on your host, and process them with the same indexing flow as files placed in the import folder.</p>
+        <p class="lead">MTL Explorer can download your new Garmin Connect activities automatically. The files are saved on your own computer and appear on the map like any other track.</p>
         <div class="actions">
           <a class="button" href="../docker-install/">Install MTL Explorer</a>
           <a class="button-secondary" href="../gpx-track-map/">View the track archive</a>
         </div>
       </div>
       <div class="steps" aria-label="Garmin import workflow">
-        <article class="step"><h2 class="card-heading">Configure access</h2><p>Enable Garmin sync in the private server configuration and provide the Garmin Connect login used for exports.</p></article>
-        <article class="step"><h2 class="card-heading">Run the exporter</h2><p>Start a sync from the Admin workspace or let the configured background schedule run it.</p></article>
-        <article class="step"><h2 class="card-heading">Skip known activities</h2><p>Activity IDs already present in the archive are passed to the exporter so they are not downloaded again.</p></article>
-        <article class="step"><h2 class="card-heading">Index new files</h2><p>Downloaded activities enter the normal import, duplicate detection, classification, map, and statistics flow.</p></article>
+        <article class="step"><h2 class="card-heading">Set it up once</h2><p>Turn on Garmin sync in the server settings and enter your Garmin Connect login.</p></article>
+        <article class="step"><h2 class="card-heading">Sync</h2><p>Open <strong>Settings → Import &amp; sync → Garmin</strong> and choose <strong>Sync now</strong>, or let it run on its schedule.</p></article>
+        <article class="step"><h2 class="card-heading">Only new activities</h2><p>Activities you already have are not downloaded again.</p></article>
+        <article class="step"><h2 class="card-heading">Explore</h2><p>New activities are imported and show up on the map and in your statistics.</p></article>
       </div>
     </section>
 
-    <section class="section" id="configuration">
-      <div class="section-head">
-        <h2>Garmin sync is disabled by default.</h2>
-        <p>The standard installation does not ask for a Garmin account. Enable sync only in a private configuration file that is not committed or shared.</p>
-      </div>
-      <div class="split">
-        <div class="copy">
-          <p>A custom Spring configuration can enable the exporter and supply its account settings. The example values below are placeholders.</p>
-          <div class="callout">
-            <strong>Keep the configuration private.</strong>
-            Do not place real Garmin credentials in the repository, screenshots, support requests, or public logs.
-          </div>
-        </div>
-        <pre><code>mtl:
-  garmin-sync:
-    enabled: true
-    user-name: your-garmin-login
-    user-password: your-private-password</code></pre>
-      </div>
-      <div class="steps section-steps">
-        <article class="step"><h3>Create the override</h3><p>Save the private settings as <code>application.yml</code> beside <code>docker-compose.yml</code>.</p></article>
-        <article class="step"><h3>Mount the file</h3><p>Enable the existing <code>./application.yml:/app/config/application.yml:ro</code> volume entry for the application service.</p></article>
-        <article class="step"><h3>Restart and review</h3><p>Run <code>docker compose up -d</code>, then open <strong>Admin → Garmin Sync</strong> to start a sync and review its output.</p></article>
-      </div>
-    </section>
+    <nav class="on-this-page" aria-label="On this page"><a href="#configuration">Configure access</a><a href="#first-sync">First and later syncs</a><a href="#recovery">Failures and recovery</a></nav>
+
+    <section class="section" id="configuration"><h2>Set up Garmin once.</h2><p>The setup guide shows where to enter your login and which folders to connect.</p><p><a href="/docs/administration/garmin/">Garmin setup</a></p></section>
+
+    <section class="section" id="first-sync"><h2>Check the first import.</h2><p>Watch the download and import progress, then check for files that need review.</p><p><a href="/docs/user/importing-tracks/garmin/">Garmin import guide</a></p></section>
 
     <section class="section" id="recovery">
       <div class="section-head">
-        <h2>Selected download failures get a second path.</h2>
-        <p>The main exporter requests Garmin activity files. If a GPX activity download reports an HTTP 408 timeout, MTL Explorer can retry that activity by downloading its original FIT file and converting it to GPX for processing.</p>
+        <h2>Failed downloads get a second try.</h2>
+        <p>If downloading an activity times out, MTL Explorer tries again with the activity's original FIT file.</p>
       </div>
       <div class="content-grid">
-        <article class="card"><h3>Original activity ID</h3><p>The Garmin activity ID is retained so later syncs can identify activities that are already stored.</p></article>
-        <article class="card"><h3>FIT fallback</h3><p>The retry path applies to detected GPX timeout failures. It is not a general replacement for every exporter error.</p></article>
-        <article class="card"><h3>Visible status</h3><p>The Admin workspace exposes sync output and helper-tool status so failures can be reviewed on the self-hosted instance.</p></article>
-        <article class="card"><h3>Normal processing</h3><p>Successful downloads are handled like other imported tracks and become available to filters, maps, statistics, and segments.</p></article>
+        <article class="card"><h3>No duplicates</h3><p>MTL Explorer remembers each Garmin activity, so later syncs skip it.</p></article>
+        <article class="card"><h3>Second try</h3><p>The retry usually helps with timeouts. It can't fix every error, and the second download can fail too.</p></article>
+        <article class="card"><h3>See what happened</h3><p>Check <strong>Garmin command output</strong> in <strong>Settings → Import &amp; sync</strong>. Tool status is in <strong>Settings → Maintenance → Advanced tools</strong>.</p></article>
+        <article class="card"><h3>Like any other track</h3><p>Downloaded activities work everywhere: filters, map, statistics, and segments.</p></article>
+      </div>
+      <div class="content-grid section-steps">
+        <article class="card"><h3>Sync is skipped</h3><p>A sync is skipped when Garmin sync is off, another sync is running, or files are still being imported. Check the reason shown and wait for the current work to finish.</p></article>
+        <article class="card"><h3>Sign-in fails</h3><p>Read the error and check your Garmin login in the server settings. Retrying won't fix a sign-in problem. Meanwhile, export activities by hand from Garmin Connect, and don't keep restarting a failing sync.</p></article>
       </div>
       <div class="callout">
         <strong>Community integration</strong>
-        Garmin may change authentication, endpoints, or rate limits. MTL Explorer uses community export tools and is not an official Garmin Connect integration.
+        MTL Explorer uses community tools to download from Garmin. It is not an official Garmin integration, and it can stop working if Garmin changes its service.
       </div>
     </section>
 
@@ -117,7 +122,7 @@
       <div class="related">
         <a class="button-secondary" href="../supported-gps-formats/">Supported GPS formats</a>
         <a class="button-secondary" href="../gpx-track-map/">GPS track archive</a>
-        <a class="button-secondary" href="../private-gps-heatmap/">Private GPS heatmap</a>
+        <a class="button-secondary" href="../private-gps-heatmap/">Year filters and map colors</a>
         <a class="button-secondary" href="../docker-install/">Docker installation</a>
       </div>
     </section>
@@ -126,7 +131,7 @@
   <footer class="site-footer">
     <div class="site-footer-inner">
       <span>MTL Explorer · Self-hosted GPS archive</span>
-      <nav aria-label="Footer navigation"><a href="../">Home</a><a href="../why-i-built-mtl-explorer/">About</a><a href="https://github.com/mindalyze-com/mtl-explorer">GitHub</a></nav>
+      <nav aria-label="Footer navigation"><a href="../#site-analytics">Site analytics</a><a href="../">Home</a><a href="../why-i-built-mtl-explorer/">About</a><a href="https://github.com/mindalyze-com/mtl-explorer">GitHub</a></nav>
     </div>
   </footer>
 </body>

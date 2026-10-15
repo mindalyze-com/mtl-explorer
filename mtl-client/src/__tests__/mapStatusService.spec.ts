@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { StatusRequestPausedError } from '@/utils/statusPolling';
 
 const { getMapServerStatusMock } = vi.hoisted(() => ({
   getMapServerStatusMock: vi.fn(),
@@ -27,6 +28,7 @@ import {
   invalidateMapStatus,
   MAP_STATUS_POLL_INTERVAL_MS,
   shouldPollMapStatus,
+  shouldTryVectorTiles,
 } from '@/utils/mapStatusService';
 
 describe('mapStatusService', () => {
@@ -60,6 +62,38 @@ describe('mapStatusService', () => {
       { phase: 'downloading', ready: false },
       { phase: 'downloading', ready: false },
     ]);
+  });
+
+  it('allows a twenty-second startup status probe without aborting', async () => {
+    let requestSignal: AbortSignal | undefined;
+    getMapServerStatusMock.mockImplementationOnce(({ signal }: { signal: AbortSignal }) => {
+      requestSignal = signal;
+      return new Promise((resolve) => setTimeout(() => resolve({ phase: 'ready', ready: true }), 20_000));
+    });
+
+    const pending = fetchMapStatus();
+    await vi.advanceTimersByTimeAsync(20_000);
+
+    await expect(pending).resolves.toMatchObject({ ready: true });
+    expect(requestSignal?.aborted).toBe(false);
+  });
+
+  it('aborts an unresponsive status probe at sixty seconds', async () => {
+    const aborted = new DOMException('Status probe timed out', 'AbortError');
+    let requestSignal: AbortSignal | undefined;
+    getMapServerStatusMock.mockImplementationOnce(({ signal }: { signal: AbortSignal }) => {
+      requestSignal = signal;
+      return new Promise((_resolve, reject) => signal.addEventListener('abort', () => reject(aborted)));
+    });
+
+    const pending = fetchMapStatus();
+    const rejected = expect(pending).rejects.toBe(aborted);
+    await vi.advanceTimersByTimeAsync(59_999);
+    expect(requestSignal?.aborted).toBe(false);
+
+    await vi.advanceTimersByTimeAsync(1);
+    await rejected;
+    expect(requestSignal?.aborted).toBe(true);
   });
 
   it('allows at most one automatic request per ten-second window', async () => {
@@ -125,6 +159,17 @@ describe('mapStatusService', () => {
     expect(getMapServerStatusMock).toHaveBeenCalledTimes(2);
   });
 
+  it('identifies an uncached hidden-page pause and fetches normally when visible', async () => {
+    let visibilityState: DocumentVisibilityState = 'hidden';
+    vi.spyOn(document, 'visibilityState', 'get').mockImplementation(() => visibilityState);
+    getMapServerStatusMock.mockResolvedValue({ phase: 'ready', ready: true });
+    await expect(fetchMapStatus()).rejects.toBeInstanceOf(StatusRequestPausedError);
+    expect(getMapServerStatusMock).not.toHaveBeenCalled();
+    visibilityState = 'visible';
+    await expect(fetchMapStatus()).resolves.toMatchObject({ ready: true });
+    expect(getMapServerStatusMock).toHaveBeenCalledOnce();
+  });
+
   it('invalidates cached status after a source or archive change', async () => {
     getMapServerStatusMock
       .mockResolvedValueOnce({ phase: 'ready', ready: true, tileSource: 'public', archiveId: 'public' })
@@ -139,6 +184,13 @@ describe('mapStatusService', () => {
 });
 
 describe('map status polling policy', () => {
+  it('tries vector tiles when status is missing or unreachable, but respects a confirmed download', () => {
+    expect(shouldTryVectorTiles()).toBe(true);
+    expect(shouldTryVectorTiles({ phase: 'unreachable', ready: false })).toBe(true);
+    expect(shouldTryVectorTiles({ phase: 'ready', ready: true })).toBe(true);
+    expect(shouldTryVectorTiles({ phase: 'downloading', ready: false })).toBe(false);
+  });
+
   it('polls local downloads and hosted fallback, but stops for a ready local source', () => {
     expect(
       shouldPollMapStatus({

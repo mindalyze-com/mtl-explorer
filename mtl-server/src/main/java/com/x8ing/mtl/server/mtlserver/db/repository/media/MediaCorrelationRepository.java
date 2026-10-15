@@ -21,18 +21,18 @@ public class MediaCorrelationRepository {
                 SELECT correlation.media_id
                 FROM media_track_correlation correlation
                 JOIN claimed_tracks work ON work.track_id = correlation.track_id
-
+            
                 UNION
-
+            
                 SELECT media.id
                 FROM claimed_tracks work
                 JOIN gps_track track ON track.id = work.track_id
                 JOIN media_file media
                   ON media.exif_gps_date BETWEEN track.start_date AND track.end_date
                 WHERE media.exif_gps_date IS NOT NULL
-
+            
                 UNION
-
+            
                 SELECT media.id
                 FROM claimed_tracks work
                 JOIN gps_track track ON track.id = work.track_id
@@ -42,9 +42,9 @@ public class MediaCorrelationRepository {
                 WHERE media.exif_gps_date IS NULL
                   AND media.exif_date_image_taken IS NOT NULL
                   AND correction.media_id IS NULL
-
+            
                 UNION
-
+            
                 SELECT media.id
                 FROM claimed_tracks work
                 JOIN gps_track track ON track.id = work.track_id
@@ -114,14 +114,15 @@ public class MediaCorrelationRepository {
                         WHEN media_time.exif_gps_location IS NULL THEN NULL
                         ELSE ST_DistanceSphere(
                             media_time.exif_gps_location,
-                            COALESCE(shape.track, canonical.track)
+                            CASE WHEN NOT ST_IsEmpty(shape.observed_path)
+                                 THEN shape.observed_path ELSE canonical.observed_path END
                         )
                     END AS exif_route_distance_meters
                 FROM media_times media_time
                 JOIN gps_track track
                   ON media_time.adjusted_capture_time BETWEEN track.start_date AND track.end_date
                 JOIN LATERAL (
-                    SELECT data.id, data.track
+                    SELECT data.id, data.observed_path
                     FROM gps_track_data data
                     WHERE data.gps_track_id = track.id
                       AND data.track_type = 'RAW_OUTLIER_CLEANED'
@@ -129,7 +130,7 @@ public class MediaCorrelationRepository {
                     LIMIT 1
                 ) canonical ON TRUE
                 LEFT JOIN LATERAL (
-                    SELECT data.track
+                    SELECT data.observed_path
                     FROM gps_track_data data
                     WHERE data.gps_track_id = track.id
                       AND data.track_type = 'SIMPLIFIED_SHAPE'
@@ -138,6 +139,7 @@ public class MediaCorrelationRepository {
                     LIMIT 1
                 ) shape ON TRUE
                 WHERE track.load_status = 'SUCCESS'
+                  AND NOT track.timing_unreliable
                   AND track.duplicate_status = 'UNIQUE'
                   AND track.track_source = 'IMPORTED'
                   AND EXISTS (
@@ -147,59 +149,38 @@ public class MediaCorrelationRepository {
                         AND point.point_timestamp IS NOT NULL
                   )
             ),
-            scored_tracks AS (
-                SELECT
-                    candidate.*,
-                    COUNT(*) OVER (PARTITION BY candidate.media_id) AS alternative_count
-                FROM candidate_tracks candidate
-            ),
-            ranked_tracks AS (
-                SELECT
-                    scored.*,
-                    ROW_NUMBER() OVER (
-                        PARTITION BY scored.media_id
-                        ORDER BY
-                            scored.exif_route_distance_meters ASC NULLS LAST,
-                            ABS(EXTRACT(EPOCH FROM (
-                                scored.adjusted_capture_time
-                                - (scored.start_date + (scored.end_date - scored.start_date) / 2)
-                            ))) ASC,
-                            EXTRACT(EPOCH FROM (scored.end_date - scored.start_date)) ASC,
-                            scored.track_id ASC
-                    ) AS candidate_rank
-                FROM scored_tracks scored
-            ),
             bracketed AS (
                 SELECT
-                    ranked.*,
+                    candidate.*,
                     before_point.point_timestamp AS before_timestamp,
                     before_point.point_index AS before_index,
                     before_point.point_long_lat AS before_location,
                     before_point.distance_in_meter_since_start AS before_distance,
                     before_point.duration_since_start AS before_duration,
                     after_point.point_timestamp AS after_timestamp,
+                    after_point.interval_status AS after_interval_status,
                     after_point.point_index AS after_index,
                     after_point.point_long_lat AS after_location,
                     after_point.distance_in_meter_since_start AS after_distance,
                     after_point.duration_since_start AS after_duration
-                FROM ranked_tracks ranked
+                FROM candidate_tracks candidate
                 LEFT JOIN LATERAL (
-                    SELECT point_timestamp, point_index, point_long_lat,
+                    SELECT point_timestamp, point_index, point_long_lat, interval_status,
                            distance_in_meter_since_start, duration_since_start
                     FROM gps_track_data_points
-                    WHERE gps_track_data_id = ranked.track_data_id
+                    WHERE gps_track_data_id = candidate.track_data_id
                       AND point_timestamp IS NOT NULL
-                      AND point_timestamp <= ranked.adjusted_capture_time
+                      AND point_timestamp <= candidate.adjusted_capture_time
                     ORDER BY point_timestamp DESC, point_index DESC
                     LIMIT 1
                 ) before_point ON TRUE
                 LEFT JOIN LATERAL (
-                    SELECT point_timestamp, point_index, point_long_lat,
+                    SELECT point_timestamp, point_index, point_long_lat, interval_status,
                            distance_in_meter_since_start, duration_since_start
                     FROM gps_track_data_points
-                    WHERE gps_track_data_id = ranked.track_data_id
+                    WHERE gps_track_data_id = candidate.track_data_id
                       AND point_timestamp IS NOT NULL
-                      AND point_timestamp >= ranked.adjusted_capture_time
+                      AND point_timestamp >= candidate.adjusted_capture_time
                     ORDER BY point_timestamp ASC, point_index ASC
                     LIMIT 1
                 ) after_point ON TRUE
@@ -242,6 +223,32 @@ public class MediaCorrelationRepository {
                         ELSE COALESCE(before_duration, after_duration)
                     END AS route_duration
                 FROM with_ratio
+                WHERE adjusted_capture_time = before_timestamp
+                   OR adjusted_capture_time = after_timestamp
+                   OR (after_index = before_index + 1 AND after_interval_status IN ('OBSERVED', 'STOPPED'))
+            ),
+            scored_tracks AS (
+                SELECT
+                    candidate.*,
+                    COUNT(*) OVER (PARTITION BY candidate.media_id) AS alternative_count
+                FROM positioned candidate
+                WHERE candidate.route_location IS NOT NULL
+            ),
+            ranked_tracks AS (
+                SELECT
+                    scored.*,
+                    ROW_NUMBER() OVER (
+                        PARTITION BY scored.media_id
+                        ORDER BY
+                            scored.exif_route_distance_meters ASC NULLS LAST,
+                            ABS(EXTRACT(EPOCH FROM (
+                                scored.adjusted_capture_time
+                                - (scored.start_date + (scored.end_date - scored.start_date) / 2)
+                            ))) ASC,
+                            EXTRACT(EPOCH FROM (scored.end_date - scored.start_date)) ASC,
+                            scored.track_id ASC
+                    ) AS candidate_rank
+                FROM scored_tracks scored
             )
             INSERT INTO media_track_correlation(
                 media_id, track_id, track_version, algorithm_version,
@@ -281,8 +288,7 @@ public class MediaCorrelationRepository {
                 positioned.alternative_count,
                 positioned.alternative_count > 1,
                 CURRENT_TIMESTAMP
-            FROM positioned
-            WHERE positioned.route_location IS NOT NULL
+            FROM ranked_tracks positioned
             """;
 
     static final String INSERT_RESOLVED_LOCATIONS_SQL = """
@@ -417,6 +423,31 @@ public class MediaCorrelationRepository {
                     + (SELECT COUNT(*) FROM media_correlation_track_work)
                 """, Long.class);
         return count == null ? 0 : count;
+    }
+
+    public record ProcessingCounts(long pending, long done, long retrying, java.time.Instant nextRetryAt) { }
+
+    public boolean hasReadyWork() {
+        return Boolean.TRUE.equals(jdbcTemplate.getJdbcTemplate().queryForObject("""
+                SELECT EXISTS (SELECT 1 FROM media_correlation_track_work)
+                    OR EXISTS (SELECT 1 FROM media_correlation_media_work WHERE retry_after <= CURRENT_TIMESTAMP)
+                """, Boolean.class));
+    }
+
+    public ProcessingCounts processingCounts(int algorithmVersion) {
+        return jdbcTemplate.getJdbcTemplate().queryForObject("""
+                SELECT
+                    (SELECT count(*) FROM media_correlation_media_work)
+                        + (SELECT count(*) FROM media_correlation_track_work) AS pending,
+                    (SELECT count(*) FROM media_correlation_state WHERE algorithm_version = ?) AS done,
+                    count(*) FILTER (WHERE retry_after > CURRENT_TIMESTAMP) AS retrying,
+                    min(retry_after) FILTER (WHERE retry_after > CURRENT_TIMESTAMP) AS next_retry
+                FROM media_correlation_media_work
+                """, (rs, row) -> {
+            var retry = rs.getTimestamp("next_retry");
+            return new ProcessingCounts(rs.getLong("pending"), rs.getLong("done"), rs.getLong("retrying"),
+                    retry == null ? null : retry.toInstant());
+        }, algorithmVersion);
     }
 
     public long countCompletedMedia(int algorithmVersion) {

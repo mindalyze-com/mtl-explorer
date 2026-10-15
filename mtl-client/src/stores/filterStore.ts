@@ -4,6 +4,7 @@ import { ClientFilterConfig, FilterService, type FilterParamsRequest } from '@/c
 import type { FilterResult } from '@/types/filter';
 import { fetchResolveFilter, type ResolveFilterResult } from '@/utils/filterApi';
 import { formatActiveFilterIdentity } from '@/utils/activeFilterIdentity';
+import { withBrowserTimeZone } from '@/utils/filterTimeZone';
 
 export type ActiveFilterRequest = {
   filterName: string;
@@ -196,7 +197,7 @@ function activeFilterRequestFromConfig(
 ): ActiveFilterRequest {
   return {
     filterName: clientFilterConfig.filterInfo?.filterConfig?.filterName ?? '',
-    filterParams: clientFilterConfig.filterParams,
+    filterParams: withBrowserTimeZone(clientFilterConfig.filterParams),
     resolvedTrackIds: filterResult ? Array.from(filterResult.trackVersions.keys()) : undefined,
   };
 }

@@ -1,27 +1,25 @@
 package com.x8ing.mtl.server.mtlserver.web.services.map;
 
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
+import com.x8ing.mtl.server.mtlserver.config.MtlAppProperties;
+import com.x8ing.mtl.server.mtlserver.web.security.JwtUtil;
 import com.x8ing.mtl.server.mtlserver.web.services.config.ServerIdentityService;
 import jakarta.annotation.PreDestroy;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
-import okhttp3.ConnectionPool;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.Response;
+import okhttp3.*;
 import okhttp3.ResponseBody;
-import org.springframework.boot.info.BuildProperties;
 import org.springframework.http.HttpHeaders;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.InetAddress;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
-import java.time.temporal.ChronoUnit;
-import java.util.Optional;
 import java.util.OptionalLong;
 import java.util.concurrent.TimeUnit;
 
@@ -34,6 +32,7 @@ import java.util.concurrent.TimeUnit;
  * - Rejects filenames containing path traversal characters (e.g. "../", "%2e%2e").
  * - Rejects filenames containing any path separator (/ or \).
  * - Forwards the Range header and streams back the partial / full response.
+ * - Sends the resolved client IP in X-Forwarded-For and X-Real-IP headers.
  * - Requires authentication (same JWT as all other /api/** endpoints).
  * <p>
  * The proxy supports dual-mode PMTiles serving. Browser-visible map-source and
@@ -48,40 +47,42 @@ import java.util.concurrent.TimeUnit;
 @JsonPropertyOrder({
         "okHttpClient",
         "properties",
+        "appProperties",
         "upstreamResolver",
         "statusService",
         "serverIdentityService",
-        "buildProperties"
+        "buildVersionService"
 })
 public class MapTileProxyController {
 
-    private static final String UNKNOWN_BUILD_VERSION = "unknown";
-    private static final String BUILD_VERSION_TIME_SEPARATOR = "_";
-    private static final String UPSTREAM_AUTH_TOKEN_UNSAFE_CHARS_REGEX = "[^A-Za-z0-9._-]";
-    private static final String UPSTREAM_AUTH_TOKEN_REPLACEMENT = "_";
     private static final String PMTILES_EXTENSION = ".pmtiles";
     private static final String BYTE_RANGE_PREFIX = "bytes=";
     private static final String CACHE_CONTROL_IMMUTABLE = "public, max-age=2678400, immutable";
     private static final String CACHE_CONTROL_NO_STORE = "no-store";
     private static final String CLIENT_ABORT_EXCEPTION_NAME = "ClientAbortException";
+    private static final String X_FORWARDED_FOR_HEADER = "X-Forwarded-For";
+    private static final String X_REAL_IP_HEADER = "X-Real-IP";
 
     private final OkHttpClient okHttpClient;
     private final MapServerProperties properties;
+    private final MtlAppProperties appProperties;
     private final MapUpstreamResolver upstreamResolver;
     private final MapServerStatusService statusService;
     private final ServerIdentityService serverIdentityService;
-    private final Optional<BuildProperties> buildProperties;
+    private final UpstreamBuildVersionService buildVersionService;
 
     public MapTileProxyController(MapServerProperties properties,
+                                  MtlAppProperties appProperties,
                                   MapUpstreamResolver upstreamResolver,
                                   MapServerStatusService statusService,
                                   ServerIdentityService serverIdentityService,
-                                  Optional<BuildProperties> buildProperties) {
+                                  UpstreamBuildVersionService buildVersionService) {
         this.properties = properties;
+        this.appProperties = appProperties;
         this.upstreamResolver = upstreamResolver;
         this.statusService = statusService;
         this.serverIdentityService = serverIdentityService;
-        this.buildProperties = buildProperties;
+        this.buildVersionService = buildVersionService;
         this.okHttpClient = buildOkHttpClient(properties);
     }
 
@@ -112,6 +113,8 @@ public class MapTileProxyController {
             @RequestHeader(value = HttpHeaders.RANGE, required = false) String rangeHeader,
             @RequestParam(value = MapProxyConstants.CACHE_SOURCE_PARAM, required = false) String requestedSource,
             @RequestParam(value = MapProxyConstants.CACHE_ARCHIVE_PARAM, required = false) String requestedArchive,
+            @RequestAttribute(value = JwtUtil.CLIENT_LOGIN_REF, required = false) String clientLoginRef,
+            HttpServletRequest servletRequest,
             HttpServletResponse servletResponse) throws IOException {
 
         if (!MapProxyConstants.SCOPE_PROD.equals(scope)) {
@@ -169,11 +172,12 @@ public class MapTileProxyController {
             }
         }
 
-        String upstreamUrl = buildUpstreamUrl(upstream, scope, filename);
+        String upstreamUrl = buildUpstreamUrl(upstream, scope, filename, clientLoginRef);
         log.debug("Proxying tile request: source={}, archive={}, file={}, Range={}",
                 upstream.source().cacheValue(), requestedArchive, filename, rangeHeader);
 
         Request.Builder requestBuilder = new Request.Builder().url(upstreamUrl);
+        forwardClientAddress(servletRequest, requestBuilder);
         if (!isBlank(rangeHeader)) {
             requestBuilder.header(HttpHeaders.RANGE, rangeHeader);
         }
@@ -209,6 +213,24 @@ public class MapTileProxyController {
                 sendNoStoreError(servletResponse, HttpServletResponse.SC_BAD_GATEWAY,
                         "Map tile server unavailable");
             }
+        }
+    }
+
+    private static void forwardClientAddress(HttpServletRequest servletRequest, Request.Builder requestBuilder) {
+        // Spring's configured forwarding support resolves the address. Do not copy raw
+        // client-supplied headers here; the ingress proxy owns the forwarding trust boundary.
+        String clientAddress = servletRequest.getRemoteAddr();
+        if (isBlank(clientAddress)) {
+            return;
+        }
+        try {
+            // Parse literals without DNS lookups, and omit malformed forwarding metadata.
+            String clientIp = InetAddress.ofLiteral(clientAddress).getHostAddress();
+            requestBuilder.header(X_FORWARDED_FOR_HEADER, clientIp);
+            requestBuilder.header(X_REAL_IP_HEADER, clientIp);
+        } catch (IllegalArgumentException e) {
+            log.warn("Map proxy omitted invalid client address ({}): expected an IPv4 or IPv6 literal",
+                    e.getClass().getSimpleName());
         }
     }
 
@@ -354,50 +376,41 @@ public class MapTileProxyController {
         return false;
     }
 
-    private String buildUpstreamUrl(MapUpstream upstream, String scope, String filename) {
+    private String buildUpstreamUrl(MapUpstream upstream, String scope, String filename, String clientLoginRef) {
         return buildUpstreamUrl(
                 upstream.baseUrl(),
                 scope,
                 filename,
-                buildVersion(),
-                serverIdentityService.getServerId());
+                buildVersionService.getVersion(),
+                buildVersionService.getBuild(),
+                serverIdentityService.getServerId(),
+                appProperties.isDemoMode(),
+                clientLoginRef);
     }
 
     static String buildUpstreamUrl(String upstreamBaseUrl,
                                    String scope,
                                    String filename,
                                    String version,
-                                   String serverId) {
-        return UriComponentsBuilder
+                                   String build,
+                                   String serverId,
+                                   boolean demoMode,
+                                   String clientLoginRef) {
+        UriComponentsBuilder builder = UriComponentsBuilder
                 .fromUriString(upstreamBaseUrl)
                 .pathSegment(scope, filename)
-                .queryParam(MapProxyConstants.UPSTREAM_AUTH_VERSION_PARAM, encodeUpstreamQueryParam(version))
-                .queryParam(MapProxyConstants.UPSTREAM_AUTH_SERVER_ID_PARAM, encodeUpstreamQueryParam(serverId))
-                .build(true)
-                .toUriString();
-    }
-
-    private String buildVersion() {
-        return buildProperties
-                .map(MapTileProxyController::buildVersionParam)
-                .orElse(UNKNOWN_BUILD_VERSION);
-    }
-
-    static String buildVersionParam(BuildProperties properties) {
-        String version = properties.getVersion();
-        String normalizedVersion = version == null || version.isBlank()
-                ? UNKNOWN_BUILD_VERSION
-                : sanitizeUpstreamAuthTokenPart(version);
-        if (properties.getTime() == null) {
-            return normalizedVersion;
+                .queryParam(MapProxyConstants.UPSTREAM_AUTH_VERSION_PARAM, encodeUpstreamQueryParam(version));
+        if (!isBlank(build)) {
+            builder.queryParam(MapProxyConstants.UPSTREAM_BUILD_PARAM, encodeUpstreamQueryParam(build));
         }
-        return normalizedVersion
-               + BUILD_VERSION_TIME_SEPARATOR
-               + sanitizeUpstreamAuthTokenPart(properties.getTime().truncatedTo(ChronoUnit.SECONDS).toString());
-    }
-
-    private static String sanitizeUpstreamAuthTokenPart(String value) {
-        return value.trim().replaceAll(UPSTREAM_AUTH_TOKEN_UNSAFE_CHARS_REGEX, UPSTREAM_AUTH_TOKEN_REPLACEMENT);
+        builder.queryParam(MapProxyConstants.UPSTREAM_AUTH_SERVER_ID_PARAM, encodeUpstreamQueryParam(serverId));
+        builder.queryParam(MapProxyConstants.UPSTREAM_INSTANCE_TYPE_PARAM,
+                demoMode ? MapProxyConstants.INSTANCE_TYPE_DEMO : MapProxyConstants.INSTANCE_TYPE_STANDARD);
+        if (!isBlank(clientLoginRef)) {
+            builder.queryParam(MapProxyConstants.UPSTREAM_CLIENT_LOGIN_REF_PARAM,
+                    encodeUpstreamQueryParam(clientLoginRef));
+        }
+        return builder.build(true).toUriString();
     }
 
     private static String encodeUpstreamQueryParam(String value) {

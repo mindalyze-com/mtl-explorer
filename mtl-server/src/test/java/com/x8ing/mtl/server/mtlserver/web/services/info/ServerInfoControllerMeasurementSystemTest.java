@@ -22,7 +22,8 @@ class ServerInfoControllerMeasurementSystemTest {
                 mock(SystemLogService.class),
                 properties,
                 mock(DockerImageInfoService.class),
-                mock(ServerIdentityService.class));
+                mock(ServerIdentityService.class),
+                mock(RuntimeVersionInfoService.class));
 
         BuildInfoResponse response = controller.getBuild();
 

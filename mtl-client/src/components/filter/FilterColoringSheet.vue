@@ -1,20 +1,23 @@
 <template>
   <BottomSheet
     :model-value="modelValue"
+    back-label="Back to Filter"
     title="Map colors"
     icon="bi bi-palette"
     :detents="[{ height: 'min(56vh, 28rem)' }, { height: '90vh' }]"
     :no-backdrop="true"
     :z-index="5100"
     sheet-class="sheet--filter-detail sheet--filter-colors"
+    @back="emit('update:modelValue', false)"
     @update:model-value="emit('update:modelValue', $event)"
   >
-    <div class="filter-coloring-sheet">
+    <template v-if="!enabled" #header-actions>
+      <FilterOffBadge />
+    </template>
+
+    <div class="filter-coloring-sheet filter-detail-sheet-content">
       <div class="filter-coloring-sheet__intro">
-        <div>
-          <h3 class="filter-panel-title">Style the result</h3>
-          <p>Colors change the map, not which tracks match.</p>
-        </div>
+        <p>Choose colors and category order for the map.</p>
         <div v-if="previewColors.length" class="filter-coloring-sheet__preview" aria-label="Palette preview">
           <span
             v-for="(color, index) in previewColors"
@@ -25,23 +28,25 @@
       </div>
 
       <div class="filter-coloring-sheet__fields">
-        <label class="filter-coloring-sheet__field">
-          <span>Palette</span>
+        <label class="settings-field">
+          <span class="settings-field__label">Palette</span>
           <Select
             v-model="draftPalette"
+            aria-label="Palette"
             :options="palettes"
             option-label="pLabel"
             placeholder="No coloring"
             class="filter-coloring-sheet__select"
             append-to="body"
           />
-          <small>Assigns colors to the available categories.</small>
+          <small class="settings-field__hint">Assigns colors to the available categories.</small>
         </label>
 
-        <label class="filter-coloring-sheet__field">
-          <span>Category order</span>
+        <label class="settings-field">
+          <span class="settings-field__label">Category order</span>
           <Select
             v-model="draftOrder"
+            aria-label="Category order"
             :options="orderOptions"
             option-label="label"
             option-value="value"
@@ -56,7 +61,7 @@
               </div>
             </template>
           </Select>
-          <small>Controls the legend and the sequence of palette colors.</small>
+          <small class="settings-field__hint">Controls the legend and the sequence of palette colors.</small>
         </label>
       </div>
     </div>
@@ -65,6 +70,7 @@
       <FilterSheetActions
         :reset-visible="hasColoringOverride"
         reset-aria-label="Reset map colors"
+        :apply-label="enabled ? 'Apply' : 'Apply and enable'"
         @reset="resetColoring"
         @cancel="cancel"
         @apply="apply"
@@ -78,6 +84,7 @@ import { computed, ref, shallowRef, watch } from 'vue';
 import type { ColorPalette } from '@/components/filter/ColorPalette';
 import type { LegendSortStrategy } from '@/utils/filterMetadata';
 import BottomSheet from '@/components/ui/BottomSheet.vue';
+import FilterOffBadge from '@/components/filter/FilterOffBadge.vue';
 import FilterSheetActions from '@/components/filter/FilterSheetActions.vue';
 
 type OrderOption = {
@@ -91,6 +98,7 @@ defineOptions({ name: 'FilterColoringSheet' });
 const props = withDefaults(
   defineProps<{
     modelValue: boolean;
+    enabled?: boolean;
     palettes?: ColorPalette[];
     palette?: ColorPalette;
     defaultPalette?: ColorPalette;
@@ -98,6 +106,7 @@ const props = withDefaults(
     orderOptions?: OrderOption[];
   }>(),
   {
+    enabled: true,
     palettes: () => [],
     palette: undefined,
     defaultPalette: undefined,
@@ -134,6 +143,7 @@ function cancel(): void {
 }
 
 function paletteIdentity(palette?: ColorPalette): string {
+  if (palette?.noColoring) return 'none';
   if (!palette || palette.isEmptyColorPalette()) return 'empty';
   return String(palette.id ?? palette.pLabel ?? palette.pColors?.join(',') ?? 'palette');
 }
@@ -154,15 +164,8 @@ function apply(): void {
 
 <style scoped>
 .filter-coloring-sheet {
-  display: flex;
-  flex: 1 1 auto;
   width: min(100%, 38rem);
-  min-height: 0;
-  overflow-y: auto;
   margin: 0 auto;
-  padding: 0.35rem 1rem 1.25rem;
-  box-sizing: border-box;
-  flex-direction: column;
   gap: 1.2rem;
 }
 
@@ -171,10 +174,6 @@ function apply(): void {
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  padding: 1rem;
-  border: 1px solid var(--border-subtle, var(--border-default));
-  border-radius: 0.85rem;
-  background: var(--surface-elevated);
 }
 
 .filter-coloring-sheet__intro p {
@@ -202,23 +201,6 @@ function apply(): void {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 1rem;
-}
-
-.filter-coloring-sheet__field {
-  display: flex;
-  min-width: 0;
-  flex-direction: column;
-  gap: 0.4rem;
-  color: var(--text-primary);
-  font-size: var(--text-sm-size);
-  font-weight: 700;
-}
-
-.filter-coloring-sheet__field > small {
-  color: var(--text-muted);
-  font-size: var(--text-xs-size);
-  font-weight: 400;
-  line-height: var(--text-xs-lh);
 }
 
 .filter-coloring-sheet__select {

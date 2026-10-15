@@ -3,22 +3,23 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script defer src="../site-analytics.js"></script>
   <title>Self-Hosted Route Planner with GPX Export | MTL Explorer</title>
-  <meta name="description" content="Plan routes on the MTL Explorer map, review distance and ascent while drawing, save plans locally, and export the result as a GPX file.">
+  <meta name="description" content="Plan routes and save places with icons and notes on the MTL Explorer map. Review distance and ascent, save plans locally, and export route geometry as GPX.">
   <meta name="robots" content="index, follow, max-image-preview:large">
-  <link rel="canonical" href="https://mindalyze-com.github.io/mtl-explorer/route-planner/">
+  <link rel="canonical" href="https://mtl-explorer.com/route-planner/">
   <meta property="og:site_name" content="MTL Explorer">
   <meta property="og:type" content="website">
-  <meta property="og:url" content="https://mindalyze-com.github.io/mtl-explorer/route-planner/">
+  <meta property="og:url" content="https://mtl-explorer.com/route-planner/">
   <meta property="og:title" content="Self-Hosted Route Planner with GPX Export | MTL Explorer">
-  <meta property="og:description" content="Draw routes, review distance and ascent, and export GPX files from a self-hosted map.">
-  <meta property="og:image" content="https://mindalyze-com.github.io/mtl-explorer/assets/feature-showcase/large/route-planning.webp">
+  <meta property="og:description" content="Draw routes, save places with icons and notes, review distance and ascent, and export route geometry as GPX.">
+  <meta property="og:image" content="https://mtl-explorer.com/assets/feature-showcase/large/route-planning.webp">
   <meta property="og:image:type" content="image/webp">
   <meta property="og:image:width" content="2199">
   <meta property="og:image:height" content="1561">
   <meta property="og:image:alt" content="MTL Explorer route planner with waypoints and elevation profile">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:image" content="https://mindalyze-com.github.io/mtl-explorer/assets/feature-showcase/large/route-planning.webp">
+  <meta name="twitter:image" content="https://mtl-explorer.com/assets/feature-showcase/large/route-planning.webp">
   <link rel="icon" href="../favicon.ico" sizes="any">
   <link rel="stylesheet" href="../site-page.css">
   <link rel="preload" as="image" type="image/webp" href="../assets/feature-showcase/preview/route-planning.webp">
@@ -27,9 +28,29 @@
       "@context": "https://schema.org",
       "@type": "WebPage",
       "name": "Self-Hosted Route Planner with GPX Export",
-      "url": "https://mindalyze-com.github.io/mtl-explorer/route-planner/",
+      "url": "https://mtl-explorer.com/route-planner/",
       "description": "A guide to route planning and GPX export in MTL Explorer.",
-      "isPartOf": {"@type": "WebSite", "name": "MTL Explorer", "url": "https://mindalyze-com.github.io/mtl-explorer/"}
+      "isPartOf": {"@type": "WebSite", "name": "MTL Explorer", "url": "https://mtl-explorer.com/"}
+    }
+  </script>
+  <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Home",
+          "item": "https://mtl-explorer.com/"
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "Route planner",
+          "item": "https://mtl-explorer.com/route-planner/"
+        }
+      ]
     }
   </script>
 </head>
@@ -54,8 +75,8 @@
     <section class="hero">
       <div>
         <p class="eyebrow">Route planner</p>
-        <h1>Plan a route and export the result as GPX.</h1>
-        <p class="lead">Place waypoints on the map and let the configured BRouter service calculate each leg. Distance, ascent, and the elevation profile update as the plan changes.</p>
+        <h1>Plan routes and places to visit.</h1>
+        <p class="lead">Click points on the map, and MTL Explorer finds the route between them. Save places you want to visit, with or without a route. You see distance, climb, and an elevation profile, and can export the route as GPX.</p>
         <div class="actions">
           <a class="button" href="https://mtl-demo.mindalyze.com/mtl/">Try the route planner</a>
           <a class="button-secondary" href="../docker-install/">Install with Docker</a>
@@ -67,16 +88,22 @@
       </figure>
     </section>
 
+    <nav class="on-this-page" aria-label="On this page"><a href="#walkthrough">Route walkthrough</a><a href="#points-of-interest">Saved places</a><a href="#routing-help">Routing help</a></nav>
+
+    <section class="section" id="walkthrough"><h2>Plan a route.</h2><p>Choose a profile, edit waypoints, review the result, and save a plan.</p><p><a href="/docs/user/planning/">Planning guide</a></p></section>
+
+    <section class="section" id="points-of-interest"><h2>Save useful places.</h2><p>Keep named places with a route or as a plan of their own.</p><p><a href="/docs/user/planning/">Routes and saved places</a></p></section>
+
     <section class="section">
       <div class="section-head">
         <h2>Build the route one leg at a time.</h2>
-        <p>The planner keeps the original waypoints and the calculated path. Moving one waypoint only recalculates the affected legs.</p>
+        <p>Moving a point only recalculates the route next to it.</p>
       </div>
       <div class="content-grid">
-        <article class="card"><h3>Routing profiles</h3><p>Select a configured BRouter profile for the type of route you want to plan.</p></article>
-        <article class="card"><h3>Live distance and ascent</h3><p>Route totals and the elevation profile update after each successful routing change.</p></article>
-        <article class="card"><h3>Editable plans</h3><p>Save a plan to the local database and open it later with its original waypoints.</p></article>
-        <article class="card"><h3>GPX export</h3><p>Export the calculated geometry as a GPX file for another application or GPS device.</p></article>
+        <article class="card"><h3>Travel modes</h3><p>Choose hiking, mountain bike, road bike, touring bike, or car.</p></article>
+        <article class="card"><h3>Live distance and ascent</h3><p>Distance, climb, and the elevation profile update as you edit.</p></article>
+        <article class="card"><h3>Editable plans</h3><p>Save a plan and open it later to keep editing.</p></article>
+        <article class="card"><h3>GPX export</h3><p>Export the route as a GPX file for another app or your GPS device.</p></article>
       </div>
     </section>
 
@@ -85,11 +112,12 @@
         <div class="copy">
           <p class="eyebrow">Map context</p>
           <h2>Plan beside existing tracks and public trail data.</h2>
-          <p>The route planner uses the same map as the GPS archive. Existing activities can provide context, while optional overlays show waymarked hiking and cycling routes.</p>
+          <p>Plan on the same map as your tracks. Your past activities stay visible, and you can show marked hiking and cycling routes.</p>
           <ul class="plain-list">
             <li>Switch between the configured base maps.</li>
             <li>Show or hide archived tracks while planning.</li>
             <li>Use public trail overlays as a visual reference.</li>
+            <li>Show points of interest such as drinking water, huts, or transport.</li>
           </ul>
         </div>
         <figure class="media">
@@ -103,14 +131,24 @@
       <div class="split">
         <figure class="media">
           <img src="../assets/feature-showcase/thumb/planner-load-route.webp" srcset="../assets/feature-showcase/thumb/planner-load-route.webp 360w, ../assets/feature-showcase/medium/planner-load-route.webp 720w, ../assets/feature-showcase/preview/planner-load-route.webp 1099w" sizes="(max-width: 900px) calc(100vw - 40px), 530px" width="1099" height="607" alt="Saved route list with load and GPX export controls" loading="lazy" decoding="async">
-          <figcaption>Saved plans can be reopened or exported.</figcaption>
+          <figcaption>Saved plans can be reopened. Plans with a route also offer GPX export.</figcaption>
         </figure>
         <div class="copy">
           <p class="eyebrow">Local plans</p>
-          <h2>Keep planned routes with the archive.</h2>
-          <p>Plans are stored on the MTL Explorer server. They remain separate from imported activities and can be edited without modifying the original track archive.</p>
-          <p>BRouter is included as a sidecar in the standard Docker Compose setup.</p>
+          <h2>Keep routes and places with the archive.</h2>
+          <p>Plans are saved on your MTL Explorer server, together with your places. They are kept separate from your recorded activities.</p>
+          <p>Route planning uses BRouter, which is included in the standard installation.</p>
         </div>
+      </div>
+    </section>
+
+    <section class="section" id="routing-help">
+      <div class="section-head"><h2>If a route leg does not complete.</h2><p>Your draft is kept. Check the message before adding more points.</p></div>
+      <div class="content-grid">
+        <article class="card"><h3>Routing data is loading</h3><p>Routing data for this area may still be downloading. Wait until it is done, then try again.</p></article>
+        <article class="card"><h3>No suitable path</h3><p>Check the travel mode and move the point onto a road or trail. A path on the map may still be closed for your travel mode.</p></article>
+        <article class="card"><h3>Routing service unavailable</h3><p>Check the routing log with <code>docker compose logs --tail=100 brouter</code>. Routing data is stored in <code>./data/brouter-segments/</code>.</p></article>
+        <article class="card"><h3>Before navigating</h3><p>Inspect the exported path in the destination app or device. Conditions, access rules, and map data can differ from the plan.</p></article>
       </div>
     </section>
 
@@ -127,7 +165,7 @@
   <footer class="site-footer">
     <div class="site-footer-inner">
       <span>MTL Explorer · Self-hosted GPS archive</span>
-      <nav aria-label="Footer navigation"><a href="../">Home</a><a href="https://github.com/mindalyze-com/mtl-explorer">GitHub</a></nav>
+      <nav aria-label="Footer navigation"><a href="../#site-analytics">Site analytics</a><a href="../">Home</a><a href="https://github.com/mindalyze-com/mtl-explorer">GitHub</a></nav>
     </div>
   </footer>
 </body>

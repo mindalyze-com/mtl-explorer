@@ -24,15 +24,17 @@ import {
   type GpxUploadStatus,
   type IndexerRescanResponse,
   type IndexSummaryDto,
+  type FileFailuresDto,
   type JobSummaryDto,
 } from 'x8ing-mtl-api-typescript-fetch';
 
 import { apiClient } from '@/utils/apiClient';
 import { isAuthenticationFailureStatus } from '@/utils/auth';
 import { getApiConfiguration } from '@/utils/openApiClient';
-import { describeError, startStartupTimer } from '@/utils/startupDiagnostics';
+import { startStartupTimer } from '@/utils/startupDiagnostics';
 import { apiUrl } from '@/utils/apiBase';
-import { logSanitizedError } from '@/utils/safeLogging';
+import { logSanitizedError, warnRequestFailure } from '@/utils/safeLogging';
+import { STARTUP_REQUEST_TIMEOUT_MS } from '@/utils/startupTiming';
 
 // ─── Build info ──────────────────────────────────────────────────────────────
 
@@ -50,16 +52,24 @@ export async function getServerBuildInfo(): Promise<BuildInfo> {
 
 export interface DemoStatus {
   demoMode: boolean;
+  syntheticHealthData?: boolean;
   username?: string;
   password?: string;
 }
 
-export async function getDemoStatus(): Promise<DemoStatus> {
+export async function getDemoStatus(options: { throwOnFailure?: boolean } = {}): Promise<DemoStatus> {
   try {
     // Public endpoint — call without auth header by using bare axios.
-    const response = await axios.get<DemoStatus>(apiUrl('api/auth/demo-status'));
+    const response = await axios.get<DemoStatus>(
+      apiUrl('api/auth/demo-status'),
+      options.throwOnFailure ? { timeout: STARTUP_REQUEST_TIMEOUT_MS } : undefined
+    );
+    if (options.throwOnFailure && typeof response.data?.demoMode !== 'boolean') {
+      throw new Error('Installation status is unavailable.');
+    }
     return response.data ?? { demoMode: false };
-  } catch {
+  } catch (error) {
+    if (options.throwOnFailure) throw error;
     return { demoMode: false };
   }
 }
@@ -84,8 +94,14 @@ export async function triggerGarminExport(): Promise<string> {
     text = text.replace(/\\n/g, '\n');
     return text;
   } catch (error: unknown) {
-    logSanitizedError('Error triggering Garmin export:', error);
-    throw new Error('Failed to trigger Garmin export: ' + (error instanceof Error ? error.message : String(error)));
+    logSanitizedError('Error triggering Garmin export:', error, {
+      topic1: 'application',
+      topic2: 'serverAdminApi',
+      topic3: 'triggerGarminExport',
+    });
+    throw new Error('Failed to trigger Garmin export: ' + (error instanceof Error ? error.message : String(error)), {
+      cause: error,
+    });
   }
 }
 
@@ -104,6 +120,11 @@ async function postInstallScript(url: string): Promise<string> {
     return text.replace(/\\n/g, '\n');
   } catch (error: unknown) {
     const axiosErr = axios.isAxiosError(error) ? error : null;
+    warnRequestFailure('Garmin helper installation failed', error, {
+      topic1: 'admin',
+      topic2: 'serverAdminApi',
+      topic3: 'install-helper',
+    });
     const rawBody: unknown = axiosErr?.response?.data;
     const log: string | null = typeof rawBody === 'string' && rawBody.length > 0 ? rawBody.replace(/\\n/g, '\n') : null;
     const err: Error & { installLog?: string | null } = new Error(
@@ -164,6 +185,12 @@ export async function uploadGpxFile(file: File): Promise<GpxUploadResult> {
   try {
     return await getGpxUploadApi().uploadGpxFile({ file });
   } catch (error) {
+    if (!(error instanceof ResponseError) || error.response.status >= 500)
+      warnRequestFailure('Track file upload failed', error, {
+        topic1: 'admin',
+        topic2: 'serverAdminApi',
+        topic3: 'upload',
+      });
     const uploadErrorResult = await getGpxUploadErrorResult(error);
     if (uploadErrorResult) {
       return uploadErrorResult;
@@ -184,7 +211,7 @@ export async function getServerLog(lines: number = 200): Promise<string> {
 
 // ─── Indexer / Job Status ────────────────────────────────────────────────────
 
-export type { DataFreshnessResponseDto, IndexerRescanResponse, IndexSummaryDto, JobSummaryDto };
+export type { DataFreshnessResponseDto, IndexerRescanResponse, IndexSummaryDto, JobSummaryDto, FileFailuresDto };
 export { getAdminOperationalTasks } from '@/utils/adminOperationalTasks';
 export type { AdminOperationalTask } from '@/utils/adminOperationalTasks';
 // Local aliases used by the composable/UI. Unlike the generated DTOs (whose
@@ -195,7 +222,9 @@ export type IndexSummary = Required<
   Pick<IndexSummaryDto, 'pending' | 'failed' | 'completed' | 'removed' | 'excluded' | 'total' | 'progressPercent'>
 > &
   IndexSummaryDto;
-export type JobSummary = Required<Pick<JobSummaryDto, 'pending' | 'done' | 'total' | 'progressPercent'>> &
+export type JobSummary = Required<
+  Pick<JobSummaryDto, 'pending' | 'done' | 'failed' | 'unavailable' | 'total' | 'progressPercent'>
+> &
   JobSummaryDto;
 
 function getIndexerStatusApi() {
@@ -228,12 +257,24 @@ export async function triggerIndexerRescan(index: 'GPS' | 'MEDIA'): Promise<Inde
   return getIndexerStatusApi().triggerIndexerRescan({ index });
 }
 
+export async function getIndexerFileFailures(
+  index: string,
+  page: number,
+  size: number,
+  signal: AbortSignal,
+  outcome?: 'FAILED' | 'SKIPPED'
+): Promise<FileFailuresDto> {
+  return getIndexerStatusApi().getIndexerFileFailures({ index, page, size, outcome }, { signal });
+}
+
 export async function getJobStatus(): Promise<JobSummary[]> {
   const dtos = await getJobStatusApi().getJobStatus();
   return dtos.map((j) => ({
     ...j,
     pending: j.pending ?? 0,
     done: j.done ?? 0,
+    unavailable: j.unavailable ?? 0,
+    failed: j.failed ?? 0,
     total: j.total ?? 0,
     progressPercent: j.progressPercent ?? 0,
   }));
@@ -257,7 +298,7 @@ export async function checkServerAuth(): Promise<AuthCheckResult> {
   try {
     await apiClient.get('api/info/build', {
       responseType: 'text',
-      timeout: 10000,
+      timeout: STARTUP_REQUEST_TIMEOUT_MS,
     });
     timer.success('Auth probe succeeded');
     return 'ok';
@@ -265,11 +306,11 @@ export async function checkServerAuth(): Promise<AuthCheckResult> {
     if (axios.isAxiosError(error) && error.response) {
       const status = error.response.status;
       if (isAuthenticationFailureStatus(status)) {
-        timer.warn('Auth probe reported expired credentials', { status });
+        timer.success('Auth probe requires sign-in', { status });
         return 'auth-error';
       }
     }
-    timer.warn('Auth probe failed due to network issue', describeError(error));
+    timer.warn('Auth probe failed due to network issue', error);
     return 'network-error';
   }
 }

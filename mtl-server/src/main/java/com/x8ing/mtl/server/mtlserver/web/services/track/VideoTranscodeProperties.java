@@ -7,7 +7,9 @@ import org.springframework.stereotype.Component;
 import java.nio.file.Path;
 import java.time.Duration;
 
-/** Hard limits for temporary browser-compatible video streams. */
+/**
+ * Hard limits for temporary browser-compatible video streams.
+ */
 @Data
 @Component
 @ConfigurationProperties(prefix = "mtl.video-transcode")

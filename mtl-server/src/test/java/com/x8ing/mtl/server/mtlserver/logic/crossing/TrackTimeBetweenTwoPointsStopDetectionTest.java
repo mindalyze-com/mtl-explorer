@@ -22,6 +22,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
+import static com.x8ing.mtl.server.mtlserver.testsupport.SegmentReadTestSupport.directReads;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -47,7 +48,7 @@ class TrackTimeBetweenTwoPointsStopDetectionTest {
 
     private final GeometryFactory factory = new GeometryFactory();
 
-    private static final double METERS_PER_DEG_LON = 75_900.0;
+    private static final double METERS_PER_DEG_LON = 111_320.0;
     private static final double METERS_PER_DEG_LAT = 110540.0;
     private static final Long TRACK_ID = 1L;
     private static final Long TRACK_DATA_ID = 10L;
@@ -57,7 +58,7 @@ class TrackTimeBetweenTwoPointsStopDetectionTest {
     void setUp() {
         MockitoAnnotations.openMocks(this);
         service = new TrackTimeBetweenTwoPoints(
-                gpsTrackRepository, gpsTrackDataPointRepository, gpsTrackEventRepository, gpsTrackVariantSelector);
+                gpsTrackRepository, gpsTrackDataPointRepository, gpsTrackEventRepository, gpsTrackVariantSelector, directReads());
     }
 
     @Test
@@ -96,7 +97,7 @@ class TrackTimeBetweenTwoPointsStopDetectionTest {
     @DisplayName("A 2-minute stop inside the segment is detected")
     void twoMinuteStopIsDetected() {
         // Move to 200 m, sit there for 120 s (stationary samples at same position,
-        // 10 s apart), then continue moving. Stop clearly exceeds 30 s threshold.
+        // 10 s apart), then continue moving. Stop exceeds the 60 s visible-break threshold.
         List<GpsTrackDataPoint> points = new ArrayList<>();
         // Moving from A at x=100 m to x=200 m at 1 m/s.
         for (int t = 0; t <= 200; t += 20) {
@@ -127,13 +128,13 @@ class TrackTimeBetweenTwoPointsStopDetectionTest {
     }
 
     @Test
-    @DisplayName("Pause shorter than threshold (10 s) is ignored — GPS jitter noise")
-    void shortPauseBelowThresholdIsIgnored() {
+    @DisplayName("Without supplied break events, annotation reports zero breaks")
+    void annotationDoesNotRedetectBreakEvents() {
         List<GpsTrackDataPoint> points = new ArrayList<>();
         for (int t = 0; t <= 200; t += 20) {
             points.add(sample(t, t, 0));
         }
-        // 10-second "stop" — under the 30-second minimum.
+        // A supported 20-second pause, with no supplied break event.
         points.add(sample(210, 200, 0));
         points.add(sample(220, 200, 0));
         for (int t = 230; t <= 520; t += 20) {
@@ -148,12 +149,13 @@ class TrackTimeBetweenTwoPointsStopDetectionTest {
 
         SegmentNotes notes = crossings.get(1).segmentNotesSinceLastTriggerPoint;
         assertNotNull(notes);
-        assertEquals(0, notes.stopCount, "Short pauses must not count as a stop (GPS jitter/red light)");
+        assertEquals(0, notes.stopCount, "Annotation consumes supplied events rather than detecting breaks again");
+        assertEquals(20, notes.totalStoppedSec, 0.001);
     }
 
     @Test
-    @DisplayName("Two separate stops inside the same segment are each counted")
-    void twoSeparateStopsAreEachCounted() {
+    @DisplayName("Short stopped intervals count toward time without becoming break events")
+    void shortPauseContributesToStoppedTimeButNotBreakCount() {
         List<GpsTrackDataPoint> points = new ArrayList<>();
         // Move A(100) → x=200.
         for (int t = 0; t <= 200; t += 20) {
@@ -178,14 +180,14 @@ class TrackTimeBetweenTwoPointsStopDetectionTest {
             points.add(sample(t, x, 0));
         }
 
-        List<Crossing> crossings = run(points, List.of(stopEvent(210, 270), stopEvent(430, 475)),
+        List<Crossing> crossings = run(points, List.of(stopEvent(210, 270)),
                 trigger("A", 100, 0),
                 trigger("B", 500, 0),
                 20.0);
 
         SegmentNotes notes = crossings.get(1).segmentNotesSinceLastTriggerPoint;
         assertNotNull(notes);
-        assertEquals(2, notes.stopCount, "Two separate pauses must each count as a stop");
+        assertEquals(1, notes.stopCount, "Only the pause lasting at least 60 seconds is a break event");
         assertTrue(notes.longestStopSec >= 50.0 && notes.longestStopSec <= 70.0,
                 "Longest stop ~60 s, got " + notes.longestStopSec);
         assertTrue(notes.totalStoppedSec >= 90.0 && notes.totalStoppedSec <= 120.0,
@@ -238,12 +240,23 @@ class TrackTimeBetweenTwoPointsStopDetectionTest {
                                TriggerPoint a,
                                TriggerPoint b,
                                double radius) {
+        // These fixture intervals use the same stationary ground truth as the event setup.
+        // Consumers must read the state, including the short 45-second episode.
+        for (int i = 0; i < points.size(); i++) points.get(i).setPointIndex(i);
+        for (int i = 1; i < points.size(); i++) {
+            var aPoint = points.get(i - 1);
+            var bPoint = points.get(i);
+            boolean stopped = aPoint.getPointLongLat().equalsExact(bPoint.getPointLongLat());
+            bPoint.setMotionState(stopped
+                    ? com.x8ing.mtl.server.mtlserver.logic.motion.TrackMotionAnalyzer.State.STOPPED
+                    : com.x8ing.mtl.server.mtlserver.logic.motion.TrackMotionAnalyzer.State.MOVING);
+        }
         GpsTrack track = new GpsTrack();
         track.setId(TRACK_ID);
         track.setTrackName("test");
 
         for (TriggerPoint tp : List.of(a, b)) {
-            when(gpsTrackRepository.getTracksWithinDistanceToPoint(
+            when(gpsTrackRepository.getSegmentCandidateTrackIds(
                     eq(tp.coordinate.x), eq(tp.coordinate.y), eq(radius), any()))
                     .thenReturn(List.of(TRACK_ID));
         }
@@ -258,7 +271,7 @@ class TrackTimeBetweenTwoPointsStopDetectionTest {
         request.setTriggerPoints(List.of(a, b));
         request.setRadius(radius);
 
-        CrossingPointsResponse response = service.getTrackTimeBetweenPoints(request, null);
+        CrossingPointsResponse response = service.getTrackCrossingsWithoutSummaries(request, null);
         assertNotNull(response);
         CrossingsPerTrack perTrack = response.getCrossings().get(TRACK_ID);
         assertNotNull(perTrack);

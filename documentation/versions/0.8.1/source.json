@@ -1,0 +1,11 @@
+{
+  "public_tag": "v.0.8.1",
+  "public_revision": "444aa8d0bbbbf2bbe358dfb2680faa3d70e1b0c9",
+  "files": [
+    "documentation/features.md",
+    "documentation/home-install.md",
+    "documentation/photo-handling-improvement.md",
+    "documentation/container-build.md",
+    "documentation/why-i-built-mtl-explorer.md"
+  ]
+}

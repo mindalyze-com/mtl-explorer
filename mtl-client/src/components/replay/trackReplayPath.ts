@@ -90,8 +90,9 @@ export function formatReplaySpeedFactor(
 }
 
 export function trackDurationSeconds(
-  track: Pick<GpsTrack, 'trackDurationInMotionSecs' | 'startDate' | 'endDate'>
+  track: Pick<GpsTrack, 'trackDurationInMotionSecs' | 'startDate' | 'endDate' | 'timingUnreliable' | 'timingEstimated'>
 ): number | null {
+  if (track.timingUnreliable || track.timingEstimated) return null;
   const startMs = toValidDateMs(track.startDate);
   const endMs = toValidDateMs(track.endDate);
   if (startMs != null && endMs != null && endMs > startMs) {
@@ -106,7 +107,10 @@ export function trackDurationSeconds(
 
 export function buildReplayPath(args: {
   coordinates: number[][];
-  track?: Pick<GpsTrack, 'trackDurationInMotionSecs' | 'startDate' | 'endDate'> | null;
+  track?: Pick<
+    GpsTrack,
+    'trackDurationInMotionSecs' | 'startDate' | 'endDate' | 'timingUnreliable' | 'timingEstimated'
+  > | null;
   originalDurationSeconds?: number | null;
 }): ReplayPath {
   const rawPoints = buildRawReplayPoints(args.coordinates);

@@ -1,9 +1,22 @@
 import * as maplibregl from 'maplibre-gl';
-import { formatDate } from '@/utils/Utils';
+import { formatDate, toValidDateMs } from '@/utils/Utils';
 import { buildTrackOverviewFeatures } from '@/components/map/mapGeometry';
-import { TRACK_COLOR, TRACK_SELECTED_COLOR } from '@/utils/trackColors';
+import { TRACK_COLOR } from '@/utils/trackColors';
+import { trackDisplayName } from '@/utils/tracks/trackDisplayName';
 import { createArrowImage } from './useTrackPointLayer';
-import type { MapControllerMethodDefinitions, TrackLayersMethods } from './mapControllerRuntime';
+import type {
+  MapControllerMethodDefinitions,
+  MapControllerRuntime,
+  TrackFeature,
+  TrackLayersMethods,
+  TrackLineColor,
+} from './mapControllerRuntime';
+
+export function visibleMapFeatures<G extends GeoJSON.Geometry, P extends GeoJSON.GeoJsonProperties>(
+  geojson: GeoJSON.FeatureCollection<G, P>
+): GeoJSON.FeatureCollection<G, P> {
+  return { ...geojson, features: geojson.features.filter((feature) => !feature.properties?.reviewMapExcluded) };
+}
 
 const TRACK_REPLAY_HIDDEN_TRACK_FILTER = ['==', ['get', 'id'], -1];
 const TRACK_POINTS_MIN_ZOOM = 16;
@@ -16,11 +29,18 @@ const TRACKS_LINE_LAYER_ID = 'tracks-layer';
 const TRACKS_DOT_LAYER_ID = 'tracks-dot-layer';
 const TRACKS_OVERVIEW_DOTS_LAYER_ID = 'tracks-overview-dots';
 const TRACKS_HIGHLIGHT_LAYER_ID = 'tracks-highlight-layer';
-const TRACKS_HIGHLIGHT_DASH_LAYER_ID = 'tracks-highlight-dash-layer';
 const TRACKS_HIGHLIGHT_CIRCLE_LAYER_ID = 'tracks-highlight-circle-layer';
 const TRACK_POINTS_LAYER_ID = 'track-points-layer';
+const MUTED_TRACK_COLOR_LIGHT = '#a2a6ab';
+const MUTED_TRACK_COLOR_DARK = '#666b70';
+
+function nonnegativeMetric(value: number | undefined): number | undefined {
+  return Number.isFinite(value) && value! >= 0 ? value : undefined;
+}
 
 export function useTrackLayers(_deps: Record<string, never> = {}): MapControllerMethodDefinitions<TrackLayersMethods> {
+  const previewTrackIds = new WeakMap<MapControllerRuntime, number>();
+  const trackLineColors = new WeakMap<MapControllerRuntime, TrackLineColor>();
   const methods: MapControllerMethodDefinitions<TrackLayersMethods> = {
     currentTrackReplayTrackId() {
       if (!this.trackReplayActive) return null;
@@ -68,20 +88,65 @@ export function useTrackLayers(_deps: Record<string, never> = {}): MapController
     selectedTrackGeojson() {
       if (this.trackReplayActive) return emptySelectedTrackGeojson();
       const trackId = Number(this.selectedTrackId);
-      if (!Number.isFinite(trackId)) return emptySelectedTrackGeojson();
       const selectedFeature =
         this.gpsTrackIdToFeature?.get?.(trackId) ??
         (Number(this.selectedFeature?.properties?.id) === trackId ? this.selectedFeature : null);
-      if (!selectedFeature?.geometry) return emptySelectedTrackGeojson();
-      return {
-        type: 'FeatureCollection',
-        features: [selectedFeature],
-      };
+      const features: TrackFeature[] = [];
+      if (
+        this.selectedTrackId != null &&
+        Number.isFinite(trackId) &&
+        selectedFeature?.geometry &&
+        !selectedFeature.properties?.reviewMapExcluded &&
+        !this.gpsTracksById?.get(trackId)?.reviewMapExcluded
+      )
+        features.push(selectedFeature);
+      const previewId = previewTrackIds.get(this);
+      const previewFeature = previewId == null ? null : this.gpsTrackIdToFeature?.get(previewId);
+      if (
+        previewId != null &&
+        (this.selectedTrackId == null || previewId !== trackId) &&
+        this.mapInteraction?.presentation === 'chooser' &&
+        this.tracksEnabled !== false &&
+        this.layerOpacities?.tracks !== 0 &&
+        previewFeature?.geometry &&
+        !previewFeature.properties?.reviewMapExcluded &&
+        !this.gpsTracksById?.get(previewId)?.reviewMapExcluded &&
+        !this.hiddenGroups?.has(String(previewFeature.properties?.filterGroup))
+      )
+        features.push(previewFeature);
+      return { type: 'FeatureCollection', features };
     },
 
     updateSelectedTrackSource() {
       const source = this.overlayMap?.getSource(SELECTED_TRACK_SOURCE_ID);
       if (source) (source as unknown as { setData: (data: unknown) => void }).setData(this.selectedTrackGeojson());
+      this.applyTrackColors();
+    },
+
+    applyTrackColors(lineColor) {
+      if (lineColor != null) trackLineColors.set(this, lineColor);
+      if (!this.overlayMap) return;
+      const paletteColor = trackLineColors.get(this) ?? TRACK_COLOR;
+      // The temporary preview follows the selection in this source and takes focus while hovered.
+      const focusedTrackId = this.selectedTrackGeojson().features.at(-1)?.properties?.id;
+      const color: TrackLineColor =
+        focusedTrackId == null
+          ? paletteColor
+          : [
+              'case',
+              ['==', ['get', 'id'], focusedTrackId],
+              paletteColor,
+              this.mapThemeSelected === 'dark' ? MUTED_TRACK_COLOR_DARK : MUTED_TRACK_COLOR_LIGHT,
+            ];
+      for (const [layerId, property] of [
+        [TRACKS_LINE_LAYER_ID, 'line-color'],
+        [TRACKS_HIGHLIGHT_LAYER_ID, 'line-color'],
+        [TRACKS_DOT_LAYER_ID, 'circle-color'],
+        [TRACKS_HIGHLIGHT_CIRCLE_LAYER_ID, 'circle-color'],
+        [TRACKS_OVERVIEW_DOTS_LAYER_ID, 'circle-color'],
+      ] as const) {
+        if (this.overlayMap.getLayer(layerId)) this.overlayMap.setPaintProperty(layerId, property, color);
+      }
     },
 
     markFlatTrackSourceDirty() {
@@ -97,7 +162,7 @@ export function useTrackLayers(_deps: Record<string, never> = {}): MapController
     // (~15k tracks / ~400k vertices, whole archive in view, terrain on, pitched,
     // rotating + panning) held a locked 60 FPS, so feeding the full set is intentional.
     flatTrackSourceGeojson() {
-      return this.geojson ?? emptySelectedTrackGeojson();
+      return this.geojson ? visibleMapFeatures(this.geojson) : emptySelectedTrackGeojson();
     },
 
     syncFlatTrackSource({ force = false } = {}) {
@@ -125,7 +190,6 @@ export function useTrackLayers(_deps: Record<string, never> = {}): MapController
       for (const id of [
         TRACKS_LINE_LAYER_ID,
         TRACKS_HIGHLIGHT_LAYER_ID,
-        TRACKS_HIGHLIGHT_DASH_LAYER_ID,
         TRACKS_DOT_LAYER_ID,
         TRACKS_HIGHLIGHT_CIRCLE_LAYER_ID,
         TRACKS_OVERVIEW_DOTS_LAYER_ID,
@@ -147,9 +211,6 @@ export function useTrackLayers(_deps: Record<string, never> = {}): MapController
       if (this.overlayMap.getLayer(TRACKS_HIGHLIGHT_LAYER_ID)) {
         this.overlayMap.setPaintProperty(TRACKS_HIGHLIGHT_LAYER_ID, 'line-width', lineWeight * 1.5);
       }
-      if (this.overlayMap.getLayer(TRACKS_HIGHLIGHT_DASH_LAYER_ID)) {
-        this.overlayMap.setPaintProperty(TRACKS_HIGHLIGHT_DASH_LAYER_ID, 'line-width', lineWeight * 1.5);
-      }
       if (this.overlayMap.getLayer(TRACKS_DOT_LAYER_ID)) {
         this.overlayMap.setPaintProperty(TRACKS_DOT_LAYER_ID, 'circle-radius', Math.round(lineWeight / 2));
       }
@@ -166,13 +227,15 @@ export function useTrackLayers(_deps: Record<string, never> = {}): MapController
     fitToTrackBounds(geojson) {
       if (!this.overlayMap || !geojson?.features?.length) return;
       const bounds = new maplibregl.LngLatBounds();
-      for (const f of geojson.features) {
+      for (const f of visibleMapFeatures(geojson).features) {
         if (!f.geometry) continue;
         if (f.geometry.type === 'Point') {
           const [lng, lat] = f.geometry.coordinates;
           if (Number.isFinite(lng) && Number.isFinite(lat)) bounds.extend([lng, lat]);
-        } else if (f.geometry.type === 'LineString') {
-          for (const coord of f.geometry.coordinates) {
+        } else if (f.geometry.type === 'LineString' || f.geometry.type === 'MultiLineString') {
+          const coordinates =
+            f.geometry.type === 'MultiLineString' ? f.geometry.coordinates.flat() : f.geometry.coordinates;
+          for (const coord of coordinates) {
             const [lng, lat] = coord;
             if (Number.isFinite(lng) && Number.isFinite(lat)) bounds.extend([lng, lat]);
           }
@@ -195,12 +258,12 @@ export function useTrackLayers(_deps: Record<string, never> = {}): MapController
       if (overviewSource) {
         (overviewSource as unknown as { setData: (data: unknown) => void }).setData({
           type: 'FeatureCollection',
-          features: buildTrackOverviewFeatures(this.geojson),
+          features: buildTrackOverviewFeatures(this.flatTrackSourceGeojson()),
         });
       }
       // Keep heatmap density in sync as track precision improves
       if (this.heatmapOverlay) {
-        this.heatmapOverlay.updateData?.(this.geojson);
+        this.heatmapOverlay.updateData?.(this.flatTrackSourceGeojson());
       }
       this.applyTrackRenderFilters();
       this.applyTracksVisibility();
@@ -211,6 +274,8 @@ export function useTrackLayers(_deps: Record<string, never> = {}): MapController
 
     async addTracksToMap() {
       if (!this.overlayMap || !this.geojson) return;
+      const map = this.overlayMap;
+      const generation = this._mapLoadGeneration;
       const startedAt = performance.now();
       this.visibleTrackCount = 0;
       const filterConfigId =
@@ -219,8 +284,9 @@ export function useTrackLayers(_deps: Record<string, never> = {}): MapController
         this.hiddenGroups = new Set();
       }
       this.renderedFilterConfigId = filterConfigId;
-      const lineColor = (await this.resolveTrackLineColor()) as maplibregl.DataDrivenPropertyValueSpecification<string>;
-      this.visibleTrackCount = this.geojson.features.length;
+      const lineColor = await this.resolveTrackLineColor();
+      if (this._mapUnmounted || this.overlayMap !== map || this._mapLoadGeneration !== generation) return;
+      this.visibleTrackCount = this.flatTrackSourceGeojson().features.length;
       this.detachTrackPointLayerHandlers();
 
       // Remove old track layers and sources.
@@ -229,7 +295,6 @@ export function useTrackLayers(_deps: Record<string, never> = {}): MapController
         TRACKS_HIGHLIGHT_CIRCLE_LAYER_ID,
         TRACKS_DOT_LAYER_ID,
         TRACKS_OVERVIEW_DOTS_LAYER_ID,
-        TRACKS_HIGHLIGHT_DASH_LAYER_ID,
         TRACKS_HIGHLIGHT_LAYER_ID,
         TRACKS_LINE_LAYER_ID,
       ]) {
@@ -271,7 +336,7 @@ export function useTrackLayers(_deps: Record<string, never> = {}): MapController
         },
       });
 
-      // Highlight layer (solid amber, only shows selected track)
+      // Keep the focused track above the surrounding tracks in its palette color.
       this.overlayMap.addLayer({
         id: TRACKS_HIGHLIGHT_LAYER_ID,
         type: 'line',
@@ -281,26 +346,9 @@ export function useTrackLayers(_deps: Record<string, never> = {}): MapController
           'line-cap': 'round',
         },
         paint: {
-          'line-color': TRACK_SELECTED_COLOR,
+          'line-color': lineColor,
           'line-width': 6,
           'line-opacity': 1,
-        },
-      });
-
-      // Highlight dash layer (white dashed overlay on selected)
-      this.overlayMap.addLayer({
-        id: TRACKS_HIGHLIGHT_DASH_LAYER_ID,
-        type: 'line',
-        source: SELECTED_TRACK_SOURCE_ID,
-        layout: {
-          'line-join': 'round',
-          'line-cap': 'round',
-        },
-        paint: {
-          'line-color': TRACK_COLOR,
-          'line-width': 6,
-          'line-opacity': 1,
-          'line-dasharray': [2, 3],
         },
       });
 
@@ -326,7 +374,7 @@ export function useTrackLayers(_deps: Record<string, never> = {}): MapController
         source: SELECTED_TRACK_SOURCE_ID,
         filter: ['==', ['geometry-type'], 'Point'],
         paint: {
-          'circle-color': '#FFB300',
+          'circle-color': lineColor,
           'circle-radius': 9,
           'circle-opacity': 1,
         },
@@ -336,7 +384,7 @@ export function useTrackLayers(_deps: Record<string, never> = {}): MapController
       // At world view, short/medium tracks are sub-pixel as lines. This dedicated
       // Point source shows a dot so every track is visible at any zoom level.
       // Long tracks remain visible as lines; the dot sits beneath them harmlessly.
-      const overviewFeatures = buildTrackOverviewFeatures(this.geojson);
+      const overviewFeatures = buildTrackOverviewFeatures(this.flatTrackSourceGeojson());
       this.overlayMap.addSource(TRACKS_OVERVIEW_SOURCE_ID, {
         type: 'geojson',
         data: {
@@ -390,10 +438,11 @@ export function useTrackLayers(_deps: Record<string, never> = {}): MapController
         },
       });
       this.attachTrackPointLayerHandlers();
+      this.applyTrackColors(lineColor);
 
       // Re-apply heatmap if it was active (persists across theme changes and reloads)
       if (this.heatmapVisible && this.heatmapOverlay && this.geojson) {
-        this.heatmapOverlay.show(this.geojson);
+        this.heatmapOverlay.show(this.flatTrackSourceGeojson());
         this.applyLayerOpacity('heatmap');
       }
       this.updateTrackLineWidth();
@@ -413,13 +462,28 @@ export function useTrackLayers(_deps: Record<string, never> = {}): MapController
 
     // --- Track highlight helpers ---
 
+    previewTrackById(trackId) {
+      const candidateExists =
+        this.mapInteraction?.presentation === 'chooser' &&
+        this.mapInteraction.candidates.some(
+          (candidate) =>
+            (candidate.kind === 'track' || candidate.kind === 'track-point') && candidate.trackId === trackId
+        );
+      const nextId = trackId != null && Number.isFinite(trackId) && candidateExists ? trackId : null;
+      if ((previewTrackIds.get(this) ?? null) === nextId) return;
+      if (nextId == null) previewTrackIds.delete(this);
+      else previewTrackIds.set(this, nextId);
+      this.updateSelectedTrackSource();
+    },
+
     selectTrackById(trackId) {
       const feature = this.gpsTrackIdToFeature.get(trackId);
-      if (!feature) return;
+      if (!feature || feature.properties?.reviewMapExcluded) return;
       this.selectTrack(trackId, feature);
     },
 
     selectTrack(trackId, feature) {
+      previewTrackIds.delete(this);
       if (this.selectedTrackId === trackId) {
         this.deselectTrack();
         return;
@@ -430,6 +494,7 @@ export function useTrackLayers(_deps: Record<string, never> = {}): MapController
     },
 
     deselectTrack() {
+      previewTrackIds.delete(this);
       this.selectedTrackId = null;
       this.selectedFeature = null;
       this.applySelectedTrackHighlight();
@@ -437,28 +502,33 @@ export function useTrackLayers(_deps: Record<string, never> = {}): MapController
 
     getTrackPopupMeta(id) {
       const track = this.gpsTracksById.get(id);
-      const rawName = track?.trackName?.trim();
       const rawDescription = track?.trackDescription?.trim();
-      const name = rawName || rawDescription || `Track ${id}`;
-      const date = track?.startDate ? formatDate(new Date(track.startDate)) : '';
-      const description = rawName && rawDescription && rawDescription !== rawName ? rawDescription : '';
+      const name = trackDisplayName(track, id);
+      const recordedAt = toValidDateMs(track?.startDate) ?? undefined;
+      const date = recordedAt != null ? formatDate(new Date(recordedAt)) : '';
+      const description = rawDescription && rawDescription !== name ? rawDescription : '';
       return {
         id,
         name,
         displayName: name,
         description,
         date: date || 'No date',
+        recordedAt,
+        lengthMeters: nonnegativeMetric(track?.trackLengthInMeter),
+        ascentMeters: nonnegativeMetric(track?.ascentInMeter),
         activityType: track?.activityType || '',
       };
     },
 
     onTrackBrowserSelect(trackId) {
+      this.endMapInteraction();
       const normalizedTrackId = Number(trackId);
       if (!Number.isFinite(normalizedTrackId)) return;
       this.selectTrackById(normalizedTrackId);
 
       // Fit to track bounds
       const feature = this.gpsTrackIdToFeature.get(normalizedTrackId);
+      if (feature?.properties?.reviewMapExcluded) return;
       const coords = lineCoordinatesFromFeature(feature);
       if (coords.length > 0 && this.overlayMap) {
         const bounds = coords.reduce((b, c) => b.extend(c), new maplibregl.LngLatBounds(coords[0], coords[0]));
@@ -470,6 +540,7 @@ export function useTrackLayers(_deps: Record<string, never> = {}): MapController
     },
 
     onTrackBrowserOpenDetails(trackId) {
+      this.endMapInteraction();
       const normalizedTrackId = Number(trackId);
       if (!Number.isFinite(normalizedTrackId)) return;
       this.selectTrackById(normalizedTrackId);
@@ -477,6 +548,7 @@ export function useTrackLayers(_deps: Record<string, never> = {}): MapController
     },
 
     onTrackBrowserOpenPhotos(trackId) {
+      this.endMapInteraction();
       const normalizedTrackId = Number(trackId);
       if (!Number.isFinite(normalizedTrackId)) return;
       this.selectTrackById(normalizedTrackId);
@@ -496,6 +568,13 @@ function emptySelectedTrackGeojson(): import('./mapControllerRuntime').TrackFeat
 function lineCoordinatesFromFeature(
   feature: import('./mapControllerRuntime').TrackFeature | null | undefined
 ): [number, number][] {
+  if (feature?.geometry?.type === 'MultiLineString')
+    return feature.geometry.coordinates
+      .flat()
+      .filter(
+        (coordinate): coordinate is [number, number] =>
+          coordinate.length >= 2 && Number.isFinite(coordinate[0]) && Number.isFinite(coordinate[1])
+      );
   if (feature?.geometry?.type !== 'LineString') return [];
   return feature.geometry.coordinates.filter(
     (coordinate): coordinate is [number, number] =>

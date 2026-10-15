@@ -16,19 +16,47 @@
       <i class="bi bi-chevron-right filter-banner__arrow" aria-hidden="true"></i>
     </button>
 
+    <p
+      v-if="reviewWithheldCount > 0 || reviewPendingCount > 0"
+      class="review-notice"
+      data-test="review-withheld-notice"
+    >
+      <span v-if="reviewWithheldCount > 0"
+        >{{ formatLocaleNumber(reviewWithheldCount) }}
+        {{ reviewWithheldCount === 1 ? 'track in this selection is' : 'tracks in this selection are' }} excluded from
+        statistics and highlights in Review.</span
+      >
+      <span v-if="reviewPendingCount > 0"
+        >{{ formatLocaleNumber(reviewPendingCount) }}
+        {{
+          reviewPendingCount === 1
+            ? 'source file linked to these tracks has'
+            : 'source files linked to these tracks have'
+        }}
+        unresolved issues.</span
+      >
+      <RouterLink :to="{ name: 'review', query: reviewPendingCount > 0 ? { state: 'NEEDS_REVIEW' } : {} }"
+        >Review source files across the archive</RouterLink
+      >
+    </p>
+
     <div v-if="hasTracks" class="hero-stats">
       <div class="hero-tile" data-test="summary-tracks">
         <div class="hero-tile__icon-wrap" style="--tile-accent: var(--chart-series-1)">
           <i class="bi bi-pin-map"></i>
         </div>
-        <div class="hero-tile__value">{{ summary.count }}</div>
+        <div data-test="summary-tracks-value" class="hero-tile__value">{{ formatLocaleNumber(summary.count) }}</div>
         <div class="hero-tile__label">Tracks</div>
       </div>
       <div class="hero-tile" data-test="summary-distance">
         <div class="hero-tile__icon-wrap" style="--tile-accent: var(--chart-series-2)">
           <i class="bi bi-signpost-split"></i>
         </div>
-        <div v-tooltip.top="{ value: summary.totalDistanceFull, showDelay: 400 }" class="hero-tile__value">
+        <div
+          v-tooltip.top="{ value: summary.totalDistanceFull, showDelay: 400 }"
+          data-test="summary-distance-value"
+          class="hero-tile__value"
+        >
           {{ summary.totalDistanceFormatted }}
         </div>
         <div class="hero-tile__label">Distance</div>
@@ -37,7 +65,11 @@
         <div class="hero-tile__icon-wrap" style="--tile-accent: var(--info)">
           <i class="bi bi-clock"></i>
         </div>
-        <div v-tooltip.top="{ value: summary.totalDurationFull, showDelay: 400 }" class="hero-tile__value">
+        <div
+          v-tooltip.top="{ value: summary.totalDurationFull, showDelay: 400 }"
+          data-test="summary-duration-value"
+          class="hero-tile__value"
+        >
           {{ summary.totalDurationFormatted }}
         </div>
         <div class="hero-tile__label hero-tile__label--info">
@@ -118,7 +150,7 @@
               <span class="legend-swatch" :style="{ background: item.color }"></span>
               <i :class="item.icon" class="legend-icon" :style="{ color: item.color }"></i>
               <span class="legend-type">{{ item.label }}</span>
-              <span class="legend-count">{{ item.count }}</span>
+              <span v-if="effectiveActivityMetric !== 'tracks'" class="legend-count">{{ item.count }}</span>
               <span v-tooltip.top="{ value: item.valueFull, showDelay: 400 }" class="legend-dist">{{
                 item.valueFormatted
               }}</span>
@@ -275,9 +307,15 @@
                 formatDistanceSmart(numberValue(track.distanceM))
               }}</span>
               <span
-                v-tooltip.top="{ value: formatDurationTooltip(numberValue(track.durationMs)), showDelay: 400 }"
+                v-tooltip.top="{
+                  value:
+                    track.durationMs == null
+                      ? 'Unreliable or estimated timing'
+                      : formatDurationTooltip(track.durationMs),
+                  showDelay: 400,
+                }"
                 class="recent-row__duration"
-                >{{ formatDurationSmart(numberValue(track.durationMs)) }}</span
+                >{{ formatTrackDuration(track.durationMs) }}</span
               >
             </span>
             <i class="bi bi-chevron-right recent-row__arrow"></i>
@@ -321,7 +359,7 @@
               </span>
               <span class="period-row__value">
                 <span>{{ row.durationFormatted }}</span>
-                <small>{{ row.count }} tracks - {{ row.distanceFormatted }}</small>
+                <small>{{ formatTrackCount(row.count) }} - {{ row.distanceFormatted }}</small>
               </span>
               <i
                 class="bi period-row__arrow"
@@ -427,6 +465,7 @@
           :options="exclusionReasonOptions"
           option-label="label"
           option-value="value"
+          append-to="self"
           class="highlight-exclusion-popover__select"
           data-test="highlight-exclusion-reason-select"
           @update:model-value="setPendingHighlightExclusionReason"
@@ -447,7 +486,10 @@
 </template>
 
 <script setup lang="ts">
+import { warnSanitized } from '@/utils/safeLogging';
+
 import { computed, inject, markRaw, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { RouterLink } from 'vue-router';
 import {
   formatDate,
   formatDateAndTime,
@@ -475,6 +517,10 @@ import {
   type TrackRef as OverviewTrackRef,
 } from 'x8ing-mtl-api-typescript-fetch/dist/esm/models/index';
 import TrackShapePreview from '@/components/ui/TrackShapePreview.vue';
+import type {
+  LatestActivityPreviewState,
+  LatestActivityPreviewTrack,
+} from '@/components/statistics/LatestActivityPreview.vue';
 import ActivityTypeBadge, {
   ACTIVITY_COLORS,
   ACTIVITY_FALLBACK_COLOR,
@@ -483,27 +529,26 @@ import ActivityTypeBadge, {
 import type { ActiveFilterRequest } from '@/stores/filterStore';
 import { useAsyncState } from '@/composables/useAsyncState';
 import { useMeasurementSystem } from '@/composables/useMeasurementSystem';
+import { useTheme } from '@/composables/useTheme';
 import type { ToastService } from '@/types/ui';
 
 const MILESTONE_LIMIT = 8;
 const DRILLDOWN_PREVIEW_LIMIT = 100;
 const HIGHLIGHT_EXCLUSION_DEFAULT_REASON = ExclusionReasonEnum.GpsNoise;
 
-const INFO_DURATION =
-  'Duration uses moving time when the server has it. If moving time is missing, MTL Explorer falls back to elapsed start-to-end time.';
+const INFO_DURATION = 'Duration is moving time. If that is not available, the time from start to end is used.';
 const INFO_ENERGY =
-  'Energy is estimated external mechanical work from GPS-derived physics. It is not metabolic calorie burn and not measured power-sensor data.';
+  'Energy is the estimated work of moving, calculated from the GPS track. It is not calories burned and not measured by a power meter.';
 const INFO_30S_SPEED =
-  'Fastest 30 s speed is the highest trailing 30-second average speed available on a track, which is less noisy than a single GPS point spike.';
+  'Fastest 30 s speed is the best average speed over 30 seconds. It is more reliable than a single GPS point.';
 const INFO_30S_POWER =
-  'Peak 30 s power is estimated from GPS-derived mechanical power over a trailing 30-second window. It is not a power-meter measurement.';
-const INFO_QUICKEST_ASCENT =
-  'Quickest ascent ranks tracks by their highest GPS-derived moving-window elevation gain rate. It uses existing point metrics from the filtered result set.';
+  'Peak 30 s power is the highest estimated power over 30 seconds, calculated from the GPS track. It is not measured by a power meter.';
+const INFO_QUICKEST_ASCENT = 'Quickest ascent ranks your filtered tracks by their fastest climbing rate.';
 const INFO_ACTIVE_PERIODS =
-  'Most active periods are selected by total moving time using server-side filtered statistics. Ties use track count first, then distance.';
-const INFO_MILESTONES =
-  'Milestones use the selected measurement system and are calculated server-side only from tracks included by the active filter.';
-const INFO_MEDIA_FALLBACK = 'Every indexed photo and video. Activity filters do not apply.';
+  'Most active periods have the most moving time in your filtered tracks. Ties are decided by number of tracks, then distance.';
+const INFO_MILESTONES = 'Milestones use your units and only count tracks in your current filter.';
+const INFO_MEDIA_FALLBACK =
+  'Photos and videos taken during the time span of your filtered tracks. Media without a date is not counted.';
 
 type InfoPopover = {
   toggle: (event: Event) => void;
@@ -555,13 +600,7 @@ type PeriodViewRow = {
   color: string;
   drilldownKey?: string;
 };
-type TrackView = {
-  trackId: number;
-  displayName: string;
-  activityType?: string;
-  startDate?: Date;
-  distanceM: number;
-  durationMs: number;
+type TrackView = LatestActivityPreviewTrack & {
   ascentM: number;
   energyWh: number;
   speed30Kmh: number;
@@ -598,6 +637,7 @@ const emit = defineEmits<{
   (event: 'view-all-tracks'): void;
   (event: 'view-highlight-exclusions'): void;
   (event: 'open-media'): void;
+  (event: 'latest-activity-change', state: LatestActivityPreviewState): void;
 }>();
 
 const infoPopover = ref<InfoPopover | null>(null);
@@ -608,6 +648,7 @@ const selectedHighlightKey = ref<string | null>(null);
 const selectedPeriodKey = ref<string | null>(null);
 const overviewData = ref<StatisticsOverviewResponseDto | null>(null);
 const { measurementSystem } = useMeasurementSystem();
+const { colorScheme } = useTheme();
 const { loading, error: loadError } = useAsyncState(false);
 const activeRequest = ref<AbortController | null>(null);
 const pendingHighlightExclusionRow = ref<DrilldownRow | null>(null);
@@ -642,15 +683,21 @@ const mediaTooltip = computed(() => {
   if (photoCount.value == null || videoCount.value == null) return INFO_MEDIA_FALLBACK;
   const photoLabel = photoCount.value === 1 ? 'photo' : 'photos';
   const videoLabel = videoCount.value === 1 ? 'video' : 'videos';
-  return `${formatLocaleNumber(photoCount.value)} ${photoLabel} and ${formatLocaleNumber(videoCount.value)} ${videoLabel} are indexed. Activity filters do not apply.`;
+  return `${formatLocaleNumber(photoCount.value)} ${photoLabel} and ${formatLocaleNumber(videoCount.value)} ${videoLabel} in the current media selection. The matching tracks define the time range.`;
 });
 const mediaAriaLabel = computed(() => {
-  if (mediaCount.value == null) return 'Indexed media count unavailable. Open media trends.';
+  if (mediaCount.value == null) return 'Filtered media count unavailable. Open media trends.';
   const itemLabel = mediaCount.value === 1 ? 'item' : 'items';
-  return `${mediaCountFormatted.value} indexed media ${itemLabel}. Open media trends.`;
+  return `${mediaCountFormatted.value} filtered media ${itemLabel}. Open media trends.`;
 });
 const highlightExcludedCount = computed(() =>
   Math.round(numberValue(overviewData.value?.exclusionSummary?.highlightExcludedTrackCount))
+);
+const reviewWithheldCount = computed(() =>
+  Math.round(numberValue(overviewData.value?.exclusionSummary?.reviewWithheldTrackCount))
+);
+const reviewPendingCount = computed(() =>
+  Math.round(numberValue(overviewData.value?.exclusionSummary?.reviewPendingSourceCount))
 );
 const highlightExcludedCountLabel = computed(() => {
   const count = highlightExcludedCount.value;
@@ -737,6 +784,7 @@ const activityBreakdown = computed<ActivityBreakdownRow[]>(() => {
 });
 
 const donutOptions = computed(() => {
+  void colorScheme.value;
   const styles = getComputedStyle(document.documentElement);
   const token = (name: string) => styles.getPropertyValue(name).trim();
   const tooltipBg = token('--chart-tooltip-bg');
@@ -815,6 +863,19 @@ const recentTracks = computed(() =>
     .sort((a, b) => numberValue(a.sortOrder) - numberValue(b.sortOrder))
     .map(toTrackView)
     .filter((track): track is TrackView => track != null)
+);
+
+watch(
+  (): LatestActivityPreviewState => ({
+    track:
+      !loading.value && !loadError.value && overviewData.value?.latestActivity
+        ? toTrackView(overviewData.value.latestActivity)
+        : null,
+    loading: loading.value,
+    error: loadError.value,
+  }),
+  (state) => emit('latest-activity-change', state),
+  { immediate: true }
 );
 
 const activePeriodRows = computed<PeriodViewRow[]>(() =>
@@ -985,7 +1046,11 @@ async function saveHighlightExclusion() {
     await loadOverview();
     toast.add({ severity: 'success', summary: 'Track excluded from highlights', life: 2200 });
   } catch (error) {
-    console.warn('[statistics-overview] failed to exclude track from highlights', { trackId: row.trackId, error });
+    warnSanitized(
+      '[statistics-overview] failed to exclude track from highlights',
+      { trackId: row.trackId, error },
+      { topic1: 'application', topic2: 'StatisticsOverview', topic3: 'saveHighlightExclusion' }
+    );
     toast.add({
       severity: 'error',
       summary: 'Exclusion failed',
@@ -1023,6 +1088,11 @@ function toHighlightRow(ranking: OverviewTrackRanking): DetailRow | null {
   };
 }
 
+function formatTrackCount(count: number): string {
+  const rounded = Math.round(count);
+  return `${formatLocaleNumber(rounded)} ${rounded === 1 ? 'track' : 'tracks'}`;
+}
+
 function toCommonActivityRow(): DetailRow | null {
   const row = [...(overviewData.value?.activityBreakdown ?? [])].sort(
     (a, b) =>
@@ -1036,7 +1106,7 @@ function toCommonActivityRow(): DetailRow | null {
     key: 'common-activity',
     label: 'Most common activity',
     subtitle: formatActivityLabel(activityType),
-    value: `${formatLocaleNumber(Math.round(numberValue(row.trackCount)))} tracks`,
+    value: formatTrackCount(numberValue(row.trackCount)),
     icon: ACTIVITY_ICONS[activityType] || 'bi bi-activity',
     color: ACTIVITY_COLORS[activityType] || ACTIVITY_FALLBACK_COLOR,
   };
@@ -1049,7 +1119,7 @@ function toPeriodRow(row: OverviewPeriodRow): PeriodViewRow | null {
   return {
     key,
     label: meta.label,
-    subtitle: row.label || row.periodKey || '',
+    subtitle: formatPeriodLabel(row),
     durationFormatted: formatDurationSmart(numberValue(row.durationMs)),
     distanceFormatted: formatDistanceSmart(numberValue(row.distanceM)),
     count: Math.round(numberValue(row.trackCount)),
@@ -1203,7 +1273,7 @@ function toRankingDrilldownRow(key: string, row: OverviewTrackRef): DrilldownRow
     activityType: track.activityType,
     value: highlightValue(key, numberValue(row.value)),
     distanceFormatted: formatDistanceSmart(track.distanceM),
-    durationFormatted: formatDurationSmart(track.durationMs),
+    durationFormatted: formatTrackDuration(track.durationMs),
   };
 }
 
@@ -1212,11 +1282,19 @@ function toPeriodDrilldownRow(row: OverviewPeriodRow): DrilldownRow | null {
   return {
     key: `${row.periodType}-${row.periodKey}`,
     rank,
-    label: row.label || row.periodKey || '',
-    subtitle: `${Math.round(numberValue(row.trackCount))} tracks`,
+    label: formatPeriodLabel(row),
+    subtitle: formatTrackCount(numberValue(row.trackCount)),
     value: formatDurationSmart(numberValue(row.durationMs)),
     distanceFormatted: formatDistanceSmart(numberValue(row.distanceM)),
   };
+}
+
+function formatPeriodLabel(row: OverviewPeriodRow): string {
+  const value = row.periodKey || row.label || '';
+  if (row.periodType === 'day' && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return formatDate(new Date(`${value}T12:00:00`));
+  }
+  return row.label || row.periodKey || '';
 }
 
 function toTrackView(row: OverviewTrackRef): TrackView | null {
@@ -1249,7 +1327,12 @@ function toTrackView(row: OverviewTrackRef): TrackView | null {
   };
 }
 
-function trackDurationMs(track: GpsTrack): number {
+function formatTrackDuration(durationMs: number | null): string {
+  return durationMs == null ? 'Time unavailable' : formatDurationSmart(durationMs);
+}
+
+function trackDurationMs(track: GpsTrack): number | null {
+  if (track.timingUnreliable || track.timingEstimated) return null;
   const movingSeconds = numberValue(track.trackDurationInMotionSecs);
   if (movingSeconds > 0) return movingSeconds * 1000;
   const start = parseDate(track.startDate);
@@ -1330,6 +1413,19 @@ function numberValue(value: unknown): number {
   flex-direction: column;
   gap: 0.85rem;
   padding: 0 1rem 1rem;
+}
+
+.review-notice {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: var(--text-sm-size);
+  line-height: var(--text-sm-lh);
+}
+
+.review-notice a {
+  margin-left: 0.25rem;
+  color: var(--accent-text);
+  text-decoration: underline;
 }
 
 .filter-banner {
@@ -2136,9 +2232,23 @@ function numberValue(value: unknown): number {
     padding: 0 0.75rem 1rem;
   }
 
-  .hero-stats,
   .dashboard-grid {
     grid-template-columns: 1fr;
+  }
+
+  .hero-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.5rem;
+  }
+
+  .hero-tile {
+    gap: 0.2rem;
+    padding: 0.65rem 0.4rem;
+  }
+
+  .hero-tile__icon-wrap {
+    width: 1.75rem;
+    height: 1.75rem;
   }
 
   .section-header--with-actions {
@@ -2168,11 +2278,30 @@ function numberValue(value: unknown): number {
   }
 
   .insight-row__value,
-  .period-row__value,
-  .milestone-row__value,
   .recent-row__stats,
   .drilldown-row__stats {
     max-width: 5.8rem;
+  }
+
+  .period-row,
+  .milestone-row {
+    display: grid;
+    grid-template-columns: 2rem minmax(0, 1fr) auto;
+  }
+
+  .period-row__value,
+  .milestone-row__value {
+    grid-column: 2;
+    max-width: none;
+    overflow: visible;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    text-align: left;
+  }
+
+  .period-row__arrow {
+    grid-column: 3;
+    grid-row: 1 / span 2;
   }
 }
 </style>

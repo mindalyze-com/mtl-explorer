@@ -1,7 +1,9 @@
 package com.x8ing.mtl.server.mtlserver.web.services.track;
 
 import com.x8ing.mtl.server.mtlserver.db.repository.media.MediaRepository;
+import com.x8ing.mtl.server.mtlserver.web.services.track.entity.MediaBoundsRequest;
 import com.x8ing.mtl.server.mtlserver.web.services.track.entity.MediaTimeCorrectionRequest;
+import com.x8ing.mtl.server.mtlserver.web.services.track.entity.MediaTrendScope;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -9,9 +11,7 @@ import org.springframework.http.HttpStatus;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 class MediaControllerPositionTest {
 
@@ -25,13 +25,14 @@ class MediaControllerPositionTest {
             mediaPositionService,
             mediaTrendService,
             mock(VideoThumbnailService.class),
-            mediaProcessLimiter());
+            mock(ImagePreviewService.class));
 
     @Test
     void mutableBoundsResponseIsNotStoredByBrowserCaches() {
-        when(mediaRepository.findMediaInBoundsRaw(47.0, 8.0, 48.0, 9.0)).thenReturn(List.of());
+        var request = new MediaBoundsRequest(47, 8, 48, 9, MediaTrendScope.ALL_INDEXED, List.of());
+        when(mediaTrendService.getInBounds(request)).thenReturn(List.of());
 
-        var response = controller.getMediaInBounds(47.0, 8.0, 48.0, 9.0);
+        var response = controller.getFilteredMediaInBounds(request);
 
         assertThat(response.getHeaders().getFirst(HttpHeaders.CACHE_CONTROL)).isEqualTo("no-store");
     }
@@ -46,7 +47,4 @@ class MediaControllerPositionTest {
         verify(mediaPositionService).saveTimeCorrection(request);
     }
 
-    private static MediaProcessLimiter mediaProcessLimiter() {
-        return new MediaProcessLimiter(new MediaProcessProperties());
-    }
 }

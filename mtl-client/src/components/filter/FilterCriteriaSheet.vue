@@ -1,20 +1,30 @@
 <template>
   <BottomSheet
     :model-value="modelValue"
+    back-label="Back to Filter"
     title="Filter criteria"
     icon="bi bi-sliders"
-    :detents="[{ height: '78vh' }, { height: '95vh' }]"
+    :detents="FILTER_STANDARD_DETENTS"
     :no-backdrop="true"
     :z-index="5100"
     sheet-class="sheet--filter-detail"
+    @back="emit('update:modelValue', false)"
     @update:model-value="emit('update:modelValue', $event)"
   >
+    <template v-if="!enabled" #header-actions>
+      <FilterOffBadge />
+    </template>
+
     <div class="filter-criteria-sheet filter-detail-sheet-content">
-      <p class="filter-criteria-sheet__intro">Changes apply automatically.</p>
+      <p class="filter-criteria-sheet__intro">
+        {{ enabled ? 'Changes apply automatically.' : 'Make changes, then choose Apply and enable.' }}
+      </p>
       <FilterDetailPanel
+        :errors="criteriaErrors"
         :selected-filter="draftFilter"
         :track-id-candidate-tracks="trackIdCandidateTracks"
         :track-id-candidates-loading="trackIdCandidatesLoading"
+        @set-date-range="setDateRange"
         @set-date-time-param="setDateTimeParam"
         @set-string-param="setStringParam"
         @start-geo-drawing="applyAndDraw"
@@ -22,26 +32,41 @@
       />
     </div>
 
-    <template v-if="hasCriteriaDraft" #footer>
+    <template #footer>
       <FilterSheetActions
         :reset-visible="hasCriteriaDraft"
-        :commit-visible="false"
+        :cancel-visible="false"
+        :apply-label="enabled ? 'Done' : 'Apply and enable'"
+        :apply-disabled="hasErrors"
         reset-label="Reset criteria"
         reset-aria-label="Reset criteria"
         @reset="resetCriteria"
-      />
+        @apply="finish"
+      >
+        <template v-if="resultText" #status>
+          <div :aria-busy="loading">
+            <strong><i v-if="loading" class="pi pi-spin pi-spinner" aria-hidden="true"></i> {{ resultText }}</strong>
+            <p v-if="resultDetail && (!enabled || previewError)">{{ resultDetail }}</p>
+          </div>
+          <Button v-if="previewError && !hasErrors && enabled" label="Retry" text size="small" @click="emit('retry')" />
+        </template>
+      </FilterSheetActions>
     </template>
   </BottomSheet>
 </template>
 
 <script setup lang="ts">
+import { FILTER_STANDARD_DETENTS } from '@/components/filter/filterSheetLayout';
 import { computed, ref, watch } from 'vue';
+import Button from 'primevue/button';
+import { FILTER_DATE_FROM, FILTER_DATE_TO, filterCriteriaErrors } from '@/utils/filterCriteria';
 import type { FilterInfo } from 'x8ing-mtl-api-typescript-fetch/dist/esm/models/FilterInfo';
 import type { FilterParamsRequest } from 'x8ing-mtl-api-typescript-fetch/dist/esm/models/FilterParamsRequest';
 import type { ParamDefinition } from 'x8ing-mtl-api-typescript-fetch/dist/esm/models/ParamDefinition';
 import type { GpsTrack } from 'x8ing-mtl-api-typescript-fetch/dist/esm/models/GpsTrack';
 import BottomSheet from '@/components/ui/BottomSheet.vue';
 import FilterDetailPanel from '@/components/filter/FilterDetailPanel.vue';
+import FilterOffBadge from '@/components/filter/FilterOffBadge.vue';
 import FilterSheetActions from '@/components/filter/FilterSheetActions.vue';
 import { ensureFilterParamMaps } from '@/utils/filterParams';
 
@@ -55,12 +80,22 @@ defineOptions({ name: 'FilterCriteriaSheet' });
 const props = withDefaults(
   defineProps<{
     modelValue: boolean;
+    enabled?: boolean;
+    resultText?: string;
+    resultDetail?: string;
+    loading?: boolean;
+    previewError?: boolean;
     filterInfo?: FilterInfo;
     filterParams?: FilterParamsRequest;
     trackIdCandidateTracks?: GpsTrack[];
     trackIdCandidatesLoading?: boolean;
   }>(),
   {
+    enabled: true,
+    resultText: '',
+    resultDetail: '',
+    loading: false,
+    previewError: false,
     filterInfo: undefined,
     filterParams: undefined,
     trackIdCandidateTracks: () => [],
@@ -70,11 +105,15 @@ const props = withDefaults(
 
 const emit = defineEmits<{
   (event: 'update:modelValue', value: boolean): void;
+  (event: 'retry'): void;
   (event: 'change', value: CriteriaUpdate): void;
+  (event: 'apply-and-enable', value: CriteriaUpdate): void;
   (event: 'apply-and-draw', value: CriteriaUpdate & { paramDefinition: ParamDefinition }): void;
 }>();
 
 const draftParams = ref<FilterParamsRequest>({});
+const criteriaErrors = computed(() => filterCriteriaErrors(props.filterInfo, draftParams.value));
+const hasErrors = computed(() => Object.keys(criteriaErrors.value).length > 0);
 const draftFilter = computed(() => ({
   filterInfo: props.filterInfo,
   filterParams: draftParams.value,
@@ -159,6 +198,17 @@ function setDateTimeParam(payload: { name?: string; value: Date | Date[] | (Date
   emitChange();
 }
 
+function setDateRange(range: { from: Date | null; to: Date | null }): void {
+  const params = ensureFilterParamMaps(draftParams.value);
+  const dates = params.dateTimeParams as Record<string, unknown>;
+  if (range.from) dates[FILTER_DATE_FROM] = range.from;
+  else delete dates[FILTER_DATE_FROM];
+  if (range.to) dates[FILTER_DATE_TO] = range.to;
+  else delete dates[FILTER_DATE_TO];
+  draftParams.value = cloneFilterParams(params);
+  emitChange();
+}
+
 function setStringParam(payload: { name?: string; value: string }): void {
   if (!payload.name) return;
   const params = ensureFilterParamMaps(draftParams.value);
@@ -191,6 +241,12 @@ function resetCriteria(): void {
   );
   draftParams.value = cloneFilterParams({ resultGroupSelection: params.resultGroupSelection });
   emitChange(clearedGeoParams);
+}
+
+function finish(): void {
+  if (hasErrors.value) return;
+  if (!props.enabled) emit('apply-and-enable', currentUpdate());
+  emit('update:modelValue', false);
 }
 
 function applyAndDraw(paramDefinition: ParamDefinition): void {

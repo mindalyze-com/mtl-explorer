@@ -7,6 +7,7 @@ import {
 import { MapConfigDtoTileModeEnum, type MapConfig } from '@/utils/mapConfigService';
 import {
   DEFAULT_RASTER_ATTRIBUTION,
+  buildFallbackRasterStyle,
   HILLSHADE_DEM_SOURCE_ID,
   TERRAIN_DEM_SOURCE_ID,
   TERRAIN_HILLSHADE_LAYER_ID,
@@ -59,6 +60,29 @@ function mapConfig(overrides: Partial<MapConfig> = {}): MapConfig {
 }
 
 describe('resolveConfiguredMapStyle', () => {
+  it.each(['configured', 'fallback'])('renders OSM Standard with bright labels on a dark background (%s)', (source) => {
+    const tileUrl = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+    const style = (
+      source === 'fallback'
+        ? buildFallbackRasterStyle('dark')
+        : resolveConfiguredMapStyle({
+            config: mapConfig({
+              tileMode: MapConfigDtoTileModeEnum.Remote,
+              remoteRasterStyles: { dark: { url: tileUrl, attribution: DEFAULT_RASTER_ATTRIBUTION } },
+            }),
+            theme: 'dark',
+          }).style
+    ) as TestRasterStyle;
+    const paint = style.layers[0].paint!;
+
+    expect(style.sources['raster-tiles'].tiles).toEqual([tileUrl]);
+    expect(style.sources['raster-tiles'].attribution).toBe(DEFAULT_RASTER_ATTRIBUTION);
+    // MapLibre mixes these endpoints using raster RGB: black labels must become
+    // brighter than the near-white OSM background, without altering overlays.
+    expect(paint['raster-brightness-min']).toBeGreaterThan(0.7);
+    expect(paint['raster-brightness-max']).toBeLessThan(0.15);
+  });
+
   it('uses a built-in raster fallback when the configured remote URL is missing', () => {
     const resolved = resolveConfiguredMapStyle({
       config: mapConfig({ remoteRasterStyles: {} }),
@@ -207,6 +231,7 @@ describe('resolveConfiguredMapStyle', () => {
     expect(style.sources['raster-tiles'].attribution).toBe(attribution);
     expect(darkBrightnessMax).toBeDefined();
     expect(Number(darkBrightnessMax)).toBeLessThan(1);
+    expect(style.layers[0].paint?.['raster-brightness-min']).toBeLessThan(Number(darkBrightnessMax));
   });
 
   it('uses the configured topo remote raster style and adds hillshade', () => {

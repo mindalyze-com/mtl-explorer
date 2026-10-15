@@ -12,7 +12,9 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-/** Resolves embedded coordinates across image, MP4, and QuickTime metadata. */
+/**
+ * Resolves embedded coordinates across image, MP4, and QuickTime metadata.
+ */
 final class MediaGpsLocationResolver {
 
     private static final double MIN_LATITUDE = -90.0;
@@ -115,8 +117,8 @@ final class MediaGpsLocationResolver {
 
     private static Location validLocation(double latitude, double longitude) {
         if (!Double.isFinite(latitude) || !Double.isFinite(longitude)
-                || latitude < MIN_LATITUDE || latitude > MAX_LATITUDE
-                || longitude < MIN_LONGITUDE || longitude > MAX_LONGITUDE) {
+            || latitude < MIN_LATITUDE || latitude > MAX_LATITUDE
+            || longitude < MIN_LONGITUDE || longitude > MAX_LONGITUDE) {
             return null;
         }
         return new Location(latitude, longitude);

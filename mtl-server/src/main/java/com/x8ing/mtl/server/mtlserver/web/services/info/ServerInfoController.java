@@ -22,7 +22,8 @@ import java.util.Optional;
         "systemLogService",
         "mtlAppProperties",
         "dockerImageInfoService",
-        "serverIdentityService"
+        "serverIdentityService",
+        "runtimeVersionInfoService"
 })
 public class ServerInfoController {
 
@@ -35,17 +36,20 @@ public class ServerInfoController {
     private final DockerImageInfoService dockerImageInfoService;
 
     private final ServerIdentityService serverIdentityService;
+    private final RuntimeVersionInfoService runtimeVersionInfoService;
 
     public ServerInfoController(Optional<BuildProperties> buildProperties,
                                 SystemLogService systemLogService,
                                 MtlAppProperties mtlAppProperties,
                                 DockerImageInfoService dockerImageInfoService,
-                                ServerIdentityService serverIdentityService) {
+                                ServerIdentityService serverIdentityService,
+                                RuntimeVersionInfoService runtimeVersionInfoService) {
         this.buildProperties = buildProperties;
         this.systemLogService = systemLogService;
         this.mtlAppProperties = mtlAppProperties;
         this.dockerImageInfoService = dockerImageInfoService;
         this.serverIdentityService = serverIdentityService;
+        this.runtimeVersionInfoService = runtimeVersionInfoService;
     }
 
     @RequestMapping("/build")
@@ -55,14 +59,15 @@ public class ServerInfoController {
         String defaultFilterName = FilterConfigEntity.DEFAULT_GPS_TRACK_FILTER_NAME;
         String serverId = serverIdentityService.getServerId();
         ImageVersionInfoDto imageInfo = dockerImageInfoService.getImageInfo();
+        RuntimeVersionInfoDto runtimeInfo = runtimeVersionInfoService.getVersions();
         if (buildProperties.isPresent()) {
             var props = buildProperties.get();
             String buildTime = props.getTime() != null ? props.getTime().toString() : null;
             return new BuildInfoResponse(props.getVersion(), buildTime, defaultLocale, defaultMeasurementSystem,
-                    defaultFilterName, serverId, imageInfo);
+                    defaultFilterName, serverId, imageInfo, runtimeInfo);
         } else {
             return new BuildInfoResponse("n/a", null, defaultLocale, defaultMeasurementSystem,
-                    defaultFilterName, serverId, imageInfo);
+                    defaultFilterName, serverId, imageInfo, runtimeInfo);
         }
     }
 
@@ -73,10 +78,11 @@ public class ServerInfoController {
         String buildSummary = build.version() + " / " + build.buildTime()
                               + " / serverId=" + build.serverId()
                               + " / image=" + build.image().getVersion()
+                              + " / imageRevision=" + build.image().getRevision()
                               + " / imageBuild=" + build.image().getBuildTime();
 
         log.info(msg + " " + buildSummary);
-        systemLogService.saveLog(SystemLog.TOPIC1.SERVER, "STARTUP", null, msg, buildSummary);
+        systemLogService.saveLog(SystemLog.Severity.INFO, "SERVER", "STARTUP", null, msg, buildSummary);
     }
 
 }

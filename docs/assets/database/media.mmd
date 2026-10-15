@@ -1,0 +1,59 @@
+erDiagram
+    direction LR
+    indexed_file {
+        bigint id PK
+    }
+    gps_track {
+        bigint id PK
+    }
+    media_file {
+        bigint id PK
+        bigint file_id FK "nullable"
+        timestamp exif_date_image_taken
+        geometry exif_gps_location
+    }
+    media_time_correction {
+        bigint media_id PK, FK
+        integer offset_seconds
+    }
+    media_manual_location {
+        bigint media_id PK, FK
+        geometry location
+    }
+    media_track_correlation {
+        bigint id PK
+        bigint media_id FK, UK
+        bigint track_id FK, UK
+        geometry route_location
+        boolean selected
+    }
+    media_resolved_location {
+        bigint media_id PK, FK
+        bigint correlation_id FK "nullable"
+        geometry location
+        varchar position_origin
+    }
+    media_correlation_state {
+        bigint media_id PK, FK
+        integer algorithm_version
+    }
+    media_correlation_media_work {
+        bigint media_id PK, FK
+        integer attempt_count
+        timestamp retry_after
+    }
+    media_correlation_track_work {
+        bigint track_id PK, FK
+        varchar reason
+    }
+
+    indexed_file |o..o{ media_file : file_id
+    media_file ||--o| media_time_correction : media_id
+    media_file ||--o| media_manual_location : media_id
+    media_file ||..o{ media_track_correlation : media_id
+    gps_track ||..o{ media_track_correlation : track_id
+    media_file ||--o| media_resolved_location : media_id
+    media_track_correlation |o..o{ media_resolved_location : correlation_id
+    media_file ||--o| media_correlation_state : media_id
+    media_file ||--o| media_correlation_media_work : media_id
+    gps_track ||--o| media_correlation_track_work : track_id

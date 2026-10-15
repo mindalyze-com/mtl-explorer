@@ -4,6 +4,7 @@
 
     <div class="media-collection-chooser__options">
       <button
+        ref="primaryButton"
         type="button"
         class="media-collection-option"
         data-test="media-collection-primary"
@@ -27,8 +28,8 @@
       >
         <span class="media-collection-option__icon"><i class="bi bi-map" aria-hidden="true"></i></span>
         <span class="media-collection-option__body">
-          <strong>Current map view</strong>
-          <span>All positioned photos visible on the map at this moment.</span>
+          <strong>Map view at tap</strong>
+          <span>Positioned photos in the map view when you tapped.</span>
         </span>
         <span class="media-collection-option__count">{{ countLabel(viewportCount) }}</span>
         <i class="bi bi-chevron-right media-collection-option__chevron" aria-hidden="true"></i>
@@ -44,8 +45,8 @@
       >
         <span class="media-collection-option__icon"><i class="bi bi-signpost-split" aria-hidden="true"></i></span>
         <span class="media-collection-option__body">
-          <strong>Photos along a GPS track</strong>
-          <span>Open photos linked to a GPS activity that passes this location.</span>
+          <strong>Nearby GPS tracks</strong>
+          <span>Open linked photos, or track details when no photos are matched.</span>
         </span>
         <span class="media-collection-option__count">
           {{ tracksLoading ? 'Loading…' : activityCountLabel }}
@@ -53,11 +54,17 @@
         <i class="bi bi-chevron-right media-collection-option__chevron" aria-hidden="true"></i>
       </button>
     </div>
+    <div v-if="tracksError" class="media-collection-error" role="status" data-test="media-collection-error">
+      <span>{{ tracksError }}</span>
+      <button type="button" :disabled="tracksLoading" data-test="media-collection-retry" @click="retryActivities">
+        Retry GPS tracks
+      </button>
+    </div>
   </section>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, nextTick, ref } from 'vue';
 import type { MediaOverlaySelection } from '@/layers/MediaOverlay';
 
 defineOptions({ name: 'MediaCollectionChooser' });
@@ -67,10 +74,12 @@ const props = withDefaults(
     selection: MediaOverlaySelection;
     trackCount?: number;
     tracksLoading?: boolean;
+    tracksError?: string | null;
   }>(),
   {
     trackCount: 0,
     tracksLoading: false,
+    tracksError: null,
   }
 );
 
@@ -78,7 +87,9 @@ const emit = defineEmits<{
   'choose-primary': [];
   'choose-viewport': [];
   'open-activities': [];
+  'retry-activities': [];
 }>();
+const primaryButton = ref<HTMLButtonElement | null>(null);
 
 const viewportCount = computed(() => props.selection.viewportMediaPoints.length);
 const primaryLabel = computed(() => {
@@ -92,14 +103,21 @@ const primaryDescription = computed(() => {
 });
 const primaryIcon = computed(() => (props.selection.kind === 'cluster' ? 'bi bi-collection-fill' : 'bi bi-image'));
 const showViewportOption = computed(() => {
-  if (props.selection.kind === 'cluster') return viewportCount.value > 0;
-  const primaryIds = props.selection.mediaIds;
-  const viewportIds = props.selection.viewportMediaPoints.map((point) => point.id);
-  return primaryIds.length !== viewportIds.length || primaryIds.some((id, index) => id !== viewportIds[index]);
+  if (!viewportCount.value) return false;
+  const primaryIds = new Set(props.selection.mediaIds);
+  if (primaryIds.size !== props.selection.totalMediaCount) return true;
+  const viewportIds = new Set(props.selection.viewportMediaPoints.map((point) => point.id));
+  return primaryIds.size !== viewportIds.size || [...primaryIds].some((id) => !viewportIds.has(id));
 });
 const activityCountLabel = computed(
-  () => `${props.trackCount.toLocaleString()} ${props.trackCount === 1 ? 'activity' : 'activities'}`
+  () => `${props.trackCount.toLocaleString()} ${props.trackCount === 1 ? 'track' : 'tracks'}`
 );
+
+async function retryActivities(): Promise<void> {
+  emit('retry-activities');
+  await nextTick();
+  primaryButton.value?.focus();
+}
 
 function countLabel(count: number): string {
   return `${count.toLocaleString()} ${count === 1 ? 'photo' : 'photos'}`;
@@ -142,7 +160,7 @@ function countLabel(count: number): string {
   padding: 0.75rem;
   color: var(--text-primary);
   text-align: left;
-  background: var(--surface-card);
+  background: var(--surface-sheet-solid);
   border: 1px solid var(--border-default);
   border-radius: 10px;
   cursor: pointer;
@@ -204,10 +222,31 @@ function countLabel(count: number): string {
 .media-collection-option__chevron {
   color: var(--text-muted);
 }
+.media-collection-error {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+  color: var(--text-secondary);
+  font-size: var(--text-sm-size);
+}
+.media-collection-error button {
+  min-height: 2.75rem;
+  padding: 0.4rem 0.6rem;
+  color: var(--text-primary);
+  background: var(--surface-sheet-solid);
+  border: 1px solid var(--border-default);
+  border-radius: 0.5rem;
+  cursor: pointer;
+}
+.media-collection-error button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
 
 @media (max-width: 600px) {
   .media-collection-chooser {
-    min-height: min(26rem, calc(82dvh - 3rem));
     padding-inline: 0.75rem;
   }
 

@@ -36,6 +36,29 @@ function preferenceMethod() {
 }
 
 describe('media visibility preference', () => {
+  it('reapplies saved opacity after a user toggle finishes recreating the media layers', async () => {
+    const ready = Promise.withResolvers<void>();
+    const setLayerEnabled = vi.fn();
+    const context = {
+      mediaOverlay: { isVisible: () => false, show: vi.fn(() => ready.promise) },
+      mediaBusy: false,
+      applyLayerOpacity: vi.fn(),
+      syncMapSettingsFromStore: vi.fn(),
+    };
+    const toggle = useMediaAndHeatmap({ mapSettingsStore: { setLayerEnabled } }).onToggleMediaLayer;
+    const pending = toggle.call(context as never);
+
+    expect(context.mediaBusy).toBe(true);
+    expect(context.applyLayerOpacity).not.toHaveBeenCalled();
+    ready.resolve();
+    await pending;
+
+    expect(context.applyLayerOpacity).toHaveBeenCalledWith('media');
+    expect(setLayerEnabled).toHaveBeenCalledWith('media', true);
+    expect(context.syncMapSettingsFromStore).toHaveBeenCalledOnce();
+    expect(context.mediaBusy).toBe(false);
+  });
+
   it('shows the media overlay and reapplies opacity when enabled', async () => {
     const mediaOverlay = {
       show: vi.fn().mockResolvedValue(undefined),
@@ -109,6 +132,24 @@ describe('media viewer selection', () => {
     expect(context.closeMediaSelection).toHaveBeenCalledOnce();
     expect(context.onTrackBrowserOpenPhotos).toHaveBeenCalledWith(42);
     expect(context.trackSelectionSheetVisible).toBe(false);
+  });
+
+  it('keeps photo-related activity navigation inside its exploration surface', () => {
+    const methods = useMediaAndHeatmap({ mapSettingsStore: { setLayerEnabled: vi.fn() } });
+    const context = {
+      mapInteraction: { id: 8, selected: { kind: 'photo' } },
+      mapInteractionDetailKind: 'photo',
+      mediaSelectionTrackOptions: [{ trackId: 42, distanceMeters: 12, matchedMediaCount: 3 }],
+      closeMediaSelection: vi.fn(),
+      selectTrackById: vi.fn(),
+      openTrackDetails: vi.fn(),
+      onTrackBrowserOpenPhotos: vi.fn(),
+    };
+    methods.openMediaSelectionActivities.call(context as never);
+    expect(context.mapInteractionDetailKind).toBe('track');
+    expect(context.openTrackDetails).toHaveBeenCalledWith(42, 'expanded', 'photos');
+    expect(context.mapInteraction.id).toBe(8);
+    expect(context.onTrackBrowserOpenPhotos).not.toHaveBeenCalled();
   });
 
   it('uses the established track chooser when several nearby activities match', () => {

@@ -1,5 +1,10 @@
+import type { CrossingDto } from 'x8ing-mtl-api-typescript-fetch/dist/esm/models/index';
+import { segmentTimingUnavailable } from './segmentTiming';
+
 export type SegmentTrackPoint = {
   id?: number;
+  pointIndex?: number;
+  pointTimestamp?: Date | string | null;
   distanceInMeterSinceStart?: number | null;
   durationSinceStart?: number | null;
   pointLongLat?: { coordinates?: number[] } | null;
@@ -16,12 +21,12 @@ export type SegmentSelectionCode = {
 export function segmentSelectionKey(selection: { code: SegmentSelectionCode }): string {
   const code = selection.code;
   if (code.consolidated === false) {
-    return `${String(code.point1)}${String(code.p1Visit)}-${String(code.point2)}${String(code.p2Visit)}`;
+    return JSON.stringify([code.point1, code.p1Visit, code.point2, code.p2Visit]);
   }
-  return `${String(code.point1)}||${String(code.point2)}`;
+  return JSON.stringify([code.point1, code.point2]);
 }
 
-export type VisitSegmentCrossing = {
+export type VisitSegmentCrossing = Pick<CrossingDto, 'timingStatusSinceLastTriggerPoint' | 'visitNumber'> & {
   triggerPoint: { name: string };
 };
 
@@ -42,12 +47,12 @@ export function buildVisitSegmentOptions<T extends VisitSegmentCrossing>(
 
     for (const crossing of crossings) {
       const point2 = crossing.triggerPoint.name;
-      const point2Visit = (visitsByTrigger.get(point2) ?? 0) + 1;
+      const point2Visit = crossing.visitNumber ?? (visitsByTrigger.get(point2) ?? 0) + 1;
       visitsByTrigger.set(point2, point2Visit);
 
-      if (previous && previousVisit != null) {
+      if (previous && previousVisit != null && !segmentTimingUnavailable(crossing)) {
         const point1 = previous.triggerPoint.name;
-        const key = `${point1}${previousVisit}-${point2}${point2Visit}`;
+        const key = JSON.stringify([point1, previousVisit, point2, point2Visit]);
         const existing = segmentMap.get(key);
         if (existing) {
           existing.count += 1;
@@ -85,13 +90,17 @@ export function validTrackPointCoordinates(
   return [lng, lat];
 }
 
-export type SegmentSliceCrossing<T extends SegmentTrackPoint = SegmentTrackPoint> = {
+export type SegmentSliceCrossing<T extends SegmentTrackPoint = SegmentTrackPoint> = Pick<
+  CrossingDto,
+  'timingStatusSinceLastTriggerPoint' | 'trackPointPosition'
+> & {
   gpsTrackDataPoint?: (T & { id?: number }) | null;
   distanceInMeterSinceLastTriggerPoint?: number | null;
   timeInSecSinceLastTriggerPoint?: number | null;
 };
 
-export type SegmentSliceInvalidReason = 'missing_crossings' | 'invalid_coordinates' | 'no_extent' | 'not_enough_points';
+export type SegmentSliceInvalidReason =
+  'missing_crossings' | 'invalid_coordinates' | 'no_extent' | 'not_enough_points' | 'unavailable_timing';
 
 export type SegmentSliceResult<T extends SegmentTrackPoint = SegmentTrackPoint> =
   | {
@@ -130,6 +139,9 @@ export function normalizeSegmentSlice<T extends SegmentTrackPoint>(
     return invalid([], 0, 0, 'missing_crossings');
   }
 
+  if (segmentTimingUnavailable(crossingPair[1])) {
+    return invalid([], 0, 0, 'unavailable_timing');
+  }
   const start = crossingPair[0]?.gpsTrackDataPoint;
   const end = crossingPair[1]?.gpsTrackDataPoint;
   if (!start || !end) {
@@ -138,15 +150,37 @@ export function normalizeSegmentSlice<T extends SegmentTrackPoint>(
 
   const fallbackDurationSec = positiveNumber(crossingPair[1]?.timeInSecSinceLastTriggerPoint);
   const fallbackDistanceM = positiveNumber(crossingPair[1]?.distanceInMeterSinceLastTriggerPoint);
-  const startPoint = cloneTrackPoint(start);
-  const endPoint = cloneTrackPoint(end);
+  const chronologicalResponse =
+    (start.pointIndex != null && end.pointIndex != null && end.pointIndex < start.pointIndex) ||
+    (start.distanceInMeterSinceStart != null &&
+      end.distanceInMeterSinceStart != null &&
+      end.distanceInMeterSinceStart < start.distanceInMeterSinceStart);
+  // The sub-track API can return chronological metrics for reversed stored order. Use those server values only for exact endpoint matches.
+  function responseEndpoint(endpoint: T): T {
+    const timestamp = endpoint.pointTimestamp == null ? NaN : new Date(endpoint.pointTimestamp).getTime();
+    return chronologicalResponse && Number.isFinite(timestamp)
+      ? (fetchedPoints.find(
+          (p) =>
+            p.id === endpoint.id &&
+            p.pointTimestamp != null &&
+            new Date(p.pointTimestamp).getTime() === timestamp &&
+            !coordinatesDiffer(p, endpoint)
+        ) ?? endpoint)
+      : endpoint;
+  }
+  const startPoint = cloneTrackPoint(responseEndpoint(start));
+  const endPoint = cloneTrackPoint(responseEndpoint(end));
 
   patchFlatEndpointMetric(startPoint, endPoint, 'durationSinceStart', fallbackDurationSec);
   patchFlatEndpointMetric(startPoint, endPoint, 'distanceInMeterSinceStart', fallbackDistanceM);
 
   const durationSec = segmentDurationSec(startPoint, endPoint, fallbackDurationSec);
   const distanceM = segmentDistanceM(startPoint, endPoint, fallbackDistanceM);
-  const points = buildNormalizedPoints(fetchedPoints, startPoint, endPoint);
+  const pathPositions: [number | undefined, number | undefined] = [
+    chronologicalResponse ? undefined : crossingPair[0].trackPointPosition,
+    chronologicalResponse ? undefined : crossingPair[1].trackPointPosition,
+  ];
+  const points = buildNormalizedPoints(fetchedPoints, startPoint, endPoint, pathPositions);
   const hasDuration = durationSec > EPSILON_SECONDS;
   const hasDistanceOrGeometry = distanceM > EPSILON_METERS || coordinatesDiffer(startPoint, endPoint);
 
@@ -172,8 +206,23 @@ export function normalizeSegmentSlice<T extends SegmentTrackPoint>(
   };
 }
 
-function buildNormalizedPoints<T extends SegmentTrackPoint>(fetchedPoints: T[], start: T, end: T) {
-  const inner = filterInnerPoints(fetchedPoints, start, end);
+function buildNormalizedPoints<T extends SegmentTrackPoint>(
+  fetchedPoints: T[],
+  start: T,
+  end: T,
+  pathPositions: [number | undefined, number | undefined]
+) {
+  const [from, to] = pathPositions;
+  const inner =
+    from != null && to != null
+      ? fetchedPoints.filter(
+          (point) =>
+            hasFinitePointCoordinates(point) &&
+            point.pointIndex != null &&
+            point.pointIndex > from &&
+            point.pointIndex < to
+        )
+      : filterInnerPoints(fetchedPoints, start, end);
   return dedupeAdjacentTrackPoints([start, ...inner, end]);
 }
 

@@ -1,6 +1,14 @@
 /** Shared cadence for recurring operational status requests. */
 export const STATUS_POLL_INTERVAL_MS = 8_000;
 
+/** Expected local pause, distinct from a failed status request. */
+export class StatusRequestPausedError extends Error {
+  constructor(message = 'Status refresh is paused.') {
+    super(message);
+    this.name = 'StatusRequestPausedError';
+  }
+}
+
 export interface StatusRequestOptions {
   force?: boolean;
 }
@@ -49,7 +57,7 @@ export function createStatusRequestService<T>(config: StatusRequestServiceConfig
       if (!options.force) {
         if (config.pauseWhen?.()) {
           if (hasCachedStatus) return cachedStatus as T;
-          throw new Error(config.pausedErrorMessage ?? 'Status refresh is paused.');
+          throw new StatusRequestPausedError(config.pausedErrorMessage);
         }
 
         if (Date.now() < nextAutomaticRequestAt) {

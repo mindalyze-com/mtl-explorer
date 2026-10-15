@@ -8,7 +8,7 @@ These instructions apply to all agents working in this repository.
 
 ## Version Control
 
-- Use `publish-to-github.py` to prepare and publish GitHub mirror releases.
+- Use `../mtl-explorer-private/publish-to-github.py` to prepare and publish GitHub mirror releases.
 - GitHub is a public mirror and may be behind; never merge or rebase GitHub
   branches/PRs into this workspace.
 - Treat GitHub PRs only as patch ideas; apply manually only when appropriate.
@@ -19,56 +19,58 @@ These instructions apply to all agents working in this repository.
   not authorize a GitHub comment or any other external update.
 - Do not publish or infer the private primary version history from GitHub.
 
-## Documentation Style
+## Development Guides
 
-- Keep README, markup, and agent notes concise; link out.
-- Keep root `README.md` GitHub-friendly: tables, badges, collapsibles.
-- For major user-facing features, update `documentation/features.md` if warranted.
+- Follow [shared code rules](documentation/development/README.md#shared-code-rules) and [version policy](documentation/development/README.md#software-versions).
+- For frontend work, follow [frontend](documentation/development/frontend.md) and [styling](documentation/development/styling.md).
+- For backend work, follow [backend](documentation/development/backend.md).
+- For API changes, follow [API generation](documentation/development/api-generation.md).
+- For documentation, follow [authoring](documentation/development/website/documentation.md) and [screenshots](documentation/development/website/screenshots.md).
+- For verification, follow [testing](documentation/development/testing/README.md).
 
-## Frontend UX
+## User Documentation
 
-- For UI changes, design the full user flow before editing; avoid narrow visual patches.
+- User and administration docs (README, install, setup, guide) explain tasks and
+  results in short, plain language. Write only what a user needs to act.
+- Do not describe panel sizing, layout, animation, edge-case states, internals,
+  or change history there. Put those in architecture/development docs or release notes.
+- A UI change needs a user doc update only when it changes what the user does.
+- Before writing or editing user docs, read [user writing style](documentation/development/website/user-writing-style.md).
 
-## Calculation Ownership
+## Private Maintainer Workspace
 
-- Keep advanced domain calculations on the server; change APIs rather than duplicating logic in the client.
+- Internal work starts at `../mtl-explorer-private/docs-my/README.md`.
+- The application and private repositories are independent sibling checkouts:
+  `mtl-explorer` and `mtl-explorer-private`. Do not add a submodule or vendor private files.
+- Application regression tools use the sibling private checkout by default.
+  Set `MTL_PRIVATE_REPO` for another location or pass `--output-root` for a standalone run.
+- Before private maintenance tasks, read `../mtl-explorer-private/AGENTS.md` and
+  the relevant skill under `../mtl-explorer-private/.agents/skills/`.
+- Record the tested application commit and image in private evidence. Commit
+  application changes and private evidence in their respective repositories.
 
-## Screenshots And Assets
+## Private Data
 
-- Prefer WebP screenshots; use PNG only if needed.
-- For full end-user regression reports, keep compact screenshots for working
-  functions too, not only failures, so the report gives a readable visual
-  overview of the validated app.
 - Local GPX tracks are private. Never commit, copy, vendor, or derive fixtures
   from them; use public data or fully synthetic anonymized tests instead.
-
-## OpenAPI And Type Safety
-
-- OpenAPI is the API type source of truth.
-- For API shape changes, update server first; save live `/mtl/v3/api-docs` to `mtl-api/open-api-schema/schema.json`; never hand-edit it.
-- Keep schema `servers` at the normal local URL.
-- Add JSON fields in thematic Java order; match `@JsonPropertyOrder`.
-- Regenerate the TypeScript client with Maven from `mtl-api/mtl-api-typescript-fetch`.
-- Use generated TypeScript types/client APIs; document temporary generator workarounds.
-- Run relevant backend/frontend checks; report pre-existing failures separately.
-
-## Constants
-
-- Use named constants for semantic, reused, or tunable values.
-- Avoid production magic numbers/strings.
-- Use the smallest useful scope; reuse existing constants.
 
 ## Local Development Login
 
 - For local browser checks, get GUI credentials only from `mtl-server/src/main/resources/application-dev.yml`.
 
-## Software Versions
+## Browser Use
 
-- Verify the latest stable non-beta before proposing or pinning software, runtime, package, or base-image versions.
-- Prefer latest stable LTS unless compatibility requires older.
+- Use only the Codex in-app browser for MTL Explorer browser work.
+- Never open, control, or use the user's Chrome browser, including as a fallback.
 
-## Data Migration Policy
+## Local Backend Testing
 
-- Do not add legacy-data backfill or old-data migration paths unless explicitly requested.
-- Assume users can recreate the database after derived-stat or data-shape changes.
-- Keep ingest/recalculation for new imports; avoid migration-only admin endpoints/services.
+- Use [the build script](documentation/tools/build.py) for Java builds and tests.
+- Never install Java or run Java/Maven on the host.
+
+## Local Instance Lifecycle
+
+- Start local instances on demand; no automatic startup unless explicitly
+  requested. Use Docker `--restart=no` or Compose `restart: "no"` for all services.
+- Stop temporary instances after checks unless asked to keep them running;
+  preserve downloaded map and routing data.

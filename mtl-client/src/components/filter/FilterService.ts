@@ -1,3 +1,4 @@
+import { warnSanitized } from '@/utils/safeLogging';
 import { isEmptyOrNil } from '@/utils/Utils';
 import type { FilterInfo } from 'x8ing-mtl-api-typescript-fetch/dist/esm/models/FilterInfo';
 import type { FilterParamsRequest } from 'x8ing-mtl-api-typescript-fetch/dist/esm/models/FilterParamsRequest';
@@ -94,7 +95,11 @@ export class FilterService {
       clientFilterConfig.filterInfo = await this.fetchFilterInfoCached(filterDomain, filterName);
       return true;
     } catch (error) {
-      console.warn('FilterService: keeping stored filter metadata because refresh failed', error);
+      warnSanitized('FilterService: keeping stored filter metadata because refresh failed', error, {
+        topic1: 'filter',
+        topic2: 'FilterService',
+        topic3: 'hydrateFilterInfoMetadata',
+      });
       return false;
     }
   }
@@ -180,9 +185,11 @@ export class FilterService {
     const knownFields = new Set([
       'stringParams',
       'dateTimeParams',
+      'timeZone',
       'geoCircles',
       'geoRectangles',
       'geoPolygons',
+      'trackViewScope',
       'resultGroupSelection',
       'trackIds',
     ]);
@@ -236,9 +243,7 @@ export class FilterService {
 
   static hasActiveFilterConfig(
     clientFilterConfig:
-      | { filterInfo?: FilterInfo; filterParams?: FilterParamsRequest; palette?: ColorPalette | null }
-      | null
-      | undefined
+      { filterInfo?: FilterInfo; filterParams?: FilterParamsRequest; palette?: ColorPalette | null } | null | undefined
   ): boolean {
     if (
       !hasCompleteStringParamsForDefinitions(

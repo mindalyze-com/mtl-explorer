@@ -6,18 +6,20 @@ import com.x8ing.mtl.server.mtlserver.db.entity.gps.GpsTrackEvent;
 import com.x8ing.mtl.server.mtlserver.db.repository.gps.GpsTrackEventRepository;
 import com.x8ing.mtl.server.mtlserver.gpx.GPXReader;
 import com.x8ing.mtl.server.mtlserver.metrics.MetricConstants;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Date;
-import java.util.List;
-import java.util.Locale;
+import java.util.*;
 
 @Service
+@Slf4j
 @JsonPropertyOrder({
         "gpsTrackEventRepository"
 })
 public class GpsTrackEventService {
+
+    private static final double MILLIS_PER_SECOND = 1000;
 
     private final GpsTrackEventRepository gpsTrackEventRepository;
 
@@ -34,17 +36,61 @@ public class GpsTrackEventService {
         if (gpsTrackId == null) {
             return;
         }
+        long started = System.currentTimeMillis();
+        log.info("Detected break persistence starting: trackId={} breaks={}", gpsTrackId, stopRanges == null ? 0 : stopRanges.size());
         gpsTrackEventRepository.deleteByGpsTrackIdAndEventTypeAndSource(
                 gpsTrackId,
                 GpsTrackEvent.EVENT_TYPE.STOP,
                 GpsTrackEvent.SOURCE.DETECTED);
         if (stopRanges == null || stopRanges.isEmpty()) {
+            log.info("Detected break persistence completed: trackId={} breaks=0 durationMs={}", gpsTrackId, System.currentTimeMillis() - started);
             return;
         }
         List<GpsTrackEvent> events = stopRanges.stream()
                 .map(range -> toDetectedStopEvent(gpsTrackId, gpsTrackDataId, range))
                 .toList();
         gpsTrackEventRepository.saveAll(events);
+        log.info("Detected break persistence completed: trackId={} breaks={} durationMs={}",
+                gpsTrackId, events.size(), System.currentTimeMillis() - started);
+    }
+
+    /**
+     * Persists source recording boundaries on canonical points for subsequent segment calculations.
+     */
+    @Transactional
+    public void replaceImportedRecordingGaps(Long trackId, Long dataId, List<GpsTrackDataPoint> points,
+                                             List<Integer> breakBeforeIndexes) {
+        long started = System.currentTimeMillis();
+        log.info("Recording gap persistence starting: trackId={} points={}", trackId, points.size());
+        gpsTrackEventRepository.deleteByGpsTrackIdAndEventTypeAndSource(
+                trackId, GpsTrackEvent.EVENT_TYPE.GPS_GAP, GpsTrackEvent.SOURCE.IMPORTED);
+        var breaks = new TreeSet<>(breakBeforeIndexes);
+        List<GpsTrackEvent> events = new ArrayList<>();
+        for (int i = 1; i < points.size(); i++) {
+            GpsTrackDataPoint from = points.get(i - 1);
+            GpsTrackDataPoint to = points.get(i);
+            Integer nextBreak = breaks.higher(from.getPointIndex());
+            if (nextBreak == null || nextBreak > to.getPointIndex()) continue;
+            events.add(GpsTrackEvent.builder().gpsTrackId(trackId).gpsTrackDataId(dataId)
+                    .eventType(GpsTrackEvent.EVENT_TYPE.GPS_GAP).source(GpsTrackEvent.SOURCE.IMPORTED)
+                    .startGpsTrackDataPointId(from.getId()).endGpsTrackDataPointId(to.getId())
+                    .startPointIndex(from.getPointIndex()).endPointIndex(to.getPointIndex())
+                    .startTimestamp(from.getPointTimestamp()).endTimestamp(to.getPointTimestamp())
+                    .durationInSec(recordingGapDuration(from, to))
+                    .startDistanceInMeter(from.getDistanceInMeterSinceStart())
+                    .endDistanceInMeter(to.getDistanceInMeterSinceStart())
+                    .startPointLongLat(from.getPointLongLat()).endPointLongLat(to.getPointLongLat())
+                    .label("Recording gap").build());
+        }
+        gpsTrackEventRepository.saveAll(events);
+        log.info("Recording gap persistence completed: trackId={} gaps={} durationMs={}",
+                trackId, events.size(), System.currentTimeMillis() - started);
+    }
+
+    private static Double recordingGapDuration(GpsTrackDataPoint from, GpsTrackDataPoint to) {
+        if (from.getPointTimestamp() == null || to.getPointTimestamp() == null) return null;
+        long durationMillis = to.getPointTimestamp().getTime() - from.getPointTimestamp().getTime();
+        return durationMillis > 0 ? durationMillis / MILLIS_PER_SECOND : null;
     }
 
     private static GpsTrackEvent toDetectedStopEvent(Long gpsTrackId,
@@ -71,7 +117,13 @@ public class GpsTrackEventService {
                 .endPointLongLat(endPoint.getPointLongLat())
                 .label(range.stopRange().category().name())
                 .description(stopDescription(range.stopRange(), startPoint, endPoint))
-                .confidence(range.stopRange().inlierRatio())
+                .confidence(null)
+                .detectionEvidence(range.stopRange().evidence())
+                .detectionVersion(TrackMotionAnalyzer.VERSION)
+                .startBoundary(range.stopRange().startBoundary())
+                .endBoundary(range.stopRange().endBoundary())
+                .confirmedAtTimestamp(range.stopRange().confirmedAtS() == null ? null
+                        : new Date(Math.round(range.stopRange().confirmedAtS() * MILLIS_PER_SECOND)))
                 .createDate(new Date())
                 .build();
     }
@@ -79,6 +131,9 @@ public class GpsTrackEventService {
     private static String stopDescription(TrackStopDetector.StopRange range,
                                           GpsTrackDataPoint startPoint,
                                           GpsTrackDataPoint endPoint) {
+        if (range.evidence() == TrackStopDetector.StopEvidence.OBSERVED_STATIONARY) {
+            return "Stationary observations; boundaries estimated from adjacent recorded samples.";
+        }
         if (range.evidence() == TrackStopDetector.StopEvidence.RECORDING_GAP) {
             double distanceM = distanceBetween(startPoint, endPoint);
             double impliedSpeedKmh = distanceM / Math.max(range.durationInSec(), 1.0)

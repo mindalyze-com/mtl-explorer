@@ -16,8 +16,10 @@ Two processes run inside the container under a small Python supervisor:
 | 17777  | BRouter (Java)         | `GET /brouter?lonlats=...&profile=...&format=geojson` |
 | 17778  | Admin HTTP (Python)    | `GET /status`, `GET /health`, `POST /prewarm`   |
 
-BRouter ships with routing profiles (`trekking.brf`, `fastbike.brf`,
-`hiking-mountain.brf`, `car-eco.brf`) and embedded SRTM elevation data.
+BRouter ships with routing profiles for touring bikes (`trekking.brf`), road bikes
+(`fastbike.brf`), mountain bikes (`mtb.brf`), hiking (`hiking-mountain.brf`), and
+cars (`car-eco.brf`). Elevation data comes with the downloaded
+routing segments.
 It does **not** ship rd5 routing segments — those 5°×5° files are downloaded
 from <https://brouter.de/brouter/segments4/> on demand and cached in the
 `brouter-segments` Docker volume.
@@ -25,6 +27,14 @@ from <https://brouter.de/brouter/segments4/> on demand and cached in the
 The MTL Explorer server (`PlannerAutoPrewarmService`) POSTs the bounding box of
 all imported tracks to `/prewarm` on startup, so the segments covering the
 user's known area are fetched in the background before the first route request.
+
+The supervisor checks admin HTTP responses and background workers during startup
+and normal operation. Admin-server failures are retried; repeated failures or a
+dead worker stop the container with an error so `restart: unless-stopped` can
+restart it. Incomplete admin requests have a five-second socket timeout.
+`/health` also checks the supervisor heartbeat and reports stalled supervision.
+The image includes a Docker healthcheck. Docker health status alone does not
+restart a frozen process; that requires an external watchdog.
 
 ## Run standalone (no MTL Explorer)
 

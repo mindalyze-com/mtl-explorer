@@ -27,13 +27,11 @@ public class CustomExceptionHandlingFilter extends org.springframework.security.
     @Override
     public void onAuthenticationFailure(HttpServletRequest request, HttpServletResponse response, AuthenticationException exception) throws IOException, ServletException {
 
-        String username = request.getParameter("username"); // Retrieve the username from the request parameter
-        String pwd = request.getParameter("password"); // Retrieve the username from the request parameter
 
-        String msg = "Authentication failed. Reason: %s. User: %s, Pwd: %s".formatted(exception.getMessage(), username, pwd);
+        String msg = "Authentication failed. Type: %s".formatted(exception.getClass().getSimpleName());
 
         log.warn(msg);
-        systemLogService.saveLog(SystemLog.TOPIC1.SECURITY, "AUTHENTICATION", "AUTHENTICATION_FAILED", msg, null);
+        systemLogService.saveLog(SystemLog.Severity.WARN, "SECURITY", "AUTHENTICATION", "AUTHENTICATION_FAILED", msg, null);
 
         super.onAuthenticationFailure(request, response, exception);
     }

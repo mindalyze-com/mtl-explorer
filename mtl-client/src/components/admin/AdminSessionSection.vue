@@ -10,7 +10,7 @@
       <div class="admin-card__header">
         <div>
           <h3 id="admin-current-session-heading">Current session</h3>
-          <p>User identity, request correlation ID, and token timing.</p>
+          <p>Your sign-in details for this browser.</p>
         </div>
       </div>
       <dl class="admin-info-list">
@@ -33,32 +33,26 @@
           </dd>
         </div>
       </dl>
-      <div class="admin-session-id">
-        <label for="admin-session-id">Session ID</label>
-        <div class="admin-session-id__controls">
+      <div class="admin-client-login-ref">
+        <label for="admin-client-login-ref">ClientLoginRef</label>
+        <p id="admin-client-login-ref-help">Reference for this login. It cannot grant access on its own.</p>
+        <div class="admin-client-login-ref__controls">
           <input
-            id="admin-session-id"
-            :type="sessionIdInputType"
+            id="admin-client-login-ref"
+            type="text"
+            aria-describedby="admin-client-login-ref-help"
             readonly
-            :value="sessionId || unavailable"
+            :value="clientLoginRef || unavailable"
             @focus="selectInputText"
           />
           <Button
-            :aria-label="sessionIdVisible ? 'Hide session ID' : 'Show session ID'"
-            :title="sessionIdVisible ? 'Hide session ID' : 'Show session ID'"
-            :icon="sessionIdVisible ? 'bi bi-eye-slash' : 'bi bi-eye'"
+            :label="clientLoginRefCopied ? 'Copied' : 'Copy'"
+            :icon="clientLoginRefCopied ? 'bi bi-clipboard-check' : 'bi bi-copy'"
             size="small"
             severity="secondary"
-            :disabled="!sessionId"
-            @click="sessionIdVisible = !sessionIdVisible"
-          />
-          <Button
-            :label="sessionIdCopied ? 'Copied' : 'Copy'"
-            :icon="sessionIdCopied ? 'bi bi-clipboard-check' : 'bi bi-copy'"
-            size="small"
-            severity="secondary"
-            :disabled="!sessionId"
-            @click="copySessionId"
+            aria-label="Copy ClientLoginRef"
+            :disabled="!clientLoginRef"
+            @click="copyClientLoginRef"
           />
         </div>
         <span v-if="copyError" class="admin-status-pill admin-status-pill--error">{{ copyError }}</span>
@@ -74,8 +68,8 @@
       </div>
       <div class="admin-action-row">
         <div class="admin-action-copy">
-          <span class="admin-action-label">Credentials only</span>
-          <span class="admin-action-hint">Remove the JWT and ask the server to clear its session cookie.</span>
+          <span class="admin-action-label">Sign out of this browser</span>
+          <span class="admin-action-hint">You will need to sign in again to access this installation.</span>
         </div>
         <div class="admin-action-controls">
           <span v-if="credentialsLogoutLoading" class="admin-status-pill admin-status-pill--loading">
@@ -95,15 +89,15 @@
     <section class="admin-card admin-card--danger" aria-labelledby="admin-danger-zone-heading">
       <div class="admin-card__header">
         <div>
-          <h3 id="admin-danger-zone-heading">Danger zone</h3>
+          <h3 id="admin-danger-zone-heading">Clear local data</h3>
           <p>Sign out and remove all local application data this browser can access.</p>
         </div>
       </div>
       <div class="admin-action-row">
         <div class="admin-action-copy">
-          <span class="admin-action-label">Forget everything</span>
+          <span class="admin-action-label">Clear this browser</span>
           <span class="admin-action-hint">
-            Clear local and session storage, cached tracks, browser caches, readable cookies, and service workers.
+            Remove saved preferences, cached tracks, and sign-in details. Files and data on the server are kept.
           </span>
         </div>
         <div class="admin-action-controls">
@@ -111,7 +105,7 @@
             <i class="pi pi-spin pi-spinner" /> Clearing…
           </span>
           <Button
-            label="Wipe & logout"
+            label="Clear & sign out"
             icon="pi pi-trash"
             severity="danger"
             size="small"
@@ -125,6 +119,7 @@
     <Dialog
       v-model:visible="showFullLogoutConfirm"
       modal
+      header="Clear local data"
       :closable="false"
       class="logout-confirm-dialog"
       :style="{ width: 'min(92vw, 34rem)' }"
@@ -132,18 +127,18 @@
       <div class="admin-logout-confirm">
         <i class="pi pi-exclamation-triangle" />
         <div>
-          <h3>Forget everything on this device?</h3>
+          <h3>Clear saved data from this browser?</h3>
           <p>
-            This removes credentials, local application storage, cached tracks, browser caches, readable cookies, and
-            service worker registrations.
+            This signs you out and removes saved preferences and cached data from this browser. Files and data on the
+            server are kept.
           </p>
           <small>Browser password-manager entries cannot be removed by a web application.</small>
         </div>
       </div>
       <template #footer>
         <div class="admin-logout-footer">
-          <Button label="Cancel" icon="pi pi-times" text @click="showFullLogoutConfirm = false" />
-          <Button label="Wipe & logout" icon="pi pi-trash" severity="danger" autofocus @click="executeFullLogout" />
+          <Button label="Cancel" icon="pi pi-times" text autofocus @click="showFullLogoutConfirm = false" />
+          <Button label="Clear & sign out" icon="pi pi-trash" severity="danger" @click="executeFullLogout" />
         </div>
       </template>
     </Dialog>
@@ -151,7 +146,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue';
+import { computed, nextTick, onBeforeUnmount, ref } from 'vue';
 import Button from 'primevue/button';
 import Dialog from 'primevue/dialog';
 import AdminSectionHeader from '@/components/admin/AdminSectionHeader.vue';
@@ -159,7 +154,7 @@ import {
   getAuthenticatedUsername,
   getTokenExpiresAt,
   getTokenIssuedAt,
-  getUserSessionId,
+  getClientLoginRef,
   logoutAndForgetEverything,
   logoutCredentialsOnly,
 } from '@/utils/auth';
@@ -174,8 +169,7 @@ const HARD_LOGOUT_REDIRECT_MS = 6000;
 const COPY_STATUS_RESET_MS = 1800;
 const unavailable = 'Unavailable';
 
-const sessionIdVisible = ref(false);
-const sessionIdCopied = ref(false);
+const clientLoginRefCopied = ref(false);
 const copyError = ref('');
 const showFullLogoutConfirm = ref(false);
 const credentialsLogoutLoading = ref(false);
@@ -183,8 +177,7 @@ const fullLogoutLoading = ref(false);
 let copyResetTimer: ReturnType<typeof setTimeout> | null = null;
 
 const username = computed(() => getAuthenticatedUsername());
-const sessionId = computed(() => getUserSessionId());
-const sessionIdInputType = computed(() => (sessionId.value && !sessionIdVisible.value ? 'password' : 'text'));
+const clientLoginRef = computed(() => getClientLoginRef());
 const issuedAt = computed(() => {
   const value = getTokenIssuedAt();
   return value ? formatDateAndTimeWithSeconds(value) : unavailable;
@@ -194,25 +187,23 @@ const expiresAt = computed(() => {
   return value ? formatDateAndTimeWithSeconds(value) : unavailable;
 });
 
-watch(sessionId, () => (sessionIdVisible.value = false));
-
 onBeforeUnmount(() => {
   if (copyResetTimer) clearTimeout(copyResetTimer);
 });
 
-async function copySessionId() {
-  if (!sessionId.value) return;
+async function copyClientLoginRef() {
+  if (!clientLoginRef.value) return;
   try {
     copyError.value = '';
-    await writeTextToClipboard(sessionId.value);
-    sessionIdCopied.value = true;
+    await writeTextToClipboard(clientLoginRef.value);
+    clientLoginRefCopied.value = true;
     if (copyResetTimer) clearTimeout(copyResetTimer);
     copyResetTimer = setTimeout(() => {
-      sessionIdCopied.value = false;
+      clientLoginRefCopied.value = false;
       copyResetTimer = null;
     }, COPY_STATUS_RESET_MS);
   } catch (error) {
-    copyError.value = error instanceof Error ? error.message : 'Failed to copy session ID.';
+    copyError.value = error instanceof Error ? error.message : 'Failed to copy ClientLoginRef.';
   }
 }
 
@@ -247,25 +238,30 @@ async function runLogoutWithRedirect(logout: () => Promise<unknown> | unknown, t
 </script>
 
 <style scoped>
-.admin-session-id {
+.admin-client-login-ref {
   display: flex;
   flex-direction: column;
   gap: 0.4rem;
   margin-top: 0.75rem;
 }
 
-.admin-session-id label {
+.admin-client-login-ref label,
+.admin-client-login-ref p {
   color: var(--text-muted);
   font-size: var(--text-xs-size);
 }
 
-.admin-session-id__controls {
+.admin-client-login-ref p {
+  margin: 0;
+}
+
+.admin-client-login-ref__controls {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto;
+  grid-template-columns: minmax(0, 1fr) auto;
   gap: 0.45rem;
 }
 
-.admin-session-id input {
+.admin-client-login-ref input {
   min-width: 0;
   padding: 0.55rem 0.65rem;
   border: 1px solid var(--border-default);
@@ -311,13 +307,8 @@ async function runLogoutWithRedirect(logout: () => Promise<unknown> | unknown, t
 }
 
 @media (max-width: 768px) {
-  .admin-session-id__controls,
   .admin-logout-confirm {
     grid-template-columns: 1fr;
-  }
-
-  .admin-session-id__controls :deep(.p-button) {
-    width: 100%;
   }
 
   .admin-logout-footer {

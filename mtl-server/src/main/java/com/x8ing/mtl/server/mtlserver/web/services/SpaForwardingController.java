@@ -29,8 +29,8 @@ public class SpaForwardingController {
      * forwarding for {@code /}.
      */
     @GetMapping({
-            "/{path:^(?!api|v3|assets|backgrounds|swagger-ui|error$)[^\\.]*$}",
-            "/{path:^(?!api|v3|assets|backgrounds|swagger-ui|error$)[^\\.]*$}/**"
+            "/{path:^(?!api|v3|assets|backgrounds|guide|swagger-ui|error$)[^\\.]*$}",
+            "/{path:^(?!api|v3|assets|backgrounds|guide|swagger-ui|error$)[^\\.]*$}/**"
     })
     public String forward(HttpServletRequest request) {
         String path = requestPath(request);

@@ -9,13 +9,14 @@ Default interactive flow:
   4. Publish beta/latest only when you enable them.
   5. Build multiple platforms by default when full-build mode is enabled.
 
-Full builds compile the app inside the app Dockerfile. Host Maven outputs are
-not used for the app image.
+Full builds compile a committed app source snapshot inside the app Dockerfile.
+Host Maven outputs are not used for the app image.
 
 Examples:
   ./docker-build-deploy.py
   ./docker-build-deploy.py --tag-only
   ./docker-build-deploy.py --yes --include-beta
+  ./docker-build-deploy.py --yes --app-only
   ./docker-build-deploy.py --dry-run --yes --include-latest
 """
 
@@ -24,13 +25,19 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import shlex
 import subprocess
 import sys
+import tarfile
+import tempfile
+from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Iterable, Sequence
+
+from documentation.tools.repository_paths import private_repository
 
 
 # =============================================================================
@@ -46,16 +53,16 @@ DOCKER_HUB_TOKEN_URLS = (
 
 # Version tags. These are the most important values to check before every run.
 APP_IMAGE_NAME = "mytraillog"
-APP_VERSION_TAG = "1.414"  # version tag, (v. 1.1 -> 2025-10 release)
+APP_VERSION_TAG = "1.501"  # version tag, (v. 1.1 -> 2025-10 release)
 
 MAP_IMAGE_NAME = "mytraillog-maps"
-MAP_VERSION_TAG = "1.83"
+MAP_VERSION_TAG = "1.501"
 
 LOCATION_SEARCH_IMAGE_NAME = "mytraillog-location-search"
-LOCATION_SEARCH_VERSION_TAG = "1.13"
+LOCATION_SEARCH_VERSION_TAG = "1.501"
 
 BROUTER_IMAGE_NAME = "mytraillog-brouter"
-BROUTER_VERSION_TAG = "1.23"
+BROUTER_VERSION_TAG = "1.501"
 
 # Channel tags. Version + alpha are published by default; beta/latest are opt-in.
 ALPHA_TAG = "alpha"
@@ -91,6 +98,8 @@ GREEN = "\033[32m"
 YELLOW = "\033[33m"
 CYAN = "\033[36m"
 USE_COLOR = sys.stdout.isatty()
+SOURCE_TREE_LABEL = "com.mtl-explorer.source-tree"
+RELEASE_RECORD_SUBDIRECTORY = Path("docs-my/operations/releases/builds")
 
 
 @dataclass(frozen=True)
@@ -119,6 +128,8 @@ class ReleaseSettings:
     force_docker_login: bool
     pull_after_publish: bool
     dry_run: bool
+    app_only: bool = False
+    release_record_dir: Path | None = None
 
     @property
     def platforms(self) -> str:
@@ -152,6 +163,8 @@ class SettingsDraft:
     force_docker_login: bool
     pull_after_publish: bool
     dry_run: bool
+    app_only: bool = False
+    release_record_dir: Path | None = None
 
     @property
     def platforms(self) -> str:
@@ -233,6 +246,37 @@ def unique(items: Iterable[str]) -> list[str]:
 
 def utc_timestamp() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+
+
+def git_output(*args: str, root: Path = SCRIPT_DIR) -> str:
+    return subprocess.check_output(["git", *args], cwd=root, text=True).rstrip("\n")
+
+
+def app_source_identity(root: Path = SCRIPT_DIR, *, dry_run: bool = False) -> dict[str, str]:
+    # Private run evidence belongs to its own checkout and cannot enter this archive.
+    changes = git_output("status", "--porcelain=v1", "--untracked-files=all", root=root)
+    pending = changes.splitlines()
+    if pending and not dry_run:
+        raise SystemExit("Commit source changes before publishing an app image:\n" + "\n".join(pending))
+    if pending:
+        warn("Dry run uses HEAD metadata; commit source changes before publishing.")
+    revision = git_output("rev-parse", "HEAD", root=root)
+    return {"revision": revision, "tree": git_output("rev-parse", f"{revision}^{{tree}}", root=root)}
+
+
+@contextmanager
+def app_source_snapshot(revision: str, root: Path = SCRIPT_DIR):
+    with tempfile.TemporaryDirectory(prefix="mtl-app-release-") as temporary:
+        directory = Path(temporary)
+        archive = directory / "source.tar"
+        subprocess.run(["git", "archive", "--format=tar", f"--output={archive}", revision],
+                       cwd=root, check=True)
+        source = directory / "source"
+        source.mkdir()
+        with tarfile.open(archive) as contents:
+            contents.extractall(source, filter="data")
+        archive.unlink()
+        yield source
 
 
 def prompt_text(question: str, default: str) -> str:
@@ -339,6 +383,7 @@ def parse_args() -> argparse.Namespace:
 
     parser.add_argument("--yes", action="store_true", help="Use defaults and do not prompt.")
     parser.add_argument("--dry-run", action="store_true", help="Print the plan and commands without running them.")
+    parser.add_argument("--app-only", action="store_true", help="Build or tag only the app image.")
 
     mode_group = parser.add_mutually_exclusive_group()
     mode_group.add_argument("--full-build", dest="full_build", action="store_true", default=None)
@@ -370,6 +415,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--map-tag", default=None, help="Override the map image version tag for this run.")
     parser.add_argument("--location-search-tag", default=None, help="Override the location-search image version tag for this run.")
     parser.add_argument("--brouter-tag", default=None, help="Override the BRouter image version tag for this run.")
+    parser.add_argument("--release-record-dir", type=Path,
+                        help="Directory outside the application checkout for release manifests; defaults to the private checkout's docs-my/operations/releases/builds (MTL_PRIVATE_REPO overrides the checkout).")
 
     args = parser.parse_args()
     apply_compatibility_aliases(args, parser)
@@ -435,7 +482,24 @@ def initial_settings_draft(args: argparse.Namespace) -> SettingsDraft:
         force_docker_login=DEFAULT_FORCE_DOCKER_LOGIN or args.force_login,
         pull_after_publish=DEFAULT_PULL_AFTER_PUBLISH and not args.no_pull_verify if full_build else False,
         dry_run=args.dry_run,
+        app_only=args.app_only,
+        release_record_dir=args.release_record_dir,
     )
+
+
+def release_record_directory(output: Path | None = None) -> Path:
+    if output is None:
+        private = private_repository(SCRIPT_DIR)
+        if not (private / ".git").exists():
+            raise SystemExit(
+                f"Private checkout not found: {private}. "
+                "Clone it, set MTL_PRIVATE_REPO, or supply --release-record-dir."
+            )
+        output = private / RELEASE_RECORD_SUBDIRECTORY
+    directory = output.expanduser().resolve()
+    if directory.is_relative_to(SCRIPT_DIR):
+        raise SystemExit("Release records must be stored outside the application checkout.")
+    return directory
 
 
 def release_settings_from_draft(draft: SettingsDraft) -> ReleaseSettings:
@@ -455,6 +519,8 @@ def release_settings_from_draft(draft: SettingsDraft) -> ReleaseSettings:
         force_docker_login=draft.force_docker_login,
         pull_after_publish=draft.pull_after_publish if draft.full_build else False,
         dry_run=draft.dry_run,
+        app_only=draft.app_only,
+        release_record_dir=release_record_directory(draft.release_record_dir) if draft.full_build else None,
     )
 
 
@@ -509,6 +575,8 @@ def print_options_menu(draft: SettingsDraft, notice: str = "") -> None:
     print(f" 11  Docker login         {enabled_label(draft.docker_login)}")
     print(f" 12  Pull verification    {enabled_label(draft.pull_after_publish) if draft.full_build else 'n/a in tag-only mode'}")
     print(f" 13  Dry run              {enabled_label(draft.dry_run)}")
+    print(f" 14  App image only       {enabled_label(draft.app_only)}")
+    print(f" 15  Release record dir   {draft.release_record_dir or '(private checkout default)'}")
     print()
     print("  S  Start release")
     print("  Q  Quit")
@@ -569,6 +637,13 @@ def handle_menu_choice(draft: SettingsDraft, choice: str) -> str:
     if choice == "13":
         draft.dry_run = not draft.dry_run
         return f"Dry run {enabled_label(draft.dry_run)}."
+    if choice == "14":
+        draft.app_only = not draft.app_only
+        return f"App image only {enabled_label(draft.app_only)}."
+    if choice == "15":
+        current = draft.release_record_dir or private_repository(SCRIPT_DIR) / RELEASE_RECORD_SUBDIRECTORY
+        draft.release_record_dir = Path(prompt_text("Release record directory", str(current)))
+        return f"Release record directory set to {draft.release_record_dir}."
 
     return "Unknown option."
 
@@ -605,12 +680,13 @@ def print_user_variables(app_version_tag: str, map_version_tag: str, location_se
 
 
 def image_configs(settings: ReleaseSettings) -> list[ImageConfig]:
-    return [
+    images = [
         ImageConfig("App", APP_IMAGE_NAME, settings.app_version_tag, SCRIPT_DIR),
         ImageConfig("Location Search", LOCATION_SEARCH_IMAGE_NAME, settings.location_search_version_tag, SCRIPT_DIR, SCRIPT_DIR / "docker-location-search" / "Dockerfile"),
         ImageConfig("Map", MAP_IMAGE_NAME, settings.map_version_tag, SCRIPT_DIR / "docker-maps"),
         ImageConfig("BRouter", BROUTER_IMAGE_NAME, settings.brouter_version_tag, SCRIPT_DIR / "docker-brouter"),
     ]
+    return images[:1] if settings.app_only else images
 
 
 def refs_for_image(settings: ReleaseSettings, image: ImageConfig) -> list[str]:
@@ -639,6 +715,8 @@ def print_plan(settings: ReleaseSettings) -> None:
     print(f"Docker cache:      {cache}")
     print(f"Docker login:      {docker_login}")
     print(f"Dry run:           {'yes' if settings.dry_run else 'no'}")
+    if settings.full_build:
+        print(f"Release records:   {settings.release_record_dir}")
 
     print()
     print("Images:")
@@ -691,6 +769,9 @@ class DockerReleaseRunner:
         self.settings = settings
         self.results: list[StepResult] = []
         self.image_build_time = utc_timestamp()
+        self.app_source: dict[str, str] = {}
+        self.app_release: dict[str, object] = {}
+        self.release_records: list[Path] = []
 
     def run(self) -> None:
         if self.settings.full_build:
@@ -701,6 +782,10 @@ class DockerReleaseRunner:
 
     def run_full_build(self) -> None:
         section("Full Build")
+        self.app_source = app_source_identity(dry_run=self.settings.dry_run)
+        info(f"App source revision: {self.app_source['revision']}")
+        info(f"App source tree:     {self.app_source['tree']}")
+        self.prepare_release_record_directory()
         self.ensure_docker_daemon()
 
         if self.settings.docker_login:
@@ -708,13 +793,18 @@ class DockerReleaseRunner:
         else:
             self.results.append(StepResult("Docker login", "SKIP", "--no-login"))
 
+        self.ensure_app_version_unused()
+        for image in image_configs(self.settings)[1:]:
+            self.ensure_image_version_unused(image)
         self.remove_previous_local_images()
         self.ensure_buildx_builder()
         self.build_app_image()
-        self.build_location_search_image()
-        self.build_map_image()
-        self.build_brouter_image()
+        if not self.settings.app_only:
+            self.build_location_search_image()
+            self.build_map_image()
+            self.build_brouter_image()
 
+        self.write_bundle_record()
         if self.settings.pull_after_publish:
             self.pull_published_refs()
         else:
@@ -858,7 +948,103 @@ class DockerReleaseRunner:
     def build_app_image(self) -> None:
         image = image_configs(self.settings)[0]
         label = f"Build+push {image.image_name}:{describe_tags(image.version_tag, self.settings.channel_tags)}"
-        self.run_step(label, self.buildx_command(image))
+        if self.settings.dry_run:
+            snapshot_image = ImageConfig(image.label, image.image_name, image.version_tag,
+                                         Path("<committed-source-snapshot>"))
+            self.run_step(label, self.buildx_command(snapshot_image))
+            return
+        with app_source_snapshot(self.app_source["revision"]) as source:
+            snapshot_image = ImageConfig(image.label, image.image_name, image.version_tag, source)
+            metadata_path = source.parent / "build-metadata.json"
+            cmd = self.buildx_command(snapshot_image)
+            cmd[-1:-1] = ["--metadata-file", metadata_path]
+            self.run_step(label, cmd)
+            metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+            digest = metadata["containerimage.digest"]
+            self.app_release = {
+                "buildId": image.version_tag,
+                "image": remote_ref(self.settings.docker_username, image.image_name, image.version_tag),
+                "digest": digest,
+                "revision": self.app_source["revision"],
+                "tree": self.app_source["tree"],
+                "build_time": self.image_build_time,
+                "platforms": self.settings.platforms.split(","),
+                "tags": refs_for_image(self.settings, image),
+            }
+            record = self.write_release_record(f"{image.image_name}-{image.version_tag}.json", self.app_release)
+            ok(f"App release record: {record}")
+            for ref in refs_for_image(self.settings, image):
+                result = self.run_step(f"Verify app digest {ref}",
+                                       ["docker", "buildx", "imagetools", "inspect", ref,
+                                        "--format", "{{.Manifest.Digest}}"], capture=True)
+                if result is None or result.stdout.strip() != digest:
+                    raise SystemExit(f"Published digest for {ref} does not match the build record.")
+
+    def write_bundle_record(self) -> None:
+        if self.settings.dry_run or not self.app_release:
+            return
+        components = {}
+        component_ids = {APP_IMAGE_NAME: "app", LOCATION_SEARCH_IMAGE_NAME: "location-search",
+                         MAP_IMAGE_NAME: "map-server", BROUTER_IMAGE_NAME: "brouter"}
+        images = image_configs(self.settings)[:1] if self.settings.app_only else image_configs(self.settings)
+        for image in images:
+            ref = remote_ref(self.settings.docker_username, image.image_name, image.version_tag)
+            result = self.run_step(f"Record component digest {ref}",
+                                   ["docker", "buildx", "imagetools", "inspect", ref,
+                                    "--format", "{{.Manifest.Digest}}"], capture=True)
+            digest = result.stdout.strip() if result else ""
+            if not re.fullmatch(r"sha256:[a-f0-9]{64}", digest):
+                raise SystemExit(f"Invalid published digest for {ref}; bundle record stopped.")
+            if image.image_name == APP_IMAGE_NAME and digest != self.app_release["digest"]:
+                raise SystemExit("Application digest changed before recording release bundle.")
+            components[component_ids[image.image_name]] = {"buildId": image.version_tag, "image": ref, "digest": digest}
+        record = self.write_release_record(f"mtl-bundle-{components['app']['buildId']}.json", {"components": components})
+        ok(f"Component release record: {record}")
+
+    def prepare_release_record_directory(self) -> None:
+        if self.settings.dry_run:
+            return
+        directory = self.settings.release_record_dir
+        if directory is None:
+            raise SystemExit("A release record directory is required for full builds.")
+        try:
+            directory.mkdir(parents=True, exist_ok=True)
+            for filename in (f"{APP_IMAGE_NAME}-{self.settings.app_version_tag}.json",
+                             f"mtl-bundle-{self.settings.app_version_tag}.json"):
+                record = directory / filename
+                if record.exists():
+                    raise SystemExit(f"Release record already exists: {record}. Choose a new build tag or record directory.")
+            with tempfile.TemporaryFile(dir=directory):
+                pass
+        except OSError as exc:
+            raise SystemExit(f"Cannot write release records to {directory}: {exc}") from exc
+
+    def write_release_record(self, filename: str, contents: dict[str, object]) -> Path:
+        directory = self.settings.release_record_dir
+        if directory is None:
+            raise SystemExit("A release record directory is required for full builds.")
+        directory.mkdir(parents=True, exist_ok=True)
+        record = directory / filename
+        with record.open("x", encoding="utf-8") as output:
+            output.write(json.dumps(contents, indent=2) + "\n")
+        self.release_records.append(record)
+        return record
+
+    def ensure_app_version_unused(self) -> None:
+        self.ensure_image_version_unused(image_configs(self.settings)[0])
+
+    def ensure_image_version_unused(self, image: ImageConfig) -> None:
+        ref = remote_ref(self.settings.docker_username, image.image_name, image.version_tag)
+        result = self.run_step(f"Check {image.label} version is unused",
+                               ["docker", "buildx", "imagetools", "inspect", ref],
+                               capture=True, allow_failure=True, record=False)
+        if result is None:
+            return
+        if result.returncode == 0:
+            raise SystemExit(f"Image version {ref} already exists; choose a new version tag.")
+        message = result.stderr.lower()
+        if not any(reason in message for reason in (f"{ref}: not found", "manifest unknown")):
+            raise SystemExit(f"Could not verify that {ref} is unused; release stopped.")
 
     def build_map_image(self) -> None:
         image = image_configs(self.settings)[2]
@@ -876,7 +1062,8 @@ class DockerReleaseRunner:
         self.run_step(label, self.buildx_command(image, {"REQUIRE_GEONAMES_DB": "true"}))
 
     def buildx_command(self, image: ImageConfig, build_args: dict[str, str] | None = None) -> list[object]:
-        cmd: list[object] = ["docker", "buildx", "build"]
+        # Keep every image on the release builder if the shared selection changes.
+        cmd: list[object] = ["docker", "buildx", "build", "--builder", BUILDX_BUILDER_NAME]
         if self.settings.no_cache:
             cmd.append("--no-cache")
         if image.dockerfile is not None:
@@ -886,8 +1073,20 @@ class DockerReleaseRunner:
             "MTL_IMAGE_BUILD_TIME": self.image_build_time,
             **(build_args or {}),
         }
+        if image.image_name == APP_IMAGE_NAME:
+            effective_build_args["MTL_IMAGE_REVISION"] = self.app_source["revision"]
         for key, value in effective_build_args.items():
             cmd.extend(["--build-arg", f"{key}={value}"])
+        if image.image_name == APP_IMAGE_NAME:
+            labels = {
+                "org.opencontainers.image.version": image.version_tag,
+                "org.opencontainers.image.created": self.image_build_time,
+                "org.opencontainers.image.revision": self.app_source["revision"],
+                SOURCE_TREE_LABEL: self.app_source["tree"],
+            }
+            for key, value in labels.items():
+                cmd.extend(["--label", f"{key}={value}", "--annotation", f"index,manifest:{key}={value}"])
+            cmd.append("--provenance=mode=min")
         cmd.extend(["--platform", self.settings.platforms])
         for ref in refs_for_image(self.settings, image):
             cmd.extend(["-t", ref])
@@ -938,6 +1137,14 @@ class DockerReleaseRunner:
         print(f"Operation:       {operation}")
         print(f"Channels:        {channels}")
         print(f"Platforms:       {platforms}")
+        if self.app_release:
+            print(f"App revision:    {self.app_release['revision']}")
+            print(f"App digest:      {self.app_release['digest']}")
+        if self.release_records:
+            print()
+            print("Release records (commit these in the private repository):")
+            for record in self.release_records:
+                print(f"  - {record}")
 
         print()
         print("Steps:")

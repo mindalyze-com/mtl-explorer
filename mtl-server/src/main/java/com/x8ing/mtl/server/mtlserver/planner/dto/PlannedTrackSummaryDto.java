@@ -12,6 +12,8 @@ import lombok.Data;
         "name",
         "description",
         "distanceM",
+        "hasRoute",
+        "pointOfInterestCount",
         "centerLat",
         "centerLng",
         "createDate",
@@ -22,6 +24,8 @@ public class PlannedTrackSummaryDto {
     private String name;
     private String description;
     private double distanceM;
+    private boolean hasRoute;
+    private int pointOfInterestCount;
     private Double centerLat;
     private Double centerLng;
     private java.util.Date createDate;

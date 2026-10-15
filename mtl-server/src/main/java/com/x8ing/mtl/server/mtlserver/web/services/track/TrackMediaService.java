@@ -104,8 +104,8 @@ public class TrackMediaService {
         dto.setPositionOrigin(hasManualLocation
                 ? TrackMediaDto.POSITION_ORIGIN.USER_ASSIGNED
                 : hasExifLocation
-                    ? TrackMediaDto.POSITION_ORIGIN.EXIF_EMBEDDED
-                    : TrackMediaDto.POSITION_ORIGIN.TRACK_INTERPOLATED);
+                ? TrackMediaDto.POSITION_ORIGIN.EXIF_EMBEDDED
+                : TrackMediaDto.POSITION_ORIGIN.TRACK_INTERPOLATED);
         dto.setEstimatedPosition(!hasManualLocation && !hasExifLocation);
         dto.setPreview(true);
         return dto;

@@ -7,6 +7,7 @@ import com.x8ing.mtl.server.mtlserver.db.readonly.spring.QueryResult;
 import com.x8ing.mtl.server.mtlserver.db.repository.gps.GpsTrackRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.event.ContextRefreshedEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -40,7 +41,8 @@ public class DynamicSqlService {
 
 
     @Autowired
-    public DynamicSqlService(NamedParameterJdbcTemplate readOnlyJdbcTemplate, GpsTrackRepository gpsTrackRepository) {
+    public DynamicSqlService(@Qualifier("readOnlyJdbcTemplate") NamedParameterJdbcTemplate readOnlyJdbcTemplate,
+                             GpsTrackRepository gpsTrackRepository) {
         this.readOnlyJdbcTemplate = readOnlyJdbcTemplate;
         this.gpsTrackRepository = gpsTrackRepository;
     }
@@ -218,11 +220,8 @@ public class DynamicSqlService {
 
         if (tracksByIdsCustom.size() == realIds.getResultEntries().size()
             && versionRows.size() == realIds.getResultEntries().size()) {
-            log.info("Dynamic SQL service Test PASSED with success. " +
-                     "Could execute the service and got the expected number of ID's from the DB. " +
-                     "Got from the DB the expected amount of %s ID's and %s version rows out of a passed array with size %s. " +
-                     "JPQL startup probe checked %s dummy ID's. Test completed in %s ms"
-                             .formatted(tracksByIdsCustom.size(), versionRows.size(), ids.size(), jpqlProbeIds.size(), dt));
+            log.info("Dynamic SQL startup checks passed: trackIds={} versionRows={} inputIds={} jpqlProbeIds={} durationMs={}",
+                    tracksByIdsCustom.size(), versionRows.size(), ids.size(), jpqlProbeIds.size(), dt);
         } else {
             String errorMessage = "Testing dynamic service did fail. Got the following sizes: realIds: %s, tracksByIdsCustom: %s, versionRows: %s"
                     .formatted(realIds.getResultEntries().size(), tracksByIdsCustom.size(), versionRows.size());

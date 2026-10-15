@@ -1,0 +1,32 @@
+/* Shared color and type roles for the homepage, guides, and release notes. */
+:root {
+  --brand: #1f6aa8;
+  --brand-hover: #195b90;
+  --brand-tint: #edf3f8;
+  --brand-border: #c7d8e6;
+  --blue: var(--brand);
+  --blue-strong: var(--brand);
+  --accent: var(--brand);
+  --accent-soft: var(--brand-tint);
+
+  --bg: #f7f8fa;
+  --surface: #fff;
+  --surface-strong: var(--surface);
+  --line: #dde2e7;
+  --line-strong: #c5cdd5;
+  --text: #18232e;
+  --text-soft: #4b5563;
+  --text-muted: #626b76;
+  --text-faint: var(--text-muted);
+  --green: #257852;
+  --shadow: 0 16px 40px rgba(24, 35, 46, 0.08);
+  --shadow-soft: 0 8px 24px rgba(24, 35, 46, 0.05);
+
+  --font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --type-small: 0.875rem;
+  --type-body: 1rem;
+  --type-title: 1.25rem;
+  --type-feature: clamp(1.5rem, 2.8vw, 2rem);
+  --type-section: clamp(1.75rem, 3.5vw, 2.5rem);
+  --type-hero: clamp(2.5rem, 5.5vw, 4rem);
+}

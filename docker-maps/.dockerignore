@@ -1,0 +1,4 @@
+analytics/node_modules/
+analytics/assets/
+analytics/data/
+**/__pycache__/

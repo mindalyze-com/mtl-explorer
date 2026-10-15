@@ -58,12 +58,18 @@ export function buildTrackOverviewFeatures(
   return (geojson?.features ?? [])
     .filter((feature) => {
       if (!feature.geometry) return false;
+      if (feature.geometry.type === 'MultiLineString') return (feature.geometry.coordinates[0]?.length ?? 0) > 0;
       if (feature.geometry.type === 'LineString') return feature.geometry.coordinates.length > 0;
       return feature.geometry.type === 'Point';
     })
     .map((feature) => {
-      const geometry = feature.geometry as GeoJSON.LineString | GeoJSON.Point;
-      const startCoord = geometry.type === 'LineString' ? geometry.coordinates[0] : geometry.coordinates;
+      const geometry = feature.geometry as GeoJSON.LineString | GeoJSON.MultiLineString | GeoJSON.Point;
+      const startCoord =
+        geometry.type === 'MultiLineString'
+          ? geometry.coordinates[0]![0]!
+          : geometry.type === 'LineString'
+            ? geometry.coordinates[0]!
+            : geometry.coordinates;
       return {
         type: 'Feature',
         geometry: { type: 'Point', coordinates: startCoord },

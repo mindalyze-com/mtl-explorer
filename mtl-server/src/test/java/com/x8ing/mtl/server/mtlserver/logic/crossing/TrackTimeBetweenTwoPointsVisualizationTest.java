@@ -22,6 +22,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
+import static com.x8ing.mtl.server.mtlserver.testsupport.SegmentReadTestSupport.directReads;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -59,7 +60,7 @@ class TrackTimeBetweenTwoPointsVisualizationTest {
                 gpsTrackDataPointRepository,
                 gpsTrackEventRepository,
                 gpsTrackVariantSelector
-        );
+                , directReads());
         when(gpsTrackEventRepository.findAllByGpsTrackIdOrderByStartPointIndexAsc(any()))
                 .thenReturn(List.of());
     }
@@ -215,14 +216,14 @@ class TrackTimeBetweenTwoPointsVisualizationTest {
         track.setTrackName("V-Shaped Test Track");
 
         // Mock that both triggers find the same track
-        when(gpsTrackRepository.getTracksWithinDistanceToPoint(
+        when(gpsTrackRepository.getSegmentCandidateTrackIds(
                 eq(triggerA.coordinate.x),
                 eq(triggerA.coordinate.y),
                 eq(radiusMeters),
                 any()
         )).thenReturn(List.of(trackId));
 
-        when(gpsTrackRepository.getTracksWithinDistanceToPoint(
+        when(gpsTrackRepository.getSegmentCandidateTrackIds(
                 eq(triggerB.coordinate.x),
                 eq(triggerB.coordinate.y),
                 eq(radiusMeters),
@@ -239,7 +240,7 @@ class TrackTimeBetweenTwoPointsVisualizationTest {
         // ===== STEP 4: EXECUTE =====
 
         System.out.println("\n===== EXECUTING TEST =====");
-        CrossingPointsResponse response = service.getTrackTimeBetweenPoints(request, null);
+        CrossingPointsResponse response = service.getTrackCrossingsWithoutSummaries(request, null);
 
         // ===== STEP 5: ASSERTIONS =====
 
@@ -295,9 +296,9 @@ class TrackTimeBetweenTwoPointsVisualizationTest {
         System.out.println("\n✅ TEST PASSED - Mid-segment intersections detected correctly!");
 
         // Verify repository interactions
-        verify(gpsTrackRepository, times(1)).getTracksWithinDistanceToPoint(
+        verify(gpsTrackRepository, times(1)).getSegmentCandidateTrackIds(
                 eq(triggerA.coordinate.x), eq(triggerA.coordinate.y), eq(radiusMeters), any());
-        verify(gpsTrackRepository, times(1)).getTracksWithinDistanceToPoint(
+        verify(gpsTrackRepository, times(1)).getSegmentCandidateTrackIds(
                 eq(triggerB.coordinate.x), eq(triggerB.coordinate.y), eq(radiusMeters), any());
         verify(gpsTrackRepository, times(1)).findById(trackId);
         verify(gpsTrackVariantSelector, times(1)).forMetricsId(trackId);
@@ -319,11 +320,11 @@ class TrackTimeBetweenTwoPointsVisualizationTest {
         request.setTriggerPoints(List.of(triggerA));
         request.setRadius(10.0);
 
-        when(gpsTrackRepository.getTracksWithinDistanceToPoint(
+        when(gpsTrackRepository.getSegmentCandidateTrackIds(
                 eq(triggerA.coordinate.x), eq(triggerA.coordinate.y), eq(10.0), any()))
                 .thenReturn(List.of());
 
-        CrossingPointsResponse response = service.getTrackTimeBetweenPoints(request, null);
+        CrossingPointsResponse response = service.getTrackCrossingsWithoutSummaries(request, null);
         assertNotNull(response);
         assertTrue(response.getCrossings() == null || response.getCrossings().isEmpty(),
                 "No crossings expected when no tracks are near the trigger");
@@ -370,7 +371,7 @@ class TrackTimeBetweenTwoPointsVisualizationTest {
         GpsTrack track = new GpsTrack();
         track.setId(trackId);
 
-        when(gpsTrackRepository.getTracksWithinDistanceToPoint(
+        when(gpsTrackRepository.getSegmentCandidateTrackIds(
                 eq(trigger.coordinate.x), eq(trigger.coordinate.y), eq(radius), any()))
                 .thenReturn(List.of(trackId));
         when(gpsTrackRepository.findById(trackId)).thenReturn(Optional.of(track));
@@ -378,7 +379,7 @@ class TrackTimeBetweenTwoPointsVisualizationTest {
         when(gpsTrackDataPointRepository.findAllByGpsTrackDataIdOrderByPointIndexAsc(trackDataId))
                 .thenReturn(trackDataPoints);
 
-        CrossingPointsResponse response = service.getTrackTimeBetweenPoints(request, null);
+        CrossingPointsResponse response = service.getTrackCrossingsWithoutSummaries(request, null);
         assertNotNull(response);
 
         var trackCrossings = response.getCrossings().get(trackId);
@@ -391,7 +392,9 @@ class TrackTimeBetweenTwoPointsVisualizationTest {
             double z = crossing.gpsTrackDataPoint.getPointLongLat().getCoordinate().z;
             assertFalse(Double.isNaN(lon), "Interpolated lon must not be NaN");
             assertFalse(Double.isNaN(lat), "Interpolated lat must not be NaN");
-            assertFalse(Double.isNaN(z), "Interpolated altitude must not be NaN");
+            assertNull(crossing.gpsTrackDataPoint.getPointAltitude(), "Unknown elevation stays unavailable");
+            assertEquals(2, com.x8ing.mtl.server.mtlserver.web.services.track.entity.GeoPointDto
+                    .fromLongLat(crossing.gpsTrackDataPoint.getPointLongLat()).getCoordinates().length);
         }
     }
 
@@ -430,7 +433,7 @@ class TrackTimeBetweenTwoPointsVisualizationTest {
         GpsTrack track = new GpsTrack();
         track.setId(trackId);
 
-        when(gpsTrackRepository.getTracksWithinDistanceToPoint(
+        when(gpsTrackRepository.getSegmentCandidateTrackIds(
                 eq(trigger.coordinate.x), eq(trigger.coordinate.y), eq(radius), any()))
                 .thenReturn(List.of(trackId));
         when(gpsTrackRepository.findById(trackId)).thenReturn(Optional.of(track));
@@ -439,7 +442,7 @@ class TrackTimeBetweenTwoPointsVisualizationTest {
                 .thenReturn(trackDataPoints);
 
         CrossingPointsResponse response = assertDoesNotThrow(
-                () -> service.getTrackTimeBetweenPoints(request, null),
+                () -> service.getTrackCrossingsWithoutSummaries(request, null),
                 "Must not throw when track points have no timestamps");
         assertNotNull(response);
 

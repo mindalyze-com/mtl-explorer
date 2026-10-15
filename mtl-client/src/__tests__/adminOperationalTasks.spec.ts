@@ -10,6 +10,7 @@ import {
   normalizeBRouterTask,
   normalizeLocationSearchTask,
   normalizeMapTask,
+  formatWholeBytes,
 } from '@/utils/adminOperationalTasks';
 
 const localMapConfig: MapConfigDto = {
@@ -38,7 +39,22 @@ describe('admin operational task normalization', () => {
       indeterminate: false,
       progressPercent: 43,
       metric: '50 MB / 100 MB',
+      metricCounts: [
+        { key: 'downloaded', value: 50 * 1024 * 1024, format: 'bytes' },
+        { key: 'total', value: 100 * 1024 * 1024, format: 'bytes' },
+      ],
     });
+  });
+
+  it('rounds displayed byte quantities down to whole units', () => {
+    expect(formatWholeBytes(1024 * 1024 * 1.9)).toBe('1 MB');
+    expect(formatWholeBytes(1023)).toBe('1023 B');
+  });
+
+  it('keeps missing download bytes unknown while preserving a reported zero', () => {
+    const status = { phase: 'downloading', ready: false, downloadTotal: 1_000 };
+    expect(normalizeMapTask(status, localMapConfig).metricCounts?.[0]?.value).toBeUndefined();
+    expect(normalizeMapTask({ ...status, downloadBytes: 0 }, localMapConfig).metricCounts?.[0]?.value).toBe(0);
   });
 
   it('preserves external component version info on operational tasks', () => {
@@ -158,7 +174,7 @@ describe('admin operational task normalization', () => {
     });
   });
 
-  it('hides routing segments when the planner is disabled', () => {
+  it('keeps disabled routing visible with its published reason, even with stale active segments', () => {
     const tasks = buildAdminOperationalTasks({
       mapConfig: { tileMode: MapConfigDtoTileModeEnum.Local, plannerEnabled: false },
       mapStatus: { phase: 'ready', ready: true },
@@ -167,10 +183,38 @@ describe('admin operational task normalization', () => {
         available: true,
         brouterRunning: true,
         segmentsQueued: 1,
+        reason: 'Routing is disabled by the administrator.',
       },
     });
 
-    expect(tasks.map((task) => task.label)).not.toContain('Routing Segments');
+    expect(tasks).toHaveLength(3);
+    expect(tasks[2]).toMatchObject({
+      label: 'Routing Segments',
+      state: 'disabled',
+      statusLabel: 'disabled',
+      detail: 'Routing is disabled by the administrator.',
+      active: false,
+      indeterminate: false,
+      progressPercent: null,
+    });
+  });
+
+  it('explains disabled routing when the server omits the planner status', () => {
+    const tasks = buildAdminOperationalTasks({
+      mapConfig: { plannerEnabled: false },
+      brouterStatus: null,
+    });
+
+    expect(tasks[2]).toMatchObject({
+      state: 'disabled',
+      statusLabel: 'disabled',
+      detail: 'Route planning is disabled.',
+    });
+  });
+
+  it('does not interpret missing planner configuration as disabled routing', () => {
+    const tasks = buildAdminOperationalTasks({});
+    expect(tasks[2]).toMatchObject({ state: 'warning', statusLabel: 'unavailable' });
   });
 
   it('keeps unreachable sidecars as warning rows without dropping other tasks', () => {

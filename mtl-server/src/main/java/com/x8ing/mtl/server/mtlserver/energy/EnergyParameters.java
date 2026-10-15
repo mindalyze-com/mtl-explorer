@@ -94,4 +94,9 @@ public class EnergyParameters {
     public double getRollingCoefficient(double defaultCr) {
         return rollingCoefficientOverride != null ? rollingCoefficientOverride : defaultCr;
     }
+
+    public static boolean isValidRiderWeight(Double weight) {
+        return weight != null && Double.isFinite(weight)
+               && weight >= MIN_RIDER_WEIGHT_KG && weight <= MAX_RIDER_WEIGHT_KG;
+    }
 }

@@ -1,6 +1,5 @@
 package com.x8ing.mtl.server.mtlserver.web.services.track;
 
-import tools.jackson.databind.ObjectMapper;
 import com.x8ing.mtl.server.mtlserver.web.services.track.entity.VideoTranscodeQuality;
 import com.x8ing.mtl.server.mtlserver.web.services.track.entity.VideoTranscodeSessionDto;
 import com.x8ing.mtl.server.mtlserver.web.services.track.entity.VideoTranscodeSessionState;
@@ -10,16 +9,13 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
+import tools.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.time.Clock;
-import java.time.Duration;
-import java.time.Instant;
-import java.time.ZoneId;
-import java.time.ZoneOffset;
+import java.time.*;
 import java.util.List;
 import java.util.UUID;
 import java.util.function.Predicate;
@@ -402,12 +398,12 @@ class VideoTranscodeSessionServiceTest {
                 """);
         String sleep = keepRunning ? "sleep 30\n" : "";
         Path ffmpeg = executable(commandDirectory.resolve("ffmpeg"), """
-                #!/bin/sh
-                printf '%s\n' '#EXTM3U' '#EXT-X-MAP:URI="init.mp4"' '#EXTINF:1.0,' 'segment-000000.m4s' '#EXT-X-ENDLIST' > playlist.m3u8
-                printf 'init' > init.mp4
-                printf 'segment' > segment-000000.m4s
-                printf 'out_time_us=1000000\nspeed=2.0x\nprogress=continue\n'
-                """ + sleep);
+                                                                             #!/bin/sh
+                                                                             printf '%s\n' '#EXTM3U' '#EXT-X-MAP:URI="init.mp4"' '#EXTINF:1.0,' 'segment-000000.m4s' '#EXT-X-ENDLIST' > playlist.m3u8
+                                                                             printf 'init' > init.mp4
+                                                                             printf 'segment' > segment-000000.m4s
+                                                                             printf 'out_time_us=1000000\nspeed=2.0x\nprogress=continue\n'
+                                                                             """ + sleep);
         return new TestCommands(ffprobe, ffmpeg);
     }
 

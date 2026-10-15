@@ -4,9 +4,8 @@
       <!-- Intro text to indicate whether the palette is exhausted -->
 
       <Message v-if="palette.isColorPaletteExhausted()" severity="warn">
-        The color palette has run out of unique colors. There are more groups than available colors, causing some colors
-        to be reused across multiple groups. This can make it difficult to distinguish between groups. Consider using a
-        palette with a larger range of colors.
+        There are more groups than colors, so some colors are used more than once. Choose a palette with more colors to
+        tell the groups apart.
       </Message>
 
       <div>The map uses the following colors</div>

@@ -9,6 +9,8 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.x8ing.mtl.server.mtlserver.db.entity.indexer.IndexedFile;
 import com.x8ing.mtl.server.mtlserver.db.entity.media.MediaFile;
 import com.x8ing.mtl.server.mtlserver.db.repository.media.MediaRepository;
+import com.x8ing.mtl.server.mtlserver.indexer.SourceFileProblemException;
+import com.x8ing.mtl.server.mtlserver.indexer.SourceUnreadableException;
 import com.x8ing.mtl.server.mtlserver.web.global.Utils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -109,8 +111,8 @@ public class MediaIndexer {
         }
         try {
             return enrichMetadata(mediaFile);
-        } catch (IOException | ImageProcessingException e) {
-            throw new IllegalStateException("Could not extract metadata from " + indexedFile.getFullPath(), e);
+        } catch (IOException e) {
+            throw new SourceUnreadableException(e);
         }
     }
 
@@ -137,7 +139,7 @@ public class MediaIndexer {
         target.setAudioCodec(source.getAudioCodec());
     }
 
-    private static MediaFile enrichMetadata(MediaFile mediaFile) throws IOException, ImageProcessingException {
+    private static MediaFile enrichMetadata(MediaFile mediaFile) throws IOException {
 
         Metadata metadata = null;
         Exception lastReadFailure = null;
@@ -153,7 +155,11 @@ public class MediaIndexer {
         // try to read the meta data first...
         for (int attempt = 1; attempt <= METADATA_READ_MAX_ATTEMPTS; attempt++) {
             try (InputStream is = new BufferedInputStream(new FileInputStream(file.toFile()))) {
-                metadata = ImageMetadataReader.readMetadata(is, Files.size(file), file.getFileName().toString());
+                long size = Files.size(file);
+                if (size == 0) {
+                    throw new SourceFileProblemException("Media file is empty.", null);
+                }
+                metadata = ImageMetadataReader.readMetadata(is, size, file.getFileName().toString());
 
                 if (metadata != null) {
                     if ("avi".equalsIgnoreCase(getFileExtension(file.getFileName().toString()))) {
@@ -161,7 +167,10 @@ public class MediaIndexer {
                     }
                     break;
                 }
-            } catch (Exception e0) {
+            } catch (ImageProcessingException exception) {
+                // The indexer waits for stable files before dispatch. Invalid contents will not improve on retry.
+                throw new SourceFileProblemException("Media metadata could not be read: empty, damaged or unsupported contents.", exception);
+            } catch (IOException e0) {
                 lastReadFailure = e0;
                 if (attempt == METADATA_READ_MAX_ATTEMPTS) {
                     break;
@@ -169,12 +178,13 @@ public class MediaIndexer {
                 long sleep = Math.min(
                         METADATA_READ_INITIAL_RETRY_DELAY_MS * (1L << (attempt - 1)),
                         METADATA_READ_MAX_RETRY_DELAY_MS);
-                log.info("Could not read file yet. Might be locked. Sleep shortly. fileId={}, fileName={}, attempt={}, sleep={} ms, exception={}",
+                log.warn("Media read temporarily unavailable: fileId={}, fileName={}, attempt={}, retryDelayMs={}, type={}, error={}",
                         mediaFile.getIndexedFile().getId(),
                         mediaFile.getIndexedFile().getName(),
                         attempt,
                         sleep,
-                        e0.toString());
+                        e0.getClass().getSimpleName(), e0.getMessage());
+                log.debug("Recoverable media read failure", e0);
                 Utils.sleep(sleep);
             }
         }

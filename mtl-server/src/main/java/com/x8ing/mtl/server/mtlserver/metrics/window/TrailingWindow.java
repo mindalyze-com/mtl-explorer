@@ -105,7 +105,11 @@ public final class TrailingWindow {
             return;
         }
 
-        if (!exclude && dt > 0) {
+        if (exclude) {
+            reset();
+            return;
+        }
+        if (dt > 0) {
             if (rawValues == null || rawValues.length != nValues) {
                 throw new IllegalArgumentException(
                         "rawValues length=" + (rawValues == null ? "null" : rawValues.length)

@@ -25,6 +25,9 @@ public class Segment {
 
     public int count;
 
+    /**
+     * Total elapsed seconds across the available traversals counted by {@link #count}.
+     */
     public double timeDelta;
 
 

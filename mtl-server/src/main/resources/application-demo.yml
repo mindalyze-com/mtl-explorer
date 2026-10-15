@@ -1,12 +1,16 @@
 # application-demo.yml — Spring profile activated by DEMO_MODE env var
 # Overrides user credentials for the demo login.
 mtl:
+  updates:
+    enabled: false
   user:
     login: 'demo'
     password: 'mtl'
   demo-mode: true
   demo-target-track-count: ${DEMO_TARGET_TRACK_COUNT:0}  # 0 = keep all good tracks
   log-viewer-enabled: false             # server log must not be visible in demo mode
+  google-health:
+    enabled: false
   map-server:
     initial-bounds:                # Porto, Portugal
       min-lng: -8.75

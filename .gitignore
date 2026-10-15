@@ -56,6 +56,8 @@ Thumbs.db
 *.wmv
 
 /logs/mtl-server-*.log.gz
+/logs/releases/
+/logs/deployments/
 /data/
 
 # Generated GeoNames search database
@@ -70,3 +72,10 @@ Thumbs.db
 /documentation/testing/full-regression/test_runs/2026-06-20_1245-beta-188-full-regression/*
 /documentation/testing/full-regression/test_runs/2026-08-25_1929-beta-full-regression/*
 /mtl-parent.iml
+
+# Private maintainer material belongs in the separate mtl-explorer-private checkout.
+/docs-my/
+/.agents/
+/publish-to-github.py
+/mtl-server/src/main/resources/application-patrick.yml
+/documentation/testing/*/test_runs

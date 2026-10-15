@@ -5,7 +5,7 @@ import lombok.Data;
 
 /**
  * Live-updating stats derived from the currently planned route. All values are
- * cumulative over the whole route (sum of all legs). Fed back to the UI after
+ * cumulative over the whole route. Elevation is filtered across leg boundaries. Fed back to the UI after
  * every route recomputation.
  */
 @Data
@@ -23,11 +23,11 @@ public class LiveStatsDto {
      */
     private double distanceM;
     /**
-     * Total positive elevation gain, metres (filtered ascend sum).
+     * Buffered positive elevation gain over the whole route, metres.
      */
     private double ascentM;
     /**
-     * Total negative elevation loss, metres.
+     * Buffered elevation loss over the same geometry in reverse, metres.
      */
     private double descentM;
     /**

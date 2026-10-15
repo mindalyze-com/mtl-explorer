@@ -5,6 +5,7 @@ import { createPinia, setActivePinia } from 'pinia';
 import { nextTick } from 'vue';
 import TrackDetailMiniMap from '@/components/trackdetails/TrackDetailMiniMap.vue';
 import { useTrackMapSync } from '@/composables/useTrackMapSync';
+import { resolveConfiguredMapStyle } from '@/components/map/mapStyleResolver';
 
 const maplibreMock = vi.hoisted(() => {
   type Listener = (...args: unknown[]) => void;
@@ -78,8 +79,15 @@ const maplibreMock = vi.hoisted(() => {
     canvas = { style: { cursor: '' }, addEventListener: vi.fn(), removeEventListener: vi.fn() };
     resize = vi.fn();
     fitBounds = vi.fn();
+    easeTo = vi.fn();
     moveLayer = vi.fn();
     remove = vi.fn();
+    setStyle = vi.fn(() => {
+      this.sources.clear();
+      this.layers.clear();
+      this.images.clear();
+      return this;
+    });
     getZoom = vi.fn(() => MOCK_MAP_ZOOM);
     project = vi.fn((coordinate: [number, number]) => ({ x: coordinate[0] * 10_000, y: coordinate[1] * 10_000 }));
     queryRenderedFeatures = vi.fn(() => []);
@@ -135,6 +143,10 @@ const maplibreMock = vi.hoisted(() => {
       return this.sources.get(id);
     }
 
+    getGlyphs() {
+      return undefined;
+    }
+
     addLayer(layer: { id: string }) {
       this.layers.set(layer.id, layer);
     }
@@ -181,6 +193,9 @@ const chartSyncMocks = vi.hoisted(() => ({
   clearChartCrosshairs: vi.fn(),
   showChartsAtPoint: vi.fn(),
 }));
+
+import { probeVectorMapArchive } from '@/utils/mapArchiveHealth';
+vi.mock('@/utils/mapArchiveHealth', () => ({ probeVectorMapArchive: vi.fn() }));
 
 vi.mock('maplibre-gl', () => ({
   Map: maplibreMock.MockMap,
@@ -304,6 +319,7 @@ describe('TrackDetailMiniMap event layer', () => {
   let originalGetContext: typeof HTMLCanvasElement.prototype.getContext;
 
   beforeEach(() => {
+    vi.stubGlobal('Path2D', class MockPath2D {});
     originalGetContext = HTMLCanvasElement.prototype.getContext;
     maplibreMock.MockMap.instances.length = 0;
     maplibreMock.MockMarker.instances.length = 0;
@@ -330,12 +346,49 @@ describe('TrackDetailMiniMap event layer', () => {
   });
 
   afterEach(() => {
+    vi.unstubAllGlobals();
     for (const wrapper of mountedWrappers.splice(0)) {
       wrapper.unmount();
     }
     useTrackMapSync().clearAll();
+    vi.clearAllTimers();
+    vi.useRealTimers();
+    vi.mocked(probeVectorMapArchive).mockReset();
     HTMLCanvasElement.prototype.getContext = originalGetContext;
     document.body.innerHTML = '';
+  });
+
+  it('falls back only for local basemap errors and restores the route and break markers', async () => {
+    vi.mocked(resolveConfiguredMapStyle).mockReturnValueOnce({
+      style: { version: 8, sources: {}, layers: [] },
+      styleMode: 'local-vector',
+      attributions: [],
+    });
+    await mountMiniMap(
+      [trackEvent(7.45, 46.95)],
+      [
+        [7.44, 46.94],
+        [7.45, 46.95],
+      ]
+    );
+    const map = maplibreMock.MockMap.instances[0];
+    map.emit('error', { sourceId: 'detail-track', error: new Error('Unrelated overlay error') });
+    expect(map.setStyle).not.toHaveBeenCalled();
+
+    vi.useFakeTimers();
+    vi.mocked(probeVectorMapArchive).mockRejectedValue(new Error('Bad response code: 503'));
+    map.emit('error', { sourceId: 'protomaps', error: new Error('Bad response code: 503') });
+    expect(map.setStyle).not.toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(4000);
+    expect(map.setStyle).toHaveBeenCalledOnce();
+    expect(resolveConfiguredMapStyle).toHaveBeenLastCalledWith(expect.objectContaining({ localTilesReady: false }));
+    map.emit('style.load');
+    await flushPromises();
+    expect(detailTrackSource()?.data.features).toHaveLength(1);
+    expect(detailEventSource()?.data.features).toHaveLength(1);
+
+    map.emit('error', { sourceId: 'protomaps', error: new Error('Late local tile error') });
+    expect(map.setStyle).toHaveBeenCalledOnce();
   });
 
   it('draws break markers after a deferred style-ready retry', async () => {
@@ -355,6 +408,66 @@ describe('TrackDetailMiniMap event layer', () => {
     expect(source?.data.features).toHaveLength(1);
     expect(source?.data.features[0].geometry.coordinates).toEqual([8.5, 47.4]);
     expect(map.getLayer('detail-events-layer')).toBeTruthy();
+  });
+
+  it('labels the toggle Events and includes gap endpoints and duration in the marker popup data', async () => {
+    const gap = {
+      ...trackEvent(8.5, 47.4),
+      eventType: 'GPS_GAP',
+      label: 'Lost signal',
+      startTimestamp: new Date(2026, 9, 12, 11, 15),
+      endTimestamp: new Date(2026, 9, 12, 12, 33),
+      durationInSec: undefined,
+    };
+    const wrapper = await mountMiniMap([gap]);
+    const toggle = wrapper.get('.map-overlay-events-btn');
+    expect(toggle.text()).toContain('Events');
+    expect(toggle.attributes('title')).toBe('Hide events on map');
+    expect(detailEventSource()?.data.features[0].properties).toMatchObject({
+      label: 'Recording gap',
+      duration: '1 h 18 min',
+      icon: 'detail-recording-gap-diamond',
+    });
+    expect(detailEventSource()?.data.features[0].properties?.time).toContain('11:15–12:33');
+    const feature = detailEventSource()?.data.features[0];
+    maplibreMock.MockMap.instances[0].listeners.get('click:detail-events-layer')?.[0]?.({ features: [feature] });
+    const popup = maplibreMock.MockPopup.instances[0];
+    await toggle.trigger('click');
+    expect(detailEventSource()?.data.features).toHaveLength(0);
+    expect(popup.remove).toHaveBeenCalledOnce();
+    expect(toggle.attributes('title')).toBe('Show events on map');
+    await toggle.trigger('click');
+    expect(detailEventSource()?.data.features).toHaveLength(1);
+  });
+
+  it('shows all breaks arriving after mount and preserves an explicit hide through refresh and selection', async () => {
+    const wrapper = await mountMiniMap();
+    const events = [trackEvent(8.5, 47.4), trackEvent(8.6, 47.5)];
+    const toggle = wrapper.get('.map-overlay-events-btn');
+    await wrapper.setProps({ trackEvents: events });
+    expect(toggle.attributes('aria-pressed')).toBe('true');
+    expect(detailEventSource()?.data.features.map((feature) => feature.geometry)).toEqual([
+      { type: 'Point', coordinates: [8.5, 47.4] },
+      { type: 'Point', coordinates: [8.6, 47.5] },
+    ]);
+
+    await wrapper.setProps({ selectedEventKey: events[0].id });
+    await toggle.trigger('click');
+    expect(detailEventSource()?.data.features).toHaveLength(0);
+    expect(selectedEventSource()?.data.features).toHaveLength(0);
+
+    await wrapper.setProps({ trackEvents: [] });
+    await wrapper.setProps({ trackEvents: [...events], selectedEventKey: events[1].id });
+    expect(toggle.attributes('aria-pressed')).toBe('false');
+    expect(detailEventSource()?.data.features).toHaveLength(0);
+    expect(selectedEventSource()?.data.features).toHaveLength(0);
+    expect(maplibreMock.MockMap.instances[0].easeTo).toHaveBeenLastCalledWith(
+      expect.objectContaining({ center: [8.6, 47.5] })
+    );
+
+    await toggle.trigger('click');
+    expect(detailEventSource()?.data.features).toHaveLength(2);
+    expect(selectedEventSource()?.data.features).toHaveLength(1);
   });
 
   it('updates an existing event source even while the style is temporarily busy', async () => {
@@ -396,7 +509,10 @@ describe('TrackDetailMiniMap event layer', () => {
       ],
     });
     expect(map.fitBounds).toHaveBeenCalledTimes(1);
-    expect(map.fitBounds.mock.calls[0]?.[1]).toMatchObject({ padding: 20, duration: 0 });
+    expect(map.fitBounds.mock.calls[0]?.[1]).toMatchObject({
+      padding: { top: 20, right: 20, bottom: 20, left: 20 },
+      duration: 0,
+    });
   });
 
   it('clears the active map selection when empty map space is clicked', async () => {
@@ -409,6 +525,36 @@ describe('TrackDetailMiniMap event layer', () => {
     expect(wrapper.emitted('select-event')).toEqual([[null]]);
     expect(wrapper.emitted('clear-selection')).toEqual([[]]);
   });
+
+  it.each([36, 78])(
+    'fits tracks below the %s pixel marker controls, including wrapped controls',
+    async (controlsHeight) => {
+      const measure = vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function () {
+        if (this.classList.contains('mini-map-body')) return { top: 100, bottom: 340, height: 240 } as DOMRect;
+        if (this.classList.contains('map-overlay-filters'))
+          return { top: 106, bottom: 106 + controlsHeight, height: controlsHeight } as DOMRect;
+        return { top: 0, bottom: 0, height: 0 } as DOMRect;
+      });
+      try {
+        const wrapper = await mountMiniMap(
+          [],
+          [
+            [8.4, 47.3],
+            [8.6, 47.5],
+          ]
+        );
+        const map = maplibreMock.MockMap.instances[0];
+        const expectedPadding = { top: 26 + controlsHeight, right: 20, bottom: 20, left: 20 };
+        expect(map.fitBounds.mock.calls[0]?.[1]).toMatchObject({ padding: expectedPadding });
+        await wrapper.get('[aria-label="Collapse map"]').trigger('click');
+        await wrapper.get('.mini-map-collapsed-strip').trigger('click');
+        await nextTick();
+        expect(map.fitBounds.mock.lastCall?.[1]).toMatchObject({ padding: expectedPadding });
+      } finally {
+        measure.mockRestore();
+      }
+    }
+  );
 
   it('does not clear the active selection while the map is panned', async () => {
     const wrapper = await mountMiniMap();
@@ -443,7 +589,10 @@ describe('TrackDetailMiniMap event layer', () => {
       ],
     });
     expect(map.fitBounds).toHaveBeenCalledTimes(1);
-    expect(map.fitBounds.mock.calls[0]?.[1]).toMatchObject({ padding: 20, duration: 0 });
+    expect(map.fitBounds.mock.calls[0]?.[1]).toMatchObject({
+      padding: { top: 20, right: 20, bottom: 20, left: 20 },
+      duration: 0,
+    });
   });
 
   it('uses only the matched route position for estimated photo markers', async () => {
@@ -478,7 +627,7 @@ describe('TrackDetailMiniMap event layer', () => {
     expect(wrapper.emitted('select-media')).toEqual([[41]]);
   });
 
-  it('enables media markers only while media interaction is active', async () => {
+  it('keeps media markers clickable outside the Media tab', async () => {
     const wrapper = await mountMiniMap(
       [],
       [],
@@ -497,20 +646,75 @@ describe('TrackDetailMiniMap event layer', () => {
     const marker = maplibreMock.MockMarker.instances[0];
     const button = marker.element as HTMLButtonElement;
 
-    expect(button.disabled).toBe(true);
-    expect(button.classList.contains('mini-map-photo-marker--interactive')).toBe(false);
+    expect(button.disabled).toBe(false);
     button.click();
-    expect(wrapper.emitted('select-media')).toBeUndefined();
+    expect(wrapper.emitted('select-media')).toEqual([[45]]);
 
     await wrapper.setProps({ mediaInteractionEnabled: true });
     expect(button.disabled).toBe(false);
-    expect(button.classList.contains('mini-map-photo-marker--interactive')).toBe(true);
     button.click();
-    expect(wrapper.emitted('select-media')).toEqual([[45]]);
+    expect(wrapper.emitted('select-media')).toEqual([[45], [45]]);
 
     await wrapper.setProps({ mediaInteractionEnabled: false });
     button.click();
-    expect(wrapper.emitted('select-media')).toEqual([[45]]);
+    expect(wrapper.emitted('select-media')).toEqual([[45], [45], [45]]);
+  });
+
+  it('hides and restores media independently of breaks and retains the filter across media updates', async () => {
+    const item = { id: 45, resolvedLat: 47.4, resolvedLng: 8.5 };
+    const wrapper = await mountMiniMap([trackEvent(8.5, 47.4)], [], [item]);
+    const marker = maplibreMock.MockMarker.instances[0];
+    const filter = wrapper.get('[aria-label="Toggle activity media"]');
+    await filter.trigger('click');
+    expect(filter.attributes('aria-pressed')).toBe('false');
+    expect(marker.remove).toHaveBeenCalled();
+    expect(detailEventSource()?.data.features).toHaveLength(1);
+
+    const markerCount = maplibreMock.MockMarker.instances.length;
+    await wrapper.setProps({ trackMedia: [item, { id: 46, resolvedLat: 47.5, resolvedLng: 8.6 }] });
+    expect(maplibreMock.MockMarker.instances).toHaveLength(markerCount);
+    await filter.trigger('click');
+    expect(filter.attributes('aria-pressed')).toBe('true');
+    expect(maplibreMock.MockMarker.instances).toHaveLength(markerCount + 2);
+
+    await filter.trigger('click');
+    await wrapper.setProps({ gpsTrackId: 2 });
+    expect(filter.attributes('aria-pressed')).toBe('true');
+  });
+
+  it('keeps photo markers visible but disables selection while scrubbing graphs', async () => {
+    const wrapper = await mountMiniMap([], [], [{ id: 45, resolvedLat: 47.4, resolvedLng: 8.5 }]);
+    const marker = maplibreMock.MockMarker.instances[0];
+    const button = marker.element as HTMLButtonElement;
+
+    await wrapper.setProps({ markerInteractionEnabled: false });
+    expect(button.disabled).toBe(true);
+    button.click();
+    expect(wrapper.emitted('select-media')).toBeUndefined();
+    expect(marker.remove).not.toHaveBeenCalled();
+
+    await wrapper.setProps({ trackMedia: [{ id: 46, resolvedLat: 47.5, resolvedLng: 8.6 }] });
+    const refreshedButton = maplibreMock.MockMarker.instances[1].element as HTMLButtonElement;
+    expect(refreshedButton.disabled).toBe(true);
+    await wrapper.setProps({ markerInteractionEnabled: true });
+    expect(refreshedButton.disabled).toBe(false);
+    refreshedButton.click();
+    expect(wrapper.emitted('select-media')).toEqual([[46]]);
+  });
+
+  it('labels partial media pages and exposes loading and retry states', async () => {
+    const wrapper = await mountMiniMap([], [], [{ id: 45, resolvedLat: 47.4, resolvedLng: 8.5 }]);
+    await wrapper.setProps({ mediaTotalItems: 101 });
+    const filter = wrapper.get('[aria-label="Toggle activity media"]');
+    expect(filter.text()).toContain('1 / 101');
+    expect(filter.attributes('title')).toContain('Open Media to browse all 101 items');
+
+    await wrapper.setProps({ mediaLoading: true });
+    expect(filter.attributes('disabled')).toBeDefined();
+    expect(filter.attributes('aria-busy')).toBe('true');
+    await wrapper.setProps({ mediaLoading: false, mediaError: 'Could not load media' });
+    await wrapper.get('[aria-label="Retry activity media"]').trigger('click');
+    expect(wrapper.emitted('retry-media')).toEqual([[]]);
   });
 
   it('hides the track-point marker in media mode and restores it after leaving', async () => {
@@ -719,7 +923,7 @@ describe('TrackDetailMiniMap event layer', () => {
         canonicalPointIndex: 100,
       },
     ]);
-    await mountMiniMap(
+    const wrapper = await mountMiniMap(
       [],
       [
         [0, 0],
@@ -745,6 +949,12 @@ describe('TrackDetailMiniMap event layer', () => {
       className: 'mtl-point-popup-container',
     });
     expect(popup?.setLngLat).toHaveBeenCalledWith([expect.closeTo(0.01617, 10), 0]);
+    await wrapper.setProps({ pointDetailsEnabled: false });
+    expect(popup?.remove).toHaveBeenCalledTimes(1);
+    const popupCount = maplibreMock.MockPopup.instances.length;
+    clickHandler?.({ lngLat: { lng: 0.01617, lat: 0 }, point: { x: 161.7, y: 0 } });
+    expect(maplibreMock.MockPopup.instances).toHaveLength(popupCount);
+    expect(useTrackMapSync().pinnedPoint.value?.canonicalPointIndex).toBe(50);
   });
 
   it('draws a selected break highlight when the selected event key changes', async () => {
@@ -764,13 +974,95 @@ describe('TrackDetailMiniMap event layer', () => {
     expect(selectedSource?.data.features[0].geometry.coordinates).toEqual([8.5, 47.4]);
     expect(map.getLayer('detail-selected-event-halo-layer')).toBeTruthy();
     expect(map.getLayer('detail-selected-event-core-layer')).toBeTruthy();
+    expect(map.easeTo).toHaveBeenLastCalledWith({ center: [8.5, 47.4], zoom: map.getZoom(), duration: 300 });
 
     const movedLayerIds = map.moveLayer.mock.calls.map(([layerId]) => layerId);
     expect(movedLayerIds.slice(-3)).toEqual([
-      'detail-events-layer',
       'detail-selected-event-halo-layer',
       'detail-selected-event-core-layer',
+      'detail-events-layer',
     ]);
+  });
+
+  it('moves the highlight between recording gaps and removes it when cleared', async () => {
+    const first = { ...trackEvent(7.453, 46.95), eventType: 'GPS_GAP', durationInSec: 0 };
+    const second = { ...trackEvent(7.453, 46.952), eventType: 'GPS_GAP', durationInSec: 0 };
+    const wrapper = await mountMiniMap([first, second]);
+    const map = maplibreMock.MockMap.instances[0];
+
+    for (const event of [first, second]) {
+      await wrapper.setProps({ selectedEventKey: event.id });
+      expect(selectedEventSource()?.data.features).toHaveLength(1);
+      expect(selectedEventSource()?.data.features[0].geometry.coordinates).toEqual(event.startPointLongLat.coordinates);
+      expect(map.easeTo).toHaveBeenLastCalledWith({
+        center: event.startPointLongLat.coordinates,
+        zoom: map.getZoom(),
+        duration: 300,
+      });
+    }
+
+    map.easeTo.mockClear();
+    await wrapper.setProps({ selectedEventKey: null });
+    expect(selectedEventSource()?.data.features).toHaveLength(0);
+    expect(detailEventSource()?.data.features).toHaveLength(2);
+    expect(map.easeTo).not.toHaveBeenCalled();
+  });
+
+  it.each([8, 12, 18])('keeps zoom %s when selecting breaks and leaves the view when deselected', async (zoom) => {
+    const first = trackEvent(8.5, 47.4);
+    const second = trackEvent(8.6, 47.5);
+    const wrapper = await mountMiniMap([first, second]);
+    const map = maplibreMock.MockMap.instances[0];
+    map.getZoom.mockReturnValue(zoom);
+    await wrapper.setProps({ selectedEventKey: first.id });
+    expect(map.easeTo).toHaveBeenLastCalledWith(expect.objectContaining({ center: [8.5, 47.4], zoom }));
+    await wrapper.setProps({ selectedEventKey: second.id });
+    expect(map.easeTo).toHaveBeenLastCalledWith(expect.objectContaining({ center: [8.6, 47.5], zoom }));
+
+    map.easeTo.mockClear();
+    await wrapper.setProps({ selectedEventKey: null });
+    expect(map.easeTo).not.toHaveBeenCalled();
+    expect(selectedEventSource()?.data.features).toHaveLength(0);
+    expect(detailEventSource()?.data.features).toHaveLength(2);
+  });
+
+  it('expands a collapsed map when selecting a break and retains focus after track geometry arrives', async () => {
+    const event = trackEvent(8.5, 47.4);
+    const wrapper = await mountMiniMap([event]);
+    const map = maplibreMock.MockMap.instances[0];
+    await wrapper.get('.map-overlay-collapse-btn').trigger('click');
+    expect(wrapper.get('.mini-map-wrapper').classes()).toContain('collapsed');
+
+    await wrapper.setProps({ selectedEventKey: event.id });
+    await nextTick();
+    expect(wrapper.get('.mini-map-wrapper').classes()).not.toContain('collapsed');
+    expect(map.easeTo).toHaveBeenLastCalledWith(expect.objectContaining({ center: [8.5, 47.4] }));
+
+    await wrapper.setProps({
+      trackCoordinates: [
+        [8.4, 47.3],
+        [8.6, 47.5],
+      ],
+    });
+    expect(map.fitBounds).not.toHaveBeenCalled();
+    expect(map.easeTo).toHaveBeenLastCalledWith(expect.objectContaining({ center: [8.5, 47.4] }));
+  });
+
+  it('resolves canonical break indexes when fallback points arrive after selection', async () => {
+    const event = trackEventWithoutGeometry(12, 180, 220);
+    const wrapper = await mountMiniMap([event]);
+    const map = maplibreMock.MockMap.instances[0];
+    await wrapper.setProps({ selectedEventKey: event.id });
+    expect(map.easeTo).not.toHaveBeenCalled();
+
+    useTrackMapSync().setTrackPoints([
+      { lat: 47.3, lng: 8.4, altitude: null, timestamp: 0, distanceKm: 0, pointIndex: 10, canonicalPointIndex: 100 },
+      { lat: 47.41, lng: 8.51, altitude: null, timestamp: 0, distanceKm: 1, pointIndex: 20, canonicalPointIndex: 200 },
+      { lat: 47.5, lng: 8.6, altitude: null, timestamp: 0, distanceKm: 2, pointIndex: 30, canonicalPointIndex: 300 },
+    ]);
+    await nextTick();
+    expect(detailEventSource()?.data.features[0].geometry.coordinates).toEqual([8.51, 47.41]);
+    expect(map.easeTo).toHaveBeenLastCalledWith(expect.objectContaining({ center: [8.51, 47.41] }));
   });
 
   it('falls back to loaded track points when selected event geometry is missing', async () => {
@@ -788,7 +1080,7 @@ describe('TrackDetailMiniMap event layer', () => {
     expect(selectedEventSource()?.data.features[0].geometry.coordinates).toEqual([8.51, 47.41]);
   });
 
-  it('emits the clicked break key from the event marker layer', async () => {
+  it('opens a clicked break and closes its popup when graph scrubbing begins', async () => {
     const event = trackEvent(8.5, 47.4);
     const wrapper = await mountMiniMap([event]);
     const map = maplibreMock.MockMap.instances[0];
@@ -809,6 +1101,9 @@ describe('TrackDetailMiniMap event layer', () => {
     });
 
     expect(wrapper.emitted('select-event')).toEqual([[event.id]]);
+    const popup = maplibreMock.MockPopup.instances[0];
+    await wrapper.setProps({ markerInteractionEnabled: false });
+    expect(popup.remove).toHaveBeenCalledTimes(1);
   });
 
   it('emits null when clicking the already selected break highlight', async () => {
@@ -834,6 +1129,42 @@ describe('TrackDetailMiniMap event layer', () => {
     });
 
     expect(wrapper.emitted('select-event')).toEqual([[null]]);
+  });
+
+  it('passes clicks on break locations to the track while graph scrubbing is active', async () => {
+    const event = trackEvent(8.5, 47.4);
+    const wrapper = await mountMiniMap([event]);
+    const map = maplibreMock.MockMap.instances[0];
+    const point = { lat: 47.4, lng: 8.5, altitude: null, timestamp: 0, distanceKm: 0, pointIndex: 0 };
+    useTrackMapSync().setTrackPoints([point]);
+    await wrapper.setProps({ markerInteractionEnabled: false, pointDetailsEnabled: false });
+    const click = {
+      point: { x: 85_000, y: 474_000 },
+      lngLat: { lng: 8.5, lat: 47.4 },
+      features: [{ geometry: { type: 'Point', coordinates: [8.5, 47.4] }, properties: { eventKey: event.id } }],
+    };
+    map.queryRenderedFeatures.mockReturnValue(click.features);
+    for (const layer of [
+      'detail-events-layer',
+      'detail-selected-event-halo-layer',
+      'detail-selected-event-core-layer',
+    ]) {
+      map.listeners.get(`click:${layer}`)?.[0]?.(click);
+    }
+    map.listeners.get('mouseenter:detail-events-layer')?.[0]?.();
+    expect(map.getCanvas().style.cursor).not.toBe('pointer');
+    expect(wrapper.emitted('select-event')).toBeUndefined();
+    expect(detailEventSource()?.data.features).toHaveLength(1);
+
+    map.listeners.get('click')?.[0]?.(click);
+    expect(useTrackMapSync().pinnedPoint.value?.pointIndex).toBe(0);
+    expect(chartSyncMocks.showChartsAtPoint).toHaveBeenCalledWith(point);
+    expect(map.easeTo).not.toHaveBeenCalled();
+    expect(maplibreMock.MockPopup.instances).toHaveLength(0);
+
+    await wrapper.setProps({ markerInteractionEnabled: true });
+    map.listeners.get('click:detail-events-layer')?.[0]?.(click);
+    expect(wrapper.emitted('select-event')).toEqual([[event.id]]);
   });
 
   it('clears chart hover artifacts when the pointer leaves the mini-map wrapper', async () => {

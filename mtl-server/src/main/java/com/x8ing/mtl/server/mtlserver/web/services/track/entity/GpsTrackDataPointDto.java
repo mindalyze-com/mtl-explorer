@@ -19,6 +19,7 @@ import java.util.Date;
         "pointLongLat",
         "pointXY",
         "pointAltitude",
+        "intervalStatus",
         "distanceInMeterBetweenPoints",
         "distanceInMeterSinceStart",
         "durationBetweenPointsInSec",
@@ -36,7 +37,8 @@ import java.util.Date;
         "energyKineticWh",
         "energyTotalWh",
         "energyCumulativeWh",
-        "powerWatts"
+        "powerWatts",
+        "energyLimited"
 })
 public class GpsTrackDataPointDto {
 
@@ -51,6 +53,7 @@ public class GpsTrackDataPointDto {
     private GeoPointDto pointLongLat;
     private GeoPointDto pointXY;
     private Double pointAltitude;
+    private GpsTrackDataPoint.IntervalStatus intervalStatus;
     private Double distanceInMeterBetweenPoints;
     private Double distanceInMeterSinceStart;
     private Double durationBetweenPointsInSec;
@@ -69,6 +72,7 @@ public class GpsTrackDataPointDto {
     private Double energyTotalWh;
     private Double energyCumulativeWh;
     private Double powerWatts;
+    private Boolean energyLimited;
 
     public static GpsTrackDataPointDto from(GpsTrackDataPoint point) {
         if (point == null) {
@@ -86,6 +90,7 @@ public class GpsTrackDataPointDto {
         dto.pointLongLat = GeoPointDto.fromLongLat(point.getPointLongLat());
         dto.pointXY = GeoPointDto.from(point.getPointXY());
         dto.pointAltitude = point.getPointAltitude();
+        dto.intervalStatus = point.getIntervalStatus();
         dto.distanceInMeterBetweenPoints = point.getDistanceInMeterBetweenPoints();
         dto.distanceInMeterSinceStart = point.getDistanceInMeterSinceStart();
         dto.durationBetweenPointsInSec = point.getDurationBetweenPointsInSec();
@@ -104,6 +109,7 @@ public class GpsTrackDataPointDto {
         dto.energyTotalWh = point.getEnergyTotalWh();
         dto.energyCumulativeWh = point.getEnergyCumulativeWh();
         dto.powerWatts = point.getPowerWatts();
+        dto.energyLimited = point.getEnergyLimited();
         return dto;
     }
 }

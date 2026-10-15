@@ -1,3 +1,0 @@
-map config Swiss probe:
-api docs Swiss/route paths:
-/api/planner/route

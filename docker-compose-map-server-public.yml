@@ -43,6 +43,11 @@ services:
       LOWZOOM_MAXZOOM: ${LOWZOOM_MAXZOOM:-6}
       MAP_DOWNLOAD_URL: ${MAP_DOWNLOAD_URL:-latest}
       PROTOMAPS_BUILDS_BASE_URL: ${PROTOMAPS_BUILDS_BASE_URL:-https://build.protomaps.com}
+      MAP_REPORTS_ENABLED: ${MAP_REPORTS_ENABLED:-true}
+      MAP_REPORTS_USER: ${MAP_REPORTS_USER:-admin}
+      MAP_REPORTS_PASSWORD: ${MAP_REPORTS_PASSWORD:-change-me}
+      MAP_REPORTS_INTERVAL_HOURS: ${MAP_REPORTS_INTERVAL_HOURS:-8}
+      MAP_REPORTS_TIMEZONE: ${MAP_REPORTS_TIMEZONE:-Europe/Zurich}
     restart: unless-stopped
     memswap_limit: 128m
     volumes:

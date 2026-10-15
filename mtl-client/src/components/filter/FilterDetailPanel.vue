@@ -1,16 +1,6 @@
 <template>
   <div class="filter-detail">
-    <section class="filter-detail-section" aria-labelledby="filter-criteria-title">
-      <div class="filter-detail-section__head">
-        <span class="filter-detail-section__icon filter-section-icon">
-          <i class="bi bi-sliders" aria-hidden="true"></i>
-        </span>
-        <div class="filter-detail-section__copy">
-          <h3 id="filter-criteria-title" class="filter-detail-section__title filter-section-title">Filter criteria</h3>
-          <p class="filter-detail-section__help filter-section-help">Controls which tracks match.</p>
-        </div>
-      </div>
-
+    <section class="filter-detail-section" aria-label="Filter criteria">
       <div v-if="paramControlCount > 0" class="filter-detail-param-sections">
         <section
           v-for="section in paramSections"
@@ -88,6 +78,20 @@
                 </span>
               </div>
 
+              <div v-if="isStandardDateGroup(group)" class="filter-detail__date-presets" aria-label="Date shortcuts">
+                <button
+                  v-for="preset in FILTER_DATE_PRESETS"
+                  :key="preset.key"
+                  type="button"
+                  class="selection-chip"
+                  :class="{ 'selection-chip--active': isDatePresetSelected(preset.key) }"
+                  :aria-pressed="isDatePresetSelected(preset.key)"
+                  @click="emit('set-date-range', filterDateRange(preset.key))"
+                >
+                  {{ preset.label }}
+                </button>
+              </div>
+
               <div
                 v-show="!isAreaGroup(group) || isAreaGroupOpen(group)"
                 :id="isAreaGroup(group) ? areaGroupDomId(section, group) : undefined"
@@ -122,6 +126,9 @@
                       :id="control.name"
                       :model-value="dateTimeParam(control.name)"
                       :label="control.label"
+                      :end-of-day="control.name === FILTER_DATE_TO"
+                      :invalid="Boolean(errors[control.name])"
+                      :described-by="errors[control.name] ? `${control.name}-error` : undefined"
                       class="filter-detail__full-width"
                       @update:model-value="emit('set-date-time-param', { name: control.name, value: $event })"
                     />
@@ -166,11 +173,22 @@
                       :value="displayStringParam(control)"
                       :type="isNumberControl(control) ? 'number' : 'text'"
                       :inputmode="isNumberControl(control) ? 'decimal' : undefined"
-                      placeholder="enter a value"
+                      :aria-invalid="Boolean(errors[control.name])"
+                      :aria-describedby="errors[control.name] ? `${control.name}-error` : undefined"
+                      :placeholder="control.optional ? 'Any' : control.label"
+                      :step="isNumberControl(control) ? 'any' : undefined"
                       class="filter-detail__full-width"
                       @input="onStringInput(control, $event)"
                     />
                   </template>
+                  <p
+                    v-if="errors[control.name]"
+                    :id="`${control.name}-error`"
+                    class="filter-detail-field__error"
+                    role="alert"
+                  >
+                    {{ errors[control.name] }}
+                  </p>
                 </div>
               </div>
             </section>
@@ -187,6 +205,13 @@
 
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
+import {
+  FILTER_DATE_FROM,
+  FILTER_DATE_TO,
+  FILTER_DATE_PRESETS,
+  filterDateRange,
+  type FilterDatePreset,
+} from '@/utils/filterCriteria';
 import type { FilterParamsRequest } from '@/components/filter/FilterService';
 import type { FilterInfo } from 'x8ing-mtl-api-typescript-fetch/dist/esm/models/FilterInfo';
 import type { ParamDefinition } from 'x8ing-mtl-api-typescript-fetch/dist/esm/models/ParamDefinition';
@@ -199,6 +224,7 @@ import { useMeasurementSystem } from '@/composables/useMeasurementSystem';
 import { filterParamCanonicalValue, filterParamDisplayUnit, filterParamDisplayValue } from '@/utils/filterParamUnits';
 import { parseTrackIdText } from '@/utils/trackIdFilter';
 
+const MILLISECONDS_PER_SECOND = 1000;
 const DEFAULT_PARAM_GROUP_KEY = '__ungrouped';
 const TRACK_PICKER_WIDGET = 'trackPicker';
 
@@ -243,10 +269,12 @@ defineOptions({ name: 'FilterDetailPanel' });
 const props = withDefaults(
   defineProps<{
     selectedFilter: FilterDetailConfig;
+    errors?: Record<string, string>;
     trackIdCandidateTracks?: GpsTrack[];
     trackIdCandidatesLoading?: boolean;
   }>(),
   {
+    errors: () => ({}),
     trackIdCandidateTracks: () => [],
     trackIdCandidatesLoading: false,
   }
@@ -257,6 +285,7 @@ const emit = defineEmits<{
     event: 'set-date-time-param',
     payload: { name?: string; value: Date | Date[] | (Date | null)[] | null | undefined }
   ): void;
+  (event: 'set-date-range', range: { from: Date | null; to: Date | null }): void;
   (event: 'set-string-param', payload: { name?: string; value: string }): void;
   (event: 'start-geo-drawing', paramDefinition: ParamDefinition): void;
   (event: 'clear-geo-shape', paramDefinition: ParamDefinition): void;
@@ -461,6 +490,22 @@ function displayGroupLabel(group: ParamGroup): string {
   return group.label;
 }
 
+function isStandardDateGroup(group: ParamGroup): boolean {
+  return (
+    group.controls.some((control) => control.name === FILTER_DATE_FROM && isDateTimeControl(control)) &&
+    group.controls.some((control) => control.name === FILTER_DATE_TO && isDateTimeControl(control))
+  );
+}
+
+function isDatePresetSelected(preset: FilterDatePreset): boolean {
+  const range = filterDateRange(preset);
+  const from = dateTimeParam(FILTER_DATE_FROM);
+  const to = dateTimeParam(FILTER_DATE_TO);
+  // The API stores seconds, so compare at that precision.
+  const seconds = (date: Date | null) => (date ? Math.floor(date.getTime() / MILLISECONDS_PER_SECOND) : null);
+  return seconds(from) === seconds(range.from) && seconds(to) === seconds(range.to);
+}
+
 function isAreaGroup(group: ParamGroup): boolean {
   return group.controls.length > 0 && group.controls.every(isGeoControl);
 }
@@ -537,14 +582,12 @@ function isGeoControl(control: ParamControl): boolean {
 
 <style scoped>
 .filter-detail {
+  container-type: inline-size;
   display: flex;
   flex: 0 0 auto;
   flex-direction: column;
   min-width: 0;
   overflow: hidden;
-  border: 1px solid var(--border-subtle, var(--border-default));
-  border-radius: 0.75rem;
-  background: var(--surface-glass-heavy, var(--surface-elevated));
 }
 
 .filter-detail__empty {
@@ -588,8 +631,7 @@ function isGeoControl(control: ParamControl): boolean {
   font-size: var(--text-xs-size);
   font-weight: 700;
   line-height: var(--text-xs-lh);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
+  font-weight: var(--font-semibold);
 }
 
 .filter-detail__title {
@@ -612,7 +654,7 @@ function isGeoControl(control: ParamControl): boolean {
   display: flex;
   flex-direction: column;
   gap: 1rem;
-  padding: 1rem;
+  padding: 0.35rem 0;
 }
 
 .filter-detail-section__head {
@@ -889,8 +931,7 @@ function isGeoControl(control: ParamControl): boolean {
   display: inline-block;
   min-width: 0;
   overflow-wrap: anywhere;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
+  font-weight: var(--font-semibold);
 }
 
 .filter-detail-field__unit {
@@ -963,9 +1004,37 @@ function isGeoControl(control: ParamControl): boolean {
   }
 }
 
-@container (min-width: 44rem) {
+@container (min-width: 40rem) {
   .filter-detail__params-grid {
-    grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+.filter-detail__date-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.filter-detail__date-presets .selection-chip {
+  min-height: 2.75rem;
+}
+
+.filter-detail__date-presets button:focus-visible {
+  outline: 2px solid var(--focus-ring, var(--accent));
+  outline-offset: 2px;
+}
+
+.filter-detail-field__error {
+  margin: 0;
+  color: var(--error);
+  font-size: var(--text-sm-size);
+  line-height: var(--text-sm-lh);
+}
+
+@media (pointer: coarse) {
+  .filter-detail :deep(input) {
+    min-height: 2.75rem;
+    font-size: max(1rem, var(--text-sm-size));
   }
 }
 </style>

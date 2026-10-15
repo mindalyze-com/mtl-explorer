@@ -6,9 +6,18 @@
     @pointerleave="clearMapInteraction"
   >
     <!-- Collapsed strip: just a thin bar to re-expand -->
-    <div v-if="isCollapsed" class="mini-map-collapsed-strip" title="Expand map" @click="toggleCollapse">
-      <i class="bi bi-chevron-down"></i>
-    </div>
+    <button
+      v-if="isCollapsed"
+      type="button"
+      class="mini-map-collapsed-strip"
+      :aria-controls="mapBodyId"
+      :aria-expanded="false"
+      @click="toggleCollapse"
+    >
+      <i class="bi bi-map" aria-hidden="true"></i>
+      <span>Show activity map</span>
+      <i class="bi bi-chevron-down" aria-hidden="true"></i>
+    </button>
 
     <!-- Map body with floating overlay controls -->
     <div
@@ -23,31 +32,58 @@
       <!-- Floating collapse button overlaid on the map -->
       <button
         class="map-overlay-collapse-btn"
-        :aria-label="'Collapse map'"
+        aria-label="Collapse map"
+        :aria-controls="mapBodyId"
+        :aria-expanded="true"
         title="Collapse map"
         @click.stop="toggleCollapse"
       >
         <i class="bi bi-chevron-up"></i>
       </button>
 
-      <button
-        class="map-overlay-events-btn"
-        :class="{ active: showEvents }"
-        :disabled="trackEvents.length === 0"
-        aria-label="Toggle track events"
-        title="Toggle track events"
-        @click.stop="toggleEvents"
-      >
-        <i class="bi bi-pause-circle"></i>
-        <span v-if="trackEvents.length > 0" class="event-count">{{ trackEvents.length }}</span>
-      </button>
+      <div ref="mapFiltersEl" class="map-overlay-filters" role="group" aria-label="Map markers">
+        <button
+          type="button"
+          class="map-overlay-filter-btn map-overlay-events-btn"
+          :class="{ active: showEvents }"
+          :aria-pressed="showEvents"
+          :disabled="trackEvents.length === 0"
+          aria-label="Toggle track events"
+          :title="showEvents ? 'Hide events on map' : 'Show events on map'"
+          @click.stop="toggleEvents"
+        >
+          <i class="bi bi-signpost" aria-hidden="true"></i>
+          <span class="marker-label">Events</span>
+          <span v-if="trackEvents.length > 0" class="marker-count">{{ trackEvents.length }}</span>
+        </button>
+        <button
+          v-if="mediaError || mediaLoading || trackMedia.length > 0"
+          type="button"
+          class="map-overlay-filter-btn map-overlay-media-btn"
+          :class="{ active: showMedia && !mediaError }"
+          :aria-pressed="mediaError ? undefined : showMedia"
+          :aria-busy="mediaLoading"
+          :disabled="mediaLoading || (!mediaError && locatedMediaCount === 0)"
+          :aria-label="mediaError ? 'Retry activity media' : 'Toggle activity media'"
+          :title="mediaToggleTitle"
+          @click.stop="mediaError ? emit('retry-media') : toggleMedia()"
+        >
+          <i :class="mediaError ? 'bi bi-arrow-clockwise' : 'bi bi-images'" aria-hidden="true"></i>
+          <span class="marker-label">{{ mediaError ? 'Retry media' : mediaLoading ? 'Loading media' : 'Media' }}</span>
+          <span v-if="!mediaLoading && !mediaError" class="marker-count">
+            {{ locatedMediaCount
+            }}<template v-if="mediaTotalItems > trackMedia.length"> / {{ mediaTotalItems }}</template>
+          </span>
+        </button>
+      </div>
 
       <button
+        v-if="showReplayControl"
         class="map-overlay-replay-btn"
         type="button"
         :disabled="!replayEnabled"
         aria-label="Start 3D replay"
-        title="Start 3D replay"
+        :title="replayEnabled ? 'Start 3D replay' : '3D replay requires loaded track geometry'"
         @click.stop="emit('start-3d-replay')"
       >
         <i class="bi bi-badge-3d"></i>
@@ -79,13 +115,15 @@
 </template>
 
 <script setup lang="ts">
+import { reportMapError, reportMapContextLoss } from '@/utils/mapDiagnostics';
 import { watch, ref, computed, nextTick, onBeforeUnmount, onMounted, markRaw } from 'vue';
 import { useVerticalResizeDrag } from '@/composables/useVerticalResizeDrag';
 import * as maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { useTrackMapSync, type TrackPoint } from '@/composables/useTrackMapSync';
 import { useChartSync } from '@/composables/useChartSync';
-import { fetchMapConfig } from '@/utils/mapConfigService';
+import { fetchMapConfig, mainTileArchiveUrl } from '@/utils/mapConfigService';
+import { VectorBasemapRecovery } from '@/utils/vectorBasemapRecovery';
 import { resolveConfiguredMapStyle } from '@/components/map/mapStyleResolver';
 import { installMissingStyleImageResolver } from '@/utils/maplibreStyleImages';
 import { TRACK_COLOR } from '@/utils/trackColors';
@@ -115,13 +153,22 @@ import {
 } from '@/components/map/trackLineHitTest';
 import { createTrackPointPopup, type TrackPointPopupRow } from '@/components/map/trackPointPopup';
 import {
-  formatTrackEventDateTime as eventTimeLabel,
+  formatTrackEventDuration,
+  formatTrackEventTimeRange,
+  isTrackEventBreak,
+  isTrackEventRecordingGap,
+  trackEventDurationSeconds,
   trackEventKey as eventKey,
   trackEventKeysEqual as eventKeysEqual,
   trackEventTimeMs as eventTimeMs,
-  trackEventTypeLabel as eventTypeLabel,
+  trackEventTitle,
 } from '@/utils/trackEvents';
-import { VIZ_ORANGE_COLOR, VIZ_ORANGE_STRONG_COLOR } from '@/utils/visualizationColors';
+import { VIZ_ACCENT_COLOR, VIZ_LIGHT_COLOR, VIZ_SLATE_COLOR } from '@/utils/visualizationColors';
+import pauseEventSvg from 'bootstrap-icons/icons/pause-fill.svg?raw';
+import gapEventSvg from 'bootstrap-icons/icons/broadcast-pin.svg?raw';
+import photoEventSvg from 'bootstrap-icons/icons/camera-fill.svg?raw';
+import issueEventSvg from 'bootstrap-icons/icons/exclamation-triangle-fill.svg?raw';
+import noteEventSvg from 'bootstrap-icons/icons/pin-angle-fill.svg?raw';
 import type { TrackMediaDto } from '@/repositories/mediaRepository';
 import { resolveMediaPositionMarkerStyle } from '@/components/map/mediaPositionMarkerStyle';
 import { isVideoMedia } from '@/utils/mediaKind';
@@ -133,6 +180,8 @@ const DEFAULT_HEIGHT_MOBILE = TRACK_DETAIL_MINI_MAP_HEIGHT_MOBILE_DEFAULT;
 const MINI_MAP_RESIZE_ACTIVATION_THRESHOLD_PX = 0;
 const MINI_MAP_RESIZE_KEYBOARD_STEP_PX = 20;
 const MINI_MAP_RESIZE_PRESET_TOLERANCE_PX = 1;
+const MINI_MAP_THEME = 'light';
+const LOCAL_VECTOR_STYLE_MODE = 'local-vector';
 
 const SOURCE_ID = 'detail-track';
 const TRACK_LAYER = 'detail-track-layer';
@@ -142,21 +191,25 @@ const SELECTED_EVENT_SOURCE = 'detail-selected-event';
 const SELECTED_EVENT_HALO_LAYER = 'detail-selected-event-halo-layer';
 const SELECTED_EVENT_CORE_LAYER = 'detail-selected-event-core-layer';
 const EVENT_ICON_ID = 'detail-stop-event-diamond';
+const GAP_EVENT_ICON_ID = 'detail-recording-gap-diamond';
+const PHOTO_EVENT_ICON_ID = 'detail-photo-event';
+const ISSUE_EVENT_ICON_ID = 'detail-issue-event';
+const NOTE_EVENT_ICON_ID = 'detail-note-event';
 const EVENT_ICON_LOGICAL_SIZE = 20;
-const EVENT_ICON_DIAMOND_SIZE = 13;
 const EVENT_ICON_CORNER_RADIUS = 2.5;
 const EVENT_ICON_STROKE_WIDTH = 1;
+const EVENT_ICON_PADDING = 3;
+const BOOTSTRAP_ICON_SIZE = 16;
 const DEFAULT_DEVICE_PIXEL_RATIO = 1;
-const STOP_EVENT_MARKER_FILL = VIZ_ORANGE_COLOR;
-const STOP_EVENT_MARKER_STROKE = '#7c2d12';
-const SELECTED_EVENT_HALO_COLOR = STOP_EVENT_MARKER_FILL;
-const SELECTED_EVENT_CORE_COLOR = '#fff7ed';
-const SELECTED_EVENT_CORE_STROKE = VIZ_ORANGE_STRONG_COLOR;
+const SELECTED_EVENT_HALO_COLOR = VIZ_ACCENT_COLOR;
+const SELECTED_EVENT_CORE_COLOR = VIZ_LIGHT_COLOR;
+const SELECTED_EVENT_CORE_STROKE = VIZ_SLATE_COLOR;
 const METERS_PER_KILOMETER = 1000;
 const SEGMENT_CLICK_TOLERANCE_PX = 12;
 const SEGMENT_CLICK_TOLERANCE_METERS = 120;
 const TRACK_FIT_BOUNDS_PADDING_PX = 20;
 const TRACK_FIT_BOUNDS_DURATION_MS = 0;
+const EVENT_FOCUS_DURATION_MS = 300;
 // Hover snap tolerance expressed in screen pixels. Converting this to meters at the
 // current zoom keeps snapping equally forgiving whether zoomed in or out (a fixed
 // metric radius becomes sub-pixel when zoomed out, so the cursor would almost never
@@ -196,19 +249,33 @@ const props = withDefaults(
   defineProps<{
     gpsTrackId: number;
     replayEnabled?: boolean;
+    showReplayControl?: boolean;
     trackEvents?: GpsTrackEvent[];
     trackMedia?: TrackMediaDto[];
+    mediaLoading?: boolean;
+    mediaError?: string | null;
+    mediaTotalItems?: number;
     trackCoordinates?: number[][];
+    recordingBreakBeforePointIndexes?: number[];
     mediaInteractionEnabled?: boolean;
+    markerInteractionEnabled?: boolean;
+    pointDetailsEnabled?: boolean;
     selectedEventKey?: string | number | null;
     selectedMediaId?: number | null;
     highlightedMediaId?: number | null;
   }>(),
   {
+    showReplayControl: true,
     trackEvents: () => [],
     trackMedia: () => [],
+    mediaLoading: false,
+    mediaError: null,
+    mediaTotalItems: 0,
     trackCoordinates: () => [],
+    recordingBreakBeforePointIndexes: () => [],
     mediaInteractionEnabled: false,
+    markerInteractionEnabled: true,
+    pointDetailsEnabled: true,
     selectedEventKey: null,
     selectedMediaId: null,
     highlightedMediaId: null,
@@ -218,21 +285,35 @@ const props = withDefaults(
 const emit = defineEmits<{
   'select-event': [key: string | number | null];
   'select-media': [mediaId: number];
+  'retry-media': [];
   'clear-selection': [];
   'start-3d-replay': [];
 }>();
 
 const mapEl = ref<HTMLElement | null>(null);
 const mapBodyEl = ref<HTMLElement | null>(null);
+const mapFiltersEl = ref<HTMLElement | null>(null);
 const isCollapsed = ref(false);
 const preferencesStore = useTrackDetailsPreferencesStore();
 const mapSettingsStore = useMapSettingsStore();
 const mapHeight = ref(preferencesStore.ensureMiniMapHeight(isMobile() ? DEFAULT_HEIGHT_MOBILE : DEFAULT_HEIGHT));
 const mapBodyId = computed(() => `track-detail-mini-map-${props.gpsTrackId}`);
-const showEvents = ref(props.trackEvents.length > 0);
+const showEvents = ref(true);
+const showMedia = ref(true);
+const locatedMediaCount = computed(() => props.trackMedia.filter((item) => trackMediaCoordinates(item)).length);
+const mediaToggleTitle = computed(() => {
+  if (props.mediaError) return 'Media could not be loaded. Retry';
+  if (props.mediaLoading) return 'Loading activity media';
+  if (locatedMediaCount.value === 0) return 'No media locations on this page';
+  const action = showMedia.value ? 'Hide media on map' : 'Show media on map';
+  return props.mediaTotalItems > props.trackMedia.length
+    ? `${action}. ${locatedMediaCount.value} locations from the loaded media page. Open Media to browse all ${props.mediaTotalItems} items.`
+    : action;
+});
 
 let map: maplibregl.Map | null = null;
 let mapReady = false;
+let vectorRecovery: VectorBasemapRecovery | null = null;
 let hoverMarker: maplibregl.Marker | null = null;
 let photoMarkers: maplibregl.Marker[] = [];
 const photoMarkerElements = new Map<number, HTMLButtonElement>();
@@ -244,6 +325,7 @@ let pendingMapHover: PendingMapHover | null = null;
 let mapHoverFrame: number | null = null;
 let lastSyncedHoverPointIndex: number | null = null;
 let pointPopup: maplibregl.Popup | null = null;
+let eventPopup: maplibregl.Popup | null = null;
 let canvasLeaveHandler: (() => void) | null = null;
 
 // ── Resize via native pointer drag ──
@@ -345,9 +427,9 @@ async function initMap() {
 
   const config = await fetchMapConfig();
   mapSettingsStore.hydrate();
-  const { style } = resolveConfiguredMapStyle({
+  const { style, styleMode } = resolveConfiguredMapStyle({
     config,
-    theme: 'light',
+    theme: MINI_MAP_THEME,
     mapSourceMode: mapSettingsStore.mapSourceMode,
   });
 
@@ -364,10 +446,50 @@ async function initMap() {
 
   installMissingStyleImageResolver(map);
 
-  await new Promise<void>((resolve) => {
-    if (map!.loaded()) resolve();
-    else map!.on('load', () => resolve());
+  const initializedMap = map;
+  if (styleMode === LOCAL_VECTOR_STYLE_MODE) {
+    const replaceBasemap = (fallback: boolean) => {
+      mapReady = false;
+      clearEventLayerRetry();
+      const resolved = resolveConfiguredMapStyle({
+        config,
+        theme: MINI_MAP_THEME,
+        mapSourceMode: mapSettingsStore.mapSourceMode,
+        localTilesReady: !fallback,
+      });
+      initializedMap.once('style.load', () => {
+        if (map !== initializedMap) return;
+        mapReady = true;
+        drawTrack();
+        drawEvents();
+        drawPhotoMarkers();
+        updateMarker(pinnedPoint.value ?? hoverPoint.value);
+        focusSelectedEvent();
+      });
+      initializedMap.setStyle(resolved.style);
+    };
+    vectorRecovery = new VectorBasemapRecovery({
+      map: initializedMap,
+      archiveUrl: mainTileArchiveUrl(config),
+      isCurrent: () => map === initializedMap,
+      onUnavailable: () => replaceBasemap(true),
+      onRestored: () => replaceBasemap(false),
+    });
+  }
+
+  initializedMap.on('error', (event) => {
+    if (map !== initializedMap || vectorRecovery?.handleError(event)) return;
+    reportMapError(event, 'TrackDetailMiniMap');
   });
+  initializedMap.on('webglcontextlost', () => {
+    if (map === initializedMap) reportMapContextLoss('TrackDetailMiniMap');
+  });
+
+  await new Promise<void>((resolve) => {
+    if (initializedMap.loaded()) resolve();
+    else initializedMap.once('load', () => resolve());
+  });
+  if (map !== initializedMap) return;
   mapReady = true;
 
   // Force a resize in case the container was zero-sized during the bottom-sheet
@@ -381,6 +503,7 @@ async function initMap() {
   // Restore any point that was set while the map was initializing.
   updateMarker(pinnedPoint.value ?? hoverPoint.value);
   drawEvents();
+  focusSelectedEvent();
 
   map.on('click', (e: maplibregl.MapMouseEvent) => {
     if (clickedEventFeature(e)) return;
@@ -408,6 +531,7 @@ async function initMap() {
   map.on('dblclick', clearMapSelection);
 
   const onEventFeatureClick = (e: maplibregl.MapLayerMouseEvent) => {
+    if (!props.markerInteractionEnabled) return;
     const feature = e.features?.[0];
     if (!feature || !map) return;
     const coordinates = (feature.geometry as GeoJSON.Point).coordinates.slice() as [number, number];
@@ -417,7 +541,8 @@ async function initMap() {
     const time = properties.time ?? '';
     const duration = properties.duration ?? '';
     emit('select-event', eventKeysEqual(props.selectedEventKey, featureEventKey) ? null : (featureEventKey ?? null));
-    new maplibregl.Popup({ closeButton: true, closeOnClick: true })
+    clearEventPopup();
+    eventPopup = new maplibregl.Popup({ closeButton: true, closeOnClick: true })
       .setLngLat(coordinates)
       .setHTML(
         `<strong>${escapeHtml(label)}</strong><br>${escapeHtml(time)}${duration ? `<br>${escapeHtml(duration)}` : ''}`
@@ -430,16 +555,16 @@ async function initMap() {
   map.on('click', SELECTED_EVENT_CORE_LAYER, onEventFeatureClick);
 
   map.on('mouseenter', EVENT_LAYER, () => {
-    if (map) map.getCanvas().style.cursor = 'pointer';
+    if (map && props.markerInteractionEnabled) map.getCanvas().style.cursor = 'pointer';
   });
 
   map.on('mouseleave', EVENT_LAYER, () => {
-    if (map) map.getCanvas().style.cursor = '';
+    if (map && props.markerInteractionEnabled) map.getCanvas().style.cursor = '';
   });
 }
 
 function clickedEventFeature(e: maplibregl.MapMouseEvent): boolean {
-  if (!map) return false;
+  if (!map || !props.markerInteractionEnabled) return false;
   const layers = [EVENT_LAYER, SELECTED_EVENT_HALO_LAYER, SELECTED_EVENT_CORE_LAYER].filter((layerId) =>
     map?.getLayer(layerId)
   );
@@ -454,10 +579,16 @@ function clearPointPopup() {
   }
 }
 
+function clearEventPopup() {
+  eventPopup?.remove();
+  eventPopup = null;
+}
+
 function clearMapSelection() {
   setPinnedPoint(null);
   clearMapInteraction();
   clearPointPopup();
+  clearEventPopup();
   emit('select-event', null);
   emit('clear-selection');
 }
@@ -470,7 +601,7 @@ function clearPhotoMarkers() {
 
 function drawPhotoMarkers() {
   clearPhotoMarkers();
-  if (!map || !mapReady) return;
+  if (!map || !mapReady || !showMedia.value) return;
 
   for (const item of props.trackMedia) {
     const coordinates = trackMediaCoordinates(item);
@@ -492,9 +623,9 @@ function drawPhotoMarkers() {
     icon.setAttribute('aria-hidden', 'true');
     button.append(icon);
     button.addEventListener('click', (event) => {
+      if (!props.markerInteractionEnabled) return;
       event.preventDefault();
       event.stopPropagation();
-      if (!props.mediaInteractionEnabled) return;
       emit('select-media', item.id);
     });
     photoMarkerElements.set(item.id, button);
@@ -506,9 +637,13 @@ function drawPhotoMarkers() {
 
 function syncPhotoMarkerInteractivity() {
   for (const element of photoMarkerElements.values()) {
-    element.disabled = !props.mediaInteractionEnabled;
-    element.classList.toggle('mini-map-photo-marker--interactive', props.mediaInteractionEnabled);
+    element.disabled = !props.markerInteractionEnabled;
   }
+}
+
+function toggleMedia() {
+  showMedia.value = !showMedia.value;
+  drawPhotoMarkers();
 }
 
 function syncPhotoMarkerStates() {
@@ -553,7 +688,7 @@ function trackMediaMarkerLabel(item: TrackMediaDto): string {
 }
 
 function showPointPopup(point: TrackPoint, anchor: [number, number] = [point.lng, point.lat]) {
-  if (!map) return;
+  if (!map || !props.pointDetailsEnabled) return;
   clearPointPopup();
   pointPopup = createTrackPointPopup({
     map,
@@ -670,6 +805,18 @@ function sameTrackPoint(a: TrackPoint, b: TrackPoint): boolean {
   return a.pointIndex === b.pointIndex;
 }
 
+function trackFitPadding(): maplibregl.PaddingOptions {
+  const bodyBounds = mapBodyEl.value?.getBoundingClientRect();
+  const filterBounds = mapFiltersEl.value?.getBoundingClientRect();
+  const overlayBottom = bodyBounds && filterBounds ? Math.max(0, filterBounds.bottom - bodyBounds.top) : 0;
+  return {
+    top: TRACK_FIT_BOUNDS_PADDING_PX + overlayBottom,
+    right: TRACK_FIT_BOUNDS_PADDING_PX,
+    bottom: TRACK_FIT_BOUNDS_PADDING_PX,
+    left: TRACK_FIT_BOUNDS_PADDING_PX,
+  };
+}
+
 function drawTrack() {
   if (!map || !mapReady) return;
   const coordinates = trackLineCoordinates();
@@ -683,7 +830,10 @@ function drawTrack() {
     features: [
       {
         type: 'Feature',
-        geometry: { type: 'LineString', coordinates },
+        geometry:
+          props.recordingBreakBeforePointIndexes.length > 0
+            ? { type: 'MultiLineString', coordinates: recordingSpans(coordinates) }
+            : { type: 'LineString', coordinates },
         properties: {},
       },
     ],
@@ -708,7 +858,9 @@ function drawTrack() {
     (b, c) => b.extend(c as [number, number]),
     new maplibregl.LngLatBounds(coordinates[0], coordinates[0])
   );
-  map.fitBounds(bounds, { padding: TRACK_FIT_BOUNDS_PADDING_PX, duration: TRACK_FIT_BOUNDS_DURATION_MS });
+  if (!focusSelectedEvent()) {
+    map.fitBounds(bounds, { padding: trackFitPadding(), duration: TRACK_FIT_BOUNDS_DURATION_MS });
+  }
 
   // The hover marker is a DOM overlay (maplibregl.Marker) and always renders on top
   // of the canvas, so it no longer needs explicit layer reordering after drawTrack().
@@ -725,6 +877,21 @@ function clearTrack() {
   if (source) {
     source.setData({ type: 'FeatureCollection', features: [] });
   }
+}
+
+function recordingSpans(coordinates: [number, number][]): [number, number][][] {
+  const breaks = new Set(props.recordingBreakBeforePointIndexes);
+  const spans: [number, number][][] = [];
+  let span: [number, number][] = [];
+  coordinates.forEach((point, index) => {
+    if (breaks.has(index)) {
+      if (span.length > 1) spans.push(span);
+      span = [];
+    }
+    span.push(point);
+  });
+  if (span.length > 1) spans.push(span);
+  return spans;
 }
 
 function trackLineCoordinates(): [number, number][] {
@@ -831,13 +998,14 @@ function trackPointForEvent(event: GpsTrackEvent): TrackPoint | null {
 function trackPointByEventIndex(event: GpsTrackEvent): TrackPoint | null {
   const startIndex = event.startPointIndex;
   const endIndex = event.endPointIndex;
-  const targetIndex =
-    startIndex != null && endIndex != null && Number.isFinite(startIndex) && Number.isFinite(endIndex)
+  const targetIndex = isTrackEventRecordingGap(event)
+    ? (startIndex ?? endIndex)
+    : startIndex != null && endIndex != null && Number.isFinite(startIndex) && Number.isFinite(endIndex)
       ? (startIndex + endIndex) / 2
       : (startIndex ?? endIndex);
   if (targetIndex == null || !Number.isFinite(targetIndex)) return null;
 
-  return findPointByIndex(targetIndex);
+  return findPointByCanonicalIndex(targetIndex) ?? findPointByIndex(targetIndex);
 }
 
 function pointToLngLat(point: unknown): [number, number] | null {
@@ -881,13 +1049,19 @@ function pointToLngLat(point: unknown): [number, number] | null {
   return Number.isFinite(lng) && Number.isFinite(lat) ? [lng, lat] : null;
 }
 
-function eventDurationLabel(seconds: number | undefined): string {
-  if (seconds == null || !Number.isFinite(seconds)) return '';
-  const rounded = Math.round(seconds);
-  const mins = Math.floor(rounded / 60);
-  const secs = rounded % 60;
-  if (mins <= 0) return `${secs}s`;
-  return `${mins}m ${secs.toString().padStart(2, '0')}s`;
+function eventMapLabel(event: GpsTrackEvent): string {
+  const breakNumber =
+    props.trackEvents
+      .filter(isTrackEventBreak)
+      .findIndex((candidate) => eventKeysEqual(eventKey(candidate), eventKey(event))) + 1;
+  return trackEventTitle(event, breakNumber);
+}
+
+function eventMapIcon(event: GpsTrackEvent): string {
+  if (isTrackEventRecordingGap(event)) return GAP_EVENT_ICON_ID;
+  if (event.eventType === 'PHOTO_STOP') return PHOTO_EVENT_ICON_ID;
+  if (event.eventType === 'STOP') return EVENT_ICON_ID;
+  return event.eventType === 'DATA_ISSUE' ? ISSUE_EVENT_ICON_ID : NOTE_EVENT_ICON_ID;
 }
 
 function escapeHtml(value: string): string {
@@ -909,9 +1083,10 @@ function buildEventGeojson(): GeoJSON.FeatureCollection<GeoJSON.Point> {
         type: 'Feature',
         geometry: { type: 'Point', coordinates: point },
         properties: {
-          label: eventTypeLabel(event.eventType),
-          time: eventTimeLabel(event.startTimestamp),
-          duration: eventDurationLabel(event.durationInSec),
+          label: eventMapLabel(event),
+          time: formatTrackEventTimeRange(event, true),
+          duration: formatTrackEventDuration(trackEventDurationSeconds(event)),
+          icon: eventMapIcon(event),
           eventKey: eventKey(event),
         },
       });
@@ -951,23 +1126,51 @@ function scheduleEventLayerRetry() {
 
 function addEventLayer() {
   if (!map || map.getLayer(EVENT_LAYER)) return;
-  ensureEventIcon();
+  ensureEventIcon(EVENT_ICON_ID, pauseEventSvg);
+  ensureEventIcon(GAP_EVENT_ICON_ID, gapEventSvg);
+  ensureEventIcon(PHOTO_EVENT_ICON_ID, photoEventSvg);
+  ensureEventIcon(ISSUE_EVENT_ICON_ID, issueEventSvg);
+  ensureEventIcon(NOTE_EVENT_ICON_ID, noteEventSvg);
   map.addLayer({
     id: EVENT_LAYER,
     type: 'symbol',
     source: EVENT_SOURCE,
     layout: {
-      'icon-image': EVENT_ICON_ID,
-      'icon-size': 0.78,
+      'icon-image': ['get', 'icon'],
+      'icon-size': 1,
       'icon-allow-overlap': true,
       'icon-ignore-placement': true,
     },
   });
 }
 
+const selectedEvent = computed(() =>
+  props.trackEvents.find((event) => eventKeysEqual(eventKey(event), props.selectedEventKey))
+);
+
+function focusSelectedEvent(): boolean {
+  if (!map || !mapReady || !selectedEvent.value || !props.markerInteractionEnabled) return false;
+  const point = eventPoint(selectedEvent.value);
+  if (!point) return false;
+  if (isCollapsed.value) {
+    isCollapsed.value = false;
+    nextTick(() => {
+      map?.resize();
+      focusSelectedEvent();
+    });
+    return true;
+  }
+  map.easeTo({
+    center: point,
+    zoom: map.getZoom(),
+    duration: EVENT_FOCUS_DURATION_MS,
+  });
+  return true;
+}
+
 function selectedEventGeojson(): GeoJSON.FeatureCollection<GeoJSON.Point> {
-  const selectedEvent = props.trackEvents.find((event) => eventKeysEqual(eventKey(event), props.selectedEventKey));
-  const point = selectedEvent ? eventPoint(selectedEvent) : null;
+  const event = showEvents.value ? selectedEvent.value : undefined;
+  const point = event ? eventPoint(event) : null;
 
   return {
     type: 'FeatureCollection',
@@ -977,10 +1180,10 @@ function selectedEventGeojson(): GeoJSON.FeatureCollection<GeoJSON.Point> {
             type: 'Feature',
             geometry: { type: 'Point', coordinates: point },
             properties: {
-              label: eventTypeLabel(selectedEvent?.eventType),
-              time: eventTimeLabel(selectedEvent?.startTimestamp),
-              duration: eventDurationLabel(selectedEvent?.durationInSec),
-              eventKey: selectedEvent ? eventKey(selectedEvent) : undefined,
+              label: event ? eventMapLabel(event) : '',
+              time: event ? formatTrackEventTimeRange(event, true) : '',
+              duration: event ? formatTrackEventDuration(trackEventDurationSeconds(event)) : '',
+              eventKey: event ? eventKey(event) : undefined,
             },
           },
         ]
@@ -1018,9 +1221,9 @@ function addSelectedEventLayers() {
 
 function moveSelectedEventLayersToTop() {
   if (!map) return;
-  if (map.getLayer(EVENT_LAYER)) map.moveLayer(EVENT_LAYER);
   if (map.getLayer(SELECTED_EVENT_HALO_LAYER)) map.moveLayer(SELECTED_EVENT_HALO_LAYER);
   if (map.getLayer(SELECTED_EVENT_CORE_LAYER)) map.moveLayer(SELECTED_EVENT_CORE_LAYER);
+  if (map.getLayer(EVENT_LAYER)) map.moveLayer(EVENT_LAYER);
 }
 
 function drawSelectedEvent() {
@@ -1076,8 +1279,8 @@ function drawEvents() {
   drawSelectedEvent();
 }
 
-function ensureEventIcon() {
-  if (!map || map.hasImage(EVENT_ICON_ID)) return;
+function ensureEventIcon(iconId: string, svg: string) {
+  if (!map || map.hasImage(iconId)) return;
   const ratio =
     Number.isFinite(window.devicePixelRatio) && window.devicePixelRatio > 0
       ? window.devicePixelRatio
@@ -1091,28 +1294,33 @@ function ensureEventIcon() {
   if (!ctx) return;
 
   ctx.scale(pixelRatio, pixelRatio);
-  ctx.translate(EVENT_ICON_LOGICAL_SIZE / 2, EVENT_ICON_LOGICAL_SIZE / 2);
-  ctx.rotate(Math.PI / 4);
-  ctx.fillStyle = STOP_EVENT_MARKER_FILL;
-  ctx.strokeStyle = STOP_EVENT_MARKER_STROKE;
+  ctx.fillStyle = VIZ_LIGHT_COLOR;
+  ctx.strokeStyle = VIZ_SLATE_COLOR;
   ctx.lineWidth = EVENT_ICON_STROKE_WIDTH;
   ctx.beginPath();
-  ctx.roundRect(
-    -EVENT_ICON_DIAMOND_SIZE / 2,
-    -EVENT_ICON_DIAMOND_SIZE / 2,
-    EVENT_ICON_DIAMOND_SIZE,
-    EVENT_ICON_DIAMOND_SIZE,
-    EVENT_ICON_CORNER_RADIUS
-  );
+  ctx.roundRect(0, 0, EVENT_ICON_LOGICAL_SIZE, EVENT_ICON_LOGICAL_SIZE, EVENT_ICON_CORNER_RADIUS);
   ctx.fill();
   ctx.stroke();
 
-  map.addImage(EVENT_ICON_ID, ctx.getImageData(0, 0, pixelSize, pixelSize), { pixelRatio });
+  ctx.translate(EVENT_ICON_PADDING, EVENT_ICON_PADDING);
+  const iconScale = (EVENT_ICON_LOGICAL_SIZE - EVENT_ICON_PADDING * 2) / BOOTSTRAP_ICON_SIZE;
+  ctx.scale(iconScale, iconScale);
+  ctx.fillStyle = VIZ_SLATE_COLOR;
+  const iconDocument = new DOMParser().parseFromString(svg, 'image/svg+xml');
+  for (const path of iconDocument.querySelectorAll('path[d]')) {
+    ctx.fill(
+      new Path2D(path.getAttribute('d') ?? ''),
+      path.getAttribute('fill-rule') === 'evenodd' ? 'evenodd' : 'nonzero'
+    );
+  }
+
+  map.addImage(iconId, ctx.getImageData(0, 0, pixelSize, pixelSize), { pixelRatio });
 }
 
 function toggleEvents() {
   if (props.trackEvents.length === 0) return;
   showEvents.value = !showEvents.value;
+  if (!showEvents.value) clearEventPopup();
   drawEvents();
 }
 
@@ -1170,6 +1378,7 @@ function toggleCollapse() {
   if (!isCollapsed.value) {
     nextTick(() => {
       map?.resize();
+      if (focusSelectedEvent()) return;
       // Re-fit to track if we have one
       const coordinates = trackLineCoordinates();
       if (coordinates.length > 0) {
@@ -1177,7 +1386,7 @@ function toggleCollapse() {
           (b, c) => b.extend(c as [number, number]),
           new maplibregl.LngLatBounds(coordinates[0], coordinates[0])
         );
-        map?.fitBounds(bounds, { padding: TRACK_FIT_BOUNDS_PADDING_PX, duration: TRACK_FIT_BOUNDS_DURATION_MS });
+        map?.fitBounds(bounds, { padding: trackFitPadding(), duration: TRACK_FIT_BOUNDS_DURATION_MS });
       }
     });
   }
@@ -1200,11 +1409,14 @@ function clearMapInteractionOutsideSurfaces(event: MouseEvent | PointerEvent) {
 }
 
 onBeforeUnmount(() => {
+  vectorRecovery?.dispose();
+  vectorRecovery = null;
   document.removeEventListener('mousemove', clearMapInteractionOutsideSurfaces, true);
   document.removeEventListener('pointermove', clearMapInteractionOutsideSurfaces, true);
   clearEventLayerRetry();
   cancelMapHover();
   clearPointPopup();
+  clearEventPopup();
   if (map && canvasLeaveHandler) {
     map.getCanvas().removeEventListener('mouseleave', canvasLeaveHandler);
     canvasLeaveHandler = null;
@@ -1229,12 +1441,8 @@ function redrawTrack() {
 watch(
   () => props.trackEvents,
   () => {
-    if (props.trackEvents.length === 0) {
-      showEvents.value = false;
-    } else {
-      showEvents.value = true;
-    }
     drawEvents();
+    focusSelectedEvent();
   },
   { deep: true }
 );
@@ -1246,9 +1454,26 @@ watch(
 );
 
 watch(
-  () => props.mediaInteractionEnabled,
+  () => props.pointDetailsEnabled,
+  (enabled) => {
+    if (!enabled) clearPointPopup();
+  }
+);
+
+watch(
+  () => props.markerInteractionEnabled,
   (enabled) => {
     syncPhotoMarkerInteractivity();
+    if (!enabled) {
+      clearEventPopup();
+      if (map) map.getCanvas().style.cursor = '';
+    }
+  }
+);
+
+watch(
+  () => props.mediaInteractionEnabled,
+  (enabled) => {
     if (enabled) {
       clearMapInteraction();
       clearPointPopup();
@@ -1279,20 +1504,14 @@ watch(trackPointVersion, () => {
     drawTrack();
   }
   drawEvents();
+  focusSelectedEvent();
 });
 
 watch(
   () => props.selectedEventKey,
-  (selectedKey) => {
-    const wasShowingEvents = showEvents.value;
-    if (selectedKey != null && props.trackEvents.length > 0) {
-      showEvents.value = true;
-    }
-    if (!wasShowingEvents && showEvents.value) {
-      drawEvents();
-      return;
-    }
+  () => {
     drawSelectedEvent();
+    focusSelectedEvent();
   }
 );
 
@@ -1305,7 +1524,10 @@ onMounted(() => {
 watch(
   () => props.gpsTrackId,
   () => {
+    showEvents.value = true;
+    showMedia.value = true;
     redrawTrack();
+    drawPhotoMarkers();
   }
 );
 </script>
@@ -1321,7 +1543,11 @@ watch(
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 14px;
+  width: 100%;
+  min-height: 2.75rem;
+  gap: 0.5rem;
+  border: 0;
+  font-family: inherit;
   cursor: pointer;
   background: var(--surface-hover);
   border-bottom: 1px solid var(--border-default);
@@ -1354,20 +1580,27 @@ watch(
   border-color: var(--border-hover);
 }
 
-.map-overlay-events-btn {
+.map-overlay-filters {
   position: absolute;
   top: 6px;
   left: 6px;
   z-index: 1001;
-  min-width: 32px;
-  height: 28px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  max-width: calc(100% - 64px);
+}
+
+.map-overlay-filter-btn {
+  min-height: 2.25rem;
+  padding: 0.25rem 0.5rem;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 4px;
   background: var(--surface-glass-light);
   border: 1px solid var(--border-medium);
-  border-radius: 4px;
+  border-radius: 8px;
   cursor: pointer;
   font-size: var(--text-sm-size);
   color: var(--text-muted);
@@ -1377,12 +1610,19 @@ watch(
 
 .map-overlay-events-btn:hover:not(:disabled),
 .map-overlay-events-btn.active {
-  background: var(--warning-bg);
-  border-color: var(--warning);
-  color: var(--warning-text);
+  background: var(--accent-subtle);
+  border-color: var(--accent-muted);
+  color: var(--text-primary);
 }
 
-.map-overlay-events-btn:disabled {
+.map-overlay-media-btn:hover:not(:disabled),
+.map-overlay-media-btn.active {
+  background: var(--accent-subtle);
+  border-color: var(--accent-muted);
+  color: var(--text-primary);
+}
+
+.map-overlay-filter-btn:disabled {
   opacity: 0.45;
   cursor: default;
 }
@@ -1397,10 +1637,10 @@ watch(
   justify-content: center;
   min-height: 2.15rem;
   gap: 0.4rem;
-  border: 1px solid var(--border-medium);
+  border: 1px solid var(--accent);
   border-radius: 999px;
   background: var(--surface-glass-heavy);
-  color: var(--text-primary);
+  color: var(--accent-text);
   cursor: pointer;
   font-size: var(--text-xs-size);
   font-weight: 700;
@@ -1420,7 +1660,7 @@ watch(
   opacity: 0.45;
 }
 
-.event-count {
+.marker-count {
   min-width: 1.25em;
   font-size: var(--text-xs-size);
   line-height: var(--text-xs-lh);
@@ -1450,7 +1690,7 @@ watch(
   border: 3px solid var(--media-marker-border);
   border-radius: var(--media-marker-border-radius);
   box-shadow: 0 2px 8px rgba(15, 23, 42, 0.34);
-  cursor: default;
+  cursor: pointer;
   font-size: 0.8rem;
   transition:
     box-shadow 140ms ease,
@@ -1458,14 +1698,15 @@ watch(
     outline-color 140ms ease;
 }
 
-:global(.mini-map-photo-marker--interactive) {
-  cursor: pointer;
-}
-
 :global(.mini-map-photo-marker--selected) {
   outline: 4px solid color-mix(in srgb, var(--accent) 55%, transparent);
   outline-offset: 3px;
   z-index: 2;
+}
+
+:global(.mini-map-photo-marker:disabled) {
+  pointer-events: none;
+  cursor: inherit;
 }
 
 :global(.mini-map-photo-marker--highlighted) {
@@ -1519,5 +1760,25 @@ watch(
 .resize-handle:active .resize-grip {
   width: 48px;
   background: var(--text-faint);
+}
+.mini-map-collapsed-strip:focus-visible,
+.map-overlay-collapse-btn:focus-visible,
+.map-overlay-filter-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+@container track-details (max-width: 480px) {
+  .map-overlay-collapse-btn,
+  .map-overlay-filter-btn {
+    min-width: 2.75rem;
+    height: 2.75rem;
+  }
+}
+@container track-details (max-width: 768px) {
+  .map-overlay-filter-btn {
+    min-width: 2.75rem;
+    height: 2.75rem;
+    padding: 0.25rem 0.5rem;
+  }
 }
 </style>

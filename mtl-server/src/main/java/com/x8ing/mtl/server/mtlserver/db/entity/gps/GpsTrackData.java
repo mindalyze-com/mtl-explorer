@@ -1,7 +1,10 @@
 package com.x8ing.mtl.server.mtlserver.db.entity.gps;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
-import tools.jackson.databind.annotation.JsonSerialize;
+import com.x8ing.mtl.server.mtlserver.gpx.GpsObservationEvidence;
+import com.x8ing.mtl.server.mtlserver.gpx.GpsProcessingIssue;
+import com.x8ing.mtl.server.mtlserver.gpx.RecordedPathGeometry;
 import com.x8ing.mtl.server.mtlserver.web.global.LineStringSerializer;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -10,12 +13,15 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+import org.locationtech.jts.geom.Coordinate;
+import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.LineString;
+import tools.jackson.databind.annotation.JsonSerialize;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
+import java.util.*;
 
 @Entity
 @Data
@@ -30,6 +36,9 @@ import java.util.List;
         "precisionInMeter",
         "numberOfPhysicalPoints",
         "track",
+        "recordingBreakBeforePointIndexes",
+        "observationEvidence",
+        "processingSettings",
         "gpsTrackEvents"
 })
 public class GpsTrackData {
@@ -101,6 +110,33 @@ public class GpsTrackData {
             arraySchema = @Schema(description = "Coordinate arrays [[lng, lat, elevation], ...]. Custom serialized by LineStringSerializer for bandwidth efficiency."))
     private LineString track;
 
+    @JsonIgnore
+    @Schema(hidden = true)
+    @Column(columnDefinition = "geometry(Geometry,4326)")
+    private Geometry observedPath;
+
+    @Builder.Default
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(columnDefinition = "jsonb")
+    private List<Integer> recordingBreakBeforePointIndexes = new ArrayList<>();
+
+    @Builder.Default
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(columnDefinition = "jsonb")
+    private List<GpsObservationEvidence> observationEvidence = new ArrayList<>();
+
+    @Builder.Default
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(columnDefinition = "jsonb")
+    private java.util.Map<String, String> processingSettings = java.util.Map.of();
+
+    @JsonIgnore
+    @Schema(hidden = true)
+    @Builder.Default
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(columnDefinition = "jsonb")
+    private List<GpsProcessingIssue> processingIssues = new ArrayList<>();
+
     @Builder.Default
     @Transient
     private List<GpsTrackEvent> gpsTrackEvents = new ArrayList<>();
@@ -109,6 +145,28 @@ public class GpsTrackData {
     @PreUpdate
     void updateNumberOfPhysicalPoints() {
         numberOfPhysicalPoints = track == null ? null : track.getNumPoints();
+        observedPath = trackType == TRACK_TYPE.RAW_OUTLIER_CLEANED
+                ? RecordedPathGeometry.candidates(track, recordingBreakBeforePointIndexes)
+                : buildObservedPath(track, recordingBreakBeforePointIndexes);
     }
 
+    public static Geometry buildObservedPath(LineString line, List<Integer> breakIndexes) {
+        if (line == null) return null;
+        Set<Integer> breaks = new HashSet<>(breakIndexes == null ? List.of() : breakIndexes);
+        List<LineString> spans = new ArrayList<>();
+        Coordinate[] coordinates = line.getCoordinates();
+        for (int from = 0; from < coordinates.length; ) {
+            int to = from + 1;
+            while (to < coordinates.length && !breaks.contains(to)) to++;
+            if (to - from >= 2) {
+                Coordinate[] horizontal = new Coordinate[to - from];
+                for (int i = from; i < to; i++) horizontal[i - from] = new org.locationtech.jts.geom.CoordinateXY(coordinates[i].getX(), coordinates[i].getY());
+                spans.add(line.getFactory().createLineString(horizontal));
+            }
+            from = to;
+        }
+        Geometry result = line.getFactory().createMultiLineString(spans.toArray(LineString[]::new));
+        result.setSRID(line.getSRID());
+        return result;
+    }
 }

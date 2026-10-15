@@ -71,7 +71,7 @@ import { submitClientEnvironmentOnce } from '@/utils/clientEnvironmentAnalytics'
 import { getRandomBackground } from '@/utils/backgrounds';
 import { fetchMapConfig } from '@/utils/mapConfigService';
 import { getDemoStatus } from '@/utils/ServiceHelper';
-import { describeError, startStartupTimer, startupLog } from '@/utils/startupDiagnostics';
+import { startStartupTimer, startupLog } from '@/utils/startupDiagnostics';
 import { clearSplashLogoTop, saveSplashLogoTop } from '@/utils/splashLogoPosition';
 import AboutSourceOverlay from '@/components/info/AboutSourceOverlay.vue';
 import { apiUrl } from '@/utils/apiBase';
@@ -184,7 +184,6 @@ async function handleLogin() {
       showNotice('Login failed. Invalid response.');
     }
   } catch (error) {
-    loginTimer.error('Login request failed', describeError(error));
     if (axios.isAxiosError(error)) {
       if (!error.response) {
         showNotice('Network error. Unable to reach the server.');
@@ -196,7 +195,7 @@ async function handleLogin() {
     } else {
       showNotice('An unexpected error occurred.');
     }
-    logSanitizedError('Login error', error);
+    logSanitizedError('Login error', error, { topic1: 'application', topic2: 'LoginView', topic3: 'handleLogin' });
   } finally {
     loading.value = false;
   }
@@ -349,6 +348,9 @@ async function handleLogin() {
   backdrop-filter: blur(4px) saturate(120%) !important;
   -webkit-backdrop-filter: blur(4px) saturate(120%) !important;
   padding: 0.72rem 0.95rem !important;
+  /* The shared field-density rules must not resize the photo login controls. */
+  min-height: auto !important;
+  line-height: normal !important;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.08),
     0 10px 24px rgba(0, 0, 0, 0.1) !important;
@@ -399,6 +401,7 @@ async function handleLogin() {
   transition: background-color 9999s ease-out 0s !important;
 }
 
+/* Photo-overlay controls keep their glass treatment in both app themes. */
 :deep(.mac-button) {
   width: 100%;
   border-radius: 20px !important;
@@ -414,16 +417,25 @@ async function handleLogin() {
     inset 0 1px 0 rgba(255, 255, 255, 0.12),
     0 10px 28px rgba(0, 0, 0, 0.26) !important;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
-  transition: all 0.25s ease;
+  transition:
+    background-color 0.25s ease,
+    border-color 0.25s ease,
+    box-shadow 0.25s ease,
+    transform 0.25s ease;
 }
 
-:deep(.mac-button:hover) {
+:deep(.mac-button:hover:not(:disabled)) {
   background-color: rgba(255, 255, 255, 0.22) !important;
   border-color: rgba(255, 255, 255, 0.32) !important;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.14),
     0 12px 32px rgba(0, 0, 0, 0.3) !important;
   transform: translateY(-1px);
+}
+
+:deep(.mac-button:focus-visible) {
+  outline: 2px solid var(--on-photo-text-strong) !important;
+  outline-offset: 3px !important;
 }
 
 :deep(.mac-button .p-button-label) {

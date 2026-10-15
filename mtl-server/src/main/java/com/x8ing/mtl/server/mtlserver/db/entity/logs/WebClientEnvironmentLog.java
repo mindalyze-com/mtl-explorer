@@ -12,7 +12,7 @@ import java.util.Date;
 @JsonPropertyOrder({
         "id",
         "createDate",
-        "userSessionId",
+        "clientLoginRef",
         "ipAddress",
         "userAgent",
         "timezone",
@@ -44,8 +44,8 @@ public class WebClientEnvironmentLog {
     @Column(name = "create_date")
     private Date createDate = new Date();
 
-    @Column(name = "user_session_id", length = 32)
-    private String userSessionId;
+    @Column(name = "client_login_ref", length = 32)
+    private String clientLoginRef;
 
     @Column(name = "ip_address", length = 64)
     private String ipAddress;

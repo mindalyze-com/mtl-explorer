@@ -7,13 +7,14 @@ import com.x8ing.mtl.server.mtlserver.db.readonly.DynamicSqlService;
 import com.x8ing.mtl.server.mtlserver.db.readonly.spring.QueryResult;
 import com.x8ing.mtl.server.mtlserver.db.repository.config.FilterConfigRepository;
 import com.x8ing.mtl.server.mtlserver.db.repository.gps.GpsTrackRepository;
-import com.x8ing.mtl.server.mtlserver.logic.grouping.sql.FilterParamResolver;
 import com.x8ing.mtl.server.mtlserver.logic.grouping.sql.FilterExecutionService;
+import com.x8ing.mtl.server.mtlserver.logic.grouping.sql.FilterParamResolver;
 import com.x8ing.mtl.server.mtlserver.logic.grouping.sql.GpsTrackSQLFilter;
 import com.x8ing.mtl.server.mtlserver.logic.grouping.sql.metadata.FilterMetadataResolver;
 import com.x8ing.mtl.server.mtlserver.web.services.track.entity.filter.FilterInfo;
 import com.x8ing.mtl.server.mtlserver.web.services.track.entity.filter.FilterParamsRequest;
 import com.x8ing.mtl.server.mtlserver.web.services.track.entity.filter.ParamDefinition;
+import com.x8ing.mtl.server.mtlserver.web.services.track.entity.filter.TrackViewScope;
 import com.x8ing.mtl.server.mtlserver.web.services.track.entity.metadata.FilterEffectiveUiMetadata;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
@@ -122,7 +123,7 @@ public class FilterController {
             queryResult.setFilterGroups(groups);
 
             queryResult.setStandardFilterCount(
-                    filterExecutionService.standardFilterCount(queryResult.getResultEntries().size()));
+                    scopedStandardFilterCount(queryResult.getResultEntries().size(), params));
         }
 
         // optional: if asked to include gps tracks do so
@@ -140,6 +141,12 @@ public class FilterController {
             }
         }
         return queryResult;
+    }
+
+    private long scopedStandardFilterCount(long fallback, FilterParamsRequest params) {
+        return params != null && params.getTrackViewScope() != null && params.getTrackViewScope() != TrackViewScope.ALL
+                ? filterExecutionService.standardFilterCount(fallback, params)
+                : filterExecutionService.standardFilterCount(fallback);
     }
 
     @RequestMapping("/resolve-by")

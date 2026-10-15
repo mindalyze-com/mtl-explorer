@@ -83,6 +83,14 @@ public abstract class EnergyCalculator {
         return totalMassKg * EnergyParameters.GRAVITY * deltaH;
     }
 
+    protected double gravitationalEnergy(double totalMassKg, GpsTrackDataPoint current, GpsTrackDataPoint previous) {
+        if (current.getIntervalStatus() == GpsTrackDataPoint.IntervalStatus.UNKNOWN) return 0;
+        Double delta = current.getAscentInMeterBetweenPoints();
+        if (delta != null) return totalMassKg * EnergyParameters.GRAVITY * delta;
+        return current.getIntervalStatus() == null
+                ? gravitationalEnergy(totalMassKg, current.getPointAltitude(), previous.getPointAltitude()) : 0;
+    }
+
     /**
      * Change in kinetic energy: ½·m·(v₂² − v₁²)
      * Positive = acceleration (energy spent), negative = deceleration.
@@ -142,12 +150,14 @@ public abstract class EnergyCalculator {
     protected double smoothedSpeedMps(GpsTrackDataPoint point, EnergyParameters params) {
         if (point == null) return 0;
         Double kmh = point.getSpeedInKmhMovingWindow();
-        if (kmh != null && kmh > 0) return kmh / 3.6;
-        double inst = speedMps(point);
-        if (inst > 0) return inst;
+        if (kmh != null && Double.isFinite(kmh) && kmh >= 0) return kmh / 3.6;
+        Double distance = point.getDistanceInMeterBetweenPoints();
+        Double duration = point.getDurationBetweenPointsInSec();
+        if (distance != null && Double.isFinite(distance) && distance >= 0
+            && duration != null && Double.isFinite(duration) && duration > 0) return distance / duration;
         if (params != null) {
             Double trackAvg = params.getTrackAverageSpeedMpsFallback();
-            if (trackAvg != null && trackAvg > 0) return trackAvg;
+            if (trackAvg != null && Double.isFinite(trackAvg) && trackAvg > 0) return trackAvg;
         }
         return 0;
     }
@@ -183,11 +193,11 @@ public abstract class EnergyCalculator {
         double resistance = defaultResistanceCoefficient == null
                 ? 0.0
                 : rollingResistanceEnergy(
-                        params.getRollingCoefficient(defaultResistanceCoefficient), totalMass, distance);
+                params.getRollingCoefficient(defaultResistanceCoefficient), totalMass, distance);
 
         return EnergyComponents.builder()
                 .gravitationalJoules(gravitationalEnergy(
-                        totalMass, current.getPointAltitude(), prev.getPointAltitude()))
+                        totalMass, current, prev))
                 .aeroDragJoules(aeroDragEnergy(
                         dragCoefficient, frontalArea, params.getAirDensity(), speedForDrag, distance))
                 .rollingResistanceJoules(resistance)
@@ -209,7 +219,7 @@ public abstract class EnergyCalculator {
         double totalMass = params.getTotalMassKg(getDefaultEquipmentWeightKg());
         return EnergyComponents.builder()
                 .gravitationalJoules(gravitationalEnergy(
-                        totalMass, current.getPointAltitude(), prev.getPointAltitude()))
+                        totalMass, current, prev))
                 .kineticJoules(kineticEnergyChange(
                         totalMass, smoothedSpeedMps(current, params), smoothedSpeedMps(prev, params)))
                 .build();

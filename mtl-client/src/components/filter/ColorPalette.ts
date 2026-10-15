@@ -4,6 +4,8 @@ import { CONFIG_DOMAIN1_CLIENT, fetchConfig } from '@/utils/ServiceHelper';
 
 import { markRaw } from 'vue';
 
+const NO_COLORING_LABEL = 'No coloring';
+
 export class ColorPalette {
   id!: number;
   domain1?: string;
@@ -11,6 +13,9 @@ export class ColorPalette {
   domain3?: string;
   value?: string;
   description?: string;
+
+  // Persist the user's empty choice separately from an unset default palette.
+  noColoring = false;
 
   pLabel?: string;
   pDescription?: string;
@@ -84,8 +89,25 @@ export class ColorPalette {
     return !(this.pColors && this.pColors.length > 0 && this.id);
   }
 
+  static withoutColoring(): ColorPalette {
+    const palette = new ColorPalette();
+    palette.noColoring = true;
+    palette.pLabel = NO_COLORING_LABEL;
+    palette.pDescription = 'No coloring at all';
+    return palette;
+  }
+
   static of(configEntity: ConfigEntity | ColorPalette | undefined | null): ColorPalette {
     if (configEntity instanceof ColorPalette) return configEntity;
+
+    const storedPalette = configEntity as Partial<ColorPalette> | undefined | null;
+    if (
+      storedPalette?.noColoring === true ||
+      // Older saved explicit choices had only this label, without a palette config.
+      (storedPalette?.pLabel === NO_COLORING_LABEL && !storedPalette.id && !storedPalette.value)
+    ) {
+      return this.withoutColoring();
+    }
 
     const colorPalette = new ColorPalette();
 

@@ -22,6 +22,7 @@ import { installMissingStyleImageResolver } from '@/utils/maplibreStyleImages';
 import { useMapSettingsStore } from '@/stores/mapSettingsStore';
 import { resolveMediaPositionMarkerStyle } from '@/components/map/mediaPositionMarkerStyle';
 import { TRACK_COLOR } from '@/utils/trackColors';
+import { observeElementResize } from '@/utils/observeElementResize';
 
 const MINI_MAP_DEFAULT_ZOOM = 15;
 const MINI_MAP_MAX_FIT_ZOOM = 16;
@@ -53,7 +54,7 @@ const mapSettingsStore = useMapSettingsStore();
 let map: maplibregl.Map | null = null;
 let photoMarker: maplibregl.Marker | null = null;
 let markerElement: HTMLDivElement | null = null;
-let resizeObserver: ResizeObserver | null = null;
+let stopObservingResize: (() => void) | null = null;
 let disposed = false;
 let mapReady = false;
 
@@ -98,6 +99,7 @@ async function initMap(): Promise<void> {
       center: [props.longitude, props.latitude],
       zoom: MINI_MAP_DEFAULT_ZOOM,
       interactive: false,
+      trackResize: false,
       attributionControl: false,
       doubleClickZoom: false,
     })
@@ -105,8 +107,7 @@ async function initMap(): Promise<void> {
   installMissingStyleImageResolver(map);
   map.on('load', onMapLoad);
 
-  resizeObserver = new ResizeObserver(() => map?.resize());
-  resizeObserver.observe(mapEl.value);
+  stopObservingResize = observeElementResize(mapEl.value, () => map?.resize());
 }
 
 function onMapLoad(): void {
@@ -245,7 +246,7 @@ watch(() => [props.positionSource, props.positionEstimated] as const, updateMark
 onMounted(() => void initMap());
 onBeforeUnmount(() => {
   disposed = true;
-  resizeObserver?.disconnect();
+  stopObservingResize?.();
   photoMarker?.remove();
   photoMarker = null;
   markerElement = null;

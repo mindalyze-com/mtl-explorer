@@ -4,19 +4,13 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.x8ing.mtl.server.mtlserver.logic.motion.TrackStopDetector;
 import lombok.extern.slf4j.Slf4j;
 import org.locationtech.jts.geom.Coordinate;
-import org.locationtech.jts.geom.CoordinateXYZM;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
 /**
- * Second-pass GPS cleaner for the outlier-cleaned coordinate stream.
- *
- * <p>The raw track is left untouched. This pass removes conservative isolated
- * A-B-C spikes, then replaces detected stationary GPS-drift clusters with two
- * identical-location anchors at the robust stop center. The anchors preserve
- * stop duration while deleting noisy indoor geometry from downstream variants.
+ * Conservative isolated-spike cleanup. Motion analysis runs later, on accepted denoised geometry.
  */
 @Slf4j
 public final class BreakStopTreatment {
@@ -46,6 +40,14 @@ public final class BreakStopTreatment {
                          int collapsedPoints) {
     }
 
+    static java.util.Map<String, String> cleaningSettings() {
+        return java.util.Map.of("isolatedPosition.jumpMetres", Double.toString(SPIKE_JUMP_M),
+                "isolatedPosition.returnMetres", Double.toString(SPIKE_RETURN_M),
+                "isolatedPosition.maximumLegSeconds", Double.toString(SPIKE_MAX_DT_S),
+                "isolatedPosition.supportReturnMetres", Double.toString(SPIKE_SUPPORT_RETURN_M),
+                "isolatedPosition.maximumUnsupportedSeconds", Double.toString(UNSUPPORTED_SPIKE_MAX_TOTAL_DT_S));
+    }
+
     public static Result apply(List<Coordinate> input) {
         if (input == null || input.size() < 3) {
             List<Coordinate> passthrough = input == null ? new ArrayList<>() : new ArrayList<>(input);
@@ -55,15 +57,9 @@ public final class BreakStopTreatment {
         List<Coordinate> afterSpikes = new ArrayList<>(input.size());
         int spikesRemoved = removeIsolatedSpikes(input, afterSpikes);
 
-        List<TrackStopDetector.StopRange> stops = TrackStopDetector.detectRawStopRangesInCoordinates(afterSpikes);
-        List<Coordinate> output = new ArrayList<>(afterSpikes.size());
-        int collapsedPoints = collapseStops(afterSpikes, output, stops);
-
-        if (spikesRemoved > 0 || !stops.isEmpty()) {
-            log.info("BreakStopTreatment: spikesRemoved={} stops={} collapsedPoints={} inputSize={} outputSize={}",
-                    spikesRemoved, stops.size(), collapsedPoints, input.size(), output.size());
-        }
-        return new Result(output, stops, spikesRemoved, collapsedPoints);
+        log.info("Isolated-spike cleanup completed: spikesRemoved={} inputSize={} outputSize={}",
+                spikesRemoved, input.size(), afterSpikes.size());
+        return new Result(afterSpikes, List.of(), spikesRemoved, 0);
     }
 
     private static int removeIsolatedSpikes(List<Coordinate> input, List<Coordinate> output) {
@@ -103,53 +99,6 @@ public final class BreakStopTreatment {
         }
         output.add(input.get(input.size() - 1));
         return removed;
-    }
-
-    private static int collapseStops(List<Coordinate> input,
-                                     List<Coordinate> output,
-                                     List<TrackStopDetector.StopRange> stops) {
-        if (stops.isEmpty()) {
-            output.addAll(input);
-            return 0;
-        }
-
-        int collapsed = 0;
-        int nextStop = 0;
-        int i = 0;
-        while (i < input.size()) {
-            if (nextStop >= stops.size()) {
-                output.add(input.get(i));
-                i++;
-                continue;
-            }
-
-            TrackStopDetector.StopRange stop = stops.get(nextStop);
-            if (i < stop.startIndex()) {
-                output.add(input.get(i));
-                i++;
-                continue;
-            }
-
-            if (i == stop.startIndex()) {
-                output.add(new CoordinateXYZM(
-                        stop.centerLng(),
-                        stop.centerLat(),
-                        stop.centerElevation(),
-                        stop.startTimeS()));
-                output.add(new CoordinateXYZM(
-                        stop.centerLng(),
-                        stop.centerLat(),
-                        stop.centerElevation(),
-                        stop.endTimeS()));
-                collapsed += stop.deletedPoints();
-                i = stop.endIndex() + 1;
-                nextStop++;
-                continue;
-            }
-
-            nextStop++;
-        }
-        return collapsed;
     }
 
     private static double deltaSeconds(Coordinate a, Coordinate b) {

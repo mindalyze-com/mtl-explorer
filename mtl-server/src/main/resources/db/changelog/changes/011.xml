@@ -573,10 +573,11 @@
     </changeSet>
 
     <changeSet id="20240909_1" author="patrick.heusser">
+        <validCheckSum>9:400d2243224cba84d606726ce45a755e</validCheckSum>
 
         <sql>
             CREATE
-            USER mtluserreadonly WITH PASSWORD 'MtlSuper123';
+            USER mtluserreadonly;
             GRANT CONNECT
             ON DATABASE mtl TO mtluserreadonly;
             GRANT USAGE ON SCHEMA

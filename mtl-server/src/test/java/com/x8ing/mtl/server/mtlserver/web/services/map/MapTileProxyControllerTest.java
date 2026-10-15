@@ -1,17 +1,11 @@
 package com.x8ing.mtl.server.mtlserver.web.services.map;
 
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.info.BuildProperties;
 import org.springframework.http.HttpHeaders;
 
 import java.io.IOException;
-import java.time.Instant;
-import java.util.Properties;
 
-import static jakarta.servlet.http.HttpServletResponse.SC_NOT_FOUND;
-import static jakarta.servlet.http.HttpServletResponse.SC_OK;
-import static jakarta.servlet.http.HttpServletResponse.SC_PARTIAL_CONTENT;
-import static jakarta.servlet.http.HttpServletResponse.SC_REQUESTED_RANGE_NOT_SATISFIABLE;
+import static jakarta.servlet.http.HttpServletResponse.*;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class MapTileProxyControllerTest {
@@ -26,52 +20,41 @@ class MapTileProxyControllerTest {
     }
 
     @Test
-    void buildVersionParamIncludesBuildTimeWithoutAuthSeparatorCharacters() {
-        Instant buildTime = Instant.parse("2026-05-02T19:25:13.528Z");
-        Properties entries = new Properties();
-        entries.setProperty("version", "0.0.1-SNAPSHOT");
-        entries.setProperty("time", buildTime.toString());
-
-        String versionParam = MapTileProxyController.buildVersionParam(new BuildProperties(entries));
-
-        assertThat(versionParam).isEqualTo("0.0.1-SNAPSHOT_2026-05-02T19_25_13Z");
-        assertThat(versionParam).doesNotContain(":");
-        assertThat(versionParam).doesNotContain(".528");
-    }
-
-    @Test
-    void buildVersionParamReplacesSpecialCharactersInVersion() {
-        Properties entries = new Properties();
-        entries.setProperty("version", "0.0.1 SNAPSHOT:local/build");
-
-        String versionParam = MapTileProxyController.buildVersionParam(new BuildProperties(entries));
-
-        assertThat(versionParam).isEqualTo("0.0.1_SNAPSHOT_local_build");
-    }
-
-    @Test
     void buildUpstreamUrlEncodesPrivateQueryParameters() {
         String upstreamUrl = MapTileProxyController.buildUpstreamUrl(
                 "https://maps.example.test",
                 "prod",
                 "world-lowzoom.pmtiles",
                 "0.0.1 SNAPSHOT:local/build",
-                "server:id/1");
+                "2026-10-06T10:20:30+02:00",
+                "server:id/1",
+                true,
+                "login:ref/1");
 
         assertThat(upstreamUrl)
                 .isEqualTo("https://maps.example.test/prod/world-lowzoom.pmtiles"
-                        + "?mtl-version=0.0.1%20SNAPSHOT%3Alocal%2Fbuild"
-                        + "&mtl-server-id=server%3Aid%2F1");
+                           + "?mtl-version=0.0.1%20SNAPSHOT%3Alocal%2Fbuild"
+                           + "&mtl-build=2026-10-06T10%3A20%3A30%2B02%3A00"
+                           + "&mtl-server-id=server%3Aid%2F1"
+                           + "&mtl-instance-type=demo"
+                           + "&mtl-client-login-ref=login%3Aref%2F1");
     }
 
     @Test
-    void buildVersionParamFallsBackToVersionOnlyWhenBuildTimeIsMissing() {
-        Properties entries = new Properties();
-        entries.setProperty("version", "0.0.1-SNAPSHOT");
+    void buildUpstreamUrlOmitsMissingClientLoginRef() {
+        String upstreamUrl = MapTileProxyController.buildUpstreamUrl(
+                "https://maps.example.test",
+                "prod",
+                "planet.pmtiles",
+                "1.0.0",
+                null,
+                "server-1",
+                false,
+                null);
 
-        String versionParam = MapTileProxyController.buildVersionParam(new BuildProperties(entries));
-
-        assertThat(versionParam).isEqualTo("0.0.1-SNAPSHOT");
+        assertThat(upstreamUrl)
+                .isEqualTo("https://maps.example.test/prod/planet.pmtiles"
+                           + "?mtl-version=1.0.0&mtl-server-id=server-1&mtl-instance-type=standard");
     }
 
     @Test

@@ -82,7 +82,9 @@ public class GpsTrackSQLFilter {
             return new QueryResult();
         }
 
-        return dynamicSqlService.executeDynamicSqlReadOnly(sql, params, true);
+        Map<String, String> serverParams = new HashMap<>(params);
+        serverParams.put("sourceIssueAccount", com.x8ing.mtl.server.mtlserver.sourceissues.IssueAccount.current());
+        return dynamicSqlService.executeDynamicSqlReadOnly(sql, serverParams, true);
     }
 
 }

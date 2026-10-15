@@ -5,8 +5,8 @@
         <p class="lab__eyebrow">Local test page</p>
         <h1>MTL Explorer video playback lab</h1>
         <p class="lab__intro">
-          Ten newly generated videos are served by the local MTL Explorer server. No compatible stream has been
-          prepared yet.
+          Ten newly generated videos are served by the local MTL Explorer server. No compatible stream has been prepared
+          yet.
         </p>
       </div>
 
@@ -33,11 +33,7 @@
       <div class="lab__grid">
         <article v-for="item in nativeVideos" :key="item.id" class="video-card video-card--native">
           <div class="video-card__stage">
-            <CompatibleVideoPlayer
-              :media-id="item.id"
-              :src="mediaContentUrl(item.id)"
-              :label="item.name"
-            />
+            <CompatibleVideoPlayer :media-id="item.id" :src="mediaContentUrl(item.id)" :label="item.name" />
           </div>
           <div class="video-card__body">
             <span class="video-card__number">{{ item.number }}</span>
@@ -62,11 +58,7 @@
       <div class="lab__grid">
         <article v-for="item in fallbackVideos" :key="item.id" class="video-card video-card--fallback">
           <div class="video-card__stage">
-            <CompatibleVideoPlayer
-              :media-id="item.id"
-              :src="mediaContentUrl(item.id)"
-              :label="item.name"
-            />
+            <CompatibleVideoPlayer :media-id="item.id" :src="mediaContentUrl(item.id)" :label="item.name" />
           </div>
           <div class="video-card__body">
             <span class="video-card__number">{{ item.number }}</span>
@@ -81,7 +73,8 @@
 
     <footer class="lab__footer">
       <p>
-        If media requests are rejected, <a href="/mtl/" target="_blank" rel="noreferrer">sign in to the normal local client</a>
+        If media requests are rejected,
+        <a href="/mtl/" target="_blank" rel="noreferrer">sign in to the normal local client</a>
         and reload this page.
       </p>
       <p>These fixtures and all compatible streams use an isolated temporary directory.</p>
@@ -138,8 +131,7 @@ body {
   color: #e7ecf4;
   background:
     radial-gradient(circle at 10% 0%, rgba(99, 102, 241, 0.16), transparent 30rem),
-    radial-gradient(circle at 92% 20%, rgba(8, 145, 178, 0.12), transparent 34rem),
-    #070b12;
+    radial-gradient(circle at 92% 20%, rgba(8, 145, 178, 0.12), transparent 34rem), #070b12;
 }
 
 button,

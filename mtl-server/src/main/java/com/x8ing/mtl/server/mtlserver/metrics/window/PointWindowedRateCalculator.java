@@ -136,6 +136,7 @@ public final class PointWindowedRateCalculator {
                 effectiveMaxGapSec(points, view),
                 NUM_SLOTS);
 
+        TrailingWindow elevationCoverage = new TrailingWindow(windowSec, effectiveMaxGapSec(points, view), 1);
         double prevAscentSinceStart = view.ascentInMeterSinceStart(points.get(0));
         double prevDescentSinceStart = view.descentInMeterSinceStart(points.get(0));
 
@@ -151,14 +152,20 @@ public final class PointWindowedRateCalculator {
             prevAscentSinceStart = curAscentSinceStart;
             prevDescentSinceStart = curDescentSinceStart;
 
+            if (!view.intervalSupported(current) || (i > 0 && duration <= 0)) {
+                window.reset();
+                elevationCoverage.reset();
+                out.add(WindowedRateSample.empty());
+                continue;
+            }
             window.step(duration, false, distance, ascentSegment, descentSegment);
+            elevationCoverage.step(duration, false, view.elevationSupported(current) ? 0 : duration);
 
             if (window.ready() && duration > 0) {
-                out.add(WindowedRateSample.fromWindow(
-                        window.windowDurationSec(),
-                        window.sum(IDX_DISTANCE),
-                        window.sum(IDX_ASCENT),
-                        window.sum(IDX_DESCENT)));
+                WindowedRateSample sample = WindowedRateSample.fromWindow(window.windowDurationSec(),
+                        window.sum(IDX_DISTANCE), window.sum(IDX_ASCENT), window.sum(IDX_DESCENT));
+                out.add(elevationCoverage.sum(0) > 0
+                        ? new WindowedRateSample(sample.speedInKmh(), null, null) : sample);
             } else {
                 out.add(WindowedRateSample.empty());
             }
@@ -174,18 +181,23 @@ public final class PointWindowedRateCalculator {
             "elevationGainPerHourMax",
             "elevationLossPerHourMax"
     })
-    public record PeakSummary(double speedInKmhMax, double elevationGainPerHourMax, double elevationLossPerHourMax) {
-        public static final PeakSummary ZERO = new PeakSummary(0d, 0d, 0d);
+    public record PeakSummary(Double speedInKmhMax, Double elevationGainPerHourMax, Double elevationLossPerHourMax) {
+        public static final PeakSummary ZERO = new PeakSummary(null, null, null);
+    }
+
+    private static Double nullableMax(Double previous, Double value) {
+        if (value == null || !Double.isFinite(value)) return previous;
+        return previous == null ? value : Math.max(previous, value);
     }
 
     public static PeakSummary peakOf(List<WindowedRateSample> samples) {
         if (samples == null || samples.isEmpty()) return PeakSummary.ZERO;
-        double speedMax = 0, gainMax = 0, lossMax = 0;
+        Double speedMax = null, gainMax = null, lossMax = null;
         for (WindowedRateSample s : samples) {
             if (s == null) continue;
-            speedMax = max(speedMax, s.speedInKmh());
-            gainMax = max(gainMax, s.elevationGainPerHour());
-            lossMax = max(lossMax, s.elevationLossPerHour());
+            speedMax = nullableMax(speedMax, s.speedInKmh());
+            gainMax = nullableMax(gainMax, s.elevationGainPerHour());
+            lossMax = nullableMax(lossMax, s.elevationLossPerHour());
         }
         return new PeakSummary(speedMax, gainMax, lossMax);
     }

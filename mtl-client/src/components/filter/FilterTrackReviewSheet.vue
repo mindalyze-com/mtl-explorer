@@ -1,12 +1,14 @@
 <template>
   <BottomSheet
     :model-value="modelValue"
+    back-label="Back to Filter"
     :title="title"
     icon="bi bi-table"
     :detents="FILTER_STANDARD_DETENTS"
     :no-backdrop="true"
     :z-index="5100"
     sheet-class="sheet--filter-detail sheet--filter-review"
+    @back="emit('update:modelValue', false)"
     @update:model-value="emit('update:modelValue', $event)"
   >
     <div v-if="loading" class="filter-review__loading" role="status">

@@ -3,6 +3,7 @@ package com.x8ing.mtl.server.mtlserver.metrics.bucket;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.x8ing.mtl.server.mtlserver.db.entity.gps.GpsTrackDataPoint;
 import com.x8ing.mtl.server.mtlserver.metrics.MetricConstants;
+import com.x8ing.mtl.server.mtlserver.metrics.chart.ChartPointBudget;
 import com.x8ing.mtl.server.mtlserver.metrics.window.WindowedRateSample;
 
 import java.time.Instant;
@@ -32,7 +33,7 @@ public final class ChartBucketBuilder {
     /**
      * Default {@code maxBuckets} when the caller does not provide one.
      */
-    public static final int DEFAULT_MAX_BUCKETS = 1500;
+    public static final int DEFAULT_MAX_BUCKETS = ChartPointBudget.DEFAULT;
 
     @JsonPropertyOrder({
             "xMode",
@@ -45,7 +46,7 @@ public final class ChartBucketBuilder {
                          List<MetricKey> metricFilter) {
         public Config {
             if (xMode == null) xMode = XMode.TIME;
-            if (maxBuckets < MIN_BUCKETS) maxBuckets = DEFAULT_MAX_BUCKETS;
+            maxBuckets = ChartPointBudget.resolve(maxBuckets < MIN_BUCKETS ? null : maxBuckets);
         }
     }
 

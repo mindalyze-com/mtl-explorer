@@ -184,12 +184,14 @@ def convert_fit_to_gpx(
             longitude=lon * GARMIN_SEMICIRCLES_TO_DEGREES,
         )
 
-        elevation = record.get_value("enhanced_altitude") or record.get_value("altitude")
+        elevation = record.get_value("enhanced_altitude")
+        if elevation is None:
+            elevation = record.get_value("altitude")
         if elevation is not None:
             try:
                 pt.elevation = float(elevation)
-            except Exception:
-                pass
+            except (TypeError, ValueError) as exc:
+                logging.warning("Invalid FIT elevation at record %s: %s: %s", point_count, type(exc).__name__, exc)
 
         timestamp = record.get_value("timestamp")
         if timestamp is not None:

@@ -3,20 +3,18 @@ package com.x8ing.mtl.server.mtlserver.web.services.track;
 import com.x8ing.mtl.server.mtlserver.db.entity.gps.GpsTrack;
 import com.x8ing.mtl.server.mtlserver.db.entity.gps.projection.NearbyTrackDistance;
 import com.x8ing.mtl.server.mtlserver.db.readonly.spring.QueryResult;
-import com.x8ing.mtl.server.mtlserver.db.repository.gps.GpsTrackAndDataService;
-import com.x8ing.mtl.server.mtlserver.db.repository.gps.GpsTrackDataPointRepository;
-import com.x8ing.mtl.server.mtlserver.db.repository.gps.GpsTrackDataRepository;
-import com.x8ing.mtl.server.mtlserver.db.repository.gps.GpsTrackEventRepository;
-import com.x8ing.mtl.server.mtlserver.db.repository.gps.GpsTrackRepository;
+import com.x8ing.mtl.server.mtlserver.db.repository.gps.*;
+import com.x8ing.mtl.server.mtlserver.db.repository.indexer.IndexerRepository;
 import com.x8ing.mtl.server.mtlserver.db.repository.media.TrackMediaQueryRepository;
 import com.x8ing.mtl.server.mtlserver.energy.EnergyService;
+import com.x8ing.mtl.server.mtlserver.indexer.TrackProcessingStatusService;
 import com.x8ing.mtl.server.mtlserver.logic.crossing.TrackTimeBetweenTwoPoints;
 import com.x8ing.mtl.server.mtlserver.logic.grouping.sql.FilterExecutionService;
+import com.x8ing.mtl.server.mtlserver.web.services.track.entity.NearbyTrackMediaDto;
+import com.x8ing.mtl.server.mtlserver.web.services.track.entity.TracksSimplifiedResponse;
 import com.x8ing.mtl.server.mtlserver.web.services.track.entity.filter.FilterParamsRequest;
 import com.x8ing.mtl.server.mtlserver.web.services.track.entity.filter.FilterResultGroupKey;
 import com.x8ing.mtl.server.mtlserver.web.services.track.entity.filter.FilterResultGroupSelection;
-import com.x8ing.mtl.server.mtlserver.web.services.track.entity.NearbyTrackMediaDto;
-import com.x8ing.mtl.server.mtlserver.web.services.track.entity.TracksSimplifiedResponse;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
@@ -25,15 +23,27 @@ import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyList;
-import static org.mockito.ArgumentMatchers.argThat;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
 
 class TracksControllerFilterScopingTest {
+
+    @Test
+    void archiveMembershipIgnoresFiltersAndScopesAndDoesNotHydrateTracks() {
+        GpsTrackRepository repository = mock(GpsTrackRepository.class);
+        FilterExecutionService filters = mock(FilterExecutionService.class);
+        GpsTrackAndDataService data = mock(GpsTrackAndDataService.class);
+        when(repository.findAllTrackVersions()).thenReturn(List.of(new Object[]{1L, 3L}, new Object[]{2L, 7L}));
+        var request = requestWithSelectionAndTrackIds();
+        request.setTrackViewScope(com.x8ing.mtl.server.mtlserver.web.services.track.entity.filter.TrackViewScope.GOOGLE_HEALTH_EXERCISE);
+
+        var response = controller(repository, filters, data).getTracksSimplified(request, BigDecimal.TEN, "Years", "archive-ids");
+
+        assertThat(response.getTrackVersions()).containsExactlyInAnyOrderEntriesOf(Map.of(1L, 3L, 2L, 7L));
+        assertThat(response.getNumberOfFilteredMatchedTracks()).isEqualTo(2);
+        assertThat(response.getStandardFilterCount()).isEqualTo(2);
+        verifyNoInteractions(filters, data);
+    }
 
     @Test
     void relatedAndDistanceLookupsReceiveOnlyEffectiveIds() {
@@ -47,21 +57,61 @@ class TracksControllerFilterScopingTest {
         when(repository.getRelatedTrackIdsNext(eq(99L), any(Long[].class))).thenReturn(List.of());
         when(repository.findSegmentSiblingIds(99L)).thenReturn(List.of());
         when(repository.findAllById(any())).thenReturn(List.of());
-        when(repository.getTracksWithinDistanceToPoint(eq(8.0), eq(47.0), eq(250.0), any(Long[].class)))
+        when(repository.getSegmentCandidateTrackIds(eq(8.0), eq(47.0), eq(250.0), any(Long[].class)))
                 .thenReturn(List.of(2L));
         TracksController controller = controller(repository, filterExecutionService, mock(GpsTrackAndDataService.class));
 
         controller.getRelatedTracks(request, 99L, "Years");
-        List<Long> nearby = controller.getTrackIdsWithinDistanceOfPoint("Years", request, 8.0, 47.0, 250.0);
+        List<Long> nearby = controller.getTrackIdsWithinDistanceOfPoint("Years", request, 8.0, 47.0, 250.0).trackIds();
 
         verify(repository).getRelatedTrackIdsPrevious(eq(99L), argThat(ids -> List.of(ids).equals(List.of(2L, 3L))));
         verify(repository).getRelatedTrackIdsNext(eq(99L), argThat(ids -> List.of(ids).equals(List.of(2L, 3L))));
-        verify(repository).getTracksWithinDistanceToPoint(
+        verify(repository).getSegmentCandidateTrackIds(
                 eq(8.0),
                 eq(47.0),
                 eq(250.0),
                 argThat(ids -> List.of(ids).equals(List.of(2L, 3L))));
         assertThat(nearby).containsExactly(2L);
+    }
+
+    @Test
+    void emptyNearbyResultStillIncludesUnavailableStatus() {
+        GpsTrackRepository repository = mock(GpsTrackRepository.class);
+        FilterExecutionService filter = mock(FilterExecutionService.class);
+        when(filter.executeOptionalFilterName(null, null)).thenReturn(queryResult());
+        when(repository.getSegmentCandidateTrackIds(eq(8.0), eq(47.0), eq(250.0), any(Long[].class)))
+                .thenReturn(List.of());
+        TracksController controller = controller(repository, filter, mock(GpsTrackAndDataService.class));
+
+        var response = controller.getTrackIdsWithinDistanceOfPoint(null, null, 8.0, 47.0, 250.0);
+
+        assertThat(response.trackIds()).isEmpty();
+        assertThat(response.processing().state()).isEqualTo(
+                com.x8ing.mtl.server.mtlserver.web.services.track.entity.TrackProcessingStatusDto.State.UNAVAILABLE);
+    }
+
+    @Test
+    void completionDuringSearchDoesNotHideAnIncompleteEmptyResult() {
+        GpsTrackRepository repository = mock(GpsTrackRepository.class);
+        FilterExecutionService filter = mock(FilterExecutionService.class);
+        TrackProcessingStatusService processing = new TrackProcessingStatusService(mock(IndexerRepository.class), repository);
+        processing.registerGpsScanState(() -> false);
+        when(filter.executeOptionalFilterName(null, null)).thenReturn(queryResult());
+        when(repository.getSegmentCandidateTrackIds(eq(8.0), eq(47.0), eq(250.0), any(Long[].class)))
+                .thenAnswer(invocation -> {
+                    processing.refresh();
+                    return List.of();
+                });
+        TracksController controller = controller(repository, filter, mock(GpsTrackAndDataService.class),
+                mock(TrackMediaQueryRepository.class), processing);
+
+        var response = controller.getTrackIdsWithinDistanceOfPoint(null, null, 8.0, 47.0, 250.0);
+
+        assertThat(response.trackIds()).isEmpty();
+        assertThat(response.processing().state()).isEqualTo(
+                com.x8ing.mtl.server.mtlserver.web.services.track.entity.TrackProcessingStatusDto.State.RUNNING);
+        assertThat(processing.getSnapshot().state()).isEqualTo(
+                com.x8ing.mtl.server.mtlserver.web.services.track.entity.TrackProcessingStatusDto.State.READY);
     }
 
     @Test
@@ -193,6 +243,17 @@ class TracksControllerFilterScopingTest {
             GpsTrackAndDataService trackAndDataService,
             TrackMediaQueryRepository trackMediaQueryRepository
     ) {
+        return controller(repository, filterExecutionService, trackAndDataService, trackMediaQueryRepository,
+                new TrackProcessingStatusService(mock(IndexerRepository.class), repository));
+    }
+
+    private static TracksController controller(
+            GpsTrackRepository repository,
+            FilterExecutionService filterExecutionService,
+            GpsTrackAndDataService trackAndDataService,
+            TrackMediaQueryRepository trackMediaQueryRepository,
+            TrackProcessingStatusService processing
+    ) {
         return new TracksController(
                 repository,
                 mock(TrackTimeBetweenTwoPoints.class),
@@ -203,9 +264,14 @@ class TracksControllerFilterScopingTest {
                 trackMediaQueryRepository,
                 filterExecutionService,
                 mock(EnergyService.class),
+                mock(com.x8ing.mtl.server.mtlserver.energy.EnergyRecalculationQueue.class),
                 mock(TrackFileExportService.class),
                 mock(StatisticsMilestoneService.class),
-                Runnable::run
+                Runnable::run,
+                mock(com.x8ing.mtl.server.mtlserver.googlehealth.web.SegmentHeartRateService.class),
+                mock(com.x8ing.mtl.server.mtlserver.analysis.segment.SegmentAttemptResolver.class),
+                processing,
+                mock(com.x8ing.mtl.server.mtlserver.analysis.segment.SegmentReadScope.class)
         );
     }
 }

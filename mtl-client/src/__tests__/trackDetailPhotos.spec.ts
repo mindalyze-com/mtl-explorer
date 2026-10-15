@@ -1,6 +1,7 @@
-import { mount } from '@vue/test-utils';
-import { describe, expect, it, vi } from 'vitest';
+import { flushPromises, mount } from '@vue/test-utils';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import TrackDetailPhotos from '@/components/trackdetails/TrackDetailPhotos.vue';
+import { MEDIA_BUSY_RETRY_DELAY_MS } from '@/utils/fetchMediaImage';
 
 vi.mock('@/repositories/mediaRepository', async (importOriginal) => {
   const original = await importOriginal<typeof import('@/repositories/mediaRepository')>();
@@ -40,6 +41,12 @@ const media = [
 ];
 
 describe('TrackDetailPhotos', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+    vi.useRealTimers();
+  });
+
   it('renders a lazy timeline with visible position provenance', () => {
     const wrapper = mount(TrackDetailPhotos, { props: { media, selectedMediaId: 12 } });
 
@@ -60,6 +67,32 @@ describe('TrackDetailPhotos', () => {
     expect(wrapper.findAll('.photo-card')).toHaveLength(2);
   });
 
+  it('recovers a busy activity thumbnail without starting requests before a native load error', async () => {
+    vi.useFakeTimers();
+    vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:recovered-activity-thumbnail');
+    vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => undefined);
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(new Response(null, { status: 503 }))
+      .mockResolvedValueOnce(new Response('jpeg'));
+    vi.stubGlobal('fetch', fetchMock);
+    const wrapper = mount(TrackDetailPhotos, { props: { media: [media[0]] } });
+    const thumbnail = wrapper.get('.photo-card__thumb');
+
+    expect(thumbnail.attributes('loading')).toBe('lazy');
+    expect(fetchMock).not.toHaveBeenCalled();
+    await thumbnail.trigger('error');
+    await flushPromises();
+    await vi.advanceTimersByTimeAsync(MEDIA_BUSY_RETRY_DELAY_MS);
+    await flushPromises();
+
+    expect(fetchMock.mock.calls.map(([url]) => url)).toEqual(['/media/11?maxSize=480', '/media/11?maxSize=480']);
+    expect(thumbnail.attributes('src')).toBe('blob:recovered-activity-thumbnail');
+    await wrapper.setProps({ thumbnailsEnabled: false });
+    expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:recovered-activity-thumbnail');
+    wrapper.unmount();
+  });
+
   it('marks videos in the activity timeline and mini rail', () => {
     const video = { ...media[0], id: 13, fileName: 'gps-video.mp4', mediaKind: 'VIDEO' };
     const wrapper = mount(TrackDetailPhotos, { props: { media: [video] } });
@@ -68,6 +101,25 @@ describe('TrackDetailPhotos', () => {
     expect(wrapper.get('.photo-card__video .bi-play-fill').exists()).toBe(true);
     expect(wrapper.get('.photo-card__dot .bi-camera-video-fill').exists()).toBe(true);
     expect(wrapper.get('.photo-card__thumb').attributes('src')).toBe('/media/13?maxSize=480');
+  });
+
+  it('selects media immediately when its activity thumbnail has failed', async () => {
+    vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:activity-photo');
+    vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => undefined);
+    const fetchMock = vi.fn().mockImplementation(async () => new Response(null, { status: 500 }));
+    vi.stubGlobal('fetch', fetchMock);
+    const wrapper = mount(TrackDetailPhotos, { props: { media: [media[0]] } });
+    await wrapper.get('.photo-card__thumb').trigger('error');
+    await flushPromises();
+    expect(wrapper.get('.photo-card').text()).toContain('No preview');
+
+    fetchMock.mockImplementation(async () => new Response('jpeg'));
+    await wrapper.get('.photo-card').trigger('click');
+    await flushPromises();
+    expect(wrapper.emitted('select-media')).toEqual([[11]]);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    wrapper.unmount();
+    expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:activity-photo');
   });
 
   it('keeps rare correction controls behind one progressive disclosure', async () => {
@@ -251,4 +303,18 @@ describe('TrackDetailPhotos', () => {
     await failed.get('[data-test="track-photos-error"] button').trigger('click');
     expect(failed.emitted('retry')).toEqual([[]]);
   });
+
+  it.each(['checking', 'pending', 'unavailable'] as const)(
+    'keeps %s matching separate from completed empty results',
+    async (matchingState) => {
+      const wrapper = mount(TrackDetailPhotos, { props: { matchingState } });
+      expect(wrapper.find('[data-test="track-photos-empty"]').exists()).toBe(false);
+      expect(wrapper.get('[data-test="track-photos-matching"]').attributes('role')).toBe('status');
+      expect(wrapper.text()).not.toContain('camera clock was wrong');
+      await wrapper.setProps({ matchingState: 'complete' });
+      expect(wrapper.find('[data-test="track-photos-matching"]').exists()).toBe(false);
+      expect(wrapper.get('[data-test="track-photos-empty"]').text()).toContain('No media matched');
+      wrapper.unmount();
+    }
+  );
 });

@@ -13,14 +13,14 @@
         <span class="photo-credit">© Patrick Heusser</span>
         <div class="curtain-content">
           <img :src="logoSvg" class="photo-logo" alt="MTL Explorer" />
-          <div v-if="!startupError" class="photo-loader">
+          <div v-if="!loadFailed" class="photo-loader" role="status" aria-live="polite">
             <p class="photo-status">{{ currentSplashMessage }}<span class="photo-dots"></span></p>
             <div class="photo-progress-track"><div class="photo-progress-bar"></div></div>
+            <Button v-if="loadSlow" label="Retry" icon="bi bi-arrow-clockwise" class="mt-3" @click="retryLoad" />
           </div>
           <div v-else class="curtain-error">
-            <p v-if="loadFailed">Unable to load tracks — no server connection and no cached data available.</p>
-            <p v-else>Track loading is taking longer than expected. Check the server connection and retry.</p>
-            <Button label="Retry" icon="bi bi-arrow-clockwise" class="p-button-danger mt-3" @click="retryLoad" />
+            <p>Unable to load tracks — no server connection and no cached data available.</p>
+            <Button label="Retry" icon="bi bi-arrow-clockwise" class="mt-3" @click="retryLoad" />
           </div>
         </div>
       </div>
@@ -56,9 +56,9 @@ import { getRandomBackground } from '@/utils/backgrounds';
 import { startupLog, startupWarn } from '@/utils/startupDiagnostics';
 import logoSvg from '@/assets/logo/logo3/mtl-logo-3_vector.svg';
 import { clearSplashLogoTop, consumeSplashLogoTop } from '@/utils/splashLogoPosition';
+import { STARTUP_SLOW_NOTICE_MS } from '@/utils/startupTiming';
 
 const MINIMUM_SPLASH_MS = 1500;
-const MAXIMUM_SPLASH_MS = 12_000;
 const SPLASH_MESSAGE_INTERVAL_MS = 2000;
 const FROM_LOGIN_KEY = 'mtl.from-login';
 const SPLASH_MESSAGES = [
@@ -71,14 +71,15 @@ const SPLASH_MESSAGES = [
 
 const showCurtain = ref(true);
 const loadFailed = ref(false);
-const loadTimedOut = ref(false);
+const loadSlow = ref(false);
 const syncing = ref(false);
 const bgImage = getRandomBackground();
 const fromLogin = ref(sessionStorage.getItem(FROM_LOGIN_KEY) === '1');
 const capturedLogoTop = ref(fromLogin.value ? consumeSplashLogoTop() : null);
 const currentSplashMessageIndex = ref(0);
-const currentSplashMessage = computed(() => SPLASH_MESSAGES[currentSplashMessageIndex.value]);
-const startupError = computed(() => loadFailed.value || loadTimedOut.value);
+const currentSplashMessage = computed(() =>
+  loadSlow.value ? 'Still loading. Your server may be busy.' : SPLASH_MESSAGES[currentSplashMessageIndex.value]
+);
 const curtainStyle = computed<CSSProperties | undefined>(() => {
   if (capturedLogoTop.value === null) return undefined;
   return { '--splash-content-top': `${capturedLogoTop.value}px` } as CSSProperties;
@@ -86,20 +87,20 @@ const curtainStyle = computed<CSSProperties | undefined>(() => {
 
 let curtainShownAt = 0;
 let splashMessageTimer: ReturnType<typeof setInterval> | null = null;
-let splashFallbackTimer: ReturnType<typeof setTimeout> | null = null;
+let splashSlowTimer: ReturnType<typeof setTimeout> | null = null;
 
 onMounted(() => {
   curtainShownAt = performance.now();
   sessionStorage.removeItem(FROM_LOGIN_KEY);
   if (!fromLogin.value) clearSplashLogoTop();
   startSplashMessages();
-  splashFallbackTimer = setTimeout(showStartupTimeout, MAXIMUM_SPLASH_MS);
+  splashSlowTimer = setTimeout(showSlowStartupNotice, STARTUP_SLOW_NOTICE_MS);
   startupLog('curtain', 'Home view mounted; curtain visible', { fromLogin: fromLogin.value });
 });
 
 onUnmounted(() => {
   stopSplashMessages();
-  stopSplashFallbackTimer();
+  stopSplashSlowTimer();
 });
 
 function startSplashMessages() {
@@ -120,23 +121,23 @@ function stopSplashMessages() {
   splashMessageTimer = null;
 }
 
-function stopSplashFallbackTimer() {
-  if (!splashFallbackTimer) return;
-  clearTimeout(splashFallbackTimer);
-  splashFallbackTimer = null;
+function stopSplashSlowTimer() {
+  if (!splashSlowTimer) return;
+  clearTimeout(splashSlowTimer);
+  splashSlowTimer = null;
 }
 
 function hideCurtain() {
   showCurtain.value = false;
   stopSplashMessages();
-  stopSplashFallbackTimer();
+  stopSplashSlowTimer();
 }
 
-function showStartupTimeout() {
-  splashFallbackTimer = null;
+function showSlowStartupNotice() {
+  splashSlowTimer = null;
   if (!showCurtain.value || loadFailed.value) return;
-  startupWarn('curtain', 'Startup curtain timed out; showing retry state');
-  loadTimedOut.value = true;
+  startupLog('curtain', 'Startup still pending; continuing to wait', { elapsedMs: STARTUP_SLOW_NOTICE_MS });
+  loadSlow.value = true;
   stopSplashMessages();
 }
 
@@ -145,7 +146,7 @@ function onTracksLoaded() {
     startupWarn('curtain', 'tracks-loaded received after load-failed; keeping startup error visible');
     return;
   }
-  loadTimedOut.value = false;
+  loadSlow.value = false;
   const elapsed = performance.now() - curtainShownAt;
   const remaining = Math.max(0, MINIMUM_SPLASH_MS - elapsed);
   startupLog('curtain', 'tracks-loaded received', { elapsedMs: Math.round(elapsed), delayMs: Math.round(remaining) });
@@ -163,6 +164,7 @@ function onLoadFailed() {
   loadFailed.value = true;
   showCurtain.value = true;
   stopSplashMessages();
+  stopSplashSlowTimer();
 }
 
 function onSyncing(isSyncing: boolean) {

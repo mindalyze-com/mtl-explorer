@@ -17,27 +17,26 @@ class ResourceIntensiveJobGuardTest {
         CountDownLatch releaseFirstJob = new CountDownLatch(1);
         AtomicBoolean firstJobResult = new AtomicBoolean();
 
-        Thread firstJob = new Thread(() -> firstJobResult.set(guard.runIfAvailable(
-                ResourceIntensiveJobGuardTest.class,
+        Thread firstJob = new Thread(() -> firstJobResult.set(guard.runBatchIfAvailable(
                 () -> {
                     firstJobStarted.countDown();
                     try {
                         releaseFirstJob.await(2, TimeUnit.SECONDS);
                     } catch (InterruptedException interrupted) {
                         Thread.currentThread().interrupt();
+                        return false;
                     }
+                    return true;
                 })));
         firstJob.start();
 
         assertThat(firstJobStarted.await(2, TimeUnit.SECONDS)).isTrue();
-        assertThat(guard.runIfAvailable(ResourceIntensiveJobGuardTest.class, () -> {
-        })).isFalse();
+        assertThat(guard.runBatchIfAvailable(() -> true)).isFalse();
 
         releaseFirstJob.countDown();
         firstJob.join(2_000);
 
         assertThat(firstJobResult.get()).isTrue();
-        assertThat(guard.runIfAvailable(ResourceIntensiveJobGuardTest.class, () -> {
-        })).isTrue();
+        assertThat(guard.runBatchIfAvailable(() -> true)).isTrue();
     }
 }

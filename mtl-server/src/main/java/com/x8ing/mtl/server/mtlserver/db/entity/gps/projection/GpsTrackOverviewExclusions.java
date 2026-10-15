@@ -5,11 +5,17 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 
 @JsonPropertyOrder({
         "highlightExcludedTrackCount",
-        "statisticsExcludedTrackCount"
+        "statisticsExcludedTrackCount",
+        "reviewWithheldTrackCount",
+        "reviewPendingSourceCount"
 })
 public interface GpsTrackOverviewExclusions {
 
     Long getHighlightExcludedTrackCount();
 
     Long getStatisticsExcludedTrackCount();
+
+    Long getReviewWithheldTrackCount();
+
+    Long getReviewPendingSourceCount();
 }

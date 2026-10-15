@@ -3,6 +3,7 @@ package com.x8ing.mtl.server.mtlserver.web.services.garmin;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.x8ing.mtl.server.mtlserver.jobs.garminexport.GarminExporter;
 import com.x8ing.mtl.server.mtlserver.jobs.garminexport.GarminToolInstallService;
+import com.x8ing.mtl.server.mtlserver.web.security.DemoWriteAccess;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -10,20 +11,25 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/garmin-export")
 @JsonPropertyOrder({
         "garminExporter",
-        "garminToolInstallService"
+        "garminToolInstallService",
+        "demoWriteAccess"
 })
 public class GarminExportController {
 
     private final GarminExporter garminExporter;
     private final GarminToolInstallService garminToolInstallService;
+    private final DemoWriteAccess demoWriteAccess;
 
-    public GarminExportController(GarminExporter garminExporter, GarminToolInstallService garminToolInstallService) {
+    public GarminExportController(GarminExporter garminExporter, GarminToolInstallService garminToolInstallService,
+                                  DemoWriteAccess demoWriteAccess) {
         this.garminExporter = garminExporter;
         this.garminToolInstallService = garminToolInstallService;
+        this.demoWriteAccess = demoWriteAccess;
     }
 
     @RequestMapping("/trigger-export")
     public String triggerExport() throws Exception {
+        demoWriteAccess.requireImportAndReviewAccess();
         return garminExporter.run();
     }
 
@@ -34,11 +40,13 @@ public class GarminExportController {
 
     @PostMapping("/install-gcexport")
     public ResponseEntity<String> installGcexport(@RequestParam String version) {
+        demoWriteAccess.requireImportAndReviewAccess();
         return installTool(() -> garminToolInstallService.installGcexport(version));
     }
 
     @PostMapping("/install-fit-export")
     public ResponseEntity<String> installFitExport(@RequestParam String profile, @RequestParam String packages) {
+        demoWriteAccess.requireImportAndReviewAccess();
         return installTool(() -> garminToolInstallService.installFitExport(profile, packages));
     }
 

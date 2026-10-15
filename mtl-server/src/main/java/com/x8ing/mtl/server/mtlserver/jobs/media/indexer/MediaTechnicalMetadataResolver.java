@@ -20,7 +20,9 @@ import com.drew.metadata.photoshop.PsdHeaderDirectory;
 import com.drew.metadata.png.PngDirectory;
 import com.drew.metadata.webp.WebpDirectory;
 
-/** Resolves display-oriented photo and video metadata from supported media containers. */
+/**
+ * Resolves display-oriented photo and video metadata from supported media containers.
+ */
 final class MediaTechnicalMetadataResolver {
 
     private static final int GPS_ALTITUDE_BELOW_SEA_LEVEL = 1;

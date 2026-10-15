@@ -2,6 +2,7 @@ package com.x8ing.mtl.server.mtlserver.web.services.gpxupload;
 
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.x8ing.mtl.server.mtlserver.gpx.GpxUploadService;
+import com.x8ing.mtl.server.mtlserver.web.security.DemoWriteAccess;
 import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -14,21 +15,27 @@ import org.springframework.web.multipart.MultipartFile;
 @RequiredArgsConstructor
 @Slf4j
 @JsonPropertyOrder({
-        "gpxUploadService"
+        "gpxUploadService",
+        "demoWriteAccess"
 })
 public class GpxUploadController {
 
     private final GpxUploadService gpxUploadService;
+    private final DemoWriteAccess demoWriteAccess;
 
     @Operation(operationId = "getUploadStatus")
     @GetMapping("/status")
     public GpxUploadService.GpxUploadStatus getStatus() {
+        if (demoWriteAccess.blocksImportAndReview()) {
+            return new GpxUploadService.GpxUploadStatus(false, "Track uploads are unavailable in this shared demo.");
+        }
         return gpxUploadService.getStatus();
     }
 
     @Operation(operationId = "uploadGpxFile")
     @PostMapping(value = "/upload", consumes = "multipart/form-data")
     public ResponseEntity<GpxUploadService.GpxUploadResult> upload(@RequestPart("file") MultipartFile file) {
+        demoWriteAccess.requireImportAndReviewAccess();
         try {
             String savedName = gpxUploadService.saveFile(file);
             return ResponseEntity.ok(new GpxUploadService.GpxUploadResult(

@@ -1,7 +1,9 @@
+import { logSanitizedError } from '@/utils/safeLogging';
 import * as maplibregl from 'maplibre-gl';
 import { getMediaInBounds } from '@/repositories/mediaRepository';
 import type { MediaBoundsPoint } from '@/repositories/mediaRepository';
 import { isAbortLikeError } from '@/utils/errors';
+import { mapLabelFonts } from '@/utils/mapLabelFonts';
 
 export type MediaState = 'idle' | 'visible' | 'error';
 export type MediaOverlaySelection = {
@@ -13,8 +15,26 @@ export type MediaOverlaySelection = {
   offset: number;
   kind: 'cluster' | 'location';
   viewportMediaPoints: MediaBoundsPoint[];
+  viewportBounds?: [[number, number], [number, number]];
   clickPoint: { x: number; y: number };
   clickLngLat: { lng: number; lat: number };
+};
+
+export type MediaOverlayCandidate = {
+  key: string;
+  kind: 'cluster' | 'location';
+  clusterId: number | null;
+  totalMediaCount: number;
+  mediaPoints: MediaBoundsPoint[];
+  viewportMediaPoints: MediaBoundsPoint[];
+  viewportBounds?: [[number, number], [number, number]];
+  clickPoint: { x: number; y: number };
+  clickLngLat: { lng: number; lat: number };
+};
+
+type MediaCandidateContext = {
+  source: maplibregl.GeoJSONSource;
+  selectionGeneration: number;
 };
 
 export type MediaClusterPage = {
@@ -39,15 +59,18 @@ const UNCLUSTERED_LAYER = 'media-unclustered';
 
 export class MediaOverlay {
   private map: maplibregl.Map;
-  private readonly onMediaSelect: (selection: MediaOverlaySelection) => void;
   private readonly onPointsUpdated?: (points: MediaBoundsPoint[]) => void;
   private readonly isInteractionEnabled: () => boolean;
   private loadGeneration = 0;
+  private selectionGeneration = 0;
+  private sourcePublicationGeneration = 0;
+  private sourceUpdatePending = false;
+  private retainedCandidateContext = false;
+  private queuedSourcePoints: MediaBoundsPoint[] | null = null;
+  private readonly candidateContexts = new WeakMap<MediaOverlayCandidate, MediaCandidateContext>();
   private abortController: AbortController | null = null;
   private debounceTimer: ReturnType<typeof setTimeout> | null = null;
   private boundHandler: (() => void) | null = null;
-  private clusterClickHandler: ((event: maplibregl.MapLayerMouseEvent) => void) | null = null;
-  private mediaClickHandler: ((event: maplibregl.MapLayerMouseEvent) => void) | null = null;
   private clusterMouseEnterHandler: (() => void) | null = null;
   private clusterMouseLeaveHandler: (() => void) | null = null;
   private mediaMouseEnterHandler: (() => void) | null = null;
@@ -60,12 +83,11 @@ export class MediaOverlay {
 
   constructor(
     map: maplibregl.Map,
-    onMediaSelect: (selection: MediaOverlaySelection) => void,
+    _onMediaSelect: (selection: MediaOverlaySelection) => void,
     onPointsUpdated?: (points: MediaBoundsPoint[]) => void,
     isInteractionEnabled: () => boolean = () => true
   ) {
     this.map = map;
-    this.onMediaSelect = onMediaSelect;
     this.onPointsUpdated = onPointsUpdated;
     this.isInteractionEnabled = isInteractionEnabled;
   }
@@ -109,7 +131,7 @@ export class MediaOverlay {
       layout: {
         'text-field': '{point_count_abbreviated}',
         'text-size': 12,
-        'text-font': ['Noto Sans Regular'],
+        'text-font': mapLabelFonts(this.map.getGlyphs()),
       },
       paint: {
         'text-color': '#fff',
@@ -131,37 +153,6 @@ export class MediaOverlay {
     });
 
     this.state = 'visible';
-
-    // Prepare the cluster and visible-map collections. The user chooses which
-    // collection to open before the viewer is shown.
-    this.clusterClickHandler = (e) => {
-      if (!this.isInteractionEnabled()) return;
-      void this.selectCluster(e);
-    };
-    this.map.on('click', CLUSTER_LAYER, this.clusterClickHandler);
-
-    // Prepare both the clicked location and the visible-map collection.
-    this.mediaClickHandler = (e) => {
-      if (!this.isInteractionEnabled()) return;
-      if (!e.features?.length) return;
-      const mediaPoints = uniqueMediaPoints(e.features, this.loadedPoints);
-      const mediaIds = mediaPoints.map((point) => point.id);
-      const selectedMediaId = mediaIds[0];
-      if (selectedMediaId == null) return;
-      this.onMediaSelect({
-        selectedMediaId,
-        mediaIds,
-        mediaPoints,
-        totalMediaCount: mediaIds.length,
-        clusterId: null,
-        offset: 0,
-        kind: 'location',
-        viewportMediaPoints: this.getViewportMediaPoints(selectedMediaId, mediaPoints),
-        clickPoint: { x: e.point.x, y: e.point.y },
-        clickLngLat: { lng: e.lngLat.lng, lat: e.lngLat.lat },
-      });
-    };
-    this.map.on('click', UNCLUSTERED_LAYER, this.mediaClickHandler);
 
     // Cursor style
     this.clusterMouseEnterHandler = () => {
@@ -189,36 +180,160 @@ export class MediaOverlay {
     await this.loadForCurrentBounds();
   }
 
-  private getViewportMediaPoints(selectedMediaId: number, clickedPoints: MediaBoundsPoint[]): MediaBoundsPoint[] {
+  /** Collect counted targets without resolving cluster leaves or opening content. */
+  collectCandidates(point: { x: number; y: number }, radius = 0): MediaOverlayCandidate[] {
+    if (this.state !== 'visible' || !this.isInteractionEnabled()) return [];
+    const source = this.map.getSource(SOURCE_ID) as maplibregl.GeoJSONSource | undefined;
+    const layers = [CLUSTER_LAYER, UNCLUSTERED_LAYER].filter((layer) => this.map.getLayer(layer));
+    if (!source || layers.length === 0) return [];
+    const query: [number, number] | [[number, number], [number, number]] =
+      radius > 0
+        ? [
+            [point.x - radius, point.y - radius],
+            [point.x + radius, point.y + radius],
+          ]
+        : [point.x, point.y];
+    const features = this.map.queryRenderedFeatures(query, { layers });
+    if (features.length === 0) return [];
+    const lngLat = this.map.unproject([point.x, point.y]);
     const viewport = this.map.getBounds();
     const southWest = viewport.getSouthWest();
     const northEast = viewport.getNorthEast();
-    const pointsById = new Map(
-      this.loadedPoints
-        .filter(
-          (point) =>
-            point.lat >= southWest.lat &&
-            point.lat <= northEast.lat &&
-            longitudeIsInBounds(point.lng, southWest.lng, northEast.lng)
-        )
-        .map((point) => [point.id, point])
-    );
+    const context = { source, selectionGeneration: this.selectionGeneration };
+    const common = {
+      viewportMediaPoints: this.getViewportMediaPoints(viewport),
+      viewportBounds: [
+        [southWest.lng, southWest.lat],
+        [northEast.lng, northEast.lat],
+      ] as [[number, number], [number, number]],
+      clickPoint: { x: point.x, y: point.y },
+      clickLngLat: { lng: lngLat.lng, lat: lngLat.lat },
+    };
+    const candidates = new Map<string, MediaOverlayCandidate>();
+    for (const feature of features) {
+      // Rendered tiles can still show the previous tree while setData is pending.
+      if (this.sourceUpdatePending) break;
+      const clusterId = positiveInteger(feature.properties?.cluster_id);
+      const totalMediaCount = positiveInteger(feature.properties?.point_count);
+      if (clusterId == null || totalMediaCount == null) continue;
+      const key = `media-cluster:${clusterId}`;
+      if (!candidates.has(key)) {
+        candidates.set(key, { ...common, key, kind: 'cluster', clusterId, totalMediaCount, mediaPoints: [] });
+      }
+    }
+    if ([...candidates.values()].some((candidate) => candidate.kind === 'cluster')) {
+      this.retainedCandidateContext = true;
+    }
+    const locations = new Map<string, MediaBoundsPoint[]>();
+    for (const mediaPoint of uniqueMediaPoints(features, this.loadedPoints)) {
+      const location = `${mediaPoint.lng}:${mediaPoint.lat}`;
+      const points = locations.get(location) ?? [];
+      points.push(mediaPoint);
+      locations.set(location, points);
+    }
+    for (const mediaPoints of locations.values()) {
+      mediaPoints.sort((left, right) => left.id - right.id);
+      const key = `media:${mediaPoints.map((mediaPoint) => mediaPoint.id).join(',')}`;
+      candidates.set(key, {
+        ...common,
+        key,
+        kind: 'location',
+        clusterId: null,
+        totalMediaCount: mediaPoints.length,
+        mediaPoints,
+      });
+    }
+    for (const candidate of candidates.values()) this.candidateContexts.set(candidate, context);
+    return [...candidates.values()].sort((left, right) => left.key.localeCompare(right.key));
+  }
 
-    const selectedPoint = clickedPoints.find((point) => point.id === selectedMediaId);
-    if (selectedPoint) pointsById.set(selectedPoint.id, selectedPoint);
-
-    const points = [...pointsById.values()];
-    const origin = pointsById.get(selectedMediaId);
-    if (!origin) return points;
-
-    return points.sort((left, right) => {
-      const leftDistance = squaredCoordinateDistance(left, origin);
-      const rightDistance = squaredCoordinateDistance(right, origin);
-      return leftDistance - rightDistance || left.id - right.id;
+  /** Keep cluster IDs and pagination tied to their original tree until this click ends. */
+  releaseCandidateContext(): void {
+    this.retainedCandidateContext = false;
+    this.selectionGeneration++;
+    if (this.queuedSourcePoints == null) return;
+    const generation = ++this.sourcePublicationGeneration;
+    queueMicrotask(() => {
+      if (generation !== this.sourcePublicationGeneration || this.retainedCandidateContext || this.state !== 'visible')
+        return;
+      const points = this.queuedSourcePoints;
+      this.queuedSourcePoints = null;
+      if (points) this.updateSource(points);
     });
   }
 
+  /** Resolve only the chosen target; the coordinator owns the resulting presentation. */
+  async selectCandidate(
+    candidate: MediaOverlayCandidate,
+    isCurrent: () => boolean,
+    scope: 'primary' | 'viewport' = 'primary'
+  ): Promise<MediaOverlaySelection | null> {
+    const context = this.candidateContexts.get(candidate);
+    const isValid = () =>
+      isCurrent() &&
+      this.state === 'visible' &&
+      this.isInteractionEnabled() &&
+      context?.selectionGeneration === this.selectionGeneration &&
+      this.map.getSource(SOURCE_ID) === context?.source;
+    if (!context || !isValid()) return null;
+    try {
+      const mediaPoints =
+        scope === 'viewport'
+          ? [...new Map(candidate.viewportMediaPoints.map((point) => [point.id, point])).values()]
+          : candidate.clusterId == null
+            ? candidate.mediaPoints
+            : (await this.getClusterPage(candidate.clusterId, 0, MEDIA_CLUSTER_PAGE_SIZE, candidate.totalMediaCount))
+                .mediaPoints;
+      if (!isValid()) return null;
+      const mediaIds = mediaPoints.map((mediaPoint) => mediaPoint.id);
+      const selectedMediaId =
+        scope === 'viewport'
+          ? (candidate.mediaPoints.find((point) => mediaIds.includes(point.id))?.id ??
+            [...mediaPoints].sort(
+              (left, right) =>
+                squaredCoordinateDistance(left, candidate.clickLngLat) -
+                  squaredCoordinateDistance(right, candidate.clickLngLat) || left.id - right.id
+            )[0]?.id)
+          : mediaIds[0];
+      if (selectedMediaId == null) return null;
+      return {
+        selectedMediaId,
+        mediaIds,
+        mediaPoints,
+        totalMediaCount: scope === 'viewport' ? mediaIds.length : candidate.totalMediaCount,
+        clusterId: scope === 'viewport' ? null : candidate.clusterId,
+        offset: 0,
+        kind: scope === 'viewport' ? 'location' : candidate.kind,
+        viewportMediaPoints: orderViewportMediaPoints(candidate.viewportMediaPoints, selectedMediaId, mediaPoints),
+        viewportBounds: candidate.viewportBounds,
+        clickPoint: candidate.clickPoint,
+        clickLngLat: candidate.clickLngLat,
+      };
+    } catch (error) {
+      if (!isValid()) return null;
+      logSanitizedError('MediaOverlay: failed to resolve media target', error, {
+        topic1: 'media',
+        topic2: 'MediaOverlay',
+        topic3: 'selectCandidate',
+      });
+      throw error;
+    }
+  }
+
+  private getViewportMediaPoints(viewport: maplibregl.LngLatBounds): MediaBoundsPoint[] {
+    const southWest = viewport.getSouthWest();
+    const northEast = viewport.getNorthEast();
+    return this.loadedPoints.filter(
+      (point) =>
+        point.lat >= southWest.lat &&
+        point.lat <= northEast.lat &&
+        longitudeIsInBounds(point.lng, southWest.lng, northEast.lng)
+    );
+  }
+
   hide(): void {
+    this.selectionGeneration++;
+    this.discardCandidateContext();
     this.cancelPendingLoad();
     if (this.boundHandler) {
       this.map.off('moveend', this.boundHandler);
@@ -242,7 +357,14 @@ export class MediaOverlay {
     return this.state === 'visible';
   }
 
-  async refresh(): Promise<void> {
+  async refresh(clearSelection = false): Promise<void> {
+    if (clearSelection) {
+      this.selectionGeneration++;
+      this.discardCandidateContext();
+      this.invalidatePendingRequest();
+      this.lastFetchedBounds = null;
+      this.updateSource([]);
+    }
     if (this.state !== 'visible') return;
     await this.loadForCurrentBounds(true);
   }
@@ -272,7 +394,15 @@ export class MediaOverlay {
     if (!source) {
       return { clusterId, offset, totalMediaCount, mediaPoints: [] };
     }
+    const selectionGeneration = this.selectionGeneration;
     const leaves = await source.getClusterLeaves(clusterId, limit, offset);
+    if (
+      selectionGeneration !== this.selectionGeneration ||
+      this.state !== 'visible' ||
+      this.map.getSource(SOURCE_ID) !== source
+    ) {
+      return { clusterId, offset, totalMediaCount, mediaPoints: [] };
+    }
     return {
       clusterId,
       offset,
@@ -281,44 +411,7 @@ export class MediaOverlay {
     };
   }
 
-  private async selectCluster(event: maplibregl.MapLayerMouseEvent): Promise<void> {
-    const feature = this.map.queryRenderedFeatures(event.point, { layers: [CLUSTER_LAYER] })[0];
-    const clusterId = positiveInteger(feature?.properties?.cluster_id);
-    const pointCount = positiveInteger(feature?.properties?.point_count);
-    if (clusterId == null || pointCount == null) return;
-
-    try {
-      const page = await this.getClusterPage(clusterId, 0, MEDIA_CLUSTER_PAGE_SIZE, pointCount);
-      if (this.state !== 'visible' || !this.isInteractionEnabled()) return;
-      const mediaIds = page.mediaPoints.map((point) => point.id);
-      const selectedMediaId = mediaIds[0];
-      if (selectedMediaId == null) return;
-      this.onMediaSelect({
-        selectedMediaId,
-        mediaIds,
-        mediaPoints: page.mediaPoints,
-        totalMediaCount: pointCount,
-        clusterId,
-        offset: 0,
-        kind: 'cluster',
-        viewportMediaPoints: this.getViewportMediaPoints(selectedMediaId, page.mediaPoints),
-        clickPoint: { x: event.point.x, y: event.point.y },
-        clickLngLat: { lng: event.lngLat.lng, lat: event.lngLat.lat },
-      });
-    } catch (error) {
-      console.error('MediaOverlay: failed to resolve media cluster', error);
-    }
-  }
-
   private removeLayerHandlers(): void {
-    if (this.clusterClickHandler) {
-      this.map.off('click', CLUSTER_LAYER, this.clusterClickHandler);
-      this.clusterClickHandler = null;
-    }
-    if (this.mediaClickHandler) {
-      this.map.off('click', UNCLUSTERED_LAYER, this.mediaClickHandler);
-      this.mediaClickHandler = null;
-    }
     if (this.clusterMouseEnterHandler) {
       this.map.off('mouseenter', CLUSTER_LAYER, this.clusterMouseEnterHandler);
       this.clusterMouseEnterHandler = null;
@@ -408,7 +501,11 @@ export class MediaOverlay {
     } catch (e: unknown) {
       if (generation !== this.loadGeneration || isAbortLikeError(e, controller.signal)) return;
       this.error = e;
-      console.error('MediaOverlay: failed to load media in bounds', e);
+      logSanitizedError('MediaOverlay: failed to load media in bounds', e, {
+        topic1: 'media',
+        topic2: 'MediaOverlay',
+        topic3: 'loadForCurrentBounds',
+      });
       if (force) throw e;
     } finally {
       if (generation === this.loadGeneration) {
@@ -421,6 +518,12 @@ export class MediaOverlay {
   private updateSource(points: MediaBoundsPoint[]): void {
     const source = this.map.getSource(SOURCE_ID) as maplibregl.GeoJSONSource | undefined;
     if (!source) return;
+    if (this.retainedCandidateContext) {
+      this.queuedSourcePoints = points;
+      return;
+    }
+    this.queuedSourcePoints = null;
+    const generation = ++this.sourcePublicationGeneration;
 
     this.loadedPoints = points;
     this.onPointsUpdated?.(points);
@@ -433,7 +536,28 @@ export class MediaOverlay {
         properties: { mediaId: p.id },
       })),
     };
-    source.setData(geojson);
+    this.sourceUpdatePending = true;
+    void Promise.resolve(source.setData(geojson)).then(
+      () => {
+        if (generation === this.sourcePublicationGeneration) this.sourceUpdatePending = false;
+      },
+      (error: unknown) => {
+        if (generation !== this.sourcePublicationGeneration || this.map.getSource(SOURCE_ID) !== source) return;
+        this.sourceUpdatePending = false;
+        logSanitizedError('MediaOverlay: failed to update media source', error, {
+          topic1: 'media',
+          topic2: 'MediaOverlay',
+          topic3: 'updateSource',
+        });
+      }
+    );
+  }
+
+  private discardCandidateContext(): void {
+    this.retainedCandidateContext = false;
+    this.queuedSourcePoints = null;
+    this.sourcePublicationGeneration++;
+    this.sourceUpdatePending = false;
   }
 }
 
@@ -455,10 +579,27 @@ function positiveInteger(value: unknown): number | null {
   return Number.isSafeInteger(number) && number > 0 ? number : null;
 }
 
-function squaredCoordinateDistance(left: MediaBoundsPoint, right: MediaBoundsPoint): number {
+function squaredCoordinateDistance(left: MediaBoundsPoint, right: Pick<MediaBoundsPoint, 'lat' | 'lng'>): number {
   const latitudeDelta = left.lat - right.lat;
   const longitudeDelta = left.lng - right.lng;
   return latitudeDelta * latitudeDelta + longitudeDelta * longitudeDelta;
+}
+
+function orderViewportMediaPoints(
+  viewportPoints: MediaBoundsPoint[],
+  selectedMediaId: number,
+  clickedPoints: MediaBoundsPoint[]
+): MediaBoundsPoint[] {
+  const pointsById = new Map(viewportPoints.map((point) => [point.id, point]));
+  const selectedPoint = clickedPoints.find((point) => point.id === selectedMediaId);
+  if (selectedPoint) pointsById.set(selectedPoint.id, selectedPoint);
+  const points = [...pointsById.values()];
+  const origin = pointsById.get(selectedMediaId);
+  if (!origin) return points;
+  return points.sort(
+    (left, right) =>
+      squaredCoordinateDistance(left, origin) - squaredCoordinateDistance(right, origin) || left.id - right.id
+  );
 }
 
 function longitudeIsInBounds(longitude: number, west: number, east: number): boolean {

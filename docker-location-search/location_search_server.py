@@ -38,10 +38,11 @@ INVALID_REQUEST_PHASE = "invalid-request"
 FORBIDDEN_PHASE = "forbidden"
 ERROR_PHASE = "error"
 AUTH_VERSION_PARAM = "mtl-version"
+BUILD_PARAM = "mtl-build"
 AUTH_SERVER_ID_PARAM = "mtl-server-id"
 EARTH_RADIUS_METERS = 6_371_000.0
 MIB = 1024 * 1024
-DEFAULT_MMAP_SIZE = 256 * MIB
+DEFAULT_MMAP_SIZE = 32 * MIB
 DEFAULT_CANDIDATE_LIMIT_MULTIPLIER = 12
 DEFAULT_MIN_CANDIDATE_LIMIT = 120
 DEFAULT_MAX_CANDIDATE_LIMIT = 600
@@ -380,6 +381,7 @@ class LocationSearchHandler(BaseHTTPRequestHandler):
             "[location-search] request "
             f"path={path} remote={self.client_address[0]} "
             f"{AUTH_VERSION_PARAM}={display_log_value(first_param(params, AUTH_VERSION_PARAM))} "
+            f"{BUILD_PARAM}={display_log_value(first_param(params, BUILD_PARAM))} "
             f"{AUTH_SERVER_ID_PARAM}={display_log_value(first_param(params, AUTH_SERVER_ID_PARAM))}"
         )
         if query is not None:

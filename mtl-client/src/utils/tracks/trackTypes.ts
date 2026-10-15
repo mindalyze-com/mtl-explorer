@@ -9,18 +9,22 @@ export interface CachedTrack {
   updatedAt: number;
 }
 
-export interface CachedGeometry {
+export interface TrackGeometry {
+  coordinates: number[][];
+  // Indexes belong to these coordinates, never to metadata from another precision.
+  recordingBreakBeforePointIndexes: number[];
+}
+
+export interface CachedGeometry extends TrackGeometry {
   cacheKey: string;
   trackId: number;
   precision: number;
-  coordinates: number[][];
   updatedAt: number;
 }
 
-export interface TrackGeometryEntry {
+export interface TrackGeometryEntry extends TrackGeometry {
   trackId: number;
   precision: number;
-  coordinates: number[][];
 }
 
 export interface TrackBatchPayload {
@@ -49,8 +53,7 @@ export interface TrackLoadResult {
   offline?: boolean;
 }
 
-export interface TrackPrecisionResult {
-  coordinates: number[][];
+export interface TrackPrecisionResult extends TrackGeometry {
   gpsTrack: GpsTrack;
   fromCache: boolean;
 }

@@ -1,23 +1,36 @@
 package com.x8ing.mtl.server.mtlserver.jobs.exploration;
 
+import com.x8ing.mtl.server.mtlserver.jobs.ImportPrerequisites;
+import lombok.extern.slf4j.Slf4j;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
+import com.x8ing.mtl.server.mtlserver.config.ShutdownSignal;
 import com.x8ing.mtl.server.mtlserver.db.entity.config.ConfigEntity;
 import com.x8ing.mtl.server.mtlserver.db.entity.gps.GpsTrack;
 import com.x8ing.mtl.server.mtlserver.db.repository.config.ConfigRepository;
 import com.x8ing.mtl.server.mtlserver.db.repository.gps.GpsTrackRepository;
-import com.x8ing.mtl.server.mtlserver.gpx.GPXDirectoryWatcherService;
 import com.x8ing.mtl.server.mtlserver.indexer.IndexerStatusService;
+import com.x8ing.mtl.server.mtlserver.jobs.BackgroundJobRunner;
+import com.x8ing.mtl.server.mtlserver.jobs.status.JobStatusService.JobSummaryDto;
+import com.x8ing.mtl.server.mtlserver.jobs.status.ProcessingContext;
+import com.x8ing.mtl.server.mtlserver.jobs.status.ProcessingDetails;
+import com.x8ing.mtl.server.mtlserver.jobs.status.ProcessingJob;
 import com.x8ing.mtl.server.mtlserver.utils.ThreadFactories;
-import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.EnumMap;
 import java.util.List;
-import java.util.concurrent.*;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @Slf4j
 @Service
@@ -32,7 +45,7 @@ import java.util.concurrent.*;
         "maxTracksPerRun",
         "workerThreads"
 })
-public class ExplorationScoreJob {
+public class ExplorationScoreJob implements ProcessingJob {
 
     // Config table keys for storing the last-used algorithm parameters.
     // If these values change between runs, all CALCULATED tracks are reset for recalculation.
@@ -48,6 +61,7 @@ public class ExplorationScoreJob {
     private final ConfigRepository configRepository;
     private final IndexerStatusService indexerStatusService;
     private final TransactionTemplate transactionTemplate;
+    private final ShutdownSignal shutdownSignal;
 
     /**
      * Radius in meters defining "known territory" around prior tracks.
@@ -69,8 +83,8 @@ public class ExplorationScoreJob {
 
     /**
      * Maximum number of tracks to process in a single job run. Prevents the scheduler thread
-     * from being blocked too long while clearing a large pending backlog. If the batch is full, the scheduler
-     * immediately re-runs (while loop in MtlServerApplication) without waiting for the next interval.
+     * from retaining the whole backlog. Full batches that make progress yield through BackgroundJobRunner
+     * before continuing without the idle polling interval.
      */
     @Value("${mtl.exploration.max-tracks-per-run:20}")
     private int maxTracksPerRun;
@@ -87,12 +101,14 @@ public class ExplorationScoreJob {
                                ExplorationScoreAtomicWorker atomicWorker,
                                ConfigRepository configRepository,
                                IndexerStatusService indexerStatusService,
-                               TransactionTemplate transactionTemplate) {
+                               TransactionTemplate transactionTemplate,
+                               ShutdownSignal shutdownSignal) {
         this.gpsTrackRepository = gpsTrackRepository;
         this.atomicWorker = atomicWorker;
         this.configRepository = configRepository;
         this.indexerStatusService = indexerStatusService;
         this.transactionTemplate = transactionTemplate;
+        this.shutdownSignal = shutdownSignal;
     }
 
     /**
@@ -105,11 +121,15 @@ public class ExplorationScoreJob {
      *   <li>Transaction 2: fetch pending batch and process each track (atomicWorker uses its own REQUIRES_NEW per track)</li>
      * </ol>
      */
-    public boolean run() {
+    public boolean run() { return reportedBatch().hasMore(); }
+
+    public ProcessingDetails.BatchOutcome reportedBatch() {
+        if (shutdownSignal.isStopRequested()) return ProcessingDetails.BatchOutcome.finished(false);
         // Transaction 1: preparation — guard + invalidation, committed before processing starts
         Boolean shouldProceed = transactionTemplate.execute(status -> {
-            if (indexerStatusService.hasIndexPendingWork(GPXDirectoryWatcherService.INDEX_GPS)) {
-                log.info("Exploration score job: GPS indexing still active, skipping this run.");
+            var blockers = prerequisites(ProcessingContext.indexes(indexerStatusService));
+            if (!blockers.isEmpty()) {
+                log.info("Exploration score job waiting: blockers={}", blockers);
                 return false;
             }
 
@@ -122,8 +142,8 @@ public class ExplorationScoreJob {
             return true;
         });
 
-        if (!Boolean.TRUE.equals(shouldProceed)) {
-            return false;
+        if (!Boolean.TRUE.equals(shouldProceed) || shutdownSignal.isStopRequested()) {
+            return ProcessingDetails.BatchOutcome.waiting(prerequisites(ProcessingContext.indexes(indexerStatusService)));
         }
 
         // Transaction 2: short read-only transaction to fetch the pending batch.
@@ -140,37 +160,53 @@ public class ExplorationScoreJob {
             return result;
         });
 
-        if (tracks == null || tracks.isEmpty()) {
+        if (tracks == null || tracks.isEmpty() || shutdownSignal.isStopRequested()) {
             log.debug("Exploration score job: no pending tracks.");
-            return false;
+            return ProcessingDetails.BatchOutcome.finished(false);
         }
 
+        BackgroundJobRunner.batchStarted();
         int effectiveWorkerThreads = Math.max(MIN_WORKER_THREADS, workerThreads);
         log.info("Exploration score job: processing {} tracks (max={}, workerThreads={})",
                 tracks.size(), maxTracksPerRun, effectiveWorkerThreads);
 
         long t0 = System.currentTimeMillis();
-        processTracks(tracks, effectiveWorkerThreads);
+        BatchProgress progress = processTracks(tracks, effectiveWorkerThreads);
         long durationMs = System.currentTimeMillis() - t0;
-        log.info("Exploration score job completed: {} tracks in {}ms", tracks.size(), durationMs);
+        log.info("Exploration score job completed: processed={} failed={} remaining={} stopped={} durationMs={}",
+                progress.completed(), progress.failed(), tracks.size() - progress.completed() - progress.failed(),
+                shutdownSignal.isStopRequested(), durationMs);
 
-        return tracks.size() >= maxTracksPerRun;
+        // Committed retries do not block healthy tracks. An escaped worker failure can leave a track
+        // SCHEDULED and cause the next batch to invalidate completed tracks again, so stop that chain.
+        return ProcessingDetails.BatchOutcome.finished(!shutdownSignal.isStopRequested() && !progress.workerFailed() && progress.completed() > 0
+               && tracks.size() >= maxTracksPerRun);
     }
 
-    private void processTracks(List<GpsTrack> tracks, int effectiveWorkerThreads) {
+    private BatchProgress processTracks(List<GpsTrack> tracks, int effectiveWorkerThreads) {
+        AtomicInteger processed = new AtomicInteger();
+        AtomicInteger failed = new AtomicInteger();
         if (effectiveWorkerThreads == MIN_WORKER_THREADS || tracks.size() == 1) {
             for (GpsTrack track : tracks) {
-                atomicWorker.processOne(track.getId());
+                if (shutdownSignal.isStopRequested()) break;
+                if (atomicWorker.processOne(track.getId())) processed.incrementAndGet();
+                else failed.incrementAndGet();
             }
-            return;
+            return new BatchProgress(processed.get(), failed.get(), false);
         }
 
+        boolean workerFailed = false;
         ExecutorService executor = Executors.newFixedThreadPool(effectiveWorkerThreads,
                 ThreadFactories.named(EXPLORATION_THREAD_PREFIX));
         try {
             List<Future<?>> futures = new ArrayList<>(tracks.size());
             for (GpsTrack track : tracks) {
-                futures.add(executor.submit(() -> atomicWorker.processOne(track.getId())));
+                if (shutdownSignal.isStopRequested()) break;
+                futures.add(executor.submit(() -> {
+                    if (shutdownSignal.isStopRequested()) return;
+                    if (atomicWorker.processOne(track.getId())) processed.incrementAndGet();
+                    else failed.incrementAndGet();
+                }));
             }
 
             for (Future<?> future : futures) {
@@ -179,8 +215,10 @@ public class ExplorationScoreJob {
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
                     log.warn("Exploration score job interrupted while waiting for workers.");
-                    return;
+                    return new BatchProgress(processed.get(), failed.get(), workerFailed);
                 } catch (ExecutionException e) {
+                    failed.incrementAndGet();
+                    workerFailed = true;
                     log.error("Exploration score worker failed outside per-track error handling. e={}",
                             e.getCause() == null ? e.toString() : e.getCause().toString(), e);
                 }
@@ -188,6 +226,10 @@ public class ExplorationScoreJob {
         } finally {
             executor.shutdownNow();
         }
+        return new BatchProgress(processed.get(), failed.get(), workerFailed);
+    }
+
+    private record BatchProgress(int completed, int failed, boolean workerFailed) {
     }
 
     /**
@@ -239,6 +281,47 @@ public class ExplorationScoreJob {
         config.value = value;
         config.updateDate = new Date();
         configRepository.save(config);
+    }
+
+    public static final String JOB_ID = "exploration";
+    @Override public String jobId() { return JOB_ID; }
+    @Override public int displayOrder() { return 40; }
+    @Override public boolean resourceIntensive() { return true; }
+    @Override public Duration checkInterval() { return org.springframework.boot.convert.DurationStyle.detectAndParse(runSchedule); }
+    @Override public Duration initialDelay() { return Duration.ofSeconds(30); }
+    @Value("${mtl.exploration.run-schedule:PT120S}")
+    private String runSchedule = "PT120S";
+    @Override public List<ProcessingDetails.Blocker> prerequisites(ProcessingContext context) {
+        var blockers = new ArrayList<>(ImportPrerequisites.check(context, context.demoMode()));
+        if (gpsTrackRepository.existsByTrackSourceAndDuplicateStatus(
+                GpsTrack.TRACK_SOURCE.IMPORTED, GpsTrack.DUPLICATE_CHECK_STATUS.NOT_CHECKED_YET)) {
+            blockers.add(ProcessingDetails.Blocker.automatic(ProcessingDetails.Kind.JOB, "duplicate",
+                    "DUPLICATE_CHECKS_PENDING", ProcessingDetails.Scope.WHOLE_JOB));
+        }
+        return List.copyOf(blockers);
+    }
+    @Override public List<ProcessingDetails.Dependency> dependencies(ProcessingContext context) {
+        var edges = new ArrayList<ProcessingDetails.Dependency>();
+        edges.add(new ProcessingDetails.Dependency(ProcessingDetails.Kind.INDEX, "GPS", JOB_ID,
+                ProcessingDetails.Relation.GATE, ProcessingDetails.Scope.WHOLE_JOB));
+        edges.add(new ProcessingDetails.Dependency(ProcessingDetails.Kind.JOB, "duplicate", JOB_ID,
+                ProcessingDetails.Relation.GATE, ProcessingDetails.Scope.WHOLE_JOB));
+        if (context.demoMode()) edges.add(new ProcessingDetails.Dependency(ProcessingDetails.Kind.INDEX, "MEDIA", JOB_ID,
+                ProcessingDetails.Relation.GATE, ProcessingDetails.Scope.WHOLE_JOB));
+        return List.copyOf(edges);
+    }
+    @Override public JobSummaryDto processingStatus(ProcessingContext context) {
+        var counts = new EnumMap<GpsTrack.EXPLORATION_STATUS, Long>(GpsTrack.EXPLORATION_STATUS.class);
+        gpsTrackRepository.countGroupedByExplorationStatus().forEach(row ->
+                counts.put((GpsTrack.EXPLORATION_STATUS) row[0], (Long) row[1]));
+        long pending = counts.getOrDefault(GpsTrack.EXPLORATION_STATUS.SCHEDULED, 0L)
+                + counts.getOrDefault(GpsTrack.EXPLORATION_STATUS.IN_PROGRESS, 0L)
+                + counts.getOrDefault(GpsTrack.EXPLORATION_STATUS.NEEDS_RECALCULATION, 0L);
+        long done = counts.getOrDefault(GpsTrack.EXPLORATION_STATUS.CALCULATED, 0L)
+                + gpsTrackRepository.countExplorationExplicitlySkipped();
+        var blockers = prerequisites(context);
+        return JobSummaryDto.counts(JOB_ID, "Exploration score", pending, done, 0, 0, 0, null)
+                .processing(this, context, blockers.isEmpty() ? 0 : pending, 0, blockers, null, "tracks", true);
     }
 
 }

@@ -5,9 +5,9 @@ import com.x8ing.mtl.server.mtlserver.jobs.media.indexer.MediaIndexerService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.annotation.Rollback;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.transaction.annotation.Transactional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -72,9 +72,9 @@ class GpsTrackNearbyDistanceDatabaseIntegrationTest {
                 RETURNING id
                 """, Long.class, fileId, fileName));
         jdbcTemplate.update("""
-                INSERT INTO gps_track_data(gps_track_id, precision_in_meter, track_type, track)
-                VALUES (?, 10, 'SIMPLIFIED_SHAPE', ST_GeomFromText(?, 4326))
-                """, trackId, routeWkt);
+                INSERT INTO gps_track_data(gps_track_id, precision_in_meter, track_type, track, observed_path)
+                VALUES (?, 10, 'SIMPLIFIED_SHAPE', ST_GeomFromText(?, 4326), ST_GeomFromText(?, 4326))
+                """, trackId, routeWkt, routeWkt);
         return trackId;
     }
 

@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.10.xsd">
+    <changeSet id="20260905_motion_timeline" author="codex">
+        <comment>Motion classifications and boundary evidence for new canonical imports. No legacy backfill.</comment>
+        <addColumn tableName="gps_track_data_points">
+            <column name="motion_state" type="varchar(16)"/>
+            <column name="motion_reason" type="varchar(40)"/>
+        </addColumn>
+        <addColumn tableName="gps_track">
+            <column name="track_duration_short_stopped_secs" type="double precision"/>
+            <column name="motion_analysis_status" type="varchar(16)"/>
+            <column name="motion_analysis_version" type="varchar(40)"/>
+        </addColumn>
+        <addColumn tableName="gps_track_event">
+            <column name="detection_evidence" type="varchar(40)"/>
+            <column name="detection_version" type="varchar(40)"/>
+            <column name="start_boundary" type="jsonb"/>
+            <column name="end_boundary" type="jsonb"/>
+            <column name="confirmed_at_timestamp" type="timestamp"/>
+        </addColumn>
+    </changeSet>
+</databaseChangeLog>

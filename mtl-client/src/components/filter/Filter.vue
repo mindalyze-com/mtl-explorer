@@ -16,7 +16,9 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue';
+import { warnSanitized } from '@/utils/safeLogging';
+
+import { onMounted, ref } from 'vue';
 import { useFilterStore } from '@/stores/filterStore';
 import CustomFilter from '@/components/filter/CustomFilter.vue';
 import type { ParamDefinition } from 'x8ing-mtl-api-typescript-fetch/dist/esm/models/ParamDefinition';
@@ -52,6 +54,7 @@ type GeoShapes = {
 };
 
 type CustomFilterPublic = {
+  openCriteria: () => void;
   onGeoDrawingComplete: (paramDef: ParamDefinition, shape: unknown) => void;
   getGeoShapes: () => GeoShapes;
   getNavigationState: () => unknown;
@@ -61,16 +64,16 @@ type CustomFilterPublic = {
 const showMenu = ref(false);
 const customFilter = ref<CustomFilterPublic | null>(null);
 const filterStore = useFilterStore();
-// `active` was previously a local data field updated via activeFilterCheck().
-// Now it's a reactive view onto the filterStore so any save through the
-// store (CustomFilter.vue) automatically updates the toolbar chip.
-const active = computed(() => filterStore.isActive);
 
 onMounted(() => {
   console.log('Filter (main) mounted.');
-  // Hydrate the store so `active` reflects persisted state on first render.
+  // Hydrate persisted filter settings on first render.
   filterStore.ensureLoaded().catch((e) => {
-    console.warn('Filter: store ensureLoaded failed', e);
+    warnSanitized('Filter: store ensureLoaded failed', e, {
+      topic1: 'filter',
+      topic2: 'Filter',
+      topic3: 'handleError',
+    });
   });
 });
 
@@ -91,6 +94,11 @@ function close() {
   showMenu.value = false;
 }
 
+function openCriteria() {
+  open();
+  customFilter.value?.openCriteria();
+}
+
 function getNavigationState(): unknown {
   return customFilter.value?.getNavigationState();
 }
@@ -102,12 +110,14 @@ function restoreNavigationState(state: unknown) {
 function resetFilter() {}
 
 async function onSheetClosed() {
+  // Sheet navigation is independent of whether filtering remains enabled.
+  // A completed closing transition must not dismiss a reopened sheet.
+  if (!showMenu.value) {
+    emit('tool-closed');
+  }
   // Force a re-read in case legacy code paths mutated FilterService directly.
   // Once all writes funnel through the store this can be removed.
   await filterStore.refresh();
-  if (!active.value) {
-    emit('tool-closed');
-  }
 }
 
 function onFilterChanged() {
@@ -138,6 +148,7 @@ function getGeoShapes(): GeoShapes {
 
 defineExpose({
   open,
+  openCriteria,
   toggle,
   close,
   getNavigationState,

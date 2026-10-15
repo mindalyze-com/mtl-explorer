@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.10.xsd">
+    <changeSet id="20260905_segment_geography_candidates" author="codex">
+        <comment>Index geography proximity without excluding tracks at the date line.</comment>
+        <sql><![CDATA[
+            CREATE INDEX gps_track_data_ix_shape_geography
+                ON gps_track_data USING gist ((track::geography))
+                WHERE track_type = 'SIMPLIFIED_SHAPE' AND precision_in_meter = 10;
+        ]]></sql>
+        <rollback>DROP INDEX gps_track_data_ix_shape_geography;</rollback>
+    </changeSet>
+</databaseChangeLog>

@@ -1,15 +1,19 @@
 import type Highcharts from 'highcharts';
-import { formatDurationSmart } from '@/utils/Utils';
+import { formatDurationSmart, formatNumber } from '@/utils/Utils';
 import { getMeasurementSystem } from '@/composables/useMeasurementSystem';
 import {
   elevationDisplayValue,
   longDistanceDisplayValue,
   MEASUREMENT_DISPLAY_PROFILES,
+  shortDistanceDisplayValue,
   speedDisplayValue,
   verticalRateDisplayValue,
 } from '@/utils/units';
 
-export type ChartMeasurementDimension = 'longDistance' | 'elevation' | 'speed' | 'verticalRate';
+const DEFAULT_DISTANCE_AXIS_DECIMALS = 1;
+const MAX_DISTANCE_AXIS_DECIMALS = 20;
+
+export type ChartMeasurementDimension = 'longDistance' | 'shortDistance' | 'elevation' | 'speed' | 'verticalRate';
 
 /**
  * Shared Highcharts theme builder.
@@ -123,8 +127,20 @@ export function buildChartOptions(config: ChartThemeConfig): Highcharts.Options 
         formatter(this: Highcharts.AxisLabelsFormatterContextObject) {
           if (isDistance) {
             const distance = longDistanceDisplayValue((this.value as number) * 1000, measurementSystem);
+            const [firstTick, nextTick] = this.axis.tickPositions ?? [];
+            const spacing = longDistanceDisplayValue((nextTick - firstTick) * 1000, measurementSystem);
+            // Converted tick spacing can be smaller than the default label precision.
+            const decimals =
+              Number.isFinite(spacing) && spacing > 0
+                ? Math.min(
+                    MAX_DISTANCE_AXIS_DECIMALS,
+                    Math.max(DEFAULT_DISTANCE_AXIS_DECIMALS, -Math.floor(Math.log10(spacing)))
+                  )
+                : DEFAULT_DISTANCE_AXIS_DECIMALS;
             return (
-              parseFloat(distance.toFixed(1)) + '\u202f' + MEASUREMENT_DISPLAY_PROFILES[measurementSystem].longDistance
+              parseFloat(distance.toFixed(decimals)) +
+              '\u202f' +
+              MEASUREMENT_DISPLAY_PROFILES[measurementSystem].longDistance
             );
           }
           return formatDurationSmart(this.value as number, this.axis?.max as number);
@@ -171,20 +187,17 @@ export function buildChartOptions(config: ChartThemeConfig): Highcharts.Options 
         const rangeHigh = typeof point?.rangeHigh === 'number' ? point.rangeHigh : null;
         const timeOfDay = ts != null ? new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
         const decimals = config.decimals !== undefined ? config.decimals : 1;
-        const displayValue = chartMeasurementDisplayValue(
-          this.y as number,
-          config.measurementDimension,
-          measurementSystem
-        );
-        const val = displayValue.toFixed(decimals);
+        const formatValue = (value: number) =>
+          formatNumber(chartMeasurementDisplayValue(value, config.measurementDimension, measurementSystem), decimals);
+        const val = formatValue(this.y as number);
         const unit = displayUnit ? `\u202f${displayUnit}` : '';
         const rangeLabel = config.rangeTooltipLabel ? `${config.rangeTooltipLabel}: ` : '';
         const rangeText =
           rangeLow != null && rangeHigh != null
-            ? `<br/><span style="font-size:10px">${rangeLabel}min ${chartMeasurementDisplayValue(rangeLow, config.measurementDimension, measurementSystem).toFixed(decimals)}${unit} · max ${chartMeasurementDisplayValue(rangeHigh, config.measurementDimension, measurementSystem).toFixed(decimals)}${unit} · spread ${chartMeasurementDisplayValue(rangeHigh - rangeLow, config.measurementDimension, measurementSystem).toFixed(decimals)}${unit}</span>`
+            ? `<br/><span style="font-size:10px">${rangeLabel}min ${formatValue(rangeLow)}${unit} · max ${formatValue(rangeHigh)}${unit} · spread ${formatValue(rangeHigh - rangeLow)}${unit}</span>`
             : '';
         if (isDistance) {
-          const distance = longDistanceDisplayValue((this.x as number) * 1000, measurementSystem).toFixed(1);
+          const distance = formatNumber(longDistanceDisplayValue((this.x as number) * 1000, measurementSystem), 1);
           const distanceUnit = MEASUREMENT_DISPLAY_PROFILES[measurementSystem].longDistance;
           const timeStr = timeOfDay ? ` · ${timeOfDay}` : '';
           return `<span style="font-size:10px">${distance}\u202f${distanceUnit}${timeStr}</span><br/><b>${val}${unit}</b>${rangeText}`;
@@ -231,6 +244,7 @@ export function chartMeasurementDisplayValue(
   system: ReturnType<typeof getMeasurementSystem>
 ): number {
   if (dimension === 'longDistance') return longDistanceDisplayValue(value, system);
+  if (dimension === 'shortDistance') return shortDistanceDisplayValue(value, system);
   if (dimension === 'elevation') return elevationDisplayValue(value, system);
   if (dimension === 'speed') return speedDisplayValue(value, system);
   if (dimension === 'verticalRate') return verticalRateDisplayValue(value, system);

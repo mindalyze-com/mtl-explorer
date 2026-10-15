@@ -4,6 +4,10 @@ import { describe, expect, it, vi } from 'vitest';
 import TrackBrowserTable from '@/components/track-browser/TrackBrowserTable.vue';
 import TrackDetailOverview from '@/components/trackdetails/TrackDetailOverview.vue';
 
+vi.mock('@/composables/useIndexerStatus', () => ({
+  useIndexerStatus: () => ({ jobSummaries: { value: [] } }),
+}));
+
 function popoverStub(toggle: ReturnType<typeof vi.fn>) {
   return defineComponent({
     name: 'Popover',
@@ -58,8 +62,8 @@ describe('mobile-friendly info popovers', () => {
       .flat()
       .map((segment) => segment.text)
       .join('');
-    expect(infoText).toContain('average external mechanical power');
-    expect(wrapper.find('[data-test="popover"]').html()).toContain('average external mechanical power');
+    expect(infoText).toContain('Estimated average power');
+    expect(wrapper.find('[data-test="popover"]').html()).toContain('Estimated average power');
   });
 
   it('opens Track Browser mobile energy info without opening the track', async () => {

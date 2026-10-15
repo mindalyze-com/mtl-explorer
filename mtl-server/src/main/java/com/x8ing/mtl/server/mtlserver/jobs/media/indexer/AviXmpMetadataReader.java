@@ -13,7 +13,9 @@ import java.nio.file.Path;
 
 import static java.nio.file.StandardOpenOption.READ;
 
-/** Reads Adobe XMP stored in an AVI/WAV {@code _PMX} RIFF chunk. */
+/**
+ * Reads Adobe XMP stored in an AVI/WAV {@code _PMX} RIFF chunk.
+ */
 final class AviXmpMetadataReader {
 
     private static final String RIFF_FOUR_CC = "RIFF";

@@ -2,7 +2,7 @@
 import { computed, inject, toRef, useTemplateRef } from 'vue';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { EVENT_MEASURE_BETWEEN_POINTS_DIALOG_MAXIMIZED_EVENT } from '@/utils/Utils';
-import { useMiniMap, type MiniMapBounds, type MiniMapGeoJson } from '@/components/map/useMiniMap';
+import { useMiniMap, type MiniMapBounds, type MiniMapGeoJson, type MiniMapFocus } from '@/components/map/useMiniMap';
 
 const props = withDefaults(
   defineProps<{
@@ -10,13 +10,21 @@ const props = withDefaults(
     tracksGeoJson?: MiniMapGeoJson | null;
     /** Map bounds as [[swLng, swLat], [neLng, neLat]]. */
     mapBounds?: MiniMapBounds | null;
+    /** Center on one location at a fixed ground span, regardless of track outliers. */
+    mapFocus?: MiniMapFocus | null;
+    showZoomControls?: boolean;
     /** trackIndex of the currently highlighted racer (from legend hover or map hover). */
     highlightedTrackIndex?: number | null;
+    /** Refit the route when the map's container changes size. */
+    fitBoundsOnResize?: boolean;
   }>(),
   {
     tracksGeoJson: null,
     mapBounds: null,
+    mapFocus: null,
+    showZoomControls: false,
     highlightedTrackIndex: null,
+    fitBoundsOnResize: false,
   }
 );
 
@@ -34,18 +42,21 @@ const resizeSignal = computed(() => {
   return measureEvent;
 });
 
-const { invalidateMapSize } = useMiniMap({
+const { invalidateMapSize, refitView } = useMiniMap({
   container: mapContainer,
   tracksGeoJson: toRef(props, 'tracksGeoJson'),
   mapBounds: toRef(props, 'mapBounds'),
+  mapFocus: toRef(props, 'mapFocus'),
+  showZoomControls: toRef(props, 'showZoomControls'),
   highlightedTrackIndex: toRef(props, 'highlightedTrackIndex'),
+  fitBoundsOnResize: toRef(props, 'fitBoundsOnResize'),
   resizeSignal,
   onHoverRacer: (trackIndex) => emit('hover-racer', trackIndex),
   onLeaveRacer: () => emit('leave-racer'),
 });
 
 // VirtualRace.vue calls $refs.minimapRef.invalidateMapSize() externally.
-defineExpose({ invalidateMapSize });
+defineExpose({ invalidateMapSize, refitView });
 </script>
 
 <template>

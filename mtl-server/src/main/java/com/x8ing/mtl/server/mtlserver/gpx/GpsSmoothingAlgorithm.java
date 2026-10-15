@@ -27,4 +27,13 @@ public interface GpsSmoothingAlgorithm {
      * @return a new LineString with smoothed values and identical M
      */
     LineString denoise(LineString lineString);
+
+    default LineString denoise(LineString line, java.util.List<GpsObservationEvidence> evidence) {
+        return denoise(line);
+    }
+
+    default java.util.Map<String, String> processingSettings() {
+        return java.util.Map.of("pipeline", "gps-reliability-v1", "algorithm", getClass().getSimpleName());
+    }
+
 }

@@ -19,6 +19,19 @@ describe('filter params', () => {
     expect(params.geoPolygons).toEqual({});
   });
 
+  it('preserves in-memory Date values when changing views and drops invalid dates', () => {
+    const from = new Date(2026, 0, 1);
+    const params = {
+      dateTimeParams: { DATE_TIME_FROM: from, DATE_TIME_TO: new Date('invalid') },
+    } as unknown as FilterParamsRequest;
+    expect(
+      pruneFilterParamsForDefinitions(params, [
+        { name: 'DATE_TIME_FROM', type: 'DATE_TIME' },
+        { name: 'DATE_TIME_TO', type: 'DATE_TIME' },
+      ]).dateTimeParams
+    ).toEqual({ DATE_TIME_FROM: from });
+  });
+
   it('drops params that do not belong to the selected filter', () => {
     const params: FilterParamsRequest = {
       stringParams: { KEEP_TEXT: 'abc', DROP_TEXT: 'def' },

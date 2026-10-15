@@ -3,22 +3,16 @@ package com.x8ing.mtl.server.mtlserver.jobs.classifier.activitytype;
 import com.x8ing.mtl.server.mtlserver.db.entity.gps.GpsTrack;
 import com.x8ing.mtl.server.mtlserver.db.entity.gps.GpsTrackDataPoint;
 import com.x8ing.mtl.server.mtlserver.db.repository.gps.GpsTrackRepository;
+import com.x8ing.mtl.server.mtlserver.energy.EnergyRecalculationQueue;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.contains;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
 
 public class ActivityTypeAutoClassifierTest {
 
@@ -91,7 +85,7 @@ public class ActivityTypeAutoClassifierTest {
     @Test
     void classifyActivityUsesGuardedUpdateAndDoesNotSaveFullTrack() {
         GpsTrackRepository gpsTrackRepository = mock(GpsTrackRepository.class);
-        ActivityTypeAutoClassifier classifier = new ActivityTypeAutoClassifier(gpsTrackRepository);
+        ActivityTypeAutoClassifier classifier = new ActivityTypeAutoClassifier(gpsTrackRepository, mock(EnergyRecalculationQueue.class));
         GpsTrack track = new GpsTrack();
         track.setId(42L);
         track.setTrackName("MTB: local loop");
@@ -122,7 +116,7 @@ public class ActivityTypeAutoClassifierTest {
     @Test
     void classifyActivityUsesGarminRowingV2TrackType() {
         GpsTrackRepository gpsTrackRepository = mock(GpsTrackRepository.class);
-        ActivityTypeAutoClassifier classifier = new ActivityTypeAutoClassifier(gpsTrackRepository);
+        ActivityTypeAutoClassifier classifier = new ActivityTypeAutoClassifier(gpsTrackRepository, mock(EnergyRecalculationQueue.class));
         GpsTrack track = new GpsTrack();
         track.setId(44L);
         track.setTrackType("rowing_v2");
@@ -148,7 +142,7 @@ public class ActivityTypeAutoClassifierTest {
     @Test
     void classifyActivityKeepsTitlePrecedenceOverGarminTrackType() {
         GpsTrackRepository gpsTrackRepository = mock(GpsTrackRepository.class);
-        ActivityTypeAutoClassifier classifier = new ActivityTypeAutoClassifier(gpsTrackRepository);
+        ActivityTypeAutoClassifier classifier = new ActivityTypeAutoClassifier(gpsTrackRepository, mock(EnergyRecalculationQueue.class));
         GpsTrack track = new GpsTrack();
         track.setId(45L);
         track.setTrackType("BICYCLE");
@@ -175,7 +169,7 @@ public class ActivityTypeAutoClassifierTest {
     @Test
     void classifyActivitySkipsTrackThatWasAlreadyClassifiedByAnotherWorker() {
         GpsTrackRepository gpsTrackRepository = mock(GpsTrackRepository.class);
-        ActivityTypeAutoClassifier classifier = new ActivityTypeAutoClassifier(gpsTrackRepository);
+        ActivityTypeAutoClassifier classifier = new ActivityTypeAutoClassifier(gpsTrackRepository, mock(EnergyRecalculationQueue.class));
         GpsTrack track = new GpsTrack();
         track.setId(43L);
         track.setActivityType(GpsTrack.ACTIVITY_TYPE.WALKING);

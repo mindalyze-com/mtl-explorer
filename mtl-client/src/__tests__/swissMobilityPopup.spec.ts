@@ -1,41 +1,9 @@
+import { resolveTrackDetailsOpeningDetent } from '@/components/map/composables/useMapTools';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { resolveSwissMobilityPopupPosition, useMapTools } from '@/components/map/composables/useMapTools';
+import { useMapTools } from '@/components/map/composables/useMapTools';
 
-const REGRESSION_VIEWPORT_WIDTH_PX = 677;
-const REGRESSION_VIEWPORT_HEIGHT_PX = 998;
 const REGRESSION_CLICK_POINT = { x: 410, y: 118 };
-const POPUP_WIDTH_PX = 300;
-const EDGE_GAP_PX = 12;
-
-type SwissMobilityPopupTestState = {
-  visible: boolean;
-  pos: { x: number; y: number };
-  routes: Array<{
-    icon: string;
-    type: string;
-    name: string;
-    number?: string | number | null;
-  }>;
-};
-
-type SwissMobilityPopupTestContext = {
-  activeOverlays: string[];
-  overlayMap: {
-    getBounds: () => {
-      getWest: () => number;
-      getSouth: () => number;
-      getEast: () => number;
-      getNorth: () => number;
-    };
-    getCanvas: () => {
-      width: number;
-      height: number;
-      clientWidth: number;
-      clientHeight: number;
-    };
-  };
-  swissMobilityPopup: SwissMobilityPopupTestState;
-};
+type SwissMobilityPopupTestState = { visible: boolean; pos: { x: number; y: number }; routes: unknown[] };
 
 type RouteToolSyncTestContext = {
   $refs: Record<
@@ -66,6 +34,7 @@ type RouteToolSyncTestContext = {
   swissMobilityPopup: SwissMobilityPopupTestState;
   geoDrawingParamDef: null;
   geoDrawingOverlay: null;
+  endMapInteraction: ReturnType<typeof vi.fn>;
   closeMediaSelection: ReturnType<typeof vi.fn>;
   closeMediaSheet: ReturnType<typeof vi.fn>;
 };
@@ -78,79 +47,91 @@ function bindMapToolsMethods<TContext extends object>(context: TContext) {
   return context as TContext & typeof methods;
 }
 
-describe('Swiss Mobility popup placement', () => {
-  afterEach(() => {
-    vi.unstubAllGlobals();
-  });
-
-  it('keeps a right-edge route popup inside the map viewport', () => {
-    const position = resolveSwissMobilityPopupPosition(REGRESSION_CLICK_POINT, {
-      width: REGRESSION_VIEWPORT_WIDTH_PX,
-      height: REGRESSION_VIEWPORT_HEIGHT_PX,
+describe('route identification provider', () => {
+  afterEach(() => vi.unstubAllGlobals());
+  function context() {
+    return bindMapToolsMethods({
+      activeOverlays: ['wanderland'],
+      layerOpacities: { wanderland: 100 },
+      overlayMap: {
+        getLayer: vi.fn(() => ({})),
+        getBounds: () => ({ getWest: () => 6, getSouth: () => 45, getEast: () => 11, getNorth: () => 48 }),
+        getCanvas: () => ({ width: 1354, height: 1996, clientWidth: 677, clientHeight: 998 }),
+      },
     });
-
-    expect(position.x).toBeLessThan(REGRESSION_CLICK_POINT.x);
-    expect(position.x).toBeGreaterThanOrEqual(EDGE_GAP_PX);
-    expect(position.x + POPUP_WIDTH_PX + EDGE_GAP_PX).toBeLessThanOrEqual(REGRESSION_VIEWPORT_WIDTH_PX);
+  }
+  it('returns source-labelled candidates and passes cancellation without opening a popup', async () => {
+    const fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        results: [
+          {
+            id: 'route-2',
+            layerBodId: 'ch.astra.wanderland',
+            layerName: 'Hiking routes',
+            attributes: { chmobil_title: 'Synthetic trail', chmobil_route_number: 2 },
+          },
+        ],
+      }),
+    });
+    vi.stubGlobal('fetch', fetch);
+    const controller = new AbortController();
+    const target = context();
+    const candidates = await target.identifySwissMobilityRoutes(
+      { lng: 7.1, lat: 46.8 },
+      REGRESSION_CLICK_POINT,
+      controller.signal,
+      24
+    );
+    expect(candidates).toMatchObject([
+      {
+        id: 'route-2',
+        kind: 'overlay',
+        source: 'ch.astra.wanderland',
+        label: 'Synthetic trail',
+        sourceLabel: 'Hiking routes',
+        route: { type: 'Hiking', name: 'Synthetic trail', number: 2 },
+      },
+    ]);
+    expect(fetch.mock.calls[0][1]).toEqual({ signal: controller.signal });
+    const params = new URL(fetch.mock.calls[0][0]).searchParams;
+    expect(params.get('tolerance')).toBe('24');
+    expect(params.get('imageDisplay')).toBe('677,998,96');
+    expect(target).not.toHaveProperty('swissMobilityPopup');
   });
-
-  it('uses the clamped position after Swiss route identification succeeds', async () => {
+  it('preserves distinct object IDs and gives rendered copies the same semantic identity', async () => {
     vi.stubGlobal(
       'fetch',
       vi.fn().mockResolvedValue({
         ok: true,
-        json: vi.fn().mockResolvedValue({
+        json: async () => ({
           results: [
-            {
-              layerBodId: 'ch.astra.wanderland',
-              attributes: {
-                chmobil_title: 'Trans Swiss Trail',
-                chmobil_route_number: 2,
-              },
-            },
+            { id: 1, layerBodId: 'ch.astra.wanderland', attributes: { label: 'Same label' } },
+            { id: 1, layerBodId: 'ch.astra.wanderland', attributes: { label: 'Same label' } },
+            { id: 2, layerBodId: 'ch.astra.wanderland', attributes: { label: 'Same label' } },
           ],
         }),
       })
     );
-    const context = bindMapToolsMethods<SwissMobilityPopupTestContext>({
-      activeOverlays: ['wanderland'],
-      overlayMap: {
-        getBounds: () => ({
-          getWest: () => 6,
-          getSouth: () => 45,
-          getEast: () => 11,
-          getNorth: () => 48,
-        }),
-        getCanvas: () => ({
-          width: REGRESSION_VIEWPORT_WIDTH_PX * 2,
-          height: REGRESSION_VIEWPORT_HEIGHT_PX * 2,
-          clientWidth: REGRESSION_VIEWPORT_WIDTH_PX,
-          clientHeight: REGRESSION_VIEWPORT_HEIGHT_PX,
-        }),
-      },
-      swissMobilityPopup: { visible: false, pos: { x: 0, y: 0 }, routes: [] },
-    });
-
-    await context.identifySwissMobilityRoutes({ lng: 7.1, lat: 46.8 }, REGRESSION_CLICK_POINT);
-
-    expect(context.swissMobilityPopup).toMatchObject({
-      visible: true,
-      pos: {
-        x: expect.any(Number),
-        y: expect.any(Number),
-      },
-      routes: [
-        {
-          icon: 'bi bi-signpost-2',
-          type: 'Hiking',
-          name: 'Trans Swiss Trail',
-          number: 2,
-        },
-      ],
-    });
-    expect(context.swissMobilityPopup.pos.x + POPUP_WIDTH_PX + EDGE_GAP_PX).toBeLessThanOrEqual(
-      REGRESSION_VIEWPORT_WIDTH_PX
-    );
+    const candidates = await context().identifySwissMobilityRoutes({ lng: 7.1, lat: 46.8 }, REGRESSION_CLICK_POINT);
+    expect(candidates.map((candidate) => candidate.id)).toEqual(['1', '1', '2']);
+  });
+  it('does not query a hidden or missing overlay', async () => {
+    const fetch = vi.fn();
+    vi.stubGlobal('fetch', fetch);
+    const target = context();
+    target.layerOpacities.wanderland = 0;
+    expect(await target.identifySwissMobilityRoutes({ lng: 7.1, lat: 46.8 }, REGRESSION_CLICK_POINT)).toEqual([]);
+    target.layerOpacities.wanderland = 100;
+    target.overlayMap.getLayer.mockReturnValue(undefined);
+    expect(await target.identifySwissMobilityRoutes({ lng: 7.1, lat: 46.8 }, REGRESSION_CLICK_POINT)).toEqual([]);
+    expect(fetch).not.toHaveBeenCalled();
+  });
+  it('keeps HTTP failure distinct from a confirmed empty response', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 503 }));
+    await expect(
+      context().identifySwissMobilityRoutes({ lng: 7.1, lat: 46.8 }, REGRESSION_CLICK_POINT)
+    ).rejects.toThrow('503');
   });
 });
 
@@ -180,6 +161,7 @@ describe('map route tool sync', () => {
       swissMobilityPopup: { visible: false, pos: { x: 0, y: 0 }, routes: [] },
       geoDrawingParamDef: null,
       geoDrawingOverlay: null,
+      endMapInteraction: vi.fn(),
       closeMediaSelection: vi.fn(),
       closeMediaSheet: vi.fn(),
     });
@@ -221,6 +203,7 @@ describe('map route tool sync', () => {
       swissMobilityPopup: { visible: false, pos: { x: 0, y: 0 }, routes: [] },
       geoDrawingParamDef: null,
       geoDrawingOverlay: null,
+      endMapInteraction: vi.fn(),
       closeMediaSelection: vi.fn(),
       closeMediaSheet: vi.fn(),
     });
@@ -258,6 +241,7 @@ describe('map route tool sync', () => {
       locationSearchMarker: null,
       selectionPopupTrackIds: [],
       swissMobilityPopup: { visible: false, pos: { x: 0, y: 0 }, routes: [] },
+      endMapInteraction: vi.fn(),
       closeMediaSelection: vi.fn(),
       closeMediaSheet: vi.fn(),
       selectTrackById: vi.fn(),
@@ -268,5 +252,75 @@ describe('map route tool sync', () => {
     expect(context.trackDetailsReturnTarget).toBe(returnTarget);
     expect(context.trackDetailsId).toBe(42);
     expect(context.trackDetailsVisible).toBe(true);
+  });
+
+  it.each([
+    ['stats', 'statistics', 'route'],
+    ['stats', 'statistics', 'tool'],
+    ['filter', 'filterTool', 'route'],
+    ['filter', 'filterTool', 'tool'],
+  ])('keeps the originating %s panel open underneath GPS details on %s return', (toolId, refName, returnVia) => {
+    const navigation = { tab: 'tracks', page: 3 };
+    const close = vi.fn();
+    const toggle = vi.fn();
+    const restore = vi.fn();
+    const context = bindMapToolsMethods({
+      $refs: {
+        [refName]: {
+          close,
+          toggle,
+          open: vi.fn(),
+          getNavigationState: () => navigation,
+          restoreNavigationState: restore,
+        },
+      },
+      $nextTick: (callback: () => void) => callback(),
+      activeToolId: toolId,
+      deselectTrack: vi.fn(),
+      trackDetailsReturnTarget: null,
+      trackReplayActive: false,
+      trackDetailsVisible: false,
+      trackDetailsId: null,
+      trackDetailsSelectedDetent: undefined,
+      trackDetailsInfo: { id: null, name: '', description: '', activityType: '' },
+      selectedTrackId: null,
+      selectedFeature: null,
+      gpsTrackIdToFeature: new Map(),
+      mediaSheetVisible: false,
+      trackSelectionSheetVisible: false,
+      locationSearchVisible: false,
+      locationSearchMarker: null,
+      selectionPopupTrackIds: [],
+      swissMobilityPopup: { visible: false, pos: { x: 0, y: 0 }, routes: [] },
+      endMapInteraction: vi.fn(),
+      closeMediaSelection: vi.fn(),
+      closeMediaSheet: vi.fn(),
+      selectTrackById: vi.fn(),
+    });
+    context.openTrackDetails(42);
+    context.syncTrackDetailRoute(42);
+    expect(close).not.toHaveBeenCalled();
+    expect(context.trackDetailsVisible).toBe(true);
+    expect(context.trackDetailsReturnTarget).toEqual({ toolId, state: navigation });
+    context.syncTrackDetailRoute(43);
+    expect(close).not.toHaveBeenCalled();
+    if (returnVia === 'tool') context.onToolSelect(toolId);
+    else context.syncToolToRoute(toolId);
+    expect(close).not.toHaveBeenCalled();
+    expect(toggle).not.toHaveBeenCalled();
+    expect(context.trackDetailsVisible).toBe(false);
+    expect(restore).toHaveBeenCalledWith(navigation);
+  });
+});
+
+describe('track detail opening height', () => {
+  it.each([
+    ['compact', 'expanded'],
+    ['default', 'expanded'],
+    ['desktop', 'expanded'],
+    ['expanded', 'expanded'],
+    ['replay-background', 'replay-background'],
+  ])('opens %s as %s', (requested, expected) => {
+    expect(resolveTrackDetailsOpeningDetent(requested)).toBe(expected);
   });
 });

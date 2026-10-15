@@ -1,5 +1,0 @@
-services:
-  app:
-    pull_policy: never
-    environment:
-      MTL_MAP_SERVER_TILE_MODE: remote

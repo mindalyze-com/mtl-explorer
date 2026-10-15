@@ -29,6 +29,25 @@ The supplied Compose files use a 128 MiB hard limit, disable swap by setting the
 
 ## Access Boundary
 
-Only PMTiles vector map files require the `mtl-version` and `mtl-server-id` query parameters.
+Only PMTiles vector map files require the `mtl-version` and `mtl-server-id`
+query parameters.
 
-Operational endpoints and files such as `/health`, `/status`, sentinels, URL marker files, and logs are outside that identifier gate. Location search is handled by the separate `docker-location-search` sidecar.
+The requesting app sends its container release number in `mtl-version` and
+image build time separately in the optional `mtl-build`, for example
+`mtl-version=1.519&mtl-build=2026-10-06T10_20_30Z`. Builds without image metadata
+fall back to Maven metadata; unknown build times are omitted. Access logs record
+these values in `mtl_version` and `mtl_build`. The build field is not required
+for authorization.
+
+Map requests also carry the resolved client IP in `X-Forwarded-For` and
+`X-Real-IP`, separately from the connecting backend's address. MTL Explorer uses
+the servlet's resolved address, including its configured Spring forwarding support;
+it does not copy incoming IP headers directly. The ingress proxy must remove
+untrusted forwarding headers before setting its own, as described in
+[Spring's forwarding guidance](https://docs.spring.io/spring-framework/docs/current/javadoc-api/org/springframework/web/filter/ForwardedHeaderFilter.html).
+Direct installations can disable incoming forwarding with
+`SERVER_FORWARD_HEADERS_STRATEGY=none`.
+
+Operational endpoints and files such as `/health`, `/status`, sentinels, and
+URL marker files are outside that identifier gate. `/logs` is never served.
+Location search is handled by the separate `docker-location-search` sidecar.

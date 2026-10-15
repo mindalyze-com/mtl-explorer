@@ -1,9 +1,10 @@
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-nocheck
 /* eslint-disable @typescript-eslint/no-explicit-any -- Renderer setup still crosses broad MapLibre/runtime config shapes. */
-import { markRaw } from 'vue';
+import { reportMapError, reportMapContextLoss } from '@/utils/mapDiagnostics';
+import { warnSanitized } from '@/utils/safeLogging';
+import { markRaw, watch } from 'vue';
 import * as maplibregl from 'maplibre-gl';
-import { fetchTrackIdsWithinDistanceOfPoint } from '@/utils/ServiceHelper';
 import { getToken, redirectToLoginAfterAuthFailure } from '@/utils/auth';
 import { MediaOverlay } from '@/layers/MediaOverlay';
 import { HeatmapOverlay } from '@/layers/HeatmapOverlay';
@@ -17,16 +18,27 @@ import {
 import {
   fetchMapStatus,
   invalidateMapStatus,
-  MAP_STATUS_POLL_INTERVAL_MS,
   shouldPollMapStatus,
+  shouldTryVectorTiles,
 } from '@/utils/mapStatusService';
-import { buildLocalVectorStyleFromArchiveUrl, buildFallbackRasterStyle } from '@/utils/mapStyle';
+import {
+  APPLICATION_STATUS_SECTION,
+  type ApplicationStatusPollingConsumer,
+  useApplicationStatusStore,
+} from '@/stores/applicationStatusStore';
+import { STATUS_POLL_INTERVAL_MS, StatusRequestPausedError } from '@/utils/statusPolling';
+import {
+  buildLocalVectorStyleFromArchiveUrl,
+  buildFallbackRasterStyle,
+  TERRAIN_DEM_SOURCE_ID,
+  HILLSHADE_DEM_SOURCE_ID,
+} from '@/utils/mapStyle';
 import { GlobeControl, computeGlobeMinZoom } from '@/components/map/GlobeControl';
 import { TerrainViewControl } from '@/components/map/TerrainViewControl';
-import { haversineDistance } from '@/components/map/mapGeometry';
 import { collectStyleAttributions, resolveConfiguredMapStyle } from '@/components/map/mapStyleResolver';
 import { ensureLowZoomCached, loadLowZoomFromCache } from '@/utils/lowZoomCacheService';
-import { describeError, startStartupTimer, startupLog, startupWarn } from '@/utils/startupDiagnostics';
+import { scheduleLowZoomCacheWarmup } from '@/utils/lowZoomCacheWarmup';
+import { startStartupTimer, startupLog, startupWarn } from '@/utils/startupDiagnostics';
 import { ensurePMTilesProtocol, registerCachingPMTilesArchive } from '@/utils/maplibrePmtilesProtocol';
 import { configureExternalAttributionLinks } from '@/utils/externalAttributionLinks';
 import { mapScaleUnitForMeasurementSystem } from '@/components/map/mapScaleControl';
@@ -36,6 +48,11 @@ import { useMapStateStore } from '@/stores/mapStateStore';
 import type { useMapSettingsStore } from '@/stores/mapSettingsStore';
 import { isAbortLikeError } from '@/utils/errors';
 import { installMissingStyleImageResolver } from '@/utils/maplibreStyleImages';
+import { NAVIGATION_TOOL_ICONS } from '@/components/ui/navigationToolIcons';
+import { rebuildMapLayers } from './useMapLayerSettings';
+import { VectorBasemapRecovery } from '@/utils/vectorBasemapRecovery';
+import { observeMapCamera } from '@/components/map/mapCameraObservation';
+import { observeElementResize } from '@/utils/observeElementResize';
 
 const GLOBE_ENTER_ZOOM = 3;
 const GLOBE_EXIT_ZOOM = 3.8;
@@ -46,9 +63,7 @@ const MAP_LOAD_WATCHDOG_MS = 7000;
 const DEFAULT_MAP_ZOOM = 10;
 const INITIAL_TRACK_BOUNDS_PADDING = 48;
 const INITIAL_TRACK_BOUNDS_MAX_ZOOM = 13;
-const TRACK_DETAILS_MAP_DETENT = 'compact';
 const LOCAL_VECTOR_STYLE_MODE = 'local-vector';
-const LOCAL_VECTOR_SOURCE_ID = 'protomaps';
 const MAPTERHORN_ATTRIBUTION_PATTERN = /mapterhorn/i;
 
 function warnExternalAttributionBlocked(toast: unknown, url: string) {
@@ -60,7 +75,6 @@ function warnExternalAttributionBlocked(toast: unknown, url: string) {
   });
 }
 
-let runtimeRasterFallbackLoggedThisSession = false;
 function initialBoundsFromConfig(bounds: any) {
   if (!bounds) return null;
   const { minLng, minLat, maxLng, maxLat } = bounds;
@@ -88,78 +102,107 @@ export function useMapRendererLifecycle(deps: {
   mapSettingsStore: ReturnType<typeof useMapSettingsStore>;
 }): MapControllerMethodDefinitions<MapRendererLifecycleMethods> {
   const { mapSettingsStore } = deps;
+  const applicationStatusStore = useApplicationStatusStore();
   let mapStatusPollingActive = false;
-  let mapStatusPollGeneration = 0;
   let mapStatusPollNow: ((force?: boolean) => void) | null = null;
-  let mapStatusVisibilityHandler: (() => void) | null = null;
+  let mapStatusConsumer: ApplicationStatusPollingConsumer | null = null;
+  let stopMapStatusWatch: (() => void) | null = null;
+  let cancelLowZoomWarmup: (() => void) | null = null;
+  let vectorRecovery: VectorBasemapRecovery | null = null;
+  let initializationGeneration = 0;
+  let cancelMapLoad: (() => void) | null = null;
+
+  function ensureVectorRecovery(runtime) {
+    if (vectorRecovery) return vectorRecovery;
+    const map = runtime.overlayMap;
+    const replaceBasemap = async (fallback: boolean) => {
+      runtime.baseMapRuntimeFallbackApplied = fallback;
+      const resolved = resolveConfiguredMapStyle({
+        config: runtime.mapConfig,
+        theme: runtime.mapThemeSelected,
+        mapSourceMode: runtime.mapSourceMode,
+        localTilesReady: !fallback,
+      });
+      runtime.baseMapStyleMode = resolved.styleMode;
+      if (map.getSource('tracks')) {
+        await rebuildMapLayers(runtime);
+      } else {
+        map.once('style.load', () => {
+          if (runtime.overlayMap !== map) return;
+          runtime.captureBasemapLayers();
+          runtime.applyBasemapAppearance();
+          runtime.applyTerrainPreference({ animate: false });
+        });
+        map.setStyle(resolved.style);
+        runtime.setOverlayAttributionControl(resolved.attributions);
+      }
+    };
+    vectorRecovery = new VectorBasemapRecovery({
+      map,
+      archiveUrl: mainTileArchiveUrl(runtime.mapConfig),
+      isCurrent: () => runtime.overlayMap === map && !runtime.mapArchiveStaleReloading,
+      fallbackApplied: runtime.baseMapRuntimeFallbackApplied,
+      onUnavailable: async () => {
+        warnSanitized(
+          '[MTL] Vector archive unavailable after repeated checks; using temporary raster basemap.',
+          undefined,
+          { topic1: 'map', topic2: 'useMapRendererLifecycle', topic3: 'onUnavailable' }
+        );
+        await replaceBasemap(true);
+      },
+      onRestored: async () => {
+        startupLog('mapload', 'Vector archive recovered; restoring selected basemap');
+        await replaceBasemap(false);
+      },
+      onAuthFailure: () => redirectToLoginAfterAuthFailure(!!getToken()),
+    });
+    return vectorRecovery;
+  }
   const methods: MapControllerMethodDefinitions<MapRendererLifecycleMethods> = {
     startMapStatusPolling() {
       this.stopMapStatusPolling();
       mapStatusPollingActive = true;
-      const poll = async (pollGeneration, force = false) => {
-        if (!mapStatusPollingActive || pollGeneration !== mapStatusPollGeneration) return;
-        try {
-          const status = await fetchMapStatus({ force });
-          if (!mapStatusPollingActive || pollGeneration !== mapStatusPollGeneration) return;
-          const previousStatus = this.mapServerStatus;
+      // eslint-disable-next-line @typescript-eslint/no-this-alias -- The watcher outlives this method call.
+      const runtime = this;
+      mapStatusPollNow = (force = false) => {
+        if (!mapStatusPollingActive) return;
+        if (force) void applicationStatusStore.force(APPLICATION_STATUS_SECTION.SERVICES);
+        else void applicationStatusStore.refresh([APPLICATION_STATUS_SECTION.SERVICES]);
+      };
+      mapStatusConsumer = applicationStatusStore.registerPollingConsumer({
+        [APPLICATION_STATUS_SECTION.SERVICES]: STATUS_POLL_INTERVAL_MS,
+      });
+      stopMapStatusWatch = watch(
+        () => applicationStatusStore.services?.map,
+        (status) => {
+          if (!mapStatusPollingActive || !status) return;
+          const previousStatus = runtime.mapServerStatus;
           const wasReady = previousStatus?.ready;
-          const previousSource = previousStatus?.tileSource;
-          const previousArchive = previousStatus?.archiveId;
-          this.mapServerStatus = status;
-          const currentSource = this.mapServerStatus?.tileSource;
-          const currentArchive = this.mapServerStatus?.archiveId;
+          const previousSource = previousStatus?.tileSource ?? runtime.mapConfig?.tileSource;
+          const previousArchive = previousStatus?.archiveId ?? runtime.mapConfig?.archiveId;
+          runtime.mapServerStatus = status;
+          const currentSource = status.tileSource;
+          const currentArchive = status.archiveId;
           const archiveChanged =
             Boolean(previousStatus) && (previousSource !== currentSource || previousArchive !== currentArchive);
-          if (this.mapServerStatus?.ready) {
-            if (
-              !shouldPollMapStatus({
-                tileMode: this.mapConfig?.tileMode,
-                offline: this.mapConfig?.offline,
-                remoteRasterOverride: this.mapSourceMode === 'remote',
-                status: this.mapServerStatus,
-              })
-            ) {
-              this.stopMapStatusPolling();
-            }
-            // Tiles just became ready, or the byte layout/source changed — rebuild
-            // with a fresh server-provided PMTiles URL so browser range caches stay isolated.
-            if (!wasReady || archiveChanged) {
-              this.baseMapRuntimeFallbackApplied = false;
-              clearMapConfigCache();
-              this.reloadMap();
-            }
+          if (!status.ready) return;
+          if (
+            !shouldPollMapStatus({
+              tileMode: runtime.mapConfig?.tileMode,
+              offline: runtime.mapConfig?.offline,
+              remoteRasterOverride: runtime.mapSourceMode === 'remote',
+              status,
+            })
+          ) {
+            runtime.stopMapStatusPolling();
           }
-        } catch {
-          // ignore polling errors silently
-        } finally {
-          if (mapStatusPollingActive && pollGeneration === mapStatusPollGeneration) {
-            this.mapStatusPollTimer = setTimeout(() => mapStatusPollNow?.(), MAP_STATUS_POLL_INTERVAL_MS);
+          if (archiveChanged || (!wasReady && runtime.baseMapStyleMode !== LOCAL_VECTOR_STYLE_MODE)) {
+            runtime.baseMapRuntimeFallbackApplied = false;
+            clearMapConfigCache();
+            runtime.reloadMap();
           }
         }
-      };
-
-      mapStatusPollNow = (force = false) => {
-        if (!mapStatusPollingActive || document.visibilityState === 'hidden') return;
-        if (this.mapStatusPollTimer !== null) {
-          clearTimeout(this.mapStatusPollTimer);
-          this.mapStatusPollTimer = null;
-        }
-        const pollGeneration = ++mapStatusPollGeneration;
-        void poll(pollGeneration, force);
-      };
-      mapStatusVisibilityHandler = () => {
-        if (document.visibilityState === 'hidden') {
-          mapStatusPollGeneration += 1;
-          if (this.mapStatusPollTimer !== null) {
-            clearTimeout(this.mapStatusPollTimer);
-            this.mapStatusPollTimer = null;
-          }
-          return;
-        }
-        mapStatusPollNow?.();
-      };
-      document.addEventListener('visibilitychange', mapStatusVisibilityHandler);
-      mapStatusPollNow();
+      );
     },
 
     refreshMapStatusPolling(force = false) {
@@ -168,19 +211,37 @@ export function useMapRendererLifecycle(deps: {
 
     stopMapStatusPolling() {
       mapStatusPollingActive = false;
-      mapStatusPollGeneration += 1;
-      if (this.mapStatusPollTimer !== null) {
-        clearTimeout(this.mapStatusPollTimer);
-        this.mapStatusPollTimer = null;
-      }
-      if (mapStatusVisibilityHandler) {
-        document.removeEventListener('visibilitychange', mapStatusVisibilityHandler);
-        mapStatusVisibilityHandler = null;
-      }
+      this.mapStatusPollTimer = null;
+      mapStatusConsumer?.dispose();
+      mapStatusConsumer = null;
+      stopMapStatusWatch?.();
+      stopMapStatusWatch = null;
       mapStatusPollNow = null;
     },
 
-    disposeRendererMaps() {
+    disposeRendererMaps(preserveInitialization = false) {
+      this.disposeMapInteractions();
+      if (!preserveInitialization) {
+        initializationGeneration += 1;
+        this._mapLoadGeneration = (this._mapLoadGeneration ?? 0) + 1;
+        this._mapReadyResolve?.(false);
+      }
+      cancelMapLoad?.();
+      cancelMapLoad = null;
+      this._stopObservingResize?.();
+      this._stopObservingResize = null;
+      vectorRecovery?.dispose();
+      vectorRecovery = null;
+      cancelLowZoomWarmup?.();
+      cancelLowZoomWarmup = null;
+      // Drawing handlers belong to the map instance being replaced, including
+      // theme/source changes that rebuild layers without a full data reload.
+      this.geoDrawingOverlay?.destroy();
+      this.geoDrawingOverlay = null;
+      this.geoDrawingParamDef = null;
+      this.geoDrawPointCount = 0;
+      this.gpsMarker?.remove();
+      this.gpsMarker = null;
       if (this.overlayMap) {
         this.detachTrackPointLayerHandlers();
         this._attributionLinkCleanup?.();
@@ -194,48 +255,48 @@ export function useMapRendererLifecycle(deps: {
       this._attributionControl = null;
     },
 
-    applyRuntimeRasterBasemapFallback(errorEvent, message, tileId) {
-      if (this.baseMapRuntimeFallbackApplied || this.baseMapStyleMode !== LOCAL_VECTOR_STYLE_MODE || !this.overlayMap) {
-        return false;
-      }
-      if (errorEvent?.sourceId !== LOCAL_VECTOR_SOURCE_ID) {
-        return false;
-      }
-      const resolved = resolveConfiguredMapStyle({
-        config: this.mapConfig,
-        theme: this.mapThemeSelected,
-        localTilesReady: false,
+    observeMapContainerResize() {
+      this._stopObservingResize?.();
+      const map = this.overlayMap;
+      const container = this.$refs.mapContainer;
+      this._stopObservingResize = observeElementResize(container, () => {
+        if (this.overlayMap !== map) return;
+        map.resize();
+        if (this.globeMode) map.setMinZoom(computeGlobeMinZoom(container));
+        map.redraw();
       });
-      this.baseMapRuntimeFallbackApplied = true;
-      this.baseMapStyleMode = resolved.styleMode;
-      const hadTrackLayers = Boolean(this.overlayMap.getSource('tracks'));
-      if (hadTrackLayers) {
-        void this.reloadMap();
+    },
+
+    handleMapError(e) {
+      if (isAbortLikeError(e.error)) return;
+      const msg = e.error?.message || '';
+      const tileId = e?.tile?.tileID ?? null;
+      const isExternalElevationSource = e.sourceId === TERRAIN_DEM_SOURCE_ID || e.sourceId === HILLSHADE_DEM_SOURCE_ID;
+      if (!isExternalElevationSource && msg.includes('401')) {
+        startupLog('mapload', 'Map tile auth failure; redirecting to login', {
+          message: msg,
+        });
+        warnSanitized('Map tile auth failure (401) — redirecting to login', e.error ?? msg, {
+          topic1: 'map',
+          topic2: 'useMapRendererLifecycle',
+          topic3: 'initMap',
+        });
+        redirectToLoginAfterAuthFailure(!!getToken());
+      } else if (this.applyRuntimeRasterBasemapFallback(e, msg, tileId)) {
+        return;
       } else {
-        this.overlayMap.once('style.load', () => {
-          this.captureBasemapLayers();
-          this.applyBasemapAppearance();
-          this.applyTerrainPreference({ animate: false });
+        startupLog('mapload', 'MapLibre reported a base-map error', {
+          message: msg,
+          sourceId: e.sourceId ?? null,
+          tile: tileId,
         });
-        this.overlayMap.setStyle(resolved.style);
-        this.setOverlayAttributionControl(resolved.attributions);
+        reportMapError(e, 'Map2DRenderer');
       }
-      startupWarn('mapload', 'Local vector basemap failed; switched to raster fallback', {
-        message,
-        sourceId: errorEvent?.sourceId ?? null,
-        tile: tileId,
-        fallbackStyleMode: resolved.styleMode,
-      });
-      if (!runtimeRasterFallbackLoggedThisSession) {
-        runtimeRasterFallbackLoggedThisSession = true;
-        console.warn('[MTL] Local vector map tiles failed; switched base map to raster fallback for this session.', {
-          message,
-          sourceId: errorEvent?.sourceId ?? null,
-          tile: tileId ?? null,
-          fallbackStyleMode: resolved.styleMode,
-        });
-      }
-      return true;
+    },
+
+    applyRuntimeRasterBasemapFallback(errorEvent) {
+      if (this.baseMapStyleMode !== LOCAL_VECTOR_STYLE_MODE || !this.overlayMap) return false;
+      return ensureVectorRecovery(this).handleError(errorEvent ?? {});
     },
 
     setOverlayAttributionControl(attributions) {
@@ -279,7 +340,7 @@ export function useMapRendererLifecycle(deps: {
       }
       this.mapArchiveStaleReloading = true;
       try {
-        startupWarn('mapcache', 'PMTiles archive/source changed; reloading map config', event?.detail ?? {});
+        startupLog('mapcache', 'PMTiles archive/source changed; reloading map config', event?.detail ?? {});
         this.baseMapRuntimeFallbackApplied = false;
         this.stopMapStatusPolling();
         this.mapServerStatus = null;
@@ -287,13 +348,20 @@ export function useMapRendererLifecycle(deps: {
         clearMapConfigCache();
         await this.reloadMap();
       } catch (error) {
-        startupWarn('mapcache', 'Map reload after archive/source change failed', describeError(error));
+        startupWarn('mapcache', 'Map reload after archive/source change failed', error);
       } finally {
         this.mapArchiveStaleReloading = false;
       }
     },
 
     async reloadMap() {
+      if (this._mapUnmounted) return;
+      initializationGeneration += 1;
+      cancelMapLoad?.();
+      this._mapReadyResolve?.(false);
+      const generation = (this._mapLoadGeneration ?? 0) + 1;
+      this._mapLoadGeneration = generation;
+      const isCurrent = () => !this._mapUnmounted && this._mapLoadGeneration === generation;
       const reloadTimer = startStartupTimer('reload', 'Reloading map state');
       this.showLoader = true;
 
@@ -301,7 +369,6 @@ export function useMapRendererLifecycle(deps: {
       this.selectedTrackId = null;
       this.selectedFeature = null;
       this.closeSelectionPopup();
-      this.closeSwissMobilityPopup();
       this.closeTrackPointPopup();
       this.trackPointsDetailsCache.clear();
       this.trackPointsCanonicalCache.clear();
@@ -328,19 +395,10 @@ export function useMapRendererLifecycle(deps: {
       }
       this.heatmapOverlay = null;
 
-      // Clean up geo drawing overlay (it holds a reference to the old overlayMap)
-      if (this.geoDrawingOverlay && typeof this.geoDrawingOverlay.destroy === 'function') {
-        this.geoDrawingOverlay.destroy();
-      }
-      this.geoDrawingOverlay = null;
-
-      // Clean up the GPS marker before destroying the map.
-      if (this.gpsMarker) {
-        this.gpsMarker.remove();
-        this.gpsMarker = null;
-      }
       this.clearFocusedMediaMarker();
       this.clearLocationSearchMarker();
+      let resolveReady: (ready: boolean) => void = () => undefined;
+      let readyPromise: Promise<boolean> | null = null;
       try {
         // Phase 3: Start track fetch in parallel with map tile loading.
         // initMap() creates MapLibre instances and waits for their 'load' events.
@@ -348,31 +406,60 @@ export function useMapRendererLifecycle(deps: {
         // The actual addTracksToMap() (inside loadMapData) needs the map to be loaded,
         // so loadMapData awaits _mapReadyPromise before touching map sources.
         this._mapReadyPromise = new Promise((resolve) => {
-          this._mapReadyResolve = resolve;
+          resolveReady = resolve;
         });
-        this.mapConfig = await fetchMapConfig();
-        const trackDataPromise = this.fetchTracksAndFallback();
-        await this.initMap();
-        this._mapReadyResolve();
+        this._mapReadyResolve = resolveReady;
+        readyPromise = this._mapReadyPromise;
+        const config = await fetchMapConfig();
+        if (!isCurrent()) return;
+        this.mapConfig = config;
+        // Observe rejection immediately while initialization runs in parallel.
+        const tracks = this.fetchTracksAndFallback().then(
+          () => ({ error: undefined }),
+          (error) => ({ error })
+        );
+        const ready = await this.initMap(true);
+        resolveReady(ready !== false && isCurrent());
         // Map is ready — now wait for track data (may already be resolved from cache)
-        await trackDataPromise;
+        const result = await tracks;
+        if (!isCurrent() || ready === false) return;
+        if (result.error) throw result.error;
         reloadTimer.success('Map reload completed');
       } catch (error) {
-        reloadTimer.error('Map reload failed', describeError(error));
+        if (!isCurrent()) return;
+        reloadTimer.error('Map reload failed', error);
         throw error;
+      } finally {
+        resolveReady(false);
+        if (this._mapReadyPromise === readyPromise) {
+          this._mapReadyPromise = null;
+          this._mapReadyResolve = null;
+        }
       }
     },
 
-    async initMap() {
+    async initMap(preserveTrackLoad = false) {
+      const container = this.$refs.mapContainer;
+      if (this._mapUnmounted || !(container instanceof HTMLElement)) return false;
+      if (!preserveTrackLoad) {
+        this._mapLoadGeneration = (this._mapLoadGeneration ?? 0) + 1;
+        this._mapReadyResolve?.(false);
+      }
+      const generation = ++initializationGeneration;
+      cancelMapLoad?.();
+      const isCurrent = () =>
+        generation === initializationGeneration && !this._mapUnmounted && this.$refs.mapContainer === container;
       const initTimer = startStartupTimer('mapinit', 'Initializing map');
       // Fetch map config from server (cached after first call)
-      this.mapConfig = await fetchMapConfig();
+      const config = await fetchMapConfig();
+      if (!isCurrent()) return false;
+      this.mapConfig = config;
       if (this.mapConfig.plannerEnabled && !this.toolDefs.some((t) => t.id === 'planner')) {
         const adminIdx = this.toolDefs.findIndex((t) => t.id === 'admin');
         const insertAt = adminIdx >= 0 ? adminIdx : this.toolDefs.length;
         this.toolDefs.splice(insertAt, 0, {
           id: 'planner',
-          icon: 'bi bi-signpost-split',
+          icon: NAVIGATION_TOOL_ICONS.planner,
           label: 'Planner',
         });
       }
@@ -391,8 +478,14 @@ export function useMapRendererLifecycle(deps: {
       const hadOverlayMap = !!this.overlayMap;
       const mapStateStore = useMapStateStore();
       const returnViewportCamera = hadOverlayMap ? null : mapStateStore.returnViewportCamera;
+      const gpsFollowCenter =
+        this.gpsDeviceEnabledDisabled && this.gpsFollowing && this.gpsLocation
+          ? [this.gpsLocation[1], this.gpsLocation[0]]
+          : null;
       const initialBounds =
-        hadOverlayMap || returnViewportCamera ? null : initialBoundsFromConfig(this.mapConfig.initialBounds);
+        hadOverlayMap || returnViewportCamera || gpsFollowCenter
+          ? null
+          : initialBoundsFromConfig(this.mapConfig.initialBounds);
       let initialCenter =
         returnViewportCamera?.center ?? (initialBounds ? centerFromBounds(initialBounds) : this.mapCenter);
       let initialZoom = DEFAULT_MAP_ZOOM;
@@ -406,9 +499,10 @@ export function useMapRendererLifecycle(deps: {
       } else if (returnViewportCamera) {
         initialZoom = returnViewportCamera.zoom;
       }
+      if (gpsFollowCenter) initialCenter = gpsFollowCenter;
 
       // Tear down previous maps
-      this.disposeRendererMaps();
+      this.disposeRendererMaps(true);
       ensurePMTilesProtocol();
       // Pre-register PMTiles instances with force-cache fetch so Chrome serves
       // cached 206 responses from disk instead of revalidating every range request.
@@ -440,6 +534,7 @@ export function useMapRendererLifecycle(deps: {
         const statusTimer = startStartupTimer('mapstatus', 'Probing map server status');
         try {
           const status = await fetchMapStatus();
+          if (!isCurrent()) return false;
           this.mapServerStatus = status;
           statusTimer.success('Map server status received', {
             phase: status.phase,
@@ -448,14 +543,15 @@ export function useMapRendererLifecycle(deps: {
             archiveId: status.archiveId,
           });
         } catch (error) {
-          statusTimer.warn('Map server status probe failed', describeError(error));
-          // Unreachable → treat as not ready, fall back to OSM
-          this.mapServerStatus = {
-            phase: 'unreachable',
-            ready: false,
-          };
+          if (!isCurrent()) return false;
+          if (!(error instanceof StatusRequestPausedError)) {
+            statusTimer.warn('Map server status probe failed', error);
+            // A failed status request does not prove an archive outage.
+            this.mapServerStatus = { phase: 'unreachable', ready: false };
+          }
         }
       }
+      if (!isCurrent()) return false;
 
       // Build style based on config
       // If offline, use a lightweight raster fallback so the map 'load' event fires reliably.
@@ -488,7 +584,7 @@ export function useMapRendererLifecycle(deps: {
           mapSourceMode: this.mapSourceMode,
           localTilesReady:
             this.mapConfig.tileMode === MapConfigDtoTileModeEnum.Local
-              ? this.mapServerStatus?.ready === true && !this.baseMapRuntimeFallbackApplied
+              ? shouldTryVectorTiles(this.mapServerStatus) && !this.baseMapRuntimeFallbackApplied
               : true,
         });
         style = resolved.style;
@@ -512,7 +608,7 @@ export function useMapRendererLifecycle(deps: {
       });
       this.overlayMap = markRaw(
         new maplibregl.Map({
-          container: this.$refs.mapContainer,
+          container,
           style,
           center: initialCenter,
           zoom: initialZoom,
@@ -524,8 +620,16 @@ export function useMapRendererLifecycle(deps: {
           dragRotate: true,
           pitchWithRotate: true,
           touchPitch: true,
+          // This lifecycle schedules container resizing outside ResizeObserver delivery.
+          trackResize: false,
         })
       );
+      observeMapCamera(this.overlayMap);
+      // The GPS marker is independent of tile readiness, including slow remote maps.
+      this.updateGpsMarker();
+      if (styleMode === LOCAL_VECTOR_STYLE_MODE || this.baseMapRuntimeFallbackApplied) {
+        ensureVectorRecovery(this);
+      }
       installMissingStyleImageResolver(this.overlayMap);
       this.overlayMap.once('load', () => {
         startupLog('mapload', 'Map load event received', {
@@ -536,33 +640,13 @@ export function useMapRendererLifecycle(deps: {
       // Detect authentication failures from PMTiles / tile fetches and redirect to login.
       // PMTiles 401 errors bypass the axios interceptor, so this is the only recovery path.
       // All other map errors (blocked CDNs, CORS, DNS failures) are also logged for diagnostics.
-      this.overlayMap.on('error', (e) => {
-        const msg = e.error?.message || '';
-        const tileId = e?.tile?.tileID ?? null;
-        if (msg.includes('401')) {
-          startupWarn('mapload', 'Map tile auth failure; redirecting to login', {
-            message: msg,
-          });
-          console.warn('Map tile auth failure (401) — redirecting to login');
-          redirectToLoginAfterAuthFailure(!!getToken());
-        } else if (this.applyRuntimeRasterBasemapFallback(e, msg, tileId)) {
-          return;
-        } else {
-          startupWarn('mapload', 'MapLibre reported a base-map error', {
-            message: msg,
-            sourceId: e.sourceId ?? null,
-            tile: tileId,
-          });
-          console.warn(
-            '[MTL] MapLibre error:',
-            msg,
-            '| source:',
-            e.sourceId ?? '(unknown)',
-            '| tile:',
-            tileId ?? '',
-            e.error
-          );
-        }
+      const initializedMap = this.overlayMap;
+      initializedMap.on('error', (e) => {
+        if (this.overlayMap !== initializedMap) return;
+        this.handleMapError(e);
+      });
+      initializedMap.on('webglcontextlost', () => {
+        if (this.overlayMap === initializedMap) reportMapContextLoss('Map2DRenderer');
       });
 
       // Controls and all application layers live on the same map.
@@ -585,9 +669,7 @@ export function useMapRendererLifecycle(deps: {
       this.mediaOverlay = markRaw(
         new MediaOverlay(
           this.overlayMap,
-          (selection) => {
-            void this.openMediaSelection(selection);
-          },
+          () => undefined,
           (points) => {
             this.mediaLoadedPoints = points;
           },
@@ -598,22 +680,7 @@ export function useMapRendererLifecycle(deps: {
       // Initialize heatmap overlay
       this.heatmapOverlay = markRaw(new HeatmapOverlay(this.overlayMap));
 
-      // Resize the map when its container changes (e.g. nav panel expand/collapse).
-      if (this._resizeObserver) {
-        this._resizeObserver.disconnect();
-        this._resizeObserver = null;
-      }
-      this._resizeObserver = markRaw(
-        new ResizeObserver(() => {
-          this.overlayMap?.resize();
-          // Recompute globe minZoom whenever the viewport size changes (phone vs desktop)
-          if (this.globeMode) {
-            const minZoom = computeGlobeMinZoom(this.$refs.mapContainer);
-            this.overlayMap?.setMinZoom(minZoom);
-          }
-        })
-      );
-      this._resizeObserver.observe(this.$refs.mapContainer);
+      this.observeMapContainerResize();
 
       const waitForMapLoad = (mapInstance) =>
         new Promise((resolve) => {
@@ -622,10 +689,20 @@ export function useMapRendererLifecycle(deps: {
             resolve(true);
             return;
           }
-          mapInstance.once('load', () => resolve(true));
+          const finish = (ready: boolean) => {
+            mapInstance.off?.('load', onLoad);
+            mapInstance.off?.('remove', onRemove);
+            if (cancelMapLoad === onRemove) cancelMapLoad = null;
+            resolve(ready);
+          };
+          const onLoad = () => finish(true);
+          const onRemove = () => finish(false);
+          cancelMapLoad = onRemove;
+          mapInstance.once('load', onLoad);
+          mapInstance.once('remove', onRemove);
         });
       const mapLoadWatchdog = window.setTimeout(() => {
-        startupWarn('mapload', 'Map load watchdog exceeded', {
+        startupWarn('mapload', 'Map load watchdog exceeded', undefined, {
           styleMode,
           mapLoaded: this.overlayMap?.loaded() ?? false,
           tileMode: this.mapConfig?.tileMode,
@@ -634,7 +711,8 @@ export function useMapRendererLifecycle(deps: {
         });
       }, MAP_LOAD_WATCHDOG_MS);
       try {
-        await waitForMapLoad(this.overlayMap);
+        const loaded = await waitForMapLoad(initializedMap);
+        if (!loaded || !isCurrent() || this.overlayMap !== initializedMap) return false;
       } finally {
         clearTimeout(mapLoadWatchdog);
       }
@@ -660,7 +738,11 @@ export function useMapRendererLifecycle(deps: {
           maxLat: initialBounds[1][1],
         });
       }
+      if (this.gpsDeviceEnabledDisabled && this.gpsFollowing && this.gpsLocation) {
+        this.overlayMap.jumpTo({ center: [this.gpsLocation[1], this.gpsLocation[0]] });
+      }
       await this.restoreMediaLayerPreference(mapSettingsStore.mediaVisible);
+      if (!isCurrent() || this.overlayMap !== initializedMap) return false;
       initTimer.success('Map initialization completed', {
         styleMode,
       });
@@ -677,68 +759,7 @@ export function useMapRendererLifecycle(deps: {
       this.zoom = this.overlayMap.getZoom();
       this.updateGlobeState();
 
-      // Click handler for track selection.
-      this.overlayMap.on('click', (e) => {
-        this.clearFocusedMediaMarker();
-        if (this.measureToolActive || this.plannerToolActive || this.geoDrawingParamDef) return;
-
-        // Dismiss any open popups on every map click
-        this.closeSelectionPopup();
-        this.closeSwissMobilityPopup();
-
-        // Skip if user clicked on an individual track point (handled by its own listener)
-        const pointFeatures = this.overlayMap.queryRenderedFeatures(e.point, {
-          layers: ['track-points-layer'],
-        });
-        if (pointFeatures && pointFeatures.length > 0) return;
-
-        // Skip if user clicked on a media cluster or single media point (handled by MediaOverlay)
-        const mediaLayers = ['media-clusters', 'media-unclustered'].filter((layerId) =>
-          this.overlayMap.getLayer(layerId)
-        );
-        if (mediaLayers.length > 0) {
-          const mediaFeatures = this.overlayMap.queryRenderedFeatures(e.point, {
-            layers: mediaLayers,
-          });
-          if (mediaFeatures && mediaFeatures.length > 0) return;
-        }
-        const lngLat = e.lngLat;
-
-        // Identify Swiss Mobility routes at the clicked point (fire-and-forget, shown if overlay active)
-        if (this.activeOverlays.length > 0) {
-          this.identifySwissMobilityRoutes(lngLat, e.point);
-        }
-        const isTouchDevice = 'ontouchstart' in window;
-        const tapRadiusPx = isTouchDevice ? 24 : 16;
-        const point2 = this.overlayMap.unproject([e.point.x + tapRadiusPx, e.point.y]);
-        const distanceInMeters = haversineDistance(lngLat.lat, lngLat.lng, point2.lat, point2.lng);
-        if (this.proximityAbortController) this.proximityAbortController.abort();
-        this.proximityAbortController = markRaw(new AbortController());
-        const signal = this.proximityAbortController.signal;
-        fetchTrackIdsWithinDistanceOfPoint(lngLat.lng, lngLat.lat, distanceInMeters, signal)
-          .then(async (gpsTrackIds) => {
-            if (!gpsTrackIds || gpsTrackIds.length === 0) {
-              this.deselectTrack();
-              return;
-            }
-            if (gpsTrackIds.length === 1) {
-              const trackId = gpsTrackIds[0];
-              const pointPopupShown = await this.showTrackLinePointPopup(e, trackId);
-              if (pointPopupShown) {
-                if (this.selectedTrackId !== trackId) this.selectTrackById(trackId);
-                return;
-              }
-              this.selectTrackById(trackId);
-              this.openTrackDetails(trackId, TRACK_DETAILS_MAP_DETENT);
-            } else {
-              this.showTrackSelectionPopup(e.point, gpsTrackIds);
-            }
-          })
-          .catch((err) => {
-            if (isAbortLikeError(err)) return;
-            console.error('Track proximity query failed:', err);
-          });
-      });
+      this.installMapInteractions();
       this.overlayMap.on('zoomend', () => {
         this.zoom = this.overlayMap.getZoom();
         this.updateGlobeState();
@@ -756,10 +777,24 @@ export function useMapRendererLifecycle(deps: {
           startupLog('mapstatus', 'Skipping local map status polling because remote raster source is selected');
         } else {
           if (this.mapServerStatus?.ready) {
-            ensureLowZoomCached(lowzoomTileArchiveUrl(this.mapConfig)).catch((e) => {
-              startupWarn('mapcache', 'Low-zoom cache warmup failed', describeError(e));
-              console.warn('Low-zoom cache failed:', e);
-            });
+            const map = this.overlayMap;
+            const archiveUrl = lowzoomTileArchiveUrl(this.mapConfig);
+            cancelLowZoomWarmup = scheduleLowZoomCacheWarmup(
+              map,
+              () => {
+                startupLog('mapcache', 'Starting deferred low-zoom cache warmup');
+                void ensureLowZoomCached(archiveUrl).catch((e) => {
+                  startupLog('mapcache', 'Low-zoom cache warmup failed', e);
+                  warnSanitized('Low-zoom cache failed:', e, {
+                    topic1: 'map',
+                    topic2: 'useMapRendererLifecycle',
+                    topic3: 'initMap',
+                  });
+                });
+              },
+              () => this.overlayMap === map && !this.mapConfig.offline && this.mapSourceMode !== 'remote',
+              () => this.initialLoadDone && !this.loadingTrackBatches
+            );
           }
           if (
             shouldPollMapStatus({
@@ -779,6 +814,7 @@ export function useMapRendererLifecycle(deps: {
           }
         }
       }
+      return true;
     },
 
     /** Update globe projection state based on current zoom level (hysteresis). */

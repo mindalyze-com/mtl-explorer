@@ -6,14 +6,8 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 /**
- * Notes describing noteworthy events inside a segment (previous trigger point →
- * this trigger point). Computed on-the-fly from detected track events that
- * overlap the two crossing timestamps.
- *
- * <p>Currently reports <b>stops</b>: persisted stop events produced during
- * import by the dense GPS stop detector. This lets the client annotate
- * segments where the racer paused and stats would otherwise be misleading
- * (e.g. "2 stops · 2m 40s").
+ * Clipped stationary time and visible break events inside the preceding traversal.
+ * Short pauses contribute to stopped time without becoming visible break events.
  */
 @NoArgsConstructor
 @AllArgsConstructor
@@ -21,12 +15,13 @@ import lombok.NoArgsConstructor;
 @JsonPropertyOrder({
         "stopCount",
         "totalStoppedSec",
-        "longestStopSec"
+        "longestStopSec",
+        "coverageComplete"
 })
 public class SegmentNotes {
 
     /**
-     * Number of stops detected inside the segment.
+     * Number of detected visible break events overlapping the segment.
      */
     public int stopCount;
 
@@ -36,7 +31,16 @@ public class SegmentNotes {
     public double totalStoppedSec;
 
     /**
-     * Duration of the single longest stop in seconds.
+     * Duration of the longest visible break's overlap with the segment, in seconds.
      */
     public double longestStopSec;
+
+    /**
+     * Whether motion and path support cover the whole traversal; false makes these observed lower bounds.
+     */
+    public boolean coverageComplete = true;
+
+    public SegmentNotes(int stopCount, double totalStoppedSec, double longestStopSec) {
+        this(stopCount, totalStoppedSec, longestStopSec, true);
+    }
 }

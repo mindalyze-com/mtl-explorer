@@ -4,10 +4,17 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.x8ing.mtl.server.mtlserver.db.entity.indexer.IndexedFile;
 import com.x8ing.mtl.server.mtlserver.db.repository.indexer.IndexerRepository;
 import com.x8ing.mtl.server.mtlserver.indexer.IndexedFileLookup;
+import com.x8ing.mtl.server.mtlserver.indexer.SourceFileRevision;
+import com.x8ing.mtl.server.mtlserver.indexer.SourceFileProblemException;
+import com.x8ing.mtl.server.mtlserver.indexer.SourceFileSkippedException;
+import com.x8ing.mtl.server.mtlserver.sourceissues.SourceIssueIngestService;
+import com.x8ing.mtl.server.mtlserver.trackreview.SourceOperationLocks;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.support.TransactionTemplate;
 
 
 /**
@@ -28,6 +35,8 @@ import org.springframework.transaction.annotation.Transactional;
 public class MediaProcessingWorker {
 
     private final IndexerRepository indexerRepository;
+    private final TransactionTemplate transactionTemplate;
+    private final SourceIssueIngestService sourceIssues;
     private final MediaIndexer mediaIndexer; // Already a @Service, injected automatically
 
     /**
@@ -37,17 +46,33 @@ public class MediaProcessingWorker {
      * @param fileId  the indexed file ID
      * @param changed true if file was changed, false if new
      */
-    @Transactional
+    @Transactional(propagation = Propagation.NEVER)
     public void processCreateOrChange(String index, long fileId, boolean changed) {
-        IndexedFile f = IndexedFileLookup.findOrLog(indexerRepository, fileId, log, "Media process");
-        if (f == null) {
-            return;
-        }
-        // Domain-only: let exceptions bubble so observer completion can mark success/failure.
-        if (changed) {
-            mediaIndexer.refreshFile(f);
-        } else {
-            mediaIndexer.indexFile(f);
+        try (var lease = SourceOperationLocks.forOperation(fileId)) {
+            IndexedFile file = IndexedFileLookup.findOrLog(indexerRepository, fileId, log, "Media process");
+            if (file == null) return;
+            SourceFileRevision revision = SourceFileRevision.read(file);
+            String contents = sourceIssues.contentRevision(file);
+            revision.requireUnchanged();
+            if (revision.size() == 0) {
+                sourceIssues.empty(fileId, contents);
+                throw new SourceFileSkippedException();
+            }
+            try {
+                transactionTemplate.executeWithoutResult(status -> {
+                    IndexedFile current = IndexedFileLookup.findOrLog(indexerRepository, fileId, log, "Media import");
+                    if (changed) mediaIndexer.refreshFile(current);
+                    else mediaIndexer.indexFile(current);
+                    revision.requireUnchanged();
+                    sourceIssues.mediaCompleted(fileId, contents);
+                });
+            } catch (RuntimeException failure) {
+                revision.requireUnchanged();
+                log.warn("Media import failed: sourceId={} type={} message={}", fileId, failure.getClass().getSimpleName(), failure.getMessage());
+                if (failure instanceof SourceFileProblemException)
+                    sourceIssues.mediaFailed(fileId, contents, failure.getMessage());
+                throw failure;
+            }
         }
     }
 
@@ -59,11 +84,13 @@ public class MediaProcessingWorker {
      */
     @Transactional
     public void processDelete(String index, long fileId) {
-        IndexedFile f = IndexedFileLookup.findOrLog(indexerRepository, fileId, log, "Media delete");
-        if (f == null) {
-            return;
+        try (var lease = SourceOperationLocks.forTransaction(fileId)) {
+            IndexedFile f = IndexedFileLookup.findOrLog(indexerRepository, fileId, log, "Media delete");
+            if (f == null) return;
+            SourceFileRevision.requireAbsent(f);
+            mediaIndexer.deleteFilesForIndexedFile(f);
+            SourceFileRevision.requireAbsent(f);
+            sourceIssues.removed(fileId);
         }
-        // Domain-only: no indexer state writes here; throw to signal failure to observer
-        mediaIndexer.deleteFilesForIndexedFile(f);
     }
 }

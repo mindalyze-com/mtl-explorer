@@ -1,0 +1,10 @@
+{
+  "theme": "neutral",
+  "look": "classic",
+  "layout": "elk",
+  "fontFamily": "Arial, sans-serif",
+  "er": {
+    "fontSize": 16,
+    "useMaxWidth": false
+  }
+}

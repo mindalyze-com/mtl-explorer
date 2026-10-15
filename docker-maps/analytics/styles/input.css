@@ -1,0 +1,38 @@
+@import "tailwindcss";
+@source "../templates";
+@custom-variant dark (&:where(.dark, .dark *));
+
+@layer base {
+  body { @apply bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100 antialiased; }
+  h1 { @apply text-2xl font-medium; }
+  h2 { @apply text-lg font-medium; }
+  h3 { @apply text-base font-medium; }
+  select, input { @apply rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100; }
+  button { @apply cursor-pointer; }
+  th, td { @apply border-b border-slate-200 px-3 py-2 text-left text-sm dark:border-slate-800; }
+  th { @apply font-medium; }
+}
+@layer components {
+  .report-panel { @apply rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900; }
+  .muted { @apply text-sm text-slate-600 dark:text-slate-400; }
+  .chart { height: 320px; }
+  .metric { @apply text-2xl font-medium tabular-nums; }
+  .report-button { @apply inline-flex items-center justify-center gap-2 rounded-md border border-slate-300 px-3 py-2 text-sm hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800; }
+  .icon { @apply h-4 w-4 shrink-0; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .report-icon-button { @apply h-8 w-8 p-0; }
+  .chart-help { position: relative; }
+  .chart-help-tooltip { position: absolute; z-index: 30; top: 100%; right: 0; width: 22rem; max-width: calc(100vw - 6rem); padding-top: 8px; }
+  .chart-help-tooltip.help-above { top: auto; bottom: 100%; padding-top: 0; padding-bottom: 8px; }
+  .chart-help-content { @apply rounded-md border border-slate-300 bg-white p-3 text-sm leading-relaxed text-slate-700 shadow-lg dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100; max-height: calc(100dvh - 5rem); overflow-y: auto; }
+  .disclosure > summary { @apply flex cursor-pointer list-none items-center justify-between gap-4; }
+  .disclosure > summary::-webkit-details-marker { display: none; }
+  .disclosure[open] > summary .icon { transform: rotate(180deg); }
+  .chart-dialog { @apply fixed inset-3 m-0 h-auto w-auto max-w-none rounded-lg border border-slate-200 bg-white p-4 text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 sm:inset-5 sm:p-6; }
+  .chart-dialog::backdrop { @apply bg-slate-950/60; }
+  .chart-dialog[open] { display: flex; flex-direction: column; }
+  .chart-dialog > :not(.expanded-chart) { flex-shrink: 0; }
+  .expanded-chart { flex: 1; min-height: 220px; }
+}
+@media (pointer: coarse) {
+  .report-icon-button { min-width: 44px; min-height: 44px; }
+}

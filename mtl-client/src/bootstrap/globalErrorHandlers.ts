@@ -1,6 +1,5 @@
 import type { App } from 'vue';
-import { describeError } from '@/utils/startupDiagnostics';
-import { sanitizeForLog } from '@/utils/safeLogging';
+import { logSanitizedError, sanitizeForLog } from '@/utils/safeLogging';
 
 let consoleRedactionInstalled = false;
 
@@ -11,29 +10,37 @@ let consoleRedactionInstalled = false;
  * Catches silent failures that never reach component code so they show up in
  * the console with a recognizable [MTL] prefix.
  */
+let windowHandlersInstalled = false;
+
 export function installGlobalErrorHandlers(app: App): void {
   installConsoleRedaction();
-
-  app.config.errorHandler = (err, _instance, info) => {
-    console.error('🚨 [Vue Error] Component failed to render or execute:', sanitizeForLog(err), info);
+  app.config.errorHandler = (error, _instance, info) => {
+    logSanitizedError('Vue component failed to render or execute', error, {
+      topic1: 'application',
+      topic2: 'vue',
+      topic3: 'execute',
+      context: { vueInfo: info },
+    });
   };
-
-  if (typeof window !== 'undefined') {
-    window.addEventListener('error', (event) => {
-      console.error(
-        '[MTL] Uncaught error:',
-        event.message,
-        '| source:',
-        event.filename,
-        '| line:',
-        event.lineno,
-        sanitizeForLog(event.error)
-      );
+  if (typeof window === 'undefined' || windowHandlersInstalled) return;
+  windowHandlersInstalled = true;
+  window.addEventListener('error', (event) => {
+    // Asset names only: no query strings, URL credentials or private path segments.
+    const source = event.filename.split('?')[0]?.split('/').pop();
+    logSanitizedError(event.message || 'Uncaught browser error', event.error, {
+      topic1: 'application',
+      topic2: 'window',
+      topic3: 'error',
+      context: { source, line: event.lineno, column: event.colno },
     });
-    window.addEventListener('unhandledrejection', (event) => {
-      console.error('[MTL] Unhandled promise rejection:', describeError(event.reason));
+  });
+  window.addEventListener('unhandledrejection', (event) => {
+    logSanitizedError('Unhandled promise rejection', event.reason, {
+      topic1: 'application',
+      topic2: 'window',
+      topic3: 'unhandledrejection',
     });
-  }
+  });
 }
 
 function installConsoleRedaction(): void {

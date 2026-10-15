@@ -84,6 +84,10 @@ const maplibreMock = vi.hoisted(() => {
       return this.sources.get(id);
     }
 
+    getGlyphs() {
+      return undefined;
+    }
+
     addLayer(layer: { id: string }) {
       this.layers.set(layer.id, layer);
     }
@@ -110,6 +114,10 @@ vi.mock('@/components/map/mapStyleResolver', () => ({
 }));
 
 class MockResizeObserver {
+  static notify: ResizeObserverCallback;
+  constructor(callback: ResizeObserverCallback) {
+    MockResizeObserver.notify = callback;
+  }
   observe = vi.fn();
   disconnect = vi.fn();
 }
@@ -123,7 +131,10 @@ describe('MediaLocationMiniMap', () => {
     vi.stubGlobal('ResizeObserver', MockResizeObserver);
   });
 
-  afterEach(() => vi.unstubAllGlobals());
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+  });
 
   it('fits the selected activity once and exposes only standard zoom controls', async () => {
     const trackCoordinates = [
@@ -199,5 +210,26 @@ describe('MediaLocationMiniMap', () => {
     expect(map.jumpTo).not.toHaveBeenCalled();
 
     wrapper.unmount();
+  });
+
+  it('defers resize layout work, coalesces notifications and cancels it on removal', async () => {
+    vi.useFakeTimers();
+    const wrapper = mount(MediaLocationMiniMap, { props: { latitude: 47.561, longitude: 8.512 } });
+    await flushPromises();
+    const map = maplibreMock.MockMap.instances[0];
+    expect(map.options.trackResize).toBe(false);
+    const entries = [
+      { target: wrapper.get('.media-location-map__canvas').element, contentRect: { width: 390 } },
+    ] as ResizeObserverEntry[];
+    MockResizeObserver.notify(entries, {} as ResizeObserver);
+    MockResizeObserver.notify(entries, {} as ResizeObserver);
+    expect(map.resize).not.toHaveBeenCalled();
+    vi.advanceTimersToNextFrame();
+    expect(map.resize).toHaveBeenCalledTimes(1);
+    MockResizeObserver.notify(entries, {} as ResizeObserver);
+    wrapper.unmount();
+    vi.advanceTimersToNextFrame();
+    expect(map.resize).toHaveBeenCalledTimes(1);
+    vi.useRealTimers();
   });
 });

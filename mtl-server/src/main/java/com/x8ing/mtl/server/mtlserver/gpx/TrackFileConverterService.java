@@ -1,6 +1,8 @@
 package com.x8ing.mtl.server.mtlserver.gpx;
 
+import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -9,6 +11,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -20,7 +23,7 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
 /**
- * Converts non-GPX track files to GPX XML using GPSBabel.
+ * Converts non-GPX track files to GPX XML, preserving GeoJSON elevations directly.
  * <p>
  * The original file is read directly from disk by GPSBabel (seekable I/O for binary formats like FIT).
  * The GPX output is piped to stdout ({@code -F -}) and captured in-memory — no temp files are created
@@ -30,10 +33,21 @@ import java.util.zip.ZipInputStream;
 @Slf4j
 public class TrackFileConverterService {
 
-    private static final long TIMEOUT_SECONDS = 60;
+    private static final Duration INTERACTIVE_CONVERSION_TIMEOUT = Duration.ofMinutes(1);
     private static final String GPSBABEL_CMD = "gpsbabel";
     private static final String KMZ_KML_ENTRY_NAME = "track.kml";
     private static final String KMZ_PREFERRED_KML_ENTRY_NAME = "doc.kml";
+
+    @Value("${mtl.indexer.gps.conversion-timeout:PT10M}")
+    private Duration backgroundConversionTimeout = Duration.ofMinutes(10);
+
+    @PostConstruct
+    void validateTimeout() {
+        if (backgroundConversionTimeout == null || backgroundConversionTimeout.isNegative()
+            || backgroundConversionTimeout.isZero() || backgroundConversionTimeout.toMillis() < 1) {
+            throw new IllegalArgumentException("GPS conversion-timeout must be at least one millisecond");
+        }
+    }
 
     /**
      * Converts a track file to GPX XML.
@@ -45,9 +59,18 @@ public class TrackFileConverterService {
      * @throws IllegalStateException if GPSBabel exits with a non-zero code
      */
     public String convertToGpx(Path inputFile, SupportedTrackFormat format) throws IOException {
+        return convertToGpx(inputFile, format, INTERACTIVE_CONVERSION_TIMEOUT);
+    }
+
+    public String convertToGpxForImport(Path inputFile, SupportedTrackFormat format) throws IOException {
+        return convertToGpx(inputFile, format, backgroundConversionTimeout);
+    }
+
+    private String convertToGpx(Path inputFile, SupportedTrackFormat format, Duration timeout) throws IOException {
         if (!format.needsConversion()) {
             throw new IllegalArgumentException("Format " + format + " is native GPX, no conversion needed");
         }
+        if (format == SupportedTrackFormat.GEOJSON) return GeoJsonGpxConverter.convert(inputFile);
 
         Path tempDir = null;
         Path conversionInputFile = inputFile;
@@ -61,7 +84,7 @@ public class TrackFileConverterService {
 
             List<String> command = buildGpsBabelCommand(conversionInputFile, conversionFormat);
 
-            log.info("Converting {} ({}) to GPX: {}", inputFile.getFileName(), format, String.join(" ", command));
+            log.info("Converting {} ({}) to GPX: timeout={}, command={}", inputFile.getFileName(), format, timeout, String.join(" ", command));
 
             ProcessBuilder pb = new ProcessBuilder(command)
                     .redirectErrorStream(false);
@@ -74,7 +97,7 @@ public class TrackFileConverterService {
 
             boolean finished;
             try {
-                finished = process.waitFor(TIMEOUT_SECONDS, TimeUnit.SECONDS);
+                finished = process.waitFor(timeout.toMillis(), TimeUnit.MILLISECONDS);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 process.destroyForcibly();
@@ -87,7 +110,7 @@ public class TrackFileConverterService {
                 process.destroyForcibly();
                 stdoutFuture.cancel(true);
                 stderrFuture.cancel(true);
-                throw new IOException("GPSBabel conversion timed out after " + TIMEOUT_SECONDS + "s for " + inputFile);
+                throw new IOException("GPSBabel conversion timed out after " + timeout + " for " + inputFile);
             }
 
             String gpxXml;
@@ -133,10 +156,6 @@ public class TrackFileConverterService {
                 GPSBABEL_CMD,
                 "-i", format.getGpsBabelFormat(),
                 "-f", inputFile.toAbsolutePath().toString()));
-
-        if (format == SupportedTrackFormat.GEOJSON) {
-            command.addAll(List.of("-x", "transform,trk=rte,del"));
-        }
 
         command.addAll(List.of(
                 "-o", "gpx,gpxver=1.1",

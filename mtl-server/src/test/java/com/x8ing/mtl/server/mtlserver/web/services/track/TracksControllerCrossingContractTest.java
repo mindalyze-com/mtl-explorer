@@ -2,11 +2,7 @@ package com.x8ing.mtl.server.mtlserver.web.services.track;
 
 import com.x8ing.mtl.server.mtlserver.db.entity.gps.GpsTrackDataPoint;
 import com.x8ing.mtl.server.mtlserver.db.readonly.spring.QueryResult;
-import com.x8ing.mtl.server.mtlserver.db.repository.gps.GpsTrackAndDataService;
-import com.x8ing.mtl.server.mtlserver.db.repository.gps.GpsTrackDataPointRepository;
-import com.x8ing.mtl.server.mtlserver.db.repository.gps.GpsTrackDataRepository;
-import com.x8ing.mtl.server.mtlserver.db.repository.gps.GpsTrackEventRepository;
-import com.x8ing.mtl.server.mtlserver.db.repository.gps.GpsTrackRepository;
+import com.x8ing.mtl.server.mtlserver.db.repository.gps.*;
 import com.x8ing.mtl.server.mtlserver.db.repository.media.TrackMediaQueryRepository;
 import com.x8ing.mtl.server.mtlserver.energy.EnergyService;
 import com.x8ing.mtl.server.mtlserver.logic.crossing.TrackTimeBetweenTwoPoints;
@@ -33,11 +29,10 @@ import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
+import static com.x8ing.mtl.server.mtlserver.testsupport.SegmentReadTestSupport.directReads;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.same;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 class TracksControllerCrossingContractTest {
 
@@ -120,7 +115,7 @@ class TracksControllerCrossingContractTest {
         controller(filter, crossingService).getCrossingPoints(request);
 
         ArgumentCaptor<Long[]> filterIds = ArgumentCaptor.forClass(Long[].class);
-        verify(crossingService).getTrackTimeBetweenPoints(same(request), filterIds.capture());
+        verify(crossingService).getTrackTimeBetweenPoints(same(request), filterIds.capture(), any());
         assertThat(filterIds.getValue()).containsExactly(7L, 11L);
     }
 
@@ -143,8 +138,49 @@ class TracksControllerCrossingContractTest {
 
         verify(filter).executeOptionalFilterName("Activities", params);
         ArgumentCaptor<Long[]> filterIds = ArgumentCaptor.forClass(Long[].class);
-        verify(crossingService).getTrackTimeBetweenPoints(same(request), filterIds.capture());
+        verify(crossingService).getTrackTimeBetweenPoints(same(request), filterIds.capture(), any());
         assertThat(filterIds.getValue()).containsExactly(7L, 11L);
+    }
+
+    @Test
+    void interpolatedCrossingsSharingAnAnchorKeepTheirExactIntervalThroughSubtrackLookup() {
+        var pointRepository = mock(GpsTrackDataPointRepository.class);
+        var trackRepository = mock(GpsTrackRepository.class);
+        var eventRepository = mock(GpsTrackEventRepository.class);
+        var variants = mock(com.x8ing.mtl.server.mtlserver.db.repository.gps.GpsTrackVariantSelector.class);
+        var track = new com.x8ing.mtl.server.mtlserver.db.entity.gps.GpsTrack();
+        track.setId(1L);
+        var start = point(10L, 9, 0, new Date(1_700_000_000_000L), 0, 0);
+        var end = point(11L, 9, 1, new Date(1_700_000_040_000L), 400, 400);
+        start.setDurationSinceStart(0d);
+        end.setDurationSinceStart(40d);
+        when(trackRepository.findById(1L)).thenReturn(Optional.of(track));
+        when(trackRepository.getSegmentCandidateTrackIds(org.mockito.ArgumentMatchers.anyDouble(),
+                org.mockito.ArgumentMatchers.anyDouble(), org.mockito.ArgumentMatchers.anyDouble(),
+                org.mockito.ArgumentMatchers.any())).thenReturn(List.of(1L));
+        when(variants.forMetricsId(1L)).thenReturn(9L);
+        when(pointRepository.findAllByGpsTrackDataIdOrderByPointIndexAsc(9L)).thenReturn(List.of(start, end));
+        when(eventRepository.findAllByGpsTrackIdOrderByStartPointIndexAsc(1L)).thenReturn(List.of());
+        var service = new TrackTimeBetweenTwoPoints(trackRepository, pointRepository, eventRepository, variants, directReads());
+        var request = new CrossingPointsRequest();
+        request.radius = 5d;
+        request.triggerPoints = List.of(
+                new com.x8ing.mtl.server.mtlserver.logic.crossing.beans.TriggerPoint("A", new Coordinate(100 / 111320d, 0)),
+                new com.x8ing.mtl.server.mtlserver.logic.crossing.beans.TriggerPoint("B", new Coordinate(150 / 111320d, 0)));
+        var response = CrossingPointsResponseDto.from(service.getTrackCrossingsWithoutSummaries(request, new Long[]{1L}));
+        var crossings = response.getCrossings().get(1L).getCrossings();
+        assertThat(crossings).hasSize(2);
+        assertThat(crossings).extracting(c -> c.getGpsTrackDataPoint().getId()).containsExactly(10L, 10L);
+        assertThat(crossings.getLast().getTimeInSecSinceLastTriggerPoint()).isEqualTo(5);
+        assertThat(crossings.getFirst().getTrackPointPosition()).isCloseTo(0.25, org.assertj.core.data.Offset.offset(0.000001));
+        assertThat(crossings.getLast().getTrackPointPosition()).isCloseTo(0.375, org.assertj.core.data.Offset.offset(0.000001));
+        when(pointRepository.findById(10L)).thenReturn(Optional.of(start));
+        when(pointRepository.getSubTrackData(9L, 0, 0)).thenReturn(List.of(start));
+        var storedSlice = controller(mock(FilterExecutionService.class), service, pointRepository)
+                .getSubTrackDetails(10L, 10L, false).getBody();
+        assertThat(storedSlice).hasSize(1);
+        assertThat(crossings.getFirst().getGpsTrackDataPoint().getPointTimestamp()).isEqualTo(new Date(1_700_000_010_000L));
+        assertThat(crossings.getLast().getGpsTrackDataPoint().getPointTimestamp()).isEqualTo(new Date(1_700_000_015_000L));
     }
 
     private static Class<?> listElementType(Method method) {
@@ -176,9 +212,14 @@ class TracksControllerCrossingContractTest {
                 mock(TrackMediaQueryRepository.class),
                 filter,
                 mock(EnergyService.class),
+                mock(com.x8ing.mtl.server.mtlserver.energy.EnergyRecalculationQueue.class),
                 mock(TrackFileExportService.class),
                 mock(StatisticsMilestoneService.class),
-                Runnable::run
+                Runnable::run,
+                mock(com.x8ing.mtl.server.mtlserver.googlehealth.web.SegmentHeartRateService.class),
+                mock(com.x8ing.mtl.server.mtlserver.analysis.segment.SegmentAttemptResolver.class),
+                mock(com.x8ing.mtl.server.mtlserver.indexer.TrackProcessingStatusService.class),
+                directReads()
         );
     }
 

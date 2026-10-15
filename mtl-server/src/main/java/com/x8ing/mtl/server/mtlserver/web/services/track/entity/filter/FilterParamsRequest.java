@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.x8ing.mtl.server.mtlserver.web.services.track.entity.GeoCircle;
 import com.x8ing.mtl.server.mtlserver.web.services.track.entity.GeoPolygon;
 import com.x8ing.mtl.server.mtlserver.web.services.track.entity.GeoRectangle;
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
 import java.util.List;
@@ -13,19 +14,28 @@ import java.util.Map;
 @JsonPropertyOrder({
         "stringParams",
         "dateTimeParams",
+        "timeZone",
         "geoCircles",
         "geoRectangles",
         "geoPolygons",
+        "trackViewScope",
         "resultGroupSelection",
         "trackIds"
 })
 public class FilterParamsRequest {
 
     private Map<String, String> stringParams;
+
+    @Schema(description = "Date-time bounds as ISO 8601 timestamps with an explicit offset, e.g. 2025-06-15T12:00:00+02:00 or 2025-06-15T10:00:00Z. Null or blank bounds are omitted.")
     private Map<String, String> dateTimeParams;
+
+    @Schema(description = "Browser IANA timezone for calendar grouping and year bounds, e.g. Europe/Zurich. Defaults to UTC when omitted.")
+    private String timeZone;
+
     private Map<String, GeoCircle> geoCircles;
     private Map<String, GeoRectangle> geoRectangles;
     private Map<String, GeoPolygon> geoPolygons;
+    private TrackViewScope trackViewScope = TrackViewScope.ALL;
     private FilterResultGroupSelection resultGroupSelection;
 
     /**

@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.10.xsd">
+
+    <changeSet id="20260904_2_google_health_record_browser_index" author="codex">
+        <comment>Read the newest local Google Health data points without scanning and sorting the full mirror.</comment>
+        <sql><![CDATA[
+            CREATE INDEX idx_google_health_data_point_record_time
+                ON google_health.data_point (
+                    connection_id,
+                    (COALESCE(physical_start_time,
+                              civil_date::timestamp AT TIME ZONE 'UTC')) DESC,
+                    id DESC
+                );
+        ]]></sql>
+        <rollback>
+            DROP INDEX google_health.idx_google_health_data_point_record_time;
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

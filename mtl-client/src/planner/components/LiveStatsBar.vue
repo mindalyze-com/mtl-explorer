@@ -1,5 +1,5 @@
 <template>
-  <div class="live-stats-bar">
+  <div :class="['live-stats-bar', { 'live-stats-bar--reduced': density === 'reduced' }]">
     <div class="live-stats-bar__grid">
       <article class="stat-card stat-card--distance">
         <span class="stat-card__icon"><i class="bi bi-bezier2" /></span>
@@ -19,13 +19,13 @@
         <strong class="stat-card__value">{{ formatElevation(stats.descentM) }}</strong>
       </article>
 
-      <article class="stat-card stat-card--duration">
+      <article v-if="density === 'full'" class="stat-card stat-card--duration">
         <span class="stat-card__icon"><i class="bi bi-clock" /></span>
         <span class="stat-card__label">Duration</span>
         <strong class="stat-card__value">{{ formatDuration(stats.durationSec) }}</strong>
       </article>
 
-      <article class="stat-card stat-card--legs">
+      <article v-if="density === 'full'" class="stat-card stat-card--legs">
         <span class="stat-card__icon"><i class="bi bi-signpost-2" /></span>
         <span class="stat-card__label">Legs</span>
         <strong class="stat-card__value">{{ stats.legCount }}</strong>
@@ -38,7 +38,14 @@
 import type { LiveStats } from '@/planner/types';
 import { formatDistanceSmart, formatElevation } from '@/utils/Utils';
 
-defineProps<{ stats: LiveStats }>();
+withDefaults(
+  defineProps<{
+    stats: LiveStats;
+    /** Reduced panels keep distance, ascent and descent in one row. */
+    density?: 'full' | 'reduced';
+  }>(),
+  { density: 'full' }
+);
 
 const formatDuration = (s: number) => {
   if (!s || s <= 0) return '–';
@@ -55,7 +62,7 @@ const formatDuration = (s: number) => {
 }
 .live-stats-bar__grid {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 5.5rem), 1fr));
   gap: 0.5rem;
   width: 100%;
 }
@@ -63,23 +70,17 @@ const formatDuration = (s: number) => {
   display: grid;
   grid-template-columns: auto 1fr;
   grid-template-rows: auto auto;
-  column-gap: 0.5rem;
+  column-gap: 0.35rem;
   row-gap: 0.1rem;
-  padding: 0.6rem 0.65rem;
-  border-radius: 12px;
-  border: 1px solid var(--border-default);
-  background: var(--surface-glass-subtle);
+  padding: 0.2rem 0;
+  min-width: 0;
   align-items: center;
 }
 .stat-card__icon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 1.6rem;
-  height: 1.6rem;
-  border-radius: 999px;
-  background: var(--surface-glass-heavy);
-  border: 1px solid currentColor;
+  width: 1.1rem;
   grid-row: span 2;
 }
 .stat-card__icon i {
@@ -97,8 +98,8 @@ const formatDuration = (s: number) => {
   font-weight: 700;
   color: var(--text-primary);
   font-variant-numeric: tabular-nums;
-  font-size: var(--text-base-size);
-  line-height: var(--text-base-lh);
+  font-size: var(--text-sm-size);
+  line-height: var(--text-sm-lh);
 }
 .stat-card__hint {
   grid-column: 1 / -1;
@@ -121,18 +122,15 @@ const formatDuration = (s: number) => {
 .stat-card--legs {
   color: var(--viz-magenta);
 }
-@media (max-width: 640px) {
-  .live-stats-bar__grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
+.live-stats-bar--reduced .live-stats-bar__grid {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 4.5rem), 1fr));
+  gap: 0.35rem;
 }
-
-@media (max-width: 380px) {
-  .live-stats-bar {
-    padding: 0.6rem;
-  }
-  .live-stats-bar__grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
+.live-stats-bar--reduced .stat-card__icon {
+  display: none;
+}
+.live-stats-bar--reduced .stat-card {
+  grid-template-columns: minmax(0, 1fr);
+  column-gap: 0.25rem;
 }
 </style>

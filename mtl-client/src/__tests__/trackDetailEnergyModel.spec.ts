@@ -18,6 +18,8 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock('@/utils/ServiceHelper', () => ({
   calculateEnergyWhatIf: mocks.calculateEnergyWhatIf,
+  getEnergyCalculationStatus: vi.fn().mockResolvedValue({ state: 'CALCULATED' }),
+  refreshTrackEnergy: vi.fn(),
   downloadTrackGpx: mocks.downloadTrackGpx,
   downloadTrackSourceFile: mocks.downloadTrackSourceFile,
   saveTrackEnergyRiderWeight: mocks.saveTrackEnergyRiderWeight,
@@ -58,9 +60,11 @@ function energyResponse(totalWh: number, deltaWh: number, riderWeightKg: number)
     },
     adjustedSummary: {
       netEnergyTotalWh: totalWh,
+      metabolicEnergy: { activeKcal: 840, totalKcal: 900, coverage: 'COMPLETE' },
       powerWattsAvg: 136,
       weightKgUsed: riderWeightKg + 10,
     },
+    activeCaloriesDelta: 40,
     deltaSummary: {
       netEnergyTotalWh: deltaWh,
       powerWattsAvg: 8,
@@ -134,6 +138,41 @@ describe('Track Detail energy adjustment', () => {
     vi.useRealTimers();
   });
 
+  it('keeps the summary visible while details start closed, and resets disclosure on another track', async () => {
+    const wrapper = mountEnergyOverview();
+    const disclosure = wrapper.get<HTMLDetailsElement>('[data-test="energy-details"]');
+    expect(disclosure.element.open).toBe(false);
+    expect(wrapper.get('[data-test="energy-summary"]').text()).toContain('230.0 Wh');
+    expect(wrapper.get('[data-test="energy-summary"]').find('details').exists()).toBe(false);
+    expect(disclosure.get('[data-test="energy-adjust-trigger"]').exists()).toBe(true);
+    expect(disclosure.get('[data-test="metabolic-energy"]').exists()).toBe(true);
+    disclosure.element.open = true;
+    await wrapper.setProps({ gpsTrack: { ...baseTrack(), id: 2 } });
+    expect(wrapper.get<HTMLDetailsElement>('[data-test="energy-details"]').element.open).toBe(false);
+  });
+
+  it('keeps partial coverage and valid zero calories in the compact summary', async () => {
+    const wrapper = mountEnergyOverview();
+    await wrapper.setProps({
+      gpsTrack: {
+        ...baseTrack(),
+        metabolicEnergy: { activeKcal: 0, totalKcal: 10, coverage: 'PARTIAL', coveredSeconds: 600 },
+      },
+    });
+    expect(wrapper.get('[data-test="active-calories"]').text()).toContain('0 kcal');
+    expect(wrapper.get('[data-test="calorie-partial"]').text()).toContain('10m 00s covered');
+    expect(wrapper.get('[data-test="calorie-partial"]').element.closest('details')).toBeNull();
+  });
+
+  it('distinguishes pending and unavailable calories in the compact summary', async () => {
+    const wrapper = mountEnergyOverview();
+    await flushPromises();
+    expect(wrapper.get('[data-test="energy-summary"]').text()).toContain('Unavailable');
+    await wrapper.setProps({ gpsTrack: { ...baseTrack(), metabolicEnergy: { coverage: 'UNAVAILABLE' } } });
+    expect(wrapper.get('[data-test="energy-summary"]').text()).toContain('Unavailable');
+    expect(wrapper.find('[data-test="active-calories"]').exists()).toBe(false);
+  });
+
   it('opens a compact adjustment dialog and previews rider-weight changes through the server', async () => {
     vi.useFakeTimers();
     mocks.calculateEnergyWhatIf.mockResolvedValueOnce(energyResponse(230, 0, 75));
@@ -162,6 +201,45 @@ describe('Track Detail energy adjustment', () => {
     expect(wrapper.find('[data-test="energy-adjust-results"]').text()).toContain('242.5 Wh');
     expect(wrapper.find('[data-test="energy-adjust-results"]').text()).toContain('+12.5 Wh');
     expect(wrapper.find('[data-test="energy-adjust-results"]').text()).toContain('136 W');
+    expect(wrapper.get('[data-test="calorie-preview"]').text()).toContain('840 kcal');
+    expect(wrapper.get('[data-test="calorie-preview"]').text()).toContain('+40 kcal change');
+  });
+
+  it('explains an unavailable calorie estimate in the weight preview', async () => {
+    const response = energyResponse(230, 0, 75);
+    mocks.calculateEnergyWhatIf.mockResolvedValueOnce({
+      ...response,
+      adjustedSummary: {
+        ...response.adjustedSummary,
+        metabolicEnergy: {
+          coverage: 'UNAVAILABLE',
+          bodyWeightKg: 75,
+          coveredSeconds: 0,
+          uncoveredSeconds: 600,
+          exclusionReasons: ['INCONSISTENT_ENERGY_ESTIMATES'],
+        },
+      },
+    });
+    const wrapper = mountEnergyOverview();
+    await wrapper.find('[data-test="energy-adjust-trigger"]').trigger('click');
+    await flushPromises();
+    expect(wrapper.get('[data-test="energy-adjust-results"]').text()).toContain('Calorie estimate unavailable');
+    expect(wrapper.get('[data-test="energy-adjust-results"]').text()).toContain(
+      'estimated work is higher than their calorie estimate'
+    );
+  });
+
+  it('shows calories for a track whose mechanical work is zero', async () => {
+    const wrapper = mountEnergyOverview();
+    await wrapper.setProps({
+      gpsTrack: {
+        ...baseTrack(),
+        energyNetTotalWh: 0,
+        metabolicEnergy: { activeKcal: 45, totalKcal: 65, coverage: 'COMPLETE', bodyWeightKg: 75 },
+      },
+    });
+    expect(wrapper.get('[data-test="active-calories"]').text()).toContain('45 kcal');
+    expect(wrapper.text()).not.toContain('Energy stats are being calculated');
   });
 
   it('keeps the slider stable while stale previews are still returning', async () => {
@@ -253,5 +331,64 @@ describe('Track Detail energy adjustment', () => {
 
     const requestedKilograms = mocks.calculateEnergyWhatIf.mock.calls[1]?.[1];
     expect(requestedKilograms).toBeCloseTo(81.6466266, 7);
+  });
+  it.each(['track', 'activity'])('discards a preview after the %s changes', async (change) => {
+    const request = deferred<ReturnType<typeof energyResponse>>();
+    mocks.calculateEnergyWhatIf.mockReturnValueOnce(request.promise);
+    const wrapper = mountEnergyOverview();
+    await wrapper.get('[data-test="energy-adjust-trigger"]').trigger('click');
+    await wrapper.setProps({
+      gpsTrack:
+        change === 'track' ? { ...baseTrack(), id: 2 } : { ...baseTrack(), activityType: GpsTrackActivityTypeEnum.Car },
+    });
+    request.resolve(energyResponse(999, 769, 82));
+    await flushPromises();
+    expect(wrapper.find('[data-test="energy-adjust-dialog"]').exists()).toBe(false);
+    expect(wrapper.text()).not.toContain('999.0 Wh');
+    wrapper.unmount();
+  });
+
+  it('disables and ignores unchanged weight saves', async () => {
+    mocks.calculateEnergyWhatIf.mockResolvedValueOnce(energyResponse(230, 0, 75));
+    const wrapper = mountEnergyOverview();
+    await wrapper.get('[data-test="energy-adjust-trigger"]').trigger('click');
+    await flushPromises();
+    expect(wrapper.get<HTMLButtonElement>('[data-test="energy-adjust-save"]').element.disabled).toBe(true);
+    await wrapper.get('form[data-test="energy-adjust-dialog"]').trigger('submit');
+    expect(mocks.saveTrackEnergyRiderWeight).not.toHaveBeenCalled();
+    wrapper.unmount();
+  });
+
+  it('does not apply a save response to another track', async () => {
+    const saving = deferred<ReturnType<typeof baseTrack>>();
+    mocks.calculateEnergyWhatIf.mockResolvedValueOnce(energyResponse(230, 0, 75));
+    mocks.saveTrackEnergyRiderWeight.mockReturnValueOnce(saving.promise);
+    const wrapper = mountEnergyOverview();
+    await wrapper.get('[data-test="energy-adjust-trigger"]').trigger('click');
+    await flushPromises();
+    await wrapper.get('[data-test="energy-rider-weight-input"]').setValue('82');
+    await wrapper.get('form[data-test="energy-adjust-dialog"]').trigger('submit');
+    await wrapper.setProps({ gpsTrack: { ...baseTrack(), id: 2 } });
+    saving.resolve({ ...baseTrack(), energyNetTotalWh: 999 });
+    await flushPromises();
+    expect(wrapper.emitted('track-updated')).toBeUndefined();
+    wrapper.unmount();
+  });
+  it('keeps an edit made while the initial weight lookup is returning', async () => {
+    vi.useFakeTimers();
+    const initial = deferred<ReturnType<typeof energyResponse>>();
+    mocks.calculateEnergyWhatIf
+      .mockReturnValueOnce(initial.promise)
+      .mockResolvedValueOnce(energyResponse(242.5, 12.5, 82));
+    const wrapper = mountEnergyOverview();
+    await wrapper.get('[data-test="energy-adjust-trigger"]').trigger('click');
+    await wrapper.get('[data-test="energy-rider-weight-input"]').setValue('82');
+    initial.resolve(energyResponse(230, 0, 75));
+    await flushPromises();
+    expect(wrapper.get<HTMLInputElement>('[data-test="energy-rider-weight-input"]').element.value).toBe('82');
+    await vi.advanceTimersByTimeAsync(250);
+    await flushPromises();
+    expect(wrapper.get('[data-test="energy-adjust-results"]').text()).toContain('242.5 Wh');
+    wrapper.unmount();
   });
 });

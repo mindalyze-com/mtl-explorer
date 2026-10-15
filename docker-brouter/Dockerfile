@@ -6,15 +6,15 @@
 #   1. BRouter HTTP router on :17777 (Java)           — answers routing requests
 #   2. Admin HTTP API on     :17778 (Python stdlib)   — /status + /prewarm endpoints
 #
-# BRouter profiles (trekking.brf, fastbike.brf, hiking-mountain.brf, car-eco.brf)
+# BRouter profiles (trekking.brf, fastbike.brf, mtb.brf, hiking-mountain.brf, car-eco.brf)
 # and the SRTM elevation data ship with the release. Rd5 routing segments are
 # NOT shipped — they are downloaded on first use from https://brouter.de/brouter/segments4/
 # Either lazy (on first routing request touching a 5°×5° cell) or eagerly via the
 # /prewarm endpoint. Tiles persist in the named volume "brouter-segments".
 
-FROM eclipse-temurin:21-jre-jammy
+FROM eclipse-temurin:25-jre-resolute
 
-ARG BROUTER_VERSION=1.7.9
+ARG BROUTER_VERSION=1.7.10
 ARG BROUTER_ZIP_URL=https://github.com/abrensch/brouter/releases/download/v${BROUTER_VERSION}/brouter-${BROUTER_VERSION}.zip
 
 ENV BROUTER_HOME=/opt/brouter \
@@ -49,5 +49,8 @@ ENV MTL_IMAGE_BUILD_TIME=${MTL_IMAGE_BUILD_TIME}
 
 EXPOSE 17777 17778
 VOLUME ["/segments4"]
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+    CMD ["python3", "/opt/brouter-orchestrator/healthcheck.py"]
 
 ENTRYPOINT ["/opt/brouter-orchestrator/entrypoint.sh"]

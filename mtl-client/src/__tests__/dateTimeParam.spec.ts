@@ -71,6 +71,26 @@ describe('DateTimeParam', () => {
     expect(emitted?.getMinutes()).toBe(5);
   });
 
+  it('includes the entire end date and preserves its precision when changing dates', async () => {
+    const wrapper = mount(DateTimeParam, { props: { label: 'To', endOfDay: true } });
+    const input = wrapper.get('input[type="date"]');
+    await input.setValue('2026-09-06');
+    const boundary = new Date(2026, 8, 6, 23, 59, 59, 500);
+    expect(lastEmittedValue(wrapper)!.getTime()).toBeGreaterThanOrEqual(boundary.getTime());
+    expect(lastEmittedValue(wrapper)).toEqual(new Date(2026, 8, 6, 23, 59, 59, 999));
+    await wrapper.setProps({ modelValue: lastEmittedValue(wrapper) });
+    await input.setValue('2026-09-07');
+    expect(lastEmittedValue(wrapper)).toEqual(new Date(2026, 8, 7, 23, 59, 59, 999));
+    await wrapper.get('input[type="time"]').setValue('12:00');
+    expect(lastEmittedValue(wrapper)).toEqual(new Date(2026, 8, 6, 12));
+  });
+
+  it('retains hidden seconds and milliseconds when changing only the date', async () => {
+    const wrapper = mountDateTimeParam(new Date(2026, 4, 27, 8, 45, 33, 321));
+    await wrapper.get('input[type="date"]').setValue('2026-06-03');
+    expect(lastEmittedValue(wrapper)).toEqual(new Date(2026, 5, 3, 8, 45, 33, 321));
+  });
+
   it('emits null when cleared', async () => {
     const wrapper = mountDateTimeParam(new Date(2026, 4, 27, 8, 45));
 

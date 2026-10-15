@@ -1,114 +1,56 @@
-# Garmin FIT to GPX Export Tool
+# Garmin FIT to GPX export helper
 
-This directory contains a Python tool that downloads Garmin activity files in FIT format and converts them to GPX with full metadata and metrics.
+MTL Explorer uses this helper to retry selected failed Garmin GPX exports.
+It downloads the original activity FIT file and creates a GPX file. Both files
+are retained. It can also be invoked for a known activity ID.
 
-## Purpose
+## Files and environment
 
-This tool serves as a **fallback** for the primary Garmin export tool (`gcexport.py`). When large GPX files cause HTTP 408 timeout errors during download, this tool:
-1. Downloads the smaller FIT file instead
-2. Converts it to GPX with all track points and metrics preserved
-3. Saves both the FIT and GPX files
+- `garmin_fit_to_gpx_export.py`: authentication, FIT download, and conversion.
+- `install_fit_export.sh`: installs the selected packages into
+  `venv_fit_<profile>`; an existing profile is reused.
+- `run_fit_export.sh`: selects that environment and invokes the Python tool.
 
-## Files
+The [Dockerfile](../../Dockerfile) supplies the default profile and packages.
+Dependencies are `garth`, `fitparse`, and `gpxpy`. For the default profile,
+the runtime interpreter is `/app/garmin_fit_export/venv_fit_default/bin/python3`.
 
-- **`garmin_fit_to_gpx_export.py`**: Main Python script
-- **`setup_garmin_fit_export.sh`**: Setup script that creates a virtual environment and installs dependencies
-- **`run_fit_export.sh`**: Wrapper script to run the tool for a specific activity
-- **`venv_fit_export/`**: Python virtual environment (created during Docker build)
+## Usage inside the app container
 
-## Virtual Environment
+MTL Explorer normally invokes the wrapper itself:
 
-This tool uses its own isolated Python virtual environment to avoid conflicts with other Python tools.
-
-### Setup (during Docker build)
-```bash
-python3 -m venv venv_fit_export
-source venv_fit_export/bin/activate
-pip install garth fitparse gpxpy
+```text
+run_fit_export.sh <username> <password> <activity_id> <save_dir> [profile]
 ```
 
-### Runtime
-The `run_fit_export.sh` script automatically uses the virtual environment:
-```bash
-/app/garmin_fit_export/venv_fit_export/bin/python3 garmin_fit_to_gpx_export.py ...
+For a direct call, use the installed interpreter and provide `GARMIN_PWD` in
+the process environment, or allow the Python tool to prompt for the password:
+
+```sh
+/app/garmin_fit_export/venv_fit_default/bin/python3 \
+  /app/garmin_fit_export/garmin_fit_to_gpx_export.py \
+  --email your-email@example.com \
+  --activity 123456789 \
+  --save-dir /app/mtl-data/gpx
 ```
 
-## Dependencies
+The output names are `activity_123456789.fit` and `activity_123456789.gpx`.
+The standard Compose configuration points the automatic fallback at
+`/app/mtl-data/gpx`. Standalone callers choose their own destination.
 
-Installed in the virtual environment:
-- **garth**: Garmin Connect authentication and API client
-- **fitparse**: FIT file parser
-- **gpxpy**: GPX file creation and manipulation
+## Conversion limits
 
-## Usage
+The converter emits records with GPS coordinates, available elevation and time,
+activity metadata, and supported heart-rate, cadence, temperature, speed, and
+power extensions. Records without coordinates are skipped. It is not a
+lossless conversion of every FIT message or device field; retain the FIT file.
 
-### Via Wrapper Script
-```bash
-./run_fit_export.sh <username> <password> <activity_id> <save_dir>
-```
+Those sensor extensions are preserved in the exported GPX but are not imported
+as measurement series by MTL Explorer's track parser. Track power and energy
+are estimated; time-correlated heart rate comes from the optional
+[Google Health connection](../../documentation/user/health/google-health.md).
 
-Example:
-```bash
-./run_fit_export.sh "user@example.com" "password123" "20568140940" "/app/gpx"
-```
-
-### Direct Python Call
-```bash
-source venv_fit_export/bin/activate
-python3 garmin_fit_to_gpx_export.py \
-  --email "user@example.com" \
-  --activity "20568140940" \
-  --save-dir "/app/gpx"
-```
-
-## Features
-
-The tool downloads FIT files and converts them to GPX with:
-- ✅ Full GPS track points (lat/lon/elevation/time)
-- ✅ Heart rate data (gpxtpx:hr)
-- ✅ Cadence data (gpxtpx:cad)
-- ✅ Temperature (gpxtpx:atemp)
-- ✅ Speed (gpxx:Speed)
-- ✅ Power (gpxpx:Power)
-- ✅ Activity name and description
-- ✅ Activity type (running, cycling, etc.)
-- ✅ Standards-compliant GPX 1.1 format
-- ✅ Compatible with Garmin BaseCamp
-
-## Integration
-
-This tool is automatically invoked by the Java application (`GarminExporter.java`) when:
-1. The primary gcexport tool encounters HTTP 408 errors
-2. The error log contains activity IDs that failed to download
-3. The Java code parses these IDs and calls this tool as a fallback
-
-## Output
-
-For activity `20568140940`, the tool creates:
-- `/app/gpx/activity_20568140940.fit` (original FIT file, kept for reference)
-- `/app/gpx/activity_20568140940.gpx` (converted GPX file)
-
-Both files are preserved for debugging and backup purposes.
-
-## Advantages Over GPX Direct Download
-
-1. **Smaller files**: FIT files are binary and much smaller than GPX
-2. **No timeouts**: Smaller files don't trigger HTTP 408 errors
-3. **Full data**: FIT files contain all metrics and track points
-4. **Reliable**: Direct from Garmin's original activity data
-
-## Logging
-
-The script provides detailed logging:
-- Login status
-- Download progress
-- Conversion metrics (number of track points)
-- Success/failure indicators with emojis
-- All output is captured by the Java application
-
-## Error Handling
-
-- Connection errors: Logged and reported to Java
-- Authentication failures: Logged with clear messages
-- FIT parsing errors: Gracefully handled with error messages
-- Missing GPS data: Warned but continues processing other points
+Smaller FIT downloads can help with GPX export failures, but authentication,
+network, download, and parsing errors can still occur. The server captures
+wrapper output for **Settings → Import & sync → Garmin**. See the
+[export flow](../../documentation/architecture/garmin-export.md) for the actual retry selection rule.

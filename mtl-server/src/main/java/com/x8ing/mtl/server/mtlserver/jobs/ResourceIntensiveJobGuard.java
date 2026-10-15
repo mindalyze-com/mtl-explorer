@@ -1,28 +1,45 @@
 package com.x8ing.mtl.server.mtlserver.jobs;
 
-import lombok.extern.slf4j.Slf4j;
+import com.x8ing.mtl.server.mtlserver.jobs.status.ProcessingDetails;
+
 import org.springframework.stereotype.Component;
 
+import java.util.List;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.BooleanSupplier;
+import java.util.function.Supplier;
 
 /**
  * Prevents scheduled jobs with high allocation or database load from running together.
  * A skipped job retries on its normal schedule instead of occupying a scheduler thread.
  */
 @Component
-@Slf4j
 public class ResourceIntensiveJobGuard {
 
     private final ReentrantLock executionLock = new ReentrantLock();
+    private volatile String owner;
 
-    public boolean runIfAvailable(Class<?> jobType, Runnable action) {
+    public String heldBy() { return owner; }
+
+    public ProcessingDetails.BatchOutcome runReportedBatch(String job, Supplier<ProcessingDetails.BatchOutcome> action) {
         if (!executionLock.tryLock()) {
-            log.debug("Skipping {} while another resource-intensive job is running", jobType.getSimpleName());
-            return false;
+            return ProcessingDetails.BatchOutcome.waiting(List.of(new ProcessingDetails.Blocker(
+                    ProcessingDetails.Kind.LOCK, ProcessingDetails.RESOURCE_LOCK, "RESOURCE_BUSY",
+                    ProcessingDetails.Scope.WHOLE_JOB, ProcessingDetails.Resolution.AUTOMATIC, owner)));
         }
+        owner = job;
         try {
-            action.run();
-            return true;
+            return action.get();
+        } finally {
+            owner = null;
+            executionLock.unlock();
+        }
+    }
+
+    public boolean runBatchIfAvailable(BooleanSupplier action) {
+        if (!executionLock.tryLock()) return false;
+        try {
+            return action.getAsBoolean();
         } finally {
             executionLock.unlock();
         }

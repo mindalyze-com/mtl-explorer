@@ -1,0 +1,92 @@
+# Container Build Retest Prompt
+
+Use this prompt when asking an agent to retest the MTL Explorer container-build
+flow. Replace the placeholders before sending.
+
+```text
+Please test the MTL Explorer container-build flow on this server:
+
+- IP: <server-ipv4>
+- SSH user: root
+- SSH password/key note: <temporary-credential-or-access-note>
+
+Use GitHub `main` as the source:
+https://github.com/mindalyze-com/mtl-explorer
+
+Treat `documentation/development/containers.md` in that GitHub checkout as the single
+source of truth for the procedure. Read it on the checked-out `main` branch and
+follow it step by step. Do not duplicate, reinterpret, or replace its build
+steps from memory.
+
+You are allowed to install missing Docker prerequisites before running the
+documented container-build flow. Treat that setup as work the documentation
+normally expects from the user, and report it separately from the MTL Explorer
+flow result.
+
+Act as a strict tester:
+
+- Record the exact GitHub commit, server OS, RAM/disk baseline, Docker/Buildx/
+  Compose versions, commands executed, and command results.
+- Record timings for the major phases, not every small command: Docker
+  prerequisite setup, checkout/preparation, container build, stack startup,
+  GPX download/import sync, deletion sync, and final verification. Include a
+  compact timing summary in the report because container-build duration is a
+  key result.
+- If Docker Engine, Buildx, or the Docker Compose plugin is missing, install
+  only the missing Docker prerequisite, record the exact versions, and keep that
+  setup work separate from the documented MTL Explorer flow.
+- If a documented step fails, capture the exact command, error, likely cause,
+  and whether the end-to-end flow is blocked.
+- If the stack starts, keep verification technical. Verify the documented app
+  URL, login only if needed to inspect the running GUI, and do not run the broad
+  quick-install UI functional pass here.
+- Download a handful of public internet GPX samples with trackpoint timestamps,
+  place them in the GPX folder named by `documentation/development/containers.md`, and
+  let MTL Explorer sync them. Use at least three GPX files unless a source is
+  unavailable; record each source URL, destination filename, checksum, file
+  size, trackpoint count, and timestamp count.
+- Use GPX files with a real track sequence (`trk`/`trkseg`/`trkpt`). MTL
+  Explorer does not support GPX files that only contain waypoints, and waypoint-
+  only samples are not valid evidence for import testing.
+- After the imported GPX files sync, delete one GPX file from the documented GPX
+  folder, wait for MTL Explorer to process the deletion, and verify in the GUI
+  that the deleted track is no longer counted or visible.
+- Do not capture screenshots for container-build retests. Use concise command
+  output, endpoint checks, container status, logs, and text observations as the
+  evidence.
+- Report format:
+  - The primary report must be Markdown.
+  - If a downloadable report is requested, also generate a PDF from the same
+    report content.
+  - The very first line must be a clear, visually prominent result summary:
+    `> **RESULT: PASS - <one concise reason>**` or
+    `> **RESULT: FAIL - <one concise reason>**`.
+  - After that first line, include the detailed report with goal, environment,
+    exact steps, evidence, issues, and conclusion.
+  - Write `report.md` as a readable standalone report, not a raw transcript.
+    Use short summaries, tables, and concise evidence blocks so it can be read
+    top to bottom.
+  - Keep the summary concise; put detailed command output in the evidence
+    sections.
+  - Keep the report package small: target 500 KB or less for `report.md` plus
+    assets, with 1 MB as the maximum unless there is a clearly stated reason.
+  - Keep log excerpts in `report.md` very short. If larger logs are needed,
+    save cropped log files under the run `assets/` folder and link to them from
+    the relevant evidence section. Do not include or save large raw logs; keep
+    each captured log focused on the relevant command, version, success,
+    failure, and error lines.
+  - Save attached log files with `.txt` filenames, never `.log`, because `.log`
+    files are intentionally ignored by Git.
+  - Keep each attached log `.txt` file at 5 KB or less. If the raw log is
+    larger, crop it to the relevant command, warning, error, exception, and
+    nearby context. Do not include repetitive progress output such as download
+    progress lines.
+- Save a concise Markdown report at:
+  `../mtl-explorer-private/docs-my/verification/builds/<YYYY-MM-DD-short-slug>/report.md`
+- Save any small technical report assets under that same run directory, for
+  example:
+  `../mtl-explorer-private/docs-my/verification/builds/<YYYY-MM-DD-short-slug>/assets/`
+
+The final answer should summarize whether the documented container-build flow
+passed end to end, what failed if anything, and where the report was written.
+```

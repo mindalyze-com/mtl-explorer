@@ -35,7 +35,7 @@ public class RequestHeaderLoggingFilter extends OncePerRequestFilter {
             StringBuilder sb = new StringBuilder();
             sb
                     .append("Request headers for : url=")
-                    .append(request.getRequestURI())
+                    .append(LoggingFilter.sanitizeRequestPath(request.getRequestURI()))
                     .append("\n");
 
             request.getHeaderNames().asIterator().forEachRemaining(

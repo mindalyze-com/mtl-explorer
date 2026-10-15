@@ -2,12 +2,7 @@ package com.x8ing.mtl.server.mtlserver.web.services.track;
 
 import com.x8ing.mtl.server.mtlserver.db.repository.media.MediaTrendQueryRepository;
 import com.x8ing.mtl.server.mtlserver.db.repository.media.TrackMediaPageResult;
-import com.x8ing.mtl.server.mtlserver.web.services.track.entity.MediaTrendBucketDto;
-import com.x8ing.mtl.server.mtlserver.web.services.track.entity.MediaTrendGrouping;
-import com.x8ing.mtl.server.mtlserver.web.services.track.entity.MediaTrendItemsRequest;
-import com.x8ing.mtl.server.mtlserver.web.services.track.entity.MediaTrendKindFilter;
-import com.x8ing.mtl.server.mtlserver.web.services.track.entity.MediaTrendRequest;
-import com.x8ing.mtl.server.mtlserver.web.services.track.entity.MediaTrendScope;
+import com.x8ing.mtl.server.mtlserver.web.services.track.entity.*;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
@@ -16,10 +11,7 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 class MediaTrendServiceTest {
 
@@ -44,11 +36,11 @@ class MediaTrendServiceTest {
     }
 
     @Test
-    void allIndexedScopeDoesNotForwardTrackIds() {
+    void allIndexedScopeForwardsMatchingTrackIds() {
         when(repository.findTrendBuckets(
                 MediaTrendGrouping.YEAR,
                 MediaTrendScope.ALL_INDEXED,
-                List.of())).thenReturn(List.of());
+                List.of(7L))).thenReturn(List.of());
 
         service.getTrends(new MediaTrendRequest(
                 MediaTrendGrouping.YEAR,
@@ -58,7 +50,7 @@ class MediaTrendServiceTest {
         verify(repository).findTrendBuckets(
                 MediaTrendGrouping.YEAR,
                 MediaTrendScope.ALL_INDEXED,
-                List.of());
+                List.of(7L));
     }
 
     @Test
@@ -84,6 +76,11 @@ class MediaTrendServiceTest {
                 0,
                 60)));
 
+        assertBadRequest(() -> service.getTrends(new MediaTrendRequest(
+                MediaTrendGrouping.YEAR, MediaTrendScope.ALL_INDEXED, null)));
+        assertBadRequest(() -> service.getItems(new MediaTrendItemsRequest(
+                MediaTrendGrouping.TOTAL, MediaTrendScope.ALL_INDEXED, "UNDATED",
+                MediaTrendKindFilter.ALL, List.of(7L), 0, 60)));
         verifyNoInteractions(repository);
     }
 
@@ -103,7 +100,7 @@ class MediaTrendServiceTest {
                 MediaTrendScope.ALL_INDEXED,
                 "2026-08-17",
                 null,
-                null,
+                List.of(),
                 null,
                 null));
 

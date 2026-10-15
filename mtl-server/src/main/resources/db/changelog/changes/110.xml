@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.10.xsd">
+
+    <changeSet id="20261014_google_health_heart_rate_time_cover" author="codex" runInTransaction="false">
+        <validCheckSum>9:e84813617a4c04abaa600f1313ddbe94</validCheckSum>
+        <comment>Cover heart-rate chart range reads while retaining the existing time index for record paging.</comment>
+        <sql>
+            DROP INDEX CONCURRENTLY IF EXISTS google_health.idx_google_health_heart_rate_time_cover;
+        </sql>
+        <sql>
+            CREATE INDEX CONCURRENTLY idx_google_health_heart_rate_time_cover
+                ON google_health.heart_rate_sample (sample_time DESC, id DESC)
+                INCLUDE (connection_id, beats_per_minute);
+        </sql>
+        <rollback>
+            DROP INDEX CONCURRENTLY google_health.idx_google_health_heart_rate_time_cover;
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

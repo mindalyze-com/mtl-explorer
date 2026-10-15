@@ -1,11 +1,13 @@
 package com.x8ing.mtl.server.mtlserver.db.entity.gps;
 
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
-import tools.jackson.databind.annotation.JsonSerialize;
 import com.x8ing.mtl.server.mtlserver.db.entity.indexer.IndexedFile;
+import com.x8ing.mtl.server.mtlserver.logic.motion.TrackMotionAnalyzer;
 import com.x8ing.mtl.server.mtlserver.web.global.GeoDoubleSerializer;
+import com.x8ing.mtl.server.mtlserver.web.global.RecordedMetricSerializer;
 import jakarta.persistence.*;
 import lombok.Data;
+import tools.jackson.databind.annotation.JsonSerialize;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -30,6 +32,10 @@ import java.util.List;
         "endDate",
         "trackDurationInMotionSecs",
         "trackDurationStoppedSecs",
+        "trackDurationUnknownSecs",
+        "trackDurationShortStoppedSecs",
+        "motionAnalysisStatus",
+        "motionAnalysisVersion",
         "trackStopCount",
         "trackLongestStopSecs",
         "maxDistanceBetweenPoints",
@@ -59,6 +65,11 @@ import java.util.List;
         "activityTypeSourceDetails",
         "highlightExclusionReason",
         "statisticsExclusionReason",
+        "reviewStatus",
+        "reviewExcluded",
+        "reviewMapExcluded",
+        "timingEstimated",
+        "timingUnreliable",
         "garminActivityId",
         "bboxMinLat",
         "bboxMaxLat",
@@ -73,6 +84,7 @@ import java.util.List;
         "energyKineticPositiveTotalWh",
         "energyNetTotalWh",
         "energyWeightKgUsed",
+        "metabolicEnergy",
         "powerWattsAvg",
         "powerWattsMovingAvg",
         "powerWattsMax",
@@ -82,6 +94,7 @@ import java.util.List;
         "explorationScore",
         "explorationCalcDate",
         "sourceSegmentIndex",
+        "sourceRecordingSection",
         "sourceParentTrackId",
         "trackSource",
         "plannerWaypointsJson",
@@ -99,7 +112,7 @@ public class GpsTrack {
     }
 
     public enum DUPLICATE_CHECK_STATUS {
-        NOT_CHECKED_YET, DUPLICATE, UNIQUE, EXCLUDED
+        NOT_CHECKED_YET, DUPLICATE, UNIQUE, EXCLUDED, FAILED
     }
 
     public enum ACTIVITY_TYPE {
@@ -107,7 +120,7 @@ public class GpsTrack {
     }
 
     public enum ACTIVITY_TYPE_SOURCE {
-        AUTO_GUESS, USER_SET, FAILED
+        AUTO_GUESS, GOOGLE_HEALTH, USER_SET, FAILED
     }
 
     public enum STATISTICS_EXCLUSION_REASON {
@@ -176,24 +189,43 @@ public class GpsTrack {
     /**
      * Duration in seconds where speed >= 0.5 km/h (moving time only, excludes stops/idle).
      */
+    @JsonSerialize(using = RecordedMetricSerializer.class)
     private Double trackDurationInMotionSecs;
 
     /**
-     * Total time in seconds the track was detected as "stopped" by the dense
-     * GPS stop detector. Computed over the outlier-cleaned point stream at
-     * ingest. Unlike {@code trackDuration - trackDurationInMotionSecs}, this
-     * excludes "gap" time where the GPS simply stopped recording.
+     * Sum of supported stationary intervals, including pauses shorter than a visible break.
      */
+    @JsonSerialize(using = RecordedMetricSerializer.class)
     private Double trackDurationStoppedSecs;
+
+    /**
+     * Positive elapsed time without sufficient evidence for moving or stopped. Clock resets have no measurable duration.
+     */
+    @JsonSerialize(using = RecordedMetricSerializer.class)
+    private Double trackDurationUnknownSecs;
+
+    /**
+     * Subset of stopped time in episodes shorter than the visible break threshold.
+     */
+    @JsonSerialize(using = RecordedMetricSerializer.class)
+    private Double trackDurationShortStoppedSecs;
+
+    @Enumerated(EnumType.STRING)
+    @JsonSerialize(using = RecordedMetricSerializer.class)
+    private TrackMotionAnalyzer.Status motionAnalysisStatus;
+
+    private String motionAnalysisVersion;
 
     /**
      * Number of distinct stops detected during the track (see {@link #trackDurationStoppedSecs}).
      */
+    @JsonSerialize(using = RecordedMetricSerializer.class)
     private Integer trackStopCount;
 
     /**
      * Duration in seconds of the single longest detected stop.
      */
+    @JsonSerialize(using = RecordedMetricSerializer.class)
     private Double trackLongestStopSecs;
 
     private Double maxDistanceBetweenPoints;
@@ -233,6 +265,7 @@ public class GpsTrack {
      * dense point stream.
      */
     @Column(name = "speed_in_kmh_30s_max")
+    @JsonSerialize(using = RecordedMetricSerializer.class)
     private Double speedInKmh30sMax;
 
     /**
@@ -240,6 +273,7 @@ public class GpsTrack {
      * canonical dense point stream.
      */
     @Column(name = "elevation_gain_per_hour_30s_max")
+    @JsonSerialize(using = RecordedMetricSerializer.class)
     private Double elevationGainPerHour30sMax;
 
     /**
@@ -247,6 +281,7 @@ public class GpsTrack {
      * canonical dense point stream.
      */
     @Column(name = "elevation_loss_per_hour_30s_max")
+    @JsonSerialize(using = RecordedMetricSerializer.class)
     private Double elevationLossPerHour30sMax;
 
     /**
@@ -297,6 +332,14 @@ public class GpsTrack {
     @Column(name = "statistics_exclusion_reason")
     private STATISTICS_EXCLUSION_REASON statisticsExclusionReason;
 
+    private String reviewStatus;
+    private boolean reviewExcluded;
+
+    @Column(name = "review_map_excluded", nullable = false)
+    private boolean reviewMapExcluded;
+    private boolean timingEstimated;
+    private boolean timingUnreliable;
+
     private String garminActivityId;
 
     // Bounding box and centroid of the track (computed at scan time from the cleaned geometry)
@@ -316,21 +359,27 @@ public class GpsTrack {
     // ── Energy totals (populated by EnergyService, all energy values in Wh, power in W) ──
 
     @Column(name = "energy_gravitational_total_wh")
+    @JsonSerialize(using = RecordedMetricSerializer.class)
     private Double energyGravitationalTotalWh;
 
     @Column(name = "energy_gravitational_descent_wh")
+    @JsonSerialize(using = RecordedMetricSerializer.class)
     private Double energyGravitationalDescentWh;
 
     @Column(name = "energy_aero_drag_total_wh")
+    @JsonSerialize(using = RecordedMetricSerializer.class)
     private Double energyAeroDragTotalWh;
 
     @Column(name = "energy_rolling_resistance_total_wh")
+    @JsonSerialize(using = RecordedMetricSerializer.class)
     private Double energyRollingResistanceTotalWh;
 
     @Column(name = "energy_kinetic_positive_total_wh")
+    @JsonSerialize(using = RecordedMetricSerializer.class)
     private Double energyKineticPositiveTotalWh;
 
     @Column(name = "energy_net_total_wh")
+    @JsonSerialize(using = RecordedMetricSerializer.class)
     private Double energyNetTotalWh;
 
     /**
@@ -339,13 +388,20 @@ public class GpsTrack {
     @Column(name = "energy_weight_kg_used")
     private Double energyWeightKgUsed;
 
+    @Embedded
+    @JsonSerialize(using = RecordedMetricSerializer.class)
+    private com.x8ing.mtl.server.mtlserver.energy.MetabolicEnergy metabolicEnergy;
+
     @Column(name = "power_watts_avg")
+    @JsonSerialize(using = RecordedMetricSerializer.class)
     private Double powerWattsAvg;
 
     @Column(name = "power_watts_moving_avg")
+    @JsonSerialize(using = RecordedMetricSerializer.class)
     private Double powerWattsMovingAvg;
 
     @Column(name = "power_watts_max")
+    @JsonSerialize(using = RecordedMetricSerializer.class)
     private Double powerWattsMax;
 
     /**
@@ -353,6 +409,7 @@ public class GpsTrack {
      * More stable than {@link #powerWattsMax}, which is the raw per-segment peak.
      */
     @Column(name = "power_watts_30s_max")
+    @JsonSerialize(using = RecordedMetricSerializer.class)
     private Double powerWatts30sMax;
 
     /**
@@ -365,15 +422,17 @@ public class GpsTrack {
      * (Garmin, TrainingPeaks), xPower / IsoPower (GoldenCheetah).
      */
     @Column(name = "normalized_power_watts")
+    @JsonSerialize(using = RecordedMetricSerializer.class)
     private Double normalizedPowerWatts;
 
-    // ── Exploration Score (computed by background job, see doc/exploration/EXPLORATION_SCORE.md) ──
+    // ── Exploration Score (computed by background job, see documentation/architecture/analysis/exploration.md) ──
 
     @Enumerated(EnumType.STRING)
     @Column(name = "exploration_status")
     private EXPLORATION_STATUS explorationStatus = EXPLORATION_STATUS.NOT_SCHEDULED;
 
     @Column(name = "exploration_score")
+    @JsonSerialize(using = RecordedMetricSerializer.class)
     private Double explorationScore;
 
     @Column(name = "exploration_calc_date")
@@ -385,6 +444,18 @@ public class GpsTrack {
      * NULL = whole track (no split); 1, 2, ... = Nth segment from a time-gap split
      */
     private Integer sourceSegmentIndex;
+
+    /**
+     * Zero-based section in the original source document.
+     */
+    private Integer sourceRecordingSection;
+
+    /**
+     * Exact source revision used for this import; older unassessed imports have no recorded hash.
+     */
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    @Column(name = "source_content_hash")
+    private String sourceContentHash;
 
     /**
      * FK to the master segment (segment 1) when this track was derived from a file with temporal gaps.
@@ -421,7 +492,7 @@ public class GpsTrack {
 
     /**
      * Versioned planner-specific payload for PLANNED tracks. Stores the saved
-     * route result (currently legs + aggregate stats) in one extensible JSON
+     * route result and map-local points of interest in one extensible JSON
      * document so future planner metadata can be added without more narrow
      * columns.
      */

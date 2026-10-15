@@ -3,6 +3,7 @@ import type { FilterParamsRequest } from '@/components/filter/FilterService';
 import type { FilterResult } from '@/types/filter';
 import { apiClient } from '@/utils/apiClient';
 import { logSanitizedError } from '@/utils/safeLogging';
+import { withBrowserTimeZone } from '@/utils/filterTimeZone';
 
 /** A resolved filter result with the complete query result used by the filter UI. */
 export interface ResolveFilterResult extends FilterResult {
@@ -20,7 +21,7 @@ export async function fetchResolveFilter(
     // The generated getResolveById method cannot send filter parameters in the request body.
     const response = await apiClient.post(
       `api/filter/resolve/${filterConfigId}?includeGPSTrack=${includeGPSTrack}&includeGPSTrackFile=${includeGPSTrack}`,
-      filterParams
+      withBrowserTimeZone(filterParams)
     );
     const queryResult = QueryResultFromJSONTyped(response.data, false);
 
@@ -51,7 +52,11 @@ export async function fetchResolveFilter(
       preGroupSelectionCount: queryResult.preGroupSelectionCount,
     };
   } catch (error: unknown) {
-    logSanitizedError('Error fetching filter resolve:', error);
-    throw new Error(String(error));
+    logSanitizedError('Error fetching filter resolve:', error, {
+      topic1: 'application',
+      topic2: 'filterApi',
+      topic3: 'fetchResolveFilter',
+    });
+    throw error;
   }
 }

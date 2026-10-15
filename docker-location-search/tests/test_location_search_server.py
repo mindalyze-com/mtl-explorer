@@ -1,4 +1,6 @@
+import io
 import json
+import os
 import sqlite3
 import sys
 import tempfile
@@ -7,12 +9,14 @@ import unittest
 import urllib.error
 import urllib.parse
 import urllib.request
+from contextlib import redirect_stdout
 from http.server import ThreadingHTTPServer
 from pathlib import Path
+from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from location_search_server import SearchConfig, SearchEngine, LocationSearchHandler
+from location_search_server import SearchConfig, SearchEngine, LocationSearchHandler, apsw
 
 
 SCHEMA_SQL = """
@@ -51,6 +55,22 @@ CREATE INDEX idx_places_kind ON places(kind);
 
 
 class LocationSearchServerTest(unittest.TestCase):
+    def test_mmap_default_and_environment_override_reach_sqlite(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            db_path = Path(temp_dir) / "geonames-search.sqlite"
+            create_sample_db(db_path)
+            for override, expected in ((None, 32 * 1024 * 1024), ("67108864", 64 * 1024 * 1024)):
+                with self.subTest(override=override):
+                    environment = {"MTL_LOCATION_SEARCH_DB": str(db_path)}
+                    if override is not None:
+                        environment["MTL_LOCATION_SEARCH_MMAP_SIZE"] = override
+                    with patch.dict(os.environ, environment, clear=True):
+                        engine = SearchEngine(SearchConfig.from_env())
+                    with engine.connect() as connection:
+                        self.assertEqual(connection.execute("PRAGMA mmap_size").fetchone()[0], expected)
+                    result = engine.search("Zürich", 20, "importance", None, None)
+                    self.assertEqual(first_names(result)[0], "Zürich")
+
     def test_status_reports_missing_db_cleanly(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             engine = SearchEngine(SearchConfig(db_path=Path(temp_dir) / "missing.sqlite"))
@@ -61,7 +81,8 @@ class LocationSearchServerTest(unittest.TestCase):
             self.assertEqual(status["phase"], "unavailable")
             self.assertIn("missing", status["message"])
             self.assertIn("versionInfo", status)
-            self.assertEqual(status["versionInfo"]["components"]["sqlite"], sqlite3.sqlite_version)
+            expected_version = apsw.sqlitelibversion() if apsw is not None else sqlite3.sqlite_version
+            self.assertEqual(status["versionInfo"]["components"]["sqlite"], expected_version)
 
     def test_status_uses_metadata_counts_without_table_counts(self):
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -155,13 +176,16 @@ class LocationSearchServerTest(unittest.TestCase):
                 search_params = urllib.parse.urlencode(
                     {
                         "mtl-version": "test-1",
+                        "mtl-build": "2026-10-06T10_20_30Z",
                         "mtl-server-id": "server-a",
                         "q": "Zurich",
                     }
                 )
-                search = read_json(f"{base_url}/search?{search_params}")
+                with redirect_stdout(io.StringIO()) as access_log:
+                    search = read_json(f"{base_url}/search?{search_params}")
                 self.assertTrue(search["ready"])
                 self.assertEqual(first_names(search)[0], "Zürich")
+                self.assertIn('mtl-version="test-1" mtl-build="2026-10-06T10_20_30Z"', access_log.getvalue())
             finally:
                 server.shutdown()
                 server.server_close()

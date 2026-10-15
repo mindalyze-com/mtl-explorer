@@ -1,14 +1,17 @@
 import { mount } from '@vue/test-utils';
 import { defineComponent } from 'vue';
+import { createPinia } from 'pinia';
 import { describe, expect, it } from 'vitest';
 
 import LayerControl from '@/components/map/LayerControl.vue';
 import MapSettingsOverview from '@/components/map/MapSettingsOverview.vue';
+import MapSettingsPanel from '@/components/map/MapSettingsPanel.vue';
 import MapStyleSheet from '@/components/map/MapStyleSheet.vue';
+import { DATA_LAYER_IDS, ROUTE_LAYER_IDS } from '@/components/map/mapSettingsPanelTypes';
 
 const BottomSheetStub = defineComponent({
   name: 'BottomSheet',
-  template: '<section><slot /><footer><slot name="footer" /></footer></section>',
+  template: '<section><header><slot name="title" /></header><slot /><footer><slot name="footer" /></footer></section>',
 });
 
 const overviewProps = {
@@ -23,20 +26,18 @@ const overviewProps = {
 };
 
 describe('Map settings UI', () => {
-  it('presents the current map and opens each focused settings area', async () => {
+  it('opens each focused settings area from the overview rows', async () => {
     const wrapper = mount(MapSettingsOverview, { props: overviewProps });
 
     expect(wrapper.get('#map-settings-current-title').text()).toBe('OSM Topo Contrast');
-    expect(wrapper.text()).toContain('Automatic source · 2D map');
-
-    const preview = wrapper.get('button.map-settings-overview__preview');
-    expect(preview.attributes('aria-label')).toBe('Open map style settings');
-    await preview.trigger('click');
+    expect(wrapper.get('.map-settings-overview__current-copy p').text()).toBe('Automatic source · 2D map');
+    await wrapper.get('button.map-settings-overview__preview').trigger('click');
 
     const rows = wrapper.findAll('.map-settings-row');
     expect(rows.map((row) => row.text())).toEqual([
       expect.stringContaining('Map style'),
       expect.stringContaining('Terrain'),
+      expect.stringContaining('Points of interest'),
       expect.stringContaining('Your data'),
       expect.stringContaining('Route overlays'),
     ]);
@@ -46,6 +47,7 @@ describe('Map settings UI', () => {
 
     expect(wrapper.emitted('open-style')).toHaveLength(2);
     expect(wrapper.emitted('open-terrain')).toHaveLength(1);
+    expect(wrapper.emitted('open-pois')).toHaveLength(1);
     expect(wrapper.emitted('open-data')).toHaveLength(1);
     expect(wrapper.emitted('open-routes')).toHaveLength(1);
     expect(wrapper.emitted('reset')).toHaveLength(1);
@@ -58,6 +60,41 @@ describe('Map settings UI', () => {
 
     expect(wrapper.get('.map-settings-overview__preview-state').text()).toContain('Hidden');
     expect(wrapper.findAll('.map-settings-row')[0].text()).toContain('OSM Topo Contrast · hidden');
+  });
+
+  it('keeps the current map summary in the body as settings change', async () => {
+    const layerStates = Object.fromEntries(
+      ['basemap', 'terrain', ...DATA_LAYER_IDS, ...ROUTE_LAYER_IDS].map((id) => [
+        id,
+        { enabled: id === 'basemap', opacity: 100 },
+      ])
+    );
+    const wrapper = mount(MapSettingsPanel, {
+      props: {
+        layerStates,
+        mapSourceMode: 'auto',
+        modelValue: 'contrast',
+        terrainExaggeration: 1.5,
+        themes: [{ code: 'contrast', name: 'OSM Topo Contrast', thumbnail: '/theme.webp' }],
+      },
+      global: { plugins: [createPinia()], stubs: { BottomSheet: BottomSheetStub } },
+    });
+
+    expect(wrapper.get('.map-settings-header h2').text()).toBe('Map');
+    expect(wrapper.find('.map-settings-header p').exists()).toBe(false);
+    expect(wrapper.get('#map-settings-current-title').text()).toBe('OSM Topo Contrast');
+    expect(wrapper.get('.map-settings-overview__current-copy p').text()).toBe('Automatic source · 2D map');
+
+    await wrapper.setProps({
+      mapSourceMode: 'remote',
+      layerStates: {
+        ...layerStates,
+        basemap: { enabled: false, opacity: 100 },
+        terrain: { enabled: true, opacity: 100 },
+      },
+    });
+    expect(wrapper.get('.map-settings-overview__current-copy p').text()).toBe('Remote tiles · 3D · 1.5× relief');
+    expect(wrapper.get('.map-settings-overview__preview-state').text()).toContain('Hidden');
   });
 
   it('uses an accessible layer switch and only shows opacity while enabled', async () => {

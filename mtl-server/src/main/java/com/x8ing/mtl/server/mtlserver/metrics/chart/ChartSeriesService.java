@@ -10,11 +10,14 @@ import com.x8ing.mtl.server.mtlserver.metrics.bucket.ChartBucket;
 import com.x8ing.mtl.server.mtlserver.metrics.bucket.ChartBucketBuilder;
 import com.x8ing.mtl.server.mtlserver.metrics.bucket.MetricKey;
 import com.x8ing.mtl.server.mtlserver.metrics.bucket.XMode;
-import com.x8ing.mtl.server.mtlserver.metrics.window.*;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Instant;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Set;
 
 /**
  * On-the-fly chart-series builder. Loads the canonical
@@ -33,9 +36,7 @@ import java.util.List;
 })
 public class ChartSeriesService {
 
-    static final double SPEED_WINDOW_GOOD_COVERAGE = 0.60;
-    static final double SPEED_FALLBACK_COVERAGE_MARGIN = 0.15;
-    private static final double COVERAGE_COMPARISON_EPSILON = 1e-12;
+    private static final Set<MetricKey> ENERGY_METRICS = Set.of(MetricKey.ENERGY_CUMULATIVE_WH, MetricKey.POWER_WATTS, MetricKey.POWER_WINDOW_WATTS);
 
     private final GpsTrackRepository gpsTrackRepository;
     private final GpsTrackDataPointRepository gpsTrackDataPointRepository;
@@ -48,29 +49,26 @@ public class ChartSeriesService {
 
     public ChartSeriesResponse build(long trackId, ChartSeriesRequest request) {
         GpsTrack track = gpsTrackRepository.findById(trackId)
-                .orElseThrow(() -> new IllegalArgumentException("Unknown track: " + trackId));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Track not found"));
 
         List<GpsTrackDataPoint> points = gpsTrackDataPointRepository
                 .getTrackDetailsByGpsTrackIdAndType(trackId,
                         GpsTrackData.TRACK_TYPE.RAW_OUTLIER_CLEANED.name());
-
-        double windowSec = request.windowSec() != null && request.windowSec() > 0
-                ? request.windowSec()
-                : GpsTrackDataPointWindowAdapter.defaultWindowSecFor(track.getActivityType());
-
-        PointWindowedRateCalculator rateCalc = new PointWindowedRateCalculator(windowSec);
-        List<WindowedRateSample> rateSamples = rateCalc.compute(points, GpsTrackDataPointWindowAdapter.view());
-
-        Double[] rollingPower = computeRollingPower(points, windowSec);
+        ChartSeriesMetrics display = ChartSeriesMetrics.compute(track, points, request.windowSec());
+        points = display.points();
+        double windowSec = display.windowSec();
 
         ChartBucketBuilder builder = new ChartBucketBuilder();
         ChartBucketBuilder.Config config = new ChartBucketBuilder.Config(
-                request.xMode() != null ? request.xMode() : XMode.TIME,
+                track.isTimingUnreliable() ? XMode.DISTANCE : request.xMode() != null ? request.xMode() : XMode.TIME,
                 request.maxBuckets() != null ? request.maxBuckets() : ChartBucketBuilder.DEFAULT_MAX_BUCKETS,
-                request.fromX(), request.toX(), request.metrics());
-        ChartBucketBuilder.Result result = builder.build(points, rateSamples, rollingPower, config);
-        List<MetricKey> availableMetrics = metricKeys(result.buckets());
-        MetricKey recommendedSpeedMetric = recommendSpeedMetric(result.buckets(), availableMetrics);
+                track.isTimingUnreliable() && request.xMode() != XMode.DISTANCE ? null : request.fromX(),
+                track.isTimingUnreliable() && request.xMode() != XMode.DISTANCE ? null : request.toX(), request.metrics());
+        ChartBucketBuilder.Result result = builder.build(points, display.rates(), display.powerWatts(), config);
+        List<ChartBucket> buckets = track.getEnergyNetTotalWh() == null && track.getMetabolicEnergy() != null
+                ? result.buckets().stream().map(ChartSeriesService::withoutEnergy).toList() : result.buckets();
+        List<MetricKey> availableMetrics = metricKeys(buckets);
+        MetricKey recommendedSpeedMetric = ChartSeriesMetrics.recommendSpeedMetric(buckets, availableMetrics);
 
         return new ChartSeriesResponse(
                 trackId,
@@ -79,14 +77,22 @@ public class ChartSeriesService {
                 windowSec,
                 result.xStart(),
                 result.xEnd(),
-                startTimestamp(result.buckets()),
-                endTimestamp(result.buckets()),
-                result.buckets().size(),
+                startTimestamp(buckets),
+                endTimestamp(buckets),
+                buckets.size(),
                 points.size(),
                 availableMetrics,
                 recommendedSpeedMetric,
                 metricDefinitions(availableMetrics),
-                result.buckets());
+                buckets);
+    }
+
+    private static ChartBucket withoutEnergy(ChartBucket bucket) {
+        var metrics = new LinkedHashMap<>(bucket.metrics());
+        ENERGY_METRICS.forEach(metrics::remove);
+        return new ChartBucket(bucket.index(), bucket.xStart(), bucket.xEnd(), bucket.firstPointIndex(),
+                bucket.lastPointIndex(), bucket.representativePointIndex(), bucket.firstTimestamp(),
+                bucket.lastTimestamp(), bucket.representativeTimestamp(), metrics);
     }
 
     private static Instant startTimestamp(List<ChartBucket> buckets) {
@@ -110,53 +116,4 @@ public class ChartSeriesService {
                 .toList();
     }
 
-    static MetricKey recommendSpeedMetric(List<ChartBucket> buckets, List<MetricKey> availableMetrics) {
-        boolean hasWindowSpeed = availableMetrics.contains(MetricKey.SPEED_WINDOW_KMH);
-        boolean hasBucketAverageSpeed = availableMetrics.contains(MetricKey.SPEED_BUCKET_AVG_KMH);
-        int populatedBuckets = buckets.size();
-        if (populatedBuckets == 0) {
-            return hasWindowSpeed ? MetricKey.SPEED_WINDOW_KMH : null;
-        }
-
-        double windowCoverage = coverage(buckets, MetricKey.SPEED_WINDOW_KMH, populatedBuckets);
-        double bucketAverageCoverage = coverage(buckets, MetricKey.SPEED_BUCKET_AVG_KMH, populatedBuckets);
-
-        if (hasWindowSpeed && windowCoverage >= SPEED_WINDOW_GOOD_COVERAGE) {
-            return MetricKey.SPEED_WINDOW_KMH;
-        }
-        if (hasBucketAverageSpeed
-            && bucketAverageCoverage + COVERAGE_COMPARISON_EPSILON
-               >= windowCoverage + SPEED_FALLBACK_COVERAGE_MARGIN) {
-            return MetricKey.SPEED_BUCKET_AVG_KMH;
-        }
-        if (hasWindowSpeed) {
-            return MetricKey.SPEED_WINDOW_KMH;
-        }
-        if (hasBucketAverageSpeed) {
-            return MetricKey.SPEED_BUCKET_AVG_KMH;
-        }
-        return null;
-    }
-
-    private static double coverage(List<ChartBucket> buckets, MetricKey metricKey, int populatedBuckets) {
-        long coveredBuckets = buckets.stream()
-                .filter(bucket -> bucket.metrics().containsKey(metricKey))
-                .count();
-        return coveredBuckets / (double) populatedBuckets;
-    }
-
-    private static Double[] computeRollingPower(List<GpsTrackDataPoint> points, double windowSec) {
-        if (points == null || points.isEmpty()) return new Double[0];
-        int n = points.size();
-        double[] powers = new double[n];
-        double[] durations = new double[n];
-        for (int i = 0; i < n; i++) {
-            Double p = points.get(i).getPowerWatts();
-            Double d = points.get(i).getDurationBetweenPointsInSec();
-            powers[i] = p != null ? p : 0;
-            durations[i] = d != null ? d : 0;
-        }
-        PowerWindowStats stats = new PointWindowedPowerCalculator(windowSec).compute(powers, durations);
-        return stats.rollingPowerWatts();
-    }
 }

@@ -5,6 +5,7 @@ import com.x8ing.mtl.server.mtlserver.db.readonly.spring.QueryResult;
 import com.x8ing.mtl.server.mtlserver.web.services.track.entity.filter.FilterParamsRequest;
 import com.x8ing.mtl.server.mtlserver.web.services.track.entity.filter.FilterResultGroupKey;
 import com.x8ing.mtl.server.mtlserver.web.services.track.entity.filter.FilterResultGroupSelection;
+import com.x8ing.mtl.server.mtlserver.web.services.track.entity.filter.TrackViewScope;
 import org.junit.jupiter.api.Test;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -14,12 +15,17 @@ import java.util.Map;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.same;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 class FilterExecutionServiceTest {
+
+    @Test
+    void unavailableOptionalScopeFailsClosedWithoutAFeatureDependency() {
+        assertThatThrownBy(() -> service().refine(
+                groupedResult(entry(1L, "WALKING")), null, TrackViewScope.GOOGLE_HEALTH_EXERCISE))
+                .isInstanceOf(ResponseStatusException.class)
+                .hasMessageContaining("Requested track scope is unavailable");
+    }
 
     @Test
     void discoversGroupsAndKeepsAllRowsWithoutSelection() {
@@ -140,6 +146,27 @@ class FilterExecutionServiceTest {
         assertThat(result.getResultEntries()).extracting(QueryResult.QueryResultEntry::getId).containsExactly(1L);
         verify(paramResolver).expand(same(request));
         verify(sqlFilter, times(1)).getGpsTrackIdsFor(same(filter), same(sqlParams));
+    }
+
+    @Test
+    void googleHealthExerciseScopeIntersectsCanonicalTracksBeforeGroupCounts() {
+        TrackScopeProvider scopeService = mock(TrackScopeProvider.class);
+        when(scopeService.scope()).thenReturn(TrackViewScope.GOOGLE_HEALTH_EXERCISE);
+        when(scopeService.trackIds()).thenReturn(java.util.Set.of(2L, 4L));
+        FilterExecutionService service = new FilterExecutionService(
+                mock(GpsTrackSQLFilter.class), mock(FilterParamResolver.class), List.of(scopeService));
+        QueryResult result = groupedResult(
+                entry(1L, "WALKING"),
+                entry(2L, "RUNNING"),
+                entry(4L, "RUNNING"));
+
+        QueryResult refined = service.refine(result, null, TrackViewScope.GOOGLE_HEALTH_EXERCISE);
+
+        assertThat(refined.getResultEntries()).extracting(QueryResult.QueryResultEntry::getId)
+                .containsExactly(2L, 4L);
+        assertThat(refined.getPreGroupSelectionCount()).isEqualTo(2L);
+        assertThat(refined.getAvailableGroups()).singleElement()
+                .satisfies(group -> assertThat(group.getCount()).isEqualTo(2L));
     }
 
     private static FilterExecutionService service() {

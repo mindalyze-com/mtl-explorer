@@ -1,5 +1,5 @@
 <template>
-  <article class="filter-scope-help" data-test="filter-scope-help">
+  <article class="filter-scope-help" data-sheet-fit-target data-test="filter-scope-help">
     <header class="filter-scope-help__intro">
       <div class="filter-scope-help__meta">
         <span v-if="firstVisit" class="filter-scope-help__important">
@@ -8,21 +8,23 @@
         </span>
         <span class="filter-scope-help__eyebrow">Filter behavior</span>
       </div>
-      <h3>Your filter shapes everything</h3>
-      <p>
-        Filter view, criteria, and included categories define the current result. MTL Explorer uses only those tracks
-        throughout the app.
-      </p>
+      <h3>Your filter selects tracks</h3>
+      <p>The filter decides which tracks you see. The map, track lists, statistics, and segment analysis all use it.</p>
     </header>
 
     <section class="filter-scope-help__section" aria-labelledby="filter-scope-every-view">
       <div class="filter-scope-help__section-head">
         <span class="filter-scope-help__section-icon"><i class="bi bi-grid" aria-hidden="true"></i></span>
         <div>
-          <h4 id="filter-scope-every-view">Every view adapts</h4>
-          <p>Tracks outside the result behave as if they did not exist. Nothing is deleted.</p>
+          <h4 id="filter-scope-every-view">Track views share the selection</h4>
+          <p>These track views use the filtered selection. Nothing is deleted.</p>
         </div>
       </div>
+      <p class="filter-scope-help__note">
+        Photos and videos follow the time span of your filtered tracks, including media without a track link. Media
+        without a date is not shown, and no dated tracks means no media. Health has its own dates. Tracks excluded from
+        statistics in Review don't count there.
+      </p>
       <div class="filter-scope-help__view-list" aria-label="Views affected by the filter">
         <span>Map</span>
         <span>Track lists</span>
@@ -40,19 +42,19 @@
       <div class="filter-scope-help__section-head">
         <span class="filter-scope-help__section-icon"><i class="bi bi-person-walking" aria-hidden="true"></i></span>
         <div>
-          <h4 id="filter-scope-example">Example: walking only</h4>
+          <h4 id="filter-scope-example">Example: on-foot activities</h4>
           <p>
-            Select an activity filter and include only the on-foot category. MTL Explorer then behaves as if only those
-            tracks existed, so statistics, milestones, and trends become walking-only. Every filter works this way.
+            Choose an activity filter and include only the on-foot category. Statistics, milestones, and trends then
+            count walking, hiking, and running. For walks only, choose the Walking type.
           </p>
         </div>
       </div>
-      <div class="filter-scope-help__flow" aria-label="Walking-only filter example">
+      <div class="filter-scope-help__flow" aria-label="On-foot activity filter example">
         <span>Activity filter</span>
         <i class="bi bi-arrow-right" aria-hidden="true"></i>
         <span>On foot only</span>
         <i class="bi bi-arrow-right" aria-hidden="true"></i>
-        <strong>Walking-only Explorer</strong>
+        <strong>On-foot activity view</strong>
       </div>
     </section>
 
@@ -62,8 +64,8 @@
         <div>
           <h4 id="filter-scope-colors">Map colors reveal patterns</h4>
           <p>
-            Color matching tracks by activity type, weekday, or another grouping. Advanced users can define virtually
-            any grouping with a custom SQL filter.
+            Color tracks by activity type, weekday, or another grouping. With a custom SQL filter, you can define your
+            own groups.
           </p>
         </div>
       </div>
@@ -78,6 +80,7 @@
       <p class="filter-scope-help__note">Coloring changes how matching tracks are drawn, not which tracks count.</p>
     </section>
 
+    <a :href="guideTopicUrl('filters')" target="_blank" rel="opener">Full filter guide</a>
     <button type="button" class="filter-scope-help__done" @click="emit('done')">
       {{ firstVisit ? 'Got it' : 'Back to Filter' }}
     </button>
@@ -85,6 +88,8 @@
 </template>
 
 <script setup lang="ts">
+import { guideTopicUrl } from '@/utils/documentation';
+
 withDefaults(
   defineProps<{
     firstVisit?: boolean;

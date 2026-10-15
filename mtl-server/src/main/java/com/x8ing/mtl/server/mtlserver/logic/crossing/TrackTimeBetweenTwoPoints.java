@@ -1,6 +1,8 @@
 package com.x8ing.mtl.server.mtlserver.logic.crossing;
 
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
+import com.x8ing.mtl.server.mtlserver.analysis.segment.SegmentReadScope;
+import com.x8ing.mtl.server.mtlserver.db.entity.gps.GpsTrackData;
 import com.x8ing.mtl.server.mtlserver.db.entity.gps.GpsTrackDataPoint;
 import com.x8ing.mtl.server.mtlserver.db.entity.gps.GpsTrackEvent;
 import com.x8ing.mtl.server.mtlserver.db.repository.gps.GpsTrackDataPointRepository;
@@ -8,9 +10,12 @@ import com.x8ing.mtl.server.mtlserver.db.repository.gps.GpsTrackEventRepository;
 import com.x8ing.mtl.server.mtlserver.db.repository.gps.GpsTrackRepository;
 import com.x8ing.mtl.server.mtlserver.db.repository.gps.GpsTrackVariantSelector;
 import com.x8ing.mtl.server.mtlserver.gpx.GPXReader;
+import com.x8ing.mtl.server.mtlserver.gpx.RecordedPathGeometry;
+import com.x8ing.mtl.server.mtlserver.gpx.RecordingContinuity;
 import com.x8ing.mtl.server.mtlserver.logic.crossing.beans.*;
-import com.x8ing.mtl.server.mtlserver.utils.GeoCoordinateUtils;
+import com.x8ing.mtl.server.mtlserver.logic.motion.TrackMotionAnalyzer;
 import lombok.extern.slf4j.Slf4j;
+import net.sf.geographiclib.Geodesic;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.PrecisionModel;
@@ -20,652 +25,603 @@ import java.util.*;
 
 @Slf4j
 @Service
-@JsonPropertyOrder({
-        "gpsTrackRepository",
-        "gpsTrackDataPointRepository",
-        "gpsTrackEventRepository",
-        "gpsTrackVariantSelector"
-})
+@JsonPropertyOrder({"gpsTrackRepository", "gpsTrackDataPointRepository", "gpsTrackEventRepository", "gpsTrackVariantSelector"})
 public class TrackTimeBetweenTwoPoints {
+    private static final double MILLIS_PER_SECOND = 1000.0;
+    private static final double MPS_TO_KMH = 3.6;
+    private static final double GEOMETRY_TOLERANCE_M = 0.000001;
+    private static final double MIN_ZONE_EXIT_MARGIN_M = 2.0;
+    private static final double ZONE_EXIT_MARGIN_FRACTION = 0.2;
+    private static final double GOLDEN_RATIO_COMPLEMENT = (Math.sqrt(5.0) - 1.0) / 2.0;
+    private static final int MINIMUM_SEARCH_ITERATIONS = 44;
+    private static final int QUALIFICATION_BATCH_POINT_BUDGET = 20_000;
+    private static final GeometryFactory GEOMETRY = new GeometryFactory(new PrecisionModel(), 4326);
 
     private final GpsTrackRepository gpsTrackRepository;
     private final GpsTrackDataPointRepository gpsTrackDataPointRepository;
     private final GpsTrackEventRepository gpsTrackEventRepository;
     private final GpsTrackVariantSelector gpsTrackVariantSelector;
+    private final SegmentReadScope readScope;
 
-    public TrackTimeBetweenTwoPoints(GpsTrackRepository gpsTrackRepository,
-                                     GpsTrackDataPointRepository gpsTrackDataPointRepository,
-                                     GpsTrackEventRepository gpsTrackEventRepository,
-                                     GpsTrackVariantSelector gpsTrackVariantSelector) {
-        this.gpsTrackRepository = gpsTrackRepository;
-        this.gpsTrackDataPointRepository = gpsTrackDataPointRepository;
-        this.gpsTrackEventRepository = gpsTrackEventRepository;
-        this.gpsTrackVariantSelector = gpsTrackVariantSelector;
+    public TrackTimeBetweenTwoPoints(GpsTrackRepository tracks, GpsTrackDataPointRepository points,
+                                     GpsTrackEventRepository events, GpsTrackVariantSelector variants, SegmentReadScope readScope) {
+        this.gpsTrackRepository = tracks;
+        this.gpsTrackDataPointRepository = points;
+        this.gpsTrackEventRepository = events;
+        this.gpsTrackVariantSelector = variants;
+        this.readScope = readScope;
     }
 
-    public CrossingPointsResponse getTrackTimeBetweenPoints(CrossingPointsRequest crossingPointsRequest, Long[] tracksIdFilterList) {
+    /**
+     * Geometry and timing only; visit numbers and attempt summaries are not prepared.
+     */
+    public CrossingPointsResponse getTrackCrossingsWithoutSummaries(CrossingPointsRequest request, Long[] filterIds) {
+        return getTrackTimeBetweenPoints(request, filterIds, (track, points, events) -> {
+        });
+    }
 
-        long t0 = System.currentTimeMillis();
-        CrossingPointsResponse crossingPointsResponse = new CrossingPointsResponse();
+    @FunctionalInterface
+    public interface TrackSummaryCalculator {
+        void summarize(CrossingsPerTrack track, List<GpsTrackDataPoint> points, List<GpsTrackEvent> events);
+    }
 
-        // check valid params
-        if (crossingPointsRequest == null) {
-            throw new IllegalArgumentException("crossingPointsRequest can't be null.");
+    public CrossingPointsResponse getTrackTimeBetweenPoints(CrossingPointsRequest request, Long[] filterIds,
+                                                            TrackSummaryCalculator summaries) {
+        long started = System.currentTimeMillis();
+        validate(request);
+        log.info("Segment calculation starting: markers={} radius={}m", request.triggerPoints.size(), request.radius);
+        try {
+            Set<Long> candidates = new LinkedHashSet<>();
+            Set<Long> routeCandidates = null;
+            Map<String, Set<Long>> candidatesPerZone = new LinkedHashMap<>();
+            Map<String, Integer> tracksPerZone = new LinkedHashMap<>();
+            for (TriggerPoint marker : request.triggerPoints) {
+                var ids = new LinkedHashSet<>(readScope.read(() -> gpsTrackRepository.getSegmentCandidateTrackIds(
+                        marker.coordinate.x, marker.coordinate.y, request.radius, filterIds)));
+                candidatesPerZone.put(marker.name, ids);
+                candidates.addAll(ids);
+                if (routeCandidates == null) routeCandidates = new LinkedHashSet<>(ids);
+                else routeCandidates.retainAll(ids);
+                tracksPerZone.put(marker.name, 0);
+            }
+            List<CrossingsPerTrack> results = new ArrayList<>();
+            for (Long id : routeCandidates) {
+                var result = readScope.read(() -> processTrack(request, id, summaries));
+                if (result == null) continue;
+                Set<String> visited = new HashSet<>();
+                result.getCrossings().forEach(c -> visited.add(c.triggerPoint.name));
+                visited.forEach(name -> tracksPerZone.compute(name, (ignored, count) -> count + 1));
+                if (visited.size() == request.triggerPoints.size()) results.add(result);
+            }
+            // Exact per-zone counts still include tracks outside the route intersection.
+            candidates.removeAll(routeCandidates);
+            qualifyOtherCandidates(request, new ArrayList<>(candidates), candidatesPerZone, tracksPerZone);
+            var response = new CrossingPointsResponse();
+            Map<MarkerPair, Segment> segments = new LinkedHashMap<>();
+            int unavailable = 0;
+            for (var result : results) {
+                response.crossings.put(result.gpsTrack.getId(), result);
+                var crossings = result.getCrossings();
+                for (int i = 1; i < crossings.size(); i++) {
+                    Crossing current = crossings.get(i);
+                    if (current.timingStatusSinceLastTriggerPoint != SegmentTimingStatus.AVAILABLE
+                        || current.recordingGapSinceLastTriggerPoint) {
+                        unavailable++;
+                        continue;
+                    }
+                    var key = new MarkerPair(crossings.get(i - 1).triggerPoint.name, current.triggerPoint.name);
+                    var segment = segments.computeIfAbsent(key,
+                            pair -> new Segment(pair.from(), pair.to(), pair.from() + " - " + pair.to(), 0, 0d));
+                    segment.count++;
+                    segment.timeDelta += current.timeInSecSinceLastTriggerPoint;
+                }
+            }
+            response.segmentsStats = segments.values().stream().sorted(Comparator.comparingInt((Segment s) -> s.count).reversed()
+                    .thenComparing(s -> s.point1).thenComparing(s -> s.point2)).toList();
+            response.triggerPoints = request.triggerPoints;
+            response.tracksPerZone = tracksPerZone;
+            log.info("Segment calculation completed: candidateTracks={} crossings={} unavailableTraversals={} durationMs={}",
+                    routeCandidates.size() + candidates.size(), results.stream().mapToInt(r -> r.getCrossings().size()).sum(), unavailable,
+                    System.currentTimeMillis() - started);
+            return response;
+        } catch (RuntimeException exception) {
+            log.error("Segment calculation failed: markers={} type={} durationMs={}", request.triggerPoints.size(),
+                    exception.getClass().getSimpleName(), System.currentTimeMillis() - started, exception);
+            throw exception;
         }
-        if (crossingPointsRequest.radius == null || crossingPointsRequest.radius <= 0) {
-            throw new IllegalArgumentException("radius must be greater than 0.");
-        }
-        if (crossingPointsRequest.triggerPoints == null || crossingPointsRequest.triggerPoints.isEmpty()) {
-            throw new IllegalArgumentException("triggerPoints can't be empty.");
-        }
+    }
 
-        if (!checkTriggerPointNamesAreUnique(crossingPointsRequest.triggerPoints)) {
-            throw new IllegalArgumentException("All TriggerPoints must have unique names.");
+    private void qualifyOtherCandidates(CrossingPointsRequest request, List<Long> trackIds,
+                                        Map<String, Set<Long>> candidatesPerZone, Map<String, Integer> tracksPerZone) {
+        if (trackIds.isEmpty()) return;
+        long started = System.currentTimeMillis();
+        var sizes = readScope.read(() -> gpsTrackDataPointRepository.findSegmentQualificationSizes(
+                trackIds, GpsTrackData.TRACK_TYPE.RAW_OUTLIER_CLEANED));
+        List<Long> batch = new ArrayList<>();
+        long batchPoints = 0;
+        long totalPoints = 0;
+        int batches = 0;
+        for (var size : sizes) {
+            if (!batch.isEmpty() && batchPoints + size.getPointCount() > QUALIFICATION_BATCH_POINT_BUDGET) {
+                qualifyCandidateBatch(request, batch, candidatesPerZone, tracksPerZone);
+                batch = new ArrayList<>();
+                batchPoints = 0;
+                batches++;
+            }
+            // A single dense track stays whole and is processed without other tracks in its batch.
+            batch.add(size.getTrackId());
+            batchPoints += size.getPointCount();
+            totalPoints += size.getPointCount();
         }
+        if (!batch.isEmpty()) {
+            qualifyCandidateBatch(request, batch, candidatesPerZone, tracksPerZone);
+            batches++;
+        }
+        log.info("Segment zone qualification completed: candidateTracks={} pointRows={} batches={} durationMs={}",
+                trackIds.size(), totalPoints, batches, System.currentTimeMillis() - started);
+    }
 
-        // load all tracks which cross any trigger points and find the common ones
-        List<Long> commonTrackIds = null;
-        Map<String, Integer> tracksPerZone = new HashMap<>();
-        for (TriggerPoint triggerPoint : crossingPointsRequest.triggerPoints) {
-            List<Long> tracks = gpsTrackRepository.getTracksWithinDistanceToPoint(triggerPoint.coordinate.x, triggerPoint.coordinate.y, crossingPointsRequest.radius, tracksIdFilterList);
-            tracksPerZone.put(triggerPoint.name, tracks.size());
-            if (commonTrackIds == null) {
-                commonTrackIds = new ArrayList<>(tracks); // first one... just add the first tracks we get
-            } else {
-                commonTrackIds.retainAll(tracks); // if it's a subsequent, only keep the tracks present before...
+    private void qualifyCandidateBatch(CrossingPointsRequest request, List<Long> trackIds,
+                                       Map<String, Set<Long>> candidatesPerZone, Map<String, Integer> tracksPerZone) {
+        var visits = readScope.read(() -> {
+            Map<Long, List<GpsTrackDataPoint>> pointsPerTrack = new LinkedHashMap<>();
+            for (var row : gpsTrackDataPointRepository.findSegmentQualificationPoints(trackIds, GpsTrackData.TRACK_TYPE.RAW_OUTLIER_CLEANED)) {
+                var point = new GpsTrackDataPoint();
+                point.setPointIndex(row.getPointIndex());
+                point.setPointLongLat(row.getPointLongLat());
+                point.setPointTimestamp(row.getPointTimestamp());
+                point.setIntervalStatus(row.getIntervalStatus());
+                pointsPerTrack.computeIfAbsent(row.getTrackId(), ignored -> new ArrayList<>()).add(point);
+            }
+            Map<Long, List<GpsTrackEvent>> eventsPerTrack = new HashMap<>();
+            for (var row : gpsTrackEventRepository.findSegmentQualificationGaps(trackIds, GpsTrackEvent.EVENT_TYPE.GPS_GAP)) {
+                var gap = new GpsTrackEvent();
+                gap.setEventType(GpsTrackEvent.EVENT_TYPE.GPS_GAP);
+                gap.setEndPointIndex(row.getEndPointIndex());
+                eventsPerTrack.computeIfAbsent(row.getTrackId(), ignored -> new ArrayList<>()).add(gap);
+            }
+            Map<Long, Set<String>> answer = new LinkedHashMap<>();
+            pointsPerTrack.forEach((id, points) -> answer.put(id, qualifyOtherTrack(request, id, candidatesPerZone,
+                    points, eventsPerTrack.getOrDefault(id, List.of()))));
+            return answer;
+        });
+        visits.values().forEach(visited -> visited.forEach(name -> tracksPerZone.compute(name, (ignored, count) -> count + 1)));
+    }
+
+    private Set<String> qualifyOtherTrack(CrossingPointsRequest request, Long id, Map<String, Set<Long>> candidatesPerZone,
+                                          List<GpsTrackDataPoint> points, List<GpsTrackEvent> events) {
+        var sections = recordingSections(points, events);
+        Set<String> visited = new HashSet<>();
+        for (var marker : request.triggerPoints) {
+            if (candidatesPerZone.get(marker.name).contains(id)
+                && sections.stream().anyMatch(section -> qualifies(section, marker, request.radius)))
+                visited.add(marker.name);
+        }
+        return visited;
+    }
+
+    private static boolean qualifies(List<Sample> section, TriggerPoint marker, double radius) {
+        double previous = distanceTo(section.getFirst().point(), marker.coordinate);
+        if (previous <= radius) return true;
+        for (int i = 1; i < section.size(); i++) {
+            var from = section.get(i - 1);
+            var to = section.get(i);
+            double next = distanceTo(to.point(), marker.coordinate);
+            if (closest(from, to, marker.coordinate, previous, next, radius).distance() <= radius) return true;
+            previous = next;
+        }
+        return false;
+    }
+
+    private CrossingsPerTrack processTrack(CrossingPointsRequest request, Long trackId, TrackSummaryCalculator summaries) {
+        long started = System.currentTimeMillis();
+        var track = gpsTrackRepository.findById(trackId).orElse(null);
+        if (track == null) {
+            log.warn("Segment calculation skipped deleted candidate trackId={}", trackId);
+            return null;
+        }
+        if (track.isTimingUnreliable()) {
+            log.debug("Segment geometry only: trackId={} source timing is unsupported", trackId);
+        }
+        Long dataId = gpsTrackVariantSelector.forMetricsId(trackId);
+        List<GpsTrackDataPoint> points = dataId == null ? List.of()
+                : gpsTrackDataPointRepository.findAllByGpsTrackDataIdOrderByPointIndexAsc(dataId);
+        var events = gpsTrackEventRepository.findAllByGpsTrackIdOrderByStartPointIndexAsc(trackId);
+        List<Crossing> crossings = new ArrayList<>();
+        var sections = recordingSections(points, events);
+        for (int section = 0; section < sections.size(); section++) {
+            for (TriggerPoint marker : request.triggerPoints) {
+                findVisits(sections.get(section), marker, request.radius, trackId, section, crossings);
             }
         }
-
-        // filter out if a given filter array is given...
-//        if (tracksIdFilterList != null && !tracksIdFilterList.isEmpty() && commonTrackIds != null) {
-//            commonTrackIds.retainAll(tracksIdFilterList); // Retain only the IDs that are present in trackIdList
-//        }
-
-        long relativeTimeAfterLoadingTracks = System.currentTimeMillis() - t0;
-
-        Map<String, Segment> trackPointCombinations = new HashMap<>();
-        Map<Long, CrossingsPerTrack> crossings = new HashMap<>();
-
-        if (commonTrackIds != null) {
-
-            // execute it multithreaded    : here happens the intense computing...
-            List<CrossingsPerTrack> tmpList = commonTrackIds.stream().parallel()
-                    .map(trackId -> processingCrossingForOneTrack(crossingPointsRequest, trackId))
-                    .toList();
-
-            // now update the overall crossing stats
-            tmpList.forEach(cpt -> {
-                crossings.put(cpt.getGpsTrack().getId(), cpt);
-                if (cpt.getCrossings() != null) {
-                    Crossing lastCrossing = null;
-                    for (final Crossing crossing : cpt.getCrossings()) {
-                        if (lastCrossing != null) {
-                            String crossingKey = getTriggerPointsComposedKey(lastCrossing.triggerPoint, crossing.triggerPoint);
-                            Crossing finalLastCrossing = lastCrossing;
-                            trackPointCombinations.computeIfAbsent(crossingKey, s -> new Segment(finalLastCrossing.triggerPoint.name, crossing.triggerPoint.name, crossingKey, 0, 0d));
-                            trackPointCombinations.computeIfPresent(crossingKey, (k, v) -> {
-                                v.setCount(v.count + 1);
-                                v.setTimeDelta(v.timeDelta + crossing.timeInSecSinceLastTriggerPoint);
-                                return v;
-                            });
-                        }
-                        lastCrossing = crossing;
-                    }
-                }
+        // Time is an observed attribute, not a replacement for the recorded path order.
+        crossings.sort(Comparator.comparingDouble((Crossing c) -> c.trackPointPosition)
+                .thenComparing(c -> c.triggerPoint.name));
+        markAmbiguousDwells(crossings, sections);
+        if (track.isTimingUnreliable()) {
+            crossings.forEach(c -> {
+                c.gpsTrackDataPoint.setPointTimestamp(null);
+                c.gpsTrackDataPoint.setDurationSinceStart(null);
             });
         }
-
-        crossingPointsResponse.crossings = crossings;
-        crossingPointsResponse.segmentsStats = trackPointCombinations.values().stream().sorted(Comparator.comparingInt(o -> -o.count)).toList();
-        crossingPointsResponse.triggerPoints = crossingPointsRequest.triggerPoints;
-        crossingPointsResponse.tracksPerZone = tracksPerZone;
-
-        long relativeTimeFinished = System.currentTimeMillis() - t0;
-        int candidateTracks = (commonTrackIds != null) ? commonTrackIds.size() : 0;
-        int totalCrossings = crossings.values().stream().mapToInt(cpt -> cpt.getCrossings() != null ? cpt.getCrossings().size() : 0).sum();
-
-        log.info("Processed getTrackTimeBetweenPoints: triggerPoints={}, radius={}m, candidateTracks={}, totalCrossings={}, timeLoadTracks={}ms, timeTotal={}ms",
-                crossingPointsRequest.triggerPoints.size(),
-                crossingPointsRequest.radius,
-                candidateTracks,
-                totalCrossings,
-                relativeTimeAfterLoadingTracks,
-                relativeTimeFinished);
-
-        return crossingPointsResponse;
-    }
-
-    private CrossingsPerTrack processingCrossingForOneTrack(CrossingPointsRequest crossingPointsRequest, Long trackId) {
-        long t0 = System.currentTimeMillis();
-        // find all crossings (assuming track is ordered in time, which should be true for GPS)
-        // Use the canonical metric variant (full GPS density, outliers + altitude jitter
-        // removed). This preserves 1-Hz sampling on straight sections that the SIMPLIFIED
-        // variants would drop, which matters for accurate crossing time/speed.
-        List<Crossing> crossingList = new ArrayList<>();
-        Long trackDataId = gpsTrackVariantSelector.forMetricsId(trackId);
-        List<GpsTrackDataPoint> gpsTrackDataPoints = gpsTrackDataPointRepository.findAllByGpsTrackDataIdOrderByPointIndexAsc(trackDataId);
-
-        findCrossingsForOneTrack(
-                crossingPointsRequest.triggerPoints,
-                crossingPointsRequest.radius,
-                gpsTrackDataPoints,
-                crossingList,
-                trackId
-        );
-
-        recomputeCrossingDeltas(crossingList, gpsTrackDataPoints);
-
-        // Annotate each segment (previous crossing → this crossing) from the
-        // stop events already produced during import. Stop classification is
-        // intentionally not re-run here.
-        List<GpsTrackEvent> detectedStops = gpsTrackEventRepository.findAllByGpsTrackIdOrderByStartPointIndexAsc(trackId)
-                .stream()
-                .filter(TrackTimeBetweenTwoPoints::isDetectedStop)
-                .toList();
-        annotateSegmentNotes(crossingList, detectedStops);
-
-        log.info("Calculated crossings for trackId={}  in dT={}", trackId, System.currentTimeMillis() - t0);
-
-        return new CrossingsPerTrack(gpsTrackRepository.findById(trackId).orElse(null), crossingList);
-
-    }
-
-    /**
-     * Finds all crossings for a single track using state-machine logic.
-     * Each trigger point's state is tracked independently, allowing for precise
-     * detection of zone entries and exits, even when zones overlap.
-     *
-     * <p>For each zone visit (OUTSIDE -> INSIDE -> OUTSIDE), a single crossing is
-     * recorded at the track location that is <b>closest to the trigger point's
-     * center</b> during that visit. This ensures that both the sector measurement
-     * (time/distance between two points) and the race animation use the point on
-     * the track closest to A and B rather than the zone-entry edge, which would
-     * otherwise offset the result by up to the radius on each side.
-     *
-     * <p>Within each segment, we evaluate the perpendicular foot of the center on
-     * the segment (clamped to the segment endpoints) so that the closest approach
-     * is found at sub-sample accuracy even when the GPS cadence is coarse.
-     */
-    private void findCrossingsForOneTrack(
-            List<TriggerPoint> triggerPoints,
-            Double radius,
-            List<GpsTrackDataPoint> gpsTrackDataPoints,
-            List<Crossing> crossings,
-            Long gpsTrackId
-    ) {
-        if (gpsTrackDataPoints == null || gpsTrackDataPoints.size() < 2) {
-            return; // Need at least 2 points to detect a crossing
+        recomputeCrossingDeltas(crossings, points);
+        annotateStops(crossings, events, points);
+        var result = new CrossingsPerTrack(track, crossings);
+        var zoneDigest = com.x8ing.mtl.server.mtlserver.metrics.CanonicalTrackRevision.digest();
+        com.x8ing.mtl.server.mtlserver.metrics.CanonicalTrackRevision.add(zoneDigest, request.radius);
+        request.triggerPoints.stream().sorted(Comparator.comparing(marker -> marker.name)).forEach(marker ->
+                com.x8ing.mtl.server.mtlserver.metrics.CanonicalTrackRevision.add(zoneDigest, marker.name, marker.coordinate.x, marker.coordinate.y));
+        result.setZoneRevision(HexFormat.of().formatHex(zoneDigest.digest()));
+        result.setSourceRevision(com.x8ing.mtl.server.mtlserver.metrics.CanonicalTrackRevision.of(track, points, events));
+        if (crossings.stream().map(c -> c.triggerPoint.name).distinct().count() == request.triggerPoints.size()) {
+            summaries.summarize(result, points, events);
         }
+        log.info("Segment track calculation completed: trackId={} points={} sections={} crossings={} attempts={} durationMs={}",
+                trackId, points.size(), sections.size(), crossings.size(), result.getAttemptSummaries().size(),
+                System.currentTimeMillis() - started);
+        return result;
+    }
 
-        // Initialize state for each trigger point based on the first point.
-        // A track that starts already inside a zone is treated as if we just entered.
-        Map<String, TriggerState> triggerStates = new HashMap<>();
-        // For each trigger point, holds the best (closest-to-center) candidate seen
-        // during the CURRENT zone visit. Null/absent between visits.
-        Map<String, ClosestCandidate> bestDuringVisit = new HashMap<>();
+    private static List<List<Sample>> recordingSections(List<GpsTrackDataPoint> points, List<GpsTrackEvent> events) {
+        List<List<Sample>> sections = new ArrayList<>();
+        List<Sample> current = new ArrayList<>();
+        NavigableSet<Integer> gapEnds = new TreeSet<>();
+        events.stream().filter(event -> event.getEventType() == GpsTrackEvent.EVENT_TYPE.GPS_GAP)
+                .map(GpsTrackEvent::getEndPointIndex).filter(Objects::nonNull).forEach(gapEnds::add);
+        gapEnds.addAll(RecordingContinuity.timeBreakPointIndexes(points, events));
+        for (int i = 0; i < points.size(); i++) {
+            GpsTrackDataPoint point = points.get(i);
+            double position = point.getPointIndex() == null ? i : point.getPointIndex();
+            boolean split = false;
+            if (!current.isEmpty()) {
+                GpsTrackDataPoint previous = current.getLast().point();
+                double previousPosition = current.getLast().position();
+                Integer nextGap = gapEnds.higher((int) previousPosition);
+                split = nextGap != null && nextGap <= position;
+                if (!split) split = !RecordingContinuity.hasGeometrySupport(previous, point);
+            }
+            if (split) {
+                sections.add(current);
+                current = new ArrayList<>();
+            }
+            current.add(new Sample(point, position));
+        }
+        if (!current.isEmpty()) sections.add(current);
+        return sections;
+    }
 
-        GpsTrackDataPoint firstPoint = gpsTrackDataPoints.get(0);
-        for (TriggerPoint tp : triggerPoints) {
-            double d0 = GPXReader.getDistanceBetweenTwoWGS84(
-                    tp.coordinate, firstPoint.getPointLongLat().getCoordinate());
-            if (d0 <= radius) {
-                triggerStates.put(tp.name, TriggerState.INSIDE);
-                bestDuringVisit.put(tp.name, new ClosestCandidate(firstPoint, firstPoint, 0.0, d0));
+    private static void findVisits(List<Sample> points, TriggerPoint marker, double radius, Long trackId,
+                                   int section, List<Crossing> crossings) {
+        Sample first = points.getFirst();
+        double previousDistance = distanceTo(first.point(), marker.coordinate);
+        double exitRadius = radius + Math.max(MIN_ZONE_EXIT_MARGIN_M, radius * ZONE_EXIT_MARGIN_FRACTION);
+        Candidate best = previousDistance <= radius ? new Candidate(first, first, 0, previousDistance) : null;
+        for (int i = 1; i < points.size(); i++) {
+            Sample from = points.get(i - 1), to = points.get(i);
+            double nextDistance = distanceTo(to.point(), marker.coordinate);
+            Candidate candidate = closest(from, to, marker.coordinate, previousDistance, nextDistance, radius);
+            if (best == null) {
+                if (candidate.distance() <= radius) best = candidate;
             } else {
-                triggerStates.put(tp.name, TriggerState.OUTSIDE);
+                // Stable ties retain arrival at stationary anchors and repeated samples.
+                if (candidate.distance() < best.distance() - GEOMETRY_TOLERANCE_M) best = candidate;
             }
-        }
-
-        // Process consecutive point pairs to detect state transitions
-        for (int i = 1; i < gpsTrackDataPoints.size(); i++) {
-            GpsTrackDataPoint p1 = gpsTrackDataPoints.get(i - 1);
-            GpsTrackDataPoint p2 = gpsTrackDataPoints.get(i);
-
-            // Check each trigger point independently
-            for (TriggerPoint triggerPoint : triggerPoints) {
-                double dist1 = GPXReader.getDistanceBetweenTwoWGS84(
-                        triggerPoint.coordinate, p1.getPointLongLat().getCoordinate());
-                double dist2 = GPXReader.getDistanceBetweenTwoWGS84(
-                        triggerPoint.coordinate, p2.getPointLongLat().getCoordinate());
-
-                TriggerState currentState = triggerStates.get(triggerPoint.name);
-                boolean p2Inside = dist2 <= radius;
-
-                // Closest approach of THIS segment (including endpoints) to the trigger center.
-                ClosestApproach ca = computeClosestApproachOnSegment(
-                        p1, p2, triggerPoint.coordinate, dist1, dist2);
-
-                if (currentState == TriggerState.OUTSIDE) {
-                    if (p2Inside) {
-                        // Entering zone on this segment. Seed the per-visit best with this
-                        // segment's closest approach (which already accounts for p1, p2 and
-                        // the perpendicular foot).
-                        bestDuringVisit.put(triggerPoint.name,
-                                new ClosestCandidate(p1, p2, ca.factor, ca.distance));
-                        triggerStates.put(triggerPoint.name, TriggerState.INSIDE);
-                        log.debug("Entered trigger point '{}' zone", triggerPoint.name);
-                    } else if (ca.distance <= radius) {
-                        // Tangent pass: segment dips into the zone and exits within the
-                        // same segment (both endpoints outside). Emit a single crossing at
-                        // the closest approach to the center.
-                        GpsTrackDataPoint crossingPoint = interpolateCrossingPointByFactor(
-                                p1, p2, ca.factor, gpsTrackId);
-                        recordCrossing(crossingPoint, triggerPoint, gpsTrackId, ca.distance, crossings);
-                        log.debug("Tangent crossing detected for trigger point '{}'", triggerPoint.name);
-                    }
-                    // else: segment never touches the zone; nothing to do.
-                } else { // INSIDE
-                    // Update per-visit best if this segment has a closer approach.
-                    ClosestCandidate best = bestDuringVisit.get(triggerPoint.name);
-                    if (best == null || ca.distance < best.distance) {
-                        bestDuringVisit.put(triggerPoint.name,
-                                new ClosestCandidate(p1, p2, ca.factor, ca.distance));
-                    }
-                    if (!p2Inside) {
-                        // Exiting the zone on this segment: emit the crossing at the
-                        // closest-to-center point accumulated during the visit.
-                        emitBestCrossing(bestDuringVisit.get(triggerPoint.name),
-                                triggerPoint, gpsTrackId, crossings);
-                        bestDuringVisit.remove(triggerPoint.name);
-                        triggerStates.put(triggerPoint.name, TriggerState.OUTSIDE);
-                        log.debug("Exited trigger point '{}' zone; crossing recorded at closest point to center",
-                                triggerPoint.name);
-                    }
-                }
+            if (best != null && nextDistance > exitRadius) {
+                crossings.add(crossing(best, marker, trackId, section));
+                best = null;
             }
+            previousDistance = nextDistance;
         }
-
-        // Flush any zone that the track ended inside: emit the closest-approach crossing.
-        for (TriggerPoint triggerPoint : triggerPoints) {
-            if (triggerStates.get(triggerPoint.name) == TriggerState.INSIDE) {
-                ClosestCandidate best = bestDuringVisit.get(triggerPoint.name);
-                if (best != null) {
-                    emitBestCrossing(best, triggerPoint, gpsTrackId, crossings);
-                }
-            }
-        }
-
-        // Sort crossings by timestamp to ensure chronological order
-        // (multiple trigger points could be crossed between the same two GPS points)
-        crossings.sort(Comparator.comparing(
-                c -> c.gpsTrackDataPoint != null ? c.gpsTrackDataPoint.getPointTimestamp() : null,
-                Comparator.nullsLast(Comparator.naturalOrder())));
-    }
-
-    private void emitBestCrossing(
-            ClosestCandidate best,
-            TriggerPoint triggerPoint,
-            Long gpsTrackId,
-            List<Crossing> crossings
-    ) {
-        GpsTrackDataPoint crossingPoint = interpolateCrossingPointByFactor(
-                best.p1, best.p2, best.factor, gpsTrackId);
-        recordCrossing(crossingPoint, triggerPoint, gpsTrackId, best.distance, crossings);
-    }
-
-    static void recomputeCrossingDeltas(List<Crossing> crossings, List<GpsTrackDataPoint> trackPoints) {
-        if (crossings == null || crossings.isEmpty()) {
-            return;
-        }
-
-        Crossing previous = null;
-        for (Crossing crossing : crossings) {
-            crossing.timeInSecSinceLastTriggerPoint = 0;
-            crossing.distanceInMeterSinceLastTriggerPoint = 0;
-            crossing.avgSpeedSinceLastTriggerPoint = 0;
-
-            if (previous != null
-                && crossing.gpsTrackDataPoint != null
-                && previous.gpsTrackDataPoint != null) {
-                double timeInSec = positiveTimeDeltaSeconds(
-                        previous.gpsTrackDataPoint,
-                        crossing.gpsTrackDataPoint);
-                double distanceInMeter = segmentDistanceMeters(
-                        previous.gpsTrackDataPoint,
-                        crossing.gpsTrackDataPoint,
-                        trackPoints);
-
-                crossing.timeInSecSinceLastTriggerPoint = timeInSec;
-                crossing.distanceInMeterSinceLastTriggerPoint = distanceInMeter;
-                if (timeInSec > 0) {
-                    crossing.avgSpeedSinceLastTriggerPoint = distanceInMeter / timeInSec * 3600 / 1000;
-                }
-            }
-            previous = crossing;
-        }
-    }
-
-    private static double positiveTimeDeltaSeconds(GpsTrackDataPoint from, GpsTrackDataPoint to) {
-        if (from.getPointTimestamp() == null || to.getPointTimestamp() == null) {
-            return 0;
-        }
-        return Math.max(0, (to.getPointTimestamp().getTime() - from.getPointTimestamp().getTime()) / 1000.0);
+        if (best != null) crossings.add(crossing(best, marker, trackId, section));
     }
 
     /**
-     * Computes a segment length from its geometry instead of subtracting track-wide cumulative values.
-     * Some valid source files store timed track sections out of chronological order. Their crossings are
-     * intentionally sorted by time, so subtracting storage-order cumulative distances can become negative.
+     * A confirmed nonzero wait does not identify one precise passage time through its interior.
      */
-    private static double segmentDistanceMeters(GpsTrackDataPoint from,
-                                                GpsTrackDataPoint to,
-                                                List<GpsTrackDataPoint> trackPoints) {
-        List<GpsTrackDataPoint> orderedInnerPoints = innerPointsForSegment(from, to, trackPoints);
-        double distance = 0;
-        GpsTrackDataPoint previous = from;
-        for (GpsTrackDataPoint point : orderedInnerPoints) {
-            distance += distanceMeters(previous, point);
-            previous = point;
+    private static void markAmbiguousDwells(List<Crossing> crossings, List<List<Sample>> sections) {
+        List<Dwell> dwells = new ArrayList<>();
+        for (var section : sections) {
+            int first = 1;
+            while (first < section.size()) {
+                if (section.get(first).point().getMotionState() != TrackMotionAnalyzer.State.STOPPED) {
+                    first++;
+                    continue;
+                }
+                int end = first;
+                Sample start = section.get(first - 1);
+                while (end < section.size() && section.get(end).point().getMotionState() == TrackMotionAnalyzer.State.STOPPED) {
+                    end++;
+                }
+                Double fromTime = seconds(start.point()), toTime = seconds(section.get(end - 1).point());
+                if (fromTime != null && toTime != null && toTime > fromTime)
+                    dwells.add(new Dwell(start.position(), section.get(end - 1).position()));
+                first = end;
+            }
         }
-        distance += distanceMeters(previous, to);
-        return Double.isFinite(distance) ? distance : 0;
+        int dwellIndex = 0;
+        for (var crossing : crossings) {
+            while (dwellIndex < dwells.size() && dwells.get(dwellIndex).end() < crossing.trackPointPosition) dwellIndex++;
+            crossing.timingAmbiguous = dwellIndex < dwells.size() && dwells.get(dwellIndex).start() <= crossing.trackPointPosition;
+        }
     }
-
-    private static List<GpsTrackDataPoint> innerPointsForSegment(GpsTrackDataPoint from,
-                                                                 GpsTrackDataPoint to,
-                                                                 List<GpsTrackDataPoint> trackPoints) {
-        if (trackPoints == null || trackPoints.isEmpty()) {
-            return List.of();
-        }
-
-        Date fromTime = from.getPointTimestamp();
-        Date toTime = to.getPointTimestamp();
-        if (fromTime != null && toTime != null && toTime.after(fromTime)) {
-            return trackPoints.stream()
-                    .filter(Objects::nonNull)
-                    .filter(point -> point.getPointTimestamp() != null)
-                    .filter(point -> point.getPointTimestamp().after(fromTime)
-                                     && point.getPointTimestamp().before(toTime))
-                    .sorted(Comparator
-                            .comparing(GpsTrackDataPoint::getPointTimestamp)
-                            .thenComparing(GpsTrackDataPoint::getPointIndex, Comparator.nullsLast(Integer::compareTo)))
-                    .toList();
-        }
-
-        Integer fromIndex = from.getPointIndex();
-        Integer toIndex = to.getPointIndex();
-        if (fromIndex == null || toIndex == null || toIndex <= fromIndex) {
-            return List.of();
-        }
-        return trackPoints.stream()
-                .filter(Objects::nonNull)
-                .filter(point -> point.getPointIndex() != null)
-                .filter(point -> point.getPointIndex() > fromIndex && point.getPointIndex() < toIndex)
-                .sorted(Comparator.comparing(GpsTrackDataPoint::getPointIndex))
-                .toList();
-    }
-
-    private static double distanceMeters(GpsTrackDataPoint from, GpsTrackDataPoint to) {
-        if (from == null || to == null || from.getPointLongLat() == null || to.getPointLongLat() == null) {
-            return 0;
-        }
-        return GPXReader.getDistanceBetweenTwoWGS84(
-                from.getPointLongLat().getCoordinate(),
-                to.getPointLongLat().getCoordinate());
-    }
-
-    // ---------------------------------------------------------------------
-    // Segment notes (imported stop events)
-    // ---------------------------------------------------------------------
 
     /**
-     * Populates {@link Crossing#segmentNotesSinceLastTriggerPoint} for every
-     * crossing after the first using detected stop events persisted at import.
+     * Reconstruct signed canonical positions through the same boundary and timing rules as discovery.
      */
-    private void annotateSegmentNotes(List<Crossing> crossings, List<GpsTrackEvent> detectedStops) {
-        if (crossings == null || crossings.size() < 2) {
-            return;
+    public static List<Crossing> crossingsAtPositions(List<GpsTrackDataPoint> points, List<GpsTrackEvent> events,
+                                                      double startPosition, double endPosition, Long trackId,
+                                                      boolean timingUnreliable) {
+        var sections = recordingSections(points, events);
+        List<Crossing> crossings = new ArrayList<>();
+        for (double position : new double[]{startPosition, endPosition}) {
+            Crossing boundary = null;
+            for (int section = 0; section < sections.size() && boundary == null; section++) {
+                var samples = sections.get(section);
+                for (int i = 0; i < samples.size(); i++) {
+                    var right = samples.get(i);
+                    if (right.position() == position) {
+                        boundary = crossing(new Candidate(right, right, 0, 0), null, trackId, section);
+                        break;
+                    }
+                    if (i > 0 && right.position() > position && samples.get(i - 1).position() < position) {
+                        var left = samples.get(i - 1);
+                        double factor = (position - left.position()) / (right.position() - left.position());
+                        boundary = crossing(new Candidate(left, right, factor, 0), null, trackId, section);
+                        break;
+                    }
+                }
+            }
+            if (boundary == null) throw new IllegalArgumentException("Unsupported segment boundary");
+            crossings.add(boundary);
         }
-        List<GpsTrackEvent> stops = detectedStops == null ? List.of() : detectedStops;
+        markAmbiguousDwells(crossings, sections);
+        if (timingUnreliable) crossings.forEach(c -> c.gpsTrackDataPoint.setPointTimestamp(null));
+        recomputeCrossingDeltas(crossings, points);
+        return List.copyOf(crossings);
+    }
+
+    /**
+     * Minimize ellipsoidal distance along the same wrapped lon/lat curve used for the emitted point.
+     */
+    private static Candidate closest(Sample from, Sample to, Coordinate marker, double d1, double d2, double radius) {
+        double length = distance(from.point(), to.point());
+        if (length <= GEOMETRY_TOLERANCE_M || d1 <= GEOMETRY_TOLERANCE_M)
+            return new Candidate(from, to, 0, d1);
+        if (d2 <= GEOMETRY_TOLERANCE_M) return new Candidate(from, to, 1, d2);
+        // This conservative bound avoids the iterative search for distant markers.
+        if (Math.min(d1, d2) > radius + length * 2) return d1 <= d2
+                ? new Candidate(from, to, 0, d1) : new Candidate(from, to, 1, d2);
+        double lo = 0, hi = 1;
+        double left = hi - GOLDEN_RATIO_COMPLEMENT * (hi - lo);
+        double right = lo + GOLDEN_RATIO_COMPLEMENT * (hi - lo);
+        double dl = distanceAt(from, to, marker, left), dr = distanceAt(from, to, marker, right);
+        for (int i = 0; i < MINIMUM_SEARCH_ITERATIONS; i++) {
+            if (dl <= dr) {
+                hi = right;
+                right = left;
+                dr = dl;
+                left = hi - GOLDEN_RATIO_COMPLEMENT * (hi - lo);
+                dl = distanceAt(from, to, marker, left);
+            } else {
+                lo = left;
+                left = right;
+                dl = dr;
+                right = lo + GOLDEN_RATIO_COMPLEMENT * (hi - lo);
+                dr = distanceAt(from, to, marker, right);
+            }
+        }
+        double factor = dl <= dr ? left : right;
+        double d = Math.min(dl, dr);
+        if (d1 <= d) return new Candidate(from, to, 0, d1);
+        if (d2 <= d) return new Candidate(from, to, 1, d2);
+        return new Candidate(from, to, factor, d);
+    }
+
+    private static double distanceAt(Sample from, Sample to, Coordinate marker, double factor) {
+        Coordinate point = coordinateAt(from.point(), to.point(), factor);
+        return Geodesic.WGS84.Inverse(marker.y, marker.x, point.y, point.x).s12;
+    }
+
+    private static Coordinate coordinateAt(GpsTrackDataPoint from, GpsTrackDataPoint to, double factor) {
+        return RecordedPathGeometry.interpolate(
+                from.getPointLongLat().getCoordinate(), to.getPointLongLat().getCoordinate(), factor);
+    }
+
+    private static Crossing crossing(Candidate candidate, TriggerPoint marker, Long trackId, int section) {
+        var from = candidate.from().point();
+        var to = candidate.to().point();
+        double factor = candidate.factor();
+        var anchor = factor <= 0.5 ? from : to;
+        var point = new GpsTrackDataPoint();
+        point.setId(anchor.getId());
+        point.setGpsTrackDataId(anchor.getGpsTrackDataId());
+        point.setPointIndex(anchor.getPointIndex());
+        point.setPointIndexMax(anchor.getPointIndexMax());
+        point.setPointLongLat(GEOMETRY.createPoint(coordinateAt(from, to, factor)));
+        if (factor == 0) point.setPointTimestamp(from.getPointTimestamp());
+        else if (factor == 1) point.setPointTimestamp(to.getPointTimestamp());
+        else if (from.getPointTimestamp() != null && to.getPointTimestamp() != null
+                 && to.getPointTimestamp().after(from.getPointTimestamp())) {
+            long start = from.getPointTimestamp().getTime();
+            point.setPointTimestamp(new Date(start + Math.round((to.getPointTimestamp().getTime() - start) * factor)));
+        }
+        point.setPointAltitude(interpolate(from.getPointAltitude(), to.getPointAltitude(), factor));
+        point.setDistanceInMeterSinceStart(interpolate(from.getDistanceInMeterSinceStart(), to.getDistanceInMeterSinceStart(), factor));
+        point.setDurationSinceStart(interpolate(from.getDurationSinceStart(), to.getDurationSinceStart(), factor));
+        var result = new Crossing();
+        result.triggerPoint = marker;
+        result.gpsTrackId = trackId;
+        result.gpsTrackDataPoint = point;
+        result.distanceToTriggerPointInMeter = candidate.distance();
+        result.trackPointPosition = candidate.from().position() + (candidate.to().position() - candidate.from().position()) * factor;
+        result.recordingSectionIndex = section;
+        return result;
+    }
+
+    private static Double interpolate(Double from, Double to, double factor) {
+        if (factor == 0) return from;
+        if (factor == 1) return to;
+        return from == null || to == null ? null : from + (to - from) * factor;
+    }
+
+    static void recomputeCrossingDeltas(List<Crossing> crossings, List<GpsTrackDataPoint> points) {
+        if (crossings == null || crossings.isEmpty()) return;
+        NavigableSet<Double> clockResets = new TreeSet<>();
+        Double known = null;
+        for (var point : points) {
+            Double time = seconds(point);
+            if (time != null) {
+                if (known != null && time < known) clockResets.add(point.getPointIndex().doubleValue());
+                known = time;
+            }
+        }
+        int pointCursor = 0;
+        for (int i = 0; i < crossings.size(); i++) {
+            Crossing current = crossings.get(i);
+            current.timeInSecSinceLastTriggerPoint = null;
+            current.distanceInMeterSinceLastTriggerPoint = null;
+            current.avgSpeedSinceLastTriggerPoint = null;
+            current.recordingGapSinceLastTriggerPoint = false;
+            current.timingStatusSinceLastTriggerPoint = SegmentTimingStatus.NO_PREVIOUS_CROSSING;
+            if (i == 0) continue;
+            Crossing previous = crossings.get(i - 1);
+            current.recordingGapSinceLastTriggerPoint = previous.recordingSectionIndex != current.recordingSectionIndex;
+            Double fromPosition = position(previous), toPosition = position(current);
+            if (fromPosition == null || toPosition == null || toPosition < fromPosition) {
+                current.timingStatusSinceLastTriggerPoint = SegmentTimingStatus.INVALID_TIME;
+                continue;
+            }
+            double meters = 0;
+            if (!current.recordingGapSinceLastTriggerPoint) {
+                GpsTrackDataPoint last = previous.gpsTrackDataPoint;
+                while (pointCursor < points.size() && (points.get(pointCursor).getPointIndex() == null
+                                                       || points.get(pointCursor).getPointIndex() <= fromPosition)) pointCursor++;
+                while (pointCursor < points.size() && points.get(pointCursor).getPointIndex() < toPosition) {
+                    GpsTrackDataPoint point = points.get(pointCursor++);
+                    meters += distance(last, point);
+                    last = point;
+                }
+                meters += distance(last, current.gpsTrackDataPoint);
+                current.distanceInMeterSinceLastTriggerPoint = meters;
+            }
+            Double fromTime = seconds(previous.gpsTrackDataPoint), toTime = seconds(current.gpsTrackDataPoint);
+            Double reset = clockResets.higher(fromPosition);
+            if (fromTime == null || toTime == null) {
+                current.timingStatusSinceLastTriggerPoint = SegmentTimingStatus.MISSING_TIME;
+            } else if ((reset != null && reset <= toPosition) || toTime < fromTime
+                       || (toTime.equals(fromTime) && toPosition > fromPosition)) {
+                current.timingStatusSinceLastTriggerPoint = SegmentTimingStatus.INVALID_TIME;
+            } else if (previous.timingAmbiguous || current.timingAmbiguous) {
+                current.timingStatusSinceLastTriggerPoint = SegmentTimingStatus.AMBIGUOUS_DWELL;
+            } else {
+                current.timingStatusSinceLastTriggerPoint = SegmentTimingStatus.AVAILABLE;
+                double elapsed = (current.gpsTrackDataPoint.getPointTimestamp().getTime()
+                                  - previous.gpsTrackDataPoint.getPointTimestamp().getTime()) / MILLIS_PER_SECOND;
+                current.timeInSecSinceLastTriggerPoint = elapsed;
+                if (elapsed > 0 && current.distanceInMeterSinceLastTriggerPoint != null)
+                    current.avgSpeedSinceLastTriggerPoint = meters / elapsed * MPS_TO_KMH;
+            }
+        }
+    }
+
+    private static Double position(Crossing crossing) {
+        if (crossing.trackPointPosition != null) return crossing.trackPointPosition;
+        return crossing.gpsTrackDataPoint == null || crossing.gpsTrackDataPoint.getPointIndex() == null
+                ? null : crossing.gpsTrackDataPoint.getPointIndex().doubleValue();
+    }
+
+    private static Double seconds(GpsTrackDataPoint point) {
+        return point == null || point.getPointTimestamp() == null ? null : point.getPointTimestamp().getTime() / MILLIS_PER_SECOND;
+    }
+
+    private static double distance(GpsTrackDataPoint from, GpsTrackDataPoint to) {
+        return GPXReader.getDistanceBetweenTwoWGS84(from.getPointLongLat().getCoordinate(), to.getPointLongLat().getCoordinate());
+    }
+
+    private static double distanceTo(GpsTrackDataPoint point, Coordinate marker) {
+        return GPXReader.getDistanceBetweenTwoWGS84(marker, point.getPointLongLat().getCoordinate());
+    }
+
+    private record StationarySpan(double startPosition, double endPosition, long startTime, long endTime) {
+        double seconds() {
+            return (endTime - startTime) / MILLIS_PER_SECOND;
+        }
+    }
+
+    private static void annotateStops(List<Crossing> crossings, List<GpsTrackEvent> events, List<GpsTrackDataPoint> points) {
+        List<StationarySpan> spans = new ArrayList<>();
+        NavigableSet<Integer> gaps = new TreeSet<>(RecordingContinuity.timeBreakPointIndexes(points, events));
+        events.stream().filter(e -> e.getEventType() == GpsTrackEvent.EVENT_TYPE.GPS_GAP)
+                .map(GpsTrackEvent::getEndPointIndex).filter(Objects::nonNull).forEach(gaps::add);
+        for (int i = 1; i < points.size(); i++) {
+            var a = points.get(i - 1);
+            var b = points.get(i);
+            Integer gap = gaps.higher(a.getPointIndex());
+            if (b.getMotionState() != TrackMotionAnalyzer.State.STOPPED || a.getPointTimestamp() == null
+                || b.getPointTimestamp() == null || !b.getPointTimestamp().after(a.getPointTimestamp())
+                || (gap != null && gap <= b.getPointIndex()) || !RecordingContinuity.hasGeometrySupport(a, b)) continue;
+            var span = new StationarySpan(a.getPointIndex(), b.getPointIndex(),
+                    a.getPointTimestamp().getTime(), b.getPointTimestamp().getTime());
+            if (!spans.isEmpty() && spans.getLast().endPosition() == span.startPosition()
+                && spans.getLast().endTime() == span.startTime()) {
+                var previous = spans.removeLast();
+                span = new StationarySpan(previous.startPosition(), span.endPosition(), previous.startTime(), span.endTime());
+            }
+            spans.add(span);
+        }
+        int spanCursor = 0, intervalCursor = 1;
         for (int i = 1; i < crossings.size(); i++) {
-            Crossing prev = crossings.get(i - 1);
-            Crossing curr = crossings.get(i);
-            if (prev.gpsTrackDataPoint == null || curr.gpsTrackDataPoint == null
-                || prev.gpsTrackDataPoint.getPointTimestamp() == null
-                || curr.gpsTrackDataPoint.getPointTimestamp() == null) {
-                continue;
+            var previous = crossings.get(i - 1);
+            var current = crossings.get(i);
+            if (current.timingStatusSinceLastTriggerPoint != SegmentTimingStatus.AVAILABLE
+                && current.timingStatusSinceLastTriggerPoint != SegmentTimingStatus.AMBIGUOUS_DWELL) continue;
+            double fromPosition = position(previous), toPosition = position(current);
+            long from = previous.gpsTrackDataPoint.getPointTimestamp().getTime();
+            long to = current.gpsTrackDataPoint.getPointTimestamp().getTime();
+            var notes = new SegmentNotes(0, 0, 0, !current.recordingGapSinceLastTriggerPoint
+                                                  && current.timingStatusSinceLastTriggerPoint == SegmentTimingStatus.AVAILABLE);
+            while (spanCursor < spans.size() && spans.get(spanCursor).endPosition() <= fromPosition) spanCursor++;
+            for (int j = spanCursor; j < spans.size() && spans.get(j).startPosition() < toPosition; j++) {
+                var span = spans.get(j);
+                double overlap = Math.max(0, Math.min(to, span.endTime()) - Math.max(from, span.startTime())) / MILLIS_PER_SECOND;
+                notes.totalStoppedSec += overlap;
+                if (overlap > 0 && span.seconds() >= TrackMotionAnalyzer.MIN_VISIBLE_BREAK_DURATION_S) {
+                    notes.stopCount++;
+                    notes.longestStopSec = Math.max(notes.longestStopSec, overlap);
+                }
             }
-            long fromMs = prev.gpsTrackDataPoint.getPointTimestamp().getTime();
-            long toMs = curr.gpsTrackDataPoint.getPointTimestamp().getTime();
-            if (toMs <= fromMs) {
-                continue; // Degenerate; skip.
+            while (intervalCursor < points.size() && points.get(intervalCursor).getPointIndex() <= fromPosition) intervalCursor++;
+            for (int j = intervalCursor; j < points.size() && points.get(j - 1).getPointIndex() < toPosition; j++) {
+                if (points.get(j).getMotionState() == null || points.get(j).getMotionState() == TrackMotionAnalyzer.State.UNKNOWN)
+                    notes.coverageComplete = false;
             }
-            curr.segmentNotesSinceLastTriggerPoint = summarizeStopEvents(stops, fromMs, toMs);
+            current.segmentNotesSinceLastTriggerPoint = notes;
         }
     }
 
-    private static boolean isDetectedStop(GpsTrackEvent event) {
-        return event != null
-               && event.getEventType() == GpsTrackEvent.EVENT_TYPE.STOP
-               && event.getSource() == GpsTrackEvent.SOURCE.DETECTED;
-    }
-
-    private static SegmentNotes summarizeStopEvents(List<GpsTrackEvent> detectedStops, long fromMs, long toMs) {
-        SegmentNotes notes = new SegmentNotes(0, 0.0, 0.0);
-        for (GpsTrackEvent stop : detectedStops) {
-            if (stop.getStartTimestamp() == null || stop.getEndTimestamp() == null) {
-                continue;
-            }
-            long stopStartMs = stop.getStartTimestamp().getTime();
-            long stopEndMs = stop.getEndTimestamp().getTime();
-            if (stopEndMs <= fromMs) {
-                continue;
-            }
-            if (stopStartMs >= toMs) {
-                break;
-            }
-
-            double overlapSec = (Math.min(stopEndMs, toMs) - Math.max(stopStartMs, fromMs)) / 1000.0;
-            if (overlapSec <= 0.0) {
-                continue;
-            }
-            notes.stopCount++;
-            notes.totalStoppedSec += overlapSec;
-            if (overlapSec > notes.longestStopSec) {
-                notes.longestStopSec = overlapSec;
-            }
-        }
-        return notes;
-    }
-
-    /**
-     * Closest-approach computation for a single segment against a center point.
-     * Uses a local planar projection (equirectangular around the center) to compute
-     * the perpendicular foot on the segment, clamped to [0,1]. The returned distance
-     * is then recomputed with the haversine (GPXReader) formula for accuracy, and
-     * compared against the endpoint distances so we always return a true minimum.
-     */
-    private ClosestApproach computeClosestApproachOnSegment(
-            GpsTrackDataPoint p1Point,
-            GpsTrackDataPoint p2Point,
-            Coordinate center,
-            double dist1,
-            double dist2
-    ) {
-        Coordinate p1 = p1Point.getPointLongLat().getCoordinate();
-        Coordinate p2 = p2Point.getPointLongLat().getCoordinate();
-
-        double metersPerDegLon = GeoCoordinateUtils.APPROX_METERS_PER_DEGREE_LATITUDE
-                                 * Math.cos(Math.toRadians(center.y));
-        double metersPerDegLat = 110540.0;
-
-        double x1 = (p1.x - center.x) * metersPerDegLon;
-        double y1 = (p1.y - center.y) * metersPerDegLat;
-        double x2 = (p2.x - center.x) * metersPerDegLon;
-        double y2 = (p2.y - center.y) * metersPerDegLat;
-
-        double dx = x2 - x1;
-        double dy = y2 - y1;
-        double lenSq = dx * dx + dy * dy;
-
-        double t;
-        if (lenSq <= 0.0) {
-            t = 0.0;
-        } else {
-            // Project origin (the center, after translation) onto the segment direction.
-            t = -(x1 * dx + y1 * dy) / lenSq;
-            t = Math.max(0.0, Math.min(1.0, t));
-        }
-
-        double lon = p1.x + (p2.x - p1.x) * t;
-        double lat = p1.y + (p2.y - p1.y) * t;
-        double distance = GPXReader.getDistanceBetweenTwoWGS84(center, new Coordinate(lon, lat));
-
-        // Safety: endpoint distances are authoritative; pick whichever is smallest.
-        if (dist1 < distance) {
-            distance = dist1;
-            t = 0.0;
-        }
-        if (dist2 < distance) {
-            distance = dist2;
-            t = 1.0;
-        }
-        return new ClosestApproach(t, distance);
-    }
-
-    @JsonPropertyOrder({
-            "factor",
-            "distance"
-    })
-    private static final class ClosestApproach {
-        final double factor;
-        final double distance;
-
-        ClosestApproach(double factor, double distance) {
-            this.factor = factor;
-            this.distance = distance;
+    private static void validate(CrossingPointsRequest request) {
+        if (request == null || request.radius == null || !Double.isFinite(request.radius) || request.radius <= 0)
+            throw new IllegalArgumentException("A finite positive radius is required.");
+        if (request.triggerPoints == null || request.triggerPoints.isEmpty())
+            throw new IllegalArgumentException("Trigger points are required.");
+        Set<String> names = new HashSet<>();
+        for (var marker : request.triggerPoints) {
+            if (marker == null || marker.name == null || marker.name.isBlank() || !names.add(marker.name)
+                || marker.coordinate == null || !Double.isFinite(marker.coordinate.x) || !Double.isFinite(marker.coordinate.y)
+                || Math.abs(marker.coordinate.x) > 180 || Math.abs(marker.coordinate.y) > 90)
+                throw new IllegalArgumentException("Trigger points need unique names and valid WGS84 coordinates.");
         }
     }
 
-    @JsonPropertyOrder({
-            "p1",
-            "p2",
-            "factor",
-            "distance"
-    })
-    private static final class ClosestCandidate {
-        final GpsTrackDataPoint p1;
-        final GpsTrackDataPoint p2;
-        final double factor;
-        final double distance;
-
-        ClosestCandidate(GpsTrackDataPoint p1, GpsTrackDataPoint p2, double factor, double distance) {
-            this.p1 = p1;
-            this.p2 = p2;
-            this.factor = factor;
-            this.distance = distance;
-        }
+    private record MarkerPair(String from, String to) {
     }
 
-    /**
-     * Records a crossing event by calculating metrics and adding it to the crossings list.
-     */
-    private void recordCrossing(
-            GpsTrackDataPoint crossingPoint,
-            TriggerPoint triggerPoint,
-            Long gpsTrackId,
-            double distanceToTriggerPointInMeter,
-            List<Crossing> crossings
-    ) {
-        // Create and store the crossing
-        Crossing crossing = new Crossing(
-                triggerPoint,
-                crossingPoint,
-                gpsTrackId,
-                distanceToTriggerPointInMeter,
-                0,
-                0,
-                0,
-                null // segment notes — populated later by annotateSegmentNotes()
-        );
-
-        crossings.add(crossing);
+    private record Sample(GpsTrackDataPoint point, double position) {
     }
 
-    /**
-     * Interpolates a GPS point at parameter t ∈ [0,1] along the segment from p1 to p2.
-     * t=0 corresponds to p1, t=1 corresponds to p2.
-     */
-    private GpsTrackDataPoint interpolateCrossingPointByFactor(
-            GpsTrackDataPoint p1,
-            GpsTrackDataPoint p2,
-            double t,
-            Long gpsTrackId
-    ) {
-        // Clamp to [0, 1] to ensure we stay within the segment
-        t = Math.max(0.0, Math.min(1.0, t));
-
-        // Interpolate coordinates
-        Coordinate coord1 = p1.getPointLongLat().getCoordinate();
-        Coordinate coord2 = p2.getPointLongLat().getCoordinate();
-
-        double interpolatedLon = coord1.x + (coord2.x - coord1.x) * t;
-        double interpolatedLat = coord1.y + (coord2.y - coord1.y) * t;
-        double z1 = Double.isNaN(coord1.z) ? 0.0 : coord1.z;
-        double z2 = Double.isNaN(coord2.z) ? 0.0 : coord2.z;
-        double interpolatedAlt = z1 + (z2 - z1) * t;
-
-        // Interpolate timestamp
-        Date interpolatedTimestamp = null;
-        if (p1.getPointTimestamp() != null && p2.getPointTimestamp() != null) {
-            long time1 = p1.getPointTimestamp().getTime();
-            long time2 = p2.getPointTimestamp().getTime();
-            long interpolatedTime = time1 + (long) ((time2 - time1) * t);
-            interpolatedTimestamp = new Date(interpolatedTime);
-        }
-
-        // Interpolate distance since start
-        Double interpolatedDistance = null;
-        if (p1.getDistanceInMeterSinceStart() != null && p2.getDistanceInMeterSinceStart() != null) {
-            interpolatedDistance = p1.getDistanceInMeterSinceStart()
-                                   + (p2.getDistanceInMeterSinceStart() - p1.getDistanceInMeterSinceStart()) * t;
-        }
-
-        Double interpolatedDuration = null;
-        if (p1.getDurationSinceStart() != null && p2.getDurationSinceStart() != null) {
-            interpolatedDuration = p1.getDurationSinceStart()
-                                   + (p2.getDurationSinceStart() - p1.getDurationSinceStart()) * t;
-        }
-
-        // Create a new GpsTrackDataPoint for the interpolated crossing
-        GpsTrackDataPoint crossingPoint = new GpsTrackDataPoint();
-
-        // Set id/gpsTrackDataId to the nearest actual data point so the virtual race
-        // sub-track API can resolve this crossing to a real database row.
-        GpsTrackDataPoint nearest = t <= 0.5 ? p1 : p2;
-        crossingPoint.setId(nearest.getId());
-        crossingPoint.setGpsTrackDataId(nearest.getGpsTrackDataId());
-
-        GeometryFactory factory = new GeometryFactory(new PrecisionModel(), 4326);
-        Coordinate interpolatedCoord = new Coordinate(interpolatedLon, interpolatedLat, interpolatedAlt);
-        crossingPoint.setPointLongLat((org.locationtech.jts.geom.Point) factory.createPoint(interpolatedCoord));
-
-        crossingPoint.setPointTimestamp(interpolatedTimestamp);
-        crossingPoint.setDistanceInMeterSinceStart(interpolatedDistance);
-        crossingPoint.setDurationSinceStart(interpolatedDuration);
-
-        crossingPoint.setPointIndex(p1.getPointIndex() != null && p2.getPointIndex() != null
-                ? (int) (p1.getPointIndex() + (p2.getPointIndex() - p1.getPointIndex()) * t)
-                : null);
-
-        return crossingPoint;
+    private record Candidate(Sample from, Sample to, double factor, double distance) {
     }
 
-    private static boolean checkTriggerPointNamesAreUnique(List<TriggerPoint> triggerPoints) {
-        Set<String> uniqueNames = new HashSet<>();
-
-        for (TriggerPoint point : triggerPoints) {
-            if (uniqueNames.contains(point.name)) {
-                return false;
-            } else {
-                uniqueNames.add(point.name);
-            }
-        }
-        return true;
+    private record Dwell(double start, double end) {
     }
-
-    private static String getTriggerPointsComposedKey(TriggerPoint p1, TriggerPoint p2) {
-        return p1.name + "-" + p2.name;
-    }
-
 }

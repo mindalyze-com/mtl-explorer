@@ -2,6 +2,8 @@ package com.x8ing.mtl.server.mtlserver.web.services.map;
 
 import com.sun.net.httpserver.HttpServer;
 import com.x8ing.mtl.server.mtlserver.web.services.config.ServerIdentityService;
+import com.x8ing.mtl.server.mtlserver.web.services.info.DockerImageInfoService;
+import com.x8ing.mtl.server.mtlserver.web.services.info.ImageVersionInfoDto;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
@@ -107,34 +109,34 @@ class LocationSearchServiceTest {
             Map<String, String> params = parseQuery(exchange.getRequestURI().getRawQuery());
             assertAuthParams(params);
             writeJson(exchange, 200, """
-                {
-                  "phase": "ready",
-                  "ready": true,
-                  "message": "GeoNames location search ready.",
-                  "db_path": "/data/geonames-search.sqlite",
-                  "source_build_date": "2026-05-24T00:00:00Z",
-                  "source_attribution": "GeoNames",
-                  "source_url": "https://www.geonames.org/",
-                  "source_license": "CC-BY 4.0",
-                  "source_license_url": "https://creativecommons.org/licenses/by/4.0/",
-                  "sqlite_version": "3.53.1",
-                  "row_count": 8,
-                  "populated_place_count": 3,
-                  "terrain_count": 5,
-                  "versionInfo": {
-                    "image": {
-                      "version": "test-image",
-                      "buildTime": "2026-05-24T00:00:00Z"
-                    },
-                    "components": {
-                      "sqlite": "3.53.1"
-                    },
-                    "data": {
-                      "sourceAttribution": "GeoNames"
+                    {
+                      "phase": "ready",
+                      "ready": true,
+                      "message": "GeoNames location search ready.",
+                      "db_path": "/data/geonames-search.sqlite",
+                      "source_build_date": "2026-05-24T00:00:00Z",
+                      "source_attribution": "GeoNames",
+                      "source_url": "https://www.geonames.org/",
+                      "source_license": "CC-BY 4.0",
+                      "source_license_url": "https://creativecommons.org/licenses/by/4.0/",
+                      "sqlite_version": "3.53.1",
+                      "row_count": 8,
+                      "populated_place_count": 3,
+                      "terrain_count": 5,
+                      "versionInfo": {
+                        "image": {
+                          "version": "test-image",
+                          "buildTime": "2026-05-24T00:00:00Z"
+                        },
+                        "components": {
+                          "sqlite": "3.53.1"
+                        },
+                        "data": {
+                          "sourceAttribution": "GeoNames"
+                        }
+                      }
                     }
-                  }
-                }
-                """);
+                    """);
         });
         server.createContext("/search", exchange -> {
             Map<String, String> params = parseQuery(exchange.getRequestURI().getRawQuery());
@@ -174,7 +176,11 @@ class LocationSearchServiceTest {
     private static LocationSearchService newService(LocationSearchProperties properties) {
         ServerIdentityService serverIdentityService = mock(ServerIdentityService.class);
         when(serverIdentityService.getServerId()).thenReturn(TEST_SERVER_ID);
-        return new LocationSearchService(properties, serverIdentityService, Optional.empty());
+        DockerImageInfoService imageInfoService = mock(DockerImageInfoService.class);
+        when(imageInfoService.getImageInfo()).thenReturn(
+                ImageVersionInfoDto.of("1.519", null, "2026-10-06T10:20:30Z"));
+        return new LocationSearchService(properties, serverIdentityService,
+                new UpstreamBuildVersionService(imageInfoService, Optional.empty()));
     }
 
     private static String searchResponse(String query, String sort, String resultsJson) {
@@ -242,7 +248,8 @@ class LocationSearchServiceTest {
     }
 
     private static void assertAuthParams(Map<String, String> params) {
-        assertThat(params.get(MapProxyConstants.UPSTREAM_AUTH_VERSION_PARAM)).isEqualTo("unknown");
+        assertThat(params.get(MapProxyConstants.UPSTREAM_AUTH_VERSION_PARAM)).isEqualTo("1.519");
+        assertThat(params.get(MapProxyConstants.UPSTREAM_BUILD_PARAM)).isEqualTo("2026-10-06T10_20_30Z");
         assertThat(params.get(MapProxyConstants.UPSTREAM_AUTH_SERVER_ID_PARAM)).isEqualTo(TEST_SERVER_ID);
     }
 

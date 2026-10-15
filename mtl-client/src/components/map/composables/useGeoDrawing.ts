@@ -38,8 +38,8 @@ export function useGeoDrawing(_deps: Record<string, never> = {}): MapControllerM
         this.geoDrawPointCount = 0;
         // Re-render all shapes (including the newly drawn one)
         this.renderExistingGeoShapes();
-        // Reopen filter sheet to show the result
-        if (filterTool?.toggle) filterTool.toggle();
+        // Return to the criteria that started the drawing, including the new area.
+        filterTool?.openCriteria?.();
       };
       const onStateChange = () => {
         this.geoDrawPointCount = this.geoDrawingOverlay?.getPointCount() ?? 0;
@@ -60,11 +60,14 @@ export function useGeoDrawing(_deps: Record<string, never> = {}): MapControllerM
     },
 
     onGeoDrawCancel() {
+      if (!this.geoDrawingParamDef) return;
       if (this.geoDrawingOverlay) {
         this.geoDrawingOverlay.cancelDrawing();
       }
       this.geoDrawingParamDef = null;
       this.geoDrawPointCount = 0;
+      this.renderExistingGeoShapes();
+      this.$refs.filterTool?.openCriteria?.();
     },
 
     onClearGeoShape(_paramDef) {

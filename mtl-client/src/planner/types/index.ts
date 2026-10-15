@@ -1,5 +1,7 @@
 /** Shared types for the planner feature. */
-import type { BRouterStatusDto } from 'x8ing-mtl-api-typescript-fetch';
+import type { BRouterStatusDto, PointOfInterestDto } from 'x8ing-mtl-api-typescript-fetch';
+
+export type PointOfInterest = PointOfInterestDto;
 
 export interface Waypoint {
   /** Stable client-side id so Vue `v-for` keys survive drags/inserts. */
@@ -38,6 +40,8 @@ export interface PlannedTrackSummary {
   name: string;
   description: string;
   distanceM: number;
+  hasRoute: boolean;
+  pointOfInterestCount: number;
   centerLat: number;
   centerLng: number;
   createDate: string;

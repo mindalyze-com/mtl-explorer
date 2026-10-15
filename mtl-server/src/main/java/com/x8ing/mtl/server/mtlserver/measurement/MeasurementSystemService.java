@@ -5,9 +5,7 @@ import org.springframework.stereotype.Service;
 import java.util.ArrayList;
 import java.util.List;
 
-import static com.x8ing.mtl.server.mtlserver.measurement.MeasurementConversions.METERS_PER_FOOT;
-import static com.x8ing.mtl.server.mtlserver.measurement.MeasurementConversions.METERS_PER_KILOMETER;
-import static com.x8ing.mtl.server.mtlserver.measurement.MeasurementConversions.METERS_PER_MILE;
+import static com.x8ing.mtl.server.mtlserver.measurement.MeasurementConversions.*;
 
 /**
  * Resolves measurement-system-dependent domain definitions.

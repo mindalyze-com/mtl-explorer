@@ -1,6 +1,8 @@
 package com.x8ing.mtl.server.mtlserver.web.services.track;
 
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
+import com.x8ing.mtl.server.mtlserver.analysis.segment.SegmentAttemptResolver;
+import com.x8ing.mtl.server.mtlserver.analysis.segment.SegmentReadScope;
 import com.x8ing.mtl.server.mtlserver.db.entity.gps.GpsTrack;
 import com.x8ing.mtl.server.mtlserver.db.entity.gps.GpsTrackData;
 import com.x8ing.mtl.server.mtlserver.db.entity.gps.GpsTrackDataPoint;
@@ -8,8 +10,11 @@ import com.x8ing.mtl.server.mtlserver.db.entity.gps.projection.*;
 import com.x8ing.mtl.server.mtlserver.db.readonly.spring.QueryResult;
 import com.x8ing.mtl.server.mtlserver.db.repository.gps.*;
 import com.x8ing.mtl.server.mtlserver.db.repository.media.TrackMediaQueryRepository;
+import com.x8ing.mtl.server.mtlserver.energy.EnergyRecalculationQueue;
 import com.x8ing.mtl.server.mtlserver.energy.EnergyService;
+import com.x8ing.mtl.server.mtlserver.googlehealth.web.SegmentHeartRateService;
 import com.x8ing.mtl.server.mtlserver.gpx.GPXReader;
+import com.x8ing.mtl.server.mtlserver.indexer.TrackProcessingStatusService;
 import com.x8ing.mtl.server.mtlserver.logic.crossing.TrackTimeBetweenTwoPoints;
 import com.x8ing.mtl.server.mtlserver.logic.crossing.beans.CrossingPointsRequest;
 import com.x8ing.mtl.server.mtlserver.logic.crossing.beans.CrossingPointsResponse;
@@ -20,6 +25,7 @@ import com.x8ing.mtl.server.mtlserver.utils.TimingCollector;
 import com.x8ing.mtl.server.mtlserver.web.services.track.entity.*;
 import com.x8ing.mtl.server.mtlserver.web.services.track.entity.filter.FilterParamsRequest;
 import com.x8ing.mtl.server.mtlserver.web.services.track.entity.filter.FilterRequestBean;
+import com.x8ing.mtl.server.mtlserver.web.services.track.entity.filter.TrackViewScope;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -30,7 +36,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.io.Resource;
 import org.springframework.http.*;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
@@ -53,14 +61,17 @@ import java.util.stream.Collectors;
         "gpsTrackEventRepository",
         "trackMediaQueryRepository",
         "filterExecutionService",
+        "segmentReadScope",
         "energyService",
         "trackFileExportService",
         "statisticsMilestoneService",
+        "trackProcessingStatusService",
         "statisticsOverviewExecutor"
 })
 public class TracksController {
 
     public static final int DEFAULT_CACHE_TIME_IN_SECONDS = 300;
+    private static final String ARCHIVE_IDS_MODE = "archive-ids";
     private static final int STATISTICS_OVERVIEW_TOP_LIST_LIMIT = 100;
     private static final long STATISTICS_OVERVIEW_SLOW_LOG_THRESHOLD_MS = 100;
     private static final List<String> OVERVIEW_TRACK_RANKING_ORDER = List.of(
@@ -89,14 +100,19 @@ public class TracksController {
     private final TrackMediaQueryRepository trackMediaQueryRepository;
 
     private final FilterExecutionService filterExecutionService;
+    private final SegmentReadScope segmentReadScope;
 
     private final EnergyService energyService;
+    private final EnergyRecalculationQueue energyQueue;
 
     private final TrackFileExportService trackFileExportService;
 
     private final StatisticsMilestoneService statisticsMilestoneService;
 
+    private final TrackProcessingStatusService trackProcessingStatusService;
     private final Executor statisticsOverviewExecutor;
+    private final SegmentHeartRateService segmentHeartRateService;
+    private final com.x8ing.mtl.server.mtlserver.analysis.segment.SegmentAttemptResolver segmentAttemptResolver;
 
     public TracksController(
             GpsTrackRepository gpsTrackRepository,
@@ -108,9 +124,14 @@ public class TracksController {
             TrackMediaQueryRepository trackMediaQueryRepository,
             FilterExecutionService filterExecutionService,
             EnergyService energyService,
+            EnergyRecalculationQueue energyQueue,
             TrackFileExportService trackFileExportService,
             StatisticsMilestoneService statisticsMilestoneService,
-            @Qualifier("statisticsOverviewExecutor") Executor statisticsOverviewExecutor
+            @Qualifier("statisticsOverviewExecutor") Executor statisticsOverviewExecutor,
+            SegmentHeartRateService segmentHeartRateService,
+            com.x8ing.mtl.server.mtlserver.analysis.segment.SegmentAttemptResolver segmentAttemptResolver,
+            TrackProcessingStatusService trackProcessingStatusService,
+            SegmentReadScope segmentReadScope
     ) {
         this.gpsTrackRepository = gpsTrackRepository;
         this.trackTimeBetweenTwoPoints = trackTimeBetweenTwoPoints;
@@ -120,10 +141,15 @@ public class TracksController {
         this.gpsTrackEventRepository = gpsTrackEventRepository;
         this.trackMediaQueryRepository = trackMediaQueryRepository;
         this.filterExecutionService = filterExecutionService;
+        this.segmentReadScope = segmentReadScope;
         this.energyService = energyService;
+        this.energyQueue = energyQueue;
         this.trackFileExportService = trackFileExportService;
         this.statisticsMilestoneService = statisticsMilestoneService;
         this.statisticsOverviewExecutor = statisticsOverviewExecutor;
+        this.segmentHeartRateService = segmentHeartRateService;
+        this.segmentAttemptResolver = segmentAttemptResolver;
+        this.trackProcessingStatusService = trackProcessingStatusService;
     }
 
 
@@ -133,12 +159,17 @@ public class TracksController {
     }
 
     @RequestMapping("/get/{gpsTrackId}")
-    public ResponseEntity<GpsTrack> getSingleTrack(@PathVariable Long gpsTrackId, @RequestParam(name = "precisionInMeter", defaultValue = "1") BigDecimal precisionInMeter) {
-        GpsTrack gpsTrack = gpsTrackRepository.findById(gpsTrackId).orElseThrow();
-        GpsTrackData trackData = gpsTrackDataRepository.findFirstByGpsTrackIdAndPrecisionInMeter(gpsTrackId, precisionInMeter);
-        if (trackData != null) {
-            trackData.setGpsTrackEvents(gpsTrackEventRepository.findAllByGpsTrackIdOrderByStartPointIndexAsc(gpsTrackId));
-            gpsTrack.getGpsTracksData().add(trackData);
+    public ResponseEntity<GpsTrack> getSingleTrack(@PathVariable Long gpsTrackId,
+                                                 @RequestParam(name = "precisionInMeter", defaultValue = "1") BigDecimal precisionInMeter,
+                                                 @RequestParam(name = "includeGeometry", defaultValue = "true") boolean includeGeometry) {
+        GpsTrack gpsTrack = gpsTrackRepository.findById(gpsTrackId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Track not found"));
+        if (includeGeometry) {
+            GpsTrackData trackData = gpsTrackDataRepository.findFirstByGpsTrackIdAndPrecisionInMeter(gpsTrackId, precisionInMeter);
+            if (trackData != null) {
+                trackData.setGpsTrackEvents(gpsTrackEventRepository.findAllByGpsTrackIdOrderByStartPointIndexAsc(gpsTrackId));
+                gpsTrack.getGpsTracksData().add(trackData);
+            }
         }
         return ResponseEntity.ok()
                 .cacheControl(privateTrackCacheControl())
@@ -240,6 +271,9 @@ public class TracksController {
 
         List<GpsTrackDataPoint> details = gpsTrackDataPointRepository
                 .getTrackDetailsByGpsTrackIdAndPrecisionAndType(gpsTrackId, precisionInMeter, trackType);
+        boolean unsupportedTiming = gpsTrackRepository.findById(gpsTrackId)
+                .map(GpsTrack::isTimingUnreliable).orElse(false);
+        details.forEach(point -> point.setTimingUnsupportedForResponse(unsupportedTiming));
 
         return ResponseEntity.ok()
                 .cacheControl(privateTrackCacheControl())
@@ -247,35 +281,46 @@ public class TracksController {
     }
 
 
+    @Transactional
     @PostMapping("/save-track")
     public GpsTrack saveTrack(@RequestBody GpsTrack gpsTrack) {
-        // Detect activity-type change vs persisted state — if the user picks a new type,
-        // stamp it as USER_SET (so the auto-classifier won't revisit) and trigger an
-        // energy recompute afterwards, since the physics depend on the activity type.
-        GpsTrack.ACTIVITY_TYPE previousActivityType = gpsTrackRepository.findById(gpsTrack.getId())
-                .map(GpsTrack::getActivityType)
-                .orElse(null);
+        // Serialize metadata changes with weight saves and energy recalculation.
+        GpsTrack persisted = gpsTrackRepository.findByIdForUpdate(gpsTrack.getId()).orElseThrow();
+        GpsTrack.ACTIVITY_TYPE previousActivityType = persisted.getActivityType();
+        // Apply editable metadata to the locked current row; never merge the client's stale results.
+        persisted.setTrackName(gpsTrack.getTrackName());
+        persisted.setTrackDescription(gpsTrack.getTrackDescription());
+        persisted.setTrackType(gpsTrack.getTrackType());
+        persisted.setMetaName(gpsTrack.getMetaName());
+        persisted.setMetaDescription(gpsTrack.getMetaDescription());
+        persisted.setMetaLink(gpsTrack.getMetaLink());
+        persisted.setHighlightExclusionReason(gpsTrack.getHighlightExclusionReason());
+        persisted.setStatisticsExclusionReason(gpsTrack.getStatisticsExclusionReason());
         GpsTrack.ACTIVITY_TYPE newActivityType = gpsTrack.getActivityType();
         boolean activityTypeChanged = newActivityType != previousActivityType;
         if (activityTypeChanged) {
-            gpsTrack.setActivityTypeSource(GpsTrack.ACTIVITY_TYPE_SOURCE.USER_SET);
+            double bodyWeightKg = energyService.parametersForTrack(persisted).getRiderWeightKg();
+            persisted.setActivityType(newActivityType);
+            persisted.setActivityTypeSource(GpsTrack.ACTIVITY_TYPE_SOURCE.USER_SET);
+            EnergyService.invalidateCalculatedEnergy(persisted, bodyWeightKg);
         }
 
-        GpsTrack saved = gpsTrackRepository.save(gpsTrack);
+        GpsTrack saved = gpsTrackRepository.save(persisted);
 
         if (activityTypeChanged) {
-            recalculateEnergyAfterActivityTypeChange(saved);
+            queueEnergyAfterActivityTypeChange(saved);
         }
         return saved;
     }
 
     @Operation(operationId = "updateTrackActivityType", summary = "Update the user-selected track activity type")
+    @Transactional
     @PatchMapping("/{gpsTrackId}/activity-type")
     public GpsTrack updateTrackActivityType(
             @PathVariable Long gpsTrackId,
             @Valid @RequestBody ActivityTypeUpdateRequest request
     ) {
-        GpsTrack track = gpsTrackRepository.findById(gpsTrackId).orElseThrow();
+        GpsTrack track = gpsTrackRepository.findByIdForUpdate(gpsTrackId).orElseThrow();
         GpsTrack.ACTIVITY_TYPE previousActivityType = track.getActivityType();
         GpsTrack.ACTIVITY_TYPE newActivityType = request.activityType();
         boolean activityTypeChanged = newActivityType != previousActivityType;
@@ -283,29 +328,30 @@ public class TracksController {
             return track;
         }
 
+        double bodyWeightKg = energyService.parametersForTrack(track).getRiderWeightKg();
         track.setActivityType(newActivityType);
         track.setActivityTypeSource(GpsTrack.ACTIVITY_TYPE_SOURCE.USER_SET);
+        EnergyService.invalidateCalculatedEnergy(track, bodyWeightKg);
         GpsTrack saved = gpsTrackRepository.save(track);
 
-        recalculateEnergyAfterActivityTypeChange(saved);
+        queueEnergyAfterActivityTypeChange(saved);
         return saved;
     }
 
-    private void recalculateEnergyAfterActivityTypeChange(GpsTrack track) {
-        try {
-            energyService.recalculateEnergyForTrack(track.getId(), energyService.getDefaultParameters());
-        } catch (Exception e) {
-            log.warn("Energy recalc after user activity-type change failed for trackId={}: {}",
-                    track.getId(), e.getMessage(), e);
-        }
+    private void queueEnergyAfterActivityTypeChange(GpsTrack track) {
+        if (track.getActivityType() == null || track.isTimingUnreliable()) return;
+        energyQueue.request(track.getId());
+        log.info("Queued energy calculation after activity change: trackId={} activityType={} bodyWeightKg={}",
+                track.getId(), track.getActivityType(), track.getMetabolicEnergy().getBodyWeightKg());
     }
 
+    @Transactional
     @PatchMapping("/{gpsTrackId}/statistics-exclusion")
     public GpsTrack updateTrackStatisticsExclusion(
             @PathVariable Long gpsTrackId,
             @RequestBody StatisticsExclusionUpdateRequest request
     ) {
-        GpsTrack track = gpsTrackRepository.findById(gpsTrackId).orElseThrow();
+        GpsTrack track = gpsTrackRepository.findByIdForUpdate(gpsTrackId).orElseThrow();
         track.setHighlightExclusionReason(request.highlightExclusionReason());
         track.setStatisticsExclusionReason(request.statisticsExclusionReason());
         return gpsTrackRepository.save(track);
@@ -320,6 +366,9 @@ public class TracksController {
      * mode=ids: Returns only the matching track IDs with their entity versions + filter group assignments.
      * The client compares each version against its cached copy to detect stale tracks
      * and selectively re-fetches only those that changed.
+     * <p>
+     * mode=archive-ids: Complete archive IDs and versions, ignoring filters and
+     * view scopes. Used only to reconcile deleted browser cache records.
      */
     @RequestMapping(value = "/get-simplified")
     public TracksSimplifiedResponse getTracksSimplified(
@@ -327,6 +376,14 @@ public class TracksController {
             @RequestParam(name = "precisionInMeter", defaultValue = "10") BigDecimal precisionInMeter,
             @RequestParam(name = "filterName", required = false) String filterName,
             @RequestParam(name = "mode", defaultValue = "full") String mode) {
+
+        if (ARCHIVE_IDS_MODE.equalsIgnoreCase(mode)) {
+            Map<Long, Long> versions = new HashMap<>();
+            for (Object[] row : gpsTrackRepository.findAllTrackVersions()) {
+                versions.put(((Number) row[0]).longValue(), ((Number) row[1]).longValue());
+            }
+            return TracksSimplifiedResponse.idsOnly(versions.size(), versions.size(), versions, Map.of());
+        }
 
         QueryResult filterIds = filterExecutionService.executeOptionalFilterName(filterName, params);
 
@@ -347,7 +404,7 @@ public class TracksController {
             Map<Long, Long> trackVersions = gpsTrackRepository.findVersionMapByIds(ids);
 
             return TracksSimplifiedResponse.idsOnly(
-                    filterExecutionService.standardFilterCount(ids.size()), ids.size(), trackVersions, groups);
+                    scopedStandardFilterCount(ids.size(), params), ids.size(), trackVersions, groups);
         }
 
         // ── mode=full (default): return full track data with geometry ──
@@ -381,19 +438,40 @@ public class TracksController {
         }
 
         return new TracksSimplifiedResponse(
-                filterExecutionService.standardFilterCount(responses.size()), responses.size(), responses);
+                scopedStandardFilterCount(responses.size(), params), responses.size(), responses);
     }
 
-    @RequestMapping(value = "/get-track-ids-within-distance-of-point")
-    public List<Long> getTrackIdsWithinDistanceOfPoint(
+    private long scopedStandardFilterCount(long fallback, FilterParamsRequest params) {
+        return params != null && params.getTrackViewScope() != null && params.getTrackViewScope() != TrackViewScope.ALL
+                ? filterExecutionService.standardFilterCount(fallback, params)
+                : filterExecutionService.standardFilterCount(fallback);
+    }
+
+    @Operation(operationId = "getTrackIdsWithinDistanceOfPoint", summary = "Find nearby tracks with cached library processing status")
+    @PostMapping(value = "/get-track-ids-within-distance-of-point", produces = MediaType.APPLICATION_JSON_VALUE)
+    public TrackProximityResponseDto getTrackIdsWithinDistanceOfPoint(
             @RequestParam(name = "filterName", required = false) String filterName,
             @RequestBody(required = false) FilterParamsRequest params,
             @RequestParam(name = "longitude") Double longitude,
             @RequestParam(name = "latitude") Double latitude,
             @RequestParam(name = "distanceInMeter") Double distanceInMeter
     ) {
+        var processingBeforeSearch = trackProcessingStatusService.getSnapshot();
         QueryResult filterIds = filterExecutionService.executeOptionalFilterName(filterName, params);
-        return gpsTrackRepository.getTracksWithinDistanceToPoint(longitude, latitude, distanceInMeter, filterIds.asIdArray());
+        List<Long> trackIds = gpsTrackRepository.getSegmentCandidateTrackIds(longitude, latitude, distanceInMeter, filterIds.asIdArray());
+        var processing = processingBeforeSearch.state() == TrackProcessingStatusDto.State.READY
+                ? trackProcessingStatusService.getSnapshot() : processingBeforeSearch;
+        return new TrackProximityResponseDto(trackIds, processing);
+    }
+
+    @Operation(operationId = "getTrackIdsWithinDistanceOfPointGet", summary = "Find nearby tracks with cached library processing status")
+    @GetMapping(value = "/get-track-ids-within-distance-of-point", produces = MediaType.APPLICATION_JSON_VALUE)
+    public TrackProximityResponseDto getTrackIdsWithinDistanceOfPointGet(
+            @RequestParam(name = "filterName", required = false) String filterName,
+            @RequestParam(name = "longitude") Double longitude,
+            @RequestParam(name = "latitude") Double latitude,
+            @RequestParam(name = "distanceInMeter") Double distanceInMeter) {
+        return getTrackIdsWithinDistanceOfPoint(filterName, null, longitude, latitude, distanceInMeter);
     }
 
     @Operation(
@@ -435,7 +513,7 @@ public class TracksController {
             @RequestParam(name = "distanceInMeter") Double distanceInMeter,
             @RequestParam(name = "filterName", required = false) String filterName
     ) {
-        List<Long> trackIds = getTrackIdsWithinDistanceOfPoint(filterName, params, longitude, latitude, distanceInMeter);
+        List<Long> trackIds = getTrackIdsWithinDistanceOfPoint(filterName, params, longitude, latitude, distanceInMeter).trackIds();
         List<GpsTrack> tracks = gpsTrackRepository.findAllById(trackIds);
         tracks.sort(Comparator.nullsLast(Comparator.comparing(GpsTrack::getStartDate, (date1, date2) -> {
             if (Objects.isNull(date1) && Objects.isNull(date2)) {
@@ -458,17 +536,28 @@ public class TracksController {
 
 
     @RequestMapping(value = "/get-track-details-for-tracks-crossing-points")
-    public CrossingPointsResponseDto getCrossingPoints(@RequestBody CrossingPointsRequest crossingPointsRequest) {
+    public CrossingPointsResponseDto getCrossingPoints(@RequestBody CrossingPointsRequest crossingPointsRequest,
+                                                       @RequestParam(defaultValue = "true") boolean includeHealth) {
 
         FilterRequestBean filter = crossingPointsRequest.getFilter();
-        QueryResult queryResult = filter == null
-                ? filterExecutionService.executeStandardFilter()
-                : filterExecutionService.executeOptionalFilterName(
-                        filter.getFilterName(),
-                        filter.getParams());
-        Long[] tracksIdFilterList = queryResult.asIdArray();
-        CrossingPointsResponse response = trackTimeBetweenTwoPoints.getTrackTimeBetweenPoints(crossingPointsRequest, tracksIdFilterList);
-        return CrossingPointsResponseDto.from(response);
+        // Load filter entities in a short-lived context so OpenEntityManagerInView
+        // keeps no database connection while individual tracks are calculated.
+        Long[] tracksIdFilterList = segmentReadScope.read(() -> {
+            QueryResult queryResult = filter == null
+                    ? filterExecutionService.executeStandardFilter()
+                    : filterExecutionService.executeOptionalFilterName(filter.getFilterName(), filter.getParams());
+            return queryResult.asIdArray();
+        });
+        CrossingPointsResponse response = trackTimeBetweenTwoPoints.getTrackTimeBetweenPoints(crossingPointsRequest, tracksIdFilterList,
+                SegmentAttemptResolver::prepare);
+        var dto = CrossingPointsResponseDto.from(response);
+        segmentAttemptResolver.publish(response, dto);
+        if (includeHealth) segmentHeartRateService.enrich(dto);
+        return dto;
+    }
+
+    public CrossingPointsResponseDto getCrossingPoints(CrossingPointsRequest request) {
+        return getCrossingPoints(request, true);
     }
 
     /**
@@ -489,6 +578,7 @@ public class TracksController {
             @RequestParam(name = "measurementSystem", defaultValue = "METRIC") MeasurementSystem measurementSystem
     ) {
         TimingCollector timing = new TimingCollector();
+        String issueAccount = com.x8ing.mtl.server.mtlserver.sourceissues.IssueAccount.current();
         Long[] ids = new Long[0];
 
         try {
@@ -524,7 +614,7 @@ public class TracksController {
                     () -> statisticsMilestoneService.findMilestones(filterTrackIds, measurementSystem));
 
             var exclusionSummaryFuture = overviewAsync(timing, "exclusionSummary",
-                    () -> toExclusionSummary(gpsTrackRepository.getTrackOverviewExclusions(filterTrackIds)));
+                    () -> toExclusionSummary(gpsTrackRepository.getTrackOverviewExclusions(filterTrackIds, issueAccount)));
 
             CompletableFuture.allOf(
                     summaryFuture,
@@ -843,11 +933,13 @@ public class TracksController {
 
     private static StatisticsOverviewResponseDto.ExclusionSummary toExclusionSummary(GpsTrackOverviewExclusions exclusions) {
         if (exclusions == null) {
-            return new StatisticsOverviewResponseDto.ExclusionSummary(0, 0);
+            return new StatisticsOverviewResponseDto.ExclusionSummary(0, 0, 0, 0);
         }
         return new StatisticsOverviewResponseDto.ExclusionSummary(
                 longValue(exclusions.getHighlightExcludedTrackCount()),
-                longValue(exclusions.getStatisticsExcludedTrackCount())
+                longValue(exclusions.getStatisticsExcludedTrackCount()),
+                longValue(exclusions.getReviewWithheldTrackCount()),
+                longValue(exclusions.getReviewPendingSourceCount())
         );
     }
 

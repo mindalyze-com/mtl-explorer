@@ -20,7 +20,7 @@ public abstract class FluidDragEnergyCalculator extends EnergyCalculator {
         if (distance <= 0) return EnergyComponents.ZERO;
 
         double totalMass = params.getTotalMassKg(getDefaultEquipmentWeightKg());
-        double gravity = gravitationalEnergy(totalMass, current.getPointAltitude(), prev.getPointAltitude());
+        double gravity = gravitationalEnergy(totalMass, current, prev);
         double drag = calculateDragJoules(current, prev, params, distance);
         double kinetic = kineticEnergyChange(
                 totalMass,

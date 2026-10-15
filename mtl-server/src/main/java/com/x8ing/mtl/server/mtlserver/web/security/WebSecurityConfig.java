@@ -2,7 +2,8 @@ package com.x8ing.mtl.server.mtlserver.web.security;
 
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.x8ing.mtl.server.mtlserver.db.repository.logs.SystemLogService;
-import com.x8ing.mtl.server.mtlserver.db.repository.logs.WebUserSessionService;
+import com.x8ing.mtl.server.mtlserver.db.repository.logs.WebClientLoginService;
+import com.x8ing.mtl.server.mtlserver.web.services.analytics.UmamiConfiguration;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -16,6 +17,8 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.crypto.factory.PasswordEncoderFactories;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
@@ -30,7 +33,7 @@ import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWrite
         "userName",
         "userPwd",
         "systemLogService",
-        "webUserSessionService"
+        "webClientLoginService"
 })
 public class WebSecurityConfig {
 
@@ -42,17 +45,17 @@ public class WebSecurityConfig {
     private String userPwd;
 
     private final SystemLogService systemLogService;
-    private final WebUserSessionService webUserSessionService;
+    private final WebClientLoginService webClientLoginService;
 
-    public WebSecurityConfig(SystemLogService systemLogService, WebUserSessionService webUserSessionService) {
+    public WebSecurityConfig(SystemLogService systemLogService, WebClientLoginService webClientLoginService) {
         this.systemLogService = systemLogService;
-        this.webUserSessionService = webUserSessionService;
+        this.webClientLoginService = webClientLoginService;
     }
 
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http, JwtUtil jwtUtil) throws Exception {
+    public SecurityFilterChain filterChain(HttpSecurity http, JwtUtil jwtUtil, UmamiConfiguration umami) throws Exception {
 
-        JwtAuthenticationFilter jwtFilter = new JwtAuthenticationFilter(jwtUtil, userDetailsService(), webUserSessionService);
+        JwtAuthenticationFilter jwtFilter = new JwtAuthenticationFilter(jwtUtil, userDetailsService(), webClientLoginService);
 
         http
                 .authorizeHttpRequests(authorize -> authorize
@@ -60,11 +63,14 @@ public class WebSecurityConfig {
                         .requestMatchers("/api/auth/login").permitAll()
                         .requestMatchers("/api/auth/logout").permitAll()
                         .requestMatchers("/api/auth/demo-status").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/analytics/umami-config").permitAll()
                         .requestMatchers("/api/map/status").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/google-health/oauth/callback").permitAll()
                         .requestMatchers("/api/**").authenticated()
                         .anyRequest().permitAll()
                 )
                 .addFilterBefore(jwtFilter, org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter.class)
+                .addFilterAfter(new ClientDiagnosticRequestSizeFilter(), org.springframework.security.web.access.intercept.AuthorizationFilter.class)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .exceptionHandling(ex -> ex
                         .authenticationEntryPoint(restAuthenticationEntryPoint())
@@ -77,7 +83,7 @@ public class WebSecurityConfig {
                         .cacheControl(HeadersConfigurer.CacheControlConfig::disable)
                         .contentSecurityPolicy(csp -> csp.policyDirectives(
                                 "default-src 'self'; " +
-                                "script-src 'self'; " +
+                                "script-src 'self'" + (umami.getScriptSource().isEmpty() ? "" : " " + umami.getScriptSource()) + "; " +
                                 "style-src 'self' 'unsafe-inline'; " +
                                 "img-src 'self' data: blob: https:; " +
                                 "font-src 'self' data: https:; " +
@@ -109,7 +115,11 @@ public class WebSecurityConfig {
 
     @Bean
     public UserDetailsService userDetailsService() {
-        UserDetails user = User.withDefaultPasswordEncoder().username(userName).password(userPwd).roles("USER").build();
+        PasswordEncoder passwordEncoder = PasswordEncoderFactories.createDelegatingPasswordEncoder();
+        UserDetails user = User.withUsername(userName)
+                .password(passwordEncoder.encode(userPwd))
+                .roles("USER")
+                .build();
 
         return new InMemoryUserDetailsManager(user);
     }

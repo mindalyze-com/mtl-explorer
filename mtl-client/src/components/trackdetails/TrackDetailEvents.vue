@@ -1,585 +1,383 @@
 <template>
   <section ref="eventsPanelEl" class="events-panel">
-    <div v-if="eventRows.length === 0" class="events-empty">No track events</div>
+    <div v-if="eventRows.length === 0" class="events-empty">
+      <i class="bi bi-signpost" aria-hidden="true"></i> No track events
+    </div>
     <template v-else>
-      <div v-if="breakCount > 0" class="break-summary">
-        <span>{{ breakCount }} {{ breakCount === 1 ? 'break' : 'breaks' }}</span>
-        <span v-if="longestBreakLabel">Longest {{ longestBreakLabel }}</span>
-      </div>
-
+      <div class="events-summary">{{ summaryLabel }}</div>
       <div class="events-list">
-        <article
-          v-for="row in eventRows"
-          :key="row.key"
-          :class="[
-            'event-row',
-            {
-              'event-row--break': row.isBreakEvent,
-              'event-row--longest': row.isLongestBreak,
-              'event-row--selected': row.isSelected,
-              'event-row--selectable': row.isSelectable,
-            },
-          ]"
-          :tabindex="row.isSelectable ? 0 : undefined"
-          :role="row.isSelectable ? 'button' : undefined"
-          :aria-pressed="row.isSelectable ? row.isSelected : undefined"
-          :data-event-key="String(row.key)"
-          @click="selectRow(row)"
-          @keydown.enter.prevent="selectRow(row)"
-          @keydown.space.prevent="selectRow(row)"
-        >
-          <div class="event-marker" aria-hidden="true">
-            <i :class="row.iconClass"></i>
-          </div>
-
-          <div class="event-body">
-            <div class="event-header">
-              <div class="event-title-block">
-                <span class="event-type">{{ row.title }}</span>
-                <span class="event-time">{{ row.timeLabel }}</span>
-              </div>
-              <span v-if="row.badgeLabel" class="event-badge">{{ row.badgeLabel }}</span>
-            </div>
-
-            <template v-if="row.isBreakEvent">
-              <div class="break-metrics">
-                <div v-if="row.durationLabel" class="break-metric">
-                  <span class="break-metric__label"><i class="bi bi-stopwatch"></i> Duration</span>
-                  <strong class="break-metric__value break-metric__value--duration">{{ row.durationLabel }}</strong>
+        <template v-for="row in eventRows" :key="row.key">
+          <h3 v-if="row.dateLabel" class="event-day">{{ row.dateLabel }}</h3>
+          <article
+            :class="[
+              'event-row',
+              {
+                'event-row--break': row.isBreakEvent,
+                'event-row--gap': row.isGapEvent,
+                'event-row--selected': row.isSelected,
+                'event-row--selectable': row.isSelectable,
+              },
+            ]"
+            :tabindex="row.isSelectable ? 0 : undefined"
+            :role="row.isSelectable ? 'button' : undefined"
+            :aria-pressed="row.isSelectable ? row.isSelected : undefined"
+            :data-event-key="String(row.key)"
+            @click="selectRow(row)"
+            @keydown.enter.prevent="selectRow(row)"
+            @keydown.space.prevent="selectRow(row)"
+          >
+            <div class="event-marker" aria-hidden="true"><i :class="row.iconClass"></i></div>
+            <div class="event-body">
+              <div class="event-header">
+                <div class="event-title-block">
+                  <span class="event-type">{{ row.title }}</span>
+                  <span class="event-time">{{ row.timeLabel }}</span>
                 </div>
-                <div v-if="row.positionLabel" class="break-metric">
-                  <span class="break-metric__label"><i class="bi bi-signpost-split"></i> Position</span>
-                  <strong class="break-metric__value">{{ row.positionLabel }}</strong>
+                <div v-if="row.durationLabel" class="event-duration">
+                  <span class="event-duration__value">{{ row.durationLabel }}</span>
+                  <div class="event-duration-scale" role="img" :aria-label="row.durationAriaLabel">
+                    <span class="event-duration-scale__fill" :style="{ width: row.durationBarWidth }"></span>
+                  </div>
                 </div>
               </div>
-
-              <div v-if="row.durationBarWidth" class="break-scale" role="img" :aria-label="row.durationAriaLabel">
-                <span class="break-scale__fill" :style="{ width: row.durationBarWidth }"></span>
-              </div>
-            </template>
-
-            <div v-else class="event-meta">
-              <span v-if="row.durationLabel"><i class="bi bi-stopwatch"></i>{{ row.durationLabel }}</span>
-              <span v-if="row.positionLabel"><i class="bi bi-signpost-split"></i>{{ row.positionLabel }}</span>
+              <span v-if="row.positionLabel" class="event-position">
+                <i class="bi bi-signpost-split" aria-hidden="true"></i> {{ row.positionLabel }}
+              </span>
+              <p v-if="row.description" class="event-description">{{ row.description }}</p>
+              <p v-if="row.isSelected && row.detailLabel" class="event-detail">{{ row.detailLabel }}</p>
             </div>
-
-            <p v-if="row.description" class="event-description">{{ row.description }}</p>
-          </div>
-        </article>
+          </article>
+        </template>
       </div>
+      <p class="events-help">Select an event to locate it on the map.</p>
     </template>
   </section>
 </template>
 
 <script setup lang="ts">
 import { computed, nextTick, ref, watch } from 'vue';
+import type { GpsTrackEvent } from 'x8ing-mtl-api-typescript-fetch/dist/esm/models/index';
+import { formatCompactDistance } from '@/utils/Utils';
 import {
-  GpsTrackEventEventTypeEnum,
-  GpsTrackEventSourceEnum,
-  type GpsTrackEvent,
-} from 'x8ing-mtl-api-typescript-fetch/dist/esm/models/index';
-import { formatCompactDistance, formatCompactDurationSeconds } from '@/utils/Utils';
-import {
-  formatTrackEventClockTime as formatClockTime,
-  formatTrackEventDateTime as formatTime,
-  trackEventKey as eventKey,
-  trackEventKeysEqual as eventKeysEqual,
-  trackEventTimeMs as toMillis,
-  trackEventTypeLabel as formatType,
+  formatTrackEventDate,
+  formatTrackEventDuration,
+  formatTrackEventTimeRange,
+  isTrackEventBreak,
+  isTrackEventRecordingGap,
+  trackEventDurationSeconds,
+  trackEventKey,
+  trackEventKeysEqual,
+  trackEventTimeMs,
+  trackEventTitle,
 } from '@/utils/trackEvents';
 
-defineOptions({
-  name: 'TrackDetailEvents',
-});
-
-const MILLISECONDS_PER_SECOND = 1000;
+defineOptions({ name: 'TrackDetailEvents' });
 const DISTANCE_RANGE_MIN_DELTA_M = 10;
-const MIN_BREAK_BAR_PERCENT = 8;
-const FULL_BREAK_BAR_PERCENT = 100;
-const PERCENT_MULTIPLIER = 100;
-const BREAK_DURATION_EQUALITY_EPSILON_SEC = 0.5;
-const GPS_GAP_BREAK_DESCRIPTION_PREFIX = 'Low-displacement GPS recording gap';
-const GPS_GAP_BREAK_BADGE_LABEL = 'GPS gap';
-
-const BREAK_EVENT_TYPES = new Set<string>([GpsTrackEventEventTypeEnum.Stop, GpsTrackEventEventTypeEnum.PhotoStop]);
-
+const FULL_DURATION_BAR_PERCENT = 100;
+const MILLISECONDS_PER_SECOND = 1000;
+const BOUNDARY_TIME_FORMAT = new Intl.DateTimeFormat(undefined, {
+  hour: '2-digit',
+  minute: '2-digit',
+  second: '2-digit',
+  hourCycle: 'h23',
+});
 type TrackEventRow = {
   key: string | number;
   title: string;
-  description: string;
+  dateLabel: string;
   timeLabel: string;
   durationLabel: string;
   positionLabel: string;
-  badgeLabel: string;
+  description: string;
+  detailLabel: string;
   iconClass: string;
   isBreakEvent: boolean;
-  isLongestBreak: boolean;
+  isGapEvent: boolean;
   isSelectable: boolean;
   isSelected: boolean;
   durationBarWidth: string;
   durationAriaLabel: string;
 };
-
 const props = withDefaults(
   defineProps<{
     events?: GpsTrackEvent[];
     selectedEventKey?: string | number | null;
   }>(),
-  {
-    events: () => [],
-    selectedEventKey: null,
-  }
+  { events: () => [], selectedEventKey: null }
 );
-
-const emit = defineEmits<{
-  'select-event': [key: string | number | null];
-}>();
-
+const emit = defineEmits<{ 'select-event': [key: string | number | null] }>();
 const eventsPanelEl = ref<HTMLElement | null>(null);
-
-const sortedEvents = computed<GpsTrackEvent[]>(() => {
-  return [...props.events].sort((a, b) => {
+const sortedEvents = computed(() =>
+  [...props.events].sort((a, b) => {
     const aIndex = a.startPointIndex ?? Number.MAX_SAFE_INTEGER;
     const bIndex = b.startPointIndex ?? Number.MAX_SAFE_INTEGER;
-    if (aIndex !== bIndex) return aIndex - bIndex;
-    return toMillis(a.startTimestamp) - toMillis(b.startTimestamp);
-  });
+    return aIndex - bIndex || trackEventTimeMs(a.startTimestamp) - trackEventTimeMs(b.startTimestamp);
+  })
+);
+const maxDurationSec = computed(() =>
+  sortedEvents.value.reduce((longest, event) => Math.max(longest, trackEventDurationSeconds(event)), 0)
+);
+const summaryLabel = computed(() => {
+  const breaks = sortedEvents.value.filter(isTrackEventBreak).length;
+  const gaps = sortedEvents.value.filter(isTrackEventRecordingGap).length;
+  const labels = [];
+  if (breaks > 0) labels.push(`${breaks} ${breaks === 1 ? 'break' : 'breaks'}`);
+  if (gaps > 0) labels.push(`${gaps} ${gaps === 1 ? 'recording gap' : 'recording gaps'}`);
+  return labels.join(' · ') || `${sortedEvents.value.length} ${sortedEvents.value.length === 1 ? 'event' : 'events'}`;
 });
-
-const maxBreakDurationSec = computed(() => {
-  return sortedEvents.value.reduce((maxDuration, event) => {
-    if (!isBreakEvent(event)) return maxDuration;
-    return Math.max(maxDuration, normalizedDuration(event.durationInSec));
-  }, 0);
-});
-
 const eventRows = computed<TrackEventRow[]>(() => {
   let breakNumber = 0;
-  const totalBreakCount = sortedEvents.value.filter(isBreakEvent).length;
-
+  let previousDate = '';
   return sortedEvents.value.map((event) => {
-    const isBreak = isBreakEvent(event);
+    const isBreak = isTrackEventBreak(event);
+    const isGap = isTrackEventRecordingGap(event);
     if (isBreak) breakNumber += 1;
-
-    const durationSec = normalizedDuration(event.durationInSec);
-    const durationBarPercent = breakDurationPercent(durationSec, maxBreakDurationSec.value);
-    const durationLabel = durationSec > 0 ? formatCompactDurationSeconds(durationSec) : '';
-    const title = eventTitle(event, breakNumber);
-
+    const isSelectable =
+      isBreak ||
+      isGap ||
+      event.startPointLongLat != null ||
+      event.endPointLongLat != null ||
+      event.startPointIndex != null;
+    const durationSec = trackEventDurationSeconds(event);
+    const durationLabel = formatTrackEventDuration(durationSec);
+    const title = trackEventTitle(event, breakNumber);
+    const date = formatTrackEventDate(event.startTimestamp ?? event.endTimestamp);
+    const dateLabel = date !== previousDate ? date : '';
+    previousDate = date;
     return {
-      key: eventKey(event),
+      key: trackEventKey(event),
       title,
-      description: eventDescription(event),
-      timeLabel: isBreak ? formatBreakTimeRange(event) : formatTime(event.startTimestamp),
+      dateLabel,
+      timeLabel: formatTrackEventTimeRange(event),
       durationLabel,
       positionLabel: formatEventPosition(event),
-      badgeLabel: eventBadgeLabel(event, durationSec, totalBreakCount),
-      iconClass: eventIconClass(event),
+      description: isGap
+        ? 'No recorded positions in this interval.'
+        : isBreak && event.source !== 'USER'
+          ? ''
+          : (event.description?.trim() ?? ''),
+      detailLabel: eventDetailLabel(event),
+      iconClass: isGap
+        ? 'bi bi-broadcast-pin'
+        : isBreak
+          ? event.eventType === 'PHOTO_STOP'
+            ? 'bi bi-camera-fill'
+            : 'bi bi-pause-fill'
+          : event.eventType === 'DATA_ISSUE'
+            ? 'bi bi-exclamation-triangle'
+            : 'bi bi-pin-angle',
       isBreakEvent: isBreak,
-      isLongestBreak: isBreak && isLongestBreak(durationSec),
-      isSelectable: isBreak,
-      isSelected: isBreak && eventKeysEqual(props.selectedEventKey, eventKey(event)),
-      durationBarWidth: durationBarPercent > 0 ? `${durationBarPercent}%` : '',
-      durationAriaLabel: durationLabel ? `${title} duration ${durationLabel}` : title,
+      isGapEvent: isGap,
+      isSelectable,
+      isSelected: isSelectable && trackEventKeysEqual(props.selectedEventKey, trackEventKey(event)),
+      durationBarWidth:
+        maxDurationSec.value > 0 ? `${(durationSec / maxDurationSec.value) * FULL_DURATION_BAR_PERCENT}%` : '',
+      durationAriaLabel: `${title}: ${durationLabel}, relative to the longest interval (${formatTrackEventDuration(maxDurationSec.value)}).`,
     };
   });
 });
-
-const breakCount = computed(() => eventRows.value.filter((row) => row.isBreakEvent).length);
-
-const longestBreakLabel = computed(() => {
-  return maxBreakDurationSec.value > 0 ? formatCompactDurationSeconds(maxBreakDurationSec.value) : '';
-});
-
 watch(
   () => props.selectedEventKey,
   async (selectedKey) => {
     if (selectedKey == null) return;
     await nextTick();
     const key = String(selectedKey).replaceAll('\\', '\\\\').replaceAll('"', '\\"');
-    const selectedRow = eventsPanelEl.value?.querySelector<HTMLElement>(`[data-event-key="${key}"]`);
-    selectedRow?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    const row = eventsPanelEl.value?.querySelector<HTMLElement>(`[data-event-key="${key}"]`);
+    const viewport = eventsPanelEl.value?.closest<HTMLElement>('.p-tabpanels');
+    if (!row || !viewport) return;
+    const rowBounds = row.getBoundingClientRect();
+    const viewportBounds = viewport.getBoundingClientRect();
+    const delta =
+      rowBounds.top < viewportBounds.top
+        ? rowBounds.top - viewportBounds.top
+        : rowBounds.bottom > viewportBounds.bottom
+          ? rowBounds.bottom - viewportBounds.bottom
+          : 0;
+    if (delta !== 0) viewport.scrollBy({ top: delta, behavior: 'smooth' });
   }
 );
-
-function isBreakEvent(event: GpsTrackEvent): boolean {
-  return event.eventType ? BREAK_EVENT_TYPES.has(event.eventType) : false;
-}
-
-function isRecordingGapBreak(event: GpsTrackEvent): boolean {
-  return isBreakEvent(event) && event.description?.trim().startsWith(GPS_GAP_BREAK_DESCRIPTION_PREFIX) === true;
-}
-
-function normalizedDuration(seconds: number | undefined): number {
-  if (seconds == null || !Number.isFinite(seconds)) return 0;
-  return Math.max(0, seconds);
-}
-
-function isLongestBreak(durationSec: number): boolean {
-  return (
-    maxBreakDurationSec.value > 0 &&
-    Math.abs(durationSec - maxBreakDurationSec.value) <= BREAK_DURATION_EQUALITY_EPSILON_SEC
-  );
-}
-
-function breakDurationPercent(durationSec: number, maxDurationSec: number): number {
-  if (durationSec <= 0 || maxDurationSec <= 0) return 0;
-  const rawPercent = (durationSec / maxDurationSec) * PERCENT_MULTIPLIER;
-  const visiblePercent = Math.max(MIN_BREAK_BAR_PERCENT, rawPercent);
-  return Math.min(FULL_BREAK_BAR_PERCENT, Math.round(visiblePercent));
-}
-
-function eventBadgeLabel(event: GpsTrackEvent, durationSec: number, totalBreakCount: number): string {
-  const labels: string[] = [];
-  if (isRecordingGapBreak(event)) labels.push(GPS_GAP_BREAK_BADGE_LABEL);
-  if (isBreakEvent(event) && totalBreakCount > 1 && isLongestBreak(durationSec)) labels.push('Longest');
-  return labels.join(' · ');
-}
-
 function selectRow(row: TrackEventRow): void {
-  if (!row.isSelectable) return;
-  emit('select-event', row.isSelected ? null : row.key);
+  if (row.isSelectable) emit('select-event', row.isSelected ? null : row.key);
 }
-
-function eventTitle(event: GpsTrackEvent, breakNumber: number): string {
-  const customLabel = event.label?.trim();
-
-  if (isBreakEvent(event) && event.source === GpsTrackEventSourceEnum.User && customLabel) {
-    return customLabel;
-  }
-
-  if (event.eventType === GpsTrackEventEventTypeEnum.PhotoStop) {
-    return `Photo break ${breakNumber}`;
-  }
-
-  if (isBreakEvent(event)) {
-    return `Break ${breakNumber}`;
-  }
-
-  if (customLabel) return customLabel;
-
-  return formatType(event.eventType);
+function eventDetailLabel(event: GpsTrackEvent): string {
+  if (event.detectionEvidence !== 'OBSERVED_STATIONARY') return '';
+  const boundaryLabel = (label: string, boundary: GpsTrackEvent['startBoundary']): string => {
+    if (!boundary) return '';
+    if (boundary.status === 'TRACK_EDGE') return `${label} reaches the recorded track edge.`;
+    if (boundary.status === 'RECORDING_EDGE') return `${label} reaches a recording gap.`;
+    if (boundary.earliestTimeS == null || boundary.latestTimeS == null) return '';
+    const from = BOUNDARY_TIME_FORMAT.format(new Date(boundary.earliestTimeS * MILLISECONDS_PER_SECOND));
+    const to = BOUNDARY_TIME_FORMAT.format(new Date(boundary.latestTimeS * MILLISECONDS_PER_SECOND));
+    return `${label} estimated between ${from} and ${to}.`;
+  };
+  return [boundaryLabel('Start', event.startBoundary), boundaryLabel('End', event.endBoundary)]
+    .filter(Boolean)
+    .join(' ');
 }
-
-function eventDescription(event: GpsTrackEvent): string {
-  if (isBreakEvent(event) && event.source !== GpsTrackEventSourceEnum.User && !isRecordingGapBreak(event)) {
-    return '';
-  }
-
-  return event.description?.trim() ?? '';
-}
-
-function eventIconClass(event: GpsTrackEvent): string {
-  if (isBreakEvent(event)) return 'bi bi-pause-fill';
-  if (event.eventType === GpsTrackEventEventTypeEnum.GpsGap) return 'bi bi-broadcast-pin';
-  if (event.eventType === GpsTrackEventEventTypeEnum.DataIssue) return 'bi bi-exclamation-triangle';
-  if (event.eventType === GpsTrackEventEventTypeEnum.ManualNote) return 'bi bi-pin-angle';
-  return 'bi bi-record-fill';
-}
-
-function formatBreakTimeRange(event: GpsTrackEvent): string {
-  const startMs = toMillis(event.startTimestamp);
-  if (!Number.isFinite(startMs) || startMs <= 0) return '';
-
-  const startLabel = formatTime(event.startTimestamp);
-  const endMs = breakEndMillis(event, startMs);
-  if (!Number.isFinite(endMs) || endMs <= startMs) return startLabel;
-
-  const endLabel = isSameLocalDate(startMs, endMs) ? formatClockTime(new Date(endMs)) : formatTime(new Date(endMs));
-  return `${startLabel} - ${endLabel}`;
-}
-
-function breakEndMillis(event: GpsTrackEvent, startMs: number): number {
-  const endMs = toMillis(event.endTimestamp);
-  if (Number.isFinite(endMs) && endMs > 0) return endMs;
-
-  const durationSec = normalizedDuration(event.durationInSec);
-  if (durationSec <= 0) return 0;
-  return startMs + durationSec * MILLISECONDS_PER_SECOND;
-}
-
-function isSameLocalDate(aMs: number, bMs: number): boolean {
-  const a = new Date(aMs);
-  const b = new Date(bMs);
-  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
-}
-
 function formatEventPosition(event: GpsTrackEvent): string {
   const start = event.startDistanceInMeter;
   const end = event.endDistanceInMeter;
   const hasStart = start != null && Number.isFinite(start);
   const hasEnd = end != null && Number.isFinite(end);
-
-  if (hasStart && hasEnd && Math.abs(end - start) >= DISTANCE_RANGE_MIN_DELTA_M) {
-    return `${formatCompactDistance(start)} - ${formatCompactDistance(end)}`;
-  }
-
-  if (hasStart) return formatCompactDistance(start);
-  if (hasEnd) return formatCompactDistance(end);
-  return '';
+  if (hasStart && hasEnd && Math.abs(end - start) >= DISTANCE_RANGE_MIN_DELTA_M)
+    return `${formatCompactDistance(start)}–${formatCompactDistance(end)}`;
+  return hasStart ? formatCompactDistance(start) : hasEnd ? formatCompactDistance(end) : '';
 }
 </script>
 
 <style scoped>
 .events-panel {
-  --break-accent: var(--viz-orange);
-  --break-accent-strong: var(--viz-orange-strong);
-  --break-accent-soft: rgba(249, 115, 22, 0.13);
-  --break-accent-line: rgba(249, 115, 22, 0.36);
-  --break-scale-track: rgba(15, 23, 42, 0.08);
-
   padding: 0.75rem;
 }
-
-.events-empty {
+.events-summary,
+.events-help {
   color: var(--text-muted);
-  font-size: var(--text-sm-size);
-  line-height: var(--text-sm-lh);
-  padding: 1rem 0.5rem;
-}
-
-.break-summary {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-  margin-bottom: 0.6rem;
-  color: var(--text-secondary);
   font-size: var(--text-xs-size);
-  font-weight: 700;
   line-height: var(--text-xs-lh);
-  letter-spacing: 0;
-  text-transform: uppercase;
 }
-
+.events-summary {
+  margin-bottom: 0.35rem;
+}
+.events-help {
+  margin: 0.75rem 0 0;
+}
 .events-list {
   display: grid;
   gap: 0.42rem;
 }
-
+.event-day {
+  margin: 0.4rem 0 0.15rem;
+  color: var(--text-secondary);
+  font-size: var(--text-xs-size);
+  line-height: var(--text-xs-lh);
+  font-weight: 600;
+}
 .event-row {
   display: grid;
   grid-template-columns: 1.9rem minmax(0, 1fr);
   gap: 0.55rem;
-  align-items: flex-start;
-  padding: 0.5rem 0.6rem;
+  align-items: start;
+  padding: 0.6rem;
   border: 1px solid var(--border-default);
   border-radius: 8px;
   background: var(--surface-glass-subtle);
-  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.45) inset;
 }
-
-.event-row--break {
-  border-color: var(--break-accent-line);
-}
-
-.event-row--longest {
-  border-color: rgba(234, 88, 12, 0.55);
-}
-
 .event-row--selectable {
   cursor: pointer;
 }
-
 .event-row--selectable:hover {
-  border-color: var(--break-accent-line);
   background: var(--surface-hover);
 }
-
 .event-row--selectable:focus-visible {
-  outline: 2px solid var(--break-accent);
+  outline: 2px solid var(--accent-text);
   outline-offset: 2px;
 }
-
 .event-row--selected {
-  border-color: var(--break-accent);
-  box-shadow:
-    0 0 0 1px rgba(249, 115, 22, 0.16),
-    0 1px 0 rgba(255, 255, 255, 0.45) inset;
+  border-color: var(--accent-text);
+  background: var(--accent-bg);
 }
-
 .event-marker {
   display: grid;
   place-items: center;
   width: 1.9rem;
   height: 1.9rem;
   border-radius: 8px;
-  color: var(--accent-text);
-  background: var(--accent-bg);
+  color: var(--text-secondary);
+  background: var(--surface-hover);
 }
-
-.event-row--break .event-marker {
-  color: var(--accent-contrast);
-  background: linear-gradient(135deg, var(--break-accent), var(--break-accent-strong));
-  box-shadow: 0 6px 16px rgba(249, 115, 22, 0.24);
-}
-
 .event-body {
   min-width: 0;
   display: grid;
-  gap: 0.35rem;
+  gap: 0.25rem;
 }
-
 .event-header {
-  min-width: 0;
   display: flex;
-  align-items: flex-start;
+  align-items: start;
   justify-content: space-between;
-  gap: 0.65rem;
+  gap: 0.5rem;
 }
-
 .event-title-block {
   min-width: 0;
-  display: flex;
-  align-items: baseline;
-  gap: 0.45rem;
-  flex-wrap: wrap;
+  display: grid;
+  gap: 0.15rem;
 }
-
 .event-type {
-  min-width: 0;
   color: var(--text-primary);
-  font-weight: 750;
+  font-weight: 600;
   font-size: var(--text-sm-size);
   line-height: var(--text-sm-lh);
   overflow-wrap: anywhere;
 }
-
-.event-time {
-  color: var(--text-muted);
-  font-size: var(--text-xs-size);
-  line-height: var(--text-xs-lh);
-}
-
-.event-badge {
-  flex: 0 0 auto;
-  padding: 0.12rem 0.38rem;
-  border-radius: 6px;
-  color: var(--break-accent-strong);
-  background: rgba(249, 115, 22, 0.12);
-  font-size: var(--text-2xs-size);
-  font-weight: 800;
-  line-height: var(--text-xs-lh);
-  letter-spacing: 0;
-  text-transform: uppercase;
-}
-
-.break-metrics {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.3rem 0.65rem;
-  align-items: baseline;
-}
-
-.break-metric {
-  min-width: 0;
-  display: inline-flex;
-  align-items: baseline;
-  gap: 0.32rem;
-}
-
-.break-metric__label {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.22rem;
-  color: var(--text-faint);
-  font-size: var(--text-2xs-size);
-  font-weight: 750;
-  line-height: var(--text-2xs-lh);
-  letter-spacing: 0;
-  text-transform: uppercase;
-}
-
-.break-metric__value {
-  min-width: 0;
-  color: var(--text-primary);
-  font-size: var(--text-xs-size);
-  font-weight: 750;
-  line-height: var(--text-xs-lh);
-  overflow-wrap: anywhere;
-}
-
-.break-metric__value--duration {
-  color: var(--break-accent-strong);
-  font-size: var(--text-sm-size);
-  line-height: var(--text-sm-lh);
-}
-
-.break-scale {
-  position: relative;
-  height: 0.34rem;
-  overflow: hidden;
-  border-radius: 999px;
-  background: linear-gradient(90deg, rgba(249, 115, 22, 0.1), rgba(99, 102, 241, 0.08)), var(--break-scale-track);
-}
-
-.break-scale__fill {
-  display: block;
-  height: 100%;
-  min-width: 0.45rem;
-  border-radius: inherit;
-  background: linear-gradient(90deg, var(--break-accent), #f59e0b);
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.18) inset;
-}
-
-.event-meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.35rem 0.7rem;
-  color: var(--text-muted);
-  font-size: var(--text-xs-size);
-  line-height: var(--text-xs-lh);
-}
-
-.event-meta span {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.28rem;
-  min-width: 0;
-}
-
-.event-description {
-  margin: 0;
+.event-time,
+.event-position,
+.event-description,
+.event-detail {
   color: var(--text-secondary);
   font-size: var(--text-xs-size);
-  line-height: var(--text-sm-lh);
+  line-height: var(--text-xs-lh);
   overflow-wrap: anywhere;
 }
-
-:global([data-theme='dark']) .events-panel {
-  --break-accent: #fb923c;
-  --break-accent-strong: #fdba74;
-  --break-accent-soft: rgba(251, 146, 60, 0.16);
-  --break-accent-line: rgba(251, 146, 60, 0.32);
-  --break-scale-track: rgba(255, 255, 255, 0.1);
+.event-time {
+  font-variant-numeric: tabular-nums;
 }
-
-:global([data-theme='dark']) .event-row {
-  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.05) inset;
+.event-duration {
+  flex: 0 0 auto;
+  display: grid;
+  justify-items: end;
+  gap: 0.35rem;
 }
-
-:global([data-theme='dark']) .event-badge {
-  color: #fed7aa;
-  background: rgba(251, 146, 60, 0.16);
+.event-duration__value {
+  color: var(--text-primary);
+  font-weight: 600;
+  font-size: var(--text-sm-size);
+  line-height: var(--text-sm-lh);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
 }
-
-@media (max-width: 520px) {
+.event-duration-scale {
+  width: 4.5rem;
+  height: 3px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--border-default);
+}
+.event-duration-scale__fill {
+  display: block;
+  height: 100%;
+  min-width: 1px;
+  border-radius: inherit;
+  background: var(--text-muted);
+}
+.event-position {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+.event-description,
+.event-detail {
+  margin: 0;
+}
+.event-detail {
+  margin-top: 0.2rem;
+}
+.events-empty {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 2rem 1rem;
+  color: var(--text-muted);
+  font-size: var(--text-sm-size);
+}
+@container track-details (max-width: 520px) {
   .events-panel {
     padding: 0.6rem;
   }
-
-  .break-summary {
-    align-items: flex-start;
-    flex-direction: column;
-    gap: 0.15rem;
-  }
-
   .event-row {
     grid-template-columns: 1.75rem minmax(0, 1fr);
-    gap: 0.48rem;
+    gap: 0.45rem;
     padding: 0.5rem;
   }
-
   .event-marker {
     width: 1.75rem;
     height: 1.75rem;

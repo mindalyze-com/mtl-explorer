@@ -1,15 +1,17 @@
-import { computed, isRef, markRaw, nextTick, onBeforeUnmount, onMounted, reactive, toRefs, watch } from 'vue';
+import { warnSanitized } from '@/utils/safeLogging';
+import { computed, isRef, markRaw, nextTick, onBeforeUnmount, onMounted, provide, reactive, toRefs, watch } from 'vue';
 import type { ComputedRef } from 'vue';
 import { useIndexerStatus } from '@/composables/useIndexerStatus';
 import { useDataFreshness } from '@/composables/useDataFreshness';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { MAP_ARCHIVE_STALE_EVENT } from '@/utils/cachingPmtilesSource';
 import { useFilterStore } from '@/stores/filterStore';
+import { useMediaFilterStore } from '@/stores/mediaFilterStore';
 import { useMapSettingsStore } from '@/stores/mapSettingsStore';
 import { ColorPalette } from '@/components/filter/ColorPalette';
 import { REPLAY_DEFAULT_TARGET_DURATION_SECONDS } from '@/components/replay/trackReplayPath';
 import { REPLAY_DEFAULT_CAMERA_PRESET, REPLAY_DEFAULT_CAMERA_SMOOTHNESS } from '@/components/replay/trackReplayCamera';
-import { describeError, startupError, startupLog } from '@/utils/startupDiagnostics';
+import { startupError, startupLog } from '@/utils/startupDiagnostics';
 import thumbOsmTopoLight from '@/assets/map-layer/osm_topo_light.webp';
 import thumbOsmTopoContrast from '@/assets/map-layer/osm_topo_contrast.webp';
 import thumbSwissTopoColor from '@/assets/map-layer/swiss_topo_color.webp';
@@ -17,7 +19,7 @@ import thumbSwissTopoLight from '@/assets/map-layer/swiss_topo_light.webp';
 import thumbOsmLight from '@/assets/map-layer/osm_light.webp';
 import thumbOsmGray from '@/assets/map-layer/osm_gray.webp';
 import thumbOsmDark from '@/assets/map-layer/osm_dark.webp';
-import { useMapTools } from '@/components/map/composables/useMapTools';
+import { useMapTools, TRACK_DETAILS_DESKTOP_DETENT } from '@/components/map/composables/useMapTools';
 import { useMapLayerSettings } from '@/components/map/composables/useMapLayerSettings';
 import { useTerrainMode } from '@/components/map/composables/useTerrainMode';
 import { useTrackLayers } from '@/components/map/composables/useTrackLayers';
@@ -27,6 +29,10 @@ import { useGeoDrawing } from '@/components/map/composables/useGeoDrawing';
 import { useMediaAndHeatmap } from '@/components/map/composables/useMediaAndHeatmap';
 import { useMapDataLoading } from '@/components/map/composables/useMapDataLoading';
 import { useMapRendererLifecycle } from '@/components/map/composables/useMapRendererLifecycle';
+import { useMapPois } from '@/components/map/composables/useMapPois';
+import { useMapInteractions, watchMapInteractionContext } from '@/components/map/composables/useMapInteractions';
+import { MAP_INTERACTION_REGISTRATION_KEY } from '@/components/map/composables/useMapInteractionConsumer';
+import type { PoiMapCandidate } from '@/components/map/composables/useMapPois';
 import type {
   MainMapControllerReturn,
   MapControllerBoundMethods,
@@ -49,6 +55,7 @@ import { TOPO_CONTRAST_THEME } from '@/utils/mapStyle';
 import { readMapCameraState } from '@/components/map/mapRendererTypes';
 import { useMeasurementSystem } from '@/composables/useMeasurementSystem';
 import { syncMapScaleControlUnit } from '@/components/map/mapScaleControl';
+import { NAVIGATION_TOOL_ICONS } from '@/components/ui/navigationToolIcons';
 
 type ControllerMethod = (this: MapControllerRuntime, ...args: unknown[]) => unknown;
 type BoundControllerMethod = (...args: unknown[]) => unknown;
@@ -57,6 +64,7 @@ type BoundControllerMethod = (...args: unknown[]) => unknown;
 const TRACK_DETAILS_DETENTS: TrackDetailsDetent[] = [
   { id: 'compact', height: '66vh' },
   { id: 'default', height: '75vh' },
+  { id: TRACK_DETAILS_DESKTOP_DETENT, height: '82vh' },
   { id: 'expanded', height: '92vh' },
 ];
 
@@ -85,11 +93,18 @@ export function useMainMapController(
   const filterStore = useFilterStore();
   const filterStoreRefs = storeToRefs(filterStore);
   const mapSettingsStore = useMapSettingsStore();
+  const mediaFilterStore = useMediaFilterStore();
+  let collectPois: (point: { x: number; y: number }, radius: number) => PoiMapCandidate[] = () => [];
   const mapStateStore = useMapStateStore();
   const mapStateRefs = storeToRefs(mapStateStore);
   const { measurementSystem } = useMeasurementSystem();
 
   const state = reactive<MapControllerState>({
+    mapInteraction: null,
+    mapInteractionDetailKind: null,
+    mapInteractionDetailLoading: false,
+    mapInteractionDetailError: null,
+    mapInteractionOverlayDetails: null,
     overlayMap: undefined,
     mapConfig: null,
     mapServerStatus: null,
@@ -160,10 +175,9 @@ export function useMainMapController(
     selectedFeature: null,
     trackSelectionSheetVisible: false,
     selectionPopupTrackIds: [],
+    selectionPopupProcessing: null,
     selectionPopupMediaOptions: [],
     trackSelectionPurpose: 'details',
-    swissMobilityPopup: { visible: false, pos: { x: 0, y: 0 }, routes: [] },
-    proximityAbortController: null,
     trackDetailsVisible: false,
     trackDetailsBackgroundDetent: TRACK_DETAILS_REPLAY_BACKGROUND_DETENT,
     trackDetailsDetents: TRACK_DETAILS_DETENTS,
@@ -207,21 +221,51 @@ export function useMainMapController(
     plannerToolActive: false,
     activeToolId: null,
     toolDefs: [
-      // Row 1: primary (shown at peek)
-      { id: 'stats', icon: 'bi bi-graph-up', label: 'Stats' },
-      { id: 'filter', icon: 'bi bi-funnel', alertIcon: 'bi bi-funnel-fill', label: 'Filter' },
-      // Row 2: secondary (shown when expanded)
-      { id: 'map', icon: 'bi bi-map', label: 'Map' },
-      { id: 'animate', icon: 'bi bi-play-circle', label: 'Animate' },
-      { id: 'measure', icon: 'bi bi-stopwatch', label: 'Segments' },
+      {
+        id: 'stats',
+        icon: NAVIGATION_TOOL_ICONS.statistics,
+        label: 'Stats',
+        moreLabel: 'Statistics',
+        description: 'Activity history, trends, and milestones.',
+      },
+      {
+        id: 'filter',
+        icon: NAVIGATION_TOOL_ICONS.filter,
+        alertIcon: 'bi bi-funnel-fill',
+        label: 'Filter',
+      },
+      { id: 'map', icon: NAVIGATION_TOOL_ICONS.map, label: 'Map' },
+      {
+        id: 'animate',
+        icon: NAVIGATION_TOOL_ICONS.animate,
+        label: 'Animate',
+        description: 'Replay your tracks over time.',
+      },
+      {
+        id: 'measure',
+        icon: NAVIGATION_TOOL_ICONS.segments,
+        label: 'Segments',
+        description: 'Explore and compare route sections.',
+      },
       {
         id: 'gps',
-        icon: 'bi bi-geo-fill',
+        icon: NAVIGATION_TOOL_ICONS.gps,
         alertIcon: 'bi bi-geo-alt-fill',
         driftedIcon: 'bi bi-geo-alt-fill',
         label: 'GPS',
       },
-      { id: 'admin', icon: 'bi bi-gear', label: 'Admin' },
+      {
+        id: 'health',
+        icon: NAVIGATION_TOOL_ICONS.health,
+        label: 'Health',
+        description: 'View health and activity data.',
+      },
+      {
+        id: 'admin',
+        icon: NAVIGATION_TOOL_ICONS.settings,
+        label: 'Settings',
+        description: 'Configure MTL Explorer.',
+      },
     ],
 
     mediaOverlay: null,
@@ -232,6 +276,7 @@ export function useMainMapController(
     mediaPendingSelection: null,
     mediaSelectionTrackOptions: [],
     mediaSelectionTracksLoading: false,
+    mediaSelectionTracksError: null,
     mediaSelectionAbortController: null,
     mediaSelectionRequestToken: 0,
     mediaSheetVisible: false,
@@ -284,6 +329,8 @@ export function useMainMapController(
     // fetchTracksAndFallback runs in parallel and awaits this before addTracksToMap.
     _mapReadyResolve: null,
     _mapReadyPromise: null,
+    _mapLoadGeneration: 0,
+    _mapUnmounted: false,
   });
 
   const setupBindings: MapControllerSetupBindings = {
@@ -385,7 +432,8 @@ export function useMainMapController(
         !this.trackDetailsVisible &&
         !this.trackSelectionSheetVisible &&
         !this.mediaSelectionSheetVisible &&
-        !this.mediaSheetVisible
+        !this.mediaSheetVisible &&
+        !this.mapInteraction
       );
     },
     locationSearchMapCenter() {
@@ -455,6 +503,12 @@ export function useMainMapController(
 
   const methodDefinitions: MapControllerMethods = {
     ...useMapTools(),
+    ...useMapInteractions({
+      filterStore,
+      mediaFilterStore,
+      mapSettingsStore,
+      collectPois: (point, radius) => collectPois(point, radius),
+    }),
     ...useMapLayerSettings({ filterStore, mapSettingsStore }),
     ...useTerrainMode({ mapSettingsStore }),
     ...useTrackLayers(),
@@ -506,6 +560,52 @@ export function useMainMapController(
   for (const [name, getter] of Object.entries(computedDefinitions)) {
     computedRecord[name] = computed(() => getter.call(ctx));
   }
+
+  const pois = useMapPois(
+    () => state.overlayMap as MapControllerState['overlayMap'],
+    () => state.mapConfig,
+    () => !state.plannerToolActive && !state.measureToolActive && !state.geoDrawingParamDef
+  );
+
+  collectPois = pois.collectCandidates;
+  watch(
+    () => [filterStore.trackSetRevision, mediaFilterStore.scope],
+    () => {
+      ctx.endMapInteraction();
+      ctx.closeMediaSelection();
+      ctx.mediaSheetVisible = false;
+      ctx.closeMediaSheet();
+      ctx.clearFocusedMediaMarker();
+      void state.mediaOverlay?.refresh?.(true).catch((error: unknown) => {
+        warnSanitized('Media could not be refreshed after the filter changed', error, {
+          topic1: 'map',
+          topic2: 'useMainMapController',
+          topic3: 'useMainMapController',
+        });
+      });
+    },
+    { flush: 'sync' }
+  );
+
+  watchMapInteractionContext(
+    () => [
+      state.trackReplayActive,
+      state.measureToolActive,
+      state.plannerToolActive,
+      Boolean(state.geoDrawingParamDef),
+      state.activeToolId,
+      state.tracksEnabled,
+      state.mediaVisible,
+      state.trackPointsVisible,
+      state.layerOpacities,
+      state.activeOverlays,
+      state.hiddenGroups,
+      mapSettingsStore.poiEnabled,
+      mapSettingsStore.poiOpacity,
+      mapSettingsStore.poiCategories,
+    ],
+    () => ctx.endMapInteraction()
+  );
 
   function selectedTrackMetadataFromState() {
     const trackId = Number(state.selectedTrackId);
@@ -636,7 +736,7 @@ export function useMainMapController(
       }
       startupLog('map', 'Initial map reload completed');
     } catch (error) {
-      startupError('map', 'Initial map reload failed', describeError(error));
+      startupError('map', 'Initial map reload failed', error);
       throw error;
     }
     this._onOnline = markRaw(() => {
@@ -647,6 +747,7 @@ export function useMainMapController(
   }
 
   function beforeUnmount(this: MapControllerRuntime) {
+    this._mapUnmounted = true;
     if (mapStateStore.mapMode === '3d' && this.overlayMap) {
       mapStateStore.setReturnViewportCamera(readMapCameraState(this.overlayMap, true));
     } else {
@@ -663,7 +764,6 @@ export function useMainMapController(
     this.closeTrackPointPopup();
     this.clearFocusedMediaMarker();
     this.clearLocationSearchMarker();
-    if (this._resizeObserver) this._resizeObserver.disconnect();
     if (this.heatmapOverlay) {
       this.heatmapOverlay.destroy();
       this.heatmapOverlay = null;
@@ -696,6 +796,8 @@ export function useMainMapController(
   for (const name of Object.keys(methodDefinitions) as Array<keyof MapControllerMethods>) {
     boundMethodRecord[name] = (...args: unknown[]) => ctxMethodRecord[name](...args);
   }
+
+  provide(MAP_INTERACTION_REGISTRATION_KEY, ctx.registerMapInteractionConsumer);
 
   const stateRefs = toRefs(stateRecord) as Record<string, unknown>;
   return {

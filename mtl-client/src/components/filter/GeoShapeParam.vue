@@ -7,12 +7,18 @@
     <div class="geo-param__row">
       <template v-if="hasValue">
         <span class="geo-param__summary">{{ shapeSummary }}</span>
-        <button class="geo-param__btn geo-param__btn--clear" title="Clear shape" @click="clearShape">
-          <i class="bi bi-x-lg"></i>
+        <button
+          type="button"
+          class="geo-param__btn geo-param__btn--clear"
+          title="Clear shape"
+          :aria-label="`Clear ${paramDef.label || 'shape'}`"
+          @click="clearShape"
+        >
+          <i class="bi bi-x-lg" aria-hidden="true"></i>
         </button>
       </template>
-      <button class="geo-param__btn geo-param__btn--draw" @click="startDrawing">
-        <i :class="drawIcon"></i>
+      <button type="button" class="geo-param__btn geo-param__btn--draw" @click="startDrawing">
+        <i :class="drawIcon" aria-hidden="true"></i>
         {{ hasValue ? 'Redraw' : 'Draw on map' }}
       </button>
     </div>

@@ -4,13 +4,27 @@
     title="3D Replay"
     icon="bi bi-badge-3d"
     :detents="sheetDetents"
-    initial-detent="open"
+    initial-detent="collapsed"
+    :selected-detent="settingsOpen ? 'open' : 'collapsed'"
+    :cover-previous-sheet="false"
+    :drag-to-close="false"
     no-backdrop
     :z-index="5450"
     sheet-class="track-replay-sheet"
-    fit-content-initial
     @layout-change="onSheetLayoutChange"
   >
+    <template #header-actions>
+      <button
+        class="trc__settings-toggle"
+        type="button"
+        :aria-expanded="settingsOpen"
+        :aria-controls="settingsId"
+        @click="settingsOpen = !settingsOpen"
+      >
+        <i class="bi bi-sliders" aria-hidden="true"></i>
+        {{ settingsOpen ? 'Hide settings' : 'Settings' }}
+      </button>
+    </template>
     <div class="trc">
       <section class="trc__primary">
         <div class="trc__transport">
@@ -42,22 +56,15 @@
             <span>{{ remainingLabelDisplay }}</span>
           </div>
           <MtlSlider v-model="progressSlider" :min="0" :max="1000" :step="1" aria-label="Replay progress" />
-          <div class="trc__timeline-meta">
+          <div data-test="replay-timeline-meta" class="trc__timeline-meta">
             <span>elapsed</span>
             <span>{{ distanceLabel }}</span>
             <span>remaining</span>
           </div>
         </div>
-
-        <div class="trc__camera trc__camera--desktop">
-          <div class="trc__group-head">
-            <span>Camera View</span>
-          </div>
-          <ReplayCameraPresetSelector :model-value="cameraPreset" @select="emit('update-camera-preset', $event)" />
-        </div>
       </section>
 
-      <section class="trc__controls">
+      <section v-if="settingsOpen" :id="settingsId" class="trc__controls" aria-label="Replay settings">
         <div class="trc__group trc__group--duration">
           <div class="trc__group-head">
             <span>Duration</span>
@@ -76,7 +83,7 @@
           </div>
         </div>
 
-        <div class="trc__group trc__camera trc__camera--mobile">
+        <div class="trc__group trc__camera">
           <div class="trc__group-head">
             <span>Camera Mode</span>
           </div>
@@ -146,7 +153,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref } from 'vue';
+import { computed, onMounted, onUnmounted, ref, useId, watch } from 'vue';
 import BottomSheet from '@/components/ui/BottomSheet.vue';
 import type { BottomSheetLayoutState } from '@/components/ui/BottomSheet.vue';
 import MtlSlider from '@/components/ui/MtlSlider.vue';
@@ -196,18 +203,27 @@ const emit = defineEmits<{
 }>();
 
 const isMobileViewport = ref(false);
+const settingsOpen = ref(false);
+const settingsId = useId();
 const desktopSheetDetents = [
-  { id: 'collapsed', height: '128px' },
-  { id: 'open', height: '318px' },
+  { id: 'collapsed', height: '160px' },
+  { id: 'open', height: '430px' },
   { id: 'max', height: '430px' },
 ];
 const mobileSheetDetents = [
-  { id: 'collapsed', height: '150px' },
-  { id: 'open', height: '56dvh' },
+  { id: 'collapsed', height: '200px' },
+  { id: 'open', height: '70dvh' },
   { id: 'max', height: '86dvh' },
 ];
 const sheetDetents = computed(() => (isMobileViewport.value ? mobileSheetDetents : desktopSheetDetents));
 const durationOptions = REPLAY_TARGET_DURATION_PRESETS_SECONDS;
+
+watch(
+  () => props.active,
+  () => {
+    settingsOpen.value = false;
+  }
+);
 
 onMounted(() => {
   syncViewportMode();
@@ -279,10 +295,31 @@ function syncViewportMode() {
 
 .trc__primary {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) minmax(16rem, 0.56fr);
-  align-items: end;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
   gap: 1.35rem;
   min-width: 0;
+}
+
+.trc__settings-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  min-height: 2.75rem;
+  padding: 0.35rem 0.6rem;
+  border: 1px solid var(--border-default);
+  border-radius: 0.65rem;
+  background: var(--surface-elevated);
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: var(--text-sm-size);
+  cursor: pointer;
+}
+
+.trc__settings-toggle:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 .trc__transport {
@@ -299,7 +336,7 @@ function syncViewportMode() {
   justify-content: center;
   flex: 0 0 auto;
   border: 1px solid var(--border-medium);
-  background: rgba(255, 255, 255, 0.82);
+  background: var(--surface-elevated);
   color: var(--text-primary);
   cursor: pointer;
   box-shadow: 0 8px 22px rgba(15, 23, 42, 0.08);
@@ -330,6 +367,13 @@ function syncViewportMode() {
 .trc__play:not(:disabled):hover,
 .trc__icon-btn:not(:disabled):hover {
   transform: translateY(-1px);
+}
+
+.trc__play:not(:disabled):hover {
+  background: var(--replay-accent-deep);
+}
+
+.trc__icon-btn:not(:disabled):hover {
   background: var(--surface-active);
 }
 
@@ -364,7 +408,7 @@ function syncViewportMode() {
 }
 
 .trc__timeline-head strong {
-  color: var(--replay-accent);
+  color: var(--accent-text);
   font-size: var(--text-xs-size);
   font-weight: 780;
 }
@@ -434,7 +478,7 @@ function syncViewportMode() {
 }
 
 .trc__group-head strong {
-  color: var(--replay-accent);
+  color: var(--accent-text);
   font-size: var(--text-xs-size);
   font-weight: 780;
   line-height: var(--text-xs-lh);
@@ -458,7 +502,7 @@ function syncViewportMode() {
 .trc__seg {
   border: 1px solid var(--border-medium);
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.72);
+  background: var(--surface-elevated);
 }
 
 .trc__smooth-slider {
@@ -469,11 +513,12 @@ function syncViewportMode() {
 .trc__seg--active {
   border-color: var(--replay-accent-bright);
   background: color-mix(in srgb, var(--replay-accent-bright) 12%, transparent);
-  color: var(--replay-accent-text);
+  color: var(--accent-text);
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--replay-accent-bright) 18%, transparent);
 }
 
 .trc__group--adjust {
+  grid-column: 1 / -1;
   gap: 0.45rem;
 }
 
@@ -494,7 +539,7 @@ function syncViewportMode() {
 }
 
 .trc__adjust-row > strong {
-  color: var(--replay-accent);
+  color: var(--accent-text);
   font-size: var(--text-sm-size);
   font-weight: 760;
   text-align: right;
@@ -563,10 +608,6 @@ function syncViewportMode() {
   font-size: var(--text-sm-size);
 }
 
-.trc__camera--mobile {
-  display: none;
-}
-
 @media (max-width: 768px) {
   .trc {
     gap: 0.95rem;
@@ -605,14 +646,6 @@ function syncViewportMode() {
     grid-template-columns: 1fr 1.3fr 1fr;
   }
 
-  .trc__camera--desktop {
-    display: none;
-  }
-
-  .trc__camera--mobile {
-    display: flex;
-  }
-
   .trc__controls {
     grid-template-columns: 1fr;
     gap: 0.95rem;
@@ -644,14 +677,6 @@ function syncViewportMode() {
 @media (min-width: 769px) and (max-width: 1080px) {
   .trc__primary {
     grid-template-columns: auto minmax(0, 1fr);
-  }
-
-  .trc__camera--desktop {
-    display: none;
-  }
-
-  .trc__camera--mobile {
-    display: flex;
   }
 
   .trc__controls {

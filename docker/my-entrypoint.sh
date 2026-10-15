@@ -1,109 +1,96 @@
 #!/bin/bash
 
-readonly LIVE_WATCH_READY_TIMEOUT_SECONDS=1800
-readonly LIVE_WATCH_READY_POLL_SECONDS=1
-readonly DEMO_PHOTO_GENERATION_MARKER_NAME=".demo-photo-generation-in-progress"
+readonly GENERATOR_SHUTDOWN_GRACE_SECONDS=5
+readonly DEMO_PHOTO_HARD_TIMEOUT_SECONDS=600
+startup_child_pid=""
 
-wait_for_live_watcher() {
-  local watch_directory="$1"
-  local inode
-  local inode_hex
-  local waited_seconds=0
+log_startup() {
+  local level="$1"
+  shift
+  printf '%s %-5s [entrypoint] DemoStartup : %s\n' "$(date -u '+%Y-%m-%dT%H:%M:%S.%3NZ')" "$level" "$*"
+}
 
-  inode=$(stat -c %i "$watch_directory") || return 1
-  inode_hex=$(printf '%x' "$inode")
-
-  while (( waited_seconds < LIVE_WATCH_READY_TIMEOUT_SECONDS )); do
-    if grep -qs "^inotify .* ino:${inode_hex} " /proc/1/fdinfo/*; then
-      return 0
+stop_startup() {
+  local shutdown_status="$1"
+  local shutdown_signal="$2"
+  log_startup INFO "Received $shutdown_signal; stopping startup child and render workers."
+  trap '' TERM INT
+  if [[ -n "$startup_child_pid" ]]; then
+    kill -"$shutdown_signal" -- "-$startup_child_pid" 2>/dev/null || kill -"$shutdown_signal" "$startup_child_pid" 2>/dev/null || true
+    # Bound shutdown even if a native codec cannot terminate.
+    sleep "$GENERATOR_SHUTDOWN_GRACE_SECONDS" &
+    local watchdog_pid=$!
+    local completed_pid=""
+    wait -n -p completed_pid "$startup_child_pid" "$watchdog_pid" 2>/dev/null || true
+    if [[ "$completed_pid" == "$watchdog_pid" ]]; then
+      kill -KILL -- "-$startup_child_pid" 2>/dev/null || kill -KILL "$startup_child_pid" 2>/dev/null || true
+      wait "$startup_child_pid" 2>/dev/null || true
+    else
+      kill -KILL "$watchdog_pid" 2>/dev/null || true
+      wait "$watchdog_pid" 2>/dev/null || true
     fi
-    sleep "$LIVE_WATCH_READY_POLL_SECONDS"
-    ((waited_seconds += LIVE_WATCH_READY_POLL_SECONDS))
-  done
-  return 1
+  fi
+  log_startup INFO "Startup stopped by shutdown signal; Java will not start."
+  exit "$shutdown_status"
 }
 
-generate_demo_photos_in_background() {
-  local gpx_directory="$1"
-  local media_directory="$2"
-  local photo_count="$3"
-  local eligible_track_count="$4"
-  local generation_marker="$media_directory/$DEMO_PHOTO_GENERATION_MARKER_NAME"
-
-  touch "$generation_marker"
-
-  echo "Waiting for the GPS and media live watchers before generating demo photos …"
-  if ! wait_for_live_watcher "$gpx_directory"; then
-    echo "Demo photo generation skipped: GPS live watcher did not start within ${LIVE_WATCH_READY_TIMEOUT_SECONDS}s."
-    rm -f "$generation_marker"
-    return 1
-  fi
-  if ! wait_for_live_watcher "$media_directory"; then
-    echo "Demo photo generation skipped: media live watcher did not start within ${LIVE_WATCH_READY_TIMEOUT_SECONDS}s."
-    rm -f "$generation_marker"
-    return 1
-  fi
-
-  echo "GPS and media live watchers are ready. Generating up to $photo_count demo photos in the background …"
-  if python3 -u /app/demo/generate_demo_photos.py \
-      "$gpx_directory" \
-      "$media_directory" \
-      "$photo_count" \
-      "$eligible_track_count"; then
-    echo "Background demo photo generation completed."
-  else
-    echo "Background demo photo generation failed. It will resume on the next startup."
-  fi
-  rm -f "$generation_marker"
+wait_startup_child() {
+  local result=0
+  wait "$startup_child_pid" || result=$?
+  startup_child_pid=""
+  return "$result"
 }
 
-sleep 15
-
-# ============================================================
-# DEMO MODE — activated when DEMO_MODE env var is set (any value)
-# ============================================================
-if [ -n "${DEMO_MODE}" ]; then
-  echo "========================================"
-  echo "  DEMO MODE ACTIVATED"
-  echo "========================================"
-
-  DEMO_GPX_DIR="/app/gpx/demo_gpx_porto_taxi_dataset"
-  DEMO_ZIP="/app/demo/porto_taxi_service_gpx_extract.zip"
-  DEMO_PHOTO_COUNT="${DEMO_PHOTO_COUNT:-200}"
-  DEMO_TARGET_TRACK_COUNT="${DEMO_TARGET_TRACK_COUNT:-0}"
-
-  # 1. Unzip ALL demo GPX tracks (idempotent — skips if folder already populated)
-  #    Track count trimming happens later in Java (DemoTrackExclusionService) via
-  #    mtl.demo-target-track-count so the final count is exact even after bad-track exclusion.
-  if [ -d "$DEMO_GPX_DIR" ] && [ "$(ls -A "$DEMO_GPX_DIR"/*.gpx 2>/dev/null | head -1)" ]; then
-    echo "Demo GPX tracks already present ($(ls "$DEMO_GPX_DIR"/*.gpx | wc -l | tr -d ' ') files) — skipping unzip."
-  else
-    echo "Extracting ALL demo GPX tracks to $DEMO_GPX_DIR …"
-    mkdir -p "$DEMO_GPX_DIR"
-    unzip -o -q "$DEMO_ZIP" -d "$DEMO_GPX_DIR"
-    echo "Extracted $(ls "$DEMO_GPX_DIR"/*.gpx 2>/dev/null | wc -l | tr -d ' ') GPX files."
+main() {
+  trap 'stop_startup 143 TERM' TERM
+  trap 'stop_startup 130 INT' INT
+  local started=$SECONDS
+  log_startup INFO "Container startup: demo-mode=${DEMO_MODE:-disabled}."
+  if [[ -n "${DEMO_MODE:-}" ]]; then
+    local gpx_directory="/app/gpx/demo_gpx_porto_taxi_dataset"
+    local demo_zip="/app/demo/porto_taxi_service_gpx_extract.zip"
+    log_startup INFO "Demo preparation invoked; it may take a few minutes before the application starts. GPS indexing continues after startup."
+    # Keep all tracks; Java applies the visible track target after import.
+    if compgen -G "$gpx_directory/*.gpx" >/dev/null && [[ ! -f "$gpx_directory/.demo-track-generation-in-progress" ]]; then
+      log_startup INFO "Demo GPX files already present; skipping extraction."
+    else
+      mkdir -p "$gpx_directory"
+      local extraction_started=$SECONDS
+      log_startup INFO "Creating all demo GPX files with offline terrain elevation from $demo_zip to $gpx_directory."
+      PYTHONPATH=/app/demo setsid python3 -u -m elevation.create_demo_tracks "$demo_zip" "$gpx_directory" &
+      startup_child_pid=$!
+      if ! wait_startup_child; then
+        log_startup WARN "Demo GPX creation failed; completed tracks are retained for resume; continuing startup."
+      else
+        local extracted_count
+        extracted_count=$(find "$gpx_directory" -type f -name '*.gpx' | wc -l)
+        log_startup INFO "Demo GPX creation completed: files=$extracted_count, duration=$((SECONDS - extraction_started))s."
+      fi
+    fi
+    mkdir -p /app/media/demo-photos
+    cp /app/demo/DATASOURCE.md /app/media/demo-photos/DATASOURCE.md
+    # Clean the obsolete coordination file from volumes created by older images.
+    rm -f /app/media/.demo-photo-generation-in-progress
+    local generation_started=$SECONDS
+    log_startup INFO "Starting demo photo preparation: count=${DEMO_PHOTO_COUNT:-200}, workers=${DEMO_PHOTO_WORKERS:-4}, hard timeout=${DEMO_PHOTO_HARD_TIMEOUT_SECONDS}s."
+    setsid timeout --signal=TERM --kill-after="${GENERATOR_SHUTDOWN_GRACE_SECONDS}s" \
+      "${DEMO_PHOTO_HARD_TIMEOUT_SECONDS}s" python3 -u /app/demo/generate_demo_photos.py \
+      "$gpx_directory" /app/media "${DEMO_PHOTO_COUNT:-200}" "${DEMO_TARGET_TRACK_COUNT:-0}" &
+    startup_child_pid=$!
+    local generation_result=0
+    wait_startup_child || generation_result=$?
+    if ((generation_result != 0)); then
+      log_startup WARN "Demo photo generation failed or timed out; Java will start. Photos resume on next startup. Exit code=$generation_result, duration=$((SECONDS - generation_started))s."
+    else
+      log_startup INFO "Demo photo preparation completed: duration=$((SECONDS - generation_started))s."
+    fi
+    set -- "$@" "--spring.profiles.active=demo"
+    log_startup INFO "Spring demo profile activated."
   fi
+  log_startup INFO "Starting Java application; preparation duration=$((SECONDS - started))s."
+  exec "$@"
+}
 
-  # Copy citation file into the media volume so users browsing mounted folders can see it
-  mkdir -p /app/media/demo-photos
-  cp /app/demo/DATASOURCE.md /app/media/demo-photos/DATASOURCE.md
-
-  # 2. Inject Spring profile 'demo' into the Java command
-  set -- "$@" "--spring.profiles.active=demo"
-  echo "Spring profile 'demo' activated."
-
-  # 3. Start photo generation after the initial GPS import and both live watchers
-  #    are ready. JPEGs are published atomically, so the running app only discovers
-  #    complete files without competing with the initial GPX import for memory.
-  generate_demo_photos_in_background \
-    "$DEMO_GPX_DIR" \
-    /app/media \
-    "$DEMO_PHOTO_COUNT" \
-    "$DEMO_TARGET_TRACK_COUNT" &
-
-  echo "========================================"
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+  main "$@"
 fi
-
-# Now start the Java Spring Boot application (CMD provided is used here via exec "$@")
-echo "Starting Java application..."
-exec "$@"

@@ -5,6 +5,6 @@
  * expressing what fraction of the track covered territory the user had never visited before,
  * based on all prior tracks (ordered by {@code start_date}).
  *
- * <p>See {@code EXPLORATION_SCORE.md} in this package for full documentation.
+ * <p>See {@code documentation/architecture/analysis/exploration.md} for full documentation.
  */
 package com.x8ing.mtl.server.mtlserver.jobs.exploration;

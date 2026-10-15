@@ -23,9 +23,18 @@
 # Build:
 #   docker build -t wauwau0977/mytraillog-maps:1.4 .
 
+FROM node:24.21.0-alpine AS report-assets
+WORKDIR /build
+COPY analytics/package.json analytics/package-lock.json ./
+RUN npm ci
+COPY analytics/styles/ styles/
+COPY analytics/templates/ templates/
+COPY analytics/build-assets.mjs ./
+RUN mkdir -p assets && npm run build
+
 FROM ubuntu:26.04
 
-ARG PMTILES_VERSION=1.30.2
+ARG PMTILES_VERSION=1.31.2
 ENV DEBIAN_FRONTEND=noninteractive
 
 RUN set -eux; \
@@ -37,6 +46,8 @@ RUN set -eux; \
     packages="$packages nginx"; \
     # orchestrator runtime
     packages="$packages python3"; \
+    # basic authentication for optional static analytics reports
+    packages="$packages apache2-utils"; \
     # editors
     packages="$packages vim nano"; \
     # shell utilities
@@ -73,10 +84,12 @@ RUN rm -f /etc/nginx/sites-enabled/default /etc/nginx/conf.d/default.conf
 COPY nginx.conf /etc/nginx/conf.d/map-server.conf
 COPY logrotate-mtl-maps.conf /etc/logrotate.d/mtl-maps
 RUN chmod 644 /etc/logrotate.d/mtl-maps && \
-    printf '17 3 * * * root /usr/sbin/logrotate -s /data/logs/logrotate.status /etc/logrotate.d/mtl-maps\n' > /etc/cron.d/mtl-maps && \
+    printf '17 3 * * * root /usr/bin/python3 /app/analytics/runtime.py rotate >/proc/1/fd/1 2>&1\n' > /etc/cron.d/mtl-maps && \
     chmod 644 /etc/cron.d/mtl-maps
 
 COPY scripts/ /app/scripts/
+COPY analytics/ /app/analytics/
+COPY --from=report-assets /build/assets/ /app/analytics/assets/
 WORKDIR /app
 COPY README.md /app/README.md
 COPY entrypoint.sh /app/entrypoint.sh

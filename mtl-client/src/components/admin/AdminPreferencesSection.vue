@@ -21,6 +21,7 @@
         <div class="admin-action-controls">
           <SelectButton
             v-model="colorScheme"
+            class="segmented-control"
             :options="schemeOptions"
             option-label="label"
             option-value="value"
@@ -38,26 +39,30 @@
           <p>Control number, date, time, distance, speed, and weight formatting.</p>
         </div>
       </div>
-      <div class="admin-preference-block">
+      <div class="settings-field admin-preference-block">
         <div class="admin-action-copy">
-          <span class="admin-action-label">Format locale</span>
+          <label id="admin-format-locale-label" for="admin-format-locale" class="settings-field__label"
+            >Format locale</label
+          >
           <span class="admin-action-hint">This changes formatting without changing the interface language.</span>
         </div>
         <Select
           v-model="localeModel"
+          input-id="admin-format-locale"
+          aria-labelledby="admin-format-locale-label"
           :options="localePresets"
           option-label="label"
           option-value="value"
           placeholder="Browser default"
           class="admin-preference-select"
         />
-        <code class="admin-preference-preview">Preview: {{ localePreview }}</code>
-        <span class="admin-preference-caption">
+        <code class="settings-preview">Preview: {{ localePreview }}</code>
+        <span class="settings-field__hint">
           Detected {{ localeDetection.value || 'no matching preset' }} from {{ localeDetection.browserLang }} and
           {{ localeDetection.timezone }}.
         </span>
       </div>
-      <div class="admin-preference-block">
+      <div class="settings-field admin-preference-block">
         <MeasurementUnitsSetting />
       </div>
     </section>
@@ -109,9 +114,6 @@ const localePreview = computed(() => {
 
 <style scoped>
 .admin-preference-block {
-  display: flex;
-  flex-direction: column;
-  gap: 0.55rem;
   padding: 0.8rem 0;
   border-top: 1px solid var(--border-subtle);
 }
@@ -127,23 +129,5 @@ const localePreview = computed(() => {
 
 .admin-preference-select {
   width: min(100%, 25rem);
-}
-
-.admin-preference-preview {
-  display: block;
-  width: fit-content;
-  max-width: 100%;
-  padding: 0.45rem 0.6rem;
-  border-radius: 0.4rem;
-  background: var(--code-bg);
-  color: var(--text-secondary);
-  font-size: var(--text-xs-size);
-  overflow-wrap: anywhere;
-}
-
-.admin-preference-caption {
-  color: var(--text-faint);
-  font-size: var(--text-xs-size);
-  line-height: 1.4;
 }
 </style>

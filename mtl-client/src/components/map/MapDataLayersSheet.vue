@@ -31,6 +31,7 @@
           @update:opacity="emit('change-layer-opacity', layer.id, $event)"
         />
       </div>
+      <MediaScopeControl />
     </div>
 
     <template #footer>
@@ -41,6 +42,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue';
+import MediaScopeControl from '@/components/filter/MediaScopeControl.vue';
 import BottomSheet from '@/components/ui/BottomSheet.vue';
 import LayerControl from '@/components/map/LayerControl.vue';
 import MapSettingsDetailFooter from '@/components/map/MapSettingsDetailFooter.vue';

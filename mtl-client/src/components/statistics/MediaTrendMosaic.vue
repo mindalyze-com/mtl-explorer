@@ -25,6 +25,7 @@
         </div>
         <span v-if="!loading" class="media-mosaic__count">{{ itemCountLabel(totalItems) }}</span>
       </div>
+      <p class="media-mosaic__timezone">Periods use UTC. Photo details use your local time.</p>
 
       <div v-if="loading && items.length === 0" class="media-mosaic__state" role="status">
         <i class="pi pi-spin pi-spinner" aria-hidden="true"></i>
@@ -46,11 +47,17 @@
 
       <div v-else class="media-mosaic__grid" data-test="media-trend-mosaic-grid">
         <article v-for="item in items" :key="item.id" class="media-mosaic-card">
-          <button type="button" class="media-mosaic-card__preview" @click="openViewer(item.id)">
+          <MediaThumbnailButton
+            v-slot="{ imageProps }"
+            :src="mediaContentUrl(item.id, MOSAIC_THUMBNAIL_SIZE)"
+            :enabled="!viewerVisible"
+            class="media-mosaic-card__preview"
+            @click="openViewer(item.id)"
+          >
             <span class="media-mosaic-card__image-wrap">
               <img
                 v-if="!viewerVisible"
-                :src="mediaContentUrl(item.id, MOSAIC_THUMBNAIL_SIZE)"
+                v-bind="imageProps"
                 :alt="item.fileName || 'Media preview'"
                 loading="lazy"
                 fetchpriority="low"
@@ -63,7 +70,7 @@
               <strong>{{ item.fileName || `Media ${item.id}` }}</strong>
               <span>{{ captureTimeLabel(item.effectiveCapturedAt) }}</span>
             </span>
-          </button>
+          </MediaThumbnailButton>
           <button
             v-if="scope === 'MATCHED_ACTIVITIES' && item.trackId != null"
             type="button"
@@ -96,20 +103,18 @@
     :icon="selectedItem?.mediaKind === 'VIDEO' ? 'bi bi-camera-video' : 'bi bi-image'"
     header-mode="compact"
     native-fullscreen
+    fullscreen-control-labels
+    immersive
     viewport-centered
     :sheet-class="['media-viewer-sheet', mediaViewerThemeClass]"
     @closed="viewerVisible = false"
   >
     <template #header-actions>
-      <button
-        type="button"
-        class="media-preview-details-toggle"
-        :aria-pressed="viewerDetailsVisible"
-        @click.stop="viewerDetailsVisible = !viewerDetailsVisible"
-      >
-        <i class="bi bi-info-circle" aria-hidden="true"></i>
-        <span>Details</span>
-      </button>
+      <MediaViewerViewToggle
+        v-model="viewerDetailsVisible"
+        v-model:map-visible="viewerMapVisible"
+        v-model:photos-visible="viewerPhotosVisible"
+      />
       <MediaViewerThemeToggle />
     </template>
     <MediaPreview
@@ -129,6 +134,8 @@
       :position-lat="selectedItem?.resolvedLat"
       :position-lng="selectedItem?.resolvedLng"
       :details-visible="viewerDetailsVisible"
+      :map-visible="viewerMapVisible"
+      :photos-visible="viewerPhotosVisible"
       :taken-at="selectedItem?.effectiveCapturedAt"
       :time-source="selectedItem?.timeSource"
       :applied-camera-offset-seconds="selectedItem?.appliedCameraOffsetSeconds"
@@ -136,6 +143,7 @@
       @next="navigateViewer(nextMediaId)"
       @select="navigateViewer"
       @update:details-visible="viewerDetailsVisible = $event"
+      @update:map-visible="viewerMapVisible = $event"
       @open-on-map="openSelectedMediaOnMap"
       @time-correction-cleared="onViewerTimeCorrectionCleared"
     />
@@ -143,6 +151,7 @@
 </template>
 
 <script setup lang="ts">
+import { warnRequestFailure } from '@/utils/safeLogging';
 import { computed, nextTick, ref, watch } from 'vue';
 import {
   MediaTrendItemsRequestKindEnum,
@@ -154,10 +163,12 @@ import {
 import BottomSheet from '@/components/ui/BottomSheet.vue';
 import MediaPreview from '@/components/map/MediaPreview.vue';
 import MediaViewerThemeToggle from '@/components/map/MediaViewerThemeToggle.vue';
+import MediaViewerViewToggle from '@/components/map/MediaViewerViewToggle.vue';
 import { useMediaViewerTheme } from '@/composables/useMediaViewerTheme';
 import { getMediaTrendItems, mediaContentUrl } from '@/repositories/mediaRepository';
 import { isAbortLikeError } from '@/utils/errors';
 import { formatDateAndTime } from '@/utils/Utils';
+import MediaThumbnailButton from '@/components/media/MediaThumbnailButton.vue';
 
 const MOSAIC_PAGE_SIZE = 60;
 const MEDIA_PREVIEW_DESKTOP_MIN_WIDTH = 769;
@@ -185,6 +196,8 @@ const loading = ref(false);
 const loadError = ref('');
 const viewerVisible = ref(false);
 const viewerDetailsVisible = ref(window.innerWidth >= MEDIA_PREVIEW_DESKTOP_MIN_WIDTH);
+const viewerMapVisible = ref(viewerDetailsVisible.value);
+const viewerPhotosVisible = ref(true);
 const { mediaViewerThemeClass } = useMediaViewerTheme();
 const selectedMediaId = ref<number | null>(null);
 let requestGeneration = 0;
@@ -200,7 +213,13 @@ const kindOptions: Array<{ label: string; value: MediaTrendItemsRequestKindEnum 
 
 const sheetTitle = computed(() => {
   const label = props.bucket?.label || 'Media';
-  const count = (props.bucket?.imageCount ?? 0) + (props.bucket?.videoCount ?? 0);
+  const bucketCount =
+    selectedKind.value === MediaTrendItemsRequestKindEnum.Image
+      ? (props.bucket?.imageCount ?? 0)
+      : selectedKind.value === MediaTrendItemsRequestKindEnum.Video
+        ? (props.bucket?.videoCount ?? 0)
+        : (props.bucket?.imageCount ?? 0) + (props.bucket?.videoCount ?? 0);
+  const count = loading.value || loadError.value ? bucketCount : totalItems.value;
   return `${label} · ${itemCountLabel(count)}`;
 });
 const hasMore = computed(() => items.value.length < totalItems.value);
@@ -262,7 +281,7 @@ async function loadPage(page: number): Promise<void> {
         scope: props.scope,
         bucketKey,
         kind: selectedKind.value,
-        trackIds: props.scope === 'MATCHED_ACTIVITIES' ? props.trackIds : undefined,
+        trackIds: props.trackIds,
         page,
         pageSize: MOSAIC_PAGE_SIZE,
       },
@@ -276,6 +295,11 @@ async function loadPage(page: number): Promise<void> {
   } catch (error) {
     if (generation !== requestGeneration || isAbortLikeError(error, abortController.signal)) return;
     loadError.value = error instanceof Error ? error.message : String(error);
+    warnRequestFailure('Media statistics could not be loaded', error, {
+      topic1: 'statistics',
+      topic2: 'MediaTrendMosaic',
+      topic3: 'load',
+    });
   } finally {
     if (generation === requestGeneration) loading.value = false;
   }
@@ -284,7 +308,6 @@ async function loadPage(page: number): Promise<void> {
 function openViewer(mediaId: number | undefined): void {
   if (mediaId == null) return;
   selectedMediaId.value = mediaId;
-  viewerDetailsVisible.value = window.innerWidth >= MEDIA_PREVIEW_DESKTOP_MIN_WIDTH;
   viewerVisible.value = true;
 }
 
@@ -325,7 +348,7 @@ function onMosaicClosed(): void {
 function captureTimeLabel(value: Date | string | null | undefined): string {
   if (value == null) return 'Undated';
   const date = value instanceof Date ? value : new Date(value);
-  return Number.isFinite(date.getTime()) ? formatDateAndTime(date) : 'Undated';
+  return Number.isFinite(date.getTime()) ? `${formatDateAndTime(date, 'UTC')} UTC` : 'Undated';
 }
 
 function itemCountLabel(count: number): string {
@@ -334,6 +357,12 @@ function itemCountLabel(count: number): string {
 </script>
 
 <style scoped>
+.media-mosaic__timezone {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: var(--text-sm-size);
+}
+
 .media-mosaic {
   display: flex;
   flex-direction: column;
@@ -508,7 +537,12 @@ function itemCountLabel(count: number): string {
 }
 
 .media-mosaic__more button {
-  color: var(--accent);
+  color: var(--accent-text);
+}
+
+.media-mosaic__state button {
+  color: var(--accent-text);
+  border-color: var(--accent);
 }
 
 @media (max-width: 640px) {

@@ -3,6 +3,12 @@ import { computed, ref } from 'vue';
 import { readJsonStorage, STORAGE_KEYS, writeJsonStorage } from '@/utils/appStorage';
 import { sanitizeTerrainExaggeration, TERRAIN_EXAGGERATION_DEFAULT } from '@/components/map/terrainMode';
 import { normalizeMapTheme, TOPO_CONTRAST_THEME, type MapTheme } from '@/utils/mapStyle';
+import {
+  DEFAULT_POI_ENABLED,
+  DEFAULT_POI_OPACITY,
+  defaultPoiCategories,
+  sanitizePoiCategories,
+} from '@/components/map/poiCategories';
 
 const OVERLAY_LAYER_IDS = [
   'wanderland',
@@ -50,6 +56,9 @@ export type MapLayerState = {
 };
 
 type PersistedMapSettings = {
+  poiEnabled?: unknown;
+  poiCategories?: unknown;
+  poiOpacity?: unknown;
   theme?: unknown;
   automaticTheme?: unknown;
   mapSourceMode?: unknown;
@@ -67,6 +76,9 @@ type PersistedMapSettings = {
 
 export const useMapSettingsStore = defineStore('mapSettings', () => {
   const hydrated = ref(false);
+  const poiEnabled = ref(DEFAULT_POI_ENABLED);
+  const poiCategories = ref(defaultPoiCategories());
+  const poiOpacity = ref(DEFAULT_POI_OPACITY);
   const theme = ref<MapTheme>(DEFAULT_MAP_THEME);
   const automaticTheme = ref<MapTheme>(DEFAULT_MAP_THEME);
   const mapSourceMode = ref<MapSourceMode>(DEFAULT_MAP_SOURCE_MODE);
@@ -103,6 +115,9 @@ export const useMapSettingsStore = defineStore('mapSettings', () => {
       isRecord(value) ? value : {}
     );
     mapSourceMode.value = sanitizeMapSourceMode(stored.mapSourceMode);
+    poiEnabled.value = sanitizeBoolean(stored.poiEnabled, DEFAULT_POI_ENABLED);
+    poiCategories.value = sanitizePoiCategories(stored.poiCategories);
+    poiOpacity.value = stored.poiOpacity == null ? DEFAULT_POI_OPACITY : clampOpacity(stored.poiOpacity);
     const storedTheme = sanitizeTheme(stored.theme);
     automaticTheme.value = sanitizeAutomaticTheme(stored, mapSourceMode.value, storedTheme);
     theme.value =
@@ -129,6 +144,28 @@ export const useMapSettingsStore = defineStore('mapSettings', () => {
     if (mapSourceMode.value === 'auto') {
       automaticTheme.value = theme.value;
     }
+    persistPreferences();
+  }
+
+  function setPoiEnabled(enabled: boolean): void {
+    poiEnabled.value = enabled;
+    persistPreferences();
+  }
+
+  function setPoiCategory(id: string, enabled: boolean): void {
+    if (!Object.prototype.hasOwnProperty.call(poiCategories.value, id)) return;
+    poiCategories.value = { ...poiCategories.value, [id]: enabled };
+    persistPreferences();
+  }
+
+  function setAllPoiCategories(enabled: boolean): void {
+    if (enabled) poiEnabled.value = true;
+    poiCategories.value = Object.fromEntries(Object.keys(poiCategories.value).map((id) => [id, enabled]));
+    persistPreferences();
+  }
+
+  function setPoiOpacity(opacity: number): void {
+    poiOpacity.value = clampOpacity(opacity);
     persistPreferences();
   }
 
@@ -218,6 +255,9 @@ export const useMapSettingsStore = defineStore('mapSettings', () => {
   }
 
   function reset(): void {
+    poiEnabled.value = DEFAULT_POI_ENABLED;
+    poiCategories.value = defaultPoiCategories();
+    poiOpacity.value = DEFAULT_POI_OPACITY;
     theme.value = DEFAULT_MAP_THEME;
     automaticTheme.value = DEFAULT_MAP_THEME;
     mapSourceMode.value = DEFAULT_MAP_SOURCE_MODE;
@@ -247,6 +287,9 @@ export const useMapSettingsStore = defineStore('mapSettings', () => {
 
   function persistPreferences(): void {
     writeJsonStorage(STORAGE_KEYS.mapSettings, {
+      poiEnabled: poiEnabled.value,
+      poiCategories: poiCategories.value,
+      poiOpacity: poiOpacity.value,
       theme: theme.value,
       automaticTheme: automaticTheme.value,
       mapSourceMode: mapSourceMode.value,
@@ -266,6 +309,13 @@ export const useMapSettingsStore = defineStore('mapSettings', () => {
   hydrate();
 
   return {
+    poiEnabled,
+    poiCategories,
+    poiOpacity,
+    setPoiEnabled,
+    setPoiCategory,
+    setAllPoiCategories,
+    setPoiOpacity,
     hydrated,
     theme,
     mapSourceMode,

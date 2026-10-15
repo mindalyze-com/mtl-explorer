@@ -74,6 +74,34 @@ describe('FilterResultGroupSelector', () => {
     expect(wrapper.emitted('update:selection')?.at(-1)?.[0]).toBeUndefined();
   });
 
+  it('searches small catalogs and clears an empty search without changing selection', async () => {
+    const selection = { includedGroups: [{ value: 'BICYCLE' }] };
+    const wrapper = mount(FilterResultGroupSelector, {
+      props: {
+        availableGroups: [group('WALKING', 2), group('BICYCLE', 1)],
+        selection,
+        effectiveCount: 1,
+        preSelectionCount: 3,
+      },
+    });
+
+    const search = wrapper.get('input[aria-label="Search categories"]');
+    await search.setValue('  bicycle  ');
+    expect(wrapper.findAll('.result-group-selector__row')).toHaveLength(1);
+    expect(wrapper.get('.result-group-selector__row').text()).toContain('BICYCLE');
+    expect((wrapper.get('.result-group-selector__row input').element as HTMLInputElement).checked).toBe(true);
+
+    await search.setValue('does not exist');
+    expect(wrapper.findAll('.result-group-selector__row')).toHaveLength(0);
+    expect(wrapper.get('[role="status"]').text()).toContain('No categories match');
+    await wrapper.get('[role="status"] button').trigger('click');
+    expect((search.element as HTMLInputElement).value).toBe('');
+    expect(wrapper.findAll('.result-group-selector__row')).toHaveLength(2);
+    expect(wrapper.emitted('update:selection')).toBeUndefined();
+    expect(selection).toEqual({ includedGroups: [{ value: 'BICYCLE' }] });
+    wrapper.unmount();
+  });
+
   it('shows search for larger catalogs', async () => {
     const wrapper = mount(FilterResultGroupSelector, {
       props: {

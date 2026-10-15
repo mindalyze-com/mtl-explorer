@@ -1,1524 +1,987 @@
 <template>
-  <div class="dialog-flex-root results-container">
-    <Tabs v-model:value="activeTab" class="measure-tabview">
-      <!-- Sticky context strip: single source of truth for tracks / visits; launches overlays -->
-      <div class="measure-topbar">
-        <div class="measure-context-strip">
-          <!-- Tracks pill: jumps to Table tab -->
-          <button
-            class="measure-context-pill"
-            :title="activeTab === '0' ? 'Track selection \u2014 already on Table' : 'Go to Table to change selection'"
-            @click="activeTab = '0'"
-          >
-            <i class="bi bi-people-fill"></i>
-            <span class="measure-context-pill-value"
-              >{{ selectedTrackIds.size }}<span class="measure-context-pill-sep"> / </span>{{ trackCount }}</span
+  <div class="analysis-workspace">
+    <div class="workspace-context">
+      <button v-if="state.view === 'comparison'" class="context-back" @click="backToResults">← Back to results</button>
+      <span class="context-summary">
+        <strong>{{ state.view === 'comparison' ? activeSegment?.label : zoneSummary }}</strong>
+        <small v-if="state.view === 'results'">{{ contextDetail }}</small>
+      </span>
+      <button class="context-action" title="Edit zones" aria-label="Edit zones" @click="emit('edit-zones')">
+        <i class="bi bi-pencil" aria-hidden="true"></i><span>Edit zones</span>
+      </button>
+      <button
+        class="context-action"
+        :disabled="refreshing"
+        :title="refreshing ? 'Refreshing…' : 'Refresh results'"
+        :aria-label="refreshing ? 'Refreshing…' : 'Refresh results'"
+        @click="emit('refresh-results')"
+      >
+        <i class="bi bi-arrow-clockwise" :class="{ 'context-spin': refreshing }" aria-hidden="true"></i
+        ><span>{{ refreshing ? 'Refreshing…' : 'Refresh' }}</span>
+      </button>
+    </div>
+    <p v-if="state.discoveryError || state.filtersChanged" role="status" class="workspace-warning">
+      {{ state.discoveryError || 'Updating results for the current filters…' }}
+      <Button v-if="state.discoveryError" size="small" outlined @click="emit('refresh-results')">Retry results</Button>
+    </p>
+    <p v-if="state.staleSelections.length" role="status" class="workspace-warning">
+      {{ state.staleSelections.join('; ') }}. These attempts were removed from selection.
+    </p>
+    <div
+      v-show="state.view === 'results'"
+      ref="resultsScroll"
+      class="discovery-scroll"
+      data-sheet-fit-target
+      @scroll="state.scrollTop = ($event.target as HTMLElement).scrollTop"
+    >
+      <div class="discovery-controls">
+        <label
+          >Segment<select v-model="state.segment">
+            <option v-for="segment in session.segments.value" :key="segment.key" :value="segment.key">
+              {{ segment.label }}
+            </option>
+            <option :value="ALL_SEGMENTS">All segments</option>
+          </select></label
+        >
+        <label
+          >Metric<select v-model="state.metric">
+            <option v-for="metric in METRICS" :key="metric.key" :value="metric.key">{{ metric.label }}</option>
+          </select></label
+        >
+      </div>
+      <p v-if="!session.segments.value.length">
+        No tracks pass through these zones. Edit the zones or change your filter.
+      </p>
+      <div v-else class="discovery-layout">
+        <DiscoveryTrend
+          class="discovery-trend-column"
+          :title="trendCopy.title"
+          :description="trendDescription"
+          :series="trendSeries"
+          :focused="state.focusedRow"
+          :axis-label="axisLabel"
+          :display-value="displayValue"
+          @focus="focusPoint"
+        />
+        <div class="discovery-results-column">
+          <div class="results-heading">
+            <h3>
+              Results <small>{{ rows.length }}</small>
+            </h3>
+            <label
+              >Results grouping<select v-model="state.grouping">
+                <option value="average">Average per track</option>
+                <option value="attempts">Individual attempts</option>
+              </select></label
             >
-            <span class="measure-context-pill-label">tracks</span>
-          </button>
-
-          <!-- Consolidated toggle -->
-          <label
-            class="measure-context-toggle"
-            :title="consolidateVisits ? 'Consolidated — averages repeated visits' : 'Each visit shown individually'"
-          >
-            <ToggleSwitch v-model="consolidateVisits" />
-            <span class="measure-context-toggle-label">{{ consolidateVisits ? 'Consolidated' : 'Each visit' }}</span>
-          </label>
-
-          <span class="measure-context-spacer"></span>
-
-          <!-- Compare action: opens overlay -->
-          <button
-            class="measure-action-btn measure-action-btn--compare"
-            :disabled="selectedTrackIds.size === 0 || availableSegments.length === 0"
-            :title="
-              selectedTrackIds.size === 0
-                ? 'Pick tracks in the table first'
-                : 'Compare per-point metrics across selected tracks'
-            "
-            @click="compareOverlayVisible = true"
-          >
-            <i class="bi bi-graph-up"></i>
-            <span>Compare</span>
-            <span v-if="selectedTrackIds.size > 0" class="measure-action-badge">{{ selectedTrackIds.size }}</span>
-          </button>
-
-          <!-- Race action: opens overlay -->
-          <button
-            class="measure-action-btn measure-action-btn--race"
-            :disabled="selectedTrackIds.size === 0 || availableSegments.length === 0"
-            :title="
-              selectedTrackIds.size === 0 ? 'Pick tracks in the table first' : 'Race selected tracks on this segment'
-            "
-            @click="raceOverlayVisible = true"
-          >
-            <i class="bi bi-play-fill"></i>
-            <span>Race</span>
-            <span v-if="selectedTrackIds.size > 0" class="measure-action-badge">{{ selectedTrackIds.size }}</span>
-          </button>
-
-          <!-- Help -->
-          <button
-            class="measure-help-btn"
-            :title="helpVisible ? 'Hide help' : 'How to read results'"
-            @click="helpVisible = !helpVisible"
-          >
-            <i :class="helpVisible ? 'bi bi-question-circle-fill' : 'bi bi-question-circle'"></i>
-          </button>
-        </div>
-
-        <!-- Collapsible help -->
-        <Transition name="help-slide">
-          <div v-if="helpVisible" class="measure-help-inline">
-            <p>Each column is a <strong>segment</strong> — passage between two trigger zones.</p>
-            <table class="measure-help-table">
+            <label
+              >Sort<select v-model="state.sort">
+                <option value="newest">Newest first</option>
+                <option value="metricAsc">{{ metricLabel }}: low to high</option>
+                <option value="metricDesc">{{ metricLabel }}: high to low</option>
+              </select></label
+            >
+          </div>
+          <p v-if="state.segment === ALL_SEGMENTS" class="selection-guidance">
+            Choose a segment in the table to select attempts for comparison or replay.
+          </p>
+          <p v-if="state.metric === 'heartRate'" class="workspace-note">
+            <span v-if="syntheticHealthData">Synthetic demo heart rate. </span>
+            Heart rate is weighted by covered time. {{ tableHealthLoading ? 'Loading heart rate…' : '' }}
+          </p>
+          <div v-for="id in healthFailures" :key="id" role="status">
+            Track {{ id }}: heart rate could not be loaded.
+            <Button size="small" outlined @click="loadTableHealth(id)">Retry heart rate</Button>
+          </div>
+          <div v-if="state.segment === ALL_SEGMENTS" class="segment-matrix">
+            <table>
+              <thead>
+                <tr>
+                  <th>Track</th>
+                  <th v-for="segment in session.segments.value" :key="segment.key">
+                    <button @click="state.segment = segment.key">{{ segment.label }}</button>
+                  </th>
+                </tr>
+              </thead>
               <tbody>
-                <tr>
-                  <td><strong>A &rarr; B</strong></td>
-                  <td>Zone A to zone B</td>
-                </tr>
-                <tr>
-                  <td><strong>B &rarr; A</strong></td>
-                  <td>Return (reverse direction)</td>
-                </tr>
-                <tr>
-                  <td><strong>B &rarr; B</strong></td>
-                  <td>Loop — left and returned to B</td>
+                <tr v-for="track in matrixTracks" :key="track.id">
+                  <th>{{ track.name }}</th>
+                  <td v-for="segment in session.segments.value" :key="segment.key">
+                    <button @click="focusCell(track.id, segment.key)">{{ matrixValue(track.id, segment.key) }}</button>
+                  </td>
                 </tr>
               </tbody>
             </table>
-            <p class="measure-help-sub">
-              Turn on <strong>Consolidated</strong> to average repeated crossings; off shows each visit numbered (A1→B1,
-              B1→A2…).
-            </p>
           </div>
-        </Transition>
-
-        <!-- Two-tab toggle: Table | Trends -->
-        <div class="measure-topbar-row measure-topbar-row--tabs">
-          <div class="measure-view-toggle view-toggle">
-            <button
-              :class="['measure-toggle-btn view-toggle-button', { 'view-toggle-button--active': activeTab === '0' }]"
-              @click="activeTab = '0'"
+          <div v-else class="result-list" aria-label="Segment results">
+            <article
+              v-for="row in sortedRows"
+              :key="row.key"
+              :data-row-key="row.key"
+              class="result-row"
+              :class="{ 'result-row--focused': state.focusedRow === row.key }"
             >
-              <i class="bi bi-table"></i> Table
-            </button>
-            <button
-              :class="['measure-toggle-btn view-toggle-button', { 'view-toggle-button--active': activeTab === '1' }]"
-              @click="activeTab = '1'"
-            >
-              <i class="bi bi-activity"></i> Trends
-            </button>
+              <div class="result-header">
+                <label class="result-selection">
+                  <input
+                    type="checkbox"
+                    :checked="row.attempts.length > 0 && row.attempts.every(isSelected)"
+                    :indeterminate="row.attempts.some(isSelected) && !row.attempts.every(isSelected)"
+                    :disabled="!row.attempts.length"
+                    :aria-label="rowSelectionLabel(row)"
+                    @change="selectRowAttempts(row, ($event.target as HTMLInputElement).checked)"
+                  />
+                </label>
+                <button class="result-main" :aria-expanded="state.expanded.includes(row.key)" @click="focusRow(row)">
+                  <span class="result-date">{{ formatDateCompact(row.date) }}</span>
+                  <span class="result-name">
+                    <span class="result-title" :title="row.name">{{ row.name }}</span>
+                    <span class="result-metadata">
+                      <ActivityTypeBadge v-if="row.activityType" :type="row.activityType" size="xs" />
+                      <span v-else>Activity type unavailable</span>
+                      <span>{{
+                        row.attempt
+                          ? visitLabel(row.attempt)
+                          : `${row.attempts.length} ${row.attempts.length === 1 ? 'visit' : 'visits'} · average`
+                      }}</span>
+                    </span>
+                    <span v-if="row.summary && excludedVisits(row)" class="result-valid-counts">
+                      {{ excludedVisits(row) }} incomplete {{ excludedVisits(row) === 1 ? 'visit' : 'visits' }} excluded
+                      from performance averages
+                    </span>
+                    <span v-if="row.summary" class="result-valid-counts">
+                      Valid visits: elapsed time {{ row.summary.elapsedCount ?? 'unavailable' }} · distance
+                      {{ row.summary.distanceCount ?? 'unavailable' }} · speed
+                      {{ row.summary.speedCount ?? 'unavailable' }}
+                    </span>
+                    <span v-if="row.description" class="result-description" :title="row.description">{{
+                      row.description
+                    }}</span>
+                  </span>
+                  <strong>{{ formatValue(row.value) }}</strong>
+                  <span aria-hidden="true">{{ state.expanded.includes(row.key) ? '⌃' : '⌄' }}</span>
+                </button>
+              </div>
+              <div v-if="state.expanded.includes(row.key)" class="attempt-list">
+                <p v-if="row.description" class="attempt-description">{{ row.description }}</p>
+                <div v-for="attempt in row.attempts" :key="attempt.identity.reference" class="attempt-row">
+                  <label
+                    ><input
+                      type="checkbox"
+                      :checked="isSelected(attempt)"
+                      :aria-label="`Select ${row.name} ${visitLabel(attempt)}`"
+                      @change="session.toggleAttempt(attempt)"
+                    /><span
+                      >{{ visitLabel(attempt) }}<small>{{ formatValue(attemptValue(attempt)) }}</small></span
+                    ></label
+                  >
+                  <button @click="inspect(attempt)">Details</button>
+                  <small v-if="attempt.identity.timingStatus !== 'AVAILABLE'"
+                    >Timing unavailable · {{ readable(attempt.identity.timingStatus) }}</small
+                  >
+                  <small v-if="hasRecordingGap(attempt)"
+                    >Recording gap; endpoint elapsed time excluded from performance averages</small
+                  >
+                  <small v-else-if="!performanceSupported(attempt)"
+                    >Incomplete distance; excluded from performance averages</small
+                  >
+                  <small v-if="stopCount(attempt)"
+                    >{{ stopCount(attempt) }}
+                    {{
+                      attempt.identity.timingStatus === 'AVAILABLE'
+                        ? 'breaks included in elapsed time'
+                        : 'observed breaks'
+                    }}</small
+                  >
+                </div>
+                <button @click="emit('show-track-details', row.trackId)">Open full track</button>
+              </div>
+            </article>
           </div>
         </div>
       </div>
-      <TabPanels>
-        <TabPanel value="0">
-          <div class="panel-outer panel-stack">
-            <!-- Table-only metric selector (affects segment columns) -->
-            <div class="measure-table-subbar">
-              <span class="measure-control-label">Column metric</span>
-              <div class="measure-metric-chips">
-                <button
-                  v-for="u in crossingUnits"
-                  :key="u"
-                  class="measure-metric-chip"
-                  :class="{ 'measure-metric-chip--active': crossingUnitSelected === u }"
-                  @click="crossingUnitSelected = u"
-                >
-                  {{ u }}
-                </button>
-              </div>
-            </div>
-            <div class="table-scroll-wrapper measure-results-table-wrap">
-              <DataTable
-                :value="resultsCalculated"
-                column-resize-mode="fit"
-                responsive-layout="scroll"
-                sort-field="trackStartDate"
-                :sort-order="-1"
-                class="p-datatable-sm measure-results-table"
-              >
-                <template #empty>
-                  <div class="measure-empty-state">
-                    <div class="measure-empty-icon">
-                      <i class="bi bi-signpost-split"></i>
-                    </div>
-                    <h3 class="measure-empty-headline">No tracks cross all selected zones</h3>
-                    <p class="measure-empty-body">
-                      The analysis requires tracks to pass through <strong>every</strong> zone. Some tracks may pass
-                      through individual zones but not all of them.
-                    </p>
-                    <div v-if="perZoneCounts && perZoneCounts.length" class="measure-empty-zones">
-                      <span class="measure-empty-zones-label">Tracks per zone:</span>
-                      <span
-                        v-for="zc in perZoneCounts"
-                        :key="zc.name"
-                        class="measure-empty-zone-chip"
-                        :class="zc.count === 0 ? 'measure-empty-zone-chip--zero' : 'measure-empty-zone-chip--ok'"
-                      >
-                        {{ zc.name }}: {{ zc.count }}
-                      </span>
-                    </div>
-                    <ul class="measure-empty-tips">
-                      <li><i class="bi bi-geo-alt"></i> Move zones closer to your recorded routes</li>
-                      <li><i class="bi bi-arrows-angle-expand"></i> Increase the detection radius</li>
-                      <li><i class="bi bi-dash-circle"></i> Try using fewer zones</li>
-                    </ul>
-                  </div>
-                </template>
-                <Column
-                  :style="isMobile ? 'min-width: 2.25rem; width: 2.25rem' : 'min-width: 2.75rem; width: 2.75rem'"
-                  body-class="measure-select-cell"
-                  header-class="measure-select-cell"
-                >
-                  <template #header>
-                    <input
-                      type="checkbox"
-                      class="measure-select-checkbox"
-                      :checked="allSelected"
-                      :indeterminate.prop="someSelected"
-                      :title="allSelected ? 'Clear selection' : 'Select all tracks for comparison'"
-                      @change="toggleSelectAll"
-                    />
-                  </template>
-                  <template #body="slotProps">
-                    <input
-                      type="checkbox"
-                      class="measure-select-checkbox"
-                      :checked="selectedTrackIds.has(slotProps.data.trackId)"
-                      title="Include in Compare"
-                      @change="toggleTrackSelection(slotProps.data.trackId)"
-                    />
-                  </template>
-                </Column>
-                <Column field="fileName" header="Name" :sortable="true" style="min-width: 8rem">
-                  <template #body="slotProps">
-                    <a
-                      class="link-style measure-name-link"
-                      :title="slotProps.data.fileName || slotProps.data.trackId"
-                      @click="showTrackDetails(slotProps.data.trackId)"
-                    >
-                      {{ slotProps.data.fileName || slotProps.data.trackId }}
-                    </a>
-                  </template>
-                </Column>
-
-                <Column
-                  field="trackStartDate"
-                  header="Start"
-                  :sortable="true"
-                  :style="isMobile ? 'min-width: 7rem' : 'min-width: 9rem'"
-                >
-                  <template #body="slotProps">
-                    {{ formatDate(slotProps.data.trackStartDate, isMobile) }}
-                  </template>
-                </Column>
-                <Column
-                  v-if="!isMobile"
-                  field="trackDurationInMillis"
-                  header="Duration"
-                  :sortable="true"
-                  style="min-width: 7rem"
-                >
-                  <template #body="slotProps">
-                    <span
-                      v-tooltip.top="{
-                        value: formatDurationTooltip(slotProps.data.trackDurationInMillis),
-                        showDelay: 400,
-                      }"
-                    >
-                      {{ formatDurationSmart(slotProps.data.trackDurationInMillis) }}
-                    </span>
-                  </template>
-                </Column>
-
-                <Column field="statusSort" header="" :sortable="true" style="min-width: 2.5rem; width: 2.5rem">
-                  <template #body="slotProps">
-                    <span
-                      v-if="slotProps.data.status && slotProps.data.status.ok"
-                      class="measure-status-chip measure-status-chip--ok"
-                      title="No stops detected in any segment"
-                    >
-                      <i class="bi bi-check-circle-fill"></i>
-                    </span>
-                    <button
-                      v-else-if="slotProps.data.status"
-                      type="button"
-                      class="measure-status-chip measure-status-chip--notes"
-                      aria-label="Stop details"
-                      @click.stop="showStopsInfo($event, slotProps.data.status)"
-                    >
-                      <i class="bi bi-exclamation-circle-fill"></i>
-                    </button>
-                  </template>
-                </Column>
-
-                <Column
-                  v-for="col of resultTableColumns"
-                  :key="col.field"
-                  :field="col.field"
-                  :header="col.header"
-                  :sort-field="col.sortField"
-                  sortable
-                  :style="isMobile ? 'min-width: 5.75rem' : 'min-width: 8rem'"
-                >
-                  <template #body="slotProps">
-                    {{ slotProps.data[col.field] }}
-                  </template>
-                </Column>
-              </DataTable>
-            </div>
-          </div>
-        </TabPanel>
-
-        <TabPanel value="1">
-          <div class="panel-outer chart-panel">
-            <div class="measure-graph-card">
-              <div class="measure-graph-header">
-                <span class="measure-graph-title"><i class="bi bi-activity"></i> Segment trends over time</span>
-                <span class="measure-graph-sub"
-                  >Average speed per segment vs. track start date — one line per segment.</span
-                >
-              </div>
-              <MeasureGraph :graph-series-data="graphSeriesData"></MeasureGraph>
-            </div>
-          </div>
-        </TabPanel>
-      </TabPanels>
-    </Tabs>
-
-    <!-- Compare bottom sheet (stacked on top) -->
-    <BottomSheet
-      v-model="compareOverlayVisible"
-      title="Segment Analyzer (Compare)"
-      icon="bi bi-stopwatch"
-      :detents="[{ height: '92vh' }]"
-      :z-index="5200"
-      :no-backdrop="true"
+    </div>
+    <div
+      v-if="state.view === 'results' && activeSegment && segmentAttempts.length"
+      class="selection-bar"
+      role="region"
+      aria-label="Attempt selection and comparison"
     >
-      <SegmentCompare
-        :measure-service-result="measureServiceResult"
-        :consolidate-visits="consolidateVisits"
-        :selected-track-ids="selectedTrackIds"
-        :selected-segment="selectedSegment"
-        :available-segments="availableSegments"
-        @show-track-details="showTrackDetails"
-        @goto-table="
-          compareOverlayVisible = false;
-          activeTab = '0';
-        "
-      />
-    </BottomSheet>
-
-    <!-- Race bottom sheet (stacked on top) -->
-    <BottomSheet
-      v-model="raceOverlayVisible"
-      title="Segment Analyzer (Race)"
-      icon="bi bi-stopwatch"
-      :detents="[{ height: '92vh' }]"
-      :z-index="5200"
-      :no-backdrop="true"
-    >
-      <VirtualRace
-        :measure-service-result="measureServiceResult"
-        :consolidate-visits="consolidateVisits"
-        :initial-segment="selectedSegment"
-        :selected-track-ids="selectedTrackIds"
-        @show-track-details="showTrackDetails"
-      />
-    </BottomSheet>
-
-    <Popover ref="stopsInfoPopover" append-to="body">
-      <p class="measure-status-info-text">{{ currentStopsInfo }}</p>
-    </Popover>
+      <span class="selection-status" aria-live="polite">
+        <template v-if="session.selected.value.length">
+          <strong
+            >{{ session.selected.value.length }}
+            {{ session.selected.value.length === 1 ? 'attempt' : 'attempts' }} selected</strong
+          >
+          <small>{{ activeSegment.label }}</small>
+        </template>
+        <template v-else>
+          <strong>Choose attempts to compare or replay</strong>
+          <small>{{
+            state.grouping === 'average'
+              ? 'Tick a result to select its visits, or open it to pick visits individually.'
+              : `Tick the passes through ${activeSegment.label} you want to compare.`
+          }}</small>
+        </template>
+      </span>
+      <div class="selection-actions">
+        <button
+          v-if="session.selected.value.length < segmentAttempts.length"
+          class="select-all"
+          @click="session.selectAll"
+        >
+          Select all {{ segmentAttempts.length }}
+        </button>
+        <button
+          v-if="session.selected.value.length"
+          aria-label="Clear selected attempts"
+          @click="session.clearSelection"
+        >
+          Clear
+        </button>
+        <template v-if="session.selected.value.length">
+          <Button
+            size="small"
+            outlined
+            :disabled="!canReplay"
+            :title="canReplay ? undefined : 'Replay needs timing for every selected attempt'"
+            @click="openComparison('replay')"
+          >
+            Replay
+          </Button>
+          <Button class="primary-action" size="small" @click="openComparison('charts')">
+            {{
+              session.selected.value.length > 1
+                ? `Compare ${session.selected.value.length} attempts`
+                : 'Inspect attempt'
+            }}
+          </Button>
+        </template>
+      </div>
+    </div>
+    <SegmentCompare
+      v-if="state.view === 'comparison'"
+      :map="map"
+      :measure-service-result="measureServiceResult"
+      :selected-track-ids="selectedTrackIds"
+      :selected-attempts="session.selected.value"
+      :selected-segment="selectedSegmentCode"
+      :session="session"
+      :reference-attempt="state.references[state.segment]"
+      @goto-table="backToResults"
+      @show-track-details="emit('show-track-details', $event)"
+      @refresh-results="emit('refresh-results')"
+    />
   </div>
 </template>
-
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue';
-import type { CrossingPointsResponseDto } from 'x8ing-mtl-api-typescript-fetch/dist/esm/models/index';
-import type Highcharts from 'highcharts';
-import ToggleSwitch from 'primevue/toggleswitch';
+import { warnSanitized } from '@/utils/safeLogging';
+
+import { useDemoStatus } from '@/composables/useDemoStatus';
+const { syntheticHealthData } = useDemoStatus();
+import { computed, nextTick, onBeforeUnmount, ref, toRaw, watch } from 'vue';
+import type { Map as MapLibreMap } from 'maplibre-gl';
+import Button from 'primevue/button';
+import type {
+  CrossingPointsResponseDto,
+  GpsTrack,
+  SegmentConsolidatedSummary,
+  SegmentTrackHeartRate,
+} from 'x8ing-mtl-api-typescript-fetch';
+import { formatDateCompact, formatDistanceSmart, formatDuration, formatRadius, formatSpeed } from '@/utils/Utils';
+import { useMeasurementSystem } from '@/composables/useMeasurementSystem';
+import { speedDisplayValue, longDistanceDisplayValue, MEASUREMENT_DISPLAY_PROFILES } from '@/utils/units';
+import DiscoveryTrend, { type TrendPoint } from './DiscoveryTrend.vue';
+import SegmentCompare from './SegmentCompare.vue';
+import ActivityTypeBadge from '@/components/ui/ActivityTypeBadge.vue';
+import { segmentTrackName, segmentStatusLabel as readable } from './segmentDisplay';
 import {
-  formatDistanceSmart,
-  formatDuration,
-  formatDurationSmart,
-  formatDurationTooltip,
-  formatDateAndTime,
-  formatDateCompact,
-  formatSpeed,
-} from '@/utils/Utils';
-import VirtualRace from '@/components/virtual-race/VirtualRace.vue';
-import SegmentCompare from '@/components/measure/SegmentCompare.vue';
-import MeasureGraph from '@/components/measure/MeasureGraph.vue';
-import BottomSheet from '@/components/ui/BottomSheet.vue';
-import { buildVisitSegmentOptions } from '@/components/measure/segmentSlice';
-
-defineOptions({ name: 'DisplayMeasureResults' });
-
-const COLUM_ID = {
-  trackId: 'trackId',
-  fileName: 'fileName',
-  crossingDurationMillis: 'crossingDurationMillis',
-  trackStartDate: 'trackStartDate',
-  trackEndDate: 'trackEndDate',
-  trackDurationInMillis: 'trackDurationInMillis',
-  avgSpeedSinceLastTriggerPoint: 'avgSpeedSinceLastTriggerPoint',
-  distanceInMeterSinceLastTriggerPoint: 'distanceInMeterSinceLastTriggerPoint',
-  status: 'status',
-  statusSort: 'statusSort',
-};
-
-const CROSSING_UNITS = {
-  distance: 'distance',
-  speed: 'speed',
-  time: 'time',
-};
-
-type SegmentCode = { point1?: string; point2?: string; consolidated?: boolean; p1Visit?: number; p2Visit?: number };
-type SegmentOption = { name?: string; count?: number; code: SegmentCode };
-type TableRow = Record<string, unknown>;
-type GraphSeries = Highcharts.SeriesLineOptions;
-type MeasureGpsTrack = {
-  endDate?: Date;
-  id: number;
-  indexedFile: { name: string };
-  startDate?: Date;
-};
-type MeasureCrossing = {
-  avgSpeedSinceLastTriggerPoint: number;
-  distanceInMeterSinceLastTriggerPoint: number;
-  segmentNotesSinceLastTriggerPoint?: { longestStopSec?: number; stopCount?: number; totalStoppedSec?: number };
-  timeInSecSinceLastTriggerPoint: number;
-  triggerPoint: { name: string };
-};
-type MeasureCrossingsPerTrack = {
-  crossings: MeasureCrossing[];
-  gpsTrack: MeasureGpsTrack;
-};
-type StopStatus = {
-  ok?: boolean;
-  totalStopCount: number;
-  totalStoppedSec: number;
-  longestStopSec: number;
-  segments?: Array<{ label: string; stopCount: number; totalStoppedSec: number }>;
-};
-
-function asMeasureCrossingsPerTrack(value: unknown): MeasureCrossingsPerTrack {
-  return value as MeasureCrossingsPerTrack;
-}
-
+  ALL_SEGMENTS,
+  attemptSegment,
+  segmentKey,
+  useAnalysisSession,
+  visitLabel,
+  timingSupported,
+  performanceSupported,
+  type AnalysisSession,
+  type DiscoveryMetric,
+} from './useAnalysisSession';
+import { assertAttemptIdentity, isAttempt, runSegmentRequests, type Attempt } from './useSegmentAttempts';
+import { fetchSegmentTableHeartRate } from './segmentAnalysisApi';
 const props = defineProps<{
+  map?: MapLibreMap;
   measureServiceResult: CrossingPointsResponseDto;
+  session?: AnalysisSession;
+  refreshing?: boolean;
 }>();
-
 const emit = defineEmits<{
-  'show-track-details': [trackId: number | string];
+  'show-track-details': [id: number | string];
+  'refresh-results': [];
+  'edit-zones': [];
 }>();
-
-const helpVisible = ref(false);
-const activeTab = ref('0');
-const crossingUnits = [CROSSING_UNITS.speed, CROSSING_UNITS.time, CROSSING_UNITS.distance];
-const crossingUnitSelected = ref(CROSSING_UNITS.speed);
-const consolidateVisits = ref(true);
-const selectedTrackIds = ref(new Set<number>());
-const selectedSegment = ref<SegmentCode | null>(null);
-const currentStopsInfo = ref('');
-const raceOverlayVisible = ref(false);
-const compareOverlayVisible = ref(false);
-const autoSelectedFor = ref<string | null>(null);
-const stopsInfoPopover = ref<{ toggle?: (event: Event) => void } | null>(null);
-
-const allResults = computed(() => {
-  if (!props.measureServiceResult) {
-    return {
-      tableData: [] as TableRow[],
-      columns: [] as Array<{ field: string; header: string; sortField: string }>,
-      graphSeries: [] as GraphSeries[],
-    };
-  }
-
-  const sortValuePostfix = '-sortValue';
-  const speedPostfix = '-speed';
-  const allColumns = new Map<string, string>();
-  const tableData: TableRow[] = [];
-
-  for (const crossingRaw of Object.values(props.measureServiceResult.crossings || {})) {
-    const crossing = asMeasureCrossingsPerTrack(crossingRaw);
-    const tableRow: TableRow = {};
-
-    const gpsTrack = crossing.gpsTrack;
-    tableRow[COLUM_ID.trackId] = gpsTrack.id;
-    tableRow[COLUM_ID.fileName] = gpsTrack.indexedFile.name;
-    tableRow[COLUM_ID.trackStartDate] = gpsTrack.startDate;
-    tableRow[COLUM_ID.trackEndDate] = gpsTrack.endDate;
-    let duration = 0;
-    if (gpsTrack.startDate && gpsTrack.endDate) {
-      duration = gpsTrack.endDate.getTime() - gpsTrack.startDate.getTime();
-    }
-    tableRow[COLUM_ID.trackDurationInMillis] = duration;
-
-    const countPerTriggerPoint = new Map<string, number>();
-    let lastTrackCrossing: MeasureCrossing | null = null;
-    const consolidatedSegments = new Map<
-      string,
-      { count: number; totalTimeSec: number; totalSpeed: number; totalDistance: number }
-    >();
-    // Per-row stop notes: aggregate across all segments of this track.
-    // Each entry: { label, stopCount, totalStoppedSec, longestStopSec }
-    const segmentNotesList: Array<{
-      label: string;
-      longestStopSec: number;
-      stopCount: number;
-      totalStoppedSec: number;
-    }> = [];
-
-    crossing.crossings.forEach((trackCrossing) => {
-      const triggerPoint = trackCrossing.triggerPoint;
-      if (countPerTriggerPoint.has(triggerPoint.name)) {
-        countPerTriggerPoint.set(triggerPoint.name, (countPerTriggerPoint.get(triggerPoint.name) || 0) + 1);
-      } else {
-        countPerTriggerPoint.set(triggerPoint.name, 1);
-      }
-
-      if (lastTrackCrossing != null) {
-        let segmentP1, segmentP2;
-        if (consolidateVisits.value) {
-          segmentP1 = lastTrackCrossing.triggerPoint.name;
-          segmentP2 = triggerPoint.name;
-        } else {
-          segmentP1 =
-            lastTrackCrossing.triggerPoint.name + countPerTriggerPoint.get(lastTrackCrossing.triggerPoint.name);
-          segmentP2 = triggerPoint.name + countPerTriggerPoint.get(triggerPoint.name);
-        }
-        const segmentLabel = segmentP1 + ' - ' + segmentP2;
-        const segmentKey = segmentP1 + '-' + segmentP2;
-        allColumns.set(segmentKey, segmentLabel);
-
-        // Collect per-segment notes (stops) for this visit. Notes are on
-        // the CURRENT crossing (they describe the segment ending at it).
-        const notes = trackCrossing.segmentNotesSinceLastTriggerPoint;
-        const stopCount = notes?.stopCount ?? 0;
-        if (stopCount > 0) {
-          segmentNotesList.push({
-            label: segmentLabel,
-            stopCount,
-            totalStoppedSec: notes?.totalStoppedSec || 0,
-            longestStopSec: notes?.longestStopSec || 0,
-          });
-        }
-
-        if (consolidateVisits.value) {
-          if (!consolidatedSegments.has(segmentKey)) {
-            consolidatedSegments.set(segmentKey, { count: 0, totalTimeSec: 0, totalSpeed: 0, totalDistance: 0 });
-          }
-          const seg = consolidatedSegments.get(segmentKey)!;
-          seg.count++;
-          seg.totalTimeSec += trackCrossing.timeInSecSinceLastTriggerPoint || 0;
-          seg.totalSpeed += trackCrossing.avgSpeedSinceLastTriggerPoint || 0;
-          seg.totalDistance += trackCrossing.distanceInMeterSinceLastTriggerPoint || 0;
-        } else {
-          switch (crossingUnitSelected.value) {
-            case CROSSING_UNITS.time: {
-              tableRow[segmentKey + sortValuePostfix] = trackCrossing.timeInSecSinceLastTriggerPoint * 1000;
-              tableRow[segmentKey] = formatDuration(trackCrossing.timeInSecSinceLastTriggerPoint * 1000);
-              break;
-            }
-            case CROSSING_UNITS.speed: {
-              tableRow[segmentKey + sortValuePostfix] = trackCrossing.avgSpeedSinceLastTriggerPoint;
-              tableRow[segmentKey] = formatSpeed(trackCrossing.avgSpeedSinceLastTriggerPoint, 2);
-              break;
-            }
-            case CROSSING_UNITS.distance: {
-              tableRow[segmentKey + sortValuePostfix] = trackCrossing.distanceInMeterSinceLastTriggerPoint;
-              tableRow[segmentKey] = formatDistanceSmart(trackCrossing.distanceInMeterSinceLastTriggerPoint);
-              break;
-            }
-            default: {
-              console.error('no crossing unit given');
-            }
-          }
-
-          tableRow[segmentKey + COLUM_ID.avgSpeedSinceLastTriggerPoint] = trackCrossing.avgSpeedSinceLastTriggerPoint;
-          tableRow[segmentKey + COLUM_ID.distanceInMeterSinceLastTriggerPoint] =
-            trackCrossing.distanceInMeterSinceLastTriggerPoint;
-          tableRow[segmentKey + speedPostfix] = trackCrossing.avgSpeedSinceLastTriggerPoint;
-        }
-      }
-
-      lastTrackCrossing = trackCrossing;
-    });
-
-    if (consolidateVisits.value) {
-      for (const [segmentKey, seg] of consolidatedSegments) {
-        const avgTimeSec = seg.totalTimeSec / seg.count;
-        const avgSpeed = seg.totalSpeed / seg.count;
-        const avgDistance = seg.totalDistance / seg.count;
-
-        switch (crossingUnitSelected.value) {
-          case CROSSING_UNITS.time: {
-            tableRow[segmentKey + sortValuePostfix] = avgTimeSec * 1000;
-            tableRow[segmentKey] = formatDuration(avgTimeSec * 1000);
-            break;
-          }
-          case CROSSING_UNITS.speed: {
-            tableRow[segmentKey + sortValuePostfix] = avgSpeed;
-            tableRow[segmentKey] = formatSpeed(avgSpeed, 2);
-            break;
-          }
-          case CROSSING_UNITS.distance: {
-            tableRow[segmentKey + sortValuePostfix] = avgDistance;
-            tableRow[segmentKey] = formatDistanceSmart(avgDistance);
-            break;
-          }
-        }
-        tableRow[segmentKey + speedPostfix] = avgSpeed;
-      }
-    }
-
-    // Per-row status summary (stop notes aggregated across segments).
-    let totalStopCount = 0;
-    let totalStoppedSec = 0;
-    let longestStopSec = 0;
-    for (const sn of segmentNotesList) {
-      totalStopCount += sn.stopCount;
-      totalStoppedSec += sn.totalStoppedSec;
-      if (sn.longestStopSec > longestStopSec) longestStopSec = sn.longestStopSec;
-    }
-    tableRow[COLUM_ID.status] = {
-      ok: totalStopCount === 0,
-      totalStopCount,
-      totalStoppedSec,
-      longestStopSec,
-      segments: segmentNotesList,
-    };
-    // Sortable scalar — higher = more problematic.
-    tableRow[COLUM_ID.statusSort] = totalStopCount * 1_000_000 + Math.round(totalStoppedSec);
-
-    tableData.push(tableRow);
-  }
-
-  const columns: Array<{ field: string; header: string; sortField: string }> = [];
-  allColumns.forEach((v, k) => {
-    columns.push({ field: k, header: v, sortField: k + sortValuePostfix });
-  });
-
-  const graphSeries: GraphSeries[] = [];
-  allColumns.forEach((v1, k1) => {
-    const data: Array<[number, number]> = [];
-    tableData.forEach((v2) => {
-      const speed = v2[k1 + speedPostfix];
-      const trackStartDate = v2[COLUM_ID.trackStartDate];
-      if (typeof speed === 'number' && trackStartDate instanceof Date) {
-        data.push([trackStartDate.getTime(), speed]);
-      }
-    });
-    data.sort((a, b) => a[0] - b[0]);
-    graphSeries.push({ type: 'line', name: v1, data });
-  });
-
-  return { tableData, columns, graphSeries };
+const session = props.session ?? useAnalysisSession();
+const state = session.state;
+const resultsScroll = ref<HTMLElement | null>(null);
+const { measurementSystem } = useMeasurementSystem();
+const METRICS: Array<{ key: DiscoveryMetric; label: string }> = [
+  { key: 'speed', label: 'Speed' },
+  { key: 'time', label: 'Elapsed time' },
+  { key: 'distance', label: 'Distance' },
+  { key: 'heartRate', label: 'Average heart rate' },
+];
+const metricLabel = computed(() => METRICS.find((m) => m.key === state.metric)!.label);
+const TREND_COPY: Record<DiscoveryMetric, { title: string; description: string }> = {
+  speed: {
+    title: 'Your speed trends',
+    description: 'See how your average speed on this segment changes across activities.',
+  },
+  time: {
+    title: 'Your segment times',
+    description: 'See how long this segment takes across activities, including stops.',
+  },
+  distance: {
+    title: 'Distance over time',
+    description:
+      'Distance traveled on this segment across activities. Different routes or GPS recordings can change the distance.',
+  },
+  heartRate: {
+    title: 'Your heart rate trends',
+    description: 'Average heart rate on this segment across activities, using the available heart rate recordings.',
+  },
+};
+const trendCopy = computed(() => TREND_COPY[state.metric]);
+const trendDescription = computed(() => {
+  const description =
+    state.segment === ALL_SEGMENTS
+      ? trendCopy.value.description.replaceAll('this segment', 'each segment')
+      : trendCopy.value.description;
+  return `${description} ${state.grouping === 'average' ? 'Each point is one activity’s average across its visits.' : 'Each point is one attempt.'}`;
 });
-
-const resultsCalculated = computed(() => allResults.value.tableData);
-const resultTableColumns = computed(() => allResults.value.columns);
-const graphSeriesData = computed(() => allResults.value.graphSeries);
-const trackCount = computed(() => resultsCalculated.value.length);
-
-const availableSegments = computed<SegmentOption[]>(() => {
-  if (!props.measureServiceResult) return [];
-  if (consolidateVisits.value !== false) {
-    return (props.measureServiceResult.segmentsStats || []).map((s) => ({
-      name: s.label,
-      count: s.count,
-      code: { point1: s.point1, point2: s.point2, consolidated: true },
-    }));
-  }
-  return buildVisitSegmentOptions(
-    Object.values(props.measureServiceResult.crossings || {}).map(
-      (trackCrossingsRaw) => asMeasureCrossingsPerTrack(trackCrossingsRaw).crossings
-    )
+const axisLabel = computed(() => {
+  const profile = MEASUREMENT_DISPLAY_PROFILES[measurementSystem.value];
+  const unit =
+    state.metric === 'speed'
+      ? profile.speed
+      : state.metric === 'distance'
+        ? profile.longDistance
+        : state.metric === 'time'
+          ? 's'
+          : 'bpm';
+  return `${metricLabel.value} (${unit})`;
+});
+const activeSegment = computed(() => session.segments.value.find((s) => s.key === state.segment));
+const selectedSegmentCode = computed(() =>
+  activeSegment.value ? { point1: activeSegment.value.from, point2: activeSegment.value.to, consolidated: true } : null
+);
+const selectedTrackIds = computed(() => new Set(session.selected.value.map((a) => a.identity.trackId)));
+const segmentAttempts = computed(() =>
+  Object.values(props.measureServiceResult.crossings ?? {})
+    .flatMap((track) => (track.attempts ?? []).filter(isAttempt))
+    .filter((attempt) => attemptSegment(attempt) === state.segment)
+);
+const canReplay = computed(() => session.selected.value.length > 0 && session.selected.value.every(timingSupported));
+const trackCount = computed(() => Object.keys(props.measureServiceResult.crossings ?? {}).length);
+const zoneSummary = computed(() => {
+  const names = state.zones.map((zone) => zone.name).filter(Boolean);
+  return names.length ? `Zones ${names.join(' · ')}` : 'Segments';
+});
+const contextDetail = computed(() =>
+  [
+    state.radius ? `${formatRadius(state.radius)} radius` : '',
+    `${trackCount.value} matching ${trackCount.value === 1 ? 'track' : 'tracks'}`,
+  ]
+    .filter(Boolean)
+    .join(' · ')
+);
+const tableHealth = ref<Record<number, SegmentTrackHeartRate>>({});
+const tableHealthLoading = ref(false);
+const healthFailures = ref<number[]>([]);
+let generation = 0;
+let abort = new AbortController();
+async function loadTableHealth(onlyTrack?: number) {
+  const current = generation,
+    signal = abort.signal;
+  tableHealthLoading.value = true;
+  const entries = Object.entries(props.measureServiceResult.crossings ?? {}).filter(([id]) =>
+    onlyTrack == null ? !tableHealth.value[Number(id)] : Number(id) === onlyTrack
   );
-});
-
-const allSelected = computed(() => {
-  const rows = resultsCalculated.value;
-  return rows.length > 0 && rows.every((r) => selectedTrackIds.value.has(rowTrackId(r)));
-});
-
-const someSelected = computed(() => {
-  return selectedTrackIds.value.size > 0 && !allSelected.value;
-});
-
-const perZoneCounts = computed(() => {
-  if (!props.measureServiceResult || !props.measureServiceResult.tracksPerZone) return null;
-  const counts = props.measureServiceResult.tracksPerZone;
-  return Object.entries(counts).map(([name, count]) => ({ name, count }));
-});
-
-const isMobile = computed(() => {
-  if (typeof window === 'undefined') {
-    return false;
-  }
-  return window.innerWidth <= 768;
-});
-
-function segmentsEqual(a: SegmentCode | null | undefined, b: SegmentCode | null | undefined) {
-  if (!a || !b) return false;
-  if (a.consolidated !== b.consolidated) return false;
-  if (a.point1 !== b.point1 || a.point2 !== b.point2) return false;
-  if (a.consolidated === false) {
-    if (a.p1Visit !== b.p1Visit || a.p2Visit !== b.p2Visit) return false;
-  }
-  return true;
-}
-
-function toggleTrackSelection(trackId: number) {
-  const next = new Set(selectedTrackIds.value);
-  if (next.has(trackId)) next.delete(trackId);
-  else next.add(trackId);
-  selectedTrackIds.value = next;
-}
-
-function toggleSelectAll() {
-  if (allSelected.value) {
-    selectedTrackIds.value = new Set();
-  } else {
-    selectedTrackIds.value = new Set(
-      resultsCalculated.value.map(rowTrackId).filter((trackId): trackId is number => trackId != null)
-    );
-  }
-}
-
-function rowTrackId(row: TableRow): number {
-  return Number(row[COLUM_ID.trackId]);
-}
-
-function formatDate(date: Date | string | number | null | undefined, compact = false) {
-  return compact ? formatDateCompact(date) : formatDateAndTime(date);
-}
-
-function formatStoppedDuration(sec: number | null | undefined) {
-  if (sec == null || sec <= 0) return '';
-  const total = Math.round(sec);
-  const h = Math.floor(total / 3600);
-  const m = Math.floor((total % 3600) / 60);
-  const s = total % 60;
-  if (h > 0) return `${h}h ${m}m`;
-  if (m > 0) return `${m}m ${s}s`;
-  return `${s}s`;
-}
-
-function formatStopsTooltip(status: StopStatus | null | undefined) {
-  if (!status || status.ok) return 'No stops detected';
-  const lines = [];
-  lines.push(
-    `${status.totalStopCount} stop${status.totalStopCount !== 1 ? 's' : ''} · total ${formatStoppedDuration(status.totalStoppedSec)}`
-  );
-  if (status.longestStopSec > 0 && status.totalStopCount > 1) {
-    lines.push(`Longest: ${formatStoppedDuration(status.longestStopSec)}`);
-  }
-  if (status.segments && status.segments.length) {
-    lines.push('—');
-    for (const sn of status.segments) {
-      lines.push(`${sn.label}: ${sn.stopCount}× · ${formatStoppedDuration(sn.totalStoppedSec)}`);
+  await runSegmentRequests(entries, async ([id, track]) => {
+    const attempts = (track.attempts ?? []).filter(isAttempt);
+    if (!attempts.length || signal.aborted) return;
+    try {
+      const health = await fetchSegmentTableHeartRate(
+        attempts.map((a) => a.identity.reference),
+        signal
+      );
+      if (current !== generation || signal.aborted) return;
+      if (health.trackId !== Number(id) || health.revision !== attempts[0].identity.revision)
+        throw new Error('Source changed');
+      for (const item of health.attempts ?? []) {
+        const expected = attempts.find((a) => a.identity.reference === item.identity?.reference);
+        if (!expected) throw new Error('Unexpected health attempt');
+        assertAttemptIdentity(expected.identity, item.identity);
+      }
+      tableHealth.value[Number(id)] = health;
+      healthFailures.value = healthFailures.value.filter((failed) => failed !== Number(id));
+    } catch (error) {
+      if (current === generation && !signal.aborted) {
+        warnSanitized(
+          'Segment heart rate summary failed',
+          { trackId: id, error },
+          { topic1: 'application', topic2: 'DisplayMeasureResults', topic3: 'loadTableHealth' }
+        );
+        healthFailures.value = [...new Set([...healthFailures.value, Number(id)])];
+      }
     }
-  }
-  return lines.join('\n');
+  });
+  if (current === generation) tableHealthLoading.value = false;
 }
-
-function showStopsInfo(event: Event, status: StopStatus) {
-  currentStopsInfo.value = formatStopsTooltip(status);
-  stopsInfoPopover.value?.toggle?.(event);
-}
-
-function showTrackDetails(id: number | string) {
-  emit('show-track-details', id);
-}
-
 watch(
   () => props.measureServiceResult,
-  () => {
-    // Auto-select the first N tracks when a new result set arrives.
-    // Uses a key derived from the tracks to avoid re-triggering on unrelated re-renders.
-    const ids =
-      props.measureServiceResult && props.measureServiceResult.crossings
-        ? Object.values(props.measureServiceResult.crossings)
-            .map((c) => c.gpsTrack?.id)
-            .filter((id): id is number => id != null)
-        : [];
-    const key = ids.join(',');
-    if (autoSelectedFor.value === key) return;
-    autoSelectedFor.value = key;
-    const AUTO_SELECT_LIMIT = 5;
-    selectedTrackIds.value = new Set(ids.slice(0, AUTO_SELECT_LIMIT));
+  (result) => {
+    if (toRaw(session.state.result) !== toRaw(result)) session.setResults(result);
+    generation++;
+    abort.abort();
+    abort = new AbortController();
+    tableHealth.value = {};
+    healthFailures.value = [];
+    tableHealthLoading.value = false;
+    if (state.metric === 'heartRate') void loadTableHealth();
   },
   { immediate: true }
 );
-
 watch(
-  availableSegments,
-  (next) => {
-    // Keep the current segment if still present; otherwise default to the first.
-    if (!next || next.length === 0) {
-      selectedSegment.value = null;
-      return;
-    }
-    const stillValid = selectedSegment.value && next.some((s) => segmentsEqual(s.code, selectedSegment.value));
-    if (!stillValid) selectedSegment.value = next[0].code;
-  },
-  { immediate: true }
+  () => state.metric,
+  (metric) => {
+    if (metric === 'heartRate') void loadTableHealth();
+  }
 );
-
-watch(consolidateVisits, () => {
-  // Segment codes change shape between consolidated / unconsolidated; reset.
-  selectedSegment.value = null;
+onBeforeUnmount(() => {
+  generation++;
+  abort.abort();
 });
+function formatValue(value: number | null | undefined) {
+  if (value == null || !Number.isFinite(value)) return 'Unavailable';
+  switch (state.metric) {
+    case 'speed':
+      return formatSpeed(value, 2);
+    case 'time':
+      return formatDuration(value * 1000);
+    case 'distance':
+      return formatDistanceSmart(value);
+    case 'heartRate':
+      return `${Math.round(value)} bpm`;
+  }
+}
+function displayValue(value: number) {
+  if (state.metric === 'speed') return speedDisplayValue(value, measurementSystem.value);
+  if (state.metric === 'distance') return longDistanceDisplayValue(value, measurementSystem.value);
+  return value;
+}
+function attemptValue(a: Attempt) {
+  switch (state.metric) {
+    case 'speed':
+      return a.averageSpeedKmh;
+    case 'time':
+      return a.elapsedSeconds;
+    case 'distance':
+      return a.distanceMeters;
+    case 'heartRate':
+      return tableHealth.value[a.identity.trackId]?.attempts?.find(
+        (h) => h.identity?.reference === a.identity.reference
+      )?.heartRate?.averageBpm;
+  }
+}
+type ResultRow = {
+  key: string;
+  trackId: number;
+  name: string;
+  activityType: GpsTrack['activityType'];
+  description: string;
+  date: number;
+  segment: string;
+  value: number | null | undefined;
+  attempts: Attempt[];
+  attempt?: Attempt;
+  summary?: SegmentConsolidatedSummary;
+};
+const allRows = computed<ResultRow[]>(() =>
+  Object.entries(props.measureServiceResult.crossings ?? {}).flatMap<ResultRow>(([id, track]) => {
+    const trackId = Number(id),
+      name = segmentTrackName(track.gpsTrack, trackId);
+    const activityType = track.gpsTrack?.activityType;
+    const description = (
+      track.gpsTrack?.trackDescription?.trim() ||
+      track.gpsTrack?.metaDescription?.trim() ||
+      ''
+    ).replace(/\s+/g, ' ');
+    const date = track.gpsTrack?.startDate ? new Date(track.gpsTrack.startDate).getTime() : NaN;
+    const attempts = (track.attempts ?? []).filter(isAttempt);
+    if (state.grouping === 'attempts')
+      return attempts.map((a) => ({
+        key: a.identity.reference,
+        trackId,
+        name,
+        activityType,
+        description,
+        date: a.identity.start ? new Date(a.identity.start).getTime() : date,
+        segment: attemptSegment(a),
+        value: attemptValue(a),
+        attempts: [a],
+        attempt: a,
+      }));
+    return (track.segmentSummaries ?? []).map((s) => {
+      const key = segmentKey(s.fromZone ?? '', s.toZone ?? '');
+      const hr = (tableHealth.value[trackId]?.groups ?? track.segmentHeartRateSummaries)?.find(
+        (g) => g.fromTriggerPoint === s.fromZone && g.toTriggerPoint === s.toZone
+      )?.heartRate;
+      const value =
+        state.metric === 'speed'
+          ? s.meanVisitSpeedKmh
+          : state.metric === 'time'
+            ? s.meanElapsedSeconds
+            : state.metric === 'distance'
+              ? s.meanDistanceMeters
+              : hr?.averageBpm;
+      return {
+        key: `${id}:${key}`,
+        trackId,
+        name,
+        activityType,
+        description,
+        date,
+        segment: key,
+        value,
+        attempts: attempts.filter((a) => attemptSegment(a) === key),
+        summary: s,
+      };
+    });
+  })
+);
+const rows = computed(() => allRows.value.filter((r) => state.segment === ALL_SEGMENTS || r.segment === state.segment));
+const sortedRows = computed(() =>
+  [...rows.value].sort((a, b) => {
+    const stable = a.trackId - b.trackId || a.key.localeCompare(b.key);
+    if (state.sort !== 'newest') {
+      if (a.value == null || b.value == null) return a.value == null ? (b.value == null ? stable : 1) : -1;
+      return (a.value - b.value) * (state.sort === 'metricAsc' ? 1 : -1) || stable;
+    }
+    return (Number.isFinite(b.date) ? b.date : -Infinity) - (Number.isFinite(a.date) ? a.date : -Infinity) || stable;
+  })
+);
+const trendSeries = computed(() =>
+  session.segments.value
+    .filter((s) => state.segment === ALL_SEGMENTS || s.key === state.segment)
+    .map((s) => ({
+      key: s.key,
+      label: s.label,
+      points: allRows.value
+        .filter((r) => r.segment === s.key && (!r.attempt || performanceSupported(r.attempt)))
+        .map((r) => ({
+          key: r.key,
+          segment: r.segment,
+          date: r.date,
+          value: r.value ?? null,
+          label: r.name,
+          formatted: formatValue(r.value),
+        })),
+    }))
+);
+const matrixTracks = computed(() =>
+  Object.entries(props.measureServiceResult.crossings ?? {}).map(([id, t]) => ({
+    id: Number(id),
+    name: segmentTrackName(t.gpsTrack, Number(id)),
+  }))
+);
+function matrixValue(id: number, segment: string) {
+  return (
+    allRows.value
+      .filter((r) => r.trackId === id && r.segment === segment)
+      .map((r) => `${r.attempt ? visitLabel(r.attempt) + ': ' : ''}${formatValue(r.value)}`)
+      .join(' · ') || '—'
+  );
+}
+function focusCell(id: number, segment: string) {
+  state.segment = segment;
+  const row = allRows.value.find((r) => r.trackId === id && r.segment === segment);
+  if (row) focusRow(row);
+}
+function focusRow(row: ResultRow) {
+  state.focusedRow = row.key;
+  state.expanded = state.expanded.includes(row.key)
+    ? state.expanded.filter((k) => k !== row.key)
+    : [...state.expanded, row.key];
+}
+async function focusPoint(point: TrendPoint) {
+  state.segment = point.segment;
+  state.focusedRow = point.key;
+  if (!state.expanded.includes(point.key)) state.expanded.push(point.key);
+  await nextTick();
+  const row = Array.from(resultsScroll.value?.querySelectorAll<HTMLElement>('[data-row-key]') ?? []).find(
+    (e) => e.dataset.rowKey === point.key
+  );
+  row?.scrollIntoView({ block: 'nearest' });
+}
+function isSelected(a: Attempt) {
+  return (state.selections[attemptSegment(a)] ?? []).some((s) => s.identity.reference === a.identity.reference);
+}
+function rowSelectionLabel(row: ResultRow) {
+  return row.attempts.length === 1
+    ? `Select ${row.name} ${visitLabel(row.attempts[0])}`
+    : `Select all ${row.attempts.length} visits from ${row.name}`;
+}
+function selectRowAttempts(row: ResultRow, selected: boolean) {
+  for (const attempt of row.attempts) if (isSelected(attempt) !== selected) session.toggleAttempt(attempt);
+}
+function openComparison(view: 'charts' | 'replay') {
+  state.comparisonView = view;
+  state.view = 'comparison';
+}
+function inspect(a: Attempt) {
+  if (!isSelected(a)) session.toggleAttempt(a);
+  state.focusedAttempt = a.identity.reference;
+  openComparison('charts');
+}
+async function backToResults() {
+  state.view = 'results';
+  await nextTick();
+  if (resultsScroll.value) resultsScroll.value.scrollTop = state.scrollTop;
+}
+function hasRecordingGap(a: Attempt) {
+  return a.availability?.distance?.reason === 'RECORDING_GAP';
+}
+function excludedVisits(row: ResultRow) {
+  return row.attempts.filter((a) => !performanceSupported(a)).length;
+}
+function stopCount(a: Attempt) {
+  return (
+    props.measureServiceResult.crossings?.[a.identity.trackId]?.crossings?.find(
+      (c) => c.triggerPoint?.name === a.identity.toZone && c.visitNumber === a.identity.toVisit
+    )?.segmentNotesSinceLastTriggerPoint?.stopCount ?? 0
+  );
+}
 </script>
-
 <style scoped>
-/* ── Base ────────────────────────────────────────────────── */
-.link-style {
-  color: var(--accent-text);
-  text-decoration: none;
-  cursor: pointer;
-  transition: color 0.3s ease;
-}
-
-.link-style:hover {
-  color: var(--accent-text-light);
-  text-decoration: underline;
-}
-
-.measure-name-link {
-  display: block;
-  max-width: 14rem;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.results-container {
+.analysis-workspace {
   display: flex;
   flex-direction: column;
-  flex: 1 1 auto;
   min-height: 0;
-  overflow: hidden;
-  gap: 0;
-  padding: 0;
+  min-width: 0;
+  height: 100%;
+  color: var(--text-primary);
 }
-
-/* ── Unified single panel ────────────────────────────────── */
-.measure-topbar {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-  flex: 0 0 auto;
-  padding: 0.75rem 0.9rem 0;
-  background: transparent;
-}
-
-/* ── Context strip ───────────────────────────────────────── */
-.measure-context-strip {
+.workspace-context,
+.discovery-controls,
+.results-heading,
+.selection-bar {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 0.55rem;
-  padding-bottom: 0.55rem;
-  margin-bottom: 0.4rem;
-  border-bottom: 1px solid var(--border-subtle);
-}
-
-.measure-context-field {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  min-width: 0;
-}
-
-.measure-context-field--segment {
-  flex: 1 1 14rem;
-  min-width: 12rem;
-}
-
-.measure-context-label {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-}
-
-.measure-context-label,
-.measure-control-label {
-  color: var(--text-muted);
-  font-size: var(--text-2xs-size);
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  white-space: nowrap;
-}
-
-.measure-context-label i {
-  color: var(--accent-text);
-}
-
-.measure-context-select {
-  flex: 1 1 auto;
-  min-width: 0;
-  --p-select-padding-y: 0.3rem;
-  font-size: var(--text-sm-size);
-}
-
-.measure-context-select :deep(.p-select-label) {
-  padding: 0.3rem 0.5rem !important;
-  font-size: var(--text-sm-size);
-}
-
-.measure-context-select-count {
-  color: var(--text-muted);
-  font-weight: 500;
-  font-size: var(--text-xs-size);
-}
-
-.measure-context-select-empty {
-  color: var(--text-muted);
-  font-size: var(--text-xs-size);
-  font-style: italic;
-}
-
-.measure-context-pill {
-  padding: 0.3rem 0.6rem;
-}
-
-.measure-context-pill:hover {
-  background: var(--surface-glass-heavy);
-  color: var(--accent-text);
-  border-color: var(--accent-muted);
-}
-
-.measure-context-pill i {
-  color: var(--accent-text);
-  font-size: var(--text-base-size);
-}
-
-.measure-context-pill-value {
-  font-weight: 700;
-}
-
-.measure-context-pill-sep {
-  color: var(--text-muted);
-  font-weight: 400;
-}
-
-.measure-context-pill-label {
-  color: var(--text-muted);
-  font-size: var(--text-xs-size);
-}
-
-.measure-context-toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  font-size: var(--text-xs-size);
-  color: var(--text-secondary);
-  white-space: nowrap;
-  cursor: pointer;
-  --p-toggleswitch-width: 2rem;
-  --p-toggleswitch-height: 1.1rem;
-  --p-toggleswitch-handle-size: 0.8rem;
-}
-
-.measure-context-toggle-label {
-  font-weight: 600;
-}
-
-.measure-context-spacer {
-  flex: 1 1 auto;
-  min-width: 0;
-}
-
-.measure-action-btn {
-  padding: 0.35rem 0.7rem;
-  font-weight: 700;
-}
-
-.measure-context-pill,
-.measure-action-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  border-radius: 999px;
-  background: var(--surface-glass);
-  border: 1px solid var(--border-default);
-  color: var(--text-secondary);
-  cursor: pointer;
-  font-family: inherit;
-  font-size: var(--text-xs-size);
-  line-height: var(--text-xs-lh);
-  white-space: nowrap;
-  transition:
-    background 0.15s,
-    color 0.15s,
-    border-color 0.15s,
-    transform 0.12s;
-}
-
-.measure-action-btn:hover:not(:disabled) {
-  background: var(--surface-glass-heavy);
-  color: var(--accent-text);
-  border-color: var(--accent-muted);
-  transform: translateY(-1px);
-}
-
-.measure-action-btn:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-
-.measure-action-btn i {
-  font-size: var(--text-base-size);
-}
-
-.measure-action-btn--compare {
-  background: var(--accent-bg);
-  border-color: var(--accent-muted);
-  color: var(--accent-text);
-}
-
-.measure-action-btn--compare:hover:not(:disabled) {
-  background: var(--accent-text);
-  color: var(--text-inverse);
-  border-color: var(--accent-text);
-}
-
-.measure-action-btn--race {
-  background: var(--accent-bg);
-  border-color: var(--accent-muted);
-  color: var(--accent-text);
-}
-
-.measure-action-btn--race:hover:not(:disabled) {
-  background: var(--accent-text);
-  color: var(--text-inverse);
-  border-color: var(--accent-text);
-}
-
-.measure-action-badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 1.15rem;
-  height: 1.15rem;
-  padding: 0 0.35rem;
-  border-radius: 999px;
-  background: var(--accent-text);
-  color: var(--text-inverse);
-  font-size: var(--text-xs-size);
-  font-weight: 700;
-  line-height: var(--text-xs-lh);
-}
-
-/* ── Race / Compare overlay (full-sheet takeover) ────────── */
-/* Rows */
-.measure-topbar-row {
-  display: flex;
-  align-items: center;
-  min-width: 0;
-}
-
-.measure-topbar-row--head {
   gap: 0.6rem;
-  margin-bottom: 0.4rem;
-  padding-bottom: 0.55rem;
+}
+.workspace-context {
+  flex-wrap: nowrap;
+  padding: 0.5rem 1rem 0.5rem;
   border-bottom: 1px solid var(--border-subtle);
 }
-
-.measure-topbar-row--tabs {
-  /* tabs row flush with panel edges */
+.context-summary {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  margin-right: auto;
 }
-
-.measure-results-count {
-  flex: 1 1 auto;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  color: var(--text-secondary);
-  font-size: var(--text-sm-size);
-  font-weight: 600;
-  white-space: nowrap;
+.context-summary strong,
+.context-summary small {
   overflow: hidden;
   text-overflow: ellipsis;
-  min-width: 0;
+  white-space: nowrap;
 }
-
-.measure-results-count i {
-  color: var(--accent-text);
-  font-size: var(--text-base-size);
+.context-summary small {
+  color: var(--text-secondary);
+  font-size: var(--text-xs-size);
 }
-
-.measure-table-subbar {
-  display: flex;
+.analysis-workspace .context-back {
+  flex: 0 0 auto;
+}
+.analysis-workspace .context-action {
+  display: inline-flex;
+  flex: 0 0 auto;
   align-items: center;
-  gap: 0.55rem;
-  padding: 0.2rem 0 0.5rem;
-  flex-wrap: wrap;
+  gap: 0.4rem;
 }
-
-/* Control groups (Metric / Visits) */
-.measure-control-group {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  min-width: 0;
+.context-spin {
+  animation: context-spin 0.8s linear infinite;
 }
-
-/* Metric chips */
-.measure-metric-chips {
-  display: flex;
-  align-items: center;
-  gap: 0.2rem;
+@keyframes context-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
-
-.measure-metric-chip {
-  background: var(--surface-glass-subtle);
+.analysis-workspace button:where(:not(.p-button)),
+.analysis-workspace select {
+  font: inherit;
+  color: var(--text-primary);
+  background: var(--surface-card);
   border: 1px solid var(--border-default);
-  border-radius: 999px;
-  color: var(--text-secondary);
-  cursor: pointer;
-  font-size: var(--text-xs-size);
-  font-weight: 600;
-  letter-spacing: 0.03em;
-  text-transform: capitalize;
-  padding: 0.25rem 0.6rem;
-  transition:
-    background 0.15s,
-    color 0.15s,
-    border-color 0.15s;
-  line-height: var(--text-xs-lh);
-  white-space: nowrap;
-}
-
-.measure-metric-chip:hover {
-  background: var(--surface-glass);
-  color: var(--text-primary);
-}
-
-.measure-metric-chip--active {
-  background: var(--accent-bg);
-  border-color: var(--accent-muted);
-  color: var(--accent-text);
-}
-
-/* Consolidate */
-.measure-consolidate-pill {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  cursor: pointer;
-  font-size: var(--text-xs-size);
-  color: var(--text-secondary);
-  white-space: nowrap;
-  /* Scale toggle to match chip height via PrimeVue design tokens */
-  --p-toggleswitch-width: 2rem;
-  --p-toggleswitch-height: 1.1rem;
-  --p-toggleswitch-handle-size: 0.8rem;
-}
-
-/* Help btn */
-.measure-help-btn {
-  background: none;
-  border: none;
-  color: var(--text-muted);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  padding: 0.2rem;
-  border-radius: 50%;
-  font-size: var(--text-base-size);
-  line-height: var(--text-base-lh);
-  transition: color 0.15s;
-  flex-shrink: 0;
-}
-
-.measure-help-btn:hover {
-  color: var(--accent-text);
-}
-
-/* Inline help (inside panel) */
-.measure-help-inline {
-  padding: 0.6rem 0;
-  border-bottom: 1px solid var(--border-subtle);
-  font-size: var(--text-xs-size);
-  color: var(--text-secondary);
-  line-height: var(--text-xs-lh);
-}
-
-.measure-help-inline p {
-  margin: 0 0 0.3rem;
-}
-
-.measure-help-sub {
-  margin-top: 0.35rem !important;
-}
-
-.help-slide-enter-active,
-.help-slide-leave-active {
-  transition:
-    opacity 0.15s ease,
-    max-height 0.2s ease;
-  max-height: 16rem;
-  overflow: hidden;
-}
-
-.help-slide-enter-from,
-.help-slide-leave-to {
-  opacity: 0;
-  max-height: 0;
-}
-
-/* ── View toggle (mirrors stats style) ──────────────────── */
-.measure-topbar-row--tabs {
-  width: 100%;
-  padding: 0.55rem 0 0.6rem;
-}
-
-.measure-view-toggle {
-  width: 100%;
-}
-
-.measure-toggle-btn {
-  flex: 1;
-}
-
-.measure-select-cell {
-  text-align: center;
-  padding: 0.15rem 0.25rem !important;
-}
-
-.measure-select-checkbox {
-  cursor: pointer;
-  width: 1rem;
-  height: 1rem;
-  accent-color: var(--accent-text);
-  margin: 0;
-}
-
-/* ── Tabs ────────────────────────────────────────────────── */
-.measure-tabview {
-  display: flex;
-  flex-direction: column;
-  flex: 1 1 auto;
-  min-height: 0;
-  min-width: 0;
-}
-
-.measure-tabview :deep(.p-tablist) {
-  display: none;
-}
-
-.measure-tabview :deep(.p-tabpanels) {
-  flex: 1 1 auto;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  padding: 0;
-  background: transparent;
-  border: none;
-}
-
-.measure-tabview :deep(.p-tabpanel:not([data-p-active='true'])) {
-  display: none !important;
-}
-
-.measure-tabview :deep(.p-tabpanel[data-p-active='true']) {
-  display: flex;
-  flex-direction: column;
-  flex: 1 1 auto;
-  min-height: 0;
-  min-width: 0;
-  overflow-y: auto;
-  overflow-x: hidden;
-  -webkit-overflow-scrolling: touch;
-  overscroll-behavior-y: contain;
-  padding: 0.35rem 0.5rem calc(0.55rem + var(--safe-bottom));
-}
-
-/* ── Panels ──────────────────────────────────────────────── */
-.panel-outer {
-  flex: 0 0 auto;
-  display: flex;
-  min-width: 0;
-}
-
-.panel-stack {
-  flex-direction: column;
-  max-width: 100%;
-}
-
-.chart-panel {
-  flex: 1 1 auto;
-  min-height: 0;
-  flex-direction: column;
-  min-width: 0;
-}
-
-.race-panel {
-  min-width: 0;
-}
-
-.results-container :deep(.p-button) {
-  padding: 0.5rem;
-}
-
-.measure-results-table-wrap {
-  width: 100%;
-  max-width: 100%;
-  overflow-x: auto;
-  overflow-y: hidden;
-  -webkit-overflow-scrolling: touch;
-}
-
-.measure-results-table {
-  width: max-content;
-  min-width: 100%;
-}
-
-.measure-graph-card {
-  display: flex;
-  flex-direction: column;
-  flex: 1 1 auto;
-  min-height: 0;
-  gap: 0.5rem;
-  padding: 0.25rem 0;
-}
-
-.measure-graph-header {
-  display: flex;
-  flex-direction: column;
-  gap: 0.15rem;
-  flex: 0 0 auto;
-  padding: 0 0.2rem;
-}
-
-.measure-graph-title {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  color: var(--text-primary);
-  font-size: var(--text-sm-size);
-  font-weight: 700;
-}
-
-.measure-graph-title i {
-  color: var(--accent-text);
-}
-
-.measure-graph-sub {
-  color: var(--text-muted);
-  font-size: var(--text-xs-size);
-}
-
-.measure-empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: 12rem;
-  padding: 1.5rem 1.25rem;
-  color: var(--text-secondary);
-  text-align: center;
-  gap: 0.5rem;
-}
-
-.measure-empty-icon {
-  font-size: var(--text-3xl-size);
-  color: var(--text-muted);
-  opacity: 0.6;
-  margin-bottom: 0.2rem;
-}
-
-.measure-empty-headline {
-  margin: 0;
-  font-size: var(--text-base-size);
-  font-weight: 700;
-  color: var(--text-primary);
-}
-
-.measure-empty-body {
-  margin: 0;
-  font-size: var(--text-sm-size);
-  color: var(--text-muted);
-  line-height: var(--text-sm-lh);
-  max-width: 28rem;
-}
-
-.measure-empty-zones {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: center;
-  gap: 0.35rem;
-  margin-top: 0.25rem;
-}
-
-.measure-empty-zones-label {
-  font-size: var(--text-xs-size);
-  font-weight: 700;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-.measure-empty-zone-chip {
-  display: inline-flex;
-  align-items: center;
-  padding: 0.15rem 0.5rem;
-  border-radius: 999px;
-  font-size: var(--text-xs-size);
-  font-weight: 700;
-  border: 1px solid transparent;
-}
-
-.measure-empty-zone-chip--ok {
-  background: var(--success-bg);
-  border-color: color-mix(in srgb, var(--success) 32%, transparent);
-  color: var(--success);
-}
-
-.measure-empty-zone-chip--zero {
-  background: var(--warning-bg);
-  border-color: color-mix(in srgb, var(--warning) 32%, transparent);
-  color: var(--warning-text);
-}
-
-.measure-empty-tips {
-  list-style: none;
-  margin: 0.5rem 0 0;
-  padding: 0;
-  font-size: var(--text-xs-size);
-  color: var(--text-muted);
-  text-align: left;
-}
-
-.measure-empty-tips li {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  padding: 0.2rem 0;
-}
-
-.measure-empty-tips li i {
-  font-size: var(--text-sm-size);
-  color: var(--text-muted);
-  opacity: 0.7;
-  flex-shrink: 0;
-}
-
-/* ── Help table ──────────────────────────────────────────── */
-.measure-help-table {
-  border-collapse: collapse;
-  font-size: var(--text-xs-size);
-  margin: 0.3rem 0;
-}
-
-.measure-help-table td {
-  padding: 0.1rem 0.5rem 0.1rem 0;
-  vertical-align: top;
-}
-
-.measure-help-table td:first-child {
-  white-space: nowrap;
-  min-width: 5rem;
-}
-
-/* ── Mobile ──────────────────────────────────────────────── */
-@media screen and (max-width: 768px) {
-  .results-container {
-    gap: 0.4rem;
-    padding: 0.1rem 0.1rem calc(0.45rem + var(--safe-bottom));
-  }
-
-  .measure-topbar {
-    padding: 0.65rem 0.75rem 0;
-  }
-
-  .measure-metric-chip {
-    font-size: var(--text-2xs-size);
-    padding: 0.22rem 0.45rem;
-  }
-
-  .measure-results-table {
-    font-size: var(--text-xs-size);
-  }
-
-  .measure-results-table :deep(th),
-  .measure-results-table :deep(td) {
-    padding: 0.3rem 0.28rem;
-    white-space: nowrap;
-  }
-
-  .measure-results-table-wrap {
-    border-radius: 0.85rem;
-  }
-
-  .measure-results-table :deep(.p-datatable-table) {
-    width: auto;
-    min-width: 100%;
-  }
-}
-
-/* ── Status chip (stops) ─────────────────────────────────── */
-.measure-status-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.32rem;
-  padding: 0.18rem 0.55rem;
-  border: none;
-  border-radius: 999px;
-  font-family: inherit;
-  font-size: var(--text-xs-size);
-  font-weight: 600;
-  white-space: nowrap;
-  line-height: var(--text-xs-lh);
-}
-
-.measure-status-chip i {
-  font-size: var(--text-sm-size);
-  line-height: var(--text-sm-lh);
-}
-
-.measure-status-chip--ok {
-  background: var(--success-bg);
-  color: var(--success);
-}
-
-.measure-status-chip--notes {
-  background: var(--warning-bg);
-  color: var(--warning-text);
+  border-radius: 0.4rem;
+  padding: 0.45rem 0.6rem;
   cursor: pointer;
 }
-
-.measure-status-chip--notes:hover,
-.measure-status-chip--notes:focus-visible {
-  color: var(--warning-text);
-  outline: 1px solid var(--warning);
+.analysis-workspace button:where(:not(.p-button)):disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.analysis-workspace button:where(:not(.p-button)):focus-visible {
+  outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
-
-.measure-status-info-text {
-  max-width: min(280px, calc(100vw - 2rem));
-  font-size: var(--text-xs-size);
-  line-height: var(--text-xs-lh);
-  color: var(--text-secondary);
-  margin: 0;
-  padding: 0.1rem 0;
-  white-space: pre-line;
+.discovery-scroll {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  min-height: 0;
+  padding: 0 1rem 1rem;
+  container-type: inline-size;
+  container-name: segment-discovery;
 }
-
-.measure-status-dur {
-  opacity: 0.78;
-  font-weight: 500;
+.discovery-controls {
+  margin: 0.6rem 0 0.8rem;
+}
+.discovery-controls label,
+.results-heading label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: var(--text-sm-size);
+  flex: 1;
+  min-width: 0;
+}
+.discovery-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1rem;
+  align-items: start;
+}
+@container segment-discovery (min-width: 860px) {
+  .discovery-controls label {
+    flex: 0 1 16rem;
+  }
+  .discovery-layout {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+  }
+  .discovery-trend-column {
+    position: sticky;
+    top: 0;
+  }
+  .discovery-results-column .results-heading {
+    margin-top: 0;
+  }
+}
+.results-heading {
+  margin: 0.5rem 0;
+}
+.results-heading h3 {
+  margin: 0 auto 0 0;
+  font-size: var(--text-base-size);
+}
+.results-heading small {
+  color: var(--text-muted);
+}
+.result-header {
+  display: grid;
+  grid-template-columns: 2.5rem minmax(0, 1fr);
+  align-items: center;
+}
+.result-selection {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  align-self: stretch;
+  cursor: pointer;
+}
+.result-selection input {
+  width: 1.2rem;
+  height: 1.2rem;
+  accent-color: var(--accent);
+}
+.result-row {
+  border-bottom: 1px solid var(--border-subtle);
+  border-left: 3px solid transparent;
+}
+.result-row--focused {
+  border-left-color: var(--accent);
+  background: var(--surface-hover);
+}
+.analysis-workspace .result-main {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 4.75rem minmax(0, 1fr) auto 1rem;
+  align-items: center;
+  gap: 0.65rem;
+  text-align: left;
+  border: 0;
+  background: transparent;
+  padding: 0.8rem 0.4rem;
+}
+.result-name {
+  min-width: 0;
+}
+.result-title,
+.result-description {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.result-valid-counts {
+  display: block;
+  margin-top: 0.3rem;
+  font-size: var(--text-xs-size);
+  color: var(--text-secondary);
+}
+.result-metadata {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.3rem 0.5rem;
+  margin-top: 0.3rem;
+  font-size: var(--text-xs-size);
+  color: var(--text-secondary);
+}
+.result-description {
+  margin-top: 0.35rem;
+  color: var(--text-secondary);
+  font-size: var(--text-sm-size);
+}
+.attempt-description {
+  overflow-wrap: anywhere;
+  color: var(--text-secondary);
+  font-size: var(--text-sm-size);
+}
+.selection-guidance {
+  margin: 0.5rem 0;
+  font-size: var(--text-sm-size);
+  color: var(--text-secondary);
+}
+.result-name small,
+.attempt-row small {
+  display: block;
+  color: var(--text-secondary);
+  font-size: var(--text-xs-size);
+  margin-top: 0.2rem;
+}
+.result-date {
+  font-size: var(--text-xs-size);
+  color: var(--text-secondary);
+}
+.attempt-list {
+  padding: 0 0.65rem 0.8rem;
+}
+.attempt-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.5rem 0;
+}
+.attempt-row label {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+.attempt-row input {
+  width: 1.15rem;
+  height: 1.15rem;
+}
+.selection-bar {
+  flex: 0 0 auto;
+  flex-wrap: nowrap;
+  padding: 0.6rem 1rem calc(0.6rem + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--border-default);
+  background: var(--surface-ground);
+  font-size: var(--text-sm-size);
+}
+.selection-status {
+  min-width: 0;
+  margin-right: auto;
+}
+.selection-status strong,
+.selection-status small {
+  display: block;
+}
+.selection-status small {
+  color: var(--text-secondary);
+  margin-top: 0.2rem;
+}
+.selection-actions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+.workspace-note {
+  font-size: var(--text-xs-size);
+  color: var(--text-secondary);
+}
+.workspace-warning {
+  margin: 0.5rem 1rem;
+}
+.segment-matrix {
+  overflow-x: auto;
+}
+.segment-matrix table {
+  border-collapse: collapse;
+}
+.segment-matrix th,
+.segment-matrix td {
+  padding: 0.5rem;
+  min-width: 9rem;
+  border-bottom: 1px solid var(--border-subtle);
+}
+@media (max-width: 600px) {
+  .workspace-context {
+    padding: 0.4rem 0.6rem;
+    gap: 0.4rem;
+  }
+  .context-summary {
+    font-size: var(--text-sm-size);
+  }
+  .analysis-workspace .context-action span {
+    display: none;
+  }
+  .discovery-scroll {
+    padding: 0 0.6rem 0.6rem;
+  }
+  .analysis-workspace .result-main {
+    grid-template-columns: minmax(0, 1fr) auto 1rem;
+    gap: 0.3rem;
+  }
+  .result-date {
+    grid-column: 1 / -1;
+  }
+  .results-heading h3 {
+    flex-basis: 100%;
+  }
+  .selection-bar {
+    flex-wrap: wrap;
+    gap: 0.45rem;
+    padding: 0.5rem 0.6rem calc(0.5rem + env(safe-area-inset-bottom));
+    font-size: var(--text-xs-size);
+  }
+  .selection-status {
+    flex-basis: 100%;
+  }
+  .selection-actions {
+    flex: 1 1 auto;
+    min-width: 0;
+    justify-content: flex-end;
+  }
+  .result-header {
+    grid-template-columns: 2rem minmax(0, 1fr);
+  }
+  .result-description {
+    font-size: var(--text-xs-size);
+  }
 }
 </style>

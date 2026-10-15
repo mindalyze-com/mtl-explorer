@@ -1,11 +1,11 @@
 package com.x8ing.mtl.server.mtlserver.web.services.track;
 
+import com.x8ing.mtl.server.mtlserver.db.entity.media.MediaPositionOrigin;
 import com.x8ing.mtl.server.mtlserver.db.repository.gps.GpsTrackRepository;
+import com.x8ing.mtl.server.mtlserver.db.repository.media.PersistedTrackMediaRow;
 import com.x8ing.mtl.server.mtlserver.db.repository.media.TrackMediaMatchRow;
 import com.x8ing.mtl.server.mtlserver.db.repository.media.TrackMediaPageResult;
 import com.x8ing.mtl.server.mtlserver.db.repository.media.TrackMediaQueryRepository;
-import com.x8ing.mtl.server.mtlserver.db.repository.media.PersistedTrackMediaRow;
-import com.x8ing.mtl.server.mtlserver.db.entity.media.MediaPositionOrigin;
 import com.x8ing.mtl.server.mtlserver.web.services.track.entity.TrackMediaDto;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
@@ -17,9 +17,7 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verifyNoInteractions;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 class TrackMediaServiceTest {
 

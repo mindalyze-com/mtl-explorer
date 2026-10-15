@@ -7,6 +7,7 @@ export const ADMIN_SECTION_IDS = [
   'logs',
   'system',
   'preferences',
+  'updates',
   'session',
 ] as const;
 
@@ -40,9 +41,9 @@ export interface AdminOverviewStatus {
 }
 
 export const ADMIN_SECTION_GROUPS: readonly AdminSectionGroup[] = [
+  { id: 'application', label: 'Application' },
   { id: 'data', label: 'Data' },
   { id: 'system', label: 'System' },
-  { id: 'application', label: 'Application' },
 ];
 
 export const ADMIN_SECTIONS: readonly AdminSectionDefinition[] = [
@@ -55,9 +56,33 @@ export const ADMIN_SECTIONS: readonly AdminSectionDefinition[] = [
     path: '/admin',
   },
   {
+    id: 'preferences',
+    label: 'Preferences',
+    description: 'Appearance, locale, and measurement units.',
+    icon: 'bi bi-sliders',
+    group: 'application',
+    path: '/admin/preferences',
+  },
+  {
+    id: 'updates',
+    label: 'Updates',
+    description: 'Available releases and update instructions.',
+    icon: 'bi bi-arrow-up-circle',
+    group: 'application',
+    path: '/admin/updates',
+  },
+  {
+    id: 'session',
+    label: 'Session',
+    description: 'Session details, sign out, and local cleanup.',
+    icon: 'bi bi-person-lock',
+    group: 'application',
+    path: '/admin/session',
+  },
+  {
     id: 'imports',
     label: 'Import & sync',
-    description: 'Import track files or start Garmin sync.',
+    description: 'Import track files or sync connected services.',
     icon: 'bi bi-cloud-arrow-down',
     group: 'data',
     path: '/admin/imports',
@@ -65,7 +90,7 @@ export const ADMIN_SECTIONS: readonly AdminSectionDefinition[] = [
   {
     id: 'processing',
     label: 'Processing',
-    description: 'Indexers, background jobs, maps, and routing.',
+    description: 'Imports, syncs, background jobs, maps, and routing.',
     icon: 'bi bi-list-check',
     group: 'data',
     path: '/admin/processing',
@@ -88,8 +113,8 @@ export const ADMIN_SECTIONS: readonly AdminSectionDefinition[] = [
   },
   {
     id: 'logs',
-    label: 'Server log',
-    description: 'Recent server output and runtime errors.',
+    label: 'Logs',
+    description: 'Stored diagnostics and recent server output.',
     icon: 'bi bi-terminal',
     group: 'system',
     path: '/admin/logs',
@@ -101,22 +126,6 @@ export const ADMIN_SECTIONS: readonly AdminSectionDefinition[] = [
     icon: 'bi bi-info-circle',
     group: 'system',
     path: '/admin/system',
-  },
-  {
-    id: 'preferences',
-    label: 'Preferences',
-    description: 'Appearance, locale, and measurement units.',
-    icon: 'bi bi-sliders',
-    group: 'application',
-    path: '/admin/preferences',
-  },
-  {
-    id: 'session',
-    label: 'Session',
-    description: 'Session details, sign out, and local cleanup.',
-    icon: 'bi bi-person-lock',
-    group: 'application',
-    path: '/admin/session',
   },
 ];
 

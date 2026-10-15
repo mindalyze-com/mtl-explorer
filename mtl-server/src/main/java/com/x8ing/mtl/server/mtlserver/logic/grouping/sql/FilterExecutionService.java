@@ -2,22 +2,14 @@ package com.x8ing.mtl.server.mtlserver.logic.grouping.sql;
 
 import com.x8ing.mtl.server.mtlserver.db.entity.config.FilterConfigEntity;
 import com.x8ing.mtl.server.mtlserver.db.readonly.spring.QueryResult;
-import com.x8ing.mtl.server.mtlserver.web.services.track.entity.filter.FilterParamsRequest;
-import com.x8ing.mtl.server.mtlserver.web.services.track.entity.filter.FilterResultGroupKey;
-import com.x8ing.mtl.server.mtlserver.web.services.track.entity.filter.FilterResultGroupSelection;
-import com.x8ing.mtl.server.mtlserver.web.services.track.entity.filter.FilterResultGroupSummary;
+import com.x8ing.mtl.server.mtlserver.web.services.track.entity.filter.*;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 /**
  * Executes a configured SQL filter and applies the generic result-group scope.
@@ -30,22 +22,32 @@ public class FilterExecutionService {
 
     private final GpsTrackSQLFilter gpsTrackSQLFilter;
     private final FilterParamResolver filterParamResolver;
+    private final List<TrackScopeProvider> trackScopeProviders;
 
-    public FilterExecutionService(GpsTrackSQLFilter gpsTrackSQLFilter, FilterParamResolver filterParamResolver) {
+    @Autowired
+    public FilterExecutionService(GpsTrackSQLFilter gpsTrackSQLFilter,
+                                  FilterParamResolver filterParamResolver,
+                                  List<TrackScopeProvider> trackScopeProviders) {
         this.gpsTrackSQLFilter = gpsTrackSQLFilter;
         this.filterParamResolver = filterParamResolver;
+        this.trackScopeProviders = List.copyOf(trackScopeProviders);
+    }
+
+    FilterExecutionService(GpsTrackSQLFilter gpsTrackSQLFilter, FilterParamResolver filterParamResolver) {
+        this(gpsTrackSQLFilter, filterParamResolver, List.of());
     }
 
     public QueryResult execute(FilterConfigEntity filter, FilterParamsRequest request) {
         Map<String, String> sqlParams = filterParamResolver.expand(request);
-        return refine(gpsTrackSQLFilter.getGpsTrackIdsFor(filter, sqlParams), selectionFrom(request));
+        return refine(gpsTrackSQLFilter.getGpsTrackIdsFor(filter, sqlParams), selectionFrom(request), scopeFrom(request));
     }
 
     public QueryResult executeOptionalFilterName(String optionalFilterName, FilterParamsRequest request) {
         Map<String, String> sqlParams = filterParamResolver.expand(request);
         return refine(
                 gpsTrackSQLFilter.getGpsTrackIdsForOptionalFilterName(optionalFilterName, sqlParams),
-                selectionFrom(request));
+                selectionFrom(request),
+                scopeFrom(request));
     }
 
     public QueryResult executeStandardFilter() {
@@ -59,12 +61,36 @@ public class FilterExecutionService {
                 : fallback;
     }
 
-    QueryResult refine(QueryResult queryResult, FilterResultGroupSelection selection) {
+    public long standardFilterCount(long fallback, FilterParamsRequest request) {
+        if (scopeFrom(request) == TrackViewScope.ALL) {
+            return standardFilterCount(fallback);
+        }
+        QueryResult standard = executeStandardFilter();
+        if (standard == null || standard.getResultEntries() == null) {
+            return fallback;
+        }
+        return refine(standard, null, scopeFrom(request)).getResultEntries().size();
+    }
+
+    QueryResult refine(QueryResult queryResult,
+                       FilterResultGroupSelection selection,
+                       TrackViewScope trackViewScope) {
         long startedNanos = System.nanoTime();
         QueryResult result = queryResult == null ? new QueryResult() : queryResult;
         List<QueryResult.QueryResultEntry> rawEntries = result.getResultEntries() == null
                 ? List.of()
                 : result.getResultEntries();
+        if (trackViewScope != null && trackViewScope != TrackViewScope.ALL) {
+            TrackScopeProvider provider = trackScopeProviders.stream()
+                    .filter(candidate -> candidate.scope() == trackViewScope)
+                    .findFirst()
+                    .orElseThrow(() -> badRequest("Requested track scope is unavailable."));
+            Set<Long> scopedTrackIds = provider.trackIds();
+            rawEntries = rawEntries.stream()
+                    .filter(entry -> scopedTrackIds.contains(entry.getId()))
+                    .toList();
+            result.setResultEntries(new ArrayList<>(rawEntries));
+        }
 
         result.setPreGroupSelectionCount(rawEntries.size());
         result.setAvailableGroups(summarizeGroups(rawEntries, result.isGroupingAvailable()));
@@ -86,8 +112,18 @@ public class FilterExecutionService {
         return result;
     }
 
+    QueryResult refine(QueryResult queryResult, FilterResultGroupSelection selection) {
+        return refine(queryResult, selection, TrackViewScope.ALL);
+    }
+
     private static FilterResultGroupSelection selectionFrom(FilterParamsRequest request) {
         return request == null ? null : request.getResultGroupSelection();
+    }
+
+    private static TrackViewScope scopeFrom(FilterParamsRequest request) {
+        return request == null || request.getTrackViewScope() == null
+                ? TrackViewScope.ALL
+                : request.getTrackViewScope();
     }
 
     private static List<FilterResultGroupSummary> summarizeGroups(

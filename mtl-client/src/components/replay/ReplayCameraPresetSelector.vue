@@ -41,7 +41,7 @@ const emit = defineEmits<{ select: [preset: ReplayCameraPresetId] }>();
   border-style: solid;
   border-color: var(--border-medium);
   border-radius: 0;
-  background: rgba(255, 255, 255, 0.54);
+  background: var(--surface-elevated);
 }
 
 .camera-presets__button:last-child {

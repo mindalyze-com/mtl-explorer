@@ -9,7 +9,7 @@
     sheet-class="sheet--solid-over-map sheet--map-settings-detail"
     @update:model-value="emit('update:modelValue', $event)"
   >
-    <div class="map-terrain-sheet">
+    <div class="map-terrain-sheet" data-sheet-fit-target>
       <p class="map-terrain-sheet__intro">Use a perspective view and adjust the height of the landscape.</p>
 
       <div class="map-terrain-sheet__control-list">

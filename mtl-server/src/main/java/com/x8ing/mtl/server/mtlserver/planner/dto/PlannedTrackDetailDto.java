@@ -19,6 +19,7 @@ import java.util.List;
         "profile",
         "distanceM",
         "waypoints",
+        "pointsOfInterest",
         "coordinates",
         "legs",
         "stats"
@@ -33,6 +34,7 @@ public class PlannedTrackDetailDto {
      * Original user waypoints, in placement order. May be empty for legacy plans.
      */
     private List<WaypointDto> waypoints;
+    private List<PointOfInterestDto> pointsOfInterest;
     /**
      * Routed polyline as {@code [lng, lat, elevationM]} triples.
      */
@@ -42,7 +44,7 @@ public class PlannedTrackDetailDto {
      */
     private List<LegResultDto> legs;
     /**
-     * Saved aggregate BRouter stats. Derived on load for legacy plans.
+     * Route stats, with elevation recalculated from the geometry on load.
      */
     private LiveStatsDto stats;
 }

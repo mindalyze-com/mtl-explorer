@@ -8,7 +8,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 /**
  * Read-only endpoint that produces chart-friendly bucketed time/distance
@@ -25,8 +24,6 @@ import java.util.concurrent.TimeUnit;
         "chartSeriesService"
 })
 public class ChartSeriesController {
-
-    private static final int CHART_SERIES_CACHE_SECONDS = 300;
 
     private final ChartSeriesService chartSeriesService;
 
@@ -47,7 +44,7 @@ public class ChartSeriesController {
         ChartSeriesRequest request = new ChartSeriesRequest(xMode, maxBuckets, windowSec, fromX, toX, metrics);
         ChartSeriesResponse response = chartSeriesService.build(trackId, request);
         return ResponseEntity.ok()
-                .cacheControl(CacheControl.maxAge(CHART_SERIES_CACHE_SECONDS, TimeUnit.SECONDS).cachePrivate().mustRevalidate())
+                .cacheControl(CacheControl.noCache().cachePrivate())
                 .body(response);
     }
 }

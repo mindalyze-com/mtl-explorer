@@ -15,10 +15,15 @@
 </template>
 
 <script setup lang="ts">
+import { warnSanitized } from '@/utils/safeLogging';
+
 import { ref, onMounted, onBeforeUnmount, watch } from 'vue';
 import { geoMercator, geoPath } from 'd3-geo';
-import { readBestCachedTrackShape } from '@/utils/tracks/trackCollectionLoader';
+import { fetchDetailTrackAtPrecision, readBestCachedTrackShape } from '@/utils/tracks/trackCollectionLoader';
+import { DETAIL_TRACK_PRECISION } from '@/utils/tracks/trackConstants';
 import { isAbortLikeError } from '@/utils/errors';
+import { buildTrackGeometry } from '@/utils/tracks/trackFeatureAdapter';
+import type { TrackPrecisionResult } from '@/utils/tracks/trackTypes';
 
 const props = withDefaults(
   defineProps<{
@@ -47,17 +52,25 @@ let observer: IntersectionObserver | null = null;
 let loaded = false;
 let abortController: AbortController | null = null;
 
-function buildSvgPath(coordinates: number[][]) {
+function buildSvgPath(result: TrackPrecisionResult) {
+  const { coordinates, gpsTrack, recordingBreakBeforePointIndexes } = result;
   if (coordinates.length < 2) {
     svgPath.value = null;
-    return;
+    return false;
   }
 
   const geojson: GeoJSON.Feature = {
     type: 'Feature',
-    geometry: { type: 'LineString', coordinates },
+    geometry: buildTrackGeometry(gpsTrack, coordinates, {
+      collapseShortTracks: false,
+      recordingBreakBeforePointIndexes,
+    }),
     properties: {},
   };
+  if (geojson.geometry.type === 'MultiLineString' && !geojson.geometry.coordinates.length) {
+    svgPath.value = null;
+    return false;
+  }
 
   // Compute bounding box of coordinates
   let minLng = Infinity,
@@ -69,6 +82,13 @@ function buildSvgPath(coordinates: number[][]) {
     if (c[0] > maxLng) maxLng = c[0];
     if (c[1] < minLat) minLat = c[1];
     if (c[1] > maxLat) maxLat = c[1];
+  }
+
+  // Coarse simplification can collapse a closed loop to identical endpoints.
+  // Fitting that zero-size extent produces an infinite scale and NaN SVG points.
+  if (!Number.isFinite(minLng + maxLng + minLat + maxLat) || (minLng === maxLng && minLat === maxLat)) {
+    svgPath.value = null;
+    return false;
   }
 
   const pad = props.padding;
@@ -87,23 +107,38 @@ function buildSvgPath(coordinates: number[][]) {
   const pathGenerator = geoPath(projection);
   svgPath.value = pathGenerator(geojson) || null;
   viewBox.value = `0 0 ${props.width} ${props.height}`;
+  return !!svgPath.value;
 }
 
 async function loadAndRender() {
-  if (loaded) return;
-  loaded = true;
+  if (loaded || abortController) return;
 
-  abortController = new AbortController();
+  const request = new AbortController();
+  abortController = request;
+  const trackId = props.trackId;
   try {
-    const result = await readBestCachedTrackShape(props.trackId, {
-      signal: abortController.signal,
+    const result = await readBestCachedTrackShape(trackId, {
+      signal: request.signal,
     });
-    if (!result) return;
+    if (request.signal.aborted) return;
 
-    buildSvgPath(result.coordinates);
+    if (!result || !buildSvgPath(result)) {
+      const detail = await fetchDetailTrackAtPrecision(trackId, DETAIL_TRACK_PRECISION, request.signal);
+      if (request.signal.aborted) return;
+      buildSvgPath(detail);
+    }
+    loaded = true;
+    observer?.disconnect();
+    observer = null;
   } catch (e: unknown) {
-    if (isAbortLikeError(e, abortController?.signal)) return;
-    // Silently fail — preview is non-critical
+    if (isAbortLikeError(e, request.signal)) return;
+    warnSanitized('Could not load track shape preview:', e, {
+      topic1: 'tracks',
+      topic2: 'TrackShapePreview',
+      topic3: 'loadAndRender',
+    });
+  } finally {
+    if (abortController === request) abortController = null;
   }
 }
 
@@ -115,8 +150,6 @@ onMounted(() => {
     (entries) => {
       if (entries[0]?.isIntersecting) {
         loadAndRender();
-        observer?.disconnect();
-        observer = null;
       }
     },
     { rootMargin: '100px' } // Start loading slightly before visible
@@ -133,6 +166,8 @@ onBeforeUnmount(() => {
 watch(
   () => props.trackId,
   () => {
+    abortController?.abort();
+    abortController = null;
     loaded = false;
     svgPath.value = null;
     loadAndRender();

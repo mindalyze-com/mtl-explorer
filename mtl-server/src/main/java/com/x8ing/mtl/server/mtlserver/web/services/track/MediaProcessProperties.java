@@ -6,7 +6,9 @@ import org.springframework.stereotype.Component;
 
 import java.time.Duration;
 
-/** Configures the shared limit for ImageMagick and FFmpeg-family child processes. */
+/**
+ * Configures the shared limit for ImageMagick and FFmpeg-family child processes.
+ */
 @Data
 @Component
 @ConfigurationProperties(prefix = "mtl.media-process")

@@ -32,7 +32,6 @@ const REPLAY_CAMERA_MIN_VISIBLE_HEIGHT_PX = 160;
 const TRACK_REPLAY_OPACITY_PROPERTIES = [
   ['tracks-layer', 'line-opacity'],
   ['tracks-highlight-layer', 'line-opacity'],
-  ['tracks-highlight-dash-layer', 'line-opacity'],
   ['tracks-dot-layer', 'circle-opacity'],
   ['tracks-overview-dots', 'circle-opacity'],
 ] as const;

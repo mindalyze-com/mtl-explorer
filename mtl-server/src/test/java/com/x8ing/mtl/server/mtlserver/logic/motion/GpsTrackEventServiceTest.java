@@ -105,6 +105,30 @@ class GpsTrackEventServiceTest {
         return dataPoint;
     }
 
+    @Test
+    @SuppressWarnings("unchecked")
+    void recordingGapStoresItsElapsedDurationAndRecordedEndpoints() {
+        GpsTrackEventRepository repository = mock(GpsTrackEventRepository.class);
+        GpsTrackEventService service = new GpsTrackEventService(repository);
+        GpsTrackDataPoint from = dataPoint(303L, 10, point(8.5, 47.4), 100.0);
+        GpsTrackDataPoint to = dataPoint(404L, 20, point(8.6, 47.5), 250.0);
+        from.setPointTimestamp(new Date(1_000L));
+        to.setPointTimestamp(new Date(4_681_000L));
+        service.replaceImportedRecordingGaps(101L, 202L, List.of(from, to), List.of(20));
+        verify(repository).saveAll(argThat(events -> {
+            GpsTrackEvent event = StreamSupport.stream(events.spliterator(), false).findFirst().orElseThrow();
+            assertThat(event.getEventType()).isEqualTo(GpsTrackEvent.EVENT_TYPE.GPS_GAP);
+            assertThat(event.getDurationInSec()).isEqualTo(4680.0);
+            assertThat(event.getStartTimestamp()).isEqualTo(from.getPointTimestamp());
+            assertThat(event.getEndTimestamp()).isEqualTo(to.getPointTimestamp());
+            assertThat(event.getStartPointLongLat()).isSameAs(from.getPointLongLat());
+            assertThat(event.getStartDistanceInMeter()).isEqualTo(100.0);
+            assertThat(event.getEndDistanceInMeter()).isEqualTo(250.0);
+            assertThat(event.getLabel()).isEqualTo("Recording gap");
+            return true;
+        }));
+    }
+
     private Point point(double lng, double lat) {
         return geometryFactory.createPoint(new Coordinate(lng, lat));
     }

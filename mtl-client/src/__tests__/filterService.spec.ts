@@ -65,6 +65,10 @@ describe('FilterService active state', () => {
 });
 
 describe('FilterService param migration', () => {
+  it('keeps typed calendar criteria when a persisted timezone is present', () => {
+    const params = { timeZone: 'Europe/Zurich', stringParams: { YEAR_FROM: '2025' } };
+    expect(FilterService.migrateFilterParams(params)).toEqual(params);
+  });
   it('keeps persisted geo rectangles when new-format params include track ids', () => {
     const params = {
       geoRectangles: {

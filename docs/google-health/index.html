@@ -3,13 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script defer src="../site-analytics.js"></script>
   <title>Google Health Connection | MTL Explorer</title>
   <meta name="description" content="Learn how the optional MTL Explorer Google Health connection requests read-only access and stores imported health data on a self-hosted installation.">
   <meta name="robots" content="index, follow, max-image-preview:large">
-  <link rel="canonical" href="https://mindalyze-com.github.io/mtl-explorer/google-health/">
+  <link rel="canonical" href="https://mtl-explorer.com/google-health/">
   <meta property="og:site_name" content="MTL Explorer">
   <meta property="og:type" content="website">
-  <meta property="og:url" content="https://mindalyze-com.github.io/mtl-explorer/google-health/">
+  <meta property="og:url" content="https://mtl-explorer.com/google-health/">
   <meta property="og:title" content="Google Health Connection | MTL Explorer">
   <meta property="og:description" content="The optional connection imports read-only Google Health data directly into a self-hosted MTL Explorer installation.">
   <link rel="icon" href="../favicon.ico" sizes="any">
@@ -19,9 +20,29 @@
       "@context": "https://schema.org",
       "@type": "WebPage",
       "name": "MTL Explorer Google Health connection",
-      "url": "https://mindalyze-com.github.io/mtl-explorer/google-health/",
+      "url": "https://mtl-explorer.com/google-health/",
       "description": "Information about the optional Google Health connection in MTL Explorer.",
       "about": {"@type": "SoftwareApplication", "name": "MTL Explorer"}
+    }
+  </script>
+  <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Home",
+          "item": "https://mtl-explorer.com/"
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "Google Health",
+          "item": "https://mtl-explorer.com/google-health/"
+        }
+      ]
     }
   </script>
 </head>
@@ -33,7 +54,8 @@
         <span><strong>MTL Explorer</strong><span>Self-hosted GPS archive</span></span>
       </a>
       <nav class="site-nav" aria-label="Google Health navigation">
-        <a href="privacy/">Privacy</a>
+        <a href="../docs/">Documentation</a>
+        <a href="../docker-install/">Install</a>
         <a href="terms/">Terms</a>
         <a class="button-small" href="https://github.com/mindalyze-com/mtl-explorer">GitHub</a>
       </nav>
@@ -45,12 +67,14 @@
 
     <section class="hero">
       <div>
-        <p class="eyebrow">Optional Google Health connection</p>
+        <p class="eyebrow">Optional Google Health connection (beta)</p>
         <h1>Bring your health records into your own archive.</h1>
-        <p class="lead">MTL Explorer can request read-only Google Health access and copy selected records into the MTL Explorer installation you operate.</p>
+        <p class="lead">Combine your GPS tracks with heart rate. Browse activity, sleep, and health trends in your own MTL Explorer installation.</p>
+        <p class="copy">Google Health is a beta feature. Setup and synchronization may still encounter errors or interruptions.</p>
+        <p class="copy" id="availability"><strong>API access prerequisite.</strong> You need your own Google Cloud project with Google Health API access. Google may limit new API projects. Check <a href="https://developers.google.com/health/setup">Google's current setup requirements</a> first. Your Google Account must also be linked to an active Google Health profile.</p>
+        <p class="copy">The personal setup uses Google's <strong>Testing</strong> mode, so you need to reconnect once a week. Your stored data stays. See <a href="https://developers.google.com/health/setup#token-behavior-during-testing">Google's token-lifetime documentation</a>.</p>
         <div class="actions">
-          <a class="button" href="privacy/">Read the privacy notice</a>
-          <a class="button-secondary" href="https://github.com/mindalyze-com/mtl-explorer/blob/main/documentation/home-install.md#google-health">Open the setup guide</a>
+          <a class="button" href="/docs/administration/google-health/">Open the setup guide</a>
         </div>
       </div>
       <aside class="card" aria-labelledby="oauth-details-heading">
@@ -58,13 +82,47 @@
         <p>Administrators of personal MTL Explorer installations may use these pages for their Google OAuth configuration.</p>
         <dl>
           <dt><strong>Home page</strong></dt>
-          <dd><code>https://mindalyze-com.github.io/mtl-explorer/google-health/</code></dd>
-          <dt><strong>Privacy policy</strong></dt>
-          <dd><code>https://mindalyze-com.github.io/mtl-explorer/google-health/privacy/</code></dd>
+          <dd><code>https://mtl-explorer.com/google-health/</code></dd>
           <dt><strong>Terms</strong></dt>
-          <dd><code>https://mindalyze-com.github.io/mtl-explorer/google-health/terms/</code></dd>
+          <dd><code>https://mtl-explorer.com/google-health/terms/</code></dd>
         </dl>
       </aside>
+    </section>
+
+    <section class="section" id="features">
+      <div class="section-head">
+        <h2>Recorded separately. Viewed together.</h2>
+        <p>Record a ride on your Garmin and wear your Fitbit. Import the track and connect Google Health. MTL Explorer automatically matches the available heart-rate samples by time, even if they were never part of the GPS recording.</p>
+      </div>
+      <div class="content-grid">
+        <article class="card"><h3>Heart rate on tracks and segments</h3><p>View heart rate beside elevation and other track graphs. Check average heart rate for a whole track or a selected segment. This needs a track with timestamps and heart-rate data for the same time.</p></article>
+        <article class="card"><h3>Health trends</h3><p>Browse steps, sleep, resting heart rate, and body measurements. Choose a date range and group charts by day, week, month, or year.</p></article>
+        <article class="card"><h3>Automatic sync</h3><p>Keep a local copy of available records. Sync starts with recent data and then works back through your history. Exercises with a GPS route are added to your tracks.</p></article>
+        <article class="card"><h3>Browse the records</h3><p>Filter stored records by type, source, and date. Open a record to see its details and check which periods are available.</p></article>
+      </div>
+      <p class="copy">Data availability depends on your device and what it shares through the <a href="https://developers.google.com/health">Google Health API</a>. The connection is optional and read-only. When synthetic health data is enabled, the demo shows generated records and matching track heart rate. It cannot connect to a Google account or run live Google synchronization.</p>
+      <div class="related section-steps"><a class="button-secondary" href="/docs/user/health/google-health/">Health navigation and chart guide</a></div>
+    </section>
+
+    <section class="section" id="screenshots" aria-labelledby="screenshots-title">
+      <div class="section-head">
+        <h2 id="screenshots-title">The current app with synthetic data.</h2>
+        <p>Captured from MTL Explorer on 3 October 2026. These are real application screens with generated records; no personal health data or Google account is used. Select an image to view its full resolution.</p>
+      </div>
+      <div class="content-grid">
+        <figure class="app-screenshot">
+          <a href="../assets/feature-showcase/large/google-health-overview.webp?v=20261003" aria-label="View the full Health Overview screenshot">
+            <img src="../assets/feature-showcase/medium/google-health-overview.webp?v=20261003" srcset="../assets/feature-showcase/thumb/google-health-overview.webp?v=20261003 360w, ../assets/feature-showcase/medium/google-health-overview.webp?v=20261003 720w, ../assets/feature-showcase/preview/google-health-overview.webp?v=20261003 1093w" sizes="(max-width: 640px) calc(100vw - 40px), (max-width: 1160px) calc((100vw - 60px) / 2), 550px" width="1093" height="1045" alt="Health Overview in MTL Explorer with synthetic daily sleep and heart-rate trends" loading="lazy" decoding="async">
+          </a>
+          <figcaption><strong>Health → Overview.</strong> Daily sleep and heart-rate trends with date, calendar grouping, and category controls. Latest values are separate from the selected chart period.</figcaption>
+        </figure>
+        <figure class="app-screenshot">
+          <a href="../assets/feature-showcase/large/google-health-track.webp?v=20261003" aria-label="View the full track heart-rate screenshot">
+            <img src="../assets/feature-showcase/medium/google-health-track.webp?v=20261003" srcset="../assets/feature-showcase/thumb/google-health-track.webp?v=20261003 360w, ../assets/feature-showcase/medium/google-health-track.webp?v=20261003 720w, ../assets/feature-showcase/preview/google-health-track.webp?v=20261003 1093w" sizes="(max-width: 640px) calc(100vw - 40px), (max-width: 1160px) calc((100vw - 60px) / 2), 550px" width="1093" height="932" alt="Track Graphs in MTL Explorer showing speed and matching synthetic heart rate for a cycling route" loading="lazy" decoding="async">
+          </a>
+          <figcaption><strong>Track details → Graphs.</strong> Speed and heart rate share the track's time axis. This mathematical route has no elevation data, so its elevation chart is empty.</figcaption>
+        </figure>
+      </div>
     </section>
 
     <section class="section">
@@ -75,7 +133,7 @@
       <div class="content-grid">
         <article class="card">
           <h3>Separate OAuth client</h3>
-          <p>Each administrator creates a Google Cloud project and Desktop OAuth client for their own installation.</p>
+          <p>Each administrator uses their own Google Cloud project with API access and a Desktop OAuth client for their installation.</p>
         </article>
         <article class="card">
           <h3>Read-only access</h3>
@@ -87,7 +145,7 @@
         </article>
         <article class="card">
           <h3>Local controls</h3>
-          <p>The administrator can disconnect Google, remove the local mirror, and revoke access from the Google Account.</p>
+          <p>You can disconnect Google, delete the local copy, and revoke access in your Google Account.</p>
         </article>
       </div>
     </section>
@@ -115,7 +173,7 @@
         Public services, materially changed integrations, and rebranded products should publish their own information on a domain controlled by their operator.
       </div>
       <div class="related section-steps">
-        <a class="button-secondary" href="privacy/">Privacy notice</a>
+        <a class="button-secondary" href="../gpx-track-map/">GPS track archive</a>
         <a class="button-secondary" href="terms/">Terms of use</a>
         <a class="button-secondary" href="https://github.com/mindalyze-com/mtl-explorer">Source code</a>
       </div>
@@ -125,7 +183,7 @@
   <footer class="site-footer">
     <div class="site-footer-inner">
       <span>MTL Explorer · Google Health connection</span>
-      <nav aria-label="Footer navigation"><a href="../">Home</a><a href="privacy/">Privacy</a><a href="terms/">Terms</a></nav>
+      <nav aria-label="Footer navigation"><a href="../#site-analytics">Site analytics</a><a href="../">Home</a><a href="terms/">Terms</a></nav>
     </div>
   </footer>
 </body>

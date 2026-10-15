@@ -28,12 +28,13 @@ public class StatisticsMilestoneQueryRepository {
                     start_date,
                     GREATEST(0, COALESCE(track_length_in_meter, 0))::double precision AS distance_m,
                     GREATEST(0, COALESCE(ascent_in_meter, 0))::double precision AS ascent_m,
-                    GREATEST(0, COALESCE(energy_net_total_wh, 0))::double precision AS energy_wh
+                    CASE WHEN timing_unreliable THEN 0 ELSE GREATEST(0, COALESCE(CASE WHEN NOT timing_unreliable THEN energy_net_total_wh END, 0)) END::double precision AS energy_wh
                 FROM gps_track
                 WHERE id = ANY(:filterIds)
                   AND start_date IS NOT NULL
                   AND highlight_exclusion_reason IS NULL
                   AND statistics_exclusion_reason IS NULL
+                  AND review_excluded = false
             )
             SELECT
                 definition.dimension,

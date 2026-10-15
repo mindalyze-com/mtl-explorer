@@ -2,6 +2,7 @@
   <BottomSheet
     :model-value="show"
     :detents="FILTER_STANDARD_DETENTS"
+    :content-key="showScopeHelp ? 'help' : 'overview'"
     :no-backdrop="false"
     sheet-class="sheet--solid-over-map sheet--filter-overview"
     @update:model-value="emit('update:show', $event)"
@@ -19,13 +20,20 @@
         >
           <i class="bi bi-arrow-left" aria-hidden="true"></i>
         </button>
-        <i v-else class="bi bi-funnel filter-header__icon" aria-hidden="true"></i>
+        <i v-else :class="[NAVIGATION_TOOL_ICONS.filter, 'filter-header__icon']" aria-hidden="true"></i>
         <h2 class="filter-header__panel-title panel-title">{{ showScopeHelp ? 'How filters work' : 'Filter' }}</h2>
       </div>
     </template>
 
-    <template v-if="sqlTabEnabled && !showScopeHelp" #header-actions>
-      <div ref="filterOverflowEl" class="filter-overflow" @pointerdown.stop @click.stop>
+    <template v-if="!filterEnabled || (sqlTabEnabled && !showScopeHelp)" #header-actions>
+      <FilterOffBadge v-if="!filterEnabled" />
+      <div
+        v-if="sqlTabEnabled && !showScopeHelp"
+        ref="filterOverflowEl"
+        class="filter-overflow"
+        @pointerdown.stop
+        @click.stop
+      >
         <button
           type="button"
           class="filter-header-action filter-action-text"
@@ -44,7 +52,7 @@
       </div>
     </template>
 
-    <div class="filter-root" :inert="innerScreenOpen ? true : undefined">
+    <div class="filter-root" data-sheet-fit-target :inert="innerScreenOpen ? true : undefined">
       <FilterScopeHelp v-if="showScopeHelp" :first-visit="scopeHelpFirstVisit" @done="closeScopeHelp" />
 
       <template v-else>
@@ -73,7 +81,6 @@
           :result-action-icon="overviewResultActionIcon"
           :show-secondary-result-action="Boolean(previewError && lastSuccessfulConfig)"
           secondary-result-action-label="Revert"
-          :show-review-action="reviewAvailable"
           :reset-undo-available="resetUndoAvailable"
           :active-identity="activeFilterIdentity"
           :view-summary="currentViewName"
@@ -91,32 +98,52 @@
           @open-categories="showCategoryManager = true"
           @open-colors="showColoring = true"
           @open-scope-help="openScopeHelp"
-          @review="openTrackReview"
           @reset="resetFilter"
           @undo-reset="undoReset"
         />
       </template>
     </div>
 
+    <template v-if="filtersLoaded && !showScopeHelp" #footer>
+      <FilterSheetActions
+        :cancel-visible="reviewAvailable"
+        cancel-label="Browse matching tracks"
+        apply-label="Show on map"
+        @cancel="openTrackReview"
+        @apply="showOnMap"
+      />
+    </template>
+
     <FilterViewSheet
       v-model="showViewPicker"
+      :enabled="filterEnabled"
       :groups="filterOptionGroups"
       :selected-filter-info="selectedFilter?.filterInfo ?? null"
+      :filter-params="selectedFilter?.filterParams"
+      :legend-sort-strategy="effectiveLegendSortStrategy"
       @apply="selectFilterInfo"
     />
 
     <FilterCriteriaSheet
       v-model="showCriteria"
+      :enabled="filterEnabled"
       :filter-info="selectedFilter?.filterInfo"
       :filter-params="selectedFilter?.filterParams"
+      :result-text="resultStatusText"
+      :result-detail="resultStatusDetail"
+      :loading="isPreviewLoading"
+      :preview-error="Boolean(previewError)"
       :track-id-candidate-tracks="trackIdCandidateTracks"
       :track-id-candidates-loading="isTrackIdCandidatesLoading"
+      @retry="retryPreview"
       @change="updateCriteria"
+      @apply-and-enable="updateCriteriaAndEnable"
       @apply-and-draw="updateCriteriaAndDraw"
     />
 
     <FilterCategoriesSheet
       v-model="showCategoryManager"
+      :enabled="filterEnabled"
       :available-groups="previewResult?.availableGroups ?? []"
       :selection="selectedFilter?.filterParams?.resultGroupSelection"
       :filter-info="selectedFilter?.filterInfo"
@@ -129,6 +156,7 @@
 
     <FilterColoringSheet
       v-model="showColoring"
+      :enabled="filterEnabled"
       :palettes="colorPaletteList"
       :palette="selectedFilter?.palette"
       :default-palette="defaultColoringPalette"
@@ -146,6 +174,10 @@
       :z-index="5100"
       sheet-class="sheet--filter-detail"
     >
+      <template v-if="!filterEnabled" #header-actions>
+        <FilterOffBadge />
+      </template>
+
       <div class="filter-inner-screen">
         <FilterSqlPreview
           :filter-info="selectedFilter?.filterInfo"
@@ -169,6 +201,8 @@
 </template>
 
 <script setup lang="ts">
+import { logSanitizedError, warnSanitized } from '@/utils/safeLogging';
+
 import { computed, markRaw, onBeforeUnmount, onMounted, ref, shallowRef, watch, type Ref } from 'vue';
 import { ClientFilterConfig, type FilterParamsRequest, FilterService } from '@/components/filter/FilterService';
 import { useFilterStore } from '@/stores/filterStore';
@@ -188,6 +222,7 @@ import { FilterConfigEntityLegendSortStrategyEnum } from 'x8ing-mtl-api-typescri
 import { fetchFilters, fetchResolveFilter, type ResolveFilterResult } from '@/utils/ServiceHelper';
 import { loadCachedTracks } from '@/utils/tracks/trackCollectionLoader';
 import { format } from 'date-fns';
+import { formatLocaleNumber } from '@/utils/Utils';
 import { ColorPalette } from '@/components/filter/ColorPalette';
 import {
   buildFilterOptionGroups,
@@ -214,7 +249,12 @@ import {
 } from '@/utils/filterParams';
 
 import BottomSheet from '@/components/ui/BottomSheet.vue';
+import { NAVIGATION_TOOL_ICONS } from '@/components/ui/navigationToolIcons';
+import FilterSheetActions from '@/components/filter/FilterSheetActions.vue';
+import { FILTER_DATE_FROM, FILTER_DATE_TO, filterCriteriaErrors, filterDateValue } from '@/utils/filterCriteria';
+import { withBrowserTimeZone } from '@/utils/filterTimeZone';
 import FilterOverview from '@/components/filter/FilterOverview.vue';
+import FilterOffBadge from '@/components/filter/FilterOffBadge.vue';
 import FilterScopeHelp from '@/components/filter/FilterScopeHelp.vue';
 import FilterViewSheet from '@/components/filter/FilterViewSheet.vue';
 import FilterCriteriaSheet from '@/components/filter/FilterCriteriaSheet.vue';
@@ -358,6 +398,10 @@ const innerScreenOpen = computed(
 const selectedOrderLabel = computed((): string =>
   effectiveLegendSortStrategy.value ? legendSortStrategyLabel(effectiveLegendSortStrategy.value) : 'Default order'
 );
+const criteriaErrors = computed(() =>
+  filterCriteriaErrors(selectedFilter.value?.filterInfo, selectedFilter.value?.filterParams)
+);
+const hasCriteriaErrors = computed(() => Object.keys(criteriaErrors.value).length > 0);
 const hasNoMatches = computed(
   (): boolean => previewResult.value != null && (previewResult.value.resultEntries?.length ?? 0) === 0
 );
@@ -382,7 +426,8 @@ const categoriesSummary = computed((): string => {
   if (!categoriesAvailable.value) return categoryStatusText.value;
   const availableGroups = previewResult.value?.availableGroups ?? [];
   const selection = selectedFilter.value?.filterParams?.resultGroupSelection;
-  if (!selection) return `All ${availableGroups.length} categories`;
+  if (!selection)
+    return `All ${formatLocaleNumber(availableGroups.length)} ${availableGroups.length === 1 ? 'category' : 'categories'}`;
   const selectedCount = availableGroups.filter(
     (summary) => summary.key && isResultGroupSelected(summary.key, selection)
   ).length;
@@ -403,6 +448,19 @@ const activeCriteriaCount = computed((): number => {
 });
 const criteriaSummary = computed((): string => {
   if (activeCriteriaCount.value === 0) return 'No criteria';
+  const dates = selectedFilter.value?.filterParams?.dateTimeParams;
+  const from = filterDateValue(dates?.[FILTER_DATE_FROM]);
+  const to = filterDateValue(dates?.[FILTER_DATE_TO]);
+  if (from || to) {
+    const range =
+      from && to
+        ? `${format(from, 'd MMM yyyy')} – ${format(to, 'd MMM yyyy')}`
+        : from
+          ? `From ${format(from, 'd MMM yyyy')}`
+          : `Until ${format(to!, 'd MMM yyyy')}`;
+    const remaining = activeCriteriaCount.value - Number(Boolean(from)) - Number(Boolean(to));
+    return remaining ? `${range} · ${remaining} more` : range;
+  }
   return `${activeCriteriaCount.value} ${activeCriteriaCount.value === 1 ? 'criterion' : 'criteria'} active`;
 });
 const hasActiveCriteria = computed((): boolean => {
@@ -438,6 +496,7 @@ const reviewAvailable = computed(
 const overviewResultActionLabel = computed((): string => {
   if (isPreviewLoading.value) return '';
   if (!filterEnabled.value) return '';
+  if (hasCriteriaErrors.value) return 'Edit criteria';
   if (previewError.value) return 'Retry';
   if (hasNoMatches.value) return noMatchesActionLabel.value;
   return '';
@@ -450,10 +509,11 @@ const overviewResultActionIcon = computed((): string => {
 const resultStatusText = computed((): string => {
   if (definitionsError.value) return 'Filter views unavailable';
   if (!filtersLoaded.value) return 'Loading filter…';
-  if (!filterEnabled.value) return 'Filter paused';
+  if (!filterEnabled.value) return 'Filtering is off';
+  if (hasCriteriaErrors.value) return 'Check filter criteria';
   if (isPreviewLoading.value) {
     const priorCount = previewResult.value?.resultEntries?.length;
-    return priorCount == null ? 'Updating…' : `Updating ${priorCount} tracks…`;
+    return priorCount == null ? 'Updating…' : `Updating ${formatLocaleNumber(priorCount)} tracks…`;
   }
   if (previewError.value) {
     return previewResult.value ? 'Update failed' : 'Results unavailable';
@@ -461,18 +521,24 @@ const resultStatusText = computed((): string => {
   if (hasNoMatches.value) return 'No tracks match';
   if (previewResult.value) {
     const count = previewResult.value.resultEntries?.length ?? 0;
-    return `${count} ${count === 1 ? 'matching track' : 'matching tracks'}`;
+    return `${formatLocaleNumber(count)} ${count === 1 ? 'matching track' : 'matching tracks'}`;
   }
   return 'Ready';
 });
 const resultStatusDetail = computed((): string => {
   if (definitionsError.value || !filtersLoaded.value) return '';
-  if (!filterEnabled.value) return 'All tracks are shown. Your filter setup is kept.';
+  if (!filterEnabled.value) return 'Showing all tracks. Your filter setup is kept.';
+  if (hasCriteriaErrors.value) return Object.values(criteriaErrors.value)[0];
   if (isPreviewLoading.value) return 'Checking the current criteria and categories.';
   if (previewError.value) {
     return previewResult.value
       ? 'The previous result remains active on the map.'
       : 'Try again to load matching tracks.';
+  }
+  if (hasNoMatches.value) {
+    if (noMatchesRecovery.value === 'categories') return 'Include a category or show all categories.';
+    if (noMatchesRecovery.value === 'criteria') return 'Try a wider range or fewer criteria.';
+    return 'Try another view to find matching tracks.';
   }
   if (previewResult.value) return 'Based on the current criteria and categories.';
   return '';
@@ -496,7 +562,7 @@ const effectiveLegendSortStrategy = computed((): LegendSortStrategy | null =>
 );
 const defaultColoringPalette = computed((): ColorPalette | undefined => {
   const preferred = findPreferredPalette(colorPaletteList.value, selectedFilter.value?.filterInfo?.filterConfig);
-  return preferred ?? colorPaletteList.value.find((palette) => palette.isEmptyColorPalette());
+  return preferred ?? markRaw(new ColorPalette());
 });
 const paletteLabel = computed((): string => selectedFilter.value?.palette?.pLabel || 'No coloring');
 const mapColorsStatusText = computed((): string => {
@@ -527,13 +593,11 @@ onMounted(() => {
   void loadFilterDefinitions();
 });
 
+watch(showCriteria, () => scheduleTrackIdCandidateLoad());
+
 watch(
   () => props.show,
   (open) => {
-    if (open === true) {
-      if (!scopeHelpSeen.value) openScopeHelp(true);
-      return;
-    }
     if (open !== false) return;
     showViewPicker.value = false;
     showCriteria.value = false;
@@ -597,6 +661,11 @@ function onSheetClosed(): void {
   emit('closed');
 }
 
+function showOnMap(): void {
+  emit('update:show', false);
+  onSheetClosed();
+}
+
 function onDocumentPointerDown(event: PointerEvent): void {
   const target = event.target;
   if (!(target instanceof Node)) return;
@@ -625,9 +694,7 @@ async function loadFilterDefinitions(): Promise<void> {
   try {
     if (colorPaletteList.value.length === 0) {
       const palettes = await ColorPalette.fetch();
-      const emptyPalette = markRaw(new ColorPalette());
-      emptyPalette.pLabel = 'No coloring';
-      emptyPalette.pDescription = 'No coloring at all';
+      const emptyPalette = markRaw(ColorPalette.withoutColoring());
       colorPaletteList.value = [emptyPalette, ...palettes.map((palette) => markRaw(palette))];
     }
 
@@ -665,7 +732,11 @@ async function loadFilterDefinitions(): Promise<void> {
     scheduleTrackIdCandidateLoad();
   } catch (error) {
     definitionsError.value = error instanceof Error ? error.message : String(error);
-    console.error('Error in mounted lifecycle hook:', error);
+    logSanitizedError('Error in mounted lifecycle hook:', error, {
+      topic1: 'filter',
+      topic2: 'CustomFilter',
+      topic3: 'loadFilterDefinitions',
+    });
   }
 }
 
@@ -674,6 +745,7 @@ onBeforeUnmount(() => {
   if (trackIdCandidateDebounceTimer) clearTimeout(trackIdCandidateDebounceTimer);
   if (resetUndoTimer) clearTimeout(resetUndoTimer);
   drillDownRequestSeq += 1;
+  trackIdCandidateLoadSeq += 1;
   document.removeEventListener('pointerdown', onDocumentPointerDown, true);
   document.removeEventListener('keydown', onDocumentKeyDown, true);
 });
@@ -717,6 +789,7 @@ function restoreDateParams(config: ClientFilterConfig): void {
 }
 
 function applyPreferredPaletteForSelectedFilter(replaceIncompatiblePalette: boolean): void {
+  if (selectedFilter.value?.palette?.noColoring) return;
   const filterConfig = selectedFilter.value?.filterInfo?.filterConfig;
   const preferredPalette = findPreferredPalette(colorPaletteList.value, filterConfig);
   if (!preferredPalette) return;
@@ -740,6 +813,7 @@ function applyPreferredPaletteForSelectedFilter(replaceIncompatiblePalette: bool
 }
 
 function selectFilterInfo(filterInfo: FilterInfo) {
+  const enableAfterApply = !filterEnabled.value;
   const sameFilter = isSameFilterInfo(selectedFilter.value?.filterInfo, filterInfo);
   selectedFilter.value.filterInfo = filterInfo;
   showViewPicker.value = false;
@@ -750,6 +824,8 @@ function selectFilterInfo(filterInfo: FilterInfo) {
     };
     onFilterInfoChanged();
   }
+  if (enableAfterApply) resumeFilter();
+  if (hasCriteriaErrors.value) showCriteria.value = true;
 }
 
 // ── Pause and resume ──
@@ -805,8 +881,11 @@ function setResultGroupSelection(selection: FilterResultGroupSelection | undefin
   const params = ensureFilterParamMaps(selectedFilter.value.filterParams);
   params.resultGroupSelection = selection;
   selectedFilter.value.filterParams = params;
-  if (filterEnabled.value) scheduleLivePreview();
-  else persistPausedDraft();
+  if (!filterEnabled.value) {
+    resumeFilter();
+    return;
+  }
+  scheduleLivePreview();
 }
 
 function applyColoring(value: {
@@ -823,7 +902,7 @@ function applyColoring(value: {
     rebuildPreviewPalette();
   }
   if (!filterEnabled.value) {
-    persistPausedDraft();
+    resumeFilter();
     return;
   }
   filterStore.save(
@@ -919,6 +998,9 @@ function selectedTrackPickerSourceFilterInfo(): FilterInfo | null {
 
 function scheduleTrackIdCandidateLoad() {
   if (trackIdCandidateDebounceTimer) clearTimeout(trackIdCandidateDebounceTimer);
+  trackIdCandidateDebounceTimer = null;
+  // Picker choices are independent of the active filter result used by the map.
+  if (!showCriteria.value) return;
   if (!selectedTrackPickerSourceFilterInfo()) {
     trackIdCandidateTracks.value = [];
     isTrackIdCandidatesLoading.value = false;
@@ -970,6 +1052,7 @@ async function loadCachedTrackIdCandidates(sourceFilterInfo: FilterInfo): Promis
 }
 
 async function loadTrackIdCandidates() {
+  if (!showCriteria.value) return;
   const sourceFilterInfo = selectedTrackPickerSourceFilterInfo();
   const filterId = sourceFilterInfo?.filterConfig?.id;
   if (!filterId) return;
@@ -996,7 +1079,11 @@ async function loadTrackIdCandidates() {
     lastTrackIdCandidateLoadKey = loadKey;
   } catch (error) {
     if (seq !== trackIdCandidateLoadSeq) return;
-    console.error('Track picker candidate fetch error:', error);
+    logSanitizedError('Track picker candidate fetch error:', error, {
+      topic1: 'filter',
+      topic2: 'CustomFilter',
+      topic3: 'loadTrackIdCandidates',
+    });
     trackIdCandidateTracks.value = [];
   } finally {
     if (seq === trackIdCandidateLoadSeq) {
@@ -1017,14 +1104,8 @@ async function executeLivePreview(requestSeq: number): Promise<ResolveFilterResu
 
   try {
     const processedParams = getProcessedParams();
-    if (
-      !hasCompleteStringParamsForDefinitions(
-        processedParams,
-        selectedFilter.value?.filterInfo?.paramDefinitions || [],
-        selectedFilter.value?.filterInfo
-      )
-    ) {
-      previewError.value = 'Complete the required fields to update this view.';
+    if (hasCriteriaErrors.value) {
+      previewError.value = Object.values(criteriaErrors.value)[0];
       return null;
     }
 
@@ -1041,7 +1122,11 @@ async function executeLivePreview(requestSeq: number): Promise<ResolveFilterResu
     if (isAbortLikeError(error)) return null;
     previewError.value = 'Preview failed. Check parameter values or switch to a different filter.';
     previewFilterResult.value = null;
-    console.error('Live preview error:', error);
+    logSanitizedError('Live preview error:', error, {
+      topic1: 'filter',
+      topic2: 'CustomFilter',
+      topic3: 'executeLivePreview',
+    });
     return null;
   } finally {
     if (requestSeq === previewRequestSeq) isPreviewLoading.value = false;
@@ -1071,7 +1156,11 @@ async function loadPausedPreview(): Promise<void> {
     rebuildPreviewPalette();
   } catch (error) {
     if (requestSeq !== previewRequestSeq || filterEnabled.value) return;
-    console.warn('Paused filter preview could not be refreshed:', error);
+    warnSanitized('Paused filter preview could not be refreshed:', error, {
+      topic1: 'filter',
+      topic2: 'CustomFilter',
+      topic3: 'loadPausedPreview',
+    });
   }
 }
 
@@ -1134,7 +1223,11 @@ async function loadDrillDownFullResult(options: { preserveCurrent?: boolean } = 
     drillDownError.value = drillDownFullResult.value
       ? 'Tracks could not be refreshed. Showing saved results.'
       : 'Tracks could not be loaded.';
-    console.error('Drill-down fetch error:', error);
+    logSanitizedError('Drill-down fetch error:', error, {
+      topic1: 'filter',
+      topic2: 'CustomFilter',
+      topic3: 'loadDrillDownFullResult',
+    });
   } finally {
     if (requestSeq === drillDownRequestSeq) isDrillDownLoading.value = false;
   }
@@ -1216,9 +1309,18 @@ function updateCriteria(value: CriteriaUpdate): void {
   onParamChanged();
 }
 
+function updateCriteriaAndEnable(value: CriteriaUpdate): void {
+  updateCriteria(value);
+  if (!filterEnabled.value) resumeFilter();
+}
+
 function updateCriteriaAndDraw(value: CriteriaUpdate & { paramDefinition: ParamDefinition }): void {
   updateCriteria(value);
   emit(EVENTS.startGeoDrawing, value.paramDefinition);
+}
+
+function openCriteria(): void {
+  showCriteria.value = true;
 }
 
 function retryPreview(): void {
@@ -1226,6 +1328,10 @@ function retryPreview(): void {
 }
 
 function onOverviewResultAction(): void {
+  if (hasCriteriaErrors.value) {
+    showCriteria.value = true;
+    return;
+  }
   if (previewError.value) {
     retryPreview();
     return;
@@ -1316,7 +1422,7 @@ function undoReset(): void {
 
 // ── Param helpers ──
 function formatDateParamImpl(date: Date) {
-  return format(date, 'yyyy-MM-dd HH:mm:ss');
+  return date.toISOString();
 }
 
 function getProcessedParams(options: { includeTrackIds?: boolean } = {}): FilterParamsRequest {
@@ -1350,7 +1456,9 @@ function getProcessedParams(options: { includeTrackIds?: boolean } = {}): Filter
     const trackPickerParamName = selectedTrackPickerParamName();
     if (trackPickerParamName) delete result.stringParams[trackPickerParamName];
   }
-  return pruneFilterParamsForDefinitions(result, selectedFilter.value?.filterInfo?.paramDefinitions || []);
+  return withBrowserTimeZone(
+    pruneFilterParamsForDefinitions(result, selectedFilter.value?.filterInfo?.paramDefinitions || [])
+  );
 }
 
 /**
@@ -1374,6 +1482,10 @@ function onGeoDrawingComplete(paramDef: ParamDefinition, shape: GeoCircle | GeoR
       break;
   }
   selectedFilter.value.filterParams = params;
+  if (!filterEnabled.value) {
+    resumeFilter();
+    return;
+  }
   persistCurrentFilterDraft();
   scheduleLivePreview();
   scheduleTrackIdCandidateLoad();
@@ -1395,6 +1507,7 @@ function getGeoShapes(): GeoShapes {
 }
 
 defineExpose({
+  openCriteria,
   onGeoDrawingComplete,
   getGeoShapes,
   getNavigationState,

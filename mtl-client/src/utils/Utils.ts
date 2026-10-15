@@ -2,6 +2,7 @@ import colormap from 'colormap';
 import _ from 'lodash';
 import { getFormatLocale } from '@/composables/useLocale';
 import { getMeasurementSystem } from '@/composables/useMeasurementSystem';
+import { VIZ_CATEGORICAL_COLORS } from '@/utils/visualizationColors';
 import {
   formatElevationM,
   formatLongDistanceM,
@@ -16,6 +17,11 @@ import {
 
 const SECONDS_PER_MINUTE = 60;
 const SECONDS_PER_HOUR = 3600;
+const MILLIS_PER_SECOND = 1000;
+const MILLIS_PER_MINUTE = SECONDS_PER_MINUTE * MILLIS_PER_SECOND;
+const MILLIS_PER_HOUR = SECONDS_PER_HOUR * MILLIS_PER_SECOND;
+const HOURS_PER_DAY = 24;
+const MILLIS_PER_DAY = HOURS_PER_DAY * MILLIS_PER_HOUR;
 const MPS_TO_KMH = 3.6;
 
 export const EVENT_MEASURE_BETWEEN_POINTS_DIALOG_MAXIMIZED_EVENT =
@@ -34,7 +40,7 @@ export function formatDuration(durationInMillis: number) {
   return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
 }
 
-export function formatDateAndTime(date: Date | string | number | null | undefined) {
+export function formatDateAndTime(date: Date | string | number | null | undefined, timeZone?: string) {
   return formatDateValue(date, {
     year: 'numeric',
     month: '2-digit',
@@ -42,6 +48,7 @@ export function formatDateAndTime(date: Date | string | number | null | undefine
     hour: '2-digit',
     minute: '2-digit',
     hour12: false,
+    timeZone,
   });
 }
 
@@ -87,11 +94,11 @@ function formatDateValue(date: Date | string | number | null | undefined, option
 }
 
 /** Short date with abbreviated month: "4. Apr. 2026" / "Apr 4, 2026" depending on locale */
-export function formatDateShort(date: Date | string | number | null | undefined) {
+export function formatDateShort(date: Date | string | number | null | undefined, timeZone?: string) {
   if (!date) return '';
   if (!(date instanceof Date)) date = new Date(date);
   if (isNaN(date.getTime())) return '';
-  return date.toLocaleDateString(getFormatLocale(), { year: 'numeric', month: 'short', day: 'numeric' });
+  return date.toLocaleDateString(getFormatLocale(), { year: 'numeric', month: 'short', day: 'numeric', timeZone });
 }
 
 /** Compact date for tight columns: "04.04.26" / "04/04/26" depending on locale */
@@ -225,28 +232,35 @@ export function formatDistanceSmart(meters: number, maxMeters?: number): string 
  */
 export function formatDurationSmart(millis: number, maxMillis?: number): string {
   if (millis == null || isNaN(millis)) return '—';
-  const ref = maxMillis ?? millis;
+  let ref = maxMillis ?? millis;
+  // Keep the column's scale unless it would hide a positive value as zero.
+  if (
+    millis > 0 &&
+    ((ref >= MILLIS_PER_DAY && millis < MILLIS_PER_HOUR) || (ref >= MILLIS_PER_HOUR && millis < MILLIS_PER_MINUTE))
+  ) {
+    ref = millis;
+  }
   const pad = (n: number) => n.toString().padStart(2, '0');
 
-  if (ref >= 86_400_000) {
+  if (ref >= MILLIS_PER_DAY) {
     // Show days + hours
-    const totalHours = Math.floor(millis / 3_600_000);
-    const days = Math.floor(totalHours / 24);
-    const hours = totalHours % 24;
+    const totalHours = Math.floor(millis / MILLIS_PER_HOUR);
+    const days = Math.floor(totalHours / HOURS_PER_DAY);
+    const hours = totalHours % HOURS_PER_DAY;
     const daysStr = days >= 1000 ? days.toLocaleString(getFormatLocale()) : String(days);
     return `${daysStr}d ${pad(hours)}h`;
-  } else if (ref >= 3_600_000) {
+  } else if (ref >= MILLIS_PER_HOUR) {
     // Show Xh Ym
-    const totalMinutes = Math.floor(millis / 60_000);
-    const hours = Math.floor(totalMinutes / 60);
-    const minutes = totalMinutes % 60;
+    const totalMinutes = Math.floor(millis / MILLIS_PER_MINUTE);
+    const hours = Math.floor(totalMinutes / SECONDS_PER_MINUTE);
+    const minutes = totalMinutes % SECONDS_PER_MINUTE;
     const hoursStr = hours >= 1000 ? hours.toLocaleString(getFormatLocale()) : String(hours);
     return `${hoursStr}h ${pad(minutes)}m`;
   } else {
     // Show Xm Ys
-    const totalSeconds = Math.floor(millis / 1000);
-    const minutes = Math.floor(totalSeconds / 60);
-    const seconds = totalSeconds % 60;
+    const totalSeconds = Math.floor(millis / MILLIS_PER_SECOND);
+    const minutes = Math.floor(totalSeconds / SECONDS_PER_MINUTE);
+    const seconds = totalSeconds % SECONDS_PER_MINUTE;
     return `${minutes}m ${pad(seconds)}s`;
   }
 }
@@ -294,18 +308,24 @@ function longDistanceThresholdM(system: ReturnType<typeof getMeasurementSystem>)
 }
 
 export function generateColors(n: number) {
-  // rainbow map requires at least 9 colors!
-  const n2 = Math.max(n, 9);
+  if (n <= VIZ_CATEGORICAL_COLORS.length) return VIZ_CATEGORICAL_COLORS.slice(0, Math.max(0, n));
 
-  const options = {
-    colormap: 'rainbow', // pick a builtin color map
-    nshades: n2, // how many distinct colors you want
-    format: 'hex', // the output format of the colors
-    alpha: 1, // the alpha (opacity) of the colors
-  };
-
-  const colors = colormap(options);
-  return colors.slice(0, n);
+  const RAINBOW_MIN_SHADES = 9;
+  const extraCount = n - VIZ_CATEGORICAL_COLORS.length;
+  const extraColors = colormap({
+    colormap: 'rainbow',
+    nshades: Math.max(extraCount, RAINBOW_MIN_SHADES),
+    format: 'hex',
+    alpha: 1,
+  });
+  // Spread additional series across the whole gradient instead of taking adjacent shades.
+  return [
+    ...VIZ_CATEGORICAL_COLORS,
+    ...Array.from({ length: extraCount }, (_, i) => {
+      const index = extraCount === 1 ? 0 : Math.round((i * (extraColors.length - 1)) / (extraCount - 1));
+      return extraColors[index];
+    }),
+  ];
 }
 
 export function isEmptyOrNil(o: unknown) {

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.10.xsd">
+    <changeSet id="20261003_exploration_candidate_indexes" author="codex">
+        <comment>Limit exploration candidate reads to the configured default shape and eligible earlier tracks.</comment>
+        <sql>
+            CREATE INDEX gps_track_data_ix_exploration_shape ON gps_track_data USING gist (track)
+            WHERE track_type = 'SIMPLIFIED_SHAPE' AND precision_in_meter = 10;
+        </sql>
+        <sql>
+            CREATE INDEX gps_track_ix_exploration_prior ON gps_track (start_date) INCLUDE (id)
+            WHERE duplicate_status = 'UNIQUE' AND load_status = 'SUCCESS'
+              AND NOT review_excluded AND NOT timing_unreliable;
+        </sql>
+        <rollback>
+            <dropIndex tableName="gps_track" indexName="gps_track_ix_exploration_prior"/>
+            <dropIndex tableName="gps_track_data" indexName="gps_track_data_ix_exploration_shape"/>
+        </rollback>
+    </changeSet>
+</databaseChangeLog>

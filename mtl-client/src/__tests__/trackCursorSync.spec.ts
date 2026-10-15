@@ -61,6 +61,15 @@ describe('trackCursorSync point index', () => {
     expect(resolveChartPointTrackPoint(index, 'distance', 0.9, null)?.pointIndex).toBe(2);
   });
 
+  it('keeps the track time origin when the first chart bucket occurs after the start', () => {
+    const index = createTrackPointIndex([
+      point({ timestamp: 65_000, chartX: { time: 60_000 } }),
+      point({ timestamp: 125_000, chartX: { time: 120_000 } }),
+    ]);
+    expect(index.startTs).toBe(5_000);
+    expect(chartXForTrackPoint(point({ timestamp: 95_000 }), 'time', index.startTs)).toBe(90_000);
+  });
+
   it('resolves chart points by canonical bucket identity before x-mode fallback', () => {
     const index = createTrackPointIndex([
       point({
@@ -170,7 +179,7 @@ describe('getPrimaryChartInputEvent', () => {
 
 describe('useChartSync marker behavior', () => {
   function touchEvent(type: string, clientX: number, clientY: number): TouchEvent {
-    const event = new Event(type) as TouchEvent;
+    const event = new Event(type, { bubbles: true, cancelable: true }) as TouchEvent;
     Object.defineProperties(event, {
       touches: { value: type === 'touchend' ? [] : [{ clientX, clientY }] },
       changedTouches: { value: [{ clientX, clientY }] },
@@ -242,13 +251,143 @@ describe('useChartSync marker behavior', () => {
     }
   });
 
-  it('leaves a touch gesture for scrolling when it starts away from the plotted line', () => {
+  it('syncs later time sections and ignores range bands, including overlapping timestamps', () => {
+    const { chart, container, point: firstPoint } = touchChart();
+    const laterPoint = {
+      x: 10,
+      plotY: 80,
+      ts: 1000,
+      canonicalPointIndex: 2,
+      distX: 0,
+      dist: 1,
+      setState: vi.fn(),
+    } as unknown as Highcharts.Point;
+    const rangePoint = { x: 10, distX: 0, dist: 0, setState: vi.fn() } as unknown as Highcharts.Point;
+    const hiddenPoint = { x: 10, distX: 0, dist: 0, setState: vi.fn() } as unknown as Highcharts.Point;
+    chart.series.push(
+      {
+        options: { enableMouseTracking: false },
+        points: [rangePoint],
+        searchPoint: vi.fn(() => rangePoint),
+      } as unknown as Highcharts.Series,
+      { points: [laterPoint], searchPoint: vi.fn(() => laterPoint) } as unknown as Highcharts.Series,
+      { visible: false, points: [hiddenPoint], searchPoint: vi.fn(() => hiddenPoint) } as unknown as Highcharts.Series
+    );
+    const cursor = useTrackCursorSync();
+    const chartSync = useChartSync();
+    cursor.setTrackPoints([point({ pointIndex: 0, timestamp: 1000 }), point({ pointIndex: 2, timestamp: 1000 })]);
+    const cleanup = chartSync.bindChart(chart);
+    try {
+      container.dispatchEvent(touchEvent('touchstart', 120, 108));
+      expect(chart.tooltip.refresh).toHaveBeenLastCalledWith(laterPoint);
+      expect(firstPoint.setState).not.toHaveBeenCalledWith('hover');
+      chartSync.syncClick(new MouseEvent('click'), chart);
+      expect(cursor.pinnedPoint.value?.pointIndex).toBe(2);
+      chartSync.showChartsAtPoint({ timestamp: 1000, distanceKm: 0, chartX: { time: 10 }, canonicalPointIndex: 2 });
+      expect(chart.tooltip.refresh).toHaveBeenLastCalledWith(laterPoint);
+      expect(rangePoint.setState).not.toHaveBeenCalledWith('hover');
+      expect(hiddenPoint.setState).not.toHaveBeenCalledWith('hover');
+    } finally {
+      cleanup();
+      chartSync.clearChartCrosshairs();
+      cursor.clearAll();
+    }
+  });
+
+  it('finds the nearest x value across separate forward-time sections', () => {
+    const { chart } = touchChart();
+    const laterPoint = { x: 50, setState: vi.fn() } as unknown as Highcharts.Point;
+    chart.series.push({ points: [laterPoint] } as unknown as Highcharts.Series);
+    const chartSync = useChartSync();
+    chartSync.registerChart(chart);
+    try {
+      chartSync.showChartsAtTimestamp(48);
+      expect(chart.tooltip.refresh).toHaveBeenCalledWith(laterPoint);
+    } finally {
+      chartSync.unregisterChart(chart);
+      chartSync.clearChartCrosshairs();
+    }
+  });
+
+  it('ignores reduced points that cannot display a hover state', () => {
+    const { chart, point } = touchChart();
+    chart.series[0].points.unshift({ x: 9, y: 5 } as Highcharts.Point);
+    const chartSync = useChartSync();
+    chartSync.registerChart(chart);
+    try {
+      expect(() => chartSync.showChartsAtTimestamp(9)).not.toThrow();
+      expect(chart.tooltip.refresh).toHaveBeenCalledWith(point);
+    } finally {
+      chartSync.unregisterChart(chart);
+      chartSync.clearChartCrosshairs();
+    }
+  });
+
+  it('updates the map cursor on the first drag anywhere inside each graph plot', () => {
+    vi.useFakeTimers();
+    const graphs = [touchChart(), touchChart()];
+    const cursor = useTrackCursorSync();
+    const chartSync = useChartSync();
+    cursor.setTrackPoints([
+      point({ pointIndex: 0, canonicalPointIndex: 0, timestamp: 1000, lat: 47, lng: 8 }),
+      point({ pointIndex: 1, canonicalPointIndex: 1, timestamp: 2000, lat: 47.1, lng: 8.1 }),
+    ]);
+    const cleanups = graphs.map(({ chart }) => {
+      const firstPoint = { x: 0, ts: 1000, canonicalPointIndex: 0, plotY: 80, setState: vi.fn() };
+      const lastPoint = { x: 1000, ts: 2000, canonicalPointIndex: 1, plotY: 80, setState: vi.fn() };
+      chart.series[0].points = [firstPoint, lastPoint] as unknown as Highcharts.Point[];
+      vi.mocked(chart.series[0].searchPoint).mockImplementation(
+        (event) => (event.chartX < 180 ? firstPoint : lastPoint) as unknown as Highcharts.Point
+      );
+      return chartSync.bindChart(chart);
+    });
+    try {
+      for (const { container } of graphs) {
+        const start = touchEvent('touchstart', 120, 40);
+        container.dispatchEvent(start);
+        vi.advanceTimersByTime(20);
+        expect(cursor.hoverPoint.value?.pointIndex).toBe(0);
+        expect(start.defaultPrevented).toBe(false);
+
+        const move = touchEvent('touchmove', 260, 40);
+        container.dispatchEvent(move);
+        vi.advanceTimersByTime(20);
+        expect(cursor.hoverPoint.value?.pointIndex).toBe(1);
+        expect(move.defaultPrevented).toBe(false);
+        container.dispatchEvent(touchEvent('touchend', 260, 40));
+        expect(cursor.hoverPoint.value).toBeNull();
+      }
+    } finally {
+      cleanups.forEach((cleanup) => cleanup());
+      chartSync.clearChartCrosshairs();
+      cursor.clearAll();
+      vi.useRealTimers();
+    }
+  });
+
+  it('continues tracking when the first point lookup is not ready yet', () => {
+    const { chart, container, point } = touchChart();
+    const chartSync = useChartSync();
+    vi.mocked(chart.series[0].searchPoint).mockReturnValueOnce(undefined);
+    const cleanup = chartSync.bindChart(chart);
+    try {
+      container.dispatchEvent(touchEvent('touchstart', 120, 108));
+      container.dispatchEvent(touchEvent('touchmove', 260, 108));
+      expect(chart.tooltip.refresh).toHaveBeenCalledWith(point);
+    } finally {
+      cleanup();
+      chartSync.clearChartCrosshairs();
+      useTrackCursorSync().clearAll();
+    }
+  });
+
+  it('does not track a touch gesture that starts outside the plot', () => {
     const { chart, container, point } = touchChart();
     const chartSync = useChartSync();
     const cleanup = chartSync.bindChart(chart);
 
     try {
-      container.dispatchEvent(touchEvent('touchstart', 120, 40));
+      container.dispatchEvent(touchEvent('touchstart', 20, 40));
       container.dispatchEvent(touchEvent('touchmove', 120, 100));
 
       expect(point.setState).not.toHaveBeenCalledWith('hover');

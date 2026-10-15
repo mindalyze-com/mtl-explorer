@@ -14,6 +14,14 @@ package com.x8ing.mtl.server.mtlserver.metrics.window;
  * to a calculator. This keeps the hot loop branch-free.
  */
 public interface CanonicalPointView<P> {
+    default boolean intervalSupported(P point) {
+        return true;
+    }
+
+    default boolean elevationSupported(P point) {
+        return true;
+    }
+
 
     /**
      * Time (in seconds) elapsed since the previous canonical point.

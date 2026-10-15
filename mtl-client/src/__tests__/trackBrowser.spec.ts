@@ -11,6 +11,50 @@ describe('useTrackBrowser', () => {
     measurementPreference.setMeasurementSystem('METRIC');
   });
 
+  it('omits unsupported timing from rows, searches and totals while retaining healthy date fallback', () => {
+    const base = {
+      startDate: new Date('2035-06-01T12:00:00Z'),
+      endDate: new Date('2035-06-01T13:00:00Z'),
+      trackLengthInMeter: 5000,
+    };
+    const tracks = ref<GpsTrack[]>([
+      { ...base, id: 1, trackName: 'Healthy fallback' },
+      {
+        ...base,
+        id: 2,
+        trackName: 'Clock error',
+        timingUnreliable: true,
+        reviewStatus: 'NEEDS_REVIEW',
+        reviewExcluded: true,
+        endDate: new Date('2035-07-06T13:00:00Z'),
+      },
+      {
+        ...base,
+        id: 3,
+        trackName: 'Accepted estimate',
+        timingEstimated: true,
+        reviewStatus: 'INCLUDED',
+        trackDurationInMotionSecs: 1800,
+      },
+    ]);
+    const browser = useTrackBrowser(tracks);
+    expect(browser.rows.value.find((row) => row.id === 1)).toMatchObject({ durationMillis: 3_600_000, avgSpeedKmh: 5 });
+    for (const id of [2, 3]) {
+      expect(browser.rows.value.find((row) => row.id === id)).toMatchObject({
+        durationMillis: null,
+        avgSpeedKmh: null,
+      });
+    }
+    expect(browser.summary.value.totalDurationMillis).toBe(3_600_000);
+    browser.query.value = '30 min';
+    expect(browser.rows.value).toHaveLength(0);
+    browser.query.value = 'needs review';
+    expect(browser.rows.value.map((row) => row.id)).toEqual([2]);
+    expect(browser.summary.value.totalDurationMillis).toBeNull();
+    browser.query.value = 'estimated timing';
+    expect(browser.rows.value.map((row) => row.id)).toEqual([3]);
+  });
+
   it('searches GPX metadata names used as display names', () => {
     const tracks = ref<GpsTrack[]>([
       {

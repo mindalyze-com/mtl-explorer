@@ -1,9 +1,10 @@
+import { warnSanitized } from '@/utils/safeLogging';
 /**
  * Probe a list of well-known endpoints (backend, CDN-hosted basemap assets,
  * tiles) to detect networks that block parts of the page from loading.
  *
  * Extracted from App.vue. Runs once and writes a console.table summary; if any
- * probe fails it also emits a console.warn so users notice the issue when
+ * probe fails it also emits a diagnostic warning so users notice the issue when
  * inspecting devtools.
  */
 
@@ -12,6 +13,7 @@ import { apiUrl } from '@/utils/apiBase';
 interface Probe {
   label: string;
   url: string;
+  mode?: RequestMode;
 }
 
 interface ProbeResult {
@@ -21,7 +23,7 @@ interface ProbeResult {
 }
 
 const PROBES: ReadonlyArray<Probe> = [
-  { label: 'Backend API', url: apiUrl('api/info/build') },
+  { label: 'Backend API', url: apiUrl('api/auth/demo-status'), mode: 'cors' },
   {
     label: 'Protomaps fonts (CDN)',
     url: 'https://protomaps.github.io/basemaps-assets/fonts/Noto%20Sans%20Regular/0-255.pbf',
@@ -33,10 +35,10 @@ const PROBES: ReadonlyArray<Probe> = [
 
 export async function runConnectivityProbe(): Promise<void> {
   const results: ProbeResult[] = await Promise.all(
-    PROBES.map(async ({ label, url }) => {
+    PROBES.map(async ({ label, url, mode = 'no-cors' }) => {
       const t0 = performance.now();
       try {
-        const resp = await fetch(url, { method: 'HEAD', mode: 'no-cors', cache: 'no-store' });
+        const resp = await fetch(url, { method: 'HEAD', mode, cache: 'no-store' });
         const ms = Math.round(performance.now() - t0);
         // no-cors returns opaque response (status 0) — that's still a successful network round-trip.
         const ok = resp.status === 0 || resp.ok;
@@ -51,10 +53,12 @@ export async function runConnectivityProbe(): Promise<void> {
 
   const blocked = results.filter((r) => r.status.startsWith('BLOCKED'));
   if (blocked.length > 0) {
-    console.warn(
+    warnSanitized(
       `[MTL] Connectivity probe: ${blocked.length} resource(s) appear BLOCKED.\n` +
         'This is likely caused by a network filter, firewall, or content-based DPI rule.\n' +
-        'The app may not render correctly (blank map, missing labels/icons).'
+        'The app may not render correctly (blank map, missing labels/icons).',
+      undefined,
+      { topic1: 'application', topic2: 'useConnectivityProbe', topic3: 'runConnectivityProbe' }
     );
   }
   console.table(results);

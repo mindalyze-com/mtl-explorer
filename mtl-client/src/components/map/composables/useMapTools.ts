@@ -1,24 +1,29 @@
 import { markRaw } from 'vue';
+import { MAP_POINTER_TOLERANCE_PX, type MapTargetCandidate } from '../mapInteractionDecision';
 import * as maplibregl from 'maplibre-gl';
 import { GeoDrawingOverlay } from '@/layers/GeoDrawingOverlay';
 import { locationSearchTargetZoom as resolveLocationSearchTargetZoom } from '@/components/map/mapGeometry';
-import type { MapControllerMethodDefinitions, MapPoint, MapToolsMethods } from './mapControllerRuntime';
+import type { MapControllerMethodDefinitions, MapToolsMethods } from './mapControllerRuntime';
 
 const LOCATION_SEARCH_FLY_DURATION_MS = 900;
 const TRACK_DETAILS_MAP_DETENT = 'compact';
 const TRACK_DETAILS_DEFAULT_DETENT = 'default';
 const TRACK_DETAILS_EXPANDED_DETENT = 'expanded';
-const SWISS_MOBILITY_POPUP_HORIZONTAL_OFFSET_PX = 12;
-const SWISS_MOBILITY_POPUP_VERTICAL_OFFSET_PX = -10;
-const SWISS_MOBILITY_POPUP_EDGE_GAP_PX = 12;
-const SWISS_MOBILITY_POPUP_ESTIMATED_WIDTH_PX = 300;
-const SWISS_MOBILITY_POPUP_MIN_VISIBLE_HEIGHT_PX = 44;
+export const TRACK_DETAILS_DESKTOP_DETENT = 'desktop';
+export function resolveTrackDetailsOpeningDetent(detent: string): string {
+  return [TRACK_DETAILS_MAP_DETENT, TRACK_DETAILS_DEFAULT_DETENT, TRACK_DETAILS_DESKTOP_DETENT].includes(detent)
+    ? TRACK_DETAILS_EXPANDED_DETENT
+    : detent;
+}
+
 const TOOL_REF_NAMES = [
   'infoTool',
   'animateTool',
   'measureTool',
   'plannerTool',
   'statistics',
+  'healthTool',
+  'reviewTool',
   'filterTool',
   'mapSettingsTool',
   'gpsLocate',
@@ -29,63 +34,21 @@ const TOOL_REF_BY_ID: Record<string, string> = {
   measure: 'measureTool',
   planner: 'plannerTool',
   stats: 'statistics',
+  health: 'healthTool',
+  review: 'reviewTool',
   filter: 'filterTool',
   map: 'mapSettingsTool',
   gps: 'gpsLocate',
   admin: 'adminTool',
 };
 
-type SwissMobilityPopupViewport = {
-  width?: number;
-  height?: number;
-};
-
-function finitePositive(value: number | undefined): number | undefined {
-  return typeof value === 'number' && Number.isFinite(value) && value > 0 ? value : undefined;
-}
-
-function clamp(value: number, min: number, max: number): number {
-  return Math.min(Math.max(value, min), max);
-}
-
-export function resolveSwissMobilityPopupPosition(
-  point: MapPoint,
-  viewport: SwissMobilityPopupViewport = {}
-): MapPoint {
-  const preferredX = point.x + SWISS_MOBILITY_POPUP_HORIZONTAL_OFFSET_PX;
-  const preferredY = point.y + SWISS_MOBILITY_POPUP_VERTICAL_OFFSET_PX;
-  const viewportWidth = finitePositive(viewport.width);
-  const viewportHeight = finitePositive(viewport.height);
-  const x =
-    viewportWidth === undefined
-      ? preferredX
-      : clamp(
-          preferredX,
-          SWISS_MOBILITY_POPUP_EDGE_GAP_PX,
-          Math.max(
-            SWISS_MOBILITY_POPUP_EDGE_GAP_PX,
-            viewportWidth - SWISS_MOBILITY_POPUP_ESTIMATED_WIDTH_PX - SWISS_MOBILITY_POPUP_EDGE_GAP_PX
-          )
-        );
-  const y =
-    viewportHeight === undefined
-      ? preferredY
-      : clamp(
-          preferredY,
-          SWISS_MOBILITY_POPUP_EDGE_GAP_PX,
-          Math.max(SWISS_MOBILITY_POPUP_EDGE_GAP_PX, viewportHeight - SWISS_MOBILITY_POPUP_MIN_VISIBLE_HEIGHT_PX)
-        );
-
-  return { x, y };
-}
-
 export function useMapTools(_deps: Record<string, never> = {}): MapControllerMethodDefinitions<MapToolsMethods> {
   const methods: MapControllerMethodDefinitions<MapToolsMethods> = {
     openLocationSearch() {
+      this.endMapInteraction();
       this.closeAllToolsExcept(null);
       this.closeTransientOverlaysForToolSwitch();
       this.closeSelectionPopup();
-      this.closeSwissMobilityPopup();
       this.activeToolId = null;
       this.locationSearchVisible = true;
     },
@@ -95,7 +58,6 @@ export function useMapTools(_deps: Record<string, never> = {}): MapControllerMet
       const lon = Number(result?.lon);
       if (!Number.isFinite(lat) || !Number.isFinite(lon)) return;
       this.closeSelectionPopup();
-      this.closeSwissMobilityPopup();
       this.deselectTrack();
       this.locationSearchVisible = false;
       this.mapCenter = [lon, lat];
@@ -159,10 +121,17 @@ export function useMapTools(_deps: Record<string, never> = {}): MapControllerMet
         });
       }
 
-      // Always update (or create) the GPS marker regardless of follow state
+      this.updateGpsMarker();
+    },
+
+    updateGpsMarker() {
+      if (!this.gpsDeviceEnabledDisabled || !this.gpsLocation || !this.overlayMap) return;
+      const [latitude, longitude] = this.gpsLocation;
+
+      // Keep the marker visible even when the user pans away from follow mode.
       if (this.gpsMarker) {
         this.gpsMarker.setLngLat([longitude, latitude]);
-      } else if (this.overlayMap) {
+      } else {
         const el = document.createElement('div');
         el.style.cssText =
           'width:16px;height:16px;border-radius:50%;background:red;border:2px solid white;box-shadow:0 0 4px rgba(0,0,0,0.4);';
@@ -228,6 +197,7 @@ export function useMapTools(_deps: Record<string, never> = {}): MapControllerMet
     },
 
     closeTransientOverlaysForToolSwitch() {
+      this.endMapInteraction();
       if (this.trackReplayActive) {
         this.stop3dTrackReplay();
       }
@@ -249,7 +219,6 @@ export function useMapTools(_deps: Record<string, never> = {}): MapControllerMet
       this.locationSearchVisible = false;
       this.clearLocationSearchMarker();
       this.closeSelectionPopup();
-      this.closeSwissMobilityPopup();
     },
 
     captureActiveToolNavigation() {
@@ -284,6 +253,7 @@ export function useMapTools(_deps: Record<string, never> = {}): MapControllerMet
       if (!toolId) return;
       const refName = TOOL_REF_BY_ID[toolId];
       if (!refName) return;
+      const returningFromTrack = this.trackDetailsVisible && this.trackDetailsReturnTarget?.toolId === toolId;
       this.closeTransientOverlaysForToolSwitch();
 
       // ── GPS: 3-state cycle ──────────────────────────────────────────────────
@@ -315,7 +285,10 @@ export function useMapTools(_deps: Record<string, never> = {}): MapControllerMet
       const isTogglingOff = this.activeToolId === toolId;
       this.closeAllToolsExcept(refName);
       const ref = this.$refs[refName];
-      if (ref?.toggle) {
+      if (returningFromTrack && ref?.open) {
+        ref.open();
+        this.restoreToolNavigation(toolId);
+      } else if (ref?.toggle) {
         ref.toggle();
       }
       if (toolId === 'gps') {
@@ -357,7 +330,9 @@ export function useMapTools(_deps: Record<string, never> = {}): MapControllerMet
       if (!this.trackDetailsVisible && !this.trackDetailsReturnTarget) {
         this.captureActiveToolNavigation();
       }
-      this.closeAllToolsExcept(null);
+      const returnToolId = this.trackDetailsReturnTarget?.toolId;
+      const returnToolRef = returnToolId ? TOOL_REF_BY_ID[returnToolId] : null;
+      this.closeAllToolsExcept(returnToolRef ?? null);
       this.activeToolId = null;
       if (
         this.trackDetailsVisible &&
@@ -365,7 +340,6 @@ export function useMapTools(_deps: Record<string, never> = {}): MapControllerMet
         Number(this.selectedTrackId) === normalizedTrackId
       ) {
         this.closeSelectionPopup();
-        this.closeSwissMobilityPopup();
         return;
       }
       this.closeTransientOverlaysForToolSwitch();
@@ -385,6 +359,8 @@ export function useMapTools(_deps: Record<string, never> = {}): MapControllerMet
         measureTool: 'measure',
         plannerTool: 'planner',
         statistics: 'stats',
+        healthTool: 'health',
+        reviewTool: 'review',
         filterTool: 'filter',
         mapSettingsTool: 'map',
         gpsLocate: 'gps',
@@ -411,96 +387,87 @@ export function useMapTools(_deps: Record<string, never> = {}): MapControllerMet
       }
     },
 
-    closeSwissMobilityPopup() {
-      this.swissMobilityPopup = {
-        visible: false,
-        pos: {
-          x: 0,
-          y: 0,
-        },
-        routes: [],
+    async identifySwissMobilityRoutes(lngLat, _point, signal, tolerance = MAP_POINTER_TOLERANCE_PX) {
+      if (!this.overlayMap) return [];
+      const layers: Record<string, { bodId: string; type: string; icon: string }> = {
+        wanderland: { bodId: 'ch.astra.wanderland', type: 'Hiking', icon: 'bi bi-signpost-2' },
+        veloland: { bodId: 'ch.astra.veloland', type: 'Bike', icon: 'bi bi-bicycle' },
+        mountainbikeland: { bodId: 'ch.astra.mountainbikeland', type: 'Mountainbike', icon: 'bi bi-bicycle' },
+        wanderwege: { bodId: 'ch.swisstopo.swisstlm3d-wanderwege', type: 'Trail', icon: 'bi bi-signpost' },
       };
-    },
-
-    async identifySwissMobilityRoutes(lngLat, point) {
-      if (!this.overlayMap) return;
-      const OVERLAY_LAYER_MAP: Record<string, { bodId: string; type: string; icon: string }> = {
-        wanderland: {
-          bodId: 'ch.astra.wanderland',
-          type: 'Hiking',
-          icon: 'bi bi-signpost-2',
-        },
-        veloland: {
-          bodId: 'ch.astra.veloland',
-          type: 'Bike',
-          icon: 'bi bi-bicycle',
-        },
-        mountainbikeland: {
-          bodId: 'ch.astra.mountainbikeland',
-          type: 'Mountainbike',
-          icon: 'bi bi-bicycle',
-        },
-        wanderwege: {
-          bodId: 'ch.swisstopo.swisstlm3d-wanderwege',
-          type: 'Trail',
-          icon: 'bi bi-signpost',
-        },
-      };
-      const activeLayers = this.activeOverlays.filter((id) => OVERLAY_LAYER_MAP[id]).map((id) => OVERLAY_LAYER_MAP[id]);
-      if (!activeLayers.length) return;
-      const layerParam = activeLayers.map((l) => l.bodId).join(',');
+      const activeLayers = this.activeOverlays
+        .filter((id) => layers[id] && this.layerOpacities[id] > 0 && this.overlayMap?.getLayer(`${id}-overlay`))
+        .map((id) => layers[id]);
+      if (!activeLayers.length) return [];
       const bounds = this.overlayMap.getBounds();
       const canvas = this.overlayMap.getCanvas();
-      const mapExtent = `${bounds.getWest()},${bounds.getSouth()},${bounds.getEast()},${bounds.getNorth()}`;
-      const imageDisplay = `${canvas.width},${canvas.height},96`;
-      const url =
-        `https://api3.geo.admin.ch/rest/services/api/MapServer/identify` +
-        `?geometry=${lngLat.lng},${lngLat.lat}` +
-        `&geometryType=esriGeometryPoint` +
-        `&layers=all:${layerParam}` +
-        `&mapExtent=${mapExtent}` +
-        `&imageDisplay=${imageDisplay}` +
-        `&tolerance=10&lang=en&returnGeometry=false&sr=4326`;
-      try {
-        const response = await fetch(url);
-        if (!response.ok) return;
-        const data = (await response.json()) as {
-          results?: Array<{
-            layerBodId?: string;
-            layerName?: string;
-            attributes?: {
-              chmobil_title?: string;
-              label?: string;
-              chmobil_route_number?: string | number;
-            };
-          }>;
-        };
-        if (!data.results || data.results.length === 0) return;
-        const routes = data.results.map((r) => {
-          const layerInfo = activeLayers.find((l) => l.bodId === r.layerBodId);
-          return {
-            type: layerInfo?.type || r.layerName || 'Route',
-            icon: layerInfo?.icon || 'bi bi-map',
-            name: r.attributes?.chmobil_title || r.attributes?.label || '—',
-            number: r.attributes?.chmobil_route_number,
+      const params = new URLSearchParams({
+        geometry: `${lngLat.lng},${lngLat.lat}`,
+        geometryType: 'esriGeometryPoint',
+        layers: `all:${activeLayers.map((layer) => layer.bodId).join(',')}`,
+        mapExtent: `${bounds.getWest()},${bounds.getSouth()},${bounds.getEast()},${bounds.getNorth()}`,
+        imageDisplay: `${canvas.clientWidth || canvas.width},${canvas.clientHeight || canvas.height},96`,
+        tolerance: String(tolerance),
+        lang: 'en',
+        returnGeometry: 'false',
+        sr: '4326',
+      });
+      const response = await fetch(`https://api3.geo.admin.ch/rest/services/api/MapServer/identify?${params}`, {
+        signal,
+      });
+      if (!response.ok) throw new Error(`Route identification failed (${response.status})`);
+      const data = (await response.json()) as {
+        results?: Array<{
+          id?: string | number;
+          featureId?: string | number;
+          layerBodId?: string;
+          layerName?: string;
+          attributes?: Record<string, unknown> & {
+            chmobil_title?: string;
+            label?: string;
+            chmobil_route_number?: string | number;
           };
+        }>;
+      };
+      const candidates: MapTargetCandidate[] = [];
+      for (const result of data.results ?? []) {
+        const layer = activeLayers.find((entry) => entry.bodId === result.layerBodId);
+        if (!layer) continue;
+        const attributes = result.attributes ?? {};
+        const name = attributes.chmobil_title || attributes.label || layer.type;
+        // Stable feature IDs distinguish separate routes; the attribute fallback removes repeated rendered parts.
+        const featureId = result.featureId ?? result.id ?? attributes.id ?? attributes.objectid;
+        const identity =
+          result.featureId ??
+          result.id ??
+          attributes.id ??
+          attributes.objectid ??
+          JSON.stringify(Object.fromEntries(Object.entries(attributes).sort(([a], [b]) => a.localeCompare(b))));
+        candidates.push({
+          id: String(identity),
+          kind: 'overlay',
+          source: layer.bodId,
+          sourceLabel: result.layerName || layer.type,
+          label: name,
+          detail: attributes.chmobil_route_number != null ? `Route #${attributes.chmobil_route_number}` : layer.type,
+          match: 'identified',
+          route: {
+            name,
+            type: layer.type,
+            icon: layer.icon,
+            number: attributes.chmobil_route_number,
+            featureId: featureId == null ? undefined : String(featureId),
+            classification: typeof attributes.wanderwegtyp === 'string' ? attributes.wanderwegtyp : undefined,
+          },
         });
-        this.swissMobilityPopup = {
-          visible: true,
-          pos: resolveSwissMobilityPopupPosition(point, {
-            width: canvas.clientWidth || canvas.width,
-            height: canvas.clientHeight || canvas.height,
-          }),
-          routes,
-        };
-      } catch {
-        // silently ignore — best-effort enrichment
       }
+      return candidates;
     },
 
-    showTrackSelectionPopup(point, trackIds) {
+    showTrackSelectionPopup(point, trackIds, processing) {
       this.closeSelectionPopup();
       this.selectionPopupTrackIds = trackIds;
+      this.selectionPopupProcessing = processing ?? null;
       this.selectionPopupMediaOptions = [];
       this.trackSelectionPurpose = 'details';
       this.trackSelectionSheetVisible = true;
@@ -509,6 +476,7 @@ export function useMapTools(_deps: Record<string, never> = {}): MapControllerMet
     closeSelectionPopup() {
       this.trackSelectionSheetVisible = false;
       this.selectionPopupTrackIds = [];
+      this.selectionPopupProcessing = null;
       this.selectionPopupMediaOptions = [];
       this.trackSelectionPurpose = 'details';
     },
@@ -518,9 +486,14 @@ export function useMapTools(_deps: Record<string, never> = {}): MapControllerMet
       const mediaOption = this.selectionPopupMediaOptions.find((option) => option.trackId === id);
       this.closeSelectionPopup();
       if (purpose === 'photos' && (mediaOption?.matchedMediaCount ?? 0) > 0) {
-        this.onTrackBrowserOpenPhotos(id);
+        if (this.mapInteraction) {
+          this.mapInteractionDetailKind = 'track';
+          if (this.selectedTrackId !== id) this.selectTrackById(id);
+          this.openTrackDetails(id, TRACK_DETAILS_EXPANDED_DETENT, 'photos');
+        } else this.onTrackBrowserOpenPhotos(id);
         return;
       }
+      if (this.mapInteraction) this.mapInteractionDetailKind = 'track';
       this.selectTrackById(id);
       this.openTrackDetails(id, TRACK_DETAILS_MAP_DETENT);
     },
@@ -540,7 +513,7 @@ export function useMapTools(_deps: Record<string, never> = {}): MapControllerMet
         description: '',
         activityType: p?.activityType || '',
       };
-      this.trackDetailsInitialDetent = initialDetent;
+      this.trackDetailsInitialDetent = resolveTrackDetailsOpeningDetent(initialDetent);
       this.trackDetailsInitialTab = initialTab;
       this.trackDetailsVisible = true;
     },
@@ -562,12 +535,30 @@ export function useMapTools(_deps: Record<string, never> = {}): MapControllerMet
     },
 
     onTrackDetailsLoaded({ id, name, description, activityType }) {
+      if (Number(id) !== Number(this.trackDetailsId)) return;
       this.trackDetailsInfo = {
         id,
         name,
         description,
         activityType: activityType || '',
       };
+    },
+
+    onTrackMetadataUpdated(track) {
+      const id = Number(track.id);
+      const previous = this.gpsTracksById.get(id);
+      if (!previous) return;
+      if (previous.version !== track.version) {
+        // Metadata can arrive before geometry. Let the next geometry response
+        // replace the old shape even when its precision is coarser.
+        this.trackPrecisions.delete(id);
+        this.trackPointsCanonicalCache.delete(id);
+        for (const key of this.trackPointsDetailsCache.keys()) {
+          if (key.startsWith(`${id}_`)) this.trackPointsDetailsCache.delete(key);
+        }
+      }
+      this.gpsTracksById.set(id, { ...previous, ...track });
+      this.publishGpsTrackMetadataChanges();
     },
   };
   return methods;

@@ -3,6 +3,7 @@ import { useMapLayerSettings } from '@/components/map/composables/useMapLayerSet
 import { useTrackLayers } from '@/components/map/composables/useTrackLayers';
 
 function bindTrackLayerMethods(context: Record<string, unknown>) {
+  context.endMapInteraction ??= vi.fn();
   const methods = useTrackLayers();
   for (const [name, method] of Object.entries(methods)) {
     context[name] = method.bind(context);
@@ -48,13 +49,12 @@ function pointTrackFeature(): GeoJSON.Feature<GeoJSON.Point> {
   };
 }
 
-const FLAT_LINE_LAYERS = ['tracks-layer', 'tracks-highlight-layer', 'tracks-highlight-dash-layer'];
+const FLAT_LINE_LAYERS = ['tracks-layer', 'tracks-highlight-layer'];
 const POINT_LAYERS = ['tracks-dot-layer', 'tracks-highlight-circle-layer', 'tracks-overview-dots'];
 const ALL_TRACK_LAYERS = [...FLAT_LINE_LAYERS, ...POINT_LAYERS];
 const TRACK_OPACITY_CALLS = [
   ['tracks-layer', 'line-opacity'],
   ['tracks-highlight-layer', 'line-opacity'],
-  ['tracks-highlight-dash-layer', 'line-opacity'],
   ['tracks-dot-layer', 'circle-opacity'],
   ['tracks-dot-layer', 'circle-stroke-opacity'],
   ['tracks-overview-dots', 'circle-opacity'],
@@ -62,12 +62,46 @@ const TRACK_OPACITY_CALLS = [
   ['tracks-highlight-circle-layer', 'circle-opacity'],
 ] as const;
 
+describe('media layer opacity', () => {
+  it.each([0, 45, 100])('fades fills, outlines and cluster labels together at %s percent', (percent) => {
+    const paint = new Map<string, number>();
+    const layers = new Set(['media-clusters', 'media-unclustered', 'media-cluster-count']);
+    const context = bindMapLayerSettingsMethods({
+      overlayMap: {
+        getLayer: (id: string) => layers.has(id),
+        setPaintProperty: (id: string, property: string, value: number) => paint.set(`${id}/${property}`, value),
+      },
+      layerOpacities: { media: percent },
+    });
+
+    context.applyLayerOpacity('media');
+
+    // MapLibre defaults an unset circle stroke opacity to 1, independently of its fill.
+    for (const id of ['media-clusters', 'media-unclustered']) {
+      expect(paint.get(`${id}/circle-opacity`) ?? 1).toBe(percent / 100);
+      expect(paint.get(`${id}/circle-stroke-opacity`) ?? 1).toBe(percent / 100);
+    }
+    expect(paint.get('media-cluster-count/text-opacity') ?? 1).toBe(percent / 100);
+  });
+
+  it('can apply saved opacity before media layers exist', () => {
+    const setPaintProperty = vi.fn();
+    const context = bindMapLayerSettingsMethods({
+      overlayMap: { getLayer: () => undefined, setPaintProperty },
+      layerOpacities: { media: 0 },
+    });
+    expect(() => context.applyLayerOpacity('media')).not.toThrow();
+    expect(setPaintProperty).not.toHaveBeenCalled();
+  });
+});
+
 describe('track layer selection', () => {
   it('updates the small selected-track source instead of changing highlight filters', () => {
     const feature = selectedTrackFeature();
     const selectedSource = { setData: vi.fn() };
     const overlayMap = {
       getSource: vi.fn((sourceId: string) => (sourceId === 'selected-track' ? selectedSource : null)),
+      getLayer: vi.fn(() => null),
       setFilter: vi.fn(),
     };
     const context = bindTrackLayerMethods({

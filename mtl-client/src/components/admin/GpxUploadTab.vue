@@ -1,7 +1,24 @@
 <template>
   <div class="tab-content">
     <!-- Status row: loading / unavailable / available -->
-    <div v-if="statusLoading" class="upload-notice inline-notice upload-notice--info">
+    <div v-if="demoMode === true" class="upload-notice inline-notice upload-notice--info" role="status">
+      <i class="pi pi-info-circle" aria-hidden="true" /> Track uploads are unavailable in this shared demo.
+    </div>
+
+    <div
+      v-else-if="demoMode === null && demoAccess.error"
+      class="upload-notice inline-notice upload-notice--error"
+      role="status"
+    >
+      <span>Could not check write access.</span>
+      <Button label="Retry" size="small" :disabled="demoAccess.loading" @click="demoAccess.load()" />
+    </div>
+
+    <div v-else-if="demoMode === null" class="upload-notice inline-notice upload-notice--info" role="status">
+      <i class="pi pi-spin pi-spinner" aria-hidden="true" /> Checking upload access…
+    </div>
+
+    <div v-else-if="statusLoading" class="upload-notice inline-notice upload-notice--info">
       <i class="pi pi-spin pi-spinner" /> Checking upload directory…
     </div>
 
@@ -23,26 +40,31 @@
 
     <template v-else>
       <!-- Upload area -->
-      <div
+      <button
+        type="button"
         class="drop-zone"
-        :class="{ 'drop-zone--active': isDragging, 'drop-zone--disabled': uploading }"
+        :disabled="uploading"
+        :class="{ 'drop-zone--active': isDragging, 'drop-zone--disabled': uploading, 'drop-zone--compact': compact }"
         @dragover.prevent="isDragging = true"
         @dragleave.prevent="isDragging = false"
         @drop.prevent="onDrop"
         @click="!uploading && fileInput?.click()"
       >
         <i class="pi pi-file-arrow-up drop-icon" />
-        <span class="drop-label">
-          {{ isDragging ? 'Drop track file here' : `Click or drag ${acceptedFormatLabel} here` }}
+        <span class="settings-field">
+          <strong class="drop-label">{{ isDragging ? 'Drop track file here' : 'Choose a track file' }}</strong>
+          <span class="settings-field__hint">Or drag and drop it here.</span>
         </span>
-        <input
-          ref="fileInput"
-          type="file"
-          :accept="acceptedFileAccept"
-          style="display: none"
-          @change="onFileSelected"
-        />
-      </div>
+      </button>
+      <p class="settings-field__hint">Supported formats: {{ acceptedFormatLabel }}</p>
+      <input
+        ref="fileInput"
+        type="file"
+        :accept="acceptedFileAccept"
+        hidden
+        aria-label="Track file"
+        @change="onFileSelected"
+      />
 
       <!-- Selected file + upload button -->
       <div v-if="selectedFile" class="admin-action-row selected-file-row">
@@ -72,6 +94,12 @@
         <i :class="uploadResult.success ? 'pi pi-check-circle' : 'pi pi-times-circle'" />
         {{ uploadResult.message }}
       </div>
+      <RouterLink
+        v-if="uploadResult?.success && 'fileName' in uploadResult && uploadResult.fileName"
+        class="upload-review-link"
+        :to="{ name: 'review', query: { file: uploadResult.fileName } }"
+        >Review uploaded recording</RouterLink
+      >
 
       <span class="admin-action-hint upload-save-hint">
         Files are saved to <code>{{ gpxUploadSubdir }}</code> inside the GPX folder and automatically indexed.
@@ -81,19 +109,27 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { warnRequestFailure } from '@/utils/safeLogging';
+import { computed, ref } from 'vue';
+import { RouterLink } from 'vue-router';
 import { getGpxUploadStatus, uploadGpxFile, type GpxUploadResult, type GpxUploadStatus } from '@/utils/ServiceHelper';
 import { useAsyncState } from '@/composables/useAsyncState';
+import { useDemoAccessStore } from '@/stores/demoAccessStore';
+import { APPLICATION_STATUS_SECTION, useApplicationStatusStore } from '@/stores/applicationStatusStore';
 
 const GPX_UPLOAD_SUBDIR = 'GPX-UPLOAD';
 const ACCEPTED_TRACK_EXTENSIONS = ['gpx', 'fit', 'tcx', 'kml', 'kmz', 'igc', 'nmea', 'geojson', 'gdb'];
 const EMPTY_FILE_MESSAGE = 'Selected file is empty. Choose a non-empty GPS track file.';
 
 defineOptions({ name: 'GpxUploadTab' });
+const props = defineProps<{ compact?: boolean; demoMode?: boolean | null }>();
+const demoAccess = useDemoAccessStore();
+const uploadsAllowed = computed(() => props.demoMode === false || props.demoMode === undefined);
 
 type UploadResult = GpxUploadResult | { success: boolean; message: string };
 
 const { loading: statusLoading, error: statusError } = useAsyncState('');
+const applicationStatusStore = useApplicationStatusStore();
 const status = ref<GpxUploadStatus | null>(null);
 const selectedFile = ref<File | null>(null);
 const isDragging = ref(false);
@@ -116,6 +152,11 @@ async function loadStatus() {
     status.value = await getGpxUploadStatus();
   } catch (e) {
     statusError.value = 'Could not reach server: ' + errorMessage(e);
+    warnRequestFailure('Track upload status could not be loaded', e, {
+      topic1: 'admin',
+      topic2: 'GpxUploadTab',
+      topic3: 'status',
+    });
   } finally {
     statusLoading.value = false;
   }
@@ -123,6 +164,7 @@ async function loadStatus() {
 
 function onDrop(event: DragEvent) {
   isDragging.value = false;
+  if (uploading.value || !uploadsAllowed.value) return;
   const file = event.dataTransfer?.files?.[0];
   if (file) setFile(file);
 }
@@ -134,6 +176,7 @@ function onFileSelected(event: Event) {
 }
 
 function setFile(file: File) {
+  if (!uploadsAllowed.value) return;
   uploadResult.value = null;
   selectedFile.value = null;
   const lowerName = file.name.toLowerCase();
@@ -150,7 +193,7 @@ function setFile(file: File) {
 }
 
 async function doUpload() {
-  if (!selectedFile.value) return;
+  if (!selectedFile.value || !uploadsAllowed.value) return;
   uploading.value = true;
   uploadResult.value = null;
   try {
@@ -159,6 +202,10 @@ async function doUpload() {
     if (result.success) {
       selectedFile.value = null;
       if (fileInput.value) fileInput.value.value = '';
+      void applicationStatusStore.refresh([
+        APPLICATION_STATUS_SECTION.PROCESSING,
+        APPLICATION_STATUS_SECTION.FRESHNESS,
+      ]);
     }
   } catch (e) {
     uploadResult.value = { success: false, message: 'Upload failed: ' + errorMessage(e) };
@@ -180,6 +227,10 @@ defineExpose({
 
 <style scoped>
 .drop-zone {
+  box-sizing: border-box;
+  width: 100%;
+  background: var(--surface-elevated);
+  font: inherit;
   border: 2px dashed var(--border-subtle);
   border-radius: 8px;
   padding: 2rem 1rem;
@@ -193,6 +244,17 @@ defineExpose({
   align-items: center;
   gap: 0.5rem;
   margin-top: 0.5rem;
+}
+
+.drop-zone--compact {
+  flex-direction: row;
+  padding: 1rem;
+  text-align: left;
+}
+
+.drop-zone:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 .drop-zone:hover:not(.drop-zone--disabled),
@@ -240,6 +302,12 @@ defineExpose({
 .upload-save-hint {
   display: block;
   margin-top: 0.8rem;
+}
+
+.upload-review-link {
+  display: inline-block;
+  margin-top: 0.8rem;
+  color: var(--accent);
 }
 
 .upload-guidance {

@@ -66,11 +66,15 @@ export default [
             "CallExpression[callee.object.object.name='window'][callee.object.property.name='localStorage'][callee.property.name=/^(getItem|setItem|removeItem|clear)$/]",
           message: 'Use src/utils/appStorage.ts instead of raw localStorage access.',
         },
+        {
+          selector: 'CallExpression[callee.property.name=/^(randomUUID|getRandomValues)$/]',
+          message: 'Use src/utils/random.ts so browser crypto failures have a logged fallback.',
+        },
       ],
     },
   },
   {
-    files: ['src/utils/appStorage.ts'],
+    files: ['src/utils/appStorage.ts', 'src/utils/random.ts'],
     rules: {
       'no-restricted-syntax': 'off',
     },

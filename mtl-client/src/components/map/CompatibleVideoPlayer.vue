@@ -14,6 +14,9 @@
       @play="onVideoPlay"
       @ended="onVideoEnded"
       @loadedmetadata="onLoadedMetadata"
+      @loadeddata="checkOriginalVideo"
+      @playing="checkOriginalVideo"
+      @timeupdate="checkOriginalVideo"
       @error="onVideoError"
     />
 
@@ -53,7 +56,12 @@
             </option>
           </select>
         </label>
-        <button v-if="canRetry" type="button" class="cvp__button" @click="startCompatiblePlayback()">
+        <button
+          v-if="canRetry"
+          type="button"
+          class="cvp__button cvp__button--primary"
+          @click="startCompatiblePlayback()"
+        >
           <i class="bi bi-arrow-clockwise" aria-hidden="true"></i>
           {{ mode === 'fallback' ? 'Create compatible stream' : 'Retry' }}
         </button>
@@ -96,6 +104,7 @@
 </template>
 
 <script setup lang="ts">
+import { warnRequestFailure } from '@/utils/safeLogging';
 import type Hls from 'hls.js';
 import type { ErrorData } from 'hls.js';
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue';
@@ -118,6 +127,7 @@ const MEDIA_ERROR_ABORTED = 1;
 const MEDIA_ERROR_DECODE = 3;
 const MEDIA_ERROR_SOURCE_NOT_SUPPORTED = 4;
 const MAX_HLS_MEDIA_RECOVERY_ATTEMPTS = 2;
+const COMPATIBLE_VIDEO_START_POSITION = 0;
 const DEFAULT_VIDEO_TRANSCODE_QUALITY: VideoTranscodeQuality = 'AUTO';
 
 const props = withDefaults(
@@ -272,19 +282,19 @@ async function attachPlaylist(currentSession: VideoTranscodeSession, id: number)
 
   playlistAttached.value = true;
   const playlistUrl = videoTranscodePlaylistUrl(currentSession.playlistUrl);
-  if (video.canPlayType(HLS_MIME_TYPE)) {
-    activeSrc.value = playlistUrl;
-    await nextTick();
-    if (!isCurrentOperation(id)) return;
-    video.load();
-    return;
-  }
-
   const hlsModule = await import('hls.js');
   if (!isCurrentOperation(id)) return;
   const HlsConstructor = hlsModule.default;
+  // Native HLS support can be advertised even when growing event playlists fail to play.
   if (!HlsConstructor.isSupported()) {
-    failCompatiblePlayback('This browser cannot play the compatible HLS stream.');
+    if (video.canPlayType(HLS_MIME_TYPE)) {
+      activeSrc.value = playlistUrl;
+      await nextTick();
+      if (!isCurrentOperation(id)) return;
+      video.load();
+    } else {
+      failCompatiblePlayback('This browser cannot play the compatible HLS stream.');
+    }
     return;
   }
 
@@ -293,6 +303,7 @@ async function attachPlaylist(currentSession: VideoTranscodeSession, id: number)
   if (!isCurrentOperation(id)) return;
 
   const nextHls = new HlsConstructor({
+    startPosition: COMPATIBLE_VIDEO_START_POSITION,
     xhrSetup(xhr) {
       xhr.withCredentials = true;
     },
@@ -320,10 +331,10 @@ function onHlsError(data: ErrorData, errorTypes: typeof import('hls.js').ErrorTy
       hls.recoverMediaError();
       return;
     }
-    failCompatiblePlayback('The compatible stream could not be decoded by the browser.');
+    failCompatiblePlayback('The compatible stream could not be decoded by the browser.', data.error);
     return;
   }
-  failCompatiblePlayback('The compatible stream stopped unexpectedly.');
+  failCompatiblePlayback('The compatible stream stopped unexpectedly.', data.error);
 }
 
 function applySessionStatus(nextSession: VideoTranscodeSession, id: number): void {
@@ -363,6 +374,11 @@ async function pollSession(id: number): Promise<void> {
   } catch (error) {
     if (!isCurrentOperation(id) || controller.signal.aborted || isAbortError(error)) return;
     requestController = null;
+    warnRequestFailure('Compatible video status could not be loaded', error, {
+      topic1: 'media',
+      topic2: 'CompatibleVideoPlayer',
+      topic3: 'status',
+    });
     schedulePoll(id);
   }
 }
@@ -390,11 +406,16 @@ async function startCompatiblePlayback(): Promise<void> {
   } catch (error) {
     if (!isCurrentOperation(id) || controller.signal.aborted || isAbortError(error)) return;
     requestController = null;
-    failCompatiblePlayback(requestErrorMessage(error));
+    failCompatiblePlayback(requestErrorMessage(error), error);
   }
 }
 
-function failCompatiblePlayback(message: string): void {
+function failCompatiblePlayback(message: string, error?: unknown): void {
+  warnRequestFailure('Compatible video playback failed', error, {
+    topic1: 'media',
+    topic2: 'CompatibleVideoPlayer',
+    topic3: 'playback',
+  });
   clearPoll();
   abortRequest();
   destroyHls();
@@ -419,7 +440,7 @@ async function cancelCurrentSession(showCancelled: boolean): Promise<boolean> {
     try {
       await cancelVideoTranscodeSession(sessionId);
     } catch (error) {
-      failCompatiblePlayback(requestErrorMessage(error));
+      failCompatiblePlayback(requestErrorMessage(error), error);
       return false;
     }
   }
@@ -433,13 +454,25 @@ async function onQualityChange(): Promise<void> {
   await startCompatiblePlayback();
 }
 
+function offerCompatiblePlayback(): void {
+  videoEl.value?.pause();
+  activeSrc.value = undefined;
+  mode.value = 'fallback';
+}
+
+function checkOriginalVideo(): void {
+  const video = videoEl.value;
+  if (mode.value !== 'original' || !video || video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) return;
+  // A supported audio track can make the container playable without decoding its video track.
+  if (video.videoWidth === 0 || video.videoHeight === 0) offerCompatiblePlayback();
+}
+
 function onVideoError(event: Event): void {
   const code = videoEl.value?.error?.code;
   if (code === MEDIA_ERROR_ABORTED) return;
   if (mode.value === 'original') {
     if (code === MEDIA_ERROR_DECODE || code === MEDIA_ERROR_SOURCE_NOT_SUPPORTED) {
-      activeSrc.value = undefined;
-      mode.value = 'fallback';
+      offerCompatiblePlayback();
       return;
     }
     emit('media-error', event);
@@ -499,6 +532,8 @@ onBeforeUnmount(() => {
 }
 
 .cvp__video {
+  width: 100%;
+  height: 100%;
   position: relative;
   z-index: 1;
   display: block;
@@ -631,6 +666,16 @@ onBeforeUnmount(() => {
   gap: 0.35rem;
   padding: 0.25rem 0.65rem;
   cursor: pointer;
+}
+
+.cvp__button--primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-contrast);
+}
+
+.cvp__button--primary:hover:not(:disabled) {
+  background: var(--accent-hover);
 }
 
 .cvp__status {

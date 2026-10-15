@@ -116,7 +116,7 @@ export class HeatmapOverlay {
   }
 
   /**
-   * Convert LineString track features to Point features for the heatmap source.
+   * Convert track spans to Point features for the heatmap source.
    * Samples every SAMPLE_RATE-th coordinate to keep the dataset manageable
    * while still representing track density accurately.
    */
@@ -126,14 +126,18 @@ export class HeatmapOverlay {
     const SAMPLE_RATE = 3;
 
     for (const feature of geojson.features) {
-      if (feature.geometry.type === 'LineString') {
-        const coords = feature.geometry.coordinates;
-        for (let i = 0; i < coords.length; i += SAMPLE_RATE) {
-          points.push({
-            type: 'Feature',
-            properties: {},
-            geometry: { type: 'Point', coordinates: coords[i] },
-          });
+      if (feature.geometry.type === 'LineString' || feature.geometry.type === 'MultiLineString') {
+        const spans =
+          feature.geometry.type === 'LineString' ? [feature.geometry.coordinates] : feature.geometry.coordinates;
+        // Sample each span separately so short segments after recording gaps contribute too.
+        for (const coords of spans) {
+          for (let i = 0; i < coords.length; i += SAMPLE_RATE) {
+            points.push({
+              type: 'Feature',
+              properties: {},
+              geometry: { type: 'Point', coordinates: coords[i] },
+            });
+          }
         }
       } else if (feature.geometry.type === 'Point') {
         points.push({

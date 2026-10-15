@@ -15,6 +15,7 @@
         :selected-track-id="selectedTrackId ?? null"
         @select-track="onTrackSelect($event)"
         @open-details="onTrackDetails($event)"
+        @track-updated="emit('track-updated', $event)"
       />
     </div>
   </Dialog>
@@ -35,7 +36,9 @@ const props = defineProps<{
   selectedTrackId?: number | string | null;
 }>();
 
-const emit = defineEmits<TrackSelectionEvents & { 'update:visible': [value: boolean] }>();
+const emit = defineEmits<
+  TrackSelectionEvents & { 'update:visible': [value: boolean]; 'track-updated': [track: GpsTrack] }
+>();
 
 const isMobile = useMediaQuery(`(max-width: ${MOBILE_BREAKPOINT - 1}px)`);
 

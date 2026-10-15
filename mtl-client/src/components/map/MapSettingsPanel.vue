@@ -1,7 +1,8 @@
 <template>
   <BottomSheet
     :model-value="isOpen"
-    :detents="[{ height: 'min(86vh, 44rem)' }, { height: '95vh' }]"
+    :detents="MAP_SETTINGS_DETENTS"
+    fit-content-initial
     :no-backdrop="true"
     sheet-class="sheet--solid-over-map sheet--map-settings-overview"
     @update:model-value="onMainVisibilityChange"
@@ -9,7 +10,7 @@
   >
     <template #title>
       <div class="map-settings-header">
-        <i class="bi bi-map map-settings-header__icon" aria-hidden="true"></i>
+        <i :class="[NAVIGATION_TOOL_ICONS.map, 'map-settings-header__icon']" aria-hidden="true"></i>
         <h2>Map</h2>
       </div>
     </template>
@@ -18,6 +19,7 @@
       <MapSettingsOverview
         :basemap-enabled="layerStates.basemap.enabled"
         :data-summary="dataSummary"
+        :poi-summary="poiSummary"
         :routes-summary="routesSummary"
         :source-summary="sourceSummary"
         :style-summary="styleSummary"
@@ -27,6 +29,7 @@
         @open-style="showStyle = true"
         @open-terrain="showTerrain = true"
         @open-data="showDataLayers = true"
+        @open-pois="showPois = true"
         @open-routes="showRouteLayers = true"
         @reset="emit('reset-settings')"
       />
@@ -59,6 +62,8 @@
       @change-layer-opacity="onLayerOpacityChange"
     />
 
+    <MapPoiLayersSheet v-model="showPois" />
+
     <MapRouteLayersSheet
       v-model="showRouteLayers"
       :layer-states="layerStates"
@@ -71,11 +76,15 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
 import BottomSheet from '@/components/ui/BottomSheet.vue';
+import { NAVIGATION_TOOL_ICONS } from '@/components/ui/navigationToolIcons';
 import MapSettingsOverview from '@/components/map/MapSettingsOverview.vue';
 import MapStyleSheet from '@/components/map/MapStyleSheet.vue';
 import MapTerrainSheet from '@/components/map/MapTerrainSheet.vue';
 import MapDataLayersSheet from '@/components/map/MapDataLayersSheet.vue';
 import MapRouteLayersSheet from '@/components/map/MapRouteLayersSheet.vue';
+import MapPoiLayersSheet from '@/components/map/MapPoiLayersSheet.vue';
+import { useMapSettingsStore } from '@/stores/mapSettingsStore';
+import { POI_CATEGORIES } from '@/components/map/poiCategories';
 import {
   DATA_LAYER_IDS,
   ROUTE_LAYER_IDS,
@@ -85,6 +94,11 @@ import {
 } from '@/components/map/mapSettingsPanelTypes';
 
 defineOptions({ name: 'MapSettingsPanel' });
+
+const MAP_SETTINGS_DETENTS = [
+  { id: 'overview', height: 'min(60vh, 30rem)' },
+  { id: 'large', height: '95vh' },
+];
 
 const props = defineProps<{
   layerStates: MapSettingsLayerStates;
@@ -111,9 +125,16 @@ const showStyle = ref(false);
 const showTerrain = ref(false);
 const showDataLayers = ref(false);
 const showRouteLayers = ref(false);
+const showPois = ref(false);
+const mapSettingsStore = useMapSettingsStore();
+const poiSummary = computed(() => {
+  if (!mapSettingsStore.poiEnabled) return 'Hidden';
+  const count = POI_CATEGORIES.filter(({ id }) => mapSettingsStore.poiCategories[id]).length;
+  return count === POI_CATEGORIES.length ? 'All enabled' : `${count} of ${POI_CATEGORIES.length} enabled`;
+});
 
 const innerSheetOpen = computed(
-  (): boolean => showStyle.value || showTerrain.value || showDataLayers.value || showRouteLayers.value
+  (): boolean => showStyle.value || showTerrain.value || showDataLayers.value || showRouteLayers.value || showPois.value
 );
 const selectedTheme = computed<MapThemeOption>(
   () =>
@@ -149,6 +170,7 @@ function closeInnerSheets(): void {
   showTerrain.value = false;
   showDataLayers.value = false;
   showRouteLayers.value = false;
+  showPois.value = false;
 }
 
 function onMainVisibilityChange(open: boolean): void {
@@ -209,10 +231,7 @@ defineExpose({ open, toggle, close });
 }
 
 .map-settings-root {
-  flex: 1 1 auto;
-  min-height: 0;
-  overflow-y: auto;
-  overscroll-behavior-y: contain;
-  -webkit-overflow-scrolling: touch;
+  flex: 0 0 auto;
+  min-width: 0;
 }
 </style>

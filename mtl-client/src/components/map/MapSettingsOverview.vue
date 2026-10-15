@@ -5,6 +5,7 @@
         <span class="settings-eyebrow map-settings-overview__eyebrow">Current map</span>
         <h3 id="map-settings-current-title">{{ themeName }}</h3>
         <p>{{ sourceSummary }} · {{ terrainSummary }}</p>
+        <p>Changes apply to the map immediately.</p>
       </div>
       <button
         type="button"
@@ -21,12 +22,7 @@
       </button>
     </section>
 
-    <section class="map-settings-overview__configuration" aria-labelledby="map-settings-configuration-title">
-      <div class="settings-section-heading map-settings-overview__section-heading">
-        <h3 id="map-settings-configuration-title">Configuration</h3>
-        <p>Open a section to change it. Updates appear on the map immediately.</p>
-      </div>
-
+    <section class="map-settings-overview__configuration" aria-label="Map settings">
       <div class="settings-list map-settings-overview__list">
         <button type="button" class="settings-row map-settings-row" @click="emit('open-style')">
           <span class="settings-row__icon map-settings-row__icon"><i class="bi bi-map" aria-hidden="true"></i></span>
@@ -47,6 +43,18 @@
             <small>Switch between a flat map and 3D relief.</small>
           </span>
           <span class="settings-row__value map-settings-row__value">{{ terrainSummary }}</span>
+          <i class="bi bi-chevron-right settings-row__chevron map-settings-row__chevron" aria-hidden="true"></i>
+        </button>
+
+        <button type="button" class="settings-row map-settings-row" @click="emit('open-pois')">
+          <span class="settings-row__icon map-settings-row__icon"
+            ><i class="bi bi-geo-alt" aria-hidden="true"></i
+          ></span>
+          <span class="settings-row__body map-settings-row__body">
+            <strong>Points of interest</strong>
+            <small>Show peaks, viewpoints, water and useful places.</small>
+          </span>
+          <span class="settings-row__value map-settings-row__value">{{ poiSummary ?? 'All enabled' }}</span>
           <i class="bi bi-chevron-right settings-row__chevron map-settings-row__chevron" aria-hidden="true"></i>
         </button>
 
@@ -87,6 +95,7 @@ defineOptions({ name: 'MapSettingsOverview' });
 defineProps<{
   basemapEnabled: boolean;
   dataSummary: string;
+  poiSummary?: string;
   routesSummary: string;
   sourceSummary: string;
   styleSummary: string;
@@ -99,6 +108,7 @@ const emit = defineEmits<{
   (event: 'open-style'): void;
   (event: 'open-terrain'): void;
   (event: 'open-data'): void;
+  (event: 'open-pois'): void;
   (event: 'open-routes'): void;
   (event: 'reset'): void;
 }>();
@@ -106,13 +116,13 @@ const emit = defineEmits<{
 
 <style scoped>
 .map-settings-overview {
-  --map-settings-preview-max-width: 22rem;
+  --map-settings-preview-width: 7.5rem;
 
   display: flex;
   width: 100%;
   box-sizing: border-box;
   flex-direction: column;
-  gap: 1.35rem;
+  gap: 0.85rem;
   padding: 0.5rem 1rem calc(1rem + env(safe-area-inset-bottom));
   color: var(--text-secondary);
 }
@@ -120,11 +130,10 @@ const emit = defineEmits<{
 .map-settings-overview__current {
   position: relative;
   display: grid;
-  min-height: 8.75rem;
-  grid-template-columns: minmax(0, 1fr) minmax(9rem, 34%);
+  grid-template-columns: minmax(0, 1fr) var(--map-settings-preview-width);
   align-items: center;
-  gap: 1.25rem;
-  padding: 0.8rem 0.25rem 0.8rem 1.05rem;
+  gap: 0.8rem;
+  padding: 0.6rem 0.25rem 0.6rem 1.05rem;
 }
 
 .map-settings-overview__current-copy {
@@ -133,13 +142,11 @@ const emit = defineEmits<{
 
 .map-settings-overview__current h3 {
   margin: 0;
-  overflow: hidden;
   color: var(--text-primary);
   font-size: var(--text-lg-size);
   font-weight: var(--font-bold);
   line-height: var(--text-lg-lh);
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
 }
 
 .map-settings-overview__current p {
@@ -152,7 +159,6 @@ const emit = defineEmits<{
 .map-settings-overview__preview {
   position: relative;
   width: 100%;
-  max-width: var(--map-settings-preview-max-width);
   aspect-ratio: 16 / 9;
   justify-self: end;
   overflow: hidden;
@@ -165,9 +171,6 @@ const emit = defineEmits<{
   box-shadow: var(--shadow-sm);
   color: inherit;
   cursor: pointer;
-  transition:
-    border-color 0.15s ease,
-    box-shadow 0.15s ease;
 }
 
 .map-settings-overview__preview:hover {
@@ -175,7 +178,6 @@ const emit = defineEmits<{
 }
 
 .map-settings-overview__preview:focus-visible {
-  border-color: var(--accent);
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
@@ -191,16 +193,6 @@ const emit = defineEmits<{
   color: var(--text-secondary);
   font-size: var(--text-xs-size);
   font-weight: var(--font-bold);
-}
-
-.map-settings-overview__configuration {
-  display: flex;
-  flex-direction: column;
-  gap: 0.55rem;
-}
-
-.map-settings-overview__section-heading {
-  padding: 0 0.15rem;
 }
 
 .map-settings-overview__reset {
@@ -227,23 +219,7 @@ const emit = defineEmits<{
 
 @media screen and (max-width: 600px) {
   .map-settings-overview {
-    gap: 1.15rem;
-    padding-inline: 1rem;
-  }
-
-  .map-settings-overview__current {
-    min-height: 8rem;
-    grid-template-columns: minmax(0, 1fr) 6.75rem;
-    gap: 0.8rem;
-    padding-left: 0.9rem;
-  }
-
-  .map-settings-overview__current h3 {
-    white-space: normal;
-  }
-
-  .map-settings-overview__section-heading p {
-    max-width: 18rem;
+    --map-settings-preview-width: 5.5rem;
   }
 
   .map-settings-row {
@@ -274,12 +250,6 @@ const emit = defineEmits<{
   .map-settings-row__chevron {
     grid-column: 3;
     grid-row: 1 / span 2;
-  }
-}
-
-@media screen and (max-width: 380px) {
-  .map-settings-overview__current {
-    grid-template-columns: minmax(0, 1fr) 5.5rem;
   }
 }
 </style>

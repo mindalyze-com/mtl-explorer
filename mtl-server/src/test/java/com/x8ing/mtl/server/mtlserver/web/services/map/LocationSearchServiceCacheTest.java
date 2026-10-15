@@ -3,6 +3,8 @@ package com.x8ing.mtl.server.mtlserver.web.services.map;
 import com.sun.net.httpserver.HttpServer;
 import com.x8ing.mtl.server.mtlserver.config.MtlCacheConfig;
 import com.x8ing.mtl.server.mtlserver.web.services.config.ServerIdentityService;
+import com.x8ing.mtl.server.mtlserver.web.services.info.DockerImageInfoService;
+import com.x8ing.mtl.server.mtlserver.web.services.info.ImageVersionInfoDto;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -30,6 +32,7 @@ import static org.mockito.Mockito.when;
 
 @SpringJUnitConfig(classes = {
         LocationSearchService.class,
+        UpstreamBuildVersionService.class,
         MtlCacheConfig.class,
         LocationSearchServiceCacheTest.TestConfig.class
 })
@@ -111,6 +114,7 @@ class LocationSearchServiceCacheTest {
             statusRequests.incrementAndGet();
             Map<String, String> params = parseQuery(exchange.getRequestURI().getRawQuery());
             assertThat(params.get(MapProxyConstants.UPSTREAM_AUTH_VERSION_PARAM)).isNotBlank();
+            assertThat(params).doesNotContainKey(MapProxyConstants.UPSTREAM_BUILD_PARAM);
             assertThat(params.get(MapProxyConstants.UPSTREAM_AUTH_SERVER_ID_PARAM)).isEqualTo(TEST_SERVER_ID);
             writeJson(exchange, """
                     {
@@ -140,6 +144,13 @@ class LocationSearchServiceCacheTest {
         @Bean
         LocationSearchProperties locationSearchProperties() {
             return new LocationSearchProperties();
+        }
+
+        @Bean
+        DockerImageInfoService dockerImageInfoService() {
+            DockerImageInfoService imageInfoService = mock(DockerImageInfoService.class);
+            when(imageInfoService.getImageInfo()).thenReturn(ImageVersionInfoDto.of(null, null, null));
+            return imageInfoService;
         }
 
         @Bean

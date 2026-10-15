@@ -2,10 +2,19 @@ import type { GpsTrack } from 'x8ing-mtl-api-typescript-fetch';
 
 export const HIGHLIGHT_EXCLUSIONS_TRACK_BROWSER_QUERY = 'excluded highlights';
 
-type CurationTrack = Pick<GpsTrack, 'highlightExclusionReason' | 'statisticsExclusionReason'>;
+type CurationTrack = Pick<
+  GpsTrack,
+  | 'highlightExclusionReason'
+  | 'statisticsExclusionReason'
+  | 'reviewStatus'
+  | 'reviewExcluded'
+  | 'reviewMapExcluded'
+  | 'timingUnreliable'
+  | 'timingEstimated'
+>;
 
 export type CurationBadge = {
-  key: 'highlight' | 'statistics';
+  key: 'highlight' | 'statistics' | 'review' | 'timing' | 'map';
   label: string;
   title: string;
 };
@@ -24,6 +33,28 @@ export function formatCurationReason(value: unknown): string {
 
 export function curationBadges(track: CurationTrack): CurationBadge[] {
   const badges: CurationBadge[] = [];
+  if (track.reviewStatus === 'NEEDS_REVIEW' || track.reviewExcluded) {
+    badges.push({
+      key: 'review',
+      label: track.reviewStatus === 'NEEDS_REVIEW' ? 'Needs review' : 'Source excluded',
+      title: track.reviewExcluded
+        ? 'Excluded from statistics and highlights in Review.'
+        : 'Review source findings and choose map and statistics use.',
+    });
+  }
+  if (track.reviewMapExcluded)
+    badges.push({
+      key: 'map',
+      label: 'Map excluded',
+      title: 'Hidden from the main map. Still available in Review and on inspection maps.',
+    });
+  if (track.timingUnreliable || track.timingEstimated) {
+    badges.push({
+      key: 'timing',
+      label: track.timingEstimated ? 'Estimated timing' : 'Timing unavailable',
+      title: 'Time, speed and energy measurements are unavailable. Original observations remain available for review.',
+    });
+  }
   if (track.highlightExclusionReason) {
     const reason = formatCurationReason(track.highlightExclusionReason);
     badges.push({
@@ -45,6 +76,9 @@ export function curationBadges(track: CurationTrack): CurationBadge[] {
 
 export function curationSearchValues(track: CurationTrack): string[] {
   const values: string[] = [];
+  for (const badge of curationBadges(track)) values.push(badge.label);
+  if (track.reviewMapExcluded) values.push('excluded map', 'map exclusion');
+  if (track.reviewExcluded) values.push('source review', 'excluded statistics', 'excluded highlights');
   const highlightReason = track.highlightExclusionReason;
   const statisticsReason = track.statisticsExclusionReason;
 

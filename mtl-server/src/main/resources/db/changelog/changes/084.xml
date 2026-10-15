@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.10.xsd">
+    <changeSet id="20260906_track_source_review" author="codex">
+        <comment>Source assessments and explicit review decisions. No existing sources are automatically assessed or reprocessed.</comment>
+        <createTable tableName="track_source_review">
+            <column name="source_id" type="bigint"><constraints primaryKey="true" nullable="false" foreignKeyName="fk_track_review_source" references="indexed_file(id)" deleteCascade="true"/></column>
+            <column name="source_hash" type="varchar(64)"><constraints nullable="false"/></column>
+            <column name="diagnosis_json" type="text"><constraints nullable="false"/></column>
+            <column name="review_state" type="varchar(24)"><constraints nullable="false"/></column>
+            <column name="assessed_at" type="timestamp with time zone"><constraints nullable="false"/></column>
+        </createTable>
+        <createTable tableName="track_review_decision">
+            <column name="id" type="bigint" autoIncrement="true"><constraints primaryKey="true" nullable="false"/></column>
+            <column name="source_id" type="bigint"><constraints nullable="false" foreignKeyName="fk_track_decision_source" references="indexed_file(id)" deleteCascade="true"/></column>
+            <column name="source_hash" type="varchar(64)"><constraints nullable="false"/></column>
+            <column name="finding_hash" type="varchar(64)"><constraints nullable="false"/></column>
+            <column name="section_index" type="int"><constraints nullable="false"/></column>
+            <column name="decision" type="varchar(24)"><constraints nullable="false"/></column>
+            <column name="decided_at" type="timestamp with time zone"><constraints nullable="false"/></column>
+        </createTable>
+        <createIndex tableName="track_review_decision" indexName="idx_track_decision_source_revision">
+            <column name="source_id"/><column name="source_hash"/><column name="section_index"/><column name="id" descending="true"/>
+        </createIndex>
+        <createTable tableName="track_repair_backup">
+            <column name="backup_id" type="varchar(36)"><constraints primaryKey="true" nullable="false"/></column>
+            <column name="source_id" type="bigint"><constraints nullable="false" foreignKeyName="fk_track_backup_source" references="indexed_file(id)" deleteCascade="true"/></column>
+            <column name="source_hash" type="varchar(64)"><constraints nullable="false"/></column>
+            <column name="candidate_hash" type="varchar(64)"><constraints nullable="false"/></column>
+            <column name="status" type="varchar(32)"><constraints nullable="false"/></column>
+            <column name="created_at" type="timestamp with time zone"><constraints nullable="false"/></column>
+        </createTable>
+        <addColumn tableName="gps_track">
+            <column name="source_recording_section" type="int"/>
+            <column name="review_status" type="varchar(24)"/>
+            <column name="review_excluded" type="boolean" defaultValueBoolean="false"><constraints nullable="false"/></column>
+            <column name="timing_unreliable" type="boolean" defaultValueBoolean="false"><constraints nullable="false"/></column>
+            <column name="timing_estimated" type="boolean" defaultValueBoolean="false"><constraints nullable="false"/></column>
+        </addColumn>
+        <sql splitStatements="false"><![CDATA[
+            DO $review_view$
+            DECLARE previous_definition text;
+            BEGIN
+                previous_definition := regexp_replace(pg_get_viewdef('gps_track_v'::regclass, true), ';\s*$', '');
+                EXECUTE 'CREATE OR REPLACE VIEW gps_track_v AS SELECT previous.*, track.source_recording_section, track.review_status, track.review_excluded, track.timing_estimated, track.timing_unreliable FROM ('
+                    || previous_definition || ') previous JOIN gps_track track ON track.id = previous.id';
+            END $review_view$;
+        ]]></sql>
+        <insert tableName="filter_config">
+            <column name="filter_name" value="TracksNeedingReview"/><column name="filter_type" value="SQL"/>
+            <column name="filter_domain" value="GPS_TRACK"/><column name="filter_category" value="SYSTEM"/>
+            <column name="display_name" value="Needs review"/><column name="description" value="Recordings awaiting an explicit quality decision. Open Track review to review sources, including files that could not be parsed."/>
+            <column name="display_order" valueNumeric="5990"/><column name="filter_group" value="Quality"/>
+            <column name="group_semantics" value="CATEGORICAL"/><column name="coloring_strategy" value="CATEGORICAL"/>
+            <column name="legend_sort_strategy" value="LABEL_ASC"/><column name="preferred_palette" value="005_COLORS"/>
+            <column name="expression" value="SELECT id, 'Needs review' AS grp FROM gps_track WHERE review_status = 'NEEDS_REVIEW'"/>
+        </insert>
+    </changeSet>
+</databaseChangeLog>

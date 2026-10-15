@@ -29,14 +29,14 @@ public class AnalyticsController {
     @PostMapping("/client-environment")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void saveClientEnvironment(@RequestBody ClientEnvironmentRequest clientEnvironmentRequest, HttpServletRequest request) {
-        String userSessionId = (String) request.getAttribute(JwtUtil.USER_SESSION_ID);
-        if (userSessionId == null || userSessionId.isBlank()) {
-            throw new ResponseStatusException(UNAUTHORIZED, "Authenticated request is missing user session id");
+        String clientLoginRef = (String) request.getAttribute(JwtUtil.CLIENT_LOGIN_REF);
+        if (clientLoginRef == null || clientLoginRef.isBlank()) {
+            throw new ResponseStatusException(UNAUTHORIZED, "Authenticated request is missing client login reference");
         }
 
         webClientEnvironmentLogService.saveClientEnvironment(
                 clientEnvironmentRequest,
-                userSessionId,
+                clientLoginRef,
                 ClientAddressResolver.resolveForwarded(request),
                 request.getHeader(USER_AGENT_HEADER)
         );

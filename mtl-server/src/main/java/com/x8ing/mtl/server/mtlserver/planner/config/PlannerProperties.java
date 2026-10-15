@@ -52,7 +52,7 @@ public class PlannerProperties {
      * {@code .brf} file shipped with BRouter.
      */
     private List<String> profiles = new ArrayList<>(List.of(
-            "trekking", "fastbike", "hiking-mountain", "car-eco"
+            "trekking", "fastbike", "mtb", "hiking-mountain", "car-eco"
     ));
 
     /**

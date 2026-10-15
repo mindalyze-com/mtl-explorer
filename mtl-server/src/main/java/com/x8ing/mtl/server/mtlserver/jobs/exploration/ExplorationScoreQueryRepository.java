@@ -23,6 +23,14 @@ import java.util.Date;
 })
 public class ExplorationScoreQueryRepository {
 
+    private static final String TRACK_TYPE = "SIMPLIFIED_SHAPE";
+    private static final int INDEXED_PRECISION_M = 10;
+    // The maintained bounds describe the cleaned source, while simplified shapes
+    // snap to a 0.00001-degree grid. Allow conservatively for that displacement,
+    // six-decimal bound rounding and spatial bounding-box precision. The exact
+    // geometry predicates below still determine coverage, not this margin.
+    private static final double CANDIDATE_BOUNDS_MARGIN_DEGREES = 0.001;
+
     private final NamedParameterJdbcTemplate jdbcTemplate;
 
     public ExplorationScoreQueryRepository(NamedParameterJdbcTemplate jdbcTemplate) {
@@ -58,52 +66,88 @@ public class ExplorationScoreQueryRepository {
      * <p>
      * Algorithm:
      * 1. Fetch the target track geometry, transform to EPSG:3857 (meters)
-     * 2. Break it into short segments via ST_Segmentize + ST_DumpSegments (max length = corridorWidthM)
-     * 3. For each segment, check if ANY prior track (by start_date) passes within corridorWidthM
-     * using a two-step filter: fast GIST bbox check (&&) then exact ST_DWithin
-     * 4. Aggregate: return total track length and sum of novel (unmatched) segment lengths
+     * 2. Split the target via ST_Segmentize + ST_DumpSegments and prepare each segment's search bounds once.
+     * 3. Select eligible earlier tracks within those bounds and project them once.
+     * 4. Test each segment against those candidates using bbox overlap (&&) followed by ST_DWithin.
+     * 5. Aggregate: return total track length and sum of novel (unmatched) segment lengths.
+     * Materialized CTEs prevent inlining from repeating candidate selection and projection for every segment.
+     * Intermediate results can spill under the existing database work_mem; no archive cache is held in Java.
      * <p>
      * The score (novelM / totalM) is computed in Java, not in SQL.
-     *
-     * @see <a href="EXPLORATION_SCORE.md">EXPLORATION_SCORE.md</a> for full documentation
+     * <p>
+     * Full documentation: {@code documentation/architecture/analysis/exploration.md}.
      */
     private static final String EXPLORATION_QUERY = """
-            WITH target_track AS (
+            WITH target_track AS MATERIALIZED (
                 SELECT
                     gt.id AS track_id,
                     gt.start_date,
-                    ST_Transform(gtd.track, 3857) AS geom_3857,
-                    ST_Length(ST_Transform(gtd.track, 3857)) AS total_m
+                    ST_Transform(gtd.observed_path, 3857) AS geom_3857,
+                    ST_Length(ST_Transform(gtd.observed_path, 3857)) AS total_m
                 FROM gps_track gt
                 JOIN gps_track_data gtd ON gt.id = gtd.gps_track_id
                 WHERE gt.id = :trackId
+                  AND NOT gt.review_excluded AND NOT gt.timing_unreliable
                   AND gtd.track_type = :trackType
                   AND gtd.precision_in_meter = :precisionInMeter
             ),
-            target_segments AS (
+            target_segments AS MATERIALIZED (
                 SELECT
-                    track_id,
-                    start_date,
-                    total_m,
-                    (ST_DumpSegments(ST_Segmentize(geom_3857, :corridorWidthM))).geom AS segment_3857
-                FROM target_track
+                    tt.track_id,
+                    tt.total_m,
+                    s.geom AS segment_3857,
+                    ST_Transform(ST_Expand(s.geom, :corridorWidthM), 4326) AS search_bbox_4326,
+                    ST_Length(s.geom) AS segment_m
+                FROM target_track tt
+                CROSS JOIN LATERAL ST_DumpSegments(ST_Segmentize(tt.geom_3857, :corridorWidthM)) s
+            ),
+            target_bounds AS MATERIALIZED (
+                -- Enclose the actual segment search boxes: transforming one expanded path
+                -- envelope can wrap differently near the antimeridian and lose candidates.
+                SELECT ST_SetSRID(ST_Extent(search_bbox_4326)::geometry, 4326) AS bbox_4326
+                FROM target_segments
+            ),
+            prior_track_ids AS MATERIALIZED (
+                SELECT gt.id
+                FROM gps_track gt
+                CROSS JOIN target_track tt
+                CROSS JOIN target_bounds tb
+                WHERE gt.start_date < tt.start_date
+                  AND gt.duplicate_status = 'UNIQUE'
+                  AND gt.load_status = 'SUCCESS'
+                  AND NOT gt.review_excluded AND NOT gt.timing_unreliable
+                  AND gt.bbox_max_lng >= ST_XMin(tb.bbox_4326) - :boundsMarginDegrees
+                  AND gt.bbox_min_lng <= ST_XMax(tb.bbox_4326) + :boundsMarginDegrees
+                  AND gt.bbox_max_lat >= ST_YMin(tb.bbox_4326) - :boundsMarginDegrees
+                  AND gt.bbox_min_lat <= ST_YMax(tb.bbox_4326) + :boundsMarginDegrees
+            ),
+            prior_tracks AS MATERIALIZED (
+                SELECT candidate.bbox_4326, candidate.geom_3857
+                FROM prior_track_ids p
+                CROSS JOIN target_bounds tb
+                CROSS JOIN LATERAL (
+                    SELECT ST_Envelope(gtd.track) AS bbox_4326,
+                           ST_Transform(gtd.observed_path, 3857) AS geom_3857
+                    FROM gps_track_data gtd
+                    WHERE gtd.gps_track_id = p.id
+                      AND gtd.track_type = :trackType
+                      AND gtd.precision_in_meter = :precisionInMeter
+                      AND gtd.track && tb.bbox_4326
+                    -- Keep geometry retrieval per eligible ID. Flattening this
+                    -- join can read thousands of later/ineligible spatial hits.
+                    OFFSET 0
+                ) candidate
             ),
             evaluated_segments AS (
                 SELECT
                     ts.track_id,
                     ts.total_m,
-                    ST_Length(ts.segment_3857) AS segment_m,
+                    ts.segment_m,
                     NOT EXISTS (
                         SELECT 1
-                        FROM gps_track_data gtd
-                        JOIN gps_track gt ON gt.id = gtd.gps_track_id
-                        WHERE gt.start_date < ts.start_date
-                          AND gt.duplicate_status = 'UNIQUE'
-                          AND gt.load_status = 'SUCCESS'
-                          AND gtd.track_type = :trackType
-                          AND gtd.precision_in_meter = :precisionInMeter
-                          AND gtd.track && ST_Transform(ST_Expand(ts.segment_3857, :corridorWidthM), 4326)
-                          AND ST_DWithin(ST_Transform(gtd.track, 3857), ts.segment_3857, :corridorWidthM)
+                        FROM prior_tracks p
+                        WHERE p.bbox_4326 && ts.search_bbox_4326
+                          AND ST_DWithin(p.geom_3857, ts.segment_3857, :corridorWidthM)
                     ) AS is_novel
                 FROM target_segments ts
             )
@@ -113,6 +157,12 @@ public class ExplorationScoreQueryRepository {
             FROM evaluated_segments
             GROUP BY track_id
             """;
+
+    // Match the partial per-track index predicate even in a generic prepared plan.
+    // Keep one SQL definition; only these fixed application constants become literals.
+    private static final String INDEXED_EXPLORATION_QUERY = EXPLORATION_QUERY
+            .replace(":trackType", "'" + TRACK_TYPE + "'")
+            .replace(":precisionInMeter", Integer.toString(INDEXED_PRECISION_M));
 
     /**
      * Calculate the exploration score for a single track.
@@ -128,13 +178,16 @@ public class ExplorationScoreQueryRepository {
 
         MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("trackId", trackId)
-                .addValue("trackType", "SIMPLIFIED_SHAPE")
+                .addValue("trackType", TRACK_TYPE)
                 .addValue("precisionInMeter", precisionInMeter)
+                .addValue("boundsMarginDegrees", CANDIDATE_BOUNDS_MARGIN_DEGREES)
                 .addValue("corridorWidthM", corridorWidthM);
 
-        return jdbcTemplate.query(EXPLORATION_QUERY, params, rs -> {
+        String query = precisionInMeter == INDEXED_PRECISION_M
+                ? INDEXED_EXPLORATION_QUERY : EXPLORATION_QUERY;
+        return jdbcTemplate.query(query, params, rs -> {
             if (!rs.next()) {
-                log.warn("No geometry found for trackId={} at precision={}m. Skipping exploration score.", trackId, precisionInMeter);
+                log.info("Exploration score unavailable: trackId={} precision={}m; source is ineligible or has no observed geometry.", trackId, precisionInMeter);
                 return null;
             }
 

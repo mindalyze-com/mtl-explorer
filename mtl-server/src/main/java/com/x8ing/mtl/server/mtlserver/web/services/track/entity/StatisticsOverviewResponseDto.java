@@ -148,11 +148,15 @@ public record StatisticsOverviewResponseDto(
 
     @JsonPropertyOrder({
             "highlightExcludedTrackCount",
-            "statisticsExcludedTrackCount"
+            "statisticsExcludedTrackCount",
+            "reviewWithheldTrackCount",
+            "reviewPendingSourceCount"
     })
     public record ExclusionSummary(
             long highlightExcludedTrackCount,
-            long statisticsExcludedTrackCount
+            long statisticsExcludedTrackCount,
+            long reviewWithheldTrackCount,
+            long reviewPendingSourceCount
     ) {
     }
 }

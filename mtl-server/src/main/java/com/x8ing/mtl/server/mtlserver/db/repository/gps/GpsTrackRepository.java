@@ -4,6 +4,8 @@ package com.x8ing.mtl.server.mtlserver.db.repository.gps;
 import com.x8ing.mtl.server.mtlserver.db.entity.gps.GpsTrack;
 import com.x8ing.mtl.server.mtlserver.db.entity.gps.projection.*;
 import com.x8ing.mtl.server.mtlserver.db.entity.indexer.IndexedFile;
+import com.x8ing.mtl.server.mtlserver.energy.TrackEnergySummary;
+import com.x8ing.mtl.server.mtlserver.gpx.RecordedPathGeometry;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
@@ -25,9 +27,9 @@ public interface GpsTrackRepository extends JpaRepository<GpsTrack, Long> {
                     id,
                     start_date,
                     GREATEST(0, COALESCE(track_length_in_meter, 0))::double precision AS distance_m,
-                    (GREATEST(0, COALESCE(track_duration_in_motion_secs, EXTRACT(EPOCH FROM (end_date - start_date)), 0)) * 1000.0)::double precision AS duration_ms,
+                    (CASE WHEN timing_unreliable THEN 0 ELSE GREATEST(0, COALESCE(track_duration_in_motion_secs, EXTRACT(EPOCH FROM (end_date - start_date)), 0)) END * 1000.0)::double precision AS duration_ms,
                     GREATEST(0, COALESCE(ascent_in_meter, 0))::double precision AS ascent_m,
-                    GREATEST(0, COALESCE(energy_net_total_wh, 0))::double precision AS energy_wh
+                    CASE WHEN timing_unreliable THEN 0 ELSE GREATEST(0, COALESCE(CASE WHEN NOT timing_unreliable THEN energy_net_total_wh END, 0)) END::double precision AS energy_wh
             """;
 
     @Query(nativeQuery = true, value = """
@@ -37,18 +39,14 @@ public interface GpsTrackRepository extends JpaRepository<GpsTrack, Long> {
                 gps_track_data gtd
             inner join gps_track gt on gt.id = gtd.gps_track_id
             where 1=1
-                and gtd.track && ST_Expand(
-                    ST_SetSRID(ST_Point(:longitude, :latitude), 4326),
-                    (:distanceInMeter + 10.0) / (111320.0 * GREATEST(ABS(COS(RADIANS(:latitude))), 0.01))
-                )
-                and ST_DWithin(gtd.track::geography, ST_SetSRID(ST_Point(:longitude, :latitude), 4326)::geography, :distanceInMeter + 10.0)
+                and ST_DWithin(gtd.observed_path::geography, ST_SetSRID(ST_Point(:longitude, :latitude), 4326)::geography, :distanceInMeter + 10.0)
                 and gtd.track_type = 'SIMPLIFIED_SHAPE'
-                and gt.duplicate_status != 'DUPLICATE'
+                and not gt.review_map_excluded
                 and gt.track_source = 'IMPORTED'
                 and precision_in_meter = 10
                 and gt.id = ANY(:filterIds)
             order by ST_Distance(
-                gtd.track::geography,
+                gtd.observed_path::geography,
                 ST_SetSRID(ST_Point(:longitude, :latitude), 4326)::geography
             ), gps_track_id
             """)
@@ -59,22 +57,35 @@ public interface GpsTrackRepository extends JpaRepository<GpsTrack, Long> {
             @Param("filterIds") Long[] filterIds);
 
     @Query(nativeQuery = true, value = """
+                                               SELECT gtd.gps_track_id FROM gps_track_data gtd
+                                               JOIN gps_track gt ON gt.id = gtd.gps_track_id
+                                               WHERE gtd.track_type = 'RAW_OUTLIER_CLEANED'
+                                                 AND NOT gt.review_map_excluded AND gt.track_source = 'IMPORTED'
+                                                 AND gt.id = ANY(:filterIds)
+                                                 AND ST_DWithin(gtd.observed_path::geography,
+                                                     ST_Point(:longitude, :latitude, 4326)::geography, :distanceInMeter +
+                                               """ + RecordedPathGeometry.CANDIDATE_ALLOWANCE_METRES + """
+                                                 )
+                                               ORDER BY gtd.gps_track_id
+                                               """)
+    List<Long> getSegmentCandidateTrackIds(@Param("longitude") double longitude,
+                                           @Param("latitude") double latitude,
+                                           @Param("distanceInMeter") double distanceInMeter,
+                                           @Param("filterIds") Long[] filterIds);
+
+    @Query(nativeQuery = true, value = """
             WITH target_point AS (
                 SELECT ST_SetSRID(ST_Point(:longitude, :latitude), 4326) AS point
             ), nearby_tracks AS (
                 SELECT
                     gtd.gps_track_id AS "trackId",
-                    MIN(ST_Distance(gtd.track::geography, target.point::geography)) AS "distanceMeters"
+                    MIN(ST_Distance(gtd.observed_path::geography, target.point::geography)) AS "distanceMeters"
                 FROM gps_track_data gtd
                 INNER JOIN gps_track gt ON gt.id = gtd.gps_track_id
                 CROSS JOIN target_point target
-                WHERE gtd.track && ST_Expand(
-                        target.point,
-                        (:distanceInMeter + 10.0) / (111320.0 * GREATEST(ABS(COS(RADIANS(:latitude))), 0.01))
-                    )
-                  AND ST_DWithin(gtd.track::geography, target.point::geography, :distanceInMeter + 10.0)
+                WHERE ST_DWithin(gtd.observed_path::geography, target.point::geography, :distanceInMeter + 10.0)
                   AND gtd.track_type = 'SIMPLIFIED_SHAPE'
-                  AND gt.duplicate_status != 'DUPLICATE'
+                  AND NOT gt.review_map_excluded
                   AND gt.track_source = 'IMPORTED'
                   AND gtd.precision_in_meter = 10
                   AND gt.id = ANY(:filterIds)
@@ -145,6 +156,7 @@ public interface GpsTrackRepository extends JpaRepository<GpsTrack, Long> {
                   com.x8ing.mtl.server.mtlserver.db.entity.gps.GpsTrack.DUPLICATE_CHECK_STATUS.NOT_CHECKED_YET
               )
               AND t.trackSource = com.x8ing.mtl.server.mtlserver.db.entity.gps.GpsTrack.TRACK_SOURCE.IMPORTED
+              AND t.reviewMapExcluded = false
               AND t.bboxMinLat IS NOT NULL
               AND t.bboxMaxLat IS NOT NULL
               AND t.bboxMinLng IS NOT NULL
@@ -172,6 +184,60 @@ public interface GpsTrackRepository extends JpaRepository<GpsTrack, Long> {
               AND t.trackSource = com.x8ing.mtl.server.mtlserver.db.entity.gps.GpsTrack.TRACK_SOURCE.IMPORTED
             """)
     List<GpsTrack> findByDuplicateStatusExcludingPlanned(@Param("status") GpsTrack.DUPLICATE_CHECK_STATUS status);
+
+    @Query("""
+            SELECT t.id FROM GpsTrack t
+            WHERE t.duplicateStatus = :status
+              AND t.trackSource = com.x8ing.mtl.server.mtlserver.db.entity.gps.GpsTrack.TRACK_SOURCE.IMPORTED
+            ORDER BY t.id
+            """)
+    List<Long> findIdsByDuplicateStatusExcludingPlanned(
+            @Param("status") GpsTrack.DUPLICATE_CHECK_STATUS status, Pageable pageable);
+
+    @Modifying
+    @Query("""
+            UPDATE GpsTrack t
+               SET t.duplicateStatus = com.x8ing.mtl.server.mtlserver.db.entity.gps.GpsTrack.DUPLICATE_CHECK_STATUS.FAILED,
+                   t.duplicateOf = NULL,
+                   t.duplicateDetails = :details
+             WHERE t.id = :id
+               AND t.duplicateStatus = com.x8ing.mtl.server.mtlserver.db.entity.gps.GpsTrack.DUPLICATE_CHECK_STATUS.NOT_CHECKED_YET
+            """)
+    int markDuplicateCheckFailedIfPending(@Param("id") Long id, @Param("details") String details);
+
+    /**
+     * Duplicate detection owns only the duplicate result. Preserve concurrent exclusions or failures.
+     */
+    @Modifying
+    @Query("""
+            UPDATE GpsTrack t
+               SET t.duplicateStatus = :status,
+                   t.duplicateOf = :duplicateOf
+             WHERE t.id = :id AND t.duplicateStatus = :expectedStatus
+            """)
+    int updateDuplicateDetection(
+            @Param("id") Long id,
+            @Param("expectedStatus") GpsTrack.DUPLICATE_CHECK_STATUS expectedStatus,
+            @Param("status") GpsTrack.DUPLICATE_CHECK_STATUS status,
+            @Param("duplicateOf") Long duplicateOf);
+
+    @Modifying
+    @Query("""
+            UPDATE GpsTrack t
+               SET t.duplicateStatus = com.x8ing.mtl.server.mtlserver.db.entity.gps.GpsTrack.DUPLICATE_CHECK_STATUS.NOT_CHECKED_YET,
+                   t.duplicateOf = NULL
+             WHERE t.duplicateOf = :primaryId AND t.id <> :primaryId
+            """)
+    int releaseDuplicateReferences(@Param("primaryId") Long primaryId);
+
+    @Modifying
+    @Query("""
+            UPDATE GpsTrack t SET t.sourceParentTrackId = NULL
+             WHERE t.sourceParentTrackId = :parentId AND t.id <> :parentId
+            """)
+    int clearSegmentParentReferences(@Param("parentId") Long parentId);
+
+    boolean existsByTrackSourceAndDuplicateStatus(GpsTrack.TRACK_SOURCE source, GpsTrack.DUPLICATE_CHECK_STATUS status);
 
     @Query("""
             SELECT t FROM GpsTrack t WHERE t.loadStatus = com.x8ing.mtl.server.mtlserver.db.entity.gps.GpsTrack.LOAD_STATUS.SUCCESS
@@ -205,11 +271,13 @@ public interface GpsTrackRepository extends JpaRepository<GpsTrack, Long> {
                     WHERE track.load_status = 'SUCCESS'
                       AND track.duplicate_status = 'UNIQUE'
                     ORDER BY
+                      CASE WHEN EXISTS (SELECT 1 FROM indexed_file file WHERE file.id = track.file_id
+                          AND file.path = 'demo-health-showcase' AND file.name IN ('walking.gpx', 'running.gpx', 'bicycle.gpx')) THEN 0 ELSE 1 END,
                       CASE WHEN EXISTS (
                           SELECT 1
                             FROM media_file media
                             JOIN LATERAL (
-                                SELECT data.track
+                                SELECT data.observed_path
                                   FROM gps_track_data data
                                  WHERE data.gps_track_id = track.id
                                    AND data.track_type = 'RAW_OUTLIER_CLEANED'
@@ -220,7 +288,7 @@ public interface GpsTrackRepository extends JpaRepository<GpsTrack, Long> {
                              AND media.exif_gps_location IS NOT NULL
                              AND ST_DWithin(
                                  media.exif_gps_location::geography,
-                                 route.track::geography,
+                                 route.observed_path::geography,
                                  :maxPhotoDistanceMeters
                              )
                       ) THEN 0 ELSE 1 END,
@@ -271,7 +339,7 @@ public interface GpsTrackRepository extends JpaRepository<GpsTrack, Long> {
                    SELECT 1
                      FROM media_file media
                      JOIN LATERAL (
-                         SELECT data.track
+                         SELECT data.observed_path
                            FROM gps_track_data data
                           WHERE data.gps_track_id = track.id
                             AND data.track_type = 'RAW_OUTLIER_CLEANED'
@@ -282,7 +350,7 @@ public interface GpsTrackRepository extends JpaRepository<GpsTrack, Long> {
                       AND media.exif_gps_location IS NOT NULL
                       AND ST_DWithin(
                           media.exif_gps_location::geography,
-                          route.track::geography,
+                          route.observed_path::geography,
                           :maxPhotoDistanceMeters
                       )
                )
@@ -316,6 +384,34 @@ public interface GpsTrackRepository extends JpaRepository<GpsTrack, Long> {
             """)
     int reEnableNonSuspiciousExcludedTracks(@Param("cutoff") Date cutoff, @Param("limit") int limit);
 
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT t FROM GpsTrack t WHERE t.id = :id")
+    java.util.Optional<GpsTrack> findByIdForUpdate(@Param("id") Long id);
+
+    /**
+     * Persist the energy worker's output without merging its loaded track or changing metadata.
+     * The caller holds the track lock so activity and weight inputs remain current.
+     */
+    @Modifying
+    @Query("""
+            UPDATE GpsTrack t
+               SET t.energyGravitationalTotalWh = :#{#summary.gravitationalAscentTotalWh},
+                   t.energyGravitationalDescentWh = :#{#summary.gravitationalDescentTotalWh},
+                   t.energyAeroDragTotalWh = :#{#summary.aeroDragTotalWh},
+                   t.energyRollingResistanceTotalWh = :#{#summary.rollingResistanceTotalWh},
+                   t.energyKineticPositiveTotalWh = :#{#summary.kineticPositiveTotalWh},
+                   t.energyNetTotalWh = :#{#summary.netEnergyTotalWh},
+                   t.energyWeightKgUsed = :#{#summary.weightKgUsed},
+                   t.metabolicEnergy = :#{#summary.metabolicEnergy},
+                   t.powerWattsAvg = :#{#summary.powerWattsAvg},
+                   t.powerWattsMovingAvg = :#{#summary.powerWattsMovingAvg},
+                   t.powerWattsMax = :#{#summary.powerWattsMax},
+                   t.powerWatts30sMax = :#{#summary.powerWatts30sMax},
+                   t.normalizedPowerWatts = :#{#summary.normalizedPowerWatts}
+             WHERE t.id = :id
+            """)
+    int updateEnergyResults(@Param("id") Long id, @Param("summary") TrackEnergySummary summary);
+
     List<GpsTrack> findByActivityTypeSourceNull();
 
     @Query("""
@@ -325,6 +421,15 @@ public interface GpsTrackRepository extends JpaRepository<GpsTrack, Long> {
               AND t.duplicateStatus <> com.x8ing.mtl.server.mtlserver.db.entity.gps.GpsTrack.DUPLICATE_CHECK_STATUS.NOT_CHECKED_YET
             """)
     List<Long> findIdsPendingActivityClassification();
+
+    @Query("""
+            SELECT t.id FROM GpsTrack t
+            WHERE t.activityTypeSource IS NULL
+              AND t.duplicateStatus IS NOT NULL
+              AND t.duplicateStatus <> com.x8ing.mtl.server.mtlserver.db.entity.gps.GpsTrack.DUPLICATE_CHECK_STATUS.NOT_CHECKED_YET
+            ORDER BY t.id
+            """)
+    List<Long> findIdsPendingActivityClassification(Pageable pageable);
 
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("""
@@ -336,6 +441,22 @@ public interface GpsTrackRepository extends JpaRepository<GpsTrack, Long> {
                AND t.activityTypeSource IS NULL
             """)
     int updateActivityClassificationIfPending(
+            @Param("id") Long id,
+            @Param("activityType") GpsTrack.ACTIVITY_TYPE activityType,
+            @Param("activityTypeSource") GpsTrack.ACTIVITY_TYPE_SOURCE activityTypeSource,
+            @Param("activityTypeSourceDetails") String activityTypeSourceDetails);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("""
+            UPDATE GpsTrack t
+               SET t.activityType = :activityType,
+                   t.activityTypeSource = :activityTypeSource,
+                   t.activityTypeSourceDetails = :activityTypeSourceDetails
+             WHERE t.id = :id
+               AND (t.activityTypeSource IS NULL
+                    OR t.activityTypeSource <> com.x8ing.mtl.server.mtlserver.db.entity.gps.GpsTrack.ACTIVITY_TYPE_SOURCE.USER_SET)
+            """)
+    int updateActivityClassificationUnlessUserSet(
             @Param("id") Long id,
             @Param("activityType") GpsTrack.ACTIVITY_TYPE activityType,
             @Param("activityTypeSource") GpsTrack.ACTIVITY_TYPE_SOURCE activityTypeSource,
@@ -353,10 +474,12 @@ public interface GpsTrackRepository extends JpaRepository<GpsTrack, Long> {
      */
     @Query(nativeQuery = true, value = """
             WITH orig_track AS (
-                SELECT ST_Transform(track, 3857) as orig_track, id, gps_track_id
+                SELECT ST_Transform(ST_Force2D(track), 3857) as orig_track, id, gps_track_id
                 FROM gps_track_data
                 WHERE gps_track_id  = :gps_track_id
                   and precision_in_meter = 100
+                  -- Frechet expects one continuous curve; disconnected imports require manual duplicate review.
+                  and jsonb_array_length(COALESCE(recording_break_before_point_indexes, '[]'::jsonb)) = 0
             )
             select\s
               gps_track_id_duplicate
@@ -366,14 +489,16 @@ public interface GpsTrackRepository extends JpaRepository<GpsTrack, Long> {
             	    gtd.gps_track_id as gps_track_id_duplicate,
             	    orig_track.id as id_orig_track,
             	    orig_track.gps_track_id as orig_track_gps_track_id,
-            	    ST_FrechetDistance(ST_Transform(gtd.track, 3857), orig_track.orig_track) as similarity,
-            	    ST_Transform(track, 3857) as track_duplicate_simplified,
+                    ST_FrechetDistance(ST_Transform(ST_Force2D(gtd.track), 3857), orig_track.orig_track) as similarity,
+                    ST_Transform(ST_Force2D(track), 3857) as track_duplicate_simplified,
             	    orig_track.orig_track
             	FROM gps_track_data gtd
             	         INNER JOIN orig_track ON 1=1
             	         INNER JOIN gps_track gt on gt.id = gtd.gps_track_id
             	where 1=1
             	  and gtd.precision_in_meter = 100
+              and jsonb_array_length(COALESCE(gtd.recording_break_before_point_indexes, '[]'::jsonb)) = 0
+              and gt.duplicate_status <> 'FAILED'
             	  -- TO_TIMESTAMP( '2017-03-31 9:30:20', 'YYYY-MM-DD HH24:MI:SS')
             	  AND (gt.start_date  > :start_date and gt.start_date < :end_date or gt.start_date is null)
             ) t
@@ -391,7 +516,7 @@ public interface GpsTrackRepository extends JpaRepository<GpsTrack, Long> {
             WITH q AS (
                 SELECT\s
                     gt.*,
-                    COALESCE(track_duration_in_motion_secs, ABS(EXTRACT(EPOCH FROM (end_date - start_date)))) AS track_duration,
+                    CASE WHEN NOT timing_unreliable THEN COALESCE(track_duration_in_motion_secs, ABS(EXTRACT(EPOCH FROM (end_date - start_date)))) END AS track_duration,
                     -- 1. Calculate the main grouping string early
                     to_char(start_date, cast(:group_by_date_format AS text)) AS group_by_col,
                     -- 2. Calculate the substring (everything after the first '-') early
@@ -404,6 +529,7 @@ public interface GpsTrackRepository extends JpaRepository<GpsTrack, Long> {
                     AND track_source = 'IMPORTED'
                     AND (cast(:filterIds AS bigint[]) IS NULL OR id = ANY(:filterIds))
                     AND gt.statistics_exclusion_reason IS NULL
+                    AND gt.review_excluded = false
             )
             SELECT\s
                 group_by_col AS groupBy,
@@ -416,25 +542,25 @@ public interface GpsTrackRepository extends JpaRepository<GpsTrack, Long> {
                 round((1.0 * sum(track_duration) / 3600 / 24)::numeric, 1) AS totalTrackDurationDays,
                 percentile_disc(0.5) WITHIN GROUP (ORDER BY track_duration) AS trackDurationSecsMed,
                 trunc(avg(track_duration)) AS trackDurationSecsAvg,
-                trunc(sum(track_length_in_meter)) AS trackLengthInMeterSum,
+                sum(track_length_in_meter)::double precision AS trackLengthInMeterSum,
                 trunc(percentile_disc(0.5) WITHIN GROUP (ORDER BY track_length_in_meter)) AS trackLengthInMeterMed,
                 trunc(avg(track_length_in_meter)) AS trackLengthInMeterAvg,
                 round((percentile_disc(0.5) WITHIN GROUP (ORDER BY median_distance_between_points))::numeric, 1) AS distanceBetweenGpsPointsMed,
-                round(sum(COALESCE(energy_net_total_wh, 0))::numeric, 1) AS energyNetTotalWhSum,
-                round((percentile_disc(0.5) WITHIN GROUP (ORDER BY COALESCE(power_watts_avg, 0)))::numeric, 1) AS powerWattsAvgMed,
-                round((percentile_disc(0.5) WITHIN GROUP (ORDER BY COALESCE(normalized_power_watts, 0)))::numeric, 1) AS normalizedPowerMed,
+                sum(COALESCE(CASE WHEN NOT timing_unreliable THEN energy_net_total_wh END, 0))::double precision AS energyNetTotalWhSum,
+                round((percentile_disc(0.5) WITHIN GROUP (ORDER BY CASE WHEN NOT timing_unreliable THEN COALESCE(power_watts_avg, 0) END))::numeric, 1) AS powerWattsAvgMed,
+                round((percentile_disc(0.5) WITHIN GROUP (ORDER BY CASE WHEN NOT timing_unreliable THEN COALESCE(normalized_power_watts, 0) END))::numeric, 1) AS normalizedPowerMed,
                 round(avg(CASE
-                    WHEN COALESCE(normalized_power_watts, 0)::double precision > 0 AND cast(:threshold_power AS double precision) > 0
+                    WHEN COALESCE(CASE WHEN NOT timing_unreliable THEN normalized_power_watts END, 0)::double precision > 0 AND cast(:threshold_power AS double precision) > 0
                     THEN normalized_power_watts::double precision / cast(:threshold_power AS double precision)
                 END)::numeric, 3) AS intensityIndexAvg,
                 round(avg(CASE
-                    WHEN COALESCE(normalized_power_watts, 0)::double precision > 0
+                    WHEN COALESCE(CASE WHEN NOT timing_unreliable THEN normalized_power_watts END, 0)::double precision > 0
                         AND COALESCE(track_duration_in_motion_secs, 0)::double precision > 0
                         AND cast(:threshold_power AS double precision) > 0
                     THEN POWER(normalized_power_watts::double precision / cast(:threshold_power AS double precision), 2)
                          * (track_duration_in_motion_secs::double precision / 3600.0) * 100
                 END)::numeric, 1) AS trainingLoadPerRideAvg,
-                round(avg(CASE WHEN exploration_status = 'CALCULATED' AND exploration_score IS NOT NULL THEN exploration_score END)::numeric, 3) AS explorationScoreAvg
+                round(avg(CASE WHEN NOT timing_unreliable AND exploration_status = 'CALCULATED' AND exploration_score IS NOT NULL THEN exploration_score END)::numeric, 3) AS explorationScoreAvg
             FROM q
             WHERE start_date >= '1971-01-01'
                 -- 3. Apply the conditional filter against the pre-calculated column
@@ -452,12 +578,13 @@ public interface GpsTrackRepository extends JpaRepository<GpsTrack, Long> {
                 SELECT
                     start_date,
                     GREATEST(0, COALESCE(track_length_in_meter, 0))::double precision AS distance_m,
-                    (GREATEST(0, COALESCE(track_duration_in_motion_secs, EXTRACT(EPOCH FROM (end_date - start_date)), 0)) * 1000.0)::double precision AS duration_ms,
+                    (CASE WHEN timing_unreliable THEN 0 ELSE GREATEST(0, COALESCE(track_duration_in_motion_secs, EXTRACT(EPOCH FROM (end_date - start_date)), 0)) END * 1000.0)::double precision AS duration_ms,
                     GREATEST(0, COALESCE(ascent_in_meter, 0))::double precision AS ascent_m,
-                    GREATEST(0, COALESCE(energy_net_total_wh, 0))::double precision AS energy_wh
+                    CASE WHEN timing_unreliable THEN 0 ELSE GREATEST(0, COALESCE(CASE WHEN NOT timing_unreliable THEN energy_net_total_wh END, 0)) END::double precision AS energy_wh
                 FROM gps_track
                 WHERE id = ANY(:filterIds)
                   AND statistics_exclusion_reason IS NULL
+                  AND review_excluded = false
             )
             SELECT
                 COUNT(*)::bigint AS trackCount,
@@ -476,11 +603,12 @@ public interface GpsTrackRepository extends JpaRepository<GpsTrack, Long> {
                 SELECT
                     COALESCE(activity_type, 'UNKNOWN') AS activity_type,
                     GREATEST(0, COALESCE(track_length_in_meter, 0))::double precision AS distance_m,
-                    (GREATEST(0, COALESCE(track_duration_in_motion_secs, EXTRACT(EPOCH FROM (end_date - start_date)), 0)) * 1000.0)::double precision AS duration_ms,
-                    GREATEST(0, COALESCE(energy_net_total_wh, 0))::double precision AS energy_wh
+                    (CASE WHEN timing_unreliable THEN 0 ELSE GREATEST(0, COALESCE(track_duration_in_motion_secs, EXTRACT(EPOCH FROM (end_date - start_date)), 0)) END * 1000.0)::double precision AS duration_ms,
+                    CASE WHEN timing_unreliable THEN 0 ELSE GREATEST(0, COALESCE(CASE WHEN NOT timing_unreliable THEN energy_net_total_wh END, 0)) END::double precision AS energy_wh
                 FROM gps_track
                 WHERE id = ANY(:filterIds)
                   AND statistics_exclusion_reason IS NULL
+                  AND review_excluded = false
             )
             SELECT
                 activity_type AS activityType,
@@ -502,21 +630,26 @@ public interface GpsTrackRepository extends JpaRepository<GpsTrack, Long> {
                 )::bigint AS highlightExcludedTrackCount,
                 COUNT(*) FILTER (
                     WHERE statistics_exclusion_reason IS NOT NULL
-                )::bigint AS statisticsExcludedTrackCount
+                )::bigint AS statisticsExcludedTrackCount,
+                COUNT(*) FILTER (WHERE review_excluded)::bigint AS reviewWithheldTrackCount,
+                COUNT(DISTINCT file_id) FILTER (WHERE EXISTS(SELECT 1 FROM source_issue si
+                    WHERE si.source_id=gps_track.file_id AND si.resolved_at IS NULL AND si.severity='REVIEW'
+                      AND NOT EXISTS(SELECT 1 FROM source_issue_acknowledgement a WHERE a.issue_id=si.id AND a.account_key=:account)))::bigint AS reviewPendingSourceCount
             FROM gps_track
             WHERE id = ANY(:filterIds)
             """)
-    GpsTrackOverviewExclusions getTrackOverviewExclusions(@Param("filterIds") Long[] filterIds);
+    GpsTrackOverviewExclusions getTrackOverviewExclusions(@Param("filterIds") Long[] filterIds, @Param("account") String account);
 
     @Query(nativeQuery = true, value = TRACK_OVERVIEW_CTE_COLUMNS + """
                     ,
-                    GREATEST(0, COALESCE(speed_in_kmh_30s_max, 0))::double precision AS speed_30_kmh,
-                    GREATEST(0, COALESCE(elevation_gain_per_hour_30s_max, 0))::double precision AS ascent_rate_mh,
-                    GREATEST(0, COALESCE(power_watts_30s_max, 0))::double precision AS power_30_w
+                    GREATEST(0, COALESCE(CASE WHEN NOT timing_unreliable THEN speed_in_kmh_30s_max END, 0))::double precision AS speed_30_kmh,
+                    GREATEST(0, COALESCE(CASE WHEN NOT timing_unreliable THEN elevation_gain_per_hour_30s_max END, 0))::double precision AS ascent_rate_mh,
+                    GREATEST(0, COALESCE(CASE WHEN NOT timing_unreliable THEN power_watts_30s_max END, 0))::double precision AS power_30_w
                 FROM gps_track
                 WHERE id = ANY(:filterIds)
                   AND highlight_exclusion_reason IS NULL
                   AND statistics_exclusion_reason IS NULL
+                  AND review_excluded = false
             ),
             metric_rows AS (
                 SELECT 'longest-distance' AS rowKey, id AS trackId, distance_m AS value
@@ -566,6 +699,8 @@ public interface GpsTrackRepository extends JpaRepository<GpsTrack, Long> {
                 FROM gps_track
                 WHERE id = ANY(:filterIds)
                   AND start_date IS NOT NULL
+                  AND statistics_exclusion_reason IS NULL
+                  AND review_excluded = false
             )
             SELECT
                 ROW_NUMBER() OVER (ORDER BY start_date DESC, id DESC)::integer AS sortOrder,
@@ -583,11 +718,12 @@ public interface GpsTrackRepository extends JpaRepository<GpsTrack, Long> {
                 SELECT
                     start_date,
                     GREATEST(0, COALESCE(track_length_in_meter, 0))::double precision AS distance_m,
-                    (GREATEST(0, COALESCE(track_duration_in_motion_secs, EXTRACT(EPOCH FROM (end_date - start_date)), 0)) * 1000.0)::double precision AS duration_ms
+                    (CASE WHEN timing_unreliable THEN 0 ELSE GREATEST(0, COALESCE(track_duration_in_motion_secs, EXTRACT(EPOCH FROM (end_date - start_date)), 0)) END * 1000.0)::double precision AS duration_ms
                 FROM gps_track
                 WHERE id = ANY(:filterIds)
                   AND start_date IS NOT NULL
                   AND statistics_exclusion_reason IS NULL
+                  AND review_excluded = false
             ),
             weekdays AS (
                 SELECT * FROM (VALUES
@@ -654,6 +790,7 @@ public interface GpsTrackRepository extends JpaRepository<GpsTrack, Long> {
                   AND start_date IS NOT NULL
                   AND highlight_exclusion_reason IS NULL
                   AND statistics_exclusion_reason IS NULL
+                  AND review_excluded = false
             ),
             rows AS (
                 (SELECT 10 AS sortOrder, 'first-activity' AS rowKey, id AS trackId, 0::double precision AS value
@@ -667,9 +804,25 @@ public interface GpsTrackRepository extends JpaRepository<GpsTrack, Long> {
     List<GpsTrackOverviewTrackRow> getTrackOverviewActivityBounds(@Param("filterIds") Long[] filterIds);
 
     @Query(nativeQuery = true, value = """
-                select * from gps_track gt where duplicate_of = :gps_track_id or (id=:gps_track_id and duplicate_status!='UNIQUE' )
+            WITH target AS (
+                SELECT COALESCE(duplicate_of, id) AS primary_id
+                FROM gps_track WHERE id = :gps_track_id
+            )
+            SELECT member.id
+            FROM gps_track member
+            JOIN target ON member.id = target.primary_id OR member.duplicate_of = target.primary_id
+            WHERE member.id <> :gps_track_id
+            ORDER BY member.id
             """)
     List<Long> getDuplicatesForGpsTrackId(@Param("gps_track_id") Long gpsTrackId);
+
+    /**
+     * Direct references to clear when deleting a track, not other members of its duplicate group.
+     */
+    @Query(nativeQuery = true, value = """
+            SELECT id FROM gps_track WHERE duplicate_of = :gps_track_id ORDER BY id
+            """)
+    List<Long> getDuplicateReferenceIdsForGpsTrackId(@Param("gps_track_id") Long gpsTrackId);
 
     @Query(nativeQuery = true, value = """
             select gt1.id from gps_track gt1 where 1=1
@@ -755,6 +908,32 @@ public interface GpsTrackRepository extends JpaRepository<GpsTrack, Long> {
 
     // ── Exploration Score ──
 
+    /**
+     * Exploration writes only its result after calculation, leaving other jobs' fields untouched.
+     */
+    @Modifying
+    @Query("""
+            UPDATE GpsTrack t
+               SET t.explorationStatus = :status,
+                   t.explorationScore = :score,
+                   t.explorationCalcDate = :calculationDate
+             WHERE t.id = :id
+            """)
+    int updateExplorationResult(
+            @Param("id") Long id,
+            @Param("status") GpsTrack.EXPLORATION_STATUS status,
+            @Param("score") Double score,
+            @Param("calculationDate") Date calculationDate);
+
+    @Modifying
+    @Query("""
+            UPDATE GpsTrack t
+               SET t.explorationStatus = com.x8ing.mtl.server.mtlserver.db.entity.gps.GpsTrack.EXPLORATION_STATUS.NEEDS_RECALCULATION,
+                   t.explorationCalcDate = :calculationDate
+             WHERE t.id = :id
+            """)
+    int markExplorationForRetry(@Param("id") Long id, @Param("calculationDate") Date calculationDate);
+
     @Query("""
             SELECT t FROM GpsTrack t
             WHERE t.explorationStatus IN :statuses
@@ -827,8 +1006,42 @@ public interface GpsTrackRepository extends JpaRepository<GpsTrack, Long> {
     @Query("SELECT COUNT(t) FROM GpsTrack t WHERE t.activityTypeSource IS NULL AND t.loadStatus = 'SUCCESS' AND t.trackSource = com.x8ing.mtl.server.mtlserver.db.entity.gps.GpsTrack.TRACK_SOURCE.IMPORTED")
     long countActivityTypePending();
 
-    @Query("SELECT COUNT(t) FROM GpsTrack t WHERE t.activityTypeSource IS NOT NULL AND t.loadStatus = 'SUCCESS' AND t.trackSource = com.x8ing.mtl.server.mtlserver.db.entity.gps.GpsTrack.TRACK_SOURCE.IMPORTED")
+    @Query("SELECT COUNT(t) FROM GpsTrack t WHERE t.activityTypeSource IS NOT NULL AND t.activityTypeSource <> com.x8ing.mtl.server.mtlserver.db.entity.gps.GpsTrack.ACTIVITY_TYPE_SOURCE.FAILED AND t.loadStatus = 'SUCCESS' AND t.trackSource = com.x8ing.mtl.server.mtlserver.db.entity.gps.GpsTrack.TRACK_SOURCE.IMPORTED")
     long countActivityTypeDone();
+
+    @Query("SELECT COUNT(t) FROM GpsTrack t WHERE t.activityTypeSource = com.x8ing.mtl.server.mtlserver.db.entity.gps.GpsTrack.ACTIVITY_TYPE_SOURCE.FAILED AND t.loadStatus = 'SUCCESS' AND t.trackSource = com.x8ing.mtl.server.mtlserver.db.entity.gps.GpsTrack.TRACK_SOURCE.IMPORTED")
+    long countActivityTypeFailed();
+
+    @Query("SELECT COUNT(t) FROM GpsTrack t WHERE t.activityTypeSource = com.x8ing.mtl.server.mtlserver.db.entity.gps.GpsTrack.ACTIVITY_TYPE_SOURCE.FAILED AND t.loadStatus = 'SUCCESS' AND t.trackSource = com.x8ing.mtl.server.mtlserver.db.entity.gps.GpsTrack.TRACK_SOURCE.IMPORTED AND t.activityTypeSourceDetails LIKE :reasonPrefix")
+    long countActivityTypeUnavailable(String reasonPrefix);
+
+    interface ActivityTypeSummaryCounts {
+        long getPending();
+        long getReady();
+        long getWaiting();
+
+        long getDone();
+
+        long getFailed();
+
+        long getUnavailable();
+    }
+
+    // All counts share one database snapshot while classification moves tracks between states.
+    @Query(value = """
+            SELECT count(*) FILTER (WHERE activity_type_source IS NULL) AS pending,
+                   count(*) FILTER (WHERE activity_type_source IS NULL AND duplicate_status IS NOT NULL
+                                    AND duplicate_status <> 'NOT_CHECKED_YET') AS ready,
+                   count(*) FILTER (WHERE activity_type_source IS NULL AND
+                                    (duplicate_status IS NULL OR duplicate_status = 'NOT_CHECKED_YET')) AS waiting,
+                   count(*) FILTER (WHERE activity_type_source IS NOT NULL AND activity_type_source <> 'FAILED') AS done,
+                   count(*) FILTER (WHERE activity_type_source = 'FAILED') AS failed,
+                   count(*) FILTER (WHERE activity_type_source = 'FAILED'
+                                    AND activity_type_source_details LIKE :reasonPrefix) AS unavailable
+              FROM gps_track
+             WHERE load_status = 'SUCCESS' AND track_source = 'IMPORTED'
+            """, nativeQuery = true)
+    ActivityTypeSummaryCounts countActivityTypeSummary(@Param("reasonPrefix") String reasonPrefix);
 
     @Query("SELECT t.explorationStatus, COUNT(t) FROM GpsTrack t GROUP BY t.explorationStatus")
     List<Object[]> countGroupedByExplorationStatus();
@@ -848,6 +1061,10 @@ public interface GpsTrackRepository extends JpaRepository<GpsTrack, Long> {
      */
     @Query(value = "SELECT id, version FROM gps_track WHERE id = ANY(:ids)", nativeQuery = true)
     List<Object[]> findVersionsByIds(@Param("ids") Long[] ids);
+
+    /** Complete archive membership for cache reconciliation, without user filters. */
+    @Query(value = "SELECT id, version FROM gps_track", nativeQuery = true)
+    List<Object[]> findAllTrackVersions();
 
     default Map<Long, Long> findVersionMapByIds(List<Long> ids) {
         Map<Long, Long> versions = new HashMap<>();

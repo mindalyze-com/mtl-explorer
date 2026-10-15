@@ -1,3 +1,10 @@
+---
+released_on: 2026-06-21
+teaser: >-
+  Improved activity detection, more stable track detail maps, and clearer
+  replay controls.
+---
+
 # MTL Explorer Release v.0.6.1
 
 ## Features

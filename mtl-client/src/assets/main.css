@@ -1,5 +1,6 @@
 @import './base.css';
 @import './component-primitives.css';
+@import './control-sizing.css';
 @import '../components/trackdetails/trackDetailsShared.css';
 
 /* =================================================================== */
@@ -64,6 +65,8 @@
        Declared here via CSS so the map container has the correct value from
        the very first frame (avoids black-gap flash before onMounted fires). */
   --nav-panel-w: 0px;
+  --nav-sheet-inline-pad: 1.25rem;
+  --nav-sheet-top-gap: 0.75rem;
 
   /* Stable splash/curtain viewport sizing. Avoid dynamic viewport units here:
        mobile browsers change them while dismissing the keyboard or browser
@@ -107,6 +110,12 @@ textarea {
   font-family: var(--font-family-ui);
 }
 
+/* Prevent double-tap page zoom while preserving rapid taps and pinch zoom. */
+body,
+#app {
+  touch-action: manipulation;
+}
+
 /* Disable text selection on mobile — prevents accidental highlights during
    map gestures, drag interactions, and tap navigation. */
 @media (max-width: 1023px) {
@@ -114,8 +123,6 @@ textarea {
   #app {
     -webkit-user-select: none;
     user-select: none;
-    /* manipulation: allows single-finger pan/tap but suppresses double-tap zoom */
-    touch-action: manipulation;
   }
 }
 
@@ -164,17 +171,6 @@ body:has(.p-dialog-visible) {
 }
 .p-tooltip {
   z-index: var(--z-tooltip) !important;
-}
-
-/* Toast container — top-center, safe-area aware, constrained width.
-   Must be above the loading curtain (z-index 9999) so PWA update
-   prompts remain clickable during startup.  */
-.p-toast {
-  z-index: var(--z-toast) !important;
-  /* Respect the device notch; PrimeVue inline-styles set top, so we add
-       extra inset via padding on the container itself */
-  padding-top: calc(var(--safe-top) + 0.25rem) !important;
-  width: min(420px, calc(100svw - 2rem)) !important;
 }
 
 /* --- Dialog Shell Layout --- */
@@ -677,76 +673,6 @@ body:has(.p-dialog-visible) {
   color: var(--text-primary) !important;
 }
 
-/* Toast — modern compact glass card */
-/* Light mode base */
-.p-toast-message {
-  border-radius: 1rem !important;
-  overflow: hidden !important;
-  margin-bottom: 0.5rem !important;
-  background: var(--toast-surface) !important;
-  backdrop-filter: var(--blur-heavy) !important;
-  -webkit-backdrop-filter: var(--blur-heavy) !important;
-  border: 1px solid var(--border-default) !important;
-  box-shadow: var(--toast-shadow) !important;
-}
-
-/* Dark mode override */
-[data-theme='dark'] .p-toast-message {
-  border-color: var(--border-medium) !important;
-}
-
-/* Severity accent strip (left border colour overrides the uniform border) */
-.p-toast-message-info {
-  border-left: 3px solid var(--toast-info) !important;
-}
-.p-toast-message-success {
-  border-left: 3px solid var(--toast-success) !important;
-}
-.p-toast-message-warn {
-  border-left: 3px solid var(--toast-warning) !important;
-}
-.p-toast-message-error {
-  border-left: 3px solid var(--toast-error) !important;
-}
-
-/* Compact content area */
-.p-toast-message-content {
-  padding: 0.75rem 0.875rem !important;
-  gap: 0.625rem !important;
-  align-items: flex-start !important;
-}
-
-/* Summary (title) */
-.p-toast-summary {
-  font-size: var(--text-sm-size) !important;
-  font-weight: 600 !important;
-  letter-spacing: 0.01em !important;
-  line-height: var(--text-sm-lh) !important;
-}
-
-/* Detail body */
-.p-toast-detail {
-  font-size: var(--text-xs-size) !important;
-  line-height: var(--text-xs-lh) !important;
-  opacity: 0.75 !important;
-  margin-top: 0.125rem !important;
-}
-
-/* Severity icon */
-.p-toast-message-icon {
-  font-size: var(--text-base-size) !important;
-  flex-shrink: 0 !important;
-  margin-top: 0.1rem !important;
-}
-
-/* Close button — smaller footprint */
-.p-toast-close-button {
-  width: 1.5rem !important;
-  height: 1.5rem !important;
-  border-radius: 50% !important;
-  margin: -0.125rem -0.25rem 0 0 !important;
-}
-
 /* Select / MultiSelect / Autocomplete / Menu overlays */
 [data-theme='dark'] .p-select-overlay,
 [data-theme='dark'] .p-multiselect-overlay,
@@ -768,9 +694,28 @@ body:has(.p-dialog-visible) {
   border: 1px solid var(--border-medium) !important;
 }
 
+/* Main map controls stay clear of the notch when the PWA fills the screen. */
+.home-view .maplibregl-ctrl-top-left {
+  top: var(--safe-top, 0px);
+  left: var(--safe-left, 0px);
+}
+
+.home-view .maplibregl-ctrl-top-right {
+  top: var(--safe-top, 0px);
+  right: var(--safe-right, 0px);
+}
+
+.home-view .maplibregl-ctrl-bottom-left {
+  left: var(--safe-left, 0px);
+}
+
+.home-view .maplibregl-ctrl-bottom-right {
+  right: var(--safe-right, 0px);
+}
+
 /* MapLibre: lift bottom-left controls above the navigation sheet on mobile */
 .maplibregl-ctrl-bottom-left {
-  bottom: calc(var(--nav-sheet-h, 0px) + var(--safe-bottom, 0px)) !important;
+  bottom: var(--nav-sheet-h, 0px) !important;
 }
 
 /* MapLibre navigation controls: use the same translucent shell as MTL Explorer chrome. */

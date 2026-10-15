@@ -1,7 +1,10 @@
-import { isRef, onBeforeUnmount, ref, watch, type Ref } from 'vue';
-import type { SidecarStatus } from '@/planner/types';
-import { fetchSidecarStatus } from '@/planner/repositories/plannerRepository';
+import { computed, isRef, onBeforeUnmount, watch, type Ref } from 'vue';
 import { SIDECAR_STATUS_POLL_MS } from '@/planner/constants/PlannerConstants';
+import {
+  APPLICATION_STATUS_SECTION,
+  type ApplicationStatusPollingConsumer,
+  useApplicationStatusStore,
+} from '@/stores/applicationStatusStore';
 
 /**
  * Poll BRouter sidecar status while `enabled` is true.
@@ -12,32 +15,26 @@ import { SIDECAR_STATUS_POLL_MS } from '@/planner/constants/PlannerConstants';
  * the planner isn't visible.
  */
 export function useBRouterSegmentStatus(enabled: boolean | Ref<boolean> = true) {
-  const status = ref<SidecarStatus | null>(null);
-  const loading = ref(false);
-  let timer: number | null = null;
+  const applicationStatusStore = useApplicationStatusStore();
+  const status = computed(() => applicationStatusStore.services?.planner ?? null);
+  const loading = computed(() => applicationStatusStore.sectionStates[APPLICATION_STATUS_SECTION.SERVICES].loading);
+  let pollingConsumer: ApplicationStatusPollingConsumer | null = null;
 
   async function refresh(force = false) {
-    loading.value = true;
-    try {
-      status.value = await fetchSidecarStatus({ force });
-    } finally {
-      loading.value = false;
-    }
+    if (force) await applicationStatusStore.force(APPLICATION_STATUS_SECTION.SERVICES);
+    else await applicationStatusStore.refresh([APPLICATION_STATUS_SECTION.SERVICES]);
   }
 
   function start() {
-    if (timer !== null) return;
-    void refresh();
-    timer = window.setInterval(() => {
-      void refresh();
-    }, SIDECAR_STATUS_POLL_MS);
+    if (pollingConsumer) return;
+    pollingConsumer = applicationStatusStore.registerPollingConsumer({
+      [APPLICATION_STATUS_SECTION.SERVICES]: SIDECAR_STATUS_POLL_MS,
+    });
   }
 
   function stop() {
-    if (timer !== null) {
-      window.clearInterval(timer);
-      timer = null;
-    }
+    pollingConsumer?.dispose();
+    pollingConsumer = null;
   }
 
   if (isRef(enabled)) {

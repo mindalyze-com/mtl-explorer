@@ -354,7 +354,11 @@ export function createTrackPointIndex(points: TrackPoint[]): TrackPointIndex {
     .filter((point) => Number.isFinite(point.canonicalPointIndex))
     .map((point) => ({ value: point.canonicalPointIndex as number, point }))
     .sort((a, b) => a.value - b.value);
-  const startTs = timestampEntries[0]?.point.timestamp ?? 0;
+  const firstTimedPoint = timestampEntries[0]?.point;
+  const firstElapsedTime = firstTimedPoint?.chartX?.time;
+  const startTs =
+    (firstTimedPoint?.timestamp ?? 0) -
+    (typeof firstElapsedTime === 'number' && Number.isFinite(firstElapsedTime) ? firstElapsedTime : 0);
   const chartXEntries: Record<TrackCursorXMode, SortedTrackPointEntry[]> = {
     time: indexedPoints
       .map((point) => ({ value: chartXForTrackPoint(point, 'time', startTs), point }))

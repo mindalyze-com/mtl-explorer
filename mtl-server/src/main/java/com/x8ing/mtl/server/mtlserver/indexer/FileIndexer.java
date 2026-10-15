@@ -11,12 +11,14 @@ import java.util.List;
 
 @JsonPropertyOrder({
         "txManager",
-        "workerThreads"
+        "workerThreads",
+        "workStartedListener"
 })
 public class FileIndexer {
 
     private final PlatformTransactionManager txManager; // optional
     private final int workerThreads;
+    private final Runnable workStartedListener;
 
     public FileIndexer() {
         this(null, FileIndexerImpl.DEFAULT_WORKER_THREADS);
@@ -27,6 +29,12 @@ public class FileIndexer {
     }
 
     public FileIndexer(PlatformTransactionManager txManager, int workerThreads) {
+        this(txManager, workerThreads, () -> {
+        });
+    }
+
+    public FileIndexer(PlatformTransactionManager txManager, int workerThreads, Runnable workStartedListener) {
+        this.workStartedListener = workStartedListener;
         this.txManager = txManager;
         this.workerThreads = workerThreads;
     }
@@ -89,6 +97,7 @@ public class FileIndexer {
         if (inclusionPatterns != null) impl.setInclusionPatterns(inclusionPatterns);
         if (strategy != null) impl.setChangeDetectionStrategy(strategy);
         impl.setLiveWatchEnabled(liveWatchEnabled);
+        impl.setWorkStartedListener(workStartedListener);
         impl.start(blocking);
         return impl;
     }

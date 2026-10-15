@@ -1,35 +1,23 @@
 <template>
   <div>
-    <BottomSheet v-model="showMenu" :detents="statsDetents" @closed="onSheetClosed">
+    <BottomSheet
+      v-model="showMenu"
+      :detents="statsDetents"
+      :initial-detent="STATISTICS_DEFAULT_DETENT"
+      :content-key="activeTab"
+      :back-label="activeTab === 'hub' ? '' : 'Back to Statistics'"
+      sheet-class="sheet--solid-over-map"
+      @back="showHub"
+      @closed="onSheetClosed"
+    >
       <template #title>
         <div class="stats-header-nav">
-          <i class="bi bi-graph-up stats-sheet-icon"></i>
-          <div class="stats-header-tabs">
-            <button
-              class="stats-header-tab sheet-header-tab"
-              :class="{ 'sheet-header-tab--active': activeTab === 'overview' }"
-              @pointerdown.stop
-              @click="activeTab = 'overview'"
-            >
-              Overview
-            </button>
-            <button
-              class="stats-header-tab sheet-header-tab"
-              :class="{ 'sheet-header-tab--active': activeTab === 'stats' }"
-              @pointerdown.stop
-              @click="activeTab = 'stats'"
-            >
-              Trends
-            </button>
-            <button
-              class="stats-header-tab sheet-header-tab"
-              :class="{ 'sheet-header-tab--active': activeTab === 'tracks' }"
-              @pointerdown.stop
-              @click="activeTab = 'tracks'"
-            >
-              Tracks
-            </button>
-          </div>
+          <i
+            v-if="activeTab === 'hub'"
+            :class="[NAVIGATION_TOOL_ICONS.statistics, 'stats-sheet-icon']"
+            aria-hidden="true"
+          ></i>
+          <h2 ref="sectionTitle" class="panel-title" tabindex="-1">{{ currentSection?.label ?? 'Statistics' }}</h2>
         </div>
       </template>
       <div v-if="active" class="statistics-root">
@@ -37,539 +25,480 @@
           <span>{{ statisticsErrorMessage }}</span>
           <button type="button" @click="retryStatistics">Retry</button>
         </div>
-        <Tabs v-model:value="activeTab" class="sheet-scroll-tabs">
-          <TabPanels>
-            <!-- ── Tab 1: Overview ── -->
-            <TabPanel value="overview">
-              <StatisticsOverview
-                :tracks="statisticsTracks"
-                :tracks-count="tracksCount"
-                :unfiltered-total="unfilteredTotal"
-                :filter-revision="filterStore.trackSetRevision"
-                :filter-request="filterStore.activeFilterRequest"
-                :retry-revision="overviewRetryRevision"
-                :indexed-media-count="indexedMediaCount"
-                :indexed-photo-count="indexedPhotoCount"
-                :indexed-video-count="indexedVideoCount"
-                @open-details="emit('open-details', $event)"
-                @open-filter="emit('open-filter')"
-                @open-media="showMediaTrends"
-                @track-updated="onOverviewTrackUpdated"
-                @view-all-tracks="showNewestTracks"
-                @view-highlight-exclusions="showHighlightExclusions"
+        <div
+          v-show="activeTab === 'hub'"
+          class="statistics-section sheet-scroll-target"
+          data-sheet-fit-target
+          data-test="statistics-hub"
+        >
+          <SectionHub
+            ref="sectionHub"
+            title="Explore your statistics"
+            description="Choose a view to explore your activity history."
+            :items="STATISTICS_SECTIONS"
+            @open="openSection"
+          >
+            <template #actions>
+              <LatestActivityPreview
+                :state="latestActivityState"
+                @open-track="emit('open-details', $event)"
+                @retry="overviewRetryRevision += 1"
               />
-            </TabPanel>
-
-            <!-- ── Tab 2: Track Log ── -->
-            <TabPanel value="tracks">
-              <div class="tracks-tab">
-                <TrackBrowserView
-                  ref="trackBrowserView"
-                  :tracks="trackBrowserSourceTracks"
-                  :selected-track-id="selectedTrackId ?? null"
-                  :reset-key="trackBrowserResetKey"
-                  @select-track="emit('select-track', $event)"
-                  @open-details="emit('open-details', $event)"
-                >
-                  <template #toolbar>
-                    <TrackBrowserQuickViews v-model="trackQuickView" :options="trackQuickViewOptions" />
-                  </template>
-                </TrackBrowserView>
+            </template>
+          </SectionHub>
+        </div>
+        <section
+          v-show="activeTab === 'overview'"
+          class="statistics-section sheet-scroll-target"
+          data-sheet-fit-target
+          aria-label="Overview"
+        >
+          <StatisticsOverview
+            :tracks="statisticsTracks"
+            :tracks-count="tracksCount"
+            :unfiltered-total="unfilteredTotal"
+            :filter-revision="filterStore.trackSetRevision"
+            :filter-request="filterStore.activeFilterRequest"
+            :retry-revision="overviewRetryRevision"
+            :indexed-media-count="indexedMediaCount"
+            :indexed-photo-count="indexedPhotoCount"
+            :indexed-video-count="indexedVideoCount"
+            @open-details="emit('open-details', $event)"
+            @open-filter="emit('open-filter')"
+            @open-media="showMediaTrends"
+            @track-updated="onOverviewTrackUpdated"
+            @view-all-tracks="showNewestTracks"
+            @view-highlight-exclusions="showHighlightExclusions"
+            @latest-activity-change="latestActivityState = $event"
+          />
+        </section>
+        <section
+          v-show="activeTab === 'tracks'"
+          class="statistics-section sheet-scroll-target"
+          data-sheet-fit-target
+          aria-label="Tracks"
+        >
+          <div class="tracks-tab">
+            <TrackBrowserView
+              ref="trackBrowserView"
+              :tracks="trackBrowserSourceTracks"
+              :selected-track-id="selectedTrackId ?? null"
+              :reset-key="trackBrowserResetKey"
+              @select-track="emit('select-track', $event)"
+              @open-details="emit('open-details', $event)"
+              @track-updated="onOverviewTrackUpdated"
+            >
+              <template #toolbar>
+                <TrackBrowserQuickViews v-model="trackQuickView" :options="trackQuickViewOptions" />
+              </template>
+            </TrackBrowserView>
+          </div>
+        </section>
+        <section
+          v-show="activeTab === 'stats'"
+          class="statistics-section sheet-scroll-target"
+          data-sheet-fit-target
+          aria-label="Trends"
+        >
+          <div class="statistics-holder">
+            <!-- ── Controls ── -->
+            <div class="stats-controls">
+              <div class="stats-controls__row">
+                <div class="stats-controls__select-wrap">
+                  <i class="bi bi-calendar3 stats-controls__icon"></i>
+                  <Select
+                    v-model="selectedGrouping"
+                    :options="statisticGroupings"
+                    option-label="name"
+                    option-value="code"
+                    placeholder="Aggregation level"
+                    class="stats-select"
+                    append-to="body"
+                    @change="fetchStatistics"
+                  />
+                </div>
+                <div v-if="availableSubUnits.length > 0" class="stats-controls__select-wrap">
+                  <i class="bi bi-funnel stats-controls__icon"></i>
+                  <Select
+                    v-model="selectedSubUnit"
+                    :options="availableSubUnits"
+                    placeholder="All sub-units"
+                    class="stats-select"
+                    append-to="body"
+                    show-clear
+                  />
+                </div>
+                <!-- ── Table / Charts toggle ── -->
+                <div class="stats-view-toggle view-toggle">
+                  <button
+                    :class="['toggle-btn view-toggle-button', { 'view-toggle-button--active': statsView === 'table' }]"
+                    @click="statsView = 'table'"
+                  >
+                    <i class="bi bi-table"></i> Table
+                  </button>
+                  <button
+                    :class="['toggle-btn view-toggle-button', { 'view-toggle-button--active': statsView === 'charts' }]"
+                    @click="statsView = 'charts'"
+                  >
+                    <i class="bi bi-bar-chart-line"></i> Charts
+                  </button>
+                </div>
+                <TrendChartSettings
+                  v-if="statsView === 'charts' && activeTab === 'stats'"
+                  :height="trendChartHeight"
+                  :max-height="trendPreferences.maxHeight.value"
+                  :charts="orderedTrendCharts"
+                  :is-default="trendPreferences.isDefault.value"
+                  @height="trendPreferences.setHeight"
+                  @move="moveTrendChart"
+                  @reset="trendPreferences.reset"
+                />
               </div>
-            </TabPanel>
+              <MediaScopeControl />
+            </div>
 
-            <!-- ── Tab 3: Trends ── -->
-            <TabPanel value="stats">
-              <div class="statistics-holder">
-                <!-- ── Controls ── -->
-                <div class="stats-controls">
-                  <div class="stats-controls__row">
-                    <div class="stats-controls__select-wrap">
-                      <i class="bi bi-calendar3 stats-controls__icon"></i>
-                      <Select
-                        v-model="selectedGrouping"
-                        :options="statisticGroupings"
-                        option-label="name"
-                        option-value="code"
-                        placeholder="Aggregation level"
-                        class="stats-select"
-                        append-to="body"
-                        @change="fetchStatistics"
-                      />
-                    </div>
-                    <div v-if="availableSubUnits.length > 0" class="stats-controls__select-wrap">
-                      <i class="bi bi-funnel stats-controls__icon"></i>
-                      <Select
-                        v-model="selectedSubUnit"
-                        :options="availableSubUnits"
-                        placeholder="All sub-units"
-                        class="stats-select"
-                        append-to="body"
-                        show-clear
-                      />
-                    </div>
-                    <!-- ── Table / Charts toggle ── -->
-                    <div class="stats-view-toggle view-toggle">
-                      <button
-                        :class="[
-                          'toggle-btn view-toggle-button',
-                          { 'view-toggle-button--active': statsView === 'table' },
-                        ]"
-                        @click="statsView = 'table'"
-                      >
-                        <i class="bi bi-table"></i> Table
-                      </button>
-                      <button
-                        :class="[
-                          'toggle-btn view-toggle-button',
-                          { 'view-toggle-button--active': statsView === 'charts' },
-                        ]"
-                        @click="statsView = 'charts'"
-                      >
-                        <i class="bi bi-bar-chart-line"></i> Charts
-                      </button>
-                    </div>
-                  </div>
+            <!-- ── Aggregate summary tiles ── -->
+            <div v-if="filteredStatisticData.length > 0" class="stats-summary">
+              <div class="stat-tile">
+                <i class="bi bi-bar-chart-line stat-tile__icon" style="color: var(--accent)"></i>
+                <div class="stat-tile__value">{{ summaryStats.periods }}</div>
+                <div class="stat-tile__label">
+                  Periods
+                  <button class="info-btn" aria-label="About periods" @click.stop="showInfo($event, INFO_PERIODS)">
+                    <i class="bi bi-info-circle"></i>
+                  </button>
                 </div>
-
-                <!-- ── Aggregate summary tiles ── -->
-                <div v-if="filteredStatisticData.length > 0" class="stats-summary">
-                  <div class="stat-tile">
-                    <i class="bi bi-bar-chart-line stat-tile__icon" style="color: var(--accent)"></i>
-                    <div class="stat-tile__value">{{ summaryStats.periods }}</div>
-                    <div class="stat-tile__label">
-                      Periods
-                      <button class="info-btn" aria-label="About periods" @click.stop="showInfo($event, INFO_PERIODS)">
-                        <i class="bi bi-info-circle"></i>
-                      </button>
-                    </div>
-                  </div>
-                  <div class="stat-tile">
-                    <i class="bi bi-pin-map stat-tile__icon" style="color: var(--chart-series-1)"></i>
-                    <div class="stat-tile__value">{{ summaryStats.tracks }}</div>
-                    <div class="stat-tile__label">
-                      Tracks
-                      <button class="info-btn" aria-label="About tracks" @click.stop="showInfo($event, INFO_TRACKS)">
-                        <i class="bi bi-info-circle"></i>
-                      </button>
-                    </div>
-                  </div>
-                  <div class="stat-tile">
-                    <i class="bi bi-signpost-split stat-tile__icon" style="color: var(--chart-series-2)"></i>
-                    <div v-tooltip.top="{ value: summaryStats.distanceFull, showDelay: 400 }" class="stat-tile__value">
-                      {{ summaryStats.distance }}
-                    </div>
-                    <div class="stat-tile__label">
-                      Total Dist.
-                      <button
-                        class="info-btn"
-                        aria-label="About distance"
-                        @click.stop="showInfo($event, INFO_DISTANCE)"
-                      >
-                        <i class="bi bi-info-circle"></i>
-                      </button>
-                    </div>
-                  </div>
-                  <div class="stat-tile">
-                    <i class="bi bi-clock stat-tile__icon" style="color: var(--info)"></i>
-                    <div v-tooltip.top="{ value: summaryStats.durationFull, showDelay: 400 }" class="stat-tile__value">
-                      {{ summaryStats.duration }}
-                    </div>
-                    <div class="stat-tile__label">
-                      Total Time
-                      <button
-                        class="info-btn"
-                        aria-label="About duration"
-                        @click.stop="showInfo($event, INFO_DURATION)"
-                      >
-                        <i class="bi bi-info-circle"></i>
-                      </button>
-                    </div>
-                  </div>
-                  <div v-if="summaryStats.hasEnergy" class="stat-tile">
-                    <i class="bi bi-lightning-charge stat-tile__icon" style="color: var(--chart-series-3)"></i>
-                    <div class="stat-tile__value">{{ summaryStats.energy }}</div>
-                    <div class="stat-tile__label">
-                      Total Energy
-                      <button class="info-btn" aria-label="About energy" @click.stop="showInfo($event, INFO_ENERGY)">
-                        <i class="bi bi-info-circle"></i>
-                      </button>
-                    </div>
-                  </div>
+              </div>
+              <div class="stat-tile">
+                <i class="bi bi-pin-map stat-tile__icon" style="color: var(--chart-series-1)"></i>
+                <div class="stat-tile__value">{{ formatLocaleNumber(summaryStats.tracks) }}</div>
+                <div class="stat-tile__label">
+                  Tracks
+                  <button class="info-btn" aria-label="About tracks" @click.stop="showInfo($event, INFO_TRACKS)">
+                    <i class="bi bi-info-circle"></i>
+                  </button>
                 </div>
-
-                <!-- ── Data table ── -->
-                <div v-if="statsView === 'table'" class="table-section">
-                  <div class="table-scroll-x">
-                    <DataTable
-                      :value="trendTableRows"
-                      column-resize-mode="fit"
-                      responsive-layout="scroll"
-                      table-style="min-width: 10rem"
-                      class="p-datatable-sm statistics-table"
-                    >
-                      <Column field="groupBy" header="Period" :sortable="true" style="min-width: 8rem" />
-                      <Column
-                        field="daysWithActivities"
-                        header="Days"
-                        :sortable="true"
-                        header-class="number-column"
-                        class="number-column"
-                        style="min-width: 5rem"
-                      />
-                      <Column
-                        field="numberOfTracks"
-                        header="Tracks"
-                        :sortable="true"
-                        header-class="number-column"
-                        class="number-column"
-                        style="min-width: 5rem"
-                      />
-                      <Column
-                        field="imageCount"
-                        header="Photos"
-                        :sortable="true"
-                        header-class="number-column"
-                        class="number-column"
-                        style="min-width: 5rem"
-                      >
-                        <template #body="slotProps">
-                          {{ formatMediaCount(slotProps.data.imageCount) }}
-                        </template>
-                      </Column>
-                      <Column
-                        field="videoCount"
-                        header="Videos"
-                        :sortable="true"
-                        header-class="number-column"
-                        class="number-column"
-                        style="min-width: 5rem"
-                      >
-                        <template #body="slotProps">
-                          {{ formatMediaCount(slotProps.data.videoCount) }}
-                        </template>
-                      </Column>
-                      <Column
-                        v-for="column in smartValueColumns"
-                        :key="column.field"
-                        :field="column.field"
-                        :header="column.header"
-                        :sortable="true"
-                        header-class="number-column"
-                        class="number-column"
-                        style="min-width: 8rem"
-                      >
-                        <template #body="slotProps">
-                          <span
-                            v-tooltip.top="{
-                              value: smartValueTooltip(slotProps.data, column),
-                              showDelay: 400,
-                            }"
-                          >
-                            {{ formatSmartValue(slotProps.data, column) }}
-                          </span>
-                        </template>
-                      </Column>
-                      <Column
-                        field="energyNetTotalWhSum"
-                        :sortable="true"
-                        header-class="number-column"
-                        class="number-column"
-                        style="min-width: 7rem"
-                      >
-                        <template #header>
-                          <span>Energy</span>
-                          <button
-                            class="info-btn info-btn--col"
-                            aria-label="About energy"
-                            @click.stop="showInfo($event, INFO_ENERGY)"
-                          >
-                            <i class="bi bi-info-circle"></i>
-                          </button>
-                        </template>
-                        <template #body="slotProps">
-                          {{ formatEnergy(slotProps.data.energyNetTotalWhSum) }}
-                        </template>
-                      </Column>
-                      <Column
-                        field="powerWattsAvgMed"
-                        :sortable="true"
-                        header-class="number-column"
-                        class="number-column"
-                        style="min-width: 7rem"
-                      >
-                        <template #header>
-                          <span>Avg Power</span>
-                          <button
-                            class="info-btn info-btn--col"
-                            aria-label="About Average Power"
-                            @click.stop="showInfo($event, INFO_AVG_POWER)"
-                          >
-                            <i class="bi bi-info-circle"></i>
-                          </button>
-                        </template>
-                        <template #body="slotProps">
-                          {{ formatPower(slotProps.data.powerWattsAvgMed) }}
-                        </template>
-                      </Column>
-                      <Column
-                        field="normalizedPowerMed"
-                        :sortable="true"
-                        header-class="number-column"
-                        class="number-column"
-                        style="min-width: 7rem"
-                      >
-                        <template #header>
-                          <span>NP</span>
-                          <button
-                            class="info-btn info-btn--col"
-                            aria-label="About Normalized Power"
-                            @click.stop="showInfo($event, INFO_NORMALIZED_POWER)"
-                          >
-                            <i class="bi bi-info-circle"></i>
-                          </button>
-                        </template>
-                        <template #body="slotProps">
-                          {{ formatPower(slotProps.data.normalizedPowerMed) }}
-                        </template>
-                      </Column>
-                      <Column
-                        field="intensityIndexAvg"
-                        :sortable="true"
-                        header-class="number-column"
-                        class="number-column"
-                        style="min-width: 7rem"
-                      >
-                        <template #header>
-                          <span>Intensity</span>
-                          <button
-                            class="info-btn info-btn--col"
-                            aria-label="About Intensity Index"
-                            @click.stop="showInfo($event, INFO_INTENSITY_INDEX)"
-                          >
-                            <i class="bi bi-info-circle"></i>
-                          </button>
-                        </template>
-                        <template #body="slotProps">
-                          {{
-                            slotProps.data.intensityIndexAvg != null && slotProps.data.intensityIndexAvg > 0
-                              ? slotProps.data.intensityIndexAvg.toFixed(2)
-                              : ''
-                          }}
-                        </template>
-                      </Column>
-                      <Column
-                        field="trainingLoadPerRideAvg"
-                        :sortable="true"
-                        header-class="number-column"
-                        class="number-column"
-                        style="min-width: 8rem"
-                      >
-                        <template #header>
-                          <span>Training Load</span>
-                          <button
-                            class="info-btn info-btn--col"
-                            aria-label="About Training Load"
-                            @click.stop="showInfo($event, INFO_TRAINING_LOAD)"
-                          >
-                            <i class="bi bi-info-circle"></i>
-                          </button>
-                        </template>
-                        <template #body="slotProps">
-                          {{
-                            slotProps.data.trainingLoadPerRideAvg != null && slotProps.data.trainingLoadPerRideAvg > 0
-                              ? Math.round(slotProps.data.trainingLoadPerRideAvg)
-                              : ''
-                          }}
-                        </template>
-                      </Column>
-                    </DataTable>
-                  </div>
+              </div>
+              <div class="stat-tile">
+                <i class="bi bi-signpost-split stat-tile__icon" style="color: var(--chart-series-2)"></i>
+                <div v-tooltip.top="{ value: summaryStats.distanceFull, showDelay: 400 }" class="stat-tile__value">
+                  {{ summaryStats.distance }}
                 </div>
+                <div class="stat-tile__label">
+                  Total Dist.
+                  <button class="info-btn" aria-label="About distance" @click.stop="showInfo($event, INFO_DISTANCE)">
+                    <i class="bi bi-info-circle"></i>
+                  </button>
+                </div>
+              </div>
+              <div class="stat-tile">
+                <i class="bi bi-clock stat-tile__icon" style="color: var(--info)"></i>
+                <div v-tooltip.top="{ value: summaryStats.durationFull, showDelay: 400 }" class="stat-tile__value">
+                  {{ summaryStats.duration }}
+                </div>
+                <div class="stat-tile__label">
+                  Total Time
+                  <button class="info-btn" aria-label="About duration" @click.stop="showInfo($event, INFO_DURATION)">
+                    <i class="bi bi-info-circle"></i>
+                  </button>
+                </div>
+              </div>
+              <div v-if="summaryStats.hasEnergy" class="stat-tile">
+                <i class="bi bi-lightning-charge stat-tile__icon" style="color: var(--chart-series-3)"></i>
+                <div class="stat-tile__value">{{ summaryStats.energy }}</div>
+                <div class="stat-tile__label">
+                  Total Energy
+                  <button class="info-btn" aria-label="About energy" @click.stop="showInfo($event, INFO_ENERGY)">
+                    <i class="bi bi-info-circle"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
 
-                <!-- ── Charts (inline) ── -->
-                <div v-if="statsView === 'charts'" class="charts-scroll">
-                  <div v-if="trendChartPeriods.length > 0" class="chart-card">
-                    <div class="chart-header chart-section-header" style="--chart-header-accent: var(--chart-series-1)">
-                      <i class="bi bi-clock" style="color: var(--chart-series-1)"></i> Duration
-                    </div>
-                    <highcharts ref="chartDuration" :options="chartOptionsDuration" class="stat-chart" />
-                  </div>
-                  <div v-if="trendChartPeriods.length > 0" class="chart-card">
-                    <div class="chart-header chart-section-header" style="--chart-header-accent: var(--chart-series-2)">
-                      <i class="bi bi-signpost-split" style="color: var(--chart-series-2)"></i> Distance
-                    </div>
-                    <highcharts ref="chartDistance" :options="chartOptionsDistance" class="stat-chart" />
-                  </div>
-                  <div v-if="trendChartPeriods.length > 0" class="chart-card">
-                    <div class="chart-header chart-section-header" style="--chart-header-accent: var(--info)">
-                      <i class="bi bi-bar-chart-line" style="color: var(--info)"></i> Activity
-                    </div>
-                    <highcharts ref="chartActivity" :options="chartOptionsActivity" class="stat-chart" />
-                  </div>
-                  <div v-if="chartMetricAvailability.hasEnergy" class="chart-card">
-                    <div class="chart-header chart-section-header" style="--chart-header-accent: var(--chart-series-3)">
-                      <i class="bi bi-lightning-charge" style="color: var(--chart-series-3)"></i> Energy
+            <!-- ── Data table ── -->
+            <div v-if="statsView === 'table'" class="table-section">
+              <div class="table-scroll-x">
+                <DataTable
+                  :value="trendTableRows"
+                  column-resize-mode="fit"
+                  responsive-layout="scroll"
+                  table-style="min-width: 10rem"
+                  class="p-datatable-sm statistics-table"
+                >
+                  <Column
+                    field="groupBy"
+                    header="Period"
+                    :sortable="true"
+                    frozen
+                    header-class="statistics-period"
+                    body-class="statistics-period"
+                    style="min-width: 8rem"
+                  />
+                  <Column
+                    field="daysWithActivities"
+                    header="Days"
+                    :sortable="true"
+                    header-class="number-column"
+                    class="number-column"
+                    style="min-width: 5rem"
+                  />
+                  <Column
+                    field="numberOfTracks"
+                    header="Tracks"
+                    :sortable="true"
+                    header-class="number-column"
+                    class="number-column"
+                    style="min-width: 5rem"
+                  />
+                  <Column
+                    field="imageCount"
+                    header="Photos"
+                    :sortable="true"
+                    header-class="number-column"
+                    class="number-column"
+                    style="min-width: 5rem"
+                  >
+                    <template #body="slotProps">
+                      {{ formatMediaCount(slotProps.data.imageCount) }}
+                    </template>
+                  </Column>
+                  <Column
+                    field="videoCount"
+                    header="Videos"
+                    :sortable="true"
+                    header-class="number-column"
+                    class="number-column"
+                    style="min-width: 5rem"
+                  >
+                    <template #body="slotProps">
+                      {{ formatMediaCount(slotProps.data.videoCount) }}
+                    </template>
+                  </Column>
+                  <Column
+                    v-for="column in smartValueColumns"
+                    :key="column.field"
+                    :field="column.field"
+                    :header="column.header"
+                    :sortable="true"
+                    header-class="number-column"
+                    class="number-column"
+                    style="min-width: 8rem"
+                  >
+                    <template #body="slotProps">
+                      <span
+                        v-tooltip.top="{
+                          value: smartValueTooltip(slotProps.data, column),
+                          showDelay: 400,
+                        }"
+                      >
+                        {{ formatSmartValue(slotProps.data, column) }}
+                      </span>
+                    </template>
+                  </Column>
+                  <Column
+                    field="energyNetTotalWhSum"
+                    :sortable="true"
+                    header-class="number-column"
+                    class="number-column"
+                    style="min-width: 7rem"
+                  >
+                    <template #header>
+                      <span>Energy</span>
                       <button
-                        class="info-btn info-btn--header"
+                        class="info-btn info-btn--col"
                         aria-label="About energy"
                         @click.stop="showInfo($event, INFO_ENERGY)"
                       >
                         <i class="bi bi-info-circle"></i>
                       </button>
-                    </div>
-                    <highcharts ref="chartEnergy" :options="chartOptionsEnergy" class="stat-chart" />
-                  </div>
-                  <div v-if="chartMetricAvailability.hasFitness" class="chart-card">
-                    <div class="chart-header chart-section-header" style="--chart-header-accent: var(--error)">
-                      <i class="bi bi-speedometer2" style="color: var(--error)"></i> Intensity Index
+                    </template>
+                    <template #body="slotProps">
+                      {{ formatEnergy(slotProps.data.energyNetTotalWhSum) }}
+                    </template>
+                  </Column>
+                  <Column
+                    field="powerWattsAvgMed"
+                    :sortable="true"
+                    header-class="number-column"
+                    class="number-column"
+                    style="min-width: 7rem"
+                  >
+                    <template #header>
+                      <span>Avg Power</span>
                       <button
-                        class="info-btn info-btn--header"
+                        class="info-btn info-btn--col"
+                        aria-label="About Average Power"
+                        @click.stop="showInfo($event, INFO_AVG_POWER)"
+                      >
+                        <i class="bi bi-info-circle"></i>
+                      </button>
+                    </template>
+                    <template #body="slotProps">
+                      {{ formatPower(slotProps.data.powerWattsAvgMed) }}
+                    </template>
+                  </Column>
+                  <Column
+                    field="normalizedPowerMed"
+                    :sortable="true"
+                    header-class="number-column"
+                    class="number-column"
+                    style="min-width: 7rem"
+                  >
+                    <template #header>
+                      <span>NP</span>
+                      <button
+                        class="info-btn info-btn--col"
+                        aria-label="About Normalized Power"
+                        @click.stop="showInfo($event, INFO_NORMALIZED_POWER)"
+                      >
+                        <i class="bi bi-info-circle"></i>
+                      </button>
+                    </template>
+                    <template #body="slotProps">
+                      {{ formatPower(slotProps.data.normalizedPowerMed) }}
+                    </template>
+                  </Column>
+                  <Column
+                    field="intensityIndexAvg"
+                    :sortable="true"
+                    header-class="number-column"
+                    class="number-column"
+                    style="min-width: 7rem"
+                  >
+                    <template #header>
+                      <span>Intensity</span>
+                      <button
+                        class="info-btn info-btn--col"
                         aria-label="About Intensity Index"
                         @click.stop="showInfo($event, INFO_INTENSITY_INDEX)"
                       >
                         <i class="bi bi-info-circle"></i>
                       </button>
-                    </div>
-                    <highcharts ref="chartIntensityIndex" :options="chartOptionsIntensityIndex" class="stat-chart" />
-                  </div>
-                  <div v-if="chartMetricAvailability.hasFitness" class="chart-card">
-                    <div
-                      class="chart-header chart-section-header"
-                      style="--chart-header-accent: var(--accent-text-light)"
-                    >
-                      <i class="bi bi-heart-pulse" style="color: var(--accent-text-light)"></i> Training Load
+                    </template>
+                    <template #body="slotProps">
+                      {{
+                        slotProps.data.intensityIndexAvg != null && slotProps.data.intensityIndexAvg > 0
+                          ? slotProps.data.intensityIndexAvg.toFixed(2)
+                          : ''
+                      }}
+                    </template>
+                  </Column>
+                  <Column
+                    field="trainingLoadPerRideAvg"
+                    :sortable="true"
+                    header-class="number-column"
+                    class="number-column"
+                    style="min-width: 8rem"
+                  >
+                    <template #header>
+                      <span>Training Load</span>
                       <button
-                        class="info-btn info-btn--header"
+                        class="info-btn info-btn--col"
                         aria-label="About Training Load"
                         @click.stop="showInfo($event, INFO_TRAINING_LOAD)"
                       >
                         <i class="bi bi-info-circle"></i>
                       </button>
-                    </div>
-                    <highcharts ref="chartTrainingLoad" :options="chartOptionsTrainingLoad" class="stat-chart" />
-                  </div>
-                  <div v-if="trendChartPeriods.length > 0" class="chart-card">
-                    <div class="chart-header chart-section-header" style="--chart-header-accent: var(--success)">
-                      <i class="bi bi-compass" style="color: var(--success)"></i> Exploration
-                      <button
-                        class="info-btn info-btn--header"
-                        aria-label="About exploration"
-                        @click.stop="showInfo($event, INFO_EXPLORATION)"
-                      >
-                        <i class="bi bi-info-circle"></i>
-                      </button>
-                    </div>
-                    <highcharts
-                      v-if="chartMetricAvailability.hasExploration"
-                      ref="chartExploration"
-                      :options="chartOptionsExploration"
-                      class="stat-chart"
-                    />
-                    <div v-else class="chart-pending">
-                      <i class="bi bi-hourglass-split"></i>
-                      <span>Exploration data is being calculated in the background.</span>
-                    </div>
-                  </div>
-                  <div ref="mediaTrendCard" class="chart-card media-trend-card">
-                    <div
-                      class="chart-header chart-section-header media-trend-header"
-                      style="--chart-header-accent: var(--chart-series-3)"
-                    >
-                      <div class="media-trend-header__title">
-                        <i class="bi bi-images" style="color: var(--chart-series-3)"></i>
-                        <span>Media</span>
-                      </div>
-                      <div class="media-trend-mode" aria-label="Media scope">
-                        <button
-                          v-tooltip.top="{
-                            value: MEDIA_SCOPE_ALL_TOOLTIP,
-                            showDelay: MEDIA_SCOPE_TOOLTIP_DELAY_MS,
-                          }"
-                          type="button"
-                          :class="{ 'media-trend-mode__button--active': mediaTrendScope === MEDIA_SCOPE_ALL }"
-                          :aria-pressed="mediaTrendScope === MEDIA_SCOPE_ALL"
-                          :aria-describedby="
-                            focusedMediaTrendScope === MEDIA_SCOPE_ALL ? MEDIA_SCOPE_FOCUS_TOOLTIP_ID : undefined
-                          "
-                          @focus="focusedMediaTrendScope = MEDIA_SCOPE_ALL"
-                          @blur="clearFocusedMediaTrendScope(MEDIA_SCOPE_ALL)"
-                          @click="setMediaTrendScope(MEDIA_SCOPE_ALL)"
-                        >
-                          All indexed
-                        </button>
-                        <button
-                          v-tooltip.top="{
-                            value: MEDIA_SCOPE_MATCHED_TOOLTIP,
-                            showDelay: MEDIA_SCOPE_TOOLTIP_DELAY_MS,
-                          }"
-                          type="button"
-                          :class="{ 'media-trend-mode__button--active': mediaTrendScope === MEDIA_SCOPE_MATCHED }"
-                          :aria-pressed="mediaTrendScope === MEDIA_SCOPE_MATCHED"
-                          :aria-describedby="
-                            focusedMediaTrendScope === MEDIA_SCOPE_MATCHED ? MEDIA_SCOPE_FOCUS_TOOLTIP_ID : undefined
-                          "
-                          @focus="focusedMediaTrendScope = MEDIA_SCOPE_MATCHED"
-                          @blur="clearFocusedMediaTrendScope(MEDIA_SCOPE_MATCHED)"
-                          @click="setMediaTrendScope(MEDIA_SCOPE_MATCHED)"
-                        >
-                          Track related
-                        </button>
-                      </div>
-                      <div
-                        v-if="focusedMediaScopeTooltip"
-                        :id="MEDIA_SCOPE_FOCUS_TOOLTIP_ID"
-                        class="media-trend-focus-tooltip"
-                        role="tooltip"
-                      >
-                        {{ focusedMediaScopeTooltip }}
-                      </div>
-                    </div>
-                    <p class="media-trend-notice">{{ mediaScopeHelp }}</p>
-                    <div
-                      v-if="mediaTrendLoading && mediaTrendBuckets.length === 0"
-                      class="media-trend-state"
-                      role="status"
-                    >
-                      <i class="pi pi-spin pi-spinner" aria-hidden="true"></i>
-                      <span>Loading media trends…</span>
-                    </div>
-                    <div
-                      v-else-if="mediaTrendError && mediaTrendBuckets.length === 0"
-                      class="media-trend-state"
-                      role="alert"
-                    >
-                      <span>Media trends could not be loaded.</span>
-                      <button type="button" @click="fetchStatistics">Retry</button>
-                    </div>
-                    <div v-else-if="trendChartPeriods.length === 0" class="media-trend-state">
-                      <i class="bi bi-images" aria-hidden="true"></i>
-                      <span>No media or activity periods available.</span>
-                    </div>
-                    <highcharts
-                      v-else
-                      ref="chartMedia"
-                      :options="chartOptionsMedia"
-                      class="stat-chart"
-                      data-test="media-trend-chart"
-                    />
-                    <div v-if="undatedMediaBucket" class="media-trend-badges">
-                      <button
-                        v-if="undatedMediaBucket"
-                        type="button"
-                        class="media-trend-badge media-trend-undated"
-                        @click="openMediaBucket(undatedMediaBucket)"
-                      >
-                        <span>Undated media</span>
-                        <strong>{{ mediaBucketCount(undatedMediaBucket).toLocaleString() }}</strong>
-                      </button>
-                    </div>
-                  </div>
-                </div>
+                    </template>
+                    <template #body="slotProps">
+                      {{
+                        slotProps.data.trainingLoadPerRideAvg != null && slotProps.data.trainingLoadPerRideAvg > 0
+                          ? Math.round(slotProps.data.trainingLoadPerRideAvg)
+                          : ''
+                      }}
+                    </template>
+                  </Column>
+                </DataTable>
               </div>
-            </TabPanel>
-          </TabPanels>
-        </Tabs>
+            </div>
+
+            <!-- ── Charts (inline) ── -->
+            <div
+              v-if="statsView === 'charts'"
+              class="charts-scroll"
+              :style="{ '--trend-chart-height': `${trendChartHeight}px` }"
+            >
+              <div
+                v-for="chart in orderedTrendCharts"
+                :key="chart.id"
+                :ref="
+                  (el) => {
+                    if (chart.id === 'media') mediaTrendCard = el as HTMLElement | null;
+                  }
+                "
+                class="chart-card"
+                :class="{ 'media-trend-card': chart.id === 'media' }"
+                :data-chart-id="chart.id"
+              >
+                <template v-if="chart.id !== 'media'">
+                  <div
+                    class="chart-header chart-section-header"
+                    :style="{ '--chart-header-accent': `var(${chart.color})` }"
+                  >
+                    <i :class="chart.icon" :style="{ color: `var(${chart.color})` }" aria-hidden="true"></i>
+                    {{ chart.label }}
+                    <button
+                      v-if="chart.info"
+                      class="info-btn info-btn--header"
+                      :aria-label="`About ${chart.label}`"
+                      @click.stop="showInfo($event, chart.info)"
+                    >
+                      <i class="bi bi-info-circle" aria-hidden="true"></i>
+                    </button>
+                  </div>
+                  <highcharts
+                    v-if="!chart.pending"
+                    :ref="(el: Element | ComponentPublicInstance | null) => setTrendChartRef(chart.id, el)"
+                    :options="chart.options"
+                    class="stat-chart"
+                  />
+                  <div v-else class="chart-pending">
+                    <i class="bi bi-hourglass-split" aria-hidden="true"></i>
+                    <span>Exploration data is being calculated in the background.</span>
+                  </div>
+                </template>
+                <template v-else>
+                  <div
+                    class="chart-header chart-section-header media-trend-header"
+                    style="--chart-header-accent: var(--chart-series-3)"
+                  >
+                    <div class="media-trend-header__title">
+                      <i class="bi bi-images" style="color: var(--chart-series-3)"></i>
+                      <span>Media</span>
+                    </div>
+                  </div>
+                  <div
+                    v-if="mediaTrendLoading && mediaTrendBuckets.length === 0"
+                    class="media-trend-state"
+                    role="status"
+                  >
+                    <i class="pi pi-spin pi-spinner" aria-hidden="true"></i>
+                    <span>Loading media trends…</span>
+                  </div>
+                  <div
+                    v-else-if="mediaTrendError && mediaTrendBuckets.length === 0"
+                    class="media-trend-state"
+                    role="alert"
+                  >
+                    <span>Media trends could not be loaded.</span>
+                    <button type="button" @click="fetchStatistics">Retry</button>
+                  </div>
+                  <div v-else-if="trendChartPeriods.length === 0" class="media-trend-state">
+                    <i class="bi bi-images" aria-hidden="true"></i>
+                    <span>No media or activity periods available.</span>
+                  </div>
+                  <highcharts
+                    v-else
+                    :ref="(el: Element | ComponentPublicInstance | null) => setTrendChartRef('media', el)"
+                    :options="chartOptionsMedia"
+                    class="stat-chart"
+                    data-test="media-trend-chart"
+                  />
+                </template>
+              </div>
+            </div>
+          </div>
+        </section>
       </div>
 
       <!-- ── Shared info popover ── -->
@@ -591,7 +520,18 @@
 </template>
 
 <script setup lang="ts">
-import { computed, markRaw, nextTick, ref, shallowRef, watch, type Ref, type ShallowRef } from 'vue';
+import { warnRequestFailure } from '@/utils/safeLogging';
+import {
+  computed,
+  markRaw,
+  nextTick,
+  ref,
+  shallowRef,
+  watch,
+  type Ref,
+  type ShallowRef,
+  type ComponentPublicInstance,
+} from 'vue';
 import {
   formatDistanceSmart as formatDistanceSmartUtil,
   formatDistance,
@@ -602,7 +542,14 @@ import {
 } from '@/utils/Utils';
 import { fetchStatisticsForTrackIds, resolveStatisticsTrackIds } from '@/utils/ServiceHelper';
 import BottomSheet from '@/components/ui/BottomSheet.vue';
+import { NAVIGATION_TOOL_ICONS } from '@/components/ui/navigationToolIcons';
+import SectionHub, { type SectionHubItem } from '@/components/ui/SectionHub.vue';
+import LatestActivityPreview, {
+  type LatestActivityPreviewState,
+} from '@/components/statistics/LatestActivityPreview.vue';
 import MediaTrendMosaic from '@/components/statistics/MediaTrendMosaic.vue';
+import TrendChartSettings from '@/components/statistics/TrendChartSettings.vue';
+import { useTrendChartPreferences, type TrendChartId } from './trendChartPreferences';
 import StatisticsOverview from '@/components/statistics/StatisticsOverview.vue';
 import TrackBrowserQuickViews from '@/components/track-browser/TrackBrowserQuickViews.vue';
 import TrackBrowserView from '@/components/track-browser/TrackBrowserView.vue';
@@ -610,27 +557,31 @@ import { useFilterStore, type ActiveFilterRequest } from '@/stores/filterStore';
 import type { TrackBrowserOption, TrackBrowserPreset } from '@/components/track-browser/trackBrowser.types';
 import {
   MediaTrendRequestGroupingEnum,
-  MediaTrendRequestScopeEnum,
   type GpsTrack,
   type GpsTrackStatistics,
   type MediaTrendBucketDto,
   type MediaTrendRequestGroupingEnum as MediaGrouping,
-  type MediaTrendRequestScopeEnum as MediaScope,
 } from 'x8ing-mtl-api-typescript-fetch';
 import type Highcharts from 'highcharts';
 import { compactNum, hexToRgba } from '@/utils/chartTheme';
 import { useMeasurementSystem } from '@/composables/useMeasurementSystem';
+import { useTheme } from '@/composables/useTheme';
 import { useMediaQuery } from '@/composables/useMediaQuery';
 import { getMediaTrends } from '@/repositories/mediaRepository';
+import { storeToRefs } from 'pinia';
+import { useMediaFilterStore } from '@/stores/mediaFilterStore';
+import MediaScopeControl from '@/components/filter/MediaScopeControl.vue';
 import { isAbortLikeError } from '@/utils/errors';
 
 const MOBILE_STATS_BP = 768;
 const CHART_REFLOW_DELAY_MS = 80;
+const STATISTICS_DEFAULT_DETENT = 'expanded';
 
 type StatsView = 'table' | 'charts';
 type StatisticsTab = 'overview' | 'stats' | 'tracks';
+type StatisticsScreen = 'hub' | StatisticsTab;
 type StatisticsNavigationState = {
-  tab: StatisticsTab;
+  tab: StatisticsScreen;
   trackQuickView: TrackBrowserPreset;
   trackBrowserState?: unknown;
 };
@@ -657,7 +608,7 @@ type TrendTableRow = ExtendedGpsTrackStatistics & {
   undatedMedia?: boolean;
 };
 type SmartValueColumn = {
-  field: 'totalTrackDurationSecs' | 'trackDurationSecsMed' | 'trackLengthInMeterSum' | 'trackLengthInMeterMed';
+  field: 'totalTrackDurationSecs' | 'trackDurationSecsAvg' | 'trackLengthInMeterSum' | 'trackLengthInMeterAvg';
   header: string;
   kind: 'duration' | 'distance';
 };
@@ -679,6 +630,7 @@ type Emits = {
   (event: 'open-track-photos', trackId: number): void;
   (event: 'open-media-on-map', target: { id: number; lat: number; lng: number }): void;
   (event: 'open-filter'): void;
+  (event: 'track-updated', track: GpsTrack): void;
 };
 
 defineOptions({ name: 'Statistics' });
@@ -701,6 +653,9 @@ const props = withDefaults(
 const emit = defineEmits<Emits>();
 const filterStore = useFilterStore();
 const { measurementSystem } = useMeasurementSystem();
+const { colorScheme } = useTheme();
+const trendPreferences = useTrendChartPreferences();
+const trendChartHeight = trendPreferences.height;
 
 function cssToken(name: string): string {
   return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
@@ -711,7 +666,7 @@ function buildStatChart(
   seriesColorToken: string,
   unit: string,
   tooltipFormatter: (v: number) => string,
-  axisFormatter?: (v: number) => string
+  axisFormatter?: (this: Highcharts.AxisLabelsFormatterContextObject, v: number) => string
 ): Highcharts.Options {
   const textColor = cssToken('--chart-text');
   const gridColor = cssToken('--chart-grid');
@@ -723,6 +678,7 @@ function buildStatChart(
   return markRaw({
     chart: {
       type: 'column',
+      height: trendChartHeight.value,
       backgroundColor: 'transparent',
       spacing: [4, 10, 10, 10],
       style: { fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" },
@@ -742,7 +698,7 @@ function buildStatChart(
       labels: {
         style: { color: textColor, fontSize: '12px' },
         formatter(this: Highcharts.AxisLabelsFormatterContextObject) {
-          if (axisFormatter) return axisFormatter(this.value as number);
+          if (axisFormatter) return axisFormatter.call(this, this.value as number);
           return this.isLast && unit
             ? compactNum(this.value as number) + '\u202f' + unit
             : compactNum(this.value as number);
@@ -795,6 +751,7 @@ function buildMediaTrendChart(): Highcharts.Options {
   return markRaw({
     chart: {
       type: 'column',
+      height: trendChartHeight.value,
       backgroundColor: 'transparent',
       spacing: [4, 10, 10, 10],
       style: { fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" },
@@ -883,11 +840,11 @@ const INFO_TRACKS = 'Total number of GPS tracks across all periods.';
 const INFO_DISTANCE = 'Cumulative GPS-measured distance across all periods.';
 const INFO_DURATION = 'Cumulative active duration (moving time) across all periods.';
 const INFO_ENERGY =
-  'Estimated external mechanical work from GPS-derived physics (Wh): climbing, drag, rolling/friction, and acceleration. It is not metabolic calorie burn and not measured power-sensor data.';
+  'Estimated work of moving (Wh): climbing, air and rolling resistance, and speeding up. Calculated from the GPS track; not calories burned and not measured by a power meter.';
 const INFO_AVG_POWER =
-  'Estimated average external mechanical power from the same GPS-derived energy model. Treat it as a physics estimate, not as recorded power-meter data.';
+  'Estimated average power, calculated from the GPS track. It is an estimate, not a power-meter value.';
 const INFO_NORMALIZED_POWER =
-  'Normalized Power (NP) is computed from estimated mechanical power using a 30 s rolling window and fourth-power weighting. It is useful for comparing effort patterns, but it is not a power-meter measurement. Also known as: Weighted Average Power (Strava), Normalized Power / NP (Garmin, TrainingPeaks), xPower / IsoPower (GoldenCheetah).';
+  'Normalized Power (NP) is estimated power that gives hard efforts more weight, so uneven efforts compare fairly with steady ones. It is calculated from the GPS track, not measured. Also known as: Weighted Average Power (Strava), Normalized Power / NP (Garmin, TrainingPeaks), xPower / IsoPower (GoldenCheetah).';
 const INFO_INTENSITY_INDEX =
   'Intensity Index = estimated NP ÷ your threshold power. 1.0 ≈ all-out 1 h effort if estimated power matches your real power.';
 const INFO_TRAINING_LOAD =
@@ -901,7 +858,57 @@ const INFO_EXPLORATION = computed(
 
 const active = ref(false);
 const showMenu = ref(false);
-const activeTab = ref<StatisticsTab>('overview');
+const STATISTICS_SECTIONS = [
+  {
+    value: 'overview',
+    label: 'Overview',
+    description: 'Recent activity, key figures, and milestones.',
+    icon: 'bi bi-bar-chart',
+    actionLabel: 'Open overview',
+  },
+  {
+    value: 'stats',
+    label: 'Trends',
+    description: 'Patterns across days, months, and years.',
+    icon: 'bi bi-graph-up-arrow',
+    actionLabel: 'Explore trends',
+  },
+  {
+    value: 'tracks',
+    label: 'Tracks',
+    description: 'Browse and compare individual activities.',
+    icon: 'bi bi-signpost-split',
+    actionLabel: 'Browse tracks',
+  },
+] as const satisfies readonly SectionHubItem[];
+const activeTab = ref<StatisticsScreen>('hub');
+const latestActivityState = ref<LatestActivityPreviewState>({ track: null, loading: true, error: false });
+const sectionHub = ref<InstanceType<typeof SectionHub> | null>(null);
+const sectionTitle = ref<HTMLElement | null>(null);
+const currentSection = computed(() => STATISTICS_SECTIONS.find((section) => section.value === activeTab.value));
+let savedTrackBrowserState: unknown;
+
+function openSection(value: string): void {
+  const section = STATISTICS_SECTIONS.find((item) => item.value === value);
+  if (section) activeTab.value = section.value;
+}
+
+async function showHub(): Promise<void> {
+  const previousSection = activeTab.value;
+  activeTab.value = 'hub';
+  await nextTick();
+  sectionHub.value?.focusItem(previousSection);
+}
+
+watch(activeTab, async (screen) => {
+  if (screen === 'hub') return;
+  await nextTick();
+  sectionTitle.value?.focus({ preventScroll: true });
+  if (screen === 'stats') {
+    for (const chartRef of chartRefs()) chartRef.value?.chart?.reflow();
+    syncChartMargins();
+  }
+});
 const statsView = ref<StatsView>('charts');
 const trackBrowserResetKey = ref(0);
 const trackQuickView = ref<TrackBrowserPreset>('all');
@@ -917,20 +924,7 @@ const statisticsErrorMessage = computed(() =>
 const currentInfoText = ref('');
 const selectedGrouping = ref('YYYY-"Q"Q');
 const selectedSubUnit = ref<string | null>(null);
-const MEDIA_SCOPE_MATCHED = MediaTrendRequestScopeEnum.MatchedActivities;
-const MEDIA_SCOPE_ALL = MediaTrendRequestScopeEnum.AllIndexed;
-const MEDIA_SCOPE_TOOLTIP_DELAY_MS = 350;
-const MEDIA_SCOPE_FOCUS_TOOLTIP_ID = 'media-scope-focus-tooltip';
-const MEDIA_SCOPE_ALL_TOOLTIP =
-  'Every indexed photo and video is shown. Activity filters do not reduce the media totals.';
-const MEDIA_SCOPE_MATCHED_TOOLTIP = 'Only media linked to activities in the current track filters is shown.';
-const mediaTrendScope = ref<MediaScope>(MEDIA_SCOPE_ALL);
-const focusedMediaTrendScope = ref<MediaScope | null>(null);
-const focusedMediaScopeTooltip = computed((): string => {
-  if (focusedMediaTrendScope.value === MEDIA_SCOPE_ALL) return MEDIA_SCOPE_ALL_TOOLTIP;
-  if (focusedMediaTrendScope.value === MEDIA_SCOPE_MATCHED) return MEDIA_SCOPE_MATCHED_TOOLTIP;
-  return '';
-});
+const { scope: mediaTrendScope } = storeToRefs(useMediaFilterStore());
 const mediaTrendBuckets = ref<MediaTrendBucketDto[]>([]);
 const mediaTrendLoading = ref(false);
 const mediaTrendError = ref('');
@@ -950,29 +944,58 @@ const statisticGroupings = [
   { name: 'YYYY-Q (by year and quarter)', code: 'YYYY-"Q"Q' },
   { name: 'YYYY-MM (by year and month)', code: 'YYYY-MM' },
   { name: 'YYYY-WW (by year and week)', code: STATISTICS_ISO_WEEK_GROUPING },
-  { name: 'YYYY-MM-DD (by year, week and day)', code: 'YYYY-MM-DD' },
+  { name: 'YYYY-MM-DD (by year, month and day)', code: 'YYYY-MM-DD' },
   { name: 'Total', code: 'TOTAL' },
 ];
 const smartValueColumns: SmartValueColumn[] = [
   { field: 'totalTrackDurationSecs', header: 'Duration', kind: 'duration' },
-  { field: 'trackDurationSecsMed', header: 'Avg Duration', kind: 'duration' },
+  { field: 'trackDurationSecsAvg', header: 'Avg Duration', kind: 'duration' },
   { field: 'trackLengthInMeterSum', header: 'Distance', kind: 'distance' },
-  { field: 'trackLengthInMeterMed', header: 'Avg Dist.', kind: 'distance' },
+  { field: 'trackLengthInMeterAvg', header: 'Avg Dist.', kind: 'distance' },
 ];
-const chartOptionsDuration = shallowRef(buildStatChart('Duration', '--chart-series-1', 'h', (v) => fmtHours(v)));
-const chartOptionsDistance = shallowRef(
-  buildStatChart('Distance', '--chart-series-2', '', formatDistanceSmartUtil, formatDistanceSmartUtil)
+function createTrendChartOptions(build: () => Highcharts.Options): ShallowRef<Highcharts.Options> {
+  const options = shallowRef(build());
+  watch(
+    colorScheme,
+    () => {
+      const previous = options.value as MutableChartOptions;
+      const next = build() as MutableChartOptions;
+      // Preserve loaded data in the saved options, including charts currently hidden.
+      next.xAxis.categories = previous.xAxis.categories;
+      for (let index = 0; index < next.series.length; index++) {
+        next.series[index].data = previous.series[index]?.data ?? [];
+      }
+      options.value = next;
+    },
+    { flush: 'post' }
+  );
+  return options;
+}
+
+const chartOptionsDuration = createTrendChartOptions(() =>
+  buildStatChart('Duration', '--chart-series-1', 'h', (v) => fmtHours(v))
 );
-const chartOptionsActivity = shallowRef(buildStatChart('Tracks', '--info', '', (v) => Math.round(v).toString()));
-const chartOptionsMedia = shallowRef(buildMediaTrendChart());
-const chartOptionsEnergy = shallowRef(
+const chartOptionsDistance = createTrendChartOptions(() =>
+  buildStatChart('Distance', '--chart-series-2', '', formatDistanceSmartUtil, function (value) {
+    return formatDistanceSmartUtil(value, this.axis.max);
+  })
+);
+const chartOptionsActivity = createTrendChartOptions(() =>
+  buildStatChart('Tracks', '--info', '', (v) => Math.round(v).toString())
+);
+const chartOptionsMedia = createTrendChartOptions(buildMediaTrendChart);
+const chartOptionsEnergy = createTrendChartOptions(() =>
   buildStatChart('Mechanical Energy', '--chart-series-3', 'Wh', (v) => formatLocaleNumber(Math.round(v)) + ' Wh')
 );
-const chartOptionsIntensityIndex = shallowRef(buildStatChart('Intensity Index', '--error', '', (v) => v.toFixed(2)));
-const chartOptionsTrainingLoad = shallowRef(
+const chartOptionsIntensityIndex = createTrendChartOptions(() =>
+  buildStatChart('Intensity Index', '--error', '', (v) => v.toFixed(2))
+);
+const chartOptionsTrainingLoad = createTrendChartOptions(() =>
   buildStatChart('Training Load', '--accent-text-light', '', (v) => v.toFixed(0))
 );
-const chartOptionsExploration = shallowRef(buildStatChart('Exploration', '--success', '%', (v) => v.toFixed(1) + '%'));
+const chartOptionsExploration = createTrendChartOptions(() =>
+  buildStatChart('Exploration', '--success', '%', (v) => v.toFixed(1) + '%')
+);
 
 const chartDuration = ref<ChartComponent | null>(null);
 const chartDistance = ref<ChartComponent | null>(null);
@@ -983,6 +1006,19 @@ const chartEnergy = ref<ChartComponent | null>(null);
 const chartIntensityIndex = ref<ChartComponent | null>(null);
 const chartTrainingLoad = ref<ChartComponent | null>(null);
 const chartExploration = ref<ChartComponent | null>(null);
+const trendChartRefs: Record<TrendChartId, Ref<ChartComponent | null>> = {
+  duration: chartDuration,
+  distance: chartDistance,
+  activity: chartActivity,
+  energy: chartEnergy,
+  intensity: chartIntensityIndex,
+  trainingLoad: chartTrainingLoad,
+  exploration: chartExploration,
+  media: chartMedia,
+};
+function setTrendChartRef(id: TrendChartId, component: Element | ComponentPublicInstance | null): void {
+  trendChartRefs[id].value = component as ChartComponent | null;
+}
 const infoPopover = ref<{ toggle: (event: Event) => void } | null>(null);
 const trackBrowserView = ref<TrackBrowserViewRef | null>(null);
 
@@ -990,11 +1026,25 @@ const isMobile = useMediaQuery(`(max-width: ${MOBILE_STATS_BP - 1}px)`);
 
 const trackQuickViewOptions: TrackBrowserOption<TrackBrowserPreset>[] = [
   { label: 'All', value: 'all' },
+  { label: 'Needs review', value: 'needs-review' },
   { label: 'Excluded', value: 'highlight-exclusions' },
   { label: 'Stats excluded', value: 'statistics-exclusions' },
+  { label: 'Map excluded', value: 'map-exclusions' },
   { label: 'No activity', value: 'missing-activity' },
 ];
 const trackOverrides = shallowRef<Map<number, GpsTrack>>(new Map());
+watch(
+  () => props.tracks,
+  (tracks, previousTracks) => {
+    const previousById = new Map(previousTracks.map((track) => [Number(track.id), track]));
+    const nextOverrides = new Map(trackOverrides.value);
+    const currentById = new Map(tracks.map((track) => [Number(track.id), track]));
+    for (const trackId of nextOverrides.keys()) {
+      if (currentById.get(trackId) !== previousById.get(trackId)) nextOverrides.delete(trackId);
+    }
+    trackOverrides.value = nextOverrides;
+  }
+);
 const statisticsTracks = computed(() => {
   if (trackOverrides.value.size === 0) return props.tracks ?? [];
 
@@ -1008,10 +1058,16 @@ const statisticsTracks = computed(() => {
 const trackBrowserSourceTracks = computed(() => {
   const tracks = statisticsTracks.value;
   switch (trackQuickView.value) {
+    case 'needs-review':
+      return tracks.filter((track) => track.reviewStatus === 'NEEDS_REVIEW');
     case 'highlight-exclusions':
-      return tracks.filter((track) => track.highlightExclusionReason || track.statisticsExclusionReason);
+      return tracks.filter(
+        (track) => track.reviewExcluded || track.highlightExclusionReason || track.statisticsExclusionReason
+      );
     case 'statistics-exclusions':
-      return tracks.filter((track) => track.statisticsExclusionReason);
+      return tracks.filter((track) => track.reviewExcluded || track.statisticsExclusionReason);
+    case 'map-exclusions':
+      return tracks.filter((track) => track.reviewMapExcluded);
     case 'missing-activity':
       return tracks.filter((track) => !track.activityType);
     case 'all':
@@ -1027,6 +1083,7 @@ function onOverviewTrackUpdated(track: GpsTrack): void {
   const nextOverrides = new Map(trackOverrides.value);
   nextOverrides.set(trackId, { ...sourceTrack, ...track });
   trackOverrides.value = nextOverrides;
+  emit('track-updated', nextOverrides.get(trackId)!);
 }
 function showNewestTracks() {
   activeTab.value = 'tracks';
@@ -1044,11 +1101,6 @@ async function showMediaTrends(): Promise<void> {
   activeTab.value = 'stats';
   statsView.value = 'charts';
   selectedSubUnit.value = null;
-  const requiresAllMedia = mediaTrendScope.value !== MEDIA_SCOPE_ALL;
-  mediaTrendScope.value = MEDIA_SCOPE_ALL;
-  if (requiresAllMedia) {
-    await fetchStatistics();
-  }
   await nextTick();
   mediaTrendCard.value?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
 }
@@ -1081,8 +1133,16 @@ const availableSubUnits = computed((): string[] => {
   }
   return Array.from(subunits).sort();
 });
-const statsDetents = computed((): { height: string }[] =>
-  isMobile.value ? [{ height: '60vh' }, { height: '88vh' }] : [{ height: '88vh' }, { height: '98vh' }]
+const statsDetents = computed((): { id: string; height: string }[] =>
+  isMobile.value
+    ? [
+        { id: 'compact', height: '60vh' },
+        { id: STATISTICS_DEFAULT_DETENT, height: '88vh' },
+      ]
+    : [
+        { id: STATISTICS_DEFAULT_DETENT, height: '88vh' },
+        { id: 'full', height: '98vh' },
+      ]
 );
 const filteredStatisticData = computed((): ExtendedGpsTrackStatistics[] => {
   if (!statisticData.value) return [];
@@ -1095,16 +1155,10 @@ const filteredMediaTrendBuckets = computed((): MediaTrendBucketDto[] => {
   if (!selectedSubUnit.value) return mediaTrendBuckets.value;
   return mediaTrendBuckets.value.filter((bucket) => bucket.undated || bucket.subGroup === selectedSubUnit.value);
 });
-const undatedMediaBucket = computed(
-  (): MediaTrendBucketDto | null => filteredMediaTrendBuckets.value.find((bucket) => bucket.undated) ?? null
-);
 const datedMediaTrendBuckets = computed((): MediaTrendBucketDto[] =>
   filteredMediaTrendBuckets.value.filter((bucket) => !bucket.undated && Boolean(bucket.bucketKey))
 );
 const chartMediaTrendBuckets = datedMediaTrendBuckets;
-const mediaScopeHelp = computed((): string =>
-  mediaTrendScope.value === MEDIA_SCOPE_MATCHED ? MEDIA_SCOPE_MATCHED_TOOLTIP : MEDIA_SCOPE_ALL_TOOLTIP
-);
 const trendTableRows = computed((): TrendTableRow[] => {
   const rows = new Map<string, TrendTableRow>();
   for (const statistics of filteredStatisticData.value) {
@@ -1120,6 +1174,8 @@ const trendTableRows = computed((): TrendTableRow[] => {
       ...existing,
       groupBy: existing?.groupBy ?? media.label ?? key,
       subGroup: existing?.subGroup ?? media.subGroup,
+      daysWithActivities: existing?.daysWithActivities ?? 0,
+      numberOfTracks: existing?.numberOfTracks ?? 0,
       imageCount: media.imageCount ?? 0,
       videoCount: media.videoCount ?? 0,
       undatedMedia: media.undated ?? false,
@@ -1170,16 +1226,15 @@ const distColMaxM = computed((): number => {
   return Math.max(
     0,
     ...data.map((d: GpsTrackStatistics) => d.trackLengthInMeterSum ?? 0),
-    ...data.map((d: GpsTrackStatistics) => d.trackLengthInMeterMed ?? 0)
+    ...data.map((d: GpsTrackStatistics) => d.trackLengthInMeterAvg ?? 0)
   );
 });
-const durColMaxMs = computed((): number => {
+const durationColumnMaxMs = computed(() => {
   const data = filteredStatisticData.value;
-  return Math.max(
-    0,
-    ...data.map((d: GpsTrackStatistics) => (d.totalTrackDurationSecs ?? 0) * 1000),
-    ...data.map((d: GpsTrackStatistics) => (d.trackDurationSecsMed ?? 0) * 1000)
-  );
+  return {
+    totalTrackDurationSecs: Math.max(0, ...data.map((d) => (d.totalTrackDurationSecs ?? 0) * 1000)),
+    trackDurationSecsAvg: Math.max(0, ...data.map((d) => (d.trackDurationSecsAvg ?? 0) * 1000)),
+  };
 });
 
 function smartValue(row: ExtendedGpsTrackStatistics, column: SmartValueColumn): number {
@@ -1194,9 +1249,10 @@ function smartValueTooltip(row: ExtendedGpsTrackStatistics, column: SmartValueCo
 
 function formatSmartValue(row: ExtendedGpsTrackStatistics, column: SmartValueColumn): string {
   const value = smartValue(row, column);
-  return column.kind === 'duration'
-    ? formatDurationSmart(value * 1000, durColMaxMs.value)
-    : formatDistanceSmart(value, distColMaxM.value);
+  if (column.field === 'totalTrackDurationSecs' || column.field === 'trackDurationSecsAvg') {
+    return formatDurationSmart(value * 1000, durationColumnMaxMs.value[column.field]);
+  }
+  return formatDistanceSmart(value, distColMaxM.value);
 }
 
 const summaryStats = computed(
@@ -1251,6 +1307,128 @@ const chartMetricAvailability = computed(() => ({
   ),
 }));
 
+const trendCharts = computed(
+  () =>
+    ({
+      duration: {
+        id: 'duration',
+        label: 'Duration',
+        icon: 'bi bi-clock',
+        color: '--chart-series-1',
+        options: chartOptionsDuration.value,
+        available: trendChartPeriods.value.length > 0,
+        info: '',
+        pending: false,
+      },
+      distance: {
+        id: 'distance',
+        label: 'Distance',
+        icon: 'bi bi-signpost-split',
+        color: '--chart-series-2',
+        options: chartOptionsDistance.value,
+        available: trendChartPeriods.value.length > 0,
+        info: '',
+        pending: false,
+      },
+      activity: {
+        id: 'activity',
+        label: 'Activity',
+        icon: 'bi bi-bar-chart-line',
+        color: '--info',
+        options: chartOptionsActivity.value,
+        available: trendChartPeriods.value.length > 0,
+        info: '',
+        pending: false,
+      },
+      energy: {
+        id: 'energy',
+        label: 'Energy',
+        icon: 'bi bi-lightning-charge',
+        color: '--chart-series-3',
+        options: chartOptionsEnergy.value,
+        available: chartMetricAvailability.value.hasEnergy,
+        info: INFO_ENERGY,
+        pending: false,
+      },
+      intensity: {
+        id: 'intensity',
+        label: 'Intensity Index',
+        icon: 'bi bi-speedometer2',
+        color: '--error',
+        options: chartOptionsIntensityIndex.value,
+        available: chartMetricAvailability.value.hasFitness,
+        info: INFO_INTENSITY_INDEX,
+        pending: false,
+      },
+      trainingLoad: {
+        id: 'trainingLoad',
+        label: 'Training Load',
+        icon: 'bi bi-heart-pulse',
+        color: '--accent-text-light',
+        options: chartOptionsTrainingLoad.value,
+        available: chartMetricAvailability.value.hasFitness,
+        info: INFO_TRAINING_LOAD,
+        pending: false,
+      },
+      exploration: {
+        id: 'exploration',
+        label: 'Exploration',
+        icon: 'bi bi-compass',
+        color: '--success',
+        options: chartOptionsExploration.value,
+        available: trendChartPeriods.value.length > 0,
+        info: INFO_EXPLORATION.value,
+        pending: !chartMetricAvailability.value.hasExploration,
+      },
+      media: {
+        id: 'media',
+        label: 'Media',
+        icon: 'bi bi-images',
+        color: '--chart-series-3',
+        options: chartOptionsMedia.value,
+        available: true,
+        info: '',
+        pending: false,
+      },
+    }) satisfies Record<
+      TrendChartId,
+      {
+        id: TrendChartId;
+        label: string;
+        icon: string;
+        color: string;
+        options: Highcharts.Options;
+        available: boolean;
+        info: string;
+        pending: boolean;
+      }
+    >
+);
+const orderedTrendCharts = computed(() =>
+  trendPreferences.order.value.map((id) => trendCharts.value[id]).filter((chart) => chart.available)
+);
+
+function moveTrendChart(id: TrendChartId, direction: -1 | 1): void {
+  trendPreferences.moveChart(
+    id,
+    direction,
+    orderedTrendCharts.value.map((chart) => chart.id)
+  );
+}
+
+watch(
+  trendChartHeight,
+  (height) => {
+    for (const chart of Object.values(trendCharts.value)) {
+      // Keep options current for charts mounted later, including Table → Charts.
+      chart.options.chart!.height = height;
+      trendChartRefs[chart.id].value?.chart?.setSize(undefined, height, false);
+    }
+    syncChartMargins();
+  },
+  { flush: 'post' }
+);
+
 watch(trendChartPeriods, (periods) => {
   updateCharts(periods);
   updateMediaChart(displayedMediaTrendBuckets.value);
@@ -1282,27 +1460,23 @@ watch(statsView, (newVal) => {
 });
 
 async function toggle() {
-  showMenu.value = !showMenu.value;
-  active.value = !active.value;
-  if (active.value) {
-    emit('tool-opened');
-    await fetchStatistics();
-  } else {
-    cancelStatisticsRequest();
-    closeMediaMosaic();
-  }
+  if (showMenu.value) close();
+  else await open();
 }
 
 async function open() {
   showMenu.value = true;
   if (!active.value) {
+    activeTab.value = 'hub';
     active.value = true;
+    void nextTick(() => trackBrowserView.value?.restoreNavigationState(savedTrackBrowserState));
     emit('tool-opened');
     await fetchStatistics();
   }
 }
 
 function close() {
+  savedTrackBrowserState = trackBrowserView.value?.getNavigationState() ?? savedTrackBrowserState;
   showMenu.value = false;
   active.value = false;
   cancelStatisticsRequest();
@@ -1313,14 +1487,14 @@ function getNavigationState(): StatisticsNavigationState {
   return {
     tab: activeTab.value,
     trackQuickView: trackQuickView.value,
-    trackBrowserState: trackBrowserView.value?.getNavigationState(),
+    trackBrowserState: trackBrowserView.value?.getNavigationState() ?? savedTrackBrowserState,
   };
 }
 
 function restoreNavigationState(state: unknown) {
   if (!state || typeof state !== 'object' || !('tab' in state)) return;
   const tab = state.tab;
-  if (tab === 'overview' || tab === 'stats' || tab === 'tracks') {
+  if (tab === 'hub' || tab === 'overview' || tab === 'stats' || tab === 'tracks') {
     activeTab.value = tab;
   }
   if (
@@ -1331,11 +1505,13 @@ function restoreNavigationState(state: unknown) {
     trackQuickView.value = state.trackQuickView;
   }
   if ('trackBrowserState' in state) {
+    savedTrackBrowserState = state.trackBrowserState;
     void nextTick(() => trackBrowserView.value?.restoreNavigationState(state.trackBrowserState));
   }
 }
 
 function onSheetClosed() {
+  savedTrackBrowserState = trackBrowserView.value?.getNavigationState() ?? savedTrackBrowserState;
   active.value = false;
   cancelStatisticsRequest();
   closeMediaMosaic();
@@ -1359,6 +1535,8 @@ async function fetchStatistics() {
   statisticsError.value = '';
   mediaTrendError.value = '';
   mediaTrendBuckets.value = [];
+  indexedPhotoCount.value = null;
+  indexedVideoCount.value = null;
   closeMediaMosaic();
 
   try {
@@ -1373,7 +1551,7 @@ async function fetchStatistics() {
         {
           grouping: mediaGrouping.value,
           scope: requestedMediaScope,
-          trackIds: requestedMediaScope === MEDIA_SCOPE_MATCHED ? trackIds : undefined,
+          trackIds,
         },
         controller.signal
       ),
@@ -1388,17 +1566,9 @@ async function fetchStatistics() {
         statisticsResult.reason instanceof Error ? statisticsResult.reason.message : String(statisticsResult.reason);
     }
     if (mediaResult.status === 'fulfilled') {
-      mediaTrendBuckets.value = mediaResult.value.buckets ?? [];
-      if (requestedMediaScope === MEDIA_SCOPE_ALL) {
-        indexedPhotoCount.value = mediaTrendBuckets.value.reduce(
-          (total, bucket) => total + (bucket.imageCount ?? 0),
-          0
-        );
-        indexedVideoCount.value = mediaTrendBuckets.value.reduce(
-          (total, bucket) => total + (bucket.videoCount ?? 0),
-          0
-        );
-      }
+      mediaTrendBuckets.value = (mediaResult.value.buckets ?? []).filter((bucket) => !bucket.undated);
+      indexedPhotoCount.value = mediaTrendBuckets.value.reduce((total, bucket) => total + (bucket.imageCount ?? 0), 0);
+      indexedVideoCount.value = mediaTrendBuckets.value.reduce((total, bucket) => total + (bucket.videoCount ?? 0), 0);
     } else if (!isAbortLikeError(mediaResult.reason, controller.signal)) {
       mediaTrendBuckets.value = [];
       mediaTrendError.value =
@@ -1409,6 +1579,11 @@ async function fetchStatistics() {
     statisticsError.value = error instanceof Error ? error.message : String(error);
     mediaTrendBuckets.value = [];
     mediaTrendError.value = error instanceof Error ? error.message : String(error);
+    warnRequestFailure('Statistics could not be loaded', error, {
+      topic1: 'statistics',
+      topic2: 'Statistics',
+      topic3: 'load',
+    });
   } finally {
     if (generation === statisticsRequestGeneration) mediaTrendLoading.value = false;
   }
@@ -1419,16 +1594,10 @@ async function retryStatistics(): Promise<void> {
   await fetchStatistics();
 }
 
-function setMediaTrendScope(scope: MediaScope): void {
-  if (mediaTrendScope.value === scope) return;
-  mediaTrendScope.value = scope;
+watch(mediaTrendScope, () => {
   closeMediaMosaic();
-  void fetchStatistics();
-}
-
-function clearFocusedMediaTrendScope(scope: MediaScope): void {
-  if (focusedMediaTrendScope.value === scope) focusedMediaTrendScope.value = null;
-}
+  if (active.value) void fetchStatistics();
+});
 
 function closeMediaMosaic(): void {
   mediaMosaicVisible.value = false;
@@ -1440,16 +1609,7 @@ async function currentFilterRequest(): Promise<ActiveFilterRequest> {
 }
 
 function chartRefs(): Array<Ref<ChartComponent | null>> {
-  return [
-    chartDuration,
-    chartDistance,
-    chartActivity,
-    chartEnergy,
-    chartIntensityIndex,
-    chartTrainingLoad,
-    chartExploration,
-    chartMedia,
-  ];
+  return Object.values(trendChartRefs);
 }
 
 function updateMediaChart(buckets: MediaTrendBucketDto[]): void {
@@ -1612,7 +1772,7 @@ defineExpose({
   overflow: hidden;
 }
 
-/* stats-sheet-icon: muted identity mark, non-interactive */
+/* The shared sheet header stays visible while each section scrolls independently. */
 .stats-header-nav {
   display: flex;
   align-items: center;
@@ -1621,18 +1781,19 @@ defineExpose({
 }
 
 .stats-sheet-icon {
-  font-size: var(--text-base-size);
-  color: var(--text-muted);
+  font-size: var(--text-lg-size);
+  color: var(--text-secondary);
   flex-shrink: 0;
 }
 
-.stats-header-tabs {
+.statistics-section {
   display: flex;
-  gap: 0.15rem;
-  min-width: 0;
-}
-
-:deep(.p-tabpanel) {
+  flex: 1 1 auto;
+  min-height: 0;
+  flex-direction: column;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
   padding-top: 0.5rem;
 }
 
@@ -1641,11 +1802,10 @@ defineExpose({
   min-height: 0;
   flex: 1 1 auto;
   padding: 0;
-  margin-top: -0.5rem;
 }
 
 .statistics-holder {
-  flex: 1 1 auto;
+  flex: 0 0 auto;
   display: flex;
   flex-direction: column;
   min-height: 0;
@@ -1792,6 +1952,21 @@ defineExpose({
 .statistics-table :deep(.number-column) {
   text-align: right;
 }
+.statistics-table :deep(.statistics-period) {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  box-shadow: 1px 0 var(--table-border);
+}
+.statistics-table :deep(.p-datatable-tbody > tr > td.statistics-period) {
+  background: var(--surface-sheet-solid);
+}
+.statistics-table :deep(.p-datatable-thead > tr > th.statistics-period) {
+  background: linear-gradient(var(--table-header-bg), var(--table-header-bg)), var(--surface-sheet-solid);
+}
+.statistics-table :deep(.p-datatable-tbody > tr:hover > td.statistics-period) {
+  background: linear-gradient(var(--table-row-hover), var(--table-row-hover)), var(--surface-sheet-solid);
+}
 
 /* ── Table / Charts toggle ── */
 .stats-view-toggle {
@@ -1818,7 +1993,7 @@ defineExpose({
 }
 .stat-chart {
   width: 100%;
-  height: 190px;
+  height: var(--trend-chart-height);
 }
 
 .media-trend-header {
@@ -1830,59 +2005,10 @@ defineExpose({
   gap: 0.6rem 1rem;
 }
 
-.media-trend-focus-tooltip {
-  position: absolute;
-  z-index: 10;
-  top: calc(100% - 0.2rem);
-  right: 1rem;
-  max-width: min(30rem, calc(100% - 2rem));
-  padding: 0.45rem 0.6rem;
-  border: 1px solid var(--border-default);
-  border-radius: 0.4rem;
-  background: var(--surface-sheet-solid);
-  box-shadow: 0 0.25rem 0.75rem color-mix(in srgb, var(--text-primary) 18%, transparent);
-  color: var(--text-primary);
-  font-size: var(--text-xs-size);
-  line-height: 1.35;
-}
-
 .media-trend-header__title {
   display: flex;
   align-items: center;
   gap: 0.35rem;
-}
-
-.media-trend-mode {
-  display: inline-flex;
-  padding: 2px;
-  border: 1px solid var(--border-default);
-  border-radius: 999px;
-  background: var(--surface-ground);
-}
-
-.media-trend-mode button {
-  border: 0;
-  border-radius: 999px;
-  background: transparent;
-  color: var(--text-muted);
-  cursor: pointer;
-  font: inherit;
-  font-size: var(--text-xs-size);
-  padding: 0.35rem 0.65rem;
-}
-
-.media-trend-mode .media-trend-mode__button--active {
-  background: var(--surface-elevated);
-  color: var(--text-primary);
-  box-shadow: 0 1px 3px color-mix(in srgb, var(--text-primary) 14%, transparent);
-  font-weight: 650;
-}
-
-.media-trend-notice {
-  margin: 0;
-  padding: 0 1rem 0.35rem;
-  color: var(--text-muted);
-  font-size: var(--text-xs-size);
 }
 
 .media-trend-state {
@@ -1941,6 +2067,16 @@ defineExpose({
 .media-trend-badge strong {
   color: var(--text-primary);
   font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 768px) {
+  /* Keep one vertical scroll owner in the mobile Tracks drill-down. Nested
+     overflow containers can swallow touch gestures inside a bottom sheet. */
+  .statistics-section[aria-label='Tracks'] .tracks-tab,
+  .statistics-section[aria-label='Tracks'] :deep(.track-browser-view--compact) {
+    flex: 0 0 auto;
+    overflow: visible;
+  }
 }
 
 /* ── Mobile tweaks ── */
@@ -2002,10 +2138,6 @@ defineExpose({
     width: auto !important;
   }
 
-  /* Charts: shorter so 2 are visible at once */
-  .stat-chart {
-    height: 185px;
-  }
   .chart-header {
     padding: 0.7rem 0.75rem 0.4rem;
   }
@@ -2013,17 +2145,7 @@ defineExpose({
     align-items: flex-start;
     flex-direction: column;
   }
-  .media-trend-mode {
-    width: 100%;
-  }
-  .media-trend-mode button {
-    flex: 1 1 0;
-    padding-inline: 0.55rem;
-    white-space: nowrap;
-  }
-  .media-trend-notice {
-    padding-inline: 0.75rem;
-  }
+
   .media-trend-badges {
     margin-inline: 0.75rem;
   }

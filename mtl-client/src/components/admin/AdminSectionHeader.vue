@@ -2,7 +2,7 @@
   <header class="admin-page-header">
     <span class="admin-page-header__icon" aria-hidden="true"><i :class="icon" /></span>
     <div>
-      <h2>{{ title }}</h2>
+      <h2 tabindex="-1">{{ title }}</h2>
       <p>{{ description }}</p>
     </div>
   </header>

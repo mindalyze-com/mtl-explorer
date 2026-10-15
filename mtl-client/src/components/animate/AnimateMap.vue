@@ -5,6 +5,7 @@
       :detents="sheetDetents"
       initial-detent="open"
       :selected-detent="selectedSheetDetent"
+      :fit-small-overflow="!isPlaybackCompact"
       no-backdrop
       :sheet-class="sheetClass"
       @detent-change="onSheetDetentChange"
@@ -12,12 +13,12 @@
     >
       <template #title>
         <div class="am-header">
-          <i class="bi bi-play-circle am-header__icon" aria-hidden="true"></i>
+          <i :class="[NAVIGATION_TOOL_ICONS.animate, 'am-header__icon']" aria-hidden="true"></i>
           <h2 class="am-header__title compact-heading">Animate</h2>
         </div>
       </template>
 
-      <div v-if="active" class="am-root" :class="{ 'am-root--compact': isPlaybackCompact }">
+      <div v-if="active" class="am-root" data-sheet-fit-target :class="{ 'am-root--compact': isPlaybackCompact }">
         <div v-if="!hasFeatures" class="am-empty" role="status">
           <span class="am-empty__icon"><i class="bi bi-signpost-split" aria-hidden="true"></i></span>
           <div>
@@ -188,6 +189,7 @@
 import { computed, getCurrentInstance, markRaw, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import type * as maplibregl from 'maplibre-gl';
 import BottomSheet from '@/components/ui/BottomSheet.vue';
+import { NAVIGATION_TOOL_ICONS } from '@/components/ui/navigationToolIcons';
 import MtlSlider from '@/components/ui/MtlSlider.vue';
 import { formatDate } from '@/utils/Utils';
 import { TRACK_COLOR } from '@/utils/trackColors';
@@ -218,7 +220,6 @@ const HIDDEN_TRACK_LAYER_VISIBILITY = 'none';
 const TRACK_LAYER_PAINT_PROPERTIES = [
   { layerId: 'tracks-layer', property: 'line-opacity', fallbackValue: 1 },
   { layerId: 'tracks-highlight-layer', property: 'line-opacity', fallbackValue: 1 },
-  { layerId: 'tracks-highlight-dash-layer', property: 'line-opacity', fallbackValue: 1 },
   { layerId: 'tracks-dot-layer', property: 'circle-opacity', fallbackValue: 1 },
   { layerId: 'tracks-dot-layer', property: 'circle-stroke-opacity', fallbackValue: 1 },
   { layerId: 'tracks-overview-dots', property: 'circle-opacity', fallbackValue: 0.85 },
@@ -229,7 +230,6 @@ const TRACK_LAYER_PAINT_PROPERTIES = [
 const TRACK_LAYER_VISIBILITY_IDS = [
   'tracks-layer',
   'tracks-highlight-layer',
-  'tracks-highlight-dash-layer',
   'tracks-dot-layer',
   'tracks-overview-dots',
   'tracks-highlight-circle-layer',
@@ -397,7 +397,8 @@ const estimatedDurationLabel = computed(() => {
   const durationMs = rangeTrackCount.value * animationSpeed.value;
   if (durationMs < MILLISECONDS_PER_SECOND) return 'Plays in under 1 second';
   const totalSeconds = Math.ceil(durationMs / MILLISECONDS_PER_SECOND);
-  if (totalSeconds < SECONDS_PER_MINUTE) return `Plays in about ${totalSeconds} seconds`;
+  if (totalSeconds < SECONDS_PER_MINUTE)
+    return `Plays in about ${totalSeconds} ${totalSeconds === 1 ? 'second' : 'seconds'}`;
   const minutes = Math.floor(totalSeconds / SECONDS_PER_MINUTE);
   const seconds = totalSeconds % SECONDS_PER_MINUTE;
   return seconds === 0 ? `Plays in about ${minutes} min` : `Plays in about ${minutes} min ${seconds} sec`;
@@ -557,9 +558,11 @@ function prepareSortedFeatures() {
     return;
   }
   sortedFeatures.value = markRaw(
-    [...geojson.features].sort((a: TrackFeature, b: TrackFeature) => {
-      return featureStartMs(a) - featureStartMs(b);
-    })
+    geojson.features
+      .filter((feature) => !feature.properties?.reviewMapExcluded)
+      .sort((a: TrackFeature, b: TrackFeature) => {
+        return featureStartMs(a) - featureStartMs(b);
+      })
   );
   rangeValue.value = [0, sortedFeatures.value.length - 1];
   animationIndex.value = 0;
@@ -1316,6 +1319,17 @@ defineExpose({
     gap: 0.55rem;
   }
 
+  .am-compact__summary {
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .am-compact__summary h3 {
+    overflow: visible;
+    overflow-wrap: anywhere;
+    white-space: normal;
+  }
+
   .am-playback {
     min-height: 9.8rem;
     flex-direction: column;
@@ -1401,7 +1415,6 @@ defineExpose({
 }
 
 @media screen and (max-width: 350px) {
-  .am-compact__summary span,
   .am-stop-button span {
     display: none;
   }

@@ -5,8 +5,11 @@ import com.x8ing.mtl.server.mtlserver.planner.config.PlannerProperties;
 import com.x8ing.mtl.server.mtlserver.planner.dto.BRouterStatusDto;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
+
+import java.time.Duration;
 
 /**
  * Thin proxy to the BRouter sidecar's {@code /status} endpoint. The sidecar
@@ -24,10 +27,15 @@ import org.springframework.web.client.RestClient;
 public class PlannerStatusService {
 
     private final PlannerProperties properties;
-    private final RestClient restClient = RestClient.builder().build();
+    private final RestClient restClient;
 
     public PlannerStatusService(PlannerProperties properties) {
         this.properties = properties;
+        SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
+        Duration timeout = Duration.ofMillis(properties.getBrouterTimeoutMs());
+        requestFactory.setConnectTimeout(timeout);
+        requestFactory.setReadTimeout(timeout);
+        this.restClient = RestClient.builder().requestFactory(requestFactory).build();
     }
 
     /**

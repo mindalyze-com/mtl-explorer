@@ -1,12 +1,8 @@
 package com.x8ing.mtl.server.mtlserver.db.repository.media;
 
+import com.x8ing.mtl.server.mtlserver.db.entity.media.MediaPointDTO;
 import com.x8ing.mtl.server.mtlserver.web.services.track.MediaKindResolver;
-import com.x8ing.mtl.server.mtlserver.web.services.track.entity.MediaTrendBucketDto;
-import com.x8ing.mtl.server.mtlserver.web.services.track.entity.MediaTrendGrouping;
-import com.x8ing.mtl.server.mtlserver.web.services.track.entity.MediaTrendItemDto;
-import com.x8ing.mtl.server.mtlserver.web.services.track.entity.MediaTrendKindFilter;
-import com.x8ing.mtl.server.mtlserver.web.services.track.entity.MediaTrendScope;
-import com.x8ing.mtl.server.mtlserver.web.services.track.entity.TrackMediaDto;
+import com.x8ing.mtl.server.mtlserver.web.services.track.entity.*;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
@@ -22,12 +18,19 @@ import java.util.stream.Collectors;
 @Repository
 public class MediaTrendQueryRepository {
 
-    private static final String ELIGIBLE_TRACK_SQL = """
-            track.load_status = 'SUCCESS'
-            AND track.duplicate_status = 'UNIQUE'
-            AND track.track_source = 'IMPORTED'
-            AND track.statistics_exclusion_reason IS NULL
-            AND track.id = ANY(string_to_array(:trackIdsCsv, ',')::bigint[])
+    // The result set defines this range, regardless of the filter's parameters or implementation.
+    private static final String TRACK_RANGE_CTE = """
+            WITH selected_track_range AS (
+                SELECT MIN(start_date) AS first_capture, MAX(end_date) AS last_capture
+                FROM gps_track
+                WHERE id = ANY(string_to_array(:trackIdsCsv, ',')::bigint[])
+                  AND isfinite(start_date) AND isfinite(end_date)
+                  AND end_date >= start_date
+            )
+            """;
+    private static final String CAPTURE_TIME_SQL = """
+            COALESCE(media.exif_gps_date,
+                     media.exif_date_image_taken + make_interval(secs => COALESCE(correction.offset_seconds, 0)))
             """;
 
     private final NamedParameterJdbcTemplate jdbcTemplate;
@@ -41,7 +44,7 @@ public class MediaTrendQueryRepository {
             MediaTrendGrouping grouping,
             MediaTrendScope scope,
             List<Long> trackIds) {
-        if (scope == MediaTrendScope.MATCHED_ACTIVITIES && trackIds.isEmpty()) return List.of();
+        if (trackIds.isEmpty()) return List.of();
 
         String bucketExpression = bucketExpression(grouping, "effective_capture_time");
         String sql = effectiveMediaCte(scope) + """
@@ -67,7 +70,7 @@ public class MediaTrendQueryRepository {
                     bucket_key ASC
                 """.formatted(bucketExpression);
 
-        return jdbcTemplate.query(sql, parameters(scope, trackIds), MediaTrendQueryRepository::mapBucket);
+        return jdbcTemplate.query(sql, parameters(trackIds), MediaTrendQueryRepository::mapBucket);
     }
 
     @Transactional(readOnly = true)
@@ -79,11 +82,11 @@ public class MediaTrendQueryRepository {
             List<Long> trackIds,
             int pageSize,
             long offset) {
-        if (scope == MediaTrendScope.MATCHED_ACTIVITIES && trackIds.isEmpty()) {
+        if (trackIds.isEmpty()) {
             return new TrackMediaPageResult<>(List.of(), 0);
         }
 
-        MapSqlParameterSource params = parameters(scope, trackIds)
+        MapSqlParameterSource params = parameters(trackIds)
                 .addValue("bucketKey", bucketKey)
                 .addValue("pageSize", pageSize)
                 .addValue("offset", offset);
@@ -103,7 +106,7 @@ public class MediaTrendQueryRepository {
         }
 
         String pageSql = baseSql + """
-
+                
                 ORDER BY effective_capture_time DESC NULLS LAST,
                          CASE WHEN effective_capture_time IS NULL THEN indexed_create_time END DESC NULLS LAST,
                          id DESC
@@ -114,57 +117,55 @@ public class MediaTrendQueryRepository {
         return new TrackMediaPageResult<>(items, totalItems);
     }
 
-    private static String effectiveMediaCte(MediaTrendScope scope) {
-        String mediaKindSql = MediaKindResolver.sqlCaseExpression("indexed.name");
-        if (scope == MediaTrendScope.MATCHED_ACTIVITIES) {
-            return """
-                    WITH effective_media AS MATERIALIZED (
-                        SELECT
-                            media.id,
-                            indexed.name AS file_name,
-                            indexed.create_date AS indexed_create_time,
-                            %s AS media_kind,
-                            correlation.adjusted_capture_time AS effective_capture_time,
-                            correlation.applied_camera_offset_seconds,
-                            correlation.time_source,
-                            correlation.track_id,
-                            ST_Y(resolved.location) AS resolved_lat,
-                            ST_X(resolved.location) AS resolved_lng,
-                            resolved.position_origin,
-                            correlation.track_point_time_delta_seconds,
-                            correlation.ambiguous
-                        FROM media_track_correlation correlation
-                        JOIN media_file media ON media.id = correlation.media_id
-                        JOIN indexed_file indexed ON indexed.id = media.file_id
-                        JOIN gps_track track ON track.id = correlation.track_id
-                        LEFT JOIN media_resolved_location resolved ON resolved.media_id = media.id
-                        WHERE correlation.selected
-                          AND %s
-                    )
-                    """.formatted(mediaKindSql, ELIGIBLE_TRACK_SQL);
-        }
+    @Transactional(readOnly = true)
+    public List<MediaPointDTO> findInBounds(MediaBoundsRequest request, List<Long> trackIds) {
+        if (trackIds.isEmpty()) return List.of();
+        // Keep both spatial index paths, including EXIF locations awaiting correlation.
+        String sql = TRACK_RANGE_CTE + """
+                , locations AS (
+                    SELECT media_id, location FROM media_resolved_location
+                    WHERE location && ST_MakeEnvelope(:minLng, :minLat, :maxLng, :maxLat, 4326)
+                    UNION ALL
+                    SELECT id, exif_gps_location FROM media_file media
+                    WHERE exif_gps_location && ST_MakeEnvelope(:minLng, :minLat, :maxLng, :maxLat, 4326)
+                      AND NOT EXISTS (SELECT 1 FROM media_resolved_location WHERE media_id = media.id)
+                )
+                SELECT media.id, ROUND(ST_Y(locations.location)::numeric, 5) AS lat,
+                       ROUND(ST_X(locations.location)::numeric, 5) AS lng
+                FROM locations
+                JOIN media_file media ON media.id = locations.media_id
+                LEFT JOIN media_time_correction correction ON correction.media_id = media.id
+                LEFT JOIN media_track_correlation correlation ON correlation.media_id = media.id AND correlation.selected
+                CROSS JOIN selected_track_range
+                WHERE %s
+                """.formatted(mediaScopeWhere(request.scope()));
+        var params = parameters(trackIds)
+                .addValue("minLat", request.minLat()).addValue("minLng", request.minLng())
+                .addValue("maxLat", request.maxLat()).addValue("maxLng", request.maxLng());
+        return jdbcTemplate.query(sql, params, (rs, row) ->
+                new MediaPointDTO(rs.getLong("id"), rs.getDouble("lat"), rs.getDouble("lng")));
+    }
 
-        return """
-                WITH effective_media AS MATERIALIZED (
+    private static String mediaScopeWhere(MediaTrendScope scope) {
+        String timeRange = CAPTURE_TIME_SQL + " BETWEEN first_capture AND last_capture";
+        return scope == MediaTrendScope.MATCHED_ACTIVITIES
+                ? timeRange + " AND correlation.track_id = ANY(string_to_array(:trackIdsCsv, ',')::bigint[])"
+                : timeRange;
+    }
+
+    private static String effectiveMediaCte(MediaTrendScope scope) {
+        return TRACK_RANGE_CTE + """
+                , effective_media AS (
                     SELECT
                         media.id,
                         indexed.name AS file_name,
                         indexed.create_date AS indexed_create_time,
                         %s AS media_kind,
-                        COALESCE(
-                            media.exif_gps_date,
-                            media.exif_date_image_taken
-                                + make_interval(secs => COALESCE(correction.offset_seconds, 0))
-                        ) AS effective_capture_time,
-                        CASE
-                            WHEN media.exif_gps_date IS NULL THEN COALESCE(correction.offset_seconds, 0)
-                            ELSE 0
-                        END AS applied_camera_offset_seconds,
-                        CASE
-                            WHEN media.exif_gps_date IS NOT NULL THEN 'EXIF_GPS'
-                            WHEN media.exif_date_image_taken IS NOT NULL THEN 'EXIF_DATE_TAKEN'
-                            ELSE NULL
-                        END AS time_source,
+                        %s AS effective_capture_time,
+                        CASE WHEN media.exif_gps_date IS NULL THEN COALESCE(correction.offset_seconds, 0)
+                             ELSE 0 END AS applied_camera_offset_seconds,
+                        CASE WHEN media.exif_gps_date IS NOT NULL THEN 'EXIF_GPS'
+                             ELSE 'EXIF_DATE_TAKEN' END AS time_source,
                         correlation.track_id,
                         ST_Y(resolved.location) AS resolved_lat,
                         ST_X(resolved.location) AS resolved_lng,
@@ -175,11 +176,12 @@ public class MediaTrendQueryRepository {
                     JOIN indexed_file indexed ON indexed.id = media.file_id
                     LEFT JOIN media_time_correction correction ON correction.media_id = media.id
                     LEFT JOIN media_track_correlation correlation
-                      ON correlation.media_id = media.id
-                     AND correlation.selected
+                      ON correlation.media_id = media.id AND correlation.selected
                     LEFT JOIN media_resolved_location resolved ON resolved.media_id = media.id
+                    CROSS JOIN selected_track_range
+                    WHERE %s
                 )
-                """.formatted(mediaKindSql);
+                """.formatted(MediaKindResolver.sqlCaseExpression("indexed.name"), CAPTURE_TIME_SQL, mediaScopeWhere(scope));
     }
 
     private static String bucketExpression(MediaTrendGrouping grouping, String timestampColumn) {
@@ -201,12 +203,9 @@ public class MediaTrendQueryRepository {
                + "', effective_capture_time), '" + grouping.labelFormat() + "') = :bucketKey";
     }
 
-    private static MapSqlParameterSource parameters(MediaTrendScope scope, List<Long> trackIds) {
-        MapSqlParameterSource params = new MapSqlParameterSource();
-        if (scope == MediaTrendScope.MATCHED_ACTIVITIES) {
-            params.addValue("trackIdsCsv", trackIds.stream().map(String::valueOf).collect(Collectors.joining(",")));
-        }
-        return params;
+    private static MapSqlParameterSource parameters(List<Long> trackIds) {
+        return new MapSqlParameterSource("trackIdsCsv",
+                trackIds.stream().map(String::valueOf).collect(Collectors.joining(",")));
     }
 
     private static MediaTrendBucketDto mapBucket(ResultSet rs, int rowNumber) throws SQLException {

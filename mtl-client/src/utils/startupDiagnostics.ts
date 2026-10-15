@@ -1,3 +1,4 @@
+import { clientLogger } from '@/utils/clientLogger';
 import { readStorage, removeStorage, STORAGE_KEYS, writeStorage } from '@/utils/appStorage';
 
 const STORAGE_KEY = STORAGE_KEYS.startupCrashGuard;
@@ -48,20 +49,30 @@ function persistEnabled(enabled: boolean): void {
 function mergeDetails(details: unknown, extra: Record<string, unknown>): unknown {
   if (details === undefined) return extra;
   if (details && typeof details === 'object' && !Array.isArray(details)) {
-    return { ...(details as Record<string, unknown>), ...extra };
+    return details instanceof Error
+      ? { error: details, ...extra }
+      : { ...(details as Record<string, unknown>), ...extra };
   }
   return { value: details, ...extra };
 }
 
-function emit(method: ConsoleMethod, stage: string, message: string, details?: unknown): void {
-  if (!isStartupDiagnosticsEnabled()) return;
+function emit(method: ConsoleMethod, stage: string, message: string, details?: unknown, error?: unknown): void {
+  if (method === 'log' && !isStartupDiagnosticsEnabled()) return;
 
   const prefix = `[startup:${stage}] +${elapsedSince(appBootStartedAt)}ms ${message}`;
-  if (details === undefined) {
-    console[method](prefix);
+  if (method !== 'log') {
+    clientLogger[method === 'error' ? 'error' : 'warn'](prefix, error, {
+      topic1: 'startup',
+      topic2: stage,
+      context: details,
+    });
     return;
   }
-  console[method](prefix, details);
+  if (details === undefined) {
+    console.log(prefix);
+    return;
+  }
+  console.log(prefix, details);
 }
 
 export function isStartupDiagnosticsEnabled(): boolean {
@@ -85,26 +96,17 @@ export function initializeStartupDiagnostics(): void {
     window.matchMedia('(display-mode: standalone)').matches ||
     (window.navigator as unknown as { standalone?: boolean }).standalone === true;
   const clientVersion = typeof __APP_PKG_VERSION__ !== 'undefined' ? __APP_PKG_VERSION__ : 'unknown';
+  const clientImageVersion = (import.meta.env.VITE_APP_VERSION as string | undefined)?.trim() || 'development';
   const clientBuild = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : 'unknown';
-  console.log(`[mtl] v${clientVersion} | built: ${clientBuild} | ${isPwa ? 'PWA (installed)' : 'Browser'}`);
+  console.log(
+    `[mtl] image version ${clientImageVersion} | built: ${clientBuild} | ${isPwa ? 'PWA (installed)' : 'Browser'}`
+  );
 
   if (!isStartupDiagnosticsEnabled()) return;
 
-  window.addEventListener('error', (event) => {
-    startupError('window', 'Unhandled window error', {
-      message: event.message,
-      source: event.filename,
-      line: event.lineno,
-      column: event.colno,
-    });
-  });
-
-  window.addEventListener('unhandledrejection', (event) => {
-    startupError('window', 'Unhandled promise rejection', describeError(event.reason));
-  });
-
   startupLog('boot', 'Startup diagnostics enabled', {
     clientVersion,
+    clientImageVersion,
     clientBuild,
     runningAs: isPwa ? 'PWA (installed)' : 'Browser',
     queryParam: `?${QUERY_PARAM}=1`,
@@ -119,12 +121,12 @@ export function startupLog(stage: string, message: string, details?: unknown): v
   emit('log', stage, message, details);
 }
 
-export function startupWarn(stage: string, message: string, details?: unknown): void {
-  emit('warn', stage, message, details);
+export function startupWarn(stage: string, message: string, error?: unknown, context?: unknown): void {
+  emit('warn', stage, message, context, error);
 }
 
-export function startupError(stage: string, message: string, details?: unknown): void {
-  emit('error', stage, message, details);
+export function startupError(stage: string, message: string, error?: unknown, context?: unknown): void {
+  emit('error', stage, message, context, error);
 }
 
 export function startStartupTimer(stage: string, message: string, details?: unknown) {
@@ -135,11 +137,11 @@ export function startStartupTimer(stage: string, message: string, details?: unkn
     success(resultMessage: string, resultDetails?: unknown) {
       startupLog(stage, resultMessage, mergeDetails(resultDetails, { durationMs: elapsedSince(startedAt) }));
     },
-    warn(resultMessage: string, resultDetails?: unknown) {
-      startupWarn(stage, resultMessage, mergeDetails(resultDetails, { durationMs: elapsedSince(startedAt) }));
+    warn(resultMessage: string, error?: unknown, context?: unknown) {
+      startupWarn(stage, resultMessage, error, mergeDetails(context, { durationMs: elapsedSince(startedAt) }));
     },
-    error(resultMessage: string, resultDetails?: unknown) {
-      startupError(stage, resultMessage, mergeDetails(resultDetails, { durationMs: elapsedSince(startedAt) }));
+    error(resultMessage: string, error?: unknown, context?: unknown) {
+      startupError(stage, resultMessage, error, mergeDetails(context, { durationMs: elapsedSince(startedAt) }));
     },
     elapsedMs() {
       return elapsedSince(startedAt);

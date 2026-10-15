@@ -21,7 +21,9 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
-/** Resolves the best embedded capture date across image and video metadata formats. */
+/**
+ * Resolves the best embedded capture date across image and video metadata formats.
+ */
 final class MediaCaptureDateResolver {
 
     private static final long QUICK_TIME_EPOCH_MILLIS = Instant.parse("1904-01-01T00:00:00Z").toEpochMilli();

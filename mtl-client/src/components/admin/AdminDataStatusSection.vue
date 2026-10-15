@@ -2,7 +2,7 @@
   <div class="admin-page">
     <AdminSectionHeader
       title="Data status"
-      description="Compare the data loaded by this browser with the current server revisions."
+      description="Check whether this browser shows the latest data from the server."
       icon="bi bi-database-check"
     />
     <DataFreshnessTab @refresh-data="$emit('refresh-data', $event)" />

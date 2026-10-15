@@ -3,15 +3,14 @@ package com.x8ing.mtl.server.mtlserver.jobs.media.indexer;
 
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.x8ing.mtl.server.mtlserver.db.repository.indexer.IndexerRepository;
-import com.x8ing.mtl.server.mtlserver.indexer.FileIndexer;
-import com.x8ing.mtl.server.mtlserver.indexer.FileIndexerImpl;
-import com.x8ing.mtl.server.mtlserver.indexer.IndexerPathMatchers;
-import com.x8ing.mtl.server.mtlserver.indexer.IndexerRescanSupport;
+import com.x8ing.mtl.server.mtlserver.indexer.*;
 import com.x8ing.mtl.server.mtlserver.indexer.event.FileIndexerObserver;
 import com.x8ing.mtl.server.mtlserver.indexer.event.ProcessingFileIndexerObserver;
+import jakarta.annotation.PreDestroy;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.event.ContextClosedEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -32,8 +31,10 @@ import java.util.List;
         "liveWatchEnabled",
         "workerThreads",
         "fileIndexerImpl",
+        "shuttingDown",
         "indexerRepository",
         "processingWorker",
+        "indexerStatusService",
         "txManager"
 })
 /* jscpd:ignore-end */
@@ -54,31 +55,46 @@ public class MediaIndexerService {
     private int workerThreads;
 
     private volatile FileIndexerImpl fileIndexerImpl;
+    private boolean shuttingDown;
 
     private final IndexerRepository indexerRepository;
 
     private final MediaProcessingWorker processingWorker;
+    private final IndexerStatusService indexerStatusService;
 
     private final PlatformTransactionManager txManager;
 
     public MediaIndexerService(IndexerRepository indexerRepository,
                                MediaProcessingWorker processingWorker,
-                               PlatformTransactionManager txManager) {
+                               PlatformTransactionManager txManager,
+                               IndexerStatusService indexerStatusService) {
         this.indexerRepository = indexerRepository;
         this.processingWorker = processingWorker;
         this.txManager = txManager;
+        this.indexerStatusService = indexerStatusService;
     }
 
     @EventListener(ApplicationReadyEvent.class)
     @Async
     public void findMedia() {
+        try {
+            startMediaIndexer();
+        } catch (RuntimeException exception) {
+            indexerStatusService.registerScanState(INDEX_MEDIA, () -> false);
+            log.error("Media indexer startup failed on {}", mediaWatchDirectory, exception);
+            throw exception;
+        }
+    }
+
+    private synchronized void startMediaIndexer() {
+        if (shuttingDown) return;
         log.info("Start media indexing");
 
         FileIndexer fileIndexer = new FileIndexer(txManager, workerThreads);
         Path mediaWatchDirectoryPath = Paths.get(mediaWatchDirectory);
 
         FileIndexerObserver observer = new ProcessingFileIndexerObserver(
-                log, "Media", processingWorker::processCreateOrChange, processingWorker::processDelete);
+                log, "Media", processingWorker::processCreateOrChange, processingWorker::processDelete, indexerStatusService::recordUnreadableSource);
 
         FileIndexerImpl.ChangeDetectionStrategy strategy =
                 FileIndexerImpl.ChangeDetectionStrategy.valueOf(changeDetectionStrategy);
@@ -96,6 +112,21 @@ public class MediaIndexerService {
                 List.of(includeMediaFiles),
                 strategy,
                 liveWatchEnabled);
+        indexerStatusService.registerScanState(INDEX_MEDIA, fileIndexerImpl::isScanInProgress);
+        indexerStatusService.registerDiscoveryState(INDEX_MEDIA, fileIndexerImpl::isDiscoveryInProgress);
+    }
+
+    @PreDestroy
+    public synchronized void shutdown() {
+        stopAcceptingWork();
+        if (fileIndexerImpl != null) fileIndexerImpl.shutdown();
+    }
+
+    @EventListener(ContextClosedEvent.class)
+    public synchronized void stopAcceptingWork() {
+        if (shuttingDown) return;
+        shuttingDown = true;
+        if (fileIndexerImpl != null) fileIndexerImpl.requestStop();
     }
 
     @Scheduled(fixedDelayString = "${mtl.indexer.media.rescan-interval:P7D}")

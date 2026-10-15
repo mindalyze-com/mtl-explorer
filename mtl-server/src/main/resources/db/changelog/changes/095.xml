@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.10.xsd">
+
+    <changeSet id="20261005_2_filter_calendar_timezone" author="codex">
+        <comment>
+            Interpret UTC track timestamps in the requested calendar timezone.
+            Keep year comparisons on the stored UTC column with exclusive upper bounds.
+        </comment>
+        <sql><![CDATA[
+            UPDATE filter_config
+            SET expression = REPLACE(
+                REPLACE(expression,
+                    'to_char(gt.start_date,',
+                    'to_char((gt.start_date AT TIME ZONE ''UTC'' AT TIME ZONE COALESCE(:FILTER_TIME_ZONE, ''UTC'')),'),
+                'from gt.start_date)',
+                'from (gt.start_date AT TIME ZONE ''UTC'' AT TIME ZONE COALESCE(:FILTER_TIME_ZONE, ''UTC'')))')
+            WHERE filter_domain = 'GPS_TRACK'
+                AND filter_name IN ('TracksByYear', 'TracksByDay', 'TracksByQuarter', 'TracksByDayOfWeek', 'TracksByTimeOfDay');
+
+            UPDATE filter_config
+            SET expression = REPLACE(
+                REPLACE(expression,
+                    'make_date(CAST(NULLIF(BTRIM(:YEAR_FROM), '''') AS integer), 1, 1)',
+                    '(CAST(make_date(CAST(NULLIF(BTRIM(:YEAR_FROM), '''') AS integer), 1, 1) AS timestamp) AT TIME ZONE COALESCE(:FILTER_TIME_ZONE, ''UTC'') AT TIME ZONE ''UTC'')'),
+                'make_date(CAST(NULLIF(BTRIM(:YEAR_TO), '''') AS integer) + 1, 1, 1)',
+                '(CAST(make_date(CAST(NULLIF(BTRIM(:YEAR_TO), '''') AS integer) + 1, 1, 1) AS timestamp) AT TIME ZONE COALESCE(:FILTER_TIME_ZONE, ''UTC'') AT TIME ZONE ''UTC'')')
+            WHERE filter_domain = 'GPS_TRACK' AND filter_name = 'TracksByYear';
+        ]]></sql>
+    </changeSet>
+</databaseChangeLog>

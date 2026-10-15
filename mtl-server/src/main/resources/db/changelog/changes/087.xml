@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.10.xsd">
+    <changeSet id="20260907_track_map_exclusion" author="codex">
+        <comment>Independent map visibility for source review decisions. No existing recordings are reassessed.</comment>
+        <addColumn tableName="gps_track">
+            <column name="review_map_excluded" type="boolean" defaultValueBoolean="false"><constraints nullable="false"/></column>
+        </addColumn>
+        <sql splitStatements="false"><![CDATA[
+            DO $map_view$
+            DECLARE previous_definition text;
+            BEGIN
+                previous_definition := regexp_replace(pg_get_viewdef('gps_track_v'::regclass, true), ';\s*$', '');
+                EXECUTE 'CREATE OR REPLACE VIEW gps_track_v AS SELECT previous.*, track.review_map_excluded FROM ('
+                    || previous_definition || ') previous JOIN gps_track track ON track.id = previous.id';
+            END $map_view$;
+        ]]></sql>
+    </changeSet>
+</databaseChangeLog>

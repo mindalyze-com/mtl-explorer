@@ -26,58 +26,16 @@
         <openapi.schema>${project.basedir}/../open-api-schema/schema.json</openapi.schema>
     </properties>
 
-    <dependencyManagement>
-        <dependencies>
-            <dependency>
-                <groupId>org.springframework.boot</groupId>
-                <artifactId>spring-boot-dependencies</artifactId>
-                <version>2.7.18</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
-        </dependencies>
-    </dependencyManagement>
-
-
     <!-- TODO: add generated artifacts to npm repo -->
 
     <build>
         <plugins>
 
-            <!-- Add the exec-maven-plugin -->
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>exec-maven-plugin</artifactId>
-                <version>3.6.3</version>
-                <executions>
-
-                    <!-- Run npm install typescript (do it globally) -->
-                    <execution>
-                        <id>npm-install-typescript</id>
-                        <goals>
-                            <goal>exec</goal>
-                        </goals>
-                        <phase>generate-sources</phase>
-                        <configuration>
-                            <executable>npm</executable>
-                            <workingDirectory>${project.basedir}</workingDirectory>
-                            <arguments>
-                                <argument>install</argument>
-                                <argument>-g</argument> <!-- globally -->
-                                <argument>typescript</argument>
-                            </arguments>
-                        </configuration>
-                    </execution>
-
-                </executions>
-            </plugin>
-
-
             <!-- plugin to generate the client stubs (SDK) based on the previously downloaded api spec (cumbersome) -->
             <plugin>
                 <groupId>org.openapitools</groupId>
                 <artifactId>openapi-generator-maven-plugin</artifactId>
-                <version>7.22.0</version>
+                <version>7.25.0</version>
                 <executions>
 
                     <execution>
@@ -112,7 +70,7 @@
                 <!-- after the build of the typescript sources, we need to run the npm install on the generated package.json -->
                 <groupId>com.github.eirslett</groupId>
                 <artifactId>frontend-maven-plugin</artifactId>
-                <version>1.15.4</version>
+                <version>2.0.2</version>
                 <configuration>
                     <workingDirectory>${project.build.directory}/generated-sources/mtl-typescript</workingDirectory>
                     <installDirectory>./node</installDirectory> <!-- where to install npm/node -->
@@ -124,8 +82,8 @@
                             <goal>install-node-and-npm</goal>
                         </goals>
                         <configuration>
-                            <nodeVersion>v14.21.3</nodeVersion>
-                            <npmVersion>6.14.18</npmVersion>
+                            <nodeVersion>v24.20.0</nodeVersion>
+                            <npmVersion>11.19.0</npmVersion>
                         </configuration>
                     </execution>
                     <execution>

@@ -4,6 +4,8 @@ import type { VueWrapper } from '@vue/test-utils';
 import type { FilterInfo } from 'x8ing-mtl-api-typescript-fetch/dist/esm/models/FilterInfo';
 import { STORAGE_KEYS } from '@/utils/appStorage';
 import { reactive } from 'vue';
+import { ColorPalette } from '@/components/filter/ColorPalette';
+import { FilterConfigEntityColoringStrategyEnum } from 'x8ing-mtl-api-typescript-fetch/dist/esm/models/FilterConfigEntity';
 
 const yearsFilter: FilterInfo = {
   filterConfig: {
@@ -80,6 +82,7 @@ const mocks = vi.hoisted(() => ({
   applyResolvedFilter: vi.fn(),
   fetchFilters: vi.fn(),
   fetchResolveFilter: vi.fn(),
+  loadCachedTracks: vi.fn(),
   store: null as null | Record<string, unknown>,
 }));
 
@@ -94,37 +97,9 @@ vi.mock('@/utils/ServiceHelper', () => ({
   getServerBuildInfo: vi.fn(),
 }));
 
-vi.mock('@/components/filter/ColorPalette', () => {
-  class ColorPalette {
-    id?: number;
-    pLabel = 'No coloring';
-    pDescription = '';
-    pColors: string[] = [];
+vi.mock('@/utils/tracks/trackCollectionLoader', () => ({ loadCachedTracks: mocks.loadCachedTracks }));
 
-    static of(source?: Partial<ColorPalette> | null): ColorPalette {
-      return Object.assign(new ColorPalette(), source ?? {});
-    }
-
-    static async fetch(): Promise<ColorPalette[]> {
-      return [];
-    }
-
-    isEmptyColorPalette(): boolean {
-      return this.pColors.length === 0;
-    }
-
-    reset(): void {}
-
-    getColorForGroup(): string {
-      return '#64748b';
-    }
-
-    getColorForGroupAtIndex(): string {
-      return '#64748b';
-    }
-  }
-  return { ColorPalette };
-});
+const fetchPalettes = vi.spyOn(ColorPalette, 'fetch');
 
 import CustomFilter from '@/components/filter/CustomFilter.vue';
 
@@ -176,25 +151,25 @@ const FilterScopeHelpStub = {
 };
 const FilterViewSheetStub = {
   name: 'FilterViewSheet',
-  props: ['modelValue', 'groups', 'selectedFilterInfo'],
+  props: ['modelValue', 'enabled', 'groups', 'selectedFilterInfo', 'legendSortStrategy'],
   emits: ['update:modelValue', 'apply'],
   template: '<div data-test="filter-view-sheet"></div>',
 };
 const FilterCriteriaSheetStub = {
   name: 'FilterCriteriaSheet',
-  props: ['modelValue', 'filterInfo', 'filterParams', 'trackIdCandidateTracks', 'trackIdCandidatesLoading'],
-  emits: ['update:modelValue', 'change', 'apply-and-draw'],
+  props: ['modelValue', 'enabled', 'filterInfo', 'filterParams', 'trackIdCandidateTracks', 'trackIdCandidatesLoading'],
+  emits: ['update:modelValue', 'change', 'apply-and-enable', 'apply-and-draw'],
   template: '<div data-test="filter-criteria-sheet"></div>',
 };
 const FilterCategoriesSheetStub = {
   name: 'FilterCategoriesSheet',
-  props: ['modelValue', 'selection'],
+  props: ['modelValue', 'enabled', 'selection'],
   emits: ['update:modelValue', 'apply'],
   template: '<div data-test="filter-categories-sheet"></div>',
 };
 const FilterColoringSheetStub = {
   name: 'FilterColoringSheet',
-  props: ['modelValue', 'palette', 'legendSortStrategy'],
+  props: ['modelValue', 'enabled', 'palettes', 'palette', 'defaultPalette', 'legendSortStrategy'],
   emits: ['update:modelValue', 'apply'],
   template: '<div data-test="filter-coloring-sheet"></div>',
 };
@@ -222,6 +197,8 @@ describe('CustomFilter overview navigation', () => {
   beforeEach(() => {
     vi.useFakeTimers();
     vi.clearAllMocks();
+    fetchPalettes.mockResolvedValue([]);
+    mocks.loadCachedTracks.mockResolvedValue(new Map());
     mocks.activeIdentity = 'Tracks by year';
     mocks.store = reactive({
       get activeIdentity() {
@@ -258,6 +235,179 @@ describe('CustomFilter overview navigation', () => {
     mountedWrappers.push(wrapper);
     return wrapper;
   }
+
+  function configureColoringViews() {
+    const categorical: FilterInfo = {
+      ...activitiesFilter,
+      filterConfig: {
+        ...activitiesFilter.filterConfig,
+        coloringStrategy: FilterConfigEntityColoringStrategyEnum.Categorical,
+        preferredPalette: '008_COLORS',
+      },
+    };
+    const gradient: FilterInfo = {
+      filterConfig: {
+        id: 6,
+        filterName: 'DistanceGradient',
+        filterDomain: 'GPS_TRACK',
+        displayName: 'Distance gradient',
+        coloringStrategy: FilterConfigEntityColoringStrategyEnum.SequentialGradient,
+        preferredPalette: 'GRADIENT_100_VIRIDIS',
+      },
+      paramDefinitions: [],
+    };
+    fetchPalettes.mockResolvedValue([
+      ColorPalette.of({
+        id: 10,
+        domain3: '008_COLORS',
+        value: JSON.stringify({ label: '8 Colors', colors: ['#123456', '#654321'] }),
+      }),
+      ColorPalette.of({
+        id: 11,
+        domain3: 'GRADIENT_100_VIRIDIS',
+        value: JSON.stringify({ label: 'Gradient Viridis', colors: ['#440154', '#fde725'] }),
+      }),
+    ]);
+    mocks.fetchFilters.mockResolvedValue([smartBaseFilter, categorical, gradient]);
+    mocks.ensureLoaded.mockResolvedValue({ filterInfo: categorical, filterParams: {}, palette: {} });
+    return { categorical, gradient };
+  }
+
+  it('preserves an explicit No coloring choice after serialization, reload and view changes', async () => {
+    const { categorical, gradient } = configureColoringViews();
+    const wrapper = mountFilter();
+    await flushPromises();
+    const coloring = wrapper.findComponent(FilterColoringSheetStub);
+    expect(coloring.props('palette').pLabel).toBe('8 Colors');
+    const noColoring = coloring.props('palettes').find((palette: ColorPalette) => palette.pLabel === 'No coloring');
+    expect(noColoring).toBeDefined();
+    coloring.vm.$emit('apply', { palette: noColoring, legendSortStrategy: null });
+    await wrapper.vm.$nextTick();
+    expect(coloring.props('palette').isEmptyColorPalette()).toBe(true);
+
+    const saved = JSON.parse(JSON.stringify(mocks.save.mock.calls.at(-1)?.[0]));
+    expect(saved.palette.noColoring).toBe(true);
+    // Presentation labels are not needed to restore the stored preference.
+    delete saved.palette.pLabel;
+    delete saved.palette.pDescription;
+    wrapper.unmount();
+    mocks.ensureLoaded.mockResolvedValue(saved);
+    const reloaded = mountFilter();
+    await flushPromises();
+    const reloadedColoring = reloaded.findComponent(FilterColoringSheetStub);
+    expect(reloadedColoring.props('palette').pLabel).toBe('No coloring');
+    expect(reloadedColoring.props('palette').isEmptyColorPalette()).toBe(true);
+    for (const view of [gradient, categorical]) {
+      reloaded.findComponent(FilterViewSheetStub).vm.$emit('apply', view);
+      await reloaded.vm.$nextTick();
+      expect(reloadedColoring.props('palette').pLabel).toBe('No coloring');
+      expect(reloadedColoring.props('palette').isEmptyColorPalette()).toBe(true);
+    }
+
+    const overview = reloaded.findComponent(FilterOverviewStub);
+    overview.vm.$emit('reset');
+    await reloaded.vm.$nextTick();
+    expect(overview.props('viewSummary')).toBe('Smart Base Filter');
+    overview.vm.$emit('undo-reset');
+    await reloaded.vm.$nextTick();
+    expect(reloadedColoring.props('palette').pLabel).toBe('No coloring');
+    reloaded.findComponent(FilterViewSheetStub).vm.$emit('apply', gradient);
+    await reloaded.vm.$nextTick();
+    expect(reloadedColoring.props('palette').isEmptyColorPalette()).toBe(true);
+  });
+
+  it('retains legacy saved No coloring choices while fresh configs still use the preferred palette', async () => {
+    const { categorical } = configureColoringViews();
+    mocks.ensureLoaded.mockResolvedValue({
+      filterInfo: categorical,
+      filterParams: {},
+      palette: { pLabel: 'No coloring', pDescription: 'No coloring at all' },
+    });
+    const wrapper = mountFilter();
+    await flushPromises();
+    const coloring = wrapper.findComponent(FilterColoringSheetStub);
+    expect(coloring.props('palette').pLabel).toBe('No coloring');
+    expect(coloring.props('palette').isEmptyColorPalette()).toBe(true);
+
+    wrapper.findComponent(FilterOverviewStub).vm.$emit('reset');
+    await wrapper.vm.$nextTick();
+    wrapper.findComponent(FilterViewSheetStub).vm.$emit('apply', categorical);
+    await wrapper.vm.$nextTick();
+    expect(coloring.props('palette').pLabel).toBe('8 Colors');
+  });
+
+  it('preserves No coloring when a paused draft is reloaded and resumed', async () => {
+    configureColoringViews();
+    mocks.fetchResolveFilter.mockResolvedValue({
+      queryResult: { resultEntries: [], groupingAvailable: true, availableGroups: [] },
+      trackVersions: new Map(),
+      filterGroups: new Map(),
+      standardFilterCount: 0,
+    });
+    const wrapper = mountFilter();
+    await flushPromises();
+    const coloring = wrapper.findComponent(FilterColoringSheetStub);
+    const noColoring = coloring.props('palettes').find((palette: ColorPalette) => palette.pLabel === 'No coloring');
+    coloring.vm.$emit('apply', { palette: noColoring, legendSortStrategy: null });
+    await wrapper.vm.$nextTick();
+    wrapper.findComponent(FilterOverviewStub).vm.$emit('update:enabled', false);
+    await wrapper.vm.$nextTick();
+    wrapper.unmount();
+
+    const reloaded = mountFilter();
+    await flushPromises();
+    const overview = reloaded.findComponent(FilterOverviewStub);
+    expect(overview.props('enabled')).toBe(false);
+    expect(reloaded.findComponent(FilterColoringSheetStub).props('palette').pLabel).toBe('No coloring');
+    overview.vm.$emit('update:enabled', true);
+    await reloaded.vm.$nextTick();
+    expect(reloaded.findComponent(FilterColoringSheetStub).props('palette').isEmptyColorPalette()).toBe(true);
+  });
+
+  it('keeps preferred defaults and switches incompatible selected palettes', async () => {
+    const { categorical, gradient } = configureColoringViews();
+    const wrapper = mountFilter();
+    await flushPromises();
+    const coloring = wrapper.findComponent(FilterColoringSheetStub);
+    expect(coloring.props('palette').domain3).toBe('008_COLORS');
+    wrapper.findComponent(FilterViewSheetStub).vm.$emit('apply', gradient);
+    await wrapper.vm.$nextTick();
+    expect(coloring.props('palette').domain3).toBe('GRADIENT_100_VIRIDIS');
+    wrapper.findComponent(FilterViewSheetStub).vm.$emit('apply', categorical);
+    await wrapper.vm.$nextTick();
+    expect(coloring.props('palette').domain3).toBe('008_COLORS');
+  });
+
+  it('uses the next view default after resetting map colors in a view without a preferred palette', async () => {
+    const { categorical } = configureColoringViews();
+    mocks.ensureLoaded.mockResolvedValue({ filterInfo: smartBaseFilter, filterParams: {}, palette: {} });
+    const wrapper = mountFilter();
+    await flushPromises();
+    const coloring = wrapper.findComponent(FilterColoringSheetStub);
+    coloring.vm.$emit('apply', { palette: coloring.props('defaultPalette'), legendSortStrategy: null });
+    await wrapper.vm.$nextTick();
+    expect(coloring.props('palette').isEmptyColorPalette()).toBe(true);
+    wrapper.findComponent(FilterViewSheetStub).vm.$emit('apply', categorical);
+    await wrapper.vm.$nextTick();
+    expect(coloring.props('palette').pLabel).toBe('8 Colors');
+  });
+
+  it('passes the saved category order to the view picker and resets it only for a different view', async () => {
+    configureColoringViews();
+    const wrapper = mountFilter();
+    await flushPromises();
+    const coloring = wrapper.findComponent(FilterColoringSheetStub);
+    coloring.vm.$emit('apply', { palette: coloring.props('palette'), legendSortStrategy: 'COUNT_DESC' });
+    await wrapper.vm.$nextTick();
+    const viewSheet = wrapper.findComponent(FilterViewSheetStub);
+    expect(viewSheet.props('legendSortStrategy')).toBe('COUNT_DESC');
+    viewSheet.vm.$emit('apply', viewSheet.props('selectedFilterInfo'));
+    await wrapper.vm.$nextTick();
+    expect(viewSheet.props('legendSortStrategy')).toBe('COUNT_DESC');
+    viewSheet.vm.$emit('apply', smartBaseFilter);
+    await wrapper.vm.$nextTick();
+    expect(viewSheet.props('legendSortStrategy')).toBeNull();
+  });
 
   it('shows a central overview and applies a selected view through its detail sheet', async () => {
     const wrapper = mountFilter(false);
@@ -347,27 +497,66 @@ describe('CustomFilter overview navigation', () => {
     overview.vm.$emit('update:enabled', false);
     await wrapper.vm.$nextTick();
     expect(overview.props('enabled')).toBe(false);
-    expect(overview.props('resultText')).toBe('Filter paused');
-    expect(overview.props('resultDetail')).toBe('All tracks are shown. Your filter setup is kept.');
+    expect(overview.props('resultText')).toBe('Filtering is off');
+    expect(overview.props('resultDetail')).toBe('Showing all tracks. Your filter setup is kept.');
 
     overview.vm.$emit('update:enabled', true);
     await wrapper.vm.$nextTick();
     expect(overview.props('enabled')).toBe(true);
   });
 
-  it('shows the explanation page once and keeps it available from the overview', async () => {
+  it('enables filtering when paused configuration changes are applied', async () => {
+    const wrapper = mountFilter();
+    await flushPromises();
+
+    const overview = wrapper.findComponent(FilterOverviewStub);
+    const pause = async () => {
+      overview.vm.$emit('update:enabled', false);
+      await wrapper.vm.$nextTick();
+      expect(overview.props('enabled')).toBe(false);
+      expect(wrapper.findComponent(FilterViewSheetStub).props('enabled')).toBe(false);
+      expect(wrapper.findComponent(FilterCriteriaSheetStub).props('enabled')).toBe(false);
+      expect(wrapper.findComponent(FilterCategoriesSheetStub).props('enabled')).toBe(false);
+      expect(wrapper.findComponent(FilterColoringSheetStub).props('enabled')).toBe(false);
+    };
+
+    await pause();
+    wrapper.findComponent(FilterViewSheetStub).vm.$emit('apply', activitiesFilter);
+    await wrapper.vm.$nextTick();
+    expect(overview.props('enabled')).toBe(true);
+
+    await pause();
+    wrapper.findComponent(FilterCategoriesSheetStub).vm.$emit('apply', undefined);
+    await wrapper.vm.$nextTick();
+    expect(overview.props('enabled')).toBe(true);
+
+    await pause();
+    const palette = wrapper.findComponent(FilterColoringSheetStub).props('palette');
+    wrapper.findComponent(FilterColoringSheetStub).vm.$emit('apply', {
+      palette,
+      legendSortStrategy: null,
+    });
+    await wrapper.vm.$nextTick();
+    expect(overview.props('enabled')).toBe(true);
+
+    await pause();
+    wrapper.findComponent(FilterCriteriaSheetStub).vm.$emit('apply-and-enable', {
+      filterParams: { stringParams: { ACTIVITY: 'WALKING' } },
+      clearedGeoParams: [],
+    });
+    await wrapper.vm.$nextTick();
+    expect(overview.props('enabled')).toBe(true);
+    expect(localStorage.getItem(STORAGE_KEYS.filterPaused)).toBe('false');
+  });
+
+  it('opens directly on the overview on a first visit and keeps help available', async () => {
     localStorage.removeItem(STORAGE_KEYS.filterScopeHelpSeen);
     const wrapper = mountFilter(false);
     await flushPromises();
 
     await wrapper.setProps({ show: true });
-    expect(wrapper.find('.filter-header__panel-title').text()).toBe('How filters work');
-    expect(wrapper.findComponent(FilterScopeHelpStub).props('firstVisit')).toBe(true);
-    expect(localStorage.getItem(STORAGE_KEYS.filterScopeHelpSeen)).toBe('true');
-
-    wrapper.findComponent(FilterScopeHelpStub).vm.$emit('done');
-    await wrapper.vm.$nextTick();
     expect(wrapper.find('.filter-header__panel-title').text()).toBe('Filter');
+    expect(wrapper.findComponent(FilterScopeHelpStub).exists()).toBe(false);
 
     wrapper.findComponent(FilterOverviewStub).vm.$emit('open-scope-help');
     await wrapper.vm.$nextTick();
@@ -430,6 +619,156 @@ describe('CustomFilter overview navigation', () => {
     expect(mocks.applyResolvedFilter).toHaveBeenCalledOnce();
   });
 
+  it.each([
+    [
+      'summer noon',
+      '2025-06-15T12:00:00+02:00',
+      '2025-06-15T12:01:00+02:00',
+      '2025-06-15T10:00:00.000Z',
+      '2025-06-15T10:01:00.000Z',
+    ],
+    [
+      'winter noon',
+      '2025-01-15T12:00:00+01:00',
+      '2025-01-15T12:01:00+01:00',
+      '2025-01-15T11:00:00.000Z',
+      '2025-01-15T11:01:00.000Z',
+    ],
+    [
+      'New Year',
+      '2025-01-01T00:00:00+01:00',
+      '2025-12-31T23:59:59+01:00',
+      '2024-12-31T23:00:00.000Z',
+      '2025-12-31T22:59:59.000Z',
+    ],
+    [
+      'spring DST',
+      '2024-03-31T01:59:00+01:00',
+      '2024-03-31T03:00:00+02:00',
+      '2024-03-31T00:59:00.000Z',
+      '2024-03-31T01:00:00.000Z',
+    ],
+    [
+      'autumn DST',
+      '2024-10-27T01:59:00+02:00',
+      '2024-10-27T03:00:00+01:00',
+      '2024-10-26T23:59:00.000Z',
+      '2024-10-27T02:00:00.000Z',
+    ],
+  ])('sends and restores absolute date bounds for %s', async (_label, from, to, utcFrom, utcTo) => {
+    const dateFilter: FilterInfo = {
+      ...smartBaseFilter,
+      paramDefinitions: [
+        { name: 'DATE_TIME_FROM', type: 'DATE_TIME' },
+        { name: 'DATE_TIME_TO', type: 'DATE_TIME' },
+      ],
+    };
+    mocks.fetchFilters.mockResolvedValue([dateFilter]);
+    mocks.ensureLoaded.mockResolvedValue({ filterInfo: dateFilter, filterParams: {}, palette: {} });
+    const wrapper = mountFilter();
+    await flushPromises();
+    wrapper.findComponent(FilterCriteriaSheetStub).vm.$emit('change', {
+      filterParams: { dateTimeParams: { DATE_TIME_FROM: new Date(from), DATE_TIME_TO: new Date(to) } },
+      clearedGeoParams: [],
+    });
+    await vi.advanceTimersByTimeAsync(400);
+    await flushPromises();
+    const expectedBounds = { DATE_TIME_FROM: utcFrom, DATE_TIME_TO: utcTo };
+    expect(mocks.fetchResolveFilter).toHaveBeenLastCalledWith(
+      3,
+      expect.objectContaining({ dateTimeParams: expectedBounds }),
+      false
+    );
+    const saved = mocks.applyResolvedFilter.mock.calls.at(-1)?.[0];
+    expect(saved.filterParams.dateTimeParams).toEqual(expectedBounds);
+    wrapper.unmount();
+
+    mocks.ensureLoaded.mockResolvedValue(saved);
+    mocks.fetchResolveFilter.mockClear();
+    const restored = mountFilter();
+    await flushPromises();
+    const restoredBounds = restored.findComponent(FilterCriteriaSheetStub).props('filterParams').dateTimeParams;
+    expect(restoredBounds.DATE_TIME_FROM).toEqual(new Date(from));
+    expect(restoredBounds.DATE_TIME_TO).toEqual(new Date(to));
+    await vi.advanceTimersByTimeAsync(400);
+    await flushPromises();
+    expect(mocks.fetchResolveFilter).toHaveBeenLastCalledWith(
+      3,
+      expect.objectContaining({ dateTimeParams: expectedBounds }),
+      false
+    );
+    restored.unmount();
+  });
+
+  it('keeps the last successful map for reversed dates and resolves once after correction', async () => {
+    const dateFilter: FilterInfo = {
+      ...smartBaseFilter,
+      paramDefinitions: [
+        { name: 'DATE_TIME_FROM', type: 'DATE_TIME' },
+        { name: 'DATE_TIME_TO', type: 'DATE_TIME' },
+      ],
+    };
+    const from = new Date(2026, 7, 1);
+    const to = new Date(2026, 7, 31, 23, 59, 59);
+    const lastResult = {
+      queryResult: { resultEntries: [{ id: 1 }] },
+      trackVersions: new Map([[1, 1]]),
+      filterGroups: new Map(),
+      standardFilterCount: 1,
+    };
+    mocks.store!.activeResult = lastResult;
+    mocks.fetchFilters.mockResolvedValue([dateFilter]);
+    mocks.ensureLoaded.mockResolvedValue({
+      filterInfo: dateFilter,
+      filterParams: { dateTimeParams: { DATE_TIME_FROM: from, DATE_TIME_TO: to } },
+      palette: {},
+    });
+    mocks.fetchResolveFilter.mockResolvedValue(lastResult);
+    const wrapper = mountFilter();
+    await flushPromises();
+    const criteria = wrapper.findComponent(FilterCriteriaSheetStub);
+    criteria.vm.$emit('change', {
+      filterParams: { dateTimeParams: { DATE_TIME_FROM: from, DATE_TIME_TO: new Date(2026, 6, 31) } },
+      clearedGeoParams: [],
+    });
+    await vi.advanceTimersByTimeAsync(400);
+    await flushPromises();
+    expect(mocks.fetchResolveFilter).not.toHaveBeenCalled();
+    expect(mocks.applyResolvedFilter).not.toHaveBeenCalled();
+    expect(mocks.store!.activeResult).toEqual(lastResult);
+    expect(wrapper.findComponent(FilterOverviewStub).props('resultText')).toBe('Check filter criteria');
+    expect(wrapper.findComponent(FilterOverviewStub).props('resultDetail')).toBe(
+      'The end must be on or after the start.'
+    );
+
+    criteria.vm.$emit('change', {
+      filterParams: { dateTimeParams: { DATE_TIME_FROM: from, DATE_TIME_TO: to } },
+      clearedGeoParams: [],
+    });
+    await vi.advanceTimersByTimeAsync(400);
+    await flushPromises();
+    expect(mocks.fetchResolveFilter).toHaveBeenCalledOnce();
+    expect(mocks.applyResolvedFilter).toHaveBeenCalledOnce();
+  });
+
+  it('opens required criteria and keeps the prior result when a view is incomplete', async () => {
+    const requiredFilter: FilterInfo = {
+      ...activitiesFilter,
+      paramDefinitions: [{ name: 'KEYWORD', type: 'STRING', label: 'Keyword' }],
+    };
+    mocks.fetchFilters.mockResolvedValue([yearsFilter, requiredFilter]);
+    const wrapper = mountFilter();
+    await flushPromises();
+    wrapper.findComponent(FilterViewSheetStub).vm.$emit('apply', requiredFilter);
+    await wrapper.vm.$nextTick();
+    expect(wrapper.findComponent(FilterCriteriaSheetStub).props('modelValue')).toBe(true);
+    await vi.advanceTimersByTimeAsync(400);
+    expect(mocks.fetchResolveFilter).not.toHaveBeenCalled();
+    expect(mocks.applyResolvedFilter).not.toHaveBeenCalled();
+    expect(wrapper.findComponent(FilterOverviewStub).props('resultText')).toBe('Check filter criteria');
+    expect(wrapper.findComponent(FilterOverviewStub).props('resultActionLabel')).toBe('Edit criteria');
+  });
+
   it('persists completed geo shapes before the debounced preview resolves', async () => {
     mocks.fetchFilters.mockResolvedValue([smartBaseFilter, geoFilter]);
     mocks.ensureLoaded.mockResolvedValue({
@@ -480,6 +819,14 @@ describe('CustomFilter overview navigation', () => {
     );
   });
 
+  it('notifies the tool that Show on map closes the filter sheet', async () => {
+    const wrapper = mountFilter();
+    await flushPromises();
+    wrapper.findComponent({ name: 'FilterSheetActions' }).vm.$emit('apply');
+    expect(wrapper.emitted('update:show')?.at(-1)).toEqual([false]);
+    expect(wrapper.emitted('closed')).toHaveLength(1);
+  });
+
   it('closes open detail sheets when the main filter sheet closes', async () => {
     const wrapper = mountFilter();
     await flushPromises();
@@ -502,7 +849,7 @@ describe('CustomFilter overview navigation', () => {
     const wrapper = mountFilter();
     await flushPromises();
 
-    wrapper.findComponent(FilterOverviewStub).vm.$emit('review');
+    wrapper.findComponent({ name: 'FilterSheetActions' }).vm.$emit('cancel');
     await flushPromises();
     const reviewSheet = wrapper.findComponent(FilterTrackReviewSheetStub);
     expect(reviewSheet.props('modelValue')).toBe(true);
@@ -548,7 +895,7 @@ describe('CustomFilter overview navigation', () => {
     await vi.advanceTimersByTimeAsync(400);
     await flushPromises();
 
-    wrapper.findComponent(FilterOverviewStub).vm.$emit('review');
+    wrapper.findComponent({ name: 'FilterSheetActions' }).vm.$emit('cancel');
     await flushPromises();
     const reviewSheet = wrapper.findComponent(FilterTrackReviewSheetStub);
     expect(reviewSheet.props('entries')).toEqual(initialDetails.queryResult.resultEntries);
@@ -613,6 +960,8 @@ describe('CustomFilter overview navigation', () => {
 
     const wrapper = mountFilter();
     await flushPromises();
+    wrapper.findComponent(FilterOverviewStub).vm.$emit('open-criteria');
+    await wrapper.vm.$nextTick();
     await vi.advanceTimersByTimeAsync(350);
     await flushPromises();
 
@@ -631,6 +980,118 @@ describe('CustomFilter overview navigation', () => {
     expect(criteriaSheet.props('trackIdCandidateTracks')).toEqual([expect.objectContaining({ id: 11 })]);
     expect(mocks.fetchResolveFilter).toHaveBeenCalledWith(3, {}, true);
     expect(mocks.fetchResolveFilter.mock.calls.filter((call) => call[2] === true)).toHaveLength(2);
+  });
+
+  function configureTrackPicker() {
+    mocks.fetchFilters.mockResolvedValue([smartBaseFilter, trackPickerFilter, yearsFilter]);
+    mocks.ensureLoaded.mockResolvedValue({
+      filterInfo: trackPickerFilter,
+      filterParams: { stringParams: { TRACK_IDS: '11' } },
+      palette: {},
+    });
+    mocks.fetchResolveFilter.mockResolvedValue({
+      queryResult: { resultEntries: [{ id: 11, gpsTrack: { id: 11, trackName: 'Morning walk' } }] },
+      trackVersions: new Map([[11, 1]]),
+      filterGroups: new Map(),
+      standardFilterCount: 1,
+    });
+  }
+
+  it('applies the saved filter at startup without loading picker choices until criteria opens', async () => {
+    configureTrackPicker();
+    const wrapper = mountFilter(false);
+    await flushPromises();
+    await vi.advanceTimersByTimeAsync(400);
+    await flushPromises();
+
+    expect(mocks.fetchResolveFilter).toHaveBeenCalledWith(
+      5,
+      expect.objectContaining({ stringParams: { TRACK_IDS: '11' } }),
+      false
+    );
+    expect(mocks.applyResolvedFilter).toHaveBeenCalled();
+    expect(mocks.fetchResolveFilter.mock.calls.some((call) => call[2] === true)).toBe(false);
+    await wrapper.setProps({ show: true });
+    wrapper.findComponent(FilterOverviewStub).vm.$emit('open-criteria');
+    await wrapper.vm.$nextTick();
+    await vi.advanceTimersByTimeAsync(350);
+    await flushPromises();
+    expect(mocks.fetchResolveFilter).toHaveBeenCalledWith(3, {}, true);
+    const criteria = wrapper.findComponent(FilterCriteriaSheetStub);
+    expect(criteria.props('filterParams').stringParams.TRACK_IDS).toBe('11');
+    expect(criteria.props('trackIdCandidateTracks')).toEqual([expect.objectContaining({ id: 11 })]);
+
+    criteria.vm.$emit('update:modelValue', false);
+    await wrapper.vm.$nextTick();
+    wrapper.findComponent(FilterOverviewStub).vm.$emit('open-criteria');
+    await wrapper.vm.$nextTick();
+    await vi.advanceTimersByTimeAsync(350);
+    await flushPromises();
+    expect(mocks.fetchResolveFilter.mock.calls.filter((call) => call[2] === true)).toHaveLength(1);
+  });
+
+  it('cancels a scheduled picker request when criteria closes and supports filter switching', async () => {
+    configureTrackPicker();
+    const wrapper = mountFilter();
+    await flushPromises();
+    const overview = wrapper.findComponent(FilterOverviewStub);
+    const criteria = wrapper.findComponent(FilterCriteriaSheetStub);
+    overview.vm.$emit('open-criteria');
+    await wrapper.vm.$nextTick();
+    criteria.vm.$emit('update:modelValue', false);
+    await wrapper.vm.$nextTick();
+    await vi.advanceTimersByTimeAsync(400);
+    await flushPromises();
+    expect(mocks.fetchResolveFilter.mock.calls.some((call) => call[2] === true)).toBe(false);
+
+    wrapper.findComponent(FilterViewSheetStub).vm.$emit('apply', yearsFilter);
+    overview.vm.$emit('open-criteria');
+    await wrapper.vm.$nextTick();
+    await vi.advanceTimersByTimeAsync(400);
+    expect(mocks.fetchResolveFilter.mock.calls.some((call) => call[2] === true)).toBe(false);
+    wrapper.findComponent(FilterViewSheetStub).vm.$emit('apply', trackPickerFilter);
+    await wrapper.vm.$nextTick();
+    await vi.advanceTimersByTimeAsync(400);
+    await flushPromises();
+    expect(mocks.fetchResolveFilter.mock.calls.filter((call) => call[2] === true)).toHaveLength(1);
+  });
+
+  it('defers freshness refresh while criteria is closed, then refreshes on reopening', async () => {
+    configureTrackPicker();
+    const wrapper = mountFilter();
+    await flushPromises();
+    wrapper.findComponent(FilterOverviewStub).vm.$emit('open-criteria');
+    await wrapper.vm.$nextTick();
+    await vi.advanceTimersByTimeAsync(350);
+    await flushPromises();
+    const criteria = wrapper.findComponent(FilterCriteriaSheetStub);
+    criteria.vm.$emit('update:modelValue', false);
+    await wrapper.vm.$nextTick();
+    (mocks.store as { dataFreshnessRevision: number }).dataFreshnessRevision += 1;
+    await wrapper.vm.$nextTick();
+    await vi.advanceTimersByTimeAsync(400);
+    expect(mocks.fetchResolveFilter.mock.calls.filter((call) => call[2] === true)).toHaveLength(1);
+    wrapper.findComponent(FilterOverviewStub).vm.$emit('open-criteria');
+    await wrapper.vm.$nextTick();
+    await vi.advanceTimersByTimeAsync(350);
+    await flushPromises();
+    expect(mocks.fetchResolveFilter.mock.calls.filter((call) => call[2] === true)).toHaveLength(2);
+  });
+
+  it('reuses complete cached track metadata when criteria opens', async () => {
+    configureTrackPicker();
+    mocks.loadCachedTracks.mockResolvedValue(new Map([[11, { id: 11, trackName: 'Cached walk' }]]));
+    const wrapper = mountFilter();
+    await wrapper.setProps({ totalTrackCount: 1 });
+    await flushPromises();
+    wrapper.findComponent(FilterOverviewStub).vm.$emit('open-criteria');
+    await wrapper.vm.$nextTick();
+    await vi.advanceTimersByTimeAsync(350);
+    await flushPromises();
+    expect(mocks.fetchResolveFilter.mock.calls.some((call) => call[2] === true)).toBe(false);
+    expect(wrapper.findComponent(FilterCriteriaSheetStub).props('trackIdCandidateTracks')).toEqual([
+      expect.objectContaining({ id: 11, trackName: 'Cached walk' }),
+    ]);
   });
 
   it('refreshes paused result metadata without applying the draft to the map', async () => {
@@ -657,8 +1118,8 @@ describe('CustomFilter overview navigation', () => {
     expect(mocks.applyResolvedFilter).not.toHaveBeenCalled();
     const overview = wrapper.findComponent(FilterOverviewStub);
     expect(overview.props('enabled')).toBe(false);
-    expect(overview.props('resultText')).toBe('Filter paused');
-    expect(overview.props('resultDetail')).toBe('All tracks are shown. Your filter setup is kept.');
+    expect(overview.props('resultText')).toBe('Filtering is off');
+    expect(overview.props('resultDetail')).toBe('Showing all tracks. Your filter setup is kept.');
   });
 
   it('dismisses the filter action menu on outside pointer input or Escape', async () => {

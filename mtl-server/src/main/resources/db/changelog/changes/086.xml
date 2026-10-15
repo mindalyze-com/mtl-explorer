@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.10.xsd">
+    <changeSet id="20260906_track_timing_media_invalidation" author="codex">
+        <comment>Invalidate derived photo alignment when a track's timing becomes unsupported. No backfill.</comment>
+        <sql splitStatements="false"><![CDATA[
+CREATE OR REPLACE FUNCTION invalidate_media_for_unsupported_track_timing()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF NEW.timing_unreliable IS NOT DISTINCT FROM OLD.timing_unreliable THEN
+        RETURN NEW;
+    END IF;
+    INSERT INTO media_correlation_track_work(track_id, reason, requested_at)
+    VALUES (NEW.id, 'track_timing_support_changed', CURRENT_TIMESTAMP)
+    ON CONFLICT (track_id) DO UPDATE SET reason=EXCLUDED.reason, requested_at=EXCLUDED.requested_at;
+
+    IF NEW.timing_unreliable THEN
+        INSERT INTO media_correlation_media_work(media_id, reason, requested_at)
+        SELECT DISTINCT media_id, 'track_timing_unsupported', CURRENT_TIMESTAMP
+        FROM media_track_correlation WHERE track_id=NEW.id
+        ON CONFLICT (media_id) DO UPDATE SET reason=EXCLUDED.reason, requested_at=EXCLUDED.requested_at,
+            attempt_count=0, last_error=NULL, retry_after=EXCLUDED.requested_at;
+
+        DELETE FROM media_resolved_location location USING media_track_correlation correlation
+        WHERE location.correlation_id=correlation.id AND correlation.track_id=NEW.id;
+        DELETE FROM media_track_correlation WHERE track_id=NEW.id;
+        PERFORM bump_data_freshness('media');
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER gps_track_timing_support_changed
+AFTER UPDATE OF timing_unreliable ON gps_track
+FOR EACH ROW EXECUTE FUNCTION invalidate_media_for_unsupported_track_timing();
+        ]]></sql>
+        <rollback>
+            <sql>DROP TRIGGER IF EXISTS gps_track_timing_support_changed ON gps_track; DROP FUNCTION IF EXISTS invalidate_media_for_unsupported_track_timing();</sql>
+        </rollback>
+    </changeSet>
+</databaseChangeLog>

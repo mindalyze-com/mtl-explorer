@@ -1,18 +1,26 @@
 <template>
-  <div class="tool-container">
+  <div data-test="track-details" class="tool-container track-details">
     <TrackDetailMiniMap
       ref="miniMapRef"
       :gps-track-id="gpsTrackId"
       :replay-enabled="canStart3dReplay"
+      :show-replay-control="false"
       :track-events="trackEvents"
       :track-media="trackMedia"
+      :media-loading="trackMediaLoading"
+      :media-error="trackMediaError"
+      :media-total-items="trackMediaTotalItems"
       :track-coordinates="miniMapCoordinates"
+      :recording-break-before-point-indexes="gpsTrack?.gpsTracksData?.[0]?.recordingBreakBeforePointIndexes ?? []"
       :media-interaction-enabled="isMediaTabActive"
+      :marker-interaction-enabled="!isGraphsTabActive"
+      :point-details-enabled="!isGraphsTabActive"
       :selected-event-key="selectedTrackEventKey"
       :selected-media-id="selectedTrackMediaId"
       :highlighted-media-id="highlightedTrackMediaId"
       @select-event="onTrackEventSelected"
       @select-media="onTrackMediaSelected"
+      @retry-media="reloadTrackMedia()"
       @clear-selection="onMiniMapSelectionCleared"
       @start-3d-replay="onStart3dReplay"
     />
@@ -49,13 +57,23 @@
     </div>
 
     <Tabs v-else :value="activeTab" class="sheet-scroll-tabs" @update:value="onTabChange">
+      <p
+        v-if="sourceReviewNotice && gpsTrack?.indexedFile?.id"
+        class="track-source-review-notice"
+        data-test="track-source-review-notice"
+      >
+        <span>{{ sourceReviewNotice }}</span>
+        <RouterLink :to="{ name: 'review', params: { sourceId: gpsTrack.indexedFile.id } }"
+          >Review source findings and map use</RouterLink
+        >
+      </p>
       <div
         ref="tabResizeZoneEl"
         class="track-detail-tab-resize-zone"
         data-test="track-detail-tab-resize-zone"
         @click.capture="onTabResizeZoneClickCapture"
       >
-        <TabList>
+        <TabList aria-label="Track details">
           <Tab value="0">Overview</Tab>
           <Tab value="1">Graphs</Tab>
           <Tab value="2">Quality</Tab>
@@ -64,17 +82,31 @@
           <Tab value="5">Events</Tab>
         </TabList>
       </div>
-      <TabPanels>
+      <TabPanels
+        ref="tabPanelsRef"
+        data-sheet-fit-target
+        :data-sheet-content-key="activeTab"
+        data-test="track-detail-panels"
+      >
         <TabPanel value="0">
           <TrackDetailOverview
             :gps-track="gpsTrack ?? undefined"
             :track-details="trackDetails"
+            :track-health="trackHealth ?? undefined"
             @track-updated="onTrackUpdated"
           />
         </TabPanel>
 
         <TabPanel value="1">
           <div class="graphs-panel" :style="graphHeightStyle">
+            <p
+              v-if="gpsTrack?.timingUnreliable"
+              class="track-detail-inline-error"
+              data-test="unsupported-source-timing"
+            >
+              Source timing is missing, unreliable or estimated. Geometry is shown by distance; time-based metrics are
+              unavailable.
+            </p>
             <div v-if="chartLoadError" class="track-detail-inline-error" data-test="track-detail-chart-error">
               <i class="bi bi-exclamation-triangle" aria-hidden="true"></i>
               <span>{{ chartLoadError }}</span>
@@ -89,12 +121,15 @@
                 <div class="graphs-toggle view-toggle">
                   <button
                     :class="['toggle-btn view-toggle-button', { 'view-toggle-button--active': xMode === 'time' }]"
+                    :aria-pressed="xMode === 'time'"
+                    :disabled="gpsTrack?.timingUnreliable"
                     @click="setXModeValue('time')"
                   >
                     <i class="bi bi-clock"></i> Time
                   </button>
                   <button
                     :class="['toggle-btn view-toggle-button', { 'view-toggle-button--active': xMode === 'distance' }]"
+                    :aria-pressed="xMode === 'distance'"
                     @click="setXModeValue('distance')"
                   >
                     <i class="bi bi-signpost-split"></i> Distance
@@ -208,7 +243,17 @@
               </div>
             </div>
             <template v-if="!chartLoadError">
+              <div v-if="trackHealthLoadError" class="track-detail-inline-error" data-test="track-detail-health-error">
+                <i class="bi bi-exclamation-triangle" aria-hidden="true"></i>
+                <span>{{ trackHealthLoadError }}</span>
+                <button type="button" :disabled="isLoading" @click="reloadTrackHealth">
+                  <i class="bi bi-arrow-clockwise"></i>
+                  Retry
+                </button>
+              </div>
               <TrackGraph
+                v-if="!gpsTrack?.timingUnreliable"
+                v-bind="trackGraphAxis"
                 :config="speedGraphConfig"
                 :track-details="trackDetails"
                 :x-mode="xMode"
@@ -216,6 +261,7 @@
                 :show-range="showRangeBand"
               />
               <TrackGraph
+                v-bind="trackGraphAxis"
                 :config="trackGraphConfigs.elevation"
                 :track-details="trackDetails"
                 :x-mode="xMode"
@@ -223,6 +269,36 @@
                 :show-range="showRangeBand"
               />
               <TrackGraph
+                v-if="!gpsTrack?.timingUnreliable && trackHealth?.available && heartRateDetails.length > 0"
+                v-bind="trackGraphAxis"
+                :config="trackGraphConfigs.heartRate"
+                :track-details="heartRateDetails"
+                :x-mode="xMode"
+                :sync-enabled="isGraphsTabActive"
+                :show-range="showRangeBand"
+                :source-note="syntheticHealthData ? 'Synthetic demo heart rate' : undefined"
+              />
+              <div
+                v-if="!gpsTrack?.timingUnreliable && trackHealth?.available === false && !trackHealthLoadError"
+                class="track-health-empty"
+                data-test="track-detail-health-empty"
+                role="status"
+              >
+                <strong><i class="bi bi-heart-pulse" aria-hidden="true"></i> Heart rate</strong>
+                <p>
+                  {{
+                    syntheticHealthData
+                      ? 'No synthetic heart-rate samples are available for this track. Generation may still be running, or the track may not be selected or have usable timing.'
+                      : 'No Google Health heart-rate samples are stored for this track’s time range. Older history may still be syncing.'
+                  }}
+                </p>
+                <a :href="healthSyncStatusHref">{{
+                  syntheticHealthData ? 'Check generation progress' : 'Check health sync status'
+                }}</a>
+              </div>
+              <TrackGraph
+                v-if="!gpsTrack?.timingUnreliable"
+                v-bind="trackGraphAxis"
                 :config="trackGraphConfigs.elevationGain"
                 :track-details="trackDetails"
                 :x-mode="xMode"
@@ -231,6 +307,7 @@
               />
               <TrackGraph
                 v-if="xMode === 'time'"
+                v-bind="trackGraphAxis"
                 :config="trackGraphConfigs.distance"
                 :track-details="trackDetails"
                 :x-mode="xMode"
@@ -238,14 +315,20 @@
                 :show-range="showRangeBand"
               />
               <TrackGraph
+                v-if="!gpsTrack?.timingUnreliable"
+                v-bind="trackGraphAxis"
                 :config="trackGraphConfigs.energy"
+                :empty-message="energyGraphEmptyMessage"
                 :track-details="trackDetails"
                 :x-mode="xMode"
                 :sync-enabled="isGraphsTabActive"
                 :show-range="showRangeBand"
               />
               <TrackGraph
+                v-if="!gpsTrack?.timingUnreliable"
+                v-bind="trackGraphAxis"
                 :config="trackGraphConfigs.power"
+                :empty-message="energyGraphEmptyMessage"
                 :track-details="trackDetails"
                 :x-mode="xMode"
                 :sync-enabled="isGraphsTabActive"
@@ -291,11 +374,12 @@
             :selected-media-id="selectedTrackMediaId"
             :highlighted-media-id="highlightedTrackMediaId"
             :loading="trackMediaLoading"
+            :matching-state="mediaMatchingState"
             :error="trackMediaError"
             :offset-seconds="photoOffsetSeconds"
             :saving="trackMediaMutationLoading"
             :mutation-error="trackMediaMutationError"
-            :thumbnails-enabled="!mediaPreviewVisible"
+            :thumbnails-enabled="isMediaTabActive && !mediaPreviewVisible"
             @select-media="onTrackMediaSelected"
             @highlight-media="onTrackMediaHighlighted"
             @apply-offset="onPhotoOffsetApplied"
@@ -333,7 +417,10 @@
       :no-backdrop="false"
       no-scroll-hint
       native-fullscreen
+      fullscreen-control-labels
+      immersive
       viewport-centered
+      inherit-parent-layout
       :sheet-class="['media-viewer-sheet', mediaViewerThemeClass]"
       @closed="onMediaPreviewClosed"
     >
@@ -348,15 +435,11 @@
         </span>
       </template>
       <template #header-actions>
-        <button
-          type="button"
-          class="media-preview-details-toggle"
-          :aria-pressed="mediaPreviewDetailsVisible"
-          @click.stop="mediaPreviewDetailsVisible = !mediaPreviewDetailsVisible"
-        >
-          <i class="bi bi-info-circle" aria-hidden="true"></i>
-          <span>Details</span>
-        </button>
+        <MediaViewerViewToggle
+          v-model="mediaPreviewDetailsVisible"
+          v-model:map-visible="mediaPreviewMapVisible"
+          v-model:photos-visible="mediaPreviewPhotosVisible"
+        />
         <MediaViewerThemeToggle />
       </template>
       <MediaPreview
@@ -380,6 +463,8 @@
         :position-lng="selectedTrackMedia?.resolvedLng ?? selectedTrackMedia?.routeLng"
         :track-coordinates="miniMapCoordinates"
         :details-visible="mediaPreviewDetailsVisible"
+        :map-visible="mediaPreviewMapVisible"
+        :photos-visible="mediaPreviewPhotosVisible"
         :taken-at="selectedTrackMedia?.adjustedCapturedAt ?? selectedTrackMedia?.capturedAt"
         :time-source="selectedTrackMedia?.timeSource"
         :applied-camera-offset-seconds="selectedTrackMedia?.appliedCameraOffsetSeconds"
@@ -388,6 +473,7 @@
         @select="navigateTrackMedia"
         @request-page="navigateTrackMediaPage"
         @update:details-visible="mediaPreviewDetailsVisible = $event"
+        @update:map-visible="mediaPreviewMapVisible = $event"
         @open-on-map="openSelectedTrackMediaOnMap"
         @time-correction-cleared="onViewerTimeCorrectionCleared"
       />
@@ -396,8 +482,14 @@
 </template>
 
 <script setup lang="ts">
+import { logSanitizedError, warnSanitized } from '@/utils/safeLogging';
+
+import { useDemoStatus } from '@/composables/useDemoStatus';
+const { syntheticHealthData } = useDemoStatus();
+import { GOOGLE_HEALTH_PROCESSING_ID } from '@/features/health/utils/googleHealthNavigation';
 import { storeToRefs } from 'pinia';
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { RouterLink } from 'vue-router';
+import { computed, nextTick, onBeforeUnmount, onMounted, provide, ref, watch } from 'vue';
 import {
   fetchTrackDetails,
   fetchTrackPointsForRenderedShape,
@@ -407,13 +499,13 @@ import {
 } from '@/utils/ServiceHelper';
 import {
   clampTrackDetailsChartPointSliderValue,
+  nextDistinctChartPointSliderValue,
   TRACK_DETAILS_CHART_POINT_SLIDER_MAX,
   TRACK_DETAILS_CHART_POINT_SLIDER_MIN,
   TRACK_DETAILS_CHART_POINT_SLIDER_STEP,
   TRACK_DETAILS_CHART_POINTS_MAX,
   TRACK_DETAILS_CHART_POINTS_MIN,
   trackDetailsChartPointCountToSliderValue,
-  trackDetailsChartPointSliderValueToCount,
 } from '@/utils/trackDetailsChartPointSettings';
 import { MetricKey, XMode } from '@/utils/chartSeriesAdapter';
 import { useTrackMapSync, type TrackPoint } from '@/composables/useTrackMapSync';
@@ -425,8 +517,10 @@ import type {
   GpsTrackData,
   GpsTrackEvent,
   RelatedTracks,
+  TrackHealthResponse,
 } from 'x8ing-mtl-api-typescript-fetch/dist/esm/models/index';
 import TrackGraph from '@/components/trackdetails/TrackGraph.vue';
+import { ENERGY_CALCULATION_STATE, useEnergyCalculationStatus } from '@/composables/useEnergyCalculationStatus';
 import { speedGraphConfigFor, trackGraphConfigs } from '@/components/trackdetails/trackGraphConfigs';
 import TrackDetailOverview from '@/components/trackdetails/TrackDetailOverview.vue';
 import TrackDetailQuality from '@/components/trackdetails/TrackDetailQuality.vue';
@@ -444,14 +538,18 @@ import { DETAIL_TRACK_PRECISION } from '@/utils/tracks/trackConstants';
 import { fetchDetailTrackAtPrecision } from '@/utils/tracks/trackCollectionLoader';
 import type { TrackPrecisionResult } from '@/utils/tracks/trackTypes';
 import { useAsyncState } from '@/composables/useAsyncState';
+import { useFilterStore } from '@/stores/filterStore';
 import { nearestSortedIndex } from '@/utils/sortedSearch';
 import { isVideoMedia } from '@/utils/mediaKind';
 import TrackDetailPhotos from '@/components/trackdetails/TrackDetailPhotos.vue';
 import BottomSheet from '@/components/ui/BottomSheet.vue';
 import MediaPreview from '@/components/map/MediaPreview.vue';
 import MediaViewerThemeToggle from '@/components/map/MediaViewerThemeToggle.vue';
+import MediaViewerViewToggle from '@/components/map/MediaViewerViewToggle.vue';
 import { mergeAdjacentMediaPage } from '@/components/map/mediaPageBuffer';
 import { TRACK_MEDIA_DEFAULT_PAGE_SIZE } from '@/components/trackdetails/trackMediaPaging';
+import { trackMediaMatchingState } from '@/components/trackdetails/trackMediaMatchingState';
+import { APPLICATION_STATUS_SECTION, useApplicationStatusStore } from '@/stores/applicationStatusStore';
 import { useMediaViewerTheme } from '@/composables/useMediaViewerTheme';
 import {
   clearManualMediaLocation,
@@ -460,8 +558,18 @@ import {
   setManualMediaLocation,
   type TrackMediaDto,
 } from '@/repositories/mediaRepository';
+import { fetchTrackHealth } from '@/features/health/api/trackHealthApi';
 
 const { mediaViewerThemeClass } = useMediaViewerTheme();
+const applicationStatus = useApplicationStatusStore();
+const mediaMatchingState = computed(() =>
+  trackMediaMatchingState(
+    applicationStatus.processing,
+    applicationStatus.sectionStates[APPLICATION_STATUS_SECTION.PROCESSING].healthy
+  )
+);
+
+const healthSyncStatusHref = `${import.meta.env.BASE_URL}admin/processing#${GOOGLE_HEALTH_PROCESSING_ID}`;
 
 const GRAPH_HEIGHT_MIN = TRACK_DETAIL_GRAPH_HEIGHT_MIN;
 const GRAPH_HEIGHT_MAX = TRACK_DETAIL_GRAPH_HEIGHT_MAX;
@@ -479,10 +587,10 @@ const TRACK_DETAIL_TAB_PHOTOS = '4';
 const TRACK_DETAIL_TAB_EVENTS = '5';
 const TRACK_DETAIL_TABS = new Set(['0', '1', '2', '3', '4', '5']);
 const TRACK_DETAIL_LOAD_ERROR_TITLE = 'Track details could not be loaded';
-const TRACK_DETAIL_LOAD_ERROR_MESSAGE =
-  'Check the server connection, then retry loading this track or go back to the map.';
+const TRACK_DETAIL_LOAD_ERROR_MESSAGE = 'Check the server connection, then retry loading this track.';
 const TRACK_DETAIL_CHART_ERROR_MESSAGE = 'Track graphs could not be loaded.';
 const TRACK_DETAIL_RELATED_ERROR_MESSAGE = 'Related tracks could not be loaded.';
+const TRACK_DETAIL_HEALTH_ERROR_MESSAGE = 'Health data for this track could not be loaded.';
 const TRACK_DETAIL_MEDIA_ERROR_MESSAGE = 'Activity media could not be loaded.';
 const TRACK_DETAIL_MEDIA_MUTATION_ERROR_MESSAGE = 'The media position change could not be saved.';
 const TAB_RESIZE_ACTIVATION_THRESHOLD_PX = 6;
@@ -527,28 +635,6 @@ function sliderValueToNumber(value: SliderValue | SliderSlideEndEvent): number {
   return Array.isArray(raw) ? raw[0] : raw;
 }
 
-function nextDistinctChartPointSliderValue(
-  currentSliderValue: number,
-  currentPointCount: number,
-  direction: number
-): number {
-  const sliderStep = direction < 0 ? -CHART_POINT_SLIDER_STEP : CHART_POINT_SLIDER_STEP;
-  let nextSliderValue = clampTrackDetailsChartPointSliderValue(currentSliderValue + sliderStep);
-
-  while (
-    nextSliderValue !== currentSliderValue &&
-    trackDetailsChartPointSliderValueToCount(nextSliderValue) === currentPointCount
-  ) {
-    const candidateSliderValue = clampTrackDetailsChartPointSliderValue(nextSliderValue + sliderStep);
-    if (candidateSliderValue === nextSliderValue) {
-      break;
-    }
-    nextSliderValue = candidateSliderValue;
-  }
-
-  return nextSliderValue;
-}
-
 function settle<T>(promise: Promise<T>): Promise<PromiseSettledResult<T>> {
   return promise.then(
     (value) => ({ status: 'fulfilled' as const, value }),
@@ -566,11 +652,95 @@ function trackLoadedPayload(track: GpsTrack): TrackLoadedPayload {
 }
 
 function applyTrackChartSeries(series: TrackChartSeries | null): ChartPoint[] {
-  const points = series?.points ?? [];
+  if (gpsTrack.value?.timingUnreliable) {
+    xMode.value = 'distance';
+    setXMode('distance');
+  }
+  const points =
+    gpsTrack.value?.metabolicEnergy != null && gpsTrack.value.energyNetTotalWh == null
+      ? withoutEnergyMetrics(series?.points ?? [])
+      : (series?.points ?? []);
   trackDetails.value = points;
   recommendedSpeedMetric.value = series?.recommendedSpeedMetric ?? null;
-  availableChartMetrics.value = series?.availableMetrics ?? [];
+  availableChartMetrics.value =
+    gpsTrack.value?.metabolicEnergy != null && gpsTrack.value.energyNetTotalWh == null
+      ? (series?.availableMetrics ?? []).filter((metric) => !ENERGY_CHART_METRICS.includes(metric))
+      : (series?.availableMetrics ?? []);
   return points;
+}
+
+function buildHeartRateChartPoints(health: TrackHealthResponse | null, chartPoints: ChartPoint[]): ChartPoint[] {
+  if (!health?.available || !health.heartRate?.points?.length || chartPoints.length === 0) return [];
+
+  const timestampedChartPoints = chartPoints
+    .map((point) => ({ point, timestamp: pointTimestampMillis(point.pointTimestamp) }))
+    .filter((entry): entry is { point: ChartPoint; timestamp: number } => entry.timestamp != null)
+    .sort((left, right) => left.timestamp - right.timestamp);
+  if (timestampedChartPoints.length === 0) return [];
+
+  return health.heartRate.points.flatMap((healthPoint) => {
+    const timestamp = pointTimestampMillis(healthPoint.timestamp);
+    const averageBpm = healthPoint.averageBpm;
+    if (timestamp == null || averageBpm == null || !Number.isFinite(averageBpm)) return [];
+
+    const projection = projectHealthPointToTrack(timestamp, timestampedChartPoints);
+    return [
+      {
+        pointIndex: projection.pointIndex,
+        pointTimestamp: new Date(timestamp),
+        distanceInMeterSinceStart: projection.distanceInMeterSinceStart,
+        metricStats: {},
+        pointAltitude: null,
+        speedInKmhWindow: null,
+        speedBucketAvgKmh: null,
+        elevationGainPerHourWindow: null,
+        elevationLossPerHourWindow: null,
+        powerWattsWindow: null,
+        energyCumulativeWh: null,
+        heartRateBpm: averageBpm,
+        heartRateMinimumBpm: healthPoint.minimumBpm ?? averageBpm,
+        heartRateMaximumBpm: healthPoint.maximumBpm ?? averageBpm,
+        heartRateSampleCount: healthPoint.sampleCount ?? 0,
+      },
+    ];
+  });
+}
+
+function projectHealthPointToTrack(
+  timestamp: number,
+  chartPoints: Array<{ point: ChartPoint; timestamp: number }>
+): { pointIndex: number; distanceInMeterSinceStart: number | null } {
+  const nearestIndex = nearestSortedIndex(chartPoints, timestamp, (entry) => entry.timestamp, true);
+  const nearest = chartPoints[nearestIndex];
+  const adjacentIndex = timestamp < nearest.timestamp ? nearestIndex - 1 : nearestIndex + 1;
+  const adjacent = chartPoints[adjacentIndex];
+  const nearestDistance = finiteNumberOrNull(nearest.point.distanceInMeterSinceStart);
+  const adjacentDistance = finiteNumberOrNull(adjacent?.point.distanceInMeterSinceStart);
+
+  if (
+    adjacent == null ||
+    nearestDistance == null ||
+    adjacentDistance == null ||
+    adjacent.timestamp === nearest.timestamp
+  ) {
+    return { pointIndex: nearest.point.pointIndex, distanceInMeterSinceStart: nearestDistance };
+  }
+
+  const ratio = Math.max(0, Math.min(1, (timestamp - nearest.timestamp) / (adjacent.timestamp - nearest.timestamp)));
+  return {
+    pointIndex: nearest.point.pointIndex,
+    distanceInMeterSinceStart: nearestDistance + (adjacentDistance - nearestDistance) * ratio,
+  };
+}
+
+function pointTimestampMillis(value: Date | string | number | null | undefined): number | null {
+  if (value == null) return null;
+  const timestamp = value instanceof Date ? value.getTime() : new Date(value).getTime();
+  return Number.isFinite(timestamp) ? timestamp : null;
+}
+
+function finiteNumberOrNull(value: number | null | undefined): number | null {
+  return typeof value === 'number' && Number.isFinite(value) ? value : null;
 }
 
 defineOptions({
@@ -587,6 +757,7 @@ const props = withDefaults(
 
 const emit = defineEmits<{
   'track-loaded': [payload: TrackLoadedPayload];
+  'track-updated': [track: GpsTrack];
   'navigate-track': [trackId: number];
   'start-3d-replay': [payload: TrackReplayStartPayload];
   'open-media-on-map': [target: { id: number; lat: number; lng: number }];
@@ -594,11 +765,29 @@ const emit = defineEmits<{
 }>();
 
 const trackDetailsPreferencesStore = useTrackDetailsPreferencesStore();
+const filterStore = useFilterStore();
 const { chartPointCount, graphHeightPx, showRangeBand } = storeToRefs(trackDetailsPreferencesStore);
 const initialChartPointCount = chartPointCount.value;
 const gpsTrackId = ref(props.gpsTrackId);
 const gpsTrack = ref<GpsTrack | null>(null);
+const energyCalculation = useEnergyCalculationStatus(gpsTrack, onTrackUpdated);
+provide(ENERGY_CALCULATION_STATE, energyCalculation);
+const energyGraphEmptyMessage = computed(
+  () => energyCalculation.message.value || (energyCalculation.status.value ? '' : 'Checking energy calculation status…')
+);
+const sourceReviewNotice = computed(() => {
+  if (gpsTrack.value?.reviewStatus === 'NEEDS_REVIEW') return 'This recording has GPS findings that need review.';
+  if (gpsTrack.value?.reviewMapExcluded)
+    return gpsTrack.value.reviewExcluded
+      ? 'This recording is excluded from the main map, statistics and highlights.'
+      : 'This recording is excluded from the main map.';
+  if (gpsTrack.value?.reviewExcluded) return 'This recording is excluded from statistics and highlights in Review.';
+  if (gpsTrack.value?.timingEstimated) return 'This recording uses estimated timing.';
+  if (gpsTrack.value?.timingUnreliable) return 'This recording has missing or unreliable timing.';
+  return '';
+});
 const relatedTracks = ref<RelatedTracks | null>(null);
+const trackHealth = ref<TrackHealthResponse | null>(null);
 const trackDetails = ref<ChartPoint[]>([]);
 const recommendedSpeedMetric = ref<MetricKey | null>(null);
 const availableChartMetrics = ref<MetricKey[]>([]);
@@ -607,7 +796,6 @@ const miniMapCoordinates = ref<number[][]>([]);
 const renderedShapePoints = ref<GpsTrackDataPoint[]>([]);
 const selectedTrackEventKey = ref<string | number | null>(null);
 const trackMedia = ref<TrackMediaDto[]>([]);
-const baselineTrackMedia = ref<TrackMediaDto[]>([]);
 const trackMediaPage = ref(0);
 const trackMediaPageSize = ref<number>(TRACK_MEDIA_DEFAULT_PAGE_SIZE);
 const trackMediaOffset = ref(0);
@@ -620,9 +808,17 @@ const trackMediaError = ref<string | null>(null);
 const trackMediaMutationError = ref<string | null>(null);
 const trackMediaMutationLoading = ref(false);
 const trackMediaLoaded = ref(false);
+watch(mediaMatchingState, (state, previous) => {
+  if (state === 'complete' && previous !== 'complete' && trackMediaLoaded.value && !trackMediaLoading.value) {
+    void reloadTrackMedia();
+  }
+});
 const photoOffsetSeconds = ref(0);
 const mediaPreviewVisible = ref(false);
 const mediaPreviewDetailsVisible = ref(window.innerWidth >= MEDIA_PREVIEW_DESKTOP_MIN_WIDTH);
+const mediaPreviewMapVisible = ref(mediaPreviewDetailsVisible.value);
+const mediaPreviewPhotosVisible = ref(true);
+const tabPanelsRef = ref<{ $el: HTMLElement } | null>(null);
 const activeTab = ref<TrackDetailTab>(initialTrackDetailTab(props.initialTab));
 const xMode = ref<'time' | 'distance'>('time');
 const chartPointSliderValue = ref(trackDetailsChartPointCountToSliderValue(initialChartPointCount));
@@ -632,10 +828,12 @@ const tabResizeZoneEl = ref<HTMLElement | null>(null);
 const { loading: isLoading, error: loadError } = useAsyncState<string | null>(null);
 const chartLoadError = ref<string | null>(null);
 const relatedLoadError = ref<string | null>(null);
+const trackHealthLoadError = ref<string | null>(null);
 let graphHeightReflowFrame: number | null = null;
 let chartPointReloadTimer: number | null = null;
 let loadGeneration = 0;
 let chartReloadGeneration = 0;
+let trackHealthReloadGeneration = 0;
 let trackMediaLoadGeneration = 0;
 let trackMediaAbortController: AbortController | null = null;
 const { consumeClickAfterDrag: consumeTabResizeClickAfterDrag } = useVerticalResizeDrag(
@@ -672,11 +870,40 @@ const effectiveRecommendedSpeedMetric = computed(() =>
     : null
 );
 const speedGraphConfig = computed(() => speedGraphConfigFor(effectiveRecommendedSpeedMetric.value));
+const trackGraphStartTimestamp = computed(
+  () =>
+    gpsTrack.value?.startDate ?? trackHealth.value?.trackStartTimestamp ?? trackDetails.value[0]?.pointTimestamp ?? null
+);
+// Every metric uses the full track extent, including partial health coverage.
+const trackGraphAxis = computed(() => {
+  const start = pointTimestampMillis(trackGraphStartTimestamp.value);
+  const end = pointTimestampMillis(
+    gpsTrack.value?.endDate ?? trackHealth.value?.trackEndTimestamp ?? trackDetails.value.at(-1)?.pointTimestamp
+  );
+  const distance =
+    finiteNumberOrNull(gpsTrack.value?.trackLengthInMeter) ??
+    finiteNumberOrNull(trackDetails.value.at(-1)?.distanceInMeterSinceStart);
+  const extent =
+    xMode.value === 'distance'
+      ? distance == null
+        ? null
+        : distance / 1000
+      : start == null || end == null
+        ? null
+        : end - start;
+  return {
+    xStartTimestamp: trackGraphStartTimestamp.value,
+    xMax: extent != null && extent > 0 ? extent : null,
+  };
+});
+const heartRateDetails = computed<ChartPoint[]>(() => buildHeartRateChartPoints(trackHealth.value, trackDetails.value));
 const isGraphsTabActive = computed(() => activeTab.value === TRACK_DETAIL_TAB_GRAPHS);
 const isMediaTabActive = computed(() => activeTab.value === TRACK_DETAIL_TAB_PHOTOS);
 const canStart3dReplay = computed(
   () => !isLoading.value && gpsTrack.value?.id != null && miniMapCoordinates.value.length >= 2
 );
+defineExpose({ gpsTrack, canStart3dReplay, start3dReplay: onStart3dReplay });
+
 const trackMediaIds = computed(() => trackMedia.value.map((item) => item.id));
 const trackVideoMediaIds = computed(() =>
   trackMedia.value.filter((item) => isVideoMedia(item.fileName, item.mediaKind)).map((item) => item.id)
@@ -719,6 +946,11 @@ watch(
   (initialTab) => onTabChange(initialTrackDetailTab(initialTab))
 );
 
+watch(
+  () => filterStore.dataFreshnessRevision,
+  () => void reloadTrackMedia()
+);
+
 onMounted(() => {
   console.log('mounted');
   setXMode(xMode.value);
@@ -740,6 +972,7 @@ function onTabResizeZoneClickCapture(event: MouseEvent): void {
 }
 
 function onTrackEventSelected(key: string | number | null) {
+  if (key != null && isGraphsTabActive.value) return;
   if (key != null && activeTab.value !== TRACK_DETAIL_TAB_EVENTS) {
     onTabChange(TRACK_DETAIL_TAB_EVENTS);
   }
@@ -747,9 +980,10 @@ function onTrackEventSelected(key: string | number | null) {
 }
 
 function onTrackMediaSelected(mediaId: number) {
-  if (!isMediaTabActive.value) return;
+  if (isGraphsTabActive.value) return;
+  if (!trackMedia.value.some((item) => item.id === mediaId)) return;
+  if (!isMediaTabActive.value) onTabChange(TRACK_DETAIL_TAB_PHOTOS);
   navigateTrackMedia(mediaId);
-  mediaPreviewDetailsVisible.value = window.innerWidth >= MEDIA_PREVIEW_DESKTOP_MIN_WIDTH;
   mediaPreviewVisible.value = true;
 }
 
@@ -859,27 +1093,22 @@ async function onTrackMediaPageSizeChanged(pageSize: number) {
 
 async function onSaveTimeCorrection(mediaIds: number[], offsetSeconds: number) {
   if (mediaIds.length === 0) return;
-  const affectedMediaIds =
-    offsetSeconds === 0
-      ? mediaIds
-      : [
-          ...new Set([
-            ...mediaIds,
-            ...baselineTrackMedia.value.filter((item) => item.timeSource === 'EXIF_DATE_TAKEN').map((item) => item.id),
-          ]),
-        ];
   trackMediaMutationLoading.value = true;
   trackMediaMutationError.value = null;
   try {
-    await saveMediaTimeCorrections({ mediaIds: affectedMediaIds, offsetSeconds });
+    await saveMediaTimeCorrections({ mediaIds, offsetSeconds });
     photoOffsetSeconds.value = 0;
     await reloadTrackMedia();
   } catch (error) {
-    console.warn('[track-details] camera correction failed to save', {
-      mediaIds: affectedMediaIds,
-      offsetSeconds,
-      error,
-    });
+    warnSanitized(
+      '[track-details] camera correction failed to save',
+      {
+        mediaIds,
+        offsetSeconds,
+        error,
+      },
+      { topic1: 'tracks', topic2: 'TrackDetails', topic3: 'onSaveTimeCorrection' }
+    );
     trackMediaMutationError.value = TRACK_DETAIL_MEDIA_MUTATION_ERROR_MESSAGE;
   } finally {
     trackMediaMutationLoading.value = false;
@@ -908,7 +1137,11 @@ async function runMediaPositionMutation(operation: () => Promise<void>) {
     photoOffsetSeconds.value = 0;
     await reloadTrackMedia();
   } catch (error) {
-    console.warn('[track-details] media position failed to save', error);
+    warnSanitized('[track-details] media position failed to save', error, {
+      topic1: 'tracks',
+      topic2: 'TrackDetails',
+      topic3: 'runMediaPositionMutation',
+    });
     trackMediaMutationError.value = TRACK_DETAIL_MEDIA_MUTATION_ERROR_MESSAGE;
   } finally {
     trackMediaMutationLoading.value = false;
@@ -917,6 +1150,7 @@ async function runMediaPositionMutation(operation: () => Promise<void>) {
 
 async function reloadTrackMedia(bufferDirection: -1 | 1 | null = null) {
   const trackId = gpsTrackId.value;
+  const matchingStateAtLoad = mediaMatchingState.value;
   const previousItems = trackMedia.value;
   const previousOffset = trackMediaOffset.value;
   const generation = ++trackMediaLoadGeneration;
@@ -960,16 +1194,17 @@ async function reloadTrackMedia(bufferDirection: -1 | 1 | null = null) {
     }
     trackMediaTotalItems.value = result.totalItems;
     trackMediaTotalPages.value = result.totalPages;
-    if (photoOffsetSeconds.value === 0) {
-      baselineTrackMedia.value = result.items;
-    }
     trackMediaLoaded.value = true;
     if (!result.items.some((item) => item.id === selectedTrackMediaId.value)) {
       selectedTrackMediaId.value = null;
     }
   } catch (error) {
     if (generation !== trackMediaLoadGeneration || controller.signal.aborted) return;
-    console.warn('[track-details] activity media failed to load', { trackId, error });
+    warnSanitized(
+      '[track-details] activity media failed to load',
+      { trackId, error },
+      { topic1: 'tracks', topic2: 'TrackDetails', topic3: 'reloadTrackMedia' }
+    );
     if (bufferDirection == null) {
       trackMedia.value = [];
       trackMediaOffset.value = 0;
@@ -985,6 +1220,9 @@ async function reloadTrackMedia(bufferDirection: -1 | 1 | null = null) {
     if (generation === trackMediaLoadGeneration) {
       trackMediaLoading.value = false;
       if (trackMediaAbortController === controller) trackMediaAbortController = null;
+      if (matchingStateAtLoad !== 'complete' && mediaMatchingState.value === 'complete' && !trackMediaError.value) {
+        void reloadTrackMedia();
+      }
     }
   }
 }
@@ -1023,9 +1261,11 @@ function onTabChange(value: string | number) {
     }
     if (previousTab === TRACK_DETAIL_TAB_PHOTOS) {
       highlightedTrackMediaId.value = null;
-      cancelTrackMediaLoad();
     }
     activeTab.value = nextTab;
+    void nextTick(() => {
+      if (activeTab.value === nextTab && tabPanelsRef.value) tabPanelsRef.value.$el.scrollTop = 0;
+    });
   }
 
   // Trigger chart reflow after the Graphs tab becomes visible (value "1")
@@ -1047,6 +1287,7 @@ async function reloadChartDetailsForCurrentSettings() {
 
   const currentLoadGeneration = loadGeneration;
   const reloadGeneration = ++chartReloadGeneration;
+  const healthReload = reloadTrackHealth();
   try {
     chartLoadError.value = null;
     const series = await fetchTrackDetails(trackId, selectedApiXMode(), chartPointCount.value);
@@ -1055,15 +1296,44 @@ async function reloadChartDetailsForCurrentSettings() {
     const nextDetails = applyTrackChartSeries(series);
     setTrackPoints(buildTrackPoints(nextDetails, renderedShapePoints.value));
   } catch (err) {
-    console.error('Failed to re-fetch chart series', err);
+    logSanitizedError('Failed to re-fetch chart series', err, {
+      topic1: 'tracks',
+      topic2: 'TrackDetails',
+      topic3: 'reloadChartDetailsForCurrentSettings',
+    });
     if (currentLoadGeneration === loadGeneration && reloadGeneration === chartReloadGeneration) {
       chartLoadError.value = TRACK_DETAIL_CHART_ERROR_MESSAGE;
     }
   }
+  await healthReload;
   triggerChartReflow();
 }
 
+async function reloadTrackHealth() {
+  const trackId = gpsTrackId.value;
+  if (trackId == null) return;
+
+  const currentLoadGeneration = loadGeneration;
+  const reloadGeneration = ++trackHealthReloadGeneration;
+  trackHealthLoadError.value = null;
+  try {
+    const response = await fetchTrackHealth(trackId, chartPointCount.value);
+    if (currentLoadGeneration !== loadGeneration || reloadGeneration !== trackHealthReloadGeneration) return;
+    trackHealth.value = response;
+  } catch (error) {
+    warnSanitized(
+      '[track-details] health data failed to load',
+      { trackId, error },
+      { topic1: 'tracks', topic2: 'TrackDetails', topic3: 'reloadTrackHealth' }
+    );
+    if (currentLoadGeneration === loadGeneration && reloadGeneration === trackHealthReloadGeneration) {
+      trackHealthLoadError.value = TRACK_DETAIL_HEALTH_ERROR_MESSAGE;
+    }
+  }
+}
+
 async function setXModeValue(mode: 'time' | 'distance') {
+  if (mode === 'time' && gpsTrack.value?.timingUnreliable) return;
   if (xMode.value === mode) return;
   xMode.value = mode;
   setXMode(mode);
@@ -1137,13 +1407,19 @@ function retryTrackDetailsLoad() {
 
 async function onStart3dReplay() {
   const track = gpsTrack.value;
-  if (!track?.id || miniMapCoordinates.value.length < 2) return;
+  if (!track?.id || !canStart3dReplay.value) return;
   const trackId = Number(track.id);
   let replayChartPoints = trackDetails.value;
-  try {
-    replayChartPoints = (await fetchTrackDetails(trackId, XMode.Time, REPLAY_SOURCE_CHART_POINT_COUNT)).points;
-  } catch (error) {
-    console.warn('Failed to fetch fixed time-bucketed replay details; using current graph data', error);
+  if (!track.timingUnreliable && !track.timingEstimated) {
+    try {
+      replayChartPoints = (await fetchTrackDetails(trackId, XMode.Time, REPLAY_SOURCE_CHART_POINT_COUNT)).points;
+    } catch (error) {
+      warnSanitized('Failed to fetch fixed time-bucketed replay details; using current graph data', error, {
+        topic1: 'tracks',
+        topic2: 'TrackDetails',
+        topic3: 'onStart3dReplay',
+      });
+    }
   }
   emit('start-3d-replay', {
     coordinates: miniMapCoordinates.value,
@@ -1198,7 +1474,7 @@ function buildTrackPoints(details: ChartPoint[], simplifiedPoints: GpsTrackDataP
   };
 
   const points: TrackPoint[] = [];
-  const startTs = details.length > 0 ? details[0].pointTimestamp.getTime() : 0;
+  const startTs = pointTimestampMillis(trackGraphStartTimestamp.value) ?? 0;
   for (const cp of details) {
     const match = findNearest(cp.pointIndex);
     const timestamp = cp.pointTimestamp.getTime();
@@ -1263,10 +1539,12 @@ async function load(trackId: number) {
   // load is in flight, discard the stale result.
   const generation = ++loadGeneration;
   chartReloadGeneration++;
+  const healthGeneration = ++trackHealthReloadGeneration;
   isLoading.value = true;
   clearAll();
   gpsTrack.value = null;
   relatedTracks.value = null;
+  trackHealth.value = null;
   trackDetails.value = [];
   recommendedSpeedMetric.value = null;
   availableChartMetrics.value = [];
@@ -1274,7 +1552,6 @@ async function load(trackId: number) {
   cancelTrackMediaLoad();
   trackMediaLoaded.value = false;
   trackMedia.value = [];
-  baselineTrackMedia.value = [];
   trackMediaPage.value = 0;
   trackMediaPageSize.value = TRACK_MEDIA_DEFAULT_PAGE_SIZE;
   trackMediaOffset.value = 0;
@@ -1291,13 +1568,15 @@ async function load(trackId: number) {
   loadError.value = null;
   chartLoadError.value = null;
   relatedLoadError.value = null;
-  if (activeTab.value === TRACK_DETAIL_TAB_PHOTOS) {
-    void reloadTrackMedia();
-  }
+  trackHealthLoadError.value = null;
+  // The shared preview needs locations on every tab. Keep this request bounded
+  // to one media page; thumbnails are still loaded only by the Media tab.
+  void reloadTrackMedia();
   try {
     const trackPromise = loadTrackShape(trackId);
     const relatedTracksPromise = settle(getRelatedTracks(trackId));
     const detailsPromise = settle(fetchTrackDetails(trackId, selectedApiXMode(), chartPointCount.value));
+    const trackHealthPromise = settle(fetchTrackHealth(trackId, chartPointCount.value));
     // SIMPLIFIED_SHAPE per-point rows carry a `canonicalPointIndex`
     // back-pointer (Phase 7 of the canonical-LOD architecture). We use
     // it to resolve chart bucket representativePointIndex (canonical
@@ -1319,10 +1598,29 @@ async function load(trackId: number) {
 
     const chartSeries = detailsResult.status === 'fulfilled' ? detailsResult.value : null;
     if (detailsResult.status === 'rejected') {
-      console.warn('[track-details] chart details failed to load', { trackId, error: detailsResult.reason });
+      warnSanitized(
+        '[track-details] chart details failed to load',
+        { trackId, error: detailsResult.reason },
+        { topic1: 'tracks', topic2: 'TrackDetails', topic3: 'load' }
+      );
       chartLoadError.value = TRACK_DETAIL_CHART_ERROR_MESSAGE;
     }
     const details = applyTrackChartSeries(chartSeries);
+
+    const trackHealthResult = await trackHealthPromise;
+    if (generation !== loadGeneration) return;
+    if (healthGeneration !== trackHealthReloadGeneration) {
+      // A newer health-only reload already owns this state.
+    } else if (trackHealthResult.status === 'fulfilled') {
+      trackHealth.value = trackHealthResult.value;
+    } else {
+      warnSanitized(
+        '[track-details] health data failed to load',
+        { trackId, error: trackHealthResult.reason },
+        { topic1: 'tracks', topic2: 'TrackDetails', topic3: 'load' }
+      );
+      trackHealthLoadError.value = TRACK_DETAIL_HEALTH_ERROR_MESSAGE;
+    }
 
     // Wait for SIMPLIFIED_SHAPE points before publishing TrackPoints to
     // the cursor-sync store; the chart can render without them, but the
@@ -1340,12 +1638,20 @@ async function load(trackId: number) {
     if (relatedTracksResult.status === 'fulfilled') {
       relatedTracks.value = relatedTracksResult.value;
     } else {
-      console.warn('[track-details] related tracks failed to load', { trackId, error: relatedTracksResult.reason });
+      warnSanitized(
+        '[track-details] related tracks failed to load',
+        { trackId, error: relatedTracksResult.reason },
+        { topic1: 'tracks', topic2: 'TrackDetails', topic3: 'load' }
+      );
       relatedLoadError.value = TRACK_DETAIL_RELATED_ERROR_MESSAGE;
     }
   } catch (error) {
     if (generation === loadGeneration) {
-      console.warn('[track-details] failed to load required track details', { trackId, error });
+      warnSanitized(
+        '[track-details] failed to load required track details',
+        { trackId, error },
+        { topic1: 'tracks', topic2: 'TrackDetails', topic3: 'load' }
+      );
       loadError.value = TRACK_DETAIL_LOAD_ERROR_MESSAGE;
     }
   } finally {
@@ -1359,9 +1665,48 @@ function navigateToTrack(trackId: number) {
   emit('navigate-track', trackId);
 }
 
+const ENERGY_CHART_METRICS: MetricKey[] = [
+  MetricKey.PowerWatts,
+  MetricKey.PowerWindowWatts,
+  MetricKey.EnergyCumulativeWh,
+];
+
+function withoutEnergyMetrics(points: ChartPoint[]): ChartPoint[] {
+  return points.map((point) => {
+    const metricStats = { ...point.metricStats };
+    for (const metric of ENERGY_CHART_METRICS) delete metricStats[metric];
+    return { ...point, metricStats, powerWattsWindow: null, energyCumulativeWh: null };
+  });
+}
+
+function energyChartSignature(track: GpsTrack | null): string {
+  return JSON.stringify([
+    track?.activityType,
+    track?.energyNetTotalWh,
+    track?.energyWeightKgUsed,
+    track?.powerWattsAvg,
+    track?.powerWatts30sMax,
+    track?.metabolicEnergy,
+  ]);
+}
+
 function onTrackUpdated(track: GpsTrack) {
-  gpsTrack.value = track;
-  emit('track-loaded', trackLoadedPayload(track));
+  if (track.id !== gpsTrack.value?.id) return;
+  const energyChanged = energyChartSignature(track) !== energyChartSignature(gpsTrack.value);
+  // Summary updates can omit detail geometry and its recording-break metadata.
+  const updatedTrack = track.gpsTracksData?.length ? track : { ...track, gpsTracksData: gpsTrack.value?.gpsTracksData };
+  gpsTrack.value = updatedTrack;
+  emit('track-loaded', trackLoadedPayload(updatedTrack));
+  emit('track-updated', updatedTrack);
+  if (energyChanged) {
+    // Invalidate earlier requests and hide old curves until fresh calculations arrive.
+    ++chartReloadGeneration;
+    trackDetails.value = withoutEnergyMetrics(trackDetails.value);
+    availableChartMetrics.value = availableChartMetrics.value.filter(
+      (metric) => !ENERGY_CHART_METRICS.includes(metric)
+    );
+    if (updatedTrack.energyNetTotalWh != null) void reloadChartDetailsForCurrentSettings();
+  }
 }
 </script>
 
@@ -1376,6 +1721,7 @@ function onTrackUpdated(track: GpsTrack) {
  */
 
 .tool-container {
+  container: track-details / inline-size;
   display: flex;
   flex-direction: column;
   align-items: stretch;
@@ -1475,15 +1821,38 @@ function onTrackUpdated(track: GpsTrack) {
 }
 
 .track-detail-load-error__button--primary {
-  color: var(--text-inverse);
-  background: var(--error-heavy);
-  border-color: transparent;
+  color: var(--accent-contrast);
+  background: var(--accent);
+  border-color: var(--accent);
 }
 
 .track-detail-load-error__button--primary:hover:not(:disabled) {
-  color: var(--text-inverse);
-  background: var(--error);
-  border-color: transparent;
+  color: var(--accent-contrast);
+  background: var(--accent-hover);
+  border-color: var(--accent);
+}
+
+.track-detail-inline-error button {
+  color: var(--accent-text);
+  border-color: var(--accent);
+}
+
+.track-source-review-notice {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.75rem;
+  margin: 0.5rem 0;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--border-default);
+  border-radius: 0.5rem;
+  background: var(--warning-bg);
+  color: var(--warning-text);
+  font-size: var(--text-sm-size);
+  line-height: var(--text-sm-lh);
+}
+
+.track-source-review-notice a {
+  color: inherit;
 }
 
 .track-detail-inline-error {
@@ -1503,6 +1872,26 @@ function onTrackUpdated(track: GpsTrack) {
 
 .track-detail-inline-error i {
   color: var(--warning);
+}
+
+.track-health-empty {
+  padding: 1rem;
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  font-size: var(--text-sm-size);
+  line-height: var(--text-sm-lh);
+}
+
+.track-health-empty strong {
+  color: var(--text-primary);
+}
+
+.track-health-empty p {
+  margin: 0.5rem 0;
+}
+
+.track-health-empty a {
+  color: var(--accent-text);
 }
 
 /* Tabs fill the remaining space below the mini-map.
@@ -1537,18 +1926,51 @@ function onTrackUpdated(track: GpsTrack) {
 
 :deep(.p-tablist-tab-list) {
   min-width: max-content;
+  width: 100%;
+  justify-content: flex-start;
+  border-bottom: 1px solid var(--border-default);
 }
 
-@media (max-width: 640px) {
+:deep(.p-tab) {
+  flex: 0 0 auto;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--text-muted);
+  min-height: 2.75rem;
+  justify-content: center;
+  padding: 12px 16px;
+  font-size: 13px;
+  font-weight: 600;
+}
+:deep(.p-tab-active) {
+  border-bottom-color: var(--accent);
+  color: var(--accent-text);
+}
+:deep(.p-tablist-active-bar) {
+  display: none;
+}
+:deep(.p-tab:hover) {
+  color: var(--accent-text);
+  background: var(--surface-hover);
+}
+:deep(.p-tabpanels) {
+  padding: 0;
+  scrollbar-gutter: stable;
+}
+@container track-details (max-width: 480px) {
   :deep(.p-tab) {
-    flex: 0 0 auto;
-    padding-inline: 0.4rem;
+    padding-inline: 0.5rem;
+    font-size: var(--text-xs-size);
+  }
+  :deep(.p-tabpanels) {
+    scrollbar-gutter: auto;
   }
 }
 
 .graphs-toolbar {
   display: grid;
-  grid-template-columns: minmax(13rem, 0.85fr) minmax(9rem, 0.45fr) minmax(17rem, 1fr) minmax(17rem, 1fr);
+  grid-template-columns: minmax(12rem, 0.85fr) minmax(6rem, 0.45fr) repeat(2, minmax(0, 1fr));
   align-items: stretch;
   gap: 0;
   margin: 0.75rem 0.75rem 0;
@@ -1564,7 +1986,7 @@ function onTrackUpdated(track: GpsTrack) {
   align-items: stretch;
   gap: 0.55rem;
   min-width: 0;
-  padding: 0.75rem 1.25rem;
+  padding: 0.75rem;
   border-right: 1px solid var(--border-subtle);
 }
 
@@ -1598,8 +2020,7 @@ function onTrackUpdated(track: GpsTrack) {
   gap: 0.35rem;
   font-size: var(--text-2xs-size);
   font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  letter-spacing: 0;
   color: var(--text-muted);
   white-space: nowrap;
 }
@@ -1673,7 +2094,7 @@ function onTrackUpdated(track: GpsTrack) {
   --mtl-slider-handle-halo-active: 0 0 0 6px var(--accent-bg);
 }
 
-@media (max-width: 820px) {
+@container track-details (max-width: 820px) {
   .track-detail-load-error {
     margin: 0.75rem;
   }
@@ -1771,12 +2192,17 @@ function onTrackUpdated(track: GpsTrack) {
   }
 
   .toggle-btn {
-    min-height: 2.35rem;
+    min-height: var(--control-segment-height);
     padding-inline: 0.5rem;
   }
 
   .graphs-slider-shell {
     min-width: 0;
+  }
+}
+@container track-details (max-width: 420px) {
+  .graphs-axis-section .toggle-btn i {
+    display: none;
   }
 }
 </style>

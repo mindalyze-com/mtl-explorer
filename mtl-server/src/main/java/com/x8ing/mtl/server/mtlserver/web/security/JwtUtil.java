@@ -10,7 +10,10 @@ import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import javax.crypto.Mac;
 import javax.crypto.SecretKey;
+import java.nio.charset.StandardCharsets;
+import java.security.GeneralSecurityException;
 import java.security.SecureRandom;
 import java.time.Duration;
 import java.util.Base64;
@@ -25,7 +28,7 @@ import java.util.List;
 })
 public class JwtUtil {
 
-    public static final String USER_SESSION_ID = "user_session_id";
+    public static final String CLIENT_LOGIN_REF = "client_login_ref";
     public static final String USER_NAME = "user_name";
 
     private static final String DOMAIN1 = "SECURITY";
@@ -71,10 +74,10 @@ public class JwtUtil {
         return encodedKey;
     }
 
-    public String generateToken(String username, String userSessionId, Date issuedAt, Date expiresAt) {
+    public String generateToken(String username, String clientLoginRef, Date issuedAt, Date expiresAt) {
         return Jwts.builder()
                 .subject(username)
-                .claim(USER_SESSION_ID, userSessionId)
+                .claim(CLIENT_LOGIN_REF, clientLoginRef)
                 .issuedAt(issuedAt)
                 .expiration(expiresAt)
                 .signWith(secretKey)
@@ -83,6 +86,20 @@ public class JwtUtil {
 
     public Duration getJwtExpiration() {
         return jwtExpiration;
+    }
+
+    /**
+     * Derive an independent signing key without exposing or reusing the login signing key.
+     */
+    public SecretKey purposeSigningKey(String purpose) {
+        try {
+            Mac derivation = Mac.getInstance("HmacSHA256");
+            derivation.init(secretKey);
+            return Keys.hmacShaKeyFor(derivation.doFinal(("MTL Explorer signing: " + purpose).getBytes(StandardCharsets.UTF_8)));
+        } catch (GeneralSecurityException exception) {
+            org.slf4j.LoggerFactory.getLogger(JwtUtil.class).error("Purpose signing key derivation failed: purpose={}", purpose, exception);
+            throw new IllegalStateException("Signing key derivation failed", exception);
+        }
     }
 
     public boolean validateToken(String token) {
@@ -99,10 +116,10 @@ public class JwtUtil {
         return claims.getSubject();
     }
 
-    public String getUserSessionIdFromToken(String token) {
+    public String getClientLoginRefFromToken(String token) {
         Claims claims = parseClaims(token);
-        Object userSessionId = claims.get(USER_SESSION_ID);
-        return userSessionId != null ? String.valueOf(userSessionId) : null;
+        Object clientLoginRef = claims.get(CLIENT_LOGIN_REF);
+        return clientLoginRef != null ? String.valueOf(clientLoginRef) : null;
     }
 
     private Claims parseClaims(String token) {

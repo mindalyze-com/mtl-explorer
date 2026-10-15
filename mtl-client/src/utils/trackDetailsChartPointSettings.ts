@@ -62,3 +62,25 @@ export function trackDetailsChartPointCountToSliderValue(value: number): number 
     TRACK_DETAILS_CHART_POINT_SLIDER_MIN + sliderRatio * TRACK_DETAILS_CHART_POINT_SLIDER_RANGE
   );
 }
+
+export function nextDistinctChartPointSliderValue(
+  currentSliderValue: number,
+  currentPointCount: number,
+  direction: number
+): number {
+  const sliderStep = direction < 0 ? -TRACK_DETAILS_CHART_POINT_SLIDER_STEP : TRACK_DETAILS_CHART_POINT_SLIDER_STEP;
+  let nextSliderValue = clampTrackDetailsChartPointSliderValue(currentSliderValue + sliderStep);
+
+  while (
+    nextSliderValue !== currentSliderValue &&
+    trackDetailsChartPointSliderValueToCount(nextSliderValue) === currentPointCount
+  ) {
+    const candidateSliderValue = clampTrackDetailsChartPointSliderValue(nextSliderValue + sliderStep);
+    if (candidateSliderValue === nextSliderValue) {
+      break;
+    }
+    nextSliderValue = candidateSliderValue;
+  }
+
+  return nextSliderValue;
+}

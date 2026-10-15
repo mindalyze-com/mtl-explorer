@@ -1,3 +1,4 @@
+import { warnSanitized } from '@/utils/safeLogging';
 import { markRaw } from 'vue';
 import { fetchTrackPointsForRenderedShape, fetchTrackCanonicalPoints } from '@/utils/ServiceHelper';
 import {
@@ -20,11 +21,14 @@ import {
   valueAtFraction,
 } from '@/components/map/trackLineHitTest';
 import { OVERVIEW_PRECISION } from '@/utils/tracks/trackConstants';
+import { trackDisplayName } from '@/utils/tracks/trackDisplayName';
+import { recordedTrackCoordinates } from '@/utils/tracks/trackFeatureAdapter';
 import type {
   Coordinates,
   MapCenter,
   MapControllerMethodDefinitions,
   MapControllerRuntime,
+  MapPoint,
   TrackFeature,
   TrackPointLayerMethods,
 } from './mapControllerRuntime';
@@ -38,6 +42,26 @@ const TRACK_POINT_ARROW_BACKGROUND_COLOR = VIZ_LIGHT_COLOR;
 const DEFAULT_DEVICE_PIXEL_RATIO = 1;
 const TRACK_LINE_CLICK_TOLERANCE_PX = 12;
 const TRACK_LINE_CLICK_TOLERANCE_METERS = 120;
+const TRACK_POINT_LAYER_ID = 'track-points-layer';
+
+export type TrackPointMapCandidate = {
+  id: string;
+  kind: 'track-point';
+  sourceId: typeof TRACK_POINT_LAYER_ID;
+  label: string;
+  detail: string;
+  coordinates: Coordinates;
+  distancePx: number;
+  trackId: number;
+  pointIndex: number;
+  precision: number;
+};
+
+export type TrackPointPresentationOptions = {
+  isCurrent?: () => boolean;
+  presentation?: 'popup' | 'context';
+  precision?: number;
+};
 
 export function buildArchiveTrackPointPopupRows(
   lngLat: MapCenter | Coordinates,
@@ -160,8 +184,16 @@ export function createArrowImage(
 export function useTrackPointLayer(
   _deps: Record<string, never> = {}
 ): MapControllerMethodDefinitions<TrackPointLayerMethods> {
+  const detailRequests = new WeakMap<MapControllerRuntime, number>();
+  const requestGuard = (controller: MapControllerRuntime, options: TrackPointPresentationOptions) => {
+    const request = detailRequests.get(controller);
+    const map = controller.overlayMap;
+    return () =>
+      controller.overlayMap === map && detailRequests.get(controller) === request && (options.isCurrent?.() ?? true);
+  };
   const methods: MapControllerMethodDefinitions<TrackPointLayerMethods> = {
     closeTrackPointPopup() {
+      detailRequests.set(this, (detailRequests.get(this) ?? 0) + 1);
       this.trackPointsPopup?.remove();
       this.trackPointsPopup = null;
       this.trackPointsPopupContext = null;
@@ -170,9 +202,8 @@ export function useTrackPointLayer(
     detachTrackPointLayerHandlers() {
       if (!this.overlayMap || !this.trackPointLayerHandlers) return;
       const handlers = this.trackPointLayerHandlers;
-      this.overlayMap.off('click', 'track-points-layer', handlers.click);
-      this.overlayMap.off('mouseenter', 'track-points-layer', handlers.mouseenter);
-      this.overlayMap.off('mouseleave', 'track-points-layer', handlers.mouseleave);
+      this.overlayMap.off('mouseenter', TRACK_POINT_LAYER_ID, handlers.mouseenter);
+      this.overlayMap.off('mouseleave', TRACK_POINT_LAYER_ID, handlers.mouseleave);
       this.trackPointLayerHandlers = null;
     },
 
@@ -181,15 +212,6 @@ export function useTrackPointLayer(
       if (!overlayMap) return;
       this.detachTrackPointLayerHandlers();
       const handlers: NonNullable<MapControllerRuntime['trackPointLayerHandlers']> = {
-        click: (e) => {
-          if (!e.features || e.features.length === 0) return;
-          e.originalEvent.stopPropagation();
-          const f = e.features[0];
-          const trackId = Number(f.properties?.trackId);
-          const pointIndex = Number(f.properties?.pointIndex);
-          if (!Number.isFinite(trackId) || !Number.isFinite(pointIndex)) return;
-          this.showTrackPointPopup(e.lngLat, trackId, pointIndex);
-        },
         mouseenter: () => {
           overlayMap.getCanvas().style.cursor = 'pointer';
         },
@@ -197,10 +219,74 @@ export function useTrackPointLayer(
           overlayMap.getCanvas().style.cursor = '';
         },
       };
-      overlayMap.on('click', 'track-points-layer', handlers.click);
-      overlayMap.on('mouseenter', 'track-points-layer', handlers.mouseenter);
-      overlayMap.on('mouseleave', 'track-points-layer', handlers.mouseleave);
+      overlayMap.on('mouseenter', TRACK_POINT_LAYER_ID, handlers.mouseenter);
+      overlayMap.on('mouseleave', TRACK_POINT_LAYER_ID, handlers.mouseleave);
       this.trackPointLayerHandlers = handlers;
+    },
+
+    collectTrackPointCandidates(point: MapPoint, radius: number) {
+      const map = this.overlayMap;
+      if (
+        !map ||
+        !this.trackPointsVisible ||
+        this.layerOpacities.trackpoints <= 0 ||
+        this.plannerToolActive ||
+        this.measureToolActive ||
+        this.geoDrawingParamDef ||
+        map.getZoom() < TRACK_POINTS_MIN_ZOOM ||
+        !map.getLayer(TRACK_POINT_LAYER_ID) ||
+        map.getLayoutProperty(TRACK_POINT_LAYER_ID, 'visibility') === 'none'
+      )
+        return [];
+      const candidates = new Map<string, TrackPointMapCandidate>();
+      for (const feature of map.queryRenderedFeatures(
+        [
+          [point.x - radius, point.y - radius],
+          [point.x + radius, point.y + radius],
+        ],
+        { layers: [TRACK_POINT_LAYER_ID] }
+      )) {
+        const trackId = finiteNumber(feature.properties.trackId);
+        const pointIndex = finiteNumber(feature.properties.pointIndex);
+        if (
+          trackId == null ||
+          pointIndex == null ||
+          !Number.isInteger(pointIndex) ||
+          pointIndex < 0 ||
+          feature.geometry.type !== 'Point' ||
+          this.gpsTrackIdToFeature.get(trackId)?.properties?.reviewMapExcluded
+        )
+          continue;
+        const coordinates = feature.geometry.coordinates.slice(0, 2) as Coordinates;
+        if (coordinates.length !== 2 || !coordinates.every(Number.isFinite)) continue;
+        const id = `track-point:${trackId}:${pointIndex}`;
+        const projected = map.project(coordinates);
+        const distancePx = Math.hypot(projected.x - point.x, projected.y - point.y);
+        const previous = candidates.get(id);
+        if (previous && previous.distancePx <= distancePx) continue;
+        candidates.set(id, {
+          id,
+          kind: 'track-point',
+          sourceId: TRACK_POINT_LAYER_ID,
+          label: trackDisplayName(this.gpsTracksById.get(trackId), trackId),
+          detail: `Point ${pointIndex + 1}`,
+          coordinates,
+          distancePx,
+          trackId,
+          pointIndex,
+          precision: this.trackPrecisions.get(trackId) ?? OVERVIEW_PRECISION,
+        });
+      }
+      return [...candidates.values()].sort((a, b) => a.distancePx - b.distancePx || a.id.localeCompare(b.id));
+    },
+
+    async openTrackPointCandidate(candidate, isCurrent, options = {}) {
+      if (!isCurrent()) return;
+      await this.showTrackPointPopup(candidate.coordinates, candidate.trackId, candidate.pointIndex, {
+        ...options,
+        isCurrent,
+        precision: candidate.precision,
+      });
     },
 
     // ─── Individual GPS track points ─────────────────────────────────
@@ -240,7 +326,8 @@ export function useTrackPointLayer(
       const pointFeatures: Array<Record<string, unknown>> = [];
       for (let f = 0; f < features.length; f++) {
         const feature = features[f];
-        const coords = lineCoordinatesFromFeature(feature);
+        if (feature?.properties?.reviewMapExcluded) continue;
+        const coords = recordedTrackCoordinates(feature.geometry) ?? lineCoordinatesFromFeature(feature);
         if (!coords.length) continue;
         const trackId = Number(feature.properties?.id);
         if (!Number.isFinite(trackId)) continue;
@@ -300,9 +387,12 @@ export function useTrackPointLayer(
     },
 
     /** Show a popup with full data for a specific track point. */
-    async showTrackPointPopup(lngLat, trackId, pointIndex) {
+    async showTrackPointPopup(lngLat, trackId, pointIndex, options = {}) {
+      if (options.isCurrent?.() === false) return;
       // Close any existing popup
       this.closeTrackPointPopup();
+      const isCurrent = requestGuard(this, options);
+      if (!isCurrent()) return;
 
       // The track-points layer is emitted by updateTrackPointsSource() from
       // the SIMPLIFIED_SHAPE LineString currently loaded for this track, and
@@ -315,13 +405,17 @@ export function useTrackPointLayer(
       //      (geometry + canonicalPointIndex back-pointer)
       //   2. look up the matching canonical point by canonicalPointIndex
       //      and read metric fields off that row.
-      const precision = this.trackPrecisions.get(trackId) ?? OVERVIEW_PRECISION;
-      const popupData = await loadTrackPointPopupData(this, trackId, precision);
-      if (!popupData) return;
+      const precision = options.precision ?? this.trackPrecisions.get(trackId) ?? OVERVIEW_PRECISION;
+      const popupData = await loadTrackPointPopupData(this, trackId, precision, isCurrent);
+      if (!popupData || !isCurrent()) return;
       const { details, canonicalPoints } = popupData;
       const point = details.find((p) => p.pointIndex === pointIndex);
       if (!point) {
-        console.warn(`Point index ${pointIndex} not found in details for track ${trackId} at precision ${precision}m`);
+        warnSanitized('Track point not found in details', undefined, {
+          topic1: 'map',
+          topic2: 'useTrackPointLayer',
+          topic3: 'showTrackPointPopup',
+        });
         return;
       }
 
@@ -330,10 +424,11 @@ export function useTrackPointLayer(
       // vertices or unmatched timestamps).
       const canonical = canonicalPointForRenderedPoint(point, canonicalPoints);
 
-      this.renderTrackPointPopup(lngLat, trackId, point, canonical);
+      this.renderTrackPointPopup(lngLat, trackId, point, canonical, options.presentation);
     },
 
-    async showTrackLinePointPopup(e, trackId) {
+    async showTrackLinePointPopup(e, trackId, options = {}) {
+      if (options.isCurrent?.() === false) return false;
       const overlayMap = this.overlayMap;
       if (!overlayMap || !this.trackPointsVisible || overlayMap.getZoom() < TRACK_POINTS_MIN_ZOOM) {
         return false;
@@ -354,10 +449,12 @@ export function useTrackPointLayer(
       if (!projection) return false;
 
       this.closeTrackPointPopup();
+      const isCurrent = requestGuard(this, options);
+      if (!isCurrent()) return false;
 
       const precision = this.trackPrecisions.get(trackId) ?? OVERVIEW_PRECISION;
-      const popupData = await loadTrackPointPopupData(this, trackId, precision);
-      if (!popupData) return false;
+      const popupData = await loadTrackPointPopupData(this, trackId, precision, isCurrent);
+      if (!popupData || !isCurrent()) return false;
 
       const point = projectedPopupPoint(
         popupData.details,
@@ -371,19 +468,21 @@ export function useTrackPointLayer(
         projection.anchor,
         trackId,
         point,
-        canonicalPointForRenderedPoint(point, popupData.canonicalPoints)
+        canonicalPointForRenderedPoint(point, popupData.canonicalPoints),
+        options.presentation
       );
       return true;
     },
 
-    renderTrackPointPopup(lngLat, trackId, point, canonical) {
+    renderTrackPointPopup(lngLat, trackId, point, canonical, presentation = 'popup') {
       if (!this.overlayMap) return;
       this.trackPointsPopupContext = markRaw({ lngLat, trackId, point, canonical });
+      if (presentation === 'context') return;
       this.trackPointsPopup = markRaw(
         createTrackPointPopup({
           map: this.overlayMap,
           lngLat,
-          title: `Track #${trackId}`,
+          title: trackDisplayName(this.gpsTracksById?.get(trackId), trackId),
           rows: buildArchiveTrackPointPopupRows(lngLat, point, canonical),
         })
       );
@@ -394,7 +493,7 @@ export function useTrackPointLayer(
       if (!this.trackPointsPopup || !context) return;
       updateTrackPointPopupContent(
         this.trackPointsPopup,
-        `Track #${context.trackId}`,
+        trackDisplayName(this.gpsTracksById?.get(context.trackId), context.trackId),
         buildArchiveTrackPointPopupRows(context.lngLat, context.point, context.canonical)
       );
     },
@@ -411,7 +510,8 @@ function finiteNumber(value: unknown): number | null {
 async function loadTrackPointPopupData(
   controller: MapControllerRuntime,
   trackId: number,
-  precision: number
+  precision: number,
+  isCurrent: () => boolean
 ): Promise<{ details: GpsTrackDataPoint[]; canonicalPoints: GpsTrackDataPoint[] } | null> {
   const cacheKey = `${trackId}|${precision}`;
 
@@ -419,20 +519,33 @@ async function loadTrackPointPopupData(
   if (!details) {
     try {
       details = await fetchTrackPointsForRenderedShape(trackId, precision);
+      if (!isCurrent()) return null;
       controller.trackPointsDetailsCache.set(cacheKey, details);
     } catch (e) {
-      console.warn('Failed to fetch simplified point details for track', trackId, e);
+      if (!isCurrent()) return null;
+      warnSanitized('Failed to fetch simplified point details', e, {
+        topic1: 'map',
+        topic2: 'useTrackPointLayer',
+        topic3: 'loadTrackPointPopupData',
+      });
       return null;
     }
   }
+  if (!isCurrent()) return null;
 
   let canonicalPoints = controller.trackPointsCanonicalCache.get(trackId);
   if (!canonicalPoints) {
     try {
       canonicalPoints = await fetchTrackCanonicalPoints(trackId);
+      if (!isCurrent()) return null;
       controller.trackPointsCanonicalCache.set(trackId, canonicalPoints);
     } catch (e) {
-      console.warn('Failed to fetch canonical points for track', trackId, e);
+      if (!isCurrent()) return null;
+      warnSanitized('Failed to fetch canonical points', e, {
+        topic1: 'map',
+        topic2: 'useTrackPointLayer',
+        topic3: 'loadTrackPointPopupData',
+      });
       canonicalPoints = [];
     }
   }
@@ -530,8 +643,10 @@ function canonicalPointForTrackFraction(
 
 function lineCoordinatesFromFeature(feature: TrackFeature | null | undefined): Coordinates[] {
   const geometry = feature?.geometry as { type?: string; coordinates?: unknown[] } | undefined;
-  if (!geometry || geometry.type !== 'LineString') return [];
-  return (geometry.coordinates ?? [])
+  if (!geometry || !['LineString', 'MultiLineString'].includes(geometry.type ?? '')) return [];
+  const coordinates =
+    geometry.type === 'MultiLineString' ? (geometry.coordinates ?? []).flat() : (geometry.coordinates ?? []);
+  return coordinates
     .map((coordinate: unknown) => {
       const tuple = coordinate as Array<unknown> | undefined;
       if (!tuple) return null;

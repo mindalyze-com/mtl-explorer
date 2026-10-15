@@ -1,5 +1,5 @@
 <template>
-  <div class="virtual-race-container">
+  <div class="virtual-race-container" data-sheet-fit-target>
     <!-- Controls -->
     <div class="vr-controls">
       <div class="vr-segment-row">
@@ -71,8 +71,8 @@
 
     <div v-if="showMinimap && skippedRacerCount > 0" class="vr-warning">
       <i class="bi bi-info-circle"></i>
-      {{ skippedRacerCount }} selected racer{{ skippedRacerCount === 1 ? '' : 's' }} lacked enough segment data and
-      {{ skippedRacerCount === 1 ? 'was' : 'were' }} skipped.
+      {{ skippedRacerCount }} selected racer{{ skippedRacerCount === 1 ? '' : 's' }} could not be loaded or lacked
+      enough segment data and {{ skippedRacerCount === 1 ? 'was' : 'were' }} skipped.
     </div>
 
     <!-- Racers legend -->
@@ -99,9 +99,12 @@
 </template>
 
 <script setup lang="ts">
+import { logSanitizedError, warnSanitized } from '@/utils/safeLogging';
+
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue';
 import type {
   CrossingPointsResponseDto,
+  CrossingDto,
   GpsTrackDataPointDto,
 } from 'x8ing-mtl-api-typescript-fetch/dist/esm/models/index';
 import { fetchTrackSubTrackDetails } from '@/utils/ServiceHelper';
@@ -125,6 +128,7 @@ import {
   type SegmentSliceResult,
 } from '@/components/measure/segmentSlice';
 import { VIZ_BLUE_COLOR } from '@/utils/visualizationColors';
+import { segmentTimingUnavailable } from '@/components/measure/segmentTiming';
 
 defineOptions({ name: 'VirtualRace' });
 
@@ -132,11 +136,8 @@ type SegmentCode = SegmentSelectionCode;
 type TrackPoint = Omit<GpsTrackDataPointDto, 'pointLongLat'> & { pointLongLat?: { coordinates?: number[] } };
 type SegmentOption = { name?: string; count?: number; code: SegmentCode };
 type RaceTriggerPoint = { coordinate: { x: number; y: number }; name: string };
-type RaceCrossing = {
+type RaceCrossing = Omit<CrossingDto, 'triggerPoint' | 'gpsTrackDataPoint'> & {
   gpsTrackDataPoint?: TrackPoint & { id?: number };
-  timeInSecSinceLastTriggerPoint?: number;
-  distanceInMeterSinceLastTriggerPoint?: number;
-  avgSpeedSinceLastTriggerPoint?: number;
   triggerPoint: RaceTriggerPoint;
 };
 type RaceGpsTrack = {
@@ -221,7 +222,7 @@ const availableSegments = computed<SegmentOption[]>(() => {
   if (props.consolidateVisits !== false) {
     return (props.measureServiceResult.segmentsStats || []).map((segment) => ({
       name: segment.label,
-      count: selectedSegmentCounts.value.get(segment.point1 + '||' + segment.point2) ?? 0,
+      count: selectedSegmentCounts.value.get(segmentSelectionKey({ code: segment })) ?? 0,
       code: { point1: segment.point1, point2: segment.point2, consolidated: true },
     }));
   }
@@ -244,8 +245,10 @@ const selectedSegmentCounts = computed(() => {
     if (!props.selectedTrackIds.has(tid)) continue;
     let lastCrossing: RaceCrossing | null = null;
     for (const crossing of crossings.crossings) {
-      if (lastCrossing != null) {
-        const key = lastCrossing.triggerPoint.name + '||' + crossing.triggerPoint.name;
+      if (lastCrossing != null && !segmentTimingUnavailable(crossing)) {
+        const key = segmentSelectionKey({
+          code: { point1: lastCrossing.triggerPoint.name, point2: crossing.triggerPoint.name },
+        });
         counts.set(key, (counts.get(key) || 0) + 1);
       }
       lastCrossing = crossing;
@@ -254,14 +257,9 @@ const selectedSegmentCounts = computed(() => {
   return counts;
 });
 
-const selectedSegmentKey = computed(() => {
-  if (!selectedSegment.value) return null;
-  const code = selectedSegment.value;
-  if (code.consolidated === false) {
-    return String(code.point1) + String(code.p1Visit) + '-' + String(code.point2) + String(code.p2Visit);
-  }
-  return String(code.point1) + '||' + String(code.point2);
-});
+const selectedSegmentKey = computed(() =>
+  selectedSegment.value ? segmentSelectionKey({ code: selectedSegment.value }) : null
+);
 
 const selectedSegmentCount = computed(() => {
   if (!selectedSegment.value) return null;
@@ -350,9 +348,13 @@ function selectedRaceSegmentMatches(): MatchingCrossing[] {
     let previousVisit: number | null = null;
     for (const crossing of crossings.crossings) {
       const name = crossing.triggerPoint.name;
-      const currentVisit = (visitsByTriggerPoint.get(name) || 0) + 1;
+      const currentVisit = crossing.visitNumber ?? (visitsByTriggerPoint.get(name) || 0) + 1;
       visitsByTriggerPoint.set(name, currentVisit);
-      if (previousCrossing && matchesSelectedSegment(previousCrossing, crossing, previousVisit, currentVisit)) {
+      if (
+        previousCrossing &&
+        !segmentTimingUnavailable(crossing) &&
+        matchesSelectedSegment(previousCrossing, crossing, previousVisit, currentVisit)
+      ) {
         matches.push({ crossings: [previousCrossing, crossing], gpsTrack: crossings.gpsTrack });
       }
       previousCrossing = crossing;
@@ -410,18 +412,33 @@ async function preparePreview() {
     fetchPromises.push(fetchTrackSubTrackDetails(start.gpsTrackDataPoint.id, end.gpsTrackDataPoint.id));
   }
 
-  let normalizedResults: SegmentSliceResult<TrackPoint>[];
+  let normalizedResults: Array<SegmentSliceResult<TrackPoint> | null>;
   try {
-    const results = await Promise.all(fetchPromises);
-    normalizedResults = results.map((track, i) =>
-      normalizeSegmentSlice(track as TrackPoint[], nextMatchingCrossings[i]?.crossings, {
+    const results = await Promise.allSettled(fetchPromises);
+    normalizedResults = results.map((result, i) => {
+      if (result.status === 'rejected') {
+        warnSanitized(
+          'Virtual race segment load failed:',
+          {
+            trackId: nextMatchingCrossings[i]?.gpsTrack.id,
+            error: result.reason,
+          },
+          { topic1: 'application', topic2: 'VirtualRace', topic3: 'preparePreview' }
+        );
+        return null;
+      }
+      return normalizeSegmentSlice(result.value as TrackPoint[], nextMatchingCrossings[i]?.crossings, {
         requirePositiveDistanceOrGeometry: true,
         requirePositiveDuration: true,
-      })
-    );
+      });
+    });
   } catch (error) {
     if (token !== prepareToken.value) return;
-    console.error('Virtual race preview failed:', error);
+    logSanitizedError('Virtual race preview failed:', error, {
+      topic1: 'application',
+      topic2: 'VirtualRace',
+      topic3: 'preparePreview',
+    });
     clearPreparedRace('Could not load race segment data.');
     return;
   } finally {
@@ -439,7 +456,7 @@ async function preparePreview() {
   for (let i = 0; i < normalizedResults.length; i++) {
     const crossing = nextMatchingCrossings[i];
     const segment = normalizedResults[i];
-    if (!crossing || !segment.valid) continue;
+    if (!crossing || !segment?.valid) continue;
     const points = segment.points;
     validMatchingCrossings.push(crossing);
     validResults.push(points);

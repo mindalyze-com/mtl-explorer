@@ -1,10 +1,6 @@
 package com.x8ing.mtl.server.mtlserver.planner.service;
 
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
-import tools.jackson.core.type.TypeReference;
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.node.ObjectNode;
 import com.x8ing.mtl.server.mtlserver.db.entity.gps.GpsTrack;
 import com.x8ing.mtl.server.mtlserver.db.entity.gps.GpsTrackData;
 import com.x8ing.mtl.server.mtlserver.db.repository.gps.GpsTrackDataRepository;
@@ -13,6 +9,7 @@ import com.x8ing.mtl.server.mtlserver.db.repository.gps.GpsTrackRepository;
 import com.x8ing.mtl.server.mtlserver.planner.PlannerGeometryMetrics;
 import com.x8ing.mtl.server.mtlserver.planner.constants.PlannerConstants;
 import com.x8ing.mtl.server.mtlserver.planner.dto.*;
+import com.x8ing.mtl.server.mtlserver.utils.GeoCoordinateUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.GeometryFactory;
@@ -21,13 +18,16 @@ import org.locationtech.jts.geom.PrecisionModel;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.node.ObjectNode;
 
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
+import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 /**
- * Persists planner-generated routes as GpsTrack rows flagged with
+ * Persists planner maps (route, points of interest, or both) as GpsTrack rows flagged with
  * {@link GpsTrack.TRACK_SOURCE#PLANNED}. The row gets pre-set "terminal" state
  * values so no background job ever picks it up:
  * <ul>
@@ -52,10 +52,11 @@ import java.util.List;
 public class PlannedTrackService {
 
     private static final int SRID_WGS84 = 4326;
-    private static final int PLANNER_ROUTE_SCHEMA_VERSION = 1;
+    private static final int PLANNER_ROUTE_SCHEMA_VERSION = 2;
     private static final String PLANNER_ROUTE_SCHEMA_VERSION_FIELD = "schemaVersion";
     private static final String PLANNER_ROUTE_LEGS_FIELD = "legs";
     private static final String PLANNER_ROUTE_STATS_FIELD = "stats";
+    private static final String PLANNER_POINTS_OF_INTEREST_FIELD = "pointsOfInterest";
     private final GeometryFactory geometryFactory = new GeometryFactory(new PrecisionModel(), SRID_WGS84);
     private final ObjectMapper objectMapper;
 
@@ -75,17 +76,43 @@ public class PlannedTrackService {
 
     @Transactional
     public GpsTrack save(SavePlannedTrackDto dto) {
+        long startedAt = System.nanoTime();
+        if (dto == null) {
+            throw new IllegalArgumentException("Plan is required");
+        }
+        List<PointOfInterestDto> pointsOfInterest = validatedPointsOfInterest(dto.getPointsOfInterest());
         List<LegResultDto> plannedLegs = nonEmptyLegs(dto.getLegs());
         List<double[]> coords = plannedLegs.isEmpty()
                 ? dto.getCoordinates()
                 : flattenLegCoordinates(plannedLegs);
-        if (coords == null || coords.size() < 2) {
-            throw new IllegalArgumentException("At least two coordinates are required to save a planned track");
+        if (coords == null) coords = List.of();
+        validateRouteCoordinates(coords);
+        if (dto.getWaypoints() != null) {
+            if (dto.getWaypoints().size() > PlannerConstants.MAX_WAYPOINTS) {
+                throw new IllegalArgumentException("Too many waypoints");
+            }
+            for (WaypointDto waypoint : dto.getWaypoints()) {
+                if (waypoint == null) throw new IllegalArgumentException("Waypoint is required");
+                GeoCoordinateUtils.requireValidLatitude(waypoint.getLat());
+                GeoCoordinateUtils.requireValidLongitude(waypoint.getLng());
+            }
         }
+        boolean hasRoute = coords.size() >= 2;
+        if ((!hasRoute && !coords.isEmpty()) || (!hasRoute && pointsOfInterest.isEmpty())) {
+            throw new IllegalArgumentException("A plan needs a route or at least one point of interest");
+        }
+        log.info("Saving plan: routePoints={} pointsOfInterest={}", coords.size(), pointsOfInterest.size());
 
         LiveStatsDto stats = dto.getStats() != null
                 ? dto.getStats()
                 : (plannedLegs.isEmpty() ? null : aggregateLegStats(plannedLegs));
+        if (!hasRoute || stats == null) {
+            stats = new LiveStatsDto();
+            stats.setLegCount(hasRoute ? 1 : 0);
+        }
+        // Elevation is server-owned, including saves submitted by older clients.
+        PlannerGeometryMetrics.updateElevation(stats, coords);
+        updateLegElevations(plannedLegs);
 
         GpsTrack track = new GpsTrack();
         track.setTrackSource(GpsTrack.TRACK_SOURCE.PLANNED);
@@ -99,7 +126,7 @@ public class PlannedTrackService {
                 : dto.getName();
         track.setTrackName(name);
         track.setMetaName(name);
-        track.setTrackDescription(dto.getDescription() == null ? "Planned route" : dto.getDescription());
+        track.setTrackDescription(dto.getDescription() == null ? "Planned map" : dto.getDescription());
         track.setPlannerProfile(dto.getProfile());
         track.setCreateDate(new Date());
         track.setStartDate(new Date());
@@ -119,9 +146,16 @@ public class PlannedTrackService {
             maxLng = Math.max(maxLng, lng);
             if (i > 0) geometryLengthM += haversine(coords.get(i - 1)[1], coords.get(i - 1)[0], lat, lng);
         }
-        double lengthM = stats != null && stats.getDistanceM() > 0.0
+        for (PointOfInterestDto point : pointsOfInterest) {
+            minLat = Math.min(minLat, point.getLat());
+            maxLat = Math.max(maxLat, point.getLat());
+            minLng = Math.min(minLng, point.getLng());
+            maxLng = Math.max(maxLng, point.getLng());
+        }
+        double lengthM = stats.getDistanceM() > 0.0
                 ? stats.getDistanceM()
                 : geometryLengthM;
+        stats.setDistanceM(lengthM);
         track.setBboxMinLat(minLat);
         track.setBboxMaxLat(maxLat);
         track.setBboxMinLng(minLng);
@@ -129,49 +163,52 @@ public class PlannedTrackService {
         track.setCenterLat((minLat + maxLat) / 2.0);
         track.setCenterLng((minLng + maxLng) / 2.0);
         track.setTrackLengthInMeter(lengthM);
-        if (stats != null) {
-            track.setAscentInMeter(stats.getAscentM());
-            track.setDescentInMeter(stats.getDescentM());
-        }
+        track.setAscentInMeter(stats.getAscentM());
+        track.setDescentInMeter(stats.getDescentM());
 
         // Persist the original user waypoints so the plan is re-loadable.
         if (dto.getWaypoints() != null && !dto.getWaypoints().isEmpty()) {
             try {
                 track.setPlannerWaypointsJson(objectMapper.writeValueAsString(dto.getWaypoints()));
             } catch (Exception e) {
-                log.warn("Failed to serialize planner waypoints — saving plan without editable waypoints", e);
+                log.error("Failed to serialize plan waypoints: type={} message={}",
+                        e.getClass().getSimpleName(), e.getMessage(), e);
+                throw new IllegalStateException("Could not serialize plan waypoints", e);
             }
         }
-        if (!plannedLegs.isEmpty() || stats != null) {
-            track.setPlannerRouteJson(writePlannerRouteJson(plannedLegs, stats));
-        }
+        track.setPlannerRouteJson(writePlannerRouteJson(plannedLegs, stats, pointsOfInterest));
 
         track = gpsTrackRepository.save(track);
 
-        // Persist geometry as SIMPLIFIED/1m — that's the variant clients load.
-        Coordinate[] jtsCoords = new Coordinate[coords.size()];
-        for (int i = 0; i < coords.size(); i++) {
-            double[] c = coords.get(i);
-            jtsCoords[i] = new Coordinate(c[0], c[1], c.length >= 3 ? c[2] : Double.NaN);
+        // A POI-only plan has no track geometry and cannot be exported as GPX.
+        if (hasRoute) {
+            // Persist geometry as SIMPLIFIED/1m — that's the variant clients load.
+            Coordinate[] jtsCoords = new Coordinate[coords.size()];
+            for (int i = 0; i < coords.size(); i++) {
+                double[] c = coords.get(i);
+                jtsCoords[i] = new Coordinate(c[0], c[1], c.length >= 3 ? c[2] : Double.NaN);
+            }
+            LineString line = geometryFactory.createLineString(jtsCoords);
+            line.setSRID(SRID_WGS84);
+
+            GpsTrackData data = GpsTrackData.builder()
+                    .gpsTrackId(track.getId())
+                    .createDate(new Date())
+                    .trackType(GpsTrackData.TRACK_TYPE.SIMPLIFIED_SHAPE)
+                    .precisionInMeter(GpsTrackData.PRECISION_1M)
+                    .track(line)
+                    .build();
+            gpsTrackDataRepository.save(data);
         }
-        LineString line = geometryFactory.createLineString(jtsCoords);
-        line.setSRID(SRID_WGS84);
 
-        GpsTrackData data = GpsTrackData.builder()
-                .gpsTrackId(track.getId())
-                .createDate(new Date())
-                .trackType(GpsTrackData.TRACK_TYPE.SIMPLIFIED_SHAPE)
-                .precisionInMeter(GpsTrackData.PRECISION_1M)
-                .track(line)
-                .build();
-        gpsTrackDataRepository.save(data);
-
-        log.info("Saved planned track id={} points={} lengthM={}",
-                track.getId(), coords.size(), Math.round(lengthM));
+        log.info("Saved plan id={} routePoints={} pointsOfInterest={} lengthM={} durationMs={}",
+                track.getId(), coords.size(), pointsOfInterest.size(), Math.round(lengthM),
+                TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startedAt));
         return track;
     }
 
     public List<PlannedTrackSummaryDto> listPlannedTracks() {
+        long startedAt = System.nanoTime();
         List<GpsTrack> tracks = gpsTrackRepository.findByTrackSource(GpsTrack.TRACK_SOURCE.PLANNED);
         List<PlannedTrackSummaryDto> out = new ArrayList<>(tracks.size());
         for (GpsTrack t : tracks) {
@@ -180,20 +217,40 @@ public class PlannedTrackService {
             s.setName(t.getTrackName());
             s.setDescription(t.getTrackDescription());
             s.setDistanceM(t.getTrackLengthInMeter() == null ? 0.0 : t.getTrackLengthInMeter());
+            s.setHasRoute(t.getNumberOfTrackPoints() != null && t.getNumberOfTrackPoints() >= 2);
+            s.setPointOfInterestCount(pointOfInterestCount(t.getPlannerRouteJson(), t.getId()));
             s.setCenterLat(t.getCenterLat());
             s.setCenterLng(t.getCenterLng());
             s.setCreateDate(t.getCreateDate());
             s.setProfile(t.getPlannerProfile());
             out.add(s);
         }
+        log.info("Listed saved plans: count={} durationMs={}", out.size(),
+                TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startedAt));
         return out;
+    }
+
+    /**
+     * Listing summaries must remain available even if one document cannot be opened.
+     */
+    private int pointOfInterestCount(String json, long id) {
+        if (json == null || json.isBlank()) return 0;
+        try {
+            JsonNode points = objectMapper.readTree(json).get(PLANNER_POINTS_OF_INTEREST_FIELD);
+            return points != null && points.isArray() ? points.size() : 0;
+        } catch (Exception e) {
+            log.warn("Could not read POI count for plan id={}: type={} message={}",
+                    id, e.getClass().getSimpleName(), e.getMessage());
+            log.debug("Plan summary read failure id={}", id, e);
+            return 0;
+        }
     }
 
     /**
      * Full plan payload for re-hydrating the editor: original waypoints +
      * already-routed geometry + the profile the route was built with.
      *
-    * @throws IllegalArgumentException if the track does not exist or is not PLANNED
+     * @throws IllegalArgumentException if the track does not exist or is not PLANNED
      */
     public PlannedTrackDetailDto loadDetail(long id) {
         GpsTrack track = requirePlannedTrack(id);
@@ -222,13 +279,15 @@ public class PlannedTrackService {
         SavedPlannerRoute savedRoute = readPlannerRoute(track.getPlannerRouteJson(), id);
         List<LegResultDto> legs = savedRoute.legs();
         LiveStatsDto stats = savedRoute.stats();
+        out.setPointsOfInterest(savedRoute.pointsOfInterest());
 
         // Coordinates
         List<double[]> coords = new ArrayList<>();
         if (data != null && data.getTrack() != null) {
             for (org.locationtech.jts.geom.Coordinate c : data.getTrack().getCoordinates()) {
-                double ele = Double.isNaN(c.getZ()) ? 0.0 : c.getZ();
-                coords.add(new double[]{c.getX(), c.getY(), ele});
+                double ele = c.getZ();
+                coords.add(Double.isFinite(ele) ? new double[]{c.getX(), c.getY(), ele}
+                        : new double[]{c.getX(), c.getY()});
             }
         }
         if (coords.isEmpty() && !legs.isEmpty()) {
@@ -240,9 +299,13 @@ public class PlannedTrackService {
         if (stats == null) {
             stats = legacyStats(track, legs, coords);
         }
+        updateLegElevations(legs);
+        PlannerGeometryMetrics.updateElevation(stats, legs.isEmpty() ? coords : flattenLegCoordinates(legs));
         out.setCoordinates(coords);
         out.setLegs(legs);
         out.setStats(stats);
+        log.info("Loaded plan id={} routePoints={} pointsOfInterest={}", id, coords.size(),
+                savedRoute.pointsOfInterest().size());
         return out;
     }
 
@@ -322,6 +385,16 @@ public class PlannedTrackService {
         return 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     }
 
+    private static void validateRouteCoordinates(List<double[]> coordinates) {
+        for (double[] coordinate : coordinates) {
+            if (coordinate == null || coordinate.length < 2) {
+                throw new IllegalArgumentException("Route coordinate needs longitude and latitude");
+            }
+            GeoCoordinateUtils.requireValidLongitude(coordinate[0]);
+            GeoCoordinateUtils.requireValidLatitude(coordinate[1]);
+        }
+    }
+
     private static List<LegResultDto> nonEmptyLegs(List<LegResultDto> legs) {
         if (legs == null || legs.isEmpty()) return List.of();
         List<LegResultDto> out = new ArrayList<>(legs.size());
@@ -343,19 +416,19 @@ public class PlannedTrackService {
     }
 
     private static LiveStatsDto aggregateLegStats(List<LegResultDto> legs) {
-        LiveStatsDto stats = new LiveStatsDto();
-        for (LegResultDto leg : legs) {
-            stats.setDistanceM(stats.getDistanceM() + leg.getDistanceM());
-            stats.setAscentM(stats.getAscentM() + leg.getAscentM());
-            stats.setDescentM(stats.getDescentM() + leg.getDescentM());
-            stats.setDurationSec(stats.getDurationSec() + leg.getDurationSec());
-            if (leg.isCached()) stats.setAnyLegCached(true);
-        }
-        stats.setLegCount(legs.size());
-        return stats;
+        return PlannerGeometryMetrics.routeStats(legs);
     }
 
-    private String writePlannerRouteJson(List<LegResultDto> legs, LiveStatsDto stats) {
+    private static void updateLegElevations(List<LegResultDto> legs) {
+        for (LegResultDto leg : legs) {
+            var totals = PlannerGeometryMetrics.elevationTotals(leg.getCoordinates());
+            leg.setAscentM(totals.ascentM());
+            leg.setDescentM(totals.descentM());
+        }
+    }
+
+    private String writePlannerRouteJson(List<LegResultDto> legs, LiveStatsDto stats,
+                                         List<PointOfInterestDto> pointsOfInterest) {
         try {
             ObjectNode root = objectMapper.createObjectNode();
             root.put(PLANNER_ROUTE_SCHEMA_VERSION_FIELD, PLANNER_ROUTE_SCHEMA_VERSION);
@@ -363,17 +436,25 @@ public class PlannedTrackService {
             if (stats != null) {
                 root.set(PLANNER_ROUTE_STATS_FIELD, objectMapper.valueToTree(stats));
             }
+            root.set(PLANNER_POINTS_OF_INTEREST_FIELD, objectMapper.valueToTree(pointsOfInterest));
             return objectMapper.writeValueAsString(root);
         } catch (Exception e) {
-            log.warn("Failed to serialize planner route payload — saving plan without exact route metadata", e);
-            return null;
+            log.error("Failed to serialize plan payload: type={} message={}",
+                    e.getClass().getSimpleName(), e.getMessage(), e);
+            throw new IllegalStateException("Could not serialize plan payload", e);
         }
     }
 
     private SavedPlannerRoute readPlannerRoute(String json, long id) {
-        if (json == null || json.isBlank()) return new SavedPlannerRoute(List.of(), null);
+        if (json == null || json.isBlank()) return new SavedPlannerRoute(List.of(), null, List.of());
         try {
             JsonNode root = objectMapper.readTree(json);
+            if (!root.isObject()) {
+                throw new IllegalArgumentException("Plan metadata must be an object");
+            }
+            if (root.path(PLANNER_ROUTE_SCHEMA_VERSION_FIELD).asInt() > PLANNER_ROUTE_SCHEMA_VERSION) {
+                throw new IllegalArgumentException("Plan was saved by a newer version of MTL Explorer");
+            }
             List<LegResultDto> legs = root.has(PLANNER_ROUTE_LEGS_FIELD)
                     ? objectMapper.treeToValue(root.get(PLANNER_ROUTE_LEGS_FIELD),
                     new TypeReference<List<LegResultDto>>() {
@@ -382,11 +463,48 @@ public class PlannedTrackService {
             LiveStatsDto stats = root.has(PLANNER_ROUTE_STATS_FIELD)
                     ? objectMapper.treeToValue(root.get(PLANNER_ROUTE_STATS_FIELD), LiveStatsDto.class)
                     : null;
-            return new SavedPlannerRoute(legs == null ? List.of() : legs, stats);
+            List<PointOfInterestDto> pointsOfInterest = root.has(PLANNER_POINTS_OF_INTEREST_FIELD)
+                    ? objectMapper.treeToValue(root.get(PLANNER_POINTS_OF_INTEREST_FIELD),
+                    new TypeReference<List<PointOfInterestDto>>() {
+                    })
+                    : List.of();
+            return new SavedPlannerRoute(legs == null ? List.of() : legs, stats,
+                    validatedPointsOfInterest(pointsOfInterest));
         } catch (Exception e) {
-            log.warn("Failed to deserialize planner route payload for plan id={} — falling back to flattened geometry", id, e);
-            return new SavedPlannerRoute(List.of(), null);
+            log.warn("Could not read plan payload id={}: type={} message={}",
+                    id, e.getClass().getSimpleName(), e.getMessage());
+            log.debug("Plan payload read failure id={}", id, e);
+            throw new IllegalArgumentException("Could not read saved plan metadata", e);
         }
+    }
+
+    private static List<PointOfInterestDto> validatedPointsOfInterest(List<PointOfInterestDto> points) {
+        if (points == null) return List.of();
+        if (points.size() > PlannerConstants.MAX_POINTS_OF_INTEREST) {
+            throw new IllegalArgumentException("Too many points of interest");
+        }
+        HashSet<String> ids = new HashSet<>();
+        for (PointOfInterestDto point : points) {
+            if (point == null || point.getId() == null || point.getLat() == null || point.getLng() == null) {
+                throw new IllegalArgumentException("Point of interest needs an id and coordinates");
+            }
+            if (point.getIconType() == null) point.setIconType(PointOfInterestIconType.PIN);
+            if (!UUID.fromString(point.getId()).toString().equals(point.getId()) || !ids.add(point.getId())) {
+                throw new IllegalArgumentException("Point of interest ids must be unique UUIDs");
+            }
+            GeoCoordinateUtils.requireValidLatitude(point.getLat());
+            GeoCoordinateUtils.requireValidLongitude(point.getLng());
+            if (point.getName() == null || point.getName().isBlank()
+                || point.getName().length() > PlannerConstants.MAX_POINT_OF_INTEREST_NAME_LENGTH) {
+                throw new IllegalArgumentException("Point of interest needs a name of at most "
+                                                   + PlannerConstants.MAX_POINT_OF_INTEREST_NAME_LENGTH + " characters");
+            }
+            if (point.getNotes() != null
+                && point.getNotes().length() > PlannerConstants.MAX_POINT_OF_INTEREST_NOTES_LENGTH) {
+                throw new IllegalArgumentException("Point of interest notes are too long");
+            }
+        }
+        return points;
     }
 
     private static LegResultDto legacySingleLeg(GpsTrack track, List<double[]> coords) {
@@ -408,8 +526,8 @@ public class PlannedTrackService {
         PlannerGeometryMetrics.ElevationTotals elevationTotals = PlannerGeometryMetrics.elevationTotals(coords);
         LiveStatsDto stats = new LiveStatsDto();
         stats.setDistanceM(track.getTrackLengthInMeter() == null ? geometryLength(coords) : track.getTrackLengthInMeter());
-        stats.setAscentM(track.getAscentInMeter() == null ? elevationTotals.ascentM() : track.getAscentInMeter());
-        stats.setDescentM(track.getDescentInMeter() == null ? elevationTotals.descentM() : track.getDescentInMeter());
+        stats.setAscentM(elevationTotals.ascentM());
+        stats.setDescentM(elevationTotals.descentM());
         stats.setDurationSec(0.0);
         stats.setLegCount(coords.size() >= 2 ? 1 : 0);
         stats.setAnyLegCached(true);
@@ -426,8 +544,10 @@ public class PlannedTrackService {
 
     @JsonPropertyOrder({
             "legs",
-            "stats"
+            "stats",
+            "pointsOfInterest"
     })
-    private record SavedPlannerRoute(List<LegResultDto> legs, LiveStatsDto stats) {
+    private record SavedPlannerRoute(List<LegResultDto> legs, LiveStatsDto stats,
+                                     List<PointOfInterestDto> pointsOfInterest) {
     }
 }

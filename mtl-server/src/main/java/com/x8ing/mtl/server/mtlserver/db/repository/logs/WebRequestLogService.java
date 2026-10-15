@@ -24,7 +24,7 @@ public class WebRequestLogService {
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void saveLog(String method, String uri, String queryString, int status, long durationMs,
-                        String userName, String userSessionId, String ipAddress) {
+                        String userName, String clientLoginRef, String ipAddress) {
         WebRequestLog log = new WebRequestLog();
         log.setCreateDate(new Date());
         log.setMethod(method);
@@ -33,7 +33,7 @@ public class WebRequestLogService {
         log.setStatus(status);
         log.setDurationMs(durationMs);
         log.setUserName(userName);
-        log.setUserSessionId(truncate(userSessionId, 32));
+        log.setClientLoginRef(truncate(clientLoginRef, 32));
         log.setIpAddress(truncate(ipAddress, 64));
         webRequestLogRepository.save(log);
     }

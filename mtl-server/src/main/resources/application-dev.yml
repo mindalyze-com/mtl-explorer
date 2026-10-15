@@ -1,4 +1,6 @@
 mtl:
+  updates:
+    enabled: false
   # gpx-watch-directory: "C:/Users/patri/Downloads/GPX_ALL"
   # gpx-watch-directory: "C:/Users/patri/Downloads/GPX_WATCHER_3"
   # gpx-watch-directory: "/Users/pheusser/Documents/GPX_WATCHER_3A" # MAC

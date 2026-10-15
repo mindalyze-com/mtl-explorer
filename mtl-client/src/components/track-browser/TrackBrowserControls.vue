@@ -1,42 +1,42 @@
 <template>
   <div class="track-browser-controls">
-    <span class="track-browser-controls__search p-input-icon-left">
+    <span class="track-browser-controls__search">
       <i class="pi pi-search track-browser-controls__search-icon" />
       <InputText
+        ref="searchInput"
+        aria-label="Search tracks by name, activity, date, file or creator"
         :model-value="query"
-        placeholder="Search name, activity, date, file, creator…"
+        placeholder="Search tracks…"
+        title="Search by name, activity, date, file or creator"
         class="track-browser-controls__input"
         @update:model-value="(value) => emit('update:query', String(value || ''))"
       />
+      <button
+        v-if="query"
+        type="button"
+        class="track-browser-controls__clear"
+        aria-label="Clear search"
+        @click="clearSearch"
+      >
+        <i class="pi pi-times" aria-hidden="true" />
+      </button>
     </span>
-    <div class="track-browser-controls__summary">
-      <template v-if="query.trim()">
-        <strong>{{ summary.count }}</strong> of {{ totalCount }} tracks
-      </template>
-      <template v-else>
-        <strong>{{ totalCount }}</strong> tracks
-      </template>
-      <span class="track-browser-controls__summary-sep" aria-hidden="true">·</span>
-      <span v-tooltip.top="{ value: formatDistanceTooltip(summary.totalDistanceMeters), showDelay: 400 }">{{
-        formatDistanceSmart(summary.totalDistanceMeters)
-      }}</span>
-      <span class="track-browser-controls__summary-sep" aria-hidden="true">·</span>
-      <span v-tooltip.top="{ value: formatDurationTooltip(summary.totalDurationMillis), showDelay: 400 }">{{
-        formatDurationSmart(summary.totalDurationMillis)
-      }}</span>
-    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { formatDistanceSmart, formatDurationSmart, formatDistanceTooltip, formatDurationTooltip } from '@/utils/Utils';
-import type { TrackBrowserSummary } from './trackBrowser.types';
+import { ref } from 'vue';
 
 defineProps<{
   query: string;
-  summary: TrackBrowserSummary;
-  totalCount: number;
 }>();
+
+const searchInput = ref<{ $el: HTMLInputElement } | null>(null);
+
+function clearSearch() {
+  emit('update:query', '');
+  searchInput.value?.$el.focus();
+}
 
 const emit = defineEmits<{
   (event: 'update:query', value: string): void;
@@ -45,11 +45,9 @@ const emit = defineEmits<{
 
 <style scoped>
 .track-browser-controls {
-  display: flex;
-  flex-direction: column;
-  gap: 0.45rem;
-  padding: 0.5rem var(--dlg-padding) 0.6rem;
-  border-bottom: 1px solid var(--border-default);
+  flex: 1 1 18rem;
+  min-width: 0;
+  max-width: 28rem;
 }
 
 .track-browser-controls__search {
@@ -57,12 +55,11 @@ const emit = defineEmits<{
   align-items: center;
   position: relative;
   width: 100%;
-  max-width: 28rem;
 }
 
 .track-browser-controls__search-icon {
   position: absolute;
-  left: 0.75rem;
+  left: 0.8rem;
   color: var(--text-muted);
   pointer-events: none;
   z-index: 1;
@@ -70,25 +67,30 @@ const emit = defineEmits<{
 
 .track-browser-controls__input {
   width: 100%;
-  padding-left: 2.25rem !important;
+  min-height: var(--control-field-height);
+  padding-inline: 2.4rem 2.75rem !important;
 }
 
-.track-browser-controls__summary {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  font-size: var(--text-sm-size);
+.track-browser-controls__clear {
+  position: absolute;
+  right: 0;
+  display: grid;
+  place-items: center;
+  width: var(--control-field-height);
+  height: var(--control-field-height);
+  border: 0;
+  border-radius: var(--p-inputtext-border-radius);
+  background: transparent;
   color: var(--text-muted);
-  padding-left: 0.15rem;
+  cursor: pointer;
 }
 
-.track-browser-controls__summary strong {
+.track-browser-controls__clear:hover {
   color: var(--text-primary);
-  font-weight: 600;
 }
 
-.track-browser-controls__summary-sep {
-  color: var(--border-default);
-  font-size: var(--text-xs-size);
+.track-browser-controls__clear:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -3px;
 }
 </style>

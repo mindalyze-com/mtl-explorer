@@ -14,7 +14,7 @@
         <span v-if="variant === 'segment' && track.sourceSegmentIndex" class="seg-badge">
           Seg {{ track.sourceSegmentIndex }}
         </span>
-        {{ track.name }}
+        {{ track.name || `Track #${track.id}` }}
       </div>
       <div v-if="track.startDate" class="track-date">{{ formatDateShort(track.startDate) }}</div>
       <div v-if="track.description" class="track-desc">{{ track.description }}</div>
@@ -63,6 +63,11 @@ const emit = defineEmits<{
   border-color: var(--border-default);
   background: var(--surface-hover);
   transform: translateX(2px);
+}
+
+.track-card:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
 }
 
 .track-card:active {
@@ -121,8 +126,11 @@ const emit = defineEmits<{
   color: var(--text-primary);
   font-size: var(--text-sm-size);
   font-weight: 600;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow-wrap: anywhere;
+  line-height: var(--text-sm-lh);
   transition: color 0.15s ease;
 }
 
@@ -142,14 +150,13 @@ const emit = defineEmits<{
 }
 
 .track-desc {
-  display: -webkit-box;
   margin-top: 0.1875rem;
   overflow: hidden;
   color: var(--text-muted);
   font-size: var(--text-xs-size);
   line-height: var(--text-xs-lh);
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .seg-badge {

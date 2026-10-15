@@ -1,6 +1,7 @@
 package com.x8ing.mtl.server.mtlserver.db.entity.gps;
 
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
+import com.x8ing.mtl.server.mtlserver.logic.motion.TrackMotionAnalyzer;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -36,6 +37,11 @@ import java.util.Date;
         "label",
         "description",
         "confidence",
+        "detectionEvidence",
+        "detectionVersion",
+        "startBoundary",
+        "endBoundary",
+        "confirmedAtTimestamp",
         "createDate",
         "updateDate"
 })
@@ -115,6 +121,21 @@ public class GpsTrackEvent {
 
     @Column(name = "confidence")
     private Double confidence;
+
+    @Enumerated(EnumType.STRING)
+    private com.x8ing.mtl.server.mtlserver.logic.motion.TrackStopDetector.StopEvidence detectionEvidence;
+
+    private String detectionVersion;
+
+    @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.JSON)
+    @Column(columnDefinition = "jsonb")
+    private TrackMotionAnalyzer.Boundary startBoundary;
+
+    @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.JSON)
+    @Column(columnDefinition = "jsonb")
+    private TrackMotionAnalyzer.Boundary endBoundary;
+
+    private Date confirmedAtTimestamp;
 
     @Builder.Default
     @Column(name = "create_date")

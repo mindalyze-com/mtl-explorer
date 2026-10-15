@@ -72,7 +72,8 @@ public class PlannerController {
         return Map.of(
                 "profiles", plannerProperties.getProfiles(),
                 "defaultProfile", PlannerConstants.DEFAULT_PROFILE,
-                "maxWaypoints", PlannerConstants.MAX_WAYPOINTS
+                "maxWaypoints", PlannerConstants.MAX_WAYPOINTS,
+                "maxPointsOfInterest", PlannerConstants.MAX_POINTS_OF_INTEREST
         );
     }
 
@@ -85,6 +86,7 @@ public class PlannerController {
             RouteResponseDto resp = plannerService.computeRoute(req);
             return ResponseEntity.ok(resp);
         } catch (IllegalArgumentException e) {
+            log.warn("Route calculation rejected: type={} message={}", e.getClass().getSimpleName(), e.getMessage());
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         } catch (BRouterSegmentMissingException e) {
             log.warn("BRouter segment missing — triggering on-demand prewarm: {}", e.getMessage());
@@ -94,14 +96,26 @@ public class PlannerController {
                     "detail", "Routing data for this area is being downloaded. Please retry in about 30 seconds."
             ));
         } catch (BRouterException e) {
-            log.warn("BRouter failure: {}", e.toString());
-            return ResponseEntity.status(502).body(Map.of("error", "routing-unavailable", "detail", e.getMessage()));
+            log.warn("Route calculation failed: error={} type={} message={}", e.getErrorCode(), e.getClass().getSimpleName(), e.getMessage());
+            return ResponseEntity.status(502).body(Map.of("error", e.getErrorCode(), "detail", e.getMessage()));
         }
     }
 
     /**
-     * Proactive segment download: the client posts the expanded viewport bbox so
-     * the sidecar starts downloading tiles before a routing request is made.
+     * Statistics for existing geometry, without routing or persistence.
+     */
+    @PostMapping("/stats")
+    public ResponseEntity<LiveStatsDto> routeStats(@RequestBody List<LegResultDto> legs) {
+        try {
+            return ResponseEntity.ok(plannerService.computeStats(legs));
+        } catch (IllegalArgumentException e) {
+            log.warn("Route statistics rejected: type={} message={}", e.getClass().getSimpleName(), e.getMessage());
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+    /**
+     * Download routing segments for the requested map viewport.
      */
     @PostMapping("/prewarm")
     public ResponseEntity<?> prewarm(@RequestBody Map<String, Double> bbox) {
@@ -168,6 +182,7 @@ public class PlannerController {
                     saved.getTrackLengthInMeter() == null ? 0.0 : saved.getTrackLengthInMeter()
             ));
         } catch (IllegalArgumentException e) {
+            log.warn("Saving plan rejected: type={} message={}", e.getClass().getSimpleName(), e.getMessage());
             return ResponseEntity.badRequest().build();
         }
     }
@@ -181,13 +196,15 @@ public class PlannerController {
     }
 
     /**
-     * Full plan payload for re-hydrating the editor (waypoints + routed geometry).
+     * Full map payload for re-hydrating the editor (route and points of interest).
      */
     @GetMapping("/plans/{id}")
     public ResponseEntity<PlannedTrackDetailDto> loadPlan(@PathVariable long id) {
         try {
             return ResponseEntity.ok(plannedTrackService.loadDetail(id));
         } catch (IllegalArgumentException e) {
+            log.warn("Loading plan id={} rejected: type={} message={}", id,
+                    e.getClass().getSimpleName(), e.getMessage());
             return ResponseEntity.notFound().build();
         }
     }
@@ -218,6 +235,8 @@ public class PlannerController {
             headers.setContentDispositionFormData("attachment", "planned-route-" + id + ".gpx");
             return ResponseEntity.ok().headers(headers).body(bytes);
         } catch (IllegalArgumentException e) {
+            log.warn("GPX export for plan id={} rejected: type={} message={}", id,
+                    e.getClass().getSimpleName(), e.getMessage());
             return ResponseEntity.notFound().build();
         }
     }

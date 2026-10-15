@@ -36,7 +36,7 @@ public class MyCorsFilter extends OncePerRequestFilter {
         String host = request.getHeader("Origin");
 
         if (isAllowedDevOrigin(host)) {
-            log.info("Add cors filter for local dev origin. origin={}, uri={}", host, request.getRequestURI());
+            log.info("Add cors filter for local dev origin. origin={}, uri={}", host, LoggingFilter.sanitizeRequestPath(request.getRequestURI()));
             response.setHeader("Access-Control-Allow-Origin", host);
             response.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, HEAD, OPTIONS");
             response.setHeader("Access-Control-Allow-Headers", "authorization, content-type");

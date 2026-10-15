@@ -2,7 +2,6 @@ package com.x8ing.mtl.server.mtlserver.gpx;
 
 import com.x8ing.mtl.server.mtlserver.db.entity.gps.GpsTrack;
 import com.x8ing.mtl.server.mtlserver.db.entity.gps.GpsTrackDataPoint;
-import com.x8ing.mtl.server.mtlserver.logic.motion.TrackStopDetector;
 import org.junit.jupiter.api.Test;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.CoordinateXYZM;
@@ -246,42 +245,6 @@ class GPXStoreServiceMovingWindowTest {
 
         assertEquals(1, earlyDuplicate);
         assertEquals(2, laterDuplicate);
-    }
-
-    @Test
-    void restoreStopAnchorsAfterSmoothing_repinsMovedAnchorPair() {
-        LineString smoothed = GEOMETRY_FACTORY.createLineString(new Coordinate[]{
-                xyzm(0, 0, 0),
-                xyzm(180, 0, 100),
-                xyzm(-160, 0, 220),
-                xyzm(300, 0, 300)
-        });
-        TrackStopDetector.StopRange stop = new TrackStopDetector.StopRange(
-                1,
-                2,
-                100.0,
-                220.0,
-                0.0,
-                0.0,
-                555.0,
-                TrackStopDetector.StopCategory.BREAK,
-                30.0,
-                40.0,
-                0.9,
-                20,
-                18);
-
-        LineString restored = GPXStoreService.restoreStopAnchorsAfterSmoothing(smoothed, List.of(stop));
-
-        assertEquals(smoothed.getCoordinateN(0).getX(), restored.getCoordinateN(0).getX(), 1e-12);
-        assertEquals(smoothed.getCoordinateN(3).getX(), restored.getCoordinateN(3).getX(), 1e-12);
-        assertEquals(0.0, restored.getCoordinateN(1).getX(), 1e-12);
-        assertEquals(0.0, restored.getCoordinateN(1).getY(), 1e-12);
-        assertEquals(0.0, restored.getCoordinateN(2).getX(), 1e-12);
-        assertEquals(0.0, restored.getCoordinateN(2).getY(), 1e-12);
-        assertEquals(555.0, restored.getCoordinateN(1).getZ(), 1e-12);
-        assertEquals(555.0, restored.getCoordinateN(2).getZ(), 1e-12);
-        assertTrue(TrackStopDetector.isStopAnchorPair(restored.getCoordinateN(1), restored.getCoordinateN(2)));
     }
 
     @Test

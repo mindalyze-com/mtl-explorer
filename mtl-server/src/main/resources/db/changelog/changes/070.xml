@@ -1,0 +1,168 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.10.xsd">
+
+    <changeSet id="20260828_1_google_health_local_mirror" author="codex">
+        <comment>
+            Add the isolated Google Health local mirror. Credentials and health payloads
+            stay in the google_health schema; route associations may point at public
+            indexed files and tracks without cascading into user-owned track data.
+        </comment>
+        <sql splitStatements="false"><![CDATA[
+            CREATE SCHEMA google_health;
+
+            CREATE TABLE google_health.connection (
+                id smallint PRIMARY KEY DEFAULT 1 CHECK (id = 1),
+                google_user_id text,
+                granted_scopes jsonb NOT NULL DEFAULT '[]'::jsonb,
+                refresh_token_ciphertext text,
+                state text NOT NULL DEFAULT 'DISCONNECTED'
+                    CHECK (state IN ('DISCONNECTED', 'CONNECTED', 'RECONNECT_REQUIRED')),
+                last_error text,
+                connected_at timestamptz,
+                disconnected_at timestamptz,
+                created_at timestamptz NOT NULL DEFAULT now(),
+                updated_at timestamptz NOT NULL DEFAULT now()
+            );
+
+            CREATE TABLE google_health.sync_state (
+                id bigserial PRIMARY KEY,
+                connection_id smallint NOT NULL DEFAULT 1
+                    REFERENCES google_health.connection(id) ON DELETE CASCADE,
+                data_type text NOT NULL,
+                representation text NOT NULL
+                    CHECK (representation IN ('RAW', 'HEART_RATE_SAMPLE', 'RECONCILED_INTERVAL', 'DAILY_ROLLUP')),
+                cursor_time timestamptz,
+                oldest_synced_time timestamptz,
+                active_window_start timestamptz,
+                active_window_end timestamptz,
+                active_page_token text,
+                active_window_run_id uuid,
+                active_imported_count bigint NOT NULL DEFAULT 0,
+                active_pages_complete boolean NOT NULL DEFAULT false,
+                active_backfill_complete boolean NOT NULL DEFAULT false,
+                backfill_complete boolean NOT NULL DEFAULT false,
+                last_attempt_at timestamptz,
+                last_success_at timestamptz,
+                last_error text,
+                imported_count bigint NOT NULL DEFAULT 0,
+                deleted_count bigint NOT NULL DEFAULT 0,
+                updated_at timestamptz NOT NULL DEFAULT now(),
+                CONSTRAINT uq_google_health_sync_state
+                    UNIQUE (connection_id, data_type, representation)
+            );
+
+            CREATE TABLE google_health.data_source (
+                id bigserial PRIMARY KEY,
+                connection_id smallint NOT NULL DEFAULT 1
+                    REFERENCES google_health.connection(id) ON DELETE CASCADE,
+                fingerprint char(64) NOT NULL,
+                platform text,
+                recording_method text,
+                application_name text,
+                device_display_name text,
+                raw_json jsonb NOT NULL,
+                created_at timestamptz NOT NULL DEFAULT now(),
+                updated_at timestamptz NOT NULL DEFAULT now(),
+                CONSTRAINT uq_google_health_data_source
+                    UNIQUE (connection_id, fingerprint)
+            );
+
+            CREATE TABLE google_health.data_point (
+                id bigserial PRIMARY KEY,
+                connection_id smallint NOT NULL DEFAULT 1
+                    REFERENCES google_health.connection(id) ON DELETE CASCADE,
+                data_source_id bigint
+                    REFERENCES google_health.data_source(id) ON DELETE SET NULL,
+                data_type text NOT NULL,
+                representation text NOT NULL
+                    CHECK (representation IN ('RAW', 'RECONCILED_INTERVAL', 'DAILY_ROLLUP')),
+                identity_key char(64) NOT NULL,
+                fingerprint char(64) NOT NULL,
+                google_resource_name text,
+                physical_start_time timestamptz,
+                physical_end_time timestamptz,
+                original_start_time text,
+                original_end_time text,
+                civil_start_time timestamp,
+                civil_end_time timestamp,
+                utc_offset_start text,
+                utc_offset_end text,
+                civil_date date,
+                data_source_family text,
+                raw_json jsonb NOT NULL,
+                last_seen_run uuid NOT NULL,
+                indexed_file_id bigint
+                    REFERENCES public.indexed_file(id) ON DELETE SET NULL,
+                gps_track_id bigint
+                    REFERENCES public.gps_track(id) ON DELETE SET NULL,
+                tcx_relative_path text,
+                route_fingerprint char(64),
+                route_state text NOT NULL DEFAULT 'NOT_APPLICABLE'
+                    CHECK (route_state IN ('NOT_APPLICABLE', 'NO_LOCATION_SCOPE', 'NO_ROUTE', 'PENDING', 'IMPORTED', 'FAILED')),
+                route_error text,
+                created_at timestamptz NOT NULL DEFAULT now(),
+                updated_at timestamptz NOT NULL DEFAULT now(),
+                CONSTRAINT uq_google_health_data_point_identity
+                    UNIQUE (connection_id, data_type, representation, identity_key)
+            );
+
+            CREATE TABLE google_health.heart_rate_sample (
+                id bigserial PRIMARY KEY,
+                connection_id smallint NOT NULL DEFAULT 1
+                    REFERENCES google_health.connection(id) ON DELETE CASCADE,
+                data_source_id bigint
+                    REFERENCES google_health.data_source(id) ON DELETE SET NULL,
+                sample_time timestamptz NOT NULL,
+                original_sample_time text NOT NULL,
+                utc_offset text,
+                civil_time timestamp,
+                beats_per_minute integer NOT NULL CHECK (beats_per_minute > 0),
+                motion_context text,
+                sensor_location text,
+                fingerprint char(64) NOT NULL,
+                last_seen_run uuid NOT NULL,
+                created_at timestamptz NOT NULL DEFAULT now(),
+                CONSTRAINT uq_google_health_heart_rate_sample
+                    UNIQUE (connection_id, fingerprint)
+            );
+
+            CREATE INDEX idx_google_health_sync_state_updated
+                ON google_health.sync_state (updated_at DESC);
+            CREATE INDEX idx_google_health_data_source_platform
+                ON google_health.data_source (platform);
+            CREATE INDEX idx_google_health_data_point_time
+                ON google_health.data_point (physical_start_time DESC, id DESC);
+            CREATE INDEX idx_google_health_data_point_type_representation_time
+                ON google_health.data_point (data_type, representation, physical_start_time DESC, id DESC);
+            CREATE INDEX idx_google_health_data_point_source
+                ON google_health.data_point (data_source_id);
+            CREATE INDEX idx_google_health_data_point_fingerprint
+                ON google_health.data_point (fingerprint);
+            CREATE INDEX idx_google_health_data_point_seen_run
+                ON google_health.data_point (last_seen_run);
+            CREATE INDEX idx_google_health_data_point_civil_date
+                ON google_health.data_point (civil_date DESC, id DESC);
+            CREATE INDEX idx_google_health_data_point_track
+                ON google_health.data_point (gps_track_id)
+                WHERE gps_track_id IS NOT NULL;
+            CREATE INDEX idx_google_health_heart_rate_time
+                ON google_health.heart_rate_sample (sample_time DESC, id DESC);
+            CREATE INDEX idx_google_health_heart_rate_source
+                ON google_health.heart_rate_sample (data_source_id);
+            CREATE INDEX idx_google_health_heart_rate_fingerprint
+                ON google_health.heart_rate_sample (fingerprint);
+            CREATE INDEX idx_google_health_heart_rate_seen_run
+                ON google_health.heart_rate_sample (last_seen_run);
+            CREATE INDEX idx_google_health_heart_rate_time_brin
+                ON google_health.heart_rate_sample USING brin (sample_time);
+        ]]></sql>
+        <rollback>
+            DROP SCHEMA google_health CASCADE;
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>

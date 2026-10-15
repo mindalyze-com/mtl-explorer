@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.10.xsd">
+    <changeSet id="20261011_persistent_client_diagnostics" author="codex">
+        <addColumn tableName="system_log">
+            <column name="occurred_at" type="timestamp with time zone"/>
+            <column name="last_occurred_at" type="timestamp with time zone"/>
+            <column name="occurrence_count" type="int"/>
+            <column name="client_event_id" type="uuid"/>
+            <column name="original_client_login_ref" type="varchar(32)"/>
+        </addColumn>
+        <createIndex tableName="system_log" indexName="system_log_client_event_id_ix" unique="true">
+            <column name="client_event_id"/>
+        </createIndex>
+    </changeSet>
+</databaseChangeLog>

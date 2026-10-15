@@ -1,12 +1,14 @@
 import { mount } from '@vue/test-utils';
 import { defineComponent, nextTick } from 'vue';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import SegmentCompare from '@/components/measure/SegmentCompare.vue';
 import VirtualRace from '@/components/virtual-race/VirtualRace.vue';
 import { fetchTrackSubTrackDetails } from '@/utils/ServiceHelper';
 
 vi.mock('@/utils/ServiceHelper', () => ({
   fetchTrackSubTrackDetails: vi.fn(),
+}));
+vi.mock('@/features/health/api/segmentCardiacCostApi', () => ({
+  fetchSegmentCardiacCost: vi.fn(async () => ({ available: false, unavailableReason: 'NO_MATCHED_DATA' })),
 }));
 
 const fetchTrackSubTrackDetailsMock = vi.mocked(fetchTrackSubTrackDetails);
@@ -19,11 +21,6 @@ const MiniMapStub = defineComponent({
     },
   },
   template: '<div data-test="minimap"></div>',
-});
-
-const ComparisonChartStub = defineComponent({
-  name: 'ComparisonChart',
-  template: '<div data-test="comparison-chart"></div>',
 });
 
 const RacerCardStub = defineComponent({
@@ -263,6 +260,38 @@ async function flush() {
 }
 
 describe('measure preview stale responses', () => {
+  it('retains a successful racer when another segment request fails', async () => {
+    const first = measureServiceResult().crossings[1];
+    const second = {
+      ...first,
+      gpsTrack: { ...first.gpsTrack, id: 2, indexedFile: { name: 'Track 2' } },
+      crossings: first.crossings.map((c) => ({
+        ...c,
+        gpsTrackDataPoint: { ...c.gpsTrackDataPoint, id: c.gpsTrackDataPoint.id + 100 },
+      })),
+    };
+    fetchTrackSubTrackDetailsMock
+      .mockRejectedValueOnce(new Error('Unavailable'))
+      .mockResolvedValueOnce(segmentPoints());
+    const wrapper = mount(VirtualRace, {
+      props: {
+        measureServiceResult: { ...measureServiceResult(), crossings: { 1: first, 2: second } },
+        selectedTrackIds: new Set([1, 2]),
+        initialSegment: segment,
+      },
+      global: {
+        stubs: { MiniMap: MiniMapStub, RacerCard: RacerCardStub, Button: ButtonStub, MtlSlider: MtlSliderStub },
+      },
+    });
+    await flush();
+    const state = wrapper.vm as unknown as {
+      matchingCrossings: Array<{ gpsTrack: { id: number } }>;
+      skippedRacerCount: number;
+    };
+    expect(state.matchingCrossings.map((c) => c.gpsTrack.id)).toEqual([2]);
+    expect(state.skippedRacerCount).toBe(1);
+    wrapper.unmount();
+  });
   beforeEach(() => {
     vi.useFakeTimers();
     fetchTrackSubTrackDetailsMock.mockReset();
@@ -270,36 +299,6 @@ describe('measure preview stale responses', () => {
 
   afterEach(() => {
     vi.useRealTimers();
-  });
-
-  it('does not let a stale segment comparison load repopulate a newer empty selection', async () => {
-    let resolveFirst!: (value: unknown) => void;
-    fetchTrackSubTrackDetailsMock.mockReturnValueOnce(new Promise((resolve) => (resolveFirst = resolve)));
-
-    const wrapper = mount(SegmentCompare, {
-      props: {
-        measureServiceResult: measureServiceResult(),
-        selectedTrackIds: new Set([1]),
-        selectedSegment: segment,
-      },
-      global: {
-        stubs: {
-          MiniMap: MiniMapStub,
-          ComparisonChart: ComparisonChartStub,
-          RacerCard: RacerCardStub,
-        },
-      },
-    });
-
-    await vi.runOnlyPendingTimersAsync();
-    expect(fetchTrackSubTrackDetailsMock).toHaveBeenCalledOnce();
-
-    await wrapper.setProps({ selectedTrackIds: new Set() });
-    resolveFirst(segmentPoints());
-    await flush();
-
-    expect((wrapper.vm as unknown as { loadedData: unknown[] }).loadedData).toEqual([]);
-    expect(wrapper.find('[data-test="racer-card"]').exists()).toBe(false);
   });
 
   it('does not let a stale virtual race preview repopulate a newer empty selection', async () => {
@@ -331,58 +330,6 @@ describe('measure preview stale responses', () => {
     const vm = wrapper.vm as unknown as { matchingCrossings: unknown; raceGeoJson: unknown };
     expect(vm.matchingCrossings).toBeNull();
     expect(vm.raceGeoJson).toBeNull();
-    expect(wrapper.find('[data-test="racer-card"]').exists()).toBe(false);
-  });
-
-  it('shows a comparison empty state when every sub-track slice is degenerate', async () => {
-    fetchTrackSubTrackDetailsMock.mockResolvedValueOnce(degenerateSegmentPoints());
-
-    const wrapper = mount(SegmentCompare, {
-      props: {
-        measureServiceResult: degenerateMeasureServiceResult(),
-        selectedTrackIds: new Set([1]),
-        selectedSegment: segment,
-      },
-      global: {
-        stubs: {
-          MiniMap: MiniMapStub,
-          ComparisonChart: ComparisonChartStub,
-          RacerCard: RacerCardStub,
-        },
-      },
-    });
-
-    await vi.runOnlyPendingTimersAsync();
-    await flush();
-
-    expect(wrapper.text()).toContain('Selected tracks do not contain enough segment data to compare.');
-    expect(wrapper.text()).not.toContain('Preparing comparison');
-    expect(wrapper.find('[data-test="racer-card"]').exists()).toBe(false);
-  });
-
-  it('does not build a segment comparison from generated JTS coordinate object shapes', async () => {
-    fetchTrackSubTrackDetailsMock.mockResolvedValueOnce(generatedJtsPointShapeSegmentPoints());
-
-    const wrapper = mount(SegmentCompare, {
-      props: {
-        measureServiceResult: generatedJtsPointShapeMeasureServiceResult(),
-        selectedTrackIds: new Set([1]),
-        selectedSegment: segment,
-      },
-      global: {
-        stubs: {
-          MiniMap: MiniMapStub,
-          ComparisonChart: ComparisonChartStub,
-          RacerCard: RacerCardStub,
-        },
-      },
-    });
-
-    await vi.runOnlyPendingTimersAsync();
-    await flush();
-
-    expect((wrapper.vm as unknown as { loadedData: unknown[] }).loadedData).toEqual([]);
-    expect(wrapper.text()).toContain('Selected tracks do not contain enough segment data to compare.');
     expect(wrapper.find('[data-test="racer-card"]').exists()).toBe(false);
   });
 

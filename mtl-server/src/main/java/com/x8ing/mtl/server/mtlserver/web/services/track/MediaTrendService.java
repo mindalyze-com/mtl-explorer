@@ -1,15 +1,9 @@
 package com.x8ing.mtl.server.mtlserver.web.services.track;
 
+import com.x8ing.mtl.server.mtlserver.db.entity.media.MediaPointDTO;
 import com.x8ing.mtl.server.mtlserver.db.repository.media.MediaTrendQueryRepository;
 import com.x8ing.mtl.server.mtlserver.db.repository.media.TrackMediaPageResult;
-import com.x8ing.mtl.server.mtlserver.web.services.track.entity.MediaTrendGrouping;
-import com.x8ing.mtl.server.mtlserver.web.services.track.entity.MediaTrendItemDto;
-import com.x8ing.mtl.server.mtlserver.web.services.track.entity.MediaTrendItemPageDto;
-import com.x8ing.mtl.server.mtlserver.web.services.track.entity.MediaTrendItemsRequest;
-import com.x8ing.mtl.server.mtlserver.web.services.track.entity.MediaTrendKindFilter;
-import com.x8ing.mtl.server.mtlserver.web.services.track.entity.MediaTrendRequest;
-import com.x8ing.mtl.server.mtlserver.web.services.track.entity.MediaTrendResponseDto;
-import com.x8ing.mtl.server.mtlserver.web.services.track.entity.MediaTrendScope;
+import com.x8ing.mtl.server.mtlserver.web.services.track.entity.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
@@ -33,7 +27,7 @@ public class MediaTrendService {
         if (request == null) throw badRequest("Request body is required");
         MediaTrendGrouping grouping = required(request.grouping(), "grouping");
         MediaTrendScope scope = required(request.scope(), "scope");
-        List<Long> trackIds = normalizedTrackIds(scope, request.trackIds());
+        List<Long> trackIds = normalizedTrackIds(request.trackIds());
         return new MediaTrendResponseDto(scope, queryRepository.findTrendBuckets(grouping, scope, trackIds));
     }
 
@@ -45,13 +39,12 @@ public class MediaTrendService {
         if (bucketKey == null || bucketKey.isBlank() || !grouping.isValidBucketKey(bucketKey)) {
             throw badRequest("bucketKey is invalid for the requested grouping");
         }
-        if (scope == MediaTrendScope.MATCHED_ACTIVITIES
-            && MediaTrendGrouping.UNDATED_BUCKET_KEY.equals(bucketKey)) {
-            throw badRequest("Matched activity media always has a capture time");
+        if (MediaTrendGrouping.UNDATED_BUCKET_KEY.equals(bucketKey)) {
+            throw badRequest("Media without a capture time is excluded");
         }
 
         MediaTrendKindFilter kind = request.kind() == null ? MediaTrendKindFilter.ALL : request.kind();
-        List<Long> trackIds = normalizedTrackIds(scope, request.trackIds());
+        List<Long> trackIds = normalizedTrackIds(request.trackIds());
         int page = request.page() == null ? 0 : request.page();
         int pageSize = request.pageSize() == null ? DEFAULT_PAGE_SIZE : request.pageSize();
         if (page < 0) throw badRequest("page must not be negative");
@@ -69,9 +62,20 @@ public class MediaTrendService {
                 result.items(), page, pageSize, result.totalElements(), totalPages);
     }
 
-    private static List<Long> normalizedTrackIds(MediaTrendScope scope, List<Long> trackIds) {
-        if (scope == MediaTrendScope.ALL_INDEXED) return List.of();
-        if (trackIds == null) throw badRequest("trackIds is required for matched activity media");
+    public List<MediaPointDTO> getInBounds(MediaBoundsRequest request) {
+        if (request == null) throw badRequest("Request body is required");
+        required(request.scope(), "scope");
+        if (!Double.isFinite(request.minLat()) || !Double.isFinite(request.maxLat())
+            || !Double.isFinite(request.minLng()) || !Double.isFinite(request.maxLng())
+            || request.minLat() > request.maxLat() || request.minLng() > request.maxLng()
+            || request.minLat() < -90 || request.maxLat() > 90) {
+            throw badRequest("Map bounds are invalid");
+        }
+        return queryRepository.findInBounds(request, normalizedTrackIds(request.trackIds()));
+    }
+
+    private static List<Long> normalizedTrackIds(List<Long> trackIds) {
+        if (trackIds == null) throw badRequest("trackIds is required for media filtering");
         if (trackIds.stream().anyMatch(id -> id == null || id <= 0)) {
             throw badRequest("trackIds must contain only positive ids");
         }

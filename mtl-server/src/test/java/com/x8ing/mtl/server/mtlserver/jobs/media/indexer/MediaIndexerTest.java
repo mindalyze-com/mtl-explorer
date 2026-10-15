@@ -3,6 +3,7 @@ package com.x8ing.mtl.server.mtlserver.jobs.media.indexer;
 import com.x8ing.mtl.server.mtlserver.db.entity.indexer.IndexedFile;
 import com.x8ing.mtl.server.mtlserver.db.entity.media.MediaFile;
 import com.x8ing.mtl.server.mtlserver.db.repository.media.MediaRepository;
+import com.x8ing.mtl.server.mtlserver.indexer.SourceUnreadableException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -24,15 +25,9 @@ import java.util.Date;
 import java.util.HexFormat;
 import java.util.List;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.assertj.core.api.Assertions.within;
+import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 class MediaIndexerTest {
 
@@ -180,8 +175,9 @@ class MediaIndexerTest {
         when(mediaRepository.findAllByIndexedFileId(FILE_ID)).thenReturn(List.of(existingMedia));
 
         assertThatThrownBy(() -> mediaIndexer.refreshFile(indexedFile))
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("Could not extract metadata");
+                .isInstanceOf(SourceUnreadableException.class)
+                .hasMessage("The source file could not be read. Check its location and access permissions.")
+                .hasCauseInstanceOf(IOException.class);
 
         verify(mediaRepository, never()).save(any(MediaFile.class));
         verify(mediaRepository, never()).deleteByIndexedFileId(FILE_ID);
@@ -199,6 +195,36 @@ class MediaIndexerTest {
         mediaIndexer.deleteFilesForIndexedFile(indexedFile);
 
         verify(mediaRepository).deleteByIndexedFileId(FILE_ID);
+    }
+
+    @Test
+    void emptyMediaIsAnExpectedSourceProblem(@TempDir Path directory) throws IOException {
+        Path empty = Files.createFile(directory.resolve("empty.psd"));
+        assertThatThrownBy(() -> mediaIndexer.indexFile(indexedFile(empty)))
+                .isInstanceOf(com.x8ing.mtl.server.mtlserver.indexer.SourceFileProblemException.class)
+                .hasMessage("Media file is empty.");
+        verifyNoInteractions(mediaRepository);
+    }
+
+    @Test
+    void unrecognizableMediaIsASourceWarningWithoutIoRetries(@TempDir Path directory) throws IOException {
+        Path damaged = directory.resolve("unrecognizable.mp4");
+        Files.writeString(damaged, "fully synthetic invalid media contents");
+        assertThatThrownBy(() -> mediaIndexer.indexFile(indexedFile(damaged)))
+                .isInstanceOf(com.x8ing.mtl.server.mtlserver.indexer.SourceFileProblemException.class)
+                .hasMessageContaining("empty, damaged or unsupported")
+                .hasCauseInstanceOf(com.drew.imaging.ImageProcessingException.class);
+        verifyNoInteractions(mediaRepository);
+    }
+
+    @Test
+    void missingMediaRemainsAnIoFailureRatherThanAContentWarning(@TempDir Path directory) {
+        assertThatThrownBy(() -> mediaIndexer.indexFile(indexedFile(directory.resolve("missing.jpg"))))
+                .isInstanceOf(SourceUnreadableException.class)
+                .isNotInstanceOf(com.x8ing.mtl.server.mtlserver.indexer.SourceFileProblemException.class)
+                .hasMessage("The source file could not be read. Check its location and access permissions.")
+                .hasCauseInstanceOf(IOException.class);
+        verifyNoInteractions(mediaRepository);
     }
 
     @Test

@@ -2,19 +2,24 @@ import { mount } from '@vue/test-utils';
 import { describe, expect, it, vi } from 'vitest';
 import type { GpsTrack } from 'x8ing-mtl-api-typescript-fetch/dist/esm/models/index';
 import TrackBrowserView from '@/components/track-browser/TrackBrowserView.vue';
+import TrackBrowserSummaryBar from '@/components/track-browser/TrackBrowserSummaryBar.vue';
 
 const TrackBrowserControlsStub = {
   name: 'TrackBrowserControls',
-  props: ['query', 'summary', 'totalCount'],
+  props: ['query'],
   emits: ['update:query'],
-  template: '<div data-test="track-browser-controls">{{ query }} · {{ totalCount }}</div>',
+  template: '<div data-test="track-browser-controls">{{ query }}</div>',
 };
 
 const TrackBrowserTableStub = {
   name: 'TrackBrowserTable',
   props: ['rows', 'selectedTrackId', 'query', 'compact', 'sortResetKey'],
-  emits: ['select-track', 'open-details'],
-  template: '<div data-test="track-browser-table">{{ query }} · {{ rows.length }}</div>',
+  emits: ['select-track', 'open-details', 'track-updated'],
+  methods: {
+    getSortState: () => ({ field: 'startDate', order: -1 }),
+    restoreSortState: () => {},
+  },
+  template: '<div data-test="track-browser-table">{{ query }} · {{ rows.length }}<slot name="summary" /></div>',
 };
 
 const tracks: GpsTrack[] = [
@@ -23,11 +28,37 @@ const tracks: GpsTrack[] = [
 ];
 
 describe('TrackBrowserView', () => {
+  it('updates searchable and sortable rows and preserves refreshes across stale parent rebuilds', async () => {
+    const original = { ...tracks[0]!, version: 1 };
+    const wrapper = mount(TrackBrowserView, {
+      props: { tracks: [original], compact: true },
+      global: { stubs: { TrackBrowserControls: TrackBrowserControlsStub, TrackBrowserTable: TrackBrowserTableStub } },
+    });
+    const table = wrapper.getComponent(TrackBrowserTableStub);
+    table.vm.$emit('track-updated', {
+      id: 1,
+      version: 2,
+      energyNetTotalWh: 120,
+      activityType: 'WALKING',
+      activityTypeSource: 'AUTO_GUESS',
+    });
+    await wrapper.vm.$nextTick();
+    expect(table.props('rows')[0]).toMatchObject({ energyNetTotalWh: 120, activityType: 'WALKING' });
+    expect(table.props('rows')[0].searchText).toContain('120');
+    expect(wrapper.emitted('track-updated')?.[0]?.[0]).toMatchObject({ id: 1, version: 2, energyNetTotalWh: 120 });
+    await wrapper.setProps({ tracks: [{ ...original }] });
+    expect(table.props('rows')[0].energyNetTotalWh).toBe(120);
+    await wrapper.setProps({ tracks: [{ ...original, version: 3, energyNetTotalWh: 200 }] });
+    expect(table.props('rows')[0].energyNetTotalWh).toBe(200);
+    wrapper.unmount();
+  });
+
   it('owns the shared search, summary, table, and interaction wiring', async () => {
     const wrapper = mount(TrackBrowserView, {
       props: { tracks, compact: true, selectedTrackId: 2 },
       slots: { toolbar: '<div data-test="toolbar">Views</div>' },
       global: {
+        directives: { tooltip: {} },
         stubs: {
           TrackBrowserControls: TrackBrowserControlsStub,
           TrackBrowserTable: TrackBrowserTableStub,
@@ -38,7 +69,7 @@ describe('TrackBrowserView', () => {
     const table = wrapper.findComponent(TrackBrowserTableStub);
 
     expect(wrapper.get('[data-test="toolbar"]').text()).toBe('Views');
-    expect(controls.props('totalCount')).toBe(2);
+    expect(wrapper.findComponent(TrackBrowserSummaryBar).props('totalCount')).toBe(2);
     expect(table.props('compact')).toBe(true);
     expect(table.props('selectedTrackId')).toBe(2);
 
@@ -97,6 +128,7 @@ describe('TrackBrowserView', () => {
     const wrapper = mount(TrackBrowserView, {
       props: { tracks },
       global: {
+        directives: { tooltip: {} },
         stubs: {
           TrackBrowserControls: TrackBrowserControlsStub,
           TrackBrowserTable: TrackBrowserTableStub,

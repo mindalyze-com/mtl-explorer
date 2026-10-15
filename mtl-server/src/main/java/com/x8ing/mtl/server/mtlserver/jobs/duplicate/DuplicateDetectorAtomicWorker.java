@@ -38,6 +38,13 @@ public class DuplicateDetectorAtomicWorker {
         if (!track.getDuplicateStatus().equals(GpsTrack.DUPLICATE_CHECK_STATUS.NOT_CHECKED_YET)) {
             return;
         }
+        if (track.isReviewExcluded() || track.isTimingUnreliable()) {
+            // Date-based matching cannot establish that an unreviewed or estimated recording is the same activity.
+            markUnique(track);
+            log.info("Automatic duplicate matching skipped: trackId={} reviewExcluded={} timingUnreliable={}",
+                    trackId, track.isReviewExcluded(), track.isTimingUnreliable());
+            return;
+        }
 
         Date startDate = track.getStartDate();
         Date d1 = null;
@@ -69,19 +76,21 @@ public class DuplicateDetectorAtomicWorker {
 
                 // get our new unique track. it's the first one
                 GpsTrack uniqueTrack = similarTracksSorted.getFirst();
-                uniqueTrack.setDuplicateStatus(GpsTrack.DUPLICATE_CHECK_STATUS.UNIQUE);
-                uniqueTrack.setDuplicateOf(null);
+                if (gpsTrackRepository.updateDuplicateDetection(uniqueTrack.getId(), uniqueTrack.getDuplicateStatus(),
+                        GpsTrack.DUPLICATE_CHECK_STATUS.UNIQUE, null) == 0) {
+                    log.debug("Duplicate group changed during calculation: uniqueTrackId={}, leaving candidates for retry.",
+                            uniqueTrack.getId());
+                    return;
+                }
 
                 // now mark all others as duplicates
                 similarTracksSorted.stream().skip(1).forEach(gpsTrack -> {
-                    gpsTrack.setDuplicateOf(uniqueTrack.getId());
-                    gpsTrack.setDuplicateStatus(GpsTrack.DUPLICATE_CHECK_STATUS.DUPLICATE);
-                    log.info("Marked GpsTrack {} ({}) to be an duplicate of {} ({})", gpsTrack.getIndexedFile().getName(), gpsTrack.getId(), uniqueTrack.getIndexedFile().getName(), uniqueTrack.getId());
-
+                    int updated = gpsTrackRepository.updateDuplicateDetection(gpsTrack.getId(), gpsTrack.getDuplicateStatus(),
+                            GpsTrack.DUPLICATE_CHECK_STATUS.DUPLICATE, uniqueTrack.getId());
+                    if (updated > 0) {
+                        log.info("Marked GpsTrack {} ({}) to be an duplicate of {} ({})", gpsTrack.getIndexedFile().getName(), gpsTrack.getId(), uniqueTrack.getIndexedFile().getName(), uniqueTrack.getId());
+                    }
                 });
-
-                // finally save them all
-                gpsTrackRepository.saveAll(similarTracksSorted);
             } else {
                 markUnique(track);
             }
@@ -96,6 +105,10 @@ public class DuplicateDetectorAtomicWorker {
 
     private boolean shouldKeepAsDuplicateCandidate(GpsTrack track, GpsTrack candidate) {
         if (track == null || candidate == null) {
+            return false;
+        }
+        if (candidate.getDuplicateStatus() == GpsTrack.DUPLICATE_CHECK_STATUS.FAILED
+            || candidate.isReviewExcluded() || candidate.isTimingUnreliable()) {
             return false;
         }
 
@@ -140,9 +153,16 @@ public class DuplicateDetectorAtomicWorker {
     }
 
     private void markUnique(GpsTrack track) {
-        track.setDuplicateStatus(GpsTrack.DUPLICATE_CHECK_STATUS.UNIQUE);
-        track.setDuplicateOf(null);
-        gpsTrackRepository.save(track);
+        gpsTrackRepository.updateDuplicateDetection(track.getId(), track.getDuplicateStatus(),
+                GpsTrack.DUPLICATE_CHECK_STATUS.UNIQUE, null);
+    }
+
+    /**
+     * Called after the failed processing transaction has rolled back.
+     */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void markFailed(Long trackId, String details) {
+        gpsTrackRepository.markDuplicateCheckFailedIfPending(trackId, details);
     }
 
 

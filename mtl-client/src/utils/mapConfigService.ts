@@ -1,3 +1,4 @@
+import { warnSanitized } from '@/utils/safeLogging';
 /**
  * mapConfigService.ts — Fetches and caches the server-side map configuration.
  *
@@ -6,8 +7,10 @@
  */
 
 import { apiClient } from '@/utils/apiClient';
-import { describeError, startStartupTimer, startupLog } from '@/utils/startupDiagnostics';
+import { startStartupTimer, startupLog } from '@/utils/startupDiagnostics';
 import { readJsonStorage, STORAGE_KEYS, writeJsonStorage } from '@/utils/appStorage';
+import { DEFAULT_RASTER_ATTRIBUTION, DEFAULT_RASTER_TILE_URL } from '@/utils/rasterMapDefaults';
+import { STARTUP_REQUEST_TIMEOUT_MS } from '@/utils/startupTiming';
 import {
   MapConfigDtoTileModeEnum,
   MapConfigDtoTileSourceEnum,
@@ -54,8 +57,8 @@ const DEFAULT_CONFIG: MapConfig = {
   lowzoomTilesetName: 'world-lowzoom',
   remoteRasterStyles: {
     light: {
-      url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-      attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+      url: DEFAULT_RASTER_TILE_URL,
+      attribution: DEFAULT_RASTER_ATTRIBUTION,
     },
     'light-topo': {
       url: 'https://tile.opentopomap.org/{z}/{x}/{y}.png',
@@ -65,10 +68,8 @@ const DEFAULT_CONFIG: MapConfig = {
         '(<a href="https://creativecommons.org/licenses/by-sa/3.0/">CC-BY-SA</a>)',
     },
     dark: {
-      url: 'https://basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
-      attribution:
-        '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors ' +
-        '© <a href="https://carto.com/attributions">CARTO</a>',
+      url: DEFAULT_RASTER_TILE_URL,
+      attribution: DEFAULT_RASTER_ATTRIBUTION,
     },
   },
   plannerEnabled: false,
@@ -108,10 +109,7 @@ export async function fetchMapConfig(): Promise<MapConfig> {
   inFlight = (async () => {
     try {
       const resp = await apiClient.get<MapConfig>('api/map/config', {
-        // Generous ceiling: this endpoint is a trivial in-memory DTO. A tight
-        // budget only triggers false failures when heavy parallel requests
-        // (e.g. first-login bulk track downloads) are hogging connections.
-        timeout: 15000,
+        timeout: STARTUP_REQUEST_TIMEOUT_MS,
       });
       cachedConfig = resp.data;
       timer.success('Map config fetched', {
@@ -127,8 +125,11 @@ export async function fetchMapConfig(): Promise<MapConfig> {
       writeJsonStorage(STORAGE_KEY, cachedConfig);
       return cachedConfig;
     } catch (e) {
-      timer.warn('Map config fetch failed; falling back', describeError(e));
-      console.warn('Failed to fetch map config, falling back to offline / remote raster mode:', e);
+      warnSanitized('Failed to fetch map config, falling back to offline / remote raster mode:', e, {
+        topic1: 'application',
+        topic2: 'mapConfigService',
+        topic3: 'fetchMapConfig',
+      });
       // Try to restore last-known-good config from localStorage
       const stored = readJsonStorage<MapConfig | null>(STORAGE_KEY, null);
       if (stored) {

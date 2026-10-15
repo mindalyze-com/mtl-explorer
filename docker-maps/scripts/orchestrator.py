@@ -680,6 +680,11 @@ def main() -> None:
     register_child(nginx)
     log(f"nginx started — container is now healthy on port {PORT}")
 
+    # Static report generation runs independently of tile startup. The reporter
+    # shares its non-blocking lock with scheduled and manual invocations.
+    reports = subprocess.Popen([sys.executable, "/app/analytics/runtime.py", "launch"])
+    register_child(reports)
+
     # ── Step 1: Start internal kickoff server ────────────────────────
     kickoff_thread = threading.Thread(target=_start_kickoff_server, daemon=True)
     kickoff_thread.start()

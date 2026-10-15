@@ -10,7 +10,9 @@ import java.nio.channels.FileChannel;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 
-/** A repeatable file resource that exposes only one byte range. */
+/**
+ * A repeatable file resource that exposes only one byte range.
+ */
 final class ByteRangeResource extends AbstractResource {
 
     private final Path path;

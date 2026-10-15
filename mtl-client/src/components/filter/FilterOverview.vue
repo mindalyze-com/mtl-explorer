@@ -12,7 +12,6 @@
       <div class="filter-overview__result-main">
         <div class="filter-overview__result-head">
           <div class="filter-overview__result-copy">
-            <span class="settings-eyebrow filter-overview__eyebrow">Current result</span>
             <span
               v-if="activeIdentity"
               class="filter-overview__active-chip"
@@ -24,6 +23,7 @@
             </span>
             <h3 id="filter-result-title" class="filter-overview__result-value">
               <i v-if="loading" class="pi pi-spin pi-spinner" aria-hidden="true"></i>
+              <i v-else-if="!enabled" class="bi bi-pause-circle filter-overview__paused-icon" aria-hidden="true"></i>
               {{ resultText }}
             </h3>
             <p class="filter-overview__result-detail" :aria-hidden="resultDetail ? undefined : true">
@@ -38,10 +38,10 @@
             class="filter-overview__mode-toggle"
             role="switch"
             :aria-checked="enabled"
-            aria-label="Apply filter"
+            :aria-label="enabled ? 'Turn filtering off' : 'Enable filtering'"
             @click="emit('update:enabled', !enabled)"
           >
-            <span class="filter-overview__mode-label">Apply filter</span>
+            <span class="filter-overview__mode-label">{{ enabled ? 'Filtering on' : 'Filtering off' }}</span>
             <span class="filter-overview__mode-track" aria-hidden="true">
               <span class="filter-overview__mode-thumb"></span>
             </span>
@@ -74,31 +74,16 @@
         </div>
       </div>
 
-      <button
-        type="button"
-        class="filter-overview__scope-link"
-        aria-label="How this result works. Read more"
-        @click="emit('open-scope-help')"
-      >
-        <i class="bi bi-info-circle" aria-hidden="true"></i>
-        <span class="filter-overview__scope-summary">
-          <strong class="filter-overview__scope-title">How this result works</strong>
-          <strong class="filter-overview__scope-title-mobile">Filters apply everywhere.</strong>
-          <small>The current result is used throughout MTL Explorer.</small>
-        </span>
-        <span class="filter-overview__scope-read">
-          <span class="filter-overview__scope-read-label">Read more</span>
-          <span class="filter-overview__scope-read-label-narrow">More</span>
-          <i class="bi bi-arrow-right" aria-hidden="true"></i>
-        </span>
-      </button>
+      <div class="filter-overview__scope">
+        <span>Applies across MTL Explorer.</span>
+        <Button label="More info" text size="small" aria-label="How filters work" @click="emit('open-scope-help')" />
+      </div>
     </section>
 
     <section class="filter-overview__configuration" aria-labelledby="filter-configuration-title">
       <div class="settings-section-heading filter-overview__section-heading">
         <div>
           <h3 id="filter-configuration-title">Configuration</h3>
-          <p>Open a section to change it.</p>
         </div>
       </div>
 
@@ -182,11 +167,22 @@
       </div>
     </section>
 
+    <RouterLink
+      :to="{ name: 'review', query: { state: 'NEEDS_REVIEW' } }"
+      class="settings-row filter-overview-row filter-overview__review"
+      data-test="filter-source-review"
+    >
+      <span class="settings-row__icon filter-overview-row__icon"
+        ><i class="bi bi-exclamation-triangle" aria-hidden="true"></i
+      ></span>
+      <span class="settings-row__body filter-overview-row__body">
+        <strong>Review GPS problems</strong>
+        <small>Missing times, GPS jumps and other findings across all recordings.</small>
+      </span>
+      <i class="bi bi-chevron-right settings-row__chevron" aria-hidden="true"></i>
+    </RouterLink>
+
     <div class="filter-overview__footer-actions">
-      <button v-if="showReviewAction" type="button" class="filter-overview__review" @click="emit('review')">
-        <i class="bi bi-table" aria-hidden="true"></i>
-        Review tracks
-      </button>
       <button type="button" class="filter-overview__reset" @click="emit('reset')">
         <i class="bi bi-arrow-counterclockwise" aria-hidden="true"></i>
         Reset filter
@@ -196,6 +192,8 @@
 </template>
 
 <script setup lang="ts">
+import Button from 'primevue/button';
+import { RouterLink } from 'vue-router';
 defineOptions({ name: 'FilterOverview' });
 
 withDefaults(
@@ -210,7 +208,6 @@ withDefaults(
     resultActionDisabled?: boolean;
     showSecondaryResultAction?: boolean;
     secondaryResultActionLabel?: string;
-    showReviewAction?: boolean;
     resetUndoAvailable?: boolean;
     activeIdentity?: string;
     viewSummary: string;
@@ -230,7 +227,6 @@ withDefaults(
     resultActionDisabled: false,
     showSecondaryResultAction: false,
     secondaryResultActionLabel: '',
-    showReviewAction: false,
     resetUndoAvailable: false,
     activeIdentity: '',
     paletteColors: () => [],
@@ -246,13 +242,16 @@ const emit = defineEmits<{
   (event: 'open-categories'): void;
   (event: 'open-colors'): void;
   (event: 'open-scope-help'): void;
-  (event: 'review'): void;
   (event: 'reset'): void;
   (event: 'undo-reset'): void;
 }>();
 </script>
 
 <style scoped>
+.filter-overview__review {
+  text-decoration: none;
+}
+
 .filter-overview {
   display: flex;
   width: 100%;
@@ -260,17 +259,16 @@ const emit = defineEmits<{
   padding: 0.5rem 1rem 1rem;
   box-sizing: border-box;
   flex-direction: column;
-  gap: 1.35rem;
+  gap: 0.85rem;
   color: var(--text-secondary);
 }
 
 .filter-overview__result {
   position: relative;
   display: grid;
-  min-height: 10.5rem;
   box-sizing: border-box;
-  grid-template-columns: minmax(0, 1fr) minmax(17rem, 0.82fr);
-  gap: 1.15rem;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.15rem;
   padding: 0.8rem 0.8rem 0.8rem 1.05rem;
   border: 1px solid var(--border-subtle, var(--border-default));
   border-radius: 0.8rem;
@@ -278,11 +276,21 @@ const emit = defineEmits<{
 }
 
 .filter-overview__result--paused {
-  background: color-mix(in srgb, var(--surface-elevated) 62%, transparent);
+  border-color: color-mix(in srgb, var(--warning) 42%, var(--border-default));
+  background: color-mix(in srgb, var(--warning) 10%, var(--surface-elevated));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--warning) 8%, transparent);
 }
 
 .filter-overview__result--paused::before {
-  background: var(--border-medium);
+  background: var(--warning);
+}
+
+.filter-overview__result--paused .filter-overview__eyebrow {
+  color: var(--warning-text);
+}
+
+.filter-overview__paused-icon {
+  color: var(--warning);
 }
 
 .filter-overview__result--error::before {
@@ -292,7 +300,10 @@ const emit = defineEmits<{
 .filter-overview__result-main {
   display: flex;
   min-width: 0;
-  flex-direction: column;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
 }
 
 .filter-overview__result-head {
@@ -329,7 +340,7 @@ const emit = defineEmits<{
 
 .filter-overview__active-chip > i {
   flex: 0 0 auto;
-  color: var(--warning);
+  color: var(--accent-text);
 }
 
 .filter-overview__active-chip > span {
@@ -363,8 +374,8 @@ const emit = defineEmits<{
   min-height: 2.65rem;
   align-items: center;
   gap: 0.4rem;
-  margin-top: auto;
-  padding-top: 1rem;
+  flex-wrap: wrap;
+  flex: 0 0 auto;
 }
 
 .filter-overview__primary,
@@ -517,89 +528,18 @@ const emit = defineEmits<{
   padding: 0 0.15rem;
 }
 
-.filter-overview__scope-link {
-  display: grid;
-  min-width: 0;
-  grid-template-columns: 1.6rem minmax(0, 1fr);
-  grid-template-rows: auto auto;
-  align-content: center;
-  align-items: start;
-  gap: 0.4rem 0.65rem;
-  margin: 1rem 0.2rem;
-  padding: 0.9rem 1rem;
-  border: 1px solid color-mix(in srgb, var(--accent) 22%, var(--border-default));
-  border-radius: 0.7rem;
-  background: color-mix(in srgb, var(--accent) 5%, var(--surface-elevated));
-  color: var(--text-secondary);
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
-  transition:
-    background 0.15s ease,
-    border-color 0.15s ease;
-}
-
-.filter-overview__scope-link:hover {
-  border-color: var(--border-hover, var(--border-default));
-  background: var(--surface-hover);
-}
-
-.filter-overview__scope-link:focus-visible {
-  outline: 2px solid var(--focus-ring, var(--accent));
-  outline-offset: 2px;
-}
-
-.filter-overview__scope-link > i {
-  grid-row: 1 / span 2;
-  color: var(--accent-text);
-  font-size: var(--text-base-size);
-  line-height: var(--text-base-lh);
-}
-
-.filter-overview__scope-summary {
+.filter-overview__scope {
   display: flex;
-  min-width: 0;
-  flex-direction: column;
-  gap: 0.18rem;
-}
-
-.filter-overview__scope-summary strong {
-  color: var(--text-primary);
-  font-weight: var(--font-semibold);
+  align-items: center;
+  gap: 0.25rem;
+  color: var(--text-muted);
   font-size: var(--text-sm-size);
   line-height: var(--text-sm-lh);
 }
 
-.filter-overview__scope-title-mobile {
-  display: none;
-}
-
-.filter-overview__scope-summary small {
-  color: var(--text-muted);
-  font-size: var(--text-xs-size);
-  line-height: var(--text-xs-lh);
-}
-
-.filter-overview__scope-read {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  color: var(--accent-text);
-  font-size: var(--text-xs-size);
-  font-weight: var(--font-semibold);
-  line-height: var(--text-xs-lh);
-}
-
-.filter-overview__scope-read i {
-  transition: transform 0.15s ease;
-}
-
-.filter-overview__scope-read-label-narrow {
-  display: none;
-}
-
-.filter-overview__scope-link:hover .filter-overview__scope-read i {
-  transform: translateX(0.12rem);
+.filter-overview__scope :deep(button) {
+  min-height: 2.75rem;
+  flex: 0 0 auto;
 }
 
 .filter-overview-row--disabled {
@@ -643,6 +583,12 @@ const emit = defineEmits<{
 .filter-overview-row--disabled .filter-overview-row__value,
 .filter-overview-row--disabled .filter-overview-row__body {
   opacity: 0.66;
+}
+
+.filter-overview-row--disabled .filter-overview-row__value,
+.filter-overview-row--disabled .filter-overview-row__value--colors > span:last-child {
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .filter-overview-row__swatches {
@@ -697,54 +643,30 @@ const emit = defineEmits<{
   color: var(--text-secondary);
 }
 
-@media screen and (max-width: 760px) {
+@media screen and (min-width: 601px) and (max-height: 760px) {
+  .filter-overview {
+    gap: 0.5rem;
+    padding-block: 0.25rem;
+  }
+
   .filter-overview__result {
-    display: flex;
-    flex-direction: column;
-    gap: 0;
+    padding-block: 0.4rem;
   }
 
-  .filter-overview__scope-link {
-    min-height: 2.75rem;
-    grid-template-columns: auto minmax(0, 1fr) auto;
-    grid-template-rows: auto;
-    align-content: initial;
-    align-items: center;
-    gap: 0.45rem;
-    margin: 0.7rem 0 0;
-    padding: 0.5rem 0.65rem;
+  .filter-overview-row {
+    min-height: 3.25rem;
+    padding-block: 0.65rem;
   }
 
-  .filter-overview__scope-link > i {
-    grid-row: 1;
-    font-size: var(--text-sm-size);
-    line-height: var(--text-sm-lh);
-  }
-
-  .filter-overview__scope-title {
+  .filter-overview-row__body small {
     display: none;
-  }
-
-  .filter-overview__scope-title-mobile {
-    display: block;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  .filter-overview__scope-summary small {
-    display: none;
-  }
-
-  .filter-overview__scope-read {
-    white-space: nowrap;
   }
 }
 
 @media screen and (max-width: 600px) {
   .filter-overview {
     padding: 0.55rem 1rem calc(1.1rem + env(safe-area-inset-bottom));
-    gap: 1.15rem;
+    gap: 0.75rem;
   }
 
   .filter-overview__result {
@@ -758,7 +680,7 @@ const emit = defineEmits<{
   }
 
   .filter-overview__result-detail {
-    min-height: calc(2 * var(--text-sm-lh));
+    min-height: 0;
   }
 
   .filter-overview__result-head {
@@ -766,10 +688,10 @@ const emit = defineEmits<{
   }
 
   .filter-overview-row {
-    min-height: 4.25rem;
+    min-height: 3.75rem;
     grid-template-columns: 1.45rem minmax(0, 1fr) auto;
-    gap: 0.65rem;
-    padding: 0.7rem 0.1rem;
+    gap: 0.2rem 0.65rem;
+    padding: 0.65rem 0.1rem;
   }
 
   .filter-overview-row__value {
@@ -798,25 +720,29 @@ const emit = defineEmits<{
   }
 }
 
-@media screen and (max-width: 360px) {
-  .filter-overview__scope-link {
-    grid-template-columns: minmax(0, 1fr) auto;
+@media screen and (max-width: 600px) {
+  .filter-overview__result-main {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.25rem;
   }
 
-  .filter-overview__scope-link > i {
-    display: none;
+  .filter-overview__result-actions {
+    justify-content: space-between;
   }
 
-  .filter-overview__scope-read-label {
-    display: none;
+  .filter-overview__scope {
+    flex-wrap: wrap;
   }
+}
 
-  .filter-overview__scope-read-label-narrow {
-    display: inline;
-  }
+.filter-overview button:focus-visible {
+  outline: 2px solid var(--focus-ring, var(--accent));
+  outline-offset: 2px;
+}
 
-  .filter-overview__scope-read i {
-    display: none;
-  }
+.filter-overview__undo button,
+.filter-overview__reset {
+  min-height: 2.75rem;
 }
 </style>

@@ -1,0 +1,15 @@
+{
+  "name": "mtl-map-report-assets",
+  "private": true,
+  "scripts": {
+    "build": "node build-assets.mjs",
+    "test": "node --test tests/test_frontend.mjs"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "4.3.3",
+    "postcss": "8.5.29",
+    "tailwindcss": "4.3.3",
+    "echarts": "6.1.0",
+    "lucide-static": "1.52.0"
+  }
+}

@@ -2,53 +2,34 @@ import { storeToRefs } from 'pinia';
 import { onMounted, onUnmounted } from 'vue';
 import type { DataFreshnessResponseDto } from '@/utils/serverAdminApi';
 import { useDataFreshnessStore } from '@/stores/dataFreshnessStore';
+import {
+  APPLICATION_STATUS_SECTION,
+  type ApplicationStatusPollingConsumer,
+  useApplicationStatusStore,
+} from '@/stores/applicationStatusStore';
 
 const DATA_FRESHNESS_POLL_INTERVAL_MS = 30_000;
-
-let consumerCount = 0;
-let timerId: ReturnType<typeof setTimeout> | null = null;
-
-function scheduleNext() {
-  if (consumerCount <= 0) return;
-  if (timerId !== null) clearTimeout(timerId);
-  timerId = setTimeout(poll, DATA_FRESHNESS_POLL_INTERVAL_MS);
-}
-
-async function poll() {
-  await refresh();
-  if (consumerCount > 0) {
-    scheduleNext();
-  }
-}
 
 export async function refresh(): Promise<DataFreshnessResponseDto | null> {
   return useDataFreshnessStore().refresh();
 }
 
-function startPolling() {
-  void poll();
-}
-
-function stopPolling() {
-  if (timerId !== null) {
-    clearTimeout(timerId);
-    timerId = null;
-  }
-}
-
 export function useDataFreshness() {
   const store = useDataFreshnessStore();
+  const applicationStatusStore = useApplicationStatusStore();
   const { currentFreshness, serverFreshnessToken, lastChecked, isFreshnessPollingHealthy, appliedToken, reloading } =
     storeToRefs(store);
+  let pollingConsumer: ApplicationStatusPollingConsumer | null = null;
 
   onMounted(() => {
-    consumerCount++;
-    if (consumerCount === 1) startPolling();
+    pollingConsumer = applicationStatusStore.registerPollingConsumer({
+      [APPLICATION_STATUS_SECTION.FRESHNESS]: DATA_FRESHNESS_POLL_INTERVAL_MS,
+    });
   });
 
   onUnmounted(() => {
-    consumerCount = Math.max(0, consumerCount - 1);
-    if (consumerCount === 0) stopPolling();
+    pollingConsumer?.dispose();
+    pollingConsumer = null;
   });
 
   return {

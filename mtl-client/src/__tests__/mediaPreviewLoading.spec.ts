@@ -1,6 +1,8 @@
 import { flushPromises, mount } from '@vue/test-utils';
-import { defineComponent, type PropType } from 'vue';
+import { defineComponent, ref, type PropType } from 'vue';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { MEDIA_BUSY_RETRY_DELAY_MS } from '@/utils/fetchMediaImage';
+import MediaPreview from '@/components/map/MediaPreview.vue';
 import {
   CROSSFADE_MS,
   FULL_PREVIEW_MAX_SIZE,
@@ -15,11 +17,18 @@ import {
 const mocks = vi.hoisted(() => ({
   getMediaInfo: vi.fn(),
 }));
+const mediaRevision = ref('');
 
 vi.mock('@/repositories/mediaRepository', () => ({
   getMediaInfo: mocks.getMediaInfo,
-  mediaContentUrl: (id: number, maxSize?: number) =>
-    maxSize == null ? `/media/${id}` : `/media/${id}?maxSize=${maxSize}`,
+  getMediaContentRevision: () => mediaRevision.value,
+  mediaOriginalUrl: (id: number) =>
+    `/media/${id}?original=true${mediaRevision.value ? `&revision=${mediaRevision.value}` : ''}`,
+  mediaContentUrl: (id: number, maxSize?: number) => {
+    const base = maxSize == null ? `/media/${id}` : `/media/${id}?maxSize=${maxSize}`;
+    return mediaRevision.value ? `${base}${maxSize == null ? '?' : '&'}revision=${mediaRevision.value}` : base;
+  },
+  saveMediaTimeCorrections: vi.fn(),
 }));
 
 const PreviewHarness = defineComponent({
@@ -33,7 +42,7 @@ const PreviewHarness = defineComponent({
     return useMediaPreview(props);
   },
   template:
-    '<div data-test="preview-state" :data-src="displayUrl" :data-media-url="mediaUrl" :data-poster-url="posterUrl" :data-capture-source="captureTimeSource" :data-video="String(isVideo)" :data-full-resolution="String(isHighResolutionPending)" :data-cross-fading="String(isCrossFading)" :data-swap-pending="String(isSwapPending)" />',
+    '<div data-test="preview-state" :data-src="displayUrl" :data-media-url="mediaUrl" :data-download-url="downloadUrl" :data-poster-url="posterUrl" :data-capture-source="captureTimeSource" :data-video="String(isVideo)" :data-full-resolution="String(isHighResolutionPending)" :data-cross-fading="String(isCrossFading)" :data-swap-pending="String(isSwapPending)" />',
 });
 
 function mediaInfo(id: number) {
@@ -70,6 +79,7 @@ describe('useMediaPreview loading', () => {
   beforeEach(() => {
     vi.useFakeTimers();
     blobIndex = 0;
+    mediaRevision.value = '';
     mocks.getMediaInfo.mockReset();
     mocks.getMediaInfo.mockImplementation(async (id: number) => mediaInfo(id));
     vi.spyOn(URL, 'createObjectURL').mockImplementation(() => `blob:preview-${++blobIndex}`);
@@ -90,6 +100,117 @@ describe('useMediaPreview loading', () => {
     vi.useRealTimers();
   });
 
+  it.each([
+    { delay: 'metadata', cancel: false },
+    { delay: 'preview', cancel: false },
+    { delay: 'metadata', cancel: true },
+    { delay: 'preview', cancel: true },
+  ])('keeps JPG thumbnails free of video badges with delayed $delay and cancel=$cancel', async ({ delay, cancel }) => {
+    const photoMetadata = deferred<ReturnType<typeof mediaInfo>>();
+    const photoPreview = deferred<Response>();
+    mocks.getMediaInfo.mockImplementation(async (id: number) => {
+      if (id === 1) return { ...mediaInfo(id), fileName: 'clip.mp4', mediaKind: 'VIDEO' };
+      return id === 2 && delay === 'metadata' ? photoMetadata.promise : mediaInfo(id);
+    });
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input) =>
+        String(input).startsWith('/media/2?') && delay === 'preview'
+          ? photoPreview.promise
+          : imageResponse('synthetic photo')
+      )
+    );
+    const wrapper = mount(MediaPreview, {
+      props: { mediaId: 1, mediaIds: [1, 2, 3], navIndex: 1, navTotal: 3 },
+      global: { stubs: { CompatibleVideoPlayer: true, MediaLocationMiniMap: true } },
+    });
+
+    try {
+      await flushPromises();
+      expect(wrapper.find('[data-media-id="1"] .mp__filmstrip-video').exists()).toBe(true);
+      expect(wrapper.find('[data-media-id="2"] .mp__filmstrip-video').exists()).toBe(false);
+
+      await wrapper.setProps({ mediaId: 2, navIndex: 2 });
+      await flushPromises();
+      // The previous video stays displayed until the selected photo is ready.
+      expect(wrapper.findComponent({ name: 'CompatibleVideoPlayer' }).exists()).toBe(true);
+      expect(wrapper.getComponent({ name: 'CompatibleVideoPlayer' }).props('mediaId')).toBe(1);
+      expect(wrapper.find('[data-media-id="2"] .mp__filmstrip-video').exists()).toBe(false);
+      expect(wrapper.get('[data-media-id="2"]').attributes('aria-label')).toBe('Current photo');
+
+      if (cancel) {
+        await wrapper.setProps({ mediaId: 1, navIndex: 1 });
+        await flushPromises();
+      }
+      photoMetadata.resolve(mediaInfo(2));
+      photoPreview.resolve(imageResponse('synthetic photo'));
+      await flushPromises();
+      if (cancel) {
+        expect(wrapper.find('img.mp__media--image').exists()).toBe(false);
+        expect(wrapper.find('[data-media-id="2"] .mp__filmstrip-video').exists()).toBe(false);
+        await wrapper.setProps({ mediaId: 2, navIndex: 2 });
+        await flushPromises();
+      }
+      expect(wrapper.get('img.mp__media--image').attributes('alt')).toBe('photo-2.jpg');
+      expect(wrapper.find('[data-media-id="2"] .mp__filmstrip-video').exists()).toBe(false);
+
+      await wrapper.setProps({ mediaId: 1, navIndex: 1 });
+      await flushPromises();
+      expect(wrapper.find('[data-media-id="1"] .mp__filmstrip-video').exists()).toBe(true);
+      expect(wrapper.find('[data-media-id="2"] .mp__filmstrip-video').exists()).toBe(false);
+    } finally {
+      wrapper.unmount();
+    }
+  });
+
+  it('keeps the original download independent of the preview while navigating and replacing data', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => imageResponse('preview'))
+    );
+    const wrapper = mount(PreviewHarness, { props: { mediaId: 43 } });
+    await flushPromises();
+    expect(wrapper.attributes('data-media-url')).toBe('/media/43');
+    expect(wrapper.attributes('data-download-url')).toBe('/media/43?original=true');
+    await wrapper.setProps({ mediaId: 44 });
+    await flushPromises();
+    mediaRevision.value = 'replaced';
+    await flushPromises();
+    expect(wrapper.attributes('data-download-url')).toBe('/media/44?original=true&revision=replaced');
+    wrapper.unmount();
+  });
+
+  it('replaces a cached photo and its metadata when the applied revision changes for the same media ID', async () => {
+    mediaRevision.value = 'before';
+    const oldFullResponse = deferred<Response>();
+    const fetchMock = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(imageResponse('before'))
+      .mockReturnValueOnce(oldFullResponse.promise)
+      .mockResolvedValue(imageResponse('after'));
+    vi.stubGlobal('fetch', fetchMock);
+    const wrapper = mount(PreviewHarness, { props: { mediaId: 7 } });
+    await flushPromises();
+    expect(wrapper.vm.displayUrl).toBe('blob:preview-1');
+    await vi.advanceTimersByTimeAsync(HIGH_RESOLUTION_IDLE_DELAY_MS);
+    await flushPromises();
+    const oldSignal = fetchMock.mock.calls[1][1]?.signal;
+
+    mediaRevision.value = 'after';
+    await flushPromises();
+
+    expect(mocks.getMediaInfo).toHaveBeenCalledTimes(2);
+    expect(fetchMock.mock.calls[2][0]).toBe(`/media/7?maxSize=${INITIAL_PREVIEW_MAX_SIZE}&revision=after`);
+    expect(oldSignal?.aborted).toBe(true);
+    expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:preview-1');
+    expect(wrapper.vm.displayUrl).toBe('blob:preview-2');
+    expect(wrapper.vm.mediaUrl).toBe('/media/7?revision=after');
+    oldFullResponse.resolve(imageResponse('late before image'));
+    await flushPromises();
+    expect(wrapper.vm.displayUrl).toBe('blob:preview-2');
+    wrapper.unmount();
+  });
+
   it('formats a saved camera correction with non-zero seconds as a valid compact hour label', () => {
     const wrapper = mount(PreviewHarness, {
       props: { timeSource: 'EXIF_DATE_TAKEN', appliedCameraOffsetSeconds: 3_603 },
@@ -98,6 +219,36 @@ describe('useMediaPreview loading', () => {
     expect(wrapper.get('[data-test="preview-state"]').attributes('data-capture-source')).toBe(
       'Camera clock · +1h correction'
     );
+    wrapper.unmount();
+  });
+
+  it('keeps the current photo when navigation returns before the next image is ready', async () => {
+    const nextImage = deferred<Response>();
+    const fetchMock = vi
+      .fn<typeof fetch>()
+      .mockImplementation(async (input) =>
+        String(input).startsWith('/media/8?') ? nextImage.promise : imageResponse('current')
+      );
+    vi.stubGlobal('fetch', fetchMock);
+    const wrapper = mount(PreviewHarness, { props: { mediaId: 7 } });
+    await flushPromises();
+    const original = wrapper.vm.displayUrl;
+
+    await wrapper.setProps({ mediaId: 8 });
+    await flushPromises();
+    const nextSignal = fetchMock.mock.calls.find(([url]) => String(url).startsWith('/media/8?'))?.[1]?.signal;
+    expect(nextSignal).toBeDefined();
+    await wrapper.setProps({ mediaId: 7 });
+    await flushPromises();
+    nextImage.resolve(imageResponse('late next photo'));
+    await flushPromises();
+    await vi.advanceTimersByTimeAsync(CROSSFADE_MS);
+
+    expect(wrapper.vm.mediaUrl).toBe('/media/7');
+    expect(wrapper.vm.fileName).toBe('photo-7.jpg');
+    expect(wrapper.vm.displayUrl).toBe(original);
+    expect(wrapper.vm.isSwapPending).toBe(false);
+    expect(nextSignal?.aborted).toBe(true);
     wrapper.unmount();
   });
 
@@ -133,6 +284,47 @@ describe('useMediaPreview loading', () => {
       'data-full-resolution': 'false',
       'data-cross-fading': 'false',
     });
+    wrapper.unmount();
+  });
+
+  it('keeps the previous photo visible while retrying a busy next preview', async () => {
+    const fetchMock = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(imageResponse('previous'))
+      .mockResolvedValueOnce(new Response(null, { status: 503 }))
+      .mockResolvedValueOnce(imageResponse('next'));
+    vi.stubGlobal('fetch', fetchMock);
+    const wrapper = mount(PreviewHarness, { props: { mediaId: 1 } });
+    await flushPromises();
+    await wrapper.setProps({ mediaId: 2 });
+    await flushPromises();
+    expect(wrapper.vm.hasLoadError).toBe(false);
+    expect(wrapper.vm.isSwapPending).toBe(true);
+    expect(wrapper.vm.displayUrl).toBe('blob:preview-1');
+
+    await vi.advanceTimersByTimeAsync(MEDIA_BUSY_RETRY_DELAY_MS);
+    await flushPromises();
+    expect(wrapper.vm.hasLoadError).toBe(false);
+    expect(wrapper.vm.activeMediaId).toBe(2);
+    expect(wrapper.vm.displayUrl).toBe('blob:preview-2');
+    wrapper.unmount();
+  });
+
+  it('does not resume retries for a photo after navigating away', async () => {
+    const fetchMock = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(new Response(null, { status: 503 }))
+      .mockResolvedValue(imageResponse('selected'));
+    vi.stubGlobal('fetch', fetchMock);
+    const wrapper = mount(PreviewHarness, { props: { mediaId: 1 } });
+    await flushPromises();
+    await wrapper.setProps({ mediaId: 2 });
+    await flushPromises();
+    await vi.advanceTimersByTimeAsync(MEDIA_BUSY_RETRY_DELAY_MS * 2);
+    await flushPromises();
+    expect(fetchMock.mock.calls.filter(([url]) => String(url).startsWith('/media/1?'))).toHaveLength(1);
+    expect(wrapper.vm.activeMediaId).toBe(2);
+    expect(wrapper.vm.hasLoadError).toBe(false);
     wrapper.unmount();
   });
 

@@ -7,6 +7,9 @@ package com.x8ing.mtl.server.mtlserver.indexer.event;
  */
 public interface FileIndexerObserver {
 
+    default void onSourceUnavailable(String index, long fileId, String message) {
+    }
+
     void onNewFile(String index, long fileId);
 
     void onDeletedFile(String index, long fileId);

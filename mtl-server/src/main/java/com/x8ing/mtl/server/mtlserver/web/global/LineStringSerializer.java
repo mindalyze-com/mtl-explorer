@@ -1,12 +1,12 @@
 package com.x8ing.mtl.server.mtlserver.web.global;
 
-import tools.jackson.core.JsonGenerator;
-import tools.jackson.core.JacksonException;
-import tools.jackson.databind.SerializationContext;
-import tools.jackson.databind.ValueSerializer;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.CoordinateXYZM;
 import org.locationtech.jts.geom.LineString;
+import tools.jackson.core.JacksonException;
+import tools.jackson.core.JsonGenerator;
+import tools.jackson.databind.SerializationContext;
+import tools.jackson.databind.ValueSerializer;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -45,11 +45,13 @@ public class LineStringSerializer extends ValueSerializer<LineString> {
             jsonGenerator.writeStartArray();
             jsonGenerator.writeNumber(roundToDecimalPlaces(coordinate.getX(), DECIMAL_PLACES));
             jsonGenerator.writeNumber(roundToDecimalPlaces(coordinate.getY(), DECIMAL_PLACES));
-            jsonGenerator.writeNumber(roundToDecimalPlaces(coordinate.getZ(), DECIMAL_PLACES_Z));
+            if (Double.isFinite(coordinate.getZ())) jsonGenerator.writeNumber(roundToDecimalPlaces(coordinate.getZ(), DECIMAL_PLACES_Z));
+            else jsonGenerator.writeNull();
 
             if (coordinate instanceof CoordinateXYZM) {
                 CoordinateXYZM coordinateXYZM = (CoordinateXYZM) coordinate;
-                jsonGenerator.writeNumber(roundToDecimalPlaces(coordinateXYZM.getM(), DECIMAL_PLACES));
+                if (Double.isFinite(coordinateXYZM.getM())) jsonGenerator.writeNumber(roundToDecimalPlaces(coordinateXYZM.getM(), DECIMAL_PLACES));
+                else jsonGenerator.writeNull();
             }
 
             jsonGenerator.writeEndArray();

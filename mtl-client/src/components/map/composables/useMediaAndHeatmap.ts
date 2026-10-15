@@ -1,16 +1,16 @@
+import { warnSanitized } from '@/utils/safeLogging';
 import { markRaw } from 'vue';
 import * as maplibregl from 'maplibre-gl';
 import type { MapControllerMethodDefinitions, MediaAndHeatmapMethods, MediaPoint } from './mapControllerRuntime';
 import { mergeAdjacentMediaPage } from '@/components/map/mediaPageBuffer';
 import { fetchTrackMediaOptionsWithinDistanceOfPoint } from '@/utils/ServiceHelper';
 import { haversineDistance } from '@/components/map/mapGeometry';
+import { mapInteractionTolerance } from '../mapInteractionDecision';
 import { isAbortLikeError } from '@/utils/errors';
 import type { NearbyTrackMediaDto } from 'x8ing-mtl-api-typescript-fetch';
 
 const MEDIA_FOCUS_MIN_ZOOM = 15;
 const MEDIA_FOCUS_MARKER_LABEL = 'Selected photo location';
-const MEDIA_SELECTION_POINTER_RADIUS_PX = 16;
-const MEDIA_SELECTION_TOUCH_RADIUS_PX = 24;
 
 export function findMediaPointById(points: MediaPoint[], mediaId: number | null): MediaPoint | null {
   if (mediaId == null) return null;
@@ -64,6 +64,7 @@ export function useMediaAndHeatmap(deps: {
           mapSettingsStore.setLayerEnabled('media', false);
         } else {
           await this.mediaOverlay.show();
+          this.applyLayerOpacity('media');
           mapSettingsStore.setLayerEnabled('media', true);
         }
         this.syncMapSettingsFromStore();
@@ -78,7 +79,7 @@ export function useMediaAndHeatmap(deps: {
         this.heatmapOverlay.hide();
         mapSettingsStore.setLayerEnabled('heatmap', false);
       } else {
-        this.heatmapOverlay.show(this.geojson);
+        this.heatmapOverlay.show(this.flatTrackSourceGeojson());
         this.applyLayerOpacity('heatmap');
         mapSettingsStore.setLayerEnabled('heatmap', true);
       }
@@ -96,9 +97,9 @@ export function useMediaAndHeatmap(deps: {
 
       try {
         if (!this.overlayMap) return;
-        const radiusPixels =
-          'ontouchstart' in window ? MEDIA_SELECTION_TOUCH_RADIUS_PX : MEDIA_SELECTION_POINTER_RADIUS_PX;
-        const edge = this.overlayMap.unproject([selection.clickPoint.x + radiusPixels, selection.clickPoint.y]);
+        const radiusPixels = mapInteractionTolerance(this.mapInteraction?.context.inputKind ?? 'pointer');
+        const clickPoint = this.overlayMap.project(selection.clickLngLat);
+        const edge = this.overlayMap.unproject([clickPoint.x + radiusPixels, clickPoint.y]);
         const radiusMeters = haversineDistance(
           selection.clickLngLat.lat,
           selection.clickLngLat.lng,
@@ -115,7 +116,14 @@ export function useMediaAndHeatmap(deps: {
         this.mediaSelectionTrackOptions = normalizeNearbyTrackMediaOptions(trackOptions);
       } catch (error) {
         if (!isAbortLikeError(error, controller.signal)) {
-          console.warn('[map-media] nearby activity lookup failed', error);
+          if (requestToken === this.mediaSelectionRequestToken) {
+            this.mediaSelectionTracksError = 'Nearby GPS tracks are unavailable.';
+          }
+          warnSanitized('[map-media] nearby activity lookup failed', error, {
+            topic1: 'media',
+            topic2: 'useMediaAndHeatmap',
+            topic3: 'openMediaSelection',
+          });
         }
       } finally {
         if (requestToken === this.mediaSelectionRequestToken) {
@@ -123,6 +131,12 @@ export function useMediaAndHeatmap(deps: {
           this.mediaSelectionAbortController = null;
         }
       }
+    },
+
+    async retryMediaSelectionActivities() {
+      const selection = this.mediaPendingSelection;
+      if (!selection || this.mediaSelectionTracksLoading) return;
+      await this.openMediaSelection(selection);
     },
 
     chooseMediaCollection(scope) {
@@ -157,7 +171,11 @@ export function useMediaAndHeatmap(deps: {
       if (trackOptions.length === 0) return;
       this.closeMediaSelection();
       if (trackOptions.length === 1 && trackOptions[0].matchedMediaCount > 0) {
-        this.onTrackBrowserOpenPhotos(trackOptions[0].trackId);
+        if (this.mapInteraction) {
+          this.mapInteractionDetailKind = 'track';
+          if (this.selectedTrackId !== trackOptions[0].trackId) this.selectTrackById(trackOptions[0].trackId);
+          this.openTrackDetails(trackOptions[0].trackId, 'expanded', 'photos');
+        } else this.onTrackBrowserOpenPhotos(trackOptions[0].trackId);
         return;
       }
       this.selectionPopupTrackIds = trackOptions.map((option) => option.trackId);
@@ -174,6 +192,7 @@ export function useMediaAndHeatmap(deps: {
       this.mediaPendingSelection = null;
       this.mediaSelectionTrackOptions = [];
       this.mediaSelectionTracksLoading = false;
+      this.mediaSelectionTracksError = null;
     },
 
     navigateMediaTo(id) {

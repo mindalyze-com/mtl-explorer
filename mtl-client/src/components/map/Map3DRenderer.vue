@@ -53,6 +53,9 @@
 </template>
 
 <script setup lang="ts">
+import { reportMapError, reportMapContextLoss } from '@/utils/mapDiagnostics';
+import { warnSanitized } from '@/utils/safeLogging';
+
 import { computed, inject, markRaw, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { storeToRefs } from 'pinia';
 import * as maplibregl from 'maplibre-gl';
@@ -65,6 +68,7 @@ import { fetchMapConfig, mainTileArchiveUrl, MapConfigDtoTileModeEnum, type MapC
 import { fetchMapStatus } from '@/utils/mapStatusService';
 import { resolveConfiguredMapStyle } from '@/components/map/mapStyleResolver';
 import { registerCachingPMTilesArchive } from '@/utils/maplibrePmtilesProtocol';
+import { installMissingStyleImageResolver } from '@/utils/maplibreStyleImages';
 import { enableTerrainView, TERRAIN_TARGET_PITCH } from '@/components/map/terrainMode';
 import { MAP_OVERLAYS } from '@/utils/mapStyle';
 import { TrackReplayController, type ReplayPlaybackFrame } from '@/components/replay/trackReplayController';
@@ -260,12 +264,17 @@ async function initialize3DReplay() {
     startupMessage.value = 'Loading track';
     const source = replaySource.value?.trackId === trackId ? replaySource.value : null;
     let gpsTrack = source?.gpsTrack ?? null;
-    let path = source
-      ? buildTimedReplayPath({
-          chartPoints: source.chartPoints,
-          renderedShapePoints: source.renderedShapePoints,
-        })
-      : { points: [], totalDistanceMeters: 0, originalDurationSeconds: null, timingMode: 'time' as const };
+    let path =
+      source && !gpsTrack?.timingUnreliable && !gpsTrack?.timingEstimated
+        ? buildTimedReplayPath({
+            chartPoints: source.chartPoints,
+            renderedShapePoints: source.renderedShapePoints,
+          })
+        : { points: [], totalDistanceMeters: 0, originalDurationSeconds: null, timingMode: 'time' as const };
+
+    if (source && (path.points.length < 2 || path.totalDistanceMeters <= 0)) {
+      path = buildReplayPath({ coordinates: source.coordinates, track: source.gpsTrack });
+    }
 
     if (path.points.length < 2 || path.totalDistanceMeters <= 0 || !gpsTrack) {
       const detailTrack = await fetchDetailTrackAtPrecision(trackId, DETAIL_TRACK_PRECISION);
@@ -333,7 +342,11 @@ async function initialize3DReplay() {
     startupMessage.value = '';
     emit('ready');
   } catch (error) {
-    console.warn('Failed to initialize 3D replay', error);
+    warnSanitized('Failed to initialize 3D replay', error, {
+      topic1: 'map',
+      topic2: 'Map3DRenderer',
+      topic3: 'initialize3DReplay',
+    });
     failReplay('3D replay failed', 'The replay could not be started for this track.');
   }
 }
@@ -364,7 +377,11 @@ async function loadReplayTelemetry(
       );
     }
   } catch (error) {
-    console.warn('Could not load replay telemetry', error);
+    warnSanitized('Could not load replay telemetry', error, {
+      topic1: 'map',
+      topic2: 'Map3DRenderer',
+      topic3: 'loadReplayTelemetry',
+    });
     if (generation !== loadGeneration || closed) return;
     warnTelemetryUnavailable(
       'Speed telemetry unavailable',
@@ -410,7 +427,15 @@ async function createMap(mapConfig: MapConfig, path: ReplayPath) {
       touchPitch: true,
     })
   );
+  installMissingStyleImageResolver(map);
   map.addControl(new maplibregl.NavigationControl(MAP_NAVIGATION_CONTROL_OPTIONS), 'top-left');
+  const initializedMap = map;
+  map.on('error', (event) => {
+    if (map === initializedMap) reportMapError(event, 'Map3DRenderer');
+  });
+  map.on('webglcontextlost', () => {
+    if (map === initializedMap) reportMapContextLoss('Map3DRenderer');
+  });
   scaleControl = markRaw(
     new maplibregl.ScaleControl({
       maxWidth: 100,
@@ -510,7 +535,11 @@ async function addContextTracks(trackId: number) {
       };
     }
   } catch (error) {
-    console.warn('Could not load cached context tracks for 3D replay', error);
+    warnSanitized('Could not load cached context tracks for 3D replay', error, {
+      topic1: 'map',
+      topic2: 'Map3DRenderer',
+      topic3: 'addContextTracks',
+    });
   }
   if (!map.getSource(CONTEXT_SOURCE_ID)) {
     map.addSource(CONTEXT_SOURCE_ID, {

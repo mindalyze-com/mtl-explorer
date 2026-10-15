@@ -1,7 +1,10 @@
 package com.x8ing.mtl.server.mtlserver.gpx;
 
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
+import com.x8ing.mtl.server.gpsquality.diagnostics.GpxDocument;
+import com.x8ing.mtl.server.gpsquality.diagnostics.RecordingTimingAnalysis;
 import com.x8ing.mtl.server.mtlserver.db.entity.gps.GpsTrack;
+import com.x8ing.mtl.server.mtlserver.db.entity.gps.GpsTrackDataPoint;
 import com.x8ing.mtl.server.mtlserver.db.entity.indexer.IndexedFile;
 import com.x8ing.mtl.server.mtlserver.logic.motion.TrackStopDetector;
 import com.x8ing.mtl.server.mtlserver.utils.TimingCollector;
@@ -25,15 +28,13 @@ import javax.xml.transform.stream.StreamSource;
 import java.io.IOException;
 import java.io.PushbackReader;
 import java.io.Reader;
+import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
 import static java.util.stream.Collectors.joining;
 
@@ -42,6 +43,7 @@ import static java.util.stream.Collectors.joining;
 @Slf4j
 public class GPXReader {
 
+    private static final double MILLIS_PER_SECOND = 1000.0;
     private static final double WGS84_SEMI_MAJOR_AXIS_M = 6_378_137.0;
     private static final double WGS84_FLATTENING = 1.0 / 298.257_223_563;
     private static final double WGS84_SEMI_MINOR_AXIS_M =
@@ -56,6 +58,8 @@ public class GPXReader {
 
     static final double MAX_PLAUSIBLE_SPEED_MS = 416.0;
     static final double PROBATION_TRUST_TIME_S = 15.0;
+    private static final int PROBATION_TRUST_POINT_COUNT = 5;
+    private static final double SAME_TIMESTAMP_GEOMETRY_METRES = RecordingContinuity.MAX_SAME_TIME_GEOMETRY_METRES;
     static final int GPS_STARTUP_WINDOW_SIZE = 10;
     private static final String DISTANCE_PROBATION_CORRECTOR_NAME = "GPXReader distance/probation filter";
     /**
@@ -87,6 +91,10 @@ public class GPXReader {
             "trackRAW",
             "trackCleaned",
             "stopRanges",
+            "recordingBreakBeforePointIndexes",
+            "rawRecordingBreakBeforePointIndexes",
+            "observationEvidence",
+            "sourceRecordingEvidence",
             "processingTime"
     })
     public static class LoadResult {
@@ -94,7 +102,23 @@ public class GPXReader {
         public LineString trackRAW;
         public LineString trackCleaned;
         public List<TrackStopDetector.StopRange> stopRanges = new ArrayList<>();
+        public List<Integer> recordingBreakBeforePointIndexes = new ArrayList<>();
+        public List<Integer> rawRecordingBreakBeforePointIndexes = new ArrayList<>();
+        public List<GpsObservationEvidence> observationEvidence = new ArrayList<>();
+        @com.fasterxml.jackson.annotation.JsonIgnore
+        public Map<Integer, String> cleaningRules = new HashMap<>();
+        @com.fasterxml.jackson.annotation.JsonIgnore
+        public List<GpsProcessingIssue> processingIssues = List.of();
+        public SourceRecordingEvidence sourceRecordingEvidence;
         public long processingTime;
+    }
+
+    /**
+     * Import-time provenance remains available when detailed DOM diagnosis exceeds its limits.
+     */
+    public record SourceRecordingEvidence(int sectionIndex, String name, int firstPointIndex, int pointCount,
+                                          int timedPointCount, int estimatedPointCount, Instant firstTime, Instant lastTime,
+                                          Integer firstExcursionPointIndex, RecordingTimingAnalysis timing) {
     }
 
     @JsonPropertyOrder({
@@ -102,6 +126,8 @@ public class GPXReader {
             "rawCoordinates",
             "distancesBetweenPoints",
             "stopRanges",
+            "recordingSections",
+            "recordingSection",
             "outlierCount"
     })
     private static class OutlierFilterResult {
@@ -109,6 +135,12 @@ public class GPXReader {
         final List<Coordinate> rawCoordinates;
         final List<Double> distancesBetweenPoints;
         final List<TrackStopDetector.StopRange> stopRanges;
+        final Map<Coordinate, Integer> recordingSections = new IdentityHashMap<>();
+        // Original GPX section identity is independent of gaps detected inside that section.
+        final Map<Coordinate, Integer> sourceSections = new IdentityHashMap<>();
+        final Map<Coordinate, GpsObservationEvidence> evidence = new IdentityHashMap<>();
+        final Map<Integer, String> cleaningRules = new HashMap<>();
+        int recordingSection;
         int outlierCount;
 
         OutlierFilterResult() {
@@ -126,12 +158,12 @@ public class GPXReader {
     @JsonPropertyOrder({
             "lastAcceptedPoint",
             "probationBuffer",
-            "lastElevation"
+            "probationEntryDt"
     })
     private static class SegmentFilterState {
         Coordinate lastAcceptedPoint;
         final List<Coordinate> probationBuffer = new ArrayList<>();
-        double lastElevation = 0.0;
+        double probationEntryDt = Double.NaN;
     }
 
     @SneakyThrows
@@ -160,12 +192,17 @@ public class GPXReader {
     List<LoadResult> importGpxXml(IndexedFile indexedFile, String gpxXml, TimingCollector timing) {
         TimingCollector activeTiming = timing != null ? timing : new TimingCollector();
         return importGpx(indexedFile, activeTiming,
-                () -> GPX.Reader.of(GPX.Reader.Mode.LENIENT).fromString(gpxXml));
+                () -> readIdentifiedGpx(new GpxSanitizingReader(new StringReader(gpxXml))));
     }
 
     private List<LoadResult> importGpx(IndexedFile indexedFile,
                                        TimingCollector activeTiming,
                                        TimingCollector.TimedSupplier<GPX> parser) {
+        return importGpx(indexedFile, activeTiming, parser, true);
+    }
+
+    private List<LoadResult> importGpx(IndexedFile indexedFile, TimingCollector activeTiming,
+                                       TimingCollector.TimedSupplier<GPX> parser, boolean inspectProvenance) {
         long startTimeMs = System.currentTimeMillis();
         log.debug("About to read GPX file {}", indexedFile);
 
@@ -176,8 +213,10 @@ public class GPXReader {
             gpsTrack.setDuplicateStatus(GpsTrack.DUPLICATE_CHECK_STATUS.NOT_CHECKED_YET);
             gpsTrack.addLoadMessage("Starting import of GPX file.");
 
-            OutlierFilterResult filterResult = parseAndFilterGpx(
-                    indexedFile, gpsTrack, activeTiming, parser);
+            GPX parsed = activeTiming.time("parse XML", parser);
+            if (inspectProvenance && requiresSectionImport(parsed))
+                return importProvenanceSections(indexedFile, activeTiming, parsed);
+            OutlierFilterResult filterResult = parseAndFilterGpx(indexedFile, gpsTrack, activeTiming, parsed);
             if (filterResult == null) {
                 log.info("No waypoints for file={}", indexedFile);
                 gpsTrack.setLoadStatus(GpsTrack.LOAD_STATUS.EMPTY_FILE);
@@ -188,14 +227,11 @@ public class GPXReader {
                 return List.of(emptyResult);
             }
 
-            // Second-pass cleaner: remove A-B-C isolated spikes and collapse
-            // stationary GPS-drift clusters (e.g. restaurant scribble) into two
-            // anchor coordinates at the cluster medoid. Runs unconditionally:
-            // every downstream variant (RAW_OUTLIER_CLEANED -> SIMPLIFIED_SHAPE
-            // -> SIMPLIFIED_FIXED_POINTS) is built from the cleaned stream and
-            // therefore inherits the cleanup. RAW is left untouched.
+            // Remove supported isolated position/elevation spikes before denoising.
+            // Downstream geometry and metrics use this stream; RAW retains the observations.
             activeTiming.time("break-stop filter", () -> applyBreakStopTreatment(filterResult, gpsTrack));
-            activeTiming.time("time-order filter", () -> applyTimeOrderTreatment(filterResult, gpsTrack));
+            activeTiming.time("position continuity", () -> disconnectRetainedRelocations(filterResult, gpsTrack));
+
 
             // Fix A: extract time bounds from CLEANED coordinates (after outlier removal)
             activeTiming.time("time bounds", () -> extractTimeBoundsFromCleaned(filterResult.cleanedCoordinates, gpsTrack));
@@ -211,6 +247,7 @@ public class GPXReader {
                 LoadResult loadResult = new LoadResult();
                 loadResult.gpsTrack = gpsTrack;
                 loadResult.stopRanges = new ArrayList<>(filterResult.stopRanges);
+                loadResult.recordingBreakBeforePointIndexes = recordingBreaks(filterResult.cleanedCoordinates, filterResult.recordingSections);
                 activeTiming.time("build geometry", () -> buildGeometries(loadResult, gpsTrack, filterResult));
                 gpsTrack.setLoadStatus(GpsTrack.LOAD_STATUS.SUCCESS);
                 loadResult.processingTime = System.currentTimeMillis() - startTimeMs;
@@ -245,6 +282,10 @@ public class GPXReader {
                 // Per-segment outlier result with just this segment's coordinates
                 OutlierFilterResult segFilter = new OutlierFilterResult();
                 segFilter.cleanedCoordinates.addAll(segCoords);
+                segFilter.recordingSections.putAll(filterResult.recordingSections);
+                segFilter.sourceSections.putAll(filterResult.sourceSections);
+                segFilter.evidence.putAll(filterResult.evidence);
+                segFilter.cleaningRules.putAll(filterResult.cleaningRules);
 
                 // Accurately capture this segment's raw coordinates from the full list
                 int rawSliceEnd;
@@ -277,6 +318,7 @@ public class GPXReader {
                 LoadResult segResult = new LoadResult();
                 segResult.gpsTrack = segTrack;
                 segResult.stopRanges = stopRangesForSegment(filterResult.stopRanges, segCoords);
+                segResult.recordingBreakBeforePointIndexes = recordingBreaks(segCoords, filterResult.recordingSections);
                 activeTiming.time("segment geometry", () -> buildGeometries(segResult, segTrack, segFilter));
                 segTrack.setLoadStatus(GpsTrack.LOAD_STATUS.SUCCESS);
                 segResult.processingTime = System.currentTimeMillis() - startTimeMs;
@@ -296,10 +338,9 @@ public class GPXReader {
     }
 
     private OutlierFilterResult parseAndFilterGpx(IndexedFile indexedFile,
-                                                   GpsTrack gpsTrack,
-                                                   TimingCollector activeTiming,
-                                                   TimingCollector.TimedSupplier<GPX> parser) throws Exception {
-        GPX gpx = activeTiming.time("parse XML", parser);
+                                                  GpsTrack gpsTrack,
+                                                  TimingCollector activeTiming,
+                                                  GPX gpx) throws Exception {
         activeTiming.time("metadata", () -> parseGpxMetadata(gpx, gpsTrack, indexedFile));
 
         WayPoint firstWayPoint = activeTiming.time("first point", () -> findFirstTrackPoint(gpx));
@@ -313,6 +354,83 @@ public class GPXReader {
         return activeTiming.time("outlier filter", () -> filterOutliers(gpx, gpsTrack, indexedFile));
     }
 
+    private static boolean estimatedTiming(WayPoint point) {
+        return point.getExtensions().map(extensions ->
+                extensions.getElementsByTagNameNS(GpxDocument.REPAIR_NAMESPACE, "time").getLength() > 0).orElse(false);
+    }
+
+    private static boolean requiresSectionImport(GPX source) {
+        return !source.getRoutes().isEmpty() || source.getTracks().stream().flatMap(track -> track.getSegments().stream())
+                .anyMatch(section -> {
+                    var clock = analyzeTiming(section);
+                    return section.getPoints().stream().anyMatch(GPXReader::estimatedTiming)
+                           || clock.needsContainment() || !clock.isolatedForwardSpikeIndexes().isEmpty();
+                });
+    }
+
+    private static RecordingTimingAnalysis analyzeTiming(TrackSegment section) {
+        // Keep missing observations in the sequence; skipping them would invent adjacent time pairs.
+        return RecordingTimingAnalysis.analyze(() -> section.getPoints().stream()
+                .map(point -> point.getTime().orElse(null)).iterator());
+    }
+
+    private List<LoadResult> importProvenanceSections(IndexedFile file, TimingCollector timing, GPX source) {
+        List<Track> recordings = new ArrayList<>();
+        // GPX schema order places routes before tracks. Each source section stays independently reviewable.
+        for (Route route : source.getRoutes())
+            recordings.add(Track.builder().name(route.getName().orElse(null))
+                    .desc(route.getDescription().orElse(null)).segments(List.of(TrackSegment.builder().points(route.getPoints()).build())).build());
+        for (Track track : source.getTracks())
+            for (TrackSegment section : track.getSegments())
+                recordings.add(track.toBuilder().segments(List.of(section)).build());
+        List<LoadResult> results = new ArrayList<>();
+        int firstIndex = 0;
+        for (int sectionIndex = 0; sectionIndex < recordings.size(); sectionIndex++) {
+            Track recording = recordings.get(sectionIndex);
+            TrackSegment original = recording.getSegments().getFirst();
+            int estimated = (int) original.getPoints().stream().filter(GPXReader::estimatedTiming).count();
+            var clock = analyzeTiming(original);
+            boolean unreliable = estimated > 0 || clock.needsContainment();
+            int originalSection = original.getPoints().isEmpty() ? sectionIndex : sourceIdentity(original.getPoints().getFirst(), "section", sectionIndex);
+            int originalFirst = original.getPoints().isEmpty() ? firstIndex : sourceIdentity(original.getPoints().getFirst(), "point", firstIndex);
+            var evidence = new SourceRecordingEvidence(originalSection, recording.getName().orElse("Recording " + (sectionIndex + 1)),
+                    originalFirst, original.getPoints().size(), clock.timedPointCount(), estimated, clock.earliest(), clock.latest(),
+                    clock.firstExcursionIndex() < 0 ? null : sourceIdentity(original.getPoints().get(clock.firstExcursionIndex()),
+                            "point", originalFirst + clock.firstExcursionIndex()), clock);
+            if (unreliable) log.info("Source clock containment: sourceId={} section={} points={} backwards={} excursions={} estimated={}",
+                    file.getId(), sectionIndex, clock.pointCount(), clock.backwardCount(), clock.excursionCount(), estimated);
+            Set<Integer> excludedTimes = new HashSet<>(clock.isolatedForwardSpikeIndexes());
+            TrackSegment derived = original.toBuilder().points(java.util.stream.IntStream.range(0, original.getPoints().size())
+                    .mapToObj(i -> unreliable || excludedTimes.contains(i)
+                            ? original.getPoints().get(i).toBuilder().time((Instant) null).build() : original.getPoints().get(i)).toList()).build();
+            Map<Integer, Instant> excludedSourceTimes = new HashMap<>();
+            for (int i : excludedTimes) excludedSourceTimes.put(sourceIdentity(original.getPoints().get(i), "point", originalFirst + i),
+                    original.getPoints().get(i).getTime().orElseThrow());
+            GPX section = source.toBuilder().routes(List.of()).tracks(List.of(recording.toBuilder().segments(List.of(derived)).build())).build();
+            var loaded = importGpx(file, timing, () -> section, false);
+            for (LoadResult result : loaded) {
+                result.gpsTrack.setSourceRecordingSection(originalSection);
+                result.sourceRecordingEvidence = evidence;
+                result.gpsTrack.setTimingEstimated(estimated > 0);
+                if (unreliable) {
+                    List<Coordinate> coordinates = original.getPoints().stream().map(point -> (Coordinate) new CoordinateXYZM(
+                            point.getLongitude().doubleValue(), point.getLatitude().doubleValue(),
+                            point.getElevation().map(Length::doubleValue).orElse(Double.NaN),
+                            point.getTime().map(time -> time.getEpochSecond() + time.getNano() / 1_000_000_000.0).orElse(Double.NaN))).toList();
+                    Date first = original.getPoints().stream().flatMap(point -> point.getTime().stream()).findFirst().map(Date::from).orElse(null);
+                    SourceTimingContainment.preserveOriginal(result, coordinates, first, originalSection);
+                } else if (!excludedSourceTimes.isEmpty()) {
+                    SourceTimingContainment.preserveExcludedTimes(result, excludedSourceTimes);
+                }
+                results.add(result);
+            }
+            firstIndex += original.getPoints().size();
+        }
+        if (results.size() > 1) for (int i = 0; i < results.size(); i++) results.get(i).gpsTrack.setSourceSegmentIndex(i + 1);
+        log.info("Imported source recording sections: sourceId={} recordingSections={} derivedTracks={}", file.getId(), recordings.size(), results.size());
+        return results;
+    }
+
     private static WayPoint findFirstTrackPoint(GPX gpx) {
         for (Track track : gpx.getTracks()) {
             for (TrackSegment segment : track.getSegments()) {
@@ -324,11 +442,26 @@ public class GPXReader {
         return null;
     }
 
-    private static GPX readGpxFile(Path path) throws IOException {
+    private static GPX readGpxFile(Path path) throws Exception {
         try (Reader fileReader = Files.newBufferedReader(path, StandardCharsets.UTF_8);
              Reader sanitizedReader = new GpxSanitizingReader(fileReader)) {
-            return GPX.Reader.of(GPX.Reader.Mode.LENIENT).read(new StreamSource(sanitizedReader));
+            return readIdentifiedGpx(sanitizedReader);
         }
+    }
+
+    private static GPX readIdentifiedGpx(Reader input) throws Exception {
+        try (Reader identified = new GpxImportIdentityReader(input)) {
+            return GPX.Reader.of(GPX.Reader.Mode.LENIENT).read(new StreamSource(identified));
+        }
+    }
+
+    private static int sourceIdentity(WayPoint point, String attribute, int fallback) {
+        return point.getExtensions().map(dom -> {
+            var identities = dom.getElementsByTagNameNS(GpxImportIdentityReader.NAMESPACE, "observation");
+            if (identities.getLength() == 0) return fallback;
+            // The streaming reader appends the authoritative identity after any source extension.
+            return Integer.parseInt(((org.w3c.dom.Element) identities.item(identities.getLength() - 1)).getAttribute(attribute));
+        }).orElse(fallback);
     }
 
     /**
@@ -459,10 +592,10 @@ public class GPXReader {
             }
         }
         if (minT != Double.MAX_VALUE) {
-            gpsTrack.setStartDate(Date.from(Instant.ofEpochSecond((long) minT)));
+            gpsTrack.setStartDate(Date.from(Instant.ofEpochMilli(Math.round(minT * MILLIS_PER_SECOND))));
         }
         if (maxT != -Double.MAX_VALUE) {
-            gpsTrack.setEndDate(Date.from(Instant.ofEpochSecond((long) maxT)));
+            gpsTrack.setEndDate(Date.from(Instant.ofEpochMilli(Math.round(maxT * MILLIS_PER_SECOND))));
         }
     }
 
@@ -517,9 +650,8 @@ public class GPXReader {
      * Split cleaned coordinates into sub-lists wherever consecutive points have a forward temporal gap > threshold,
      * except synthetic stop anchor pairs backed by detected stop ranges.
      * <p>
-     * GPX/TCX conversion tools can emit physically ordered points with stale timestamps mixed in.
-     * Those backward jumps are handled by the time-order treatment before this split; splitting
-     * them here would create many one-point pseudo-tracks from corrupt interleaved samples.
+     * The section clock check contains unreliable timing before this split, retaining original
+     * timestamps in RAW. Backward clock jumps must not become separate activities.
      */
     static List<List<Coordinate>> splitByTemporalGaps(List<Coordinate> cleanedCoords,
                                                       List<TrackStopDetector.StopRange> stopRanges) {
@@ -591,35 +723,21 @@ public class GPXReader {
         }
     }
 
-    /**
-     * @deprecated Replaced by {@link #extractTimeBoundsFromCleaned} — kept for reference only.
-     */
-    @SuppressWarnings("unused")
-    private void extractTimeBounds(List<WayPoint> allWayPoints, GpsTrack gpsTrack) {
-        List<Instant> times = allWayPoints.stream().flatMap(wp -> wp.getTime().stream()).sorted().toList();
-        if (!times.isEmpty()) {
-            gpsTrack.setStartDate(Date.from(times.get(0)));
-            gpsTrack.setEndDate(Date.from(times.get(times.size() - 1)));
-        }
-    }
-
     private OutlierFilterResult filterOutliers(GPX gpx, GpsTrack gpsTrack, IndexedFile indexedFile) {
         OutlierFilterResult result = new OutlierFilterResult();
         gpsTrack.setMaxDistanceBetweenPoints(0d);
         gpsTrack.setDidFilterOutlierByDistance(false);
 
+        int sourceSectionIndex = 0;
         for (Track track : gpx.getTracks()) {
-            // State is carried across segments within the same track.
-            // Segment breaks (trkseg) represent brief GPS signal loss, not separate journeys.
-            SegmentFilterState state = new SegmentFilterState();
             for (TrackSegment segment : track.getSegments()) {
-                processSegment(segment, state, gpsTrack, indexedFile, result);
-            }
-            // Flush any remaining probation at end of track
-            if (!state.probationBuffer.isEmpty()) {
-                result.outlierCount += state.probationBuffer.size();
-                gpsTrack.setDidFilterOutlierByDistance(true);
-                state.probationBuffer.clear();
+                SegmentFilterState state = new SegmentFilterState();
+                result.recordingSection++;
+                processSegment(segment, state, gpsTrack, indexedFile, result, sourceSectionIndex++);
+                if (!state.probationBuffer.isEmpty()) {
+                    result.outlierCount += state.probationBuffer.size();
+                    gpsTrack.setDidFilterOutlierByDistance(true);
+                }
             }
         }
         return result;
@@ -635,78 +753,121 @@ public class GPXReader {
         if (result.cleanedCoordinates.size() < 3) {
             return;
         }
-        BreakStopTreatment.Result treated = BreakStopTreatment.apply(result.cleanedCoordinates);
-        if (treated.spikesRemoved() == 0 && treated.stops().isEmpty()) {
-            return;
+        Set<Integer> accepted = result.cleanedCoordinates.stream().map(result.evidence::get)
+                .map(GpsObservationEvidence::sourcePointIndex).collect(java.util.stream.Collectors.toSet());
+        for (var source : result.evidence.values())
+            if (!accepted.contains(source.sourcePointIndex()))
+                result.cleaningRules.putIfAbsent(source.sourcePointIndex(), "distance-probation");
+        List<Coordinate> cleaned = new ArrayList<>();
+        List<TrackStopDetector.StopRange> stops = new ArrayList<>();
+        int spikesRemoved = 0;
+        int collapsedPoints = 0;
+        for (int from = 0; from < result.cleanedCoordinates.size(); ) {
+            int section = result.recordingSections.get(result.cleanedCoordinates.get(from));
+            int to = from + 1;
+            while (to < result.cleanedCoordinates.size()
+                   && result.recordingSections.get(result.cleanedCoordinates.get(to)) == section) to++;
+            List<Coordinate> verticalCleaned = ElevationObservationFilter.clean(
+                    result.cleanedCoordinates.subList(from, to));
+            for (int i = from; i < to; i++) {
+                Coordinate original = result.cleanedCoordinates.get(i);
+                Coordinate vertical = verticalCleaned.get(i - from);
+                result.evidence.put(vertical, result.evidence.get(original));
+                result.sourceSections.put(vertical, result.sourceSections.get(original));
+            }
+            var treated = BreakStopTreatment.apply(verticalCleaned);
+            Set<Coordinate> retained = Collections.newSetFromMap(new IdentityHashMap<>());
+            retained.addAll(treated.cleanedCoordinates());
+            for (Coordinate coordinate : verticalCleaned)
+                if (!retained.contains(coordinate))
+                    result.cleaningRules.put(result.evidence.get(coordinate).sourcePointIndex(), "isolated-position-return");
+            for (Coordinate coordinate : treated.cleanedCoordinates()) {
+                result.recordingSections.put(coordinate, section);
+                cleaned.add(coordinate);
+            }
+            for (var stop : treated.stops()) {
+                stops.add(new TrackStopDetector.StopRange(stop.startIndex() + from, stop.endIndex() + from,
+                        stop.startTimeS(), stop.endTimeS(), stop.centerLng(), stop.centerLat(), stop.centerElevation(),
+                        stop.category(), stop.radiusR80M(), stop.radiusR90M(), stop.inlierRatio(), stop.rawPoints(),
+                        stop.deletedPoints(), stop.evidence()));
+            }
+            spikesRemoved += treated.spikesRemoved();
+            collapsedPoints += treated.collapsedPoints();
+            from = to;
         }
         result.cleanedCoordinates.clear();
-        result.cleanedCoordinates.addAll(treated.cleanedCoordinates());
+        result.cleanedCoordinates.addAll(cleaned);
         result.stopRanges.clear();
-        result.stopRanges.addAll(treated.stops());
+        result.stopRanges.addAll(stops);
         rebuildDistancesBetweenCleanedPoints(result);
         gpsTrack.addLoadMessage(String.format(
-                "Outlier corrector %s: removed %d isolated spike point(s); collapsed %d stationary-drift point(s) into %d stop anchor pair(s).",
-                BreakStopTreatment.CORRECTOR_NAME,
-                treated.spikesRemoved(),
-                treated.collapsedPoints(),
-                treated.stops().size()));
-        log.info("Break-stop treatment applied: spikes={} stops={} collapsedPoints={} file={}",
-                treated.spikesRemoved(), treated.stops().size(), treated.collapsedPoints(),
+                "Outlier corrector %s: removed %d isolated spike point(s). Motion is analyzed after denoising.",
+                BreakStopTreatment.CORRECTOR_NAME, spikesRemoved));
+        log.info("Break-stop treatment completed: spikes={} stops={} collapsedPoints={} recordingSections={} file={}",
+                spikesRemoved, stops.size(), collapsedPoints, result.recordingSection,
                 gpsTrack.getIndexedFile() != null ? gpsTrack.getIndexedFile().getName() : "?");
     }
 
-    private void applyTimeOrderTreatment(OutlierFilterResult result, GpsTrack gpsTrack) {
-        if (result.cleanedCoordinates.size() < 2) {
-            return;
+    private void disconnectRetainedRelocations(OutlierFilterResult result, GpsTrack gpsTrack) {
+        NavigableMap<Integer, Integer> sectionStarts = new TreeMap<>();
+        int breakCount = 0;
+        for (int from = 0; from < result.cleanedCoordinates.size(); ) {
+            int section = result.recordingSections.get(result.cleanedCoordinates.get(from));
+            int to = from + 1;
+            while (to < result.cleanedCoordinates.size() && result.recordingSections.get(result.cleanedCoordinates.get(to)) == section) to++;
+            sectionStarts.put(result.evidence.get(result.cleanedCoordinates.get(from)).sourcePointIndex(), section);
+            Set<Integer> breaks = new HashSet<>(RetainedPositionContinuity.breaks(result.cleanedCoordinates.subList(from, to)));
+            for (int i = from; i < to; i++) {
+                Coordinate point = result.cleanedCoordinates.get(i);
+                int sourceIndex = result.evidence.get(point).sourcePointIndex();
+                if (breaks.contains(i - from)) {
+                    section = ++result.recordingSection;
+                    sectionStarts.put(sourceIndex, section);
+                    result.cleaningRules.put(sourceIndex, RetainedPositionContinuity.RULE);
+                    breakCount++;
+                }
+            }
+            from = to;
         }
-        List<Coordinate> filtered = withoutStaleBackwardTimeJumpPoints(result.cleanedCoordinates);
-        int removed = result.cleanedCoordinates.size() - filtered.size();
-        if (removed <= 0) {
-            return;
+        Integer previousOriginalSection = null;
+        int section = 0;
+        for (Coordinate point : result.rawCoordinates) {
+            Integer original = result.recordingSections.get(point);
+            if (!Objects.equals(previousOriginalSection, original)) section = original;
+            section = sectionStarts.getOrDefault(result.evidence.get(point).sourcePointIndex(), section);
+            result.recordingSections.put(point, section);
+            previousOriginalSection = original;
         }
-
-        result.cleanedCoordinates.clear();
-        result.cleanedCoordinates.addAll(filtered);
-        result.outlierCount += removed;
+        for (Coordinate point : result.cleanedCoordinates)
+            result.recordingSections.put(point, sectionStarts.floorEntry(result.evidence.get(point).sourcePointIndex()).getValue());
         rebuildDistancesBetweenCleanedPoints(result);
-        gpsTrack.addLoadMessage(String.format(
-                "Outlier corrector GPXReader time-order filter: removed %d stale point(s) with timestamp more than %.0f hours earlier than the previous accepted point.",
-                removed,
-                SEGMENT_GAP_THRESHOLD_S / 3600.0));
-        log.info("Time-order treatment removed {} stale backward timestamp point(s) file={}",
-                removed,
-                gpsTrack.getIndexedFile() != null ? gpsTrack.getIndexedFile().getName() : "?");
+        if (breakCount > 0) gpsTrack.addLoadMessage("Retained " + breakCount
+                                                    + " abrupt GPS relocation(s) as disconnected spans; connecting distance and speed are unknown.");
+        log.info("Position continuity completed: disconnectedTransitions={} retainedPoints={} file={}",
+                breakCount, result.cleanedCoordinates.size(), gpsTrack.getIndexedFile().getName());
     }
 
-    static List<Coordinate> withoutStaleBackwardTimeJumpPoints(List<Coordinate> coordinates) {
-        if (coordinates == null || coordinates.size() < 2) {
-            return coordinates == null ? List.of() : new ArrayList<>(coordinates);
+    private static List<Integer> recordingBreaks(List<Coordinate> coordinates, Map<Coordinate, Integer> sections) {
+        List<Integer> breaks = new ArrayList<>();
+        for (int i = 1; i < coordinates.size(); i++) {
+            if (!Objects.equals(sections.get(coordinates.get(i - 1)), sections.get(coordinates.get(i)))
+                || RecordingContinuity.intervalStatus(coordinates.get(i - 1), coordinates.get(i))
+                   == GpsTrackDataPoint.IntervalStatus.UNKNOWN) breaks.add(i);
         }
-
-        List<Coordinate> filtered = new ArrayList<>(coordinates.size());
-        double lastKeptTime = Double.NaN;
-        for (Coordinate coordinate : coordinates) {
-            double currentTime = coordinate.getM();
-            if (!Double.isNaN(lastKeptTime)
-                && !Double.isNaN(currentTime)
-                && lastKeptTime - currentTime > SEGMENT_GAP_THRESHOLD_S) {
-                continue;
-            }
-
-            filtered.add(coordinate);
-            if (!Double.isNaN(currentTime)) {
-                lastKeptTime = currentTime;
-            }
-        }
-        return filtered;
+        var timedBreaks = RecordingContinuity.timeBreakIndexes(coordinates, breaks);
+        var allBreaks = new TreeSet<>(breaks);
+        allBreaks.addAll(timedBreaks);
+        return new ArrayList<>(allBreaks);
     }
 
     private void rebuildDistancesBetweenCleanedPoints(OutlierFilterResult result) {
         result.distancesBetweenPoints.clear();
         for (int i = 1; i < result.cleanedCoordinates.size(); i++) {
-            result.distancesBetweenPoints.add(getDistanceBetweenTwoWGS84(
-                    result.cleanedCoordinates.get(i),
-                    result.cleanedCoordinates.get(i - 1)));
+            if (Objects.equals(result.recordingSections.get(result.cleanedCoordinates.get(i)),
+                    result.recordingSections.get(result.cleanedCoordinates.get(i - 1)))) {
+                result.distancesBetweenPoints.add(getDistanceBetweenTwoWGS84(
+                        result.cleanedCoordinates.get(i), result.cleanedCoordinates.get(i - 1)));
+            }
         }
     }
 
@@ -725,31 +886,58 @@ public class GPXReader {
                 .toList();
     }
 
+    private static final String GARMIN_GPX_EXTENSIONS_NAMESPACE = "http://www.garmin.com/xmlschemas/GpxExtensions/v3";
+
+    private static Double sourceSpeed(WayPoint point) {
+        if (point.getSpeed().isPresent()) return point.getSpeed().get().doubleValue();
+        if (point.getExtensions().isEmpty()) return null;
+        var speeds = point.getExtensions().get().getElementsByTagNameNS(GARMIN_GPX_EXTENSIONS_NAMESPACE, "Speed");
+        if (speeds.getLength() == 0) return null;
+        try {
+            double speed = Double.parseDouble(speeds.item(0).getTextContent().trim());
+            return Double.isFinite(speed) && speed >= 0 ? speed : null;
+        } catch (NumberFormatException e) {
+            log.warn("Ignoring invalid Garmin GPX speed extension: type={} message={}", e.getClass().getSimpleName(), e.getMessage());
+            return null;
+        }
+    }
+
     private void processSegment(TrackSegment segment, SegmentFilterState state, GpsTrack gpsTrack,
-                                IndexedFile indexedFile, OutlierFilterResult result) {
+                                IndexedFile indexedFile, OutlierFilterResult result, int sourceSectionIndex) {
 
         for (WayPoint wayPoint : segment.getPoints()) {
-            if (wayPoint.getLatitude().doubleValue() == 0.0 && wayPoint.getLongitude().doubleValue() == 0.0) {
-                log.debug("Ignoring exact 0.0, 0.0 coordinates (likely missing GPS fix)");
-                continue;
-            }
-
-            double t = wayPoint.getTime().map(Instant::toEpochMilli).map(m -> m / 1000.0).orElse(Double.NaN);
+            double t = wayPoint.getTime().map(Instant::toEpochMilli).map(m -> m / MILLIS_PER_SECOND).orElse(Double.NaN);
 
             double currentElevation = wayPoint.getElevation().map(Length::doubleValue).orElse(Double.NaN);
-            if (Double.isNaN(currentElevation)) {
-                currentElevation = state.lastElevation;
-            } else {
-                state.lastElevation = currentElevation;
-            }
-
             Coordinate coordinateLongLat = new CoordinateXYZM(
                     wayPoint.getLongitude().doubleValue(),
                     wayPoint.getLatitude().doubleValue(),
                     currentElevation,
                     t);
 
+            if (state.lastAcceptedPoint != null && Double.isFinite(t)
+                && Double.isFinite(state.lastAcceptedPoint.getM())
+                && (t < state.lastAcceptedPoint.getM()
+                    || t - state.lastAcceptedPoint.getM() > RecordingContinuity.MAX_INTERPOLATION_GAP_SECONDS)) {
+                result.outlierCount += state.probationBuffer.size();
+                state.probationBuffer.clear();
+                state.lastAcceptedPoint = null;
+                result.recordingSection++;
+            }
+            result.recordingSections.put(coordinateLongLat, result.recordingSection);
+            result.sourceSections.put(coordinateLongLat, sourceIdentity(wayPoint, "section", sourceSectionIndex));
+            result.evidence.put(coordinateLongLat, new GpsObservationEvidence(sourceIdentity(wayPoint, "point", result.rawCoordinates.size()),
+                    result.recordingSection, sourceIdentity(wayPoint, "section", sourceSectionIndex), wayPoint.getFix().map(io.jenetics.jpx.Fix::getValue).orElse(null),
+                    wayPoint.getSat().map(Number::intValue).orElse(null), wayPoint.getHdop().orElse(null),
+                    wayPoint.getVdop().orElse(null), sourceSpeed(wayPoint),
+                    wayPoint.getSource().orElse(null), null, List.of()));
             result.rawCoordinates.add(coordinateLongLat);
+            if (coordinateLongLat.getX() == 0 && coordinateLongLat.getY() == 0) {
+                result.outlierCount++;
+                result.cleaningRules.put(sourceIdentity(wayPoint, "point", result.rawCoordinates.size() - 1), "invalid-zero-position");
+                gpsTrack.setDidFilterOutlierByDistance(true);
+                continue;
+            }
 
             if (state.lastAcceptedPoint == null) {
                 result.cleanedCoordinates.add(coordinateLongLat);
@@ -761,7 +949,10 @@ public class GPXReader {
             double dtMain = Double.isNaN(coordinateLongLat.getM()) || Double.isNaN(state.lastAcceptedPoint.getM())
                     ? Double.NaN : coordinateLongLat.getM() - state.lastAcceptedPoint.getM();
 
-            if (isPlausible(distMain, dtMain)) {
+            // Use observed spacing, not accumulated probation time. A near-duplicate fix
+            // must not prevent recovery when the logger resumes its normal cadence.
+            double acceptanceDt = state.probationBuffer.isEmpty() ? dtMain : probationAcceptanceDt(state, coordinateLongLat);
+            if (isPlausible(distMain, acceptanceDt)) {
                 if (!state.probationBuffer.isEmpty()) {
                     log.debug("Discarding {} probation points; snapped back to main track.", state.probationBuffer.size());
                     result.outlierCount += state.probationBuffer.size();
@@ -775,10 +966,19 @@ public class GPXReader {
                     gpsTrack.setMaxDistanceBetweenPoints(distMain);
                 }
             } else {
+                if (state.probationBuffer.isEmpty())
+                    state.probationEntryDt = dtMain;
                 state.lastAcceptedPoint = handleImplausiblePoint(coordinateLongLat, distMain, dtMain,
                         state.lastAcceptedPoint, state.probationBuffer, gpsTrack, indexedFile, result);
             }
         }
+    }
+
+    private static double probationAcceptanceDt(SegmentFilterState state, Coordinate point) {
+        double entry = state.probationEntryDt;
+        if (!(entry > 0)) return entry;
+        double observed = point.getM() - state.probationBuffer.getLast().getM();
+        return observed > entry ? observed : entry;
     }
 
     /**
@@ -816,44 +1016,17 @@ public class GPXReader {
                 double probationDuration = point.getM() - probationBuffer.get(0).getM();
                 shouldPromote = probationDuration >= PROBATION_TRUST_TIME_S;
             } else {
-                shouldPromote = probationBuffer.size() >= 5;
+                shouldPromote = probationBuffer.size() >= PROBATION_TRUST_POINT_COUNT;
             }
 
             if (shouldPromote) {
-                // Guard: if the probation cluster is still unreasonably far from the main track
-                // (e.g. GPS locked onto a satellite set 400 km away for 15 s), discard it.
-                // FIX: Unless there is a massive time gap (>12h) indicating a legitimate new activity bridging distance
-                double jumpFromMainTrack = getDistanceBetweenTwoWGS84(probationBuffer.get(0), lastAcceptedPoint);
-                double dtFromMainTrack = Double.isNaN(probationBuffer.get(0).getM()) || Double.isNaN(lastAcceptedPoint.getM())
-                        ? Double.NaN : probationBuffer.get(0).getM() - lastAcceptedPoint.getM();
-
-                boolean isTemporalGapSplit = !Double.isNaN(dtFromMainTrack) && dtFromMainTrack > SEGMENT_GAP_THRESHOLD_S;
-                boolean isStartupWindow = result.cleanedCoordinates.size() <= GPS_STARTUP_WINDOW_SIZE;
-
-                if (jumpFromMainTrack > PROBATION_MAX_PROMOTION_DISTANCE_M && !isTemporalGapSplit && !isStartupWindow) {
-                    log.info("Probation rejected: first probe point is {}m from main track, exceeds threshold {}m. Discarding {} points.",
-                            String.format("%.0f", jumpFromMainTrack), PROBATION_MAX_PROMOTION_DISTANCE_M, probationBuffer.size());
-                    result.outlierCount += probationBuffer.size();
-                    gpsTrack.setDidFilterOutlierByDistance(true);
-                    probationBuffer.clear();
-                    return lastAcceptedPoint;
+                result.recordingSection++;
+                for (Coordinate accepted : probationBuffer) {
+                    result.recordingSections.put(accepted, result.recordingSection);
                 }
-
-                if (isTemporalGapSplit) {
-                    log.info("Probation matched temporal gap threshold (>12h). Bypassing spatial jump guard of {}m.",
-                            String.format("%.0f", jumpFromMainTrack));
-                } else if (isStartupWindow && jumpFromMainTrack > PROBATION_MAX_PROMOTION_DISTANCE_M) {
-                    log.info("Probation jump {}m allowed because current track is still in startup phase ({} points).",
-                            String.format("%.0f", jumpFromMainTrack), result.cleanedCoordinates.size());
-                } else {
-                    log.info("Probation track stabilized ({} points). Trusting new location.", probationBuffer.size());
-                }
-
-                if (result.cleanedCoordinates.size() <= GPS_STARTUP_WINDOW_SIZE) {
-                    result.cleanedCoordinates.clear();
-                    result.distancesBetweenPoints.clear();
-                    gpsTrack.setMaxDistanceBetweenPoints(0d);
-                }
+                gpsTrack.addLoadMessage("GPS relocation retained as a separate recording span; connecting movement is unknown.");
+                log.info("GPS probation retained as disconnected span: points={} jumpMetres={}",
+                        probationBuffer.size(), getDistanceBetweenTwoWGS84(probationBuffer.getFirst(), lastAcceptedPoint));
 
                 result.cleanedCoordinates.addAll(probationBuffer);
                 for (int i = 1; i < probationBuffer.size(); i++) {
@@ -908,8 +1081,50 @@ public class GPXReader {
         gpsTrack.addLoadMessage(summary);
     }
 
+    private static List<GpsObservationEvidence> assessObservations(OutlierFilterResult result) {
+        Map<Integer, Integer> retained = new HashMap<>();
+        for (int i = 0; i < result.cleanedCoordinates.size(); i++) {
+            var source = result.evidence.get(result.cleanedCoordinates.get(i));
+            if (source != null) retained.put(source.sourcePointIndex(), i);
+        }
+        List<GpsObservationEvidence> evidence = new ArrayList<>();
+        for (Coordinate raw : result.rawCoordinates) {
+            GpsObservationEvidence source = result.evidence.get(raw);
+            if (source == null) continue;
+            Integer index = retained.get(source.sourcePointIndex());
+            List<String> decisions = new ArrayList<>();
+            if (!Double.isFinite(raw.getM())) decisions.add("TIME_MISSING");
+            if (!Double.isFinite(raw.getZ())) decisions.add("ELEVATION_MISSING");
+            if (index == null) {
+                boolean inStop = result.stopRanges.stream().anyMatch(stop -> raw.getM() >= stop.startTimeS() && raw.getM() <= stop.endTimeS());
+                decisions.add(inStop ? "STOP_COLLAPSED" : "POSITION_REJECTED");
+            } else if (Double.isFinite(raw.getZ()) && !Double.isFinite(result.cleanedCoordinates.get(index).getZ())) {
+                decisions.add("ELEVATION_REJECTED");
+            }
+            if (index != null && index > 0) {
+                Coordinate previous = result.cleanedCoordinates.get(index - 1);
+                double dt = raw.getM() - previous.getM();
+                if (!Objects.equals(result.recordingSections.get(previous), result.recordingSections.get(raw))
+                    && result.evidence.get(previous).sourceRecordingSection() == source.sourceRecordingSection()
+                    && Double.isFinite(dt) && dt > 0 && dt <= RecordingContinuity.MAX_INTERPOLATION_GAP_SECONDS)
+                    decisions.add("POSITION_DISCONTINUITY");
+            }
+            evidence.add(new GpsObservationEvidence(source.sourcePointIndex(), result.recordingSections.get(raw), source.sourceRecordingSection(), source.fix(),
+                    source.satellites(), source.hdop(), source.vdop(), source.speedMetresPerSecond(), source.source(),
+                    index, decisions));
+        }
+        return evidence;
+    }
+
     private void buildGeometries(LoadResult loadResult, GpsTrack gpsTrack, OutlierFilterResult filterResult) {
+        var sourceSections = filterResult.rawCoordinates.stream().map(filterResult.sourceSections::get)
+                .collect(java.util.stream.Collectors.toSet());
+        gpsTrack.setSourceRecordingSection(sourceSections.size() == 1 ? sourceSections.iterator().next() : null);
         GeometryFactory geometryFactoryLongLat = new GeometryFactory(new PrecisionModel(), 4326);
+        loadResult.rawRecordingBreakBeforePointIndexes = recordingBreaks(filterResult.rawCoordinates, filterResult.recordingSections);
+        loadResult.observationEvidence = assessObservations(filterResult);
+        loadResult.cleaningRules = new HashMap<>(filterResult.cleaningRules);
+
 
         if (filterResult.cleanedCoordinates.size() >= 2) {
             LineString cleaned = new LineString(new CoordinateArraySequence(filterResult.cleanedCoordinates.toArray(new Coordinate[0])), geometryFactoryLongLat);
@@ -925,13 +1140,24 @@ public class GPXReader {
         }
     }
 
+    static Map<String, String> cleaningSettings() {
+        return Map.of("position.maximumSpeedMetresPerSecond", Double.toString(MAX_PLAUSIBLE_SPEED_MS),
+                "position.maximumTimeCreditSeconds", Double.toString(MAX_DT_SPEED_CHECK_S),
+                "position.maximumUnsupportedDistanceMetres", Double.toString(PROBATION_MAX_PROMOTION_DISTANCE_M),
+                "position.probationTrustSeconds", Double.toString(PROBATION_TRUST_TIME_S),
+                "position.probationTrustPoints", Integer.toString(PROBATION_TRUST_POINT_COUNT),
+                "position.sameTimestampGeometryMetres", Double.toString(SAME_TIMESTAMP_GEOMETRY_METRES),
+                "position.probationTimeCredit", "maximum-entry-or-previous-observation-interval");
+    }
+
     /**
      * Checks whether a point is physically plausible.
      */
     static boolean isPlausible(double distance, double dt) {
-        if (Double.isNaN(dt)) return true;                // no time info -> don't speed-filter
+        if (!Double.isFinite(dt)) return distance <= PROBATION_MAX_PROMOTION_DISTANCE_M;
         if (dt < 0) return false;                         // backwards timestamp
-        if (dt == 0) return distance <= 5.0;              // max 5 m drift for identical timestamps
+        // Equal timestamps cannot establish speed. Preserve supported geometry, as with untimed observations.
+        if (dt == 0) return distance <= SAME_TIMESTAMP_GEOMETRY_METRES;
         double effectiveDt = Math.min(dt, MAX_DT_SPEED_CHECK_S); // cap time credit
         if ((distance / effectiveDt) > MAX_PLAUSIBLE_SPEED_MS) return false; // speed check
         // When dt exceeds the cap, the speed check alone cannot reliably detect outliers
@@ -1018,8 +1244,8 @@ public class GPXReader {
             double nextLambda = longitudeDifference
                                 + (1.0 - correction) * WGS84_FLATTENING * sinAlpha
                                   * (sigma + correction * sinSigma
-                                     * (cosTwoSigmaMidpoint + correction * cosSigma
-                                        * (-1.0 + 2.0 * cosTwoSigmaMidpoint * cosTwoSigmaMidpoint)));
+                                             * (cosTwoSigmaMidpoint + correction * cosSigma
+                                                                      * (-1.0 + 2.0 * cosTwoSigmaMidpoint * cosTwoSigmaMidpoint)));
             if (Math.abs(nextLambda - lambda) <= VINCENTY_CONVERGENCE_RADIANS) {
                 converged = true;
                 break;
@@ -1036,17 +1262,17 @@ public class GPXReader {
                                      - WGS84_SEMI_MINOR_AXIS_M * WGS84_SEMI_MINOR_AXIS_M)
                                   / (WGS84_SEMI_MINOR_AXIS_M * WGS84_SEMI_MINOR_AXIS_M);
         double coefficientA = 1.0 + squaredAxisRatio / 16_384.0
-                              * (4_096.0 + squaredAxisRatio
-                                 * (-768.0 + squaredAxisRatio * (320.0 - 175.0 * squaredAxisRatio)));
+                                    * (4_096.0 + squaredAxisRatio
+                                                 * (-768.0 + squaredAxisRatio * (320.0 - 175.0 * squaredAxisRatio)));
         double coefficientB = squaredAxisRatio / 1_024.0
                               * (256.0 + squaredAxisRatio
-                                 * (-128.0 + squaredAxisRatio * (74.0 - 47.0 * squaredAxisRatio)));
+                                         * (-128.0 + squaredAxisRatio * (74.0 - 47.0 * squaredAxisRatio)));
         double deltaSigma = coefficientB * sinSigma
                             * (cosTwoSigmaMidpoint + coefficientB / 4.0
-                               * (cosSigma * (-1.0 + 2.0 * cosTwoSigmaMidpoint * cosTwoSigmaMidpoint)
-                                  - coefficientB / 6.0 * cosTwoSigmaMidpoint
-                                    * (-3.0 + 4.0 * sinSigma * sinSigma)
-                                    * (-3.0 + 4.0 * cosTwoSigmaMidpoint * cosTwoSigmaMidpoint)));
+                                                     * (cosSigma * (-1.0 + 2.0 * cosTwoSigmaMidpoint * cosTwoSigmaMidpoint)
+                                                        - coefficientB / 6.0 * cosTwoSigmaMidpoint
+                                                          * (-3.0 + 4.0 * sinSigma * sinSigma)
+                                                          * (-3.0 + 4.0 * cosTwoSigmaMidpoint * cosTwoSigmaMidpoint)));
         return WGS84_SEMI_MINOR_AXIS_M * coefficientA * (sigma - deltaSigma);
     }
 
@@ -1065,7 +1291,9 @@ public class GPXReader {
         return Math.IEEEremainder(normalizedLongitude2 - normalizedLongitude1, 360.0);
     }
 
-    /** Keeps the exact ellipsoidal solution for the rare cases where Vincenty cannot converge. */
+    /**
+     * Keeps the exact ellipsoidal solution for the rare cases where Vincenty cannot converge.
+     */
     private static final class GeographicLibFallback {
 
         private static double distanceMeters(Coordinate c1, Coordinate c2) {
@@ -1082,7 +1310,9 @@ public class GPXReader {
     }
 
 
-    /** Standard EPSG:3857 projection, checked against GeoTools across its supported area. */
+    /**
+     * Standard EPSG:3857 projection, checked against GeoTools across its supported area.
+     */
     public Point convertLongLatWgs84ToPlanarWebMercator(double longitude, double latitude) {
         double boundedLatitude = Math.max(
                 -WEB_MERCATOR_MAX_LATITUDE,

@@ -21,7 +21,11 @@ import type {
   SavePlannedTrackDto,
   WaypointDto,
 } from 'x8ing-mtl-api-typescript-fetch/dist/esm/models/index';
-import { MAX_WAYPOINTS_FALLBACK, PLANNER_API_BASE } from '@/planner/constants/PlannerConstants';
+import {
+  MAX_WAYPOINTS_FALLBACK,
+  MAX_POINTS_OF_INTEREST_FALLBACK,
+  PLANNER_API_BASE,
+} from '@/planner/constants/PlannerConstants';
 import type {
   LegResult,
   LiveStats,
@@ -48,12 +52,15 @@ export async function fetchPlannerConfig(): Promise<{
   profiles: string[];
   defaultProfile: string;
   maxWaypoints: number;
+  maxPointsOfInterest: number;
 }> {
   const raw = await getPlannerApi().config();
   return {
     profiles: Array.isArray(raw.profiles) ? (raw.profiles as string[]) : [],
     defaultProfile: typeof raw.defaultProfile === 'string' ? raw.defaultProfile : 'trekking',
     maxWaypoints: typeof raw.maxWaypoints === 'number' ? raw.maxWaypoints : MAX_WAYPOINTS_FALLBACK,
+    maxPointsOfInterest:
+      typeof raw.maxPointsOfInterest === 'number' ? raw.maxPointsOfInterest : MAX_POINTS_OF_INTEREST_FALLBACK,
   };
 }
 
@@ -79,6 +86,20 @@ export async function fetchSidecarStatus(options: StatusRequestOptions = {}): Pr
   return plannerStatusRequests.fetch(options);
 }
 
+/** Server-owned statistics for unchanged geometry, such as a trimmed route. */
+export async function computeRouteStats(legs: LegResult[], signal?: AbortSignal): Promise<LiveStats> {
+  const raw = await getPlannerApi().routeStats(
+    { legResultDto: legs.map((leg) => ({ ...leg, coordinates: coordinatesForApi(leg.coordinates) })) },
+    { signal }
+  );
+  return { ...emptyStats(), ...raw };
+}
+
+/** Omit unknown heights so JSON serialization cannot turn them into sea level. */
+function coordinatesForApi(coordinates: number[][]): number[][] {
+  return coordinates.map((coordinate) => (Number.isFinite(coordinate[2]) ? coordinate : coordinate.slice(0, 2)));
+}
+
 export interface SaveArgs {
   name: string;
   description?: string;
@@ -86,10 +107,11 @@ export interface SaveArgs {
   coordinates: [number, number, number][];
   /** Original BRouter route legs, preserving per-leg stats and boundaries. */
   legs: LegResult[];
-  /** Original BRouter aggregate stats for the saved route. */
+  /** Server-calculated aggregate stats for the saved route. */
   stats: LiveStats;
   /** Original user waypoints (lat/lng) so the plan can be re-loaded into the editor. */
   waypoints: { lat: number; lng: number }[];
+  pointsOfInterest: SavePlannedTrackDto['pointsOfInterest'];
 }
 
 export async function savePlannedRoute(args: SaveArgs): Promise<{ id: number; name: string; distanceM: number }> {
@@ -97,10 +119,11 @@ export async function savePlannedRoute(args: SaveArgs): Promise<{ id: number; na
     name: args.name,
     description: args.description,
     profile: args.profile,
-    coordinates: args.coordinates,
-    legs: args.legs,
+    coordinates: coordinatesForApi(args.coordinates),
+    legs: args.legs.map((leg) => ({ ...leg, coordinates: coordinatesForApi(leg.coordinates) })),
     stats: args.stats,
     waypoints: args.waypoints,
+    pointsOfInterest: args.pointsOfInterest,
   };
   const raw = await getPlannerApi().save({ savePlannedTrackDto: dto });
   return {
@@ -117,6 +140,8 @@ export async function listPlannedTracks(): Promise<PlannedTrackSummary[]> {
     name: p.name ?? '',
     description: p.description ?? '',
     distanceM: p.distanceM ?? 0,
+    hasRoute: p.hasRoute ?? true,
+    pointOfInterestCount: p.pointOfInterestCount ?? 0,
     centerLat: p.centerLat ?? 0,
     centerLng: p.centerLng ?? 0,
     createDate: p.createDate ? new Date(p.createDate).toISOString() : '',

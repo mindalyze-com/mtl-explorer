@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.10.xsd">
+    <changeSet id="20261008_google_health_two_lanes" author="codex">
+        <comment>Fresh-install synchronization layout. Existing checkpoints and route state are not converted or erased.</comment>
+        <sql splitStatements="true"><![CDATA[
+
+ALTER TABLE google_health.data_point ALTER COLUMN last_seen_run DROP NOT NULL;
+ALTER TABLE google_health.heart_rate_sample ALTER COLUMN last_seen_run DROP NOT NULL;
+ALTER TABLE google_health.heart_rate_sample ADD COLUMN identity_key char(64), ADD COLUMN google_resource_name text,
+    ADD COLUMN raw_json jsonb, ADD COLUMN updated_at timestamptz NOT NULL DEFAULT now();
+ALTER TABLE google_health.heart_rate_sample DROP CONSTRAINT uq_google_health_heart_rate_sample;
+CREATE UNIQUE INDEX uq_google_health_heart_rate_identity ON google_health.heart_rate_sample(connection_id,identity_key);
+CREATE TABLE google_health.sync_control (
+    account_id text PRIMARY KEY, generation bigint NOT NULL DEFAULT 0,
+    recent_rotation integer NOT NULL DEFAULT 0, history_rotation integer NOT NULL DEFAULT 0,
+    cooldown_until timestamptz, updated_at timestamptz NOT NULL DEFAULT now());
+CREATE TABLE google_health.recent_pass (
+    account_id text NOT NULL, data_type text NOT NULL, representation text NOT NULL,
+    calendar_policy text NOT NULL, key_policy text NOT NULL, id uuid NOT NULL,
+    started_at timestamptz NOT NULL, target_start timestamptz NOT NULL, target_end timestamptz NOT NULL,
+    next_end timestamptz NOT NULL, state text NOT NULL, completed_at timestamptz, next_due_at timestamptz,
+    cycles bigint NOT NULL DEFAULT 0, fetched bigint NOT NULL DEFAULT 0, changed bigint NOT NULL DEFAULT 0,
+    deleted bigint NOT NULL DEFAULT 0, skipped bigint NOT NULL DEFAULT 0, handed_over bigint NOT NULL DEFAULT 0,
+    fast_start timestamptz, fast_end timestamptz, fast_completed_at timestamptz, budget_limited boolean NOT NULL DEFAULT false,
+    PRIMARY KEY(account_id,data_type,representation,calendar_policy,key_policy));
+CREATE TABLE google_health.history_work (
+    id uuid PRIMARY KEY, account_id text NOT NULL, data_type text NOT NULL, representation text NOT NULL,
+    calendar_policy text NOT NULL, key_policy text NOT NULL, native_day date NOT NULL,
+    lane text NOT NULL, generation bigint NOT NULL DEFAULT 0,
+    start_bound timestamptz NOT NULL, end_bound timestamptz NOT NULL,
+    state text NOT NULL, attempts integer NOT NULL DEFAULT 0, next_retry_at timestamptz, safe_error text,
+    started_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(),
+    UNIQUE(account_id,data_type,representation,calendar_policy,key_policy,native_day,lane));
+CREATE UNIQUE INDEX uq_google_health_active_owner ON google_health.history_work
+    (account_id,data_type,representation,calendar_policy,key_policy) WHERE state='ACTIVE' AND lane='HISTORY';
+CREATE INDEX idx_google_health_due_work ON google_health.history_work
+    (account_id,data_type,representation,calendar_policy,key_policy,lane,state,next_retry_at,native_day DESC);
+CREATE TABLE google_health.history_child (
+    id uuid PRIMARY KEY, parent_id uuid NOT NULL REFERENCES google_health.history_work(id) ON DELETE CASCADE,
+    traversal_id uuid NOT NULL, start_bound timestamptz NOT NULL, end_bound timestamptz NOT NULL,
+    state text NOT NULL, page_token text, page_count integer NOT NULL DEFAULT 0,
+    fetched bigint NOT NULL DEFAULT 0, changed bigint NOT NULL DEFAULT 0, stamped bigint NOT NULL DEFAULT 0,
+    token_hashes text[] NOT NULL DEFAULT '{}', updated_at timestamptz NOT NULL DEFAULT now());
+CREATE INDEX idx_google_health_child_parent ON google_health.history_child(parent_id,start_bound);
+CREATE TABLE google_health.history_audit (
+    id bigserial PRIMARY KEY, account_id text NOT NULL, data_type text NOT NULL, representation text NOT NULL,
+    calendar_policy text NOT NULL, key_policy text NOT NULL, native_day date NOT NULL,
+    start_bound timestamptz NOT NULL, end_bound timestamptz NOT NULL,
+    reason text NOT NULL DEFAULT 'HISTORICAL_FINAL_CHECK', outcome text NOT NULL,
+    work_id uuid NOT NULL, traversal_ids uuid[] NOT NULL, fetched bigint NOT NULL, changed bigint NOT NULL,
+    stamped bigint NOT NULL, deleted bigint NOT NULL, started_at timestamptz NOT NULL, completed_at timestamptz NOT NULL DEFAULT now());
+CREATE UNIQUE INDEX uq_google_health_final_day ON google_health.history_audit
+    (account_id,data_type,representation,calendar_policy,key_policy,native_day DESC) WHERE outcome IN ('DATA','EMPTY');
+CREATE TABLE google_health.recent_failure (
+    account_id text NOT NULL, data_type text NOT NULL, representation text NOT NULL,
+    calendar_policy text NOT NULL, key_policy text NOT NULL, purpose text NOT NULL,
+    cell_start timestamptz NOT NULL, cell_end timestamptz NOT NULL,
+    attempt_start timestamptz NOT NULL, attempt_end timestamptz NOT NULL,
+    attempts integer NOT NULL DEFAULT 0, next_retry_at timestamptz, state text NOT NULL, safe_error text,
+    PRIMARY KEY(account_id,data_type,representation,calendar_policy,key_policy,purpose,cell_start,cell_end));
+CREATE INDEX idx_google_health_recent_retry ON google_health.recent_failure
+    (account_id,data_type,representation,calendar_policy,key_policy,state,next_retry_at);
+CREATE TABLE google_health.route_ownership (
+    id bigserial PRIMARY KEY, connection_id smallint NOT NULL DEFAULT 1 REFERENCES google_health.connection(id),
+    account_id text NOT NULL, identity_key char(64) NOT NULL, calendar_policy text NOT NULL,
+    native_day date NOT NULL, present boolean NOT NULL, google_resource_name text,
+    physical_start_time timestamptz, physical_end_time timestamptz, fingerprint char(64) NOT NULL, raw_json jsonb NOT NULL,
+    tcx_relative_path text, route_fingerprint char(64), route_version integer NOT NULL DEFAULT 1,
+    indexed_file_id bigint REFERENCES public.indexed_file(id) ON DELETE SET NULL,
+    gps_track_id bigint REFERENCES public.gps_track(id) ON DELETE SET NULL,
+    route_state text NOT NULL DEFAULT 'PENDING', route_error text, route_attempts integer NOT NULL DEFAULT 0,
+    route_file_modified_at timestamptz, route_file_size bigint, route_next_retry_at timestamptz,
+    updated_at timestamptz NOT NULL DEFAULT now(), UNIQUE(account_id,identity_key));
+CREATE INDEX idx_google_health_owner_retry ON google_health.route_ownership(connection_id,route_state,route_next_retry_at,id);
+CREATE INDEX idx_google_health_owner_track ON google_health.route_ownership(gps_track_id) WHERE gps_track_id IS NOT NULL;
+CREATE INDEX idx_google_health_point_civil_scope ON google_health.data_point(connection_id,data_type,representation,civil_start_time);
+CREATE INDEX idx_google_health_point_end_scope ON google_health.data_point(connection_id,data_type,representation,physical_end_time);
+]]></sql>
+    </changeSet>
+</databaseChangeLog>

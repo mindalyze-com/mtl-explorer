@@ -5,6 +5,8 @@ import type { DrawnCircle, DrawnPolygon, DrawnRectangle, DrawnShape, GeoShapeTyp
 import type { MAP_OVERLAYS } from '@/utils/mapStyle';
 import type { MapCameraState, MapRendererMode } from '@/components/map/mapRendererTypes';
 import type { MapSourceMode } from '@/stores/mapSettingsStore';
+import type { ApplicationStatusRefreshOptions } from '@/stores/applicationStatusStore';
+import type { MapConfig } from '@/utils/mapConfigService';
 import type { ReplayCameraRail, ReplayCameraViewport } from '@/components/replay/replayCameraRailPlanner';
 import type { ReplayCameraScreenGuard } from '@/components/replay/replayCameraScreenGuard';
 import type { ReplayCameraPresetId, ReplayPath } from '@/components/replay/trackReplayPath';
@@ -18,10 +20,15 @@ import type {
   LocationSearchResultDto,
   MapServerStatusDto,
   NearbyTrackMediaDto,
+  TrackProcessingStatusDto,
   ParamDefinition,
 } from 'x8ing-mtl-api-typescript-fetch/dist/esm/models/index';
 import type { ToastService } from '@/types/ui';
 import type { MediaOverlaySelection } from '@/layers/MediaOverlay';
+import type { MapInteractionState } from '../mapInteractionCoordinator';
+import type { MapTargetCandidate } from '../mapInteractionDecision';
+import type { TrackPointMapCandidate, TrackPointPresentationOptions } from './useTrackPointLayer';
+import type { MapInteractionMethods } from './useMapInteractions';
 
 export type TrackId = number;
 export type Coordinates = [number, number];
@@ -52,6 +59,8 @@ export type MapToolDefinition = {
   id: string;
   icon: string;
   label: string;
+  moreLabel?: string;
+  description?: string;
   alertIcon?: string;
   driftedIcon?: string;
 };
@@ -101,22 +110,31 @@ export type TrackPopupMeta = {
   description: string;
   activityType: string;
   date: string;
+  recordedAt?: number;
+  lengthMeters?: number;
+  ascentMeters?: number;
   distanceMeters?: number;
   matchedMediaCount?: number;
 };
 
-export type SwissMobilityRoute = {
+export type MapOverlayRoute = {
   icon: string;
   type: string;
   name: string;
   number?: string | number | null;
+  reference?: string | null;
+  itinerary?: string | null;
+  network?: string | null;
+  detailsUrl?: string | null;
+  stageLabel?: string | null;
+  stageUrl?: string | null;
+  fullRouteUrl?: string | null;
+  swissMapUrl?: string | null;
+  classification?: string | null;
+  featureId?: string;
 };
 
-export type SwissMobilityPopupState = {
-  visible: boolean;
-  pos: MapPoint;
-  routes: SwissMobilityRoute[];
-};
+export type SwissMobilityRoute = MapOverlayRoute;
 
 export type TrackDetailsInfo = {
   id?: number | null;
@@ -177,7 +195,6 @@ export type TrackPointLayerEvent = maplibregl.MapMouseEvent & {
 };
 
 export type TrackPointLayerHandlers = {
-  click: (event: TrackPointLayerEvent) => void;
   mouseenter: () => void;
   mouseleave: () => void;
 };
@@ -201,6 +218,7 @@ export type MapControllerRefs = Record<
   | {
       close?: () => void;
       open?: () => void;
+      openCriteria?: () => void;
       toggle?: () => void;
       getNavigationState?: () => unknown;
       restoreNavigationState?: (state: unknown) => void;
@@ -250,7 +268,7 @@ export type ToggleableOverlay = {
   hide: () => void;
   show: (data?: unknown) => Promise<void> | void;
   isVisible: () => boolean;
-  refresh?: () => Promise<void>;
+  refresh?: (clearSelection?: boolean) => Promise<void>;
   updateData?: (data: TrackFeatureCollection) => void;
   prepareForFocus?: (point: MediaPoint) => void;
   getClusterPage?: (
@@ -271,8 +289,13 @@ export type TerrainControl = maplibregl.IControl & {
 };
 
 export type MapControllerState = {
+  mapInteraction: MapInteractionState | null;
+  mapInteractionDetailKind: 'track' | 'point' | 'photo' | 'simple' | null;
+  mapInteractionDetailLoading: boolean;
+  mapInteractionDetailError: string | null;
+  mapInteractionOverlayDetails: MapOverlayRoute | null;
   overlayMap: MapControllerMap | undefined;
-  mapConfig: Record<string, unknown> | null;
+  mapConfig: MapConfig | null;
   mapServerStatus: MapServerStatus | null;
   mapStatusPollTimer: ReturnType<typeof setInterval> | null;
   mapArchiveStaleReloading: boolean;
@@ -319,10 +342,9 @@ export type MapControllerState = {
   selectedFeature: TrackFeature | null;
   trackSelectionSheetVisible: boolean;
   selectionPopupTrackIds: number[];
+  selectionPopupProcessing: TrackProcessingStatusDto | null;
   selectionPopupMediaOptions: NearbyTrackMediaDto[];
   trackSelectionPurpose: TrackSelectionPurpose;
-  swissMobilityPopup: SwissMobilityPopupState;
-  proximityAbortController: AbortController | null;
   trackDetailsVisible: boolean;
   trackDetailsBackgroundDetent: TrackDetailsDetent;
   trackDetailsDetents: TrackDetailsDetent[];
@@ -375,6 +397,7 @@ export type MapControllerState = {
   mediaPendingSelection: MediaOverlaySelection | null;
   mediaSelectionTrackOptions: NearbyTrackMediaDto[];
   mediaSelectionTracksLoading: boolean;
+  mediaSelectionTracksError: string | null;
   mediaSelectionAbortController: AbortController | null;
   mediaSelectionRequestToken: number;
   mediaSheetVisible: boolean;
@@ -415,10 +438,12 @@ export type MapControllerState = {
   geoDrawingOverlay: GeoDrawingOverlay | null;
   geoDrawingParamDef: GeoDrawingParamDef | null;
   geoDrawPointCount: number;
-  _mapReadyResolve: (() => void) | null;
-  _mapReadyPromise: Promise<void> | null;
+  _mapReadyResolve: ((ready: boolean) => void) | null;
+  _mapReadyPromise: Promise<boolean> | null;
+  _mapLoadGeneration: number;
+  _mapUnmounted: boolean;
   _onOnline?: (() => void) | null;
-  _resizeObserver?: ResizeObserver | null;
+  _stopObservingResize?: (() => void) | null;
   _attributionControl?: maplibregl.IControl | null;
   _attributionLinkCleanup?: (() => void) | null;
   _globeControl?: maplibregl.IControl | null;
@@ -429,7 +454,7 @@ export type MapControllerSetupBindings = {
   activeFilterIdentity: ComputedRef<string>;
   serverFreshnessToken: Ref<string | null | undefined>;
   dataFreshnessLastChecked: Ref<unknown>;
-  refreshDataFreshness: () => Promise<unknown> | unknown;
+  refreshDataFreshness: (options?: ApplicationStatusRefreshOptions) => Promise<unknown> | unknown;
   isFreshnessPollingHealthy: Ref<boolean>;
   appliedFreshnessToken: Ref<string | null | undefined>;
   freshnessReloading: Ref<boolean>;
@@ -441,7 +466,7 @@ export type MapControllerSetupValues = {
   activeFilterIdentity: string;
   serverFreshnessToken: string | null | undefined;
   dataFreshnessLastChecked: unknown;
-  refreshDataFreshness: () => Promise<unknown> | unknown;
+  refreshDataFreshness: (options?: ApplicationStatusRefreshOptions) => Promise<unknown> | unknown;
   isFreshnessPollingHealthy: boolean;
   appliedFreshnessToken: string | null | undefined;
   freshnessReloading: boolean;
@@ -497,6 +522,7 @@ export type MapToolsMethods = {
   clearLocationSearchMarker(): void;
   locationSearchTargetZoom(result: LocationSearchResultDto): number;
   onLocationUpdate(geolocationPosition: GeolocationPosition): void;
+  updateGpsMarker(): void;
   onGPSDeviceEnabledDisabled(deviceEnabled: boolean): void;
   onAnimationStartEvent(): void;
   onAnimationFinishedEvent(): void;
@@ -514,14 +540,19 @@ export type MapToolsMethods = {
   syncTrackDetailRoute(trackId: number | string | null): void;
   onToolOpened(refName: string): void;
   onToolClosed(): void;
-  closeSwissMobilityPopup(): void;
-  identifySwissMobilityRoutes(lngLat: MapCenter, point: MapPoint): Promise<void>;
-  showTrackSelectionPopup(point: MapPoint, trackIds: number[]): void;
+  identifySwissMobilityRoutes(
+    lngLat: MapCenter,
+    point: MapPoint,
+    signal?: AbortSignal,
+    tolerance?: number
+  ): Promise<MapTargetCandidate[]>;
+  showTrackSelectionPopup(point: MapPoint, trackIds: number[], processing?: TrackProcessingStatusDto): void;
   closeSelectionPopup(): void;
   onPopupTrackSelect(id: number): void;
   openTrackDetails(trackId?: number | string | null, initialDetent?: string, initialTab?: TrackDetailsInitialTab): void;
   onTrackDetailsSheetClosed(): void;
   onTrackDetailsLoaded(metadata: TrackDetailsInfo): void;
+  onTrackMetadataUpdated(track: GpsTrack): void;
 };
 
 export type MapOverlay = (typeof MAP_OVERLAYS)[number];
@@ -582,6 +613,7 @@ export type TrackLayersMethods = {
   applyTrackLayerFilters(): void;
   selectedTrackGeojson(): TrackFeatureCollection;
   updateSelectedTrackSource(): void;
+  applyTrackColors(lineColor?: TrackLineColor): void;
   markFlatTrackSourceDirty(): void;
   flatTrackSourceGeojson(): TrackFeatureCollection;
   syncFlatTrackSource(options?: { force?: boolean }): void;
@@ -592,6 +624,7 @@ export type TrackLayersMethods = {
   fitToTrackBounds(geojson: TrackFeatureCollection): void;
   updateTracksSource(): void;
   addTracksToMap(): Promise<void>;
+  previewTrackById(trackId: number | null): void;
   selectTrackById(trackId: number): void;
   selectTrack(trackId: number, feature?: TrackFeature | null): void;
   deselectTrack(): void;
@@ -606,13 +639,29 @@ export type TrackPointLayerMethods = {
   detachTrackPointLayerHandlers(): void;
   attachTrackPointLayerHandlers(): void;
   updateTrackPointsSource(): void;
-  showTrackPointPopup(lngLat: MapCenter | Coordinates, trackId: number, pointIndex: number): Promise<void>;
-  showTrackLinePointPopup(event: { point: MapPoint; lngLat: MapCenter }, trackId: number): Promise<boolean>;
+  collectTrackPointCandidates(point: MapPoint, radius: number): TrackPointMapCandidate[];
+  openTrackPointCandidate(
+    candidate: TrackPointMapCandidate,
+    isCurrent: () => boolean,
+    options?: TrackPointPresentationOptions
+  ): Promise<void>;
+  showTrackPointPopup(
+    lngLat: MapCenter | Coordinates,
+    trackId: number,
+    pointIndex: number,
+    options?: TrackPointPresentationOptions
+  ): Promise<void>;
+  showTrackLinePointPopup(
+    event: { point: MapPoint; lngLat: MapCenter },
+    trackId: number,
+    options?: TrackPointPresentationOptions
+  ): Promise<boolean>;
   renderTrackPointPopup(
     lngLat: MapCenter | Coordinates,
     trackId: number,
     point: GpsTrackDataPoint,
-    canonical?: GpsTrackDataPoint | null
+    canonical?: GpsTrackDataPoint | null,
+    presentation?: 'popup' | 'context'
   ): void;
   refreshTrackPointPopupMeasurementLabels(): void;
 };
@@ -663,6 +712,7 @@ export type MediaAndHeatmapMethods = {
   onToggleMediaLayer(): Promise<void>;
   onToggleHeatmapLayer(): void;
   openMediaSelection(selection: MediaOverlaySelection): Promise<void>;
+  retryMediaSelectionActivities(): Promise<void>;
   chooseMediaCollection(scope: 'primary' | 'viewport'): void;
   openMediaSelectionActivities(): void;
   closeMediaSelection(): void;
@@ -678,10 +728,9 @@ export type MediaAndHeatmapMethods = {
 export type MapDataLoadingMethods = {
   shouldAutoFreshenAfterLogin(): boolean;
   maybeAutoFreshenAfterLogin(): void;
-  captureAppliedFreshnessToken(): Promise<void>;
-  clearTrackCacheWhenServerFreshnessChanged(): Promise<boolean>;
+  captureAppliedFreshnessToken(loadedToken: string | null | undefined): Promise<void>;
+  clearTrackCacheWhenServerFreshnessChanged(options?: ApplicationStatusRefreshOptions): Promise<boolean>;
   onDataFreshnessReload(options?: { silent?: boolean }): Promise<boolean>;
-  onDataFreshnessDismiss(): void;
   currentCollectionPrecision(): number;
   maybeLoadBackgroundTracks(filterResult?: unknown): boolean;
   loadMapData(fetchResult: unknown): Promise<void>;
@@ -707,7 +756,7 @@ export type MapDataLoadingMethods = {
   scheduleDetailCheck(): void;
   checkViewportPrecision(): void;
   processDetailQueue(trackIds: number[], targetPrecision: number, signal: AbortSignal): Promise<void>;
-  onFilterApplied(): Promise<void>;
+  onFilterApplied(options?: { preserveSelection?: boolean }): Promise<void>;
   onFilterStyleChanged(): Promise<void>;
 };
 
@@ -715,18 +764,21 @@ export type MapRendererLifecycleMethods = {
   startMapStatusPolling(): void;
   refreshMapStatusPolling(force?: boolean): void;
   stopMapStatusPolling(): void;
-  disposeRendererMaps(): void;
+  disposeRendererMaps(preserveInitialization?: boolean): void;
+  observeMapContainerResize(): void;
+  handleMapError(event: maplibregl.MapEventType['error']): void;
   applyRuntimeRasterBasemapFallback(errorEvent?: unknown, message?: string, tileId?: string): void;
   setOverlayAttributionControl(attributions?: string[]): void;
   handleMapArchiveStale(event?: Event): Promise<void>;
   reloadMap(): Promise<void>;
-  initMap(): Promise<void>;
+  initMap(preserveTrackLoad?: boolean): Promise<boolean>;
   updateGlobeState(): void;
   applyGlobeProjection(): void;
   toggleGlobeMode(): void;
 };
 
-export type MapControllerMethods = MapToolsMethods &
+export type MapControllerMethods = MapInteractionMethods &
+  MapToolsMethods &
   MapLayerSettingsMethods &
   TerrainModeMethods &
   TrackLayersMethods &

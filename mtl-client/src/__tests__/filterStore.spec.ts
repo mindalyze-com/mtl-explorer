@@ -232,6 +232,7 @@ describe('useFilterStore', () => {
     expect(store.activeFilterRequest).toEqual({
       filterName: 'NonMotorized',
       filterParams: {
+        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
         stringParams: { ACTIVITY: 'human' },
         resultGroupSelection: { includedGroups: [{ value: 'WALKING' }] },
       },
@@ -240,6 +241,7 @@ describe('useFilterStore', () => {
     await expect(store.getActiveFilterRequest()).resolves.toEqual({
       filterName: 'NonMotorized',
       filterParams: {
+        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
         stringParams: { ACTIVITY: 'human' },
         resultGroupSelection: { includedGroups: [{ value: 'WALKING' }] },
       },

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+    <changeSet id="100-segment-candidate-geography-index" author="mtl">
+        <sql>CREATE INDEX gps_track_data_ix_segment_candidates ON gps_track_data USING gist ((observed_path::geography)) WHERE track_type = 'RAW_OUTLIER_CLEANED';</sql>
+        <rollback><sql>DROP INDEX gps_track_data_ix_segment_candidates;</sql></rollback>
+    </changeSet>
+</databaseChangeLog>

@@ -20,7 +20,7 @@
   --text-primary: #1e293b; /* slate-800 */
   --text-secondary: #334155; /* slate-700 */
   --text-muted: #475569; /* slate-600 */
-  --text-faint: #64748b; /* slate-500 */
+  --text-faint: #5b6b82;
   --text-inverse: #f1f5f9; /* slate-100 */
 
   /* ── Borders (light) ── */
@@ -42,13 +42,17 @@
   --accent-contrast: #ffffff;
 
   /* ── Semantic (light) ── */
+  --status-surface-tint: 12%;
   --success: #16a34a; /* green-600 */
+  --success-text: #166534;
   --success-bg: rgba(22, 163, 74, 0.12);
   --success-hover: rgba(22, 163, 74, 0.2);
   --warning: #d97706; /* amber-600 */
   --warning-bg: rgba(217, 119, 6, 0.15);
   --warning-text: #92400e;
+  --warning-status-text: #92400e;
   --error: #dc2626; /* red-600 */
+  --error-text: #b91c1c;
   --error-bg: rgba(220, 38, 38, 0.12);
   --error-heavy: rgba(220, 38, 38, 0.88);
   --info: #3b82f6; /* blue-500 */
@@ -198,6 +202,7 @@
   --z-map-overlay-raised: 1100; /* hovered/active on-map control */
   --z-toolbar: 1800; /* FloatingToolbar above the map */
   --z-loading: 2000; /* Map loading curtain */
+  --z-freshness-banner: 2100; /* Map data notice below navigation and content sheets */
   --z-nav-backdrop: 3999; /* NavigationSheet backdrop */
   --z-nav-sheet: 4000; /* NavigationSheet itself */
   --z-bottom-sheet: 5000; /* BottomSheet backdrop */
@@ -205,7 +210,6 @@
   --z-tool-overlay: 5200; /* Tool overlays anchored on the map */
   --z-modal-mask: 5500; /* PrimeVue Dialog mask */
   --z-modal: 5501; /* PrimeVue Dialog */
-  --z-freshness-banner: 5550; /* Data freshness action above tool sheets */
   --z-popup: 5600; /* Select/Datepicker/Popover/MultiSelect/menus */
   --z-tooltip: 5700; /* PrimeVue tooltips */
   --z-popup-over-bottomsheet: 6000; /* Dropdowns inside BottomSheet (must beat 5501 modal) */
@@ -231,8 +235,8 @@
   /* ── Text ── */
   --text-primary: #f1f5f9;
   --text-secondary: #e2e8f0;
-  --text-muted: #94a3b8;
-  --text-faint: #64748b;
+  --text-muted: #a8b5c7;
+  --text-faint: #94a3b8;
   --text-inverse: #334155;
 
   /* ── Borders ── */
@@ -250,12 +254,15 @@
 
   /* ── Semantic ── */
   --success: #86efac;
+  --success-text: #86efac;
   --success-bg: rgba(34, 197, 94, 0.5);
   --success-hover: rgba(34, 197, 94, 0.8);
   --warning: #fcd34d;
   --warning-bg: rgba(255, 200, 0, 0.92);
   --warning-text: #6b4800;
+  --warning-status-text: #fcd34d;
   --error: #fca5a5;
+  --error-text: #fca5a5;
   --error-bg: rgba(239, 68, 68, 0.5);
   --info: #93c5fd;
 

@@ -74,6 +74,8 @@
 </template>
 
 <script setup lang="ts">
+import { warnSanitized } from '@/utils/safeLogging';
+
 import { computed, onBeforeUnmount, ref } from 'vue';
 import type { FilterInfo } from 'x8ing-mtl-api-typescript-fetch/dist/esm/models/FilterInfo';
 import {
@@ -121,7 +123,11 @@ async function copyCurrentSql(): Promise<void> {
     await navigator.clipboard.writeText(visibleSQL.value);
     setCopyState('copied');
   } catch (error) {
-    console.warn('[filter-sql-preview] failed to copy SQL', error);
+    warnSanitized('[filter-sql-preview] failed to copy SQL', error, {
+      topic1: 'filter',
+      topic2: 'FilterSqlPreview',
+      topic3: 'copyCurrentSql',
+    });
     setCopyState('error');
   }
 }
@@ -262,7 +268,7 @@ onBeforeUnmount(() => {
 
 .sql-mode-btn--active {
   background: var(--accent);
-  color: var(--text-inverse);
+  color: var(--accent-contrast);
 }
 
 .sql-block__code {

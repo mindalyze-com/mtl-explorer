@@ -18,6 +18,7 @@ import lombok.Data;
         "kineticPositiveTotalWh",
         "kineticNegativeTotalWh",
         "netEnergyTotalWh",
+        "metabolicEnergy",
         "powerWattsAvg",
         "powerWattsMovingAvg",
         "powerWattsMax",
@@ -68,6 +69,11 @@ public class TrackEnergySummary {
      */
     @Builder.Default
     private double netEnergyTotalWh = 0;
+
+    /**
+     * Human metabolic expenditure, independent of the mechanical energy fields.
+     */
+    private MetabolicEnergy metabolicEnergy;
 
     /**
      * Average instantaneous power across moving segments (W).

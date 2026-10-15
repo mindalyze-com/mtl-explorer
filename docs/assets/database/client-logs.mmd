@@ -1,0 +1,33 @@
+erDiagram
+    direction LR
+    web_client_login {
+        bigint id PK
+        varchar client_login_ref UK
+        varchar user_name
+        varchar login_status
+        bigint last_seen_request_log_id "logical link; no FK"
+        bigint last_client_environment_log_id "logical link; no FK"
+    }
+    web_request_log {
+        bigint id PK
+        varchar client_login_ref FK "nullable"
+        varchar method
+        varchar uri
+        integer status
+    }
+    web_client_environment_log {
+        bigint id PK
+        varchar client_login_ref FK "nullable"
+        varchar user_agent
+        text client_payload_json
+    }
+    system_log {
+        bigint id PK
+        uuid client_event_id UK "nullable"
+        varchar client_login_ref "nullable; no FK"
+        text stack_trace "nullable"
+        varchar stack_fingerprint "nullable; indexed SHA-256"
+    }
+
+    web_client_login |o..o{ web_request_log : client_login_ref
+    web_client_login |o..o{ web_client_environment_log : client_login_ref

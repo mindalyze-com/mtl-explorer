@@ -53,7 +53,7 @@
             class="mtl-card__gradient-swatch"
             :style="{ background: band.gradient, opacity: band.allHidden ? 0.28 : 1 }"
           ></span>
-          <span class="mtl-card__entry-count">{{ band.count }}</span>
+          <span class="mtl-card__entry-count">{{ formatLocaleNumber(band.count) }}</span>
           <i :class="band.allHidden ? 'bi bi-eye-slash' : 'bi bi-eye-fill'" class="mtl-card__eye"></i>
         </button>
       </div>
@@ -73,7 +73,7 @@
             :style="{ background: isGroupVisible(entry.group) ? entry.color : 'transparent', borderColor: entry.color }"
           ></span>
           <span class="mtl-card__label" :title="entry.label ?? entry.group">{{ entry.label ?? entry.group }}</span>
-          <span class="mtl-card__entry-count">{{ entry.count }}</span>
+          <span class="mtl-card__entry-count">{{ formatLocaleNumber(entry.count) }}</span>
           <i :class="isGroupVisible(entry.group) ? 'bi bi-eye-fill' : 'bi bi-eye-slash'" class="mtl-card__eye"></i>
         </button>
       </div>
@@ -92,6 +92,7 @@ export interface LegendEntry {
 
 <script setup lang="ts">
 import { computed } from 'vue';
+import { formatLocaleNumber } from '@/utils/Utils';
 import { buildNumericGradientBands, colorForNumericBucket, hasOnlyNumericBuckets } from '@/utils/numericGradientBands';
 
 const props = defineProps<{
@@ -129,8 +130,8 @@ type GradientBand = {
 const isGradientLegend = computed(() => props.legendMode === 'gradient' && hasOnlyNumericBuckets(props.entries));
 const trackCountLabel = computed(() =>
   props.filterActive
-    ? `${props.visibleTrackCount} / ${props.totalTrackCount} Tracks`
-    : `${props.visibleTrackCount} Tracks`
+    ? `${formatLocaleNumber(props.visibleTrackCount)} / ${formatLocaleNumber(props.totalTrackCount)} Tracks`
+    : `${formatLocaleNumber(props.visibleTrackCount)} Tracks`
 );
 const filterButtonAriaLabel = computed(() => {
   const identity = props.filterActive ? props.activeFilterIdentity?.trim() : '';

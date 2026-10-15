@@ -19,6 +19,17 @@ public final class GpsTrackDataPointWindowAdapter {
 
     private static final CanonicalPointView<GpsTrackDataPoint> VIEW = new CanonicalPointView<>() {
         @Override
+        public boolean intervalSupported(GpsTrackDataPoint p) {
+            return p.getIntervalStatus() != GpsTrackDataPoint.IntervalStatus.UNKNOWN
+                   && p.getIntervalStatus() != GpsTrackDataPoint.IntervalStatus.GEOMETRY_ONLY;
+        }
+
+        @Override
+        public boolean elevationSupported(GpsTrackDataPoint p) {
+            return p.getIntervalStatus() == null || p.getAscentInMeterBetweenPoints() != null;
+        }
+
+        @Override
         public double durationBetweenPointsInSec(GpsTrackDataPoint p) {
             Double v = p.getDurationBetweenPointsInSec();
             return v != null && Double.isFinite(v) ? v : 0;

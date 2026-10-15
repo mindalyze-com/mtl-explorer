@@ -6,7 +6,9 @@ import router from './router';
 import { initializeStartupDiagnostics, startupLog } from '@/utils/startupDiagnostics';
 import { installPrimeVue } from '@/bootstrap/setupPrimeVue';
 import { installGlobalErrorHandlers } from '@/bootstrap/globalErrorHandlers';
+import { startClientLogDelivery } from '@/utils/clientDiagnosticDelivery';
 import { startEarlyPrefetch } from '@/bootstrap/earlyPrefetch';
+import { startUmamiAnalytics } from '@/bootstrap/umamiAnalytics';
 import { installHighchartsTheme } from '@/composables/useHighchartsTheme';
 import { warmBackgroundCache } from '@/utils/backgroundCacheWarmer';
 import { setWorkerUrl } from 'maplibre-gl';
@@ -19,11 +21,8 @@ import 'highlight.js/styles/stackoverflow-light.min.css';
 import './assets/main.css';
 
 // ── Side-effect plugins ──
-import Highcharts from 'highcharts';
+import Highcharts from '@/bootstrap/highcharts';
 import HighchartsVue from 'highcharts-vue';
-import 'highcharts/esm/highcharts-more';
-import 'highcharts/esm/modules/solid-gauge';
-import 'highcharts/esm/modules/accessibility';
 import hljs from 'highlight.js/lib/core';
 import sql from 'highlight.js/lib/languages/sql';
 import pgsql from 'highlight.js/lib/languages/pgsql';
@@ -36,32 +35,10 @@ registerMtlSqlHighlight(hljs);
 // ── Eager-evaluated module side effects (must run before mount) ──
 import '@/utils/auth';
 
-// ── Disable pinch-zoom on iOS Safari ──
-// iOS 10+ ignores user-scalable=no in the viewport meta for accessibility
-// reasons. Blocking multi-touch touchmove on the document is the only reliable
-// workaround. Single-finger panning (e.g. map drag, sheet drag) is unaffected.
-document.addEventListener(
-  'touchmove',
-  (e: TouchEvent) => {
-    if (e.touches.length > 1) e.preventDefault();
-  },
-  { passive: false }
-);
-// Prevent double-tap zoom by eating the second tap if it follows within 300ms.
-let _lastTap = 0;
-document.addEventListener(
-  'touchend',
-  (e: TouchEvent) => {
-    const now = Date.now();
-    if (now - _lastTap < 300) e.preventDefault();
-    _lastTap = now;
-  },
-  { passive: false }
-);
-
 // ── Boot ──
 setWorkerUrl(mapLibreWorkerUrl);
 initializeStartupDiagnostics();
+startClientLogDelivery();
 startupLog('boot', 'Vue bootstrap starting', { baseUrl: import.meta.env.BASE_URL });
 
 installHighchartsTheme();
@@ -81,3 +58,5 @@ app.use(HighchartsVue, { highcharts: Highcharts });
 app.use(hljsVuePlugin);
 
 app.mount('#app');
+// Optional public-demo analytics. Private installations must work without a tracker.
+void router.isReady().then(startUmamiAnalytics);

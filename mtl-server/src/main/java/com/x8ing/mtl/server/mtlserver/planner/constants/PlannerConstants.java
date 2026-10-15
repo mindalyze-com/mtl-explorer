@@ -20,6 +20,10 @@ public final class PlannerConstants {
      */
     public static final int MAX_WAYPOINTS = 150;
 
+    public static final int MAX_POINTS_OF_INTEREST = 1000;
+    public static final int MAX_POINT_OF_INTEREST_NAME_LENGTH = 255;
+    public static final int MAX_POINT_OF_INTEREST_NOTES_LENGTH = 4000;
+
     /**
      * Below this distance (metres) two adjacent waypoints are considered the same point.
      */
@@ -41,14 +45,10 @@ public final class PlannerConstants {
     public static final int SEGMENT_CACHE_TTL_MIN = 60;
 
     /**
-     * Minimum elevation change (metres) to count as ascent/descent — filters SRTM noise.
+     * BRouter's fallback buffer when elevation-source resolution is unknown.
+     * GeoJSON does not expose the per-point resolution needed to select its 5 m variant.
      */
-    public static final double MIN_ELEVATION_DELTA_M = 2.0;
-
-    /**
-     * Simple moving-average window size for smoothing the elevation profile before ascent/descent calc.
-     */
-    public static final int ELEVATION_SMOOTHING_WINDOW = 5;
+    public static final double ELEVATION_FILTER_BUFFER_M = 10.0;
 
     /**
      * Default routing profile if the client does not specify one.

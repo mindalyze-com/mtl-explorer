@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router';
 import HomeView from '../views/HomeView.vue';
 import LoginView from '../views/LoginView.vue';
 import { isAuthenticated } from '@/utils/auth';
+import { warnRequestFailure } from '@/utils/safeLogging';
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -68,6 +69,18 @@ const router = createRouter({
       meta: { requiresAuth: true, deepLink: 'admin' },
     },
     {
+      path: '/review/:sourceId(\\d+)?',
+      name: 'review',
+      component: HomeView,
+      meta: { requiresAuth: true, deepLink: 'review' },
+    },
+    {
+      path: '/health',
+      name: 'health',
+      component: HomeView,
+      meta: { requiresAuth: true, deepLink: 'health' },
+    },
+    {
       path: '/about',
       name: 'about',
       // route level code-splitting
@@ -78,6 +91,10 @@ const router = createRouter({
       // must be reachable by any network user (AGPL-3.0 source-offer
       // obligation) even before login.
     },
+    {
+      path: '/:pathMatch(.*)*',
+      redirect: { name: 'home', params: {} },
+    },
   ],
 });
 
@@ -87,6 +104,15 @@ router.beforeEach(async (to) => {
   } else if (to.name === 'login' && isAuthenticated()) {
     return { name: 'home' };
   }
+});
+
+router.onError((error, to) => {
+  warnRequestFailure('Navigation failed', error, {
+    topic1: 'navigation',
+    topic2: 'router',
+    topic3: 'navigate',
+    context: { routeName: typeof to?.name === 'string' ? to.name : undefined },
+  });
 });
 
 export default router;

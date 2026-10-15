@@ -2,6 +2,8 @@ import { flushPromises, mount } from '@vue/test-utils';
 import { defineComponent, nextTick } from 'vue';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import TrackDetailOverview from '@/components/trackdetails/TrackDetailOverview.vue';
+import TrackDetailActions from '@/components/trackdetails/TrackDetailActions.vue';
+import { formatDistanceSmart, formatDurationSmart, formatSpeed } from '@/utils/Utils';
 import { GpsTrackActivityTypeEnum } from 'x8ing-mtl-api-typescript-fetch/dist/esm/models/index';
 
 const mocks = vi.hoisted(() => ({
@@ -13,6 +15,8 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock('@/utils/ServiceHelper', () => ({
   calculateEnergyWhatIf: mocks.calculateEnergyWhatIf,
+  getEnergyCalculationStatus: vi.fn().mockResolvedValue({ state: 'CALCULATED' }),
+  refreshTrackEnergy: vi.fn(),
   downloadTrackGpx: mocks.downloadTrackGpx,
   downloadTrackSourceFile: mocks.downloadTrackSourceFile,
   saveTrackEnergyRiderWeight: mocks.saveTrackEnergyRiderWeight,
@@ -58,6 +62,19 @@ function mountOverview(fileName: string, toastAdd = vi.fn()) {
         Popover: PopoverStub,
       },
     },
+  });
+}
+
+function mountActions(fileName: string, toastAdd = vi.fn()) {
+  return mount(TrackDetailActions, {
+    props: {
+      gpsTrack: {
+        id: 1,
+        indexedFile: { id: 7, index: 'GPS', name: fileName, path: fileName, indexerStatus: 'COMPLETED_WITH_SUCCESS' },
+      },
+      replayEnabled: true,
+    },
+    global: { provide: { toast: { add: toastAdd } } },
   });
 }
 
@@ -107,11 +124,85 @@ describe('Track Detail original and GPX export', () => {
 
     expect(wrapper.find('.skeleton-grid').exists()).toBe(false);
     const primaryValues = wrapper.findAll('.metrics-primary .metric-tile__value').map((value) => value.text());
-    expect(primaryValues).toHaveLength(4);
-    expect(primaryValues.every(Boolean)).toBe(true);
-    expect(primaryValues[1]).toBe('0m 00s');
-    expect(primaryValues[2]).toMatch(/^0 (m|ft)$/);
-    expect(primaryValues[3]).toMatch(/^0\.0 (km\/h|mph)$/);
+    expect(primaryValues).toHaveLength(1);
+    expect(primaryValues[0]).toBe(formatDistanceSmart(1440));
+    expect(wrapper.find('.metrics-primary').text()).not.toContain('—');
+    expect(wrapper.text()).toContain('Elevation data is unavailable for this track.');
+  });
+
+  it('keeps a valid zero overall speed visible for a timed stationary track', async () => {
+    const wrapper = mountOverview('stationary.gpx');
+    await wrapper.setProps({
+      gpsTrack: {
+        ...wrapper.props('gpsTrack'),
+        trackLengthInMeter: 0,
+        startDate: new Date('2026-10-02T09:00:00Z'),
+        endDate: new Date('2026-10-02T10:00:00Z'),
+      },
+    });
+
+    const speedTile = wrapper
+      .findAll('.metrics-primary .metric-tile')
+      .find((tile) => tile.find('.metric-tile__label').text() === 'Overall avg speed');
+    expect(speedTile?.find('.metric-tile__value').text()).toBe(formatSpeed(0, 1));
+  });
+
+  it('keeps a known zero duration visible without inventing an average speed', async () => {
+    const wrapper = mountOverview('single-time.gpx');
+    const timestamp = new Date('2026-10-02T09:00:00Z');
+    await wrapper.setProps({
+      gpsTrack: { ...wrapper.props('gpsTrack'), startDate: timestamp, endDate: timestamp },
+    });
+
+    const tiles = wrapper.findAll('.metrics-primary .metric-tile');
+    const durationTile = tiles.find((tile) => tile.find('.metric-tile__label').text() === 'Duration');
+    expect(durationTile?.find('.metric-tile__value').text()).toBe(formatDurationSmart(0));
+    expect(tiles.some((tile) => tile.find('.metric-tile__label').text() === 'Overall avg speed')).toBe(false);
+  });
+
+  it('shows Google Health heart-rate statistics for the track interval', async () => {
+    const wrapper = mountOverview('ride.fit');
+    await wrapper.setProps({
+      trackHealth: {
+        trackId: 1,
+        available: true,
+        source: 'GOOGLE_HEALTH',
+        heartRate: {
+          sampleCount: 180,
+          averageBpm: 122.4,
+          movingAverageBpm: 135.6,
+          movingSampleCount: 120,
+          minimumBpm: 78,
+          maximumBpm: 167,
+          points: [],
+        },
+      },
+    });
+
+    const summary = wrapper.get('[data-test="track-health-summary"]');
+    expect(summary.text()).toContain('122 bpm');
+    expect(summary.get('[data-test="moving-heart-rate"]').text()).toContain('136 bpm');
+    expect(summary.get('[data-test="moving-heart-rate"]').text()).toContain('Average while moving');
+    expect(summary.text()).toContain('167 bpm');
+    expect(summary.text()).toContain('78 bpm');
+    expect(summary.text()).toContain('180');
+    expect(summary.text()).toContain('Google Health samples recorded during this track.');
+    expect(summary.text()).toContain('Minimum, maximum and overall average include breaks.');
+  });
+
+  it('does not substitute the overall average when moving samples are unavailable', async () => {
+    const wrapper = mountOverview('ride.fit');
+    await wrapper.setProps({
+      trackHealth: {
+        available: true,
+        heartRate: { averageBpm: 122, movingSampleCount: 0, points: [] },
+      },
+    });
+
+    const moving = wrapper.get('[data-test="moving-heart-rate"]');
+    expect(moving.text()).toContain('—');
+    expect(moving.text()).toContain('No matching moving samples');
+    expect(moving.text()).not.toContain('122 bpm');
   });
 
   it('copies TrackID through the browser clipboard API', async () => {
@@ -158,14 +249,14 @@ describe('Track Detail original and GPX export', () => {
   });
 
   it('shows original and GPX download actions for converted source formats', () => {
-    const wrapper = mountOverview('ride.fit');
+    const wrapper = mountActions('ride.fit');
 
     expect(wrapper.find('button[aria-label="Download original"]').exists()).toBe(true);
     expect(wrapper.find('button[aria-label="Download GPX"]').exists()).toBe(true);
   });
 
   it('hides the GPX action for native GPX sources', () => {
-    const wrapper = mountOverview('ride.gpx');
+    const wrapper = mountActions('ride.gpx');
 
     expect(wrapper.find('button[aria-label="Download original"]').exists()).toBe(true);
     expect(wrapper.find('button[aria-label="Download GPX"]').exists()).toBe(false);
@@ -174,7 +265,7 @@ describe('Track Detail original and GPX export', () => {
   it('downloads the original file and disables actions while pending', async () => {
     let resolveDownload: () => void = () => undefined;
     mocks.downloadTrackSourceFile.mockReturnValueOnce(new Promise<void>((resolve) => (resolveDownload = resolve)));
-    const wrapper = mountOverview('ride.fit');
+    const wrapper = mountActions('ride.fit');
 
     await wrapper.find('button[aria-label="Download original"]').trigger('click');
     await nextTick();
@@ -195,7 +286,7 @@ describe('Track Detail original and GPX export', () => {
     mocks.downloadTrackSourceFile
       .mockReturnValueOnce(new Promise<void>((resolve) => (resolveFirstDownload = resolve)))
       .mockReturnValueOnce(new Promise<void>((resolve) => (resolveSecondDownload = resolve)));
-    const wrapper = mountOverview('ride.fit');
+    const wrapper = mountActions('ride.fit');
 
     await wrapper.find('button[aria-label="Download original"]').trigger('click');
     await wrapper.setProps({
@@ -232,7 +323,7 @@ describe('Track Detail original and GPX export', () => {
   it('shows a toast when GPX export fails', async () => {
     const toastAdd = vi.fn();
     mocks.downloadTrackGpx.mockRejectedValueOnce(new Error('failed'));
-    const wrapper = mountOverview('ride.fit', toastAdd);
+    const wrapper = mountActions('ride.fit', toastAdd);
 
     await wrapper.find('button[aria-label="Download GPX"]').trigger('click');
     await flushPromises();

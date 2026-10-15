@@ -9,6 +9,7 @@ mtl:
     gps:
       live-watch-enabled: true            # watch directory with inotify for instant GPX detection
       rescan-interval: PT12H              # ISO-8601 duration; periodic full rescan interval for GPS
+      conversion-timeout: PT10M          # background source assessment/import; interactive conversions retain their own limit
     media:
       live-watch-enabled: false           # disabled: media tree is huge; rely on periodic rescans instead
       rescan-interval: P7D                # ISO-8601 duration; periodic full rescan interval for MEDIA
@@ -37,9 +38,16 @@ mtl:
     profiles:
       - trekking
       - fastbike
+      - mtb
       - hiking-mountain
       - car-eco
   demo-mode: false                        # overridden to true by application-demo.yml
+  analytics:
+    umami:
+      # Intended for public demo instances only. Private installations need no Umami script or server.
+      enabled: false                     # each demo opts in explicitly; demo mode alone does not enable analytics
+      script-url: ${MTL_ANALYTICS_UMAMI_SCRIPT_URL:} # HTTPS URL, e.g. https://stats.example.com/script.js
+      website-id: ${MTL_ANALYTICS_UMAMI_WEBSITE_ID:} # public Umami website UUID; never a dashboard token
   log-viewer-enabled: true               # set to false to disable /api/admin/server-log (always off in demo mode)
   media-watch-directory: /app/media
   media-process:
@@ -77,7 +85,7 @@ mtl:
     fit-export-default-packages: ${FIT_EXPORT_DEFAULT_PACKAGES:garth fitparse gpxpy}
   db-readonly:
     username: mtluserreadonly
-    password: MtlSuper123
+    password: ${MTL_DB_READONLY_PASSWORD:}
     maximum-pool-size: 2
     minimum-idle: 0
   map-server:
@@ -102,7 +110,8 @@ mtl:
     # and matching provider attribution. Override both fields together when using
     # another provider; a deployment that changes only the URL owns any incorrect
     # attribution. This is the intended no-code setup for Simon's use case:
-    # OSM Standard for light, OpenTopoMap for topo, and CARTO Dark Matter for dark.
+    # OSM Standard for light/dark (client dark palette), OpenTopoMap for topo.
+    # Custom dark providers use their native palette; include any required API key in the URL.
     remote-raster-styles:
       light:
         url: https://tile.openstreetmap.org/{z}/{x}/{y}.png
@@ -111,13 +120,43 @@ mtl:
         url: https://tile.opentopomap.org/{z}/{x}/{y}.png
         attribution: 'Map data: © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, SRTM | Map style: © <a href="https://opentopomap.org">OpenTopoMap</a> (<a href="https://creativecommons.org/licenses/by-sa/3.0/">CC-BY-SA</a>)'
       dark:
-        url: https://basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png
-        attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors © <a href="https://carto.com/attributions">CARTO</a>'
+        url: https://tile.openstreetmap.org/{z}/{x}/{y}.png
+        attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
   location-search:
     enabled: true
     status-url: ${MTL_LOCATION_SEARCH_STATUS_URL:http://location-search:8083/status}
     query-url: ${MTL_LOCATION_SEARCH_QUERY_URL:http://location-search:8083/search}
     timeout-ms: 1500
+  google-health:
+    enabled: true
+    api-base-url: https://health.googleapis.com
+    authorization-url: https://accounts.google.com/o/oauth2/v2/auth
+    token-url: https://oauth2.googleapis.com/token
+    client-id:
+    client-secret:
+    redirect-uri:
+    sync-interval: PT30M
+    recent-window: P7D
+    recent-fast-window: PT24H
+    recent-full-interval: PT24H
+    cycle-deadline-margin: PT1M
+    history-budget-fraction: 0.5
+    work-failure-limit: 4
+    work-retry-max-delay: PT6H
+    history-stream-quantum: PT1M
+    history-start-date: 2010-01-01
+    max-chunk-rows: 100000
+    max-chunk-bytes: 67108864
+    request-timeout: PT30S
+    database-transaction-timeout: PT5M
+    max-retry-attempts: 5
+    max-pages-per-window: 1000
+    max-json-bytes: 33554432
+    max-tcx-bytes: 52428800
+    route-directory: google-health
+    # Default: hidden .part files beside routes, on the same mount for atomic publication.
+    # A custom staging directory must be outside the GPS watch directory on the same filesystem.
+    staging-directory:
 
 server:
   forward-headers-strategy: framework
@@ -153,6 +192,8 @@ spring:
     hikari:
       maximum-pool-size: 5
       minimum-idle: 1
+      # Applied to both custom pools; avoids LLVM memory overhead on small installs.
+      connection-init-sql: SET jit = off
   jpa:
     properties:
       hibernate:

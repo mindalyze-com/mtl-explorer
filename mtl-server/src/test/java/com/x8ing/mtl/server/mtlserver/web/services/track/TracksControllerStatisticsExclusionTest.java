@@ -3,11 +3,7 @@ package com.x8ing.mtl.server.mtlserver.web.services.track;
 import com.x8ing.mtl.server.mtlserver.db.entity.gps.GpsTrack;
 import com.x8ing.mtl.server.mtlserver.db.entity.gps.projection.GpsTrackOverviewPeriod;
 import com.x8ing.mtl.server.mtlserver.db.readonly.spring.QueryResult;
-import com.x8ing.mtl.server.mtlserver.db.repository.gps.GpsTrackAndDataService;
-import com.x8ing.mtl.server.mtlserver.db.repository.gps.GpsTrackDataPointRepository;
-import com.x8ing.mtl.server.mtlserver.db.repository.gps.GpsTrackDataRepository;
-import com.x8ing.mtl.server.mtlserver.db.repository.gps.GpsTrackEventRepository;
-import com.x8ing.mtl.server.mtlserver.db.repository.gps.GpsTrackRepository;
+import com.x8ing.mtl.server.mtlserver.db.repository.gps.*;
 import com.x8ing.mtl.server.mtlserver.db.repository.media.TrackMediaQueryRepository;
 import com.x8ing.mtl.server.mtlserver.energy.EnergyService;
 import com.x8ing.mtl.server.mtlserver.logic.crossing.TrackTimeBetweenTwoPoints;
@@ -25,17 +21,65 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.ArgumentMatchers.isNull;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
-import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
 
 class TracksControllerStatisticsExclusionTest {
+    private final com.x8ing.mtl.server.mtlserver.energy.EnergyRecalculationQueue energyQueue = mock(com.x8ing.mtl.server.mtlserver.energy.EnergyRecalculationQueue.class);
+
+    @Test
+    void pointResponsesApplyTheOwningTracksTimingPolicyToRawAndDerivedVariants() {
+        var tracks = mock(GpsTrackRepository.class);
+        var points = mock(GpsTrackDataPointRepository.class);
+        var track = new GpsTrack();
+        track.setId(42L);
+        var point = new com.x8ing.mtl.server.mtlserver.db.entity.gps.GpsTrackDataPoint();
+        point.setDurationSinceStart(900.0);
+        when(tracks.findById(42L)).thenReturn(Optional.of(track));
+        when(points.getTrackDetailsByGpsTrackIdAndPrecisionAndType(eq(42L), any(), any()))
+                .thenReturn(List.of(point));
+        var controller = controller(tracks, mock(FilterExecutionService.class), mock(EnergyService.class),
+                mock(StatisticsMilestoneService.class), points);
+        for (String variant : List.of("RAW", "RAW_OUTLIER_CLEANED", "SIMPLIFIED_SHAPE")) {
+            for (boolean unsupported : List.of(true, false)) {
+                track.setTimingUnreliable(unsupported);
+                var response = controller.getTrackDetails(42L, java.math.BigDecimal.ONE, variant);
+                assertThat(response.getBody()).hasSize(1);
+                assertThat(response.getBody().getFirst().isTimingUnsupportedForResponse()).isEqualTo(unsupported);
+                assertThat(point.getDurationSinceStart()).isEqualTo(900);
+            }
+        }
+    }
+
+    @Test
+    void metadataSaveCannotClearReviewFlagsOrEraseHiddenTimingEvidence() {
+        var repository = mock(GpsTrackRepository.class);
+        var stored = new GpsTrack();
+        stored.setId(42L);
+        stored.setReviewStatus("NEEDS_REVIEW");
+        stored.setReviewExcluded(true);
+        stored.setTimingUnreliable(true);
+        stored.setTimingEstimated(true);
+        stored.setSourceContentHash("synthetic-source-revision");
+        stored.setSourceRecordingSection(2);
+        stored.setTrackDurationInMotionSecs(500.0);
+        stored.setPowerWattsAvg(200.0);
+        stored.setExplorationScore(0.75);
+        var request = new GpsTrack();
+        request.setId(42L);
+        request.setTrackName("Updated name");
+        when(repository.findByIdForUpdate(42L)).thenReturn(Optional.of(stored));
+        when(repository.save(any(GpsTrack.class))).thenAnswer(call -> call.getArgument(0));
+        GpsTrack saved = controller(repository).saveTrack(request);
+        assertThat(saved.getTrackName()).isEqualTo("Updated name");
+        assertThat(saved.getReviewStatus()).isEqualTo("NEEDS_REVIEW");
+        assertThat(saved.isReviewExcluded() && saved.isTimingUnreliable() && saved.isTimingEstimated()).isTrue();
+        assertThat(saved.getSourceContentHash()).isEqualTo("synthetic-source-revision");
+        assertThat(saved.getSourceRecordingSection()).isEqualTo(2);
+        assertThat(saved.getTrackDurationInMotionSecs()).isEqualTo(500.0);
+        assertThat(saved.getPowerWattsAvg()).isEqualTo(200.0);
+        assertThat(saved.getExplorationScore()).isEqualTo(0.75);
+    }
 
     @Test
     void updatesTrackActivityTypeAsUserSetAndRecalculatesEnergy() {
@@ -44,7 +88,9 @@ class TracksControllerStatisticsExclusionTest {
         GpsTrack track = new GpsTrack();
         track.setId(42L);
         track.setActivityType(GpsTrack.ACTIVITY_TYPE.BICYCLE);
-        when(repository.findById(42L)).thenReturn(Optional.of(track));
+        when(repository.findByIdForUpdate(42L)).thenReturn(Optional.of(track));
+        track.setEnergyNetTotalWh(100.0);
+        when(energyService.parametersForTrack(track)).thenReturn(com.x8ing.mtl.server.mtlserver.energy.EnergyParameters.builder().riderWeightKg(82).build());
         when(repository.save(any(GpsTrack.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         GpsTrack saved = controller(repository, mock(FilterExecutionService.class), energyService).updateTrackActivityType(
@@ -55,8 +101,69 @@ class TracksControllerStatisticsExclusionTest {
         assertThat(saved.getActivityType()).isEqualTo(GpsTrack.ACTIVITY_TYPE.WALKING);
         assertThat(saved.getActivityTypeSource()).isEqualTo(GpsTrack.ACTIVITY_TYPE_SOURCE.USER_SET);
         verify(repository).save(track);
-        verify(energyService).getDefaultParameters();
-        verify(energyService).recalculateEnergyForTrack(eq(42L), any());
+        assertThat(saved.getEnergyNetTotalWh()).isNull();
+        assertThat(saved.getMetabolicEnergy().getBodyWeightKg()).isEqualTo(82);
+        verify(energyService).parametersForTrack(track);
+        verify(energyQueue).request(42L);
+        verify(energyService, never()).recalculateEnergyForTrack(any(), any());
+    }
+
+    @Test
+    void metadataSavePreservesCalculatedCaloriesAndWeightAgainstOmittedOrForgedInput() {
+        var repository = mock(GpsTrackRepository.class);
+        var stored = new GpsTrack();
+        stored.setId(42L);
+        stored.setActivityType(GpsTrack.ACTIVITY_TYPE.KAYAKING);
+        stored.setEnergyNetTotalWh(20.0);
+        stored.setEnergyWeightKgUsed(102.0);
+        stored.setPowerWattsAvg(30.0);
+        var estimate = new com.x8ing.mtl.server.mtlserver.energy.MetabolicEnergy();
+        estimate.setBodyWeightKg(82.0);
+        estimate.setActiveKcal(100.0);
+        stored.setMetabolicEnergy(estimate);
+        when(repository.findByIdForUpdate(42L)).thenReturn(Optional.of(stored));
+        when(repository.save(any(GpsTrack.class))).thenAnswer(call -> call.getArgument(0));
+        for (boolean forged : List.of(false, true)) {
+            var request = new GpsTrack();
+            request.setId(42L);
+            request.setTrackName("Updated");
+            request.setActivityType(stored.getActivityType());
+            if (forged) {
+                var bad = new com.x8ing.mtl.server.mtlserver.energy.MetabolicEnergy();
+                bad.setBodyWeightKg(40.0);
+                bad.setActiveKcal(9999.0);
+                request.setMetabolicEnergy(bad);
+            }
+            var saved = controller(repository).saveTrack(request);
+            assertThat(saved.getMetabolicEnergy()).isEqualTo(estimate);
+            assertThat(saved.getEnergyNetTotalWh()).isEqualTo(20.0);
+            assertThat(saved.getEnergyWeightKgUsed()).isEqualTo(102.0);
+            assertThat(saved.getPowerWattsAvg()).isEqualTo(30.0);
+        }
+        verifyNoInteractions(energyQueue);
+    }
+
+    @Test
+    void legacyActivityChangeKeepsBodyWeightAndQueuesCalculation() {
+        var repository = mock(GpsTrackRepository.class);
+        var energy = mock(EnergyService.class);
+        var stored = new GpsTrack();
+        stored.setId(42L);
+        stored.setActivityType(GpsTrack.ACTIVITY_TYPE.BICYCLE);
+        stored.setEnergyNetTotalWh(100.0);
+        stored.setEnergyWeightKgUsed(92.0);
+        when(repository.findByIdForUpdate(42L)).thenReturn(Optional.of(stored));
+        when(repository.save(any(GpsTrack.class))).thenAnswer(call -> call.getArgument(0));
+        when(energy.parametersForTrack(stored)).thenReturn(com.x8ing.mtl.server.mtlserver.energy.EnergyParameters.builder().riderWeightKg(82).build());
+        var request = new GpsTrack();
+        request.setId(42L);
+        request.setActivityType(GpsTrack.ACTIVITY_TYPE.ROWING);
+        var saved = controller(repository, mock(FilterExecutionService.class), energy).saveTrack(request);
+        assertThat(saved.getEnergyNetTotalWh()).isNull();
+        assertThat(saved.getPowerWattsAvg()).isNull();
+        assertThat(saved.getMetabolicEnergy().getBodyWeightKg()).isEqualTo(82);
+        assertThat(saved.getMetabolicEnergy().getActiveKcal()).isNull();
+        verify(energyQueue).request(42L);
     }
 
     @Test
@@ -66,7 +173,7 @@ class TracksControllerStatisticsExclusionTest {
         GpsTrack track = new GpsTrack();
         track.setId(42L);
         track.setActivityType(GpsTrack.ACTIVITY_TYPE.BICYCLE);
-        when(repository.findById(42L)).thenReturn(Optional.of(track));
+        when(repository.findByIdForUpdate(42L)).thenReturn(Optional.of(track));
 
         GpsTrack saved = controller(repository, mock(FilterExecutionService.class), energyService).updateTrackActivityType(
                 42L,
@@ -83,7 +190,7 @@ class TracksControllerStatisticsExclusionTest {
         GpsTrackRepository repository = mock(GpsTrackRepository.class);
         GpsTrack track = new GpsTrack();
         track.setId(42L);
-        when(repository.findById(42L)).thenReturn(Optional.of(track));
+        when(repository.findByIdForUpdate(42L)).thenReturn(Optional.of(track));
         when(repository.save(any(GpsTrack.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         GpsTrack saved = controller(repository).updateTrackStatisticsExclusion(
@@ -106,7 +213,7 @@ class TracksControllerStatisticsExclusionTest {
         track.setId(42L);
         track.setHighlightExclusionReason(GpsTrack.STATISTICS_EXCLUSION_REASON.GPS_NOISE);
         track.setStatisticsExclusionReason(GpsTrack.STATISTICS_EXCLUSION_REASON.IMPORT_ARTIFACT);
-        when(repository.findById(42L)).thenReturn(Optional.of(track));
+        when(repository.findByIdForUpdate(42L)).thenReturn(Optional.of(track));
         when(repository.save(any(GpsTrack.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         GpsTrack saved = controller(repository).updateTrackStatisticsExclusion(
@@ -205,37 +312,52 @@ class TracksControllerStatisticsExclusionTest {
         });
     }
 
-    private static TracksController controller(GpsTrackRepository repository) {
+    private TracksController controller(GpsTrackRepository repository) {
         return controller(repository, mock(FilterExecutionService.class));
     }
 
-    private static TracksController controller(GpsTrackRepository repository, FilterExecutionService filter) {
+    private TracksController controller(GpsTrackRepository repository, FilterExecutionService filter) {
         return controller(repository, filter, mock(EnergyService.class));
     }
 
-    private static TracksController controller(GpsTrackRepository repository, FilterExecutionService filter, EnergyService energyService) {
+    private TracksController controller(GpsTrackRepository repository, FilterExecutionService filter, EnergyService energyService) {
         return controller(repository, filter, energyService, mock(StatisticsMilestoneService.class));
     }
 
-    private static TracksController controller(
+    private TracksController controller(
             GpsTrackRepository repository,
             FilterExecutionService filter,
             EnergyService energyService,
             StatisticsMilestoneService milestoneService
+    ) {
+        return controller(repository, filter, energyService, milestoneService, mock(GpsTrackDataPointRepository.class));
+    }
+
+    private TracksController controller(
+            GpsTrackRepository repository,
+            FilterExecutionService filter,
+            EnergyService energyService,
+            StatisticsMilestoneService milestoneService,
+            GpsTrackDataPointRepository pointRepository
     ) {
         return new TracksController(
                 repository,
                 mock(TrackTimeBetweenTwoPoints.class),
                 mock(GpsTrackAndDataService.class),
                 mock(GpsTrackDataRepository.class),
-                mock(GpsTrackDataPointRepository.class),
+                pointRepository,
                 mock(GpsTrackEventRepository.class),
                 mock(TrackMediaQueryRepository.class),
                 filter,
                 energyService,
+                energyQueue,
                 mock(TrackFileExportService.class),
                 milestoneService,
-                Runnable::run
+                Runnable::run,
+                mock(com.x8ing.mtl.server.mtlserver.googlehealth.web.SegmentHeartRateService.class),
+                mock(com.x8ing.mtl.server.mtlserver.analysis.segment.SegmentAttemptResolver.class),
+                mock(com.x8ing.mtl.server.mtlserver.indexer.TrackProcessingStatusService.class),
+                mock(com.x8ing.mtl.server.mtlserver.analysis.segment.SegmentReadScope.class)
         );
     }
 

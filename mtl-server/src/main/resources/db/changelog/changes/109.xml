@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.10.xsd">
+    <changeSet id="20261013_client_stack_fingerprint" author="codex">
+        <addColumn tableName="system_log">
+            <column name="stack_fingerprint" type="varchar(64)"/>
+        </addColumn>
+        <createIndex tableName="system_log" indexName="system_log_stack_fingerprint_ix">
+            <column name="stack_fingerprint"/>
+        </createIndex>
+    </changeSet>
+</databaseChangeLog>

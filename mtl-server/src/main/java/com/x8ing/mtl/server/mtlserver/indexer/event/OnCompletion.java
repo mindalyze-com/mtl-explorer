@@ -18,4 +18,16 @@ public interface OnCompletion {
     void success(long fileId);
 
     void failed(long fileId, String reason);
+
+    default void sourceFailed(long fileId, String reason) {
+        failed(fileId, reason);
+    }
+
+    default void skipped(long fileId, String reason) {
+        failed(fileId, reason);
+    }
+
+    default void sourceChanged(long fileId, String reason) {
+        failed(fileId, reason);
+    }
 }

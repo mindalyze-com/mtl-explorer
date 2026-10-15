@@ -56,6 +56,8 @@ type ChartWithNativeHoverPoints = Highcharts.Chart & {
 type TrackSyncPoint = Highcharts.Point & {
   canonicalPointIndex?: number;
   ts?: number;
+  distX?: number;
+  dist?: number;
 };
 type PointWithState = Highcharts.Point & {
   state?: string;
@@ -69,7 +71,6 @@ const lastHoveredPoints = new Set<Highcharts.Point>();
 const lastShownPointByChart = new WeakMap<Highcharts.Chart, Highcharts.Point>();
 
 const PASSIVE_TOUCH_LISTENER: AddEventListenerOptions = { passive: true };
-const TOUCH_LINE_PROXIMITY_PX = 24;
 
 const cursor = useTrackCursorSync();
 
@@ -104,7 +105,9 @@ export function useChartSync() {
     let tracksTouchGesture = false;
     const onMouseMove = (e: MouseEvent) => syncMouseMove(e, chart);
     const onTouchStart = (e: TouchEvent) => {
-      tracksTouchGesture = e.touches.length === 1 && isTouchCloseToSeries(e, chart);
+      const event = normalizeChartEvent(e, chart);
+      // Scrubbing follows the x-axis anywhere in the plot, even before point lookup is ready.
+      tracksTouchGesture = e.touches.length === 1 && !!event && isInsidePlot(event, chart);
       if (tracksTouchGesture) {
         syncMouseMove(e, chart);
       } else {
@@ -149,17 +152,33 @@ export function useChartSync() {
     return (chart.pointer as ChartPointer).normalize(sourceEvent);
   }
 
-  function isTouchCloseToSeries(e: TouchEvent, chart: Highcharts.Chart): boolean {
-    if (!chart.series?.length) return false;
+  function interactiveSeries(chart: Highcharts.Chart): Highcharts.Series[] {
+    return (chart.series ?? []).filter(
+      (series) =>
+        series.visible !== false &&
+        (series.options as Highcharts.PlotSeriesOptions | undefined)?.enableMouseTracking !== false
+    );
+  }
 
-    const event = normalizeChartEvent(e, chart);
-    if (!event || !isInsidePlot(event, chart)) return false;
-
-    const point = chart.series[0].searchPoint(event, true);
-    const plotY = point?.plotY;
-    if (typeof plotY !== 'number' || !Number.isFinite(plotY)) return false;
-
-    return Math.abs(event.chartY - (chart.plotTop + plotY)) <= TOUCH_LINE_PROXIMITY_PX;
+  function searchInteractivePoint(
+    chart: Highcharts.Chart,
+    event: Highcharts.PointerEventObject
+  ): Highcharts.Point | null {
+    let nearest: TrackSyncPoint | null = null;
+    for (const series of interactiveSeries(chart)) {
+      const point = series.searchPoint(event, true) as TrackSyncPoint | undefined;
+      if (!point || point.y === null) continue;
+      const distanceX = point.distX ?? Infinity;
+      const nearestDistanceX = nearest?.distX ?? Infinity;
+      if (
+        !nearest ||
+        distanceX < nearestDistanceX ||
+        (distanceX === nearestDistanceX && (point.dist ?? Infinity) < (nearest.dist ?? Infinity))
+      ) {
+        nearest = point;
+      }
+    }
+    return nearest;
   }
 
   function isInsidePlot(event: Highcharts.PointerEventObject, chart: Highcharts.Chart): boolean {
@@ -178,7 +197,7 @@ export function useChartSync() {
   function syncMouseMove(e: ChartSyncMoveEvent, sourceChart: Highcharts.Chart): void {
     if (sourceChart.series?.length) {
       const event = normalizeChartEvent(e, sourceChart);
-      const point = event ? sourceChart.series[0].searchPoint(event, true) : null;
+      const point = event ? searchInteractivePoint(sourceChart, event) : null;
       if (point) {
         syncPointHover(point);
       }
@@ -191,7 +210,7 @@ export function useChartSync() {
    */
   function syncPointHover(point: Highcharts.Point): void {
     const syncPoint = point as TrackSyncPoint;
-    showChartsAtXValue(point.x);
+    showChartsAtXValue(point.x, syncPoint.canonicalPointIndex);
     cursor.setHoverByChartPoint(point.x, syncPoint.ts ?? null, 'chart', syncPoint.canonicalPointIndex ?? null);
   }
 
@@ -215,7 +234,7 @@ export function useChartSync() {
   function syncClick(e: MouseEvent, sourceChart: Highcharts.Chart): void {
     if (!sourceChart.series?.length) return;
     const event = sourceChart.pointer.normalize(e);
-    const point = sourceChart.series[0].searchPoint(event, true);
+    const point = searchInteractivePoint(sourceChart, event);
     if (!point) return;
     const syncPoint = point as TrackSyncPoint;
     cursor.setPinnedByChartPoint(point.x, syncPoint.ts ?? null, 'chart', syncPoint.canonicalPointIndex ?? null);
@@ -280,20 +299,32 @@ export function useChartSync() {
     return rect.bottom > 0 && rect.right > 0 && rect.top < view.innerHeight && rect.left < view.innerWidth;
   }
 
-  function showChartAtXValue(chart: Highcharts.Chart, xVal: number): void {
+  function showChartAtXValue(chart: Highcharts.Chart, xVal: number, canonicalPointIndex?: number): void {
     if (!chart.series?.length) return;
     if (!isChartVisible(chart)) {
       clearShownPointForChart(chart);
       return;
     }
 
-    const points = chart.series[0].points;
-    if (!points?.length) {
-      clearShownPointForChart(chart);
-      return;
+    let point: Highcharts.Point | undefined;
+    for (const series of interactiveSeries(chart)) {
+      const points = (series.points ?? []).filter(
+        (candidate) => candidate.y !== null && typeof candidate.setState === 'function'
+      );
+      if (!points.length) continue;
+      // Sections may overlap in clock time. Prefer the recorded point identity
+      // so a hover in a later section does not jump to an earlier one.
+      const exactPoint =
+        canonicalPointIndex == null
+          ? undefined
+          : points.find((candidate) => (candidate as TrackSyncPoint).canonicalPointIndex === canonicalPointIndex);
+      if (exactPoint) {
+        point = exactPoint;
+        break;
+      }
+      const candidate = points[nearestSortedIndex(points, xVal, (candidate) => candidate.x)];
+      if (!point || Math.abs(candidate.x - xVal) < Math.abs(point.x - xVal)) point = candidate;
     }
-
-    const point = points[nearestSortedIndex(points, xVal, (candidate) => candidate.x)];
     if (!point) {
       clearShownPointForChart(chart);
       return;
@@ -312,9 +343,9 @@ export function useChartSync() {
   /**
    * Show crosshair + tooltip + hover marker on all charts for a given x-value.
    */
-  function showChartsAtXValue(xVal: number): void {
+  function showChartsAtXValue(xVal: number, canonicalPointIndex?: number): void {
     registeredCharts.forEach((chart) => {
-      showChartAtXValue(chart, xVal);
+      showChartAtXValue(chart, xVal, canonicalPointIndex);
     });
   }
 
@@ -322,10 +353,12 @@ export function useChartSync() {
    * Show crosshair + tooltip on all charts for a given TrackPoint (called from map → charts).
    * Resolves the correct x-value based on the current xMode.
    */
-  function showChartsAtPoint(tp: Pick<TrackPoint, 'timestamp' | 'distanceKm' | 'chartX'>): void {
+  function showChartsAtPoint(
+    tp: Pick<TrackPoint, 'timestamp' | 'distanceKm' | 'chartX' | 'canonicalPointIndex'>
+  ): void {
     registeredCharts.forEach((chart) => {
       const xMode = getChartXMode(chart);
-      showChartAtXValue(chart, chartXForTrackPoint(tp, xMode, cursor.getStartTs()));
+      showChartAtXValue(chart, chartXForTrackPoint(tp, xMode, cursor.getStartTs()), tp.canonicalPointIndex);
     });
   }
 

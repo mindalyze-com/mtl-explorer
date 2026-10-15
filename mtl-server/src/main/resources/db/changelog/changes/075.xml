@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+ xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+ xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.10.xsd">
+ <changeSet id="20260905_google_health_reconciliation_progress" author="codex">
+  <comment>Retain the remaining reconciliation range across cancellation and restart.</comment>
+  <sql>
+   ALTER TABLE google_health.sync_state
+    ADD COLUMN reconciliation_start timestamptz,
+    ADD COLUMN reconciliation_end timestamptz,
+    ADD COLUMN daily_reconciliation_start timestamptz,
+    ADD COLUMN daily_reconciliation_end timestamptz;
+  </sql>
+  <rollback>ALTER TABLE google_health.sync_state DROP COLUMN reconciliation_start, DROP COLUMN reconciliation_end, DROP COLUMN daily_reconciliation_start, DROP COLUMN daily_reconciliation_end;</rollback>
+ </changeSet>
+</databaseChangeLog>

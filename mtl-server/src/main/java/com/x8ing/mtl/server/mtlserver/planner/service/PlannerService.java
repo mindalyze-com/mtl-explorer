@@ -1,6 +1,7 @@
 package com.x8ing.mtl.server.mtlserver.planner.service;
 
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
+import com.x8ing.mtl.server.mtlserver.planner.PlannerGeometryMetrics;
 import com.x8ing.mtl.server.mtlserver.planner.client.BRouterClient;
 import com.x8ing.mtl.server.mtlserver.planner.config.PlannerProperties;
 import com.x8ing.mtl.server.mtlserver.planner.constants.PlannerConstants;
@@ -53,6 +54,7 @@ public class PlannerService {
      * Compute the full route. Throws {@link IllegalArgumentException} on bad input.
      */
     public RouteResponseDto computeRoute(RouteRequestDto req) {
+        Instant started = Instant.now();
         if (req == null) {
             throw new IllegalArgumentException("Route request is required");
         }
@@ -83,8 +85,44 @@ public class PlannerService {
         RouteResponseDto resp = new RouteResponseDto();
         resp.setLegs(legs);
         resp.setProfile(profile);
-        resp.setStats(aggregate(legs));
+        resp.setStats(PlannerGeometryMetrics.routeStats(legs));
+        log.info("Route computed: legs={} points={} ascentM={} descentM={} durationMs={}",
+                legs.size(), legs.stream().mapToInt(leg -> leg.getCoordinates().size()).sum(),
+                resp.getStats().getAscentM(), resp.getStats().getDescentM(),
+                Duration.between(started, Instant.now()).toMillis());
         return resp;
+    }
+
+    /**
+     * Recalculate an existing route after trimming, without asking BRouter to route it again.
+     */
+    public LiveStatsDto computeStats(List<LegResultDto> legs) {
+        Instant started = Instant.now();
+        if (legs == null || legs.size() >= PlannerConstants.MAX_WAYPOINTS) {
+            throw new IllegalArgumentException("Invalid route legs");
+        }
+        int points = 0;
+        for (LegResultDto leg : legs) {
+            if (leg == null || leg.getCoordinates() == null || leg.getCoordinates().size() < 2
+                || !Double.isFinite(leg.getDistanceM()) || leg.getDistanceM() < 0
+                || !Double.isFinite(leg.getDurationSec()) || leg.getDurationSec() < 0) {
+                throw new IllegalArgumentException("Invalid route leg");
+            }
+            for (double[] coordinate : leg.getCoordinates()) {
+                if (coordinate == null || coordinate.length < 2) {
+                    throw new IllegalArgumentException("Invalid route coordinate");
+                }
+                GeoCoordinateUtils.requireValidLongitude(coordinate[0]);
+                GeoCoordinateUtils.requireValidLatitude(coordinate[1]);
+            }
+            points += leg.getCoordinates().size();
+        }
+        log.info("Computing route statistics: legs={} points={}", legs.size(), points);
+        LiveStatsDto stats = PlannerGeometryMetrics.routeStats(legs);
+        log.info("Route statistics computed: legs={} points={} ascentM={} descentM={} durationMs={}",
+                legs.size(), points, stats.getAscentM(), stats.getDescentM(),
+                Duration.between(started, Instant.now()).toMillis());
+        return stats;
     }
 
     private LegResultDto getLegCached(WaypointDto a, WaypointDto b, String profile) {
@@ -114,19 +152,6 @@ public class PlannerService {
         c.setDurationSec(src.getDurationSec());
         c.setCached(src.isCached());
         return c;
-    }
-
-    private LiveStatsDto aggregate(List<LegResultDto> legs) {
-        LiveStatsDto s = new LiveStatsDto();
-        for (LegResultDto l : legs) {
-            s.setDistanceM(s.getDistanceM() + l.getDistanceM());
-            s.setAscentM(s.getAscentM() + l.getAscentM());
-            s.setDescentM(s.getDescentM() + l.getDescentM());
-            s.setDurationSec(s.getDurationSec() + l.getDurationSec());
-            if (l.isCached()) s.setAnyLegCached(true);
-        }
-        s.setLegCount(legs.size());
-        return s;
     }
 
     private String resolveProfile(String requested) {

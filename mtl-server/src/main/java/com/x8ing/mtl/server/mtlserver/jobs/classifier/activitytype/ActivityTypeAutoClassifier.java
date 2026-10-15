@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.x8ing.mtl.server.mtlserver.db.entity.gps.GpsTrack;
 import com.x8ing.mtl.server.mtlserver.db.entity.gps.GpsTrackDataPoint;
 import com.x8ing.mtl.server.mtlserver.db.repository.gps.GpsTrackRepository;
+import com.x8ing.mtl.server.mtlserver.energy.EnergyRecalculationQueue;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -21,8 +22,10 @@ import java.util.Map;
         "gpsTrackRepository"
 })
 public class ActivityTypeAutoClassifier {
+    public static final String NO_DATA_POINTS_MESSAGE = "GPS track had no data points.";
 
     private final GpsTrackRepository gpsTrackRepository;
+    private final EnergyRecalculationQueue energyQueue;
 
     private static final Map<String, GpsTrack.ACTIVITY_TYPE> GARMIN_TRACK_TYPE_ALIASES = Map.ofEntries(
             Map.entry("street_running", GpsTrack.ACTIVITY_TYPE.RUNNING),
@@ -91,8 +94,9 @@ public class ActivityTypeAutoClassifier {
             Map.entry("aviation", GpsTrack.ACTIVITY_TYPE.AIRPLANE)
     );
 
-    public ActivityTypeAutoClassifier(GpsTrackRepository gpsTrackRepository) {
+    public ActivityTypeAutoClassifier(GpsTrackRepository gpsTrackRepository, EnergyRecalculationQueue energyQueue) {
         this.gpsTrackRepository = gpsTrackRepository;
+        this.energyQueue = energyQueue;
     }
 
     @JsonPropertyOrder({
@@ -140,8 +144,8 @@ public class ActivityTypeAutoClassifier {
 
         ActivityClassification classification;
         if (CollectionUtils.isEmpty(gpsTrackDataPointList)) {
-            String msg = "GPS track had no data points. gpsTrackId=%s".formatted(gpsTrackId);
-            log.warn(msg);
+            String msg = NO_DATA_POINTS_MESSAGE + " gpsTrackId=" + gpsTrackId;
+            log.warn("Activity classification unavailable: trackId={}, reason={}", gpsTrackId, NO_DATA_POINTS_MESSAGE);
             classification = new ActivityClassification(null, GpsTrack.ACTIVITY_TYPE_SOURCE.FAILED, msg);
         } else {
             classification = guessActivity(gpsTrack, gpsTrackDataPointList);
@@ -151,7 +155,19 @@ public class ActivityTypeAutoClassifier {
                 classification.activityType(),
                 classification.activityTypeSource(),
                 classification.activityTypeSourceDetails());
+        if (updated > 0 && classification.activityType() != null) {
+            energyQueue.request(gpsTrackId);
+        }
         return new ClassificationResult(previousType, classification.activityType(), updated > 0);
+    }
+
+    /**
+     * Called after the failed classification transaction has rolled back.
+     */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void markFailed(Long trackId, String details) {
+        gpsTrackRepository.updateActivityClassificationIfPending(
+                trackId, null, GpsTrack.ACTIVITY_TYPE_SOURCE.FAILED, details);
     }
 
     private static ActivityClassification guessActivity(GpsTrack gpsTrack, List<GpsTrackDataPoint> gpsTrackDataPointList) {

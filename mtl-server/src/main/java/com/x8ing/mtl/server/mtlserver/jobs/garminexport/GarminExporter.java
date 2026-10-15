@@ -13,7 +13,6 @@ import lombok.Data;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
@@ -235,7 +234,7 @@ public class GarminExporter {
 
                 // Log fallback activation to database
                 systemLogService.saveLog(
-                        SystemLog.TOPIC1.SERVER,
+                        SystemLog.Severity.WARN, "SERVER",
                         SYSLOG_TOPIC2,
                         SYSLOG_TOPIC3_FALLBACK,
                         "HTTP 408 timeout detected - activating FIT export fallback for %d activities".formatted(failedActivityIds.size()),
@@ -255,13 +254,13 @@ public class GarminExporter {
                 log("=" + "=".repeat(80), programOutput, true);
             }
 
-            systemLogService.saveLog(SystemLog.TOPIC1.SERVER, SYSLOG_TOPIC2, SYSLOG_TOPIC3_MAIN_JOB, "Garmin export program completed with success", programOutput.toString());
+            systemLogService.saveLog(SystemLog.Severity.INFO, "SERVER", SYSLOG_TOPIC2, SYSLOG_TOPIC3_MAIN_JOB, "Garmin export program completed with success", programOutput.toString());
 
             return programOutput.toString();
 
         } catch (Exception e) {
             log.error("Garmin export did fail unexpectedly. Program-Output:\n" + programOutput + "\n", e);
-            systemLogService.saveLog(SystemLog.TOPIC1.SERVER, SYSLOG_TOPIC2, SYSLOG_TOPIC3_MAIN_JOB, "Garmin export program did fail", "PROGRAM_OUTPUT:\n" + programOutput + "\n" + "ERROR: \n" + e + "\n" + ExceptionUtils.getStackTrace(e));
+            systemLogService.saveLog(SystemLog.Severity.ERROR, "SERVER", SYSLOG_TOPIC2, SYSLOG_TOPIC3_MAIN_JOB, "Garmin export program did fail", programOutput.toString(), e);
             throw e;
         }
     }
@@ -333,7 +332,7 @@ public class GarminExporter {
 
                 // Log success to database
                 systemLogService.saveLog(
-                        SystemLog.TOPIC1.SERVER,
+                        SystemLog.Severity.INFO, "SERVER",
                         SYSLOG_TOPIC2,
                         SYSLOG_TOPIC3_FALLBACK,
                         "FIT fallback SUCCESS for activity %s".formatted(activityId),
@@ -344,7 +343,7 @@ public class GarminExporter {
 
                 // Log failure to database
                 systemLogService.saveLog(
-                        SystemLog.TOPIC1.SERVER,
+                        SystemLog.Severity.WARN, "SERVER",
                         SYSLOG_TOPIC2,
                         SYSLOG_TOPIC3_FALLBACK,
                         "FIT fallback FAILED for activity %s (exit code: %d)".formatted(activityId, exitCode),
@@ -358,11 +357,11 @@ public class GarminExporter {
 
             // Log exception to database
             systemLogService.saveLog(
-                    SystemLog.TOPIC1.SERVER,
+                    SystemLog.Severity.WARN, "SERVER",
                     SYSLOG_TOPIC2,
                     SYSLOG_TOPIC3_FALLBACK,
                     "FIT fallback ERROR for activity %s".formatted(activityId),
-                    "Error: " + e.getMessage() + "\n" + ExceptionUtils.getStackTrace(e) + "\n\nOutput:\n" + fitExportOutput.toString()
+                    fitExportOutput.toString(), e
             );
         }
 
@@ -381,7 +380,7 @@ public class GarminExporter {
             String msg = "Garmin job not enabled. Nothing to do.";
             log.info(msg);
             systemLogService.saveLog(
-                    SystemLog.TOPIC1.SERVER,
+                    SystemLog.Severity.INFO, "SERVER",
                     SYSLOG_TOPIC2,
                     SYSLOG_TOPIC3_SKIPPED,
                     "Garmin export skipped - not enabled",
@@ -395,7 +394,7 @@ public class GarminExporter {
             String msg = "GPS index has pending files (SCHEDULED or PROCESSING status). Skipping Garmin export to avoid race conditions.";
             log.info(msg);
             systemLogService.saveLog(
-                    SystemLog.TOPIC1.SERVER,
+                    SystemLog.Severity.INFO, "SERVER",
                     SYSLOG_TOPIC2,
                     SYSLOG_TOPIC3_SKIPPED,
                     "Garmin export skipped - GPS files still being processed",

@@ -39,10 +39,12 @@
       @scroll.passive="onScroll"
     >
       <div class="mp__filmstrip-track" :style="filmstripTrackStyle">
-        <button
+        <MediaThumbnailButton
           v-for="item in visibleMediaItems"
-          :key="item.id"
-          type="button"
+          :key="`${item.id}-${thumbnailRetryVersions.get(item.id) ?? 0}`"
+          v-slot="{ imageProps }"
+          :src="thumbnailUrl(item.id)"
+          :enabled="!collapsed"
           class="mp__filmstrip-item"
           :class="{ 'mp__filmstrip-item--active': item.id === mediaId }"
           :style="filmstripItemStyle(item.index)"
@@ -52,11 +54,11 @@
           :data-media-index="item.index"
           @click="onItemClick($event, item.id)"
         >
-          <img :src="thumbnailUrl(item.id)" alt="" loading="lazy" fetchpriority="low" draggable="false" />
+          <img v-if="!collapsed" v-bind="imageProps" alt="" draggable="false" />
           <span v-if="isVideoItem(item.id)" class="mp__filmstrip-video" aria-hidden="true">
             <i class="bi bi-play-fill"></i>
           </span>
-        </button>
+        </MediaThumbnailButton>
       </div>
     </div>
   </section>
@@ -66,6 +68,7 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { getMediaInfo, mediaContentUrl } from '@/repositories/mediaRepository';
 import { isVideoMedia } from '@/utils/mediaKind';
+import MediaThumbnailButton from '@/components/media/MediaThumbnailButton.vue';
 
 defineOptions({ name: 'MediaFilmstrip' });
 
@@ -108,6 +111,7 @@ const emit = defineEmits<{
 }>();
 
 const filmstripEl = ref<HTMLElement | null>(null);
+const thumbnailRetryVersions = ref(new Map<number, number>());
 const collapsed = ref(false);
 const dragging = ref(false);
 const renderStart = ref(0);
@@ -116,6 +120,7 @@ const discoveredVideoMediaIds = ref(new Set<number>());
 const resolvedMediaKinds = new Set<number>();
 const mediaKindControllers = new Map<number, AbortController>();
 let requestedPageDirection: -1 | 1 | null = null;
+let centeredScrollLeft: number | null = null;
 let dragStartX = 0;
 let dragStartScrollLeft = 0;
 let suppressItemClick = false;
@@ -124,7 +129,9 @@ let filmstripResizeObserver: ResizeObserver | null = null;
 const mediaIds = computed(() => [...new Set(props.mediaIds.filter((id) => Number.isSafeInteger(id) && id > 0))]);
 const videoMediaIds = computed(() => new Set(props.videoMediaIds.filter((id) => Number.isSafeInteger(id) && id > 0)));
 const compactCollectionLabel = computed(() =>
-  props.collectionLabel === 'Nearby media' ? 'Nearby' : props.collectionLabel
+  props.collectionLabel === 'Nearby media' || props.collectionLabel === 'Activity media'
+    ? 'Nearby'
+    : props.collectionLabel
 );
 const visibleMediaItems = computed(() =>
   mediaIds.value.slice(renderStart.value, renderEnd.value).map((id, localIndex) => ({
@@ -140,6 +147,14 @@ function filmstripItemStyle(index: number) {
 
 function itemStride(element: HTMLElement): number {
   const items = element.querySelectorAll<HTMLElement>('.mp__filmstrip-item');
+  // offsetLeft rounds to whole pixels; that error compounds in large collections.
+  // Normalize the fractional CSS position instead of subtracting adjacent offsets.
+  for (const item of items) {
+    const index = Number(item.dataset.mediaIndex);
+    if (index <= 0) continue;
+    const stride = Number.parseFloat(getComputedStyle(item).left) / index;
+    if (Number.isFinite(stride) && stride > 0) return stride;
+  }
   if (items.length < 2) return FILMSTRIP_FALLBACK_ITEM_STRIDE_PX;
   const firstIndex = Number(items[0].dataset.mediaIndex);
   const secondIndex = Number(items[1].dataset.mediaIndex);
@@ -169,7 +184,9 @@ function centerActiveMedia(): void {
     return;
   }
   const stride = itemStride(element);
+  const previousScrollLeft = element.scrollLeft;
   element.scrollLeft = Math.max(0, activeIndex * stride - Math.max(0, element.clientWidth - stride) / 2);
+  if (element.scrollLeft !== previousScrollLeft) centeredScrollLeft = element.scrollLeft;
   updateRenderWindow();
 }
 
@@ -185,6 +202,10 @@ function onScroll(): void {
   const element = filmstripEl.value;
   if (!element) return;
   updateRenderWindow();
+  // Centering a selection must not navigate to a different photo at a page boundary.
+  const wasCentered = centeredScrollLeft != null && element.scrollLeft === centeredScrollLeft;
+  centeredScrollLeft = null;
+  if (wasCentered) return;
   const atStart = element.scrollLeft <= FILMSTRIP_SCROLL_BOUNDARY_PX;
   const atEnd = element.scrollWidth - element.clientWidth - element.scrollLeft <= FILMSTRIP_SCROLL_BOUNDARY_PX;
 
@@ -198,6 +219,14 @@ function onScroll(): void {
 function thumbnailUrl(id: number): string {
   return mediaContentUrl(id, FILMSTRIP_THUMBNAIL_SIZE);
 }
+
+function retryThumbnail(id: number | null): void {
+  if (id == null || !mediaIds.value.includes(id)) return;
+  // Restart this image and its recovery directive while retaining the filmstrip state.
+  thumbnailRetryVersions.value.set(id, (thumbnailRetryVersions.value.get(id) ?? 0) + 1);
+}
+
+defineExpose({ retryThumbnail });
 
 function isVideoItem(id: number): boolean {
   return (
@@ -260,14 +289,18 @@ function onMouseUp(): void {
   }, 0);
 }
 
-function onItemClick(event: MouseEvent, id: number): void {
+function consumeDragClick(event: MouseEvent): boolean {
   if (suppressItemClick) {
     suppressItemClick = false;
     event.preventDefault();
     event.stopPropagation();
-    return;
+    return true;
   }
-  emit('select', id);
+  return false;
+}
+
+function onItemClick(event: MouseEvent, id: number): void {
+  if (!consumeDragClick(event)) emit('select', id);
 }
 
 watch(
@@ -278,6 +311,15 @@ watch(
     centerActiveMedia();
   },
   { deep: false }
+);
+
+watch(
+  () => [props.mediaId, props.currentMediaIsVideo] as const,
+  ([id, isVideo]) => {
+    if (id == null || !isVideo || discoveredVideoMediaIds.value.has(id)) return;
+    discoveredVideoMediaIds.value = new Set([...discoveredVideoMediaIds.value, id]);
+  },
+  { immediate: true }
 );
 
 watch(

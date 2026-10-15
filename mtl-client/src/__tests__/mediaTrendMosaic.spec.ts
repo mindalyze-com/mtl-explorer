@@ -82,6 +82,31 @@ describe('MediaTrendMosaic', () => {
     getMediaTrendItemsMock.mockReset();
   });
 
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
+
+  it('opens its nested viewer even when the thumbnail has failed', async () => {
+    getMediaTrendItemsMock.mockResolvedValueOnce(page([{ id: 21, mediaKind: 'IMAGE', fileName: 'one.jpg' }]));
+    vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:mosaic-photo');
+    vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => undefined);
+    const fetchMock = vi.fn().mockImplementation(async () => new Response(null, { status: 500 }));
+    vi.stubGlobal('fetch', fetchMock);
+    const wrapper = mountMosaic();
+    await flushPromises();
+    await wrapper.get('.media-mosaic-card__preview img').trigger('error');
+    await flushPromises();
+    expect(wrapper.get('.media-mosaic-card__preview').text()).toContain('No preview');
+
+    fetchMock.mockImplementation(async () => new Response('jpeg'));
+    await wrapper.get('.media-mosaic-card__preview').trigger('click');
+    await flushPromises();
+    expect(wrapper.get('[data-test="media-preview-stub"]').text()).toContain('21 · 1/1');
+    expect(wrapper.find('.media-mosaic-card__preview img').exists()).toBe(false);
+    wrapper.unmount();
+  });
+
   it('loads 60 mixed media items first and pages in stable server order', async () => {
     const firstItems = Array.from({ length: 60 }, (_, index) => ({
       id: 200 - index,
@@ -160,6 +185,38 @@ describe('MediaTrendMosaic', () => {
     expect(wrapper.emitted('update:modelValue')?.at(-1)).toEqual([false]);
   });
 
+  it('updates the title for an empty video selection', async () => {
+    getMediaTrendItemsMock
+      .mockResolvedValueOnce(page([{ id: 21, mediaKind: 'IMAGE' }], 62))
+      .mockResolvedValueOnce(page([], 0));
+    const wrapper = mountMosaic();
+    await flushPromises();
+    await wrapper
+      .findAll('.media-mosaic__chip')
+      .find((chip) => chip.text() === 'Videos')!
+      .trigger('click');
+    await flushPromises();
+    expect(wrapper.getComponent(BottomSheetStub).props('title')).toBe('2026-08 · 0 items');
+    expect(wrapper.text()).toContain('No media in this selection.');
+  });
+
+  it('shows quarter-boundary dates in the UTC time zone used for grouping', async () => {
+    getMediaTrendItemsMock.mockResolvedValue(
+      page([
+        { id: 21, mediaKind: 'IMAGE', fileName: 'boundary.jpg', effectiveCapturedAt: new Date('2026-06-30T22:32:00Z') },
+      ])
+    );
+    const wrapper = mountMosaic();
+    await wrapper.setProps({
+      bucket: { ...bucket, bucketKey: '2026-Q2', label: '2026-Q2' },
+      grouping: MediaTrendItemsRequestGroupingEnum.Quarter,
+    });
+    await flushPromises();
+    expect(wrapper.text()).toContain('Periods use UTC. Photo details use your local time.');
+    expect(wrapper.get('.media-mosaic-card__text span').text()).toContain('UTC');
+    expect(wrapper.get('.media-mosaic-card__text span').text()).toContain('22:32');
+  });
+
   it('sends the selected media coordinates to the main map flow', async () => {
     getMediaTrendItemsMock.mockResolvedValueOnce(
       page([{ id: 21, mediaKind: 'IMAGE', fileName: 'one.jpg', resolvedLat: 47.56, resolvedLng: 8.5 }])
@@ -207,14 +264,14 @@ describe('MediaTrendMosaic', () => {
     expect(wrapper.getComponent(MediaPreviewStub).props('appliedCameraOffsetSeconds')).toBe(0);
   });
 
-  it('does not send activity IDs for all indexed undated media', async () => {
+  it('sends matching track IDs for all media in a dated period', async () => {
     getMediaTrendItemsMock.mockResolvedValueOnce(
-      page([{ id: 9, mediaKind: 'IMAGE', fileName: 'undated.jpg', trackId: 11 }])
+      page([{ id: 9, mediaKind: 'IMAGE', fileName: 'dated.jpg', trackId: 11 }])
     );
     const wrapper = mount(MediaTrendMosaic, {
       props: {
         modelValue: true,
-        bucket: { ...bucket, bucketKey: 'UNDATED', label: 'Undated', undated: true },
+        bucket: { ...bucket, bucketKey: 'TOTAL', label: 'Total', undated: false },
         grouping: MediaTrendItemsRequestGroupingEnum.Total,
         scope: MediaTrendItemsRequestScopeEnum.AllIndexed,
         trackIds: [11],
@@ -224,10 +281,10 @@ describe('MediaTrendMosaic', () => {
     await flushPromises();
 
     expect(getMediaTrendItemsMock).toHaveBeenCalledWith(
-      expect.objectContaining({ bucketKey: 'UNDATED', scope: 'ALL_INDEXED', trackIds: undefined }),
+      expect.objectContaining({ bucketKey: 'TOTAL', scope: 'ALL_INDEXED', trackIds: [11] }),
       expect.any(AbortSignal)
     );
-    expect(wrapper.get('.bottom-sheet-stub').attributes('data-title')).toBe('Undated · 62 items');
+    expect(wrapper.get('.bottom-sheet-stub').attributes('data-title')).toBe('Total · 1 item');
     expect(wrapper.find('.media-mosaic-card__activity').exists()).toBe(false);
   });
 

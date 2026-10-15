@@ -3,33 +3,54 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script defer src="../site-analytics.js"></script>
   <title>GPS Segment Analysis and Replay | MTL Explorer</title>
   <meta name="description" content="Create map checkpoints in MTL Explorer, find every matching GPS track, compare segment times, inspect charts, and replay repeated attempts.">
   <meta name="robots" content="index, follow, max-image-preview:large">
-  <link rel="canonical" href="https://mindalyze-com.github.io/mtl-explorer/segment-analysis/">
+  <link rel="canonical" href="https://mtl-explorer.com/segment-analysis/">
   <meta property="og:site_name" content="MTL Explorer">
   <meta property="og:type" content="website">
-  <meta property="og:url" content="https://mindalyze-com.github.io/mtl-explorer/segment-analysis/">
+  <meta property="og:url" content="https://mtl-explorer.com/segment-analysis/">
   <meta property="og:title" content="GPS Segment Analysis and Replay | MTL Explorer">
   <meta property="og:description" content="Compare repeated GPS tracks between checkpoints on a self-hosted map.">
-  <meta property="og:image" content="https://mindalyze-com.github.io/mtl-explorer/assets/feature-showcase/large/segment-zones.webp">
+  <meta property="og:image" content="https://mtl-explorer.com/assets/feature-showcase/large/segment-zones.webp?v=20260906">
   <meta property="og:image:type" content="image/webp">
-  <meta property="og:image:width" content="2199">
-  <meta property="og:image:height" content="1561">
+  <meta property="og:image:width" content="1280">
+  <meta property="og:image:height" content="720">
   <meta property="og:image:alt" content="MTL Explorer map with segment checkpoints">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:image" content="https://mindalyze-com.github.io/mtl-explorer/assets/feature-showcase/large/segment-zones.webp">
+  <meta name="twitter:image" content="https://mtl-explorer.com/assets/feature-showcase/large/segment-zones.webp?v=20260906">
   <link rel="icon" href="../favicon.ico" sizes="any">
   <link rel="stylesheet" href="../site-page.css">
-  <link rel="preload" as="image" type="image/webp" href="../assets/feature-showcase/preview/segment-zones.webp">
+  <link rel="preload" as="image" type="image/webp" href="../assets/feature-showcase/preview/segment-zones.webp?v=20260906">
   <script type="application/ld+json">
     {
       "@context": "https://schema.org",
       "@type": "WebPage",
       "name": "GPS Segment Analysis and Replay",
-      "url": "https://mindalyze-com.github.io/mtl-explorer/segment-analysis/",
+      "url": "https://mtl-explorer.com/segment-analysis/",
       "description": "A guide to creating and comparing GPS segments in MTL Explorer.",
-      "isPartOf": {"@type": "WebSite", "name": "MTL Explorer", "url": "https://mindalyze-com.github.io/mtl-explorer/"}
+      "isPartOf": {"@type": "WebSite", "name": "MTL Explorer", "url": "https://mtl-explorer.com/"}
+    }
+  </script>
+  <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Home",
+          "item": "https://mtl-explorer.com/"
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "Segment analysis",
+          "item": "https://mtl-explorer.com/segment-analysis/"
+        }
+      ]
     }
   </script>
 </head>
@@ -55,37 +76,28 @@
       <div>
         <p class="eyebrow">Segment analysis</p>
         <h1>Compare repeated routes between map checkpoints.</h1>
-        <p class="lead">Define a segment by placing checkpoints on the map. MTL Explorer searches the archive for tracks that crossed them, then compares the matching attempts.</p>
+        <p class="lead">Place checkpoints on the map. MTL Explorer finds every track that passed through them and compares your attempts.</p>
         <div class="actions">
           <a class="button" href="https://mtl-demo.mindalyze.com/mtl/">Try segments in the demo</a>
           <a class="button-secondary" href="../gpx-track-map/">View the track map</a>
         </div>
       </div>
       <figure class="hero-media">
-        <img src="../assets/feature-showcase/preview/segment-zones.webp" srcset="../assets/feature-showcase/thumb/segment-zones.webp 360w, ../assets/feature-showcase/medium/segment-zones.webp 720w, ../assets/feature-showcase/preview/segment-zones.webp 1099w, ../assets/feature-showcase/large/segment-zones.webp 2199w" sizes="(max-width: 900px) calc(100vw - 40px), 570px" width="1099" height="780" alt="Map with segment checkpoint gates across a trail" fetchpriority="high">
+        <img src="../assets/feature-showcase/preview/segment-zones.webp?v=20260906" srcset="../assets/feature-showcase/thumb/segment-zones.webp?v=20260906 360w, ../assets/feature-showcase/medium/segment-zones.webp?v=20260906 720w, ../assets/feature-showcase/preview/segment-zones.webp?v=20260906 1099w, ../assets/feature-showcase/large/segment-zones.webp?v=20260906 1280w" sizes="(max-width: 900px) calc(100vw - 40px), 570px" width="1280" height="720" alt="Three segment checkpoints on public Porto demo routes" fetchpriority="high">
         <figcaption>Checkpoints define the part of the route to compare.</figcaption>
       </figure>
     </section>
 
-    <section class="section">
-      <div class="section-head">
-        <h2>How a segment comparison works.</h2>
-        <p>A segment is based on geographic gates rather than a track name. This allows the same section to be found across activities recorded on different days.</p>
-      </div>
-      <div class="steps">
-        <article class="step"><h3>Place checkpoints</h3><p>Draw the start, end, and any intermediate gates directly on the map.</p></article>
-        <article class="step"><h3>Search the archive</h3><p>MTL Explorer finds imported tracks that crossed the gates in the required order.</p></article>
-        <article class="step"><h3>Compare the results</h3><p>Review elapsed time, distance, pacing, and the available activity measurements.</p></article>
-        <article class="step"><h3>Replay attempts</h3><p>Display matching tracks together and replay their progress on the map.</p></article>
-      </div>
-    </section>
+    <nav class="on-this-page" aria-label="On this page"><a href="#walkthrough">Walkthrough</a><a href="#interpretation">Interpret the results</a></nav>
+
+    <section class="section" id="walkthrough"><h2>Compare a repeated section.</h2><p>Choose activities, place ordered zones, and select exact attempts for comparison or replay.</p><p><a href="/docs/user/analysis/segments/">Segment guide</a></p></section>
 
     <section class="section">
       <div class="split">
         <div class="copy">
           <p class="eyebrow">Results</p>
           <h2>Inspect every matching attempt.</h2>
-          <p>The results table provides a consistent view across all tracks that match the checkpoints. Open an attempt to inspect its graphs and map position.</p>
+          <p>Browse matching activities and select the attempts you want to compare. Open a result to inspect its visits, graphs, and map position.</p>
           <ul class="plain-list">
             <li>Compare repeated climbs, descents, trail sections, or commutes.</li>
             <li>Keep the source activities in the private archive.</li>
@@ -93,8 +105,8 @@
           </ul>
         </div>
         <figure class="media">
-          <img src="../assets/feature-showcase/thumb/segment-results.webp" srcset="../assets/feature-showcase/thumb/segment-results.webp 360w, ../assets/feature-showcase/medium/segment-results.webp 720w, ../assets/feature-showcase/preview/segment-results.webp 1099w" sizes="(max-width: 900px) calc(100vw - 40px), 530px" width="1099" height="780" alt="Segment results table with matching GPS activities" loading="lazy" decoding="async">
-          <figcaption>Matching activities in the segment results table.</figcaption>
+          <img src="../assets/feature-showcase/thumb/segment-results.webp?v=20260906" srcset="../assets/feature-showcase/thumb/segment-results.webp?v=20260906 360w, ../assets/feature-showcase/medium/segment-results.webp?v=20260906 720w, ../assets/feature-showcase/preview/segment-results.webp?v=20260906 1099w" sizes="(max-width: 900px) calc(100vw - 40px), 530px" width="1280" height="720" alt="Segment results with four public demo attempts selected" loading="lazy" decoding="async">
+          <figcaption>Four attempts selected from 15 matching demo tracks.</figcaption>
         </figure>
       </div>
     </section>
@@ -102,15 +114,32 @@
     <section class="section">
       <div class="split">
         <figure class="media">
-          <img src="../assets/feature-showcase/thumb/segment-compare.webp" srcset="../assets/feature-showcase/thumb/segment-compare.webp 360w, ../assets/feature-showcase/medium/segment-compare.webp 720w, ../assets/feature-showcase/preview/segment-compare.webp 1099w" sizes="(max-width: 900px) calc(100vw - 40px), 530px" width="1099" height="780" alt="Side-by-side charts comparing GPS segment attempts" loading="lazy" decoding="async">
+          <img src="../assets/feature-showcase/thumb/segment-compare.webp?v=20260906" srcset="../assets/feature-showcase/thumb/segment-compare.webp?v=20260906 360w, ../assets/feature-showcase/medium/segment-compare.webp?v=20260906 720w, ../assets/feature-showcase/preview/segment-compare.webp?v=20260906 1099w" sizes="(max-width: 900px) calc(100vw - 40px), 530px" width="1280" height="720" alt="Speed chart comparing four public demo attempts" loading="lazy" decoding="async">
           <figcaption>Charts for selected attempts.</figcaption>
         </figure>
         <div class="copy">
           <p class="eyebrow">Comparison</p>
           <h2>Review timing and effort together.</h2>
-          <p>Side-by-side charts make it easier to see where attempts differed. The available series depend on what the original activity files recorded.</p>
-          <p>Replay mode provides a map-based comparison when chart values alone do not explain the difference.</p>
+          <p>Compare time, speed, and heart rate between the same checkpoints. The attempt marked <strong>R</strong> is the reference. The first chart shows how far ahead or behind each attempt was at the same distance.</p>
+          <p>Move along a chart to see the matching spot on the map. <strong>Ghosts</strong> show where the other attempts were when the reference reached that spot.</p>
+          <p><strong>Open Replay here</strong> starts a replay of the attempts at that spot.</p>
         </div>
+      </div>
+    </section>
+
+    <aside class="callout" id="demo-data">
+      <strong>About these screenshots</strong>
+      <p>Captured on 6 September 2026 using 15 public Porto taxi routes with simulated dates. No personal tracks or health records were used.</p>
+      <p>Data: <a href="https://doi.org/10.24432/C55W25">L. Moreira-Matias et al., UCI, 2013</a> (<a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>). Map: © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>. Elevation: <a href="https://mapterhorn.com/attribution/">Mapterhorn</a>.</p>
+    </aside>
+
+    <section class="section" id="interpretation">
+      <div class="section-head"><h2>Check what the timing can support.</h2><p>Comparing times needs tracks with timestamps. Recordings also differ in how often they saved a position.</p></div>
+      <div class="content-grid">
+        <article class="card"><h3>Elapsed time and stops</h3><p>Times include stops between the checkpoints. The finish difference compares each attempt with the reference. The same distance can be at a different place on the ground, for example after a detour.</p></article>
+        <article class="card"><h3>Gaps and missing times</h3><p>Gaps or missing timestamps can leave an attempt without a time. A missing time is not zero.</p></article>
+        <article class="card"><h3>Zone placement matters</h3><p>Large checkpoints can match a different part of a track than you expect. Check the result on the map and add checkpoints in between if needed.</p></article>
+        <article class="card"><h3>Graphs depend on available data</h3><p>Speed needs positions and times; elevation needs recorded heights. Power and energy are estimates. Heart rate needs data from the optional <a href="../google-health/">Google Health connection</a>.</p></article>
       </div>
     </section>
 
@@ -127,7 +156,7 @@
   <footer class="site-footer">
     <div class="site-footer-inner">
       <span>MTL Explorer · Self-hosted GPS archive</span>
-      <nav aria-label="Footer navigation"><a href="../">Home</a><a href="https://github.com/mindalyze-com/mtl-explorer">GitHub</a></nav>
+      <nav aria-label="Footer navigation"><a href="../#site-analytics">Site analytics</a><a href="../">Home</a><a href="https://github.com/mindalyze-com/mtl-explorer">GitHub</a></nav>
     </div>
   </footer>
 </body>

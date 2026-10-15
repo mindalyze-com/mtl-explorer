@@ -5,17 +5,28 @@
 # Build-time defaults — override with: docker build --build-arg GCEXPORT_DEFAULT_VERSION=v4.6.2 .
 # These ARGs are promoted to ENVs so the running container (and Spring Boot) can read them.
 ARG GCEXPORT_DEFAULT_VERSION=v4.6.2
-ARG GCEXPORT_GARMINCONNECT_REQUIREMENT=garminconnect==0.3.2
+ARG GCEXPORT_GARMINCONNECT_REQUIREMENT=garminconnect==0.3.11
 ARG FIT_EXPORT_DEFAULT_PROFILE=default
 ARG FIT_EXPORT_DEFAULT_PACKAGES="garth fitparse gpxpy"
 ARG GPSBABEL_VERSION=1.10.0
 ARG GPSBABEL_GIT_REF=gpsbabel_1_10_0
 ARG MTL_IMAGE_VERSION=""
+ARG MTL_IMAGE_REVISION=""
 ARG MTL_IMAGE_BUILD_TIME=""
 
-FROM node:24-bookworm-slim AS node-toolchain
+FROM node:24.20.0-trixie-slim AS node-toolchain
 
-FROM eclipse-temurin:21-jre-jammy AS gpsbabel-builder
+FROM ubuntu:26.04 AS media-tools-builder
+
+ARG TARGETARCH
+# Both architectures install the complete, checksum-pinned conda-forge environment.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates curl \
+    && rm -rf /var/lib/apt/lists/*
+COPY docker/media/install-media-tools.sh docker/media/media-specs.txt docker/media/conda-*.lock /tmp/mtl-media/
+RUN /bin/bash /tmp/mtl-media/install-media-tools.sh
+
+FROM ubuntu:26.04 AS gpsbabel-builder
 
 ARG GPSBABEL_VERSION
 ARG GPSBABEL_GIT_REF
@@ -30,8 +41,8 @@ apt-get install -y --no-install-recommends \
   cmake \
   ninja-build \
   qt6-base-dev \
-  libqt6serialport6-dev \
-  libqt6core5compat6-dev \
+  qt6-serialport-dev \
+  qt6-5compat-dev \
   libgl-dev \
   pkg-config \
   zlib1g-dev \
@@ -60,8 +71,10 @@ EOF
 FROM maven:3.9.16-eclipse-temurin-25 AS app-builder
 
 ARG MTL_IMAGE_VERSION
+ARG MTL_IMAGE_REVISION
 ARG MTL_IMAGE_BUILD_TIME
 ENV VITE_APP_VERSION=${MTL_IMAGE_VERSION}
+ENV VITE_APP_REVISION=${MTL_IMAGE_REVISION}
 ENV VITE_APP_BUILD=${MTL_IMAGE_BUILD_TIME}
 
 COPY --from=node-toolchain /usr/local/ /usr/local/
@@ -78,7 +91,7 @@ mvn --batch-mode clean install -DskipTests=true
 echo "==> Finished Maven reactor build"
 EOF
 
-FROM eclipse-temurin:25-jre-jammy AS runtime
+FROM eclipse-temurin:25-jre-resolute AS media-runtime
 
 # Promote build ARGs to runtime ENVs (Spring Boot reads these via ${GCEXPORT_DEFAULT_VERSION:v4.6.2})
 ARG GCEXPORT_DEFAULT_VERSION
@@ -94,13 +107,15 @@ ENV FIT_EXPORT_DEFAULT_PACKAGES=${FIT_EXPORT_DEFAULT_PACKAGES}
 ENV LANG=C.UTF-8
 ENV LC_ALL=C.UTF-8
 ENV PATH="/usr/local/bin:${PATH}"
+ENV VIRTUAL_ENV=/opt/mtl/python
+ENV PATH="${VIRTUAL_ENV}/bin:/opt/mtl/media/bin:${PATH}"
 ENV MALLOC_ARENA_MAX=2
 ENV MAGICK_THREAD_LIMIT=1
 ENV MAGICK_MEMORY_LIMIT=64MiB
 ENV MAGICK_MAP_LIMIT=128MiB
 
 # Install required runtime packages.
-# eclipse-temurin:25-jre-jammy includes the jdk.jfr module. jattach keeps
+# eclipse-temurin:25-jre-resolute includes the jdk.jfr module. jattach keeps
 # runtime JFR attach/start/dump/stop available without shipping a full JDK.
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
@@ -116,23 +131,35 @@ RUN apt-get update && \
 
 
 # Install python3-pip and python3-venv (needed for garmin export setup)
-# Install ImageMagick/libheif for HEIC conversion and ffmpeg for video posters.
-# Install python3-pillow + fonts for demo-photo generation
+# Media codecs come from conda-forge; retain system fonts for demo photos.
 RUN apt-get update && apt-get install -y --no-install-recommends \
       python3-pip \
       python3-venv \
-      imagemagick \
-      libheif-dev \
-      ffmpeg \
-      python3-pillow \
       fonts-dejavu-core \
-      libqt6core6 \
+      libqt6core6t64 \
       libqt6core5compat6 \
-      libshp2 \
+      libshp4 \
       libusb-1.0-0 \
-    && pip3 install piexif \
+    && python3 -m venv "${VIRTUAL_ENV}" \
+    && pip3 install piexif==1.1.3 Pillow==12.3.0 \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* /root/.cache/pip
+
+# Keep the install prefix unchanged so package RPATHs and plugins resolve locally.
+COPY --from=media-tools-builder /opt/mtl/media /opt/mtl/media
+COPY --chmod=755 docker/media/vips-preview.py /opt/mtl/media/bin/mtl-vips-preview
+# Codec behavior is covered by the runtime tests below.
+RUN magick -version \
+    && vips --version \
+    && ffmpeg -version \
+    && ffprobe -version
+
+# Require native libvips for the iOS 18 HEIC regression on each architecture.
+# ImageMagick is exercised only by the small synthetic BMP fallback test.
+RUN --mount=type=bind,source=docker/media,target=/tmp/mtl-media-tests \
+    python3 -m unittest discover -s /tmp/mtl-media-tests -p 'test_*.py' -v
+
+FROM media-runtime AS runtime
 
 COPY --from=gpsbabel-builder /opt/gpsbabel/bin/gpsbabel /usr/local/bin/gpsbabel
 COPY --from=gpsbabel-builder /opt/gpsbabel/provider /opt/mtl/gpsbabel-provider
@@ -151,12 +178,14 @@ RUN chmod +x /app/garmin_export/install_gcexport.sh /app/garmin_export/run_expor
 
 # Temporary patch for garmin-connect-export (remove when project delivers official fix)
 # filterdiff applies only the .py hunks; requirements.txt is written directly (version mismatch in upstream)
-# Roll back garminconnect exactly; 0.3.3 requires Python 3.12 and is not used with Jammy.
+# Keep the patched exporter on the current garminconnect release.
 RUN apt-get update && apt-get install -y --no-install-recommends patch patchutils \
     && cd /app/garmin_export/gcexport_src_${GCEXPORT_DEFAULT_VERSION} \
     && filterdiff -i '*.py' /app/garmin_export/patch_2026_04_13.txt | patch -p1 \
     && printf '%s\n' "${GCEXPORT_GARMINCONNECT_REQUIREMENT}" > requirements.txt \
-    && /app/garmin_export/venv_gcexport_${GCEXPORT_DEFAULT_VERSION}/bin/pip install -r requirements.txt \
+    && /app/garmin_export/venv_gcexport_${GCEXPORT_DEFAULT_VERSION}/bin/pip uninstall -y garth \
+    && /app/garmin_export/venv_gcexport_${GCEXPORT_DEFAULT_VERSION}/bin/pip install --upgrade --upgrade-strategy eager -r requirements.txt \
+    && GCEXPORT_SOURCE_DIR="$PWD" /app/garmin_export/venv_gcexport_${GCEXPORT_DEFAULT_VERSION}/bin/python3 -B /app/garmin_export/test_gcexport_requests.py \
     && apt-get clean && rm -rf /var/lib/apt/lists/* /root/.cache/pip
 
 
@@ -172,10 +201,22 @@ COPY docker/gpx_porto_taxi_dataset/porto_taxi_service_gpx_extract.zip /app/demo/
 COPY docker/gpx_porto_taxi_dataset/generate_demo_photos.py /app/demo/generate_demo_photos.py
 COPY docker/gpx_porto_taxi_dataset/generate_regression_photos.py /app/demo/generate_regression_photos.py
 COPY docker/gpx_porto_taxi_dataset/photo_placeholder.py /app/demo/photo_placeholder.py
+COPY docker/gpx_porto_taxi_dataset/demo_track_catalog.py /app/demo/demo_track_catalog.py
+COPY docker/gpx_porto_taxi_dataset/demo_logging.py /app/demo/demo_logging.py
+COPY docker/gpx_porto_taxi_dataset/elevation/__init__.py \
+    docker/gpx_porto_taxi_dataset/elevation/demo_elevation.py \
+    docker/gpx_porto_taxi_dataset/elevation/numeric_elevation.py \
+    docker/gpx_porto_taxi_dataset/elevation/create_demo_tracks.py /app/demo/elevation/
+# Terrain preparation is on demand; image builds use the checked-in raster.
+COPY docker/gpx_porto_taxi_dataset/elevation/data/porto-elevation-120m.mtldem \
+    docker/gpx_porto_taxi_dataset/elevation/data/porto-elevation-120m.json \
+    docker/gpx_porto_taxi_dataset/elevation/data/elevation-attribution.json /app/demo/elevation/data/
+RUN python3 /app/demo/demo_track_catalog.py /app/demo/porto_taxi_service_gpx_extract.zip /app/demo/demo-track-catalog.json.gz
 COPY docker/gpx_porto_taxi_dataset/DATASOURCE.md /app/demo/DATASOURCE.md
 
 # Copy the Spring Boot application JAR
 COPY --from=app-builder /workspace/mtl-server/target/mtl-server-1.0.0-SNAPSHOT.jar /app/mtl-server-1.0.0-SNAPSHOT.jar
+COPY --from=app-builder /workspace/mtl-server/target/gpsquality/ /app/gpsquality/
 
 WORKDIR /app
 
@@ -186,13 +227,16 @@ RUN mkdir -p /app/gpx /app/media /app/config \
     && mkdir -p /var/lib/apt/lists/partial
 
 ARG MTL_IMAGE_VERSION
+ARG MTL_IMAGE_REVISION
 ARG MTL_IMAGE_BUILD_TIME
 RUN set -eux; \
     mkdir -p /opt/mtl; \
     build_time="${MTL_IMAGE_BUILD_TIME:-$(date -u +%Y-%m-%dT%H:%M:%SZ)}"; \
     printf '%s\n' "${MTL_IMAGE_VERSION}" > /opt/mtl/image-version; \
+    printf '%s\n' "${MTL_IMAGE_REVISION}" > /opt/mtl/image-revision; \
     printf '%s\n' "${build_time}" > /opt/mtl/image-build-time
 ENV MTL_IMAGE_VERSION=${MTL_IMAGE_VERSION}
+ENV MTL_IMAGE_REVISION=${MTL_IMAGE_REVISION}
 ENV MTL_IMAGE_BUILD_TIME=${MTL_IMAGE_BUILD_TIME}
 
 # Expose the port for the Spring Boot application
@@ -205,6 +249,7 @@ RUN chmod +x /my-entrypoint.sh
 # Set the entrypoint; CMD is used to start the Java application
 ENTRYPOINT ["/my-entrypoint.sh"]
 
-# Keep most of the container available for JVM native memory and bundled media
-# helpers. G1 has substantially lower small-heap RSS than ZGC for this workload.
-CMD ["java", "-XX:InitialRAMPercentage=6.25", "-XX:MaxRAMPercentage=31.25", "-XX:+UseG1GC", "-XX:ActiveProcessorCount=2", "-Xss512k", "-XX:+ExitOnOutOfMemoryError", "-Dfile.encoding=UTF-8", "-Dsun.jnu.encoding=UTF-8", "-jar", "mtl-server-1.0.0-SNAPSHOT.jar"]
+# Demo preparation finishes before Java starts. Retain headroom for JVM native
+# memory and one media helper, including 4K-to-1080p FFmpeg conversion.
+# The 1248 MiB Compose limit gives G1 a 500 MiB maximum heap.
+CMD ["java", "-XX:InitialRAMPercentage=6.25", "-XX:MaxRAMPercentage=40.0", "-XX:+UseG1GC", "-XX:ActiveProcessorCount=2", "-Xss512k", "-XX:+ExitOnOutOfMemoryError", "-Dfile.encoding=UTF-8", "-Dsun.jnu.encoding=UTF-8", "--module-path", "/app/gpsquality", "--add-modules", "com.x8ing.mtl.gpsquality.diagnostics", "-jar", "mtl-server-1.0.0-SNAPSHOT.jar"]

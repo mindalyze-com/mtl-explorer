@@ -1,6 +1,11 @@
-# MTL Explorer Release v.0.7.0
+---
+released_on: 2026-08-14
+teaser: >-
+  Use metric or US units and filter your archive with live results, searchable
+  views, and undo.
+---
 
-This release adds Imperial (US) measurement support and a redesigned filtering workflow. It also resolves both issues that were open in the public GitHub tracker at release time—[#4](https://github.com/mindalyze-com/mtl-explorer/issues/4) and [#5](https://github.com/mindalyze-com/mtl-explorer/issues/5)—along with all findings from the latest full regression.
+# MTL Explorer Release v.0.7.0
 
 ## Features
 

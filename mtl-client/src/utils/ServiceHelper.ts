@@ -5,7 +5,6 @@ import {
   EnergyControllerApi,
 } from 'x8ing-mtl-api-typescript-fetch';
 import {
-  CrossingPointsResponseDtoFromJSONTyped,
   QueryResultEntryFromJSON,
   type CrossingPointsResponseDto,
   QueryResultFromJSONTyped,
@@ -17,8 +16,10 @@ import {
   type GpsTrackDataPoint,
   type GpsTrackDataPointDto,
   type NearbyTrackMediaDto,
+  type TrackProximityResponseDto,
   type RelatedTracks,
   type EnergyWhatIfResponse,
+  type EnergyCalculationStatus,
   type GpsTrackStatistics,
   type StatisticsExclusionUpdateRequest,
   type ActivityTypeUpdateRequest,
@@ -30,11 +31,17 @@ import {
 } from 'x8ing-mtl-api-typescript-fetch/dist/esm/models/index';
 
 import type { FilterParamsRequest } from '@/components/filter/FilterService';
+import { withBrowserTimeZone } from '@/utils/filterTimeZone';
 import { loadActiveFilterRequest, type ActiveFilterRequest } from '@/stores/filterStore';
 import { apiClient } from '@/utils/apiClient';
 import { isAbortLikeError } from '@/utils/errors';
 import { getApiConfiguration } from '@/utils/openApiClient';
 import { logSanitizedError } from '@/utils/safeLogging';
+import { saveTrackRecords, saveTrackBatchRecords } from '@/utils/tracks/trackCacheDb';
+import { OVERVIEW_PRECISION } from '@/utils/tracks/trackConstants';
+import { normalizeTrackDates } from '@/utils/tracks/trackApi';
+import { extractCoordinates } from '@/utils/lineStringDeserializer';
+import { trackRecordingBreakIndexes } from '@/utils/tracks/trackFeatureAdapter';
 import type { MeasurementSystem } from '@/utils/units';
 import {
   chartSeriesToTrackChartSeries,
@@ -143,6 +150,33 @@ function getEnergyApi() {
   return new EnergyControllerApi(getApiConfiguration());
 }
 
+export async function getEnergyCalculationStatus(gpsTrackId: number): Promise<EnergyCalculationStatus> {
+  return await getEnergyApi().getEnergyCalculationStatus({ gpsTrackId }, { cache: 'no-cache' });
+}
+
+export async function refreshTrackEnergy(gpsTrackId: number): Promise<GpsTrack> {
+  const response = await getTracksApi().getSingleTrackRaw(
+    { gpsTrackId, precisionInMeter: OVERVIEW_PRECISION },
+    { cache: 'no-cache' }
+  );
+  const track = normalizeTrackDates((await response.raw.json()) as GpsTrack);
+  const coordinates = extractCoordinates(track.gpsTracksData);
+  await saveTrackBatchRecords(
+    new Map([[gpsTrackId, track]]),
+    coordinates.length
+      ? [
+          {
+            trackId: gpsTrackId,
+            precision: OVERVIEW_PRECISION,
+            coordinates,
+            recordingBreakBeforePointIndexes: trackRecordingBreakIndexes(track),
+          },
+        ]
+      : []
+  );
+  return track;
+}
+
 export async function calculateEnergyWhatIf(
   gpsTrackId: number | string,
   riderWeightKg?: number
@@ -157,10 +191,13 @@ export async function saveTrackEnergyRiderWeight(
   gpsTrackId: number | string,
   riderWeightKg: number
 ): Promise<GpsTrack> {
-  return await getEnergyApi().saveTrackRiderWeight({
+  const savedTrack = await getEnergyApi().saveTrackRiderWeight({
     gpsTrackId: Number(gpsTrackId),
     riderWeightKg,
   });
+  // Keep persisted map/list metadata consistent with the saved overview.
+  await saveTrackRecords(new Map([[Number(gpsTrackId), savedTrack]]));
+  return savedTrack;
 }
 
 export async function downloadTrackSourceFile(gpsTrackId: number | string, fallbackName?: string): Promise<void> {
@@ -248,8 +285,12 @@ export async function getRelatedTracks(gpsTrackId: number | string): Promise<Rel
     );
     return RelatedTracksFromJSONTyped(response.data, false);
   } catch (error: unknown) {
-    logSanitizedError('Error getting related tracks:', error);
-    throw new Error(String(error));
+    logSanitizedError('Error getting related tracks:', error, {
+      topic1: 'application',
+      topic2: 'ServiceHelper',
+      topic3: 'getRelatedTracks',
+    });
+    throw error;
   }
 }
 
@@ -282,17 +323,18 @@ export async function fetchTrackDetailsForCrossingPoints(
       },
     };
 
-    // POST with complex body; axios lets us pass the abort signal through the
-    // shared API client while still using the generated DTO converter below.
-    const response = await apiClient.post(`api/tracks/get-track-details-for-tracks-crossing-points`, request, {
-      signal,
-    });
-
-    return CrossingPointsResponseDtoFromJSONTyped(response.data, false);
+    return await getTracksApi().getCrossingPoints1(
+      { crossingPointsRequest: request, includeHealth: false },
+      { signal }
+    );
   } catch (error: unknown) {
     if (isAbortLikeError(error, signal)) throw error;
-    logSanitizedError('Error getting track details for crossing points:', error);
-    throw new Error(String(error));
+    logSanitizedError('Error getting track details for crossing points:', error, {
+      topic1: 'application',
+      topic2: 'ServiceHelper',
+      topic3: 'fetchTrackDetailsForCrossingPoints',
+    });
+    throw error;
   }
 }
 
@@ -306,21 +348,21 @@ export async function fetchTrackIdsWithinDistanceOfPoint(
   latitude: number,
   distanceInMeter: number,
   signal?: AbortSignal
-): Promise<number[]> {
+): Promise<TrackProximityResponseDto> {
   try {
     const { filterName, filterParams } = await loadActiveFilterRequest();
-
-    const response = await apiClient.post(
-      `api/tracks/get-track-ids-within-distance-of-point?filterName=${filterName}&longitude=${longitude}&latitude=${latitude}&distanceInMeter=${distanceInMeter}`,
-      filterParams ?? {},
+    return await new TracksControllerApi(getApiConfiguration()).getTrackIdsWithinDistanceOfPoint(
+      { longitude, latitude, distanceInMeter, filterName, filterParamsRequest: filterParams },
       { signal }
     );
-
-    return response.data as number[];
   } catch (error: unknown) {
     if (isAbortLikeError(error, signal)) throw error;
-    logSanitizedError('Error getting track IDs within distance:', error);
-    throw new Error(String(error));
+    logSanitizedError('Error getting nearby tracks:', error, {
+      topic1: 'application',
+      topic2: 'ServiceHelper',
+      topic3: 'fetchTrackIdsWithinDistanceOfPoint',
+    });
+    throw error;
   }
 }
 
@@ -345,8 +387,12 @@ export async function fetchTrackMediaOptionsWithinDistanceOfPoint(
     );
   } catch (error: unknown) {
     if (isAbortLikeError(error, signal)) throw error;
-    logSanitizedError('Error getting nearby track media options:', error);
-    throw new Error(String(error));
+    logSanitizedError('Error getting nearby track media options:', error, {
+      topic1: 'application',
+      topic2: 'ServiceHelper',
+      topic3: 'fetchTrackMediaOptionsWithinDistanceOfPoint',
+    });
+    throw error;
   }
 }
 
@@ -362,8 +408,12 @@ export async function fetchStatistics(
     return await fetchStatisticsForTrackIds(grouping, trackIds, signal);
   } catch (error: unknown) {
     if (isAbortLikeError(error, signal)) throw error;
-    logSanitizedError('Error fetching statistics:', error);
-    throw new Error(String(error));
+    logSanitizedError('Error fetching statistics:', error, {
+      topic1: 'application',
+      topic2: 'ServiceHelper',
+      topic3: 'fetchStatistics',
+    });
+    throw error;
   }
 }
 
@@ -384,8 +434,12 @@ export async function fetchStatisticsForTrackIds(
     return response.data;
   } catch (error: unknown) {
     if (isAbortLikeError(error, signal)) throw error;
-    logSanitizedError('Error fetching statistics:', error);
-    throw new Error(String(error));
+    logSanitizedError('Error fetching statistics:', error, {
+      topic1: 'application',
+      topic2: 'ServiceHelper',
+      topic3: 'fetchStatisticsForTrackIds',
+    });
+    throw error;
   }
 }
 
@@ -394,10 +448,12 @@ export async function fetchStatisticsOverview(
   signal?: AbortSignal,
   filterRequest?: ActiveFilterRequest
 ): Promise<StatisticsOverviewResponseDto> {
+  let operation = 'resolve-active-filter';
   try {
     const activeFilterRequest = await resolveActiveFilterRequest(filterRequest);
+    operation = 'resolve-statistics-track-ids';
     const trackIds = await resolveStatisticsTrackIds(activeFilterRequest, signal);
-
+    operation = 'fetch-track-overview';
     const response = await apiClient.post(
       `api/tracks/get-track-overview${queryString({ measurementSystem })}`,
       trackIds,
@@ -406,8 +462,13 @@ export async function fetchStatisticsOverview(
     return StatisticsOverviewResponseDtoFromJSONTyped(response.data, false);
   } catch (error: unknown) {
     if (isAbortLikeError(error, signal)) throw error;
-    logSanitizedError('Error fetching statistics overview:', error);
-    throw error instanceof Error ? error : new Error(String(error));
+    logSanitizedError('Error fetching statistics overview:', error, {
+      topic1: 'application',
+      topic2: 'ServiceHelper',
+      topic3: 'fetchStatisticsOverview',
+      context: { operation },
+    });
+    throw error;
   }
 }
 
@@ -437,8 +498,12 @@ export async function fetchTrackSubTrackDetails(
     );
     return convertDataPointDates<GpsTrackDataPointDto>(response.data);
   } catch (error: unknown) {
-    logSanitizedError('Error fetching track sub track details:', error);
-    throw new Error(String(error));
+    logSanitizedError('Error fetching track sub track details:', error, {
+      topic1: 'application',
+      topic2: 'ServiceHelper',
+      topic3: 'fetchTrackSubTrackDetails',
+    });
+    throw error;
   }
 }
 
@@ -479,8 +544,12 @@ export async function fetchTrackDetails(
     const response = await fetchChartSeries(gpsTrackId, { xMode, maxBuckets });
     return chartSeriesToTrackChartSeries(response);
   } catch (error: unknown) {
-    logSanitizedError('Error fetching track chart series:', error);
-    throw new Error(String(error));
+    logSanitizedError('Error fetching track chart series:', error, {
+      topic1: 'application',
+      topic2: 'ServiceHelper',
+      topic3: 'fetchTrackDetails',
+    });
+    throw error;
   }
 }
 
@@ -506,8 +575,12 @@ export async function fetchTrackPointsForRenderedShape(
     );
     return convertDataPointDates<GpsTrackDataPoint>(response.data);
   } catch (error: unknown) {
-    logSanitizedError('Error fetching track points for map popup:', error);
-    throw new Error(String(error));
+    logSanitizedError('Error fetching track points for map popup:', error, {
+      topic1: 'application',
+      topic2: 'ServiceHelper',
+      topic3: 'fetchTrackPointsForRenderedShape',
+    });
+    throw error;
   }
 }
 
@@ -532,8 +605,12 @@ export async function fetchTrackCanonicalPoints(gpsTrackId: number | string): Pr
     );
     return convertDataPointDates<GpsTrackDataPoint>(response.data);
   } catch (error: unknown) {
-    logSanitizedError('Error fetching canonical track points:', error);
-    throw new Error(String(error));
+    logSanitizedError('Error fetching canonical track points:', error, {
+      topic1: 'application',
+      topic2: 'ServiceHelper',
+      topic3: 'fetchTrackCanonicalPoints',
+    });
+    throw error;
   }
 }
 
@@ -546,8 +623,12 @@ export async function fetchFilters(): Promise<FilterInfo[]> {
     // The API already returns FilterInfo[] objects, but ensure typing
     return filters;
   } catch (error: unknown) {
-    logSanitizedError('Error fetching filters:', error);
-    throw new Error(String(error));
+    logSanitizedError('Error fetching filters:', error, {
+      topic1: 'application',
+      topic2: 'ServiceHelper',
+      topic3: 'fetchFilters',
+    });
+    throw error;
   }
 }
 
@@ -563,8 +644,12 @@ export async function fetchFilterInfo(filterDomain: string, filterName: string):
 
     return filterInfo;
   } catch (error: unknown) {
-    logSanitizedError('Error fetching filter info:', error);
-    throw new Error(String(error));
+    logSanitizedError('Error fetching filter info:', error, {
+      topic1: 'application',
+      topic2: 'ServiceHelper',
+      topic3: 'fetchFilterInfo',
+    });
+    throw error;
   }
 }
 
@@ -579,13 +664,17 @@ export async function fetchQueryResult(
 
     const response = await apiClient.post(
       `api/filter/resolve?filterDomain=${filterDomain}&filterName=${filterName}&includeGPSTrack=${includeGPSTrack}`,
-      filterParams
+      withBrowserTimeZone(filterParams)
     );
 
     return QueryResultFromJSONTyped(response.data, false);
   } catch (error: unknown) {
-    logSanitizedError('Error fetching query result:', error);
-    throw new Error(String(error));
+    logSanitizedError('Error fetching query result:', error, {
+      topic1: 'application',
+      topic2: 'ServiceHelper',
+      topic3: 'fetchQueryResult',
+    });
+    throw error;
   }
 }
 
@@ -598,8 +687,12 @@ export async function fetchQueryResultEntries(queryResultId: number): Promise<Qu
 
     return (response.data as unknown[]).map(QueryResultEntryFromJSON);
   } catch (error: unknown) {
-    logSanitizedError('Error fetching query result entries:', error);
-    throw new Error(String(error));
+    logSanitizedError('Error fetching query result entries:', error, {
+      topic1: 'application',
+      topic2: 'ServiceHelper',
+      topic3: 'fetchQueryResultEntries',
+    });
+    throw error;
   }
 }
 
@@ -620,8 +713,11 @@ export async function getConfig(
 
     return configs;
   } catch (error: unknown) {
-    logSanitizedError('Error fetching config:', error, { domain1, domain2, domain3 });
-    throw new Error(String(error));
+    logSanitizedError('Error fetching config:', error, {
+      ...{ topic1: 'application', topic2: 'ServiceHelper', topic3: 'getConfig' },
+      context: { domain1, domain2, domain3 },
+    });
+    throw error;
   }
 }
 
@@ -634,8 +730,12 @@ export async function postStoreConfig(configEntity: ConfigEntity): Promise<Confi
 
     return ConfigEntityFromJSONTyped(response.data, false);
   } catch (error: unknown) {
-    logSanitizedError('Error storing config:', error);
-    throw new Error(String(error));
+    logSanitizedError('Error storing config:', error, {
+      topic1: 'application',
+      topic2: 'ServiceHelper',
+      topic3: 'postStoreConfig',
+    });
+    throw error;
   }
 }
 

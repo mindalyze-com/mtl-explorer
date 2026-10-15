@@ -1,0 +1,5 @@
+# Verify upstream stable releases before updating, then regenerate both locks.
+libvips=8.18.6
+imagemagick=7.1.2_31=imagemagick_*
+ffmpeg=9.0.1=gpl_*
+libheif=1.23.3=gpl_*

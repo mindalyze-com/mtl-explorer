@@ -11,6 +11,8 @@
       <i class="pi pi-exclamation-triangle" /> {{ error }}
     </div>
 
+    <AllVersionsReport :report="supportVersionReport" :loading="loading || servicesLoading" />
+
     <div class="admin-grid">
       <section class="admin-card" aria-labelledby="admin-server-build-heading">
         <div class="admin-card__header">
@@ -20,13 +22,13 @@
           </div>
         </div>
         <dl class="admin-info-list">
-          <div class="admin-info-row">
-            <dt>Version</dt>
+          <div class="admin-info-row admin-info-row--image" data-test="system-info-server-image-version">
+            <dt>Image version</dt>
             <dd>
-              <code>{{ serverBuild?.version ?? unavailable }}</code>
+              <BuildVersionInfo :version="serverImageVersion" :revision="serverBuild?.image?.revision" />
             </dd>
           </div>
-          <div class="admin-info-row">
+          <div class="admin-info-row" data-test="system-info-server-built">
             <dt>Built</dt>
             <dd>
               <code>{{ serverBuiltAt }}</code>
@@ -36,18 +38,6 @@
             <dt>Server ID</dt>
             <dd>
               <code>{{ serverBuild?.serverId ?? unavailable }}</code>
-            </dd>
-          </div>
-          <div class="admin-info-row">
-            <dt>Image</dt>
-            <dd>
-              <code>{{ serverImageVersion }}</code>
-            </dd>
-          </div>
-          <div class="admin-info-row">
-            <dt>Image built</dt>
-            <dd>
-              <code>{{ serverImageBuiltAt }}</code>
             </dd>
           </div>
         </dl>
@@ -61,16 +51,38 @@
           </div>
         </div>
         <dl class="admin-info-list">
-          <div class="admin-info-row">
-            <dt>Version</dt>
+          <div class="admin-info-row admin-info-row--image" data-test="system-info-client-image-version">
+            <dt>Image version</dt>
             <dd>
-              <code>{{ clientVersion || unavailable }}</code>
+              <BuildVersionInfo :version="clientImageVersion" :revision="clientImageRevision" />
             </dd>
           </div>
-          <div class="admin-info-row">
+          <div class="admin-info-row" data-test="system-info-client-built">
             <dt>Built</dt>
             <dd>
-              <code>{{ clientBuildFormatted }}</code>
+              <code>{{ clientBuiltAt }}</code>
+            </dd>
+          </div>
+          <div v-if="clientStatus" class="admin-info-row" data-test="system-info-client-status">
+            <dt>Status</dt>
+            <dd class="admin-client-status">
+              <span
+                :class="[
+                  'admin-status-pill',
+                  clientStatus === 'outdated' ? 'admin-status-pill--warning' : 'admin-status-pill--success',
+                ]"
+              >
+                <i :class="clientStatus === 'outdated' ? 'pi pi-exclamation-triangle' : 'pi pi-check'" />
+                {{ clientStatus === 'outdated' ? `Outdated, server runs ${serverImageVersion}` : 'Up to date' }}
+              </span>
+              <Button
+                v-if="clientStatus === 'outdated'"
+                label="Reload"
+                icon="pi pi-refresh"
+                size="small"
+                data-test="system-info-client-reload"
+                @click="reloadClient"
+              />
             </dd>
           </div>
           <div class="admin-info-row">
@@ -79,9 +91,29 @@
               <code>{{ isPwaMode ? 'PWA (installed)' : 'Browser' }}</code>
             </dd>
           </div>
+          <div class="admin-info-row">
+            <dt>ClientLoginRef</dt>
+            <dd>
+              <code>{{ clientLoginRef || unavailable }}</code>
+            </dd>
+          </div>
         </dl>
       </section>
     </div>
+
+    <section class="admin-card" aria-labelledby="admin-runtime-heading">
+      <div class="admin-card__header">
+        <div><h3 id="admin-runtime-heading">Runtime and database</h3></div>
+      </div>
+      <dl class="admin-info-list">
+        <div v-for="row in runtimeRows" :key="row.label" class="admin-info-row">
+          <dt>{{ row.label }}</dt>
+          <dd>
+            <code>{{ row.value }}</code>
+          </dd>
+        </div>
+      </dl>
+    </section>
 
     <section class="admin-card" aria-labelledby="admin-external-components-heading">
       <div class="admin-card__header">
@@ -90,7 +122,7 @@
           <p>Image, tool, and data versions reported by map, routing, and search services.</p>
         </div>
       </div>
-      <div v-if="externalGroups.length" class="admin-external-grid">
+      <div v-if="externalGroups.length" class="admin-grid">
         <article
           v-for="group in externalGroups"
           :key="group.key"
@@ -122,10 +154,25 @@
 
 <script setup lang="ts">
 import { computed } from 'vue';
+import Button from 'primevue/button';
 import AdminSectionHeader from '@/components/admin/AdminSectionHeader.vue';
+import AllVersionsReport from '@/components/admin/AllVersionsReport.vue';
+import BuildVersionInfo from '@/components/ui/BuildVersionInfo.vue';
+import { useReleaseUpdatesStore } from '@/stores/releaseUpdatesStore';
+import { getClientLoginRef } from '@/utils/auth';
+import {
+  formatClientBuildTime,
+  formatClientImageVersion,
+  getClientBuildTime,
+  getClientImageRevision,
+  getClientImageVersion,
+  isClientImageOutdated,
+} from '@/utils/clientBuildInfo';
+import { buildSupportVersionReport } from '@/utils/supportVersions';
 import { formatDateAndTimeWithSeconds } from '@/utils/Utils';
 import { displayValue, versionInfoRows, type VersionInfoRow } from '@/utils/versionInfo';
 import type { AdminOperationalTask, BuildInfo } from '@/utils/ServiceHelper';
+import type { ServicesStatusDto } from 'x8ing-mtl-api-typescript-fetch';
 
 defineOptions({ name: 'AdminSystemInformationSection' });
 
@@ -154,18 +201,32 @@ const props = defineProps<{
   operationalTasks: AdminOperationalTask[];
   loading: boolean;
   error: string;
+  servicesLoading?: boolean;
+  servicesUnavailable?: boolean;
+  services?: ServicesStatusDto | null;
 }>();
 
-const clientBuild = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : null;
 const clientVersion = typeof __APP_PKG_VERSION__ !== 'undefined' ? __APP_PKG_VERSION__ : null;
-const clientBuildFormatted = computed(() => formatBuildTime(clientBuild, 'dev environment'));
-const serverBuiltAt = computed(() => formatBuildTime(props.serverBuild?.buildTime, unavailable));
+const clientImageVersion = formatClientImageVersion();
+const clientImageRevision = getClientImageRevision();
+const clientBuiltAt = formatClientBuildTime();
+const clientLoginRef = computed(() => getClientLoginRef());
+// The server application build; images predating build-info only carry the image build time.
+const serverBuiltAt = computed(() => {
+  const buildTime = props.serverBuild?.buildTime || props.serverBuild?.image?.buildTime;
+  if (!buildTime) return unavailable;
+  return formatDateAndTimeWithSeconds(buildTime) || displayValue(buildTime);
+});
 const serverImageVersion = computed(() =>
   props.serverBuild?.image ? displayValue(props.serverBuild.image.version) : unavailable
 );
-const serverImageBuiltAt = computed(() =>
-  props.serverBuild?.image ? formatBuildTime(props.serverBuild.image.buildTime, unavailable) : unavailable
-);
+// Only release builds can be compared; a failed server read must not mark the client up to date.
+const clientStatus = computed<'outdated' | 'current' | null>(() => {
+  const serverImage = props.error ? null : props.serverBuild?.image;
+  if (!getClientImageVersion() || !serverImage?.version) return null;
+  return isClientImageOutdated(serverImage) ? 'outdated' : 'current';
+});
+const releaseUpdates = useReleaseUpdatesStore();
 const isPwaMode = computed(() => {
   if (typeof window === 'undefined') return false;
   return (
@@ -173,6 +234,24 @@ const isPwaMode = computed(() => {
     (window.navigator as Navigator & { standalone?: boolean }).standalone === true
   );
 });
+const runtimeRows = computed(() => [
+  { label: 'Java', value: props.serverBuild?.runtime?.java || unavailable },
+  { label: 'PostgreSQL', value: props.serverBuild?.runtime?.postgresql || unavailable },
+  { label: 'PostGIS', value: props.serverBuild?.runtime?.postgis || unavailable },
+]);
+const supportVersionReport = computed(() =>
+  buildSupportVersionReport(
+    props.error ? null : props.serverBuild,
+    {
+      version: clientVersion,
+      imageVersion: import.meta.env.VITE_APP_VERSION,
+      revision: import.meta.env.VITE_APP_REVISION,
+      buildTime: getClientBuildTime(),
+      mode: isPwaMode.value ? 'PWA' : 'Browser',
+    },
+    props.servicesUnavailable ? null : props.services
+  )
+);
 const externalGroups = computed<ExternalGroup[]>(() =>
   props.operationalTasks
     .map((task) => {
@@ -194,10 +273,10 @@ const externalGroups = computed<ExternalGroup[]>(() =>
     )
 );
 
-function formatBuildTime(value: string | null | undefined, fallback: string): string {
-  if (!value) return fallback;
-  const formatted = formatDateAndTimeWithSeconds(value);
-  return formatted || displayValue(value);
+// A waiting service worker must activate first, or a plain reload serves the old precached client.
+function reloadClient() {
+  if (releaseUpdates.browserUpdateAvailable) releaseUpdates.reloadBrowser();
+  else window.location.reload();
 }
 
 function externalIcon(taskId: string): string {
@@ -209,10 +288,28 @@ function externalIcon(taskId: string): string {
 </script>
 
 <style scoped>
-.admin-external-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.65rem;
+.admin-info-list {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+.admin-info-row--image dd {
+  font-size: var(--text-xs-size);
+}
+
+.admin-client-status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+/* Follows the stacked admin-info-row layout, which left-aligns values. */
+@container admin-content (max-width: 26rem) {
+  .admin-client-status {
+    justify-content: flex-start;
+  }
 }
 
 .admin-external-card {
@@ -247,11 +344,5 @@ function externalIcon(taskId: string): string {
 .admin-external-card small {
   color: var(--text-muted);
   font-size: var(--text-xs-size);
-}
-
-@media (max-width: 768px) {
-  .admin-external-grid {
-    grid-template-columns: 1fr;
-  }
 }
 </style>

@@ -1,0 +1,236 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.10.xsd">
+    <changeSet id="20261015_skip_version_only_track_audit" author="codex">
+        <comment>Preserve metadata audit history without copying rows for geometry-only version increments.</comment>
+        <sql splitStatements="false"><![CDATA[
+CREATE
+OR REPLACE FUNCTION gps_track_update_trigger() RETURNS TRIGGER AS $$
+BEGIN
+    -- Geometry revisions change the cache version, not the audited metadata.
+    IF TG_OP = 'UPDATE' AND (to_jsonb(OLD) - 'version') = (to_jsonb(NEW) - 'version') THEN
+        RETURN NEW;
+    END IF;
+        IF
+(TG_OP = 'UPDATE' OR TG_OP = 'DELETE') THEN
+            INSERT INTO gps_track_audit (
+                version, operation, changed_at, id, file_id, creator, gpx_version, meta_name, meta_description,
+                meta_time, meta_author, track_name, track_description, start_date, end_date,
+                median_distance_between_points, avg_distance_between_points, max_distance_between_points,
+                did_filter_outlier_by_distance, number_of_track_points, track_length_in_meter,
+                track_type, utm_zone, create_date, load_status, load_messages, duplicate_status,
+                duplicate_of, activity_type, activity_type_source, activity_type_source_details,
+                garmin_activity_id, meta_link, duplicate_details, update_date,
+                source_segment_index, source_parent_track_id
+            )
+SELECT COALESCE(MAX(version), 0) + 1,
+       TG_OP,
+       CURRENT_TIMESTAMP,
+       OLD.id,
+       OLD.file_id,
+       OLD.creator,
+       OLD.gpx_version,
+       OLD.meta_name,
+       OLD.meta_description,
+       OLD.meta_time,
+       OLD.meta_author,
+       OLD.track_name,
+       OLD.track_description,
+       OLD.start_date,
+       OLD.end_date,
+       OLD.median_distance_between_points,
+       OLD.avg_distance_between_points,
+       OLD.max_distance_between_points,
+       OLD.did_filter_outlier_by_distance,
+       OLD.number_of_track_points,
+       OLD.track_length_in_meter,
+       OLD.track_type,
+       OLD.utm_zone,
+       OLD.create_date,
+       OLD.load_status,
+       OLD.load_messages,
+       OLD.duplicate_status,
+       OLD.duplicate_of,
+       OLD.activity_type,
+       OLD.activity_type_source,
+       OLD.activity_type_source_details,
+       OLD.garmin_activity_id,
+       OLD.meta_link,
+       OLD.duplicate_details,
+       OLD.update_date,
+       OLD.source_segment_index,
+       OLD.source_parent_track_id
+FROM gps_track_audit
+WHERE id = OLD.id;
+
+ELSIF
+(TG_OP = 'INSERT') THEN
+            INSERT INTO gps_track_audit (
+                version, operation, changed_at, id, file_id, creator, gpx_version, meta_name, meta_description,
+                meta_time, meta_author, track_name, track_description, start_date, end_date,
+                median_distance_between_points, avg_distance_between_points, max_distance_between_points,
+                did_filter_outlier_by_distance, number_of_track_points, track_length_in_meter,
+                track_type, utm_zone, create_date, load_status, load_messages, duplicate_status,
+                duplicate_of, activity_type, activity_type_source, activity_type_source_details,
+                garmin_activity_id, meta_link, duplicate_details, update_date,
+                source_segment_index, source_parent_track_id
+            )
+SELECT 1,
+       TG_OP,
+       CURRENT_TIMESTAMP,
+       NEW.id,
+       NEW.file_id,
+       NEW.creator,
+       NEW.gpx_version,
+       NEW.meta_name,
+       NEW.meta_description,
+       NEW.meta_time,
+       NEW.meta_author,
+       NEW.track_name,
+       NEW.track_description,
+       NEW.start_date,
+       NEW.end_date,
+       NEW.median_distance_between_points,
+       NEW.avg_distance_between_points,
+       NEW.max_distance_between_points,
+       NEW.did_filter_outlier_by_distance,
+       NEW.number_of_track_points,
+       NEW.track_length_in_meter,
+       NEW.track_type,
+       NEW.utm_zone,
+       NEW.create_date,
+       NEW.load_status,
+       NEW.load_messages,
+       NEW.duplicate_status,
+       NEW.duplicate_of,
+       NEW.activity_type,
+       NEW.activity_type_source,
+       NEW.activity_type_source_details,
+       NEW.garmin_activity_id,
+       NEW.meta_link,
+       NEW.duplicate_details,
+       NEW.update_date,
+       NEW.source_segment_index,
+       NEW.source_parent_track_id;
+END IF;
+RETURN NEW;
+END;
+    $$
+LANGUAGE plpgsql;
+        ]]></sql>
+        <rollback>
+            <sql splitStatements="false"><![CDATA[
+CREATE
+OR REPLACE FUNCTION gps_track_update_trigger() RETURNS TRIGGER AS $$
+BEGIN
+        IF
+(TG_OP = 'UPDATE' OR TG_OP = 'DELETE') THEN
+            INSERT INTO gps_track_audit (
+                version, operation, changed_at, id, file_id, creator, gpx_version, meta_name, meta_description,
+                meta_time, meta_author, track_name, track_description, start_date, end_date,
+                median_distance_between_points, avg_distance_between_points, max_distance_between_points,
+                did_filter_outlier_by_distance, number_of_track_points, track_length_in_meter,
+                track_type, utm_zone, create_date, load_status, load_messages, duplicate_status,
+                duplicate_of, activity_type, activity_type_source, activity_type_source_details,
+                garmin_activity_id, meta_link, duplicate_details, update_date,
+                source_segment_index, source_parent_track_id
+            )
+SELECT COALESCE(MAX(version), 0) + 1,
+       TG_OP,
+       CURRENT_TIMESTAMP,
+       OLD.id,
+       OLD.file_id,
+       OLD.creator,
+       OLD.gpx_version,
+       OLD.meta_name,
+       OLD.meta_description,
+       OLD.meta_time,
+       OLD.meta_author,
+       OLD.track_name,
+       OLD.track_description,
+       OLD.start_date,
+       OLD.end_date,
+       OLD.median_distance_between_points,
+       OLD.avg_distance_between_points,
+       OLD.max_distance_between_points,
+       OLD.did_filter_outlier_by_distance,
+       OLD.number_of_track_points,
+       OLD.track_length_in_meter,
+       OLD.track_type,
+       OLD.utm_zone,
+       OLD.create_date,
+       OLD.load_status,
+       OLD.load_messages,
+       OLD.duplicate_status,
+       OLD.duplicate_of,
+       OLD.activity_type,
+       OLD.activity_type_source,
+       OLD.activity_type_source_details,
+       OLD.garmin_activity_id,
+       OLD.meta_link,
+       OLD.duplicate_details,
+       OLD.update_date,
+       OLD.source_segment_index,
+       OLD.source_parent_track_id
+FROM gps_track_audit
+WHERE id = OLD.id;
+
+ELSIF
+(TG_OP = 'INSERT') THEN
+            INSERT INTO gps_track_audit (
+                version, operation, changed_at, id, file_id, creator, gpx_version, meta_name, meta_description,
+                meta_time, meta_author, track_name, track_description, start_date, end_date,
+                median_distance_between_points, avg_distance_between_points, max_distance_between_points,
+                did_filter_outlier_by_distance, number_of_track_points, track_length_in_meter,
+                track_type, utm_zone, create_date, load_status, load_messages, duplicate_status,
+                duplicate_of, activity_type, activity_type_source, activity_type_source_details,
+                garmin_activity_id, meta_link, duplicate_details, update_date,
+                source_segment_index, source_parent_track_id
+            )
+SELECT 1,
+       TG_OP,
+       CURRENT_TIMESTAMP,
+       NEW.id,
+       NEW.file_id,
+       NEW.creator,
+       NEW.gpx_version,
+       NEW.meta_name,
+       NEW.meta_description,
+       NEW.meta_time,
+       NEW.meta_author,
+       NEW.track_name,
+       NEW.track_description,
+       NEW.start_date,
+       NEW.end_date,
+       NEW.median_distance_between_points,
+       NEW.avg_distance_between_points,
+       NEW.max_distance_between_points,
+       NEW.did_filter_outlier_by_distance,
+       NEW.number_of_track_points,
+       NEW.track_length_in_meter,
+       NEW.track_type,
+       NEW.utm_zone,
+       NEW.create_date,
+       NEW.load_status,
+       NEW.load_messages,
+       NEW.duplicate_status,
+       NEW.duplicate_of,
+       NEW.activity_type,
+       NEW.activity_type_source,
+       NEW.activity_type_source_details,
+       NEW.garmin_activity_id,
+       NEW.meta_link,
+       NEW.duplicate_details,
+       NEW.update_date,
+       NEW.source_segment_index,
+       NEW.source_parent_track_id;
+END IF;
+RETURN NEW;
+END;
+    $$
+LANGUAGE plpgsql;
+            ]]></sql>
+        </rollback>
+    </changeSet>
+</databaseChangeLog>

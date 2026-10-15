@@ -1,3 +1,4 @@
+import { formatLocaleNumber } from '@/utils/Utils';
 import {
   MapConfigDtoTileModeEnum,
   MapServerStatusControllerApi,
@@ -14,6 +15,13 @@ import { fetchMapStatus } from '@/utils/mapStatusService';
 
 export type AdminOperationalTaskState = 'running' | 'done' | 'warning' | 'disabled';
 
+export interface AdminOperationalCount {
+  key: string;
+  value?: number;
+  label?: string;
+  format?: 'bytes';
+}
+
 export interface AdminOperationalTask {
   id: string;
   label: string;
@@ -24,6 +32,8 @@ export interface AdminOperationalTask {
   progressPercent: number | null;
   detail: string;
   metric: string;
+  metricCounts?: AdminOperationalCount[];
+  metricSeparator?: string;
   versionInfo?: VersionInfoDto | null;
 }
 
@@ -70,14 +80,11 @@ export async function getAdminOperationalTasks(
 }
 
 export function buildAdminOperationalTasks(sources: AdminOperationalTaskSources): AdminOperationalTask[] {
-  const tasks = [
+  return [
     normalizeMapTask(sources.mapStatus, sources.mapConfig),
     normalizeLocationSearchTask(sources.locationSearchStatus),
+    normalizeBRouterTask(sources.brouterStatus, sources.mapConfig?.plannerEnabled),
   ];
-  if (sources.mapConfig?.plannerEnabled === true) {
-    tasks.push(normalizeBRouterTask(sources.brouterStatus));
-  }
-  return tasks;
 }
 
 export function normalizeMapTask(
@@ -126,6 +133,17 @@ export function normalizeMapTask(
     metric: determinateDownload
       ? formatBytesProgress(status.downloadBytes, status.downloadTotal)
       : mapReadyMetric(status),
+    metricCounts: determinateDownload
+      ? [
+          {
+            key: 'downloaded',
+            value: Number.isFinite(status.downloadBytes) ? nonNegativeInt(status.downloadBytes) : undefined,
+            format: 'bytes',
+          },
+          { key: 'total', value: nonNegativeInt(status.downloadTotal), format: 'bytes' },
+        ]
+      : undefined,
+    metricSeparator: ' / ',
     versionInfo: status.versionInfo ?? null,
   });
 }
@@ -151,6 +169,7 @@ export function normalizeLocationSearchTask(status: LocationSearchStatusDto | nu
       progressPercent: 100,
       detail: status.message || 'GeoNames location search ready.',
       metric: locationSearchReadyMetric(status),
+      metricCounts: locationSearchCounts(status),
       versionInfo: status.versionInfo ?? null,
     });
   }
@@ -168,11 +187,23 @@ export function normalizeLocationSearchTask(status: LocationSearchStatusDto | nu
     progressPercent: null,
     detail: status.message || locationSearchPhaseDetail(phase),
     metric: locationSearchReadyMetric(status),
+    metricCounts: locationSearchCounts(status),
     versionInfo: status.versionInfo ?? null,
   });
 }
 
-export function normalizeBRouterTask(status: SidecarStatus | null | undefined): AdminOperationalTask {
+export function normalizeBRouterTask(
+  status: SidecarStatus | null | undefined,
+  plannerEnabled?: boolean
+): AdminOperationalTask {
+  if (plannerEnabled === false) {
+    return task(TASK_ROUTING_SEGMENTS, 'Routing Segments', 'disabled', STATUS_DISABLED, {
+      detail: status?.reason || 'Route planning is disabled.',
+      metric: 'Routing off',
+      versionInfo: status?.versionInfo ?? null,
+    });
+  }
+
   if (!status) {
     return task(TASK_ROUTING_SEGMENTS, 'Routing Segments', 'warning', 'unavailable', {
       detail: 'Routing status is not reachable.',
@@ -201,6 +232,10 @@ export function normalizeBRouterTask(status: SidecarStatus | null | undefined): 
       indeterminate: true,
       detail: 'Preparing routing data for route calculation.',
       metric: brouterProgressMetric(status),
+      metricCounts: [
+        ...(queued > 0 ? [{ key: 'queued', value: queued, label: 'queued' }] : []),
+        ...(inProgress > 0 ? [{ key: 'downloading', value: inProgress, label: 'downloading' }] : []),
+      ],
       versionInfo: status.versionInfo ?? null,
     });
   }
@@ -209,6 +244,10 @@ export function normalizeBRouterTask(status: SidecarStatus | null | undefined): 
     progressPercent: 100,
     detail: 'Routing segments are ready for planned routes.',
     metric: brouterReadyMetric(status),
+    metricCounts:
+      nonNegativeInt(status.segmentsOnDisk) > 0
+        ? [{ key: 'on-disk', value: nonNegativeInt(status.segmentsOnDisk), label: 'routing segments on disk' }]
+        : undefined,
     versionInfo: status.versionInfo ?? null,
   });
 }
@@ -230,7 +269,10 @@ function task(
   state: AdminOperationalTaskState,
   statusLabel: string,
   options: Partial<
-    Pick<AdminOperationalTask, 'indeterminate' | 'progressPercent' | 'detail' | 'metric' | 'versionInfo'>
+    Pick<
+      AdminOperationalTask,
+      'indeterminate' | 'progressPercent' | 'detail' | 'metric' | 'metricCounts' | 'metricSeparator' | 'versionInfo'
+    >
   >
 ): AdminOperationalTask {
   return {
@@ -243,6 +285,8 @@ function task(
     progressPercent: options.progressPercent ?? null,
     detail: options.detail ?? '',
     metric: options.metric ?? '',
+    metricCounts: options.metricCounts,
+    metricSeparator: options.metricSeparator ?? ', ',
     versionInfo: options.versionInfo ?? null,
   };
 }
@@ -300,10 +344,34 @@ function locationSearchReadyMetric(status: LocationSearchStatusDto): string {
   if (finitePositive(rowCount)) {
     const terrain = nonNegativeInt(status.terrainCount);
     const places = nonNegativeInt(status.populatedPlaceCount);
-    if (terrain > 0 && places > 0) return `${Math.round(rowCount)} places (${places} populated, ${terrain} terrain)`;
-    return `${Math.round(rowCount)} places`;
+    if (terrain > 0 && places > 0)
+      return `${formatLocaleNumber(Math.round(rowCount))} places (${formatLocaleNumber(places)} populated, ${formatLocaleNumber(terrain)} terrain)`;
+    return `${formatLocaleNumber(Math.round(rowCount))} places`;
   }
   return status.sourceAttribution || '';
+}
+
+function locationSearchCounts(status: LocationSearchStatusDto): AdminOperationalCount[] | undefined {
+  if (!finitePositive(status.rowCount)) return undefined;
+  const counts: AdminOperationalCount[] = [{ key: 'places', value: Math.floor(status.rowCount), label: 'places' }];
+  const terrain = nonNegativeInt(status.terrainCount);
+  const populated = nonNegativeInt(status.populatedPlaceCount);
+  if (terrain > 0 && populated > 0)
+    counts.push(
+      { key: 'populated', value: populated, label: 'populated' },
+      { key: 'terrain', value: terrain, label: 'terrain' }
+    );
+  return counts;
+}
+
+export function formatWholeBytes(value: number): string {
+  let scaled = Math.max(0, value);
+  let unitIndex = 0;
+  while (scaled >= 1024 && unitIndex < BYTE_UNITS.length - 1) {
+    scaled /= 1024;
+    unitIndex++;
+  }
+  return `${Math.floor(scaled)} ${BYTE_UNITS[unitIndex]}`;
 }
 
 function progressMetric(current: number | undefined, total: number | undefined, unit: string | undefined): string {
@@ -325,7 +393,7 @@ function brouterProgressMetric(status: SidecarStatus): string {
 
 function brouterReadyMetric(status: SidecarStatus): string {
   const onDisk = nonNegativeInt(status.segmentsOnDisk);
-  return onDisk > 0 ? `${onDisk} on disk` : '';
+  return onDisk > 0 ? `${formatLocaleNumber(onDisk)} routing segments on disk` : '';
 }
 
 function formatBytesProgress(current: number | undefined, total: number | undefined): string {

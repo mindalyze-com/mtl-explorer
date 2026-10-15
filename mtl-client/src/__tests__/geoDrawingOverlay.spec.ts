@@ -22,6 +22,7 @@ function createMapMock() {
   return {
     sources,
     map: {
+      getGlyphs: vi.fn(() => undefined as string | undefined),
       addSource: vi.fn((id: string, source: { data: GeoJSON.FeatureCollection }) => {
         const stored: GeoJsonSource = {
           data: source.data,
@@ -52,6 +53,19 @@ describe('GeoDrawingOverlay measurement labels', () => {
 
   beforeEach(() => {
     measurementPreference.setMeasurementSystem('METRIC');
+  });
+
+  it('uses a supported medium font for Swiss Topo measurement labels', () => {
+    const { map } = createMapMock();
+    map.getGlyphs.mockReturnValue('https://vectortiles.geo.admin.ch/fonts/{fontstack}/{range}.pbf');
+    const overlay = new GeoDrawingOverlay(map as never);
+    overlay.renderCircle({ lat: 46, lng: 8, radiusM: 100 });
+    expect(map.addLayer).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'symbol',
+        layout: expect.objectContaining({ 'text-font': ['Frutiger Neue Medium'] }),
+      })
+    );
   });
 
   it('refreshes finalized shape labels when the measurement system changes', () => {

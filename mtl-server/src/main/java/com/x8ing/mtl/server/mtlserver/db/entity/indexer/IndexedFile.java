@@ -1,5 +1,6 @@
 package com.x8ing.mtl.server.mtlserver.db.entity.indexer;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import jakarta.persistence.*;
 import lombok.Data;
@@ -31,8 +32,10 @@ import java.util.Date;
 public class IndexedFile {
 
     public enum IndexerStatus {
-        SCHEDULED, PROCESSING, COMPLETED_WITH_SUCCESS, FAILED, REMOVED, EXCLUDED
+        SCHEDULED, PROCESSING, RESCHEDULED, COMPLETED_WITH_SUCCESS, FAILED, SKIPPED, REMOVED, EXCLUDED
     }
+
+    public enum Operation {UPSERT, DELETE}
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -71,6 +74,20 @@ public class IndexedFile {
     @Enumerated(EnumType.STRING)
     private IndexerStatus indexerStatus;
 
+    @JsonIgnore
+    @Enumerated(EnumType.STRING)
+    @Column(name = "pending_operation")
+    private Operation pendingOperation;
+
+    @JsonIgnore
+    @Column(name = "work_generation", nullable = false)
+    private long workGeneration;
+
+    // Processing attempt number, matching workGeneration; this is not a timestamp.
+    @JsonIgnore
+    @Column(name = "last_successful_generation")
+    private Long lastSuccessfulGeneration;
+
     // how many times was that file already sent to an indexer
     @Column(name = "indexer_invocations")
     private int indexerInvocations;
@@ -79,6 +96,10 @@ public class IndexedFile {
 
     @Column(name = "last_message")
     private String lastMessage;
+
+    @JsonIgnore
+    @Column(name = "source_failure", nullable = false)
+    private boolean sourceFailure;
 
     // Optimistic locking to ensure atomic status updates and detect racing completions
     @Version

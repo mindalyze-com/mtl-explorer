@@ -13,6 +13,12 @@ services:
     memswap_limit: 512m
     volumes:
       - /volume1/raspberry/MyTrailLogDemo/PostGIS:/var/lib/postgresql/18/docker
+    healthcheck:
+      test: ["CMD", "pg_isready", "-h", "127.0.0.1", "-U", "mtluser", "-d", "mtl"]
+      interval: 1s
+      timeout: 5s
+      start_period: 5s
+      retries: 60
     deploy:
       resources:
         limits:
@@ -21,9 +27,10 @@ services:
           memory: 256m
     command: >
       postgres
-      -c shared_buffers=32MB
+      -c shared_buffers=64MB
       -c effective_cache_size=160MB
       -c work_mem=1MB
+      -c jit=off
       -c maintenance_work_mem=16MB
       -c max_connections=20
       -c max_wal_size=1GB
@@ -35,14 +42,19 @@ services:
     image: wauwau0977/mytraillog:beta
     pull_policy: always
     depends_on:
-      - db
-      - location-search
+      db:
+        condition: service_healthy
+      location-search:
+        condition: service_started
     environment:
       POSTGRES_DB: mtl
       POSTGRES_USER: mtluser
       POSTGRES_PASSWORD: MtlSuper123
       # Demo mode — auto-extracts Porto taxi GPX tracks and generates geo-tagged photos on first startup
       DEMO_MODE: "Y"
+      MTL_DEMO_HEALTH_ENABLED: "true"
+      MTL_DEMO_HEALTH_TRACK_PERCENTAGE: "100"
+      # Optional Umami settings (off by default): documentation/development/website/analytics.md
       DEMO_TARGET_TRACK_COUNT: "10042"
       DEMO_PHOTO_COUNT: "2000"
       # Deep media trees need many directory watches; demo media uses one subfolder.
@@ -57,11 +69,11 @@ services:
       - 8080
     restart: unless-stopped
     stop_grace_period: 150s
-    memswap_limit: 1024m
+    memswap_limit: 1248m
     deploy:
       resources:
         limits:
-          memory: 1024m # Current demo target after the bounded photo-generation change.
+          memory: 1248m # Gives G1 a 500 MiB Java heap with the image's 40% heap limit.
         reservations:
           memory: 512m
     volumes:
@@ -83,7 +95,7 @@ services:
       - 8081
     environment:
       PORT: "8081"
-      LOWZOOM_MAXZOOM: "8"
+      LOWZOOM_MAXZOOM: "6"
       MAP_DOWNLOAD_URL: latest
     volumes:
       - /volume1/raspberry/MyTrailLogDemo/maps:/data
@@ -110,7 +122,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 128m
+          memory: 128m # 96 MiB validated floor; 20% is 115.2 MiB, rounded to 128 MiB.
         reservations:
           memory: 64m
 
@@ -127,7 +139,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 512m
+          memory: 512m # 384 MiB validated floor; 20% is 460.8 MiB, rounded to 512 MiB.
         reservations:
           memory: 192m
     memswap_limit: 512m
