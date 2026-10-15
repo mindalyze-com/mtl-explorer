@@ -25,7 +25,8 @@ class DocumentationTests(unittest.TestCase):
         self.write("documentation/user/help.md", "# Help\n\n## Recovery\n\nTry the supported action.\n")
         self.write("docs/sitemap.xml", '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"></urlset>\n')
         self.write("docs/site-theme.css", ":root { --text: black; }\n")
-        for filename in ("documentation.css", "documentation.js", "guide-theme.js", "guide-navigation.js"):
+        self.write("docs/site-analytics.js", "/* synthetic analytics asset */\n")
+        for filename in ("documentation.css", "documentation.js", "guide-theme.js", "guide-navigation.js", "guide-analytics.js"):
             self.write("documentation/tools/website/" + filename, "/* synthetic asset */\n")
 
     def write(self, relative, content):
@@ -51,6 +52,16 @@ class DocumentationTests(unittest.TestCase):
         self.assertIn('<a href="/mtl/" data-guide-back>Back to app</a>', installed)
         self.assertIn('<script defer src="/mtl/guide/guide-navigation.js"></script>', installed)
         self.assertNotIn("guide-navigation.js", page)
+        self.assertEqual(page.count('<script defer src="/site-analytics.js"></script>'), 1)
+        self.assertIn('href="/#site-analytics">Site analytics</a>', page)
+        self.assertNotIn("site-analytics.js", installed)
+        self.assertNotIn("Site analytics</a>", installed)
+        self.assertEqual(installed.count('<script defer src="/mtl/guide/guide-analytics.js"></script>'), 1)
+        self.assertNotIn("guide-analytics.js", page)
+        self.assertEqual(
+            (self.root / "mtl-client/public/guide/guide-analytics.js").read_bytes(),
+            (self.root / "documentation/tools/website/guide-analytics.js").read_bytes(),
+        )
         self.assertEqual(
             (self.root / "mtl-client/public/guide/guide-navigation.js").read_bytes(),
             (self.root / "documentation/tools/website/guide-navigation.js").read_bytes(),

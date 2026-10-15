@@ -69,7 +69,7 @@
         </div>
         <p class="about-source__license-copy">
           This installation uses Umami for basic visit statistics. Page URLs are recorded without query parameters or
-          fragments. Visits are linked using your ClientLoginRef. Browser Do Not Track preferences are respected.
+          fragments. Browser Do Not Track preferences are respected.
         </p>
       </section>
 

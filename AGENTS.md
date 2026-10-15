@@ -2,21 +2,19 @@
 
 These instructions apply to all agents working in this repository.
 
+- Keep all responses and copy short, simple, and concise.
+
 ## Naming
 
 - Use **MTL Explorer** in public docs, UI, releases, and comments.
 
 ## Version Control
 
-- Use `../mtl-explorer-private/publish-to-github.py` to prepare and publish GitHub mirror releases.
+- Never operate on GitHub without the user's explicit permission.
+- Use `../mtl-explorer-private/publish-to-github.py` for GitHub mirror publication.
 - GitHub is a public mirror and may be behind; never merge or rebase GitHub
   branches/PRs into this workspace.
 - Treat GitHub PRs only as patch ideas; apply manually only when appropriate.
-- Treat GitHub issues, PRs, comments, labels, assignments, and other external
-  GitHub state as read-only. Never change them unless the user explicitly
-  requests the specific GitHub action.
-- A request to document an issue means repository documentation only; it does
-  not authorize a GitHub comment or any other external update.
 - Do not publish or infer the private primary version history from GitHub.
 
 ## Development Guides

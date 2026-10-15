@@ -12,13 +12,19 @@
     },
   ];
   const environment = ENVIRONMENTS.find(({ hostnames }) => hostnames.includes(window.location.hostname));
-  const doNotTrack = window.doNotTrack || navigator.doNotTrack || navigator.msDoNotTrack;
 
-  if (!environment || [1, "1", "yes"].includes(doNotTrack)) {
+  function isDoNotTrackEnabled() {
+    return [window.doNotTrack, navigator.doNotTrack, navigator.msDoNotTrack].some((value) =>
+      [1, "1", "yes"].includes(value),
+    );
+  }
+
+  if (!environment || isDoNotTrackEnabled()) {
     return;
   }
 
   function loadAnalytics() {
+    if (isDoNotTrackEnabled()) return;
     const tracker = document.createElement("script");
     tracker.async = true;
     tracker.src = environment.trackerUrl;

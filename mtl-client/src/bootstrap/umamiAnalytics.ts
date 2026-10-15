@@ -7,14 +7,13 @@
 import { readonly, ref } from 'vue';
 import { UmamiAnalyticsControllerApi, Configuration } from 'x8ing-mtl-api-typescript-fetch';
 import { backendBasePath } from '@/utils/apiBase';
-import { getClientLoginRef, isAuthenticated } from '@/utils/auth';
 import { warnSanitized } from '@/utils/safeLogging';
 
 const CONFIG_TIMEOUT_MS = 5000;
 const TRACKER_ELEMENT_ID = 'mtl-umami-analytics';
 const BEFORE_SEND_FUNCTION_NAME = 'mtlUmamiBeforeSend';
+const PAGE_ID_FIELDS = { track: 'track_id', plan: 'plan_id', review: 'source_id' } as const;
 type UmamiWindow = Window & {
-  umami?: { identify?: (id: string) => void | Promise<unknown> };
   [BEFORE_SEND_FUNCTION_NAME]?: (type: string, payload: Record<string, unknown>) => Record<string, unknown> | null;
 };
 const enabled = ref(false);
@@ -29,42 +28,44 @@ function isDoNotTrackEnabled(): boolean {
   );
 }
 
-function configureClientLoginIdentification(tracker: HTMLScriptElement): void {
-  const analyticsWindow = window as UmamiWindow;
-  let identifiedClientLoginRef: string | null = null;
-  const currentClientLoginRef = () => (isAuthenticated() ? getClientLoginRef() : null);
-
-  const identifyClientLogin = async (clientLoginRef: string | null): Promise<void> => {
-    const umami = analyticsWindow.umami;
-    // A private deployment or a blocked/missing script may never define this API.
-    if (isDoNotTrackEnabled() || typeof umami?.identify !== 'function' || clientLoginRef === identifiedClientLoginRef)
-      return;
-    const previousClientLoginRef = identifiedClientLoginRef;
-    // Set this before calling Umami: identify itself invokes the before-send hook.
-    identifiedClientLoginRef = clientLoginRef;
-    try {
-      // An empty ID clears the tracker's previous identity after logout or expiry.
-      await umami.identify(clientLoginRef ?? '');
-    } catch (error) {
-      if (identifiedClientLoginRef === clientLoginRef) identifiedClientLoginRef = previousClientLoginRef;
-      warnSanitized('Umami client login identification unavailable; continuing without identification.', error, {
-        topic1: 'application',
-        topic2: 'umamiAnalytics',
-        topic3: 'identifyClientLogin',
-      });
+function analyticsPage(value: unknown): { url: string; data?: Record<string, string> } | null {
+  if (typeof value !== 'string' || !value) return null;
+  try {
+    const url = new URL(value, window.location.origin);
+    const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+    if (url.origin !== window.location.origin || !url.pathname.startsWith(`${base}/`)) return null;
+    const path = url.pathname.slice(base.length);
+    const entity = /^\/(track|plan|review)\/(\d+)\/?$/.exec(path);
+    if (entity) {
+      const route = entity[1] as keyof typeof PAGE_ID_FIELDS;
+      return { url: `${base}/${route}/:id`, data: { [PAGE_ID_FIELDS[route]]: entity[2] } };
     }
-  };
+    const admin = /^\/admin\/([a-z][a-z-]*)\/?$/.exec(path);
+    if (admin) return { url: `${base}/admin/:section`, data: { admin_section: admin[1] } };
+    return { url: url.pathname };
+  } catch {
+    return null;
+  }
+}
 
+function configurePageviews(tracker: HTMLScriptElement): void {
+  const analyticsWindow = window as UmamiWindow;
   analyticsWindow[BEFORE_SEND_FUNCTION_NAME] = (type, payload) => {
     if (isDoNotTrackEnabled()) return null;
-    const clientLoginRef = currentClientLoginRef();
-    if (type !== 'identify') void identifyClientLogin(clientLoginRef);
-    // The first automatic pageview precedes script load; every payload must use
-    // the current client login reference, including login/logout changes without a page reload.
-    return { ...payload, id: clientLoginRef ?? undefined };
+    const anonymousPayload = { ...payload };
+    delete anonymousPayload.id;
+    const page = analyticsPage(payload.url);
+    const referrer = analyticsPage(payload.referrer);
+    const data = payload.data && typeof payload.data === 'object' && !Array.isArray(payload.data) ? payload.data : {};
+    return {
+      ...anonymousPayload,
+      ...(page && { url: page.url }),
+      ...(referrer && { referrer: referrer.url }),
+      // Keep parameter details on this event, without another pageview or session data update.
+      ...(type === 'event' && page?.data && { data: { ...data, ...page.data } }),
+    };
   };
   tracker.dataset.beforeSend = BEFORE_SEND_FUNCTION_NAME;
-  tracker.addEventListener('load', () => void identifyClientLogin(currentClientLoginRef()), { once: true });
 }
 
 async function initializeAnalytics(): Promise<void> {
@@ -72,7 +73,7 @@ async function initializeAnalytics(): Promise<void> {
     // Public, uncached configuration is the only opt-in source. Never persist it in browser storage.
     const api = new UmamiAnalyticsControllerApi(new Configuration({ basePath: backendBasePath, credentials: 'omit' }));
     const config = await api.getUmamiConfig({ cache: 'no-store', signal: AbortSignal.timeout(CONFIG_TIMEOUT_MS) });
-    // Disabled or incomplete settings install no script, global hook or client login reference reader.
+    // Disabled or incomplete settings install no script or analytics hook.
     if (config?.enabled !== true || !config.scriptUrl || !config.websiteId) return;
 
     const scriptUrl = new URL(config.scriptUrl);
@@ -90,7 +91,7 @@ async function initializeAnalytics(): Promise<void> {
       tracker.dataset.doNotTrack = 'true';
       tracker.dataset.excludeSearch = 'true';
       tracker.dataset.excludeHash = 'true';
-      configureClientLoginIdentification(tracker);
+      configurePageviews(tracker);
       tracker.addEventListener(
         'error',
         () =>

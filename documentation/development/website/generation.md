@@ -38,6 +38,7 @@ python documentation/tools/website/generate_releases.py --check
 python documentation/tools/website/check_documentation.py
 python documentation/tools/website/check_memory_profile.py
 python -m unittest discover -s documentation/tools/tests -p 'test_website_releases.py'
+node --test documentation/tools/tests/test_site_analytics.mjs
 ```
 
 `python3 documentation/tools/build.py docs` regenerates the guide and checks
@@ -105,7 +106,9 @@ When a release is explicitly requested, use `../mtl-explorer-private/publish-to-
 the read-only check against `https://mtl-explorer.com/`. Inspect Search Console
 separately for the selected canonicals and the sitemap's successful read.
 
-Product tours and release pages load analytics from `docs/site-analytics.js`.
+Product tours, release pages and every generated public documentation page load
+analytics from `docs/site-analytics.js`. The installed app guide instead loads
+`guide-analytics.js`, which follows the application's optional Umami configuration.
 The page's
 hostname selects the configuration automatically:
 
@@ -121,6 +124,11 @@ after window load and respects Do Not Track in both environments. Page code does
 not wait for analytics. Query strings and fragments are excluded, including
 campaign query parameters. There are no custom click events or tracking-dependent
 navigation.
+
+The website and installed guide use Umami's default anonymous visitor and session
+identification. They supply no Distinct ID and create no custom identifier in
+local or session storage. Generated public documentation links to the homepage's
+Site analytics notice.
 
 When changing tracking, verify the selected host and website ID in both environments,
 then check a blocked/hanging script and a failed/hanging collector in a browser.

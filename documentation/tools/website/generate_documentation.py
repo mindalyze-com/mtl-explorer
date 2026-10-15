@@ -271,15 +271,16 @@ def render_page(document, documents, repository, installed, images):
     theme = INSTALLED_BASE + "site-theme.css" if installed else "/site-theme.css"
     theme_script = f'<script src="{INSTALLED_BASE}guide-theme.js"></script>' if installed else ""
     navigation_script = f'<script defer src="{INSTALLED_BASE}guide-navigation.js"></script>' if installed else ""
+    analytics_script = f'<script defer src="{INSTALLED_BASE}guide-analytics.js"></script>' if installed else '<script defer src="/site-analytics.js"></script>'
     back_attribute = ' data-guide-back' if installed else ""
-    footer = "" if installed else f'<footer><a href="{GITHUB}/blob/main/{quote(document.path.relative_to(repository).as_posix())}">View source</a></footer>'
+    footer = "" if installed else f'<footer><a href="{GITHUB}/blob/main/{quote(document.path.relative_to(repository).as_posix())}">View source</a> · <a href="/#site-analytics">Site analytics</a></footer>'
     article_class = ' class="doc-overview"' if document.path == repository / "documentation/user/README.md" else ""
     menu_title = "Browse guide" if installed else "Browse documentation"
     return f'''<!doctype html>
 {GENERATED}
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{escape(title)}</title><meta name="description" content="{escape(description)}">{metadata}
-{theme_script}<link rel="stylesheet" href="{theme}"><link rel="stylesheet" href="{base}documentation.css"><script defer src="{base}documentation.js"></script>{navigation_script}</head>
+{theme_script}<link rel="stylesheet" href="{theme}"><link rel="stylesheet" href="{base}documentation.css"><script defer src="{base}documentation.js"></script>{navigation_script}{analytics_script}</head>
 <body><a class="skip-link" href="#content">Skip to content</a>
 <header class="doc-header"><a class="doc-brand" href="{base}{'index.html' if installed else ''}">MTL Explorer</a><span>{escape(document.scope)}</span><a href="{'/mtl/' if installed else '/'}"{back_attribute}>{'Back to app' if installed else 'Home'}</a></header>
 <div class="doc-layout"><aside><details id="doc-menu" open><summary>{menu_title}</summary>
@@ -317,6 +318,7 @@ def generate(repository=REPOSITORY, check=False):
         if installed:
             outputs[root / "guide-theme.js"] = (repository / "documentation/tools/website/guide-theme.js").read_bytes()
             outputs[root / "guide-navigation.js"] = (repository / "documentation/tools/website/guide-navigation.js").read_bytes()
+            outputs[root / "guide-analytics.js"] = (repository / "documentation/tools/website/guide-analytics.js").read_bytes()
             outputs[root / "site-theme.css"] = (repository / "docs/site-theme.css").read_bytes()
             for name, image in images.items():
                 outputs[root / "assets" / name] = image.read_bytes()

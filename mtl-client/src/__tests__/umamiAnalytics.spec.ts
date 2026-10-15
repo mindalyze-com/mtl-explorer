@@ -39,6 +39,7 @@ beforeEach(() => {
   isAuthenticated.mockReset().mockReturnValue(true);
   identify.mockReset().mockResolvedValue(undefined);
   vi.stubGlobal('umami', { identify });
+  vi.stubEnv('BASE_URL', '/mtl/');
   vi.spyOn(document, 'readyState', 'get').mockReturnValue('complete');
   vi.spyOn(console, 'warn').mockImplementation(() => {});
 });
@@ -48,6 +49,7 @@ afterEach(() => {
   if (callbackName) Reflect.deleteProperty(window, callbackName);
   tracker()?.remove();
   vi.unstubAllGlobals();
+  vi.unstubAllEnvs();
   vi.restoreAllMocks();
 });
 
@@ -107,6 +109,17 @@ describe('Umami analytics', () => {
     expect(analytics.umamiAnalyticsEnabled.value).toBe(true);
   });
 
+  it('uses default Umami identification without reading login references or sending a Distinct ID', async () => {
+    const analytics = await import('@/bootstrap/umamiAnalytics');
+    await analytics.startUmamiAnalytics();
+    tracker()!.dispatchEvent(new Event('load'));
+    expect(tracker()?.dataset.distinctId).toBeUndefined();
+    expect(beforeSend('event', { url: '/mtl/', id: 'stale-custom-identity' })).toEqual({ url: '/mtl/' });
+    expect(getClientLoginRef).not.toHaveBeenCalled();
+    expect(isAuthenticated).not.toHaveBeenCalled();
+    expect(identify).not.toHaveBeenCalled();
+  });
+
   it('waits until page load without holding up initialization', async () => {
     vi.spyOn(document, 'readyState', 'get').mockReturnValue('loading');
     const analytics = await import('@/bootstrap/umamiAnalytics');
@@ -118,94 +131,81 @@ describe('Umami analytics', () => {
     expect(document.querySelectorAll('#mtl-umami-analytics')).toHaveLength(1);
   });
 
-  it('identifies the current client login reference once after the tracker loads', async () => {
+  it.each([
+    { path: '/track/123', grouped: '/track/:id', data: { track_id: '123' } },
+    { path: '/track/9007199254740993/', grouped: '/track/:id', data: { track_id: '9007199254740993' } },
+    { path: '/plan/456', grouped: '/plan/:id', data: { plan_id: '456' } },
+    { path: '/review/789', grouped: '/review/:id', data: { source_id: '789' } },
+    { path: '/admin/data-status', grouped: '/admin/:section', data: { admin_section: 'data-status' } },
+  ])('groups the first pageview for $path and retains its parameter as event data', async ({ path, grouped, data }) => {
     const analytics = await import('@/bootstrap/umamiAnalytics');
     await analytics.startUmamiAnalytics();
-    expect(identify).not.toHaveBeenCalled();
-    tracker()!.dispatchEvent(new Event('load'));
-    expect(identify).toHaveBeenCalledExactlyOnceWith(clientLoginRef);
-    beforeSend('event');
-    tracker()!.dispatchEvent(new Event('load'));
-    expect(identify).toHaveBeenCalledOnce();
-  });
-
-  it('identifies the first automatic pageview before load without recursive identify calls', async () => {
-    const analytics = await import('@/bootstrap/umamiAnalytics');
-    await analytics.startUmamiAnalytics();
-    identify.mockImplementation(() => {
-      expect(beforeSend('identify')).toEqual({ id: clientLoginRef });
-      return Promise.resolve();
-    });
-    expect(beforeSend('event', { website: activeConfig.websiteId, url: '/mtl/' })).toEqual({
+    const payload = {
       website: activeConfig.websiteId,
-      url: '/mtl/',
-      id: clientLoginRef,
+      url: `${window.location.origin}/mtl${path}?secret=hidden#detail`,
+    };
+    expect(beforeSend('event', payload)).toEqual({
+      website: activeConfig.websiteId,
+      url: `/mtl${grouped}`,
+      data,
     });
-    tracker()!.dispatchEvent(new Event('load'));
-    expect(identify).toHaveBeenCalledExactlyOnceWith(clientLoginRef);
+    expect(payload.url).toContain('?secret=hidden#detail');
+    expect(identify).not.toHaveBeenCalled();
   });
 
-  it('uses the latest client login reference when login changes during tracker loading', async () => {
+  it('groups internal referrers and preserves custom event data without adding a second event', async () => {
     const analytics = await import('@/bootstrap/umamiAnalytics');
     await analytics.startUmamiAnalytics();
-    getClientLoginRef.mockReturnValue('replacement-login');
-    tracker()!.dispatchEvent(new Event('load'));
-    expect(identify).toHaveBeenCalledExactlyOnceWith('replacement-login');
+    const payload = {
+      name: 'track-opened',
+      url: '/mtl/track/123',
+      referrer: `${window.location.origin}/mtl/plan/456?secret=hidden#detail`,
+      data: { source: 'map' },
+    };
+    expect(beforeSend('event', payload)).toEqual({
+      ...payload,
+      url: '/mtl/track/:id',
+      referrer: '/mtl/plan/:id',
+      data: { source: 'map', track_id: '123' },
+    });
+    expect(payload.data).toEqual({ source: 'map' });
+    expect(identify).not.toHaveBeenCalled();
   });
 
-  it.each(['missing', 'expired', 'no client login reference claim'])(
-    'leaves a %s client login unidentified',
-    async (state) => {
-      if (state === 'no client login reference claim') getClientLoginRef.mockReturnValue(null);
-      else isAuthenticated.mockReturnValue(false);
+  it.each(['identify', 'performance'])('does not add route parameters to %s data', async (type) => {
+    const analytics = await import('@/bootstrap/umamiAnalytics');
+    await analytics.startUmamiAnalytics();
+    expect(beforeSend(type, { url: '/mtl/track/123', data: { existing: true } })).toEqual({
+      url: '/mtl/track/:id',
+      data: { existing: true },
+    });
+  });
+
+  it.each(['/mtl/', '/mtl/login', '/mtl/stats', '/mtl/plan', '/mtl/review', '/mtl/admin'])(
+    'keeps the static route %s without route data',
+    async (url) => {
       const analytics = await import('@/bootstrap/umamiAnalytics');
       await analytics.startUmamiAnalytics();
-      tracker()!.dispatchEvent(new Event('load'));
-      expect(beforeSend('event', { id: 'stale-login', url: '/mtl/login' })).toEqual({
-        id: undefined,
-        url: '/mtl/login',
-      });
-      expect(identify).not.toHaveBeenCalled();
+      expect(beforeSend('event', { url, referrer: '' })).toEqual({ url, referrer: '' });
     }
   );
 
-  it('follows login, logout, another login and expiry on subsequent pageviews', async () => {
-    isAuthenticated.mockReturnValue(false);
+  it.each(['/', '/custom/'])('uses the frontend mount path %s', async (base) => {
+    vi.stubEnv('BASE_URL', base);
     const analytics = await import('@/bootstrap/umamiAnalytics');
     await analytics.startUmamiAnalytics();
-    tracker()!.dispatchEvent(new Event('load'));
-    expect(identify).not.toHaveBeenCalled();
-
-    isAuthenticated.mockReturnValue(true);
-    expect(beforeSend('event')?.id).toBe(clientLoginRef);
-    beforeSend('event');
-    expect(identify).toHaveBeenCalledExactlyOnceWith(clientLoginRef);
-
-    isAuthenticated.mockReturnValue(false);
-    expect(beforeSend('event', { id: clientLoginRef })?.id).toBeUndefined();
-    beforeSend('event');
-    expect(identify.mock.calls).toEqual([[clientLoginRef], ['']]);
-
-    isAuthenticated.mockReturnValue(true);
-    getClientLoginRef.mockReturnValue('new-login');
-    expect(beforeSend('event')?.id).toBe('new-login');
-    expect(identify.mock.calls).toEqual([[clientLoginRef], [''], ['new-login']]);
-
-    isAuthenticated.mockReturnValue(false);
-    expect(beforeSend('event', { id: 'new-login' })?.id).toBeUndefined();
-    expect(identify.mock.calls).toEqual([[clientLoginRef], [''], ['new-login'], ['']]);
+    expect(beforeSend('event', { url: `${base}track/123` })).toEqual({
+      url: `${base}track/:id`,
+      data: { track_id: '123' },
+    });
   });
 
-  it.each([undefined, null, {}, { identify: undefined }, { identify: 'unavailable' }])(
-    'tolerates a loaded script without a usable identify API: %j',
-    async (umami) => {
-      vi.stubGlobal('umami', umami);
-      if (umami === undefined) Reflect.deleteProperty(window, 'umami');
+  it.each(['https://external.example/mtl/track/123', '/other/track/123', 'https://[invalid'])(
+    'leaves external, unrelated or invalid URLs unchanged: %s',
+    async (url) => {
       const analytics = await import('@/bootstrap/umamiAnalytics');
       await analytics.startUmamiAnalytics();
-      expect(() => tracker()!.dispatchEvent(new Event('load'))).not.toThrow();
-      expect(beforeSend('event')?.id).toBe(clientLoginRef);
-      expect(identify).not.toHaveBeenCalled();
+      expect(beforeSend('event', { url, referrer: url })).toEqual({ url, referrer: url });
     }
   );
 
@@ -221,35 +221,6 @@ describe('Umami analytics', () => {
     expect(getClientLoginRef).not.toHaveBeenCalled();
     expect(identify).not.toHaveBeenCalled();
   });
-
-  it('never waits for an identify request that does not settle', async () => {
-    identify.mockReturnValue(new Promise(() => {}));
-    const analytics = await import('@/bootstrap/umamiAnalytics');
-    await analytics.startUmamiAnalytics();
-    tracker()!.dispatchEvent(new Event('load'));
-    expect(beforeSend('event')?.id).toBe(clientLoginRef);
-    expect(beforeSend('event', { url: '/mtl/about' })).toEqual({ url: '/mtl/about', id: clientLoginRef });
-    await expect(analytics.startUmamiAnalytics()).resolves.toBeUndefined();
-    expect(identify).toHaveBeenCalledExactlyOnceWith(clientLoginRef);
-  });
-
-  it.each(['throw', 'reject'])(
-    'handles identify %s without blocking pageviews and retries on the next event',
-    async (mode) => {
-      const error = new Error('Tracker unavailable');
-      identify.mockImplementationOnce(() => {
-        if (mode === 'throw') throw error;
-        return Promise.reject(error);
-      });
-      const analytics = await import('@/bootstrap/umamiAnalytics');
-      await analytics.startUmamiAnalytics();
-      expect(beforeSend('event')?.id).toBe(clientLoginRef);
-      await Promise.resolve();
-      expect(console.warn).toHaveBeenCalled();
-      expect(beforeSend('event')?.id).toBe(clientLoginRef);
-      expect(identify).toHaveBeenCalledTimes(2);
-    }
-  );
 
   it('stops identification and payloads if Do Not Track becomes enabled before the tracker loads', async () => {
     const analytics = await import('@/bootstrap/umamiAnalytics');
